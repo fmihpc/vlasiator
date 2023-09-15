@@ -48,8 +48,8 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       // Sidestep mixed case errors
       std::string lowercase = *it;
       for(auto& c : lowercase) c = tolower(c);
-      
-      if(lowercase == "fg_b" || lowercase == "b") { // Bulk magnetic field at Yee-Lattice locations
+
+      if(P::systemWriteAllDROs || lowercase == "fg_b" || lowercase == "b") { // Bulk magnetic field at Yee-Lattice locations
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_b",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
@@ -82,9 +82,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 	 }
 	 ));
          outputReducer->addMetadata(outputReducer->size()-1,"T","$\\mathrm{T}$","$B$","1.0");
-         continue;	 
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "fg_backgroundb" || lowercase == "backgroundb" || lowercase == "fg_b_background") { // Static (typically dipole) magnetic field part
+      if(P::systemWriteAllDROs || lowercase == "fg_backgroundb" || lowercase == "backgroundb" || lowercase == "fg_b_background") { // Static (typically dipole) magnetic field part
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_b_background",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
@@ -114,9 +116,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
          ));
 	 outputReducer->addMetadata(outputReducer->size()-1,"T","$\\mathrm{T}$","$B_\\mathrm{bg}$","1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "fg_perturbedb" || lowercase == "perturbedb" || lowercase == "fg_b_perturbed") { // Fluctuating magnetic field part
+      if(P::systemWriteAllDROs || lowercase == "fg_perturbedb" || lowercase == "perturbedb" || lowercase == "fg_b_perturbed") { // Fluctuating magnetic field part
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_b_perturbed",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
@@ -146,9 +150,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
          ));
 	 outputReducer->addMetadata(outputReducer->size()-1,"T","$\\mathrm{T}$","$B_\\mathrm{per}$","1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "fg_e" || lowercase == "e") { // Bulk electric field at Yee-lattice locations
+      if(P::systemWriteAllDROs || lowercase == "fg_e" || lowercase == "e") { // Bulk electric field at Yee-lattice locations
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_e",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
@@ -178,24 +184,32 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
          ));
 	 outputReducer->addMetadata(outputReducer->size()-1,"V/m","$\\mathrm{V}\\,\\mathrm{m}^{-1}$","$E$","1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "vg_rhom" || lowercase == "rhom") { // Overall mass density (summed over all populations)
+      if(P::systemWriteAllDROs || lowercase == "vg_rhom" || lowercase == "rhom") { // Overall mass density (summed over all populations)
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_rhom",CellParams::RHOM,1));
          outputReducer->addMetadata(outputReducer->size()-1,"kg/m^3","$\\mathrm{kg}\\,\\mathrm{m}^{-3}$","$\\rho_\\mathrm{m}$","1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "vg_drift") { // Nudge velocity drift near ionosphere
+      if(P::systemWriteAllDROs || lowercase == "vg_drift") { // Nudge velocity drift near ionosphere
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_drift",CellParams::BULKV_FORCING_X,3));
          outputReducer->addMetadata(outputReducer->size()-1,"m/s","$\\mathrm{m}\\,\\mathrm{s}^{-1}$","$V$","1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "vg_amr_translate_comm") { // Flag for AMR translation communication
+      if(P::systemWriteAllDROs || lowercase == "vg_amr_translate_comm") { // Flag for AMR translation communication
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_translate_comm",CellParams::AMR_TRANSLATE_COMM_X,3));
 	 outputReducer->addMetadata(outputReducer->size()-1,"","","AMRtranslate","1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "fg_rhom") { // Overall mass density (summed over all populations)
+      if(P::systemWriteAllDROs || lowercase == "fg_rhom") { // Overall mass density (summed over all populations)
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_rhom",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
@@ -223,14 +237,18 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
          ));
 	 outputReducer->addMetadata(outputReducer->size()-1,"kg/m^3","$\\mathrm{kg}\\,\\mathrm{m}^{-3}$","$\\rho_\\mathrm{m}$","1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "vg_rhoq" || lowercase == "rhoq") { // Overall charge density (summed over all populations)
+      if(P::systemWriteAllDROs || lowercase == "vg_rhoq" || lowercase == "rhoq") { // Overall charge density (summed over all populations)
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_rhoq",CellParams::RHOQ,1));
 	 outputReducer->addMetadata(outputReducer->size()-1,"C/m^3","$\\mathrm{C}\\,\\mathrm{m}^{-3}$","$\\rho_\\mathrm{q}$","1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "fg_rhoq") { // Overall charge density (summed over all populations)
+      if(P::systemWriteAllDROs || lowercase == "fg_rhoq") { // Overall charge density (summed over all populations)
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_rhoq",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
@@ -258,24 +276,30 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
          ));
 	 outputReducer->addMetadata(outputReducer->size()-1,"C/m^3","$\\mathrm{C}\\,\\mathrm{m}^{-3}$","$\\rho_\\mathrm{q}$","1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "populations_rho" || lowercase == "populations_vg_rho") { // Per-population particle number density
+      if(P::systemWriteAllDROs || lowercase == "populations_rho" || lowercase == "populations_vg_rho") { // Per-population particle number density
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/vg_rho", i, offsetof(spatial_cell::Population, RHO), 1));
 	    outputReducer->addMetadata(outputReducer->size()-1,"1/m^3","$\\mathrm{m}^{-3}$","$n_\\mathrm{"+pop+"}$","1.0");
          }
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      
-      if(lowercase == "v" || lowercase == "vg_v") { // Overall effective bulk density defining the center-of-mass frame from all populations
+
+      if(P::systemWriteAllDROs || lowercase == "v" || lowercase == "vg_v") { // Overall effective bulk density defining the center-of-mass frame from all populations
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_v",CellParams::VX,3));
 	 outputReducer->addMetadata(outputReducer->size()-1,"m/s","$\\mathrm{m}\\,\\mathrm{s}^{-1}$","$V$","1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "fg_v") { // Overall effective bulk density defining the center-of-mass frame from all populations
+      if(P::systemWriteAllDROs || lowercase == "fg_v") { // Overall effective bulk density defining the center-of-mass frame from all populations
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_v",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
@@ -305,18 +329,22 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
          ));
 	 outputReducer->addMetadata(outputReducer->size()-1,"m/s","$\\mathrm{m}\\,\\mathrm{s}^{-1}$","$V$","1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "populations_v" || lowercase == "populations_vg_v") { // Per population bulk velocities
+      if(P::systemWriteAllDROs || lowercase == "populations_v" || lowercase == "populations_vg_v") { // Per population bulk velocities
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/vg_v", i, offsetof(spatial_cell::Population, V), 3));
 	    outputReducer->addMetadata(outputReducer->size()-1,"m/s","$\\mathrm{m}\\,\\mathrm{s}^{-1}$","$V_\\mathrm{"+pop+"}$","1.0");
          }
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "populations_moments_backstream" || lowercase == "populations_moments_nonthermal" || lowercase == "populations_vg_moments_nonthermal") { // Per-population moments of the backstreaming part
+      if(P::systemWriteAllDROs || lowercase == "populations_moments_backstream" || lowercase == "populations_moments_nonthermal" || lowercase == "populations_vg_moments_nonthermal") { // Per-population moments of the backstreaming part
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
@@ -329,9 +357,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 	    outputReducer->addMetadata(outputReducer->size()-2,"Pa","$\\mathrm{Pa}$","$\\mathcal{P}_\\mathrm{"+pop+",nt}$","1.0");
 	    outputReducer->addMetadata(outputReducer->size()-1,"Pa","$\\mathrm{Pa}$","$\\mathcal{\\tilde{P}}_\\mathrm{"+pop+",nt}$","1.0");
          }
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "populations_moments_nonbackstream" || lowercase == "populations_moments_thermal" || lowercase == "populations_vg_moments_thermal") { // Per-population moments of the non-backstreaming (thermal?) part.
+      if(P::systemWriteAllDROs || lowercase == "populations_moments_nonbackstream" || lowercase == "populations_moments_thermal" || lowercase == "populations_vg_moments_thermal") { // Per-population moments of the non-backstreaming (thermal?) part.
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
@@ -344,9 +374,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 	    outputReducer->addMetadata(outputReducer->size()-2,"Pa","$\\mathrm{Pa}$","$\\mathcal{P}_\\mathrm{"+pop+",th}$","1.0");
 	    outputReducer->addMetadata(outputReducer->size()-1,"Pa","$\\mathrm{Pa}$","$\\mathcal{\\tilde{P}}_\\mathrm{"+pop+",th}$","1.0");
          }
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "populations_minvalue" || lowercase == "populations_effectivesparsitythreshold" || lowercase == "populations_vg_effectivesparsitythreshold") {
+      if(P::systemWriteAllDROs || lowercase == "populations_minvalue" || lowercase == "populations_effectivesparsitythreshold" || lowercase == "populations_vg_effectivesparsitythreshold") {
          // Effective sparsity threshold affecting each cell, if dynamic threshould algorithm is used
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
@@ -354,9 +386,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             outputReducer->addOperator(new DRO::VariableEffectiveSparsityThreshold(i));
 	    outputReducer->addMetadata(outputReducer->size()-1,"s^3/m^6","$\\mathrm{m}^{-6}\\,\\mathrm{s}^{3}$","$f_\\mathrm{"+pop+",min}$","1.0");
          }
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "populations_rholossadjust" || lowercase == "populations_rho_loss_adjust" || lowercase == "populations_vg_rho_loss_adjust") {
+      if(P::systemWriteAllDROs || lowercase == "populations_rholossadjust" || lowercase == "populations_rho_loss_adjust" || lowercase == "populations_vg_rho_loss_adjust") {
          // Accumulated lost particle number, per population, in each cell, since last restart
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
@@ -364,21 +398,27 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/vg_rho_loss_adjust", i, offsetof(spatial_cell::Population, RHOLOSSADJUST), 1));
 	    outputReducer->addMetadata(outputReducer->size()-1,"1/m^3","$\\mathrm{m}^{-3}$","$\\Delta_\\mathrm{loss} n_\\mathrm{"+pop+"}$","1.0");
          }
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "lbweight" || lowercase == "vg_lbweight" || lowercase == "vg_loadbalanceweight" || lowercase == "vg_loadbalance_weight") {
+      if(P::systemWriteAllDROs || lowercase == "lbweight" || lowercase == "vg_lbweight" || lowercase == "vg_loadbalanceweight" || lowercase == "vg_loadbalance_weight") {
          // Load balance metric for LB debugging
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_loadbalance_weight",CellParams::LBWEIGHTCOUNTER,1));
 	 outputReducer->addMetadata(outputReducer->size()-1,"","","$\\mathrm{LB weight}$","");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "maxvdt" || lowercase == "vg_maxdt_acceleration") {
+      if(P::systemWriteAllDROs || lowercase == "maxvdt" || lowercase == "vg_maxdt_acceleration") {
          // Overall maximum timestep constraint as calculated by the velocity space vlasov update
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_maxdt_acceleration",CellParams::MAXVDT,1));
 	 outputReducer->addMetadata(outputReducer->size()-1,"s","$\\mathrm{s}$","$\\Delta t_\\mathrm{V,max}$","1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "populations_maxvdt" || lowercase == "populations_vg_maxdt_acceleration" || lowercase == "populations_maxdt_acceleration") {
+      if(P::systemWriteAllDROs || lowercase == "populations_maxvdt" || lowercase == "populations_vg_maxdt_acceleration" || lowercase == "populations_maxdt_acceleration") {
          // Per-population maximum timestep constraint as calculated by the velocity space vlasov update
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
@@ -386,15 +426,19 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/vg_maxdt_acceleration", i, offsetof(spatial_cell::Population, max_dt[1]), 1));
 	    outputReducer->addMetadata(outputReducer->size()-1,"s","$\\mathrm{s}$","$\\Delta t_\\mathrm{"+pop+",V,max}$","1.0");
          }
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "maxrdt" || lowercase == "vg_maxdt_translation") {
+      if(P::systemWriteAllDROs || lowercase == "maxrdt" || lowercase == "vg_maxdt_translation") {
          // Overall maximum timestep constraint as calculated by the real space vlasov update
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_maxdt_translation",CellParams::MAXRDT,1));
 	 outputReducer->addMetadata(outputReducer->size()-1,"s","$\\mathrm{s}$","$\\Delta t_\\mathrm{R,max}$","1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "populations_maxrdt" || lowercase == "populations_vg_maxdt_translation" || lowercase == "populations_maxdt_translation") {
+      if(P::systemWriteAllDROs || lowercase == "populations_maxrdt" || lowercase == "populations_vg_maxdt_translation" || lowercase == "populations_maxdt_translation") {
          // Per-population maximum timestep constraint as calculated by the real space vlasov update
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
@@ -402,9 +446,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/vg_maxdt_translation", i, offsetof(spatial_cell::Population, max_dt[0]), 1));
 	    outputReducer->addMetadata(outputReducer->size()-1,"s","$\\mathrm{s}$","$\\Delta t_\\mathrm{"+pop+",R,max}$","1.0");
          }
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "populations_energydensity" || lowercase == "populations_vg_energydensity") {
+      if(P::systemWriteAllDROs || lowercase == "populations_energydensity" || lowercase == "populations_vg_energydensity") {
          // Per-population energy density in three energy ranges
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
@@ -414,9 +460,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 	    conversion << (1.0e-6)/physicalconstants::CHARGE;
 	    outputReducer->addMetadata(outputReducer->size()-1,"eV/cm^3","$\\mathrm{eV}\\,\\mathrm{cm}^{-3}$","$U_\\mathrm{"+pop+"}$",conversion.str());
          }
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "populations_precipitationflux" || lowercase == "populations_vg_precipitationdifferentialflux" || lowercase == "populations_precipitationdifferentialflux") {
+      if(P::systemWriteAllDROs || lowercase == "populations_precipitationflux" || lowercase == "populations_vg_precipitationdifferentialflux" || lowercase == "populations_precipitationdifferentialflux") {
          // Per-population precipitation differential flux (within loss cone)
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
@@ -426,9 +474,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 	    conversion << (1.0e-4)*physicalconstants::CHARGE;
 	    outputReducer->addMetadata(outputReducer->size()-1,"1/(cm^2 sr s eV)","$\\mathrm{cm}^{-2}\\,\\mathrm{sr}^{-1}\\,\\mathrm{s}^{-1}\\,\\mathrm{eV}^{-1}$","$\\mathcal{F}_\\mathrm{"+pop+"}$",conversion.str());
          }
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "populations_precipitationlineflux" || lowercase == "populations_vg_precipitationlinedifferentialflux" || lowercase == "populations_precipitationlinedifferentialflux") {
+      if(P::systemWriteAllDROs || lowercase == "populations_precipitationlineflux" || lowercase == "populations_vg_precipitationlinedifferentialflux" || lowercase == "populations_precipitationlinedifferentialflux") {
          // Per-population precipitation differential flux (along line)
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
@@ -438,9 +488,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             conversion << (1.0e-4)*physicalconstants::CHARGE;
             outputReducer->addMetadata(outputReducer->size()-1,"1/(cm^2 sr s eV)","$\\mathrm{cm}^{-2}\\,\\mathrm{sr}^{-1}\\,\\mathrm{s}^{-1}\\,\\mathrm{eV}^{-1}$","$\\mathcal{F}_\\mathrm{"+pop+"}$",conversion.str());
          }
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "populations_heatflux" || lowercase == "populations_vg_heatflux") {
+      if(P::systemWriteAllDROs || lowercase == "populations_heatflux" || lowercase == "populations_vg_heatflux") {
          // Per-population heat flux vector
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
@@ -448,9 +500,24 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             outputReducer->addOperator(new DRO::VariableHeatFluxVector(i));
             outputReducer->addMetadata(outputReducer->size()-1,"W/m^2","$\\mathrm{W}\\,\\mathrm{m}^{-2}$","$q_\\mathrm{"+pop+"}$","1.0");
          }
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "maxfieldsdt" || lowercase == "fg_maxfieldsdt" || lowercase == "fg_maxdt_fieldsolver") {
+      if (lowercase == "populations_nonmaxwellianity" || lowercase == "populations_vg_nonmaxwellianity") {
+         // Per-population dimensionless non-maxwellianity parameter
+         for (unsigned int i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            species::Species& species = getObjectWrapper().particleSpecies[i];
+            const std::string& pop = species.name;
+            outputReducer->addOperator(new DRO::VariableNonMaxwellianity(i));
+            outputReducer->addMetadata(outputReducer->size() - 1, "", "",
+                                       "$\\tilde{\\epsilon}_\\mathrm{M," + pop + "}$", "1.0");
+         }
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
+      }
+      if(P::systemWriteAllDROs || lowercase == "maxfieldsdt" || lowercase == "fg_maxfieldsdt" || lowercase == "fg_maxdt_fieldsolver") {
          // Maximum timestep constraint as calculated by the fieldsolver
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_maxdt_fieldsolver",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
@@ -479,15 +546,19 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
          ));
 	 outputReducer->addMetadata(outputReducer->size()-1,"s","$\\mathrm{s}$","$\\Delta t_\\mathrm{f,max}$","1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "mpirank" || lowercase == "vg_rank") {
+      if(P::systemWriteAllDROs || lowercase == "mpirank" || lowercase == "vg_rank") {
          // Map of spatial decomposition of the DCCRG grid into MPI ranks
          outputReducer->addOperator(new DRO::MPIrank);
 	 outputReducer->addMetadata(outputReducer->size()-1,"","","$\\mathrm{MPI rank}$","");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "fsgridrank" || lowercase == "fg_rank") {
+      if(P::systemWriteAllDROs || lowercase == "fsgridrank" || lowercase == "fg_rank") {
          // Map of spatial decomposition of the FsGrid into MPI ranks
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_rank",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
@@ -507,9 +578,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
              }
          ));
 	 outputReducer->addMetadata(outputReducer->size()-1,"","","$\\mathrm{fGrid rank}$","");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "fg_amr_level") {
+      if(P::systemWriteAllDROs || lowercase == "fg_amr_level") {
          // Map of spatial decomposition of the FsGrid into MPI ranks
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_amr_level",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -539,15 +612,19 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             }
          ));
          outputReducer->addMetadata(outputReducer->size()-1,"","","$\\mathrm{fGrid rank}$","");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "boundarytype" || lowercase == "vg_boundarytype") {
+      if(P::systemWriteAllDROs || lowercase == "boundarytype" || lowercase == "vg_boundarytype") {
          // Type of boundarycells
          outputReducer->addOperator(new DRO::BoundaryType);
 	 outputReducer->addMetadata(outputReducer->size()-1,"","","$\\mathrm{vGrid Boundary type}$","");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "fsgridboundarytype" || lowercase == "fg_boundarytype") {
+      if(P::systemWriteAllDROs || lowercase == "fsgridboundarytype" || lowercase == "fg_boundarytype") {
          // Type of boundarycells as stored in FSGrid
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_boundarytype",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
@@ -576,15 +653,19 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
          ));
 	 outputReducer->addMetadata(outputReducer->size()-1,"","","$\\mathrm{fGrid Boundary type}$","");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "boundarylayer" || lowercase == "vg_boundarylayer") {
+      if(P::systemWriteAllDROs || lowercase == "boundarylayer" || lowercase == "vg_boundarylayer") {
          // For boundaries with multiple layers: layer count per cell
          outputReducer->addOperator(new DRO::BoundaryLayer);
 	 outputReducer->addMetadata(outputReducer->size()-1,"","","$\\mathrm{vGrid Boundary layer}$","");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "fsgridboundarylayer" || lowercase == "fg_boundarylayer") {
+      if(P::systemWriteAllDROs || lowercase == "fsgridboundarylayer" || lowercase == "fg_boundarylayer") {
          // Type of boundarycells as stored in FSGrid
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_boundarylayer",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
@@ -613,9 +694,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
          ));
 	 outputReducer->addMetadata(outputReducer->size()-1,"","","$\\mathrm{fGrid Boundary layer}$","");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "populations_blocks" || lowercase == "populations_vg_blocks") {
+      if(P::systemWriteAllDROs || lowercase == "populations_blocks" || lowercase == "populations_vg_blocks") {
          // Per-population velocity space block counts
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
@@ -623,15 +706,19 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             outputReducer->addOperator(new DRO::Blocks(i));
 	    outputReducer->addMetadata(outputReducer->size()-1,"","","$\\mathrm{"+pop+" blocks}$","");
          }
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "fsaved" || lowercase == "vg_fsaved" || lowercase == "vg_f_saved") {
+      if(P::systemWriteAllDROs || lowercase == "fsaved" || lowercase == "vg_fsaved" || lowercase == "vg_f_saved") {
          // Boolean marker whether a velocity space is saved in a given spatial cell
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_f_saved",CellParams::ISCELLSAVINGF,1));
 	 outputReducer->addMetadata(outputReducer->size()-1,"","","$f(v)_\\mathrm{saved}$","");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "populations_accsubcycles" || lowercase == "populations_acceleration_subcycles" || lowercase == "populations_vg_acceleration_subcycles") {
+      if(P::systemWriteAllDROs || lowercase == "populations_accsubcycles" || lowercase == "populations_acceleration_subcycles" || lowercase == "populations_vg_acceleration_subcycles") {
          // Per-population number of subcycles performed for velocity space update
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
@@ -639,15 +726,19 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<uint>(pop + "/vg_acceleration_subcycles", i, offsetof(spatial_cell::Population, ACCSUBCYCLES), 1));
 	    outputReducer->addMetadata(outputReducer->size()-1,"","","$\\mathrm{"+pop+" Acc subcycles}$","");
          }
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "vole" || lowercase == "vg_vole" || lowercase == "evol" || lowercase == "vg_e_vol" || lowercase == "e_vol") {
+      if(P::systemWriteAllDROs || lowercase == "vole" || lowercase == "vg_vole" || lowercase == "evol" || lowercase == "vg_e_vol" || lowercase == "e_vol") {
          // Volume-averaged E field
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_e_vol",CellParams::EXVOL,3));
 	 outputReducer->addMetadata(outputReducer->size()-1,"V/m","$\\mathrm{V}\\,\\mathrm{m}^{-1}$","$E_\\mathrm{vol,vg}$","1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "fg_vole" || lowercase == "fg_e_vol" || lowercase == "fg_evol") {
+      if(P::systemWriteAllDROs || lowercase == "fg_vole" || lowercase == "fg_e_vol" || lowercase == "fg_evol") {
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_e_vol",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
@@ -677,9 +768,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
          ));
 	 outputReducer->addMetadata(outputReducer->size()-1,"V/m","$\\mathrm{V}\\,\\mathrm{m}^{-1}$","$E_\\mathrm{vol,fg}$","1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "halle" || lowercase == "fg_halle" || lowercase == "fg_e_hall") {
+      if(P::systemWriteAllDROs || lowercase == "halle" || lowercase == "fg_halle" || lowercase == "fg_e_hall") {
          for(int index=0; index<fsgrids::N_EHALL; index++) {
             std::string reducer_name = "fg_e_hall_" + std::to_string(index);
             outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(reducer_name,[index](
@@ -710,21 +803,27 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             ));
 	    outputReducer->addMetadata(outputReducer->size()-1,"V/m","$\\mathrm{V}\\,\\mathrm{m}^{-1}$","$E_\\mathrm{Hall,"+std::to_string(index)+"}$","1.0");
          }
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase =="gradpee" || lowercase == "e_gradpe" || lowercase == "vg_e_gradpe") {
+      if(P::systemWriteAllDROs || lowercase =="gradpee" || lowercase == "e_gradpe" || lowercase == "vg_e_gradpe") {
          // Electron pressure gradient contribution to the generalized ohm's law
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_e_gradpe",CellParams::EXGRADPE,3));
 	 outputReducer->addMetadata(outputReducer->size()-1,"V/m","$\\mathrm{V}\\,\\mathrm{m}^{-1}$","$E_{\\nabla P_\\mathrm{e}}$","1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "volb" || lowercase == "vg_volb" || lowercase == "b_vol" || lowercase == "bvol" || lowercase == "vg_bvol" || lowercase == "vg_b_vol") {
+      if(P::systemWriteAllDROs || lowercase == "volb" || lowercase == "vg_volb" || lowercase == "b_vol" || lowercase == "bvol" || lowercase == "vg_bvol" || lowercase == "vg_b_vol") {
          // Volume-averaged magnetic field
          outputReducer->addOperator(new DRO::VariableBVol);
 	 outputReducer->addMetadata(outputReducer->size()-1,"T","$\\mathrm{T}$","$B_\\mathrm{vol,vg}$","1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "fg_volb" || lowercase == "fg_bvol" || lowercase == "fg_b_vol") { // Static (typically dipole) magnetic field part
+      if(P::systemWriteAllDROs || lowercase == "fg_volb" || lowercase == "fg_bvol" || lowercase == "fg_b_vol") { // Static (typically dipole) magnetic field part
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_b_vol",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
@@ -757,25 +856,33 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
          ));
 	 outputReducer->addMetadata(outputReducer->size()-1,"T","$\\mathrm{T}$","$B_\\mathrm{vol,fg}$","1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "backgroundvolb" || lowercase == "vg_b_background_vol") {
+      if(P::systemWriteAllDROs || lowercase == "backgroundvolb" || lowercase == "vg_b_background_vol") {
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_b_background_vol",CellParams::BGBXVOL,3));
 	 outputReducer->addMetadata(outputReducer->size()-1,"T","$\\mathrm{T}$","$B_\\mathrm{vol,vg,bg}$","1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "perturbedvolb" || lowercase == "vg_b_perturbed_vol") {
+      if(P::systemWriteAllDROs || lowercase == "perturbedvolb" || lowercase == "vg_b_perturbed_vol") {
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_b_perturbed_vol",CellParams::PERBXVOL,3));
 	 outputReducer->addMetadata(outputReducer->size()-1,"T","$\\mathrm{T}$","$B_\\mathrm{vol,vg,per}$","1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "pressure" || lowercase == "vg_pressure") {
+      if(P::systemWriteAllDROs || lowercase == "pressure" || lowercase == "vg_pressure") {
          // Overall scalar pressure from all populations
          outputReducer->addOperator(new DRO::VariablePressureSolver);
 	 outputReducer->addMetadata(outputReducer->size()-1,"Pa","$\\mathrm{Pa}$","$P_\\mathrm{solver}$","1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "fg_pressure") {
+      if(P::systemWriteAllDROs || lowercase == "fg_pressure") {
          // Overall scalar pressure from all populations
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_pressure",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
@@ -805,9 +912,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
          ));
 	 outputReducer->addMetadata(outputReducer->size()-1,"Pa","$\\mathrm{Pa}$","$P_\\mathrm{fg}$","1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "populations_ptensor" || lowercase == "populations_vg_ptensor") {
+      if(P::systemWriteAllDROs || lowercase == "populations_ptensor" || lowercase == "populations_vg_ptensor") {
          // Per-population pressure tensor, stored as diagonal and offdiagonal components
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
@@ -817,9 +926,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             outputReducer->addOperator(new DRO::VariablePTensorOffDiagonal(i));
 	    outputReducer->addMetadata(outputReducer->size()-1,"Pa","$\\mathrm{Pa}$","$\\mathcal{\\tilde{P}}_\\mathrm{"+pop+"}$","1.0");
          }
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "bvolderivs" || lowercase == "b_vol_derivs" || lowercase == "b_vol_derivatives" || lowercase == "vg_b_vol_derivatives" || lowercase == "derivs") {
+      if(P::systemWriteAllDROs || lowercase == "bvolderivs" || lowercase == "b_vol_derivs" || lowercase == "b_vol_derivatives" || lowercase == "vg_b_vol_derivatives" || lowercase == "derivs") {
          // Volume-averaged derivatives
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("vg_dperbxvoldx",bvolderivatives::dPERBXVOLdx,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("vg_dperbxvoldy",bvolderivatives::dPERBXVOLdy,1));
@@ -839,12 +950,14 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 	 outputReducer->addMetadata(outputReducer->size()-3,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$\\Delta B_{Z,\\mathrm{per,vol,vg}} (\\Delta X)^{-1}$","1.0");
 	 outputReducer->addMetadata(outputReducer->size()-2,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$\\Delta B_{Z,\\mathrm{per,vol,vg}} (\\Delta Y)^{-1}$","1.0");
 	 outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$\\Delta B_{Z,\\mathrm{per,vol,vg}} (\\Delta Z)^{-1}$","1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
 
 
 
-      if(lowercase == "fg_derivs") {
+      if(P::systemWriteAllDROs || lowercase == "fg_derivs") {
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dperbxdy",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
@@ -2412,10 +2525,12 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
          ));
 
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
 
-      if(lowercase == "vg_gridcoordinates") {
+      if(P::systemWriteAllDROs || lowercase == "vg_gridcoordinates") {
          // Spatial coordinates for each cell
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_x",CellParams::XCRD,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_y",CellParams::YCRD,1));
@@ -2429,9 +2544,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 	 outputReducer->addMetadata(outputReducer->size()-3,"m","$\\mathrm{m}$","$\\delta X_\\mathrm{vg}$","1.0");
 	 outputReducer->addMetadata(outputReducer->size()-2,"m","$\\mathrm{m}$","$\\delta Y_\\mathrm{vg}$","1.0");
 	 outputReducer->addMetadata(outputReducer->size()-1,"m","$\\mathrm{m}$","$\\delta Z_\\mathrm{vg}$","1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "fg_gridcoordinates") { 
+      if(P::systemWriteAllDROs || lowercase == "fg_gridcoordinates") {
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_x",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
@@ -2567,53 +2684,71 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
          ));
          outputReducer->addMetadata(outputReducer->size()-1,"m","$\\mathrm{m}$","$\\delta Z_\\mathrm{fg}$","1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "vg_amr_drho") {
+      if(P::systemWriteAllDROs || lowercase == "vg_amr_drho") {
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_drho",CellParams::AMR_DRHO,1));
          outputReducer->addMetadata(outputReducer->size()-1,"","","$\\frac{\\Delta \\rho}{\\hat{rho}}$","");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "vg_amr_du") {
+      if(P::systemWriteAllDROs || lowercase == "vg_amr_du") {
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_du",CellParams::AMR_DU,1));
          outputReducer->addMetadata(outputReducer->size()-1,"","","$\\frac{\\Delta U_1}{\\hat{U}_1}$","");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "vg_amr_dpsq") {
+      if(P::systemWriteAllDROs || lowercase == "vg_amr_dpsq") {
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_dpsq",CellParams::AMR_DPSQ,1));
          outputReducer->addMetadata(outputReducer->size()-1,"","","$\\frac{(\\Delta P)^2}{2 \\rho \\hat{U}_1}$","");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "vg_amr_dbsq") {
+      if(P::systemWriteAllDROs || lowercase == "vg_amr_dbsq") {
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_dbsq",CellParams::AMR_DBSQ,1));
          outputReducer->addMetadata(outputReducer->size()-1,"","","$\\frac{(\\Delta B_1)^2}{2 \\mu_0 \\hat{U}_1}$","");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "vg_amr_db") {
+      if(P::systemWriteAllDROs || lowercase == "vg_amr_db") {
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_db",CellParams::AMR_DB,1));
          outputReducer->addMetadata(outputReducer->size()-1,"","","$\\frac{|\\Delta B_1|}{\\hat{B}_1}$","");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "vg_amr_alpha") {
+      if(P::systemWriteAllDROs || lowercase == "vg_amr_alpha") {
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_alpha",CellParams::AMR_ALPHA,1));
          outputReducer->addMetadata(outputReducer->size()-1,"","","$\\alpha$","");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "vg_amr_reflevel") {
+      if(P::systemWriteAllDROs || lowercase == "vg_amr_reflevel") {
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_reflevel",CellParams::REFINEMENT_LEVEL,1));
          outputReducer->addMetadata(outputReducer->size()-1,"","","ref","");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "vg_amr_jperb") {
+      if(P::systemWriteAllDROs || lowercase == "vg_amr_jperb") {
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_jperb",CellParams::AMR_JPERB,1));
          outputReducer->addMetadata(outputReducer->size()-1,"1/m","m^{-1}","J/B_{\\perp}","");
          outputReducer->addOperator(new DRO::JPerBModifier());
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "ig_latitude") {
+      if(P::systemWriteAllDROs || lowercase == "ig_latitude") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_latitude", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.nodes.size());
 
                      for(uint i=0; i<grid.nodes.size(); i++) {
@@ -2626,9 +2761,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      return retval;
                   }));
          outputReducer->addMetadata(outputReducer->size()-1, "Degrees", "$^\\circ$", "L", "");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "ig_chi0") {
+      if(P::systemWriteAllDROs || lowercase == "ig_chi0") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_chi0", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
 
@@ -2647,12 +2784,14 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      return retval;
                   }));
          outputReducer->addMetadata(outputReducer->size()-1, "arb.unit.", "", "Chi0", "");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "ig_cellarea") {
+      if(P::systemWriteAllDROs || lowercase == "ig_cellarea") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereElement("ig_cellarea", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.elements.size());
 
                      for(uint i=0; i<grid.elements.size(); i++) {
@@ -2662,12 +2801,14 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      return retval;
                      }));
          outputReducer->addMetadata(outputReducer->size()-1, "m^2", "$\\mathrm{m}^2$", "$A_m$", "1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "ig_b") {
+      if(P::systemWriteAllDROs || lowercase == "ig_b") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_b", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.nodes.size()*3);
 
                      for(uint i=0; i<grid.nodes.size(); i++) {
@@ -2679,13 +2820,15 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      return retval;
                      }));
          outputReducer->addMetadata(outputReducer->size()-1, "T", "$\\mathrm{T}$", "$B$", "1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
 
-      if(lowercase == "ig_e") {
+      if(P::systemWriteAllDROs || lowercase == "ig_e") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereElement("ig_e", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.elements.size()*3);
 
                      for(uint i=0; i<grid.elements.size(); i++) {
@@ -2711,12 +2854,14 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      return retval;
                      }));
          outputReducer->addMetadata(outputReducer->size()-1, "V/m", "$\\mathrm{V/m}$", "$E$", "1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "ig_inplanecurrent") {
+      if(P::systemWriteAllDROs || lowercase == "ig_inplanecurrent") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereElement("ig_inplanecurrent", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.elements.size()*3);
 
                      for(uint i=0; i<grid.elements.size(); i++) {
@@ -2753,27 +2898,31 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      return retval;
                      }));
          outputReducer->addMetadata(outputReducer->size()-1, "A/m^2", "$\\mathrm{A/m}^2$", "$J$", "1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "ig_upmappedarea") {
+      if(P::systemWriteAllDROs || lowercase == "ig_upmappedarea") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereElement("ig_upmappedarea", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.elements.size()*3);
 
                      for(uint i=0; i<grid.elements.size(); i++) {
                         std::array<Real, 3> area = grid.mappedElementArea(i);
-                        retval[3*i] = area[0]; 
-                        retval[3*i+1] = area[1]; 
-                        retval[3*i+2] = area[2]; 
+                        retval[3*i] = area[0];
+                        retval[3*i+1] = area[1];
+                        retval[3*i+2] = area[2];
                      }
 
                      return retval;
                      }));
          outputReducer->addMetadata(outputReducer->size()-1, "m^2", "$\\mathrm{m}^2$", "$A_m$", "1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "ig_sigmap") {
+      if(P::systemWriteAllDROs || lowercase == "ig_sigmap") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_sigmap", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
 
@@ -2786,9 +2935,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      return retval;
                      }));
          outputReducer->addMetadata(outputReducer->size()-1, "mho", "$\\mathrm{\\Omega^{-1}}$", "$\\Sigma_P$", "1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "ig_sigmah") {
+      if(P::systemWriteAllDROs || lowercase == "ig_sigmah") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_sigmah", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
 
@@ -2801,9 +2952,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      return retval;
                      }));
          outputReducer->addMetadata(outputReducer->size()-1, "mho", "$\\mathrm{\\Omega^{-1}}$", "$\\Sigma_H$", "1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "ig_sigmaparallel") {
+      if(P::systemWriteAllDROs || lowercase == "ig_sigmaparallel") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_sigmaparallel", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
 
@@ -2816,9 +2969,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      return retval;
                      }));
          outputReducer->addMetadata(outputReducer->size()-1, "mho", "$\\mathrm{\\Omega^{-1}}$", "$\\Sigma_\\parallel$", "1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "ig_rhon") {
+      if(P::systemWriteAllDROs || lowercase == "ig_rhon") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_rhon", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
 
@@ -2831,9 +2986,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      return retval;
                      }));
          outputReducer->addMetadata(outputReducer->size()-1, "kg m^-3", "$\\mathrm{kg m^{-3}}$", "$\\rho_m$", "1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "ig_electrontemp") {
+      if(P::systemWriteAllDROs || lowercase == "ig_electrontemp") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_electrontemp", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
 
@@ -2846,9 +3003,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      return retval;
                      }));
          outputReducer->addMetadata(outputReducer->size()-1, "K", "$\\mathrm{K}$", "$T_e$", "1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "ig_deltaphi") {
+      if(P::systemWriteAllDROs || lowercase == "ig_deltaphi") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_deltaphi", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
 
@@ -2861,9 +3020,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      return retval;
                      }));
          outputReducer->addMetadata(outputReducer->size()-1, "eV", "$\\mathrm{eV}$", "$\\Delta\\Phi$", "1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "ig_precipitation") {
+      if(P::systemWriteAllDROs || lowercase == "ig_precipitation") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_precipitation", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
 
@@ -2876,9 +3037,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      return retval;
                      }));
          outputReducer->addMetadata(outputReducer->size()-1, "W/m^2", "$\\mathrm{W m^{-2}}$", "$W_\\mathrm{precipitation}$", "1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "ig_precipnumflux") {
+      if(P::systemWriteAllDROs || lowercase == "ig_precipnumflux") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_precipnumflux", [](SBC::SphericalTriGrid& grid)->std::vector<Real> {
 
                      std::array< Real, SBC::productionNumParticleEnergies+1 > particle_energy;
@@ -2906,9 +3069,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      return retval;
                      }));
          outputReducer->addMetadata(outputReducer->size()-1, "1/m^2/s", "$m^{-2} s^{-1}$", "$\\bar{F}_\\mathrm{precip}$", "1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "ig_precipavgenergy") {
+      if(P::systemWriteAllDROs || lowercase == "ig_precipavgenergy") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_precipavgenergy", [](SBC::SphericalTriGrid& grid)->std::vector<Real> {
 
                      std::array< Real, SBC::productionNumParticleEnergies+1 > particle_energy;
@@ -2944,12 +3109,14 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      return retval;
                      }));
          outputReducer->addMetadata(outputReducer->size()-1, "eV", "eV", "$\\bar{E}_\\mathrm{precip}$", "1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "ig_potential") {
+      if(P::systemWriteAllDROs || lowercase == "ig_potential") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_potential", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.nodes.size());
 
                      for(uint i=0; i<grid.nodes.size(); i++) {
@@ -2959,9 +3126,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      return retval;
                      }));
          outputReducer->addMetadata(outputReducer->size()-1, "V", "$\\mathrm{V}$", "$\\phi_I$", "1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "ig_solverinternals") {
+      if(P::systemWriteAllDROs || lowercase == "ig_solverinternals") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_source", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
 
@@ -2986,7 +3155,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      }));
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_p", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.nodes.size());
 
                      for(uint i=0; i<grid.nodes.size(); i++) {
@@ -2997,7 +3166,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      }));
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_pp", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.nodes.size());
 
                      for(uint i=0; i<grid.nodes.size(); i++) {
@@ -3008,7 +3177,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      }));
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_z", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.nodes.size());
 
                      for(uint i=0; i<grid.nodes.size(); i++) {
@@ -3019,7 +3188,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      }));
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_zz", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.nodes.size());
 
                      for(uint i=0; i<grid.nodes.size(); i++) {
@@ -3029,12 +3198,14 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      return retval;
                      }));
 
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "ig_upmappednodecoords") {
+      if(P::systemWriteAllDROs || lowercase == "ig_upmappednodecoords") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_upmappednodecoords", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.nodes.size()*3);
 
                      for(uint i=0; i<grid.nodes.size(); i++) {
@@ -3046,12 +3217,14 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      return retval;
                      }));
          outputReducer->addMetadata(outputReducer->size()-1, "m", "m", "$x_\\mathrm{mapped}$", "1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "ig_upmappedb") {
+      if(P::systemWriteAllDROs || lowercase == "ig_upmappedb") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_upmappedb", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.nodes.size()*3);
 
                      for(uint i=0; i<grid.nodes.size(); i++) {
@@ -3063,27 +3236,31 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      return retval;
                      }));
          outputReducer->addMetadata(outputReducer->size()-1, "T", "T", "$B_\\mathrm{mapped}$", "1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "ig_openclosed") {
+      if(P::systemWriteAllDROs || lowercase == "ig_openclosed") {
          FieldTracing::fieldTracingParameters.doTraceOpenClosed = true;
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_openclosed", [](
             SBC::SphericalTriGrid& grid)->std::vector<Real> {
-               
+
                std::vector<Real> retval(grid.nodes.size());
-               
+
                for(uint i=0; i<grid.nodes.size(); i++) {
                   retval[i] = (Real)grid.nodes[i].openFieldLine;
                }
-               
+
                return retval;
             }));
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "ig_fac") {
+      if(P::systemWriteAllDROs || lowercase == "ig_fac") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_fac", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.nodes.size());
 
                      for(uint i=0; i<grid.nodes.size(); i++) {
@@ -3098,9 +3275,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      return retval;
                      }));
          outputReducer->addMetadata(outputReducer->size()-1, "A/m^2", "$\\mathrm{A m}^{-2}$", "$I_\\mathrm{FAC}$", "1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "vg_ionospherecoupling") {
+      if(P::systemWriteAllDROs || lowercase == "vg_ionospherecoupling") {
          outputReducer->addOperator(new DRO::DataReductionOperatorMPIGridCell("vg_ionospherecoupling", 3, [](
                      const SpatialCell* cell)->std::vector<Real> {
 
@@ -3131,25 +3310,31 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                   return retval;
 			}));
          outputReducer->addMetadata(outputReducer->size()-1, "m", "m", "$x_\\mathrm{coupled}$", "1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "vg_connection") {
+      if(P::systemWriteAllDROs || lowercase == "vg_connection") {
          FieldTracing::fieldTracingParameters.doTraceFullBox = true;
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_connection",CellParams::CONNECTION,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_connection_coordinates_fw",CellParams::CONNECTION_FW_X,3));
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_connection_coordinates_bw",CellParams::CONNECTION_BW_X,3));
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "vg_fluxrope" || lowercase == "vg_curvature") {
+      if(P::systemWriteAllDROs || lowercase == "vg_fluxrope" || lowercase == "vg_curvature") {
          Parameters::computeCurvature = true;
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_curvature",CellParams::CURVATUREX,3));
-         if(lowercase == "vg_fluxrope") {
+         if(P::systemWriteAllDROs || lowercase == "vg_fluxrope") {
             FieldTracing::fieldTracingParameters.doTraceFullBox = true;
             outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_fluxrope",CellParams::FLUXROPE,1));
          }
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "fg_curvature") {
+      if(P::systemWriteAllDROs || lowercase == "fg_curvature") {
          Parameters::computeCurvature = true;
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_curvature",[](
             FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
@@ -3162,10 +3347,10 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
             FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
             FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
-               
+
                std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
-               
+
                for(int z=0; z<gridSize[2]; z++) {
                   for(int y=0; y<gridSize[1]; y++) {
                      for(int x=0; x<gridSize[0]; x++) {
@@ -3178,7 +3363,12 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                return retval;
             }
          ));
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
+      }
+      if(P::systemWriteAllDROs) {
+         break; // from the loop
       }
       // After all the continue; statements one should never land here.
       int myRank;
@@ -3198,74 +3388,95 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       std::string lowercase = *it;
       for(auto& c : lowercase) c = tolower(c);
 
-      if(lowercase == "populations_blocks" || lowercase == "populations_vg_blocks") {
+      if(P::diagnosticWriteAllDROs || lowercase == "populations_blocks" || lowercase == "populations_vg_blocks") {
          // Per-population total block counts
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             diagnosticReducer->addOperator(new DRO::Blocks(i));
          }
-         continue;
+         if(!P::diagnosticWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "vg_rhom" || lowercase == "rhom") {
+      if(P::diagnosticWriteAllDROs || lowercase == "vg_rhom" || lowercase == "rhom") {
          // Overall mass density
          diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_rhom",CellParams::RHOM,1));
-         continue;
+         if(!P::diagnosticWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "populations_rholossadjust" || lowercase == "populations_rho_loss_adjust" || lowercase == "populations_vg_rho_loss_adjust") {
+      if(P::diagnosticWriteAllDROs || lowercase == "populations_rholossadjust" || lowercase == "populations_rho_loss_adjust" || lowercase == "populations_vg_rho_loss_adjust") {
          // Per-particle overall lost particle number
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
             diagnosticReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/vg_rho_loss_adjust", i, offsetof(spatial_cell::Population, RHOLOSSADJUST), 1));
          }
-         continue;
+         if(!P::diagnosticWriteAllDROs) {
+            continue;
+         }
       }
-      //if(lowercase == "rholossvelboundary") {
-      //   diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("rho_loss_velocity_boundary",CellParams::RHOLOSSVELBOUNDARY,1));
-      //   continue;
-      //}
-      if(lowercase == "lbweight" || lowercase == "vg_lbweight" || lowercase == "vg_loadbalanceweight" || lowercase == "vg_loadbalance_weight" || lowercase == "loadbalance_weight") {
+      if(P::diagnosticWriteAllDROs || lowercase == "lbweight" || lowercase == "vg_lbweight" || lowercase == "vg_loadbalanceweight" || lowercase == "vg_loadbalance_weight" || lowercase == "loadbalance_weight") {
          diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_loadbalance_weight",CellParams::LBWEIGHTCOUNTER,1));
-         continue;
+         if(!P::diagnosticWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "maxvdt" || lowercase == "maxdt_acceleration" || lowercase == "vg_maxdt_acceleration") {
+      if(P::diagnosticWriteAllDROs || lowercase == "maxvdt" || lowercase == "maxdt_acceleration" || lowercase == "vg_maxdt_acceleration") {
          diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_maxdt_acceleration",CellParams::MAXVDT,1));
-         continue;
+         if(!P::diagnosticWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "maxrdt" || lowercase == "maxdt_translation" || lowercase == "vg_maxdt_translation") {
+      if(P::diagnosticWriteAllDROs || lowercase == "maxrdt" || lowercase == "maxdt_translation" || lowercase == "vg_maxdt_translation") {
          diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_maxdt_translation",CellParams::MAXRDT,1));
-         continue;
+         if(!P::diagnosticWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "maxfieldsdt" || lowercase == "maxdt_fieldsolver" || lowercase == "fg_maxfieldsdt" || lowercase == "fg_maxdt_fieldsolver") {
+      if(P::diagnosticWriteAllDROs || lowercase == "maxfieldsdt" || lowercase == "maxdt_fieldsolver" || lowercase == "fg_maxfieldsdt" || lowercase == "fg_maxdt_fieldsolver") {
          diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("fg_maxdt_fieldsolver",CellParams::MAXFDT,1));
-         continue;
+         if(!P::diagnosticWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "populations_maxdistributionfunction" || lowercase == "populations_vg_maxdistributionfunction") {
+      if(P::diagnosticWriteAllDROs || lowercase == "populations_maxdistributionfunction" || lowercase == "populations_vg_maxdistributionfunction") {
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             diagnosticReducer->addOperator(new DRO::MaxDistributionFunction(i));
          }
-         continue;
+         if(!P::diagnosticWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "populations_mindistributionfunction" || lowercase == "populations_vg_mindistributionfunction") {
+      if(P::diagnosticWriteAllDROs || lowercase == "populations_mindistributionfunction" || lowercase == "populations_vg_mindistributionfunction") {
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             diagnosticReducer->addOperator(new DRO::MinDistributionFunction(i));
          }
-         continue;
+         if(!P::diagnosticWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "populations_maxrdt" || lowercase == "populations_maxdt_translation" || lowercase == "populations_vg_maxdt_translation") {
+      if(P::diagnosticWriteAllDROs || lowercase == "populations_maxrdt" || lowercase == "populations_maxdt_translation" || lowercase == "populations_vg_maxdt_translation") {
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
             diagnosticReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/vg_maxdt_translation", i, offsetof(spatial_cell::Population, max_dt[0]), 1));
          }
-         continue;
+         if(!P::diagnosticWriteAllDROs) {
+            continue;
+         }
       }
-      if(lowercase == "populations_maxvdt" || lowercase == "populations_maxdt_acceleration" || lowercase == "populations_vg_maxdt_acceleration") {
+      if(P::diagnosticWriteAllDROs || lowercase == "populations_maxvdt" || lowercase == "populations_maxdt_acceleration" || lowercase == "populations_vg_maxdt_acceleration") {
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
             diagnosticReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/vg_maxdt_acceleration", i, offsetof(spatial_cell::Population, max_dt[1]), 1));
          }
-         continue;
+         if(!P::diagnosticWriteAllDROs) {
+            continue;
+         }
+      }
+      if(P::diagnosticWriteAllDROs) {
+         break; // from the loop
       }
       // After all the continue; statements one should never land here.
       int myRank;
@@ -3286,7 +3497,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
  */
 DataReducer::DataReducer() { }
 
-/** Destructor for class DataReducer. All stored DataReductionOperators 
+/** Destructor for class DataReducer. All stored DataReductionOperators
  * are deleted.
  */
 DataReducer::~DataReducer() {
@@ -3297,7 +3508,7 @@ DataReducer::~DataReducer() {
    }
 }
 
-/** Add a new DRO::DataReductionOperator which has been created with new operation. 
+/** Add a new DRO::DataReductionOperator which has been created with new operation.
  * DataReducer will take care of deleting it.
  * @return If true, the given DRO::DataReductionOperator was added successfully.
  */
@@ -3330,7 +3541,7 @@ bool DataReducer::getDataVectorInfo(const unsigned int& operatorID,std::string& 
    return operators[operatorID]->getDataVectorInfo(dataType,dataSize,vectorSize);
 }
 
-/** Add a metadata to the specified DRO::DataReductionOperator. 
+/** Add a metadata to the specified DRO::DataReductionOperator.
  * @param operatorID ID number of the DataReductionOperator to add metadata to
  * @param unit string with the physical unit of the DRO result
  * @param unitLaTeX LaTeX-formatted string with the physical unit of the DRO result
@@ -3388,7 +3599,7 @@ bool DataReducer::reduceDiagnostic(const SpatialCell* cell,const unsigned int& o
    // Tell the chosen operator which spatial cell we are counting:
    if (operatorID >= operators.size()) return false;
    if (operators[operatorID]->setSpatialCell(cell) == false) return false;
-   
+
    if (operators[operatorID]->reduceDiagnostic(cell,result) == false) return false;
    return true;
 }
@@ -3426,7 +3637,7 @@ bool DataReducer::writeFsGridData(
                       const std::string& meshName, const unsigned int operatorID,
                       vlsv::Writer& vlsvWriter,
                       const bool writeAsFloat) {
-   
+
    if (operatorID >= operators.size()) return false;
    DRO::DataReductionOperatorFsGrid* DROf = dynamic_cast<DRO::DataReductionOperatorFsGrid*>(operators[operatorID]);
    if(!DROf) {
@@ -3450,5 +3661,5 @@ bool DataReducer::writeIonosphereGridData(
    } else {
       return false;
    }
-   
+
 }

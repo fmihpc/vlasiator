@@ -490,9 +490,9 @@ inline void compute_filtered_face_values_nonuniform_conserving(const Vec * const
    }
 
    //check for extrema
-   Vecb is_extrema = (slope_abs == Vec(0.0));
-   Vecb filter_l = (values[k - 1] - fv_l) * (fv_l - values[k]) < 0 ;
-   Vecb filter_r = (values[k + 1] - fv_r) * (fv_r - values[k]) < 0;
+   //Vecb is_extrema = (slope_abs == Vec(0.0));
+   //Vecb filter_l = (values[k - 1] - fv_l) * (fv_l - values[k]) < 0 ;
+   //Vecb filter_r = (values[k + 1] - fv_r) * (fv_r - values[k]) < 0;
    //  if(horizontal_or(is_extrema) || horizontal_or(filter_l) || horizontal_or(filter_r)) {
    // Colella & Sekora, eq. 20
    if(horizontal_or((fv_r - values[k]) * (values[k] - fv_l) <= Vec(0.0))
