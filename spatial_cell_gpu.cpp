@@ -1983,7 +1983,9 @@ namespace spatial_cell {
       CHK_ERR( gpuPeekAtLastError() );
       CHK_ERR( gpuStreamSynchronize(stream) ); // This sync is required!
       phiprof::stop("GPU update spatial cell block lists kernel");
-
+      stringstream ss;
+      ss<<" Updated VBC lists: "<<velocity_block_with_content_list->size()<<" and "<<velocity_block_with_no_content_list->size()<<std::endl;
+      std::cerr<<ss.str();
       // Note: Content list is not uploaded to device-only buffer here, but rather
       // in grid.cpp adjustVelocityBlocks()
       phiprof::stop("GPU update spatial cell block lists");
