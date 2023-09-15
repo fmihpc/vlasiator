@@ -10,7 +10,8 @@
 // Pointers to MeshWrapper objects
 static vmesh::MeshWrapper *meshWrapper;
 #ifdef USE_GPU
-__device__ __constant__ vmesh::MeshWrapper *meshWrapperDev;
+//__device__ __constant__ vmesh::MeshWrapper *meshWrapperDev;
+__device__ vmesh::MeshWrapper *meshWrapperDev;
 
 __global__ void debug_kernel(
    const uint popID
