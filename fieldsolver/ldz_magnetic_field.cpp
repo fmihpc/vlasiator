@@ -319,6 +319,7 @@ void propagateMagneticFieldSimple(
       //phiprof::stop(timer,N_cells,"Spatial Cells");
       phiprof::stop("Compute system boundary cells");
    }
+
    phiprof::stop(timer,N_cells,"Spatial Cells");
    
    phiprof::stop("Propagate magnetic field",N_cells,"Spatial Cells");
