@@ -293,6 +293,10 @@ namespace SBC {
                break; // This effectively sets the precedence of faces through the order of faces.
             }
          }
+         const uint endsize = cell->get_number_of_velocity_blocks(popID);
+         stringstream ss;
+         ss<<" After applying templatecell "<<endsize<<std::endl;
+         std::cerr<<ss.str();
          // // Verify current mesh and blocks
          // cuint vmeshSize = cell->get_velocity_mesh(popID)->size();
          // cuint vbcSize = cell->get_velocity_blocks(popID)->size();

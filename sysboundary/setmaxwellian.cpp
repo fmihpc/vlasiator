@@ -281,7 +281,7 @@ namespace SBC {
             // Actually add the velocity block
             templateCell.add_velocity_block(blockGID, popID, &initBuffer[0]);
          } // for-loop over requested velocity blocks
-
+         const uint midsize = templateCell.get_number_of_velocity_blocks(popID);
          // let's get rid of blocks not fulfilling the criteria here to save memory.
          #ifdef USE_GPU
          // Block adjustment is done on the GPU, but copying over data from templateCells is still done on Host
@@ -291,6 +291,8 @@ namespace SBC {
          #ifdef USE_GPU
          templateCell.prefetchHost();
          #endif
+         const uint endsize = templateCell.get_number_of_velocity_blocks(popID);
+         std::cerr<<"Mxwellian template blocks to initialize "<<nRequested<<" mid-init "<<midsize<<" after init "<<endsize<<std::endl;
       } // for-loop over particle species
 
       B[0] = Bx;
