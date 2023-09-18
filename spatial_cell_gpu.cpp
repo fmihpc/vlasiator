@@ -86,7 +86,6 @@ __global__ void __launch_bounds__(GPUTHREADS,4) update_blocks_required_halo_kern
    vmesh::VelocityMesh *vmesh,
    Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>* BlocksRequiredMap,
    split::SplitVector<vmesh::GlobalID> *velocity_block_with_content_list,
-   //split::SplitVector<vmesh::GlobalID> *BlocksHalo,
    const int addWidthV
    ) {
    const int gpuBlocks = gridDim.x;
@@ -120,7 +119,6 @@ __global__ void __launch_bounds__(GPUTHREADS,4) update_blocks_required_halo_kern
 /** Gpu Kernel to quickly add blocks which have spatial neighbours */
 __global__ void __launch_bounds__(GPUTHREADS,4) update_neighbours_have_content_kernel (
    vmesh::VelocityMesh *vmesh,
-   //split::SplitVector<vmesh::GlobalID> *BlocksHalo,
    Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>* BlocksRequiredMap,
    vmesh::GlobalID *neighbor_velocity_block_with_content_list,
    const unsigned long neighborContentBlocks
@@ -133,11 +131,6 @@ __global__ void __launch_bounds__(GPUTHREADS,4) update_neighbours_have_content_k
    for (vmesh::LocalID index=blocki; index<neighborContentBlocks; index += gpuBlocks) {
       const vmesh::GlobalID GID = neighbor_velocity_block_with_content_list[index];
       BlocksRequiredMap->warpInsert<true>(GID, (vmesh::LocalID)GID, ti % GPUTHREADS);
-      // vmesh::LocalID retval = vmesh->invalidLocalID();
-      // BlocksRequiredMap->warpFind(GID, retval, ti % GPUTHREADS);
-      // if (retval == vmesh->invalidLocalID()) {
-      //    BlocksHalo->device_push_back(GID);
-      // }
    }
 }
 
@@ -156,18 +149,10 @@ __global__ void __launch_bounds__(GPUTHREADS,4) update_blocks_to_add_kernel (
    const int blocki = blockIdx.x;
    //const int warpSize = blockDim.x*blockDim.y*blockDim.z;
    const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
-   if (blocki!=0) {
-      printf("Incorrect blocki %u!\n",blocki);
-   }
-   if (gpuBlocks!=1) {
-      printf("Incorrect gpuBlocks %u!\n",gpuBlocks);
-   }
    for (uint index=blocki; index<nBlocksRequired; index += gpuBlocks) {
       const vmesh::GlobalID GIDreq = BlocksRequired->at(index);
-      //const vmesh::LocalID LIDreq = vmesh->warpGetLocalID(GIDreq, ti);
-      __syncthreads();
+      const vmesh::LocalID LIDreq = vmesh->warpGetLocalID(GIDreq, ti);
       if (ti==0) {
-         const vmesh::LocalID LIDreq = vmesh->getLocalID(GIDreq);
          if ( LIDreq == vmesh->invalidLocalID() ) {
             // Block doesn't yet exist, need to add
             BlocksToAdd->device_push_back(GIDreq);
@@ -417,7 +402,6 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
       if (ti==0) {
          // Write in block parameters
          vmesh->getBlockInfo(addGID, add_block_parameters+BlockParams::VXCRD);
-         //vmesh->placeBlock(addGID,addLID);
       }
       __syncthreads();
       vmesh->warpPlaceBlock(addGID,addLID,ti);
@@ -482,14 +466,12 @@ namespace spatial_cell {
       // SplitVectors via pointers for unified memory
       velocity_block_with_content_list = new split::SplitVector<vmesh::GlobalID>(1);
       velocity_block_with_no_content_list = new split::SplitVector<vmesh::GlobalID>(1);
-      //BlocksHalo = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksRequired = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToAdd = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToRemove = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToMove = new split::SplitVector<vmesh::GlobalID>(1);
       velocity_block_with_content_list->clear();
       velocity_block_with_no_content_list->clear();
-      //BlocksHalo->clear();
       BlocksRequired->clear();
       BlocksToAdd->clear();
       BlocksToRemove->clear();
@@ -503,7 +485,6 @@ namespace spatial_cell {
       gpuMallocHost((void **) &info_toAdd, sizeof(split::SplitInfo));
       gpuMallocHost((void **) &info_toMove, sizeof(split::SplitInfo));
       gpuMallocHost((void **) &info_Required, sizeof(split::SplitInfo));
-      gpuMallocHost((void **) &info_Halo, sizeof(split::SplitInfo));
       gpuMallocHost((void **) &info_brm, sizeof(Hashinator::MapInfo));
    }
 
@@ -516,7 +497,6 @@ namespace spatial_cell {
       if (info_vbwcl) {
          delete velocity_block_with_content_list;
          delete velocity_block_with_no_content_list;
-         //delete BlocksHalo;
          delete BlocksRequired;
          delete BlocksToAdd;
          delete BlocksToRemove;
@@ -528,7 +508,6 @@ namespace spatial_cell {
          gpuFreeHost(info_toAdd);
          gpuFreeHost(info_toMove);
          gpuFreeHost(info_Required);
-         gpuFreeHost(info_Halo);
          gpuFreeHost(info_brm);
       }
       info_vbwcl = NULL;
@@ -540,12 +519,10 @@ namespace spatial_cell {
    SpatialCell::SpatialCell(const SpatialCell& other) {
       velocity_block_with_content_list = new split::SplitVector<vmesh::GlobalID>(*(other.velocity_block_with_content_list));
       velocity_block_with_no_content_list = new split::SplitVector<vmesh::GlobalID>(*(other.velocity_block_with_no_content_list));
-      //BlocksHalo = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksRequired = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToAdd = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToRemove = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToMove = new split::SplitVector<vmesh::GlobalID>(1);
-      //BlocksHalo->clear();
       BlocksRequired->clear();
       BlocksToAdd->clear();
       BlocksToRemove->clear();
@@ -557,7 +534,6 @@ namespace spatial_cell {
 
       // Make space reservation guesses based on popID 0
       const uint reserveSize = other.populations[0].vmesh->size()*BLOCK_ALLOCATION_PADDING;
-      //BlocksHalo->reserve(reserveSize,true);
       BlocksRequired->reserve(reserveSize,true);
       BlocksToAdd->reserve(reserveSize,true);
       BlocksToRemove->reserve(reserveSize,true);
@@ -600,12 +576,10 @@ namespace spatial_cell {
       gpuMallocHost((void **) &info_toAdd, sizeof(split::SplitInfo));
       gpuMallocHost((void **) &info_toMove, sizeof(split::SplitInfo));
       gpuMallocHost((void **) &info_Required, sizeof(split::SplitInfo));
-      gpuMallocHost((void **) &info_Halo, sizeof(split::SplitInfo));
       gpuMallocHost((void **) &info_brm, sizeof(Hashinator::MapInfo));
    }
    const SpatialCell& SpatialCell::operator=(const SpatialCell& other) {
       const uint reserveSize = (other.BlocksRequired)->capacity();
-      //BlocksHalo->clear();
       BlocksRequired->clear();
       BlocksToAdd->clear();
       BlocksToRemove->clear();
@@ -614,7 +588,6 @@ namespace spatial_cell {
       velocity_block_with_no_content_list->clear();
       delete BlocksRequiredMap;
 
-      //BlocksHalo->reserve(reserveSize,true);
       BlocksRequired->reserve(reserveSize,true);
       BlocksToAdd->reserve(reserveSize,true);
       BlocksToRemove->reserve(reserveSize,true);
@@ -668,7 +641,6 @@ namespace spatial_cell {
       // gpu_getDevice()
       int device = gpu_getDevice();
       gpuStream_t stream = gpu_getStream();
-      //BlocksHalo->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
       BlocksRequired->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
       BlocksToAdd->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
       BlocksToRemove->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
@@ -677,7 +649,6 @@ namespace spatial_cell {
       velocity_block_with_no_content_list->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
       BlocksRequiredMap->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
 
-      //BlocksHalo->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
       BlocksRequired->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
       BlocksToAdd->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
       BlocksToRemove->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
@@ -716,7 +687,6 @@ namespace spatial_cell {
       }
       CHK_ERR( gpuStreamAttachMemAsync(attachedStream,velocity_block_with_content_list, 0,gpuMemAttachSingle) );
       CHK_ERR( gpuStreamAttachMemAsync(attachedStream,velocity_block_with_no_content_list, 0,gpuMemAttachSingle) );
-      //CHK_ERR( gpuStreamAttachMemAsync(attachedStream,BlocksHalo, 0,gpuMemAttachSingle) );
       CHK_ERR( gpuStreamAttachMemAsync(attachedStream,BlocksToRemove, 0,gpuMemAttachSingle) );
       CHK_ERR( gpuStreamAttachMemAsync(attachedStream,BlocksToAdd, 0,gpuMemAttachSingle) );
       CHK_ERR( gpuStreamAttachMemAsync(attachedStream,BlocksToMove, 0,gpuMemAttachSingle) );
@@ -730,7 +700,6 @@ namespace spatial_cell {
       // Also call attach functions on all splitvectors and hashmaps
       velocity_block_with_content_list->streamAttach(attachedStream);
       velocity_block_with_no_content_list->streamAttach(attachedStream);
-      //BlocksHalo->streamAttach(attachedStream);
       BlocksToRemove->streamAttach(attachedStream);
       BlocksToAdd->streamAttach(attachedStream);
       BlocksToMove->streamAttach(attachedStream);
@@ -750,7 +719,6 @@ namespace spatial_cell {
       attachedStream = 0;
       CHK_ERR( gpuStreamAttachMemAsync(attachedStream,velocity_block_with_content_list, 0,gpuMemAttachGlobal) );
       CHK_ERR( gpuStreamAttachMemAsync(attachedStream,velocity_block_with_no_content_list, 0,gpuMemAttachGlobal) );
-      //CHK_ERR( gpuStreamAttachMemAsync(attachedStream,BlocksHalo, 0,gpuMemAttachGlobal) );
       CHK_ERR( gpuStreamAttachMemAsync(attachedStream,BlocksToRemove, 0,gpuMemAttachGlobal) );
       CHK_ERR( gpuStreamAttachMemAsync(attachedStream,BlocksToAdd, 0,gpuMemAttachGlobal) );
       CHK_ERR( gpuStreamAttachMemAsync(attachedStream,BlocksToMove, 0,gpuMemAttachGlobal) );
@@ -764,7 +732,6 @@ namespace spatial_cell {
       // Also call detach functions on all splitvectors and hashmaps
       velocity_block_with_content_list->streamAttach(0,gpuMemAttachGlobal);
       velocity_block_with_no_content_list->streamAttach(0,gpuMemAttachGlobal);
-      //BlocksHalo->streamAttach(0,gpuMemAttachGlobal);
       BlocksToRemove->streamAttach(0,gpuMemAttachGlobal);
       BlocksToAdd->streamAttach(0,gpuMemAttachGlobal);
       BlocksToMove->streamAttach(0,gpuMemAttachGlobal);
@@ -782,9 +749,6 @@ namespace spatial_cell {
       velocity_block_with_content_list->copyMetadata(info_vbwcl,stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
       velocity_block_with_content_list_size = info_vbwcl->size;
-      stringstream ups;
-      ups<<" Uploading VBC list size "<<velocity_block_with_content_list_size<<std::endl;
-      std::cerr<<ups.str();
       if (velocity_block_with_content_list_size==0) {
          phiprof::stop("Upload local content lists");
          return;
@@ -819,9 +783,6 @@ namespace spatial_cell {
    void SpatialCell::applyReservation(const uint popID) {
       size_t reserveSize = populations[popID].reservation * BLOCK_ALLOCATION_FACTOR;
       size_t newReserve = populations[popID].reservation * BLOCK_ALLOCATION_PADDING;
-      // if (BlocksHalo->capacity() < reserveSize) {
-      //    BlocksHalo->reserve(newReserve,true);
-      // }
       if (BlocksRequired->capacity() < reserveSize) {
          BlocksRequired->reserve(newReserve,true);
       }
@@ -891,14 +852,12 @@ namespace spatial_cell {
       velocity_block_with_content_list->copyMetadata(info_vbwcl,stream);
       velocity_block_with_no_content_list->copyMetadata(info_vbwncl,stream);
       BlocksRequired->copyMetadata(info_Required,stream);
-      //BlocksHalo->copyMetadata(info_Halo,stream);
       BlocksRequiredMap->copyMetadata(info_brm, stream);
       vmesh::LocalID currSize = populations[popID].vmesh->size(); // Includes stream sync
       const vmesh::LocalID localContentBlocks = info_vbwcl->size;
       const vmesh::LocalID localNoContentBlocks = info_vbwncl->size;
       const vmesh::LocalID BlocksRequiredCapacity = info_Required->capacity;
       const vmesh::LocalID BlocksRequiredMapSizePower = info_brm->sizePower;
-      //vmesh::LocalID BlocksHaloCapacity = info_Halo->capacity;
 
       // Neighbour and own prefetches
       if (doPrefetches) {
@@ -937,27 +896,11 @@ namespace spatial_cell {
          // First add all local content blocks with a fast hashinator interface
          phiprof::start("Self Blocks with content");
          // 0.5 is target load factor
-         stringstream sbs;
-         sbs<<" LCB pre-insert BRM size "<<BlocksRequiredMap->size()<<" with vector size "<<velocity_block_with_content_list->size();
          BlocksRequiredMap->insert(velocity_block_with_content_list->data(),velocity_block_with_content_list->data(),localContentBlocks,0.5,stream,false);
          CHK_ERR( gpuPeekAtLastError() );
          CHK_ERR( gpuStreamSynchronize(stream) );
-         sbs<<" and post-insert BRM size "<<BlocksRequiredMap->size()<<std::endl;
-         std::cerr<<sbs.str();
          phiprof::stop("Self Blocks with content");
       }
-
-      // Extreme estimate?
-      reserveSize = 2 * (localContentBlocks+localNoContentBlocks);
-      reserveSize = reserveSize > populations[popID].reservation ? reserveSize : populations[popID].reservation;
-      reserveSize *= BLOCK_ALLOCATION_FACTOR;
-      // if (BlocksHaloCapacity < reserveSize) {
-      //    reserveSize *= BLOCK_ALLOCATION_PADDING/BLOCK_ALLOCATION_FACTOR;
-      //    BlocksHalo->reserve(reserveSize,true);
-      //    BlocksHalo->memAdvise(gpuMemAdviseSetPreferredLocation,gpu_getDevice());
-      //    BlocksHalo->memAdvise(gpuMemAdviseSetAccessedBy,gpu_getDevice());
-      //    BlocksHalo->optimizeGPU(stream);
-      // }
       BlocksRequired->clear();
       BlocksToRemove->clear();
       BlocksToAdd->clear();
@@ -966,87 +909,47 @@ namespace spatial_cell {
       // add velocity space neighbors to map. We loop over blocks
       // with content, and insert all its v-space neighbors (halo)
       if (localContentBlocks > 0) {
-         // Ensure at least one launch block
-         //nGpuBlocks = (localContentBlocks/GPUTHREADS) > GPUBLOCKS ? GPUBLOCKS : std::ceil((Real)localContentBlocks/(Real)GPUTHREADS);
          // now with warp accessors
          nGpuBlocks = localContentBlocks > GPUBLOCKS ? GPUBLOCKS : localContentBlocks;
          phiprof::start("Halo gather");
-         //BlocksHalo->clear();
          int addWidthV = getObjectWrapper().particleSpecies[popID].sparseBlockAddWidthV;
          update_blocks_required_halo_kernel<<<nGpuBlocks, GPUTHREADS, 0, stream>>> (
             populations[popID].vmesh,
             BlocksRequiredMap,
             velocity_block_with_content_list,
-            //BlocksHalo, // Now gathers blocks to be added into this vector
             addWidthV
             );
          CHK_ERR( gpuPeekAtLastError() );
          CHK_ERR( gpuStreamSynchronize(stream) );
          phiprof::stop("Halo gather");
-         // phiprof::start("Halo insert");
-         // BlocksHalo->copyMetadata(info_Halo,stream);
-         // CHK_ERR( gpuStreamSynchronize(stream) );
-         // const uint nHalo = info_Halo->size;
-         // if (nHalo > 0) {
-         //    // 0.5 is target load factor
-         //    BlocksRequiredMap->insert(BlocksHalo->data(),BlocksHalo->data(),nHalo,0.5,stream,false);
-         //    CHK_ERR( gpuPeekAtLastError() );
-         //    CHK_ERR( gpuStreamSynchronize(stream) );
-         // }
-         // phiprof::stop("Halo insert");
       }
 
-      // add neighbor content info for spatial space neighbors to map. We loop over
-      // neighbor cell lists with existing blocks, and raise the
-      // flag for the local block with same block id
-
-      // Here also gather to a vector, and then call the interface.
-      // Re-use the halo vector.
+      // add neighbor content buffer for spatial space neighbors to map. We loop over
+      // neighbor cell lists with existing blocks, and ensure any content blocks in them are
+      // also included here.
       const uint neighbors_count = spatial_neighbors.size();
-      uint ncounter = 0;
       if (neighbors_count > 0) {
          phiprof::start("Neighbor content lists");
          CHK_ERR( gpuStreamSynchronize(stream) );
          for (std::vector<SpatialCell*>::const_iterator neighbor=spatial_neighbors.begin();
               neighbor != spatial_neighbors.end(); ++neighbor) {
             const int nNeighBlocks = (*neighbor)->velocity_block_with_content_list_size;
-            // Ensure at least one launch block, try to do many neighbors at once
-            //nGpuBlocks = (nNeighBlocks/GPUTHREADS/neighbors_count) > GPUBLOCKS ? GPUBLOCKS : std::ceil((Real)nNeighBlocks/(Real)GPUTHREADS/(Real)neighbors_count);
             // now with warp accessors
-            //nGpuBlocks = (nNeighBlocks/neighbors_count) > GPUBLOCKS ? GPUBLOCKS : std::ceil((Real)nNeighBlocks/(Real)neighbors_count);
             nGpuBlocks = nNeighBlocks > GPUBLOCKS ? GPUBLOCKS : nNeighBlocks;
-            stringstream ssd;
-            ssd<<"looking at neighbour "<<ncounter<<"/"<<neighbors_count<<" with "<<nNeighBlocks<<" content blocks, own vmesh "<<populations[popID].vmesh->size()<<" and VBC "<<populations[popID].blockContainer->size()<<" with BRM size "<<BlocksRequiredMap->size();
-            ncounter++;
             if (nGpuBlocks==0) {
                continue;
             }
-            //BlocksHalo->clear();
             update_neighbours_have_content_kernel<<<nGpuBlocks, GPUTHREADS, 0, stream>>> (
                populations[popID].vmesh,
-               //BlocksHalo,
                BlocksRequiredMap,
                (*neighbor)->gpu_velocity_block_with_content_list_buffer,
                nNeighBlocks
                );
             CHK_ERR( gpuPeekAtLastError() );
             CHK_ERR( gpuStreamSynchronize(stream) );
-            ssd<<" now BRM is "<<BlocksRequiredMap->size()<<std::endl;
-            std::cerr<<ssd.str();
-            // phiprof::start("Neighbour Halo insert");
-            // const uint nHalo = BlocksHalo->size();
-            // if (nHalo > 0) {
-            //    // 0.5 is target load factor
-            //    BlocksRequiredMap->insert(BlocksHalo->data(),BlocksHalo->data(),nHalo,0.5,stream,false);
-            //    CHK_ERR( gpuPeekAtLastError() );
-            //    CHK_ERR( gpuStreamSynchronize(stream) );
-            // }
-            // phiprof::stop("Neighbour Halo insert");
          }
          phiprof::stop("Neighbor content lists");
-      } else {
-         std::cerr<<" cell found 0 neighbours! "<<std::endl;
-      }      
+      }
       // Same capacity for all
       phiprof::start("BlocksToXXX reserve");
       reserveSize = currSize > populations[popID].reservation ? reserveSize : populations[popID].reservation;
@@ -1078,20 +981,11 @@ namespace spatial_cell {
       }
       SSYNC;
       phiprof::stop("BlocksToXXX prefetch");
-      // stringstream ss;
-      // ss<<" vector capacities: velocity_block_with_content_list "<<velocity_block_with_content_list->capacity()<<" velocity_block_with_no_content_list "<<velocity_block_with_no_content_list->capacity()<<" BlocksToRemove "<<BlocksToRemove->capacity()<<" BlocksToAdd "<<BlocksToAdd->capacity()<<" BlocksToMove "<<BlocksToMove->capacity()<<" BlocksRequired "<<BlocksRequired->capacity()<<" BlocksHalo "<<BlocksHalo->capacity()<<" reservation "<<populations[popID].reservation<<std::endl;
-      // std::cerr<<ss.str();
 
       // Extract list and count of all required blocks (content or with neighbors in spatial or velocity space)
       phiprof::start("Gather blocks required");
       const vmesh::LocalID nBlocksRequired = BlocksRequiredMap->extractAllKeys(*BlocksRequired,stream,false);
       phiprof::stop("Gather blocks required");
-      if ((nBlocksRequired != 0) && (localContentBlocks != 0)) {
-         stringstream ss;
-         ss<<" BRM size "<<BlocksRequiredMap->size()<<" nBlocksRequired "<<nBlocksRequired<<" localContentBlocks "<<localContentBlocks<<std::endl;
-         std::cerr<<ss.str();
-      }
-
       // Flag all blocks in this cell without content + without neighbors with content to be removed
       if (doDeleteEmptyBlocks) {
          phiprof::start("Gather blocks to remove");
@@ -1117,10 +1011,7 @@ namespace spatial_cell {
       nGpuBlocks = (nBlocksRequired/GPUTHREADS) > GPUBLOCKS ? GPUBLOCKS : std::ceil((Real)nBlocksRequired/(Real)GPUTHREADS);
       if (nBlocksRequired>0) {
          phiprof::start("blocks_to_add_kernel");
-         stringstream sbs;
-         sbs<<" pre BTA "<<BlocksToAdd->size()<<" BTM "<<BlocksToMove->size()<<" vmesh "<<populations[popID].vmesh->size()<<" VBC "<<populations[popID].blockContainer->size()<<" ";
-//         update_blocks_to_add_kernel<<<nGpuBlocks, GPUTHREADS, 0, stream>>> (
-         update_blocks_to_add_kernel<<<1, GPUTHREADS, 0, stream>>> (
+         update_blocks_to_add_kernel<<<nGpuBlocks, GPUTHREADS, 0, stream>>> (
             populations[popID].vmesh,
             BlocksRequired,
             BlocksToAdd,
@@ -1130,8 +1021,6 @@ namespace spatial_cell {
          CHK_ERR( gpuPeekAtLastError() );
          SSYNC;
          CHK_ERR( gpuStreamSynchronize(stream) );
-         sbs<<"blocks_to_add_kernel BRequired "<<BlocksRequired->size()<<" toAdd "<<BlocksToAdd->size()<<" toMove "<<BlocksToMove->size()<<" nRequired "<<nBlocksRequired<<" vmesh "<<populations[popID].vmesh->size()<<" VBC "<<populations[popID].blockContainer->size()<<std::endl;
-         std::cerr<<sbs.str();
          phiprof::stop("blocks_to_add_kernel");
       }
       CHK_ERR( gpuStreamSynchronize(stream) ); // To ensure all previous kernels have finished
@@ -1206,12 +1095,6 @@ namespace spatial_cell {
          SSYNC;
          phiprof::stop("GPU modify vmesh and VBC size (pre)");
       }
-      if ((nBlocksAfterAdjust != 0) && (nBlocksBeforeAdjust != 0)) {
-         stringstream ss;
-         ss<<" VBC lists: "<<velocity_block_with_content_list->size()<<" and "<<velocity_block_with_no_content_list->size()<<std::endl;
-         ss<<" Going to edit vmesh: BlocksToAdd "<<BlocksToAdd->size()<<" BlocksToRemove "<<BlocksToRemove->size()<<" BlocksToMove "<<BlocksToMove->size()<<" nBlocksBeforeAdjust "<<nBlocksBeforeAdjust<<" nBlocksAfterAdjust "<<nBlocksAfterAdjust<<std::endl;
-         std::cerr<<ss.str();
-      }
 
       phiprof::start("GPU add and remove blocks kernel");
       if (nGpuBlocks>0) {
@@ -1260,7 +1143,6 @@ namespace spatial_cell {
          }
       }
       CHK_ERR( gpuStreamSynchronize(stream) );
-      std::cerr<<" after caller vmesh size "<<populations[popID].vmesh->size()<<" VBC size "<<populations[popID].blockContainer->size()<<std::endl;
 
       // DEBUG output after kernel
       #ifdef DEBUG_SPATIAL_CELL
@@ -1705,7 +1587,6 @@ namespace spatial_cell {
          velocity_block_with_content_list->optimizeGPU(stream);
          velocity_block_with_no_content_list->optimizeGPU(stream);
       }
-      CHK_ERR( gpuStreamSynchronize(stream) ); // This sync is required!
       phiprof::stop("VB content list prefetches and allocations");
 
       const Real velocity_block_min_value = getVelocityBlockMinValue(popID);
@@ -1723,12 +1604,8 @@ namespace spatial_cell {
          );
       CHK_ERR( gpuPeekAtLastError() );
       CHK_ERR( gpuStreamSynchronize(stream) ); // This sync is required!
+
       phiprof::stop("GPU update spatial cell block lists kernel");
-      if ((velocity_block_with_content_list->size() != 0) && (velocity_block_with_no_content_list->size() != 0)) {
-         stringstream ss;
-         ss<<" Updated VBC lists: "<<velocity_block_with_content_list->size()<<" and "<<velocity_block_with_no_content_list->size()<<std::endl;
-         std::cerr<<ss.str();
-      }
       // Note: Content list is not uploaded to device-only buffer here, but rather
       // in grid.cpp adjustVelocityBlocks()
       phiprof::stop("GPU update spatial cell block lists");

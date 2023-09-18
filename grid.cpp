@@ -695,7 +695,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    phiprof::initializeTimer("re-adjust blocks","Block adjustment");
    phiprof::start("re-adjust blocks");
    SpatialCell::setCommunicatedSpecies(popID);
-   std::cerr<<" Grid.cpp adjustVelocityBlocks "<<std::endl;
+
    const vector<CellID>& cells = getLocalCells();
    #pragma omp parallel
    {

@@ -287,7 +287,7 @@ namespace SBC {
          // Block adjustment is done on the GPU, but copying over data from templateCells is still done on Host
          templateCell.prefetchDevice();
          #endif
-         templateCell.adjustSingleCellVelocityBlocks(popID); //,true
+         templateCell.adjustSingleCellVelocityBlocks(popID,true); //,true
          #ifdef USE_GPU
          templateCell.prefetchHost();
          #endif
