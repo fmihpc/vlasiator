@@ -80,7 +80,8 @@
 #define gpuMemcpyDeviceToDevice          cudaMemcpyDeviceToDevice
 #define gpuMemcpyToSymbol                cudaMemcpyToSymbol
 
-#define gpuKernelBallot(mask, input) __ballot_sync(mask, input)
+#define gpuKernelBallot(mask, input)     __ballot_sync(mask, input)
+#define gpuKernelAny(mask, input)        __any_sync(mask, input)
 
 /* Define architecture-specific macros */
 #define ARCH_LOOP_LAMBDA [=] __host__ __device__

@@ -30,7 +30,6 @@
 #ifdef DEBUG_VLASIATOR
    #define DEBUG_SPATIAL_CELL
 #endif
-   #define DEBUG_SPATIAL_CELL
 
 using namespace std;
 
@@ -48,8 +47,10 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_block_content_lists_ke
    const int j = threadIdx.y;
    const int k = threadIdx.z;
    const uint ti = k*WID2 + j*WID + i;
-   __shared__ int has_content[WID3];
+   const uint nshared = WID3/GPUTHREADS;
+   __shared__ int has_content[WID3/GPUTHREADS];
    const uint nBlocks = vmesh->size();
+   const uint myReductionIndex = (int)(ti / GPUTHREADS);
    for (uint blockLID=blocki; blockLID<nBlocks; blockLID += gpuBlocks) {
       const vmesh::GlobalID blockGID = vmesh->getGlobalID(blockLID);
       #ifdef DEBUG_SPATIAL_CELL
@@ -60,16 +61,19 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_block_content_lists_ke
          continue;
       }
       #endif
+      uint block_has_content = 0;
+      // Check each velocity cell if it is above the threshold
       const Realf* avgs = blockContainer->getData(blockLID);
-      has_content[ti] = avgs[ti] >= velocity_block_min_value ? 1 : 0;
+      int thread_has_content = avgs[ti] >= velocity_block_min_value ? 1 : 0;
+      // Warp-wide ballot to get us started
+      int warp_has_content = gpuKernelAny(FULL_MASK, thread_has_content);
+      has_content[myReductionIndex] = warp_has_content;
       __syncthreads();
-      // Implemented just a simple non-optimized thread OR
-      for (unsigned int s=WID3/2; s>0; s>>=1) {
-         if (ti < s) {
-            has_content[ti] = has_content[ti] + has_content[ti + s];
-         }
-         __syncthreads();
-      }
+      // Second warp-wide ballot to reduce rest of the way
+      thread_has_content = has_content[ti];
+      block_has_content = gpuKernelAny(FULL_MASK,thread_has_content);
+      __syncthreads();
+      // Increment vector only from thread zero
       if (ti==0) {
          if (has_content[0]) {
             velocity_block_with_content_list->device_push_back(blockGID);
