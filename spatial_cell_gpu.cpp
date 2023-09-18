@@ -47,7 +47,6 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_block_content_lists_ke
    const int j = threadIdx.y;
    const int k = threadIdx.z;
    const uint ti = k*WID2 + j*WID + i;
-   const uint nshared = WID3/GPUTHREADS;
    __shared__ int has_content[WID3/GPUTHREADS];
    const uint nBlocks = vmesh->size();
    const uint myReductionIndex = (int)(ti / GPUTHREADS);
@@ -75,7 +74,7 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_block_content_lists_ke
       __syncthreads();
       // Increment vector only from thread zero
       if (ti==0) {
-         if (has_content[0]) {
+         if (block_has_content) {
             velocity_block_with_content_list->device_push_back(blockGID);
          } else {
             velocity_block_with_no_content_list->device_push_back(blockGID);
