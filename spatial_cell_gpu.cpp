@@ -47,7 +47,7 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_block_content_lists_ke
    const int j = threadIdx.y;
    const int k = threadIdx.z;
    const uint ti = k*WID2 + j*WID + i;
-   __shared__ bool has_content[WID3];
+   __shared__ int has_content[WID3];
    const uint nBlocks = vmesh->size();
    for (uint blockLID=blocki; blockLID<nBlocks; blockLID += gpuBlocks) {
       const vmesh::GlobalID blockGID = vmesh->getGlobalID(blockLID);
@@ -60,12 +60,12 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_block_content_lists_ke
       }
       #endif
       const Realf* avgs = blockContainer->getData(blockLID);
-      has_content[ti] = avgs[ti] >= velocity_block_min_value ? true : false;
+      has_content[ti] = avgs[ti] >= velocity_block_min_value ? 1 : 0;
       __syncthreads();
       // Implemented just a simple non-optimized thread OR
       for (unsigned int s=WID3/2; s>0; s>>=1) {
          if (ti < s) {
-            has_content[ti] = has_content[ti] || has_content[ti + s];
+            has_content[ti] = has_content[ti] + has_content[ti + s];
          }
          __syncthreads();
       }
@@ -1229,9 +1229,13 @@ namespace spatial_cell {
          // First add all local content blocks with a fast hashinator interface
          phiprof::start("Self Blocks with content");
          // 0.5 is target load factor
+         stringstream sbs;
+         sbs<<" pre-insert BRM size "<<BlocksRequiredMap->size()<<" with vector size "<<velocity_block_with_content_list->size();
          BlocksRequiredMap->insert(velocity_block_with_content_list->data(),velocity_block_with_content_list->data(),localContentBlocks,0.5,stream,false);
          CHK_ERR( gpuPeekAtLastError() );
          CHK_ERR( gpuStreamSynchronize(stream) );
+         sbs<<" and post-insert BRM size "<<BlocksRequiredMap->size()<<std::endl;
+         std::cerr<<sbs.str();
          phiprof::stop("Self Blocks with content");
       }
 
@@ -1474,6 +1478,10 @@ namespace spatial_cell {
          SSYNC;
          phiprof::stop("GPU modify vmesh and VBC size (pre)");
       }
+      stringstream ss;
+      ss<<" VBC lists: "<<velocity_block_with_content_list->size()<<" and "<<velocity_block_with_no_content_list->size()<<std::endl;
+      ss<<" Going to edit vmesh: BlocksToAdd "<<BlocksToAdd->size()<<" BlocksToRemove "<<BlocksToRemove->size()<<" BlocksToMove "<<BlocksToMove->size()<<" nBlocksBeforeAdjust "<<nBlocksBeforeAdjust<<" nBlocksAfterAdjust "<<nBlocksAfterAdjust<<std::endl;
+      std::cerr<<ss.str();
 
       phiprof::start("GPU add and remove blocks kernel");
       if (nGpuBlocks>0) {
@@ -1965,6 +1973,7 @@ namespace spatial_cell {
          velocity_block_with_content_list->optimizeGPU(stream);
          velocity_block_with_no_content_list->optimizeGPU(stream);
       }
+      CHK_ERR( gpuStreamSynchronize(stream) ); // This sync is required!
       phiprof::stop("VB content list prefetches and allocations");
 
       const Real velocity_block_min_value = getVelocityBlockMinValue(popID);
