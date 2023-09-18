@@ -30,6 +30,7 @@
 #ifdef DEBUG_VLASIATOR
    #define DEBUG_SPATIAL_CELL
 #endif
+   #define DEBUG_SPATIAL_CELL
 
 using namespace std;
 
@@ -483,39 +484,36 @@ __global__ void __launch_bounds__(GPUTHREADS,4) update_blocks_to_remove_kernel (
    split::SplitVector<vmesh::GlobalID>* BlocksToRemove,
    const uint localNoContentBlocks
    ) {
-   const int gpuBlocks = gridDim.x;
-   const int blocki = blockIdx.x;
+   const int gpuBlocks = gridDim.x;   const int blocki = blockIdx.x;
    //const int warpSize = blockDim.x*blockDim.y*blockDim.z;
    const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
    for (uint index=blocki; index<localNoContentBlocks; index += gpuBlocks) {
-      if (index < localNoContentBlocks) {
-         const vmesh::GlobalID GIDcandidate = velocity_block_with_no_content_list->at(index);
-         vmesh::LocalID retval = std::numeric_limits<vmesh::LocalID>::max();
-         BlocksRequiredMap->warpFind(GIDcandidate, retval, ti % GPUTHREADS);
+      const vmesh::GlobalID GIDcandidate = velocity_block_with_no_content_list->at(index);
+      vmesh::LocalID retval = std::numeric_limits<vmesh::LocalID>::max();
+      BlocksRequiredMap->warpFind(GIDcandidate, retval, ti % GPUTHREADS);
 
-         #ifdef DEBUG_SPATIAL_CELL
-         auto it = BlocksRequiredMap->device_find(GIDcandidate);
-         if (it != BlocksRequiredMap->device_end()) {
-            if (it->second != retval) {
-               printf("Warp error update_blocks_to_remove_kernel: LID %u != %u for GID %u thread %u\n",
-                      it->second,retval,GIDcandidate,ti);
-            }
-         } else if (retval != std::numeric_limits<vmesh::LocalID>::max()) {
-            printf("Warp error update_blocks_to_remove_kernel: warpFind found LID %u, single-thread did not; GID %u for thread %u\n",retval,GIDcandidate,ti);
+      #ifdef DEBUG_SPATIAL_CELL
+      auto it = BlocksRequiredMap->device_find(GIDcandidate);
+      if (it != BlocksRequiredMap->device_end()) {
+         if (it->second != retval) {
+            printf("Warp error update_blocks_to_remove_kernel: LID %u != %u for GID %u thread %u\n",
+                   it->second,retval,GIDcandidate,ti);
          }
-         __syncthreads();
-         #endif
-
-         if (retval == std::numeric_limits<vmesh::LocalID>::max() && ti==0) {
-            // If the block isn't within the required set, it should be deleted.
-            BlocksToRemove->device_push_back(GIDcandidate);
-         }
-         __syncthreads();
-         // if (BlocksRequiredMap->device_count(GIDcandidate) == 0) {
-         //    // If the block isn't within the required set, it should be deleted.
-         //    BlocksToRemove->device_push_back(GIDcandidate);
-         // }
+      } else if (retval != std::numeric_limits<vmesh::LocalID>::max()) {
+         printf("Warp error update_blocks_to_remove_kernel: warpFind found LID %u, single-thread did not; GID %u for thread %u\n",retval,GIDcandidate,ti);
       }
+      __syncthreads();
+      #endif
+
+      if (retval == std::numeric_limits<vmesh::LocalID>::max() && ti==0) {
+         // If the block isn't within the required set, it should be deleted.
+         BlocksToRemove->device_push_back(GIDcandidate);
+      }
+      __syncthreads();
+      // if (BlocksRequiredMap->device_count(GIDcandidate) == 0) {
+      //    // If the block isn't within the required set, it should be deleted.
+      //    BlocksToRemove->device_push_back(GIDcandidate);
+      // }
    }
 }
 
