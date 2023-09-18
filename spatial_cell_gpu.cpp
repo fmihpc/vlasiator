@@ -47,9 +47,8 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_block_content_lists_ke
    const int j = threadIdx.y;
    const int k = threadIdx.z;
    const uint ti = k*WID2 + j*WID + i;
-   __shared__ int has_content[WID3/GPUTHREADS];
+   __shared__ int has_content[WID3];
    const uint nBlocks = vmesh->size();
-   const uint myReductionIndex = (int)(ti / GPUTHREADS);
    for (uint blockLID=blocki; blockLID<nBlocks; blockLID += gpuBlocks) {
       const vmesh::GlobalID blockGID = vmesh->getGlobalID(blockLID);
       #ifdef DEBUG_SPATIAL_CELL
@@ -60,21 +59,20 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_block_content_lists_ke
          continue;
       }
       #endif
-      uint block_has_content = 0;
       // Check each velocity cell if it is above the threshold
       const Realf* avgs = blockContainer->getData(blockLID);
-      int thread_has_content = avgs[ti] >= velocity_block_min_value ? 1 : 0;
-      // Warp-wide ballot to get us started
-      int warp_has_content = gpuKernelAny(FULL_MASK, thread_has_content);
-      has_content[myReductionIndex] = warp_has_content;
+      has_content[ti] = avgs[ti] >= velocity_block_min_value ? 1 : 0;
       __syncthreads();
-      // Second warp-wide ballot to reduce rest of the way
-      thread_has_content = has_content[ti];
-      block_has_content = gpuKernelAny(FULL_MASK,thread_has_content);
-      __syncthreads();
+      // Implemented just a simple non-optimized thread OR
+      for (unsigned int s=WID3/2; s>0; s>>=1) {
+         if (ti < s) {
+            has_content[ti] = has_content[ti] || has_content[ti + s];
+         }
+         __syncthreads();
+      }
       // Increment vector only from thread zero
       if (ti==0) {
-         if (block_has_content) {
+         if (has_content[0]) {
             velocity_block_with_content_list->device_push_back(blockGID);
          } else {
             velocity_block_with_no_content_list->device_push_back(blockGID);
@@ -83,6 +81,57 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_block_content_lists_ke
       __syncthreads();
    }
 }
+
+/** GPU kernel for identifying which blocks have relevant content */
+// __global__ void __launch_bounds__(WID3,4) update_velocity_block_content_lists_kernel (
+//    vmesh::VelocityMesh *vmesh,
+//    vmesh::VelocityBlockContainer *blockContainer,
+//    split::SplitVector<vmesh::GlobalID>* velocity_block_with_content_list,
+//    split::SplitVector<vmesh::GlobalID>* velocity_block_with_no_content_list,
+//    Realf velocity_block_min_value
+//    ) {
+//    const int gpuBlocks = gridDim.x;
+//    const int blocki = blockIdx.x;
+//    const int i = threadIdx.x;
+//    const int j = threadIdx.y;
+//    const int k = threadIdx.z;
+//    const uint ti = k*WID2 + j*WID + i;
+//    __shared__ int has_content[WID3/GPUTHREADS];
+//    const uint nBlocks = vmesh->size();
+//    const uint myReductionIndex = (int)(ti / GPUTHREADS);
+//    for (uint blockLID=blocki; blockLID<nBlocks; blockLID += gpuBlocks) {
+//       const vmesh::GlobalID blockGID = vmesh->getGlobalID(blockLID);
+//       #ifdef DEBUG_SPATIAL_CELL
+//       if (blockGID == vmesh->invalidGlobalID()) {
+//          continue;
+//       }
+//       if (blockLID == vmesh->invalidLocalID()) {
+//          continue;
+//       }
+//       #endif
+//       uint block_has_content = 0;
+//       // Check each velocity cell if it is above the threshold
+//       const Realf* avgs = blockContainer->getData(blockLID);
+//       int thread_has_content = avgs[ti] >= velocity_block_min_value ? 1 : 0;
+//       // Warp-wide ballot to get us started
+//       int warp_has_content = gpuKernelAny(FULL_MASK, thread_has_content);
+//       has_content[myReductionIndex] = warp_has_content;
+//       __syncthreads();
+//       // Second warp-wide ballot to reduce rest of the way
+//       thread_has_content = has_content[ti];
+//       block_has_content = gpuKernelAny(FULL_MASK,thread_has_content);
+//       __syncthreads();
+//       // Increment vector only from thread zero
+//       if (ti==0) {
+//          if (block_has_content) {
+//             velocity_block_with_content_list->device_push_back(blockGID);
+//          } else {
+//             velocity_block_with_no_content_list->device_push_back(blockGID);
+//          }
+//       }
+//       __syncthreads();
+//    }
+// }
 
 /** Gpu Kernel to quickly gather blocks and their v-space halo */
 __global__ void __launch_bounds__(GPUTHREADS,4) update_blocks_required_halo_kernel (
