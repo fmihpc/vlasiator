@@ -1088,7 +1088,8 @@ int main(int argn,char* args[]) {
       );
       phiprof::stop("Compute interp moments");
 
-      phiprof::stop("Propagate",computedCells,"Cells");
+      // Oops!
+      // phiprof::stop("Propagate",computedCells,"Cells");
       
       phiprof::start("Project endTimeStep");
       project->hook(hook::END_OF_TIME_STEP, mpiGrid, perBGrid);
