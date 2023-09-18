@@ -952,7 +952,7 @@ namespace spatial_cell {
       }
       // Same capacity for all
       phiprof::start("BlocksToXXX reserve");
-      reserveSize = currSize > populations[popID].reservation ? reserveSize : populations[popID].reservation;
+      reserveSize = currSize > populations[popID].reservation ? currSize : populations[popID].reservation;
       reserveSize *= BLOCK_ALLOCATION_FACTOR;
       if (BlocksRequiredCapacity < reserveSize) {
          reserveSize *= BLOCK_ALLOCATION_PADDING/BLOCK_ALLOCATION_FACTOR;
