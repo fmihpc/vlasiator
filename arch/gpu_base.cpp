@@ -32,6 +32,7 @@
 #include "gpu_base.hpp"
 #include "../velocity_mesh_gpu.h"
 #include "../velocity_block_container.h"
+#include "../vlasovsolver/cpu_trans_pencils.hpp"
 
 // #define MAXCPUTHREADS 64 now in gpu_base.hpp
 
@@ -69,12 +70,16 @@ void *gpu_RadixSortTemp[MAXCPUTHREADS];
 uint gpu_acc_RadixSortTempSize[MAXCPUTHREADS] = {0};
 
 // Vectors and set for use in translation
-split::SplitVector<vmesh::VelocityMesh*> allVmeshPointer;
-split::SplitVector<vmesh::VelocityMesh*> allPencilsMeshes;
-split::SplitVector<vmesh::VelocityBlockContainer*> allPencilsContainers;
-split::SplitVector<vmesh::GlobalID> unionOfBlocks;
-// This is a pointer, so it's accessors are available on GPU
+split::SplitVector<vmesh::VelocityMesh*> *allVmeshPointer;
+split::SplitVector<vmesh::VelocityMesh*> *allPencilsMeshes;
+split::SplitVector<vmesh::VelocityBlockContainer*> *allPencilsContainers;
+split::SplitVector<vmesh::GlobalID> *unionOfBlocks;
 Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *unionOfBlocksSet;
+// counters for allocated sizes
+uint gpu_allocated_nAllCells = 0;
+uint gpu_allocated_sumOfLengths = 0;
+uint gpu_allocated_largestVmesh = 0;
+uint gpu_allocated_unionSetSize = 0;
 
 // Memory allocation flags and values.
 uint gpu_vlasov_allocatedSize = 0;
@@ -173,6 +178,7 @@ __host__ void gpu_clear_device() {
    // Deallocate temporary buffers
    gpu_acc_deallocate();
    gpu_vlasov_deallocate();
+   gpu_trans_deallocate();
    // Destroy streams
 #ifdef _OPENMP
    const uint maxThreads = omp_get_max_threads();
@@ -383,4 +389,103 @@ __host__ void gpu_acc_deallocate_perthread(
       delete unif_columnOffsetData[cpuThreadID];
    }
    CHK_ERR( gpuFree(gpu_columnNBlocks[cpuThreadID]) );
+}
+
+/*
+   Top-level GPU memory allocation function for translation-specific vectors
+   This is called from within non-threaded regions so does not perform async.
+ */
+__host__ void gpu_trans_allocate(
+   cuint nAllCells,
+   cuint sumOfLengths,
+   cuint largestVmesh,
+   cuint unionSetSize
+   ) {
+   cudaStream_t stream = gpu_getStream();
+   // Vectors with one entry per cell (no prefetching)
+   if (nAllCells != 0) {
+      if (gpu_allocated_nAllCells == 0) {
+         // New allocation
+         allVmeshPointer = new split::SplitVector<vmesh::VelocityMesh*>(nAllCells);
+      } else {
+         // Resize
+         allVmeshPointer->resize(nAllCells,true);
+      }
+   }
+   // Vectors with one entry per pencil cell (no prefetching)
+   if (sumOfLengths != 0) {
+      if (gpu_allocated_sumOfLengths == 0) {
+         // New allocations
+         allPencilsMeshes = new split::SplitVector<vmesh::VelocityMesh*>(sumOfLengths);
+         allPencilsContainers = new split::SplitVector<vmesh::VelocityBlockContainer*>(sumOfLengths);
+      } else {
+         // Resize
+         allPencilsMeshes->resize(sumOfLengths,true);
+         allPencilsContainers->resize(sumOfLengths,true);
+      }
+   }
+   // Set for collecting union of blocks (prefetched to device)
+   if (largestVmesh != 0) {
+      const vmesh::LocalID HashmapReqSize = ceil(log2(largestVmesh)) +3;
+      if (gpu_allocated_largestVmesh == 0) {
+         // New allocation
+         unionOfBlocksSet = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(HashmapReqSize);
+         unionOfBlocksSet->optimizeGPU(stream);
+      } else {
+         // Ensure allocation
+         const uint currSizePower = unionOfBlocksSet->getSizePower();
+         if (currSizePower < HashmapReqSize) {
+            unionOfBlocksSet->resize(HashmapReqSize);
+            unionOfBlocksSet->optimizeGPU(stream);
+         }
+         // Ensure map is empty
+         unionOfBlocksSet->clear(Hashinator::targets::device,stream,false);
+      }
+   }
+   // Vector into which the set contents are read (prefetched to device)
+   if (unionSetSize != 0) {
+      if (gpu_allocated_unionSetSize == 0) {
+         // New allocation
+         unionOfBlocks = new split::SplitVector<vmesh::GlobalID>(unionSetSize);
+         unionOfBlocksSet->optimizeGPU(stream);
+      } else {
+         if (unionOfBlocks->capacity() < unionSetSize) {
+            // Recapacitate, clear, and prefetch
+            unionOfBlocks->reserve(unionSetSize);
+            unionOfBlocks->clear();
+            unionOfBlocks->optimizeGPU(stream);
+         } else {
+            // Clear is enough
+            unionOfBlocks->clear();
+         }
+      }
+   }
+   CHK_ERR( gpuStreamSynchronize(stream) );
+}
+
+/* Deallocation at end of simulation */
+__host__ void gpu_trans_deallocate() {
+   // Deallocate any translation vectors or sets which exist
+   if (gpu_allocated_nAllCells != 0) {
+      delete allVmeshPointer;
+   }
+   if (gpu_allocated_sumOfLengths != 0) {
+      delete allPencilsMeshes;
+      delete allPencilsContainers;
+   }
+   if (gpu_allocated_largestVmesh != 0) {
+      delete unionOfBlocksSet;
+   }
+   if (gpu_allocated_unionSetSize != 0) {
+      delete unionOfBlocks;
+   }
+   // Delete also the vectors for pencils for each dimension
+   for (uint dimension=0; dimension<3; dimension++) {
+      if (DimensionPencils[dimension].gpu_allocated) {
+         delete DimensionPencils[dimension].gpu_lengthOfPencils;
+         delete DimensionPencils[dimension].gpu_idsStart;
+         delete DimensionPencils[dimension].gpu_sourceDZ;
+         delete DimensionPencils[dimension].gpu_targetRatios;
+      }
+   }
 }

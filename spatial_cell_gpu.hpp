@@ -179,29 +179,32 @@ namespace spatial_cell {
          // Global ID of the block containing incoming data
          const vmesh::GlobalID GID = otherVmesh->getGlobalID(incLID);
          // Get local ID of the target block. If the block doesn't exist, create it.
+         __shared__ vmesh::LocalID writeLID;
          vmesh::LocalID toLID = vmesh->warpGetLocalID(GID,ti);
          if (toLID == vmesh->invalidLocalID()) {
             bool created = vmesh->warpPush_back(GID, ti);
             // Thread zero must create new block
             if (ti==0) {
                if (!created) {
-                  printf("Error in incrementing blockContainer in population_increment_kernel!\n");
-                  break;
+                  assert(0 && "Error in incrementing blockContainer in population_increment_kernel!");
                }
                toLID = blockContainer->push_back();
                Real* parameters = blockContainer->getParameters(toLID);
                vmesh->getBlockInfo(GID, parameters+BlockParams::VXCRD);
+               // make new LID available to all threads
+               writeLID = toLID;
             }
             __syncthreads();
-            Realf* toData = blockContainer->getData(toLID);
+            Realf* toData = blockContainer->getData(writeLID);
             if (created) {
-               // Zero out new block
-               toData[ti] = 0.0;
+               // Write values from source cells
+               toData[ti] = fromData[ti] * factor;
             }
+         } else {
+            // Increment with values from source cells
+            Realf* toData = blockContainer->getData(toLID);
+            toData[ti] += fromData[ti] * factor;
          }
-         // Add values from source cells
-         Realf* toData = blockContainer->getData(toLID);
-         toData[ti] += fromData[ti] * factor;
       } // for-loop over velocity blocks
    }
 
@@ -341,6 +344,10 @@ namespace spatial_cell {
       void Increment(const Population& other, creal factor) {
          // Note: moments will be invalidated.
          // Ensure the vmesh and VBC are large enough
+         if (factor==0) {
+            // Nothing to add
+            return;
+         }
          vmesh::LocalID nBlocks = (other.vmesh)->size();
          vmesh::LocalID nExistingBlocks = vmesh->size();
          vmesh->setNewCapacity(nExistingBlocks + nBlocks + 1);
@@ -351,6 +358,7 @@ namespace spatial_cell {
          gpuStream_t stream = gpu_getStream();
          if (nGpuBlocks > 0) {
             dim3 block(WID,WID,WID);
+            // Now serial
             population_increment_kernel<<<1, block, 0, stream>>> (
                nBlocks,
                vmesh,
@@ -386,8 +394,9 @@ namespace spatial_cell {
          // Set block parameters
          if (ti==0) {
             vmesh::GlobalID GID = blocks->at(index);
-            vmesh->getBlockInfo(GID, parameters+index*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::VXCRD);
+            vmesh->getBlockInfo(GID, parameters + index*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD);
          }
+         __syncthreads();
       }
    }
 
@@ -543,10 +552,10 @@ namespace spatial_cell {
 
       Realf* gpu_rhoLossAdjust;
       split::SplitVector<vmesh::GlobalID> *BlocksToRemove, *BlocksToAdd, *BlocksToMove; /**< Lists of blocks to change on GPU device */
-      split::SplitVector<vmesh::GlobalID> *BlocksRequired, *BlocksHalo;
+      split::SplitVector<vmesh::GlobalID> *BlocksRequired;
       Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *BlocksRequiredMap;
 
-      split::SplitInfo *info_vbwcl, *info_vbwncl, *info_toRemove, *info_toAdd, *info_toMove, *info_Required, *info_Halo;
+      split::SplitInfo *info_vbwcl, *info_vbwncl, *info_toRemove, *info_toAdd, *info_toMove, *info_Required;
       Hashinator::MapInfo *info_brm;
 
       static uint64_t mpi_transfer_type;                                      /**< Which data is transferred by the mpi datatype given by spatial cells.*/
@@ -1345,7 +1354,6 @@ namespace spatial_cell {
        This version calls a kernel to perform operations on-device.
    */
    template <typename fileReal> void SpatialCell::add_velocity_blocks(const uint popID,const split::SplitVector<vmesh::GlobalID> *blocks,fileReal* avgBuffer) {
-   //inline void SpatialCell::add_velocity_blocks(const std::vector<vmesh::GlobalID>& blocks,const uint popID) {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
@@ -1363,15 +1371,16 @@ namespace spatial_cell {
          return;
       }
 
+      gpuStream_t stream = gpu_getStream();
       // Bookkeeping only: Calls CPU version in order to ensure resize of container.
       vmesh::LocalID startLID = populations[popID].blockContainer->push_back(nBlocks);
+      CHK_ERR( gpuStreamSynchronize(stream) );
       // get pointers
       Real* parameters = populations[popID].blockContainer->getParameters(startLID);
-      Realf *cellBlockData=populations[popID].blockContainer->getData(startLID);
+      Realf *cellBlockData = populations[popID].blockContainer->getData(startLID);
 
       const uint nGpuBlocks = nBlocks > GPUBLOCKS ? GPUBLOCKS : nBlocks;
       if (nGpuBlocks>0) {
-         gpuStream_t stream = gpu_getStream();
          dim3 block(WID,WID,WID);
          // Third argument specifies the number of bytes in *shared memory* that is
          // dynamically allocated per block for this call in addition to the statically allocated memory.

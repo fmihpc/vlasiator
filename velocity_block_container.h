@@ -26,6 +26,11 @@
 #include "common.h"
 #include "unistd.h"
 
+#ifdef DEBUG_VLASIATOR
+   #define DEBUG_VBC
+#endif
+   #define DEBUG_VBC
+
 #ifdef DEBUG_VBC
 #include <sstream>
 #endif
@@ -98,6 +103,7 @@ namespace vmesh {
       #endif
     private:
       void exitInvalidLocalID(const vmesh::LocalID& localID,const std::string& funcName) const;
+      ARCH_DEV void exitInvalidLocalID(const vmesh::LocalID& localID) const;
       void resize();
 
       vmesh::LocalID currentCapacity;
@@ -208,12 +214,18 @@ namespace vmesh {
          if (target*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::N_VELOCITY_BLOCK_PARAMS-1 >= parameters->size()) ok = false;
          if (parameters->size()/BlockParams::N_VELOCITY_BLOCK_PARAMS != block_data->size()/WID3) ok = false;
          if (ok == false) {
+            #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
             std::stringstream ss;
             ss << "VBC ERROR: invalid source LID=" << source << " in copy, target=" << target << " #blocks=" << numberOfBlocks << " capacity=" << currentCapacity << std::endl;
             ss << "or sizes are wrong, data.size()=" << block_data->size() << " parameters->size()=" << parameters->size() << std::endl;
             std::cerr << ss.str();
             sleep(1);
             exit(1);
+            #else
+            printf("VBC error: invalid source LID=%u in copy, target=%u #blocks=%u capacity=%u \n or sizes are wrong, data.size()=%u parameters->size()=%u \n",
+                   source,target,numberOfBlocks,currentCapacity, (vmesh::LocalID)block_data->size(),(vmesh::LocalID)parameters->size());
+            assert(0);
+            #endif
          }
       #endif
 
@@ -228,17 +240,22 @@ namespace vmesh {
    }
 
    inline void VelocityBlockContainer::exitInvalidLocalID(const vmesh::LocalID& localID,const std::string& funcName) const {
+      #ifdef DEBUG_VBC
       int rank;
       MPI_Comm_rank(MPI_COMM_WORLD,&rank);
-
-      #ifdef DEBUG_VBC
       std::stringstream ss;
       ss << "Process " << rank << ' ';
       ss << "Invalid localID " << localID << " used in function '" << funcName << "' max allowed value is " << numberOfBlocks << std::endl;
       std::cerr << ss.str();
       sleep(1);
-      #endif
       exit(1);
+      #endif
+   }
+   inline ARCH_DEV void VelocityBlockContainer::exitInvalidLocalID(const vmesh::LocalID& localID) const {
+      #ifdef DEBUG_VBC
+      printf("Invalid localID %u used in VBC; max allowed value is %u\n",localID,numberOfBlocks);
+      assert(0);
+      #endif
    }
 
    inline ARCH_HOSTDEV double VelocityBlockContainer::getBlockAllocationFactor() {
@@ -255,16 +272,26 @@ namespace vmesh {
 
    inline ARCH_HOSTDEV Realf* VelocityBlockContainer::getData(const vmesh::LocalID& blockLID) {
       #ifdef DEBUG_VBC
+         #if defined(USE_GPU) && (defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
+         if (blockLID >= numberOfBlocks) exitInvalidLocalID(blockLID);
+         if (blockLID >= block_data->size()/WID3) exitInvalidLocalID(blockLID);
+         #else
          if (blockLID >= numberOfBlocks) exitInvalidLocalID(blockLID,"getData");
          if (blockLID >= block_data->size()/WID3) exitInvalidLocalID(blockLID,"const getData const");
+         #endif
       #endif
       return block_data->data() + blockLID*WID3;
    }
 
    inline ARCH_HOSTDEV const Realf* VelocityBlockContainer::getData(const vmesh::LocalID& blockLID) const {
       #ifdef DEBUG_VBC
+         #if defined(USE_GPU) && (defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
+         if (blockLID >= numberOfBlocks) exitInvalidLocalID(blockLID);
+         if (blockLID >= block_data->size()/WID3) exitInvalidLocalID(blockLID);
+         #else
          if (blockLID >= numberOfBlocks) exitInvalidLocalID(blockLID,"const getData const");
          if (blockLID >= block_data->size()/WID3) exitInvalidLocalID(blockLID,"const getData const");
+         #endif
       #endif
       return block_data->data() + blockLID*WID3;
    }
@@ -378,16 +405,26 @@ namespace vmesh {
 
    inline ARCH_HOSTDEV Real* VelocityBlockContainer::getParameters(const vmesh::LocalID& blockLID) {
       #ifdef DEBUG_VBC
+         #if defined(USE_GPU) && (defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
+         if (blockLID >= numberOfBlocks) exitInvalidLocalID(blockLID);
+         if (blockLID >= parameters->size()/BlockParams::N_VELOCITY_BLOCK_PARAMS) exitInvalidLocalID(blockLID);
+         #else
          if (blockLID >= numberOfBlocks) exitInvalidLocalID(blockLID,"getParameters");
          if (blockLID >= parameters->size()/BlockParams::N_VELOCITY_BLOCK_PARAMS) exitInvalidLocalID(blockLID,"getParameters");
+         #endif
       #endif
       return parameters->data() + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
    }
 
    inline ARCH_HOSTDEV const Real* VelocityBlockContainer::getParameters(const vmesh::LocalID& blockLID) const {
       #ifdef DEBUG_VBC
+         #if defined(USE_GPU) && (defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
+         if (blockLID >= numberOfBlocks) exitInvalidLocalID(blockLID);
+         if (blockLID >= parameters->size()/BlockParams::N_VELOCITY_BLOCK_PARAMS) exitInvalidLocalID(blockLID);
+         #else
          if (blockLID >= numberOfBlocks) exitInvalidLocalID(blockLID,"const getParameters const");
          if (blockLID >= parameters->size()/BlockParams::N_VELOCITY_BLOCK_PARAMS) exitInvalidLocalID(blockLID,"getParameters");
+         #endif
       #endif
       return parameters->data() + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
    }
@@ -409,12 +446,18 @@ namespace vmesh {
       }
       #ifdef DEBUG_VBC
       if (newIndex >= block_data->size()/WID3 || newIndex >= parameters->size()/BlockParams::N_VELOCITY_BLOCK_PARAMS) {
+         #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
          std::stringstream ss;
          ss << "VBC ERROR in push_back, LID=" << newIndex << " for new block is out of bounds" << std::endl;
          ss << "\t data.size()=" << block_data->size()  << " parameters->size()=" << parameters->size() << std::endl;
          std::cerr << ss.str();
          sleep(1);
          exit(1);
+         #else
+         printf("VBC ERROR in push_back, LID=%u for new block is out of bounds\n  data.size()=%u parameters->size()=%u\n",
+                newIndex,(vmesh::LocalID)block_data->size(),(vmesh::LocalID)parameters->size());
+         assert(0);
+         #endif
       }
       #endif
       ++numberOfBlocks;
@@ -434,12 +477,18 @@ namespace vmesh {
 
       #ifdef DEBUG_VBC
       if (newIndex >= block_data->size()/WID3 || newIndex >= parameters->size()/BlockParams::N_VELOCITY_BLOCK_PARAMS) {
+         #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
          std::stringstream ss;
          ss << "VBC ERROR in push_back, LID=" << newIndex << " for new block is out of bounds" << std::endl;
          ss << "\t data.size()=" << block_data->size()  << " parameters->size()=" << parameters->size() << std::endl;
          std::cerr << ss.str();
          sleep(1);
          exit(1);
+         #else
+         printf("VBC ERROR in push_back, LID=%u for new block is out of bounds \n data.size()=%u parameters->size()=%u \n",
+                newIndex,(vmesh::LocalID)block_data->size(),(vmesh::LocalID)parameters->size());
+         assert(0);
+         #endif
       }
       #endif
 

@@ -597,17 +597,21 @@ namespace spatial_cell {
     sense in given block.
     Also returns false if given block doesn't exist or is an error block.
     */
-   bool SpatialCell::compute_block_has_content(const vmesh::GlobalID& blockGID,const uint popID) const {
+   bool SpatialCell::compute_block_has_content(const vmesh::LocalID& blockLID,const uint popID) const {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
          std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
          exit(1);
       }
+      const vmesh::GlobalID blockGID = populations[popID].vmesh->getGlobalID(blockLID);
+      if (blockGID == invalid_global_id()) {
+         std::cerr << "ERROR, popID " << popID << " found invalid GID " << blockGID << " for LID  "<< blockLID;
+         std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
+         exit(1);
+      }
       #endif
 
-      if (blockGID == invalid_global_id()) return false;
-      const vmesh::LocalID blockLID = get_velocity_block_local_id(blockGID,popID);
       if (blockLID == invalid_local_id()) return false;
 
       bool has_content = false;
@@ -1495,7 +1499,7 @@ namespace spatial_cell {
 
       for (vmesh::LocalID block_index=0; block_index<populations[popID].vmesh->size(); ++block_index) {
          const vmesh::GlobalID globalID = populations[popID].vmesh->getGlobalID(block_index);
-         if (compute_block_has_content(globalID,popID)){
+         if (compute_block_has_content(block_index,popID)){
             velocity_block_with_content_list->push_back(globalID);
          } else {
             velocity_block_with_no_content_list->push_back(globalID);

@@ -27,14 +27,13 @@
 #include "../common.h"
 #include "../spatial_cell.hpp"
 
-// Translation vectors and hashmap. These are defined in arch/gpu_base.cpp.
-extern split::SplitVector<vmesh::VelocityMesh*> allVmeshPointer;
-extern split::SplitVector<vmesh::VelocityMesh*> allPencilsMeshes;
-extern split::SplitVector<vmesh::VelocityBlockContainer*> allPencilsContainers;
-extern split::SplitVector<vmesh::GlobalID> unionOfBlocks;
-// This is a pointer, so it's accessors are available on GPU
+// Vectors and set for use in translation. Cannot be declared in arch/gpu_base.hpp, because of
+// compilation errors.
+extern split::SplitVector<vmesh::VelocityMesh*> *allVmeshPointer;
+extern split::SplitVector<vmesh::VelocityMesh*> *allPencilsMeshes;
+extern split::SplitVector<vmesh::VelocityBlockContainer*> *allPencilsContainers;
+extern split::SplitVector<vmesh::GlobalID> *unionOfBlocks;
 extern Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *unionOfBlocksSet;
-
 
 bool gpu_trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                   const std::vector<CellID>& localPropagatedCells,

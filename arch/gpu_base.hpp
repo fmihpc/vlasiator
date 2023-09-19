@@ -64,7 +64,8 @@ void gpu_acc_allocate(uint maxBlockCount);
 void gpu_acc_deallocate();
 void gpu_acc_allocate_perthread(uint cpuThreadID, uint columnAllocationCount);
 void gpu_acc_deallocate_perthread(uint cpuThreadID);
-
+void gpu_trans_allocate(cuint nAllCells=0, cuint sumOfLengths=0, cuint largestVmesh=0, cuint unionSetSize=0);
+void gpu_trans_deallocate();
 
 extern gpuStream_t gpuStreamList[];
 extern gpuStream_t gpuPriorityStreamList[];
@@ -203,6 +204,14 @@ extern Column *gpu_columns[];
 
 // Unified (managed) memory variables
 extern ColumnOffsets *unif_columnOffsetData[];
+
+// Vectors and set for use in translation, actually declared in vlasovsolver/gpu_trans_map_amr.hpp
+// to sidestep compilation errors
+// extern split::SplitVector<vmesh::VelocityMesh*> *allVmeshPointer;
+// extern split::SplitVector<vmesh::VelocityMesh*> *allPencilsMeshes;
+// extern split::SplitVector<vmesh::VelocityBlockContainer*> *allPencilsContainers;
+// extern split::SplitVector<vmesh::GlobalID> *unionOfBlocks;
+// extern Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *unionOfBlocksSet;
 
 // Counters used in allocations
 extern uint gpu_vlasov_allocatedSize;

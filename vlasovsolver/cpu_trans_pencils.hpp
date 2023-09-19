@@ -24,30 +24,33 @@
 
 #include <vector>
 #include "vec.h"
+#include <unordered_set>
+#include <dccrg.hpp>
+#include <dccrg_cartesian_geometry.hpp>
 #include "../common.h"
 #include "../spatial_cell.hpp"
-
-// These can be splitvectors without being managed, as on-gpu we just need the .data() pointer
-#ifdef USE_GPU
-typedef split::SplitVector<uint> pencilVecUint;
-typedef split::SplitVector<Realf> pencilVecRealf;
-#else
-typedef std::vector<uint> pencilVecUint;
-typedef std::vector<Realf> pencilVecRealf;
-#endif
 
 struct setOfPencils {
 
    uint N; // Number of pencils in the set
    uint sumOfLengths;
-   pencilVecUint lengthOfPencils; // Lengths of pencils (including stencil cells)
+   std::vector<uint> lengthOfPencils; // Lengths of pencils (including stencil cells)
    std::vector<CellID> ids; // List of pencil cells (incuding stencil cells)
-   pencilVecUint idsStart; // List of where a pencil's CellIDs start in the ids array
-   pencilVecRealf sourceDZ; // Widths of source cells
-   pencilVecRealf targetRatios; // Pencil to target cell area ratios of target cells
-   std::vector< Real > x,y; // x,y - position
-   std::vector< bool > periodic;
-   std::vector< std::vector<uint> > path; // Path taken through refinement levels
+   std::vector<uint> idsStart; // List of where a pencil's CellIDs start in the ids array
+   std::vector<Realf> sourceDZ; // Widths of source cells
+   std::vector<Realf> targetRatios; // Pencil to target cell area ratios of target cells
+   std::vector<Real> x,y; // x,y - position
+   std::vector<bool> periodic;
+   std::vector<std::vector<uint>> path; // Path taken through refinement levels
+
+#ifdef USE_GPU
+   bool gpu_allocated = false;
+   // Pointers to GPU copies of vectors
+   split::SplitVector<uint> *gpu_lengthOfPencils;
+   split::SplitVector<uint> *gpu_idsStart;
+   split::SplitVector<Realf> *gpu_sourceDZ;
+   split::SplitVector<Realf> *gpu_targetRatios;
+#endif
 
    setOfPencils() {
       N = 0;
@@ -208,14 +211,13 @@ struct setOfPencils {
 bool do_translate_cell(spatial_cell::SpatialCell* SC);
 
 // grid.cpp calls this function to both find seed cells and build pencils
-void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                              const uint dimension);
+void prepareSeedIdsAndPencils(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const uint dimension);
 
 // pencils used for AMR translation
 extern std::array<setOfPencils,3> DimensionPencils;
 extern std::array<std::unordered_set<CellID>,3> DimensionTargetCells;
 
-void flagSpatialCellsForAmrCommunication(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+void flagSpatialCellsForAmrCommunication(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                          const std::vector<CellID>& localPropagatedCells);
 
 #endif

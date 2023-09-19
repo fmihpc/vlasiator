@@ -208,7 +208,7 @@ namespace vmesh {
       globalToLocalMap->at(moveGID) = targetLID;
       globalToLocalMap->erase(removeGID);
       localToGlobalMap->at(targetLID) = moveGID;
-      localToGlobalMap->erase(sourceLID);
+      localToGlobalMap->pop_back();
       return true;
    }
 

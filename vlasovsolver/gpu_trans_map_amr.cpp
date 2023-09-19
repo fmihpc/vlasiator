@@ -251,12 +251,12 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
  * the union of all existing blocks.
  *
  * @param unionOfBlocksSet Hashmap, where keys are those blocks which are in the union of all blocks
- * @param allVmeshPointer Buffer of pointers to velocitymeshes, used for gathering active blocks
-xs * @param nAllCells count of cells to read from allVmeshPointer
+ * @param allVmeshPointer Vector of pointers to velocitymeshes, used for gathering active blocks
+ * @param nAllCells count of cells to read from allVmeshPointer
  */
 __global__ void  __launch_bounds__(GPUTHREADS, 4) gather_union_of_blocks_kernel(
    Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *unionOfBlocksSet,
-   vmesh::VelocityMesh** allVmeshPointer,
+   split::SplitVector<vmesh::VelocityMesh*> *allVmeshPointer,
    const uint nAllCells)
 {
    const int gpuBlocks = gridDim.x;
@@ -265,7 +265,7 @@ __global__ void  __launch_bounds__(GPUTHREADS, 4) gather_union_of_blocks_kernel(
    const vmesh::LocalID ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
 
    for (vmesh::LocalID cellIndex=blocki; cellIndex<nAllCells; cellIndex += gpuBlocks) {
-      vmesh::VelocityMesh* thisVmesh = allVmeshPointer[cellIndex];
+      vmesh::VelocityMesh* thisVmesh = allVmeshPointer->at(cellIndex);
       vmesh::LocalID nBlocks = thisVmesh->size();
       // for (vmesh::LocalID blockIndex=ti; blockIndex<nBlocks; blockIndex += warpSize) {
       //    const vmesh::GlobalID GID = thisVmesh->getGlobalID(blockIndex);
@@ -273,7 +273,8 @@ __global__ void  __launch_bounds__(GPUTHREADS, 4) gather_union_of_blocks_kernel(
       // }
       // Now with warp accessors
       for (vmesh::LocalID blockIndex=0; blockIndex<nBlocks; blockIndex++) {
-         const vmesh::GlobalID GID = thisVmesh->warpGetLocalID(blockIndex,ti);
+         const vmesh::GlobalID GID = thisVmesh->getGlobalID(blockIndex);
+         // warpInsert<true> only inserts if key does not yet exist
          unionOfBlocksSet->warpInsert<true>(GID, (vmesh::LocalID)GID, ti % GPUTHREADS);
       }
    }
@@ -366,10 +367,13 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    // Vectors of pointers to the cell structs
    std::vector<SpatialCell*> allCellsPointer(nAllCells);
 
-   // Prefetch vector to CPU for filling, set correct size
-   // eco flag true indicates no extra safety margin
-   allVmeshPointer.resize(nAllCells,true);
-   allVmeshPointer.optimizeCPU(bgStream);
+   // Ensure GPU data has sufficient allocations/sizes
+   cuint sumOfLengths = DimensionPencils[dimension].sumOfLengths;
+   gpu_trans_allocate(nAllCells,sumOfLengths,0,0);
+   // Prefetch vectors to CPU for filling
+   allVmeshPointer->optimizeCPU(bgStream);
+   allPencilsMeshes->optimizeCPU(bgStream);
+   allPencilsContainers->optimizeCPU(bgStream);
 
    // Initialize allCellsPointer. Find maximum mesh size.
    uint largestFoundMeshSize = 0;
@@ -379,8 +383,8 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
       #pragma omp for
       for(uint celli = 0; celli < nAllCells; celli++){
          allCellsPointer[celli] = mpiGrid[allCells[celli]];
-         allVmeshPointer[celli] = mpiGrid[allCells[celli]]->get_velocity_mesh(popID);
-         const uint thisMeshSize = allVmeshPointer[celli]->size();
+         allVmeshPointer->at(celli) = mpiGrid[allCells[celli]]->get_velocity_mesh(popID);
+         const uint thisMeshSize = (allVmeshPointer->at(celli))->size();
          thread_largestFoundMeshSize = thisMeshSize > thread_largestFoundMeshSize ? thisMeshSize : thread_largestFoundMeshSize;
          // Prefetches (in fact all data should already reside in device memory)
          // allCellsPointer[celli]->get_velocity_mesh(popID)->gpu_prefetchDevice();
@@ -392,24 +396,10 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
       }
    }
    // Prefetch vector of vmesh pointers to GPU
-   allVmeshPointer.optimizeGPU(bgStream);
+   allVmeshPointer->optimizeGPU(bgStream);
 
-   // Ensure GPU allocations
-   cuint sumOfLengths = DimensionPencils[dimension].sumOfLengths;
-   gpu_vlasov_allocate(sumOfLengths);
-   allPencilsMeshes.reserve(sumOfLengths,true);
-   allPencilsMeshes.resize(sumOfLengths);
-   allPencilsContainers.reserve(sumOfLengths,true);
-   allPencilsContainers.resize(sumOfLengths);
-   const vmesh::LocalID HashmapReqSize = ceil(log2(largestFoundMeshSize)) +3;
-   const uint currSizePower = unionOfBlocksSet->getSizePower();
-   unionOfBlocksSet->clear(Hashinator::targets::device,bgStream,false);
-   if (currSizePower < HashmapReqSize) {
-      unionOfBlocksSet->resize(HashmapReqSize);
-      unionOfBlocksSet->memAdvise(gpuMemAdviseSetPreferredLocation,device,bgStream);
-      unionOfBlocksSet->memAdvise(gpuMemAdviseSetAccessedBy,device,bgStream);
-      unionOfBlocksSet->optimizeGPU(bgStream);
-   }
+   // Reserve size for unionOfBlocksSet
+   gpu_trans_allocate(0, 0, largestFoundMeshSize, 0);
 
    // Gather cell weights for load balancing
    if (Parameters::prepareForRebalance == true) {
@@ -431,7 +421,7 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    const uint nGpuBlocks = nAllCells > GPUBLOCKS ? GPUBLOCKS : nAllCells;
    gather_union_of_blocks_kernel<<<nGpuBlocks, GPUTHREADS, 0, bgStream>>> (
       unionOfBlocksSet,
-      allVmeshPointer.data(),
+      allVmeshPointer,
       nAllCells
       );
    CHK_ERR( gpuPeekAtLastError() );
@@ -449,31 +439,30 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
       // Loop over cells in pencil
       for (int i = 0; i < L; i++) {
          const CellID thisCell = DimensionPencils[dimension].ids[start+i];
-         allPencilsMeshes[start+i] = mpiGrid[thisCell]->get_velocity_mesh(popID);
-         allPencilsContainers[start+i] = mpiGrid[thisCell]->get_velocity_blocks(popID);
+         allPencilsMeshes->at(start+i) = mpiGrid[thisCell]->get_velocity_mesh(popID);
+         allPencilsContainers->at(start+i) = mpiGrid[thisCell]->get_velocity_blocks(popID);
       }
    }
-   vmesh::VelocityMesh** pencilMeshes = allPencilsMeshes.data();
-   vmesh::VelocityBlockContainer** pencilContainers = allPencilsContainers.data();
-   allPencilsMeshes.optimizeGPU();
-   allPencilsContainers.optimizeGPU();
+   // Prefetch data back to GPU
+   vmesh::VelocityMesh** pencilMeshes = allPencilsMeshes->data();
+   vmesh::VelocityBlockContainer** pencilContainers = allPencilsContainers->data();
+   allPencilsMeshes->optimizeGPU(bgStream);
+   allPencilsContainers->optimizeGPU(bgStream);
 
    // Extract pointers to data in managed memory
-   uint* pencilLengths = DimensionPencils[dimension].lengthOfPencils.data();
-   uint* pencilStarts = DimensionPencils[dimension].idsStart.data();
-   Realf* pencilDZ = DimensionPencils[dimension].sourceDZ.data();
-   Realf* pencilRatios = DimensionPencils[dimension].targetRatios.data();
+   uint* pencilLengths = DimensionPencils[dimension].gpu_lengthOfPencils->data();
+   uint* pencilStarts = DimensionPencils[dimension].gpu_idsStart->data();
+   Realf* pencilDZ = DimensionPencils[dimension].gpu_sourceDZ->data();
+   Realf* pencilRatios = DimensionPencils[dimension].gpu_targetRatios->data();
    phiprof::stop("trans-amr-gather-meshpointers");
 
    phiprof::start("trans-amr-buildBlockList-2");
    // Now we ensure the union of blocks gathering is complete and extract the union of blocks into a vector
    CHK_ERR( gpuStreamSynchronize(bgStream) );
-   unionOfBlocks.reserve(unionOfBlocksSet->size());
-   unionOfBlocks.clear();
-   unionOfBlocks.optimizeGPU();
-   const uint nAllBlocks = unionOfBlocksSet->extractAllKeys(unionOfBlocks,bgStream);
+   gpu_trans_allocate(0,0,0,unionOfBlocksSet->size());
+   const uint nAllBlocks = unionOfBlocksSet->extractAllKeys(*unionOfBlocks,bgStream);
    CHK_ERR( gpuStreamSynchronize(bgStream) );
-   vmesh::GlobalID *allBlocks = unionOfBlocks.data();
+   vmesh::GlobalID *allBlocks = unionOfBlocks->data();
    // This threshold value is used by slope limiters.
    Realv threshold = mpiGrid[DimensionPencils[dimension].ids[VLASOV_STENCIL_WIDTH]]->getVelocityBlockMinValue(popID);
    phiprof::stop("trans-amr-buildBlockList-2");

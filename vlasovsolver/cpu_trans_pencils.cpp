@@ -5,6 +5,11 @@ using namespace spatial_cell;
 
 #include "cpu_trans_pencils.hpp"
 
+#ifdef USE_GPU
+// just for uploading pencil information to GPU
+#include "../arch/gpu_base.hpp"
+#endif
+
 std::array<setOfPencils,3> DimensionPencils;
 std::array<std::unordered_set<CellID>,3> DimensionTargetCells;
 
@@ -1052,14 +1057,6 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
          localPropagatedCells.push_back(localCells[c]);
       }
    }
-   #ifdef USE_GPU
-   // Prefetch vectors to CPU
-   DimensionPencils[dimension].lengthOfPencils.optimizeCPU();
-   DimensionPencils[dimension].idsStart.optimizeCPU();
-   DimensionPencils[dimension].sourceDZ.optimizeCPU();
-   DimensionPencils[dimension].targetRatios.optimizeCPU();   
-   #endif
-
    phiprof::start("getSeedIds");
    vector<CellID> seedIds;
    getSeedIds(mpiGrid, localPropagatedCells, dimension, seedIds);
@@ -1176,20 +1173,34 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    phiprof::stop("buildPencils");
 
    #ifdef USE_GPU
-   // Prefetch pencil data to GPU
+   // Clear old allocation if needed
+   if (DimensionPencils[dimension].gpu_allocated) {
+      delete DimensionPencils[dimension].gpu_lengthOfPencils;
+      delete DimensionPencils[dimension].gpu_idsStart;
+      delete DimensionPencils[dimension].gpu_sourceDZ;
+      delete DimensionPencils[dimension].gpu_targetRatios;
+   }
+   // Create GPU copies of these vectors
+   DimensionPencils[dimension].gpu_lengthOfPencils = new split::SplitVector<uint>(DimensionPencils[dimension].lengthOfPencils);
+   DimensionPencils[dimension].gpu_idsStart = new split::SplitVector<uint>(DimensionPencils[dimension].idsStart);
+   DimensionPencils[dimension].gpu_sourceDZ = new split::SplitVector<Real>(DimensionPencils[dimension].sourceDZ);
+   DimensionPencils[dimension].gpu_targetRatios = new split::SplitVector<Real>(DimensionPencils[dimension].targetRatios);
+   // Send data to GPU
    gpuStream_t stream = gpu_getStream();
    int device = gpu_getDevice();
-   DimensionPencils[dimension].lengthOfPencils.optimizeGPU(stream);
-   DimensionPencils[dimension].idsStart.optimizeGPU(stream);
-   DimensionPencils[dimension].sourceDZ.optimizeGPU(stream);
-   DimensionPencils[dimension].targetRatios.optimizeGPU(stream);
-   DimensionPencils[dimension].lengthOfPencils.memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-   DimensionPencils[dimension].lengthOfPencils.memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-   DimensionPencils[dimension].idsStart.memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-   DimensionPencils[dimension].idsStart.memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-   DimensionPencils[dimension].sourceDZ.memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-   DimensionPencils[dimension].sourceDZ.memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-   DimensionPencils[dimension].targetRatios.memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-   DimensionPencils[dimension].targetRatios.memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+   DimensionPencils[dimension].gpu_lengthOfPencils->optimizeGPU(stream);
+   DimensionPencils[dimension].gpu_idsStart->optimizeGPU(stream);
+   DimensionPencils[dimension].gpu_sourceDZ->optimizeGPU(stream);
+   DimensionPencils[dimension].gpu_targetRatios->optimizeGPU(stream);
+   DimensionPencils[dimension].gpu_lengthOfPencils->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+   DimensionPencils[dimension].gpu_lengthOfPencils->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+   DimensionPencils[dimension].gpu_idsStart->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+   DimensionPencils[dimension].gpu_idsStart->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+   DimensionPencils[dimension].gpu_sourceDZ->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+   DimensionPencils[dimension].gpu_sourceDZ->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+   DimensionPencils[dimension].gpu_targetRatios->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+   DimensionPencils[dimension].gpu_targetRatios->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+   // and raise flag to be userd for deallocation
+   DimensionPencils[dimension].gpu_allocated = true;
    #endif
 }

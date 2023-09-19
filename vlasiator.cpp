@@ -307,15 +307,10 @@ int main(int argn,char* args[]) {
    phiprof::start("main");
    phiprof::start("Initialization");
 
-   #ifdef USE_GPU
-   // Activate device, create streams
-   gpu_init_device();
-   #endif
-
    phiprof::start("Read parameters");
-   // Allocate velocity mesh wrapper
-   vmesh::allocMeshWrapper();
-   //init parameter file reader
+   // Allocate host-side velocity mesh wrapper
+   vmesh::allocateMeshWrapper();
+   // init parameter file reader
    Readparameters readparameters(argn,args);
 
    P::addParameters();
@@ -337,6 +332,12 @@ int main(int argn,char* args[]) {
    sysBoundaryContainer.getParameters();
    project->getParameters();
 
+   #ifdef USE_GPU
+   // Activate device, create streams
+   gpu_init_device();
+   #endif
+
+   // Fill in rest of velocity meshes data, upload GPU version
    vmesh::getMeshWrapper()->initVelocityMeshes(getObjectWrapper().particleSpecies.size());
    phiprof::stop("Read parameters");
 
@@ -1213,17 +1214,14 @@ int main(int argn,char* args[]) {
    #ifdef USE_GPU
    // Call gpu allocation destructors on all spatial cells
    for (typename std::unordered_map<uint64_t, SpatialCell>::iterator
-           cell_item = mpiGrid.get_cell_data().begin();
-        cell_item != mpiGrid.get_cell_data().end();
+           cell_item = mpiGrid.get_cell_data_for_editing().begin();
+        cell_item != mpiGrid.get_cell_data_for_editing().end();
         cell_item++
       ) {
       (cell_item->second).gpu_destructor();
    }
-   // vector<CellID> allCells = mpiGrid.get_all_cells();
-   // for (const auto& cell: allCells) {
-   //    mpiGrid[cell]->gpu_destructor();
-   // }
    // Deallocate buffers, clear device
+   vmesh::deallocateMeshWrapper();
    gpu_clear_device();
    #endif
 
