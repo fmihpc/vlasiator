@@ -80,7 +80,8 @@
 #define gpuMemcpyDeviceToDevice          cudaMemcpyDeviceToDevice
 #define gpuMemcpyToSymbol                cudaMemcpyToSymbol
 
-#define gpuKernelBallot(mask, input) __ballot_sync(mask, input)
+#define gpuKernelBallot(mask, input)     __ballot_sync(mask, input)
+#define gpuKernelAny(mask, input)        __any_sync(mask, input)
 
 /* Define architecture-specific macros */
 #define ARCH_LOOP_LAMBDA [=] __host__ __device__
@@ -425,7 +426,7 @@ namespace arch{
        */
       T* d_thread_data_dynamic = 0; // declared zero to suppress unitialized use warning
       if(NReduStatic == 0) {
-          /* Get the cub temp storage sizes for the dynamic shared memory kernel argument */
+         /* Get the cub temp storage sizes for the dynamic shared memory kernel argument */
          constexpr auto cub_temp_storage_type_size = sizeof(typename cub::BlockReduce<T, ARCH_BLOCKSIZE_R, cub::BLOCK_REDUCE_RAKING_COMMUTATIVE_ONLY, 1, 1>::TempStorage);
          constexpr auto cub_temp_storage_type_size_small = sizeof(typename cub::BlockReduce<T, ARCH_BLOCKSIZE_R_SMALL, cub::BLOCK_REDUCE_RAKING_COMMUTATIVE_ONLY, 1, 1>::TempStorage);
          /* Query device properties */

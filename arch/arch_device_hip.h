@@ -78,6 +78,7 @@
 #define gpuMemcpyToSymbol                hipMemcpyToSymbol
 
 #define gpuKernelBallot(mask, input)     __ballot(input)
+#define gpuKernelAny(mask, input)        __any(input)
 
 /* Define architecture-specific macros */
 #define ARCH_LOOP_LAMBDA [=] __host__ __device__

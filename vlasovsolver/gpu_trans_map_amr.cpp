@@ -283,7 +283,7 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
  *
  * @param unionOfBlocksSet Hashmap, where keys are those blocks which are in the union of all blocks
  * @param allVmeshPointer Vector of pointers to velocitymeshes, used for gathering active blocks
-xs * @param nAllCells count of cells to read from allVmeshPointer
+ * @param nAllCells count of cells to read from allVmeshPointer
  */
 __global__ void  __launch_bounds__(GPUTHREADS, 4) gather_union_of_blocks_kernel(
    Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *unionOfBlocksSet,
@@ -304,7 +304,8 @@ __global__ void  __launch_bounds__(GPUTHREADS, 4) gather_union_of_blocks_kernel(
       // }
       // Now with warp accessors
       for (vmesh::LocalID blockIndex=0; blockIndex<nBlocks; blockIndex++) {
-         const vmesh::GlobalID GID = thisVmesh->warpGetLocalID(blockIndex,ti);
+         const vmesh::GlobalID GID = thisVmesh->getGlobalID(blockIndex);
+         // warpInsert<true> only inserts if key does not yet exist
          unionOfBlocksSet->warpInsert<true>(GID, (vmesh::LocalID)GID, ti % GPUTHREADS);
       }
    }
@@ -541,6 +542,7 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    CHK_ERR( gpuStreamSynchronize(bgStream) );
    const uint nAllBlocks = unionOfBlocksSet->extractAllKeys(*unionOfBlocks,bgStream);
    CHK_ERR( gpuStreamSynchronize(bgStream) );
+
    vmesh::GlobalID *allBlocks = unionOfBlocks->data();
    // This threshold value is used by slope limiters.
    Realv threshold = mpiGrid[DimensionPencils[dimension].ids[VLASOV_STENCIL_WIDTH]]->getVelocityBlockMinValue(popID);

@@ -11,6 +11,7 @@
 static vmesh::MeshWrapper *meshWrapper;
 #ifdef USE_GPU
 __device__ __constant__ vmesh::MeshWrapper *meshWrapperDev;
+//__device__ vmesh::MeshWrapper *meshWrapperDev;
 vmesh::MeshWrapper* MWdev;
 std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT> *velocityMeshes_upload;
 

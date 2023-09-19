@@ -281,13 +281,12 @@ namespace SBC {
             // Actually add the velocity block
             templateCell.add_velocity_block(blockGID, popID, &initBuffer[0]);
          } // for-loop over requested velocity blocks
-
          // let's get rid of blocks not fulfilling the criteria here to save memory.
          #ifdef USE_GPU
          // Block adjustment is done on the GPU, but copying over data from templateCells is still done on Host
          templateCell.prefetchDevice();
          #endif
-         templateCell.adjustSingleCellVelocityBlocks(popID,true);
+         templateCell.adjustSingleCellVelocityBlocks(popID);//,true);
          #ifdef USE_GPU
          templateCell.prefetchHost();
          #endif
