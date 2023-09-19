@@ -744,8 +744,6 @@ void calculateScaledDeltas(
    alpha = std::max(alpha, dPsq);
    alpha = std::max(alpha, dBsq);
    alpha = std::max(alpha, dB);
-   // Clip to 1.0 since that's the maximum of the first two constituents
-   alpha = std::min(alpha, 1.0);
 
    Real dBXdy {cell->derivativesBVOL[bvolderivatives::dPERBXVOLdy]};
    Real dBXdz {cell->derivativesBVOL[bvolderivatives::dPERBXVOLdz]};
