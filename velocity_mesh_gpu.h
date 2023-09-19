@@ -43,7 +43,7 @@
 #ifdef DEBUG_VLASIATOR
    #define DEBUG_VMESH
 #endif
-   #define DEBUG_VMESH
+//   #define DEBUG_VMESH
 
 namespace vmesh {
 

@@ -30,7 +30,7 @@
 #ifdef DEBUG_VLASIATOR
    #define DEBUG_SPATIAL_CELL
 #endif
-   #define DEBUG_SPATIAL_CELL
+//   #define DEBUG_SPATIAL_CELL
 
 using namespace std;
 
