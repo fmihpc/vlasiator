@@ -30,6 +30,7 @@
 #ifdef DEBUG_VLASIATOR
    #define DEBUG_SPATIAL_CELL
 #endif
+   #define DEBUG_SPATIAL_CELL
 
 using namespace std;
 
@@ -444,6 +445,7 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
    for (vmesh::LocalID m=blocki; m<nToCreate; m += gpuBlocks) {
       // Debug check: if we are adding elements, then nToMove should be zero
       // We have already used up nToRemove entries from the addition vector.
+      assert((nToMove==0) && "nToMove should be zero when adding blocks!");
       const vmesh::GlobalID addGID = BlocksToAdd->at(nToRemove+m);
       // We need to add the data of addGID to a new LID:
       const vmesh::LocalID addLID = nBlocksBeforeAdjust + m;
@@ -1172,6 +1174,7 @@ namespace spatial_cell {
             );
          CHK_ERR( gpuPeekAtLastError() );
          Realf host_rhoLossAdjust = 0;
+         CHK_ERR( gpuStreamSynchronize(stream) );
          CHK_ERR( gpuMemcpyAsync(&host_rhoLossAdjust, returnRealf[thread_id], sizeof(Realf), gpuMemcpyDeviceToHost, stream) );
          CHK_ERR( gpuStreamSynchronize(stream) );
          this->populations[popID].RHOLOSSADJUST += host_rhoLossAdjust;

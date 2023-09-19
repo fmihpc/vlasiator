@@ -394,8 +394,9 @@ namespace spatial_cell {
          // Set block parameters
          if (ti==0) {
             vmesh::GlobalID GID = blocks->at(index);
-            vmesh->getBlockInfo(GID, parameters+BlockParams::VXCRD);
+            vmesh->getBlockInfo(GID, parameters + index*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD);
          }
+         __syncthreads();
       }
    }
 
@@ -1353,7 +1354,6 @@ namespace spatial_cell {
        This version calls a kernel to perform operations on-device.
    */
    template <typename fileReal> void SpatialCell::add_velocity_blocks(const uint popID,const split::SplitVector<vmesh::GlobalID> *blocks,fileReal* avgBuffer) {
-   //inline void SpatialCell::add_velocity_blocks(const std::vector<vmesh::GlobalID>& blocks,const uint popID) {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
@@ -1371,15 +1371,16 @@ namespace spatial_cell {
          return;
       }
 
+      gpuStream_t stream = gpu_getStream();
       // Bookkeeping only: Calls CPU version in order to ensure resize of container.
       vmesh::LocalID startLID = populations[popID].blockContainer->push_back(nBlocks);
+      CHK_ERR( gpuStreamSynchronize(stream) );
       // get pointers
       Real* parameters = populations[popID].blockContainer->getParameters(startLID);
       Realf *cellBlockData = populations[popID].blockContainer->getData(startLID);
 
       const uint nGpuBlocks = nBlocks > GPUBLOCKS ? GPUBLOCKS : nBlocks;
       if (nGpuBlocks>0) {
-         gpuStream_t stream = gpu_getStream();
          dim3 block(WID,WID,WID);
          // Third argument specifies the number of bytes in *shared memory* that is
          // dynamically allocated per block for this call in addition to the statically allocated memory.
