@@ -401,7 +401,7 @@ __host__ void gpu_trans_allocate(
    cuint largestVmesh,
    cuint unionSetSize
    ) {
-   cudaStream_t stream = gpu_getStream();
+   gpuStream_t stream = gpu_getStream();
    // Vectors with one entry per cell (no prefetching)
    if (nAllCells != 0) {
       if (gpu_allocated_nAllCells == 0) {
