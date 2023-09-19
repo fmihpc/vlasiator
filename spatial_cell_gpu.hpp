@@ -53,6 +53,7 @@ Spatial cell class for Vlasiator that supports a variable number of velocity blo
 #ifdef DEBUG_VLASIATOR
    #define DEBUG_SPATIAL_CELL
 #endif
+//   #define DEBUG_SPATIAL_CELL
 
 typedef Parameters P; // Heeded in numerous files which include this one
 
@@ -546,7 +547,7 @@ namespace spatial_cell {
       split::SplitVector<vmesh::GlobalID> *velocity_block_with_content_list;          /**< List of existing cells with content, only up-to-date after call to update_has_content().*/
       vmesh::LocalID velocity_block_with_content_list_size;                   /**< Size of vector. Needed for MPI communication of size before actual list transfer.*/
       vmesh::GlobalID *gpu_velocity_block_with_content_list_buffer;  /**< Pointer to device-memory buffer of VB with content list */
-      split::SplitVector<vmesh::GlobalID> *velocity_block_with_no_content_list;
+      split::SplitVector<vmesh::GlobalID> *velocity_block_with_no_content_list, *vbwcl_gather, *vbwncl_gather;
 
       /**< List of existing cells with no content, only up-to-date after call to update_has_content. This is also never transferred over MPI, so is invalid on remote cells.*/
 
@@ -1486,5 +1487,13 @@ namespace spatial_cell {
    }
 
 } // namespaces
+
+// Rule used in performing stream compaction on vectors of vmesh::GlobalIDs
+struct Predicate{
+      __host__ __device__
+      bool operator ()(vmesh::GlobalID i)const {
+         return i==vmesh::INVALID_GLOBALID;
+      }
+};
 
 #endif
