@@ -1349,12 +1349,6 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    double ratio = static_cast<double>(refines) / static_cast<double>(cells);
    logFile << "(AMR) Refining " << refines << " cells, " << 100.0 * ratio << "% of grid" << std::endl;
 
-   if (ratio < P::leastCellsToRefine) {
-      mpiGrid.cancel_refining();
-      phiprof::stop("Re-refine spatial cells");
-      return true;   // return false only when bailing out
-   }
-
    phiprof::Timer dccrgTimer {"dccrg refinement"};
 
    phiprof::Timer initTimer {"initialize refines"};
