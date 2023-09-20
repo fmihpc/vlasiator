@@ -108,7 +108,7 @@ void initializeGrids(
    float zoltanVersion;
    if (Zoltan_Initialize(argn,argc,&zoltanVersion) != ZOLTAN_OK) {
       if(myRank == MASTER_RANK) cerr << "\t ERROR: Zoltan initialization failed." << endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    } else {
       logFile << "\t Zoltan " << zoltanVersion << " initialized successfully" << std::endl << writeVerbose;
    }
@@ -165,6 +165,13 @@ void initializeGrids(
          mapRefinement(mpiGrid, technicalGrid);
       }
    } else {
+      if(!verifyRestartFile(P::restartFileName)){
+         if (myRank == MASTER_RANK) std::cerr << __FILE__ << ":" << __LINE__ << " Verification of the restart file failed." <<std::endl;
+         exit(ExitCodes::RESTART_READ_FAILURE);
+      }
+      else{
+         if (myRank == MASTER_RANK) std::cout << __FILE__ << ":" << __LINE__ <<  "Restart file verified." <<std::endl;
+      }
       if (readFileCells(mpiGrid, P::restartFileName)) {
          mpiGrid.balance_load();
          recalculateLocalCellsCache();
@@ -207,7 +214,7 @@ void initializeGrids(
    phiprof::Timer initBoundaryTimer {"Initialize system boundary conditions"};
    if(sysBoundaries.initSysBoundaries(project, P::t_min) == false) {
       if (myRank == MASTER_RANK) cerr << "Error in initialising the system boundaries." << endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
    initBoundaryTimer.stop();
    
@@ -218,7 +225,7 @@ void initializeGrids(
    phiprof::Timer classifyTimer {"Classify cells (sys boundary conditions)"};
    if(sysBoundaries.classifyCells(mpiGrid,technicalGrid) == false) {
       cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
    classifyTimer.stop();
    
@@ -227,7 +234,7 @@ void initializeGrids(
       phiprof::Timer restartReadTimer {"Read restart"};
       if (readGrid(mpiGrid,perBGrid,EGrid,technicalGrid,P::restartFileName) == false) {
          logFile << "(MAIN) ERROR: restarting failed" << endl;
-         exit(1);
+         exit(ExitCodes::RESTART_READ_FAILURE);
       }
       restartReadTimer.stop();
 
@@ -250,7 +257,7 @@ void initializeGrids(
    phiprof::Timer boundaryCheckTimer {"Check boundary refinement"};
    if(!sysBoundaries.checkRefinement(mpiGrid)) {
       cerr << "(MAIN) WARNING: Boundary cells don't have identical refinement level " << endl;
-      //exit(1);
+      //exit(ExitCodes::FAILURE);
    }
    boundaryCheckTimer.stop();
 
@@ -259,7 +266,7 @@ void initializeGrids(
       phiprof::Timer timer {"Apply system boundary conditions state"};
       if (sysBoundaries.applyInitialState(mpiGrid, technicalGrid, perBGrid, project) == false) {
          cerr << " (MAIN) ERROR: System boundary conditions initial state was not applied correctly." << endl;
-         exit(1);
+         exit(ExitCodes::FAILURE);
       }
    }
 
@@ -293,7 +300,7 @@ void initializeGrids(
       phiprof::Timer applyBCTimer {"Apply system boundary conditions state"};
       if (sysBoundaries.applyInitialState(mpiGrid, technicalGrid, perBGrid, project) == false) {
          cerr << " (MAIN) ERROR: System boundary conditions initial state was not applied correctly." << endl;
-         exit(1);
+         exit(ExitCodes::FAILURE);
       }
       applyBCTimer.stop();
       
@@ -627,7 +634,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    if (Parameters::propagateField == true) {
       if (initializeFieldPropagatorAfterRebalance() == false) {
          logFile << "(MAIN): Field propagator did not initialize correctly!" << endl << writeVerbose;
-         exit(1);
+         exit(ExitCodes::FAILURE);
       }
    }
    initSolversTimer.stop();
@@ -1465,7 +1472,7 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
 	// This needs to be done before LB
    if(sysBoundaries.classifyCells(mpiGrid,technicalGrid) == false) {
       cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
 
    //SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);

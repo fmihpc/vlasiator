@@ -164,7 +164,7 @@ void setCellVariables( vlsvinterface::Reader & vlsvReader, CellStructure & cellS
    for( int i = 0; i < 3; ++i ) {
       if( cellStruct.cell_length[i] == 0 || cellStruct.cell_bounds[i] == 0 || cellStruct.vblock_length[i] == 0 || cellStruct.vcell_bounds[i] == 0 ) {
          cerr << "ERROR, ZERO CELL LENGTH OR CELL_BOUNDS AT " << __FILE__ << " " << __LINE__ << endl;
-         exit(1);
+         exit(ExitCodes::FAILURE);
       }
    }
    return;
@@ -187,7 +187,7 @@ template <typename T>
 uint64_t convUInt(const char* ptr,const T& dataType,const uint64_t& dataSize) {
    if ( isDataTypeUint(dataType) == false ) {
       cerr << "Erroneous datatype given to convUInt" << endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
    
    switch (dataSize) {
@@ -229,7 +229,7 @@ int SiloType(const datatype::type & dataType, const uint64_t & dataSize) {
          break;
       case datatype::type::UNKNOWN:
          cerr << "INVALID DATATYPE AT " << __FILE__ << " " << __LINE__ << endl;
-         exit(1);
+         exit(ExitCodes::FAILURE);
    }
    return -1;
 }
@@ -601,7 +601,7 @@ int main(int argn,char* args[]) {
       cout << "Each VLSV in the current directory is compared against the given file mask(s)," << endl;
       cout << "and if match is found, that file is converted into SILO format." << endl;
       cout << endl;
-      return 1;
+      return ExitCodes::FAILURE;
    }
 
    // Convert file masks into strings:
@@ -655,5 +655,5 @@ int main(int argn,char* args[]) {
    if (rank == 0 && totalFilesConverted == 0) cout << "\t no files converted" << endl;
    
    MPI_Finalize();
-   return 0;
+   return ExitCodes::SUCCESS;
 }

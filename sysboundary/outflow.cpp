@@ -122,7 +122,7 @@ namespace SBC {
               sP.faceVlasovScheme[j] = vlasovscheme::LIMIT;
            } else {
               if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: " << vlasovSysBoundarySchemeName[j] << " is an invalid Outflow Vlasov scheme!" << endl;
-              exit(1);
+              exit(ExitCodes::FAILURE);
            }
         }
 
@@ -355,7 +355,7 @@ namespace SBC {
                   break;
                default:
                   cerr << __FILE__ << ":" << __LINE__ << "ERROR: invalid Outflow Vlasov scheme!" << endl;
-                  exit(1);
+                  exit(ExitCodes::FAILURE);
                   break;
             }
          }

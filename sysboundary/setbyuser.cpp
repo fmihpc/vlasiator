@@ -339,7 +339,7 @@ namespace SBC {
       fp = fopen(fn,"r");
       if (fp == NULL) {
          cerr << "Couldn't open parameter file " << fn << endl;
-         exit(1);
+         exit(ExitCodes::FAILURE);
       }
       uint nlines = 0;
       int ret = nParams;
@@ -369,7 +369,7 @@ namespace SBC {
       
       if (nlines < 1) {
          cerr << "Parameter file must have at least one value (t, n, T...)" << endl;
-         exit(1);
+         exit(ExitCodes::FAILURE);
       }
       
       if (myRank == 0) cout << "Parameter data file (" << fn << ") has " << nlines << " values"<< endl;
@@ -399,7 +399,7 @@ namespace SBC {
       for (uint line = 1; line < nlines; line++) {
          if (dataset[line][0] < dataset[line - 1][0]) {
             cerr << "Parameter data must be in ascending temporal order" << endl;
-            exit(1);
+            exit(ExitCodes::FAILURE);
          }
       }
       

@@ -128,7 +128,7 @@ bool exitOnError(bool success, const string& message, MPI_Comm comm) {
    }
    else{
       logFile << message << endl<<write ;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
 }
 
@@ -1354,4 +1354,53 @@ bool readFileCells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    success = file.close();
    exitOnError(success,"(READ_FILE_CELLS) Other error",MPI_COMM_WORLD);
    return success;
+}
+
+/*!
+ * \brief Check if the restart file is intact.
+ * \param name Name of the restart file 
+ * \return True if file is good (currently: </VLSV> tag ends the file)
+*/
+bool verifyRestartFile(const std::string& name)
+{
+   uint checklength = 16; // How many bytes to check
+   std::ifstream file;
+   std::string buffer;
+   int myRank;
+   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+
+   buffer.resize(checklength);
+   file.open(name, fstream::in | fstream::binary);
+   if(file.is_open()){
+      // reads in the vlsv footer location, not used
+      // file.seekg(8);
+      // file.read(buffer.data(),8);
+      // cout << convUInt64(buffer.data()) <<std::endl; // see vlsv for convUInt64
+      file.seekg(0,ios_base::end);
+      uint length = file.tellg();
+      if(length < checklength){
+         std::cerr << "Suspiciously small vlsv file (<16 bytes). Bailing" << std::endl;
+         return false;
+      } else {
+         file.seekg(-checklength,ios_base::end);
+         file.read(buffer.data(), checklength);
+         if(buffer.find("</VLSV>") != std::string::npos) {
+            //std::cout << "File has </VLSV> at its end, this is promising and will not bailout." << std::endl;
+            return true;
+         }
+         else {
+            std:stringstream tempout;
+            tempout << "(" << myRank << ") End of VLSV footer not found at the end of the file. This is suspicious, I will bail. 16 last bytes of the file are: \t" << std::hex;
+            for (int i = 0; i<checklength; ++i){
+               tempout << (int)(buffer.data()[i]) << " ";
+            }
+            tempout << std::endl;
+            std::cerr << tempout.str();
+            return false;
+         }
+      }
+   }
+   else {
+      return false;
+   }
 }

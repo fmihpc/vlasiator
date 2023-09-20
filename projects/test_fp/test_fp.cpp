@@ -222,7 +222,7 @@ namespace projects {
             break;
           case BALLCASE:
             std::cerr << "not implemented in " << __FILE__ << ":" << __LINE__ << std::endl;
-            exit(1);
+            exit(ExitCodes::FAILURE);
             break;
          }
       } else {

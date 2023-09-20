@@ -75,7 +75,7 @@ static void detect_field_names(Reader& r) {
       B_field_name = "vg_b_background_vol";
    } else {
       std::cerr << "No B-fields found! Strange file format?" << std::endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
    
    if (find(variableNames.begin(), variableNames.end(), std::string("fg_e"))!=variableNames.end()) {
@@ -96,7 +96,7 @@ static void detect_field_names(Reader& r) {
       E_field_name = "vg_e_vol";
    } else {
       std::cerr << "No E-fields found! Strange file format?" << std::endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
 
    std::cerr << B_field_name << std::endl;
@@ -116,12 +116,12 @@ std::vector<double> readFieldData(Reader& r, std::string& name, unsigned int num
    if( r.getArrayInfo("VARIABLE",attribs, arraySize,vectorSize,dataType,byteSize) == false ) {
       std::cerr << "getArrayInfo returned false when trying to read VARIABLE \""
          << name << "\"." << std::endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
 
    if(dataType != vlsv::datatype::type::FLOAT || byteSize != 8 || vectorSize != numcomponents) {
       std::cerr << "Datatype of VARIABLE \"" << name << "\" entries is not double." << std::endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
 
    /* Allocate memory for the data */
@@ -129,7 +129,7 @@ std::vector<double> readFieldData(Reader& r, std::string& name, unsigned int num
 
    if( r.readArray("VARIABLE",attribs,0,arraySize,(char*) buffer.data()) == false) {
       std::cerr << "readArray faied when trying to read VARIABLE \"" << name << "\"." << std::endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
 
    return buffer;
@@ -151,18 +151,18 @@ std::vector<double> readFsGridData(Reader& r, std::string& name, unsigned int nu
    if (r.getArrayInfo("VARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
       std::cerr << "getArrayInfo returned false when trying to read VARIABLE \""
          << name << "\"." << std::endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
 
    if(dataType != vlsv::datatype::type::FLOAT || byteSize != 8 || vectorSize != numcomponents) {
       std::cerr << "Datatype of VARIABLE \"" << name << "\" entries is not double." << std::endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
 
    int numWritingRanks=0;
    if(r.readParameter("numWritingRanks",numWritingRanks) == false) {
       std::cerr << "FSGrid writing rank number not found";
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
 
    // Are we restarting from the same number of tasks, or a different number?
@@ -179,7 +179,7 @@ std::vector<double> readFsGridData(Reader& r, std::string& name, unsigned int nu
 
    if(r.readArray("VARIABLE",attribs,0,arraySize,(char*) readBuffer.data()) == false) {
       std::cerr << "readArray faied when trying to read VARIABLE \"" << name << "\"." << std::endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
 
 
@@ -228,7 +228,7 @@ std::vector<double> readFsGridData(Reader& r, std::string& name, unsigned int nu
       // // Read every source rank that we have an overlap with.
       // if(r.addMultireadUnit((char*)readBuffer.data(), overlapSize[0]*overlapSize[1]*overlapSize[2])==false) {
       //    std::cerr << "ERROR: Failed to read fsgrid variable " << name << std::endl;
-      //    exit(1);
+      //    exit(ExitCodes::FAILURE);
       // }
       // r.endMultiread(fileOffset);
 
@@ -276,7 +276,7 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int step, F
          if(!r.readParameter("t",t)) {
             std::cerr << "Time parameter in file " << filename_buffer << " is neither 't' nor 'time'. Bad file format?"
                << std::endl;
-            exit(1);
+            exit(ExitCodes::FAILURE);
          }
       }
 
@@ -467,23 +467,23 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, bool doV=tru
    if(3*cellIds.size() != Bbuffer.size()) {
       std::cerr << "3 * cellIDs.size (" << cellIds.size() << ") != Bbuffer.size (" << Bbuffer.size() << ")!"
          << std::endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
    if(3*cellIds.size() != Ebuffer.size()) {
       std::cerr << "3 * cellIDs.size (" << cellIds.size() << ") != Ebuffer.size (" << Ebuffer.size() << ")!"
          << std::endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
    if(doV) {
      if(3*cellIds.size() != rho_v_buffer.size()) {
         std::cerr << "3 * cellIDs.size (" << cellIds.size() << ") != rho_v_buffer.size (" << Ebuffer.size() << ")!"
            << std::endl;
-        exit(1);
+        exit(ExitCodes::FAILURE);
      }
      if(ParticleParameters::divide_rhov_by_rho && cellIds.size() != rho_buffer.size()) {
         std::cerr << "cellIDs.size (" << cellIds.size() << ") != rho_buffer.size (" << Ebuffer.size() << ")!"
            << std::endl;
-        exit(1);
+        exit(ExitCodes::FAILURE);
      }
    }
 

@@ -3377,7 +3377,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          std::cerr << __FILE__ << ":" << __LINE__ << ": The output variable " << *it << " is not defined." << std::endl;
       }
       MPI_Finalize();
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
 
    for (it = P::diagnosticVariableList.begin();
@@ -3485,7 +3485,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          std::cerr << __FILE__ << ":" << __LINE__ << ": The diagnostic variable " << *it << " is not defined." << std::endl;
       }
       MPI_Finalize();
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
 }
 

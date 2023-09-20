@@ -230,7 +230,7 @@ bool SysBoundary::initSysBoundaries(Project& project, creal& t) {
                        "in that direction to make sense."
                     << endl;
             }
-            exit(1);
+            exit(ExitCodes::FAILURE);
          }
          if ((faces[2] || faces[3]) && P::ycells_ini < 5) {
             if (myRank == MASTER_RANK) {
@@ -238,7 +238,7 @@ bool SysBoundary::initSysBoundaries(Project& project, creal& t) {
                        "in that direction to make sense."
                     << endl;
             }
-            exit(1);
+            exit(ExitCodes::FAILURE);
          }
          if ((faces[4] || faces[5]) && P::zcells_ini < 5) {
             if (myRank == MASTER_RANK) {
@@ -246,7 +246,7 @@ bool SysBoundary::initSysBoundaries(Project& project, creal& t) {
                        "in that direction to make sense."
                     << endl;
             }
-            exit(1);
+            exit(ExitCodes::FAILURE);
          }
       } else if (*it == "Ionosphere") {
          if (!this->addSysBoundary(new SBC::Ionosphere, project, t)) {
@@ -309,7 +309,7 @@ bool SysBoundary::initSysBoundaries(Project& project, creal& t) {
                        "cells in that direction to make sense."
                     << endl;
             }
-            exit(1);
+            exit(ExitCodes::FAILURE);
          }
          if ((faces[2] || faces[3]) && P::ycells_ini < 5) {
             if (myRank == MASTER_RANK) {
@@ -317,7 +317,7 @@ bool SysBoundary::initSysBoundaries(Project& project, creal& t) {
                        "cells in that direction to make sense."
                     << endl;
             }
-            exit(1);
+            exit(ExitCodes::FAILURE);
          }
          if ((faces[4] || faces[5]) && P::zcells_ini < 5) {
             if (myRank == MASTER_RANK) {
@@ -325,7 +325,7 @@ bool SysBoundary::initSysBoundaries(Project& project, creal& t) {
                        "cells in that direction to make sense."
                     << endl;
             }
-            exit(1);
+            exit(ExitCodes::FAILURE);
          }
       } else {
          if (myRank == MASTER_RANK) {

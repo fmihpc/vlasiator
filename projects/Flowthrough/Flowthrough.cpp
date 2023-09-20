@@ -99,7 +99,7 @@ namespace projects {
       else if (densityModelString == "Sinewave") densityModel = Sinewave;
       else {
          if (myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: Unknown option value!" << endl;
-         exit(1);
+         exit(ExitCodes::FAILURE);
       }
       RP::get("Flowthrough.densityWidth",this->densityWidth);
 

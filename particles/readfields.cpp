@@ -48,12 +48,12 @@ std::vector<uint64_t> readCellIds(vlsvinterface::Reader& r) {
    attribs.push_back(std::pair<std::string,std::string>("name","CellID"));
    if( r.getArrayInfo("VARIABLE",attribs, arraySize,vectorSize,dataType,byteSize) == false ) {
       std::cerr << "getArrayInfo returned false when trying to read CellID VARIABLE." << std::endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
 
    if(dataType != vlsv::datatype::type::UINT || byteSize != 8 || vectorSize != 1) {
       std::cerr << "Datatype of CellID VARIABLE entries is not uint64_t." << std::endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
 
    /* Allocate memory for the cellIds */
@@ -61,7 +61,7 @@ std::vector<uint64_t> readCellIds(vlsvinterface::Reader& r) {
 
    if( r.readArray("VARIABLE",attribs,0,arraySize,(char*) cellIds.data()) == false) {
       std::cerr << "readArray faied when trying to read CellID Variable." << std::endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
 
    return cellIds;

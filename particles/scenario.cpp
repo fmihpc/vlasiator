@@ -425,7 +425,7 @@ Scenario* createScenario(std::string name) {
 
    if(scenario_lookup.find(name) == scenario_lookup.end()) {
       std::cerr << "Error: can't find particle pusher mode \"" << name << "\". Aborting." << std::endl;
-      exit(0);
+      exit(ExitCodes::FAILURE);
    }
 
    return scenario_lookup[name]();

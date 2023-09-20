@@ -118,7 +118,7 @@ int main(int argc, char** argv) {
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       if(myRank==MASTER_RANK)
          cerr << "(MAIN): MPI_Init_thread failed! Got " << provided << ", need "<<required <<endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
    const int masterProcessID = 0;
 
@@ -133,7 +133,7 @@ int main(int argc, char** argv) {
       cerr << "Paramters:" << endl;
       cerr << " none! :D" << endl;
       
-      return 1;
+      return ExitCodes::FAILURE;
    }
 
    phiprof::initialize();
@@ -201,5 +201,5 @@ int main(int argc, char** argv) {
    }
 
    cout << "--- DONE. ---" << endl;
-   return 0;
+   return ExitCodes::SUCCESS;
 }

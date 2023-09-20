@@ -254,7 +254,21 @@ int main(int argn,char* args[]) {
    typedef Parameters P;
    Real newDt;
    bool dtIsChanged;
-   
+
+   ExitCodes::e foo;
+   std::vector<ExitCodes::e> errors = {ExitCodes::SUCCESS,
+                                       ExitCodes::FAILURE,
+                                       ExitCodes::RESTART_READ_FAILURE,
+                                       ExitCodes::BAILOUT_FAILURE, 
+                                       ExitCodes::TIMEOUT_FAILURE,
+                                       ExitCodes::RECOVERABLE_FAILURE,
+                                       ExitCodes::NUMERIC_FAILURE};
+   for(auto e : errors){
+      std::cout << exit_code(e) << "\n";
+   }
+   std::cout << exit_codes();
+   exit(ExitCodes::TIMEOUT_FAILURE);
+
 // Init MPI:
    int required=MPI_THREAD_FUNNELED;
    int provided;
@@ -263,7 +277,7 @@ int main(int argn,char* args[]) {
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       if(myRank==MASTER_RANK)
          cerr << "(MAIN): MPI_Init_thread failed! Got " << provided << ", need "<<required <<endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
    
    phiprof::initialize();
@@ -326,12 +340,12 @@ int main(int argn,char* args[]) {
    //if restarting we will append to logfiles
    if (logFile.open(MPI_COMM_WORLD,MASTER_RANK,"logfile.txt",P::isRestart) == false) {
       if(myRank == MASTER_RANK) cerr << "(MAIN) ERROR: Logger failed to open logfile!" << endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
    if (P::diagnosticInterval != 0) {
       if (diagnostic.open(MPI_COMM_WORLD,MASTER_RANK,"diagnostic.txt",P::isRestart) == false) {
          if(myRank == MASTER_RANK) cerr << "(MAIN) ERROR: Logger failed to open diagnostic file!" << endl;
-         exit(1);
+         exit(ExitCodes::FAILURE);
       }
    }
    {
@@ -351,13 +365,13 @@ int main(int argn,char* args[]) {
    phiprof::Timer initProjectimer {"Init project"};
    if (project->initialize() == false) {
       if(myRank == MASTER_RANK) cerr << "(MAIN): Project did not initialize correctly!" << endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
    if (project->initialized() == false) {
       if (myRank == MASTER_RANK) {
          cerr << "(MAIN): Project base class was not initialized!" << endl;
          cerr << "\t Call Project::initialize() in your project's initialize()-function." << endl;
-         exit(1);
+         exit(ExitCodes::FAILURE);
       }
    }
    initProjectimer.stop();
@@ -1166,5 +1180,10 @@ int main(int argn,char* args[]) {
    technicalGrid.finalize();
 
    MPI_Finalize();
-   return 0;
+   if(doBailout){
+      return ExitCodes::BAILOUT_FAILURE;
+   }
+   else {
+      return ExitCodes::SUCCESS;
+   }
 }

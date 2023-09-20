@@ -25,6 +25,7 @@
 
 #include <stdint.h>
 #include <limits>
+#include <string>
 
 //set floating point precision for storing the distribution function here. Default is single precision, use -DDPF to set double precision
 #ifdef DPF
@@ -66,6 +67,59 @@ namespace geometry {
       XYZ6D            /**< Simulation is 6D (default).*/
    };
 }
+
+/**
+ * @brief Definitions for exit codes. 
+ * https://www.linuxdoc.org/LDP/abs/html/exitcodes.html - in Linux, but these are potentially propagate in shells
+ * "the codes 1, 2, 126 - 165 and 255 have special meanings 
+ * and hence these should be avoided for user-defined exit codes --
+ *  The author of this document proposes restricting user-defined exit codes 
+ * to the range 64 - 113 (in addition to 0, for success),"
+ */
+
+#define ERROR_DEF_LIST(E) \
+      E(SUCCESS, 0, "Success.") \
+      E(FAILURE, 1, "Catch-all error code. Something unspecified went wrong.") \
+      E(RESTART_READ_FAILURE, 65, "To be caught in jobscript to perhaps attempt recovery from earlier restart.") \
+      E(BAILOUT_FAILURE, 66, "Simulation bailed out and requires user intervention.") \
+      E(TIMEOUT_FAILURE, 67, "Walltime limit reached.") \
+      E(RECOVERABLE_FAILURE, 68, "Error code from Bus errors etc that we suspect to be network weather or such; can re-run safely") \
+      E(NUMERIC_FAILURE, 111, "Error in a numerical subroutine. Commemorating probable P. Janhunen code.")
+
+namespace ExitCodes{
+   enum e {
+      #define ERROR_DEF_ENUM_DEF(name, value, description) name = value,
+      ERROR_DEF_LIST(ERROR_DEF_ENUM_DEF)
+   };
+}
+
+static std::string exit_code(ExitCodes::e e){
+   std::string str;
+    switch (e) {
+    #define ERROR_DEF_ENUM_CASE(name, value, description) \
+        case ExitCodes::name: str += #name; str+=": "; str+= description; \
+                              str += " ["; str += std::to_string(value);\
+                              str += "]";\
+                              break;
+    ERROR_DEF_LIST(ERROR_DEF_ENUM_CASE);
+
+    default: str += "unknown["; str += std::to_string(e); str += "]";
+    }
+    return str;
+} 
+
+static std::string exit_codes(){
+   std::string str = "List of error codes and their descriptions\n";
+
+    #define ERROR_DEF_ENUM_STR(name, value, description) \
+      str += "\t"; str += std::to_string(value);\
+      str += "\t"; str += #name; str+=": "; str+= description; \
+      str += "\n";
+      
+    ERROR_DEF_LIST(ERROR_DEF_ENUM_STR);
+      str += "\n";
+    return str;
+} 
 
 namespace vmesh {
    #ifndef VAMR

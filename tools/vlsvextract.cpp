@@ -84,7 +84,7 @@ bool NodeComp::operator()(const NodeCrd<float>& a,const NodeCrd<float>& b) const
 uint64_t convUInt(const char* ptr, const datatype::type & dataType, const uint64_t& dataSize) {
    if (dataType != datatype::type::UINT) {
       cerr << "Erroneous datatype given to convUInt" << endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
 
    switch (dataSize) {
@@ -457,7 +457,7 @@ void getBulkVelocity(Real* V_bulk,vlsvinterface::Reader& vlsvReader,const string
    xmlAttributes.push_back(make_pair("name","CellID"));
    if (vlsvReader.getArrayInfo("VARIABLE", xmlAttributes, cellIdArraySize, cellIdVectorSize, cellIdDataType, cellIdDataSize) == false) {
       cerr << "Error " << __FILE__ << " " << __LINE__ << endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
 
    // Declare buffers and allocate memory, this is done to read in the cell id location:
@@ -468,7 +468,7 @@ void getBulkVelocity(Real* V_bulk,vlsvinterface::Reader& vlsvReader,const string
    if (vlsvReader.read("VARIABLE",xmlAttributes,0,cellIdArraySize,cellIdBuffer,true) == false) {
       cerr << "Error: failed to read cell IDs in " << __FILE__ << ":" << __LINE__ << endl;
       delete [] cellIdBuffer;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
 
    // Search for the given cellID location, the array in the vlsv file is not ordered depending 
@@ -489,7 +489,7 @@ void getBulkVelocity(Real* V_bulk,vlsvinterface::Reader& vlsvReader,const string
    // Check if the cell id was found:
    if (cellIndex == numeric_limits<uint64_t>::max()) {
       cerr << "Spatial cell #" << cellID << " not found in " << __FILE__ << ":" << __LINE__ << endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
    
    do {
@@ -554,7 +554,7 @@ void getBulkVelocity(Real* V_bulk,vlsvinterface::Reader& vlsvReader,const string
       }
       // We should have broken out before or we're doomed
       cerr << "ERROR: Could not find a usable velocity for plasma frame shift!" << endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
       break;
    } while (true);
 
@@ -570,7 +570,7 @@ void getB(Real* B,vlsvinterface::Reader& vlsvReader,const string& meshName,const
    xmlAttributes.push_back(make_pair("name","CellID"));
    if (vlsvReader.getArrayInfo("VARIABLE", xmlAttributes, cellIdArraySize, cellIdVectorSize, cellIdDataType, cellIdDataSize) == false) {
       cerr << "Error " << __FILE__ << " " << __LINE__ << endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
 
    // Declare buffers and allocate memory, this is done to read in the cell id location:
@@ -581,7 +581,7 @@ void getB(Real* B,vlsvinterface::Reader& vlsvReader,const string& meshName,const
    if (vlsvReader.read("VARIABLE",xmlAttributes,0,cellIdArraySize,cellIdBuffer,true) == false) {
       cerr << "Error: failed to read cell IDs in " << __FILE__ << ":" << __LINE__ << endl;
       delete [] cellIdBuffer;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
 
    // Search for the given cellID location, the array in the vlsv file is not ordered depending 
@@ -602,7 +602,7 @@ void getB(Real* B,vlsvinterface::Reader& vlsvReader,const string& meshName,const
    // Check if the cell id was found:
    if (cellIndex == numeric_limits<uint64_t>::max()) {
       cerr << "Spatial cell #" << cellID << " not found in " << __FILE__ << ":" << __LINE__ << endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
 
    // These are needed to determine the buffer size:
@@ -711,7 +711,7 @@ void getB(Real* B,vlsvinterface::Reader& vlsvReader,const string& meshName,const
 
    if (B_read == false) {
       cerr << "Failed to read magnetic field in " << __FILE__ << " " << __LINE__ << endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
 
    for (int i=0; i<3; ++i) B[i] = B1[i] + B2[i];
@@ -1008,13 +1008,13 @@ bool createCellIdList( T & vlsvReader, unordered_set<uint64_t> & cellIdList ) {
    //Read arraySize, vectorSize, dataType and dataSize and store them with getArrayInfo:
    if (vlsvReader.getArrayInfo( tagName, attributes, arraySize, vectorSize, dataType, dataSize ) == false) {
       cerr << "Could not find array " << tagName << " at: " << __FILE__ << " " << __LINE__ << endl;
-      exit(1); //error, terminate program
+      exit(ExitCodes::FAILURE); //error, terminate program
       return false; //Shouldn't actually even get this far but whatever
    }
    //Check to make sure that the vectorSize is 1 as the CellIdList should be (Assuming so later on):
    if( vectorSize != 1 ) {
       cerr << tagName << "'s vector size is not 1 at: " << __FILE__ << " " << __LINE__ << endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
       return false;
    }
 
@@ -1027,7 +1027,7 @@ bool createCellIdList( T & vlsvReader, unordered_set<uint64_t> & cellIdList ) {
       cerr << "Failed to read block metadata for mesh '" << meshName << "' at: ";
       cerr << __FILE__ << " " << __LINE__ << endl;
       delete[] buffer;
-      exit(1);
+      exit(ExitCodes::FAILURE);
       return false;
    }
 
@@ -1110,7 +1110,7 @@ void getCellCoordinates( const CellStructure & cellStruct, const uint64_t cellId
    //Check for null pointer
    if( !coordinates ) {
       cerr << "Passed invalid pointer at: " << __FILE__ << " " << __LINE__ << endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
    //Calculate the cell coordinates in block coordinates (so in the cell grid where the coordinates are integers)
    uint64_t currentCellCoordinate[3];
@@ -1148,7 +1148,7 @@ uint64_t searchForBestCellId( const CellStructure & cellStruct,
       cerr << "Error at: ";
       cerr << __FILE__ << " " << __LINE__;
       cerr << ", passed a null pointer to searchForBestCellId" << endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
       return 0;
    }
    //Create variables to help iterate through cellIdList. (Used to keep track of the best cell id and best distance so far)
@@ -1192,11 +1192,11 @@ uint64_t searchForBestCellId( const CellStructure & cellStruct,
    //Check for null pointer:
    if( coordinates.empty() ) {
       cerr << "ERROR, PASSED AN EMPTY COORDINATES AT " << __FILE__ << " " << __LINE__ << endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
    if( cellIdList.empty() ) {
       cerr << "ERROR, PASSED AN EMPTY CELL ID LIST AT " << __FILE__ << " " << __LINE__ << endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
 
    //Get the cell id corresponding to the given coordinates:
@@ -1446,7 +1446,7 @@ bool setSpatialCellVariables(Reader& vlsvReader,CellStructure& cellStruct) {
    for( int i = 0; i < 3; ++i ) {
       if( cellStruct.cell_length[i] == 0 || cellStruct.cell_bounds[i] == 0) {
          cerr << "ERROR, ZERO CELL LENGTH OR CELL_BOUNDS AT " << __FILE__ << " " << __LINE__ << endl;
-         exit(1);
+         exit(ExitCodes::FAILURE);
       }
    }
    
@@ -1473,11 +1473,11 @@ uint64_t getCellIdFromCoords( const CellStructure & cellStruct,
    //Check for empty vectors
    if( cellIdList.empty() ) {
       cerr << "Invalid cellIdList at " << __FILE__ << " " << __LINE__ << endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
    if( coords.empty() ) {
       cerr << "Invalid coords at " << __FILE__ << " " << __LINE__ << endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
 
 
@@ -1716,7 +1716,7 @@ bool retrieveOptions( const int argn, char *args[], UserOptions & mainOptions ) 
    //Check to make sure the input for outputDirectoryPath is valid
    if( outputDirectoryPath.size() != 1 ) {
       cerr << "Error at: " << __FILE__ << " " << __LINE__ << ", invalid outputDirectoryPath!" << endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
    //Everything ok
    return true;
@@ -1758,21 +1758,21 @@ void setCoordinatesAlongALine(
 
       if( minCellLength == 0 ) {
          cerr << "ERROR, BAD MINIMUM CELL LENGTH AT " << __FILE__ << " " << __LINE__ << endl;
-         exit(1);
+         exit(ExitCodes::FAILURE);
       }
       _numberOfCoordinates = (uint32_t)( line_length / minCellLength );
 
       //Make sure the number is valid (Must be at least 2 points):
       if( _numberOfCoordinates < 2 ) {
          cerr << "Cannot use numberOfCoordinates lower than 2 at " << __FILE__ << " " << __LINE__ << endl;
-         exit(1);
+         exit(ExitCodes::FAILURE);
       }
 
       //Just to make sure that there's enough coordinates let's add a few more:
       _numberOfCoordinates = (uint32_t)(1.2 * _numberOfCoordinates);
    } else if( numberOfCoordinates < 2 ) {
       cerr << "Cannot use numberOfCoordinates lower than 2 at " << __FILE__ << " " << __LINE__ << endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    } else {
       //User defined input
       _numberOfCoordinates = numberOfCoordinates;
@@ -1795,7 +1795,7 @@ void setCoordinatesAlongALine(
    //Make sure the output is not empty
    if( outputCoordinates.empty() ) {
       cerr << "Error at: " << __FILE__ << " " << __LINE__ << ", Calculated coordinates empty!" << endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
    return;
 }
@@ -1889,7 +1889,7 @@ void extractDistribution( const string & fileName, const UserOptions & mainOptio
       //This should never happen but it's better to be safe than sorry
       cerr << "Error at: " << __FILE__ << " " << __LINE__ << ", No user input for cell id retrieval!" << endl;
       vlsvReader.close();
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
 
    //Check for proper input
@@ -2002,12 +2002,12 @@ int main(int argn, char* args[]) {
    if( retrieveOptions( argn, args, mainOptions ) == false ) {
       //Failed to retrieve options (Due to contradiction or an error)
       printUsageMessage(); //Prints the usage message
-      return 0;
+      return ExitCodes::SUCCESS;
    }
    if (rank == 0 && argn < 3) {
       //Failed to retrieve options (Due to contradiction or an error)
       printUsageMessage(); //Prints the usage message
-      return 0;
+      return ExitCodes::SUCCESS;
    }
 
    //Convert files
@@ -2020,5 +2020,5 @@ int main(int argn, char* args[]) {
       }
    }
    MPI_Finalize();
-   return 0;
+   return ExitCodes::SUCCESS;
 }

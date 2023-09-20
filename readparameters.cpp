@@ -107,7 +107,7 @@ void Readparameters::helpMessage() {
          cout << *descriptions << endl;
       }
       MPI_Finalize();
-      exit(0);
+      exit(ExitCodes::SUCCESS);
    }
 }
 
@@ -212,7 +212,7 @@ bool Readparameters::parse(const bool needsRunConfig, const bool allowUnknown) {
    MPI_Bcast(&hasVersionOption, sizeof(bool), MPI_BYTE, 0, MPI_COMM_WORLD);
    if (hasVersionOption) {
       MPI_Finalize();
-      exit(0);
+      exit(ExitCodes::SUCCESS);
    }
 
    // Require that there is a run config file.
@@ -225,7 +225,7 @@ bool Readparameters::parse(const bool needsRunConfig, const bool allowUnknown) {
          cout << "Run config file required. Use --help to list all options" << endl;
       }
       MPI_Finalize();
-      exit(0);
+      exit(ExitCodes::SUCCESS);
    }
 
    int nOptionsToBroadcast;

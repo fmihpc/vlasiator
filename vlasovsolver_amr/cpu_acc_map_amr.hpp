@@ -118,7 +118,7 @@ bool map_1d(SpatialCell* spatial_cell,Transform<Real,3,Affine>& fwd_transform,Tr
 				propagParams.intersection,propagParams.intersection_di,propagParams.intersection_dj,propagParams.intersection_dk);
       break;
     default:
-      std::cerr << "error in map1d" << std::endl; exit(1);
+      std::cerr << "error in map1d" << std::endl; exit(ExitCodes::FAILURE);
       break;
    }
 
@@ -155,7 +155,7 @@ bool map_1d(SpatialCell* spatial_cell,Transform<Real,3,Affine>& fwd_transform,Tr
       propagParams.k_mapped = 2;
       break;
     default:
-      std::cerr << "error in map1d" << std::endl; exit(1);
+      std::cerr << "error in map1d" << std::endl; exit(ExitCodes::FAILURE);
       break;
    }
       
@@ -184,7 +184,7 @@ bool map_1d(SpatialCell* spatial_cell,Transform<Real,3,Affine>& fwd_transform,Tr
    // NOTE: Old stuff, ignore
    // spatial_cell->merge_values();
    // if (spatial_cell->checkMesh() == false) {
-   //    std::cerr << "error(s) in mesh, exiting" << std::endl; exit(1);
+   //    std::cerr << "error(s) in mesh, exiting" << std::endl; exit(ExitCodes::FAILURE);
    // }
 
    // Clear the temporary mesh and block container

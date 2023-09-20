@@ -140,7 +140,7 @@ namespace vmesh {
       if (localToGlobalMap.size() != globalToLocalMap.size()) {
          std::cerr << "VMO ERROR: sizes differ, " << localToGlobalMap.size() << " vs " << globalToLocalMap.size() << std::endl;
          ok = false;
-         exit(1);	 
+         exit(ExitCodes::FAILURE);	 
       }
 
       for (size_t b=0; b<size(); ++b) {
@@ -151,7 +151,7 @@ namespace vmesh {
             ok = false;
             std::cerr << "VMO ERROR: localToGlobalMap[" << b << "] = " << globalID << " but ";
             std::cerr << "globalToLocalMap[" << globalID << "] = " << localID << std::endl;
-            exit(1);
+            exit(ExitCodes::FAILURE);
          }
       }
       
@@ -309,7 +309,7 @@ namespace vmesh {
    GID VelocityMesh<GID,LID>::getGlobalID(const LID& localID) const {
       #ifndef NDEBUG
       if (localID >= localToGlobalMap.size()) {
-         std::cerr << "ERROR invalid local id" << std::endl; exit(1);
+         std::cerr << "ERROR invalid local id" << std::endl; exit(ExitCodes::FAILURE);
       }
       #endif
       
@@ -440,7 +440,7 @@ namespace vmesh {
          std::stringstream ss;
          ss << "VelocityMesh ERROR: invalid offsets in getNeighborsExistingAtOffset " << i_off << ' ' << j_off << ' ' << k_off << std::endl;
          std::cerr << ss.str();
-         exit(1);
+         exit(ExitCodes::FAILURE);
       }
       #endif
       

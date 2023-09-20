@@ -740,7 +740,7 @@ void calculateHallTerm(
    #ifdef DEBUG_FSOLVER
    if (technicalGrid.get(i,j,k) == NULL) {
       cerr << "NULL pointer in " << __FILE__ << ":" << __LINE__ << endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
    #endif
    

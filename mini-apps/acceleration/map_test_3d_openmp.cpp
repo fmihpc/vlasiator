@@ -48,7 +48,7 @@ void propagate(const Real * const values_in, Real *values_out,
 #ifdef ACC_SEMILAG_PPM
          // TODO!
          cerr << "PPM not done yet"<<endl;
-         exit(1);
+         exit(ExitCodes::FAILURE);
 #endif
          /* intersection_min is the intersection z coordinate (z after
             swaps that is) of the lowest possible z plane for each i,j
@@ -164,5 +164,7 @@ int main(void) {
               intersection, intersection_di, intersection_dj, intersection_dk);
 
   }
+  
+  return ExitCodes::SUCCESS;
 }
 

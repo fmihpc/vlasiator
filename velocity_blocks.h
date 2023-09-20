@@ -111,7 +111,7 @@ namespace vblock {
 	 break;
        default:
 	 std::cerr << "Unknown accumulation method in " << __FILE__ << ' ' << __LINE__ << std::endl;
-	 exit(1);
+	 exit(ExitCodes::FAILURE);
 	 break;
       }
    }
@@ -172,7 +172,7 @@ namespace vblock {
 	 break;
        default:
 	 std::cerr << "Unknown interpolation method in " << __FILE__ << ' ' << __LINE__ << std::endl;
-	 exit(1);
+	 exit(ExitCodes::FAILURE);
 	 break;
       }
    }
@@ -205,7 +205,7 @@ namespace vblock {
 	 break;
        default:
 	 std::cerr << "Unknown interpolation method in " << __FILE__ << ' ' << __LINE__ << std::endl;
-	 exit(1);
+	 exit(ExitCodes::FAILURE);
 	 break;
       }
    }
@@ -238,7 +238,7 @@ namespace vblock {
 	 break;
        default:
 	 std::cerr << "Unknown interpolation method in " << __FILE__ << ' ' << __LINE__ << std::endl;
-	 exit(1);
+	 exit(ExitCodes::FAILURE);
 	 break;
       }
    }
@@ -256,7 +256,7 @@ namespace vblock {
 	 break;
        default:
 	 std::cerr << "Unknown interpolation method in " << __FILE__ << ' ' << __LINE__ << std::endl;
-	 exit(1);
+	 exit(ExitCodes::FAILURE);
 	 break;
       }
    }

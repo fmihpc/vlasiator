@@ -30,6 +30,7 @@
 #include <unordered_map>
 #include <array>
 #include <vlsv_reader.h>
+#include "definitions.h"
 
 // Returns the vlsv file's version number. Returns 0 if the version does not have a version mark (The old vlsv format does not have it)
 //Input: File name
@@ -71,7 +72,7 @@ namespace vlsvinterface {
          std::unordered_map<uint64_t, std::pair<uint64_t,uint32_t> >::const_iterator it = cellsWithBlocksLocations.find( cellId );
          if( it == cellsWithBlocksLocations.end() ) {
             std::cerr << "COULDNT FIND CELL ID " << cellId << " AT " << __FILE__ << " " << __LINE__ << std::endl;
-            exit(1);
+            exit(ExitCodes::FAILURE);
          }
          //Get offset:
          return std::get<0>(it->second);
@@ -81,7 +82,7 @@ namespace vlsvinterface {
          std::unordered_map<uint64_t, std::pair<uint64_t,uint32_t> >::const_iterator it = cellsWithBlocksLocations.find( cellId );
          if( it == cellsWithBlocksLocations.end() ) {
             std::cerr << "COULDNT FIND CELL ID " << cellId << " AT " << __FILE__ << " " << __LINE__ << std::endl;
-            exit(1);
+            exit(ExitCodes::FAILURE);
          }
          //Get number of blocks:
          return std::get<1>(it->second);

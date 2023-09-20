@@ -64,7 +64,7 @@ vmesh::LocalID addVelocityBlock(const vmesh::GlobalID& blockGID,
             ss << "ERROR in acc: sizes " << vmesh.size() << ' ' << blockContainer.size() << endl;
             ss << "\t local IDs " << vmesh.getLocalID(blockGID) << " vs " << newBlockLID << endl;
             cerr << ss.str();
-            exit(1);
+            exit(ExitCodes::FAILURE);
         }
     #endif
     

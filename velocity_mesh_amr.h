@@ -262,7 +262,7 @@ namespace vmesh {
       if (ok == false) {
          std::cerr << "ERROR in copy, source/target LIDs are " << sourceLID << ' ' << targetLID << std::endl;
          std::cerr << "\t exiting from " << __FILE__ << ':' << __LINE__ << std::endl;
-         exit(1);
+         exit(ExitCodes::FAILURE);
       }
       #endif
 
@@ -282,7 +282,7 @@ namespace vmesh {
          if (globalToLocalMap.find(targetGID) != globalToLocalMap.end()) std::cerr << "yes" << std::endl;
          else std::cerr << "no" << std::endl;
          std::cerr << "\t exiting from " << __FILE__ << ':' << __LINE__ << std::endl;
-         exit(1);
+         exit(ExitCodes::FAILURE);
       }
       #endif
       
@@ -459,7 +459,7 @@ namespace vmesh {
          std::cerr << "ERROR in getGlobalID, localID=" << localID << " and globalID=" << globalID;
          std::cerr << " but globalToLocalMap does not contain the block" << std::endl;
          std::cerr << "\t exiting from " << __FILE__ << ':' << __LINE__ << std::endl;
-         exit(1);
+         exit(ExitCodes::FAILURE);
       }
       #endif
       
@@ -629,7 +629,7 @@ namespace vmesh {
          std::stringstream ss;
          ss << "VelocityMesh ERROR: invalid offsets in getNeighborsExistingAtOffset " << i_off << ' ' << j_off << ' ' << k_off << std::endl;
          std::cerr << ss.str();
-         exit(1);
+         exit(ExitCodes::FAILURE);
       }
       #endif
 
@@ -942,7 +942,7 @@ namespace vmesh {
             std::cerr << "ERROR in pop(): last localID=" << lastLID << " globalID=" << lastGID;
             std::cerr << " but globalToLocalMap does not contain that block" << std::endl;
             std::cerr << "\t exiting from " << __FILE__ << ':' << __LINE__ << std::endl;
-            exit(1);
+            exit(ExitCodes::FAILURE);
          }
       #endif
 	  
