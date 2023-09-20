@@ -307,9 +307,9 @@ namespace SBC {
          cerr << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
          abort();
       }
-      phiprof::start("vlasovBoundaryCopyFromTheClosestNbr");
+      phiprof::Timer boundaryTimer {"vlasovBoundaryCopyFromTheClosestNbr"};
       copyCellData(mpiGrid[closestCell],mpiGrid[cellID], copyMomentsOnly, popID, copy_V_moments);
-      phiprof::stop("vlasovBoundaryCopyFromTheClosestNbr");
+      boundaryTimer.stop();
    }
    
    /*! Function used to average and copy the distribution and moments from all the closest sysboundarytype::NOT_SYSBOUNDARY cells.
@@ -328,9 +328,9 @@ namespace SBC {
          cerr << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
          abort();
       }
-      phiprof::start("vlasovBoundaryCopyFromAllClosestNbrs");
+      phiprof::Timer boundaryTimer {"vlasovBoundaryCopyFromAllClosestNbrs"};
       averageCellData(mpiGrid, closestCells, mpiGrid[cellID], popID);
-      phiprof::stop("vlasovBoundaryCopyFromAllClosestNbrs");
+      boundaryTimer.stop();
    }
    
    /*! Function used to average and copy the distribution and moments from all the close sysboundarytype::NOT_SYSBOUNDARY cells.
@@ -350,9 +350,9 @@ namespace SBC {
          cerr << __FILE__ << ":" << __LINE__ << ": No close cell found!" << endl;
          abort();
       }
-      phiprof::start("vlasovBoundaryFluffyCopyFromAllCloseNbrs");
+      phiprof::Timer boundaryTimer {"vlasovBoundaryFluffyCopyFromAllCloseNbrs"};
       averageCellData(mpiGrid, closeCells, mpiGrid[cellID], popID, fluffiness);
-      phiprof::stop("vlasovBoundaryFluffyCopyFromAllCloseNbrs");
+      boundaryTimer.stop();
    }
    
    /*! Function used to copy the distribution and moments from one cell to another.
