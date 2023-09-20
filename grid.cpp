@@ -165,13 +165,12 @@ void initializeGrids(
          mapRefinement(mpiGrid, technicalGrid);
       }
    } else {
-      if(!verifyRestartFile(P::restartFileName))
-      {
+      if(!verifyRestartFile(P::restartFileName)){
          if (myRank == MASTER_RANK) std::cerr << __FILE__ << ":" << __LINE__ << " Verification of the restart file failed." <<std::endl;
          exit(ExitCodes::RESTART_READ_FAILURE);
       }
       else{
-         if (myRank == MASTER_RANK) std::cout << __FILE__ << ":" << __LINE__ <<  "Success! But I'll bail out just because." <<std::endl;
+         if (myRank == MASTER_RANK) std::cout << __FILE__ << ":" << __LINE__ <<  "Restart file verified." <<std::endl;
       }
       if (readFileCells(mpiGrid, P::restartFileName)) {
          mpiGrid.balance_load();
@@ -232,7 +231,7 @@ void initializeGrids(
       phiprof::start("Read restart");
       if (readGrid(mpiGrid,perBGrid,EGrid,technicalGrid,P::restartFileName) == false) {
          logFile << "(MAIN) ERROR: restarting failed" << endl;
-         exit(ExitCodes::RESTART_READ_FAILURE); // Do these have automatically recoverable failure modes?
+         exit(ExitCodes::RESTART_READ_FAILURE);
       }
       phiprof::stop("Read restart");
 

@@ -25,6 +25,7 @@
 
 #include <stdint.h>
 #include <limits>
+#include <string>
 
 //set floating point precision for storing the distribution function here. Default is single precision, use -DDPF to set double precision
 #ifdef DPF
@@ -75,19 +76,44 @@ namespace geometry {
  *  The author of this document proposes restricting user-defined exit codes 
  * to the range 64 - 113 (in addition to 0, for success),"
  *
- */
+ 
+/**< FAILURE, 0x1                0     Catch-all error code. Something unspecified went wrong. */
+/**< RESTART_READ_FAILURE, 0x40  1     To be caught in jobscript to attempt recovery from earlier restart. */
+/**< BAILOUT_FAILURE, 0x41       65    Simulation bailed out and requires user intervention. */
+/**< TIMEOUT_FAILURE, 0x42       66    Walltime limit reached. */
+/**< RECOVERABLE_FAILURE, 0x43   67    Error code from Bus errors etc that we suspect to be network weather or such; can re-run safely */
+/**< NUMERIC_FAILURE, 0x6F       111   Error in a numerical subroutine. Commemorating probable P. Janhunen code. */
 
-namespace ExitCodes {
-   enum {
-      SUCCESS = 0,
-      FAILURE = 1,               /**< Catch-all error code. Something unspecified went wrong. */
-      RESTART_READ_FAILURE = 64, /**< To be caught in jobscript to attempt recovery from earlier restart. */
-      BAILOUT_FAILURE = 65,      /**< Simulation bailed out and requires user intervention. */
-      TIMEOUT_FAILURE = 66,      /**< Walltime limit reached. */
-      RECOVERABLE_FAILURE = 67,  /**< Error code from Bus errors etc that we suspect to be network weather or such; can re-run safely */
-      NUMERIC_FAILURE = 111      /**< Error in a numerical subroutine. Commemorating probable P. Janhunen code. */
+#define ERROR_DEF_LIST(E) \
+      E(SUCCESS, 0) \
+      E(FAILURE, 1) \
+      E(RESTART_READ_FAILURE, 65) \
+      E(BAILOUT_FAILURE, 66) \
+      E(TIMEOUT_FAILURE, 67) \
+      E(RECOVERABLE_FAILURE, 68) \
+      E(NUMERIC_FAILURE, 111)
+
+namespace ExitCodes{
+   enum e {
+      #define ERROR_DEF_ENUM_DEF(name, value) name = value,
+      ERROR_DEF_LIST(ERROR_DEF_ENUM_DEF)
    };
 }
+
+static std::string exit_code(ExitCodes::e e){
+   std::string str;
+    switch (e) {
+    #define ERROR_DEF_ENUM_CASE(name, value) \
+        case ExitCodes::name: str += "#name [";\
+                              str += std::to_string(value);\
+                              str += "]";\
+                              break;
+    ERROR_DEF_LIST(ERROR_DEF_ENUM_CASE);
+
+    default: str += "unknown["; str += std::to_string(e); str += "]";
+    }
+    return str;
+} 
 
 namespace vmesh {
    #ifndef VAMR

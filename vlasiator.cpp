@@ -258,7 +258,20 @@ int main(int argn,char* args[]) {
    typedef Parameters P;
    Real newDt;
    bool dtIsChanged;
-   
+
+   ExitCodes::e foo;
+   std::vector<ExitCodes::e> errors = {ExitCodes::SUCCESS,
+                                       ExitCodes::FAILURE,
+                                       ExitCodes::RESTART_READ_FAILURE,
+                                       ExitCodes::BAILOUT_FAILURE, 
+                                       ExitCodes::TIMEOUT_FAILURE,
+                                       ExitCodes::RECOVERABLE_FAILURE,
+                                       ExitCodes::NUMERIC_FAILURE};
+   for(auto e : errors){
+      std::cout << exit_code(e);
+   }
+   exit(ExitCodes::TIMEOUT_FAILURE);
+
 // Init MPI:
    int required=MPI_THREAD_FUNNELED;
    int provided;
