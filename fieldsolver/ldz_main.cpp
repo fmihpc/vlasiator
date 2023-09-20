@@ -327,7 +327,7 @@ bool propagateFields(
             RK_ORDER2_STEP2
          );
          
-         phiprof::start("FS subcycle stuff");
+         phiprof::Timer subcyclingTimer {"FS subcycle stuff"};
          subcycleT += subcycleDt; 
          subcycleCount++;
 
@@ -337,10 +337,6 @@ bool propagateFields(
                //due to roundoff we might hit this, should add delta
                std::cerr << "subcycleT > targetT, should not happen! (values: subcycleT " << subcycleT << ", subcycleDt " << subcycleDt << ", targetT " << targetT << ")" << std::endl;
             }
-
-            // Make sure the phiprof group is closed when leaving the loop
-            phiprof::stop("FS subcycle stuff");
-
             break;
          }
 
@@ -364,9 +360,9 @@ bool propagateFields(
             }
          }
 
-         phiprof::start("MPI_Allreduce");
+         phiprof::Timer allreduceTimer {"MPI_Allreduce"};
          technicalGrid.Allreduce(&(dtMaxLocal), &(dtMaxGlobal), 1, MPI_Type<Real>(), MPI_MIN);
-         phiprof::stop("MPI_Allreduce");
+         allreduceTimer.stop();
          
          //reduce dt if it is too high
          if( subcycleDt > dtMaxGlobal * P::fieldSolverMaxCFL ) {
@@ -389,7 +385,7 @@ bool propagateFields(
             }
          }
          
-         phiprof::stop("FS subcycle stuff");
+         subcyclingTimer.stop();
       }
       
       
