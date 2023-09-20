@@ -262,6 +262,7 @@ void calculateSpatialTranslation(
    // In both cases go to the end of this function and calculate the moments.
    if (dt == 0.0) {
       calculateMoments_R(mpiGrid,localCells,true);
+      return;
    }
    
    phiprof::Timer computeTimer {"compute_cell_lists"};
