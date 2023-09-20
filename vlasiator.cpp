@@ -268,8 +268,9 @@ int main(int argn,char* args[]) {
                                        ExitCodes::RECOVERABLE_FAILURE,
                                        ExitCodes::NUMERIC_FAILURE};
    for(auto e : errors){
-      std::cout << exit_code(e);
+      std::cout << exit_code(e) << "\n";
    }
+   std::cout << exit_codes();
    exit(ExitCodes::TIMEOUT_FAILURE);
 
 // Init MPI:
