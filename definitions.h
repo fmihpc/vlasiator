@@ -68,7 +68,7 @@ namespace geometry {
 }
 
 namespace vmesh {
-   #ifndef AMR
+   #ifndef VAMR
    typedef uint32_t GlobalID;              /**< Datatype used for velocity block global IDs.*/
    typedef uint32_t LocalID;               /**< Datatype used for velocity block local IDs.*/
    #else
@@ -89,7 +89,7 @@ namespace vmesh {
 /** Definition of a function that takes in a velocity block with neighbor data, 
  * and returns a number that is used to decide whether or not the block should 
  * be refined or coarsened.*/
-typedef Realf (*AmrVelRefinement)(const Realf* velBlock);
+typedef Realf (*VAmrVelRefinement)(const Realf* velBlock);
 
 // neighborhoods, these are initialized in grid.cpp:initializeGrid
 

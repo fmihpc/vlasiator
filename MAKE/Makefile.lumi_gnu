@@ -1,0 +1,84 @@
+CMP = CC
+LNK = CC
+
+# Modules loaded
+# module load LUMI/22.08 ; module load cpeGNU ; module load papi; module load Eigen; module load Boost/1.79.0-cpeGNU-22.08
+
+#======== Vectorization ==========
+#Set vector backend type for vlasov solvers, sets precision and length. 
+#Options: 
+# AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX512:   VEC8D_AGNER, VEC16F_AGNER
+# Fallback: VEC4D_FALLBACK, VEC4F_FALLBACK, VEC8F_FALLBACK
+
+ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
+#Single-precision        
+	VECTORCLASS = VEC8F_AGNER
+else
+#Double-precision
+	VECTORCLASS = VEC4D_AGNER
+endif
+
+FLAGS = 
+
+#GNU flags:
+CC_BRAND = gcc
+CC_BRAND_VERSION = 9.3.0
+CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -mfma -mavx2
+testpackage: CXXFLAGS = -g -O2 -fopenmp -funroll-loops -std=c++20 -mno-fma -mno-avx2 -mno-avx
+
+MATHFLAGS = -ffast-math
+LDFLAGS = -lrt -fopenmp
+LIB_MPI = -fopenmp
+
+#======== PAPI ==========
+#Add PAPI_MEM define to use papi to report memory consumption?
+CXXFLAGS +=  -DPAPI_MEM
+testpackage: CXXFLAGS +=  -DPAPI_MEM
+
+#======== Allocator =========
+#Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
+#Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
+CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+
+#======= Compiler and compilation flags =========
+# NOTES on compiler flags:
+# CXXFLAGS is for compiler flags, they are always used
+# MATHFLAGS are for special math etc. flags, these are only applied on solver functions
+# LDFLAGS flags for linker
+
+#-DNO_WRITE_AT_ALL:  Define to disable write at all to 
+#                    avoid memleak (much slower IO)
+
+# BOOST_VERSION = current trilinos version
+# ZOLTAN_VERSION = current trilinos verson
+#
+#======== Libraries ===========
+
+LIBRARY_PREFIX = /scratch/project_465000287/kempfyan/libraries/LUMI22.08_cpeGNU
+LIBRARY_PREFIX_HEADERS = /scratch/project_465000287/libraries
+
+#compiled libraries
+LIB_BOOST = -lboost_program_options
+
+INC_ZOLTAN = -isystem$(LIBRARY_PREFIX)/zoltan/include
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/zoltan/lib -lzoltan -Wl,-rpath=$(LIBRARY_PREFIX)/zoltan/lib
+
+INC_JEMALLOC = -isystem$(LIBRARY_PREFIX)/jemalloc/include
+LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/jemalloc/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX)/jemalloc/lib
+
+LIB_PAPI = -lpapi
+
+INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv
+LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX)/vlsv
+
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -lgfortran -Wl,-rpath=$(LIBRARY_PREFIX)/phiprof/lib
+INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include 
+
+
+#header libraries
+
+INC_FSGRID = -I$(LIBRARY_PREFIX_HEADERS)/fsgrid/
+INC_DCCRG = -I$(LIBRARY_PREFIX_HEADERS)/dccrg/
+INC_VECTORCLASS = -isystem$(LIBRARY_PREFIX_HEADERS)/vectorclass/

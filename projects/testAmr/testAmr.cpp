@@ -156,7 +156,7 @@ namespace projects {
       uint N = nVelocitySamples; // Start by using nVelocitySamples
       int N3_sum = 0;           // Sum of sampling points used so far
 
-      const testAmrSpeciesParameters& sP = speciesParams[popID];
+      //const testAmrSpeciesParameters& sP = speciesParams[popID];
 
       const Real avgLimit = 0.01*getObjectWrapper().particleSpecies[popID].sparseMinValue;
       do {
@@ -292,9 +292,9 @@ namespace projects {
                xyz[1] = P::amrBoxCenterY + (0.5 + j - P::amrBoxHalfWidthY) * P::dy_ini;
                xyz[2] = P::amrBoxCenterZ + (0.5 + k - P::amrBoxHalfWidthZ) * P::dz_ini;
                
-               CellID myCell = mpiGrid.get_existing_cell(xyz);
                if (mpiGrid.refine_completely_at(xyz)) {
 #ifndef NDEBUG
+                  CellID myCell = mpiGrid.get_existing_cell(xyz);
                   std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;
 #endif
                }
@@ -326,9 +326,9 @@ namespace projects {
                   xyz[1] = P::amrBoxCenterY + 0.5 * (0.5 + j - P::amrBoxHalfWidthY) * P::dy_ini;
                   xyz[2] = P::amrBoxCenterZ + 0.5 * (0.5 + k - P::amrBoxHalfWidthZ) * P::dz_ini;
                   
-                  CellID myCell = mpiGrid.get_existing_cell(xyz);
                   if (mpiGrid.refine_completely_at(xyz)) {
 #ifndef NDEBUG
+                     CellID myCell = mpiGrid.get_existing_cell(xyz);
                      std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;
 #endif
                   }

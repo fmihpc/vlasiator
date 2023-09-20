@@ -128,6 +128,13 @@ namespace SBC {
       (2.0 * physicalconstants::K_B * T));
    }
    
+   /*  Here the while loop iterates  from the centre of the maxwellian in blocksize (4*dvx) increments, 
+   *  and looks at the centre of the first velocity cell in the block (+0.5dvx), checking if the 
+   *  phase-space density there is large enough to be included due to sparsity threshold. 
+   *  That results in a "blocks radius"  vRadiusSquared from the centre of the maxwellianDistribution.
+   *  Then we iterate through the actual blocks and calculate their radius R2 based on their velocity coordinates
+   *  and the plasma bulk velocity. Blocks that fullfil R2<vRadiusSquared are included to blocksToInitialize.
+   */
    std::vector<vmesh::GlobalID> SetMaxwellian::findBlocksToInitialize(
       const uint popID,
       spatial_cell::SpatialCell& cell,
@@ -143,18 +150,11 @@ namespace SBC {
       
       const vmesh::LocalID* vblocks_ini = cell.get_velocity_grid_length(popID,refLevel);
 
+      const Real dvx=cell.get_velocity_grid_cell_size(popID,refLevel)[0];
+      const Real dvy=cell.get_velocity_grid_cell_size(popID,refLevel)[1];
+      const Real dvz=cell.get_velocity_grid_cell_size(popID,refLevel)[2];
       while (search) {
-         #warning TODO: add SpatialCell::getVelocityBlockMinValue() in place of sparseMinValue?
-         if (0.1 * getObjectWrapper().particleSpecies[popID].sparseMinValue > 
-             maxwellianDistribution(
-                                    popID,
-                                    rho,
-                                    T,
-                                    VX0 + counter*cell.get_velocity_grid_block_size(popID,refLevel)[0], VY0, VZ0
-                                   )
-             ||
-             counter > vblocks_ini[0]
-            ) {
+         if (0.1 * cell.getVelocityBlockMinValue(popID) > maxwellianDistribution(popID, rho, T, counter*cell.get_velocity_grid_block_size(popID,refLevel)[0] +0.5*dvx , 0.5*dvy, 0.5*dvz) || counter > vblocks_ini[0]) {
             search = false;
          }
          counter++;
@@ -247,12 +247,12 @@ namespace SBC {
             creal dvyCell = block_parameters[BlockParams::DVY];
             creal dvzCell = block_parameters[BlockParams::DVZ];
          
-            creal x = templateCell.parameters[CellParams::XCRD];
-            creal y = templateCell.parameters[CellParams::YCRD];
-            creal z = templateCell.parameters[CellParams::ZCRD];
-            creal dx = templateCell.parameters[CellParams::DX];
-            creal dy = templateCell.parameters[CellParams::DY];
-            creal dz = templateCell.parameters[CellParams::DZ];
+            //creal x = templateCell.parameters[CellParams::XCRD];
+            //creal y = templateCell.parameters[CellParams::YCRD];
+            //creal z = templateCell.parameters[CellParams::ZCRD];
+            //creal dx = templateCell.parameters[CellParams::DX];
+            //creal dy = templateCell.parameters[CellParams::DY];
+            //creal dz = templateCell.parameters[CellParams::DZ];
          
             // Calculate volume average of distrib. function for each cell in the block.
             for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
@@ -303,7 +303,7 @@ namespace SBC {
       B[1] = By;
       B[2] = Bz;
       
-      calculateCellMoments(&templateCell,true,true);
+      calculateCellMoments(&templateCell,true,false,true);
       
       if(!this->isThisDynamic) {
          // WARNING Time-independence assumed here.

@@ -163,13 +163,22 @@ void calculateWaveSpeedYZ(
    // Simulations which predominantly contain heavier ion species will have to change this!
    //
    // See
+   // T E Stringer, Low-frequency waves in an unbounded plasma
+   // Journal of Nuclear Energy. Part C, Plasma Physics, Accelerators, Thermonuclear Research
+   // Volume 5, Number 2, page 89
+   // Section BC in Fig. 1 and Table 1, referenced later e.g. by Gary, for the current one,
+   // and the below for the heavy ions
    // https://www.ann-geophys.net/26/1605/2008/  (Whistler waves)
    // and
    // http://iopscience.iop.org/article/10.1088/0253-6102/43/2/026/meta (Alfven waves)
    // for details.
    const Real vA2 = divideIfNonZero(Bmag2, pc::MU_0*rhom); // Alfven speed
    const Real vS2 = divideIfNonZero(p11+p22+p33, 2.0*rhom); // sound speed, adiabatic coefficient 3/2, P=1/3*trace in sound speed
-   const Real vW = Parameters::ohmHallTerm > 0 ? divideIfNonZero(2.0*M_PI*vA2*pc::MASS_PROTON, perBGrid.DX*pc::CHARGE*sqrt(Bmag2)) : 0.0; // whistler speed
+//   const Real vW = Parameters::ohmHallTerm > 0 ? divideIfNonZero(2.0*M_PI*vA2*pc::MASS_PROTON, perBGrid.DX*pc::CHARGE*sqrt(Bmag2)) : 0.0; // whistler speed
+   const Real vW = Parameters::ohmHallTerm > 0 ?
+      sqrt(vA2) * (1 + divideIfNonZero(2*M_PI*M_PI*pc::MASS_PROTON*pc::MASS_PROTON, perBGrid.DX*perBGrid.DX*rhom*pc::CHARGE*pc::CHARGE*pc::MU_0)
+            / sqrt(1 + divideIfNonZero(  M_PI*M_PI*pc::MASS_PROTON*pc::MASS_PROTON, perBGrid.DX*perBGrid.DX*rhom*pc::CHARGE*pc::CHARGE*pc::MU_0)))
+      : 0.0; // whistler speed
    
    ret_vA = sqrt(vA2);
    ret_vS = sqrt(vS2);
@@ -277,13 +286,22 @@ void calculateWaveSpeedXZ(
    // Simulations which predominantly contain heavier ion species will have to change this!
    //
    // See
+   // T E Stringer, Low-frequency waves in an unbounded plasma
+   // Journal of Nuclear Energy. Part C, Plasma Physics, Accelerators, Thermonuclear Research
+   // Volume 5, Number 2, page 89
+   // Section BC in Fig. 1 and Table 1, referenced later e.g. by Gary, for the current one,
+   // and the below for the heavy ions
    // https://www.ann-geophys.net/26/1605/2008/  (Whistler waves)
    // and
    // http://iopscience.iop.org/article/10.1088/0253-6102/43/2/026/meta (Alfven waves)
    // for details.
    const Real vA2 = divideIfNonZero(Bmag2, pc::MU_0*rhom); // Alfven speed
    const Real vS2 = divideIfNonZero(p11+p22+p33, 2.0*rhom); // sound speed, adiabatic coefficient 3/2, P=1/3*trace in sound speed
-   const Real vW = Parameters::ohmHallTerm > 0 ? divideIfNonZero(2.0*M_PI*vA2*pc::MASS_PROTON, perBGrid.DX*pc::CHARGE*sqrt(Bmag2)) : 0.0; // whistler speed
+//   const Real vW = Parameters::ohmHallTerm > 0 ? divideIfNonZero(2.0*M_PI*vA2*pc::MASS_PROTON, perBGrid.DX*pc::CHARGE*sqrt(Bmag2)) : 0.0; // whistler speed
+   const Real vW = Parameters::ohmHallTerm > 0 ?
+      sqrt(vA2) * (1 + divideIfNonZero(2*M_PI*M_PI*pc::MASS_PROTON*pc::MASS_PROTON, perBGrid.DX*perBGrid.DX*rhom*pc::CHARGE*pc::CHARGE*pc::MU_0)
+            / sqrt(1 + divideIfNonZero(  M_PI*M_PI*pc::MASS_PROTON*pc::MASS_PROTON, perBGrid.DX*perBGrid.DX*rhom*pc::CHARGE*pc::CHARGE*pc::MU_0)))
+      : 0.0; // whistler speed
    
    ret_vA = sqrt(vA2);
    ret_vS = sqrt(vS2);
@@ -391,13 +409,22 @@ void calculateWaveSpeedXY(
    // Simulations which predominantly contain heavier ion species will have to change this!
    //
    // See
+   // T E Stringer, Low-frequency waves in an unbounded plasma
+   // Journal of Nuclear Energy. Part C, Plasma Physics, Accelerators, Thermonuclear Research
+   // Volume 5, Number 2, page 89
+   // Section BC in Fig. 1 and Table 1, referenced later e.g. by Gary, for the current one,
+   // and the below for the heavy ions
    // https://www.ann-geophys.net/26/1605/2008/  (Whistler waves)
    // and
    // http://iopscience.iop.org/article/10.1088/0253-6102/43/2/026/meta (Alfven waves)
    // for details.
    const Real vA2 = divideIfNonZero(Bmag2, pc::MU_0*rhom); // Alfven speed
    const Real vS2 = divideIfNonZero(p11+p22+p33, 2.0*rhom); // sound speed, adiabatic coefficient 3/2, P=1/3*trace in sound speed
-   const Real vW = Parameters::ohmHallTerm > 0 ? divideIfNonZero(2.0*M_PI*vA2*pc::MASS_PROTON, perBGrid.DX*pc::CHARGE*sqrt(Bmag2)) : 0.0; // whistler speed
+//   const Real vW = Parameters::ohmHallTerm > 0 ? divideIfNonZero(2.0*M_PI*vA2*pc::MASS_PROTON, perBGrid.DX*pc::CHARGE*sqrt(Bmag2)) : 0.0; // whistler speed
+   const Real vW = Parameters::ohmHallTerm > 0 ?
+      sqrt(vA2) * (1 + divideIfNonZero(2*M_PI*M_PI*pc::MASS_PROTON*pc::MASS_PROTON, perBGrid.DX*perBGrid.DX*rhom*pc::CHARGE*pc::CHARGE*pc::MU_0)
+            / sqrt(1 + divideIfNonZero(  M_PI*M_PI*pc::MASS_PROTON*pc::MASS_PROTON, perBGrid.DX*perBGrid.DX*rhom*pc::CHARGE*pc::CHARGE*pc::MU_0)))
+      : 0.0; // whistler speed
    
    ret_vA = sqrt(vA2);
    ret_vS = sqrt(vS2);
@@ -1635,25 +1662,27 @@ void calculateUpwindedElectricFieldSimple(
    //const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
    const int* gridDims = &technicalGrid.getLocalSize()[0];
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
-   phiprof::start("Calculate upwinded electric field");
+   phiprof::Timer upwindedETimer {"Calculate upwinded electric field"};
    
-   timer=phiprof::initializeTimer("MPI","MPI");
-   phiprof::start(timer);
+   phiprof::Timer mpiTimer {"MPI", {"MPI"}};
+   // Update ghosts if necessary, unless previous terms have already updated them
    if(P::ohmHallTerm > 0) {
       EHallGrid.updateGhostCells();
    }
    if(P::ohmGradPeTerm > 0) {
       EGradPeGrid.updateGhostCells();
    }
-   if(P::ohmHallTerm == 0 && P::ohmGradPeTerm == 0) {
+   if(P::ohmHallTerm == 0) {
       dPerBGrid.updateGhostCells();
+   }
+   if(P::ohmHallTerm == 0 && P::ohmGradPeTerm == 0) {
       dMomentsGrid.updateGhostCells();
    }
-   phiprof::stop(timer);
+   
+   mpiTimer.stop();
    
    // Calculate upwinded electric field on inner cells
-   timer=phiprof::initializeTimer("Compute cells");
-   phiprof::start(timer);
+   phiprof::Timer computeTimer {"Compute cells"};
    #pragma omp parallel for collapse(3)
    for (int k=0; k<gridDims[2]; k++) {
       for (int j=0; j<gridDims[1]; j++) {
@@ -1696,17 +1725,16 @@ void calculateUpwindedElectricFieldSimple(
          }
       }
    }
-   phiprof::stop(timer,N_cells,"Spatial Cells");
+   computeTimer.stop(N_cells,"Spatial Cells");
    
-   timer=phiprof::initializeTimer("MPI","MPI");
-   phiprof::start(timer);
+   mpiTimer.start();
    // Exchange electric field with neighbouring processes
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       EGrid.updateGhostCells();
    } else { 
       EDt2Grid.updateGhostCells();
    }
-   phiprof::stop(timer);
+   mpiTimer.stop();
    
-   phiprof::stop("Calculate upwinded electric field",N_cells,"Spatial Cells");
+   upwindedETimer.stop(N_cells,"Spatial Cells");
 }
