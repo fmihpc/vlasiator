@@ -50,6 +50,14 @@ template<class T> std::array<int32_t, 3> getLocalFsGridCellIndexForCoord(T& grid
    retval = grid.globalToLocal(retval[0], retval[1], retval[2]);
    return retval;
 }
+// Get the (integer valued) local fsgrid cell index (i,j,k) for the magnetic-field traced mapping point that node n is associated with
+// This includes indices beyond local size (positive and negative) as we need to access ghost cells
+template<class T> std::array<int32_t, 3> getLocalFsGridCellIndexWithGhostsForCoord(T& grid, const std::array<Real, 3>& x) {
+   std::array<int32_t, 3> retval = getGlobalFsGridCellIndexForCoord(grid,x);
+   const std::array<int32_t, 3> localStart = grid.getLocalStart();
+   retval = {retval[0]-localStart[0], retval[1]-localStart[1], retval[2]-localStart[2]};
+   return retval;
+}
 // Get the fraction fsgrid cell index for the magnetic-field traced mapping point that node n is associated with.
 // Note that these are floating point values between 0 and 1
 template<class T> std::array<Real, 3> getFractionalFsGridCellForCoord(T& grid, const std::array<Real, 3>& x) {
@@ -190,7 +198,7 @@ namespace FieldTracing {
                technicalGrid,
                fieldTracingParameters.reconstructionCoefficientsCache,
                fsgridCell[0],fsgridCell[1],fsgridCell[2],
-               {(TReal)r[0], (TReal)r[1], (TReal)r[2]}
+               {(Real)r[0], (Real)r[1], (Real)r[2]}
             );
             b[0] += perB[0];
             b[1] += perB[1];
