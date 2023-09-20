@@ -232,14 +232,14 @@ void initializeGrids(
          phiprof::start("Restart refinement");
          for (uint i = 0; i < P::amrMaxSpatialRefLevel; ++i) {
             adaptRefinement(mpiGrid, technicalGrid, sysBoundaries, project, true);
-            balanceLoad(mpiGrid, sysBoundaries);
+            balanceLoad(mpiGrid, sysBoundaries, technicalGrid);
          }
          phiprof::stop("Restart refinement");
       } else if (P::refineOnRestart) {
          phiprof::start("Restart refinement");
          for (uint i = 0; i < P::amrMaxSpatialRefLevel; ++i) {
             adaptRefinement(mpiGrid, technicalGrid, sysBoundaries, project);
-            balanceLoad(mpiGrid, sysBoundaries);
+            balanceLoad(mpiGrid, sysBoundaries, technicalGrid);
          }
          phiprof::stop("Restart refinement");
       }
@@ -332,7 +332,7 @@ void initializeGrids(
    }
 
    // Balance load before we transfer all data below
-   balanceLoad(mpiGrid, sysBoundaries);
+   balanceLoad(mpiGrid, sysBoundaries, technicalGrid);
    // Function includes re-calculation of local cells cache
 
    phiprof::initializeTimer("Fetch Neighbour data","MPI");
@@ -483,7 +483,7 @@ void setFaceNeighborRanks( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    }
 }
 
-void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, SysBoundary& sysBoundaries){
+void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, SysBoundary& sysBoundaries, FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid){
    // Invalidate cached cell lists
    Parameters::meshRepartitioned = true;
 
@@ -652,7 +652,10 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
       }
       phiprof::stop("GetSeedIdsAndBuildPencils");
    }
-   
+
+   // Update fsgrid coupling
+   computeCoupling(mpiGrid, cells, technicalGrid, technicalGrid.coupling);
+
    phiprof::stop("Balancing load");
 }
 

@@ -33,6 +33,9 @@ jobs:
       - name: Download fsgrid
         run: |
           git clone https://github.com/fmihpc/fsgrid.git 
+          cd fsgrid
+          git checkout 2b02a183062002ab66521d7faec59cdd7966c4bc
+          cd ..
           cp fsgrid/fsgrid.hpp $GITHUB_WORKSPACE/libraries/include
       - name: Build phiprof
         run: |

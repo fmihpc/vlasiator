@@ -455,6 +455,7 @@ int main(int argn,char* args[]) {
    );
    
    const std::vector<CellID>& cells = getLocalCells();
+   computeCoupling(mpiGrid, cells, momentsGrid, &gridCoupling);
    
    phiprof::stop("Init grids");
    
@@ -875,7 +876,7 @@ int main(int argn,char* args[]) {
             calculateAcceleration(mpiGrid,0.0);      
             phiprof::stop("compute-dt");
          }
-         balanceLoad(mpiGrid, sysBoundaryContainer);
+         balanceLoad(mpiGrid, sysBoundaryContainer, technicalGrid);
          addTimedBarrier("barrier-end-load-balance");
          phiprof::start("Shrink_to_fit");
          // * shrink to fit after LB * //
