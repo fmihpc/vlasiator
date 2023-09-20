@@ -86,16 +86,14 @@ void addTimedBarrier(string name){
 //let's not do  a barrier
    return; 
 #endif
-   int bt=phiprof::initializeTimer(name,"Barriers","MPI");
-   phiprof::start(bt);
+   phiprof::Timer btimer {name, {"Barriers", "MPI"}};
    MPI_Barrier(MPI_COMM_WORLD);
-   phiprof::stop(bt);
 }
 
 void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 			FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, Real &newDt, bool &isChanged) {
 
-   phiprof::start("compute-timestep");
+   phiprof::Timer computeTimestepTimer {"compute-timestep"};
    // Compute maximum time step. This cannot be done at the first step as the solvers compute the limits for each cell.
 
    isChanged = false;
@@ -228,8 +226,6 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    } else {
       P::fieldSolverSubcycles = 1;
    }
-
-   phiprof::stop("compute-timestep");
 }
 
 ObjectWrapper& getObjectWrapper() {
@@ -285,11 +281,10 @@ int main(int argn,char* args[]) {
    signal(SIGFPE, fpehandler);
    #endif
 
+   phiprof::Timer mainTimer {"main"};
+   phiprof::Timer initimer {"Initialization"};
+   phiprof::Timer readParamsTimer {"Read parameters"};
 
-
-   phiprof::start("main");
-   phiprof::start("Initialization");
-   phiprof::start("Read parameters");
    //init parameter file reader
    Readparameters readparameters(argn,args);
 
@@ -312,10 +307,7 @@ int main(int argn,char* args[]) {
    getObjectWrapper().getParameters();
    sysBoundaryContainer.getParameters();
    project->getParameters();
-   phiprof::stop("Read parameters");
-
-
-
+   readParamsTimer.stop();
 
    //Get version and config info here
    std::string version;
@@ -329,7 +321,8 @@ int main(int argn,char* args[]) {
 
 
    // Init parallel logger:
-   phiprof::start("open logFile & diagnostic");
+
+   phiprof::Timer openLoggerTimer {"open logFile & diagnostic"};
    //if restarting we will append to logfiles
    if (logFile.open(MPI_COMM_WORLD,MASTER_RANK,"logfile.txt",P::isRestart) == false) {
       if(myRank == MASTER_RANK) cerr << "(MAIN) ERROR: Logger failed to open logfile!" << endl;
@@ -352,10 +345,10 @@ int main(int argn,char* args[]) {
       #endif
       logFile << " OpenMP threads per process" << endl << writeVerbose;      
    }
-   phiprof::stop("open logFile & diagnostic");
+   openLoggerTimer.stop();
    
    // Init project
-   phiprof::start("Init project");
+   phiprof::Timer initProjectimer {"Init project"};
    if (project->initialize() == false) {
       if(myRank == MASTER_RANK) cerr << "(MAIN): Project did not initialize correctly!" << endl;
       exit(1);
@@ -367,14 +360,14 @@ int main(int argn,char* args[]) {
          exit(1);
       }
    }
-   phiprof::stop("Init project");
+   initProjectimer.stop();
 
    // Add VAMR refinement criterias:
    vamr_ref_criteria::addRefinementCriteria();
 
    // Initialize simplified Fieldsolver grids.
    // Needs to be done here already ad the background field will be set right away, before going to initializeGrid even
-   phiprof::start("Init fieldsolver grids");
+   phiprof::Timer initFsTimer {"Init fieldsolver grids"};
 
    const std::array<int,3> fsGridDimensions = {convert<int>(P::xcells_ini * pow(2,P::amrMaxSpatialRefLevel)),
 							    convert<int>(P::ycells_ini * pow(2,P::amrMaxSpatialRefLevel)),
@@ -429,7 +422,7 @@ int main(int argn,char* args[]) {
       //just abort sending SIGTERM to all tasks
       MPI_Abort(MPI_COMM_WORLD, -1);
    }
-   phiprof::stop("Init fieldsolver grids");
+   initFsTimer.stop();
 
    // Initialize grid.  After initializeGrid local cells have dist
    // functions, and B fields set. Cells have also been classified for
@@ -437,7 +430,7 @@ int main(int argn,char* args[]) {
    // created. All spatial date computed this far is up to date for
    // FULL_NEIGHBORHOOD. Block lists up to date for
    // VLASOV_SOLVER_NEIGHBORHOOD (but dist function has not been communicated)
-   phiprof::start("Init grids");
+   phiprof::Timer initGridsTimer {"Init grids"};
    initializeGrids(
       argn,
       args,
@@ -456,14 +449,14 @@ int main(int argn,char* args[]) {
    
    const std::vector<CellID>& cells = getLocalCells();
    
-   phiprof::stop("Init grids");
+   initGridsTimer.stop();
    
    // Initialize data reduction operators. This should be done elsewhere in order to initialize 
    // user-defined operators:
-   phiprof::start("Init DROs");
+   phiprof::Timer initDROsTimer {"Init DROs"};
    DataReducer outputReducer, diagnosticReducer;
    initializeDataReducers(&outputReducer, &diagnosticReducer);
-   phiprof::stop("Init DROs");  
+   initDROsTimer.stop();
    
    // Free up memory:
    readparameters.~Readparameters();
@@ -490,10 +483,10 @@ int main(int argn,char* args[]) {
       );
    }
 
-   phiprof::start("getFieldsFromFsGrid");
+   phiprof::Timer getFieldsTimer {"getFieldsFromFsGrid"};
    volGrid.updateGhostCells();
    getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, technicalGrid, mpiGrid, cells);
-   phiprof::stop("getFieldsFromFsGrid");
+   getFieldsTimer.stop();
 
    // Build communicator for ionosphere solving
    SBC::ionosphereGrid.updateIonosphereCommunicator(mpiGrid, technicalGrid);
@@ -506,19 +499,18 @@ int main(int argn,char* args[]) {
    }
 
    if (P::isRestart == false) {
-      phiprof::start("compute-dt");
+      phiprof::Timer timer {"compute-dt"};
       // Run Vlasov solver once with zero dt to initialize
       // per-cell dt limits. In restarts, we read the dt from file.
       calculateSpatialTranslation(mpiGrid,0.0);
       calculateAcceleration(mpiGrid,0.0);      
-      phiprof::stop("compute-dt");
    }
 
    // Save restart data
    if (P::writeInitialState) {
       FieldTracing::reduceData(technicalGrid, perBGrid, dPerBGrid, mpiGrid, SBC::ionosphereGrid.nodes); /*!< Call the reductions (e.g. field tracing) */
       
-      phiprof::start("write-initial-state");
+      phiprof::Timer timer {"write-initial-state"};
       
       if (myRank == MASTER_RANK)
          logFile << "(IO): Writing initial state to disk, tstep = "  << endl << writeVerbose;
@@ -564,40 +556,38 @@ int main(int argn,char* args[]) {
       P::systemWriteDistributionWriteZlineStride.pop_back();
       P::systemWritePath.pop_back();
       P::systemWriteFsGrid.pop_back();
-
-      phiprof::stop("write-initial-state");
    }
 
    if (P::isRestart == false) {
       //compute new dt
-      phiprof::start("compute-dt");
+      phiprof::Timer computeDtimer {"compute-dt"};
       computeNewTimeStep(mpiGrid, technicalGrid, newDt, dtIsChanged);
       if (P::dynamicTimestep == true && dtIsChanged == true) {
          // Only actually update the timestep if dynamicTimestep is on
          P::dt=newDt;
       }
-      phiprof::stop("compute-dt");
+      computeDtimer.stop();
       
       //go forward by dt/2 in V, initializes leapfrog split. In restarts the
       //the distribution function is already propagated forward in time by dt/2
-      phiprof::start("propagate-velocity-space-dt/2");
+      phiprof::Timer propagateHalfTimer {"propagate-velocity-space-dt/2"};
       if (P::propagateVlasovAcceleration) {
          calculateAcceleration(mpiGrid, 0.5*P::dt);
       } else {
          //zero step to set up moments _v
          calculateAcceleration(mpiGrid, 0.0);
       }
-      phiprof::stop("propagate-velocity-space-dt/2");
+      propagateHalfTimer.stop();
 
       // Apply boundary conditions
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
-         phiprof::start("Update system boundaries (Vlasov post-acceleration)");
+         phiprof::Timer updateBoundariesTimer {("update system boundaries (Vlasov post-acceleration)")};
          sysBoundaryContainer.applySysBoundaryVlasovConditions(mpiGrid, 0.5*P::dt, true);
-         phiprof::stop("Update system boundaries (Vlasov post-acceleration)");
+         updateBoundariesTimer.stop();
          addTimedBarrier("barrier-boundary-conditions");
       }
       // Also update all moments. They won't be transmitted to FSgrid until the field solver is called, though.
-      phiprof::start("Compute interp moments");
+      phiprof::Timer computeMomentsTimer {"Compute interp moments"};
       calculateInterpolatedVelocityMoments(
          mpiGrid,
          CellParams::RHOM,
@@ -608,11 +598,11 @@ int main(int argn,char* args[]) {
          CellParams::P_11,
          CellParams::P_22,
          CellParams::P_33
-         );
-      phiprof::stop("Compute interp moments");
+      );
+      computeMomentsTimer.stop();
    }
 
-   phiprof::stop("Initialization");
+   initimer.stop();
 
    // ***********************************
    // ***** INITIALIZATION COMPLETE *****
@@ -632,9 +622,9 @@ int main(int argn,char* args[]) {
    } 
    
 
-   phiprof::start("report-memory-consumption");
+   phiprof::Timer reportMemTimer {"report-memory-consumption"};
    report_process_memory_consumption();
-   phiprof::stop("report-memory-consumption");
+   reportMemTimer.stop();
    
    unsigned int computedCells=0;
    unsigned int computedTotalCells=0;
@@ -666,7 +656,7 @@ int main(int argn,char* args[]) {
    
    addTimedBarrier("barrier-end-initialization");
    
-   phiprof::start("Simulation");
+   phiprof::Timer simulationTimer {"Simulation"};
    double startTime=  MPI_Wtime();
    double beforeTime = MPI_Wtime();
    double beforeSimulationTime=P::t_min;
@@ -678,18 +668,18 @@ int main(int argn,char* args[]) {
       
       addTimedBarrier("barrier-loop-start");
       
-      phiprof::start("IO");
+      phiprof::Timer ioTimer {"IO"};
 
-      phiprof::start("checkExternalCommands");
+      phiprof::Timer externalsTimer {"checkExternalCommands"};
       if(myRank ==  MASTER_RANK) {
          // check whether STOP or KILL or SAVE has been passed, should be done by MASTER_RANK only as it can reset P::bailout_write_restart
          checkExternalCommands();
       }
-      phiprof::stop("checkExternalCommands");
+      externalsTimer.stop();
 
       //write out phiprof profiles and logs with a lower interval than normal
       //diagnostic (every 10 diagnostic intervals).
-      phiprof::start("logfile-io");
+      phiprof::Timer loggingTimer {"logfile-io"};
       logFile << "---------- tstep = " << P::tstep << " t = " << P::t <<" dt = " << P::dt << " FS cycles = " << P::fieldSolverSubcycles << " ----------" << endl;
       if (P::diagnosticInterval != 0 &&
           P::tstep % (P::diagnosticInterval*10) == 0 &&
@@ -714,17 +704,16 @@ int main(int argn,char* args[]) {
          report_process_memory_consumption();
       }
       logFile << writeVerbose;
-      phiprof::stop("logfile-io");
+      loggingTimer.stop();
 
 // Check whether diagnostic output has to be produced
       if (P::diagnosticInterval != 0 && P::tstep % P::diagnosticInterval == 0) {
          
-         phiprof::start("diagnostic-io");
+         phiprof::Timer diagnosticTimer {"diagnostic-io"};
          if (writeDiagnostic(mpiGrid, diagnosticReducer) == false) {
             if(myRank == MASTER_RANK)  cerr << "ERROR with diagnostic computation" << endl;
             
          }
-         phiprof::stop("diagnostic-io");
       }
 
       // write system, loop through write classes
@@ -745,7 +734,7 @@ int main(int argn,char* args[]) {
             
             FieldTracing::reduceData(technicalGrid, perBGrid, dPerBGrid, mpiGrid, SBC::ionosphereGrid.nodes); /*!< Call the reductions (e.g. field tracing) */
             
-            phiprof::start("write-system");
+            phiprof::Timer writeSysTimer {"write-system"};
             logFile << "(IO): Writing spatial cell and reduced system data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
             const bool writeGhosts = true;
             if(writeGrid(mpiGrid,
@@ -774,18 +763,17 @@ int main(int argn,char* args[]) {
             int index2=(int)((P::t+P::dt)/P::systemWriteTimeInterval[i]);
             if (index2>P::systemWrites[i]) P::systemWrites[i]=index2;
             logFile << "(IO): .... done!" << endl << writeVerbose;
-            phiprof::stop("write-system");
          }
       }
 
       // Reduce globalflags::bailingOut from all processes
-      phiprof::start("Bailout-allreduce");
+      phiprof::Timer bailoutReduceTimer {"Bailout-allreduce"};
       MPI_Allreduce(&(globalflags::bailingOut), &(doBailout), 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-      phiprof::stop("Bailout-allreduce");
+      bailoutReduceTimer.stop();
 
       // Write restart data if needed
       // Combined with checking of additional load balancing to have only one collective call.
-      phiprof::start("compute-is-restart-written-and-extra-LB");
+      phiprof::Timer restartCheckTimer {"compute-is-restart-written-and-extra-LB"};
       if (myRank == MASTER_RANK) {
          if (  (P::saveRestartWalltimeInterval >= 0.0
             && (P::saveRestartWalltimeInterval*wallTimeRestartCounter <=  MPI_Wtime()-initialWtime
@@ -815,10 +803,10 @@ int main(int argn,char* args[]) {
          P::prepareForRebalance = true;
          doNow[1] = 0;
       }
-      phiprof::stop("compute-is-restart-written-and-extra-LB");
+      restartCheckTimer.stop();
 
       if (writeRestartNow >= 1){
-         phiprof::start("write-restart");
+         phiprof::Timer timer {"write-restart"};
          if (writeRestartNow == 1) {
             wallTimeRestartCounter++;
          }
@@ -843,12 +831,13 @@ int main(int argn,char* args[]) {
             logFile << "(IO): ERROR Failed to write restart!" << endl << writeVerbose;
             cerr << "FAILED TO WRITE RESTART" << endl;
          }
-         if (myRank == MASTER_RANK)
+         if (myRank == MASTER_RANK) {
             logFile << "(IO): .... done!"<< endl << writeVerbose;
-         phiprof::stop("write-restart");
+         }
+         timer.stop();
       }
       
-      phiprof::stop("IO");
+      ioTimer.stop();
       addTimedBarrier("barrier-end-io");
       
       //no need to propagate if we are on the final step, we just
@@ -870,17 +859,16 @@ int main(int argn,char* args[]) {
                continue;   // Refinement failed and we're bailing out
 
             // Calculate new dt limits since we might break CFL when refining
-            phiprof::start("compute-dt");
+            phiprof::Timer computeDtimer {"compute-dt"};
             calculateSpatialTranslation(mpiGrid,0.0);
             calculateAcceleration(mpiGrid,0.0);      
-            phiprof::stop("compute-dt");
          }
          balanceLoad(mpiGrid, sysBoundaryContainer);
          addTimedBarrier("barrier-end-load-balance");
-         phiprof::start("Shrink_to_fit");
+         phiprof::Timer shrinkTimer {"Shrink_to_fit"};
          // * shrink to fit after LB * //
          shrink_to_fit_grid_data(mpiGrid);
-         phiprof::stop("Shrink_to_fit");
+         shrinkTimer.stop();
          logFile << "(LB): ... done!"  << endl << writeVerbose;
          P::prepareForRebalance = false;
 
@@ -910,7 +898,7 @@ int main(int argn,char* args[]) {
          computeNewTimeStep(mpiGrid, technicalGrid, newDt, dtIsChanged);
          addTimedBarrier("barrier-check-dt");
          if(dtIsChanged) {
-            phiprof::start("update-dt");
+            phiprof::Timer updateDtimer {"update-dt"};
             //propagate velocity space back to real-time
             if( P::propagateVlasovAcceleration ) {
                // Back half dt to real time, forward by new half dt
@@ -924,7 +912,7 @@ int main(int argn,char* args[]) {
             P::dt=newDt;
             
             logFile <<" dt changed to "<<P::dt <<"s, distribution function was half-stepped to real-time and back"<<endl<<writeVerbose;
-            phiprof::stop("update-dt");
+            updateDtimer.stop();
             continue; //
             addTimedBarrier("barrier-new-dt-set");
          }
@@ -942,26 +930,26 @@ int main(int argn,char* args[]) {
          }
       }
       
-      phiprof::start("Propagate");
+      phiprof::Timer propagateTimer {"Propagate"};
       //Propagate the state of simulation forward in time by dt:
       
-      phiprof::start("Spatial-space");
+      phiprof::Timer spatialSpaceTimer {"Spatial-space"};
       if( P::propagateVlasovTranslation) {
          calculateSpatialTranslation(mpiGrid,P::dt);
       } else {
          calculateSpatialTranslation(mpiGrid,0.0);
       }
-      phiprof::stop("Spatial-space",computedCells,"Cells");
+      spatialSpaceTimer.stop(computedCells, "Cells");
       
       // Apply boundary conditions
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
-         phiprof::start("Update system boundaries (Vlasov post-translation)");
+         phiprof::Timer timer {"Update system boundaries (Vlasov post-translation)"};
          sysBoundaryContainer.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt, false);
-         phiprof::stop("Update system boundaries (Vlasov post-translation)");
+         timer.stop();
          addTimedBarrier("barrier-boundary-conditions");
       }
       
-      phiprof::start("Compute interp moments");
+      phiprof::Timer momentsTimer {"Compute interp moments"};
       calculateInterpolatedVelocityMoments(
          mpiGrid,
          CellParams::RHOM_DT2,
@@ -973,19 +961,19 @@ int main(int argn,char* args[]) {
          CellParams::P_22_DT2,
          CellParams::P_33_DT2
       );
-      phiprof::stop("Compute interp moments");
+      momentsTimer.stop();
       
       // Propagate fields forward in time by dt. This needs to be done before the
       // moments for t + dt are computed (field uses t and t+0.5dt)
       if (P::propagateField) {
-         phiprof::start("Propagate Fields");
+         phiprof::Timer propagateTimer {"Propagate Fields"};
 
-         phiprof::start("fsgrid-coupling-in");
+         phiprof::Timer couplingInTimer {"fsgrid-coupling-in"};
          // Copy moments over into the fsgrid.
          //setupTechnicalFsGrid(mpiGrid, cells, technicalGrid);
          feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid, technicalGrid, false);
          feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid, technicalGrid, true);
-         phiprof::stop("fsgrid-coupling-in");
+         couplingInTimer.stop();
          
          propagateFields(
             perBGrid,
@@ -1006,13 +994,13 @@ int main(int argn,char* args[]) {
             P::fieldSolverSubcycles
          );
 
-         phiprof::start("getFieldsFromFsGrid");
+         phiprof::Timer getFieldsTimer {"getFieldsFromFsGrid"};
          // Copy results back from fsgrid.
          volGrid.updateGhostCells();
          technicalGrid.updateGhostCells();
          getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, technicalGrid, mpiGrid, cells);
-         phiprof::stop("getFieldsFromFsGrid");
-         phiprof::stop("Propagate Fields",cells.size(),"SpatialCells");
+         getFieldsTimer.stop();
+         propagateTimer.stop(cells.size(),"SpatialCells");
          addTimedBarrier("barrier-after-field-solver");
       }
       
@@ -1054,7 +1042,7 @@ int main(int argn,char* args[]) {
          }
       }
       
-      phiprof::start("Velocity-space");
+      phiprof::Timer vspaceTimer {"Velocity-space"};
       if ( P::propagateVlasovAcceleration ) {
          calculateAcceleration(mpiGrid,P::dt);
          addTimedBarrier("barrier-after-ad just-blocks");
@@ -1062,17 +1050,17 @@ int main(int argn,char* args[]) {
          //zero step to set up moments _v
          calculateAcceleration(mpiGrid, 0.0);
       }
-      phiprof::stop("Velocity-space",computedCells,"Cells");
+      vspaceTimer.stop(computedCells, "Cells");
       addTimedBarrier("barrier-after-acceleration");
       
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
-         phiprof::start("Update system boundaries (Vlasov post-acceleration)");
+         phiprof::Timer timer {"Update system boundaries (Vlasov post-acceleration)"};
          sysBoundaryContainer.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt, true);
-         phiprof::stop("Update system boundaries (Vlasov post-acceleration)");
+         timer.stop();
          addTimedBarrier("barrier-boundary-conditions");
       }
       
-      phiprof::start("Compute interp moments");
+      momentsTimer.start();
       // *here we compute rho and rho_v for timestep t + dt, so next
       // timestep * //
       calculateInterpolatedVelocityMoments(
@@ -1086,13 +1074,13 @@ int main(int argn,char* args[]) {
          CellParams::P_22,
          CellParams::P_33
       );
-      phiprof::stop("Compute interp moments");
+      momentsTimer.stop();
 
-      phiprof::stop("Propagate",computedCells,"Cells");
+      propagateTimer.stop(computedCells,"Cells");
       
-      phiprof::start("Project endTimeStep");
+      phiprof::Timer endStepTimer {"Project endTimeStep"};
       project->hook(hook::END_OF_TIME_STEP, mpiGrid, perBGrid);
-      phiprof::stop("Project endTimeStep");
+      endStepTimer.stop();
 
       // Check timestep
       if (P::dt < P::bailout_min_dt) {
@@ -1110,8 +1098,8 @@ int main(int argn,char* args[]) {
 
    double after = MPI_Wtime();
 
-   phiprof::stop("Simulation");
-   phiprof::start("Finalization");
+   simulationTimer.stop();
+   phiprof::Timer finalizationTimer {"Finalization"};
    if (P::propagateField ) { 
       finalizeFieldPropagator();
    }
@@ -1136,8 +1124,8 @@ int main(int argn,char* args[]) {
       logFile << writeVerbose;
    }
    
-   phiprof::stop("Finalization");
-   phiprof::stop("main");
+   finalizationTimer.stop();
+   mainTimer.stop();
    
    phiprof::print(MPI_COMM_WORLD,"phiprof");
    
