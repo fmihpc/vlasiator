@@ -41,7 +41,6 @@
 #include "object_wrapper.h"
 
 using namespace std;
-using namespace phiprof;
 
 extern Logger logFile, diagnostic;
 
@@ -781,7 +780,7 @@ bool readCellParamsVariable(
 template<unsigned long int N> bool readFsGridVariable(
    vlsv::ParallelReader& file, const string& variableName, int numWritingRanks, FsGrid<std::array<Real, N>,FS_STENCIL_WIDTH> & targetGrid) {
 
-   phiprof::start("preparations");
+   phiprof::Timer preparations {"preparations"};
 
    uint64_t arraySize;
    uint64_t vectorSize;
@@ -793,10 +792,10 @@ template<unsigned long int N> bool readFsGridVariable(
    attribs.push_back(make_pair("name",variableName));
    attribs.push_back(make_pair("mesh","fsgrid"));
 
-   phiprof::start("getArrayInfo");
+   phiprof::Timer getArrayInfo {"getArrayInfo"};
    if (file.getArrayInfo("VARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
       logFile << "(RESTART)  ERROR: Failed to read " << endl << write;
-      phiprof::stop("getArrayInfo");
+      getArrayInfo.stop();
       return false;
    }
    if(! (dataType == vlsv::datatype::type::FLOAT && byteSize == sizeof(Real))) {
@@ -804,7 +803,7 @@ template<unsigned long int N> bool readFsGridVariable(
       convertFloatType = true;
       // Note: this implicitly assumes that Real is of type double, and we either read a double in directly, or read a float and convert it to double.
    }
-   phiprof::stop("getArrayInfo");
+   getArrayInfo.stop();
 
    // Are we restarting from the same number of tasks, or a different number?
    int size, myRank;
@@ -818,7 +817,7 @@ template<unsigned long int N> bool readFsGridVariable(
    // Determine our tasks storage size
    size_t storageSize = localSize[0]*localSize[1]*localSize[2];
 
-   phiprof::stop("preparations");
+   preparations.stop();
 
 
    if(size == numWritingRanks) {
@@ -892,25 +891,25 @@ template<unsigned long int N> bool readFsGridVariable(
       // |            |                |
       // +------------+----------------+
 
-      phiprof::start("computeDomainDecomposition");
+      phiprof::Timer computeDomainDecomposition {"computeDomainDecomposition"};
       // Determine the decomposition in the file and the one in RAM for our restart
       std::array<int,3> fileDecomposition;
       targetGrid.computeDomainDecomposition(globalSize, numWritingRanks, fileDecomposition);
-      phiprof::stop("computeDomainDecomposition");
+      computeDomainDecomposition.stop();
 
       // Iterate through tasks and find their overlap with our domain.
       uint64_t fileOffset = 0, offset=0;
 
-      phiprof::start("startMultiread");
+      phiprof::Timer start {"startMultiread"};
       file.startMultiread("VARIABLE", attribs);
-      phiprof::stop("startMultiread");
+      start.stop();
 
       std::vector<std::vector<Real>> vectorOfBuffers;
       std::vector<std::vector<float>> vectorOfFloatBuffers; // needed when convertFloatType is true
 
       for(int task = 0; task < numWritingRanks; task++) {
 
-         phiprof::start("task shebang 1");
+         phiprof::Timer taskArithmetics1 {"task overlap arithmetics 1"};
 
          std::array<int32_t,3> thatTasksSize;
          std::array<int32_t,3> thatTasksStart;
@@ -936,11 +935,11 @@ template<unsigned long int N> bool readFsGridVariable(
          overlapSize[1] = max(overlapEnd[1]-overlapStart[1],0);
          overlapSize[2] = max(overlapEnd[2]-overlapStart[2],0);
 
-         phiprof::stop("task shebang 1");
+         taskArithmetics1.stop();
 
          // Read into buffer
 
-         phiprof::start("multiRead");
+         phiprof::Timer multiRead {"multiRead"};
 
          // Read every source rank that we have an overlap with.
          if(overlapSize[0]*overlapSize[1]*overlapSize[2] > 0) {
@@ -970,20 +969,20 @@ template<unsigned long int N> bool readFsGridVariable(
          } else {
             offset += thatTasksSize[0] * thatTasksSize[1] * thatTasksSize[2] * N * sizeof(float);
          }
-         phiprof::stop("multiRead");
+         multiRead.stop();
       }
       
-      phiprof::start("endMultiread");
+      phiprof::Timer endMultiread {"endMultiread"};
       // Pass boolean true to indicate we're reading fsgrid values and providin manual offsetsxs
       if(file.endMultiread(fileOffset, true) == false) {
          logFile << "(RESTART)  ERROR: Failed to endMultiread while reading fsgrid variable " << variableName << endl << write;
          return false;
       }
-      phiprof::stop("endMultiread");
+      endMultiread.stop();
       
       for(int task = 0; task < numWritingRanks; task++) {
 
-         phiprof::start("task shebang 2");
+         phiprof::Timer taskArithmetics2 {"task overlap arithmetics 2"};
 
          std::array<int32_t,3> thatTasksSize;
          std::array<int32_t,3> thatTasksStart;
@@ -1009,10 +1008,10 @@ template<unsigned long int N> bool readFsGridVariable(
          overlapSize[1] = max(overlapEnd[1]-overlapStart[1],0);
          overlapSize[2] = max(overlapEnd[2]-overlapStart[2],0);
 
-         phiprof::stop("task shebang 2");
+         taskArithmetics2.stop();
 
          // Read into buffer
-         phiprof::start("memcpy");
+         phiprof::Timer tMemcpy {"memcpy"};
 
          // Read every source rank that we have an overlap with.
          if(overlapSize[0]*overlapSize[1]*overlapSize[2] > 0) {
@@ -1036,12 +1035,12 @@ template<unsigned long int N> bool readFsGridVariable(
             }
          }
 
-         phiprof::stop("memcpy");
+         tMemcpy.stop();
       }
    }
-   phiprof::start("updateGhostCells");
+   phiprof::Timer updateGhostCells {"updateGhostCells"};
    targetGrid.updateGhostCells();
-   phiprof::stop("updateGhostCells");
+   updateGhostCells.stop();
    return true;
 }
 
