@@ -335,7 +335,7 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    
    const string meshName = "SpatialGrid";
    variableName = dataReducer.getName(dataReducerIndex);
-   phiprof::start("DRO_"+variableName);
+   phiprof::Timer droTimer {"DRO_"+variableName};
 
    //Get basic data on a variable:
    uint dataSize,vectorSize;
@@ -343,14 +343,12 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    attribs["name"] = variableName;
    if (dataReducer.getDataVectorInfo(dataReducerIndex,dataType,dataSize,vectorSize) == false) {
       cerr << "ERROR when requesting info from DRO " << dataReducerIndex << endl;
-      phiprof::stop("DRO_"+variableName);
       return false;
    }
 
    // Request variable unit metadata: unit, latex-formatted unit, and conversion factor to SI
    if (dataReducer.getMetadata(dataReducerIndex,unitString,unitStringLaTeX,variableStringLaTeX,unitConversionFactor) == false) {
       cerr << "ERROR when requesting unit metadata from DRO " << dataReducerIndex << endl;
-      phiprof::stop("DRO_"+variableName);
       return false;
    }
    attribs["unit"]=unitString;
@@ -360,7 +358,6 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 
    // If DRO has a vector size of 0 it means this DRO should not write out anything. This is used e.g. for DROs we want only for certain populations.
    if (vectorSize == 0) {
-      phiprof::stop("DRO_"+variableName);
       return true;
    }
 
@@ -373,7 +370,6 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    } catch( bad_alloc& ) {
       cerr << "ERROR, FAILED TO ALLOCATE MEMORY AT: " << __FILE__ << " " << __LINE__ << endl;
       logFile << "(MAIN) writeGrid: ERROR FAILED TO ALLOCATE MEMORY AT: " << __FILE__ << " " << __LINE__ << endl << writeVerbose;
-      phiprof::stop("DRO_"+variableName);
       return false;
    }
 
@@ -402,7 +398,6 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
             logFile << "(MAIN) writeGrid: ERROR FAILED TO ALLOCATE MEMORY AT: " << __FILE__ << " " << __LINE__ << endl << writeVerbose;
             delete[] varBuffer;
             varBuffer = NULL;
-            phiprof::stop("DRO_"+variableName);
             return false;
          }
          //Input varBuffer_double into varBuffer_smaller:
@@ -413,35 +408,34 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
          //Cast the varBuffer to char:
          char * varBuffer_smaller_char = reinterpret_cast<char*>(varBuffer_smaller);
          //Write the array:
-         phiprof::start("writeArray");
+         phiprof::Timer writeArrayTimer {"writeArray"};
          if (vlsvWriter.writeArray("VARIABLE", attribs, dataType_smaller, arraySize_smaller, vectorSize_smaller, dataSize_smaller, varBuffer_smaller_char) == false) {
             success = false;
             logFile << "(MAIN) writeGrid: ERROR failed to write datareductionoperator data to file!" << endl << writeVerbose;
          }
-         phiprof::stop("writeArray");
+         writeArrayTimer.stop();
          delete[] varBuffer_smaller;
          varBuffer_smaller = NULL;
       } else {
          // Write  reduced data to file if DROP was successful:
-         phiprof::start("writeArray");
+         phiprof::Timer writeArrayTimer {"writeArray"};
          if (vlsvWriter.writeArray("VARIABLE",attribs, dataType, cells.size(), vectorSize, dataSize, varBuffer) == false) {
             success = false;
             logFile << "(MAIN) writeGrid: ERROR failed to write datareductionoperator data to file!" << endl << writeVerbose;
          }
-         phiprof::stop("writeArray");
       }
 
    } else {
       // If the data reducer didn't want to write dccrg data, maybe it will be happy
       // dumping data straight from fsgrid into our file.
-      phiprof::start("writeFsGrid");
+      phiprof::Timer writeFsTimer {"writeFsGrid"};
       success = dataReducer.writeFsGridData(perBGrid,EGrid,EHallGrid,EGradPeGrid,momentsGrid,dPerBGrid,dMomentsGrid,BgBGrid,volGrid, technicalGrid, "fsgrid", dataReducerIndex, vlsvWriter, writeAsFloat);
-      phiprof::stop("writeFsGrid");
+      writeFsTimer.stop();
 
       // Or maybe it will be writing ionosphere data?
-      phiprof::start("writeIonosphere");
+      phiprof::Timer writeIonosphereTimer {"writeIonosphere"};
       success |= dataReducer.writeIonosphereGridData(SBC::ionosphereGrid, "ionosphere", dataReducerIndex, vlsvWriter);
-      phiprof::stop("writeIonosphere");
+      writeIonosphereTimer.stop();
    }
    
    // Check if the DataReducer wants to write paramters to the output file
@@ -451,7 +445,6 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 
    delete[] varBuffer;
    varBuffer = NULL;
-   phiprof::stop("DRO_"+variableName);
    return success;
 }
 
@@ -1310,14 +1303,13 @@ bool writeGrid(
 ) {
    bool success = true;
    int myRank;
-   phiprof::initializeTimer("Barrier-entering-writegrid","MPI","Barrier");
-   phiprof::start("Barrier-entering-writegrid");
+   phiprof::Timer barrierWritegridTimer {"Barrier-entering-writegrid", {"MPI","Barrier"}};
    MPI_Barrier(MPI_COMM_WORLD);
-   phiprof::stop("Barrier-entering-writegrid");
+   barrierWritegridTimer.stop();
 
 
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-   phiprof::start("writeGrid-reduced");
+   phiprof::Timer writeReducedTimer {"writeGrid-reduced"};
    // Create a name for the output file and open it with VLSVWriter:
    stringstream fname;
    fname << P::systemWritePath.at(outputFileTypeIndex) << "/" << P::systemWriteName.at(outputFileTypeIndex) << ".";
@@ -1355,9 +1347,9 @@ bool writeGrid(
       MPI_Info_set(MPIinfo, factor, stripeChar);
    }
 
-   phiprof::start("open");
+   phiprof::Timer openTimer {"open"};
    vlsvWriter.open( fname.str(), MPI_COMM_WORLD, masterProcessId, MPIinfo );
-   phiprof::stop("open");
+   openTimer.stop();
    
    if( MPIinfo != MPI_INFO_NULL ) {
       MPI_Info_free(&MPIinfo);
@@ -1365,7 +1357,7 @@ bool writeGrid(
    
    vlsvWriter.setBuffer(P::vlsvBufferSize);
 
-   phiprof::start("metadataIO");
+   phiprof::Timer metadataTimer {"metadataIO"};
 
    // Get all local cell Ids 
    const vector<CellID>& local_cells = getLocalCells();
@@ -1392,110 +1384,84 @@ bool writeGrid(
    //Write mesh boundaries: NOTE: master process only
    //Visit plugin needs to know the boundaries of the mesh so the number of cells in x, y, z direction
    if( writeMeshBoundingBox( vlsvWriter, meshName, masterProcessId, MPI_COMM_WORLD ) == false ) {
-      phiprof::stop("metadataIO");
-      phiprof::stop("writeGrid-reduced");
       return false;
    }
 
    //Write the node coordinates: NOTE: master process only
    if( writeBoundingBoxNodeCoordinates( vlsvWriter, meshName, masterProcessId, MPI_COMM_WORLD ) == false ) {
-      phiprof::stop("metadataIO");
-      phiprof::stop("writeGrid-reduced");
       return false;
    }
 
    //Write basic grid variables: NOTE: master process only
    if( writeCommonGridData(vlsvWriter, mpiGrid, local_cells, P::systemWrites[outputFileTypeIndex], MPI_COMM_WORLD) == false ) {
-      phiprof::stop("metadataIO");
-      phiprof::stop("writeGrid-reduced");
       return false;
    }
 
    //Write zone global id numbers:
    if( writeZoneGlobalIdNumbers( mpiGrid, vlsvWriter, meshName, local_cells, ghost_cells ) == false ) {
-      phiprof::stop("metadataIO");
-      phiprof::stop("writeGrid-reduced");
       return false;
    }
 
    //Write domain sizes:
    if( writeDomainSizes( vlsvWriter, meshName, local_cells.size(), ghost_cells.size() ) == false ) {
-      phiprof::stop("metadataIO");
-      phiprof::stop("writeGrid-reduced");
       return false;
    }
 
    //Update local ids for cells:
    if( updateLocalIds( mpiGrid, local_cells, MPI_COMM_WORLD ) == false ) {
-      phiprof::stop("metadataIO");
-      phiprof::stop("writeGrid-reduced");
       return false;
    }
 
    //Write ghost zone domain and local id numbers ( VisIt plugin needs this for MPI )
    if( writeGhostZoneDomainAndLocalIdNumbers( mpiGrid, vlsvWriter, meshName, ghost_cells ) == false ) {
-      phiprof::stop("metadataIO");
-      phiprof::stop("writeGrid-reduced");
       return false;
    }
 
    //Write FSGrid metadata
    if( writeFsGridMetadata( technicalGrid, vlsvWriter ) == false ) {
-      phiprof::stop("metadataIO");
-      phiprof::stop("writeGrid-reduced");
       return false;
    }
    
    //Write Ionosphere Grid
    if( writeIonosphereGridMetadata( vlsvWriter ) == false ) {
-      phiprof::stop("metadataIO");
-      phiprof::stop("writeGrid-reduced");
       return false;
    }
    
    //Write Version Info 
    if( writeVersionInfo(versionInfo,vlsvWriter,MPI_COMM_WORLD) == false ) {
-      phiprof::stop("metadataIO");
-      phiprof::stop("writeGrid-reduced");
       return false;
    }
       
    //Write Config Info 
    if( writeConfigInfo(configInfo,vlsvWriter,MPI_COMM_WORLD) == false ) {
-      phiprof::stop("metadataIO");
-      phiprof::stop("writeGrid-reduced");
       return false;
    }
-
-   phiprof::stop("metadataIO");
-   phiprof::start("velocityspaceIO");
-   if( writeVelocitySpace( mpiGrid, vlsvWriter, outputFileTypeIndex, local_cells ) == false ) {
-      phiprof::stop("velocityspaceIO");
+   
+   metadataTimer.stop();
+   phiprof::Timer vspaceTimer {"velocityspaceIO"};
+   if(writeVelocitySpace( mpiGrid, vlsvWriter, outputFileTypeIndex, local_cells ) == false)  {
       return false;
    }
-   phiprof::stop("velocityspaceIO");
+   vspaceTimer.stop();
 
-   phiprof::start("reduceddataIO");
+   phiprof::Timer reducedTimer {"reduceddataIO"};
    //Write necessary variables:
    //Determines whether we write in floats or doubles
-   phiprof::start("writeDataReducer");
+   phiprof::Timer writeDataTimer {"writeDataReducer"};
    if (dataReducer != NULL) for( uint i = 0; i < dataReducer->size(); ++i ) {
       if( writeDataReducer( mpiGrid, local_cells,
             perBGrid, EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid,
             BgBGrid, volGrid, technicalGrid,
             (P::writeAsFloat==1), P::systemWriteFsGrid.at(outputFileTypeIndex), *dataReducer, i, vlsvWriter ) == false
       ) {
-         phiprof::stop("writeDataReducer");
-         phiprof::stop("reduceddataIO");
          return false;
       }
    }
-   phiprof::stop("writeDataReducer");
-
-   phiprof::initializeTimer("Barrier","MPI","Barrier");
-   phiprof::start("Barrier");
+   writeDataTimer.stop();
+   
+   phiprof::Timer barrierTimer {"Barrier", {"MPI","Barrier"}};
    MPI_Barrier(MPI_COMM_WORLD);
-   phiprof::stop("Barrier");
+   barrierTimer.stop();
    
    const uint64_t bytesWritten = vlsvWriter.getBytesWritten();
    const double writeTime = vlsvWriter.getWriteTime();
@@ -1514,12 +1480,12 @@ bool writeGrid(
    else logFile << bytesWritten/writeTime << " B/s";
    logFile << endl;
 
-   phiprof::stop("reduceddataIO");
+   reducedTimer.stop();
 
-   phiprof::start("close");
+   phiprof::Timer closeTimer {"close"};
    vlsvWriter.close();
-   phiprof::stop("close");
-   phiprof::stop("writeGrid-reduced",bytesWritten*1e-9,"GB");
+   closeTimer.stop();
+   writeReducedTimer.stop(bytesWritten * 1e-9, "GB");
    return success;
 }
 
@@ -1556,16 +1522,15 @@ bool writeRestart(
    int myRank;
    
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-   phiprof::initializeTimer("BarrierEnteringWriteRestart","MPI","Barrier");
-   phiprof::start("BarrierEnteringWriteRestart");
+   phiprof::Timer barrierEnteringTimer {"BarrierEnteringWriteRestart", {"MPI","Barrier"}};
    MPI_Barrier(MPI_COMM_WORLD);
-   phiprof::stop("BarrierEnteringWriteRestart");
+   barrierEnteringTimer.stop();
 
-   phiprof::start("writeRestart");
-   phiprof::start("DeallocateRemoteBlocks");
+   phiprof::Timer writeTimer {"writeRestart"};
+   phiprof::Timer deallocateTimer {"DeallocateRemoteBlocks"};
    //deallocate blocks in remote cells to decrease memory load
    deallocateRemoteCellBlocks(mpiGrid);
-   phiprof::stop("DeallocateRemoteBlocks");
+   deallocateTimer.stop();
    
    // Get the current time.
    // Avoid different times on different processes!
@@ -1584,7 +1549,7 @@ bool writeRestart(
    fname.fill('0');
    fname << fileIndex << "." << currentDate << ".vlsv";
 
-   phiprof::start("open");
+   phiprof::Timer openTimer {"open"};
    //Open the file with vlsvWriter:
    Writer vlsvWriter;
    const int masterProcessId = 0;
@@ -1620,11 +1585,11 @@ bool writeRestart(
       MPI_Info_free(&MPIinfo);
    }
 
-   phiprof::stop("open");
+   openTimer.stop();
 
    vlsvWriter.setBuffer(P::vlsvBufferSize);
 
-   phiprof::start("metadataIO");
+   phiprof::Timer metadataTimer {"metadataIO"};
    
    // Get all local cell Ids 
    vector<CellID> local_cells = getLocalCells();
@@ -1666,8 +1631,8 @@ bool writeRestart(
    //Write Ionosphere Grid
    if( writeIonosphereGridMetadata( vlsvWriter ) == false ) return false;
 
-   phiprof::stop("metadataIO");
-   phiprof::start("reduceddataIO");   
+   metadataTimer.stop();
+   phiprof::Timer reducedTimer {"reduceddataIO"};
    //write out DROs we need for restarts
    DataReducer restartReducer;
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments",CellParams::RHOM,5));
@@ -1841,24 +1806,24 @@ bool writeRestart(
             BgBGrid, volGrid, technicalGrid,
             writeAsFloat, true, restartReducer, i, vlsvWriter);
    }
-   phiprof::stop("reduceddataIO");   
+   reducedTimer.stop();
    //write the velocity distribution data -- note: it's expecting a vector of pointers:
    // Note: restart should always write double values to ensure the accuracy of the restart runs. 
    // In case of distribution data it is not as important as they are mainly used for visualization purpose
-   phiprof::start("velocityspaceIO");
+   phiprof::Timer vspaceTimer {"velocityspaceIO"};
    writeVelocityDistributionData(vlsvWriter, mpiGrid, local_cells, MPI_COMM_WORLD);
-   phiprof::stop("velocityspaceIO");
+   vspaceTimer.stop();
 
-   phiprof::start("close");
+   phiprof::Timer closeTimer {"close"};
    vlsvWriter.close();
-   phiprof::stop("close");
+   closeTimer.stop();
 
-   phiprof::start("updateRemoteBlocks");
+   phiprof::Timer updateRemoteTimer {"updateRemoteBlocks"};
    //Updated newly adjusted velocity block lists on remote cells, and
    //prepare to receive block data
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
       updateRemoteVelocityBlockLists(mpiGrid,popID);
-   phiprof::stop("updateRemoteBlocks");
+   updateRemoteTimer.stop();
 
    const uint64_t bytesWritten = vlsvWriter.getBytesWritten();
    const double writeTime = vlsvWriter.getWriteTime();
@@ -1877,7 +1842,7 @@ bool writeRestart(
    else logFile << bytesWritten/writeTime << " B/s";
    logFile << endl;
    
-   phiprof::stop("writeRestart",bytesWritten*1e-9,"GB");
+   writeTimer.stop(bytesWritten * 1e-9, "GB");
    return success;
 }
 
