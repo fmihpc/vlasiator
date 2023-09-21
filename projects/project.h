@@ -91,9 +91,11 @@ namespace projects {
        */
       virtual int adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const;
 
-      /*!\brief Refine/unrefine spatial cells one level closer to the static criteria in the config
-       * \param mpiGrid grid to refine
-       */
+
+      /*!\brief Refine/unrefine spatial cells one level to the static criteria in the config
+      * \param mpiGrid Spatial grid
+      * \param n Static refinement pass. 0th pass refines level 0 cells and unrefines max level cells, 1st pass refines level 1 and unrefines max level -1 etc.
+      */
       virtual bool forceRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, int n ) const;
 
       /*!\brief Boxcar filters spatial cells that were recently refined
