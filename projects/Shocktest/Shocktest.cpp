@@ -43,9 +43,9 @@ namespace projects {
    Shocktest::Shocktest() : TriAxisSearch() {} // Constructor
    Shocktest::~Shocktest() {} // Destructor
 
-   
+
    bool Shocktest::initialize(void) { return Project::initialize(); }
-   
+
    void Shocktest::addParameters(){
       typedef Readparameters RP;
       RP::add("Shocktest.rho1", "Number density, left state (m^-3)", 0.0);
@@ -67,7 +67,7 @@ namespace projects {
       RP::add("Shocktest.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
       RP::add("Shocktest.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
    }
-   
+
    void Shocktest::getParameters(){
       Project::getParameters();
 
@@ -114,16 +114,16 @@ namespace projects {
       RP::get("Shocktest.nSpaceSamples", this->nSpaceSamples);
       RP::get("Shocktest.nVelocitySamples", this->nVelocitySamples);
    }
-   
+
    Real Shocktest::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
       creal mass = physicalconstants::MASS_PROTON;
       creal kb = physicalconstants::K_B;
-      
+
       cint side = (x < 0.0) ? this->LEFT : this->RIGHT;
 
       // Disable compiler warnings: (unused variables but the function is inherited)
       (void)y; (void)z; (void)dvx; (void)dvy; (void)dvz;
-      
+
       return this->rho[side] * pow(mass / (2.0 * M_PI * kb * this->T[side]), 1.5) *
       exp(- mass * (pow(vx - this->Vx[side], 2.0) + pow(vy - this->Vy[side], 2.0) + pow(vz - this->Vz[side], 2.0)) / (2.0 * kb * this->T[side]));
    }
@@ -164,7 +164,7 @@ namespace projects {
     * @return The volume average of the distribution function in the given phase space cell.
     * The physical unit of this quantity is 1 / (m^3 (m/s)^3).
     */
-   Real Shocktest::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {   
+   Real Shocktest::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
       creal d_x = dx / (this->nSpaceSamples-1);
       creal d_y = dy / (this->nSpaceSamples-1);
       creal d_z = dz / (this->nSpaceSamples-1);
@@ -183,31 +183,31 @@ namespace projects {
                      }
       return avg / pow(this->nSpaceSamples, 3.0) / pow(this->nVelocitySamples, 3.0);
    }
-   
+
    /** Calculate parameters for the given spatial cell at the given time.
     * @param cellParams Array containing cell parameters.
-    * @param t The current value of time. This is passed as a convenience. If you need more detailed information 
+    * @param t The current value of time. This is passed as a convenience. If you need more detailed information
     * of the state of the simulation, you can read it from Parameters.
     */
    void Shocktest::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
-   
+
    void Shocktest::setProjectBField(
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
    ) {
       setBackgroundFieldToZero(BgBGrid);
-      
+
       if(!P::isRestart) {
          auto localSize = perBGrid.getLocalSize().data();
-         
+
          #pragma omp parallel for collapse(3)
          for (int x = 0; x < localSize[0]; ++x) {
             for (int y = 0; y < localSize[1]; ++y) {
                for (int z = 0; z < localSize[2]; ++z) {
                   const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
-                  
+
                   Real Bxavg, Byavg, Bzavg;
                   Bxavg = Byavg = Bzavg = 0.0;
                   if(this->nSpaceSamples > 1) {
@@ -221,7 +221,7 @@ namespace projects {
                         }
                      }
                      cuint nPts = pow(this->nSpaceSamples, 3.0);
-                     
+
                      cell->at(fsgrids::bfield::PERBX) = Bxavg / nPts;
                      cell->at(fsgrids::bfield::PERBY) = Byavg / nPts;
                      cell->at(fsgrids::bfield::PERBZ) = Bzavg / nPts;

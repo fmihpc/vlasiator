@@ -31,7 +31,7 @@ namespace projects {
       public:
          TestHall();
          virtual ~TestHall();
-         
+
          virtual bool initialize(void);
          static void addParameters(void);
          virtual void getParameters(void);
@@ -47,14 +47,14 @@ namespace projects {
             creal& vx, creal& vy, creal& vz,
             creal& dvx, creal& dvy, creal& dvz,const uint popID
          ) const;
-         
+
       protected:
          Real getDistribValue(
             creal& x,creal& y, creal& z,
             creal& vx, creal& vy, creal& vz,
             creal& dvx, creal& dvy, creal& dvz
          );
-         
+
          bool noDipoleInSW;
          Real constBgB[3];
          Real dipoleScalingFactor;

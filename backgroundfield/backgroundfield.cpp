@@ -34,21 +34,21 @@ void setBackgroundField(
    const FieldFunction& bgFunction,
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
    bool append) {
-   
+
    using namespace std::placeholders;
 
    /*if we do not add a new background to the existing one we first put everything to zero*/
    if(append==false) {
       setBackgroundFieldToZero(BgBGrid);
    }
-   
+
       //these are doubles, as the averaging functions copied from Gumics
       //use internally doubles. In any case, it should provide more
       //accurate results also for float simulations
       const double accuracy = 1e-17;
       unsigned int faceCoord1[3];
       unsigned int faceCoord2[3];
-      
+
       //the coordinates of the edges face with a normal in the third coordinate direction, stored here to enable looping
       faceCoord1[0]=1;
       faceCoord2[0]=2;
@@ -56,13 +56,13 @@ void setBackgroundField(
       faceCoord2[1]=2;
       faceCoord1[2]=0;
       faceCoord2[2]=1;
-      
+
       auto localSize = BgBGrid.getLocalSize();
 
       int loopTopId {phiprof::initializeTimer("loop-top")};
       int loopFaceId {phiprof::initializeTimer("loop-face-averages")};
       int loopVolumeId {phiprof::initializeTimer("loop-volume-averages")};
-      
+
       // These are threaded now that the dipole field is threadsafe
       #pragma omp parallel for collapse(3)
       for (int x = 0; x < localSize[0]; ++x) {
@@ -79,12 +79,12 @@ void setBackgroundField(
                end[1]=start[1]+dx[1];
                end[2]=start[2]+dx[2];
                loopTopTimer.stop();
-               
+
                phiprof::Timer loopFaceTimer {loopFaceId};
                //Face averages
                for(uint fComponent=0; fComponent<3; fComponent++){
                   T3DFunction valueFunction = std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, (coordinate)fComponent, 0, (coordinate)0);
-                  BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::BGBX+fComponent) += 
+                  BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::BGBX+fComponent) +=
                      surfaceAverage(valueFunction,
                         (coordinate)fComponent,
                                     accuracy,
@@ -92,11 +92,11 @@ void setBackgroundField(
                                     dx[faceCoord1[fComponent]],
                                     dx[faceCoord2[fComponent]]
                                    );
-                  
+
                   //Compute derivatives. Note that we scale by dx[] as the arrays are assumed to contain differences, not true derivatives!
                   T3DFunction derivFunction1 = std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, (coordinate)fComponent, 1, (coordinate)faceCoord1[fComponent]);
                   BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::dBGBxdy+2*fComponent) +=
-                     dx[faceCoord1[fComponent]] * 
+                     dx[faceCoord1[fComponent]] *
                      surfaceAverage(derivFunction1,
                         (coordinate)fComponent,
                                     accuracy,
@@ -117,14 +117,14 @@ void setBackgroundField(
                                    );
                }
                loopFaceTimer.stop();
-               
+
                phiprof::Timer loopVolumeTimer {loopVolumeId};
                //Volume averages
                for(unsigned int fComponent=0;fComponent<3;fComponent++){
                   T3DFunction valueFunction = std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, (coordinate)fComponent, 0, (coordinate)0);
                   BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::BGBXVOL+fComponent) += volumeAverage(valueFunction,accuracy,start.data(),end);
-                  
-                  //Compute derivatives. Note that we scale by dx[] as the arrays are assumed to contain differences, not true derivatives!      
+
+                  //Compute derivatives. Note that we scale by dx[] as the arrays are assumed to contain differences, not true derivatives!
                   T3DFunction derivFunction = std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, (coordinate)fComponent, 1, (coordinate)faceCoord1[fComponent]);
                   BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::dBGBXVOLdy+2*fComponent) += dx[faceCoord1[fComponent]] * volumeAverage(derivFunction,accuracy,start.data(),end);
                   derivFunction = std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, (coordinate)fComponent, 1, (coordinate)faceCoord2[fComponent]);
@@ -135,14 +135,14 @@ void setBackgroundField(
          }
       }
    //TODO
-   //COmpute divergence and curl of volume averaged field and check that both are zero. 
+   //COmpute divergence and curl of volume averaged field and check that both are zero.
 }
 
 void setBackgroundFieldToZero(
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid
 ) {
    auto localSize = BgBGrid.getLocalSize().data();
-   
+
    #pragma omp parallel for collapse(3)
    for (int x = 0; x < localSize[0]; ++x) {
       for (int y = 0; y < localSize[1]; ++y) {
@@ -160,21 +160,21 @@ void setPerturbedField(
    const FieldFunction& bfFunction,
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
    bool append) {
-   
+
    using namespace std::placeholders;
 
    /*if we do not add a new background to the existing one we first put everything to zero*/
    if(append==false) {
       setPerturbedFieldToZero(perBGrid);
    }
-   
+
    //these are doubles, as the averaging functions copied from Gumics
    //use internally doubles. In any case, it should provide more
    //accurate results also for float simulations
    const double accuracy = 1e-17;
    unsigned int faceCoord1[3];
    unsigned int faceCoord2[3];
-   
+
    //the coordinates of the edges face with a normal in the third coordinate direction, stored here to enable looping
    faceCoord1[0]=1;
    faceCoord2[0]=2;
@@ -182,9 +182,9 @@ void setPerturbedField(
    faceCoord2[1]=2;
    faceCoord1[2]=0;
    faceCoord2[2]=1;
-   
+
    auto localSize = perBGrid.getLocalSize();
-   
+
    // These are threaded now that the stuff around here is threadsafe
    #pragma omp parallel for collapse(3)
    for (int x = 0; x < localSize[0]; ++x) {
@@ -195,11 +195,11 @@ void setPerturbedField(
             dx[0] = perBGrid.DX;
             dx[1] = perBGrid.DY;
             dx[2] = perBGrid.DZ;
-            
+
             //Face averages
             for(uint fComponent=0; fComponent<3; fComponent++){
                T3DFunction valueFunction = std::bind(bfFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, (coordinate)fComponent, 0, (coordinate)0);
-               perBGrid.get(x,y,z)->at(fsgrids::bfield::PERBX+fComponent) += 
+               perBGrid.get(x,y,z)->at(fsgrids::bfield::PERBX+fComponent) +=
                   surfaceAverage(valueFunction,
                      (coordinate)fComponent,
                                  accuracy,
@@ -207,10 +207,10 @@ void setPerturbedField(
                                  dx[faceCoord1[fComponent]],
                                  dx[faceCoord2[fComponent]]
                                 );
-               
-	    }
-	    // Derivatives or volume averages are not calculated for the perBField
-	 }
+
+            }
+            // Derivatives or volume averages are not calculated for the perBField
+         }
       }
    }
 }
@@ -218,7 +218,7 @@ void setPerturbedField(
 void setPerturbedFieldToZero(
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid) {
    auto localSize = perBGrid.getLocalSize().data();
-   
+
    #pragma omp parallel for collapse(3)
    for (int x = 0; x < localSize[0]; ++x) {
       for (int y = 0; y < localSize[1]; ++y) {
@@ -228,6 +228,5 @@ void setPerturbedFieldToZero(
             }
          }
       }
-   }  
+   }
 }
-

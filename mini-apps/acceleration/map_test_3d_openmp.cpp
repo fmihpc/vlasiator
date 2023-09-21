@@ -20,25 +20,25 @@ void print_values(int step, Real *values, uint blocks_per_dim, Real v_min, Real 
 }
 
 
-void propagate(const Real * const values_in, Real *values_out, 
-               uint  blocks_per_dim_x, uint blocks_per_dim_y, uint blocks_per_dim_z, 
+void propagate(const Real * const values_in, Real *values_out,
+               uint  blocks_per_dim_x, uint blocks_per_dim_y, uint blocks_per_dim_z,
                Real v_min, Real dv,
                Real intersection, Real intersection_di, Real intersection_dj, Real intersection_dk){
-#pragma omp parallel for    
-  for (uint k=0; k< (blocks_per_dim_z+2) * blocks_per_dim_x * blocks_per_dim_z * WID3; ++k){ 
+#pragma omp parallel for
+  for (uint k=0; k< (blocks_per_dim_z+2) * blocks_per_dim_x * blocks_per_dim_z * WID3; ++k){
     values_out[k] = 0.0;
   }
 
-#pragma omp parallel for collapse(2)  
+#pragma omp parallel for collapse(2)
   for(int i = 0; i < blocks_per_dim_x * WID; i++){
     for(int j = 0; j < blocks_per_dim_y * WID; j++){
-      for (uint k = 0; k < blocks_per_dim_z * WID; k++){   
+      for (uint k = 0; k < blocks_per_dim_z * WID; k++){
          const int i_block = i / WID;
          const int i_cell = i % WID;
          const int j_block = j / WID;
          const int j_cell = j % WID;
          const Real * const values = values_in + colindex(i,j);
-         
+
          Real a[RECONSTRUCTION_ORDER + 1];
 #ifdef ACC_SEMILAG_PLM
          const Real d_cv=slope_limiter(values[k - 1 + WID], values[k + WID], values[k + 1 + WID]);
@@ -52,10 +52,10 @@ void propagate(const Real * const values_in, Real *values_out,
 #endif
          /* intersection_min is the intersection z coordinate (z after
             swaps that is) of the lowest possible z plane for each i,j
-            index 
+            index
          */
          const Real intersection_min = intersection +
-            (i_block * WID + i_cell) * intersection_di + 
+            (i_block * WID + i_cell) * intersection_di +
             (j_block * WID + j_cell) * intersection_dj;
 
          /*compute some initial values, that are used to set up the
@@ -68,7 +68,7 @@ void propagate(const Real * const values_in, Real *values_out,
          const Real v_l = v_min + k * dv;
          const Real v_r = v_l + dv;
          /*left(l) and right(r) k values (global index) in the target
-         lagrangian grid, the intersecting cells. Again old right is new left*/               
+         lagrangian grid, the intersecting cells. Again old right is new left*/
          const int target_gk_l = (int)((v_l - intersection_min)/intersection_dk);
          const int target_gk_r = (int)((v_r - intersection_min)/intersection_dk);
 
@@ -81,7 +81,7 @@ void propagate(const Real * const values_in, Real *values_out,
             const Real v_int_norm_l = (v_int_l - v_l)/dv;
             const Real v_int_r = min((Real)(gk + 1) * intersection_dk + intersection_min, v_r);
             const Real v_int_norm_r = (v_int_r - v_l)/dv;
-            
+
             /*compute left and right integrand*/
 #ifdef ACC_SEMILAG_PLM
             Real target_density_l =
@@ -120,21 +120,21 @@ int main(void) {
   const int blocks_per_dim_x = 10;
   const int blocks_per_dim_y = 10;
   const int blocks_per_dim_z = 50;
-  
+
 
   Real *values_a = new Real[(blocks_per_dim_z+2) * blocks_per_dim_x * blocks_per_dim_z * WID3];
   Real *values_b = new Real[(blocks_per_dim_z+2) * blocks_per_dim_x * blocks_per_dim_z * WID3];
-   
+
   /*intersection values define the acceleration transformation. These would be obtained from other routines, but are here fixed*/
   Real intersection = v_min + 0.6*dv;
   Real intersection_di = dv/4.0;
-  Real intersection_dk = dv; 
+  Real intersection_dk = dv;
   Real intersection_dj = dv; //does not matter here, fixed j.
-  
+
   const int iterations=1000;
-  
+
   /*clear target & values array*/
-  for (uint k=0; k< (blocks_per_dim_z+2) * blocks_per_dim_x * blocks_per_dim_z * WID3; ++k){ 
+  for (uint k=0; k< (blocks_per_dim_z+2) * blocks_per_dim_x * blocks_per_dim_z * WID3; ++k){
      values_a[k] = 0.0;
   }
 
@@ -155,7 +155,7 @@ int main(void) {
     if(step % 10 ==0)
       print_values(step, values_a + colindex(0,0), blocks_per_dim_z, v_min, dv);
     propagate(values_a, values_b,
-              blocks_per_dim_x, blocks_per_dim_y, blocks_per_dim_z, 
+              blocks_per_dim_x, blocks_per_dim_y, blocks_per_dim_z,
               v_min, dv,
               intersection, intersection_di, intersection_dj, intersection_dk);
     propagate(values_b, values_a,
@@ -165,4 +165,3 @@ int main(void) {
 
   }
 }
-

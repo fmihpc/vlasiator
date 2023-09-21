@@ -42,16 +42,16 @@ void calculateVolumeAveragedFields(
    const int* gridDims = &technicalGrid.getLocalSize()[0];
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
    phiprof::Timer timer {"Calculate volume averaged fields"};
-   
+
    #pragma omp parallel for collapse(3)
    for (int k=0; k<gridDims[2]; k++) {
       for (int j=0; j<gridDims[1]; j++) {
          for (int i=0; i<gridDims[0]; i++) {
             if(technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
-            
+
             std::array<Real, Rec::N_REC_COEFFICIENTS> perturbedCoefficients;
             std::array<Real, fsgrids::volfields::N_VOL> * volGrid0 = volGrid.get(i,j,k);
-            
+
             // Calculate reconstruction coefficients for this cell:
             reconstructionCoefficients(
                perBGrid,
@@ -62,7 +62,7 @@ void calculateVolumeAveragedFields(
                k,
                2
             );
-            
+
             // Calculate volume average of B:
             volGrid0->at(fsgrids::volfields::PERBXVOL) = perturbedCoefficients[Rec::a_0];
             volGrid0->at(fsgrids::volfields::PERBYVOL) = perturbedCoefficients[Rec::b_0];
@@ -159,6 +159,6 @@ void calculateVolumeAveragedFields(
          }
       }
    }
-   
+
    timer.stop(N_cells, "Spatial Cells");
 }

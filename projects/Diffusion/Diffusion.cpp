@@ -38,11 +38,11 @@ using namespace spatial_cell;
 namespace projects {
    Diffusion::Diffusion(): Project() { }
    Diffusion::~Diffusion() { }
-   
+
    bool Diffusion::initialize(void) {
       return Project::initialize();
    }
-   
+
    void Diffusion::addParameters() {
       typedef Readparameters RP;
       RP::add("Diffusion.B0", "Background field value (T)", 1.0e-9);
@@ -90,14 +90,14 @@ namespace projects {
       const DiffusionSpeciesParameters& sP = speciesParams[popID];
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
-      
+
       return sP.DENSITY * pow(mass / (2.0 * M_PI * kb * sP.TEMPERATURE), 1.5) * (
-         5.0 * exp(- (pow(x, 2.0) / pow(sP.SCA_X, 2.0) +  pow(y, 2.0) / pow(sP.SCA_Y, 2.0))) * 
+         5.0 * exp(- (pow(x, 2.0) / pow(sP.SCA_X, 2.0) +  pow(y, 2.0) / pow(sP.SCA_Y, 2.0))) *
          exp(- mass * (pow(vx, 2.0) + pow(vy, 2.0) + pow(vz, 2.0)) / (2.0 * kb * sP.TEMPERATURE))
          +
          exp(- mass * (pow(vx, 2.0) + pow(vy, 2.0) + pow(vz, 2.0)) / (2.0 * kb * sP.TEMPERATURE)));
    }
-   
+
    Real Diffusion::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
       const DiffusionSpeciesParameters& sP = speciesParams[popID];
       creal d_x = dx / (sP.nSpaceSamples-1);
@@ -118,7 +118,7 @@ namespace projects {
          }
       return avg / (sP.nSpaceSamples*sP.nSpaceSamples*sP.nSpaceSamples) / (sP.nVelocitySamples*sP.nVelocitySamples*sP.nVelocitySamples);
    }
-   
+
    void Diffusion::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
 
    void Diffusion::setProjectBField(

@@ -59,7 +59,7 @@ namespace projects {
       RP::add("Riemann.Bz1", "Magnetic field z component, left state (T)", 0.0);
       RP::add("Riemann.Bz2", "Magnetic field z component, right state (T)", 0.0);
       RP::add("Riemann.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
-      RP::add("Riemann.nVelocitySamples", "Number of sampling points per velocity dimension", 5);      
+      RP::add("Riemann.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
    }
 
    void Riemann1::getParameters(){
@@ -92,7 +92,7 @@ namespace projects {
 
    Real Riemann1::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
       cint side = (x < 0.0) ? this->LEFT : this->RIGHT;
-      
+
       return this->rho[side] * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * this->T[side]), 1.5) *
       exp(- physicalconstants::MASS_PROTON * (pow(vx - this->Vx[side], 2.0) + pow(vy - this->Vy[side], 2.0) + pow(vz - this->Vz[side], 2.0)) / (2.0 * physicalconstants::K_B * this->T[side]));
    }
@@ -123,24 +123,24 @@ namespace projects {
    }
 
    void Riemann1::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
-   
+
    void Riemann1::setProjectBField(
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
    ) {
       setBackgroundFieldToZero(BgBGrid);
-      
+
       if(!P::isRestart) {
          auto localSize = perBGrid.getLocalSize().data();
-         
+
          #pragma omp parallel for collapse(3)
          for (int x = 0; x < localSize[0]; ++x) {
             for (int y = 0; y < localSize[1]; ++y) {
                for (int z = 0; z < localSize[2]; ++z) {
                   const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
-                  
+
                   Real Bxavg, Byavg, Bzavg;
                   Bxavg = Byavg = Bzavg = 0.0;
                   if(this->nSpaceSamples > 1) {
@@ -154,7 +154,7 @@ namespace projects {
                         }
                      }
                      cuint nPts = pow(this->nSpaceSamples, 3.0);
-                     
+
                      cell->at(fsgrids::bfield::PERBX) = Bxavg / nPts;
                      cell->at(fsgrids::bfield::PERBY) = Byavg / nPts;
                      cell->at(fsgrids::bfield::PERBZ) = Bzavg / nPts;

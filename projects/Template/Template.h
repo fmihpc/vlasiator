@@ -31,7 +31,7 @@ namespace projects {
     public:
       Template();
       virtual ~Template();
-      
+
       virtual bool initialize(void);
       static void addParameters(void);
       virtual void getParameters(void);
@@ -47,7 +47,7 @@ namespace projects {
                                          creal& dvx, creal& dvy, creal& dvz,
                                          const uint popID
                                         ) const;
-      
+
     protected:
       virtual std::vector<std::array<Real, 3>> getV0(
                                                      creal x,
@@ -55,10 +55,9 @@ namespace projects {
                                                      creal z,
                                                      const uint popID
                                                     ) const;
-      
+
       Real param;
    }; // class Template
 } // namespace projects
 
 #endif
-

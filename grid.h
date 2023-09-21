@@ -71,7 +71,7 @@ void updateRemoteVelocityBlockLists(
 );
 
 /*! Deallocates all blocks in remote cells in order to save
- *  memory. 
+ *  memory.
  * \param mpiGrid Spatial grid
  */
 void deallocateRemoteCellBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
@@ -86,9 +86,9 @@ void deallocateRemoteCellBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
  Note that block existence does not use vlasov stencil as it is important to also include diagonals to avoid massloss
 
  \param mpiGrid  Parallel grid with spatial cells
- \param cellsToAdjust  List of cells that are adjusted, that is cells which blocks are added or removed. 
+ \param cellsToAdjust  List of cells that are adjusted, that is cells which blocks are added or removed.
  \param doPrepareToReceiveBlocks If true, then remote cells are set up so that velocity space data can be received. Global operation, value has to be the same for all processes.
- 
+
 */
 bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                           const std::vector<CellID>& cellsToAdjust,
@@ -105,12 +105,12 @@ void report_grid_memory_consumption(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
  */
 void shrink_to_fit_grid_data(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 
-/** Validate the velocity mesh structure. This function is only relevant for 
- * the VAMR mesh. It makes sure that the mesh structure is valid for all spatial cells, 
- * i.e., that each velocity block has at most one refinement level difference to 
+/** Validate the velocity mesh structure. This function is only relevant for
+ * the VAMR mesh. It makes sure that the mesh structure is valid for all spatial cells,
+ * i.e., that each velocity block has at most one refinement level difference to
  * its neighbors (in spatial and velocity space).
  * @param mpiGrid Parallel grid.
- * @return If true, the mesh is valid. Otherwise an error has occurred and the simulation 
+ * @return If true, the mesh is valid. Otherwise an error has occurred and the simulation
  * should be aborted.*/
 bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID);
 

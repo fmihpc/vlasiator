@@ -59,7 +59,7 @@ static void detect_field_names(Reader& r) {
       #ifdef DEBUG
       #endif
       B_field_name = "B";
-   } else if (find(variableNames.begin(), variableNames.end(), std::string("fg_b_background")) != variableNames.end() && 
+   } else if (find(variableNames.begin(), variableNames.end(), std::string("fg_b_background")) != variableNames.end() &&
               find(variableNames.begin(), variableNames.end(), std::string("fg_b_perturbed")) != variableNames.end()) {
       B_field_name = "fg_b_background";
    } else if (find(variableNames.begin(), variableNames.end(), std::string("B_vol"))!=variableNames.end()) {
@@ -70,14 +70,14 @@ static void detect_field_names(Reader& r) {
       #ifdef DEBUG
       #endif
       B_field_name = "vg_b_vol";
-   } else if (find(variableNames.begin(), variableNames.end(), std::string("vg_b_background_vol")) != variableNames.end() && 
+   } else if (find(variableNames.begin(), variableNames.end(), std::string("vg_b_background_vol")) != variableNames.end() &&
               find(variableNames.begin(), variableNames.end(), std::string("vg_b_perturbed_vol")) != variableNames.end()) {
       B_field_name = "vg_b_background_vol";
    } else {
       std::cerr << "No B-fields found! Strange file format?" << std::endl;
       exit(1);
    }
-   
+
    if (find(variableNames.begin(), variableNames.end(), std::string("fg_e"))!=variableNames.end()) {
       #ifdef DEBUG
       #endif
@@ -144,7 +144,7 @@ std::vector<double> readFsGridData(Reader& r, std::string& name, unsigned int nu
    vlsv::datatype::type dataType;
    uint64_t byteSize;
    std::list<std::pair<std::string,std::string> > attribs;
-   
+
    attribs.push_back(std::make_pair("name",name));
    attribs.push_back(std::make_pair("mesh","fsgrid"));
 

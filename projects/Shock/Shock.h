@@ -31,7 +31,7 @@ namespace projects {
       public:
          Shock();
          virtual ~Shock();
-      
+
          virtual bool initialize(void);
          static void addParameters(void);
          virtual void getParameters(void);
@@ -40,13 +40,13 @@ namespace projects {
             FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
             FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
          );
-      
+
       protected:
          Real getDistribValue(
             creal& x,creal& y, creal& z,
             creal& vx, creal& vy, creal& vz,
             const uint popID
-         ) const; 
+         ) const;
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
          virtual Real calcPhaseSpaceDensity(
             creal& x, creal& y, creal& z,

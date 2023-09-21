@@ -106,7 +106,7 @@ namespace projects {
       }
 
       return 0.0;
-      
+
    }
 
 
@@ -121,7 +121,7 @@ namespace projects {
       bgField.initialize(this->BX0,
                          this->BY0,
                          this->BZ0);
-      
+
       setBackgroundField(bgField, BgBGrid);
    }
 

@@ -37,7 +37,7 @@ using namespace std;
 namespace projects {
    Firehose::Firehose(): Project() { }
    Firehose::~Firehose() { }
-   
+
    bool Firehose::initialize(void) {return Project::initialize();}
 
    void Firehose::addParameters(){
@@ -117,18 +117,18 @@ namespace projects {
       const FirehoseSpeciesParameters& sP = speciesParams[popID];
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
-      
+
       Real Vx = profile(sP.Vx[0],sP.Vx[1], x);
-      
+
       return
       sP.rho[0] * pow(mass / (2.0 * M_PI * kb * sP.Tx[0]), 1.5) *
       exp(- mass * (pow(vx - Vx, 2.0) / (2.0 * kb * sP.Tx[0]) +
                   pow(vy - sP.Vy[0], 2.0) / (2.0 * kb * sP.Ty[0]) +
                pow(vz - sP.Vz[0], 2.0) / (2.0 * kb * sP.Tz[0])));
    //   this->rho[2] * pow(mass / (2.0 * M_PI * kb * this->Tx[2]), 1.5) *
-   //   exp(- mass * (pow(vx - this->Vx[2], 2.0) / (2.0 * kb * this->Tx[2]) + 
-   //                 pow(vy - this->Vy[2], 2.0) / (2.0 * kb * this->Ty[2]) + 
-   //           pow(vz - this->Vz[2], 2.0) / (2.0 * kb * this->Tz[2]))); 
+   //   exp(- mass * (pow(vx - this->Vx[2], 2.0) / (2.0 * kb * this->Tx[2]) +
+   //                 pow(vy - this->Vy[2], 2.0) / (2.0 * kb * this->Ty[2]) +
+   //           pow(vz - this->Vz[2], 2.0) / (2.0 * kb * this->Tz[2])));
    }
 
    Real Firehose::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
@@ -152,7 +152,7 @@ namespace projects {
    }
 
    void Firehose::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
-   
+
    void Firehose::setProjectBField(
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
@@ -162,8 +162,8 @@ namespace projects {
       bgField.initialize(this->Bx,
                          this->By,
                          this->Bz);
-      
+
       setBackgroundField(bgField, BgBGrid);
    }
-   
+
 } // namespace projects

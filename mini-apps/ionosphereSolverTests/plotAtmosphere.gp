@@ -1,7 +1,7 @@
-#!/usr/bin/gnuplot   
+#!/usr/bin/gnuplot
 #
 # Before running this, do:
-# 
+#
 # make sigmaProfiles
 # ./sigmaProfiles 1e6 1e7 > atmosphere.dat
 #

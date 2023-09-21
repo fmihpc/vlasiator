@@ -33,9 +33,9 @@
 namespace projects {
    harm1D::harm1D(): Project() { }
    harm1D::~harm1D() { }
-   
+
    using namespace std;
-   
+
    bool harm1D::initialize(void) {return true;}
    void harm1D::addParameters() { }
    void harm1D::getParameters() { }
@@ -56,7 +56,7 @@ namespace projects {
       */
       creal X0 = 1.0/14.0;
       creal Y0 = 1.0/14.0;
-      
+
       creal VX0 = -0.4;
       creal VY0 = -0.4;
       creal VZ0 = 0.0;
@@ -81,7 +81,7 @@ namespace projects {
       creal x = cellParams[CellParams::XCRD];
       creal dx = cellParams[CellParams::DX];
 
-      // Setting these is not needed for correct propagation, 
+      // Setting these is not needed for correct propagation,
       // but may be a good idea for visualization:
       cellParams[CellParams::EX   ] = -1.0*(x+0.5*dx);
       cellParams[CellParams::EY   ] = 0.0;

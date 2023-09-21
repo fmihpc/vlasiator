@@ -45,11 +45,11 @@ using namespace spatial_cell;
 namespace projects {
   IPShock::IPShock(): TriAxisSearch() { }
   IPShock::~IPShock() { }
-  
+
   bool IPShock::initialize() {
     return Project::initialize();
   }
-  
+
   void IPShock::addParameters() {
     typedef Readparameters RP;
     // Common (field / etc.) parameters
@@ -158,7 +158,7 @@ namespace projects {
       //std::cerr << "Width = " << this->Shockwidth << std::endl;
     }
 
-    /* 
+    /*
        Now allows flow and field both in z and y -directions. As assuming we're
        in the dHT frame, all flow and magnetic field should be in a single plane.
     */
@@ -171,8 +171,8 @@ namespace projects {
        sP.V0dtangential = sqrt(sP.V0d[1]*sP.V0d[1] + sP.V0d[2]*sP.V0d[2]);
     }
 
-    /* Check direction of upstream and downstream flows and fields 
-       Define y-z-directional angle phi so that 
+    /* Check direction of upstream and downstream flows and fields
+       Define y-z-directional angle phi so that
        By = cos(phi_B)*B_tang
        Bz = sin(phi_B)*B_tang
        Vy = cos(phi_V)*V_tang
@@ -180,8 +180,8 @@ namespace projects {
        If we're in the dHT frame, phi_B and phi_V should be the same, and also the same
        both in the upstream and in the downstream.
     */
-    this->Bucosphi = abs(this->B0u[1])/this->B0utangential;   
-    this->Bdcosphi = abs(this->B0d[1])/this->B0dtangential;   
+    this->Bucosphi = abs(this->B0u[1])/this->B0utangential;
+    this->Bdcosphi = abs(this->B0d[1])/this->B0dtangential;
     for(auto& sP : speciesParams) {
        sP.Vucosphi = abs(sP.V0u[1])/sP.V0utangential;
        sP.Vdcosphi = abs(sP.V0d[1])/sP.V0dtangential;
@@ -247,7 +247,7 @@ namespace projects {
           }
        }
     }
-    
+
   }
 
 
@@ -262,7 +262,7 @@ namespace projects {
     if (DENSITY < 1e-20) {
       std::cout<<"density too low! "<<DENSITY<<" x "<<x<<" y "<<y<<" z "<<z<<std::endl;
     }
-    
+
     // Solve tangential components for B and V
     Real VX = sP.DENSITYu * sP.V0u[0] / DENSITY;
     Real BX = this->B0u[0];
@@ -279,7 +279,7 @@ namespace projects {
     // Disable compiler warnings: (unused variables but the function is inherited)
     (void)y;
     (void)z;
-    
+
     std::array<Real, 3> V0 {{VX, VY, VZ}};
     std::vector<std::array<Real, 3>> retval;
     retval.push_back(V0);
@@ -287,9 +287,9 @@ namespace projects {
     return retval;
   }
 
-  Real IPShock::getDistribValue(creal& x, creal& y, creal& z, 
-				creal& vx, creal& vy, creal& vz, 
-				creal& dvx, creal& dvy, creal& dvz,
+  Real IPShock::getDistribValue(creal& x, creal& y, creal& z,
+                                creal& vx, creal& vy, creal& vz,
+                                creal& dvx, creal& dvy, creal& dvz,
         const uint popID) const {
 
     Real mass = getObjectWrapper().particleSpecies[popID].mass;
@@ -303,7 +303,7 @@ namespace projects {
     if (DENSITY < 1e-20) {
       std::cout<<"density too low! "<<DENSITY<<" x "<<x<<" y "<<y<<" z "<<z<<std::endl;
     }
-    
+
     // Solve tangential components for B and V
     Real hereVX = sP.DENSITYu * sP.V0u[0] / DENSITY;
     Real hereBX = this->B0u[0];
@@ -319,7 +319,7 @@ namespace projects {
 
     // Old incorrect temperature - just interpolate for now
     //Real adiab = 5./3.;
-    //Real TEMPERATURE = this->TEMPERATUREu + (mass*(adiab-1.0)/(2.0*KB*adiab)) * 
+    //Real TEMPERATURE = this->TEMPERATUREu + (mass*(adiab-1.0)/(2.0*KB*adiab)) *
     //  ( std::pow(this->V0u[0],2) + std::pow(this->V0u[2],2) - std::pow(hereVX,2) - std::pow(hereVZ,2) );
     Real TEMPERATURE = interpolate(sP.TEMPERATUREu,sP.TEMPERATUREd, x);
 
@@ -346,23 +346,23 @@ namespace projects {
       creal d_vz = dvz / (sP.nVelocitySamples-1);
 
       Real avg = 0.0;
-      
+
       for (uint i=0; i<sP.nSpaceSamples; ++i)
          for (uint j=0; j<sP.nSpaceSamples; ++j)
-            for (uint k=0; k<sP.nSpaceSamples; ++k)      
+            for (uint k=0; k<sP.nSpaceSamples; ++k)
                for (uint vi=0; vi<sP.nVelocitySamples; ++vi)
                   for (uint vj=0; vj<sP.nVelocitySamples; ++vj)
                      for (uint vk=0; vk<sP.nVelocitySamples; ++vk)
                      {
                         avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz, popID);
                      }
-      
+
       result = avg /
-	(sP.nSpaceSamples*sP.nSpaceSamples*sP.nSpaceSamples) / 
-	(sP.nVelocitySamples*sP.nVelocitySamples*sP.nVelocitySamples);
+        (sP.nSpaceSamples*sP.nSpaceSamples*sP.nSpaceSamples) /
+        (sP.nVelocitySamples*sP.nVelocitySamples*sP.nVelocitySamples);
     } else {
       result = getDistribValue(x+0.5*dx, y+0.5*dy, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, dvx, dvy, dvz, popID);
-    }               
+    }
 
     if(result < sP.maxwCutoff) {
       return 0.0;
@@ -370,7 +370,7 @@ namespace projects {
       return result;
     }
   }
-  
+
   void IPShock::calcCellParameters(spatial_cell::SpatialCell* cell, creal& t) { }
 
   Real IPShock::interpolate(Real upstream, Real downstream, Real x) const {
@@ -393,20 +393,20 @@ namespace projects {
      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
   ) {
       setBackgroundFieldToZero(BgBGrid);
-      
+
       if(!P::isRestart) {
          auto localSize = perBGrid.getLocalSize().data();
-      
+
 #pragma omp parallel for collapse(3)
          for (int x = 0; x < localSize[0]; ++x) {
             for (int y = 0; y < localSize[1]; ++y) {
                for (int z = 0; z < localSize[2]; ++z) {
                   const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
-                  
+
                   /* Maintain all values in BPERT for simplicity */
                   Real mu0 = physicalconstants::MU_0;
-                  
+
                   // Interpolate density between upstream and downstream
                   // All other values are calculated from jump conditions
                   Real MassDensity = 0.;
@@ -415,26 +415,26 @@ namespace projects {
                   for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
                      const IPShockSpeciesParameters& sP = speciesParams[i];
                      Real mass = getObjectWrapper().particleSpecies[i].mass;
-                     
+
                      MassDensity += mass * interpolate(sP.DENSITYu,sP.DENSITYd, xyz[0]);
                      MassDensityU += mass * sP.DENSITYu;
                      EffectiveVu0 += sP.V0u[0] * mass * sP.DENSITYu;
                   }
                   EffectiveVu0 /= MassDensityU;
-                  
+
                   // Solve tangential components for B and V
                   Real VX = MassDensityU * EffectiveVu0 / MassDensity;
                   Real BX = this->B0u[0];
                   Real MAsq = std::pow((EffectiveVu0/this->B0u[0]), 2) * MassDensityU * mu0;
                   Real Btang = this->B0utangential * (MAsq - 1.0)/(MAsq*VX/EffectiveVu0 -1.0);
-                  
+
                   /* Reconstruct Y and Z components using cos(phi) values and signs. Tangential variables are always positive. */
                   Real BY = abs(Btang) * this->Bucosphi * this->Byusign;
                   Real BZ = abs(Btang) * sqrt(1. - this->Bucosphi * this->Bucosphi) * this->Bzusign;
                   //Real Vtang = VX * Btang / BX;
                   //Real VY = Vtang * this->Vucosphi * this->Vyusign;
                   //Real VZ = Vtang * sqrt(1. - this->Vucosphi * this->Vucosphi) * this->Vzusign;
-                  
+
                   cell->at(fsgrids::bfield::PERBX) = BX;
                   cell->at(fsgrids::bfield::PERBY) = BY;
                   cell->at(fsgrids::bfield::PERBZ) = BZ;
@@ -446,14 +446,14 @@ namespace projects {
 
 
    bool IPShock::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
- 
-     int myRank;       
+
+     int myRank;
      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
      std::vector<CellID> refinedCells;
 
      if(myRank == MASTER_RANK) std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
-      
+
      // Leave boundary cells and a bit of safety margin
 //      const int bw = 2* VLASOV_STENCIL_WIDTH;
 //      const int bw2 = 2*(bw + VLASOV_STENCIL_WIDTH);
@@ -461,102 +461,102 @@ namespace projects {
 
      // Calculate regions for refinement
      if (P::amrMaxSpatialRefLevel > 0) {
-	// L1 refinement.
-	for (uint i = 0; i < P::xcells_ini; ++i) {
-	   for (uint j = 0; j < P::ycells_ini; ++j) {
-	      for (uint k = 0; k < P::zcells_ini; ++k) {
+        // L1 refinement.
+        for (uint i = 0; i < P::xcells_ini; ++i) {
+           for (uint j = 0; j < P::ycells_ini; ++j) {
+              for (uint k = 0; k < P::zcells_ini; ++k) {
 
-		 std::array<double,3> xyz;
-		 xyz[0] = P::xmin + (i+0.5)*P::dx_ini;
-		 xyz[1] = P::ymin + (j+0.5)*P::dy_ini;
-		 xyz[2] = P::zmin + (k+0.5)*P::dz_ini;
+                 std::array<double,3> xyz;
+                 xyz[0] = P::xmin + (i+0.5)*P::dx_ini;
+                 xyz[1] = P::ymin + (j+0.5)*P::dy_ini;
+                 xyz[2] = P::zmin + (k+0.5)*P::dz_ini;
 
-		 if (abs(xyz[0]) < AMR_L1width)
-		    {
-		       CellID myCell = mpiGrid.get_existing_cell(xyz);
-		       mpiGrid.refine_completely(myCell);
-		    }
-	      }
-	   }
-	}
-	refinedCells = mpiGrid.stop_refining(true);      
-	if(myRank == MASTER_RANK) std::cout << "Finished first level of refinement" << endl;
-	mpiGrid.balance_load();
+                 if (abs(xyz[0]) < AMR_L1width)
+                    {
+                       CellID myCell = mpiGrid.get_existing_cell(xyz);
+                       mpiGrid.refine_completely(myCell);
+                    }
+              }
+           }
+        }
+        refinedCells = mpiGrid.stop_refining(true);
+        if(myRank == MASTER_RANK) std::cout << "Finished first level of refinement" << endl;
+        mpiGrid.balance_load();
      }
 
      if (P::amrMaxSpatialRefLevel > 1) {
-	// L2 refinement.
-	for (uint i = 0; i < 2*P::xcells_ini; ++i) {
-	   for (uint j = 0; j < 2*P::ycells_ini; ++j) {
-	      for (uint k = 0; k < 2*P::zcells_ini; ++k) {
+        // L2 refinement.
+        for (uint i = 0; i < 2*P::xcells_ini; ++i) {
+           for (uint j = 0; j < 2*P::ycells_ini; ++j) {
+              for (uint k = 0; k < 2*P::zcells_ini; ++k) {
 
-		 std::array<double,3> xyz;
-		 xyz[0] = P::xmin + (i+0.5)*0.5*P::dx_ini;
-		 xyz[1] = P::ymin + (j+0.5)*0.5*P::dy_ini;
-		 xyz[2] = P::zmin + (k+0.5)*0.5*P::dz_ini;
+                 std::array<double,3> xyz;
+                 xyz[0] = P::xmin + (i+0.5)*0.5*P::dx_ini;
+                 xyz[1] = P::ymin + (j+0.5)*0.5*P::dy_ini;
+                 xyz[2] = P::zmin + (k+0.5)*0.5*P::dz_ini;
 
-		 if (abs(xyz[0]) < AMR_L2width)
-		    {
-		       CellID myCell = mpiGrid.get_existing_cell(xyz);
-		       mpiGrid.refine_completely(myCell);
-		    }
-	      }
-	   }
-	}
-	refinedCells = mpiGrid.stop_refining(true);      
-	if(myRank == MASTER_RANK) std::cout << "Finished second level of refinement" << endl;
-	mpiGrid.balance_load();
+                 if (abs(xyz[0]) < AMR_L2width)
+                    {
+                       CellID myCell = mpiGrid.get_existing_cell(xyz);
+                       mpiGrid.refine_completely(myCell);
+                    }
+              }
+           }
+        }
+        refinedCells = mpiGrid.stop_refining(true);
+        if(myRank == MASTER_RANK) std::cout << "Finished second level of refinement" << endl;
+        mpiGrid.balance_load();
      }
 
      if (P::amrMaxSpatialRefLevel > 2) {
-	// L3 refinement.
-	for (uint i = 0; i < 4*P::xcells_ini; ++i) {
-	   for (uint j = 0; j < 4*P::ycells_ini; ++j) {
-	      for (uint k = 0; k < 4*P::zcells_ini; ++k) {
+        // L3 refinement.
+        for (uint i = 0; i < 4*P::xcells_ini; ++i) {
+           for (uint j = 0; j < 4*P::ycells_ini; ++j) {
+              for (uint k = 0; k < 4*P::zcells_ini; ++k) {
 
-		 std::array<double,3> xyz;
-		 xyz[0] = P::xmin + (i+0.5)*0.25*P::dx_ini;
-		 xyz[1] = P::ymin + (j+0.5)*0.25*P::dy_ini;
-		 xyz[2] = P::zmin + (k+0.5)*0.25*P::dz_ini;
+                 std::array<double,3> xyz;
+                 xyz[0] = P::xmin + (i+0.5)*0.25*P::dx_ini;
+                 xyz[1] = P::ymin + (j+0.5)*0.25*P::dy_ini;
+                 xyz[2] = P::zmin + (k+0.5)*0.25*P::dz_ini;
 
-		 if (abs(xyz[0]) < AMR_L3width)
-		    {
-		       CellID myCell = mpiGrid.get_existing_cell(xyz);
-		       mpiGrid.refine_completely(myCell);
-		    }
-	      }
-	   }
-	}
-	refinedCells = mpiGrid.stop_refining(true);      
-	if(myRank == MASTER_RANK) std::cout << "Finished third level of refinement" << endl;
-	mpiGrid.balance_load();
+                 if (abs(xyz[0]) < AMR_L3width)
+                    {
+                       CellID myCell = mpiGrid.get_existing_cell(xyz);
+                       mpiGrid.refine_completely(myCell);
+                    }
+              }
+           }
+        }
+        refinedCells = mpiGrid.stop_refining(true);
+        if(myRank == MASTER_RANK) std::cout << "Finished third level of refinement" << endl;
+        mpiGrid.balance_load();
      }
 
      if (P::amrMaxSpatialRefLevel > 3) {
-	// L4 refinement.
-	for (uint i = 0; i < 8*P::xcells_ini; ++i) {
-	   for (uint j = 0; j < 8*P::ycells_ini; ++j) {
-	      for (uint k = 0; k < 8*P::zcells_ini; ++k) {
+        // L4 refinement.
+        for (uint i = 0; i < 8*P::xcells_ini; ++i) {
+           for (uint j = 0; j < 8*P::ycells_ini; ++j) {
+              for (uint k = 0; k < 8*P::zcells_ini; ++k) {
 
-		 std::array<double,3> xyz;
-		 xyz[0] = P::xmin + (i+0.5)*0.125*P::dx_ini;
-		 xyz[1] = P::ymin + (j+0.5)*0.125*P::dy_ini;
-		 xyz[2] = P::zmin + (k+0.5)*0.125*P::dz_ini;
+                 std::array<double,3> xyz;
+                 xyz[0] = P::xmin + (i+0.5)*0.125*P::dx_ini;
+                 xyz[1] = P::ymin + (j+0.5)*0.125*P::dy_ini;
+                 xyz[2] = P::zmin + (k+0.5)*0.125*P::dz_ini;
 
-		 if (abs(xyz[0]) < AMR_L4width)
-		    {
-		       CellID myCell = mpiGrid.get_existing_cell(xyz);
-		       mpiGrid.refine_completely(myCell);
-		    }
-	      }
-	   }
-	}
-	refinedCells = mpiGrid.stop_refining(true);      
-	if(myRank == MASTER_RANK) std::cout << "Finished fourth level of refinement" << endl;
-	mpiGrid.balance_load();
+                 if (abs(xyz[0]) < AMR_L4width)
+                    {
+                       CellID myCell = mpiGrid.get_existing_cell(xyz);
+                       mpiGrid.refine_completely(myCell);
+                    }
+              }
+           }
+        }
+        refinedCells = mpiGrid.stop_refining(true);
+        if(myRank == MASTER_RANK) std::cout << "Finished fourth level of refinement" << endl;
+        mpiGrid.balance_load();
      }
 
-     
+
      return true;
    }
 

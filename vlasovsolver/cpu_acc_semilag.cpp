@@ -46,7 +46,7 @@ using namespace Eigen;
 
 void prepareAccelerateCell(
    SpatialCell* spatial_cell,
-   const uint popID){   
+   const uint popID){
    updateAccelerationMaxdt(spatial_cell, popID);
 }
 
@@ -77,12 +77,12 @@ uint getAccelerationSubcycles(SpatialCell* spatial_cell, Real dt, const uint pop
  * @param popID ID of the accelerated particle species.
  * @param vmesh Velocity mesh.
  * @param blockContainer Velocity block data container.
- * @param map_order Order in which vx,vy,vz mappings are performed. 
+ * @param map_order Order in which vx,vy,vz mappings are performed.
  * @param dt Time step of one subcycle.
 */
 
 void cpu_accelerate_cell(SpatialCell* spatial_cell,
-                         const uint popID,     
+                         const uint popID,
                          const uint map_order,
                          const Real& dt) {
    //double t1 = MPI_Wtime();
@@ -122,7 +122,7 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
          mappingTimer.stop();
          break;
       }
-         
+
       case 1: {
          //Map order YZX
          phiprof::Timer intersectionsTimer{intersections_id};
@@ -132,7 +132,7 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
                                    intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk);
          compute_intersections_3rd(vmesh, bwd_transform, fwd_transform, 0, refLevel,
                                    intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk);
-      
+
          intersectionsTimer.stop();
          phiprof::Timer mappingTimer {mapping_id};
          map_1d(spatial_cell, popID, intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,1); // map along y

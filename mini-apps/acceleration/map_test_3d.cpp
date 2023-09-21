@@ -23,10 +23,10 @@ void print_values(int step, Real *values, uint blocks_per_dim, Real v_min, Real 
 void propagate(Real *values, uint  blocks_per_dim, Real v_min, Real dv,
                uint i_block, uint i_cell, uint j_block, uint j_cell,
                Real intersection, Real intersection_di, Real intersection_dj, Real intersection_dk){
-  Real a[MAX_BLOCKS_PER_DIM*WID][RECONSTRUCTION_ORDER + 1];  
-  Real target[(MAX_BLOCKS_PER_DIM+2)*WID]; 
-  
-  
+  Real a[MAX_BLOCKS_PER_DIM*WID][RECONSTRUCTION_ORDER + 1];
+  Real target[(MAX_BLOCKS_PER_DIM+2)*WID];
+
+
 #ifdef ACC_SEMILAG_PLM
   compute_plm_coeff_explicit_column(values, blocks_per_dim, a);
 #endif
@@ -35,18 +35,18 @@ void propagate(Real *values, uint  blocks_per_dim, Real v_min, Real dv,
 #endif
 
   /*clear temporary taret*/
-  for (uint k=0; k<WID* (blocks_per_dim + 2); ++k){ 
+  for (uint k=0; k<WID* (blocks_per_dim + 2); ++k){
        target[k] = 0.0;
   }
-   
+
    /* intersection_min is the intersection z coordinate (z after
       swaps that is) of the lowest possible z plane for each i,j
-      index 
+      index
    */
   const Real intersection_min = intersection +
-     (i_block * WID + i_cell) * intersection_di + 
+     (i_block * WID + i_cell) * intersection_di +
      (j_block * WID + j_cell) * intersection_dj;
-  
+
 
   /*compute some initial values, that are used to set up the
    * shifting of values as we go through all blocks in
@@ -55,12 +55,12 @@ void propagate(Real *values, uint  blocks_per_dim, Real v_min, Real dv,
 
   /*loop through all blocks in column and compute the mapping as integrals*/
   for (unsigned int k_block = 0; k_block<blocks_per_dim;k_block++){
-    for (uint k_cell=0; k_cell<WID; ++k_cell){ 
+    for (uint k_cell=0; k_cell<WID; ++k_cell){
       /*v_l, v_r are the left and right velocity coordinates of source cell*/
       Real v_l = v_min + (k_block * WID + k_cell) * dv;
       Real v_r = v_l + dv;
       /*left(l) and right(r) k values (global index) in the target
-        lagrangian grid, the intersecting cells. Again old right is new left*/               
+        lagrangian grid, the intersecting cells. Again old right is new left*/
       const int target_gk_l = (int)((v_l - intersection_min)/intersection_dk);
       const int target_gk_r = (int)((v_r - intersection_min)/intersection_dk);
 
@@ -73,7 +73,7 @@ void propagate(Real *values, uint  blocks_per_dim, Real v_min, Real dv,
          const Real v_int_norm_l = (v_int_l - v_l)/dv;
          const Real v_int_r = min((Real)(gk + 1) * intersection_dk + intersection_min, v_r);
          const Real v_int_norm_r = (v_int_r - v_l)/dv;
-         
+
          /*compute left and right integrand*/
 #ifdef ACC_SEMILAG_PLM
          Real target_density_l =
@@ -101,10 +101,10 @@ void propagate(Real *values, uint  blocks_per_dim, Real v_min, Real dv,
   }
   /*copy target to values*/
   for (unsigned int k_block = 0; k_block<blocks_per_dim;k_block++){
-     for (uint k=0; k<WID; ++k){ 
+     for (uint k=0; k<WID; ++k){
         values[k_block * WID + k + WID] = target[k_block * WID + k + WID];
      }
-  }   
+  }
 }
 
 int main(void) {
@@ -114,20 +114,20 @@ int main(void) {
   const int blocks_per_dim_x = 10;
   const int blocks_per_dim_y = 10;
   const int blocks_per_dim_z = 50;
-  
+
 
   Real *values = new Real[(blocks_per_dim_z+2) * blocks_per_dim_x * blocks_per_dim_z * WID3];
-   
+
   /*intersection values define the acceleration transformation. These would be obtained from other routines, but are here fixed*/
   Real intersection = v_min + 0.6*dv;
   Real intersection_di = dv/4.0;
-  Real intersection_dk = dv; 
+  Real intersection_dk = dv;
   Real intersection_dj = dv; //does not matter here, fixed j.
-  
+
   const int iterations=1000;
-  
+
   /*clear target & values array*/
-  for (uint k=0; k< (blocks_per_dim_z+2) * blocks_per_dim_x * blocks_per_dim_z * WID3; ++k){ 
+  for (uint k=0; k< (blocks_per_dim_z+2) * blocks_per_dim_x * blocks_per_dim_z * WID3; ++k){
      values[k] = 0.0;
   }
 

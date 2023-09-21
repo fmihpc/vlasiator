@@ -30,14 +30,14 @@ using namespace std;
 inline Vec minmod(const Vec slope1, const Vec slope2){
    const Vec zero(0.0);
    Vec slope=select(abs(slope1) < abs(slope2), slope1, slope2);
-   //check for extrema          
+   //check for extrema
    return select(slope1 * slope2 <= 0, zero, slope);
 }
 
 inline Vec maxmod(const Vec slope1, const Vec slope2){
    const Vec zero(0.0);
    Vec slope=select(abs(slope1) > abs(slope2), slope1, slope2);
-   //check for extrema          
+   //check for extrema
    return select(slope1 * slope2 <= 0, zero, slope);
 }
 
@@ -60,7 +60,7 @@ inline Vec slope_limiter_sb(const Vec& l,const Vec& m, const Vec& r) {
 inline Vec slope_limiter_minmod(const Vec& l,const Vec& m, const Vec& r) {
    Vec sign;
    Vec a=r-m;
-   Vec b=m-l; 
+   Vec b=m-l;
    return minmod(a,b);
 }
 
@@ -71,10 +71,10 @@ inline Vec slope_limiter_minmod(const Vec& l,const Vec& m, const Vec& r) {
 inline Vec slope_limiter_mc(const Vec& l,const Vec& m, const Vec& r) {
   Vec sign;
   Vec a=r-m;
-  Vec b=m-l; 
+  Vec b=m-l;
   Vec minval=min(two*abs(a),two*abs(b));
   minval=min(minval,half*abs(a+b));
-  
+
   //check for extrema
   Vec output = select(a*b < 0,zero,minval);
   //set sign

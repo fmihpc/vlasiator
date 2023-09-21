@@ -40,60 +40,60 @@ bool getProjectParameters(){return true;}
 bool cellParametersChanged(creal& t) {return false;}
 
 Real getDistribValue(creal& OMEGA,creal& x,creal& y,creal& vx,creal& vy,creal& dvx,creal& dvy) {
-   
+
    creal NORM  = 1.0;  // Norm. constant
    creal R0    = 0.6;  // Center point of distribution in r
    creal SIGMA = 0.15; // Sigma of r-distribution
    creal SIGMA2 = SIGMA*SIGMA;
-   
-   // Calculate r,phi coords. corresponding to x,y. Check that 
+
+   // Calculate r,phi coords. corresponding to x,y. Check that
    // (r,phi) has non-zero distribution function value:
    creal r = sqrt(x*x+y*y);
    Real phi = acos(x/r);
    if (y < 0.0) phi = 2.0*M_PI - phi;
-   
+
    creal PHI_CENT = 320 / 180.0*M_PI;
    creal PHI_WIDTH = 60.0 / 180.0*M_PI;
    creal PHI0 = PHI_CENT - 0.5*PHI_WIDTH;
    creal PHI1 = PHI_CENT + 0.5*PHI_WIDTH;
    if (phi < PHI0 || phi > PHI1) return 0.0;
-   
+
    // Calculate v,theta coordinates for (r,phi):
    creal v = OMEGA*r;
    Real theta = phi - M_PI/2.0;
    while (theta < 0.0) theta += 2.0*M_PI;
-   
-   // Calculate vx',vy' corresponding to (v,theta), and 
+
+   // Calculate vx',vy' corresponding to (v,theta), and
    // check that vx_dot,vy_dot is inside the given velocity cell:
    creal vx_dot = v*cos(theta);
-   creal vy_dot = v*sin(theta);   
+   creal vy_dot = v*sin(theta);
    if (vx_dot < vx || vx_dot > vx+dvx) return 0.0;
    if (vy_dot < vy || vy_dot > vy+dvy) return 0.0;
-   
+
    creal arg = (r-R0)*(r-R0)/SIGMA2;
    return NORM*exp(-1.0*arg);
-   
+
    /*
    creal V = sqrt(vx*vx+vy*vy);
    if (V < 0.1) return 0.0;
-   
+
    creal NORM = 1.0;
    creal V0 = 0.6;
    creal SIGMA = 0.15;
-   
+
    creal THETA_CENT = 320 / 180.0*M_PI;
    creal THETA_WIDTH = 60.0 / 180.0*M_PI;
    creal THETA0 = THETA_CENT - 0.5*THETA_WIDTH;
    creal THETA1 = THETA_CENT + 0.5*THETA_WIDTH;
-   
+
    Real theta = acos(vx/V);
    if (vy < 0.0) theta = 2.0*M_PI-theta;
    //if (V < V0-DELTA || V > V0+DELTA) return 0.0;
    if (theta < THETA0 || theta > THETA1) return 0.0;
-   
+
    creal SIGMA2 = SIGMA*SIGMA;
    creal arg = (V-V0)*(V-V0)/SIGMA2;
-   
+
    return NORM * exp(-1.0*arg)/V;
    */
 }
@@ -116,33 +116,33 @@ Real getDistribValue(creal& OMEGA,creal& x,creal& y,creal& vx,creal& vy,creal& d
  */
 Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,
                            creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz) {
-   // Calculate (r,phi) corresponding to (x,y), and check that 
+   // Calculate (r,phi) corresponding to (x,y), and check that
    // the coordinates are within the wedge containing nonzero distrib.f. values:
    creal r = sqrt(x*x+y*y);
    Real phi = acos(x/r);
    creal EPSPHI = acos(dx/r);
    if (y < 0.0) phi = 2.0*M_PI  - phi;
-   
+
    creal PHI_CENT = 320 / 180.0*M_PI;
    creal PHI_WIDTH = 60.0 / 180.0*M_PI;
    creal PHI0 = PHI_CENT - 0.5*PHI_WIDTH;
    creal PHI1 = PHI_CENT + 0.5*PHI_WIDTH;
-   if (phi < PHI0-EPSPHI || phi > PHI1+EPSPHI) return 0.0;   
-   
-   // Calculate (v,theta) corresponding to (vx,vy), and check that 
+   if (phi < PHI0-EPSPHI || phi > PHI1+EPSPHI) return 0.0;
+
+   // Calculate (v,theta) corresponding to (vx,vy), and check that
    // the coordinates are within the wedge of nonzero distrib. f.:
    creal v = sqrt(vx*vx+vy*vy);
    Real theta = acos(vx/v);
    if (vy < 0.0) theta = 2.0*M_PI - theta;
    //if (vz < 0.0) theta = 2.0*M_PI - theta;
    creal EPSTHETA = acos(dvx/v);
-   
+
    Real THETA0 = PHI0 - M_PI/2.0;
    Real THETA1 = PHI1 - M_PI/2.0;
    if (THETA0 < 0.0) THETA0 += 2.0*M_PI;
    if (THETA1 < 0.0) THETA1 += 2.0*M_PI;
    if (theta < THETA0-EPSTHETA || theta > THETA1+EPSTHETA) return 0.0;
-   
+
    // Sample the 4D distribution function.
    creal OMEGA = 1.0;
    cuint N_samples = 100;
@@ -162,12 +162,12 @@ Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal&
 /** Calculate parameters for the given spatial cell at the given time.
  * Here you need to set values for the following array indices:
  * CellParams::EX, CellParams::EY, CellParams::EZ, CellParams::BX, CellParams::BY, and CellParams::BZ.
- * 
- * The following array indices contain the coordinates of the "lower left corner" of the cell: 
+ *
+ * The following array indices contain the coordinates of the "lower left corner" of the cell:
  * CellParams::XCRD, CellParams::YCRD, and CellParams::ZCRD.
  * The cell size is given in the following array indices: CellParams::DX, CellParams::DY, and CellParams::DZ.
  * @param cellParams Array containing cell parameters.
- * @param t The current value of time. This is passed as a convenience. If you need more detailed information 
+ * @param t The current value of time. This is passed as a convenience. If you need more detailed information
  * of the state of the simulation, you can read it from Parameters.
  */
 void calcCellParameters(Real* cellParams,creal& t) {
@@ -185,10 +185,10 @@ void calcCellParameters(Real* cellParams,creal& t) {
 void setProjectCell(SpatialCell* cell) {
    // Set up cell parameters:
    calcCellParameters(&((*cell).parameters[0]), 0.0);
-   
+
    cell->parameters[CellParams::RHOLOSSADJUST] = 0.0;
    cell->parameters[CellParams::RHOLOSSVELBOUNDARY] = 0.0;
-   
+
    // Go through each velocity block in the velocity phase space grid.
    // Set the initial state and block parameters:
    creal dvx_block = SpatialCell::block_dvx; // Size of a block in vx-direction
@@ -197,22 +197,22 @@ void setProjectCell(SpatialCell* cell) {
    creal dvx_blockCell = SpatialCell::cell_dvx; // Size of one cell in a block in vx-direction
    creal dvy_blockCell = SpatialCell::cell_dvy; //                                vy
    creal dvz_blockCell = SpatialCell::cell_dvz; //                                vz
-   
-   for (uint kv=0; kv<P::vzblocks_ini; ++kv) 
+
+   for (uint kv=0; kv<P::vzblocks_ini; ++kv)
       for (uint jv=0; jv<P::vyblocks_ini; ++jv)
          for (uint iv=0; iv<P::vxblocks_ini; ++iv) {
             creal vx_block = P::vxmin + iv*dvx_block; // vx-coordinate of the lower left corner
             creal vy_block = P::vymin + jv*dvy_block; // vy-
             creal vz_block = P::vzmin + kv*dvz_block; // vz-
-            
+
             // Calculate volume average of distrib. function for each cell in the block.
-            for (uint kc=0; kc<WID; ++kc) 
-               for (uint jc=0; jc<WID; ++jc) 
+            for (uint kc=0; kc<WID; ++kc)
+               for (uint jc=0; jc<WID; ++jc)
                   for (uint ic=0; ic<WID; ++ic) {
                      creal vx_cell = vx_block + ic*dvx_blockCell;
                      creal vy_cell = vy_block + jc*dvy_blockCell;
                      creal vz_cell = vz_block + kc*dvz_blockCell;
-                     Real average = 
+                     Real average =
                      calcPhaseSpaceDensity(cell->parameters[CellParams::XCRD],
                                            cell->parameters[CellParams::YCRD],
                                            cell->parameters[CellParams::ZCRD],
@@ -221,7 +221,7 @@ void setProjectCell(SpatialCell* cell) {
                                            cell->parameters[CellParams::DZ],
                                            vx_cell,vy_cell,vz_cell,
                                            dvx_blockCell,dvy_blockCell,dvz_blockCell);
-                     
+
                      if(average!=0.0){
                         creal vx_cell_center = vx_block + (ic+convert<Real>(0.5))*dvx_blockCell;
                         creal vy_cell_center = vy_block + (jc+convert<Real>(0.5))*dvy_blockCell;
@@ -231,7 +231,7 @@ void setProjectCell(SpatialCell* cell) {
                   }
          }
          calculateCellVelocityMoments(cell);
-         
+
          //let's get rid of blocks not fulfilling the criteria here to save memory.
          cell->adjustSingleCellVelocityBlocks();
 }

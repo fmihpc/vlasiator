@@ -21,9 +21,9 @@
  */
 
 /*! \file fs_limiters.h
- * 
+ *
  * \brief Definitions of the limiter functions used in the field solver.
- * 
+ *
  * Definitions of the limiter functions used in the field solver.
  * The three-point limiter functions are minmod, MC, superbee and vanLeer. Their helper functions are the two-point minmod and the sign function.
  */
@@ -37,7 +37,7 @@
 
 template<typename T> inline T minmod(const T& a,const T& b) {
    const T ZERO = 0.0;
-   
+
    if (a*b < ZERO) return ZERO;
    else if (fabs(a) < fabs(b)) return a;
    else return b;
@@ -53,7 +53,7 @@ template<typename T> inline T minmod(const T& left,const T& cent,const T& rght) 
 template<typename T> inline T MClimiter(const T& left,const T& cent,const T& right) {
    const T HALF = 0.5;
    const T TWO  = 2.0;
-   
+
    const T forw = right-cent;
    const T back = cent-left;
    const T cntr = HALF*(right-left);
@@ -64,7 +64,7 @@ template<typename T> inline T MClimiter(const T& left,const T& cent,const T& rig
 
 template<typename T> inline T superbee(const T& left,const T& cent,const T& right) {
    const T HALF = 0.5;
-   
+
    const T back = cent-left;
    const T forw = right-cent;
    T tmp = std::min(fabs(back),fabs(forw));
@@ -83,7 +83,7 @@ template<typename T> inline T vanLeer(const T& left,const T& cent,const T& right
       return ZERO;
    else
      return TWO * numerator / denumerator;
-   
+
    //return TWO*std::max((right-cent)*(cent-left),ZERO)/(right-left+EPSILON);
 
    //const T denumerator = (right-left) + EPSILON;

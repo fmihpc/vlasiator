@@ -34,7 +34,7 @@ namespace projects {
     public:
       Larmor();
       virtual ~Larmor();
-      
+
       virtual bool initialize(void);
       static void addParameters(void);
       virtual void getParameters(void);
@@ -57,7 +57,7 @@ namespace projects {
                                          creal& dvx, creal& dvy, creal& dvz,
                                          const uint popID
                                         ) const;
-      
+
       Real BX0;
       Real BY0;
       Real BZ0;
@@ -66,13 +66,13 @@ namespace projects {
       Real VZ0;
       Real DENSITY;
       Real TEMPERATURE;
-      Real maxwCutoff; 
+      Real maxwCutoff;
       uint nSpaceSamples;
       uint nVelocitySamples;
       Real SCA_X;
       Real SCA_Y;
    }; //Class Larmor
 } // namespace projects
-   
+
 
 #endif

@@ -39,7 +39,7 @@ namespace projects {
       public:
          Harris();
          virtual ~Harris();
-         
+
          virtual bool initialize(void);
          static void addParameters(void);
          virtual void getParameters(void);
@@ -55,7 +55,7 @@ namespace projects {
             creal& vx, creal& vy, creal& vz,
             creal& dvx, creal& dvy, creal& dvz, const uint popID
          ) const ;
-         
+
       protected:
          Real getDistribValue(
             creal& x,creal& y, creal& z,
@@ -69,7 +69,7 @@ namespace projects {
             creal z,
             const uint popID
          ) const;
-         
+
          Real SCA_LAMBDA;
          Real BX0, BY0, BZ0;
          std::vector<HarrisSpeciesParameters> speciesParams;

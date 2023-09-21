@@ -26,20 +26,20 @@
  */
 
 #ifndef PARTICLE_SPECIES_H
-#define	PARTICLE_SPECIES_H
+#define PARTICLE_SPECIES_H
 
 #include "definitions.h"
 #include <array>
 
 namespace species {
-    
+
    // Aliases for the maximum dt values stored in spatial_cell::Population::max_dt array.
    enum Dt_Elements {
       MAXRDT,                           /**< Maximum spatial translation dt.*/
       MAXVDT,                           /**< Maximum acceleration dt.*/
       SIZE_DT_ELEMENTS                  /**< Number of elements in array.*/
    };
-   
+
    /** Variables common to a particle species.*/
    struct Species {
       std::string name;               /**< Name of the species.*/
@@ -76,5 +76,4 @@ namespace species {
 
 } // namespace species
 
-#endif	// PARTICLE_SPECIES_H
-
+#endif  // PARTICLE_SPECIES_H

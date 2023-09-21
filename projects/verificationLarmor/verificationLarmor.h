@@ -33,7 +33,7 @@ namespace projects {
    public:
       verificationLarmor();
       virtual ~verificationLarmor();
-      
+
       virtual bool initialize(void);
       static void addParameters(void);
       virtual void getParameters(void);
@@ -67,4 +67,3 @@ namespace projects {
 } // namespace projects
 
 #endif
-

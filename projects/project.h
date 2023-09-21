@@ -34,32 +34,32 @@ namespace projects {
     public:
       Project();
       virtual ~Project();
-      
+
       /*! Register parameters that should be read in. */
       static void addParameters();
-      
+
       virtual Real getCorrectNumberDensity(spatial_cell::SpatialCell* cell,const uint popID) const;
-      
+
       /*! Get the value that was read in. */
       virtual void getParameters();
-      
+
       /*! Initialize project. Can be used, e.g., to read in parameters from the input file. */
       virtual bool initialize();
-      
+
       /*! Perform some operation at each time step in the main program loop. */
       virtual void hook(
          cuint& stage,
          const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid
       ) const;
-      
+
       bool initialized();
-      
+
       /** Set the background and perturbed magnetic fields for this project.
        * \param perBGrid Grid on which values of the perturbed field can be set if needed.
        * \param BgBGrid Grid on which values for the background field can be set if needed, e.g. using the background field functions.
        * \param technicalGrid Technical fsgrid, available if some of its data is necessary.
-       * 
+       *
        * \sa setBackgroundField, setBackgroundFieldToZero
        */
       virtual void setProjectBField(
@@ -67,7 +67,7 @@ namespace projects {
          FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
          FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
       );
-      
+
       /*! Setup data structures for subsequent setCell calls.
        * This will most likely be empty for most projects, except for some advanced
        * data juggling ones (like restart from a subset of a larger run)
@@ -80,7 +80,7 @@ namespace projects {
        * \param cell Pointer to the cell to set.
        */
       void setCell(spatial_cell::SpatialCell* cell);
-         
+
       Real setVelocityBlock(spatial_cell::SpatialCell* cell,const vmesh::LocalID& blockLID,const uint popID) const;
 
       virtual bool refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const;
@@ -99,35 +99,35 @@ namespace projects {
        * \param mpiGrid grid to filter
        */
       virtual bool filterRefined( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const;
-      
+
     protected:
       /*! \brief Returns a list of blocks to loop through when initialising.
-       * 
+       *
        * The base class version just returns all blocks, which amounts to looping through the whole velocity space.
        * This is very expensive and becomes prohibitive in cases where a large velocity space is needed with only
        * small portions actually containing something. Use with care.
        * NOTE: This function is called inside parallel region so it must be declared as const.
        */
       virtual std::vector<vmesh::GlobalID> findBlocksToInitialize(spatial_cell::SpatialCell* cell,const uint popID) const;
-      
+
       /*! \brief Sets the distribution function in a cell.
-       * 
+       *
        * Uses the function findBlocksToInitialize and loops through the list returned by it to initialize the cells' velocity space.
        * NOTE: This function is called inside parallel region so it must be declared as const.
-       * 
+       *
        * \sa findBlocksToInitialize
        */
       void setVelocitySpace(const uint popID,spatial_cell::SpatialCell* cell) const;
-         
+
       /** Calculate potentially needed parameters for the given spatial cell at the given time.
-       * 
+       *
        * Currently this function is only called during initialization.
-       * 
-       * The following array indices contain the coordinates of the "lower left corner" of the cell: 
+       *
+       * The following array indices contain the coordinates of the "lower left corner" of the cell:
        * CellParams::XCRD, CellParams::YCRD, and CellParams::ZCRD.
        * The cell size is given in the following array indices: CellParams::DX, CellParams::DY, and CellParams::DZ.
        * @param cell Pointer to the spatial cell to be handled.
-       * @param t The current value of time. This is passed as a convenience. If you need more detailed information 
+       * @param t The current value of time. This is passed as a convenience. If you need more detailed information
        * of the state of the simulation, you can read it from Parameters.
        */
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
@@ -156,21 +156,21 @@ namespace projects {
                                          creal& vx, creal& vy, creal& vz,
                                          creal& dvx, creal& dvy, creal& dvz,
                                          const uint popID) const = 0;
-      
+
       /*!
        Get random number between 0 and 1.0. One should always first initialize the rng.
        */
       Real getRandomNumber() const;
-         
+
       void printPopulations();
-      
+
       virtual bool rescalesDensity(const uint popID) const;
       void rescaleDensity(spatial_cell::SpatialCell* cell,const uint popID) const;
-      
+
       /*!  Set random seed (thread-safe). Seed is based on the seed read
        in from cfg + the seedModifier parameter
-       * 
-       \param seedModified d. Seed is based on the seed read in from cfg + the seedModifier parameter                                   
+       *
+       \param seedModified d. Seed is based on the seed read in from cfg + the seedModifier parameter
        */
       void setRandomSeed(uint64_t seedModifier) const;
       /*!
@@ -179,7 +179,7 @@ namespace projects {
        simulations that do not depend on number of processes or threads.
        */
       void setRandomCellSeed(spatial_cell::SpatialCell* cell) const;
-      
+
     private:
       uint seed;
       static char rngStateBuffer[256];
@@ -188,10 +188,9 @@ namespace projects {
 
       bool baseClassInitialized;                      /**< If true, base class has been initialized.*/
    };
-   
+
    Project* createProject();
 } // namespace projects
 
 
 #endif
-

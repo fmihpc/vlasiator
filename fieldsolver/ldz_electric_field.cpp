@@ -37,10 +37,10 @@ using namespace std;
  * Computes the correct combination of speeds to determine the CFL limits.
  *
  * It should be in-plane, but we use the complete wave speeds from calculateWaveSpeed??().
- * 
+ *
  * At the moment it computes the geometric mean of both bulk velocity components
  * and takes the maximum of that plus either the magnetosonic or the whistler speed.
- * 
+ *
  * \sa calculateWaveSpeedYZ calculateWaveSpeedXY calculateWaveSpeedZX
  *
  * \param v0 Flow in first direction
@@ -62,15 +62,15 @@ Real calculateCflSpeed(
 }
 
 /*! \brief Low-level helper function.
- * 
+ *
  * Computes the magnetosonic speed in the YZ plane. Used in upwinding the electric field X component,
  * at the interface between cell (i,j,k) and (nbi,nbj,nbk).
- * 
+ *
  * Expects that the correct RHO and B fields are being passed, depending on the
  * stage of the Runge-Kutta time stepping method.
- * 
+ *
  * If fields are not propagated, returns 0.0 as there is no information propagating.
- * 
+ *
  * \param perBGrid fsGrid holding the perturbed B quantities
  * \param momentsGrid fsGrid holding the moment quantities
  * \param dPerBGrid fsGrid holding the derivatives of perturbed B
@@ -126,7 +126,7 @@ void calculateWaveSpeedYZ(
    std::array<Real, fsgrids::dperb::N_DPERB> * nbr_dperb = dPerBGrid.get(nbi,nbj,nbk);
    std::array<Real, fsgrids::bgbfield::N_BGB> * bgb = BgBGrid.get(i,j,k);
    std::array<Real, fsgrids::bgbfield::N_BGB> *  nbr_bgb = BgBGrid.get(nbi,nbj,nbk);
-   
+
    Real A_0, A_X, rhom, p11, p22, p33;
    A_0  = HALF*(nbr_perb->at(fsgrids::bfield::PERBX) + nbr_bgb->at(fsgrids::bgbfield::BGBX) + perb->at(fsgrids::bfield::PERBX) + bgb->at(fsgrids::bgbfield::BGBX));
    A_X  = (nbr_perb->at(fsgrids::bfield::PERBX) + nbr_bgb->at(fsgrids::bgbfield::BGBX)) - (perb->at(fsgrids::bfield::PERBX) + bgb->at(fsgrids::bgbfield::BGBX));
@@ -134,13 +134,13 @@ void calculateWaveSpeedYZ(
    p11 = moments->at(fsgrids::moments::P_11) + ydir*HALF*dmoments->at(fsgrids::dmoments::dp11dy) + zdir*HALF*dmoments->at(fsgrids::dmoments::dp11dz);
    p22 = moments->at(fsgrids::moments::P_22) + ydir*HALF*dmoments->at(fsgrids::dmoments::dp22dy) + zdir*HALF*dmoments->at(fsgrids::dmoments::dp22dz);
    p33 = moments->at(fsgrids::moments::P_33) + ydir*HALF*dmoments->at(fsgrids::dmoments::dp33dy) + zdir*HALF*dmoments->at(fsgrids::dmoments::dp33dz);
-   
+
    if (rhom < minRhom) {
       rhom = minRhom;
    } else if (rhom > maxRhom) {
       rhom = maxRhom;
    }
-   
+
    const Real A_Y  = nbr_dperb->at(fsgrids::dperb::dPERBxdy) + nbr_bgb->at(fsgrids::bgbfield::dBGBxdy) + dperb->at(fsgrids::dperb::dPERBxdy) + bgb->at(fsgrids::bgbfield::dBGBxdy);
    const Real A_XY = nbr_dperb->at(fsgrids::dperb::dPERBxdy) + nbr_bgb->at(fsgrids::bgbfield::dBGBxdy) - (dperb->at(fsgrids::dperb::dPERBxdy) + bgb->at(fsgrids::bgbfield::dBGBxdy));
    const Real A_Z  = nbr_dperb->at(fsgrids::dperb::dPERBxdz) + nbr_bgb->at(fsgrids::bgbfield::dBGBxdz) + dperb->at(fsgrids::dperb::dPERBxdz) + bgb->at(fsgrids::bgbfield::dBGBxdz);
@@ -150,9 +150,9 @@ void calculateWaveSpeedYZ(
      + TWELWTH*(A_X + ydir*HALF*A_XY + zdir*HALF*A_XZ)*(A_X + ydir*HALF*A_XY + zdir*HALF*A_XZ); // OK
    const Real By2  = (By + zdir*HALF*dBydz)*(By + zdir*HALF*dBydz) + TWELWTH*dBydx*dBydx; // OK
    const Real Bz2  = (Bz + ydir*HALF*dBzdy)*(Bz + ydir*HALF*dBzdy) + TWELWTH*dBzdx*dBzdx; // OK
-   
+
    const Real Bmag2 = Bx2 + By2 + Bz2;
-   
+
    p11 = p11 < 0.0 ? 0.0 : p11;
    p22 = p22 < 0.0 ? 0.0 : p22;
    p33 = p33 < 0.0 ? 0.0 : p33;
@@ -179,21 +179,21 @@ void calculateWaveSpeedYZ(
       sqrt(vA2) * (1 + divideIfNonZero(2*M_PI*M_PI*pc::MASS_PROTON*pc::MASS_PROTON, perBGrid.DX*perBGrid.DX*rhom*pc::CHARGE*pc::CHARGE*pc::MU_0)
             / sqrt(1 + divideIfNonZero(  M_PI*M_PI*pc::MASS_PROTON*pc::MASS_PROTON, perBGrid.DX*perBGrid.DX*rhom*pc::CHARGE*pc::CHARGE*pc::MU_0)))
       : 0.0; // whistler speed
-   
+
    ret_vA = sqrt(vA2);
    ret_vS = sqrt(vS2);
    ret_vW = vW;
 }
 
 /*! \brief Low-level helper function.
- * 
+ *
  * Computes the magnetosonic speed in the XZ plane. Used in upwinding the electric field Y component,
  * at the interface between cell (i,j,k) and (nbi,nbj,nbk).
- * 
+ *
  * Expects that the correct RHO and B fields are being passed, depending on the stage of the Runge-Kutta time stepping method.
- * 
+ *
  * If fields are not propagated, returns 0.0 as there is no information propagating.
- * 
+ *
  * \param perBGrid fsGrid holding the perturbed B quantities
  * \param momentsGrid fsGrid holding the moment quantities
  * \param dPerBGrid fsGrid holding the derivatives of perturbed B
@@ -249,7 +249,7 @@ void calculateWaveSpeedXZ(
    std::array<Real, fsgrids::dperb::N_DPERB> * nbr_dperb = dPerBGrid.get(nbi,nbj,nbk);
    std::array<Real, fsgrids::bgbfield::N_BGB> * bgb = BgBGrid.get(i,j,k);
    std::array<Real, fsgrids::bgbfield::N_BGB> *  nbr_bgb = BgBGrid.get(nbi,nbj,nbk);
-   
+
    Real B_0, B_Y, rhom, p11, p22, p33;
    B_0  = HALF*(nbr_perb->at(fsgrids::bfield::PERBY) + nbr_bgb->at(fsgrids::bgbfield::BGBY) + perb->at(fsgrids::bfield::PERBY) + bgb->at(fsgrids::bgbfield::BGBY));
    B_Y  = (nbr_perb->at(fsgrids::bfield::PERBY) + nbr_bgb->at(fsgrids::bgbfield::BGBY)) - (perb->at(fsgrids::bfield::PERBY) + bgb->at(fsgrids::bgbfield::BGBY));
@@ -257,29 +257,29 @@ void calculateWaveSpeedXZ(
    p11 = moments->at(fsgrids::moments::P_11) + xdir*HALF*dmoments->at(fsgrids::dmoments::dp11dx) + zdir*HALF*dmoments->at(fsgrids::dmoments::dp11dz);
    p22 = moments->at(fsgrids::moments::P_22) + xdir*HALF*dmoments->at(fsgrids::dmoments::dp22dx) + zdir*HALF*dmoments->at(fsgrids::dmoments::dp22dz);
    p33 = moments->at(fsgrids::moments::P_33) + xdir*HALF*dmoments->at(fsgrids::dmoments::dp33dx) + zdir*HALF*dmoments->at(fsgrids::dmoments::dp33dz);
-   
+
    if (rhom < minRhom) {
       rhom = minRhom;
    } else if (rhom > maxRhom) {
       rhom = maxRhom;
    }
-   
+
    const Real B_X  = nbr_dperb->at(fsgrids::dperb::dPERBydx) + nbr_bgb->at(fsgrids::bgbfield::dBGBydx) + dperb->at(fsgrids::dperb::dPERBydx) + bgb->at(fsgrids::bgbfield::dBGBydx);
    const Real B_XY = nbr_dperb->at(fsgrids::dperb::dPERBydx) + nbr_bgb->at(fsgrids::bgbfield::dBGBydx) - (dperb->at(fsgrids::dperb::dPERBydx) + bgb->at(fsgrids::bgbfield::dBGBydx));
    const Real B_Z  = nbr_dperb->at(fsgrids::dperb::dPERBydz) + nbr_bgb->at(fsgrids::bgbfield::dBGBydz) + dperb->at(fsgrids::dperb::dPERBydz) + bgb->at(fsgrids::bgbfield::dBGBydz);
    const Real B_YZ = nbr_dperb->at(fsgrids::dperb::dPERBydz) + nbr_bgb->at(fsgrids::bgbfield::dBGBydz) - (dperb->at(fsgrids::dperb::dPERBydz) + bgb->at(fsgrids::bgbfield::dBGBydz));
-      
+
    const Real By2  = (B_0 + xdir*HALF*B_X + zdir*HALF*B_Z)*(B_0 + xdir*HALF*B_X + zdir*HALF*B_Z)
      + TWELWTH*(B_Y + xdir*HALF*B_XY + zdir*HALF*B_YZ)*(B_Y + xdir*HALF*B_XY + zdir*HALF*B_YZ); // OK
    const Real Bx2  = (Bx + zdir*HALF*dBxdz)*(Bx + zdir*HALF*dBxdz) + TWELWTH*dBxdy*dBxdy; // OK
    const Real Bz2  = (Bz + xdir*HALF*dBzdx)*(Bz + xdir*HALF*dBzdx) + TWELWTH*dBzdy*dBzdy; // OK
-   
+
    const Real Bmag2 = Bx2 + By2 + Bz2;
-   
+
    p11 = p11 < 0.0 ? 0.0 : p11;
    p22 = p22 < 0.0 ? 0.0 : p22;
    p33 = p33 < 0.0 ? 0.0 : p33;
-   
+
    // Effective wave speeds for advection and CFL calculation
    // Note that these are calculated as if the plasma is purely made up of hydrogen, which
    // is a reasonable approximation if it is proton-dominant.
@@ -302,21 +302,21 @@ void calculateWaveSpeedXZ(
       sqrt(vA2) * (1 + divideIfNonZero(2*M_PI*M_PI*pc::MASS_PROTON*pc::MASS_PROTON, perBGrid.DX*perBGrid.DX*rhom*pc::CHARGE*pc::CHARGE*pc::MU_0)
             / sqrt(1 + divideIfNonZero(  M_PI*M_PI*pc::MASS_PROTON*pc::MASS_PROTON, perBGrid.DX*perBGrid.DX*rhom*pc::CHARGE*pc::CHARGE*pc::MU_0)))
       : 0.0; // whistler speed
-   
+
    ret_vA = sqrt(vA2);
    ret_vS = sqrt(vS2);
    ret_vW = vW;
 }
 
 /*! \brief Low-level helper function.
- * 
+ *
  * Computes the magnetosonic speed in the XY plane. Used in upwinding the electric field Z component,
  * at the interface between cell (i,j,k) and (nbi,nbj,nbk).
- * 
+ *
  * Expects that the correct RHO and B fields are being passed, depending on the stage of the Runge-Kutta time stepping method.
- * 
+ *
  * If fields are not propagated, returns 0.0 as there is no information propagating.
- * 
+ *
  * \param perBGrid fsGrid holding the perturbed B quantities
  * \param momentsGrid fsGrid holding the moment quantities
  * \param dPerBGrid fsGrid holding the derivatives of perturbed B
@@ -372,7 +372,7 @@ void calculateWaveSpeedXY(
    std::array<Real, fsgrids::dperb::N_DPERB> * nbr_dperb = dPerBGrid.get(nbi,nbj,nbk);
    std::array<Real, fsgrids::bgbfield::N_BGB> * bgb = BgBGrid.get(i,j,k);
    std::array<Real, fsgrids::bgbfield::N_BGB> *  nbr_bgb = BgBGrid.get(nbi,nbj,nbk);
-   
+
    Real C_0, C_Z, rhom, p11, p22, p33;
    C_0  = HALF*(nbr_perb->at(fsgrids::bfield::PERBZ) + nbr_bgb->at(fsgrids::bgbfield::BGBZ) + perb->at(fsgrids::bfield::PERBZ) + bgb->at(fsgrids::bgbfield::BGBZ));
    C_Z  = (nbr_perb->at(fsgrids::bfield::PERBZ) + nbr_bgb->at(fsgrids::bgbfield::BGBZ)) - (perb->at(fsgrids::bfield::PERBZ) + bgb->at(fsgrids::bgbfield::BGBZ));
@@ -380,29 +380,29 @@ void calculateWaveSpeedXY(
    p11 = moments->at(fsgrids::moments::P_11) + xdir*HALF*dmoments->at(fsgrids::dmoments::dp11dx) + ydir*HALF*dmoments->at(fsgrids::dmoments::dp11dy);
    p22 = moments->at(fsgrids::moments::P_22) + xdir*HALF*dmoments->at(fsgrids::dmoments::dp22dx) + ydir*HALF*dmoments->at(fsgrids::dmoments::dp22dy);
    p33 = moments->at(fsgrids::moments::P_33) + xdir*HALF*dmoments->at(fsgrids::dmoments::dp33dx) + ydir*HALF*dmoments->at(fsgrids::dmoments::dp33dy);
-   
+
    if (rhom < minRhom) {
       rhom = minRhom;
    } else if (rhom > maxRhom) {
       rhom = maxRhom;
    }
-   
+
    const Real C_X  = nbr_dperb->at(fsgrids::dperb::dPERBzdx) + nbr_bgb->at(fsgrids::bgbfield::dBGBzdx) + dperb->at(fsgrids::dperb::dPERBzdx) + bgb->at(fsgrids::bgbfield::dBGBzdx);
    const Real C_XZ = nbr_dperb->at(fsgrids::dperb::dPERBzdx) + nbr_bgb->at(fsgrids::bgbfield::dBGBzdx) - (dperb->at(fsgrids::dperb::dPERBzdx) + bgb->at(fsgrids::bgbfield::dBGBzdx));
    const Real C_Y  = nbr_dperb->at(fsgrids::dperb::dPERBzdy) + nbr_bgb->at(fsgrids::bgbfield::dBGBzdy) + dperb->at(fsgrids::dperb::dPERBzdy) + bgb->at(fsgrids::bgbfield::dBGBzdy);
    const Real C_YZ = nbr_dperb->at(fsgrids::dperb::dPERBzdy) + nbr_bgb->at(fsgrids::bgbfield::dBGBzdy) - (dperb->at(fsgrids::dperb::dPERBzdy) + bgb->at(fsgrids::bgbfield::dBGBzdy));
-   
+
    const Real Bz2  = (C_0 + xdir*HALF*C_X + ydir*HALF*C_Y)*(C_0 + xdir*HALF*C_X + ydir*HALF*C_Y)
      + TWELWTH*(C_Z + xdir*HALF*C_XZ + ydir*HALF*C_YZ)*(C_Z + xdir*HALF*C_XZ + ydir*HALF*C_YZ);
    const Real Bx2  = (Bx + ydir*HALF*dBxdy)*(Bx + ydir*HALF*dBxdy) + TWELWTH*dBxdz*dBxdz;
    const Real By2  = (By + xdir*HALF*dBydx)*(By + xdir*HALF*dBydx) + TWELWTH*dBydz*dBydz;
-   
+
    const Real Bmag2 = Bx2 + By2 + Bz2;
-   
+
    p11 = p11 < 0.0 ? 0.0 : p11;
    p22 = p22 < 0.0 ? 0.0 : p22;
    p33 = p33 < 0.0 ? 0.0 : p33;
-      
+
    // Effective wave speeds for advection and CFL calculation
    // Note that these are calculated as if the plasma is purely made up of hydrogen, which
    // is a reasonable approximation if it is proton-dominant.
@@ -425,20 +425,20 @@ void calculateWaveSpeedXY(
       sqrt(vA2) * (1 + divideIfNonZero(2*M_PI*M_PI*pc::MASS_PROTON*pc::MASS_PROTON, perBGrid.DX*perBGrid.DX*rhom*pc::CHARGE*pc::CHARGE*pc::MU_0)
             / sqrt(1 + divideIfNonZero(  M_PI*M_PI*pc::MASS_PROTON*pc::MASS_PROTON, perBGrid.DX*perBGrid.DX*rhom*pc::CHARGE*pc::CHARGE*pc::MU_0)))
       : 0.0; // whistler speed
-   
+
    ret_vA = sqrt(vA2);
    ret_vS = sqrt(vS2);
    ret_vW = vW;
 }
 
 /*! \brief Low-level electric field propagation function.
- * 
+ *
  * Computes the upwinded electric field X component along the cell's corresponding edge as the cross product of B and V in the YZ plane. Also includes the calculation of the maximally allowed time step.
- * 
+ *
  * Expects that the correct RHO and B fields are being passed, depending on the stage of the Runge-Kutta time stepping method.
- * 
+ *
  * Note that the background B field is excluded from the diffusive term calculations because they are equivalent to a current term and the background field is curl-free.
- * 
+ *
  * \param perBGrid fsGrid holding the perturbed B quantities
  * \param EGrid fsGrid holding the electric field
  * \param EHallGrid fsGrid holding the Hall contributions to the electric field
@@ -508,9 +508,9 @@ void calculateEdgeElectricFieldX(
    std::array<Real, fsgrids::dperb::N_DPERB> * dperb_SE = dPerBGrid.get(i  ,j-1,k  );
    std::array<Real, fsgrids::dperb::N_DPERB> * dperb_NE = dPerBGrid.get(i  ,j-1,k-1);
    std::array<Real, fsgrids::dperb::N_DPERB> * dperb_NW = dPerBGrid.get(i  ,j  ,k-1);
-   
+
    std::array<Real, fsgrids::efield::N_EFIELD> * efield_SW = EGrid.get(i,j,k);
-   
+
    Real By_S, Bz_W, Bz_E, By_N, perBy_S, perBz_W, perBz_E, perBy_N;
    Real minRhom = std::numeric_limits<Real>::max();
    Real maxRhom = std::numeric_limits<Real>::min();
@@ -541,7 +541,7 @@ void calculateEdgeElectricFieldX(
            )
          )
        );
-   
+
    creal dBydx_S = dperb_SW->at(fsgrids::dperb::dPERBydx) + bgb_SW->at(fsgrids::bgbfield::dBGBydx);
    creal dBydz_S = dperb_SW->at(fsgrids::dperb::dPERBydz) + bgb_SW->at(fsgrids::bgbfield::dBGBydz);
    creal dBzdx_W = dperb_SW->at(fsgrids::dperb::dPERBzdx) + bgb_SW->at(fsgrids::bgbfield::dBGBzdx);
@@ -573,12 +573,12 @@ void calculateEdgeElectricFieldX(
        physicalconstants::MU_0 *
        (dperb_SW->at(fsgrids::dperb::dPERBzdy)/technicalGrid.DY - dperb_SW->at(fsgrids::dperb::dPERBydz)/technicalGrid.DZ);
    }
-   
+
    // Hall term
    if(Parameters::ohmHallTerm > 0) {
       Ex_SW += EHallGrid.get(i,j,k)->at(fsgrids::ehall::EXHALL_000_100);
    }
-   
+
    // Electron pressure gradient term
    if(Parameters::ohmGradPeTerm > 0) {
       Ex_SW += EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE);
@@ -610,10 +610,10 @@ void calculateEdgeElectricFieldX(
    // Ex and characteristic speeds on j-1 neighbour:
    Vy0  = moments_SE->at(fsgrids::moments::VY);
    Vz0  = moments_SE->at(fsgrids::moments::VZ);
-   
+
    // 1st order terms:
    Real Ex_SE = By_S*Vz0 - Bz_E*Vy0;
-   
+
    // Resistive term
    if (Parameters::resistivity > 0) {
      Ex_SE += Parameters::resistivity *
@@ -633,18 +633,18 @@ void calculateEdgeElectricFieldX(
    if(Parameters::ohmHallTerm > 0) {
       Ex_SE += EHallGrid.get(i,j-1,k)->at(fsgrids::ehall::EXHALL_010_110);
    }
-   
+
    // Electron pressure gradient term
    if(Parameters::ohmGradPeTerm > 0) {
       Ex_SE += EGradPeGrid.get(i,j-1,k)->at(fsgrids::egradpe::EXGRADPE);
    }
-   
+
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ex_SE += +HALF*((By_S - HALF*dBydz_S)*(+dmoments_SE->at(fsgrids::dmoments::dVzdy) - dmoments_SE->at(fsgrids::dmoments::dVzdz)) - dBydz_S*Vz0 + SIXTH*dBydx_S*dmoments_SE->at(fsgrids::dmoments::dVzdx));
       Ex_SE += -HALF*((Bz_E + HALF*dBzdy_E)*(+dmoments_SE->at(fsgrids::dmoments::dVydy) - dmoments_SE->at(fsgrids::dmoments::dVydz)) + dBzdy_E*Vy0 + SIXTH*dBzdx_E*dmoments_SE->at(fsgrids::dmoments::dVydx));
    #endif
-   
+
    calculateWaveSpeedYZ(
       perBGrid,
       momentsGrid,
@@ -666,10 +666,10 @@ void calculateEdgeElectricFieldX(
    // Ex and characteristic speeds on k-1 neighbour:
    Vy0  = moments_NW->at(fsgrids::moments::VY);
    Vz0  = moments_NW->at(fsgrids::moments::VZ);
-   
+
    // 1st order terms:
    Real Ex_NW    = By_N*Vz0 - Bz_W*Vy0;
-   
+
    // Resistive term
    if (Parameters::resistivity > 0) {
      Ex_NW += Parameters::resistivity *
@@ -684,23 +684,23 @@ void calculateEdgeElectricFieldX(
        physicalconstants::MU_0 *
        (dperb_NW->at(fsgrids::dperb::dPERBzdy)/technicalGrid.DY - dperb_NW->at(fsgrids::dperb::dPERBydz)/technicalGrid.DZ);
    }
-   
+
    // Hall term
    if(Parameters::ohmHallTerm > 0) {
       Ex_NW += EHallGrid.get(i,j,k-1)->at(fsgrids::ehall::EXHALL_001_101);
    }
-   
+
    // Electron pressure gradient term
    if(Parameters::ohmGradPeTerm > 0) {
       Ex_NW += EGradPeGrid.get(i,j,k-1)->at(fsgrids::egradpe::EXGRADPE);
    }
-   
+
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ex_NW += +HALF*((By_N + HALF*dBydz_N)*(-dmoments_NW->at(fsgrids::dmoments::dVzdy) + dmoments_NW->at(fsgrids::dmoments::dVzdz)) + dBydz_N*Vz0 + SIXTH*dBydx_N*dmoments_NW->at(fsgrids::dmoments::dVzdx));
       Ex_NW += -HALF*((Bz_W - HALF*dBzdy_W)*(-dmoments_NW->at(fsgrids::dmoments::dVydy) + dmoments_NW->at(fsgrids::dmoments::dVydz)) - dBzdy_W*Vy0 + SIXTH*dBzdx_W*dmoments_NW->at(fsgrids::dmoments::dVydx));
    #endif
-   
+
    calculateWaveSpeedYZ(
       perBGrid,
       momentsGrid,
@@ -722,7 +722,7 @@ void calculateEdgeElectricFieldX(
    // Ex and characteristic speeds on j-1,k-1 neighbour:
    Vy0 = moments_NE->at(fsgrids::moments::VY);
    Vz0 = moments_NE->at(fsgrids::moments::VZ);
-   
+
    // 1st order terms:
    Real Ex_NE    = By_N*Vz0 - Bz_E*Vy0;
 
@@ -745,18 +745,18 @@ void calculateEdgeElectricFieldX(
    if(Parameters::ohmHallTerm > 0) {
       Ex_NE += EHallGrid.get(i,j-1,k-1)->at(fsgrids::ehall::EXHALL_011_111);
    }
-   
+
    // Electron pressure gradient term
    if(Parameters::ohmGradPeTerm > 0) {
       Ex_NE += EGradPeGrid.get(i,j-1,k-1)->at(fsgrids::egradpe::EXGRADPE);
    }
-   
+
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ex_NE += +HALF*((By_N + HALF*dBydz_N)*(+dmoments_NE->at(fsgrids::dmoments::dVzdy) + dmoments_NE->at(fsgrids::dmoments::dVzdz)) + dBydz_N*Vz0 + SIXTH*dBydx_N*dmoments_NE->at(fsgrids::dmoments::dVzdx));
       Ex_NE += -HALF*((Bz_E + HALF*dBzdy_E)*(+dmoments_NE->at(fsgrids::dmoments::dVydy) + dmoments_NE->at(fsgrids::dmoments::dVydz)) + dBzdy_E*Vy0 + SIXTH*dBzdx_E*dmoments_NE->at(fsgrids::dmoments::dVydx));
    #endif
-   
+
    calculateWaveSpeedYZ(
       perBGrid,
       momentsGrid,
@@ -788,7 +788,7 @@ void calculateEdgeElectricFieldX(
       efield_SW->at(fsgrids::efield::EX) += ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*((perBz_W-HALF*dperBzdy_W) - (perBz_E+HALF*dperBzdy_E));
 #endif
    }
-   
+
    if ((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) {
       //compute maximum timestep for fieldsolver in this cell (CFL=1)
       Real min_dx=std::numeric_limits<Real>::max();
@@ -800,13 +800,13 @@ void calculateEdgeElectricFieldX(
 }
 
 /*! \brief Low-level electric field propagation function.
- * 
+ *
  * Computes the upwinded electric field Y component along the cell's corresponding edge as the cross product of B and V in the XZ plane. Also includes the calculation of the maximally allowed time step.
- * 
+ *
  * Expects that the correct RHO and B fields are being passed, depending on the stage of the Runge-Kutta time stepping method.
- * 
+ *
  * Note that the background B field is excluded from the diffusive term calculations because they are equivalent to a current term and the background field is curl-free.
- * 
+ *
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
 void calculateEdgeElectricFieldY(
@@ -835,7 +835,7 @@ void calculateEdgeElectricFieldY(
       exit(1);
    }
    #endif
-   
+
    // An edge has four neighbouring spatial cells. Calculate
    // electric field in each of the four cells per edge.
    Real ax_pos,ax_neg;              // Max. characteristic velocities to x-direction
@@ -844,7 +844,7 @@ void calculateEdgeElectricFieldY(
    Real vA, vS, vW;                 // Alfven, sound, whistler speed
    Real maxV = 0.0;                 // Max velocity for CFL purposes
    Real c_x,c_z;                    // Wave speeds to xz-directions
-   
+
    std::array<Real, fsgrids::bfield::N_BFIELD> * perb_SW = perBGrid.get(i  ,j  ,k  );
    std::array<Real, fsgrids::bfield::N_BFIELD> * perb_SE = perBGrid.get(i  ,j  ,k-1);
    std::array<Real, fsgrids::bfield::N_BFIELD> * perb_NW = perBGrid.get(i-1,j  ,k  );
@@ -865,9 +865,9 @@ void calculateEdgeElectricFieldY(
    std::array<Real, fsgrids::dperb::N_DPERB> * dperb_SE = dPerBGrid.get(i  ,j  ,k-1);
    std::array<Real, fsgrids::dperb::N_DPERB> * dperb_NW = dPerBGrid.get(i-1,j  ,k  );
    std::array<Real, fsgrids::dperb::N_DPERB> * dperb_NE = dPerBGrid.get(i-1,j  ,k-1);
-   
+
    std::array<Real, fsgrids::efield::N_EFIELD> * efield_SW = EGrid.get(i,j,k);
-   
+
    // Fetch required plasma parameters:
    Real Bz_S, Bx_W, Bx_E, Bz_N, perBz_S, perBx_W, perBx_E, perBz_N;
    Real minRhom = std::numeric_limits<Real>::max();
@@ -898,7 +898,7 @@ void calculateEdgeElectricFieldY(
            )
          )
        );
-   
+
    creal dBxdy_W = dperb_SW->at(fsgrids::dperb::dPERBxdy) + bgb_SW->at(fsgrids::bgbfield::dBGBxdy);
    creal dBxdz_W = dperb_SW->at(fsgrids::dperb::dPERBxdz) + bgb_SW->at(fsgrids::bgbfield::dBGBxdz);
    creal dBzdx_S = dperb_SW->at(fsgrids::dperb::dPERBzdx) + bgb_SW->at(fsgrids::bgbfield::dBGBzdx);
@@ -911,11 +911,11 @@ void calculateEdgeElectricFieldY(
    creal dperBzdx_N = dperb_NW->at(fsgrids::dperb::dPERBzdx);
    creal dperBxdz_W = dperb_SW->at(fsgrids::dperb::dPERBxdz);
    creal dperBxdz_E = dperb_SE->at(fsgrids::dperb::dPERBxdz);
-   
+
    // Ey and characteristic speeds on this cell:
    // 1st order terms:
    Real Ey_SW  = Bz_S*Vx0 - Bx_W*Vz0;
-   
+
    // Resistive term
    if (Parameters::resistivity > 0) {
       Ey_SW += Parameters::resistivity *
@@ -935,18 +935,18 @@ void calculateEdgeElectricFieldY(
    if (Parameters::ohmHallTerm > 0) {
       Ey_SW += EHallGrid.get(i,j,k)->at(fsgrids::ehall::EYHALL_000_010);
    }
-   
+
    // Electron pressure gradient term
    if(Parameters::ohmGradPeTerm > 0) {
       Ey_SW += EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EYGRADPE);
    }
-   
+
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms
       Ey_SW += +HALF*((Bz_S - HALF*dBzdx_S)*(-dmoments_SW->at(fsgrids::dmoments::dVxdx) - dmoments_SW->at(fsgrids::dmoments::dVxdz)) - dBzdx_S*Vx0 + SIXTH*dBzdy_S*dmoments_SW->at(fsgrids::dmoments::dVxdy));
       Ey_SW += -HALF*((Bx_W - HALF*dBxdz_W)*(-dmoments_SW->at(fsgrids::dmoments::dVzdx) - dmoments_SW->at(fsgrids::dmoments::dVzdz)) - dBxdz_W*Vz0 + SIXTH*dBxdy_W*dmoments_SW->at(fsgrids::dmoments::dVzdy));
    #endif
-   
+
    calculateWaveSpeedXZ(
       perBGrid,
       momentsGrid,
@@ -991,18 +991,18 @@ void calculateEdgeElectricFieldY(
    if (Parameters::ohmHallTerm > 0) {
       Ey_SE += EHallGrid.get(i,j,k-1)->at(fsgrids::ehall::EYHALL_001_011);
    }
-   
+
    // Electron pressure gradient term
    if(Parameters::ohmGradPeTerm > 0) {
       Ey_SE += EGradPeGrid.get(i,j,k-1)->at(fsgrids::egradpe::EYGRADPE);
    }
-   
+
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ey_SE += +HALF*((Bz_S - HALF*dBzdx_S)*(-dmoments_SE->at(fsgrids::dmoments::dVxdx) + dmoments_SE->at(fsgrids::dmoments::dVxdz)) - dBzdx_S*Vx0 + SIXTH*dBzdy_S*dmoments_SE->at(fsgrids::dmoments::dVxdy));
       Ey_SE += -HALF*((Bx_E + HALF*dBxdz_E)*(-dmoments_SE->at(fsgrids::dmoments::dVzdx) + dmoments_SE->at(fsgrids::dmoments::dVzdz)) + dBxdz_E*Vz0 + SIXTH*dBxdy_E*dmoments_SE->at(fsgrids::dmoments::dVzdy));
    #endif
-   
+
    calculateWaveSpeedXZ(
       perBGrid,
       momentsGrid,
@@ -1020,11 +1020,11 @@ void calculateEdgeElectricFieldY(
    ax_neg   = max(ax_neg,-Vx0 + c_x);
    ax_pos   = max(ax_pos,+Vx0 + c_x);
    maxV = max(maxV, calculateCflSpeed(Vz0, Vx0, vA, vS, vW));
-   
+
    // Ey and characteristic speeds on i-1 neighbour:
    Vz0  = moments_NW->at(fsgrids::moments::VZ);
    Vx0  = moments_NW->at(fsgrids::moments::VX);
-   
+
    // 1st order terms:
    Real Ey_NW    = Bz_N*Vx0 - Bx_W*Vz0;
 
@@ -1047,18 +1047,18 @@ void calculateEdgeElectricFieldY(
    if(Parameters::ohmHallTerm > 0) {
       Ey_NW += EHallGrid.get(i-1,j,k)->at(fsgrids::ehall::EYHALL_100_110);
    }
-   
+
    // Electron pressure gradient term
    if(Parameters::ohmGradPeTerm > 0) {
       Ey_NW += EGradPeGrid.get(i-1,j,k)->at(fsgrids::egradpe::EYGRADPE);
    }
-   
+
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ey_NW += +HALF*((Bz_N + HALF*dBzdx_N)*(+dmoments_NW->at(fsgrids::dmoments::dVxdx) - dmoments_NW->at(fsgrids::dmoments::dVxdz)) + dBzdx_N*Vx0 + SIXTH*dBzdy_N*dmoments_NW->at(fsgrids::dmoments::dVxdy));
       Ey_NW += -HALF*((Bx_W - HALF*dBxdz_W)*(+dmoments_NW->at(fsgrids::dmoments::dVzdx) - dmoments_NW->at(fsgrids::dmoments::dVzdz)) - dBxdz_W*Vz0 + SIXTH*dBxdy_W*dmoments_NW->at(fsgrids::dmoments::dVzdy));
    #endif
-   
+
    calculateWaveSpeedXZ(
       perBGrid,
       momentsGrid,
@@ -1080,10 +1080,10 @@ void calculateEdgeElectricFieldY(
    // Ey and characteristic speeds on i-1,k-1 neighbour:
    Vz0 = moments_NE->at(fsgrids::moments::VZ);
    Vx0 = moments_NE->at(fsgrids::moments::VX);
-   
+
    // 1st order terms:
    Real Ey_NE    = Bz_N*Vx0 - Bx_E*Vz0;
-   
+
    // Resistive term
    if (Parameters::resistivity > 0) {
       Ey_NE += Parameters::resistivity *
@@ -1103,18 +1103,18 @@ void calculateEdgeElectricFieldY(
    if(Parameters::ohmHallTerm > 0) {
       Ey_NE += EHallGrid.get(i-1,j,k-1)->at(fsgrids::ehall::EYHALL_101_111);
    }
-   
+
    // Electron pressure gradient term
    if(Parameters::ohmGradPeTerm > 0) {
       Ey_NE += EGradPeGrid.get(i-1,j,k-1)->at(fsgrids::egradpe::EYGRADPE);
    }
-   
+
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ey_NE += +HALF*((Bz_N + HALF*dBzdx_N)*(+dmoments_NE->at(fsgrids::dmoments::dVxdx) + dmoments_NE->at(fsgrids::dmoments::dVxdz)) + dBzdx_N*Vx0 + SIXTH*dBzdy_N*dmoments_NE->at(fsgrids::dmoments::dVxdy));
       Ey_NE += -HALF*((Bx_E + HALF*dBxdz_E)*(+dmoments_NE->at(fsgrids::dmoments::dVzdx) + dmoments_NE->at(fsgrids::dmoments::dVzdz)) + dBxdz_E*Vz0 + SIXTH*dBxdy_E*dmoments_NE->at(fsgrids::dmoments::dVzdy));
    #endif
-   
+
    calculateWaveSpeedXZ(
       perBGrid,
       momentsGrid,
@@ -1145,9 +1145,9 @@ void calculateEdgeElectricFieldY(
       efield_SW->at(fsgrids::efield::EY) += az_pos*az_neg/(az_pos+az_neg+EPS)*((perBx_W-HALF*dperBxdz_W) - (perBx_E+HALF*dperBxdz_E));
 #endif
    }
-   
+
    if ((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) {
-      //compute maximum timestep for fieldsolver in this cell (CFL=1)      
+      //compute maximum timestep for fieldsolver in this cell (CFL=1)
       Real min_dx=std::numeric_limits<Real>::max();;
       min_dx=min(min_dx,technicalGrid.DX);
       min_dx=min(min_dx,technicalGrid.DZ);
@@ -1159,11 +1159,11 @@ void calculateEdgeElectricFieldY(
 /*! \brief Low-level electric field propagation function.
  *
  * Computes the upwinded electric field Z component along the cell's corresponding edge as the cross product of B and V in the XY plane. Also includes the calculation of the maximally allowed time step.
- * 
+ *
  * Expects that the correct RHO and B fields are being passed, depending on the stage of the Runge-Kutta time stepping method.
- * 
+ *
  * Note that the background B field is excluded from the diffusive term calculations because they are equivalent to a current term and the background field is curl-free.
- * 
+ *
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
 void calculateEdgeElectricFieldZ(
@@ -1193,7 +1193,7 @@ void calculateEdgeElectricFieldZ(
    }
    #endif
 
-   // An edge has four neighbouring spatial cells. Calculate 
+   // An edge has four neighbouring spatial cells. Calculate
    // electric field in each of the four cells per edge.
    Real ax_pos,ax_neg;              // Max. characteristic velocities to x-direction
    Real ay_pos,ay_neg;              // Max. characteristic velocities to y-direction
@@ -1201,7 +1201,7 @@ void calculateEdgeElectricFieldZ(
    Real vA, vS, vW;                         // Alfven, sound, whistler speed
    Real maxV = 0.0;                 // Max velocity for CFL purposes
    Real c_x,c_y;                    // Characteristic speeds to xy-directions
-   
+
    // Get read-only pointers to NE,NW,SE,SW states (SW is rw, result is written there):
    std::array<Real, fsgrids::bfield::N_BFIELD> * perb_SW = perBGrid.get(i  ,j  ,k  );
    std::array<Real, fsgrids::bfield::N_BFIELD> * perb_SE = perBGrid.get(i-1,j  ,k  );
@@ -1223,9 +1223,9 @@ void calculateEdgeElectricFieldZ(
    std::array<Real, fsgrids::dperb::N_DPERB> * dperb_SE = dPerBGrid.get(i-1,j  ,k  );
    std::array<Real, fsgrids::dperb::N_DPERB> * dperb_NE = dPerBGrid.get(i-1,j-1,k  );
    std::array<Real, fsgrids::dperb::N_DPERB> * dperb_NW = dPerBGrid.get(i  ,j-1,k  );
-   
+
    std::array<Real, fsgrids::efield::N_EFIELD> * efield_SW = EGrid.get(i,j,k);
-   
+
    // Fetch needed plasma parameters/derivatives from the four cells:
    Real Bx_S, By_W, By_E, Bx_N, perBx_S, perBy_W, perBy_E, perBx_N;
    Real minRhom = std::numeric_limits<Real>::max();
@@ -1257,7 +1257,7 @@ void calculateEdgeElectricFieldZ(
                )
             )
          );
-   
+
    creal dBxdy_S = dperb_SW->at(fsgrids::dperb::dPERBxdy) + bgb_SW->at(fsgrids::bgbfield::dBGBxdy);
    creal dBxdz_S = dperb_SW->at(fsgrids::dperb::dPERBxdz) + bgb_SW->at(fsgrids::bgbfield::dBGBxdz);
    creal dBydx_W = dperb_SW->at(fsgrids::dperb::dPERBydx) + bgb_SW->at(fsgrids::bgbfield::dBGBydx);
@@ -1270,11 +1270,11 @@ void calculateEdgeElectricFieldZ(
    creal dperBxdy_N = dperb_NW->at(fsgrids::dperb::dPERBxdy);
    creal dperBydx_W = dperb_SW->at(fsgrids::dperb::dPERBydx);
    creal dperBydx_E = dperb_SE->at(fsgrids::dperb::dPERBydx);
-   
+
    // Ez and characteristic speeds on SW cell:
    // 1st order terms:
    Real Ez_SW = Bx_S*Vy0 - By_W*Vx0;
-   
+
    // Resistive term
    if (Parameters::resistivity > 0) {
      Ez_SW += Parameters::resistivity *
@@ -1289,24 +1289,24 @@ void calculateEdgeElectricFieldZ(
        physicalconstants::MU_0 *
        (dperb_SW->at(fsgrids::dperb::dPERBydx)/technicalGrid.DX - dperb_SW->at(fsgrids::dperb::dPERBxdy)/technicalGrid.DY);
    }
-   
+
    // Hall term
    if (Parameters::ohmHallTerm > 0) {
       Ez_SW += EHallGrid.get(i,j,k)->at(fsgrids::ehall::EZHALL_000_001);
    }
-   
+
    // Electron pressure gradient term
    if(Parameters::ohmGradPeTerm > 0) {
       Ez_SW += EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EZGRADPE);
    }
-   
+
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ez_SW  += +HALF*((Bx_S - HALF*dBxdy_S)*(-dmoments_SW->at(fsgrids::dmoments::dVydx) - dmoments_SW->at(fsgrids::dmoments::dVydy)) - dBxdy_S*Vy0 + SIXTH*dBxdz_S*dmoments_SW->at(fsgrids::dmoments::dVydz));
       Ez_SW  += -HALF*((By_W - HALF*dBydx_W)*(-dmoments_SW->at(fsgrids::dmoments::dVxdx) - dmoments_SW->at(fsgrids::dmoments::dVxdy)) - dBydx_W*Vx0 + SIXTH*dBydz_W*dmoments_SW->at(fsgrids::dmoments::dVxdz));
    #endif
-   
-   // Calculate maximum wave speed (fast magnetosonic speed) on SW cell. In order 
+
+   // Calculate maximum wave speed (fast magnetosonic speed) on SW cell. In order
    // to get Alfven speed we need to calculate some reconstruction coeff. for Bz:
    calculateWaveSpeedXY(
       perBGrid,
@@ -1329,7 +1329,7 @@ void calculateEdgeElectricFieldZ(
    // Ez and characteristic speeds on SE (i-1) cell:
    Vx0  = moments_SE->at(fsgrids::moments::VX);
    Vy0  = moments_SE->at(fsgrids::moments::VY);
-   
+
    // 1st order terms:
    Real Ez_SE = Bx_S*Vy0 - By_E*Vx0;
 
@@ -1347,23 +1347,23 @@ void calculateEdgeElectricFieldZ(
         physicalconstants::MU_0 *
         (dperb_SE->at(fsgrids::dperb::dPERBydx)/technicalGrid.DX - dperb_SE->at(fsgrids::dperb::dPERBxdy)/technicalGrid.DY);
    }
-   
+
    // Hall term
    if (Parameters::ohmHallTerm > 0) {
       Ez_SE += EHallGrid.get(i-1,j,k)->at(fsgrids::ehall::EZHALL_100_101);
    }
-   
+
    // Electron pressure gradient term
    if(Parameters::ohmGradPeTerm > 0) {
       Ez_SE += EGradPeGrid.get(i-1,j,k)->at(fsgrids::egradpe::EZGRADPE);
    }
-   
+
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ez_SE  += +HALF*((Bx_S - HALF*dBxdy_S)*(+dmoments_SE->at(fsgrids::dmoments::dVydx) - dmoments_SE->at(fsgrids::dmoments::dVydy)) - dBxdy_S*Vy0 + SIXTH*dBxdz_S*dmoments_SE->at(fsgrids::dmoments::dVydz));
       Ez_SE  += -HALF*((By_E + HALF*dBydx_E)*(+dmoments_SE->at(fsgrids::dmoments::dVxdx) - dmoments_SE->at(fsgrids::dmoments::dVxdy)) + dBydx_E*Vx0 + SIXTH*dBydz_E*dmoments_SE->at(fsgrids::dmoments::dVxdz));
    #endif
-   
+
    calculateWaveSpeedXY(
       perBGrid,
       momentsGrid,
@@ -1385,10 +1385,10 @@ void calculateEdgeElectricFieldZ(
    // Ez and characteristic speeds on NW (j-1) cell:
    Vx0  = moments_NW->at(fsgrids::moments::VX);
    Vy0  = moments_NW->at(fsgrids::moments::VY);
-   
+
    // 1st order terms:
    Real Ez_NW = Bx_N*Vy0 - By_W*Vx0;
-   
+
    // Resistive term
    if (Parameters::resistivity > 0) {
       Ez_NW += Parameters::resistivity *
@@ -1403,23 +1403,23 @@ void calculateEdgeElectricFieldZ(
         physicalconstants::MU_0 *
         (dperb_NW->at(fsgrids::dperb::dPERBydx)/technicalGrid.DX - dperb_NW->at(fsgrids::dperb::dPERBxdy)/technicalGrid.DY);
    }
-   
+
    // Hall term
    if(Parameters::ohmHallTerm > 0) {
       Ez_NW += EHallGrid.get(i,j-1,k)->at(fsgrids::ehall::EZHALL_010_011);
    }
-   
+
    // Electron pressure gradient term
    if(Parameters::ohmGradPeTerm > 0) {
       Ez_NW += EGradPeGrid.get(i,j-1,k)->at(fsgrids::egradpe::EZGRADPE);
    }
-   
+
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ez_NW  += +HALF*((Bx_N + HALF*dBxdy_N)*(-dmoments_NW->at(fsgrids::dmoments::dVydx) + dmoments_NW->at(fsgrids::dmoments::dVydy)) + dBxdy_N*Vy0 + SIXTH*dBxdz_N*dmoments_NW->at(fsgrids::dmoments::dVydz));
       Ez_NW  += -HALF*((By_W - HALF*dBydx_W)*(-dmoments_NW->at(fsgrids::dmoments::dVxdx) + dmoments_NW->at(fsgrids::dmoments::dVxdy)) - dBydx_W*Vx0 + SIXTH*dBydz_W*dmoments_NW->at(fsgrids::dmoments::dVxdz));
    #endif
-   
+
    calculateWaveSpeedXY(
       perBGrid,
       momentsGrid,
@@ -1432,19 +1432,19 @@ void calculateEdgeElectricFieldZ(
    );
    c_x = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
    c_y = c_x;
-   ax_neg = max(ax_neg,-Vx0 + c_x); 
+   ax_neg = max(ax_neg,-Vx0 + c_x);
    ax_pos = max(ax_pos,+Vx0 + c_x);
    ay_neg = max(ay_neg,-Vy0 + c_y);
    ay_pos = max(ay_pos,+Vy0 + c_y);
    maxV = max(maxV, calculateCflSpeed(Vx0, Vy0, vA, vS, vW));
-   
+
    // Ez and characteristic speeds on NE (i-1,j-1) cell:
    Vx0  = moments_NE->at(fsgrids::moments::VX);
    Vy0  = moments_NE->at(fsgrids::moments::VY);
-   
+
    // 1st order terms:
    Real Ez_NE = Bx_N*Vy0 - By_E*Vx0;
-   
+
    // Resistive term
    if (Parameters::resistivity > 0) {
       Ez_NE += Parameters::resistivity *
@@ -1459,23 +1459,23 @@ void calculateEdgeElectricFieldZ(
         physicalconstants::MU_0 *
         (dperb_NE->at(fsgrids::dperb::dPERBydx)/technicalGrid.DX - dperb_NE->at(fsgrids::dperb::dPERBxdy)/technicalGrid.DY);
    }
-   
+
    // Hall term
    if(Parameters::ohmHallTerm > 0) {
       Ez_NE += EHallGrid.get(i-1,j-1,k)->at(fsgrids::ehall::EZHALL_110_111);
    }
-   
+
    // Electron pressure gradient term
    if(Parameters::ohmGradPeTerm > 0) {
       Ez_NE += EGradPeGrid.get(i-1,j-1,k)->at(fsgrids::egradpe::EZGRADPE);
    }
-   
+
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ez_NE  += +HALF*((Bx_N + HALF*dBxdy_N)*(+dmoments_NE->at(fsgrids::dmoments::dVydx) + dmoments_NE->at(fsgrids::dmoments::dVydy)) + dBxdy_N*Vy0 + SIXTH*dBxdz_N*dmoments_NE->at(fsgrids::dmoments::dVydz));
       Ez_NE  += -HALF*((By_E + HALF*dBydx_E)*(+dmoments_NE->at(fsgrids::dmoments::dVxdx) + dmoments_NE->at(fsgrids::dmoments::dVxdy)) + dBydx_E*Vx0 + SIXTH*dBydz_E*dmoments_NE->at(fsgrids::dmoments::dVxdz));
    #endif
-   
+
    calculateWaveSpeedXY(
       perBGrid,
       momentsGrid,
@@ -1507,7 +1507,7 @@ void calculateEdgeElectricFieldZ(
       efield_SW->at(fsgrids::efield::EZ) += ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*((perBy_W-HALF*dperBydx_W) - (perBy_E+HALF*dperBydx_E));
 #endif
    }
-   
+
    if ((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) {
       //compute maximum timestep for fieldsolver in this cell (CFL=1)
       Real min_dx=std::numeric_limits<Real>::max();;
@@ -1519,9 +1519,9 @@ void calculateEdgeElectricFieldZ(
 }
 
 /*! \brief Electric field propagation function.
- * 
+ *
  * Calls the general or the system boundary electric field propagation functions.
- * 
+ *
  * \param perBGrid fsGrid holding the perturbed B quantities
  * \param EGrid fsGrid holding the electric field
  * \param EHallGrid fsGrid holding the Hall contributions to the electric field
@@ -1534,9 +1534,9 @@ void calculateEdgeElectricFieldZ(
  * \param i,j,k fsGrid cell coordinates for the current cell
  * \param sysBoundaries System boundary conditions existing
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
- * 
+ *
  * \sa calculateUpwindedElectricFieldSimple calculateEdgeElectricFieldX calculateEdgeElectricFieldY calculateEdgeElectricFieldZ
- * 
+ *
  */
 void calculateElectricField(
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
@@ -1555,11 +1555,11 @@ void calculateElectricField(
    cint& RKCase
 ) {
    cuint cellSysBoundaryFlag = technicalGrid.get(i,j,k)->sysBoundaryFlag;
-   
+
    if (cellSysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) return;
-   
+
    cuint bitfield = technicalGrid.get(i,j,k)->SOLVE;
-   
+
    if ((bitfield & compute::EX) == compute::EX) {
       calculateEdgeElectricFieldX(
          perBGrid,
@@ -1579,7 +1579,7 @@ void calculateElectricField(
    } else {
       sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 0);
    }
-   
+
    if ((bitfield & compute::EY) == compute::EY) {
       calculateEdgeElectricFieldY(
          perBGrid,
@@ -1599,7 +1599,7 @@ void calculateElectricField(
    } else {
       sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 1);
    }
-   
+
    if ((bitfield & compute::EZ) == compute::EZ) {
       calculateEdgeElectricFieldZ(
          perBGrid,
@@ -1622,9 +1622,9 @@ void calculateElectricField(
 }
 
 /*! \brief High-level electric field computation function.
- * 
+ *
  * Transfers the derivatives, calculates the edge electric fields and transfers the new electric fields.
- * 
+ *
  * \param perBGrid fsGrid holding the perturbed B quantities at runge-kutta t=0
  * \param perBDt2Grid fsGrid holding the perturbed B quantities at runge-kutta t=0.5
  * \param EGrid fsGrid holding the Electric field quantities at runge-kutta t=0
@@ -1639,7 +1639,7 @@ void calculateElectricField(
  * \param technicalGrid fsGrid holding technical information (such as boundary types)
  * \param sysBoundaries System boundary conditions existing
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
- * 
+ *
  * \sa calculateElectricField calculateEdgeElectricFieldX calculateEdgeElectricFieldY calculateEdgeElectricFieldZ
  */
 void calculateUpwindedElectricFieldSimple(
@@ -1663,7 +1663,7 @@ void calculateUpwindedElectricFieldSimple(
    const int* gridDims = &technicalGrid.getLocalSize()[0];
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
    phiprof::Timer upwindedETimer {"Calculate upwinded electric field"};
-   
+
    phiprof::Timer mpiTimer {"MPI", {"MPI"}};
    // Update ghosts if necessary, unless previous terms have already updated them
    if(P::ohmHallTerm > 0) {
@@ -1678,9 +1678,9 @@ void calculateUpwindedElectricFieldSimple(
    if(P::ohmHallTerm == 0 && P::ohmGradPeTerm == 0) {
       dMomentsGrid.updateGhostCells();
    }
-   
+
    mpiTimer.stop();
-   
+
    // Calculate upwinded electric field on inner cells
    phiprof::Timer computeTimer {"Compute cells"};
    #pragma omp parallel for collapse(3)
@@ -1726,15 +1726,15 @@ void calculateUpwindedElectricFieldSimple(
       }
    }
    computeTimer.stop(N_cells,"Spatial Cells");
-   
+
    mpiTimer.start();
    // Exchange electric field with neighbouring processes
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       EGrid.updateGhostCells();
-   } else { 
+   } else {
       EDt2Grid.updateGhostCells();
    }
    mpiTimer.stop();
-   
+
    upwindedETimer.stop(N_cells,"Spatial Cells");
 }

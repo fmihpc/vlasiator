@@ -22,18 +22,18 @@
 
 /*! \file vlsvdiff.cpp
  * \brief Tool to compare VLSV files.
- * 
+ *
  * Tool to compare two VLSV files, two folders with the same number of VLSV files or a folder to a reference file.
  * The tool assumes the files have a name syntax 'grid\.[0-9]+\.vlsv'. It takes four arguments.
- * 
+ *
  * Calling patterns are:
- * 
+ *
  * "$ vlsvdiff <file1> <file2> <Variable> <component>": Gives single-file statistics and distances between the two files given, for the variable and component given
- 
+
  * "$ vlsvdiff --diff --meshname=<Meshname> <file1> <file2> <Variable> <component>": Gives single-file statistics and distances between the two files given, for the variable and component given
- * 
+ *
  * "$ vlsvdiff <folder1> <folder2> <Variable> <component>": Gives single-file statistics and distances between pairs of files grid*.vlsv taken in alphanumeric order in the two folders given, for the variable and component given
- * 
+ *
  * "$ vlsvdiff <file1> <folder2> <Variable> <component>" or "$ vlsvdiff <folder1> <file2> <Variable> <component>": Gives single-file statistics and distances between a file, and files grid*.vlsv taken in alphanumeric order in the given folder, for the variable and component given
  */
 
@@ -63,13 +63,13 @@ using namespace std;
 using namespace vlsv;
 
 // Command line option,value pairs are parsed and stored to map attributes.
-// The key is the option name, and the value is the value. For example, 
-// "vlsvdiff --meshname=plaa" would cause 'attributes["meshname"]' to be 
+// The key is the option name, and the value is the value. For example,
+// "vlsvdiff --meshname=plaa" would cause 'attributes["meshname"]' to be
 // equal to 'plaa'.
 static map<string,string> attributes;
 
 //Global enum and variable
-static int gridName; 
+static int gridName;
 enum gridType{
    SpatialGrid,
    fsgrid,
@@ -141,7 +141,7 @@ bool copyArray(vlsv::Reader& input,vlsv::Writer& output,
    const uint64_t datasize = atol(it->second.c_str());
    it = outputAttribs.find("datatype"); if (it == outputAttribs.end()) return false;
    const string datatype = it->second;
-   
+
    const size_t bytes = arraysize*vectorsize*datasize;
 
    // Read values from input file
@@ -157,7 +157,7 @@ bool copyArray(vlsv::Reader& input,vlsv::Writer& output,
       cerr << "ERROR: Failed to write array '" << tagName << "' in " << __FILE__ << ":" << __LINE__ << endl;
       success = false;
    }
-   
+
    delete [] ptr; ptr = NULL;
    return success;
 }
@@ -168,7 +168,7 @@ bool HandleFsGrid(const string& inputFileName,
                   vlsv::Writer& output,
                   std::map<uint, Real> orderedData)
 {
-   
+
 
    //Open input file
   vlsv::Reader input;
@@ -228,11 +228,11 @@ bool HandleFsGrid(const string& inputFileName,
    for (const auto iter : orderedData){
       globalIds.push_back( iter.first   );
    }
-   
+
    //Write to file
    output.writeArray("MESH",patch,arraysize,1,&globalIds[0]);
 
-   
+
    //Now for MESH_DOMAIN_SIZES
    inputAttribs.clear();
    inputAttribs.push_back(make_pair("mesh","fsgrid"));
@@ -246,8 +246,8 @@ bool HandleFsGrid(const string& inputFileName,
       }
       return false;
    }
-   
-   
+
+
    //Read some attributes we need and parse to our map
    it = outputAttribs.find("datasize"); if (it == outputAttribs.end()) return false;
    const uint64_t  datasize2 = atol(it->second.c_str());
@@ -255,14 +255,14 @@ bool HandleFsGrid(const string& inputFileName,
    const string  datatype2 = it->second;
    it = outputAttribs.find("vectorsize"); if (it == outputAttribs.end()) return false;
    const uint64_t vectorsize2 = atol(it->second.c_str());
-   
+
    patch.clear();
    patch["arraysize"]="1";
    patch["datasize"]=to_string(datasize2);
    patch["datatype"]=datatype2;
    patch["mesh"]="fsgrid";
    patch["vectorsize"]=to_string(vectorsize2);
-   
+
    //Override MESH_DOMAIN_SIZES
    std::array<uint64_t,2> meshDomainSize({globalIds.size(), 0});
    output.writeArray("MESH_DOMAIN_SIZES",patch ,1,vectorsize2, &meshDomainSize[0]);
@@ -284,13 +284,13 @@ bool HandleFsGrid(const string& inputFileName,
  * @return If true, the mesh was successfully cloned.*/
 bool cloneMesh(const string& inputFileName,vlsv::Writer& output,const string& meshName, std::map<uint, Real> orderedData) {
    bool success = true;
-            
+
    vlsv::Reader input;
    if (input.open(inputFileName) == false) {
       cerr << "ERROR failed to open input file '" << inputFileName << "' in " << __FILE__ << ":" << __LINE__ << endl;
       return false;
    }
-   
+
    list<pair<string,string> > inputAttribs;
    inputAttribs.push_back(make_pair("name",meshName));
    inputAttribs.clear();
@@ -301,14 +301,14 @@ bool cloneMesh(const string& inputFileName,vlsv::Writer& output,const string& me
    if (copyArray(input,output,"MESH_NODE_CRDS_X",inputAttribs, meshName == "ionosphere") == false) success = false;
    if (copyArray(input,output,"MESH_NODE_CRDS_Y",inputAttribs, meshName == "ionosphere") == false) success = false;
    if (copyArray(input,output,"MESH_NODE_CRDS_Z",inputAttribs, meshName == "ionosphere") == false) success = false;
-   
+
    // Or they have per-node coordinate arrays (for unstructured meshes)
    if (copyArray(input,output,"MESH_NODE_CRDS",inputAttribs, meshName != "ionosphere") == false) success = false;
    if (copyArray(input,output,"MESH_OFFSETS",inputAttribs, meshName != "ionosphere") == false) success = false;
 
    if (copyArray(input,output,"MESH_GHOST_LOCALIDS",inputAttribs, meshName == "ionosphere") == false) success = false;
    if (copyArray(input,output,"MESH_GHOST_DOMAINS",inputAttribs, meshName == "ionosphere") == false) success = false;
-   
+
    //Only do this if we diff SpatialGrid data
    if (gridName==gridType::SpatialGrid || gridName==gridType::ionosphere){
       if (copyArray(input,output,"MESH_DOMAIN_SIZES",inputAttribs) == false) success = false;
@@ -373,8 +373,8 @@ bool cloneMesh(const string& inputFileName,vlsv::Writer& output,const string& me
                if( i * j * k > nProcs )
                   break;
                processBox[2] = std::max(systemDim[2]/k, 1.0);
-               double value = 
-                  10 * processBox[0] * processBox[1] * processBox[2] + 
+               double value =
+                  10 * processBox[0] * processBox[1] * processBox[2] +
                   (i > 1 ? processBox[1] * processBox[2]: 0) +
                   (j > 1 ? processBox[0] * processBox[2]: 0) +
                   (k > 1 ? processBox[0] * processBox[1]: 0);
@@ -421,7 +421,7 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
    }
    bool meshSuccess = true;
    bool variableSuccess = true;
-   
+
    datatype::type meshDataType;
    datatype::type variableDataType;
    uint64_t meshArraySize, meshVectorSize, meshDataSize;
@@ -475,7 +475,7 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
                const uint64_t & startingReadIndex = i;
                if (vlsvReader.readArray("VARIABLE", variableAttributes, startingReadIndex, amountToReadIn, variableBuffer.data()) == false) {
                   cerr << "ERROR, failed to read variable '" << _varToExtract << "' at " << __FILE__ << " " << __LINE__ << endl;
-                  variableSuccess = false; 
+                  variableSuccess = false;
                   break;
                }
                // Get the CellID
@@ -507,7 +507,7 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
             }
          }
          break;
- 
+
       case gridType::fsgrid:
 
          {
@@ -575,7 +575,7 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
                if ( variableDataSize==sizeof(Real)){
                   if (vlsvReader.readArray("VARIABLE", variableAttributes, readOffset, readSize,  (char*)buffer.data()) == false) {
                      cerr << "ERROR, failed to read variable '" << _varToExtract << "' at " << __FILE__ << " " << __LINE__ << endl;
-                     variableSuccess = false; 
+                     variableSuccess = false;
                      break;
                   }
                }else{
@@ -632,16 +632,16 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
             abort();
          }
          orderedData->clear();
-         
+
          switch(variableDataType) {
-            case datatype::type::FLOAT: 
+            case datatype::type::FLOAT:
                {
-                  if(variableDataSize == sizeof(double)) { 
+                  if(variableDataSize == sizeof(double)) {
                      std::vector<double> buffer(variableVectorSize * variableArraySize);
                      // The mesh is simply one big blob that can be read in one go.
                      if(vlsvReader.readArray("VARIABLE", variableAttributes, 0, variableArraySize, (char*)buffer.data()) == false) {
                         cerr << "ERROR, failed to read variable '" << _varToExtract << "' at " << __FILE__ << " " << __LINE__ << endl;
-                        variableSuccess = false; 
+                        variableSuccess = false;
                         break;
                      }
 
@@ -653,7 +653,7 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
                      // The mesh is simply one big blob that can be read in one go.
                      if(vlsvReader.readArray("VARIABLE", variableAttributes, 0, variableArraySize, (char*)buffer.data()) == false) {
                         cerr << "ERROR, failed to read variable '" << _varToExtract << "' at " << __FILE__ << " " << __LINE__ << endl;
-                        variableSuccess = false; 
+                        variableSuccess = false;
                         break;
                      }
 
@@ -700,7 +700,7 @@ bool convertSILO(const string fileName,
    bool success = true;
 
    // Open VLSV file for reading:
-   T vlsvReader;   
+   T vlsvReader;
 
    if (vlsvReader.open(fileName) == false) {
       cerr << "Failed to open '" << fileName << "'" << endl;
@@ -723,7 +723,7 @@ bool convertSILO(const string fileName,
 
       if (convertMesh(vlsvReader, *it, varToExtract, compToExtract, orderedData, cellOrder, storeCellOrder) == false) {
          return false;
-      }      
+      }
    }
    vlsvReader.close();
    return success;
@@ -741,7 +741,7 @@ bool shiftAverage(const map<uint, Real>* const orderedData1,
    map<uint, Real>::const_iterator it1, it2;
    Real avg1 = 0.0;
    Real avg2 = 0.0;
-   
+
    for(it1=orderedData1->begin(), it2=orderedData2->begin();
        it1 != orderedData1->end(), it2 != orderedData2->end();
        it1++, it2++)
@@ -751,37 +751,37 @@ bool shiftAverage(const map<uint, Real>* const orderedData1,
    }
    avg1 /= orderedData1->size();
    avg2 /= orderedData1->size();
-   
+
    for(it2=orderedData2->begin(); it2 != orderedData2->end(); it2++)
    {
       shiftedData2->insert(pair<uint, Real>(it2->first, it2->second - avg2 + avg1));
    }
-   
+
    return 0;
 }
 
 /*! Compute the absolute and relative \f$ p \f$-distance between two datasets X(x) provided in the maps orderedData1 and orderedData2. Note that the dataset passed in orderedData1 will be taken as the reference dataset both when shifting averages and when computing relative distances.
- * 
+ *
  * For \f$ p \neq 0 \f$:
- * 
+ *
  * absolute \f$ p \f$-distance defined as:
- * 
+ *
  * \f$ \|X_1 - X_2\|_p = \left[\sum_i |X_1(i) - X_2(i)|^p\right]^{1/p}\f$,
- * 
+ *
  * relative \f$ p \f$-distance defined as:
- * 
+ *
  * \f$ \|X_1 - X_2\|_p = \left[\sum_i |X_1(i) - X_2(i)|^p\right]^{1/p} / \|X_1\|_p \f$.
- * 
+ *
  * For \f$ p = 0 \f$ it is the \f$ \infty \f$-distance:
- * 
+ *
  * absolute \f$ \infty \f$-distance defined as:
- * 
+ *
  * \f$ \|X_1 - X_2\|_\infty = \max_i\left(|X_1(i) - X_2(i)|\right)\f$
- * 
+ *
  * relative \f$ \infty \f$-distance defined as:
- * 
+ *
  * \f$ \|X_1 - X_2\|_\infty = \max_i\left(|X_1(i) - X_2(i)|\right) / \|X_1\|_\infty \f$
- * 
+ *
  * \param orderedData1 Pointer to the first file's data map
  * \param orderedData2 Pointer to the second file's data map
  * \param p Parameter of the distance formula
@@ -802,7 +802,7 @@ bool pDistance(const map<uint, Real>& orderedData1,
                const std::string& varName
               ) {
    map<uint,Real> shiftedData2;
-   map<uint,Real>* data2 = const_cast< map<uint,Real>* >(&orderedData2);   
+   map<uint,Real>* data2 = const_cast< map<uint,Real>* >(&orderedData2);
 
    if (doShiftAverage == true) {
       shiftAverage(&orderedData1,&orderedData2,&shiftedData2);
@@ -825,13 +825,13 @@ bool pDistance(const map<uint, Real>& orderedData1,
             value = abs(it1->second - it2->second);
             *absolute = max(*absolute, value);
             length    = max(length, abs(it1->second));
-         
+
             }
-         if (gridName==gridType::SpatialGrid){  
+         if (gridName==gridType::SpatialGrid){
             array[cellOrder.at(it1->first)] = value;
-         }else if (gridName==gridType::fsgrid || gridName==gridType::ionosphere) {   
+         }else if (gridName==gridType::fsgrid || gridName==gridType::ionosphere) {
             array.at(it1->first)=value;
-         }  
+         }
       }
    } else if (p == 1) {
       for (map<uint,Real>::const_iterator it1=orderedData1.begin(); it1!=orderedData1.end(); ++it1) {
@@ -841,13 +841,13 @@ bool pDistance(const map<uint, Real>& orderedData1,
             value = abs(it1->second - it2->second);
             *absolute += value;
             length    += abs(it1->second);
-         
+
             }
-         if (gridName==gridType::SpatialGrid){  
+         if (gridName==gridType::SpatialGrid){
             array[cellOrder.at(it1->first)] = value;
-         }else if (gridName==gridType::fsgrid || gridName==gridType::ionosphere) {   
+         }else if (gridName==gridType::fsgrid || gridName==gridType::ionosphere) {
             array[it1->first]=value;
-         }  
+         }
       }
    } else {
       for (map<uint,Real>::const_iterator it1=orderedData1.begin(); it1!=orderedData1.end(); ++it1) {
@@ -857,13 +857,13 @@ bool pDistance(const map<uint, Real>& orderedData1,
             value = pow(abs(it1->second - it2->second), p);
             *absolute += value;
             length    += pow(abs(it1->second), p);
-         
+
             }
-         if (gridName==gridType::SpatialGrid){  
+         if (gridName==gridType::SpatialGrid){
             array[cellOrder.at(it1->first)] = pow(value,1.0/p);
-         }else if (gridName==gridType::fsgrid || gridName==gridType::ionosphere) {   
+         }else if (gridName==gridType::fsgrid || gridName==gridType::ionosphere) {
             array[it1->first]=pow(value,1.0/p);
-         }  
+         }
       }
       *absolute = pow(*absolute, 1.0 / p);
       length = pow(length, 1.0 / p);
@@ -922,7 +922,7 @@ bool outputDistance(const Real p,
    } else {
       static vector<Real> fileOutputData;
       static uint fileNumber = 0;
-      
+
       if(lastCall == true) {
          vector<Real>::const_iterator it;
          for(it = fileOutputData.begin(); it != fileOutputData.end(); it++) {
@@ -931,7 +931,7 @@ bool outputDistance(const Real p,
          fileOutputData.clear();
          return 0;
       }
-      
+
       fileOutputData.push_back(*absolute);
       fileOutputData.push_back(*relative);
    }
@@ -957,13 +957,13 @@ bool singleStatistics(map<uint, Real> * orderedData,
     * Returns basic statistics on the map passed to it.
     */
    map<uint, Real>::const_iterator it;
-   
+
    *size = orderedData->size();
    *mini = numeric_limits<Real>::max();
    *maxi = numeric_limits<Real>::min();
    *avg = 0.0;
    *stdev = 0.0;
-   
+
    for(it=orderedData->begin(); it != orderedData->end() ; it++)
    {
       *mini = min(*mini, orderedData->at(it->first));
@@ -1011,7 +1011,7 @@ bool outputStats(const Real * size,
    {
       static uint fileNumber = 0;
       static vector<Real> pairStats;
-      
+
       if(lastCall == true)
       {
          vector<Real>::const_iterator it;
@@ -1022,7 +1022,7 @@ bool outputStats(const Real * size,
          pairStats.clear();
          return 0;
       }
-      
+
       if(fileNumber%2 == 0)
       {
          pairStats.push_back(fileNumber / 2 + 1);
@@ -1072,12 +1072,12 @@ bool printNonVerboseData()
               endl;
       header = false;
    }
-   
+
    // Data
    // last argument (lastCall) is true to get the output of the whole stored dataset
    outputStats(NULL, NULL, NULL, NULL, NULL, false, true);
    outputDistance(0, NULL, NULL, false, false, true);
-   
+
    return 0;
 }
 
@@ -1167,7 +1167,7 @@ template <class T>
 bool readAvgs( T & vlsvReader,
                string name,
                const unordered_map<uint64_t, pair<uint64_t, uint32_t>> & cellsWithBlocksLocations,
-               const uint64_t & cellId, 
+               const uint64_t & cellId,
                unordered_map<uint32_t, array<double, 64> > & avgs ) {
    // Get the block ids:
    vector<uint32_t> blockIds;
@@ -1180,7 +1180,7 @@ bool readAvgs( T & vlsvReader,
    datatype::type dataType;
    uint64_t arraySize, vectorSize, dataSize;
    if (vlsvReader.getArrayInfo("BLOCKVARIABLE", attribs, arraySize, vectorSize, dataType, dataSize) == false) {
-      //no 
+      //no
 //      cerr << "ERROR READING BLOCKVARIABLE AT " << __FILE__ << " " << __LINE__ << endl;
       return false;
    }
@@ -1243,7 +1243,7 @@ bool readAvgs( T & vlsvReader,
 }
 
 template <class T>
-bool getCellsWithBlocksLocations( T & vlsvReader, 
+bool getCellsWithBlocksLocations( T & vlsvReader,
                                   unordered_map<uint64_t, pair<uint64_t, uint32_t>> & cellsWithBlocksLocations ) {
    if(cellsWithBlocksLocations.empty() == false) {
       cellsWithBlocksLocations.clear();
@@ -1287,7 +1287,7 @@ bool getCellsWithBlocksLocations( T & vlsvReader,
    }
 
    vlsv::datatype::type nb_dataType;
-   uint64_t nb_arraySize, nb_vectorSize, nb_dataSize;  
+   uint64_t nb_arraySize, nb_vectorSize, nb_dataSize;
 
    //Get the mesh name for reading in data from the correct place
    //Read array info -- stores output in nb_arraySize, nb_vectorSize, nb_dataType, nb_dataSize
@@ -1404,14 +1404,14 @@ bool compareAvgs( const string fileName1,
             return false;
          }
       }
-      
+
       if( readAvgs( vlsvReader2, "proton", cellsWithBlocksLocations2, cellId2, avgs2 ) == false ) {
          if( readAvgs( vlsvReader2, "avgs", cellsWithBlocksLocations2, cellId2, avgs2 ) == false ) {
             cerr << "ERROR, FAILED TO READ AVGS AT " << __FILE__ << " " << __LINE__ << endl;
             return false;
          }
       }
-   
+
       //Compare the avgs values:
       // First make a check on how many of the block ids are identical:
       const size_t sizeOfAvgs1 = avgs1.size();
@@ -1438,7 +1438,7 @@ bool compareAvgs( const string fileName1,
       // Separate block ids into two categories -- the ones that blockids1 and blockids2 share and ones that only one of them shares
       vector<uint32_t> identicalBlockIds;
       vector<uint32_t> nonIdenticalBlockIds;
-   
+
       while( true ) {
          if( it1 == blockIds1.end() || it2 == blockIds2.end() ) {
             // Reach end of block ids
@@ -1485,12 +1485,12 @@ bool compareAvgs( const string fileName1,
             double val2=avgsValues2[i]>threshold?avgsValues2[i]:threshold;
             if(avgsValues1[i]>threshold || avgsValues2[i]>threshold)
                numOfRelevantCells++;
-            
+
             avgsDiffs.push_back( abs(val1 - val2) );
             totalAbsAvgs += (abs(val1) + abs(val2));
             totalAbsDiff +=  abs(val1 - val2);
             totalAbsLog10Diff += abs(log10(val1) - log10(val2));
-            
+
          }
       }
       // Compare the avgs values of nonidentical blocks:
@@ -1501,7 +1501,7 @@ bool compareAvgs( const string fileName1,
       for( vector<uint32_t>::const_iterator it = nonIdenticalBlockIds.begin(); it != nonIdenticalBlockIds.end(); ++it ) {
          // Get the block id
          const uint32_t blockId = *it;
-         // Get avgs values: 
+         // Get avgs values:
 
          const array<double, velocityCellsPerBlock> * avgsValues1;
          const array<double, velocityCellsPerBlock> * avgsValues2;
@@ -1525,7 +1525,7 @@ bool compareAvgs( const string fileName1,
             double val2=avgsValues2->operator[](i)>threshold?avgsValues2->operator[](i):threshold;
             if( avgsValues1->operator[](i)>threshold || avgsValues2->operator[](i)>threshold)
                numOfRelevantCells++;
-            
+
             avgsDiffs.push_back( abs(val1 - val2) );
             totalAbsAvgs += (abs(val1) + abs(val2));
             totalAbsDiff +=  abs(val1 - val2);
@@ -1548,7 +1548,7 @@ bool compareAvgs( const string fileName1,
          minDiff = *it;
       }
    }
-   
+
    const double relativeSumDiff = sumDiff / totalAbsAvgs;
    cout << "File names: " << fileName1 << " & " << fileName2 << endl <<
       "NonIdenticalBlocks:      " << numOfNonIdenticalBlocks << endl <<
@@ -1558,7 +1558,7 @@ bool compareAvgs( const string fileName1,
       "Max-Absolute-Error:      " << maxDiff << endl <<
       "Absolute-log-Error:      " << totalAbsLog10Diff << endl <<
       "Mean-Absolute-log-Error: " << totalAbsLog10Diff / numOfRelevantCells << endl;
-   
+
 
    return true;
 }
@@ -1594,7 +1594,7 @@ bool process2Files(const string fileName1,
       if( compareAvgs<vlsvinterface::Reader, vlsvinterface::Reader>(fileName1, fileName2, verboseOutput, cellIds1, cellIds2) == false ) { return false; }
    } else {
       unordered_map<size_t,size_t> cellOrder;
-   
+
       bool success = true;
       success = convertSILO<vlsvinterface::Reader>(fileName1, varToExtract, compToExtract, &orderedData1, cellOrder, true);
 
@@ -1608,7 +1608,7 @@ bool process2Files(const string fileName1,
       if( success == false ) {
          cerr << "ERROR Data import error with " << fileName2 << endl;
          return 1;
-      }   
+      }
 
       // Basic consistency check
       if(orderedData1.size() != orderedData2.size()) {
@@ -1626,7 +1626,7 @@ bool process2Files(const string fileName1,
          if (outputFileName[0] == '.' && outputFileName[1] == '/') {
             outputFileName = outputFileName.substr(2,string::npos);
          }
-         
+
          for (size_t s=0; s<outputFileName.size(); ++s)
            if (outputFileName[s] == '/') outputFileName[s] = '_';
 
@@ -1667,13 +1667,13 @@ bool process2Files(const string fileName1,
 
       outputFile.close();
    }
-   
+
    if(verboseOutput == false)
    {
       printNonVerboseData();
       cout << endl;
    }
-   
+
    return 0;
 }
 
@@ -1683,7 +1683,7 @@ bool process2Files(const string fileName1,
  */
 bool processDirectory(DIR* dir, set<string>* fileList) {
    int filesFound = 0, entryCounter = 0;
-   
+
    const string mask = attributes["--filemask"];
    const string suffix = ".vlsv";
 
@@ -1699,7 +1699,7 @@ bool processDirectory(DIR* dir, set<string>* fileList) {
       entry = readdir(dir);
    }
    if (filesFound == 0) cout << "INFO no matches found" << endl;
-   
+
    return 0;
 }
 
@@ -1708,38 +1708,38 @@ void printHelp(const map<string,string>& defAttribs,const map<string,string>& de
    cout << "VLSVDIFF command line attributes are given as option=value pairs, value can be empty." << endl;
    cout << "If the default value is 'unset', then giving the option in the command line turns it on." << endl;
    cout << "For example, \"vlsvdiff --help\" displays this message and the option '--help' does not have a value." << endl << endl;
-   
+
    cout << "Known attributes and default values are:" << endl;
    for (map<string,string>::const_iterator it=defAttribs.begin(); it!=defAttribs.end(); ++it) {
       cout << endl;
       const size_t optionWidth   = 30;
       const size_t descrMaxWidth = 120;
-      
+
       // Print the option,value pair so that the field width is always 30 characters
       string option = it->first;
       if (it->second.size() > 0) option = option + "=" + it->second;
       else option = option + " (unset)";
-      
+
       if (option.size() < optionWidth) {
          size_t padding = optionWidth-option.size();
          for (size_t i=0; i<padding; ++i) option = option + ' ';
       }
       cout << option;
-      
+
       // Print the description, possibly on multiple lines.
       map<string,string>::const_iterator descr = descriptions.find(it->first);
       if (descr == descriptions.end()) {
          cout << "(no description given)" << endl;
          continue;
       }
-      
+
       // If the description fits in the first line, print it and continue
       if (descr->second.size() <= descrMaxWidth-optionWidth) {
          cout << descr->second << endl;
          continue;
       }
 
-      // Print the description on multiple lines. First parse the description 
+      // Print the description on multiple lines. First parse the description
       // string and store each word to a vector.
       vector<string> text;
       size_t i=0;
@@ -1750,7 +1750,7 @@ void printHelp(const map<string,string>& defAttribs,const map<string,string>& de
          i = i_space+1;
       }
 
-      // Write out the words in vector 'text' so that the length of any line 
+      // Write out the words in vector 'text' so that the length of any line
       // does not exceed descrMaxWidth characters.
       i = optionWidth;
       for (size_t s=0; s<text.size(); ++s) {
@@ -1761,7 +1761,7 @@ void printHelp(const map<string,string>& defAttribs,const map<string,string>& de
             cout << endl;
             for (unsigned int j=0; j<optionWidth; ++j) cout << ' ';
             i = optionWidth;
-            
+
             cout << text[s] << ' ';
             i += text[s].size()+1;
          }
@@ -1772,7 +1772,7 @@ void printHelp(const map<string,string>& defAttribs,const map<string,string>& de
 }
 
 /*! Main function, detects which calling pattern is used and sends to the corresponding processing functions.
- * 
+ *
  * \sa process2Files processDirectory
  */
 int main(int argn,char* args[]) {
@@ -1875,10 +1875,10 @@ int main(int argn,char* args[]) {
    } else {
       compToExtract2 = compToExtract;
    }
-   
+
 
    //Figure out Meshname
-   if (attributes["--meshname"] == "SpatialGrid") { 
+   if (attributes["--meshname"] == "SpatialGrid") {
       gridName=gridType::SpatialGrid ;
    }else if (attributes["--meshname"]=="fsgrid"){
       gridName=gridType::fsgrid ;
@@ -1898,11 +1898,11 @@ int main(int argn,char* args[]) {
 
    if (dir1 == NULL && dir2 == NULL) {
       cout << "INFO Reading in two files." << endl;
-      
+
       // Process two files with verbose output (last argument true)
       process2Files(fileName1, fileName2, varToExtract, compToExtract, true, compToExtract2);
       //CONTINUE
-      
+
       closedir(dir1);
       closedir(dir2);
    }
@@ -1940,18 +1940,18 @@ int main(int argn,char* args[]) {
       // Process two folders, files of the same rank compared, first folder is reference in relative distances
       cout << "#INFO Reading in two directories." << endl;
       set<string> fileList1, fileList2;
-      
+
       // Produce a sorted file list
       processDirectory(dir1, &fileList1);
       processDirectory(dir2, &fileList2);
-      
+
       // Basic consistency check
       if(fileList1.size() != fileList2.size())
       {
          cerr << "ERROR Folders have different number of files." << endl;
          return 1;
       }
-      
+
       set<string>::iterator it1, it2;
       for(it1 = fileList1.begin(), it2 = fileList2.begin();
           it1 != fileList2.end(), it2 != fileList2.end();
@@ -1961,7 +1961,7 @@ int main(int argn,char* args[]) {
       process2Files(fileName1 + "/" + *it1,
                     fileName2 + "/" + *it2, varToExtract, compToExtract, false, compToExtract2);
       }
-      
+
       closedir(dir1);
       closedir(dir2);
    }

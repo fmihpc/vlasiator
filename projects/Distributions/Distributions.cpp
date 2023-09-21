@@ -135,17 +135,17 @@ namespace projects {
       creal scaledVx1 = this->Vx[1] * relx;
       creal scaledVy1 = this->Vy[1] * rely;
       creal scaledVz1 = this->Vz[1] * relz;
-      
+
       value += this->rhoRnd[0] * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B ), 1.5) * 1.0 / sqrt(this->Tx[0]*this->Ty[0]*this->Tz[0]) *
       exp(-physicalconstants::MASS_PROTON * (pow(vx - this->Vx[0], 2.0) / (2.0 * physicalconstants::K_B * this->Tx[0]) + pow(vy - this->Vy[0], 2.0) / (2.0 * physicalconstants::K_B * this->Ty[0]) + pow(vz - this->Vz[0], 2.0) / (2.0 * physicalconstants::K_B * this->Tz[0])));
-      
+
       value += this->rhoRnd[1] * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B ), 1.5) * 1.0 / sqrt(this->Tx[1]*this->Ty[1]*this->Tz[1]) *
       exp(-physicalconstants::MASS_PROTON * (pow(vx - scaledVx1, 2.0) / (2.0 * physicalconstants::K_B * this->Tx[1]) + pow(vy - scaledVy1, 2.0) / (2.0 * physicalconstants::K_B * this->Ty[1]) + pow(vz - scaledVz1, 2.0) / (2.0 * physicalconstants::K_B * this->Tz[1])));
-      
+
       return value;
    }
 
-   Real Distributions::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {   
+   Real Distributions::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
       return getDistribValue(x+0.5*dx, y+0.5*dy,z+0.5*dz,vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, popID);
    }
 
@@ -165,12 +165,12 @@ namespace projects {
       bgField.initialize(this->Bx,
                          this->By,
                          this->Bz);
-      
+
       setBackgroundField(bgField, BgBGrid);
-      
+
       if(!P::isRestart) {
          const auto localSize = BgBGrid.getLocalSize().data();
-         
+
 #pragma omp parallel for collapse(3)
          for (int x = 0; x < localSize[0]; ++x) {
             for (int y = 0; y < localSize[1]; ++y) {
@@ -178,9 +178,9 @@ namespace projects {
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
                   const int64_t cellid = perBGrid.GlobalIDForCoords(x, y, z);
                   const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
-                  
+
                   setRandomSeed(cellid);
-                  
+
                   if (this->lambda != 0.0) {
                      cell->at(fsgrids::bfield::PERBX) = this->dBx*cos(2.0 * M_PI * xyz[0] / this->lambda);
                      cell->at(fsgrids::bfield::PERBY) = this->dBy*sin(2.0 * M_PI * xyz[0] / this->lambda);
@@ -195,7 +195,7 @@ namespace projects {
          }
       }
    }
-   
+
    vector<std::array<Real, 3>> Distributions::getV0(
       creal x,
       creal y,
@@ -215,5 +215,5 @@ namespace projects {
       centerPoints.push_back(point1);
       return centerPoints;
    }
-   
+
 }// namespace projects

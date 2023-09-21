@@ -57,7 +57,7 @@ void VectorDipole::initialize(const double moment,const double center_x, const d
 
 
 double VectorDipole::operator()( double x, double y, double z, coordinate component, unsigned int derivative, coordinate dcomponent) const {
-   const double minimumR=1e-3*physicalconstants::R_E; //The dipole field is defined to be outside of Earth, and units are in meters     
+   const double minimumR=1e-3*physicalconstants::R_E; //The dipole field is defined to be outside of Earth, and units are in meters
    if(this->initialized==false)
       return 0.0;
    double r[3];
@@ -71,11 +71,11 @@ double VectorDipole::operator()( double x, double y, double z, coordinate compon
    if(r2<minimumR*minimumR)
       //  r2=minimumR*minimumR;
       return 0.0; //set zero field inside dipole
-   
+
    if(r[0]>=xlimit[1]){
       //set zero or IMF field and derivatives outside "zero x limit"
       if(derivative == 0) {
-         return IMF[component]; 
+         return IMF[component];
       } else {
          return 0.0;
       }
@@ -86,7 +86,7 @@ double VectorDipole::operator()( double x, double y, double z, coordinate compon
 
    const double r1 = sqrt(r2);
    const double r5 = (r2*r2*r1);
-   const double rdotq=q[0]*r[0] + q[1]*r[1] +q[2]*r[2];   
+   const double rdotq=q[0]*r[0] + q[1]*r[1] +q[2]*r[2];
    const double B=( 3*r[component]*rdotq-q[component]*r2)/r5;
 
    if((derivative == 0) && (r[0] <= xlimit[0])) {
@@ -102,9 +102,9 @@ double VectorDipole::operator()( double x, double y, double z, coordinate compon
       } else {
          sameComponent=0;
       }
-      
+
       /* Confirmed Battarbee 26.04.2019: This is the correct
-	 3D dipole derivative.  */
+         3D dipole derivative.  */
       return -5*B*r[dcomponent]/r2+
          (3*q[dcomponent]*r[component] -
           2*q[component]*r[dcomponent] +
@@ -115,18 +115,18 @@ double VectorDipole::operator()( double x, double y, double z, coordinate compon
       a vector potential scaled with the smootherstep function. Calculated
       and coded by Markus Battarbee, 08.05.2019 */
 
-   // Calculate vector potential within transition range 
+   // Calculate vector potential within transition range
    double A[3];
-   A[0] = (q[1]*r[2]-q[2]*r[1]) / (r2*r1); 
-   A[1] = (q[2]*r[0]-q[0]*r[2]) / (r2*r1); 
-   A[2] = (q[0]*r[1]-q[1]*r[0]) / (r2*r1); 
+   A[0] = (q[1]*r[2]-q[2]*r[1]) / (r2*r1);
+   A[1] = (q[2]*r[0]-q[0]*r[2]) / (r2*r1);
+   A[2] = (q[0]*r[1]-q[1]*r[0]) / (r2*r1);
    // Calculate vector potential for IMF scaling
    double IMFA[3];
    IMFA[0] = 0.5*(IMF[1]*r[2] - IMF[2]*r[1]);
    IMFA[1] = 0.5*(IMF[2]*r[0] - IMF[0]*r[2]);
    IMFA[2] = 0.5*(IMF[0]*r[1] - IMF[1]*r[0]);
    const double IMFB = IMF[component];
-   
+
    // Coordinate within smootherstep function (x-coordinate only)
    const double s = -(r[0]-xlimit[1])/(xlimit[1]-xlimit[0]);
    const double ss = s*s;
@@ -145,13 +145,13 @@ double VectorDipole::operator()( double x, double y, double z, coordinate compon
    double dS2cart[3];
    dS2cart[0] = dS2dx; //(r[0]/r1)*dS2dr;
    dS2cart[1] = 0;     //(r[1]/r1)*dS2dr;
-   dS2cart[2] = 0;     //(r[2]/r1)*dS2dr;      
+   dS2cart[2] = 0;     //(r[2]/r1)*dS2dr;
 
    // Cartesian derivatives of S2
    double IMFdS2cart[3];
    IMFdS2cart[0] = IMFdS2dx; //(r[0]/r1)*dS2dr;
    IMFdS2cart[1] = 0;     //(r[1]/r1)*dS2dr;
-   IMFdS2cart[2] = 0;     //(r[2]/r1)*dS2dr;      
+   IMFdS2cart[2] = 0;     //(r[2]/r1)*dS2dr;
 
    if(derivative == 0) {
      /* Within transition range (between xlimit[0] and xlimit[1]) we
@@ -187,9 +187,9 @@ double VectorDipole::operator()( double x, double y, double z, coordinate compon
 
      */
        double delS2crossA[3];
-       //delS2crossA[0] = dS2cart[1]*A[2] - dS2cart[2]*A[1]; 
-       //delS2crossA[1] = dS2cart[2]*A[0] - dS2cart[0]*A[2]; 
-       //delS2crossA[2] = dS2cart[0]*A[1] - dS2cart[1]*A[0]; 
+       //delS2crossA[0] = dS2cart[1]*A[2] - dS2cart[2]*A[1];
+       //delS2crossA[1] = dS2cart[2]*A[0] - dS2cart[0]*A[2];
+       //delS2crossA[2] = dS2cart[0]*A[1] - dS2cart[1]*A[0];
        // Don't calculate zero terms
        delS2crossA[0] = 0;
        delS2crossA[1] = -dS2cart[0]*A[2];
@@ -346,15 +346,9 @@ double VectorDipole::operator()( double x, double y, double z, coordinate compon
       IMFddS2crossA[2][2] = deldS2dx[2]*IMFA[1] + IMFdS2cart[0]*IMFdelAy[2];
 
       //return S2*delB + dS2cart[dcomponent]*B + ddS2crossA[component][dcomponent];
-      return S2*delB + dS2cart[dcomponent]*B + ddS2crossA[component][dcomponent] + 
+      return S2*delB + dS2cart[dcomponent]*B + ddS2crossA[component][dcomponent] +
          IMFS2*IMFdelB + IMFdS2cart[dcomponent]*IMFB + IMFddS2crossA[component][dcomponent];
    }
 
    return 0; // dummy, but prevents gcc from yelling
 }
-
-
-
-
-
-

@@ -46,7 +46,7 @@ namespace projects {
     public:
       Magnetosphere();
       virtual ~Magnetosphere();
-      
+
       virtual bool initialize(void);
       static void addParameters(void);
       virtual void getParameters(void);
@@ -62,7 +62,7 @@ namespace projects {
                                          creal& dvx, creal& dvy, creal& dvz,
                                          const uint popID
                                         ) const;
-      
+
     protected:
       Real getDistribValue(
                            creal& x,creal& y, creal& z,
@@ -80,9 +80,9 @@ namespace projects {
                                                       creal z,
                                                       const uint popID
                                                      ) const;
-      
+
       bool canRefine(spatial_cell::SpatialCell* cell) const;
-      
+
       std::array<Real, 3> constBgB;
       bool noDipoleInSW;
       Real ionosphereRadius;
@@ -119,4 +119,3 @@ namespace projects {
 } // namespace projects
 
 #endif
-

@@ -90,50 +90,50 @@ namespace projects {
 
    Real test_fp::calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,
                                        creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz,
-                                       const uint popID) const {      
+                                       const uint popID) const {
       vector<std::array<Real, 3> > V = this->getV0(x,y,z,dx,dy,dz, popID);
-      
+
       creal VX2 = (vx+0.5*dvx-V[0][0])*(vx+0.5*dvx-V[0][0]);
       creal VY2 = (vy+0.5*dvy-V[0][1])*(vy+0.5*dvy-V[0][1]);
       creal VZ2 = (vz+0.5*dvz-V[0][2])*(vz+0.5*dvz-V[0][2]);
-      
+
       creal CONST = physicalconstants::MASS_PROTON / 2.0 / physicalconstants::K_B / this->TEMPERATURE;
       Real NORM = (physicalconstants::MASS_PROTON / 2.0 / M_PI / physicalconstants::K_B / this->TEMPERATURE);
       NORM = this->DENSITY * pow(NORM,1.5);
-      
+
       creal result = NORM*exp(-CONST*(VX2+VY2+VZ2));
       return result;
    }
-   
+
    void test_fp::setProjectBField(
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
    ) {
       setBackgroundFieldToZero(BgBGrid);
-      
+
       if(!P::isRestart) {
          auto localSize = perBGrid.getLocalSize().data();
-         
+
          creal dx = perBGrid.DX * 3.5;
          creal dy = perBGrid.DY * 3.5;
          creal dz = perBGrid.DZ * 3.5;
-         
+
          Real areaFactor = 1.0;
-         
+
          #pragma omp parallel for collapse(3)
          for (int i = 0; i < localSize[0]; ++i) {
             for (int j = 0; j < localSize[1]; ++j) {
                for (int k = 0; k < localSize[2]; ++k) {
                   const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(i, j, k);
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(i, j, k);
-                  
+
                   creal x = xyz[0] + 0.5 * perBGrid.DX;
                   creal y = xyz[1] + 0.5 * perBGrid.DY;
                   creal z = xyz[2] + 0.5 * perBGrid.DZ;
-                  
+
                   switch (this->CASE) {
-                     case BXCASE:         
+                     case BXCASE:
                         cell->at(fsgrids::bfield::PERBX) = 0.1 * this->B0 * areaFactor;
                         //areaFactor = (CellParams::DY * CellParams::DZ) / (dy * dz);
                         if (y >= -dy && y <= dy)
@@ -158,9 +158,9 @@ namespace projects {
                         cell->at(fsgrids::bfield::PERBX) = 0.1 * this->B0 * areaFactor;
                         cell->at(fsgrids::bfield::PERBY) = 0.1 * this->B0 * areaFactor;
                         cell->at(fsgrids::bfield::PERBZ) = 0.1 * this->B0 * areaFactor;
-                        
+
                         //areaFactor = (CellParams::DX * CellParams::DY) / (dx * dy);
-                        
+
                         if (y >= -dy && y <= dy)
                            if (z >= -dz && z <= dz)
                               cell->at(fsgrids::bfield::PERBX) = this->B0 * areaFactor;
@@ -177,11 +177,11 @@ namespace projects {
          }
       }
    }
-   
+
    void test_fp::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
-      
+
    }
-   
+
    vector<std::array<Real, 3>> test_fp::getV0(
       creal x,
       creal y,
@@ -192,7 +192,7 @@ namespace projects {
       const uint popID
    ) const {
       vector<std::array<Real, 3>> centerPoints;
-      
+
       Real VX=0.0,VY=0.0,VZ=0.0;
       if (this->shear == true)
       {
@@ -230,7 +230,7 @@ namespace projects {
           case BXCASE:
             VX = 0.0;
             VY = cos(this->ALPHA) * 0.5;
-            VZ = sin(this->ALPHA) * 0.5; 
+            VZ = sin(this->ALPHA) * 0.5;
             break;
           case BYCASE:
             VX = sin(this->ALPHA) * 0.5;
@@ -249,16 +249,16 @@ namespace projects {
             break;
          }
       }
-      
+
       VX *= this->V0 * 2.0;
       VY *= this->V0 * 2.0;
       VZ *= this->V0 * 2.0;
-      
+
       std::array<Real, 3> point {{VX, VY, VZ}};
       centerPoints.push_back(point);
       return centerPoints;
    }
-   
+
    vector<std::array<Real, 3>> test_fp::getV0(
       creal x,
       creal y,
@@ -266,17 +266,17 @@ namespace projects {
       const uint popID
    ) const {
       vector<std::array<Real, 3>> centerPoints;
-      
+
       creal dx = 0.0;
       creal dy = 0.0;
       creal dz = 0.0;
-      
+
       return this->getV0(x,y,z,dx,dy,dz,popID);
    }
 
    bool test_fp::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
- 
-     int myRank;       
+
+     int myRank;
      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
      // mpiGrid.set_maximum_refinement_level(std::min(this->maxSpatialRefinementLevel, mpiGrid.mapping.get_maximum_refinement_level()));
@@ -288,7 +288,7 @@ namespace projects {
       for (double x = P::amrBoxCenterX - P::amrBoxHalfWidthX * P::dx_ini; x <= P::amrBoxCenterX + P::amrBoxHalfWidthX * P::dx_ini; x += 0.99 * P::dx_ini) {
          for (double y = P::amrBoxCenterY - P::amrBoxHalfWidthY * P::dy_ini; y <= P::amrBoxCenterY + P::amrBoxHalfWidthY * P::dy_ini; y += 0.99 * P::dy_ini) {
             for (double z = P::amrBoxCenterZ - P::amrBoxHalfWidthZ * P::dz_ini; z <= P::amrBoxCenterZ + P::amrBoxHalfWidthZ * P::dz_ini; z += 0.99 * P::dz_ini) {
-     
+
                std::array<double,3> xyz;
                xyz[0] = x;
                xyz[1] = y;
@@ -301,16 +301,16 @@ namespace projects {
          }
       }
 
-      std::vector<CellID> refinedCells = mpiGrid.stop_refining(true);      
+      std::vector<CellID> refinedCells = mpiGrid.stop_refining(true);
       if(myRank == MASTER_RANK) std::cout << "Finished first level of refinement" << endl;
       if(refinedCells.size() > 0) {
-	std::cout << "Refined cells produced by rank " << myRank << " are: ";
-	for (auto cellid : refinedCells) {
-	  std::cout << cellid << " ";
-	}
-	std::cout << endl;
-      }      
-                  
+        std::cout << "Refined cells produced by rank " << myRank << " are: ";
+        for (auto cellid : refinedCells) {
+          std::cout << cellid << " ";
+        }
+        std::cout << endl;
+      }
+
       mpiGrid.balance_load();
 
 //       const vector<CellID>& cells = getLocalCells();

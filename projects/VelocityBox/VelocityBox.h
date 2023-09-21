@@ -32,7 +32,7 @@ namespace projects {
     public:
       VelocityBox();
       virtual ~VelocityBox();
-      
+
       virtual bool initialize(void);
       static void addParameters(void);
       virtual void getParameters(void);
@@ -51,7 +51,7 @@ namespace projects {
                                          creal& dvx, creal& dvy, creal& dvz,
                                          const uint popID
                                         ) const;
-      
+
       Real rho;
       Real Vx[2];
       Real Vy[2];
@@ -65,4 +65,3 @@ namespace projects {
 
 
 #endif
-

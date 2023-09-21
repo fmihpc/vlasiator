@@ -92,7 +92,7 @@ namespace projects {
       }
 
       return 0.0;
-      
+
    }
 
 
@@ -103,7 +103,7 @@ namespace projects {
       creal dy = cellParams[CellParams::DY];
       creal z = cellParams[CellParams::ZCRD];
       creal dz = cellParams[CellParams::DZ];
-      
+
       cellParams[CellParams::EX   ] = 0.0;
       cellParams[CellParams::EY   ] = 0.0;
       cellParams[CellParams::EZ   ] = 0.0;

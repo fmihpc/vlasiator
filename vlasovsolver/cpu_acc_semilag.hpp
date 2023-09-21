@@ -38,4 +38,3 @@ void cpu_accelerate_cell(
         const Real& dt);
 
 #endif
-

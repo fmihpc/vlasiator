@@ -47,7 +47,7 @@ struct PropagParams {
    Real intersection_di;
    Real intersection_dj;
    Real intersection_dk;
-   
+
    Real dv;
    Real v_min;
    Real v_max;
@@ -66,13 +66,13 @@ struct PropagParams {
 };
 
 void map_1d(SpatialCell* spatial_cell,PropagParams& params,
-	    vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
-	    vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer);
+            vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
+            vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer);
 
 void generateTargetMesh(SpatialCell* spatial_cell,const std::vector<vmesh::LocalID>& blocks,PropagParams& params,
-			const uint8_t& targetRefLevel,const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh);
+                        const uint8_t& targetRefLevel,const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh);
 
-/* 
+/*
    Here we map from the current time step grid, to a target grid which
    is the lagrangian departure grid (so th grid at timestep +dt,
    tracked backwards by -dt)
@@ -81,7 +81,7 @@ void generateTargetMesh(SpatialCell* spatial_cell,const std::vector<vmesh::Local
    pre-creates new blocks in a separate loop first (serial operation),
    then the openmp parallization would scale well (better than over
    spatial cells), and would not need synchronization.
-   
+
 */
 
 bool map_1d(SpatialCell* spatial_cell,Transform<Real,3,Affine>& fwd_transform,Transform<Real,3,Affine>& bwd_transform,int dimension,int propag) {
@@ -107,15 +107,15 @@ bool map_1d(SpatialCell* spatial_cell,Transform<Real,3,Affine>& fwd_transform,Tr
    switch (propag) {
     case 0:
       compute_intersections_1st(spatial_cell, bwd_transform, fwd_transform, dimension, propagParams.maxRefLevel,
-				propagParams.intersection,propagParams.intersection_di,propagParams.intersection_dj,propagParams.intersection_dk);
+                                propagParams.intersection,propagParams.intersection_di,propagParams.intersection_dj,propagParams.intersection_dk);
       break;
     case 1:
       compute_intersections_2nd(spatial_cell, bwd_transform, fwd_transform, dimension, propagParams.maxRefLevel,
-				propagParams.intersection,propagParams.intersection_di,propagParams.intersection_dj,propagParams.intersection_dk);
+                                propagParams.intersection,propagParams.intersection_di,propagParams.intersection_dj,propagParams.intersection_dk);
       break;
     case 2:
       compute_intersections_3rd(spatial_cell, bwd_transform, fwd_transform, dimension, propagParams.maxRefLevel,
-				propagParams.intersection,propagParams.intersection_di,propagParams.intersection_dj,propagParams.intersection_dk);
+                                propagParams.intersection,propagParams.intersection_di,propagParams.intersection_dj,propagParams.intersection_dk);
       break;
     default:
       std::cerr << "error in map1d" << std::endl; exit(1);
@@ -133,7 +133,7 @@ bool map_1d(SpatialCell* spatial_cell,Transform<Real,3,Affine>& fwd_transform,Tr
       propagParams.i_mapped = 2;
       propagParams.j_mapped = 1;
       propagParams.k_mapped = 0;
-      
+
       // Swap intersection di and dk
       const Real tmp=propagParams.intersection_di;
       propagParams.intersection_di=propagParams.intersection_dk;
@@ -143,7 +143,7 @@ bool map_1d(SpatialCell* spatial_cell,Transform<Real,3,Affine>& fwd_transform,Tr
       propagParams.i_mapped = 0;
       propagParams.j_mapped = 2;
       propagParams.k_mapped = 1;
-      
+
       // Swap intersection dj and dk
       const Real tmp=propagParams.intersection_dj;
       propagParams.intersection_dj=propagParams.intersection_dk;
@@ -158,13 +158,13 @@ bool map_1d(SpatialCell* spatial_cell,Transform<Real,3,Affine>& fwd_transform,Tr
       std::cerr << "error in map1d" << std::endl; exit(1);
       break;
    }
-      
+
    bool rvalue = true;
 
-   // Generate the target mesh. Target blocks are first generated at the coarsest 
+   // Generate the target mesh. Target blocks are first generated at the coarsest
    // (base grid) level to create the "bounding box" of the final target mesh.
-   // Successive calls (the inner loop below) of generateTargetMesh will then 
-   // refine the already existing coarser blocks until every source block has 
+   // Successive calls (the inner loop below) of generateTargetMesh will then
+   // refine the already existing coarser blocks until every source block has
    // a target block at the same (or higher) refinement level.
    phiprof::Timer meshGenTimer {"mesh generation"};
    for (uint8_t r=0; r<blocks.size(); ++r) {
@@ -179,7 +179,7 @@ bool map_1d(SpatialCell* spatial_cell,Transform<Real,3,Affine>& fwd_transform,Tr
    map_1d(spatial_cell,propagParams,vmesh,blockContainer);
    mappingTimer.stop();
 
-   // Merge values from coarse blocks to refined blocks wherever the same domain 
+   // Merge values from coarse blocks to refined blocks wherever the same domain
    // is covered by overlapping blocks (at different refinement levels)
    // NOTE: Old stuff, ignore
    // spatial_cell->merge_values();
@@ -253,7 +253,7 @@ void generateTargetMesh(SpatialCell* spatial_cell,const std::vector<vmesh::Local
       }
 
       if (targetRefLevel == 0) {
-         // Source block mapped to base grid level, create an enveloping 
+         // Source block mapped to base grid level, create an enveloping
          // target block (which will be refined later) at refinement level 0.
          vmesh::GlobalID targetBlockIndex[3];
          targetBlockIndex[params.i_mapped] = sourceIndex[0] / (WID*baseMul);
@@ -267,8 +267,8 @@ void generateTargetMesh(SpatialCell* spatial_cell,const std::vector<vmesh::Local
             spatial_cell->add_velocity_block(targetBlock);
          }
       } else {
-         // Source block mapped to higher refinement level than 0, i.e., the 
-         // parents of the target blocks already exists. Here we refine existing 
+         // Source block mapped to higher refinement level than 0, i.e., the
+         // parents of the target blocks already exists. Here we refine existing
          // target block parents instead of creating new ones.
          uint8_t r=targetRefLevel;
          vmesh::GlobalID targetBlockIndex[3];
@@ -295,17 +295,17 @@ void generateTargetMesh(SpatialCell* spatial_cell,const std::vector<vmesh::Local
 void map_1d(SpatialCell* spatial_cell,PropagParams& params,
             vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
             vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer) {
-   
+
    std::vector<vmesh::GlobalID> removeList;
 
    // TEST
-   
+
    // PAD is the number of neighbor data layers loaded.
    // PAD=1 nearest neighbor only
    // PAD=2 two neighbor data layers etc
    const int PAD=3;
    Realf* array1 = new Realf[(WID+2*PAD)*(WID+2*PAD)*(WID+2*PAD)];
-   Realf* array2 = new Realf[(WID+2*PAD)*(WID+2*PAD)*(WID+2*PAD)];   
+   Realf* array2 = new Realf[(WID+2*PAD)*(WID+2*PAD)*(WID+2*PAD)];
 
    int transp[3];
    switch (params.dimension) {
@@ -327,7 +327,7 @@ void map_1d(SpatialCell* spatial_cell,PropagParams& params,
    }
    // END TEST
 
-   // Backwards mapping, each target block is mapped backwards to their 
+   // Backwards mapping, each target block is mapped backwards to their
    // respective source blocks, which may also be at lower (coarser)
    // refinement levels
    for (vmesh::LocalID targetLID=0; targetLID<spatial_cell->get_number_of_velocity_blocks(); ++targetLID) {
@@ -336,13 +336,13 @@ void map_1d(SpatialCell* spatial_cell,PropagParams& params,
       // the number of cells per coordinate at refinement level r-1.
       // This means that at refinement level r the block i-indices are [0,2*Nx(r-1)[.
       // In general, the difference between two refinement levels is a power of two.
-      // 
-      // The variable params.refMul below is used to map block indices from 
+      //
+      // The variable params.refMul below is used to map block indices from
       // the current refinement level to the max allowed level.
-      // 
-      // Other "refMul" variables are similarly used to map block indices from 
+      //
+      // Other "refMul" variables are similarly used to map block indices from
       // one refinement level to another.
-      // 
+      //
       // The mappings below are done using (block) indices calculated at max refinement level.
 
       vmesh::GlobalID targetGID = spatial_cell->get_velocity_block_global_id(targetLID);
@@ -353,7 +353,7 @@ void map_1d(SpatialCell* spatial_cell,PropagParams& params,
 
       // Pointer to target data
       Realf* data_trgt = spatial_cell->get_data(targetLID);
-      
+
       switch (params.dimension) {
        case 0: {
           const vmesh::LocalID temp=targetIndex[2];
@@ -373,7 +373,7 @@ void map_1d(SpatialCell* spatial_cell,PropagParams& params,
       targetIndex[0] *= WID*params.refMul;
       targetIndex[1] *= WID*params.refMul;
       targetIndex[2] *= WID*params.refMul;
-      
+
       Real accum=0;
 
       // Note: the i,j,k indices below are transposed indices:
@@ -382,12 +382,12 @@ void map_1d(SpatialCell* spatial_cell,PropagParams& params,
          vmesh::GlobalID k_cell_src_max_global = 0;
          Real v_src_bots[WID*WID];
          Real v_src_tops[WID*WID];
-         
+
          // Calculate source cell (transposed) k-index integration bounding box.
-         // First map each i/j target cell backwards. Then k_cell_src_min_global is the 
-         // smallest value of all source k-indices, and k_cell_src_max_global is the 
+         // First map each i/j target cell backwards. Then k_cell_src_min_global is the
+         // smallest value of all source k-indices, and k_cell_src_max_global is the
          // largest value.
-         // 
+         //
          // The bounding box integration trick doubled the speed of the AMR algorithm
          for (int j=0; j<WID; ++j) for (int i=0; i<WID; ++i) {
             // Target cell global i/j/k indices (transposed):
@@ -413,9 +413,9 @@ void map_1d(SpatialCell* spatial_cell,PropagParams& params,
 
             // Source cell bottom and top (transposed) k-indices
             // Velocities v_src_bot_l,v_src_top_l can be outside the box in either (+ or -) direction.
-            // If v < params.v_min then there will be an integer underflow and the k-index is close 
-            // to std::numeric_limits<vmesh::GlobalID>::max() value. The std::min functions below 
-            // force both indices to be valid in such a way that the mapping/integration returns 
+            // If v < params.v_min then there will be an integer underflow and the k-index is close
+            // to std::numeric_limits<vmesh::GlobalID>::max() value. The std::min functions below
+            // force both indices to be valid in such a way that the mapping/integration returns
             // the correct value.
             vmesh::GlobalID k_cell_src_top = std::min(params.Nx*WID-1,static_cast<vmesh::GlobalID>(v_src_top_l));
             vmesh::GlobalID k_cell_src_bot = std::min(k_cell_src_top ,static_cast<vmesh::GlobalID>(v_src_bot_l));
@@ -428,8 +428,8 @@ void map_1d(SpatialCell* spatial_cell,PropagParams& params,
          // Iterate over the source cell bounding box
          vmesh::GlobalID k_cell_src = k_cell_src_min_global;
          while (k_cell_src <= k_cell_src_max_global) {
-            // Source cell(s) can map to several blocks. Each source block contains a 
-            // range of source k-indices, however, so we can save time by caching the 
+            // Source cell(s) can map to several blocks. Each source block contains a
+            // range of source k-indices, however, so we can save time by caching the
             // source block
             uint8_t srcRefLevel;
             int srcRefMul = 1;
@@ -489,7 +489,7 @@ void map_1d(SpatialCell* spatial_cell,PropagParams& params,
                   Real v_int_min = (v_bot - (k_block_src*(WID*srcRefMul)+k_cell_bot*srcRefMul)) / srcRefMul;
                   v_int_min = std::min(v_int_max,v_int_min);
 
-                  // Source cell (transposed) indices within the source block, i.e., 
+                  // Source cell (transposed) indices within the source block, i.e.,
                   // each index is limited to range 0-(WID-1)
                   int srcCellIndex[3];
                   //srcCellIndex[params.i_mapped] = (srcIndex[params.i_mapped] - i_block_src*(WID*srcRefMul)) / srcRefMul;
@@ -508,7 +508,7 @@ void map_1d(SpatialCell* spatial_cell,PropagParams& params,
                      std::cerr << "indices" << std::endl;
                   }
                   // END DEBUG */
-                  
+
                   // Target cell (untransposed) indices
                   int trgtCellIndex[3];
                   trgtCellIndex[params.i_mapped] = i;
@@ -525,14 +525,14 @@ void map_1d(SpatialCell* spatial_cell,PropagParams& params,
                   //accum += data_src[vblock::index(srcCellIndex[0],srcCellIndex[1],srcCellIndex[2])] * (v_int_max-v_int_min) * factor;
                   accum += array1[vblock::padIndex<PAD>(srcCellIndex[0],srcCellIndex[1],srcCellIndex[2])] * (v_int_max-v_int_min) * factor;
                }
-               
+
                // Increase k_cell_src to point to the next source cell, taking refinement
                // level into account.
                k_cell_src = k_block_src*(WID*srcRefMul)+(k_cell_bot+1)*srcRefMul;
-               
+
             } // while (k_cell_src <= k_cell_src_max)
          } // while (k_cell_src <= k_cell_src_max_global)
-      } // for (int k=0; k<WID; ++k) 
+      } // for (int k=0; k<WID; ++k)
       #warning TODO: add SpatialCell::velocity_block_threshold() in place of sparseMinValue (if applicable)
 
       #warning DEPRECATED use per-species sparseMinValue
@@ -548,5 +548,4 @@ void map_1d(SpatialCell* spatial_cell,PropagParams& params,
    for (size_t b=0; b<removeList.size(); ++b) spatial_cell->remove_velocity_block(removeList[b]);
 }
 
-#endif   
-
+#endif

@@ -33,7 +33,7 @@ namespace projects {
       public:
          KelvinHelmholtz();
          virtual ~KelvinHelmholtz();
-         
+
          virtual bool initialize(void);
          static void addParameters(void);
          virtual void getParameters(void);
@@ -50,7 +50,7 @@ namespace projects {
             creal& x, creal& z,
             creal& vx, creal& vy, creal& vz);
          Real profile(creal top, creal bottom, creal x, creal z);
-         
+
          enum {
             TOP,
             BOTTOM

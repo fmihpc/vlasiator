@@ -18,7 +18,7 @@ using namespace std;
 //   {
 //     return std::make_tuple(this, 0, MPI_BYTE);
 //   }
-    
+
 // };
 
 int main(int argc, char* argv[]) {
@@ -44,7 +44,7 @@ int main(int argc, char* argv[]) {
 
    int argn;
    char **argc;
-   
+
    initializeGrid(argn,argc,grid,sysBoundaries,project);
    //grid.initialize(grid_size, comm, "RANDOM", 1);
 
@@ -68,12 +68,12 @@ int main(int argc, char* argv[]) {
    vector<CellID> localPropagatedCells;
    vector<CellID> ids;
    vector<uint> path;
-   
+
    for (CellID i = 0; i < xDim * yDim * zDim; i++) localPropagatedCells.push_back( i + 1 );
    get_seed_ids(grid, localPropagatedCells, dimension, seedIds);
    for (const auto seedId : seedIds) {
       // Construct pencils from the seedIds into a set of pencils.
-      pencils = buildPencilsWithNeighbors(grid, pencils, seedId, ids, dimension, path);      
+      pencils = buildPencilsWithNeighbors(grid, pencils, seedId, ids, dimension, path);
    }
 
    uint ibeg = 0;

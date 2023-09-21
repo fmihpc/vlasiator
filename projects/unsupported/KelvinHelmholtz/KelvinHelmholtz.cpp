@@ -34,9 +34,9 @@ namespace projects {
    using namespace std;
    KelvinHelmholtz::KelvinHelmholtz(): Project() { }
    KelvinHelmholtz::~KelvinHelmholtz() { }
-   
+
    bool KelvinHelmholtz::initialize(void) {return true;}
-   
+
    void KelvinHelmholtz::addParameters() {
       typedef Readparameters RP;
       RP::add("KelvinHelmholtz.rho1", "Number density, this->TOP state (m^-3)", 0.0);
@@ -88,8 +88,8 @@ namespace projects {
       RP::get("KelvinHelmholtz.nSpaceSamples", this->nSpaceSamples);
       RP::get("KelvinHelmholtz.nVelocitySamples", this->nVelocitySamples);
    }
-   
-   
+
+
    Real KelvinHelmholtz::profile(creal top, creal bottom, creal x, creal z) {
       if(top == bottom) {
          return top;
@@ -102,7 +102,7 @@ namespace projects {
          return 0.5 * ((top-bottom) * tanh(z/this->transitionWidth) + top+bottom);
       }
    }
-   
+
    Real KelvinHelmholtz::getDistribValue(creal& x, creal& z, creal& vx, creal& vy, creal& vz){
       creal mass = physicalconstants::MASS_PROTON;
       creal kb = physicalconstants::K_B;
@@ -111,12 +111,12 @@ namespace projects {
       Real Vx = profile(this->Vx[this->BOTTOM], this->Vx[this->TOP], x, z);
       Real Vy = profile(this->Vy[this->BOTTOM], this->Vy[this->TOP], x, z);
       Real Vz = profile(this->Vz[this->BOTTOM], this->Vz[this->TOP], x, z);
-      
+
       return rho * pow(mass / (2.0 * M_PI * kb * T), 1.5) *
       exp(- mass * (pow(vx - Vx, 2.0) + pow(vy - Vy, 2.0) + pow(vz - Vz, 2.0)) / (2.0 * kb * T));
    }
 
-   Real KelvinHelmholtz::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {   
+   Real KelvinHelmholtz::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
       creal d_x = dx / (this->nSpaceSamples-1);
       creal d_z = dz / (this->nSpaceSamples-1);
       creal d_vx = dvx / (this->nVelocitySamples-1);
@@ -130,7 +130,7 @@ namespace projects {
       if(middleValue<0.000001*Parameters::sparseMinValue){
          return middleValue; //abort, this will not be accepted anyway
       }
-      
+
    //#pragma omp parallel for collapse(6) reduction(+:avg)
       for (uint i=0; i<this->nSpaceSamples; ++i)
          for (uint k=0; k<this->nSpaceSamples; ++k)
@@ -142,7 +142,7 @@ namespace projects {
                   }
       return avg / samples;
    }
-   
+
 
    void KelvinHelmholtz::calcCellParameters(Real* cellParams,creal& t) {
       cellParams[CellParams::EX   ] = 0.0;
@@ -152,13 +152,13 @@ namespace projects {
       cellParams[CellParams::PERBY   ] = 0.0;
       cellParams[CellParams::PERBZ   ] = 0.0;
    }
-   
+
    void KelvinHelmholtz::setCellBackgroundField(SpatialCell* cell) {
       creal x = cell->parameters[CellParams::XCRD];
       creal dx = cell->parameters[CellParams::DX];
       creal z = cell->parameters[CellParams::ZCRD];
       creal dz = cell->parameters[CellParams::DZ];
-      
+
       Real Bxavg, Byavg, Bzavg;
       Bxavg = Byavg = Bzavg = 0.0;
       Real d_x = dx / (this->nSpaceSamples - 1);
@@ -170,7 +170,7 @@ namespace projects {
             Bzavg += profile(this->Bz[this->BOTTOM], this->Bz[this->TOP], x+i*d_x, z+k*d_z);
          }
       cuint nPts = pow(this->nSpaceSamples, 2.0);
-      
+
       cell->parameters[CellParams::BGBX   ] = Bxavg / nPts;
       cell->parameters[CellParams::BGBY   ] = Byavg / nPts;
       cell->parameters[CellParams::BGBZ   ] = Bzavg / nPts;

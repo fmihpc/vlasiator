@@ -46,14 +46,14 @@ namespace SBC {
    };
 
    /*!\brief Base class for system boundary conditions with user-set settings and parameters read from file.
-    * 
+    *
     * SetByUser is a base class for e.g. SysBoundaryConditon::SetMaxwellian.
     * It defines the managing functions to set boundary conditions on the faces of the
     * simulation domain.
-    * 
+    *
     * This class handles the import and interpolation in time of the input parameters read
     * from file as well as the assignment of the state from the template cells.
-    * 
+    *
     * The daughter classes have then to handle parameters and generate the template cells as
     * wished from the data returned.
     */
@@ -61,9 +61,9 @@ namespace SBC {
    public:
       SetByUser();
       virtual ~SetByUser();
-      
+
       virtual void getParameters() = 0;
-      
+
       virtual bool initSysBoundary(
          creal& t,
          Project &project
@@ -126,22 +126,22 @@ namespace SBC {
          const uint popID,
          const bool calculate_V_moments
       );
-      
+
       virtual void getFaces(bool* faces);
-      
+
       virtual std::string getName() const = 0;
       virtual uint getIndex() const = 0;
-      
+
    protected:
       bool loadInputData(const uint popID);
       std::vector<std::vector<Real> > loadFile(const char* file, unsigned int nParams);
       void interpolate(const int inputDataIndex, const uint popID, creal t, Real* outputData);
-      
+
       bool generateTemplateCells(creal& t);
       virtual void generateTemplateCell(spatial_cell::SpatialCell& templateCell, Real B[3], int inputDataIndex, creal& t) = 0;
       bool setCellsFromTemplate(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID);
       bool setBFromTemplate(FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid);
-      
+
       /*! Array of template spatial cells replicated over the corresponding simulation volume face. Only the template for an active face is actually being touched at all by the code. */
       spatial_cell::SpatialCell templateCells[6];
       Real templateB[6][3];

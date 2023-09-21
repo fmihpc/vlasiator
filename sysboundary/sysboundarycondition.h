@@ -38,29 +38,29 @@ using namespace projects;
 
 namespace SBC {
    /*!\brief SBC::SysBoundaryCondition is the base class for system boundary conditions.
-    * 
+    *
     * SBC::SysBoundaryCondition defines a base class for applying boundary conditions.
     * Specific system boundary conditions inherit from this base class, that's why most
     * functions defined here are not meant to be called and contain a corresponding error
     * message. The functions to be called are the inherited class members.
-    * 
+    *
     * The initSysBoundary function is used to initialise the internal workings needed by the
     * system boundary condition to run (e.g. importing parameters, initialising class
     * members). assignSysBoundary is used to determine whether a given cell is within the
     * domain of system boundary condition. applyInitialState is called to initialise a system
     * boundary cell's parameters and velocity space.
-    * 
-    * If needed, a user can write his or her own SBC::SysBoundaryConditions, which 
+    *
+    * If needed, a user can write his or her own SBC::SysBoundaryConditions, which
     * are loaded when the simulation initializes.
     */
    class SysBoundaryCondition {
       public:
          SysBoundaryCondition();
          virtual ~SysBoundaryCondition();
-         
+
          static void addParameters();
          virtual void getParameters()=0;
-         
+
          virtual bool initSysBoundary(
             creal& t,
             Project &project
@@ -135,13 +135,13 @@ namespace SBC {
             cint k,
             cuint& component
          );
-        
+
          virtual void mapCellPotentialAndGetEXBDrift(
             std::array<Real, CellParams::N_SPATIAL_CELL_PARAMS>& cellParams
          );
 
-         /** This function computes the Vlasov (distribution function) 
-          * boundary condition for the given particle species only. 
+         /** This function computes the Vlasov (distribution function)
+          * boundary condition for the given particle species only.
           * It is not! allowed to change block structure in cell.
           * @param mpiGrid Parallel grid.
           * @param cellID Spatial cell ID.
@@ -158,7 +158,7 @@ namespace SBC {
          virtual uint getIndex() const=0;
          uint getPrecedence() const;
          bool isDynamic() const;
-      
+
          bool updateSysBoundaryConditionsAfterLoadBalance(
             dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const std::vector<CellID> & local_cells_on_boundary
@@ -196,7 +196,7 @@ namespace SBC {
                const vmesh::GlobalID blockGID,
                const uint popID
          );
-      
+
 
       /*! Helper function to get the index of a neighboring cell in the arrays in allFlowtoCells.
        * \param i Offset in x direction (-1, 0 or 1)
@@ -207,7 +207,7 @@ namespace SBC {
       inline int nbrID(const int i, const int j, const int k){
          return (k+1)*9 + (j+1)*3 + i + 1;
       }
-      
+
          void vlasovBoundaryCopyFromTheClosestNbr(
             const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID,
@@ -280,7 +280,7 @@ namespace SBC {
             cuint component,
             cuint mask
          );
-         
+
          /*! Precedence value of the system boundary condition. */
          uint precedence;
          /*! Is the boundary condition dynamic in time or not. */
@@ -291,7 +291,7 @@ namespace SBC {
          std::unordered_map<CellID, std::vector<CellID>> allClosestNonsysboundaryCells;
          /*! Map of close nonsysboundarycells. Used in getAllCloseNonsysboundaryCells. */
          std::unordered_map<CellID, std::vector<CellID>> allCloseNonsysboundaryCells;
-      
+
          /*! Array of cells into which the distribution function can flow. Used in getAllFlowtoCells. Cells into which one cannot flow are set to INVALID_CELLID. */
          std::unordered_map<CellID, std::array<SpatialCell*, 27>> allFlowtoCells;
          /*! bool telling whether to call again applyInitialState upon restarting the simulation. */
@@ -305,7 +305,7 @@ namespace SBC {
          /*! Array of bool telling which faces are going to be processed by the system boundary condition.*/
          bool facesToProcess[6];
    };
-   
+
    // Moved outside the class since it's a helper function that doesn't require member access
    void averageCellData (
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,

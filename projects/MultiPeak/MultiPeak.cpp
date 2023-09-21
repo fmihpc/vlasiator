@@ -42,7 +42,7 @@ Real projects::MultiPeak::rhoRnd;
 
 namespace projects {
    MultiPeak::MultiPeak(): TriAxisSearch() { }
-   
+
    MultiPeak::~MultiPeak() { }
 
    bool MultiPeak::initialize(void) {
@@ -118,10 +118,10 @@ namespace projects {
 
          speciesParams.push_back(sP);
       }
-      
+
       string densModelString;
       RP::get("MultiPeak.densityModel",densModelString);
-      
+
       if (densModelString == "uniform") densityModel = Uniform;
       else if (densModelString == "testcase") densityModel = TestCase;
    }
@@ -136,19 +136,19 @@ namespace projects {
       for (uint i=0; i<sP.numberOfPeaks; ++i) {
          value += (sP.rho[i] + sP.rhoPertAbsAmp[i] * rhoRnd)
                * pow(mass / (2.0 * M_PI * kb ), 1.5) * 1.0
-               / sqrt(sP.Tx[i]*sP.Ty[i]*sP.Tz[i]) 
-               * exp(- mass * (pow(vx - sP.Vx[i], 2.0) / (2.0 * kb * sP.Tx[i]) 
-                             + pow(vy - sP.Vy[i], 2.0) / (2.0 * kb * sP.Ty[i]) 
+               / sqrt(sP.Tx[i]*sP.Ty[i]*sP.Tz[i])
+               * exp(- mass * (pow(vx - sP.Vx[i], 2.0) / (2.0 * kb * sP.Tx[i])
+                             + pow(vy - sP.Vy[i], 2.0) / (2.0 * kb * sP.Ty[i])
                              + pow(vz - sP.Vz[i], 2.0) / (2.0 * kb * sP.Tz[i])));
       }
       return value;
    }
 
-   Real MultiPeak::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, 
+   Real MultiPeak::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz,
                                          creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,
                                          const uint popID) const {
-      // Iterative sampling of the distribution function. Keep track of the 
-      // accumulated volume average over the iterations. When the next 
+      // Iterative sampling of the distribution function. Keep track of the
+      // accumulated volume average over the iterations. When the next
       // iteration improves the average by less than 1%, return the value.
       Real avgTotal = 0.0;
       bool ok = false;
@@ -159,7 +159,7 @@ namespace projects {
       const Real avgLimit = 0.01*getObjectWrapper().particleSpecies[popID].sparseMinValue;
       do {
          Real avg = 0.0;        // Volume average obtained during this sampling
-         creal DVX = dvx / N; 
+         creal DVX = dvx / N;
          creal DVY = dvy / N;
          creal DVZ = dvz / N;
 
@@ -178,7 +178,7 @@ namespace projects {
                rhoFactor = 1.0;
                break;
          }
-         
+
          // Sample the distribution using N*N*N points
          for (uint vi=0; vi<N; ++vi) {
             for (uint vj=0; vj<N; ++vj) {
@@ -191,7 +191,7 @@ namespace projects {
             }
          }
          avg *= rhoFactor;
-         
+
          // Compare the current and accumulated volume averages:
          Real eps = max(numeric_limits<creal>::min(),avg * static_cast<Real>(1e-6));
          Real avgAccum   = avgTotal / (avg + N3_sum);
@@ -224,12 +224,12 @@ namespace projects {
       bgField.initialize(this->Bx,
                          this->By,
                          this->Bz);
-      
+
       setBackgroundField(bgField, BgBGrid);
-      
+
       if(!P::isRestart) {
          auto localSize = perBGrid.getLocalSize().data();
-         
+
 #pragma omp parallel for collapse(3)
          for (int x = 0; x < localSize[0]; ++x) {
             for (int y = 0; y < localSize[1]; ++y) {
@@ -238,13 +238,13 @@ namespace projects {
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
                   const int64_t cellid = perBGrid.GlobalIDForCoords(x, y, z);
                   setRandomSeed(cellid);
-                  
+
                   if (this->lambda != 0.0) {
                      cell->at(fsgrids::bfield::PERBX) = this->dBx*cos(2.0 * M_PI * xyz[0] / this->lambda);
                      cell->at(fsgrids::bfield::PERBY) = this->dBy*sin(2.0 * M_PI * xyz[0] / this->lambda);
                      cell->at(fsgrids::bfield::PERBZ) = this->dBz*cos(2.0 * M_PI * xyz[0] / this->lambda);
                   }
-                  
+
                   cell->at(fsgrids::bfield::PERBX) += this->magXPertAbsAmp * (0.5 - getRandomNumber());
                   cell->at(fsgrids::bfield::PERBY) += this->magYPertAbsAmp * (0.5 - getRandomNumber());
                   cell->at(fsgrids::bfield::PERBZ) += this->magZPertAbsAmp * (0.5 - getRandomNumber());
@@ -253,7 +253,7 @@ namespace projects {
          }
       }
    }
-   
+
    std::vector<std::array<Real, 3> > MultiPeak::getV0(
                                                 creal x,
                                                 creal y,
@@ -268,5 +268,5 @@ namespace projects {
       }
       return centerPoints;
    }
-   
+
 }// namespace projects

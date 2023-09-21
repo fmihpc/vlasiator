@@ -344,7 +344,7 @@ bool SysBoundary::initSysBoundaries(Project& project, creal& t) {
 }
 
 /*!\brief Boolean check if queried sysboundarycondition exists
- * Note: this queries against the parsed list of names, not against the actual existing boundaries. 
+ * Note: this queries against the parsed list of names, not against the actual existing boundaries.
  * This is so that the project configuration (which is handled before grid and boundary initialization)
  * can use this call.
  *
@@ -655,7 +655,7 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
       for (int y = 0; y < localSize[1]; ++y) {
          for (int z = 0; z < localSize[2]; ++z) {
             if (technicalGrid.get(x,y,z)->sysBoundaryLayer == 0 && (
-                technicalGrid.get(x,y,z)->sysBoundaryFlag == sysboundarytype::IONOSPHERE || 
+                technicalGrid.get(x,y,z)->sysBoundaryFlag == sysboundarytype::IONOSPHERE ||
                 technicalGrid.get(x,y,z)->sysBoundaryFlag == sysboundarytype::COPYSPHERE)) {
                technicalGrid.get(x, y, z)->sysBoundaryFlag = sysboundarytype::DO_NOT_COMPUTE;
             }

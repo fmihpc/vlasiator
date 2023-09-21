@@ -17,7 +17,7 @@ using namespace std;
 /*Compute all face values. For cell k (globla index), its left face
  * value is in fv_l[k] and right value in fv_r[k]. Based on explicit
  * h6 estimate*/
-inline void compute_h6_face_values(Real *values, uint n_cblocks,  Real *fv_l, Real *fv_r){   
+inline void compute_h6_face_values(Real *values, uint n_cblocks,  Real *fv_l, Real *fv_r){
 
    /*we loop up to one extra cell. There is extra space in fv for the extra left value*/
   for (int k = 0; k < n_cblocks * WID + 1; k++){
@@ -31,7 +31,7 @@ inline void compute_h6_face_values(Real *values, uint n_cblocks,  Real *fv_l, Re
 }
 
 
-inline void filter_extrema(Real *values, uint n_cblocks, Real *fv_l, Real *fv_r){   
+inline void filter_extrema(Real *values, uint n_cblocks, Real *fv_l, Real *fv_r){
    for (int k = 0; k < n_cblocks * WID; k++){
       //Coella1984 eq. 1.10, detect extrema and make algorithm constant if it is
       Real extrema_check = ((fv_r[k] - values[k + WID]) * (values[k + WID] - fv_l[k]));
@@ -41,7 +41,7 @@ inline void filter_extrema(Real *values, uint n_cblocks, Real *fv_l, Real *fv_r)
 }
 
 /*Filter according to Eq. 19 in White et al.*/
-inline void filter_boundedness(Real *values, uint n_cblocks, Real *fv_l, Real *fv_r){   
+inline void filter_boundedness(Real *values, uint n_cblocks, Real *fv_l, Real *fv_r){
    /*First Eq. 19 & 20*/
    for (int k = 0; k < n_cblocks * WID; k++){
       bool do_fix_bounds =
@@ -64,13 +64,13 @@ inline void filter_boundedness(Real *values, uint n_cblocks, Real *fv_l, Real *f
 
 /*!
  Compute PLM coefficients
- f(v) = a[0] + a[1]/2.0*t 
+ f(v) = a[0] + a[1]/2.0*t
  t=(v-v_{i-0.5})/dv where v_{i-0.5} is the left face of a cell
  The factor 2.0 is in the polynom to ease integration, then integral is a[0]*t + a[1]*t**2
 */
 
 inline void compute_plm_coeff_explicit_column(Real *values, uint n_cblocks, Real a[][RECONSTRUCTION_ORDER + 1]){
-   for (uint k = 0; k < n_cblocks * WID; k++){   
+   for (uint k = 0; k < n_cblocks * WID; k++){
       const Real d_cv=slope_limiter(values[k - 1 + WID], values[k + WID], values[k + 1 + WID]);
       a[k][0] = values[k + WID] - d_cv * 0.5;
       a[k][1] = d_cv * 0.5;
@@ -79,7 +79,7 @@ inline void compute_plm_coeff_explicit_column(Real *values, uint n_cblocks, Real
 
 /*
   Compute parabolic reconstruction with an explicit scheme
-  
+
   Note that value array starts with an empty block, thus values[k + WID]
   corresponds to the current (centered) cell.
 */
@@ -90,15 +90,15 @@ inline void compute_ppm_coeff_explicit_column(Real *values, uint n_cblocks, Real
    Real fv_l[MAX_BLOCKS_PER_DIM * WID + 1]; /*left face value, extra space for ease of implementation*/
    Real fv_r[MAX_BLOCKS_PER_DIM * WID + 1]; /*right face value*/
 
-   compute_h6_face_values(values,n_cblocks,fv_l, fv_r); 
-   filter_boundedness(values,n_cblocks,fv_l, fv_r); 
+   compute_h6_face_values(values,n_cblocks,fv_l, fv_r);
+   filter_boundedness(values,n_cblocks,fv_l, fv_r);
    filter_extrema(values,n_cblocks,fv_l, fv_r);
 
    for (uint k = 0; k < n_cblocks * WID; k++){
       m_face = fv_l[k];
       p_face = fv_r[k];
-      
-      //Coella et al, check for monotonicity   
+
+      //Coella et al, check for monotonicity
       m_face = (p_face - m_face) * (values[k + WID] - 0.5 * (m_face + p_face)) > (p_face - m_face)*(p_face - m_face) / 6.0 ?
          3 * values[k + WID] - 2 * p_face : m_face;
       p_face = -(p_face - m_face) * (p_face - m_face) / 6.0 > (p_face - m_face) * (values[k + WID] - 0.5 * (m_face + p_face)) ?

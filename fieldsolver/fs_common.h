@@ -42,8 +42,8 @@
 #include "../sysboundary/sysboundary.h"
 #include "../sysboundary/sysboundarycondition.h"
 
-// Constants: not needed as such, but if field solver is implemented on GPUs 
-// these force CPU to use float accuracy, which in turn helps to compare 
+// Constants: not needed as such, but if field solver is implemented on GPUs
+// these force CPU to use float accuracy, which in turn helps to compare
 // CPU and GPU results.
 
 const Real HALF    = 0.5;

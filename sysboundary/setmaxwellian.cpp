@@ -35,7 +35,7 @@ namespace SBC {
    SetMaxwellian::SetMaxwellian(): SetByUser() {
    }
    SetMaxwellian::~SetMaxwellian() { }
-   
+
    void SetMaxwellian::addParameters() {
       Readparameters::addComposing(
           "maxwellian.face", "List of faces on which set Maxwellian boundary conditions are to be applied ([xyz][+-]).");
@@ -82,11 +82,11 @@ namespace SBC {
                              "Boolean value, is the set Maxwellian inflow dynamic in time or not.", 0);
       }
    }
-   
+
    void SetMaxwellian::getParameters() {
       Readparameters::get("maxwellian.face", faceList);
       Readparameters::get("maxwellian.precedence", precedence);
-      
+
       uint reapply;
       Readparameters::get("maxwellian.reapplyUponRestart", reapply);
 
@@ -114,7 +114,7 @@ namespace SBC {
          speciesParams.push_back(sP);
       }
    }
-   
+
    Real SetMaxwellian::maxwellianDistribution(
             const uint popID,
             creal& rho,
@@ -127,10 +127,10 @@ namespace SBC {
       exp(-MASS * (vx*vx + vy*vy + vz*vz) /
       (2.0 * physicalconstants::K_B * T));
    }
-   
-   /*  Here the while loop iterates  from the centre of the maxwellian in blocksize (4*dvx) increments, 
-   *  and looks at the centre of the first velocity cell in the block (+0.5dvx), checking if the 
-   *  phase-space density there is large enough to be included due to sparsity threshold. 
+
+   /*  Here the while loop iterates  from the centre of the maxwellian in blocksize (4*dvx) increments,
+   *  and looks at the centre of the first velocity cell in the block (+0.5dvx), checking if the
+   *  phase-space density there is large enough to be included due to sparsity threshold.
    *  That results in a "blocks radius"  vRadiusSquared from the centre of the maxwellianDistribution.
    *  Then we iterate through the actual blocks and calculate their radius R2 based on their velocity coordinates
    *  and the plasma bulk velocity. Blocks that fullfil R2<vRadiusSquared are included to blocksToInitialize.
@@ -147,7 +147,7 @@ namespace SBC {
       bool search = true;
       uint counter = 0;
       const uint8_t refLevel = 0;
-      
+
       const vmesh::LocalID* vblocks_ini = cell.get_velocity_grid_length(popID,refLevel);
 
       const Real dvx=cell.get_velocity_grid_cell_size(popID,refLevel)[0];
@@ -161,12 +161,12 @@ namespace SBC {
       }
       counter+=2;
 
-      Real vRadiusSquared 
+      Real vRadiusSquared
               = (Real)counter*(Real)counter
               * cell.get_velocity_grid_block_size(popID,refLevel)[0]
               * cell.get_velocity_grid_block_size(popID,refLevel)[0];
-      
-      for (uint kv=0; kv<vblocks_ini[2]; ++kv) 
+
+      for (uint kv=0; kv<vblocks_ini[2]; ++kv)
          for (uint jv=0; jv<vblocks_ini[1]; ++jv)
             for (uint iv=0; iv<vblocks_ini[0]; ++iv) {
                vmesh::GlobalID blockIndices[3];
@@ -174,7 +174,7 @@ namespace SBC {
                blockIndices[1] = jv;
                blockIndices[2] = kv;
                const vmesh::GlobalID blockGID = cell.get_velocity_block(popID,blockIndices,refLevel);
-               
+
                Real V_crds[3];
                cell.get_velocity_block_coordinates(popID,blockGID,V_crds);
                Real dV[3];
@@ -194,7 +194,7 @@ namespace SBC {
 
       return blocksToInitialize;
    }
-   
+
    /*!\brief Generate the template cell for the face corresponding to the index passed.
     * This function generates a spatial cell which is to be used as a template for the
     * system boundary condition.
@@ -209,18 +209,18 @@ namespace SBC {
       creal& t
    ) {
       Real rho, T, Vx, Vy, Vz, Bx=0.0, By=0.0, Bz=0.0, buffer[8];
-      
-      
+
+
       templateCell.sysBoundaryFlag = this->getIndex();
       templateCell.sysBoundaryLayer = 1;
-      
+
       templateCell.parameters[CellParams::XCRD] = 0.0;
       templateCell.parameters[CellParams::YCRD] = 0.0;
       templateCell.parameters[CellParams::ZCRD] = 0.0;
       templateCell.parameters[CellParams::DX] = 1;
       templateCell.parameters[CellParams::DY] = 1;
       templateCell.parameters[CellParams::DZ] = 1;
-      
+
       // Init all particle species
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          interpolate(inputDataIndex, popID, t, &buffer[0]);
@@ -246,14 +246,14 @@ namespace SBC {
             creal dvxCell = block_parameters[BlockParams::DVX];
             creal dvyCell = block_parameters[BlockParams::DVY];
             creal dvzCell = block_parameters[BlockParams::DVZ];
-         
+
             //creal x = templateCell.parameters[CellParams::XCRD];
             //creal y = templateCell.parameters[CellParams::YCRD];
             //creal z = templateCell.parameters[CellParams::ZCRD];
             //creal dx = templateCell.parameters[CellParams::DX];
             //creal dy = templateCell.parameters[CellParams::DY];
             //creal dz = templateCell.parameters[CellParams::DZ];
-         
+
             // Calculate volume average of distrib. function for each cell in the block.
             for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
                creal vxCell = vxBlock + ic*dvxCell;
@@ -287,24 +287,24 @@ namespace SBC {
                                                      vzCell + 0.5*dvzCell - Vz
                                                     );
                }
-               
+
                if (average != 0.0) {
                   data[blockLID*WID3+cellIndex(ic,jc,kc)] = average;
-               } 
+               }
             } // for-loop over cells in velocity block
          } // for-loop over velocity blocks
-         
+
          //let's get rid of blocks not fulfilling the criteria here to save
          //memory.
          templateCell.adjustSingleCellVelocityBlocks(popID);
       } // for-loop over particle species
-      
+
       B[0] = Bx;
       B[1] = By;
       B[2] = Bz;
-      
+
       calculateCellMoments(&templateCell,true,false,true);
-      
+
       if(!this->isThisDynamic) {
          // WARNING Time-independence assumed here.
          templateCell.parameters[CellParams::RHOM_R] = templateCell.parameters[CellParams::RHOM];
@@ -329,8 +329,8 @@ namespace SBC {
       }
 
    }
-   
+
    string SetMaxwellian::getName() const {return "SetMaxwellian";}
    uint SetMaxwellian::getIndex() const {return sysboundarytype::SET_MAXWELLIAN;}
-   
+
 } // namespace SBC

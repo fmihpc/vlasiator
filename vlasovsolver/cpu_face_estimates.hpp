@@ -212,8 +212,8 @@ inline void compute_h3_left_face_derivative(const Vec * const values, uint k, Ve
   3) Makes sure face slopes are consistent with PLM slope
 */
 inline void compute_filtered_face_values_derivatives(const Vec * const values,uint k, face_estimate_order order,
-						     Vec &fv_l, Vec &fv_r, Vec &fd_l, Vec &fd_r,
-						     const Realv threshold){
+                                                     Vec &fv_l, Vec &fv_r, Vec &fd_l, Vec &fd_r,
+                                                     const Realv threshold){
 
    switch(order){
        case h4:

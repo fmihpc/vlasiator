@@ -47,7 +47,7 @@ namespace vlsvinterface {
       }
       return 0;
    }
-   
+
    float checkVersion( const string & fname ) {
       vlsv::Reader vlsvReader;
       vlsvReader.open(fname);
@@ -72,11 +72,11 @@ namespace vlsvinterface {
       cellIdsSet = false;
       cellsWithBlocksSet = false;
    }
-   
+
    Reader::~Reader() {
-   
+
    }
-   
+
    bool Reader::getMeshNames( list<string> & meshNames ) {
       set<string> meshNames_set;
       if (getUniqueAttributeValues("MESH", "name", meshNames_set) == false) {
@@ -89,7 +89,7 @@ namespace vlsvinterface {
       }
       return true;
    }
-   
+
    bool Reader::getMeshNames( set<string> & meshNames ) {
       if (getUniqueAttributeValues("MESH", "name", meshNames) == false) {
          cerr << "Failed to read mesh names" << endl;
@@ -97,7 +97,7 @@ namespace vlsvinterface {
       }
       return true;
    }
-   
+
    bool Reader::getVariableNames( const string&, list<string> & meshNames ) {
       set<string> meshNames_set;
       if (getUniqueAttributeValues("VARIABLE", "name", meshNames_set) == false) {
@@ -110,7 +110,7 @@ namespace vlsvinterface {
       }
       return true;
    }
-   
+
    bool Reader::getVariableNames( set<string> & meshNames ) {
       if (getUniqueAttributeValues("VARIABLE", "name", meshNames) == false) {
          cerr << "Failed to read mesh names" << endl;
@@ -161,7 +161,7 @@ namespace vlsvinterface {
       delete[] cellIds_buffer;
       return true;
    }
-   
+
    bool Reader::setCellIds() {
       if( cellIdLocations.empty() == false ) {
          //Clear the cell ids
@@ -212,7 +212,7 @@ namespace vlsvinterface {
       list<pair<string, string> > attribs;
 
       // Get the mesh name for reading in data from the correct place. Older Vlasiator VLSV
-      // files did not add particle population name to arrays, so for those files we do 
+      // files did not add particle population name to arrays, so for those files we do
       // not require the popName to be present.
       attribs.push_back(make_pair("mesh", meshName));
       if (popName.size() > 0) attribs.push_back(make_pair("name", popName));
@@ -222,7 +222,7 @@ namespace vlsvinterface {
          cerr << "ERROR, COULD NOT FIND ARRAY CELLSWITHBLOCKS FOR POPULATION '" << popName << "' AT " << __FILE__ << ":" << __LINE__ << endl;
          return false;
       }
-   
+
       //Make sure the data format is correct:
       if( cwb_vectorSize != 1 ) {
          cerr << "ERROR, BAD VECTORSIZE AT " << __FILE__ << " " << __LINE__ << endl;
@@ -236,7 +236,7 @@ namespace vlsvinterface {
          cerr << "ERROR, BAD DATASIZE AT " << __FILE__ << " " << __LINE__ << endl;
          return false;
       }
-   
+
       // Create buffer and read data:
       const uint64_t cwb_amountToReadIn = cwb_arraySize * cwb_vectorSize * cwb_dataSize;
       const uint16_t cwb_startingPoint = 0;
@@ -246,17 +246,17 @@ namespace vlsvinterface {
          delete[] cwb_buffer;
          return false;
       }
-   
+
       vlsv::datatype::type nb_dataType;
-      uint64_t nb_arraySize, nb_vectorSize, nb_dataSize;  
-   
+      uint64_t nb_arraySize, nb_vectorSize, nb_dataSize;
+
       //Get the mesh name for reading in data from the correct place
       //Read array info -- stores output in nb_arraySize, nb_vectorSize, nb_dataType, nb_dataSize
       if (getArrayInfo("BLOCKSPERCELL", attribs, nb_arraySize, nb_vectorSize, nb_dataType, nb_dataSize) == false) {
          cerr << "ERROR, COULD NOT FIND ARRAY BLOCKSPERCELL AT " << __FILE__ << " " << __LINE__ << endl;
          return false;
       }
-   
+
       // Create buffers for  number of blocks (nb) and read data:
       const short int startingPoint = 0; //Read the array from 0 (the beginning)
       char* nb_buffer = new char[nb_arraySize * nb_vectorSize * nb_dataSize];
@@ -266,7 +266,7 @@ namespace vlsvinterface {
          delete[] cwb_buffer;
          return false;
       }
-   
+
       // Input cellswithblock locations:
       uint64_t blockOffset = 0;
       uint64_t N_blocks;
@@ -278,7 +278,7 @@ namespace vlsvinterface {
          cellsWithBlocksLocations.insert( make_pair(readCellID, input) );
          blockOffset += N_blocks;
       }
-   
+
       delete[] cwb_buffer;
       delete[] nb_buffer;
       cellsWithBlocksSet = true;
@@ -300,7 +300,7 @@ namespace vlsvinterface {
       pair<uint64_t, uint32_t> offsetAndBlocks = it->second;
       const uint64_t blockOffset = get<0>(offsetAndBlocks);
       const uint32_t N_blocks = get<1>(offsetAndBlocks);
-   
+
       // Get some required info from VLSV file:
       list<pair<string, string> > attribs;
       if (popName.size() > 0) attribs.push_back(make_pair("name",popName));
@@ -335,20 +335,20 @@ namespace vlsvinterface {
       delete[] blockIds_buffer;
       return true;
    }
-   
+
    bool Reader::getVelocityBlockVariables(const string & variableName,const uint64_t & cellId,char*& buffer,bool allocateMemory ) {
       if( cellsWithBlocksSet == false ) {
          cerr << "ERROR, CELLS WITH BLOCKS NOT SET AT " << __FILE__ << " " << __LINE__ << endl;
          return false;
       }
-   
+
       //Check if the cell id can be found:
       unordered_map<uint64_t, pair<uint64_t, uint32_t>>::const_iterator it = cellsWithBlocksLocations.find( cellId );
       if( it == cellsWithBlocksLocations.end() ) {
          cerr << "COULDNT FIND CELL ID " << cellId << " AT " << __FILE__ << " " << __LINE__ << endl;
          return false;
       }
-   
+
       bool success = true;
       list<pair<string, string> > attribs;
       attribs.push_back(make_pair("name", variableName));
@@ -360,15 +360,15 @@ namespace vlsvinterface {
          cerr << "Could not read BLOCKVARIABLE array info" << endl;
          return false;
       }
-   
+
       //Get offset and number of blocks
       const uint64_t offset = get<0>(it->second);
       const uint32_t amountToReadIn = get<1>(it->second);
-   
+
       if( allocateMemory == true ) {
          buffer = new char[amountToReadIn * vectorSize * dataSize];
       }
-   
+
       //Read the variables (Note: usually vectorSize = 64)
       if (readArray("BLOCKVARIABLE", attribs, offset, amountToReadIn, buffer) == false) {
          cerr << "ERROR could not read block variable" << endl;
