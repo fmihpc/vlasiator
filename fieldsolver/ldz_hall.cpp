@@ -806,23 +806,22 @@ void calculateHallTermSimple(
    SysBoundary& sysBoundaries,
    cint& RKCase
 ) {
-   int timer;
    //const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
    const int* gridDims = &technicalGrid.getLocalSize()[0];
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
 
-   phiprof::start("Calculate Hall term");
-   timer=phiprof::initializeTimer("EHall ghost updates MPI","MPI");
-   phiprof::start(timer);
+   phiprof::Timer hallTimer {"Calculate Hall term"};
+   phiprof::Timer mpiTimer {"EHall ghost updates MPI", {"MPI"}};
+   int computeTimerId {phiprof::initializeTimer("EHall compute cells")};
    dPerBGrid.updateGhostCells();
    if(P::ohmGradPeTerm == 0) {
       dMomentsGrid.updateGhostCells();
    }
-   phiprof::stop(timer);
+   mpiTimer.stop();
 
    #pragma omp parallel
    {
-      phiprof::start("EHall compute cells");
+      phiprof::Timer computeTimer {computeTimerId};
       #pragma omp for collapse(2)
       for (int k=0; k<gridDims[2]; k++) {
 	 for (int j=0; j<gridDims[1]; j++) {
@@ -835,8 +834,8 @@ void calculateHallTermSimple(
 	    }
 	 }
       }
-      phiprof::stop("EHall compute cells");
+      computeTimer.stop(N_cells,"Spatial Cells");
    }
 
-   phiprof::stop("Calculate Hall term",N_cells,"Spatial Cells");
+   hallTimer.stop(N_cells, "Spatial Cells");
 }

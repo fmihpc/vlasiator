@@ -84,6 +84,7 @@ jobs:
           name: libraries
           path: libraries.tar.zstd
           retention-days: 5
+          if-no-files-found: error
 
   build_production:
     # Build Vlasiator witth production flags
@@ -130,6 +131,7 @@ jobs:
       with:
         name: vlasiator-testpackage
         path: vlasiator
+        if-no-files-found: error
     #- name: Upload build log
     #  uses: actions/upload-artifact@v3
     #  with:
@@ -157,6 +159,7 @@ jobs:
         path: |
           vlsvextract_DP
           vlsvdiff_DP
+        if-no-files-found: error
 
   run_testpackage:
     # Run the testpackage on the carrington cluster
@@ -228,4 +231,5 @@ jobs:
           mini-apps/ionosphereSolverTests/main
           mini-apps/ionosphereSolverTests/differentialFlux
           mini-apps/ionosphereSolverTests/sigmaProfiles
+        if-no-files-found: error
 

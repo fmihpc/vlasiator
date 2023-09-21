@@ -791,15 +791,12 @@ void SysBoundary::applySysBoundaryVlasovConditions(
       updateRemoteVelocityBlockLists(mpiGrid, popID, SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
 
       // Then the block data in the reduced neighbourhood:
-      int timer = phiprof::initializeTimer("Start comm of cell and block data", "MPI");
-      phiprof::start(timer);
+      phiprof::Timer commTimer {"Start comm of cell and block data", {"MPI"}};
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA, true);
       mpiGrid.start_remote_neighbor_copy_updates(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
-      phiprof::stop(timer);
+      commTimer.stop();
 
-      timer = phiprof::initializeTimer("Compute process inner cells");
-      phiprof::start(timer);
-
+      phiprof::Timer computeInnerTimer {"Compute process inner cells"};
       // Compute Vlasov boundary condition on system boundary/process inner cells
       vector<CellID> localCells;
       getBoundaryCellList(mpiGrid, mpiGrid.get_local_cells_not_on_process_boundary(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID), localCells);
@@ -814,16 +811,14 @@ void SysBoundary::applySysBoundaryVlasovConditions(
       } else {
          calculateMoments_R(mpiGrid, localCells, true);
       }
-      phiprof::stop(timer);
+      computeInnerTimer.stop();
 
-      timer = phiprof::initializeTimer("Wait for receives", "MPI", "Wait");
-      phiprof::start(timer);
+      phiprof::Timer waitimer {"Wait for receives", {"MPI", "Wait"}};
       mpiGrid.wait_remote_neighbor_copy_updates(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
-      phiprof::stop(timer);
+      waitimer.stop();
 
       // Compute vlasov boundary on system boundary/process boundary cells
-      timer = phiprof::initializeTimer("Compute process boundary cells");
-      phiprof::start(timer);
+      phiprof::Timer computeBoundaryTimer {"Compute process boundary cells"};
       vector<CellID> boundaryCells;
       getBoundaryCellList(mpiGrid, mpiGrid.get_local_cells_on_process_boundary(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID),
                           boundaryCells);
@@ -837,7 +832,7 @@ void SysBoundary::applySysBoundaryVlasovConditions(
       } else {
          calculateMoments_R(mpiGrid, boundaryCells, true);
       }
-      phiprof::stop(timer);
+      computeBoundaryTimer.stop();
 
       // WARNING Blocks are changed but lists not updated now, if you need to use/communicate them before the next
       // update is done, add an update here. reset lists in smaller default neighborhood
@@ -903,14 +898,12 @@ bool getBoundaryCellList(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geomet
  * \retval Returns true if the operation is successful
  */
 bool SysBoundary::updateSysBoundariesAfterLoadBalance(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) {
-   phiprof::start("updateSysBoundariesAfterLoadBalance");
+   phiprof::Timer timer {"updateSysBoundariesAfterLoadBalance"};
    vector<uint64_t> local_cells_on_boundary;
    getBoundaryCellList(mpiGrid, mpiGrid.get_cells(), local_cells_on_boundary);
    // Loop over sysboundaries:
    for (list<SBC::SysBoundaryCondition*>::iterator it = sysBoundaries.begin(); it != sysBoundaries.end(); ++it) {
       (*it)->updateSysBoundaryConditionsAfterLoadBalance(mpiGrid, local_cells_on_boundary);
    }
-
-   phiprof::stop("updateSysBoundariesAfterLoadBalance");
    return true;
 }
