@@ -130,7 +130,7 @@ public:
       rehash(sizePower + 1);
       return at(key); // Recursive tail call to try again with larger table.
    }
-      
+
    const LID& at(const GID& key) const {
       int bitMask = (1 << sizePower) - 1; // For efficient modulo of the array size
       uint32_t hashIndex = hash(key);
@@ -198,7 +198,7 @@ public:
          }
          return *this;
       }
-      
+
       iterator operator++(int) { // Postfix version
          iterator temp = *this;
          ++(*this);
@@ -208,7 +208,7 @@ public:
       bool operator==(iterator other) const {
          // comparison of iterators between two different hashtables undefined
          assert(hashtable == other.hashtable);
-         return index == other.index;  
+         return index == other.index;
       }
       bool operator!=(iterator other) const {
          return !(*this == other);
@@ -252,7 +252,7 @@ public:
       bool operator==(const_iterator other) const {
          // comparison of iterators between two different hashtables undefined
          assert(hashtable == other.hashtable);
-         return index == other.index;  
+         return index == other.index;
       }
       bool operator!=(const_iterator other) const {
          return !(*this == other);
