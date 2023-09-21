@@ -18,3 +18,9 @@ repos:
 #    hooks:
 #    -   id: clang-format
 #        args: [-i]
+
+ci:
+    autofux_commit_msg: |
+      automatic style and whitespace fixes
+    autofix_prs: true
+    autoupdate_branch: pre-commit
