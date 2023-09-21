@@ -43,7 +43,6 @@
 #ifdef DEBUG_VLASIATOR
    #define DEBUG_VMESH
 #endif
-   #define DEBUG_VMESH
 
 namespace vmesh {
 
@@ -968,8 +967,8 @@ namespace vmesh {
                    localToGlobalMap->at(LID),LID,GID);
          }
       }
-      __syncthreads();
       const vmesh::LocalID preMapSize = globalToLocalMap->size();
+      __syncthreads();
       #endif
       if (b_tid < GPUTHREADS) {
          globalToLocalMap->warpErase(GID, b_tid);
@@ -977,8 +976,8 @@ namespace vmesh {
             localToGlobalMap->at(LID) = invalidGlobalID();
          }
       }
-      #ifdef DEBUG_VMESH
       __syncthreads();
+      #ifdef DEBUG_VMESH
       const vmesh::LocalID postMapSize = globalToLocalMap->size();
       if (postMapSize != preMapSize-1) {
          printf("Warp error in VelocityMesh::warpDeleteBlock: map size %u does not match expected %u for thread %u!\n",postMapSize,preMapSize-1,(vmesh::LocalID)b_tid);
@@ -990,7 +989,6 @@ namespace vmesh {
          assert(0);
       }
       #endif
-      __syncthreads();
    }
 #endif
 
