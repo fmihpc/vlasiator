@@ -1354,7 +1354,6 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    phiprof::Timer initTimer {"initialize refines"};
    mpiGrid.initialize_refines();
    initTimer.stop();
-   phiprof::stop("initialize refines");
 
    refines = mpiGrid.get_local_cells_to_refine().size();
    MPI_Allreduce(MPI_IN_PLACE, &refines, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
