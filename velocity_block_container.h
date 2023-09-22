@@ -29,7 +29,6 @@
 #ifdef DEBUG_VLASIATOR
    #define DEBUG_VBC
 #endif
-   #define DEBUG_VBC
 
 #ifdef DEBUG_VBC
 #include <sstream>
