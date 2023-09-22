@@ -988,6 +988,7 @@ namespace vmesh {
          printf("Warp error in VelocityMesh::warpDeleteBlock: GID %u still found with LID %u for thread %u!\n",GID,it->second,(vmesh::LocalID)b_tid);
          assert(0);
       }
+      __syncthreads();
       #endif
    }
 #endif
