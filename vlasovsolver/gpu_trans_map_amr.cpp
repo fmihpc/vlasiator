@@ -118,9 +118,9 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
                // Transpose block values so that mapping is along k direction.
                // Store values in Vec-order for efficient reading in propagation
                thisPencilOrderedSource[i_trans_ps_blockv_pencil(threadIdx.y, celli, lengthOfPencil)][threadIdx.x]
-                  = (pencilBlockData[pencilBlockDataOffset + start + celli])[vcell_transpose[threadIdx.y*WID2+threadIdx.y]];
+                  = (pencilBlockData[pencilBlockDataOffset + start + celli])[vcell_transpose[threadIdx.y*WID2+threadIdx.x]];
             } else { // Non-existing block, push in zeroes
-               thisPencilOrderedSource[i_trans_ps_blockv_pencil(threadIdx.y, celli, lengthOfPencil)][ti] = 0.0;
+               thisPencilOrderedSource[i_trans_ps_blockv_pencil(threadIdx.y, celli, lengthOfPencil)][threadIdx.y*WID2+threadIdx.x] = 0.0;
             }
          } // End loop over this pencil
          if (ti==0) {
