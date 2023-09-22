@@ -1183,8 +1183,8 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    // Create GPU copies of these vectors
    DimensionPencils[dimension].gpu_lengthOfPencils = new split::SplitVector<uint>(DimensionPencils[dimension].lengthOfPencils);
    DimensionPencils[dimension].gpu_idsStart = new split::SplitVector<uint>(DimensionPencils[dimension].idsStart);
-   DimensionPencils[dimension].gpu_sourceDZ = new split::SplitVector<Real>(DimensionPencils[dimension].sourceDZ);
-   DimensionPencils[dimension].gpu_targetRatios = new split::SplitVector<Real>(DimensionPencils[dimension].targetRatios);
+   DimensionPencils[dimension].gpu_sourceDZ = new split::SplitVector<Realf>(DimensionPencils[dimension].sourceDZ);
+   DimensionPencils[dimension].gpu_targetRatios = new split::SplitVector<Realf>(DimensionPencils[dimension].targetRatios);
    // Send data to GPU
    gpuStream_t stream = gpu_getStream();
    int device = gpu_getDevice();

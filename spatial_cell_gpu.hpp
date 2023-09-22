@@ -1431,9 +1431,16 @@ namespace spatial_cell {
 
       // Get local ID of the last block:
       const vmesh::LocalID lastLID = populations[popID].vmesh->size()-1;
-      // Move the last block to the removed position
-      populations[popID].vmesh->move(lastLID,removedLID);
-      populations[popID].blockContainer->move(lastLID,removedLID);
+      // If block to remove is already last:
+      if (lastLID == removedLID) {
+         // Just remove the block
+         populations[popID].vmesh->pop();
+         populations[popID].blockContainer->pop();
+      } else {
+         // Move the last block to the removed position
+         populations[popID].vmesh->move(lastLID,removedLID);
+         populations[popID].blockContainer->move(lastLID,removedLID);
+      }
    }
 
    inline void SpatialCell::swap(vmesh::VelocityMesh* vmesh,

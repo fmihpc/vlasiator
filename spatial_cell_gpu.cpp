@@ -30,7 +30,6 @@
 #ifdef DEBUG_VLASIATOR
    #define DEBUG_SPATIAL_CELL
 #endif
-//   #define DEBUG_SPATIAL_CELL
 
 using namespace std;
 
@@ -179,9 +178,9 @@ __global__ void __launch_bounds__(GPUTHREADS,4) update_neighbours_have_content_k
    vmesh::VelocityMesh *vmesh,
    Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>* BlocksRequiredMap,
    vmesh::GlobalID *neighbor_velocity_block_with_content_list,
-   const unsigned long neighborContentBlocks
+   const vmesh::LocalID neighborContentBlocks
    ) {
-   const int gpuBlocks = gridDim.x;
+   const vmesh::LocalID gpuBlocks = gridDim.x;
    const int blocki = blockIdx.x;
    //const int warpSize = blockDim.x*blockDim.y*blockDim.z;
    const vmesh::LocalID ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
@@ -455,6 +454,10 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
       // We need to add the data of addGID to a new LID:
       const vmesh::LocalID addLID = nBlocksBeforeAdjust + m;
       Realf* add_avgs = blockContainer->getData(addLID);
+      #ifdef DEBUG_SPATIAL_CELL
+      assert((addGID != vmesh->invalidGlobalID()) && "Error! Trying to add invalid GID!");
+      assert((addLID != vmesh->invalidLocalID()) && "Error! Trying to add GID to invalid LID position!");
+      #endif
       Real* add_block_parameters = blockContainer->getParameters(addLID);
       // Zero out blockdata
       add_avgs[ti] = 0;
@@ -465,12 +468,8 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
       __syncthreads();
       vmesh->warpPlaceBlock(addGID,addLID,ti);
       #ifdef DEBUG_SPATIAL_CELL
-      if (vmesh->getGlobalID(addLID) == vmesh->invalidGlobalID()) {
-         continue;
-      }
-      if (vmesh->getLocalID(addGID) == vmesh->invalidLocalID()) {
-         continue;
-      }
+      assert((vmesh->getGlobalID(addLID) != vmesh->invalidGlobalID()) && "Error! Trying to add invalid GID!");
+      assert((vmesh->getLocalID(addGID) != vmesh->invalidLocalID()) && "Error! Trying to add GID to invalid LID position!");
       #endif
    }
    // Atomically update accumulated mass loss
@@ -540,6 +539,7 @@ namespace spatial_cell {
       BlocksToRemove->clear();
       BlocksToMove->clear();
       attachedStream=0;
+      velocity_block_with_content_list_size=0;
       BlocksRequiredMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(7);
 
       gpuMallocHost((void **) &info_vbwcl, sizeof(split::SplitInfo));
@@ -1020,7 +1020,7 @@ namespace spatial_cell {
          CHK_ERR( gpuStreamSynchronize(stream) );
          for (std::vector<SpatialCell*>::const_iterator neighbor=spatial_neighbors.begin();
               neighbor != spatial_neighbors.end(); ++neighbor) {
-            const int nNeighBlocks = (*neighbor)->velocity_block_with_content_list_size;
+            const vmesh::LocalID nNeighBlocks = (*neighbor)->velocity_block_with_content_list_size;
             // now with warp accessors
             nGpuBlocks = nNeighBlocks > GPUBLOCKS ? GPUBLOCKS : nNeighBlocks;
             if (nGpuBlocks==0) {
@@ -1708,6 +1708,7 @@ namespace spatial_cell {
          );
       CHK_ERR( gpuPeekAtLastError() );
       CHK_ERR( gpuStreamSynchronize(stream) ); // This sync is required!
+      velocity_block_with_content_list_size = 0;
       phiprof::stop("GPU update spatial cell block lists kernel");
 
       phiprof::start("GPU update spatial cell block lists streamcompaction");
