@@ -138,7 +138,7 @@ void calculateDerivatives(
       }
 
       // pres_e = const * np.power(rho_e, index)
-      dMoments->at(fsgrids::dmoments::dPedx) = Peconst * limiter(pow(leftMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(centMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(rghtMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex));      
+      dMoments->at(fsgrids::dmoments::dPedx) = Peconst * limiter(pow(leftMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(centMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(rghtMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex));
       
       if (Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1) {
         dPerB->at(fsgrids::dperb::dPERBydxx) = 0.0;
@@ -185,7 +185,7 @@ void calculateDerivatives(
       }
 
       // pres_e = const * np.power(rho_e, index)
-      dMoments->at(fsgrids::dmoments::dPedy) = Peconst * limiter(pow(leftMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(centMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(rghtMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex));      
+      dMoments->at(fsgrids::dmoments::dPedy) = Peconst * limiter(pow(leftMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(centMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(rghtMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex));
 
       if (Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1) {
          dPerB->at(fsgrids::dperb::dPERBxdyy) = 0.0;
@@ -232,7 +232,7 @@ void calculateDerivatives(
       }
 
       // pres_e = const * np.power(rho_e, index)
-      dMoments->at(fsgrids::dmoments::dPedz) = Peconst * limiter(pow(leftMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(centMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(rghtMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex));      
+      dMoments->at(fsgrids::dmoments::dPedz) = Peconst * limiter(pow(leftMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(centMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(rghtMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex));
 
       if (Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1) {
         dPerB->at(fsgrids::dperb::dPERBxdzz) = 0.0;
@@ -323,10 +323,9 @@ void calculateDerivativesSimple(
    const int* gridDims = &technicalGrid.getLocalSize()[0];
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
    
-   phiprof::start("Calculate face derivatives");
+   phiprof::Timer derivativesTimer {"Calculate face derivatives"};
    
-   timer=phiprof::initializeTimer("MPI","MPI");
-   phiprof::start(timer);
+   phiprof::Timer mpiTimer {"MPI", {"MPI"}};
    
    switch (RKCase) {
     case RK_ORDER1:
@@ -362,11 +361,9 @@ void calculateDerivativesSimple(
       abort();
    }
    
-   phiprof::stop(timer);
+   mpiTimer.stop();
 
-   timer=phiprof::initializeTimer("Compute cells");
-   phiprof::start(timer);
-
+   phiprof::Timer computeTimer {"Compute cells"};
    // Calculate derivatives
    #pragma omp parallel for collapse(3)
    for (int k=0; k<gridDims[2]; k++) {
@@ -382,9 +379,9 @@ void calculateDerivativesSimple(
       }
    }
 
-   phiprof::stop(timer,N_cells,"Spatial Cells");
+   computeTimer.stop(N_cells, "Spatial Cells");
    
-   phiprof::stop("Calculate face derivatives",N_cells,"Spatial Cells");   
+   derivativesTimer.stop(N_cells, "Spatial Cells");   
 }
 
 /*! \brief Low-level spatial derivatives calculation.
@@ -496,18 +493,14 @@ void calculateBVOLDerivativesSimple(
    const int* gridDims = &technicalGrid.getLocalSize()[0];
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
    
-   phiprof::start("Calculate volume derivatives");
+   phiprof::Timer derivsTimer {"Calculate volume derivatives"};
    
-   timer=phiprof::initializeTimer("Start comm","MPI");
-   phiprof::start(timer);
+   phiprof::Timer commTimer {"Start comm", {"MPI"}};
    volGrid.updateGhostCells();
-   
-   phiprof::stop(timer,N_cells,"Spatial Cells");
-   
+   commTimer.stop(N_cells,"Spatial Cells");
    
    // Calculate derivatives
-   timer=phiprof::initializeTimer("Compute cells");
-   phiprof::start(timer);
+   phiprof::Timer computeTimer {"Compute cells"};
    
    #pragma omp parallel for collapse(3)
    for (int k=0; k<gridDims[2]; k++) {
@@ -521,9 +514,9 @@ void calculateBVOLDerivativesSimple(
       }
    }
 
-   phiprof::stop(timer,N_cells,"Spatial Cells");
+   computeTimer.stop(N_cells,"Spatial Cells");
 
-   phiprof::stop("Calculate volume derivatives",N_cells,"Spatial Cells");
+   derivsTimer.stop(N_cells,"Spatial Cells");
 }
 
 /*! \brief Low-level curvature calculation.
@@ -647,12 +640,11 @@ void calculateCurvatureSimple(
    const int* gridDims = &technicalGrid.getLocalSize()[0];
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
    
-   phiprof::start("Calculate curvature");
+   phiprof::Timer curvatureTimer {"Calculate curvature"};
    
-   timer=phiprof::initializeTimer("Start comm","MPI");
-   phiprof::start(timer);
+   phiprof::Timer commTimer {"Start comm", {"MPI"}};
    volGrid.updateGhostCells();
-   phiprof::stop(timer,N_cells,"Spatial Cells");
+   commTimer.stop(N_cells,"Spatial Cells");
    
    #pragma omp parallel for collapse(3)
    for (int k=0; k<gridDims[2]; k++) {
@@ -666,15 +658,7 @@ void calculateCurvatureSimple(
       }
    }
    
-   phiprof::stop("Calculate curvature",N_cells,"Spatial Cells");
-}
-
-/*! \brief Returns volumetric E of cell
- *
- */
-static std::array<Real, 3> getE(SpatialCell* cell)
-{
-   return std::array<Real, 3> { {cell->parameters[CellParams::EXVOL], cell->parameters[CellParams::EYVOL], cell->parameters[CellParams::EZVOL]} };
+   curvatureTimer.stop(N_cells, "Spatial Cells");
 }
 
 /*! \brief Returns perturbed volumetric B of cell
@@ -683,20 +667,6 @@ static std::array<Real, 3> getE(SpatialCell* cell)
 static std::array<Real, 3> getPerB(SpatialCell* cell)
 {
    return std::array<Real, 3> { {cell->parameters[CellParams::PERBXVOL], cell->parameters[CellParams::PERBYVOL], cell->parameters[CellParams::PERBZVOL]} };
-}
-
-/*! \brief Returns volumetric B of cell
- *
- */
-static std::array<Real, 3> getB(SpatialCell* cell)
-{
-   return std::array<Real, 3> { 
-      {
-         cell->parameters[CellParams::BGBXVOL] + cell->parameters[CellParams::PERBXVOL], 
-         cell->parameters[CellParams::BGBYVOL] + cell->parameters[CellParams::PERBYVOL], 
-         cell->parameters[CellParams::BGBZVOL] + cell->parameters[CellParams::PERBZVOL]
-      } 
-   };
 }
 
 /*! \brief Calculates momentum density of cell
@@ -819,20 +789,18 @@ void calculateScaledDeltasSimple(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    const vector<CellID>& cells = getLocalCells();
    int N_cells = cells.size();
    int timer;
-   phiprof::start("Calculate volume gradients");
+   phiprof::Timer gradientsTimer {"Calculate volume gradients"};
    
-   timer=phiprof::initializeTimer("Start comm","MPI");
-   phiprof::start(timer);
+   phiprof::Timer commTimer {"Start comm", {"MPI"}};
 
    // We only need nearest neighbourhood and spatial data here
    SpatialCell::set_mpi_transfer_type(Transfer::ALL_SPATIAL_DATA);
    mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
    
-   phiprof::stop(timer,N_cells,"Spatial Cells");
+   commTimer.stop(N_cells,"Spatial Cells");
    
    // Calculate derivatives
-   timer=phiprof::initializeTimer("Compute cells");
-   phiprof::start(timer);
+   phiprof::Timer computeTimer {"Compute cells"};
 
    #pragma omp parallel for
    for (uint i = 0; i < cells.size(); ++i) {
@@ -846,7 +814,7 @@ void calculateScaledDeltasSimple(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
       calculateScaledDeltas(cell, neighbors);
    }
 
-   phiprof::stop(timer,N_cells,"Spatial Cells");
+   computeTimer.stop(N_cells,"Spatial Cells");
 
-   phiprof::stop("Calculate volume gradients",N_cells,"Spatial Cells");
+   gradientsTimer.stop(N_cells,"Spatial Cells");
 }

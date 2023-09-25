@@ -222,11 +222,9 @@ void propagateMagneticFieldSimple(
    const int* gridDims = &technicalGrid.getLocalSize()[0];
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
    
-   phiprof::start("Propagate magnetic field");
+   phiprof::Timer propagateBTimer {"Propagate magnetic field"};
    
-   timer=phiprof::initializeTimer("Compute cells");
-   phiprof::start(timer);
-   
+   phiprof::Timer computeTimer {"Compute cells"};
    #pragma omp parallel for collapse(3) schedule(dynamic,1)
    for (int k=0; k<gridDims[2]; k++) {
       for (int j=0; j<gridDims[1]; j++) {
@@ -238,13 +236,12 @@ void propagateMagneticFieldSimple(
    }
    
    //phiprof::stop("propagate not sysbound",localCells.size(),"Spatial Cells");
-   phiprof::stop(timer,N_cells,"Spatial Cells");
+   computeTimer.stop(N_cells,"Spatial Cells");
    
    //This communication is needed for boundary conditions, in practice almost all
    //of the communication is going to be redone in calculateDerivativesSimple
    //TODO: do not transfer if there are no field boundaryconditions
-   timer=phiprof::initializeTimer("MPI","MPI");
-   phiprof::start(timer);
+   phiprof::Timer mpiTimer {"MPI", {"MPI"}};
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       // Exchange PERBX,PERBY,PERBZ with neighbours
       perBGrid.updateGhostCells();
@@ -253,11 +250,10 @@ void propagateMagneticFieldSimple(
       perBDt2Grid.updateGhostCells();
    }
    
-   phiprof::stop(timer);
+   mpiTimer.stop();
    
    // Propagate B on system boundary/process inner cells
-   timer=phiprof::initializeTimer("Compute system boundary cells");
-   phiprof::start(timer);
+   phiprof::Timer sysBoundaryTimer {"Compute system boundary cells"};
    // L1 pass
    #pragma omp parallel for collapse(3)
    for (int k=0; k<gridDims[2]; k++) {
@@ -279,10 +275,9 @@ void propagateMagneticFieldSimple(
          }
       }
    }
-   phiprof::stop(timer);
+   sysBoundaryTimer.stop();
    
-   timer=phiprof::initializeTimer("MPI","MPI");
-   phiprof::start(timer);
+   mpiTimer.start();
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       // Exchange PERBX,PERBY,PERBZ with neighbours
       perBGrid.updateGhostCells();
@@ -290,10 +285,9 @@ void propagateMagneticFieldSimple(
       // Exchange PERBX_DT2,PERBY_DT2,PERBZ_DT2 with neighbours
       perBDt2Grid.updateGhostCells();
    }
-   phiprof::stop(timer);
+   mpiTimer.stop();
 
-   timer=phiprof::initializeTimer("Compute system boundary cells");
-   phiprof::start(timer);
+   sysBoundaryTimer.start();
    // L2 pass
    #pragma omp parallel for collapse(3)
    for (int k=0; k<gridDims[2]; k++) {
@@ -309,7 +303,5 @@ void propagateMagneticFieldSimple(
          }
       }
    }
-   phiprof::stop(timer,N_cells,"Spatial Cells");
-   
-   phiprof::stop("Propagate magnetic field",N_cells,"Spatial Cells");
+   sysBoundaryTimer.stop(N_cells,"Spatial Cells");
 }
