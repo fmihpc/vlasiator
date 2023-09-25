@@ -123,15 +123,15 @@ void setBackgroundField(
 
                phiprof::Timer loopVolumeTimer {loopVolumeId};
                //Volume averages
-               for(unsigned int fComponent=0;fComponent<3;fComponent++){
+               for(uint fComponent=0;fComponent<3;fComponent++){
                   T3DFunction valueFunction = std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, (coordinate)fComponent, 0, (coordinate)0);
                   BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::BGBXVOL+fComponent) += volumeAverage(valueFunction,accuracy,start.data(),end);
-
+                  
                   //Compute derivatives. Note that we scale by dx[] as the arrays are assumed to contain differences, not true derivatives!
-                  T3DFunction derivFunction = std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, (coordinate)fComponent, 1, (coordinate)faceCoord1[fComponent]);
-                  BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::dBGBXVOLdy+2*fComponent) += dx[faceCoord1[fComponent]] * volumeAverage(derivFunction,accuracy,start.data(),end);
-                  derivFunction = std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, (coordinate)fComponent, 1, (coordinate)faceCoord2[fComponent]);
-                  BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::dBGBXVOLdy+1+2*fComponent) += dx[faceCoord2[fComponent]] * volumeAverage(derivFunction,accuracy,start.data(),end);
+                  for(uint dComponent=0;dComponent<3;dComponent++){
+                     T3DFunction derivFunction = std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, (coordinate)fComponent, 1, (coordinate)dComponent);
+                     BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::dBGBXVOLdx+3*fComponent+dComponent) += dx[dComponent] * volumeAverage(derivFunction,accuracy,start.data(),end);
+                  }
                }
                loopVolumeTimer.stop();
             }
@@ -141,7 +141,7 @@ void setBackgroundField(
    }
    bgTimer.stop(N_cells, "Spatial Cells");
    //TODO
-   //COmpute divergence and curl of volume averaged field and check that both are zero.
+   //Compute divergence and curl of volume averaged field and check that both are zero.
 }
 
 void setBackgroundFieldToZero(
