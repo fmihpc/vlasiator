@@ -94,6 +94,8 @@ vector<int> P::systemWriteDistributionWriteZlineStride;
 vector<Real> P::systemWriteDistributionWriteShellRadius;
 vector<int> P::systemWriteDistributionWriteShellStride;
 vector<bool> P::systemWriteFsGrid;
+bool P::systemWriteAllDROs;
+bool P::diagnosticWriteAllDROs;
 vector<int> P::systemWrites;
 vector<pair<string, string>> P::systemWriteHints;
 vector<pair<string, string>> P::restartWriteHints;
@@ -341,8 +343,8 @@ bool P::addParameters() {
    RP::addComposing("loadBalance.optionValue", "Zoltan option value. Has to be matched by loadBalance.optionKey.");
 
    // Output variable parameters
+   RP::add("io.system_write_all_data_reducers", "If 0 don't write all DROs, if 1 do write them.", false);
    // NOTE Do not remove the : before the list of variable names as this is parsed by tools/check_vlasiator_cfg.sh
-
    RP::addComposing("variables.output",
                     string() +
                         "List of data reduction operators (DROs) to add to the grid file output.  Each variable to be "
@@ -388,6 +390,7 @@ bool P::addParameters() {
            "BackgroundVolB PerturbedVolB " + "Pressure vg_Pressure fg_Pressure populations_PTensor " +
            "BVOLderivs b_vol_derivs");
 
+   RP::add("io.diagnostic_write_all_data_reducers", "Write all available diagnostic reducers", false);
    // NOTE Do not remove the : before the list of variable names as this is parsed by tools/check_vlasiator_cfg.sh
    RP::addComposing("variables.diagnostic",
                     string() +
@@ -454,6 +457,7 @@ bool P::addParameters() {
    RP::add("fieldtracing.tracer_max_allowed_error", "Maximum allowed error for the adaptive field line tracers ", 1000);
    RP::add("fieldtracing.tracer_max_attempts", "Maximum allowed attempts for the adaptive field line tracers", 100);
    RP::add("fieldtracing.tracer_min_dx", "Minimum allowed field line tracer step length for the adaptive field line tracers (m)", 100e3);
+   RP::add("fieldtracing.fullbox_and_fluxrope_max_absolute_distance_to_trace", "Maximum absolute distance in m to trace along the field line before ending. Defaults to the sum of the simulation box edge lengths LX+LY+LZ if set <= 0.", -1);
    RP::add("fieldtracing.fullbox_max_incomplete_cells", "Maximum fraction of cells left incomplete when stopping tracing loop for full box tracing. Defaults to zero to process all, will be slow at scale! Both fluxrope_max_incomplete_cells and fullbox_max_incomplete_cells will be achieved.", 0);
    RP::add("fieldtracing.fluxrope_max_incomplete_cells", "Maximum fraction of cells left incomplete when stopping loop for flux rope tracing. Defaults to zero to process all, will be slow at scale! Both fluxrope_max_incomplete_cells and fullbox_max_incomplete_cells will be achieved.", 0);
    RP::add("fieldtracing.use_reconstruction_cache", "Use the cache to store reconstruction coefficients. (0: don't, 1: use)", 0);
@@ -467,6 +471,7 @@ void Parameters::getParameters() {
    typedef Readparameters RP;
    // get numerical values of the parameters
    RP::get("io.diagnostic_write_interval", P::diagnosticInterval);
+   RP::get("io.diagnostic_write_all_data_reducers", P::diagnosticWriteAllDROs);
    RP::get("io.system_write_t_interval", P::systemWriteTimeInterval);
    RP::get("io.system_write_file_name", P::systemWriteName);
    RP::get("io.system_write_path", P::systemWritePath);
@@ -477,6 +482,7 @@ void Parameters::getParameters() {
    RP::get("io.system_write_distribution_shell_radius", P::systemWriteDistributionWriteShellRadius);
    RP::get("io.system_write_distribution_shell_stride", P::systemWriteDistributionWriteShellStride);
    RP::get("io.system_write_fsgrid_variables", P::systemWriteFsGrid);
+   RP::get("io.system_write_all_data_reducers", P::systemWriteAllDROs);
    RP::get("io.write_initial_state", P::writeInitialState);
    RP::get("io.write_full_bgb_data", P::writeFullBGB);
    RP::get("io.restart_walltime_interval", P::saveRestartWalltimeInterval);
@@ -845,6 +851,7 @@ void Parameters::getParameters() {
    RP::get("fieldtracing.tracer_min_dx", FieldTracing::fieldTracingParameters.min_tracer_dx);
    RP::get("fieldtracing.fullbox_max_incomplete_cells", FieldTracing::fieldTracingParameters.fullbox_max_incomplete_cells);
    RP::get("fieldtracing.fluxrope_max_incomplete_cells", FieldTracing::fieldTracingParameters.fluxrope_max_incomplete_cells);
+   RP::get("fieldtracing.fullbox_and_fluxrope_max_absolute_distance_to_trace", FieldTracing::fieldTracingParameters.fullbox_and_fluxrope_max_distance);
    RP::get("fieldtracing.use_reconstruction_cache", FieldTracing::fieldTracingParameters.useCache);
    RP::get("fieldtracing.fluxrope_max_curvature_radii_to_trace", FieldTracing::fieldTracingParameters.fluxrope_max_curvature_radii_to_trace);
    RP::get("fieldtracing.fluxrope_max_curvature_radii_extent", FieldTracing::fieldTracingParameters.fluxrope_max_curvature_radii_extent);

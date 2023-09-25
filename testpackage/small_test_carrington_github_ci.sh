@@ -39,7 +39,6 @@ module load GCC/11.2.0
 module load OpenMPI/4.1.1-GCC-11.2.0
 module load PMIx/4.1.0-GCCcore-11.2.0
 module load PAPI/6.0.0.1-GCCcore-11.2.0
-export OMPI_MCA_io=^ompio
 
 #--------------------------------------------------------------------
 #---------------------DO NOT TOUCH-----------------------------------

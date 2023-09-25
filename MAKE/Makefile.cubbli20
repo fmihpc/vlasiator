@@ -21,6 +21,9 @@
 
 # sudo chmod u+x configure_cubbli20.sh
 
+# There might be some libefa errors but they are benign.
+# (Benign = pleasant and kind; not harmful or severe. dictionary.cambridge.org)
+
 # Boost is assumend to be installed by the system package manager (e.g. apt)
 # Usually following is correct but this can be modified:
 
@@ -34,20 +37,6 @@ LIB_BOOST = -L/usr/lib/x86_64-linux-gnu/ -lboost_program_options
 # Optional
 INC_JEMALLOC = #-I$(LIBRARY_PREFIX)/include/jemalloc
 LIB_JEMALLOC = #-L$(LIBRARY_PREFIX)/lib -ljemalloc
-
-#################################################################################																				
-# Important:																	#			
-# 																				#
-# There is a bug in OpenMPI 4 which breaks the VLSV output files. 				#
-# 																				#
-# To fix this you have to have environment variable OMPI_MCA_io set to ^ompio   #																
-# before running Vlasiator. Otherwise the VLSV output is broken.				#																
-#																				#
-# For copy paste: 		export OMPI_MCA_io=^ompio								#												
-#																				#
-# There might be some libefa errors but they are benign.						#														
-# (Benign = pleasant and kind; not harmful or severe. dictionary.cambridge.org)	#																			
-#################################################################################
 
 
 

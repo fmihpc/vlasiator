@@ -29,8 +29,6 @@ units_per_node=$(echo $cores_per_node $ht | gawk '{print $1*$2}')
 tasks=$(echo $total_units $t  | gawk '{print $1/$2}')
 tasks_per_node=$(echo $units_per_node $t  | gawk '{print $1/$2}')
 
-export OMPI_MCA_io=^ompio
-
 # hint from George and https://github.com/openucx/ucx/issues/5504
 export UCX_TLS=ud,ud_v
 export OMPI_MCA_coll=^hcoll
