@@ -150,7 +150,9 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             }
          ));
          outputReducer->addMetadata(outputReducer->size()-1,"T","$\\mathrm{T}$","$B_\\mathrm{bg,vol,fg}$","1.0");
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
 
       if(P::systemWriteAllDROs || lowercase == "fg_perturbedb" || lowercase == "perturbedb" || lowercase == "fg_b_perturbed") { // Fluctuating magnetic field part
@@ -2744,8 +2746,9 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             }
          ));
          outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$\\Delta B_{Z,\\mathrm{bg,vol,fg}} (\\Delta Z)^{-1}$","1.0");
-
-         continue;
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
       }
       // fg_derivs_b_background
       // End fo the long block writing out all the background magnetic field derivatives from fsgrid.
