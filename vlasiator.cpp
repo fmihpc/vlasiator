@@ -596,6 +596,11 @@ int main(int argn,char* args[]) {
    } else {
       SBC::Ionosphere::solveCount = 1;
    }
+   
+   if(P::isRestart) {
+      // If it is a restart, we want to regenerate proper ig_inplanecurrent as well in case there's IO before the next solver step.
+      SBC::ionosphereGrid.calculateConductivityTensor(SBC::Ionosphere::F10_7, SBC::Ionosphere::recombAlpha, SBC::Ionosphere::backgroundIonisation, true);
+   }
 
    if (P::isRestart == false) {
       phiprof::Timer timer {"compute-dt"};
