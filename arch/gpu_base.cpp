@@ -447,7 +447,8 @@ __host__ void gpu_trans_allocate(
       if (gpu_allocated_unionSetSize == 0) {
          // New allocation
          unionOfBlocks = new split::SplitVector<vmesh::GlobalID>(unionSetSize);
-         unionOfBlocksSet->optimizeGPU(stream);
+         unionOfBlocks->clear();
+         unionOfBlocks->optimizeGPU(stream);
       } else {
          if (unionOfBlocks->capacity() < unionSetSize) {
             // Recapacitate, clear, and prefetch
