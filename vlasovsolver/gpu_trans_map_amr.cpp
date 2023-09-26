@@ -94,10 +94,6 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
          const uint start = pencilStarts[pencili];
          // Get pointer to temprary buffer of VEC-ordered data for this kernel
          Vec* thisPencilOrderedSource = pencilOrderedSource + pencilOrderedSourceOffset + start * WID3/VECL;
-         // if (ti==0) {
-         //    assert( ((size_t)thisPencilOrderedSource > 100) && "thisPencilOrderedSource");
-         //    assert( ((size_t)pencilBlockData > 100)  && "pencilBlockData1");
-         // }
          __syncthreads();
          uint nonEmptyBlocks = 0;
          // Go over pencil length, gather cellblock data into aligned pencil source data
@@ -114,22 +110,14 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
                }
                __syncthreads();
                // Non-existing block, push in zeroes
-               thisPencilOrderedSource[i_trans_ps_blockv_pencil(threadIdx.y, celli, lengthOfPencil)][threadIdx.y*WID2+threadIdx.x] = 0.0;               
+               thisPencilOrderedSource[i_trans_ps_blockv_pencil(threadIdx.y, celli, lengthOfPencil)][threadIdx.y*WID2+threadIdx.x] = 0.0;
             } else {
-               // assert(((size_t)pencilContainers[start + celli]>100) && "pencilContainers");
-               // assert(((size_t)pencilContainers[start + celli]->getData(blockLID) > 100) && "pencilContainers getData");
                pencilBlockData[pencilBlockDataOffset + start + celli] = pencilContainers[start + celli]->getData(blockLID);
                nonEmptyBlocks++;
-               // assert( ((size_t)pencilBlockData[pencilBlockDataOffset + start + celli] > 100)  && "pencilBlockData2");
-               // assert( ((size_t)vcell_transpose > 1000)  && "vcell transpose");
                __syncthreads();
                // Valid block
                // Transpose block values so that mapping is along k direction.
                // Store values in Vec-order for efficient reading in propagation
-               // int transIndex = i_trans_ps_blockv_pencil(threadIdx.y, celli, lengthOfPencil);
-               // int vcellIndex = vcell_transpose[threadIdx.y*WID2+threadIdx.x];
-               // Realf put = pencilBlockData[pencilBlockDataOffset + start + celli][vcellIndex];
-               // thisPencilOrderedSource[transIndex][threadIdx.x] = put;
                thisPencilOrderedSource[i_trans_ps_blockv_pencil(threadIdx.y, celli, lengthOfPencil)][threadIdx.x]
                   = pencilBlockData[pencilBlockDataOffset + start + celli][vcell_transpose[threadIdx.y*WID2+threadIdx.x]];
             }
