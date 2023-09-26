@@ -344,7 +344,7 @@ bool SysBoundary::initSysBoundaries(Project& project, creal& t) {
 }
 
 /*!\brief Boolean check if queried sysboundarycondition exists
- * Note: this queries against the parsed list of names, not against the actual existing boundaries. 
+ * Note: this queries against the parsed list of names, not against the actual existing boundaries.
  * This is so that the project configuration (which is handled before grid and boundary initialization)
  * can use this call.
  *
@@ -436,9 +436,9 @@ bool belongsToLayer(const int layer, const int x, const int y, const int z,
    bool belongs = false;
 
    // loop through all neighbors (including diagonals)
-   for (int ix = -1; ix <= 1; ++ix) {
+   for (int iz = -1; iz <= 1; ++iz) {
       for (int iy = -1; iy <= 1; ++iy) {
-         for (int iz = -1; iz <= 1; ++iz) {
+         for (int ix = -1; ix <= 1; ++ix) {
 
             // not strictly necessary but logically we should not consider the cell itself
             // among its neighbors.
@@ -482,10 +482,10 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
       mpiGrid[cells[i]]->sysBoundaryFlag = sysboundarytype::NOT_SYSBOUNDARY;
       mpiGrid[cells[i]]->parameters[CellParams::FORCING_CELL_NUM] = -1;
    }
-#pragma omp parallel for collapse(3)
-   for (int x = 0; x < localSize[0]; ++x) {
+#pragma omp parallel for collapse(2)
+   for (int z = 0; z < localSize[2]; ++z) {
       for (int y = 0; y < localSize[1]; ++y) {
-         for (int z = 0; z < localSize[2]; ++z) {
+         for (int x = 0; x < localSize[0]; ++x) {
             //technicalGrid.get(x, y, z)->sysBoundaryFlag = sysboundarytype::NOT_SYSBOUNDARY;
             // Here for debugging since boundarytype should be fed from MPIGrid
             technicalGrid.get(x, y, z)->sysBoundaryFlag = sysboundarytype::N_SYSBOUNDARY_CONDITIONS;
@@ -622,10 +622,10 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
    for (uint layer = 1; layer <= MAX_NUMBER_OF_BOUNDARY_LAYERS; ++layer) {
 
 // loop through all cells in grid
-#pragma omp parallel for collapse(3)
-      for (int x = 0; x < localSize[0]; ++x) {
+#pragma omp parallel for collapse(2)
+      for (int z = 0; z < localSize[2]; ++z) {
          for (int y = 0; y < localSize[1]; ++y) {
-            for (int z = 0; z < localSize[2]; ++z) {
+            for (int x = 0; x < localSize[0]; ++x) {
 
                // for the first layer, consider all cells that belong to a boundary, for other layers
                // consider all cells that have not yet been labeled.
@@ -650,10 +650,10 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
 // One more pass to make sure, in particular if the ionosphere is wide enough
 // there is remaining cells of IONOSPHERE type inside the max layers gone through previously.
 // This last pass now gets rid of them.
-#pragma omp parallel for collapse(3)
-   for (int x = 0; x < localSize[0]; ++x) {
+#pragma omp parallel for collapse(2)
+   for (int z = 0; z < localSize[2]; ++z) {
       for (int y = 0; y < localSize[1]; ++y) {
-         for (int z = 0; z < localSize[2]; ++z) {
+         for (int x = 0; x < localSize[0]; ++x) {
             if (technicalGrid.get(x,y,z)->sysBoundaryLayer == 0 && (
                 technicalGrid.get(x,y,z)->sysBoundaryFlag == sysboundarytype::IONOSPHERE || 
                 technicalGrid.get(x,y,z)->sysBoundaryFlag == sysboundarytype::COPYSPHERE)) {
@@ -668,10 +668,10 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
    const array<int,3> fsGridDimensions = technicalGrid.getGlobalSize();
 
    // One pass to setup the bit field to know which components the field solver should propagate.
-#pragma omp parallel for collapse(3)
-   for (int x = 0; x < localSize[0]; ++x) {
+#pragma omp parallel for collapse(2)
+   for (int z = 0; z < localSize[2]; ++z) {
       for (int y = 0; y < localSize[1]; ++y) {
-         for (int z = 0; z < localSize[2]; ++z) {
+         for (int x = 0; x < localSize[0]; ++x) {
             technicalGrid.get(x, y, z)->SOLVE = 0;
 
             array<int32_t, 3> globalIndices = technicalGrid.getGlobalIndices(x, y, z);
