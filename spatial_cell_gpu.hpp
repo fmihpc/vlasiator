@@ -53,7 +53,6 @@ Spatial cell class for Vlasiator that supports a variable number of velocity blo
 #ifdef DEBUG_VLASIATOR
    #define DEBUG_SPATIAL_CELL
 #endif
-//   #define DEBUG_SPATIAL_CELL
 
 typedef Parameters P; // Heeded in numerous files which include this one
 
@@ -488,6 +487,7 @@ namespace spatial_cell {
                                   const uint popID,
                                   bool doDeleteEmptyBlocks=true);
       void adjust_velocity_blocks_caller(const uint popID);
+      void update_blocks_to_move_caller(const uint popID);
       // Templated function for storing a v-space read from a file
       template <typename fileReal> void add_velocity_blocks(const uint popID,const split::SplitVector<vmesh::GlobalID> *blocks,fileReal* avgBuffer);
 
@@ -1494,13 +1494,5 @@ namespace spatial_cell {
    }
 
 } // namespaces
-
-// Rule used in performing stream compaction on vectors of vmesh::GlobalIDs
-struct Predicate{
-      __host__ __device__
-      bool operator ()(vmesh::GlobalID i)const {
-         return i==vmesh::INVALID_GLOBALID;
-      }
-};
 
 #endif

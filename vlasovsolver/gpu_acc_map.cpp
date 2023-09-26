@@ -862,11 +862,15 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
          spatial_cell->BlocksToAdd->optimizeGPU(stream);
       }
    } while(host_returnLID[1] != 0);
-
    phiprof::stop("Evaluate column extents kernel");
 
+   if (spatial_cell->BlocksToRemove->size() > spatial_cell->BlocksToAdd->size()) {
+      // If we hit v-space walls, we may end up removing more blocks than we create.
+      spatial_cell->update_blocks_to_move_caller(popID);
+   }
+
    phiprof::start("Add and delete blocks");
-   // Note: in this call, BlocksToMove is empty as we only grow the vspace size.
+   // Note: in this call, unless hitting v-space walls, BlocksToMove is empty as we only grow the vspace size.
    spatial_cell->adjust_velocity_blocks_caller(popID);
    // Velocity space has all extra blocks added and/or removed for the transform target
    // and will not change shape anymore.
