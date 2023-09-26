@@ -94,7 +94,11 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
          const uint start = pencilStarts[pencili];
          // Get pointer to temprary buffer of VEC-ordered data for this kernel
          Vec* thisPencilOrderedSource = pencilOrderedSource + pencilOrderedSourceOffset + start * WID3/VECL;
-
+         // if (ti==0) {
+         //    assert( ((size_t)thisPencilOrderedSource > 100) && "thisPencilOrderedSource");
+         //    assert( ((size_t)pencilBlockData > 100)  && "pencilBlockData1");
+         // }
+         __syncthreads();
          uint nonEmptyBlocks = 0;
          // Go over pencil length, gather cellblock data into aligned pencil source data
          for (uint celli = 0; celli < lengthOfPencil; celli++) {
@@ -104,23 +108,30 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
             // Now using warp accessor.
             const vmesh::LocalID blockLID = vmesh->warpGetLocalID(blockGID,ti);
             // Store block data pointer for both loading of data and writing back to the cell
-            if (ti==0) {
-               if (blockLID == vmesh->invalidLocalID()) {
+            if (blockLID == vmesh->invalidLocalID()) {
+               if (ti==0) {
                   pencilBlockData[pencilBlockDataOffset + start + celli] = NULL;
-               } else {
-                  pencilBlockData[pencilBlockDataOffset + start + celli] = pencilContainers[start + celli]->getData(blockLID);
-                  nonEmptyBlocks++;
                }
-            }
-            __syncthreads();
-            if (blockLID != vmesh->invalidLocalID()) {
+               __syncthreads();
+               // Non-existing block, push in zeroes
+               thisPencilOrderedSource[i_trans_ps_blockv_pencil(threadIdx.y, celli, lengthOfPencil)][threadIdx.y*WID2+threadIdx.x] = 0.0;               
+            } else {
+               // assert(((size_t)pencilContainers[start + celli]>100) && "pencilContainers");
+               // assert(((size_t)pencilContainers[start + celli]->getData(blockLID) > 100) && "pencilContainers getData");
+               pencilBlockData[pencilBlockDataOffset + start + celli] = pencilContainers[start + celli]->getData(blockLID);
+               nonEmptyBlocks++;
+               // assert( ((size_t)pencilBlockData[pencilBlockDataOffset + start + celli] > 100)  && "pencilBlockData2");
+               // assert( ((size_t)vcell_transpose > 1000)  && "vcell transpose");
+               __syncthreads();
                // Valid block
                // Transpose block values so that mapping is along k direction.
                // Store values in Vec-order for efficient reading in propagation
+               // int transIndex = i_trans_ps_blockv_pencil(threadIdx.y, celli, lengthOfPencil);
+               // int vcellIndex = vcell_transpose[threadIdx.y*WID2+threadIdx.x];
+               // Realf put = pencilBlockData[pencilBlockDataOffset + start + celli][vcellIndex];
+               // thisPencilOrderedSource[transIndex][threadIdx.x] = put;
                thisPencilOrderedSource[i_trans_ps_blockv_pencil(threadIdx.y, celli, lengthOfPencil)][threadIdx.x]
-                  = (pencilBlockData[pencilBlockDataOffset + start + celli])[vcell_transpose[threadIdx.y*WID2+threadIdx.x]];
-            } else { // Non-existing block, push in zeroes
-               thisPencilOrderedSource[i_trans_ps_blockv_pencil(threadIdx.y, celli, lengthOfPencil)][threadIdx.y*WID2+threadIdx.x] = 0.0;
+                  = pencilBlockData[pencilBlockDataOffset + start + celli][vcell_transpose[threadIdx.y*WID2+threadIdx.x]];
             }
          } // End loop over this pencil
          if (ti==0) {
@@ -376,12 +387,12 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
 
    // Ensure GPU data has sufficient allocations/sizes
    cuint sumOfLengths = DimensionPencils[dimension].sumOfLengths;
+   gpu_vlasov_allocate(sumOfLengths);
    gpu_trans_allocate(nAllCells,sumOfLengths,0,0);
    // Prefetch vectors to CPU for filling
    allVmeshPointer->optimizeCPU(bgStream);
    allPencilsMeshes->optimizeCPU(bgStream);
    allPencilsContainers->optimizeCPU(bgStream);
-
    // Initialize allCellsPointer. Find maximum mesh size.
    uint largestFoundMeshSize = 0;
    #pragma omp parallel
