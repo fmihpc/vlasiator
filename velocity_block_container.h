@@ -29,7 +29,6 @@
 #ifdef DEBUG_VLASIATOR
    #define DEBUG_VBC
 #endif
-   #define DEBUG_VBC
 
 #ifdef DEBUG_VBC
 #include <sstream>
@@ -219,12 +218,13 @@ namespace vmesh {
             ss << "VBC ERROR: invalid source LID=" << source << " in copy, target=" << target << " #blocks=" << numberOfBlocks << " capacity=" << currentCapacity << std::endl;
             ss << "or sizes are wrong, data.size()=" << block_data->size() << " parameters->size()=" << parameters->size() << std::endl;
             std::cerr << ss.str();
+            sleep(1);
+            exit(1);
             #else
             printf("VBC error: invalid source LID=%u in copy, target=%u #blocks=%u capacity=%u \n or sizes are wrong, data.size()=%u parameters->size()=%u \n",
                    source,target,numberOfBlocks,currentCapacity, (vmesh::LocalID)block_data->size(),(vmesh::LocalID)parameters->size());
+            assert(0);
             #endif
-            sleep(1);
-            exit(1);
          }
       #endif
 

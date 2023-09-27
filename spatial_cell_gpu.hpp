@@ -487,6 +487,7 @@ namespace spatial_cell {
                                   const uint popID,
                                   bool doDeleteEmptyBlocks=true);
       void adjust_velocity_blocks_caller(const uint popID);
+      void update_blocks_to_move_caller(const uint popID);
       // Templated function for storing a v-space read from a file
       template <typename fileReal> void add_velocity_blocks(const uint popID,const split::SplitVector<vmesh::GlobalID> *blocks,fileReal* avgBuffer);
 
@@ -1430,9 +1431,16 @@ namespace spatial_cell {
 
       // Get local ID of the last block:
       const vmesh::LocalID lastLID = populations[popID].vmesh->size()-1;
-      // Move the last block to the removed position
-      populations[popID].vmesh->move(lastLID,removedLID);
-      populations[popID].blockContainer->move(lastLID,removedLID);
+      // If block to remove is already last:
+      if (lastLID == removedLID) {
+         // Just remove the block
+         populations[popID].vmesh->pop();
+         populations[popID].blockContainer->pop();
+      } else {
+         // Move the last block to the removed position
+         populations[popID].vmesh->move(lastLID,removedLID);
+         populations[popID].blockContainer->move(lastLID,removedLID);
+      }
    }
 
    inline void SpatialCell::swap(vmesh::VelocityMesh* vmesh,
