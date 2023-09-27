@@ -74,13 +74,13 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_block_content_lists_ke
       // Increment vector only from thread zero
       if (ti==0) {
          if (has_content[0]) {
-            //velocity_block_with_content_list->device_push_back(blockGID);
-            velocity_block_with_content_list->at(blockLID) = blockGID;
-            velocity_block_with_no_content_list->at(blockLID) = invalidGID;
+            velocity_block_with_content_list->device_push_back(blockGID);
+            // velocity_block_with_content_list->at(blockLID) = blockGID;
+            // velocity_block_with_no_content_list->at(blockLID) = invalidGID;
          } else {
-            //velocity_block_with_no_content_list->device_push_back(blockGID);
-            velocity_block_with_no_content_list->at(blockLID) = blockGID;
-            velocity_block_with_content_list->at(blockLID) = invalidGID;
+            velocity_block_with_no_content_list->device_push_back(blockGID);
+            // velocity_block_with_no_content_list->at(blockLID) = blockGID;
+            // velocity_block_with_content_list->at(blockLID) = invalidGID;
          }
       }
       __syncthreads();
@@ -1747,8 +1747,8 @@ namespace spatial_cell {
       vmesh::LocalID currCapacity = velocity_block_with_content_list->capacity();
       velocity_block_with_content_list->clear();
       velocity_block_with_no_content_list->clear();
-      vbwcl_gather->clear();
-      vbwncl_gather->clear();
+      // vbwcl_gather->clear();
+      // vbwncl_gather->clear();
       if (currSize == 0) {
          phiprof::stop("VB content list prefetches and allocations");
          phiprof::stop("GPU update spatial cell block lists");
@@ -1760,28 +1760,28 @@ namespace spatial_cell {
          reserveSize *= BLOCK_ALLOCATION_PADDING/BLOCK_ALLOCATION_FACTOR;
          velocity_block_with_content_list->reserve(reserveSize,true);
          velocity_block_with_no_content_list->reserve(reserveSize,true);
-         vbwcl_gather->reserve(reserveSize,true);
-         vbwncl_gather->reserve(reserveSize,true);
+         // vbwcl_gather->reserve(reserveSize,true);
+         // vbwncl_gather->reserve(reserveSize,true);
          int device = gpu_getDevice();
          velocity_block_with_content_list->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
          velocity_block_with_no_content_list->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
          velocity_block_with_content_list->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
          velocity_block_with_no_content_list->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-         vbwcl_gather->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-         vbwncl_gather->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-         vbwcl_gather->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-         vbwncl_gather->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+         // vbwcl_gather->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+         // vbwncl_gather->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+         // vbwcl_gather->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+         // vbwncl_gather->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
       }
       // Set gathering vectors to correct size
-      vbwcl_gather->resize(currSize,true);
-      vbwncl_gather->resize(currSize,true);
-      velocity_block_with_content_list->resize(currSize,true);
-      velocity_block_with_no_content_list->resize(currSize,true);
+      // vbwcl_gather->resize(currSize,true);
+      // vbwncl_gather->resize(currSize,true);
+      // velocity_block_with_content_list->resize(currSize,true);
+      // velocity_block_with_no_content_list->resize(currSize,true);
       if (doPrefetches || (currCapacity < currSize)) {
          velocity_block_with_content_list->optimizeGPU(stream);
          velocity_block_with_no_content_list->optimizeGPU(stream);
-         vbwcl_gather->optimizeGPU(stream);
-         vbwncl_gather->optimizeGPU(stream);
+         // vbwcl_gather->optimizeGPU(stream);
+         // vbwncl_gather->optimizeGPU(stream);
       }
       phiprof::stop("VB content list prefetches and allocations");
 
@@ -1794,10 +1794,10 @@ namespace spatial_cell {
       update_velocity_block_content_lists_kernel<<<GPUBLOCKS, block, WID3*sizeof(bool), stream>>> (
          populations[popID].vmesh,
          populations[popID].blockContainer,
-         vbwcl_gather, // Now pass temporary gathering vectors
-         vbwncl_gather,
-         // velocity_block_with_content_list,
-         // velocity_block_with_no_content_list,
+         // vbwcl_gather, // Now pass temporary gathering vectors
+         // vbwncl_gather,
+         velocity_block_with_content_list,
+         velocity_block_with_no_content_list,
          velocity_block_min_value
          );
       CHK_ERR( gpuPeekAtLastError() );
@@ -1805,21 +1805,29 @@ namespace spatial_cell {
       velocity_block_with_content_list_size = 0;
       phiprof::stop("GPU update spatial cell block lists kernel");
 
+      /*
       phiprof::start("GPU update spatial cell block lists streamcompaction");
       // Now do stream compaction on those two vectors, returning only valid GIDs
       // into the actual vectors
       auto Predicate = [] __host__ __device__ (vmesh::GlobalID i ){return i!=vmesh::INVALID_GLOBALID; };
-      split::tools::copy_if(*vbwcl_gather, *velocity_block_with_content_list, Predicate, stream);
-      split::tools::copy_if(*vbwncl_gather, *velocity_block_with_no_content_list, Predicate, stream);
-      CHK_ERR( gpuStreamSynchronize(stream) ); // This sync is required!
-      size_t has_content_count = velocity_block_with_content_list->size();
-      size_t has_no_content_count = velocity_block_with_no_content_list->size();
+      // split::tools::copy_if(*vbwcl_gather, *velocity_block_with_content_list, Predicate, stream);
+      // split::tools::copy_if(*vbwncl_gather, *velocity_block_with_no_content_list, Predicate, stream);
+      // CHK_ERR( gpuStreamSynchronize(stream) ); // This sync is required!
+      // size_t has_content_count = velocity_block_with_content_list->size();
+      // size_t has_no_content_count = velocity_block_with_no_content_list->size();
+      size_t has_content_count = split::tools::copy_if_raw(*vbwcl_gather, velocity_block_with_content_list->data(), Predicate, stream);
+      CHK_ERR( gpuStreamSynchronize(stream) );
+      size_t has_no_content_count = split::tools::copy_if_raw(*vbwncl_gather, velocity_block_with_no_content_list->data(), Predicate, stream);
+      CHK_ERR( gpuStreamSynchronize(stream) );
+      velocity_block_with_content_list->resize(has_content_count);
+      velocity_block_with_no_content_list->resize(has_no_content_count);
       if (populations[popID].vmesh->size() != (has_content_count+has_no_content_count)) {
          std::cerr<<"MISMATCH: for vmesh/VBC size "<<populations[popID].vmesh->size()<<"/"<<populations[popID].blockContainer->size()<<" found "<<has_content_count<<" blocks with content and "<<has_no_content_count<<" blocks without content. Sum: "<<has_content_count+has_no_content_count<<std::endl;
       }//  else {
       //    std::cerr<<"INFO:     for vmesh/VBC size "<<populations[popID].vmesh->size()<<"/"<<populations[popID].blockContainer->size()<<" found "<<has_content_count<<" blocks with content and "<<has_no_content_count<<" blocks without content. Sum: "<<has_content_count+has_no_content_count<<std::endl;
       // }
       phiprof::stop("GPU update spatial cell block lists streamcompaction");
+      */
 
       // Note: Content list is not uploaded to device-only buffer here, but rather
       // in grid.cpp adjustVelocityBlocks()
