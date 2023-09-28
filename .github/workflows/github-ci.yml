@@ -96,12 +96,12 @@ jobs:
         run: |
           srun --interactive -p arriesgado-jammy -J vlasiator-libs --pty -t 01:00:00 bash -lc 'module load openmpi; cp ~/vlasiator/build_libraries.sh .; ./build_libraries.sh arriesgado'
       - name: Build libraries tar
-        run: tar --zstd -cvf libraries-arriesgado.tar.zstd libraries-arriesgado/
+        run: tar -czvf libraries-arriesgado.tar.gz libraries-arriesgado/
       - name: Upload libraries as artifact
         uses: actions/upload-artifact@v3
         with:
           name: libraries-arriesgado
-          path: libraries-arriesgado.tar.zstd
+          path: libraries-arriesgado.tar.gz
           retention-days: 5
           if-no-files-found: error
 
@@ -169,7 +169,7 @@ jobs:
       with:
         name: libraries-arriesgado
     - name: Unpack libraries
-      run: tar --zstd -xvf libraries-arriesgado.tar.zstd
+      run: tar -xzvf libraries-arriesgado.tar.gz
     - name: Compile vlasiator (RISC-V)
       run: |
           srun --interactive -p arriesgado-jammy -J vlasiator_build --pty -t 01:00:00 bash -lc 'module load boost eigen papi openmpi; export VLASIATOR_ARCH=arriesgado; make -j4'
