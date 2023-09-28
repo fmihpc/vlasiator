@@ -159,6 +159,7 @@ jobs:
 
   build_riscv:
     runs-on: risc-v
+    needs: build_libraries_riscv
 
     steps:
     - name: Checkout source
