@@ -17,7 +17,7 @@ then
    exit 1
 fi
 
-if ! [[ -f $BIN ]]
+if ! [[ -f $CFG ]]
 then
    echo "Config $CFG not found!"
    exit 1
@@ -34,17 +34,20 @@ fi
 
 SW=$(sed -n s/^file_..\\s*=\\s*//p < $CFG)
 
-if ! test -f $SW
-then
-    echo "Solar wind file $SW not found!"
-    echo ""
-    ERR=1
-fi
+for i in $SW
+do
+    if ! test -f $i
+    then
+        echo "Solar wind file $i not found!"
+        echo ""
+        ERR=1
+    fi
+done
 
 MF=$(sed -n s/^atmosphericModelFile\\s*=\\s*//p < $CFG)
 if [[ -z $MF ]]
 then
-    MF=NRLMSIS.dat
+    MF=$(sed -n "s/ionosphere.atmosphericModelFile (=\(.*\))/\1/p" < check.txt)
 fi
 
 if ! test -f $MF
@@ -60,15 +63,18 @@ then
     IO=.
 fi
 
-if ! test -d $IO
-then
-    echo "System write path $IO not found!"
-    echo ""
-    ERR=1
-else
-    echo $IO
-    lfs getstripe -d $IO
-fi
+for i in $IO
+do
+    if ! test -d $i
+    then
+        echo "System write path $i not found!"
+        echo ""
+        ERR=1
+    else
+        echo $i
+        lfs getstripe -d $i
+    fi
+done
 
 RW=$(sed -n s/^restart_write_path\\s*=\\s*//p < $CFG)
 if [[ -z $RW ]]
