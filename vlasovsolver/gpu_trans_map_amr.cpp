@@ -15,9 +15,9 @@
 #define i_trans_ps_blockv_pencil(planeIndex, blockIndex, lengthOfPencil) ( (blockIndex)  +  ( (planeIndex) * VEC_PER_PLANE ) * ( lengthOfPencil) )
 
 // Skip remapping if whole stencil for all vector elements consists of zeroes
-__host__ __device__ inline bool check_skip_remapping(Vec* values, uint ti) {
+__host__ __device__ inline bool check_skip_remapping(Vec* values, uint vectorindex) {
    for (int index=-VLASOV_STENCIL_WIDTH; index<VLASOV_STENCIL_WIDTH+1; ++index) {
-      if (values[index][ti] > 0) return false;
+      if (values[index][vectorindex] > 0) return false;
    }
    return true;
 }
@@ -73,9 +73,8 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
    //const int gpuBlocks = gridDim.x;
    //const int blocki = blockIdx.x;
    //const int warpSize = blockDim.x*blockDim.y*blockDim.z;
-   //const uint k = threadIdx.y;
-   const vmesh::LocalID ti = threadIdx.x;
-   //const vmesh::LocalID ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
+   // This is launched with block size (WID2,WID,1) assuming that VECL==WID2
+   const vmesh::LocalID ti = threadIdx.y*blockDim.x + threadIdx.x;
 
    // offsets so this block of the kernel uses the correct part of temp arrays
    const uint pencilBlockDataOffset = blockIdx.x * sumOfLengths;
@@ -117,23 +116,10 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
             if (blockLID != vmesh->invalidLocalID()) { // Valid block
                // Transpose block values so that mapping is along k direction.
                // Store values in Vec-order for efficient reading in propagation
-               thisPencilOrderedSource[i_trans_ps_blockv_pencil(threadIdx.y, celli, lengthOfPencil)][ti]
-                  = (pencilBlockData[pencilBlockDataOffset + start + celli])[vcell_transpose[threadIdx.y*WID2+ti]];
-               // uint offset =0;
-               // for (uint k=0; k<WID; k++) {
-               //    for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
-               // thisPencilOrderedSource[i_trans_ps_blockv_pencil(planeVector, k, celli, lengthOfPencil)][ti]
-               //    = (pencilBlockData[pencilBlockDataOffset + start + celli])[vcell_transpose[offset+ti]];
-               //       offset += warpSize;
-               //    }
-               // }
+               thisPencilOrderedSource[i_trans_ps_blockv_pencil(threadIdx.y, celli, lengthOfPencil)][threadIdx.x]
+                  = (pencilBlockData[pencilBlockDataOffset + start + celli])[vcell_transpose[ti]];
             } else { // Non-existing block, push in zeroes
-               thisPencilOrderedSource[i_trans_ps_blockv_pencil(threadIdx.y, celli, lengthOfPencil)][ti] = 0.0;
-               // for (uint k=0; k<WID; ++k) {
-               //    for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++) {
-               //       thisPencilOrderedSource[i_trans_ps_blockv_pencil(planeVector, k, celli, lengthOfPencil)][ti] = 0.0;
-               //    }
-               // }
+               thisPencilOrderedSource[i_trans_ps_blockv_pencil(threadIdx.y, celli, lengthOfPencil)][threadIdx.x] = 0.0;
             }
          } // End loop over this pencil
          if (ti==0) {
@@ -150,7 +136,7 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
             //const vmesh::LocalID blockLID = vmesh->getLocalID(blockGID);
             const vmesh::LocalID blockLID = vmesh->warpGetLocalID(blockGID,ti);
             if (blockLID != vmesh->invalidLocalID()) {
-               (pencilBlockData[pencilBlockDataOffset + celli])[threadIdx.y * WID2 + ti] = 0.0;
+               (pencilBlockData[pencilBlockDataOffset + celli])[ti] = 0.0;
                // This block exists for this cell, reset
                //(pencilBlockData[celli])[ti] = 0.0; // This would work if we had WID3 threads
                // for (uint k=0; k<WID; ++k) {
