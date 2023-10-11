@@ -210,6 +210,7 @@ __global__ void __launch_bounds__(GPUTHREADS,4) update_blocks_to_add_kernel (
       assert((index) < BlocksRequired->size() && "rangecheck BlocksRequired 210");
       const vmesh::GlobalID GID = BlocksRequired->at(index);
       assert((GID != vmesh->invalidGlobalID()) && "invalid GID in update_blocks_to_add");
+      const vmesh::GlobalID GID = BlocksRequired->at(index);
       const vmesh::LocalID LID = vmesh->warpGetLocalID(GID, ti);
       if (ti==0) {
          if ( LID == vmesh->invalidLocalID() ) {
@@ -1803,6 +1804,7 @@ namespace spatial_cell {
       CHK_ERR( gpuPeekAtLastError() );
       CHK_ERR( gpuStreamSynchronize(stream) ); // This sync is required!
       velocity_block_with_content_list_size = 0;
+
       phiprof::stop("GPU update spatial cell block lists kernel");
 
       /*
