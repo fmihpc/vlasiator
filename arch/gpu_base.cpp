@@ -402,7 +402,7 @@ __host__ void gpu_trans_allocate(
    cuint unionSetSize
    ) {
    gpuStream_t stream = gpu_getStream();
-   // Vectors with one entry per cell (no prefetching)
+   // Vectors with one entry per cell (prefetch to host)
    if (nAllCells != 0) {
       if (gpu_allocated_nAllCells == 0) {
          // New allocation
@@ -410,9 +410,11 @@ __host__ void gpu_trans_allocate(
       } else {
          // Resize
          allVmeshPointer->resize(nAllCells,true);
+         allVmeshPointer->optimizeCPU(stream);
       }
+      gpu_allocated_nAllCells = nAllCells;
    }
-   // Vectors with one entry per pencil cell (no prefetching)
+   // Vectors with one entry per pencil cell (prefetch to host)
    if (sumOfLengths != 0) {
       if (gpu_allocated_sumOfLengths == 0) {
          // New allocations
@@ -422,7 +424,10 @@ __host__ void gpu_trans_allocate(
          // Resize
          allPencilsMeshes->resize(sumOfLengths,true);
          allPencilsContainers->resize(sumOfLengths,true);
+         allPencilsMeshes->optimizeCPU(stream);
+         allPencilsContainers->optimizeCPU(stream);
       }
+      gpu_allocated_sumOfLengths = sumOfLengths;
    }
    // Set for collecting union of blocks (prefetched to device)
    if (largestVmesh != 0) {
@@ -441,6 +446,7 @@ __host__ void gpu_trans_allocate(
          // Ensure map is empty
          unionOfBlocksSet->clear(Hashinator::targets::device,stream,false);
       }
+      gpu_allocated_largestVmesh = largestVmesh;
    }
    // Vector into which the set contents are read (prefetched to device)
    if (unionSetSize != 0) {
@@ -460,6 +466,7 @@ __host__ void gpu_trans_allocate(
             unionOfBlocks->clear();
          }
       }
+      gpu_allocated_unionSetSize = unionSetSize;
    }
    CHK_ERR( gpuStreamSynchronize(stream) );
 }
@@ -480,6 +487,10 @@ __host__ void gpu_trans_deallocate() {
    if (gpu_allocated_unionSetSize != 0) {
       delete unionOfBlocks;
    }
+   gpu_allocated_nAllCells = 0;
+   gpu_allocated_sumOfLengths = 0;
+   gpu_allocated_largestVmesh = 0;
+   gpu_allocated_unionSetSize = 0;
    // Delete also the vectors for pencils for each dimension
    for (uint dimension=0; dimension<3; dimension++) {
       if (DimensionPencils[dimension].gpu_allocated) {
