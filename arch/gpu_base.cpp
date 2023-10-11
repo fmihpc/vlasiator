@@ -53,7 +53,7 @@ bool doPrefetches=false; // only non-crucial prefetches are behind this check
 
 uint *gpu_cell_indices_to_id[MAXCPUTHREADS];
 uint *gpu_block_indices_to_id[MAXCPUTHREADS];
-uint *gpu_vcell_transpose[MAXCPUTHREADS];
+uint *gpu_vcell_transpose; // only one needed, not one per thread
 
 ColumnOffsets *unif_columnOffsetData[MAXCPUTHREADS];
 Column *gpu_columns[MAXCPUTHREADS];
@@ -244,8 +244,10 @@ __host__ void gpu_vlasov_allocate(
    for (uint i=0; i<maxNThreads; ++i) {
       if (gpu_vlasov_allocatedSize > 0) {
          gpu_vlasov_deallocate_perthread(i);
+         CHK_ERR( gpuFree(gpu_vcell_transpose) );
       }
       gpu_vlasov_allocate_perthread(i, newSize);
+      CHK_ERR( gpuMalloc((void**)&gpu_vcell_transpose, WID3*sizeof(uint)) );
    }
    gpu_vlasov_allocatedSize = newSize;
 }
@@ -274,7 +276,6 @@ __host__ void gpu_vlasov_allocate_perthread(
    // Mallocs should be in increments of 256 bytes. WID3 is at least 64, and len(Realf) is at least 4, so this is true.
    CHK_ERR( gpuMalloc((void**)&gpu_cell_indices_to_id[cpuThreadID], 3*sizeof(uint)) );
    CHK_ERR( gpuMalloc((void**)&gpu_block_indices_to_id[cpuThreadID], 3*sizeof(uint)) );
-   CHK_ERR( gpuMalloc((void**)&gpu_vcell_transpose[cpuThreadID], WID3*sizeof(uint)) );
    CHK_ERR( gpuMalloc((void**)&gpu_blockDataOrdered[cpuThreadID], blockAllocationCount * (WID3 / VECL) * sizeof(Vec)) );
    CHK_ERR( gpuMalloc((void**)&gpu_BlocksID_mapped[cpuThreadID], blockAllocationCount*sizeof(vmesh::GlobalID)) );
    CHK_ERR( gpuMalloc((void**)&gpu_BlocksID_mapped_sorted[cpuThreadID], blockAllocationCount*sizeof(vmesh::GlobalID)) );
@@ -289,7 +290,6 @@ __host__ void gpu_vlasov_deallocate_perthread (
    gpu_vlasov_allocatedSize = 0;
    CHK_ERR( gpuFree(gpu_cell_indices_to_id[cpuThreadID]) );
    CHK_ERR( gpuFree(gpu_block_indices_to_id[cpuThreadID]) );
-   CHK_ERR( gpuFree(gpu_vcell_transpose[cpuThreadID]) );
    CHK_ERR( gpuFree(gpu_blockDataOrdered[cpuThreadID]) );
    CHK_ERR( gpuFree(gpu_BlocksID_mapped[cpuThreadID]) );
    CHK_ERR( gpuFree(gpu_BlocksID_mapped_sorted[cpuThreadID]) );
@@ -500,4 +500,5 @@ __host__ void gpu_trans_deallocate() {
          delete DimensionPencils[dimension].gpu_targetRatios;
       }
    }
+   CHK_ERR( gpuFree(gpu_vcell_transpose) );
 }

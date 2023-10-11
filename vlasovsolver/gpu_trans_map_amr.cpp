@@ -359,10 +359,10 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
          }
       }
    }
-   // Copy indexing information to device. Only use first thread-array.
+   // Copy indexing information to device.
    gpuStream_t bgStream = gpu_getStream(); // uses stream assigned to thread 0, not the blocking default stream
    int device = gpu_getDevice();
-   CHK_ERR( gpuMemcpyAsync(gpu_vcell_transpose[0], vcell_transpose, WID3*sizeof(uint), gpuMemcpyHostToDevice,bgStream) );
+   CHK_ERR( gpuMemcpyAsync(gpu_vcell_transpose, vcell_transpose, WID3*sizeof(uint), gpuMemcpyHostToDevice,bgStream) );
 
    // Vector with all cell ids
    vector<CellID> allCells(localPropagatedCells);
@@ -509,7 +509,7 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
       dim3 block(WID2,WID,1); // assumes VECL==WID2
       translation_kernel<<<nGpuBlocks, block, 0, stream>>> (
          dimension,
-         gpu_vcell_transpose[0],
+         gpu_vcell_transpose,
          dt,
          pencilLengths,
          pencilStarts,
