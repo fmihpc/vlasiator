@@ -110,7 +110,7 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
                }
                __syncthreads();
                // Non-existing block, push in zeroes
-               thisPencilOrderedSource[i_trans_ps_blockv_pencil(threadIdx.y, celli, lengthOfPencil)][threadIdx.y*WID2+threadIdx.x] = 0.0;
+               thisPencilOrderedSource[i_trans_ps_blockv_pencil(threadIdx.y, celli, lengthOfPencil)][threadIdx.x] = 0.0;
             } else {
                if (ti==0) {
                   pencilBlockData[pencilBlockDataOffset + start + celli] = pencilContainers[start + celli]->getData(blockLID);
@@ -165,7 +165,6 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
          if (pencilBlocksCount[pencilBlocksCountOffset + pencili] == 0) {
             continue;
          }
-         __syncthreads();
          const uint lengthOfPencil = pencilLengths[pencili];
          const uint start = pencilStarts[pencili];
          Vec* thisPencilOrderedSource = pencilOrderedSource + pencilOrderedSourceOffset + start * WID3/VECL;
@@ -227,25 +226,24 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
 
                // Store mapped density in two target cells
                // in the current original cells we will put the rest of the original density
-
-               // Now because each GPU block handles all pencils for an unique GID, we don't need atomic addditions here.
+               // Now because each GPU block handles all pencils for an unique GID, we don't need atomic additions here.
                __syncthreads();
                if (areaRatio && block_data) {
                   const Realf selfContribution = (thisPencilOrderedSource[i_trans_ps_blockv_pencil(threadIdx.y, i, lengthOfPencil)][threadIdx.x] - ngbr_target_density) * areaRatio;
-                  //atomicAdd(&block_data[vcell_transpose[threadIdx.x + threadIdx.y * WID2]],selfContribution);
-                  block_data[vcell_transpose[threadIdx.x + threadIdx.y * WID2]] += selfContribution;
+                  //atomicAdd(&block_data[vcell_transpose[ti]],selfContribution);
+                  block_data[vcell_transpose[ti]] += selfContribution;
                }
                if (areaRatio_p1 && block_data_p1) {
                   const Realf p1Contribution = (positiveTranslationDirection ? ngbr_target_density
                                                 * pencilDZ[i] / pencilDZ[i + 1] : 0.0) * areaRatio_p1;
-                  //atomicAdd(&block_data_p1[vcell_transpose[threadIdx.x + threadIdx.y * WID2]],p1Contribution);
-                  block_data_p1[vcell_transpose[threadIdx.x + threadIdx.y * WID2]] += p1Contribution;
+                  //atomicAdd(&block_data_p1[vcell_transpose[ti]],p1Contribution);
+                  block_data_p1[vcell_transpose[ti]] += p1Contribution;
                }
                if (areaRatio_m1 && block_data_m1) {
                   const Realf m1Contribution = (!positiveTranslationDirection ? ngbr_target_density
                                                 * pencilDZ[i] / pencilDZ[i - 1] : 0.0) * areaRatio_m1;
-                  //atomicAdd(&block_data_m1[vcell_transpose[threadIdx.x + threadIdx.y * WID2]],m1Contribution);
-                  block_data_m1[vcell_transpose[threadIdx.x + threadIdx.y * WID2]] += m1Contribution;
+                  //atomicAdd(&block_data_m1[vcell_transpose[ti]],m1Contribution);
+                  block_data_m1[vcell_transpose[ti]] += m1Contribution;
                }
                __syncthreads();
             } // Did not skip remapping
@@ -375,14 +373,10 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    // Vectors of pointers to the cell structs
    std::vector<SpatialCell*> allCellsPointer(nAllCells);
 
-   // Ensure GPU data has sufficient allocations/sizes
+   // Ensure GPU data has sufficient allocations/sizes, perform prefetches to CPU
    cuint sumOfLengths = DimensionPencils[dimension].sumOfLengths;
    gpu_vlasov_allocate(sumOfLengths);
    gpu_trans_allocate(nAllCells,sumOfLengths,0,0);
-   // Prefetch vectors to CPU for filling
-   allVmeshPointer->optimizeCPU(bgStream);
-   allPencilsMeshes->optimizeCPU(bgStream);
-   allPencilsContainers->optimizeCPU(bgStream);
    // Initialize allCellsPointer. Find maximum mesh size.
    uint largestFoundMeshSize = 0;
    #pragma omp parallel
