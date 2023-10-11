@@ -487,6 +487,7 @@ namespace spatial_cell {
                                   const uint popID,
                                   bool doDeleteEmptyBlocks=true);
       void adjust_velocity_blocks_caller(const uint popID);
+      void update_blocks_to_move_caller(const uint popID);
       // Templated function for storing a v-space read from a file
       template <typename fileReal> void add_velocity_blocks(const uint popID,const split::SplitVector<vmesh::GlobalID> *blocks,fileReal* avgBuffer);
 
