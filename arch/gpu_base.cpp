@@ -467,15 +467,16 @@ __host__ void gpu_compaction_allocate_buf_perthread(
    if ( (gpu_compaction_buffersize[cpuThreadID] > 0)
         && ( (bytesNeeded == 0) || bytesNeeded > gpu_compaction_buffersize[cpuThreadID])
       ) {
-      CHK_ERR( gpuFree(compaction_buffer[cpuThreadID]) );
+      CHK_ERR( gpuFreeAsync(compaction_buffer[cpuThreadID],stream) );
       gpu_compaction_buffersize[cpuThreadID] = 0;
    }
    // If buffer isn't large enough, allocate.
    if (bytesNeeded > gpu_compaction_buffersize[cpuThreadID]) {
       const uint paddedSize = BLOCK_ALLOCATION_FACTOR * bytesNeeded;
-      CHK_ERR( gpuMalloc((void**)&compaction_buffer[cpuThreadID],paddedSize) );
+      CHK_ERR( gpuMallocAsync((void**)&compaction_buffer[cpuThreadID],paddedSize, stream) );
       gpu_compaction_buffersize[cpuThreadID] = paddedSize;
    }
+   CHK_ERR( gpuStreamSynchronize(stream) );
 }
 
 /*
