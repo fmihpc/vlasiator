@@ -1690,31 +1690,28 @@ namespace spatial_cell {
       phiprof::start("GPU update spatial cell block lists");
       gpuStream_t stream = gpu_getStream();
       phiprof::start("VB content list prefetches and allocations");
-      // Clear the vectors
-      // No obvious non-pagefaulting method for clearing?
       vmesh::LocalID currSize = populations[popID].vmesh->size();
       vmesh::LocalID currCapacity = velocity_block_with_content_list->capacity();
-      velocity_block_with_content_list->clear();
-      velocity_block_with_no_content_list->clear();
 
-      // Ensure allocation of temporary gathering vectors
+      // Immediate return if no blocks to process
+      if (currSize == 0) {
+         phiprof::stop("VB content list prefetches and allocations");
+         phiprof::stop("GPU update spatial cell block lists");
+         velocity_block_with_content_list->clear();
+         velocity_block_with_no_content_list->clear();
+         velocity_block_with_content_list_size = 0;
+         return;
+      }
+
+      // Ensure allocation of gathering vectors
 #ifdef _OPENMP
       const uint thread_id = omp_get_thread_num();
 #else
       const uint thread_id = 0;
 #endif
       gpu_compaction_allocate_vec_perthread(thread_id, currSize);
-      vbwcl_gather[thread_id]->clear();
-      vbwncl_gather[thread_id]->clear();
-      if (currSize == 0) {
-         phiprof::stop("VB content list prefetches and allocations");
-         phiprof::stop("GPU update spatial cell block lists");
-         return;
-      }
-      vmesh::LocalID reserveSize = currSize > populations[popID].reservation ? currSize : populations[popID].reservation;
-      reserveSize *= BLOCK_ALLOCATION_FACTOR;
-      if (currCapacity < reserveSize) {
-         reserveSize *= BLOCK_ALLOCATION_PADDING/BLOCK_ALLOCATION_FACTOR;
+      if (currCapacity < currSize) {
+         const uint reserveSize = currSize * BLOCK_ALLOCATION_FACTOR;
          velocity_block_with_content_list->reserve(reserveSize,true);
          velocity_block_with_no_content_list->reserve(reserveSize,true);
          int device = gpu_getDevice();
@@ -1728,11 +1725,13 @@ namespace spatial_cell {
       // Set gathering vectors to correct size
       vbwcl_gather[thread_id]->resize(currSize,true);
       vbwncl_gather[thread_id]->resize(currSize,true);
+      velocity_block_with_content_list->resize(currSize,true);
+      velocity_block_with_no_content_list->resize(currSize,true);
+      velocity_block_with_content_list_size = 0;
       phiprof::stop("VB content list prefetches and allocations");
 
-      const Real velocity_block_min_value = getVelocityBlockMinValue(popID);
-
       phiprof::start("GPU update spatial cell block lists kernel");
+      const Real velocity_block_min_value = getVelocityBlockMinValue(popID);
       dim3 block(WID,WID,WID);
       // Third argument specifies the number of bytes in *shared memory* that is
       // dynamically allocated per block for this call in addition to the statically allocated memory.
@@ -1745,7 +1744,6 @@ namespace spatial_cell {
          );
       CHK_ERR( gpuPeekAtLastError() );
       CHK_ERR( gpuStreamSynchronize(stream) ); // This sync is required!
-      velocity_block_with_content_list_size = 0;
       phiprof::stop("GPU update spatial cell block lists kernel");
 
       phiprof::start("GPU update spatial cell block lists streamcompaction");
