@@ -745,7 +745,7 @@ namespace projects {
                }
             }
 
-            if (shouldRefine || refined_neighbors > 12) {
+            if ((shouldRefine || refined_neighbors > 12) && refLevel < P::amrMaxAllowedSpatialRefLevel) {
                // Refine a cell if a majority of its neighbors are refined or about to be
                mpiGrid.refine_completely(id);
             } else if (shouldUnrefine && coarser_neighbors > 0) {

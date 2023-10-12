@@ -185,7 +185,8 @@ struct Parameters {
                                   * refined.  The value must be larger than vamrCoarsenLimit.*/
    static std::string vamrVelRefCriterion; /**< Name of the velocity block refinement criterion function.*/
 
-   static uint amrMaxSpatialRefLevel;
+   static uint amrMaxSpatialRefLevel; /*!< Absolute maximum refinement level (conditions the fsgrid resolution), cannot be exceeded after initial setup of the grids. */
+   static uint amrMaxAllowedSpatialRefLevel; /*!< Maximum currently allowed refinement level for restart or dymamic refinement. */
    static bool adaptRefinement;
    static bool refineOnRestart;
    static bool forceRefinement;
