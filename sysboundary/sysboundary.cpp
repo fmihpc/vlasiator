@@ -490,7 +490,10 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
             // Here for debugging since boundarytype should be fed from MPIGrid
             technicalGrid.get(x, y, z)->sysBoundaryFlag = sysboundarytype::N_SYSBOUNDARY_CONDITIONS;
             technicalGrid.get(x, y, z)->sysBoundaryLayer = 0;
-            technicalGrid.get(x, y, z)->maxFsDt = numeric_limits<Real>::max();
+            // Don't screw with maximum dt when refining
+            if (P::tstep == P::tstep_min) {
+               technicalGrid.get(x, y, z)->maxFsDt = numeric_limits<Real>::max();
+            }
             // Set the fsgrid rank in the technical grid
             technicalGrid.get(x, y, z)->fsGridRank = technicalGrid.getRank();
          }
