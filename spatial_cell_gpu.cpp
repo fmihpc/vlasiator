@@ -560,16 +560,12 @@ namespace spatial_cell {
       // SplitVectors via pointers for unified memory
       velocity_block_with_content_list = new split::SplitVector<vmesh::GlobalID>(1);
       velocity_block_with_no_content_list = new split::SplitVector<vmesh::GlobalID>(1);
-      vbwcl_gather = new split::SplitVector<vmesh::GlobalID>(1);
-      vbwncl_gather = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksRequired = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToAdd = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToRemove = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToMove = new split::SplitVector<vmesh::GlobalID>(1);
       velocity_block_with_content_list->clear();
       velocity_block_with_no_content_list->clear();
-      vbwcl_gather->clear();
-      vbwncl_gather->clear();
       BlocksRequired->clear();
       BlocksToAdd->clear();
       BlocksToRemove->clear();
@@ -596,8 +592,6 @@ namespace spatial_cell {
       if (info_vbwcl) {
          delete velocity_block_with_content_list;
          delete velocity_block_with_no_content_list;
-         delete vbwcl_gather;
-         delete vbwncl_gather;
          delete BlocksRequired;
          delete BlocksToAdd;
          delete BlocksToRemove;
@@ -620,8 +614,6 @@ namespace spatial_cell {
    SpatialCell::SpatialCell(const SpatialCell& other) {
       velocity_block_with_content_list = new split::SplitVector<vmesh::GlobalID>(*(other.velocity_block_with_content_list));
       velocity_block_with_no_content_list = new split::SplitVector<vmesh::GlobalID>(*(other.velocity_block_with_no_content_list));
-      vbwcl_gather = new split::SplitVector<vmesh::GlobalID>(*(other.vbwcl_gather));
-      vbwncl_gather = new split::SplitVector<vmesh::GlobalID>(*(other.vbwncl_gather));
       BlocksRequired = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToAdd = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToRemove = new split::SplitVector<vmesh::GlobalID>(1);
@@ -632,8 +624,6 @@ namespace spatial_cell {
       BlocksToMove->clear();
       velocity_block_with_content_list->clear();
       velocity_block_with_no_content_list->clear();
-      vbwcl_gather->clear();
-      vbwncl_gather->clear();
 
       BlocksRequiredMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(7);
 
@@ -645,8 +635,6 @@ namespace spatial_cell {
       BlocksToMove->reserve(reserveSize,true);
       velocity_block_with_content_list->reserve(reserveSize,true);
       velocity_block_with_no_content_list->reserve(reserveSize,true);
-      vbwcl_gather->reserve(reserveSize,true);
-      vbwncl_gather->reserve(reserveSize,true);
 
       // Member variables
       ioLocalCellId = other.ioLocalCellId;
@@ -693,8 +681,6 @@ namespace spatial_cell {
       BlocksToMove->clear();
       velocity_block_with_content_list->clear();
       velocity_block_with_no_content_list->clear();
-      vbwcl_gather->clear();
-      vbwncl_gather->clear();
       delete BlocksRequiredMap;
 
       BlocksRequired->reserve(reserveSize,true);
@@ -703,8 +689,6 @@ namespace spatial_cell {
       BlocksToMove->reserve(reserveSize,true);
       velocity_block_with_content_list->reserve(reserveSize,true);
       velocity_block_with_no_content_list->reserve(reserveSize,true);
-      vbwcl_gather->reserve(reserveSize,true);
-      vbwncl_gather->reserve(reserveSize,true);
 
       const vmesh::LocalID HashmapReqSize = ceil(log2(reserveSize)) +2;
       BlocksRequiredMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(HashmapReqSize);
@@ -758,8 +742,6 @@ namespace spatial_cell {
       BlocksToMove->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
       velocity_block_with_content_list->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
       velocity_block_with_no_content_list->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-      vbwcl_gather->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-      vbwncl_gather->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
       BlocksRequiredMap->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
 
       BlocksRequired->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
@@ -768,8 +750,6 @@ namespace spatial_cell {
       BlocksToMove->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
       velocity_block_with_content_list->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
       velocity_block_with_no_content_list->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-      vbwcl_gather->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-      vbwncl_gather->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
       BlocksRequiredMap->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
 
       // Loop over populations
@@ -802,8 +782,6 @@ namespace spatial_cell {
       }
       CHK_ERR( gpuStreamAttachMemAsync(attachedStream,velocity_block_with_content_list, 0,gpuMemAttachSingle) );
       CHK_ERR( gpuStreamAttachMemAsync(attachedStream,velocity_block_with_no_content_list, 0,gpuMemAttachSingle) );
-      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,vbwcl_gather, 0,gpuMemAttachSingle) );
-      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,vbwncl_gather, 0,gpuMemAttachSingle) );
       CHK_ERR( gpuStreamAttachMemAsync(attachedStream,BlocksToRemove, 0,gpuMemAttachSingle) );
       CHK_ERR( gpuStreamAttachMemAsync(attachedStream,BlocksToAdd, 0,gpuMemAttachSingle) );
       CHK_ERR( gpuStreamAttachMemAsync(attachedStream,BlocksToMove, 0,gpuMemAttachSingle) );
@@ -817,8 +795,6 @@ namespace spatial_cell {
       // Also call attach functions on all splitvectors and hashmaps
       velocity_block_with_content_list->streamAttach(attachedStream);
       velocity_block_with_no_content_list->streamAttach(attachedStream);
-      vbwcl_gather->streamAttach(attachedStream);
-      vbwncl_gather->streamAttach(attachedStream);
       BlocksToRemove->streamAttach(attachedStream);
       BlocksToAdd->streamAttach(attachedStream);
       BlocksToMove->streamAttach(attachedStream);
@@ -838,8 +814,6 @@ namespace spatial_cell {
       attachedStream = 0;
       CHK_ERR( gpuStreamAttachMemAsync(attachedStream,velocity_block_with_content_list, 0,gpuMemAttachGlobal) );
       CHK_ERR( gpuStreamAttachMemAsync(attachedStream,velocity_block_with_no_content_list, 0,gpuMemAttachGlobal) );
-      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,vbwcl_gather, 0,gpuMemAttachGlobal) );
-      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,vbwncl_gather, 0,gpuMemAttachGlobal) );
       CHK_ERR( gpuStreamAttachMemAsync(attachedStream,BlocksToRemove, 0,gpuMemAttachGlobal) );
       CHK_ERR( gpuStreamAttachMemAsync(attachedStream,BlocksToAdd, 0,gpuMemAttachGlobal) );
       CHK_ERR( gpuStreamAttachMemAsync(attachedStream,BlocksToMove, 0,gpuMemAttachGlobal) );
@@ -853,8 +827,6 @@ namespace spatial_cell {
       // Also call detach functions on all splitvectors and hashmaps
       velocity_block_with_content_list->streamAttach(0,gpuMemAttachGlobal);
       velocity_block_with_no_content_list->streamAttach(0,gpuMemAttachGlobal);
-      vbwcl_gather->streamAttach(0,gpuMemAttachGlobal);
-      vbwncl_gather->streamAttach(0,gpuMemAttachGlobal);
       BlocksToRemove->streamAttach(0,gpuMemAttachGlobal);
       BlocksToAdd->streamAttach(0,gpuMemAttachGlobal);
       BlocksToMove->streamAttach(0,gpuMemAttachGlobal);
@@ -1724,8 +1696,16 @@ namespace spatial_cell {
       vmesh::LocalID currCapacity = velocity_block_with_content_list->capacity();
       velocity_block_with_content_list->clear();
       velocity_block_with_no_content_list->clear();
-      vbwcl_gather->clear();
-      vbwncl_gather->clear();
+
+      // Ensure allocation of temporary gathering vectors
+#ifdef _OPENMP
+      const uint thread_id = omp_get_thread_num();
+#else
+      const uint thread_id = 0;
+#endif
+      gpu_compaction_allocate_vec_perthread(thread_id, currSize);
+      vbwcl_gather[thread_id]->clear();
+      vbwncl_gather[thread_id]->clear();
       if (currSize == 0) {
          phiprof::stop("VB content list prefetches and allocations");
          phiprof::stop("GPU update spatial cell block lists");
@@ -1737,29 +1717,17 @@ namespace spatial_cell {
          reserveSize *= BLOCK_ALLOCATION_PADDING/BLOCK_ALLOCATION_FACTOR;
          velocity_block_with_content_list->reserve(reserveSize,true);
          velocity_block_with_no_content_list->reserve(reserveSize,true);
-         vbwcl_gather->reserve(reserveSize,true);
-         vbwncl_gather->reserve(reserveSize,true);
          int device = gpu_getDevice();
          velocity_block_with_content_list->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
          velocity_block_with_no_content_list->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
          velocity_block_with_content_list->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
          velocity_block_with_no_content_list->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-         vbwcl_gather->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-         vbwncl_gather->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-         vbwcl_gather->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-         vbwncl_gather->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-      }
-      // Set gathering vectors to correct size
-      vbwcl_gather->resize(currSize,true);
-      vbwncl_gather->resize(currSize,true);
-      velocity_block_with_content_list->resize(currSize,true);
-      velocity_block_with_no_content_list->resize(currSize,true);
-      if (doPrefetches || (currCapacity < currSize)) {
          velocity_block_with_content_list->optimizeGPU(stream);
          velocity_block_with_no_content_list->optimizeGPU(stream);
-         vbwcl_gather->optimizeGPU(stream);
-         vbwncl_gather->optimizeGPU(stream);
       }
+      // Set gathering vectors to correct size
+      vbwcl_gather[thread_id]->resize(currSize,true);
+      vbwncl_gather[thread_id]->resize(currSize,true);
       phiprof::stop("VB content list prefetches and allocations");
 
       const Real velocity_block_min_value = getVelocityBlockMinValue(popID);
@@ -1771,24 +1739,26 @@ namespace spatial_cell {
       update_velocity_block_content_lists_kernel<<<GPUBLOCKS, block, WID3*sizeof(bool), stream>>> (
          populations[popID].vmesh,
          populations[popID].blockContainer,
-         vbwcl_gather, // Now pass temporary gathering vectors
-         vbwncl_gather,
-         // velocity_block_with_content_list,
-         // velocity_block_with_no_content_list,
+         vbwcl_gather[thread_id], // Now pass temporary gathering vectors
+         vbwncl_gather[thread_id],
          velocity_block_min_value
          );
       CHK_ERR( gpuPeekAtLastError() );
       CHK_ERR( gpuStreamSynchronize(stream) ); // This sync is required!
       velocity_block_with_content_list_size = 0;
-
       phiprof::stop("GPU update spatial cell block lists kernel");
 
       phiprof::start("GPU update spatial cell block lists streamcompaction");
+      // First ensure temp buffer is large enough:
+      size_t bytesNeeded=split::tools::estimateMemoryForCompaction(*(vbwcl_gather[thread_id]));
+      gpu_compaction_allocate_buf_perthread(thread_id, bytesNeeded);
       // Now do stream compaction on those two vectors, returning only valid GIDs
-      // into the actual vectors
-      auto Predicate = [] __host__ __device__ (vmesh::GlobalID i ){return i!=vmesh::INVALID_GLOBALID; };
-      split::tools::copy_if(*vbwcl_gather, *velocity_block_with_content_list, Predicate, stream);
-      split::tools::copy_if(*vbwncl_gather, *velocity_block_with_no_content_list, Predicate, stream);
+      // into the actual vectors.
+      auto Predicate = [] __host__ __device__ (vmesh::GlobalID i ){return i != vmesh::INVALID_GLOBALID; };
+      split::tools::copy_if(*vbwcl_gather[thread_id], *velocity_block_with_content_list,
+                            Predicate, compaction_buffer[thread_id], bytesNeeded, stream);
+      split::tools::copy_if(*vbwncl_gather[thread_id], *velocity_block_with_no_content_list,
+                            Predicate, compaction_buffer[thread_id], bytesNeeded, stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
       phiprof::stop("GPU update spatial cell block lists streamcompaction");
 

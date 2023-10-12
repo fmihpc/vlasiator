@@ -87,6 +87,13 @@ uint gpu_acc_allocatedColumns = 0;
 uint gpu_acc_columnContainerSize = 0;
 uint gpu_acc_foundColumnsCount = 0;
 
+// SplitVectors and buffers for use in stream compaction
+uint gpu_compaction_vectorsize[MAXCPUTHREADS] = {0};
+uint gpu_compaction_buffersize[MAXCPUTHREADS] = {0};
+split::SplitVector<vmesh::GlobalID> *vbwcl_gather[MAXCPUTHREADS];
+split::SplitVector<vmesh::GlobalID> *vbwncl_gather[MAXCPUTHREADS];
+void *compaction_buffer[MAXCPUTHREADS];
+
 __host__ void gpu_init_device() {
 
 #ifdef _OPENMP
@@ -179,6 +186,7 @@ __host__ void gpu_clear_device() {
    gpu_acc_deallocate();
    gpu_vlasov_deallocate();
    gpu_trans_deallocate();
+   gpu_compaction_deallocate();
    // Destroy streams
 #ifdef _OPENMP
    const uint maxThreads = omp_get_max_threads();
@@ -389,6 +397,85 @@ __host__ void gpu_acc_deallocate_perthread(
       delete unif_columnOffsetData[cpuThreadID];
    }
    CHK_ERR( gpuFree(gpu_columnNBlocks[cpuThreadID]) );
+}
+
+/*
+   Top-level GPU memory allocation function for stream compaction buffers.
+ */
+__host__ void gpu_compaction_allocate(
+   const uint vectorLength,
+   const size_t bytesNeeded
+   ) {
+#ifdef _OPENMP
+   const uint maxNThreads = omp_get_max_threads();
+#else
+   const uint maxNThreads = 1;
+#endif
+   for (uint i=0; i<maxNThreads; ++i) {
+      gpu_compaction_allocate_vec_perthread(i,vectorLength);
+      gpu_compaction_allocate_buf_perthread(i,bytesNeeded);
+   }
+}
+
+/* Deallocation at end of simulation */
+__host__ void gpu_compaction_deallocate() {
+#ifdef _OPENMP
+   const uint maxNThreads = omp_get_max_threads();
+#else
+   const uint maxNThreads = 1;
+#endif
+   for (uint i=0; i<maxNThreads; ++i) {
+      gpu_compaction_allocate_vec_perthread(i,0);
+      gpu_compaction_allocate_buf_perthread(i,0);
+   }
+}
+
+__host__ void gpu_compaction_allocate_vec_perthread(
+   const uint cpuThreadID,
+   const uint vectorLength
+   ) {
+   gpuStream_t stream = gpu_getStream();
+   // Deallocate if: buffer exists, and: requesting zero size or size is not large enough.
+   if ( (gpu_compaction_vectorsize[cpuThreadID] > 0)
+        && ( (vectorLength == 0) || vectorLength > gpu_compaction_vectorsize[cpuThreadID])
+      ) {
+      delete vbwcl_gather[cpuThreadID];
+      delete vbwncl_gather[cpuThreadID];
+      gpu_compaction_vectorsize[cpuThreadID] = 0;
+   }
+   // If buffer isn't large enough, allocate.
+   if (vectorLength > gpu_compaction_vectorsize[cpuThreadID]) {
+      const uint paddedSize = BLOCK_ALLOCATION_FACTOR * vectorLength;
+      vbwcl_gather[cpuThreadID] = new split::SplitVector<vmesh::GlobalID>(paddedSize);
+      vbwncl_gather[cpuThreadID] = new split::SplitVector<vmesh::GlobalID>(paddedSize);
+      int device = gpu_getDevice();
+      vbwcl_gather[cpuThreadID]->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+      vbwncl_gather[cpuThreadID]->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+      vbwcl_gather[cpuThreadID]->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+      vbwncl_gather[cpuThreadID]->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+      vbwcl_gather[cpuThreadID]->optimizeGPU(stream);
+      vbwncl_gather[cpuThreadID]->optimizeGPU(stream);
+      gpu_compaction_vectorsize[cpuThreadID] = paddedSize;
+   }
+}
+__host__ void gpu_compaction_allocate_buf_perthread(
+   const uint cpuThreadID,
+   const size_t bytesNeeded
+   ) {
+   gpuStream_t stream = gpu_getStream();
+   // Deallocate if: buffer exists, and: requesting zero size or size is not large enough.
+   if ( (gpu_compaction_buffersize[cpuThreadID] > 0)
+        && ( (bytesNeeded == 0) || bytesNeeded > gpu_compaction_buffersize[cpuThreadID])
+      ) {
+      CHK_ERR( gpuFree(compaction_buffer[cpuThreadID]) );
+      gpu_compaction_buffersize[cpuThreadID] = 0;
+   }
+   // If buffer isn't large enough, allocate.
+   if (bytesNeeded > gpu_compaction_buffersize[cpuThreadID]) {
+      const uint paddedSize = BLOCK_ALLOCATION_FACTOR * bytesNeeded;
+      CHK_ERR( gpuMalloc((void**)&compaction_buffer[cpuThreadID],paddedSize) );
+      gpu_compaction_buffersize[cpuThreadID] = paddedSize;
+   }
 }
 
 /*

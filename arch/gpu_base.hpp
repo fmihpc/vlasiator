@@ -64,6 +64,12 @@ void gpu_acc_allocate(uint maxBlockCount);
 void gpu_acc_deallocate();
 void gpu_acc_allocate_perthread(uint cpuThreadID, uint columnAllocationCount);
 void gpu_acc_deallocate_perthread(uint cpuThreadID);
+
+void gpu_compaction_deallocate();
+void gpu_compaction_allocate(const uint vectorLength, const size_t bytesNeeded);
+void gpu_compaction_allocate_vec_perthread(const uint cpuThreadID, const uint vectorLength);
+void gpu_compaction_allocate_buf_perthread(const uint cpuThreadID, const size_t bytesNeeded);
+
 void gpu_trans_allocate(cuint nAllCells=0, cuint sumOfLengths=0, cuint largestVmesh=0, cuint unionSetSize=0);
 void gpu_trans_deallocate();
 
@@ -204,6 +210,11 @@ extern Column *gpu_columns[];
 
 // Unified (managed) memory variables
 extern ColumnOffsets *unif_columnOffsetData[];
+
+// SplitVectors and buffers for use in stream compaction
+extern split::SplitVector<vmesh::GlobalID> *vbwcl_gather[];
+extern split::SplitVector<vmesh::GlobalID> *vbwncl_gather[];
+extern void *compaction_buffer[];
 
 // Vectors and set for use in translation, actually declared in vlasovsolver/gpu_trans_map_amr.hpp
 // to sidestep compilation errors
