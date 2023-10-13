@@ -846,8 +846,6 @@ namespace vmesh {
       __syncthreads();
       vmesh::LocalID LIDold = invalidLocalID();
       globalToLocalMap->warpFind(GIDold, LIDold, b_tid % GPUTHREADS);
-
-      __syncthreads();
       auto it = globalToLocalMap->device_find(GIDold);
       if (it == globalToLocalMap->device_end()) {
          if (LIDold != invalidLocalID()) {
@@ -871,6 +869,7 @@ namespace vmesh {
       #endif
       if (b_tid < GPUTHREADS) { // GPUTODO these in parallel?
          globalToLocalMap->warpErase(GIDold, b_tid);
+
          #ifdef DEBUG_VMESH
          if (globalToLocalMap->size() != preMapSize-1) {
             printf("Warp error in VelocityMesh::warpReplaceBlock: map size %u does not match expected %u for thread %u!\n",(vmesh::LocalID)globalToLocalMap->size(),(vmesh::LocalID)(preMapSize-1),(vmesh::LocalID)b_tid);
@@ -883,16 +882,7 @@ namespace vmesh {
          }
          bool newlyadded = false;
          newlyadded = globalToLocalMap->warpInsert_V(GIDnew,LID, b_tid);
-         #else
-         globalToLocalMap->warpInsert(GIDnew,LID,b_tid);
-         #endif
-         if (b_tid==0) {
-            localToGlobalMap->at(LID) = GIDnew;
-            // if (!newlyadded) {
-            //    printf("Warp error in VelocityMesh::warpReplaceBlock: Added GID %u to map but it already existed!\n",GIDnew);
-            // }
-         }
-         #ifdef DEBUG_VMESH
+         globalToLocalMap->warpInsert(GIDnew,LID, b_tid);
          vmesh::LocalID postMapSize = globalToLocalMap->size();
          int change = 0;
          if (!newlyadded) change = -1;
@@ -908,7 +898,14 @@ namespace vmesh {
             printf("Warp error in VelocityMesh::warpReplaceBlock: warp-inserted GID %u LID %u but thread %u instead finds LID %u!\n",GIDnew,LID,(vmesh::LocalID)b_tid,it3->second);
             assert(0);
          }
+         #else
+         bool newlyadded = globalToLocalMap->warpInsert_V(GIDnew,LID, b_tid);
+         //globalToLocalMap->warpInsert(GIDnew,LID,b_tid);
          #endif
+      }
+      //__syncthreads(); // not needed
+      if (b_tid==0) {
+         localToGlobalMap->at(LID) = GIDnew;
       }
       __syncthreads();
    }

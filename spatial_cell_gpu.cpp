@@ -54,9 +54,13 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_block_content_lists_ke
       const vmesh::GlobalID blockGID = vmesh->getGlobalID(blockLID);
       #ifdef DEBUG_SPATIAL_CELL
       if (blockGID == vmesh->invalidGlobalID()) {
+         if (ti==0) printf("Invalid GID encountered in update_velocity_block_content_lists_kernel!\n");
+         __syncthreads();
          continue;
       }
       if (blockLID == vmesh->invalidLocalID()) {
+         if (ti==0) printf("Invalid LID encountered in update_velocity_block_content_lists_kernel!\n");
+         __syncthreads();
          continue;
       }
       #endif
@@ -406,13 +410,13 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
       // Is this LID so large that we just delete without replacing?
       if (rmLID >= nBlocksAfterAdjust) {
          vmesh->warpDeleteBlock(rmGID,rmLID,ti);
-
-         __syncthreads();
          continue;
       }
 
-      // Need to replace this block, let's select the next index (blocks to move):
-      if (ti==0) moveIndex = atomicAdd(moveVectorIndex,1);
+      // If not, we need to replace this block, so let's select the next index (blocks to move):
+      if (ti==0) {
+         moveIndex = atomicAdd(moveVectorIndex,1);
+      }
       __syncthreads();
 
       if (moveIndex<nToMove) {
@@ -433,22 +437,30 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
 
          #ifdef DEBUG_SPATIAL_CELL
          if (vmesh->getGlobalID(rmLID) == vmesh->invalidGlobalID()) {
+            if (ti==0) printf("Invalid GID encountered in update_velocity_blocks_kernel!\n");
+            __syncthreads();
             continue;
          }
          if (vmesh->getLocalID(replaceGID) == vmesh->invalidLocalID()) {
+            if (ti==0) printf("Invalid LID encountered in update_velocity_blocks_kernel!\n");
+            __syncthreads();
             continue;
          }
          #endif
          continue;
       }
 
-      // Nothing to move into this position, let's add instead (blocks to add)
-      if (ti==0) addIndex = atomicAdd(addVectorIndex,1);
+      // Nothing to move into this position, so let's add instead (blocks to add)
+      if (ti==0) {
+         addIndex = atomicAdd(addVectorIndex,1);
+      }
       __syncthreads();
       if (addIndex<nToAdd) {
          // New GID
          const vmesh::GlobalID addGID = BlocksToAdd->at(addIndex);
          #ifdef DEBUG_SPATIAL_CELL
+         // Verify that we don't take from to far in the vector
+         assert(addIndex < nToRemove && "addIndex < nToRemove");
          if (addGID == vmesh->invalidGlobalID()) {
             if (ti==0) printf("Error! Adding invalid Global ID in update_velocity_blocks_kernel! \n");
             __syncthreads();
@@ -464,32 +476,38 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
          vmesh->warpReplaceBlock(rmGID,rmLID,addGID,ti);
          #ifdef DEBUG_SPATIAL_CELL
          if (vmesh->getGlobalID(rmLID) == vmesh->invalidGlobalID()) {
+            if (ti==0) printf("Error! Adding resulted in invalid Global ID in update_velocity_blocks_kernel! \n");
+            __syncthreads();
             continue;
          }
          if (vmesh->getLocalID(addGID) == vmesh->invalidLocalID()) {
+            if (ti==0) printf("Error! Adding resulted in invalid Local ID in update_velocity_blocks_kernel! \n");
+            __syncthreads();
             continue;
          }
          #endif
          continue;
       }
-      #ifdef DEBUG_SPATIAL_CELL
+      // Fall-through error!
       if (ti==0) {
          printf("Error! Fall through in update_velocity_blocks_kernel! nToAdd %u nToRemove %u nToMove %u nToCreate %u addIndex %u moveIndex %u rmLID %u nBlocksBeforeAdjust %u nBlocksAfterAdjust %u \n",nToAdd,nToRemove,nToMove,nToCreate,addIndex,moveIndex,rmLID,nBlocksBeforeAdjust,nBlocksAfterAdjust);
       }
-      #endif
       __syncthreads();
+      assert(0 && "Error! Fall through in update_velocity_blocks_kernel!");
    }
    // Now, if we need to expand the size of the vmesh, let's add blocks.
-   // For thread-safety,this assumes that the localToGlobalMap is already of sufficient size, as should be
+   // For thread-safety, this assumes that the localToGlobalMap is already of sufficient size, as should be
    // the block_data and block_parameters vectors.
    for (vmesh::LocalID m=blocki; m<nToCreate; m += gpuBlocks) {
-      // Debug check: if we are adding elements, then nToMove should be zero
       // We have already used up nToRemove entries from the addition vector.
       const vmesh::GlobalID addGID = BlocksToAdd->at(nToRemove+m);
+      // To be safe, should we select the next entry using atomics?
+
       // We need to add the data of addGID to a new LID:
       const vmesh::LocalID addLID = nBlocksBeforeAdjust + m;
       Realf* add_avgs = blockContainer->getData(addLID);
       #ifdef DEBUG_SPATIAL_CELL
+      // Debug check: if we are adding elements, then nToMove should be zero
       assert((nToMove==0) && "nToMove should be zero when adding blocks!");
       assert((addGID != vmesh->invalidGlobalID()) && "Error! Trying to add invalid GID!");
       assert((addLID != vmesh->invalidLocalID()) && "Error! Trying to add GID to invalid LID position!");
@@ -1152,6 +1170,9 @@ namespace spatial_cell {
       if (vmeshSize != vbcSize) {
          printf("ERROR: population vmesh %zu and blockcontainer %zu sizes do not match!\n",vmeshSize,vbcSize);
       }
+      #endif
+      #ifdef DEBUG_VLASIATOR
+      // This is a bit extreme
       populations[popID].vmesh->check();
       #endif
 
@@ -1276,18 +1297,18 @@ namespace spatial_cell {
       // DEBUG output after kernel
       #ifdef DEBUG_SPATIAL_CELL
       phiprof::start("Vmesh and VBC debug output");
-      populations[popID].vmesh->gpu_prefetchHost();
-      CHK_ERR( gpuStreamSynchronize(stream) );
       const vmesh::LocalID nAll = populations[popID].vmesh->size();
       if (nAll!=nBlocksAfterAdjust) {
+         populations[popID].vmesh->gpu_prefetchHost();
+         CHK_ERR( gpuStreamSynchronize(stream) );
          printf("after kernel, size is %d should be %d\n",nAll,nBlocksAfterAdjust);
          for (vmesh::LocalID m=0; m<nAll; ++m) {
             const vmesh::GlobalID GIDs = populations[popID].vmesh->getGlobalID(m);
             const vmesh::LocalID LIDs = populations[popID].vmesh->getLocalID(GIDs);
             printf("LID %d GID-solved %d LID-solved %d\n",m,GIDs,LIDs);
          }
+         populations[popID].vmesh->gpu_prefetchDevice();
       }
-      populations[popID].vmesh->gpu_prefetchDevice();
       phiprof::stop("Vmesh and VBC debug output");
       #endif
 

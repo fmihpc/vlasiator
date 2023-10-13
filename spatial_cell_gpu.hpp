@@ -1399,9 +1399,9 @@ namespace spatial_cell {
 
       phiprof::stop("GPU add blocks from buffer");
       #ifdef DEBUG_SPATIAL_CELL
-         if (populations[popID].vmesh->size() != populations[popID].blockContainer->size()) {
-	    std::cerr << "size mismatch in " << __FILE__ << ' ' << __LINE__ << std::endl; exit(1);
-	 }
+      if (populations[popID].vmesh->size() != populations[popID].blockContainer->size()) {
+         std::cerr << "size mismatch in " << __FILE__ << ' ' << __LINE__ << std::endl; exit(1);
+      }
       #endif
    }
 
