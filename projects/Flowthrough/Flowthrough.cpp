@@ -120,6 +120,56 @@ namespace projects {
          speciesParams.push_back(sP);
       }
    }
+   Real Flowthrough::getCorrectNumberDensity(spatial_cell::SpatialCell* cell,const uint popID) const {
+      const FlowthroughSpeciesParameters& sP = speciesParams[popID];
+      Real x,y,z;
+      Real rvalue;
+      x = cell->parameters[CellParams::XCRD];
+      y = cell->parameters[CellParams::YCRD];
+      z = cell->parameters[CellParams::ZCRD];
+      switch (densityModel) {
+         case Maxwellian:
+            rvalue = sP.rho;
+            break;
+         case SheetMaxwellian:
+            rvalue = sqrt(x*x + y*y + z*z);
+            if (rvalue <= 0.5*densityWidth) {
+               rvalue = 4*sP.rho;
+            } else {
+               rvalue = 0;
+            }
+            break;
+         case Square:
+            if (abs(x) < 0.5*densityWidth) {
+               rvalue = 4*sP.rho;
+            } else {
+               rvalue = 4*sP.rhoBase;
+               //rvalue = 0;
+            }
+            break;
+         case Triangle:
+            if (abs(x) < 0.5*densityWidth) {            
+               rvalue = 4;
+               rvalue *= ( sP.rhoBase + (sP.rho-sP.rhoBase) * (1.-abs(x) / (0.5*densityWidth)));
+            } else {
+               rvalue = 4*sP.rhoBase;
+               //rvalue = 0;
+            }
+            break;
+         case Sinewave:
+            if (abs(x) < 0.5*densityWidth) {            
+               rvalue = 4;
+               rvalue *= ( sP.rhoBase + (sP.rho-sP.rhoBase) * (0.5 + 0.5*cos(M_PI * x / (0.5*densityWidth))));
+            } else {
+               rvalue = 4*sP.rhoBase;
+               //rvalue = 0;
+            }
+            break;
+      }  
+      
+      return rvalue;
+
+   }
 
    Real Flowthrough::getDistribValue(creal& x,creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
 

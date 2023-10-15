@@ -55,6 +55,11 @@ namespace projects {
       );
 
     protected:
+      bool rescalesDensity(const uint popID) const {
+         return true;
+      };
+      Real getCorrectNumberDensity(spatial_cell::SpatialCell* cell,const uint popID) const;
+
       Real getDistribValue(
                            creal& x,creal& y, creal& z,
                            creal& vx, creal& vy, creal& vz,
