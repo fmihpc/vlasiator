@@ -1057,10 +1057,11 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
          localPropagatedCells.push_back(localCells[c]);
       }
    }
-   phiprof::start("getSeedIds");
+
+   phiprof::Timer seedIdsTimer {"getSeedIds"};
    vector<CellID> seedIds;
    getSeedIds(mpiGrid, localPropagatedCells, dimension, seedIds);
-   phiprof::stop("getSeedIds");
+   seedIdsTimer.stop();
 
    if (printSeeds) {
       for (int rank=0; rank<mpi_size; ++rank) {
@@ -1085,7 +1086,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
       }
    }
 
-   phiprof::start("buildPencils");
+   phiprof::Timer pencilsTimer {"buildPencils"};
    // Clear previous set
    DimensionPencils[dimension].removeAllPencils();
 
@@ -1121,17 +1122,17 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
       }
    }
 
-   phiprof::start("check_ghost_cells");
+   phiprof::Timer ghostCellsTimer {"check_ghost_cells"};
    // Check refinement of two ghost cells on each end of each pencil
    // in case pencil needs to be split.
    // This function contains threading.
    check_ghost_cells(mpiGrid,DimensionPencils[dimension],dimension);
-   phiprof::stop("check_ghost_cells");
+   ghostCellsTimer.stop();
 
-   phiprof::start("Find_source_cells_ratios_dz");
+   phiprof::Timer ratiosTimer {"Find_source_cells_ratios_dz"};
    // Compute also the stencil around the pencil (source cells), and
    // Store source cell widths and target cell contribution ratios.
-#pragma omp parallel for schedule(guided)
+   #pragma omp parallel for schedule(guided)
    for (uint i=0; i<DimensionPencils[dimension].N; ++i) {
       const int L = DimensionPencils[dimension].lengthOfPencils[i];
       CellID *pencilIds = DimensionPencils[dimension].ids.data() + DimensionPencils[dimension].idsStart[i];
@@ -1139,18 +1140,18 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
       Realf* pencilAreaRatio = DimensionPencils[dimension].targetRatios.data() + DimensionPencils[dimension].idsStart[i];
       computeSpatialSourceCellsForPencil(mpiGrid,pencilIds,L,dimension,DimensionPencils[dimension].path[i],pencilDZ,pencilAreaRatio);
    }
-   phiprof::stop("Find_source_cells_ratios_dz");
+   ratiosTimer.stop();
 
    // ****************************************************************************
 
    // Now gather unordered_set of target cells (used for resetting block data)
    DimensionTargetCells[dimension].clear();
-#pragma omp parallel for
+   #pragma omp parallel for
    for (uint i=0; i<DimensionPencils[dimension].ids.size(); ++i) {
       const CellID targ = DimensionPencils[dimension].ids[i];
       const Realf ratio = DimensionPencils[dimension].targetRatios[i];
       if ((targ!=0)&&(ratio>0.0)) {
-#pragma omp critical
+         #pragma omp critical
          {
             DimensionTargetCells[dimension].insert(targ);
          }
@@ -1170,7 +1171,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
          printPencilsFunc(DimensionPencils[dimension],dimension,myRank,mpiGrid);
       }
    }
-   phiprof::stop("buildPencils");
+   pencilsTimer.stop();
 
    #ifdef USE_GPU
    // Clear old allocation if needed

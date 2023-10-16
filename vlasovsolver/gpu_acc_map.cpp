@@ -579,7 +579,7 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    // Ensure previous actions have completed?
    SSYNC;
    //CHK_ERR( gpuStreamSynchronize(stream) );
-   phiprof::start("Get acc parameters");
+   phiprof::Timer paramsTimer {"Get acc parameters"};
    vmesh::VelocityMesh* vmesh    = spatial_cell->get_velocity_mesh(popID);
    vmesh::VelocityBlockContainer* blockContainer = spatial_cell->get_velocity_blocks(popID);
    Realf *blockData = blockContainer->getData();
@@ -606,14 +606,14 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    //Real host_returnReal[8];
    vmesh::LocalID host_returnLID[8];
    vmesh::LocalID *gpu_returnLID = returnLID[cpuThreadID];
-   phiprof::stop("Get acc parameters");
+   paramsTimer.stop();
 
    //nothing to do if no blocks
    if(nBlocks == 0) {
       return true;
    }
 
-   phiprof::start("stream Attach, prefetch");
+   phiprof::Timer attachTimer {"stream Attach, prefetch"};
    if (needAttachedStreams) {
       blockContainer->gpu_attachToStream(stream);
       vmesh->gpu_attachToStream(stream);
@@ -622,9 +622,9 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       blockContainer->gpu_prefetchDevice();
       vmesh->gpu_prefetchDevice();
    }
-   phiprof::stop("stream Attach, prefetch");
+   attachTimer.stop();
 
-   phiprof::start("create columnOffsets in unified memory, attach, prefetch");
+   phiprof::Timer offsetsTimer {"create columnOffsets in unified memory, attach, prefetch"};
    // lists in unified memory
    ColumnOffsets *columnData = unif_columnOffsetData[cpuThreadID];
    // Verify unified memory stream attach
@@ -639,12 +639,12 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       CHK_ERR( gpuMemPrefetchAsync(columnData,sizeof(ColumnOffsets),gpu_getDevice(),stream) );
    }
    SSYNC;
-   phiprof::stop("create columnOffsets in unified memory, attach, prefetch");
+   offsetsTimer.stop();
    // Some kernels in here require the number of threads to be equal to VECL.
    // Future improvements would be to allow setting it directly to WID3.
    // Other kernels (not handling block data) can use GPUTHREADS which
    // is equal to NVIDIA: 32 or AMD: 64.
-   phiprof::start("Bookkeeping");
+   phiprof::Timer bookkeepingTimer {"Bookkeeping"};
 
    /*< used when computing id of target block, 0 for compiler */
    uint block_indices_to_id[3] = {0, 0, 0};
@@ -710,8 +710,8 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
 
    // Call function for sorting block list and building columns from it.
    // Can probably be further optimized.
-   phiprof::stop("Bookkeeping");
-   phiprof::start("sortBlockList");
+   bookkeepingTimer.stop();
+   phiprof::Timer sortTimer {"sortBlockList"};
    gpuStream_t priorityStream = gpu_getPriorityStream();
    CHK_ERR( gpuMemsetAsync(columnNBlocks, 0, gpu_acc_columnContainerSize*sizeof(vmesh::LocalID), stream) );
    CHK_ERR( gpuStreamSynchronize(stream) ); // Yes needed because we use priority stream for block list sorting
@@ -729,10 +729,10 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
                             stream
       );
    CHK_ERR( gpuStreamSynchronize(stream) ); // Yes needed to get column data back to regular stream
-   phiprof::stop("sortBlockList");
+   sortTimer.stop();
 
    // Calculate total sum of columns and total values size
-   phiprof::start("count columns");
+   phiprof::Timer countTimer {"count columns"};
    CHK_ERR( gpuMemsetAsync(gpu_returnLID, 0, 2*sizeof(vmesh::LocalID), stream) );
    // this needs to be serial, but is fast.
    count_columns_kernel<<<1, 1, 0, stream>>> (
@@ -748,18 +748,18 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    if (gpu_acc_foundColumnsCount < host_totalColumns) {
       gpu_acc_foundColumnsCount = host_totalColumns;
    }
-   phiprof::stop("count columns");
+   countTimer.stop();
 
-   phiprof::start("Host columns");
+   phiprof::Timer hostTimer {"Host columns"};
    // Create array of column objects
    Column host_columns[host_totalColumns];
    // and copy it into device memory
    Column *columns = gpu_columns[cpuThreadID];
    CHK_ERR( gpuMemcpyAsync(columns, &host_columns, host_totalColumns*sizeof(Column), gpuMemcpyHostToDevice, stream) );
    SSYNC;
-   phiprof::stop("Host columns");
+   hostTimer.stop();
 
-   phiprof::start("Store offsets into columns");
+   phiprof::Timer storeTimer {"Store offsets into columns"};
    // this needs to be serial, but is fast.
    offsets_into_columns_kernel<<<1, 1, 0, stream>>> (
       columnData,
@@ -768,9 +768,9 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       );
    CHK_ERR( gpuPeekAtLastError() );
    SSYNC;
-   phiprof::stop("Store offsets into columns");
+   storeTimer.stop();
 
-   phiprof::start("Reorder blocks by dimension");
+   phiprof::Timer reorderTimer {"Reorder blocks by dimension"};
    uint gpublocks = host_totalColumns > GPUBLOCKS ? GPUBLOCKS : host_totalColumns;
    // Launch kernels for transposing and ordering velocity space data into columns
    reorder_blocks_by_dimension_kernel<<<gpublocks, VECL, 0, stream>>> (
@@ -788,7 +788,7 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       );
    CHK_ERR( gpuPeekAtLastError() );
    SSYNC;
-   phiprof::stop("Reorder blocks by dimension");
+   reorderTimer.stop();
    CHK_ERR( gpuStreamSynchronize(stream) );
 
    // Make sure the BlocksRequired / -ToAdd and / -ToRemove buffers are large enough
@@ -802,7 +802,7 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
         spatial_cell->BlocksToRemove->optimizeGPU(stream);
    }
    // Calculate target column extents
-   phiprof::start("Evaluate column extents kernel");
+   phiprof::Timer evaluateExtentsTimer {"Evaluate column extents kernel"};
    do {
       CHK_ERR( gpuMemsetAsync(gpu_returnLID, 0, 2*sizeof(vmesh::LocalID), stream) );
       evaluate_column_extents_kernel<<<gpublocks, GPUTHREADS, 0, stream>>> (
@@ -862,31 +862,31 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
          spatial_cell->BlocksToAdd->optimizeGPU(stream);
       }
    } while(host_returnLID[1] != 0);
-   phiprof::stop("Evaluate column extents kernel");
+   evaluateExtentsTimer.stop();
 
    if (spatial_cell->BlocksToRemove->size() > spatial_cell->BlocksToAdd->size()) {
       // If we hit v-space walls, we may end up removing more blocks than we create.
       spatial_cell->update_blocks_to_move_caller(popID);
    }
 
-   phiprof::start("Add and delete blocks");
+   phiprof::Timer addDeleteTimer {"Add and delete blocks"};
    // Note: in this call, unless hitting v-space walls, BlocksToMove is empty as we only grow the vspace size.
    spatial_cell->adjust_velocity_blocks_caller(popID);
    // Velocity space has all extra blocks added and/or removed for the transform target
    // and will not change shape anymore.
    const uint newNBlocks = vmesh->size();
    const uint bdsw3 = newNBlocks * WID3;
-   phiprof::stop("Add and delete blocks");
+   addDeleteTimer.stop();
 
    // Put into second (high-priority) stream for concurrency
    // Zero out target data on device (unified) (note, pointer needs to be re-fetched)
-   phiprof::start("Memset ACC blocks to zero");
+   phiprof::Timer memsetTimer {"Memset ACC blocks to zero"};
    blockData = blockContainer->getData();
    CHK_ERR( gpuMemsetAsync(blockData, 0, bdsw3*sizeof(Realf), stream) );
    SSYNC;
-   phiprof::stop("Memset ACC blocks to zero");
+   memsetTimer.stop();
 
-   phiprof::start("identify new block offsets kernel");
+   phiprof::Timer identifyOffsetsTimer {"identify new block offsets kernel"};
    identify_block_offsets_kernel<<<gpublocks, GPUTHREADS, 0, stream>>> (
       vmesh,
       columns,
@@ -896,10 +896,10 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       );
    CHK_ERR( gpuPeekAtLastError() );
    SSYNC;
-   phiprof::stop("identify new block offsets kernel");
+   identifyOffsetsTimer.stop();
 
    CHK_ERR( gpuStreamSynchronize(stream) ); // Yes needed to ensure block data was zeroed
-   phiprof::start("Semi-Lagrangian acceleration kernel");
+   phiprof::Timer semilagAccKernel {"Semi-Lagrangian acceleration kernel"};
    acceleration_kernel<<<gpublocks, VECL, 0, stream>>> (
       blockData,
       gpu_blockDataOrdered[cpuThreadID],
@@ -922,7 +922,7 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
 
    // Wait until everything is complete before returning
    CHK_ERR( gpuStreamSynchronize(stream) );
-   phiprof::stop("Semi-Lagrangian acceleration kernel");
+   semilagAccKernel.stop();
 
    return true;
 }

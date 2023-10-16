@@ -353,7 +353,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
                                gpuStream_t stream
    ) {
 
-   phiprof::start("Sorting prefetches");
+   phiprof::Timer prefetchTimer {"Sorting prefetches"};
    if (doPrefetches) {
       columnData->columnBlockOffsets.optimizeGPU();
       columnData->columnNumBlocks.optimizeGPU();
@@ -362,8 +362,8 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
    }
    // Ensure at least one launch block
    uint nGpuBlocks  = (nBlocks/GPUTHREADS) > GPUBLOCKS ? GPUBLOCKS : std::ceil((Real)nBlocks/(Real)GPUTHREADS);
-   phiprof::stop("Sorting prefetches");
-   phiprof::start("calc new dimension id");
+   prefetchTimer.stop();
+   phiprof::Timer calcTimer {"calc new dimension id"};
    // Map blocks to new dimensionality
    switch( dimension ) {
       case 0: {
@@ -398,9 +398,9 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
    }
    CHK_ERR( gpuPeekAtLastError() );
    SSYNC;
-   phiprof::stop("calc new dimension id");
+   calcTimer.stop();
 
-   phiprof::start("CUB sort");
+   phiprof::Timer sortTimer {"CUB sort"};
    // Determine temporary device storage requirements
    void     *temp_storage_null = NULL;
    size_t   temp_storage_bytes = 0;
@@ -419,10 +419,10 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
    #endif
    CHK_ERR( gpuPeekAtLastError() );
 
-   phiprof::start("cub alloc");
+   phiprof::Timer cubAllocTimer {"cub alloc"};
    gpu_acc_allocate_radix_sort(temp_storage_bytes,cpuThreadID,stream);
    SSYNC;
-   phiprof::stop("cub alloc");
+   cubAllocTimer.stop();
 
    // Now sort
    #ifdef __CUDACC__
@@ -439,10 +439,10 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
    #endif
    CHK_ERR( gpuPeekAtLastError() );
    SSYNC;
-   phiprof::stop("CUB sort");
+   sortTimer.stop();
 
    // Gather GIDs in order
-   phiprof::start("reorder GIDs");
+   phiprof::Timer reorderTimer {"reorder GIDs"};
    order_GIDs_kernel<<<nGpuBlocks, GPUTHREADS, 0, stream>>> (
       vmesh,
       blocksLID,
@@ -451,9 +451,9 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
       columnData // Pass this just to clear it on device
       );
    CHK_ERR( gpuPeekAtLastError() );
-   phiprof::stop("reorder GIDs");
+   reorderTimer.stop();
 
-   phiprof::start("Scan for column block counts");
+   phiprof::Timer scanTimer {"scan for column block counts"};
    scan_blocks_for_columns_kernel<<<nGpuBlocks, GPUTHREADS, 0, stream>>> (
       vmesh,
       dimension,
@@ -462,9 +462,9 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
       nBlocks
       );
    CHK_ERR( gpuPeekAtLastError() );
-   phiprof::stop("Scan for column block counts");
+   scanTimer.stop();
 
-   phiprof::start("construct columns");
+   phiprof::Timer constructTimer {"construct columns"};
    // Construct columns. To ensure order,
    // these are done serially, but still form within a kernel.
    construct_columns_kernel<<<1, GPUTHREADS, 0, stream>>> (
@@ -477,7 +477,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
       );
    CHK_ERR( gpuPeekAtLastError() );
    SSYNC;
-   phiprof::stop("construct columns");
+   constructTimer.stop();
    // printf("\n Output for dimension %d ",dimension);
    // printf("\nColumnBlockOffsets %d\n", columnData->columnBlockOffsets.size());
    // //for (auto i : columnData->columnBlockOffsets) printf("%d ",i);

@@ -307,9 +307,9 @@ namespace SBC {
          cerr << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
          abort();
       }
-      phiprof::start("vlasovBoundaryCopyFromTheClosestNbr");
+      phiprof::Timer boundaryTimer {"vlasovBoundaryCopyFromTheClosestNbr"};
       copyCellData(mpiGrid[closestCell],mpiGrid[cellID], copyMomentsOnly, popID, copy_V_moments);
-      phiprof::stop("vlasovBoundaryCopyFromTheClosestNbr");
+      boundaryTimer.stop();
    }
    
    /*! Function used to average and copy the distribution and moments from all the closest sysboundarytype::NOT_SYSBOUNDARY cells.
@@ -328,9 +328,9 @@ namespace SBC {
          cerr << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
          abort();
       }
-      phiprof::start("vlasovBoundaryCopyFromAllClosestNbrs");
+      phiprof::Timer boundaryTimer {"vlasovBoundaryCopyFromAllClosestNbrs"};
       averageCellData(mpiGrid, closestCells, mpiGrid[cellID], popID);
-      phiprof::stop("vlasovBoundaryCopyFromAllClosestNbrs");
+      boundaryTimer.stop();
    }
    
    /*! Function used to average and copy the distribution and moments from all the close sysboundarytype::NOT_SYSBOUNDARY cells.
@@ -350,9 +350,9 @@ namespace SBC {
          cerr << __FILE__ << ":" << __LINE__ << ": No close cell found!" << endl;
          abort();
       }
-      phiprof::start("vlasovBoundaryFluffyCopyFromAllCloseNbrs");
+      phiprof::Timer boundaryTimer {"vlasovBoundaryFluffyCopyFromAllCloseNbrs"};
       averageCellData(mpiGrid, closeCells, mpiGrid[cellID], popID, fluffiness);
-      phiprof::stop("vlasovBoundaryFluffyCopyFromAllCloseNbrs");
+      boundaryTimer.stop();
    }
    
    /*! Function used to copy the distribution and moments from one cell to another.
@@ -635,9 +635,8 @@ namespace SBC {
    array<SpatialCell*,27> & SysBoundaryCondition::getFlowtoCells(
       const CellID& cellID
    ) {
-      phiprof::start("getFlowtoCells");
+      phiprof::Timer timer {"getFlowtoCells"};
       array<SpatialCell*,27> & flowtoCells = allFlowtoCells.at(cellID);
-      phiprof::stop("getFlowtoCells");
       return flowtoCells;
    }
    
@@ -646,7 +645,7 @@ namespace SBC {
       const vmesh::GlobalID blockGID,
       const uint popID
    ) {
-      phiprof::start("getFlowtoCellsBlock");
+      phiprof::Timer timer {"getFlowtoCellsBlock"};
       array<Realf*,27> flowtoCellsBlock;
       flowtoCellsBlock.fill(NULL);
       for (uint i=0; i<27; i++) {
@@ -654,7 +653,6 @@ namespace SBC {
             flowtoCellsBlock.at(i) = flowtoCells.at(i)->get_data(flowtoCells.at(i)->get_velocity_block_local_id(blockGID,popID), popID);
          }
       }
-      phiprof::stop("getFlowtoCellsBlock");
       return flowtoCellsBlock;
    }
    
