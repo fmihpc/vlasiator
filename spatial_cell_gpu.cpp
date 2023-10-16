@@ -1217,6 +1217,7 @@ namespace spatial_cell {
       gpuStream_t stream = gpu_getStream();
       int nGpuBlocks;
 
+      populations[popID].vmesh->gpu_cleanHashMap(stream);
       CHK_ERR( gpuStreamSynchronize(stream) ); // To ensure all previous kernels have finished
 
       phiprof::start("Block lists sizes");

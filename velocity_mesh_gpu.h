@@ -537,7 +537,7 @@ namespace vmesh {
 
       #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
       for (size_t b=0; b<blocksSize; ++b) {
-         // device_insert is slower, returns true or false for whether inserted key was new
+         // device_insert is slower than set_element, returns true or false for whether inserted key was new
          auto position
             = globalToLocalMap->device_insert(Hashinator::make_pair(blocks[b],(vmesh::LocalID)(mySize+b)));
          if (position.second == false) {
@@ -548,6 +548,7 @@ namespace vmesh {
       }
       localToGlobalMap->device_insert(localToGlobalMap->end(),blocks.begin(),blocks.end());
       #else
+      // GPUTODO: do inside kernel
       for (size_t b=0; b<blocksSize; ++b) {
          auto position
             = globalToLocalMap->insert(Hashinator::make_pair(blocks[b],(vmesh::LocalID)(mySize+b)));
@@ -882,20 +883,23 @@ namespace vmesh {
          }
          bool newlyadded = false;
          newlyadded = globalToLocalMap->warpInsert_V(GIDnew,LID, b_tid);
-         globalToLocalMap->warpInsert(GIDnew,LID, b_tid);
          vmesh::LocalID postMapSize = globalToLocalMap->size();
          int change = 0;
          if (!newlyadded) change = -1;
          if (postMapSize != preMapSize + change) {
             printf("Warp error in VelocityMesh::warpReplaceBlock: map size %u does not match expected %u for thread %u!\n",postMapSize,(vmesh::LocalID)(preMapSize+change),(vmesh::LocalID)b_tid);
+            if (b_tid==0) globalToLocalMap->stats();
             assert(0);
          }
          auto it3 = globalToLocalMap->device_find(GIDnew);
          if (it3 == globalToLocalMap->device_end()) {
+            uint64_t sizePower = globalToLocalMap->getSizePower();
             printf("Warp error in VelocityMesh::warpReplaceBlock: warp-inserted GID %u LID %u but thread %u cannot find it!\n",GIDnew,LID,(vmesh::LocalID)b_tid);
+            if (b_tid==0) globalToLocalMap->stats();
             assert(0);
          } else if (it3->second != LID) {
             printf("Warp error in VelocityMesh::warpReplaceBlock: warp-inserted GID %u LID %u but thread %u instead finds LID %u!\n",GIDnew,LID,(vmesh::LocalID)b_tid,it3->second);
+            if (b_tid==0) globalToLocalMap->stats();
             assert(0);
          }
          #else
@@ -921,7 +925,7 @@ namespace vmesh {
          bool newlyadded = false;
          newlyadded = globalToLocalMap->warpInsert_V(GID,LID, b_tid);
          if (b_tid==0) {
-            assert(newlyadded && "warpPlaceBlock");
+            assert(newlyadded && "newlyAdded warpPlaceBlock");
             localToGlobalMap->at(LID) = GID;
          }
       }
@@ -931,10 +935,11 @@ namespace vmesh {
       auto it = globalToLocalMap->device_find(GID);
       if (it == globalToLocalMap->device_end()) {
          printf("Warp error in VelocityMesh::warpPlaceBlock: single-thread %u search did not find inserted GID %u LID %u\n",(vmesh::LocalID)b_tid,GID,LID);
+         if (b_tid==0) globalToLocalMap->stats();
          assert(0);
       } else if (LID != it->second) {
-         printf("Warp error in VelocityMesh::warpPlaceBlock: LID %u (warp) != %u (thread %u) for GID %u\n",
-                LID,it->second,(vmesh::LocalID)b_tid,GID);
+         printf("Warp error in VelocityMesh::warpPlaceBlock: LID %u (warp) != %u (thread %u) for GID %u\n",LID,it->second,(vmesh::LocalID)b_tid,GID);
+         if (b_tid==0) globalToLocalMap->stats();
          assert(0);
       }
       #endif
@@ -1132,6 +1137,7 @@ namespace vmesh {
       } else {
          globalToLocalMap->performCleanupTasks(stream);
       }
+      globalToLocalMap->resize_to_lf(0.5);
       return;
    }
 

@@ -1379,6 +1379,7 @@ namespace spatial_cell {
       // get pointers
       Real* parameters = populations[popID].blockContainer->getParameters(startLID);
       Realf *cellBlockData = populations[popID].blockContainer->getData(startLID);
+      populations[popID].blockContainer->gpu_prefetchDevice();
 
       const uint nGpuBlocks = nBlocks > GPUBLOCKS ? GPUBLOCKS : nBlocks;
       if (nGpuBlocks>0) {
