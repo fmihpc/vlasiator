@@ -726,7 +726,7 @@ namespace projects {
             // We don't care about cells that are too far from the ionosphere
             const Real beta {P::useJPerB ? std::log2(cell->parameters[CellParams::AMR_JPERB]) + logDx + P::JPerBModifier + refLevel : 0.0};
             bool shouldRefine = cell->parameters[CellParams::AMR_ALPHA] > P::refineThreshold || beta > 0.5;
-            bool shouldUnrefine = cell->parameters[CellParams::AMR_ALPHA] < P::unrefineThreshold || beta < -0.5;
+            bool shouldUnrefine = cell->parameters[CellParams::AMR_ALPHA] < P::unrefineThreshold && beta < -0.5;
 
             // Finally, check neighbors
             int refined_neighbors {0};
