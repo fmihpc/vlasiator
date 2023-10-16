@@ -59,8 +59,11 @@ testpackage: CXXFLAGS +=  -DPAPI_MEM
 #                    avoid memleak (much slower IO)
 
 #======== Libraries ===========
-
-LIBRARY_PREFIX = /projappl/project_462000358/libraries
+# Select the base directory based on which project you are using:
+# Ducks in Snow:
+LIBRARY_PREFIX = /projappl/project_462000129/vlasiator-lib
+# LUMILAPIO
+#LIBRARY_PREFIX = /projappl/project_462000358/libraries
 
 # Compiled libraries
 #INC_BOOST = -isystem $(LIBRARY_PREFIX)/boost/include
