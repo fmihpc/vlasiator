@@ -1018,12 +1018,11 @@ namespace spatial_cell {
       // If we are not deleting any local empty blocks, we can just tag all local
       // no content blocks as required. We still run the halo procedure just to be safe.
       if (!doDeleteEmptyBlocks) {
-         phiprof::start("Self Blocks with no content");
+         phiprof::Timer blockInsertTimer {"Self blocks with no content"};
          // 0.5 is target load factor
          BlocksRequiredMap->insert(velocity_block_with_no_content_list->data(),velocity_block_with_no_content_list->data(),localNoContentBlocks,0.5,stream,false);
          CHK_ERR( gpuPeekAtLastError() );
          CHK_ERR( gpuStreamSynchronize(stream) );
-         phiprof::stop("Self Blocks with no content");
       }
 
       // add velocity space neighbors to map. We loop over blocks
@@ -1181,7 +1180,7 @@ namespace spatial_cell {
       BlocksToMove->reserve(nBlocksRequired,true);
       if (nBlocksRequired>0) {
          CHK_ERR( gpuStreamSynchronize(stream) );
-         phiprof::start("blocks_to_move_kernel");
+         phiprof::Timer blockMoveTimer {"blocks_to_move_kernel"};
          update_blocks_to_move_kernel<<<nGpuBlocks, GPUTHREADS, 0, stream>>> (
             populations[popID].vmesh,
             BlocksRequired,
@@ -1189,7 +1188,6 @@ namespace spatial_cell {
             nBlocksRequired
             );
          CHK_ERR( gpuPeekAtLastError() );
-         phiprof::stop("blocks_to_move_kernel");
       }
    }
 
@@ -1748,9 +1746,9 @@ namespace spatial_cell {
          );
       CHK_ERR( gpuPeekAtLastError() );
       CHK_ERR( gpuStreamSynchronize(stream) ); // This sync is required!
-      phiprof::stop("GPU update spatial cell block lists kernel");
+      kernelTimer.stop();
 
-      phiprof::start("GPU update spatial cell block lists streamcompaction");
+      phiprof::Timer compactionTimer {"GPU update spatial cell block lists streamcompaction"};
       // First ensure temp buffer is large enough:
       size_t bytesNeeded=split::tools::estimateMemoryForCompaction(*(vbwcl_gather[thread_id]));
       gpu_compaction_allocate_buf_perthread(thread_id, bytesNeeded);
@@ -1762,9 +1760,8 @@ namespace spatial_cell {
       split::tools::copy_if(*vbwncl_gather[thread_id], *velocity_block_with_no_content_list,
                             Predicate, compaction_buffer[thread_id], bytesNeeded, stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
-      phiprof::stop("GPU update spatial cell block lists streamcompaction");
+      compactionTimer.stop();
 
-      kernelTimer.stop();
       // Note: Content list is not uploaded to device-only buffer here, but rather
       // in grid.cpp adjustVelocityBlocks()
    }
