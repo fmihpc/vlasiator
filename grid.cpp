@@ -482,11 +482,12 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    // tell other processes which velocity blocks exist in remote spatial cells
    phiprof::Timer balanceLoadTimer {"Balancing load", {"Load balance"}};
 
+   // memory deallocation for dAMR. Do we want this got GPUs as well?
    phiprof::Timer deallocTimer {"deallocate boundary data"};
    //deallocate blocks in remote cells to decrease memory load
    deallocateRemoteCellBlocks(mpiGrid);
-
    deallocTimer.stop();
+
    //set weights based on each cells LB weight counter
    const vector<CellID>& cells = getLocalCells();
    for (size_t i=0; i<cells.size(); ++i){
@@ -648,7 +649,6 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    // Not parallelized
    for (uint i=0; i<cells.size(); ++i) {
       SpatialCell* SC = mpiGrid[cells[i]];
-      SC->gpu_advise();
       for (size_t popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          const vmesh::VelocityMesh* vmesh = SC->get_velocity_mesh(popID);
          vmesh::VelocityBlockContainer* blockContainer = SC->get_velocity_blocks(popID);

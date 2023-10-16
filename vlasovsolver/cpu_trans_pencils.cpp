@@ -1195,14 +1195,15 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    DimensionPencils[dimension].gpu_idsStart->optimizeGPU(stream);
    DimensionPencils[dimension].gpu_sourceDZ->optimizeGPU(stream);
    DimensionPencils[dimension].gpu_targetRatios->optimizeGPU(stream);
-   DimensionPencils[dimension].gpu_lengthOfPencils->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-   DimensionPencils[dimension].gpu_lengthOfPencils->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-   DimensionPencils[dimension].gpu_idsStart->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-   DimensionPencils[dimension].gpu_idsStart->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-   DimensionPencils[dimension].gpu_sourceDZ->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-   DimensionPencils[dimension].gpu_sourceDZ->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-   DimensionPencils[dimension].gpu_targetRatios->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-   DimensionPencils[dimension].gpu_targetRatios->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+   // SLOW ON AMD:
+   // DimensionPencils[dimension].gpu_lengthOfPencils->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+   // DimensionPencils[dimension].gpu_lengthOfPencils->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+   // DimensionPencils[dimension].gpu_idsStart->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+   // DimensionPencils[dimension].gpu_idsStart->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+   // DimensionPencils[dimension].gpu_sourceDZ->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+   // DimensionPencils[dimension].gpu_sourceDZ->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+   // DimensionPencils[dimension].gpu_targetRatios->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+   // DimensionPencils[dimension].gpu_targetRatios->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
    SplitVectorPencilsTimer.stop();
    // and raise flag to be used for deallocation
    DimensionPencils[dimension].gpu_allocated = true;

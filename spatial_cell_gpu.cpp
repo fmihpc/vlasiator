@@ -1594,6 +1594,7 @@ namespace spatial_cell {
     * have not been adapted to this new list. Here we re-initialize
     * the cell with empty blocks based on the new list.*/
    void SpatialCell::prepare_to_receive_blocks(const uint popID) {
+      phiprof::Timer setGridTimer {"GPU receive blocks: set grid"};
       populations[popID].vmesh->setGrid();
       populations[popID].blockContainer->setSize(populations[popID].vmesh->size());
       // Set velocity block parameters:
