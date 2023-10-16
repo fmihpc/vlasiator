@@ -1363,7 +1363,7 @@ namespace spatial_cell {
       }
       #endif
 
-      phiprof::Timer timer {"GPU add blocks from buffer"};
+      phiprof::Timer addFromBufferTimer {"GPU add blocks from buffer"};
       // Add blocks to velocity mesh
       const uint nBlocks = blocks->size();
       const vmesh::LocalID adds = populations[popID].vmesh->push_back(*blocks);

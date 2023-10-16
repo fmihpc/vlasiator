@@ -972,7 +972,7 @@ namespace spatial_cell {
 
       // Neighbour and own prefetches
       if (doPrefetches) {
-         phiprof::Timer timer {"Prefetch"};
+         phiprof::Timer prefetchTimer {"Prefetch"};
          populations[popID].vmesh->gpu_prefetchDevice(); // Queries active stream internally
          velocity_block_with_content_list->optimizeGPU(stream);
          velocity_block_with_no_content_list->optimizeGPU(stream);
@@ -1004,7 +1004,7 @@ namespace spatial_cell {
 
       if (localContentBlocks > 0) {
          // First add all local content blocks with a fast hashinator interface
-         phiprof::Timer timer {"Self blocks with content"};
+         phiprof::Timer blockInsertTimer {"Self blocks with content"};
          // 0.5 is target load factor
          BlocksRequiredMap->insert(velocity_block_with_content_list->data(),velocity_block_with_content_list->data(),localContentBlocks,0.5,stream,false);
          CHK_ERR( gpuPeekAtLastError() );
@@ -1108,7 +1108,7 @@ namespace spatial_cell {
 
       // Flag all blocks in this cell without content + without neighbors with content to be removed
       if (doDeleteEmptyBlocks) {
-         phiprof::Timer timer {"Gather blocks to remove"};
+         phiprof::Timer gatherBlocksTimer {"Gather blocks to remove"};
          // Ensure at least one launch block
          nGpuBlocks = (localNoContentBlocks/GPUTHREADS) > GPUBLOCKS ? GPUBLOCKS : std::ceil((Real)localNoContentBlocks/(Real)GPUTHREADS);
          if (nGpuBlocks>0) {
@@ -1130,7 +1130,7 @@ namespace spatial_cell {
       nGpuBlocks = nBlocksRequired > GPUBLOCKS ? GPUBLOCKS : nBlocksRequired;
       if (nBlocksRequired>0) {
          CHK_ERR( gpuStreamSynchronize(stream) );
-         phiprof::Timer timer {"blocks_to_add_kernel"};
+         phiprof::Timer updateAddTimer {"blocks_to_add_kernel"};
          update_blocks_to_add_kernel<<<nGpuBlocks, GPUTHREADS, 0, stream>>> (
             populations[popID].vmesh,
             BlocksRequired,
@@ -1140,7 +1140,6 @@ namespace spatial_cell {
             );
          CHK_ERR( gpuPeekAtLastError() );
          CHK_ERR( gpuStreamSynchronize(stream) );
-         // implicit timer end
       }
       CHK_ERR( gpuStreamSynchronize(stream) ); // To ensure all previous kernels have finished
 
@@ -1231,15 +1230,15 @@ namespace spatial_cell {
 
       // Grow the vectors, if necessary
       if (nBlocksAfterAdjust > nBlocksBeforeAdjust) {
-         phiprof::Timer timer {"GPU modify vmesh and VBC size (pre)"};
+         phiprof::Timer setNewSizePreTimer {"GPU modify vmesh and VBC size (pre)"};
          // These functions now prefetch back to device if necessary.
          populations[popID].vmesh->setNewSize(nBlocksAfterAdjust);
          populations[popID].blockContainer->setSize(nBlocksAfterAdjust);
          SSYNC;
       }
 
-      phiprof::Timer addRemoveKernel {"GPU add and remove blocks kernel"};
       if (nGpuBlocks>0) {
+         phiprof::Timer addRemoveKernelTimer {"GPU add and remove blocks kernel"};
          CHK_ERR( gpuMemsetAsync(returnRealf[thread_id], 0, sizeof(Realf), stream) );
          CHK_ERR( gpuMemsetAsync(returnLID[thread_id], 0, 2*sizeof(vmesh::LocalID), stream) );
          dim3 block(WID,WID,WID);
@@ -1267,7 +1266,6 @@ namespace spatial_cell {
          CHK_ERR( gpuStreamSynchronize(stream) );
          this->populations[popID].RHOLOSSADJUST += host_rhoLossAdjust;
       }
-      addRemoveKernel.stop();
 
       // Shrink the vectors, if necessary
       if (nBlocksAfterAdjust <= nBlocksBeforeAdjust) {
@@ -1278,7 +1276,7 @@ namespace spatial_cell {
          SSYNC;
          modifyPostTimer.stop();
          if (doPrefetches) {
-            phiprof::Timer timer {"Vmesh and VBC lists prefetch dev"};
+            phiprof::Timer prefetchTimer {"Vmesh and VBC lists prefetch dev"};
             populations[popID].vmesh->gpu_prefetchDevice();
             populations[popID].blockContainer->gpu_prefetchDevice();
             SSYNC;
@@ -1288,9 +1286,9 @@ namespace spatial_cell {
 
       // DEBUG output after kernel
       #ifdef DEBUG_SPATIAL_CELL
-      phiprof::Timer debugTimer {"Vmesh and VBC debug output"};
       const vmesh::LocalID nAll = populations[popID].vmesh->size();
       if (nAll!=nBlocksAfterAdjust) {
+         phiprof::Timer debugTimer {"Vmesh and VBC debug output"};
          populations[popID].vmesh->gpu_prefetchHost();
          CHK_ERR( gpuStreamSynchronize(stream) );
          printf("after kernel, size is %d should be %d\n",nAll,nBlocksAfterAdjust);
@@ -1301,12 +1299,10 @@ namespace spatial_cell {
          }
          populations[popID].vmesh->gpu_prefetchDevice();
       }
-      debugTimer.stop();
       #endif
 
       // Don't return until everything is done?
-      SSYNC;
-      //CHK_ERR( gpuStreamSynchronize(stream) );
+      CHK_ERR( gpuStreamSynchronize(stream) );
    }
 
    void SpatialCell::adjustSingleCellVelocityBlocks(const uint popID, bool doDeleteEmpty) {

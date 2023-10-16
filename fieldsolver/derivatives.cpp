@@ -381,7 +381,7 @@ void calculateDerivativesSimple(
 
    computeTimer.stop(N_cells, "Spatial Cells");
    
-   derivativesTimer.stop(N_cells, "Spatial Cells");   
+   derivativesTimer.stop(N_cells, "Spatial Cells");
 }
 
 /*! \brief Low-level spatial derivatives calculation.

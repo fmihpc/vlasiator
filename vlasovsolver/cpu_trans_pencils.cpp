@@ -1176,12 +1176,14 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    #ifdef USE_GPU
    // Clear old allocation if needed
    if (DimensionPencils[dimension].gpu_allocated) {
+      phiprof::Timer clearOldPencilsTimer {"clearOldPencils"};
       delete DimensionPencils[dimension].gpu_lengthOfPencils;
       delete DimensionPencils[dimension].gpu_idsStart;
       delete DimensionPencils[dimension].gpu_sourceDZ;
       delete DimensionPencils[dimension].gpu_targetRatios;
    }
    // Create GPU copies of these vectors
+   phiprof::Timer SplitVectorPencilsTimer {"new splitVectors pencils"};
    DimensionPencils[dimension].gpu_lengthOfPencils = new split::SplitVector<uint>(DimensionPencils[dimension].lengthOfPencils);
    DimensionPencils[dimension].gpu_idsStart = new split::SplitVector<uint>(DimensionPencils[dimension].idsStart);
    DimensionPencils[dimension].gpu_sourceDZ = new split::SplitVector<Realf>(DimensionPencils[dimension].sourceDZ);
@@ -1201,7 +1203,8 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    DimensionPencils[dimension].gpu_sourceDZ->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
    DimensionPencils[dimension].gpu_targetRatios->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
    DimensionPencils[dimension].gpu_targetRatios->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-   // and raise flag to be userd for deallocation
+   SplitVectorPencilsTimer.stop();
+   // and raise flag to be used for deallocation
    DimensionPencils[dimension].gpu_allocated = true;
    #endif
 }

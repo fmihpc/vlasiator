@@ -1739,7 +1739,7 @@ namespace SBC {
       }
 
       phiprof::Timer timer {"ionosphere-solve"};
-      
+
       initSolver(false);
 
       nIterations = 0;
