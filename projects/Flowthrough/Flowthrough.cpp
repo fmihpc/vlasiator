@@ -62,6 +62,7 @@ namespace projects {
       RP::add("Flowthrough.emptyBox","Is the simulation domain empty initially?",false);
       RP::add("Flowthrough.densityModel","Plasma density model, 'Maxwellian' or 'SheetMaxwellian'",string("Maxwellian"));
       RP::add("Flowthrough.densityWidth","Width of signal around origin",6.e7);
+      RP::add("Flowthrough.rescaleDensity","Rescale VDF to match spatial ",false);
       RP::add("Flowthrough.Bx", "Magnetic field x component (T)", 0.0);
       RP::add("Flowthrough.By", "Magnetic field y component (T)", 0.0);
       RP::add("Flowthrough.Bz", "Magnetic field z component (T)", 0.0);
@@ -102,6 +103,7 @@ namespace projects {
          exit(1);
       }
       RP::get("Flowthrough.densityWidth",this->densityWidth);
+      RP::get("Flowthrough.rescaleDensity",this->rescaleDensityFlag);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
