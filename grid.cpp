@@ -979,7 +979,7 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       abort();
    }
    if (!mpiGrid.add_neighborhood(SYSBOUNDARIES_NEIGHBORHOOD_ID, neighborhood)){
-      std::cerr << "Failed to add neighborhood SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID \n";
+      std::cerr << "Failed to add neighborhood SYSBOUNDARIES_NEIGHBORHOOD_ID \n";
       abort();
    }
 
@@ -1114,7 +1114,7 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
      }
    }
    if (!mpiGrid.add_neighborhood(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID, neighborhood)){
-      std::cerr << "Failed to add neighborhood VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID \n";
+      std::cerr << "Failed to add neighborhood VLASOV_SOLVER_Z_NEIGHBORHOOD_ID \n";
       abort();
    }
 
