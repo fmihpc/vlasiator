@@ -806,7 +806,6 @@ void calculateHallTermSimple(
    SysBoundary& sysBoundaries,
    cint& RKCase
 ) {
-   int timer;
    //const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
    const int* gridDims = &technicalGrid.getLocalSize()[0];
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];

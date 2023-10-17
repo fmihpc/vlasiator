@@ -318,7 +318,6 @@ void calculateDerivativesSimple(
    SysBoundary& sysBoundaries,
    cint& RKCase,
    const bool communicateMoments) {
-   int timer;
    //const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
    const int* gridDims = &technicalGrid.getLocalSize()[0];
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
@@ -488,7 +487,6 @@ void calculateBVOLDerivativesSimple(
    FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
    SysBoundary& sysBoundaries
 ) {
-   int timer;
    //const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
    const int* gridDims = &technicalGrid.getLocalSize()[0];
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
@@ -635,7 +633,6 @@ void calculateCurvatureSimple(
    FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
    SysBoundary& sysBoundaries
 ) {
-   int timer;
    //const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
    const int* gridDims = &technicalGrid.getLocalSize()[0];
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
@@ -810,7 +807,6 @@ void calculateScaledDeltasSimple(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
 {
    const vector<CellID>& cells = getLocalCells();
    int N_cells = cells.size();
-   int timer;
    phiprof::Timer gradientsTimer {"Calculate volume gradients"};
    
    phiprof::Timer commTimer {"Start comm", {"MPI"}};

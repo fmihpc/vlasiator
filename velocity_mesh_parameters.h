@@ -113,9 +113,11 @@ namespace vmesh {
    };
 
    void allocateMeshWrapper();
-   void deallocateMeshWrapper(); /**< Deallocate GPU memory */
    MeshWrapper* host_getMeshWrapper();
+   #ifdef USE_GPU
    ARCH_HOSTDEV MeshWrapper* gpu_getMeshWrapper();
+   void deallocateMeshWrapper(); /**< Deallocate GPU memory */
+   #endif
 
    // Caller, inlined into other compilation units, will call either host or device getter
    ARCH_HOSTDEV inline MeshWrapper* getMeshWrapper() {
