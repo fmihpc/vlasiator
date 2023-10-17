@@ -724,23 +724,23 @@ namespace projects {
             mpiGrid.dont_unrefine(id);
          } else if (r2 < r_max2) {
             // We don't care about cells that are too far from the ionosphere
-            const Real beta {P::useJPerB ? std::log2(cell->parameters[CellParams::AMR_JPERB]) + logDx + P::JPerBModifier + refLevel : 0.0};
-            bool shouldRefine = cell->parameters[CellParams::AMR_ALPHA] > P::refineThreshold || beta > 0.5;
-            bool shouldUnrefine = cell->parameters[CellParams::AMR_ALPHA] < P::unrefineThreshold && beta < -0.5;
+            const Real alphaTwo {P::useJPerB ? std::log2(cell->parameters[CellParams::AMR_JPERB]) + logDx + P::JPerBModifier + refLevel : 0.0};
+            bool shouldRefine = cell->parameters[CellParams::AMR_ALPHA] > P::refineThreshold || alphaTwo > 0.5;
+            bool shouldUnrefine = cell->parameters[CellParams::AMR_ALPHA] < P::unrefineThreshold && alphaTwo < -0.5;
 
             // Finally, check neighbors
             int refined_neighbors {0};
             int coarser_neighbors {0};
             for (const auto& [neighbor, dir] : mpiGrid.get_face_neighbors_of(id)) {
                const int neighborRef = mpiGrid.get_refinement_level(neighbor);
-               const Real neighborBeta {P::useJPerB ? std::log2(mpiGrid[neighbor]->parameters[CellParams::AMR_JPERB]) + logDx + P::JPerBModifier + neighborRef : 0.0};
+               const Real neighborAlphaTwo {P::useJPerB ? std::log2(mpiGrid[neighbor]->parameters[CellParams::AMR_JPERB]) + logDx + P::JPerBModifier + neighborRef : 0.0};
                if (neighborRef > refLevel) {
                   ++refined_neighbors;
                } else if (neighborRef < refLevel) {
                   ++coarser_neighbors;
-               } else if (mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA] > P::refineThreshold || neighborBeta > 0.5) {
+               } else if (mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA] > P::refineThreshold || neighborAlphaTwo > 0.5) {
                   refined_neighbors += 4;
-               } else if (mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA] < P::unrefineThreshold || neighborBeta < -0.5) {
+               } else if (mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA] < P::unrefineThreshold || neighborAlphaTwo < -0.5) {
                   ++coarser_neighbors;
                }
             }
