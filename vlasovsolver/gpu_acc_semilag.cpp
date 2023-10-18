@@ -103,7 +103,7 @@ void gpu_accelerate_cell(SpatialCell* spatial_cell,
 #endif
    // Ensure unified memory constructs are attached to correct kernel
    spatial_cell->gpu_attachToStream(gpuStreamList[thread_id]);
-   //spatial_cell->gpu_advise();
+   spatial_cell->gpu_advise();
 
    // // GPUTEST Launch debug kernel?
    //vmesh::getMeshWrapper()->printVelocityMesh(popID);

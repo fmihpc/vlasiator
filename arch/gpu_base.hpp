@@ -173,6 +173,8 @@ struct ColumnOffsets : public Managed {
       setNumColumns.streamAttach(0,gpuMemAttachGlobal);
    }
    void gpu_advise() {
+      // AMD advise is slow
+      return;
       int device = gpu_getDevice();
       gpuStream_t stream = gpu_getStream();
       columnBlockOffsets.memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);

@@ -1037,13 +1037,13 @@ namespace vmesh {
       vmesh::LocalID currentCapacity = localToGlobalMap->capacity();
       gpuStream_t stream = gpu_getStream();
       localToGlobalMap->resize(newSize,true);
-      int device = gpu_getDevice();
+      //int device = gpu_getDevice();
       if (newSize > currentCapacity) {
          // Was allocated new memory
          CHK_ERR( gpuStreamSynchronize(stream) );
          localToGlobalMap->optimizeGPU(stream);
-         localToGlobalMap->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-         localToGlobalMap->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+         // localToGlobalMap->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+         // localToGlobalMap->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
       }
       // Ensure also that the map is large enough
       const int HashmapReqSize = ceil(log2(newSize)) +2; // Make it really large enough
@@ -1051,8 +1051,8 @@ namespace vmesh {
          globalToLocalMap->device_rehash(HashmapReqSize, stream);
          CHK_ERR( gpuStreamSynchronize(stream) );
          globalToLocalMap->optimizeGPU(stream);
-         globalToLocalMap->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-         globalToLocalMap->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+         // globalToLocalMap->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+         // globalToLocalMap->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
       }
       // Re-attach stream if required
       if ((attachedStream != 0)&&(needAttachedStreams)) {
@@ -1124,10 +1124,10 @@ namespace vmesh {
 
    inline void VelocityMesh::gpu_memAdvise(int device, gpuStream_t stream) {
       // int device = gpu_getDevice();
-      globalToLocalMap->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-      localToGlobalMap->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-      globalToLocalMap->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-      localToGlobalMap->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+      // globalToLocalMap->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+      // localToGlobalMap->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+      // globalToLocalMap->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+      // localToGlobalMap->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
       return;
    }
 

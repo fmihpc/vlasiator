@@ -749,9 +749,8 @@ namespace spatial_cell {
        gpuMemAdviseUnsetAccessedBy
     */
    void SpatialCell::gpu_advise() {
-      // CHK_ERR( gpuMemAdvise(ptr, count, advise, deviceID) );
-      // CHK_ERR( gpuMemAdvise(velocity_block_with_content_list, sizeof(velocity_block_with_content_list),gpuMemAdviseSetPreferredLocation, gpu_getDevice()) );
-      // gpu_getDevice()
+      return;
+      // AMD advise is slow
       int device = gpu_getDevice();
       gpuStream_t stream = gpu_getStream();
       BlocksRequired->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
@@ -991,9 +990,9 @@ namespace spatial_cell {
          // Need larger empty map
          delete BlocksRequiredMap;
          BlocksRequiredMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(HashmapReqSize);
-         int device = gpu_getDevice();
-         BlocksRequiredMap->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-         BlocksRequiredMap->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+         // int device = gpu_getDevice();
+         // BlocksRequiredMap->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+         // BlocksRequiredMap->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
          if ((attachedStream != 0)&&(needAttachedStreams)) {
             BlocksRequiredMap->streamAttach(attachedStream);
          }
@@ -1078,15 +1077,15 @@ namespace spatial_cell {
          BlocksToAdd->reserve(reserveSize,true);
          BlocksToRemove->reserve(reserveSize,true);
          BlocksToMove->reserve(reserveSize,true);
-         int device = gpu_getDevice();
-         BlocksRequired->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-         BlocksToAdd->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-         BlocksToRemove->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-         BlocksToMove->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-         BlocksRequired->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-         BlocksToAdd->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-         BlocksToRemove->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-         BlocksToMove->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+         // int device = gpu_getDevice();
+         // BlocksRequired->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+         // BlocksToAdd->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+         // BlocksToRemove->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+         // BlocksToMove->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+         // BlocksRequired->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+         // BlocksToAdd->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+         // BlocksToRemove->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+         // BlocksToMove->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
       }
       SSYNC;
       reserveTimer.stop();
@@ -1702,6 +1701,9 @@ namespace spatial_cell {
 
       // Immediate return if no blocks to process
       if (currSize == 0) {
+         velocity_block_with_content_list->clear();
+         velocity_block_with_no_content_list->clear();
+         velocity_block_with_content_list_size = 0;
          return;
       }
 
@@ -1716,11 +1718,11 @@ namespace spatial_cell {
          const uint reserveSize = currSize * BLOCK_ALLOCATION_FACTOR;
          velocity_block_with_content_list->reserve(reserveSize,true);
          velocity_block_with_no_content_list->reserve(reserveSize,true);
-         int device = gpu_getDevice();
-         velocity_block_with_content_list->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-         velocity_block_with_no_content_list->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-         velocity_block_with_content_list->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-         velocity_block_with_no_content_list->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+         // int device = gpu_getDevice();
+         // velocity_block_with_content_list->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+         // velocity_block_with_no_content_list->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+         // velocity_block_with_content_list->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+         // velocity_block_with_no_content_list->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
          velocity_block_with_content_list->optimizeGPU(stream);
          velocity_block_with_no_content_list->optimizeGPU(stream);
       }
@@ -1755,8 +1757,10 @@ namespace spatial_cell {
       // Now do stream compaction on those two vectors, returning only valid GIDs
       // into the actual vectors.
       auto Predicate = [] __host__ __device__ (vmesh::GlobalID i ){return i != vmesh::INVALID_GLOBALID; };
+      CHK_ERR( gpuStreamSynchronize(stream) );
       split::tools::copy_if(*vbwcl_gather[thread_id], *velocity_block_with_content_list,
                             Predicate, compaction_buffer[thread_id], bytesNeeded, stream);
+      CHK_ERR( gpuStreamSynchronize(stream) );
       split::tools::copy_if(*vbwncl_gather[thread_id], *velocity_block_with_no_content_list,
                             Predicate, compaction_buffer[thread_id], bytesNeeded, stream);
       CHK_ERR( gpuStreamSynchronize(stream) );

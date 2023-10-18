@@ -341,12 +341,13 @@ namespace vmesh {
       return;
    }
 
-      inline void VelocityBlockContainer::gpu_memAdvise(int device, gpuStream_t stream) {
-      // int device = gpu_getDevice();
-      block_data->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-      parameters->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-      block_data->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-      parameters->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+   inline void VelocityBlockContainer::gpu_memAdvise(int device, gpuStream_t stream) {
+      // AMD advise is slow
+      // // int device = gpu_getDevice();
+      // block_data->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+      // parameters->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+      // block_data->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+      // parameters->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
       return;
    }
 
@@ -579,12 +580,12 @@ namespace vmesh {
          delete dummy_parameters;
       }
       #ifdef USE_GPU
-      gpuStream_t stream = gpu_getStream();
-      int device = gpu_getDevice();
-      block_data->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-      parameters->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-      block_data->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-      parameters->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+      // gpuStream_t stream = gpu_getStream();
+      // int device = gpu_getDevice();
+      // block_data->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+      // parameters->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+      // block_data->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+      // parameters->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
       #endif
       currentCapacity = newCapacity;
    return true;
@@ -611,11 +612,11 @@ namespace vmesh {
          CHK_ERR( gpuStreamSynchronize(stream) );
          block_data->optimizeGPU(stream);
          parameters->optimizeGPU(stream);
-         int device = gpu_getDevice();
-         block_data->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-         parameters->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-         block_data->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-         parameters->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+         // int device = gpu_getDevice();
+         // block_data->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+         // parameters->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+         // block_data->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+         // parameters->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
          #endif
       }
 #else

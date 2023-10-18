@@ -448,11 +448,11 @@ __host__ void gpu_compaction_allocate_vec_perthread(
       const uint paddedSize = BLOCK_ALLOCATION_FACTOR * vectorLength;
       vbwcl_gather[cpuThreadID] = new split::SplitVector<vmesh::GlobalID>(paddedSize);
       vbwncl_gather[cpuThreadID] = new split::SplitVector<vmesh::GlobalID>(paddedSize);
-      int device = gpu_getDevice();
-      vbwcl_gather[cpuThreadID]->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-      vbwncl_gather[cpuThreadID]->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-      vbwcl_gather[cpuThreadID]->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-      vbwncl_gather[cpuThreadID]->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+      // int device = gpu_getDevice();
+      // vbwcl_gather[cpuThreadID]->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+      // vbwncl_gather[cpuThreadID]->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+      // vbwcl_gather[cpuThreadID]->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+      // vbwncl_gather[cpuThreadID]->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
       vbwcl_gather[cpuThreadID]->optimizeGPU(stream);
       vbwncl_gather[cpuThreadID]->optimizeGPU(stream);
       gpu_compaction_vectorsize[cpuThreadID] = paddedSize;
