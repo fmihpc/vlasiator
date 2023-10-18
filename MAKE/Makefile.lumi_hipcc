@@ -7,6 +7,8 @@ LNK = hipcc
 # module load cpeAMD
 # module load rocm/5.3.3
 # module load Boost/1.79.0-cpeAMD-22.08
+# one-liner:
+# module load LUMI/22.08; module load partition/G; module load cpeAMD; module load rocm/5.3.3; module load Boost/1.79.0-cpeAMD-22.08
 
 #======== Vectorization ==========
 #Set vector backend type for vlasov solvers, sets precision and length. 
