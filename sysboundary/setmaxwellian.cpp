@@ -288,9 +288,9 @@ namespace SBC {
          #endif
          // Could remove cells without content on next command?
          templateCell.adjustSingleCellVelocityBlocks(popID);//,true);
-         #ifdef USE_GPU
-         templateCell.prefetchHost();
-         #endif
+         // #ifdef USE_GPU
+         // templateCell.prefetchHost();
+         // #endif
       } // for-loop over particle species
 
       B[0] = Bx;
