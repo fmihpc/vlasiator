@@ -177,6 +177,7 @@ __host__ void gpu_init_device() {
       CHK_ERR( gpuMalloc((void**)&returnRealf[i], 8*sizeof(Realf)) );
       CHK_ERR( gpuMalloc((void**)&returnLID[i], 8*sizeof(vmesh::LocalID)) );
    }
+   CHK_ERR( gpuDeviceSynchronize() );
 
    // Using just a single context for whole MPI task
 }
