@@ -375,8 +375,9 @@ namespace spatial_cell {
 
    /** GPU kernel for populating block data and parameters based on list of
        globalIDs and avgs.
+ __launch_bounds__(GPUTHREADS,4)
    */
-   template <typename fileReal> __global__ void __launch_bounds__(GPUTHREADS,4) add_blocks_from_buffer_kernel (
+   template <typename fileReal> __global__ void add_blocks_from_buffer_kernel (
       const vmesh::VelocityMesh *vmesh,
       Real* parameters,
       Realf* cellBlockData,
@@ -1382,11 +1383,14 @@ namespace spatial_cell {
       populations[popID].blockContainer->gpu_prefetchDevice();
 
       const uint nGpuBlocks = nBlocks > GPUBLOCKS ? GPUBLOCKS : nBlocks;
+      std::cerr<<" vmesh "<<populations[popID].vmesh<<" parameters "<<parameters<<" cellBlockData "<<cellBlockData<<" blocks "<<blocks<<" avgBuffer "<<avgBuffer<<" nBlocks "<<nBlocks<<" nGpuBlocks "<<nGpuBlocks<<" WID3 "<<WID3<<" stream "<<stream<<std::endl;
       if (nGpuBlocks>0) {
          dim3 block(WID,WID,WID);
          // Third argument specifies the number of bytes in *shared memory* that is
          // dynamically allocated per block for this call in addition to the statically allocated memory.
-         spatial_cell::add_blocks_from_buffer_kernel<<<nGpuBlocks, block, 0, stream>>> (
+         CHK_ERR( gpuStreamSynchronize(stream) );
+         //spatial_cell::add_blocks_from_buffer_kernel<<<nGpuBlocks, WID3, WID3, stream>>> (
+         add_blocks_from_buffer_kernel<<<1, WID3, 0, 0>>> (
             populations[popID].vmesh,
             parameters,
             cellBlockData,

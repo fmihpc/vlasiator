@@ -45,8 +45,6 @@ VECL=16
 
 USE_CUDA=1
 CUDABLOCKS=108
-CMP = mpic++
-LNK = mpic++
 
 #-ggdb not available on nvcc
 #-G (device debug) overrides --generate-line-info -line-info but also requires more device-side resources to run

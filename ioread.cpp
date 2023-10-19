@@ -391,9 +391,9 @@ bool _readBlockData(
       // blockIds in a particular cell, temporary usage
       split::SplitVector<vmesh::GlobalID> *blockIdsInCell2 = new split::SplitVector<vmesh::GlobalID>(blockIdsInCell);
       blockIdsInCell2->optimizeGPU();
-      CHK_ERR( gpuDeviceSynchronize() );
+      //CHK_ERR( gpuDeviceSynchronize() );
       mpiGrid[cell]->add_velocity_blocks(popID,blockIdsInCell2,&gpu_avgBuffer[blockBufferOffset*WID3]);
-      CHK_ERR( gpuDeviceSynchronize() );
+      // CHK_ERR( gpuDeviceSynchronize() );
       delete blockIdsInCell2;
       #else
       mpiGrid[cell]->add_velocity_blocks(popID,blockIdsInCell,&avgBuffer[blockBufferOffset*WID3]);
@@ -1102,10 +1102,12 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
    // Around May 2015 time was renamed from "t" to "time", we try to read both,
    // new way is read first
+   std::cerr<<"Reading time..."<<std::endl;
    if (readScalarParameter(file,"time",P::t,MASTER_RANK,MPI_COMM_WORLD) == false)
      if (readScalarParameter(file,"t", P::t,MASTER_RANK,MPI_COMM_WORLD) == false)
        success=false;
    P::t_min=P::t;
+   std::cerr<<"Read time "<<P::t<<std::endl;
 
    // Around May 2015 timestep was renamed from "tstep" to "timestep", we to read
    // both, new way is read first
