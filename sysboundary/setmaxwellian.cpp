@@ -235,7 +235,7 @@ namespace SBC {
          Bx = buffer[5];
          By = buffer[6];
          Bz = buffer[7];
-
+         Realf sumcounter=0;
          vector<vmesh::GlobalID> blocksToInitialize = this->findBlocksToInitialize(popID,templateCell, rho, T, Vx, Vy, Vz);
          const uint nRequested = blocksToInitialize.size();
          // Expand the velocity space to the required size
@@ -274,6 +274,7 @@ namespace SBC {
                      creal vzCell = vzBlock + (kc+0.5)*dvzCell - Vz;
                      Realf average = maxwellianDistribution(popID,rho,T,vxCell,vyCell,vzCell);
                      initBuffer[cellIndex(ic,jc,kc)] = average;
+                     sumcounter += average;
                      maxValue = max(average, maxValue);
                   }
                }
@@ -291,6 +292,7 @@ namespace SBC {
          // #ifdef USE_GPU
          // templateCell.prefetchHost();
          // #endif
+         printf(" sumcounter-1e-6 setMaxwellian %E %E\n",sumcounter,(sumcounter - (double)1.e-6));
       } // for-loop over particle species
 
       B[0] = Bx;

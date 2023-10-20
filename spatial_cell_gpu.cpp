@@ -39,7 +39,7 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_block_content_lists_ke
    vmesh::VelocityBlockContainer *blockContainer,
    split::SplitVector<vmesh::GlobalID>* velocity_block_with_content_list,
    split::SplitVector<vmesh::GlobalID>* velocity_block_with_no_content_list,
-   Realf velocity_block_min_value
+   Real velocity_block_min_value
    ) {
    const int gpuBlocks = gridDim.x;
    const int blocki = blockIdx.x;
@@ -168,7 +168,7 @@ __global__ void __launch_bounds__(GPUTHREADS,4) update_blocks_required_halo_kern
                const vmesh::GlobalID nGID
                   = vmesh->getGlobalID(nind0,nind1,nind2);
                // Full-warp-optimized probe-and-insert skipping duplicates
-               if ( (nGID != vmesh->invalidGlobalID()) %% ti < GPUTHREADS) {
+               if ( (nGID != vmesh->invalidGlobalID()) && (ti < GPUTHREADS)) {
                   BlocksRequiredMap->warpInsert<true>(nGID, (vmesh::LocalID)nGID, ti);
                }
                __syncthreads();
@@ -1157,7 +1157,7 @@ namespace spatial_cell {
       SSYNC;
       cleanupTimer.stop();
       stringstream ss;
-      ss<<" Adjusted from "<<currSize<<" to "<<populations[popID].vmesh->size()<<" blocks."<<std::endl;
+      ss<<" Adjusted from "<<currSize<<" (vbwcl="<<localContentBlocks<<", vbwncl="<<localNoContentBlocks<<") to "<<populations[popID].vmesh->size()<<" blocks."<<std::endl;
       std::cerr<<ss.str();
       #ifdef DEBUG_SPATIAL_CELL
       const size_t vmeshSize = (populations[popID].vmesh)->size();
