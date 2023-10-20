@@ -272,7 +272,7 @@ namespace projects {
       LineDipole bgFieldLineDipole;
       VectorDipole bgVectorDipole;
 
-      phiprof::start("switch-dipoleType");
+      phiprof::Timer switchDipoleTypeTimer {"switch-dipoleType"};
       // The hardcoded constants of dipole and line dipole moments are obtained
       // from Daldorff et al (2014), see
       // https://github.com/fmihpc/vlasiator/issues/20 for a derivation of the
@@ -321,11 +321,11 @@ namespace projects {
             default:
                setBackgroundFieldToZero(BgBGrid);
       }
-      phiprof::stop("switch-dipoleType");
+      switchDipoleTypeTimer.stop();
 
       const auto localSize = BgBGrid.getLocalSize().data();
       
-      phiprof::start("zeroing-out");
+      phiprof::Timer zeroingTimer {"zeroing-out"};
 
 #pragma omp parallel
       {
@@ -334,10 +334,10 @@ namespace projects {
          doZeroOut = P::xcells_ini ==1 && this->zeroOutComponents[0]==1;
       
          if(doZeroOut) {
-#pragma omp for collapse(3)
-            for (int x = 0; x < localSize[0]; ++x) {
+#pragma omp for collapse(2)
+            for (int z = 0; z < localSize[2]; ++z) {
                for (int y = 0; y < localSize[1]; ++y) {
-                  for (int z = 0; z < localSize[2]; ++z) {
+                  for (int x = 0; x < localSize[0]; ++x) {
                      std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
                      cell->at(fsgrids::bgbfield::BGBX)=0;
                      cell->at(fsgrids::bgbfield::BGBXVOL)=0.0;
@@ -353,14 +353,14 @@ namespace projects {
                }
             }
          }
-            
+
           doZeroOut = P::ycells_ini ==1 && this->zeroOutComponents[1]==1;
           if(doZeroOut) {
              /*2D simulation in x and z. Set By and derivatives along Y, and derivatives of By to zero*/
- #pragma omp for collapse(3)
-             for (int x = 0; x < localSize[0]; ++x) {
+#pragma omp for collapse(2)
+             for (int z = 0; z < localSize[2]; ++z) {
                 for (int y = 0; y < localSize[1]; ++y) {
-                   for (int z = 0; z < localSize[2]; ++z) {
+                   for (int x = 0; x < localSize[0]; ++x) {
                       std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
                       cell->at(fsgrids::bgbfield::BGBY)=0.0;
                       cell->at(fsgrids::bgbfield::BGBYVOL)=0.0;
@@ -379,10 +379,10 @@ namespace projects {
 
          doZeroOut = P::zcells_ini ==1 && this->zeroOutComponents[2]==1;
          if(doZeroOut) {
-#pragma omp for collapse(3)
-            for (int x = 0; x < localSize[0]; ++x) {
+#pragma omp for collapse(2)
+            for (int z = 0; z < localSize[2]; ++z) {
                for (int y = 0; y < localSize[1]; ++y) {
-                  for (int z = 0; z < localSize[2]; ++z) {
+                  for (int x = 0; x < localSize[0]; ++x) {
                      std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
                      cell->at(fsgrids::bgbfield::BGBX)=0;
                      cell->at(fsgrids::bgbfield::BGBY)=0;
@@ -403,10 +403,10 @@ namespace projects {
          
          // Remove dipole from inflow cells if this is requested
          if(this->noDipoleInSW) {
-#pragma omp for collapse(3)
-            for (int x = 0; x < localSize[0]; ++x) {
+#pragma omp for collapse(2)
+            for (int z = 0; z < localSize[2]; ++z) {
                for (int y = 0; y < localSize[1]; ++y) {
-                  for (int z = 0; z < localSize[2]; ++z) {
+                  for (int x = 0; x < localSize[0]; ++x) {
                      if(technicalGrid.get(x, y, z)->sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN ) {
                         for (int i = 0; i < fsgrids::bgbfield::N_BGB; ++i) {
                            BgBGrid.get(x,y,z)->at(i) = 0;
@@ -423,9 +423,9 @@ namespace projects {
          }
       } // end of omp parallel region
 
-      phiprof::stop("zeroing-out");
+      zeroingTimer.stop();
 
-      phiprof::start("add-constant-field");
+      phiprof::Timer addConstantTimer {"add-constant-field"};
       // Superimpose constant background field if needed
       if(this->constBgB[0] != 0.0 || this->constBgB[1] != 0.0 || this->constBgB[2] != 0.0) {
          ConstantField bgConstantField;
@@ -433,10 +433,10 @@ namespace projects {
          setBackgroundField(bgConstantField, BgBGrid, true);
          SBC::ionosphereGrid.setConstantBackgroundField(this->constBgB);
       }
-      phiprof::stop("add-constant-field");
-      phiprof::start("ionosphereGrid.storeNodeB");
+      addConstantTimer.stop();
+      phiprof::Timer storeNodeTimer {"ionosphereGrid.storeNodeB"};
       SBC::ionosphereGrid.storeNodeB();
-      phiprof::stop("ionosphereGrid.storeNodeB");
+      storeNodeTimer.stop();
    }
    
    
@@ -670,7 +670,7 @@ namespace projects {
    }
 
    bool Magnetosphere::adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
-      phiprof::start("Set refines");
+      phiprof::Timer refinesTimer {"Set refines"};
       int myRank;       
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       if (myRank == MASTER_RANK)
@@ -728,8 +728,6 @@ namespace projects {
             }
          }
       }
-
-      phiprof::stop("Set refines");
       return true;
    }
 
