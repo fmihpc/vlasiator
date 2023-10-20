@@ -1156,9 +1156,7 @@ namespace spatial_cell {
       populations[popID].vmesh->gpu_cleanHashMap(stream);
       SSYNC;
       cleanupTimer.stop();
-      stringstream ss;
-      ss<<" Adjusted from "<<currSize<<" (vbwcl="<<localContentBlocks<<", vbwncl="<<localNoContentBlocks<<") to "<<populations[popID].vmesh->size()<<" blocks."<<std::endl;
-      std::cerr<<ss.str();
+
       #ifdef DEBUG_SPATIAL_CELL
       const size_t vmeshSize = (populations[popID].vmesh)->size();
       const size_t vbcSize = (populations[popID].blockContainer)->size();
