@@ -395,6 +395,7 @@ namespace SBC {
       
       virtual std::string getName() const;
       virtual uint getIndex() const;
+      virtual void gpuClear();
       static Real radius; /*!< Radius of the inner simulation boundary */
       static std::vector<IonosphereSpeciesParameters> speciesParams;
 

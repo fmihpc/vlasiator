@@ -154,6 +154,7 @@ namespace SBC {
         )=0;
 
          virtual void getFaces(bool* faces);
+         virtual void gpuClear() {};
          virtual std::string getName() const=0;
          virtual uint getIndex() const=0;
          uint getPrecedence() const;
