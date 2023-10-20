@@ -745,6 +745,8 @@ bool SysBoundary::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_G
           Parameters::isRestart           // When not restarting
           && !(*it)->doApplyUponRestart() // When reapplicaiton is not requested
       ) {
+         // Just remove the gpu allocations
+         (*it)->gpuClear();
          continue;
       }
       //cerr << "Applying initial state for " << (*it)->getName() << " system boundary"<<endl;

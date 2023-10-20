@@ -101,8 +101,8 @@ LIB_ZOLTAN = -I/usr/lib/x86_64-linux-gnu -ltrilinos_zoltan
 INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv
 LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv -Xlinker=-rpath=$(LIBRARY_PREFIX)/vlsv/lib
 
-LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof_nvcc/lib -lphiprof -Xlinker=-rpath=$(LIBRARY_PREFIX)/phiprof_nvcc/lib
-INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof_nvcc/include
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -Xlinker=-rpath=$(LIBRARY_PREFIX)/phiprof/lib
+INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
 
 #======== Header-only Libraries ===========
 

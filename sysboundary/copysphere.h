@@ -127,6 +127,7 @@ namespace SBC {
       
       virtual std::string getName() const;
       virtual uint getIndex() const;
+      virtual void gpuClear();
       
    protected:
       void generateTemplateCell(Project &project);

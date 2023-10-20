@@ -630,8 +630,8 @@ namespace spatial_cell {
    }
 
    SpatialCell::SpatialCell(const SpatialCell& other) {
-      velocity_block_with_content_list = new split::SplitVector<vmesh::GlobalID>(*(other.velocity_block_with_content_list));
-      velocity_block_with_no_content_list = new split::SplitVector<vmesh::GlobalID>(*(other.velocity_block_with_no_content_list));
+      velocity_block_with_content_list = new split::SplitVector<vmesh::GlobalID>(1);
+      velocity_block_with_no_content_list = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksRequired = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToAdd = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToRemove = new split::SplitVector<vmesh::GlobalID>(1);

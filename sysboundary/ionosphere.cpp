@@ -2507,11 +2507,16 @@ namespace SBC {
             // cell->get_velocity_mesh(popID)->check();
          }
       }
+      gpuClear();
+      return true;
+   }
+
+   void Ionosphere::gpuClear() {
+      // Remove GPU allocations from template cells
       #ifdef USE_GPU
-      // Remove GPU allocations from template cell
       templateCell.gpu_destructor();
       #endif
-      return true;
+      return;
    }
 
    std::array<Real, 3> Ionosphere::fieldSolverGetNormalDirection(

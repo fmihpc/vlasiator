@@ -88,15 +88,20 @@ namespace SBC {
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          if (!setCellsFromTemplate(mpiGrid, popID)) success = false;
       }
-      #ifdef USE_GPU
+      gpuClear();
+      if (!setBFromTemplate(technicalGrid, perBGrid)) success = false;
+
+      return success;
+   }
+
+   void SetByUser::gpuClear() {
       // Remove GPU allocations from template cells
+      #ifdef USE_GPU
       for (uint i=0; i < 6; i++) {
          templateCells[i].gpu_destructor();
       }
       #endif
-      if (!setBFromTemplate(technicalGrid, perBGrid)) success = false;
-
-      return success;
+      return;
    }
 
    Real SetByUser::fieldSolverBoundaryCondMagneticField(

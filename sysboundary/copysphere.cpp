@@ -195,11 +195,16 @@ namespace SBC {
             setCellFromTemplate(cell,popID);
          }
       }
+      gpuClear();
+      return true;
+   }
+
+   void Copysphere::gpuClear() {
+      // Remove GPU allocations from template cells
       #ifdef USE_GPU
-      // Remove GPU allocations from template cell
       templateCell.gpu_destructor();
       #endif
-      return true;
+      return;
    }
 
    std::array<Real, 3> Copysphere::fieldSolverGetNormalDirection(

@@ -43,6 +43,7 @@ namespace SBC {
       
       static void addParameters();
       virtual void getParameters();
+      virtual void gpuClear() {};
       
       virtual bool initSysBoundary(
          creal& t,
