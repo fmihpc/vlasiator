@@ -168,9 +168,10 @@ __global__ void __launch_bounds__(GPUTHREADS,4) update_blocks_required_halo_kern
                const vmesh::GlobalID nGID
                   = vmesh->getGlobalID(nind0,nind1,nind2);
                // Full-warp-optimized probe-and-insert skipping duplicates
-               if (nGID != vmesh->invalidGlobalID()) {
-                  BlocksRequiredMap->warpInsert<true>(nGID, (vmesh::LocalID)nGID, ti % GPUTHREADS);
+               if ( (nGID != vmesh->invalidGlobalID()) %% ti < GPUTHREADS) {
+                  BlocksRequiredMap->warpInsert<true>(nGID, (vmesh::LocalID)nGID, ti);
                }
+               __syncthreads();
             } // for vz
          } // for vy
       } // for vx
@@ -1155,7 +1156,9 @@ namespace spatial_cell {
       populations[popID].vmesh->gpu_cleanHashMap(stream);
       SSYNC;
       cleanupTimer.stop();
-
+      stringstream ss;
+      ss<<" Adjusted from "<<currSize<<" to "<<populations[popID].vmesh->size()<<" blocks."<<std::endl;
+      std::cerr<<ss.str();
       #ifdef DEBUG_SPATIAL_CELL
       const size_t vmeshSize = (populations[popID].vmesh)->size();
       const size_t vbcSize = (populations[popID].blockContainer)->size();
