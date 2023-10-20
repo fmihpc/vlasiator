@@ -76,8 +76,6 @@ namespace SBC {
                              "Input files for the set Maxwellian inflow parameters on face z-. Data format per line: time "
                              "(s) density (p/m^3) Temperature (K) Vx Vy Vz (m/s) Bx By Bz (T).",
                              "");
-         Readparameters::add(pop + "_maxwellian.nVelocitySamples",
-                             "Number of sampling points per velocity dimension (template cells)", 5);
          Readparameters::add(pop + "_maxwellian.dynamic",
                              "Boolean value, is the set Maxwellian inflow dynamic in time or not.", 0);
       }
@@ -109,7 +107,6 @@ namespace SBC {
          Readparameters::get(pop + "_maxwellian.file_y-", sP.files[3]);
          Readparameters::get(pop + "_maxwellian.file_z+", sP.files[4]);
          Readparameters::get(pop + "_maxwellian.file_z-", sP.files[5]);
-         Readparameters::get(pop + "_maxwellian.nVelocitySamples", sP.nVelocitySamples);
 
          speciesParams.push_back(sP);
       }
@@ -260,37 +257,15 @@ namespace SBC {
                creal vyCell = vyBlock + jc*dvyCell;
                creal vzCell = vzBlock + kc*dvzCell;
                Real average = 0.0;
-               if(speciesParams[popID].nVelocitySamples > 1) {
-                  creal d_vx = dvxCell / (speciesParams[popID].nVelocitySamples-1);
-                  creal d_vy = dvyCell / (speciesParams[popID].nVelocitySamples-1);
-                  creal d_vz = dvzCell / (speciesParams[popID].nVelocitySamples-1);
-                  for (uint vi=0; vi<speciesParams[popID].nVelocitySamples; ++vi)
-                    for (uint vj=0; vj<speciesParams[popID].nVelocitySamples; ++vj)
-                      for (uint vk=0; vk<speciesParams[popID].nVelocitySamples; ++vk) {
-                         average +=  maxwellianDistribution(
-                                                            popID,
-                                                            rho,
-                                                            T,
-                                                            vxCell + vi*d_vx - Vx,
-                                                            vyCell + vj*d_vy - Vy,
-                                                            vzCell + vk*d_vz - Vz
-                                                           );
-                      }
-                  average /= speciesParams[popID].nVelocitySamples * speciesParams[popID].nVelocitySamples * speciesParams[popID].nVelocitySamples;
-               } else {
-                  average =   maxwellianDistribution(
-                                                     popID,
-                                                     rho,
-                                                     T,
-                                                     vxCell + 0.5*dvxCell - Vx,
-                                                     vyCell + 0.5*dvyCell - Vy,
-                                                     vzCell + 0.5*dvzCell - Vz
-                                                    );
-               }
-               
-               if (average != 0.0) {
+               average =   maxwellianDistribution(
+                  popID,
+                  rho,
+                  T,
+                  vxCell + 0.5*dvxCell - Vx,
+                  vyCell + 0.5*dvyCell - Vy,
+                  vzCell + 0.5*dvzCell - Vz
+                  );
                   data[blockLID*WID3+cellIndex(ic,jc,kc)] = average;
-               } 
             } // for-loop over cells in velocity block
          } // for-loop over velocity blocks
          

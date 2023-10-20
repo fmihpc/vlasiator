@@ -2356,8 +2356,6 @@ namespace SBC {
         if(sP.rho == 0) {
            Readparameters::get(pop + "_Magnetosphere.rho", sP.rho);
         }
-        Readparameters::get(pop + "_Magnetosphere.nSpaceSamples", sP.nSpaceSamples);
-        Readparameters::get(pop + "_Magnetosphere.nVelocitySamples", sP.nVelocitySamples);
 
         speciesParams.push_back(sP);
       }
@@ -3371,37 +3369,15 @@ namespace SBC {
                creal vyCell = vyBlock + jc*dvyCell;
                creal vzCell = vzBlock + kc*dvzCell;
                Real average = 0.0;
-               if(sP.nVelocitySamples > 1) {
-                  creal d_vx = dvxCell / (sP.nVelocitySamples-1);
-                  creal d_vy = dvyCell / (sP.nVelocitySamples-1);
-                  creal d_vz = dvzCell / (sP.nVelocitySamples-1);
-                  for (uint vi=0; vi<sP.nVelocitySamples; ++vi)
-                     for (uint vj=0; vj<sP.nVelocitySamples; ++vj)
-                        for (uint vk=0; vk<sP.nVelocitySamples; ++vk) {
-                           average +=  shiftedMaxwellianDistribution(
-                                                                     popID,
-                                                                     sP.rho,
-                                                                     sP.T,
-                                                                     vxCell + vi*d_vx,
-                                                                     vyCell + vj*d_vy,
-                                                                     vzCell + vk*d_vz
-                                                                    );
-                        }
-                  average /= sP.nVelocitySamples * sP.nVelocitySamples * sP.nVelocitySamples;
-               } else {
-                  average = shiftedMaxwellianDistribution(
-                                                          popID,
-                                                          sP.rho,
-                                                          sP.T,
-                                                          vxCell + 0.5*dvxCell,
-                                                          vyCell + 0.5*dvyCell,
-                                                          vzCell + 0.5*dvzCell
-                                                         );
-               }
-
-               if (average !=0.0 ) {
-                  data[blockLID*WID3+cellIndex(ic,jc,kc)] = average;
-               }
+               average = shiftedMaxwellianDistribution(
+                  popID,
+                  sP.rho,
+                  sP.T,
+                  vxCell + 0.5*dvxCell,
+                  vyCell + 0.5*dvyCell,
+                  vzCell + 0.5*dvzCell
+                  );
+               data[blockLID*WID3+cellIndex(ic,jc,kc)] = average;
             } // for-loop over cells in velocity block
          } // for-loop over velocity blocks
 

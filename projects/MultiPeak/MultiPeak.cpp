@@ -62,7 +62,6 @@ namespace projects {
       RP::add("MultiPeak.magYPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along y (T)", 1.0e-9);
       RP::add("MultiPeak.magZPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along z (T)", 1.0e-9);
       RP::add("MultiPeak.lambda", "B cosine perturbation wavelength (m)", 1.0);
-      RP::add("MultiPeak.nVelocitySamples", "Number of sampling points per velocity dimension", 1);
       RP::add("MultiPeak.densityModel","Which spatial density model is used?",string("uniform"));
 
       // Per-population parameters
@@ -94,7 +93,6 @@ namespace projects {
       RP::get("MultiPeak.dBy", this->dBy);
       RP::get("MultiPeak.dBz", this->dBz);
       RP::get("MultiPeak.lambda", this->lambda);
-      RP::get("MultiPeak.nVelocitySamples", this->nVelocitySamples);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
@@ -152,7 +150,6 @@ namespace projects {
       // iteration improves the average by less than 1%, return the value.
       // Real avgTotal = 0.0;
       // bool ok = false;
-      // uint N = nVelocitySamples; // Start by using nVelocitySamples
       // int N3_sum = 0;           // Sum of sampling points used so far
 
       const MultiPeakSpeciesParameters& sP = speciesParams[popID];
