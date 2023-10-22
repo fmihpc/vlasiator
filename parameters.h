@@ -195,6 +195,7 @@ struct Parameters {
    static uint refineMultiplier;
    static Real refineAfter;
    static Real refineRadius;
+   static bool useAlpha;
    static bool useJPerB;
    static Real JPerBModifier;
    static int maxFilteringPasses;
