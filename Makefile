@@ -195,7 +195,12 @@ cleantools:
 
 version.cpp: FORCE
 	@echo "[GENERATE] version.cpp"
-	$(SILENT)./generate_version.sh "${CMP}" "${CXXFLAGS}" "${FLAGS}" "${INC_MPI}" "${INC_DCCRG}" "${INC_FSGRID}" "${INC_ZOLTAN}" "${INC_BOOST}"
+	$(eval DCCRG_COMMIT=$(shell cd ${subst -system,,${subst -I,,${INC_DCCRG}}} && git log -1 --pretty=format:"%H"))
+	$(eval FSGRID_COMMIT=$(shell cd ${subst -system,,${subst -I,,${INC_FSGRID}}} && git log -1 --pretty=format:"%H"))
+	$(eval VLSV_COMMIT=$(shell cd ${subst -system,,${subst -I,,${INC_VLSV}}} && git log -1 --pretty=format:"%H"))
+	$(eval HASHINATOR_COMMIT=$(shell cd ${subst -system,,${subst -I,,${INC_HASHINATOR}}} && git log -1 --pretty=format:"%H"))
+	$(eval PROFILE_COMMIT=$(shell cd ${subst -system,,${subst -I,,${INC_PROFILE}}} && git log -1 --pretty=format:"%H"))
+	$(SILENT)./generate_version.sh "${CMP}" "${CXXFLAGS}" "${FLAGS}" "${INC_MPI}" "${INC_ZOLTAN}" "${INC_BOOST}" "${INC_DCCRG}" "${DCCRG_COMMIT}" "${INC_FSGRID}" "${FSGRID_COMMIT}"  "${INC_VLSV}" "${VLSV_COMMIT}" "${INC_HASHINATOR}" "${HASHINATOR_COMMIT}" "${INC_PROFILE}" "${PROFILE_COMMIT}"
 
 
 # Generic rules:
