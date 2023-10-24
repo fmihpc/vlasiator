@@ -379,6 +379,7 @@ bool _readBlockData(
    for(uint64_t i=0; i<localCells; i++) {
       CellID cell = fileCells[localCellStartOffset + i]; //spatial cell id
       vmesh::LocalID nBlocksInCell = blocksPerCell[i];
+      std::cerr<<"reading data of "<<nBlocksInCell<<" blocks into cell "<<i<<"/"<<localCells<<std::endl;
       //copy blocks in this cell to vector blockIdsInCell, size of read in data has been checked earlier
       blockIdsInCell.reserve(nBlocksInCell);
       blockIdsInCell.assign(blockIdBuffer + blockBufferOffset, blockIdBuffer + blockBufferOffset + nBlocksInCell);
@@ -392,11 +393,13 @@ bool _readBlockData(
       split::SplitVector<vmesh::GlobalID> *blockIdsInCell2 = new split::SplitVector<vmesh::GlobalID>(blockIdsInCell);
       mpiGrid[cell]->add_velocity_blocks(popID,blockIdsInCell2,&gpu_avgBuffer[blockBufferOffset*WID3]);
       delete blockIdsInCell2;
+      //CHK_ERR( gpuDeviceSynchronize() );
       #else
       mpiGrid[cell]->add_velocity_blocks(popID,blockIdsInCell,&avgBuffer[blockBufferOffset*WID3]);
       #endif
       blockBufferOffset += nBlocksInCell; //jump to location of next local cell
    }
+   std::cerr<<"...done!"<<std::endl;
    #ifdef USE_GPU
    CHK_ERR( gpuFree(gpu_avgBuffer) );
    CHK_ERR( gpuDeviceSynchronize() );
