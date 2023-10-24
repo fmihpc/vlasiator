@@ -379,7 +379,6 @@ bool _readBlockData(
    for(uint64_t i=0; i<localCells; i++) {
       CellID cell = fileCells[localCellStartOffset + i]; //spatial cell id
       vmesh::LocalID nBlocksInCell = blocksPerCell[i];
-      std::cerr<<"reading data of "<<nBlocksInCell<<" blocks into cell "<<i<<"/"<<localCells<<std::endl;
       //copy blocks in this cell to vector blockIdsInCell, size of read in data has been checked earlier
       blockIdsInCell.reserve(nBlocksInCell);
       blockIdsInCell.assign(blockIdBuffer + blockBufferOffset, blockIdBuffer + blockBufferOffset + nBlocksInCell);
@@ -400,7 +399,6 @@ bool _readBlockData(
       #endif
       blockBufferOffset += nBlocksInCell; //jump to location of next local cell
    }
-   std::cerr<<"...done!"<<std::endl;
    #ifdef USE_GPU
    CHK_ERR( gpuFree(gpu_avgBuffer) );
    CHK_ERR( gpuDeviceSynchronize() );
