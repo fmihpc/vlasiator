@@ -397,9 +397,9 @@ bool _readBlockData(
       #endif
       blockBufferOffset += nBlocksInCell; //jump to location of next local cell
    }
-
    #ifdef USE_GPU
    CHK_ERR( gpuFree(gpu_avgBuffer) );
+   CHK_ERR( gpuDeviceSynchronize() );
    #endif
    delete[] avgBuffer;
    delete[] blockIdBuffer;

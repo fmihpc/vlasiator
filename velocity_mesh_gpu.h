@@ -192,6 +192,9 @@ namespace vmesh {
 
    ARCH_HOSTDEV inline bool VelocityMesh::check() const {
       bool ok = true;
+      gpuStream_t stream = gpu_getStream();
+      localToGlobalMap->optimizeCPU(stream);
+      globalToLocalMap->optimizeCPU(stream);
 
       if (localToGlobalMap->size() != globalToLocalMap->size()) {
          printf("VMO ERROR: sizes differ, %lu vs %lu\n",localToGlobalMap->size(),globalToLocalMap->size());
@@ -214,6 +217,8 @@ namespace vmesh {
             assert(0 && "VM check ERROR");
          }
       }
+      localToGlobalMap->optimizeGPU(stream);
+      globalToLocalMap->optimizeGPU(stream);
       return ok;
    }
 
@@ -895,7 +900,15 @@ namespace vmesh {
          if (it3 == globalToLocalMap->device_end()) {
             uint64_t sizePower = globalToLocalMap->getSizePower();
             printf("Warp error in VelocityMesh::warpReplaceBlock: warp-inserted GID %u LID %u but thread %u cannot find it!\n",GIDnew,LID,(vmesh::LocalID)b_tid);
-            if (b_tid==0) globalToLocalMap->stats();
+            if (b_tid==0) {
+               if (newlyadded) {
+                  printf("warpAccessor reported true for insertion!\n");
+               } else {
+                  printf("warpAccessor reported false for insertion!\n");
+               }
+               globalToLocalMap->stats();
+               globalToLocalMap->dump_buckets();
+            }
             assert(0);
          } else if (it3->second != LID) {
             printf("Warp error in VelocityMesh::warpReplaceBlock: warp-inserted GID %u LID %u but thread %u instead finds LID %u!\n",GIDnew,LID,(vmesh::LocalID)b_tid,it3->second);
@@ -925,6 +938,10 @@ namespace vmesh {
          bool newlyadded = false;
          newlyadded = globalToLocalMap->warpInsert_V(GID,LID, b_tid);
          if (b_tid==0) {
+            if (!newlyadded) {
+               globalToLocalMap->stats();
+               globalToLocalMap->dump_buckets();
+            }
             assert(newlyadded && "newlyAdded warpPlaceBlock");
             localToGlobalMap->at(LID) = GID;
          }
