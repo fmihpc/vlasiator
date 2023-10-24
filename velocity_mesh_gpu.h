@@ -192,9 +192,11 @@ namespace vmesh {
 
    ARCH_HOSTDEV inline bool VelocityMesh::check() const {
       bool ok = true;
+      #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
       gpuStream_t stream = gpu_getStream();
       localToGlobalMap->optimizeCPU(stream);
       globalToLocalMap->optimizeCPU(stream);
+      #endif
 
       if (localToGlobalMap->size() != globalToLocalMap->size()) {
          printf("VMO ERROR: sizes differ, %lu vs %lu\n",localToGlobalMap->size(),globalToLocalMap->size());
@@ -217,8 +219,10 @@ namespace vmesh {
             assert(0 && "VM check ERROR");
          }
       }
+      #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
       localToGlobalMap->optimizeGPU(stream);
       globalToLocalMap->optimizeGPU(stream);
+      #endif
       return ok;
    }
 
@@ -907,7 +911,7 @@ namespace vmesh {
                   printf("warpAccessor reported false for insertion!\n");
                }
                globalToLocalMap->stats();
-               globalToLocalMap->dump_buckets();
+               //globalToLocalMap->dump_buckets();
             }
             assert(0);
          } else if (it3->second != LID) {
@@ -940,7 +944,7 @@ namespace vmesh {
          if (b_tid==0) {
             if (!newlyadded) {
                globalToLocalMap->stats();
-               globalToLocalMap->dump_buckets();
+               //globalToLocalMap->dump_buckets();
             }
             assert(newlyadded && "newlyAdded warpPlaceBlock");
             localToGlobalMap->at(LID) = GID;
