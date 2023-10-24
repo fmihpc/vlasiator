@@ -1316,6 +1316,9 @@ bool writeGrid(
 ) {
    bool success = true;
    int myRank;
+   #ifdef USE_GPU
+   CHK_ERR( gpuDeviceSynchronize() );
+   #endif
    phiprof::Timer barrierWritegridTimer {"Barrier-entering-writegrid", {"MPI","Barrier"}};
    MPI_Barrier(MPI_COMM_WORLD);
    barrierWritegridTimer.stop();

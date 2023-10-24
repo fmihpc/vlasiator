@@ -393,7 +393,8 @@ bool _readBlockData(
       split::SplitVector<vmesh::GlobalID> *blockIdsInCell2 = new split::SplitVector<vmesh::GlobalID>(blockIdsInCell);
       mpiGrid[cell]->add_velocity_blocks(popID,blockIdsInCell2,&gpu_avgBuffer[blockBufferOffset*WID3]);
       delete blockIdsInCell2;
-      //CHK_ERR( gpuDeviceSynchronize() );
+      CHK_ERR( gpuDeviceSynchronize() );
+      mpiGrid[cell]->checkMesh(popID);
       #else
       mpiGrid[cell]->add_velocity_blocks(popID,blockIdsInCell,&avgBuffer[blockBufferOffset*WID3]);
       #endif
