@@ -326,7 +326,6 @@ namespace SBC {
       const uint popID,
       const bool calculate_V_moments
    ) {
-//      phiprof::Timer timer {"vlasovBoundaryCondition (Outflow)"};
 
       const OutflowSpeciesParameters& sP = this->speciesParams[popID];
       if (mpiGrid[cellID]->sysBoundaryFlag != this->getIndex()) {
@@ -351,7 +350,6 @@ namespace SBC {
             }
          }
       }
-
    }
 
    void Outflow::getFaces(bool* faces) {

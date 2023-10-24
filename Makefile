@@ -38,6 +38,9 @@ FIELDSOLVER ?= ldz_main
 
 #Skip deprecated C++ bindings from OpenMPI
 COMPFLAGS += -D OMPI_SKIP_MPICXX
+# Allow MCA io to be set to ompio, otherwise the code is overriding and setting ^ompio. (OpenMPI only, no effect with other MPI implementations.)
+# COMPFLAGS += -DVLASIATOR_ALLOW_MCA_OMPIO
+
 
 #is profiling on?
 COMPFLAGS += -DPROFILE
@@ -234,7 +237,12 @@ cleantools:
 
 version.cpp: FORCE
 	@echo "[GENERATE] version.cpp"
-	$(SILENT)./generate_version.sh "${CMP}" "${CXXFLAGS}" "${FLAGS}" "${INC_MPI}" "${INC_DCCRG}" "${INC_FSGRID}" "${INC_ZOLTAN}" "${INC_BOOST}"
+	$(eval DCCRG_COMMIT=$(shell cd ${subst -system,,${subst -I,,${INC_DCCRG}}} && git log -1 --pretty=format:"%H"))
+	$(eval FSGRID_COMMIT=$(shell cd ${subst -system,,${subst -I,,${INC_FSGRID}}} && git log -1 --pretty=format:"%H"))
+	$(eval VLSV_COMMIT=$(shell cd ${subst -system,,${subst -I,,${INC_VLSV}}} && git log -1 --pretty=format:"%H"))
+	$(eval HASHINATOR_COMMIT=$(shell cd ${subst -system,,${subst -I,,${INC_HASHINATOR}}} && git log -1 --pretty=format:"%H"))
+	$(eval PROFILE_COMMIT=$(shell cd ${subst -system,,${subst -I,,${INC_PROFILE}}} && git log -1 --pretty=format:"%H"))
+	$(SILENT)./generate_version.sh "${CMP}" "${CXXFLAGS}" "${FLAGS}" "${INC_MPI}" "${INC_ZOLTAN}" "${INC_BOOST}" "${INC_DCCRG}" "${DCCRG_COMMIT}" "${INC_FSGRID}" "${FSGRID_COMMIT}"  "${INC_VLSV}" "${VLSV_COMMIT}" "${INC_HASHINATOR}" "${HASHINATOR_COMMIT}" "${INC_PROFILE}" "${PROFILE_COMMIT}"
 
 # Do not autobuild sub-versions of spatial_cell
 spatial_cell_gpu.o:

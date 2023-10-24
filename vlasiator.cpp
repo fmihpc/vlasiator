@@ -273,25 +273,54 @@ int main(int argn,char* args[]) {
    typedef Parameters P;
    Real newDt;
    bool dtIsChanged;
-
-// Init MPI:
+   
+   // Before MPI_Init we hardwire some settings, if we are in OpenMPI
    int required=MPI_THREAD_FUNNELED;
-   int provided;
+   int provided, resultlen;
+   char mpiversion[MPI_MAX_LIBRARY_VERSION_STRING];
+   bool overrideMCAompio = false;
+
+   MPI_Get_library_version(mpiversion, &resultlen);
+   string versionstr = string(mpiversion);
+   stringstream mpiioMessage;
+
+   if(versionstr.find("Open MPI") != std::string::npos) {
+      #ifdef VLASIATOR_ALLOW_MCA_OMPIO
+         mpiioMessage << "We detected OpenMPI but the compilation flag VLASIATOR_ALLOW_MCA_OMPIO was set so we do not override the default MCA io flag." << endl;
+      #else
+         overrideMCAompio = true;
+         int index, count;
+         char io_value[64];
+         MPI_T_cvar_handle io_handle;
+         
+         MPI_T_init_thread(required, &provided);
+         MPI_T_cvar_get_index("io", &index);
+         MPI_T_cvar_handle_alloc(index, NULL, &io_handle, &count);
+         MPI_T_cvar_write(io_handle, "^ompio");
+         MPI_T_cvar_read(io_handle, io_value);
+         MPI_T_cvar_handle_free(&io_handle);
+         mpiioMessage << "We detected OpenMPI so we set the cvars value to disable ompio, MCA io: " << io_value << endl;
+      #endif
+   }
+   
+   // After the MPI_T settings we can init MPI all right.
    MPI_Init_thread(&argn,&args,required,&provided);
+   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    if (required > provided){
-      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-      if(myRank==MASTER_RANK)
+      if(myRank==MASTER_RANK) {
          cerr << "(MAIN): MPI_Init_thread failed! Got " << provided << ", need "<<required <<endl;
+      }
       exit(1);
+   }
+   if (myRank == MASTER_RANK) {
+      cout << mpiioMessage.str();
    }
 
    phiprof::initialize();
 
    double initialWtime =  MPI_Wtime();
    SysBoundary& sysBoundaryContainer = getObjectWrapper().sysBoundaryContainer;
-   MPI_Comm comm = MPI_COMM_WORLD;
-   MPI_Comm_rank(comm,&myRank);
-
+   
    #ifdef CATCH_FPE
    // WARNING FE_INEXACT is too sensitive to be used. See man fenv.
    //feenableexcept(FE_DIVBYZERO|FE_INVALID|FE_OVERFLOW|FE_UNDERFLOW);
@@ -301,7 +330,7 @@ int main(int argn,char* args[]) {
    #endif
 
    phiprof::Timer mainTimer {"main"};
-   phiprof::Timer initimer {"Initialization"};
+   phiprof::Timer initTimer {"Initialization"};
 
    phiprof::Timer readParamsTimer {"Read parameters"};
    // Allocate host-side velocity mesh wrapper
@@ -366,9 +395,17 @@ int main(int argn,char* args[]) {
 
    phiprof::Timer openLoggerTimer {"open logFile & diagnostic"};
    //if restarting we will append to logfiles
-   if (logFile.open(MPI_COMM_WORLD,MASTER_RANK,"logfile.txt",P::isRestart) == false) {
-      if(myRank == MASTER_RANK) cerr << "(MAIN) ERROR: Logger failed to open logfile!" << endl;
-      exit(1);
+   if(!P::writeFullBGB) {
+      if (logFile.open(MPI_COMM_WORLD,MASTER_RANK,"logfile.txt",P::isRestart) == false) {
+         if(myRank == MASTER_RANK) cerr << "(MAIN) ERROR: Logger failed to open logfile!" << endl;
+         exit(1);
+      }
+   } else {
+      // If we are out to write the full background field and derivatives, we don't want to overwrite the existing run's logfile.
+      if (logFile.open(MPI_COMM_WORLD,MASTER_RANK,"logfile_fullbgbio.txt",false) == false) {
+         if(myRank == MASTER_RANK) cerr << "(MAIN) ERROR: Logger failed to open logfile_fullbgbio!" << endl;
+         exit(1);
+      }
    }
    if (P::diagnosticInterval != 0) {
       if (diagnostic.open(MPI_COMM_WORLD,MASTER_RANK,"diagnostic.txt",P::isRestart) == false) {
@@ -422,19 +459,19 @@ int main(int argn,char* args[]) {
                                   sysBoundaryContainer.isBoundaryPeriodic(2)};
 
    FsGridCouplingInformation gridCoupling;
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> perBGrid(fsGridDimensions, comm, periodicity,gridCoupling);
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> perBDt2Grid(fsGridDimensions, comm, periodicity,gridCoupling);
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> EGrid(fsGridDimensions, comm, periodicity,gridCoupling);
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> EDt2Grid(fsGridDimensions, comm, periodicity,gridCoupling);
-   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> EHallGrid(fsGridDimensions, comm, periodicity,gridCoupling);
-   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> EGradPeGrid(fsGridDimensions, comm, periodicity,gridCoupling);
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> momentsGrid(fsGridDimensions, comm, periodicity,gridCoupling);
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> momentsDt2Grid(fsGridDimensions, comm, periodicity,gridCoupling);
-   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> dPerBGrid(fsGridDimensions, comm, periodicity,gridCoupling);
-   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> dMomentsGrid(fsGridDimensions, comm, periodicity,gridCoupling);
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> BgBGrid(fsGridDimensions, comm, periodicity,gridCoupling);
-   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> volGrid(fsGridDimensions, comm, periodicity,gridCoupling);
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> technicalGrid(fsGridDimensions, comm, periodicity,gridCoupling);
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> perBGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> perBDt2Grid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> EGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> EDt2Grid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
+   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> EHallGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
+   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> EGradPeGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> momentsGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> momentsDt2Grid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> dPerBGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> dMomentsGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> BgBGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
+   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> volGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
+   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> technicalGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
 
    // Set DX, DY and DZ
    // TODO: This is currently just taking the values from cell 1, and assuming them to be
@@ -507,11 +544,86 @@ int main(int argn,char* args[]) {
    // user-defined operators:
    phiprof::Timer initDROsTimer {"Init DROs"};
    DataReducer outputReducer, diagnosticReducer;
+
+   if(P::writeFullBGB) {
+      // We need the following variables for this, let's just erase and replace the entries in the list
+      P::outputVariableList.clear();
+      P::outputVariableList= {"fg_b_background", "fg_b_background_vol", "fg_derivs_b_background"};
+   }
+
    initializeDataReducers(&outputReducer, &diagnosticReducer);
    initDROsTimer.stop();
    
    // Free up memory:
    readparameters.~Readparameters();
+
+   if(P::writeFullBGB) {
+      logFile << "Writing out full BGB components and derivatives and exiting." << endl << writeVerbose;
+
+      // initialize the communicators so we can write out ionosphere grid metadata.
+      SBC::ionosphereGrid.updateIonosphereCommunicator(mpiGrid, technicalGrid);
+
+      P::systemWriteDistributionWriteStride.push_back(0);
+      P::systemWriteName.push_back("bgb");
+      P::systemWriteDistributionWriteXlineStride.push_back(0);
+      P::systemWriteDistributionWriteYlineStride.push_back(0);
+      P::systemWriteDistributionWriteZlineStride.push_back(0);
+      P::systemWritePath.push_back("./");
+      P::systemWriteFsGrid.push_back(true);
+
+      for(uint si=0; si<P::systemWriteName.size(); si++) {
+         P::systemWrites.push_back(0);
+      }
+
+      const bool writeGhosts = true;
+      if( writeGrid(mpiGrid,
+            perBGrid,
+            EGrid,
+            EHallGrid,
+            EGradPeGrid,
+            momentsGrid,
+            dPerBGrid,  
+            dMomentsGrid,
+            BgBGrid,
+            volGrid,
+            technicalGrid,
+            version,
+            config,
+            &outputReducer,
+            P::systemWriteName.size()-1,
+            P::restartStripeFactor,
+            writeGhosts
+         ) == false
+      ) {
+         cerr << "FAILED TO WRITE GRID AT " << __FILE__ << " " << __LINE__ << endl;
+      }
+
+      phiprof::stop("Initialization");
+      phiprof::stop("main");
+      
+      phiprof::print(MPI_COMM_WORLD,"phiprof");
+      
+      if (myRank == MASTER_RANK) logFile << "(MAIN): Exiting." << endl << writeVerbose;
+      logFile.close();
+      if (P::diagnosticInterval != 0) diagnostic.close();
+      
+      perBGrid.finalize();
+      perBDt2Grid.finalize();
+      EGrid.finalize();
+      EDt2Grid.finalize();
+      EHallGrid.finalize();
+      EGradPeGrid.finalize();
+      momentsGrid.finalize();
+      momentsDt2Grid.finalize();
+      dPerBGrid.finalize();
+      dMomentsGrid.finalize();
+      BgBGrid.finalize();
+      volGrid.finalize();
+      technicalGrid.finalize();
+
+      MPI_Finalize();
+      return 0;
+   }
 
    // Run the field solver once with zero dt. This will initialize
    // Fieldsolver dt limits, and also calculate volumetric B-fields.
@@ -542,12 +654,33 @@ int main(int argn,char* args[]) {
 
    // Build communicator for ionosphere solving
    SBC::ionosphereGrid.updateIonosphereCommunicator(mpiGrid, technicalGrid);
+   // If not a restart, perBGrid and dPerBGrid are up to date after propagateFields just above. Otherwise, we should compute them.
+   if(P::isRestart) {
+      calculateDerivativesSimple(
+         perBGrid,
+         perBDt2Grid,
+         momentsGrid,
+         momentsDt2Grid,
+         dPerBGrid,
+         dMomentsGrid,
+         technicalGrid,
+         sysBoundaryContainer,
+         RK_ORDER1, // Update and compute on non-dt2 grids.
+         false // Don't communicate moments, they are not needed here.
+      );
+      dPerBGrid.updateGhostCells();
+   }
    FieldTracing::calculateIonosphereFsgridCoupling(technicalGrid, perBGrid, dPerBGrid, SBC::ionosphereGrid.nodes, SBC::Ionosphere::radius);
    SBC::ionosphereGrid.initSolver(!P::isRestart); // If it is a restart we do not want to zero out everything
    if(SBC::Ionosphere::couplingInterval > 0 && P::isRestart) {
       SBC::Ionosphere::solveCount = floor(P::t / SBC::Ionosphere::couplingInterval)+1;
    } else {
       SBC::Ionosphere::solveCount = 1;
+   }
+   
+   if(P::isRestart) {
+      // If it is a restart, we want to regenerate proper ig_inplanecurrent as well in case there's IO before the next solver step.
+      SBC::ionosphereGrid.calculateConductivityTensor(SBC::Ionosphere::F10_7, SBC::Ionosphere::recombAlpha, SBC::Ionosphere::backgroundIonisation, true);
    }
 
    if (P::isRestart == false) {
@@ -654,7 +787,7 @@ int main(int argn,char* args[]) {
       computeMomentsTimer.stop();
    }
 
-   initimer.stop();
+   initTimer.stop();
 
    // ***********************************
    // ***** INITIALIZATION COMPLETE *****
@@ -1061,7 +1194,9 @@ int main(int argn,char* args[]) {
       }
 
       // Map current data down into the ionosphere
-      // TODO check: have we set perBGrid correctly here, or is it possibly perBDt2Grid in some cases??
+      // momentsGrid was ghost-updated in the field solver above, volGrid just after a few lines above.
+      // perBGrid was ghost-updated before derivatives were computed in the field solver.
+      // dPerBGrid was updated before the electric fields.
       if(SBC::ionosphereGrid.nodes.size() > 0 && ((P::t > SBC::Ionosphere::solveCount * SBC::Ionosphere::couplingInterval && SBC::Ionosphere::couplingInterval > 0) || SBC::Ionosphere::couplingInterval == 0)) {
          FieldTracing::calculateIonosphereFsgridCoupling(technicalGrid, perBGrid, dPerBGrid, SBC::ionosphereGrid.nodes, SBC::Ionosphere::radius);
          SBC::ionosphereGrid.mapDownBoundaryData(perBGrid, dPerBGrid, momentsGrid, volGrid, technicalGrid);
@@ -1217,6 +1352,9 @@ int main(int argn,char* args[]) {
    gpu_clear_device();
    #endif
 
+   if(overrideMCAompio) {
+      MPI_T_finalize();
+   }
    MPI_Finalize();
    return 0;
 }

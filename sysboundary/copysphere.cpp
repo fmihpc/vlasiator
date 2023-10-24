@@ -213,7 +213,7 @@ namespace SBC {
       cint j,
       cint k
    ) {
-      phiprof::Timer timer {"Conductingsphere::fieldSolverGetNormalDirection"};
+      phiprof::Timer timer {"Copysphere::fieldSolverGetNormalDirection"};
       std::array<Real, 3> normalDirection{{ 0.0, 0.0, 0.0 }};
 
       static creal DIAG2 = 1.0 / sqrt(2.0);
@@ -740,7 +740,7 @@ namespace SBC {
       const uint popID,
       const bool calculate_V_moments
    ) {
-      phiprof::Timer timer {"vlasovBoundaryCondition (Conductingsphere)"};
+      phiprof::Timer timer {"vlasovBoundaryCondition (Copysphere)"};
       this->vlasovBoundaryFluffyCopyFromAllCloseNbrs(mpiGrid, cellID, popID, calculate_V_moments, this->speciesParams[popID].fluffiness);
    }
 

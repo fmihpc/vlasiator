@@ -1662,8 +1662,9 @@ void calculateUpwindedElectricFieldSimple(
    const int* gridDims = &technicalGrid.getLocalSize()[0];
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
    phiprof::Timer upwindedETimer {"Calculate upwinded electric field"};
+   int computeTimerID {phiprof::initializeTimer("Electric field compute cells")};
    
-   phiprof::Timer mpiTimer {"MPI", {"MPI"}};
+   phiprof::Timer mpiTimer {"Electric field ghost updates MPI", {"MPI"}};
    // Update ghosts if necessary, unless previous terms have already updated them
    if(P::ohmHallTerm > 0) {
       EHallGrid.updateGhostCells();
@@ -1681,50 +1682,53 @@ void calculateUpwindedElectricFieldSimple(
    mpiTimer.stop();
    
    // Calculate upwinded electric field on inner cells
-   phiprof::Timer computeTimer {"Compute cells"};
-   #pragma omp parallel for collapse(3)
-   for (int k=0; k<gridDims[2]; k++) {
-      for (int j=0; j<gridDims[1]; j++) {
-         for (int i=0; i<gridDims[0]; i++) {
-            if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-               calculateElectricField(
-                  perBGrid,
-                  EGrid,
-                  EHallGrid,
-                  EGradPeGrid,
-                  momentsGrid,
-                  dPerBGrid,
-                  dMomentsGrid,
-                  BgBGrid,
-                  technicalGrid,
-                  i,
-                  j,
-                  k,
-                  sysBoundaries,
-                  RKCase
-               );
-            } else { // RKCase == RK_ORDER2_STEP1
-               calculateElectricField(
-                  perBDt2Grid,
-                  EDt2Grid,
-                  EHallGrid,
-                  EGradPeGrid,
-                  momentsDt2Grid,
-                  dPerBGrid,
-                  dMomentsGrid,
-                  BgBGrid,
-                  technicalGrid,
-                  i,
-                  j,
-                  k,
-                  sysBoundaries,
-                  RKCase
-               );
+   #pragma omp parallel
+   {
+      phiprof::Timer computeTimer {computeTimerID};
+      #pragma omp for collapse(2)
+      for (int k=0; k<gridDims[2]; k++) {
+         for (int j=0; j<gridDims[1]; j++) {
+            for (int i=0; i<gridDims[0]; i++) {
+               if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+                  calculateElectricField(
+                     perBGrid,
+                     EGrid,
+                     EHallGrid,
+                     EGradPeGrid,
+                     momentsGrid,
+                     dPerBGrid,
+                     dMomentsGrid,
+                     BgBGrid,
+                     technicalGrid,
+                     i,
+                     j,
+                     k,
+                     sysBoundaries,
+                     RKCase
+                     );
+               } else { // RKCase == RK_ORDER2_STEP1
+                  calculateElectricField(
+                     perBDt2Grid,
+                     EDt2Grid,
+                     EHallGrid,
+                     EGradPeGrid,
+                     momentsDt2Grid,
+                     dPerBGrid,
+                     dMomentsGrid,
+                     BgBGrid,
+                     technicalGrid,
+                     i,
+                     j,
+                     k,
+                     sysBoundaries,
+                     RKCase
+                     );
+               }
             }
          }
       }
+      computeTimer.stop(N_cells,"Spatial Cells");
    }
-   computeTimer.stop(N_cells,"Spatial Cells");
    
    mpiTimer.start();
    // Exchange electric field with neighbouring processes

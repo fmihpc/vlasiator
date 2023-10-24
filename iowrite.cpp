@@ -391,6 +391,7 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
          // Note that this is not an error (anymore), since fsgrid reducers will return false here.
       }
    }
+
    if( success ) {
 
       if( (writeAsFloat == true && dataType.compare("float") == 0) && dataSize == sizeof(double) ) {
@@ -1329,7 +1330,6 @@ bool writeGrid(
    fname.fill('0');
    fname << P::systemWrites.at(outputFileTypeIndex) << ".vlsv";
 
-
    //Open the file with vlsvWriter:
    Writer vlsvWriter;
    const int masterProcessId = 0;
@@ -1383,7 +1383,6 @@ bool writeGrid(
       ghost_cells = mpiGrid.get_remote_cells_on_process_boundary( NEAREST_NEIGHBORHOOD_ID );
    }
 
-
    //Make sure the local cells and ghost cells are fetched properly
    if( local_cells.empty() ) {
       if( !ghost_cells.empty() ) {
@@ -1435,7 +1434,7 @@ bool writeGrid(
    if( writeFsGridMetadata( technicalGrid, vlsvWriter ) == false ) {
       return false;
    }
-
+   
    //Write Ionosphere Grid
    if( writeIonosphereGridMetadata( vlsvWriter ) == false ) {
       return false;
