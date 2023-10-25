@@ -155,6 +155,10 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
    for (size_t cell=0; cell<cells.size(); ++cell){
       totalBlocks+=mpiGrid[cells[cell]]->get_number_of_velocity_blocks(popID);
       blocksPerCell.push_back(mpiGrid[cells[cell]]->get_number_of_velocity_blocks(popID));
+      #ifdef USE_GPU
+      mpiGrid[cells[cell]]->get_velocity_mesh(popID)->gpu_prefetchHost();
+      mpiGrid[cells[cell]]->get_velocity_blocks(popID)->gpu_prefetchHost();
+      #endif
    }
 
    // The name of the mesh is "SpatialGrid"
@@ -294,6 +298,13 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
    if (success ==false) {
       logFile << "(MAIN) writeGrid: ERROR occurred when writing BLOCKVARIABLE f" << endl << writeVerbose;
    }
+   #ifdef USE_GPU
+   for (size_t cell=0; cell<cells.size(); ++cell){
+      mpiGrid[cells[cell]]->get_velocity_mesh(popID)->gpu_prefetchDevice();
+      mpiGrid[cells[cell]]->get_velocity_blocks(popID)->gpu_prefetchDevice();
+   }
+   #endif
+
    return success;
 }
 
