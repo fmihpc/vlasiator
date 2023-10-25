@@ -337,14 +337,14 @@ namespace vmesh {
    }
 
    inline void VelocityBlockContainer::gpu_prefetchHost() {
-      if (numberOfBlocks==0) return; // This size check in itself causes a page fault
+      //if (numberOfBlocks==0) return; // This size check in itself causes a page fault
       block_data->optimizeCPU(gpu_getStream());
       parameters->optimizeCPU(gpu_getStream());
       return;
    }
 
    inline void VelocityBlockContainer::gpu_prefetchDevice() {
-      if (numberOfBlocks==0) return; // This size check in itself causes a page fault
+      //if (numberOfBlocks==0) return; // This size check in itself causes a page fault
       block_data->optimizeGPU(gpu_getStream());
       parameters->optimizeGPU(gpu_getStream());
       return;
