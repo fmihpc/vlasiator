@@ -171,22 +171,11 @@ namespace vmesh {
    inline const VelocityBlockContainer& VelocityBlockContainer::operator=(const VelocityBlockContainer& other) {
       #ifdef USE_GPU
       attachedStream = 0;
-      delete block_data;
-      delete parameters;
-      if (other.currentCapacity == 0) {
-         block_data= new split::SplitVector<Realf>(1);
-         parameters= new split::SplitVector<Real>(1);
-         currentCapacity = 1;
-      } else {
-         block_data= new split::SplitVector<Realf>(*(other.block_data));
-         parameters= new split::SplitVector<Real>(*(other.parameters));
-         currentCapacity = other.currentCapacity;
-      }
-      #else
+      #endif
       *block_data = *(other.block_data);
       *parameters = *(other.parameters);
       numberOfBlocks = other.numberOfBlocks;
-      #endif
+      currentCapacity = other.currentCapacity;
       return *this;
    }
 
