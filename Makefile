@@ -235,14 +235,16 @@ cleantools:
 
 # Rules for making each object file needed by the executable
 
+# Extract commits for used libraries, silencing errors of missing repositories
+COMMIT_DCCRG=$(shell cd ${subst -system,,${subst -I,,${INC_DCCRG}}} && git log -1 --pretty=format:"%H" 2>/dev/null)
+COMMIT_FSGRID=$(shell cd ${subst -system,,${subst -I,,${INC_FSGRID}}} && git log -1 --pretty=format:"%H" 2>/dev/null)
+COMMIT_VLSV=$(shell cd ${subst -system,,${subst -I,,${INC_VLSV}}} && git log -1 --pretty=format:"%H" 2>/dev/null)
+COMMIT_HASHINATOR=$(shell cd ${subst -system,,${subst -I,,${INC_HASHINATOR}}} && git log -1 --pretty=format:"%H" 2>/dev/null)
+COMMIT_PROFILE=$(shell cd ${subst -system,,${subst -I,,${INC_PROFILE}}} && git log -1 --pretty=format:"%H" 2>/dev/null)
+# Build version description file
 version.cpp: FORCE
 	@echo "[GENERATE] version.cpp"
-	$(eval DCCRG_COMMIT=$(shell cd ${subst -system,,${subst -I,,${INC_DCCRG}}} && git log -1 --pretty=format:"%H"))
-	$(eval FSGRID_COMMIT=$(shell cd ${subst -system,,${subst -I,,${INC_FSGRID}}} && git log -1 --pretty=format:"%H"))
-	$(eval VLSV_COMMIT=$(shell cd ${subst -system,,${subst -I,,${INC_VLSV}}} && git log -1 --pretty=format:"%H"))
-	$(eval HASHINATOR_COMMIT=$(shell cd ${subst -system,,${subst -I,,${INC_HASHINATOR}}} && git log -1 --pretty=format:"%H"))
-	$(eval PROFILE_COMMIT=$(shell cd ${subst -system,,${subst -I,,${INC_PROFILE}}} && git log -1 --pretty=format:"%H"))
-	$(SILENT)./generate_version.sh "${CMP}" "${CXXFLAGS}" "${FLAGS}" "${INC_MPI}" "${INC_ZOLTAN}" "${INC_BOOST}" "${INC_DCCRG}" "${DCCRG_COMMIT}" "${INC_FSGRID}" "${FSGRID_COMMIT}"  "${INC_VLSV}" "${VLSV_COMMIT}" "${INC_HASHINATOR}" "${HASHINATOR_COMMIT}" "${INC_PROFILE}" "${PROFILE_COMMIT}"
+	$(SILENT)./generate_version.sh "${CMP}" "${CXXFLAGS}" "${FLAGS}" "${INC_MPI}" "${INC_ZOLTAN}" "${INC_BOOST}" "${INC_DCCRG}" "${COMMIT_DCCRG}" "${INC_FSGRID}" "${COMMIT_FSGRID}"  "${INC_VLSV}" "${COMMIT_VLSV}" "${INC_HASHINATOR}" "${COMMIT_HASHINATOR}" "${INC_PROFILE}" "${COMMIT_PROFILE}"
 
 # Do not autobuild sub-versions of spatial_cell
 spatial_cell_gpu.o:

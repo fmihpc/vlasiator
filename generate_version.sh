@@ -49,15 +49,15 @@ echo "    cout <<  \"INC_MPI:         $4 \"<<endl;" >>version.cpp
 echo "    cout <<  \"INC_ZOLTAN:      $5 \"<<endl;" >>version.cpp
 echo "    cout <<  \"INC_BOOST:       $6 \"<<endl;" >>version.cpp
 echo "    cout <<  \"INC_DCCRG:       $7 \"<<endl;" >>version.cpp
-echo "    cout <<  \"DCCRG commit:    $8 \"<<endl;" >>version.cpp
+echo "    cout <<  \"                 commit: $8 \"<<endl;" >>version.cpp
 echo "    cout <<  \"INC_FSGRID:      $9 \"<<endl;" >>version.cpp
-echo "    cout <<  \"FSGRID commit:   ${10} \"<<endl;" >>version.cpp
+echo "    cout <<  \"                 commit: ${10} \"<<endl;" >>version.cpp
 echo "    cout <<  \"INC_VLSV:        ${11} \"<<endl;" >>version.cpp
-echo "    cout <<  \"VLSV commit:     ${12} \"<<endl;" >>version.cpp
+echo "    cout <<  \"                 commit: ${12} \"<<endl;" >>version.cpp
 echo "    cout <<  \"INC_HASHINATOR:  ${13} \"<<endl;" >>version.cpp
-echo "    cout <<  \"HASHINATOR commit: ${14} \"<<endl;" >>version.cpp
+echo "    cout <<  \"                 commit: ${14} \"<<endl;" >>version.cpp
 echo "    cout <<  \"INC_PHIPROF:     ${15} \"<<endl;" >>version.cpp
-echo "    cout <<  \"PHIPROF commit:  ${16} \"<<endl;" >>version.cpp
+echo "    cout <<  \"                 commit: ${16} \"<<endl;" >>version.cpp
 
         echo "    cout << endl << \"----------- git branch --------- \"<<endl;" >>version.cpp
 git branch  | sed 's/\"/\\"/g' | sed 's/\\\"/\\"/g' | gawk '{printf("%s\"%s\"%s\n","    cout << ",$0," << endl;")}' >> version.cpp
