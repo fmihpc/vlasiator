@@ -1406,6 +1406,7 @@ namespace spatial_cell {
       CHK_ERR( gpuStreamSynchronize(stream) );
 
       #ifdef DEBUG_SPATIAL_CELL
+      populations[popID].vmesh->check();
       if (populations[popID].vmesh->size() != populations[popID].blockContainer->size()) {
          std::cerr << "size mismatch in " << __FILE__ << ' ' << __LINE__ << std::endl;
          std::cerr << " velocity mesh size "<<populations[popID].vmesh->size();

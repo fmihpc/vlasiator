@@ -128,63 +128,61 @@ namespace FieldTracing {
                      break;
                   }
                   
-                  
                   // Make one step along the fieldline
                   stepFieldLine(x,v, nodeTracingStepSize[n],fieldTracingParameters.min_tracer_dx,technicalGrid.DX/2,fieldTracingParameters.tracingMethod,tracingFullField,(no.x[2] < 0));
                   
-                  // Look up the fsgrid cell belonging to these coordinates
-                  fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
-                  
-                  creal distance = sqrt((x[0]-no.x[0])*(x[0]-no.x[0])+(x[1]-no.x[1])*(x[1]-no.x[1])+(x[2]-no.x[2])*(x[2]-no.x[2]));
-                  
-                  // TODO I simplified by just looking when we change hemispheres now.
-                  // This WILL fail as soon as there is a dipole tilt.
-                  // But do we need it beyond debugging? Tracing back for closed/non-mapping lines is perfectly legit (once the tracer is debugged).
-                  if(sign(x[2]) != sign(no.x[2])) {
-                     nodeNeedsContinuedTracing.at(n) = 0;
-                     nodeTracingCoordinates.at(n) = {0,0,0};
-                     break;
-                  }
-                  
-                  // If we somehow still map into the ionosphere, we missed the 88 degree criterion but shouldn't couple there.
+                  // If we map back into the ionosphere, we obviously don't couple out to SBC::Ionosphere::downmapRadius.
                   if(x.at(0)*x.at(0) + x.at(1)*x.at(1) + x.at(2)*x.at(2) < SBC::Ionosphere::innerRadius*SBC::Ionosphere::innerRadius) {
-                     // TODO drop this warning if it never occurs? To be followed.
-                     cerr << (string)("(fieldtracing) Warning: Triggered mapping back into Earth from node " + to_string(n) + " at z " + to_string(no.x[2]) + "\n");
                      nodeNeedsContinuedTracing.at(n) = 0;
                      nodeTracingCoordinates.at(n) = {0,0,0};
                      break;
                   }
                   
-                  // Now, after stepping, if it is no longer in our domain, another MPI rank will pick up later.
-                  if(fsgridCell[0] == -1) {
-                     nodeNeedsContinuedTracing[n] = 1;
-                     nodeTracingCoordinates[n] = x;
-                     break;
-                  }
-                  
-                  if(
-                     technicalGrid.get( fsgridCell[0], fsgridCell[1], fsgridCell[2])->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY
-                     && x[0]*x[0]+x[1]*x[1]+x[2]*x[2] > SBC::Ionosphere::downmapRadius*SBC::Ionosphere::downmapRadius
-                  ) {
-                     
-                     // Store the cells mapped coordinates and upmapped magnetic field
-                     no.xMapped = x;
-                     no.haveCouplingData = 1;
-                     nodeDistance[n] = distance;
+                  // Store the cells mapped coordinates and upmapped magnetic field at exact crossing point
+                  if(x[0]*x[0]+x[1]*x[1]+x[2]*x[2] > SBC::Ionosphere::downmapRadius*SBC::Ionosphere::downmapRadius) {
+                     const std::array<Real, 3> x_out = x;
+
+                     // Take a step back and find the downmapRadius crossing point
+                     stepFieldLine(x,v, nodeTracingStepSize[n],fieldTracingParameters.min_tracer_dx,technicalGrid.DX/2,fieldTracingParameters.tracingMethod,tracingFullField,!(no.x[2] < 0));
+                     Real r_out = sqrt(x_out[0]*x_out[0] + x_out[1]*x_out[1] + x_out[2]*x_out[2]);
+                     Real r_in = sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]);
+                     Real alpha = (SBC::Ionosphere::downmapRadius-r_out)/(r_in - r_out);
+                     Real xi = x[0]-x_out[0];
+                     Real yi = x[1]-x_out[1];
+                     Real zi = x[2]-x_out[2];
+                     no.xMapped[0] = x_out[0] + xi*alpha;
+                     no.xMapped[1] = x_out[1] + yi*alpha;
+                     no.xMapped[2] = x_out[2] + zi*alpha;
+
+                     // Look up the fsgrid cell belonging to these coordinates, including ghost IDs as we might have stepped back across the domain edge
+                     fsgridCell = getLocalFsGridCellIndexWithGhostsForCoord(technicalGrid,x);
+
+                     // Interpolate and record upmapped B at final xMapped ccordinates
                      const std::array<Real, 3> perB = interpolatePerturbedB(
                         perBGrid,
                         dPerBGrid,
                         technicalGrid,
                         fieldTracingParameters.reconstructionCoefficientsCache,
                         fsgridCell[0], fsgridCell[1], fsgridCell[2],
-                        x
+                        no.xMapped
                      );
-                     no.parameters[ionosphereParameters::UPMAPPED_BX] = SBC::ionosphereGrid.dipoleField(x[0],x[1],x[2],X,0,X) + perB[0];
-                     no.parameters[ionosphereParameters::UPMAPPED_BY] = SBC::ionosphereGrid.dipoleField(x[0],x[1],x[2],Y,0,Y) + perB[1];
-                     no.parameters[ionosphereParameters::UPMAPPED_BZ] = SBC::ionosphereGrid.dipoleField(x[0],x[1],x[2],Z,0,Z) + perB[2];
+                     no.parameters[ionosphereParameters::UPMAPPED_BX] = SBC::ionosphereGrid.dipoleField(x[0],x[1],x[2],X,0,X) + SBC::ionosphereGrid.BGB[0] + perB[0];
+                     no.parameters[ionosphereParameters::UPMAPPED_BY] = SBC::ionosphereGrid.dipoleField(x[0],x[1],x[2],Y,0,Y) + SBC::ionosphereGrid.BGB[1] + perB[1];
+                     no.parameters[ionosphereParameters::UPMAPPED_BZ] = SBC::ionosphereGrid.dipoleField(x[0],x[1],x[2],Z,0,Z) + SBC::ionosphereGrid.BGB[2] + perB[2];
                      
+                     no.haveCouplingData = 1;
+                     nodeDistance[n] = sqrt((no.xMapped[0]-no.x[0])*(no.xMapped[0]-no.x[0])+(no.xMapped[1]-no.x[1])*(no.xMapped[1]-no.x[1])+(no.xMapped[2]-no.x[2])*(no.xMapped[2]-no.x[2]));
                      nodeNeedsContinuedTracing[n] = 0;
                      nodeTracingCoordinates[n] = {0,0,0};
+                     break;
+                  }
+
+                  // Look up the fsgrid cell belonging to these coordinates, again only local (no ghosts)
+                  fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
+                  // Now, after stepping, if it is no longer in our domain, another MPI rank will pick up later.
+                  if(fsgridCell[0] == -1) {
+                     nodeNeedsContinuedTracing[n] = 1;
+                     nodeTracingCoordinates[n] = x;
                      break;
                   }
                } // while(true)
@@ -350,6 +348,19 @@ namespace FieldTracing {
             return coupling;
          }
       }
+
+      const std::array<Real,3> x_in = x;
+      Real r_in = sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]);
+      // Take a step back and find the innerRadius crossing point
+      stepFieldLine(x,v, stepSize,50e3,100e3,fieldTracingParameters.tracingMethod,dipoleFieldOnly,false);
+      Real r_out = sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]);
+      Real alpha = (SBC::Ionosphere::innerRadius - r_in)/(r_out - r_in);
+      Real xi = x[0]-x_in[0];
+      Real yi = x[1]-x_in[1];
+      Real zi = x[2]-x_in[2];
+      x[0] = x_in[0] + xi*alpha;
+      x[1] = x_in[1] + yi*alpha;
+      x[2] = x_in[2] + zi*alpha;
       
       // Determine the nearest ionosphere node to this point.
       uint32_t nearestNode = SBC::ionosphereGrid.findNodeAtCoordinates(x);
@@ -835,8 +846,8 @@ namespace FieldTracing {
       std::vector<TReal> cellBWTracingStepSize(globalDccrgSize, stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
       
       std::array<int, 3> gridSize = technicalGrid.getGlobalSize();
-      // This is a heuristic considering how far an IMF+dipole combo can sensibly stretch in the box before we're safe to assume it's rolled up more or less pathologically.
-      const TReal maxTracingDistance = 4 * (gridSize[0] * technicalGrid.DX + gridSize[1] * technicalGrid.DY + gridSize[2] * technicalGrid.DZ);
+      // If fullbox_and_fluxrope_max_distance is unset, use this heuristic considering how far an IMF+dipole combo can sensibly stretch in the box before we're safe to assume it's rolled up more or less pathologically.
+      const TReal maxTracingDistance = fieldTracingParameters.fullbox_and_fluxrope_max_distance > 0 ? fieldTracingParameters.fullbox_and_fluxrope_max_distance : gridSize[0] * technicalGrid.DX + gridSize[1] * technicalGrid.DY + gridSize[2] * technicalGrid.DZ;
       
       std::vector<TReal> cellCurvatureRadius(globalDccrgSize);
       std::vector<TReal> reducedCellCurvatureRadius(globalDccrgSize);

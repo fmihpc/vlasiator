@@ -158,10 +158,11 @@ namespace vmesh {
 
    inline VelocityMesh::VelocityMesh(const VelocityMesh& other) {
       meshID = other.meshID;
-      globalToLocalMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(*(other.globalToLocalMap));
       if (other.localToGlobalMap->size() > 0) {
+         globalToLocalMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(*(other.globalToLocalMap));
          localToGlobalMap = new split::SplitVector<vmesh::GlobalID>(*(other.localToGlobalMap));
       } else {
+         globalToLocalMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(7);
          localToGlobalMap = new split::SplitVector<vmesh::GlobalID>(1);
          localToGlobalMap->clear();
       }
@@ -173,10 +174,11 @@ namespace vmesh {
       delete globalToLocalMap;
       delete localToGlobalMap;
       meshID = other.meshID;
-      globalToLocalMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(*(other.globalToLocalMap));
       if (other.localToGlobalMap->size() > 0) {
+         globalToLocalMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(*(other.globalToLocalMap));
          localToGlobalMap = new split::SplitVector<vmesh::GlobalID>(*(other.localToGlobalMap));
       } else {
+         globalToLocalMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(*(other.globalToLocalMap));
          localToGlobalMap = new split::SplitVector<vmesh::GlobalID>(1);
          localToGlobalMap->clear();
       }
@@ -192,6 +194,11 @@ namespace vmesh {
 
    ARCH_HOSTDEV inline bool VelocityMesh::check() const {
       bool ok = true;
+      #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
+      gpuStream_t stream = gpu_getStream();
+      localToGlobalMap->optimizeCPU(stream);
+      globalToLocalMap->optimizeCPU(stream);
+      #endif
 
       if (localToGlobalMap->size() != globalToLocalMap->size()) {
          printf("VMO ERROR: sizes differ, %lu vs %lu\n",localToGlobalMap->size(),globalToLocalMap->size());
@@ -214,6 +221,10 @@ namespace vmesh {
             assert(0 && "VM check ERROR");
          }
       }
+      #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
+      localToGlobalMap->optimizeGPU(stream);
+      globalToLocalMap->optimizeGPU(stream);
+      #endif
       return ok;
    }
 
@@ -895,7 +906,15 @@ namespace vmesh {
          if (it3 == globalToLocalMap->device_end()) {
             uint64_t sizePower = globalToLocalMap->getSizePower();
             printf("Warp error in VelocityMesh::warpReplaceBlock: warp-inserted GID %u LID %u but thread %u cannot find it!\n",GIDnew,LID,(vmesh::LocalID)b_tid);
-            if (b_tid==0) globalToLocalMap->stats();
+            if (b_tid==0) {
+               if (newlyadded) {
+                  printf("warpAccessor reported true for insertion!\n");
+               } else {
+                  printf("warpAccessor reported false for insertion!\n");
+               }
+               globalToLocalMap->stats();
+               //globalToLocalMap->dump_buckets();
+            }
             assert(0);
          } else if (it3->second != LID) {
             printf("Warp error in VelocityMesh::warpReplaceBlock: warp-inserted GID %u LID %u but thread %u instead finds LID %u!\n",GIDnew,LID,(vmesh::LocalID)b_tid,it3->second);
@@ -925,6 +944,10 @@ namespace vmesh {
          bool newlyadded = false;
          newlyadded = globalToLocalMap->warpInsert_V(GID,LID, b_tid);
          if (b_tid==0) {
+            if (!newlyadded) {
+               globalToLocalMap->stats();
+               //globalToLocalMap->dump_buckets();
+            }
             assert(newlyadded && "newlyAdded warpPlaceBlock");
             localToGlobalMap->at(LID) = GID;
          }
@@ -1097,7 +1120,6 @@ namespace vmesh {
    inline void VelocityMesh::gpu_prefetchHost(gpuStream_t stream=0) {
       //if (localToGlobalMap->size() == 0) return; // This size check in itself causes a page fault
       // In fact we only need to prefetch the buckets inside the hashmap to GPU, but use this call.
-      //Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *uploaded = globalToLocalMap->upload(gpu_getStream());
       if (stream==0) {
          globalToLocalMap->optimizeCPU(gpu_getStream());
          localToGlobalMap->optimizeCPU(gpu_getStream());
@@ -1111,7 +1133,6 @@ namespace vmesh {
    inline void VelocityMesh::gpu_prefetchDevice(gpuStream_t stream=0) {
       //if (localToGlobalMap->size() == 0) return; // This size check in itself causes a page fault
       // In fact we only need to prefetch the buckets inside the hashmap to GPU, but use this call.
-      //Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *uploaded = globalToLocalMap->upload(gpu_getStream());
       if (stream==0) {
          globalToLocalMap->optimizeGPU(gpu_getStream());
          localToGlobalMap->optimizeGPU(gpu_getStream());

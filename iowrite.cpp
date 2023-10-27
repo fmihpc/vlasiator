@@ -155,6 +155,10 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
    for (size_t cell=0; cell<cells.size(); ++cell){
       totalBlocks+=mpiGrid[cells[cell]]->get_number_of_velocity_blocks(popID);
       blocksPerCell.push_back(mpiGrid[cells[cell]]->get_number_of_velocity_blocks(popID));
+      #ifdef USE_GPU
+      mpiGrid[cells[cell]]->get_velocity_mesh(popID)->gpu_prefetchHost();
+      mpiGrid[cells[cell]]->get_velocity_blocks(popID)->gpu_prefetchHost();
+      #endif
    }
 
    // The name of the mesh is "SpatialGrid"
@@ -294,6 +298,13 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
    if (success ==false) {
       logFile << "(MAIN) writeGrid: ERROR occurred when writing BLOCKVARIABLE f" << endl << writeVerbose;
    }
+   #ifdef USE_GPU
+   for (size_t cell=0; cell<cells.size(); ++cell){
+      mpiGrid[cells[cell]]->get_velocity_mesh(popID)->gpu_prefetchDevice();
+      mpiGrid[cells[cell]]->get_velocity_blocks(popID)->gpu_prefetchDevice();
+   }
+   #endif
+
    return success;
 }
 
@@ -381,6 +392,7 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
          // Note that this is not an error (anymore), since fsgrid reducers will return false here.
       }
    }
+
    if( success ) {
 
       if( (writeAsFloat == true && dataType.compare("float") == 0) && dataSize == sizeof(double) ) {
@@ -1319,7 +1331,6 @@ bool writeGrid(
    fname.fill('0');
    fname << P::systemWrites.at(outputFileTypeIndex) << ".vlsv";
 
-
    //Open the file with vlsvWriter:
    Writer vlsvWriter;
    const int masterProcessId = 0;
@@ -1372,7 +1383,6 @@ bool writeGrid(
       // Get all ghost cell Ids (NOTE: this works slightly differently depending on whether the grid is periodic or not)
       ghost_cells = mpiGrid.get_remote_cells_on_process_boundary( NEAREST_NEIGHBORHOOD_ID );
    }
-
 
    //Make sure the local cells and ghost cells are fetched properly
    if( local_cells.empty() ) {
@@ -1631,7 +1641,6 @@ bool writeRestart(
    //Write Config Info 
    if( writeConfigInfo(configInfo,vlsvWriter,MPI_COMM_WORLD) == false ) return false;
    
-
    //Write Ionosphere Grid
    if( writeIonosphereGridMetadata( vlsvWriter ) == false ) return false;
 

@@ -119,19 +119,20 @@ namespace vmesh {
 
    };
 
-   inline VelocityBlockContainer::VelocityBlockContainer() : currentCapacity {0}, numberOfBlocks {0} {
+   inline VelocityBlockContainer::VelocityBlockContainer() : currentCapacity {1}, numberOfBlocks {0} {
       // initialization with zero capacity would return null pointers
-      const uint capacity = currentCapacity > 0 ? currentCapacity : 1;
+      if (numberOfBlocks > currentCapacity) {
+         currentCapacity = numberOfBlocks;
+      }
 #ifdef USE_GPU
-      block_data= new split::SplitVector<Realf>(capacity);
-      parameters= new split::SplitVector<Real>(capacity);
+      const uint initCapacity = currentCapacity > 0 ? currentCapacity : 1;
+      block_data= new split::SplitVector<Realf>(initCapacity);
+      parameters= new split::SplitVector<Real>(initCapacity);
       attachedStream = 0;
 #else
-      block_data = new std::vector<Realf,aligned_allocator<Realf,WID3>>(capacity);
-      parameters = new std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS>>(capacity);
+      block_data = new std::vector<Realf,aligned_allocator<Realf,WID3>>(currentCapacity);
+      parameters = new std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS>>(currentCapacity);
 #endif
-      block_data->clear();
-      parameters->clear();
    }
 
    inline VelocityBlockContainer::~VelocityBlockContainer() {
@@ -142,18 +143,28 @@ namespace vmesh {
       if (parameters) delete parameters;
       block_data = NULL;
       parameters = NULL;
+      currentCapacity = 0;
+      numberOfBlocks = 0;
+      attachedStream = 0;
    }
 
    inline VelocityBlockContainer::VelocityBlockContainer(const VelocityBlockContainer& other) {
 #ifdef USE_GPU
       attachedStream = 0;
-      block_data= new split::SplitVector<Realf>(*(other.block_data));
-      parameters= new split::SplitVector<Real>(*(other.parameters));
+      if (other.currentCapacity > 0) {
+         block_data= new split::SplitVector<Realf>(*(other.block_data));
+         parameters= new split::SplitVector<Real>(*(other.parameters));
+         currentCapacity = other.currentCapacity;
+      } else {
+         block_data= new split::SplitVector<Realf>(1);
+         parameters= new split::SplitVector<Real>(1);
+         currentCapacity = 1;
+      }
 #else
       block_data = new std::vector<Realf,aligned_allocator<Realf,WID3>>(*(other.block_data));
       parameters = new std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS>>(*(other.parameters));
-#endif
       currentCapacity = other.currentCapacity;
+#endif
       numberOfBlocks = other.numberOfBlocks;
    }
 
@@ -163,8 +174,8 @@ namespace vmesh {
       #endif
       *block_data = *(other.block_data);
       *parameters = *(other.parameters);
-      currentCapacity = other.currentCapacity;
       numberOfBlocks = other.numberOfBlocks;
+      currentCapacity = other.currentCapacity;
       return *this;
    }
 
@@ -180,10 +191,11 @@ namespace vmesh {
     * reserved for velocity blocks.*/
    inline void VelocityBlockContainer::clear() {
 #ifdef USE_GPU
-      block_data->clear();
+      block_data->resize(1,false);
       block_data->shrink_to_fit();
-      parameters->clear();
+      parameters->resize(1,false);
       parameters->shrink_to_fit();
+      currentCapacity = 1;
 #else
       std::vector<Realf,aligned_allocator<Realf,WID3> > *dummy_data = new std::vector<Realf,aligned_allocator<Realf,WID3> >(1);
       std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS> > *dummy_parameters = new std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS> >(1);
@@ -194,8 +206,8 @@ namespace vmesh {
       parameters->clear();
       delete dummy_data;
       delete dummy_parameters;
-#endif
       currentCapacity = 0;
+#endif
       numberOfBlocks = 0;
    }
 

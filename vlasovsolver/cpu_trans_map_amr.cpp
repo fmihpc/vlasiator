@@ -229,7 +229,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
    }
 
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
-   unsigned int vcell_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
+   unsigned char vcell_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
    // Fiddle indices x,y,z in VELOCITY SPACE
    switch (dimension) {
    case 0:
@@ -263,20 +263,8 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
    // In fact propagating to > 1 neighbor will give an error
    // const uint nTargetNeighborsPerPencil = 1;
 
-   // Vector with all cell ids
-   vector<CellID> allCells(localPropagatedCells);
-   allCells.insert(allCells.end(), remoteTargetCells.begin(), remoteTargetCells.end());
-
-   // Vectors of pointers to the cell structs
-   std::vector<SpatialCell*> allCellsPointer(allCells.size());
-
-   // Initialize allCellsPointer
-   #pragma omp parallel for
-   for(uint celli = 0; celli < allCells.size(); celli++){
-      allCellsPointer[celli] = mpiGrid[allCells[celli]];
-   }
-   // init vcell_transpose (moved here to take advantage of the omp parallel region)
-#pragma omp parallel for collapse(3)
+   // init cellid_transpose (moved here to take advantage of the omp parallel region)
+#pragma omp parallel for collapse(2)
    for (uint k=0; k<WID; ++k) {
       for (uint j=0; j<WID; ++j) {
          for (uint i=0; i<WID; ++i) {
