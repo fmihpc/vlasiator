@@ -667,7 +667,7 @@ void calculateCurvatureSimple(
 /*! \brief Returns perturbed volumetric B of cell
  *
  */
-static std::array<Real, 3> getPerB(SpatialCell* cell)
+static std::array<Real, 3> getPerBVol(SpatialCell* cell)
 {
    return std::array<Real, 3> { {cell->parameters[CellParams::PERBXVOL], cell->parameters[CellParams::PERBYVOL], cell->parameters[CellParams::PERBZVOL]} };
 }
@@ -675,7 +675,7 @@ static std::array<Real, 3> getPerB(SpatialCell* cell)
 /*! \brief Returns volumetric B of cell
  *
  */
-static std::array<Real, 3> getB(SpatialCell* cell)
+static std::array<Real, 3> getBVol(SpatialCell* cell)
 {
    return std::array<Real, 3> { 
       {
@@ -701,7 +701,7 @@ static std::array<Real, 3> getMomentumDensity(SpatialCell* cell)
 static Real calculateU(SpatialCell* cell)
 {
    std::array<Real, 3> p = getMomentumDensity(cell);
-   std::array<Real, 3> B = getB(cell);
+   std::array<Real, 3> B = getBVol(cell);
    return (pow(p[0], 2) + pow(p[1], 2) + pow(p[2], 2)) / (2.0 * cell->parameters[CellParams::RHOM]) + (pow(B[0], 2) + pow(B[1], 2) + pow(B[2], 2)) / (2.0 * physicalconstants::MU_0);
 }
 
@@ -725,12 +725,12 @@ void calculateScaledDeltas(
    Real myRho {cell->parameters[CellParams::RHOM]};
    Real myU {calculateU(cell)};
    std::array<Real, 3> myP = getMomentumDensity(cell);
-   std::array<Real, 3> myB = getB(cell);
+   std::array<Real, 3> myB = getBVol(cell);
    for (SpatialCell* neighbor : neighbors) {
       Real otherRho = neighbor->parameters[CellParams::RHOM];
       Real otherU = calculateU(neighbor);
       std::array<Real, 3> otherP = getMomentumDensity(neighbor);
-      std::array<Real, 3> otherB = getB(neighbor);
+      std::array<Real, 3> otherB = getBVol(neighbor);
       Real deltaBsq = pow(myB[0] - otherB[0], 2) + pow(myB[1] - otherB[1], 2) + pow(myB[2] - otherB[2], 2);
 
       // Assignment intentional
@@ -762,7 +762,7 @@ void calculateScaledDeltas(
    Real dBZdy {cell->derivativesBVOL[bvolderivatives::dPERBZVOLdy]};
 
    // Note missing factor of mu_0, since we want B and J in same units later
-   myB = getPerB(cell);
+   myB = getPerBVol(cell); // Consider using total B
    std::array<Real, 3> myJ = {dBZdy - dBYdz, dBXdz - dBZdx, dBYdx - dBXdy};
    Real BdotJ {0.0};
    Real Bsq {0.0};
