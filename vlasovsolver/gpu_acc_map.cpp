@@ -67,7 +67,7 @@ __device__ void inline swapBlockIndices(vmesh::LocalID &blockIndices0,vmesh::Loc
 }
 
 __global__ void __launch_bounds__(VECL,4) reorder_blocks_by_dimension_kernel(
-   Realf *gpu_blockData,
+   vmesh::VelocityBlockContainer *blockContainer,
    Vec *gpu_blockDataOrdered,
    uint *gpu_cell_indices_to_id,
    uint totalColumns,
@@ -86,6 +86,7 @@ __global__ void __launch_bounds__(VECL,4) reorder_blocks_by_dimension_kernel(
    const int ti = threadIdx.x;
    const int blocki = blockIdx.x;
    const int gpuBlocks = gridDim.x;
+   Realf *gpu_blockData = blockContainer->getData();
    if (nThreads != VECL) {
       if (ti==0) printf("Warning! VECL not matching thread count for GPU kernel!\n");
    }
@@ -433,27 +434,29 @@ __global__ void __launch_bounds__(GPUTHREADS,4) evaluate_column_extents_kernel(
 }
 
 __global__ void __launch_bounds__(VECL,4) acceleration_kernel(
-  Realf *gpu_blockData,
-  Vec *gpu_blockDataOrdered,
-  uint *gpu_cell_indices_to_id,
-  Column *gpu_columns,
-  uint totalColumns,
-  Realv intersection,
-  Realv intersection_di,
-  Realv intersection_dj,
-  Realv intersection_dk,
-  Realv v_min,
-  Realv i_dv,
-  Realv dv,
-  Realv minValue,
-  const uint bdsw3,
-  const size_t invalidLID
+   //Realf *gpu_blockData,
+   vmesh::VelocityBlockContainer *blockContainer,
+   Vec *gpu_blockDataOrdered,
+   uint *gpu_cell_indices_to_id,
+   Column *gpu_columns,
+   uint totalColumns,
+   Realv intersection,
+   Realv intersection_di,
+   Realv intersection_dj,
+   Realv intersection_dk,
+   Realv v_min,
+   Realv i_dv,
+   Realv dv,
+   Realv minValue,
+   const uint bdsw3,
+   const size_t invalidLID
 ) {
    const uint gpuBlocks = gridDim.x * gridDim.y * gridDim.z;
    //const uint warpSize = blockDim.x * blockDim.y * blockDim.z;
    const uint blocki = blockIdx.z*gridDim.x*gridDim.y + blockIdx.y*gridDim.x + blockIdx.x;
    const uint index = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
 
+   Realf *gpu_blockData = blockContainer->getData();
    for (uint column = blocki; column < totalColumns; column += gpuBlocks) {
       /* New threading with each warp/wavefront working on one vector */
       Realf v_r0 = ( (WID * gpu_columns[column].kBegin) * dv + v_min);
@@ -582,7 +585,6 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    phiprof::Timer paramsTimer {"Get acc parameters"};
    vmesh::VelocityMesh* vmesh    = spatial_cell->get_velocity_mesh(popID);
    vmesh::VelocityBlockContainer* blockContainer = spatial_cell->get_velocity_blocks(popID);
-   Realf *blockData = blockContainer->getData();
 
    // Thread id used for persistent device memory pointers
 #ifdef _OPENMP
@@ -774,7 +776,7 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    uint gpublocks = host_totalColumns > GPUBLOCKS ? GPUBLOCKS : host_totalColumns;
    // Launch kernels for transposing and ordering velocity space data into columns
    reorder_blocks_by_dimension_kernel<<<gpublocks, VECL, 0, stream>>> (
-      blockData, // unified memory, incoming
+      blockContainer,
       gpu_blockDataOrdered[cpuThreadID],
       gpu_cell_indices_to_id[cpuThreadID],
       host_totalColumns,
@@ -881,7 +883,8 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    // Put into second (high-priority) stream for concurrency
    // Zero out target data on device (unified) (note, pointer needs to be re-fetched)
    phiprof::Timer memsetTimer {"Memset ACC blocks to zero"};
-   blockData = blockContainer->getData();
+   //GPUTODO: direct access ot blockContainer getData causes page fault
+   Realf *blockData = blockContainer->getData();
    CHK_ERR( gpuMemsetAsync(blockData, 0, bdsw3*sizeof(Realf), stream) );
    SSYNC;
    memsetTimer.stop();
@@ -901,7 +904,7 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    CHK_ERR( gpuStreamSynchronize(stream) ); // Yes needed to ensure block data was zeroed
    phiprof::Timer semilagAccKernel {"Semi-Lagrangian acceleration kernel"};
    acceleration_kernel<<<gpublocks, VECL, 0, stream>>> (
-      blockData,
+      blockContainer,
       gpu_blockDataOrdered[cpuThreadID],
       gpu_cell_indices_to_id[cpuThreadID],
       columns,
