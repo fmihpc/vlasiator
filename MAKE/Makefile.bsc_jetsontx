@@ -31,7 +31,7 @@ FLAGS =
 # note: std was c++11
 # note: testpackage settings missing
 CXXFLAGS = -I$(HOME)/include -O3 -std=c++17 -W -Wall -pedantic -Wno-unused -Wno-unused-parameter -Wno-missing-braces  -fopenmp -march=native
-MATHFLAGS = -ffast-math
+MATHFLAGS = 
 LDFLAGS = -fopenmp
 LIB_MPI =
 # LIB_MPI = 

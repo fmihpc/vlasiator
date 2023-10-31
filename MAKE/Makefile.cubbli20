@@ -74,7 +74,7 @@ FLAGS =
 # Debug flags:
 #CXXFLAGS = -g  -funroll-loops -std=c++17 -fopenmp -W -Wall -pedantic -Wno-unused -fabi-version=0 -mavx
 CXXFLAGS = -O3  -funroll-loops -std=c++17 -fopenmp -W -Wall -Wno-unused -fabi-version=0 -mavx
-MATHFLAGS = -ffast-math
+MATHFLAGS =
 LDFLAGS = -L $(HOME)/lib
 LIB_MPI = -lgomp 
 
