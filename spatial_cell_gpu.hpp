@@ -400,7 +400,7 @@ namespace spatial_cell {
       }
    }
 
-   class SpatialCell : public Managed {
+   class SpatialCell {
    public:
       SpatialCell();
       ~SpatialCell();
@@ -729,11 +729,13 @@ namespace spatial_cell {
       // (this->populations[popID].blockContainer)->gpu_prefetchDevice();
       // (pop.vmesh)->gpu_prefetchDevice();
       // (pop.blockContainer)->gpu_prefetchDevice();
+      phiprof::Timer setpopTimer {"set population"};
       this->populations[popID] = pop;
    }
    inline void SpatialCell::scale_population(creal factor, cuint popID) {
       // (this->populations[popID].vmesh)->gpu_prefetchDevice();
       // (this->populations[popID].blockContainer)->gpu_prefetchDevice();
+      phiprof::Timer scalepopTimer {"scale population"};
       (this->populations[popID]).Scale(factor);
    }
    inline void SpatialCell::increment_population(const Population& pop, creal factor, cuint popID) {
@@ -741,6 +743,7 @@ namespace spatial_cell {
       // (this->populations[popID].blockContainer)->gpu_prefetchDevice();
       // (pop.vmesh)->gpu_prefetchDevice();
       // (pop.blockContainer)->gpu_prefetchDevice();
+      phiprof::Timer incpopTimer {"increment population"};
       (this->populations[popID]).Increment(pop, factor);
    }
 

@@ -894,22 +894,31 @@ namespace spatial_cell {
    void SpatialCell::applyReservation(const uint popID) {
       size_t reserveSize = populations[popID].reservation * BLOCK_ALLOCATION_FACTOR;
       size_t newReserve = populations[popID].reservation * BLOCK_ALLOCATION_PADDING;
-      if (BlocksRequired->capacity() < reserveSize) {
+      gpuStream_t stream = gpu_getStream();
+      // Host-side non-pagefaulting approach
+      BlocksRequired->copyMetadata(info_Required,stream);
+      BlocksToAdd->copyMetadata(info_toAdd,stream);
+      BlocksToRemove->copyMetadata(info_toRemove,stream);
+      BlocksToMove->copyMetadata(info_toMove,stream);
+      velocity_block_with_content_list->copyMetadata(info_vbwcl,stream);
+      velocity_block_with_no_content_list->copyMetadata(info_vbwncl,stream);
+      CHK_ERR( gpuStreamSynchronize(stream) );
+      if (info_Required->capacity < reserveSize) {
          BlocksRequired->reserve(newReserve,true);
       }
-      if (BlocksToAdd->capacity() < reserveSize) {
+      if (info_toAdd->capacity < reserveSize) {
          BlocksToAdd->reserve(newReserve,true);
       }
-      if (BlocksToRemove->capacity() < reserveSize) {
+      if (info_toRemove->capacity < reserveSize) {
          BlocksToRemove->reserve(newReserve,true);
       }
-      if (BlocksToMove->capacity() < reserveSize) {
+      if (info_toMove->capacity < reserveSize) {
          BlocksToMove->reserve(newReserve,true);
       }
-      if (velocity_block_with_content_list->capacity() < reserveSize) {
+      if (info_vbwcl->capacity < reserveSize) {
          velocity_block_with_content_list->reserve(newReserve,true);
       }
-      if (velocity_block_with_no_content_list->capacity() < reserveSize) {
+      if (info_vbwncl->capacity < reserveSize) {
          velocity_block_with_no_content_list->reserve(newReserve,true);
       }
    }
@@ -1175,7 +1184,12 @@ namespace spatial_cell {
       // to be rescued from the end-space of the block data.
       // To be used by acceleration in the special case that we hit v-space boundaries.
       gpuStream_t stream = gpu_getStream();
-      const int nBlocksRequired = BlocksRequired->size();
+      //const int nBlocksRequired = BlocksRequired->size();
+      // Host-side non-pagefaulting approach
+      BlocksRequired->copyMetadata(info_Required,stream);
+      CHK_ERR( gpuStreamSynchronize(stream) );
+      const int nBlocksRequired =  info_Required->size;
+
       const uint nGpuBlocks = nBlocksRequired > GPUBLOCKS ? GPUBLOCKS : nBlocksRequired;
       BlocksToMove->reserve(nBlocksRequired,true);
       if (nBlocksRequired>0) {
@@ -1403,7 +1417,13 @@ namespace spatial_cell {
 
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_WITH_CONTENT_STAGE1) !=0) {
             //Communicate size of list so that buffers can be allocated on receiving side
-            if (!receiving) this->velocity_block_with_content_list_size = this->velocity_block_with_content_list->size();
+            if (!receiving) {
+               // Host-side non-pagefaulting approach
+               gpuStream_t stream = gpu_getStream();
+               this->velocity_block_with_content_list->copyMetadata(info_vbwcl,stream);
+               CHK_ERR( gpuStreamSynchronize(stream) );
+               this->velocity_block_with_content_list_size = info_vbwncl->size;
+            }
             displacements.push_back((uint8_t*) &(this->velocity_block_with_content_list_size) - (uint8_t*) this);
             block_lengths.push_back(sizeof(vmesh::LocalID));
          }
@@ -1697,8 +1717,10 @@ namespace spatial_cell {
       phiprof::Timer updateListsTimer {"GPU update spatial cell block lists"};
       gpuStream_t stream = gpu_getStream();
       phiprof::Timer prefetchTimer {"VB content list prefetches and allocations"};
-      vmesh::LocalID currSize = populations[popID].vmesh->size();
-      vmesh::LocalID currCapacity = velocity_block_with_content_list->capacity();
+      // Host-side non-pagefaulting approach
+      velocity_block_with_content_list->copyMetadata(info_vbwcl,stream);
+      vmesh::LocalID currSize = populations[popID].vmesh->size(); // Includes stream sync
+      vmesh::LocalID currCapacity = info_vbwcl->capacity;
 
       // Immediate return if no blocks to process
       if (currSize == 0) {
