@@ -170,12 +170,20 @@ namespace vmesh {
 
    inline const VelocityBlockContainer& VelocityBlockContainer::operator=(const VelocityBlockContainer& other) {
       #ifdef USE_GPU
-      attachedStream = 0;
+      // gpuStream_t stream = gpu_getStream();
+      // CHK_ERR( gpuMemcpyAsync(&attachedStream, &(other.attachedStream), sizeof(gpuStream_t), gpuMemcpyDeviceToDevice,stream) );
+      // CHK_ERR( gpuMemcpyAsync(&numberOfBlocks, &(other.numberOfBlocks), sizeof(vmesh::LocalID), gpuMemcpyDeviceToDevice,stream) );
+      // CHK_ERR( gpuMemcpyAsync(&currentCapacity, &(other.currentCapacity), sizeof(vmesh::LocalID), gpuMemcpyDeviceToDevice,stream) );
+      // Not bothering with a stream sync here
+      attachedStream = other.attachedStream;
+      numberOfBlocks = other.numberOfBlocks;
+      currentCapacity = other.currentCapacity;
+      # else
+      numberOfBlocks = other.numberOfBlocks;
+      currentCapacity = other.currentCapacity;
       #endif
       *block_data = *(other.block_data);
       *parameters = *(other.parameters);
-      numberOfBlocks = other.numberOfBlocks;
-      currentCapacity = other.currentCapacity;
       return *this;
    }
 

@@ -171,19 +171,13 @@ namespace vmesh {
    }
 
    inline const VelocityMesh& VelocityMesh::operator=(const VelocityMesh& other) {
-      delete globalToLocalMap;
-      delete localToGlobalMap;
+      // gpuStream_t stream = gpu_getStream();
+      // CHK_ERR( gpuMemcpyAsync(&meshID, &(other.meshID), sizeof(size_t), gpuMemcpyDeviceToDevice,stream) );
+      // Not bothering with a stream sync here
       meshID = other.meshID;
-      if (other.localToGlobalMap->size() > 0) {
-         globalToLocalMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(*(other.globalToLocalMap));
-         localToGlobalMap = new split::SplitVector<vmesh::GlobalID>(*(other.localToGlobalMap));
-      } else {
-         globalToLocalMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(*(other.globalToLocalMap));
-         localToGlobalMap = new split::SplitVector<vmesh::GlobalID>(1);
-         localToGlobalMap->clear();
-      }
+      *globalToLocalMap = *(other.globalToLocalMap);
+      *localToGlobalMap = *(other.localToGlobalMap);
       attachedStream = 0;
-      //gpuMallocHost((void **) &info_ltgm, sizeof(split::SplitInfo)); already exists
       return *this;
    }
 
@@ -1056,9 +1050,12 @@ namespace vmesh {
 
    inline void VelocityMesh::setNewSize(const vmesh::LocalID& newSize) {
       // Needed by GPU block adjustment
-      // Passing eco flag = true to resize tells splitvector we manage padding manually.
-      vmesh::LocalID currentCapacity = localToGlobalMap->capacity();
+      // Host-side non-pagefaulting approach
       gpuStream_t stream = gpu_getStream();
+      localToGlobalMap->copyMetadata(info_ltgm,stream);
+      CHK_ERR( gpuStreamSynchronize(stream) );
+      vmesh::LocalID currentCapacity =  info_ltgm->size;
+      // Passing eco flag = true to resize tells splitvector we manage padding manually.
       localToGlobalMap->resize(newSize,true);
       //int device = gpu_getDevice();
       if (newSize > currentCapacity) {
