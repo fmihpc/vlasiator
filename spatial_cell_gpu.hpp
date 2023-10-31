@@ -725,22 +725,22 @@ namespace spatial_cell {
    }
 
    inline void SpatialCell::set_population(const Population& pop, cuint popID) {
-      (this->populations[popID].vmesh)->gpu_prefetchDevice();
-      (this->populations[popID].blockContainer)->gpu_prefetchDevice();
-      (pop.vmesh)->gpu_prefetchDevice();
-      (pop.blockContainer)->gpu_prefetchDevice();
+      // (this->populations[popID].vmesh)->gpu_prefetchDevice();
+      // (this->populations[popID].blockContainer)->gpu_prefetchDevice();
+      // (pop.vmesh)->gpu_prefetchDevice();
+      // (pop.blockContainer)->gpu_prefetchDevice();
       this->populations[popID] = pop;
    }
    inline void SpatialCell::scale_population(creal factor, cuint popID) {
-      (this->populations[popID].vmesh)->gpu_prefetchDevice();
-      (this->populations[popID].blockContainer)->gpu_prefetchDevice();
+      // (this->populations[popID].vmesh)->gpu_prefetchDevice();
+      // (this->populations[popID].blockContainer)->gpu_prefetchDevice();
       (this->populations[popID]).Scale(factor);
    }
    inline void SpatialCell::increment_population(const Population& pop, creal factor, cuint popID) {
-      (this->populations[popID].vmesh)->gpu_prefetchDevice();
-      (this->populations[popID].blockContainer)->gpu_prefetchDevice();
-      (pop.vmesh)->gpu_prefetchDevice();
-      (pop.blockContainer)->gpu_prefetchDevice();
+      // (this->populations[popID].vmesh)->gpu_prefetchDevice();
+      // (this->populations[popID].blockContainer)->gpu_prefetchDevice();
+      // (pop.vmesh)->gpu_prefetchDevice();
+      // (pop.blockContainer)->gpu_prefetchDevice();
       (this->populations[popID]).Increment(pop, factor);
    }
 
