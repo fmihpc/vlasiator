@@ -72,10 +72,11 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
       Real array[4] = {0};
 
       // Calculate species' contribution to first velocity moments
+      phiprof::Timer firstMomentsTimer {"calcFirstMoments"};
       blockVelocityFirstMoments(blockContainer,
                                 array,
                                 nBlocks);
-
+      firstMomentsTimer.stop();
       Population &pop = cell->get_population(popID);
       pop.RHO = array[0];
       pop.V[0] = divideIfNonZero(array[1], array[0]);
@@ -118,13 +119,14 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
       Real array[3] = {0};
 
       // Calculate species' contribution to second velocity moments
+      phiprof::Timer secondMomentsTimer {"calcSecondMoments"};
       blockVelocitySecondMoments(blockContainer,
                                  cell->parameters[CellParams::VX_R],
                                  cell->parameters[CellParams::VY_R],
                                  cell->parameters[CellParams::VZ_R],
                                  array,
                                  nBlocks);
-
+      secondMomentsTimer.stop();
       // Store species' contribution to bulk velocity moments
       Population &pop = cell->get_population(popID);
       pop.P[0] = mass*array[0];
@@ -207,10 +209,11 @@ void calculateMoments_R(
          Real array[4] = {0};
 
          // Calculate species' contribution to first velocity moments
+         phiprof::Timer firstMomentsTimer {"calcFirstMoments_R"};
          blockVelocityFirstMoments(blockContainer,
                                    array,
                                    nBlocks);
-
+         firstMomentsTimer.stop();
          // Store species' contribution to bulk velocity moments
          Population &pop = cell->get_population(popID);
          pop.RHO_R = array[0];
@@ -264,13 +267,14 @@ void calculateMoments_R(
          Real array[3] = {0};
 
          // Calculate species' contribution to second velocity moments
+         phiprof::Timer secondMomentsTimer {"calcSecondMoments_R"};
          blockVelocitySecondMoments(blockContainer,
                                     cell->parameters[CellParams::VX_R],
                                     cell->parameters[CellParams::VY_R],
                                     cell->parameters[CellParams::VZ_R],
                                     array,
                                     nBlocks);
-
+         secondMomentsTimer.stop();
          // Store species' contribution to 2nd bulk velocity moments
          Population &pop = cell->get_population(popID);
          pop.P_R[0] = mass*array[0];
@@ -335,10 +339,11 @@ void calculateMoments_V(
          Real array[4] = {0};
 
          // Calculate species' contribution to first velocity moments
+         phiprof::Timer firstMomentsTimer {"calcFirstMoments_V"};
          blockVelocityFirstMoments(blockContainer,
                                    array,
                                    nBlocks);
-
+         firstMomentsTimer.stop();
          // Store species' contribution to bulk velocity moments
          Population &pop = cell->get_population(popID);
          pop.RHO_V = array[0];
@@ -394,13 +399,14 @@ void calculateMoments_V(
          Real array[3] = {0};
 
          // Calculate species' contribution to second velocity moments
+         phiprof::Timer secondMomentsTimer {"calcSecondMoments_V"};
          blockVelocitySecondMoments(blockContainer,
                                     cell->parameters[CellParams::VX_R],
                                     cell->parameters[CellParams::VY_R],
                                     cell->parameters[CellParams::VZ_R],
                                     array,
                                     nBlocks);
-
+         secondMomentsTimer.stop();
          // Store species' contribution to 2nd bulk velocity moments
          Population &pop = cell->get_population(popID);
          pop.P_V[0] = mass*array[0];
