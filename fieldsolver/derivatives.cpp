@@ -734,15 +734,20 @@ void calculateScaledDeltas(
       Real deltaBsq = pow(myB[0] - otherB[0], 2) + pow(myB[1] - otherB[1], 2) + pow(myB[2] - otherB[2], 2);
 
       // Assignment intentional
-      if (Real maxRho = std::max(myRho, otherRho)) {
+      Real maxRho = std::max(myRho, otherRho);
+      if (maxRho > EPS) {
          dRho = std::max(fabs(myRho - otherRho) / maxRho, dRho);
       }
-      if (Real maxU = std::max(myU, otherU)) {
+      Real maxU = std::max(myU, otherU);
+      if (maxU > EPS) {
          dU = std::max(fabs(myU - otherU) / maxU, dU);
-         dPsq = std::max((pow(myP[0] - otherP[0], 2) + pow(myP[1] - otherP[1], 2) + pow(myP[2] - otherP[2], 2)) / (2 * myRho * maxU), dPsq);
          dBsq = std::max(deltaBsq / (2 * physicalconstants::MU_0 * maxU), dBsq);
+         if (maxRho > EPS) {
+            dPsq = std::max((pow(myP[0] - otherP[0], 2) + pow(myP[1] - otherP[1], 2) + pow(myP[2] - otherP[2], 2)) / (2 * myRho * maxU), dPsq);
+         }
       }
-      if(Real maxB = sqrt(std::max(pow(myB[0], 2) + pow(myB[1], 2) + pow(myB[2], 2), pow(otherB[0], 2) + pow(otherB[1], 2) + pow(otherB[2], 2)))) {
+      Real maxB = sqrt(std::max(pow(myB[0], 2) + pow(myB[1], 2) + pow(myB[2], 2), pow(otherB[0], 2) + pow(otherB[1], 2) + pow(otherB[2], 2)));
+      if (maxB > EPS) {
          dB = std::max(sqrt(deltaBsq) / maxB, dB);
       }
    }
@@ -766,19 +771,21 @@ void calculateScaledDeltas(
    std::array<Real, 3> myJ = {dBZdy - dBYdz, dBXdz - dBZdx, dBYdx - dBXdy};
    Real BdotJ {0.0};
    Real Bsq {0.0};
+   Real J {0.0};
    for (int i = 0; i < 3; ++i) {
       BdotJ += myB[i] * myJ[i];
       Bsq += myB[i] * myB[i];
-   }
-
-   Real Bperp {0.0};
-   Real J {0.0};
-   for (int i = 0; i < 3; ++i) {
-      Bperp += std::pow(myB[i] * (1 - BdotJ / Bsq), 2);
       J += myJ[i] * myJ[i];
    }
-   Bperp = std::sqrt(Bperp);
    J = std::sqrt(J);
+
+   Real Bperp {0.0};
+   if (Bsq > EPS) {
+      for (int i = 0; i < 3; ++i) {
+         Bperp += std::pow(myB[i] * (1 - BdotJ / Bsq), 2);
+      }
+      Bperp = std::sqrt(Bperp);
+   }
 
    cell->parameters[CellParams::AMR_DRHO] = dRho;
    cell->parameters[CellParams::AMR_DU] = dU;
