@@ -698,7 +698,7 @@ namespace projects {
       return true;
    }
 
-   bool Magnetosphere::adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
+   int Magnetosphere::adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
       phiprof::Timer refinesTimer {"Set refines"};
       int myRank;       
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
@@ -710,6 +710,7 @@ namespace projects {
       std::vector<CellID> cells {getLocalCells()};
       Real r_max2 {pow(P::refineRadius, 2)};
 
+      int refines {0};
       //#pragma omp parallel for
       for (CellID id : cells) {
          std::array<double,3> xyz {mpiGrid.get_center(id)};
@@ -724,7 +725,8 @@ namespace projects {
             mpiGrid.dont_unrefine(id);
          } else if (r2 < r_max2) {
             // We don't care about cells that are too far from the ionosphere
-            const Real beta {P::useJPerB ? std::log2(cell->parameters[CellParams::AMR_JPERB]) + logDx + P::JPerBModifier + refLevel : 0.0};
+            // Use epsilon here so we don't get infinities
+            const Real beta {P::useJPerB ? std::log2(cell->parameters[CellParams::AMR_JPERB] + EPS) + logDx + P::JPerBModifier + refLevel : 0.0};
             bool shouldRefine = cell->parameters[CellParams::AMR_ALPHA] > P::refineThreshold || beta > 0.5;
             bool shouldUnrefine = cell->parameters[CellParams::AMR_ALPHA] < P::unrefineThreshold || beta < -0.5;
 
@@ -733,7 +735,7 @@ namespace projects {
             int coarser_neighbors {0};
             for (const auto& [neighbor, dir] : mpiGrid.get_face_neighbors_of(id)) {
                const int neighborRef = mpiGrid.get_refinement_level(neighbor);
-               const Real neighborBeta {P::useJPerB ? std::log2(mpiGrid[neighbor]->parameters[CellParams::AMR_JPERB]) + logDx + P::JPerBModifier + neighborRef : 0.0};
+               const Real neighborBeta {P::useJPerB ? std::log2(mpiGrid[neighbor]->parameters[CellParams::AMR_JPERB] + EPS) + logDx + P::JPerBModifier + neighborRef : 0.0};
                if (neighborRef > refLevel) {
                   ++refined_neighbors;
                } else if (neighborRef < refLevel) {
@@ -747,20 +749,22 @@ namespace projects {
 
             if (shouldRefine || refined_neighbors > 12) {
                // Refine a cell if a majority of its neighbors are refined or about to be
-               mpiGrid.refine_completely(id);
-            } else if (shouldUnrefine && coarser_neighbors > 0) {
+               refines += mpiGrid.refine_completely(id) && refLevel < P::amrMaxSpatialRefLevel;
+            } else if (refLevel > 0 && shouldUnrefine && coarser_neighbors > 0) {
                // Unrefine a cell only if any of its neighbors is unrefined or about to be
+               // refLevel check prevents dont_refine() being set
                mpiGrid.unrefine_completely(id);
             } else {
-               // Ensure no cells above unrefine_threshold are unrefined
+               // Ensure no cells above both unrefine thresholds are unrefined
                mpiGrid.dont_unrefine(id);
             }
          }
       }
-      return true;
+
+      return refines;
    }
 
-   bool Magnetosphere::forceRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
+   bool Magnetosphere::forceRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, int n ) const {
    
       int myRank;       
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
@@ -802,9 +806,9 @@ namespace projects {
          if (!canRefine(mpiGrid[id])) {
             mpiGrid.dont_refine(id);
             mpiGrid.dont_unrefine(id);
-         } else if (refLevel < refineTarget) {
+         } else if (refLevel <= n && refLevel < refineTarget) {
             mpiGrid.refine_completely(id);
-         } else if (refLevel > refineTarget) {
+         } else if (refLevel >= mpiGrid.mapping.get_maximum_refinement_level() - n && refLevel > refineTarget) {
             mpiGrid.unrefine_completely(id);
          } else {
             mpiGrid.dont_unrefine(id);
