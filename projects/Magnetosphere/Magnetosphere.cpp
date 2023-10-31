@@ -705,12 +705,13 @@ namespace projects {
       if (myRank == MASTER_RANK) {
          std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
       }
-      
+
+      int refines {0};
       if (!P::useAlpha && !P::useJPerB) {
          if (myRank == MASTER_RANK) {
             std::cout << "WARNING All refinement indices disabled" << std::endl;
          }
-         return true;
+         return refines;
       }
 
       //Real ibr2 {pow(ionosphereRadius + 2*P::dx_ini, 2)};
@@ -718,7 +719,6 @@ namespace projects {
       std::vector<CellID> cells {getLocalCells()};
       Real r_max2 {pow(P::refineRadius, 2)};
 
-      int refines {0};
       //#pragma omp parallel for
       for (CellID id : cells) {
          std::array<double,3> xyz {mpiGrid.get_center(id)};
