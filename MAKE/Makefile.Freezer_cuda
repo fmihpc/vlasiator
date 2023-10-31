@@ -41,11 +41,12 @@ LNK = mpic++
 
 #-G (device debug) overrides --generate-line-info -line-info
 # but also requires more device-side resources to run
+# use "-Xptxas -v" for verbose output of ptx compilation
 
 # Geforce GTX 1060 6GB is compute version 61
 # https://arnon.dk/matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/
 
-CXXFLAGS = -g -O2 -x cu -std=c++17 -Xcompiler -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_60,code=sm_60 -Xcompiler -fopenmp --generate-line-info -line-info -Xcompiler="-fpermissive" -dc -Xptxas -v --extra-device-vectorization
+CXXFLAGS = -g -O2 -x cu -std=c++17 -Xcompiler -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_60,code=sm_60 -Xcompiler -fopenmp --generate-line-info -line-info -Xcompiler="-fpermissive" -dc --extra-device-vectorization
 
 testpackage: CXXFLAGS = -g -O2 -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_60,code=sm_60 -Xcompiler -fopenmp --prec-sqrt=true --prec-div=true --ftz=false --fmad=false --generate-line-info -line-info -Xcompiler="-fpermissive" -dc
 

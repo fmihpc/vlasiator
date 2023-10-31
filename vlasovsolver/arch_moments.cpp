@@ -68,16 +68,11 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
       const Real mass = getObjectWrapper().particleSpecies[popID].mass;
       const Real charge = getObjectWrapper().particleSpecies[popID].charge;
 
-      // Get pointers for easy access in the loop
-      Realf *data = blockContainer->getData();
-      Real *blockParams = blockContainer->getParameters();
-
       // Temporary array for storing moments
       Real array[4] = {0};
 
       // Calculate species' contribution to first velocity moments
-      blockVelocityFirstMoments(data,
-                                blockParams,
+      blockVelocityFirstMoments(blockContainer,
                                 array,
                                 nBlocks);
 
@@ -119,16 +114,11 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
 
       const Real mass = getObjectWrapper().particleSpecies[popID].mass;
 
-      // Get pointers for easy access in the loop
-      Realf *data = blockContainer->getData();
-      Real *blockParams = blockContainer->getParameters();
-
       // Temporary array for storing moments
       Real array[3] = {0};
 
       // Calculate species' contribution to second velocity moments
-      blockVelocitySecondMoments(data,
-                                 blockParams,
+      blockVelocitySecondMoments(blockContainer,
                                  cell->parameters[CellParams::VX_R],
                                  cell->parameters[CellParams::VY_R],
                                  cell->parameters[CellParams::VZ_R],
@@ -199,10 +189,6 @@ void calculateMoments_R(
          const Real mass = getObjectWrapper().particleSpecies[popID].mass;
          const Real charge = getObjectWrapper().particleSpecies[popID].charge;
 
-         // Get pointers for easy access in the loop
-         Realf *data = blockContainer->getData();
-         Real *blockParams = blockContainer->getParameters();
-
 #ifdef DEBUG_MOMENTS
          bool ok = true;
          if (&data[0] == NULL && nBlocks > 0) ok = false;
@@ -221,8 +207,7 @@ void calculateMoments_R(
          Real array[4] = {0};
 
          // Calculate species' contribution to first velocity moments
-         blockVelocityFirstMoments(data,
-                                   blockParams,
+         blockVelocityFirstMoments(blockContainer,
                                    array,
                                    nBlocks);
 
@@ -275,16 +260,11 @@ void calculateMoments_R(
 
          const Real mass = getObjectWrapper().particleSpecies[popID].mass;
 
-         // Get pointers for easy access in the loop
-         Realf *data = blockContainer->getData();
-         Real *blockParams = blockContainer->getParameters();
-
          // Temporary array where species' contribution to 2nd moments is accumulated
          Real array[3] = {0};
 
          // Calculate species' contribution to second velocity moments
-         blockVelocitySecondMoments(data,
-                                    blockParams,
+         blockVelocitySecondMoments(blockContainer,
                                     cell->parameters[CellParams::VX_R],
                                     cell->parameters[CellParams::VY_R],
                                     cell->parameters[CellParams::VZ_R],
@@ -351,16 +331,11 @@ void calculateMoments_V(
          const Real mass = getObjectWrapper().particleSpecies[popID].mass;
          const Real charge = getObjectWrapper().particleSpecies[popID].charge;
 
-         // Get pointers for easy access in the loop
-         Realf *data = blockContainer->getData();
-         Real *blockParams = blockContainer->getParameters();
-
          // Temporary array for storing moments
          Real array[4] = {0};
 
          // Calculate species' contribution to first velocity moments
-         blockVelocityFirstMoments(data,
-                                   blockParams,
+         blockVelocityFirstMoments(blockContainer,
                                    array,
                                    nBlocks);
 
@@ -415,16 +390,11 @@ void calculateMoments_V(
          const Real mass = getObjectWrapper().particleSpecies[popID].mass;
          const Real charge = getObjectWrapper().particleSpecies[popID].charge;
 
-         // Get pointers for easy access in the loop
-         Realf *data = blockContainer->getData();
-         Real *blockParams = blockContainer->getParameters();
-
          // Temporary array where moments are stored
          Real array[3] = {0};
 
          // Calculate species' contribution to second velocity moments
-         blockVelocitySecondMoments(data,
-                                    blockParams,
+         blockVelocitySecondMoments(blockContainer,
                                     cell->parameters[CellParams::VX_R],
                                     cell->parameters[CellParams::VY_R],
                                     cell->parameters[CellParams::VZ_R],
