@@ -667,9 +667,23 @@ void calculateCurvatureSimple(
 /*! \brief Returns perturbed volumetric B of cell
  *
  */
-static std::array<Real, 3> getPerB(SpatialCell* cell)
+static std::array<Real, 3> getPerBVol(SpatialCell* cell)
 {
    return std::array<Real, 3> { {cell->parameters[CellParams::PERBXVOL], cell->parameters[CellParams::PERBYVOL], cell->parameters[CellParams::PERBZVOL]} };
+}
+
+/*! \brief Returns volumetric B of cell
+ *
+ */
+static std::array<Real, 3> getBVol(SpatialCell* cell)
+{
+   return std::array<Real, 3> { 
+      {
+         cell->parameters[CellParams::BGBXVOL] + cell->parameters[CellParams::PERBXVOL], 
+         cell->parameters[CellParams::BGBYVOL] + cell->parameters[CellParams::PERBYVOL], 
+         cell->parameters[CellParams::BGBZVOL] + cell->parameters[CellParams::PERBZVOL]
+      } 
+   };
 }
 
 /*! \brief Calculates momentum density of cell
@@ -681,13 +695,13 @@ static std::array<Real, 3> getMomentumDensity(SpatialCell* cell)
    return std::array<Real, 3> { {rho * cell->parameters[CellParams::VX], rho * cell->parameters[CellParams::VY], rho * cell->parameters[CellParams::VZ]} };
 }
 
-/*! \brief Calculates energy density for spatial cell with only perturbated magnetic field
+/*! \brief Calculates energy density for spatial cell
  *
  */
-static Real calculateU1(SpatialCell* cell)
+static Real calculateU(SpatialCell* cell)
 {
    std::array<Real, 3> p = getMomentumDensity(cell);
-   std::array<Real, 3> B = getPerB(cell);
+   std::array<Real, 3> B = getBVol(cell);
    return (pow(p[0], 2) + pow(p[1], 2) + pow(p[2], 2)) / (2.0 * cell->parameters[CellParams::RHOM]) + (pow(B[0], 2) + pow(B[1], 2) + pow(B[2], 2)) / (2.0 * physicalconstants::MU_0);
 }
 
@@ -709,14 +723,14 @@ void calculateScaledDeltas(
    Real dB {0};
 
    Real myRho {cell->parameters[CellParams::RHOM]};
-   Real myU {calculateU1(cell)};
+   Real myU {calculateU(cell)};
    std::array<Real, 3> myP = getMomentumDensity(cell);
-   std::array<Real, 3> myB = getPerB(cell);
+   std::array<Real, 3> myB = getBVol(cell);
    for (SpatialCell* neighbor : neighbors) {
       Real otherRho = neighbor->parameters[CellParams::RHOM];
-      Real otherU = calculateU1(neighbor);
+      Real otherU = calculateU(neighbor);
       std::array<Real, 3> otherP = getMomentumDensity(neighbor);
-      std::array<Real, 3> otherB = getPerB(neighbor);
+      std::array<Real, 3> otherB = getBVol(neighbor);
       Real deltaBsq = pow(myB[0] - otherB[0], 2) + pow(myB[1] - otherB[1], 2) + pow(myB[2] - otherB[2], 2);
 
       // Assignment intentional
@@ -725,27 +739,20 @@ void calculateScaledDeltas(
       }
       if (Real maxU = std::max(myU, otherU)) {
          dU = std::max(fabs(myU - otherU) / maxU, dU);
-         dPsq = std::max((pow(myP[0] - otherP[0], 2) + pow(myP[1] - otherP[1], 2) + pow(myP[2] - otherP[2], 2)) / (2 * myRho * maxU), dPsq) / 4.0;
-         dBsq = std::max(deltaBsq / (2 * physicalconstants::MU_0 * maxU), dBsq) / 4.0;
+         dPsq = std::max((pow(myP[0] - otherP[0], 2) + pow(myP[1] - otherP[1], 2) + pow(myP[2] - otherP[2], 2)) / (2 * myRho * maxU), dPsq);
+         dBsq = std::max(deltaBsq / (2 * physicalconstants::MU_0 * maxU), dBsq);
       }
       if(Real maxB = sqrt(std::max(pow(myB[0], 2) + pow(myB[1], 2) + pow(myB[2], 2), pow(otherB[0], 2) + pow(otherB[1], 2) + pow(otherB[2], 2)))) {
-         dB = std::max(sqrt(deltaBsq) / maxB, dB) / 2.0;
+         dB = std::max(sqrt(deltaBsq) / maxB, dB);
       }
    }
-
-   Real alpha = dRho;
-   if (dU > alpha) {
-      alpha = dU;
-   }
-   if (dPsq > alpha) {
-      alpha = dPsq;
-   }
-   if (dBsq > alpha) {
-      alpha = dBsq;
-   }
-   if (dB > alpha) {
-      alpha = dB;
-   }
+   
+   Real alpha {0.0};
+   alpha = std::max(alpha, dRho);
+   alpha = std::max(alpha, dU);
+   alpha = std::max(alpha, dPsq);
+   alpha = std::max(alpha, dBsq);
+   alpha = std::max(alpha, dB);
 
    Real dBXdy {cell->derivativesBVOL[bvolderivatives::dPERBXVOLdy]};
    Real dBXdz {cell->derivativesBVOL[bvolderivatives::dPERBXVOLdz]};
@@ -755,6 +762,7 @@ void calculateScaledDeltas(
    Real dBZdy {cell->derivativesBVOL[bvolderivatives::dPERBZVOLdy]};
 
    // Note missing factor of mu_0, since we want B and J in same units later
+   myB = getPerBVol(cell); // Consider using total B
    std::array<Real, 3> myJ = {dBZdy - dBYdz, dBXdz - dBZdx, dBYdx - dBXdy};
    Real BdotJ {0.0};
    Real Bsq {0.0};
@@ -778,7 +786,7 @@ void calculateScaledDeltas(
    cell->parameters[CellParams::AMR_DBSQ] = dBsq;
    cell->parameters[CellParams::AMR_DB] = dB;
    cell->parameters[CellParams::AMR_ALPHA] = alpha;
-   cell->parameters[CellParams::AMR_JPERB] = J / Bperp;
+   cell->parameters[CellParams::AMR_JPERB] = J / (Bperp + EPS);   // Epsilon in denominator so we don't get infinities
 }
 
 /*! \brief High-level scaled gradient calculation wrapper function.
