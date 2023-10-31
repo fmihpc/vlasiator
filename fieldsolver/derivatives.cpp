@@ -700,9 +700,10 @@ static std::array<Real, 3> getMomentumDensity(SpatialCell* cell)
  */
 static Real calculateU(SpatialCell* cell)
 {
+   Real rho = cell->parameters[CellParams::RHOM];
    std::array<Real, 3> p = getMomentumDensity(cell);
    std::array<Real, 3> B = getBVol(cell);
-   return (pow(p[0], 2) + pow(p[1], 2) + pow(p[2], 2)) / (2.0 * cell->parameters[CellParams::RHOM]) + (pow(B[0], 2) + pow(B[1], 2) + pow(B[2], 2)) / (2.0 * physicalconstants::MU_0);
+   return rho > EPS ? (pow(p[0], 2) + pow(p[1], 2) + pow(p[2], 2)) / (2.0 * cell->parameters[CellParams::RHOM]) : 0.0 + (pow(B[0], 2) + pow(B[1], 2) + pow(B[2], 2)) / (2.0 * physicalconstants::MU_0);
 }
 
 /*! \brief Low-level scaled gradients calculation
