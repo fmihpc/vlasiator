@@ -749,7 +749,7 @@ void calculateScaledDeltas(
       if (maxU > EPS) {
          dU = std::max(fabs(myU - otherU) / maxU, dU);
          dBsq = std::max(deltaBsq / (2 * physicalconstants::MU_0 * maxU), dBsq);
-         if (maxRho > EPS) {
+         if (myRho > EPS) {
             dPsq = std::max((pow(myP[0] - otherP[0], 2) + pow(myP[1] - otherP[1], 2) + pow(myP[2] - otherP[2], 2)) / (2 * myRho * maxU), dPsq);
          }
       }
