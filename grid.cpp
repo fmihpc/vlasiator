@@ -234,7 +234,10 @@ void initializeGrids(
       if (P::forceRefinement) {
          phiprof::Timer timer {"Restart refinement"};
          for (uint i = 0; i < P::amrMaxSpatialRefLevel; ++i) {
-            adaptRefinement(mpiGrid, technicalGrid, sysBoundaries, project, true);
+            if (!adaptRefinement(mpiGrid, technicalGrid, sysBoundaries, project, i)) {
+               cerr << "(MAIN) ERROR: Forcing refinement takes too much memory" << endl;
+               exit(1);
+            }
             balanceLoad(mpiGrid, sysBoundaries);
          }
       } else if (P::refineOnRestart) {
@@ -1398,23 +1401,35 @@ void mapRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    }
 }
 
-bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, SysBoundary& sysBoundaries, Project& project, bool useStatic) {
+bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, SysBoundary& sysBoundaries, Project& project, int useStatic) {
    phiprof::Timer amrTimer {"Re-refine spatial cells"};
    calculateScaledDeltasSimple(mpiGrid);
 
-   if (useStatic) {
-      project.forceRefinement(mpiGrid);
+   int refines {0};
+   if (useStatic > -1) {
+      project.forceRefinement(mpiGrid, useStatic);
    } else {
-      project.adaptRefinement(mpiGrid);
+      refines = project.adaptRefinement(mpiGrid);
    }
+
+   int cells = getLocalCells().size();
+   MPI_Allreduce(MPI_IN_PLACE, &refines, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+   MPI_Allreduce(MPI_IN_PLACE, &cells, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+   double ratio = static_cast<double>(refines) / static_cast<double>(cells);
+   logFile << "(AMR) Refining " << refines << " cells, " << 100.0 * ratio << "% of grid" << std::endl;
 
    phiprof::Timer dccrgTimer {"dccrg refinement"};
 
-   phiprof::Timer initimer {"initialize refines"};
+   phiprof::Timer initTimer {"initialize refines"};
    mpiGrid.initialize_refines();
-   double newBytes{0};
-   initimer.stop();
+   initTimer.stop();
 
+   refines = mpiGrid.get_local_cells_to_refine().size();
+   MPI_Allreduce(MPI_IN_PLACE, &refines, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+   ratio = static_cast<double>(refines) / static_cast<double>(cells);
+   logFile << "(AMR) Refining " << refines << " cells after induces, " << 100.0 * ratio << "% of grid" << std::endl;
+
+   double newBytes{0};
    phiprof::Timer estimateMemoryTimer {"Estimate memory usage"};
    for (auto id : mpiGrid.get_local_cells_to_refine()) {
       newBytes += 8 * mpiGrid[id]->get_cell_memory_capacity();
@@ -1422,11 +1437,13 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    
    // Rougher estimate than above
    for (auto id : mpiGrid.get_local_cells_to_unrefine()) {
-      newBytes += mpiGrid[id]->get_cell_memory_capacity() / 8.0;
+      newBytes += mpiGrid[id]->get_cell_memory_capacity();
    }
    
    report_process_memory_consumption(newBytes);
    estimateMemoryTimer.stop();
+
+   logFile.flush(false);
 
    // Bailout from estimate
    // clunky...
