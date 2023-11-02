@@ -4,6 +4,7 @@ mpirun_cmd=$(which aprun > /dev/null && echo "aprun" || echo "mpirun")
 vlasiator=$1
 cfg=$2
 
+RETVAL=0
 
 if [ $# -ne 2 ]
 then
@@ -142,6 +143,7 @@ then
    echo "------------------------------------------------------------------------------------------------------------"
    comm -13 .vlasiator_variable_names .cfg_variable_names
    echo "------------------------------------------------------------------------------------------------------------"
+   RETVAL=1
 else
    echo "------------------------------------------------------------------------------------------------------------"
    echo "No invalid options"
@@ -164,6 +166,7 @@ then
       comm -13 .vlasiator_diagnostic_variable_names .cfg_diagnostic_variable_names
    fi
    echo "------------------------------------------------------------------------------------------------------------"
+   RETVAL=2
 else
    echo "------------------------------------------------------------------------------------------------------------"
    echo "No invalid output or diagnostic variables (as of "$output_update" resp. "$diagnostic_update")"
@@ -173,3 +176,4 @@ fi
 
 
 rm .cfg_variables .cfg_variable_names .vlasiator_variables .vlasiator_variable_names .allowed_prefixes .unused_variables  .vlasiator_variable_names_default_val .cfg_output_variable_names .cfg_diagnostic_variable_names .vlasiator_diagnostic_variable_names .vlasiator_output_variable_names
+exit $RETVAL
