@@ -135,6 +135,7 @@ jobs:
       run: |
         chmod +x $GITHUB_WORKSPACE/vlasiator
         for i in projects/*/*.cfg testpackage/tests/*/*.cfg; do
+           echo -ne "##################################\nChecking config file $i..."
            tools/check_vlasiator_cfg.sh $GITHUB_WORKSPACE/vlasiator $i || exit 1
         done
   
