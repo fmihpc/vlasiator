@@ -106,13 +106,13 @@ jobs:
       run: |
         VLASIATOR_ARCH=github_actions make clean
         VLASIATOR_ARCH=github_actions make -j 3
-      - name: Upload production binary as an artefact
-        uses: actions/upload-artifact@v3
-        with:
-          name: vlasiator-production
-          path: vlasiator
-          retention-days: 5
-          if-no-files-found: error
+    - name: Upload production binary as an artefact
+      uses: actions/upload-artifact@v3
+      with:
+        name: vlasiator-production
+        path: vlasiator
+        retention-days: 5
+        if-no-files-found: error
       
   verify_testpackage_configs:
     # Run check_vlasiator_cfg.sh on all cfg files in project/* and testpackage/tests/*
