@@ -29,40 +29,38 @@ PAPI_FLAG =
 
 FLAGS =
 #CXXFLAGS = -I $(HOME)/include  -L $(HOME)/lib -g  -funroll-loops -std=c++0x -fopenmp -W -Wall -pedantic -Wno-unused -fabi-version=0 -mavx
-CXXFLAGS = -g -I $(HOME)/include  -L $(HOME)/lib -O3  -funroll-loops -std=c++17 -fopenmp -W -Wall -Wno-unused -fabi-version=0 -mavx
+CXXFLAGS = -g3 -ggdb -O3  -funroll-loops -std=c++17 -fopenmp -W -Wall -Wno-unused -fabi-version=0 -mavx
 testpackage: CXXFLAGS = -g -ggdb -O2 -fopenmp -funroll-loops -std=c++17 -fabi-version=0 -mno-avx -mno-fma -fno-unsafe-math-optimizations
 
 MATHFLAGS =
 testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
-LDFLAGS = -L $(HOME)/lib
+
+LDFLAGS =
 LIB_MPI = -lgomp
 
 
 #======== Libraries ===========
 
-LIBRARY_PREFIX = $(HOME)
+LIBRARY_PREFIX = $(HOME)/Development
 
 INC_BOOST = -I/usr/include/boost/
 LIB_BOOST = -L/usr/lib/x86_64-linux-gnu/ -lboost_program_options
 
-INC_ZOLTAN = -I$(LIBRARY_PREFIX)/include
-LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/lib -lzoltan
+INC_ZOLTAN = -I$(LIBRARY_PREFIX)/zoltan/include
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/zoltan/lib -lzoltan
 
-INC_VLSV = -I$(LIBRARY_PREFIX)/Development/vlsv
-LIB_VLSV = -L$(LIBRARY_PREFIX)/Development/vlsv -lvlsv
+INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv
+LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv
 
-INC_SILO = -I$(LIBRARY_PREFIX)/include
-LIB_SILO = -L$(LIBRARY_PREFIX)/lib -lsilo
+INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg-urs
 
-INC_DCCRG = -I$(LIBRARY_PREFIX)/Development/dccrg
+INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid
 
-INC_FSGRID = -I$(LIBRARY_PREFIX)/Development/fsgrid
-
-INC_JEMALLOC = -I$(LIBRARY_PREFIX)/include/jemalloc
-LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/lib -ljemalloc
+INC_JEMALLOC = -I$(LIBRARY_PREFIX)/jemalloc/include
+LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/jemalloc/lib -ljemalloc
 
 LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof
 INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
 INC_TOPO =
 
-INC_EIGEN = -I$(LIBRARY_PREFIX)/Codes/eigen-eigen-2249f9c22fe8
+INC_EIGEN = -I$(LIBRARY_PREFIX)/eigen-eigen-2249f9c22fe8
