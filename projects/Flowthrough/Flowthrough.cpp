@@ -264,14 +264,16 @@ namespace projects {
       std::vector<CellID> cells = mpiGrid.get_cells();
       for (CellID id : cells) {
          std::array<double,3> xyz = mpiGrid.get_center(id);
-         bool inBox = xyz[0] > P::amrBoxCenterX - P::amrBoxHalfWidthX * mpiGrid[id]->parameters[CellParams::DX] &&
-                      xyz[0] < P::amrBoxCenterX + P::amrBoxHalfWidthX * mpiGrid[id]->parameters[CellParams::DX] &&
-                      xyz[1] > P::amrBoxCenterY - P::amrBoxHalfWidthY * mpiGrid[id]->parameters[CellParams::DY] &&
-                      xyz[1] < P::amrBoxCenterY + P::amrBoxHalfWidthY * mpiGrid[id]->parameters[CellParams::DY] &&
-                      xyz[2] > P::amrBoxCenterZ - P::amrBoxHalfWidthZ * mpiGrid[id]->parameters[CellParams::DZ] &&
-                      xyz[2] < P::amrBoxCenterZ + P::amrBoxHalfWidthZ * mpiGrid[id]->parameters[CellParams::DZ];
-         if (inBox) {
-            mpiGrid.refine_completely(id);
+         for(uint n = 0; n < P::amrBoxNumber; n++) {
+            bool inBox = xyz[0] > P::amrBoxCenterX[n] - P::amrBoxHalfWidthX[n] * mpiGrid[id]->parameters[CellParams::DX] &&
+                         xyz[0] < P::amrBoxCenterX[n] + P::amrBoxHalfWidthX[n] * mpiGrid[id]->parameters[CellParams::DX] &&
+                         xyz[1] > P::amrBoxCenterY[n] - P::amrBoxHalfWidthY[n] * mpiGrid[id]->parameters[CellParams::DY] &&
+                         xyz[1] < P::amrBoxCenterY[n] + P::amrBoxHalfWidthY[n] * mpiGrid[id]->parameters[CellParams::DY] &&
+                         xyz[2] > P::amrBoxCenterZ[n] - P::amrBoxHalfWidthZ[n] * mpiGrid[id]->parameters[CellParams::DZ] &&
+                         xyz[2] < P::amrBoxCenterZ[n] + P::amrBoxHalfWidthZ[n] * mpiGrid[id]->parameters[CellParams::DZ];
+            if (inBox) {
+               mpiGrid.refine_completely(id);
+            }
          }
       }
 

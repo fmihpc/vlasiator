@@ -185,7 +185,7 @@ struct Parameters {
                                   * refined.  The value must be larger than vamrCoarsenLimit.*/
    static std::string vamrVelRefCriterion; /**< Name of the velocity block refinement criterion function.*/
 
-   static uint amrMaxSpatialRefLevel;
+   static int amrMaxSpatialRefLevel;
    static bool adaptRefinement;
    static bool refineOnRestart;
    static bool forceRefinement;
@@ -198,12 +198,14 @@ struct Parameters {
    static bool useJPerB;
    static Real JPerBModifier;
    static int maxFilteringPasses;
-   static uint amrBoxHalfWidthX;
-   static uint amrBoxHalfWidthY;
-   static uint amrBoxHalfWidthZ;
-   static Realf amrBoxCenterX;
-   static Realf amrBoxCenterY;
-   static Realf amrBoxCenterZ;
+   static uint amrBoxNumber;
+   static std::vector<uint> amrBoxHalfWidthX;
+   static std::vector<uint> amrBoxHalfWidthY;
+   static std::vector<uint> amrBoxHalfWidthZ;
+   static std::vector<Realf> amrBoxCenterX;
+   static std::vector<Realf> amrBoxCenterY;
+   static std::vector<Realf> amrBoxCenterZ;
+   static std::vector<int> amrBoxMaxLevel;
    static bool amrTransShortPencils;        /*!< Use short or longpencils in AMR translation.*/
    static std::vector<std::string> blurPassString;
    static std::vector<int> numPasses;

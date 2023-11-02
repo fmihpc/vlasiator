@@ -71,8 +71,6 @@ Real P::fieldSolverMaxCFL = NAN;
 Real P::fieldSolverMinCFL = NAN;
 uint P::fieldSolverSubcycles = 1;
 
-bool P::amrTransShortPencils = false;
-
 uint P::tstep = 0;
 uint P::tstep_min = 0;
 uint P::tstep_max = 0;
@@ -156,7 +154,8 @@ Realf P::vamrRefineLimit = 1.0;
 Realf P::vamrCoarsenLimit = 0.5;
 string P::vamrVelRefCriterion = string("");
 
-uint P::amrMaxSpatialRefLevel = 0;
+bool P::amrTransShortPencils = false;
+int P::amrMaxSpatialRefLevel = 0;
 bool P::adaptRefinement = false;
 bool P::refineOnRestart = false;
 bool P::forceRefinement = false;
@@ -169,12 +168,14 @@ Real P::refineRadius = LARGE_REAL;
 bool P::useJPerB = true;
 Real P::JPerBModifier = 0.0;
 int P::maxFilteringPasses = 0;
-uint P::amrBoxHalfWidthX = 1;
-uint P::amrBoxHalfWidthY = 1;
-uint P::amrBoxHalfWidthZ = 1;
-Realf P::amrBoxCenterX = 0.0;
-Realf P::amrBoxCenterY = 0.0;
-Realf P::amrBoxCenterZ = 0.0;
+uint P::amrBoxNumber = 0;
+std::vector<uint> P::amrBoxHalfWidthX;
+std::vector<uint> P::amrBoxHalfWidthY;
+std::vector<uint> P::amrBoxHalfWidthZ;
+std::vector<Realf> P::amrBoxCenterX;
+std::vector<Realf> P::amrBoxCenterY;
+std::vector<Realf> P::amrBoxCenterZ;
+std::vector<int> P::amrBoxMaxLevel;
 vector<string> P::blurPassString;
 std::vector<int> P::numPasses; //numpasses
 
@@ -444,12 +445,14 @@ bool P::addParameters() {
    RP::add("AMR.refine_radius","Maximum distance from Earth to refine", LARGE_REAL);
    RP::add("AMR.use_J_per_B","Use J/B_perp as an additional refinement parameter", false);
    RP::add("AMR.J_per_B_modifier","Factor to add to log2(J / B_perp) in refinement.", 0.0);
-   RP::add("AMR.box_half_width_x", "Half width of the box that is refined (for testing)", (uint)1);
-   RP::add("AMR.box_half_width_y", "Half width of the box that is refined (for testing)", (uint)1);
-   RP::add("AMR.box_half_width_z", "Half width of the box that is refined (for testing)", (uint)1);
-   RP::add("AMR.box_center_x", "x coordinate of the center of the box that is refined (for testing)", 0.0);
-   RP::add("AMR.box_center_y", "y coordinate of the center of the box that is refined (for testing)", 0.0);
-   RP::add("AMR.box_center_z", "z coordinate of the center of the box that is refined (for testing)", 0.0);
+   RP::add("AMR.number_of_boxes", "How many boxes to be refined, that number of centers and sizes have to then be defined as well.", 0);
+   RP::addComposing("AMR.box_half_width_x", "Half width in x of the box that is refined");
+   RP::addComposing("AMR.box_half_width_y", "Half width in y of the box that is refined");
+   RP::addComposing("AMR.box_half_width_z", "Half width in z of the box that is refined");
+   RP::addComposing("AMR.box_center_x", "x coordinate of the center of the box that is refined");
+   RP::addComposing("AMR.box_center_y", "y coordinate of the center of the box that is refined");
+   RP::addComposing("AMR.box_center_z", "z coordinate of the center of the box that is refined");
+   RP::addComposing("AMR.box_max_level", "max refinement level of the box that is refined");
    RP::add("AMR.transShortPencils", "if true, use one-cell pencils", false);
    RP::addComposing("AMR.filterpasses", string("AMR filter passes for each individual refinement level"));
 
@@ -687,6 +690,8 @@ void Parameters::getParameters() {
    RP::get("AMR.refine_radius",P::refineRadius);
    RP::get("AMR.use_J_per_B",P::useJPerB);
    RP::get("AMR.J_per_B_modifier",P::JPerBModifier);
+   RP::get("AMR.number_of_boxes", P::amrBoxNumber);
+   RP::get("AMR.box_max_level", P::amrBoxMaxLevel);
    RP::get("AMR.box_half_width_x", P::amrBoxHalfWidthX);
    RP::get("AMR.box_half_width_y", P::amrBoxHalfWidthY);
    RP::get("AMR.box_half_width_z", P::amrBoxHalfWidthZ);
@@ -696,12 +701,25 @@ void Parameters::getParameters() {
    RP::get("AMR.transShortPencils", P::amrTransShortPencils);
    RP::get("AMR.filterpasses", P::blurPassString);
 
+   // We need the correct number of parameters for the AMR boxes
+   if(   P::amrBoxNumber != P::amrBoxHalfWidthX.size()
+      || P::amrBoxNumber != P::amrBoxHalfWidthY.size()
+      || P::amrBoxNumber != P::amrBoxHalfWidthZ.size()
+      || P::amrBoxNumber != P::amrBoxCenterX.size()
+      || P::amrBoxNumber != P::amrBoxCenterY.size()
+      || P::amrBoxNumber != P::amrBoxCenterZ.size()
+      || P::amrBoxNumber != P::amrBoxMaxLevel.size()
+   ) {
+      cerr << "AMR.number_of_boxes is set to " << P::amrBoxNumber << " so the same number of values is required for AMR.box_half_width_[xyz] and AMR.box_center_[xyz]." << endl;
+      MPI_Abort(MPI_COMM_WORLD, 1);
+   }
+
    // If we are in an AMR run we need to set up the filtering scheme.
    if (P::amrMaxSpatialRefLevel>0){
       bool isEmpty = blurPassString.size() == 0;
       if (!isEmpty){
          //sanity check=> user should define a pass for every level
-         if (blurPassString.size() != P::amrMaxSpatialRefLevel + 1) {
+         if ((int)blurPassString.size() != P::amrMaxSpatialRefLevel + 1) {
             cerr << "Filter Passes=" << blurPassString.size() << "\t" << "AMR Levels=" << P::amrMaxSpatialRefLevel + 1 << endl;
             cerr << "FilterPasses do not match AMR levels. \t" << " in " << __FILE__ << ":" << __LINE__ << endl;
             MPI_Abort(MPI_COMM_WORLD, 1);
@@ -725,7 +743,7 @@ void Parameters::getParameters() {
             return retval;
          };
          int maxPasses=g_sequence(P::amrMaxSpatialRefLevel-1);
-         for (uint refLevel=0; refLevel<=P::amrMaxSpatialRefLevel; refLevel++){
+         for (int refLevel=0; refLevel<=P::amrMaxSpatialRefLevel; refLevel++){
             numPasses.push_back(maxPasses);
             maxPasses/=2;
          }

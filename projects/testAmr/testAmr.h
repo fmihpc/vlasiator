@@ -84,7 +84,6 @@ namespace projects {
                                                       creal z,
                                                       const uint popID
                                                      ) const;
-      bool refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const;
       
       static Real rhoRnd; //static as it has to be threadprivate
       #pragma omp threadprivate(rhoRnd)       
@@ -98,7 +97,6 @@ namespace projects {
       Real magYPertAbsAmp;
       Real magZPertAbsAmp;
       Real lambda;
-      int maxSpatialRefinementLevel;
       uint nVelocitySamples;
       std::vector<testAmrSpeciesParameters> speciesParams;
 
