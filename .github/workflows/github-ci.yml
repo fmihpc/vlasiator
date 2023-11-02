@@ -131,7 +131,7 @@ jobs:
       uses: actions/download-artifact@v3
       with:
         name: vlasiator-production
-    - Name: Check cfg files
+    - name: Check cfg files
       run: |
         for i in project/*/*.cfg testpackage/tests/*/*.cfg; do
            tools/check_vlasiator_cfg.sh ./vlasiator $i || exit 1
