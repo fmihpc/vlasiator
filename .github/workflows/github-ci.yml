@@ -133,8 +133,9 @@ jobs:
         name: vlasiator-production
     - name: Check cfg files
       run: |
+        chmod +x $GITHUB_WORKSPACE/vlasiator
         for i in project/*/*.cfg testpackage/tests/*/*.cfg; do
-           tools/check_vlasiator_cfg.sh ./vlasiator $i || exit 1
+           tools/check_vlasiator_cfg.sh $GITHUB_WORKSPACE/vlasiator $i || exit 1
         done
   
   build_testpackage:
