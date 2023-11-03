@@ -54,6 +54,7 @@ void gpu_init_device();
 void gpu_clear_device();
 gpuStream_t gpu_getStream();
 gpuStream_t gpu_getPriorityStream();
+uint gpu_getThread();
 int gpu_getDevice();
 void gpu_vlasov_allocate(uint maxBlockCount);
 void gpu_vlasov_deallocate();
@@ -217,6 +218,12 @@ extern ColumnOffsets *unif_columnOffsetData[];
 extern split::SplitVector<vmesh::GlobalID> *vbwcl_gather[];
 extern split::SplitVector<vmesh::GlobalID> *vbwncl_gather[];
 extern void *compaction_buffer[];
+
+// SplitVector information structs for use in fetching sizes and capacities without page faulting
+extern split::SplitInfo *info_1[];
+extern split::SplitInfo *info_2[];
+extern split::SplitInfo *info_3[];
+extern split::SplitInfo *info_4[];
 
 // Vectors and set for use in translation, actually declared in vlasovsolver/gpu_trans_map_amr.hpp
 // to sidestep compilation errors

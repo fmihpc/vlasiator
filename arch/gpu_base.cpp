@@ -87,6 +87,12 @@ uint gpu_acc_allocatedColumns = 0;
 uint gpu_acc_columnContainerSize = 0;
 uint gpu_acc_foundColumnsCount = 0;
 
+// SplitVector information structs for use in fetching sizes and capacities without page faulting
+split::SplitInfo *info_1[MAXCPUTHREADS];
+split::SplitInfo *info_2[MAXCPUTHREADS];
+split::SplitInfo *info_3[MAXCPUTHREADS];
+split::SplitInfo *info_4[MAXCPUTHREADS];
+
 // SplitVectors and buffers for use in stream compaction
 uint gpu_compaction_vectorsize[MAXCPUTHREADS] = {0};
 uint gpu_compaction_buffersize[MAXCPUTHREADS] = {0};
@@ -176,6 +182,10 @@ __host__ void gpu_init_device() {
       CHK_ERR( gpuMalloc((void**)&returnReal[i], 8*sizeof(Real)) );
       CHK_ERR( gpuMalloc((void**)&returnRealf[i], 8*sizeof(Realf)) );
       CHK_ERR( gpuMalloc((void**)&returnLID[i], 8*sizeof(vmesh::LocalID)) );
+      CHK_ERR( gpuMallocHost((void **) &info_1[i], sizeof(split::SplitInfo)) );
+      CHK_ERR( gpuMallocHost((void **) &info_2[i], sizeof(split::SplitInfo)) );
+      CHK_ERR( gpuMallocHost((void **) &info_3[i], sizeof(split::SplitInfo)) );
+      CHK_ERR( gpuMallocHost((void **) &info_4[i], sizeof(split::SplitInfo)) );
    }
    CHK_ERR( gpuDeviceSynchronize() );
 
@@ -200,25 +210,20 @@ __host__ void gpu_clear_device() {
       CHK_ERR( gpuFree(returnReal[i]) );
       CHK_ERR( gpuFree(returnRealf[i]) );
       CHK_ERR( gpuFree(returnLID[i]) );
+      CHK_ERR( gpuFree(info_1[i]) );
+      CHK_ERR( gpuFree(info_2[i]) );
+      CHK_ERR( gpuFree(info_3[i]) );
+      CHK_ERR( gpuFree(info_4[i]) );
    }
    CHK_ERR( gpuDeviceSynchronize() );
 }
 
 __host__ gpuStream_t gpu_getStream() {
-#ifdef _OPENMP
-   const uint thread_id = omp_get_thread_num();
-#else
-   const uint thread_id = 0;
-#endif
-   return gpuStreamList[thread_id];
+   return gpuStreamList[gpu_getThread()];
 }
 
 __host__ gpuStream_t gpu_getPriorityStream() {
-#ifdef _OPENMP
-   const uint thread_id = omp_get_thread_num();
-#else
-   const uint thread_id = 0;
-#endif
+   const uint thread_id = gpu_getThread();
    return gpuPriorityStreamList[thread_id];
 }
 
@@ -429,6 +434,13 @@ __host__ void gpu_compaction_deallocate() {
       gpu_compaction_allocate_vec_perthread(i,0);
       gpu_compaction_allocate_buf_perthread(i,0);
    }
+}
+__host__ uint gpu_getThread() {
+#ifdef _OPENMP
+    return omp_get_thread_num();
+#else
+    return 0;
+#endif
 }
 
 __host__ void gpu_compaction_allocate_vec_perthread(

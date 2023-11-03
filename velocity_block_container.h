@@ -88,9 +88,9 @@ namespace vmesh {
 #ifdef USE_GPU // for GPU version
       void gpu_Allocate(vmesh::LocalID size);
       void gpu_Allocate();
-      void gpu_prefetchHost();
-      void gpu_prefetchDevice();
-      void gpu_attachToStream(gpuStream_t stream=0);
+      void gpu_prefetchHost(gpuStream_t stream);
+      void gpu_prefetchDevice(gpuStream_t stream);
+      void gpu_attachToStream(gpuStream_t stream);
       void gpu_detachFromStream();
       void gpu_memAdvise(int device, gpuStream_t stream);
 #endif
@@ -107,7 +107,6 @@ namespace vmesh {
 
 #ifdef USE_GPU
       gpuStream_t attachedStream;
-      split::SplitInfo *info_data;
       split::SplitVector<Realf> *block_data;
       split::SplitVector<Real> *parameters;
 #else
@@ -122,7 +121,6 @@ namespace vmesh {
       block_data= new split::SplitVector<Realf>(1);
       parameters= new split::SplitVector<Real>(1);
       attachedStream = 0;
-      gpuMallocHost((void **) &info_data, sizeof(split::SplitInfo));
 #else
       block_data = new std::vector<Realf,aligned_allocator<Realf,WID3>>(1);
       parameters = new std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS>>(1);
@@ -140,7 +138,6 @@ namespace vmesh {
       block_data = NULL;
       parameters = NULL;
       #ifdef USE_GPU
-      if (info_data) gpuFreeHost(info_data);
       attachedStream = 0;
       #endif
    }
@@ -148,7 +145,6 @@ namespace vmesh {
    inline VelocityBlockContainer::VelocityBlockContainer(const VelocityBlockContainer& other) {
 #ifdef USE_GPU
       attachedStream = 0;
-      gpuMallocHost((void **) &info_data, sizeof(split::SplitInfo));
       block_data= new split::SplitVector<Realf>(*(other.block_data));
       parameters= new split::SplitVector<Real>(*(other.parameters));
       block_data->reserve(other.block_data->capacity(), true);
@@ -209,10 +205,16 @@ namespace vmesh {
    inline ARCH_HOSTDEV void VelocityBlockContainer::move(const vmesh::LocalID& source,const vmesh::LocalID& target) {
       #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
       // Host-side non-pagefaulting approach
-      gpuStream_t stream = gpu_getStream();
-      block_data->copyMetadata(info_data,stream);
+      const uint thread_id = gpu_getThread();
+      gpuStream_t stream = gpuStreamList[thread_id];
+      split::SplitVector<Realf> *block_data_address=0;
+      //split::SplitVector<Real> *parameters_address=0;
+      CHK_ERR( gpuMemcpyAsync(&block_data_address, &block_data, sizeof(split::SplitVector<Realf> *), gpuMemcpyDeviceToHost, stream) );
+      //CHK_ERR( gpuMemcpyAsync(&parameters_address, &parameters, sizeof(split::SplitVector<Real> *), gpuMemcpyDeviceToHost, stream) );
       CHK_ERR( gpuStreamSynchronize(stream) );
-      const vmesh::LocalID numberOfBlocks = info_data->size / WID3;
+      block_data_address->copyMetadata(info_1[thread_id],stream);
+      CHK_ERR( gpuStreamSynchronize(stream) );
+      const vmesh::LocalID numberOfBlocks = info_1[thread_id]->size / WID3;
       #else
       const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
       #endif
@@ -324,11 +326,17 @@ namespace vmesh {
    inline void VelocityBlockContainer::gpu_Allocate(vmesh::LocalID size) {
       #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
       // Host-side non-pagefaulting approach
-      gpuStream_t stream = gpu_getStream();
-      block_data->copyMetadata(info_data,stream);
+      const uint thread_id = gpu_getThread();
+      gpuStream_t stream = gpuStreamList[thread_id];
+      split::SplitVector<Realf> *block_data_address=0;
+      //split::SplitVector<Real> *parameters_address=0;
+      CHK_ERR( gpuMemcpyAsync(&block_data_address, &block_data, sizeof(split::SplitVector<Realf> *), gpuMemcpyDeviceToHost, stream) );
+      //CHK_ERR( gpuMemcpyAsync(&parameters_address, &parameters, sizeof(split::SplitVector<Real> *), gpuMemcpyDeviceToHost, stream) );
       CHK_ERR( gpuStreamSynchronize(stream) );
-      const vmesh::LocalID numberOfBlocks = info_data->size / WID3;
-      vmesh::LocalID currentCapacity = info_data->capacity / WID3;
+      block_data_address->copyMetadata(info_1[thread_id],stream);
+      CHK_ERR( gpuStreamSynchronize(stream) );
+      const vmesh::LocalID numberOfBlocks = info_1[thread_id]->size / WID3;
+      vmesh::LocalID currentCapacity = info_1[thread_id]->capacity / WID3;
       #else
       const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
       vmesh::LocalID currentCapacity = block_data->capacity()/WID3;
@@ -356,11 +364,12 @@ namespace vmesh {
    inline void VelocityBlockContainer::gpu_Allocate() {
       #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
       // Host-side non-pagefaulting approach
-      gpuStream_t stream = gpu_getStream();
-      block_data->copyMetadata(info_data,stream);
+      const uint thread_id = gpu_getThread();
+      gpuStream_t stream = gpuStreamList[thread_id];
+      block_data->copyMetadata(info_1[thread_id],stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
-      const vmesh::LocalID numberOfBlocks = info_data->size / WID3;
-      vmesh::LocalID currentCapacity = info_data->capacity / WID3;
+      const vmesh::LocalID numberOfBlocks = info_1[thread_id]->size / WID3;
+      vmesh::LocalID currentCapacity = info_1[thread_id]->capacity / WID3;
       #else
       const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
       vmesh::LocalID currentCapacity = block_data->capacity()/WID3;
@@ -376,19 +385,39 @@ namespace vmesh {
       return;
    }
 
-   inline void VelocityBlockContainer::gpu_prefetchHost() {
+   inline void VelocityBlockContainer::gpu_prefetchHost(gpuStream_t stream=0) {
       //const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
       //if (numberOfBlocks==0) return; // This size check in itself causes a page fault
+      if (stream==0) {
+         stream = gpu_getStream();
+      }
+
+      CHK_ERR( gpuMemPrefetchAsync(this, sizeof(vmesh::VelocityBlockContainer), gpuCpuDeviceId, stream));
+      CHK_ERR( gpuStreamSynchronize(stream) );
       block_data->optimizeCPU(gpu_getStream());
       parameters->optimizeCPU(gpu_getStream());
       return;
    }
 
-   inline void VelocityBlockContainer::gpu_prefetchDevice() {
+   inline void VelocityBlockContainer::gpu_prefetchDevice(gpuStream_t stream=0) {
       //const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
       //if (numberOfBlocks==0) return; // This size check in itself causes a page fault
-      block_data->optimizeGPU(gpu_getStream());
-      parameters->optimizeGPU(gpu_getStream());
+      if (stream==0) {
+         stream = gpu_getStream();
+      }
+      split::SplitVector<Realf> *block_data_address=0;
+      split::SplitVector<Real> *parameters_address=0;
+      CHK_ERR( gpuMemcpyAsync(&block_data_address, &block_data, sizeof(split::SplitVector<Realf> *), gpuMemcpyDeviceToHost, stream) );
+      CHK_ERR( gpuMemcpyAsync(&parameters_address, &parameters, sizeof(split::SplitVector<Real> *), gpuMemcpyDeviceToHost, stream) );
+
+      // CHK_ERR( gpuMemPrefetchAsync(this, sizeof(vmesh::VelocityBlockContainer), gpuCpuDeviceId, stream));
+      CHK_ERR( gpuStreamSynchronize(stream) );
+      int device = gpu_getDevice();
+      // block_data->optimizeGPU(stream);
+      // parameters->optimizeGPU(stream);
+      block_data_address->optimizeGPU(stream);
+      parameters_address->optimizeGPU(stream);
+      CHK_ERR( gpuMemPrefetchAsync(this, sizeof(vmesh::VelocityBlockContainer), device, stream));
       return;
    }
 
@@ -481,10 +510,11 @@ namespace vmesh {
    inline ARCH_HOSTDEV void VelocityBlockContainer::pop() {
       #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
       // Host-side non-pagefaulting approach
-      gpuStream_t stream = gpu_getStream();
-      block_data->copyMetadata(info_data,stream);
+      const uint thread_id = gpu_getThread();
+      gpuStream_t stream = gpuStreamList[thread_id];
+      block_data->copyMetadata(info_1[thread_id],stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
-      const vmesh::LocalID numberOfBlocks = info_data->size / WID3;
+      const vmesh::LocalID numberOfBlocks = info_1[thread_id]->size / WID3;
       #else
       const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
       #endif
@@ -500,10 +530,11 @@ namespace vmesh {
    inline ARCH_HOSTDEV vmesh::LocalID VelocityBlockContainer::push_back() {
       #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
       // Host-side non-pagefaulting approach
-      gpuStream_t stream = gpu_getStream();
-      block_data->copyMetadata(info_data,stream);
+      const uint thread_id = gpu_getThread();
+      gpuStream_t stream = gpuStreamList[thread_id];
+      block_data->copyMetadata(info_1[thread_id],stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
-      const vmesh::LocalID numberOfBlocks = info_data->size / WID3;
+      const vmesh::LocalID numberOfBlocks = info_1[thread_id]->size / WID3;
       #else
       const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
       #endif
@@ -553,10 +584,11 @@ namespace vmesh {
    inline ARCH_HOSTDEV vmesh::LocalID VelocityBlockContainer::push_back_and_zero() {
       #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
       // Host-side non-pagefaulting approach
-      gpuStream_t stream = gpu_getStream();
-      block_data->copyMetadata(info_data,stream);
+      const uint thread_id = gpu_getThread();
+      gpuStream_t stream = gpuStreamList[thread_id];
+      block_data->copyMetadata(info_1[thread_id],stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
-      const vmesh::LocalID numberOfBlocks = info_data->size / WID3;
+      const vmesh::LocalID numberOfBlocks = info_1[thread_id]->size / WID3;
       #else
       const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
       #endif
@@ -613,11 +645,12 @@ namespace vmesh {
    inline ARCH_HOSTDEV vmesh::LocalID VelocityBlockContainer::push_back(const uint32_t& N_blocks) {
       #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
       // Host-side non-pagefaulting approach
-      gpuStream_t stream = gpu_getStream();
-      block_data->copyMetadata(info_data,stream);
+      const uint thread_id = gpu_getThread();
+      gpuStream_t stream = gpuStreamList[thread_id];
+      block_data->copyMetadata(info_1[thread_id],stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
-      const vmesh::LocalID numberOfBlocks = info_data->size / WID3;
-      const vmesh::LocalID currentCapacity = info_data->capacity / WID3;
+      const vmesh::LocalID numberOfBlocks = info_1[thread_id]->size / WID3;
+      const vmesh::LocalID currentCapacity = info_1[thread_id]->capacity / WID3;
       #else
       const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
       const vmesh::LocalID currentCapacity = block_data->capacity()/WID3;
@@ -649,11 +682,12 @@ namespace vmesh {
    inline ARCH_HOSTDEV vmesh::LocalID VelocityBlockContainer::push_back_and_zero(const uint32_t& N_blocks) {
       #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
       // Host-side non-pagefaulting approach
-      gpuStream_t stream = gpu_getStream();
-      block_data->copyMetadata(info_data,stream);
+      const uint thread_id = gpu_getThread();
+      gpuStream_t stream = gpuStreamList[thread_id];
+      block_data->copyMetadata(info_1[thread_id],stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
-      const vmesh::LocalID numberOfBlocks = info_data->size / WID3;
-      const vmesh::LocalID currentCapacity = info_data->capacity / WID3;
+      const vmesh::LocalID numberOfBlocks = info_1[thread_id]->size / WID3;
+      const vmesh::LocalID currentCapacity = info_1[thread_id]->capacity / WID3;
       #else
       const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
       const vmesh::LocalID currentCapacity = block_data->capacity()/WID3;
@@ -678,7 +712,7 @@ namespace vmesh {
       block_data->resize((numberOfBlocks+N_blocks)*WID3);
       parameters->resize((numberOfBlocks+N_blocks)*BlockParams::N_VELOCITY_BLOCK_PARAMS);
       #endif
-      
+
       #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
       // Clear velocity block data to zero values
       CHK_ERR( gpuMemsetAsync(&(block_data[newIndex*WID3]), 0, WID3*N_blocks*sizeof(Realf), stream) );
@@ -700,11 +734,12 @@ namespace vmesh {
       // Note: No longer ever recapacitates down in size.
       #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
       // Host-side non-pagefaulting approach
-      gpuStream_t stream = gpu_getStream();
-      block_data->copyMetadata(info_data,stream);
+      const uint thread_id = gpu_getThread();
+      gpuStream_t stream = gpuStreamList[thread_id];
+      block_data->copyMetadata(info_1[thread_id],stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
-      const vmesh::LocalID numberOfBlocks = info_data->size / WID3;
-      const vmesh::LocalID currentCapacity = info_data->capacity / WID3;
+      const vmesh::LocalID numberOfBlocks = info_1[thread_id]->size / WID3;
+      const vmesh::LocalID currentCapacity = info_1[thread_id]->capacity / WID3;
       #else
       const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
       const vmesh::LocalID currentCapacity = block_data->capacity()/WID3;
@@ -729,11 +764,12 @@ namespace vmesh {
       //This actually only alters capacity, not size.
       #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
       // Host-side non-pagefaulting approach
-      gpuStream_t stream = gpu_getStream();
-      block_data->copyMetadata(info_data,stream);
+      const uint thread_id = gpu_getThread();
+      gpuStream_t stream = gpuStreamList[thread_id];
+      block_data->copyMetadata(info_1[thread_id],stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
-      const vmesh::LocalID numberOfBlocks = info_data->size / WID3;
-      vmesh::LocalID currentCapacity = info_data->capacity / WID3;
+      const vmesh::LocalID numberOfBlocks = info_1[thread_id]->size / WID3;
+      vmesh::LocalID currentCapacity = info_1[thread_id]->capacity / WID3;
       #else
       const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
       vmesh::LocalID currentCapacity = block_data->capacity()/WID3;
@@ -808,10 +844,16 @@ namespace vmesh {
    inline ARCH_HOSTDEV vmesh::LocalID VelocityBlockContainer::size() const {
       #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
       // Host-side non-pagefaulting approach
-      gpuStream_t stream = gpu_getStream();
-      block_data->copyMetadata(info_data,stream);
+      const uint thread_id = gpu_getThread();
+      gpuStream_t stream = gpuStreamList[thread_id];
+      split::SplitVector<Realf> *block_data_address=0;
+      //split::SplitVector<Real> *parameters_address=0;
+      CHK_ERR( gpuMemcpyAsync(&block_data_address, &block_data, sizeof(split::SplitVector<Realf> *), gpuMemcpyDeviceToHost, stream) );
+      //CHK_ERR( gpuMemcpyAsync(&parameters_address, &parameters, sizeof(split::SplitVector<Real> *), gpuMemcpyDeviceToHost, stream) );
       CHK_ERR( gpuStreamSynchronize(stream) );
-      const vmesh::LocalID numberOfBlocks = info_data->size / WID3;
+      block_data_address->copyMetadata(info_1[thread_id],stream);
+      CHK_ERR( gpuStreamSynchronize(stream) );
+      const vmesh::LocalID numberOfBlocks = info_1[thread_id]->size / WID3;
       #else
       const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
       #endif
