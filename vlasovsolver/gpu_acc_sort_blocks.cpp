@@ -335,7 +335,7 @@ __global__ void __launch_bounds__(GPUTHREADS,4) construct_columns_kernel(
    This version uses triplets internally and also returns the LIDs of the sorted blocks.
 */
 void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
-                               vmesh::VelocityMesh* vmesh,
+                               vmesh::VelocityMesh* vmesh, //on-device vmesh
                                const vmesh::LocalID nBlocks,
                                const uint dimension,
                                vmesh::GlobalID *blocksID_mapped,

@@ -61,8 +61,10 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
    const uint nPencils, // Number of total pencils (constant)
    const uint sumOfLengths, // sum of all pencil lengths (constant)
    const Realv threshold, // used by slope limiters
-   vmesh::VelocityMesh** pencilMeshes, // Pointers to velocity meshes
-   vmesh::VelocityBlockContainer** pencilContainers, // pointers to BlockContainers
+   split::SplitVector<vmesh::VelocityMesh*> *allPencilsMeshes, // Pointers to velocity meshes
+   split::SplitVector<vmesh::VelocityBlockContainer*> *allPencilsContainers, // pointers to BlockContainers
+   // vmesh::VelocityMesh** pencilMeshes,
+   // vmesh::VelocityBlockContainer** pencilContainers, 
    Realf** pencilBlockData, // pointers into cell block data, both written and read
    Vec* pencilOrderedSource, // Vec-ordered block data values for pencils
    Realf* pencilDZ,
@@ -81,6 +83,8 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
    const uint pencilOrderedSourceOffset = blockIdx.x * sumOfLengths * (WID3/VECL);
    const uint pencilBlocksCountOffset = blockIdx.x * nPencils;
 
+   vmesh::VelocityMesh** pencilMeshes = allPencilsMeshes->data();
+   vmesh::VelocityBlockContainer** pencilContainers = allPencilsContainers->data();
    vmesh::VelocityMesh* vmesh = pencilMeshes[0]; // just some vmesh
    const Realv dvz = vmesh->getCellSize()[dimension];
    const Realv vz_min = vmesh->getMeshMinLimits()[dimension];
@@ -382,8 +386,8 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
       #pragma omp for
       for(uint celli = 0; celli < nAllCells; celli++){
          allCellsPointer[celli] = mpiGrid[allCells[celli]];
-         allVmeshPointer->at(celli) = mpiGrid[allCells[celli]]->get_velocity_mesh(popID);
-         const uint thisMeshSize = allVmeshPointer->at(celli)->size();
+         allVmeshPointer->at(celli) = mpiGrid[allCells[celli]]->dev_get_velocity_mesh(popID);
+         const uint thisMeshSize = mpiGrid[allCells[celli]]->get_velocity_mesh(popID)->size();
          thread_largestFoundMeshSize = thisMeshSize > thread_largestFoundMeshSize ? thisMeshSize : thread_largestFoundMeshSize;
          // Prefetches (in fact all data should already reside in device memory)
          // allCellsPointer[celli]->get_velocity_mesh(popID)->gpu_prefetchDevice();
@@ -408,10 +412,6 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
          nPencils[nPencils.size()-1] += myPencilCount;
       }
    }
-
-   // Get a pointer to the velocity mesh of the first spatial cell.
-   // This is required just for general indexes and accessors in pencil translation.
-   const vmesh::VelocityMesh* vmesh = allCellsPointer[0]->get_velocity_mesh(popID);
 
    phiprof::Timer buildTimer {"trans-amr-buildBlockList"};
    // Get a unique unsorted list of blockids that are in any of the
@@ -438,13 +438,11 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
       // Loop over cells in pencil
       for (int i = 0; i < L; i++) {
          const CellID thisCell = DimensionPencils[dimension].ids[start+i];
-         allPencilsMeshes->at(start+i) = mpiGrid[thisCell]->get_velocity_mesh(popID);
-         allPencilsContainers->at(start+i) = mpiGrid[thisCell]->get_velocity_blocks(popID);
+         allPencilsMeshes->at(start+i) = mpiGrid[thisCell]->dev_get_velocity_mesh(popID);
+         allPencilsContainers->at(start+i) = mpiGrid[thisCell]->dev_get_velocity_blocks(popID);
       }
    }
    // Prefetch data back to GPU
-   vmesh::VelocityMesh** pencilMeshes = allPencilsMeshes->data();
-   vmesh::VelocityBlockContainer** pencilContainers = allPencilsContainers->data();
    allPencilsMeshes->optimizeGPU(bgStream);
    allPencilsContainers->optimizeGPU(bgStream);
 
@@ -520,8 +518,8 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
          nPencils, // Number of total pencils (constant)
          sumOfLengths, // sum of all pencil lengths (constant)
          threshold,
-         pencilMeshes, // Pointers to velocity meshes
-         pencilContainers, // pointers to BlockContainers
+         allPencilsMeshes, // Pointers to velocity meshes
+         allPencilsContainers, // pointers to BlockContainers
          pencilBlockData, // pointers into cell block data, both written and read
          pencilOrderedSource, // Vec-ordered block data values for pencils
          pencilDZ,

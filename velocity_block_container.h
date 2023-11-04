@@ -48,11 +48,7 @@ using namespace std;
 
 namespace vmesh {
 
-#ifdef USE_GPU
-   class VelocityBlockContainer : public Managed {
-#else
    class VelocityBlockContainer {
-#endif
    public:
 
       VelocityBlockContainer();
@@ -207,12 +203,7 @@ namespace vmesh {
       // Host-side non-pagefaulting approach
       const uint thread_id = gpu_getThread();
       gpuStream_t stream = gpuStreamList[thread_id];
-      split::SplitVector<Realf> *block_data_address=0;
-      //split::SplitVector<Real> *parameters_address=0;
-      CHK_ERR( gpuMemcpyAsync(&block_data_address, &block_data, sizeof(split::SplitVector<Realf> *), gpuMemcpyDeviceToHost, stream) );
-      //CHK_ERR( gpuMemcpyAsync(&parameters_address, &parameters, sizeof(split::SplitVector<Real> *), gpuMemcpyDeviceToHost, stream) );
-      CHK_ERR( gpuStreamSynchronize(stream) );
-      block_data_address->copyMetadata(info_1[thread_id],stream);
+      block_data->copyMetadata(info_1[thread_id],stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
       const vmesh::LocalID numberOfBlocks = info_1[thread_id]->size / WID3;
       #else
@@ -328,12 +319,7 @@ namespace vmesh {
       // Host-side non-pagefaulting approach
       const uint thread_id = gpu_getThread();
       gpuStream_t stream = gpuStreamList[thread_id];
-      split::SplitVector<Realf> *block_data_address=0;
-      //split::SplitVector<Real> *parameters_address=0;
-      CHK_ERR( gpuMemcpyAsync(&block_data_address, &block_data, sizeof(split::SplitVector<Realf> *), gpuMemcpyDeviceToHost, stream) );
-      //CHK_ERR( gpuMemcpyAsync(&parameters_address, &parameters, sizeof(split::SplitVector<Real> *), gpuMemcpyDeviceToHost, stream) );
-      CHK_ERR( gpuStreamSynchronize(stream) );
-      block_data_address->copyMetadata(info_1[thread_id],stream);
+      block_data->copyMetadata(info_1[thread_id],stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
       const vmesh::LocalID numberOfBlocks = info_1[thread_id]->size / WID3;
       vmesh::LocalID currentCapacity = info_1[thread_id]->capacity / WID3;
@@ -392,7 +378,6 @@ namespace vmesh {
          stream = gpu_getStream();
       }
 
-      CHK_ERR( gpuMemPrefetchAsync(this, sizeof(vmesh::VelocityBlockContainer), gpuCpuDeviceId, stream));
       CHK_ERR( gpuStreamSynchronize(stream) );
       block_data->optimizeCPU(gpu_getStream());
       parameters->optimizeCPU(gpu_getStream());
@@ -405,19 +390,9 @@ namespace vmesh {
       if (stream==0) {
          stream = gpu_getStream();
       }
-      split::SplitVector<Realf> *block_data_address=0;
-      split::SplitVector<Real> *parameters_address=0;
-      CHK_ERR( gpuMemcpyAsync(&block_data_address, &block_data, sizeof(split::SplitVector<Realf> *), gpuMemcpyDeviceToHost, stream) );
-      CHK_ERR( gpuMemcpyAsync(&parameters_address, &parameters, sizeof(split::SplitVector<Real> *), gpuMemcpyDeviceToHost, stream) );
-
-      // CHK_ERR( gpuMemPrefetchAsync(this, sizeof(vmesh::VelocityBlockContainer), gpuCpuDeviceId, stream));
-      CHK_ERR( gpuStreamSynchronize(stream) );
       int device = gpu_getDevice();
-      // block_data->optimizeGPU(stream);
-      // parameters->optimizeGPU(stream);
-      block_data_address->optimizeGPU(stream);
-      parameters_address->optimizeGPU(stream);
-      CHK_ERR( gpuMemPrefetchAsync(this, sizeof(vmesh::VelocityBlockContainer), device, stream));
+      block_data->optimizeGPU(stream);
+      parameters->optimizeGPU(stream);
       return;
    }
 
@@ -448,7 +423,6 @@ namespace vmesh {
       } else {
          attachedStream = newStream;
       }
-      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,this, 0,gpuMemAttachSingle) );
       CHK_ERR( gpuStreamAttachMemAsync(attachedStream,block_data, 0,gpuMemAttachSingle) );
       CHK_ERR( gpuStreamAttachMemAsync(attachedStream,parameters, 0,gpuMemAttachSingle) );
       block_data->streamAttach(attachedStream);
@@ -466,7 +440,6 @@ namespace vmesh {
       }
       attachedStream = 0;
       // Detach unified memory regions from streams
-      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,this, 0,gpuMemAttachGlobal) );
       CHK_ERR( gpuStreamAttachMemAsync(attachedStream,block_data, 0,gpuMemAttachGlobal) );
       CHK_ERR( gpuStreamAttachMemAsync(attachedStream,parameters, 0,gpuMemAttachGlobal) );
       block_data->streamAttach(0,gpuMemAttachGlobal);
@@ -846,12 +819,7 @@ namespace vmesh {
       // Host-side non-pagefaulting approach
       const uint thread_id = gpu_getThread();
       gpuStream_t stream = gpuStreamList[thread_id];
-      split::SplitVector<Realf> *block_data_address=0;
-      //split::SplitVector<Real> *parameters_address=0;
-      CHK_ERR( gpuMemcpyAsync(&block_data_address, &block_data, sizeof(split::SplitVector<Realf> *), gpuMemcpyDeviceToHost, stream) );
-      //CHK_ERR( gpuMemcpyAsync(&parameters_address, &parameters, sizeof(split::SplitVector<Real> *), gpuMemcpyDeviceToHost, stream) );
-      CHK_ERR( gpuStreamSynchronize(stream) );
-      block_data_address->copyMetadata(info_1[thread_id],stream);
+      block_data->copyMetadata(info_1[thread_id],stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
       const vmesh::LocalID numberOfBlocks = info_1[thread_id]->size / WID3;
       #else

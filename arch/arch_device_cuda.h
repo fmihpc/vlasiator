@@ -40,6 +40,9 @@
 #define gpuMemset                        cudaMemset
 #define gpuMemsetAsync                   cudaMemsetAsync
 
+#define gpuHostRegister                  cudaHostRegister
+#define gpuHostRegisterPortable          cudaHostRegisterPortable
+
 #define gpuMemAdviseSetAccessedBy        cudaMemAdviseSetAccessedBy
 #define gpuMemAdviseSetPreferredLocation cudaMemAdviseSetPreferredLocation
 #define gpuMemAttachSingle               cudaMemAttachSingle

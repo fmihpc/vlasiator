@@ -44,6 +44,9 @@
 #define gpuMemPrefetchAsync              hipMemPrefetchAsync
 
 #define gpuStreamCreate                  hipStreamCreate
+#define gpuHostRegister                  hipHostRegister
+#define gpuHostRegisterPortable          hipHostRegisterPortable
+
 #define gpuStreamDestroy                 hipStreamDestroy
 #define gpuStreamWaitEvent               hipStreamWaitEvent
 #define gpuStreamSynchronize             hipStreamSynchronize

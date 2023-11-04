@@ -46,7 +46,7 @@
 
 namespace vmesh {
 
-   class VelocityMesh : public Managed {
+   class VelocityMesh {
     public:
       VelocityMesh();
       ~VelocityMesh();
@@ -107,6 +107,7 @@ namespace vmesh {
       bool setGrid(const std::vector<vmesh::GlobalID>& globalIDs);
       bool setGrid(const split::SplitVector<vmesh::GlobalID>& globalIDs);
       bool setMesh(const size_t& meshID);
+      size_t getMeshID();
       void setNewSize(const vmesh::LocalID& newSize);
       void setNewCapacity(const vmesh::LocalID& newCapacity);
       ARCH_HOSTDEV size_t size() const;
@@ -1042,43 +1043,41 @@ namespace vmesh {
       this->meshID = meshID;
       return true;
    }
+   inline size_t VelocityMesh::getMeshID() {
+      return this->meshID;
+   }
 
    inline void VelocityMesh::setNewSize(const vmesh::LocalID& newSize) {
       // Needed by GPU block adjustment
       // Host-side non-pagefaulting approach
       const uint thread_id = gpu_getThread();
       gpuStream_t stream = gpuStreamList[thread_id];
-      Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *globalToLocalMap_address=0;
-      split::SplitVector<vmesh::GlobalID> *localToGlobalMap_address=0;
-      CHK_ERR( gpuMemcpyAsync(&localToGlobalMap_address, &localToGlobalMap, sizeof(split::SplitVector<vmesh::GlobalID> *), gpuMemcpyDeviceToHost, stream) );
-      CHK_ERR( gpuMemcpyAsync(&globalToLocalMap_address, &globalToLocalMap, sizeof(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *), gpuMemcpyDeviceToHost, stream) );
-      CHK_ERR( gpuStreamSynchronize(stream) );
-      localToGlobalMap_address->copyMetadata(info_1[thread_id],stream);
+      localToGlobalMap->copyMetadata(info_1[thread_id],stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
       vmesh::LocalID currentCapacity =  info_1[thread_id]->capacity;
       // Passing eco flag = true to resize tells splitvector we manage padding manually.
-      localToGlobalMap_address->resize(newSize,true);
+      localToGlobalMap->resize(newSize,true);
       //int device = gpu_getDevice();
       if (newSize > currentCapacity) {
          // Was allocated new memory
          CHK_ERR( gpuStreamSynchronize(stream) );
-         localToGlobalMap_address->optimizeGPU(stream);
+         localToGlobalMap->optimizeGPU(stream);
          // localToGlobalMap->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
          // localToGlobalMap->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
       }
       // Ensure also that the map is large enough
       const int HashmapReqSize = ceil(log2(newSize)) +2; // Make it really large enough
-      if (globalToLocalMap_address->getSizePower() < HashmapReqSize) {
-         globalToLocalMap_address->device_rehash(HashmapReqSize, stream);
+      if (globalToLocalMap->getSizePower() < HashmapReqSize) {
+         globalToLocalMap->device_rehash(HashmapReqSize, stream);
          CHK_ERR( gpuStreamSynchronize(stream) );
-         globalToLocalMap_address->optimizeGPU(stream);
+         globalToLocalMap->optimizeGPU(stream);
          // globalToLocalMap->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
          // globalToLocalMap->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
       }
       // Re-attach stream if required
       if ((attachedStream != 0)&&(needAttachedStreams)) {
-         globalToLocalMap_address->streamAttach(attachedStream);
-         localToGlobalMap_address->streamAttach(attachedStream);
+         globalToLocalMap->streamAttach(attachedStream);
+         localToGlobalMap->streamAttach(attachedStream);
       }
    }
 
@@ -1100,10 +1099,7 @@ namespace vmesh {
       // Host-side non-pagefaulting approach
       const uint thread_id = gpu_getThread();
       gpuStream_t stream = gpuStreamList[thread_id];
-      split::SplitVector<vmesh::GlobalID> *localToGlobalMap_address=0;
-      CHK_ERR( gpuMemcpyAsync(&localToGlobalMap_address, &localToGlobalMap, sizeof(split::SplitVector<vmesh::GlobalID> *), gpuMemcpyDeviceToHost, stream) );
-      CHK_ERR( gpuStreamSynchronize(stream) );
-      localToGlobalMap_address->copyMetadata(info_1[thread_id],stream);
+      localToGlobalMap->copyMetadata(info_1[thread_id],stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
       return info_1[thread_id]->size;
 #endif
@@ -1125,7 +1121,6 @@ namespace vmesh {
       if (stream==0) {
          stream = gpu_getStream();
       }
-      CHK_ERR(gpuMemPrefetchAsync(this, sizeof(vmesh::VelocityMesh), gpuCpuDeviceId, stream));
       CHK_ERR( gpuStreamSynchronize(stream) );
       globalToLocalMap->optimizeCPU(stream);
       localToGlobalMap->optimizeCPU(stream);
@@ -1138,19 +1133,9 @@ namespace vmesh {
       if (stream==0) {
          stream = gpu_getStream();
       }
-      Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *globalToLocalMap_address=0;
-      split::SplitVector<vmesh::GlobalID> *localToGlobalMap_address=0;
-      CHK_ERR( gpuMemcpyAsync(&localToGlobalMap_address, &localToGlobalMap, sizeof(split::SplitVector<vmesh::GlobalID> *), gpuMemcpyDeviceToHost, stream) );
-      CHK_ERR( gpuMemcpyAsync(&globalToLocalMap_address, &globalToLocalMap, sizeof(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *), gpuMemcpyDeviceToHost, stream) );
-
-      // CHK_ERR(gpuMemPrefetchAsync(this, sizeof(vmesh::VelocityMesh), gpuCpuDeviceId, stream));
-      CHK_ERR( gpuStreamSynchronize(stream) );
       int device = gpu_getDevice();
-      // globalToLocalMap->optimizeGPU(stream);
-      // localToGlobalMap->optimizeGPU(stream);
-      globalToLocalMap_address->optimizeGPU(stream);
-      localToGlobalMap_address->optimizeGPU(stream);
-      CHK_ERR(gpuMemPrefetchAsync(this, sizeof(vmesh::VelocityMesh), device, stream));
+      globalToLocalMap->optimizeGPU(stream);
+      localToGlobalMap->optimizeGPU(stream);
       return;
    }
 
@@ -1190,7 +1175,6 @@ namespace vmesh {
       } else {
          attachedStream = newStream;
       }
-      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,this, 0,gpuMemAttachSingle) );
       CHK_ERR( gpuStreamAttachMemAsync(attachedStream,globalToLocalMap, 0,gpuMemAttachSingle) );
       CHK_ERR( gpuStreamAttachMemAsync(attachedStream,localToGlobalMap, 0,gpuMemAttachSingle) );
       globalToLocalMap->streamAttach(attachedStream);
@@ -1208,7 +1192,6 @@ namespace vmesh {
          return;
       }
       attachedStream = 0;
-      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,this, 0,gpuMemAttachGlobal) );
       CHK_ERR( gpuStreamAttachMemAsync(attachedStream,globalToLocalMap, 0,gpuMemAttachGlobal) );
       CHK_ERR( gpuStreamAttachMemAsync(attachedStream,localToGlobalMap, 0,gpuMemAttachGlobal) );
       globalToLocalMap->streamAttach(0,gpuMemAttachGlobal);

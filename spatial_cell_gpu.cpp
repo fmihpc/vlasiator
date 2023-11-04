@@ -572,6 +572,7 @@ namespace spatial_cell {
       for (uint popID=0; popID<populations.size(); ++popID) {
          const species::Species& spec = getObjectWrapper().particleSpecies[popID];
          populations[popID].vmesh->initialize(spec.velocityMesh);
+         populations[popID].Upload();
          populations[popID].velocityBlockMinValue = spec.sparseMinValue;
          populations[popID].N_blocks = 0;
       }
@@ -1042,7 +1043,7 @@ namespace spatial_cell {
          phiprof::Timer haloGatherTimer {"Halo gather"};
          int addWidthV = getObjectWrapper().particleSpecies[popID].sparseBlockAddWidthV;
          update_blocks_required_halo_kernel<<<nGpuBlocks, GPUTHREADS, 0, stream>>> (
-            populations[popID].vmesh,
+            populations[popID].dev_vmesh,
             BlocksRequiredMap,
             velocity_block_with_content_list,
             addWidthV
@@ -1068,7 +1069,7 @@ namespace spatial_cell {
                continue;
             }
             update_neighbours_have_content_kernel<<<nGpuBlocks, GPUTHREADS, 0, stream>>> (
-               populations[popID].vmesh,
+               populations[popID].dev_vmesh,
                BlocksRequiredMap,
                (*neighbor)->gpu_velocity_block_with_content_list_buffer,
                nNeighBlocks
@@ -1140,7 +1141,7 @@ namespace spatial_cell {
          CHK_ERR( gpuStreamSynchronize(stream) );
          phiprof::Timer updateAddTimer {"blocks_to_add_kernel"};
          update_blocks_to_add_kernel<<<nGpuBlocks, GPUTHREADS, 0, stream>>> (
-            populations[popID].vmesh,
+            populations[popID].dev_vmesh,
             BlocksRequired,
             BlocksToAdd,
             BlocksToMove,
@@ -1196,7 +1197,7 @@ namespace spatial_cell {
          CHK_ERR( gpuStreamSynchronize(stream) );
          phiprof::Timer blockMoveTimer {"blocks_to_move_kernel"};
          update_blocks_to_move_kernel<<<nGpuBlocks, GPUTHREADS, 0, stream>>> (
-            populations[popID].vmesh,
+            populations[popID].dev_vmesh,
             BlocksRequired,
             BlocksToMove,
             nBlocksRequired
@@ -1261,8 +1262,8 @@ namespace spatial_cell {
          #endif
          nGpuBlocks=1;
          update_velocity_blocks_kernel<<<nGpuBlocks, block, 0, stream>>> (
-            populations[popID].vmesh,
-            populations[popID].blockContainer,
+            populations[popID].dev_vmesh,
+            populations[popID].dev_blockContainer,
             BlocksToAdd,
             BlocksToRemove,
             BlocksToMove,
@@ -1623,8 +1624,8 @@ namespace spatial_cell {
       CHK_ERR( gpuStreamSynchronize(stream) );
       if (nGpuBlocks>0) {
          update_blockparameters_kernel<<<nGpuBlocks, GPUTHREADS, 0, stream>>> (
-            populations[popID].vmesh,
-            populations[popID].blockContainer,
+            populations[popID].dev_vmesh,
+            populations[popID].dev_blockContainer,
             parameters,
             meshSize
             );

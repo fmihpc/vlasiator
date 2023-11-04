@@ -585,6 +585,8 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    phiprof::Timer paramsTimer {"Get acc parameters"};
    vmesh::VelocityMesh* vmesh    = spatial_cell->get_velocity_mesh(popID);
    vmesh::VelocityBlockContainer* blockContainer = spatial_cell->get_velocity_blocks(popID);
+   vmesh::VelocityMesh* dev_vmesh    = spatial_cell->dev_get_velocity_mesh(popID);
+   vmesh::VelocityBlockContainer* dev_blockContainer = spatial_cell->dev_get_velocity_blocks(popID);
 
    // Thread id used for persistent device memory pointers
 #ifdef _OPENMP
@@ -717,7 +719,7 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    gpuStream_t priorityStream = gpu_getPriorityStream();
    CHK_ERR( gpuMemsetAsync(columnNBlocks, 0, gpu_acc_columnContainerSize*sizeof(vmesh::LocalID), stream) );
    CHK_ERR( gpuStreamSynchronize(stream) ); // Yes needed because we use priority stream for block list sorting
-   sortBlocklistByDimension(vmesh,
+   sortBlocklistByDimension(dev_vmesh,
                             nBlocks,
                             dimension,
                             BlocksID_mapped,
@@ -776,7 +778,7 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    uint gpublocks = host_totalColumns > GPUBLOCKS ? GPUBLOCKS : host_totalColumns;
    // Launch kernels for transposing and ordering velocity space data into columns
    reorder_blocks_by_dimension_kernel<<<gpublocks, VECL, 0, stream>>> (
-      blockContainer,
+      dev_blockContainer,
       gpu_blockDataOrdered[cpuThreadID],
       gpu_cell_indices_to_id[cpuThreadID],
       host_totalColumns,
@@ -809,7 +811,7 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       CHK_ERR( gpuMemsetAsync(gpu_returnLID, 0, 2*sizeof(vmesh::LocalID), stream) );
       evaluate_column_extents_kernel<<<gpublocks, GPUTHREADS, 0, stream>>> (
          dimension,
-         vmesh,
+         dev_vmesh,
          columnData,
          columns,
          spatial_cell->BlocksRequired,
@@ -891,7 +893,7 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
 
    phiprof::Timer identifyOffsetsTimer {"identify new block offsets kernel"};
    identify_block_offsets_kernel<<<gpublocks, GPUTHREADS, 0, stream>>> (
-      vmesh,
+      dev_vmesh,
       columns,
       host_totalColumns,
       newNBlocks,
@@ -904,7 +906,7 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    CHK_ERR( gpuStreamSynchronize(stream) ); // Yes needed to ensure block data was zeroed
    phiprof::Timer semilagAccKernel {"Semi-Lagrangian acceleration kernel"};
    acceleration_kernel<<<gpublocks, VECL, 0, stream>>> (
-      blockContainer,
+      dev_blockContainer,
       gpu_blockDataOrdered[cpuThreadID],
       gpu_cell_indices_to_id[cpuThreadID],
       columns,
