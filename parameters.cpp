@@ -161,8 +161,8 @@ bool P::adaptRefinement = false;
 bool P::refineOnRestart = false;
 bool P::forceRefinement = false;
 bool P::shouldFilter = false;
-Real P::refineThreshold = 0.0;
-Real P::unrefineThreshold = 0.0;
+Real P::refineThreshold = -1.0;
+Real P::unrefineThreshold = -1.0;
 uint P::refineMultiplier = 10;
 Real P::refineAfter = 0.0;
 Real P::refineRadius = LARGE_REAL;
@@ -438,8 +438,8 @@ bool P::addParameters() {
    RP::add("AMR.refine_on_restart","If true, re-refine vlasov grid on restart", false);
    RP::add("AMR.force_refinement","If true, refine/unrefine the vlasov grid to match the config on restart", false);
    RP::add("AMR.should_filter","If true, filter vlasov grid with boxcar filter on restart",false);
-   RP::add("AMR.refine_threshold","Determines the minimum value of the refinement parameter to refine cells", 1.0);
-   RP::add("AMR.unrefine_threshold","Determines the maximum value of the refinement parameter to unrefine cells", 0.0);
+   RP::add("AMR.refine_threshold","Determines the minimum value of the refinement parameter to refine cells", -1.0);
+   RP::add("AMR.unrefine_threshold","Determines the maximum value of the refinement parameter to unrefine cells", -1.0);
    RP::add("AMR.refine_multiplier","Refine every nth load balance", 10);
    RP::add("AMR.refine_after","Start refinement after this many simulation seconds", 0.0);
    RP::add("AMR.refine_radius","Maximum distance from Earth to refine", LARGE_REAL);
@@ -684,10 +684,19 @@ void Parameters::getParameters() {
    RP::get("AMR.should_filter",P::shouldFilter);
    RP::get("AMR.refine_threshold",P::refineThreshold);
    RP::get("AMR.unrefine_threshold",P::unrefineThreshold);
+   if (P::unrefineThreshold < 0) {
+      cerr << "Unrefine threshold not set, using half of refine threshold" << endl;
+      P::unrefineThreshold = P::refineThreshold / 2.0;
+   }
+
    RP::get("AMR.refine_multiplier",P::refineMultiplier);
    RP::get("AMR.refine_after",P::refineAfter);
    RP::get("AMR.refine_radius",P::refineRadius);
-   RP::get("AMR.use_alpha",P::useAlpha);
+   RP::get("AMR.use_alpha",P::useAlpha);  // Now should this just be P::refineThreshold > 0?
+   if (P::useAlpha && P::refineThreshold < 0) {
+      cerr << "WARNING using alpha without refine threshold set" << endl;
+   }
+
    RP::get("AMR.use_J_per_B",P::useJPerB);
    RP::get("AMR.J_per_B_modifier",P::JPerBModifier);
    RP::get("AMR.box_half_width_x", P::amrBoxHalfWidthX);
