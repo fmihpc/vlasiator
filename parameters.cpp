@@ -688,22 +688,30 @@ void Parameters::getParameters() {
    RP::get("AMR.use_alpha",P::useAlpha);  // Now should this just be P::refineThreshold > 0?
    RP::get("AMR.alpha_refine_threshold",P::alphaRefineThreshold);
    RP::get("AMR.alpha_coarsen_threshold",P::alphaCoarsenThreshold);
-   if (P::alphaCoarsenThreshold < 0) {
-      cerr << "Alpha coarsening threshold not set, using half of refine threshold" << endl;
+   if (P::useAlpha && P::alphaCoarsenThreshold < 0) {
+      if (myRank == MASTER_RANK) {
+         cerr << "Alpha coarsening threshold not set, using half of refine threshold" << endl;
+      }
       P::alphaCoarsenThreshold = P::alphaRefineThreshold / 2.0;
    }
    if (P::useAlpha && P::alphaRefineThreshold < 0) {
-      cerr << "WARNING using alpha without refine threshold set" << endl;
+      if (myRank == MASTER_RANK) {
+         cerr << "WARNING using alpha without refine threshold set" << endl;
+      }
    }
    RP::get("AMR.use_J_per_B",P::useJPerB);
    RP::get("AMR.jperb_refine_threshold",P::jperbRefineThreshold);
    RP::get("AMR.jperb_coarsen_threshold",P::jperbCoarsenThreshold);
-   if (P::jperbCoarsenThreshold < 0) {
-      cerr << "J/B coarsening threshold not set, using half of refine threshold" << endl;
+   if (P::useJPerB && P::jperbCoarsenThreshold < 0) {
+      if (myRank == MASTER_RANK) {
+         cerr << "J/B coarsening threshold not set, using half of refine threshold" << endl;
+      }
       P::jperbCoarsenThreshold = P::jperbRefineThreshold / 2.0;
    }
    if (P::useJPerB && P::jperbRefineThreshold < 0) {
-      cerr << "WARNING using J/B without refine threshold set" << endl;
+      if (myRank == MASTER_RANK) {
+         cerr << "WARNING using J/B without refine threshold set" << endl;
+      }
    }
 
    RP::get("AMR.refine_multiplier",P::refineMultiplier);
