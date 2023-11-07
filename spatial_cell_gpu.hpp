@@ -1484,7 +1484,7 @@ namespace spatial_cell {
       gpuStream_t stream = gpu_getStream();
       // Bookkeeping only: Calls CPU version in order to ensure resize of container.
       vmesh::LocalID startLID = populations[popID].blockContainer->push_back(nBlocks);
-      blocks->optimizeGPU(stream);
+      blocks->optimizeGPU(stream,true);
       CHK_ERR( gpuStreamSynchronize(stream) );
       // get pointers
       Real* parameters = populations[popID].blockContainer->getParameters(startLID);

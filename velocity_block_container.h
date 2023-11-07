@@ -379,8 +379,8 @@ namespace vmesh {
       if (stream==0) {
          stream = gpu_getStream();
       }
-      block_data->optimizeCPU(gpu_getStream());
-      parameters->optimizeCPU(gpu_getStream());
+      block_data->optimizeCPU(stream,true);
+      parameters->optimizeCPU(stream,true);
       return;
    }
 
@@ -388,8 +388,14 @@ namespace vmesh {
       if (stream==0) {
          stream = gpu_getStream();
       }
-      block_data->optimizeGPU(stream);
-      parameters->optimizeGPU(stream);
+      phiprof::Timer timer {"Upload block_data"};
+      block_data->optimizeGPU(stream,true);
+      CHK_ERR( gpuStreamSynchronize(stream) );
+      timer.stop();
+      phiprof::Timer timer2 {"Upload parameters"};
+      parameters->optimizeGPU(stream,true);
+      CHK_ERR( gpuStreamSynchronize(stream) );
+      timer2.stop();
       return;
    }
 
@@ -763,8 +769,8 @@ namespace vmesh {
          }
          gpuStream_t stream = gpu_getStream();
          CHK_ERR( gpuStreamSynchronize(stream) );
-         block_data->optimizeGPU(stream);
-         parameters->optimizeGPU(stream);
+         block_data->optimizeGPU(stream,true);
+         parameters->optimizeGPU(stream,true);
          // int device = gpu_getDevice();
          // block_data->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
          // parameters->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);

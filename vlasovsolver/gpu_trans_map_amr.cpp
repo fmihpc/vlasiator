@@ -399,7 +399,7 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
       }
    }
    // Prefetch vector of vmesh pointers to GPU
-   allVmeshPointer->optimizeGPU(bgStream);
+   allVmeshPointer->optimizeGPU(bgStream,true);
 
    // Reserve size for unionOfBlocksSet
    gpu_trans_allocate(0, 0, largestFoundMeshSize, 0);
@@ -443,8 +443,8 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
       }
    }
    // Prefetch data back to GPU
-   allPencilsMeshes->optimizeGPU(bgStream);
-   allPencilsContainers->optimizeGPU(bgStream);
+   allPencilsMeshes->optimizeGPU(bgStream,true);
+   allPencilsContainers->optimizeGPU(bgStream,true);
 
    // Extract pointers to data in managed memory
    uint* pencilLengths = DimensionPencils[dimension].gpu_lengthOfPencils->data();

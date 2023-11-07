@@ -355,10 +355,10 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
 
    phiprof::Timer prefetchTimer {"Sorting prefetches"};
    if (doPrefetches) {
-      columnData->columnBlockOffsets.optimizeGPU();
-      columnData->columnNumBlocks.optimizeGPU();
-      columnData->setColumnOffsets.optimizeGPU();
-      columnData->setNumColumns.optimizeGPU();
+      columnData->columnBlockOffsets.optimizeGPU(stream,true);
+      columnData->columnNumBlocks.optimizeGPU(stream,true);
+      columnData->setColumnOffsets.optimizeGPU(stream,true);
+      columnData->setNumColumns.optimizeGPU(stream,true);
    }
    // Ensure at least one launch block
    uint nGpuBlocks  = (nBlocks/GPUTHREADS) > GPUBLOCKS ? GPUBLOCKS : std::ceil((Real)nBlocks/(Real)GPUTHREADS);

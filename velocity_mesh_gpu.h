@@ -187,8 +187,8 @@ namespace vmesh {
       bool ok = true;
       #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
       gpuStream_t stream = gpu_getStream();
-      localToGlobalMap->optimizeCPU(stream);
-      globalToLocalMap->optimizeCPU(stream);
+      localToGlobalMap->optimizeCPU(stream,true);
+      globalToLocalMap->optimizeCPU(stream,true);
       #endif
 
       if (localToGlobalMap->size() != globalToLocalMap->size()) {
@@ -213,8 +213,8 @@ namespace vmesh {
          }
       }
       #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-      localToGlobalMap->optimizeGPU(stream);
-      globalToLocalMap->optimizeGPU(stream);
+      localToGlobalMap->optimizeGPU(stream,true);
+      globalToLocalMap->optimizeGPU(stream,true);
       #endif
       return ok;
    }
@@ -1062,7 +1062,7 @@ namespace vmesh {
       if (newSize > currentCapacity) {
          // Was allocated new memory
          CHK_ERR( gpuStreamSynchronize(stream) );
-         localToGlobalMap->optimizeGPU(stream);
+         localToGlobalMap->optimizeGPU(stream,true);
          // localToGlobalMap->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
          // localToGlobalMap->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
       }
@@ -1071,7 +1071,7 @@ namespace vmesh {
       if (globalToLocalMap->getSizePower() < HashmapReqSize) {
          globalToLocalMap->device_rehash(HashmapReqSize, stream);
          CHK_ERR( gpuStreamSynchronize(stream) );
-         globalToLocalMap->optimizeGPU(stream);
+         globalToLocalMap->optimizeGPU(stream,true);
          // globalToLocalMap->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
          // globalToLocalMap->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
       }
@@ -1120,8 +1120,8 @@ namespace vmesh {
       if (stream==0) {
          stream = gpu_getStream();
       }
-      globalToLocalMap->optimizeCPU(stream);
-      localToGlobalMap->optimizeCPU(stream);
+      globalToLocalMap->optimizeCPU(stream,true);
+      localToGlobalMap->optimizeCPU(stream,true);
       return;
    }
 
@@ -1129,8 +1129,14 @@ namespace vmesh {
       if (stream==0) {
          stream = gpu_getStream();
       }
-      globalToLocalMap->optimizeGPU(stream);
-      localToGlobalMap->optimizeGPU(stream);
+      phiprof::Timer timer {"Upload globalToLocalMap Hashmap"};
+      globalToLocalMap->optimizeGPU(stream,true);
+      CHK_ERR( gpuStreamSynchronize(stream) );
+      timer.stop();
+      phiprof::Timer timer2 {"Upload localToGlobalMap vector"};
+      localToGlobalMap->optimizeGPU(stream,true);
+      CHK_ERR( gpuStreamSynchronize(stream) );
+      timer2.stop();
       return;
    }
 

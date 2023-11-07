@@ -984,8 +984,8 @@ namespace spatial_cell {
       if (doPrefetches) {
          phiprof::Timer prefetchTimer {"Prefetch"};
          populations[popID].vmesh->gpu_prefetchDevice(); // Queries active stream internally
-         velocity_block_with_content_list->optimizeGPU(stream);
-         velocity_block_with_no_content_list->optimizeGPU(stream);
+         velocity_block_with_content_list->optimizeGPU(stream,true);
+         velocity_block_with_no_content_list->optimizeGPU(stream,true);
       }
 
       phiprof::Timer resizeTimer {"BlocksRequired hashmap resize / clear"};
@@ -1007,7 +1007,7 @@ namespace spatial_cell {
          if ((attachedStream != 0)&&(needAttachedStreams)) {
             BlocksRequiredMap->streamAttach(attachedStream);
          }
-         BlocksRequiredMap->optimizeGPU(stream);
+         BlocksRequiredMap->optimizeGPU(stream,true);
       }
       CHK_ERR( gpuStreamSynchronize(stream) );
       resizeTimer.stop();
@@ -1102,10 +1102,10 @@ namespace spatial_cell {
       reserveTimer.stop();
       phiprof::Timer prefetchTimer {"BlocksToXXX prefetch"};
       if (doPrefetches || (BlocksRequiredCapacity < reserveSize)) {
-         BlocksRequired->optimizeGPU(stream);
-         BlocksToRemove->optimizeGPU(stream);
-         BlocksToAdd->optimizeGPU(stream);
-         BlocksToMove->optimizeGPU(stream);
+         BlocksRequired->optimizeGPU(stream,true);
+         BlocksToRemove->optimizeGPU(stream,true);
+         BlocksToAdd->optimizeGPU(stream,true);
+         BlocksToMove->optimizeGPU(stream,true);
       }
       SSYNC;
       prefetchTimer.stop();
@@ -1747,8 +1747,8 @@ namespace spatial_cell {
          // velocity_block_with_no_content_list->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
          // velocity_block_with_content_list->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
          // velocity_block_with_no_content_list->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-         velocity_block_with_content_list->optimizeGPU(stream);
-         velocity_block_with_no_content_list->optimizeGPU(stream);
+         velocity_block_with_content_list->optimizeGPU(stream,true);
+         velocity_block_with_no_content_list->optimizeGPU(stream,true);
       }
       // Set gathering vectors to correct size
       vbwcl_gather[thread_id]->resize(currSize,true);

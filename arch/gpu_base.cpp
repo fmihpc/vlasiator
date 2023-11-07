@@ -466,8 +466,8 @@ __host__ void gpu_compaction_allocate_vec_perthread(
       // vbwncl_gather[cpuThreadID]->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
       // vbwcl_gather[cpuThreadID]->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
       // vbwncl_gather[cpuThreadID]->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-      vbwcl_gather[cpuThreadID]->optimizeGPU(stream);
-      vbwncl_gather[cpuThreadID]->optimizeGPU(stream);
+      vbwcl_gather[cpuThreadID]->optimizeGPU(stream,true);
+      vbwncl_gather[cpuThreadID]->optimizeGPU(stream,true);
       gpu_compaction_vectorsize[cpuThreadID] = paddedSize;
    }
 }
@@ -511,7 +511,7 @@ __host__ void gpu_trans_allocate(
       } else {
          // Resize
          allVmeshPointer->resize(nAllCells,true);
-         allVmeshPointer->optimizeCPU(stream);
+         allVmeshPointer->optimizeCPU(stream,true);
       }
       gpu_allocated_nAllCells = nAllCells;
    }
@@ -525,8 +525,8 @@ __host__ void gpu_trans_allocate(
          // Resize
          allPencilsMeshes->resize(sumOfLengths,true);
          allPencilsContainers->resize(sumOfLengths,true);
-         allPencilsMeshes->optimizeCPU(stream);
-         allPencilsContainers->optimizeCPU(stream);
+         allPencilsMeshes->optimizeCPU(stream,true);
+         allPencilsContainers->optimizeCPU(stream,true);
       }
       gpu_allocated_sumOfLengths = sumOfLengths;
    }
@@ -536,13 +536,13 @@ __host__ void gpu_trans_allocate(
       if (gpu_allocated_largestVmesh == 0) {
          // New allocation
          unionOfBlocksSet = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(HashmapReqSize);
-         unionOfBlocksSet->optimizeGPU(stream);
+         unionOfBlocksSet->optimizeGPU(stream,true);
       } else {
          // Ensure allocation
          const uint currSizePower = unionOfBlocksSet->getSizePower();
          if (currSizePower < HashmapReqSize) {
             unionOfBlocksSet->resize(HashmapReqSize);
-            unionOfBlocksSet->optimizeGPU(stream);
+            unionOfBlocksSet->optimizeGPU(stream,true);
          }
          // Ensure map is empty
          unionOfBlocksSet->clear(Hashinator::targets::device,stream,false);
@@ -555,13 +555,13 @@ __host__ void gpu_trans_allocate(
          // New allocation
          unionOfBlocks = new split::SplitVector<vmesh::GlobalID>(unionSetSize);
          unionOfBlocks->clear();
-         unionOfBlocks->optimizeGPU(stream);
+         unionOfBlocks->optimizeGPU(stream,true);
       } else {
          if (unionOfBlocks->capacity() < unionSetSize) {
             // Recapacitate, clear, and prefetch
             unionOfBlocks->reserve(unionSetSize);
             unionOfBlocks->clear();
-            unionOfBlocks->optimizeGPU(stream);
+            unionOfBlocks->optimizeGPU(stream,true);
          } else {
             // Clear is enough
             unionOfBlocks->clear();

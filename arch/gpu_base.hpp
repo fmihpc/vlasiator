@@ -39,6 +39,7 @@
 #include "../definitions.h"
 #include "../vlasovsolver/vec.h"
 #include "../velocity_mesh_parameters.h"
+#include <phiprof.hpp>
 
 static const double BLOCK_ALLOCATION_PADDING = 2.5;
 static const double BLOCK_ALLOCATION_FACTOR = 1.8;

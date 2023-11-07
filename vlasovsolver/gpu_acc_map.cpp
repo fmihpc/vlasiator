@@ -636,10 +636,10 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       columnData->gpu_attachToStream(stream);
    }
    if (doPrefetches) {
-      columnData->columnBlockOffsets.optimizeGPU(stream);
-      columnData->columnNumBlocks.optimizeGPU(stream);
-      columnData->setColumnOffsets.optimizeGPU(stream);
-      columnData->setNumColumns.optimizeGPU(stream);
+      columnData->columnBlockOffsets.optimizeGPU(stream,true);
+      columnData->columnNumBlocks.optimizeGPU(stream,true);
+      columnData->setColumnOffsets.optimizeGPU(stream,true);
+      columnData->setNumColumns.optimizeGPU(stream,true);
       CHK_ERR( gpuMemPrefetchAsync(columnData,sizeof(ColumnOffsets),gpu_getDevice(),stream) );
    }
    SSYNC;
@@ -798,12 +798,12 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    // Make sure the BlocksRequired / -ToAdd and / -ToRemove buffers are large enough
    if(spatial_cell->BlocksRequired->capacity() < spatial_cell->getReservation(popID) * BLOCK_ALLOCATION_FACTOR) {
         spatial_cell->BlocksRequired->reserve(spatial_cell->getReservation(popID)*BLOCK_ALLOCATION_PADDING, true);
-        spatial_cell->BlocksRequired->optimizeGPU(stream);
+        spatial_cell->BlocksRequired->optimizeGPU(stream,true);
         spatial_cell->BlocksToAdd->reserve(spatial_cell->getReservation(popID)*BLOCK_ALLOCATION_PADDING, true);
-        spatial_cell->BlocksToAdd->optimizeGPU(stream);
+        spatial_cell->BlocksToAdd->optimizeGPU(stream,true);
          // The remove buffer never needs to be larger than our current size.
         spatial_cell->BlocksToRemove->reserve(spatial_cell->get_population(popID).reservation,true);
-        spatial_cell->BlocksToRemove->optimizeGPU(stream);
+        spatial_cell->BlocksToRemove->optimizeGPU(stream,true);
    }
    // Calculate target column extents
    phiprof::Timer evaluateExtentsTimer {"Evaluate column extents kernel"};
@@ -861,9 +861,9 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
          spatial_cell->BlocksToRemove->clear();
 
          spatial_cell->BlocksRequired->reserve(newCapacity,true);
-         spatial_cell->BlocksRequired->optimizeGPU(stream);
+         spatial_cell->BlocksRequired->optimizeGPU(stream,true);
          spatial_cell->BlocksToAdd->reserve(newCapacity,true);
-         spatial_cell->BlocksToAdd->optimizeGPU(stream);
+         spatial_cell->BlocksToAdd->optimizeGPU(stream,true);
       }
    } while(host_returnLID[1] != 0);
    evaluateExtentsTimer.stop();
