@@ -204,7 +204,7 @@ namespace vmesh {
       // Host-side non-pagefaulting approach
       const uint thread_id = gpu_getThread();
       gpuStream_t stream = gpuStreamList[thread_id];
-      block_data->copyMetadata(info_1[thread_id],stream);
+      block_data->copyMetadata(info_1[thread_id],stream,true);
       CHK_ERR( gpuStreamSynchronize(stream) );
       const vmesh::LocalID numberOfBlocks = info_1[thread_id]->size / WID3;
       #else
@@ -323,7 +323,7 @@ namespace vmesh {
       // Host-side non-pagefaulting approach
       const uint thread_id = gpu_getThread();
       gpuStream_t stream = gpuStreamList[thread_id];
-      block_data->copyMetadata(info_1[thread_id],stream);
+      block_data->copyMetadata(info_1[thread_id],stream,true);
       CHK_ERR( gpuStreamSynchronize(stream) );
       const vmesh::LocalID numberOfBlocks = info_1[thread_id]->size / WID3;
       vmesh::LocalID currentCapacity = info_1[thread_id]->capacity / WID3;
@@ -356,7 +356,7 @@ namespace vmesh {
       // Host-side non-pagefaulting approach
       const uint thread_id = gpu_getThread();
       gpuStream_t stream = gpuStreamList[thread_id];
-      block_data->copyMetadata(info_1[thread_id],stream);
+      block_data->copyMetadata(info_1[thread_id],stream,true);
       CHK_ERR( gpuStreamSynchronize(stream) );
       const vmesh::LocalID numberOfBlocks = info_1[thread_id]->size / WID3;
       vmesh::LocalID currentCapacity = info_1[thread_id]->capacity / WID3;
@@ -482,7 +482,7 @@ namespace vmesh {
       // Host-side non-pagefaulting approach
       const uint thread_id = gpu_getThread();
       gpuStream_t stream = gpuStreamList[thread_id];
-      block_data->copyMetadata(info_1[thread_id],stream);
+      block_data->copyMetadata(info_1[thread_id],stream,true);
       CHK_ERR( gpuStreamSynchronize(stream) );
       const vmesh::LocalID numberOfBlocks = info_1[thread_id]->size / WID3;
       #else
@@ -502,7 +502,7 @@ namespace vmesh {
       // Host-side non-pagefaulting approach
       const uint thread_id = gpu_getThread();
       gpuStream_t stream = gpuStreamList[thread_id];
-      block_data->copyMetadata(info_1[thread_id],stream);
+      block_data->copyMetadata(info_1[thread_id],stream,true);
       CHK_ERR( gpuStreamSynchronize(stream) );
       const vmesh::LocalID numberOfBlocks = info_1[thread_id]->size / WID3;
       #else
@@ -556,7 +556,7 @@ namespace vmesh {
       // Host-side non-pagefaulting approach
       const uint thread_id = gpu_getThread();
       gpuStream_t stream = gpuStreamList[thread_id];
-      block_data->copyMetadata(info_1[thread_id],stream);
+      block_data->copyMetadata(info_1[thread_id],stream,true);
       CHK_ERR( gpuStreamSynchronize(stream) );
       const vmesh::LocalID numberOfBlocks = info_1[thread_id]->size / WID3;
       #else
@@ -617,7 +617,7 @@ namespace vmesh {
       // Host-side non-pagefaulting approach
       const uint thread_id = gpu_getThread();
       gpuStream_t stream = gpuStreamList[thread_id];
-      block_data->copyMetadata(info_1[thread_id],stream);
+      block_data->copyMetadata(info_1[thread_id],stream,true);
       CHK_ERR( gpuStreamSynchronize(stream) );
       const vmesh::LocalID numberOfBlocks = info_1[thread_id]->size / WID3;
       const vmesh::LocalID currentCapacity = info_1[thread_id]->capacity / WID3;
@@ -654,7 +654,7 @@ namespace vmesh {
       // Host-side non-pagefaulting approach
       const uint thread_id = gpu_getThread();
       gpuStream_t stream = gpuStreamList[thread_id];
-      block_data->copyMetadata(info_1[thread_id],stream);
+      block_data->copyMetadata(info_1[thread_id],stream,true);
       CHK_ERR( gpuStreamSynchronize(stream) );
       const vmesh::LocalID numberOfBlocks = info_1[thread_id]->size / WID3;
       const vmesh::LocalID currentCapacity = info_1[thread_id]->capacity / WID3;
@@ -706,7 +706,7 @@ namespace vmesh {
       // Host-side non-pagefaulting approach
       const uint thread_id = gpu_getThread();
       gpuStream_t stream = gpuStreamList[thread_id];
-      block_data->copyMetadata(info_1[thread_id],stream);
+      block_data->copyMetadata(info_1[thread_id],stream,true);
       CHK_ERR( gpuStreamSynchronize(stream) );
       const vmesh::LocalID numberOfBlocks = info_1[thread_id]->size / WID3;
       const vmesh::LocalID currentCapacity = info_1[thread_id]->capacity / WID3;
@@ -736,7 +736,7 @@ namespace vmesh {
       // Host-side non-pagefaulting approach
       const uint thread_id = gpu_getThread();
       gpuStream_t stream = gpuStreamList[thread_id];
-      block_data->copyMetadata(info_1[thread_id],stream);
+      block_data->copyMetadata(info_1[thread_id],stream,true);
       CHK_ERR( gpuStreamSynchronize(stream) );
       const vmesh::LocalID numberOfBlocks = info_1[thread_id]->size / WID3;
       vmesh::LocalID currentCapacity = info_1[thread_id]->capacity / WID3;
@@ -816,7 +816,7 @@ namespace vmesh {
       // Host-side non-pagefaulting approach
       const uint thread_id = gpu_getThread();
       gpuStream_t stream = gpuStreamList[thread_id];
-      block_data->copyMetadata(info_1[thread_id],stream);
+      block_data->copyMetadata(info_1[thread_id],stream,true);
       CHK_ERR( gpuStreamSynchronize(stream) );
       const vmesh::LocalID numberOfBlocks = info_1[thread_id]->size / WID3;
       #else

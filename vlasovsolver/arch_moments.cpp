@@ -178,7 +178,7 @@ void calculateMoments_R(
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
 #pragma omp parallel for
       for (size_t c=0; c<cells.size(); ++c) {
-         phiprof::Timer computeMomentsCellTimer {"compute-moments-R-cell"};
+         phiprof::Timer computeMomentsCellTimer {"compute-moments-R-cell-first"};
          SpatialCell* cell = mpiGrid[cells[c]];
 
          if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
@@ -208,11 +208,12 @@ void calculateMoments_R(
          vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
          vmesh::VelocityBlockContainer* blockContainer = cell->get_velocity_blocks(popID);
          #endif
+         phiprof::Timer sizeTimer {"mesh size _R"};
          const uint nBlocks = cell->get_velocity_mesh(popID)->size();
          if (nBlocks == 0) {
             continue;
          }
-
+         sizeTimer.stop();
          const Real mass = getObjectWrapper().particleSpecies[popID].mass;
          const Real charge = getObjectWrapper().particleSpecies[popID].charge;
 
@@ -256,6 +257,7 @@ void calculateMoments_R(
 
 #pragma omp parallel for
    for (size_t c=0; c<cells.size(); ++c) {
+      phiprof::Timer computeMomentsCellTimer {"compute-moments-R-cell-bulkV"};
       SpatialCell* cell = mpiGrid[cells[c]];
       if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
          continue;
@@ -273,6 +275,7 @@ void calculateMoments_R(
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
 #pragma omp parallel for
       for (size_t c=0; c<cells.size(); ++c) {
+         phiprof::Timer computeMomentsCellTimer {"compute-moments-R-cell-second"};
          SpatialCell* cell = mpiGrid[cells[c]];
 
          if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
@@ -286,11 +289,12 @@ void calculateMoments_R(
          vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
          vmesh::VelocityBlockContainer* blockContainer = cell->get_velocity_blocks(popID);
          #endif
+         phiprof::Timer sizeTimer {"mesh size _R"};
          const uint nBlocks = cell->get_velocity_mesh(popID)->size();
          if (nBlocks == 0) {
             continue;
          }
-
+         sizeTimer.stop();
          const Real mass = getObjectWrapper().particleSpecies[popID].mass;
 
          // Temporary array where species' contribution to 2nd moments is accumulated

@@ -1053,7 +1053,7 @@ namespace vmesh {
       // Host-side non-pagefaulting approach
       const uint thread_id = gpu_getThread();
       gpuStream_t stream = gpuStreamList[thread_id];
-      localToGlobalMap->copyMetadata(info_1[thread_id],stream);
+      localToGlobalMap->copyMetadata(info_1[thread_id],stream,true);
       CHK_ERR( gpuStreamSynchronize(stream) );
       vmesh::LocalID currentCapacity =  info_1[thread_id]->capacity;
       // Passing eco flag = true to resize tells splitvector we manage padding manually.
@@ -1100,7 +1100,7 @@ namespace vmesh {
       // Host-side non-pagefaulting approach
       const uint thread_id = gpu_getThread();
       gpuStream_t stream = gpuStreamList[thread_id];
-      localToGlobalMap->copyMetadata(info_1[thread_id],stream);
+      localToGlobalMap->copyMetadata(info_1[thread_id],stream,true);
       CHK_ERR( gpuStreamSynchronize(stream) );
       return info_1[thread_id]->size;
 #endif

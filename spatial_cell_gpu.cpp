@@ -860,7 +860,7 @@ namespace spatial_cell {
    void SpatialCell::gpu_uploadContentLists() {
       phiprof::Timer timer {"Upload local content lists"};
       gpuStream_t stream = gpu_getStream();
-      velocity_block_with_content_list->copyMetadata(info_vbwcl,stream);
+      velocity_block_with_content_list->copyMetadata(info_vbwcl,stream,true);
       CHK_ERR( gpuStreamSynchronize(stream) );
       velocity_block_with_content_list_size = info_vbwcl->size;
       if (velocity_block_with_content_list_size==0) {
@@ -897,12 +897,12 @@ namespace spatial_cell {
       size_t newReserve = populations[popID].reservation * BLOCK_ALLOCATION_PADDING;
       gpuStream_t stream = gpu_getStream();
       // Host-side non-pagefaulting approach
-      BlocksRequired->copyMetadata(info_Required,stream);
-      BlocksToAdd->copyMetadata(info_toAdd,stream);
-      BlocksToRemove->copyMetadata(info_toRemove,stream);
-      BlocksToMove->copyMetadata(info_toMove,stream);
-      velocity_block_with_content_list->copyMetadata(info_vbwcl,stream);
-      velocity_block_with_no_content_list->copyMetadata(info_vbwncl,stream);
+      BlocksRequired->copyMetadata(info_Required,stream,true);
+      BlocksToAdd->copyMetadata(info_toAdd,stream,true);
+      BlocksToRemove->copyMetadata(info_toRemove,stream,true);
+      BlocksToMove->copyMetadata(info_toMove,stream,true);
+      velocity_block_with_content_list->copyMetadata(info_vbwcl,stream,true);
+      velocity_block_with_no_content_list->copyMetadata(info_vbwncl,stream,true);
       CHK_ERR( gpuStreamSynchronize(stream) );
       if (info_Required->capacity < reserveSize) {
          BlocksRequired->reserve(newReserve,true);
@@ -970,10 +970,10 @@ namespace spatial_cell {
 
       CHK_ERR( gpuStreamSynchronize(stream) ); // To ensure all previous kernels have finished
       phiprof::Timer adjustBlocksTimer {"Adjust velocity blocks"};
-      velocity_block_with_content_list->copyMetadata(info_vbwcl,stream);
-      velocity_block_with_no_content_list->copyMetadata(info_vbwncl,stream);
-      BlocksRequired->copyMetadata(info_Required,stream);
-      BlocksRequiredMap->copyMetadata(info_brm, stream);
+      velocity_block_with_content_list->copyMetadata(info_vbwcl,stream,true);
+      velocity_block_with_no_content_list->copyMetadata(info_vbwncl,stream,true);
+      BlocksRequired->copyMetadata(info_Required,stream,true);
+      BlocksRequiredMap->copyMetadata(info_brm, stream,true);
       vmesh::LocalID currSize = populations[popID].vmesh->size(); // Includes stream sync
       const vmesh::LocalID localContentBlocks = info_vbwcl->size;
       const vmesh::LocalID localNoContentBlocks = info_vbwncl->size;
@@ -1187,7 +1187,7 @@ namespace spatial_cell {
       gpuStream_t stream = gpu_getStream();
       //const int nBlocksRequired = BlocksRequired->size();
       // Host-side non-pagefaulting approach
-      BlocksRequired->copyMetadata(info_Required,stream);
+      BlocksRequired->copyMetadata(info_Required,stream,true);
       CHK_ERR( gpuStreamSynchronize(stream) );
       const int nBlocksRequired =  info_Required->size;
 
@@ -1227,9 +1227,9 @@ namespace spatial_cell {
 
       phiprof::Timer sizesTimer {"Block lists sizes"};
       // Use copymetadata for these
-      BlocksToAdd->copyMetadata(info_toAdd,stream);
-      BlocksToRemove->copyMetadata(info_toRemove,stream);
-      //BlocksToMove->copyMetadata(info_toMove,stream); // not used
+      BlocksToAdd->copyMetadata(info_toAdd,stream,true);
+      BlocksToRemove->copyMetadata(info_toRemove,stream,true);
+      //BlocksToMove->copyMetadata(info_toMove,stream,true); // not used
       CHK_ERR( gpuStreamSynchronize(stream) ); // To ensure all previous kernels have finished
       const vmesh::LocalID nBlocksBeforeAdjust = populations[popID].vmesh->size(); // includes a stream sync for the above
       const vmesh::LocalID nToAdd = info_toAdd->size;
@@ -1421,7 +1421,7 @@ namespace spatial_cell {
             if (!receiving) {
                // Host-side non-pagefaulting approach
                gpuStream_t stream = gpu_getStream();
-               this->velocity_block_with_content_list->copyMetadata(info_vbwcl,stream);
+               this->velocity_block_with_content_list->copyMetadata(info_vbwcl,stream,true);
                CHK_ERR( gpuStreamSynchronize(stream) );
                this->velocity_block_with_content_list_size = info_vbwncl->size;
             }
@@ -1719,7 +1719,7 @@ namespace spatial_cell {
       gpuStream_t stream = gpu_getStream();
       phiprof::Timer prefetchTimer {"VB content list prefetches and allocations"};
       // Host-side non-pagefaulting approach
-      velocity_block_with_content_list->copyMetadata(info_vbwcl,stream);
+      velocity_block_with_content_list->copyMetadata(info_vbwcl,stream,true);
       vmesh::LocalID currSize = populations[popID].vmesh->size(); // Includes stream sync
       vmesh::LocalID currCapacity = info_vbwcl->capacity;
 
