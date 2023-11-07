@@ -233,13 +233,13 @@ void initializeGrids(
 
       if (P::forceRefinement) {
          phiprof::Timer timer {"Restart refinement"};
-         for (uint i = 0; i < P::amrMaxSpatialRefLevel; ++i) {
+         for (int i = 0; i < P::amrMaxSpatialRefLevel; ++i) {
             adaptRefinement(mpiGrid, technicalGrid, sysBoundaries, project, true);
             balanceLoad(mpiGrid, sysBoundaries);
          }
       } else if (P::refineOnRestart) {
          phiprof::Timer timer {"Restart refinement"};
-         for (uint i = 0; i < P::amrMaxAllowedSpatialRefLevel; ++i) {
+         for (int i = 0; i < P::amrMaxAllowedSpatialRefLevel; ++i) {
             adaptRefinement(mpiGrid, technicalGrid, sysBoundaries, project);
             balanceLoad(mpiGrid, sysBoundaries);
          }
