@@ -1129,14 +1129,8 @@ namespace vmesh {
       if (stream==0) {
          stream = gpu_getStream();
       }
-      phiprof::Timer timer {"Upload globalToLocalMap Hashmap"};
       globalToLocalMap->optimizeGPU(stream,true);
-      CHK_ERR( gpuStreamSynchronize(stream) );
-      timer.stop();
-      phiprof::Timer timer2 {"Upload localToGlobalMap vector"};
       localToGlobalMap->optimizeGPU(stream,true);
-      CHK_ERR( gpuStreamSynchronize(stream) );
-      timer2.stop();
       return;
    }
 

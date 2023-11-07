@@ -388,14 +388,8 @@ namespace vmesh {
       if (stream==0) {
          stream = gpu_getStream();
       }
-      phiprof::Timer timer {"Upload block_data"};
       block_data->optimizeGPU(stream,true);
-      CHK_ERR( gpuStreamSynchronize(stream) );
-      timer.stop();
-      phiprof::Timer timer2 {"Upload parameters"};
       parameters->optimizeGPU(stream,true);
-      CHK_ERR( gpuStreamSynchronize(stream) );
-      timer2.stop();
       return;
    }
 
