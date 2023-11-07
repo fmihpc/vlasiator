@@ -88,6 +88,7 @@ namespace vmesh {
       void gpu_prefetchDevice(gpuStream_t stream);
       void gpu_attachToStream(gpuStream_t stream);
       void gpu_detachFromStream();
+      void print_addresses();
       void gpu_memAdvise(int device, gpuStream_t stream);
 #endif
 
@@ -314,6 +315,9 @@ namespace vmesh {
    }
 
 #ifdef USE_GPU
+   inline void VelocityBlockContainer::print_addresses() {
+      printf("GPU block_data %p\n GPU parameters %p\n",block_data,parameters);
+   }
    inline void VelocityBlockContainer::gpu_Allocate(vmesh::LocalID size) {
       #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
       // Host-side non-pagefaulting approach
@@ -372,25 +376,18 @@ namespace vmesh {
    }
 
    inline void VelocityBlockContainer::gpu_prefetchHost(gpuStream_t stream=0) {
-      //const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
-      //if (numberOfBlocks==0) return; // This size check in itself causes a page fault
       if (stream==0) {
          stream = gpu_getStream();
       }
-
-      CHK_ERR( gpuStreamSynchronize(stream) );
       block_data->optimizeCPU(gpu_getStream());
       parameters->optimizeCPU(gpu_getStream());
       return;
    }
 
    inline void VelocityBlockContainer::gpu_prefetchDevice(gpuStream_t stream=0) {
-      //const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
-      //if (numberOfBlocks==0) return; // This size check in itself causes a page fault
       if (stream==0) {
          stream = gpu_getStream();
       }
-      int device = gpu_getDevice();
       block_data->optimizeGPU(stream);
       parameters->optimizeGPU(stream);
       return;

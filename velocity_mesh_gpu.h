@@ -120,6 +120,7 @@ namespace vmesh {
       void gpu_cleanHashMap(gpuStream_t stream);
       void gpu_attachToStream(gpuStream_t stream);
       void gpu_detachFromStream();
+      void print_addresses();
 
    private:
       size_t meshID;
@@ -1116,24 +1117,18 @@ namespace vmesh {
    }
 
    inline void VelocityMesh::gpu_prefetchHost(gpuStream_t stream=0) {
-      //if (localToGlobalMap->size() == 0) return; // This size check in itself causes a page fault
-      // In fact we only need to prefetch the buckets inside the hashmap to GPU, but use this call.
       if (stream==0) {
          stream = gpu_getStream();
       }
-      CHK_ERR( gpuStreamSynchronize(stream) );
       globalToLocalMap->optimizeCPU(stream);
       localToGlobalMap->optimizeCPU(stream);
       return;
    }
 
    inline void VelocityMesh::gpu_prefetchDevice(gpuStream_t stream=0) {
-      //if (localToGlobalMap->size() == 0) return; // This size check in itself causes a page fault
-      // In fact we only need to prefetch the buckets inside the hashmap to GPU, but use this call.
       if (stream==0) {
          stream = gpu_getStream();
       }
-      int device = gpu_getDevice();
       globalToLocalMap->optimizeGPU(stream);
       localToGlobalMap->optimizeGPU(stream);
       return;
@@ -1197,6 +1192,9 @@ namespace vmesh {
       globalToLocalMap->streamAttach(0,gpuMemAttachGlobal);
       localToGlobalMap->streamAttach(0,gpuMemAttachGlobal);
       return;
+   }
+   inline void VelocityMesh::print_addresses() {
+      printf("GPU localToGlobalMap %p\n GPU globalToLocalMap %p\n",localToGlobalMap,globalToLocalMap);
    }
 
 } // namespace vmesh
