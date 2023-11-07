@@ -773,7 +773,7 @@ void calculateScaledDeltas(
    Real dBZdy {cell->derivativesBVOL[bvolderivatives::dPERBZVOLdy]};
 
    // Note missing factor of mu_0, since we want B and J in same units later
-   myB = getPerBVol(cell); // Consider using total B
+   myB = getBVol(cell); // Redundant, but this makes sure we use total B here
    std::array<Real, 3> myJ = {dBZdy - dBYdz, dBXdz - dBZdx, dBYdx - dBXdy};
    Real BdotJ {0.0};
    Real Bsq {0.0};
