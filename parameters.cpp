@@ -742,7 +742,7 @@ void Parameters::getParameters() {
             maxPasses/=2;
          }
          //Overwrite passes for the highest refLevel. We do not want to filter there.
-         numPasses[P::amrMaxSpatialRefLevel] = 0;
+         numPasses.at(P::amrMaxSpatialRefLevel) = 0;
       }
          P::maxFilteringPasses = numPasses[0];
    }
