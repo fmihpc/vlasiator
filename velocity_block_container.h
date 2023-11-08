@@ -761,7 +761,7 @@ namespace vmesh {
             block_data->streamAttach(attachedStream);
             parameters->streamAttach(attachedStream);
          }
-         gpuStream_t stream = gpu_getStream();
+         const gpuStream_t stream = gpu_getStream();
          CHK_ERR( gpuStreamSynchronize(stream) );
          block_data->optimizeGPU(stream,true);
          parameters->optimizeGPU(stream,true);
@@ -787,10 +787,16 @@ namespace vmesh {
    inline ARCH_HOSTDEV bool VelocityBlockContainer::setSize(const vmesh::LocalID& newSize) {
       #ifdef USE_GPU
          #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
+         const uint device = gpu_getDevice();
+         const gpuStream_t stream = gpu_getStream();
+         CHK_ERR( gpuMemPrefetchAsync(block_data, sizeof(split::SplitVector<Realf>), gpuCpuDeviceId, stream) );
+         CHK_ERR( gpuMemPrefetchAsync(parameters, sizeof(split::SplitVector<Real>), gpuCpuDeviceId, stream) );
          block_data->resize((newSize)*WID3,true);
          parameters->resize((newSize)*BlockParams::N_VELOCITY_BLOCK_PARAMS,true);
          // Ensure buffer afterwards
          resize();
+         CHK_ERR( gpuMemPrefetchAsync(block_data, sizeof(split::SplitVector<Realf>), device, stream) );
+         CHK_ERR( gpuMemPrefetchAsync(parameters, sizeof(split::SplitVector<Real>), device, stream) );
          #else
          const vmesh::LocalID currentCapacity = block_data->capacity()/WID3;
          if (newSize > currentCapacity) {

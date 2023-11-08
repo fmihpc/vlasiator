@@ -140,6 +140,13 @@ struct ColumnOffsets {
       setColumnOffsets.optimizeGPU(stream);
       setNumColumns.optimizeGPU(stream);
    }
+   void prefetchDevice(gpuStream_t stream) {
+      //gpuStream_t stream = gpu_getStream();
+      columnBlockOffsets.optimizeGPU(stream);
+      columnNumBlocks.optimizeGPU(stream);
+      setColumnOffsets.optimizeGPU(stream);
+      setNumColumns.optimizeGPU(stream);
+   }
 };
 
 // Device data variables, to be allocated in good time. Made into an array so that each thread has their own pointer.
@@ -176,6 +183,7 @@ extern split::SplitInfo *info_1[];
 extern split::SplitInfo *info_2[];
 extern split::SplitInfo *info_3[];
 extern split::SplitInfo *info_4[];
+extern Hashinator::MapInfo *info_m[];
 
 // Vectors and set for use in translation, actually declared in vlasovsolver/gpu_trans_map_amr.hpp
 // to sidestep compilation errors

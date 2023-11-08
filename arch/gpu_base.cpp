@@ -93,6 +93,7 @@ split::SplitInfo *info_1[MAXCPUTHREADS];
 split::SplitInfo *info_2[MAXCPUTHREADS];
 split::SplitInfo *info_3[MAXCPUTHREADS];
 split::SplitInfo *info_4[MAXCPUTHREADS];
+Hashinator::MapInfo *info_m[MAXCPUTHREADS];
 
 // SplitVectors and buffers for use in stream compaction
 uint gpu_compaction_vectorsize[MAXCPUTHREADS] = {0};
@@ -187,6 +188,7 @@ __host__ void gpu_init_device() {
       CHK_ERR( gpuMallocHost((void **) &info_2[i], sizeof(split::SplitInfo)) );
       CHK_ERR( gpuMallocHost((void **) &info_3[i], sizeof(split::SplitInfo)) );
       CHK_ERR( gpuMallocHost((void **) &info_4[i], sizeof(split::SplitInfo)) );
+      CHK_ERR( gpuMallocHost((void **) &info_m[i], sizeof(Hashinator::MapInfo)) );
    }
    CHK_ERR( gpuDeviceSynchronize() );
 
@@ -215,6 +217,7 @@ __host__ void gpu_clear_device() {
       CHK_ERR( gpuFree(info_2[i]) );
       CHK_ERR( gpuFree(info_3[i]) );
       CHK_ERR( gpuFree(info_4[i]) );
+      CHK_ERR( gpuFree(info_m[i]) );
    }
    CHK_ERR( gpuDeviceSynchronize() );
 }

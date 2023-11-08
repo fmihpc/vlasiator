@@ -1188,11 +1188,15 @@ namespace spatial_cell {
       //const int nBlocksRequired = BlocksRequired->size();
       // Host-side non-pagefaulting approach
       BlocksRequired->copyMetadata(info_Required,stream,true);
+      BlocksToMove->copyMetadata(info_toMove,stream,true);
       CHK_ERR( gpuStreamSynchronize(stream) );
       const int nBlocksRequired =  info_Required->size;
+      const int toMoveCapacity =  info_toMove->capacity;
 
       const uint nGpuBlocks = nBlocksRequired > GPUBLOCKS ? GPUBLOCKS : nBlocksRequired;
-      BlocksToMove->reserve(nBlocksRequired,true);
+      if (toMoveCapacity < nBlocksRequired) {
+         BlocksToMove->reserve(nBlocksRequired,true);
+      }
       if (nBlocksRequired>0) {
          CHK_ERR( gpuStreamSynchronize(stream) );
          phiprof::Timer blockMoveTimer {"blocks_to_move_kernel"};

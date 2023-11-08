@@ -623,12 +623,14 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       vmesh->gpu_attachToStream(stream);
    }
    if (doPrefetches) {
-      blockContainer->gpu_prefetchDevice();
-      vmesh->gpu_prefetchDevice();
+      blockContainer->gpu_prefetchDevice(stream);
+      vmesh->gpu_prefetchDevice(stream);
    }
    attachTimer.stop();
 
    ColumnOffsets *columnData = gpu_columnOffsetData[cpuThreadID];
+   cpu_columnOffsetData[cpuThreadID]->prefetchDevice(stream);
+
    phiprof::Timer bookkeepingTimer {"Bookkeeping"};
 
    // Some kernels in here require the number of threads to be equal to VECL.
@@ -782,7 +784,9 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    CHK_ERR( gpuStreamSynchronize(stream) );
 
    // Make sure the BlocksRequired / -ToAdd and / -ToRemove buffers are large enough
-   if(spatial_cell->BlocksRequired->capacity() < spatial_cell->getReservation(popID) * BLOCK_ALLOCATION_FACTOR) {
+   spatial_cell->BlocksRequired->copyMetadata(spatial_cell->info_Required,stream,true);
+   CHK_ERR( gpuStreamSynchronize(stream) );
+   if(spatial_cell->info_Required->capacity < spatial_cell->getReservation(popID) * BLOCK_ALLOCATION_FACTOR) {
         spatial_cell->BlocksRequired->reserve(spatial_cell->getReservation(popID)*BLOCK_ALLOCATION_PADDING, true);
         spatial_cell->BlocksRequired->optimizeGPU(stream,true);
         spatial_cell->BlocksToAdd->reserve(spatial_cell->getReservation(popID)*BLOCK_ALLOCATION_PADDING, true);
@@ -790,6 +794,7 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
          // The remove buffer never needs to be larger than our current size.
         spatial_cell->BlocksToRemove->reserve(spatial_cell->get_population(popID).reservation,true);
         spatial_cell->BlocksToRemove->optimizeGPU(stream,true);
+        CHK_ERR( gpuStreamSynchronize(stream) );
    }
    // Calculate target column extents
    phiprof::Timer evaluateExtentsTimer {"Evaluate column extents kernel"};
@@ -850,11 +855,15 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
          spatial_cell->BlocksRequired->optimizeGPU(stream,true);
          spatial_cell->BlocksToAdd->reserve(newCapacity,true);
          spatial_cell->BlocksToAdd->optimizeGPU(stream,true);
+         CHK_ERR( gpuStreamSynchronize(stream) );
       }
    } while(host_returnLID[1] != 0);
    evaluateExtentsTimer.stop();
 
-   if (spatial_cell->BlocksToRemove->size() > spatial_cell->BlocksToAdd->size()) {
+   spatial_cell->BlocksToRemove->copyMetadata(spatial_cell->info_toRemove,stream,true);
+   spatial_cell->BlocksToAdd->copyMetadata(spatial_cell->info_toAdd,stream,true);
+   CHK_ERR( gpuStreamSynchronize(stream) );
+   if (spatial_cell->info_toRemove->size > spatial_cell->info_toAdd->size) {
       // If we hit v-space walls, we may end up removing more blocks than we create.
       spatial_cell->update_blocks_to_move_caller(popID);
    }
