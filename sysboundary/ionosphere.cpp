@@ -3229,7 +3229,7 @@ namespace SBC {
                   creal dvzCell = cell.get_velocity_grid_cell_size(popID,refLevel)[2];
                   for (size_t i = 0; i < blocksToInitialize.size(); i++) {
                      const vmesh::GlobalID blockGID = blocksToInitialize.at(i);
-                     Realf maxValue = 0;
+                     //Realf maxValue = 0;
                      // Calculate parameters for new block
                      Real blockCoords[3];
                      cell.get_velocity_block_coordinates(popID,blockGID,&blockCoords[0]);
@@ -3246,7 +3246,7 @@ namespace SBC {
                               creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell - vDrift[2];
                               Realf average = shiftedMaxwellianDistribution(popID, density, temperature, vxCellCenter, vyCellCenter, vzCellCenter);
                               initBuffer[cellIndex(ic,jc,kc)] = average;
-                              maxValue = max(average, maxValue);
+                              //maxValue = max(average, maxValue);
                            }
                         }
                      }
@@ -3428,7 +3428,14 @@ namespace SBC {
          const Realf minValue = templateCell.getVelocityBlockMinValue(popID);
 
          // Create temporary buffer for initialization
-         vector<Realf> initBuffer(WID3);
+         #ifdef USE_GPU
+         split::SplitVector<Realf> initBuffer(WID3*nRequested);
+         split::SplitVector<vmesh::GlobalID> *blocksToInitializeGPU = new split::SplitVector<vmesh::GlobalID>(blocksToInitialize);
+         blocksToInitializeGPU->optimizeGPU();
+         #else
+         vector<Realf> initBuffer(WID3*nRequested);
+         #endif
+
          // Loop over requested blocks. Initialize the contents into the temporary buffer
          // and return the maximum value.
          cuint refLevel=0;
@@ -3453,27 +3460,25 @@ namespace SBC {
                      creal vyCell = vyBlock + (jc+convert<Real>(0.5))*dvyCell;
                      creal vzCell = vzBlock + (kc+convert<Real>(0.5))*dvzCell;
                      Realf average = shiftedMaxwellianDistribution(popID,sP.rho,sP.T,vxCell,vyCell,vzCell);
-                     initBuffer[cellIndex(ic,jc,kc)] = average;
-                     maxValue = max(average, maxValue);
+                     initBuffer[i*WID3+cellIndex(ic,jc,kc)] = average;
+                     //maxValue = max(average, maxValue);
                   }
                }
             }
-            // Only keep this block if it is at least 10% of the sparsity value
-            if (maxValue > 0.1 * minValue) {
-               templateCell.add_velocity_block(blockGID, popID, &initBuffer[0]);
-            }
          } // for-loop over requested velocity blocks
 
-         // let's get rid of blocks not fulfilling the criteria here to save memory.
+         // Next actually add all the blocks (we don't use the MaxValue)
          #ifdef USE_GPU
-         // Block adjustment is done on the GPU, but copying over data from cells is still done on Host
+         initBuffer.optimizeGPU();
+         templateCell.add_velocity_blocks(popID, blocksToInitializeGPU, initBuffer.data());
+         delete blocksToInitializeGPU;
          templateCell.prefetchDevice();
+         #else
+         templateCell.add_velocity_blocks(popID, blocksToInitialize, initBuffer.data());
          #endif
-         // Could remove cells without content on next command?
+
+         // Could get rid of blocks not fulfilling the criteria here to save memory.
          templateCell.adjustSingleCellVelocityBlocks(popID);//,true);
-         #ifdef USE_GPU
-         templateCell.prefetchHost();
-         #endif
       } // for-loop over particle species
 
       calculateCellMoments(&templateCell,true,false,true);

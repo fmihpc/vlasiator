@@ -287,24 +287,33 @@ namespace projects {
       vector<vmesh::GlobalID> blocksToInitialize = this->findBlocksToInitialize(cell,popID);
       const uint nRequested = blocksToInitialize.size();
       // Expand the velocity space to the required size
-      // stringstream ss;
-      // ss<<"requesting "<<nRequested<<" for popID "<<popID<<std::endl;
-      // std::cerr<<ss.str();
       vmesh->setNewCapacity(nRequested);
       blockContainer->recapacitate(nRequested);
       cell->setReservation(popID,nRequested);
 
       // Create temporary buffer for initialization
-      vector<Realf> initBuffer(WID3);
+      #ifdef USE_GPU
+      split::SplitVector<Realf> initBuffer(WID3*nRequested);
+      split::SplitVector<vmesh::GlobalID> *blocksToInitializeGPU = new split::SplitVector<vmesh::GlobalID>(blocksToInitialize);
+      blocksToInitializeGPU->optimizeGPU();
+      #else
+      vector<Realf> initBuffer(WID3*nRequested);
+      #endif
+
       // Loop over requested blocks. Initialize the contents into the temporary buffer
       // and return the maximum value.
       for (uint i=0; i<nRequested; ++i) {
          vmesh::GlobalID blockGID = blocksToInitialize.at(i);
-         const Real maxValue = setVelocityBlock(cell,blockGID,popID, initBuffer.data());
-         // Actually add the velocity block
-         cell->add_velocity_block(blockGID, popID, initBuffer.data());
+         const Real maxValue = setVelocityBlock(cell,blockGID,popID, initBuffer.data() + i*WID3);
       }
-
+      // Next actually add all the blocks (we don't use the MaxValue)
+      #ifdef USE_GPU
+      initBuffer.optimizeGPU();
+      cell->add_velocity_blocks(popID, blocksToInitializeGPU, initBuffer.data());
+      delete blocksToInitializeGPU;
+      #else
+      cell->add_velocity_blocks(popID, blocksToInitialize, initBuffer.data());
+      #endif
       // Change as of summer 2023: vAMR initialization no longer supported.
 
       if (rescalesDensity(popID) == true) {
