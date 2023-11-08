@@ -628,27 +628,13 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    }
    attachTimer.stop();
 
-   phiprof::Timer offsetsTimer {"create columnOffsets in unified memory, attach, prefetch"};
-   // lists in unified memory
-   ColumnOffsets *columnData = unif_columnOffsetData[cpuThreadID];
-   // Verify unified memory stream attach
-   if (needAttachedStreams) {
-      columnData->gpu_attachToStream(stream);
-   }
-   if (doPrefetches) {
-      columnData->columnBlockOffsets.optimizeGPU(stream,true);
-      columnData->columnNumBlocks.optimizeGPU(stream,true);
-      columnData->setColumnOffsets.optimizeGPU(stream,true);
-      columnData->setNumColumns.optimizeGPU(stream,true);
-      CHK_ERR( gpuMemPrefetchAsync(columnData,sizeof(ColumnOffsets),gpu_getDevice(),stream) );
-   }
-   SSYNC;
-   offsetsTimer.stop();
+   ColumnOffsets *columnData = gpu_columnOffsetData[cpuThreadID];
+   phiprof::Timer bookkeepingTimer {"Bookkeeping"};
+
    // Some kernels in here require the number of threads to be equal to VECL.
    // Future improvements would be to allow setting it directly to WID3.
    // Other kernels (not handling block data) can use GPUTHREADS which
    // is equal to NVIDIA: 32 or AMD: 64.
-   phiprof::Timer bookkeepingTimer {"Bookkeeping"};
 
    /*< used when computing id of target block, 0 for compiler */
    uint block_indices_to_id[3] = {0, 0, 0};

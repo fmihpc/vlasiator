@@ -117,12 +117,11 @@ struct Column {
    int i,j;                                       // Blocks' perpendicular coordinates
 };
 
-struct ColumnOffsets : public Managed {
+struct ColumnOffsets {
    split::SplitVector<uint> columnBlockOffsets; // indexes where columns start (in blocks, length totalColumns)
    split::SplitVector<uint> columnNumBlocks; // length of column (in blocks, length totalColumns)
    split::SplitVector<uint> setColumnOffsets; // index from columnBlockOffsets where new set of columns starts (length nColumnSets)
    split::SplitVector<uint> setNumColumns; // how many columns in set of columns (length nColumnSets)
-   gpuStream_t attachedStream;
 
    ColumnOffsets(uint nColumns) {
       columnBlockOffsets.resize(nColumns);
@@ -133,60 +132,13 @@ struct ColumnOffsets : public Managed {
       columnNumBlocks.clear();
       setColumnOffsets.clear();
       setNumColumns.clear();
-      attachedStream=0;
-   }
-   void gpu_attachToStream(gpuStream_t stream = 0) {
-      // Return if attaching is not needed
-      if (!needAttachedStreams) {
-         return;
-      }
-      // Attach unified memory regions to streams
-      gpuStream_t newStream;
-      if (stream==0) {
-         newStream = gpu_getStream();
-      } else {
-         newStream = stream;
-      }
-      if (newStream == attachedStream) {
-         return;
-      } else {
-         attachedStream = newStream;
-      }
-      CHK_ERR( gpuStreamAttachMemAsync(stream,this, 0,gpuMemAttachSingle) );
-      columnBlockOffsets.streamAttach(stream);
-      columnNumBlocks.streamAttach(stream);
-      setColumnOffsets.streamAttach(stream);
-      setNumColumns.streamAttach(stream);
-   }
-   void gpu_detachFromStream() {
-      // Return if attaching is not needed
-      if (!needAttachedStreams) {
-         return;
-      }
-      if (attachedStream == 0) {
-         // Already detached
-         return;
-      }
-      attachedStream = 0;
-      CHK_ERR( gpuStreamAttachMemAsync(0,this, 0,gpuMemAttachGlobal) );
-      columnBlockOffsets.streamAttach(0,gpuMemAttachGlobal);
-      columnNumBlocks.streamAttach(0,gpuMemAttachGlobal);
-      setColumnOffsets.streamAttach(0,gpuMemAttachGlobal);
-      setNumColumns.streamAttach(0,gpuMemAttachGlobal);
-   }
-   void gpu_advise() {
-      // AMD advise is slow
-      return;
-      int device = gpu_getDevice();
+      // These vectors themselves are not in unified memory, just their content data,
+      // so we call a regular optimizeGPU without the unified flag.
       gpuStream_t stream = gpu_getStream();
-      columnBlockOffsets.memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-      columnNumBlocks.memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-      setColumnOffsets.memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-      setNumColumns.memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-      columnBlockOffsets.memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-      columnNumBlocks.memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-      setColumnOffsets.memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-      setNumColumns.memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+      columnBlockOffsets.optimizeGPU(stream);
+      columnNumBlocks.optimizeGPU(stream);
+      setColumnOffsets.optimizeGPU(stream);
+      setNumColumns.optimizeGPU(stream);
    }
 };
 
@@ -211,9 +163,8 @@ extern Realf *returnRealf[];
 extern vmesh::LocalID *returnLID[];
 
 extern Column *gpu_columns[];
-
-// Unified (managed) memory variables
-extern ColumnOffsets *unif_columnOffsetData[];
+extern ColumnOffsets *cpu_columnOffsetData[];
+extern ColumnOffsets *gpu_columnOffsetData[];
 
 // SplitVectors and buffers for use in stream compaction
 extern split::SplitVector<vmesh::GlobalID> *vbwcl_gather[];

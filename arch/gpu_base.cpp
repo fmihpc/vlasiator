@@ -55,7 +55,8 @@ uint *gpu_cell_indices_to_id[MAXCPUTHREADS];
 uint *gpu_block_indices_to_id[MAXCPUTHREADS];
 uint *gpu_vcell_transpose; // only one needed, not one per thread
 
-ColumnOffsets *unif_columnOffsetData[MAXCPUTHREADS];
+ColumnOffsets *cpu_columnOffsetData[MAXCPUTHREADS];
+ColumnOffsets *gpu_columnOffsetData[MAXCPUTHREADS];
 Column *gpu_columns[MAXCPUTHREADS];
 
 Vec *gpu_blockDataOrdered[MAXCPUTHREADS];
@@ -377,10 +378,11 @@ __host__ void gpu_acc_allocate_perthread(
    uint cpuThreadID,
    uint columnAllocationCount
    ) {
-   // Unified memory; columndata contains several splitvectors.
+   // columndata contains several splitvectors. columnData is host/device, but splitvector contents are unified.
    if (columnAllocationCount > 0) {
-      unif_columnOffsetData[cpuThreadID] = new ColumnOffsets(columnAllocationCount); // inherits managed
-      unif_columnOffsetData[cpuThreadID]->gpu_advise();
+      cpu_columnOffsetData[cpuThreadID] = new ColumnOffsets(columnAllocationCount);
+      CHK_ERR( gpuMalloc((void**)&gpu_columnOffsetData[cpuThreadID], sizeof(ColumnOffsets)) );
+      CHK_ERR( gpuMemcpy(gpu_columnOffsetData[cpuThreadID], cpu_columnOffsetData[cpuThreadID], sizeof(ColumnOffsets), gpuMemcpyHostToDevice));
       CHK_ERR( gpuMalloc((void**)&gpu_columns[cpuThreadID], columnAllocationCount*sizeof(Column)) );
    }
    // Potential ColumnSet block count container
@@ -400,7 +402,8 @@ __host__ void gpu_acc_deallocate_perthread(
    gpu_acc_columnContainerSize = 0;
    if (gpu_acc_allocatedColumns > 0) {
       CHK_ERR( gpuFree(gpu_columns[cpuThreadID]) );
-      delete unif_columnOffsetData[cpuThreadID];
+      delete cpu_columnOffsetData[cpuThreadID];
+      CHK_ERR( gpuFree(gpu_columnOffsetData[cpuThreadID]) );
    }
    CHK_ERR( gpuFree(gpu_columnNBlocks[cpuThreadID]) );
 }
