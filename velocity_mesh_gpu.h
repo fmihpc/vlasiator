@@ -1072,7 +1072,7 @@ namespace vmesh {
          // localToGlobalMap->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
       }
       // Ensure also that the map is large enough
-      const int HashmapReqSize = ceil(log2(newSize)) +2; // Make it really large enough
+      const uint HashmapReqSize = ceil(log2(newSize)) +2; // Make it really large enough
       if (currentSizePower < HashmapReqSize) {
          globalToLocalMap->device_rehash(HashmapReqSize, stream);
          CHK_ERR( gpuStreamSynchronize(stream) );
