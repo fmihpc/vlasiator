@@ -213,11 +213,6 @@ __host__ void gpu_clear_device() {
       CHK_ERR( gpuFree(returnReal[i]) );
       CHK_ERR( gpuFree(returnRealf[i]) );
       CHK_ERR( gpuFree(returnLID[i]) );
-      CHK_ERR( gpuFree(info_1[i]) );
-      CHK_ERR( gpuFree(info_2[i]) );
-      CHK_ERR( gpuFree(info_3[i]) );
-      CHK_ERR( gpuFree(info_4[i]) );
-      CHK_ERR( gpuFree(info_m[i]) );
    }
    CHK_ERR( gpuDeviceSynchronize() );
 }
