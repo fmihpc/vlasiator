@@ -710,7 +710,8 @@ namespace spatial_cell {
       velocity_block_with_content_list->reserve(reserveSize,true);
       velocity_block_with_no_content_list->reserve(reserveSize,true);
 
-      const vmesh::LocalID HashmapReqSize = ceil(log2(reserveSize)) +2;
+      const int reserveSize2 = reserveSize > 0 ? reserveSize : 1;
+      const vmesh::LocalID HashmapReqSize = ceil(log2(reserveSize2)) +2;
       BlocksRequiredMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(HashmapReqSize);
 
       // Member variables
@@ -978,7 +979,7 @@ namespace spatial_cell {
       const vmesh::LocalID localContentBlocks = info_vbwcl->size;
       const vmesh::LocalID localNoContentBlocks = info_vbwncl->size;
       const vmesh::LocalID BlocksRequiredCapacity = info_Required->capacity;
-      const vmesh::LocalID BlocksRequiredMapSizePower = info_brm->sizePower;
+      const int BlocksRequiredMapSizePower = info_brm->sizePower;
 
       // Neighbour and own prefetches
       if (doPrefetches) {
@@ -990,9 +991,10 @@ namespace spatial_cell {
 
       phiprof::Timer resizeTimer {"BlocksRequired hashmap resize / clear"};
       // Estimate required size based on existing blocks
-      vmesh::LocalID HashmapReqSize = 2;
+      int HashmapReqSize = 2;
       if (localContentBlocks+localNoContentBlocks > 0) {
-         HashmapReqSize += ceil(log2(localContentBlocks+localNoContentBlocks));
+         const int HashmapReqSize2 = (localContentBlocks+localNoContentBlocks) > 0 ? (localContentBlocks+localNoContentBlocks) : 1;
+         HashmapReqSize += ceil(log2(HashmapReqSize2));
       }
       if (BlocksRequiredMapSizePower >= HashmapReqSize) {
          // Map is already large enough

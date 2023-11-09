@@ -533,7 +533,7 @@ __host__ void gpu_trans_allocate(
    }
    // Set for collecting union of blocks (prefetched to device)
    if (largestVmesh != 0) {
-      const vmesh::LocalID HashmapReqSize = ceil(log2(largestVmesh)) +3;
+      const vmesh::LocalID HashmapReqSize = ceil(log2((int)largestVmesh)) +3;
       if (gpu_allocated_largestVmesh == 0) {
          // New allocation
          unionOfBlocksSet = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(HashmapReqSize);

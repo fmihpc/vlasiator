@@ -895,7 +895,7 @@ namespace vmesh {
          }
          auto it3 = globalToLocalMap->device_find(GIDnew);
          if (it3 == globalToLocalMap->device_end()) {
-            uint64_t sizePower = globalToLocalMap->getSizePower();
+            int sizePower = globalToLocalMap->getSizePower();
             printf("Warp error in VelocityMesh::warpReplaceBlock: warp-inserted GID %u LID %u but thread %u cannot find it!\n",GIDnew,LID,(vmesh::LocalID)b_tid);
             if (b_tid==0) {
                if (newlyadded) {
@@ -1058,7 +1058,7 @@ namespace vmesh {
       globalToLocalMap->copyMetadata(info_m[thread_id],stream,true);
       CHK_ERR( gpuStreamSynchronize(stream) );
       vmesh::LocalID currentCapacity =  info_1[thread_id]->capacity;
-      vmesh::LocalID currentSizePower =  info_m[thread_id]->sizePower;
+      const int currentSizePower = info_m[thread_id]->sizePower;
       // Passing eco flag = true to resize tells splitvector we manage padding manually.
       localToGlobalMap->resize(newSize,true);
 
@@ -1072,7 +1072,8 @@ namespace vmesh {
          // localToGlobalMap->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
       }
       // Ensure also that the map is large enough
-      const uint HashmapReqSize = ceil(log2(newSize)) +2; // Make it really large enough
+      const int newSize2 = newSize > 0 ? newSize : 1;
+      const int HashmapReqSize = ceil(log2(newSize2)) +2; // Make it really large enough
       if (currentSizePower < HashmapReqSize) {
          globalToLocalMap->device_rehash(HashmapReqSize, stream);
          CHK_ERR( gpuStreamSynchronize(stream) );
@@ -1095,7 +1096,8 @@ namespace vmesh {
       // Passing eco flag = true to resize tells splitvector we manage padding manually.
       localToGlobalMap->reserve(newCapacity,true);
       // Ensure also that the map is large enough
-      const int HashmapReqSize = ceil(log2(newCapacity)) +1;
+      const int newCapacity2 = newCapacity > 0 ? newCapacity : 1;
+      const int HashmapReqSize = ceil(log2(newCapacity2)) +1;
       if (globalToLocalMap->getSizePower() < HashmapReqSize) {
          globalToLocalMap->rehash(HashmapReqSize);
       }
