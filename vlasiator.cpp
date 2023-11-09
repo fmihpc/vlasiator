@@ -641,6 +641,9 @@ int main(int argn,char* args[]) {
 
    // Save restart data
    if (P::writeInitialState) {
+      // Calculate these so refinement parameters can be tuned based on the vlsv
+      calculateScaledDeltasSimple(mpiGrid);
+
       FieldTracing::reduceData(technicalGrid, perBGrid, dPerBGrid, mpiGrid, SBC::ionosphereGrid.nodes); /*!< Call the reductions (e.g. field tracing) */
       
       phiprof::Timer timer {"write-initial-state"};
