@@ -36,8 +36,15 @@ VECL=16
 
 USE_CUDA=1
 CUDABLOCKS=108
-CMP = mpic++
+
+# Tell mpic++ to use nvcc for all compiling
+CMP = OMPI_CXX='nvcc' OMPI_CXXFLAGS='' mpic++
 LNK = mpic++
+
+# Now tell also the linker to use nvcc
+# These are found with  mpic++ --showme:link
+# The line below indeed uses OMPI_CXX, not OMPI_LD
+LNK = OMPI_CXX='nvcc' OMPI_CXXFLAGS='-arch=sm_60' OMPI_LIBS='-L/usr/lib/x86_64-linux-gnu/openmpi/lib' OMPI_LDFLAGS='-lmpi_cxx -lmpi' mpic++
 
 #-G (device debug) overrides --generate-line-info -line-info
 # but also requires more device-side resources to run
@@ -49,14 +56,6 @@ LNK = mpic++
 CXXFLAGS = -g -O2 -x cu -std=c++17 -Xcompiler -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_60,code=sm_60 -Xcompiler -fopenmp --generate-line-info -line-info -Xcompiler="-fpermissive" -dc --extra-device-vectorization
 
 testpackage: CXXFLAGS = -g -O2 -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_60,code=sm_60 -Xcompiler -fopenmp --prec-sqrt=true --prec-div=true --ftz=false --fmad=false --generate-line-info -line-info -Xcompiler="-fpermissive" -dc
-
-# Tell mpic++ to use nvcc for all compiling
-CMP = OMPI_CXX='nvcc' OMPI_CXXFLAGS='' mpic++
-
-# Now tell also the linker to use nvcc
-# These are found with  mpic++ --showme:link
-# The line below indeed uses OMPI_CXX, not OMPI_LD
-LNK = OMPI_CXX='nvcc' OMPI_CXXFLAGS='-arch=sm_60' OMPI_LIBS='-L/usr/lib/x86_64-linux-gnu/openmpi/lib' OMPI_LDFLAGS='-lmpi_cxx -lmpi' mpic++
 
 MATHFLAGS = --use_fast_math
 LDFLAGS = -O2 -g -lnvToolsExt
