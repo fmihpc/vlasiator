@@ -1060,7 +1060,7 @@ namespace vmesh {
       vmesh::LocalID currentCapacity =  info_1[thread_id]->capacity;
       const int currentSizePower = info_m[thread_id]->sizePower;
       // Passing eco flag = true to resize tells splitvector we manage padding manually.
-      localToGlobalMap->resize(newSize,true);
+      localToGlobalMap->resize(newSize,true,stream,true);
 
       // CHK_ERR( gpuMemPrefetchAsync(localToGlobalMap, sizeof(split::SplitVector<vmesh::GlobalID>), gpuCpuDeviceId, stream) );
       // CHK_ERR( gpuMemPrefetchAsync(globalToLocalMap, sizeof(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>), gpuCpuDeviceId, stream) );
