@@ -2,7 +2,8 @@
 
 if [[ $# < 1 ]]
 then
-    echo "Usage: ./submit.sh JOB, where JOB is the job script."
+    echo "Usage: ./submit.sh JOB [-t, --test], where JOB is the job script."
+    echo "Use option -t or --test to test without submitting job."
     exit 1
 fi
 
@@ -112,6 +113,9 @@ if [[ $ERR -gt 0 ]]
 then
     echo "Errors found, not submitting job."
     exit 1
+elif [[ $2 == "-t" ]] || [[ $2 == '--test' ]]
+then
+    echo "Test successful"
 else
     echo "Submitting $1"
     sbatch $1
