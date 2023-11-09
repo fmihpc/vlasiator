@@ -748,6 +748,7 @@ namespace projects {
                } else if (neighborRef < refLevel) {
                   ++coarser_neighbors;
                } else if ((P::useAlpha ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA] > P::alphaRefineThreshold : false) || (P::useJPerB ? neighborAlphaTwo > P::jperbRefineThreshold : false)) {
+                  // If neighbor refines, 4 of its children will be this cells refined neighbors
                   refined_neighbors += 4;
                } else if ((P::useAlpha ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA] < P::alphaCoarsenThreshold : true) && (P::useJPerB ? neighborAlphaTwo < P::jperbCoarsenThreshold : true)) {
                   ++coarser_neighbors;
