@@ -342,7 +342,7 @@ std::vector<double> computeFluxDownRight(Field& B, int outerBoundary, double inn
 
 // Get median of vector
 double nanMedian(std::vector<double> &v) {
-   v.erase(std::remove_if(v.begin(), v.end(), [](const double& value) {return isnan(value);}), v.end());
+   v.erase(std::remove_if(v.begin(), v.end(), [](const double& value) {return !isfinite(value);}), v.end());
    int n = v.size();
    if (!n) {
       return NAN;
@@ -358,7 +358,7 @@ double nanMedian(std::vector<double> &v) {
 
 // Get mean of vector
 double nanMean(std::vector<double> &v) {
-   v.erase(std::remove_if(v.begin(), v.end(), [](const double& value) {return isnan(value);}), v.end());
+   v.erase(std::remove_if(v.begin(), v.end(), [](const double& value) {return !isfinite(value);}), v.end());
    int n = v.size();
    return n ? std::accumulate(v.begin(), v.end(), 0.0) / n : NAN;
 }
