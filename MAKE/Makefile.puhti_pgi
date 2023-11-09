@@ -24,7 +24,9 @@ CC_BRAND_VERSION = 19.7
 CXXFLAGS += -g -O3 -acc -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -Minfo=accel
 testpackage: CXXFLAGS = -g -O2 -acc -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -Minfo=accel
 
-MATHFLAGS =
+MATHFLAGS = #-ffast-math -fno-finite-math-only
+testpackage: MATHFLAGS = #-fno-unsafe-math-optimizations
+
 LDFLAGS = -O3 -acc -g
 LIB_MPI = 
 

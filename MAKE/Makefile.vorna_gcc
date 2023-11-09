@@ -38,7 +38,8 @@ CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++17 -mavx
 testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -mavx
 CXXFLAGS += -Wall -Wextra -Wno-unused
 
-MATHFLAGS = -ffast-math
+MATHFLAGS = -ffast-math -fno-finite-math-only
+testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
 LDFLAGS = -lrt -lgfortran -std=c++17
 LIB_MPI = -lgomp
 

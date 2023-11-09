@@ -50,7 +50,8 @@ not_parallel_tools: CXXFLAGS += -march=native -mno-avx2 -mavx
 testpackage: CXXFLAGS = -g -O2 -fopenmp -funroll-loops -std=c++17 -fabi-version=0
 not_parallel_tools: CC_BRAND_VERSION = 4.9.2-noavx2
 
-MATHFLAGS = -ffast-math
+MATHFLAGS = -ffast-math -fno-finite-math-only
+testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
 LDFLAGS =
 LIB_MPI = -lgomp
 
