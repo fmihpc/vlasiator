@@ -60,7 +60,7 @@ namespace SBC {
 
    IonosphereBoundaryVDFmode boundaryVDFmode = FixedMoments;
 
-   
+
    SphericalTriGrid ionosphereGrid; /*!< Ionosphere finite element grid */
 
    std::vector<IonosphereSpeciesParameters> Ionosphere::speciesParams;
@@ -867,7 +867,7 @@ namespace SBC {
     * given F10.7 photospheric flux as a solar activity proxy.
     *
     * This assumes the FACs have already been coupled into the grid.
-    * 
+    *
     * If refillTensorAtRestart is true, we don't recompute precipitation and integration, we just refill the tensor from the sigmas as read from restart.
     * That is necessary so ig_inplanecurrent has non-zero data if an output file is written after restart and before the next ionosphere solution step.
     */
@@ -878,7 +878,7 @@ namespace SBC {
       const bool refillTensorAtRestart/*=false*/
    ) {
       phiprof::Timer timer {"ionosphere-calculateConductivityTensor"};
-      
+
       // At restart we have SIGMAP, SIGMAH and SIGMAPARALLEL read in from the restart file already, no need to update here.
       if(!refillTensorAtRestart) {
          // Ranks that don't participate in ionosphere solving skip this function outright
@@ -886,9 +886,9 @@ namespace SBC {
             phiprof::stop("ionosphere-calculateConductivityTensor");
             return;
          }
-         
+
          calculatePrecipitation();
-         
+
          //Calculate height-integrated conductivities and 3D electron density
          // TODO: effdt > 0?
          // (Then, ne += dt*(q - alpha*ne*abs(ne))
@@ -899,7 +899,7 @@ namespace SBC {
             std::array<Real, numAtmosphereLevels> electronDensity;
 
             // Note this loop counts from 1 (std::vector is zero-initialized, so electronDensity[0] = 0)
-            for(int h=1; h<numAtmosphereLevels; h++) { 
+            for(int h=1; h<numAtmosphereLevels; h++) {
                // Calculate production rate
                Real energy_keV = max(nodes[n].deltaPhi()/1000., productionMinAccEnergy);
 
@@ -946,7 +946,7 @@ namespace SBC {
 
          std::array<Real, 3>& x = nodes[n].x;
          // TODO: Perform coordinate transformation here?
-         
+
          // At restart we have SIGMAP, SIGMAH and SIGMAPARALLEL read in from the restart file already.
          if(!refillTensorAtRestart) {
             // Solar incidence parameter for calculating UV ionisation on the dayside
@@ -956,11 +956,11 @@ namespace SBC {
             }
             Real sigmaP_dayside = backgroundIonisation + F10_7_p_049 * (0.34 * coschi + 0.93 * sqrt(coschi));
             Real sigmaH_dayside = backgroundIonisation + F10_7_p_053 * (0.81 * coschi + 0.54 * sqrt(coschi));
-            
+
             nodes[n].parameters[ionosphereParameters::SIGMAP] = sqrt( pow(nodes[n].parameters[ionosphereParameters::SIGMAP],2) + pow(sigmaP_dayside,2));
             nodes[n].parameters[ionosphereParameters::SIGMAH] = sqrt( pow(nodes[n].parameters[ionosphereParameters::SIGMAH],2) + pow(sigmaH_dayside,2));
          }
-         
+
          // Build conductivity tensor
          Real sigmaP = nodes[n].parameters[ionosphereParameters::SIGMAP];
          Real sigmaH = nodes[n].parameters[ionosphereParameters::SIGMAH];
@@ -3431,7 +3431,9 @@ namespace SBC {
          #ifdef USE_GPU
          split::SplitVector<Realf> initBuffer(WID3*nRequested);
          split::SplitVector<vmesh::GlobalID> *blocksToInitializeGPU = new split::SplitVector<vmesh::GlobalID>(blocksToInitialize);
-         blocksToInitializeGPU->optimizeGPU();
+         gpuStream_t stream = gpu_getStream();
+         blocksToInitializeGPU->optimizeJustDataGPU(stream);
+         blocksToInitializeGPU->optimizeMetadataGPU(stream);
          #else
          vector<Realf> initBuffer(WID3*nRequested);
          #endif
@@ -3444,7 +3446,7 @@ namespace SBC {
          creal dvzCell = templateCell.get_velocity_grid_cell_size(popID,refLevel)[2];
          for (size_t i = 0; i < blocksToInitialize.size(); i++) {
             const vmesh::GlobalID blockGID = blocksToInitialize.at(i);
-            Realf maxValue = 0;
+            //Realf maxValue = 0;
             // Calculate parameters for new block
             Real blockCoords[3];
             templateCell.get_velocity_block_coordinates(popID,blockGID,&blockCoords[0]);

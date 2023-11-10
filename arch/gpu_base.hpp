@@ -141,7 +141,6 @@ struct ColumnOffsets {
       setNumColumns.optimizeGPU(stream);
    }
    void prefetchDevice(gpuStream_t stream) {
-      //gpuStream_t stream = gpu_getStream();
       columnBlockOffsets.optimizeGPU(stream);
       columnNumBlocks.optimizeGPU(stream);
       setColumnOffsets.optimizeGPU(stream);

@@ -64,7 +64,7 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
    split::SplitVector<vmesh::VelocityMesh*> *allPencilsMeshes, // Pointers to velocity meshes
    split::SplitVector<vmesh::VelocityBlockContainer*> *allPencilsContainers, // pointers to BlockContainers
    // vmesh::VelocityMesh** pencilMeshes,
-   // vmesh::VelocityBlockContainer** pencilContainers, 
+   // vmesh::VelocityBlockContainer** pencilContainers,
    Realf** pencilBlockData, // pointers into cell block data, both written and read
    Vec* pencilOrderedSource, // Vec-ordered block data values for pencils
    Realf* pencilDZ,
@@ -399,7 +399,8 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
       }
    }
    // Prefetch vector of vmesh pointers to GPU
-   allVmeshPointer->optimizeGPU(bgStream,true);
+   allVmeshPointer->optimizeJustDataGPU(bgStream);
+   allVmeshPointer->optimizeMetadataGPU(bgStream);
 
    // Reserve size for unionOfBlocksSet
    gpu_trans_allocate(0, 0, largestFoundMeshSize, 0);
@@ -443,8 +444,10 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
       }
    }
    // Prefetch data back to GPU
-   allPencilsMeshes->optimizeGPU(bgStream,true);
-   allPencilsContainers->optimizeGPU(bgStream,true);
+   allPencilsMeshes->optimizeJustDataGPU(bgStream);
+   allPencilsContainers->optimizeJustDataGPU(bgStream);
+   allPencilsMeshes->optimizeMetadataGPU(bgStream);
+   allPencilsContainers->optimizeMetadataGPU(bgStream);
 
    // Extract pointers to data in managed memory
    uint* pencilLengths = DimensionPencils[dimension].gpu_lengthOfPencils->data();
@@ -455,8 +458,11 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
 
    phiprof::Timer buildTimer2 {"trans-amr-buildBlockList-2"};
    // Now we ensure the union of blocks gathering is complete and extract the union of blocks into a vector
+   unionOfBlocksSet->optimizeMetadataCPU(bgStream);
+   unionOfBlocksSet->copyMetadata(info_m[0],bgStream);
    CHK_ERR( gpuStreamSynchronize(bgStream) );
-   gpu_trans_allocate(0,0,0,unionOfBlocksSet->size());
+   const vmesh::LocalID unionOfBlocksSetSize = info_m[0]->fill;
+   gpu_trans_allocate(0,0,0,unionOfBlocksSetSize);
    const uint nAllBlocks = unionOfBlocksSet->extractAllKeys(*unionOfBlocks,bgStream);
    CHK_ERR( gpuStreamSynchronize(bgStream) );
    vmesh::GlobalID *allBlocks = unionOfBlocks->data();

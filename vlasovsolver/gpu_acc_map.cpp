@@ -784,18 +784,26 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    CHK_ERR( gpuStreamSynchronize(stream) );
 
    // Make sure the BlocksRequired / -ToAdd and / -ToRemove buffers are large enough
-   spatial_cell->BlocksRequired->copyMetadata(spatial_cell->info_Required,stream,true);
+   spatial_cell->BlocksRequired->optimizeMetadataCPU(stream);
+   spatial_cell->BlocksRequired->copyMetadata(spatial_cell->info_Required,stream);
    CHK_ERR( gpuStreamSynchronize(stream) );
-   if(spatial_cell->info_Required->capacity < spatial_cell->getReservation(popID) * BLOCK_ALLOCATION_FACTOR) {
-        spatial_cell->BlocksRequired->reserve(spatial_cell->getReservation(popID)*BLOCK_ALLOCATION_PADDING, true);
-        spatial_cell->BlocksRequired->optimizeGPU(stream,true);
-        spatial_cell->BlocksToAdd->reserve(spatial_cell->getReservation(popID)*BLOCK_ALLOCATION_PADDING, true);
-        spatial_cell->BlocksToAdd->optimizeGPU(stream,true);
-         // The remove buffer never needs to be larger than our current size.
-        spatial_cell->BlocksToRemove->reserve(spatial_cell->get_population(popID).reservation,true);
-        spatial_cell->BlocksToRemove->optimizeGPU(stream,true);
-        CHK_ERR( gpuStreamSynchronize(stream) );
+   const vmesh::LocalID BlocksRequiredSize = spatial_cell->info_Required->size;
+   const vmesh::LocalID BlocksRequiredCapacity = spatial_cell->info_Required->capacity;
+   if (BlocksRequiredCapacity < spatial_cell->getReservation(popID) * BLOCK_ALLOCATION_FACTOR) {
+      spatial_cell->BlocksToAdd->optimizeMetadataCPU(stream);
+      spatial_cell->BlocksToRemove->optimizeMetadataCPU(stream);
+      spatial_cell->BlocksRequired->reserve(spatial_cell->getReservation(popID)*BLOCK_ALLOCATION_PADDING, true);
+      spatial_cell->BlocksToAdd->reserve(spatial_cell->getReservation(popID)*BLOCK_ALLOCATION_PADDING, true);
+      // The remove buffer never needs to be larger than our current size.
+      spatial_cell->BlocksToRemove->reserve(spatial_cell->get_population(popID).reservation,true);
+      spatial_cell->BlocksRequired->optimizeJustDataGPU(stream);
+      spatial_cell->BlocksToAdd->optimizeJustDataGPU(stream);
+      spatial_cell->BlocksToRemove->optimizeJustDataGPU(stream);
+      spatial_cell->BlocksToAdd->optimizeMetadataGPU(stream);
+      spatial_cell->BlocksToRemove->optimizeMetadataGPU(stream);
+      CHK_ERR( gpuStreamSynchronize(stream) );
    }
+   spatial_cell->BlocksRequired->optimizeMetadataGPU(stream);
    // Calculate target column extents
    phiprof::Timer evaluateExtentsTimer {"Evaluate column extents kernel"};
    do {
@@ -839,30 +847,42 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       }
 
       // Check whether we exceeded the column data splitVectors on the way
-      if (host_returnLID[1] != 0) {  
+      if (host_returnLID[1] != 0) {
          // If so, recapacitate and try again.
          // We'll take at least our current velspace size (plus safety factor), or, if that wasn't enough,
          // twice what we had before.
          size_t newCapacity = std::max(
-               (size_t)(spatial_cell->getReservation(popID)*BLOCK_ALLOCATION_FACTOR),
-               2*spatial_cell->BlocksRequired->size());
+            (size_t)(spatial_cell->getReservation(popID)*BLOCK_ALLOCATION_FACTOR),
+            (size_t)2*BlocksRequiredSize);
+
+         spatial_cell->BlocksRequired->optimizeMetadataCPU(stream);
+         spatial_cell->BlocksToAdd->optimizeMetadataCPU(stream);
+         spatial_cell->BlocksToRemove->optimizeMetadataCPU(stream);
 
          spatial_cell->BlocksRequired->clear();
          spatial_cell->BlocksToAdd->clear();
          spatial_cell->BlocksToRemove->clear();
 
          spatial_cell->BlocksRequired->reserve(newCapacity,true);
-         spatial_cell->BlocksRequired->optimizeGPU(stream,true);
          spatial_cell->BlocksToAdd->reserve(newCapacity,true);
-         spatial_cell->BlocksToAdd->optimizeGPU(stream,true);
+         spatial_cell->BlocksRequired->optimizeJustDataGPU(stream);
+         spatial_cell->BlocksToAdd->optimizeJustDataGPU(stream);
+
+         spatial_cell->BlocksRequired->optimizeMetadataGPU(stream);
+         spatial_cell->BlocksToAdd->optimizeMetadataGPU(stream);
+         spatial_cell->BlocksToRemove->optimizeMetadataGPU(stream);
          CHK_ERR( gpuStreamSynchronize(stream) );
       }
    } while(host_returnLID[1] != 0);
    evaluateExtentsTimer.stop();
 
-   spatial_cell->BlocksToRemove->copyMetadata(spatial_cell->info_toRemove,stream,true);
-   spatial_cell->BlocksToAdd->copyMetadata(spatial_cell->info_toAdd,stream,true);
+   spatial_cell->BlocksToAdd->optimizeMetadataCPU(stream);
+   spatial_cell->BlocksToRemove->optimizeMetadataCPU(stream);
+   spatial_cell->BlocksToRemove->copyMetadata(spatial_cell->info_toRemove,stream);
+   spatial_cell->BlocksToAdd->copyMetadata(spatial_cell->info_toAdd,stream);
    CHK_ERR( gpuStreamSynchronize(stream) );
+   spatial_cell->BlocksToAdd->optimizeMetadataGPU(stream);
+   spatial_cell->BlocksToRemove->optimizeMetadataGPU(stream);
    if (spatial_cell->info_toRemove->size > spatial_cell->info_toAdd->size) {
       // If we hit v-space walls, we may end up removing more blocks than we create.
       spatial_cell->update_blocks_to_move_caller(popID);

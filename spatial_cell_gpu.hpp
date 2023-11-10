@@ -1469,22 +1469,27 @@ namespace spatial_cell {
 
       phiprof::Timer addFromBufferTimer {"GPU add blocks from buffer"};
       // Add blocks to velocity mesh
-      const uint nBlocks = blocks->size();
+      const uint thread_id = gpu_getThread();
+      gpuStream_t stream = gpuStreamList[thread_id];
+      blocks->copyMetadata(info_1[thread_id],stream);
+      CHK_ERR( gpuStreamSynchronize(stream) );
+      const uint nBlocks = info_1[thread_id]->size;
       if (nBlocks==0) {
          // Return if empty
          return;
       }
 
-      const vmesh::LocalID adds = populations[popID].vmesh->push_back(*blocks);
+      const vmesh::LocalID adds = populations[popID].vmesh->push_back(blocks);
       if (adds != nBlocks) {
          std::cerr << "Failed to add blocks" << __FILE__ << ' ' << __LINE__ << std::endl; exit(1);
          return;
       }
 
-      gpuStream_t stream = gpu_getStream();
       // Bookkeeping only: Calls CPU version in order to ensure resize of container.
       vmesh::LocalID startLID = populations[popID].blockContainer->push_back(nBlocks);
-      blocks->optimizeGPU(stream,true);
+      blocks->optimizeMetadataCPU(stream);
+      blocks->optimizeJustDataGPU(stream);
+      blocks->optimizeMetadataGPU(stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
       // get pointers
       Real* parameters = populations[popID].blockContainer->getParameters(startLID);

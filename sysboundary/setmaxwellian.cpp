@@ -250,7 +250,9 @@ namespace SBC {
          #ifdef USE_GPU
          split::SplitVector<Realf> initBuffer(WID3*nRequested);
          split::SplitVector<vmesh::GlobalID> *blocksToInitializeGPU = new split::SplitVector<vmesh::GlobalID>(blocksToInitialize);
-         blocksToInitializeGPU->optimizeGPU();
+         gpuStream_t stream = gpu_getStream();
+         blocksToInitializeGPU->optimizeJustDataGPU(stream);
+         blocksToInitializeGPU->optimizeMetadataGPU(stream);
          #else
          vector<Realf> initBuffer(WID3*nRequested);
          #endif

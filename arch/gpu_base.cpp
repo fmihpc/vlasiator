@@ -467,8 +467,12 @@ __host__ void gpu_compaction_allocate_vec_perthread(
       // vbwncl_gather[cpuThreadID]->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
       // vbwcl_gather[cpuThreadID]->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
       // vbwncl_gather[cpuThreadID]->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-      vbwcl_gather[cpuThreadID]->optimizeGPU(stream,true);
-      vbwncl_gather[cpuThreadID]->optimizeGPU(stream,true);
+      // vbwcl_gather[cpuThreadID]->optimizeMetadataCPU(stream);
+      // vbwncl_gather[cpuThreadID]->optimizeMetadataCPU(stream);
+      vbwcl_gather[cpuThreadID]->optimizeJustDataGPU(stream);
+      vbwncl_gather[cpuThreadID]->optimizeJustDataGPU(stream);
+      vbwcl_gather[cpuThreadID]->optimizeMetadataGPU(stream);
+      vbwncl_gather[cpuThreadID]->optimizeMetadataGPU(stream);
       gpu_compaction_vectorsize[cpuThreadID] = paddedSize;
    }
 }
@@ -511,9 +515,11 @@ __host__ void gpu_trans_allocate(
          allVmeshPointer = new split::SplitVector<vmesh::VelocityMesh*>(nAllCells);
       } else {
          // Resize
+         allVmeshPointer->optimizeMetadataCPU(stream);
+         allVmeshPointer->optimizeJustDataCPU(stream);
          allVmeshPointer->resize(nAllCells,true);
-         allVmeshPointer->optimizeCPU(stream,true);
       }
+      // Leave on CPU
       gpu_allocated_nAllCells = nAllCells;
    }
    // Vectors with one entry per pencil cell (prefetch to host)
@@ -524,11 +530,14 @@ __host__ void gpu_trans_allocate(
          allPencilsContainers = new split::SplitVector<vmesh::VelocityBlockContainer*>(sumOfLengths);
       } else {
          // Resize
+         allPencilsMeshes->optimizeMetadataCPU(stream);
+         allPencilsContainers->optimizeMetadataCPU(stream);
+         allPencilsMeshes->optimizeJustDataCPU(stream);
+         allPencilsContainers->optimizeJustDataCPU(stream);
          allPencilsMeshes->resize(sumOfLengths,true);
          allPencilsContainers->resize(sumOfLengths,true);
-         allPencilsMeshes->optimizeCPU(stream,true);
-         allPencilsContainers->optimizeCPU(stream,true);
       }
+      // Leave on CPU
       gpu_allocated_sumOfLengths = sumOfLengths;
    }
    // Set for collecting union of blocks (prefetched to device)
@@ -537,17 +546,19 @@ __host__ void gpu_trans_allocate(
       if (gpu_allocated_largestVmesh == 0) {
          // New allocation
          unionOfBlocksSet = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(HashmapReqSize);
-         unionOfBlocksSet->optimizeGPU(stream,true);
+         unionOfBlocksSet->optimizeJustDataGPU(stream);
       } else {
+         unionOfBlocksSet->optimizeMetadataCPU(stream);
          // Ensure allocation
          const uint currSizePower = unionOfBlocksSet->getSizePower();
          if (currSizePower < HashmapReqSize) {
             unionOfBlocksSet->resize(HashmapReqSize);
-            unionOfBlocksSet->optimizeGPU(stream,true);
          }
+         unionOfBlocksSet->optimizeJustDataGPU(stream);
          // Ensure map is empty
          unionOfBlocksSet->clear(Hashinator::targets::device,stream,false);
       }
+      unionOfBlocksSet->optimizeMetadataGPU(stream);
       gpu_allocated_largestVmesh = largestVmesh;
    }
    // Vector into which the set contents are read (prefetched to device)
@@ -556,18 +567,19 @@ __host__ void gpu_trans_allocate(
          // New allocation
          unionOfBlocks = new split::SplitVector<vmesh::GlobalID>(unionSetSize);
          unionOfBlocks->clear();
-         unionOfBlocks->optimizeGPU(stream,true);
       } else {
+         unionOfBlocks->optimizeMetadataCPU(stream);
          if (unionOfBlocks->capacity() < unionSetSize) {
             // Recapacitate, clear, and prefetch
             unionOfBlocks->reserve(unionSetSize);
             unionOfBlocks->clear();
-            unionOfBlocks->optimizeGPU(stream,true);
          } else {
             // Clear is enough
             unionOfBlocks->clear();
          }
       }
+      unionOfBlocks->optimizeJustDataGPU(stream);
+      //unionOfBlocks->optimizeMetadataGPU(stream);
       gpu_allocated_unionSetSize = unionSetSize;
    }
    CHK_ERR( gpuStreamSynchronize(stream) );
