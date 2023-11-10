@@ -861,7 +861,7 @@ namespace spatial_cell {
    void SpatialCell::gpu_uploadContentLists() {
       phiprof::Timer timer {"Upload local content lists"};
       gpuStream_t stream = gpu_getStream();
-      velocity_block_with_content_list->optimizeMetadataCPU(stream);
+      //velocity_block_with_content_list->optimizeMetadataCPU(stream);
       velocity_block_with_content_list->copyMetadata(info_vbwcl,stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
       velocity_block_with_content_list_size = info_vbwcl->size;
@@ -1779,8 +1779,8 @@ namespace spatial_cell {
       velocity_block_with_content_list->optimizeMetadataCPU(stream);
       velocity_block_with_no_content_list->optimizeMetadataCPU(stream);
       velocity_block_with_content_list->copyMetadata(info_vbwcl,stream);
-      vmesh::LocalID currSize = populations[popID].vmesh->size(); // Includes stream sync
-      vmesh::LocalID currCapacity = info_vbwcl->capacity;
+      const vmesh::LocalID currSize = populations[popID].vmesh->size(); // Includes stream sync
+      const vmesh::LocalID currCapacity = info_vbwcl->capacity;
 
       // Immediate return if no blocks to process
       if (currSize == 0) {
@@ -1825,6 +1825,9 @@ namespace spatial_cell {
       vbwncl_gather[thread_id]->optimizeJustDataGPU(stream);
       velocity_block_with_content_list->optimizeJustDataGPU(stream);
       velocity_block_with_no_content_list->optimizeJustDataGPU(stream);
+      
+      populations[popID].vmesh->gpu_prefetchDevice();
+      populations[popID].blockContainer->gpu_prefetchDevice();
       prefetchTimer.stop();
 
       phiprof::Timer kernelTimer {"GPU update spatial cell block lists kernel"};
@@ -1844,8 +1847,13 @@ namespace spatial_cell {
       kernelTimer.stop();
 
       phiprof::Timer compactionTimer {"GPU update spatial cell block lists streamcompaction"};
+      vbwcl_gather[thread_id]->optimizeMetadataCPU(stream);
+      vbwncl_gather[thread_id]->optimizeMetadataCPU(stream);
+      velocity_block_with_content_list->optimizeMetadataCPU(stream);
+      velocity_block_with_no_content_list->optimizeMetadataCPU(stream);
       // First ensure temp buffer is large enough:
-      size_t bytesNeeded=split::tools::estimateMemoryForCompaction(*(vbwcl_gather[thread_id]));
+      //size_t bytesNeeded=split::tools::estimateMemoryForCompaction(*(vbwcl_gather[thread_id]));
+      size_t bytesNeeded=split::tools::estimateMemoryForCompaction((size_t)currSize);
       gpu_compaction_allocate_buf_perthread(thread_id, bytesNeeded);
       // Now do stream compaction on those two vectors, returning only valid GIDs
       // into the actual vectors.

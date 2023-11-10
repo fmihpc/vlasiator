@@ -877,8 +877,8 @@ namespace vmesh {
       gpuStream_t stream = gpuStreamList[thread_id];
       block_data->optimizeMetadataCPU(stream);
       parameters->optimizeMetadataCPU(stream);
-      block_data->optimizeJustDataCPU(stream);
-      parameters->optimizeJustDataCPU(stream);
+      // block_data->optimizeJustDataCPU(stream);
+      // parameters->optimizeJustDataCPU(stream);
       block_data->copyMetadata(info_1[thread_id],stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
       const vmesh::LocalID numberOfBlocks = info_1[thread_id]->size / WID3;

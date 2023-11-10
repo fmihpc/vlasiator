@@ -407,8 +407,10 @@ namespace spatial_cell {
    */
    template <typename fileReal> __global__ void add_blocks_from_buffer_kernel (
       const vmesh::VelocityMesh *vmesh,
-      Real* parameters,
-      Realf* cellBlockData,
+      // Real* parameters,
+      // Realf* cellBlockData,
+      vmesh::VelocityBlockContainer *blockContainer,
+      const vmesh::LocalID startLID,
       const split::SplitVector<vmesh::GlobalID>* blocks,
       const fileReal* avgBuffer,
       const uint nBlocks
@@ -417,6 +419,8 @@ namespace spatial_cell {
       const int blocki = blockIdx.x;
       //const int warpSize = blockDim.x*blockDim.y*blockDim.z;
       const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
+      Real* parameters = blockContainer->getParameters(startLID);
+      Realf *cellBlockData = blockContainer->getData(startLID);
       for (uint index=blocki; index<nBlocks; index += gpuBlocks) {
          // Copy in cell data, perform conversion float<->double if necessary
          cellBlockData[index*WID3 + ti] = (Realf)avgBuffer[index*WID3 + ti];
@@ -888,7 +892,6 @@ namespace spatial_cell {
          exit(1);
       }
       #endif
-
       return populations[popID].vmesh->getGlobalID(blockLID);
    }
 
@@ -1471,8 +1474,12 @@ namespace spatial_cell {
       // Add blocks to velocity mesh
       const uint thread_id = gpu_getThread();
       gpuStream_t stream = gpuStreamList[thread_id];
+      //blocks->optimizeMetadataCPU(stream);
+      //CHK_ERR( gpuStreamSynchronize(stream) );
       blocks->copyMetadata(info_1[thread_id],stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
+      //blocks->optimizeJustDataGPU(stream);
+      //blocks->optimizeMetadataGPU(stream);
       const uint nBlocks = info_1[thread_id]->size;
       if (nBlocks==0) {
          // Return if empty
@@ -1486,14 +1493,9 @@ namespace spatial_cell {
       }
 
       // Bookkeeping only: Calls CPU version in order to ensure resize of container.
-      vmesh::LocalID startLID = populations[popID].blockContainer->push_back(nBlocks);
-      blocks->optimizeMetadataCPU(stream);
-      blocks->optimizeJustDataGPU(stream);
-      blocks->optimizeMetadataGPU(stream);
+      const vmesh::LocalID startLID = populations[popID].blockContainer->push_back(nBlocks);
       CHK_ERR( gpuStreamSynchronize(stream) );
-      // get pointers
-      Real* parameters = populations[popID].blockContainer->getParameters(startLID);
-      Realf *cellBlockData = populations[popID].blockContainer->getData(startLID);
+      populations[popID].vmesh->gpu_prefetchDevice();
       populations[popID].blockContainer->gpu_prefetchDevice();
 
       const uint nGpuBlocks = nBlocks > GPUBLOCKS ? GPUBLOCKS : nBlocks;
@@ -1503,9 +1505,9 @@ namespace spatial_cell {
          // dynamically allocated per block for this call in addition to the statically allocated memory.
          CHK_ERR( gpuStreamSynchronize(stream) );
          spatial_cell::add_blocks_from_buffer_kernel<<<nGpuBlocks, block, 0, stream>>> (
-            populations[popID].vmesh,
-            parameters,
-            cellBlockData,
+            populations[popID].dev_vmesh,
+            populations[popID].dev_blockContainer,
+            startLID,
             blocks,
             avgBuffer,
             nBlocks

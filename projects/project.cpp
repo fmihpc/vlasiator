@@ -282,42 +282,54 @@ namespace projects {
       vmesh::VelocityMesh* vmesh = cell->get_velocity_mesh(popID);
       vmesh::VelocityBlockContainer* blockContainer = cell->get_velocity_blocks(popID);
 
+      phiprof::Timer findBlocksTimer {"Find Blocks to Initialize"};
       // Find list of blocks to initialize. The project.cpp version returns
       // all potential blocks, projectTriAxisSearch provides a more educated guess.
       vector<vmesh::GlobalID> blocksToInitialize = this->findBlocksToInitialize(cell,popID);
       const uint nRequested = blocksToInitialize.size();
+      findBlocksTimer.stop();
       // Expand the velocity space to the required size
+      phiprof::Timer capacityTimer {"set capacities vmesh"};
       vmesh->setNewCapacity(nRequested);
+      capacityTimer.stop();
+      phiprof::Timer capacityTimer2 {"set capacities VBC"};
       blockContainer->recapacitate(nRequested);
+      capacityTimer2.stop();
       cell->setReservation(popID,nRequested);
 
+      phiprof::Timer bufferTimer {"temp buffers"};
       // Create temporary buffer for initialization
       #ifdef USE_GPU
       split::SplitVector<Realf> initBuffer(WID3*nRequested);
       split::SplitVector<vmesh::GlobalID> *blocksToInitializeGPU = new split::SplitVector<vmesh::GlobalID>(blocksToInitialize);
       gpuStream_t stream = gpu_getStream();
       blocksToInitializeGPU->optimizeJustDataGPU(stream);
-      //blocksToInitializeGPU->optimizeMetadataGPU(stream);
+      blocksToInitializeGPU->optimizeMetadataGPU(stream);
       #else
       vector<Realf> initBuffer(WID3*nRequested);
       #endif
-
+      bufferTimer.stop();
+      
       // Loop over requested blocks. Initialize the contents into the temporary buffer
       // and return the maximum value.
+      phiprof::Timer setVelSpaceTimer {"setVelocityBlocks loop"};
       for (uint i=0; i<nRequested; ++i) {
          vmesh::GlobalID blockGID = blocksToInitialize.at(i);
          const Real maxValue = setVelocityBlock(cell,blockGID,popID, initBuffer.data() + i*WID3);
       }
+      setVelSpaceTimer.stop();
       // Next actually add all the blocks (we don't use the MaxValue)
+      phiprof::Timer addFromBufferTimer {"add blocks from buffer"};
       #ifdef USE_GPU
-      initBuffer.optimizeGPU();
+      initBuffer.optimizeGPU(stream);
+      CHK_ERR( gpuStreamSynchronize(stream) );
       cell->add_velocity_blocks(popID, blocksToInitializeGPU, initBuffer.data());
       delete blocksToInitializeGPU;
       #else
       cell->add_velocity_blocks(popID, blocksToInitialize, initBuffer.data());
       #endif
       // Change as of summer 2023: vAMR initialization no longer supported.
-
+      addFromBufferTimer.stop();
       if (rescalesDensity(popID) == true) {
          rescaleDensity(cell,popID);
       }

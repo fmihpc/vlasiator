@@ -561,12 +561,13 @@ namespace vmesh {
       // Host-side non-pagefaulting approach
       const uint thread_id = gpu_getThread();
       gpuStream_t stream = gpuStreamList[thread_id];
+      //blocks->optimizeMetadataCPU(stream); // done in spatial cell
       localToGlobalMap->optimizeMetadataCPU(stream);
       globalToLocalMap->optimizeMetadataCPU(stream);
       localToGlobalMap->copyMetadata(info_1[thread_id],stream);
       blocks->copyMetadata(info_2[thread_id],stream);
-      CHK_ERR( gpuStreamSynchronize(stream) );
       localToGlobalMap->optimizeJustDataCPU(stream);
+      CHK_ERR( gpuStreamSynchronize(stream) );
       const size_t mySize = info_1[thread_id]->size;
       const size_t blocksSize = info_2[thread_id]->size;
       #else
@@ -596,10 +597,12 @@ namespace vmesh {
       if (mySize==0) {
          // Fast insertion into empty mesh
          localToGlobalMap->insert(localToGlobalMap->end(),blocks->begin(),blocks->end());
+         CHK_ERR( gpuStreamSynchronize(stream) );
          localToGlobalMap->optimizeJustDataGPU(stream);
          globalToLocalMap->optimizeJustDataGPU(stream);
          CHK_ERR( gpuStreamSynchronize(stream) );
          globalToLocalMap->insertIndex(localToGlobalMap->data(),blocksSize,0.5,stream,false);
+         CHK_ERR( gpuStreamSynchronize(stream) );
          localToGlobalMap->optimizeMetadataGPU(stream);
          globalToLocalMap->optimizeMetadataGPU(stream);
       } else {
@@ -1164,16 +1167,20 @@ namespace vmesh {
    // Used in initialization
    inline void VelocityMesh::setNewCapacity(const vmesh::LocalID& newCapacity) {
       // Passing eco flag = true to resize tells splitvector we manage padding manually.
-      gpuStream_t stream = gpu_getStream();
+      const uint thread_id = gpu_getThread();
+      gpuStream_t stream = gpuStreamList[thread_id];
       localToGlobalMap->optimizeMetadataCPU(stream);
       globalToLocalMap->optimizeMetadataCPU(stream);
+      globalToLocalMap->copyMetadata(info_m[thread_id],stream);
+      CHK_ERR( gpuStreamSynchronize(stream) );
       localToGlobalMap->reserve(newCapacity,true);
       // Ensure also that the map is large enough
       const int newCapacity2 = newCapacity > 0 ? newCapacity : 1;
       const int HashmapReqSize = ceil(log2(newCapacity2)) +1;
-      if (globalToLocalMap->getSizePower() < HashmapReqSize) {
+      if (info_m[thread_id]->sizePower < HashmapReqSize) {
          globalToLocalMap->resize(HashmapReqSize, Hashinator::targets::device, stream);
       }
+      CHK_ERR( gpuStreamSynchronize(stream) );
       localToGlobalMap->optimizeMetadataGPU(stream);
       globalToLocalMap->optimizeMetadataGPU(stream);
    }
@@ -1234,10 +1241,14 @@ namespace vmesh {
       if (stream==0) {
          stream = gpu_getStream();
       }
+      phiprof::Timer prefetchTimer1 {"metadata prefetch2host"};
       localToGlobalMap->optimizeMetadataCPU(stream);
       globalToLocalMap->optimizeMetadataCPU(stream);
+      prefetchTimer1.stop();
+      phiprof::Timer prefetchTimer2 {"justdata prefetch2host"};
       localToGlobalMap->optimizeJustDataCPU(stream);
       globalToLocalMap->optimizeJustDataCPU(stream);
+      prefetchTimer2.stop();
       return;
    }
 
@@ -1245,10 +1256,14 @@ namespace vmesh {
       if (stream==0) {
          stream = gpu_getStream();
       }
+      phiprof::Timer prefetchTimer1 {"metadata prefetch2device"};
       localToGlobalMap->optimizeMetadataCPU(stream);
       globalToLocalMap->optimizeMetadataCPU(stream);
+      prefetchTimer1.stop();
+      phiprof::Timer prefetchTimer2 {"justdata prefetch2device"};
       localToGlobalMap->optimizeJustDataGPU(stream);
       globalToLocalMap->optimizeJustDataGPU(stream);
+      prefetchTimer2.stop();
       localToGlobalMap->optimizeMetadataGPU(stream);
       globalToLocalMap->optimizeMetadataGPU(stream);
       return;
