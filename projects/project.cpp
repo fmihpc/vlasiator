@@ -303,8 +303,7 @@ namespace projects {
       split::SplitVector<Realf> initBuffer(WID3*nRequested);
       split::SplitVector<vmesh::GlobalID> *blocksToInitializeGPU = new split::SplitVector<vmesh::GlobalID>(blocksToInitialize);
       gpuStream_t stream = gpu_getStream();
-      blocksToInitializeGPU->optimizeJustDataGPU(stream);
-      blocksToInitializeGPU->optimizeMetadataGPU(stream);
+      blocksToInitializeGPU->optimizeUMGPU(stream);
       #else
       vector<Realf> initBuffer(WID3*nRequested);
       #endif
@@ -322,7 +321,6 @@ namespace projects {
       phiprof::Timer addFromBufferTimer {"add blocks from buffer"};
       #ifdef USE_GPU
       initBuffer.optimizeGPU(stream);
-      CHK_ERR( gpuStreamSynchronize(stream) );
       cell->add_velocity_blocks(popID, blocksToInitializeGPU, initBuffer.data());
       delete blocksToInitializeGPU;
       #else

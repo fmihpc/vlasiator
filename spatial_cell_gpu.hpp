@@ -1472,15 +1472,10 @@ namespace spatial_cell {
 
       phiprof::Timer addFromBufferTimer {"GPU add blocks from buffer"};
       // Add blocks to velocity mesh
-      const uint thread_id = gpu_getThread();
-      gpuStream_t stream = gpuStreamList[thread_id];
-      //blocks->optimizeMetadataCPU(stream);
-      //CHK_ERR( gpuStreamSynchronize(stream) );
-      blocks->copyMetadata(info_1[thread_id],stream);
+      gpuStream_t stream = gpu_getStream();
+      blocks->optimizeMetadataCPU(stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
-      //blocks->optimizeJustDataGPU(stream);
-      //blocks->optimizeMetadataGPU(stream);
-      const uint nBlocks = info_1[thread_id]->size;
+      const uint nBlocks = blocks->size();
       if (nBlocks==0) {
          // Return if empty
          return;

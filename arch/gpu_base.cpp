@@ -467,12 +467,8 @@ __host__ void gpu_compaction_allocate_vec_perthread(
       // vbwncl_gather[cpuThreadID]->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
       // vbwcl_gather[cpuThreadID]->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
       // vbwncl_gather[cpuThreadID]->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-      // vbwcl_gather[cpuThreadID]->optimizeMetadataCPU(stream);
-      // vbwncl_gather[cpuThreadID]->optimizeMetadataCPU(stream);
-      vbwcl_gather[cpuThreadID]->optimizeJustDataGPU(stream);
-      vbwncl_gather[cpuThreadID]->optimizeJustDataGPU(stream);
-      vbwcl_gather[cpuThreadID]->optimizeMetadataGPU(stream);
-      vbwncl_gather[cpuThreadID]->optimizeMetadataGPU(stream);
+      vbwcl_gather[cpuThreadID]->optimizeUMGPU(stream);
+      vbwncl_gather[cpuThreadID]->optimizeUMGPU(stream);
       gpu_compaction_vectorsize[cpuThreadID] = paddedSize;
    }
 }
@@ -515,8 +511,7 @@ __host__ void gpu_trans_allocate(
          allVmeshPointer = new split::SplitVector<vmesh::VelocityMesh*>(nAllCells);
       } else {
          // Resize
-         allVmeshPointer->optimizeMetadataCPU(stream);
-         allVmeshPointer->optimizeJustDataCPU(stream);
+         allVmeshPointer->optimizeUMCPU(stream);
          allVmeshPointer->resize(nAllCells,true);
       }
       // Leave on CPU
@@ -530,10 +525,8 @@ __host__ void gpu_trans_allocate(
          allPencilsContainers = new split::SplitVector<vmesh::VelocityBlockContainer*>(sumOfLengths);
       } else {
          // Resize
-         allPencilsMeshes->optimizeMetadataCPU(stream);
-         allPencilsContainers->optimizeMetadataCPU(stream);
-         allPencilsMeshes->optimizeJustDataCPU(stream);
-         allPencilsContainers->optimizeJustDataCPU(stream);
+         allPencilsMeshes->optimizeUMCPU(stream);
+         allPencilsContainers->optimizeUMCPU(stream);
          allPencilsMeshes->resize(sumOfLengths,true);
          allPencilsContainers->resize(sumOfLengths,true);
       }
@@ -546,7 +539,7 @@ __host__ void gpu_trans_allocate(
       if (gpu_allocated_largestVmesh == 0) {
          // New allocation
          unionOfBlocksSet = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(HashmapReqSize);
-         unionOfBlocksSet->optimizeJustDataGPU(stream);
+         unionOfBlocksSet->optimizeUMGPU(stream);
       } else {
          unionOfBlocksSet->optimizeMetadataCPU(stream);
          // Ensure allocation
@@ -554,11 +547,10 @@ __host__ void gpu_trans_allocate(
          if (currSizePower < HashmapReqSize) {
             unionOfBlocksSet->resize(HashmapReqSize);
          }
-         unionOfBlocksSet->optimizeJustDataGPU(stream);
+         unionOfBlocksSet->optimizeUMGPU(stream);
          // Ensure map is empty
          unionOfBlocksSet->clear(Hashinator::targets::device,stream,false);
       }
-      unionOfBlocksSet->optimizeMetadataGPU(stream);
       gpu_allocated_largestVmesh = largestVmesh;
    }
    // Vector into which the set contents are read (prefetched to device)
@@ -578,8 +570,7 @@ __host__ void gpu_trans_allocate(
             unionOfBlocks->clear();
          }
       }
-      unionOfBlocks->optimizeJustDataGPU(stream);
-      //unionOfBlocks->optimizeMetadataGPU(stream);
+      unionOfBlocks->optimizeUMGPU(stream);
       gpu_allocated_unionSetSize = unionSetSize;
    }
    CHK_ERR( gpuStreamSynchronize(stream) );

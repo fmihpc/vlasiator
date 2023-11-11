@@ -861,10 +861,9 @@ namespace spatial_cell {
    void SpatialCell::gpu_uploadContentLists() {
       phiprof::Timer timer {"Upload local content lists"};
       gpuStream_t stream = gpu_getStream();
-      //velocity_block_with_content_list->optimizeMetadataCPU(stream);
-      velocity_block_with_content_list->copyMetadata(info_vbwcl,stream);
+      velocity_block_with_content_list->optimizeMetadataCPU(stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
-      velocity_block_with_content_list_size = info_vbwcl->size;
+      velocity_block_with_content_list_size = velocity_block_with_content_list->size();
       if (velocity_block_with_content_list_size==0) {
          return;
       }
@@ -906,39 +905,32 @@ namespace spatial_cell {
       BlocksToMove->optimizeMetadataCPU(stream);
       velocity_block_with_content_list->optimizeMetadataCPU(stream);
       velocity_block_with_no_content_list->optimizeMetadataCPU(stream);
-
-      BlocksRequired->copyMetadata(info_Required,stream);
-      BlocksToAdd->copyMetadata(info_toAdd,stream);
-      BlocksToRemove->copyMetadata(info_toRemove,stream);
-      BlocksToMove->copyMetadata(info_toMove,stream);
-      velocity_block_with_content_list->copyMetadata(info_vbwcl,stream);
-      velocity_block_with_no_content_list->copyMetadata(info_vbwncl,stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
 
-      if (info_Required->capacity < reserveSize) {
+      if (BlocksRequired->capacity() < reserveSize) {
          BlocksRequired->reserve(newReserve,true);
       }
-      if (info_toAdd->capacity < reserveSize) {
+      if (BlocksToAdd->capacity() < reserveSize) {
          BlocksToAdd->reserve(newReserve,true);
       }
-      if (info_toRemove->capacity < reserveSize) {
+      if (BlocksToRemove->capacity() < reserveSize) {
          BlocksToRemove->reserve(newReserve,true);
       }
-      if (info_toMove->capacity < reserveSize) {
+      if (BlocksToMove->capacity() < reserveSize) {
          BlocksToMove->reserve(newReserve,true);
       }
-      if (info_vbwcl->capacity < reserveSize) {
+      if (velocity_block_with_content_list->capacity() < reserveSize) {
          velocity_block_with_content_list->reserve(newReserve,true);
       }
-      if (info_vbwncl->capacity < reserveSize) {
+      if (velocity_block_with_no_content_list->capacity() < reserveSize) {
          velocity_block_with_no_content_list->reserve(newReserve,true);
       }
-      BlocksRequired->optimizeMetadataGPU(stream);
-      BlocksToAdd->optimizeMetadataGPU(stream);
-      BlocksToRemove->optimizeMetadataGPU(stream);
-      BlocksToMove->optimizeMetadataGPU(stream);
-      velocity_block_with_content_list->optimizeMetadataGPU(stream);
-      velocity_block_with_no_content_list->optimizeMetadataGPU(stream);
+      BlocksRequired->optimizeUMGPU(stream);
+      BlocksToAdd->optimizeUMGPU(stream);
+      BlocksToRemove->optimizeUMGPU(stream);
+      BlocksToMove->optimizeUMGPU(stream);
+      velocity_block_with_content_list->optimizeUMGPU(stream);
+      velocity_block_with_no_content_list->optimizeUMGPU(stream);
    }
 
    /** Adds "important" and removes "unimportant" velocity blocks
@@ -991,25 +983,21 @@ namespace spatial_cell {
       BlocksToMove->optimizeMetadataCPU(stream);
       velocity_block_with_content_list->optimizeMetadataCPU(stream);
       velocity_block_with_no_content_list->optimizeMetadataCPU(stream);
+      CHK_ERR( gpuStreamSynchronize(stream) );
 
-      CHK_ERR( gpuStreamSynchronize(stream) ); // To ensure all previous kernels have finished
       phiprof::Timer adjustBlocksTimer {"Adjust velocity blocks"};
-      velocity_block_with_content_list->copyMetadata(info_vbwcl,stream);
-      velocity_block_with_no_content_list->copyMetadata(info_vbwncl,stream);
-      BlocksRequired->copyMetadata(info_Required,stream);
-      BlocksRequiredMap->copyMetadata(info_brm, stream);
       vmesh::LocalID currSize = populations[popID].vmesh->size(); // Includes stream sync
-      const vmesh::LocalID localContentBlocks = info_vbwcl->size;
-      const vmesh::LocalID localNoContentBlocks = info_vbwncl->size;
-      const vmesh::LocalID BlocksRequiredCapacity = info_Required->capacity;
-      const int BlocksRequiredMapSizePower = info_brm->sizePower;
+      const vmesh::LocalID localContentBlocks = velocity_block_with_content_list->size();
+      const vmesh::LocalID localNoContentBlocks = velocity_block_with_no_content_list->size();
+      const vmesh::LocalID BlocksRequiredCapacity = BlocksRequired->capacity();
+      const int BlocksRequiredMapSizePower = BlocksRequiredMap->getSizePower();
 
       // Neighbour and own prefetches
       if (doPrefetches) {
          phiprof::Timer prefetchTimer {"Prefetch"};
          populations[popID].vmesh->gpu_prefetchDevice(); // Queries active stream internally
-         velocity_block_with_content_list->optimizeGPU(stream);
-         velocity_block_with_no_content_list->optimizeGPU(stream);
+         velocity_block_with_content_list->optimizeUMGPU(stream);
+         velocity_block_with_no_content_list->optimizeUMGPU(stream);
       }
 
       phiprof::Timer resizeTimer {"BlocksRequired hashmap resize / clear"};
@@ -1034,7 +1022,8 @@ namespace spatial_cell {
          if ((attachedStream != 0)&&(needAttachedStreams)) {
             BlocksRequiredMap->streamAttach(attachedStream);
          }
-         BlocksRequiredMap->optimizeJustDataGPU(stream);
+         BlocksRequiredMap->optimizeUMGPU(stream);
+         BlocksRequiredMap->optimizeMetadataCPU(stream);
       }
       CHK_ERR( gpuStreamSynchronize(stream) );
       resizeTimer.stop();
@@ -1061,8 +1050,9 @@ namespace spatial_cell {
          CHK_ERR( gpuPeekAtLastError() );
          CHK_ERR( gpuStreamSynchronize(stream) );
       }
+      
       BlocksRequiredMap->optimizeMetadataGPU(stream);
-
+      velocity_block_with_content_list->optimizeMetadataGPU(stream);
       // add velocity space neighbors to map. We loop over blocks
       // with content, and insert all its v-space neighbors (halo)
       if (localContentBlocks > 0) {
@@ -1129,26 +1119,20 @@ namespace spatial_cell {
       reserveTimer.stop();
       phiprof::Timer prefetchTimer {"BlocksToXXX prefetch"};
       if (doPrefetches || (BlocksRequiredCapacity < reserveSize)) {
-         BlocksRequired->optimizeJustDataGPU(stream);
-         BlocksToRemove->optimizeJustDataGPU(stream);
-         BlocksToAdd->optimizeJustDataGPU(stream);
-         BlocksToMove->optimizeJustDataGPU(stream);
+         BlocksRequired->optimizeUMGPU(stream);
+         BlocksToRemove->optimizeUMGPU(stream);
+         BlocksToAdd->optimizeUMGPU(stream);
+         BlocksToMove->optimizeUMGPU(stream);
       }
       SSYNC;
       prefetchTimer.stop();
 
       // Extract list and count of all required blocks (content or with neighbors in spatial or velocity space)
       phiprof::Timer gatherTimer {"Gather blocks required"};
-      BlocksRequired->optimizeMetadataGPU(stream);
       BlocksRequiredMap->optimizeMetadataCPU(stream);
       const vmesh::LocalID nBlocksRequired = BlocksRequiredMap->extractAllKeys(*BlocksRequired,stream,false);
-      gatherTimer.stop();
-
-      BlocksRequired->optimizeMetadataGPU(stream);
       BlocksRequiredMap->optimizeMetadataGPU(stream);
-      BlocksToAdd->optimizeMetadataGPU(stream);
-      BlocksToRemove->optimizeMetadataGPU(stream);
-      BlocksToMove->optimizeMetadataGPU(stream);
+      gatherTimer.stop();
 
       // Flag all blocks in this cell without content + without neighbors with content to be removed
       if (doDeleteEmptyBlocks) {
@@ -1224,19 +1208,17 @@ namespace spatial_cell {
       // Host-side non-pagefaulting approach
       BlocksRequired->optimizeMetadataCPU(stream);
       BlocksToMove->optimizeMetadataCPU(stream);
-      BlocksRequired->copyMetadata(info_Required,stream);
-      BlocksToMove->copyMetadata(info_toMove,stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
-      const int nBlocksRequired =  info_Required->size;
-      const int toMoveCapacity =  info_toMove->capacity;
+      const int nBlocksRequired = BlocksRequired->size();
+      const int toMoveCapacity = BlocksToMove->capacity();
+      populations[popID].vmesh->gpu_prefetchDevice(stream);
 
       const uint nGpuBlocks = nBlocksRequired > GPUBLOCKS ? GPUBLOCKS : nBlocksRequired;
       if (toMoveCapacity < nBlocksRequired) {
          BlocksToMove->reserve(nBlocksRequired,true);
-         BlocksToMove->optimizeJustDataGPU(stream);
       }
-      BlocksRequired->optimizeMetadataGPU(stream);
-      BlocksToMove->optimizeMetadataGPU(stream);
+      BlocksRequired->optimizeUMGPU(stream);
+      BlocksToMove->optimizeUMGPU(stream);
       if (nBlocksRequired>0) {
          CHK_ERR( gpuStreamSynchronize(stream) );
          phiprof::Timer blockMoveTimer {"blocks_to_move_kernel"};
@@ -1276,17 +1258,15 @@ namespace spatial_cell {
       //BlocksToMove->optimizeMetadataCPU(stream);
 
       phiprof::Timer sizesTimer {"Block lists sizes"};
-      // Use copymetadata for these
-      BlocksToAdd->copyMetadata(info_toAdd,stream);
-      BlocksToRemove->copyMetadata(info_toRemove,stream);
-      //BlocksToMove->copyMetadata(info_toMove,stream,true); // not used
       CHK_ERR( gpuStreamSynchronize(stream) ); // To ensure all previous kernels have finished
       const vmesh::LocalID nBlocksBeforeAdjust = populations[popID].vmesh->size(); // includes a stream sync for the above
-      const vmesh::LocalID nToAdd = info_toAdd->size;
-      const vmesh::LocalID nToRemove = info_toRemove->size;
-      //const vmesh::LocalID nToMove = info_toMove->size; // not used
+      const vmesh::LocalID nToAdd = BlocksToAdd->size();
+      const vmesh::LocalID nToRemove = BlocksToRemove->size();
+      //const vmesh::LocalID nToMove = BlocksToMove->size(); // not used
+
       BlocksToAdd->optimizeMetadataGPU(stream);
       BlocksToRemove->optimizeMetadataGPU(stream);
+      //BlocksToMove->optimizeMetadataGPU(stream);
 
       const vmesh::LocalID nBlocksAfterAdjust = nBlocksBeforeAdjust + nToAdd - nToRemove;
       const int nBlocksToChange = nToAdd > nToRemove ? nToAdd : nToRemove;
@@ -1474,10 +1454,9 @@ namespace spatial_cell {
                // Host-side non-pagefaulting approach
                gpuStream_t stream = gpu_getStream();
                this->velocity_block_with_content_list->optimizeMetadataCPU(stream);
-               this->velocity_block_with_content_list->copyMetadata(info_vbwcl,stream);
                CHK_ERR( gpuStreamSynchronize(stream) );
+               this->velocity_block_with_content_list_size = velocity_block_with_content_list->size();
                this->velocity_block_with_content_list->optimizeMetadataGPU(stream);
-               this->velocity_block_with_content_list_size = info_vbwncl->size;
             }
             displacements.push_back((uint8_t*) &(this->velocity_block_with_content_list_size) - (uint8_t*) this);
             block_lengths.push_back(sizeof(vmesh::LocalID));
@@ -1487,7 +1466,7 @@ namespace spatial_cell {
             this->velocity_block_with_content_list->optimizeMetadataCPU(stream);
             if (receiving) {
                this->velocity_block_with_content_list->resize(this->velocity_block_with_content_list_size,true);
-               this->velocity_block_with_content_list->optimizeJustDataGPU(stream);
+               this->velocity_block_with_content_list->optimizeUMGPU(stream);
                // Re receive velocity block content lists only for remote cells (?) so no need to
                // attach to a stream at this point.
              }
@@ -1778,17 +1757,16 @@ namespace spatial_cell {
       // Host-side non-pagefaulting approach
       velocity_block_with_content_list->optimizeMetadataCPU(stream);
       velocity_block_with_no_content_list->optimizeMetadataCPU(stream);
-      velocity_block_with_content_list->copyMetadata(info_vbwcl,stream);
+      velocity_block_with_content_list_size = 0;
       const vmesh::LocalID currSize = populations[popID].vmesh->size(); // Includes stream sync
-      const vmesh::LocalID currCapacity = info_vbwcl->capacity;
+      const vmesh::LocalID currCapacity = velocity_block_with_content_list->capacity();
 
       // Immediate return if no blocks to process
       if (currSize == 0) {
          velocity_block_with_content_list->clear();
          velocity_block_with_no_content_list->clear();
-         velocity_block_with_content_list_size = 0;
-         velocity_block_with_content_list->optimizeMetadataGPU(stream);
-         velocity_block_with_no_content_list->optimizeMetadataGPU(stream);
+         velocity_block_with_content_list->optimizeUMGPU(stream);
+         velocity_block_with_no_content_list->optimizeUMGPU(stream);
          return;
       }
 
@@ -1816,15 +1794,10 @@ namespace spatial_cell {
       vbwncl_gather[thread_id]->resize(currSize,true);
       velocity_block_with_content_list->resize(currSize,true);
       velocity_block_with_no_content_list->resize(currSize,true);
-      velocity_block_with_content_list_size = 0;
-      vbwcl_gather[thread_id]->optimizeMetadataGPU(stream);
-      vbwncl_gather[thread_id]->optimizeMetadataGPU(stream);
-      velocity_block_with_content_list->optimizeMetadataGPU(stream);
-      velocity_block_with_no_content_list->optimizeMetadataGPU(stream);
-      vbwcl_gather[thread_id]->optimizeJustDataGPU(stream);
-      vbwncl_gather[thread_id]->optimizeJustDataGPU(stream);
-      velocity_block_with_content_list->optimizeJustDataGPU(stream);
-      velocity_block_with_no_content_list->optimizeJustDataGPU(stream);
+      vbwcl_gather[thread_id]->optimizeUMGPU(stream);
+      vbwncl_gather[thread_id]->optimizeUMGPU(stream);
+      velocity_block_with_content_list->optimizeUMGPU(stream);
+      velocity_block_with_no_content_list->optimizeUMGPU(stream);
       
       populations[popID].vmesh->gpu_prefetchDevice();
       populations[popID].blockContainer->gpu_prefetchDevice();
