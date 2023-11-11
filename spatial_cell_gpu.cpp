@@ -1061,7 +1061,7 @@ namespace spatial_cell {
          CHK_ERR( gpuPeekAtLastError() );
          CHK_ERR( gpuStreamSynchronize(stream) );
       }
-      
+
       BlocksRequiredMap->optimizeMetadataGPU(stream);
       velocity_block_with_content_list->optimizeMetadataGPU(stream);
       // add velocity space neighbors to map. We loop over blocks
@@ -1292,9 +1292,12 @@ namespace spatial_cell {
          populations[popID].blockContainer->setSize(nBlocksAfterAdjust);
          CHK_ERR( gpuStreamSynchronize(stream) );
       }
-      populations[popID].vmesh->gpu_prefetchDevice();
-      populations[popID].blockContainer->gpu_prefetchDevice();
-
+      phiprof::Timer vmeshPrefetchTimer {"vmeshPrefetch device"};
+      populations[popID].vmesh->gpu_prefetchDevice(stream);
+      vmeshPrefetchTimer.stop();
+      phiprof::Timer vbcPrefetchTimer {"vbcPrefetch device"};
+      populations[popID].blockContainer->gpu_prefetchDevice(stream);
+      vbcPrefetchTimer.stop();
       if (nGpuBlocks>0) {
          phiprof::Timer addRemoveKernelTimer {"GPU add and remove blocks kernel"};
          CHK_ERR( gpuMemsetAsync(returnRealf[thread_id], 0, sizeof(Realf), stream) );
@@ -1773,8 +1776,14 @@ namespace spatial_cell {
       phiprof::Timer updateListsTimer {"GPU update spatial cell block lists"};
       gpuStream_t stream = gpu_getStream();
       phiprof::Timer prefetchTimer {"VB content list prefetches and allocations"};
+      // phiprof::Timer timer1 {"Timer1"};
+      // int device;
+      // CHK_ERR(gpuGetDevice(&device));
+      // CHK_ERR(gpuMemPrefetchAsync(velocity_block_with_content_list, sizeof(split::SplitVector<vmesh::GlobalID>), device, stream));
+      // CHK_ERR(gpuMemPrefetchAsync(velocity_block_with_no_content_list, sizeof(split::SplitVector<vmesh::GlobalID>), device, stream));
       velocity_block_with_content_list->optimizeUMCPU(stream);
       velocity_block_with_no_content_list->optimizeUMCPU(stream);
+      // timer1.stop();
       velocity_block_with_content_list_size = 0;
       const vmesh::LocalID currSize = populations[popID].vmesh->size(true); // Includes stream sync
       const vmesh::LocalID currCapacity = velocity_block_with_content_list->capacity();
@@ -1789,7 +1798,12 @@ namespace spatial_cell {
       }
 
       // Ensure allocation of gathering vectors
+      // phiprof::Timer timer3 {"Timer3"};
       gpu_compaction_allocate_vec_perthread(thread_id, currSize);
+      vbwcl_gather[thread_id]->optimizeUMCPU(stream);
+      vbwncl_gather[thread_id]->optimizeUMCPU(stream);
+      // timer3.stop();
+      // phiprof::Timer timer4 {"Timer4"};
       if (currCapacity < currSize) {
          const uint reserveSize = currSize * BLOCK_ALLOCATION_FACTOR;
          velocity_block_with_content_list->reserve(reserveSize,true);
@@ -1802,21 +1816,26 @@ namespace spatial_cell {
       }
       // Set gathering vectors to correct size
       CHK_ERR( gpuStreamSynchronize(stream) );
+      // timer4.stop();
+      // phiprof::Timer timer5 {"Timer5"};
       vbwcl_gather[thread_id]->resize(currSize,true);
       vbwncl_gather[thread_id]->resize(currSize,true);
       velocity_block_with_content_list->resize(currSize,true);
       velocity_block_with_no_content_list->resize(currSize,true);
       CHK_ERR( gpuStreamSynchronize(stream) );
-
+      // timer5.stop();
       // Prefetch everything to device
+      // phiprof::Timer timer6 {"Timer6"};
       velocity_block_with_content_list->optimizeUMGPU(stream);
       velocity_block_with_no_content_list->optimizeUMGPU(stream);
       vbwcl_gather[thread_id]->optimizeUMGPU(stream);
-      vbwncl_gather[thread_id]->optimizeUMGPU(stream);      
+      vbwncl_gather[thread_id]->optimizeUMGPU(stream);
       populations[popID].vmesh->gpu_prefetchDevice(stream);
       populations[popID].blockContainer->gpu_prefetchDevice(stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
+      // timer6.stop();
       prefetchTimer.stop();
+
 
       phiprof::Timer kernelTimer {"GPU update spatial cell block lists kernel"};
       const Real velocity_block_min_value = getVelocityBlockMinValue(popID);
