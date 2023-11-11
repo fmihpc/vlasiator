@@ -72,12 +72,7 @@ __global__ void __launch_bounds__(VECL,4) reorder_blocks_by_dimension_kernel(
    uint *gpu_cell_indices_to_id,
    uint totalColumns,
    vmesh::LocalID *gpu_LIDlist,
-   ColumnOffsets* columnData,
-   // These are just cleared
-   split::SplitVector<vmesh::GlobalID>* BlocksRequired,
-   split::SplitVector<vmesh::GlobalID>* BlocksToRemove,
-   split::SplitVector<vmesh::GlobalID>* BlocksToAdd,
-   split::SplitVector<vmesh::GlobalID>* BlocksToMove
+   ColumnOffsets* columnData
 ) {
    // Takes the contents of blockData, sorts it into blockDataOrdered,
    // performing transposes as necessary
@@ -130,16 +125,7 @@ __global__ void __launch_bounds__(VECL,4) reorder_blocks_by_dimension_kernel(
                gpu_blockDataOrdered[outputOffset + i_pcolumnv_gpu_b(jk, k, columnLength, columnLength)][ti] = 0.0;
          }
       }
-
    } // end loop iColumn
-   // Clear vectors
-   if (blockIdx.x == blockIdx.y == blockIdx.z == threadIdx.x == threadIdx.y == threadIdx.z == 0) {
-      BlocksRequired->clear();
-      BlocksToRemove->clear();
-      BlocksToAdd->clear();
-      BlocksToMove->clear();
-   }
-
    // Note: this kernel does not memset gpu_blockData to zero.
    // A separate memsetasync call is required for that.
 }
@@ -595,7 +581,7 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       const uint cpuThreadID = 0;
 #endif
 
-   const uint nBlocks = vmesh->size();
+   const uint nBlocks = vmesh->size(true);
    auto minValue = spatial_cell->getVelocityBlockMinValue(popID);
    // These query velocity mesh parameters which are duplicated for both host and device
    const vmesh::LocalID D0 = vmesh->getGridLength()[0];
@@ -616,6 +602,19 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    if(nBlocks == 0) {
       return true;
    }
+
+   spatial_cell->BlocksRequired->optimizeUMCPU(stream);
+   spatial_cell->BlocksToAdd->optimizeUMCPU(stream);
+   spatial_cell->BlocksToRemove->optimizeUMCPU(stream);
+   spatial_cell->BlocksToMove->optimizeUMCPU(stream);
+   spatial_cell->BlocksRequired->clear();
+   spatial_cell->BlocksToAdd->clear();
+   spatial_cell->BlocksToRemove->clear();
+   spatial_cell->BlocksToMove->clear();
+   spatial_cell->BlocksRequired->optimizeUMGPU(stream);
+   spatial_cell->BlocksToAdd->optimizeUMGPU(stream);
+   spatial_cell->BlocksToRemove->optimizeUMGPU(stream);
+   spatial_cell->BlocksToMove->optimizeUMGPU(stream);
 
    phiprof::Timer attachTimer {"stream Attach, prefetch"};
    if (needAttachedStreams) {
@@ -771,12 +770,7 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       gpu_cell_indices_to_id[cpuThreadID],
       host_totalColumns,
       LIDlist,
-      columnData,
-      // Also clears these vectors
-      spatial_cell->BlocksRequired,
-      spatial_cell->BlocksToAdd,
-      spatial_cell->BlocksToRemove,
-      spatial_cell->BlocksToMove
+      columnData
       );
    CHK_ERR( gpuPeekAtLastError() );
    SSYNC;
@@ -889,7 +883,7 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    spatial_cell->adjust_velocity_blocks_caller(popID);
    // Velocity space has all extra blocks added and/or removed for the transform target
    // and will not change shape anymore.
-   const uint newNBlocks = vmesh->size();
+   const uint newNBlocks = vmesh->size(true);
    const uint bdsw3 = newNBlocks * WID3;
    addDeleteTimer.stop();
 

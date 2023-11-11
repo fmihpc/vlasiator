@@ -77,7 +77,7 @@ namespace vmesh {
       ARCH_HOSTDEV vmesh::LocalID push_back_and_zero(const uint32_t& N_blocks);
       bool recapacitate(const vmesh::LocalID& capacity);
       ARCH_HOSTDEV bool setSize(const vmesh::LocalID& newSize);
-      ARCH_HOSTDEV vmesh::LocalID size() const;
+      ARCH_HOSTDEV vmesh::LocalID size(bool prefetchBack=false) const;
       ARCH_HOSTDEV size_t sizeInBytes() const;
       ARCH_HOSTDEV void swap(VelocityBlockContainer& vbc);
 
@@ -888,7 +888,7 @@ namespace vmesh {
 
    /** Return the number of existing velocity blocks.
     * @return Number of existing velocity blocks.*/
-   inline ARCH_HOSTDEV vmesh::LocalID VelocityBlockContainer::size() const {
+   inline ARCH_HOSTDEV vmesh::LocalID VelocityBlockContainer::size(bool prefetchBack) const {
       #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
       gpuStream_t stream = gpu_getStream();
       block_data->optimizeMetadataCPU(stream);
@@ -896,7 +896,9 @@ namespace vmesh {
       #endif
       const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
       #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-      block_data->optimizeMetadataGPU(stream);
+      if (prefetchBack) {
+         block_data->optimizeMetadataGPU(stream);
+      }
       #endif
       return numberOfBlocks;
    }

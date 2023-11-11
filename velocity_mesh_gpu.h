@@ -586,6 +586,7 @@ namespace vmesh {
          // Fast insertion into empty mesh
          localToGlobalMap->insert(localToGlobalMap->end(),blocks->begin(),blocks->end());
          vmesh::GlobalID* _localToGlobalMapData = localToGlobalMap->data();
+         CHK_ERR( gpuStreamSynchronize(stream) );
          localToGlobalMap->optimizeUMGPU(stream);
          CHK_ERR( gpuStreamSynchronize(stream) );
          globalToLocalMap->insertIndex(_localToGlobalMapData,blocksSize,0.5,stream,false);

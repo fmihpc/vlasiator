@@ -471,6 +471,11 @@ __host__ void gpu_compaction_allocate_vec_perthread(
       vbwncl_gather[cpuThreadID]->optimizeUMGPU(stream);
       gpu_compaction_vectorsize[cpuThreadID] = paddedSize;
    }
+   if (vectorLength > 0) {
+      //Prefetch to host for resizing in call
+      vbwcl_gather[cpuThreadID]->optimizeUMCPU(stream);
+      vbwncl_gather[cpuThreadID]->optimizeUMCPU(stream);
+   }
 }
 __host__ void gpu_compaction_allocate_buf_perthread(
    const uint cpuThreadID,

@@ -1492,6 +1492,8 @@ namespace spatial_cell {
       CHK_ERR( gpuStreamSynchronize(stream) );
       populations[popID].vmesh->gpu_prefetchDevice();
       populations[popID].blockContainer->gpu_prefetchDevice();
+      blocks->optimizeUMGPU(stream);
+      CHK_ERR( gpuStreamSynchronize(stream) );
 
       const uint nGpuBlocks = nBlocks > GPUBLOCKS ? GPUBLOCKS : nBlocks;
       if (nGpuBlocks>0) {
