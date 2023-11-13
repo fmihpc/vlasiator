@@ -1109,23 +1109,21 @@ namespace vmesh {
       // Needed by GPU block adjustment
       const uint device = gpu_getDevice();
       gpuStream_t stream = gpu_getStream();
-      //localToGlobalMap->optimizeMetadataCPU(stream);
-      localToGlobalMap->optimizeUMCPU(stream);
-      globalToLocalMap->optimizeUMGPU(stream);
+      localToGlobalMap->optimizeMetadataCPU(stream);
       globalToLocalMap->optimizeMetadataCPU(stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
       vmesh::LocalID currentCapacity =  localToGlobalMap->capacity();
       const int currentSizePower = globalToLocalMap->getSizePower();
       // Passing eco flag = true to resize tells splitvector we manage padding manually.
-      localToGlobalMap->resize(newSize,true);
-
-      if (newSize > currentCapacity) {
-         // Was allocated new memory
-         CHK_ERR( gpuStreamSynchronize(stream) );
-         localToGlobalMap->optimizeUMGPU(stream);
-         // localToGlobalMap->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-         // localToGlobalMap->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-      }
+      localToGlobalMap->resize(newSize,true,stream);
+      CHK_ERR( gpuStreamSynchronize(stream) );
+      localToGlobalMap->optimizeMetadataGPU(stream);
+   
+      // if (newSize > currentCapacity) {
+      //    // Was allocated new memory but copy was done already on device memory
+      //    CHK_ERR( gpuStreamSynchronize(stream) );
+      //    localToGlobalMap->optimizeMetadataGPU(stream);
+      // }
       // Ensure also that the map is large enough
       const int newSize2 = newSize > 0 ? newSize : 1;
       const int HashmapReqSize = ceil(log2(newSize2)) +2; // Make it really large enough
@@ -1135,6 +1133,8 @@ namespace vmesh {
          globalToLocalMap->optimizeUMGPU(stream);
          // globalToLocalMap->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
          // globalToLocalMap->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+      } else {
+         globalToLocalMap->optimizeMetadataGPU(stream);
       }
       // Re-attach stream if required
       if ((attachedStream != 0)&&(needAttachedStreams)) {
@@ -1219,8 +1219,10 @@ namespace vmesh {
       if (stream==0) {
          stream = gpu_getStream();
       }
+      phiprof::Timer vmeshPrefetchTimer {"prefetch Vmesh"};
       localToGlobalMap->optimizeUMGPU(stream);
       globalToLocalMap->optimizeUMGPU(stream);
+      CHK_ERR( gpuStreamSynchronize(stream) );
       return;
    }
 
@@ -1238,12 +1240,20 @@ namespace vmesh {
          stream = gpu_getStream();
       }
       const uint device = gpu_getDevice();
-      localToGlobalMap->optimizeMetadataCPU(stream);
       globalToLocalMap->optimizeMetadataCPU(stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
-      globalToLocalMap->performCleanupTasks(stream);
+      phiprof::Timer resizeTimer {"Hashinator resize"};
+      //globalToLocalMap->performCleanupTasks(stream);
       globalToLocalMap->resize_to_lf(0.5, Hashinator::targets::device, stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
+      resizeTimer.stop();
+
+      phiprof::Timer cleanupTimer {"Hashinator tombstones"};
+      globalToLocalMap->clean_tombstones(stream, false);
+      CHK_ERR( gpuStreamSynchronize(stream) );
+      cleanupTimer.stop();
+      
+      globalToLocalMap->optimizeMetadataGPU(stream);
       return;
    }
 

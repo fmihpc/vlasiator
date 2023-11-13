@@ -581,7 +581,7 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       const uint cpuThreadID = 0;
 #endif
 
-   const uint nBlocks = vmesh->size(true);
+   const uint nBlocks = vmesh->size(true); // true: Prefetch metadata back to GPU
    auto minValue = spatial_cell->getVelocityBlockMinValue(popID);
    // These query velocity mesh parameters which are duplicated for both host and device
    const vmesh::LocalID D0 = vmesh->getGridLength()[0];
@@ -603,18 +603,18 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       return true;
    }
 
-   spatial_cell->BlocksRequired->optimizeUMCPU(stream);
-   spatial_cell->BlocksToAdd->optimizeUMCPU(stream);
-   spatial_cell->BlocksToRemove->optimizeUMCPU(stream);
-   spatial_cell->BlocksToMove->optimizeUMCPU(stream);
+   spatial_cell->BlocksRequired->optimizeMetadataCPU(stream);
+   spatial_cell->BlocksToAdd->optimizeMetadataCPU(stream);
+   spatial_cell->BlocksToRemove->optimizeMetadataCPU(stream);
+   spatial_cell->BlocksToMove->optimizeMetadataCPU(stream);
    spatial_cell->BlocksRequired->clear();
    spatial_cell->BlocksToAdd->clear();
    spatial_cell->BlocksToRemove->clear();
    spatial_cell->BlocksToMove->clear();
-   spatial_cell->BlocksRequired->optimizeUMGPU(stream);
-   spatial_cell->BlocksToAdd->optimizeUMGPU(stream);
-   spatial_cell->BlocksToRemove->optimizeUMGPU(stream);
-   spatial_cell->BlocksToMove->optimizeUMGPU(stream);
+   spatial_cell->BlocksRequired->optimizeMetadataGPU(stream);
+   spatial_cell->BlocksToAdd->optimizeMetadataGPU(stream);
+   spatial_cell->BlocksToRemove->optimizeMetadataGPU(stream);
+   spatial_cell->BlocksToMove->optimizeMetadataGPU(stream);
 
    phiprof::Timer attachTimer {"stream Attach, prefetch"};
    if (needAttachedStreams) {
@@ -640,6 +640,9 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    /*< used when computing id of target block, 0 for compiler */
    uint block_indices_to_id[3] = {0, 0, 0};
    uint cell_indices_to_id[3] = {0, 0, 0};
+   // 13.11.2023: for some reason these hostRegister calls say the memory is already registered.
+   // CHK_ERR(gpuHostRegister(block_indices_to_id, 3*sizeof(uint),gpuHostRegisterPortable));
+   // CHK_ERR(gpuHostRegister(cell_indices_to_id, 3*sizeof(uint),gpuHostRegisterPortable));
 
    Realv is_temp;
    switch (dimension) {

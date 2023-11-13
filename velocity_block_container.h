@@ -419,8 +419,10 @@ namespace vmesh {
       if (stream==0) {
          gpuStream_t stream = gpu_getStream();
       }
+      phiprof::Timer vbcPrefetchTimer {"prefetch VBC"};
       block_data->optimizeUMGPU(stream);
       parameters->optimizeUMGPU(stream);
+      CHK_ERR( gpuStreamSynchronize(stream) );
       return;
    }
 
@@ -847,23 +849,14 @@ namespace vmesh {
       #ifdef USE_GPU
          #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
          gpuStream_t stream = gpu_getStream();
-         // block_data->optimizeMetadataCPU(stream);
-         // parameters->optimizeMetadataCPU(stream);
-         block_data->optimizeUMCPU(stream);
-         parameters->optimizeUMCPU(stream);
+         block_data->optimizeMetadataCPU(stream);
+         parameters->optimizeMetadataCPU(stream);
          CHK_ERR( gpuStreamSynchronize(stream) );
          vmesh::LocalID currentCapacity = block_data->capacity()/WID3;
          // resize(newSize - currentCapacity,true); // alters capacity only by adding the first argument
-         // CHK_ERR( gpuStreamSynchronize(stream) );
-         phiprof::Timer timer1 {"block data resize"};
-         block_data->resize((newSize)*WID3,true);
-         timer1.stop();
-         phiprof::Timer timer2 {"parameters resize"};
-         parameters->resize((newSize)*BlockParams::N_VELOCITY_BLOCK_PARAMS,true);
-         timer2.stop();
-         phiprof::Timer timer3 {" resize()"};
+         parameters->resize((newSize)*BlockParams::N_VELOCITY_BLOCK_PARAMS,true,stream);
+         block_data->resize((newSize)*WID3,true,stream);
          resize(1,true); // alters capacity only by adding the first argument
-         timer3.stop();
          #else
          const vmesh::LocalID currentCapacity = block_data->capacity()/WID3;
          if (newSize > currentCapacity) {
@@ -880,8 +873,10 @@ namespace vmesh {
       #endif
 
       #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
+      CHK_ERR( gpuStreamSynchronize(stream) );
       block_data->optimizeUMGPU(stream);
       parameters->optimizeUMGPU(stream);
+      CHK_ERR( gpuStreamSynchronize(stream) );
       #endif
       return true;
    }
