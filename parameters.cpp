@@ -181,6 +181,7 @@ Realf P::PADCFL;
 int P::PADvbins;
 int P::PADmubins;
 string P::PADnu0 = string("");
+Realf P::PADfudge;
 
 std::string tracerString; /*!< Fieldline tracer to use for coupling ionosphere and magnetosphere */
 bool P::computeCurvature;
@@ -461,6 +462,7 @@ bool P::addParameters() {
    RP::add("PAD.vbins","number of bins for velocity",0);
    RP::add("PAD.mubins","number of bins for mu",0);
    RP::add("PAD.file","Path of txt file for nu0", string(""));
+   RP::add("PAD.fudge","fudge factor to lower diffusion",0);
    // Fieldtracing
    RP::add("fieldtracing.fieldLineTracer", "Field line tracing method to use for coupling ionosphere and magnetosphere (options are: Euler, BS)", std::string("Euler"));
    RP::add("fieldtracing.tracer_max_allowed_error", "Maximum allowed error for the adaptive field line tracers ", 1000);
@@ -856,7 +858,7 @@ void Parameters::getParameters() {
    RP::get("PAD.vbins",P::PADvbins);
    RP::get("PAD.mubins",P::PADmubins);
    RP::get("PAD.file",P::PADnu0);
-   
+   RP::get("PAD.fudge",P::PADfudge);
 
    RP::get("fieldtracing.fieldLineTracer", tracerString);
    RP::get("fieldtracing.tracer_max_allowed_error", FieldTracing::fieldTracingParameters.max_allowed_error);

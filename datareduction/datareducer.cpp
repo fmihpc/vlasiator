@@ -307,6 +307,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 	 outputReducer->addMetadata(outputReducer->size()-1,"m/s","$\\mathrm{m}\\,\\mathrm{s}^{-1}$","$V$","1.0");
          continue;
       }
+      if(lowercase == "vg_nu0" || lowercase == "nu0") { // nu0 for sub-grid diffusion
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_nu0",CellParams::NU0,1));
+         outputReducer->addMetadata(outputReducer->size()-1,"1/s","$\\mathrm{s}^{-1}$","$\\nu_0$","1.0");
+         continue;
+      }
       if(lowercase == "populations_v" || lowercase == "populations_vg_v") { // Per population bulk velocities
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];

@@ -210,7 +210,8 @@ struct Parameters {
    static int PADvbins; // Number of bins in velocity for pitch-angle diffusion
    static int PADmubins; // Number of bins in mu for pitch-angle diffusion
    static std::string PADnu0; // Path to txt file for nu0
-   
+   static Realf PADfudge; // Fudge factore for diffusion   
+
    static bool computeCurvature; /*<! Boolean flag, if true the curvature of magnetic field is computed. */
 
    /*! \brief Add the global parameters.

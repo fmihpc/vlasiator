@@ -1674,17 +1674,17 @@ namespace DRO {
 
   
        const Real* parameters = cell->get_block_parameters(popID);
-       std::vector<Realf> fmu   (Parameters::PADmubins);
+       std::vector<Real>  fmu   (Parameters::PADmubins);
        std::vector<int>   fcount(Parameters::PADmubins);
 
-       std::array<Realf,3> bulkV = {cell->parameters[CellParams::VX], cell->parameters[CellParams::VY], cell->parameters[CellParams::VZ]};
+       std::array<Real,3> bulkV = {cell->parameters[CellParams::VX], cell->parameters[CellParams::VY], cell->parameters[CellParams::VZ]};
 
-        std::array<Realf,3> B = {cell->parameters[CellParams::PERBXVOL] +  cell->parameters[CellParams::BGBXVOL],
+       std::array<Real,3> B = {cell->parameters[CellParams::PERBXVOL] +  cell->parameters[CellParams::BGBXVOL],
                                  cell->parameters[CellParams::PERBYVOL] +  cell->parameters[CellParams::BGBYVOL],
 	                         cell->parameters[CellParams::PERBZVOL] +  cell->parameters[CellParams::BGBZVOL]};
 
-        Realf Bnorm           = sqrt(B[0]*B[0] + B[1]*B[1] + B[2]*B[2]);
-        std::array<Realf,3> b = {B[0]/Bnorm, B[1]/Bnorm, B[2]/Bnorm};
+       Real Bnorm           = sqrt(B[0]*B[0] + B[1]*B[1] + B[2]*B[2]);
+       std::array<Real,3> b = {B[0]/Bnorm, B[1]/Bnorm, B[2]/Bnorm};
 
        // Build 2d array of f(v,mu)
        for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); n++) { // Iterate through velocity blocks
@@ -1724,9 +1724,9 @@ namespace DRO {
 
 	       const Realf* CellValue = &cell->get_data(n,popID)[WID*j+WID*WID*k];
 
-               const Realf DVX = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
-               const Realf DVY = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
-               const Realf DVZ = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+               const Real DVX = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+               const Real DVY = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
+               const Real DVZ = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
 
 	       for (uint i = 0; i<WID; i++) {
 		   fmu   [muindex[i]] += CellValue[i] * DVX*DVY*DVZ / dmubins;
