@@ -58,11 +58,11 @@ FLAGS =
 
 #GNU flags:
 CC_BRAND = gcc
-CC_BRAND_VERSION = 9.4.0
-CXXFLAGS += -O3 -g -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -mavx -march=znver2 #-flto
-testpackage: CXXFLAGS = -O2 -g -fopenmp -funroll-loops -std=c++17 -mavx -march=znver2
+CC_BRAND_VERSION = 11.2.0
+CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -mavx -march=znver2 #-flto
+testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -mavx -march=znver2
 
-MATHFLAGS =
+MATHFLAGS = -ffast-math
 LDFLAGS = -lrt -lgfortran -std=c++17 -lgomp
 LIB_MPI = -lgomp -lmpi
 
