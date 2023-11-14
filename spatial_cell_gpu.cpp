@@ -1282,7 +1282,7 @@ namespace spatial_cell {
 
       //phiprof::Timer sizesTimer {"Block lists sizes"};
       CHK_ERR( gpuStreamSynchronize(stream) ); // To ensure all previous kernels have finished
-      const vmesh::LocalID nBlocksBeforeAdjust = populations[popID].vmesh->size(true); // includes a stream sync for the above
+      const vmesh::LocalID nBlocksBeforeAdjust = populations[popID].vmesh->size(true); // includes a stream sync, true = leave metadata on CPU
       const vmesh::LocalID nToAdd = BlocksToAdd->size();
       const vmesh::LocalID nToRemove = BlocksToRemove->size();
       //const vmesh::LocalID nToMove = BlocksToMove->size(); // not used

@@ -721,6 +721,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
          mpiGrid[cells[i]]->update_velocity_block_content_lists(popID);
       }
 #endif
+      timer.stop();
    }
    // Note: We could try not updating remote lists unless explicitly wanting to keep remote contributions?
    phiprof::Timer transferTimer {"Transfer with_content_list", {"MPI"}};
@@ -745,6 +746,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
       for(size_t i=0; i<remote_cells.size(); ++i) {
          mpiGrid[remote_cells[i]]->gpu_uploadContentLists();
       }
+      timer.stop();
    }
 #endif
 
@@ -800,6 +802,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
          cell->gpu_detachFromStream();
 #endif
       }
+      timer.stop();
    }
 
    #ifdef USE_GPU

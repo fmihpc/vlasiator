@@ -303,10 +303,11 @@ namespace spatial_cell {
          }
       }
       const Population& operator=(const Population& other) {
+         gpuStream_t stream = gpu_getStream();
          *vmesh = *(other.vmesh);
          *blockContainer = *(other.blockContainer);
-         CHK_ERR(gpuMemcpy(dev_vmesh, vmesh, sizeof(vmesh::VelocityMesh), gpuMemcpyHostToDevice));
-         CHK_ERR(gpuMemcpy(dev_blockContainer, blockContainer, sizeof(vmesh::VelocityBlockContainer), gpuMemcpyHostToDevice));
+         CHK_ERR(gpuMemcpyAsync(dev_vmesh, vmesh, sizeof(vmesh::VelocityMesh), gpuMemcpyHostToDevice, stream));
+         CHK_ERR(gpuMemcpyAsync(dev_blockContainer, blockContainer, sizeof(vmesh::VelocityBlockContainer), gpuMemcpyHostToDevice, stream));
          // // Sanity check
          // cuint vmeshSize = vmesh->size();
          // cuint vbcSize = blockContainer->size();
@@ -341,8 +342,9 @@ namespace spatial_cell {
       }
 
       void Upload() {
-         CHK_ERR(gpuMemcpy(dev_vmesh, vmesh, sizeof(vmesh::VelocityMesh), gpuMemcpyHostToDevice));
-         CHK_ERR(gpuMemcpy(dev_blockContainer, blockContainer, sizeof(vmesh::VelocityBlockContainer), gpuMemcpyHostToDevice));
+         gpuStream_t stream = gpu_getStream();
+         CHK_ERR(gpuMemcpyAsync(dev_vmesh, vmesh, sizeof(vmesh::VelocityMesh), gpuMemcpyHostToDevice, stream));
+         CHK_ERR(gpuMemcpyAsync(dev_blockContainer, blockContainer, sizeof(vmesh::VelocityBlockContainer), gpuMemcpyHostToDevice, stream));
       }
 
       void Scale(creal factor) {
@@ -817,13 +819,13 @@ namespace spatial_cell {
       // (this->populations[popID].blockContainer)->gpu_prefetchDevice();
       // (pop.vmesh)->gpu_prefetchDevice();
       // (pop.blockContainer)->gpu_prefetchDevice();
-      phiprof::Timer setpopTimer {"set population"};
+      //phiprof::Timer setpopTimer {"set population"};
       this->populations[popID] = pop;
    }
    inline void SpatialCell::scale_population(creal factor, cuint popID) {
       // (this->populations[popID].vmesh)->gpu_prefetchDevice();
       // (this->populations[popID].blockContainer)->gpu_prefetchDevice();
-      phiprof::Timer scalepopTimer {"scale population"};
+      //phiprof::Timer scalepopTimer {"scale population"};
       (this->populations[popID]).Scale(factor);
    }
    inline void SpatialCell::increment_population(const Population& pop, creal factor, cuint popID) {
@@ -831,7 +833,7 @@ namespace spatial_cell {
       // (this->populations[popID].blockContainer)->gpu_prefetchDevice();
       // (pop.vmesh)->gpu_prefetchDevice();
       // (pop.blockContainer)->gpu_prefetchDevice();
-      phiprof::Timer incpopTimer {"increment population"};
+      //phiprof::Timer incpopTimer {"increment population"};
       (this->populations[popID]).Increment(pop, factor);
    }
 

@@ -1151,7 +1151,7 @@ namespace vmesh {
       localToGlobalMap->optimizeMetadataCPU(stream);
       globalToLocalMap->optimizeMetadataCPU(stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
-      localToGlobalMap->reserve(newCapacity,true);
+      localToGlobalMap->reserve(newCapacity,true, stream);
       // Ensure also that the map is large enough
       const int newCapacity2 = newCapacity > 0 ? newCapacity : 1;
       const int HashmapReqSize = ceil(log2(newCapacity2)) +1;
