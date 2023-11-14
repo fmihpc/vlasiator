@@ -1,3 +1,4 @@
+
 /*
  * For details of usage, see the COPYING file and read the "Rules of the Road"
  * at http://www.physics.helsinki.fi/vlasiator/
@@ -419,7 +420,7 @@ namespace vmesh {
       if (stream==0) {
          gpuStream_t stream = gpu_getStream();
       }
-      phiprof::Timer vbcPrefetchTimer {"prefetch VBC"};
+      //phiprof::Timer vbcPrefetchTimer {"prefetch VBC"};
       block_data->optimizeUMGPU(stream);
       parameters->optimizeUMGPU(stream);
       CHK_ERR( gpuStreamSynchronize(stream) );

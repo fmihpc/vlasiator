@@ -1219,7 +1219,7 @@ namespace vmesh {
       if (stream==0) {
          stream = gpu_getStream();
       }
-      phiprof::Timer vmeshPrefetchTimer {"prefetch Vmesh"};
+      //phiprof::Timer vmeshPrefetchTimer {"prefetch Vmesh"};
       localToGlobalMap->optimizeUMGPU(stream);
       globalToLocalMap->optimizeUMGPU(stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
