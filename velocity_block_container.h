@@ -90,6 +90,7 @@ namespace vmesh {
       void gpu_Allocate();
       void gpu_prefetchHost();
       void gpu_prefetchDevice();
+      void gpu_prefetchMetadataHost();
       void gpu_attachToStream(gpuStream_t stream=0);
       void gpu_detachFromStream();
       void gpu_memAdvise(int device, gpuStream_t stream);
@@ -343,6 +344,11 @@ namespace vmesh {
       //if (numberOfBlocks==0) return; // This size check in itself causes a page fault
       block_data->optimizeCPU(gpu_getStream());
       parameters->optimizeCPU(gpu_getStream());
+      return;
+   }
+   inline void VelocityBlockContainer::gpu_prefetchMetadataHost() {
+      block_data->optimizeMetadataCPU(gpu_getStream());
+      parameters->optimizeMetadataCPU(gpu_getStream());
       return;
    }
 

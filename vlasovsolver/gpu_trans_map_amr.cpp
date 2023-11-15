@@ -661,11 +661,14 @@ void gpu_update_remote_mapping_contribution_amr(
 
    phiprof::Timer updateRemoteTimerPre {"trans-amr-remotes-setup-getcells"};
    // Initialize remote cells
+   #pragma omp parallel for
    for (auto rc : remote_cells) {
       SpatialCell *ccell = mpiGrid[rc];
       // Initialize number of blocks to 0 and block data to a default value.
       // We need the default for 1 to 1 communications
       if(ccell) {
+         gpuStream_t stream = gpu_getStream();
+         ccell->get_velocity_blocks(popID)->gpu_prefetchMetadataHost();
          for (uint i = 0; i < MAX_NEIGHBORS_PER_DIM; ++i) {
             ccell->neighbor_block_data[i] = ccell->get_data(popID);
             ccell->neighbor_number_of_blocks[i] = 0;
@@ -674,9 +677,12 @@ void gpu_update_remote_mapping_contribution_amr(
    }
 
    // Initialize local cells
+   #pragma omp parallel for
    for (auto lc : local_cells) {
       SpatialCell *ccell = mpiGrid[lc];
       if(ccell) {
+         gpuStream_t stream = gpu_getStream();
+         ccell->get_velocity_blocks(popID)->gpu_prefetchMetadataHost();
          // Initialize number of blocks to 0 and neighbor block data pointer to the local block data pointer
          for (uint i = 0; i < MAX_NEIGHBORS_PER_DIM; ++i) {
             ccell->neighbor_block_data[i] = ccell->get_data(popID);
@@ -858,7 +864,7 @@ void gpu_update_remote_mapping_contribution_amr(
          const uint maxThreads = 1;
          #endif
          // Increment needs to be parallel-safe, so use modulo of cellid as stream number
-         gpuStream_t cellStream = gpuStreamList[receive_cells[c] % maxThreads];   
+         gpuStream_t cellStream = gpuStreamList[receive_cells[c] % maxThreads];
          if (nGpuBlocks>0) {
             dim3 block(WID,WID,WID);
             remote_increment_kernel<<<nGpuBlocks, block, 0, cellStream>>> (
