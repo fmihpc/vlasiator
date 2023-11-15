@@ -165,16 +165,6 @@ void calculateMoments_R(
    const bool& computeSecond) {
 
    phiprof::Timer computeMomentsTimer {"Compute _R moments"};
-   // phiprof::Timer computeMomentsPrefetchTimer {"Compute _R moments prefetch"};
-   // for (size_t c=0; c<cells.size(); ++c) {
-   //    SpatialCell* cell = mpiGrid[cells[c]];
-   //    if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
-   //       continue;
-   //    }
-   //    cell->prefetchDevice();
-   // }
-   // computeMomentsPrefetchTimer.stop();
-
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
 #pragma omp parallel for
       for (size_t c=0; c<cells.size(); ++c) {
@@ -336,16 +326,6 @@ void calculateMoments_V(
    const bool& computeSecond) {
 
    phiprof::Timer computeMomentsTimer {"Compute _V moments"};
-   // phiprof::Timer computeMomentsPrefetchTimer {"Compute _V moments prefetch"};
-   // for (size_t c=0; c<cells.size(); ++c) {
-   //    SpatialCell* cell = mpiGrid[cells[c]];
-   //    if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
-   //       continue;
-   //    }
-   //    cell->prefetchDevice();
-   // }
-   // computeMomentsPrefetchTimer.stop();
-
    // Loop over all particle species
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
 #pragma omp parallel for

@@ -598,14 +598,6 @@ namespace spatial_cell {
       attachedStream=0;
       velocity_block_with_content_list_size=0;
       BlocksRequiredMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(7);
-
-      gpuMallocHost((void **) &info_vbwcl, sizeof(split::SplitInfo));
-      gpuMallocHost((void **) &info_vbwncl, sizeof(split::SplitInfo));
-      gpuMallocHost((void **) &info_toRemove, sizeof(split::SplitInfo));
-      gpuMallocHost((void **) &info_toAdd, sizeof(split::SplitInfo));
-      gpuMallocHost((void **) &info_toMove, sizeof(split::SplitInfo));
-      gpuMallocHost((void **) &info_Required, sizeof(split::SplitInfo));
-      gpuMallocHost((void **) &info_brm, sizeof(Hashinator::MapInfo));
    }
 
    SpatialCell::~SpatialCell() {
@@ -613,24 +605,6 @@ namespace spatial_cell {
    }
 
    void SpatialCell::gpu_destructor() {
-      // Using NULL status of info_vbwcl as a generic check for gpu deallocation
-      if (info_vbwcl) {
-         delete velocity_block_with_content_list;
-         delete velocity_block_with_no_content_list;
-         delete BlocksRequired;
-         delete BlocksToAdd;
-         delete BlocksToRemove;
-         delete BlocksToMove;
-         delete BlocksRequiredMap;
-         gpuFreeHost(info_vbwcl);
-         gpuFreeHost(info_vbwncl);
-         gpuFreeHost(info_toRemove);
-         gpuFreeHost(info_toAdd);
-         gpuFreeHost(info_toMove);
-         gpuFreeHost(info_Required);
-         gpuFreeHost(info_brm);
-      }
-      info_vbwcl = NULL;
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          populations[popID].gpu_destructor();
       }
@@ -690,13 +664,6 @@ namespace spatial_cell {
          populations = std::vector<spatial_cell::Population>(other.populations);
       }
       attachedStream=0;
-      gpuMallocHost((void **) &info_vbwcl, sizeof(split::SplitInfo));
-      gpuMallocHost((void **) &info_vbwncl, sizeof(split::SplitInfo));
-      gpuMallocHost((void **) &info_toRemove, sizeof(split::SplitInfo));
-      gpuMallocHost((void **) &info_toAdd, sizeof(split::SplitInfo));
-      gpuMallocHost((void **) &info_toMove, sizeof(split::SplitInfo));
-      gpuMallocHost((void **) &info_Required, sizeof(split::SplitInfo));
-      gpuMallocHost((void **) &info_brm, sizeof(Hashinator::MapInfo));
    }
    const SpatialCell& SpatialCell::operator=(const SpatialCell& other) {
       const uint reserveSize = (other.BlocksRequired)->capacity();

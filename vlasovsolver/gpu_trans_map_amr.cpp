@@ -63,8 +63,6 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
    const Realv threshold, // used by slope limiters
    split::SplitVector<vmesh::VelocityMesh*> *allPencilsMeshes, // Pointers to velocity meshes
    split::SplitVector<vmesh::VelocityBlockContainer*> *allPencilsContainers, // pointers to BlockContainers
-   // vmesh::VelocityMesh** pencilMeshes,
-   // vmesh::VelocityBlockContainer** pencilContainers,
    Realf** pencilBlockData, // pointers into cell block data, both written and read
    Vec* pencilOrderedSource, // Vec-ordered block data values for pencils
    Realf* pencilDZ,
@@ -400,7 +398,7 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    }
    // Prefetch vector of vmesh pointers to GPU
    allVmeshPointer->optimizeUMGPU(bgStream);
- 
+
    // Reserve size for unionOfBlocksSet
    gpu_trans_allocate(0, 0, largestFoundMeshSize, 0);
 

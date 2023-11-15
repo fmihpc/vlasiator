@@ -242,7 +242,7 @@ namespace vmesh {
       CHK_ERR( gpuStreamSynchronize(stream) );
       #endif
       const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
-      
+
       #ifdef DEBUG_VBC
          bool ok = true;
          const vmesh::LocalID currentCapacity = block_data->capacity()/WID3;
@@ -598,7 +598,7 @@ namespace vmesh {
       CHK_ERR( gpuStreamSynchronize(stream) );
       #endif
       const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
-      
+
       vmesh::LocalID newIndex = numberOfBlocks;
       #ifdef DEBUG_VBC
       const vmesh::LocalID currentCapacity = block_data->capacity()/WID3;
@@ -619,7 +619,7 @@ namespace vmesh {
          #endif
       }
       #endif
-      
+
       #if defined(USE_GPU) && (defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
       const vmesh::LocalID currentCapacityD = block_data->capacity()/WID3;
       if (newIndex >= currentCapacityD) {
@@ -653,7 +653,7 @@ namespace vmesh {
       CHK_ERR( gpuStreamSynchronize(stream) );
       #endif
       const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
-      
+
       const vmesh::LocalID newIndex = numberOfBlocks;
       #ifdef DEBUG_VBC
       const vmesh::LocalID currentCapacity = block_data->capacity()/WID3;
@@ -691,7 +691,7 @@ namespace vmesh {
       block_data->resize((numberOfBlocks+1)*WID3);
       parameters->resize((numberOfBlocks+1)*BlockParams::N_VELOCITY_BLOCK_PARAMS);
       #endif
-      
+
       for (size_t i=0; i<WID3; ++i) {
          (*block_data)[newIndex*WID3+i] = 0.0;
       }
@@ -804,7 +804,7 @@ namespace vmesh {
       #endif
       const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
       const vmesh::LocalID currentCapacity = block_data->capacity()/WID3;
-      
+
       if (newCapacity < numberOfBlocks) {
          std::cerr<<" ERROR! Trying to recapacitate to "<<newCapacity<<" when VBC already contains "<<numberOfBlocks<<" blocks!"<<std::endl;
          return false;
@@ -948,7 +948,7 @@ namespace vmesh {
       #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
       block_data->optimizeMetadataGPU(stream);
       parameters->optimizeMetadataGPU(stream);
-      #endif      
+      #endif
       return currentSize*sizeof(Realf) + parametersSize*sizeof(Real);
    }
 
@@ -1005,7 +1005,7 @@ namespace vmesh {
       #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
       block_data->optimizeMetadataGPU(stream);
       parameters->optimizeMetadataGPU(stream);
-      #endif      
+      #endif
       return (*parameters)[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+cell];
    }
 
@@ -1033,7 +1033,7 @@ namespace vmesh {
       #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
       block_data->optimizeUMGPU(stream);
       parameters->optimizeUMGPU(stream);
-      #endif      
+      #endif
    }
 #endif //debug VBC
 

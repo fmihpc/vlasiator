@@ -1119,7 +1119,7 @@ namespace vmesh {
       localToGlobalMap->resize(newSize,true,stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
       localToGlobalMap->optimizeMetadataGPU(stream);
-   
+
       // if (newSize > currentCapacity) {
       //    // Was allocated new memory but copy was done already on device memory
       //    CHK_ERR( gpuStreamSynchronize(stream) );
@@ -1253,7 +1253,7 @@ namespace vmesh {
       globalToLocalMap->clean_tombstones(stream, false);
       CHK_ERR( gpuStreamSynchronize(stream) );
       cleanupTimer.stop();
-      
+
       globalToLocalMap->optimizeMetadataGPU(stream);
       return;
    }

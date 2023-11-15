@@ -420,7 +420,6 @@ __global__ void __launch_bounds__(GPUTHREADS,4) evaluate_column_extents_kernel(
 }
 
 __global__ void __launch_bounds__(VECL,4) acceleration_kernel(
-   //Realf *gpu_blockData,
    vmesh::VelocityBlockContainer *blockContainer,
    Vec *gpu_blockDataOrdered,
    uint *gpu_cell_indices_to_id,
