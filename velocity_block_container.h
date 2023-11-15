@@ -86,6 +86,7 @@ namespace vmesh {
       void gpu_Allocate(vmesh::LocalID size);
       void gpu_prefetchHost(gpuStream_t stream);
       void gpu_prefetchDevice(gpuStream_t stream);
+      void gpu_prefetchMetadataHost(gpuStream_t stream);
       void gpu_attachToStream(gpuStream_t stream);
       void gpu_detachFromStream();
       void print_addresses();
@@ -417,15 +418,21 @@ namespace vmesh {
       parameters->optimizeUMCPU(stream);
       return;
    }
+   inline void VelocityBlockContainer::gpu_prefetchMetadataHost(gpuStream_t stream=0) {
+      if (stream==0) {
+         gpuStream_t stream = gpu_getStream();
+      }
+      block_data->optimizeMetadataCPU(stream);
+      parameters->optimizeMetadataCPU(stream);
+      return;
+   }
 
    inline void VelocityBlockContainer::gpu_prefetchDevice(gpuStream_t stream=0) {
       if (stream==0) {
          gpuStream_t stream = gpu_getStream();
       }
-      //phiprof::Timer vbcPrefetchTimer {"prefetch VBC"};
       block_data->optimizeUMGPU(stream);
       parameters->optimizeUMGPU(stream);
-      CHK_ERR( gpuStreamSynchronize(stream) );
       return;
    }
 
