@@ -243,10 +243,11 @@ namespace spatial_cell {
       Population() {
          vmesh = new vmesh::VelocityMesh();
          blockContainer = new vmesh::VelocityBlockContainer();
-         CHK_ERR(gpuHostRegister(&vmesh, sizeof(vmesh::VelocityMesh*),gpuHostRegisterPortable));
-         CHK_ERR(gpuHostRegister(&blockContainer, sizeof(vmesh::VelocityBlockContainer*),gpuHostRegisterPortable));
-         CHK_ERR(gpuHostRegister(vmesh, sizeof(vmesh::VelocityMesh),gpuHostRegisterPortable));
-         CHK_ERR(gpuHostRegister(blockContainer, sizeof(vmesh::VelocityBlockContainer),gpuHostRegisterPortable));
+         // Host registers seem to break in multi-gpu per node runs
+         // CHK_ERR(gpuHostRegister(&vmesh, sizeof(vmesh::VelocityMesh*),gpuHostRegisterPortable));
+         // CHK_ERR(gpuHostRegister(&blockContainer, sizeof(vmesh::VelocityBlockContainer*),gpuHostRegisterPortable));
+         // CHK_ERR(gpuHostRegister(vmesh, sizeof(vmesh::VelocityMesh),gpuHostRegisterPortable));
+         // CHK_ERR(gpuHostRegister(blockContainer, sizeof(vmesh::VelocityBlockContainer),gpuHostRegisterPortable));
          CHK_ERR(gpuMalloc((void**)&dev_vmesh, sizeof(vmesh::VelocityMesh)));
          CHK_ERR(gpuMalloc((void**)&dev_blockContainer, sizeof(vmesh::VelocityBlockContainer)));
          CHK_ERR(gpuMemcpy(dev_vmesh, vmesh, sizeof(vmesh::VelocityMesh), gpuMemcpyHostToDevice));
@@ -265,18 +266,19 @@ namespace spatial_cell {
          delete blockContainer;
       }
       void gpu_destructor() {
-         vmesh->gpu_destructor();
-         blockContainer->gpu_destructor();
          CHK_ERR(gpuFree(dev_vmesh));
          CHK_ERR(gpuFree(dev_blockContainer));
+         vmesh->gpu_destructor();
+         blockContainer->gpu_destructor();
       }
       Population(const Population& other) {
          vmesh = new vmesh::VelocityMesh(*(other.vmesh));
          blockContainer = new vmesh::VelocityBlockContainer(*(other.blockContainer));
-         CHK_ERR(gpuHostRegister(&vmesh, sizeof(vmesh::VelocityMesh*),gpuHostRegisterPortable));
-         CHK_ERR(gpuHostRegister(&blockContainer, sizeof(vmesh::VelocityBlockContainer*),gpuHostRegisterPortable));
-         CHK_ERR(gpuHostRegister(vmesh, sizeof(vmesh::VelocityMesh),gpuHostRegisterPortable));
-         CHK_ERR(gpuHostRegister(blockContainer, sizeof(vmesh::VelocityBlockContainer),gpuHostRegisterPortable));
+         // Host registers seem to break in multi-gpu per node runs
+         // CHK_ERR(gpuHostRegister(&vmesh, sizeof(vmesh::VelocityMesh*),gpuHostRegisterPortable));
+         // CHK_ERR(gpuHostRegister(&blockContainer, sizeof(vmesh::VelocityBlockContainer*),gpuHostRegisterPortable));
+         // CHK_ERR(gpuHostRegister(vmesh, sizeof(vmesh::VelocityMesh),gpuHostRegisterPortable));
+         // CHK_ERR(gpuHostRegister(blockContainer, sizeof(vmesh::VelocityBlockContainer),gpuHostRegisterPortable));
          CHK_ERR(gpuMalloc((void**)&dev_vmesh, sizeof(vmesh::VelocityMesh)));
          CHK_ERR(gpuMalloc((void**)&dev_blockContainer, sizeof(vmesh::VelocityBlockContainer)));
          CHK_ERR(gpuMemcpy(dev_vmesh, vmesh, sizeof(vmesh::VelocityMesh), gpuMemcpyHostToDevice));
