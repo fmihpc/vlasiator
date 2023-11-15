@@ -144,14 +144,19 @@ namespace vmesh {
    inline VelocityBlockContainer::VelocityBlockContainer(const VelocityBlockContainer& other) {
 #ifdef USE_GPU
       attachedStream = 0;
-      block_data= new split::SplitVector<Realf>(*(other.block_data));
-      parameters= new split::SplitVector<Real>(*(other.parameters));
+      // block_data= new split::SplitVector<Realf>(*(other.block_data));
+      // parameters= new split::SplitVector<Real>(*(other.parameters));
       gpuStream_t stream = gpu_getStream();
-      block_data->reserve(other.block_data->capacity(), true, stream);
-      parameters->reserve(other.parameters->capacity(), true, stream);
-      // gpuStream_t stream = gpu_getStream();
-      // block_data->optimizeUMGPU(stream);
-      // parameters->optimizeUMGPU(stream);
+      block_data->optimizeMetadataCPU(stream);
+      parameters->optimizeMetadataCPU(stream);
+      other.block_data->optimizeMetadataCPU(stream);
+      other.parameters->optimizeMetadataCPU(stream);
+      CHK_ERR( gpuStreamSynchronize(stream) );
+      block_data = new split::SplitVector<Realf>(other.block_data->capacity());
+      parameters = new split::SplitVector<Real>(other.block_data->capacity());
+      // Overwrite is like a copy assign but takes a stream
+      block_data->overwrite(*(other.block_data),stream);
+      parameters->overwrite(*(other.parameters),stream);
 #else
       block_data = new std::vector<Realf,aligned_allocator<Realf,WID3>>(*(other.block_data));
       parameters = new std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS>>(*(other.parameters));
@@ -161,17 +166,22 @@ namespace vmesh {
    }
 
    inline const VelocityBlockContainer& VelocityBlockContainer::operator=(const VelocityBlockContainer& other) {
-      *block_data = *(other.block_data);
-      *parameters = *(other.parameters);
       #ifdef USE_GPU
       attachedStream = other.attachedStream;
       gpuStream_t stream = gpu_getStream();
+      block_data->optimizeMetadataCPU(stream);
+      parameters->optimizeMetadataCPU(stream);
+      other.block_data->optimizeMetadataCPU(stream);
+      other.parameters->optimizeMetadataCPU(stream);
+      CHK_ERR( gpuStreamSynchronize(stream) );
       block_data->reserve(other.block_data->capacity(), true, stream);
       parameters->reserve(other.parameters->capacity(), true, stream);
-      // gpuStream_t stream = gpu_getStream();
-      // block_data->optimizeUMGPU(stream);
-      // parameters->optimizeUMGPU(stream);
+      // Overwrite is like a copy assign but takes a stream
+      block_data->overwrite(*(other.block_data),stream);
+      parameters->overwrite(*(other.parameters),stream);
       #else
+      *block_data = *(other.block_data);
+      *parameters = *(other.parameters);
       block_data->reserve(other.block_data->capacity());
       parameters->reserve(other.parameters->capacity());
       #endif

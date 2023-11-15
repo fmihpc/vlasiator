@@ -156,34 +156,35 @@ namespace vmesh {
 
    inline VelocityMesh::VelocityMesh(const VelocityMesh& other) {
       gpuStream_t stream = gpu_getStream();
-      localToGlobalMap->optimizeMetadataCPU(stream);
-      globalToLocalMap->optimizeMetadataCPU(stream);
       other.localToGlobalMap->optimizeMetadataCPU(stream);
       other.globalToLocalMap->optimizeMetadataCPU(stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
       meshID = other.meshID;
       if (other.localToGlobalMap->size() > 0) {
          globalToLocalMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(*(other.globalToLocalMap));
-         localToGlobalMap = new split::SplitVector<vmesh::GlobalID>(*(other.localToGlobalMap));
+         localToGlobalMap = new split::SplitVector<vmesh::GlobalID>(other.localToGlobalMap->capacity());
+         // Overwrite is like a copy assign but takes a stream
+         localToGlobalMap->overwrite(*(other.localToGlobalMap),stream);
       } else {
          globalToLocalMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(7);
          localToGlobalMap = new split::SplitVector<vmesh::GlobalID>(1);
          localToGlobalMap->clear();
       }
       attachedStream = 0;
-      // gpuStream_t stream = gpu_getStream();
-      // localToGlobalMap->optimizeUMGPU(stream);
-      // globalToLocalMap->optimizeUMGPU(stream);
    }
 
    inline const VelocityMesh& VelocityMesh::operator=(const VelocityMesh& other) {
+      gpuStream_t stream = gpu_getStream();
       meshID = other.meshID;
-      *globalToLocalMap = *(other.globalToLocalMap);
-      *localToGlobalMap = *(other.localToGlobalMap);
+      other.localToGlobalMap->optimizeMetadataCPU(stream);
+      other.globalToLocalMap->optimizeMetadataCPU(stream);
+      localToGlobalMap->optimizeMetadataCPU(stream);
+      globalToLocalMap->optimizeMetadataCPU(stream);
+      CHK_ERR( gpuStreamSynchronize(stream) );
+      // Overwrite is like a copy assign but takes a stream
+      globalToLocalMap->overwrite(*(other.globalToLocalMap),stream);
+      localToGlobalMap->overwrite(*(other.localToGlobalMap),stream);
       attachedStream = 0;
-      // gpuStream_t stream = gpu_getStream();
-      // localToGlobalMap->optimizeUMGPU(stream);
-      // globalToLocalMap->optimizeUMGPU(stream);
       return *this;
    }
 
