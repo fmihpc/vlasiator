@@ -615,15 +615,8 @@ void gpu_update_remote_mapping_contribution_amr(
    // boundary and free the buffers from those cells.
    int device = gpu_getDevice();
 
-   const vector<CellID>& local_cells = getLocalCells();
-   const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_NEIGHBORHOOD_ID);
-   vector<CellID> receive_cells;
-   set<CellID> send_cells;
-
-   vector<CellID> receive_origin_cells;
-   vector<uint> receive_origin_index;
-
    int neighborhood = 0;
+   int both_neighborhood = 0;
 
    //normalize and set neighborhoods
    if(direction > 0) {
@@ -631,12 +624,15 @@ void gpu_update_remote_mapping_contribution_amr(
       switch (dimension) {
       case 0:
          neighborhood = SHIFT_P_X_NEIGHBORHOOD_ID;
+         both_neighborhood = VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID;
          break;
       case 1:
          neighborhood = SHIFT_P_Y_NEIGHBORHOOD_ID;
+         both_neighborhood = VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID;
          break;
       case 2:
          neighborhood = SHIFT_P_Z_NEIGHBORHOOD_ID;
+         both_neighborhood = VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID;
          break;
       }
    }
@@ -645,19 +641,32 @@ void gpu_update_remote_mapping_contribution_amr(
       switch (dimension) {
       case 0:
          neighborhood = SHIFT_M_X_NEIGHBORHOOD_ID;
+         both_neighborhood = VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID;
          break;
       case 1:
          neighborhood = SHIFT_M_Y_NEIGHBORHOOD_ID;
+         both_neighborhood = VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID;
          break;
       case 2:
          neighborhood = SHIFT_M_Z_NEIGHBORHOOD_ID;
+         both_neighborhood = VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID;
          break;
       }
    }
 
-   // MPI_Barrier(MPI_COMM_WORLD);
-   // cout << "begin update_remote_mapping_contribution_amr, dimension = " << dimension << ", direction = " << direction << endl;
-   // MPI_Barrier(MPI_COMM_WORLD);
+   //const vector<CellID>& local_cells = getLocalCells();
+   const vector<CellID>& local_cells = mpiGrid.get_local_cells_on_process_boundary(both_neighborhood);
+   const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(both_neighborhood);
+
+   // Fast return if no cells to process
+   if (local_cells.size() == remote_cells.size() == 0) {
+      return;
+   }
+
+   vector<CellID> receive_cells;
+   set<CellID> send_cells;
+   vector<CellID> receive_origin_cells;
+   vector<uint> receive_origin_index;
 
    phiprof::Timer updateRemoteTimerPre {"trans-amr-remotes-setup-getcells"};
    // Initialize remote cells
@@ -667,8 +676,6 @@ void gpu_update_remote_mapping_contribution_amr(
       // Initialize number of blocks to 0 and block data to a default value.
       // We need the default for 1 to 1 communications
       if(ccell) {
-         gpuStream_t stream = gpu_getStream();
-         ccell->get_velocity_blocks(popID)->gpu_prefetchMetadataHost();
          for (uint i = 0; i < MAX_NEIGHBORS_PER_DIM; ++i) {
             ccell->neighbor_block_data[i] = ccell->get_data(popID);
             ccell->neighbor_number_of_blocks[i] = 0;
@@ -681,8 +688,6 @@ void gpu_update_remote_mapping_contribution_amr(
    for (auto lc : local_cells) {
       SpatialCell *ccell = mpiGrid[lc];
       if(ccell) {
-         gpuStream_t stream = gpu_getStream();
-         ccell->get_velocity_blocks(popID)->gpu_prefetchMetadataHost();
          // Initialize number of blocks to 0 and neighbor block data pointer to the local block data pointer
          for (uint i = 0; i < MAX_NEIGHBORS_PER_DIM; ++i) {
             ccell->neighbor_block_data[i] = ccell->get_data(popID);
