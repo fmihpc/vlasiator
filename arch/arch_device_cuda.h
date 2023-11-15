@@ -23,6 +23,7 @@
 #define gpuGetDeviceProperties           cudaGetDeviceProperties
 #define gpuDeviceSynchronize             cudaDeviceSynchronize
 #define gpuDeviceReset                   cudaDeviceReset
+#define gpuCpuDeviceId                   cudaCpuDeviceId
 
 #define gpuFree                          cudaFree
 #define gpuFreeHost                      cudaFreeHost

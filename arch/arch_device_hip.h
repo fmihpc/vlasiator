@@ -21,6 +21,7 @@
 #define gpuGetDeviceProperties           hipGetDeviceProperties
 #define gpuDeviceSynchronize             hipDeviceSynchronize
 #define gpuDeviceReset                   hipDeviceReset
+#define gpuCpuDeviceId                   hipCpuDeviceId
 
 #define gpuFree                          hipFree
 #define gpuFreeHost                      hipHostFree
