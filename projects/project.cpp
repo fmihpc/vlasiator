@@ -600,14 +600,81 @@ namespace projects {
          return true;
    }
 
+
+   bool Project::canRefine(spatial_cell::SpatialCell* cell) const {
+      return cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY && (cell->sysBoundaryLayer == 0 || cell->sysBoundaryLayer > 2);
+   }
+
    int Project::adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
-      int myRank;
+      phiprof::Timer refinesTimer {"Set refines"};
+      int myRank;       
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       if (myRank == MASTER_RANK) {
-         cerr << "(Project.cpp) Base class 'adaptRefinement' in " << __FILE__ << ":" << __LINE__ << " called. Function is not implemented for project." << endl;
+         std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
       }
 
-      return 0;
+      int refines {0};
+      if (!P::useAlpha && !P::useJPerB) {
+         if (myRank == MASTER_RANK) {
+            std::cout << "WARNING All refinement indices disabled" << std::endl;
+         }
+         return refines;
+      }
+
+      std::vector<CellID> cells {getLocalCells()};
+      Real r_max2 {pow(P::refineRadius, 2)};
+
+      //#pragma omp parallel for
+      for (CellID id : cells) {
+         std::array<double,3> xyz {mpiGrid.get_center(id)};
+         SpatialCell* cell {mpiGrid[id]};
+         int refLevel {mpiGrid.get_refinement_level(id)};
+         Real r2 {pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2)};
+
+         if (!canRefine(mpiGrid[id])) {
+            // Skip refining, touching boundaries during runtime breaks everything
+            mpiGrid.dont_refine(id);
+            mpiGrid.dont_unrefine(id);
+         } else if (r2 < r_max2) {
+            // We don't care about cells that are too far from the ionosphere
+            // Use epsilon here so we don't get infinities
+            const Real alphaTwo {cell->parameters[CellParams::AMR_JPERB] * cell->parameters[CellParams::DX]};
+            bool shouldRefine = (P::useAlpha ? cell->parameters[CellParams::AMR_ALPHA] > P::alphaRefineThreshold : false) || (P::useJPerB ? alphaTwo > P::jperbRefineThreshold : false);
+            bool shouldUnrefine = (P::useAlpha ? cell->parameters[CellParams::AMR_ALPHA] < P::alphaCoarsenThreshold : true) && (P::useJPerB ? alphaTwo < P::jperbCoarsenThreshold : true);
+
+            // Finally, check neighbors
+            int refined_neighbors {0};
+            int coarser_neighbors {0};
+            for (const auto& [neighbor, dir] : mpiGrid.get_face_neighbors_of(id)) {
+               const int neighborRef = mpiGrid.get_refinement_level(neighbor);
+               const Real neighborAlphaTwo {mpiGrid[neighbor]->parameters[CellParams::AMR_JPERB] * mpiGrid[neighbor]->parameters[CellParams::DX]};
+               if (neighborRef > refLevel) {
+                  ++refined_neighbors;
+               } else if (neighborRef < refLevel) {
+                  ++coarser_neighbors;
+               } else if ((P::useAlpha ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA] > P::alphaRefineThreshold : false) || (P::useJPerB ? neighborAlphaTwo > P::jperbRefineThreshold : false)) {
+                  // If neighbor refines, 4 of its children will be this cells refined neighbors
+                  refined_neighbors += 4;
+               } else if ((P::useAlpha ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA] < P::alphaCoarsenThreshold : true) && (P::useJPerB ? neighborAlphaTwo < P::jperbCoarsenThreshold : true)) {
+                  ++coarser_neighbors;
+               }
+            }
+
+            if (shouldRefine || refined_neighbors > 12) {
+               // Refine a cell if a majority of its neighbors are refined or about to be
+               refines += mpiGrid.refine_completely(id) && refLevel < P::amrMaxSpatialRefLevel;
+            } else if (refLevel > 0 && shouldUnrefine && coarser_neighbors > 0) {
+               // Unrefine a cell only if any of its neighbors is unrefined or about to be
+               // refLevel check prevents dont_refine() being set
+               mpiGrid.unrefine_completely(id);
+            } else {
+               // Ensure no cells above both unrefine thresholds are unrefined
+               mpiGrid.dont_unrefine(id);
+            }
+         }
+      }
+
+      return refines;
    }
 
    bool Project::forceRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, int n ) const {

@@ -83,6 +83,8 @@ namespace projects {
          
       Real setVelocityBlock(spatial_cell::SpatialCell* cell,const vmesh::LocalID& blockLID,const uint popID) const;
 
+      virtual bool canRefine(spatial_cell::SpatialCell* cell) const;
+
       virtual bool refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const;
 
       /*!\brief Adapts refinement by one level according to the project. Returns true if any cells were refined, false if not.
