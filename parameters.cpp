@@ -168,7 +168,7 @@ bool P::useJPerB = false;
 Real P::jperbRefineThreshold = -1.0;
 Real P::jperbCoarsenThreshold = -1.0;
 
-uint P::refineMultiplier = 10;
+uint P::refineMultiplier = 1;
 Real P::refineAfter = 0.0;
 Real P::refineRadius = LARGE_REAL;
 int P::maxFilteringPasses = 0;
@@ -446,7 +446,7 @@ bool P::addParameters() {
    RP::add("AMR.use_J_per_B","Use J/B_perp as a refinement index", false);
    RP::add("AMR.jperb_refine_threshold","Determines the minimum value of jperb to refine cells", -1.0);
    RP::add("AMR.jperb_coarsen_threshold","Determines the maximum value of jperb to unrefine cells", -1.0);
-   RP::add("AMR.refine_multiplier","Refine every nth load balance", 10);
+   RP::add("AMR.refine_multiplier","Refine every nth load balance", 1); // Consider renaming
    RP::add("AMR.refine_after","Start refinement after this many simulation seconds", 0.0);
    RP::add("AMR.refine_radius","Maximum distance from Earth to refine", LARGE_REAL);
    RP::add("AMR.box_half_width_x", "Half width of the box that is refined (for testing)", (uint)1);
