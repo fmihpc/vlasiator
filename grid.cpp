@@ -522,11 +522,6 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
       //mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 0.0;
    }
 
-   // Reset LB weights for cells to refine
-   for (auto id : mpiGrid.get_local_cells_to_refine()) {
-      mpiGrid[id]->parameters[CellParams::LBWEIGHTCOUNTER] /= 8.0;
-   }
-
    phiprof::Timer initLBTimer {"dccrg.initialize_balance_load"};
    mpiGrid.initialize_balance_load(true);
    initLBTimer.stop();
@@ -1438,7 +1433,6 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    double newBytes{0};
    phiprof::Timer estimateMemoryTimer {"Estimate memory usage"};
    for (auto id : mpiGrid.get_local_cells_to_refine()) {
-      mpiGrid[id]->parameters[CellParams::LBWEIGHTCOUNTER] *= 8.0;
       newBytes += 8 * mpiGrid[id]->get_cell_memory_capacity();
    }
    
@@ -1516,7 +1510,6 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
       // Irrelevant?
       // mpiGrid[id]->parameters[CellParams::AMR_ALPHA] /= P::refineMultiplier;
       mpiGrid[id]->parameters[CellParams::AMR_ALPHA] /= 2.0;
-      mpiGrid[id]->parameters[CellParams::LBWEIGHTCOUNTER] /= 8.0;
       mpiGrid[id]->parameters[CellParams::RECENTLY_REFINED] = 1;
    }
    copyChildrenTimer.stop(newChildren.size(), "Spatial cells");

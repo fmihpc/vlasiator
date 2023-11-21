@@ -992,7 +992,14 @@ int main(int argn,char* args[]) {
             logFile << "(AMR): Adapting refinement!"  << endl << writeVerbose;
             if (!adaptRefinement(mpiGrid, technicalGrid, sysBoundaryContainer, *project)) {
                // OOM, rebalance and try again
+               for (auto id : mpiGrid.get_local_cells_to_refine()) {
+                  mpiGrid[id]->parameters[CellParams::LBWEIGHTCOUNTER] *= 8.0;
+               }
                balanceLoad(mpiGrid, sysBoundaryContainer);
+               for (auto id : mpiGrid.get_local_cells_to_refine()) {
+                  mpiGrid[id]->parameters[CellParams::LBWEIGHTCOUNTER] /= 8.0;
+               }
+
                mpiGrid.cancel_refining();
                if (!adaptRefinement(mpiGrid, technicalGrid, sysBoundaryContainer, *project))
                   continue;   // Refinement failed and we're bailing out
