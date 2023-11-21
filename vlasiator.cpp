@@ -990,8 +990,15 @@ int main(int argn,char* args[]) {
          logFile << "(LB): Start load balance, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
          if (!dtIsChanged && P::adaptRefinement && P::tstep % (P::rebalanceInterval * P::refineMultiplier) == 0 && P::t > P::refineAfter) { 
             logFile << "(AMR): Adapting refinement!"  << endl << writeVerbose;
-            if (!adaptRefinement(mpiGrid, technicalGrid, sysBoundaryContainer, *project))
-               continue;   // Refinement failed and we're bailing out
+            if (!adaptRefinement(mpiGrid, technicalGrid, sysBoundaryContainer, *project)) {
+               // OOM, rebalance and try again
+               balanceLoad(mpiGrid, sysBoundaryContainer);
+               mpiGrid.cancel_refining();
+               if (!adaptRefinement(mpiGrid, technicalGrid, sysBoundaryContainer, *project))
+                  continue;   // Refinement failed and we're bailing out
+               else
+                  globalflags::bailingOut = false; // Reset this
+            }
 
             // Calculate new dt limits since we might break CFL when refining
             phiprof::Timer computeDtimer {"compute-dt-amr"};
