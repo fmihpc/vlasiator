@@ -106,7 +106,38 @@ jobs:
       run: |
         VLASIATOR_ARCH=github_actions make clean
         VLASIATOR_ARCH=github_actions make -j 3
+    - name: Upload production binary as an artefact
+      uses: actions/upload-artifact@v3
+      with:
+        name: vlasiator-production
+        path: vlasiator
+        retention-days: 5
+        if-no-files-found: error
       
+  verify_testpackage_configs:
+    # Run check_vlasiator_cfg.sh on all cfg files in project/* and testpackage/tests/*
+    runs-on: ubuntu-latest
+    container: ursg/vlasiator_ci:20230220_1
+    needs: build_production
+
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v3
+    - name: Download libraries
+      uses: actions/download-artifact@v3
+      with:
+        name: libraries
+    - name: Download binary
+      uses: actions/download-artifact@v3
+      with:
+        name: vlasiator-production
+    - name: Check cfg files
+      run: |
+        chmod +x $GITHUB_WORKSPACE/vlasiator
+        for i in projects/*/*.cfg testpackage/tests/*/*.cfg; do
+           echo -ne "##################################\nChecking config file $i..."
+           tools/check_vlasiator_cfg.sh $GITHUB_WORKSPACE/vlasiator $i || exit 1
+        done
   
   build_testpackage:
     # Build Vlasiator with testpackage flags, on the carrington cluster
@@ -164,7 +195,7 @@ jobs:
   run_testpackage:
     # Run the testpackage on the carrington cluster
     runs-on: carrington
-    needs: [build_testpackage, build_tools]
+    needs: [build_testpackage, build_tools, verify_testpackage_configs]
     continue-on-error: true
 
     steps:
