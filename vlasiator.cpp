@@ -1002,10 +1002,14 @@ int main(int argn,char* args[]) {
                }
 
                mpiGrid.cancel_refining();
-               if (!adaptRefinement(mpiGrid, technicalGrid, sysBoundaryContainer, *project))
+               if (!adaptRefinement(mpiGrid, technicalGrid, sysBoundaryContainer, *project)) {
+                  for (auto id : mpiGrid.get_local_cells_to_refine()) {
+                     mpiGrid[id]->parameters[CellParams::LBWEIGHTCOUNTER] *= 8.0;
+                  }
                   continue;   // Refinement failed and we're bailing out
-               else
+               } else {
                   globalflags::bailingOut = false; // Reset this
+               }
             }
 
             // Calculate new dt limits since we might break CFL when refining
