@@ -63,6 +63,9 @@ umask 007
 # Launch the OpenMP job to the allocated compute node
 echo "Running $exec on $tasks mpi tasks, with $t threads per task on $nodes nodes ($ht threads per physical core)"
 
+# Print the used node
+hostname
+
 # Define test
 source small_test_definitions.sh
 wait
