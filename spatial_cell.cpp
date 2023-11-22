@@ -742,7 +742,7 @@ namespace spatial_cell {
 
          // Refinement parameters
          if ((SpatialCell::mpi_transfer_type & Transfer::REFINEMENT_PARAMETERS)){
-            displacements.push_back(reinterpret_cast<uint8_t*>(&(this->parameters[CellParams::AMR_ALPHA])) - reinterpret_cast<uint8_t*>(this));
+            displacements.push_back(reinterpret_cast<uint8_t*>(this->parameters.data() + CellParams::AMR_ALPHA) - reinterpret_cast<uint8_t*>(this));
             block_lengths.push_back(sizeof(Real) * (CellParams::AMR_JPERB - CellParams::AMR_ALPHA + 1)); // This is just 2, but let's be explicit
          }
 
