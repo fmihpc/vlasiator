@@ -1529,7 +1529,7 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
          *mpiGrid[parent] = *mpiGrid[id];
 
          for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-            SBC::averageCellData(mpiGrid, children, mpiGrid[parent], popID);
+            SBC::averageCellData(mpiGrid, children, mpiGrid[parent], popID, 1);
          }
 
          // Averaging moments
