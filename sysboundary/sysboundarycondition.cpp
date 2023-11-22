@@ -474,6 +474,8 @@ namespace SBC {
     * \param mpiGrid Grid
     * \param cellList Vector of cells to copy from.
     * \param to Pointer to cell in which to set the averaged distribution.
+    * \param popID ID of population to average the distribution of
+    * \param fluffiness Factor to replace data with from 0.0 (default, do nothing) to 1.0 (replace all destination data with source data)
     */
    void averageCellData(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
