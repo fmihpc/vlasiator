@@ -946,6 +946,9 @@ int main(int argn,char* args[]) {
          if (writeRestartNow == 1) {
             wallTimeRestartCounter++;
          }
+
+         // Refinement params for restart refinement
+         calculateScaledDeltasSimple(mpiGrid);
          
          if (myRank == MASTER_RANK)
             logFile << "(IO): Writing restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
