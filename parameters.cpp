@@ -708,8 +708,9 @@ void Parameters::getParameters() {
    }
    if (P::useAlpha && P::alphaRefineThreshold < 0) {
       if (myRank == MASTER_RANK) {
-         cerr << "WARNING using alpha without refine threshold set" << endl;
+         cerr << "ERROR using alpha without refine threshold set" << endl;
       }
+      MPI_Abort(MPI_COMM_WORLD, 1);
    }
    RP::get("AMR.use_J_per_B",P::useJPerB);
    RP::get("AMR.jperb_refine_threshold",P::jperbRefineThreshold);
@@ -722,8 +723,9 @@ void Parameters::getParameters() {
    }
    if (P::useJPerB && P::jperbRefineThreshold < 0) {
       if (myRank == MASTER_RANK) {
-         cerr << "WARNING using J/B without refine threshold set" << endl;
+         cerr << "ERROR using J/B without refine threshold set" << endl;
       }
+      MPI_Abort(MPI_COMM_WORLD, 1);
    }
 
    RP::get("AMR.refine_multiplier",P::refineMultiplier);
