@@ -539,7 +539,7 @@ namespace projects {
                xyz[1] = P::amrBoxCenterY + (0.5 + j - P::amrBoxHalfWidthY) * P::dy_ini;
                xyz[2] = P::amrBoxCenterZ + (0.5 + k - P::amrBoxHalfWidthZ) * P::dz_ini;
                
-               if (mpiGrid.refine_completely_at(xyz)) {
+               if (mpiGrid.refine_completely_at(xyz) && P::amrMaxAllowedSpatialRefLevel > 0) {
                   #ifndef NDEBUG
                   CellID myCell = mpiGrid.get_existing_cell(xyz);
                   std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;
@@ -562,7 +562,7 @@ namespace projects {
       
       mpiGrid.balance_load();
       
-      if(mpiGrid.get_maximum_refinement_level() > 1) {
+      if(mpiGrid.get_maximum_refinement_level() > 1 && P::amrMaxAllowedSpatialRefLevel > 1) {
          
          for (uint i = 0; i < 2 * P::amrBoxHalfWidthX; ++i) {
             for (uint j = 0; j < 2 * P::amrBoxHalfWidthY; ++j) {
