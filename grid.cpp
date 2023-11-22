@@ -1455,7 +1455,7 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    // clunky...
    int bailout {0};
    phiprof::Timer bailoutAllreduceTimer {"Bailout-allreduce"};
-   MPI_Allreduce(&(globalflags::bailingOut), &bailout, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+   MPI_Allreduce(&(globalflags::bailingOut), &bailout, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
    bailoutAllreduceTimer.stop();
 
    if (bailout) {
