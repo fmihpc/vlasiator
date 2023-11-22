@@ -442,7 +442,7 @@ bool P::addParameters() {
    RP::add("AMR.refine_on_restart","If true, re-refine vlasov grid on restart", false);
    RP::add("AMR.force_refinement","If true, refine/unrefine the vlasov grid to match the config on restart", false);
    RP::add("AMR.should_filter","If true, filter vlasov grid with boxcar filter on restart",false);
-   RP::add("AMR.use_alpha","Use alpha as a refinement index", false);
+   RP::add("AMR.use_alpha","Use the maximum of dimensionless gradients alpha as a refinement index", false);
    RP::add("AMR.alpha_refine_threshold","Determines the minimum value of alpha to refine cells", -1.0);
    RP::add("AMR.alpha_coarsen_threshold","Determines the maximum value of alpha to unrefine cells", -1.0);
    RP::add("AMR.use_J_per_B","Use J/B_perp as a refinement index", false);
