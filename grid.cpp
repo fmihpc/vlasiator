@@ -241,6 +241,8 @@ void initializeGrids(
             balanceLoad(mpiGrid, sysBoundaries);
          }
       } else if (P::refineOnRestart) {
+         // Get good load balancing for refinement
+         balanceLoad(mpiGrid, sysBoundaries);
          phiprof::Timer timer {"Restart refinement"};
          for (int i = 0; i < P::amrMaxAllowedSpatialRefLevel; ++i) {
             adaptRefinement(mpiGrid, technicalGrid, sysBoundaries, project);
