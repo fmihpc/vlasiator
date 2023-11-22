@@ -991,8 +991,9 @@ int main(int argn,char* args[]) {
          if (!dtIsChanged && P::adaptRefinement && P::tstep % (P::rebalanceInterval * P::refineMultiplier) == 0 && P::t > P::refineAfter) { 
             logFile << "(AMR): Adapting refinement!"  << endl << writeVerbose;
             if (!adaptRefinement(mpiGrid, technicalGrid, sysBoundaryContainer, *project)) {
-               logFile << "(LB) AMR ran out of memory, attempting to balance." << endl;
                // OOM, rebalance and try again
+               logFile << "(LB) AMR ran out of memory, attempting to balance." << endl;
+               globalflags::bailingOut = false; // Reset this
                for (auto id : mpiGrid.get_local_cells_to_refine()) {
                   mpiGrid[id]->parameters[CellParams::LBWEIGHTCOUNTER] *= 8.0;
                }
