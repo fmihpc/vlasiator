@@ -242,7 +242,7 @@ namespace projects {
    bool Flowthrough::canRefine(const std::array<double,3> xyz, const int refLevel) const {
       const int bw = (2 + 1*refLevel) * VLASOV_STENCIL_WIDTH; // Seems to be the limit
 
-      return refLevel < (int)P::amrMaxSpatialRefLevel &&
+      return refLevel < P::amrMaxSpatialRefLevel &&
              xyz[0] > P::xmin + P::dx_ini * bw && 
              xyz[0] < P::xmax - P::dx_ini * bw;
    }
