@@ -206,8 +206,8 @@ namespace CellParams {
       AMR_DBSQ,
       AMR_DB,
       AMR_ALPHA,
-      RECENTLY_REFINED,
       AMR_JPERB,
+      RECENTLY_REFINED,
       BULKV_FORCING_X, /*! Externally forced drift velocity (ex. from the ionosphere) */
       BULKV_FORCING_Y, /*! Externally forced drift velocity (ex. from the ionosphere) */
       BULKV_FORCING_Z, /*! Externally forced drift velocity (ex. from the ionosphere) */

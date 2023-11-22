@@ -1404,12 +1404,14 @@ void mapRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
 bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, SysBoundary& sysBoundaries, Project& project, int useStatic) {
    phiprof::Timer amrTimer {"Re-refine spatial cells"};
-   calculateScaledDeltasSimple(mpiGrid);
-
    int refines {0};
    if (useStatic > -1) {
       project.forceRefinement(mpiGrid, useStatic);
    } else {
+      calculateScaledDeltasSimple(mpiGrid);
+      SpatialCell::set_mpi_transfer_type(Transfer::REFINEMENT_PARAMETERS);
+      mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
+
       refines = project.adaptRefinement(mpiGrid);
    }
 

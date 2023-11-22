@@ -739,6 +739,13 @@ namespace spatial_cell {
                block_lengths.push_back(offsetof(spatial_cell::Population, N_blocks));
             }
          }
+
+         // Refinement parameters
+         if ((SpatialCell::mpi_transfer_type & Transfer::REFINEMENT_PARAMETERS)){
+            displacements.push_back(reinterpret_cast<uint8_t*>(&(this->parameters[CellParams::AMR_ALPHA])) - reinterpret_cast<uint8_t*>(this));
+            block_lengths.push_back(sizeof(Real) * (CellParams::AMR_JPERB - CellParams::AMR_ALPHA + 1)); // This is just 2, but let's be explicit
+         }
+
          // Copy random number generator state variables
          //if ((SpatialCell::mpi_transfer_type & Transfer::RANDOMGEN) != 0) {
          //   displacements.push_back((uint8_t*)get_rng_state_buffer() - (uint8_t*)this);

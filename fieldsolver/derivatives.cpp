@@ -838,5 +838,7 @@ void calculateScaledDeltasSimple(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
       computeTimer.stop(N_cells,"Spatial Cells");
    }
 
+   
+
    gradientsTimer.stop(N_cells,"Spatial Cells");
 }
