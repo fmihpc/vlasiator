@@ -999,7 +999,7 @@ int main(int argn,char* args[]) {
       //TODO - add LB measure and do LB if it exceeds threshold
       if(((P::tstep % P::rebalanceInterval == 0 && P::tstep > P::tstep_min) || overrideRebalanceNow)) {
          logFile << "(LB): Start load balance, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
-         if (refineNow && (!dtIsChanged && P::adaptRefinement && P::tstep % (P::rebalanceInterval * P::refineMultiplier) == 0 && P::t > P::refineAfter)) { 
+         if (refineNow || (!dtIsChanged && P::adaptRefinement && P::tstep % (P::rebalanceInterval * P::refineMultiplier) == 0 && P::t > P::refineAfter)) { 
             logFile << "(AMR): Adapting refinement!"  << endl << writeVerbose;
             refineNow = false;
             if (!adaptRefinement(mpiGrid, technicalGrid, sysBoundaryContainer, *project)) {
