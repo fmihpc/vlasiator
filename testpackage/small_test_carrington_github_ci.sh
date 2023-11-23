@@ -89,7 +89,7 @@ flags=$(  $run_command $bin  --version |grep CXXFLAGS)
 solveropts=$(echo $flags|sed 's/[-+]//g' | gawk '{for(i = 1;i<=NF;i++) { if( $i=="DDP" || $i=="DFP" || index($i,"PF")|| index($i,"DVEC") || index($i,"SEMILAG") ) printf "__%s", $(i) }}')
 revision=$( $run_command $bin --version |gawk '{if(flag==1) {print $1;flag=0}if ($3=="log") flag=1;}' )
 
-$small_run_command $bin --version > VERSION.txt 2> $GITHUB_WORKSPACE/stderr.txt
+#$small_run_command $bin --version > VERSION.txt 2> $GITHUB_WORKSPACE/stderr.txt
 
 echo -e "### Testpackage output:\n" >> $GITHUB_STEP_SUMMARY
 
@@ -146,7 +146,7 @@ for run in ${run_tests[*]}; do
    test -e test_postproc.sh && ./test_postproc.sh
 
    ##Compare test case with right solutions
-   {{
+   {
    echo "--------------------------------------------------------------------------------------------"
    echo "${test_name[$run]}  -  Verifying ${revision}_$solveropts against $reference_revision"
    echo "--------------------------------------------------------------------------------------------"
@@ -172,7 +172,7 @@ for run in ${run_tests[*]}; do
    echo "------------------------------------------------------------"
    echo "  variable     |     absolute diff     |     relative diff | "
    echo "------------------------------------------------------------"
-   } 2>&1 1>&3 3>&- | tee $GITHUB_WORKSPACE/stderr.txt;} 3>&1 1>&2 | tee $GITHUB_WORKSPACE/stdout.txt
+   }  3>&1 1>&2 | tee -a $GITHUB_WORKSPACE/stdout.txt
 
    {
    MAXERR=0.  # Absolute error
