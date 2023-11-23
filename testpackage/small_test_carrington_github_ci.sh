@@ -172,7 +172,9 @@ for run in ${run_tests[*]}; do
    echo "------------------------------------------------------------"
    echo "  variable     |     absolute diff     |     relative diff | "
    echo "------------------------------------------------------------"
-   
+   # Also log performance to metrics file
+   echo "  ref-time $refPerf   new-time $newPerf   speedup $speedup" >> $GITHUB_WORKSPACE/metrics.txt
+
    MAXERR=0.  # Absolute error
    MAXREL=0.  # Relative error
    MAXERRVAR=""  # Variable with max absolute error
