@@ -147,6 +147,14 @@ for run in ${run_tests[*]}; do
 
    ##Compare test case with right solutions
    {
+   MAXERR=0.  # Absolute error
+   MAXREL=0.  # Relative error
+   MAXERRVAR=""  # Variable with max absolute error
+   MAXRELVAR=""  # Variable with max relative error
+
+   variables=(${variable_names[$run]// / })
+   indices=(${variable_components[$run]// / })
+
    echo "--------------------------------------------------------------------------------------------"
    echo "${test_name[$run]}  -  Verifying ${revision}_$solveropts against $reference_revision"
    echo "--------------------------------------------------------------------------------------------"
@@ -172,16 +180,7 @@ for run in ${run_tests[*]}; do
    echo "------------------------------------------------------------"
    echo "  variable     |     absolute diff     |     relative diff | "
    echo "------------------------------------------------------------"
-   # Also log performance to metrics file
-   echo "  ref-time $refPerf   new-time $newPerf   speedup $speedup" >> $GITHUB_WORKSPACE/metrics.txt
 
-   MAXERR=0.  # Absolute error
-   MAXREL=0.  # Relative error
-   MAXERRVAR=""  # Variable with max absolute error
-   MAXRELVAR=""  # Variable with max relative error
-
-   variables=(${variable_names[$run]// / })
-   indices=(${variable_components[$run]// / })
    for i in ${!variables[*]}
    do
        if [[ "${variables[$i]}" == "fg_"* ]]
