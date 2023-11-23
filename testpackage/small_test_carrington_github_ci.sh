@@ -146,15 +146,7 @@ for run in ${run_tests[*]}; do
    test -e test_postproc.sh && ./test_postproc.sh
 
    ##Compare test case with right solutions
-   {
-   MAXERR=0.  # Absolute error
-   MAXREL=0.  # Relative error
-   MAXERRVAR=""  # Variable with max absolute error
-   MAXRELVAR=""  # Variable with max relative error
-
-   variables=(${variable_names[$run]// / })
-   indices=(${variable_components[$run]// / })
-
+   {{
    echo "--------------------------------------------------------------------------------------------"
    echo "${test_name[$run]}  -  Verifying ${revision}_$solveropts against $reference_revision"
    echo "--------------------------------------------------------------------------------------------"
@@ -180,6 +172,16 @@ for run in ${run_tests[*]}; do
    echo "------------------------------------------------------------"
    echo "  variable     |     absolute diff     |     relative diff | "
    echo "------------------------------------------------------------"
+   } 2>&1 1>&3 3>&- | tee $GITHUB_WORKSPACE/stderr.txt;} 3>&1 1>&2 | tee $GITHUB_WORKSPACE/stdout.txt
+
+   {
+   MAXERR=0.  # Absolute error
+   MAXREL=0.  # Relative error
+   MAXERRVAR=""  # Variable with max absolute error
+   MAXRELVAR=""  # Variable with max relative error
+
+   variables=(${variable_names[$run]// / })
+   indices=(${variable_components[$run]// / })
 
    for i in ${!variables[*]}
    do
