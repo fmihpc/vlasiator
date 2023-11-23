@@ -146,15 +146,18 @@ for run in ${run_tests[*]}; do
    test -e test_postproc.sh && ./test_postproc.sh
 
    ##Compare test case with right solutions
-   {
+   { {
    echo "--------------------------------------------------------------------------------------------"
    echo "${test_name[$run]}  -  Verifying ${revision}_$solveropts against $reference_revision"
    echo "--------------------------------------------------------------------------------------------"
+   } 2>&1 1>&3 3>&- | tee -a $GITHUB_WORKSPACE/stderr.txt;} 3>&1 1>&2 | tee -a $GITHUB_WORKSPACE/stdout.txt
    result_dir=${reference_dir}/${reference_revision}/${test_name[$run]}
-   
+
+   { {
    echo "------------------------------------------------------------"
    echo " ref-time     |   new-time       |  speedup                |"
    echo "------------------------------------------------------------"
+   } 2>&1 1>&3 3>&- | tee -a $GITHUB_WORKSPACE/stderr.txt;} 3>&1 1>&2 | tee -a $GITHUB_WORKSPACE/stdout.txt
    if [ -e  ${result_dir}/${comparison_phiprof[$run]} ]; then
       refPerf=$(grep "Propagate   " ${result_dir}/${comparison_phiprof[$run]} | gawk '(NR==1){print $11}')
    else
@@ -168,11 +171,12 @@ for run in ${run_tests[*]}; do
    
    #print speedup if both refPerf and newPerf are numerical values
    speedup=$( echo $refPerf $newPerf |gawk '{if($2 == $2 + 0 && $1 == $1 + 0 ) print $1/$2; else print "NA"}')
+   { {
    echo  "$refPerf        $newPerf         $speedup"
    echo "------------------------------------------------------------"
    echo "  variable     |     absolute diff     |     relative diff | "
    echo "------------------------------------------------------------"
-   }  3>&1 1>&2 | tee -a $GITHUB_WORKSPACE/stdout.txt
+   } 2>&1 1>&3 3>&- | tee -a $GITHUB_WORKSPACE/stderr.txt;} 3>&1 1>&2 | tee -a $GITHUB_WORKSPACE/stdout.txt
 
    {
    MAXERR=0.  # Absolute error
