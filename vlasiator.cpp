@@ -945,8 +945,10 @@ int main(int argn,char* args[]) {
          P::prepareForRebalance = true;
          doNow[1] = 0;
       }
-      refineNow = doNow[2];
-      doNow[2] = false;
+      if (doNow[2]) {
+         refineNow = true;
+         doNow[2] = false;
+      }
       restartCheckTimer.stop();
 
       if (writeRestartNow >= 1){
