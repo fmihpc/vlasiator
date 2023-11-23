@@ -101,6 +101,17 @@ void checkExternalCommands() {
       rename("DOLB", newName);
       return;
    }
+   if(stat("DOMR", &tempStat) == 0) {
+      cerr << "Received an external DOMR command. Refining grid." << endl;
+      globalflags::doRefine = true;
+      char newName[80];
+      // Get the current time.
+      const time_t rawTime = time(NULL);
+      const struct tm * timeInfo = localtime(&rawTime);
+      strftime(newName, 80, "DOMR_%F_%H-%M-%S", timeInfo);
+      rename("DOMR", newName);
+      return;
+   }
 }
 
 /*!

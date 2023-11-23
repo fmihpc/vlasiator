@@ -77,6 +77,7 @@ using namespace std;
 int globalflags::bailingOut = 0;
 bool globalflags::writeRestart = 0;
 bool globalflags::balanceLoad = 0;
+bool globalflags::doRefine=0;
 bool globalflags::ionosphereJustSolved = false;
 
 ObjectWrapper objectWrapper;
@@ -786,9 +787,10 @@ int main(int argn,char* args[]) {
 
    unsigned int wallTimeRestartCounter=1;
 
-   int doNow[2] = {0}; // 0: writeRestartNow, 1: balanceLoadNow ; declared outside main loop
+   int doNow[3] = {0}; // 0: writeRestartNow, 1: balanceLoadNow, 2: refineNow ; declared outside main loop
    int writeRestartNow; // declared outside main loop
    bool overrideRebalanceNow = false; // declared outside main loop
+   bool refineNow = false; // declared outside main loop
    
    addTimedBarrier("barrier-end-initialization");
    
@@ -927,18 +929,24 @@ int main(int argn,char* args[]) {
          else {
             doNow[0] = 0;
          }
-         if (globalflags::balanceLoad == true) {
+         if (globalflags::balanceLoad || globalflags::doRefine) {
             doNow[1] = 1;
             globalflags::balanceLoad = false;
+            if (globalflags::doRefine) {
+               doNow[2] = 1;
+               globalflags::doRefine = false;
+            }
          }
       }
-      MPI_Bcast( &doNow, 2 , MPI_INT , MASTER_RANK ,MPI_COMM_WORLD);
+      MPI_Bcast( &doNow, 3 , MPI_INT , MASTER_RANK ,MPI_COMM_WORLD);
       writeRestartNow = doNow[0];
       doNow[0] = 0;
       if (doNow[1] == 1) {
          P::prepareForRebalance = true;
          doNow[1] = 0;
       }
+      refineNow = doNow[2];
+      doNow[2] = false;
       restartCheckTimer.stop();
 
       if (writeRestartNow >= 1){
@@ -991,8 +999,9 @@ int main(int argn,char* args[]) {
       //TODO - add LB measure and do LB if it exceeds threshold
       if(((P::tstep % P::rebalanceInterval == 0 && P::tstep > P::tstep_min) || overrideRebalanceNow)) {
          logFile << "(LB): Start load balance, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
-         if (!dtIsChanged && P::adaptRefinement && P::tstep % (P::rebalanceInterval * P::refineMultiplier) == 0 && P::t > P::refineAfter) { 
+         if (refineNow && (!dtIsChanged && P::adaptRefinement && P::tstep % (P::rebalanceInterval * P::refineMultiplier) == 0 && P::t > P::refineAfter)) { 
             logFile << "(AMR): Adapting refinement!"  << endl << writeVerbose;
+            refineNow = false;
             if (!adaptRefinement(mpiGrid, technicalGrid, sysBoundaryContainer, *project)) {
                // OOM, rebalance and try again
                logFile << "(LB) AMR ran out of memory, attempting to balance." << endl;
