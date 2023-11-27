@@ -128,6 +128,10 @@ for run in ${run_tests[*]}; do
 
    # Store error return value
    RUN_ERROR=${PIPESTATUS[0]}
+   # Fore set to error if output file does not exist
+   if [ -f ${vlsv_dir}/${comparison_vlsv[$run]} ]; then
+       RUN_ERROR=1
+   fi
 
    if [[ $RUN_ERROR != 0 ]]; then
       echo -e "<details><summary>:red_circle: ${test_name[$run]}: Failed to run or died with an error.</summary>\n"  >> $GITHUB_STEP_SUMMARY
