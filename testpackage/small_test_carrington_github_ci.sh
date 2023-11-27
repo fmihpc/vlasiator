@@ -129,7 +129,7 @@ for run in ${run_tests[*]}; do
    # Store error return value
    RUN_ERROR=${PIPESTATUS[0]}
    # Fore set to error if output file does not exist
-   if [ -f ${vlsv_dir}/${comparison_vlsv[$run]} ]; then
+   if [ ! -f ${vlsv_dir}/${comparison_vlsv[$run]} ]; then
        RUN_ERROR=1
    fi
 
