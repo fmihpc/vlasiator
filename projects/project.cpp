@@ -637,7 +637,6 @@ namespace projects {
             mpiGrid.dont_unrefine(id);
          } else if (r2 < r_max2) {
             // We don't care about cells that are too far from the ionosphere
-            // Use epsilon here so we don't get infinities
             const Real alphaTwo {cell->parameters[CellParams::AMR_JPERB] * cell->parameters[CellParams::DX]};
             bool shouldRefine = (P::useAlpha ? cell->parameters[CellParams::AMR_ALPHA] > P::alphaRefineThreshold : false) || (P::useJPerB ? alphaTwo > P::jperbRefineThreshold : false);
             bool shouldUnrefine = (P::useAlpha ? cell->parameters[CellParams::AMR_ALPHA] < P::alphaCoarsenThreshold : true) && (P::useJPerB ? alphaTwo < P::jperbCoarsenThreshold : true);
