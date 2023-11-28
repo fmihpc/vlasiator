@@ -759,11 +759,11 @@ void calculateScaledDeltas(
    }
    
    Real alpha {0.0};
-   alpha = std::max(alpha, dRho);
-   alpha = std::max(alpha, dU);
-   alpha = std::max(alpha, dPsq);
-   alpha = std::max(alpha, dBsq);
-   alpha = std::max(alpha, dB);
+   alpha = std::max(alpha, dRho * P::alphaDRhoWeight);
+   alpha = std::max(alpha, dU * P::alphaDUWeight);
+   alpha = std::max(alpha, dPsq * P::alphaDPSqWeight);
+   alpha = std::max(alpha, dBsq * P::alphaDBSqWeight);
+   alpha = std::max(alpha, dB * P::alphaDBWeight);
 
    Real dBXdy {cell->derivativesBVOL[bvolderivatives::dPERBXVOLdy]};
    Real dBXdz {cell->derivativesBVOL[bvolderivatives::dPERBXVOLdz]};

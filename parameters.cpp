@@ -168,6 +168,11 @@ Real P::alphaCoarsenThreshold = -1.0;
 bool P::useJPerB = false;
 Real P::jperbRefineThreshold = 0.5;
 Real P::jperbCoarsenThreshold = -1.0;
+Real P::alphaDRhoWeight = 1.0;
+Real P::alphaDUWeight = 1.0;
+Real P::alphaDPSqWeight = 1.0;
+Real P::alphaDBSqWeight = 1.0;
+Real P::alphaDBWeight = 1.0;
 
 uint P::refineMultiplier = 1;
 Real P::refineAfter = 0.0;
@@ -451,6 +456,11 @@ bool P::addParameters() {
    RP::add("AMR.refine_multiplier","Refine every nth load balance", 1); // Consider renaming
    RP::add("AMR.refine_after","Start refinement after this many simulation seconds", 0.0);
    RP::add("AMR.refine_radius","Maximum distance from Earth to refine", LARGE_REAL);
+   RP::add("AMR.alpha_drho_weight","Multiplier for delta rho in alpha calculation", 1.0);
+   RP::add("AMR.alpha_du_weight","Multiplier for delta U in alpha calculation", 1.0);
+   RP::add("AMR.alpha_dpsq_weight","Multiplier for delta p squared in alpha calculation", 1.0);
+   RP::add("AMR.alpha_dbsq_weight","Multiplier for delta B squared in alpha calculation", 1.0);
+   RP::add("AMR.alpha_db_weight","Multiplier for delta B in alpha calculation", 1.0);
    RP::add("AMR.box_half_width_x", "Half width of the box that is refined (for testing)", (uint)1);
    RP::add("AMR.box_half_width_y", "Half width of the box that is refined (for testing)", (uint)1);
    RP::add("AMR.box_half_width_z", "Half width of the box that is refined (for testing)", (uint)1);
@@ -731,6 +741,11 @@ void Parameters::getParameters() {
    RP::get("AMR.refine_multiplier",P::refineMultiplier);
    RP::get("AMR.refine_after",P::refineAfter);
    RP::get("AMR.refine_radius",P::refineRadius);
+   RP::get("AMR.alpha_drho_weight", P::alphaDRhoWeight);
+   RP::get("AMR.alpha_du_weight", P::alphaDUWeight);
+   RP::get("AMR.alpha_dpsq_weight", P::alphaDPSqWeight);
+   RP::get("AMR.alpha_dbsq_weight", P::alphaDBSqWeight);
+   RP::get("AMR.alpha_db_weight", P::alphaDBWeight);
    RP::get("AMR.box_half_width_x", P::amrBoxHalfWidthX);
    RP::get("AMR.box_half_width_y", P::amrBoxHalfWidthY);
    RP::get("AMR.box_half_width_z", P::amrBoxHalfWidthZ);

@@ -200,6 +200,11 @@ struct Parameters {
    static uint refineMultiplier;
    static Real refineAfter;
    static Real refineRadius;
+   static Real alphaDRhoWeight;
+   static Real alphaDUWeight;
+   static Real alphaDPSqWeight;
+   static Real alphaDBSqWeight;
+   static Real alphaDBWeight;
    static int maxFilteringPasses;
    static uint amrBoxHalfWidthX;
    static uint amrBoxHalfWidthY;
