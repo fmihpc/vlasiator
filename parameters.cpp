@@ -163,10 +163,10 @@ bool P::refineOnRestart = false;
 bool P::forceRefinement = false;
 bool P::shouldFilter = false;
 bool P::useAlpha = false;
-Real P::alphaRefineThreshold = -1.0;
+Real P::alphaRefineThreshold = 0.5;
 Real P::alphaCoarsenThreshold = -1.0;
 bool P::useJPerB = false;
-Real P::jperbRefineThreshold = -1.0;
+Real P::jperbRefineThreshold = 0.5;
 Real P::jperbCoarsenThreshold = -1.0;
 
 uint P::refineMultiplier = 1;
@@ -443,10 +443,10 @@ bool P::addParameters() {
    RP::add("AMR.force_refinement","If true, refine/unrefine the vlasov grid to match the config on restart", false);
    RP::add("AMR.should_filter","If true, filter vlasov grid with boxcar filter on restart",false);
    RP::add("AMR.use_alpha","Use the maximum of dimensionless gradients alpha as a refinement index", false);
-   RP::add("AMR.alpha_refine_threshold","Determines the minimum value of alpha to refine cells", -1.0);
+   RP::add("AMR.alpha_refine_threshold","Determines the minimum value of alpha to refine cells", 0.5);
    RP::add("AMR.alpha_coarsen_threshold","Determines the maximum value of alpha to unrefine cells", -1.0);
    RP::add("AMR.use_J_per_B","Use J/B_perp as a refinement index", false);
-   RP::add("AMR.jperb_refine_threshold","Determines the minimum value of jperb to refine cells", -1.0);
+   RP::add("AMR.jperb_refine_threshold","Determines the minimum value of jperb to refine cells", 0.5);
    RP::add("AMR.jperb_coarsen_threshold","Determines the maximum value of jperb to unrefine cells", -1.0);
    RP::add("AMR.refine_multiplier","Refine every nth load balance", 1); // Consider renaming
    RP::add("AMR.refine_after","Start refinement after this many simulation seconds", 0.0);
@@ -708,7 +708,7 @@ void Parameters::getParameters() {
    }
    if (P::useAlpha && P::alphaRefineThreshold < 0) {
       if (myRank == MASTER_RANK) {
-         cerr << "ERROR using alpha without refine threshold set" << endl;
+         cerr << "ERROR invalid alpha refine threshold" << endl;
       }
       MPI_Abort(MPI_COMM_WORLD, 1);
    }
@@ -723,7 +723,7 @@ void Parameters::getParameters() {
    }
    if (P::useJPerB && P::jperbRefineThreshold < 0) {
       if (myRank == MASTER_RANK) {
-         cerr << "ERROR using J/B without refine threshold set" << endl;
+         cerr << "ERROR invalid J/B refine threshold" << endl;
       }
       MPI_Abort(MPI_COMM_WORLD, 1);
    }
