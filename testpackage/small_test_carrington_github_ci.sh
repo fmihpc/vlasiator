@@ -39,7 +39,6 @@ module load GCC/11.2.0
 module load OpenMPI/4.1.1-GCC-11.2.0
 module load PMIx/4.1.0-GCCcore-11.2.0
 module load PAPI/6.0.0.1-GCCcore-11.2.0
-export OMPI_MCA_io=^ompio
 
 #--------------------------------------------------------------------
 #---------------------DO NOT TOUCH-----------------------------------
@@ -56,8 +55,8 @@ tasks_per_node=$(echo $units_per_node $t  | gawk '{print $1/$2}')
 export OMP_NUM_THREADS=$t
 
 #command for running stuff
-run_command="mpirun -mca pml ucx --mca btl ^vader,tcp,openib -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_TLS=rc,sm -x UCX_IB_ADDR_TYPE=ib_global -np $tasks"
-small_run_command="mpirun -mca pml ucx --mca btl ^vader,tcp,openib -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_TLS=rc,sm -x UCX_IB_ADDR_TYPE=ib_global -n 1 -N 1"
+run_command="mpirun -mca pml ucx --mca opal_common_ucx_opal_mem_hooks 1 --mca btl ^vader,tcp,openib -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_TLS=rc,sm -x UCX_IB_ADDR_TYPE=ib_global -np $tasks"
+small_run_command="mpirun -mca pml ucx --mca opal_common_ucx_opal_mem_hooks 1 --mca btl ^vader,tcp,openib -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_TLS=rc,sm -x UCX_IB_ADDR_TYPE=ib_global -n 1 -N 1"
 run_command_tools="srun --mpi=pmix_v3 -n 1 "
 
 umask 007

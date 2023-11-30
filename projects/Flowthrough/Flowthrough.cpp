@@ -247,7 +247,7 @@ namespace projects {
              xyz[0] < P::xmax - P::dx_ini * bw;
    }
 
-   bool Flowthrough::adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
+   int Flowthrough::adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
       int myRank;       
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       if(myRank == MASTER_RANK) {
@@ -258,8 +258,10 @@ namespace projects {
          if (myRank == MASTER_RANK)  {
             std::cout << "Skipping re-refinement!" << std::endl;
          }
-         return false;
+         return 0;
       }
+
+      int refines {0};
 
       std::vector<CellID> cells = mpiGrid.get_cells();
       for (CellID id : cells) {
@@ -271,11 +273,11 @@ namespace projects {
                       xyz[2] > P::amrBoxCenterZ - P::amrBoxHalfWidthZ * mpiGrid[id]->parameters[CellParams::DZ] &&
                       xyz[2] < P::amrBoxCenterZ + P::amrBoxHalfWidthZ * mpiGrid[id]->parameters[CellParams::DZ];
          if (inBox) {
-            mpiGrid.refine_completely(id);
+            refines += mpiGrid.refine_completely(id);
          }
       }
 
-      return true;
+      return refines;
    }
    
 
