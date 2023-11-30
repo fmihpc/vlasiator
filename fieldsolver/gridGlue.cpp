@@ -298,9 +298,8 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
    //Filter Moments if this is a 3D AMR run.
   if (P::amrMaxSpatialRefLevel>0) { 
-      phiprof::start("AMR Filtering-Triangle-3D");
+      phiprof::Timer filteringTimer {"AMR Filtering-Triangle-3D"};
       filterMoments(mpiGrid,momentsGrid,technicalGrid);
-      phiprof::stop("AMR Filtering-Triangle-3D");
    }   
 }
 
