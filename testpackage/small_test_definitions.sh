@@ -160,3 +160,4 @@ comparison_vlsv[20]="bulk.0000001.vlsv"
 comparison_phiprof[20]="phiprof_0.txt"
 variable_names[20]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e"
 variable_components[20]="0 0 1 2 0 1 2 0 1 2 0 0"
+single_cell[20]=1
