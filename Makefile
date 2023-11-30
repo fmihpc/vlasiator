@@ -38,6 +38,10 @@ COMPFLAGS += -DNDEBUG
 # CXXFLAGS += -DDEBUG_SOLVERS
 # CXXFLAGS += -DDEBUG_IONOSPHERE
 
+#For really coarse run-time tracing, compile with function instrumentation in some (high-level) source files:
+#LDFLAGS += -rdynamic
+#COMPFLAGS += -finstrument-functions -finstrument-functions-exclude-file-list=boost,include,c++,cxx -finstrument-functions-exclude-function-list=operator,new,delete
+
 #Set order of semilag solver in velocity space acceleration
 #  ACC_SEMILAG_PLM 	2nd order	
 #  ACC_SEMILAG_PPM	3rd order 
@@ -195,7 +199,7 @@ OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipo
 	IPShock.o object_wrapper.o\
 	verificationLarmor.o Shocktest.o grid.o ioread.o iowrite.o vlasiator.o logger.o\
 	common.o parameters.o readparameters.o spatial_cell.o mesh_data_container.o\
-	vlasovmover.o $(FIELDSOLVER).o fs_common.o fs_limiters.o gridGlue.o
+	vlasovmover.o $(FIELDSOLVER).o fs_common.o fs_limiters.o gridGlue.o instrumented_functions.o
 
 # Add Vlasov solver objects (depend on mesh: AMR or non-AMR)
 ifeq ($(MESH),AMR)
@@ -479,6 +483,9 @@ vlscommon.o:  $(DEPS_COMMON)  vlscommon.h vlscommon.cpp
 
 object_wrapper.o:  $(DEPS_COMMON)  object_wrapper.h object_wrapper.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c object_wrapper.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_FSGRID}
+
+instrumented_functions.o: instrumented_functions.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c instrumented_functions.cpp
 
 # Make executable
 vlasiator: $(OBJS) $(OBJS_FSOLVER)
