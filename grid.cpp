@@ -1408,7 +1408,7 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    if (useStatic > -1) {
       project.forceRefinement(mpiGrid, useStatic);
    } else {
-      // Restarts don't have all the data we need, so refinement indices need to be read
+      // Restarts don't have all the data needed to calculate indices so they are read directly
       if (P::tstep != P::tstep_min) {
          calculateScaledDeltasSimple(mpiGrid);
       }
