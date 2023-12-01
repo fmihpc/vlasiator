@@ -964,6 +964,10 @@ bool writeFsGridMetadata(FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technic
   MPI_Comm_size(MPI_COMM_WORLD, &size);
   vlsvWriter.writeParameter("numWritingRanks", &size);
 
+  // Save the FSgrid decomposition
+  std::array<int, 3> decom = technicalGrid.getDecomposition();
+  vlsvWriter.writeArray("MESH_DECOMPOSITION", xmlAttributes, 1, 3, &decom[0]);
+
   // Finally, write mesh object itself.
   xmlAttributes.clear();
   xmlAttributes["name"] = meshName;

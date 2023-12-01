@@ -384,6 +384,26 @@ int main(int argn,char* args[]) {
                                   sysBoundaryContainer.isBoundaryPeriodic(1),
                                   sysBoundaryContainer.isBoundaryPeriodic(2)};
 
+   vlsv::ParallelReader file;
+   MPI_Info mpiInfo = MPI_INFO_NULL;
+   success = file.open(P::restartFileName,MPI_COMM_WORLD,MASTER_RANK,mpiInfo);
+   list<pair<string,string> > attribs;
+   uint64_t arraySize;
+   uint64_t vectorSize;
+   vlsv::datatype::type dataType;
+   uint64_t byteSize;
+   exitOnError(success,"Could not open file for parameters read",MPI_COMM_WORLD);
+   
+   attribs.push_back(make_pair("mesh","fsgrid"));
+   if (file.getArrayInfo("MESH_DECOMPOSITION",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
+      logFile << "(RESTART)  ERROR: Failed to read " << endl << write;
+      return false;
+   }
+   if (file.readArray("MESH_DECOMPOSITION",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
+      logFile << "(RESTART)  ERROR: Failed to read " << endl << write;
+      return false;
+   }
+
    FsGridCouplingInformation gridCoupling;
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> perBGrid(fsGridDimensions, comm, periodicity,gridCoupling);
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> perBDt2Grid(fsGridDimensions, comm, periodicity,gridCoupling);

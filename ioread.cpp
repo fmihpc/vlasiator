@@ -1356,3 +1356,23 @@ bool readFileCells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    exitOnError(success,"(READ_FILE_CELLS) Other error",MPI_COMM_WORLD);
    return success;
 }
+
+
+bool readFsgridDecomposition(vlsv::ParallelReader& file, std::array<int,3>* buffer){
+   list<pair<string,string> > attribs;
+   uint64_t arraySize;
+   uint64_t vectorSize;
+   vlsv::datatype::type dataType;
+   uint64_t byteSize;
+   exitOnError(success,"Could not open file for parameters read",MPI_COMM_WORLD);
+   
+   attribs.push_back(make_pair("mesh","fsgrid"));
+   if (file.getArrayInfo("MESH_DECOMPOSITION",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
+      logFile << "(RESTART)  ERROR: Failed to read " << endl << write;
+      return false;
+   }
+   if (file.readArray("MESH_DECOMPOSITION",attribs, begin, vectorSize, (char*)buffer) == false) {
+      logFile << "(RESTART)  ERROR: Failed to read " << endl << write;
+      return false;
+   }
+}
