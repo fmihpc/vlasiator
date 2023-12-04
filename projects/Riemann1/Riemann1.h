@@ -32,7 +32,7 @@ namespace projects {
       public:
          Riemann1();
          virtual ~Riemann1();
-         
+
          virtual bool initialize(void);
          static void addParameters(void);
          virtual void getParameters(void);
@@ -56,7 +56,7 @@ namespace projects {
             creal& dvx, creal& dvy, creal& dvz,const uint popID
          ) const;
 
-      
+
          enum {
             LEFT,
             RIGHT

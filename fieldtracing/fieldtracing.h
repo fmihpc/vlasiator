@@ -1,6 +1,6 @@
 /*
  * This file is part of Vlasiator.
- * 
+ *
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
  * at http://www.physics.helsinki.fi/vlasiator/
@@ -70,20 +70,20 @@ template<class T> std::array<Real, 3> getFractionalFsGridCellForCoord(T& grid, c
 }
 
 namespace FieldTracing {
-   
+
    enum Direction {
       FORWARD,
       BACKWARD
    };
-   
+
    /*! Field line integrator for Magnetosphere<->Ionosphere coupling */
-   enum TracingMethod { 
+   enum TracingMethod {
       Euler,        // Euler stepping (constant stepsize)
       ADPT_Euler,   // Adaptive Euler stepping (adaptive stepsize)
       BS,           // Bulirsch-Stoer Stepping (adaptive stepsize)
-      DPrince       // Dormand-Prince Stepping (adaptive stepsize) 
+      DPrince       // Dormand-Prince Stepping (adaptive stepsize)
    };
-   
+
    struct FieldTracingParameters {
       bool doTraceOpenClosed=false;
       bool doTraceFullBox=false;
@@ -100,9 +100,9 @@ namespace FieldTracing {
       Real fluxrope_max_curvature_radii_extent;
       Real innerBoundaryRadius=0; /*!< If non-zero this will be used to determine CLOSED field lines. */
    };
-   
+
    extern FieldTracingParameters fieldTracingParameters;
-   
+
    /*! Type of field line ending, used to classify the ionospheric nodes and the forward and backward field lines in full.box tracing.
    * CLOSED: ends in the ionosphere
    * OPEN: exits the simulation domain
@@ -150,7 +150,7 @@ namespace FieldTracing {
 
    /*! Handler function for field line tracing */
    template<typename REAL> using TracingFieldFunction = std::function<bool(std::array<REAL,3>&, const bool, std::array<REAL, 3>&)>;
-   
+
    template<typename REAL> bool traceFullFieldFunction(
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
       FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
@@ -169,12 +169,12 @@ namespace FieldTracing {
          cerr << (string)("(fieldtracing) Error: fsgrid coupling trying to step outside of the global domain?\n");
          return false;
       }
-      
+
       // Get field direction
       b[0] = SBC::ionosphereGrid.dipoleField(r[0],r[1],r[2],X,0,X) + SBC::ionosphereGrid.BGB[0];
       b[1] = SBC::ionosphereGrid.dipoleField(r[0],r[1],r[2],Y,0,Y) + SBC::ionosphereGrid.BGB[1];
       b[2] = SBC::ionosphereGrid.dipoleField(r[0],r[1],r[2],Z,0,Z) + SBC::ionosphereGrid.BGB[2];
-      
+
       std::array<int32_t, 3> fsgridCell = getGlobalFsGridCellIndexForCoord(technicalGrid,{(TReal)r[0], (TReal)r[1], (TReal)r[2]});
       const std::array<int32_t, 3> localStart = technicalGrid.getLocalStart();
       const std::array<int32_t, 3> localSize = technicalGrid.getLocalSize();
@@ -182,7 +182,7 @@ namespace FieldTracing {
       fsgridCell[0] -= localStart[0];
       fsgridCell[1] -= localStart[1];
       fsgridCell[2] -= localStart[2];
-      
+
       if(fsgridCell[0] > localSize[0] || fsgridCell[1] > localSize[1] || fsgridCell[2] > localSize[2]
          || fsgridCell[0] < -1 || fsgridCell[1] < -1 || fsgridCell[2] < -1) {
          cerr << (string)("(fieldtracing) Error: fsgrid coupling trying to access local ID " + to_string(fsgridCell[0]) + " " + to_string(fsgridCell[1]) + " " + to_string(fsgridCell[2])
@@ -205,13 +205,13 @@ namespace FieldTracing {
             b[2] += perB[2];
          }
       }
-      
+
       // Normalize
       REAL  norm = 1. / sqrt(b[0]*b[0] + b[1]*b[1] + b[2]*b[2]);
       for(int c=0; c<3; c++) {
          b[c] = b[c] * norm;
       }
-      
+
       // Make sure motion is outwards. Flip b if dot(r,b) < 0
       if(std::isnan(b[0]) || std::isnan(b[1]) || std::isnan(b[2])) {
          cerr << "(fieldtracing) Error: magnetic field is nan in getRadialBfieldDirection at location "
@@ -231,7 +231,7 @@ namespace FieldTracing {
 
    /*Modified Midpoint Method used by the Bulirsch Stoer integrations
    * stepsize: initial step  size
-   * r: initial position 
+   * r: initial position
    * r1: new position
    * n: number of substeps
    * stepsize: big stepsize to use
@@ -247,17 +247,17 @@ namespace FieldTracing {
    ){
       //Allocate some memory.
       std::array<REAL,3> bunit,crd,z0,zmid,z1;
-      //Divide by number of sub steps      
+      //Divide by number of sub steps
       REAL h= stepSize/(REAL)n;
-      
-      //First step 
+
+      //First step
       BFieldFunction(r,outwards,bunit);
       z0=r;
       z1={ r[0]+h*bunit[0], r[1]+h*bunit[1], r[2]+h*bunit[2]  };
       BFieldFunction(z1,outwards,bunit);
-      
+
       crd = { r[0]+h*bunit[0], r[1]+h*bunit[1], r[2]+h*bunit[2] };
-      
+
       for (int m =0; m<=n; m++){
          zmid= { z0[0]+2*h*bunit[0], z0[1]+2*h*bunit[1], z0[2]+2*h*bunit[2] };
          z0=z1;
@@ -265,7 +265,7 @@ namespace FieldTracing {
          crd = { crd[0]+h*bunit[0], crd[1]+h*bunit[1], crd[2]+h*bunit[2] };
          BFieldFunction(crd,outwards,bunit);
       }
-      
+
       //These are now are new position
       for (int c=0; c<3; c++){
          r1[c] = 0.5*(z0[c]+z1[c]+h*bunit[c]);
@@ -283,10 +283,10 @@ namespace FieldTracing {
       maxError = 0;
       for (int dim=0; dim<3; dim++){
          for(k =1; k<i+1; k++){
-            
+
             table.at(ijk2Index(i,k,dim,dims)) = table.at(ijk2Index(i,k-1,dim,dims))  +(table.at(ijk2Index(i,k-1,dim,dims)) -table.at(ijk2Index(i-1,k-1,dim,dims)))/(std::pow(4,i) -1);
          }
-         
+
          REAL thisError = fabs(table.at(ijk2Index(k-1,k-1,dim,dims))   -  table.at(ijk2Index(k-2,k-2,dim,dims)));
          if(thisError > maxError) {
             maxError = thisError;
@@ -294,7 +294,7 @@ namespace FieldTracing {
       }
 
    }; //Richardson extrapolation method used by BS step
-   
+
    template <typename REAL> bool bulirschStoerStep(
       std::array<REAL, 3>& r,
       std::array<REAL, 3>& b,
@@ -304,53 +304,53 @@ namespace FieldTracing {
       TracingFieldFunction<REAL>& BFieldFunction,
       const bool outwards=true
    ) {
-      //Factors by which the stepsize is multiplied 
+      //Factors by which the stepsize is multiplied
       REAL shrink = 0.95;
-      REAL grow = 1.2; 
+      REAL grow = 1.2;
       //Max substeps for midpoint method
       int kMax = 8;
-      //Optimal row to converge at 
+      //Optimal row to converge at
       int kOpt = 6;
-      
+
       const int ndim = kMax*kMax*3;
       std::array<int,3>  dims={kMax,kMax,3};
       std::vector<REAL>table(ndim);
       std::array<REAL,3> rold,rnew,r1;
       REAL error;
-      
+
       //Get B field unit vector in case we don't converge yet
       BFieldFunction(r,outwards,b);
-      
+
       //Let's start things up with 2 substeps
       int n =2;
       //Save old state
       rold = r;
       //Take a first Step
       modifiedMidpointMethod(r,r1,n,stepSize,BFieldFunction,outwards);
-      
+
       //Save values in table
       for (int c =0; c<3; ++c) {
          table[ijk2Index(0,0,c,dims)] = r1[c];
       }
-      
+
       for (int i=1; i<kMax; ++i) {
-         
+
          //Increment n by 2 at every iteration.
          n+=2;
          modifiedMidpointMethod(r,rnew,n,stepSize,BFieldFunction,outwards);
-         
+
          //Save values in table
          for (int c =0; c<3; ++c) {
             table[ijk2Index(i,0,c,dims)] = rnew[c];
          }
-         
+
          //Now let's perform a Richardson extrapolatation
          richardsonExtrapolation(i,table,error,dims);
-         
+
          //Normalize error
          error/=fieldTracingParameters.max_allowed_error;
-         
-         //If we are below eps good, let's return but also let's modify the stepSize accordingly 
+
+         //If we are below eps good, let's return but also let's modify the stepSize accordingly
          if (error<1. || stepSize == minStepSize) {
             if (i> kOpt) {
                stepSize*=shrink;
@@ -368,7 +368,7 @@ namespace FieldTracing {
             return true;
          }
       }
-      
+
       //If we end up  here it means our tracer did not converge so we need to reduce the stepSize all along and try again
       stepSize*=shrink;
       stepSize = stepSize < minStepSize ? minStepSize : stepSize;
@@ -390,13 +390,13 @@ namespace FieldTracing {
       std::array<REAL,7> kx,ky,kz;
       std::array<REAL,3> b_unit;
       std::array<REAL,3> _r{0,0,0};
-      
+
       //K1 slope
       proceed = BFieldFunction(r,outwards,b_unit);
       kx[0]=stepSize*b_unit[0];
       ky[0]=stepSize*b_unit[1];
       kz[0]=stepSize*b_unit[2];
-      
+
       //K2 slope
       _r[0]=r[0]+(1./5.)*kx[0];
       _r[1]=r[1]+(1./5.)*ky[0];
@@ -407,62 +407,62 @@ namespace FieldTracing {
       kx[1]=stepSize*b_unit[0];
       ky[1]=stepSize*b_unit[1];
       kz[1]=stepSize*b_unit[2];
-      
-      //K3 slope  
-      _r[0]=r[0]+ (3./10.)*kx[1]; 
-      _r[1]=r[1]+ (3./10.)*ky[1]; 
-      _r[2]=r[2]+ (3./10.)*kz[1]; 
+
+      //K3 slope
+      _r[0]=r[0]+ (3./10.)*kx[1];
+      _r[1]=r[1]+ (3./10.)*ky[1];
+      _r[2]=r[2]+ (3./10.)*kz[1];
       if (proceed) {
          proceed = BFieldFunction(_r,outwards,b_unit);
       }
       kx[2]=stepSize*b_unit[0];
       ky[2]=stepSize*b_unit[1];
       kz[2]=stepSize*b_unit[2];
-      
+
       //K4 slope
-      _r[0]=r[0]+(4./5.)*kx[2];  
-      _r[1]=r[1]+(4./5.)*ky[2];  
-      _r[2]=r[2]+(4./5.)*kz[2];  
+      _r[0]=r[0]+(4./5.)*kx[2];
+      _r[1]=r[1]+(4./5.)*ky[2];
+      _r[2]=r[2]+(4./5.)*kz[2];
       if (proceed) {
          proceed = BFieldFunction(_r,outwards,b_unit);
       }
       kx[3]=stepSize*b_unit[0];
       ky[3]=stepSize*b_unit[1];
       kz[3]=stepSize*b_unit[2];
-      
-      //K5 slope  
-      _r[0]=r[0]+(8./9.)*kx[3];   
-      _r[1]=r[1]+(8./9.)*ky[3];   
-      _r[2]=r[2]+(8./9.)*kz[3];   
+
+      //K5 slope
+      _r[0]=r[0]+(8./9.)*kx[3];
+      _r[1]=r[1]+(8./9.)*ky[3];
+      _r[2]=r[2]+(8./9.)*kz[3];
       if (proceed) {
          proceed = BFieldFunction(_r,outwards,b_unit);
       }
       kx[4]=stepSize*b_unit[0];
       ky[4]=stepSize*b_unit[1];
       kz[4]=stepSize*b_unit[2];
-      
+
       //K6 slope
-      _r[0]=r[0]+kx[4];  
-      _r[1]=r[1]+ky[4];  
-      _r[2]=r[2]+kz[4];  
+      _r[0]=r[0]+kx[4];
+      _r[1]=r[1]+ky[4];
+      _r[2]=r[2]+kz[4];
       if (proceed) {
          proceed = BFieldFunction(_r,outwards,b_unit);
       }
       kx[5]=stepSize*b_unit[0];
       ky[5]=stepSize*b_unit[1];
       kz[5]=stepSize*b_unit[2];
-      
-      //K7 slope 
-      _r[0]=r[0]+ kx[5];  
-      _r[1]=r[1]+ ky[5];  
-      _r[2]=r[2]+ kz[5];  
+
+      //K7 slope
+      _r[0]=r[0]+ kx[5];
+      _r[1]=r[1]+ ky[5];
+      _r[2]=r[2]+ kz[5];
       if (proceed) {
          proceed = BFieldFunction(_r,outwards,b_unit);
       }
       kx[6]=stepSize*b_unit[0];
       ky[6]=stepSize*b_unit[1];
       kz[6]=stepSize*b_unit[2];
-      
+
       REAL err=0;
       std::array<REAL,3>rf;
       if (proceed) {
@@ -471,11 +471,11 @@ namespace FieldTracing {
          rf[0]=r[0] +(35./384.)*kx[0] + (500./1113.)*kx[2] + (125./192.)*kx[3] - (2187./6784.)*kx[4] +(11./84.)*kx[5];
          rf[1]=r[1] +(35./384.)*ky[0] + (500./1113.)*ky[2] + (125./192.)*ky[3] - (2187./6784.)*ky[4] +(11./84.)*ky[5];
          rf[2]=r[2] +(35./384.)*kz[0] + (500./1113.)*kz[2] + (125./192.)*kz[3] - (2187./6784.)*kz[4] +(11./84.)*kz[5];
-         
+
          error_xyz[0]=abs((71./57600.)*kx[0] -(71./16695.)*kx[2] + (71./1920.)*kx[3] -(17253./339200.)*kx[4]+(22./525.)*kx[5] -(1./40.)*kx[6] );
          error_xyz[1]=abs((71./57600.)*ky[0] -(71./16695.)*ky[2] + (71./1920.)*ky[3] -(17253./339200.)*ky[4]+(22./525.)*ky[5] -(1./40.)*ky[6] );
          error_xyz[2]=abs((71./57600.)*kz[0] -(71./16695.)*kz[2] + (71./1920.)*kz[3] -(17253./339200.)*kz[4]+(22./525.)*kz[5] -(1./40.)*kz[6] );
-         
+
          //Estimate proper stepsize
          err=std::max( std::max(error_xyz[0], error_xyz[1]), error_xyz[2]);
          REAL s=pow((fieldTracingParameters.max_allowed_error/(2*err)),1./5.);
@@ -483,7 +483,7 @@ namespace FieldTracing {
       } else { // proceed is false, we probably stepped too far
          stepSize /= 2;
       }
-      
+
       stepSize = stepSize > maxStepSize ? maxStepSize : stepSize;
       stepSize = stepSize < minStepSize ? minStepSize : stepSize;
       if ((err>fieldTracingParameters.max_allowed_error && stepSize > minStepSize) || !proceed) {
@@ -511,35 +511,35 @@ namespace FieldTracing {
       //First evaluation
       std::array<REAL, 3> r1;
       BFieldFunction(r,outwards,b);
-      
+
       for(int c=0; c<3; c++) {
          r1[c] = r[c]+ stepSize * b[c];
       }
-      
+
       //Second more accurate evaluation
       std::array<REAL, 3> r2,b2;
       for(int c=0; c<3; c++) {
          r2[c] = r[c]+ 0.5*stepSize * b[c];
       }
-      
+
       BFieldFunction(r2,outwards,b2);
       for(int c=0; c<3; c++) {
          r2[c] = r2[c]+ 0.5*stepSize * b2[c];
       }
-      
+
       //Local error estimate
       std::array<REAL,3> error_xyz{
          fabs(r2[0]-r1[0]),
          fabs(r2[1]-r1[1]),
          fabs(r2[2]-r1[2])
       };
-      
+
       //Max Error and step adjustment
       const REAL err=std::max( std::max(error_xyz[0], error_xyz[1]), error_xyz[2]);
       stepSize=stepSize*sqrt(fieldTracingParameters.max_allowed_error/err);
       stepSize = stepSize > maxStepSize ? maxStepSize : stepSize;
       stepSize = stepSize < minStepSize ? minStepSize : stepSize;
-      
+
       if (err<=fieldTracingParameters.max_allowed_error || stepSize == minStepSize) {
          // Note: B at r has been evaluated above so no need to do it here and we're not returning it anyway as it's not needed.
          r=r2;
@@ -560,7 +560,7 @@ namespace FieldTracing {
    ) {
       // Get field direction
       BFieldFunction(x,outwards,v);
-      
+
       for(int c=0; c<3; c++) {
          x[c] += stepSize * v[c];
       }
@@ -614,12 +614,12 @@ namespace FieldTracing {
             break;
       }
    }//stepFieldLine
-   
+
    /*! function to empty the Balsara reconstruction coefficient cache at a new time step */
    inline void resetReconstructionCoefficientsCache() {
       fieldTracingParameters.reconstructionCoefficientsCache.clear();
    }
-   
+
    /*! Link each ionospheric node to fsgrid cells for coupling */
    void calculateIonosphereFsgridCoupling(
       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,

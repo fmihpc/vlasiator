@@ -27,7 +27,7 @@
 #include "definitions.h"
 
 namespace vamr_ref_criteria {
-   
+
    class Base {
     public:
       Base();
@@ -36,7 +36,7 @@ namespace vamr_ref_criteria {
       virtual Realf evaluate(const Realf* velBlock,const uint popID) = 0;
       virtual void evaluate(const Realf* velBlost,Realf* result,const uint popID);
       virtual bool initialize(const std::string& configRegion) = 0;
-      
+
     protected:
 
    };
@@ -47,19 +47,17 @@ namespace vamr_ref_criteria {
     public:
       RelativeDifference();
       ~RelativeDifference();
-      
+
       Realf evaluate(const Realf* velBlock,const uint popID);
       void evaluate(const Realf* velBlost,Realf* result,const uint popID);
       bool initialize(const std::string& configRegion);
 
     protected:
       Realf df_max;
-      
+
       Realf evaluate(const Realf& f_lef,const Realf& f_cen,const Realf& f_rgt);
    };
 
 } // namespace vamr_ref_criteria
 
 #endif
-
-

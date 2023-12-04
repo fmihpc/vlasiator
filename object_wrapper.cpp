@@ -6,7 +6,7 @@ bool ObjectWrapper::addParameters() {
    typedef Readparameters RP;
 
    // Parameters needed to create particle populations
-   
+
    if (RP::helpRequested) { // dummy name for the help message
       RP::add("ParticlePopulations","Name of the simulated particle populations (string)","<population>");
    } else {
@@ -64,7 +64,7 @@ bool ObjectWrapper::addPopulationParameters() {
      RP::add(pop + "_vspace.vy_length","Initial number of velocity blocks in vy-direction.",1);
      RP::add(pop + "_vspace.vz_length","Initial number of velocity blocks in vz-direction.",1);
      RP::add(pop + "_vspace.max_refinement_level","Maximum allowed mesh refinement level.", 1);
-     
+
      // Thermal / suprathermal parameters
      Readparameters::add(pop + "_thermal.vx", "Center coordinate for the maxwellian distribution. Used for calculating the suprathermal moments.", -500000.0);
      Readparameters::add(pop + "_thermal.vy", "Center coordinate for the maxwellian distribution. Used for calculating the suprathermal moments.", 0.0);
@@ -90,7 +90,7 @@ bool ObjectWrapper::addPopulationParameters() {
 
 bool ObjectWrapper::getParameters() {
    typedef Readparameters RP;
-   
+
    // Particle population parameters
    for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
 
@@ -158,7 +158,7 @@ bool ObjectWrapper::getParameters() {
       RP::get(pop + "_vspace.max_refinement_level",maxRefLevel);
       vMesh.refLevelMaxAllowed = maxRefLevel;
 
-      
+
       //Get thermal / suprathermal moments parameters
       Readparameters::get(pop + "_thermal.radius", species.thermalRadius);
       Readparameters::get(pop + "_thermal.vx", species.thermalV[0]);
@@ -170,13 +170,13 @@ bool ObjectWrapper::getParameters() {
       Readparameters::get(pop + "_energydensity.limit2", species.EnergyDensityLimit2);
       Readparameters::get(pop + "_energydensity.solarwindenergy", species.SolarWindEnergy);
       Readparameters::get(pop + "_energydensity.solarwindspeed", species.SolarWindSpeed);
-      
+
       const Real EPSILON = 1.e-25;
       if (species.SolarWindEnergy < EPSILON) {
-	 // Energy stored internally in SI units
-	 species.SolarWindEnergy = 0.5 * species.mass * species.SolarWindSpeed * species.SolarWindSpeed;
+         // Energy stored internally in SI units
+         species.SolarWindEnergy = 0.5 * species.mass * species.SolarWindSpeed * species.SolarWindSpeed;
       } else {
-	 species.SolarWindEnergy = species.SolarWindEnergy*physicalconstants::CHARGE;
+         species.SolarWindEnergy = species.SolarWindEnergy*physicalconstants::CHARGE;
       }
 
       // Get precipitation parameters

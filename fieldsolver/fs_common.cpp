@@ -24,9 +24,9 @@
 #include "../fieldtracing/fieldtracing.h"
 
 /*! \brief Helper function
- * 
+ *
  * Divides the first value by the second or returns zero if the denominator is zero.
- * 
+ *
  * \param numerator Numerator
  * \param denominator Denominator
  */
@@ -42,11 +42,11 @@ Real divideIfNonZero(
 }
 
 /*! \brief Low-level helper function.
- * 
+ *
  * Computes the reconstruction coefficients used for field component reconstruction.
  * Only implemented for 2nd and 3rd order.
- * 
- * \param perBGrid fsGrid holding the perturbed B quantities 
+ *
+ * \param perBGrid fsGrid holding the perturbed B quantities
  * \param dPerBGrid fsGrid holding the derivatives of perturbed B
  * \param perturbedResult Array in which to store the coefficients.
  * \param i,j,k fsGrid cell coordinates for the current cell
@@ -67,9 +67,9 @@ void reconstructionCoefficients(
    std::array<Real, fsgrids::bfield::N_BFIELD> * cep_i2j1k1 = NULL;
    std::array<Real, fsgrids::bfield::N_BFIELD> * cep_i1j2k1 = NULL;
    std::array<Real, fsgrids::bfield::N_BFIELD> * cep_i1j1k2 = NULL;
-   
+
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> * params = & perBGrid;
-   
+
    cep_i1j1k1 = params->get(i,j,k);
    dummyCellParams = cep_i1j1k1;
    cep_i2j1k1 = dummyCellParams;
@@ -78,7 +78,7 @@ void reconstructionCoefficients(
    if (params->get(i+1,j,k) != NULL) cep_i2j1k1 = params->get(i+1,j,k);
    if (params->get(i,j+1,k) != NULL) cep_i1j2k1 = params->get(i,j+1,k);
    if (params->get(i,j,k+1) != NULL) cep_i1j1k2 = params->get(i,j,k+1);
-   
+
    #ifndef FS_1ST_ORDER_SPACE
 
    // Create a dummy array for containing zero values for derivatives on non-existing cells:
@@ -86,8 +86,8 @@ void reconstructionCoefficients(
    for (int ii=0; ii<fsgrids::dperb::N_DPERB; ii++) {
       dummyDerivatives.at(ii) = 0.0;
    }
-   
-   // Fetch neighbour cell derivatives, or in case the neighbour does not 
+
+   // Fetch neighbour cell derivatives, or in case the neighbour does not
    // exist, use dummyDerivatives array:
    std::array<Real, fsgrids::dperb::N_DPERB> * der_i2j1k1 = &dummyDerivatives;
    std::array<Real, fsgrids::dperb::N_DPERB> * der_i1j2k1 = &dummyDerivatives;
@@ -95,7 +95,7 @@ void reconstructionCoefficients(
    if (dPerBGrid.get(i+1,j,k) != NULL) der_i2j1k1 = dPerBGrid.get(i+1,j,k);
    if (dPerBGrid.get(i,j+1,k) != NULL) der_i1j2k1 = dPerBGrid.get(i,j+1,k);
    if (dPerBGrid.get(i,j,k+1) != NULL) der_i1j1k2 = dPerBGrid.get(i,j,k+1);
-   
+
    // Calculate 3rd order reconstruction coefficients:
    if (reconstructionOrder == 2) {
       perturbedResult[Rec::a_yy] = 0.0;
@@ -132,29 +132,29 @@ void reconstructionCoefficients(
       perturbedResult[Rec::a_xyy] = (der_i2j1k1->at(fsgrids::dperb::dPERBxdyy) - der_i1j1k1->at(fsgrids::dperb::dPERBxdyy));
       perturbedResult[Rec::a_xyz] = (der_i2j1k1->at(fsgrids::dperb::dPERBxdyz) - der_i1j1k1->at(fsgrids::dperb::dPERBxdyz));
       perturbedResult[Rec::a_xzz] = (der_i2j1k1->at(fsgrids::dperb::dPERBxdzz) - der_i1j1k1->at(fsgrids::dperb::dPERBxdzz));
-      
+
       perturbedResult[Rec::b_xx] = HALF * (der_i1j2k1->at(fsgrids::dperb::dPERBydxx) + der_i1j1k1->at(fsgrids::dperb::dPERBydxx));
       perturbedResult[Rec::b_xz] = HALF * (der_i1j2k1->at(fsgrids::dperb::dPERBydxz) + der_i1j1k1->at(fsgrids::dperb::dPERBydxz));
       perturbedResult[Rec::b_zz] = HALF * (der_i1j2k1->at(fsgrids::dperb::dPERBydzz) + der_i1j1k1->at(fsgrids::dperb::dPERBydzz));
       perturbedResult[Rec::b_xxy] = (der_i1j2k1->at(fsgrids::dperb::dPERBydxx) - der_i1j1k1->at(fsgrids::dperb::dPERBydxx));
       perturbedResult[Rec::b_xyz] = (der_i1j2k1->at(fsgrids::dperb::dPERBydxz) - der_i1j1k1->at(fsgrids::dperb::dPERBydxz));
       perturbedResult[Rec::b_yzz] = (der_i1j2k1->at(fsgrids::dperb::dPERBydzz) - der_i1j1k1->at(fsgrids::dperb::dPERBydzz));
-      
+
       perturbedResult[Rec::c_xx] = HALF * (der_i1j1k2->at(fsgrids::dperb::dPERBzdxx) + der_i1j1k1->at(fsgrids::dperb::dPERBzdxx));
       perturbedResult[Rec::c_xy] = HALF * (der_i1j1k2->at(fsgrids::dperb::dPERBzdxy) + der_i1j1k1->at(fsgrids::dperb::dPERBzdxy));
       perturbedResult[Rec::c_yy] = HALF * (der_i1j1k2->at(fsgrids::dperb::dPERBzdyy) + der_i1j1k1->at(fsgrids::dperb::dPERBzdyy));
       perturbedResult[Rec::c_xxz] = (der_i1j1k2->at(fsgrids::dperb::dPERBzdxx) - der_i1j1k1->at(fsgrids::dperb::dPERBzdxx));
       perturbedResult[Rec::c_xyz] = (der_i1j1k2->at(fsgrids::dperb::dPERBzdxy) - der_i1j1k1->at(fsgrids::dperb::dPERBzdxy));
       perturbedResult[Rec::c_yyz] = (der_i1j1k2->at(fsgrids::dperb::dPERBzdyy) - der_i1j1k1->at(fsgrids::dperb::dPERBzdyy));
-      
+
       perturbedResult[Rec::a_xxx] = -THIRD*(perturbedResult[Rec::b_xxy] + perturbedResult[Rec::c_xxz]);
       perturbedResult[Rec::a_xxy] = -FOURTH*perturbedResult[Rec::c_xyz];
       perturbedResult[Rec::a_xxz] = -FOURTH*perturbedResult[Rec::b_xyz];
-      
+
       perturbedResult[Rec::b_xyy] = -FOURTH*perturbedResult[Rec::c_xyz];
       perturbedResult[Rec::b_yyy] = -THIRD*(perturbedResult[Rec::c_yyz] + perturbedResult[Rec::a_xyy]);
       perturbedResult[Rec::b_yyz] = -FOURTH*perturbedResult[Rec::a_xyz];
-      
+
       perturbedResult[Rec::c_xzz] = -FOURTH*perturbedResult[Rec::b_xyz];
       perturbedResult[Rec::c_yzz] = -FOURTH*perturbedResult[Rec::a_xyz];
       perturbedResult[Rec::c_zzz] = -THIRD*(perturbedResult[Rec::a_xzz] + perturbedResult[Rec::b_yzz]);
@@ -162,27 +162,27 @@ void reconstructionCoefficients(
       cerr << __FILE__ << ":" << __LINE__ << ":" << " Not coded yet!" << endl;
       abort();
    }
-   
+
    // Calculate 2nd order reconstruction coefficients:
    perturbedResult[Rec::a_xy] = der_i2j1k1->at(fsgrids::dperb::dPERBxdy) - der_i1j1k1->at(fsgrids::dperb::dPERBxdy);
    perturbedResult[Rec::a_xz] = der_i2j1k1->at(fsgrids::dperb::dPERBxdz) - der_i1j1k1->at(fsgrids::dperb::dPERBxdz);
    perturbedResult[Rec::a_y ] = HALF*(der_i2j1k1->at(fsgrids::dperb::dPERBxdy) + der_i1j1k1->at(fsgrids::dperb::dPERBxdy)) - SIXTH*perturbedResult[Rec::a_xxy];
    perturbedResult[Rec::a_z ] = HALF*(der_i2j1k1->at(fsgrids::dperb::dPERBxdz) + der_i1j1k1->at(fsgrids::dperb::dPERBxdz)) - SIXTH*perturbedResult[Rec::a_xxz];
-   
+
    perturbedResult[Rec::b_xy] = der_i1j2k1->at(fsgrids::dperb::dPERBydx) - der_i1j1k1->at(fsgrids::dperb::dPERBydx);
    perturbedResult[Rec::b_yz] = der_i1j2k1->at(fsgrids::dperb::dPERBydz) - der_i1j1k1->at(fsgrids::dperb::dPERBydz);
    perturbedResult[Rec::b_x ] = HALF*(der_i1j2k1->at(fsgrids::dperb::dPERBydx) + der_i1j1k1->at(fsgrids::dperb::dPERBydx)) - SIXTH*perturbedResult[Rec::b_xyy];
    perturbedResult[Rec::b_z ] = HALF*(der_i1j2k1->at(fsgrids::dperb::dPERBydz) + der_i1j1k1->at(fsgrids::dperb::dPERBydz)) - SIXTH*perturbedResult[Rec::b_yyz];
-   
+
    perturbedResult[Rec::c_xz] = der_i1j1k2->at(fsgrids::dperb::dPERBzdx) - der_i1j1k1->at(fsgrids::dperb::dPERBzdx);
    perturbedResult[Rec::c_yz] = der_i1j1k2->at(fsgrids::dperb::dPERBzdy) - der_i1j1k1->at(fsgrids::dperb::dPERBzdy);
    perturbedResult[Rec::c_x ] = HALF*(der_i1j1k2->at(fsgrids::dperb::dPERBzdx) + der_i1j1k1->at(fsgrids::dperb::dPERBzdx)) - SIXTH*perturbedResult[Rec::c_xzz];
    perturbedResult[Rec::c_y ] = HALF*(der_i1j1k2->at(fsgrids::dperb::dPERBzdy) + der_i1j1k1->at(fsgrids::dperb::dPERBzdy)) - SIXTH*perturbedResult[Rec::c_yzz];
-   
+
    perturbedResult[Rec::a_xx] = -HALF*(perturbedResult[Rec::b_xy] + perturbedResult[Rec::c_xz]);
    perturbedResult[Rec::b_yy] = -HALF*(perturbedResult[Rec::a_xy] + perturbedResult[Rec::c_yz]);
    perturbedResult[Rec::c_zz] = -HALF*(perturbedResult[Rec::a_xz] + perturbedResult[Rec::b_yz]);
-         
+
    perturbedResult[Rec::a_x ] = cep_i2j1k1->at(fsgrids::bfield::PERBX) - cep_i1j1k1->at(fsgrids::bfield::PERBX) - TENTH*perturbedResult[Rec::a_xxx];
    perturbedResult[Rec::b_y ] = cep_i1j2k1->at(fsgrids::bfield::PERBY) - cep_i1j1k1->at(fsgrids::bfield::PERBY) - TENTH*perturbedResult[Rec::b_yyy];
    perturbedResult[Rec::c_z ] = cep_i1j1k2->at(fsgrids::bfield::PERBZ) - cep_i1j1k1->at(fsgrids::bfield::PERBZ) - TENTH*perturbedResult[Rec::c_zzz];
@@ -242,7 +242,7 @@ std::array<Real, 3> interpolatePerturbedB(
 
    std::array<int, 3> cellIds = {i,j,k};
    std::array<Real, Rec::N_REC_COEFFICIENTS> rc;
-   
+
    if(FieldTracing::fieldTracingParameters.useCache) {
       #pragma omp critical
       {

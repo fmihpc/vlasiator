@@ -37,28 +37,28 @@
 #include "sysboundarycondition.h"
 
 /*! \brief SysBoundary contains the SysBoundaryConditions used in the simulation.
- * 
- * The purpose of SysBoundary is to contain SBC::SysBoundaryConditions, and apply 
+ *
+ * The purpose of SysBoundary is to contain SBC::SysBoundaryConditions, and apply
  * them to the simulation volume cells if the cells pertain to a specific boundary type.
  * If the simulation domain is not fully periodic then the behaviour at the edges or boundaries of the volume has to be properly defined.
- * 
+ *
  * initSysBoundaries creates the instances of SBC::SysBoundaryConditions that are needed.
  * They are then initialised, which means the internals are prepared for the system
  * boundary condition to be applied (import and process parameters, generate template cells
  * etc.). When the whole simulation domain is initialised, the boundary conditions are
  * applied to the cells they have by calling applyInitialState.
- * 
- * If needed, a user can write his or her own SBC::SysBoundaryConditions, which 
+ *
+ * If needed, a user can write his or her own SBC::SysBoundaryConditions, which
  * are loaded when the simulation initializes.
  */
 class SysBoundary {
  public:
    SysBoundary();
    ~SysBoundary();
-      
+
    void addParameters();
    void getParameters();
-      
+
    bool addSysBoundary(
                        SBC::SysBoundaryCondition* sbc,
                        Project& project,
@@ -88,7 +88,7 @@ class SysBoundary {
    private:
       /*! Private copy-constructor to prevent copying the class. */
       SysBoundary(const SysBoundary& bc);
-   
+
       //std::set<SBC::SysBoundaryCondition*,SBC::Comparator> sysBoundaries;
 
       /*! A container for all SBC::SysBoundaryConditions stored in SysBoundary.*/
@@ -104,7 +104,7 @@ class SysBoundary {
       bool isPeriodic[3];
 };
 
-bool precedenceSort(const SBC::SysBoundaryCondition* first, 
+bool precedenceSort(const SBC::SysBoundaryCondition* first,
                     const SBC::SysBoundaryCondition* second);
 
 

@@ -44,7 +44,7 @@ namespace projects {
    public:
       Fluctuations();
       virtual ~Fluctuations();
-      
+
       virtual bool initialize(void);
       static void addParameters(void);
       virtual void getParameters(void);
@@ -68,7 +68,7 @@ namespace projects {
          creal& vx, creal& vy, creal& vz,
          creal& dvx, creal& dvy, creal& dvz,const uint popID
       ) const;
-      
+
       Real BX0;
       Real BY0;
       Real BZ0;

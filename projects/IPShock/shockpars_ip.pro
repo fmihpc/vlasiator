@@ -1,10 +1,10 @@
 
 PRO shockpars_ip,v_shock=v_shock, t1=t1, b1=b1, usw=usw, rho1=rho1
- 
+
  ; Recoded 08/07/2016
  ; shock is always x-planar, propagating radially
 
- ; This scripts assumes tangential components are in z-direction only. 
+ ; This scripts assumes tangential components are in z-direction only.
 
  ; Shock propagation speed is an input parameter (in SNIF) - this gives Vx
  ; solar wind speed Usw is also given in SNIF, and is radial. Thus,
@@ -29,7 +29,7 @@ PRO shockpars_ip,v_shock=v_shock, t1=t1, b1=b1, usw=usw, rho1=rho1
  OmegaSun = 2.6394e-6 ;in radians, based on 27 days / rotation
 
  IF ~keyword_set(v_shock) THEN v_shock=7.50e5 ;default 750 km/s
- IF ~keyword_set(t1) THEN t1=1.0e5 ;default 0.1 MK 
+ IF ~keyword_set(t1) THEN t1=1.0e5 ;default 0.1 MK
  IF ~keyword_set(b1) THEN b1=5.e-9 ;default 5 nT
  IF ~keyword_set(usw) THEN usw=5.00e5 ;default 500 km/s
  IF ~keyword_set(rho1) THEN rho1=5.0e6 ;default 5 particles cm^-3
@@ -53,12 +53,12 @@ PRO shockpars_ip,v_shock=v_shock, t1=t1, b1=b1, usw=usw, rho1=rho1
 
  print, 'Angle ',theta
  print, 'dHT transformation speed ',ut1
- 
+
  va1 = sqrt(b1*b1/(mu0*rho1*m_p))
  ;Use: pressure = n k T (does not include electron pressure)
  pressure1 = rho1 * k_B * t1
  vsound1 = sqrt( adiab*pressure1 /(m_p *rho1) )
- 
+
  u12 = uht1^2
  va12 = va1^2
  vs12 = vsound1^2
@@ -88,27 +88,27 @@ PRO shockpars_ip,v_shock=v_shock, t1=t1, b1=b1, usw=usw, rho1=rho1
  WHILE ((rstep Ge 0.0001) && (compr LT 0.001))  DO BEGIN
     Ztry = ((0.5D/cos12)*(calctemp1 + sqrt(calctemp1^2 - 2.*adiab*beta1*cos12)) -1.) > $        ; First (root for M^2) -1
        ((0.5D/cos12)*(calctemp1 - sqrt(calctemp1^2 - 2.*adiab*beta1*cos12)) -1.) > 0.           ; Second and third (root for M^2) -1
-    
+
     fform = (1.D +Ztry)*((Ztry^2)*8*cos12 +(3.D -5.D*Ztry)*sin12) -(Ztry^2)*5*beta1
     gform = (1.D +Ztry)*((Ztry^2)*2*cos12 +(3.D +Ztry)*sin12)
     Rtry = fform/gform
     M2try = (1.D +Ztry)*Rtry
-    
+
     WHILE abs(M2try - MA2) GT 0.0001 DO BEGIN
        fderi = (Ztry^2)*8.D*cos12 +(3.D -8.D*Ztry)*sin12 -10.D*Ztry*beta1 +(1.D +Ztry)*(16.D*Ztry*cos12 -5.D*sin12)
        gderi = (Ztry^2)*2.D*cos12 +(3.D +Ztry)*sin12 +(1.D +Ztry)*(4.D*Ztry*cos12 +sin12)
        rderi = (gform*fderi-fform*gderi)/(gform^2)
        m2deri = (1.D +Ztry)*rderi + Rtry
-       
+
        ; Newton step forward
        Ztry = Ztry + (MA2 - M2try)/m2deri * 0.5*rstep
-       
+
        ; Calculate new Rtry and M2try
        fform = (1.D +Ztry)*((Ztry^2)*8*cos12 +(3.D -5.D*Ztry)*sin12) -(Ztry^2)*5*beta1
        gform = (1.D +Ztry)*((Ztry^2)*2*cos12 +(3.D +Ztry)*sin12)
        Rtry = fform/gform
        M2try = (1.D +Ztry)*Rtry
-       
+
     ENDWHILE
 ;    print, 'Ztry ',Ztry,' Rtry ',Rtry,' M2try ',M2try,' MA2 ',MA2
     IF (Rtry LE MA2) THEN compr = Rtry
@@ -169,7 +169,7 @@ PRO shockpars_ip,v_shock=v_shock, t1=t1, b1=b1, usw=usw, rho1=rho1
  print,'Upstream particle parameters'
  gyrofreq = e_p*b1/m_p
  v_th = sqrt(2*t1*k_b/m_p)
- print,'  gyrofreq ',gyrofreq,' gyrotime ',2.*!pi/gyrofreq 
+ print,'  gyrofreq ',gyrofreq,' gyrotime ',2.*!pi/gyrofreq
  print,'  v_th ',v_th,' ion inertial range ',v_th/gyrofreq
  print,'  bulk larmor radius ',abs(uht1)/gyrofreq,' ion Alfvenic range ',va1/gyrofreq
 

@@ -38,5 +38,3 @@ typedef const float creal;
 
 
 #endif
-
-

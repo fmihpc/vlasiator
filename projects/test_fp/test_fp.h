@@ -33,7 +33,7 @@ namespace projects {
    public:
       test_fp();
       virtual ~test_fp();
-      
+
       virtual bool initialize(void);
       static void addParameters(void);
       virtual void getParameters(void);
@@ -42,7 +42,7 @@ namespace projects {
          FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
          FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
       );
-      
+
    protected:
       Real sign(creal value) const;
       Real getDistribValue(creal& vx, creal& vy, creal& vz);
@@ -54,14 +54,14 @@ namespace projects {
          creal& vx, creal& vy, creal& vz,
          creal& dvx, creal& dvy, creal& dvz,const uint popID
       ) const;
-      
+
       virtual std::vector<std::array<Real, 3> > getV0(
          creal x,
          creal y,
          creal z,
          const uint popID
-      ) const; 
-      
+      ) const;
+
       virtual std::vector<std::array<Real, 3> > getV0(
          creal x,
          creal y,
@@ -71,7 +71,7 @@ namespace projects {
          creal dz,
          const uint popID
       ) const;
-      
+
       Real V0;
       Real B0;
       Real DENSITY;

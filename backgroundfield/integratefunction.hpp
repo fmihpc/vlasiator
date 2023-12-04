@@ -66,4 +66,3 @@ double volumeAverage(
    const double r2[3]
 );
 #endif
-

@@ -33,7 +33,7 @@ namespace projects {
     public:
       KHB();
       virtual ~KHB();
-      
+
       virtual bool initialize(void);
       static void addParameters(void);
       virtual void getParameters(void);
@@ -56,7 +56,7 @@ namespace projects {
                            creal& vx, creal& vy, creal& vz,
                            const uint popID) const;
       Real profile(creal top, creal bottom, creal x, creal z) const;
-      
+
       enum {
          TOP,
          BOTTOM

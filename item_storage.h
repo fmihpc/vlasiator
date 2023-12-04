@@ -28,16 +28,16 @@
 
 #include "definitions.h"
 
-/** A generic storage class for storing items, such as variable values or 
- * function pointers. The storage class can store any type of item that does 
- * not require a constructor call, i.e., it does not create a _new_ copy of 
+/** A generic storage class for storing items, such as variable values or
+ * function pointers. The storage class can store any type of item that does
+ * not require a constructor call, i.e., it does not create a _new_ copy of
  * an item when one is requested.*/
 template<typename ITEM>
 class ItemStorage {
  public:
    bool get(const std::string& name,ITEM& item) const;
    bool store(const std::string& name,ITEM item);
-   
+
  private:
    std::map<std::string,ITEM> warehouse; /**< Container for all stored items.*/
 };
@@ -54,14 +54,14 @@ bool ItemStorage<ITEM>::get(const std::string& name,ITEM& item) const {
    return true;
 }
 
-/** Register a item (product) to the factory. This function will fail 
+/** Register a item (product) to the factory. This function will fail
  * to succeed if the factory already contains an item (product) with the same name.
  * @param name A unique name for the item (product).
  * @param func Registered item (product).
  * @return If true, the item was added to the factory.*/
 template<typename ITEM> inline
 bool ItemStorage<ITEM>::store(const std::string& name,ITEM item) {
-   // The insert returns a pair<iterator,bool>, where the boolean value is 'true' 
+   // The insert returns a pair<iterator,bool>, where the boolean value is 'true'
    // if the function was inserted to the map. Skip the pair creation and just return the boolean.
    return warehouse.insert(make_pair(name,item)).second;
 }

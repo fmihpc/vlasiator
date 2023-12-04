@@ -33,11 +33,11 @@ namespace projects {
       public:
       harm1D();
       virtual ~harm1D();
-      
+
       virtual bool initialize(void);
       static void addParameters(void);
       virtual void getParameters(void);
-      
+
       protected:
          virtual void calcCellParameters(Real* cellParams,creal& t);
          virtual Real calcPhaseSpaceDensity(

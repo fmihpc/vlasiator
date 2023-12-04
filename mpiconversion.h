@@ -28,9 +28,9 @@
 #include <stdint.h>
 
 // Overloaded templates which return the corresponding data type
-// for C++ native data types. For example, if float has been 
+// for C++ native data types. For example, if float has been
 // typedef'd as Real, then MPI_Type<Real>() should return MPI_FLOAT.
-// If you later on change the typedef to double, MPI_Type<Real>() 
+// If you later on change the typedef to double, MPI_Type<Real>()
 // still works.
 template<typename T> inline MPI_Datatype MPI_Type() {
    std::cerr << "(mpiconversion.h): NULL datatype returned, byte size of original is " << sizeof(T) << std::endl;
@@ -60,4 +60,3 @@ template<> inline MPI_Datatype MPI_Type<double>() {return MPI_DOUBLE;}
 template<> inline MPI_Datatype MPI_Type<long double>() {return MPI_LONG_DOUBLE;}
 
 #endif
-

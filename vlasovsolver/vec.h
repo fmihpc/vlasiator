@@ -25,7 +25,7 @@
 
 /*!
 
-\file vec.h 
+\file vec.h
 \brief An interface to a type with  floating point values
 
 By setting suitable compile-time defines oen can set the length,
@@ -45,11 +45,11 @@ VEC4F_AGNER
  - Use Agner's vectorclass with AVX/SSE2 intrinisics
 
 VEC8F_AGNER
- - Single precision     
+ - Single precision
  - Vector length of 8
  - Use Agner's vectorclass with AVX intrinisics
 
- 
+
 */
 
 

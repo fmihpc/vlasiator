@@ -18,7 +18,7 @@
  * You should have received a copy of the GNU General Public License along
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
+ *
  * File:   velocity_mesh_parameters.h
  * Author: sandroos
  *
@@ -26,22 +26,22 @@
  */
 
 #ifndef VELOCITY_MESH_PARAMETERS_H
-#define	VELOCITY_MESH_PARAMETERS_H
+#define VELOCITY_MESH_PARAMETERS_H
 
 #include <vector>
 #include "definitions.h"
 
 namespace vmesh {
-   
-   /** Wrapper for mesh parameters. The Project class (projects/project.cpp) reads 
-    * one or more velocity meshes from the configuration file and stores them to 
-    * vector ObjectWrapper::velocityMeshes. The velocity meshes stored in each spatial 
-    * cell (one mesh per particle population) store a mesh ID, which is an index 
-    * to ObjectWrapper::velocityMeshes. Many "get" functions in VelocityMesh are 
-    * wrapper functions, which return the values stored in MeshParameters. This allows 
+
+   /** Wrapper for mesh parameters. The Project class (projects/project.cpp) reads
+    * one or more velocity meshes from the configuration file and stores them to
+    * vector ObjectWrapper::velocityMeshes. The velocity meshes stored in each spatial
+    * cell (one mesh per particle population) store a mesh ID, which is an index
+    * to ObjectWrapper::velocityMeshes. Many "get" functions in VelocityMesh are
+    * wrapper functions, which return the values stored in MeshParameters. This allows
     * different particle populations to use the same velocity mesh (parameters) if needed.
-    * 
-    * While the variables have been named 
+    *
+    * While the variables have been named
     * for velocity mesh, this struct can be used for spatial meshes as well.*/
    struct MeshParameters {
       std::string name;                         /**< Name of the mesh (unique).*/
@@ -50,7 +50,7 @@ namespace vmesh {
       vmesh::LocalID gridLength[3];             /**< Number of blocks in mesh per coordinate at base grid level.*/
       vmesh::LocalID blockLength[3];            /**< Number of phase-space cells per coordinate in block.*/
       uint8_t refLevelMaxAllowed;               /**< Maximum refinement level allowed, 0=no refinement.*/
-      
+
       // ***** DERIVED PARAMETERS, CALCULATED BY VELOCITY MESH ***** //
       bool initialized;                         /**< If true, variables in this struct contain sensible values.*/
       Real meshMinLimits[3];                    /**< Minimum coordinate values of the grid bounding box.*/
@@ -64,11 +64,11 @@ namespace vmesh {
       std::vector<Real> blockSizes;             /**< Velocity block sizes (dvx,dvy,dvz) for each refinement level.
                                                  * This vector is initialized to size 3*(refLevelMaxAllowed+1)
                                                  * in VelocityMesh::initialize (VAMR mesh).*/
-      std::vector<Real> cellSizes;              /**< Velocity block phase-space cell sizes (dvx,dvy,dvz) for each 
-                                                 * refinement level. This vector is initialized to size 
+      std::vector<Real> cellSizes;              /**< Velocity block phase-space cell sizes (dvx,dvy,dvz) for each
+                                                 * refinement level. This vector is initialized to size
                                                  * 3*(refLevelMaxAllowed+1) in VelocityMesh::initialize (VAMR mesh).*/
       std::vector<vmesh::LocalID> gridLengths;  /**< Velocity grid lengths for each refinement level.
-                                                 * This vector is initialized to size 3*(refLevelMaxAllowed+1) 
+                                                 * This vector is initialized to size 3*(refLevelMaxAllowed+1)
                                                  * in VelocityMesh::initialize (VAMR mesh).*/
 
       MeshParameters() {
@@ -78,5 +78,4 @@ namespace vmesh {
 
 } // namespace vmesh
 
-#endif	/* VELOCITY_MESH_PARAMETERS_H */
-
+#endif  /* VELOCITY_MESH_PARAMETERS_H */

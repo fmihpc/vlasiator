@@ -59,4 +59,3 @@ namespace projects {
 } // namespace projects
 
 #endif
-

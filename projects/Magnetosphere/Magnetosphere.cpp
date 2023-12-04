@@ -44,7 +44,7 @@ using namespace spatial_cell;
 namespace projects {
    Magnetosphere::Magnetosphere(): TriAxisSearch() { }
    Magnetosphere::~Magnetosphere() { }
-   
+
    void Magnetosphere::addParameters() {
       typedef Readparameters RP;
       // Common (field / etc.) parameters
@@ -65,7 +65,7 @@ namespace projects {
       RP::add("Magnetosphere.refine_L3tailwidth","Width in +-y of tail L3-refined box", 5.0e7); // 10 RE
       RP::add("Magnetosphere.refine_L3tailxmin","Low x-value of tail L3-refined box", -20.0e7); // 10 RE
       RP::add("Magnetosphere.refine_L3tailxmax","High x-value of tail L3-refined box", -5.0e7); // 10 RE
-      
+
       RP::add("Magnetosphere.refine_L2radius","Radius of L2-refined sphere", 9.5565e7); // 15 RE
       RP::add("Magnetosphere.refine_L2tailthick","Thickness of L2-refined tail region", 3.1855e7); // 5 RE
       RP::add("Magnetosphere.refine_L1radius","Radius of L1-refined sphere", 1.59275e8); // 25 RE
@@ -98,7 +98,7 @@ namespace projects {
          RP::add(pop + "_Magnetosphere.taperOuterRadius", "Outer radius of the zone with a density tapering from the ionospheric value to the background (m)", 0.0);
       }
    }
-   
+
    void Magnetosphere::getParameters(){
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
@@ -250,7 +250,7 @@ namespace projects {
       }
 
    }
-   
+
    bool Magnetosphere::initialize() {
       return Project::initialize();
    }
@@ -268,7 +268,7 @@ namespace projects {
          creal d_vx = dvx / (sP.nVelocitySamples-1);
          creal d_vy = dvy / (sP.nVelocitySamples-1);
          creal d_vz = dvz / (sP.nVelocitySamples-1);
-         
+
          Real avg = 0.0;
          // #pragma omp parallel for collapse(6) reduction(+:avg)
          // WARNING No threading here if calling functions are already threaded
@@ -287,7 +287,7 @@ namespace projects {
          return getDistribValue(x+0.5*dx,y+0.5*dy,z+0.5*dz,vx+0.5*dvx,vy+0.5*dvy,vz+0.5*dvz,dvx,dvy,dvz,popID);
       }
    }
-   
+
    /*! Magnetosphere does not set any extra perturbed B. */
    void Magnetosphere::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
 
@@ -313,12 +313,12 @@ namespace projects {
                SBC::ionosphereGrid.setDipoleField(bgFieldDipole);
                break;
             case 1:
-               bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0 );//set dipole moment     
+               bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0 );//set dipole moment
                setBackgroundField(bgFieldLineDipole, BgBGrid);
                SBC::ionosphereGrid.setDipoleField(bgFieldLineDipole);
                break;
             case 2:
-               bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0 );//set dipole moment     
+               bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0 );//set dipole moment
                setBackgroundField(bgFieldLineDipole, BgBGrid);
                //Append mirror dipole
                bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, this->dipoleMirrorLocationX, 0.0, 0.0 );
@@ -329,10 +329,10 @@ namespace projects {
                bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
                setBackgroundField(bgFieldDipole, BgBGrid);
                SBC::ionosphereGrid.setDipoleField(bgFieldDipole);
-               //Append mirror dipole                
+               //Append mirror dipole
                bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, this->dipoleMirrorLocationX, 0.0, 0.0, 0.0 );//mirror
                setBackgroundField(bgFieldDipole, BgBGrid, true);
-               break; 
+               break;
             case 4:  // Vector potential dipole, vanishes or optionally scales to static inflow value after a given x-coordinate
                // What we in fact do is we place the regular dipole in the background field, and the
                // corrective terms in the perturbed field. This maintains the BGB as curl-free.
@@ -353,7 +353,7 @@ namespace projects {
       switchDipoleTypeTimer.stop();
 
       const auto localSize = BgBGrid.getLocalSize().data();
-      
+
       phiprof::Timer zeroingTimer {"zeroing-out"};
 
 #pragma omp parallel
@@ -361,7 +361,7 @@ namespace projects {
          bool doZeroOut;
          //Force field to zero in the perpendicular direction for 2D (1D) simulations. Otherwise we have unphysical components.
          doZeroOut = P::xcells_ini ==1 && this->zeroOutComponents[0]==1;
-      
+
          if(doZeroOut) {
 #pragma omp for collapse(2)
             for (int z = 0; z < localSize[2]; ++z) {
@@ -429,7 +429,7 @@ namespace projects {
                }
             }
          }
-         
+
          // Remove dipole from inflow cells if this is requested
          if(this->noDipoleInSW) {
 #pragma omp for collapse(2)
@@ -467,8 +467,8 @@ namespace projects {
       SBC::ionosphereGrid.storeNodeB();
       storeNodeTimer.stop();
    }
-   
-   
+
+
    Real Magnetosphere::getDistribValue(
            creal& x,creal& y,creal& z,
            creal& vx,creal& vy,creal& vz,
@@ -479,9 +479,9 @@ namespace projects {
       Real initRho = sP.rho;
       Real initT = sP.T;
       std::array<Real, 3> initV0 = this->getV0(x, y, z, popID)[0];
-      
+
       Real radius;
-      
+
       switch(this->ionosphereGeometry) {
          case 0:
             // infinity-norm, result is a diamond/square with diagonals aligned on the axes in 2D
@@ -503,7 +503,7 @@ namespace projects {
             std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1, 2 or 3." << std::endl;
             abort();
       }
-      
+
       if(radius < sP.taperOuterRadius) {
          // sine tapering
          initRho = sP.rho - (sP.rho-sP.ionosphereRho)*0.5*(1.0+sin(M_PI*(radius-sP.taperInnerRadius)/(sP.taperOuterRadius-sP.taperInnerRadius)+0.5*M_PI));
@@ -531,9 +531,9 @@ namespace projects {
       vector<std::array<Real, 3> > centerPoints;
       std::array<Real, 3> V0 {{sP.V0[0], sP.V0[1], sP.V0[2]}};
       std::array<Real, 3> ionosphereV0 = {{sP.ionosphereV0[0], sP.ionosphereV0[1], sP.ionosphereV0[2]}};
-      
+
       Real radius;
-      
+
       switch(this->ionosphereGeometry) {
          case 0:
             // infinity-norm, result is a diamond/square with diagonals aligned on the axes in 2D
@@ -555,11 +555,11 @@ namespace projects {
             std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1, 2 or 3." << std::endl;
             abort();
       }
-      
+
       if(radius < sP.taperOuterRadius) {
          // sine tapering
          Real q=0.5*(1.0-sin(M_PI*(radius-sP.taperInnerRadius)/(sP.taperOuterRadius-sP.taperInnerRadius)+0.5*M_PI));
-         
+
          for(uint i=0; i<3; i++) {
             V0[i]=q*(V0[i]-ionosphereV0[i])+ionosphereV0[i];
             if(radius <= sP.taperInnerRadius) {
@@ -567,7 +567,7 @@ namespace projects {
             }
          }
       }
-      
+
       centerPoints.push_back(V0);
       return centerPoints;
    }
@@ -577,8 +577,8 @@ namespace projects {
    }
 
    bool Magnetosphere::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
-   
-      int myRank;       
+
+      int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
       if(myRank == MASTER_RANK) {
@@ -593,7 +593,7 @@ namespace projects {
          for (uint i = 0; i < cells.size(); ++i) {
             CellID id = cells[i];
             std::array<double,3> xyz = mpiGrid.get_center(id);
-                     
+
             Real radius2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
             bool inSphere = radius2 < refine_L1radius*refine_L1radius;
             bool inTail = xyz[0] < 0 && fabs(xyz[1]) < refine_L1radius && fabs(xyz[2]) < refine_L1tailthick;
@@ -603,7 +603,7 @@ namespace projects {
             }
          }
 
-         cells = mpiGrid.stop_refining();      
+         cells = mpiGrid.stop_refining();
          if (myRank == MASTER_RANK) {
             std::cout << "Finished first level of refinement" << endl;
          }
@@ -613,14 +613,14 @@ namespace projects {
          }
          #endif //NDEBUG
       }
-      
+
       // L2 refinement.
       if (P::amrMaxSpatialRefLevel > 1 && P::amrMaxAllowedSpatialRefLevel > 1) {
          //#pragma omp parallel for
          for (uint i = 0; i < cells.size(); ++i) {
             CellID id = cells[i];
             std::array<double,3> xyz = mpiGrid.get_center(id);
-                     
+
             Real radius2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
             bool inSphere = radius2 < pow(refine_L2radius, 2);
             bool inTail = xyz[0] < 0 && fabs(xyz[1]) < refine_L2radius && fabs(xyz[2])<refine_L2tailthick;
@@ -640,20 +640,20 @@ namespace projects {
          #endif //NDEBUG
 
       }
-      
+
       // L3 refinement.
       if (P::amrMaxSpatialRefLevel > 2 && P::amrMaxAllowedSpatialRefLevel > 2) {
          //#pragma omp parallel for
          for (uint i = 0; i < cells.size(); ++i) {
             CellID id = cells[i];
             std::array<double,3> xyz = mpiGrid.get_center(id);
-                     
+
             Real radius2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
             bool inNoseCap = (xyz[0]>refine_L3nosexmin) && (radius2<refine_L3radius*refine_L3radius);
             bool inTail = (xyz[0]>refine_L3tailxmin) && (xyz[0]<refine_L3tailxmax) && (fabs(xyz[1])<refine_L3tailwidth) && (fabs(xyz[2])<refine_L3tailheight);
             if ((inNoseCap || inTail) && radius2 < P::refineRadius * P::refineRadius) {
                //#pragma omp critical
-               mpiGrid.refine_completely(id);			  
+               mpiGrid.refine_completely(id);
             }
          }
          cells = mpiGrid.stop_refining();
@@ -673,14 +673,14 @@ namespace projects {
          for (uint i = 0; i < cells.size(); ++i) {
             CellID id = cells[i];
             std::array<double,3> xyz = mpiGrid.get_center(id);
-                     
+
             Real radius2 = (xyz[0]*xyz[0]+xyz[1]*xyz[1]+xyz[2]*xyz[2]);
 
             // Check if cell is within the nose cap
             bool inNose = refine_L4nosexmin && radius2<refine_L4radius*refine_L4radius;
             if (inNose && radius2 < P::refineRadius * P::refineRadius) {
                //#pragma omp critical
-               mpiGrid.refine_completely(id);			  
+               mpiGrid.refine_completely(id);
             }
          }
 
@@ -700,7 +700,7 @@ namespace projects {
 
    int Magnetosphere::adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
       phiprof::Timer refinesTimer {"Set refines"};
-      int myRank;       
+      int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       if (myRank == MASTER_RANK)
          std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
@@ -765,8 +765,8 @@ namespace projects {
    }
 
    bool Magnetosphere::forceRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, int n ) const {
-   
-      int myRank;       
+
+      int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
       if(myRank == MASTER_RANK) {
@@ -817,6 +817,5 @@ namespace projects {
 
       return true;
    }
-   
-} // namespace projects
 
+} // namespace projects

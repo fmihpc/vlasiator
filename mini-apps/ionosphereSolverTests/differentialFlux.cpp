@@ -21,23 +21,23 @@ std::array< Real, productionNumParticleEnergies > differentialFlux;
 
 int main(int argc, char** argv) {
 
-	if(argc < 3) {
-		std::cerr << "Syntax: differentialFlux <Density (1/m³)> <Temperature (K)>" << std::endl;
-		return 1;
-	}
-	Real rhon = atof(argv[1]);
-	Real T = atof(argv[2]);
+        if(argc < 3) {
+                std::cerr << "Syntax: differentialFlux <Density (1/m³)> <Temperature (K)>" << std::endl;
+                return 1;
+        }
+        Real rhon = atof(argv[1]);
+        Real T = atof(argv[2]);
 
-	// Energies of particles that sample the production array
-	// are logspace-distributed from 10^-1 to 10^2.3 keV
-	for(int e=0; e<productionNumParticleEnergies; e++) {
-		particle_energy[e] = pow(10.0, -1.+e*(2.3+1.)/(productionNumParticleEnergies-1));
-	}
-	particle_energy[productionNumParticleEnergies] = 2*particle_energy[productionNumParticleEnergies-1] - particle_energy[productionNumParticleEnergies-2];
+        // Energies of particles that sample the production array
+        // are logspace-distributed from 10^-1 to 10^2.3 keV
+        for(int e=0; e<productionNumParticleEnergies; e++) {
+                particle_energy[e] = pow(10.0, -1.+e*(2.3+1.)/(productionNumParticleEnergies-1));
+        }
+        particle_energy[productionNumParticleEnergies] = 2*particle_energy[productionNumParticleEnergies-1] - particle_energy[productionNumParticleEnergies-2];
 
    Real tempenergy = kB * T / CHARGE / 1000;
-	Real accenergy = productionMinAccEnergy;
-	std::cerr << "# Temperature of " << T << " K == Thermal energy of " << tempenergy << " keV" << std::endl;
+        Real accenergy = productionMinAccEnergy;
+        std::cerr << "# Temperature of " << T << " K == Thermal energy of " << tempenergy << " keV" << std::endl;
 
    for(int p=0; p<productionNumParticleEnergies; p++) {
       // TODO: Kappa distribution here? Now only going for maxwellian
@@ -54,10 +54,10 @@ int main(int argc, char** argv) {
       }
    }
 
-	std::cout << "#Energy (keV)\tFlux (1/m²/s)" << std::endl;
-	for(int p=0; p<productionNumParticleEnergies; p++) {
-		std::cout << particle_energy[p] << "\t" << rhon*differentialFlux[p] << std::endl;
-	}
+        std::cout << "#Energy (keV)\tFlux (1/m²/s)" << std::endl;
+        for(int p=0; p<productionNumParticleEnergies; p++) {
+                std::cout << particle_energy[p] << "\t" << rhon*differentialFlux[p] << std::endl;
+        }
 
-	return 0;
+        return 0;
 }

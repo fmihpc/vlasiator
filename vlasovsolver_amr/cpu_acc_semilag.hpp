@@ -68,7 +68,7 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell, uint map_order, const Real d
    Transform<Real,3,Affine> bwd_transform= fwd_transform.inverse();
    computeTransformTimer.stop();
 
-   // NOTE: This is now in a debugging / testing state. The propagator 
+   // NOTE: This is now in a debugging / testing state. The propagator
    // only does one thing each time step. Currently this does
    // step=0 accel vx
    //      1 coarsen mesh
@@ -77,9 +77,9 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell, uint map_order, const Real d
    //      4 accel vz
    //      5 coarsen mesh
    // (repeat)
-   
+
    // It is then easy to see the effect of each step in the output vlsv files.
-   
+
    // BEGIN TEST
    map_order=0;
    static int dim = map_order;
@@ -92,7 +92,7 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell, uint map_order, const Real d
       // BEGIN TEST
       if (dim == 0) map_1d(spatial_cell, fwd_transform, bwd_transform,0,0);
       if (dim == 1) map_1d(spatial_cell, fwd_transform, bwd_transform,1,1);
-      if (dim == 2) map_1d(spatial_cell, fwd_transform, bwd_transform,2,2);      
+      if (dim == 2) map_1d(spatial_cell, fwd_transform, bwd_transform,2,2);
       // END TEST
       //map_1d(spatial_cell, fwd_transform, bwd_transform,0,0);
       //map_1d(spatial_cell, fwd_transform, bwd_transform,1,1);
@@ -118,8 +118,8 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell, uint map_order, const Real d
    }
    // END TEST
 
-   // NOTE: Mesh coarsening might be needed after each acceleration substep 
-   
+   // NOTE: Mesh coarsening might be needed after each acceleration substep
+
    // BEGIN TEST
    if (counter % 2 != 0) {
       phiprof::Timer timer {"mesh coarsening"};
@@ -135,10 +135,9 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell, uint map_order, const Real d
    }
    ++counter;
    // END TEST
-   
+
    double t2=MPI_Wtime();
    spatial_cell->parameters[CellParams::LBWEIGHTCOUNTER] += t2 - t1;
 }
 
 #endif
-

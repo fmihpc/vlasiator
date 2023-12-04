@@ -35,8 +35,8 @@
 using namespace std;
 
 
-/** Enumerates spatial density models Flowthrough project supports. 
- * In most cases you want to use 'Maxwellian'. However, test package 
+/** Enumerates spatial density models Flowthrough project supports.
+ * In most cases you want to use 'Maxwellian'. However, test package
  * uses 'SheetMaxwellian'.*/
 
 enum DensityModel {
@@ -52,7 +52,7 @@ static DensityModel densityModel;
 namespace projects {
    Flowthrough::Flowthrough(): TriAxisSearch() { }
    Flowthrough::~Flowthrough() { }
-   
+
    bool Flowthrough::initialize(void) {
       return Project::initialize();
    }
@@ -79,7 +79,7 @@ namespace projects {
          RP::add(pop + "_Flowthrough.nVelocitySamples", "Number of sampling points per velocity dimension", 1);
       }
    }
-   
+
    void Flowthrough::getParameters(){
       Project::getParameters();
       int myRank;
@@ -158,7 +158,7 @@ namespace projects {
          }
          break;
       case Triangle:
-         if (abs(x) < 0.5*densityWidth) {            
+         if (abs(x) < 0.5*densityWidth) {
             rvalue = 4* pow(mass / (2.0 * M_PI * physicalconstants::K_B * sP.T), 1.5)
               * exp(- mass * ((  vx-sP.V0[0])*(vx-sP.V0[0]) + (vy-sP.V0[1])*(vy-sP.V0[1])
                                 + (vz-sP.V0[2])*(vz-sP.V0[2])) / (2.0 * physicalconstants::K_B * sP.T));
@@ -171,7 +171,7 @@ namespace projects {
          }
          break;
       case Sinewave:
-         if (abs(x) < 0.5*densityWidth) {            
+         if (abs(x) < 0.5*densityWidth) {
             rvalue = 4 * pow(mass / (2.0 * M_PI * physicalconstants::K_B * sP.T), 1.5)
               * exp(- mass * ((  vx-sP.V0[0])*(vx-sP.V0[0]) + (vy-sP.V0[1])*(vy-sP.V0[1])
                                 + (vz-sP.V0[2])*(vz-sP.V0[2])) / (2.0 * physicalconstants::K_B * sP.T));
@@ -183,8 +183,8 @@ namespace projects {
             //rvalue = 0;
          }
          break;
-      }  
-      
+      }
+
       return rvalue;
    }
 
@@ -210,7 +210,7 @@ namespace projects {
          return avg / (sP.nSpaceSamples*sP.nSpaceSamples*sP.nSpaceSamples*sP.nVelocitySamples*sP.nVelocitySamples*sP.nVelocitySamples);
       } else {
          return getDistribValue(x+0.5*dx,y+0.5*dy,z+0.5*dz,vx+0.5*dvx,vy+0.5*dvy,vz+0.5*dvz,dvx,dvy,dvz,popID);
-         
+
       }
    }
 
@@ -222,10 +222,10 @@ namespace projects {
       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
    ) {
       ConstantField bgField;
-      bgField.initialize(Bx,By,Bz); //bg bx, by,bz      
+      bgField.initialize(Bx,By,Bz); //bg bx, by,bz
       setBackgroundField(bgField, BgBGrid);
    }
-   
+
    std::vector<std::array<Real, 3> > Flowthrough::getV0(
       creal x,
       creal y,
@@ -243,12 +243,12 @@ namespace projects {
       const int bw = (2 + 1*refLevel) * VLASOV_STENCIL_WIDTH; // Seems to be the limit
 
       return refLevel < P::amrMaxSpatialRefLevel &&
-             xyz[0] > P::xmin + P::dx_ini * bw && 
+             xyz[0] > P::xmin + P::dx_ini * bw &&
              xyz[0] < P::xmax - P::dx_ini * bw;
    }
 
    int Flowthrough::adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
-      int myRank;       
+      int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       if(myRank == MASTER_RANK) {
          std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
@@ -279,6 +279,6 @@ namespace projects {
 
       return refines;
    }
-   
+
 
 } //namespace projects

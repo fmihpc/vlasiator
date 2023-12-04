@@ -55,7 +55,7 @@ typedef uint64_t CellID;
 
 template<typename T> T convert(const T& number) {return number;}
 
-/** Definition of simulation geometry, used to speed up 
+/** Definition of simulation geometry, used to speed up
  * computations in cases where all velocity coordinates are not used.*/
 namespace geometry {
    enum Setup {
@@ -86,8 +86,8 @@ namespace vmesh {
    static const LocalID INVALID_VEL_BLOCK_INDEX = INVALID_LOCALID;
 }
 
-/** Definition of a function that takes in a velocity block with neighbor data, 
- * and returns a number that is used to decide whether or not the block should 
+/** Definition of a function that takes in a velocity block with neighbor data,
+ * and returns a number that is used to decide whether or not the block should
  * be refined or coarsened.*/
 typedef Realf (*VAmrVelRefinement)(const Realf* velBlock);
 

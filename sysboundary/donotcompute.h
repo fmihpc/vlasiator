@@ -33,17 +33,17 @@ using namespace projects;
 
 namespace SBC {
    /*!\brief DoNotCompute is a class handling cells not to be computed.
-    * 
+    *
     * DoNotCompute is a class handling cells tagged as sysboundarytype::DO_NOT_COMPUTE by a system boundary condition (e.g. SysBoundaryCondition::Ionosphere).
     */
    class DoNotCompute: public SysBoundaryCondition {
    public:
       DoNotCompute();
       virtual ~DoNotCompute();
-      
+
       static void addParameters();
       virtual void getParameters();
-      
+
       virtual bool initSysBoundary(
          creal& t,
          Project &project

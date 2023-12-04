@@ -47,9 +47,3 @@ double ConstantField::operator()( double x, double y, double z, coordinate compo
       return 0.0;
    }
 }
-
-
-
-
-
-

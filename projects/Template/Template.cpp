@@ -37,19 +37,19 @@ using namespace spatial_cell;
 namespace projects {
    Template::Template(): TriAxisSearch() { }
    Template::~Template() { }
-   
+
    void Template::addParameters() {
       typedef Readparameters RP;
       RP::add("Template.param", "This is my project's parameter. Default is 0.0", 0.0);
    }
-   
+
    void Template::getParameters(){
       Parameters::getParameters();
 
       typedef Readparameters RP;
       RP::get("Template.param", this->param);
    }
-   
+
    bool Template::initialize() {
       this->param += 1.0;
       return Project::initialize();
@@ -65,7 +65,7 @@ namespace projects {
       return rho * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * T), 1.5) *
       exp(- physicalconstants::MASS_PROTON * ((vx-Vx0)*(vx-Vx0) + (vy-Vy0)*(vy-Vy0) + (vz-Vz0)*(vz-Vz0)) / (2.0 * physicalconstants::K_B * T));
    }
-   
+
    void Template::setProjectBField(
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
@@ -75,7 +75,7 @@ namespace projects {
       bgField.initialize(8e15, 0.0, 0.0, 0.0, 0.0); //set dipole moment and location
       setBackgroundField(bgField, BgBGrid);
    }
-   
+
    vector<std::array<Real, 3>> Template::getV0(
       creal x,
       creal y,
@@ -88,6 +88,5 @@ namespace projects {
       centerPoints.push_back(point);
       return centerPoints;
    }
-   
-} // namespace projects
 
+} // namespace projects

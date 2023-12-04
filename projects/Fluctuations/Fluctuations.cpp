@@ -42,7 +42,7 @@ namespace projects {
    Fluctuations::Fluctuations(): TriAxisSearch() { }
    Fluctuations::~Fluctuations() { }
    bool Fluctuations::initialize(void) {return Project::initialize();}
-   
+
    void Fluctuations::addParameters() {
       typedef Readparameters RP;
       RP::add("Fluctuations.BX0", "Background field value (T)", 1.0e-9);
@@ -92,7 +92,7 @@ namespace projects {
          speciesParams.push_back(sP);
       }
    }
-   
+
    Real Fluctuations::getDistribValue(creal& vx,creal& vy, creal& vz, const uint popID) const {
       const FluctuationsSpeciesParameters& sP = speciesParams[popID];
 
@@ -118,15 +118,15 @@ namespace projects {
           vz > meshParams.meshMaxLimits[2] - 1.5*dvz) {
          return 0.0;
       }
-      
+
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
-      
+
       creal d_vx = dvx / (sP.nVelocitySamples-1);
       creal d_vy = dvy / (sP.nVelocitySamples-1);
       creal d_vz = dvz / (sP.nVelocitySamples-1);
       Real avg = 0.0;
-      
+
       for (uint vi=0; vi<sP.nVelocitySamples; ++vi)
          for (uint vj=0; vj<sP.nVelocitySamples; ++vj)
             for (uint vk=0; vk<sP.nVelocitySamples; ++vk)
@@ -136,19 +136,19 @@ namespace projects {
                   vy+vj*d_vy - sP.velocityPertAbsAmp * (0.5 - rndVel[1] ),
                   vz+vk*d_vz - sP.velocityPertAbsAmp * (0.5 - rndVel[2] ), popID);
             }
-      
+
       creal result = avg *
          sP.DENSITY * (1.0 + sP.densityPertRelAmp * (0.5 - rndRho)) *
          pow(mass / (2.0 * M_PI * kb * sP.TEMPERATURE), 1.5) /
          (sP.nVelocitySamples*sP.nVelocitySamples*sP.nVelocitySamples);
-      
+
       if(result < sP.maxwCutoff) {
          return 0.0;
       } else {
          return result;
       }
    }
-   
+
    void Fluctuations::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
       Real* cellParams = cell->get_cell_parameters();
       creal x = cellParams[CellParams::XCRD];
@@ -157,14 +157,14 @@ namespace projects {
       creal dy = cellParams[CellParams::DY];
       creal z = cellParams[CellParams::ZCRD];
       creal dz = cellParams[CellParams::DZ];
-      
+
       CellID cellID = (int) ((x - Parameters::xmin) / dx) +
          (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
          (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
-      
+
       std::default_random_engine rndState;
       setRandomCellSeed(cell,rndState);
-      
+
       this->rndRho=getRandomNumber(rndState);
       this->rndVel[0]=getRandomNumber(rndState);
       this->rndVel[1]=getRandomNumber(rndState);
@@ -182,20 +182,20 @@ namespace projects {
                          this->BZ0);
 
       setBackgroundField(bgField, BgBGrid);
-      
+
       if(!P::isRestart) {
          const auto localSize = BgBGrid.getLocalSize().data();
-         
+
          #pragma omp parallel for collapse(3)
          for (int x = 0; x < localSize[0]; ++x) {
             for (int y = 0; y < localSize[1]; ++y) {
                for (int z = 0; z < localSize[2]; ++z) {
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
                   const int64_t cellid = perBGrid.GlobalIDForCoords(x, y, z);
-                  
+
                   std::default_random_engine rndState;
                   setRandomSeed(cellid,rndState);
-                  
+
                   cell->at(fsgrids::bfield::PERBX) = this->magXPertAbsAmp * (0.5 - getRandomNumber(rndState));
                   cell->at(fsgrids::bfield::PERBY) = this->magYPertAbsAmp * (0.5 - getRandomNumber(rndState));
                   cell->at(fsgrids::bfield::PERBZ) = this->magZPertAbsAmp * (0.5 - getRandomNumber(rndState));
@@ -204,7 +204,7 @@ namespace projects {
          }
       }
    }
-   
+
    std::vector<std::array<Real, 3> > Fluctuations::getV0(
       creal x,
       creal y,
@@ -216,5 +216,5 @@ namespace projects {
       centerPoints.push_back(V0);
       return centerPoints;
    }
-   
+
 } // namespace projects

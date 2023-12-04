@@ -36,7 +36,7 @@ using namespace std;
 namespace projects {
    Alfven::Alfven(): Project() { }
    Alfven::~Alfven() { }
-   
+
    bool Alfven::initialize(void) {
       bool success = Project::initialize();
 
@@ -45,9 +45,9 @@ namespace projects {
       this->By_guiding /= norm;
       this->By_guiding /= norm;
       this->ALPHA = atan(this->By_guiding/this->Bx_guiding);
-      
+
       return success;
-   } 
+   }
 
    void Alfven::addParameters() {
       typedef Readparameters RP;
@@ -73,7 +73,7 @@ namespace projects {
 
    void Alfven::getParameters(){
       Project::getParameters();
-      
+
       typedef Readparameters RP;
       RP::get("Alfven.B0", this->B0);
       RP::get("Alfven.Bx_guiding", this->Bx_guiding);
@@ -111,12 +111,12 @@ namespace projects {
       creal Vx = sP.A_VEL * ALFVEN_VEL * sin(this->ALPHA) * sin(2.0 * M_PI * ksi);
       creal Vy = - sP.A_VEL * ALFVEN_VEL * cos(this->ALPHA) * sin(2.0 * M_PI * ksi);
       creal Vz = - sP.A_VEL * ALFVEN_VEL * cos(2.0 * M_PI * ksi);
-   
+
       creal den = sP.rho * pow(mass / (2.0 * M_PI * kb * sP.T), 1.5) *
       exp(- mass * (pow(vx - Vx, 2.0) + pow(vy - Vy, 2.0) + pow(vz - Vz, 2.0)) / (2.0 * kb * sP.T));
       return den;
    }
-   
+
    Real Alfven::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
       const AlfvenSpeciesParameters& sP = speciesParams[popID];
       creal d_x = dx / (this->nSpaceSamples-1);
@@ -137,14 +137,14 @@ namespace projects {
                      }
       return avg / pow(this->nSpaceSamples, 3.0) / pow(sP.nVelocitySamples, 3.0);
    }
-   
+
    void Alfven::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
       Real* cellParams = cell->get_cell_parameters();
       creal x = cellParams[CellParams::XCRD];
       creal dx = cellParams[CellParams::DX];
       creal y = cellParams[CellParams::YCRD];
       creal dy = cellParams[CellParams::DY];
-      
+
       Real dBxavg, dByavg, dBzavg;
       dBxavg = dByavg = dBzavg = 0.0;
       Real d_x = dx / (this->nSpaceSamples - 1);
@@ -158,31 +158,31 @@ namespace projects {
          dByavg += sin(2.0 * M_PI * ksi);
          dBzavg += cos(2.0 * M_PI * ksi);
       }
-      
+
    }
-   
+
    void Alfven::setProjectBField(
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
    ) {
       setBackgroundFieldToZero(BgBGrid);
-      
+
       if (!P::isRestart) {
          auto localSize = perBGrid.getLocalSize().data();
-         
+
 #pragma omp parallel for collapse(3)
          for (int x = 0; x < localSize[0]; ++x) {
             for (int y = 0; y < localSize[1]; ++y) {
                for (int z = 0; z < localSize[2]; ++z) {
                   const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
-                  
+
                   Real dBxavg, dByavg, dBzavg;
                   dBxavg = dByavg = dBzavg = 0.0;
                   Real d_x = perBGrid.DX / (this->nSpaceSamples - 1);
                   Real d_y = perBGrid.DY / (this->nSpaceSamples - 1);
-                  
+
                   for (uint i=0; i<this->nSpaceSamples; ++i) {
                      for (uint j=0; j<this->nSpaceSamples; ++j) {
                         for (uint k=0; k<this->nSpaceSamples; ++k) {
@@ -193,16 +193,16 @@ namespace projects {
                         }
                      }
                   }
-                  
+
                   cuint nPts = pow(this->nSpaceSamples, 3.0);
                   cell->at(fsgrids::bfield::PERBX) = this->B0 * cos(this->ALPHA) - this->A_MAG * this->B0 * sin(this->ALPHA) * dBxavg / nPts;
                   cell->at(fsgrids::bfield::PERBY) = this->B0 * sin(this->ALPHA) + this->A_MAG * this->B0 * cos(this->ALPHA) * dByavg / nPts;
                   cell->at(fsgrids::bfield::PERBZ) = this->B0 * this->A_MAG * dBzavg / nPts;
-                  
+
                }
             }
          }
       }
    }
-   
+
 } // namespace projects

@@ -170,7 +170,7 @@ public:
    static bool versionMessage();
 
    static std::string versionInfo();
-   
+
    static std::string configInfo();
 
    static bool parse(const bool needsRunConfig = true, const bool allowUnknown = true);

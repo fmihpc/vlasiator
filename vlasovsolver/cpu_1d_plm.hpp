@@ -33,7 +33,7 @@ using namespace std;
 
 /*!
  Compute PLM coefficients
- f(v) = a[0] + a[1]/2.0*t 
+ f(v) = a[0] + a[1]/2.0*t
 t=(v-v_{i-0.5})/dv where v_{i-0.5} is the left face of a cell
 The factor 2.0 is in the polynom to ease integration, then integral is a[0]*t + a[1]*t**2
 */

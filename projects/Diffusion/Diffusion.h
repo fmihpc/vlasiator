@@ -41,7 +41,7 @@ namespace projects {
     public:
       Diffusion();
       virtual ~Diffusion();
-      
+
       virtual bool initialize(void);
       static void addParameters(void);
       virtual void getParameters(void);
@@ -51,7 +51,7 @@ namespace projects {
          FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
          FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
       );
-      
+
     protected:
       Real getDistribValue(
                            creal& x,creal& y, creal& z,
@@ -66,7 +66,7 @@ namespace projects {
                                          creal& dvx, creal& dvy, creal& dvz,
                                          const uint popID
                                         ) const;
-      
+
       Real B0;
       std::vector<DiffusionSpeciesParameters> speciesParams;
    } ; // class Diffusion

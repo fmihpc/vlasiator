@@ -37,9 +37,9 @@ using namespace spatial_cell;
 namespace projects {
    Harris::Harris(): TriAxisSearch() { }
    Harris::~Harris() { }
-   
+
    bool Harris::initialize(void) {return Project::initialize();}
-   
+
    void Harris::addParameters(){
       typedef Readparameters RP;
       RP::add("Harris.Scale_size", "Harris sheet scale size (m)", 150000.0);
@@ -57,7 +57,7 @@ namespace projects {
          RP::add(pop + "_Harris.nVelocitySamples", "Number of sampling points per velocity dimension.", 1);
       }
    }
-   
+
    void Harris::getParameters(){
       Project::getParameters();
       typedef Readparameters RP;
@@ -80,7 +80,7 @@ namespace projects {
          speciesParams.push_back(sP);
       }
    }
-   
+
    Real Harris::getDistribValue(
       creal& x,creal& y, creal& z,
       creal& vx, creal& vy, creal& vz,
@@ -96,7 +96,7 @@ namespace projects {
          +
          exp(- mass * (pow(vx, 2.0) + pow(vy, 2.0) + pow(vz, 2.0)) / (2.0 * physicalconstants::K_B * sP.TEMPERATURE)));
    }
-   
+
    Real Harris::calcPhaseSpaceDensity(
       creal& x,creal& y,creal& z,
       creal& dx,creal& dy,creal& dz,
@@ -111,7 +111,7 @@ namespace projects {
          creal d_vx = dvx / (sP.nVelocitySamples-1);
          creal d_vy = dvy / (sP.nVelocitySamples-1);
          creal d_vz = dvz / (sP.nVelocitySamples-1);
-         
+
          Real avg = 0.0;
          // #pragma omp parallel for collapse(6) reduction(+:avg)
          // WARNING No threading here if calling functions are already threaded
@@ -129,13 +129,13 @@ namespace projects {
       } else {
          return getDistribValue(x+0.5*dx, y+0.5*dy, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, dvx, dvy, dvz, popID);
       }
-      
-      
-      
+
+
+
    }
-   
+
    void Harris::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
-   
+
    vector<std::array<Real, 3>> Harris::getV0(
       creal x,
       creal y,
@@ -154,17 +154,17 @@ namespace projects {
       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
    ) {
       setBackgroundFieldToZero(BgBGrid);
-      
+
       if(!P::isRestart) {
          auto localSize = perBGrid.getLocalSize().data();
-         
+
          #pragma omp parallel for collapse(3)
          for (int x = 0; x < localSize[0]; ++x) {
             for (int y = 0; y < localSize[1]; ++y) {
                for (int z = 0; z < localSize[2]; ++z) {
                   const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
-                  
+
                   cell->at(fsgrids::bfield::PERBX) = this->BX0 * tanh((xyz[1] + 0.5 * perBGrid.DY) / this->SCA_LAMBDA);
                   cell->at(fsgrids::bfield::PERBY) = this->BY0 * tanh((xyz[2] + 0.5 * perBGrid.DZ) / this->SCA_LAMBDA);
                   cell->at(fsgrids::bfield::PERBZ) = this->BZ0 * tanh((xyz[0] + 0.5 * perBGrid.DX) / this->SCA_LAMBDA);

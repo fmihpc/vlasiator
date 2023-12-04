@@ -824,15 +824,15 @@ void calculateHallTermSimple(
       phiprof::Timer computeTimer {computeTimerId};
       #pragma omp for collapse(2)
       for (int k=0; k<gridDims[2]; k++) {
-	 for (int j=0; j<gridDims[1]; j++) {
-	    for (int i=0; i<gridDims[0]; i++) {
-	       if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-		  calculateHallTerm(perBGrid, EHallGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid,sysBoundaries, i, j, k);
-	       } else {
-		  calculateHallTerm(perBDt2Grid, EHallGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid,sysBoundaries, i, j, k);
-	       }
-	    }
-	 }
+         for (int j=0; j<gridDims[1]; j++) {
+            for (int i=0; i<gridDims[0]; i++) {
+               if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+                  calculateHallTerm(perBGrid, EHallGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid,sysBoundaries, i, j, k);
+               } else {
+                  calculateHallTerm(perBDt2Grid, EHallGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid,sysBoundaries, i, j, k);
+               }
+            }
+         }
       }
       computeTimer.stop(N_cells,"Spatial Cells");
    }

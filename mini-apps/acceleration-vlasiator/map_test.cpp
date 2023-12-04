@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include "common.h"
-#include "vlasovsolver/vec.h" 
+#include "vlasovsolver/vec.h"
 #include "vlasovsolver/cpu_1d_pqm.hpp"
 #include "vlasovsolver/cpu_1d_ppm.hpp"
 #include "vlasovsolver/cpu_1d_plm.hpp"
@@ -28,23 +28,23 @@ void print_values(int step, Vec *values, uint blocks_per_dim, Real v_min, Real d
 void propagate(Vec values[], uint  blocks_per_dim, Real v_min, Real dv,
                uint i_block, uint j_block, uint j_cell,
                Real intersection, Real intersection_di, Real intersection_dj, Real intersection_dk){
-  Vec target[(MAX_BLOCKS_PER_DIM+2)*WID]; 
+  Vec target[(MAX_BLOCKS_PER_DIM+2)*WID];
 
-  
+
   /*clear temporary taret*/
-  for (uint k=0; k<WID* (blocks_per_dim + 2); ++k){ 
+  for (uint k=0; k<WID* (blocks_per_dim + 2); ++k){
        target[k] = 0.0;
   }
-   
+
    /* intersection_min is the intersection z coordinate (z after
       swaps that is) of the lowest possible z plane for each i,j
       index (i in vector)
    */
-  const Real intersection_min_base =  
+  const Real intersection_min_base =
     intersection +
-    (i_block * WID) * intersection_di + 
+    (i_block * WID) * intersection_di +
     (j_block * WID + j_cell) * intersection_dj;
-  
+
   //const Vec intersection_min(intersection_min_base);
   const Vec intersection_min(intersection_min_base + 0 * intersection_di,
                               intersection_min_base + 1 * intersection_di,
@@ -57,7 +57,7 @@ void propagate(Vec values[], uint  blocks_per_dim, Real v_min, Real dv,
 
   /*loop through all blocks in column and compute the mapping as integrals*/
   for (unsigned int k_block = 0; k_block<blocks_per_dim;k_block++){
-    for (uint k_cell=0; k_cell<WID; ++k_cell){ 
+    for (uint k_cell=0; k_cell<WID; ++k_cell){
 
 #ifdef ACC_SEMILAG_PLM
       Vec a[2];
@@ -78,11 +78,11 @@ void propagate(Vec values[], uint  blocks_per_dim, Real v_min, Real dv,
       Vec v_l = v_min + (k_block * WID + k_cell) * dv;
       Vec v_r = v_l + dv;
       /*left(l) and right(r) k values (global index) in the target
-        lagrangian grid, the intersecting cells. Again old right is new left*/               
+        lagrangian grid, the intersecting cells. Again old right is new left*/
       const Veci target_gk_l = truncate_to_int((v_l - intersection_min)/intersection_dk);
       const Veci target_gk_r = truncate_to_int((v_r - intersection_min)/intersection_dk);
-      
-      
+
+
 
       Veci gk(target_gk_l);
       while (horizontal_or(gk <= target_gk_r)){
@@ -138,11 +138,11 @@ void propagate(Vec values[], uint  blocks_per_dim, Real v_min, Real dv,
             v_int_norm_r * v_int_norm_r * v_int_norm_r * v_int_norm_r * v_int_norm_r * a[4];
 
 #endif
-         
-         
+
+
          /*total value of integrand*/
          const Vec target_density = target_density_r - target_density_l;
-         
+
          //store values, one element at elema time
          for(uint elem = 0; elem < 4;elem ++ ){
             int k_in_target = gk[elem];
@@ -156,11 +156,11 @@ void propagate(Vec values[], uint  blocks_per_dim, Real v_min, Real dv,
       }
      }
   }
-  
+
 
   /*copy target to values, and clear target array*/
   for (unsigned int k_block = 0; k_block<blocks_per_dim;k_block++){
-    for (uint k=0; k<WID; ++k){ 
+    for (uint k=0; k<WID; ++k){
       values[k_block * WID + k + WID] = target[k_block * WID + k + WID];
       target[k_block * WID + k + WID] = 0.0;
      }
@@ -174,17 +174,17 @@ void print_reconstruction(int step, Vec values[], uint  blocks_per_dim, Real v_m
   sprintf(name,"reconstructions_%05d.dat",step);
   FILE* fp=fopen(name,"w");
 
-  
-   
+
+
   /* intersection_min is the intersection z coordinate (z after
      swaps that is) of the lowest possible z plane for each i,j
      index (i in vector)
   */
-  const Real intersection_min_base =  
+  const Real intersection_min_base =
     intersection +
-    (i_block * WID) * intersection_di + 
+    (i_block * WID) * intersection_di +
     (j_block * WID + j_cell) * intersection_dj;
-  
+
   //const Vec intersection_min(intersection_min_base);
   const Vec intersection_min(intersection_min_base + 0 * intersection_di,
                               intersection_min_base + 1 * intersection_di,
@@ -197,7 +197,7 @@ void print_reconstruction(int step, Vec values[], uint  blocks_per_dim, Real v_m
   const int subcells = 50;
   /*loop through all blocks in column and divide into subcells. Print value of reconstruction*/
   for (unsigned int k_block = 0; k_block<blocks_per_dim;k_block++){
-    for (uint k_cell=0; k_cell<WID; ++k_cell){ 
+    for (uint k_cell=0; k_cell<WID; ++k_cell){
 #ifdef ACC_SEMILAG_PLM
       Vec a[2];
       compute_plm_coeff(values, (k_block + 1) * WID + k_cell , a, fluxlimiterscalingfactor);
@@ -212,23 +212,23 @@ void print_reconstruction(int step, Vec values[], uint  blocks_per_dim, Real v_m
 #endif
 
       Vec v_l = v_min + (k_block * WID + k_cell) * dv;
-      for (uint k_subcell=0; k_subcell< subcells; ++k_subcell){ 
+      for (uint k_subcell=0; k_subcell< subcells; ++k_subcell){
            Vec v_norm = (Real)(k_subcell + 0.5)/subcells; //normalized v of subcell in source cell
            Vec v = v_l + v_norm * dv;
 
 #ifdef ACC_SEMILAG_PLM
-         Vec target = 
+         Vec target =
             a[0] +
             2.0 * v_norm * a[1];
 #endif
 #ifdef ACC_SEMILAG_PPM
-         Vec target = 
+         Vec target =
             a[0] +
             2.0 * v_norm * a[1] +
             3.0 * v_norm * v_norm * a[2];
 #endif
 #ifdef ACC_SEMILAG_PQM
-         Vec target = 
+         Vec target =
             a[0] +
             2.0 * v_norm * a[1] +
             3.0 * v_norm * v_norm * a[2] +
@@ -240,7 +240,7 @@ void print_reconstruction(int step, Vec values[], uint  blocks_per_dim, Real v_m
       fprintf(fp,"\n"); //empty line to deay wgments in gnuplot
     }
   }
-  
+
   fclose(fp);
 }
 
@@ -256,22 +256,22 @@ int main(void) {
   const int i_block = 0; //x index of block, fixed in this simple test
   const int j_block = 0; //y index of block, fixed in this simple test
   const int j_cell = 0; // y index of cell within block (0..WID-1)
-  
+
 
   Vec values[(blocks_per_dim+2)*WID];
-   
+
   /*initial values*/
-  
+
   Real intersection = v_min - 0.1*dv;
   Real intersection_di = 0.025 * dv;
   Real intersection_dk = dv;
   Real intersection_dj = 0.0 * dv; //does not matter here, fixed j.
 
-  
+
   const int iterations = 1000;
 
    /*clear target & values array*/
-  for (uint k=0; k<WID* (blocks_per_dim + 2); ++k){ 
+  for (uint k=0; k<WID* (blocks_per_dim + 2); ++k){
        values[k] = 0.0;
   }
 
@@ -279,7 +279,7 @@ int main(void) {
   /*
   for(int i=0; i < blocks_per_dim * WID; i++){
      Real v=v_min + i*dv;
-     if (v > v_min +  0.8 * (blocks_per_dim * WID * dv) & 
+     if (v > v_min +  0.8 * (blocks_per_dim * WID * dv) &
          v < v_min +  0.9 * (blocks_per_dim * WID * dv)) {
         values[i + WID] = Vec(1.0);
      }
@@ -292,8 +292,8 @@ int main(void) {
      values[i + WID] = rho * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * T), 1.5) *
         exp(- physicalconstants::MASS_PROTON * v * v / (2.0 * physicalconstants::K_B * T));
   }
-     
-  
+
+
 // print_values(0,values,blocks_per_dim, v_min, dv);
  print_reconstruction(0, values, blocks_per_dim, v_min, dv,
                       i_block, j_block, j_cell,
@@ -307,9 +307,9 @@ int main(void) {
              intersection, intersection_di, intersection_dj, intersection_dk);
    if (step % 10 == 0)
      print_reconstruction(step, values, blocks_per_dim, v_min, dv,
-			  i_block, j_block, j_cell,
-			  intersection, intersection_di, intersection_dj, intersection_dk);
-   
+                          i_block, j_block, j_cell,
+                          intersection, intersection_di, intersection_dj, intersection_dk);
+
  }
  printf("\nTime per iteration: %12.15g\n", ((double)(clock() - t)/CLOCKS_PER_SEC)/iterations);
 

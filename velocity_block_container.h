@@ -53,7 +53,7 @@ namespace vmesh {
       Realf* getNullData();
       Real* getParameters();
       const Real* getParameters() const;
-      Real* getParameters(const LID& blockLID);      
+      Real* getParameters(const LID& blockLID);
       const Real* getParameters(const LID& blockLID) const;
       void pop();
       LID push_back();
@@ -73,37 +73,37 @@ namespace vmesh {
     private:
       void exitInvalidLocalID(const LID& localID,const std::string& funcName) const;
       void resize();
-      
+
       std::vector<Realf,aligned_allocator<Realf,WID3> > block_data;
       Realf null_block_data[WID3];
       LID currentCapacity;
       LID numberOfBlocks;
       std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS> > parameters;
    };
-   
+
    template<typename LID> inline
    VelocityBlockContainer<LID>::VelocityBlockContainer() : currentCapacity {0}, numberOfBlocks {0} {}
-   
+
    template<typename LID> inline
    LID VelocityBlockContainer<LID>::capacity() const {
       return currentCapacity;
    }
-   
+
    template<typename LID> inline
    size_t VelocityBlockContainer<LID>::capacityInBytes() const {
       return (block_data.capacity())*sizeof(Realf) + parameters.capacity()*sizeof(Real);
    }
 
-   /** Clears VelocityBlockContainer data and deallocates all memory 
+   /** Clears VelocityBlockContainer data and deallocates all memory
     * reserved for velocity blocks.*/
    template<typename LID> inline
    void VelocityBlockContainer<LID>::clear() {
       std::vector<Realf,aligned_allocator<Realf,WID3> > dummy_data;
       std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS> > dummy_parameters;
-      
+
       block_data.swap(dummy_data);
       parameters.swap(dummy_parameters);
-      
+
       currentCapacity = 0;
       numberOfBlocks = 0;
    }
@@ -150,17 +150,17 @@ namespace vmesh {
       sleep(1);
       exit(1);
    }
-   
+
    template<typename LID> inline
    double VelocityBlockContainer<LID>::getBlockAllocationFactor() {
       return BLOCK_ALLOCATION_FACTOR;
    }
-   
+
    template<typename LID> inline
    Realf* VelocityBlockContainer<LID>::getData() {
       return block_data.data();
    }
-   
+
    template<typename LID> inline
    const Realf* VelocityBlockContainer<LID>::getData() const {
       return block_data.data();
@@ -174,7 +174,7 @@ namespace vmesh {
       #endif
       return block_data.data() + blockLID*WID3;
    }
-   
+
    template<typename LID> inline
    const Realf* VelocityBlockContainer<LID>::getData(const LID& blockLID) const {
       #ifdef DEBUG_VBC
@@ -193,7 +193,7 @@ namespace vmesh {
    Real* VelocityBlockContainer<LID>::getParameters() {
       return parameters.data();
    }
-   
+
    template<typename LID> inline
    const Real* VelocityBlockContainer<LID>::getParameters() const {
       return parameters.data();
@@ -207,7 +207,7 @@ namespace vmesh {
       #endif
       return parameters.data() + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
    }
-   
+
    template<typename LID> inline
    const Real* VelocityBlockContainer<LID>::getParameters(const LID& blockLID) const {
       #ifdef DEBUG_VBC
@@ -216,7 +216,7 @@ namespace vmesh {
       #endif
       return parameters.data() + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
    }
-   
+
    template<typename LID> inline
    void VelocityBlockContainer<LID>::pop() {
       if (numberOfBlocks == 0) return;
@@ -241,23 +241,23 @@ namespace vmesh {
 
       // Clear velocity block data to zero values
       for (size_t i=0; i<WID3; ++i) block_data[newIndex*WID3+i] = 0.0;
-      for (size_t i=0; i<BlockParams::N_VELOCITY_BLOCK_PARAMS; ++i) 
+      for (size_t i=0; i<BlockParams::N_VELOCITY_BLOCK_PARAMS; ++i)
          parameters[newIndex*BlockParams::N_VELOCITY_BLOCK_PARAMS+i] = 0.0;
 
       ++numberOfBlocks;
       return newIndex;
    }
-   
+
    template<typename LID> inline
    LID VelocityBlockContainer<LID>::push_back(const uint32_t& N_blocks) {
       const LID newIndex = numberOfBlocks;
       numberOfBlocks += N_blocks;
       resize();
-      
+
       // Clear velocity block data to zero values
       for (size_t i=0; i<WID3*N_blocks; ++i) block_data[newIndex*WID3+i] = 0.0;
       for (size_t i=0; i<BlockParams::N_VELOCITY_BLOCK_PARAMS*N_blocks; ++i)
-	parameters[newIndex*BlockParams::N_VELOCITY_BLOCK_PARAMS+i] = 0.0;
+        parameters[newIndex*BlockParams::N_VELOCITY_BLOCK_PARAMS+i] = 0.0;
 
       return newIndex;
    }
@@ -282,7 +282,7 @@ namespace vmesh {
    template<typename LID> inline
    void VelocityBlockContainer<LID>::resize() {
       if ((numberOfBlocks+1) >= currentCapacity) {
-         // Resize so that free space is block_allocation_chunk blocks, 
+         // Resize so that free space is block_allocation_chunk blocks,
          // and at least two in case of having zero blocks.
          // The order of velocity blocks is unaltered.
          currentCapacity = 2 + numberOfBlocks * BLOCK_ALLOCATION_FACTOR;
@@ -318,12 +318,12 @@ namespace vmesh {
       LID dummy = currentCapacity;
       currentCapacity = vbc.currentCapacity;
       vbc.currentCapacity = dummy;
-      
+
       dummy = numberOfBlocks;
       numberOfBlocks = vbc.numberOfBlocks;
       vbc.numberOfBlocks = dummy;
    }
-   
+
    #ifdef DEBUG_VBC
 
    template<typename LID> inline
@@ -356,10 +356,10 @@ namespace vmesh {
          sleep(1);
          exit(1);
       }
-      
+
       return parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+cell];
    }
-   
+
    template<typename LID> inline
    void VelocityBlockContainer<LID>::setData(const LID& blockLID,const unsigned int& cell,const Realf& value) {
       bool ok = true;
@@ -373,12 +373,12 @@ namespace vmesh {
          sleep(1);
          exit(1);
       }
-      
+
       block_data[blockLID*WID3+cell] = value;
    }
-   
+
    #endif
-   
+
 } // namespace block_cont
 
 #endif

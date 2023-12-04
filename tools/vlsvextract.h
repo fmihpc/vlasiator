@@ -23,11 +23,11 @@
  * Author: sandroos
  *
  * Created on April 14, 2015, 2:08 PM
- * 
+ *
  */
 
 #ifndef VLSVEXTRACT_H
-#define	VLSVEXTRACT_H
+#define VLSVEXTRACT_H
 
 #include <cstdlib>
 #include <array>
@@ -58,7 +58,7 @@ struct NodeCrd {
    REAL z;
 
    NodeCrd(const REAL& x, const REAL& y, const REAL& z);
-   
+
    bool comp(const NodeCrd<REAL>& n) const;
 };
 
@@ -129,5 +129,4 @@ bool NodeCrd<REAL>::comp(const NodeCrd<REAL>& n) const {
    return true;
 }
 
-#endif	// VLSVEXTRACT_H
-
+#endif  // VLSVEXTRACT_H

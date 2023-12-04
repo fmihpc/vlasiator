@@ -45,7 +45,7 @@ struct CellStructure {
    uint64_t cell_bounds[3];
    //Length of a cell in x, y, z direction
    Real cell_length[3];
-   //x_min, y_min, z_min are stored here 
+   //x_min, y_min, z_min are stored here
    Real min_coordinates[3];
 
    //The number of cells in x, y, z direction (initialized somewhere in read parameters)
@@ -189,7 +189,7 @@ uint64_t convUInt(const char* ptr,const T& dataType,const uint64_t& dataSize) {
       cerr << "Erroneous datatype given to convUInt" << endl;
       exit(1);
    }
-   
+
    switch (dataSize) {
     case 1:
       return *reinterpret_cast<const unsigned char*>(ptr);
@@ -241,7 +241,7 @@ template<typename REAL> struct NodeCrd {
    REAL y;
    REAL z;
    NodeCrd(const REAL& x,const REAL& y,const REAL& z): x(x),y(y),z(z) { }
-   
+
    bool comp(const NodeCrd<REAL>& n) const {
       REAL EPS1,EPS2,EPS;
       EPS1 = 1.0e-6 * fabs(x);
@@ -250,14 +250,14 @@ template<typename REAL> struct NodeCrd {
       if (n.x == 0.0) EPS2 = 1.0e-7;
       EPS = max(EPS1,EPS2);
       if (fabs(x - n.x) > EPS) return false;
-      
+
       EPS1 = 1.0e-6 * fabs(y);
       EPS2 = 1.0e-6 * fabs(n.y);
       if (y == 0.0) EPS1 = 1.0e-7;
       if (n.y == 0.0) EPS2 = 1.0e-7;
       EPS = max(EPS1,EPS2);
       if (fabs(y - n.y) > EPS) return false;
-      
+
       EPS1 = 1.0e-6 * fabs(z);
       EPS2 = 1.0e-6 * fabs(n.z);
       if (z == 0.0) EPS1 = 1.0e-7;
@@ -271,32 +271,32 @@ template<typename REAL> struct NodeCrd {
 struct NodeComp {
     bool operator()(const NodeCrd<double>& a,const NodeCrd<double>& b) const {
       if (a.comp(b) == true) return false;
-      double EPS = 0.5e-5 * (fabs(a.z) + fabs(b.z));      
+      double EPS = 0.5e-5 * (fabs(a.z) + fabs(b.z));
       if (a.z > b.z + EPS) return false;
       if (a.z < b.z - EPS) return true;
-      
-      EPS = 0.5e-5 * (fabs(a.y) + fabs(b.y));      
+
+      EPS = 0.5e-5 * (fabs(a.y) + fabs(b.y));
       if (a.y > b.y + EPS) return false;
       if (a.y < b.y - EPS) return true;
-      
-      EPS = 0.5e-5 * (fabs(a.x) + fabs(b.x));      
+
+      EPS = 0.5e-5 * (fabs(a.x) + fabs(b.x));
       if (a.x > b.x + EPS) return false;
       if (a.x < b.x - EPS) return true;
       //cerr << "ERROR" << endl;
       return false;
    }
-    
+
    bool operator()(const NodeCrd<float>& a,const NodeCrd<float>& b) const {
       if (a.comp(b) == true) return false;
-      float EPS = 0.5e-5 * (fabs(a.z) + fabs(b.z));      
+      float EPS = 0.5e-5 * (fabs(a.z) + fabs(b.z));
       if (a.z > b.z + EPS) return false;
       if (a.z < b.z - EPS) return true;
-      
-      EPS = 0.5e-5 * (fabs(a.y) + fabs(b.y));      
+
+      EPS = 0.5e-5 * (fabs(a.y) + fabs(b.y));
       if (a.y > b.y + EPS) return false;
       if (a.y < b.y - EPS) return true;
-      
-      EPS = 0.5e-5 * (fabs(a.x) + fabs(b.x));      
+
+      EPS = 0.5e-5 * (fabs(a.x) + fabs(b.x));
       if (a.x > b.x + EPS) return false;
       if (a.x < b.x - EPS) return true;
       //cerr << "ERROR" << endl;
@@ -314,9 +314,9 @@ template <class T>
 bool convertMeshVariable(T & vlsvReader,const string& meshName,const string& varName) {
    bool success = true;
 
-   // Writing a unstructured grid variable is a rather straightforward process. The 
-   // only compilation here is that some of the variables are actually vectors, i.e. 
-   // vectorSize > 1 (vectorSize == 1 for scalars). Format in which vectors are stored in VLSV 
+   // Writing a unstructured grid variable is a rather straightforward process. The
+   // only compilation here is that some of the variables are actually vectors, i.e.
+   // vectorSize > 1 (vectorSize == 1 for scalars). Format in which vectors are stored in VLSV
    // differ from format in which they are written to SILO files.
    vlsv::datatype::type dataType;
    uint64_t arraySize,vectorSize,dataSize;
@@ -324,7 +324,7 @@ bool convertMeshVariable(T & vlsvReader,const string& meshName,const string& var
    xmlAttributes.push_back(make_pair("name", varName));
    xmlAttributes.push_back(make_pair("mesh", meshName));
    if (vlsvReader.getArrayInfo("VARIABLE", xmlAttributes, arraySize, vectorSize, dataType, dataSize) == false) return false;
-   // Read variable data. Note that we do not actually need to care if 
+   // Read variable data. Note that we do not actually need to care if
    // the data is given as floats or doubles.
    char* buffer = new char[arraySize*vectorSize*dataSize];
    const short unsigned int startingIndex = 0;
@@ -334,18 +334,18 @@ bool convertMeshVariable(T & vlsvReader,const string& meshName,const string& var
       delete[] buffer;
       return success;
    }
-   
-   // Vector variables need to be copied to temporary arrays before 
+
+   // Vector variables need to be copied to temporary arrays before
    // writing to SILO file:
    char** components = new char*[vectorSize];
    for (uint64_t i=0; i<vectorSize; ++i) {
       components[i] = new char[arraySize*dataSize];
-      for (uint64_t j=0; j<arraySize; ++j) for (uint64_t k=0; k<dataSize; ++k) 
+      for (uint64_t j=0; j<arraySize; ++j) for (uint64_t k=0; k<dataSize; ++k)
          components[i][j*dataSize+k] = buffer[j*vectorSize*dataSize + i*dataSize + k];
    }
 
-   // SILO requires one variable name per (vector) component, but we only have one. 
-   // That is, for electric field SILO would like to get "Ex","Ey", and "Ez", but we 
+   // SILO requires one variable name per (vector) component, but we only have one.
+   // That is, for electric field SILO would like to get "Ex","Ey", and "Ez", but we
    // only have "E" in VLSV file. Use the VLSV variable name for all components.
    vector<string> varNames(vectorSize);
    vector<char*> varNamePtrs(vectorSize);
@@ -355,7 +355,7 @@ bool convertMeshVariable(T & vlsvReader,const string& meshName,const string& var
       varNames[i] = ss.str();
       varNamePtrs[i] = const_cast<char*>(varNames[i].c_str());
    }
-   
+
    // Write the unstructured mesh variable to SILO.
    if (DBPutUcdvar(fileptr,varName.c_str(),meshName.c_str(),vectorSize,&(varNamePtrs[0]),components,arraySize,NULL,0,SiloType(dataType,dataSize),DB_ZONECENT,NULL) < 0) success = false;
 
@@ -363,7 +363,7 @@ bool convertMeshVariable(T & vlsvReader,const string& meshName,const string& var
       delete [] components[i];
    }
    delete [] components;
-   delete [] buffer;   
+   delete [] buffer;
    return success;
 }
 
@@ -373,13 +373,13 @@ bool convertMeshVariable(T & vlsvReader,const string& meshName,const string& var
 bool convertMesh(vlsvinterface::Reader & vlsvReader,const string& meshName) {
    bool success = true;
    const float EPS = 1.0e-7;
-   
+
    // First task is to push all unique node coordinates into a map.
    // This is not too difficult for unrefined grids, since each spatial cell stores
    // its bottom lower left corner coordinate and size. For refined grid the situation
    // is more complex, as there are more unique nodes than the lower left corners:
    map<NodeCrd<Real>,uint64_t,NodeComp> nodes;
- 
+
    //Read in all cell ids:
    vector<uint64_t> cellIds;
    if( vlsvReader.getCellIds( cellIds ) == false ) {
@@ -391,7 +391,7 @@ bool convertMesh(vlsvinterface::Reader & vlsvReader,const string& meshName) {
    CellStructure cellStruct;
    setCellVariables( vlsvReader, cellStruct );
 
-   // Read the coordinate array one node (of a spatial cell) at a time 
+   // Read the coordinate array one node (of a spatial cell) at a time
    // and create a map which only contains each existing node once.
    //char* coordsBuffer = new char[vectorSize*dataSize];
    //Real* ptr = reinterpret_cast<Real*>(coordsBuffer);
@@ -399,9 +399,9 @@ bool convertMesh(vlsvinterface::Reader & vlsvReader,const string& meshName) {
    int i = 0;
    for( vector<uint64_t>::const_iterator it = cellIds.begin(); it != cellIds.end(); ++it, ++i ) {
       //if (vlsvReader.readArray("COORDS",meshName,i,1,coordsBuffer) == false) {success = false; break;}
-      
+
       // Insert all eight nodes of a cell into map nodes.
-      // NOTE: map is a unique associative container - given a suitable comparator, map 
+      // NOTE: map is a unique associative container - given a suitable comparator, map
       // will filter out duplicate nodes.
       //Get cell coordinates:
       const uint64_t cellId = *it;
@@ -416,7 +416,7 @@ bool convertMesh(vlsvinterface::Reader & vlsvReader,const string& meshName) {
       Real Y1 = coordinates[1]+cellStruct.cell_length[1];
       Real Z0 = coordinates[2];
       Real Z1 = coordinates[2]+cellStruct.cell_length[2];
-      
+
       // Flush very small coordinate values to zero:
       if (fabs(X0) < EPS) X0 = 0.0;
       if (fabs(X1) < EPS) X1 = 0.0;
@@ -438,7 +438,7 @@ bool convertMesh(vlsvinterface::Reader & vlsvReader,const string& meshName) {
       cerr << "ERROR reading array COORDS" << endl;
    }
 
-   // Copy unique node x,y,z coordinates into separate arrays, 
+   // Copy unique node x,y,z coordinates into separate arrays,
    // which will be passed to silo writer:
    uint64_t counter = 0;
    Real* xcrds = new Real[nodes.size()];
@@ -452,14 +452,14 @@ bool convertMesh(vlsvinterface::Reader & vlsvReader,const string& meshName) {
       ++counter;
    }
 
-   // Read through the coordinate array again and create a node list. Each 3D spatial cell is 
-   // associated with 8 nodes, and most of these nodes are shared with neighbouring cells. In 
-   // order to get VisIt display the data correctly, the duplicate nodes should not be used. 
+   // Read through the coordinate array again and create a node list. Each 3D spatial cell is
+   // associated with 8 nodes, and most of these nodes are shared with neighbouring cells. In
+   // order to get VisIt display the data correctly, the duplicate nodes should not be used.
    // Here we create a list of indices into xcrds,ycrds,zcrds arrays, with eight entries per cell:
    int* nodelist = new int[8*cellIds.size()];
    i = 0;
    for( vector<uint64_t>::const_iterator it = cellIds.begin(); it != cellIds.end(); ++it, ++i ) {
-      // Read the bottom lower left corner coordinates of a cell and its sizes. Note 
+      // Read the bottom lower left corner coordinates of a cell and its sizes. Note
       // that zones will end up in SILO file in the same order as they are in VLSV file.
 
       //Get cell coordinates:
@@ -475,7 +475,7 @@ bool convertMesh(vlsvinterface::Reader & vlsvReader,const string& meshName) {
       Real Y1 = coordinates[1]+cellStruct.cell_length[1];
       Real Z0 = coordinates[2];
       Real Z1 = coordinates[2]+cellStruct.cell_length[2];
-      
+
       // Flush very small coordinate values to zero:
       if (fabs(X0) < EPS) X0 = 0.0;
       if (fabs(X1) < EPS) X1 = 0.0;
@@ -483,8 +483,8 @@ bool convertMesh(vlsvinterface::Reader & vlsvReader,const string& meshName) {
       if (fabs(Y1) < EPS) Y1 = 0.0;
       if (fabs(Z0) < EPS) Z0 = 0.0;
       if (fabs(Z1) < EPS) Z1 = 0.0;
-      
-      // Search the cell's nodes from the map created above. For each node in nodelist 
+
+      // Search the cell's nodes from the map created above. For each node in nodelist
       // store an index into an array which only contains the unique nodes:
       map<NodeCrd<Real>,uint64_t,NodeComp>::const_iterator it2;
       it2 = nodes.find(NodeCrd<Real>(X0,Y0,Z0)); if (it2 == nodes.end()) success = false; nodelist[i*8+0] = it2->second;
@@ -501,7 +501,7 @@ bool convertMesh(vlsvinterface::Reader & vlsvReader,const string& meshName) {
    if (success == false) {
       cerr << "Failed to find node(s)" << endl;
    }
-   
+
    // Write the unstructured mesh to SILO file:
    const int N_dims  = 3;                      // Number of dimensions
    const int N_nodes = nodes.size();           // Total number of nodes
@@ -510,16 +510,16 @@ bool convertMesh(vlsvinterface::Reader & vlsvReader,const string& meshName) {
    int shapeSizes[] = {8};                     // Each hexahedron has 8 nodes
    int shapeCnt[] = {N_zones};                 // Only 1 shape type (hexahedron)
    const int N_shapes = 1;                     //  -- "" --
-   
+
    void* coords[3];                            // Pointers to coordinate arrays
    coords[0] = xcrds;
    coords[1] = ycrds;
    coords[2] = zcrds;
-   
+
    // Write zone list into silo file:
    const string zoneListName = meshName + "Zones";
    if (DBPutZonelist2(fileptr,zoneListName.c_str(),N_zones,N_dims,nodelist,8*cellIds.size(),0,0,0,shapeTypes,shapeSizes,shapeCnt,N_shapes,NULL) < 0) success = false;
-   
+
    // Write grid into silo file:
    if (DBPutUcdmesh(fileptr,meshName.c_str(),N_dims,NULL,coords,N_nodes,N_zones,zoneListName.c_str(),NULL,SiloType(datatype::type::FLOAT,sizeof(Real)),NULL) < 0) success = false;
 
@@ -531,13 +531,13 @@ bool convertMesh(vlsvinterface::Reader & vlsvReader,const string& meshName) {
 
    // Write the cell IDs as a variable:
    string cellIDlabel = "Cell ID";
-   DBoptlist* optList = DBMakeOptlist(1);   
+   DBoptlist* optList = DBMakeOptlist(1);
    DBAddOption(optList,DBOPT_LABEL,const_cast<char*>(cellIDlabel.c_str()));
    //Note: cellIds is of type uint
    if (DBPutUcdvar1(fileptr,"CellID",meshName.c_str(),reinterpret_cast<char*>(cellIds.data()),cellIds.size(),NULL,0,SiloType(datatype::type::UINT,sizeof(uint64_t)),DB_ZONECENT,NULL) < 0) success = false;
 //   delete buffer;
    DBFreeOptlist(optList);
-   
+
    // Write all variables of this mesh into silo file:
    list<string> variables;
    vlsvReader.getVariableNames(meshName,variables);
@@ -545,7 +545,7 @@ bool convertMesh(vlsvinterface::Reader & vlsvReader,const string& meshName) {
       if (convertMeshVariable(vlsvReader,meshName,*it) == false) success = false;
    }
    return success;
-   
+
 }
 
 
@@ -553,7 +553,7 @@ template <class T>
 bool convertSILO(const string& fname) {
    bool success = true;
 
-   
+
    // Open VLSV file for reading:
    T vlsvReader;
    if (vlsvReader.open(fname) == false) {
@@ -561,17 +561,17 @@ bool convertSILO(const string& fname) {
       return false;
    }
 
-   
+
    // Open SILO file for writing:
    size_t found=fname.find_last_of("/\\");
    //remove path from vlsvfile name
    string fileout =  fname.substr(found+1);
    size_t pos = fileout.rfind(".vlsv");
    if (pos != string::npos) fileout.replace(pos,5,".silo");
-   
+
    fileptr = DBCreate(fileout.c_str(),DB_CLOBBER,DB_LOCAL,"Vlasov data file",DB_PDB);
    if (fileptr == NULL) return false;
-   
+
    // Get the names of all meshes in vlsv file, and write into silo file:
    list<string> meshNames;
    if (vlsvReader.getMeshNames(meshNames) == false) {
@@ -594,7 +594,7 @@ int main(int argn,char* args[]) {
    MPI_Init(&argn, &args);
    MPI_Comm_size(MPI_COMM_WORLD, &ntasks);
    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-   
+
    if (rank == 0 && argn < 2) {
       cout << endl;
       cout << "USAGE: ./vlsv2vtk <input file mask(s)>" << endl;
@@ -622,7 +622,7 @@ int main(int argn,char* args[]) {
       if(rank == 0) {cout << "Comparing mask '" << maskName << "' in folder '" << directory <<"'" << endl;}
       DIR* dir = opendir(directory.c_str());
       if (dir == NULL) continue;
-      
+
       struct dirent* entry = readdir(dir);
       while (entry != NULL) {
          const string entryName = entry->d_name;
@@ -631,7 +631,7 @@ int main(int argn,char* args[]) {
             entry = readdir(dir);
             continue;
          }
-         
+
          fileList.push_back(directory);
          fileList.back().append("/");
          fileList.back().append(entryName);
@@ -641,7 +641,7 @@ int main(int argn,char* args[]) {
       closedir(dir);
       if (rank == 0 && filesFound == 0) cout << "\t no matches found" << endl;
    }
-   
+
    for(size_t entryName = 0; entryName < fileList.size(); entryName++) {
       if(entryName%ntasks == (uint)rank) {
          cout << "\tProc " << rank << " converting '" << fileList[entryName] << "'" << endl;
@@ -649,11 +649,11 @@ int main(int argn,char* args[]) {
          filesConverted++;
       }
    }
-   
-   int totalFilesConverted =0;   
+
+   int totalFilesConverted =0;
    MPI_Reduce(&filesConverted, &totalFilesConverted, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
    if (rank == 0 && totalFilesConverted == 0) cout << "\t no files converted" << endl;
-   
+
    MPI_Finalize();
    return 0;
 }

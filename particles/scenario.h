@@ -34,9 +34,9 @@
 
 struct Scenario {
 
-	// Fill in the initial particles, given electromagnetic- and velocity fields
+        // Fill in the initial particles, given electromagnetic- and velocity fields
   // Further parameters, depending on the scenario, are given by the parameter object
-	virtual ParticleContainer initialParticles(Field& E, Field& B, Field& V) {return ParticleContainer();};
+        virtual ParticleContainer initialParticles(Field& E, Field& B, Field& V) {return ParticleContainer();};
 
   // Do something when a new input timestep has been opened
   virtual void newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles, Field& E,

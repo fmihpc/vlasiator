@@ -677,12 +677,12 @@ static std::array<Real, 3> getPerBVol(SpatialCell* cell)
  */
 static std::array<Real, 3> getBVol(SpatialCell* cell)
 {
-   return std::array<Real, 3> { 
+   return std::array<Real, 3> {
       {
-         cell->parameters[CellParams::BGBXVOL] + cell->parameters[CellParams::PERBXVOL], 
-         cell->parameters[CellParams::BGBYVOL] + cell->parameters[CellParams::PERBYVOL], 
+         cell->parameters[CellParams::BGBXVOL] + cell->parameters[CellParams::PERBXVOL],
+         cell->parameters[CellParams::BGBYVOL] + cell->parameters[CellParams::PERBYVOL],
          cell->parameters[CellParams::BGBZVOL] + cell->parameters[CellParams::PERBZVOL]
-      } 
+      }
    };
 }
 
@@ -746,7 +746,7 @@ void calculateScaledDeltas(
          dB = std::max(sqrt(deltaBsq) / maxB, dB);
       }
    }
-   
+
    Real alpha {0.0};
    alpha = std::max(alpha, dRho);
    alpha = std::max(alpha, dU);

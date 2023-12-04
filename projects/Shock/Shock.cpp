@@ -107,10 +107,10 @@ namespace projects {
           vz > meshParams.meshMaxLimits[2] - 1.5*dvz) {
          return 0.0;
       }
-      
+
       creal mass = physicalconstants::MASS_PROTON;
       creal kb = physicalconstants::K_B;
-      
+
       creal d_x = dx / (this->nSpaceSamples-1);
       creal d_y = dy / (this->nSpaceSamples-1);
       creal d_z = dz / (this->nSpaceSamples-1);
@@ -118,23 +118,23 @@ namespace projects {
       creal d_vy = dvy / (this->nVelocitySamples-1);
       creal d_vz = dvz / (this->nVelocitySamples-1);
       Real avg = 0.0;
-      
+
       for (uint i=0; i<this->nSpaceSamples; ++i)
       for (uint j=0; j<this->nSpaceSamples; ++j)
-      for (uint k=0; k<this->nSpaceSamples; ++k)      
+      for (uint k=0; k<this->nSpaceSamples; ++k)
       for (uint vi=0; vi<this->nVelocitySamples; ++vi)
          for (uint vj=0; vj<this->nVelocitySamples; ++vj)
       for (uint vk=0; vk<this->nVelocitySamples; ++vk)
             {
          avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, popID);
          }
-      
+
       creal result = avg *this->DENSITY * pow(mass / (2.0 * M_PI * kb * this->TEMPERATURE), 1.5) /
-                     (this->nSpaceSamples*this->nSpaceSamples*this->nSpaceSamples) / 
-   //                (Parameters::vzmax - Parameters::vzmin) / 
+                     (this->nSpaceSamples*this->nSpaceSamples*this->nSpaceSamples) /
+   //                (Parameters::vzmax - Parameters::vzmin) /
                      (this->nVelocitySamples*this->nVelocitySamples*this->nVelocitySamples);
-               
-               
+
+
       if(result < this->maxwCutoff) {
          return 0.0;
       } else {
@@ -143,24 +143,24 @@ namespace projects {
    }
 
    void Shock::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
-   
+
    void Shock::setProjectBField(
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
    ) {
       setBackgroundFieldToZero(BgBGrid);
-      
+
       if(!P::isRestart) {
          auto localSize = perBGrid.getLocalSize().data();
-         
+
 #pragma omp parallel for collapse(3)
          for (int x = 0; x < localSize[0]; ++x) {
             for (int y = 0; y < localSize[1]; ++y) {
                for (int z = 0; z < localSize[2]; ++z) {
                   const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
-                  
+
                   cell->at(fsgrids::bfield::PERBX) = 0.0;
                   cell->at(fsgrids::bfield::PERBY) = 0.0;
                   cell->at(fsgrids::bfield::PERBZ) = this->BZ0*(3.0 + 2.0*tanh((xyz[1] - Parameters::ymax/2.0)/(this->Sharp_Y*Parameters::ymax)));

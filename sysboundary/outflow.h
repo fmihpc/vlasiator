@@ -31,9 +31,9 @@
 
 namespace SBC {
 
-	struct OutflowSpeciesParameters {
+        struct OutflowSpeciesParameters {
       /*! Array of bool telling which faces are going to be skipped by the Vlasov system boundary condition.*/
-			std::array<bool, 6> facesToSkipVlasov;
+                        std::array<bool, 6> facesToSkipVlasov;
       /*! List of schemes to use for the Vlasov outflow boundary conditions on each face ([xyz][+-]). */
       std::array<uint, 6> faceVlasovScheme;
       /*! List of faces on which outflow boundary conditions are to be reapplied upon restart ([xyz][+-]). */
@@ -41,12 +41,12 @@ namespace SBC {
 
       /*! Factor by which to quench the inflowing parts of the velocity distribution function.*/
       Real quenchFactor;
-	};
+        };
 
    /*!\brief Outflow is a class applying copy/outflow boundary conditions.
-    * 
+    *
     * Outflow is a class handling cells tagged as sysboundarytype::OUTFLOW by this system boundary condition. It applies copy/outflow boundary conditions.
-    * 
+    *
     * These consist in:
     * - Copy the distribution and moments from the nearest NOT_SYSBOUNDARY cell;
     * - Copy the perturbed B components from the nearest NOT_SYSBOUNDARY cell. EXCEPTION: the face components adjacent to the simulation domain at the +x/+y/+z faces are propagated still.
@@ -55,10 +55,10 @@ namespace SBC {
    public:
       Outflow();
       virtual ~Outflow();
-      
+
       static void addParameters();
       virtual void getParameters();
-      
+
       virtual bool initSysBoundary(
          creal& t,
          Project &project
@@ -121,11 +121,11 @@ namespace SBC {
          const uint popID,
          const bool calculate_V_moments
       );
-      
+
       virtual void getFaces(bool* faces);
       virtual std::string getName() const;
       virtual uint getIndex() const;
-      
+
    protected:
       /*! Array of bool telling which faces are going to be processed by the fields system boundary condition.*/
       bool facesToSkipFields[6];
@@ -136,10 +136,10 @@ namespace SBC {
       /*! List of faces on which no fields outflow boundary conditions are to be applied ([xyz][+-]). */
       std::vector<std::string> faceNoFieldsList;
       std::vector<OutflowSpeciesParameters> speciesParams;
-      
+
       /*! Factor by which to quench the inflowing parts of the velocity distribution function.*/
       Real quenchFactor;
-      
+
       enum vlasovscheme {
          NONE,
          COPY,
