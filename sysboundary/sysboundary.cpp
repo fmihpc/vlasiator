@@ -630,10 +630,6 @@ void SysBoundary::updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_G
                               creal t) {
    if (isAnyDynamic()) {
       for(auto& b : sysBoundaries) {
-         // Skip when not restarting or not requested.
-         if (Parameters::isRestart && !b->doApplyUponRestart()) {
-            continue;
-         }
          if (b->isDynamic()) {
             b->updateState(mpiGrid, perBGrid, t);
          }
