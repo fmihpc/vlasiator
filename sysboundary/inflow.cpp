@@ -162,13 +162,11 @@ void Inflow::updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geomet
    } else {
       tLastApply = t;
    }
-#pragma omp parallel for
    for (uint i = 0; i < 6; i++) {
       if (facesToProcess[i]) {
          generateTemplateCell(templateCells[i], templateB[i], i, t);
       }
    }
-
    for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
       setCellsFromTemplate(mpiGrid, popID);
    }
@@ -200,14 +198,14 @@ Real Inflow::fieldSolverBoundaryCondMagneticField(
 }
 
 void Inflow::fieldSolverBoundaryCondElectricField(
-    FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EGrid, cint i, cint j, cint k,
-    cuint component) {
+   FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EGrid, cint i, cint j, cint k,
+   cuint component) {
    EGrid.get(i, j, k)->at(fsgrids::efield::EX + component) = 0.0;
 }
 
 void Inflow::fieldSolverBoundaryCondHallElectricField(
-    FsGrid<array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH>& EHallGrid, cint i, cint j, cint k,
-    cuint component) {
+   FsGrid<array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH>& EHallGrid, cint i, cint j, cint k,
+   cuint component) {
    std::array<Real, fsgrids::ehall::N_EHALL>* cp = EHallGrid.get(i, j, k);
    switch (component) {
    case 0:
@@ -234,46 +232,27 @@ void Inflow::fieldSolverBoundaryCondHallElectricField(
 }
 
 void Inflow::fieldSolverBoundaryCondGradPeElectricField(
-    FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid, cint i, cint j, cint k, cuint component) {
+   FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid, cint i, cint j, cint k, cuint component) {
    EGradPeGrid.get(i, j, k)->at(fsgrids::egradpe::EXGRADPE + component) = 0.0;
 }
 
 void Inflow::fieldSolverBoundaryCondDerivatives(
-    FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
-    FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid, cint i, cint j, cint k,
-    cuint RKCase, cuint component) {
+   FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
+   FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid, cint i, cint j, cint k,
+   cuint RKCase, cuint component) {
    this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, component);
 }
 
 void Inflow::fieldSolverBoundaryCondBVOLDerivatives(
-    FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid, cint i, cint j, cint k,
-    cuint component) {
+   FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid, cint i, cint j, cint k,
+   cuint component) {
    this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
 }
 
 void Inflow::vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                      const CellID& cellID, const uint popID, const bool doCalcMomentsV) {
-   if (dynamic) {
-      SpatialCell* cell = mpiGrid[cellID];
-
-      creal dx = cell->parameters[CellParams::DX];
-      creal dy = cell->parameters[CellParams::DY];
-      creal dz = cell->parameters[CellParams::DZ];
-      creal x = cell->parameters[CellParams::XCRD] + 0.5 * dx;
-      creal y = cell->parameters[CellParams::YCRD] + 0.5 * dy;
-      creal z = cell->parameters[CellParams::ZCRD] + 0.5 * dz;
-
-      bool isThisCellOnAFace[6];
-      determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, true);
-
-      for (uint i = 0; i < 6; i++) {
-         if (facesToProcess[i] && isThisCellOnAFace[i]) {
-            copyCellData(&templateCells[i], cell, false, popID, true); // copy also vdf, _V
-            copyCellData(&templateCells[i], cell, true, popID, false); // don't copy vdf again but copy _R now
-            break; // Effectively sets the precedence of faces through the order of faces.
-         }
-      }
-   }
+   // This is a no-op because both template cell generation and block data copying takes place in
+   // updateState() (at pre-set intervals only)
 }
 
 void Inflow::setBFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,

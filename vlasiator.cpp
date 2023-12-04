@@ -1066,13 +1066,20 @@ int main(int argn,char* args[]) {
       phiprof::Timer propagateTimer {"Propagate"};
       //Propagate the state of simulation forward in time by dt:
       
+      // Update boundary condition states (time-varying)
+      if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration) {
+         phiprof::Timer timer {"Update system boundaries (Vlasov pre-translation)"};
+         sysBoundaryContainer.updateState(mpiGrid, perBGrid, P::t + 0.5 * P::dt);
+         timer.stop();
+         addTimedBarrier("barrier-boundary-conditions");
+      }
+
       phiprof::Timer spatialSpaceTimer {"Spatial-space"};
       if( P::propagateVlasovTranslation) {
          calculateSpatialTranslation(mpiGrid,P::dt);
       } else {
          calculateSpatialTranslation(mpiGrid,0.0);
       }
-      sysBoundaryContainer.updateState(mpiGrid, perBGrid, P::t + 0.5 * P::dt);
       spatialSpaceTimer.stop(computedCells, "Cells");
       
       // Apply boundary conditions
@@ -1191,7 +1198,7 @@ int main(int argn,char* args[]) {
       
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
          phiprof::Timer timer {"Update system boundaries (Vlasov post-acceleration)"};
-         sysBoundaryContainer.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt, true);
+         sysBoundaryContainer.applySysBoundaryVlasovConditions(mpiGrid, P::t + 0.5 * P::dt, true);
          timer.stop();
          addTimedBarrier("barrier-boundary-conditions");
       }
