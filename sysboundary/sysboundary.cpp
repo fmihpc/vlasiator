@@ -531,7 +531,7 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
       for (int y = 0; y < localSize[1]; ++y) {
          for (int x = 0; x < localSize[0]; ++x) {
             if (technicalGrid.get(x,y,z)->sysBoundaryLayer == 0 && (
-                technicalGrid.get(x,y,z)->sysBoundaryFlag == sysboundarytype::IONOSPHERE || 
+                technicalGrid.get(x,y,z)->sysBoundaryFlag == sysboundarytype::IONOSPHERE ||
                 technicalGrid.get(x,y,z)->sysBoundaryFlag == sysboundarytype::COPYSPHERE)) {
                technicalGrid.get(x, y, z)->sysBoundaryFlag = sysboundarytype::DO_NOT_COMPUTE;
             }
@@ -627,13 +627,15 @@ void SysBoundary::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_G
 void SysBoundary::updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                               FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
                               creal t) {
-   if (isDynamic()) {
+   if (isAnyDynamic()) {
       for(auto& b : sysBoundaries) {
          // Skip when not restarting or not requested.
-         if (Parameters::isRestart && !b->doApplyUponRestart())
+         if (Parameters::isRestart && !b->doApplyUponRestart()) {
             continue;
-         if (b->isDynamic())
+         }
+         if (b->isDynamic()) {
             b->updateState(mpiGrid, perBGrid, t);
+         }
       }
    }
 }
@@ -743,7 +745,7 @@ unsigned int SysBoundary::size() const { return sysBoundaries.size(); }
 /*! Get a bool telling whether any system boundary condition is dynamic in time (and thus needs updating).
  * \retval isDynamic Is any system boundary condition dynamic in time.
  */
-bool SysBoundary::isDynamic() const { return anyDynamic; }
+bool SysBoundary::isAnyDynamic() const { return anyDynamic; }
 
 /*! Get a bool telling whether the system is periodic in the queried direction.
  * \param direction 0: x, 1: y, 2: z.
