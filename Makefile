@@ -148,7 +148,7 @@ OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipo
 	project.o projectTriAxisSearch.o read_gaussian_population.o\
 	Alfven.o Diffusion.o Dispersion.o Distributions.o Firehose.o\
 	Flowthrough.o Fluctuations.o Harris.o KHB.o Larmor.o Magnetosphere.o MultiPeak.o\
-	VelocityBox.o Riemann1.o Shock.o Template.o test_fp.o testAmr.o testHall.o test_trans.o\
+	VelocityBox.o Riemann1.o Shock.o Template.o test_fp.o testHall.o test_trans.o\
 	IPShock.o object_wrapper.o\
 	verificationLarmor.o Shocktest.o grid.o ioread.o iowrite.o vlasiator.o logger.o\
 	common.o parameters.o readparameters.o spatial_cell.o\
@@ -193,9 +193,16 @@ cleantools:
 
 # Rules for making each object file needed by the executable
 
+# Extract commits for used libraries, silencing errors of missing repositories
+COMMIT_DCCRG=$(shell cd ${subst -system,,${subst -I,,${INC_DCCRG}}} && git log -1 --pretty=format:"%H" 2>/dev/null)
+COMMIT_FSGRID=$(shell cd ${subst -system,,${subst -I,,${INC_FSGRID}}} && git log -1 --pretty=format:"%H" 2>/dev/null)
+COMMIT_VLSV=$(shell cd ${subst -system,,${subst -I,,${INC_VLSV}}} && git log -1 --pretty=format:"%H" 2>/dev/null)
+COMMIT_HASHINATOR=$(shell cd ${subst -system,,${subst -I,,${INC_HASHINATOR}}} && git log -1 --pretty=format:"%H" 2>/dev/null)
+COMMIT_PROFILE=$(shell cd ${subst -system,,${subst -I,,${INC_PROFILE}}} && git log -1 --pretty=format:"%H" 2>/dev/null)
+# Build version description file
 version.cpp: FORCE
 	@echo "[GENERATE] version.cpp"
-	$(SILENT)./generate_version.sh "${CMP}" "${CXXFLAGS}" "${FLAGS}" "${INC_MPI}" "${INC_DCCRG}" "${INC_FSGRID}" "${INC_ZOLTAN}" "${INC_BOOST}"
+	$(SILENT)./generate_version.sh "${CMP}" "${CXXFLAGS}" "${FLAGS}" "${INC_MPI}" "${INC_ZOLTAN}" "${INC_BOOST}" "${INC_DCCRG}" "${COMMIT_DCCRG}" "${INC_FSGRID}" "${COMMIT_FSGRID}"  "${INC_VLSV}" "${COMMIT_VLSV}" "${INC_HASHINATOR}" "${COMMIT_HASHINATOR}" "${INC_PROFILE}" "${COMMIT_PROFILE}"
 
 
 # Generic rules:

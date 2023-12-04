@@ -136,7 +136,7 @@ jobs:
     - name: Checkout source
       uses: actions/checkout@v3 
     - name: Make clean
-      run: make clean
+      run: VLASIATOR_ARCH=carrington_gcc_openmpi make clean
     - uses: ursg/gcc-problem-matcher@master
     - name: Compile vlasiator (Testpackage build)
       run: |
@@ -191,7 +191,7 @@ jobs:
       uses: actions/checkout@v3 
     - uses: ursg/gcc-problem-matcher@master
     - name: Make clean
-      run: make clean
+      run: VLASIATOR_ARCH=carrington_gcc_openmpi make clean
     - name: Compile tools
       run: |
         export VLASIATOR_ARCH=carrington_gcc_openmpi

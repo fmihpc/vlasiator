@@ -23,4 +23,4 @@ ci:
     autofix_commit_msg: |
       automatic style and whitespace fixes
     autofix_prs: true
-    autoupdate_branch: pre-commit
+    autoupdate_branch: dev

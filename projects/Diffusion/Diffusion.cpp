@@ -55,8 +55,8 @@ namespace projects {
          RP::add(pop + "_Diffusion.Temperature", "Temperature (K)", 2.0e6);
          RP::add(pop + "_Diffusion.Scale_x", "Scale length in x (m)", 100000.0);
          RP::add(pop + "_Diffusion.Scale_y", "Scale length in y (m)", 100000.0);
-         RP::add(pop + "_Diffusion.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
-         RP::add(pop + "_Diffusion.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
+         RP::add(pop + "_Diffusion.nSpaceSamples", "Number of sampling points per spatial dimension", 1);
+         RP::add(pop + "_Diffusion.nVelocitySamples", "Number of sampling points per velocity dimension", 1);
       }
    }
 
