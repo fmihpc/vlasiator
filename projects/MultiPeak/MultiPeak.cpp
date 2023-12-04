@@ -147,13 +147,6 @@ namespace projects {
    Real MultiPeak::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz,
                                          creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,
                                          const uint popID) const {
-      // Iterative sampling of the distribution function. Keep track of the
-      // accumulated volume average over the iterations. When the next
-      // iteration improves the average by less than 1%, return the value.
-      // Real avgTotal = 0.0;
-      // bool ok = false;
-      // uint N = nVelocitySamples; // Start by using nVelocitySamples
-      // int N3_sum = 0;           // Sum of sampling points used so far
 
       const MultiPeakSpeciesParameters& sP = speciesParams[popID];
 
@@ -174,60 +167,6 @@ namespace projects {
       }
 
       return rhoFactor * getDistribValue(vx+0.5*dvx,vy+0.5*dvy,vz+0.5*dvz,dvx,dvy,dvz,popID);
-
-      // #warning SpatialCell::getVelocityBlockMinValue() or dynamic algorithm not available without spatial cell data
-      // const Real avgLimit = 0.01*getObjectWrapper().particleSpecies[popID].sparseMinValue;
-      // do {
-      //    Real avg = 0.0;        // Volume average obtained during this sampling
-      //    creal DVX = dvx / N;
-      //    creal DVY = dvy / N;
-      //    creal DVZ = dvz / N;
-
-      //    Real rhoFactor = 1.0;
-      //    switch (densityModel) {
-      //       case Uniform:
-      //          rhoFactor = 1.0;
-      //          break;
-      //       case TestCase:
-      //          rhoFactor = 1.0;
-      //          if ((x >= 3.9e5 && x <= 6.1e5) && (y >= 3.9e5 && y <= 6.1e5)) {
-      //             rhoFactor = 1.5;
-      //          }
-      //          break;
-      //       default:
-      //          rhoFactor = 1.0;
-      //          break;
-      //    }
-
-      //    // Sample the distribution using N*N*N points
-      //    for (uint vi=0; vi<N; ++vi) {
-      //       for (uint vj=0; vj<N; ++vj) {
-      //          for (uint vk=0; vk<N; ++vk) {
-      //             creal VX = vx + 0.5*DVX + vi*DVX;
-      //             creal VY = vy + 0.5*DVY + vj*DVY;
-      //             creal VZ = vz + 0.5*DVZ + vk*DVZ;
-      //             avg += getDistribValue(VX,VY,VZ,DVX,DVY,DVZ,popID);
-      //          }
-      //       }
-      //    }
-      //    avg *= rhoFactor;
-
-      //    // Compare the current and accumulated volume averages:
-      //    Real eps = max(numeric_limits<creal>::min(),avg * static_cast<Real>(1e-6));
-      //    Real avgAccum   = avgTotal / (avg + N3_sum);
-      //    Real avgCurrent = avg / (N*N*N);
-      //    if (fabs(avgCurrent-avgAccum)/(avgAccum+eps) < 0.01) ok = true;
-      //    else if (avg < avgLimit) ok = true;
-      //    else if (N > 10) {
-      //       ok = true;
-      //    }
-
-      //    avgTotal += avg;
-      //    N3_sum += N*N*N;
-      //    ++N;
-      // } while (ok == false);
-
-      // return avgTotal / N3_sum;
    }
 
    void MultiPeak::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
