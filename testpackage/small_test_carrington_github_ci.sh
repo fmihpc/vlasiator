@@ -80,6 +80,7 @@ fi
 
 # Get absolute paths
 reference_dir=$( readlink -f $reference_dir )
+reference_revision_full=$( readlink -f $reference_dir/$reference_revision )
 run_dir=$( readlink -f $run_dir )_$( date +%Y.%m.%d_%H.%M.%S )
 bin=$( readlink -f $bin )
 diffbin=$( readlink -f $diffbin )
@@ -340,6 +341,7 @@ done
 
 # -- Write summary for github PR annotation --
 echo "summary=$ZEROTESTS tests with zero diffs, $NONZEROTESTS tests with diffs, $FAILEDTESTS tests failed." >> $GITHUB_WORKSPACE/testpackage_output_variables.txt
+echo "CI_reference pointed to $reference_revision_full " >> $GITHUB_WORKSPACE/testpackage_output_variables.txt
 if [[ $FAILEDTESTS > 0 ]]; then
    echo "conclusion=failure" >> $GITHUB_WORKSPACE/testpackage_output_variables.txt
 elif [[ $NONZEROTESTS > 0 ]]; then
