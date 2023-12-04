@@ -174,7 +174,7 @@ jobs:
       run: VLASIATOR_ARCH=arriesgado make clean
     - name: Compile vlasiator (RISC-V)
       run: |
-          srun --interactive -p arriesgado-jammy -J vlasiator_build --pty -t 01:00:00 bash -lc 'module load boost eigen papi openmpi; export VLASIATOR_ARCH=arriesgado; make -j4'
+          srun --interactive -p arriesgado-jammy -J vlasiator_build --pty -t 01:00:00 bash -lc 'module load boost papi openmpi; export VLASIATOR_ARCH=arriesgado; make -j4'
     - name: Upload riscv binary
       uses: actions/upload-artifact@v3
       with:
