@@ -80,7 +80,7 @@ fi
 
 # Get absolute paths
 reference_dir=$( readlink -f $reference_dir )
-reference_revision_full=$( readlink -f $reference_dir/$reference_revision )
+reference_revision_full=$( readlink $reference_dir/$reference_revision )
 run_dir=$( readlink -f $run_dir )_$( date +%Y.%m.%d_%H.%M.%S )
 bin=$( readlink -f $bin )
 diffbin=$( readlink -f $diffbin )
