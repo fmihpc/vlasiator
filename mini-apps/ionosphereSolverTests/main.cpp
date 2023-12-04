@@ -177,7 +177,7 @@ int main(int argc, char** argv) {
       cerr << "            equator60 - Fix potential on all nodes +- 60 degrees of the equator" << endl;
       cerr << " -np:       DON'T use the matrix preconditioner (default: do)" << endl;
       cerr << " -maxIter:  Maximum number of solver iterations" << endl;
-      
+
       return 1;
    }
 
@@ -205,7 +205,7 @@ int main(int argc, char** argv) {
       cerr << "Unknown gauge fixing method " << gaugeFixString << endl;
       return 1;
    }
-   
+
    // Refine the base shape to acheive desired resolution
    auto refineBetweenLatitudes = [](Real phi1, Real phi2) -> void {
       uint numElems=ionosphereGrid.elements.size();
@@ -257,7 +257,7 @@ int main(int argc, char** argv) {
          readIonosphereNodeVariable(inVlsv, "ig_sigmap", ionosphereGrid, ionosphereParameters::SIGMAP);
          //readIonosphereNodeVariable(inVlsv, "ig_sigmaparallel", ionosphereGrid, ionosphereParameters::SIGMAPARALLEL);
          assignConductivityTensorFromLoadedData(nodes);
-      } 
+      }
    } else if(sigmaString == "ponly") {
          Real sigmaP=3.;
          Real sigmaH=0.;

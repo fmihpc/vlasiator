@@ -79,4 +79,3 @@ template<typename UINT,typename REAL> void calcAccFaceZ(
 }
 
 #endif
-

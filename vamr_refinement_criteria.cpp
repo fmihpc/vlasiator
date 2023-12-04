@@ -31,19 +31,19 @@
 using namespace std;
 
 namespace vamr_ref_criteria {
-   
-   Base::Base() { }   
-   
+
+   Base::Base() { }
+
    Base::~Base() { }
-   
+
    Base* relDiffMaker() {return new RelativeDifference;}
-   
+
    void Base::evaluate(const Realf* velBlost,Realf* result,const uint popID) {
       for (uint i=0; i<WID3; ++i) result[i] = 0.0;
    }
 
    RelativeDifference::RelativeDifference() { }
-   
+
    RelativeDifference::~RelativeDifference() { }
 
    Realf RelativeDifference::evaluate(const Realf* array,const uint popID) {
@@ -53,7 +53,7 @@ namespace vamr_ref_criteria {
 
       for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
          Realf f_cen = array[vblock::padIndex<PAD>(ic+1,jc+1,kc+1)];
-         
+
 #ifdef VAMR
 #warning SpatialCell::getVelocityBlockMinValue() or dynamic algorithm not available without spatial cell data
 #endif
@@ -75,7 +75,7 @@ namespace vamr_ref_criteria {
          //df = evaluate(f_lft,f_cen,f_rgt);
          //if (df > maxvalue) maxvalue = df;
       }
-      
+
       return maxvalue;
    }
 
@@ -90,11 +90,11 @@ namespace vamr_ref_criteria {
             result[vblock::index(ic,jc,kc)] = 0;
             continue;
          }
-         
+
          Realf f_lft = array[vblock::padIndex<PAD>(ic  ,jc+1,kc+1)];
          Realf f_rgt = array[vblock::padIndex<PAD>(ic+2,jc+1,kc+1)];
          Realf df = evaluate(f_lft,f_cen,f_rgt);
-         
+
          f_lft = array[vblock::padIndex<PAD>(ic+1,jc  ,kc+1)];
          f_rgt = array[vblock::padIndex<PAD>(ic+1,jc+2,kc+1)];
          df = max(df,evaluate(f_lft,f_cen,f_rgt));
@@ -102,7 +102,7 @@ namespace vamr_ref_criteria {
          //f_lft = array[vblock::padIndex<PAD>(ic+1,jc+1,kc  )];
          //f_rgt = array[vblock::padIndex<PAD>(ic+1,jc+1,kc+2)];
          //df = max(df,evaluate(f_lft,f_cen,f_rgt));
-         
+
          result[vblock::index(ic,jc,kc)] = df;
       }
    }
@@ -124,4 +124,3 @@ namespace vamr_ref_criteria {
       getObjectWrapper().vamrVelRefCriteria.add("relative_difference",relDiffMaker);
    }
 }
-

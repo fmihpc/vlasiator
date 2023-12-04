@@ -21,7 +21,7 @@
  */
 
 #ifndef DRO_POPULATIONS_H
-#define	DRO_POPULATIONS_H
+#define DRO_POPULATIONS_H
 
 #include <string>
 
@@ -30,13 +30,13 @@
 #include "../vlasovsolver/cpu_moments.h"
 
 namespace DRO {
-   
+
    template <typename T> class DataReductionOperatorPopulations: public DataReductionOperator {
    public:
-      DataReductionOperatorPopulations(const std::string& name,const uint popID, const unsigned int byteOffset,const unsigned int vectorSize) : 
+      DataReductionOperatorPopulations(const std::string& name,const uint popID, const unsigned int byteOffset,const unsigned int vectorSize) :
          DataReductionOperator(), _byteOffset {byteOffset}, _vectorSize {vectorSize}, _popID {popID}, _name {name} {}
       virtual ~DataReductionOperatorPopulations() {};
-      
+
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
          std::cerr << "Error! Trying to perform population-based data reducer on unspecialized template!" << std::endl;
          return false;
@@ -89,14 +89,14 @@ namespace DRO {
 
          return true;
       }
-      
+
    protected:
       uint _byteOffset;
       uint _vectorSize;
       uint _popID;
       std::string _name;
    };
-   
+
 
    // Partial specialization for int- and real datatypes
    template<> bool DataReductionOperatorPopulations<Real>::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
@@ -120,5 +120,4 @@ namespace DRO {
 
 } // namespace DRO
 
-#endif	/* DRO_POPULATIONS_H */
-
+#endif  /* DRO_POPULATIONS_H */

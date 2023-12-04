@@ -35,9 +35,9 @@ namespace projects {
    using namespace std;
    KHB::KHB(): Project() { }
    KHB::~KHB() { }
-   
+
    bool KHB::initialize(void) {return Project::initialize();}
-   
+
    void KHB::addParameters() {
       typedef Readparameters RP;
       RP::add("KHB.rho1", "Number density, this->TOP state (m^-3)", 0.0);
@@ -96,8 +96,8 @@ namespace projects {
       RP::get("KHB.nSpaceSamples", this->nSpaceSamples);
       RP::get("KHB.nVelocitySamples", this->nVelocitySamples);
    }
-   
-   
+
+
    Real KHB::profile(creal top, creal bottom, creal x, creal z) const {
       if(top == bottom) {
          return top;
@@ -110,7 +110,7 @@ namespace projects {
          return 0.5 * ((top-bottom) * tanh(x/this->transitionWidth) + top+bottom);
       }
    }
-   
+
    Real KHB::getDistribValue(creal& x, creal& z, creal& vx, creal& vy, creal& vz, const uint popID) const {
       creal mass = physicalconstants::MASS_PROTON;
       creal kb = physicalconstants::K_B;
@@ -119,12 +119,12 @@ namespace projects {
       Real Vx = profile(this->Vx[this->BOTTOM], this->Vx[this->TOP], x, z);
       Real Vy = profile(this->Vy[this->BOTTOM], this->Vy[this->TOP], x, z);
       Real Vz = profile(this->Vz[this->BOTTOM], this->Vz[this->TOP], x, z);
-      
+
       return rho * pow(mass / (2.0 * M_PI * kb * T), 1.5) *
       exp(- mass * (pow(vx - Vx, 2.0) + pow(vy - Vy, 2.0) + pow(vz - Vz, 2.0)) / (2.0 * kb * T));
    }
 
-   Real KHB::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {   
+   Real KHB::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
       creal d_x = dx / (this->nSpaceSamples-1);
       creal d_z = dz / (this->nSpaceSamples-1);
       creal d_vx = dvx / (this->nVelocitySamples-1);
@@ -137,7 +137,7 @@ namespace projects {
       if (middleValue < 0.000001*getObjectWrapper().particleSpecies[popID].sparseMinValue) {
          return middleValue; //abort, this will not be accepted anyway
       }
-      
+
    //#pragma omp parallel for collapse(6) reduction(+:avg)
       for (uint i=0; i<this->nSpaceSamples; ++i)
          for (uint k=0; k<this->nSpaceSamples; ++k)
@@ -149,27 +149,27 @@ namespace projects {
                   }
       return avg / samples;
    }
-   
+
 
    void KHB::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
-   
+
    void KHB::setProjectBField(
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
    ) {
       setBackgroundFieldToZero(BgBGrid);
-      
+
       if(!P::isRestart) {
          auto localSize = perBGrid.getLocalSize().data();
-         
+
          #pragma omp parallel for collapse(3)
          for (int x = 0; x < localSize[0]; ++x) {
             for (int y = 0; y < localSize[1]; ++y) {
                for (int z = 0; z < localSize[2]; ++z) {
                   const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
-                  
+
                   Real Bxavg, Byavg, Bzavg;
                   Bxavg = Byavg = Bzavg = 0.0;
                   if(this->nSpaceSamples > 1) {
@@ -196,5 +196,5 @@ namespace projects {
          }
       }
    }
-   
+
 } // namespace projects

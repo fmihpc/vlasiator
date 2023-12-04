@@ -38,15 +38,15 @@ using namespace std;
 inline void compute_ppm_coeff_nonuniform(const Vec * const dv, const Vec * const values, face_estimate_order order, uint k, Vec a[3], const Realv threshold){
    Vec fv_l; /*left face value*/
    Vec fv_r; /*right face value*/
-   compute_filtered_face_values_nonuniform(dv, values, k, order, fv_l, fv_r, threshold); 
-   
-   //Coella et al, check for monotonicity   
+   compute_filtered_face_values_nonuniform(dv, values, k, order, fv_l, fv_r, threshold);
+
+   //Coella et al, check for monotonicity
    Vec m_face = fv_l;
    Vec p_face = fv_r;
 
    //std::cout << "value = " << values[k][0] << ", m_face = " << m_face[0] << ", p_face = " << p_face[0] << "\n";
    //std::cout << values[k][0] - m_face[0] << ", " << values[k][0] - p_face[0] << "\n";
-   
+
    m_face = select((p_face - m_face) * (values[k] - 0.5 * (m_face + p_face)) >
                    (p_face - m_face)*(p_face - m_face) * one_sixth,
                    3 * values[k] - 2 * p_face,
@@ -55,7 +55,7 @@ inline void compute_ppm_coeff_nonuniform(const Vec * const dv, const Vec * const
                    (p_face - m_face) * (values[k] - 0.5 * (m_face + p_face)),
                    3 * values[k] - 2 * m_face,
                    p_face);
-   
+
    //Fit a second order polynomial for reconstruction see, e.g., White
    //2008 (PQM article) (note additional integration factors built in,
    //contrary to White (2008) eq. 4

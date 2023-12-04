@@ -70,7 +70,7 @@ std::vector<uint64_t> readCellIds(vlsvinterface::Reader& r) {
 /* For debugging purposes - dump a field into a png file
  * We're hardcodedly writing the z=0 plane here. */
 void debug_output(Field& F, const char* filename) {
-   
+
    /* Find min and max value */
    Real min[3], max[3];
 

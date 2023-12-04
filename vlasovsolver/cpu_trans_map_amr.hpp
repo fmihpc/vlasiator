@@ -41,7 +41,7 @@ struct setOfPencils {
    std::vector< std::vector<uint> > path; // Path taken through refinement levels
 
    setOfPencils() {
-      
+
       N = 0;
       sumOfLengths = 0;
    }
@@ -88,21 +88,21 @@ struct setOfPencils {
       N--;
       sumOfLengths -= lengthOfPencils[pencilId];
       lengthOfPencils.erase(lengthOfPencils.begin() + pencilId);
-         
+
    }
 
    std::vector<CellID> getIds(const uint pencilId) const {
-      
+
       if (pencilId >= N) {
          std::vector<CellID> idsEmpty;
          return idsEmpty;
       }
-      
+
       // Use vector range constructor
       std::vector<CellID>::const_iterator ibeg = ids.begin() + idsStart[pencilId];
       std::vector<CellID>::const_iterator iend = ibeg + lengthOfPencils[pencilId];
       std::vector<CellID> idsOut(ibeg, iend);
-      
+
       return idsOut;
    }
 
@@ -116,7 +116,7 @@ struct setOfPencils {
       // so that we don't add duplicates.
       std::vector<int> existingSteps;
 
-#pragma omp parallel for      
+#pragma omp parallel for
       for (uint theirPencilId = 0; theirPencilId < this->N; ++theirPencilId) {
          if(theirPencilId == myPencilId) continue;
          auto theirIds = this->getIds(theirPencilId);
@@ -159,7 +159,7 @@ struct setOfPencils {
 
          Realv signX = 1.0;
          Realv signY = 1.0;
-         
+
          if(step < 2) {
             signY = -1.0;
          }
@@ -167,7 +167,7 @@ struct setOfPencils {
          if(step % 2 == 0) {
             signX = -1.0;
          }
-         
+
          auto myX = copy_of_x + signX * 0.25 * dx;
          auto myY = copy_of_y + signY * 0.25 * dy;
 

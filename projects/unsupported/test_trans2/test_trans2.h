@@ -50,7 +50,7 @@ bool getProjectParameters(void);
  */
 void setProjectCell(SpatialCell* cell);
 // WARNING Lorentz force not fixed in this project (cf. JXB term in the acceleration)!!!
-template<typename UINT,typename REAL> 
+template<typename UINT,typename REAL>
 void calcAccFaceX(
    REAL& ax, REAL& ay, REAL& az,
    const UINT& I, const UINT& J, const UINT& K,
@@ -73,7 +73,7 @@ void calcAccFaceX(
    VY*(cellParams[CellParams::PERBX]+cellParams[CellParams::BGBX]));
 }
 // WARNING Lorentz force not fixed in this project (cf. JXB term in the acceleration)!!!
-template<typename UINT,typename REAL> 
+template<typename UINT,typename REAL>
 void calcAccFaceY(
    REAL& ax, REAL& ay, REAL& az,
    const UINT& I, const UINT& J, const UINT& K,
@@ -96,7 +96,7 @@ void calcAccFaceY(
    VY*(cellParams[CellParams::PERBX]+cellParams[CellParams::BGBX]));
 }
 // WARNING Lorentz force not fixed in this project (cf. JXB term in the acceleration)!!!
-template<typename UINT,typename REAL> 
+template<typename UINT,typename REAL>
 void calcAccFaceZ(
    REAL& ax, REAL& ay, REAL& az,
    const UINT& I, const UINT& J, const UINT& K,

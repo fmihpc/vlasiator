@@ -98,7 +98,7 @@ namespace projects {
   }
 
 
-  
+
    void VelocityBox::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
 
    void VelocityBox::setProjectBField(
@@ -110,8 +110,8 @@ namespace projects {
       bgField.initialize(this->Bx,
                          this->By,
                          this->Bz);
-      
+
       setBackgroundField(bgField, BgBGrid);
    }
-   
+
 }// namespace projects

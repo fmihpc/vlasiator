@@ -18,7 +18,7 @@ struct grid_data {
    {
       return std::make_tuple(this, 0, MPI_BYTE);
    }
-    
+
 };
 
 struct setOfPencils {
@@ -27,7 +27,7 @@ struct setOfPencils {
    uint sumOfLengths;
    std::vector<uint> lengthOfPencils; // Lengths of pencils
    std::vector<CellID> ids; // List of cells
-   std::vector<Real> x,y; // x,y - position 
+   std::vector<Real> x,y; // x,y - position
 
    setOfPencils() {
       N = 0;
@@ -42,7 +42,7 @@ struct setOfPencils {
       ids.insert(ids.end(),idsIn.begin(),idsIn.end());
       x.push_back(xIn);
       y.push_back(yIn);
-  
+
    }
 
    std::vector<CellID> getIds(uint pencilId) {
@@ -59,7 +59,7 @@ struct setOfPencils {
       CellID iend = ibeg + lengthOfPencils[pencilId];
 
       vector<CellID> idsOut;
-    
+
       for (uint i = ibeg; i <= iend; i++) {
          idsOut.push_back(ids[i]);
       }
@@ -81,7 +81,7 @@ CellID selectNeighbor(dccrg::Dccrg<grid_data> &grid, CellID id, int dimension = 
    }
 
    CellID neighbor;
-  
+
    switch( myNeighbors.size() ) {
       // Since refinement can only increase by 1 level the only possibilities
       // Should be 0 neighbors, 1 neighbor or 4 neighbors.
@@ -107,13 +107,13 @@ CellID selectNeighbor(dccrg::Dccrg<grid_data> &grid, CellID id, int dimension = 
    }
 
    return neighbor;
-  
+
 }
 
-setOfPencils buildPencilsWithNeighbors( dccrg::Dccrg<grid_data> &grid, 
-					setOfPencils &pencils, CellID startingId,
-					vector<CellID> ids, uint dimension, 
-					vector<uint> path) {
+setOfPencils buildPencilsWithNeighbors( dccrg::Dccrg<grid_data> &grid,
+                                        setOfPencils &pencils, CellID startingId,
+                                        vector<CellID> ids, uint dimension,
+                                        vector<uint> path) {
 
    const bool debug = false;
    CellID nextNeighbor;
@@ -137,7 +137,7 @@ setOfPencils buildPencilsWithNeighbors( dccrg::Dccrg<grid_data> &grid,
          auto it = std::find(children.begin(),children.end(),id);
          auto index = std::distance(children.begin(),it);
          auto index2 = index;
-      
+
          switch( dimension ) {
          case 0: {
             index2 = index / 2;
@@ -158,7 +158,7 @@ setOfPencils buildPencilsWithNeighbors( dccrg::Dccrg<grid_data> &grid,
    }
 
    id = startingId;
-  
+
    while (id > 0) {
 
       // Find the refinement level in the neighboring cell. Any neighbor will do
@@ -168,16 +168,16 @@ setOfPencils buildPencilsWithNeighbors( dccrg::Dccrg<grid_data> &grid,
       // If there are no neighbors, we can stop.
       if (nextNeighbor == 0)
          break;
-    
+
       uint refLvl = grid.get_refinement_level(nextNeighbor);
 
       if (refLvl > 0) {
-    
+
          // If we have encountered this refinement level before and stored
          // the path this builder follows, we will just take the same path
          // again.
          if ( path.size() >= refLvl ) {
-      
+
             if(debug) {
                std::cout << "I am cell " << id << ". ";
                std::cout << "I have seen refinement level " << refLvl << " before. Path is ";
@@ -185,11 +185,11 @@ setOfPencils buildPencilsWithNeighbors( dccrg::Dccrg<grid_data> &grid,
                   std::cout << *k << " ";
                std::cout << std::endl;
             }
-	
-            nextNeighbor = selectNeighbor(grid,id,dimension,path[refLvl-1]);      
-	
+
+            nextNeighbor = selectNeighbor(grid,id,dimension,path[refLvl-1]);
+
          } else {
-	
+
             if(debug) {
                std::cout << "I am cell " << id << ". ";
                std::cout << "I have NOT seen refinement level " << refLvl << " before. Path is ";
@@ -197,30 +197,30 @@ setOfPencils buildPencilsWithNeighbors( dccrg::Dccrg<grid_data> &grid,
                   std::cout << *k << ' ';
                std::cout << std::endl;
             }
-	
+
             // New refinement level, create a path through each neighbor cell
             for ( uint i : {0,1,2,3} ) {
-	  
+
                vector < uint > myPath = path;
                myPath.push_back(i);
-	  
+
                nextNeighbor = selectNeighbor(grid,id,dimension,myPath.back());
-	  
+
                if ( i == 3 ) {
-	    
+
                   // This builder continues with neighbor 3
                   ids.push_back(nextNeighbor);
                   path = myPath;
-	    
+
                } else {
-	    
+
                   // Spawn new builders for neighbors 0,1,2
                   buildPencilsWithNeighbors(grid,pencils,id,ids,dimension,myPath);
-	    
+
                }
-	  
+
             }
-	
+
          }
 
       } else {
@@ -240,7 +240,7 @@ setOfPencils buildPencilsWithNeighbors( dccrg::Dccrg<grid_data> &grid,
 
       // Move to the next cell.
       id = nextNeighbor;
-    
+
    } // Closes while loop
 
    // Get the x,y - coordinates of the pencil (in the direction perpendicular to the pencil)
@@ -248,44 +248,44 @@ setOfPencils buildPencilsWithNeighbors( dccrg::Dccrg<grid_data> &grid,
    double x,y;
    uint ix,iy,iz;
    switch(dimension) {
-   case 0: 
+   case 0:
       ix = 1;
       iy = 2;
       iz = 0;
       break;
-   
-   case 1: 
+
+   case 1:
       ix = 2;
       iy = 0;
       iz = 1;
       break;
-   
-   case 2: 
+
+   case 2:
       ix = 0;
       iy = 1;
       iz = 2;
       break;
-   
-   default: 
+
+   default:
       ix = 0;
       iy = 1;
       iz = 2;
       break;
-   
+
    }
-   
+
    x = coordinates[ix];
    y = coordinates[iy];
    // z = vector<Real>;
-  
+
    // for( auto id: ids ) {
    //   coordinates = grid.get_center(id);
    //   z.push_back(coordinates[iz])
    // }
-  
+
    pencils.addPencil(ids,x,y);
    return pencils;
-  
+
 }
 
 
@@ -303,13 +303,13 @@ int main(int argc, char* argv[]) {
       // cerr << "Coudln't initialize MPI." << endl;
       abort();
    }
-  
+
    MPI_Comm comm = MPI_COMM_WORLD;
-  
+
    int rank = 0, comm_size = 0;
    MPI_Comm_rank(comm, &rank);
    MPI_Comm_size(comm, &comm_size);
-  
+
    dccrg::Dccrg<grid_data> grid;
 
    // paremeters
@@ -322,7 +322,7 @@ int main(int argc, char* argv[]) {
    const std::array<uint,4> refinementIds = {{10,14,64,72}};
 
    grid.initialize(grid_size, comm, "RANDOM", 1);
-   
+
    typedef dccrg::Types<3>::neighborhood_item_t neigh_t;
    std::vector<neigh_t> neighborhood_x;
    std::vector<neigh_t> neighborhood_y;
@@ -335,7 +335,7 @@ int main(int argc, char* argv[]) {
      }
    }
    grid.add_neighborhood(1, neighborhood_x);
-   grid.add_neighborhood(2, neighborhood_y);      
+   grid.add_neighborhood(2, neighborhood_y);
 
    grid.balance_load();
 
@@ -347,15 +347,15 @@ int main(int argc, char* argv[]) {
          }
       }
    }
-   
+
    grid.balance_load();
 
    auto cells = grid.cells;
    sort(cells.begin(), cells.end());
 
    vector<CellID> ids;
-   vector<CellID> startingIds;  
-  
+   vector<CellID> startingIds;
+
    for (const auto& cell: cells) {
       // std::cout << "Data of cell " << cell.id << " is stored at " << cell.data << std::endl;
       // Collect a list of cell ids.
@@ -363,22 +363,22 @@ int main(int argc, char* argv[]) {
 
       // Collect a list of cell ids that do not have a neighbor in the negative direction
       vector<CellID> negativeNeighbors;
-      for (auto neighbor : grid.get_face_neighbors_of(cell.id)) {      
-      
+      for (auto neighbor : grid.get_face_neighbors_of(cell.id)) {
+
          if (neighbor.second == - (dimension + 1))
             negativeNeighbors.push_back(neighbor.first);
       }
       if (negativeNeighbors.size() == 0)
-         startingIds.push_back(cell.id);    
+         startingIds.push_back(cell.id);
    }
 
    std::cout << "Starting cell ids for pencils are ";
    printVector(startingIds);
 
-   sort(ids.begin(),ids.end());     
-  
+   sort(ids.begin(),ids.end());
+
    vector<CellID> idsInitial;
-   vector<uint> path;  
+   vector<uint> path;
    setOfPencils pencils;
 
    for (auto id : startingIds) {
@@ -387,7 +387,7 @@ int main(int argc, char* argv[]) {
 
    uint ibeg = 0;
    uint iend = 0;
-  
+
    std::cout << "I have created " << pencils.N << " pencils along dimension " << dimension << ":\n";
    std::cout << "(x, y): indices " << std::endl;
    std::cout << "-----------------------------------------------------------------" << std::endl;
@@ -412,9 +412,9 @@ int main(int argc, char* argv[]) {
    }
 
 
-   
+
    std::ofstream outfile;
-  
+
    grid.write_vtk_file("test.vtk");
 
    outfile.open("test.vtk", std::ofstream::app);
@@ -426,9 +426,9 @@ int main(int argc, char* argv[]) {
       outfile << cell.id << std::endl;
    }
    outfile.close();
-		
+
    MPI_Finalize();
 
    return 0;
-    
+
 }

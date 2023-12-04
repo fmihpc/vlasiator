@@ -59,7 +59,7 @@ namespace SBC {
 
    IonosphereBoundaryVDFmode boundaryVDFmode = FixedMoments;
 
-   
+
    SphericalTriGrid ionosphereGrid; /*!< Ionosphere finite element grid */
 
    std::vector<IonosphereSpeciesParameters> Ionosphere::speciesParams;
@@ -736,7 +736,7 @@ namespace SBC {
                case Rees1963:
                   // Rees et al 1963, eq. 1
                   lambda = ReesIsotropicLambda(atmosphere[h].depth/electronRange);
-                  rate = particle_energy[e] / (electronRange / rho_R) / eps_ion_keV *   lambda   *   atmosphere[h].density / integratedDensity; 
+                  rate = particle_energy[e] / (electronRange / rho_R) / eps_ion_keV *   lambda   *   atmosphere[h].density / integratedDensity;
                   break;
                case Rees1989:
             // Rees 1989, eq. 3.3.7 / 3.3.8
@@ -866,7 +866,7 @@ namespace SBC {
     * given F10.7 photospheric flux as a solar activity proxy.
     *
     * This assumes the FACs have already been coupled into the grid.
-    * 
+    *
     * If refillTensorAtRestart is true, we don't recompute precipitation and integration, we just refill the tensor from the sigmas as read from restart.
     * That is necessary so ig_inplanecurrent has non-zero data if an output file is written after restart and before the next ionosphere solution step.
     */
@@ -877,7 +877,7 @@ namespace SBC {
       const bool refillTensorAtRestart/*=false*/
    ) {
       phiprof::Timer timer {"ionosphere-calculateConductivityTensor"};
-      
+
       // At restart we have SIGMAP, SIGMAH and SIGMAPARALLEL read in from the restart file already, no need to update here.
       if(!refillTensorAtRestart) {
          // Ranks that don't participate in ionosphere solving skip this function outright
@@ -885,9 +885,9 @@ namespace SBC {
             phiprof::stop("ionosphere-calculateConductivityTensor");
             return;
          }
-         
+
          calculatePrecipitation();
-         
+
          //Calculate height-integrated conductivities and 3D electron density
          // TODO: effdt > 0?
          // (Then, ne += dt*(q - alpha*ne*abs(ne))
@@ -898,7 +898,7 @@ namespace SBC {
             std::array<Real, numAtmosphereLevels> electronDensity;
 
             // Note this loop counts from 1 (std::vector is zero-initialized, so electronDensity[0] = 0)
-            for(int h=1; h<numAtmosphereLevels; h++) { 
+            for(int h=1; h<numAtmosphereLevels; h++) {
                // Calculate production rate
                Real energy_keV = max(nodes[n].deltaPhi()/1000., productionMinAccEnergy);
 
@@ -945,7 +945,7 @@ namespace SBC {
 
          std::array<Real, 3>& x = nodes[n].x;
          // TODO: Perform coordinate transformation here?
-         
+
          // At restart we have SIGMAP, SIGMAH and SIGMAPARALLEL read in from the restart file already.
          if(!refillTensorAtRestart) {
             // Solar incidence parameter for calculating UV ionisation on the dayside
@@ -955,11 +955,11 @@ namespace SBC {
             }
             Real sigmaP_dayside = backgroundIonisation + F10_7_p_049 * (0.34 * coschi + 0.93 * sqrt(coschi));
             Real sigmaH_dayside = backgroundIonisation + F10_7_p_053 * (0.81 * coschi + 0.54 * sqrt(coschi));
-            
+
             nodes[n].parameters[ionosphereParameters::SIGMAP] = sqrt( pow(nodes[n].parameters[ionosphereParameters::SIGMAP],2) + pow(sigmaP_dayside,2));
             nodes[n].parameters[ionosphereParameters::SIGMAH] = sqrt( pow(nodes[n].parameters[ionosphereParameters::SIGMAH],2) + pow(sigmaH_dayside,2));
          }
-         
+
          // Build conductivity tensor
          Real sigmaP = nodes[n].parameters[ionosphereParameters::SIGMAP];
          Real sigmaH = nodes[n].parameters[ionosphereParameters::SIGMAH];
@@ -1031,13 +1031,13 @@ namespace SBC {
          }
       }
    }
-   
 
 
-   
 
-   
-   
+
+
+
+
 
 
    // (Re-)create the subcommunicator for ionosphere-internal communication
@@ -1084,13 +1084,13 @@ namespace SBC {
 
 
 
-   
+
    // Calculate upmapped potential at the given coordinates,
    // by tracing down to the ionosphere and interpolating the appropriate element
    Real SphericalTriGrid::interpolateUpmappedPotential(
       const std::array<Real, 3>& x
    ) {
-      
+
       if(!this->dipoleField) {
          // Timestep zero => apparently the dipole field is not initialized yet.
          return 0.;
@@ -1514,16 +1514,16 @@ namespace SBC {
    // nodes remaining on t-junctions. This is done by splitting the bigger neighbour:
    //
    //      A---------------C         A---------------C
-   //     / \             /         / \  resized .-'/ 
-   //    /   \           /         /   \      .-'  /  
-   //   /     \         /         /     \  .-'    /   
-   //  o-------n       /    ==>  o-------n' new  /.  <- potential other node to update next?  
-   //   \     / \     /           \     / \     /  .   
-   //    \   /   \   /             \   /   \   /    .   
-   //     \ /     \ /               \ /     \ /      . 
-   //      o-------B                 o-------B . . .  .   
+   //     / \             /         / \  resized .-'/
+   //    /   \           /         /   \      .-'  /
+   //   /     \         /         /     \  .-'    /
+   //  o-------n       /    ==>  o-------n' new  /.  <- potential other node to update next?
+   //   \     / \     /           \     / \     /  .
+   //    \   /   \   /             \   /   \   /    .
+   //     \ /     \ /               \ /     \ /      .
+   //      o-------B                 o-------B . . .  .
    void SphericalTriGrid::stitchRefinementInterfaces() {
-      
+
       for(uint n=0; n<nodes.size(); n++) {
 
          for(uint t=0; t<nodes[n].numTouchingElements; t++) {
@@ -1659,7 +1659,7 @@ namespace SBC {
         }
 
         potentialSum /= nodes.size();
-        // One option for gauge fixing: 
+        // One option for gauge fixing:
         // Make sure the potential is symmetric around 0 (to prevent it from drifting)
         //for(uint n=0; n<nodes.size(); n++) {
         //   Node& N=nodes[n];
@@ -1672,7 +1672,7 @@ namespace SBC {
      for(uint n=0; n<nodes.size(); n++) {
        addAllMatrixDependencies(n);
      }
-     
+
      //cerr << "(ionosphere) Solver dependency matrix: " << endl;
      //for(uint n=0; n<nodes.size(); n++) {
      //   for(uint m=0; m<nodes.size(); m++) {
@@ -1722,7 +1722,7 @@ namespace SBC {
         // Find this nodes' selfcoupling coefficient
         if(transpose) {
            return n.parameters[parameter] / n.transposedCoeffs[0];
-        } else { 
+        } else {
            return n.parameters[parameter] / n.dependingCoeffs[0];
         }
      } else {
@@ -1756,12 +1756,12 @@ namespace SBC {
       }
 
       phiprof::Timer timer {"ionosphere-solve"};
-      
+
       initSolver(false);
-      
+
       nIterations = 0;
       nRestarts = 0;
-      
+
       do {
          solveInternal(nIterations, nRestarts, residual, minPotentialN, maxPotentialN, minPotentialS, maxPotentialS);
          if(Ionosphere::solverToggleMinimumResidualVariant) {
@@ -2081,7 +2081,7 @@ namespace SBC {
             // iSolverReal newresid = N.parameters[ionosphereParameters::RESIDUAL] - ak * N.parameters[ionosphereParameters::ZPARAM];
             // and
             // N.parameters[ionosphereParameters::RRESIDUAL] -= ak * N.parameters[ionosphereParameters::ZZPARAM];
-            // 
+            //
             // but doing so leads to numerical inaccuracy due to roundoff errors
             // when iteration counts are high (because, for example, mesh node count is high and the matrix condition is bad).
             // See https://en.wikipedia.org/wiki/Conjugate_gradient_method#Explicit_residual_calculation
@@ -2188,7 +2188,7 @@ namespace SBC {
 } // #pragma omp parallel
 
    }
-   
+
    // Actual ionosphere object implementation
 
    Ionosphere::Ionosphere(): SysBoundaryCondition() { }
@@ -2245,7 +2245,7 @@ namespace SBC {
    }
 
    void Ionosphere::getParameters() {
-   
+
       Readparameters::get("ionosphere.centerX", this->center[0]);
       Readparameters::get("ionosphere.centerY", this->center[1]);
       Readparameters::get("ionosphere.centerZ", this->center[2]);
@@ -3052,7 +3052,7 @@ namespace SBC {
    void Ionosphere::mapCellPotentialAndGetEXBDrift(
       std::array<Real, CellParams::N_SPATIAL_CELL_PARAMS>& cellParams
    ) {
-      // Get potential upmapped from six points 
+      // Get potential upmapped from six points
       // (Cell's face centres)
       // inside the cell to calculate E
       const Real xmin = cellParams[CellParams::XCRD];
@@ -3153,7 +3153,7 @@ namespace SBC {
                temperature = speciesParams[popID].T;
                break;
             case AverageAllMoments:// Fall through (handled by if further down)
-            case AverageMoments: 
+            case AverageMoments:
                // Maxwellian VDF boundary modes
                {
                   Real pressure = 0, vx = 0, vy = 0, vz = 0;
@@ -3191,7 +3191,7 @@ namespace SBC {
          switch(boundaryVDFmode) {
             case FixedMoments:
             case AverageAllMoments:
-            case AverageMoments: 
+            case AverageMoments:
             case ForceL2EXB:
                {
                   // Fill velocity space with new maxwellian data
@@ -3315,7 +3315,7 @@ namespace SBC {
                   }
                }
                break;
-               
+
          }
 
          // Block adjust and recalculate moments
@@ -3465,7 +3465,7 @@ namespace SBC {
       while (search) {
          if (0.1 * cell.getVelocityBlockMinValue(popID) >
             shiftedMaxwellianDistribution(popID,density,temperature,counter*cell.get_velocity_grid_block_size(popID,refLevel)[0] - vDrift[0], 0.0 - vDrift[1], 0.0 - vDrift[2])
-            || counter > vblocks_ini[0]) 
+            || counter > vblocks_ini[0])
          {
             search = false;
          }

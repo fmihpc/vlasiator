@@ -126,7 +126,7 @@ void setBackgroundField(
                for(uint fComponent=0;fComponent<3;fComponent++){
                   T3DFunction valueFunction = std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, (coordinate)fComponent, 0, (coordinate)0);
                   BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::BGBXVOL+fComponent) += volumeAverage(valueFunction,accuracy,start.data(),end);
-                  
+
                   //Compute derivatives. Note that we scale by dx[] as the arrays are assumed to contain differences, not true derivatives!
                   for(uint dComponent=0;dComponent<3;dComponent++){
                      T3DFunction derivFunction = std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, (coordinate)fComponent, 1, (coordinate)dComponent);
@@ -214,9 +214,9 @@ void setPerturbedField(
                                  dx[faceCoord2[fComponent]]
                                 );
 
-	    }
-	    // Derivatives or volume averages are not calculated for the perBField
-	 }
+            }
+            // Derivatives or volume averages are not calculated for the perBField
+         }
       }
    }
 }

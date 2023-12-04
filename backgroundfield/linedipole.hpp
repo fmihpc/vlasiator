@@ -35,13 +35,12 @@ private:
    double q[3];                  // Dipole moment; set to (0,0,moment)
    double center[3]; // Coordinates where the dipole sits; set to (0,0,0)
 public:
-  
+
   LineDipole() {}
 
    void initialize(const double moment, const double center_x, const double center_y, const double center_z);
-  
+
    double operator()(double x, double y, double z, coordinate component, unsigned int derivative=0, coordinate dcomponent=X) const;
 };
 
 #endif
-

@@ -34,7 +34,7 @@ private:
    bool _initialized;
    double _B[3]; // constant backgroundfield
 public:
-  
+
    ConstantField(){
       this->_initialized = false;
    }
@@ -44,4 +44,3 @@ public:
 };
 
 #endif
-

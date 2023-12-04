@@ -49,5 +49,3 @@ namespace physicalconstants {
 
 
 #endif
-
-

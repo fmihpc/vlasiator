@@ -18,7 +18,7 @@
  * You should have received a copy of the GNU General Public License along
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
+ *
  * File:   read_gaussian_population.cpp
  * Author: sandroos
  *
@@ -34,7 +34,7 @@
 using namespace std;
 
 namespace projects {
-   
+
    bool ReadGaussianPopulation::addParameters(const std::string& prefix) {
       // Add input variables to config file reader
       typedef Readparameters RP;
@@ -62,7 +62,7 @@ namespace projects {
       RP::get(prefix+".Vx", populations.Vx);
       RP::get(prefix+".Vy", populations.Vy);
       RP::get(prefix+".Vz", populations.Vz);
-      
+
       // Do some sanity check on input variables
       bool success = true;
       if (populations.numberOfPopulations < 1) {

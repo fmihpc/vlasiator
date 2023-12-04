@@ -32,7 +32,7 @@ namespace projects {
     public:
       Distributions();
       virtual ~Distributions();
-      
+
       virtual bool initialize(void);
       static void addParameters(void);
       virtual void getParameters(void);
@@ -94,4 +94,3 @@ namespace projects {
 
 
 #endif
-

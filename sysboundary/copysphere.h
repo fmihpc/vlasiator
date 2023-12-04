@@ -44,9 +44,9 @@ namespace SBC {
    };
 
    /*!\brief Copysphere is a class applying an ionosphere-ish boundary conditions.
-    * 
+    *
     * Copysphere is a class handling cells tagged as sysboundarytype::COPYSPHERE by this system boundary condition. It applies copy boundary conditions to perturbed magnetic field.
-    * 
+    *
     * These consist in:
     * - Do nothing for the distribution (keep the initial state constant in time);
     * - Copy the closest neighbors' perturbed B and average it;
@@ -58,10 +58,10 @@ namespace SBC {
    public:
       Copysphere();
       virtual ~Copysphere();
-      
+
       static void addParameters();
       virtual void getParameters();
-      
+
       virtual bool initSysBoundary(
          creal& t,
          Project &project
@@ -126,27 +126,27 @@ namespace SBC {
          const uint popID,
          const bool calculate_V_moments
       );
-      
+
       virtual std::string getName() const;
       virtual uint getIndex() const;
-      
+
    protected:
       void generateTemplateCell(Project &project);
       void setCellFromTemplate(SpatialCell* cell,const uint popID);
-      
+
       Real shiftedMaxwellianDistribution(const uint popID,creal& vx, creal& vy, creal& vz);
-      
+
       vector<vmesh::GlobalID> findBlocksToInitialize(
          SpatialCell& cell,const uint popID
       );
-      
+
       std::array<Real, 3> fieldSolverGetNormalDirection(
          FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
          cint i,
          cint j,
          cint k
       );
-      
+
       Real center[3]; /*!< Coordinates of the centre of the copy sphere. */
       Real radius; /*!< Radius of the copy sphere. */
       uint geometry; /*!< Geometry of the copy sphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT), 3: polar-plane cylinder with line dipole. */
@@ -157,10 +157,10 @@ namespace SBC {
       Real VX0;
       Real VY0;
       Real VZ0;
-      
+
       uint nSpaceSamples;
       uint nVelocitySamples;
-      
+
       spatial_cell::SpatialCell templateCell;
 
    };

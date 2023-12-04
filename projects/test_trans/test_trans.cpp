@@ -39,7 +39,7 @@ using namespace spatial_cell;
 namespace projects {
    test_trans::test_trans(): Project() { }
    test_trans::~test_trans() { }
-      
+
   // Real this->cellPosition = 0;
 
    bool test_trans::initialize(void) {
@@ -54,7 +54,7 @@ namespace projects {
 
    void test_trans::getParameters() {
       Project::getParameters();
-      
+
       typedef Readparameters RP;
 
       if(getObjectWrapper().particleSpecies.size() > 1) {
@@ -72,13 +72,13 @@ namespace projects {
       //Please use even number of cells in velocity and real space
       Real xyz[3];
       Real vxyz[3];
-      
+
    //location of this cell
       vxyz[0]=(vx+0.5*dvx)/dvx;
       vxyz[1]=(vy+0.5*dvy)/dvy;
       vxyz[2]=(vz+0.5*dvz)/dvz;
 
-         
+
       xyz[0]=(x+0.5*dx)/dx;
       xyz[1]=(y+0.5*dy)/dy;
       xyz[2]=(z+0.5*dz)/dz;
@@ -94,9 +94,9 @@ namespace projects {
                                     {-pos, pos,-pos},
                                     { pos,-pos,-pos},
                                     {-pos,-pos,-pos}};
-      
+
       //velocity space coordinates of boxes in reduced units
-      //there is always an even amount of velocity cells per dimension (assuming WID is even) 
+      //there is always an even amount of velocity cells per dimension (assuming WID is even)
       const Real box_vel[8][3] = { { pos, pos, pos},
                                  {-pos, pos, pos},
                                  { pos,-pos, pos},
@@ -105,8 +105,8 @@ namespace projects {
                                  {-pos, pos,-pos},
                                  { pos,-pos,-pos},
                                  {-pos,-pos,-pos}};
-      
-      
+
+
       for(int box=0;box<8;box++){
          bool outsideBox=false;
          for(int i=0;i<3;i++){
@@ -118,7 +118,7 @@ namespace projects {
                break;
             }
          }
-         
+
          if (!outsideBox) {
             return peakValue;
          }
@@ -127,7 +127,7 @@ namespace projects {
    }
 
    void test_trans::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
-   
+
    void test_trans::setProjectBField(
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
@@ -139,4 +139,3 @@ namespace projects {
    }
 
 }// namespace projects
-

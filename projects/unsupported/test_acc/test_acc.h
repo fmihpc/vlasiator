@@ -63,9 +63,9 @@ template<typename UINT,typename REAL> void calcAccFaceX(
    ax = blockParams[BlockParams::VXCRD] + (I+convert<REAL>(0.5))*blockParams[BlockParams::DVX];
    ay = blockParams[BlockParams::VYCRD] + (J+convert<REAL>(0.5))*blockParams[BlockParams::DVY];
    az = blockParams[BlockParams::VZCRD] + (K+convert<REAL>(0.5))*blockParams[BlockParams::DVZ];
-   
+
 //    const REAL SPEED = convert<REAL>(0.5) + convert<REAL>(0.5)*(convert<REAL>(1.0) / convert<REAL>(6.0));
-   
+
    if (ax > convert<REAL>(0.0)) ax = test_accParameters::SPEED;
    else ax = -test_accParameters::SPEED;
    if (ay > convert<REAL>(0.0)) ay = test_accParameters::SPEED;
@@ -83,9 +83,9 @@ template<typename UINT,typename REAL> void calcAccFaceY(
    ax = blockParams[BlockParams::VXCRD] + (I+convert<REAL>(0.5))*blockParams[BlockParams::DVX];
    ay = blockParams[BlockParams::VYCRD] + (J+convert<REAL>(0.5))*blockParams[BlockParams::DVY];
    az = blockParams[BlockParams::VZCRD] + (K+convert<REAL>(0.5))*blockParams[BlockParams::DVZ];
-   
+
 //    const REAL SPEED = convert<REAL>(0.5) + convert<REAL>(0.5)*(convert<REAL>(1.0) / convert<REAL>(6.0));
-   
+
    if (ax > convert<REAL>(0.0)) ax = test_accParameters::SPEED;
    else ax = -test_accParameters::SPEED;
    if (ay > convert<REAL>(0.0)) ay = test_accParameters::SPEED;
@@ -103,9 +103,9 @@ template<typename UINT,typename REAL> void calcAccFaceZ(
    ax = blockParams[BlockParams::VXCRD] + (I+convert<REAL>(0.5))*blockParams[BlockParams::DVX];
    ay = blockParams[BlockParams::VYCRD] + (J+convert<REAL>(0.5))*blockParams[BlockParams::DVY];
    az = blockParams[BlockParams::VZCRD] + (K+convert<REAL>(0.5))*blockParams[BlockParams::DVZ];
-   
+
 //    const REAL SPEED = convert<REAL>(0.5) + convert<REAL>(0.5)*(convert<REAL>(1.0) / convert<REAL>(6.0));
-   
+
    if (ax > convert<REAL>(0.0)) ax = test_accParameters::SPEED;
    else ax = -test_accParameters::SPEED;
    if (ay > convert<REAL>(0.0)) ay = test_accParameters::SPEED;
@@ -115,4 +115,3 @@ template<typename UINT,typename REAL> void calcAccFaceZ(
 }
 
 #endif
-

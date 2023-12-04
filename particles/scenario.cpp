@@ -36,7 +36,7 @@ ParticleContainer singleParticleScenario::initialParticles(Field& E, Field& B, F
    return particles;
 }
 
-void singleParticleScenario::afterPush(int step, double time, ParticleContainer& particles, 
+void singleParticleScenario::afterPush(int step, double time, ParticleContainer& particles,
       Field& E, Field& B, Field& V) {
 
    Vec3d& x = particles[0].x;
@@ -301,9 +301,9 @@ void shockReflectivityScenario::finalize(ParticleContainer& particles, Field& E,
 ParticleContainer ipShockScenario::initialParticles(Field& E, Field& B, Field& V) {
 
   // Open output files for transmission and reflection
-  traFile = fopen("transmitted.dat","w"); 
-  refFile = fopen("reflected.dat","w"); 
-  
+  traFile = fopen("transmitted.dat","w");
+  refFile = fopen("reflected.dat","w");
+
    ParticleContainer particles;
 
    /* Prepare randomization engines */
@@ -325,8 +325,8 @@ ParticleContainer ipShockScenario::initialParticles(Field& E, Field& B, Field& V
      Vec3d vpos(posx, posy, posz);
 
      /* Look up bulk velocity in the V-field */
-     Vec3d bulk_vel = V(vpos); 
-     
+     Vec3d bulk_vel = V(vpos);
+
      /* Create a particle with velocity drawn from the given distribution ... */
      Particle p = velocity_distribution->next_particle();
      /* Shift it by the bulk velocity ... */
@@ -351,7 +351,7 @@ void ipShockScenario::newTimestep(int input_file_counter, int step, double time,
 
 void ipShockScenario::afterPush(int step, double time, ParticleContainer& particles,
       Field& E, Field& B, Field& V) {
-  
+
   /* Perform transmission / reflection check for each particle */
    for(unsigned int i=0; i<particles.size(); i++) {
 
@@ -363,37 +363,37 @@ void ipShockScenario::afterPush(int step, double time, ParticleContainer& partic
       //Get particle's x-coordinate
       double x = particles[i].x[0];
 
-      // Check if the particle hit a boundary. 
+      // Check if the particle hit a boundary.
       // If yes, print it and mark it as disabled.
       if(particles[i].x[0] < ParticleParameters::ipshock_transmit) {
-	// Record it as transmitted.
-	//transmitted.addValue(Vec2d(y,start_time));
-	
-	// Write particle information to a file
-	fprintf(traFile,"%lf %lf %lf %lf %lf %lf %lf %lf %lf\n", time, 
-		particles[i].x[0], particles[i].x[1], particles[i].x[2],
-		particles[i].v[0], particles[i].v[1], particles[i].v[2],
-		.5 * particles[i].m * dot_product(particles[i].v, particles[i].v) / PhysicalConstantsSI::e,
-		dot_product(normalize_vector(particles[i].v), normalize_vector(B(particles[i].x))) );
+        // Record it as transmitted.
+        //transmitted.addValue(Vec2d(y,start_time));
 
-	// Disable by setting position to NaN and velocity to 0
-	particles[i].x = Vec3d(std::numeric_limits<double>::quiet_NaN(),0.,0.);
-	particles[i].v = Vec3d(0,0,0);
+        // Write particle information to a file
+        fprintf(traFile,"%lf %lf %lf %lf %lf %lf %lf %lf %lf\n", time,
+                particles[i].x[0], particles[i].x[1], particles[i].x[2],
+                particles[i].v[0], particles[i].v[1], particles[i].v[2],
+                .5 * particles[i].m * dot_product(particles[i].v, particles[i].v) / PhysicalConstantsSI::e,
+                dot_product(normalize_vector(particles[i].v), normalize_vector(B(particles[i].x))) );
+
+        // Disable by setting position to NaN and velocity to 0
+        particles[i].x = Vec3d(std::numeric_limits<double>::quiet_NaN(),0.,0.);
+        particles[i].v = Vec3d(0,0,0);
       } else if (particles[i].x[0] > ParticleParameters::ipshock_reflect) {
-	// Record it as reflected
-	//reflected.addValue(Vec2d(y,start_time));
-	
-	// Write particle information to a file
-	// Write particle information to a file
-	fprintf(refFile,"%lf %lf %lf %lf %lf %lf %lf %lf %lf\n", time, 
-		particles[i].x[0], particles[i].x[1], particles[i].x[2],
-		particles[i].v[0], particles[i].v[1], particles[i].v[2],
-		.5 * particles[i].m * dot_product(particles[i].v, particles[i].v) / PhysicalConstantsSI::e,
-		dot_product(normalize_vector(particles[i].v), normalize_vector(B(particles[i].x))) );
+        // Record it as reflected
+        //reflected.addValue(Vec2d(y,start_time));
 
-	// Disable by setting position to NaN and velocity to 0
-	particles[i].x = Vec3d(std::numeric_limits<double>::quiet_NaN(),0.,0.);
-	particles[i].v = Vec3d(0.,0.,0.);
+        // Write particle information to a file
+        // Write particle information to a file
+        fprintf(refFile,"%lf %lf %lf %lf %lf %lf %lf %lf %lf\n", time,
+                particles[i].x[0], particles[i].x[1], particles[i].x[2],
+                particles[i].v[0], particles[i].v[1], particles[i].v[2],
+                .5 * particles[i].m * dot_product(particles[i].v, particles[i].v) / PhysicalConstantsSI::e,
+                dot_product(normalize_vector(particles[i].v), normalize_vector(B(particles[i].x))) );
+
+        // Disable by setting position to NaN and velocity to 0
+        particles[i].x = Vec3d(std::numeric_limits<double>::quiet_NaN(),0.,0.);
+        particles[i].v = Vec3d(0.,0.,0.);
       }
    }
    fflush(traFile);

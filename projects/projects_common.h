@@ -56,7 +56,7 @@ namespace projects {
       ZP1_YP1_XCC,
       ZP1_YP1_XP1
    };
-   
+
    const uint MISSING_ZNEG = (1 << projects::ZM1_YCC_XCC);
    const uint MISSING_YNEG = (1 << projects::ZCC_YM1_XCC);
    const uint MISSING_XNEG = (1 << projects::ZCC_YCC_XM1);

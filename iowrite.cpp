@@ -102,9 +102,9 @@ bool globalSuccess(bool success, const string& errorMessage, MPI_Comm comm){
       successInt=1;
    else
       successInt=0;
-   
+
    MPI_Allreduce(&successInt,&globalSuccessInt,1,MPI_INT,MPI_MIN,comm);
-   
+
    if(globalSuccessInt==1) {
       return true;
    }
@@ -139,7 +139,7 @@ bool writeVelocityDistributionData(Writer& vlsvWriter,
 bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
                                    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                    const std::vector<CellID>& cells,MPI_Comm comm) {
-   // Write velocity blocks and related data. 
+   // Write velocity blocks and related data.
    // In restart we just write velocity grids for all cells.
    // First write global Ids of those cells which write velocity blocks (here: all cells):
    map<string,string> attribs;
@@ -184,11 +184,11 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
    attribs["mesh"] = getObjectWrapper().particleSpecies[popID].name;
    attribs["type"] = vlsv::mesh::STRING_UCD_AMR;
 
-   // stringstream is necessary here to correctly convert refLevelMaxAllowed into a string 
+   // stringstream is necessary here to correctly convert refLevelMaxAllowed into a string
    stringstream ss;
    ss << static_cast<unsigned int>(getObjectWrapper().velocityMeshes[meshID].refLevelMaxAllowed);
    attribs["max_velocity_ref_level"] = ss.str();
-   
+
    if (mpiGrid.get_rank() == MASTER_RANK) {
       if (vlsvWriter.writeArray("MESH_BBOX",attribs,6,1,bbox) == false) success = false;
 
@@ -270,7 +270,7 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
    for (size_t cell = 0; cell<cells.size(); ++cell) {
       // Get the spatial cell
       SpatialCell* SC = mpiGrid[cells[cell]];
-      
+
       // Get the number of blocks in this cell
       const uint64_t arrayElements = SC->get_number_of_velocity_blocks(popID);
       char* arrayToWrite = reinterpret_cast<char*>(SC->get_data(popID));
@@ -325,14 +325,14 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    map<string,string> attribs;
    string variableName,dataType,unitString,unitStringLaTeX, variableStringLaTeX, unitConversionFactor;
    bool success=true;
-   
+
    if(!writeFsGrid) { // if we shouldn't write fsgrid DROs
       variableName = dataReducer.getName(dataReducerIndex);
       if(variableName.find("fg_", 0) == 0) { // and if the DRO's name includes the string "fg_"
          return success; // we're good to go
       }
    }
-   
+
    const string meshName = "SpatialGrid";
    variableName = dataReducer.getName(dataReducerIndex);
    phiprof::Timer droTimer {"DRO_"+variableName};
@@ -362,7 +362,7 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    }
 
    const uint64_t varBufferArraySize = cells.size()*vectorSize*dataSize;
-   
+
    //Request DataReductionOperator to calculate the reduced data for all local cells:
    char* varBuffer = NULL;
    try {
@@ -437,7 +437,7 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       success |= dataReducer.writeIonosphereGridData(SBC::ionosphereGrid, "ionosphere", dataReducerIndex, vlsvWriter);
       writeIonosphereTimer.stop();
    }
-   
+
    // Check if the DataReducer wants to write paramters to the output file
    if (dataReducer.hasParameters(dataReducerIndex) == true) {
       success = dataReducer.writeParameters(dataReducerIndex,vlsvWriter);
@@ -541,7 +541,7 @@ bool writeGhostZoneDomainAndLocalIdNumbers( dccrg::Dccrg<SpatialCell,dccrg::Cart
       //Process 2. has: local zones ( D, G ), ghost zones ( H )
       //Now if we're in process 1. and our ghost zone is D, its domainId would be 2. because process 2. has D as local zone
       //In process 2, the local id of D is 0, so that's the local id we want now
-      //The local id is being saved in createZone function     
+      //The local id is being saved in createZone function
 
       //Append to the vectors Note: Check updateLocalIds function
       ghostDomainIds.push_back( mpiGrid.get_process( *it ) );
@@ -716,7 +716,7 @@ bool writeBoundingBoxNodeCoordinates ( Writer & vlsvWriter,
    const Real & xCellLength = (Real)P::dx_ini;
    const Real & yCellLength = (Real)P::dy_ini;
    const Real & zCellLength = (Real)P::dz_ini;
-   
+
 
    //Create node coordinates:
    //These are the coordinates for any given node in x y or z direction
@@ -784,8 +784,8 @@ bool writeBoundingBoxNodeCoordinates ( Writer & vlsvWriter,
  \param comm MPI comm
  \return Returns true if operation was successful
  */
-bool writeMeshBoundingBox( Writer & vlsvWriter, 
-                           const string & meshName, 
+bool writeMeshBoundingBox( Writer & vlsvWriter,
+                           const string & meshName,
                            const int masterRank,
                            MPI_Comm comm ) {
    //Get my rank from the MPI_Comm
@@ -801,7 +801,7 @@ bool writeMeshBoundingBox( Writer & vlsvWriter,
    const uint64_t & numberOfXCells = P::xcells_ini;
    const uint64_t & numberOfYCells = P::ycells_ini;
    const uint64_t & numberOfZCells = P::zcells_ini;
-   uint64_t boundaryBox[box_size] = { numberOfXCells, numberOfYCells, numberOfZCells, 
+   uint64_t boundaryBox[box_size] = { numberOfXCells, numberOfYCells, numberOfZCells,
                                       notBlockBasedMesh, notBlockBasedMesh, notBlockBasedMesh };
 
    //Write:
@@ -832,7 +832,7 @@ bool writeMeshBoundingBox( Writer & vlsvWriter,
  \return Returns true if operation was successful
  */
 bool writeVersionInfo(std::string version,vlsv::Writer& vlsvWriter,MPI_Comm comm){
-  
+
    int myRank;
    MPI_Comm_rank(comm, &myRank);
 
@@ -856,7 +856,7 @@ bool writeVersionInfo(std::string version,vlsv::Writer& vlsvWriter,MPI_Comm comm
  \return Returns true if operation was successful
  */
 bool writeConfigInfo(std::string config,vlsv::Writer& vlsvWriter,MPI_Comm comm){
-  
+
    int myRank;
    MPI_Comm_rank(comm, &myRank);
 
@@ -915,7 +915,7 @@ bool writeFsGridMetadata(FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technic
     zNodeCoordinates[i] = technicalGrid.getPhysicalCoords(0,0,i)[2];
   }
   if(technicalGrid.getRank() == 0) {
-    // Write this data only on rank 0 
+    // Write this data only on rank 0
     vlsvWriter.writeArray("MESH_NODE_CRDS_X", xmlAttributes, globalSize[0]+1, 1, xNodeCoordinates.data());
     vlsvWriter.writeArray("MESH_NODE_CRDS_Y", xmlAttributes, globalSize[1]+1, 1, yNodeCoordinates.data());
     vlsvWriter.writeArray("MESH_NODE_CRDS_Z", xmlAttributes, globalSize[2]+1, 1, zNodeCoordinates.data());
@@ -1003,7 +1003,7 @@ bool writeIonosphereGridMetadata(vlsv::Writer& vlsvWriter) {
     const unsigned int vectorSize = 1;
     vlsvWriter.writeArray("MESH_BBOX", xmlAttributes, arraySize, vectorSize, &boundaryBox[0]);
   }
-  
+
   // write DomainSizes
   std::array<uint64_t,4> meshDomainSize({SBC::ionosphereGrid.elements.size(), 0, SBC::ionosphereGrid.nodes.size(), 0});
   if(rank == 0) {
@@ -1029,7 +1029,7 @@ bool writeIonosphereGridMetadata(vlsv::Writer& vlsvWriter) {
     nodeCoordinates[3*i+2] = SBC::ionosphereGrid.nodes[i].x[2];
   }
   if(rank == 0) {
-    // Write this data only on rank 0 
+    // Write this data only on rank 0
     vlsvWriter.writeArray("MESH_NODE_CRDS", xmlAttributes, SBC::ionosphereGrid.nodes.size(), 3, nodeCoordinates.data());
   } else {
     // The others just write an empty dummy
@@ -1061,7 +1061,7 @@ bool writeIonosphereGridMetadata(vlsv::Writer& vlsvWriter) {
   xmlAttributes["nodes"] = std::to_string(SBC::ionosphereGrid.nodes.size());
 
   if(rank == 0) {
-    // Write this data only on rank 0 
+    // Write this data only on rank 0
     vlsvWriter.writeArray("MESH", xmlAttributes, ionosphereGridElementsAndCorners.size(), 1, ionosphereGridElementsAndCorners.data());
   } else {
     vlsvWriter.writeArray("MESH", xmlAttributes, 0, 1, ionosphereGridElementsAndCorners.data());
@@ -1109,7 +1109,7 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          uint cellsthislevel = (AMRm * P::xcells_ini) * (AMRm*P::ycells_ini) * (AMRm * P::zcells_ini);
          startindex = endindex;
          endindex = endindex + cellsthislevel;
-      
+
          // If cell belongs to this AMR level, find indices
          if ((cells[i]>=startindex)&&(cells[i]<endindex)) {
             lineX =  (cells[i]-startindex) % (AMRm*P::xcells_ini);
@@ -1127,7 +1127,7 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
                ) && (P::systemWriteDistributionWriteZlineStride[index] > 0 &&
                   P::systemWriteDistributionWriteXlineStride[index] > 0 &&
                   lineZ % P::systemWriteDistributionWriteZlineStride[index] == 0 &&
-                  lineX % P::systemWriteDistributionWriteXlineStride[index] == 0)) 
+                  lineX % P::systemWriteDistributionWriteXlineStride[index] == 0))
             {
                velSpaceCells.push_back(cells[i]);
                mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 1.0;
@@ -1326,7 +1326,7 @@ bool writeGrid(
       MPIinfo = MPI_INFO_NULL;
    } else {
       MPI_Info_create(&MPIinfo);
-      
+
       for (std::vector<std::pair<std::string,std::string>>::const_iterator it = P::systemWriteHints.begin();
            it != P::systemWriteHints.end();
            it++)
@@ -1350,18 +1350,18 @@ bool writeGrid(
    phiprof::Timer openTimer {"open"};
    vlsvWriter.open( fname.str(), MPI_COMM_WORLD, masterProcessId, MPIinfo );
    openTimer.stop();
-   
+
    if( MPIinfo != MPI_INFO_NULL ) {
       MPI_Info_free(&MPIinfo);
    }
-   
+
    vlsvWriter.setBuffer(P::vlsvBufferSize);
 
    phiprof::Timer metadataTimer {"metadataIO"};
 
-   // Get all local cell Ids 
+   // Get all local cell Ids
    const vector<CellID>& local_cells = getLocalCells();
-   
+
    //Declare ghost cells:
    vector<CellID> ghost_cells;
    if( writeGhosts ) {
@@ -1421,22 +1421,22 @@ bool writeGrid(
    if( writeFsGridMetadata( technicalGrid, vlsvWriter ) == false ) {
       return false;
    }
-   
+
    //Write Ionosphere Grid
    if( writeIonosphereGridMetadata( vlsvWriter ) == false ) {
       return false;
    }
-   
-   //Write Version Info 
+
+   //Write Version Info
    if( writeVersionInfo(versionInfo,vlsvWriter,MPI_COMM_WORLD) == false ) {
       return false;
    }
-      
-   //Write Config Info 
+
+   //Write Config Info
    if( writeConfigInfo(configInfo,vlsvWriter,MPI_COMM_WORLD) == false ) {
       return false;
    }
-   
+
    metadataTimer.stop();
    phiprof::Timer vspaceTimer {"velocityspaceIO"};
    if(writeVelocitySpace( mpiGrid, vlsvWriter, outputFileTypeIndex, local_cells ) == false)  {
@@ -1458,11 +1458,11 @@ bool writeGrid(
       }
    }
    writeDataTimer.stop();
-   
+
    phiprof::Timer barrierTimer {"Barrier", {"MPI","Barrier"}};
    MPI_Barrier(MPI_COMM_WORLD);
    barrierTimer.stop();
-   
+
    const uint64_t bytesWritten = vlsvWriter.getBytesWritten();
    const double writeTime = vlsvWriter.getWriteTime();
    logFile << "(writeGrid) Wrote ";
@@ -1515,12 +1515,12 @@ bool writeRestart(
    DataReducer& dataReducer,
    const string& name,
    const uint& fileIndex,
-   const int& stripe) 
+   const int& stripe)
 {
    // Writes a restart
    bool success = true;
    int myRank;
-   
+
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    phiprof::Timer barrierEnteringTimer {"BarrierEnteringWriteRestart", {"MPI","Barrier"}};
    MPI_Barrier(MPI_COMM_WORLD);
@@ -1531,7 +1531,7 @@ bool writeRestart(
    //deallocate blocks in remote cells to decrease memory load
    deallocateRemoteCellBlocks(mpiGrid);
    deallocateTimer.stop();
-   
+
    // Get the current time.
    // Avoid different times on different processes!
    char currentDate[80];
@@ -1541,7 +1541,7 @@ bool writeRestart(
       strftime(currentDate, 80, "%F_%H-%M-%S", timeInfo);
    }
    MPI_Bcast(&currentDate,80,MPI_CHAR,MASTER_RANK,MPI_COMM_WORLD);
-   
+
    // Create a name for the output file and open it with VLSVWriter:
    stringstream fname;
    fname << P::restartWritePath << "/" << name << ".";
@@ -1578,7 +1578,7 @@ bool writeRestart(
       char factor[] = "striping_factor";
       MPI_Info_set(MPIinfo, factor, stripeChar);
    }
-   
+
    if( vlsvWriter.open( fname.str(), MPI_COMM_WORLD, masterProcessId, MPIinfo ) == false) return false;
 
    if( MPIinfo != MPI_INFO_NULL ) {
@@ -1590,28 +1590,28 @@ bool writeRestart(
    vlsvWriter.setBuffer(P::vlsvBufferSize);
 
    phiprof::Timer metadataTimer {"metadataIO"};
-   
-   // Get all local cell Ids 
+
+   // Get all local cell Ids
    vector<CellID> local_cells = getLocalCells();
    //no order assumed so let's order cells here
    std::sort(local_cells.begin(), local_cells.end());
-   
+
    //Note: No need to write ghost zones for write restart
    const vector<CellID> ghost_cells;
-   
+
    //The mesh name is "SpatialGrid"
    const string meshName = "SpatialGrid";
-   
+
    //Write mesh boundaries: NOTE: master process only
    //Visit plugin needs to know the boundaries of the mesh so the number of cells in x, y, z direction
    if( writeMeshBoundingBox( vlsvWriter, meshName, masterProcessId, MPI_COMM_WORLD ) == false ) return false;
-   
+
    //Write the node coordinates: NOTE: master process only
    if( writeBoundingBoxNodeCoordinates( vlsvWriter, meshName, masterProcessId, MPI_COMM_WORLD ) == false ) return false;
-   
+
    //Write basic grid parameters: NOTE: master process only ( I think )
    if( writeCommonGridData(vlsvWriter, mpiGrid, local_cells, fileIndex, MPI_COMM_WORLD) == false ) return false;
-   
+
    //Write zone global id numbers:
    if( writeZoneGlobalIdNumbers( mpiGrid, vlsvWriter, meshName, local_cells, ghost_cells ) == false ) return false;
 
@@ -1620,13 +1620,13 @@ bool writeRestart(
 
    //Write FSGrid metadata
    if( writeFsGridMetadata( technicalGrid, vlsvWriter ) == false ) return false;
-   
-   //Write Version Info 
+
+   //Write Version Info
    if( writeVersionInfo(versionInfo,vlsvWriter,MPI_COMM_WORLD) == false ) return false;
-   
-   //Write Config Info 
+
+   //Write Config Info
    if( writeConfigInfo(configInfo,vlsvWriter,MPI_COMM_WORLD) == false ) return false;
-   
+
 
    //Write Ionosphere Grid
    if( writeIonosphereGridMetadata( vlsvWriter ) == false ) return false;
@@ -1681,7 +1681,7 @@ bool writeRestart(
             return retval;
          }
    ));
-   
+
    restartReducer.addOperator(new DRO::DataReductionOperatorFsGrid("fg_PERB",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
@@ -1714,7 +1714,7 @@ bool writeRestart(
    if(SBC::ionosphereGrid.nodes.size() > 0) {
      restartReducer.addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_fac", [](SBC::SphericalTriGrid& grid) -> std::vector<Real> {
          std::vector<Real> retval(grid.nodes.size());
-  
+
          for (uint i = 0; i < grid.nodes.size(); i++) {
             Real area = 0;
             for (uint e = 0; e < grid.nodes[i].numTouchingElements; e++) {
@@ -1723,37 +1723,37 @@ bool writeRestart(
             area /= 3.; // As every element has 3 corners, don't double-count areas
             retval[i] = grid.nodes[i].parameters[ionosphereParameters::SOURCE] / area;
          }
-  
+
          return retval;
      }));
      restartReducer.addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_rhon", [](SBC::SphericalTriGrid& grid)->std::vector<Real> {
-  
+
         std::vector<Real> retval(grid.nodes.size());
-  
+
         for (uint i = 0; i < grid.nodes.size(); i++) {
            retval[i] = grid.nodes[i].parameters[ionosphereParameters::RHON];
         }
-  
+
         return retval;
      }));
      restartReducer.addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_electrontemp", [](SBC::SphericalTriGrid& grid)->std::vector<Real> {
-  
+
         std::vector<Real> retval(grid.nodes.size());
-  
+
         for(uint i=0; i<grid.nodes.size(); i++) {
            retval[i] = grid.nodes[i].parameters[ionosphereParameters::TEMPERATURE];
         }
-  
+
         return retval;
      }));
      restartReducer.addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_potential", [](SBC::SphericalTriGrid& grid)->std::vector<Real> {
-  
+
         std::vector<Real> retval(grid.nodes.size());
-  
+
         for(uint i=0; i<grid.nodes.size(); i++) {
            retval[i] = grid.nodes[i].parameters[ionosphereParameters::SOLUTION];
         }
-  
+
         return retval;
      }));
 
@@ -1808,7 +1808,7 @@ bool writeRestart(
    }
    reducedTimer.stop();
    //write the velocity distribution data -- note: it's expecting a vector of pointers:
-   // Note: restart should always write double values to ensure the accuracy of the restart runs. 
+   // Note: restart should always write double values to ensure the accuracy of the restart runs.
    // In case of distribution data it is not as important as they are mainly used for visualization purpose
    phiprof::Timer vspaceTimer {"velocityspaceIO"};
    writeVelocityDistributionData(vlsvWriter, mpiGrid, local_cells, MPI_COMM_WORLD);
@@ -1828,20 +1828,20 @@ bool writeRestart(
    const uint64_t bytesWritten = vlsvWriter.getBytesWritten();
    const double writeTime = vlsvWriter.getWriteTime();
    logFile << "(writeGrid) Wrote ";
-   
+
    if (bytesWritten > 1.0e9) logFile << bytesWritten/1.0e9 << " GB in ";
    else if (bytesWritten > 1e6) logFile << bytesWritten/1.0e6 << " MB in ";
    else if (bytesWritten > 1e3) logFile << bytesWritten/1.0e3 << " kB in ";
    else logFile << bytesWritten << " B in ";
-   
+
    logFile << writeTime << " seconds, approximate data rate is ";
-   
+
    if (bytesWritten/writeTime > 1e9) logFile << bytesWritten/writeTime/1e9 << " GB/s";
    else if (bytesWritten/writeTime > 1e6) logFile << bytesWritten/writeTime/1e6 << " MB/s";
    else if (bytesWritten/writeTime > 1e3) logFile << bytesWritten/writeTime/1e3 << " kB/s";
    else logFile << bytesWritten/writeTime << " B/s";
    logFile << endl;
-   
+
    writeTimer.stop(bytesWritten * 1e-9, "GB");
    return success;
 }
@@ -1859,13 +1859,13 @@ bool writeDiagnostic(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 {
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-   
+
    string dataType;
    uint dataSize, vectorSize;
    const vector<CellID>& cells = getLocalCells();
    cuint nCells = cells.size();
    cuint nOps = dataReducer.size();
-   
+
    // Exit if the user does not want any diagnostics output
    if (nOps == 0) return true;
 
@@ -1875,7 +1875,7 @@ bool writeDiagnostic(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    Real buffer;
    bool success = true;
    static bool printDiagnosticHeader = true;
-   
+
    if (printDiagnosticHeader == true && myRank == MASTER_RANK) {
       if (P::isRestart){
          diagnostic << "# ==== Restart from file "<< P::restartFileName << " ===="<<endl;
@@ -1888,9 +1888,9 @@ bool writeDiagnostic(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
       }
       printDiagnosticHeader = false;
    }
-   
+
    for (uint i=0; i<nOps; ++i) {
-      
+
       if (dataReducer.getDataVectorInfo(i,dataType,dataSize,vectorSize) == false) {
          cerr << "ERROR when requesting info from diagnostic DRO " << dataReducer.getName(i) << endl;
       }
@@ -1898,7 +1898,7 @@ bool writeDiagnostic(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
       localMax[i] = std::numeric_limits<Real>::min();
       localSum[i+1] = 0.0;
       buffer = 0.0;
-      
+
       // Request DataReductionOperator to calculate the reduced data for all local cells:
       for (uint64_t cell=0; cell<nCells; ++cell) {
          success = true;
@@ -1908,20 +1908,20 @@ bool writeDiagnostic(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
          localSum[i+1] += buffer;
       }
       localAvg[i] = localSum[i+1];
-      
+
       if (success == false) logFile << "(MAIN) writeDiagnostic: ERROR datareductionoperator '" << dataReducer.getName(i) <<
                                "' returned false!" << endl << writeVerbose;
    }
-   
+
    MPI_Reduce(&localMin[0], &globalMin[0], nOps, MPI_Type<Real>(), MPI_MIN, 0, MPI_COMM_WORLD);
    MPI_Reduce(&localMax[0], &globalMax[0], nOps, MPI_Type<Real>(), MPI_MAX, 0, MPI_COMM_WORLD);
    MPI_Reduce(&localSum[0], &globalSum[0], nOps + 1, MPI_Type<Real>(), MPI_SUM, 0, MPI_COMM_WORLD);
-   
-   diagnostic << setprecision(12); 
+
+   diagnostic << setprecision(12);
    diagnostic << Parameters::tstep << "\t";
    diagnostic << Parameters::t << "\t";
    diagnostic << Parameters::dt << "\t";
-   
+
    for (uint i=0; i<nOps; ++i) {
       if (globalSum[0] != 0.0) globalAvg[i] = globalSum[i+1] / globalSum[0];
       else globalAvg[i] = globalSum[i+1];
@@ -1935,4 +1935,3 @@ bool writeDiagnostic(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    if (myRank == MASTER_RANK) diagnostic << endl << write;
    return true;
 }
-

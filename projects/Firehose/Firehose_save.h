@@ -41,7 +41,7 @@ struct FirehoseParameters {
    static Real Vz[2];
    static Real Bx;
    static Real By;
-   static Real Bz;   
+   static Real Bz;
    static Real lambda;
    static Real amp;
    static uint nSpaceSamples;
@@ -60,8 +60,8 @@ bool addProjectParameters(void);
  */
 bool getProjectParameters(void);
 
-/** Query if spatial cell parameters (of any cell) have changed and need to be 
- * recalculated. If you have a completely static case, then you can always return 
+/** Query if spatial cell parameters (of any cell) have changed and need to be
+ * recalculated. If you have a completely static case, then you can always return
  * false here. Otherwise you need to return true so that function calcCellParameters
  * gets called for each spatial cell.
  * @param t The current value of time.
@@ -78,12 +78,12 @@ void calcBlockParameters(Real* blockParams);
 /** Calculate parameters for the given spatial cell at the given time.
  * Here you need to set values for the following array indices:
  * CellParams::EX, CellParams::EY, CellParams::EZ, CellParams::BX, CellParams::BY, and CellParams::BZ.
- * 
- * The following array indices contain the coordinates of the "lower left corner" of the cell: 
+ *
+ * The following array indices contain the coordinates of the "lower left corner" of the cell:
  * CellParams::XCRD, CellParams::YCRD, and CellParams::ZCRD.
  * The cell size is given in the following array indices: CellParams::DX, CellParams::DY, and CellParams::DZ.
  * @param cellParams Array containing cell parameters.
- * @param t The current value of time. This is passed as a convenience. If you need more detailed information 
+ * @param t The current value of time. This is passed as a convenience. If you need more detailed information
  * of the state of the simulation, you can read it from Parameters.
  */
 void calcCellParameters(Real* cellParams,creal& t);
@@ -115,37 +115,37 @@ Real calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal&
  */
 void setProjectCell(SpatialCell* cell);
 
-/** Calculate the boundary value of volume average of distribution function. This function 
- * should calculate the value of distribution function on the other side of given phase space 
- * cell face. The coordinate direction is given with parameter crd, and positive or negative 
- * face is given with parameter negSide. For example, if crd == 0 and negSide == true, then 
+/** Calculate the boundary value of volume average of distribution function. This function
+ * should calculate the value of distribution function on the other side of given phase space
+ * cell face. The coordinate direction is given with parameter crd, and positive or negative
+ * face is given with parameter negSide. For example, if crd == 0 and negSide == true, then
  * boundary value is requested at -x face of the given phase space cell.
- * 
- * The spatial coordinate values can be calculated using cellParams. This array contains the parameters 
- * of the spatial cell which is inside the simulation domain, and you should assume that the 
- * ghost cell has the same (dx,dy,dz) values. For example, if crd == 0 and negSide == true, then 
- * the spatial coordinates of the lower left corner of the ghost cell are 
+ *
+ * The spatial coordinate values can be calculated using cellParams. This array contains the parameters
+ * of the spatial cell which is inside the simulation domain, and you should assume that the
+ * ghost cell has the same (dx,dy,dz) values. For example, if crd == 0 and negSide == true, then
+ * the spatial coordinates of the lower left corner of the ghost cell are
  * (cellParams[XCRD]-cellParams[DX], cellParams[YCRD], cellParams[ZCRD]).
- * 
- * The velocity coordinates can be calculated using blockParams. This array contains the parameters 
- * of the velocity grid block which is just inside the simulation domain, and you should assume that 
- * the corresponding velocity grid block of the ghost cell has the same values. For example, the 
- * velocity coordinates of the lower left corner of the velocity block are 
- * (blockParams[VXCRD]+iv*blockParams[DVX], blockParams[VYCRD]+jv*blockParams[DVY], 
+ *
+ * The velocity coordinates can be calculated using blockParams. This array contains the parameters
+ * of the velocity grid block which is just inside the simulation domain, and you should assume that
+ * the corresponding velocity grid block of the ghost cell has the same values. For example, the
+ * velocity coordinates of the lower left corner of the velocity block are
+ * (blockParams[VXCRD]+iv*blockParams[DVX], blockParams[VYCRD]+jv*blockParams[DVY],
  * blockParams[VZCRD]+kv*blockParams[DVZ]).
- * 
+ *
  * Note that this function does not need to be a template.
- * 
+ *
  * @param iv The vx-index of the cell in velocity block.
  * @param jv The vy-index of the cell in velocity block.
  * @param kv The vz-index of the cell in velocity block.
  * @param cellParams Array containing the spatial cell parameters.
  * @param blockParams Array containing the velocity block parameters.
- * @param avg Volume average of distribution function in the velocity block cell just inside the 
- * simulation domain. 
+ * @param avg Volume average of distribution function in the velocity block cell just inside the
+ * simulation domain.
  * @param crd The spatial coordinate direction (0 = x, 1 = y, 2 = z).
  * @param negSide If true, then the boundary value at the negative coordinate side is requested.
- * @return Volume average of distribution function at the given boundary. The physical 
+ * @return Volume average of distribution function at the given boundary. The physical
  * unit of this quantity is 1 / (m^3 (m/s)^3).
  */
 template<typename T>
@@ -178,7 +178,7 @@ template<typename T> T velocityFluxX(const T& j,const T& k,const T& avg_neg,cons
    const T AX = physicalconstants::CHARGE/physicalconstants::MASS_PROTON*(EX + VY*BZ - VZ*BY);
    return convert<T>(0.5)*AX*(avg_neg + avg_pos) - convert<T>(0.5)*fabs(AX)*(avg_pos-avg_neg);
 }
-                                                                        
+
 template<typename T> T velocityFluxY(const T& i,const T& k,const T& avg_neg,const T& avg_pos,const T* const cellParams,const T* const blockParams) {
    const T VX = blockParams[BlockParams::VXCRD] + (i+convert<T>(0.5))*blockParams[BlockParams::DVX];
    const T VZ = blockParams[BlockParams::VZCRD] + (k+convert<T>(0.5))*blockParams[BlockParams::DVZ];
@@ -229,7 +229,7 @@ REAL fieldSolverBoundaryCondBz(const CELLID& cellID,const UINT& existingCells,co
    return 0.0;
 }
 
-template<typename CELLID,typename UINT> 
+template<typename CELLID,typename UINT>
 void vlasovBoundaryCondition(const CELLID& cellID,const UINT& existingCells,const UINT& nonExistingCells,const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
    return;
 }
@@ -237,7 +237,7 @@ void vlasovBoundaryCondition(const CELLID& cellID,const UINT& existingCells,cons
 template<typename UINT,typename REAL> void calcAccFaceX(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,const REAL* const cellParams,const REAL* const blockParams) {
    lorentzForceFaceX(ax,ay,az,I,J,K,cellParams,blockParams);
 }
-   
+
 template<typename UINT,typename REAL> void calcAccFaceY(REAL& ax,REAL& ay,REAL& az,const UINT& I,const UINT& J,const UINT& K,const REAL* const cellParams,const REAL* const blockParams) {
    lorentzForceFaceY(ax,ay,az,I,J,K,cellParams,blockParams);
 }
@@ -247,4 +247,3 @@ template<typename UINT,typename REAL> void calcAccFaceZ(REAL& ax,REAL& ay,REAL& 
 }
 
 #endif
-

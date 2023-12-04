@@ -40,7 +40,7 @@ Real projects::testAmr::rhoRnd;
 
 namespace projects {
    testAmr::testAmr(): TriAxisSearch() { }
-   
+
    testAmr::~testAmr() { }
 
    bool testAmr::initialize(void) {
@@ -111,7 +111,7 @@ namespace projects {
          RP::get(pop + "_testAmr.Vz", sP.Vz);
 
          RP::get(pop + "_testAmr.rhoPertAbsAmp", sP.rhoPertAbsAmp);
-         
+
          if(!sP.isConsistent()) {
             cerr << "You should define all parameters (testAmr.rho, testAmr.Tx, testAmr.Ty, testAmr.Tz, testAmr.Vx, testAmr.Vy, testAmr.Vz, testAmr.rhoPertAbsAmp) for all " << sP.numberOfPeaks << " peaks of population " << pop << "." << endl;
             abort();
@@ -119,10 +119,10 @@ namespace projects {
 
          speciesParams.push_back(sP);
       }
-      
+
       string densModelString;
       RP::get("testAmr.densityModel",densModelString);
-      
+
       if (densModelString == "uniform") densityModel = Uniform;
       else if (densModelString == "testcase") densityModel = TestCase;
    }
@@ -137,19 +137,19 @@ namespace projects {
       for (uint i=0; i<sP.numberOfPeaks; ++i) {
          value += (sP.rho[i] + sP.rhoPertAbsAmp[i] * rhoRnd)
                * pow(mass / (2.0 * M_PI * kb ), 1.5) * 1.0
-               / sqrt(sP.Tx[i]*sP.Ty[i]*sP.Tz[i]) 
-               * exp(- mass * (pow(vx - sP.Vx[i], 2.0) / (2.0 * kb * sP.Tx[i]) 
-                             + pow(vy - sP.Vy[i], 2.0) / (2.0 * kb * sP.Ty[i]) 
+               / sqrt(sP.Tx[i]*sP.Ty[i]*sP.Tz[i])
+               * exp(- mass * (pow(vx - sP.Vx[i], 2.0) / (2.0 * kb * sP.Tx[i])
+                             + pow(vy - sP.Vy[i], 2.0) / (2.0 * kb * sP.Ty[i])
                              + pow(vz - sP.Vz[i], 2.0) / (2.0 * kb * sP.Tz[i])));
       }
       return value;
    }
 
-   Real testAmr::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, 
+   Real testAmr::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz,
                                        creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,
                                        const uint popID) const {
-      // Iterative sampling of the distribution function. Keep track of the 
-      // accumulated volume average over the iterations. When the next 
+      // Iterative sampling of the distribution function. Keep track of the
+      // accumulated volume average over the iterations. When the next
       // iteration improves the average by less than 1%, return the value.
       Real avgTotal = 0.0;
       bool ok = false;
@@ -161,7 +161,7 @@ namespace projects {
       const Real avgLimit = 0.01*getObjectWrapper().particleSpecies[popID].sparseMinValue;
       do {
          Real avg = 0.0;        // Volume average obtained during this sampling
-         creal DVX = dvx / N; 
+         creal DVX = dvx / N;
          creal DVY = dvy / N;
          creal DVZ = dvz / N;
 
@@ -194,7 +194,7 @@ namespace projects {
             }
          }
          avg *= rhoFactor;
-         
+
          // Compare the current and accumulated volume averages:
          Real eps = max(numeric_limits<creal>::min(),avg * static_cast<Real>(1e-6));
          Real avgAccum   = avgTotal / (avg + N3_sum);
@@ -228,21 +228,21 @@ namespace projects {
       bgField.initialize(this->Bx,
                          this->By,
                          this->Bz);
-      
+
       setBackgroundField(bgField, BgBGrid);
-      
+
       if(!P::isRestart) {
          auto localSize = perBGrid.getLocalSize().data();
-         
+
          #pragma omp parallel for collapse(3)
          for (int x = 0; x < localSize[0]; ++x) {
             for (int y = 0; y < localSize[1]; ++y) {
                for (int z = 0; z < localSize[2]; ++z) {
                   const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
-                  
+
                   const int64_t cellid = perBGrid.GlobalIDForCoords(x, y, z);
-                  
+
                   std::default_random_engine rndState;
                   setRandomSeed(cellid,rndState);
 
@@ -251,7 +251,7 @@ namespace projects {
                      cell->at(fsgrids::bfield::PERBY) = this->dBy*sin(2.0 * M_PI * xyz[0] / this->lambda);
                      cell->at(fsgrids::bfield::PERBZ) = this->dBz*cos(2.0 * M_PI * xyz[0] / this->lambda);
                   }
-                  
+
                   cell->at(fsgrids::bfield::PERBX) += this->magXPertAbsAmp * (0.5 - getRandomNumber(rndState));
                   cell->at(fsgrids::bfield::PERBY) += this->magYPertAbsAmp * (0.5 - getRandomNumber(rndState));
                   cell->at(fsgrids::bfield::PERBZ) += this->magZPertAbsAmp * (0.5 - getRandomNumber(rndState));
@@ -260,7 +260,7 @@ namespace projects {
          }
       }
    }
-   
+
    std::vector<std::array<Real, 3> > testAmr::getV0(
                                                 creal x,
                                                 creal y,
@@ -278,22 +278,22 @@ namespace projects {
 
    bool testAmr::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
 
-     int myRank;       
+     int myRank;
      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
      if(myRank == MASTER_RANK) std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
-      
+
       std::vector<bool> refineSuccess;
 
       for (uint i = 0; i < 2 * P::amrBoxHalfWidthX; ++i) {
          for (uint j = 0; j < 2 * P::amrBoxHalfWidthY; ++j) {
             for (uint k = 0; k < 2 * P::amrBoxHalfWidthZ; ++k) {
-     
+
                std::array<double,3> xyz;
                xyz[0] = P::amrBoxCenterX + (0.5 + i - P::amrBoxHalfWidthX) * P::dx_ini;
                xyz[1] = P::amrBoxCenterY + (0.5 + j - P::amrBoxHalfWidthY) * P::dy_ini;
                xyz[2] = P::amrBoxCenterZ + (0.5 + k - P::amrBoxHalfWidthZ) * P::dz_ini;
-               
+
                if (mpiGrid.refine_completely_at(xyz)) {
 #ifndef NDEBUG
                   CellID myCell = mpiGrid.get_existing_cell(xyz);
@@ -303,18 +303,18 @@ namespace projects {
             }
          }
       }
-      std::vector<CellID> refinedCells = mpiGrid.stop_refining(true);      
+      std::vector<CellID> refinedCells = mpiGrid.stop_refining(true);
       if(myRank == MASTER_RANK) std::cout << "Finished first level of refinement" << endl;
 #ifndef NDEBUG
       if(refinedCells.size() > 0) {
-	std::cout << "Refined cells produced by rank " << myRank << " are: ";
-	for (auto cellid : refinedCells) {
-	  std::cout << cellid << " ";
-	}
-	std::cout << endl;
+        std::cout << "Refined cells produced by rank " << myRank << " are: ";
+        for (auto cellid : refinedCells) {
+          std::cout << cellid << " ";
+        }
+        std::cout << endl;
       }
 #endif
-                  
+
       mpiGrid.balance_load();
 
       if(mpiGrid.get_maximum_refinement_level() > 1) {
@@ -322,12 +322,12 @@ namespace projects {
          for (uint i = 0; i < 2 * P::amrBoxHalfWidthX; ++i) {
             for (uint j = 0; j < 2 * P::amrBoxHalfWidthY; ++j) {
                for (uint k = 0; k < 2 * P::amrBoxHalfWidthZ; ++k) {
-                  
+
                   std::array<double,3> xyz;
                   xyz[0] = P::amrBoxCenterX + 0.5 * (0.5 + i - P::amrBoxHalfWidthX) * P::dx_ini;
                   xyz[1] = P::amrBoxCenterY + 0.5 * (0.5 + j - P::amrBoxHalfWidthY) * P::dy_ini;
                   xyz[2] = P::amrBoxCenterZ + 0.5 * (0.5 + k - P::amrBoxHalfWidthZ) * P::dz_ini;
-                  
+
                   if (mpiGrid.refine_completely_at(xyz)) {
 #ifndef NDEBUG
                      CellID myCell = mpiGrid.get_existing_cell(xyz);
@@ -337,8 +337,8 @@ namespace projects {
                }
             }
          }
-         
-         std::vector<CellID> refinedCells = mpiGrid.stop_refining(true);      
+
+         std::vector<CellID> refinedCells = mpiGrid.stop_refining(true);
          if(myRank == MASTER_RANK) std::cout << "Finished second level of refinement" << endl;
 #ifndef NDEBUG
          if(refinedCells.size() > 0) {
@@ -348,11 +348,11 @@ namespace projects {
             }
             std::cout << endl;
          }
-#endif              
+#endif
          mpiGrid.balance_load();
       }
-      
+
       return true;
    }
-   
+
 }// namespace projects
