@@ -324,7 +324,7 @@ void Inflow::setCellsFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesi
                                   const uint popID) {
    // Assign boundary flags to local DCCRG cells
    const std::vector<CellID>& cells = getLocalCells();
-#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic,1)
    for (size_t c = 0; c < cells.size(); c++) {
       SpatialCell* cell = mpiGrid[cells[c]];
       if (cell->sysBoundaryFlag != this->getIndex()) {
@@ -432,7 +432,6 @@ vector<std::vector<Real>> Inflow::loadFile(const char* fn, const unsigned int nP
  * \sa generateTemplateCell
  */
 void Inflow::generateTemplateCells(creal t) {
-#pragma omp parallel for
    for (uint i = 0; i < 6; i++) {
       if (facesToProcess[i]) {
          generateTemplateCell(templateCells[i], templateB[i], i, t);
