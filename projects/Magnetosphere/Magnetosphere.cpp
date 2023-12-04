@@ -92,8 +92,8 @@ namespace projects {
          RP::add(pop + "_Magnetosphere.VX0", "Initial bulk velocity in x-direction", 0.0);
          RP::add(pop + "_Magnetosphere.VY0", "Initial bulk velocity in y-direction", 0.0);
          RP::add(pop + "_Magnetosphere.VZ0", "Initial bulk velocity in z-direction", 0.0);
-         RP::add(pop + "_Magnetosphere.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
-         RP::add(pop + "_Magnetosphere.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
+         RP::add(pop + "_Magnetosphere.nSpaceSamples", "Number of sampling points per spatial dimension", 1);
+         RP::add(pop + "_Magnetosphere.nVelocitySamples", "Number of sampling points per velocity dimension", 1);
          RP::add(pop + "_Magnetosphere.taperInnerRadius", "Inner radius of the zone with a density tapering from the ionospheric value to the background (m)", 0.0);
          RP::add(pop + "_Magnetosphere.taperOuterRadius", "Outer radius of the zone with a density tapering from the ionospheric value to the background (m)", 0.0);
       }
@@ -588,7 +588,7 @@ namespace projects {
       std::vector<CellID> cells = getLocalCells();
 
       // L1 refinement.
-      if (P::amrMaxSpatialRefLevel > 0) {
+      if (P::amrMaxSpatialRefLevel > 0 && P::amrMaxAllowedSpatialRefLevel > 0) {
          //#pragma omp parallel for
          for (uint i = 0; i < cells.size(); ++i) {
             CellID id = cells[i];
@@ -615,7 +615,7 @@ namespace projects {
       }
       
       // L2 refinement.
-      if (P::amrMaxSpatialRefLevel > 1) {
+      if (P::amrMaxSpatialRefLevel > 1 && P::amrMaxAllowedSpatialRefLevel > 1) {
          //#pragma omp parallel for
          for (uint i = 0; i < cells.size(); ++i) {
             CellID id = cells[i];
@@ -642,7 +642,7 @@ namespace projects {
       }
       
       // L3 refinement.
-      if (P::amrMaxSpatialRefLevel > 2) {
+      if (P::amrMaxSpatialRefLevel > 2 && P::amrMaxAllowedSpatialRefLevel > 2) {
          //#pragma omp parallel for
          for (uint i = 0; i < cells.size(); ++i) {
             CellID id = cells[i];
@@ -668,7 +668,7 @@ namespace projects {
       }
 
       // L4 refinement.
-      if (P::amrMaxSpatialRefLevel > 3) {
+      if (P::amrMaxSpatialRefLevel > 3 && P::amrMaxAllowedSpatialRefLevel > 3) {
          //#pragma omp parallel for
          for (uint i = 0; i < cells.size(); ++i) {
             CellID id = cells[i];
@@ -747,7 +747,7 @@ namespace projects {
                }
             }
 
-            if (shouldRefine || refined_neighbors > 12) {
+            if ((shouldRefine || refined_neighbors > 12) && refLevel < P::amrMaxAllowedSpatialRefLevel) {
                // Refine a cell if a majority of its neighbors are refined or about to be
                refines += mpiGrid.refine_completely(id) && refLevel < P::amrMaxSpatialRefLevel;
             } else if (refLevel > 0 && shouldUnrefine && coarser_neighbors > 0) {
@@ -779,25 +779,25 @@ namespace projects {
          int refLevel {mpiGrid.get_refinement_level(id)};
          int refineTarget {0};
 
-         if (P::amrMaxSpatialRefLevel > 0) {
+         if (P::amrMaxSpatialRefLevel > 0 && P::amrMaxAllowedSpatialRefLevel > 0) {
             bool inSphere = radius2 < refine_L1radius*refine_L1radius;
             bool inTail = xyz[0] < 0 && fabs(xyz[1]) < refine_L1radius && fabs(xyz[2]) < refine_L1tailthick;
             if ((inSphere || inTail) && radius2 < P::refineRadius * P ::refineRadius)
                ++refineTarget;
          }
-         if (P::amrMaxSpatialRefLevel > 1) {
+         if (P::amrMaxSpatialRefLevel > 1 && P::amrMaxAllowedSpatialRefLevel > 1) {
             bool inSphere = radius2 < pow(refine_L2radius, 2);
             bool inTail = xyz[0] < 0 && fabs(xyz[1]) < refine_L2radius && fabs(xyz[2])<refine_L2tailthick;
             if ((inSphere || inTail) && radius2 < P::refineRadius * P ::refineRadius)
                ++refineTarget;
          }
-         if (P::amrMaxSpatialRefLevel > 2) {
+         if (P::amrMaxSpatialRefLevel > 2 && P::amrMaxAllowedSpatialRefLevel > 2) {
             bool inNoseCap = (xyz[0]>refine_L3nosexmin) && (radius2<refine_L3radius*refine_L3radius);
             bool inTail = (xyz[0]>refine_L3tailxmin) && (xyz[0]<refine_L3tailxmax) && (fabs(xyz[1])<refine_L3tailwidth) && (fabs(xyz[2])<refine_L3tailheight);
             if ((inNoseCap || inTail) && radius2 < P::refineRadius * P ::refineRadius)
                ++refineTarget;
          }
-         if (P::amrMaxSpatialRefLevel > 3) {
+         if (P::amrMaxSpatialRefLevel > 3 && P::amrMaxAllowedSpatialRefLevel > 3) {
             bool inNose = refine_L4nosexmin && radius2<refine_L4radius*refine_L4radius;
             if (inNose && radius2 < P::refineRadius * P ::refineRadius)
                ++refineTarget;

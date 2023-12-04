@@ -18,7 +18,7 @@ run_dir="run"
 test_dir="tests"
 
 # choose tests to run
-run_tests=( 1 2 3 4 5 6 7 8 9 10 11 12 13 14 17 18 19 20)
+run_tests=( 1 2 3 4 5 6 7 8 9 10 11 12 13 14 16 17 18 19 )
 
 # acceleration test
 test_name[1]="acctest_2_maxw_500k_100k_20kms_10deg"
@@ -124,28 +124,20 @@ comparison_phiprof[15]="phiprof_0.txt"
 variable_names[15]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e proton"
 variable_components[15]="0 0 1 2 0 1 2 0 1 2"
 
-## Velocity AMR tests
-# translation test
-test_name[16]="transtest_amr"
-comparison_vlsv[16]="fullf.0000001.vlsv"
-comparison_phiprof[16]="phiprof_0.txt"
-variable_names[16]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v proton"
-variable_components[16]="0 0 1 2"
-
 ## Spatial AMR tests
 # Flowthrough test
-test_name[17]="Flowthrough_amr"
+test_name[16]="Flowthrough_amr"
+comparison_vlsv[16]="bulk.0000001.vlsv"
+comparison_phiprof[16]="phiprof_0.txt"
+variable_names[16]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e"
+variable_components[16]="0 0 1 2 0 1 2 0 1 2"
+
+# Magnetosphere 3D
+test_name[17]="Magnetosphere_3D_small"
 comparison_vlsv[17]="bulk.0000001.vlsv"
 comparison_phiprof[17]="phiprof_0.txt"
 variable_names[17]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e"
 variable_components[17]="0 0 1 2 0 1 2 0 1 2"
-
-# Magnetosphere 3D
-test_name[18]="Magnetosphere_3D_small"
-comparison_vlsv[18]="bulk.0000001.vlsv"
-comparison_phiprof[18]="phiprof_0.txt"
-variable_names[18]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e"
-variable_components[18]="0 0 1 2 0 1 2 0 1 2"
 
 # Ionosphere 3D
 test_name[19]="Ionosphere_small"

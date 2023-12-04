@@ -58,8 +58,8 @@ namespace projects {
       RP::add("Riemann.By2", "Magnetic field y component, right state (T)", 0.0);
       RP::add("Riemann.Bz1", "Magnetic field z component, left state (T)", 0.0);
       RP::add("Riemann.Bz2", "Magnetic field z component, right state (T)", 0.0);
-      RP::add("Riemann.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
-      RP::add("Riemann.nVelocitySamples", "Number of sampling points per velocity dimension", 5);      
+      RP::add("Riemann.nSpaceSamples", "Number of sampling points per spatial dimension", 1);
+      RP::add("Riemann.nVelocitySamples", "Number of sampling points per velocity dimension", 1);
    }
 
    void Riemann1::getParameters(){
