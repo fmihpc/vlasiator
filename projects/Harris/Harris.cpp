@@ -53,8 +53,8 @@ namespace projects {
 
          RP::add(pop + "_Harris.Temperature", "Temperature (K)", 2.0e6);
          RP::add(pop + "_Harris.rho", "Number density at infinity (m^-3)", 1.0e7);
-         RP::add(pop + "_Harris.nSpaceSamples", "Number of sampling points per spatial dimension.", 2);
-         RP::add(pop + "_Harris.nVelocitySamples", "Number of sampling points per velocity dimension.", 2);
+         RP::add(pop + "_Harris.nSpaceSamples", "Number of sampling points per spatial dimension.", 1);
+         RP::add(pop + "_Harris.nVelocitySamples", "Number of sampling points per velocity dimension.", 1);
       }
    }
    

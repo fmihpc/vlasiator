@@ -75,8 +75,8 @@ namespace projects {
          RP::add(pop + "_Flowthrough.VX0", "Initial bulk velocity in x-direction", 0.0);
          RP::add(pop + "_Flowthrough.VY0", "Initial bulk velocity in y-direction", 0.0);
          RP::add(pop + "_Flowthrough.VZ0", "Initial bulk velocity in z-direction", 0.0);
-         RP::add(pop + "_Flowthrough.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
-         RP::add(pop + "_Flowthrough.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
+         RP::add(pop + "_Flowthrough.nSpaceSamples", "Number of sampling points per spatial dimension", 1);
+         RP::add(pop + "_Flowthrough.nVelocitySamples", "Number of sampling points per velocity dimension", 1);
       }
    }
    

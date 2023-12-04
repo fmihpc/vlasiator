@@ -59,8 +59,8 @@ namespace projects {
       RP::add("KelvinHelmholtz.amp", "Initial perturbation amplitude (m)", 0.0);
       RP::add("KelvinHelmholtz.offset", "Boundaries offset from 0 (m)", 0.0);
       RP::add("KelvinHelmholtz.transitionWidth", "Width of tanh transition for all changing values", 0.0);
-      RP::add("KelvinHelmholtz.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
-      RP::add("KelvinHelmholtz.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
+      RP::add("KelvinHelmholtz.nSpaceSamples", "Number of sampling points per spatial dimension", 1);
+      RP::add("KelvinHelmholtz.nVelocitySamples", "Number of sampling points per velocity dimension", 1);
    }
 
    void KelvinHelmholtz::getParameters() {

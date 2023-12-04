@@ -81,8 +81,8 @@ namespace projects {
        RP::add(pop + "_IPShock.rhod", "Downstream Number density (m^-3)", 1.0e7);
        RP::add(pop + "_IPShock.Temperatured", "Downstream Temperature (K)", 2.0e6);
 
-       RP::add(pop + "_IPShock.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
-       RP::add(pop + "_IPShock.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
+       RP::add(pop + "_IPShock.nSpaceSamples", "Number of sampling points per spatial dimension", 1);
+       RP::add(pop + "_IPShock.nVelocitySamples", "Number of sampling points per velocity dimension", 1);
        RP::add(pop + "_IPShock.maxwCutoff", "Cutoff for the maxwellian distribution", 1e-12);
     }
 
