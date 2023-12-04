@@ -1104,7 +1104,7 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       // Loop over AMR levels
       uint startindex=1;
       uint endindex=1;
-      for (uint AMR = 0; AMR <= P::amrMaxSpatialRefLevel; AMR++) {
+      for (int AMR = 0; AMR <= P::amrMaxSpatialRefLevel; AMR++) {
          int AMRm = 1u << AMR;
          uint cellsthislevel = (AMRm * P::xcells_ini) * (AMRm*P::ycells_ini) * (AMRm * P::zcells_ini);
          startindex = endindex;

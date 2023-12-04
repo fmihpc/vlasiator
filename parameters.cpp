@@ -156,7 +156,8 @@ Realf P::vamrRefineLimit = 1.0;
 Realf P::vamrCoarsenLimit = 0.5;
 string P::vamrVelRefCriterion = string("");
 
-uint P::amrMaxSpatialRefLevel = 0;
+int P::amrMaxSpatialRefLevel = 0;
+int P::amrMaxAllowedSpatialRefLevel = -1;
 bool P::adaptRefinement = false;
 bool P::refineOnRestart = false;
 bool P::forceRefinement = false;
@@ -431,7 +432,8 @@ bool P::addParameters() {
            "If the refinement criterion function returns a smaller value than this, block can be coarsened",
            (Realf)0.5);
    // Spatial Refinement parameters
-   RP::add("AMR.max_spatial_level", "Maximum spatial mesh refinement level", (uint)0);
+   RP::add("AMR.max_spatial_level", "Maximum absolute spatial mesh refinement level", (uint)0);
+   RP::add("AMR.max_allowed_spatial_level", "Maximum currently allowed spatial mesh refinement level", -1);
    RP::add("AMR.should_refine","If false, do not refine Vlasov grid regardless of max spatial level",true);
    RP::add("AMR.adapt_refinement","If true, re-refine vlasov grid every refine_multiplier load balance", false);
    RP::add("AMR.refine_on_restart","If true, re-refine vlasov grid on restart", false);
@@ -676,6 +678,16 @@ void Parameters::getParameters() {
    RP::get("VAMR.coarsen_limit", P::vamrCoarsenLimit);
 
    RP::get("AMR.max_spatial_level", P::amrMaxSpatialRefLevel);
+   RP::get("AMR.max_allowed_spatial_level", P::amrMaxAllowedSpatialRefLevel);
+   if(P::amrMaxAllowedSpatialRefLevel < 0) { // negative (default is -1) just goes to max
+      P::amrMaxAllowedSpatialRefLevel = P::amrMaxSpatialRefLevel; // set max allowed to the same as the absolute max
+   }
+   if(P::amrMaxSpatialRefLevel < P::amrMaxAllowedSpatialRefLevel) {
+      if(myRank == MASTER_RANK) {
+         cerr << "AMR.max_allowed_spatial_level cannot be greater than AMR.max_spatial_level!\n";
+      }
+      MPI_Abort(MPI_COMM_WORLD, 1);
+   }
    RP::get("AMR.adapt_refinement",P::adaptRefinement);
    RP::get("AMR.refine_on_restart",P::refineOnRestart);
    RP::get("AMR.force_refinement",P::forceRefinement);
@@ -701,7 +713,7 @@ void Parameters::getParameters() {
       bool isEmpty = blurPassString.size() == 0;
       if (!isEmpty){
          //sanity check=> user should define a pass for every level
-         if (blurPassString.size() != P::amrMaxSpatialRefLevel + 1) {
+         if ((int)blurPassString.size() != P::amrMaxSpatialRefLevel + 1) {
             cerr << "Filter Passes=" << blurPassString.size() << "\t" << "AMR Levels=" << P::amrMaxSpatialRefLevel + 1 << endl;
             cerr << "FilterPasses do not match AMR levels. \t" << " in " << __FILE__ << ":" << __LINE__ << endl;
             MPI_Abort(MPI_COMM_WORLD, 1);
@@ -725,12 +737,12 @@ void Parameters::getParameters() {
             return retval;
          };
          int maxPasses=g_sequence(P::amrMaxSpatialRefLevel-1);
-         for (uint refLevel=0; refLevel<=P::amrMaxSpatialRefLevel; refLevel++){
+         for (int refLevel=0; refLevel<=P::amrMaxSpatialRefLevel; refLevel++){
             numPasses.push_back(maxPasses);
             maxPasses/=2;
          }
          //Overwrite passes for the highest refLevel. We do not want to filter there.
-         numPasses[P::amrMaxSpatialRefLevel] = 0;
+         numPasses.at(P::amrMaxSpatialRefLevel) = 0;
       }
          P::maxFilteringPasses = numPasses[0];
    }

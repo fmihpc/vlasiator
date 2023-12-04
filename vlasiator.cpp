@@ -747,7 +747,7 @@ int main(int argn,char* args[]) {
       //report filtering if we are in an AMR run 
       if (P::amrMaxSpatialRefLevel>0){
          logFile<<"Filtering Report: "<<endl;
-         for (uint refLevel=0 ; refLevel<= P::amrMaxSpatialRefLevel; refLevel++){
+         for (int refLevel=0 ; refLevel<= P::amrMaxSpatialRefLevel; refLevel++){
             logFile<<"\tRefinement Level " <<refLevel<<"==> Passes "<<P::numPasses.at(refLevel)<<endl;
          }
             logFile<<endl;
