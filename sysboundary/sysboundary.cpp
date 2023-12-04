@@ -38,7 +38,6 @@
 #include "setmaxwellian.h"
 #include "sysboundary.h"
 #include "../fieldsolver/gridGlue.hpp"
-#include "setbyuser.h"
 
 using namespace std;
 using namespace spatial_cell;
@@ -81,7 +80,7 @@ void SysBoundary::addParameters() {
    Readparameters::addComposing(
        "boundaries.boundary",
        "List of boundary condition (BC) types to be used. Each boundary condition to be used has to be on a new line "
-       "boundary = YYY. Available options are: Outflow, Ionosphere, Copysphere, Maxwellian, User.");
+       "boundary = YYY. Available options are: Outflow, Ionosphere, Copysphere, Maxwellian.");
    Readparameters::add("boundaries.periodic_x", "Set the grid periodicity in x-direction. 'yes'(default)/'no'.", "yes");
    Readparameters::add("boundaries.periodic_y", "Set the grid periodicity in y-direction. 'yes'(default)/'no'.", "yes");
    Readparameters::add("boundaries.periodic_z", "Set the grid periodicity in z-direction. 'yes'(default)/'no'.", "yes");
