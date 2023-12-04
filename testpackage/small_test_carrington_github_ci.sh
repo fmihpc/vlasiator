@@ -93,6 +93,7 @@ revision=$( $run_command $bin --version |gawk '{if(flag==1) {print $1;flag=0}if 
 #$small_run_command $bin --version > VERSION.txt 2> $GITHUB_WORKSPACE/stderr.txt
 
 echo -e "### Testpackage output:\n" >> $GITHUB_STEP_SUMMARY
+echo "CI_reference pointed to $reference_revision_full" >> $GITHUB_STEP_SUMMARY
 
 NONZEROTESTS=0
 ZEROTESTS=0
@@ -341,7 +342,6 @@ done
 
 # -- Write summary for github PR annotation --
 echo "summary=$ZEROTESTS tests with zero diffs, $NONZEROTESTS tests with diffs, $FAILEDTESTS tests failed." >> $GITHUB_WORKSPACE/testpackage_output_variables.txt
-echo "CI_reference pointed to $reference_revision_full " >> $GITHUB_WORKSPACE/testpackage_output_variables.txt
 if [[ $FAILEDTESTS > 0 ]]; then
    echo "conclusion=failure" >> $GITHUB_WORKSPACE/testpackage_output_variables.txt
 elif [[ $NONZEROTESTS > 0 ]]; then
