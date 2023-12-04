@@ -140,16 +140,16 @@ variable_names[17]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b 
 variable_components[17]="0 0 1 2 0 1 2 0 1 2"
 
 # Ionosphere 3D
-test_name[19]="Ionosphere_small"
-comparison_vlsv[19]="bulk.0000001.vlsv"
-comparison_phiprof[19]="phiprof_0.txt"
-variable_names[19]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e ig_upmappedarea ig_fac ig_rhon ig_potential"
-variable_components[19]="0 0 1 2 0 1 2 0 1 2 0 0 0 0"
+test_name[18]="Ionosphere_small"
+comparison_vlsv[18]="bulk.0000001.vlsv"
+comparison_phiprof[18]="phiprof_0.txt"
+variable_names[18]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e ig_upmappedarea ig_fac ig_rhon ig_potential"
+variable_components[18]="0 0 1 2 0 1 2 0 1 2 0 0 0 0"
 
 # Flowthrough with timevarying inflow
-test_name[20]="Flowthrough_1D_timevarying"
-comparison_vlsv[20]="bulk.0000001.vlsv"
-comparison_phiprof[20]="phiprof_0.txt"
-variable_names[20]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e"
-variable_components[20]="0 0 1 2 0 1 2 0 1 2 0 0"
-single_cell[20]=1
+test_name[19]="Flowthrough_1D_timevarying"
+comparison_vlsv[19]="bulk.0000001.vlsv"
+comparison_phiprof[19]="phiprof_0.txt"
+variable_names[19]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e"
+variable_components[19]="0 0 1 2 0 1 2 0 1 2 0 0"
+single_cell[19]=1
