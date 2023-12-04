@@ -170,6 +170,8 @@ jobs:
         name: libraries-arriesgado
     - name: Unpack libraries
       run: tar -xzvf libraries-arriesgado.tar.gz
+    - name: Make clean
+      run: VLASIATOR_ARCH=arriesgado make clean
     - name: Compile vlasiator (RISC-V)
       run: |
           srun --interactive -p arriesgado-jammy -J vlasiator_build --pty -t 01:00:00 bash -lc 'module load boost eigen papi openmpi; export VLASIATOR_ARCH=arriesgado; make -j4'

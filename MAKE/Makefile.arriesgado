@@ -30,9 +30,9 @@ endif
 
 FLAGS =
 # note: std was c++11
-# note: testpackage settings missing
 CXXFLAGS = -O3 -std=c++17 -W -Wall -pedantic -Wno-unused -Wno-unused-parameter -Wno-missing-braces  -fopenmp -march=rv64imafdc
-MATHFLAGS = -ffast-math
+MATHFLAGS = -ffast-math -fno-finite-math-only
+testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
 LDFLAGS = -fopenmp
 LIB_MPI =
 # LIB_MPI = 
