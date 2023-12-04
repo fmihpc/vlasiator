@@ -62,17 +62,22 @@ namespace SBC {
       static void addParameters();
       virtual void getParameters();
       
-      virtual bool initSysBoundary(
+      virtual void initSysBoundary(
          creal& t,
          Project &project
       );
-      virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      virtual void assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid);
-      virtual bool applyInitialState(
+      virtual void applyInitialState(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
          Project &project
+      );
+      virtual void updateState(
+         const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+         FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid,
+         creal t
       );
       virtual Real fieldSolverBoundaryCondMagneticField(
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
@@ -80,8 +85,8 @@ namespace SBC {
          cint i,
          cint j,
          cint k,
-         creal& dt,
-         cuint& component
+         creal dt,
+         cuint component
       );
       virtual void fieldSolverBoundaryCondElectricField(
          FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
@@ -110,15 +115,15 @@ namespace SBC {
          cint i,
          cint j,
          cint k,
-         cuint& RKCase,
-         cuint& component
+         cuint RKCase,
+         cuint component
       );
       virtual void fieldSolverBoundaryCondBVOLDerivatives(
          FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
          cint i,
          cint j,
          cint k,
-         cuint& component
+         cuint component
       );
       virtual void vlasovBoundaryCondition(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -127,6 +132,7 @@ namespace SBC {
          const bool calculate_V_moments
       );
       
+      void getFaces(bool *faces) override;
       virtual std::string getName() const;
       virtual uint getIndex() const;
       

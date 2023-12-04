@@ -44,18 +44,24 @@ namespace SBC {
       static void addParameters();
       virtual void getParameters();
       
-      virtual bool initSysBoundary(
+      virtual void initSysBoundary(
          creal& t,
          Project &project
       );
-      virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      virtual void assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid);
-      virtual bool applyInitialState(
+      virtual void applyInitialState(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
          Project &project
       );
+      virtual void updateState(
+         const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+         FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid,
+         creal t
+      );
+      void getFaces(bool *faces) override;
       virtual std::string getName() const;
       virtual uint getIndex() const;
 
@@ -66,8 +72,8 @@ namespace SBC {
          cint i,
          cint j,
          cint k,
-         creal& dt,
-         cuint& component
+         creal dt,
+         cuint component
       ) { std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondMagneticField called!" << std::endl; return 0.;}
       virtual void fieldSolverBoundaryCondElectricField(
          FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
@@ -96,15 +102,15 @@ namespace SBC {
          cint i,
          cint j,
          cint k,
-         cuint& RKCase,
-         cuint& component
+         cuint RKCase,
+         cuint component
       ) { std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondDerivatives called!" << std::endl;}
       virtual void fieldSolverBoundaryCondBVOLDerivatives(
          FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
          cint i,
          cint j,
          cint k,
-         cuint& component
+         cuint component
       ) { std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondBVOLDerivatives called!" << std::endl;}
       virtual void vlasovBoundaryCondition(
           const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,

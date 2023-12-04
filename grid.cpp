@@ -148,9 +148,9 @@ void initializeGrids(
       .set_load_balancing_method(&P::loadBalanceAlgorithm[0])
       .set_neighborhood_length(neighborhood_size)
       .set_maximum_refinement_level(P::amrMaxSpatialRefLevel)
-      .set_periodic(sysBoundaries.isBoundaryPeriodic(0),
-                    sysBoundaries.isBoundaryPeriodic(1),
-                    sysBoundaries.isBoundaryPeriodic(2))
+      .set_periodic(sysBoundaries.isPeriodic(0),
+                    sysBoundaries.isPeriodic(1),
+                    sysBoundaries.isPeriodic(2))
       .initialize(comm)
       .set_geometry(geom_params);
 
@@ -205,10 +205,7 @@ void initializeGrids(
    setCoordsTimer.stop();
    
    phiprof::Timer initBoundaryTimer {"Initialize system boundary conditions"};
-   if(sysBoundaries.initSysBoundaries(project, P::t_min) == false) {
-      if (myRank == MASTER_RANK) cerr << "Error in initialising the system boundaries." << endl;
-      exit(1);
-   }
+   sysBoundaries.initSysBoundaries(project, P::t_min);
    initBoundaryTimer.stop();
    
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_DIMENSIONS);
@@ -216,10 +213,7 @@ void initializeGrids(
 
    // We want this before restart refinement
    phiprof::Timer classifyTimer {"Classify cells (sys boundary conditions)"};
-   if(sysBoundaries.classifyCells(mpiGrid,technicalGrid) == false) {
-      cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
-      exit(1);
-   }
+   sysBoundaries.classifyCells(mpiGrid,technicalGrid);
    classifyTimer.stop();
    
    if (P::isRestart) {
@@ -251,19 +245,13 @@ void initializeGrids(
 
    // Check refined cells do not touch boundary cells
    phiprof::Timer boundaryCheckTimer {"Check boundary refinement"};
-   if(!sysBoundaries.checkRefinement(mpiGrid)) {
-      cerr << "(MAIN) WARNING: Boundary cells don't have identical refinement level " << endl;
-      //exit(1);
-   }
+   sysBoundaries.checkRefinement(mpiGrid);
    boundaryCheckTimer.stop();
 
    if (P::isRestart) {
       //initial state for sys-boundary cells, will skip those not set to be reapplied at restart
       phiprof::Timer timer {"Apply system boundary conditions state"};
-      if (sysBoundaries.applyInitialState(mpiGrid, technicalGrid, perBGrid, project) == false) {
-         cerr << " (MAIN) ERROR: System boundary conditions initial state was not applied correctly." << endl;
-         exit(1);
-      }
+      sysBoundaries.applyInitialState(mpiGrid, technicalGrid, perBGrid, project);
    }
 
    // Update technicalGrid
@@ -297,10 +285,7 @@ void initializeGrids(
       // Initial state for sys-boundary cells
       applyInitialTimer.stop();
       phiprof::Timer applyBCTimer {"Apply system boundary conditions state"};
-      if (sysBoundaries.applyInitialState(mpiGrid, technicalGrid, perBGrid, project) == false) {
-         cerr << " (MAIN) ERROR: System boundary conditions initial state was not applied correctly." << endl;
-         exit(1);
-      }
+      sysBoundaries.applyInitialState(mpiGrid, technicalGrid, perBGrid, project);
       applyBCTimer.stop();
       
       #pragma omp parallel for schedule(static)
@@ -1549,10 +1534,7 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
 
    // Initialise system boundary conditions (they need the initialised positions!!)
 	// This needs to be done before LB
-   if(sysBoundaries.classifyCells(mpiGrid,technicalGrid) == false) {
-      cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
-      exit(1);
-   }
+   sysBoundaries.classifyCells(mpiGrid,technicalGrid);
 
    //SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_PARAMETERS);
