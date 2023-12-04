@@ -18,7 +18,7 @@
  * You should have received a copy of the GNU General Public License along
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
+ *
  * File:   read_gaussian_population.h
  * Author: sandroos
  *
@@ -26,7 +26,7 @@
  */
 
 #ifndef READ_GAUSSIAN_POPULATION_H
-#define	READ_GAUSSIAN_POPULATION_H
+#define READ_GAUSSIAN_POPULATION_H
 
 #include <cstdlib>
 #include <vector>
@@ -34,26 +34,25 @@
 #include "../definitions.h"
 
 namespace projects {
-   
-   struct GaussianPopulation {
-      uint numberOfPopulations;
-      std::vector<Real> rho;
-      std::vector<Real> rhoPertAbsAmp;
-      std::vector<Real> Tx;
-      std::vector<Real> Ty;
-      std::vector<Real> Tz;
-      std::vector<Real> Vx;
-      std::vector<Real> Vy;
-      std::vector<Real> Vz;
-   };
 
-   class ReadGaussianPopulation {
-   public:
-      bool addParameters(const std::string& prefix);
-      bool getParameters(const std::string& prefix,projects::GaussianPopulation& populations);
-   };
+struct GaussianPopulation {
+   uint numberOfPopulations;
+   std::vector<Real> rho;
+   std::vector<Real> rhoPertAbsAmp;
+   std::vector<Real> Tx;
+   std::vector<Real> Ty;
+   std::vector<Real> Tz;
+   std::vector<Real> Vx;
+   std::vector<Real> Vy;
+   std::vector<Real> Vz;
+};
+
+class ReadGaussianPopulation {
+public:
+   bool addParameters(const std::string& prefix);
+   bool getParameters(const std::string& prefix, projects::GaussianPopulation& populations);
+};
 
 } // namespace projects
 
-#endif	/* READ_GAUSSIAN_H */
-
+#endif /* READ_GAUSSIAN_H */

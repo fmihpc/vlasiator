@@ -28,51 +28,39 @@
 #include "../../definitions.h"
 #include "../project.h"
 
-
 namespace projects {
-   class Larmor: public Project {
-    public:
-      Larmor();
-      virtual ~Larmor();
-      
-      virtual bool initialize(void);
-      static void addParameters(void);
-      virtual void getParameters(void);
-      virtual void setProjectBField(
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-      );
-    protected:
-      Real getDistribValue(
-                           creal& x,creal& y, creal& z,
-                           creal& vx, creal& vy, creal& vz,
-                           const uint popID
-                          ) const;
-      virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
-      virtual Real calcPhaseSpaceDensity(
-                                         creal& x, creal& y, creal& z,
-                                         creal& dx, creal& dy, creal& dz,
-                                         creal& vx, creal& vy, creal& vz,
-                                         creal& dvx, creal& dvy, creal& dvz,
-                                         const uint popID
-                                        ) const;
-      
-      Real BX0;
-      Real BY0;
-      Real BZ0;
-      Real VX0;
-      Real VY0;
-      Real VZ0;
-      Real DENSITY;
-      Real TEMPERATURE;
-      Real maxwCutoff; 
-      uint nSpaceSamples;
-      uint nVelocitySamples;
-      Real SCA_X;
-      Real SCA_Y;
-   }; //Class Larmor
+class Larmor : public Project {
+public:
+   Larmor();
+   virtual ~Larmor();
+
+   virtual bool initialize(void);
+   static void addParameters(void);
+   virtual void getParameters(void);
+   virtual void setProjectBField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+                                 FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+                                 FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid);
+
+protected:
+   Real getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, const uint popID) const;
+   virtual void calcCellParameters(spatial_cell::SpatialCell* cell, creal& t);
+   virtual Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx,
+                                      creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const;
+
+   Real BX0;
+   Real BY0;
+   Real BZ0;
+   Real VX0;
+   Real VY0;
+   Real VZ0;
+   Real DENSITY;
+   Real TEMPERATURE;
+   Real maxwCutoff;
+   uint nSpaceSamples;
+   uint nVelocitySamples;
+   Real SCA_X;
+   Real SCA_Y;
+}; // Class Larmor
 } // namespace projects
-   
 
 #endif

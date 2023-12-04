@@ -24,24 +24,23 @@
 
 #include <vector>
 
-#include "vec.h"
 #include "../common.h"
 #include "../spatial_cell.hpp"
-
+#include "vec.h"
 
 struct setOfPencils {
 
    uint N; // Number of pencils in the set
    uint sumOfLengths;
-   std::vector< uint > lengthOfPencils; // Lengths of pencils
-   std::vector< CellID > ids; // List of cells
-   std::vector< uint > idsStart; // List of where a pencil's CellIDs start in the ids array
-   std::vector< Realv > x,y; // x,y - position
-   std::vector< bool > periodic;
-   std::vector< std::vector<uint> > path; // Path taken through refinement levels
+   std::vector<uint> lengthOfPencils; // Lengths of pencils
+   std::vector<CellID> ids;           // List of cells
+   std::vector<uint> idsStart;        // List of where a pencil's CellIDs start in the ids array
+   std::vector<Realv> x, y;           // x,y - position
+   std::vector<bool> periodic;
+   std::vector<std::vector<uint>> path; // Path taken through refinement levels
 
    setOfPencils() {
-      
+
       N = 0;
       sumOfLengths = 0;
    }
@@ -60,14 +59,13 @@ struct setOfPencils {
       path.clear();
    }
 
-
    void addPencil(std::vector<CellID> idsIn, Real xIn, Real yIn, bool periodicIn, std::vector<uint> pathIn) {
 
       N++;
       sumOfLengths += idsIn.size();
       lengthOfPencils.push_back(idsIn.size());
       idsStart.push_back(ids.size());
-      ids.insert(ids.end(),idsIn.begin(),idsIn.end());
+      ids.insert(ids.end(), idsIn.begin(), idsIn.end());
       x.push_back(xIn);
       y.push_back(yIn);
       periodic.push_back(periodicIn);
@@ -88,21 +86,20 @@ struct setOfPencils {
       N--;
       sumOfLengths -= lengthOfPencils[pencilId];
       lengthOfPencils.erase(lengthOfPencils.begin() + pencilId);
-         
    }
 
    std::vector<CellID> getIds(const uint pencilId) const {
-      
+
       if (pencilId >= N) {
          std::vector<CellID> idsEmpty;
          return idsEmpty;
       }
-      
+
       // Use vector range constructor
       std::vector<CellID>::const_iterator ibeg = ids.begin() + idsStart[pencilId];
       std::vector<CellID>::const_iterator iend = ibeg + lengthOfPencils[pencilId];
       std::vector<CellID> idsOut(ibeg, iend);
-      
+
       return idsOut;
    }
 
@@ -116,29 +113,28 @@ struct setOfPencils {
       // so that we don't add duplicates.
       std::vector<int> existingSteps;
 
-#pragma omp parallel for      
+#pragma omp parallel for
       for (uint theirPencilId = 0; theirPencilId < this->N; ++theirPencilId) {
-         if(theirPencilId == myPencilId) continue;
+         if (theirPencilId == myPencilId)
+            continue;
          auto theirIds = this->getIds(theirPencilId);
          for (auto theirId : theirIds) {
             for (auto myId : myIds) {
                if (myId == theirId) {
                   std::vector<uint> theirPath = this->path.at(theirPencilId);
                   std::vector<uint> myPath = this->path.at(myPencilId);
-                  if(theirPath.size() > myPath.size()) {
+                  if (theirPath.size() > myPath.size()) {
                      bool samePath = true;
                      for (uint i = 0; i < myPath.size(); ++i) {
-                        if(myPath.at(i) != theirPath.at(i)) {
+                        if (myPath.at(i) != theirPath.at(i)) {
                            samePath = false;
                         }
                      }
 
-                     if(samePath) {
+                     if (samePath) {
                         uint theirStep = theirPath.at(myPath.size());
 #pragma omp critical
-                        {
-                           existingSteps.push_back(theirStep);
-                        }
+                        { existingSteps.push_back(theirStep); }
                      }
                   }
                }
@@ -153,26 +149,26 @@ struct setOfPencils {
 
       // Add those pencils whose steps dont already exist in the pencils struct
       for (int step = 0; step < 4; ++step) {
-         if (std::any_of(existingSteps.begin(), existingSteps.end(), [step](int i){return step == i;})) {
+         if (std::any_of(existingSteps.begin(), existingSteps.end(), [step](int i) { return step == i; })) {
             continue;
          }
 
          Realv signX = 1.0;
          Realv signY = 1.0;
-         
-         if(step < 2) {
+
+         if (step < 2) {
             signY = -1.0;
          }
 
-         if(step % 2 == 0) {
+         if (step % 2 == 0) {
             signX = -1.0;
          }
-         
+
          auto myX = copy_of_x + signX * 0.25 * dx;
          auto myY = copy_of_y + signY * 0.25 * dy;
 
-         if(firstPencil) {
-            //TODO: set x and y correctly. Right now they are not used anywhere.
+         if (firstPencil) {
+            // TODO: set x and y correctly. Right now they are not used anywhere.
             path.at(myPencilId).push_back(step);
             x.at(myPencilId) = myX;
             y.at(myPencilId) = myY;
@@ -186,29 +182,21 @@ struct setOfPencils {
    }
 };
 
+bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                      const std::vector<CellID>& localPropagatedCells, const std::vector<CellID>& remoteTargetCells,
+                      std::vector<uint>& nPencils, const uint dimension, const Realv dt, const uint popID);
 
-bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                  const std::vector<CellID>& localPropagatedCells,
-                  const std::vector<CellID>& remoteTargetCells,
-                  std::vector<uint>& nPencils,
-                  const uint dimension,
-                  const Realv dt,
-                  const uint popID);
-
-void update_remote_mapping_contribution_amr(dccrg::Dccrg<spatial_cell::SpatialCell,
-                                            dccrg::Cartesian_Geometry>& mpiGrid,
-                                            const uint dimension,
-                                            int direction,
-                                            const uint popID);
+void update_remote_mapping_contribution_amr(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                                            const uint dimension, int direction, const uint popID);
 
 // grid.cpp calls this function to both find seed cells and build pencils
-void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                               const uint dimension);
 
 // pencils used for AMR translation
-static std::array<setOfPencils,3> DimensionPencils;
+static std::array<setOfPencils, 3> DimensionPencils;
 
-void flagSpatialCellsForAmrCommunication(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+void flagSpatialCellsForAmrCommunication(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                          const std::vector<CellID>& localPropagatedCells);
 
 #endif

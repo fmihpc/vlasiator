@@ -29,13 +29,6 @@
 void prepareAccelerateCell(spatial_cell::SpatialCell* spatial_cell, const uint popID);
 uint getAccelerationSubcycles(spatial_cell::SpatialCell* spatial_cell, Real dt, const uint popID);
 
-
-
-void cpu_accelerate_cell(
-        spatial_cell::SpatialCell* spatial_cell,
-        const uint popID,
-        uint map_order,
-        const Real& dt);
+void cpu_accelerate_cell(spatial_cell::SpatialCell* spatial_cell, const uint popID, uint map_order, const Real& dt);
 
 #endif
-

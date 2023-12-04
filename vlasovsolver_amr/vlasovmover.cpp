@@ -22,22 +22,22 @@
 
 #include <cstdlib>
 #include <iostream>
-#include <vector>
 #include <stdint.h>
+#include <vector>
 
 #ifdef _OPENMP
-   #include <omp.h>
+#include <omp.h>
 #endif
-#include <zoltan.h>
-#include <phiprof.hpp>
 #include <dccrg.hpp>
+#include <phiprof.hpp>
+#include <zoltan.h>
 
-#include "../vlasovmover.h"
-#include "../spatial_cell.hpp"
-#include "../grid.h"
 #include "../definitions.h"
+#include "../grid.h"
 #include "../iowrite.h"
 #include "../object_wrapper.h"
+#include "../spatial_cell.hpp"
+#include "../vlasovmover.h"
 
 #include "../vlasovsolver/cpu_moments.h"
 //#include "cpu_acc_semilag.hpp"
@@ -47,10 +47,10 @@ using namespace std;
 using namespace spatial_cell;
 
 #warning TESTING can be removed later
-static void writeVelMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+static void writeVelMesh(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) {
    const vector<CellID>& cells = getLocalCells();
 
-   static int counter=-1;
+   static int counter = -1;
    if (counter < 0) {
       counter = Parameters::systemWrites.size();
       Parameters::systemWriteDistributionWriteStride.push_back(1);
@@ -61,48 +61,48 @@ static void writeVelMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mp
       Parameters::systemWriteTimeInterval.push_back(-1.0);
       Parameters::systemWrites.push_back(0);
    }
-   writeGrid(mpiGrid,NULL,counter,true);
+   writeGrid(mpiGrid, NULL, counter, true);
    ++Parameters::systemWrites[counter];
 }
 
-Real calculateTotalMass(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID) {
+Real calculateTotalMass(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const uint popID) {
    const vector<CellID>& local_cells = getLocalCells();
-   Real sum=0.0;
-   for (size_t c=0; c<local_cells.size(); ++c) {
+   Real sum = 0.0;
+   for (size_t c = 0; c < local_cells.size(); ++c) {
       const CellID cellID = local_cells[c];
       SpatialCell* cell = mpiGrid[cellID];
-      
-      for (vmesh::LocalID blockLID=0; blockLID<cell->get_number_of_velocity_blocks(popID); ++blockLID) {
+
+      for (vmesh::LocalID blockLID = 0; blockLID < cell->get_number_of_velocity_blocks(popID); ++blockLID) {
          const Real* parameters = cell->get_block_parameters(blockLID);
          const Realf* data = cell->get_data(blockLID);
          Real blockMass = 0.0;
-         for (int i=0; i<WID3; ++i) {
+         for (int i = 0; i < WID3; ++i) {
             blockMass += data[i];
          }
-         const Real DV3 = parameters[BlockParams::DVX]*parameters[BlockParams::DVY]*parameters[BlockParams::DVZ];
-         sum += blockMass*DV3;
-      }      
+         const Real DV3 = parameters[BlockParams::DVX] * parameters[BlockParams::DVY] * parameters[BlockParams::DVZ];
+         sum += blockMass * DV3;
+      }
    }
-   
-   Real globalMass=0.0;
-   MPI_Allreduce(&sum,&globalMass,1,MPI_Type<Real>(),MPI_SUM,MPI_COMM_WORLD);
+
+   Real globalMass = 0.0;
+   MPI_Allreduce(&sum, &globalMass, 1, MPI_Type<Real>(), MPI_SUM, MPI_COMM_WORLD);
    return globalMass;
 }
 
 /*!
-  
-  Propagates the distribution function in spatial space. 
-  
+
+  Propagates the distribution function in spatial space.
+
   Based on SLICE-3D algorithm: Zerroukat, M., and T. Allen. "A
   three‐dimensional monotone and conservative semi‐Lagrangian scheme
   (SLICE‐3D) for transport problems." Quarterly Journal of the Royal
   Meteorological Society 138.667 (2012): 1640-1651.
 
- * REQUIREMENTS: Remote neighbor distribution functions must've 
+ * REQUIREMENTS: Remote neighbor distribution functions must've
  * been synchronized before calling this function.
 */
 
-void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,Real dt) {
+void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, Real dt) {
    return;
 
    /*
@@ -111,7 +111,7 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
 
    // DEBUG remove
    dt = 1.0;
-   
+
    //phiprof::start("semilag-trans");
    phiprof::start("compute_cell_lists");
    const vector<CellID>& local_cells = getLocalCells();
@@ -127,7 +127,7 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
       }
       cntr=1;
    }
-   
+
    static int dim=2;
 
    // Generate target mesh
@@ -165,11 +165,11 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
       blockContainer.clear();
    }
    writeVelMesh(mpiGrid);
-   
+
    if (mpiGrid.get_rank() == 0) {
       cout << "Total mass (dim=" << dim << ") is " << calculateTotalMass(mpiGrid) << endl;
    }
-   
+
    --dim;
    if (dim < 0) dim = 2;
 
@@ -179,7 +179,7 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    #pragma omp  parallel for
    for (size_t c=0; c<local_cells.size(); ++c) {
       SpatialCell* SC=mpiGrid[local_cells[c]];
-      
+
       const Real dx=SC->parameters[CellParams::DX];
       const Real dy=SC->parameters[CellParams::DY];
       const Real dz=SC->parameters[CellParams::DZ];
@@ -190,7 +190,7 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
       SC->parameters[CellParams::P_11_R ] = 0.0;
       SC->parameters[CellParams::P_22_R ] = 0.0;
       SC->parameters[CellParams::P_33_R ] = 0.0;
-      
+
       //Reset spatial max DT
       SC->parameters[CellParams::MAXRDT]=numeric_limits<Real>::max();
       for (vmesh::LocalID block_i=0; block_i<SC->get_number_of_velocity_blocks(); ++block_i) {
@@ -203,17 +203,17 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
             const Real Vx = blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX];
             const Real Vy = blockParams[BlockParams::VYCRD] + (i+HALF)*blockParams[BlockParams::DVY];
             const Real Vz = blockParams[BlockParams::VZCRD] + (i+HALF)*blockParams[BlockParams::DVZ];
-            
+
             if(fabs(Vx)!=ZERO) SC->parameters[CellParams::MAXRDT]=min(dx/fabs(Vx),SC->parameters[CellParams::MAXRDT]);
             if(fabs(Vy)!=ZERO) SC->parameters[CellParams::MAXRDT]=min(dy/fabs(Vy),SC->parameters[CellParams::MAXRDT]);
             if(fabs(Vz)!=ZERO) SC->parameters[CellParams::MAXRDT]=min(dz/fabs(Vz),SC->parameters[CellParams::MAXRDT]);
          }
-         
+
          //compute first moments for this block
          if (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)
            cpu_calcVelocityFirstMoments(
                                         SC,
-                                        block_i,			 
+                                        block_i,
                                         CellParams::RHO_R,
                                         CellParams::VX_R,
                                         CellParams::VY_R,
@@ -226,7 +226,7 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
          if (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)
            cpu_calcVelocitySecondMoments(
                                          SC,
-                                         block_i,			  
+                                         block_i,
                                          CellParams::RHO_R,
                                          CellParams::VX_R,
                                          CellParams::VY_R,
@@ -247,20 +247,21 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
   Acceleration (velocity space propagation)
   --------------------------------------------------
 */
-void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,Real dt) {
+void calculateAcceleration(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, Real dt) {
    return;
    /*
    typedef Parameters P;
    const vector<CellID>& cells = getLocalCells();
    vector<CellID> propagatedCells;
-   // Iterate through all local cells and propagate distribution functions 
-   // in velocity space. Ghost cells (spatial cells at the boundary of the simulation 
+   // Iterate through all local cells and propagate distribution functions
+   // in velocity space. Ghost cells (spatial cells at the boundary of the simulation
    // volume) do not need to be propagated:
 
-   
-   //    if(dt > 0) { // FIXME this has to be deactivated to support regular projects but it breaks test_trans support most likely, with this on dt stays 0
+
+   //    if(dt > 0) { // FIXME this has to be deactivated to support regular projects but it breaks test_trans support
+   most likely, with this on dt stays 0
    //do not propagate for zero or negative dt. Typically dt==0 when
-   //acceleration is turned off. 
+   //acceleration is turned off.
    //Aet initial cells to propagate
    for (size_t c=0; c<cells.size(); ++c) {
       SpatialCell* SC = mpiGrid[cells[c]];
@@ -329,52 +330,43 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
     */
 }
 
-
 /*--------------------------------------------------
   Functions for computing moments
   --------------------------------------------------*/
-void calculateInterpolatedVelocityMoments(
-                                          dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                          const int cp_rhom,
-                                          const int cp_vx,
-                                          const int cp_vy,
-                                          const int cp_vz,
-                                          const int cp_rhoq,
-                                          const int cp_p11,
-                                          const int cp_p22,
-                                          const int cp_p33
-                                         ) {
+void calculateInterpolatedVelocityMoments(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                                          const int cp_rhom, const int cp_vx, const int cp_vy, const int cp_vz,
+                                          const int cp_rhoq, const int cp_p11, const int cp_p22, const int cp_p33) {
    const vector<CellID>& cells = getLocalCells();
-   
-   //Iterate through all local cells (excl. system boundary cells):
+
+   // Iterate through all local cells (excl. system boundary cells):
 #pragma omp parallel for
-   for (size_t c=0; c<cells.size(); ++c) {
+   for (size_t c = 0; c < cells.size(); ++c) {
       const CellID cellID = cells[c];
       SpatialCell* SC = mpiGrid[cellID];
-      if(SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-         SC->parameters[cp_rhom  ] = 0.5* ( SC->parameters[CellParams::RHOM_R] + SC->parameters[CellParams::RHOM_V] );
-         SC->parameters[cp_vx] = 0.5* ( SC->parameters[CellParams::VX_R] + SC->parameters[CellParams::VX_V] );
-         SC->parameters[cp_vy] = 0.5* ( SC->parameters[CellParams::VY_R] + SC->parameters[CellParams::VY_V] );
-         SC->parameters[cp_vz] = 0.5* ( SC->parameters[CellParams::VZ_R] + SC->parameters[CellParams::VZ_V] );
-         SC->parameters[cp_rhoq  ] = 0.5* ( SC->parameters[CellParams::RHOQ_R] + SC->parameters[CellParams::RHOQ_V] );
-         SC->parameters[cp_p11]   = 0.5* ( SC->parameters[CellParams::P_11_R] + SC->parameters[CellParams::P_11_V] );
-         SC->parameters[cp_p22]   = 0.5* ( SC->parameters[CellParams::P_22_R] + SC->parameters[CellParams::P_22_V] );
-         SC->parameters[cp_p33]   = 0.5* ( SC->parameters[CellParams::P_33_R] + SC->parameters[CellParams::P_33_V] );
+      if (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+         SC->parameters[cp_rhom] = 0.5 * (SC->parameters[CellParams::RHOM_R] + SC->parameters[CellParams::RHOM_V]);
+         SC->parameters[cp_vx] = 0.5 * (SC->parameters[CellParams::VX_R] + SC->parameters[CellParams::VX_V]);
+         SC->parameters[cp_vy] = 0.5 * (SC->parameters[CellParams::VY_R] + SC->parameters[CellParams::VY_V]);
+         SC->parameters[cp_vz] = 0.5 * (SC->parameters[CellParams::VZ_R] + SC->parameters[CellParams::VZ_V]);
+         SC->parameters[cp_rhoq] = 0.5 * (SC->parameters[CellParams::RHOQ_R] + SC->parameters[CellParams::RHOQ_V]);
+         SC->parameters[cp_p11] = 0.5 * (SC->parameters[CellParams::P_11_R] + SC->parameters[CellParams::P_11_V]);
+         SC->parameters[cp_p22] = 0.5 * (SC->parameters[CellParams::P_22_R] + SC->parameters[CellParams::P_22_V]);
+         SC->parameters[cp_p33] = 0.5 * (SC->parameters[CellParams::P_33_R] + SC->parameters[CellParams::P_33_V]);
       }
    }
 }
 
 void calculateCellVelocityMoments(SpatialCell* SC,
                                   bool doNotSkip // default: false
-                                 ) {
+) {
    /*
    // if doNotSkip == true then the first clause is false and we will never return, i.e. always compute
    // otherwise we skip DO_NOT_COMPUTE cells
    // or boundary cells of layer larger than 1
    if (!doNotSkip &&
        (SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
-	(SC->sysBoundaryLayer != 1  &&
-	 SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY))
+   (SC->sysBoundaryLayer != 1  &&
+    SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY))
        ) return;
 
    // Clear old moments
@@ -392,11 +384,11 @@ void calculateCellVelocityMoments(SpatialCell* SC,
       // Temporary array for storing this species' contribution
       Real array[4];
       for (int i=0; i<4; ++i) array[i] = 0;
-      
+
       // Pointers to this species' data
       const Realf* data = SC->get_data(popID);
       const Real* blockParams = SC->get_block_parameters(popID);
-      
+
       for (vmesh::LocalID blockLID=0; blockLID<SC->get_number_of_velocity_blocks(popID); ++blockLID) {
          blockVelocityFirstMoments(
                   data,
@@ -406,7 +398,7 @@ void calculateCellVelocityMoments(SpatialCell* SC,
          data += SIZE_VELBLOCK;
          blockParams += BlockParams::N_VELOCITY_BLOCK_PARAMS;
       }
-      
+
       const Real massRatio = getObjectWrapper().particleSpecies[popID].mass / physicalconstants::MASS_PROTON;
       cellParams[CellParams::RHO  ] += array[0]*massRatio;
       cellParams[CellParams::VX] += array[1]*massRatio;
@@ -419,11 +411,11 @@ void calculateCellVelocityMoments(SpatialCell* SC,
       // Temporary array for storing this species' contribution
       Real array[3];
       for (int i=0; i<3; ++i) array[i] = 0;
-      
+
       // Pointers to this species' data
       const Realf* data = SC->get_data(popID);
       const Real* blockParams = SC->get_block_parameters(popID);
-      
+
       for (vmesh::LocalID blockLID=0; blockLID<SC->get_number_of_velocity_blocks(popID); ++blockLID) {
          blockVelocitySecondMoments(
                   data,
@@ -437,7 +429,7 @@ void calculateCellVelocityMoments(SpatialCell* SC,
          data += SIZE_VELBLOCK;
          blockParams += BlockParams::N_VELOCITY_BLOCK_PARAMS;
       }
-      
+
       cellParams[CellParams::P_11] += array[0]*getObjectWrapper().particleSpecies[popID].mass;
       cellParams[CellParams::P_22] += array[1]*getObjectWrapper().particleSpecies[popID].mass;
       cellParams[CellParams::P_33] += array[2]*getObjectWrapper().particleSpecies[popID].mass;
@@ -445,9 +437,9 @@ void calculateCellVelocityMoments(SpatialCell* SC,
     */
 }
 
-void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) {
    /*const vector<CellID>& cells = getLocalCells();
-   phiprof::start("Calculate moments"); 
+   phiprof::start("Calculate moments");
    // Iterate through all local cells (incl. system boundary cells):
    #pragma omp parallel for
    for (size_t c=0; c<cells.size(); ++c) {
@@ -466,6 +458,6 @@ void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_G
       SC->parameters[CellParams::P_33_DT2] = SC->parameters[CellParams::P_33];
 
    }
-   phiprof::stop("Calculate moments"); 
+   phiprof::stop("Calculate moments");
    */
 }

@@ -28,53 +28,38 @@
 
 namespace projects {
 
-   struct HarrisSpeciesParameters {
-         Real TEMPERATURE;
-         Real DENSITY;
-         Real nSpaceSamples;
-         Real nVelocitySamples;
-   };
+struct HarrisSpeciesParameters {
+   Real TEMPERATURE;
+   Real DENSITY;
+   Real nSpaceSamples;
+   Real nVelocitySamples;
+};
 
-   class Harris: public TriAxisSearch {
-      public:
-         Harris();
-         virtual ~Harris();
-         
-         virtual bool initialize(void);
-         static void addParameters(void);
-         virtual void getParameters(void);
-         virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
-         virtual void setProjectBField(
-            FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-            FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-            FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-         );
-         virtual Real calcPhaseSpaceDensity(
-            creal& x, creal& y, creal& z,
-            creal& dx, creal& dy, creal& dz,
-            creal& vx, creal& vy, creal& vz,
-            creal& dvx, creal& dvy, creal& dvz, const uint popID
-         ) const ;
-         
-      protected:
-         Real getDistribValue(
-            creal& x,creal& y, creal& z,
-            creal& vx, creal& vy, creal& vz,
-            creal& dvx, creal& dvy, creal& dvz,
-            const uint popID
-         ) const;
-         virtual std::vector<std::array<Real, 3>> getV0(
-            creal x,
-            creal y,
-            creal z,
-            const uint popID
-         ) const;
-         
-         Real SCA_LAMBDA;
-         Real BX0, BY0, BZ0;
-         std::vector<HarrisSpeciesParameters> speciesParams;
+class Harris : public TriAxisSearch {
+public:
+   Harris();
+   virtual ~Harris();
 
-   }; // class Harris
-} // namespace Harris
+   virtual bool initialize(void);
+   static void addParameters(void);
+   virtual void getParameters(void);
+   virtual void calcCellParameters(spatial_cell::SpatialCell* cell, creal& t);
+   virtual void setProjectBField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+                                 FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+                                 FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid);
+   virtual Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx,
+                                      creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const;
+
+protected:
+   Real getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy,
+                        creal& dvz, const uint popID) const;
+   virtual std::vector<std::array<Real, 3>> getV0(creal x, creal y, creal z, const uint popID) const;
+
+   Real SCA_LAMBDA;
+   Real BX0, BY0, BZ0;
+   std::vector<HarrisSpeciesParameters> speciesParams;
+
+}; // class Harris
+} // namespace projects
 
 #endif

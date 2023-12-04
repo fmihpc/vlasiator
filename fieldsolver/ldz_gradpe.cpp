@@ -20,163 +20,162 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include "fs_common.h"
 #include "ldz_gradpe.hpp"
+#include "fs_common.h"
 
 #ifndef NDEBUG
-   #define DEBUG_FSOLVER
+#define DEBUG_FSOLVER
 #endif
 
 using namespace std;
 
 void calculateEdgeGradPeTermXComponents(
-   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-   cint i,
-   cint j,
-   cint k
-) {
+    FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH>& EGradPeGrid,
+    FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
+    FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid, cint i, cint j, cint k) {
    Real hallRhoq = 0.0;
    Real rhoq = 0.0;
    switch (Parameters::ohmGradPeTerm) {
-      case 0:
-         cerr << __FILE__ << __LINE__ << "You shouldn't be in a electron pressure gradient term function if Parameters::ohmGradPeTerm == 0." << endl;
-         break;
+   case 0:
+      cerr << __FILE__ << __LINE__
+           << "You shouldn't be in a electron pressure gradient term function if Parameters::ohmGradPeTerm == 0."
+           << endl;
+      break;
 
-      case 1:
-         rhoq = momentsGrid.get(i,j,k)->at(fsgrids::moments::RHOQ);
-         hallRhoq = (rhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : rhoq ;
-         //EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE) = -physicalconstants::K_B*Parameters::electronTemperature*dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::drhoqdx) / (hallRhoq*EGradPeGrid.DX);
-         EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE) = - dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dPedx) / (hallRhoq*EGradPeGrid.DX);
-	 break;
+   case 1:
+      rhoq = momentsGrid.get(i, j, k)->at(fsgrids::moments::RHOQ);
+      hallRhoq = (rhoq <= Parameters::hallMinimumRhoq) ? Parameters::hallMinimumRhoq : rhoq;
+      // EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE) =
+      // -physicalconstants::K_B*Parameters::electronTemperature*dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::drhoqdx)
+      // / (hallRhoq*EGradPeGrid.DX);
+      EGradPeGrid.get(i, j, k)->at(fsgrids::egradpe::EXGRADPE) =
+          -dMomentsGrid.get(i, j, k)->at(fsgrids::dmoments::dPedx) / (hallRhoq * EGradPeGrid.DX);
+      break;
 
-      default:
-         cerr << __FILE__ << ":" << __LINE__ << "You are welcome to code higher-order Hall term correction terms." << endl;
-         break;
+   default:
+      cerr << __FILE__ << ":" << __LINE__ << "You are welcome to code higher-order Hall term correction terms." << endl;
+      break;
    }
 }
 
 void calculateEdgeGradPeTermYComponents(
-   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-   cint i,
-   cint j,
-   cint k
-) {
+    FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH>& EGradPeGrid,
+    FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
+    FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid, cint i, cint j, cint k) {
    Real hallRhoq = 0.0;
    Real rhoq = 0.0;
    switch (Parameters::ohmGradPeTerm) {
-      case 0:
-         cerr << __FILE__ << __LINE__ << "You shouldn't be in a electron pressure gradient term function if Parameters::ohmGradPeTerm == 0." << endl;
-         break;
+   case 0:
+      cerr << __FILE__ << __LINE__
+           << "You shouldn't be in a electron pressure gradient term function if Parameters::ohmGradPeTerm == 0."
+           << endl;
+      break;
 
-      case 1:
-         rhoq = momentsGrid.get(i,j,k)->at(fsgrids::moments::RHOQ);
-         hallRhoq = (rhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : rhoq ;
-         //EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EYGRADPE) = -physicalconstants::K_B*Parameters::electronTemperature*dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::drhoqdy) / (hallRhoq*EGradPeGrid.DY);
-         EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EYGRADPE) = - dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dPedy) / (hallRhoq*EGradPeGrid.DY);
-         break;
+   case 1:
+      rhoq = momentsGrid.get(i, j, k)->at(fsgrids::moments::RHOQ);
+      hallRhoq = (rhoq <= Parameters::hallMinimumRhoq) ? Parameters::hallMinimumRhoq : rhoq;
+      // EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EYGRADPE) =
+      // -physicalconstants::K_B*Parameters::electronTemperature*dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::drhoqdy)
+      // / (hallRhoq*EGradPeGrid.DY);
+      EGradPeGrid.get(i, j, k)->at(fsgrids::egradpe::EYGRADPE) =
+          -dMomentsGrid.get(i, j, k)->at(fsgrids::dmoments::dPedy) / (hallRhoq * EGradPeGrid.DY);
+      break;
 
-      default:
-         cerr << __FILE__ << ":" << __LINE__ << "You are welcome to code higher-order Hall term correction terms." << endl;
-         break;
+   default:
+      cerr << __FILE__ << ":" << __LINE__ << "You are welcome to code higher-order Hall term correction terms." << endl;
+      break;
    }
 }
 
 void calculateEdgeGradPeTermZComponents(
-   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-   cint i,
-   cint j,
-   cint k
-) {
+    FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH>& EGradPeGrid,
+    FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
+    FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid, cint i, cint j, cint k) {
    Real hallRhoq = 0.0;
    Real rhoq = 0.0;
    switch (Parameters::ohmGradPeTerm) {
-      case 0:
-         cerr << __FILE__ << __LINE__ << "You shouldn't be in a electron pressure gradient term function if Parameters::ohmGradPeTerm == 0." << endl;
-         break;
+   case 0:
+      cerr << __FILE__ << __LINE__
+           << "You shouldn't be in a electron pressure gradient term function if Parameters::ohmGradPeTerm == 0."
+           << endl;
+      break;
 
-      case 1:
-         rhoq = momentsGrid.get(i,j,k)->at(fsgrids::moments::RHOQ);
-         hallRhoq = (rhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : rhoq ;
-         //EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EZGRADPE) = -physicalconstants::K_B*Parameters::electronTemperature*dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::drhoqdz) / (hallRhoq*EGradPeGrid.DZ);
-         EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EZGRADPE) = - dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dPedz) / (hallRhoq*EGradPeGrid.DZ);
-         break;
+   case 1:
+      rhoq = momentsGrid.get(i, j, k)->at(fsgrids::moments::RHOQ);
+      hallRhoq = (rhoq <= Parameters::hallMinimumRhoq) ? Parameters::hallMinimumRhoq : rhoq;
+      // EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EZGRADPE) =
+      // -physicalconstants::K_B*Parameters::electronTemperature*dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::drhoqdz)
+      // / (hallRhoq*EGradPeGrid.DZ);
+      EGradPeGrid.get(i, j, k)->at(fsgrids::egradpe::EZGRADPE) =
+          -dMomentsGrid.get(i, j, k)->at(fsgrids::dmoments::dPedz) / (hallRhoq * EGradPeGrid.DZ);
+      break;
 
-      default:
-         cerr << __FILE__ << ":" << __LINE__ << "You are welcome to code higher-order Hall term correction terms." << endl;
-         break;
+   default:
+      cerr << __FILE__ << ":" << __LINE__ << "You are welcome to code higher-order Hall term correction terms." << endl;
+      break;
    }
 }
 
 /** Calculate the electron pressure gradient term on all given cells.
  * @param sysBoundaries System boundary condition functions.
  */
-void calculateGradPeTerm(
-   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-   cint i,
-   cint j,
-   cint k,
-   SysBoundary& sysBoundaries
-) {
-   #ifdef DEBUG_FSOLVER
-   if (technicalGrid.get(i,j,k) == NULL) {
+void calculateGradPeTerm(FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH>& EGradPeGrid,
+                         FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
+                         FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
+                         FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k,
+                         SysBoundary& sysBoundaries) {
+#ifdef DEBUG_FSOLVER
+   if (technicalGrid.get(i, j, k) == NULL) {
       cerr << "NULL pointer in " << __FILE__ << ":" << __LINE__ << endl;
       exit(1);
    }
-   #endif
+#endif
 
-   cuint cellSysBoundaryFlag = technicalGrid.get(i,j,k)->sysBoundaryFlag;
+   cuint cellSysBoundaryFlag = technicalGrid.get(i, j, k)->sysBoundaryFlag;
 
-   if (cellSysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) return;
+   if (cellSysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE)
+      return;
 
-   cuint cellSysBoundaryLayer = technicalGrid.get(i,j,k)->sysBoundaryLayer;
+   cuint cellSysBoundaryLayer = technicalGrid.get(i, j, k)->sysBoundaryLayer;
 
    if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) && (cellSysBoundaryLayer != 1)) {
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid,i,j,k,0);
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid,i,j,k,1);
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid,i,j,k,2);
+      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)
+          ->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid, i, j, k, 0);
+      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)
+          ->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid, i, j, k, 1);
+      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)
+          ->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid, i, j, k, 2);
    } else {
-      calculateEdgeGradPeTermXComponents(EGradPeGrid,momentsGrid,dMomentsGrid,i,j,k);
-      calculateEdgeGradPeTermYComponents(EGradPeGrid,momentsGrid,dMomentsGrid,i,j,k);
-      calculateEdgeGradPeTermZComponents(EGradPeGrid,momentsGrid,dMomentsGrid,i,j,k);
+      calculateEdgeGradPeTermXComponents(EGradPeGrid, momentsGrid, dMomentsGrid, i, j, k);
+      calculateEdgeGradPeTermYComponents(EGradPeGrid, momentsGrid, dMomentsGrid, i, j, k);
+      calculateEdgeGradPeTermZComponents(EGradPeGrid, momentsGrid, dMomentsGrid, i, j, k);
    }
 }
 
-void calculateGradPeTermSimple(
-   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsDt2Grid,
-   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-   SysBoundary& sysBoundaries,
-   cint& RKCase
-) {
-   //const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
+void calculateGradPeTermSimple(FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH>& EGradPeGrid,
+                               FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
+                               FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsDt2Grid,
+                               FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
+                               FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, SysBoundary& sysBoundaries,
+                               cint& RKCase) {
+   // const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
    const int* gridDims = &technicalGrid.getLocalSize()[0];
-   const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
-   phiprof::Timer gradPeTimer {"Calculate GradPe term"};
-   int computeTimerId {phiprof::initializeTimer("EgradPe compute cells")};
+   const size_t N_cells = gridDims[0] * gridDims[1] * gridDims[2];
+   phiprof::Timer gradPeTimer{"Calculate GradPe term"};
+   int computeTimerId{phiprof::initializeTimer("EgradPe compute cells")};
 
-   phiprof::Timer mpiTimer {"EgradPe field update ghosts MPI", {"MPI"}};
+   phiprof::Timer mpiTimer{"EgradPe field update ghosts MPI", {"MPI"}};
    dMomentsGrid.updateGhostCells();
    mpiTimer.stop();
 
-   // Calculate GradPe term
-   #pragma omp parallel
+// Calculate GradPe term
+#pragma omp parallel
    {
-      phiprof::Timer computeTimer {computeTimerId};
-      #pragma omp for collapse(2)
-      for (int k=0; k<gridDims[2]; k++) {
-         for (int j=0; j<gridDims[1]; j++) {
-            for (int i=0; i<gridDims[0]; i++) {
+      phiprof::Timer computeTimer{computeTimerId};
+#pragma omp for collapse(2)
+      for (int k = 0; k < gridDims[2]; k++) {
+         for (int j = 0; j < gridDims[1]; j++) {
+            for (int i = 0; i < gridDims[0]; i++) {
                if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
                   calculateGradPeTerm(EGradPeGrid, momentsGrid, dMomentsGrid, technicalGrid, i, j, k, sysBoundaries);
                } else {
@@ -185,8 +184,8 @@ void calculateGradPeTermSimple(
             }
          }
       }
-      computeTimer.stop(N_cells,"Spatial Cells");
+      computeTimer.stop(N_cells, "Spatial Cells");
    }
 
-   gradPeTimer.stop(N_cells,"Spatial Cells");
+   gradPeTimer.stop(N_cells, "Spatial Cells");
 }

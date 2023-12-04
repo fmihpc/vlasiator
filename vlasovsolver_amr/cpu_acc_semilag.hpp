@@ -34,17 +34,16 @@
 #include "common.h"
 #include "spatial_cell.hpp"
 
-#include <Eigen/Geometry>
 #include <Eigen/Core>
+#include <Eigen/Geometry>
 
-#include "vlasovsolver_amr/cpu_acc_transform.hpp"
 #include "vlasovsolver_amr/cpu_acc_intersections.hpp"
 #include "vlasovsolver_amr/cpu_acc_map.hpp"
+#include "vlasovsolver_amr/cpu_acc_transform.hpp"
 
 using namespace std;
 using namespace spatial_cell;
 using namespace Eigen;
-
 
 /*!
 
@@ -59,16 +58,16 @@ using namespace Eigen;
 */
 
 void cpu_accelerate_cell(SpatialCell* spatial_cell, uint map_order, const Real dt) {
-   double t1=MPI_Wtime();
+   double t1 = MPI_Wtime();
    /*compute transform, forward in time and backward in time*/
-   phiprof::Timer computeTransformTimer {"compute-transform"};
+   phiprof::Timer computeTransformTimer{"compute-transform"};
 
-   //compute the transform performed in this acceleration
-   Transform<Real,3,Affine> fwd_transform= compute_acceleration_transformation(spatial_cell,dt);
-   Transform<Real,3,Affine> bwd_transform= fwd_transform.inverse();
+   // compute the transform performed in this acceleration
+   Transform<Real, 3, Affine> fwd_transform = compute_acceleration_transformation(spatial_cell, dt);
+   Transform<Real, 3, Affine> bwd_transform = fwd_transform.inverse();
    computeTransformTimer.stop();
 
-   // NOTE: This is now in a debugging / testing state. The propagator 
+   // NOTE: This is now in a debugging / testing state. The propagator
    // only does one thing each time step. Currently this does
    // step=0 accel vx
    //      1 coarsen mesh
@@ -77,53 +76,57 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell, uint map_order, const Real d
    //      4 accel vz
    //      5 coarsen mesh
    // (repeat)
-   
+
    // It is then easy to see the effect of each step in the output vlsv files.
-   
+
    // BEGIN TEST
-   map_order=0;
+   map_order = 0;
    static int dim = map_order;
-   static int counter=0;
+   static int counter = 0;
    if (counter % 2 == 0) {
-   // END TEST
-
-   switch (map_order) {
-    case 0: // x -> y -> z
-      // BEGIN TEST
-      if (dim == 0) map_1d(spatial_cell, fwd_transform, bwd_transform,0,0);
-      if (dim == 1) map_1d(spatial_cell, fwd_transform, bwd_transform,1,1);
-      if (dim == 2) map_1d(spatial_cell, fwd_transform, bwd_transform,2,2);      
       // END TEST
-      //map_1d(spatial_cell, fwd_transform, bwd_transform,0,0);
-      //map_1d(spatial_cell, fwd_transform, bwd_transform,1,1);
-      //map_1d(spatial_cell, fwd_transform, bwd_transform,2,2);
-      break;
-    case 1: // y -> z -> x
-      map_1d(spatial_cell, fwd_transform, bwd_transform,1,0);
-      map_1d(spatial_cell, fwd_transform, bwd_transform,2,1);
-      map_1d(spatial_cell, fwd_transform, bwd_transform,0,2);
-      break;
-    case 2: // z -> x -> y
-      map_1d(spatial_cell, fwd_transform, bwd_transform,2,0);
-      map_1d(spatial_cell, fwd_transform, bwd_transform,0,1);
-      map_1d(spatial_cell, fwd_transform, bwd_transform,1,2);
-      break;
-    default:
-      map_1d(spatial_cell, fwd_transform, bwd_transform,2,0);
-      map_1d(spatial_cell, fwd_transform, bwd_transform,0,1);
-      map_1d(spatial_cell, fwd_transform, bwd_transform,1,2);
-      break;
-   }
-   // BEGIN TEST
+
+      switch (map_order) {
+      case 0: // x -> y -> z
+         // BEGIN TEST
+         if (dim == 0)
+            map_1d(spatial_cell, fwd_transform, bwd_transform, 0, 0);
+         if (dim == 1)
+            map_1d(spatial_cell, fwd_transform, bwd_transform, 1, 1);
+         if (dim == 2)
+            map_1d(spatial_cell, fwd_transform, bwd_transform, 2, 2);
+         // END TEST
+         // map_1d(spatial_cell, fwd_transform, bwd_transform,0,0);
+         // map_1d(spatial_cell, fwd_transform, bwd_transform,1,1);
+         // map_1d(spatial_cell, fwd_transform, bwd_transform,2,2);
+         break;
+      case 1: // y -> z -> x
+         map_1d(spatial_cell, fwd_transform, bwd_transform, 1, 0);
+         map_1d(spatial_cell, fwd_transform, bwd_transform, 2, 1);
+         map_1d(spatial_cell, fwd_transform, bwd_transform, 0, 2);
+         break;
+      case 2: // z -> x -> y
+         map_1d(spatial_cell, fwd_transform, bwd_transform, 2, 0);
+         map_1d(spatial_cell, fwd_transform, bwd_transform, 0, 1);
+         map_1d(spatial_cell, fwd_transform, bwd_transform, 1, 2);
+         break;
+      default:
+         map_1d(spatial_cell, fwd_transform, bwd_transform, 2, 0);
+         map_1d(spatial_cell, fwd_transform, bwd_transform, 0, 1);
+         map_1d(spatial_cell, fwd_transform, bwd_transform, 1, 2);
+         break;
+      }
+      // BEGIN TEST
    }
    // END TEST
 
-   // NOTE: Mesh coarsening might be needed after each acceleration substep 
-   
+   // NOTE: Mesh coarsening might be needed after each acceleration substep
+
    // BEGIN TEST
    if (counter % 2 != 0) {
-      phiprof::Timer timer {"mesh coarsening"};
-      vamr_ref_criteria::Base* refCriterion = getObjectWrapper().amrVelRefCriteria.create(Parameters::vamrVelRefCriterion);
+      phiprof::Timer timer{"mesh coarsening"};
+      vamr_ref_criteria::Base* refCriterion =
+          getObjectWrapper().amrVelRefCriteria.create(Parameters::vamrVelRefCriterion);
       if (refCriterion != NULL) {
          refCriterion->initialize("");
          spatial_cell->coarsen_blocks(refCriterion);
@@ -131,14 +134,14 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell, uint map_order, const Real d
       }
    } else {
       ++dim;
-      if (dim == 2) dim=0;
+      if (dim == 2)
+         dim = 0;
    }
    ++counter;
    // END TEST
-   
-   double t2=MPI_Wtime();
+
+   double t2 = MPI_Wtime();
    spatial_cell->parameters[CellParams::LBWEIGHTCOUNTER] += t2 - t1;
 }
 
 #endif
-

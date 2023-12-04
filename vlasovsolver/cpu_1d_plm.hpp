@@ -23,30 +23,30 @@
 #ifndef CPU_1D_PLM_H
 #define CPU_1D_PLM_H
 
-#include <iostream>
-#include "vec.h"
 #include "algorithm"
 #include "cmath"
 #include "cpu_slope_limiters.hpp"
+#include "vec.h"
+#include <iostream>
 
 using namespace std;
 
 /*!
  Compute PLM coefficients
- f(v) = a[0] + a[1]/2.0*t 
+ f(v) = a[0] + a[1]/2.0*t
 t=(v-v_{i-0.5})/dv where v_{i-0.5} is the left face of a cell
 The factor 2.0 is in the polynom to ease integration, then integral is a[0]*t + a[1]*t**2
 */
 
-inline void compute_plm_coeff(const Vec * const values, uint k, Vec a[2], const Realv threshold){
-   if (threshold>0) {
+inline void compute_plm_coeff(const Vec* const values, uint k, Vec a[2], const Realv threshold) {
+   if (threshold > 0) {
       // scale values closer to 1 for more accurate slope limiter calculation
-      const Realv scale = 1./threshold;
-      const Vec d_cv=slope_limiter(values[k - 1]*scale, values[k]*scale, values[k + 1]*scale)*threshold;
+      const Realv scale = 1. / threshold;
+      const Vec d_cv = slope_limiter(values[k - 1] * scale, values[k] * scale, values[k + 1] * scale) * threshold;
       a[0] = values[k] - d_cv * 0.5;
       a[1] = d_cv * 0.5;
    } else {
-      const Vec d_cv=slope_limiter(values[k - 1], values[k], values[k + 1]);
+      const Vec d_cv = slope_limiter(values[k - 1], values[k], values[k + 1]);
       a[0] = values[k] - d_cv * 0.5;
       a[1] = d_cv * 0.5;
    }

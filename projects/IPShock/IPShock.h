@@ -30,92 +30,79 @@
 
 namespace projects {
 
-   struct IPShockSpeciesParameters {
-      Real V0u[3];
-      Real DENSITYu;
-      Real TEMPERATUREu;
-      Real V0utangential;
-      Real Vucosphi;
+struct IPShockSpeciesParameters {
+   Real V0u[3];
+   Real DENSITYu;
+   Real TEMPERATUREu;
+   Real V0utangential;
+   Real Vucosphi;
 
-      Real V0d[3];
-      Real DENSITYd;
-      Real TEMPERATUREd;
-      Real V0dtangential;
-      Real Vdcosphi;
+   Real V0d[3];
+   Real DENSITYd;
+   Real TEMPERATUREd;
+   Real V0dtangential;
+   Real Vdcosphi;
 
-      int Vyusign;
-      int Vydsign;
-      int Vzusign;
-      int Vzdsign;
+   int Vyusign;
+   int Vydsign;
+   int Vzusign;
+   int Vzdsign;
 
-      Real maxwCutoff;
-      uint nSpaceSamples;
-      uint nVelocitySamples;
-   };
+   Real maxwCutoff;
+   uint nSpaceSamples;
+   uint nVelocitySamples;
+};
 
-   class IPShock: public TriAxisSearch {
-      public:
-         IPShock();
-         virtual ~IPShock();
+class IPShock : public TriAxisSearch {
+public:
+   IPShock();
+   virtual ~IPShock();
 
-         virtual bool initialize(void);
-         static void addParameters(void);
-         virtual void getParameters(void);
+   virtual bool initialize(void);
+   static void addParameters(void);
+   virtual void getParameters(void);
 
-         virtual void setProjectBField(
-            FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-            FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-            FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-         );
-         virtual Real calcPhaseSpaceDensity(
-               creal& x, creal& y, creal& z,
-               creal& dx, creal& dy, creal& dz,
-               creal& vx, creal& vy, creal& vz,
-               creal& dvx, creal& dvy, creal& dvz,
-               const uint popID
-               ) const;
+   virtual void setProjectBField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+                                 FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+                                 FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid);
+   virtual Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx,
+                                      creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const;
 
+protected:
+   Real getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy,
+                        creal& dvz, const uint popID) const;
+   virtual std::vector<std::array<Real, 3>> getV0(creal x, creal y, creal z, const uint popID) const;
+   // virtual void calcCellParameters(Real* cellParams,creal& t);
+   virtual void calcCellParameters(spatial_cell::SpatialCell* cell, creal& t);
+   bool refineSpatialCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) const;
+   // Interpolate between up- and downstream quantities
+   // based on position
+   Real interpolate(Real u, Real d, Real x) const;
 
+   // Upstream bulk values
+   Real B0u[3];
+   Real B0utangential;
+   // Downstream bulk values
+   Real B0d[3];
+   Real B0dtangential;
 
-      protected:
-         Real getDistribValue(
-               creal& x,creal& y, creal& z,
-               creal& vx, creal& vy, creal& vz,
-               creal& dvx, creal& dvy, creal& dvz,
-               const uint popID
-               ) const;
-         virtual std::vector<std::array<Real, 3>> getV0(creal x, creal y, creal z, const uint popID) const;
-         //virtual void calcCellParameters(Real* cellParams,creal& t);
-         virtual void calcCellParameters(spatial_cell::SpatialCell* cell, creal& t);
-	 bool refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const;
-         // Interpolate between up- and downstream quantities
-         // based on position
-         Real interpolate(Real u, Real d, Real x) const;
+   // Flow direction definitions
+   Real Bucosphi;
+   Real Bdcosphi;
+   int Byusign;
+   int Bydsign;
+   int Bzusign;
+   int Bzdsign;
 
-         // Upstream bulk values
-         Real B0u[3];
-         Real B0utangential;
-         // Downstream bulk values
-         Real B0d[3];
-         Real B0dtangential;
+   Real Shockwidth;
+   Real AMR_L1width;
+   Real AMR_L2width;
+   Real AMR_L3width;
+   Real AMR_L4width;
 
-         // Flow direction definitions
-         Real Bucosphi;
-         Real Bdcosphi;
-         int Byusign;
-         int Bydsign;
-         int Bzusign;
-         int Bzdsign;
+   std::vector<IPShockSpeciesParameters> speciesParams;
 
-         Real Shockwidth;
-	 Real AMR_L1width;
-	 Real AMR_L2width;
-	 Real AMR_L3width;
-	 Real AMR_L4width;
-
-         std::vector<IPShockSpeciesParameters> speciesParams;
-
-   } ; //class IPShock
+}; // class IPShock
 } // namespace projects
 
 #endif

@@ -20,28 +20,26 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#include <vector>
-#include "vectorclass.h"
-#include "vector3d.h"
 #include "../definitions.h"
 #include "../memoryallocation.h"
+#include "vector3d.h"
+#include "vectorclass.h"
+#include <vector>
 
 struct Particle {
-      Vec3d x;
-      Vec3d v;
-      Real m;
-      Real q;
-      char padding[128-sizeof(Vec3d)*2-sizeof(Real)*2];
+   Vec3d x;
+   Vec3d v;
+   Real m;
+   Real q;
+   char padding[128 - sizeof(Vec3d) * 2 - sizeof(Real) * 2];
 
-      Particle(Real mass, Real charge, const Vec3d& _x, const Vec3d& _v) :
-         x(_x),v(_v),m(mass),q(charge) {}
+   Particle(Real mass, Real charge, const Vec3d& _x, const Vec3d& _v) : x(_x), v(_v), m(mass), q(charge) {}
 
-      /* Particle propagation given E- and B-Field at the particle location
-       * with the Boris-Method */
-      void push(Vec3d& B, Vec3d& E, double dt);
+   /* Particle propagation given E- and B-Field at the particle location
+    * with the Boris-Method */
+   void push(Vec3d& B, Vec3d& E, double dt);
 };
 
 typedef std::vector<Particle, aligned_allocator<Particle, 32>> ParticleContainer;
 
 void writeParticles(ParticleContainer& p, const char* filename);
-

@@ -31,61 +31,46 @@
 
 namespace projects {
 
-   struct FlowthroughSpeciesParameters {
-      Real rho;
-      Real rhoBase;
-      Real T;
-      Real V0[3];
-      uint nSpaceSamples;
-      uint nVelocitySamples;
-   };
+struct FlowthroughSpeciesParameters {
+   Real rho;
+   Real rhoBase;
+   Real T;
+   Real V0[3];
+   uint nSpaceSamples;
+   uint nVelocitySamples;
+};
 
-   class Flowthrough: public TriAxisSearch {
-    public:
-      Flowthrough();
-      virtual ~Flowthrough();
-      
-      virtual bool initialize(void);
-      static void addParameters(void);
-      virtual void getParameters(void);
-      virtual void setProjectBField(
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-      );
+class Flowthrough : public TriAxisSearch {
+public:
+   Flowthrough();
+   virtual ~Flowthrough();
 
-    protected:
-      Real getDistribValue(
-                           creal& x,creal& y, creal& z,
-                           creal& vx, creal& vy, creal& vz,
-                           creal& dvx, creal& dvy, creal& dvz,
-                           const uint popID
-                          ) const;
-      virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
-      virtual Real calcPhaseSpaceDensity(
-                                         creal& x, creal& y, creal& z,
-                                         creal& dx, creal& dy, creal& dz,
-                                         creal& vx, creal& vy, creal& vz,
-                                         creal& dvx, creal& dvy, creal& dvz,const uint popID
-                                        ) const;
-      virtual std::vector<std::array<Real, 3> > getV0(
-                                                      creal x,
-                                                      creal y,
-                                                      creal z,
-                                                      const uint popID
-                                                     ) const;
-      int adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const;
-      bool canRefine(const std::array<double,3> xyz, const int refLevel) const;
+   virtual bool initialize(void);
+   static void addParameters(void);
+   virtual void getParameters(void);
+   virtual void setProjectBField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+                                 FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+                                 FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid);
 
-      bool emptyBox;               /**< If true, then the simulation domain is empty initially 
-                                    * and matter will flow in only through the boundaries.*/
+protected:
+   Real getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy,
+                        creal& dvz, const uint popID) const;
+   virtual void calcCellParameters(spatial_cell::SpatialCell* cell, creal& t);
+   virtual Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx,
+                                      creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const;
+   virtual std::vector<std::array<Real, 3>> getV0(creal x, creal y, creal z, const uint popID) const;
+   int adaptRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) const;
+   bool canRefine(const std::array<double, 3> xyz, const int refLevel) const;
 
-      Real densityWidth;
-      Real Bx;
-      Real By;
-      Real Bz;
-      std::vector<FlowthroughSpeciesParameters> speciesParams;
-   }; // class Flowthrough
+   bool emptyBox; /**< If true, then the simulation domain is empty initially
+                   * and matter will flow in only through the boundaries.*/
+
+   Real densityWidth;
+   Real Bx;
+   Real By;
+   Real Bz;
+   std::vector<FlowthroughSpeciesParameters> speciesParams;
+}; // class Flowthrough
 } // namespace projects
 
 #endif

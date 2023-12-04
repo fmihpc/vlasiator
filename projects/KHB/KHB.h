@@ -29,52 +29,40 @@
 #include "../project.h"
 
 namespace projects {
-   class KHB: public Project {
-    public:
-      KHB();
-      virtual ~KHB();
-      
-      virtual bool initialize(void);
-      static void addParameters(void);
-      virtual void getParameters(void);
-      virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
-      virtual Real calcPhaseSpaceDensity(
-                                         creal& x, creal& y, creal& z,
-                                         creal& dx, creal& dy, creal& dz,
-                                         creal& vx, creal& vy, creal& vz,
-                                         creal& dvx, creal& dvy, creal& dvz,
-                                         const uint popID
-                                        ) const;
-      virtual void setProjectBField(
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-      );
-    protected:
-      Real getDistribValue(
-                           creal& x, creal& z,
-                           creal& vx, creal& vy, creal& vz,
-                           const uint popID) const;
-      Real profile(creal top, creal bottom, creal x, creal z) const;
-      
-      enum {
-         TOP,
-         BOTTOM
-         };
-      Real rho[2];
-      Real T[2];
-      Real Vx[2];
-      Real Vy[2];
-      Real Vz[2];
-      Real Bx[2];
-      Real By[2];
-      Real Bz[2];
-      Real lambda;
-      Real amp;
-      Real offset;
-      Real transitionWidth;
-      uint nSpaceSamples;
-      uint nVelocitySamples;
-   }; // class KHB
-} // namespace
+class KHB : public Project {
+public:
+   KHB();
+   virtual ~KHB();
+
+   virtual bool initialize(void);
+   static void addParameters(void);
+   virtual void getParameters(void);
+   virtual void calcCellParameters(spatial_cell::SpatialCell* cell, creal& t);
+   virtual Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx,
+                                      creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const;
+   virtual void setProjectBField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+                                 FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+                                 FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid);
+
+protected:
+   Real getDistribValue(creal& x, creal& z, creal& vx, creal& vy, creal& vz, const uint popID) const;
+   Real profile(creal top, creal bottom, creal x, creal z) const;
+
+   enum { TOP, BOTTOM };
+   Real rho[2];
+   Real T[2];
+   Real Vx[2];
+   Real Vy[2];
+   Real Vz[2];
+   Real Bx[2];
+   Real By[2];
+   Real Bz[2];
+   Real lambda;
+   Real amp;
+   Real offset;
+   Real transitionWidth;
+   uint nSpaceSamples;
+   uint nVelocitySamples;
+}; // class KHB
+} // namespace projects
 #endif

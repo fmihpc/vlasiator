@@ -27,21 +27,15 @@ Background magnetic field class of Vlasiator.
 #define CONSTANTFIELD_HPP
 #include "fieldfunction.hpp"
 
-
-
 class ConstantField {
 private:
    bool _initialized;
    double _B[3]; // constant backgroundfield
 public:
-  
-   ConstantField(){
-      this->_initialized = false;
-   }
+   ConstantField() { this->_initialized = false; }
 
-   void initialize(const double Bx,const double By, const double Bz);
-   Real operator()( Real x, Real y, Real z, coordinate component, unsigned int derivative, coordinate dcomponent) const;
+   void initialize(const double Bx, const double By, const double Bz);
+   Real operator()(Real x, Real y, Real z, coordinate component, unsigned int derivative, coordinate dcomponent) const;
 };
 
 #endif
-

@@ -23,30 +23,21 @@
 #ifndef BACKGROUNDFIELD_H
 #define BACKGROUNDFIELD_H
 
-#include "fieldfunction.hpp"
-#include "../definitions.h"
 #include "../common.h"
+#include "../definitions.h"
+#include "fieldfunction.hpp"
 #include "fsgrid.hpp"
 
-void setBackgroundField(
-   const FieldFunction& bgFunction,
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-   bool append=false
-);
+void setBackgroundField(const FieldFunction& bgFunction,
+                        FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+                        bool append = false);
 
-void setBackgroundFieldToZero(
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid
-);
+void setBackgroundFieldToZero(FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid);
 
-void setPerturbedField(
-   const FieldFunction& bgFunction,
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   bool append=false
-);
+void setPerturbedField(const FieldFunction& bgFunction,
+                       FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+                       bool append = false);
 
-void setPerturbedFieldToZero(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid
-);
+void setPerturbedFieldToZero(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid);
 
 #endif
-

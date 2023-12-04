@@ -1,12 +1,12 @@
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <vector>
 //#include "dccrg.hpp"
-#include "../../grid.h"
-#include "mpi.h"
 #include "../../definitions.h"
+#include "../../grid.h"
 #include "../../parameters.h"
 #include "../../vlasovsolver/cpu_trans_map.hpp"
+#include "mpi.h"
 
 using namespace std;
 
@@ -18,7 +18,7 @@ using namespace std;
 //   {
 //     return std::make_tuple(this, 0, MPI_BYTE);
 //   }
-    
+
 // };
 
 int main(int argc, char* argv[]) {
@@ -34,27 +34,27 @@ int main(int argc, char* argv[]) {
    MPI_Comm_rank(comm, &rank);
    MPI_Comm_size(comm, &comm_size);
 
-   const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry> grid;
+   const dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry> grid;
 
    const uint dimension = 0;
    const uint xDim = 9;
    const uint yDim = 9;
    const uint zDim = 1;
-   const std::array<uint64_t, 3> grid_size = {{xDim,yDim,zDim}};
+   const std::array<uint64_t, 3> grid_size = {{xDim, yDim, zDim}};
 
    int argn;
-   char **argc;
-   
-   initializeGrid(argn,argc,grid,sysBoundaries,project);
-   //grid.initialize(grid_size, comm, "RANDOM", 1);
+   char** argc;
+
+   initializeGrid(argn, argc, grid, sysBoundaries, project);
+   // grid.initialize(grid_size, comm, "RANDOM", 1);
 
    grid.balance_load();
 
    bool doRefine = false;
-   const std::array<uint,4> refinementIds = {{1,2,3,4}};
-   if(doRefine) {
-      for(uint i = 0; i < refinementIds.size(); i++) {
-         if(refinementIds[i] > 0) {
+   const std::array<uint, 4> refinementIds = {{1, 2, 3, 4}};
+   if (doRefine) {
+      for (uint i = 0; i < refinementIds.size(); i++) {
+         if (refinementIds[i] > 0) {
             grid.refine_completely(refinementIds[i]);
             grid.stop_refining();
          }
@@ -68,12 +68,13 @@ int main(int argc, char* argv[]) {
    vector<CellID> localPropagatedCells;
    vector<CellID> ids;
    vector<uint> path;
-   
-   for (CellID i = 0; i < xDim * yDim * zDim; i++) localPropagatedCells.push_back( i + 1 );
+
+   for (CellID i = 0; i < xDim * yDim * zDim; i++)
+      localPropagatedCells.push_back(i + 1);
    get_seed_ids(grid, localPropagatedCells, dimension, seedIds);
    for (const auto seedId : seedIds) {
       // Construct pencils from the seedIds into a set of pencils.
-      pencils = buildPencilsWithNeighbors(grid, pencils, seedId, ids, dimension, path);      
+      pencils = buildPencilsWithNeighbors(grid, pencils, seedId, ids, dimension, path);
    }
 
    uint ibeg = 0;
@@ -87,8 +88,7 @@ int main(int argc, char* argv[]) {
       for (auto j = pencils.ids.begin() + ibeg; j != pencils.ids.begin() + iend; ++j) {
          std::cout << *j << " ";
       }
-      ibeg  = iend;
+      ibeg = iend;
       std::cout << std::endl;
    }
-
 }

@@ -71,7 +71,7 @@ Readparameters::Readparameters(int cmdargc, char* cmdargv[]) {
 }
 
 Readparameters::~Readparameters() {
-   if(descriptions != nullptr) {
+   if (descriptions != nullptr) {
       delete descriptions;
       delete variables;
       descriptions = NULL;
@@ -129,21 +129,15 @@ bool Readparameters::versionMessage() {
    return true;
 }
 
-
 /** Helper wrapper function to get version info
    @return std string with the version information
  */
-std::string Readparameters::versionInfo() {
-   return getVersion();
-}
+std::string Readparameters::versionInfo() { return getVersion(); }
 
 /** Helper wrapper function to get the config info
    @return std string with the config information
  */
-std::string Readparameters::configInfo() {
-   return getConfig(run_config_file_name.c_str());
-}
-
+std::string Readparameters::configInfo() { return getConfig(run_config_file_name.c_str()); }
 
 /** Request Parameters to reparse input file(s). This function needs to be
  * called after new options have been added via Parameters:add functions.

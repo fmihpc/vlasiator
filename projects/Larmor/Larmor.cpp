@@ -20,16 +20,16 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include <cstdlib>
-#include <iostream>
-#include <iomanip>
 #include <cmath>
+#include <cstdlib>
+#include <iomanip>
+#include <iostream>
 
-#include "../../common.h"
-#include "../../readparameters.h"
-#include "../../object_wrapper.h"
 #include "../../backgroundfield/backgroundfield.h"
 #include "../../backgroundfield/constantfield.hpp"
+#include "../../common.h"
+#include "../../object_wrapper.h"
+#include "../../readparameters.h"
 
 #include "Larmor.h"
 
@@ -37,120 +37,115 @@ using namespace std;
 using namespace spatial_cell;
 
 namespace projects {
-    Larmor::Larmor(): Project() { }
-    Larmor::~Larmor() { }
+Larmor::Larmor() : Project() {}
+Larmor::~Larmor() {}
 
+bool Larmor::initialize(void) { return Project::initialize(); }
 
-   bool Larmor::initialize(void) {return Project::initialize();}
+void Larmor::addParameters() {
+   typedef Readparameters RP;
+   RP::add("Larmor.BX0", "Background field value (T)", 0.0);
+   RP::add("Larmor.BY0", "Background field value (T)", 0.0);
+   RP::add("Larmor.BZ0", "Background field value (T)", 3.0e-9);
+   RP::add("Larmor.VX0", "Bulk velocity in x", 0.0);
+   RP::add("Larmor.VY0", "Bulk velocity in y", 0.0);
+   RP::add("Larmor.VZ0", "Bulk velocuty in z", 0.0);
+   RP::add("Larmor.rho", "Number density (m^-3)", 1.0e7);
+   RP::add("Larmor.Temperature", "Temperature (K)", 2.0e6);
+   RP::add("Larmor.nSpaceSamples", "Number of sampling points per spatial dimension", 1);
+   RP::add("Larmor.nVelocitySamples", "Number of sampling points per velocity dimension", 1);
+   RP::add("Larmor.maxwCutoff", "Cutoff for the maxwellian distribution", 1e-12);
+   RP::add("Larmor.Scale_x", "Scale length in x (m)", 2.0e6);
+   RP::add("Larmor.Scale_y", "Scale length in y (m)", 2.0e6);
+}
 
-    void Larmor::addParameters() {
-      typedef Readparameters RP;
-      RP::add("Larmor.BX0", "Background field value (T)", 0.0);
-      RP::add("Larmor.BY0", "Background field value (T)", 0.0);
-      RP::add("Larmor.BZ0", "Background field value (T)", 3.0e-9);
-      RP::add("Larmor.VX0", "Bulk velocity in x", 0.0);
-      RP::add("Larmor.VY0", "Bulk velocity in y", 0.0);
-      RP::add("Larmor.VZ0", "Bulk velocuty in z", 0.0);
-      RP::add("Larmor.rho", "Number density (m^-3)", 1.0e7);
-      RP::add("Larmor.Temperature", "Temperature (K)", 2.0e6);
-      RP::add("Larmor.nSpaceSamples", "Number of sampling points per spatial dimension", 1);
-      RP::add("Larmor.nVelocitySamples", "Number of sampling points per velocity dimension", 1);
-      RP::add("Larmor.maxwCutoff", "Cutoff for the maxwellian distribution", 1e-12);
-      RP::add("Larmor.Scale_x", "Scale length in x (m)", 2.0e6);
-      RP::add("Larmor.Scale_y", "Scale length in y (m)", 2.0e6);
-    }
+void Larmor::getParameters() {
+   Project::getParameters();
+   typedef Readparameters RP;
 
-    void Larmor::getParameters() {
-       Project::getParameters();
-      typedef Readparameters RP;
-
-      if(getObjectWrapper().particleSpecies.size() > 1) {
-         std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
-         abort();
-      }
-
-      RP::get("Larmor.BX0", this->BX0);
-      RP::get("Larmor.BY0", this->BY0);
-      RP::get("Larmor.BZ0", this->BZ0);
-      RP::get("Larmor.VX0", this->VX0);
-      RP::get("Larmor.VY0", this->VY0);
-      RP::get("Larmor.VZ0", this->VZ0);
-      RP::get("Larmor.rho", this->DENSITY);
-      RP::get("Larmor.Temperature", this->TEMPERATURE);
-      RP::get("Larmor.nSpaceSamples", this->nSpaceSamples);
-      RP::get("Larmor.nVelocitySamples", this->nVelocitySamples);
-      RP::get("Larmor.maxwCutoff", this->maxwCutoff);
-      RP::get("Larmor.Scale_x", this->SCA_X);
-      RP::get("Larmor.Scale_y", this->SCA_Y);
-    }
-
-    Real Larmor::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, const uint popID) const {
-      creal kb = physicalconstants::K_B;
-      creal mass = getObjectWrapper().particleSpecies[popID].mass;
-      
-      return exp(- mass * ((vx-this->VX0)*(vx-this->VX0) + (vy-this->VY0)*(vy-this->VY0)+ (vz-this->VZ0)*(vz-this->VZ0)) / (2.0 * kb * this->TEMPERATURE))*
-      exp(-pow(x-Parameters::xmax/2.5, 2.0)/pow(this->SCA_X, 2.0))*exp(-pow(y-Parameters::ymax/2.0, 2.0)/pow(this->SCA_Y, 2.0));
-    }
-
-    Real Larmor::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, 
-            creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
-       const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
-      vmesh::MeshParameters& meshParams = getObjectWrapper().velocityMeshes[meshID];
-      if (vx < meshParams.meshMinLimits[0] + 0.5*dvx ||
-          vy < meshParams.meshMinLimits[1] + 0.5*dvy ||
-          vz < meshParams.meshMinLimits[2] + 0.5*dvz ||
-          vx > meshParams.meshMaxLimits[0] - 1.5*dvx ||
-          vy > meshParams.meshMaxLimits[1] - 1.5*dvy ||
-          vz > meshParams.meshMaxLimits[2] - 1.5*dvz) {
-         return 0.0;
-      }
-
-      creal mass = getObjectWrapper().particleSpecies[popID].mass;
-      creal kb = physicalconstants::K_B;
-
-      creal d_x = dx / (this->nSpaceSamples-1);
-      creal d_y = dy / (this->nSpaceSamples-1);
-      creal d_z = dz / (this->nSpaceSamples-1);
-      creal d_vx = dvx / (this->nVelocitySamples-1);
-      creal d_vy = dvy / (this->nVelocitySamples-1);
-      creal d_vz = dvz / (this->nVelocitySamples-1);
-      Real avg = 0.0;
-      
-      for (uint i=0; i<this->nSpaceSamples; ++i)
-         for (uint j=0; j<this->nSpaceSamples; ++j)
-            for (uint k=0; k<this->nSpaceSamples; ++k)
-               for (uint vi=0; vi<this->nVelocitySamples; ++vi)
-                  for (uint vj=0; vj<this->nVelocitySamples; ++vj)
-                     for (uint vk=0; vk<this->nVelocitySamples; ++vk)
-                     {
-                        avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, popID);
-                     }
-      
-      creal result = avg *this->DENSITY * pow(mass / (2.0 * M_PI * kb * this->TEMPERATURE), 1.5) /
-                     (this->nSpaceSamples*this->nSpaceSamples*this->nSpaceSamples) / 
-                     (this->nVelocitySamples*this->nVelocitySamples*this->nVelocitySamples);
-      
-      if(result < this->maxwCutoff) {
-         return 0.0;
-      } else {
-         return result;
-      }
+   if (getObjectWrapper().particleSpecies.size() > 1) {
+      std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__
+                << " line " << __LINE__ << std::endl;
+      abort();
    }
 
+   RP::get("Larmor.BX0", this->BX0);
+   RP::get("Larmor.BY0", this->BY0);
+   RP::get("Larmor.BZ0", this->BZ0);
+   RP::get("Larmor.VX0", this->VX0);
+   RP::get("Larmor.VY0", this->VY0);
+   RP::get("Larmor.VZ0", this->VZ0);
+   RP::get("Larmor.rho", this->DENSITY);
+   RP::get("Larmor.Temperature", this->TEMPERATURE);
+   RP::get("Larmor.nSpaceSamples", this->nSpaceSamples);
+   RP::get("Larmor.nVelocitySamples", this->nVelocitySamples);
+   RP::get("Larmor.maxwCutoff", this->maxwCutoff);
+   RP::get("Larmor.Scale_x", this->SCA_X);
+   RP::get("Larmor.Scale_y", this->SCA_Y);
+}
 
-   void Larmor::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
+Real Larmor::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, const uint popID) const {
+   creal kb = physicalconstants::K_B;
+   creal mass = getObjectWrapper().particleSpecies[popID].mass;
 
-    void Larmor::setProjectBField(
-       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-    ) {
-      ConstantField bgField;
-      bgField.initialize(this->BX0,
-                         this->BY0,
-                         this->BZ0);
-      
-      setBackgroundField(bgField, BgBGrid);
+   return exp(-mass *
+              ((vx - this->VX0) * (vx - this->VX0) + (vy - this->VY0) * (vy - this->VY0) +
+               (vz - this->VZ0) * (vz - this->VZ0)) /
+              (2.0 * kb * this->TEMPERATURE)) *
+          exp(-pow(x - Parameters::xmax / 2.5, 2.0) / pow(this->SCA_X, 2.0)) *
+          exp(-pow(y - Parameters::ymax / 2.0, 2.0) / pow(this->SCA_Y, 2.0));
+}
+
+Real Larmor::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy,
+                                   creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
+   const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
+   vmesh::MeshParameters& meshParams = getObjectWrapper().velocityMeshes[meshID];
+   if (vx < meshParams.meshMinLimits[0] + 0.5 * dvx || vy < meshParams.meshMinLimits[1] + 0.5 * dvy ||
+       vz < meshParams.meshMinLimits[2] + 0.5 * dvz || vx > meshParams.meshMaxLimits[0] - 1.5 * dvx ||
+       vy > meshParams.meshMaxLimits[1] - 1.5 * dvy || vz > meshParams.meshMaxLimits[2] - 1.5 * dvz) {
+      return 0.0;
    }
-} //namespace projects 
-  
+
+   creal mass = getObjectWrapper().particleSpecies[popID].mass;
+   creal kb = physicalconstants::K_B;
+
+   creal d_x = dx / (this->nSpaceSamples - 1);
+   creal d_y = dy / (this->nSpaceSamples - 1);
+   creal d_z = dz / (this->nSpaceSamples - 1);
+   creal d_vx = dvx / (this->nVelocitySamples - 1);
+   creal d_vy = dvy / (this->nVelocitySamples - 1);
+   creal d_vz = dvz / (this->nVelocitySamples - 1);
+   Real avg = 0.0;
+
+   for (uint i = 0; i < this->nSpaceSamples; ++i)
+      for (uint j = 0; j < this->nSpaceSamples; ++j)
+         for (uint k = 0; k < this->nSpaceSamples; ++k)
+            for (uint vi = 0; vi < this->nVelocitySamples; ++vi)
+               for (uint vj = 0; vj < this->nVelocitySamples; ++vj)
+                  for (uint vk = 0; vk < this->nVelocitySamples; ++vk) {
+                     avg += getDistribValue(x + i * d_x, y + j * d_y, z + k * d_z, vx + vi * d_vx, vy + vj * d_vy,
+                                            vz + vk * d_vz, popID);
+                  }
+
+   creal result = avg * this->DENSITY * pow(mass / (2.0 * M_PI * kb * this->TEMPERATURE), 1.5) /
+                  (this->nSpaceSamples * this->nSpaceSamples * this->nSpaceSamples) /
+                  (this->nVelocitySamples * this->nVelocitySamples * this->nVelocitySamples);
+
+   if (result < this->maxwCutoff) {
+      return 0.0;
+   } else {
+      return result;
+   }
+}
+
+void Larmor::calcCellParameters(spatial_cell::SpatialCell* cell, creal& t) {}
+
+void Larmor::setProjectBField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+                              FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+                              FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
+   ConstantField bgField;
+   bgField.initialize(this->BX0, this->BY0, this->BZ0);
+
+   setBackgroundField(bgField, BgBGrid);
+}
+} // namespace projects

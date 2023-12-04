@@ -24,9 +24,9 @@
 #define LARMOR_H
 
 #include "definitions.h"
-#include "spatial_cell.hpp"
 #include "projects/projects_common.h"
 #include "projects/projects_vlasov_acceleration.h"
+#include "spatial_cell.hpp"
 
 #include "dccrg.hpp"
 
@@ -41,8 +41,7 @@ struct larmorParameters {
    static Real Y0;
    static Real Z0;
    static Real DENSITY;
-
-} ;
+};
 
 /**
  * Initialize project.
@@ -62,34 +61,22 @@ bool getProjectParameters(void);
  */
 void setProjectCell(SpatialCell* cell);
 
-template<typename UINT,typename REAL> void calcAccFaceX(
-   REAL& ax, REAL& ay, REAL& az,
-   const UINT& I, const UINT& J, const UINT& K,
-   const REAL* const cellParams,
-   const REAL* const blockParams,
-   const REAL* const cellBVOLDerivatives
-) {
-   lorentzForceFaceX(ax,ay,az,I,J,K,cellParams,blockParams,cellBVOLDerivatives);
+template <typename UINT, typename REAL>
+void calcAccFaceX(REAL& ax, REAL& ay, REAL& az, const UINT& I, const UINT& J, const UINT& K,
+                  const REAL* const cellParams, const REAL* const blockParams, const REAL* const cellBVOLDerivatives) {
+   lorentzForceFaceX(ax, ay, az, I, J, K, cellParams, blockParams, cellBVOLDerivatives);
 }
 
-template<typename UINT,typename REAL> void calcAccFaceY(
-   REAL& ax, REAL& ay, REAL& az,
-   const UINT& I, const UINT& J, const UINT& K,
-   const REAL* const cellParams,
-   const REAL* const blockParams,
-   const REAL* const cellBVOLDerivatives
-) {
-   lorentzForceFaceY(ax,ay,az,I,J,K,cellParams,blockParams,cellBVOLDerivatives);
+template <typename UINT, typename REAL>
+void calcAccFaceY(REAL& ax, REAL& ay, REAL& az, const UINT& I, const UINT& J, const UINT& K,
+                  const REAL* const cellParams, const REAL* const blockParams, const REAL* const cellBVOLDerivatives) {
+   lorentzForceFaceY(ax, ay, az, I, J, K, cellParams, blockParams, cellBVOLDerivatives);
 }
 
-template<typename UINT,typename REAL> void calcAccFaceZ(
-   REAL& ax, REAL& ay, REAL& az,
-   const UINT& I, const UINT& J, const UINT& K,
-   const REAL* const cellParams,
-   const REAL* const blockParams,
-   const REAL* const cellBVOLDerivatives
-) {
-   lorentzForceFaceZ(ax,ay,az,I,J,K,cellParams,blockParams,cellBVOLDerivatives);
+template <typename UINT, typename REAL>
+void calcAccFaceZ(REAL& ax, REAL& ay, REAL& az, const UINT& I, const UINT& J, const UINT& K,
+                  const REAL* const cellParams, const REAL* const blockParams, const REAL* const cellBVOLDerivatives) {
+   lorentzForceFaceZ(ax, ay, az, I, J, K, cellParams, blockParams, cellBVOLDerivatives);
 }
 
 #endif

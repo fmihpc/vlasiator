@@ -30,64 +30,54 @@
 
 namespace projects {
 
-   struct DispersionSpeciesParameters {
-      Real VX0;
-      Real VY0;
-      Real VZ0;
-      Real DENSITY;
-      Real TEMPERATURE;
-      Real densityPertRelAmp;
-      Real velocityPertAbsAmp;
-      uint nSpaceSamples;
-      uint nVelocitySamples;
+struct DispersionSpeciesParameters {
+   Real VX0;
+   Real VY0;
+   Real VZ0;
+   Real DENSITY;
+   Real TEMPERATURE;
+   Real densityPertRelAmp;
+   Real velocityPertAbsAmp;
+   uint nSpaceSamples;
+   uint nVelocitySamples;
+};
 
-   };
+class Dispersion : public Project {
+public:
+   Dispersion();
+   virtual ~Dispersion();
 
-   class Dispersion: public Project {
-    public:
-      Dispersion();
-      virtual ~Dispersion();
-      
-      virtual bool initialize(void);
-      static void addParameters(void);
-      virtual void getParameters(void);
-      virtual void setProjectBField(
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-      );
-      virtual void hook(
-         cuint& stage,
-         const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid
-      ) const;
-    protected:
-      Real getDistribValue(creal& vx, creal& vy, creal& vz, const uint popID) const;
-      virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
-      virtual Real calcPhaseSpaceDensity(
-                                         creal& x, creal& y, creal& z,
-                                         creal& dx, creal& dy, creal& dz,
-                                         creal& vx, creal& vy, creal& vz,
-                                         creal& dvx, creal& dvy, creal& dvz,
-                                         const uint popID
-                                        ) const;
+   virtual bool initialize(void);
+   static void addParameters(void);
+   virtual void getParameters(void);
+   virtual void setProjectBField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+                                 FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+                                 FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid);
+   virtual void hook(cuint& stage, const dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                     FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid) const;
 
-      Real B0;
-      Real magXPertAbsAmp;
-      Real magYPertAbsAmp;
-      Real magZPertAbsAmp;
-      Real angleXY;
-      Real angleXZ;
-      Real maxwCutoff;
-      std::vector<DispersionSpeciesParameters> speciesParams;
-      uint seed;
-      
-      char rngStateBuffer[256];
-      random_data rngDataBuffer;
-      
-      static Real rndRho, rndVel[3];
-      #pragma omp threadprivate(rndRho,rndVel)
-   } ; // class Dispersion
+protected:
+   Real getDistribValue(creal& vx, creal& vy, creal& vz, const uint popID) const;
+   virtual void calcCellParameters(spatial_cell::SpatialCell* cell, creal& t);
+   virtual Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx,
+                                      creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const;
+
+   Real B0;
+   Real magXPertAbsAmp;
+   Real magYPertAbsAmp;
+   Real magZPertAbsAmp;
+   Real angleXY;
+   Real angleXZ;
+   Real maxwCutoff;
+   std::vector<DispersionSpeciesParameters> speciesParams;
+   uint seed;
+
+   char rngStateBuffer[256];
+   random_data rngDataBuffer;
+
+   static Real rndRho, rndVel[3];
+#pragma omp threadprivate(rndRho, rndVel)
+}; // class Dispersion
 } // namespace projects
 
 #endif

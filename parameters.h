@@ -23,11 +23,11 @@
 #ifndef PARAMETERS_H
 #define PARAMETERS_H
 #include <limits>
+#include <map>
 #include <mpi.h>
 #include <stdint.h>
 #include <string>
 #include <vector>
-#include <map>
 
 #include "definitions.h"
 
@@ -93,9 +93,9 @@ struct Parameters {
    static std::vector<int>
        systemWriteDistributionWriteShellStride; /*!< Every this many cells for those on selected shells write out their
                                                    velocity space in each class. */
-   static std::vector<bool> systemWriteFsGrid; /*!< Write fg_ variables in this file class or not.*/
-   static bool systemWriteAllDROs; /*!< Write all output DROs or not.*/
-   static bool diagnosticWriteAllDROs; /*!< Write all diagnostic DROs or not.*/
+   static std::vector<bool> systemWriteFsGrid;  /*!< Write fg_ variables in this file class or not.*/
+   static bool systemWriteAllDROs;              /*!< Write all output DROs or not.*/
+   static bool diagnosticWriteAllDROs;          /*!< Write all diagnostic DROs or not.*/
    static std::vector<int> systemWrites;        /*!< How many files have been written of each class*/
    static std::vector<std::pair<std::string, std::string>>
        systemWriteHints; /*!< Collection of MPI-IO hints passed for non-restart IO. Pairs of key-value strings. */
@@ -111,7 +111,7 @@ struct Parameters {
    static uint exitAfterRestarts;           /*!< Exit after this many restarts*/
    static uint64_t vlsvBufferSize;          /*!< Buffer size in bytes passed to VLSV writer. */
    static int restartStripeFactor;          /*!< stripe_factor for restart writing*/
-   static int systemStripeFactor;             /*!< stripe_factor for bulk and initial grid writing*/
+   static int systemStripeFactor;           /*!< stripe_factor for bulk and initial grid writing*/
    static std::string restartWritePath; /*!< Path to the location where restart files should be written. Defaults to the
                                            local directory, also if the specified destination is not writeable. */
 
@@ -144,17 +144,17 @@ struct Parameters {
 
    static bool fieldSolverDiffusiveEterms; /*!< Enable resistive terms in the computation of E*/
 
-   static Real maxSlAccelerationRotation; /*!< Maximum rotation in acceleration for semilagrangian solver*/
-   static int maxSlAccelerationSubcycles; /*!< Maximum number of subcycles in acceleration*/
+   static Real maxSlAccelerationRotation;            /*!< Maximum rotation in acceleration for semilagrangian solver*/
+   static int maxSlAccelerationSubcycles;            /*!< Maximum number of subcycles in acceleration*/
    static bool vlasovAccelerateMaxwellianBoundaries; /*!< Accelerate also Maxwellian boundary cells*/
 
    static Real hallMinimumRhom; /*!< Minimum mass density value used in the field solver.*/
    static Real hallMinimumRhoq; /*!< Minimum charge density value used for the Hall and electron pressure gradient terms
                                    in the Lorentz force and in the field solver.*/
 
-   static std::string loadBalanceAlgorithm; /*!< Algorithm to be used for load balance.*/
-   static std::map<std::string, std::string> loadBalanceOptions;  // Other Load balancing options
-   static uint rebalanceInterval;           /*!< Load rebalance interval (steps). */
+   static std::string loadBalanceAlgorithm;                      /*!< Algorithm to be used for load balance.*/
+   static std::map<std::string, std::string> loadBalanceOptions; // Other Load balancing options
+   static uint rebalanceInterval;                                /*!< Load rebalance interval (steps). */
    static bool prepareForRebalance; /**< If true, propagators should measure their time consumption in preparation
                                      * for mesh repartitioning.*/
 
@@ -176,17 +176,20 @@ struct Parameters {
                                          (true) or a KILL (false). */
    static Real bailout_min_dt;        /*!< Minimum time step below which bailout occurs (s). */
    static Real bailout_max_memory;    /*!< Maximum amount of memory used per node (in GiB) over which bailout occurs. */
-   static uint bailout_velocity_space_wall_margin; /*!< Safety margin in number of blocks off the v-space wall beyond which bailout occurs. */
+   static uint bailout_velocity_space_wall_margin; /*!< Safety margin in number of blocks off the v-space wall beyond
+                                                      which bailout occurs. */
 
    static uint vamrMaxVelocityRefLevel; /**< Maximum velocity mesh refinement level, defaults to 0.*/
    static Realf vamrCoarsenLimit; /**< If the value of refinement criterion is below this value, block can be coarsened.
-                                  * The value must be smaller than vamrRefineLimit.*/
+                                   * The value must be smaller than vamrRefineLimit.*/
    static Realf vamrRefineLimit;  /**< If the value of refinement criterion is larger than this value, block should be
-                                  * refined.  The value must be larger than vamrCoarsenLimit.*/
+                                   * refined.  The value must be larger than vamrCoarsenLimit.*/
    static std::string vamrVelRefCriterion; /**< Name of the velocity block refinement criterion function.*/
 
-   static int amrMaxSpatialRefLevel; /*!< Absolute maximum refinement level (conditions the fsgrid resolution), cannot be exceeded after initial setup of the grids. */
-   static int amrMaxAllowedSpatialRefLevel; /*!< Maximum currently allowed refinement level for restart or dynamic refinement. */
+   static int amrMaxSpatialRefLevel; /*!< Absolute maximum refinement level (conditions the fsgrid resolution), cannot
+                                        be exceeded after initial setup of the grids. */
+   static int amrMaxAllowedSpatialRefLevel; /*!< Maximum currently allowed refinement level for restart or dynamic
+                                               refinement. */
    static bool adaptRefinement;
    static bool refineOnRestart;
    static bool forceRefinement;
@@ -205,10 +208,10 @@ struct Parameters {
    static Realf amrBoxCenterX;
    static Realf amrBoxCenterY;
    static Realf amrBoxCenterZ;
-   static bool amrTransShortPencils;        /*!< Use short or longpencils in AMR translation.*/
+   static bool amrTransShortPencils; /*!< Use short or longpencils in AMR translation.*/
    static std::vector<std::string> blurPassString;
    static std::vector<int> numPasses;
-   
+
    static bool computeCurvature; /*<! Boolean flag, if true the curvature of magnetic field is computed. */
 
    /*! \brief Add the global parameters.

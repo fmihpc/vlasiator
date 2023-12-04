@@ -30,56 +30,46 @@
 
 namespace projects {
 
-   struct FluctuationsSpeciesParameters {
-      Real DENSITY;
-      Real TEMPERATURE;
-      Real densityPertRelAmp;
-      Real velocityPertAbsAmp;
-      Real maxwCutoff;
-      uint nSpaceSamples;
-      uint nVelocitySamples;
-   };
+struct FluctuationsSpeciesParameters {
+   Real DENSITY;
+   Real TEMPERATURE;
+   Real densityPertRelAmp;
+   Real velocityPertAbsAmp;
+   Real maxwCutoff;
+   uint nSpaceSamples;
+   uint nVelocitySamples;
+};
 
-   class Fluctuations: public TriAxisSearch {
-   public:
-      Fluctuations();
-      virtual ~Fluctuations();
-      
-      virtual bool initialize(void);
-      static void addParameters(void);
-      virtual void getParameters(void);
-      virtual void setProjectBField(
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-      );
-      virtual std::vector<std::array<Real, 3> > getV0(
-         creal x,
-         creal y,
-         creal z,
-         const uint popID
-      ) const;
-   protected:
-      Real getDistribValue(creal& vx, creal& vy, creal& vz, const uint popID) const;
-      virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
-      virtual Real calcPhaseSpaceDensity(
-         creal& x, creal& y, creal& z,
-         creal& dx, creal& dy, creal& dz,
-         creal& vx, creal& vy, creal& vz,
-         creal& dvx, creal& dvy, creal& dvz,const uint popID
-      ) const;
-      
-      Real BX0;
-      Real BY0;
-      Real BZ0;
-      Real magXPertAbsAmp;
-      Real magYPertAbsAmp;
-      Real magZPertAbsAmp;
-      uint seed;
-      std::vector<FluctuationsSpeciesParameters> speciesParams;
+class Fluctuations : public TriAxisSearch {
+public:
+   Fluctuations();
+   virtual ~Fluctuations();
 
-      static Real rndRho, rndVel[3];
-      #pragma omp threadprivate(rndRho,rndVel)
-   } ; // class Fluctuations
+   virtual bool initialize(void);
+   static void addParameters(void);
+   virtual void getParameters(void);
+   virtual void setProjectBField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+                                 FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+                                 FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid);
+   virtual std::vector<std::array<Real, 3>> getV0(creal x, creal y, creal z, const uint popID) const;
+
+protected:
+   Real getDistribValue(creal& vx, creal& vy, creal& vz, const uint popID) const;
+   virtual void calcCellParameters(spatial_cell::SpatialCell* cell, creal& t);
+   virtual Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx,
+                                      creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const;
+
+   Real BX0;
+   Real BY0;
+   Real BZ0;
+   Real magXPertAbsAmp;
+   Real magYPertAbsAmp;
+   Real magZPertAbsAmp;
+   uint seed;
+   std::vector<FluctuationsSpeciesParameters> speciesParams;
+
+   static Real rndRho, rndVel[3];
+#pragma omp threadprivate(rndRho, rndVel)
+}; // class Fluctuations
 } // namespace projects
 #endif

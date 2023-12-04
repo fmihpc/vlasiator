@@ -27,47 +27,38 @@
 #include "../project.h"
 
 namespace projects {
-   class TestHall: public Project {
-      public:
-         TestHall();
-         virtual ~TestHall();
-         
-         virtual bool initialize(void);
-         static void addParameters(void);
-         virtual void getParameters(void);
-         virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
-         virtual void setProjectBField(
-            FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-            FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-            FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-         );
-         virtual Real calcPhaseSpaceDensity(
-            creal& x, creal& y, creal& z,
-            creal& dx, creal& dy, creal& dz,
-            creal& vx, creal& vy, creal& vz,
-            creal& dvx, creal& dvy, creal& dvz,const uint popID
-         ) const;
-         
-      protected:
-         Real getDistribValue(
-            creal& x,creal& y, creal& z,
-            creal& vx, creal& vy, creal& vz,
-            creal& dvx, creal& dvy, creal& dvz
-         );
-         
-         bool noDipoleInSW;
-         Real constBgB[3];
-         Real dipoleScalingFactor;
-         Real dipoleTilt;
-         Real BX0;
-         Real BY0;
-         Real BZ0;
-         Real VX0;
-         Real VY0;
-         Real VZ0;
-         Real TEMPERATURE;
-         Real DENSITY;
-   }; // class TestHall
-} // namespace TestHall
+class TestHall : public Project {
+public:
+   TestHall();
+   virtual ~TestHall();
+
+   virtual bool initialize(void);
+   static void addParameters(void);
+   virtual void getParameters(void);
+   virtual void calcCellParameters(spatial_cell::SpatialCell* cell, creal& t);
+   virtual void setProjectBField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+                                 FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+                                 FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid);
+   virtual Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx,
+                                      creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const;
+
+protected:
+   Real getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy,
+                        creal& dvz);
+
+   bool noDipoleInSW;
+   Real constBgB[3];
+   Real dipoleScalingFactor;
+   Real dipoleTilt;
+   Real BX0;
+   Real BY0;
+   Real BZ0;
+   Real VX0;
+   Real VY0;
+   Real VZ0;
+   Real TEMPERATURE;
+   Real DENSITY;
+}; // class TestHall
+} // namespace projects
 
 #endif

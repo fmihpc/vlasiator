@@ -177,7 +177,7 @@ Realf P::amrBoxCenterX = 0.0;
 Realf P::amrBoxCenterY = 0.0;
 Realf P::amrBoxCenterZ = 0.0;
 vector<string> P::blurPassString;
-std::vector<int> P::numPasses; //numpasses
+std::vector<int> P::numPasses; // numpasses
 
 std::string tracerString; /*!< Fieldline tracer to use for coupling ionosphere and magnetosphere */
 bool P::computeCurvature;
@@ -223,17 +223,16 @@ bool P::addParameters() {
    RP::addComposing(
        "io.restart_write_mpiio_hint_value",
        "MPI-IO hint value passed to the restart IO. Has to be matched by io.restart_write_mpiio_hint_key.");
-   RP::addComposing(
-       "io.restart_read_mpiio_hint_key",
-       "MPI-IO hint key passed to the restart IO. Has to be matched by io.restart_read_mpiio_hint_value.");
-   RP::addComposing(
-       "io.restart_read_mpiio_hint_value",
-       "MPI-IO hint value passed to the restart IO. Has to be matched by io.restart_read_mpiio_hint_key.");
+   RP::addComposing("io.restart_read_mpiio_hint_key",
+                    "MPI-IO hint key passed to the restart IO. Has to be matched by io.restart_read_mpiio_hint_value.");
+   RP::addComposing("io.restart_read_mpiio_hint_value",
+                    "MPI-IO hint value passed to the restart IO. Has to be matched by io.restart_read_mpiio_hint_key.");
 
    RP::add("io.write_initial_state",
            "Write initial state, not even the 0.5 dt propagation is done. Do not use for restarting. ", false);
 
-   RP::add("io.write_full_bgb_data", "Write a dedicated file containing all BGB components and first derivatives, then exit.", false);
+   RP::add("io.write_full_bgb_data",
+           "Write a dedicated file containing all BGB components and first derivatives, then exit.", false);
 
    RP::add("io.restart_walltime_interval",
            "Save the complete simulation in given walltime intervals. Negative values disable writes.", -1.0);
@@ -241,7 +240,8 @@ bool P::addParameters() {
            numeric_limits<uint>::max());
    RP::add("io.vlsv_buffer_size",
            "Buffer size passed to VLSV writer (bytes, up to uint64_t), default 0 as this is sensible on sisu", 0);
-   RP::add("io.write_restart_stripe_factor", "Stripe factor for restart and initial grid writing. Default 0 to inherit.", 0);
+   RP::add("io.write_restart_stripe_factor",
+           "Stripe factor for restart and initial grid writing. Default 0 to inherit.", 0);
    RP::add("io.write_system_stripe_factor", "Stripe factor for bulk file writing. Default 0 to inherit.", 0);
    RP::add("io.write_as_float", "If true, write in floats instead of doubles", false);
    RP::add("io.restart_write_path",
@@ -332,8 +332,7 @@ bool P::addParameters() {
            "is true.",
            0.8);
    RP::add("vlasovsolver.accelerateMaxwellianBoundaries",
-           "Propagate maxwellian boundary cell contents in velocity space. Default false.",
-           false);
+           "Propagate maxwellian boundary cell contents in velocity space. Default false.", false);
 
    // Load balancing parameters
    RP::add("loadBalance.algorithm", "Load balancing algorithm to be used", string("RCB"));
@@ -346,31 +345,31 @@ bool P::addParameters() {
    // Output variable parameters
    RP::add("io.system_write_all_data_reducers", "If 0 don't write all DROs, if 1 do write them.", false);
    // NOTE Do not remove the : before the list of variable names as this is parsed by tools/check_vlasiator_cfg.sh
-   RP::addComposing("variables.output",
-                    string() +
-                        "List of data reduction operators (DROs) to add to the grid file output.  Each variable to be "
-                        "added has to be on a new line output = XXX. Names are case insensitive.  " +
-                        "Available (20230628): " + "fg_b fg_b_background fg_b_perturbed fg_b_background_vol fg_derivs_b_background fg_e " +
-                        "vg_rhom vg_rhoq populations_vg_rho " + "fg_rhom fg_rhoq " + "vg_v fg_v populations_vg_v " +
-                        "populations_vg_moments_thermal populations_vg_moments_nonthermal " +
-                        "populations_vg_effectivesparsitythreshold populations_vg_rho_loss_adjust " +
-                        "populations_vg_energydensity populations_vg_precipitationdifferentialflux " +
-                        "populations_vg_heatflux " +
-                        "populations_vg_nonmaxwellianity " +
-                        "vg_maxdt_acceleration vg_maxdt_translation populations_vg_maxdt_acceleration " +
-                        "populations_vg_maxdt_translation " +
-                        "fg_maxdt_fieldsolver " + "vg_rank fg_rank fg_amr_level vg_loadbalance_weight " +
-                        "vg_boundarytype fg_boundarytype vg_boundarylayer fg_boundarylayer " +
-                        "populations_vg_blocks vg_f_saved " + "populations_vg_acceleration_subcycles " +
-                        "vg_e_vol fg_e_vol " +
-                        "fg_e_hall vg_e_gradpe fg_b_vol vg_b_vol vg_b_background_vol vg_b_perturbed_vol " +
-                        "vg_pressure fg_pressure populations_vg_ptensor " + "vg_b_vol_derivatives fg_derivs " +
-                        "ig_fac ig_latitude ig_chi0 ig_cellarea ig_upmappedarea ig_sigmap ig_sigmah ig_sigmaparallel ig_rhon " +
-                        "ig_electrontemp ig_solverinternals ig_upmappednodecoords ig_upmappedb ig_openclosed ig_potential "+
-                        "ig_precipitation ig_deltaphi "+
-                        "ig_inplanecurrent ig_b ig_e vg_drift vg_ionospherecoupling vg_connection vg_fluxrope fg_curvature "+
-                        "vg_amr_drho vg_amr_du vg_amr_dpsq vg_amr_dbsq vg_amr_db vg_amr_alpha vg_amr_reflevel vg_amr_jperb "+
-                        "vg_amr_translate_comm vg_gridcoordinates fg_gridcoordinates ");
+   RP::addComposing(
+       "variables.output",
+       string() +
+           "List of data reduction operators (DROs) to add to the grid file output.  Each variable to be "
+           "added has to be on a new line output = XXX. Names are case insensitive.  " +
+           "Available (20230628): " +
+           "fg_b fg_b_background fg_b_perturbed fg_b_background_vol fg_derivs_b_background fg_e " +
+           "vg_rhom vg_rhoq populations_vg_rho " + "fg_rhom fg_rhoq " + "vg_v fg_v populations_vg_v " +
+           "populations_vg_moments_thermal populations_vg_moments_nonthermal " +
+           "populations_vg_effectivesparsitythreshold populations_vg_rho_loss_adjust " +
+           "populations_vg_energydensity populations_vg_precipitationdifferentialflux " + "populations_vg_heatflux " +
+           "populations_vg_nonmaxwellianity " +
+           "vg_maxdt_acceleration vg_maxdt_translation populations_vg_maxdt_acceleration " +
+           "populations_vg_maxdt_translation " + "fg_maxdt_fieldsolver " +
+           "vg_rank fg_rank fg_amr_level vg_loadbalance_weight " +
+           "vg_boundarytype fg_boundarytype vg_boundarylayer fg_boundarylayer " + "populations_vg_blocks vg_f_saved " +
+           "populations_vg_acceleration_subcycles " + "vg_e_vol fg_e_vol " +
+           "fg_e_hall vg_e_gradpe fg_b_vol vg_b_vol vg_b_background_vol vg_b_perturbed_vol " +
+           "vg_pressure fg_pressure populations_vg_ptensor " + "vg_b_vol_derivatives fg_derivs " +
+           "ig_fac ig_latitude ig_chi0 ig_cellarea ig_upmappedarea ig_sigmap ig_sigmah ig_sigmaparallel ig_rhon " +
+           "ig_electrontemp ig_solverinternals ig_upmappednodecoords ig_upmappedb ig_openclosed ig_potential " +
+           "ig_precipitation ig_deltaphi " +
+           "ig_inplanecurrent ig_b ig_e vg_drift vg_ionospherecoupling vg_connection vg_fluxrope fg_curvature " +
+           "vg_amr_drho vg_amr_du vg_amr_dpsq vg_amr_dbsq vg_amr_db vg_amr_alpha vg_amr_reflevel vg_amr_jperb " +
+           "vg_amr_translate_comm vg_gridcoordinates fg_gridcoordinates ");
 
    RP::addComposing(
        "variables_deprecated.output",
@@ -421,7 +420,10 @@ bool P::addParameters() {
    RP::add("bailout.min_dt", "Minimum time step below which bailout occurs (s).", 1e-6);
    RP::add("bailout.max_memory", "Maximum amount of memory used per node (in GiB) over which bailout occurs.",
            1073741824.);
-   RP::add("bailout.velocity_space_wall_block_margin", "Distance from the velocity space limits in blocks, if the distribution function reaches that distance from the wall we bail out to avoid hitting the wall.", 1);
+   RP::add("bailout.velocity_space_wall_block_margin",
+           "Distance from the velocity space limits in blocks, if the distribution function reaches that distance from "
+           "the wall we bail out to avoid hitting the wall.",
+           1);
 
    // Velocity Refinement parameters
    RP::add("VAMR.vel_refinement_criterion", "Name of the velocity refinement criterion", string(""));
@@ -434,18 +436,18 @@ bool P::addParameters() {
    // Spatial Refinement parameters
    RP::add("AMR.max_spatial_level", "Maximum absolute spatial mesh refinement level", (uint)0);
    RP::add("AMR.max_allowed_spatial_level", "Maximum currently allowed spatial mesh refinement level", -1);
-   RP::add("AMR.should_refine","If false, do not refine Vlasov grid regardless of max spatial level",true);
-   RP::add("AMR.adapt_refinement","If true, re-refine vlasov grid every refine_multiplier load balance", false);
-   RP::add("AMR.refine_on_restart","If true, re-refine vlasov grid on restart", false);
-   RP::add("AMR.force_refinement","If true, refine/unrefine the vlasov grid to match the config on restart", false);
-   RP::add("AMR.should_filter","If true, filter vlasov grid with boxcar filter on restart",false);
-   RP::add("AMR.refine_threshold","Determines the minimum value of the refinement parameter to refine cells", 1.0);
-   RP::add("AMR.unrefine_threshold","Determines the maximum value of the refinement parameter to unrefine cells", 0.0);
-   RP::add("AMR.refine_multiplier","Refine every nth load balance", 10);
-   RP::add("AMR.refine_after","Start refinement after this many simulation seconds", 0.0);
-   RP::add("AMR.refine_radius","Maximum distance from Earth to refine", LARGE_REAL);
-   RP::add("AMR.use_J_per_B","Use J/B_perp as an additional refinement parameter", false);
-   RP::add("AMR.J_per_B_modifier","Factor to add to log2(J / B_perp) in refinement.", 0.0);
+   RP::add("AMR.should_refine", "If false, do not refine Vlasov grid regardless of max spatial level", true);
+   RP::add("AMR.adapt_refinement", "If true, re-refine vlasov grid every refine_multiplier load balance", false);
+   RP::add("AMR.refine_on_restart", "If true, re-refine vlasov grid on restart", false);
+   RP::add("AMR.force_refinement", "If true, refine/unrefine the vlasov grid to match the config on restart", false);
+   RP::add("AMR.should_filter", "If true, filter vlasov grid with boxcar filter on restart", false);
+   RP::add("AMR.refine_threshold", "Determines the minimum value of the refinement parameter to refine cells", 1.0);
+   RP::add("AMR.unrefine_threshold", "Determines the maximum value of the refinement parameter to unrefine cells", 0.0);
+   RP::add("AMR.refine_multiplier", "Refine every nth load balance", 10);
+   RP::add("AMR.refine_after", "Start refinement after this many simulation seconds", 0.0);
+   RP::add("AMR.refine_radius", "Maximum distance from Earth to refine", LARGE_REAL);
+   RP::add("AMR.use_J_per_B", "Use J/B_perp as an additional refinement parameter", false);
+   RP::add("AMR.J_per_B_modifier", "Factor to add to log2(J / B_perp) in refinement.", 0.0);
    RP::add("AMR.box_half_width_x", "Half width of the box that is refined (for testing)", (uint)1);
    RP::add("AMR.box_half_width_y", "Half width of the box that is refined (for testing)", (uint)1);
    RP::add("AMR.box_half_width_z", "Half width of the box that is refined (for testing)", (uint)1);
@@ -455,16 +457,37 @@ bool P::addParameters() {
    RP::add("AMR.transShortPencils", "if true, use one-cell pencils", false);
    RP::addComposing("AMR.filterpasses", string("AMR filter passes for each individual refinement level"));
 
-   RP::add("fieldtracing.fieldLineTracer", "Field line tracing method to use for coupling ionosphere and magnetosphere (options are: Euler, BS)", std::string("Euler"));
+   RP::add("fieldtracing.fieldLineTracer",
+           "Field line tracing method to use for coupling ionosphere and magnetosphere (options are: Euler, BS)",
+           std::string("Euler"));
    RP::add("fieldtracing.tracer_max_allowed_error", "Maximum allowed error for the adaptive field line tracers ", 1000);
    RP::add("fieldtracing.tracer_max_attempts", "Maximum allowed attempts for the adaptive field line tracers", 100);
-   RP::add("fieldtracing.tracer_min_dx", "Minimum allowed field line tracer step length for the adaptive field line tracers (m)", 100e3);
-   RP::add("fieldtracing.fullbox_and_fluxrope_max_absolute_distance_to_trace", "Maximum absolute distance in m to trace along the field line before ending. Defaults to the sum of the simulation box edge lengths LX+LY+LZ if set <= 0.", -1);
-   RP::add("fieldtracing.fullbox_max_incomplete_cells", "Maximum fraction of cells left incomplete when stopping tracing loop for full box tracing. Defaults to zero to process all, will be slow at scale! Both fluxrope_max_incomplete_cells and fullbox_max_incomplete_cells will be achieved.", 0);
-   RP::add("fieldtracing.fluxrope_max_incomplete_cells", "Maximum fraction of cells left incomplete when stopping loop for flux rope tracing. Defaults to zero to process all, will be slow at scale! Both fluxrope_max_incomplete_cells and fullbox_max_incomplete_cells will be achieved.", 0);
-   RP::add("fieldtracing.use_reconstruction_cache", "Use the cache to store reconstruction coefficients. (0: don't, 1: use)", 0);
-   RP::add("fieldtracing.fluxrope_max_curvature_radii_to_trace", "Maximum number of seedpoint curvature radii to trace forward and backward from each DCCRG cell to find flux ropes", 10);
-   RP::add("fieldtracing.fluxrope_max_curvature_radii_extent", "Maximum extent in seedpoint curvature radii from the seed a field line is allowed to extend to be counted as a flux rope", 2);
+   RP::add("fieldtracing.tracer_min_dx",
+           "Minimum allowed field line tracer step length for the adaptive field line tracers (m)", 100e3);
+   RP::add("fieldtracing.fullbox_and_fluxrope_max_absolute_distance_to_trace",
+           "Maximum absolute distance in m to trace along the field line before ending. Defaults to the sum of the "
+           "simulation box edge lengths LX+LY+LZ if set <= 0.",
+           -1);
+   RP::add("fieldtracing.fullbox_max_incomplete_cells",
+           "Maximum fraction of cells left incomplete when stopping tracing loop for full box tracing. Defaults to "
+           "zero to process all, will be slow at scale! Both fluxrope_max_incomplete_cells and "
+           "fullbox_max_incomplete_cells will be achieved.",
+           0);
+   RP::add("fieldtracing.fluxrope_max_incomplete_cells",
+           "Maximum fraction of cells left incomplete when stopping loop for flux rope tracing. Defaults to zero to "
+           "process all, will be slow at scale! Both fluxrope_max_incomplete_cells and fullbox_max_incomplete_cells "
+           "will be achieved.",
+           0);
+   RP::add("fieldtracing.use_reconstruction_cache",
+           "Use the cache to store reconstruction coefficients. (0: don't, 1: use)", 0);
+   RP::add("fieldtracing.fluxrope_max_curvature_radii_to_trace",
+           "Maximum number of seedpoint curvature radii to trace forward and backward from each DCCRG cell to find "
+           "flux ropes",
+           10);
+   RP::add("fieldtracing.fluxrope_max_curvature_radii_extent",
+           "Maximum extent in seedpoint curvature radii from the seed a field line is allowed to extend to be counted "
+           "as a flux rope",
+           2);
 
    return true;
 }
@@ -570,7 +593,8 @@ void Parameters::getParameters() {
          }
       } else {
          if (myRank == MASTER_RANK) {
-            cerr << "ERROR io.system_write_fsgrid_variables should be defined for all file types (or none at all)." << endl;
+            cerr << "ERROR io.system_write_fsgrid_variables should be defined for all file types (or none at all)."
+                 << endl;
             MPI_Abort(MPI_COMM_WORLD, 1);
          }
       }
@@ -679,26 +703,26 @@ void Parameters::getParameters() {
 
    RP::get("AMR.max_spatial_level", P::amrMaxSpatialRefLevel);
    RP::get("AMR.max_allowed_spatial_level", P::amrMaxAllowedSpatialRefLevel);
-   if(P::amrMaxAllowedSpatialRefLevel < 0) { // negative (default is -1) just goes to max
+   if (P::amrMaxAllowedSpatialRefLevel < 0) {                     // negative (default is -1) just goes to max
       P::amrMaxAllowedSpatialRefLevel = P::amrMaxSpatialRefLevel; // set max allowed to the same as the absolute max
    }
-   if(P::amrMaxSpatialRefLevel < P::amrMaxAllowedSpatialRefLevel) {
-      if(myRank == MASTER_RANK) {
+   if (P::amrMaxSpatialRefLevel < P::amrMaxAllowedSpatialRefLevel) {
+      if (myRank == MASTER_RANK) {
          cerr << "AMR.max_allowed_spatial_level cannot be greater than AMR.max_spatial_level!\n";
       }
       MPI_Abort(MPI_COMM_WORLD, 1);
    }
-   RP::get("AMR.adapt_refinement",P::adaptRefinement);
-   RP::get("AMR.refine_on_restart",P::refineOnRestart);
-   RP::get("AMR.force_refinement",P::forceRefinement);
-   RP::get("AMR.should_filter",P::shouldFilter);
-   RP::get("AMR.refine_threshold",P::refineThreshold);
-   RP::get("AMR.unrefine_threshold",P::unrefineThreshold);
-   RP::get("AMR.refine_multiplier",P::refineMultiplier);
-   RP::get("AMR.refine_after",P::refineAfter);
-   RP::get("AMR.refine_radius",P::refineRadius);
-   RP::get("AMR.use_J_per_B",P::useJPerB);
-   RP::get("AMR.J_per_B_modifier",P::JPerBModifier);
+   RP::get("AMR.adapt_refinement", P::adaptRefinement);
+   RP::get("AMR.refine_on_restart", P::refineOnRestart);
+   RP::get("AMR.force_refinement", P::forceRefinement);
+   RP::get("AMR.should_filter", P::shouldFilter);
+   RP::get("AMR.refine_threshold", P::refineThreshold);
+   RP::get("AMR.unrefine_threshold", P::unrefineThreshold);
+   RP::get("AMR.refine_multiplier", P::refineMultiplier);
+   RP::get("AMR.refine_after", P::refineAfter);
+   RP::get("AMR.refine_radius", P::refineRadius);
+   RP::get("AMR.use_J_per_B", P::useJPerB);
+   RP::get("AMR.J_per_B_modifier", P::JPerBModifier);
    RP::get("AMR.box_half_width_x", P::amrBoxHalfWidthX);
    RP::get("AMR.box_half_width_y", P::amrBoxHalfWidthY);
    RP::get("AMR.box_half_width_z", P::amrBoxHalfWidthZ);
@@ -709,42 +733,44 @@ void Parameters::getParameters() {
    RP::get("AMR.filterpasses", P::blurPassString);
 
    // If we are in an AMR run we need to set up the filtering scheme.
-   if (P::amrMaxSpatialRefLevel>0){
+   if (P::amrMaxSpatialRefLevel > 0) {
       bool isEmpty = blurPassString.size() == 0;
-      if (!isEmpty){
-         //sanity check=> user should define a pass for every level
+      if (!isEmpty) {
+         // sanity check=> user should define a pass for every level
          if ((int)blurPassString.size() != P::amrMaxSpatialRefLevel + 1) {
-            cerr << "Filter Passes=" << blurPassString.size() << "\t" << "AMR Levels=" << P::amrMaxSpatialRefLevel + 1 << endl;
-            cerr << "FilterPasses do not match AMR levels. \t" << " in " << __FILE__ << ":" << __LINE__ << endl;
+            cerr << "Filter Passes=" << blurPassString.size() << "\t"
+                 << "AMR Levels=" << P::amrMaxSpatialRefLevel + 1 << endl;
+            cerr << "FilterPasses do not match AMR levels. \t"
+                 << " in " << __FILE__ << ":" << __LINE__ << endl;
             MPI_Abort(MPI_COMM_WORLD, 1);
          }
-         //sort the filtering passes per refLevel
+         // sort the filtering passes per refLevel
          numPasses.clear();
-         //Parse to a vector of ints
-         for (auto pass : blurPassString){
+         // Parse to a vector of ints
+         for (auto pass : blurPassString) {
             P::numPasses.push_back(stoi(pass));
          }
-         sort(numPasses.begin(),numPasses.end(),greater<int>());
-      }else{
-         //here we will default to manually constructing the number of passes
+         sort(numPasses.begin(), numPasses.end(), greater<int>());
+      } else {
+         // here we will default to manually constructing the number of passes
          numPasses.clear();
-         auto g_sequence=[](int size){
-            int retval=1;
-            while(size!=0){
-               retval*=2;
-               size-=1;
+         auto g_sequence = [](int size) {
+            int retval = 1;
+            while (size != 0) {
+               retval *= 2;
+               size -= 1;
             }
             return retval;
          };
-         int maxPasses=g_sequence(P::amrMaxSpatialRefLevel-1);
-         for (int refLevel=0; refLevel<=P::amrMaxSpatialRefLevel; refLevel++){
+         int maxPasses = g_sequence(P::amrMaxSpatialRefLevel - 1);
+         for (int refLevel = 0; refLevel <= P::amrMaxSpatialRefLevel; refLevel++) {
             numPasses.push_back(maxPasses);
-            maxPasses/=2;
+            maxPasses /= 2;
          }
-         //Overwrite passes for the highest refLevel. We do not want to filter there.
+         // Overwrite passes for the highest refLevel. We do not want to filter there.
          numPasses.at(P::amrMaxSpatialRefLevel) = 0;
       }
-         P::maxFilteringPasses = numPasses[0];
+      P::maxFilteringPasses = numPasses[0];
    }
 
    if (geometryString == "XY4D") {
@@ -807,7 +833,7 @@ void Parameters::getParameters() {
    RP::get("vlasovsolver.maxSlAccelerationSubcycles", P::maxSlAccelerationSubcycles);
    RP::get("vlasovsolver.maxCFL", P::vlasovSolverMaxCFL);
    RP::get("vlasovsolver.minCFL", P::vlasovSolverMinCFL);
-   RP::get("vlasovsolver.accelerateMaxwellianBoundaries",  P::vlasovAccelerateMaxwellianBoundaries);
+   RP::get("vlasovsolver.accelerateMaxwellianBoundaries", P::vlasovAccelerateMaxwellianBoundaries);
 
    // Get load balance parameters
    RP::get("loadBalance.algorithm", P::loadBalanceAlgorithm);
@@ -848,8 +874,9 @@ void Parameters::getParameters() {
    RP::get("bailout.min_dt", P::bailout_min_dt);
    RP::get("bailout.max_memory", P::bailout_max_memory);
    RP::get("bailout.velocity_space_wall_block_margin", P::bailout_velocity_space_wall_margin);
-   if(P::bailout_velocity_space_wall_margin > MAX_BLOCKS_PER_DIM / 2 && myRank == MASTER_RANK) {
-      std::cerr << "bailout.velocity_space_wall_block_margin is larger than 0.5 * MAX_BLOCKS_PER_DIM, aborting." << std::endl;
+   if (P::bailout_velocity_space_wall_margin > MAX_BLOCKS_PER_DIM / 2 && myRank == MASTER_RANK) {
+      std::cerr << "bailout.velocity_space_wall_block_margin is larger than 0.5 * MAX_BLOCKS_PER_DIM, aborting."
+                << std::endl;
       abort();
    }
 
@@ -861,14 +888,19 @@ void Parameters::getParameters() {
    RP::get("fieldtracing.tracer_max_allowed_error", FieldTracing::fieldTracingParameters.max_allowed_error);
    RP::get("fieldtracing.tracer_max_attempts", FieldTracing::fieldTracingParameters.max_field_tracer_attempts);
    RP::get("fieldtracing.tracer_min_dx", FieldTracing::fieldTracingParameters.min_tracer_dx);
-   RP::get("fieldtracing.fullbox_max_incomplete_cells", FieldTracing::fieldTracingParameters.fullbox_max_incomplete_cells);
-   RP::get("fieldtracing.fluxrope_max_incomplete_cells", FieldTracing::fieldTracingParameters.fluxrope_max_incomplete_cells);
-   RP::get("fieldtracing.fullbox_and_fluxrope_max_absolute_distance_to_trace", FieldTracing::fieldTracingParameters.fullbox_and_fluxrope_max_distance);
+   RP::get("fieldtracing.fullbox_max_incomplete_cells",
+           FieldTracing::fieldTracingParameters.fullbox_max_incomplete_cells);
+   RP::get("fieldtracing.fluxrope_max_incomplete_cells",
+           FieldTracing::fieldTracingParameters.fluxrope_max_incomplete_cells);
+   RP::get("fieldtracing.fullbox_and_fluxrope_max_absolute_distance_to_trace",
+           FieldTracing::fieldTracingParameters.fullbox_and_fluxrope_max_distance);
    RP::get("fieldtracing.use_reconstruction_cache", FieldTracing::fieldTracingParameters.useCache);
-   RP::get("fieldtracing.fluxrope_max_curvature_radii_to_trace", FieldTracing::fieldTracingParameters.fluxrope_max_curvature_radii_to_trace);
-   RP::get("fieldtracing.fluxrope_max_curvature_radii_extent", FieldTracing::fieldTracingParameters.fluxrope_max_curvature_radii_extent);
+   RP::get("fieldtracing.fluxrope_max_curvature_radii_to_trace",
+           FieldTracing::fieldTracingParameters.fluxrope_max_curvature_radii_to_trace);
+   RP::get("fieldtracing.fluxrope_max_curvature_radii_extent",
+           FieldTracing::fieldTracingParameters.fluxrope_max_curvature_radii_extent);
 
-   if(tracerString == "Euler") {
+   if (tracerString == "Euler") {
       FieldTracing::fieldTracingParameters.tracingMethod = FieldTracing::Euler;
    } else if (tracerString == "ADPT_Euler") {
       FieldTracing::fieldTracingParameters.tracingMethod = FieldTracing::ADPT_Euler;
@@ -877,7 +909,8 @@ void Parameters::getParameters() {
    } else if (tracerString == "DP") {
       FieldTracing::fieldTracingParameters.tracingMethod = FieldTracing::DPrince;
    } else {
-      cerr << __FILE__ << ":" << __LINE__ << " ERROR: Unknown value for fieldtracing.fieldLineTracer: " << tracerString << endl;
+      cerr << __FILE__ << ":" << __LINE__ << " ERROR: Unknown value for fieldtracing.fieldLineTracer: " << tracerString
+           << endl;
       abort();
    }
 }

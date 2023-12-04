@@ -23,18 +23,15 @@
 #ifndef CPU_ACC_TRANSFORM_H
 #define CPU_ACC_TRANSFORM_H
 
-#include <Eigen/Geometry>
 #include <Eigen/Core>
+#include <Eigen/Geometry>
 
 #include "../common.h"
 #include "../spatial_cell.hpp"
 
-Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
-   spatial_cell::SpatialCell* spatial_cell,const uint popID,const Real& dt);
+Eigen::Transform<Real, 3, Eigen::Affine> compute_acceleration_transformation(spatial_cell::SpatialCell* spatial_cell,
+                                                                             const uint popID, const Real& dt);
 
-void updateAccelerationMaxdt(spatial_cell::SpatialCell* spatial_cell, 
-                             const uint popID);
-
-
+void updateAccelerationMaxdt(spatial_cell::SpatialCell* spatial_cell, const uint popID);
 
 #endif

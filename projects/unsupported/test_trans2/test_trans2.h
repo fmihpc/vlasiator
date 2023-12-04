@@ -23,14 +23,14 @@
 #define TESTTRANS2_H
 
 #include "definitions.h"
-#include "spatial_cell.hpp"
 #include "projects/projects_common.h"
 #include "projects/projects_vlasov_acceleration.h"
+#include "spatial_cell.hpp"
 
 struct testTrans2Parameters {
    static Real radLimitInf;
    static Real radLimitSup;
-} ;
+};
 
 /**
  * Initialize project. Can be used, e.g., to read in parameters from the input file
@@ -50,73 +50,58 @@ bool getProjectParameters(void);
  */
 void setProjectCell(SpatialCell* cell);
 // WARNING Lorentz force not fixed in this project (cf. JXB term in the acceleration)!!!
-template<typename UINT,typename REAL> 
-void calcAccFaceX(
-   REAL& ax, REAL& ay, REAL& az,
-   const UINT& I, const UINT& J, const UINT& K,
-   const REAL* const cellParams,
-   const REAL* const blockParams,
-   const REAL* const cellBVOLDerivatives
-) {
+template <typename UINT, typename REAL>
+void calcAccFaceX(REAL& ax, REAL& ay, REAL& az, const UINT& I, const UINT& J, const UINT& K,
+                  const REAL* const cellParams, const REAL* const blockParams, const REAL* const cellBVOLDerivatives) {
    const REAL HALF = 0.5;
-   const REAL VX = blockParams[BlockParams::VXCRD] + I*blockParams[BlockParams::DVX];
-   const REAL VY = blockParams[BlockParams::VYCRD] + (J+HALF)*blockParams[BlockParams::DVY];
-   const REAL VZ = blockParams[BlockParams::VZCRD] + (K+HALF)*blockParams[BlockParams::DVZ];
-   ax = physicalconstants::CHARGE/physicalconstants::MASS_PROTON * (cellParams[CellParams::EX] +
-   VY*(cellParams[CellParams::PERBZ]+cellParams[CellParams::BGBZ]) -
-   VZ*(cellParams[CellParams::PERBY]+cellParams[CellParams::BGBY]));
-   ay = physicalconstants::CHARGE/physicalconstants::MASS_PROTON * (cellParams[CellParams::EY] +
-   VZ*(cellParams[CellParams::PERBX]+cellParams[CellParams::BGBX]) -
-   VX*(cellParams[CellParams::PERBZ]+cellParams[CellParams::BGBZ]));
-   az = physicalconstants::CHARGE/physicalconstants::MASS_PROTON * (cellParams[CellParams::EZ] +
-   VX*(cellParams[CellParams::PERBY]+cellParams[CellParams::BGBY]) -
-   VY*(cellParams[CellParams::PERBX]+cellParams[CellParams::BGBX]));
+   const REAL VX = blockParams[BlockParams::VXCRD] + I * blockParams[BlockParams::DVX];
+   const REAL VY = blockParams[BlockParams::VYCRD] + (J + HALF) * blockParams[BlockParams::DVY];
+   const REAL VZ = blockParams[BlockParams::VZCRD] + (K + HALF) * blockParams[BlockParams::DVZ];
+   ax = physicalconstants::CHARGE / physicalconstants::MASS_PROTON *
+        (cellParams[CellParams::EX] + VY * (cellParams[CellParams::PERBZ] + cellParams[CellParams::BGBZ]) -
+         VZ * (cellParams[CellParams::PERBY] + cellParams[CellParams::BGBY]));
+   ay = physicalconstants::CHARGE / physicalconstants::MASS_PROTON *
+        (cellParams[CellParams::EY] + VZ * (cellParams[CellParams::PERBX] + cellParams[CellParams::BGBX]) -
+         VX * (cellParams[CellParams::PERBZ] + cellParams[CellParams::BGBZ]));
+   az = physicalconstants::CHARGE / physicalconstants::MASS_PROTON *
+        (cellParams[CellParams::EZ] + VX * (cellParams[CellParams::PERBY] + cellParams[CellParams::BGBY]) -
+         VY * (cellParams[CellParams::PERBX] + cellParams[CellParams::BGBX]));
 }
 // WARNING Lorentz force not fixed in this project (cf. JXB term in the acceleration)!!!
-template<typename UINT,typename REAL> 
-void calcAccFaceY(
-   REAL& ax, REAL& ay, REAL& az,
-   const UINT& I, const UINT& J, const UINT& K,
-   const REAL* const cellParams,
-   const REAL* const blockParams,
-   const REAL* const cellBVOLDerivatives
-) {
+template <typename UINT, typename REAL>
+void calcAccFaceY(REAL& ax, REAL& ay, REAL& az, const UINT& I, const UINT& J, const UINT& K,
+                  const REAL* const cellParams, const REAL* const blockParams, const REAL* const cellBVOLDerivatives) {
    const REAL HALF = 0.5;
-   const REAL VX = blockParams[BlockParams::VXCRD] + (I+HALF)*blockParams[BlockParams::DVX];
-   const REAL VY = blockParams[BlockParams::VYCRD] + J*blockParams[BlockParams::DVY];
-   const REAL VZ = blockParams[BlockParams::VZCRD] + (K+HALF)*blockParams[BlockParams::DVZ];
-   ax = physicalconstants::CHARGE/physicalconstants::MASS_PROTON * (cellParams[CellParams::EX] +
-   VY*(cellParams[CellParams::PERBZ]+cellParams[CellParams::BGBZ]) -
-   VZ*(cellParams[CellParams::PERBY]+cellParams[CellParams::BGBY]));
-   ay = physicalconstants::CHARGE/physicalconstants::MASS_PROTON * (cellParams[CellParams::EY] +
-   VZ*(cellParams[CellParams::PERBX]+cellParams[CellParams::BGBX]) -
-   VX*(cellParams[CellParams::PERBZ]+cellParams[CellParams::BGBZ]));
-   az = physicalconstants::CHARGE/physicalconstants::MASS_PROTON * (cellParams[CellParams::EZ] +
-   VX*(cellParams[CellParams::PERBY]+cellParams[CellParams::BGBY]) -
-   VY*(cellParams[CellParams::PERBX]+cellParams[CellParams::BGBX]));
+   const REAL VX = blockParams[BlockParams::VXCRD] + (I + HALF) * blockParams[BlockParams::DVX];
+   const REAL VY = blockParams[BlockParams::VYCRD] + J * blockParams[BlockParams::DVY];
+   const REAL VZ = blockParams[BlockParams::VZCRD] + (K + HALF) * blockParams[BlockParams::DVZ];
+   ax = physicalconstants::CHARGE / physicalconstants::MASS_PROTON *
+        (cellParams[CellParams::EX] + VY * (cellParams[CellParams::PERBZ] + cellParams[CellParams::BGBZ]) -
+         VZ * (cellParams[CellParams::PERBY] + cellParams[CellParams::BGBY]));
+   ay = physicalconstants::CHARGE / physicalconstants::MASS_PROTON *
+        (cellParams[CellParams::EY] + VZ * (cellParams[CellParams::PERBX] + cellParams[CellParams::BGBX]) -
+         VX * (cellParams[CellParams::PERBZ] + cellParams[CellParams::BGBZ]));
+   az = physicalconstants::CHARGE / physicalconstants::MASS_PROTON *
+        (cellParams[CellParams::EZ] + VX * (cellParams[CellParams::PERBY] + cellParams[CellParams::BGBY]) -
+         VY * (cellParams[CellParams::PERBX] + cellParams[CellParams::BGBX]));
 }
 // WARNING Lorentz force not fixed in this project (cf. JXB term in the acceleration)!!!
-template<typename UINT,typename REAL> 
-void calcAccFaceZ(
-   REAL& ax, REAL& ay, REAL& az,
-   const UINT& I, const UINT& J, const UINT& K,
-   const REAL* const cellParams,
-   const REAL* const blockParams,
-   const REAL* const cellBVOLDerivatives
-) {
+template <typename UINT, typename REAL>
+void calcAccFaceZ(REAL& ax, REAL& ay, REAL& az, const UINT& I, const UINT& J, const UINT& K,
+                  const REAL* const cellParams, const REAL* const blockParams, const REAL* const cellBVOLDerivatives) {
    const REAL HALF = 0.5;
-   const REAL VX = blockParams[BlockParams::VXCRD] + (I+HALF)*blockParams[BlockParams::DVX];
-   const REAL VY = blockParams[BlockParams::VYCRD] + (J+HALF)*blockParams[BlockParams::DVY];
-   const REAL VZ = blockParams[BlockParams::VZCRD] + K*blockParams[BlockParams::DVZ];
-   ax = physicalconstants::CHARGE/physicalconstants::MASS_PROTON * (cellParams[CellParams::EX] +
-   VY*(cellParams[CellParams::PERBZ]+cellParams[CellParams::BGBZ]) -
-   VZ*(cellParams[CellParams::PERBY]+cellParams[CellParams::BGBY]));
-   ay = physicalconstants::CHARGE/physicalconstants::MASS_PROTON * (cellParams[CellParams::EY] +
-   VZ*(cellParams[CellParams::PERBX]+cellParams[CellParams::BGBX]) -
-   VX*(cellParams[CellParams::PERBZ]+cellParams[CellParams::BGBZ]));
-   az = physicalconstants::CHARGE/physicalconstants::MASS_PROTON * (cellParams[CellParams::EZ] +
-   VX*(cellParams[CellParams::PERBY]+cellParams[CellParams::BGBY]) -
-   VY*(cellParams[CellParams::PERBX]+cellParams[CellParams::BGBX]));
+   const REAL VX = blockParams[BlockParams::VXCRD] + (I + HALF) * blockParams[BlockParams::DVX];
+   const REAL VY = blockParams[BlockParams::VYCRD] + (J + HALF) * blockParams[BlockParams::DVY];
+   const REAL VZ = blockParams[BlockParams::VZCRD] + K * blockParams[BlockParams::DVZ];
+   ax = physicalconstants::CHARGE / physicalconstants::MASS_PROTON *
+        (cellParams[CellParams::EX] + VY * (cellParams[CellParams::PERBZ] + cellParams[CellParams::BGBZ]) -
+         VZ * (cellParams[CellParams::PERBY] + cellParams[CellParams::BGBY]));
+   ay = physicalconstants::CHARGE / physicalconstants::MASS_PROTON *
+        (cellParams[CellParams::EY] + VZ * (cellParams[CellParams::PERBX] + cellParams[CellParams::BGBX]) -
+         VX * (cellParams[CellParams::PERBZ] + cellParams[CellParams::BGBZ]));
+   az = physicalconstants::CHARGE / physicalconstants::MASS_PROTON *
+        (cellParams[CellParams::EZ] + VX * (cellParams[CellParams::PERBY] + cellParams[CellParams::BGBY]) -
+         VY * (cellParams[CellParams::PERBX] + cellParams[CellParams::BGBX]));
 }
 
 #endif

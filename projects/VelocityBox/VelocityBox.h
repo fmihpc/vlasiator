@@ -20,7 +20,6 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-
 #ifndef VELOCITYBOX_H
 #define VELOCITYBOX_H
 
@@ -28,41 +27,32 @@
 #include "../project.h"
 
 namespace projects {
-   class VelocityBox: public Project {
-    public:
-      VelocityBox();
-      virtual ~VelocityBox();
-      
-      virtual bool initialize(void);
-      static void addParameters(void);
-      virtual void getParameters(void);
-      virtual void setProjectBField(
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-      );
-    protected:
-      Real getDistribValue(creal& vx, creal& vy, creal& vz, const uint popID) const;
-      virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
-      virtual Real calcPhaseSpaceDensity(
-                                         creal& x, creal& y, creal& z,
-                                         creal& dx, creal& dy, creal& dz,
-                                         creal& vx, creal& vy, creal& vz,
-                                         creal& dvx, creal& dvy, creal& dvz,
-                                         const uint popID
-                                        ) const;
-      
-      Real rho;
-      Real Vx[2];
-      Real Vy[2];
-      Real Vz[2];
-      Real Bx;
-      Real By;
-      Real Bz;
-   }; // class VelocityBox
+class VelocityBox : public Project {
+public:
+   VelocityBox();
+   virtual ~VelocityBox();
+
+   virtual bool initialize(void);
+   static void addParameters(void);
+   virtual void getParameters(void);
+   virtual void setProjectBField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+                                 FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+                                 FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid);
+
+protected:
+   Real getDistribValue(creal& vx, creal& vy, creal& vz, const uint popID) const;
+   virtual void calcCellParameters(spatial_cell::SpatialCell* cell, creal& t);
+   virtual Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx,
+                                      creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const;
+
+   Real rho;
+   Real Vx[2];
+   Real Vy[2];
+   Real Vz[2];
+   Real Bx;
+   Real By;
+   Real Bz;
+}; // class VelocityBox
 } //  namespace projects
 
-
-
 #endif
-

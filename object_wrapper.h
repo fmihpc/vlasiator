@@ -28,26 +28,26 @@
 #include "definitions.h"
 #include "item_storage.h"
 #include "object_factory.h"
-#include "vamr_refinement_criteria.h"
 #include "particle_species.h"
 #include "projects/project.h"
-#include "velocity_mesh_parameters.h"
 #include "sysboundary/sysboundary.h"
+#include "vamr_refinement_criteria.h"
+#include "velocity_mesh_parameters.h"
 
 struct ObjectWrapper {
-   ObjectWrapper() { }
+   ObjectWrapper() {}
 
    ObjectFactory<vamr_ref_criteria::Base> vamrVelRefCriteria; /**< Factory for all known VAMR refinement criteria.*/
-   std::vector<species::Species> particleSpecies;           /**< Parameters for all particle species.*/
-   projects::Project*                    project;           /**< Simulated project.*/
-   std::vector<vmesh::MeshParameters> velocityMeshes;       /**< Parameters for velocity mesh(es).*/
-   SysBoundary sysBoundaryContainer;                        /**< Container for sysboundaries.*/
+   std::vector<species::Species> particleSpecies;             /**< Parameters for all particle species.*/
+   projects::Project* project;                                /**< Simulated project.*/
+   std::vector<vmesh::MeshParameters> velocityMeshes;         /**< Parameters for velocity mesh(es).*/
+   SysBoundary sysBoundaryContainer;                          /**< Container for sysboundaries.*/
 
-   bool addParameters();                                    /**< Add config file parameters for objects held in this wrapper */
-   bool addPopulationParameters();                          /**< After parsing the names of populations, create parameters for each of them */
-   bool getParameters();                                    /**< Use parsed config file parameters for objects held in this wrapper */
+   bool addParameters();           /**< Add config file parameters for objects held in this wrapper */
+   bool addPopulationParameters(); /**< After parsing the names of populations, create parameters for each of them */
+   bool getParameters();           /**< Use parsed config file parameters for objects held in this wrapper */
 
- private:
+private:
    ObjectWrapper(const ObjectWrapper& ow);
    ObjectWrapper& operator=(const ObjectWrapper& ow);
 };
