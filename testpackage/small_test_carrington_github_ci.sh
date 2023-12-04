@@ -1,3 +1,4 @@
+
 #!/bin/bash
 #SBATCH -t 01:30:00        # Run time (hh:mm:ss)
 #SBATCH --job-name=CI_testpackage
@@ -339,7 +340,7 @@ done
 
 # -- Write summary for github PR annotation --
 echo "summary=$ZEROTESTS tests with zero diffs, $NONZEROTESTS tests with diffs, $FAILEDTESTS tests failed." >> $GITHUB_WORKSPACE/testpackage_output_variables.txt
-RESULT_HASH=readlink ${reference_dir}/${reference_revision}
+RESULT_HASH=$( readlink -f ${reference_dir}/${reference_revision} )
 echo "CI_reference pointed to $RESULT_HASH " >> $GITHUB_WORKSPACE/testpackage_output_variables.txt
 
 if [[ $FAILEDTESTS > 0 ]]; then
