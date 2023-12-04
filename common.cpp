@@ -91,10 +91,11 @@ void bailout(
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
    if (myRank == MASTER_RANK) {
-      if (err_type == 0)
+      if (err_type == 0) {
          std::cerr << str << std::endl;
-      else
+      } else {
          std::cerr << __FILE__ << ":" << __LINE__ << ": " << str << std::endl;
+      }
 
       MPI_Abort(MPI_COMM_WORLD, 1);
    }

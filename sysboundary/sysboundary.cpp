@@ -298,13 +298,15 @@ void SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg:
    }
 
    for (auto cellId : innerBoundaryCells) {
-      if (cellId != INVALID_CELLID && mpiGrid.get_refinement_level(cellId) != innerBoundaryRefLvl)
+      if (cellId != INVALID_CELLID && mpiGrid.get_refinement_level(cellId) != innerBoundaryRefLvl) {
          abort_mpi("ERROR: inner boundary cells must have identical refinement level!");
+      }
    }
 
    for (auto cellId : outerBoundaryCells) {
-      if (cellId != INVALID_CELLID && mpiGrid.get_refinement_level(cellId) != outerBoundaryRefLvl)
+      if (cellId != INVALID_CELLID && mpiGrid.get_refinement_level(cellId) != outerBoundaryRefLvl) {
          abort_mpi("ERROR: outer boundary cells must have identical refinement level!");
+      }
    }
 }
 
