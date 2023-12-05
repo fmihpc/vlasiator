@@ -101,6 +101,17 @@ void checkExternalCommands() {
       rename("DOLB", newName);
       return;
    }
+   if(stat("DOMR", &tempStat) == 0) {
+      cerr << "Received an external DOMR command. Refining grid." << endl;
+      globalflags::doRefine = true;
+      char newName[80];
+      // Get the current time.
+      const time_t rawTime = time(NULL);
+      const struct tm * timeInfo = localtime(&rawTime);
+      strftime(newName, 80, "DOMR_%F_%H-%M-%S", timeInfo);
+      rename("DOMR", newName);
+      return;
+   }
 }
 
 /*!
@@ -1331,6 +1342,11 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"max_fields_dt",CellParams::MAXFDT,1,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"vg_drift",CellParams::BULKV_FORCING_X,3,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"vg_bulk_forcing_flag",CellParams::FORCING_CELL_NUM,1,mpiGrid); }
+   if (P::refineOnRestart) {
+      // Refinement indices alpha_1 and alpha_2
+      if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"vg_amr_alpha",CellParams::AMR_ALPHA,1,mpiGrid); }
+      if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"vg_amr_jperb",CellParams::AMR_JPERB,1,mpiGrid); }
+   }
 
    // Backround B has to be set, there are also the derivatives that should be written/read if we wanted to only read in background field
    readParametersTimer.stop();

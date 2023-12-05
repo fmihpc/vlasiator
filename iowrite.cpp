@@ -380,6 +380,7 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
          // Note that this is not an error (anymore), since fsgrid reducers will return false here.
       }
    }
+
    if( success ) {
 
       if( (writeAsFloat == true && dataType.compare("float") == 0) && dataSize == sizeof(double) ) {
@@ -1103,7 +1104,7 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       // Loop over AMR levels
       uint startindex=1;
       uint endindex=1;
-      for (uint AMR = 0; AMR <= P::amrMaxSpatialRefLevel; AMR++) {
+      for (int AMR = 0; AMR <= P::amrMaxSpatialRefLevel; AMR++) {
          int AMRm = 1u << AMR;
          uint cellsthislevel = (AMRm * P::xcells_ini) * (AMRm*P::ycells_ini) * (AMRm * P::zcells_ini);
          startindex = endindex;
@@ -1316,7 +1317,6 @@ bool writeGrid(
    fname.fill('0');
    fname << P::systemWrites.at(outputFileTypeIndex) << ".vlsv";
 
-
    //Open the file with vlsvWriter:
    Writer vlsvWriter;
    const int masterProcessId = 0;
@@ -1370,7 +1370,6 @@ bool writeGrid(
       ghost_cells = mpiGrid.get_remote_cells_on_process_boundary( NEAREST_NEIGHBORHOOD_ID );
    }
 
-
    //Make sure the local cells and ghost cells are fetched properly
    if( local_cells.empty() ) {
       if( !ghost_cells.empty() ) {
@@ -1422,7 +1421,7 @@ bool writeGrid(
    if( writeFsGridMetadata( technicalGrid, vlsvWriter ) == false ) {
       return false;
    }
-
+   
    //Write Ionosphere Grid
    if( writeIonosphereGridMetadata( vlsvWriter ) == false ) {
       return false;
@@ -1650,6 +1649,8 @@ bool writeRestart(
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("max_fields_dt",CellParams::MAXFDT,1));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_drift",CellParams::BULKV_FORCING_X,3));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_bulk_forcing_flag",CellParams::FORCING_CELL_NUM,1));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_alpha",CellParams::AMR_ALPHA,1));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_jperb",CellParams::AMR_JPERB,1));
    restartReducer.addOperator(new DRO::VariableBVol);
    restartReducer.addMetadata(restartReducer.size()-1,"T","$\\mathrm{T}$","$B_\\mathrm{vol,vg}$","1.0");
    restartReducer.addOperator(new DRO::MPIrank);

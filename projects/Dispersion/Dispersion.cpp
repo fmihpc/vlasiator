@@ -64,8 +64,8 @@ namespace projects {
         RP::add(pop + "_Dispersion.Temperature", "Temperature (K)", 2.0e6);
         RP::add(pop + "_Dispersion.densityPertRelAmp", "Relative amplitude of the density perturbation", 0.1);
         RP::add(pop + "_Dispersion.velocityPertAbsAmp", "Absolute amplitude of the velocity perturbation", 1.0e6);
-        RP::add(pop + "_Dispersion.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
-        RP::add(pop + "_Dispersion.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
+        RP::add(pop + "_Dispersion.nSpaceSamples", "Number of sampling points per spatial dimension", 1);
+        RP::add(pop + "_Dispersion.nVelocitySamples", "Number of sampling points per velocity dimension", 1);
       }
    }
    
@@ -216,18 +216,15 @@ namespace projects {
       creal dy = cellParams[CellParams::DY];
       creal z = cellParams[CellParams::ZCRD];
       creal dz = cellParams[CellParams::DZ];
-      
-      CellID cellID = (int) ((x - Parameters::xmin) / dx) +
-         (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
-         (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
 
-      setRandomSeed(cellID);
+      std::default_random_engine rndState;
+      setRandomCellSeed(cell,rndState);
       
-      this->rndRho=getRandomNumber();
+      this->rndRho=getRandomNumber(rndState);
       
-      this->rndVel[0]=getRandomNumber();
-      this->rndVel[1]=getRandomNumber();
-      this->rndVel[2]=getRandomNumber();
+      this->rndVel[0]=getRandomNumber(rndState);
+      this->rndVel[1]=getRandomNumber(rndState);
+      this->rndVel[2]=getRandomNumber(rndState);
    }
    
    void Dispersion::setProjectBField(
@@ -252,12 +249,13 @@ namespace projects {
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
                   const int64_t cellid = perBGrid.GlobalIDForCoords(x, y, z);
                   
-                  setRandomSeed(cellid);
+                  std::default_random_engine rndState;
+                  setRandomSeed(cellid,rndState);
                   
                   Real rndBuffer[3];
-                  rndBuffer[0]=getRandomNumber();
-                  rndBuffer[1]=getRandomNumber();
-                  rndBuffer[2]=getRandomNumber();
+                  rndBuffer[0]=getRandomNumber(rndState);
+                  rndBuffer[1]=getRandomNumber(rndState);
+                  rndBuffer[2]=getRandomNumber(rndState);
                   
                   cell->at(fsgrids::bfield::PERBX) = this->magXPertAbsAmp * (0.5 - rndBuffer[0]);
                   cell->at(fsgrids::bfield::PERBY) = this->magYPertAbsAmp * (0.5 - rndBuffer[1]);

@@ -77,6 +77,7 @@ using namespace std;
 int globalflags::bailingOut = 0;
 bool globalflags::writeRestart = 0;
 bool globalflags::balanceLoad = 0;
+bool globalflags::doRefine=0;
 bool globalflags::ionosphereJustSolved = false;
 
 ObjectWrapper objectWrapper;
@@ -151,7 +152,7 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
       if (cell->parameters[CellParams::MAXVDT] != 0 &&
           (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
-           (P::vlasovAccelerateMaxwellianBoundaries && cell->sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN))) {
+           (P::vlasovAccelerateMaxwellianBoundaries && cell->sysBoundaryFlag == sysboundarytype::MAXWELLIAN))) {
          // acceleration only done on non-boundary cells
          dtMaxLocal[1] = min(dtMaxLocal[1], cell->parameters[CellParams::MAXVDT]);
       }
@@ -255,23 +256,52 @@ int main(int argn,char* args[]) {
    Real newDt;
    bool dtIsChanged;
    
-// Init MPI:
+   // Before MPI_Init we hardwire some settings, if we are in OpenMPI
    int required=MPI_THREAD_FUNNELED;
-   int provided;
-   MPI_Init_thread(&argn,&args,required,&provided);
-   if (required > provided){
-      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-      if(myRank==MASTER_RANK)
-         cerr << "(MAIN): MPI_Init_thread failed! Got " << provided << ", need "<<required <<endl;
-      exit(1);
+   int provided, resultlen;
+   char mpiversion[MPI_MAX_LIBRARY_VERSION_STRING];
+   bool overrideMCAompio = false;
+
+   MPI_Get_library_version(mpiversion, &resultlen);
+   string versionstr = string(mpiversion);
+   stringstream mpiioMessage;
+
+   if(versionstr.find("Open MPI") != std::string::npos) {
+      #ifdef VLASIATOR_ALLOW_MCA_OMPIO
+         mpiioMessage << "We detected OpenMPI but the compilation flag VLASIATOR_ALLOW_MCA_OMPIO was set so we do not override the default MCA io flag." << endl;
+      #else
+         overrideMCAompio = true;
+         int index, count;
+         char io_value[64];
+         MPI_T_cvar_handle io_handle;
+         
+         MPI_T_init_thread(required, &provided);
+         MPI_T_cvar_get_index("io", &index);
+         MPI_T_cvar_handle_alloc(index, NULL, &io_handle, &count);
+         MPI_T_cvar_write(io_handle, "^ompio");
+         MPI_T_cvar_read(io_handle, io_value);
+         MPI_T_cvar_handle_free(&io_handle);
+         mpiioMessage << "We detected OpenMPI so we set the cvars value to disable ompio, MCA io: " << io_value << endl;
+      #endif
    }
    
+   // After the MPI_T settings we can init MPI all right.
+   MPI_Init_thread(&argn,&args,required,&provided);
+   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+   if (required > provided){
+      if(myRank==MASTER_RANK) {
+         cerr << "(MAIN): MPI_Init_thread failed! Got " << provided << ", need "<<required <<endl;
+      }
+      exit(1);
+   }
+   if (myRank == MASTER_RANK) {
+      cout << mpiioMessage.str();
+   }
+
    phiprof::initialize();
    
    double initialWtime =  MPI_Wtime();
    SysBoundary& sysBoundaryContainer = getObjectWrapper().sysBoundaryContainer;
-   MPI_Comm comm = MPI_COMM_WORLD;
-   MPI_Comm_rank(comm,&myRank);
    
    #ifdef CATCH_FPE
    // WARNING FE_INEXACT is too sensitive to be used. See man fenv.
@@ -282,7 +312,7 @@ int main(int argn,char* args[]) {
    #endif
 
    phiprof::Timer mainTimer {"main"};
-   phiprof::Timer initimer {"Initialization"};
+   phiprof::Timer initTimer {"Initialization"};
    phiprof::Timer readParamsTimer {"Read parameters"};
 
    //init parameter file reader
@@ -324,9 +354,17 @@ int main(int argn,char* args[]) {
 
    phiprof::Timer openLoggerTimer {"open logFile & diagnostic"};
    //if restarting we will append to logfiles
-   if (logFile.open(MPI_COMM_WORLD,MASTER_RANK,"logfile.txt",P::isRestart) == false) {
-      if(myRank == MASTER_RANK) cerr << "(MAIN) ERROR: Logger failed to open logfile!" << endl;
-      exit(1);
+   if(!P::writeFullBGB) {
+      if (logFile.open(MPI_COMM_WORLD,MASTER_RANK,"logfile.txt",P::isRestart) == false) {
+         if(myRank == MASTER_RANK) cerr << "(MAIN) ERROR: Logger failed to open logfile!" << endl;
+         exit(1);
+      }
+   } else {
+      // If we are out to write the full background field and derivatives, we don't want to overwrite the existing run's logfile.
+      if (logFile.open(MPI_COMM_WORLD,MASTER_RANK,"logfile_fullbgbio.txt",false) == false) {
+         if(myRank == MASTER_RANK) cerr << "(MAIN) ERROR: Logger failed to open logfile_fullbgbio!" << endl;
+         exit(1);
+      }
    }
    if (P::diagnosticInterval != 0) {
       if (diagnostic.open(MPI_COMM_WORLD,MASTER_RANK,"diagnostic.txt",P::isRestart) == false) {
@@ -373,24 +411,24 @@ int main(int argn,char* args[]) {
 							    convert<int>(P::ycells_ini * pow(2,P::amrMaxSpatialRefLevel)),
 							    convert<int>(P::zcells_ini * pow(2,P::amrMaxSpatialRefLevel))};
 
-   std::array<bool,3> periodicity{sysBoundaryContainer.isBoundaryPeriodic(0),
-                                  sysBoundaryContainer.isBoundaryPeriodic(1),
-                                  sysBoundaryContainer.isBoundaryPeriodic(2)};
+   std::array<bool,3> periodicity{sysBoundaryContainer.isPeriodic(0),
+                                  sysBoundaryContainer.isPeriodic(1),
+                                  sysBoundaryContainer.isPeriodic(2)};
 
    FsGridCouplingInformation gridCoupling;
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> perBGrid(fsGridDimensions, comm, periodicity,gridCoupling);
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> perBDt2Grid(fsGridDimensions, comm, periodicity,gridCoupling);
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> EGrid(fsGridDimensions, comm, periodicity,gridCoupling);
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> EDt2Grid(fsGridDimensions, comm, periodicity,gridCoupling);
-   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> EHallGrid(fsGridDimensions, comm, periodicity,gridCoupling);
-   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> EGradPeGrid(fsGridDimensions, comm, periodicity,gridCoupling);
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> momentsGrid(fsGridDimensions, comm, periodicity,gridCoupling);
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> momentsDt2Grid(fsGridDimensions, comm, periodicity,gridCoupling);
-   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> dPerBGrid(fsGridDimensions, comm, periodicity,gridCoupling);
-   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> dMomentsGrid(fsGridDimensions, comm, periodicity,gridCoupling);
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> BgBGrid(fsGridDimensions, comm, periodicity,gridCoupling);
-   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> volGrid(fsGridDimensions, comm, periodicity,gridCoupling);
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> technicalGrid(fsGridDimensions, comm, periodicity,gridCoupling);
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> perBGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> perBDt2Grid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> EGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> EDt2Grid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
+   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> EHallGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
+   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> EGradPeGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> momentsGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> momentsDt2Grid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> dPerBGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> dMomentsGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> BgBGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
+   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> volGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
+   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> technicalGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
 
    // Set DX, DY and DZ
    // TODO: This is currently just taking the values from cell 1, and assuming them to be
@@ -455,11 +493,86 @@ int main(int argn,char* args[]) {
    // user-defined operators:
    phiprof::Timer initDROsTimer {"Init DROs"};
    DataReducer outputReducer, diagnosticReducer;
+
+   if(P::writeFullBGB) {
+      // We need the following variables for this, let's just erase and replace the entries in the list
+      P::outputVariableList.clear();
+      P::outputVariableList= {"fg_b_background", "fg_b_background_vol", "fg_derivs_b_background"};
+   }
+
    initializeDataReducers(&outputReducer, &diagnosticReducer);
    initDROsTimer.stop();
    
    // Free up memory:
    readparameters.~Readparameters();
+
+   if(P::writeFullBGB) {
+      logFile << "Writing out full BGB components and derivatives and exiting." << endl << writeVerbose;
+
+      // initialize the communicators so we can write out ionosphere grid metadata.
+      SBC::ionosphereGrid.updateIonosphereCommunicator(mpiGrid, technicalGrid);
+
+      P::systemWriteDistributionWriteStride.push_back(0);
+      P::systemWriteName.push_back("bgb");
+      P::systemWriteDistributionWriteXlineStride.push_back(0);
+      P::systemWriteDistributionWriteYlineStride.push_back(0);
+      P::systemWriteDistributionWriteZlineStride.push_back(0);
+      P::systemWritePath.push_back("./");
+      P::systemWriteFsGrid.push_back(true);
+
+      for(uint si=0; si<P::systemWriteName.size(); si++) {
+         P::systemWrites.push_back(0);
+      }
+
+      const bool writeGhosts = true;
+      if( writeGrid(mpiGrid,
+            perBGrid,
+            EGrid,
+            EHallGrid,
+            EGradPeGrid,
+            momentsGrid,
+            dPerBGrid,  
+            dMomentsGrid,
+            BgBGrid,
+            volGrid,
+            technicalGrid,
+            version,
+            config,
+            &outputReducer,
+            P::systemWriteName.size()-1,
+            P::restartStripeFactor,
+            writeGhosts
+         ) == false
+      ) {
+         cerr << "FAILED TO WRITE GRID AT " << __FILE__ << " " << __LINE__ << endl;
+      }
+
+      phiprof::stop("Initialization");
+      phiprof::stop("main");
+      
+      phiprof::print(MPI_COMM_WORLD,"phiprof");
+      
+      if (myRank == MASTER_RANK) logFile << "(MAIN): Exiting." << endl << writeVerbose;
+      logFile.close();
+      if (P::diagnosticInterval != 0) diagnostic.close();
+      
+      perBGrid.finalize();
+      perBDt2Grid.finalize();
+      EGrid.finalize();
+      EDt2Grid.finalize();
+      EHallGrid.finalize();
+      EGradPeGrid.finalize();
+      momentsGrid.finalize();
+      momentsDt2Grid.finalize();
+      dPerBGrid.finalize();
+      dMomentsGrid.finalize();
+      BgBGrid.finalize();
+      volGrid.finalize();
+      technicalGrid.finalize();
+
+      MPI_Finalize();
+      return 0;
+   }
 
    // Run the field solver once with zero dt. This will initialize
    // Fieldsolver dt limits, and also calculate volumetric B-fields.
@@ -513,6 +626,11 @@ int main(int argn,char* args[]) {
    } else {
       SBC::Ionosphere::solveCount = 1;
    }
+   
+   if(P::isRestart) {
+      // If it is a restart, we want to regenerate proper ig_inplanecurrent as well in case there's IO before the next solver step.
+      SBC::ionosphereGrid.calculateConductivityTensor(SBC::Ionosphere::F10_7, SBC::Ionosphere::recombAlpha, SBC::Ionosphere::backgroundIonisation, true);
+   }
 
    if (P::isRestart == false) {
       phiprof::Timer timer {"compute-dt"};
@@ -524,6 +642,9 @@ int main(int argn,char* args[]) {
 
    // Save restart data
    if (P::writeInitialState) {
+      // Calculate these so refinement parameters can be tuned based on the vlsv
+      calculateScaledDeltasSimple(mpiGrid);
+
       FieldTracing::reduceData(technicalGrid, perBGrid, dPerBGrid, mpiGrid, SBC::ionosphereGrid.nodes); /*!< Call the reductions (e.g. field tracing) */
       
       phiprof::Timer timer {"write-initial-state"};
@@ -618,7 +739,7 @@ int main(int argn,char* args[]) {
       computeMomentsTimer.stop();
    }
 
-   initimer.stop();
+   initTimer.stop();
 
    // ***********************************
    // ***** INITIALIZATION COMPLETE *****
@@ -630,7 +751,7 @@ int main(int argn,char* args[]) {
       //report filtering if we are in an AMR run 
       if (P::amrMaxSpatialRefLevel>0){
          logFile<<"Filtering Report: "<<endl;
-         for (uint refLevel=0 ; refLevel<= P::amrMaxSpatialRefLevel; refLevel++){
+         for (int refLevel=0 ; refLevel<= P::amrMaxSpatialRefLevel; refLevel++){
             logFile<<"\tRefinement Level " <<refLevel<<"==> Passes "<<P::numPasses.at(refLevel)<<endl;
          }
             logFile<<endl;
@@ -666,9 +787,10 @@ int main(int argn,char* args[]) {
 
    unsigned int wallTimeRestartCounter=1;
 
-   int doNow[2] = {0}; // 0: writeRestartNow, 1: balanceLoadNow ; declared outside main loop
+   int doNow[3] = {0}; // 0: writeRestartNow, 1: balanceLoadNow, 2: refineNow ; declared outside main loop
    int writeRestartNow; // declared outside main loop
    bool overrideRebalanceNow = false; // declared outside main loop
+   bool refineNow = false; // declared outside main loop
    
    addTimedBarrier("barrier-end-initialization");
    
@@ -807,17 +929,25 @@ int main(int argn,char* args[]) {
          else {
             doNow[0] = 0;
          }
-         if (globalflags::balanceLoad == true) {
+         if (globalflags::balanceLoad || globalflags::doRefine) {
             doNow[1] = 1;
             globalflags::balanceLoad = false;
+            if (globalflags::doRefine) {
+               doNow[2] = 1;
+               globalflags::doRefine = false;
+            }
          }
       }
-      MPI_Bcast( &doNow, 2 , MPI_INT , MASTER_RANK ,MPI_COMM_WORLD);
+      MPI_Bcast( &doNow, 3 , MPI_INT , MASTER_RANK ,MPI_COMM_WORLD);
       writeRestartNow = doNow[0];
       doNow[0] = 0;
       if (doNow[1] == 1) {
          P::prepareForRebalance = true;
          doNow[1] = 0;
+      }
+      if (doNow[2]) {
+         refineNow = true;
+         doNow[2] = false;
       }
       restartCheckTimer.stop();
 
@@ -826,6 +956,9 @@ int main(int argn,char* args[]) {
          if (writeRestartNow == 1) {
             wallTimeRestartCounter++;
          }
+
+         // Refinement params for restart refinement
+         calculateScaledDeltasSimple(mpiGrid);
          
          if (myRank == MASTER_RANK)
             logFile << "(IO): Writing restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
@@ -868,16 +1001,36 @@ int main(int argn,char* args[]) {
       //TODO - add LB measure and do LB if it exceeds threshold
       if(((P::tstep % P::rebalanceInterval == 0 && P::tstep > P::tstep_min) || overrideRebalanceNow)) {
          logFile << "(LB): Start load balance, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
-         // Refinement includes LB
-         if (!dtIsChanged && P::adaptRefinement && P::tstep % (P::rebalanceInterval * P::refineMultiplier) == 0 && P::t > P::refineAfter) { 
+         if (refineNow || (!dtIsChanged && P::adaptRefinement && P::tstep % (P::rebalanceInterval * P::refineCadence) == 0 && P::t > P::refineAfter)) { 
             logFile << "(AMR): Adapting refinement!"  << endl << writeVerbose;
-            if (!adaptRefinement(mpiGrid, technicalGrid, sysBoundaryContainer, *project))
-               continue;   // Refinement failed and we're bailing out
+            refineNow = false;
+            if (!adaptRefinement(mpiGrid, technicalGrid, sysBoundaryContainer, *project)) {
+               // OOM, rebalance and try again
+               logFile << "(LB) AMR ran out of memory, attempting to balance." << endl;
+               globalflags::bailingOut = false; // Reset this
+               for (auto id : mpiGrid.get_local_cells_to_refine()) {
+                  mpiGrid[id]->parameters[CellParams::LBWEIGHTCOUNTER] *= 8.0;
+               }
+               balanceLoad(mpiGrid, sysBoundaryContainer);
+               for (auto id : mpiGrid.get_local_cells_to_refine()) {
+                  mpiGrid[id]->parameters[CellParams::LBWEIGHTCOUNTER] /= 8.0;
+               }
+
+               mpiGrid.cancel_refining();
+               if (!adaptRefinement(mpiGrid, technicalGrid, sysBoundaryContainer, *project)) {
+                  for (auto id : mpiGrid.get_local_cells_to_refine()) {
+                     mpiGrid[id]->parameters[CellParams::LBWEIGHTCOUNTER] *= 8.0;
+                  }
+                  continue;   // Refinement failed and we're bailing out
+               } else {
+                  globalflags::bailingOut = false; // Reset this
+               }
+            }
 
             // Calculate new dt limits since we might break CFL when refining
-            phiprof::Timer computeDtimer {"compute-dt"};
+            phiprof::Timer computeDtimer {"compute-dt-amr"};
             calculateSpatialTranslation(mpiGrid,0.0);
-            calculateAcceleration(mpiGrid,0.0);      
+            calculateAcceleration(mpiGrid,0.0);
          }
          balanceLoad(mpiGrid, sysBoundaryContainer);
          addTimedBarrier("barrier-end-load-balance");
@@ -949,6 +1102,14 @@ int main(int argn,char* args[]) {
       phiprof::Timer propagateTimer {"Propagate"};
       //Propagate the state of simulation forward in time by dt:
       
+      // Update boundary condition states (time-varying)
+      if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration) {
+         phiprof::Timer timer {"Update system boundaries (Vlasov pre-translation)"};
+         sysBoundaryContainer.updateState(mpiGrid, perBGrid, P::t + 0.5 * P::dt);
+         timer.stop();
+         addTimedBarrier("barrier-boundary-conditions");
+      }
+
       phiprof::Timer spatialSpaceTimer {"Spatial-space"};
       if( P::propagateVlasovTranslation) {
          calculateSpatialTranslation(mpiGrid,P::dt);
@@ -1073,7 +1234,7 @@ int main(int argn,char* args[]) {
       
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
          phiprof::Timer timer {"Update system boundaries (Vlasov post-acceleration)"};
-         sysBoundaryContainer.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt, true);
+         sysBoundaryContainer.applySysBoundaryVlasovConditions(mpiGrid, P::t + 0.5 * P::dt, true);
          timer.stop();
          addTimedBarrier("barrier-boundary-conditions");
       }
@@ -1165,6 +1326,9 @@ int main(int argn,char* args[]) {
    volGrid.finalize();
    technicalGrid.finalize();
 
+   if(overrideMCAompio) {
+      MPI_T_finalize();
+   }
    MPI_Finalize();
    return 0;
 }
