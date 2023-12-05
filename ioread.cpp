@@ -1372,23 +1372,28 @@ bool getFsgridDecomposition(vlsv::ParallelReader& file, std::array<int,3>& buffe
    // Also have here a manual override for sketchy decompositions
 
    std::array<int,3> fsGridDecomposition={0,0,0}; 
-   
+   int* ptr = fsGridDecomposition.data();
+
    bool read_dd = true;
    attribs.push_back(make_pair("mesh","fsgrid"));
    if (file.getArrayInfo("MESH_DECOMPOSITION",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
       logFile << "(RESTART)  ERROR: Failed to read MESH_DECOMPOSITION info" << endl << write;
       read_dd = false;
    }
-   else if (file.readArray("MESH_DECOMPOSITION",attribs, 0, vectorSize, (char*)buffer.data()) == false) {
+   else if (file.read("MESH_DECOMPOSITION",attribs, 0, 3, ptr, false) == false) {
       logFile << "(RESTART)  ERROR: Failed to read MESH_DECOMPOSITION array" << endl << write;
       read_dd = false;
    }
    else{
       read_dd = true;
    }
-   
+
    if(read_dd){
+      buffer[0] = fsGridDecomposition[0];
+      buffer[1] = fsGridDecomposition[1];
+      buffer[2] = fsGridDecomposition[2];
       std::cerr << "Fsgrid decomposition read as " << buffer[0] << " " << buffer[1] << " " <<buffer[2] << "\n";
+      return true;
    }
    else{
       std::cerr << "No decomposition found in restart file. Computing fsgrid decomposition for ioread, check results!" <<std::endl;
@@ -1397,8 +1402,6 @@ bool getFsgridDecomposition(vlsv::ParallelReader& file, std::array<int,3>& buffe
          exitOnError(false, "(RESTART) FSGrid writing rank number not found in restart file", MPI_COMM_WORLD);
       }
       FsGridTools::computeDomainDecomposition(gridSize, fsgridInputRanks, buffer, FS_STENCIL_WIDTH);
-
+      return true;
    }
-   
-   return true;
 }

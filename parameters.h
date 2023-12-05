@@ -207,8 +207,8 @@ struct Parameters {
    static std::vector<std::string> blurPassString;
    static std::vector<int> numPasses;
 
-   static std::array<int,3> manualFsGridDecomposition;
-   static std::array<int,3> manualRestartFsGridDecomposition;
+   static std::vector<int> manualFsGridDecomposition;
+   static std::vector<int> manualRestartFsGridDecomposition;
    
    static bool computeCurvature; /*<! Boolean flag, if true the curvature of magnetic field is computed. */
 

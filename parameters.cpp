@@ -178,8 +178,8 @@ Realf P::amrBoxCenterZ = 0.0;
 vector<string> P::blurPassString;
 std::vector<int> P::numPasses; //numpasses
 
-std::array<int,3> P::manualFsGridDecomposition;
-std::array<int,3> P::manualRestartFsGridDecomposition;
+std::vector<int> P::manualFsGridDecomposition;
+std::vector<int> P::manualRestartFsGridDecomposition;
 
 std::string tracerString; /*!< Fieldline tracer to use for coupling ionosphere and magnetosphere */
 bool P::computeCurvature;
@@ -659,6 +659,17 @@ void Parameters::getParameters() {
    RP::get("restart.filename", P::restartFileName);
    P::isRestart = (P::restartFileName != string(""));
 
+   RP::get("restart.manualRestartFsGridDecomposition", P::manualRestartFsGridDecomposition);
+   if (P::manualRestartFsGridDecomposition.size() == 0) {
+      P::manualRestartFsGridDecomposition = {0,0,0};
+   }
+   else if (P::manualRestartFsGridDecomposition.size() != 3) {
+      if (myRank == MASTER_RANK) {
+         cerr << "ERROR restart.manualRestartFsGridDecomposition should have three values." << endl;
+         MPI_Abort(MPI_COMM_WORLD, 1);
+      }
+   }
+
    RP::get("project", P::projectName);
    if (RP::helpRequested) {
       P::projectName = string("Magnetosphere");
@@ -798,6 +809,17 @@ void Parameters::getParameters() {
    RP::get("fieldsolver.electronPTindex", P::electronPTindex);
    RP::get("fieldsolver.maxCFL", P::fieldSolverMaxCFL);
    RP::get("fieldsolver.minCFL", P::fieldSolverMinCFL);
+   RP::get("fieldsolver.manualFsGridDecomposition", P::manualFsGridDecomposition);
+   if (P::manualFsGridDecomposition.size() == 0) {
+      P::manualFsGridDecomposition = {0,0,0};
+   }
+   else if (P::manualFsGridDecomposition.size() != 3) {
+      if (myRank == MASTER_RANK) {
+         cerr << "ERROR fieldsolver.manualFsGridDecomposition should have three values." << endl;
+         MPI_Abort(MPI_COMM_WORLD, 1);
+      }
+   }
+
    // Get Vlasov solver parameters
    RP::get("vlasovsolver.maxSlAccelerationRotation", P::maxSlAccelerationRotation);
    RP::get("vlasovsolver.maxSlAccelerationSubcycles", P::maxSlAccelerationSubcycles);
