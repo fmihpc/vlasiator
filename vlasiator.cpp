@@ -376,33 +376,17 @@ int main(int argn,char* args[]) {
    // Needs to be done here already ad the background field will be set right away, before going to initializeGrid even
    phiprof::start("Init fieldsolver grids");
 
-   const std::array<int,3> fsGridDimensions = {convert<int>(P::xcells_ini * pow(2,P::amrMaxSpatialRefLevel)),
-							    convert<int>(P::ycells_ini * pow(2,P::amrMaxSpatialRefLevel)),
-							    convert<int>(P::zcells_ini * pow(2,P::amrMaxSpatialRefLevel))};
+   std::array<uint64_t,3> fsGridDimensions = {convert<uint64_t>(P::xcells_ini * pow(2,P::amrMaxSpatialRefLevel)),
+							    convert<uint64_t>(P::ycells_ini * pow(2,P::amrMaxSpatialRefLevel)),
+							    convert<uint64_t>(P::zcells_ini * pow(2,P::amrMaxSpatialRefLevel))};
+
+   //// v this to ioread. Replace with readParameter for manual decomposition.
+
+   //// ^ ioread
 
    std::array<bool,3> periodicity{sysBoundaryContainer.isBoundaryPeriodic(0),
                                   sysBoundaryContainer.isBoundaryPeriodic(1),
                                   sysBoundaryContainer.isBoundaryPeriodic(2)};
-
-   vlsv::ParallelReader file;
-   MPI_Info mpiInfo = MPI_INFO_NULL;
-   success = file.open(P::restartFileName,MPI_COMM_WORLD,MASTER_RANK,mpiInfo);
-   list<pair<string,string> > attribs;
-   uint64_t arraySize;
-   uint64_t vectorSize;
-   vlsv::datatype::type dataType;
-   uint64_t byteSize;
-   exitOnError(success,"Could not open file for parameters read",MPI_COMM_WORLD);
-   
-   attribs.push_back(make_pair("mesh","fsgrid"));
-   if (file.getArrayInfo("MESH_DECOMPOSITION",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
-      logFile << "(RESTART)  ERROR: Failed to read " << endl << write;
-      return false;
-   }
-   if (file.readArray("MESH_DECOMPOSITION",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
-      logFile << "(RESTART)  ERROR: Failed to read " << endl << write;
-      return false;
-   }
 
    FsGridCouplingInformation gridCoupling;
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> perBGrid(fsGridDimensions, comm, periodicity,gridCoupling);

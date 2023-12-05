@@ -178,6 +178,9 @@ Realf P::amrBoxCenterZ = 0.0;
 vector<string> P::blurPassString;
 std::vector<int> P::numPasses; //numpasses
 
+std::array<int,3> P::manualFsGridDecomposition;
+std::array<int,3> P::manualRestartFsGridDecomposition;
+
 std::string tracerString; /*!< Fieldline tracer to use for coupling ionosphere and magnetosphere */
 bool P::computeCurvature;
 
@@ -269,6 +272,10 @@ bool P::addParameters() {
    RP::add("restart.write_as_float", "If true, write restart fields in floats instead of doubles", false);
    RP::add("restart.filename", "Restart from this vlsv file. No restart if empty file.", string(""));
 
+   RP::addComposing(
+       "restart.manualRestartFsGridDecomposition",
+       "Manual FsGridDecomposition for field solver grid stored in a restart file. [Define three values.]");
+
    RP::add("gridbuilder.geometry", "Simulation geometry XY4D,XZ4D,XY5D,XZ5D,XYZ6D", string("XYZ6D"));
    RP::add("gridbuilder.x_min", "Minimum value of the x-coordinate.", NAN);
    RP::add("gridbuilder.x_max", "Minimum value of the x-coordinate.", NAN);
@@ -315,6 +322,11 @@ bool P::addParameters() {
            "The maximum CFL limit for field propagation. Used to set timestep if dynamic_timestep is true.", 0.5);
    RP::add("fieldsolver.minCFL",
            "The minimum CFL limit for field propagation. Used to set timestep if dynamic_timestep is true.", 0.4);
+
+   RP::addComposing(
+       "fieldsolver.manualFsGridDecomposition",
+       "Manual FsGridDecomposition for field solver grid. [Define three values.]");
+
 
    // Vlasov solver parameters
    RP::add("vlasovsolver.maxSlAccelerationRotation",

@@ -665,7 +665,7 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
 
    technicalGrid.updateGhostCells();
 
-   const array<int,3> fsGridDimensions = technicalGrid.getGlobalSize();
+   const array<uint64_t,3> fsGridDimensions = technicalGrid.getGlobalSize();
 
    // One pass to setup the bit field to know which components the field solver should propagate.
 #pragma omp parallel for collapse(3)

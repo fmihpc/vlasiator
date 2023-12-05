@@ -476,7 +476,7 @@ namespace FieldTracing {
       const TReal stepSize = min(1000e3, technicalGrid.DX / 2.);
       std::vector<TReal> nodeTracingStepSize(nodes.size(), stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
       std::vector<TReal> reducedNodeTracingStepSize(nodes.size());
-      std::array<int, 3> gridSize = technicalGrid.getGlobalSize();
+      std::array<uint64_t, 3> gridSize = technicalGrid.getGlobalSize();
       uint64_t maxTracingSteps = 8 * (gridSize[0] * technicalGrid.DX + gridSize[1] * technicalGrid.DY + gridSize[2] * technicalGrid.DZ) / stepSize;
       
       std::vector<int> nodeMapping(nodes.size(), TracingLineEndType::UNPROCESSED);                                 /*!< For reduction of node coupling */
@@ -843,7 +843,7 @@ namespace FieldTracing {
       std::vector<TReal> cellFWTracingStepSize(globalDccrgSize, stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
       std::vector<TReal> cellBWTracingStepSize(globalDccrgSize, stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
       
-      std::array<int, 3> gridSize = technicalGrid.getGlobalSize();
+      std::array<uint64_t, 3> gridSize = technicalGrid.getGlobalSize();
       // This is a heuristic considering how far an IMF+dipole combo can sensibly stretch in the box before we're safe to assume it's rolled up more or less pathologically.
       const TReal maxTracingDistance = 4 * (gridSize[0] * technicalGrid.DX + gridSize[1] * technicalGrid.DY + gridSize[2] * technicalGrid.DZ);
       

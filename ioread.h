@@ -60,6 +60,6 @@ void checkExternalCommands();
 bool readIonosphereNodeVariable(
    vlsv::ParallelReader& file, const string& variableName, SBC::SphericalTriGrid& grid, ionosphereParameters index);
 
-bool readFsgridDecomposition(vlsv::ParallelReader& file, std::array<int,3>&);
+bool getFsgridDecomposition(vlsv::ParallelReader& file, std::array<int,3>& buffer, std::array<uint64_t,3>& gridSize);
 
 #endif

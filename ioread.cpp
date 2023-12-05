@@ -798,16 +798,20 @@ template<unsigned long int N> bool readFsGridVariable(
 
    std::array<int32_t,3>& localSize = targetGrid.getLocalSize();
    std::array<int32_t,3>& localStart = targetGrid.getLocalStart();
-   std::array<int32_t,3>& globalSize = targetGrid.getGlobalSize();
+   std::array<uint64_t,3>& globalSize = targetGrid.getGlobalSize();
 
    // Determine our tasks storage size
    size_t storageSize = localSize[0]*localSize[1]*localSize[2];
 
-   if(size == numWritingRanks) {
-      // Easy case: same number of tasks => slurp it in.
+   std::array<int,3> fileDecomposition={0,0,0}; 
+   getFsgridDecomposition(file, fileDecomposition, globalSize);
+
+   std::array<int,3> decomposition = targetGrid.getDecomposition();
+   // targetGrid.computeDomainDecomposition(globalSize, size, decomposition);
+
+   if(decomposition == fileDecomposition) {
+      // Easy case: same decomposition => slurp it in.
       //
-      std::array<int,3> decomposition;
-      targetGrid.computeDomainDecomposition(globalSize, size, decomposition);
 
       // Determine offset in file by summing up all the previous tasks' sizes.
       size_t localStartOffset = 0;
@@ -860,8 +864,8 @@ template<unsigned long int N> bool readFsGridVariable(
       // +------------+----------------+
 
       // Determine the decomposition in the file and the one in RAM for our restart
-      std::array<int,3> fileDecomposition;
-      targetGrid.computeDomainDecomposition(globalSize, numWritingRanks, fileDecomposition);
+      // std::array<int,3> fileDecomposition;
+      // targetGrid.computeDomainDecomposition(globalSize, numWritingRanks, fileDecomposition);
 
       // Iterate through tasks and find their overlap with our domain.
       size_t fileOffset = 0;
@@ -1358,21 +1362,43 @@ bool readFileCells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 }
 
 
-bool readFsgridDecomposition(vlsv::ParallelReader& file, std::array<int,3>* buffer){
+bool getFsgridDecomposition(vlsv::ParallelReader& file, std::array<int,3>& buffer, std::array<uint64_t,3>& gridSize){
    list<pair<string,string> > attribs;
    uint64_t arraySize;
    uint64_t vectorSize;
    vlsv::datatype::type dataType;
    uint64_t byteSize;
-   exitOnError(success,"Could not open file for parameters read",MPI_COMM_WORLD);
+
+   // Also have here a manual override for sketchy decompositions
+
+   std::array<int,3> fsGridDecomposition={0,0,0}; 
    
+   bool read_dd = true;
    attribs.push_back(make_pair("mesh","fsgrid"));
    if (file.getArrayInfo("MESH_DECOMPOSITION",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
-      logFile << "(RESTART)  ERROR: Failed to read " << endl << write;
-      return false;
+      logFile << "(RESTART)  ERROR: Failed to read MESH_DECOMPOSITION info" << endl << write;
+      read_dd = false;
    }
-   if (file.readArray("MESH_DECOMPOSITION",attribs, begin, vectorSize, (char*)buffer) == false) {
-      logFile << "(RESTART)  ERROR: Failed to read " << endl << write;
-      return false;
+   else if (file.readArray("MESH_DECOMPOSITION",attribs, 0, vectorSize, (char*)buffer.data()) == false) {
+      logFile << "(RESTART)  ERROR: Failed to read MESH_DECOMPOSITION array" << endl << write;
+      read_dd = false;
    }
+   else{
+      read_dd = true;
+   }
+   
+   if(read_dd){
+      std::cerr << "Fsgrid decomposition read as " << buffer[0] << " " << buffer[1] << " " <<buffer[2] << "\n";
+   }
+   else{
+      std::cerr << "No decomposition found in restart file. Computing fsgrid decomposition for ioread, check results!" <<std::endl;
+      int fsgridInputRanks=0;
+      if(readScalarParameter(file,"numWritingRanks",fsgridInputRanks, MASTER_RANK, MPI_COMM_WORLD) == false) {
+         exitOnError(false, "(RESTART) FSGrid writing rank number not found in restart file", MPI_COMM_WORLD);
+      }
+      FsGridTools::computeDomainDecomposition(gridSize, fsgridInputRanks, buffer, FS_STENCIL_WIDTH);
+
+   }
+   
+   return true;
 }
