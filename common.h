@@ -208,8 +208,8 @@ namespace CellParams {
       AMR_DBSQ,
       AMR_DB,
       AMR_ALPHA,
-      RECENTLY_REFINED,
       AMR_JPERB,
+      RECENTLY_REFINED,
       BULKV_FORCING_X, /*! Externally forced drift velocity (ex. from the ionosphere) */
       BULKV_FORCING_Y, /*! Externally forced drift velocity (ex. from the ionosphere) */
       BULKV_FORCING_Z, /*! Externally forced drift velocity (ex. from the ionosphere) */
@@ -497,6 +497,7 @@ struct globalflags {
    static int bailingOut; /*!< Global flag raised to true if a run bailout (write restart if requested/set and stop the simulation peacefully) is needed. */
    static bool writeRestart; /*!< Global flag raised to true if a restart writing is needed (without bailout). NOTE: used only by MASTER_RANK in vlasiator.cpp. */
    static bool balanceLoad; /*!< Global flag raised to true if a load balancing is needed. NOTE: used only by MASTER_RANK in vlasiator.cpp. */
+   static bool doRefine; /*!< Global flag raised to true if a re-refine is needed. NOTE: used only by MASTER_RANK in vlasiator.cpp. */
    static int AMRstencilWidth; /*!< Global variable used for the extended AMR stencil width */
    static bool ionosphereJustSolved; /*!< Flag used to notify that the ionosphere has been freshly solved, used to check whether the Vlasov boundary/bulk forcing need updating. */
 };
