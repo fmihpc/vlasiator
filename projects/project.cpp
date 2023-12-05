@@ -609,9 +609,6 @@ namespace projects {
       phiprof::Timer refinesTimer {"Set refines"};
       int myRank;       
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-      if (myRank == MASTER_RANK) {
-         std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
-      }
 
       int refines {0};
       if (!P::useAlpha && !P::useJPerB) {
