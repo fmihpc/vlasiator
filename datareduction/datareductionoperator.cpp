@@ -1907,17 +1907,6 @@ namespace DRO {
       return true;
    }
 
-   bool JPerBModifier::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "float";
-      dataSize =  sizeof(Real);
-      vectorSize = 1; // This is not components, but rather total energy density, density over E1, and density over E2
-      return true;
-   }
-
-   bool JPerBModifier::writeParameters(vlsv::Writer& vlsvWriter) {
-      return vlsvWriter.writeParameter("j_per_b_modifier", &P::JPerBModifier);
-   }
-
    // Heat flux density vector
    // q_i = m/2 * integral((v - <V>)^2 (v - <V>)_i * f(r,v) dV)
    VariableHeatFluxVector::VariableHeatFluxVector(cuint _popID): DataReductionOperator(),popID(_popID) {

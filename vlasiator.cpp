@@ -77,6 +77,7 @@ using namespace std;
 int globalflags::bailingOut = 0;
 bool globalflags::writeRestart = 0;
 bool globalflags::balanceLoad = 0;
+bool globalflags::doRefine=0;
 bool globalflags::ionosphereJustSolved = false;
 
 ObjectWrapper objectWrapper;
@@ -641,6 +642,9 @@ int main(int argn,char* args[]) {
 
    // Save restart data
    if (P::writeInitialState) {
+      // Calculate these so refinement parameters can be tuned based on the vlsv
+      calculateScaledDeltasSimple(mpiGrid);
+
       FieldTracing::reduceData(technicalGrid, perBGrid, dPerBGrid, mpiGrid, SBC::ionosphereGrid.nodes); /*!< Call the reductions (e.g. field tracing) */
       
       phiprof::Timer timer {"write-initial-state"};
@@ -783,9 +787,10 @@ int main(int argn,char* args[]) {
 
    unsigned int wallTimeRestartCounter=1;
 
-   int doNow[2] = {0}; // 0: writeRestartNow, 1: balanceLoadNow ; declared outside main loop
+   int doNow[3] = {0}; // 0: writeRestartNow, 1: balanceLoadNow, 2: refineNow ; declared outside main loop
    int writeRestartNow; // declared outside main loop
    bool overrideRebalanceNow = false; // declared outside main loop
+   bool refineNow = false; // declared outside main loop
    
    addTimedBarrier("barrier-end-initialization");
    
@@ -924,17 +929,25 @@ int main(int argn,char* args[]) {
          else {
             doNow[0] = 0;
          }
-         if (globalflags::balanceLoad == true) {
+         if (globalflags::balanceLoad || globalflags::doRefine) {
             doNow[1] = 1;
             globalflags::balanceLoad = false;
+            if (globalflags::doRefine) {
+               doNow[2] = 1;
+               globalflags::doRefine = false;
+            }
          }
       }
-      MPI_Bcast( &doNow, 2 , MPI_INT , MASTER_RANK ,MPI_COMM_WORLD);
+      MPI_Bcast( &doNow, 3 , MPI_INT , MASTER_RANK ,MPI_COMM_WORLD);
       writeRestartNow = doNow[0];
       doNow[0] = 0;
       if (doNow[1] == 1) {
          P::prepareForRebalance = true;
          doNow[1] = 0;
+      }
+      if (doNow[2]) {
+         refineNow = true;
+         doNow[2] = false;
       }
       restartCheckTimer.stop();
 
@@ -943,6 +956,9 @@ int main(int argn,char* args[]) {
          if (writeRestartNow == 1) {
             wallTimeRestartCounter++;
          }
+
+         // Refinement params for restart refinement
+         calculateScaledDeltasSimple(mpiGrid);
          
          if (myRank == MASTER_RANK)
             logFile << "(IO): Writing restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
@@ -985,16 +1001,36 @@ int main(int argn,char* args[]) {
       //TODO - add LB measure and do LB if it exceeds threshold
       if(((P::tstep % P::rebalanceInterval == 0 && P::tstep > P::tstep_min) || overrideRebalanceNow)) {
          logFile << "(LB): Start load balance, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
-         // Refinement includes LB
-         if (!dtIsChanged && P::adaptRefinement && P::tstep % (P::rebalanceInterval * P::refineMultiplier) == 0 && P::t > P::refineAfter) { 
+         if (refineNow || (!dtIsChanged && P::adaptRefinement && P::tstep % (P::rebalanceInterval * P::refineCadence) == 0 && P::t > P::refineAfter)) { 
             logFile << "(AMR): Adapting refinement!"  << endl << writeVerbose;
-            if (!adaptRefinement(mpiGrid, technicalGrid, sysBoundaryContainer, *project))
-               continue;   // Refinement failed and we're bailing out
+            refineNow = false;
+            if (!adaptRefinement(mpiGrid, technicalGrid, sysBoundaryContainer, *project)) {
+               // OOM, rebalance and try again
+               logFile << "(LB) AMR ran out of memory, attempting to balance." << endl;
+               globalflags::bailingOut = false; // Reset this
+               for (auto id : mpiGrid.get_local_cells_to_refine()) {
+                  mpiGrid[id]->parameters[CellParams::LBWEIGHTCOUNTER] *= 8.0;
+               }
+               balanceLoad(mpiGrid, sysBoundaryContainer);
+               for (auto id : mpiGrid.get_local_cells_to_refine()) {
+                  mpiGrid[id]->parameters[CellParams::LBWEIGHTCOUNTER] /= 8.0;
+               }
+
+               mpiGrid.cancel_refining();
+               if (!adaptRefinement(mpiGrid, technicalGrid, sysBoundaryContainer, *project)) {
+                  for (auto id : mpiGrid.get_local_cells_to_refine()) {
+                     mpiGrid[id]->parameters[CellParams::LBWEIGHTCOUNTER] *= 8.0;
+                  }
+                  continue;   // Refinement failed and we're bailing out
+               } else {
+                  globalflags::bailingOut = false; // Reset this
+               }
+            }
 
             // Calculate new dt limits since we might break CFL when refining
-            phiprof::Timer computeDtimer {"compute-dt"};
+            phiprof::Timer computeDtimer {"compute-dt-amr"};
             calculateSpatialTranslation(mpiGrid,0.0);
-            calculateAcceleration(mpiGrid,0.0);      
+            calculateAcceleration(mpiGrid,0.0);
          }
          balanceLoad(mpiGrid, sysBoundaryContainer);
          addTimedBarrier("barrier-end-load-balance");

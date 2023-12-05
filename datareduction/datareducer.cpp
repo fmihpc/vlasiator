@@ -2963,7 +2963,6 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(P::systemWriteAllDROs || lowercase == "vg_amr_jperb") {
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_jperb",CellParams::AMR_JPERB,1));
          outputReducer->addMetadata(outputReducer->size()-1,"1/m","m^{-1}","J/B_{\\perp}","");
-         outputReducer->addOperator(new DRO::JPerBModifier());
          if(!P::systemWriteAllDROs) {
             continue;
          }
