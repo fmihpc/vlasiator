@@ -905,8 +905,8 @@ namespace SBC {
                Real ne = nodes[n].electronDensity();
                Real electronTemp = nodes[n].electronTemperature();
                Real temperature_keV = (physicalconstants::K_B / physicalconstants::CHARGE) / 1000. * electronTemp;
-               if(std::isnan(energy_keV) || std::isnan(temperature_keV)) {
-                  cerr << "(ionosphere) NaN encountered in conductivity calculation: " << endl
+               if(!(std::isfinite(energy_keV) && std::isfinite(temperature_keV))) {
+                  cerr << "(ionosphere) NaN or inf encountered in conductivity calculation: " << endl
                      << "   `-> DeltaPhi     = " << nodes[n].deltaPhi()/1000. << " keV" << endl
                      << "   `-> energy_keV   = " << energy_keV << endl
                      << "   `-> ne           = " << ne << " m^-3" << endl

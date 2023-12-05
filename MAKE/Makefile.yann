@@ -32,7 +32,7 @@ FLAGS =
 CXXFLAGS = -g3 -ggdb -O3  -funroll-loops -std=c++17 -fopenmp -W -Wall -Wno-unused -fabi-version=0 -mavx
 testpackage: CXXFLAGS = -g -ggdb -O2 -fopenmp -funroll-loops -std=c++17 -fabi-version=0 -mno-avx -mno-fma -fno-unsafe-math-optimizations
 
-MATHFLAGS =
+MATHFLAGS = -ffast-math -fno-finite-math-only
 testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
 
 LDFLAGS =
