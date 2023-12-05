@@ -91,7 +91,9 @@ void addTimedBarrier(string name) {
 }
 
 void computeNewTimeStep(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                        FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, Real& newDt, bool& isChanged) {
+                        FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+                        Real& newDt,
+                        bool& isChanged) {
 
    phiprof::Timer computeTimestepTimer{"compute-timestep"};
    // Compute maximum time step. This cannot be done at the first step as the solvers compute the limits for each cell.
@@ -416,32 +418,32 @@ int main(int argn, char* args[]) {
                                    sysBoundaryContainer.isBoundaryPeriodic(2)};
 
    FsGridCouplingInformation gridCoupling;
-   FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> perBGrid(fsGridDimensions, MPI_COMM_WORLD,
-                                                                                  periodicity, gridCoupling);
-   FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> perBDt2Grid(fsGridDimensions, MPI_COMM_WORLD,
-                                                                                     periodicity, gridCoupling);
-   FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> EGrid(fsGridDimensions, MPI_COMM_WORLD,
-                                                                               periodicity, gridCoupling);
-   FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> EDt2Grid(fsGridDimensions, MPI_COMM_WORLD,
-                                                                                  periodicity, gridCoupling);
-   FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> EHallGrid(fsGridDimensions, MPI_COMM_WORLD,
-                                                                                 periodicity, gridCoupling);
-   FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> EGradPeGrid(fsGridDimensions, MPI_COMM_WORLD,
-                                                                                       periodicity, gridCoupling);
-   FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> momentsGrid(fsGridDimensions, MPI_COMM_WORLD,
-                                                                                       periodicity, gridCoupling);
+   FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> perBGrid(
+       fsGridDimensions, MPI_COMM_WORLD, periodicity, gridCoupling);
+   FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> perBDt2Grid(
+       fsGridDimensions, MPI_COMM_WORLD, periodicity, gridCoupling);
+   FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> EGrid(
+       fsGridDimensions, MPI_COMM_WORLD, periodicity, gridCoupling);
+   FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> EDt2Grid(
+       fsGridDimensions, MPI_COMM_WORLD, periodicity, gridCoupling);
+   FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> EHallGrid(
+       fsGridDimensions, MPI_COMM_WORLD, periodicity, gridCoupling);
+   FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> EGradPeGrid(
+       fsGridDimensions, MPI_COMM_WORLD, periodicity, gridCoupling);
+   FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> momentsGrid(
+       fsGridDimensions, MPI_COMM_WORLD, periodicity, gridCoupling);
    FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> momentsDt2Grid(
        fsGridDimensions, MPI_COMM_WORLD, periodicity, gridCoupling);
-   FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> dPerBGrid(fsGridDimensions, MPI_COMM_WORLD,
-                                                                                 periodicity, gridCoupling);
+   FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> dPerBGrid(
+       fsGridDimensions, MPI_COMM_WORLD, periodicity, gridCoupling);
    FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> dMomentsGrid(
        fsGridDimensions, MPI_COMM_WORLD, periodicity, gridCoupling);
-   FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> BgBGrid(fsGridDimensions, MPI_COMM_WORLD,
-                                                                                periodicity, gridCoupling);
-   FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> volGrid(fsGridDimensions, MPI_COMM_WORLD,
-                                                                                 periodicity, gridCoupling);
-   FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> technicalGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,
-                                                              gridCoupling);
+   FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> BgBGrid(
+       fsGridDimensions, MPI_COMM_WORLD, periodicity, gridCoupling);
+   FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> volGrid(
+       fsGridDimensions, MPI_COMM_WORLD, periodicity, gridCoupling);
+   FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> technicalGrid(
+       fsGridDimensions, MPI_COMM_WORLD, periodicity, gridCoupling);
 
    // Set DX, DY and DZ
    // TODO: This is currently just taking the values from cell 1, and assuming them to be
@@ -482,8 +484,19 @@ int main(int argn, char* args[]) {
    // FULL_NEIGHBORHOOD. Block lists up to date for
    // VLASOV_SOLVER_NEIGHBORHOOD (but dist function has not been communicated)
    phiprof::Timer initGridsTimer{"Init grids"};
-   initializeGrids(argn, args, mpiGrid, perBGrid, BgBGrid, momentsGrid, momentsDt2Grid, EGrid, EGradPeGrid, volGrid,
-                   technicalGrid, sysBoundaryContainer, *project);
+   initializeGrids(argn,
+                   args,
+                   mpiGrid,
+                   perBGrid,
+                   BgBGrid,
+                   momentsGrid,
+                   momentsDt2Grid,
+                   EGrid,
+                   EGradPeGrid,
+                   volGrid,
+                   technicalGrid,
+                   sysBoundaryContainer,
+                   *project);
 
    const std::vector<CellID>& cells = getLocalCells();
 
@@ -525,9 +538,23 @@ int main(int argn, char* args[]) {
       }
 
       const bool writeGhosts = true;
-      if (writeGrid(mpiGrid, perBGrid, EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid,
-                    volGrid, technicalGrid, version, config, &outputReducer, P::systemWriteName.size() - 1,
-                    P::restartStripeFactor, writeGhosts) == false) {
+      if (writeGrid(mpiGrid,
+                    perBGrid,
+                    EGrid,
+                    EHallGrid,
+                    EGradPeGrid,
+                    momentsGrid,
+                    dPerBGrid,
+                    dMomentsGrid,
+                    BgBGrid,
+                    volGrid,
+                    technicalGrid,
+                    version,
+                    config,
+                    &outputReducer,
+                    P::systemWriteName.size() - 1,
+                    P::restartStripeFactor,
+                    writeGhosts) == false) {
          cerr << "FAILED TO WRITE GRID AT " << __FILE__ << " " << __LINE__ << endl;
       }
 
@@ -564,8 +591,22 @@ int main(int argn, char* args[]) {
    // Fieldsolver dt limits, and also calculate volumetric B-fields.
    // At restart, all we need at this stage has been read from the restart, the rest will be recomputed in due time.
    if (P::isRestart == false) {
-      propagateFields(perBGrid, perBDt2Grid, EGrid, EDt2Grid, EHallGrid, EGradPeGrid, momentsGrid, momentsDt2Grid,
-                      dPerBGrid, dMomentsGrid, BgBGrid, volGrid, technicalGrid, sysBoundaryContainer, 0.0, 1.0);
+      propagateFields(perBGrid,
+                      perBDt2Grid,
+                      EGrid,
+                      EDt2Grid,
+                      EHallGrid,
+                      EGradPeGrid,
+                      momentsGrid,
+                      momentsDt2Grid,
+                      dPerBGrid,
+                      dMomentsGrid,
+                      BgBGrid,
+                      volGrid,
+                      technicalGrid,
+                      sysBoundaryContainer,
+                      0.0,
+                      1.0);
    }
 
    phiprof::Timer getFieldsTimer{"getFieldsFromFsGrid"};
@@ -578,15 +619,21 @@ int main(int argn, char* args[]) {
    // If not a restart, perBGrid and dPerBGrid are up to date after propagateFields just above. Otherwise, we should
    // compute them.
    if (P::isRestart) {
-      calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid,
-                                 technicalGrid, sysBoundaryContainer,
+      calculateDerivativesSimple(perBGrid,
+                                 perBDt2Grid,
+                                 momentsGrid,
+                                 momentsDt2Grid,
+                                 dPerBGrid,
+                                 dMomentsGrid,
+                                 technicalGrid,
+                                 sysBoundaryContainer,
                                  RK_ORDER1, // Update and compute on non-dt2 grids.
                                  false      // Don't communicate moments, they are not needed here.
       );
       dPerBGrid.updateGhostCells();
    }
-   FieldTracing::calculateIonosphereFsgridCoupling(technicalGrid, perBGrid, dPerBGrid, SBC::ionosphereGrid.nodes,
-                                                   SBC::Ionosphere::radius);
+   FieldTracing::calculateIonosphereFsgridCoupling(
+       technicalGrid, perBGrid, dPerBGrid, SBC::ionosphereGrid.nodes, SBC::Ionosphere::radius);
    SBC::ionosphereGrid.initSolver(!P::isRestart); // If it is a restart we do not want to zero out everything
    if (SBC::Ionosphere::couplingInterval > 0 && P::isRestart) {
       SBC::Ionosphere::solveCount = floor(P::t / SBC::Ionosphere::couplingInterval) + 1;
@@ -597,8 +644,8 @@ int main(int argn, char* args[]) {
    if (P::isRestart) {
       // If it is a restart, we want to regenerate proper ig_inplanecurrent as well in case there's IO before the next
       // solver step.
-      SBC::ionosphereGrid.calculateConductivityTensor(SBC::Ionosphere::F10_7, SBC::Ionosphere::recombAlpha,
-                                                      SBC::Ionosphere::backgroundIonisation, true);
+      SBC::ionosphereGrid.calculateConductivityTensor(
+          SBC::Ionosphere::F10_7, SBC::Ionosphere::recombAlpha, SBC::Ionosphere::backgroundIonisation, true);
    }
 
    if (P::isRestart == false) {
@@ -611,7 +658,10 @@ int main(int argn, char* args[]) {
 
    // Save restart data
    if (P::writeInitialState) {
-      FieldTracing::reduceData(technicalGrid, perBGrid, dPerBGrid, mpiGrid,
+      FieldTracing::reduceData(technicalGrid,
+                               perBGrid,
+                               dPerBGrid,
+                               mpiGrid,
                                SBC::ionosphereGrid.nodes); /*!< Call the reductions (e.g. field tracing) */
 
       phiprof::Timer timer{"write-initial-state"};
@@ -633,9 +683,21 @@ int main(int argn, char* args[]) {
       const bool writeGhosts = true;
       if (writeGrid(mpiGrid,
                     perBGrid, // TODO: Merge all the fsgrids passed here into one meta-object
-                    EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, volGrid,
-                    technicalGrid, version, config, &outputReducer, P::systemWriteName.size() - 1,
-                    P::restartStripeFactor, writeGhosts) == false) {
+                    EGrid,
+                    EHallGrid,
+                    EGradPeGrid,
+                    momentsGrid,
+                    dPerBGrid,
+                    dMomentsGrid,
+                    BgBGrid,
+                    volGrid,
+                    technicalGrid,
+                    version,
+                    config,
+                    &outputReducer,
+                    P::systemWriteName.size() - 1,
+                    P::restartStripeFactor,
+                    writeGhosts) == false) {
          cerr << "FAILED TO WRITE GRID AT " << __FILE__ << " " << __LINE__ << endl;
       }
 
@@ -678,8 +740,15 @@ int main(int argn, char* args[]) {
       }
       // Also update all moments. They won't be transmitted to FSgrid until the field solver is called, though.
       phiprof::Timer computeMomentsTimer{"Compute interp moments"};
-      calculateInterpolatedVelocityMoments(mpiGrid, CellParams::RHOM, CellParams::VX, CellParams::VY, CellParams::VZ,
-                                           CellParams::RHOQ, CellParams::P_11, CellParams::P_22, CellParams::P_33);
+      calculateInterpolatedVelocityMoments(mpiGrid,
+                                           CellParams::RHOM,
+                                           CellParams::VX,
+                                           CellParams::VY,
+                                           CellParams::VZ,
+                                           CellParams::RHOQ,
+                                           CellParams::P_11,
+                                           CellParams::P_22,
+                                           CellParams::P_33);
       computeMomentsTimer.stop();
    }
 
@@ -814,7 +883,10 @@ int main(int argn, char* args[]) {
             // Calculate these so refinement parameters can be tuned based on the vlsv
             calculateScaledDeltasSimple(mpiGrid);
 
-            FieldTracing::reduceData(technicalGrid, perBGrid, dPerBGrid, mpiGrid,
+            FieldTracing::reduceData(technicalGrid,
+                                     perBGrid,
+                                     dPerBGrid,
+                                     mpiGrid,
                                      SBC::ionosphereGrid.nodes); /*!< Call the reductions (e.g. field tracing) */
 
             phiprof::Timer writeSysTimer{"write-system"};
@@ -824,8 +896,20 @@ int main(int argn, char* args[]) {
             const bool writeGhosts = true;
             if (writeGrid(mpiGrid,
                           perBGrid, // TODO: Merge all the fsgrids passed here into one meta-object
-                          EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, volGrid,
-                          technicalGrid, version, config, &outputReducer, i, P::systemStripeFactor,
+                          EGrid,
+                          EHallGrid,
+                          EGradPeGrid,
+                          momentsGrid,
+                          dPerBGrid,
+                          dMomentsGrid,
+                          BgBGrid,
+                          volGrid,
+                          technicalGrid,
+                          version,
+                          config,
+                          &outputReducer,
+                          i,
+                          P::systemStripeFactor,
                           writeGhosts) == false) {
                cerr << "FAILED TO WRITE GRID AT" << __FILE__ << " " << __LINE__ << endl;
             }
@@ -886,8 +970,20 @@ int main(int argn, char* args[]) {
          // Write the restart:
          if (writeRestart(mpiGrid,
                           perBGrid, // TODO: Merge all the fsgrids passed here into one meta-object
-                          EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, volGrid,
-                          technicalGrid, version, config, outputReducer, "restart", (uint)P::t,
+                          EGrid,
+                          EHallGrid,
+                          EGradPeGrid,
+                          momentsGrid,
+                          dPerBGrid,
+                          dMomentsGrid,
+                          BgBGrid,
+                          volGrid,
+                          technicalGrid,
+                          version,
+                          config,
+                          outputReducer,
+                          "restart",
+                          (uint)P::t,
                           P::restartStripeFactor) == false) {
             logFile << "(IO): ERROR Failed to write restart!" << endl << writeVerbose;
             cerr << "FAILED TO WRITE RESTART" << endl;
@@ -1011,9 +1107,15 @@ int main(int argn, char* args[]) {
       }
 
       phiprof::Timer momentsTimer{"Compute interp moments"};
-      calculateInterpolatedVelocityMoments(mpiGrid, CellParams::RHOM_DT2, CellParams::VX_DT2, CellParams::VY_DT2,
-                                           CellParams::VZ_DT2, CellParams::RHOQ_DT2, CellParams::P_11_DT2,
-                                           CellParams::P_22_DT2, CellParams::P_33_DT2);
+      calculateInterpolatedVelocityMoments(mpiGrid,
+                                           CellParams::RHOM_DT2,
+                                           CellParams::VX_DT2,
+                                           CellParams::VY_DT2,
+                                           CellParams::VZ_DT2,
+                                           CellParams::RHOQ_DT2,
+                                           CellParams::P_11_DT2,
+                                           CellParams::P_22_DT2,
+                                           CellParams::P_33_DT2);
       momentsTimer.stop();
 
       // Propagate fields forward in time by dt. This needs to be done before the
@@ -1028,8 +1130,21 @@ int main(int argn, char* args[]) {
          feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid, technicalGrid, true);
          couplingInTimer.stop();
 
-         propagateFields(perBGrid, perBDt2Grid, EGrid, EDt2Grid, EHallGrid, EGradPeGrid, momentsGrid, momentsDt2Grid,
-                         dPerBGrid, dMomentsGrid, BgBGrid, volGrid, technicalGrid, sysBoundaryContainer, P::dt,
+         propagateFields(perBGrid,
+                         perBDt2Grid,
+                         EGrid,
+                         EDt2Grid,
+                         EHallGrid,
+                         EGradPeGrid,
+                         momentsGrid,
+                         momentsDt2Grid,
+                         dPerBGrid,
+                         dMomentsGrid,
+                         BgBGrid,
+                         volGrid,
+                         technicalGrid,
+                         sysBoundaryContainer,
+                         P::dt,
                          P::fieldSolverSubcycles);
 
          phiprof::Timer getFieldsTimer{"getFieldsFromFsGrid"};
@@ -1054,17 +1169,17 @@ int main(int argn, char* args[]) {
           ((P::t > SBC::Ionosphere::solveCount * SBC::Ionosphere::couplingInterval &&
             SBC::Ionosphere::couplingInterval > 0) ||
            SBC::Ionosphere::couplingInterval == 0)) {
-         FieldTracing::calculateIonosphereFsgridCoupling(technicalGrid, perBGrid, dPerBGrid, SBC::ionosphereGrid.nodes,
-                                                         SBC::Ionosphere::radius);
+         FieldTracing::calculateIonosphereFsgridCoupling(
+             technicalGrid, perBGrid, dPerBGrid, SBC::ionosphereGrid.nodes, SBC::Ionosphere::radius);
          SBC::ionosphereGrid.mapDownBoundaryData(perBGrid, dPerBGrid, momentsGrid, volGrid, technicalGrid);
-         SBC::ionosphereGrid.calculateConductivityTensor(SBC::Ionosphere::F10_7, SBC::Ionosphere::recombAlpha,
-                                                         SBC::Ionosphere::backgroundIonisation);
+         SBC::ionosphereGrid.calculateConductivityTensor(
+             SBC::Ionosphere::F10_7, SBC::Ionosphere::recombAlpha, SBC::Ionosphere::backgroundIonisation);
 
          // Solve ionosphere
          int nIterations, nRestarts;
          Real residual, minPotentialN, maxPotentialN, minPotentialS, maxPotentialS;
-         SBC::ionosphereGrid.solve(nIterations, nRestarts, residual, minPotentialN, maxPotentialN, minPotentialS,
-                                   maxPotentialS);
+         SBC::ionosphereGrid.solve(
+             nIterations, nRestarts, residual, minPotentialN, maxPotentialN, minPotentialS, maxPotentialS);
          logFile << "tstep = " << P::tstep << " t = " << P::t << " ionosphere iterations = " << nIterations
                  << " restarts = " << nRestarts << " residual = " << std::scientific << residual << std::defaultfloat
                  << " N potential min " << minPotentialN << " max " << maxPotentialN << " difference "
@@ -1102,8 +1217,15 @@ int main(int argn, char* args[]) {
       momentsTimer.start();
       // *here we compute rho and rho_v for timestep t + dt, so next
       // timestep * //
-      calculateInterpolatedVelocityMoments(mpiGrid, CellParams::RHOM, CellParams::VX, CellParams::VY, CellParams::VZ,
-                                           CellParams::RHOQ, CellParams::P_11, CellParams::P_22, CellParams::P_33);
+      calculateInterpolatedVelocityMoments(mpiGrid,
+                                           CellParams::RHOM,
+                                           CellParams::VX,
+                                           CellParams::VY,
+                                           CellParams::VZ,
+                                           CellParams::RHOQ,
+                                           CellParams::P_11,
+                                           CellParams::P_22,
+                                           CellParams::P_33);
       momentsTimer.stop();
 
       propagateTimer.stop(computedCells, "Cells");

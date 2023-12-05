@@ -91,8 +91,18 @@ Real Diffusion::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& 
            exp(-mass * (pow(vx, 2.0) + pow(vy, 2.0) + pow(vz, 2.0)) / (2.0 * kb * sP.TEMPERATURE)));
 }
 
-Real Diffusion::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx,
-                                      creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,
+Real Diffusion::calcPhaseSpaceDensity(creal& x,
+                                      creal& y,
+                                      creal& z,
+                                      creal& dx,
+                                      creal& dy,
+                                      creal& dz,
+                                      creal& vx,
+                                      creal& vy,
+                                      creal& vz,
+                                      creal& dvx,
+                                      creal& dvy,
+                                      creal& dvz,
                                       const uint popID) const {
    const DiffusionSpeciesParameters& sP = speciesParams[popID];
    creal d_x = dx / (sP.nSpaceSamples - 1);
@@ -108,8 +118,8 @@ Real Diffusion::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, c
             for (uint vi = 0; vi < sP.nVelocitySamples; ++vi)
                for (uint vj = 0; vj < sP.nVelocitySamples; ++vj)
                   for (uint vk = 0; vk < sP.nVelocitySamples; ++vk) {
-                     avg += getDistribValue(x + i * d_x, y + j * d_y, z + k * d_z, vx + vi * d_vx, vy + vj * d_vy,
-                                            vz + vk * d_vz, popID);
+                     avg += getDistribValue(
+                         x + i * d_x, y + j * d_y, z + k * d_z, vx + vi * d_vx, vy + vj * d_vy, vz + vk * d_vz, popID);
                   }
    return avg / (sP.nSpaceSamples * sP.nSpaceSamples * sP.nSpaceSamples) /
           (sP.nVelocitySamples * sP.nVelocitySamples * sP.nVelocitySamples);

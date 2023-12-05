@@ -313,8 +313,9 @@ bool Reader::getBlockIds(const uint64_t& cellId, std::vector<uint64_t>& blockIds
    uint64_t blockIds_arraySize, blockIds_vectorSize, blockIds_dataSize;
    vlsv::datatype::type blockIds_dataType;
    // Input blockIds_arraySize, blockIds_vectorSize, blockIds_dataSize blockIds_dataType: (Returns false if fails)
-   if (getArrayInfo("BLOCKIDS", attribs, blockIds_arraySize, blockIds_vectorSize, blockIds_dataType,
-                    blockIds_dataSize) == false) {
+   if (getArrayInfo(
+           "BLOCKIDS", attribs, blockIds_arraySize, blockIds_vectorSize, blockIds_dataType, blockIds_dataSize) ==
+       false) {
       cerr << "ERROR, COULD NOT FIND BLOCKIDS FOR '" << popName << "' AT " << __FILE__ << " " << __LINE__ << endl;
       return false;
    }
@@ -341,7 +342,9 @@ bool Reader::getBlockIds(const uint64_t& cellId, std::vector<uint64_t>& blockIds
    return true;
 }
 
-bool Reader::getVelocityBlockVariables(const string& variableName, const uint64_t& cellId, char*& buffer,
+bool Reader::getVelocityBlockVariables(const string& variableName,
+                                       const uint64_t& cellId,
+                                       char*& buffer,
                                        bool allocateMemory) {
    if (cellsWithBlocksSet == false) {
       cerr << "ERROR, CELLS WITH BLOCKS NOT SET AT " << __FILE__ << " " << __LINE__ << endl;

@@ -175,8 +175,13 @@ inline void compute_h3_left_face_derivative(const Vec* const values, uint k, Vec
   2) Makes face values bounded
   3) Makes sure face slopes are consistent with PLM slope
 */
-inline void compute_filtered_face_values_derivatives(const Vec* const values, uint k, face_estimate_order order,
-                                                     Vec& fv_l, Vec& fv_r, Vec& fd_l, Vec& fd_r,
+inline void compute_filtered_face_values_derivatives(const Vec* const values,
+                                                     uint k,
+                                                     face_estimate_order order,
+                                                     Vec& fv_l,
+                                                     Vec& fv_r,
+                                                     Vec& fd_l,
+                                                     Vec& fd_r,
                                                      const Realv threshold) {
 
    switch (order) {
@@ -247,8 +252,12 @@ inline void compute_filtered_face_values_derivatives(const Vec* const values, ui
   2) Makes face values bounded
   3) Makes sure face slopes are consistent with PLM slope
 */
-inline void compute_filtered_face_values(const Vec* const values, uint k, face_estimate_order order, Vec& fv_l,
-                                         Vec& fv_r, const Realv threshold) {
+inline void compute_filtered_face_values(const Vec* const values,
+                                         uint k,
+                                         face_estimate_order order,
+                                         Vec& fv_l,
+                                         Vec& fv_r,
+                                         const Realv threshold) {
    switch (order) {
    case h4:
       compute_h4_left_face_value(values, k, fv_l);
@@ -299,8 +308,12 @@ inline void compute_filtered_face_values(const Vec* const values, uint k, face_e
    }
 }
 
-inline void compute_filtered_face_values_nonuniform(const Vec* const dv, const Vec* const values, uint k,
-                                                    face_estimate_order order, Vec& fv_l, Vec& fv_r,
+inline void compute_filtered_face_values_nonuniform(const Vec* const dv,
+                                                    const Vec* const values,
+                                                    uint k,
+                                                    face_estimate_order order,
+                                                    Vec& fv_l,
+                                                    Vec& fv_r,
                                                     const Realv threshold) {
    switch (order) {
    case h4:
@@ -417,8 +430,12 @@ inline pair<Vec, Vec> constrain_face_values(const Vec* h, const Vec* values, uin
    return faceInterpolants;
 }
 
-inline void compute_filtered_face_values_nonuniform_conserving(const Vec* const dv, const Vec* const values, uint k,
-                                                               face_estimate_order order, Vec& fv_l, Vec& fv_r,
+inline void compute_filtered_face_values_nonuniform_conserving(const Vec* const dv,
+                                                               const Vec* const values,
+                                                               uint k,
+                                                               face_estimate_order order,
+                                                               Vec& fv_l,
+                                                               Vec& fv_r,
                                                                const Realv threshold) {
    switch (order) {
    case h4:

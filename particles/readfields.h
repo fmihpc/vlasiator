@@ -206,16 +206,16 @@ template <class Reader> std::vector<double> readFsGridData(Reader& r, std::strin
    for (int task = 0; task < numWritingRanks; task++) {
       std::array<int, 3> overlapStart, overlapEnd, overlapSize;
 
-      overlapStart[0] = FsGridTools::calcLocalStart(size[0], fileDecomposition[0],
-                                                    task / fileDecomposition[2] / fileDecomposition[1]);
-      overlapStart[1] = FsGridTools::calcLocalStart(size[1], fileDecomposition[1],
-                                                    (task / fileDecomposition[2]) % fileDecomposition[1]);
+      overlapStart[0] = FsGridTools::calcLocalStart(
+          size[0], fileDecomposition[0], task / fileDecomposition[2] / fileDecomposition[1]);
+      overlapStart[1] = FsGridTools::calcLocalStart(
+          size[1], fileDecomposition[1], (task / fileDecomposition[2]) % fileDecomposition[1]);
       overlapStart[2] = FsGridTools::calcLocalStart(size[2], fileDecomposition[2], task % fileDecomposition[2]);
 
       overlapSize[0] =
           FsGridTools::calcLocalSize(size[0], fileDecomposition[0], task / fileDecomposition[2] / fileDecomposition[1]);
-      overlapSize[1] = FsGridTools::calcLocalSize(size[1], fileDecomposition[1],
-                                                  (task / fileDecomposition[2]) % fileDecomposition[1]);
+      overlapSize[1] = FsGridTools::calcLocalSize(
+          size[1], fileDecomposition[1], (task / fileDecomposition[2]) % fileDecomposition[1]);
       overlapSize[2] = FsGridTools::calcLocalSize(size[2], fileDecomposition[2], task % fileDecomposition[2]);
 
       overlapEnd[0] = overlapStart[0] + overlapSize[0];
@@ -238,7 +238,8 @@ template <class Reader> std::vector<double> readFsGridData(Reader& r, std::strin
                            (y - overlapStart[1]) * overlapSize[0] + (x - overlapStart[0]);
 
                std::memcpy(&buffer[(size[0] * size[1] * z + size[0] * y + x) * numcomponents],
-                           &readBuffer[(fileOffset + index) * numcomponents], numcomponents * sizeof(Real));
+                           &readBuffer[(fileOffset + index) * numcomponents],
+                           numcomponents * sizeof(Real));
             }
          }
       }
@@ -253,8 +254,16 @@ template <class Reader> std::vector<double> readFsGridData(Reader& r, std::strin
  * TODO: might need some DRY
  */
 template <class Reader>
-bool readNextTimestep(const std::string& filename_pattern, double t, int step, Field& E0, Field& E1, Field& B0,
-                      Field& B1, Field& V, bool doV, int& input_file_counter) {
+bool readNextTimestep(const std::string& filename_pattern,
+                      double t,
+                      int step,
+                      Field& E0,
+                      Field& E1,
+                      Field& B0,
+                      Field& B1,
+                      Field& V,
+                      bool doV,
+                      int& input_file_counter) {
 
    char filename_buffer[256];
    bool retval = false;
@@ -365,14 +374,22 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int step, F
 }
 
 /* Non-template version, autodetecting the reader type */
-static bool readNextTimestep(const std::string& filename_pattern, double t, int step, Field& E0, Field& E1, Field& B0,
-                             Field& B1, Field& V, bool doV, int& input_file_counter) {
+static bool readNextTimestep(const std::string& filename_pattern,
+                             double t,
+                             int step,
+                             Field& E0,
+                             Field& E1,
+                             Field& B0,
+                             Field& B1,
+                             Field& V,
+                             bool doV,
+                             int& input_file_counter) {
 
    char filename_buffer[256];
    snprintf(filename_buffer, 256, filename_pattern.c_str(), input_file_counter);
 
-   return readNextTimestep<vlsvinterface::Reader>(filename_pattern, t, step, E0, E1, B0, B1, V, doV,
-                                                  input_file_counter);
+   return readNextTimestep<vlsvinterface::Reader>(
+       filename_pattern, t, step, E0, E1, B0, B1, V, doV, input_file_counter);
 }
 
 /* Read E- and B-Fields as well as velocity field from a vlsv file */

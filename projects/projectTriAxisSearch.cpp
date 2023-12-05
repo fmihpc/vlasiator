@@ -61,9 +61,19 @@ std::vector<vmesh::GlobalID> TriAxisSearch::findBlocksToInitialize(SpatialCell* 
       search = true;
       counter = 0;
       while (search) {
-         if (0.1 * cell->getVelocityBlockMinValue(popID) >
-             calcPhaseSpaceDensity(x, y, z, dx, dy, dz, it->at(0) + counter * dvxBlock, it->at(1), it->at(2), dvxCell,
-                                   dvyCell, dvzCell, popID)) {
+         if (0.1 * cell->getVelocityBlockMinValue(popID) > calcPhaseSpaceDensity(x,
+                                                                                 y,
+                                                                                 z,
+                                                                                 dx,
+                                                                                 dy,
+                                                                                 dz,
+                                                                                 it->at(0) + counter * dvxBlock,
+                                                                                 it->at(1),
+                                                                                 it->at(2),
+                                                                                 dvxCell,
+                                                                                 dvyCell,
+                                                                                 dvzCell,
+                                                                                 popID)) {
             search = false;
          }
          ++counter;
@@ -79,8 +89,19 @@ std::vector<vmesh::GlobalID> TriAxisSearch::findBlocksToInitialize(SpatialCell* 
       counter = 0;
       while (search) {
          if (0.1 * getObjectWrapper().particleSpecies[popID].sparseMinValue >
-                 calcPhaseSpaceDensity(x, y, z, dx, dy, dz, it->at(0), it->at(1) + counter * dvyBlock, it->at(2),
-                                       dvxCell, dvyCell, dvzCell, popID) ||
+                 calcPhaseSpaceDensity(x,
+                                       y,
+                                       z,
+                                       dx,
+                                       dy,
+                                       dz,
+                                       it->at(0),
+                                       it->at(1) + counter * dvyBlock,
+                                       it->at(2),
+                                       dvxCell,
+                                       dvyCell,
+                                       dvzCell,
+                                       popID) ||
              counter > vxblocks_ini) {
             search = false;
          }
@@ -96,8 +117,19 @@ std::vector<vmesh::GlobalID> TriAxisSearch::findBlocksToInitialize(SpatialCell* 
       counter = 0;
       while (search) {
          if (0.1 * getObjectWrapper().particleSpecies[popID].sparseMinValue >
-                 calcPhaseSpaceDensity(x, y, z, dx, dy, dz, it->at(0), it->at(1), it->at(2) + counter * dvzBlock,
-                                       dvxCell, dvyCell, dvzCell, popID) ||
+                 calcPhaseSpaceDensity(x,
+                                       y,
+                                       z,
+                                       dx,
+                                       dy,
+                                       dz,
+                                       it->at(0),
+                                       it->at(1),
+                                       it->at(2) + counter * dvzBlock,
+                                       dvxCell,
+                                       dvyCell,
+                                       dvzCell,
+                                       popID) ||
              counter > vxblocks_ini) {
             search = false;
          }

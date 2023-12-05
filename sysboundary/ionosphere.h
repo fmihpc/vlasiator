@@ -199,24 +199,38 @@ struct SphericalTriGrid {
    void stitchRefinementInterfaces(); /*!< Make sure there are no t-junctions in the mesh by splitting neighbours */
    void calculatePrecipitation();     /*!< Estimate precipitation flux */
    void calculateConductivityTensor(
-       const Real F10_7, const Real recombAlpha, const Real backgroundIonisation,
+       const Real F10_7,
+       const Real recombAlpha,
+       const Real backgroundIonisation,
        const bool refillTensorAtRestart = false); /*!< Update sigma tensor, if last argument is true, just refill the
                                                      tensor from SIGMAH, SIGMAP and SIGMAPARALLEL from restart data */
    Real
    interpolateUpmappedPotential(const std::array<Real, 3>& x); /*!< Calculate upmapped potential at the given point */
 
    // Conjugate Gradient solver functions
-   void addMatrixDependency(uint node1, uint node2, Real coeff,
+   void addMatrixDependency(uint node1,
+                            uint node2,
+                            Real coeff,
                             bool transposed = false); /*!< Add matrix value for the solver */
    void addAllMatrixDependencies(uint nodeIndex);
    void initSolver(bool zeroOut = true); /*!< Initialize the CG solver */
-   iSolverReal Atimes(uint nodeIndex, int parameter,
-                      bool transpose = false); /*!< Evaluate neighbour nodes' coupled parameter */
+   iSolverReal
+   Atimes(uint nodeIndex, int parameter, bool transpose = false); /*!< Evaluate neighbour nodes' coupled parameter */
    Real Asolve(uint nodeIndex, int parameter, bool transpose = false); /*!< Evaluate own parameter value */
-   void solve(int& iteration, int& nRestarts, Real& residual, Real& minPotentialN, Real& maxPotentialN,
-              Real& minPotentialS, Real& maxPotentialS);
-   void solveInternal(int& iteration, int& nRestarts, Real& residual, Real& minPotentialN, Real& maxPotentialN,
-                      Real& minPotentialS, Real& maxPotentialS);
+   void solve(int& iteration,
+              int& nRestarts,
+              Real& residual,
+              Real& minPotentialN,
+              Real& maxPotentialN,
+              Real& minPotentialS,
+              Real& maxPotentialS);
+   void solveInternal(int& iteration,
+                      int& nRestarts,
+                      Real& residual,
+                      Real& minPotentialN,
+                      Real& maxPotentialN,
+                      Real& minPotentialS,
+                      Real& maxPotentialS);
 
    // Map field-aligned currents, density and temperature
    // down from the simulation boundary onto this grid
@@ -236,8 +250,8 @@ struct SphericalTriGrid {
       std::array<Real, 3> e1{b[0] - c[0], b[1] - c[1], b[2] - c[2]};
       std::array<Real, 3> e2{c[0] - a[0], c[1] - a[1], c[2] - a[2]};
       // Area vector A = cross(e1 e2)
-      std::array<Real, 3> area{e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2],
-                               e1[0] * e2[1] - e1[1] * e2[0]};
+      std::array<Real, 3> area{
+          e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]};
 
       return 0.5 * sqrt(area[0] * area[0] + area[1] * area[1] + area[2] * area[2]);
    }
@@ -261,7 +275,8 @@ struct SphericalTriGrid {
       std::array<Real, 3> e1{b[0] - c[0], b[1] - c[1], b[2] - c[2]};
       std::array<Real, 3> e2{c[0] - a[0], c[1] - a[1], c[2] - a[2]};
       // Area vector A = cross(e1 e2)
-      std::array<Real, 3> area{0.5 * (e1[1] * e2[2] - e1[2] * e2[1]), 0.5 * (e1[2] * e2[0] - e1[0] * e2[2]),
+      std::array<Real, 3> area{0.5 * (e1[1] * e2[2] - e1[2] * e2[1]),
+                               0.5 * (e1[2] * e2[0] - e1[0] * e2[2]),
                                0.5 * (e1[0] * e2[1] - e1[1] * e2[0])};
 
       // By definition, the area is oriented outwards, so if dot(r,A) < 0, flip it.
@@ -285,8 +300,8 @@ struct SphericalTriGrid {
       return area;
    }
 
-   std::array<Real, 3> computeGradT(const std::array<Real, 3>& a, const std::array<Real, 3>& b,
-                                    const std::array<Real, 3>& c);
+   std::array<Real, 3>
+   computeGradT(const std::array<Real, 3>& a, const std::array<Real, 3>& b, const std::array<Real, 3>& c);
    std::array<Real, 9> sigmaAverage(uint elementIndex);
    double elementIntegral(uint elementIndex, int i, int j, bool transpose = false);
 };
@@ -320,28 +335,50 @@ public:
                                   Project& project);
    virtual Real
    fieldSolverBoundaryCondMagneticField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& bGrid,
-                                        FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j,
-                                        cint k, creal& dt, cuint& component);
+                                        FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+                                        cint i,
+                                        cint j,
+                                        cint k,
+                                        creal& dt,
+                                        cuint& component);
    virtual void
    fieldSolverBoundaryCondElectricField(FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EGrid,
-                                        cint i, cint j, cint k, cuint component);
+                                        cint i,
+                                        cint j,
+                                        cint k,
+                                        cuint component);
    virtual void fieldSolverBoundaryCondHallElectricField(
-       FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH>& EHallGrid, cint i, cint j, cint k,
+       FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH>& EHallGrid,
+       cint i,
+       cint j,
+       cint k,
        cuint component);
    virtual void fieldSolverBoundaryCondGradPeElectricField(
-       FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH>& EGradPeGrid, cint i, cint j, cint k,
+       FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH>& EGradPeGrid,
+       cint i,
+       cint j,
+       cint k,
        cuint component);
    virtual void fieldSolverBoundaryCondDerivatives(
        FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
-       FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid, cint i, cint j, cint k,
-       cuint& RKCase, cuint& component);
+       FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
+       cint i,
+       cint j,
+       cint k,
+       cuint& RKCase,
+       cuint& component);
    virtual void fieldSolverBoundaryCondBVOLDerivatives(
-       FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid, cint i, cint j, cint k,
+       FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid,
+       cint i,
+       cint j,
+       cint k,
        cuint& component);
    // Compute and store the EXB drift into the cell's BULKV_FORCING_X/Y/Z fields and set counter to 1
    virtual void mapCellPotentialAndGetEXBDrift(std::array<Real, CellParams::N_SPATIAL_CELL_PARAMS>& cellParams);
    virtual void vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                        const CellID& cellID, const uint popID, const bool calculate_V_moments);
+                                        const CellID& cellID,
+                                        const uint popID,
+                                        const bool calculate_V_moments);
 
    virtual std::string getName() const;
    virtual uint getIndex() const;
@@ -382,14 +419,17 @@ protected:
    void generateTemplateCell(Project& project);
    void setCellFromTemplate(SpatialCell* cell, const uint popID);
 
-   Real shiftedMaxwellianDistribution(const uint popID, creal& density, creal& temperature, creal& vx, creal& vy,
-                                      creal& vz);
+   Real
+   shiftedMaxwellianDistribution(const uint popID, creal& density, creal& temperature, creal& vx, creal& vy, creal& vz);
 
-   vector<vmesh::GlobalID> findBlocksToInitialize(SpatialCell& cell, creal& density, creal& temperature,
-                                                  const std::array<Real, 3>& vDrift, const uint popID);
+   vector<vmesh::GlobalID> findBlocksToInitialize(SpatialCell& cell,
+                                                  creal& density,
+                                                  creal& temperature,
+                                                  const std::array<Real, 3>& vDrift,
+                                                  const uint popID);
 
-   std::array<Real, 3> fieldSolverGetNormalDirection(FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-                                                     cint i, cint j, cint k);
+   std::array<Real, 3>
+   fieldSolverGetNormalDirection(FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k);
 
    Real center[3]; /*!< Coordinates of the centre of the ionosphere. */
    uint geometry;  /*!< Geometry of the ionosphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle,

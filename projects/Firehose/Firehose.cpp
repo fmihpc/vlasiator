@@ -109,7 +109,14 @@ Real Firehose::profile(creal top, creal bottom, creal x) const {
    return top * (1.0 + this->amp * cos(2.0 * M_PI * x / this->lambda));
 }
 
-Real Firehose::getDistribValue(creal& x, creal& y, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,
+Real Firehose::getDistribValue(creal& x,
+                               creal& y,
+                               creal& vx,
+                               creal& vy,
+                               creal& vz,
+                               creal& dvx,
+                               creal& dvy,
+                               creal& dvz,
                                const uint popID) const {
    const FirehoseSpeciesParameters& sP = speciesParams[popID];
    creal mass = getObjectWrapper().particleSpecies[popID].mass;
@@ -126,8 +133,19 @@ Real Firehose::getDistribValue(creal& x, creal& y, creal& vx, creal& vy, creal& 
    //           pow(vz - this->Vz[2], 2.0) / (2.0 * kb * this->Tz[2])));
 }
 
-Real Firehose::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx,
-                                     creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
+Real Firehose::calcPhaseSpaceDensity(creal& x,
+                                     creal& y,
+                                     creal& z,
+                                     creal& dx,
+                                     creal& dy,
+                                     creal& dz,
+                                     creal& vx,
+                                     creal& vy,
+                                     creal& vz,
+                                     creal& dvx,
+                                     creal& dvy,
+                                     creal& dvz,
+                                     const uint popID) const {
    const FirehoseSpeciesParameters& sP = speciesParams[popID];
    creal d_x = dx / (sP.nSpaceSamples - 1);
    creal d_y = dy / (sP.nSpaceSamples - 1);
@@ -141,8 +159,8 @@ Real Firehose::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, cr
          for (uint vi = 0; vi < sP.nVelocitySamples; ++vi)
             for (uint vj = 0; vj < sP.nVelocitySamples; ++vj)
                for (uint vk = 0; vk < sP.nVelocitySamples; ++vk) {
-                  avg += getDistribValue(x + i * d_x, y + j * d_y, vx + vi * d_vx, vy + vj * d_vy, vz + vk * d_vz, dvx,
-                                         dvy, dvz, popID);
+                  avg += getDistribValue(
+                      x + i * d_x, y + j * d_y, vx + vi * d_vx, vy + vj * d_vy, vz + vk * d_vz, dvx, dvy, dvz, popID);
                }
    return avg / pow(sP.nSpaceSamples, 2.0) / pow(sP.nVelocitySamples, 3.0);
 }

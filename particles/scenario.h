@@ -39,8 +39,13 @@ struct Scenario {
    virtual ParticleContainer initialParticles(Field& E, Field& B, Field& V) { return ParticleContainer(); };
 
    // Do something when a new input timestep has been opened
-   virtual void newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles, Field& E,
-                            Field& B, Field& V){};
+   virtual void newTimestep(int input_file_counter,
+                            int step,
+                            double time,
+                            ParticleContainer& particles,
+                            Field& E,
+                            Field& B,
+                            Field& V){};
 
    // Modify or analyze particle behaviour before they are moved by the particle pusher.
    virtual void beforePush(ParticleContainer& particles, Field& E, Field& B, Field& V){};
@@ -70,7 +75,12 @@ struct singleParticleScenario : Scenario {
 // Sample a bunch of particles from a distribution, create them at a given point, then trace them
 struct distributionScenario : Scenario {
    ParticleContainer initialParticles(Field& E, Field& B, Field& V);
-   void newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles, Field& E, Field& B,
+   void newTimestep(int input_file_counter,
+                    int step,
+                    double time,
+                    ParticleContainer& particles,
+                    Field& E,
+                    Field& B,
                     Field& V);
    void finalize(ParticleContainer& particles, Field& E, Field& B, Field& V);
 
@@ -79,7 +89,12 @@ struct distributionScenario : Scenario {
 
 // Inject particles in the tail continuously, see where they precipitate
 struct precipitationScenario : Scenario {
-   void newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles, Field& E, Field& B,
+   void newTimestep(int input_file_counter,
+                    int step,
+                    double time,
+                    ParticleContainer& particles,
+                    Field& E,
+                    Field& B,
                     Field& V);
    void afterPush(int step, double time, ParticleContainer& particles, Field& E, Field& B, Field& V);
 
@@ -89,7 +104,12 @@ struct precipitationScenario : Scenario {
 // For interactive usage from analysator: read positions and velocities from stdin, push those particles.
 struct analysatorScenario : Scenario {
    ParticleContainer initialParticles(Field& E, Field& B, Field& V);
-   void newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles, Field& E, Field& B,
+   void newTimestep(int input_file_counter,
+                    int step,
+                    double time,
+                    ParticleContainer& particles,
+                    Field& E,
+                    Field& B,
                     Field& V);
    analysatorScenario() { needV = false; };
 };
@@ -100,15 +120,24 @@ struct shockReflectivityScenario : Scenario {
    LinearHistogram2D transmitted;
    LinearHistogram2D reflected;
 
-   void newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles, Field& E, Field& B,
+   void newTimestep(int input_file_counter,
+                    int step,
+                    double time,
+                    ParticleContainer& particles,
+                    Field& E,
+                    Field& B,
                     Field& V);
    void afterPush(int step, double time, ParticleContainer& particles, Field& E, Field& B, Field& V);
    void finalize(ParticleContainer& particles, Field& E, Field& B, Field& V);
 
    shockReflectivityScenario()
-       : transmitted(200, 300, Vec2d(ParticleParameters::reflect_start_y, ParticleParameters::start_time),
+       : transmitted(200,
+                     300,
+                     Vec2d(ParticleParameters::reflect_start_y, ParticleParameters::start_time),
                      Vec2d(ParticleParameters::reflect_stop_y, ParticleParameters::end_time)),
-         reflected(200, 300, Vec2d(ParticleParameters::reflect_start_y, ParticleParameters::start_time),
+         reflected(200,
+                   300,
+                   Vec2d(ParticleParameters::reflect_start_y, ParticleParameters::start_time),
                    Vec2d(ParticleParameters::reflect_stop_y, ParticleParameters::end_time)) {
       needV = true;
    }
@@ -120,7 +149,12 @@ struct ipShockScenario : Scenario {
    FILE* refFile;
 
    ParticleContainer initialParticles(Field& E, Field& B, Field& V);
-   void newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles, Field& E, Field& B,
+   void newTimestep(int input_file_counter,
+                    int step,
+                    double time,
+                    ParticleContainer& particles,
+                    Field& E,
+                    Field& B,
                     Field& V);
    void afterPush(int step, double time, ParticleContainer& particles, Field& E, Field& B, Field& V);
    void finalize(ParticleContainer& particles, Field& E, Field& B, Field& V);

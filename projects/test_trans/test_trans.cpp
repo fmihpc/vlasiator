@@ -47,7 +47,8 @@ bool test_trans::initialize(void) { return Project::initialize(); }
 void test_trans::addParameters() {
    typedef Readparameters RP;
    RP::add("test_trans.cellPosition",
-           "Position of the centre of the cells initiated (same used in velocity and space).", (Real)1.5);
+           "Position of the centre of the cells initiated (same used in velocity and space).",
+           (Real)1.5);
    RP::add("test_trans.peakValue", "Value of the distribution function", (Real)1.0);
 }
 
@@ -65,8 +66,18 @@ void test_trans::getParameters() {
    RP::get("test_trans.peakValue", peakValue);
 }
 
-Real test_trans::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx,
-                                       creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,
+Real test_trans::calcPhaseSpaceDensity(creal& x,
+                                       creal& y,
+                                       creal& z,
+                                       creal& dx,
+                                       creal& dy,
+                                       creal& dz,
+                                       creal& vx,
+                                       creal& vy,
+                                       creal& vz,
+                                       creal& dvx,
+                                       creal& dvy,
+                                       creal& dvz,
                                        const uint popID) const {
    // Please use even number of cells in velocity and real space
    Real xyz[3];
@@ -84,13 +95,25 @@ Real test_trans::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, 
    creal pos = this->cellPosition;
    // real space coordinates of boxes
    // Assume an even number of spatial cells per grid dimension
-   const Real box_real[8][3] = {{pos, pos, pos},   {-pos, pos, pos},  {pos, -pos, pos},  {pos, pos, -pos},
-                                {-pos, -pos, pos}, {-pos, pos, -pos}, {pos, -pos, -pos}, {-pos, -pos, -pos}};
+   const Real box_real[8][3] = {{pos, pos, pos},
+                                {-pos, pos, pos},
+                                {pos, -pos, pos},
+                                {pos, pos, -pos},
+                                {-pos, -pos, pos},
+                                {-pos, pos, -pos},
+                                {pos, -pos, -pos},
+                                {-pos, -pos, -pos}};
 
    // velocity space coordinates of boxes in reduced units
    // there is always an even amount of velocity cells per dimension (assuming WID is even)
-   const Real box_vel[8][3] = {{pos, pos, pos},   {-pos, pos, pos},  {pos, -pos, pos},  {pos, pos, -pos},
-                               {-pos, -pos, pos}, {-pos, pos, -pos}, {pos, -pos, -pos}, {-pos, -pos, -pos}};
+   const Real box_vel[8][3] = {{pos, pos, pos},
+                               {-pos, pos, pos},
+                               {pos, -pos, pos},
+                               {pos, pos, -pos},
+                               {-pos, -pos, pos},
+                               {-pos, pos, -pos},
+                               {pos, -pos, -pos},
+                               {-pos, -pos, -pos}};
 
    for (int box = 0; box < 8; box++) {
       bool outsideBox = false;

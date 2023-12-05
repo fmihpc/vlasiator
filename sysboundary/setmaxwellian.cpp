@@ -46,8 +46,8 @@ void SetMaxwellian::addParameters() {
                        "If 0 (default), keep going with the state existing in the restart file. If 1, calls again "
                        "applyInitialState. Can be used to change boundary condition behaviour during a run.",
                        0);
-   Readparameters::add("maxwellian.t_interval", "Time interval in seconds for applying the varying inflow condition.",
-                       0.0);
+   Readparameters::add(
+       "maxwellian.t_interval", "Time interval in seconds for applying the varying inflow condition.", 0.0);
    // Per-population parameters
    for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
       const std::string& pop = getObjectWrapper().particleSpecies[i].name;
@@ -76,10 +76,10 @@ void SetMaxwellian::addParameters() {
                           "Input files for the set Maxwellian inflow parameters on face z-. Data format per line: time "
                           "(s) density (p/m^3) Temperature (K) Vx Vy Vz (m/s) Bx By Bz (T).",
                           "");
-      Readparameters::add(pop + "_maxwellian.nVelocitySamples",
-                          "Number of sampling points per velocity dimension (template cells)", 5);
-      Readparameters::add(pop + "_maxwellian.dynamic",
-                          "Boolean value, is the set Maxwellian inflow dynamic in time or not.", 0);
+      Readparameters::add(
+          pop + "_maxwellian.nVelocitySamples", "Number of sampling points per velocity dimension (template cells)", 5);
+      Readparameters::add(
+          pop + "_maxwellian.dynamic", "Boolean value, is the set Maxwellian inflow dynamic in time or not.", 0);
    }
 }
 
@@ -128,8 +128,12 @@ Real SetMaxwellian::maxwellianDistribution(const uint popID, creal& rho, creal& 
  *  Then we iterate through the actual blocks and calculate their radius R2 based on their velocity coordinates
  *  and the plasma bulk velocity. Blocks that fullfil R2<vRadiusSquared are included to blocksToInitialize.
  */
-std::vector<vmesh::GlobalID> SetMaxwellian::findBlocksToInitialize(const uint popID, spatial_cell::SpatialCell& cell,
-                                                                   creal& rho, creal& T, creal& VX0, creal& VY0,
+std::vector<vmesh::GlobalID> SetMaxwellian::findBlocksToInitialize(const uint popID,
+                                                                   spatial_cell::SpatialCell& cell,
+                                                                   creal& rho,
+                                                                   creal& T,
+                                                                   creal& VX0,
+                                                                   creal& VY0,
                                                                    creal& VZ0) {
    vector<vmesh::GlobalID> blocksToInitialize;
    bool search = true;
@@ -143,9 +147,12 @@ std::vector<vmesh::GlobalID> SetMaxwellian::findBlocksToInitialize(const uint po
    const Real dvz = cell.get_velocity_grid_cell_size(popID, refLevel)[2];
    while (search) {
       if (0.1 * cell.getVelocityBlockMinValue(popID) >
-              maxwellianDistribution(popID, rho, T,
+              maxwellianDistribution(popID,
+                                     rho,
+                                     T,
                                      counter * cell.get_velocity_grid_block_size(popID, refLevel)[0] + 0.5 * dvx,
-                                     0.5 * dvy, 0.5 * dvz) ||
+                                     0.5 * dvy,
+                                     0.5 * dvz) ||
           counter > vblocks_ini[0]) {
          search = false;
       }
@@ -191,7 +198,9 @@ std::vector<vmesh::GlobalID> SetMaxwellian::findBlocksToInitialize(const uint po
  * \param inputDataIndex Index used for the location of the input data.
  * \param t Current simulation time.
  */
-void SetMaxwellian::generateTemplateCell(spatial_cell::SpatialCell& templateCell, Real B[3], int inputDataIndex,
+void SetMaxwellian::generateTemplateCell(spatial_cell::SpatialCell& templateCell,
+                                         Real B[3],
+                                         int inputDataIndex,
                                          creal& t) {
    Real rho, T, Vx, Vy, Vz, Bx = 0.0, By = 0.0, Bz = 0.0, buffer[8];
 
@@ -254,14 +263,22 @@ void SetMaxwellian::generateTemplateCell(spatial_cell::SpatialCell& templateCell
                      for (uint vi = 0; vi < speciesParams[popID].nVelocitySamples; ++vi)
                         for (uint vj = 0; vj < speciesParams[popID].nVelocitySamples; ++vj)
                            for (uint vk = 0; vk < speciesParams[popID].nVelocitySamples; ++vk) {
-                              average += maxwellianDistribution(popID, rho, T, vxCell + vi * d_vx - Vx,
-                                                                vyCell + vj * d_vy - Vy, vzCell + vk * d_vz - Vz);
+                              average += maxwellianDistribution(popID,
+                                                                rho,
+                                                                T,
+                                                                vxCell + vi * d_vx - Vx,
+                                                                vyCell + vj * d_vy - Vy,
+                                                                vzCell + vk * d_vz - Vz);
                            }
                      average /= speciesParams[popID].nVelocitySamples * speciesParams[popID].nVelocitySamples *
                                 speciesParams[popID].nVelocitySamples;
                   } else {
-                     average = maxwellianDistribution(popID, rho, T, vxCell + 0.5 * dvxCell - Vx,
-                                                      vyCell + 0.5 * dvyCell - Vy, vzCell + 0.5 * dvzCell - Vz);
+                     average = maxwellianDistribution(popID,
+                                                      rho,
+                                                      T,
+                                                      vxCell + 0.5 * dvxCell - Vx,
+                                                      vyCell + 0.5 * dvyCell - Vy,
+                                                      vzCell + 0.5 * dvzCell - Vz);
                   }
 
                   if (average != 0.0) {

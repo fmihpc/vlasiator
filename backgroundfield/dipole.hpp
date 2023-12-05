@@ -35,9 +35,16 @@ private:
 public:
    Dipole() {}
 
-   void initialize(const double moment, const double center_x, const double center_y, const double center_z,
+   void initialize(const double moment,
+                   const double center_x,
+                   const double center_y,
+                   const double center_z,
                    const double tilt_angle);
-   double operator()(double x, double y, double z, coordinate component, unsigned int derivative = 0,
+   double operator()(double x,
+                     double y,
+                     double z,
+                     coordinate component,
+                     unsigned int derivative = 0,
                      coordinate dcomponent = X) const;
 };
 

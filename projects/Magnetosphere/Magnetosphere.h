@@ -53,12 +53,31 @@ public:
    virtual void setProjectBField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
                                  FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
                                  FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid);
-   virtual Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx,
-                                      creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const;
+   virtual Real calcPhaseSpaceDensity(creal& x,
+                                      creal& y,
+                                      creal& z,
+                                      creal& dx,
+                                      creal& dy,
+                                      creal& dz,
+                                      creal& vx,
+                                      creal& vy,
+                                      creal& vz,
+                                      creal& dvx,
+                                      creal& dvy,
+                                      creal& dvz,
+                                      const uint popID) const;
 
 protected:
-   Real getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy,
-                        creal& dvz, const uint popID) const;
+   Real getDistribValue(creal& x,
+                        creal& y,
+                        creal& z,
+                        creal& vx,
+                        creal& vy,
+                        creal& vz,
+                        creal& dvx,
+                        creal& dvy,
+                        creal& dvz,
+                        const uint popID) const;
    bool refineSpatialCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) const;
    int adaptRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) const;
    bool forceRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, int n) const;

@@ -58,8 +58,8 @@ void updateAccelerationMaxdt(SpatialCell* spatial_cell, const uint popID) {
  * @param dt Time step of one subcycle.
 */
 
-Eigen::Transform<Real, 3, Eigen::Affine> compute_acceleration_transformation(SpatialCell* spatial_cell,
-                                                                             const uint popID, const Real& dt) {
+Eigen::Transform<Real, 3, Eigen::Affine>
+compute_acceleration_transformation(SpatialCell* spatial_cell, const uint popID, const Real& dt) {
    // total field
    const Real Bx = spatial_cell->parameters[CellParams::BGBXVOL] + spatial_cell->parameters[CellParams::PERBXVOL];
    const Real By = spatial_cell->parameters[CellParams::BGBYVOL] + spatial_cell->parameters[CellParams::PERBYVOL];

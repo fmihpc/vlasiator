@@ -46,7 +46,7 @@ using namespace spatial_cell;
 // i,j,k are the cell ids inside on block (i in vector elements).
 // Vectors with same i,j,k coordinates, but in different spatial cells, are consequtive
 //#define i_trans_ps_blockv(j, k, b_k)  ( (b_k + VLASOV_STENCIL_WIDTH ) + ( (((j) * WID + (k) * WID2)/VECL)  * ( 1 + 2 *
-//VLASOV_STENCIL_WIDTH) ) )
+// VLASOV_STENCIL_WIDTH) ) )
 #define i_trans_ps_blockv(planeVectorIndex, planeIndex, blockIndex)                                                    \
    ((blockIndex) + VLASOV_STENCIL_WIDTH +                                                                              \
     ((planeVectorIndex) + (planeIndex)*VEC_PER_PLANE) * (1 + 2 * VLASOV_STENCIL_WIDTH))
@@ -76,8 +76,11 @@ bool do_translate_cell(SpatialCell* SC) {
  * layer is inlcuded (does not return INVALID_CELLID).
  * This does not use dccrg's get_neighbor_of function as it does not support computing neighbors for remote cells
  */
-CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const CellID& cellID,
-                            const bool include_first_boundary_layer, const int spatial_di, const int spatial_dj,
+CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                            const CellID& cellID,
+                            const bool include_first_boundary_layer,
+                            const int spatial_di,
+                            const int spatial_dj,
                             const int spatial_dk) {
    dccrg::Types<3>::indices_t indices_unsigned = mpiGrid.mapping.get_indices(cellID);
    int64_t indices[3];
@@ -147,8 +150,11 @@ CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geo
  */
 
 SpatialCell* get_spatial_neighbor_pointer(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                          const CellID& cellID, const bool include_first_boundary_layer,
-                                          const int spatial_di, const int spatial_dj, const int spatial_dk) {
+                                          const CellID& cellID,
+                                          const bool include_first_boundary_layer,
+                                          const int spatial_di,
+                                          const int spatial_dj,
+                                          const int spatial_dk) {
    CellID nbrID =
        get_spatial_neighbor(mpiGrid, cellID, include_first_boundary_layer, spatial_di, spatial_dj, spatial_dk);
 
@@ -165,7 +171,9 @@ SpatialCell* get_spatial_neighbor_pointer(const dccrg::Dccrg<SpatialCell, dccrg:
  * stencil values at boundaries*/
 
 void compute_spatial_source_neighbors(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                      const CellID& cellID, const uint dimension, SpatialCell** neighbors) {
+                                      const CellID& cellID,
+                                      const uint dimension,
+                                      SpatialCell** neighbors) {
    for (int i = -VLASOV_STENCIL_WIDTH; i <= VLASOV_STENCIL_WIDTH; i++) {
       switch (dimension) {
       case 0:
@@ -201,7 +209,9 @@ void compute_spatial_source_neighbors(const dccrg::Dccrg<SpatialCell, dccrg::Car
 
 /*compute spatial target neighbors, stencil has a size of 3. No boundary cells are included*/
 void compute_spatial_target_neighbors(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                      const CellID& cellID, const uint dimension, SpatialCell** neighbors) {
+                                      const CellID& cellID,
+                                      const uint dimension,
+                                      SpatialCell** neighbors) {
 
    for (int i = -1; i <= 1; i++) {
       switch (dimension) {
@@ -232,8 +242,11 @@ void compute_spatial_target_neighbors(const dccrg::Dccrg<SpatialCell, dccrg::Car
  * @param cellid_transpose
  * @param popID ID of the particle species.
  */
-void copy_trans_block_data(SpatialCell** source_neighbors, const vmesh::GlobalID blockGID, Vec* values,
-                           const unsigned char* const cellid_transpose, const uint popID) {
+void copy_trans_block_data(SpatialCell** source_neighbors,
+                           const vmesh::GlobalID blockGID,
+                           Vec* values,
+                           const unsigned char* const cellid_transpose,
+                           const uint popID) {
 
    /*load pointers to blocks and prefetch them to L1*/
    Realf* blockDatas[VLASOV_STENCIL_WIDTH * 2 + 1];
@@ -304,8 +317,11 @@ void copy_trans_block_data(SpatialCell** source_neighbors, const vmesh::GlobalID
    refion). It is safe as each thread only computes certain blocks (blockID%tnum_threads = thread_num */
 
 bool trans_map_1d(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                  const vector<CellID>& localPropagatedCells, const vector<CellID>& remoteTargetCells,
-                  const uint dimension, const Realv dt, const uint popID) {
+                  const vector<CellID>& localPropagatedCells,
+                  const vector<CellID>& remoteTargetCells,
+                  const uint dimension,
+                  const Realv dt,
+                  const uint popID) {
    // values used with an stencil in 1 dimension, initialized to 0.
    // Contains a block, and its spatial neighbours in one dimension.
    Realv dz, dvz, vz_min;
@@ -336,10 +352,10 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mp
       // boundaries. For targets we only have actual cells as we do not
       // want to propagate boundary cells (array may contain
       // INVALID_CELLIDs at boundaries).
-      compute_spatial_source_neighbors(mpiGrid, localPropagatedCells[celli], dimension,
-                                       sourceNeighbors.data() + celli * nSourceNeighborsPerCell);
-      compute_spatial_target_neighbors(mpiGrid, localPropagatedCells[celli], dimension,
-                                       targetNeighbors.data() + celli * 3);
+      compute_spatial_source_neighbors(
+          mpiGrid, localPropagatedCells[celli], dimension, sourceNeighbors.data() + celli * nSourceNeighborsPerCell);
+      compute_spatial_target_neighbors(
+          mpiGrid, localPropagatedCells[celli], dimension, targetNeighbors.data() + celli * 3);
    }
 
    // Get a unique sorted list of blockids that are in any of the
@@ -453,8 +469,8 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mp
 
             // buffer where we read in source data. i index vectorized
             Vec values[(1 + 2 * VLASOV_STENCIL_WIDTH) * WID3 / VECL];
-            copy_trans_block_data(sourceNeighbors.data() + celli * nSourceNeighborsPerCell, blockGID, values,
-                                  cellid_transpose, popID);
+            copy_trans_block_data(
+                sourceNeighbors.data() + celli * nSourceNeighborsPerCell, blockGID, values, cellid_transpose, popID);
             velocity_block_indices_t block_indices;
             uint8_t refLevel;
             vmesh.getIndices(blockGID, refLevel, block_indices[0], block_indices[1], block_indices[2]);
@@ -488,21 +504,29 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mp
 #ifdef TRANS_SEMILAG_PLM
                   Vec a[3];
                   compute_plm_coeff(values + i_trans_ps_blockv(planeVector, k, -VLASOV_STENCIL_WIDTH),
-                                    VLASOV_STENCIL_WIDTH, a, spatial_cell->getVelocityBlockMinValue(popID));
+                                    VLASOV_STENCIL_WIDTH,
+                                    a,
+                                    spatial_cell->getVelocityBlockMinValue(popID));
 #endif
 #ifdef TRANS_SEMILAG_PPM
                   Vec a[3];
                   // Check that stencil width VLASOV_STENCIL_WIDTH in grid.h corresponds to order of face estimates  (h4
                   // & h5 =2, H6=3, h8=4)
-                  compute_ppm_coeff(values + i_trans_ps_blockv(planeVector, k, -VLASOV_STENCIL_WIDTH), h4,
-                                    VLASOV_STENCIL_WIDTH, a, spatial_cell->getVelocityBlockMinValue(popID));
+                  compute_ppm_coeff(values + i_trans_ps_blockv(planeVector, k, -VLASOV_STENCIL_WIDTH),
+                                    h4,
+                                    VLASOV_STENCIL_WIDTH,
+                                    a,
+                                    spatial_cell->getVelocityBlockMinValue(popID));
 #endif
 #ifdef TRANS_SEMILAG_PQM
                   Vec a[5];
                   // Check that stencil width VLASOV_STENCIL_WIDTH in grid.h corresponds to order of face estimates (h4
                   // & h5 =2, H6=3, h8=4)
-                  compute_pqm_coeff(values + i_trans_ps_blockv(planeVector, k, -VLASOV_STENCIL_WIDTH), h6,
-                                    VLASOV_STENCIL_WIDTH, a, spatial_cell->getVelocityBlockMinValue(popID));
+                  compute_pqm_coeff(values + i_trans_ps_blockv(planeVector, k, -VLASOV_STENCIL_WIDTH),
+                                    h6,
+                                    VLASOV_STENCIL_WIDTH,
+                                    a,
+                                    spatial_cell->getVelocityBlockMinValue(popID));
 #endif
 
 #ifdef TRANS_SEMILAG_PLM
@@ -608,7 +632,9 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mp
 */
 
 void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                        const uint dimension, int direction, const uint popID) {
+                                        const uint dimension,
+                                        int direction,
+                                        const uint popID) {
 
    const vector<CellID>& local_cells = getLocalCells();
    const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_NEIGHBORHOOD_ID);

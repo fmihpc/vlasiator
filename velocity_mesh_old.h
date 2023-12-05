@@ -76,8 +76,12 @@ public:
    const Real* getMeshMaxLimits() const;
    const Real* getMeshMinLimits() const;
    void getNeighborsAtSameLevel(const GID& globalID, std::vector<GID>& neighborIDs) const;
-   void getNeighborsExistingAtOffset(const GID& globalID, const int& i, const int& j, const int& k,
-                                     std::vector<LID>& neighborLIDs, int32_t& refLevelDifference) const;
+   void getNeighborsExistingAtOffset(const GID& globalID,
+                                     const int& i,
+                                     const int& j,
+                                     const int& k,
+                                     std::vector<LID>& neighborLIDs,
+                                     int32_t& refLevelDifference) const;
    int getOctant(const GID& globalID) const;
    GID getParent(const GID& globalID) const;
    uint8_t getRefinementLevel(const GID& globalID) const;
@@ -343,8 +347,8 @@ inline GID VelocityMesh<GID, LID>::getGlobalID(const uint8_t& refLevel, LID indi
 }
 
 template <typename GID, typename LID>
-inline GID VelocityMesh<GID, LID>::getGlobalID(const uint32_t& refLevel, const LID& i, const LID& j,
-                                               const LID& k) const {
+inline GID
+VelocityMesh<GID, LID>::getGlobalID(const uint32_t& refLevel, const LID& i, const LID& j, const LID& k) const {
    if (i >= meshParameters[meshID].gridLength[0] || j >= meshParameters[meshID].gridLength[1] ||
        k >= meshParameters[meshID].gridLength[2]) {
       return invalidGlobalID();
@@ -430,8 +434,10 @@ inline void VelocityMesh<GID, LID>::getNeighborsAtSameLevel(const GID& globalID,
 }
 
 template <typename GID, typename LID>
-inline void VelocityMesh<GID, LID>::getNeighborsExistingAtOffset(const GID& globalID, const int& i_off,
-                                                                 const int& j_off, const int& k_off,
+inline void VelocityMesh<GID, LID>::getNeighborsExistingAtOffset(const GID& globalID,
+                                                                 const int& i_off,
+                                                                 const int& j_off,
+                                                                 const int& k_off,
                                                                  std::vector<LID>& neighborLocalIDs,
                                                                  int32_t& refLevelDifference) const {
 #ifndef NDEBUG
@@ -614,8 +620,8 @@ template <typename GID, typename LID> inline bool VelocityMesh<GID, LID>::push_b
 }
 
 template <typename GID, typename LID>
-inline bool VelocityMesh<GID, LID>::refine(const GID& globalID, std::set<GID>& erasedBlocks,
-                                           std::map<GID, LID>& insertedBlocks) {
+inline bool
+VelocityMesh<GID, LID>::refine(const GID& globalID, std::set<GID>& erasedBlocks, std::map<GID, LID>& insertedBlocks) {
    return false;
 }
 

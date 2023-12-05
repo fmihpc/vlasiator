@@ -46,7 +46,8 @@ std::vector<CellID> mapDccrgIdToFsGridGlobalID(dccrg::Dccrg<SpatialCell, dccrg::
 void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                            const std::vector<CellID>& cells,
                            FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
-                           FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, bool dt2 = false);
+                           FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+                           bool dt2 = false);
 
 /*! Copy field solver result (VOLB, VOLE, VOLPERB derivatives, gradpe) and store them back into DCCRG
  * \param mpiGrid The DCCRG grid carrying fields.
@@ -88,7 +89,8 @@ int getNumberOfCellsOnMaxRefLvl(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geome
                                 const std::vector<CellID>& cells);
 
 void feedBoundaryIntoFsGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                            const std::vector<CellID>& cells, FsGrid<fsgrids::technical, 2>& technicalGrid);
+                            const std::vector<CellID>& cells,
+                            FsGrid<fsgrids::technical, 2>& technicalGrid);
 
 /*! Transfer field data from an FsGrid back into the appropriate CellParams slot in DCCRG
  * \param sourceGrid Fieldsolver grid for these quantities
@@ -105,7 +107,8 @@ template <unsigned int numFields>
 void getFieldDataFromFsGrid(FsGrid<std::array<Real, numFields>, FS_STENCIL_WIDTH>& sourceGrid,
                             FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
                             dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                            const std::vector<CellID>& cells, int index) {
+                            const std::vector<CellID>& cells,
+                            int index) {
 
    cint nCellsOnMaxRefLvl = getNumberOfCellsOnMaxRefLvl(mpiGrid, cells);
    std::vector<std::array<Real, numFields>> transferBufferData(nCellsOnMaxRefLvl);

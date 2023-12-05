@@ -126,8 +126,8 @@ void MultiPeak::getParameters() {
       densityModel = TestCase;
 }
 
-Real MultiPeak::getDistribValue(creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,
-                                const uint popID) const {
+Real MultiPeak::getDistribValue(creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID)
+    const {
    const MultiPeakSpeciesParameters& sP = speciesParams[popID];
    creal mass = getObjectWrapper().particleSpecies[popID].mass;
    creal kb = physicalconstants::K_B;
@@ -144,8 +144,18 @@ Real MultiPeak::getDistribValue(creal& vx, creal& vy, creal& vz, creal& dvx, cre
    return value;
 }
 
-Real MultiPeak::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx,
-                                      creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,
+Real MultiPeak::calcPhaseSpaceDensity(creal& x,
+                                      creal& y,
+                                      creal& z,
+                                      creal& dx,
+                                      creal& dy,
+                                      creal& dz,
+                                      creal& vx,
+                                      creal& vy,
+                                      creal& vz,
+                                      creal& dvx,
+                                      creal& dvy,
+                                      creal& dvz,
                                       const uint popID) const {
    // Iterative sampling of the distribution function. Keep track of the
    // accumulated volume average over the iterations. When the next

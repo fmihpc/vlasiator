@@ -40,8 +40,18 @@ bool harm1D::initialize(void) { return true; }
 void harm1D::addParameters() {}
 void harm1D::getParameters() {}
 
-Real harm1D::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy,
-                                   creal& vz, creal& dvx, creal& dvy, creal& dvz) {
+Real harm1D::calcPhaseSpaceDensity(creal& x,
+                                   creal& y,
+                                   creal& z,
+                                   creal& dx,
+                                   creal& dy,
+                                   creal& dz,
+                                   creal& vx,
+                                   creal& vy,
+                                   creal& vz,
+                                   creal& dvx,
+                                   creal& dvy,
+                                   creal& dvz) {
    /*
    creal VX0 = 0.5;
    creal VY0 = 0.0;

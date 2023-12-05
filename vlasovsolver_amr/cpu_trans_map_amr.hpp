@@ -72,8 +72,11 @@ bool do_translate_cell(SpatialCell* SC) {
 
  TODO: not needed anymore as we do not need to compute ngbrs for remote cells
  */
-CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const CellID& cellID,
-                            const bool include_first_boundary_layer, const int spatial_di, const int spatial_dj,
+CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                            const CellID& cellID,
+                            const bool include_first_boundary_layer,
+                            const int spatial_di,
+                            const int spatial_dj,
                             const int spatial_dk) {
    dccrg::Types<3>::indices_t indices_unsigned = mpiGrid.mapping.get_indices(cellID);
    int64_t indices[3];
@@ -137,7 +140,9 @@ CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geo
 }
 
 template <int DIR>
-inline void addUpstreamBlocks(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, CellID nbrID, int dim,
+inline void addUpstreamBlocks(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                              CellID nbrID,
+                              int dim,
                               vmesh::VelocityMesh<vmesh::GlobalID, vmesh::LocalID>& vmesh) {
    if (nbrID == INVALID_CELLID)
       return;
@@ -195,7 +200,9 @@ inline void addUpstreamBlocks(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometr
    }
 }
 
-void createTargetMesh(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, CellID cellID, int dim,
+void createTargetMesh(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                      CellID cellID,
+                      int dim,
                       bool isRemoteCell) {
    const size_t popID = 0;
 
@@ -303,7 +310,9 @@ void compute_spatial_source_neighbors(const dccrg::Dccrg<SpatialCell,dccrg::Cart
 
 /*compute spatial target neighbors, stencil has a size of 3. No boundary cells are included*/
 void compute_spatial_target_neighbors(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                      const CellID& cellID, const uint dimension, CellID* neighbors) {
+                                      const CellID& cellID,
+                                      const uint dimension,
+                                      CellID* neighbors) {
    for (int i = -1; i <= 1; ++i) {
       switch (dimension) {
       case 0:
@@ -510,7 +519,9 @@ bool trans_prepare_block_data(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    return return_value;
 }*/
 
-void getTargetArrays(const vmesh::GlobalID targetGID, const int& dim, SpatialCell* targetCell,
+void getTargetArrays(const vmesh::GlobalID targetGID,
+                     const int& dim,
+                     SpatialCell* targetCell,
                      std::vector<Realf*>& targetBlockData) {
    // Fetch pointers to neighbor block data arrays.
    // There will be either 1 or 8 pointers, depending on
@@ -613,8 +624,8 @@ void depositToNeighbor(std::vector<Realf*>& targetBlockData,const REAL& amount,c
 }*/
 
 template <typename REAL>
-inline void depositToNeighbor(std::vector<Realf*>& targetBlockData, const REAL* amount, const int& i, const int& j,
-                              const int& k) {
+inline void
+depositToNeighbor(std::vector<Realf*>& targetBlockData, const REAL* amount, const int& i, const int& j, const int& k) {
    switch (targetBlockData.size()) {
    case 0:
       break;
@@ -656,8 +667,10 @@ inline void depositToNeighbor(std::vector<Realf*>& targetBlockData, const REAL* 
  This function can, and should be, safely called in a parallel
  OpenMP region (as long as it does only one dimension per parallel
  refion). It is safe as each thread only computes certain blocks (blockID%tnum_threads = thread_num */
-bool trans_map_1d(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const CellID cellID,
-                  const uint dimension, const Real dt) {
+bool trans_map_1d(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                  const CellID cellID,
+                  const uint dimension,
+                  const Real dt) {
    // Compute target cells (this cell and its face neighbors)
    CellID targetCellIDs[3];
    compute_spatial_target_neighbors(mpiGrid, cellID, dimension, targetCellIDs);

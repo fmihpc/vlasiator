@@ -62,8 +62,8 @@ double lineAverage(const T3DFunction& f1, coordinate line, double accuracy, cons
    return value;
 }
 
-double surfaceAverage(const T3DFunction& f1, coordinate face, double accuracy, const double r1[3], double L1,
-                      double L2) {
+double
+surfaceAverage(const T3DFunction& f1, coordinate face, double accuracy, const double r1[3], double L1, double L2) {
    using namespace std::placeholders;
    double value;
    const double acc = accuracy * L1 * L2;

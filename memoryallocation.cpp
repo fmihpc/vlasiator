@@ -163,7 +163,9 @@ void report_process_memory_consumption(double extra_bytes) {
       }
       if (rank == MASTER_RANK) {
          bailout(max_mem_papi[0] / GiB > Parameters::bailout_max_memory,
-                 "Memory high water mark per node exceeds bailout threshold", __FILE__, __LINE__);
+                 "Memory high water mark per node exceeds bailout threshold",
+                 __FILE__,
+                 __LINE__);
       }
    }
 

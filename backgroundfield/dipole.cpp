@@ -29,7 +29,10 @@ Background magnetic field class of Vlasiator.
 #include <stdlib.h>
 
 // tilt_angle is agains the z axis in the x-z plane. In radians*/
-void Dipole::initialize(const double moment, const double center_x, const double center_y, const double center_z,
+void Dipole::initialize(const double moment,
+                        const double center_x,
+                        const double center_y,
+                        const double center_z,
                         const double tilt_angle = 0) {
    this->initialized = true;
    q[0] = -sin(tilt_angle) * moment;
@@ -40,7 +43,11 @@ void Dipole::initialize(const double moment, const double center_x, const double
    center[2] = center_z;
 }
 
-double Dipole::operator()(double x, double y, double z, coordinate component, unsigned int derivative,
+double Dipole::operator()(double x,
+                          double y,
+                          double z,
+                          coordinate component,
+                          unsigned int derivative,
                           coordinate dcomponent) const {
    const double minimumR =
        1e-3 * physicalconstants::R_E; // The dipole field is defined to be outside of Earth, and units are in meters

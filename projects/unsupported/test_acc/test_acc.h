@@ -55,8 +55,14 @@ bool getProjectParameters(void);
 void setProjectCell(SpatialCell* cell);
 
 template <typename UINT, typename REAL>
-void calcAccFaceX(REAL& ax, REAL& ay, REAL& az, const UINT& I, const UINT& J, const UINT& K,
-                  const REAL* const cellParams, const REAL* const blockParams) {
+void calcAccFaceX(REAL& ax,
+                  REAL& ay,
+                  REAL& az,
+                  const UINT& I,
+                  const UINT& J,
+                  const UINT& K,
+                  const REAL* const cellParams,
+                  const REAL* const blockParams) {
    ax = blockParams[BlockParams::VXCRD] + (I + convert<REAL>(0.5)) * blockParams[BlockParams::DVX];
    ay = blockParams[BlockParams::VYCRD] + (J + convert<REAL>(0.5)) * blockParams[BlockParams::DVY];
    az = blockParams[BlockParams::VZCRD] + (K + convert<REAL>(0.5)) * blockParams[BlockParams::DVZ];
@@ -78,8 +84,14 @@ void calcAccFaceX(REAL& ax, REAL& ay, REAL& az, const UINT& I, const UINT& J, co
 }
 
 template <typename UINT, typename REAL>
-void calcAccFaceY(REAL& ax, REAL& ay, REAL& az, const UINT& I, const UINT& J, const UINT& K,
-                  const REAL* const cellParams, const REAL* const blockParams) {
+void calcAccFaceY(REAL& ax,
+                  REAL& ay,
+                  REAL& az,
+                  const UINT& I,
+                  const UINT& J,
+                  const UINT& K,
+                  const REAL* const cellParams,
+                  const REAL* const blockParams) {
    ax = blockParams[BlockParams::VXCRD] + (I + convert<REAL>(0.5)) * blockParams[BlockParams::DVX];
    ay = blockParams[BlockParams::VYCRD] + (J + convert<REAL>(0.5)) * blockParams[BlockParams::DVY];
    az = blockParams[BlockParams::VZCRD] + (K + convert<REAL>(0.5)) * blockParams[BlockParams::DVZ];
@@ -101,8 +113,14 @@ void calcAccFaceY(REAL& ax, REAL& ay, REAL& az, const UINT& I, const UINT& J, co
 }
 
 template <typename UINT, typename REAL>
-void calcAccFaceZ(REAL& ax, REAL& ay, REAL& az, const UINT& I, const UINT& J, const UINT& K,
-                  const REAL* const cellParams, const REAL* const blockParams) {
+void calcAccFaceZ(REAL& ax,
+                  REAL& ay,
+                  REAL& az,
+                  const UINT& I,
+                  const UINT& J,
+                  const UINT& K,
+                  const REAL* const cellParams,
+                  const REAL* const blockParams) {
    ax = blockParams[BlockParams::VXCRD] + (I + convert<REAL>(0.5)) * blockParams[BlockParams::DVX];
    ay = blockParams[BlockParams::VYCRD] + (J + convert<REAL>(0.5)) * blockParams[BlockParams::DVY];
    az = blockParams[BlockParams::VZCRD] + (K + convert<REAL>(0.5)) * blockParams[BlockParams::DVZ];

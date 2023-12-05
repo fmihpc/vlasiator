@@ -62,7 +62,8 @@ void Copysphere::addParameters() {
                        2);
    Readparameters::add(
        "copysphere.precedence",
-       "Precedence value of the copysphere system boundary condition (integer), the higher the stronger.", 2);
+       "Precedence value of the copysphere system boundary condition (integer), the higher the stronger.",
+       2);
    Readparameters::add("copysphere.reapplyUponRestart",
                        "If 0 (default), keep going with the state existing in the restart file. If 1, calls again "
                        "applyInitialState. Can be used to change boundary condition behaviour during a run.",
@@ -74,12 +75,12 @@ void Copysphere::addParameters() {
 
       Readparameters::add(pop + "_copysphere.rho", "Number density of the copysphere (m^-3)", 0.0);
       Readparameters::add(pop + "_copysphere.T", "Temperature of the copysphere (K)", 0.0);
-      Readparameters::add(pop + "_copysphere.VX0",
-                          "Bulk velocity of copyspheric distribution function in X direction (m/s)", 0.0);
-      Readparameters::add(pop + "_copysphere.VY0",
-                          "Bulk velocity of copyspheric distribution function in X direction (m/s)", 0.0);
-      Readparameters::add(pop + "_copysphere.VZ0",
-                          "Bulk velocity of copyspheric distribution function in X direction (m/s)", 0.0);
+      Readparameters::add(
+          pop + "_copysphere.VX0", "Bulk velocity of copyspheric distribution function in X direction (m/s)", 0.0);
+      Readparameters::add(
+          pop + "_copysphere.VY0", "Bulk velocity of copyspheric distribution function in X direction (m/s)", 0.0);
+      Readparameters::add(
+          pop + "_copysphere.VZ0", "Bulk velocity of copyspheric distribution function in X direction (m/s)", 0.0);
       Readparameters::add(pop + "_copysphere.fluffiness",
                           "Inertia of boundary smoothing when copying neighbour's moments and velocity distributions "
                           "(0=completely constant boundaries, 1=neighbours are interpolated immediately).",
@@ -213,7 +214,9 @@ bool Copysphere::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartes
 }
 
 std::array<Real, 3>
-Copysphere::fieldSolverGetNormalDirection(FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j,
+Copysphere::fieldSolverGetNormalDirection(FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+                                          cint i,
+                                          cint j,
                                           cint k) {
    phiprof::Timer timer{"Copysphere::fieldSolverGetNormalDirection"};
    std::array<Real, 3> normalDirection{{0.0, 0.0, 0.0}};
@@ -495,7 +498,12 @@ Copysphere::fieldSolverGetNormalDirection(FsGrid<fsgrids::technical, FS_STENCIL_
  */
 Real Copysphere::fieldSolverBoundaryCondMagneticField(
     FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& bGrid,
-    FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k, creal& dt, cuint& component) {
+    FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+    cint i,
+    cint j,
+    cint k,
+    creal& dt,
+    cuint& component) {
    if (technicalGrid.get(i, j, k)->sysBoundaryLayer == 1) {
       switch (component) {
       case 0:
@@ -662,13 +670,19 @@ Real Copysphere::fieldSolverBoundaryCondMagneticField(
 }
 
 void Copysphere::fieldSolverBoundaryCondElectricField(
-    FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EGrid, cint i, cint j, cint k,
+    FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EGrid,
+    cint i,
+    cint j,
+    cint k,
     cuint component) {
    EGrid.get(i, j, k)->at(fsgrids::efield::EX + component) = 0.0;
 }
 
 void Copysphere::fieldSolverBoundaryCondHallElectricField(
-    FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH>& EHallGrid, cint i, cint j, cint k,
+    FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH>& EHallGrid,
+    cint i,
+    cint j,
+    cint k,
     cuint component) {
    std::array<Real, fsgrids::ehall::N_EHALL>* cp = EHallGrid.get(i, j, k);
    switch (component) {
@@ -697,31 +711,43 @@ void Copysphere::fieldSolverBoundaryCondHallElectricField(
 }
 
 void Copysphere::fieldSolverBoundaryCondGradPeElectricField(
-    FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH>& EGradPeGrid, cint i, cint j, cint k,
+    FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH>& EGradPeGrid,
+    cint i,
+    cint j,
+    cint k,
     cuint component) {
    EGradPeGrid.get(i, j, k)->at(fsgrids::egradpe::EXGRADPE + component) = 0.0;
 }
 
 void Copysphere::fieldSolverBoundaryCondDerivatives(
     FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
-    FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid, cint i, cint j, cint k,
-    cuint& RKCase, cuint& component) {
+    FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
+    cint i,
+    cint j,
+    cint k,
+    cuint& RKCase,
+    cuint& component) {
    this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, component);
    return;
 }
 
 void Copysphere::fieldSolverBoundaryCondBVOLDerivatives(FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, 2>& volGrid,
-                                                        cint i, cint j, cint k, cuint& component) {
+                                                        cint i,
+                                                        cint j,
+                                                        cint k,
+                                                        cuint& component) {
    // FIXME This should be OK as the BVOL derivatives are only used for Lorentz force JXB, which is not applied on the
    // copy sphere cells.
    this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
 }
 
 void Copysphere::vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                         const CellID& cellID, const uint popID, const bool calculate_V_moments) {
+                                         const CellID& cellID,
+                                         const uint popID,
+                                         const bool calculate_V_moments) {
    phiprof::Timer timer{"vlasovBoundaryCondition (Copysphere)"};
-   this->vlasovBoundaryFluffyCopyFromAllCloseNbrs(mpiGrid, cellID, popID, calculate_V_moments,
-                                                  this->speciesParams[popID].fluffiness);
+   this->vlasovBoundaryFluffyCopyFromAllCloseNbrs(
+       mpiGrid, cellID, popID, calculate_V_moments, this->speciesParams[popID].fluffiness);
 }
 
 /**
@@ -778,13 +804,13 @@ void Copysphere::generateTemplateCell(Project& project) {
                      for (uint vi = 0; vi < sP.nVelocitySamples; ++vi)
                         for (uint vj = 0; vj < sP.nVelocitySamples; ++vj)
                            for (uint vk = 0; vk < sP.nVelocitySamples; ++vk) {
-                              average += shiftedMaxwellianDistribution(popID, vxCell + vi * d_vx, vyCell + vj * d_vy,
-                                                                       vzCell + vk * d_vz);
+                              average += shiftedMaxwellianDistribution(
+                                  popID, vxCell + vi * d_vx, vyCell + vj * d_vy, vzCell + vk * d_vz);
                            }
                      average /= sP.nVelocitySamples * sP.nVelocitySamples * sP.nVelocitySamples;
                   } else {
-                     average = shiftedMaxwellianDistribution(popID, vxCell + 0.5 * dvxCell, vyCell + 0.5 * dvyCell,
-                                                             vzCell + 0.5 * dvzCell);
+                     average = shiftedMaxwellianDistribution(
+                         popID, vxCell + 0.5 * dvxCell, vyCell + 0.5 * dvyCell, vzCell + 0.5 * dvzCell);
                   }
 
                   if (average != 0.0) {
@@ -840,8 +866,8 @@ std::vector<vmesh::GlobalID> Copysphere::findBlocksToInitialize(spatial_cell::Sp
 
    while (search) {
       if (0.1 * cell.getVelocityBlockMinValue(popID) >
-              shiftedMaxwellianDistribution(popID, counter * cell.get_velocity_grid_block_size(popID, refLevel)[0], 0.0,
-                                            0.0) ||
+              shiftedMaxwellianDistribution(
+                  popID, counter * cell.get_velocity_grid_block_size(popID, refLevel)[0], 0.0, 0.0) ||
           counter > vblocks_ini[0]) {
          search = false;
       }

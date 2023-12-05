@@ -69,8 +69,8 @@ Transform<Real, 3, Affine> compute_acceleration_transformation(SpatialCell* spat
    spatial_cell->parameters[CellParams::RHOQ_V] = 0.0;
 
    for (vmesh::LocalID block_i = 0; block_i < spatial_cell->get_number_of_velocity_blocks(); ++block_i) {
-      cpu_calcVelocityFirstMoments(spatial_cell, block_i, CellParams::RHOM_V, CellParams::VX_V, CellParams::VY_V,
-                                   CellParams::VZ_V);
+      cpu_calcVelocityFirstMoments(
+          spatial_cell, block_i, CellParams::RHOM_V, CellParams::VX_V, CellParams::VY_V, CellParams::VZ_V);
    }
 
    const Real rhoq = spatial_cell->parameters[CellParams::RHOQ_V];

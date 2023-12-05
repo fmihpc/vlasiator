@@ -41,8 +41,12 @@ inline bool paircomparator(const std::pair<uint, uint>& l, const std::pair<uint,
 */
 #warning "unfinished documentation"
 void sortBlocklistByDimension( // const spatial_cell::SpatialCell* spatial_cell,
-    const vmesh::VelocityMesh<vmesh::GlobalID, vmesh::LocalID>& vmesh, const uint dimension, uint* blocks,
-    std::vector<uint>& columnBlockOffsets, std::vector<uint>& columnNumBlocks, std::vector<uint>& setColumnOffsets,
+    const vmesh::VelocityMesh<vmesh::GlobalID, vmesh::LocalID>& vmesh,
+    const uint dimension,
+    uint* blocks,
+    std::vector<uint>& columnBlockOffsets,
+    std::vector<uint>& columnNumBlocks,
+    std::vector<uint>& setColumnOffsets,
     std::vector<uint>& setNumColumns) {
    // const uint nBlocks = spatial_cell->get_number_of_velocity_blocks(); // Number of blocks
    const vmesh::LocalID nBlocks = vmesh.size();

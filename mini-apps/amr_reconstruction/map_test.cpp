@@ -24,8 +24,13 @@ void print_values(int step, Vec* values, uint blocks_per_dim, Real v_min, Real d
    FILE* fp = fopen(name, "w");
    for (uint i = 0; i < blocks_per_dim * WID; i++) {
       Real v = v_min + (i + 0.5) * dv;
-      fprintf(fp, "%20.12g %20.12g %20.12g %20.12g %20.12g\n", v, values[i + WID][0], values[i + WID][1],
-              values[i + WID][2], values[i + WID][3]);
+      fprintf(fp,
+              "%20.12g %20.12g %20.12g %20.12g %20.12g\n",
+              v,
+              values[i + WID][0],
+              values[i + WID][1],
+              values[i + WID][2],
+              values[i + WID][3]);
    }
    fclose(fp);
 }

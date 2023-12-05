@@ -98,7 +98,8 @@ SpatialCell::SpatialCell() {
  * NOTE: The VAMR mesh must be valid, otherwise this function will
  * remove some blocks that should not be removed.*/
 #ifndef VAMR
-void SpatialCell::adjust_velocity_blocks(const std::vector<SpatialCell*>& spatial_neighbors, const uint popID,
+void SpatialCell::adjust_velocity_blocks(const std::vector<SpatialCell*>& spatial_neighbors,
+                                         const uint popID,
                                          bool doDeleteEmptyBlocks) {
 #ifdef DEBUG_SPATIAL_CELL
    if (popID >= populations.size()) {
@@ -141,7 +142,8 @@ void SpatialCell::adjust_velocity_blocks(const std::vector<SpatialCell*>& spatia
    // neighbor cell lists with existing blocks, and raise the
    // flag for the local block with same block id
    for (std::vector<SpatialCell*>::const_iterator neighbor = spatial_neighbors.begin();
-        neighbor != spatial_neighbors.end(); ++neighbor) {
+        neighbor != spatial_neighbors.end();
+        ++neighbor) {
       for (vmesh::LocalID block_index = 0; block_index < (*neighbor)->velocity_block_with_content_list.size();
            ++block_index) {
          vmesh::GlobalID block = (*neighbor)->velocity_block_with_content_list[block_index];
@@ -194,14 +196,16 @@ void SpatialCell::adjust_velocity_blocks(const std::vector<SpatialCell*>& spatia
 
    // ADD all blocks with neighbors in spatial or velocity space (if it exists then the block is unchanged)
    for (std::unordered_set<vmesh::GlobalID>::iterator it = neighbors_have_content.begin();
-        it != neighbors_have_content.end(); ++it) {
+        it != neighbors_have_content.end();
+        ++it) {
       this->add_velocity_block(*it, popID);
    }
 }
 
 #else // VAMR version
 
-void SpatialCell::adjust_velocity_blocks(const std::vector<SpatialCell*>& spatial_neighbors, const uint popID,
+void SpatialCell::adjust_velocity_blocks(const std::vector<SpatialCell*>& spatial_neighbors,
+                                         const uint popID,
                                          bool doDeleteEmptyBlocks) {
    //  This set contains all those cell ids which have neighbors in any
    //  of the 6-dimensions Actually, we would only need to add
@@ -223,7 +227,8 @@ void SpatialCell::adjust_velocity_blocks(const std::vector<SpatialCell*>& spatia
    // flag for the local block with same block id
    unordered_set<vmesh::GlobalID> spat_nbr_has_content;
    for (std::vector<SpatialCell*>::const_iterator neighbor = spatial_neighbors.begin();
-        neighbor != spatial_neighbors.end(); ++neighbor) {
+        neighbor != spatial_neighbors.end();
+        ++neighbor) {
       for (vmesh::LocalID block_index = 0; block_index < (*neighbor)->velocity_block_with_content_list.size();
            ++block_index) {
          vmesh::GlobalID block = (*neighbor)->velocity_block_with_content_list[block_index];
@@ -301,7 +306,8 @@ void SpatialCell::adjust_velocity_blocks(const std::vector<SpatialCell*>& spatia
    // First sort the list according to refinement levels. This allows
    // us to skip checking the existence of children and grandchildren below.
    for (unordered_set<vmesh::GlobalID>::const_iterator it = spat_nbr_has_content.begin();
-        it != spat_nbr_has_content.end(); ++it) {
+        it != spat_nbr_has_content.end();
+        ++it) {
       sorted[populations[popID].vmesh.getRefinementLevel(*it)].push_back(*it);
    }
 
@@ -386,7 +392,8 @@ void SpatialCell::adjustSingleCellVelocityBlocks(const uint popID) {
    adjust_velocity_blocks(neighbor_ptrs, popID, false);
 }
 
-void SpatialCell::coarsen_block(const vmesh::GlobalID& parent, const std::vector<vmesh::GlobalID>& children,
+void SpatialCell::coarsen_block(const vmesh::GlobalID& parent,
+                                const std::vector<vmesh::GlobalID>& children,
                                 const uint popID) {
 #ifdef DEBUG_SPATIAL_CELL
    if (popID >= populations.size()) {
@@ -515,7 +522,8 @@ void SpatialCell::coarsen_blocks(vamr_ref_criteria::Base* refCriterion, const ui
 
       cerr << "ref level " << r << " has " << allowCoarsen.size() << " blocks for coarsening" << endl;
       for (unordered_map<vmesh::GlobalID, vector<vmesh::GlobalID>>::const_iterator it = allowCoarsen.begin();
-           it != allowCoarsen.end(); ++it) {
+           it != allowCoarsen.end();
+           ++it) {
          coarsen_block(it->first, it->second, popID);
       }
    }
@@ -592,8 +600,10 @@ const Real& SpatialCell::get_max_v_dt(const uint popID) const {
  * @param receiving If true, this process is receiving data.
  * @param neighborhood Neighborhood ID.
  * @return MPI datatype that transfers the requested data.*/
-std::tuple<void*, int, MPI_Datatype> SpatialCell::get_mpi_datatype(const CellID cellID, const int sender_rank,
-                                                                   const int receiver_rank, const bool receiving,
+std::tuple<void*, int, MPI_Datatype> SpatialCell::get_mpi_datatype(const CellID cellID,
+                                                                   const int sender_rank,
+                                                                   const int receiver_rank,
+                                                                   const bool receiving,
                                                                    const int neighborhood) {
 
    std::vector<MPI_Aint> displacements;
@@ -829,8 +839,12 @@ std::tuple<void*, int, MPI_Datatype> SpatialCell::get_mpi_datatype(const CellID 
  * @return Sparse min value for this species.*/
 Real SpatialCell::getVelocityBlockMinValue(const uint popID) const { return populations[popID].velocityBlockMinValue; }
 
-void SpatialCell::merge_values_recursive(const uint popID, vmesh::GlobalID parentGID, vmesh::GlobalID blockGID,
-                                         uint8_t refLevel, bool recursive, const Realf* data,
+void SpatialCell::merge_values_recursive(const uint popID,
+                                         vmesh::GlobalID parentGID,
+                                         vmesh::GlobalID blockGID,
+                                         uint8_t refLevel,
+                                         bool recursive,
+                                         const Realf* data,
                                          std::set<vmesh::GlobalID>& blockRemovalList) {
 #ifdef DEBUG_SPATIAL_CELL
    if (blockGID == invalid_global_id()) {
@@ -1412,7 +1426,8 @@ void SpatialCell::prepare_to_receive_blocks(const uint popID) {
 }
 
 void SpatialCell::refine_block(const vmesh::GlobalID& blockGID,
-                               std::map<vmesh::GlobalID, vmesh::LocalID>& insertedBlocks, const uint popID) {
+                               std::map<vmesh::GlobalID, vmesh::LocalID>& insertedBlocks,
+                               const uint popID) {
 #ifdef DEBUG_SPATIAL_CELL
    if (blockGID == invalid_global_id()) {
       std::cerr << "invalid global ID, skip refinement" << std::endl;

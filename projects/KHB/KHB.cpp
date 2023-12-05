@@ -127,8 +127,19 @@ Real KHB::getDistribValue(creal& x, creal& z, creal& vx, creal& vy, creal& vz, c
           exp(-mass * (pow(vx - Vx, 2.0) + pow(vy - Vy, 2.0) + pow(vz - Vz, 2.0)) / (2.0 * kb * T));
 }
 
-Real KHB::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy,
-                                creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
+Real KHB::calcPhaseSpaceDensity(creal& x,
+                                creal& y,
+                                creal& z,
+                                creal& dx,
+                                creal& dy,
+                                creal& dz,
+                                creal& vx,
+                                creal& vy,
+                                creal& vz,
+                                creal& dvx,
+                                creal& dvy,
+                                creal& dvz,
+                                const uint popID) const {
    creal d_x = dx / (this->nSpaceSamples - 1);
    creal d_z = dz / (this->nSpaceSamples - 1);
    creal d_vx = dvx / (this->nVelocitySamples - 1);
@@ -193,12 +204,18 @@ void KHB::setProjectBField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, F
                   cell->at(fsgrids::bfield::PERBY) = Byavg / nPts;
                   cell->at(fsgrids::bfield::PERBZ) = Bzavg / nPts;
                } else {
-                  cell->at(fsgrids::bfield::PERBX) = profile(this->Bx[this->BOTTOM], this->Bx[this->TOP],
-                                                             xyz[0] + 0.5 * perBGrid.DX, xyz[2] + 0.5 * perBGrid.DZ);
-                  cell->at(fsgrids::bfield::PERBY) = profile(this->By[this->BOTTOM], this->By[this->TOP],
-                                                             xyz[0] + 0.5 * perBGrid.DX, xyz[2] + 0.5 * perBGrid.DZ);
-                  cell->at(fsgrids::bfield::PERBZ) = profile(this->Bz[this->BOTTOM], this->Bz[this->TOP],
-                                                             xyz[0] + 0.5 * perBGrid.DX, xyz[2] + 0.5 * perBGrid.DZ);
+                  cell->at(fsgrids::bfield::PERBX) = profile(this->Bx[this->BOTTOM],
+                                                             this->Bx[this->TOP],
+                                                             xyz[0] + 0.5 * perBGrid.DX,
+                                                             xyz[2] + 0.5 * perBGrid.DZ);
+                  cell->at(fsgrids::bfield::PERBY) = profile(this->By[this->BOTTOM],
+                                                             this->By[this->TOP],
+                                                             xyz[0] + 0.5 * perBGrid.DX,
+                                                             xyz[2] + 0.5 * perBGrid.DZ);
+                  cell->at(fsgrids::bfield::PERBZ) = profile(this->Bz[this->BOTTOM],
+                                                             this->Bz[this->TOP],
+                                                             xyz[0] + 0.5 * perBGrid.DX,
+                                                             xyz[2] + 0.5 * perBGrid.DZ);
                }
             }
          }

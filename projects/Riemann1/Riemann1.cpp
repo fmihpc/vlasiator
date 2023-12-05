@@ -91,8 +91,16 @@ void Riemann1::getParameters() {
    RP::get("Riemann.nVelocitySamples", this->nVelocitySamples);
 }
 
-Real Riemann1::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy,
-                               creal& dvz, const uint popID) const {
+Real Riemann1::getDistribValue(creal& x,
+                               creal& y,
+                               creal& z,
+                               creal& vx,
+                               creal& vy,
+                               creal& vz,
+                               creal& dvx,
+                               creal& dvy,
+                               creal& dvz,
+                               const uint popID) const {
    cint side = (x < 0.0) ? this->LEFT : this->RIGHT;
 
    return this->rho[side] *
@@ -102,8 +110,19 @@ Real Riemann1::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& v
               (2.0 * physicalconstants::K_B * this->T[side]));
 }
 
-Real Riemann1::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx,
-                                     creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
+Real Riemann1::calcPhaseSpaceDensity(creal& x,
+                                     creal& y,
+                                     creal& z,
+                                     creal& dx,
+                                     creal& dy,
+                                     creal& dz,
+                                     creal& vx,
+                                     creal& vy,
+                                     creal& vz,
+                                     creal& dvx,
+                                     creal& dvy,
+                                     creal& dvz,
+                                     const uint popID) const {
    if (this->nSpaceSamples > 1 && this->nVelocitySamples > 1) {
       creal d_x = dx / (this->nSpaceSamples - 1);
       creal d_y = dy / (this->nSpaceSamples - 1);
@@ -118,13 +137,29 @@ Real Riemann1::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, cr
                for (uint vi = 0; vi < this->nVelocitySamples; ++vi)
                   for (uint vj = 0; vj < this->nVelocitySamples; ++vj)
                      for (uint vk = 0; vk < this->nVelocitySamples; ++vk) {
-                        avg += getDistribValue(x + i * d_x, y + j * d_y, z + k * d_z, vx + vi * d_vx, vy + vj * d_vy,
-                                               vz + vk * d_vz, dvx, dvy, dvz, popID);
+                        avg += getDistribValue(x + i * d_x,
+                                               y + j * d_y,
+                                               z + k * d_z,
+                                               vx + vi * d_vx,
+                                               vy + vj * d_vy,
+                                               vz + vk * d_vz,
+                                               dvx,
+                                               dvy,
+                                               dvz,
+                                               popID);
                      }
       return avg / pow(this->nSpaceSamples, 3.0) / pow(this->nVelocitySamples, 3.0);
    } else {
-      return getDistribValue(x + 0.5 * dx, y + 0.5 * dy, z + 0.5 * dz, vx + 0.5 * dvx, vy + 0.5 * dvy, vz + 0.5 * dvz,
-                             dvx, dvy, dvz, popID);
+      return getDistribValue(x + 0.5 * dx,
+                             y + 0.5 * dy,
+                             z + 0.5 * dz,
+                             vx + 0.5 * dvx,
+                             vy + 0.5 * dvy,
+                             vz + 0.5 * dvz,
+                             dvx,
+                             dvy,
+                             dvz,
+                             popID);
    }
 }
 

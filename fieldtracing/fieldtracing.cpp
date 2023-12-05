@@ -62,7 +62,8 @@ void reduceData(FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
 void calculateIonosphereFsgridCoupling(FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
                                        FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
                                        FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
-                                       std::vector<SBC::SphericalTriGrid::Node>& nodes, creal couplingRadius) {
+                                       std::vector<SBC::SphericalTriGrid::Node>& nodes,
+                                       creal couplingRadius) {
 
    // we don't need to do anything if we have no nodes
    if (nodes.size() == 0) {
@@ -92,9 +93,9 @@ void calculateIonosphereFsgridCoupling(FsGrid<fsgrids::technical, FS_STENCIL_WID
    }
    bool anyNodeNeedsTracing;
 
-   TracingFieldFunction<Real> tracingFullField = [&perBGrid, &dPerBGrid,
-                                                  &technicalGrid](std::array<Real, 3>& r, const bool alongB,
-                                                                  std::array<Real, 3>& b) -> bool {
+   TracingFieldFunction<Real> tracingFullField =
+       [&perBGrid, &dPerBGrid, &technicalGrid](
+           std::array<Real, 3>& r, const bool alongB, std::array<Real, 3>& b) -> bool {
       return traceFullFieldFunction(perBGrid, dPerBGrid, technicalGrid, r, alongB, b);
    };
 
@@ -131,8 +132,14 @@ void calculateIonosphereFsgridCoupling(FsGrid<fsgrids::technical, FS_STENCIL_WID
                }
 
                // Make one step along the fieldline
-               stepFieldLine(x, v, nodeTracingStepSize[n], fieldTracingParameters.min_tracer_dx, technicalGrid.DX / 2,
-                             fieldTracingParameters.tracingMethod, tracingFullField, (no.x[2] < 0));
+               stepFieldLine(x,
+                             v,
+                             nodeTracingStepSize[n],
+                             fieldTracingParameters.min_tracer_dx,
+                             technicalGrid.DX / 2,
+                             fieldTracingParameters.tracingMethod,
+                             tracingFullField,
+                             (no.x[2] < 0));
 
                // If we map back into the ionosphere, we obviously don't couple out to SBC::Ionosphere::downmapRadius.
                if (x.at(0) * x.at(0) + x.at(1) * x.at(1) + x.at(2) * x.at(2) <
@@ -148,8 +155,13 @@ void calculateIonosphereFsgridCoupling(FsGrid<fsgrids::technical, FS_STENCIL_WID
                   const std::array<Real, 3> x_out = x;
 
                   // Take a step back and find the downmapRadius crossing point
-                  stepFieldLine(x, v, nodeTracingStepSize[n], fieldTracingParameters.min_tracer_dx,
-                                technicalGrid.DX / 2, fieldTracingParameters.tracingMethod, tracingFullField,
+                  stepFieldLine(x,
+                                v,
+                                nodeTracingStepSize[n],
+                                fieldTracingParameters.min_tracer_dx,
+                                technicalGrid.DX / 2,
+                                fieldTracingParameters.tracingMethod,
+                                tracingFullField,
                                 !(no.x[2] < 0));
                   Real r_out = sqrt(x_out[0] * x_out[0] + x_out[1] * x_out[1] + x_out[2] * x_out[2]);
                   Real r_in = sqrt(x[0] * x[0] + x[1] * x[1] + x[2] * x[2]);
@@ -166,9 +178,15 @@ void calculateIonosphereFsgridCoupling(FsGrid<fsgrids::technical, FS_STENCIL_WID
                   fsgridCell = getLocalFsGridCellIndexWithGhostsForCoord(technicalGrid, x);
 
                   // Interpolate and record upmapped B at final xMapped ccordinates
-                  const std::array<Real, 3> perB = interpolatePerturbedB(
-                      perBGrid, dPerBGrid, technicalGrid, fieldTracingParameters.reconstructionCoefficientsCache,
-                      fsgridCell[0], fsgridCell[1], fsgridCell[2], no.xMapped);
+                  const std::array<Real, 3> perB =
+                      interpolatePerturbedB(perBGrid,
+                                            dPerBGrid,
+                                            technicalGrid,
+                                            fieldTracingParameters.reconstructionCoefficientsCache,
+                                            fsgridCell[0],
+                                            fsgridCell[1],
+                                            fsgridCell[2],
+                                            no.xMapped);
                   no.parameters[ionosphereParameters::UPMAPPED_BX] =
                       SBC::ionosphereGrid.dipoleField(x[0], x[1], x[2], X, 0, X) + SBC::ionosphereGrid.BGB[0] + perB[0];
                   no.parameters[ionosphereParameters::UPMAPPED_BY] =
@@ -200,17 +218,37 @@ void calculateIonosphereFsgridCoupling(FsGrid<fsgrids::technical, FS_STENCIL_WID
       // Globally reduce whether any node still needs to be picked up and traced onwards
       std::vector<int> sumNodeNeedsContinuedTracing(nodes.size());
       std::vector<std::array<Real, 3>> sumNodeTracingCoordinates(nodes.size());
-      MPI_Allreduce(nodeNeedsContinuedTracing.data(), sumNodeNeedsContinuedTracing.data(), nodes.size(), MPI_INT,
-                    MPI_SUM, MPI_COMM_WORLD);
+      MPI_Allreduce(nodeNeedsContinuedTracing.data(),
+                    sumNodeNeedsContinuedTracing.data(),
+                    nodes.size(),
+                    MPI_INT,
+                    MPI_SUM,
+                    MPI_COMM_WORLD);
       if (sizeof(Real) == sizeof(double)) {
-         MPI_Allreduce(nodeTracingCoordinates.data(), sumNodeTracingCoordinates.data(), 3 * nodes.size(), MPI_DOUBLE,
-                       MPI_SUM, MPI_COMM_WORLD);
-         MPI_Allreduce(nodeTracingStepSize.data(), reducedNodeTracingStepSize.data(), nodes.size(), MPI_DOUBLE, MPI_MAX,
+         MPI_Allreduce(nodeTracingCoordinates.data(),
+                       sumNodeTracingCoordinates.data(),
+                       3 * nodes.size(),
+                       MPI_DOUBLE,
+                       MPI_SUM,
+                       MPI_COMM_WORLD);
+         MPI_Allreduce(nodeTracingStepSize.data(),
+                       reducedNodeTracingStepSize.data(),
+                       nodes.size(),
+                       MPI_DOUBLE,
+                       MPI_MAX,
                        MPI_COMM_WORLD);
       } else {
-         MPI_Allreduce(nodeTracingCoordinates.data(), sumNodeTracingCoordinates.data(), 3 * nodes.size(), MPI_FLOAT,
-                       MPI_SUM, MPI_COMM_WORLD);
-         MPI_Allreduce(nodeTracingStepSize.data(), reducedNodeTracingStepSize.data(), nodes.size(), MPI_FLOAT, MPI_MAX,
+         MPI_Allreduce(nodeTracingCoordinates.data(),
+                       sumNodeTracingCoordinates.data(),
+                       3 * nodes.size(),
+                       MPI_FLOAT,
+                       MPI_SUM,
+                       MPI_COMM_WORLD);
+         MPI_Allreduce(nodeTracingStepSize.data(),
+                       reducedNodeTracingStepSize.data(),
+                       nodes.size(),
+                       MPI_FLOAT,
+                       MPI_MAX,
                        MPI_COMM_WORLD);
       }
       for (uint n = 0; n < nodes.size(); n++) {
@@ -270,12 +308,12 @@ void calculateIonosphereFsgridCoupling(FsGrid<fsgrids::technical, FS_STENCIL_WID
       sendCouplingNum[n] = no.haveCouplingData;
    }
    if (sizeof(Real) == sizeof(double)) {
-      MPI_Allreduce(sendUpmappedB.data(), reducedUpmappedB.data(), 3 * nodes.size(), MPI_DOUBLE, MPI_SUM,
-                    MPI_COMM_WORLD);
+      MPI_Allreduce(
+          sendUpmappedB.data(), reducedUpmappedB.data(), 3 * nodes.size(), MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
       MPI_Allreduce(sendxMapped.data(), reducedxMapped.data(), 3 * nodes.size(), MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
    } else {
-      MPI_Allreduce(sendUpmappedB.data(), reducedUpmappedB.data(), 3 * nodes.size(), MPI_FLOAT, MPI_SUM,
-                    MPI_COMM_WORLD);
+      MPI_Allreduce(
+          sendUpmappedB.data(), reducedUpmappedB.data(), 3 * nodes.size(), MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
       MPI_Allreduce(sendxMapped.data(), reducedxMapped.data(), 3 * nodes.size(), MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
    }
    MPI_Allreduce(sendCouplingNum.data(), reducedCouplingNum.data(), nodes.size(), MPI_INT, MPI_SUM, MPI_COMM_WORLD);
@@ -305,7 +343,8 @@ void calculateIonosphereFsgridCoupling(FsGrid<fsgrids::technical, FS_STENCIL_WID
  * corners of the containing element.
  */
 std::array<std::pair<int, Real>, 3>
-calculateIonosphereVlasovGridCoupling(std::array<Real, 3> x, std::vector<SBC::SphericalTriGrid::Node>& nodes,
+calculateIonosphereVlasovGridCoupling(std::array<Real, 3> x,
+                                      std::vector<SBC::SphericalTriGrid::Node>& nodes,
                                       creal couplingRadius) {
 
    std::array<std::pair<int, Real>, 3> coupling;
@@ -315,8 +354,8 @@ calculateIonosphereVlasovGridCoupling(std::array<Real, 3> x, std::vector<SBC::Sp
    phiprof::Timer timer{"fieldtracing-ionosphere-VlasovGridCoupling"};
 
    // For tracing towards the vlasov boundary, we only require the dipole field.
-   TracingFieldFunction<Real> dipoleFieldOnly = [](std::array<Real, 3>& r, const bool outwards,
-                                                   std::array<Real, 3>& b) -> bool {
+   TracingFieldFunction<Real> dipoleFieldOnly =
+       [](std::array<Real, 3>& r, const bool outwards, std::array<Real, 3>& b) -> bool {
       // Get field direction
       b[0] = SBC::ionosphereGrid.dipoleField(r[0], r[1], r[2], X, 0, X) + SBC::ionosphereGrid.BGB[0];
       b[1] = SBC::ionosphereGrid.dipoleField(r[0], r[1], r[2], Y, 0, Y) + SBC::ionosphereGrid.BGB[1];
@@ -512,9 +551,9 @@ void traceOpenClosedConnection(FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& tec
    }
    bool anyNodeNeedsTracing;
 
-   TracingFieldFunction<TReal> tracingFullField = [&perBGrid, &dPerBGrid,
-                                                   &technicalGrid](std::array<TReal, 3>& r, const bool alongB,
-                                                                   std::array<TReal, 3>& b) -> bool {
+   TracingFieldFunction<TReal> tracingFullField =
+       [&perBGrid, &dPerBGrid, &technicalGrid](
+           std::array<TReal, 3>& r, const bool alongB, std::array<TReal, 3>& b) -> bool {
       return traceFullFieldFunction(perBGrid, dPerBGrid, technicalGrid, r, alongB, b);
    };
 
@@ -563,8 +602,13 @@ void traceOpenClosedConnection(FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& tec
 
                // Make one step along the fieldline
                // If the node is in the North, trace along -B (false for last argument), in the South, trace along B
-               stepFieldLine(x, v, nodeTracingStepSize[n], (TReal)fieldTracingParameters.min_tracer_dx,
-                             (TReal)technicalGrid.DX / 2, fieldTracingParameters.tracingMethod, tracingFullField,
+               stepFieldLine(x,
+                             v,
+                             nodeTracingStepSize[n],
+                             (TReal)fieldTracingParameters.min_tracer_dx,
+                             (TReal)technicalGrid.DX / 2,
+                             fieldTracingParameters.tracingMethod,
+                             tracingFullField,
                              (no.x[2] < 0));
                nodeTracingStepCount[n]++;
 
@@ -603,19 +647,39 @@ void traceOpenClosedConnection(FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& tec
       std::vector<int> sumNodeNeedsContinuedTracing(nodes.size());
       std::vector<std::array<TReal, 3>> sumNodeTracingCoordinates(nodes.size());
       std::vector<uint64_t> maxNodeStepCounter(nodes.size());
-      MPI_Allreduce(nodeNeedsContinuedTracing.data(), sumNodeNeedsContinuedTracing.data(), nodes.size(), MPI_INT,
-                    MPI_SUM, MPI_COMM_WORLD);
-      MPI_Allreduce(nodeStepCounter.data(), maxNodeStepCounter.data(), nodes.size(), MPI_UINT64_T, MPI_MAX,
+      MPI_Allreduce(nodeNeedsContinuedTracing.data(),
+                    sumNodeNeedsContinuedTracing.data(),
+                    nodes.size(),
+                    MPI_INT,
+                    MPI_SUM,
                     MPI_COMM_WORLD);
+      MPI_Allreduce(
+          nodeStepCounter.data(), maxNodeStepCounter.data(), nodes.size(), MPI_UINT64_T, MPI_MAX, MPI_COMM_WORLD);
       if (sizeof(TReal) == sizeof(double)) {
-         MPI_Allreduce(nodeTracingCoordinates.data(), sumNodeTracingCoordinates.data(), 3 * nodes.size(), MPI_DOUBLE,
-                       MPI_SUM, MPI_COMM_WORLD);
-         MPI_Allreduce(nodeTracingStepSize.data(), reducedNodeTracingStepSize.data(), nodes.size(), MPI_DOUBLE, MPI_MAX,
+         MPI_Allreduce(nodeTracingCoordinates.data(),
+                       sumNodeTracingCoordinates.data(),
+                       3 * nodes.size(),
+                       MPI_DOUBLE,
+                       MPI_SUM,
+                       MPI_COMM_WORLD);
+         MPI_Allreduce(nodeTracingStepSize.data(),
+                       reducedNodeTracingStepSize.data(),
+                       nodes.size(),
+                       MPI_DOUBLE,
+                       MPI_MAX,
                        MPI_COMM_WORLD);
       } else {
-         MPI_Allreduce(nodeTracingCoordinates.data(), sumNodeTracingCoordinates.data(), 3 * nodes.size(), MPI_FLOAT,
-                       MPI_SUM, MPI_COMM_WORLD);
-         MPI_Allreduce(nodeTracingStepSize.data(), reducedNodeTracingStepSize.data(), nodes.size(), MPI_FLOAT, MPI_MAX,
+         MPI_Allreduce(nodeTracingCoordinates.data(),
+                       sumNodeTracingCoordinates.data(),
+                       3 * nodes.size(),
+                       MPI_FLOAT,
+                       MPI_SUM,
+                       MPI_COMM_WORLD);
+         MPI_Allreduce(nodeTracingStepSize.data(),
+                       reducedNodeTracingStepSize.data(),
+                       nodes.size(),
+                       MPI_FLOAT,
+                       MPI_MAX,
                        MPI_COMM_WORLD);
       }
       for (uint n = 0; n < nodes.size(); n++) {
@@ -648,8 +712,8 @@ void traceOpenClosedConnection(FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& tec
    std::vector<int> reducedNodeMapping(nodes.size());
    std::vector<int> reducedNodeTracingStepCount(nodes.size());
    MPI_Allreduce(nodeMapping.data(), reducedNodeMapping.data(), nodes.size(), MPI_INT, MPI_MAX, MPI_COMM_WORLD);
-   MPI_Allreduce(nodeTracingStepCount.data(), reducedNodeTracingStepCount.data(), nodes.size(), MPI_INT, MPI_SUM,
-                 MPI_COMM_WORLD);
+   MPI_Allreduce(
+       nodeTracingStepCount.data(), reducedNodeTracingStepCount.data(), nodes.size(), MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
    for (uint n = 0; n < nodes.size(); n++) {
       nodes[n].openFieldLine = reducedNodeMapping.at(n);
@@ -661,14 +725,19 @@ void traceOpenClosedConnection(FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& tec
  * Beware this is inside a threaded region.
  * \sa traceFullBoxConnectionAndFluxRopes
  */
-void stepCellAcrossTaskDomain(cint n, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+void stepCellAcrossTaskDomain(cint n,
+                              FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
                               TracingFieldFunction<TReal>& tracingFullField,
                               const std::vector<std::array<TReal, 3>>& cellInitialCoordinates,
                               const std::vector<TReal>& cellCurvatureRadius,
                               std::vector<std::array<TReal, 3>>& cellTracingCoordinates,
-                              std::vector<TReal>& cellTracingStepSize, std::vector<TReal>& cellRunningDistance,
-                              std::vector<TReal>& cellMaxExtension, std::vector<signed char>& cellConnection,
-                              bool& warnMaxDistanceExceeded, const TReal maxTracingDistance, cuint DIRECTION) {
+                              std::vector<TReal>& cellTracingStepSize,
+                              std::vector<TReal>& cellRunningDistance,
+                              std::vector<TReal>& cellMaxExtension,
+                              std::vector<signed char>& cellConnection,
+                              bool& warnMaxDistanceExceeded,
+                              const TReal maxTracingDistance,
+                              cuint DIRECTION) {
    std::array<TReal, 3> x = cellTracingCoordinates[n];
    std::array<TReal, 3> v({0, 0, 0});
    while (true) {
@@ -684,8 +753,14 @@ void stepCellAcrossTaskDomain(cint n, FsGrid<fsgrids::technical, FS_STENCIL_WIDT
 
       // Make one step along the fieldline
       // Forward tracing means true for last argument
-      stepFieldLine(x, v, cellTracingStepSize[n], (TReal)100e3, (TReal)technicalGrid.DX / 2,
-                    fieldTracingParameters.tracingMethod, tracingFullField, (DIRECTION == Direction::FORWARD));
+      stepFieldLine(x,
+                    v,
+                    cellTracingStepSize[n],
+                    (TReal)100e3,
+                    (TReal)technicalGrid.DX / 2,
+                    fieldTracingParameters.tracingMethod,
+                    tracingFullField,
+                    (DIRECTION == Direction::FORWARD));
       cellRunningDistance[n] += cellTracingStepSize[n];
 
       // Look up the fsgrid cell belonging to these coordinates
@@ -698,8 +773,14 @@ void stepCellAcrossTaskDomain(cint n, FsGrid<fsgrids::technical, FS_STENCIL_WIDT
          cellConnection[n] += TracingLineEndType::CLOSED;
 
          // Take a step back and find the innerRadius crossing point
-         stepFieldLine(x, v, cellTracingStepSize[n], (TReal)100e3, (TReal)technicalGrid.DX / 2,
-                       fieldTracingParameters.tracingMethod, tracingFullField, !(DIRECTION == Direction::FORWARD));
+         stepFieldLine(x,
+                       v,
+                       cellTracingStepSize[n],
+                       (TReal)100e3,
+                       (TReal)technicalGrid.DX / 2,
+                       fieldTracingParameters.tracingMethod,
+                       tracingFullField,
+                       !(DIRECTION == Direction::FORWARD));
          TReal r_in = sqrt(cellTracingCoordinates[n][0] * cellTracingCoordinates[n][0] +
                            cellTracingCoordinates[n][1] * cellTracingCoordinates[n][1] +
                            cellTracingCoordinates[n][2] * cellTracingCoordinates[n][2]);
@@ -843,8 +924,14 @@ void traceFullBoxConnectionAndFluxRopes(FsGrid<fsgrids::technical, FS_STENCIL_WI
    for (int i = 1; i < commSize; i++) {
       displacements[i] = displacements[i - 1] + amounts[i - 1];
    }
-   MPI_Allgatherv(localDccrgCells.data(), localDccrgSize, MPI_UINT64_T, allDccrgCells.data(), amounts.data(),
-                  displacements.data(), MPI_UINT64_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(localDccrgCells.data(),
+                  localDccrgSize,
+                  MPI_UINT64_T,
+                  allDccrgCells.data(),
+                  amounts.data(),
+                  displacements.data(),
+                  MPI_UINT64_T,
+                  MPI_COMM_WORLD);
 
    // Pick an initial stepsize
    const TReal stepSize = min(1000e3, technicalGrid.DX / 2.);
@@ -931,23 +1018,55 @@ void traceFullBoxConnectionAndFluxRopes(FsGrid<fsgrids::technical, FS_STENCIL_WI
 
    // We use the connection type array to track what needs to be traced, and we need to store the previous iteration's
    // values.
-   MPI_Allreduce(cellFWConnection.data(), storedCellFWConnection.data(), globalDccrgSize, MPI_SIGNED_CHAR, MPI_MAX,
+   MPI_Allreduce(cellFWConnection.data(),
+                 storedCellFWConnection.data(),
+                 globalDccrgSize,
+                 MPI_SIGNED_CHAR,
+                 MPI_MAX,
                  MPI_COMM_WORLD);
-   MPI_Allreduce(cellBWConnection.data(), storedCellBWConnection.data(), globalDccrgSize, MPI_SIGNED_CHAR, MPI_MAX,
+   MPI_Allreduce(cellBWConnection.data(),
+                 storedCellBWConnection.data(),
+                 globalDccrgSize,
+                 MPI_SIGNED_CHAR,
+                 MPI_MAX,
                  MPI_COMM_WORLD);
    if (sizeof(TReal) == sizeof(double)) {
-      MPI_Allreduce(cellFWTracingStepSize.data(), reducedCellFWTracingStepSize.data(), globalDccrgSize, MPI_DOUBLE,
-                    MPI_MIN, MPI_COMM_WORLD);
-      MPI_Allreduce(cellBWTracingStepSize.data(), reducedCellBWTracingStepSize.data(), globalDccrgSize, MPI_DOUBLE,
-                    MPI_MIN, MPI_COMM_WORLD);
-      MPI_Allreduce(cellCurvatureRadius.data(), reducedCellCurvatureRadius.data(), globalDccrgSize, MPI_DOUBLE, MPI_MAX,
+      MPI_Allreduce(cellFWTracingStepSize.data(),
+                    reducedCellFWTracingStepSize.data(),
+                    globalDccrgSize,
+                    MPI_DOUBLE,
+                    MPI_MIN,
+                    MPI_COMM_WORLD);
+      MPI_Allreduce(cellBWTracingStepSize.data(),
+                    reducedCellBWTracingStepSize.data(),
+                    globalDccrgSize,
+                    MPI_DOUBLE,
+                    MPI_MIN,
+                    MPI_COMM_WORLD);
+      MPI_Allreduce(cellCurvatureRadius.data(),
+                    reducedCellCurvatureRadius.data(),
+                    globalDccrgSize,
+                    MPI_DOUBLE,
+                    MPI_MAX,
                     MPI_COMM_WORLD);
    } else {
-      MPI_Allreduce(cellFWTracingStepSize.data(), reducedCellFWTracingStepSize.data(), globalDccrgSize, MPI_FLOAT,
-                    MPI_MIN, MPI_COMM_WORLD);
-      MPI_Allreduce(cellBWTracingStepSize.data(), reducedCellBWTracingStepSize.data(), globalDccrgSize, MPI_FLOAT,
-                    MPI_MIN, MPI_COMM_WORLD);
-      MPI_Allreduce(cellCurvatureRadius.data(), reducedCellCurvatureRadius.data(), globalDccrgSize, MPI_FLOAT, MPI_MAX,
+      MPI_Allreduce(cellFWTracingStepSize.data(),
+                    reducedCellFWTracingStepSize.data(),
+                    globalDccrgSize,
+                    MPI_FLOAT,
+                    MPI_MIN,
+                    MPI_COMM_WORLD);
+      MPI_Allreduce(cellBWTracingStepSize.data(),
+                    reducedCellBWTracingStepSize.data(),
+                    globalDccrgSize,
+                    MPI_FLOAT,
+                    MPI_MIN,
+                    MPI_COMM_WORLD);
+      MPI_Allreduce(cellCurvatureRadius.data(),
+                    reducedCellCurvatureRadius.data(),
+                    globalDccrgSize,
+                    MPI_FLOAT,
+                    MPI_MAX,
                     MPI_COMM_WORLD);
    }
    // Don't swap the first two as the stored guys are used below
@@ -957,9 +1076,9 @@ void traceFullBoxConnectionAndFluxRopes(FsGrid<fsgrids::technical, FS_STENCIL_WI
    cellBWTracingStepSize.swap(reducedCellBWTracingStepSize);
    cellCurvatureRadius.swap(reducedCellCurvatureRadius);
 
-   TracingFieldFunction<TReal> tracingFullField = [&perBGrid, &dPerBGrid,
-                                                   &technicalGrid](std::array<TReal, 3>& r, const bool alongB,
-                                                                   std::array<TReal, 3>& b) -> bool {
+   TracingFieldFunction<TReal> tracingFullField =
+       [&perBGrid, &dPerBGrid, &technicalGrid](
+           std::array<TReal, 3>& r, const bool alongB, std::array<TReal, 3>& b) -> bool {
       return traceFullFieldFunction(perBGrid, dPerBGrid, technicalGrid, r, alongB, b);
    };
    int itCount = 0;
@@ -990,15 +1109,33 @@ void traceFullBoxConnectionAndFluxRopes(FsGrid<fsgrids::technical, FS_STENCIL_WI
 #pragma omp for schedule(dynamic)
          for (int n = 0; n < globalDccrgSize; n++) {
             if (cellFWConnection[n] % TracingLineEndType::N_TYPES == TracingLineEndType::UNPROCESSED) {
-               stepCellAcrossTaskDomain(n, technicalGrid, tracingFullField, cellInitialCoordinates, cellCurvatureRadius,
-                                        cellFWTracingCoordinates, cellFWTracingStepSize, cellFWRunningDistance,
-                                        cellMaxExtension, cellFWConnection, warnMaxDistanceExceeded, maxTracingDistance,
+               stepCellAcrossTaskDomain(n,
+                                        technicalGrid,
+                                        tracingFullField,
+                                        cellInitialCoordinates,
+                                        cellCurvatureRadius,
+                                        cellFWTracingCoordinates,
+                                        cellFWTracingStepSize,
+                                        cellFWRunningDistance,
+                                        cellMaxExtension,
+                                        cellFWConnection,
+                                        warnMaxDistanceExceeded,
+                                        maxTracingDistance,
                                         Direction::FORWARD);
             }
             if (cellBWConnection[n] % TracingLineEndType::N_TYPES == TracingLineEndType::UNPROCESSED) {
-               stepCellAcrossTaskDomain(n, technicalGrid, tracingFullField, cellInitialCoordinates, cellCurvatureRadius,
-                                        cellBWTracingCoordinates, cellBWTracingStepSize, cellBWRunningDistance,
-                                        cellMaxExtension, cellBWConnection, warnMaxDistanceExceeded, maxTracingDistance,
+               stepCellAcrossTaskDomain(n,
+                                        technicalGrid,
+                                        tracingFullField,
+                                        cellInitialCoordinates,
+                                        cellCurvatureRadius,
+                                        cellBWTracingCoordinates,
+                                        cellBWTracingStepSize,
+                                        cellBWRunningDistance,
+                                        cellMaxExtension,
+                                        cellBWConnection,
+                                        warnMaxDistanceExceeded,
+                                        maxTracingDistance,
                                         Direction::BACKWARD);
             }
          } // for
@@ -1049,36 +1186,92 @@ void traceFullBoxConnectionAndFluxRopes(FsGrid<fsgrids::technical, FS_STENCIL_WI
             smallReducedCellFWConnection.resize(smallSizeFW);
             smallReducedCellBWConnection.resize(smallSizeBW);
 
-            MPI_Allreduce(smallCellFWConnection.data(), smallReducedCellFWConnection.data(), smallSizeFW,
-                          MPI_SIGNED_CHAR, MPI_MAX, MPI_COMM_WORLD);
-            MPI_Allreduce(smallCellBWConnection.data(), smallReducedCellBWConnection.data(), smallSizeBW,
-                          MPI_SIGNED_CHAR, MPI_MAX, MPI_COMM_WORLD);
+            MPI_Allreduce(smallCellFWConnection.data(),
+                          smallReducedCellFWConnection.data(),
+                          smallSizeFW,
+                          MPI_SIGNED_CHAR,
+                          MPI_MAX,
+                          MPI_COMM_WORLD);
+            MPI_Allreduce(smallCellBWConnection.data(),
+                          smallReducedCellBWConnection.data(),
+                          smallSizeBW,
+                          MPI_SIGNED_CHAR,
+                          MPI_MAX,
+                          MPI_COMM_WORLD);
             if (sizeof(TReal) == sizeof(double)) {
-               MPI_Allreduce(smallCellFWTracingCoordinates.data(), smallSumCellFWTracingCoordinates.data(),
-                             3 * smallSizeFW, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-               MPI_Allreduce(smallCellBWTracingCoordinates.data(), smallSumCellBWTracingCoordinates.data(),
-                             3 * smallSizeBW, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-               MPI_Allreduce(smallCellFWTracingStepSize.data(), smallReducedCellFWTracingStepSize.data(), smallSizeFW,
-                             MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-               MPI_Allreduce(smallCellBWTracingStepSize.data(), smallReducedCellBWTracingStepSize.data(), smallSizeBW,
-                             MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-               MPI_Allreduce(smallCellFWRunningDistance.data(), smallReducedCellFWRunningDistance.data(), smallSizeFW,
-                             MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-               MPI_Allreduce(smallCellBWRunningDistance.data(), smallReducedCellBWRunningDistance.data(), smallSizeBW,
-                             MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+               MPI_Allreduce(smallCellFWTracingCoordinates.data(),
+                             smallSumCellFWTracingCoordinates.data(),
+                             3 * smallSizeFW,
+                             MPI_DOUBLE,
+                             MPI_SUM,
+                             MPI_COMM_WORLD);
+               MPI_Allreduce(smallCellBWTracingCoordinates.data(),
+                             smallSumCellBWTracingCoordinates.data(),
+                             3 * smallSizeBW,
+                             MPI_DOUBLE,
+                             MPI_SUM,
+                             MPI_COMM_WORLD);
+               MPI_Allreduce(smallCellFWTracingStepSize.data(),
+                             smallReducedCellFWTracingStepSize.data(),
+                             smallSizeFW,
+                             MPI_DOUBLE,
+                             MPI_MAX,
+                             MPI_COMM_WORLD);
+               MPI_Allreduce(smallCellBWTracingStepSize.data(),
+                             smallReducedCellBWTracingStepSize.data(),
+                             smallSizeBW,
+                             MPI_DOUBLE,
+                             MPI_MAX,
+                             MPI_COMM_WORLD);
+               MPI_Allreduce(smallCellFWRunningDistance.data(),
+                             smallReducedCellFWRunningDistance.data(),
+                             smallSizeFW,
+                             MPI_DOUBLE,
+                             MPI_MAX,
+                             MPI_COMM_WORLD);
+               MPI_Allreduce(smallCellBWRunningDistance.data(),
+                             smallReducedCellBWRunningDistance.data(),
+                             smallSizeBW,
+                             MPI_DOUBLE,
+                             MPI_MAX,
+                             MPI_COMM_WORLD);
             } else {
-               MPI_Allreduce(smallCellFWTracingCoordinates.data(), smallSumCellFWTracingCoordinates.data(),
-                             3 * smallSizeFW, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
-               MPI_Allreduce(smallCellBWTracingCoordinates.data(), smallSumCellBWTracingCoordinates.data(),
-                             3 * smallSizeBW, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
-               MPI_Allreduce(smallCellFWTracingStepSize.data(), smallReducedCellFWTracingStepSize.data(), smallSizeFW,
-                             MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
-               MPI_Allreduce(smallCellBWTracingStepSize.data(), smallReducedCellBWTracingStepSize.data(), smallSizeBW,
-                             MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
-               MPI_Allreduce(smallCellFWRunningDistance.data(), smallReducedCellFWRunningDistance.data(), smallSizeFW,
-                             MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
-               MPI_Allreduce(smallCellBWRunningDistance.data(), smallReducedCellBWRunningDistance.data(), smallSizeBW,
-                             MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
+               MPI_Allreduce(smallCellFWTracingCoordinates.data(),
+                             smallSumCellFWTracingCoordinates.data(),
+                             3 * smallSizeFW,
+                             MPI_FLOAT,
+                             MPI_SUM,
+                             MPI_COMM_WORLD);
+               MPI_Allreduce(smallCellBWTracingCoordinates.data(),
+                             smallSumCellBWTracingCoordinates.data(),
+                             3 * smallSizeBW,
+                             MPI_FLOAT,
+                             MPI_SUM,
+                             MPI_COMM_WORLD);
+               MPI_Allreduce(smallCellFWTracingStepSize.data(),
+                             smallReducedCellFWTracingStepSize.data(),
+                             smallSizeFW,
+                             MPI_FLOAT,
+                             MPI_MAX,
+                             MPI_COMM_WORLD);
+               MPI_Allreduce(smallCellBWTracingStepSize.data(),
+                             smallReducedCellBWTracingStepSize.data(),
+                             smallSizeBW,
+                             MPI_FLOAT,
+                             MPI_MAX,
+                             MPI_COMM_WORLD);
+               MPI_Allreduce(smallCellFWRunningDistance.data(),
+                             smallReducedCellFWRunningDistance.data(),
+                             smallSizeFW,
+                             MPI_FLOAT,
+                             MPI_MAX,
+                             MPI_COMM_WORLD);
+               MPI_Allreduce(smallCellBWRunningDistance.data(),
+                             smallReducedCellBWRunningDistance.data(),
+                             smallSizeBW,
+                             MPI_FLOAT,
+                             MPI_MAX,
+                             MPI_COMM_WORLD);
             }
          }
 #pragma omp barrier
@@ -1139,11 +1332,15 @@ void traceFullBoxConnectionAndFluxRopes(FsGrid<fsgrids::technical, FS_STENCIL_WI
    // Now we're all done we want to reduce the max extension so we can store it
    std::vector<TReal> reducedCellMaxExtension(globalDccrgSize);
    if (sizeof(TReal) == sizeof(double)) {
-      MPI_Allreduce(cellMaxExtension.data(), reducedCellMaxExtension.data(), globalDccrgSize, MPI_DOUBLE, MPI_MAX,
+      MPI_Allreduce(cellMaxExtension.data(),
+                    reducedCellMaxExtension.data(),
+                    globalDccrgSize,
+                    MPI_DOUBLE,
+                    MPI_MAX,
                     MPI_COMM_WORLD);
    } else {
-      MPI_Allreduce(cellMaxExtension.data(), reducedCellMaxExtension.data(), globalDccrgSize, MPI_FLOAT, MPI_MAX,
-                    MPI_COMM_WORLD);
+      MPI_Allreduce(
+          cellMaxExtension.data(), reducedCellMaxExtension.data(), globalDccrgSize, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
    }
 
    phiprof::Timer finalLoopTimer{"final-loop"};

@@ -129,8 +129,8 @@ void testAmr::getParameters() {
       densityModel = TestCase;
 }
 
-Real testAmr::getDistribValue(creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,
-                              const uint popID) const {
+Real testAmr::getDistribValue(creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID)
+    const {
    const testAmrSpeciesParameters& sP = speciesParams[popID];
    creal mass = getObjectWrapper().particleSpecies[popID].mass;
    creal kb = physicalconstants::K_B;
@@ -147,8 +147,19 @@ Real testAmr::getDistribValue(creal& vx, creal& vy, creal& vz, creal& dvx, creal
    return value;
 }
 
-Real testAmr::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy,
-                                    creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
+Real testAmr::calcPhaseSpaceDensity(creal& x,
+                                    creal& y,
+                                    creal& z,
+                                    creal& dx,
+                                    creal& dy,
+                                    creal& dz,
+                                    creal& vx,
+                                    creal& vy,
+                                    creal& vz,
+                                    creal& dvx,
+                                    creal& dvy,
+                                    creal& dvz,
+                                    const uint popID) const {
    // Iterative sampling of the distribution function. Keep track of the
    // accumulated volume average over the iterations. When the next
    // iteration improves the average by less than 1%, return the value.

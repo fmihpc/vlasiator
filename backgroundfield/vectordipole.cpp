@@ -31,9 +31,17 @@ Background magnetic field class of Vlasiator.
 
 // tilt_angle_phi is from the z-axis in radians
 // tilt_angle_theta is from the Sun-Earth-line in radians
-void VectorDipole::initialize(const double moment, const double center_x, const double center_y, const double center_z,
-                              const double tilt_angle_phi, const double tilt_angle_theta, const double xlimit_f,
-                              const double xlimit_z, const double IMF_Bx, const double IMF_By, const double IMF_Bz) {
+void VectorDipole::initialize(const double moment,
+                              const double center_x,
+                              const double center_y,
+                              const double center_z,
+                              const double tilt_angle_phi,
+                              const double tilt_angle_theta,
+                              const double xlimit_f,
+                              const double xlimit_z,
+                              const double IMF_Bx,
+                              const double IMF_By,
+                              const double IMF_Bz) {
    this->initialized = true;
 
    q[0] = -sin(tilt_angle_phi) * cos(tilt_angle_theta) * moment;
@@ -56,7 +64,11 @@ void VectorDipole::initialize(const double moment, const double center_x, const 
    // TODO: If values for xlimit are zero, instead place them as 15 RE and Xmax-2*cellsize?
 }
 
-double VectorDipole::operator()(double x, double y, double z, coordinate component, unsigned int derivative,
+double VectorDipole::operator()(double x,
+                                double y,
+                                double z,
+                                coordinate component,
+                                unsigned int derivative,
                                 coordinate dcomponent) const {
    const double minimumR =
        1e-3 * physicalconstants::R_E; // The dipole field is defined to be outside of Earth, and units are in meters

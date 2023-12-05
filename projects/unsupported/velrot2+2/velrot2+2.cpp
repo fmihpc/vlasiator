@@ -119,8 +119,18 @@ Real getDistribValue(creal& OMEGA, creal& x, creal& y, creal& vx, creal& vy, cre
  * @return The volume average of the distribution function in the given phase space cell.
  * The physical unit of this quantity is 1 / (m^3 (m/s)^3).
  */
-Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy,
-                           creal& vz, creal& dvx, creal& dvy, creal& dvz) {
+Real calcPhaseSpaceDensity(creal& x,
+                           creal& y,
+                           creal& z,
+                           creal& dx,
+                           creal& dy,
+                           creal& dz,
+                           creal& vx,
+                           creal& vy,
+                           creal& vz,
+                           creal& dvx,
+                           creal& dvy,
+                           creal& dvz) {
    // Calculate (r,phi) corresponding to (x,y), and check that
    // the coordinates are within the wedge containing nonzero distrib.f. values:
    creal r = sqrt(x * x + y * y);
@@ -223,11 +233,18 @@ void setProjectCell(SpatialCell* cell) {
                      creal vx_cell = vx_block + ic * dvx_blockCell;
                      creal vy_cell = vy_block + jc * dvy_blockCell;
                      creal vz_cell = vz_block + kc * dvz_blockCell;
-                     Real average =
-                         calcPhaseSpaceDensity(cell->parameters[CellParams::XCRD], cell->parameters[CellParams::YCRD],
-                                               cell->parameters[CellParams::ZCRD], cell->parameters[CellParams::DX],
-                                               cell->parameters[CellParams::DY], cell->parameters[CellParams::DZ],
-                                               vx_cell, vy_cell, vz_cell, dvx_blockCell, dvy_blockCell, dvz_blockCell);
+                     Real average = calcPhaseSpaceDensity(cell->parameters[CellParams::XCRD],
+                                                          cell->parameters[CellParams::YCRD],
+                                                          cell->parameters[CellParams::ZCRD],
+                                                          cell->parameters[CellParams::DX],
+                                                          cell->parameters[CellParams::DY],
+                                                          cell->parameters[CellParams::DZ],
+                                                          vx_cell,
+                                                          vy_cell,
+                                                          vz_cell,
+                                                          dvx_blockCell,
+                                                          dvy_blockCell,
+                                                          dvz_blockCell);
 
                      if (average != 0.0) {
                         creal vx_cell_center = vx_block + (ic + convert<Real>(0.5)) * dvx_blockCell;

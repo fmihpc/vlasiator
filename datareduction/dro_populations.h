@@ -33,7 +33,9 @@ namespace DRO {
 
 template <typename T> class DataReductionOperatorPopulations : public DataReductionOperator {
 public:
-   DataReductionOperatorPopulations(const std::string& name, const uint popID, const unsigned int byteOffset,
+   DataReductionOperatorPopulations(const std::string& name,
+                                    const uint popID,
+                                    const unsigned int byteOffset,
                                     const unsigned int vectorSize)
        : DataReductionOperator(), _byteOffset{byteOffset}, _vectorSize{vectorSize}, _popID{popID}, _name{name} {}
    virtual ~DataReductionOperatorPopulations(){};
@@ -101,7 +103,8 @@ protected:
 
 // Partial specialization for int- and real datatypes
 template <>
-bool DataReductionOperatorPopulations<Real>::getDataVectorInfo(std::string& dataType, unsigned int& dataSize,
+bool DataReductionOperatorPopulations<Real>::getDataVectorInfo(std::string& dataType,
+                                                               unsigned int& dataSize,
                                                                unsigned int& vectorSize) const {
    dataType = "float";
    dataSize = sizeof(Real);
@@ -109,7 +112,8 @@ bool DataReductionOperatorPopulations<Real>::getDataVectorInfo(std::string& data
    return true;
 }
 template <>
-bool DataReductionOperatorPopulations<int>::getDataVectorInfo(std::string& dataType, unsigned int& dataSize,
+bool DataReductionOperatorPopulations<int>::getDataVectorInfo(std::string& dataType,
+                                                              unsigned int& dataSize,
                                                               unsigned int& vectorSize) const {
    dataType = "int";
    dataSize = sizeof(int);
@@ -117,7 +121,8 @@ bool DataReductionOperatorPopulations<int>::getDataVectorInfo(std::string& dataT
    return true;
 }
 template <>
-bool DataReductionOperatorPopulations<uint>::getDataVectorInfo(std::string& dataType, unsigned int& dataSize,
+bool DataReductionOperatorPopulations<uint>::getDataVectorInfo(std::string& dataType,
+                                                               unsigned int& dataSize,
                                                                unsigned int& vectorSize) const {
    dataType = "uint";
    dataSize = sizeof(uint);

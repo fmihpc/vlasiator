@@ -37,10 +37,22 @@ private:
    double IMF[3];    // IMF value to scale to, starting at xlimit[0] and finishing at xlimit[1]
 public:
    VectorDipole(){};
-   void initialize(const double moment, const double center_x, const double center_y, const double center_z,
-                   const double tilt_angle_phi, const double tilt_angle_theta, const double xlimit_f,
-                   const double xlimit_z, const double IMF_Bx, const double IMF_By, const double IMF_Bz);
-   double operator()(double x, double y, double z, coordinate component, unsigned int derivative = 0,
+   void initialize(const double moment,
+                   const double center_x,
+                   const double center_y,
+                   const double center_z,
+                   const double tilt_angle_phi,
+                   const double tilt_angle_theta,
+                   const double xlimit_f,
+                   const double xlimit_z,
+                   const double IMF_Bx,
+                   const double IMF_By,
+                   const double IMF_Bz);
+   double operator()(double x,
+                     double y,
+                     double z,
+                     coordinate component,
+                     unsigned int derivative = 0,
                      coordinate dcomponent = X) const;
 };
 

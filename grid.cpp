@@ -86,7 +86,9 @@ void writeVelMesh(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid)
    ++counter;
 }
 
-void initializeGrids(int argn, char** argc, dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+void initializeGrids(int argn,
+                     char** argc,
+                     dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                      FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
                      FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
                      FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
@@ -94,7 +96,8 @@ void initializeGrids(int argn, char** argc, dccrg::Dccrg<SpatialCell, dccrg::Car
                      FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EGrid,
                      FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH>& EGradPeGrid,
                      FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid,
-                     FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, SysBoundary& sysBoundaries,
+                     FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+                     SysBoundary& sysBoundaries,
                      Project& project) {
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
@@ -144,7 +147,8 @@ void initializeGrids(int argn, char** argc, dccrg::Dccrg<SpatialCell, dccrg::Car
        .set_load_balancing_method(&P::loadBalanceAlgorithm[0])
        .set_neighborhood_length(neighborhood_size)
        .set_maximum_refinement_level(P::amrMaxSpatialRefLevel)
-       .set_periodic(sysBoundaries.isBoundaryPeriodic(0), sysBoundaries.isBoundaryPeriodic(1),
+       .set_periodic(sysBoundaries.isBoundaryPeriodic(0),
+                     sysBoundaries.isBoundaryPeriodic(1),
                      sysBoundaries.isBoundaryPeriodic(2))
        .initialize(comm)
        .set_geometry(geom_params);
@@ -375,7 +379,8 @@ void initializeGrids(int argn, char** argc, dccrg::Dccrg<SpatialCell, dccrg::Car
 
    if (P::isRestart == false) {
       // Apply boundary conditions so that we get correct initial moments
-      sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, Parameters::t,
+      sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid,
+                                                     Parameters::t,
                                                      true); // It doesn't matter here whether we put _R or _V moments
 
       // compute moments, and set them  in RHO* and RHO_*_DT2. If restart, they are already read in
@@ -671,7 +676,9 @@ void balanceLoad(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, 
   Further documentation in grid.h
 */
 bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                          const vector<CellID>& cellsToAdjust, bool doPrepareToReceiveBlocks, const uint popID) {
+                          const vector<CellID>& cellsToAdjust,
+                          bool doPrepareToReceiveBlocks,
+                          const uint popID) {
    phiprof::Timer readjustBlocksTimer{"re-adjust blocks", {"Block adjustment"}};
    SpatialCell::setCommunicatedSpecies(popID);
    const vector<CellID>& cells = getLocalCells();
@@ -842,7 +849,8 @@ void deallocateRemoteCellBlocks(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geome
 Updates velocity block lists between remote neighbors and prepares local
 copies of remote neighbors for receiving velocity block data.
 */
-void updateRemoteVelocityBlockLists(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const uint popID,
+void updateRemoteVelocityBlockLists(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                                    const uint popID,
                                     const uint neighborhood /*=DIST_FUNC_NEIGHBORHOOD_ID default*/
 ) {
    SpatialCell::setCommunicatedSpecies(popID);
@@ -1281,7 +1289,8 @@ bool validateMesh(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
 
          // Store all new block local IDs
          for (map<vmesh::GlobalID, vmesh::LocalID>::const_iterator it = insertedBlocks.begin();
-              it != insertedBlocks.end(); ++it) {
+              it != insertedBlocks.end();
+              ++it) {
             vmesh::LocalID newLocalID = cell->get_velocity_block_local_id(it->first, popID);
             if (newLocalID != cell->invalid_local_id()) {
                newBlocks[c].push_back(make_pair(it->first, newLocalID));
@@ -1406,8 +1415,10 @@ void mapRefinement(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid
 }
 
 bool adaptRefinement(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                     FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, SysBoundary& sysBoundaries,
-                     Project& project, int useStatic) {
+                     FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+                     SysBoundary& sysBoundaries,
+                     Project& project,
+                     int useStatic) {
    phiprof::Timer amrTimer{"Re-refine spatial cells"};
    calculateScaledDeltasSimple(mpiGrid);
 

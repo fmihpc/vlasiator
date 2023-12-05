@@ -67,8 +67,12 @@ intersection_di Change in z-coordinate for a change in i index of 1 \param inter
 change in j index of 1 \param intersection_dk Change in z-coordinate for a change in k index of 1 */
 void compute_intersections_1st(const vmesh::VelocityMesh<vmesh::GlobalID, vmesh::LocalID>& vmesh,
                                const Transform<Real, 3, Affine>& bwd_transform,
-                               const Transform<Real, 3, Affine>& fwd_transform, uint dimension, const uint8_t& refLevel,
-                               Real& intersection, Real& intersection_di, Real& intersection_dj,
+                               const Transform<Real, 3, Affine>& fwd_transform,
+                               uint dimension,
+                               const uint8_t& refLevel,
+                               Real& intersection,
+                               Real& intersection_di,
+                               Real& intersection_dj,
                                Real& intersection_dk) {
 
    if (dimension == 0) { // Prepare intersections for mapping along X first (mapping order X-Y-Z)
@@ -186,8 +190,12 @@ void compute_intersections_1st(const vmesh::VelocityMesh<vmesh::GlobalID, vmesh:
   \param intersection_dk Change in x-coordinate for a change in k index of 1*/
 void compute_intersections_2nd(const vmesh::VelocityMesh<vmesh::GlobalID, vmesh::LocalID>& vmesh,
                                const Transform<Real, 3, Affine>& bwd_transform,
-                               const Transform<Real, 3, Affine>& fwd_transform, uint dimension, const uint8_t& refLevel,
-                               Real& intersection, Real& intersection_di, Real& intersection_dj,
+                               const Transform<Real, 3, Affine>& fwd_transform,
+                               uint dimension,
+                               const uint8_t& refLevel,
+                               Real& intersection,
+                               Real& intersection_di,
+                               Real& intersection_dj,
                                Real& intersection_dk) {
 
    if (dimension == 0) { // Prepare intersections for mapping along X second (mapping order Z-X-Y)
@@ -326,8 +334,12 @@ void compute_intersections_2nd(const vmesh::VelocityMesh<vmesh::GlobalID, vmesh:
   euclidian y goes from vy_min to vy_max, this is mapped to wherever y plane is in lagrangian.*/
 void compute_intersections_3rd(const vmesh::VelocityMesh<vmesh::GlobalID, vmesh::LocalID>& vmesh,
                                const Transform<Real, 3, Affine>& bwd_transform,
-                               const Transform<Real, 3, Affine>& fwd_transform, uint dimension, const uint8_t& refLevel,
-                               Real& intersection, Real& intersection_di, Real& intersection_dj,
+                               const Transform<Real, 3, Affine>& fwd_transform,
+                               uint dimension,
+                               const uint8_t& refLevel,
+                               Real& intersection,
+                               Real& intersection_di,
+                               Real& intersection_dj,
                                Real& intersection_dk) {
 
    if (dimension == 0) { // Prepare intersections for mapping along X third (mapping order Y-Z-X)

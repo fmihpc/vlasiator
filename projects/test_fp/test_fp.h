@@ -46,13 +46,24 @@ protected:
    Real getDistribValue(creal& vx, creal& vy, creal& vz);
    bool refineSpatialCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) const;
    virtual void calcCellParameters(spatial_cell::SpatialCell* cell, creal& t);
-   virtual Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx,
-                                      creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const;
+   virtual Real calcPhaseSpaceDensity(creal& x,
+                                      creal& y,
+                                      creal& z,
+                                      creal& dx,
+                                      creal& dy,
+                                      creal& dz,
+                                      creal& vx,
+                                      creal& vy,
+                                      creal& vz,
+                                      creal& dvx,
+                                      creal& dvy,
+                                      creal& dvz,
+                                      const uint popID) const;
 
    virtual std::vector<std::array<Real, 3>> getV0(creal x, creal y, creal z, const uint popID) const;
 
-   virtual std::vector<std::array<Real, 3>> getV0(creal x, creal y, creal z, creal dx, creal dy, creal dz,
-                                                  const uint popID) const;
+   virtual std::vector<std::array<Real, 3>>
+   getV0(creal x, creal y, creal z, creal dx, creal dy, creal dz, const uint popID) const;
 
    Real V0;
    Real B0;

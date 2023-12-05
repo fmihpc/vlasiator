@@ -39,8 +39,18 @@ public:
    virtual void getParameters(void);
    virtual void calcCellParameters(Real* cellParams, creal& t);
    virtual void setCellBackgroundField(SpatialCell* cell);
-   virtual Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx,
-                                      creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz);
+   virtual Real calcPhaseSpaceDensity(creal& x,
+                                      creal& y,
+                                      creal& z,
+                                      creal& dx,
+                                      creal& dy,
+                                      creal& dz,
+                                      creal& vx,
+                                      creal& vy,
+                                      creal& vz,
+                                      creal& dvx,
+                                      creal& dvy,
+                                      creal& dvz);
 
 protected:
    Real getDistribValue(creal& x, creal& z, creal& vx, creal& vy, creal& vz);

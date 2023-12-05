@@ -41,7 +41,8 @@ bool ObjectWrapper::addPopulationParameters() {
 
       RP::add(pop + "_properties.charge", "Particle charge, in units of elementary charges (int)", 1);
       RP::add(pop + "_properties.mass_units",
-              "Units in which particle mass is given, either 'PROTON' or 'ELECTRON' (string)", std::string("PROTON"));
+              "Units in which particle mass is given, either 'PROTON' or 'ELECTRON' (string)",
+              std::string("PROTON"));
       RP::add(pop + "_properties.mass", "Particle mass in given units (float)", 1);
 
       // Grid sparsity parameters
@@ -50,9 +51,11 @@ bool ObjectWrapper::addPopulationParameters() {
               "to have contents",
               1e-15);
       RP::add(pop + "_sparse.blockAddWidthV",
-              "Number of layers of blocks that are kept in velocity space around the blocks with content", 1);
+              "Number of layers of blocks that are kept in velocity space around the blocks with content",
+              1);
       RP::add(pop + "_sparse.conserve_mass",
-              "If true, then mass is conserved by scaling the dist. func. in the remaining blocks", false);
+              "If true, then mass is conserved by scaling the dist. func. in the remaining blocks",
+              false);
       RP::add(pop + "_sparse.dynamicAlgorithm",
               "Type of algorithm used for calculating the dynamic minValue; 0 = none, 1 = linear algorithm based on "
               "rho, 2 = linear algorithm based on Blocks, (Example linear algorithm: y = kx+b, where "
@@ -90,10 +93,12 @@ bool ObjectWrapper::addPopulationParameters() {
           -500000.0);
       Readparameters::add(
           pop + "_thermal.vy",
-          "Center coordinate for the maxwellian distribution. Used for calculating the suprathermal moments.", 0.0);
+          "Center coordinate for the maxwellian distribution. Used for calculating the suprathermal moments.",
+          0.0);
       Readparameters::add(
           pop + "_thermal.vz",
-          "Center coordinate for the maxwellian distribution. Used for calculating the suprathermal moments.", 0.0);
+          "Center coordinate for the maxwellian distribution. Used for calculating the suprathermal moments.",
+          0.0);
       Readparameters::add(pop + "_thermal.radius",
                           "Radius of the maxwellian distribution. Used for calculating the suprathermal moments. If "
                           "set to 0 (default), the thermal/suprathermal DROs are skipped.",
@@ -101,11 +106,14 @@ bool ObjectWrapper::addPopulationParameters() {
 
       // Precipitation parameters
       Readparameters::add(pop + "_precipitation.nChannels",
-                          "Number of energy channels for precipitation differential flux evaluation", 16);
+                          "Number of energy channels for precipitation differential flux evaluation",
+                          16);
       Readparameters::add(pop + "_precipitation.emin",
-                          "Lowest energy channel (in eV) for precipitation differential flux evaluation", 0.1);
+                          "Lowest energy channel (in eV) for precipitation differential flux evaluation",
+                          0.1);
       Readparameters::add(pop + "_precipitation.emax",
-                          "Highest energy channel (in eV) for precipitation differential flux evaluation", 100.0);
+                          "Highest energy channel (in eV) for precipitation differential flux evaluation",
+                          100.0);
       Readparameters::add(pop + "_precipitation.lossConeAngle",
                           "Fixed loss cone opening angle (in deg) for precipitation differential flux evaluation",
                           10.0);
@@ -118,9 +126,11 @@ bool ObjectWrapper::addPopulationParameters() {
                           "Lower limit of third bin for energy density, given in units of solar wind ram energy.",
                           10.0);
       Readparameters::add(pop + "_energydensity.solarwindspeed",
-                          "Incoming solar wind velocity magnitude in m/s. Used for calculating energy densities.", 0.0);
+                          "Incoming solar wind velocity magnitude in m/s. Used for calculating energy densities.",
+                          0.0);
       Readparameters::add(pop + "_energydensity.solarwindenergy",
-                          "Incoming solar wind ram energy in eV. Used for calculating energy densities.", 0.0);
+                          "Incoming solar wind ram energy in eV. Used for calculating energy densities.",
+                          0.0);
    }
 
    return true;

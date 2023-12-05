@@ -38,7 +38,11 @@ void LineDipole::initialize(const double moment, const double center_x, const do
    center[2] = center_z;
 }
 
-double LineDipole::operator()(double x, double y, double z, coordinate component, unsigned int derivative,
+double LineDipole::operator()(double x,
+                              double y,
+                              double z,
+                              coordinate component,
+                              unsigned int derivative,
                               coordinate dcomponent) const {
    const double minimumR =
        1e-3 * physicalconstants::R_E; // The dipole field is defined to be outside of Earth, and units are in meters

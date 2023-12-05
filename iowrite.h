@@ -51,8 +51,12 @@ bool writeGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
                FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
                FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid,
-               FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, const std::string& versionInfo,
-               const std::string& configInfo, DataReducer* dataReducer, const uint& index, const int& stripe,
+               FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+               const std::string& versionInfo,
+               const std::string& configInfo,
+               DataReducer* dataReducer,
+               const uint& index,
+               const int& stripe,
                const bool writeGhosts);
 
 /*!
@@ -74,9 +78,13 @@ bool writeRestart(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                   FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
                   FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
                   FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid,
-                  FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, const std::string& versionInfo,
-                  const std::string& configInfo, DataReducer& dataReducer, const std::string& name,
-                  const uint& fileIndex, const int& stripe);
+                  FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+                  const std::string& versionInfo,
+                  const std::string& configInfo,
+                  DataReducer& dataReducer,
+                  const std::string& name,
+                  const uint& fileIndex,
+                  const int& stripe);
 
 /*!
 
@@ -87,12 +95,15 @@ bool writeRestart(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
 */
 bool writeDiagnostic(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, DataReducer& dataReducer);
 
-bool writeVelocitySpace(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, vlsv::Writer& vlsvWriter,
-                        int index, const std::vector<uint64_t>& cells);
+bool writeVelocitySpace(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                        vlsv::Writer& vlsvWriter,
+                        int index,
+                        const std::vector<uint64_t>& cells);
 
 bool writeVelocityDistributionData(vlsv::Writer& vlsvWriter,
                                    dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                   const std::vector<uint64_t>& cells, MPI_Comm comm);
+                                   const std::vector<uint64_t>& cells,
+                                   MPI_Comm comm);
 
 bool writeIonosphereGridMetadata(vlsv::Writer& vlsvWriter);
 #endif

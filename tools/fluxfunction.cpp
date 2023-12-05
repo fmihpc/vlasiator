@@ -440,8 +440,11 @@ int main(int argc, char** argv) {
    fprintf(f, "DATA_SIZE: %i %i %i\n", B.dimension[0]->cells, B.dimension[1]->cells, B.dimension[2]->cells);
    fprintf(f, "DATA_FORMAT: DOUBLE\nVARIABLE: fluxfunction\nDATA_ENDIAN: LITTLE\nCENTERING: zonal\n");
    fprintf(f, "BRICK_ORIGIN: %lf %lf %lf\n", B.dimension[0]->min, B.dimension[1]->min, B.dimension[2]->min);
-   fprintf(f, "BRICK_SIZE: %lf %lf %lf\n", B.dimension[0]->max - B.dimension[0]->min,
-           B.dimension[1]->max - B.dimension[1]->min, B.dimension[2]->max - B.dimension[2]->min);
+   fprintf(f,
+           "BRICK_SIZE: %lf %lf %lf\n",
+           B.dimension[0]->max - B.dimension[0]->min,
+           B.dimension[1]->max - B.dimension[1]->min,
+           B.dimension[2]->max - B.dimension[2]->min);
    fprintf(f, "DATA_COMPONENTS: 1\n");
 
    fclose(f);

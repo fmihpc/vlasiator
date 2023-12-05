@@ -111,8 +111,13 @@ void inline swapBlockIndices(velocity_block_indices_t& blockIndices, const uint 
    spatial cells), and would not need synchronization.
 
 */
-bool map_1d(SpatialCell* spatial_cell, const uint popID, Realv intersection, Realv intersection_di,
-            Realv intersection_dj, Realv intersection_dk, const uint dimension) {
+bool map_1d(SpatialCell* spatial_cell,
+            const uint popID,
+            Realv intersection,
+            Realv intersection_di,
+            Realv intersection_dj,
+            Realv intersection_dk,
+            const uint dimension) {
    no_subnormals();
 
    Realv dv, v_min;
@@ -197,8 +202,8 @@ bool map_1d(SpatialCell* spatial_cell, const uint popID, Realv intersection, Rea
    std::vector<int> columnMinBlockK;
    std::vector<int> columnMaxBlockK;
 
-   sortBlocklistByDimension(vmesh, dimension, blocks, columnBlockOffsets, columnNumBlocks, setColumnOffsets,
-                            setNumColumns);
+   sortBlocklistByDimension(
+       vmesh, dimension, blocks, columnBlockOffsets, columnNumBlocks, setColumnOffsets, setNumColumns);
 
    // loop over block column sets  (all columns along the dimension with the other dimensions being equal )
 
@@ -226,7 +231,8 @@ bool map_1d(SpatialCell* spatial_cell, const uint popID, Realv intersection, Rea
       // Load data into values array (this also zeroes the original data)
       uint valuesColumnOffset = 0; // offset to values array for data in a column in this set
       for (uint columnIndex = setColumnOffsets[setIndex];
-           columnIndex < setColumnOffsets[setIndex] + setNumColumns[setIndex]; columnIndex++) {
+           columnIndex < setColumnOffsets[setIndex] + setNumColumns[setIndex];
+           columnIndex++) {
          const vmesh::LocalID n_cblocks = columnNumBlocks[columnIndex];
          vmesh::GlobalID* cblocks = blocks + columnBlockOffsets[columnIndex]; // column blocks
          loadColumnBlockData(vmesh, blockContainer, cblocks, n_cblocks, dimension, values + valuesColumnOffset);
@@ -236,8 +242,11 @@ bool map_1d(SpatialCell* spatial_cell, const uint popID, Realv intersection, Rea
       /*need x,y coordinate of this column set of blocks, take it from first
         block in first column*/
       velocity_block_indices_t setFirstBlockIndices;
-      vmesh.getIndices(blocks[columnBlockOffsets[setColumnOffsets[setIndex]]], refLevel, setFirstBlockIndices[0],
-                       setFirstBlockIndices[1], setFirstBlockIndices[2]);
+      vmesh.getIndices(blocks[columnBlockOffsets[setColumnOffsets[setIndex]]],
+                       refLevel,
+                       setFirstBlockIndices[0],
+                       setFirstBlockIndices[1],
+                       setFirstBlockIndices[2]);
       swapBlockIndices(setFirstBlockIndices, dimension);
       /*compute the maximum starting point of the lagrangian (target) grid
         (base level) within the 4 corner cells in this
@@ -245,38 +254,39 @@ bool map_1d(SpatialCell* spatial_cell, const uint popID, Realv intersection, Rea
 
       Realv max_intersectionMin = intersection + (setFirstBlockIndices[0] * WID + 0) * intersection_di +
                                   (setFirstBlockIndices[1] * WID + 0) * intersection_dj;
-      max_intersectionMin =
-          std::max(max_intersectionMin, intersection + (setFirstBlockIndices[0] * WID + 0) * intersection_di +
-                                            (setFirstBlockIndices[1] * WID + WID - 1) * intersection_dj);
-      max_intersectionMin =
-          std::max(max_intersectionMin, intersection + (setFirstBlockIndices[0] * WID + WID - 1) * intersection_di +
-                                            (setFirstBlockIndices[1] * WID + 0) * intersection_dj);
-      max_intersectionMin =
-          std::max(max_intersectionMin, intersection + (setFirstBlockIndices[0] * WID + WID - 1) * intersection_di +
-                                            (setFirstBlockIndices[1] * WID + WID - 1) * intersection_dj);
+      max_intersectionMin = std::max(max_intersectionMin,
+                                     intersection + (setFirstBlockIndices[0] * WID + 0) * intersection_di +
+                                         (setFirstBlockIndices[1] * WID + WID - 1) * intersection_dj);
+      max_intersectionMin = std::max(max_intersectionMin,
+                                     intersection + (setFirstBlockIndices[0] * WID + WID - 1) * intersection_di +
+                                         (setFirstBlockIndices[1] * WID + 0) * intersection_dj);
+      max_intersectionMin = std::max(max_intersectionMin,
+                                     intersection + (setFirstBlockIndices[0] * WID + WID - 1) * intersection_di +
+                                         (setFirstBlockIndices[1] * WID + WID - 1) * intersection_dj);
 
       Realv min_intersectionMin = intersection + (setFirstBlockIndices[0] * WID + 0) * intersection_di +
                                   (setFirstBlockIndices[1] * WID + 0) * intersection_dj;
-      min_intersectionMin =
-          std::min(min_intersectionMin, intersection + (setFirstBlockIndices[0] * WID + 0) * intersection_di +
-                                            (setFirstBlockIndices[1] * WID + WID - 1) * intersection_dj);
-      min_intersectionMin =
-          std::min(min_intersectionMin, intersection + (setFirstBlockIndices[0] * WID + WID - 1) * intersection_di +
-                                            (setFirstBlockIndices[1] * WID + 0) * intersection_dj);
-      min_intersectionMin =
-          std::min(min_intersectionMin, intersection + (setFirstBlockIndices[0] * WID + WID - 1) * intersection_di +
-                                            (setFirstBlockIndices[1] * WID + WID - 1) * intersection_dj);
+      min_intersectionMin = std::min(min_intersectionMin,
+                                     intersection + (setFirstBlockIndices[0] * WID + 0) * intersection_di +
+                                         (setFirstBlockIndices[1] * WID + WID - 1) * intersection_dj);
+      min_intersectionMin = std::min(min_intersectionMin,
+                                     intersection + (setFirstBlockIndices[0] * WID + WID - 1) * intersection_di +
+                                         (setFirstBlockIndices[1] * WID + 0) * intersection_dj);
+      min_intersectionMin = std::min(min_intersectionMin,
+                                     intersection + (setFirstBlockIndices[0] * WID + WID - 1) * intersection_di +
+                                         (setFirstBlockIndices[1] * WID + WID - 1) * intersection_dj);
 
       // now, record which blocks are target blocks
       for (uint columnIndex = setColumnOffsets[setIndex];
-           columnIndex < setColumnOffsets[setIndex] + setNumColumns[setIndex]; columnIndex++) {
+           columnIndex < setColumnOffsets[setIndex] + setNumColumns[setIndex];
+           columnIndex++) {
          const vmesh::LocalID n_cblocks = columnNumBlocks[columnIndex];
          vmesh::GlobalID* cblocks = blocks + columnBlockOffsets[columnIndex]; // column blocks
          velocity_block_indices_t firstBlockIndices;
          velocity_block_indices_t lastBlockIndices;
          vmesh.getIndices(cblocks[0], refLevel, firstBlockIndices[0], firstBlockIndices[1], firstBlockIndices[2]);
-         vmesh.getIndices(cblocks[n_cblocks - 1], refLevel, lastBlockIndices[0], lastBlockIndices[1],
-                          lastBlockIndices[2]);
+         vmesh.getIndices(
+             cblocks[n_cblocks - 1], refLevel, lastBlockIndices[0], lastBlockIndices[1], lastBlockIndices[2]);
          swapBlockIndices(firstBlockIndices, dimension);
          swapBlockIndices(lastBlockIndices, dimension);
 
@@ -361,7 +371,8 @@ bool map_1d(SpatialCell* spatial_cell, const uint popID, Realv intersection, Rea
       // loop over columns in set and do the mapping
       valuesColumnOffset = 0; // offset to values array for data in a column in this set
       for (uint columnIndex = setColumnOffsets[setIndex];
-           columnIndex < setColumnOffsets[setIndex] + setNumColumns[setIndex]; columnIndex++) {
+           columnIndex < setColumnOffsets[setIndex] + setNumColumns[setIndex];
+           columnIndex++) {
          const vmesh::LocalID n_cblocks = columnNumBlocks[columnIndex];
          vmesh::GlobalID* cblocks = blocks + columnBlockOffsets[columnIndex]; // column blocks
 
@@ -446,17 +457,25 @@ bool map_1d(SpatialCell* spatial_cell, const uint popID, Realv intersection, Rea
 // k + WID is the index where we have stored k index, WID amount of padding.
 #ifdef ACC_SEMILAG_PLM
                Vec a[2];
-               compute_plm_coeff(values + valuesColumnOffset + i_pcolumnv(j, 0, -1, n_cblocks), k + WID, a,
+               compute_plm_coeff(values + valuesColumnOffset + i_pcolumnv(j, 0, -1, n_cblocks),
+                                 k + WID,
+                                 a,
                                  spatial_cell->getVelocityBlockMinValue(popID));
 #endif
 #ifdef ACC_SEMILAG_PPM
                Vec a[3];
-               compute_ppm_coeff(values + valuesColumnOffset + i_pcolumnv(j, 0, -1, n_cblocks), h4, k + WID, a,
+               compute_ppm_coeff(values + valuesColumnOffset + i_pcolumnv(j, 0, -1, n_cblocks),
+                                 h4,
+                                 k + WID,
+                                 a,
                                  spatial_cell->getVelocityBlockMinValue(popID));
 #endif
 #ifdef ACC_SEMILAG_PQM
                Vec a[5];
-               compute_pqm_coeff(values + valuesColumnOffset + i_pcolumnv(j, 0, -1, n_cblocks), h8, k + WID, a,
+               compute_pqm_coeff(values + valuesColumnOffset + i_pcolumnv(j, 0, -1, n_cblocks),
+                                 h8,
+                                 k + WID,
+                                 a,
                                  spatial_cell->getVelocityBlockMinValue(popID));
 #endif
 

@@ -76,7 +76,8 @@ DataReductionOperatorCellParams::DataReductionOperatorCellParams(const std::stri
     : DataReductionOperator(), _parameterIndex{parameterIndex}, vectorSize{_vectorSize}, variableName{name} {}
 DataReductionOperatorCellParams::~DataReductionOperatorCellParams() {}
 
-bool DataReductionOperatorCellParams::getDataVectorInfo(std::string& dataType, unsigned int& dataSize,
+bool DataReductionOperatorCellParams::getDataVectorInfo(std::string& dataType,
+                                                        unsigned int& dataSize,
                                                         unsigned int& _vectorSize) const {
    dataType = "float";
    dataSize = sizeof(Real);
@@ -112,7 +113,8 @@ bool DataReductionOperatorCellParams::setSpatialCell(const SpatialCell* cell) {
 }
 
 std::string DataReductionOperatorFsGrid::getName() const { return variableName; }
-bool DataReductionOperatorFsGrid::getDataVectorInfo(std::string& dataType, unsigned int& dataSize,
+bool DataReductionOperatorFsGrid::getDataVectorInfo(std::string& dataType,
+                                                    unsigned int& dataSize,
                                                     unsigned int& vectorSize) const {
    // These are only set to dmmy values, as this reducer writes its own vlsv dataset anyway
    dataType = "float";
@@ -137,7 +139,9 @@ bool DataReductionOperatorFsGrid::writeFsGridData(
     FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
     FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
     FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid,
-    FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, const std::string& meshName, vlsv::Writer& vlsvWriter,
+    FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+    const std::string& meshName,
+    vlsv::Writer& vlsvWriter,
     const bool writeAsFloat) {
 
    std::map<std::string, std::string> attribs;
@@ -148,8 +152,8 @@ bool DataReductionOperatorFsGrid::writeFsGridData(
    attribs["unitConversion"] = unitConversion;
    attribs["variableLaTeX"] = variableLaTeX;
 
-   std::vector<double> varBuffer = lambda(perBGrid, EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid,
-                                          BgBGrid, volGrid, technicalGrid);
+   std::vector<double> varBuffer = lambda(
+       perBGrid, EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, volGrid, technicalGrid);
 
    std::array<int32_t, 3>& gridSize = technicalGrid.getLocalSize();
    int vectorSize = varBuffer.size() / (gridSize[0] * gridSize[1] * gridSize[2]);
@@ -160,15 +164,25 @@ bool DataReductionOperatorFsGrid::writeFsGridData(
       for (uint i = 0; i < varBuffer.size(); i++) {
          varBufferFloat[i] = (float)varBuffer[i];
       }
-      if (vlsvWriter.writeArray("VARIABLE", attribs, "float", gridSize[0] * gridSize[1] * gridSize[2], vectorSize,
-                                sizeof(float), reinterpret_cast<const char*>(varBufferFloat.data())) == false) {
+      if (vlsvWriter.writeArray("VARIABLE",
+                                attribs,
+                                "float",
+                                gridSize[0] * gridSize[1] * gridSize[2],
+                                vectorSize,
+                                sizeof(float),
+                                reinterpret_cast<const char*>(varBufferFloat.data())) == false) {
          string message = "The DataReductionOperator " + this->getName() + " failed to write its data.";
          bailout(true, message, __FILE__, __LINE__);
       }
 
    } else {
-      if (vlsvWriter.writeArray("VARIABLE", attribs, "float", gridSize[0] * gridSize[1] * gridSize[2], vectorSize,
-                                sizeof(double), reinterpret_cast<const char*>(varBuffer.data())) == false) {
+      if (vlsvWriter.writeArray("VARIABLE",
+                                attribs,
+                                "float",
+                                gridSize[0] * gridSize[1] * gridSize[2],
+                                vectorSize,
+                                sizeof(double),
+                                reinterpret_cast<const char*>(varBuffer.data())) == false) {
          string message = "The DataReductionOperator " + this->getName() + " failed to write its data.";
          bailout(true, message, __FILE__, __LINE__);
       }
@@ -178,7 +192,8 @@ bool DataReductionOperatorFsGrid::writeFsGridData(
 }
 
 std::string DataReductionOperatorIonosphereElement::getName() const { return variableName; }
-bool DataReductionOperatorIonosphereElement::getDataVectorInfo(std::string& dataType, unsigned int& dataSize,
+bool DataReductionOperatorIonosphereElement::getDataVectorInfo(std::string& dataType,
+                                                               unsigned int& dataSize,
                                                                unsigned int& vectorSize) const {
    dataType = "float";
    dataSize = sizeof(double);
@@ -224,7 +239,12 @@ bool DataReductionOperatorIonosphereElement::writeIonosphereData(SBC::SphericalT
       // We need to have vectorSize the same on all ranks, otherwise MPI_COMM_WORLD rank 0 writes a bogus value
       MPI_Bcast(&vectorSize, 1, MPI_INT, grid.writingRank, MPI_COMM_WORLD);
 
-      if (vlsvWriter.writeArray("VARIABLE", attribs, "float", grid.elements.size(), vectorSize, sizeof(Real),
+      if (vlsvWriter.writeArray("VARIABLE",
+                                attribs,
+                                "float",
+                                grid.elements.size(),
+                                vectorSize,
+                                sizeof(Real),
                                 reinterpret_cast<const char*>(varBuffer.data())) == false) {
          string message = "The DataReductionOperator " + this->getName() + " failed to write its data.";
          bailout(true, message, __FILE__, __LINE__);
@@ -242,14 +262,16 @@ bool DataReductionOperatorIonosphereElement::writeIonosphereData(SBC::SphericalT
 
 std::string DataReductionOperatorIonosphereNode::getName() const { return variableName; }
 std::string DataReductionOperatorIonosphereNodeInt::getName() const { return variableName; }
-bool DataReductionOperatorIonosphereNode::getDataVectorInfo(std::string& dataType, unsigned int& dataSize,
+bool DataReductionOperatorIonosphereNode::getDataVectorInfo(std::string& dataType,
+                                                            unsigned int& dataSize,
                                                             unsigned int& vectorSize) const {
    dataType = "float";
    dataSize = sizeof(double);
    vectorSize = 1;
    return true;
 }
-bool DataReductionOperatorIonosphereNodeInt::getDataVectorInfo(std::string& dataType, unsigned int& dataSize,
+bool DataReductionOperatorIonosphereNodeInt::getDataVectorInfo(std::string& dataType,
+                                                               unsigned int& dataSize,
                                                                unsigned int& vectorSize) const {
    dataType = "int";
    dataSize = sizeof(int);
@@ -305,7 +327,12 @@ bool DataReductionOperatorIonosphereNode::writeIonosphereData(SBC::SphericalTriG
       // We need to have vectorSize the same on all ranks, otherwise MPI_COMM_WORLD rank 0 writes a bogus value
       MPI_Bcast(&vectorSize, 1, MPI_INT, grid.writingRank, MPI_COMM_WORLD);
 
-      if (vlsvWriter.writeArray("VARIABLE", attribs, "float", grid.nodes.size(), vectorSize, sizeof(Real),
+      if (vlsvWriter.writeArray("VARIABLE",
+                                attribs,
+                                "float",
+                                grid.nodes.size(),
+                                vectorSize,
+                                sizeof(Real),
                                 reinterpret_cast<const char*>(varBuffer.data())) == false) {
          string message = "The DataReductionOperator " + this->getName() + " failed to write its data.";
          bailout(true, message, __FILE__, __LINE__);
@@ -359,7 +386,12 @@ bool DataReductionOperatorIonosphereNodeInt::writeIonosphereData(SBC::SphericalT
       // We need to have vectorSize the same on all ranks, otherwise MPI_COMM_WORLD rank 0 writes a bogus value
       MPI_Bcast(&vectorSize, 1, MPI_INT, grid.writingRank, MPI_COMM_WORLD);
 
-      if (vlsvWriter.writeArray("VARIABLE", attribs, "int", grid.nodes.size(), vectorSize, sizeof(int),
+      if (vlsvWriter.writeArray("VARIABLE",
+                                attribs,
+                                "int",
+                                grid.nodes.size(),
+                                vectorSize,
+                                sizeof(int),
                                 reinterpret_cast<const char*>(varBuffer.data())) == false) {
          string message = "The DataReductionOperator " + this->getName() + " failed to write its data.";
          bailout(true, message, __FILE__, __LINE__);
@@ -376,7 +408,8 @@ bool DataReductionOperatorIonosphereNodeInt::writeIonosphereData(SBC::SphericalT
 }
 
 std::string DataReductionOperatorMPIGridCell::getName() const { return variableName; }
-bool DataReductionOperatorMPIGridCell::getDataVectorInfo(std::string& dataType, unsigned int& dataSize,
+bool DataReductionOperatorMPIGridCell::getDataVectorInfo(std::string& dataType,
+                                                         unsigned int& dataSize,
                                                          unsigned int& vectorSize) const {
    dataType = "float";
    dataSize = sizeof(Real);
@@ -553,7 +586,8 @@ VariablePressureSolver::~VariablePressureSolver() {}
 
 std::string VariablePressureSolver::getName() const { return "vg_pressure"; }
 
-bool VariablePressureSolver::getDataVectorInfo(std::string& dataType, unsigned int& dataSize,
+bool VariablePressureSolver::getDataVectorInfo(std::string& dataType,
+                                               unsigned int& dataSize,
                                                unsigned int& vectorSize) const {
    dataType = "float";
    dataSize = sizeof(Real);
@@ -588,7 +622,8 @@ VariablePTensorDiagonal::~VariablePTensorDiagonal() {}
 
 std::string VariablePTensorDiagonal::getName() const { return popName + "/vg_ptensor_diagonal"; }
 
-bool VariablePTensorDiagonal::getDataVectorInfo(std::string& dataType, unsigned int& dataSize,
+bool VariablePTensorDiagonal::getDataVectorInfo(std::string& dataType,
+                                                unsigned int& dataSize,
                                                 unsigned int& vectorSize) const {
    dataType = "float";
    dataSize = sizeof(Real);
@@ -666,7 +701,8 @@ VariablePTensorOffDiagonal::~VariablePTensorOffDiagonal() {}
 
 std::string VariablePTensorOffDiagonal::getName() const { return popName + "/vg_ptensor_offdiagonal"; }
 
-bool VariablePTensorOffDiagonal::getDataVectorInfo(std::string& dataType, unsigned int& dataSize,
+bool VariablePTensorOffDiagonal::getDataVectorInfo(std::string& dataType,
+                                                   unsigned int& dataSize,
                                                    unsigned int& vectorSize) const {
    dataType = "float";
    dataSize = sizeof(Real);
@@ -745,7 +781,8 @@ MaxDistributionFunction::~MaxDistributionFunction() {}
 
 std::string MaxDistributionFunction::getName() const { return popName + "/vg_maxdistributionfunction"; }
 
-bool MaxDistributionFunction::getDataVectorInfo(std::string& dataType, unsigned int& dataSize,
+bool MaxDistributionFunction::getDataVectorInfo(std::string& dataType,
+                                                unsigned int& dataSize,
                                                 unsigned int& vectorSize) const {
    dataType = "float";
    dataSize = sizeof(Real);
@@ -798,7 +835,8 @@ MinDistributionFunction::~MinDistributionFunction() {}
 
 std::string MinDistributionFunction::getName() const { return popName + "/vg_mindistributionfunction"; }
 
-bool MinDistributionFunction::getDataVectorInfo(std::string& dataType, unsigned int& dataSize,
+bool MinDistributionFunction::getDataVectorInfo(std::string& dataType,
+                                                unsigned int& dataSize,
                                                 unsigned int& vectorSize) const {
    dataType = "float";
    dataSize = sizeof(Real);
@@ -891,8 +929,8 @@ static void getThermalVelocityCells(const Real* block_parameters, vector<uint64_
          }
 }
 // Helper function for getting the velocity cell indices that are a part of the nonthermal population:
-static void getNonthermalVelocityCellIndices(const Real* block_parameters, vector<array<uint, 3>>& vCellIndices,
-                                             cuint popID) {
+static void
+getNonthermalVelocityCellIndices(const Real* block_parameters, vector<array<uint, 3>>& vCellIndices, cuint popID) {
    creal HALF = 0.5;
    const std::array<Real, 3> thermalV = getObjectWrapper().particleSpecies[popID].thermalV;
    creal thermalRadius = getObjectWrapper().particleSpecies[popID].thermalRadius;
@@ -916,8 +954,8 @@ static void getNonthermalVelocityCellIndices(const Real* block_parameters, vecto
          }
 }
 // Helper function for getting the velocity cell indices that are not a part of the nonthermal population:
-static void getThermalVelocityCellIndices(const Real* block_parameters, vector<array<uint, 3>>& vCellIndices,
-                                          cuint popID) {
+static void
+getThermalVelocityCellIndices(const Real* block_parameters, vector<array<uint, 3>>& vCellIndices, cuint popID) {
    creal HALF = 0.5;
    const std::array<Real, 3> thermalV = getObjectWrapper().particleSpecies[popID].thermalV;
    creal thermalRadius = getObjectWrapper().particleSpecies[popID].thermalRadius;
@@ -1010,8 +1048,8 @@ static void VNonthermalCalculation(const SpatialCell* cell, const bool calculate
          vCellIndices.clear();
          // Save indices to the std::vector
          if (calculateNonthermal == true) {
-            getNonthermalVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices,
-                                             popID);
+            getNonthermalVelocityCellIndices(
+                &parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices, popID);
          } else {
             getThermalVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices, popID);
          }
@@ -1058,9 +1096,13 @@ static void VNonthermalCalculation(const SpatialCell* cell, const bool calculate
    return;
 }
 
-static void PTensorDiagonalNonthermalCalculations(const SpatialCell* cell, const bool calculateNonthermal,
-                                                  const Real averageVX, const Real averageVY, const Real averageVZ,
-                                                  cuint popID, Real* PTensor) {
+static void PTensorDiagonalNonthermalCalculations(const SpatialCell* cell,
+                                                  const bool calculateNonthermal,
+                                                  const Real averageVX,
+                                                  const Real averageVY,
+                                                  const Real averageVZ,
+                                                  cuint popID,
+                                                  Real* PTensor) {
    const Real HALF = 0.5;
 #pragma omp parallel
    {
@@ -1079,8 +1121,8 @@ static void PTensorDiagonalNonthermalCalculations(const SpatialCell* cell, const
          vector<array<uint, 3>> vCellIndices;
          vCellIndices.clear();
          if (calculateNonthermal == true) {
-            getNonthermalVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices,
-                                             popID);
+            getNonthermalVelocityCellIndices(
+                &parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices, popID);
          } else {
             getThermalVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices, popID);
          }
@@ -1121,9 +1163,13 @@ static void PTensorDiagonalNonthermalCalculations(const SpatialCell* cell, const
    return;
 }
 
-static void PTensorOffDiagonalNonthermalCalculations(const SpatialCell* cell, const bool calculateNonthermal,
-                                                     const Real averageVX, const Real averageVY, const Real averageVZ,
-                                                     cuint popID, Real* PTensor) {
+static void PTensorOffDiagonalNonthermalCalculations(const SpatialCell* cell,
+                                                     const bool calculateNonthermal,
+                                                     const Real averageVX,
+                                                     const Real averageVY,
+                                                     const Real averageVZ,
+                                                     cuint popID,
+                                                     Real* PTensor) {
    const Real HALF = 0.5;
 #pragma omp parallel
    {
@@ -1141,8 +1187,8 @@ static void PTensorOffDiagonalNonthermalCalculations(const SpatialCell* cell, co
                           parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
          vector<array<uint, 3>> vCellIndices;
          if (calculateNonthermal == true) {
-            getNonthermalVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices,
-                                             popID);
+            getNonthermalVelocityCellIndices(
+                &parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices, popID);
          } else {
             getThermalVelocityCellIndices(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCellIndices, popID);
          }
@@ -1195,7 +1241,8 @@ VariableRhoNonthermal::~VariableRhoNonthermal() {}
 
 std::string VariableRhoNonthermal::getName() const { return popName + "/vg_rho_nonthermal"; }
 
-bool VariableRhoNonthermal::getDataVectorInfo(std::string& dataType, unsigned int& dataSize,
+bool VariableRhoNonthermal::getDataVectorInfo(std::string& dataType,
+                                              unsigned int& dataSize,
                                               unsigned int& vectorSize) const {
    dataType = "float";
    dataSize = sizeof(Real);
@@ -1226,7 +1273,8 @@ VariableRhoThermal::~VariableRhoThermal() {}
 
 std::string VariableRhoThermal::getName() const { return popName + "/vg_rho_thermal"; }
 
-bool VariableRhoThermal::getDataVectorInfo(std::string& dataType, unsigned int& dataSize,
+bool VariableRhoThermal::getDataVectorInfo(std::string& dataType,
+                                           unsigned int& dataSize,
                                            unsigned int& vectorSize) const {
    dataType = "float";
    dataSize = sizeof(Real);
@@ -1257,7 +1305,8 @@ VariableVNonthermal::~VariableVNonthermal() {}
 
 std::string VariableVNonthermal::getName() const { return popName + "/vg_v_nonthermal"; }
 
-bool VariableVNonthermal::getDataVectorInfo(std::string& dataType, unsigned int& dataSize,
+bool VariableVNonthermal::getDataVectorInfo(std::string& dataType,
+                                            unsigned int& dataSize,
                                             unsigned int& vectorSize) const {
    dataType = "float";
    dataSize = sizeof(Real);
@@ -1293,7 +1342,8 @@ VariableVThermal::~VariableVThermal() {}
 
 std::string VariableVThermal::getName() const { return popName + "/vg_v_thermal"; }
 
-bool VariableVThermal::getDataVectorInfo(std::string& dataType, unsigned int& dataSize,
+bool VariableVThermal::getDataVectorInfo(std::string& dataType,
+                                         unsigned int& dataSize,
                                          unsigned int& vectorSize) const {
    dataType = "float";
    dataSize = sizeof(Real);
@@ -1335,7 +1385,8 @@ VariablePTensorNonthermalDiagonal::~VariablePTensorNonthermalDiagonal() {}
 
 std::string VariablePTensorNonthermalDiagonal::getName() const { return popName + "/vg_ptensor_nonthermal_diagonal"; }
 
-bool VariablePTensorNonthermalDiagonal::getDataVectorInfo(std::string& dataType, unsigned int& dataSize,
+bool VariablePTensorNonthermalDiagonal::getDataVectorInfo(std::string& dataType,
+                                                          unsigned int& dataSize,
                                                           unsigned int& vectorSize) const {
    dataType = "float";
    dataSize = sizeof(Real);
@@ -1384,7 +1435,8 @@ VariablePTensorThermalDiagonal::~VariablePTensorThermalDiagonal() {}
 
 std::string VariablePTensorThermalDiagonal::getName() const { return popName + "/vg_ptensor_thermal_diagonal"; }
 
-bool VariablePTensorThermalDiagonal::getDataVectorInfo(std::string& dataType, unsigned int& dataSize,
+bool VariablePTensorThermalDiagonal::getDataVectorInfo(std::string& dataType,
+                                                       unsigned int& dataSize,
                                                        unsigned int& vectorSize) const {
    dataType = "float";
    dataSize = sizeof(Real);
@@ -1430,7 +1482,8 @@ std::string VariablePTensorNonthermalOffDiagonal::getName() const {
    return popName + "/vg_ptensor_nonthermal_offdiagonal";
 }
 
-bool VariablePTensorNonthermalOffDiagonal::getDataVectorInfo(std::string& dataType, unsigned int& dataSize,
+bool VariablePTensorNonthermalOffDiagonal::getDataVectorInfo(std::string& dataType,
+                                                             unsigned int& dataSize,
                                                              unsigned int& vectorSize) const {
    dataType = "float";
    dataSize = sizeof(Real);
@@ -1475,7 +1528,8 @@ VariablePTensorThermalOffDiagonal::~VariablePTensorThermalOffDiagonal() {}
 
 std::string VariablePTensorThermalOffDiagonal::getName() const { return popName + "/vg_ptensor_thermal_offdiagonal"; }
 
-bool VariablePTensorThermalOffDiagonal::getDataVectorInfo(std::string& dataType, unsigned int& dataSize,
+bool VariablePTensorThermalOffDiagonal::getDataVectorInfo(std::string& dataType,
+                                                          unsigned int& dataSize,
                                                           unsigned int& vectorSize) const {
    dataType = "float";
    dataSize = sizeof(Real);
@@ -1517,7 +1571,8 @@ VariableEffectiveSparsityThreshold::VariableEffectiveSparsityThreshold(cuint _po
 }
 VariableEffectiveSparsityThreshold::~VariableEffectiveSparsityThreshold() {}
 
-bool VariableEffectiveSparsityThreshold::getDataVectorInfo(std::string& dataType, unsigned int& dataSize,
+bool VariableEffectiveSparsityThreshold::getDataVectorInfo(std::string& dataType,
+                                                           unsigned int& dataSize,
                                                            unsigned int& vectorSize) const {
    dataType = "float";
    dataSize = sizeof(Real);
@@ -1569,7 +1624,8 @@ VariablePrecipitationDiffFlux::~VariablePrecipitationDiffFlux() {}
 
 std::string VariablePrecipitationDiffFlux::getName() const { return popName + "/vg_precipitationdifferentialflux"; }
 
-bool VariablePrecipitationDiffFlux::getDataVectorInfo(std::string& dataType, unsigned int& dataSize,
+bool VariablePrecipitationDiffFlux::getDataVectorInfo(std::string& dataType,
+                                                      unsigned int& dataSize,
                                                       unsigned int& vectorSize) const {
    dataType = "float";
    dataSize = sizeof(Real);
@@ -1712,7 +1768,8 @@ std::string VariablePrecipitationLineDiffFlux::getName() const {
    return popName + "/vg_precipitationlinedifferentialflux";
 }
 
-bool VariablePrecipitationLineDiffFlux::getDataVectorInfo(std::string& dataType, unsigned int& dataSize,
+bool VariablePrecipitationLineDiffFlux::getDataVectorInfo(std::string& dataType,
+                                                          unsigned int& dataSize,
                                                           unsigned int& vectorSize) const {
    dataType = "float";
    dataSize = sizeof(Real);
@@ -1862,7 +1919,8 @@ VariableEnergyDensity::~VariableEnergyDensity() {}
 
 std::string VariableEnergyDensity::getName() const { return popName + "/vg_energydensity"; }
 
-bool VariableEnergyDensity::getDataVectorInfo(std::string& dataType, unsigned int& dataSize,
+bool VariableEnergyDensity::getDataVectorInfo(std::string& dataType,
+                                              unsigned int& dataSize,
                                               unsigned int& vectorSize) const {
    dataType = "float";
    dataSize = sizeof(Real);
@@ -1974,7 +2032,8 @@ VariableHeatFluxVector::~VariableHeatFluxVector() {}
 
 std::string VariableHeatFluxVector::getName() const { return popName + "/vg_heatflux"; }
 
-bool VariableHeatFluxVector::getDataVectorInfo(std::string& dataType, unsigned int& dataSize,
+bool VariableHeatFluxVector::getDataVectorInfo(std::string& dataType,
+                                               unsigned int& dataSize,
                                                unsigned int& vectorSize) const {
    dataType = "float";
    dataSize = sizeof(Real);
@@ -2069,7 +2128,8 @@ VariableNonMaxwellianity::~VariableNonMaxwellianity() {}
 
 std::string VariableNonMaxwellianity::getName() const { return popName + "/vg_nonmaxwellianity"; }
 
-bool VariableNonMaxwellianity::getDataVectorInfo(std::string& dataType, unsigned int& dataSize,
+bool VariableNonMaxwellianity::getDataVectorInfo(std::string& dataType,
+                                                 unsigned int& dataSize,
                                                  unsigned int& vectorSize) const {
    dataType = "float";
    dataSize = sizeof(Real);

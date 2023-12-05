@@ -236,8 +236,8 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
       if (P::systemWriteAllDROs || lowercase == "vg_rhom" ||
           lowercase == "rhom") { // Overall mass density (summed over all populations)
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_rhom", CellParams::RHOM, 1));
-         outputReducer->addMetadata(outputReducer->size() - 1, "kg/m^3", "$\\mathrm{kg}\\,\\mathrm{m}^{-3}$",
-                                    "$\\rho_\\mathrm{m}$", "1.0");
+         outputReducer->addMetadata(
+             outputReducer->size() - 1, "kg/m^3", "$\\mathrm{kg}\\,\\mathrm{m}^{-3}$", "$\\rho_\\mathrm{m}$", "1.0");
          if (!P::systemWriteAllDROs) {
             continue;
          }
@@ -285,8 +285,8 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "kg/m^3", "$\\mathrm{kg}\\,\\mathrm{m}^{-3}$",
-                                    "$\\rho_\\mathrm{m}$", "1.0");
+         outputReducer->addMetadata(
+             outputReducer->size() - 1, "kg/m^3", "$\\mathrm{kg}\\,\\mathrm{m}^{-3}$", "$\\rho_\\mathrm{m}$", "1.0");
          if (!P::systemWriteAllDROs) {
             continue;
          }
@@ -294,8 +294,8 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
       if (P::systemWriteAllDROs || lowercase == "vg_rhoq" ||
           lowercase == "rhoq") { // Overall charge density (summed over all populations)
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_rhoq", CellParams::RHOQ, 1));
-         outputReducer->addMetadata(outputReducer->size() - 1, "C/m^3", "$\\mathrm{C}\\,\\mathrm{m}^{-3}$",
-                                    "$\\rho_\\mathrm{q}$", "1.0");
+         outputReducer->addMetadata(
+             outputReducer->size() - 1, "C/m^3", "$\\mathrm{C}\\,\\mathrm{m}^{-3}$", "$\\rho_\\mathrm{q}$", "1.0");
          if (!P::systemWriteAllDROs) {
             continue;
          }
@@ -327,8 +327,8 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "C/m^3", "$\\mathrm{C}\\,\\mathrm{m}^{-3}$",
-                                    "$\\rho_\\mathrm{q}$", "1.0");
+         outputReducer->addMetadata(
+             outputReducer->size() - 1, "C/m^3", "$\\mathrm{C}\\,\\mathrm{m}^{-3}$", "$\\rho_\\mathrm{q}$", "1.0");
          if (!P::systemWriteAllDROs) {
             continue;
          }
@@ -340,8 +340,8 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
             const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(
                 pop + "/vg_rho", i, offsetof(spatial_cell::Population, RHO), 1));
-            outputReducer->addMetadata(outputReducer->size() - 1, "1/m^3", "$\\mathrm{m}^{-3}$",
-                                       "$n_\\mathrm{" + pop + "}$", "1.0");
+            outputReducer->addMetadata(
+                outputReducer->size() - 1, "1/m^3", "$\\mathrm{m}^{-3}$", "$n_\\mathrm{" + pop + "}$", "1.0");
          }
          if (!P::systemWriteAllDROs) {
             continue;
@@ -402,8 +402,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
             const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(
                 pop + "/vg_v", i, offsetof(spatial_cell::Population, V), 3));
-            outputReducer->addMetadata(outputReducer->size() - 1, "m/s", "$\\mathrm{m}\\,\\mathrm{s}^{-1}$",
-                                       "$V_\\mathrm{" + pop + "}$", "1.0");
+            outputReducer->addMetadata(outputReducer->size() - 1,
+                                       "m/s",
+                                       "$\\mathrm{m}\\,\\mathrm{s}^{-1}$",
+                                       "$V_\\mathrm{" + pop + "}$",
+                                       "1.0");
          }
          if (!P::systemWriteAllDROs) {
             continue;
@@ -419,14 +422,20 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
             outputReducer->addOperator(new DRO::VariableVNonthermal(i));
             outputReducer->addOperator(new DRO::VariablePTensorNonthermalDiagonal(i));
             outputReducer->addOperator(new DRO::VariablePTensorNonthermalOffDiagonal(i));
-            outputReducer->addMetadata(outputReducer->size() - 4, "1/m^3", "$\\mathrm{m}^{-3}$",
-                                       "$n_\\mathrm{" + pop + ",nt}$", "1.0");
-            outputReducer->addMetadata(outputReducer->size() - 3, "m/s", "$\\mathrm{m}\\,\\mathrm{s}^{-1}$",
-                                       "$V_\\mathrm{" + pop + ",nt}$", "1.0");
-            outputReducer->addMetadata(outputReducer->size() - 2, "Pa", "$\\mathrm{Pa}$",
-                                       "$\\mathcal{P}_\\mathrm{" + pop + ",nt}$", "1.0");
-            outputReducer->addMetadata(outputReducer->size() - 1, "Pa", "$\\mathrm{Pa}$",
-                                       "$\\mathcal{\\tilde{P}}_\\mathrm{" + pop + ",nt}$", "1.0");
+            outputReducer->addMetadata(
+                outputReducer->size() - 4, "1/m^3", "$\\mathrm{m}^{-3}$", "$n_\\mathrm{" + pop + ",nt}$", "1.0");
+            outputReducer->addMetadata(outputReducer->size() - 3,
+                                       "m/s",
+                                       "$\\mathrm{m}\\,\\mathrm{s}^{-1}$",
+                                       "$V_\\mathrm{" + pop + ",nt}$",
+                                       "1.0");
+            outputReducer->addMetadata(
+                outputReducer->size() - 2, "Pa", "$\\mathrm{Pa}$", "$\\mathcal{P}_\\mathrm{" + pop + ",nt}$", "1.0");
+            outputReducer->addMetadata(outputReducer->size() - 1,
+                                       "Pa",
+                                       "$\\mathrm{Pa}$",
+                                       "$\\mathcal{\\tilde{P}}_\\mathrm{" + pop + ",nt}$",
+                                       "1.0");
          }
          if (!P::systemWriteAllDROs) {
             continue;
@@ -443,14 +452,20 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
             outputReducer->addOperator(new DRO::VariableVThermal(i));
             outputReducer->addOperator(new DRO::VariablePTensorThermalDiagonal(i));
             outputReducer->addOperator(new DRO::VariablePTensorThermalOffDiagonal(i));
-            outputReducer->addMetadata(outputReducer->size() - 4, "1/m^3", "$\\mathrm{m}^{-3}$",
-                                       "$n_\\mathrm{" + pop + ",th}$", "1.0");
-            outputReducer->addMetadata(outputReducer->size() - 3, "m/s", "$\\mathrm{m}\\,\\mathrm{s}^{-1}$",
-                                       "$V_\\mathrm{" + pop + ",th}$", "1.0");
-            outputReducer->addMetadata(outputReducer->size() - 2, "Pa", "$\\mathrm{Pa}$",
-                                       "$\\mathcal{P}_\\mathrm{" + pop + ",th}$", "1.0");
-            outputReducer->addMetadata(outputReducer->size() - 1, "Pa", "$\\mathrm{Pa}$",
-                                       "$\\mathcal{\\tilde{P}}_\\mathrm{" + pop + ",th}$", "1.0");
+            outputReducer->addMetadata(
+                outputReducer->size() - 4, "1/m^3", "$\\mathrm{m}^{-3}$", "$n_\\mathrm{" + pop + ",th}$", "1.0");
+            outputReducer->addMetadata(outputReducer->size() - 3,
+                                       "m/s",
+                                       "$\\mathrm{m}\\,\\mathrm{s}^{-1}$",
+                                       "$V_\\mathrm{" + pop + ",th}$",
+                                       "1.0");
+            outputReducer->addMetadata(
+                outputReducer->size() - 2, "Pa", "$\\mathrm{Pa}$", "$\\mathcal{P}_\\mathrm{" + pop + ",th}$", "1.0");
+            outputReducer->addMetadata(outputReducer->size() - 1,
+                                       "Pa",
+                                       "$\\mathrm{Pa}$",
+                                       "$\\mathcal{\\tilde{P}}_\\mathrm{" + pop + ",th}$",
+                                       "1.0");
          }
          if (!P::systemWriteAllDROs) {
             continue;
@@ -464,8 +479,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
             species::Species& species = getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::VariableEffectiveSparsityThreshold(i));
-            outputReducer->addMetadata(outputReducer->size() - 1, "s^3/m^6", "$\\mathrm{m}^{-6}\\,\\mathrm{s}^{3}$",
-                                       "$f_\\mathrm{" + pop + ",min}$", "1.0");
+            outputReducer->addMetadata(outputReducer->size() - 1,
+                                       "s^3/m^6",
+                                       "$\\mathrm{m}^{-6}\\,\\mathrm{s}^{3}$",
+                                       "$f_\\mathrm{" + pop + ",min}$",
+                                       "1.0");
          }
          if (!P::systemWriteAllDROs) {
             continue;
@@ -479,8 +497,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
             const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(
                 pop + "/vg_rho_loss_adjust", i, offsetof(spatial_cell::Population, RHOLOSSADJUST), 1));
-            outputReducer->addMetadata(outputReducer->size() - 1, "1/m^3", "$\\mathrm{m}^{-3}$",
-                                       "$\\Delta_\\mathrm{loss} n_\\mathrm{" + pop + "}$", "1.0");
+            outputReducer->addMetadata(outputReducer->size() - 1,
+                                       "1/m^3",
+                                       "$\\mathrm{m}^{-3}$",
+                                       "$\\Delta_\\mathrm{loss} n_\\mathrm{" + pop + "}$",
+                                       "1.0");
          }
          if (!P::systemWriteAllDROs) {
             continue;
@@ -500,8 +521,8 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          // Overall maximum timestep constraint as calculated by the velocity space vlasov update
          outputReducer->addOperator(
              new DRO::DataReductionOperatorCellParams("vg_maxdt_acceleration", CellParams::MAXVDT, 1));
-         outputReducer->addMetadata(outputReducer->size() - 1, "s", "$\\mathrm{s}$", "$\\Delta t_\\mathrm{V,max}$",
-                                    "1.0");
+         outputReducer->addMetadata(
+             outputReducer->size() - 1, "s", "$\\mathrm{s}$", "$\\Delta t_\\mathrm{V,max}$", "1.0");
          if (!P::systemWriteAllDROs) {
             continue;
          }
@@ -514,8 +535,8 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
             const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(
                 pop + "/vg_maxdt_acceleration", i, offsetof(spatial_cell::Population, max_dt[1]), 1));
-            outputReducer->addMetadata(outputReducer->size() - 1, "s", "$\\mathrm{s}$",
-                                       "$\\Delta t_\\mathrm{" + pop + ",V,max}$", "1.0");
+            outputReducer->addMetadata(
+                outputReducer->size() - 1, "s", "$\\mathrm{s}$", "$\\Delta t_\\mathrm{" + pop + ",V,max}$", "1.0");
          }
          if (!P::systemWriteAllDROs) {
             continue;
@@ -525,8 +546,8 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          // Overall maximum timestep constraint as calculated by the real space vlasov update
          outputReducer->addOperator(
              new DRO::DataReductionOperatorCellParams("vg_maxdt_translation", CellParams::MAXRDT, 1));
-         outputReducer->addMetadata(outputReducer->size() - 1, "s", "$\\mathrm{s}$", "$\\Delta t_\\mathrm{R,max}$",
-                                    "1.0");
+         outputReducer->addMetadata(
+             outputReducer->size() - 1, "s", "$\\mathrm{s}$", "$\\Delta t_\\mathrm{R,max}$", "1.0");
          if (!P::systemWriteAllDROs) {
             continue;
          }
@@ -539,8 +560,8 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
             const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(
                 pop + "/vg_maxdt_translation", i, offsetof(spatial_cell::Population, max_dt[0]), 1));
-            outputReducer->addMetadata(outputReducer->size() - 1, "s", "$\\mathrm{s}$",
-                                       "$\\Delta t_\\mathrm{" + pop + ",R,max}$", "1.0");
+            outputReducer->addMetadata(
+                outputReducer->size() - 1, "s", "$\\mathrm{s}$", "$\\Delta t_\\mathrm{" + pop + ",R,max}$", "1.0");
          }
          if (!P::systemWriteAllDROs) {
             continue;
@@ -555,8 +576,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
             outputReducer->addOperator(new DRO::VariableEnergyDensity(i));
             std::stringstream conversion;
             conversion << (1.0e-6) / physicalconstants::CHARGE;
-            outputReducer->addMetadata(outputReducer->size() - 1, "eV/cm^3", "$\\mathrm{eV}\\,\\mathrm{cm}^{-3}$",
-                                       "$U_\\mathrm{" + pop + "}$", conversion.str());
+            outputReducer->addMetadata(outputReducer->size() - 1,
+                                       "eV/cm^3",
+                                       "$\\mathrm{eV}\\,\\mathrm{cm}^{-3}$",
+                                       "$U_\\mathrm{" + pop + "}$",
+                                       conversion.str());
          }
          if (!P::systemWriteAllDROs) {
             continue;
@@ -572,9 +596,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
             outputReducer->addOperator(new DRO::VariablePrecipitationDiffFlux(i));
             std::stringstream conversion;
             conversion << (1.0e-4) * physicalconstants::CHARGE;
-            outputReducer->addMetadata(outputReducer->size() - 1, "1/(cm^2 sr s eV)",
+            outputReducer->addMetadata(outputReducer->size() - 1,
+                                       "1/(cm^2 sr s eV)",
                                        "$\\mathrm{cm}^{-2}\\,\\mathrm{sr}^{-1}\\,\\mathrm{s}^{-1}\\,\\mathrm{eV}^{-1}$",
-                                       "$\\mathcal{F}_\\mathrm{" + pop + "}$", conversion.str());
+                                       "$\\mathcal{F}_\\mathrm{" + pop + "}$",
+                                       conversion.str());
          }
          if (!P::systemWriteAllDROs) {
             continue;
@@ -590,9 +616,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
             outputReducer->addOperator(new DRO::VariablePrecipitationLineDiffFlux(i));
             std::stringstream conversion;
             conversion << (1.0e-4) * physicalconstants::CHARGE;
-            outputReducer->addMetadata(outputReducer->size() - 1, "1/(cm^2 sr s eV)",
+            outputReducer->addMetadata(outputReducer->size() - 1,
+                                       "1/(cm^2 sr s eV)",
                                        "$\\mathrm{cm}^{-2}\\,\\mathrm{sr}^{-1}\\,\\mathrm{s}^{-1}\\,\\mathrm{eV}^{-1}$",
-                                       "$\\mathcal{F}_\\mathrm{" + pop + "}$", conversion.str());
+                                       "$\\mathcal{F}_\\mathrm{" + pop + "}$",
+                                       conversion.str());
          }
          if (!P::systemWriteAllDROs) {
             continue;
@@ -604,8 +632,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
             species::Species& species = getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::VariableHeatFluxVector(i));
-            outputReducer->addMetadata(outputReducer->size() - 1, "W/m^2", "$\\mathrm{W}\\,\\mathrm{m}^{-2}$",
-                                       "$q_\\mathrm{" + pop + "}$", "1.0");
+            outputReducer->addMetadata(outputReducer->size() - 1,
+                                       "W/m^2",
+                                       "$\\mathrm{W}\\,\\mathrm{m}^{-2}$",
+                                       "$q_\\mathrm{" + pop + "}$",
+                                       "1.0");
          }
          if (!P::systemWriteAllDROs) {
             continue;
@@ -618,8 +649,8 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
             species::Species& species = getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::VariableNonMaxwellianity(i));
-            outputReducer->addMetadata(outputReducer->size() - 1, "", "",
-                                       "$\\tilde{\\epsilon}_\\mathrm{M," + pop + "}$", "1.0");
+            outputReducer->addMetadata(
+                outputReducer->size() - 1, "", "", "$\\tilde{\\epsilon}_\\mathrm{M," + pop + "}$", "1.0");
          }
          if (!P::systemWriteAllDROs) {
             continue;
@@ -654,8 +685,8 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "s", "$\\mathrm{s}$", "$\\Delta t_\\mathrm{f,max}$",
-                                    "1.0");
+         outputReducer->addMetadata(
+             outputReducer->size() - 1, "s", "$\\mathrm{s}$", "$\\Delta t_\\mathrm{f,max}$", "1.0");
          if (!P::systemWriteAllDROs) {
             continue;
          }
@@ -845,8 +876,8 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
           lowercase == "vg_e_vol" || lowercase == "e_vol") {
          // Volume-averaged E field
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_e_vol", CellParams::EXVOL, 3));
-         outputReducer->addMetadata(outputReducer->size() - 1, "V/m", "$\\mathrm{V}\\,\\mathrm{m}^{-1}$",
-                                    "$E_\\mathrm{vol,vg}$", "1.0");
+         outputReducer->addMetadata(
+             outputReducer->size() - 1, "V/m", "$\\mathrm{V}\\,\\mathrm{m}^{-1}$", "$E_\\mathrm{vol,vg}$", "1.0");
          if (!P::systemWriteAllDROs) {
             continue;
          }
@@ -882,8 +913,8 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "V/m", "$\\mathrm{V}\\,\\mathrm{m}^{-1}$",
-                                    "$E_\\mathrm{vol,fg}$", "1.0");
+         outputReducer->addMetadata(
+             outputReducer->size() - 1, "V/m", "$\\mathrm{V}\\,\\mathrm{m}^{-1}$", "$E_\\mathrm{vol,fg}$", "1.0");
          if (!P::systemWriteAllDROs) {
             continue;
          }
@@ -917,8 +948,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    }
                    return retval;
                 }));
-            outputReducer->addMetadata(outputReducer->size() - 1, "V/m", "$\\mathrm{V}\\,\\mathrm{m}^{-1}$",
-                                       "$E_\\mathrm{Hall," + std::to_string(index) + "}$", "1.0");
+            outputReducer->addMetadata(outputReducer->size() - 1,
+                                       "V/m",
+                                       "$\\mathrm{V}\\,\\mathrm{m}^{-1}$",
+                                       "$E_\\mathrm{Hall," + std::to_string(index) + "}$",
+                                       "1.0");
          }
          if (!P::systemWriteAllDROs) {
             continue;
@@ -927,8 +961,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
       if (P::systemWriteAllDROs || lowercase == "gradpee" || lowercase == "e_gradpe" || lowercase == "vg_e_gradpe") {
          // Electron pressure gradient contribution to the generalized ohm's law
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_e_gradpe", CellParams::EXGRADPE, 3));
-         outputReducer->addMetadata(outputReducer->size() - 1, "V/m", "$\\mathrm{V}\\,\\mathrm{m}^{-1}$",
-                                    "$E_{\\nabla P_\\mathrm{e}}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "V/m",
+                                    "$\\mathrm{V}\\,\\mathrm{m}^{-1}$",
+                                    "$E_{\\nabla P_\\mathrm{e}}$",
+                                    "1.0");
          if (!P::systemWriteAllDROs) {
             continue;
          }
@@ -1043,11 +1080,14 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
             species::Species& species = getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::VariablePTensorDiagonal(i));
-            outputReducer->addMetadata(outputReducer->size() - 1, "Pa", "$\\mathrm{Pa}$",
-                                       "$\\mathcal{P}_\\mathrm{" + pop + "}$", "1.0");
+            outputReducer->addMetadata(
+                outputReducer->size() - 1, "Pa", "$\\mathrm{Pa}$", "$\\mathcal{P}_\\mathrm{" + pop + "}$", "1.0");
             outputReducer->addOperator(new DRO::VariablePTensorOffDiagonal(i));
-            outputReducer->addMetadata(outputReducer->size() - 1, "Pa", "$\\mathrm{Pa}$",
-                                       "$\\mathcal{\\tilde{P}}_\\mathrm{" + pop + "}$", "1.0");
+            outputReducer->addMetadata(outputReducer->size() - 1,
+                                       "Pa",
+                                       "$\\mathrm{Pa}$",
+                                       "$\\mathcal{\\tilde{P}}_\\mathrm{" + pop + "}$",
+                                       "1.0");
          }
          if (!P::systemWriteAllDROs) {
             continue;
@@ -1056,42 +1096,69 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
       if (P::systemWriteAllDROs || lowercase == "bvolderivs" || lowercase == "b_vol_derivs" ||
           lowercase == "b_vol_derivatives" || lowercase == "vg_b_vol_derivatives" || lowercase == "derivs") {
          // Volume-averaged derivatives
-         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("vg_derivatives/vg_dperbxvoldx",
-                                                                                  bvolderivatives::dPERBXVOLdx, 1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("vg_derivatives/vg_dperbxvoldy",
-                                                                                  bvolderivatives::dPERBXVOLdy, 1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("vg_derivatives/vg_dperbxvoldz",
-                                                                                  bvolderivatives::dPERBXVOLdz, 1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("vg_derivatives/vg_dperbyvoldx",
-                                                                                  bvolderivatives::dPERBYVOLdx, 1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("vg_derivatives/vg_dperbyvoldy",
-                                                                                  bvolderivatives::dPERBYVOLdy, 1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("vg_derivatives/vg_dperbyvoldz",
-                                                                                  bvolderivatives::dPERBYVOLdz, 1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("vg_derivatives/vg_dperbzvoldx",
-                                                                                  bvolderivatives::dPERBZVOLdx, 1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("vg_derivatives/vg_dperbzvoldy",
-                                                                                  bvolderivatives::dPERBZVOLdy, 1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("vg_derivatives/vg_dperbzvoldz",
-                                                                                  bvolderivatives::dPERBZVOLdz, 1));
-         outputReducer->addMetadata(outputReducer->size() - 9, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
-                                    "$\\Delta B_{X,\\mathrm{per,vol,vg}} (\\Delta X)^{-1}$", "1.0");
-         outputReducer->addMetadata(outputReducer->size() - 8, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
-                                    "$\\Delta B_{X,\\mathrm{per,vol,vg}} (\\Delta Y)^{-1}$", "1.0");
-         outputReducer->addMetadata(outputReducer->size() - 7, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
-                                    "$\\Delta B_{X,\\mathrm{per,vol,vg}} (\\Delta Z)^{-1}$", "1.0");
-         outputReducer->addMetadata(outputReducer->size() - 6, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
-                                    "$\\Delta B_{Y,\\mathrm{per,vol,vg}} (\\Delta X)^{-1}$", "1.0");
-         outputReducer->addMetadata(outputReducer->size() - 5, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
-                                    "$\\Delta B_{Y,\\mathrm{per,vol,vg}} (\\Delta Y)^{-1}$", "1.0");
-         outputReducer->addMetadata(outputReducer->size() - 4, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
-                                    "$\\Delta B_{Y,\\mathrm{per,vol,vg}} (\\Delta Z)^{-1}$", "1.0");
-         outputReducer->addMetadata(outputReducer->size() - 3, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
-                                    "$\\Delta B_{Z,\\mathrm{per,vol,vg}} (\\Delta X)^{-1}$", "1.0");
-         outputReducer->addMetadata(outputReducer->size() - 2, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
-                                    "$\\Delta B_{Z,\\mathrm{per,vol,vg}} (\\Delta Y)^{-1}$", "1.0");
-         outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
-                                    "$\\Delta B_{Z,\\mathrm{per,vol,vg}} (\\Delta Z)^{-1}$", "1.0");
+         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives(
+             "vg_derivatives/vg_dperbxvoldx", bvolderivatives::dPERBXVOLdx, 1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives(
+             "vg_derivatives/vg_dperbxvoldy", bvolderivatives::dPERBXVOLdy, 1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives(
+             "vg_derivatives/vg_dperbxvoldz", bvolderivatives::dPERBXVOLdz, 1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives(
+             "vg_derivatives/vg_dperbyvoldx", bvolderivatives::dPERBYVOLdx, 1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives(
+             "vg_derivatives/vg_dperbyvoldy", bvolderivatives::dPERBYVOLdy, 1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives(
+             "vg_derivatives/vg_dperbyvoldz", bvolderivatives::dPERBYVOLdz, 1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives(
+             "vg_derivatives/vg_dperbzvoldx", bvolderivatives::dPERBZVOLdx, 1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives(
+             "vg_derivatives/vg_dperbzvoldy", bvolderivatives::dPERBZVOLdy, 1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives(
+             "vg_derivatives/vg_dperbzvoldz", bvolderivatives::dPERBZVOLdz, 1));
+         outputReducer->addMetadata(outputReducer->size() - 9,
+                                    "T/m",
+                                    "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
+                                    "$\\Delta B_{X,\\mathrm{per,vol,vg}} (\\Delta X)^{-1}$",
+                                    "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 8,
+                                    "T/m",
+                                    "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
+                                    "$\\Delta B_{X,\\mathrm{per,vol,vg}} (\\Delta Y)^{-1}$",
+                                    "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 7,
+                                    "T/m",
+                                    "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
+                                    "$\\Delta B_{X,\\mathrm{per,vol,vg}} (\\Delta Z)^{-1}$",
+                                    "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 6,
+                                    "T/m",
+                                    "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
+                                    "$\\Delta B_{Y,\\mathrm{per,vol,vg}} (\\Delta X)^{-1}$",
+                                    "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 5,
+                                    "T/m",
+                                    "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
+                                    "$\\Delta B_{Y,\\mathrm{per,vol,vg}} (\\Delta Y)^{-1}$",
+                                    "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 4,
+                                    "T/m",
+                                    "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
+                                    "$\\Delta B_{Y,\\mathrm{per,vol,vg}} (\\Delta Z)^{-1}$",
+                                    "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 3,
+                                    "T/m",
+                                    "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
+                                    "$\\Delta B_{Z,\\mathrm{per,vol,vg}} (\\Delta X)^{-1}$",
+                                    "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 2,
+                                    "T/m",
+                                    "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
+                                    "$\\Delta B_{Z,\\mathrm{per,vol,vg}} (\\Delta Y)^{-1}$",
+                                    "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "T/m",
+                                    "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
+                                    "$\\Delta B_{Z,\\mathrm{per,vol,vg}} (\\Delta Z)^{-1}$",
+                                    "1.0");
          if (!P::systemWriteAllDROs) {
             continue;
          }
@@ -1130,8 +1197,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
-                                    "$\\Delta B_{X,\\mathrm{per,fg}} (\\Delta Y)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "T/m",
+                                    "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
+                                    "$\\Delta B_{X,\\mathrm{per,fg}} (\\Delta Y)^{-1}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dperbxdz",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -1157,8 +1227,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
-                                    "$\\Delta B_{X,\\mathrm{per,fg}} (\\Delta Z)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "T/m",
+                                    "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
+                                    "$\\Delta B_{X,\\mathrm{per,fg}} (\\Delta Z)^{-1}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dperbydx",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -1184,8 +1257,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
-                                    "$\\Delta B_{Y,\\mathrm{per,fg}} (\\Delta X)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "T/m",
+                                    "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
+                                    "$\\Delta B_{Y,\\mathrm{per,fg}} (\\Delta X)^{-1}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dperbydz",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -1211,8 +1287,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
-                                    "$\\Delta B_{Y,\\mathrm{per,fg}} (\\Delta Z)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "T/m",
+                                    "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
+                                    "$\\Delta B_{Y,\\mathrm{per,fg}} (\\Delta Z)^{-1}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dperbzdx",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -1238,8 +1317,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
-                                    "$\\Delta B_{Z,\\mathrm{per,fg}} (\\Delta X)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "T/m",
+                                    "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
+                                    "$\\Delta B_{Z,\\mathrm{per,fg}} (\\Delta X)^{-1}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dperbzdy",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -1265,8 +1347,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
-                                    "$\\Delta B_{Z,\\mathrm{per,fg}} (\\Delta Y)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "T/m",
+                                    "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
+                                    "$\\Delta B_{Z,\\mathrm{per,fg}} (\\Delta Y)^{-1}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dperbxdyy",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -1292,8 +1377,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-2}$",
-                                    "$\\Delta B_{X,\\mathrm{per,fg}} (\\Delta Y)^{-2}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "T/m",
+                                    "$\\mathrm{T}\\,\\mathrm{m}^{-2}$",
+                                    "$\\Delta B_{X,\\mathrm{per,fg}} (\\Delta Y)^{-2}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dperbxdzz",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -1319,8 +1407,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-2}$",
-                                    "$\\Delta B_{X,\\mathrm{per,fg}} (\\Delta Z)^{-2}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "T/m",
+                                    "$\\mathrm{T}\\,\\mathrm{m}^{-2}$",
+                                    "$\\Delta B_{X,\\mathrm{per,fg}} (\\Delta Z)^{-2}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dperbxdyz",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -1346,8 +1437,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-2}$",
-                                    "$\\Delta B_{X,\\mathrm{per,fg}} (\\Delta Y \\Delta Z)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "T/m",
+                                    "$\\mathrm{T}\\,\\mathrm{m}^{-2}$",
+                                    "$\\Delta B_{X,\\mathrm{per,fg}} (\\Delta Y \\Delta Z)^{-1}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dperbydxx",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -1373,8 +1467,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-2}$",
-                                    "$\\Delta B_{Y,\\mathrm{per,fg}} (\\Delta X)^{-2}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "T/m",
+                                    "$\\mathrm{T}\\,\\mathrm{m}^{-2}$",
+                                    "$\\Delta B_{Y,\\mathrm{per,fg}} (\\Delta X)^{-2}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dperbydzz",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -1400,8 +1497,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-2}$",
-                                    "$\\Delta B_{Y,\\mathrm{per,fg}} (\\Delta Z)^{-2}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "T/m",
+                                    "$\\mathrm{T}\\,\\mathrm{m}^{-2}$",
+                                    "$\\Delta B_{Y,\\mathrm{per,fg}} (\\Delta Z)^{-2}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dperbydxz",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -1427,8 +1527,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-2}$",
-                                    "$\\Delta B_{Y,\\mathrm{per,fg}} (\\Delta X \\Delta Z)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "T/m",
+                                    "$\\mathrm{T}\\,\\mathrm{m}^{-2}$",
+                                    "$\\Delta B_{Y,\\mathrm{per,fg}} (\\Delta X \\Delta Z)^{-1}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dperbzdxx",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -1454,8 +1557,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-2}$",
-                                    "$\\Delta B_{Z,\\mathrm{per,fg}} (\\Delta Z)^{-2}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "T/m",
+                                    "$\\mathrm{T}\\,\\mathrm{m}^{-2}$",
+                                    "$\\Delta B_{Z,\\mathrm{per,fg}} (\\Delta Z)^{-2}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dperbzdyy",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -1481,8 +1587,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-2}$",
-                                    "$\\Delta B_{Z,\\mathrm{per,fg}} (\\Delta Y)^{-2}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "T/m",
+                                    "$\\mathrm{T}\\,\\mathrm{m}^{-2}$",
+                                    "$\\Delta B_{Z,\\mathrm{per,fg}} (\\Delta Y)^{-2}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dperbzdxy",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -1508,8 +1617,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-2}$",
-                                    "$\\Delta B_{Z,\\mathrm{per,fg}} (\\Delta X \\Delta Y)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "T/m",
+                                    "$\\mathrm{T}\\,\\mathrm{m}^{-2}$",
+                                    "$\\Delta B_{Z,\\mathrm{per,fg}} (\\Delta X \\Delta Y)^{-1}$",
+                                    "1.0");
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_drhomdx",
@@ -1536,8 +1648,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "kg/m^4", "$\\mathrm{kg}\\mathrm{m}^{-4}$",
-                                    "$\\Delta \\rho_{m,\\mathrm{fg}} (\\Delta X)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "kg/m^4",
+                                    "$\\mathrm{kg}\\mathrm{m}^{-4}$",
+                                    "$\\Delta \\rho_{m,\\mathrm{fg}} (\\Delta X)^{-1}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_drhomdy",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -1563,8 +1678,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "kg/m^4", "$\\mathrm{kg}\\mathrm{m}^{-4}$",
-                                    "$\\Delta \\rho_{m,\\mathrm{fg}} (\\Delta Y)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "kg/m^4",
+                                    "$\\mathrm{kg}\\mathrm{m}^{-4}$",
+                                    "$\\Delta \\rho_{m,\\mathrm{fg}} (\\Delta Y)^{-1}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_drhomdz",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -1590,8 +1708,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "kg/m^4", "$\\mathrm{kg}\\mathrm{m}^{-4}$",
-                                    "$\\Delta \\rho_{m,\\mathrm{fg}} (\\Delta Z)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "kg/m^4",
+                                    "$\\mathrm{kg}\\mathrm{m}^{-4}$",
+                                    "$\\Delta \\rho_{m,\\mathrm{fg}} (\\Delta Z)^{-1}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_drhoqdx",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -1617,8 +1738,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "C/m^4", "$\\mathrm{C}\\mathrm{m}^{-4}$",
-                                    "$\\Delta \\rho_{q,\\mathrm{fg}} (\\Delta X)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "C/m^4",
+                                    "$\\mathrm{C}\\mathrm{m}^{-4}$",
+                                    "$\\Delta \\rho_{q,\\mathrm{fg}} (\\Delta X)^{-1}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_drhoqdy",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -1644,8 +1768,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "C/m^4", "$\\mathrm{C}\\mathrm{m}^{-4}$",
-                                    "$\\Delta \\rho_{q,\\mathrm{fg}} (\\Delta Y)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "C/m^4",
+                                    "$\\mathrm{C}\\mathrm{m}^{-4}$",
+                                    "$\\Delta \\rho_{q,\\mathrm{fg}} (\\Delta Y)^{-1}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_drhoqdz",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -1671,8 +1798,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "C/m^4", "$\\mathrm{C}\\mathrm{m}^{-4}$",
-                                    "$\\Delta \\rho_{q,\\mathrm{fg}} (\\Delta Z)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "C/m^4",
+                                    "$\\mathrm{C}\\mathrm{m}^{-4}$",
+                                    "$\\Delta \\rho_{q,\\mathrm{fg}} (\\Delta Z)^{-1}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dp11dx",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -1698,8 +1828,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "Pa/m", "$\\mathrm{Pa}\\mathrm{m}^{-1}$",
-                                    "$\\Delta P_{11,\\mathrm{fg}} (\\Delta X)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "Pa/m",
+                                    "$\\mathrm{Pa}\\mathrm{m}^{-1}$",
+                                    "$\\Delta P_{11,\\mathrm{fg}} (\\Delta X)^{-1}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dp11dy",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -1725,8 +1858,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "Pa/m", "$\\mathrm{Pa}\\mathrm{m}^{-1}$",
-                                    "$\\Delta P_{11,\\mathrm{fg}} (\\Delta Y)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "Pa/m",
+                                    "$\\mathrm{Pa}\\mathrm{m}^{-1}$",
+                                    "$\\Delta P_{11,\\mathrm{fg}} (\\Delta Y)^{-1}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dp11dz",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -1752,8 +1888,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "Pa/m", "$\\mathrm{Pa}\\mathrm{m}^{-1}$",
-                                    "$\\Delta P_{11,\\mathrm{fg}} (\\Delta Z)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "Pa/m",
+                                    "$\\mathrm{Pa}\\mathrm{m}^{-1}$",
+                                    "$\\Delta P_{11,\\mathrm{fg}} (\\Delta Z)^{-1}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dp22dx",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -1779,8 +1918,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "Pa/m", "$\\mathrm{Pa}\\mathrm{m}^{-1}$",
-                                    "$\\Delta P_{22,\\mathrm{fg}} (\\Delta X)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "Pa/m",
+                                    "$\\mathrm{Pa}\\mathrm{m}^{-1}$",
+                                    "$\\Delta P_{22,\\mathrm{fg}} (\\Delta X)^{-1}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dp22dy",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -1806,8 +1948,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "Pa/m", "$\\mathrm{Pa}\\mathrm{m}^{-1}$",
-                                    "$\\Delta P_{22,\\mathrm{fg}} (\\Delta Y)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "Pa/m",
+                                    "$\\mathrm{Pa}\\mathrm{m}^{-1}$",
+                                    "$\\Delta P_{22,\\mathrm{fg}} (\\Delta Y)^{-1}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dp22dz",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -1833,8 +1978,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "Pa/m", "$\\mathrm{Pa}\\mathrm{m}^{-1}$",
-                                    "$\\Delta P_{22,\\mathrm{fg}} (\\Delta Z)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "Pa/m",
+                                    "$\\mathrm{Pa}\\mathrm{m}^{-1}$",
+                                    "$\\Delta P_{22,\\mathrm{fg}} (\\Delta Z)^{-1}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dp33dx",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -1860,8 +2008,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "Pa/m", "$\\mathrm{Pa}\\mathrm{m}^{-1}$",
-                                    "$\\Delta P_{33,\\mathrm{fg}} (\\Delta X)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "Pa/m",
+                                    "$\\mathrm{Pa}\\mathrm{m}^{-1}$",
+                                    "$\\Delta P_{33,\\mathrm{fg}} (\\Delta X)^{-1}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dp33dy",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -1887,8 +2038,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "Pa/m", "$\\mathrm{Pa}\\mathrm{m}^{-1}$",
-                                    "$\\Delta P_{33,\\mathrm{fg}} (\\Delta Y)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "Pa/m",
+                                    "$\\mathrm{Pa}\\mathrm{m}^{-1}$",
+                                    "$\\Delta P_{33,\\mathrm{fg}} (\\Delta Y)^{-1}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dp33dz",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -1914,8 +2068,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "Pa/m", "$\\mathrm{Pa}\\mathrm{m}^{-1}$",
-                                    "$\\Delta P_{33,\\mathrm{fg}} (\\Delta Z)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "Pa/m",
+                                    "$\\mathrm{Pa}\\mathrm{m}^{-1}$",
+                                    "$\\Delta P_{33,\\mathrm{fg}} (\\Delta Z)^{-1}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dvxdx",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -1941,8 +2098,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "1/s", "$\\mathrm{s}^{-1}$",
-                                    "$\\Delta V_{X,\\mathrm{fg}} (\\Delta X)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "1/s",
+                                    "$\\mathrm{s}^{-1}$",
+                                    "$\\Delta V_{X,\\mathrm{fg}} (\\Delta X)^{-1}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dvxdy",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -1968,8 +2128,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "1/s", "$\\mathrm{s}^{-1}$",
-                                    "$\\Delta V_{X,\\mathrm{fg}} (\\Delta Y)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "1/s",
+                                    "$\\mathrm{s}^{-1}$",
+                                    "$\\Delta V_{X,\\mathrm{fg}} (\\Delta Y)^{-1}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dvxdz",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -1995,8 +2158,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "1/s", "$\\mathrm{s}^{-1}$",
-                                    "$\\Delta V_{X,\\mathrm{fg}} (\\Delta Z)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "1/s",
+                                    "$\\mathrm{s}^{-1}$",
+                                    "$\\Delta V_{X,\\mathrm{fg}} (\\Delta Z)^{-1}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dvydx",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -2022,8 +2188,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "1/s", "$\\mathrm{s}^{-1}$",
-                                    "$\\Delta V_{Y,\\mathrm{fg}} (\\Delta X)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "1/s",
+                                    "$\\mathrm{s}^{-1}$",
+                                    "$\\Delta V_{Y,\\mathrm{fg}} (\\Delta X)^{-1}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dvydy",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -2049,8 +2218,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "1/s", "$\\mathrm{s}^{-1}$",
-                                    "$\\Delta V_{Y,\\mathrm{fg}} (\\Delta Y)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "1/s",
+                                    "$\\mathrm{s}^{-1}$",
+                                    "$\\Delta V_{Y,\\mathrm{fg}} (\\Delta Y)^{-1}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dvydz",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -2076,8 +2248,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "1/s", "$\\mathrm{s}^{-1}$",
-                                    "$\\Delta V_{Y,\\mathrm{fg}} (\\Delta Z)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "1/s",
+                                    "$\\mathrm{s}^{-1}$",
+                                    "$\\Delta V_{Y,\\mathrm{fg}} (\\Delta Z)^{-1}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dvzdx",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -2103,8 +2278,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "1/s", "$\\mathrm{s}^{-1}$",
-                                    "$\\Delta V_{Z,\\mathrm{fg}} (\\Delta X)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "1/s",
+                                    "$\\mathrm{s}^{-1}$",
+                                    "$\\Delta V_{Z,\\mathrm{fg}} (\\Delta X)^{-1}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dvzdy",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -2130,8 +2308,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "1/s", "$\\mathrm{s}^{-1}$",
-                                    "$\\Delta V_{Z,\\mathrm{fg}} (\\Delta Y)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "1/s",
+                                    "$\\mathrm{s}^{-1}$",
+                                    "$\\Delta V_{Z,\\mathrm{fg}} (\\Delta Y)^{-1}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dvzdz",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -2157,8 +2338,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "1/s", "$\\mathrm{s}^{-1}$",
-                                    "$\\Delta V_{Z,\\mathrm{fg}} (\\Delta Z)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "1/s",
+                                    "$\\mathrm{s}^{-1}$",
+                                    "$\\Delta V_{Z,\\mathrm{fg}} (\\Delta Z)^{-1}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dpedx",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -2184,8 +2368,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "Pa/m", "$\\mathrm{Pa}\\mathrm{m}^{-1}$",
-                                    "$\\Delta P_\\mathrm{e,fg} (\\Delta X)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "Pa/m",
+                                    "$\\mathrm{Pa}\\mathrm{m}^{-1}$",
+                                    "$\\Delta P_\\mathrm{e,fg} (\\Delta X)^{-1}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dpedy",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -2211,8 +2398,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "Pa/m", "$\\mathrm{Pa}\\mathrm{m}^{-1}$",
-                                    "$\\Delta P_\\mathrm{e,fg} (\\Delta Y)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "Pa/m",
+                                    "$\\mathrm{Pa}\\mathrm{m}^{-1}$",
+                                    "$\\Delta P_\\mathrm{e,fg} (\\Delta Y)^{-1}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dpedz",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -2238,8 +2428,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "Pa/m", "$\\mathrm{Pa}\\mathrm{m}^{-1}$",
-                                    "$\\Delta P_\\mathrm{e,fg} (\\Delta Z)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "Pa/m",
+                                    "$\\mathrm{Pa}\\mathrm{m}^{-1}$",
+                                    "$\\Delta P_\\mathrm{e,fg} (\\Delta Z)^{-1}$",
+                                    "1.0");
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dperbxvoldx",
@@ -2266,8 +2459,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\mathrm{m}^{-1}$",
-                                    "$\\Delta B_{X,\\mathrm{per,vol,fg}} (\\Delta X)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "T/m",
+                                    "$\\mathrm{T}\\mathrm{m}^{-1}$",
+                                    "$\\Delta B_{X,\\mathrm{per,vol,fg}} (\\Delta X)^{-1}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dperbxvoldy",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -2293,8 +2489,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\mathrm{m}^{-1}$",
-                                    "$\\Delta B_{X,\\mathrm{per,vol,fg}} (\\Delta Y)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "T/m",
+                                    "$\\mathrm{T}\\mathrm{m}^{-1}$",
+                                    "$\\Delta B_{X,\\mathrm{per,vol,fg}} (\\Delta Y)^{-1}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dperbxvoldz",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -2320,8 +2519,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\mathrm{m}^{-1}$",
-                                    "$\\Delta B_{X,\\mathrm{per,vol,fg}} (\\Delta Z)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "T/m",
+                                    "$\\mathrm{T}\\mathrm{m}^{-1}$",
+                                    "$\\Delta B_{X,\\mathrm{per,vol,fg}} (\\Delta Z)^{-1}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dperbyvoldx",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -2347,8 +2549,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\mathrm{m}^{-1}$",
-                                    "$\\Delta B_{Y,\\mathrm{per,vol,fg}} (\\Delta X)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "T/m",
+                                    "$\\mathrm{T}\\mathrm{m}^{-1}$",
+                                    "$\\Delta B_{Y,\\mathrm{per,vol,fg}} (\\Delta X)^{-1}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dperbyvoldy",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -2374,8 +2579,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\mathrm{m}^{-1}$",
-                                    "$\\Delta B_{Y,\\mathrm{per,vol,fg}} (\\Delta Y)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "T/m",
+                                    "$\\mathrm{T}\\mathrm{m}^{-1}$",
+                                    "$\\Delta B_{Y,\\mathrm{per,vol,fg}} (\\Delta Y)^{-1}$",
+                                    "1.0");
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dperbyvoldz",
@@ -2402,8 +2610,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\mathrm{m}^{-1}$",
-                                    "$\\Delta B_{Y,\\mathrm{per,vol,fg}} (\\Delta Z)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "T/m",
+                                    "$\\mathrm{T}\\mathrm{m}^{-1}$",
+                                    "$\\Delta B_{Y,\\mathrm{per,vol,fg}} (\\Delta Z)^{-1}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dperbzvoldx",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -2429,8 +2640,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\mathrm{m}^{-1}$",
-                                    "$\\Delta B_{Z,\\mathrm{per,vol,fg}} (\\Delta X)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "T/m",
+                                    "$\\mathrm{T}\\mathrm{m}^{-1}$",
+                                    "$\\Delta B_{Z,\\mathrm{per,vol,fg}} (\\Delta X)^{-1}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dperbzvoldy",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -2456,8 +2670,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\mathrm{m}^{-1}$",
-                                    "$\\Delta B_{Z,\\mathrm{per,vol,fg}} (\\Delta Y)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "T/m",
+                                    "$\\mathrm{T}\\mathrm{m}^{-1}$",
+                                    "$\\Delta B_{Z,\\mathrm{per,vol,fg}} (\\Delta Y)^{-1}$",
+                                    "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dperbzvoldz",
              [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -2483,8 +2700,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\mathrm{m}^{-1}$",
-                                    "$\\Delta B_{Z,\\mathrm{per,vol,fg}} (\\Delta Z)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "T/m",
+                                    "$\\mathrm{T}\\mathrm{m}^{-1}$",
+                                    "$\\Delta B_{Z,\\mathrm{per,vol,fg}} (\\Delta Z)^{-1}$",
+                                    "1.0");
 
          if (!P::systemWriteAllDROs) {
             continue;
@@ -2524,8 +2744,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
-                                    "$\\Delta B_{X,\\mathrm{bg,fg}} (\\Delta Y)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "T/m",
+                                    "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
+                                    "$\\Delta B_{X,\\mathrm{bg,fg}} (\\Delta Y)^{-1}$",
+                                    "1.0");
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dbgbxdz",
@@ -2552,8 +2775,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
-                                    "$\\Delta B_{X,\\mathrm{bg,fg}} (\\Delta Z)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "T/m",
+                                    "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
+                                    "$\\Delta B_{X,\\mathrm{bg,fg}} (\\Delta Z)^{-1}$",
+                                    "1.0");
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dbgbydx",
@@ -2580,8 +2806,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
-                                    "$\\Delta B_{Y,\\mathrm{bg,fg}} (\\Delta X)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "T/m",
+                                    "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
+                                    "$\\Delta B_{Y,\\mathrm{bg,fg}} (\\Delta X)^{-1}$",
+                                    "1.0");
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dbgbydz",
@@ -2608,8 +2837,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
-                                    "$\\Delta B_{Y,\\mathrm{bg,fg}} (\\Delta Z)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "T/m",
+                                    "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
+                                    "$\\Delta B_{Y,\\mathrm{bg,fg}} (\\Delta Z)^{-1}$",
+                                    "1.0");
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dbgbzdx",
@@ -2636,8 +2868,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
-                                    "$\\Delta B_{Z,\\mathrm{bg,fg}} (\\Delta X)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "T/m",
+                                    "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
+                                    "$\\Delta B_{Z,\\mathrm{bg,fg}} (\\Delta X)^{-1}$",
+                                    "1.0");
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dbgbzdy",
@@ -2664,8 +2899,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
-                                    "$\\Delta B_{Z,\\mathrm{bg,fg}} (\\Delta Y)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "T/m",
+                                    "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
+                                    "$\\Delta B_{Z,\\mathrm{bg,fg}} (\\Delta Y)^{-1}$",
+                                    "1.0");
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dbgbxvoldx",
@@ -2692,8 +2930,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
-                                    "$\\Delta B_{X,\\mathrm{bg,vol,fg}} (\\Delta X)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "T/m",
+                                    "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
+                                    "$\\Delta B_{X,\\mathrm{bg,vol,fg}} (\\Delta X)^{-1}$",
+                                    "1.0");
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dbgbxvoldy",
@@ -2720,8 +2961,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
-                                    "$\\Delta B_{X,\\mathrm{bg,vol,fg}} (\\Delta Y)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "T/m",
+                                    "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
+                                    "$\\Delta B_{X,\\mathrm{bg,vol,fg}} (\\Delta Y)^{-1}$",
+                                    "1.0");
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dbgbxvoldz",
@@ -2748,8 +2992,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
-                                    "$\\Delta B_{X,\\mathrm{bg,vol,fg}} (\\Delta Z)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "T/m",
+                                    "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
+                                    "$\\Delta B_{X,\\mathrm{bg,vol,fg}} (\\Delta Z)^{-1}$",
+                                    "1.0");
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dbgbyvoldx",
@@ -2776,8 +3023,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
-                                    "$\\Delta B_{Y,\\mathrm{bg,vol,fg}} (\\Delta X)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "T/m",
+                                    "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
+                                    "$\\Delta B_{Y,\\mathrm{bg,vol,fg}} (\\Delta X)^{-1}$",
+                                    "1.0");
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dbgbyvoldy",
@@ -2804,8 +3054,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
-                                    "$\\Delta B_{Y,\\mathrm{bg,vol,fg}} (\\Delta Y)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "T/m",
+                                    "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
+                                    "$\\Delta B_{Y,\\mathrm{bg,vol,fg}} (\\Delta Y)^{-1}$",
+                                    "1.0");
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dbgbyvoldz",
@@ -2832,8 +3085,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
-                                    "$\\Delta B_{Y,\\mathrm{bg,vol,fg}} (\\Delta Z)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "T/m",
+                                    "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
+                                    "$\\Delta B_{Y,\\mathrm{bg,vol,fg}} (\\Delta Z)^{-1}$",
+                                    "1.0");
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dbgbzvoldx",
@@ -2860,8 +3116,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
-                                    "$\\Delta B_{Z,\\mathrm{bg,vol,fg}} (\\Delta X)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "T/m",
+                                    "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
+                                    "$\\Delta B_{Z,\\mathrm{bg,vol,fg}} (\\Delta X)^{-1}$",
+                                    "1.0");
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dbgbzvoldy",
@@ -2888,8 +3147,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
-                                    "$\\Delta B_{Z,\\mathrm{bg,vol,fg}} (\\Delta Y)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "T/m",
+                                    "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
+                                    "$\\Delta B_{Z,\\mathrm{bg,vol,fg}} (\\Delta Y)^{-1}$",
+                                    "1.0");
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
              "fg_derivatives/fg_dbgbzvoldz",
@@ -2916,8 +3178,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
-                                    "$\\Delta B_{Z,\\mathrm{bg,vol,fg}} (\\Delta Z)^{-1}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size() - 1,
+                                    "T/m",
+                                    "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
+                                    "$\\Delta B_{Z,\\mathrm{bg,vol,fg}} (\\Delta Z)^{-1}$",
+                                    "1.0");
          if (!P::systemWriteAllDROs) {
             continue;
          }
@@ -3096,16 +3361,16 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
       }
       if (P::systemWriteAllDROs || lowercase == "vg_amr_dpsq") {
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_dpsq", CellParams::AMR_DPSQ, 1));
-         outputReducer->addMetadata(outputReducer->size() - 1, "", "", "$\\frac{(\\Delta P)^2}{2 \\rho \\hat{U}_1}$",
-                                    "");
+         outputReducer->addMetadata(
+             outputReducer->size() - 1, "", "", "$\\frac{(\\Delta P)^2}{2 \\rho \\hat{U}_1}$", "");
          if (!P::systemWriteAllDROs) {
             continue;
          }
       }
       if (P::systemWriteAllDROs || lowercase == "vg_amr_dbsq") {
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_dbsq", CellParams::AMR_DBSQ, 1));
-         outputReducer->addMetadata(outputReducer->size() - 1, "", "", "$\\frac{(\\Delta B_1)^2}{2 \\mu_0 \\hat{U}_1}$",
-                                    "");
+         outputReducer->addMetadata(
+             outputReducer->size() - 1, "", "", "$\\frac{(\\Delta B_1)^2}{2 \\mu_0 \\hat{U}_1}$", "");
          if (!P::systemWriteAllDROs) {
             continue;
          }
@@ -3357,8 +3622,8 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
 
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "mho", "$\\mathrm{\\Omega^{-1}}$",
-                                    "$\\Sigma_\\parallel$", "1.0");
+         outputReducer->addMetadata(
+             outputReducer->size() - 1, "mho", "$\\mathrm{\\Omega^{-1}}$", "$\\Sigma_\\parallel$", "1.0");
          if (!P::systemWriteAllDROs) {
             continue;
          }
@@ -3422,8 +3687,8 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
 
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "W/m^2", "$\\mathrm{W m^{-2}}$",
-                                    "$W_\\mathrm{precipitation}$", "1.0");
+         outputReducer->addMetadata(
+             outputReducer->size() - 1, "W/m^2", "$\\mathrm{W m^{-2}}$", "$W_\\mathrm{precipitation}$", "1.0");
          if (!P::systemWriteAllDROs) {
             continue;
          }
@@ -3460,8 +3725,8 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                 }
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "1/m^2/s", "$m^{-2} s^{-1}$",
-                                    "$\\bar{F}_\\mathrm{precip}$", "1.0");
+         outputReducer->addMetadata(
+             outputReducer->size() - 1, "1/m^2/s", "$m^{-2} s^{-1}$", "$\\bar{F}_\\mathrm{precip}$", "1.0");
          if (!P::systemWriteAllDROs) {
             continue;
          }
@@ -3662,8 +3927,8 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
 
                 return retval;
              }));
-         outputReducer->addMetadata(outputReducer->size() - 1, "A/m^2", "$\\mathrm{A m}^{-2}$", "$I_\\mathrm{FAC}$",
-                                    "1.0");
+         outputReducer->addMetadata(
+             outputReducer->size() - 1, "A/m^2", "$\\mathrm{A m}^{-2}$", "$I_\\mathrm{FAC}$", "1.0");
          if (!P::systemWriteAllDROs) {
             continue;
          }
@@ -3953,7 +4218,9 @@ std::string DataReducer::getName(const unsigned int& operatorID) const {
  * @param vectorSize How many elements are in the vector returned by the DataReductionOperator.
  * @return If true, DataReductionOperator was found and it returned sensible values.
  */
-bool DataReducer::getDataVectorInfo(const unsigned int& operatorID, std::string& dataType, unsigned int& dataSize,
+bool DataReducer::getDataVectorInfo(const unsigned int& operatorID,
+                                    std::string& dataType,
+                                    unsigned int& dataSize,
                                     unsigned int& vectorSize) const {
    if (operatorID >= operators.size())
       return false;
@@ -3968,8 +4235,11 @@ bool DataReducer::getDataVectorInfo(const unsigned int& operatorID, std::string&
  * @param conversionFactor floating point conversion factor between DRO result and SI units
  * @return If true, the given metadata  was added successfully.
  */
-bool DataReducer::addMetadata(const unsigned int operatorID, std::string unit, std::string unitLaTeX,
-                              std::string variableLaTeX, std::string unitConversion) {
+bool DataReducer::addMetadata(const unsigned int operatorID,
+                              std::string unit,
+                              std::string unitLaTeX,
+                              std::string variableLaTeX,
+                              std::string unitConversion) {
    if (operatorID >= operators.size())
       return false;
    return operators[operatorID]->setUnitMetadata(unit, unitLaTeX, variableLaTeX, unitConversion);
@@ -3982,8 +4252,11 @@ bool DataReducer::addMetadata(const unsigned int operatorID, std::string unit, s
  * @param unitConversion Floating point value of conversion factor to SI units
  * @return If true, DataReductionOperator was found and it returned sensible values.
  */
-bool DataReducer::getMetadata(const unsigned int& operatorID, std::string& unit, std::string& unitLaTeX,
-                              std::string& variableLaTeX, std::string& unitConversion) const {
+bool DataReducer::getMetadata(const unsigned int& operatorID,
+                              std::string& unit,
+                              std::string& unitLaTeX,
+                              std::string& variableLaTeX,
+                              std::string& unitConversion) const {
    if (operatorID >= operators.size())
       return false;
    return operators[operatorID]->getUnitMetadata(unit, unitLaTeX, variableLaTeX, unitConversion);
@@ -4065,8 +4338,11 @@ bool DataReducer::writeFsGridData(
     FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
     FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
     FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid,
-    FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, const std::string& meshName,
-    const unsigned int operatorID, vlsv::Writer& vlsvWriter, const bool writeAsFloat) {
+    FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+    const std::string& meshName,
+    const unsigned int operatorID,
+    vlsv::Writer& vlsvWriter,
+    const bool writeAsFloat) {
 
    if (operatorID >= operators.size())
       return false;
@@ -4074,13 +4350,26 @@ bool DataReducer::writeFsGridData(
    if (!DROf) {
       return false;
    } else {
-      return DROf->writeFsGridData(perBGrid, EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid,
-                                   BgBGrid, volGrid, technicalGrid, meshName, vlsvWriter, writeAsFloat);
+      return DROf->writeFsGridData(perBGrid,
+                                   EGrid,
+                                   EHallGrid,
+                                   EGradPeGrid,
+                                   momentsGrid,
+                                   dPerBGrid,
+                                   dMomentsGrid,
+                                   BgBGrid,
+                                   volGrid,
+                                   technicalGrid,
+                                   meshName,
+                                   vlsvWriter,
+                                   writeAsFloat);
    }
 }
 
-bool DataReducer::writeIonosphereGridData(SBC::SphericalTriGrid& grid, const std::string& meshName,
-                                          const unsigned int operatorID, vlsv::Writer& vlsvWriter) {
+bool DataReducer::writeIonosphereGridData(SBC::SphericalTriGrid& grid,
+                                          const std::string& meshName,
+                                          const unsigned int operatorID,
+                                          vlsv::Writer& vlsvWriter) {
 
    if (operatorID >= operators.size())
       return false;

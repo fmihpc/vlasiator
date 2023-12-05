@@ -33,8 +33,10 @@ int getNumberOfCellsOnMaxRefLvl(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geome
 */
 
 template <typename T, int stencil>
-void computeCoupling(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const std::vector<CellID>& cells,
-                     FsGrid<T, stencil>& momentsGrid, std::map<int, std::set<CellID>>& onDccrgMapRemoteProcess,
+void computeCoupling(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                     const std::vector<CellID>& cells,
+                     FsGrid<T, stencil>& momentsGrid,
+                     std::map<int, std::set<CellID>>& onDccrgMapRemoteProcess,
                      std::map<int, std::set<CellID>>& onFsgridMapRemoteProcess,
                      std::map<CellID, std::vector<int64_t>>& onFsgridMapCells) {
 
@@ -55,7 +57,8 @@ void computeCoupling(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGr
       for (int j = 0; j < gridDims[1]; j++) {
          for (int i = 0; i < gridDims[0]; i++) {
             const std::array<int, 3> globalIndices = momentsGrid.getGlobalIndices(i, j, k);
-            const dccrg::Types<3>::indices_t indices = {{(uint64_t)globalIndices[0], (uint64_t)globalIndices[1],
+            const dccrg::Types<3>::indices_t indices = {{(uint64_t)globalIndices[0],
+                                                         (uint64_t)globalIndices[1],
                                                          (uint64_t)globalIndices[2]}}; // cast to avoid warnings
             CellID dccrgCell = mpiGrid.get_existing_cell(indices, 0, mpiGrid.mapping.get_maximum_refinement_level());
 
@@ -201,8 +204,13 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>&
       int process = receives.first;
       int count = receives.second.size();
       receivedData[process].resize(count * fsgrids::moments::N_MOMENTS);
-      MPI_Irecv(receivedData[process].data(), count * fsgrids::moments::N_MOMENTS * sizeof(Real), MPI_BYTE, process, 1,
-                MPI_COMM_WORLD, &(receiveRequests[ii++]));
+      MPI_Irecv(receivedData[process].data(),
+                count * fsgrids::moments::N_MOMENTS * sizeof(Real),
+                MPI_BYTE,
+                process,
+                1,
+                MPI_COMM_WORLD,
+                &(receiveRequests[ii++]));
    }
 
    // Launch sends
@@ -234,7 +242,12 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>&
             sendBuffer.push_back(cellParams[CellParams::P_33_DT2]);
          }
       }
-      MPI_Isend(sendBuffer.data(), sendBuffer.size() * sizeof(Real), MPI_BYTE, targetProc, 1, MPI_COMM_WORLD,
+      MPI_Isend(sendBuffer.data(),
+                sendBuffer.size() * sizeof(Real),
+                MPI_BYTE,
+                targetProc,
+                1,
+                MPI_COMM_WORLD,
                 &(sendRequests[ii]));
       ii++;
    }
@@ -316,8 +329,8 @@ void getFieldsFromFsGrid(FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_
    std::vector<MPI_Request> receiveRequests;
 
    // computeCoupling
-   computeCoupling(mpiGrid, cells, volumeFieldsGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess,
-                   onFsgridMapCells);
+   computeCoupling(
+       mpiGrid, cells, volumeFieldsGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells);
 
    // post receives
    ii = 0;
@@ -328,7 +341,12 @@ void getFieldsFromFsGrid(FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_
       auto& receiveBuffer = receivedData[remoteRank];
 
       receiveBuffer.resize(count);
-      MPI_Irecv(receiveBuffer.data(), count * sizeof(Average), MPI_BYTE, remoteRank, 1, MPI_COMM_WORLD,
+      MPI_Irecv(receiveBuffer.data(),
+                count * sizeof(Average),
+                MPI_BYTE,
+                remoteRank,
+                1,
+                MPI_COMM_WORLD,
                 &(receiveRequests[ii++]));
    }
 
@@ -397,7 +415,12 @@ void getFieldsFromFsGrid(FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_
    for (auto const& sends : onFsgridMapRemoteProcess) {
       int remoteRank = sends.first;
       int count = sends.second.size();
-      MPI_Isend(sendData[remoteRank].data(), count * sizeof(Average), MPI_BYTE, remoteRank, 1, MPI_COMM_WORLD,
+      MPI_Isend(sendData[remoteRank].data(),
+                count * sizeof(Average),
+                MPI_BYTE,
+                remoteRank,
+                1,
+                MPI_COMM_WORLD,
                 &(sendRequests[ii++]));
    }
 
@@ -530,7 +553,8 @@ std::vector<CellID> mapDccrgIdToFsGridGlobalID(dccrg::Dccrg<SpatialCell, dccrg::
 }
 
 void feedBoundaryIntoFsGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                            const std::vector<CellID>& cells, FsGrid<fsgrids::technical, 2>& technicalGrid) {
+                            const std::vector<CellID>& cells,
+                            FsGrid<fsgrids::technical, 2>& technicalGrid) {
 
    int ii;
    // sorted list of dccrg cells. cells is typicall already sorted, but just to make sure....
@@ -562,7 +586,12 @@ void feedBoundaryIntoFsGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>
       int process = receives.first;
       int count = receives.second.size();
       receivedData[process].resize(count);
-      MPI_Irecv(receivedData[process].data(), count * sizeof(int), MPI_BYTE, process, 1, MPI_COMM_WORLD,
+      MPI_Irecv(receivedData[process].data(),
+                count * sizeof(int),
+                MPI_BYTE,
+                process,
+                1,
+                MPI_COMM_WORLD,
                 &(receiveRequests[ii++]));
    }
 
@@ -576,7 +605,12 @@ void feedBoundaryIntoFsGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>
          // Collect data to send for this dccrg cell
          sendBuffer.push_back(mpiGrid[sendCell]->sysBoundaryFlag);
       }
-      MPI_Isend(sendBuffer.data(), sendBuffer.size() * sizeof(int), MPI_BYTE, targetProc, 1, MPI_COMM_WORLD,
+      MPI_Isend(sendBuffer.data(),
+                sendBuffer.size() * sizeof(int),
+                MPI_BYTE,
+                targetProc,
+                1,
+                MPI_COMM_WORLD,
                 &(sendRequests[ii]));
       ii++;
    }

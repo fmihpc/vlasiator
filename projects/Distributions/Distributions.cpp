@@ -64,12 +64,12 @@ void Distributions::addParameters() {
    RP::add("Distributions.dBx", "Magnetic field x component cosine perturbation amplitude (T)", 0.0);
    RP::add("Distributions.dBy", "Magnetic field y component cosine perturbation amplitude (T)", 0.0);
    RP::add("Distributions.dBz", "Magnetic field z component cosine perturbation amplitude (T)", 0.0);
-   RP::add("Distributions.magXPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along x (T)",
-           1.0e-9);
-   RP::add("Distributions.magYPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along y (T)",
-           1.0e-9);
-   RP::add("Distributions.magZPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along z (T)",
-           1.0e-9);
+   RP::add(
+       "Distributions.magXPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along x (T)", 1.0e-9);
+   RP::add(
+       "Distributions.magYPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along y (T)", 1.0e-9);
+   RP::add(
+       "Distributions.magZPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along z (T)", 1.0e-9);
    RP::add("Distributions.rho1PertAbsAmp", "Absolute amplitude of the density perturbation, first peak", 0.1);
    RP::add("Distributions.rho2PertAbsAmp", "Absolute amplitude of the density perturbation, second peak", 0.1);
    //       RP::add("Distributions.Vx1PertAbsAmp", "Absolute amplitude of the Vx perturbation, first peak", 1.0e6);
@@ -126,8 +126,8 @@ void Distributions::getParameters() {
    RP::get("Distributions.lambda", this->lambda);
 }
 
-Real Distributions::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz,
-                                    const uint popID) const {
+Real Distributions::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, const uint popID)
+    const {
    Real value = 0.0;
    creal relx = x / (Parameters::xmax - Parameters::xmin);
    creal rely = y / (Parameters::ymax - Parameters::ymin);
@@ -153,11 +153,21 @@ Real Distributions::getDistribValue(creal& x, creal& y, creal& z, creal& vx, cre
    return value;
 }
 
-Real Distributions::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx,
-                                          creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,
+Real Distributions::calcPhaseSpaceDensity(creal& x,
+                                          creal& y,
+                                          creal& z,
+                                          creal& dx,
+                                          creal& dy,
+                                          creal& dz,
+                                          creal& vx,
+                                          creal& vy,
+                                          creal& vz,
+                                          creal& dvx,
+                                          creal& dvy,
+                                          creal& dvz,
                                           const uint popID) const {
-   return getDistribValue(x + 0.5 * dx, y + 0.5 * dy, z + 0.5 * dz, vx + 0.5 * dvx, vy + 0.5 * dvy, vz + 0.5 * dvz,
-                          popID);
+   return getDistribValue(
+       x + 0.5 * dx, y + 0.5 * dy, z + 0.5 * dz, vx + 0.5 * dvx, vy + 0.5 * dvy, vz + 0.5 * dvz, popID);
 }
 
 void Distributions::calcCellParameters(spatial_cell::SpatialCell* cell, creal& t) {

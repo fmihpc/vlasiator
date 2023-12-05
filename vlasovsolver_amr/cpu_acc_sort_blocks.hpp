@@ -37,7 +37,9 @@ inline bool paircomparator(const pair<uint, uint>& l, const pair<uint, uint>& r)
 
    Note: blocks must be allocated
 */
-static void sort_blocklist_by_dimension(const SpatialCell* spatial_cell, const uint dimension, uint* blocks,
+static void sort_blocklist_by_dimension(const SpatialCell* spatial_cell,
+                                        const uint dimension,
+                                        uint* blocks,
                                         std::vector<uint>& block_column_offsets,
                                         std::vector<uint>& block_column_lengths) {
    const uint nBlocks = spatial_cell->get_number_of_velocity_blocks(); // Number of blocks

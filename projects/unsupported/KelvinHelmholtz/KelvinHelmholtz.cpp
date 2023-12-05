@@ -118,8 +118,18 @@ Real KelvinHelmholtz::getDistribValue(creal& x, creal& z, creal& vx, creal& vy, 
           exp(-mass * (pow(vx - Vx, 2.0) + pow(vy - Vy, 2.0) + pow(vz - Vz, 2.0)) / (2.0 * kb * T));
 }
 
-Real KelvinHelmholtz::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx,
-                                            creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
+Real KelvinHelmholtz::calcPhaseSpaceDensity(creal& x,
+                                            creal& y,
+                                            creal& z,
+                                            creal& dx,
+                                            creal& dy,
+                                            creal& dz,
+                                            creal& vx,
+                                            creal& vy,
+                                            creal& vz,
+                                            creal& dvx,
+                                            creal& dvy,
+                                            creal& dvz) {
    creal d_x = dx / (this->nSpaceSamples - 1);
    creal d_z = dz / (this->nSpaceSamples - 1);
    creal d_vx = dvx / (this->nVelocitySamples - 1);

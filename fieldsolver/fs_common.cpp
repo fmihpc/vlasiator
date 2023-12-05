@@ -52,7 +52,10 @@ Real divideIfNonZero(creal numerator, creal denominator) {
  */
 void reconstructionCoefficients(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
                                 FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
-                                std::array<Real, Rec::N_REC_COEFFICIENTS>& perturbedResult, cint i, cint j, cint k,
+                                std::array<Real, Rec::N_REC_COEFFICIENTS>& perturbedResult,
+                                cint i,
+                                cint j,
+                                cint k,
                                 creal& reconstructionOrder) {
    std::array<Real, fsgrids::bfield::N_BFIELD>* cep_i1j1k1 = NULL;
    std::array<Real, fsgrids::dperb::N_DPERB>* der_i1j1k1 = dPerBGrid.get(i, j, k);
@@ -256,8 +259,11 @@ std::array<Real, 3> interpolatePerturbedB(
     FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
     FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
     FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-    std::map<std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS>>& reconstructionCoefficientsCache, cint i,
-    cint j, cint k, const std::array<Real, 3> x) {
+    std::map<std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS>>& reconstructionCoefficientsCache,
+    cint i,
+    cint j,
+    cint k,
+    const std::array<Real, 3> x) {
    cuint cellSysBoundaryFlag = technicalGrid.get(i, j, k)->sysBoundaryFlag;
    if (cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
       std::array<Real, 3> zero = {0, 0, 0};
@@ -283,7 +289,12 @@ std::array<Real, 3> interpolatePerturbedB(
 #pragma omp critical
       {
          if (reconstructionCoefficientsCache.find(cellIds) == reconstructionCoefficientsCache.end()) {
-            reconstructionCoefficients(perBGrid, dPerBGrid, rc, i, j, k,
+            reconstructionCoefficients(perBGrid,
+                                       dPerBGrid,
+                                       rc,
+                                       i,
+                                       j,
+                                       k,
                                        3 // Reconstruction order of the fields after Balsara 2009, 2 used for general B,
                                          // but 3 used here to allow for cache reuse, see interpolatePerturbedJ below
             );
@@ -293,7 +304,12 @@ std::array<Real, 3> interpolatePerturbedB(
          }
       }
    } else {
-      reconstructionCoefficients(perBGrid, dPerBGrid, rc, i, j, k,
+      reconstructionCoefficients(perBGrid,
+                                 dPerBGrid,
+                                 rc,
+                                 i,
+                                 j,
+                                 k,
                                  3 // // Reconstruction order of the fields after Balsara 2009, 3 used to obtain 2nd
                                    // order curl(B) and allows for cache reuse, see interpolatePerturbedB above
       );
@@ -335,8 +351,11 @@ std::array<Real, 3> interpolateCurlB(
     FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
     FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
     FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-    std::map<std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS>>& reconstructionCoefficientsCache, cint i,
-    cint j, cint k, const std::array<Real, 3> x) {
+    std::map<std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS>>& reconstructionCoefficientsCache,
+    cint i,
+    cint j,
+    cint k,
+    const std::array<Real, 3> x) {
    cuint cellSysBoundaryFlag = technicalGrid.get(i, j, k)->sysBoundaryFlag;
    if (cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
       std::array<Real, 3> zero = {0, 0, 0};
@@ -361,13 +380,18 @@ std::array<Real, 3> interpolateCurlB(
    std::array<Real, Rec::N_REC_COEFFICIENTS> rc;
 
    //// Actual use of the coefficient cache has proven not to be thread safe. But it appears to be reasonably fast even
-   ///without it.
+   /// without it.
    if (FieldTracing::fieldTracingParameters.useCache) {
 #pragma omp critical
       {
          if (reconstructionCoefficientsCache.find(cellIds) == reconstructionCoefficientsCache.end()) {
             reconstructionCoefficients(
-                perBGrid, dPerBGrid, rc, i, j, k,
+                perBGrid,
+                dPerBGrid,
+                rc,
+                i,
+                j,
+                k,
                 3 // // Reconstruction order of the fields after Balsara 2009, 3 used to obtain 2nd order curl(B) and
                   // allows for cache reuse, see interpolatePerturbedB above
             );
@@ -377,7 +401,12 @@ std::array<Real, 3> interpolateCurlB(
          }
       }
    } else {
-      reconstructionCoefficients(perBGrid, dPerBGrid, rc, i, j, k,
+      reconstructionCoefficients(perBGrid,
+                                 dPerBGrid,
+                                 rc,
+                                 i,
+                                 j,
+                                 k,
                                  3 // // Reconstruction order of the fields after Balsara 2009, 3 used to obtain 2nd
                                    // order curl(B) and allows for cache reuse, see interpolatePerturbedB above
       );

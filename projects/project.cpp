@@ -187,7 +187,8 @@ void Project::setProjectBField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD
    exit(1);
 }
 
-void Project::hook(cuint& stage, const dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+void Project::hook(cuint& stage,
+                   const dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                    FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid) const {}
 
 void Project::setupBeforeSetCell(const std::vector<CellID>& cells) {
@@ -260,7 +261,8 @@ void Project::printPopulations() {
  * @param blockLID Velocity block local ID within the spatial cell.
  * @param popID Population ID.
  * @return Maximum value of the calculated distribution function.*/
-Real Project::setVelocityBlock(spatial_cell::SpatialCell* cell, const vmesh::LocalID& blockLID,
+Real Project::setVelocityBlock(spatial_cell::SpatialCell* cell,
+                               const vmesh::LocalID& blockLID,
                                const uint popID) const {
    // If simulation doesn't use one or more velocity coordinates,
    // only calculate the distribution function for one layer of cells.

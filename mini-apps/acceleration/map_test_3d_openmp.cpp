@@ -20,9 +20,17 @@ void print_values(int step, Real* values, uint blocks_per_dim, Real v_min, Real 
    fclose(fp);
 }
 
-void propagate(const Real* const values_in, Real* values_out, uint blocks_per_dim_x, uint blocks_per_dim_y,
-               uint blocks_per_dim_z, Real v_min, Real dv, Real intersection, Real intersection_di,
-               Real intersection_dj, Real intersection_dk) {
+void propagate(const Real* const values_in,
+               Real* values_out,
+               uint blocks_per_dim_x,
+               uint blocks_per_dim_y,
+               uint blocks_per_dim_z,
+               Real v_min,
+               Real dv,
+               Real intersection,
+               Real intersection_di,
+               Real intersection_dj,
+               Real intersection_dk) {
 #pragma omp parallel for
    for (uint k = 0; k < (blocks_per_dim_z + 2) * blocks_per_dim_x * blocks_per_dim_z * WID3; ++k) {
       values_out[k] = 0.0;
@@ -142,9 +150,27 @@ int main(void) {
    for (int step = 0; step < iterations; step += 2) {
       if (step % 10 == 0)
          print_values(step, values_a + colindex(0, 0), blocks_per_dim_z, v_min, dv);
-      propagate(values_a, values_b, blocks_per_dim_x, blocks_per_dim_y, blocks_per_dim_z, v_min, dv, intersection,
-                intersection_di, intersection_dj, intersection_dk);
-      propagate(values_b, values_a, blocks_per_dim_x, blocks_per_dim_y, blocks_per_dim_z, v_min, dv, intersection,
-                intersection_di, intersection_dj, intersection_dk);
+      propagate(values_a,
+                values_b,
+                blocks_per_dim_x,
+                blocks_per_dim_y,
+                blocks_per_dim_z,
+                v_min,
+                dv,
+                intersection,
+                intersection_di,
+                intersection_dj,
+                intersection_dk);
+      propagate(values_b,
+                values_a,
+                blocks_per_dim_x,
+                blocks_per_dim_y,
+                blocks_per_dim_z,
+                v_min,
+                dv,
+                intersection,
+                intersection_di,
+                intersection_dj,
+                intersection_dk);
    }
 }

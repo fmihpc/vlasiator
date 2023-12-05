@@ -71,7 +71,8 @@ public:
                           FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
                           Project& project);
    void applySysBoundaryVlasovConditions(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                         creal& t, const bool calculate_V_moments);
+                                         creal& t,
+                                         const bool calculate_V_moments);
    unsigned int size() const;
    SBC::SysBoundaryCondition* getSysBoundary(cuint sysBoundaryType) const;
    bool isDynamic() const;
@@ -105,6 +106,7 @@ bool precedenceSort(const SBC::SysBoundaryCondition* first, const SBC::SysBounda
    are to be computed
 */
 bool getBoundaryCellList(const dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                         const std::vector<CellID>& cellList, std::vector<CellID>& boundaryCellList);
+                         const std::vector<CellID>& cellList,
+                         std::vector<CellID>& boundaryCellList);
 
 #endif

@@ -35,8 +35,10 @@ using namespace std;
  * @param computeSecond If true, second velocity moments are calculated.
  * @param computePopulationMomentsOnly Do not update the combined moments in CellParams if true
  * @param doNotSkip If false, DO_NOT_COMPUTE cells are skipped.*/
-void calculateCellMoments(spatial_cell::SpatialCell* cell, const bool& computeSecond,
-                          const bool& computePopulationMomentsOnly, const bool& doNotSkip) {
+void calculateCellMoments(spatial_cell::SpatialCell* cell,
+                          const bool& computeSecond,
+                          const bool& computePopulationMomentsOnly,
+                          const bool& doNotSkip) {
    // if doNotSkip == true then the first clause is false and we will never return,
    // i.e. always compute, otherwise we skip DO_NOT_COMPUTE cells
    bool skipMoments = false;
@@ -75,8 +77,8 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell, const bool& computeSe
 
          // Calculate species' contribution to first velocity moments
          for (vmesh::LocalID blockLID = 0; blockLID < blockContainer.size(); ++blockLID) {
-            blockVelocityFirstMoments(data + blockLID * WID3,
-                                      blockParams + blockLID * BlockParams::N_VELOCITY_BLOCK_PARAMS, array);
+            blockVelocityFirstMoments(
+                data + blockLID * WID3, blockParams + blockLID * BlockParams::N_VELOCITY_BLOCK_PARAMS, array);
          }
 
          Population& pop = cell->get_population(popID);
@@ -129,8 +131,10 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell, const bool& computeSe
       for (vmesh::LocalID blockLID = 0; blockLID < blockContainer.size(); ++blockLID) {
          blockVelocitySecondMoments(data + blockLID * WID3,
                                     blockParams + blockLID * BlockParams::N_VELOCITY_BLOCK_PARAMS,
-                                    cell->parameters[CellParams::VX], cell->parameters[CellParams::VY],
-                                    cell->parameters[CellParams::VZ], array);
+                                    cell->parameters[CellParams::VX],
+                                    cell->parameters[CellParams::VY],
+                                    cell->parameters[CellParams::VZ],
+                                    array);
       }
 
       // Store species' contribution to bulk velocity moments
@@ -153,7 +157,8 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell, const bool& computeSe
  * @param mpiGrid Parallel grid library.
  * @param cells Vector containing the spatial cells to be calculated.
  * @param computeSecond If true, second velocity moments are calculated.*/
-void calculateMoments_R(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const std::vector<CellID>& cells,
+void calculateMoments_R(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                        const std::vector<CellID>& cells,
                         const bool& computeSecond) {
 
    phiprof::Timer momentsTimer{"compute-moments-n"};
@@ -210,8 +215,8 @@ void calculateMoments_R(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mp
 
          // Calculate species' contribution to first velocity moments
          for (vmesh::LocalID blockLID = 0; blockLID < blockContainer.size(); ++blockLID) {
-            blockVelocityFirstMoments(data + blockLID * WID3,
-                                      blockParams + blockLID * BlockParams::N_VELOCITY_BLOCK_PARAMS, array);
+            blockVelocityFirstMoments(
+                data + blockLID * WID3, blockParams + blockLID * BlockParams::N_VELOCITY_BLOCK_PARAMS, array);
          } // for-loop over velocity blocks
 
          // Store species' contribution to bulk velocity moments
@@ -274,8 +279,10 @@ void calculateMoments_R(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mp
          for (vmesh::LocalID blockLID = 0; blockLID < blockContainer.size(); ++blockLID) {
             blockVelocitySecondMoments(data + blockLID * WID3,
                                        blockParams + blockLID * BlockParams::N_VELOCITY_BLOCK_PARAMS,
-                                       cell->parameters[CellParams::VX_R], cell->parameters[CellParams::VY_R],
-                                       cell->parameters[CellParams::VZ_R], array);
+                                       cell->parameters[CellParams::VX_R],
+                                       cell->parameters[CellParams::VY_R],
+                                       cell->parameters[CellParams::VZ_R],
+                                       array);
          } // for-loop over velocity blocks
 
          // Store species' contribution to 2nd bulk velocity moments
@@ -298,7 +305,8 @@ void calculateMoments_R(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mp
  * @param mpiGrid Parallel grid library.
  * @param cells Vector containing the spatial cells to be calculated.
  * @param computeSecond If true, second velocity moments are calculated.*/
-void calculateMoments_V(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const std::vector<CellID>& cells,
+void calculateMoments_V(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                        const std::vector<CellID>& cells,
                         const bool& computeSecond) {
 
    phiprof::Timer momentsTimer{"Compute _V moments"};
@@ -340,8 +348,8 @@ void calculateMoments_V(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mp
 
          // Calculate species' contribution to first velocity moments
          for (vmesh::LocalID blockLID = 0; blockLID < blockContainer.size(); ++blockLID) {
-            blockVelocityFirstMoments(data + blockLID * WID3,
-                                      blockParams + blockLID * BlockParams::N_VELOCITY_BLOCK_PARAMS, array);
+            blockVelocityFirstMoments(
+                data + blockLID * WID3, blockParams + blockLID * BlockParams::N_VELOCITY_BLOCK_PARAMS, array);
          }
 
          // Store species' contribution to bulk velocity moments
@@ -404,8 +412,10 @@ void calculateMoments_V(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mp
          for (vmesh::LocalID blockLID = 0; blockLID < blockContainer.size(); ++blockLID) {
             blockVelocitySecondMoments(data + blockLID * WID3,
                                        blockParams + blockLID * BlockParams::N_VELOCITY_BLOCK_PARAMS,
-                                       cell->parameters[CellParams::VX_V], cell->parameters[CellParams::VY_V],
-                                       cell->parameters[CellParams::VZ_V], array);
+                                       cell->parameters[CellParams::VX_V],
+                                       cell->parameters[CellParams::VY_V],
+                                       cell->parameters[CellParams::VZ_V],
+                                       array);
          } // for-loop over velocity blocks
 
          // Store species' contribution to 2nd bulk velocity moments

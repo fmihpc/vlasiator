@@ -80,8 +80,19 @@ void TestHall::getParameters() {
    RP::get("TestHall.rho", this->DENSITY);
 }
 
-Real TestHall::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx,
-                                     creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
+Real TestHall::calcPhaseSpaceDensity(creal& x,
+                                     creal& y,
+                                     creal& z,
+                                     creal& dx,
+                                     creal& dy,
+                                     creal& dz,
+                                     creal& vx,
+                                     creal& vy,
+                                     creal& vz,
+                                     creal& dvx,
+                                     creal& dvy,
+                                     creal& dvz,
+                                     const uint popID) const {
    creal mass = physicalconstants::MASS_PROTON;
    creal kb = physicalconstants::K_B;
 

@@ -55,8 +55,19 @@ bool Template::initialize() {
    return Project::initialize();
 }
 
-Real Template::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx,
-                                     creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
+Real Template::calcPhaseSpaceDensity(creal& x,
+                                     creal& y,
+                                     creal& z,
+                                     creal& dx,
+                                     creal& dy,
+                                     creal& dz,
+                                     creal& vx,
+                                     creal& vy,
+                                     creal& vz,
+                                     creal& dvx,
+                                     creal& dvy,
+                                     creal& dvz,
+                                     const uint popID) const {
    creal rho = 1.0;
    creal T = 1.0;
    const std::array<Real, 3> V0 = this->getV0(x, y, z, popID)[0];

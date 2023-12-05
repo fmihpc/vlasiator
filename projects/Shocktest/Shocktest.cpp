@@ -115,8 +115,16 @@ void Shocktest::getParameters() {
    RP::get("Shocktest.nVelocitySamples", this->nVelocitySamples);
 }
 
-Real Shocktest::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy,
-                                creal& dvz, const uint popID) const {
+Real Shocktest::getDistribValue(creal& x,
+                                creal& y,
+                                creal& z,
+                                creal& vx,
+                                creal& vy,
+                                creal& vz,
+                                creal& dvx,
+                                creal& dvy,
+                                creal& dvz,
+                                const uint popID) const {
    creal mass = physicalconstants::MASS_PROTON;
    creal kb = physicalconstants::K_B;
 
@@ -164,8 +172,18 @@ vector<std::array<Real, 3>> Shocktest::getV0(creal x, creal y, creal z, const ui
  * @return The volume average of the distribution function in the given phase space cell.
  * The physical unit of this quantity is 1 / (m^3 (m/s)^3).
  */
-Real Shocktest::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx,
-                                      creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,
+Real Shocktest::calcPhaseSpaceDensity(creal& x,
+                                      creal& y,
+                                      creal& z,
+                                      creal& dx,
+                                      creal& dy,
+                                      creal& dz,
+                                      creal& vx,
+                                      creal& vy,
+                                      creal& vz,
+                                      creal& dvx,
+                                      creal& dvy,
+                                      creal& dvz,
                                       const uint popID) const {
    creal d_x = dx / (this->nSpaceSamples - 1);
    creal d_y = dy / (this->nSpaceSamples - 1);
@@ -180,8 +198,16 @@ Real Shocktest::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, c
             for (uint vi = 0; vi < this->nVelocitySamples; ++vi)
                for (uint vj = 0; vj < this->nVelocitySamples; ++vj)
                   for (uint vk = 0; vk < this->nVelocitySamples; ++vk) {
-                     avg += getDistribValue(x + i * d_x, y + j * d_y, z + k * d_z, vx + vi * d_vx, vy + vj * d_vy,
-                                            vz + vk * d_vz, dvx, dvy, dvz, popID);
+                     avg += getDistribValue(x + i * d_x,
+                                            y + j * d_y,
+                                            z + k * d_z,
+                                            vx + vi * d_vx,
+                                            vy + vj * d_vy,
+                                            vz + vk * d_vz,
+                                            dvx,
+                                            dvy,
+                                            dvz,
+                                            popID);
                   }
    return avg / pow(this->nSpaceSamples, 3.0) / pow(this->nVelocitySamples, 3.0);
 }

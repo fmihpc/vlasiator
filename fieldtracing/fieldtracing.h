@@ -148,8 +148,10 @@ using TracingFieldFunction = std::function<bool(std::array<REAL, 3>&, const bool
 template <typename REAL>
 bool traceFullFieldFunction(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
                             FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
-                            FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, std::array<REAL, 3>& r,
-                            const bool alongB, std::array<REAL, 3>& b) {
+                            FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+                            std::array<REAL, 3>& r,
+                            const bool alongB,
+                            std::array<REAL, 3>& b) {
    if (r[0] > P::xmax - 2 * P::dx_ini || r[0] < P::xmin + 2 * P::dx_ini || r[1] > P::ymax - 2 * P::dy_ini ||
        r[1] < P::ymin + 2 * P::dy_ini || r[2] > P::zmax - 2 * P::dz_ini || r[2] < P::zmin + 2 * P::dz_ini) {
       cerr << (string)("(fieldtracing) Error: fsgrid coupling trying to step outside of the global domain?\n");
@@ -181,9 +183,14 @@ bool traceFullFieldFunction(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 
    } else {
       if (technicalGrid.get(fsgridCell[0], fsgridCell[1], fsgridCell[2])->sysBoundaryFlag ==
           sysboundarytype::NOT_SYSBOUNDARY) {
-         const std::array<Real, 3> perB = interpolatePerturbedB(
-             perBGrid, dPerBGrid, technicalGrid, fieldTracingParameters.reconstructionCoefficientsCache, fsgridCell[0],
-             fsgridCell[1], fsgridCell[2], {(Real)r[0], (Real)r[1], (Real)r[2]});
+         const std::array<Real, 3> perB = interpolatePerturbedB(perBGrid,
+                                                                dPerBGrid,
+                                                                technicalGrid,
+                                                                fieldTracingParameters.reconstructionCoefficientsCache,
+                                                                fsgridCell[0],
+                                                                fsgridCell[1],
+                                                                fsgridCell[2],
+                                                                {(Real)r[0], (Real)r[1], (Real)r[2]});
          b[0] += perB[0];
          b[1] += perB[1];
          b[2] += perB[2];
@@ -222,8 +229,12 @@ bool traceFullFieldFunction(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 
  * z0,zmid,z2: intermediate approximations
  * */
 template <typename REAL>
-void modifiedMidpointMethod(std::array<REAL, 3> r, std::array<REAL, 3>& r1, int n, REAL stepSize,
-                            TracingFieldFunction<REAL>& BFieldFunction, const bool outwards = true) {
+void modifiedMidpointMethod(std::array<REAL, 3> r,
+                            std::array<REAL, 3>& r1,
+                            int n,
+                            REAL stepSize,
+                            TracingFieldFunction<REAL>& BFieldFunction,
+                            const bool outwards = true) {
    // Allocate some memory.
    std::array<REAL, 3> bunit, crd, z0, zmid, z1;
    // Divide by number of sub steps
@@ -275,8 +286,13 @@ void richardsonExtrapolation(int i, std::vector<REAL>& table, REAL& maxError, st
 }; // Richardson extrapolation method used by BS step
 
 template <typename REAL>
-bool bulirschStoerStep(std::array<REAL, 3>& r, std::array<REAL, 3>& b, REAL& stepSize, const REAL minStepSize,
-                       const REAL maxStepSize, TracingFieldFunction<REAL>& BFieldFunction, const bool outwards = true) {
+bool bulirschStoerStep(std::array<REAL, 3>& r,
+                       std::array<REAL, 3>& b,
+                       REAL& stepSize,
+                       const REAL minStepSize,
+                       const REAL maxStepSize,
+                       TracingFieldFunction<REAL>& BFieldFunction,
+                       const bool outwards = true) {
    // Factors by which the stepsize is multiplied
    REAL shrink = 0.95;
    REAL grow = 1.2;
@@ -349,8 +365,13 @@ bool bulirschStoerStep(std::array<REAL, 3>& r, std::array<REAL, 3>& b, REAL& ste
 }; // Bulirsch Stoer step
 
 template <typename REAL>
-bool dormandPrinceStep(std::array<REAL, 3>& r, std::array<REAL, 3>& b, REAL& stepSize, const REAL minStepSize,
-                       const REAL maxStepSize, TracingFieldFunction<REAL>& BFieldFunction, const bool outwards = true) {
+bool dormandPrinceStep(std::array<REAL, 3>& r,
+                       std::array<REAL, 3>& b,
+                       REAL& stepSize,
+                       const REAL minStepSize,
+                       const REAL maxStepSize,
+                       TracingFieldFunction<REAL>& BFieldFunction,
+                       const bool outwards = true) {
    // BFieldFunction can return false if it steps out of the "comfort zone"
    bool proceed = true;
    std::array<REAL, 7> kx, ky, kz;
@@ -471,8 +492,13 @@ bool dormandPrinceStep(std::array<REAL, 3>& r, std::array<REAL, 3>& b, REAL& ste
 }; // Dormand Prince step
 
 template <typename REAL>
-bool adaptiveEulerStep(std::array<REAL, 3>& r, std::array<REAL, 3>& b, REAL& stepSize, const REAL minStepSize,
-                       const REAL maxStepSize, TracingFieldFunction<REAL>& BFieldFunction, const bool outwards = true) {
+bool adaptiveEulerStep(std::array<REAL, 3>& r,
+                       std::array<REAL, 3>& b,
+                       REAL& stepSize,
+                       const REAL minStepSize,
+                       const REAL maxStepSize,
+                       TracingFieldFunction<REAL>& BFieldFunction,
+                       const bool outwards = true) {
    // First evaluation
    std::array<REAL, 3> r1;
    BFieldFunction(r, outwards, b);
@@ -513,8 +539,11 @@ bool adaptiveEulerStep(std::array<REAL, 3>& r, std::array<REAL, 3>& b, REAL& ste
 }; // Adaptive Euler step
 
 template <typename REAL>
-void eulerStep(std::array<REAL, 3>& x, std::array<REAL, 3>& v, REAL& stepSize,
-               TracingFieldFunction<REAL>& BFieldFunction, const bool outwards = true) {
+void eulerStep(std::array<REAL, 3>& x,
+               std::array<REAL, 3>& v,
+               REAL& stepSize,
+               TracingFieldFunction<REAL>& BFieldFunction,
+               const bool outwards = true) {
    // Get field direction
    BFieldFunction(x, outwards, v);
 
@@ -525,8 +554,13 @@ void eulerStep(std::array<REAL, 3>& x, std::array<REAL, 3>& v, REAL& stepSize,
 
 /*! Take a step along the field line*/
 template <typename REAL>
-void stepFieldLine(std::array<REAL, 3>& x, std::array<REAL, 3>& v, REAL& stepsize, const REAL minStepSize,
-                   const REAL maxStepSize, TracingMethod method, TracingFieldFunction<REAL>& BFieldFunction,
+void stepFieldLine(std::array<REAL, 3>& x,
+                   std::array<REAL, 3>& v,
+                   REAL& stepsize,
+                   const REAL minStepSize,
+                   const REAL maxStepSize,
+                   TracingMethod method,
+                   TracingFieldFunction<REAL>& BFieldFunction,
                    const bool outwards) {
    bool reTrace;
    uint32_t attempts = 0;
@@ -576,11 +610,13 @@ inline void resetReconstructionCoefficientsCache() { fieldTracingParameters.reco
 void calculateIonosphereFsgridCoupling(FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
                                        FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
                                        FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
-                                       std::vector<SBC::SphericalTriGrid::Node>& nodes, creal radius);
+                                       std::vector<SBC::SphericalTriGrid::Node>& nodes,
+                                       creal radius);
 
 /*! Find coupled ionosphere mesh node for given location */
 std::array<std::pair<int, Real>, 3>
-calculateIonosphereVlasovGridCoupling(std::array<Real, 3> x, std::vector<SBC::SphericalTriGrid::Node>& nodes,
+calculateIonosphereVlasovGridCoupling(std::array<Real, 3> x,
+                                      std::vector<SBC::SphericalTriGrid::Node>& nodes,
                                       creal couplingRadius);
 
 /*! Compute whether a node is connected to the ionosphere or the IMF. */

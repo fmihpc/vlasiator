@@ -40,8 +40,8 @@ double lineAverage(const T3DFunction& f1, coordinate line, double accuracy, cons
   and surface side lengths (positive) equal to L1,L2 (either yz, xz or xy,
   depending on d).
 */
-double surfaceAverage(const T3DFunction& f1, coordinate face, double accuracy, const double r1[3], double L1,
-                      double L2);
+double
+surfaceAverage(const T3DFunction& f1, coordinate face, double accuracy, const double r1[3], double L1, double L2);
 
 /*!
   Average of f1 over a rectangular coordinate-aligned volume

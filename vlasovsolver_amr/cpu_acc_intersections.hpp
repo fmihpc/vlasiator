@@ -74,9 +74,14 @@ Eigen::Matrix<Real, 3, 1> line_plane_intersection(const Eigen::Matrix<Real, 3, 1
  * @param intersection_dj Change in z-coordinate for a change in j index of 1
  * @param intersection_dk Change in z-coordinate for a change in k index of 1
  */
-void compute_intersections_1st(const SpatialCell* spatial_cell, const Transform<Real, 3, Affine>& bwd_transform,
-                               const Transform<Real, 3, Affine>& fwd_transform, uint dimension, uint8_t refLevel,
-                               Real& intersection, Real& intersection_di, Real& intersection_dj,
+void compute_intersections_1st(const SpatialCell* spatial_cell,
+                               const Transform<Real, 3, Affine>& bwd_transform,
+                               const Transform<Real, 3, Affine>& fwd_transform,
+                               uint dimension,
+                               uint8_t refLevel,
+                               Real& intersection,
+                               Real& intersection_di,
+                               Real& intersection_dj,
                                Real& intersection_dk) {
    if (dimension == 0) { // Prepare intersections for mapping along X first (mapping order X-Y-Z)
       // Normal of lagrangian planes
@@ -159,7 +164,8 @@ void compute_intersections_1st(const SpatialCell* spatial_cell, const Transform<
       const Eigen::Matrix<Real, 3, 1> plane_point =
           bwd_transform *
           Eigen::Matrix<Real, 3, 1>(
-              0.0, 0.0,
+              0.0,
+              0.0,
               SpatialCell::get_velocity_grid_min_limits()[2]); /*<Point on lowest potential lagrangian plane */
 
       // Unit vector to +z direction on fixed grid
@@ -207,9 +213,14 @@ void compute_intersections_1st(const SpatialCell* spatial_cell, const Transform<
   x-coordinate for a change in k index of 1
 */
 
-void compute_intersections_2nd(const SpatialCell* spatial_cell, const Transform<Real, 3, Affine>& bwd_transform,
-                               const Transform<Real, 3, Affine>& fwd_transform, uint dimension, uint8_t refLevel,
-                               Real& intersection, Real& intersection_di, Real& intersection_dj,
+void compute_intersections_2nd(const SpatialCell* spatial_cell,
+                               const Transform<Real, 3, Affine>& bwd_transform,
+                               const Transform<Real, 3, Affine>& fwd_transform,
+                               uint dimension,
+                               uint8_t refLevel,
+                               Real& intersection,
+                               Real& intersection_di,
+                               Real& intersection_dj,
                                Real& intersection_dk) {
 
    if (dimension == 0) {
@@ -261,7 +272,8 @@ void compute_intersections_2nd(const SpatialCell* spatial_cell, const Transform<
       const Eigen::Matrix<Real, 3, 1> plane_normal =
           Eigen::Matrix<Real, 3, 1>(0.0, 0.0, 1.0); // Normal of Euclidian z-plane
       Eigen::Matrix<Real, 3, 1> plane_point =
-          Eigen::Matrix<Real, 3, 1>(0.0, 0.0,
+          Eigen::Matrix<Real, 3, 1>(0.0,
+                                    0.0,
                                     SpatialCell::get_velocity_grid_min_limits()[2] +
                                         SpatialCell::get_velocity_grid_cell_size(refLevel)[2] *
                                             0.5); // Point on lowest euclidian z-plane through middle of cells
@@ -307,7 +319,8 @@ void compute_intersections_2nd(const SpatialCell* spatial_cell, const Transform<
           Eigen::Matrix<Real, 3, 1>(1.0, 0.0, 0.0); // Normal of Euclidian x-plane
       Eigen::Matrix<Real, 3, 1> plane_point = Eigen::Matrix<Real, 3, 1>(
           SpatialCell::get_velocity_grid_min_limits()[0] + SpatialCell::get_velocity_grid_cell_size(refLevel)[0] * 0.5,
-          0.0, 0.0); // Point on lowest euclidian x-plane through middle of cells
+          0.0,
+          0.0); // Point on lowest euclidian x-plane through middle of cells
       const Eigen::Matrix<Real, 3, 1> euclidian_di = Eigen::Matrix<Real, 3, 1>(
           SpatialCell::get_velocity_grid_cell_size(refLevel)[0], 0.0, 0.0); // Distance between euclidian planes
       const Eigen::Matrix<Real, 3, 1> lagrangian_dj =
@@ -361,9 +374,14 @@ void compute_intersections_2nd(const SpatialCell* spatial_cell, const Transform<
 
 
 */
-void compute_intersections_3rd(const SpatialCell* spatial_cell, const Transform<Real, 3, Affine>& bwd_transform,
-                               const Transform<Real, 3, Affine>& fwd_transform, uint dimension, uint8_t refLevel,
-                               Real& intersection, Real& intersection_di, Real& intersection_dj,
+void compute_intersections_3rd(const SpatialCell* spatial_cell,
+                               const Transform<Real, 3, Affine>& bwd_transform,
+                               const Transform<Real, 3, Affine>& fwd_transform,
+                               uint dimension,
+                               uint8_t refLevel,
+                               Real& intersection,
+                               Real& intersection_di,
+                               Real& intersection_dj,
                                Real& intersection_dk) {
    if (dimension == 0) {
       // Prepare intersections for mapping along X third (mapping order Y-Z-X)

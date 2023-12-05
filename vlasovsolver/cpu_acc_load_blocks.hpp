@@ -13,7 +13,10 @@
    (planeVectorIndex * WID * (num_k_blocks + 2) + (k) + (k_block + 1) * WID)
 
 void loadColumnBlockData(const vmesh::VelocityMesh<vmesh::GlobalID, vmesh::LocalID>& vmesh,
-                         vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer, vmesh::GlobalID* blocks,
-                         vmesh::LocalID n_blocks, const int dimension, Vec* __restrict__ values);
+                         vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer,
+                         vmesh::GlobalID* blocks,
+                         vmesh::LocalID n_blocks,
+                         const int dimension,
+                         Vec* __restrict__ values);
 
 #endif

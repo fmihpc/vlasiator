@@ -91,8 +91,8 @@ void Readparameters::addComposing(const string& name, const string& desc) {
    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
    if (rank == MASTER_RANK) {
       isVectorOptionParsed[name] = false;
-      descriptions->add_options()(name.c_str(), PO::value<vector<string>>(&(vectorOptions[name]))->composing(),
-                                  desc.c_str());
+      descriptions->add_options()(
+          name.c_str(), PO::value<vector<string>>(&(vectorOptions[name]))->composing(), desc.c_str());
    }
 }
 
@@ -329,11 +329,13 @@ void Readparameters::addDefaultParameters() {
 
       // Parameters which set the names of the configuration file(s):
       descriptions->add_options()(
-          "global_config", PO::value<string>(&global_config_file_name)->default_value(""),
+          "global_config",
+          PO::value<string>(&global_config_file_name)->default_value(""),
           "read options from the global configuration file arg (relative to the current working directory). Options "
           "given in this file are overridden by options given in the user's and run's configuration files and by "
           "options given in environment variables (prefixed with MAIN_) and the command line")(
-          "user_config", PO::value<string>(&user_config_file_name)->default_value(""),
+          "user_config",
+          PO::value<string>(&user_config_file_name)->default_value(""),
           "read options from the user's configuration file arg (relative to the current working directory). Options "
           "given in this file override options given in the global configuration file. Options given in this file "
           "are "

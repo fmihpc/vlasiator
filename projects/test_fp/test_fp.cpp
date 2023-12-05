@@ -90,8 +90,19 @@ Real test_fp::sign(creal value) const {
       return value / abs(value);
 }
 
-Real test_fp::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy,
-                                    creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
+Real test_fp::calcPhaseSpaceDensity(creal& x,
+                                    creal& y,
+                                    creal& z,
+                                    creal& dx,
+                                    creal& dy,
+                                    creal& dz,
+                                    creal& vx,
+                                    creal& vy,
+                                    creal& vz,
+                                    creal& dvx,
+                                    creal& dvy,
+                                    creal& dvz,
+                                    const uint popID) const {
    vector<std::array<Real, 3>> V = this->getV0(x, y, z, dx, dy, dz, popID);
 
    creal VX2 = (vx + 0.5 * dvx - V[0][0]) * (vx + 0.5 * dvx - V[0][0]);
@@ -179,8 +190,8 @@ void test_fp::setProjectBField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD
 
 void test_fp::calcCellParameters(spatial_cell::SpatialCell* cell, creal& t) {}
 
-vector<std::array<Real, 3>> test_fp::getV0(creal x, creal y, creal z, creal dx, creal dy, creal dz,
-                                           const uint popID) const {
+vector<std::array<Real, 3>>
+test_fp::getV0(creal x, creal y, creal z, creal dx, creal dy, creal dz, const uint popID) const {
    vector<std::array<Real, 3>> centerPoints;
 
    Real VX = 0.0, VY = 0.0, VZ = 0.0;
@@ -271,11 +282,14 @@ bool test_fp::refineSpatialCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::
       std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
 
    for (double x = P::amrBoxCenterX - P::amrBoxHalfWidthX * P::dx_ini;
-        x <= P::amrBoxCenterX + P::amrBoxHalfWidthX * P::dx_ini; x += 0.99 * P::dx_ini) {
+        x <= P::amrBoxCenterX + P::amrBoxHalfWidthX * P::dx_ini;
+        x += 0.99 * P::dx_ini) {
       for (double y = P::amrBoxCenterY - P::amrBoxHalfWidthY * P::dy_ini;
-           y <= P::amrBoxCenterY + P::amrBoxHalfWidthY * P::dy_ini; y += 0.99 * P::dy_ini) {
+           y <= P::amrBoxCenterY + P::amrBoxHalfWidthY * P::dy_ini;
+           y += 0.99 * P::dy_ini) {
          for (double z = P::amrBoxCenterZ - P::amrBoxHalfWidthZ * P::dz_ini;
-              z <= P::amrBoxCenterZ + P::amrBoxHalfWidthZ * P::dz_ini; z += 0.99 * P::dz_ini) {
+              z <= P::amrBoxCenterZ + P::amrBoxHalfWidthZ * P::dz_ini;
+              z += 0.99 * P::dz_ini) {
 
             std::array<double, 3> xyz;
             xyz[0] = x;

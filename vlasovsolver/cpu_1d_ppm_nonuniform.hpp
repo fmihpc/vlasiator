@@ -35,8 +35,12 @@ using namespace std;
 /*
   Compute parabolic reconstruction with an explicit scheme
 */
-inline void compute_ppm_coeff_nonuniform(const Vec* const dv, const Vec* const values, face_estimate_order order,
-                                         uint k, Vec a[3], const Realv threshold) {
+inline void compute_ppm_coeff_nonuniform(const Vec* const dv,
+                                         const Vec* const values,
+                                         face_estimate_order order,
+                                         uint k,
+                                         Vec a[3],
+                                         const Realv threshold) {
    Vec fv_l; /*left face value*/
    Vec fv_r; /*right face value*/
    compute_filtered_face_values_nonuniform(dv, values, k, order, fv_l, fv_r, threshold);
@@ -50,10 +54,12 @@ inline void compute_ppm_coeff_nonuniform(const Vec* const dv, const Vec* const v
 
    m_face = select((p_face - m_face) * (values[k] - 0.5 * (m_face + p_face)) >
                        (p_face - m_face) * (p_face - m_face) * one_sixth,
-                   3 * values[k] - 2 * p_face, m_face);
+                   3 * values[k] - 2 * p_face,
+                   m_face);
    p_face = select(-(p_face - m_face) * (p_face - m_face) * one_sixth >
                        (p_face - m_face) * (values[k] - 0.5 * (m_face + p_face)),
-                   3 * values[k] - 2 * m_face, p_face);
+                   3 * values[k] - 2 * m_face,
+                   p_face);
 
    // Fit a second order polynomial for reconstruction see, e.g., White
    // 2008 (PQM article) (note additional integration factors built in,

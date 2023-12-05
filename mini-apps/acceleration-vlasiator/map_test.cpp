@@ -19,14 +19,28 @@ void print_values(int step, Vec* values, uint blocks_per_dim, Real v_min, Real d
    FILE* fp = fopen(name, "w");
    for (int i = 0; i < blocks_per_dim * WID; i++) {
       Real v = v_min + (i + 0.5) * dv;
-      fprintf(fp, "%20.12g %20.12g %20.12g %20.12g %20.12g\n", v, values[i + WID][0], values[i + WID][1],
-              values[i + WID][2], values[i + WID][3]);
+      fprintf(fp,
+              "%20.12g %20.12g %20.12g %20.12g %20.12g\n",
+              v,
+              values[i + WID][0],
+              values[i + WID][1],
+              values[i + WID][2],
+              values[i + WID][3]);
    }
    fclose(fp);
 }
 
-void propagate(Vec values[], uint blocks_per_dim, Real v_min, Real dv, uint i_block, uint j_block, uint j_cell,
-               Real intersection, Real intersection_di, Real intersection_dj, Real intersection_dk) {
+void propagate(Vec values[],
+               uint blocks_per_dim,
+               Real v_min,
+               Real dv,
+               uint i_block,
+               uint j_block,
+               uint j_cell,
+               Real intersection,
+               Real intersection_di,
+               Real intersection_dj,
+               Real intersection_dk) {
    Vec target[(MAX_BLOCKS_PER_DIM + 2) * WID];
 
    /*clear temporary taret*/
@@ -42,8 +56,10 @@ void propagate(Vec values[], uint blocks_per_dim, Real v_min, Real dv, uint i_bl
        intersection + (i_block * WID) * intersection_di + (j_block * WID + j_cell) * intersection_dj;
 
    // const Vec intersection_min(intersection_min_base);
-   const Vec intersection_min(intersection_min_base + 0 * intersection_di, intersection_min_base + 1 * intersection_di,
-                              intersection_min_base + 2 * intersection_di, intersection_min_base + 3 * intersection_di);
+   const Vec intersection_min(intersection_min_base + 0 * intersection_di,
+                              intersection_min_base + 1 * intersection_di,
+                              intersection_min_base + 2 * intersection_di,
+                              intersection_min_base + 3 * intersection_di);
    /*compute some initial values, that are used to set up the
     * shifting of values as we go through all blocks in
     * order. See comments where they are shifted for
@@ -142,8 +158,17 @@ void propagate(Vec values[], uint blocks_per_dim, Real v_min, Real dv, uint i_bl
    }
 }
 
-void print_reconstruction(int step, Vec values[], uint blocks_per_dim, Real v_min, Real dv, uint i_block, uint j_block,
-                          uint j_cell, Real intersection, Real intersection_di, Real intersection_dj,
+void print_reconstruction(int step,
+                          Vec values[],
+                          uint blocks_per_dim,
+                          Real v_min,
+                          Real dv,
+                          uint i_block,
+                          uint j_block,
+                          uint j_cell,
+                          Real intersection,
+                          Real intersection_di,
+                          Real intersection_dj,
                           Real intersection_dk) {
    char name[256];
    sprintf(name, "reconstructions_%05d.dat", step);
@@ -157,8 +182,10 @@ void print_reconstruction(int step, Vec values[], uint blocks_per_dim, Real v_mi
        intersection + (i_block * WID) * intersection_di + (j_block * WID + j_cell) * intersection_dj;
 
    // const Vec intersection_min(intersection_min_base);
-   const Vec intersection_min(intersection_min_base + 0 * intersection_di, intersection_min_base + 1 * intersection_di,
-                              intersection_min_base + 2 * intersection_di, intersection_min_base + 3 * intersection_di);
+   const Vec intersection_min(intersection_min_base + 0 * intersection_di,
+                              intersection_min_base + 1 * intersection_di,
+                              intersection_min_base + 2 * intersection_di,
+                              intersection_min_base + 3 * intersection_di);
    /*compute some initial values, that are used to set up the
     * shifting of values as we go through all blocks in
     * order. See comments where they are shifted for
@@ -247,17 +274,46 @@ int main(void) {
    }
 
    // print_values(0,values,blocks_per_dim, v_min, dv);
-   print_reconstruction(0, values, blocks_per_dim, v_min, dv, i_block, j_block, j_cell, intersection, intersection_di,
-                        intersection_dj, intersection_dk);
+   print_reconstruction(0,
+                        values,
+                        blocks_per_dim,
+                        v_min,
+                        dv,
+                        i_block,
+                        j_block,
+                        j_cell,
+                        intersection,
+                        intersection_di,
+                        intersection_dj,
+                        intersection_dk);
 
    clock_t t = clock();
    /*loop over propagations*/
    for (int step = 0; step <= iterations; step++) {
-      propagate(values, blocks_per_dim, v_min, dv, i_block, j_block, j_cell, intersection, intersection_di,
-                intersection_dj, intersection_dk);
+      propagate(values,
+                blocks_per_dim,
+                v_min,
+                dv,
+                i_block,
+                j_block,
+                j_cell,
+                intersection,
+                intersection_di,
+                intersection_dj,
+                intersection_dk);
       if (step % 10 == 0)
-         print_reconstruction(step, values, blocks_per_dim, v_min, dv, i_block, j_block, j_cell, intersection,
-                              intersection_di, intersection_dj, intersection_dk);
+         print_reconstruction(step,
+                              values,
+                              blocks_per_dim,
+                              v_min,
+                              dv,
+                              i_block,
+                              j_block,
+                              j_cell,
+                              intersection,
+                              intersection_di,
+                              intersection_dj,
+                              intersection_dk);
    }
    printf("\nTime per iteration: %12.15g\n", ((double)(clock() - t) / CLOCKS_PER_SEC) / iterations);
 

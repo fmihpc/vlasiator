@@ -40,7 +40,8 @@
 bool readGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
               FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
               FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EGrid,
-              FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, const std::string& name);
+              FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+              const std::string& name);
 
 /*!
 
@@ -55,7 +56,9 @@ bool readFileCells(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid
  */
 void checkExternalCommands();
 
-bool readIonosphereNodeVariable(vlsv::ParallelReader& file, const string& variableName, SBC::SphericalTriGrid& grid,
+bool readIonosphereNodeVariable(vlsv::ParallelReader& file,
+                                const string& variableName,
+                                SBC::SphericalTriGrid& grid,
                                 ionosphereParameters index);
 
 #endif

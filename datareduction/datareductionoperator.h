@@ -56,7 +56,9 @@ public:
    virtual ~DataReductionOperator();
 
    virtual bool getDataVectorInfo(std::string& dataType, unsigned int& dataSize, unsigned int& vectorSize) const = 0;
-   virtual bool getUnitMetadata(std::string& _unit, std::string& _unitLaTeX, std::string& _variableLaTeX,
+   virtual bool getUnitMetadata(std::string& _unit,
+                                std::string& _unitLaTeX,
+                                std::string& _variableLaTeX,
                                 std::string& _unitConversion) {
       _unit = unit;
       _unitLaTeX = unitLaTeX;
@@ -64,7 +66,9 @@ public:
       _variableLaTeX = variableLaTeX;
       return true;
    };
-   virtual bool setUnitMetadata(std::string& _unit, std::string& _unitLaTeX, std::string& _variableLaTeX,
+   virtual bool setUnitMetadata(std::string& _unit,
+                                std::string& _unitLaTeX,
+                                std::string& _variableLaTeX,
                                 std::string& _unitConversion) {
       unit = _unit;
       unitLaTeX = _unitLaTeX;
@@ -129,7 +133,9 @@ public:
                                 FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
                                 FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid,
                                 FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-                                const std::string& meshName, vlsv::Writer& vlsvWriter, const bool writeAsFloat = false);
+                                const std::string& meshName,
+                                vlsv::Writer& vlsvWriter,
+                                const bool writeAsFloat = false);
 };
 
 // Generic (lambda-based) datareducer for ionosphere grid element-centered data
@@ -214,7 +220,8 @@ public:
 
 class DataReductionOperatorCellParams : public DataReductionOperator {
 public:
-   DataReductionOperatorCellParams(const std::string& name, const unsigned int parameterIndex,
+   DataReductionOperatorCellParams(const std::string& name,
+                                   const unsigned int parameterIndex,
                                    const unsigned int vectorSize);
    virtual ~DataReductionOperatorCellParams();
 
@@ -233,14 +240,16 @@ protected:
 
 class DataReductionOperatorDerivatives : public DataReductionOperatorCellParams {
 public:
-   DataReductionOperatorDerivatives(const std::string& name, const unsigned int parameterIndex,
+   DataReductionOperatorDerivatives(const std::string& name,
+                                    const unsigned int parameterIndex,
                                     const unsigned int vectorSize);
    virtual bool setSpatialCell(const SpatialCell* cell);
 };
 
 class DataReductionOperatorBVOLDerivatives : public DataReductionOperatorCellParams {
 public:
-   DataReductionOperatorBVOLDerivatives(const std::string& name, const unsigned int parameterIndex,
+   DataReductionOperatorBVOLDerivatives(const std::string& name,
+                                        const unsigned int parameterIndex,
                                         const unsigned int vectorSize);
    virtual bool setSpatialCell(const SpatialCell* cell);
 };

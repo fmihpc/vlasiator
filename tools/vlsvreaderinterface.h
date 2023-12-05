@@ -66,7 +66,9 @@ public:
       cellsWithBlocksLocations.clear();
       cellsWithBlocksSet = false;
    }
-   bool getVelocityBlockVariables(const std::string& variableName, const uint64_t& cellId, char*& buffer,
+   bool getVelocityBlockVariables(const std::string& variableName,
+                                  const uint64_t& cellId,
+                                  char*& buffer,
                                   bool allocateMemory = true);
 
    inline uint64_t getBlockOffset(const uint64_t& cellId) {

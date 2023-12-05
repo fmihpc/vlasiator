@@ -16,8 +16,18 @@ void print_values(int step, Real* values, uint blocks_per_dim, Real v_min, Real 
    fclose(fp);
 }
 
-void propagate(Real values[], uint blocks_per_dim, Real v_min, Real dv, uint i_block, uint i_cell, uint j_block,
-               uint j_cell, Real intersection, Real intersection_di, Real intersection_dj, Real intersection_dk) {
+void propagate(Real values[],
+               uint blocks_per_dim,
+               Real v_min,
+               Real dv,
+               uint i_block,
+               uint i_cell,
+               uint j_block,
+               uint j_cell,
+               Real intersection,
+               Real intersection_di,
+               Real intersection_dj,
+               Real intersection_dk) {
    Real a[MAX_BLOCKS_PER_DIM * WID][RECONSTRUCTION_ORDER + 1];
    Real target[(MAX_BLOCKS_PER_DIM + 2) * WID];
 
@@ -130,7 +140,17 @@ int main(void) {
    for (int step = 0; step < iterations; step++) {
       if (step % 10 == 0)
          print_values(step, values, blocks_per_dim, v_min, dv);
-      propagate(values, blocks_per_dim, v_min, dv, i_block, i_cell, j_block, j_cell, intersection, intersection_di,
-                intersection_dj, intersection_dk);
+      propagate(values,
+                blocks_per_dim,
+                v_min,
+                dv,
+                i_block,
+                i_cell,
+                j_block,
+                j_cell,
+                intersection,
+                intersection_di,
+                intersection_dj,
+                intersection_dk);
    }
 }

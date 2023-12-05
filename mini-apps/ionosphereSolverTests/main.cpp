@@ -25,7 +25,8 @@ const std::vector<CellID>& getLocalCells() { return localCellDummy; }
 void deallocateRemoteCellBlocks(
     dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry, std::tuple<>, std::tuple<>>&){};
 void updateRemoteVelocityBlockLists(
-    dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry, std::tuple<>, std::tuple<>>&, unsigned int,
+    dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry, std::tuple<>, std::tuple<>>&,
+    unsigned int,
     unsigned int){};
 void recalculateLocalCellsCache() {}
 SysBoundary::SysBoundary() {}
@@ -36,7 +37,8 @@ void assignConductivityTensor(std::vector<SphericalTriGrid::Node>& nodes, Real s
        {{0, 0, 0}, {0, 0, 1}, {0, -1, 0}}, {{0, 0, -1}, {0, 0, 0}, {1, 0, 0}}, {{0, 1, 0}, {-1, 0, 0}, {0, 0, 0}}};
 
    for (uint n = 0; n < nodes.size(); n++) {
-      std::array<Real, 3> b = {nodes[n].x[0] / Ionosphere::innerRadius, nodes[n].x[1] / Ionosphere::innerRadius,
+      std::array<Real, 3> b = {nodes[n].x[0] / Ionosphere::innerRadius,
+                               nodes[n].x[1] / Ionosphere::innerRadius,
                                nodes[n].x[2] / Ionosphere::innerRadius};
       if (nodes[n].x[2] >= 0) {
          b[0] *= -1;
@@ -62,7 +64,8 @@ void assignConductivityTensorFromLoadedData(std::vector<SphericalTriGrid::Node>&
    for (uint n = 0; n < nodes.size(); n++) {
       Real sigmaH = nodes[n].parameters[ionosphereParameters::SIGMAH];
       Real sigmaP = nodes[n].parameters[ionosphereParameters::SIGMAP];
-      std::array<Real, 3> b = {nodes[n].x[0] / Ionosphere::innerRadius, nodes[n].x[1] / Ionosphere::innerRadius,
+      std::array<Real, 3> b = {nodes[n].x[0] / Ionosphere::innerRadius,
+                               nodes[n].x[1] / Ionosphere::innerRadius,
                                nodes[n].x[2] / Ionosphere::innerRadius};
       if (nodes[n].x[2] >= 0) {
          b[0] *= -1;

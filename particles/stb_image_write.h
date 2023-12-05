@@ -120,8 +120,8 @@ static void write3(FILE* f, unsigned char a, unsigned char b, unsigned char c) {
    fwrite(arr, 3, 1, f);
 }
 
-static void write_pixels(FILE* f, int rgb_dir, int vdir, int x, int y, int comp, void* data, int write_alpha,
-                         int scanline_pad) {
+static void
+write_pixels(FILE* f, int rgb_dir, int vdir, int x, int y, int comp, void* data, int write_alpha, int scanline_pad) {
    unsigned char bg[3] = {255, 0, 255}, px[3];
    stbiw_uint32 zero = 0;
    int i, j, k, j_end;
@@ -164,8 +164,17 @@ static void write_pixels(FILE* f, int rgb_dir, int vdir, int x, int y, int comp,
    }
 }
 
-static int outfile(char const* filename, int rgb_dir, int vdir, int x, int y, int comp, void* data, int alpha, int pad,
-                   const char* fmt, ...) {
+static int outfile(char const* filename,
+                   int rgb_dir,
+                   int vdir,
+                   int x,
+                   int y,
+                   int comp,
+                   void* data,
+                   int alpha,
+                   int pad,
+                   const char* fmt,
+                   ...) {
    FILE* f;
    if (y < 0 || x < 0)
       return 0;
@@ -183,17 +192,60 @@ static int outfile(char const* filename, int rgb_dir, int vdir, int x, int y, in
 
 int stbi_write_bmp(char const* filename, int x, int y, int comp, const void* data) {
    int pad = (-x * 3) & 3;
-   return outfile(filename, -1, -1, x, y, comp, (void*)data, 0, pad,
+   return outfile(filename,
+                  -1,
+                  -1,
+                  x,
+                  y,
+                  comp,
+                  (void*)data,
+                  0,
+                  pad,
                   "11 4 22 4"
                   "4 44 22 444444",
-                  'B', 'M', 14 + 40 + (x * 3 + pad) * y, 0, 0, 14 + 40, // file header
-                  40, x, y, 1, 24, 0, 0, 0, 0, 0, 0);                   // bitmap header
+                  'B',
+                  'M',
+                  14 + 40 + (x * 3 + pad) * y,
+                  0,
+                  0,
+                  14 + 40, // file header
+                  40,
+                  x,
+                  y,
+                  1,
+                  24,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0); // bitmap header
 }
 
 int stbi_write_tga(char const* filename, int x, int y, int comp, const void* data) {
    int has_alpha = !(comp & 1);
-   return outfile(filename, -1, -1, x, y, comp, (void*)data, has_alpha, 0, "111 221 2222 11", 0, 0, 2, 0, 0, 0, 0, 0, x,
-                  y, 24 + 8 * has_alpha, 8 * has_alpha);
+   return outfile(filename,
+                  -1,
+                  -1,
+                  x,
+                  y,
+                  comp,
+                  (void*)data,
+                  has_alpha,
+                  0,
+                  "111 221 2222 11",
+                  0,
+                  0,
+                  2,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  x,
+                  y,
+                  24 + 8 * has_alpha,
+                  8 * has_alpha);
 }
 
 // stretchy buffer; stbi__sbpush() == vector<>::push_back() -- stbi__sbcount() == vector<>::size()
@@ -404,8 +456,11 @@ unsigned int stbi__crc32(unsigned char* buffer, int len) {
 }
 
 #define stbi__wpng4(o, a, b, c, d)                                                                                     \
-   ((o)[0] = (unsigned char)(a), (o)[1] = (unsigned char)(b), (o)[2] = (unsigned char)(c),                             \
-    (o)[3] = (unsigned char)(d), (o) += 4)
+   ((o)[0] = (unsigned char)(a),                                                                                       \
+    (o)[1] = (unsigned char)(b),                                                                                       \
+    (o)[2] = (unsigned char)(c),                                                                                       \
+    (o)[3] = (unsigned char)(d),                                                                                       \
+    (o) += 4)
 #define stbi__wp32(data, v) stbi__wpng4(data, (v) >> 24, (v) >> 16, (v) >> 8, (v));
 #define stbi__wptag(data, s) stbi__wpng4(data, s[0], s[1], s[2], s[3])
 

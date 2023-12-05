@@ -64,10 +64,16 @@ creal EPSILON = 1.0e-25;
 
  */
 void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                 const vector<CellID>& localCells, const vector<CellID>& local_propagated_cells,
-                                 const vector<CellID>& local_target_cells, const vector<CellID>& remoteTargetCellsx,
-                                 const vector<CellID>& remoteTargetCellsy, const vector<CellID>& remoteTargetCellsz,
-                                 vector<uint>& nPencils, creal dt, const uint popID, Real& time) {
+                                 const vector<CellID>& localCells,
+                                 const vector<CellID>& local_propagated_cells,
+                                 const vector<CellID>& local_target_cells,
+                                 const vector<CellID>& remoteTargetCellsx,
+                                 const vector<CellID>& remoteTargetCellsy,
+                                 const vector<CellID>& remoteTargetCellsz,
+                                 vector<uint>& nPencils,
+                                 creal dt,
+                                 const uint popID,
+                                 Real& time) {
 
    bool AMRtranslationActive = false;
    if (P::amrMaxSpatialRefLevel > 0)
@@ -285,8 +291,17 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geom
       phiprof::Timer timer{profName};
       SpatialCell::setCommunicatedSpecies(popID);
       //      std::cout << "I am at line " << __LINE__ << " of " << __FILE__ << std::endl;
-      calculateSpatialTranslation(mpiGrid, localCells, local_propagated_cells, local_target_cells, remoteTargetCellsx,
-                                  remoteTargetCellsy, remoteTargetCellsz, nPencils, dt, popID, time);
+      calculateSpatialTranslation(mpiGrid,
+                                  localCells,
+                                  local_propagated_cells,
+                                  local_target_cells,
+                                  remoteTargetCellsx,
+                                  remoteTargetCellsy,
+                                  remoteTargetCellsz,
+                                  nPencils,
+                                  dt,
+                                  popID,
+                                  time);
    }
 
    if (Parameters::prepareForRebalance == true) {
@@ -330,9 +345,12 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geom
  * @param mpiGrid Parallel grid library.
  * @param propagatedCells List of cells in which the population is accelerated.
  * @param dt Timestep.*/
-void calculateAcceleration(const uint popID, const uint globalMaxSubcycles, const uint step,
+void calculateAcceleration(const uint popID,
+                           const uint globalMaxSubcycles,
+                           const uint step,
                            dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                           const std::vector<CellID>& propagatedCells, const Real& dt) {
+                           const std::vector<CellID>& propagatedCells,
+                           const Real& dt) {
    // Set active population
    SpatialCell::setCommunicatedSpecies(popID);
 
@@ -499,8 +517,14 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>&
   --------------------------------------------------*/
 
 void calculateInterpolatedVelocityMoments(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                          const int cp_rhom, const int cp_vx, const int cp_vy, const int cp_vz,
-                                          const int cp_rhoq, const int cp_p11, const int cp_p22, const int cp_p33) {
+                                          const int cp_rhom,
+                                          const int cp_vx,
+                                          const int cp_vy,
+                                          const int cp_vz,
+                                          const int cp_rhoq,
+                                          const int cp_p11,
+                                          const int cp_p22,
+                                          const int cp_p33) {
    const vector<CellID>& cells = getLocalCells();
 
    // Iterate through all local cells

@@ -207,7 +207,9 @@ void flagSpatialCellsForAmrCommunication(const dccrg::Dccrg<SpatialCell, dccrg::
  * @param [out] sourceCells pointer to an array of pointers to SpatialCell objects for the source cells
  */
 void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                        setOfPencils& pencils, const uint iPencil, const uint dimension,
+                                        setOfPencils& pencils,
+                                        const uint iPencil,
+                                        const uint dimension,
                                         SpatialCell** sourceCells) {
 
    // L = length of the pencil iPencil
@@ -375,7 +377,8 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell, dccrg::C
  *
  */
 void computeSpatialTargetCellsForPencilsWithFaces(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                                  setOfPencils& pencils, const uint dimension,
+                                                  setOfPencils& pencils,
+                                                  const uint dimension,
                                                   SpatialCell** targetCells) {
 
    uint GID = 0;
@@ -465,7 +468,9 @@ void computeSpatialTargetCellsForPencilsWithFaces(const dccrg::Dccrg<SpatialCell
  * @param path index of the desired face neighbor
  * @return neighbor DCCRG cell id of the neighbor
  */
-CellID selectNeighbor(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& grid, CellID id, int dimension = 0,
+CellID selectNeighbor(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& grid,
+                      CellID id,
+                      int dimension = 0,
                       uint path = 0) {
 
    // int neighborhood = getNeighborhood(dimension,1);
@@ -518,8 +523,12 @@ CellID selectNeighbor(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>
  * pencil, the builder terminates.
  */
 setOfPencils buildPencilsWithNeighbors(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& grid,
-                                       setOfPencils& pencils, const CellID seedId, vector<CellID> ids,
-                                       const uint dimension, vector<uint> path, const vector<CellID>& endIds) {
+                                       setOfPencils& pencils,
+                                       const CellID seedId,
+                                       vector<CellID> ids,
+                                       const uint dimension,
+                                       vector<uint> path,
+                                       const vector<CellID>& endIds) {
 
    const bool debug = false;
    CellID nextNeighbor;
@@ -729,10 +738,14 @@ bool check_skip_remapping(Vec* values) {
  * @param vmesh Velocity mesh object
  * @param lengthOfPencil Number of cells in the pencil
  */
-void propagatePencil(Vec* dz, Vec* values,
+void propagatePencil(Vec* dz,
+                     Vec* values,
                      Vec* targetValues, // thread-owned aligned-allocated
-                     const uint dimension, const uint blockGID, const Realv dt,
-                     const vmesh::VelocityMesh<vmesh::GlobalID, vmesh::LocalID>& vmesh, const uint lengthOfPencil,
+                     const uint dimension,
+                     const uint blockGID,
+                     const Realv dt,
+                     const vmesh::VelocityMesh<vmesh::GlobalID, vmesh::LocalID>& vmesh,
+                     const uint lengthOfPencil,
                      const Realv threshold) {
    // Get velocity data from vmesh that we need later to calculate the translation
    velocity_block_indices_t block_indices;
@@ -795,8 +808,12 @@ void propagatePencil(Vec* dz, Vec* values,
             // cell. values: transpose function adds VLASOV_STENCIL_WIDTH to the block index, therefore we substract it
             // here, then i + VLASOV_STENCIL_WIDTH will point to the right cell. Complicated! Why! Sad! MVGA!
             compute_ppm_coeff_nonuniform(
-                dz + i, values + i_trans_ps_blockv_pencil(planeVector, k, i - VLASOV_STENCIL_WIDTH, lengthOfPencil), h4,
-                VLASOV_STENCIL_WIDTH, a, threshold);
+                dz + i,
+                values + i_trans_ps_blockv_pencil(planeVector, k, i - VLASOV_STENCIL_WIDTH, lengthOfPencil),
+                h4,
+                VLASOV_STENCIL_WIDTH,
+                a,
+                threshold);
 
             // Compute integral
             const Vec ngbr_target_density =
@@ -828,7 +845,9 @@ void propagatePencil(Vec* dz, Vec* values,
  * @param [out] seedIds list of cell ids that will be starting points for pencils
  */
 void getSeedIds(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                const vector<CellID>& localPropagatedCells, const uint dimension, vector<CellID>& seedIds) {
+                const vector<CellID>& localPropagatedCells,
+                const uint dimension,
+                vector<CellID>& seedIds) {
 
    const bool debug = false;
    int myRank;
@@ -990,8 +1009,12 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiG
  * @param cellid_transpose
  * @param popID ID of the particle species.
  */
-bool copy_trans_block_data_amr(SpatialCell** source_neighbors, const vmesh::GlobalID blockGID, int lengthOfPencil,
-                               Vec* values, const unsigned char* const cellid_transpose, const uint popID) {
+bool copy_trans_block_data_amr(SpatialCell** source_neighbors,
+                               const vmesh::GlobalID blockGID,
+                               int lengthOfPencil,
+                               Vec* values,
+                               const unsigned char* const cellid_transpose,
+                               const uint popID) {
 
    // Allocate data pointer for all blocks in pencil. Pad on both ends by VLASOV_STENCIL_WIDTH
    Realf* blockDataPointer[lengthOfPencil + 2 * VLASOV_STENCIL_WIDTH];
@@ -1072,7 +1095,8 @@ bool copy_trans_block_data_amr(SpatialCell** source_neighbors, const vmesh::Glob
  * @param pencils Pencil data struct
  * @param dimension Spatial dimension
  */
-void check_ghost_cells(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, setOfPencils& pencils,
+void check_ghost_cells(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                       setOfPencils& pencils,
                        uint dimension) {
 
    const bool debug = false;
@@ -1211,7 +1235,8 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry
  * @param cells Local spatial cells
  * @param pencils Pencil data struct
  */
-bool checkPencils(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const std::vector<CellID>& cells,
+bool checkPencils(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                  const std::vector<CellID>& cells,
                   const setOfPencils& pencils) {
 
    bool correct = true;
@@ -1355,8 +1380,11 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_G
             ibeg = thread_pencils.ids.begin() + thread_pencils.idsStart[i];
             iend = ibeg + thread_pencils.lengthOfPencils[i];
             std::vector<CellID> pencilIds(ibeg, iend);
-            DimensionPencils[dimension].addPencil(pencilIds, thread_pencils.x[i], thread_pencils.y[i],
-                                                  thread_pencils.periodic[i], thread_pencils.path[i]);
+            DimensionPencils[dimension].addPencil(pencilIds,
+                                                  thread_pencils.x[i],
+                                                  thread_pencils.y[i],
+                                                  thread_pencils.periodic[i],
+                                                  thread_pencils.path[i]);
          }
       }
    }
@@ -1387,8 +1415,12 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_G
  * @param [in] popId Particle population ID
  */
 bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                      const vector<CellID>& localPropagatedCells, const vector<CellID>& remoteTargetCells,
-                      std::vector<uint>& nPencils, const uint dimension, const Realv dt, const uint popID) {
+                      const vector<CellID>& localPropagatedCells,
+                      const vector<CellID>& remoteTargetCells,
+                      std::vector<uint>& nPencils,
+                      const uint dimension,
+                      const Realv dt,
+                      const uint popID) {
    phiprof::Timer setupTimer{"setup"};
    uint cell_indices_to_id[3];           /*< used when computing id of target cell in block*/
    unsigned char cellid_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID +
@@ -1465,8 +1497,8 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>
 
    if (Parameters::prepareForRebalance == true) {
       for (uint i = 0; i < localPropagatedCells.size(); i++) {
-         cuint myPencilCount = std::count(DimensionPencils[dimension].ids.begin(),
-                                          DimensionPencils[dimension].ids.end(), localPropagatedCells[i]);
+         cuint myPencilCount = std::count(
+             DimensionPencils[dimension].ids.begin(), DimensionPencils[dimension].ids.end(), localPropagatedCells[i]);
          nPencils[i] += myPencilCount;
          nPencils[nPencils.size() - 1] += myPencilCount;
       }
@@ -1555,8 +1587,8 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>
          // Compute spatial neighbors for the source cells of the pencil. In
          // source cells we have a wider stencil and take into account boundaries.
          std::vector<SpatialCell*> sourceCells(sourceLength);
-         computeSpatialSourceCellsForPencil(mpiGrid, DimensionPencils[dimension], pencili, dimension,
-                                            sourceCells.data());
+         computeSpatialSourceCellsForPencil(
+             mpiGrid, DimensionPencils[dimension], pencili, dimension, sourceCells.data());
          pencilSourceCells.push_back(sourceCells);
 
          // dz is the cell size in the direction of the pencil
@@ -1585,9 +1617,12 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>
             uint targetLength = L + 2 * nTargetNeighborsPerPencil;
 
             // load data(=> sourcedata) / (proper xy reconstruction in future)
-            bool pencil_has_data =
-                copy_trans_block_data_amr(pencilSourceCells[pencili].data(), blockGID, L,
-                                          pencilSourceVecData[pencili].data(), cellid_transpose, popID);
+            bool pencil_has_data = copy_trans_block_data_amr(pencilSourceCells[pencili].data(),
+                                                             blockGID,
+                                                             L,
+                                                             pencilSourceVecData[pencili].data(),
+                                                             cellid_transpose,
+                                                             popID);
 
             if (!pencil_has_data) {
                totalTargetLength += targetLength;
@@ -1596,8 +1631,14 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>
 
             // Dz and sourceVecData are both padded by VLASOV_STENCIL_WIDTH
             // Dz has 1 value/cell, sourceVecData has WID3 values/cell
-            propagatePencil(pencildz[pencili].data(), pencilSourceVecData[pencili].data(),
-                            pencilTargetValues[pencili].data(), dimension, blockGID, dt, vmesh, L,
+            propagatePencil(pencildz[pencili].data(),
+                            pencilSourceVecData[pencili].data(),
+                            pencilTargetValues[pencili].data(),
+                            dimension,
+                            blockGID,
+                            dt,
+                            vmesh,
+                            L,
                             pencilSourceCells[pencili][0]->getVelocityBlockMinValue(popID));
 
             // sourceVecData => targetBlockData[this pencil])
@@ -1758,7 +1799,9 @@ int get_sibling_index(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiG
  * @param popId Particle population ID
  */
 void update_remote_mapping_contribution_amr(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                            const uint dimension, int direction, const uint popID) {
+                                            const uint dimension,
+                                            int direction,
+                                            const uint popID) {
 
    const vector<CellID>& local_cells = getLocalCells();
    const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_NEIGHBORHOOD_ID);
@@ -2042,7 +2085,8 @@ void update_remote_mapping_contribution_amr(dccrg::Dccrg<SpatialCell, dccrg::Car
          Realf* blockData = spatial_cell->get_data(popID);
          //#pragma omp for nowait
          for (unsigned int vCell = 0;
-              vCell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++vCell) {
+              vCell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID);
+              ++vCell) {
             // copy received target data to temporary array where target data is stored.
             blockData[vCell] = 0;
          }

@@ -58,39 +58,61 @@ public:
    // Explicit warning functions to inform the user if a doNotCompute cell gets computed
    virtual Real
    fieldSolverBoundaryCondMagneticField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-                                        FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j,
-                                        cint k, creal& dt, cuint& component) {
+                                        FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+                                        cint i,
+                                        cint j,
+                                        cint k,
+                                        creal& dt,
+                                        cuint& component) {
       std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondMagneticField called!" << std::endl;
       return 0.;
    }
    virtual void
    fieldSolverBoundaryCondElectricField(FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EGrid,
-                                        cint i, cint j, cint k, cuint component) {
+                                        cint i,
+                                        cint j,
+                                        cint k,
+                                        cuint component) {
       std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondElectricField called!" << std::endl;
    }
    virtual void fieldSolverBoundaryCondHallElectricField(
-       FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH>& EHallGrid, cint i, cint j, cint k,
+       FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH>& EHallGrid,
+       cint i,
+       cint j,
+       cint k,
        cuint component) {
       std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondHallElectricField called!" << std::endl;
    }
    virtual void fieldSolverBoundaryCondGradPeElectricField(
-       FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH>& EGradPeGrid, cint i, cint j, cint k,
+       FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH>& EGradPeGrid,
+       cint i,
+       cint j,
+       cint k,
        cuint component) {
       std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondGradPeElectricField called!" << std::endl;
    }
    virtual void fieldSolverBoundaryCondDerivatives(
        FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
-       FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid, cint i, cint j, cint k,
-       cuint& RKCase, cuint& component) {
+       FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
+       cint i,
+       cint j,
+       cint k,
+       cuint& RKCase,
+       cuint& component) {
       std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondDerivatives called!" << std::endl;
    }
    virtual void fieldSolverBoundaryCondBVOLDerivatives(
-       FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid, cint i, cint j, cint k,
+       FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid,
+       cint i,
+       cint j,
+       cint k,
        cuint& component) {
       std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondBVOLDerivatives called!" << std::endl;
    }
    virtual void vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                        const CellID& cellID, const uint popID, const bool calculate_V_moments) {
+                                        const CellID& cellID,
+                                        const uint popID,
+                                        const bool calculate_V_moments) {
       std::cerr << "ERROR: DoNotCompute::vlasovBoundaryCondition called!" << std::endl;
    }
 };

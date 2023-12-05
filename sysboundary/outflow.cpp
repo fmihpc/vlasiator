@@ -70,21 +70,22 @@ void Outflow::addParameters() {
           "List of faces on which outflow boundary conditions are to be reapplied upon restart ([xyz][+-]).");
       Readparameters::addComposing(pop + "_outflow.face",
                                    "List of faces on which outflow boundary conditions are to be applied ([xyz][+-]).");
-      Readparameters::add(pop + "_outflow.vlasovScheme_face_x+", "Scheme to use on the face x+ (Copy, Limit, None)",
-                          defStr);
-      Readparameters::add(pop + "_outflow.vlasovScheme_face_x-", "Scheme to use on the face x- (Copy, Limit, None)",
-                          defStr);
-      Readparameters::add(pop + "_outflow.vlasovScheme_face_y+", "Scheme to use on the face y+ (Copy, Limit, None)",
-                          defStr);
-      Readparameters::add(pop + "_outflow.vlasovScheme_face_y-", "Scheme to use on the face y- (Copy, Limit, None)",
-                          defStr);
-      Readparameters::add(pop + "_outflow.vlasovScheme_face_z+", "Scheme to use on the face z+ (Copy, Limit, None)",
-                          defStr);
-      Readparameters::add(pop + "_outflow.vlasovScheme_face_z-", "Scheme to use on the face z- (Copy, Limit, None)",
-                          defStr);
+      Readparameters::add(
+          pop + "_outflow.vlasovScheme_face_x+", "Scheme to use on the face x+ (Copy, Limit, None)", defStr);
+      Readparameters::add(
+          pop + "_outflow.vlasovScheme_face_x-", "Scheme to use on the face x- (Copy, Limit, None)", defStr);
+      Readparameters::add(
+          pop + "_outflow.vlasovScheme_face_y+", "Scheme to use on the face y+ (Copy, Limit, None)", defStr);
+      Readparameters::add(
+          pop + "_outflow.vlasovScheme_face_y-", "Scheme to use on the face y- (Copy, Limit, None)", defStr);
+      Readparameters::add(
+          pop + "_outflow.vlasovScheme_face_z+", "Scheme to use on the face z+ (Copy, Limit, None)", defStr);
+      Readparameters::add(
+          pop + "_outflow.vlasovScheme_face_z-", "Scheme to use on the face z- (Copy, Limit, None)", defStr);
 
       Readparameters::add(pop + "_outflow.quench",
-                          "Factor by which to quench the inflowing parts of the velocity distribution function.", 1.0);
+                          "Factor by which to quench the inflowing parts of the velocity distribution function.",
+                          1.0);
    }
 }
 
@@ -265,7 +266,12 @@ bool Outflow::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian
 
 Real Outflow::fieldSolverBoundaryCondMagneticField(
     FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& bGrid,
-    FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k, creal& dt, cuint& component) {
+    FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+    cint i,
+    cint j,
+    cint k,
+    creal& dt,
+    cuint& component) {
    switch (component) {
    case 0:
       return fieldBoundaryCopyFromSolvingNbrMagneticField(bGrid, technicalGrid, i, j, k, component, compute::BX);
@@ -283,12 +289,19 @@ Real Outflow::fieldSolverBoundaryCondMagneticField(
 }
 
 void Outflow::fieldSolverBoundaryCondElectricField(
-    FsGrid<array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EGrid, cint i, cint j, cint k, cuint component) {
+    FsGrid<array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EGrid,
+    cint i,
+    cint j,
+    cint k,
+    cuint component) {
    EGrid.get(i, j, k)->at(fsgrids::efield::EX + component) = 0.0;
 }
 
 void Outflow::fieldSolverBoundaryCondHallElectricField(
-    FsGrid<array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH>& EHallGrid, cint i, cint j, cint k,
+    FsGrid<array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH>& EHallGrid,
+    cint i,
+    cint j,
+    cint k,
     cuint component) {
    array<Real, fsgrids::ehall::N_EHALL>* cp = EHallGrid.get(i, j, k);
    switch (component) {
@@ -317,20 +330,30 @@ void Outflow::fieldSolverBoundaryCondHallElectricField(
 }
 
 void Outflow::fieldSolverBoundaryCondGradPeElectricField(
-    FsGrid<array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH>& EGradPeGrid, cint i, cint j, cint k,
+    FsGrid<array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH>& EGradPeGrid,
+    cint i,
+    cint j,
+    cint k,
     cuint component) {
    EGradPeGrid.get(i, j, k)->at(fsgrids::egradpe::EXGRADPE + component) = 0.0;
 }
 
 void Outflow::fieldSolverBoundaryCondDerivatives(
     FsGrid<array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
-    FsGrid<array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid, cint i, cint j, cint k,
-    cuint& RKCase, cuint& component) {
+    FsGrid<array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
+    cint i,
+    cint j,
+    cint k,
+    cuint& RKCase,
+    cuint& component) {
    this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, component);
 }
 
 void Outflow::fieldSolverBoundaryCondBVOLDerivatives(
-    FsGrid<array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid, cint i, cint j, cint k,
+    FsGrid<array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid,
+    cint i,
+    cint j,
+    cint k,
     cuint& component) {
    this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
 }
@@ -341,7 +364,9 @@ void Outflow::fieldSolverBoundaryCondBVOLDerivatives(
  * @param cellID
  */
 void Outflow::vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                      const CellID& cellID, const uint popID, const bool calculate_V_moments) {
+                                      const CellID& cellID,
+                                      const uint popID,
+                                      const bool calculate_V_moments) {
 
    const OutflowSpeciesParameters& sP = this->speciesParams[popID];
    if (mpiGrid[cellID]->sysBoundaryFlag != this->getIndex()) {

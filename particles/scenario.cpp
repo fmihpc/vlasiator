@@ -36,7 +36,11 @@ ParticleContainer singleParticleScenario::initialParticles(Field& E, Field& B, F
    return particles;
 }
 
-void singleParticleScenario::afterPush(int step, double time, ParticleContainer& particles, Field& E, Field& B,
+void singleParticleScenario::afterPush(int step,
+                                       double time,
+                                       ParticleContainer& particles,
+                                       Field& E,
+                                       Field& B,
                                        Field& V) {
 
    Vec3d& x = particles[0].x;
@@ -73,8 +77,13 @@ ParticleContainer distributionScenario::initialParticles(Field& E, Field& B, Fie
    return particles;
 }
 
-void distributionScenario::newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles,
-                                       Field& E, Field& B, Field& V) {
+void distributionScenario::newTimestep(int input_file_counter,
+                                       int step,
+                                       double time,
+                                       ParticleContainer& particles,
+                                       Field& E,
+                                       Field& B,
+                                       Field& V) {
 
    char filename_buffer[256];
 
@@ -86,7 +95,11 @@ void distributionScenario::finalize(ParticleContainer& particles, Field& E, Fiel
    writeParticles(particles, "particles_final.vlsv");
 }
 
-void precipitationScenario::afterPush(int step, double time, ParticleContainer& particles, Field& E, Field& B,
+void precipitationScenario::afterPush(int step,
+                                      double time,
+                                      ParticleContainer& particles,
+                                      Field& E,
+                                      Field& B,
                                       Field& V) {
 
    for (unsigned int i = 0; i < particles.size(); i++) {
@@ -106,7 +119,11 @@ void precipitationScenario::afterPush(int step, double time, ParticleContainer& 
 
          // Record latitude and energy
          double latitude = atan2(particles[i].x[2], particles[i].x[0]);
-         printf("%u %i %lf %lf %lf\n", i, start_timestep, start_pos, latitude,
+         printf("%u %i %lf %lf %lf\n",
+                i,
+                start_timestep,
+                start_pos,
+                latitude,
                 .5 * particles[i].m * dot_product(particles[i].v, particles[i].v) / PhysicalConstantsSI::e);
 
          // Disable by setting position to NaN and velocity to 0
@@ -123,8 +140,13 @@ void precipitationScenario::afterPush(int step, double time, ParticleContainer& 
    }
 }
 
-void precipitationScenario::newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles,
-                                        Field& E, Field& B, Field& V) {
+void precipitationScenario::newTimestep(int input_file_counter,
+                                        int step,
+                                        double time,
+                                        ParticleContainer& particles,
+                                        Field& E,
+                                        Field& B,
+                                        Field& V) {
 
    // Create particles along the negative x-axis, from inner boundary
    // up to outer one
@@ -176,8 +198,13 @@ ParticleContainer analysatorScenario::initialParticles(Field& E, Field& B, Field
    return particles;
 }
 
-void analysatorScenario::newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles,
-                                     Field& E, Field& B, Field& V) {
+void analysatorScenario::newTimestep(int input_file_counter,
+                                     int step,
+                                     double time,
+                                     ParticleContainer& particles,
+                                     Field& E,
+                                     Field& B,
+                                     Field& V) {
 
    for (unsigned int i = 0; i < particles.size(); i++) {
       Vec3d& x = particles[i].x;
@@ -187,8 +214,13 @@ void analysatorScenario::newTimestep(int input_file_counter, int step, double ti
    }
 }
 
-void shockReflectivityScenario::newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles,
-                                            Field& E, Field& B, Field& V) {
+void shockReflectivityScenario::newTimestep(int input_file_counter,
+                                            int step,
+                                            double time,
+                                            ParticleContainer& particles,
+                                            Field& E,
+                                            Field& B,
+                                            Field& V) {
 
    const int num_points = 200;
 
@@ -237,7 +269,11 @@ void shockReflectivityScenario::newTimestep(int input_file_counter, int step, do
    writeParticles(particles, filename_buffer);
 }
 
-void shockReflectivityScenario::afterPush(int step, double time, ParticleContainer& particles, Field& E, Field& B,
+void shockReflectivityScenario::afterPush(int step,
+                                          double time,
+                                          ParticleContainer& particles,
+                                          Field& E,
+                                          Field& B,
                                           Field& V) {
 
    for (unsigned int i = 0; i < particles.size(); i++) {
@@ -332,8 +368,13 @@ ParticleContainer ipShockScenario::initialParticles(Field& E, Field& B, Field& V
    return particles;
 }
 
-void ipShockScenario::newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles, Field& E,
-                                  Field& B, Field& V) {
+void ipShockScenario::newTimestep(int input_file_counter,
+                                  int step,
+                                  double time,
+                                  ParticleContainer& particles,
+                                  Field& E,
+                                  Field& B,
+                                  Field& V) {
 
    char filename_buffer[256];
 
@@ -361,8 +402,15 @@ void ipShockScenario::afterPush(int step, double time, ParticleContainer& partic
          // transmitted.addValue(Vec2d(y,start_time));
 
          // Write particle information to a file
-         fprintf(traFile, "%lf %lf %lf %lf %lf %lf %lf %lf %lf\n", time, particles[i].x[0], particles[i].x[1],
-                 particles[i].x[2], particles[i].v[0], particles[i].v[1], particles[i].v[2],
+         fprintf(traFile,
+                 "%lf %lf %lf %lf %lf %lf %lf %lf %lf\n",
+                 time,
+                 particles[i].x[0],
+                 particles[i].x[1],
+                 particles[i].x[2],
+                 particles[i].v[0],
+                 particles[i].v[1],
+                 particles[i].v[2],
                  .5 * particles[i].m * dot_product(particles[i].v, particles[i].v) / PhysicalConstantsSI::e,
                  dot_product(normalize_vector(particles[i].v), normalize_vector(B(particles[i].x))));
 
@@ -375,8 +423,15 @@ void ipShockScenario::afterPush(int step, double time, ParticleContainer& partic
 
          // Write particle information to a file
          // Write particle information to a file
-         fprintf(refFile, "%lf %lf %lf %lf %lf %lf %lf %lf %lf\n", time, particles[i].x[0], particles[i].x[1],
-                 particles[i].x[2], particles[i].v[0], particles[i].v[1], particles[i].v[2],
+         fprintf(refFile,
+                 "%lf %lf %lf %lf %lf %lf %lf %lf %lf\n",
+                 time,
+                 particles[i].x[0],
+                 particles[i].x[1],
+                 particles[i].x[2],
+                 particles[i].v[0],
+                 particles[i].v[1],
+                 particles[i].v[2],
                  .5 * particles[i].m * dot_product(particles[i].v, particles[i].v) / PhysicalConstantsSI::e,
                  dot_product(normalize_vector(particles[i].v), normalize_vector(B(particles[i].x))));
 

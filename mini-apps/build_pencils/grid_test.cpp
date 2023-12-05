@@ -135,8 +135,12 @@ void printVector(vector<CellID> v) {
    std::cout << "\n";
 }
 
-setOfPencils buildPencils(dccrg::Dccrg<grid_data> grid, setOfPencils& pencils, vector<CellID> idsOut,
-                          vector<CellID> idsIn, int dimension, vector<pair<bool, bool>> path) {
+setOfPencils buildPencils(dccrg::Dccrg<grid_data> grid,
+                          setOfPencils& pencils,
+                          vector<CellID> idsOut,
+                          vector<CellID> idsIn,
+                          int dimension,
+                          vector<pair<bool, bool>> path) {
 
    // Not necessary since c++ passes a copy by default.
    // Copy the input ids to a working set of ids
@@ -166,7 +170,9 @@ setOfPencils buildPencils(dccrg::Dccrg<grid_data> grid, setOfPencils& pencils, v
          if (path.size() > grid.get_refinement_level(id)) {
 
             // Get children using the stored path
-            vector<CellID> myChildren = getMyChildren(children, dimension, path[grid.get_refinement_level(id)].first,
+            vector<CellID> myChildren = getMyChildren(children,
+                                                      dimension,
+                                                      path[grid.get_refinement_level(id)].first,
                                                       path[grid.get_refinement_level(id)].second);
 
             // Add the children to the working set at index i1

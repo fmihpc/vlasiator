@@ -183,11 +183,17 @@ struct setOfPencils {
 };
 
 bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                      const std::vector<CellID>& localPropagatedCells, const std::vector<CellID>& remoteTargetCells,
-                      std::vector<uint>& nPencils, const uint dimension, const Realv dt, const uint popID);
+                      const std::vector<CellID>& localPropagatedCells,
+                      const std::vector<CellID>& remoteTargetCells,
+                      std::vector<uint>& nPencils,
+                      const uint dimension,
+                      const Realv dt,
+                      const uint popID);
 
 void update_remote_mapping_contribution_amr(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                            const uint dimension, int direction, const uint popID);
+                                            const uint dimension,
+                                            int direction,
+                                            const uint popID);
 
 // grid.cpp calls this function to both find seed cells and build pencils
 void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,

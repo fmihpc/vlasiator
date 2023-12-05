@@ -433,7 +433,10 @@ bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg:
    return true;
 }
 
-bool belongsToLayer(const int layer, const int x, const int y, const int z,
+bool belongsToLayer(const int layer,
+                    const int x,
+                    const int y,
+                    const int z,
                     FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
 
    bool belongs = false;
@@ -773,7 +776,8 @@ bool SysBoundary::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_G
  * \param calculate_V_moments if true, compute into _V, false into _R moments so that the interpolated ones can be done
  */
 void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                                   creal& t, const bool calculate_V_moments) {
+                                                   creal& t,
+                                                   const bool calculate_V_moments) {
 
    if (sysBoundaries.size() == 0) {
       return; // no system boundaries
@@ -824,8 +828,8 @@ void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell, dcc
       // Compute vlasov boundary on system boundary/process boundary cells
       phiprof::Timer computeBoundaryTimer{"Compute process boundary cells"};
       vector<CellID> boundaryCells;
-      getBoundaryCellList(mpiGrid, mpiGrid.get_local_cells_on_process_boundary(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID),
-                          boundaryCells);
+      getBoundaryCellList(
+          mpiGrid, mpiGrid.get_local_cells_on_process_boundary(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID), boundaryCells);
 #pragma omp parallel for
       for (uint i = 0; i < boundaryCells.size(); i++) {
          cuint sysBoundaryType = mpiGrid[boundaryCells[i]]->sysBoundaryFlag;
@@ -885,7 +889,8 @@ bool SysBoundary::isBoundaryPeriodic(uint direction) const { return isPeriodic[d
  * \retval Returns true if the operation is successful
  */
 bool getBoundaryCellList(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                         const vector<uint64_t>& cellList, vector<uint64_t>& boundaryCellList) {
+                         const vector<uint64_t>& cellList,
+                         vector<uint64_t>& boundaryCellList) {
    boundaryCellList.clear();
    for (size_t cell = 0; cell < cellList.size(); ++cell) {
       const CellID cellID = cellList[cell];

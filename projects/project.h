@@ -47,7 +47,8 @@ public:
    virtual bool initialize();
 
    /*! Perform some operation at each time step in the main program loop. */
-   virtual void hook(cuint& stage, const dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+   virtual void hook(cuint& stage,
+                     const dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                      FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid) const;
 
    bool initialized();
@@ -149,8 +150,18 @@ protected:
     * @return The volume average of the distribution function in the given phase space cell.
     * The physical unit of this quantity is 1 / (m^3 (m/s)^3).
     */
-   virtual Real calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx,
-                                      creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,
+   virtual Real calcPhaseSpaceDensity(creal& x,
+                                      creal& y,
+                                      creal& z,
+                                      creal& dx,
+                                      creal& dy,
+                                      creal& dz,
+                                      creal& vx,
+                                      creal& vy,
+                                      creal& vz,
+                                      creal& dvx,
+                                      creal& dvy,
+                                      creal& dvz,
                                       const uint popID) const = 0;
 
    /*!

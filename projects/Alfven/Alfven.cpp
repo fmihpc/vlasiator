@@ -100,8 +100,16 @@ void Alfven::getParameters() {
 
 /*Real calcPhaseSpaceDensity(creal& z,creal& x,creal& y,creal& dz,creal& dx,creal& dy,
             creal& vz,creal& vx,creal& vy,creal& dvz,creal& dvx,creal& dvy) {*/
-Real Alfven::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy,
-                             creal& dvz, const uint popID) const {
+Real Alfven::getDistribValue(creal& x,
+                             creal& y,
+                             creal& z,
+                             creal& vx,
+                             creal& vy,
+                             creal& vz,
+                             creal& dvx,
+                             creal& dvy,
+                             creal& dvz,
+                             const uint popID) const {
    const AlfvenSpeciesParameters& sP = speciesParams[popID];
    creal mass = getObjectWrapper().particleSpecies[popID].mass;
    creal kb = physicalconstants::K_B;
@@ -118,8 +126,19 @@ Real Alfven::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy,
    return den;
 }
 
-Real Alfven::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy,
-                                   creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
+Real Alfven::calcPhaseSpaceDensity(creal& x,
+                                   creal& y,
+                                   creal& z,
+                                   creal& dx,
+                                   creal& dy,
+                                   creal& dz,
+                                   creal& vx,
+                                   creal& vy,
+                                   creal& vz,
+                                   creal& dvx,
+                                   creal& dvy,
+                                   creal& dvz,
+                                   const uint popID) const {
    const AlfvenSpeciesParameters& sP = speciesParams[popID];
    creal d_x = dx / (this->nSpaceSamples - 1);
    creal d_y = dy / (this->nSpaceSamples - 1);
@@ -134,8 +153,16 @@ Real Alfven::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, crea
             for (uint vi = 0; vi < sP.nVelocitySamples; ++vi)
                for (uint vj = 0; vj < sP.nVelocitySamples; ++vj)
                   for (uint vk = 0; vk < sP.nVelocitySamples; ++vk) {
-                     avg += getDistribValue(x + i * d_x, y + j * d_y, z + k * d_z, vx + vi * d_vx, vy + vj * d_vy,
-                                            vz + vk * d_vz, dvx, dvy, dvz, popID);
+                     avg += getDistribValue(x + i * d_x,
+                                            y + j * d_y,
+                                            z + k * d_z,
+                                            vx + vi * d_vx,
+                                            vy + vj * d_vy,
+                                            vz + vk * d_vz,
+                                            dvx,
+                                            dvy,
+                                            dvz,
+                                            popID);
                   }
    return avg / pow(this->nSpaceSamples, 3.0) / pow(sP.nVelocitySamples, 3.0);
 }

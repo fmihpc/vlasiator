@@ -60,8 +60,8 @@ using namespace vlsv;
 // Calculates the cell coordinates and outputs into coordinates
 // Input:
 //[0] CellStructure cellStruct -- A struct for holding cell information. Has the cell length in x,y,z direction, for
-//example [1] uint64_t cellId -- Some given cell id Output: [0] Real * coordinates -- Some coordinates x, y, z (NOTE:
-//the vector size should be 3!)
+// example [1] uint64_t cellId -- Some given cell id Output: [0] Real * coordinates -- Some coordinates x, y, z (NOTE:
+// the vector size should be 3!)
 void getCellCoordinates(const CellStructure& cellStruct, const uint64_t _cellId, array<Real, 3>& coordinates) {
    // In vlasiator the cell ids start from 1 but for fetching coordinates it's more logical to start from 0
    const uint64_t cellId = _cellId - 1;
@@ -89,7 +89,7 @@ void getCellCoordinates(const CellStructure& cellStruct, const uint64_t _cellId,
 //[0] vlsv::Reader vlsvReader -- some reader with a file open (used for loading parameters)
 // Output:
 //[0] CellStructure cellStruct -- Holds info on cellStruct. The members are given the correct values here (Note:
-//CellStructure could be made into a class instead of a struct with this as the constructor but since a geometry class
+// CellStructure could be made into a class instead of a struct with this as the constructor but since a geometry class
 // has already been coded before, it would be a waste)
 void setCellVariables(vlsvinterface::Reader& vlsvReader, CellStructure& cellStruct) {
    // Get x_min, x_max, y_min, y_max, etc so that we know where the given cell id is in (loadParameter returns char*,
@@ -406,8 +406,18 @@ template <class T> bool convertMeshVariable(T& vlsvReader, const string& meshNam
    }
 
    // Write the unstructured mesh variable to SILO.
-   if (DBPutUcdvar(fileptr, varName.c_str(), meshName.c_str(), vectorSize, &(varNamePtrs[0]), components, arraySize,
-                   NULL, 0, SiloType(dataType, dataSize), DB_ZONECENT, NULL) < 0)
+   if (DBPutUcdvar(fileptr,
+                   varName.c_str(),
+                   meshName.c_str(),
+                   vectorSize,
+                   &(varNamePtrs[0]),
+                   components,
+                   arraySize,
+                   NULL,
+                   0,
+                   SiloType(dataType, dataSize),
+                   DB_ZONECENT,
+                   NULL) < 0)
       success = false;
 
    for (uint64_t i = 0; i < vectorSize; ++i) {
@@ -602,13 +612,34 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader, const string& meshName) {
 
    // Write zone list into silo file:
    const string zoneListName = meshName + "Zones";
-   if (DBPutZonelist2(fileptr, zoneListName.c_str(), N_zones, N_dims, nodelist, 8 * cellIds.size(), 0, 0, 0, shapeTypes,
-                      shapeSizes, shapeCnt, N_shapes, NULL) < 0)
+   if (DBPutZonelist2(fileptr,
+                      zoneListName.c_str(),
+                      N_zones,
+                      N_dims,
+                      nodelist,
+                      8 * cellIds.size(),
+                      0,
+                      0,
+                      0,
+                      shapeTypes,
+                      shapeSizes,
+                      shapeCnt,
+                      N_shapes,
+                      NULL) < 0)
       success = false;
 
    // Write grid into silo file:
-   if (DBPutUcdmesh(fileptr, meshName.c_str(), N_dims, NULL, coords, N_nodes, N_zones, zoneListName.c_str(), NULL,
-                    SiloType(datatype::type::FLOAT, sizeof(Real)), NULL) < 0)
+   if (DBPutUcdmesh(fileptr,
+                    meshName.c_str(),
+                    N_dims,
+                    NULL,
+                    coords,
+                    N_nodes,
+                    N_zones,
+                    zoneListName.c_str(),
+                    NULL,
+                    SiloType(datatype::type::FLOAT, sizeof(Real)),
+                    NULL) < 0)
       success = false;
 
    nodes.clear();
@@ -622,8 +653,16 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader, const string& meshName) {
    DBoptlist* optList = DBMakeOptlist(1);
    DBAddOption(optList, DBOPT_LABEL, const_cast<char*>(cellIDlabel.c_str()));
    // Note: cellIds is of type uint
-   if (DBPutUcdvar1(fileptr, "CellID", meshName.c_str(), reinterpret_cast<char*>(cellIds.data()), cellIds.size(), NULL,
-                    0, SiloType(datatype::type::UINT, sizeof(uint64_t)), DB_ZONECENT, NULL) < 0)
+   if (DBPutUcdvar1(fileptr,
+                    "CellID",
+                    meshName.c_str(),
+                    reinterpret_cast<char*>(cellIds.data()),
+                    cellIds.size(),
+                    NULL,
+                    0,
+                    SiloType(datatype::type::UINT, sizeof(uint64_t)),
+                    DB_ZONECENT,
+                    NULL) < 0)
       success = false;
    //   delete buffer;
    DBFreeOptlist(optList);

@@ -115,8 +115,8 @@ void debug_output(Field& F, const char* filename) {
    }
 
    /* Write it out */
-   if (!stbi_write_png(filename, F.dimension[0]->cells, F.dimension[1]->cells, 4, pixels.data(),
-                       F.dimension[0]->cells * 4)) {
+   if (!stbi_write_png(
+           filename, F.dimension[0]->cells, F.dimension[1]->cells, 4, pixels.data(), F.dimension[0]->cells * 4)) {
       std::cerr << "Writing " << filename << " failed: " << strerror(errno) << std::endl;
    }
 }

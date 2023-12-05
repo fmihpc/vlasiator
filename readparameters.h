@@ -56,7 +56,8 @@ public:
          options[name] = "";
          isOptionParsed[name] = false;
          descriptions->add_options()(
-             name.c_str(), boost::program_options::value<std::string>(&(options[name]))->default_value(defValue),
+             name.c_str(),
+             boost::program_options::value<std::string>(&(options[name]))->default_value(defValue),
              desc.c_str());
       }
    }
@@ -75,7 +76,8 @@ public:
          options[name] = "";
          isOptionParsed[name] = false;
          descriptions->add_options()(
-             name.c_str(), boost::program_options::value<std::string>(&(options[name]))->default_value(ss.str()),
+             name.c_str(),
+             boost::program_options::value<std::string>(&(options[name]))->default_value(ss.str()),
              desc.c_str());
       }
    }

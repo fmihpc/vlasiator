@@ -39,16 +39,24 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geom
 
 /** Calculate velocity moments for the given spatial cell.
  * This function is defined in cpu_moments.cpp file.*/
-void calculateCellMoments(spatial_cell::SpatialCell* cell, const bool& computeSecond,
-                          const bool& computePopulationMomentsOnly, const bool& doNotSkip = false);
+void calculateCellMoments(spatial_cell::SpatialCell* cell,
+                          const bool& computeSecond,
+                          const bool& computePopulationMomentsOnly,
+                          const bool& doNotSkip = false);
 
 /*!
   \brief Compute real-time 1st order accurate moments from the moments after propagation in velocity and spatial space
 */
 
 void calculateInterpolatedVelocityMoments(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                          const int cp_rhom, const int cp_vx, const int cp_vy, const int cp_vz,
-                                          const int cp_rhoq, const int cp_p11, const int cp_p22, const int cp_p33);
+                                          const int cp_rhom,
+                                          const int cp_vx,
+                                          const int cp_vy,
+                                          const int cp_vz,
+                                          const int cp_rhoq,
+                                          const int cp_p11,
+                                          const int cp_p22,
+                                          const int cp_p33);
 
 /*!
   \brief Compute 0th, 1st and 2nd velocity moments (RHO,VX,VY,VZ,P_11,P_22,P_33 and *_DT2) for all cells in the grid

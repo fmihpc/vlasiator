@@ -35,7 +35,11 @@ void ConstantField::initialize(const double Bx, const double By, const double Bz
    _initialized = true;
 }
 
-double ConstantField::operator()(double x, double y, double z, coordinate component, unsigned int derivative,
+double ConstantField::operator()(double x,
+                                 double y,
+                                 double z,
+                                 coordinate component,
+                                 unsigned int derivative,
                                  coordinate dcomponent) const {
    if (derivative == 0) {
       // Value of B

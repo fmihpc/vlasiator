@@ -96,8 +96,19 @@ Real Larmor::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy,
           exp(-pow(y - Parameters::ymax / 2.0, 2.0) / pow(this->SCA_Y, 2.0));
 }
 
-Real Larmor::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy,
-                                   creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
+Real Larmor::calcPhaseSpaceDensity(creal& x,
+                                   creal& y,
+                                   creal& z,
+                                   creal& dx,
+                                   creal& dy,
+                                   creal& dz,
+                                   creal& vx,
+                                   creal& vy,
+                                   creal& vz,
+                                   creal& dvx,
+                                   creal& dvy,
+                                   creal& dvz,
+                                   const uint popID) const {
    const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
    vmesh::MeshParameters& meshParams = getObjectWrapper().velocityMeshes[meshID];
    if (vx < meshParams.meshMinLimits[0] + 0.5 * dvx || vy < meshParams.meshMinLimits[1] + 0.5 * dvy ||
@@ -123,8 +134,8 @@ Real Larmor::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, crea
             for (uint vi = 0; vi < this->nVelocitySamples; ++vi)
                for (uint vj = 0; vj < this->nVelocitySamples; ++vj)
                   for (uint vk = 0; vk < this->nVelocitySamples; ++vk) {
-                     avg += getDistribValue(x + i * d_x, y + j * d_y, z + k * d_z, vx + vi * d_vx, vy + vj * d_vy,
-                                            vz + vk * d_vz, popID);
+                     avg += getDistribValue(
+                         x + i * d_x, y + j * d_y, z + k * d_z, vx + vi * d_vx, vy + vj * d_vy, vz + vk * d_vz, popID);
                   }
 
    creal result = avg * this->DENSITY * pow(mass / (2.0 * M_PI * kb * this->TEMPERATURE), 1.5) /

@@ -65,11 +65,14 @@ struct PropagParams {
    vmesh::GlobalID k_cell_global_target_max;
 };
 
-void map_1d(SpatialCell* spatial_cell, PropagParams& params,
+void map_1d(SpatialCell* spatial_cell,
+            PropagParams& params,
             vmesh::VelocityMesh<vmesh::GlobalID, vmesh::LocalID>& vmesh,
             vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer);
 
-void generateTargetMesh(SpatialCell* spatial_cell, const std::vector<vmesh::LocalID>& blocks, PropagParams& params,
+void generateTargetMesh(SpatialCell* spatial_cell,
+                        const std::vector<vmesh::LocalID>& blocks,
+                        PropagParams& params,
                         const uint8_t& targetRefLevel,
                         const vmesh::VelocityMesh<vmesh::GlobalID, vmesh::LocalID>& vmesh);
 
@@ -85,8 +88,11 @@ void generateTargetMesh(SpatialCell* spatial_cell, const std::vector<vmesh::Loca
 
 */
 
-bool map_1d(SpatialCell* spatial_cell, Transform<Real, 3, Affine>& fwd_transform,
-            Transform<Real, 3, Affine>& bwd_transform, int dimension, int propag) {
+bool map_1d(SpatialCell* spatial_cell,
+            Transform<Real, 3, Affine>& fwd_transform,
+            Transform<Real, 3, Affine>& bwd_transform,
+            int dimension,
+            int propag) {
    // Move the old velocity mesh and data to the variables below (very fast)
    vmesh::VelocityMesh<vmesh::GlobalID, vmesh::LocalID>& vmesh = spatial_cell->get_velocity_mesh_temporary();
    vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks_temporary();
@@ -109,18 +115,36 @@ bool map_1d(SpatialCell* spatial_cell, Transform<Real, 3, Affine>& fwd_transform
    propagParams.dimension = dimension;
    switch (propag) {
    case 0:
-      compute_intersections_1st(spatial_cell, bwd_transform, fwd_transform, dimension, propagParams.maxRefLevel,
-                                propagParams.intersection, propagParams.intersection_di, propagParams.intersection_dj,
+      compute_intersections_1st(spatial_cell,
+                                bwd_transform,
+                                fwd_transform,
+                                dimension,
+                                propagParams.maxRefLevel,
+                                propagParams.intersection,
+                                propagParams.intersection_di,
+                                propagParams.intersection_dj,
                                 propagParams.intersection_dk);
       break;
    case 1:
-      compute_intersections_2nd(spatial_cell, bwd_transform, fwd_transform, dimension, propagParams.maxRefLevel,
-                                propagParams.intersection, propagParams.intersection_di, propagParams.intersection_dj,
+      compute_intersections_2nd(spatial_cell,
+                                bwd_transform,
+                                fwd_transform,
+                                dimension,
+                                propagParams.maxRefLevel,
+                                propagParams.intersection,
+                                propagParams.intersection_di,
+                                propagParams.intersection_dj,
                                 propagParams.intersection_dk);
       break;
    case 2:
-      compute_intersections_3rd(spatial_cell, bwd_transform, fwd_transform, dimension, propagParams.maxRefLevel,
-                                propagParams.intersection, propagParams.intersection_di, propagParams.intersection_dj,
+      compute_intersections_3rd(spatial_cell,
+                                bwd_transform,
+                                fwd_transform,
+                                dimension,
+                                propagParams.maxRefLevel,
+                                propagParams.intersection,
+                                propagParams.intersection_di,
+                                propagParams.intersection_dj,
                                 propagParams.intersection_dk);
       break;
    default:
@@ -209,7 +233,9 @@ bool map_1d(SpatialCell* spatial_cell, Transform<Real, 3, Affine>& fwd_transform
  * @param targetRefLevel
  * @param vmesh Source mesh.
  */
-void generateTargetMesh(SpatialCell* spatial_cell, const std::vector<vmesh::LocalID>& blocks, PropagParams& params,
+void generateTargetMesh(SpatialCell* spatial_cell,
+                        const std::vector<vmesh::LocalID>& blocks,
+                        PropagParams& params,
                         const uint8_t& targetRefLevel,
                         const vmesh::VelocityMesh<vmesh::GlobalID, vmesh::LocalID>& vmesh) {
    params.refMul = pow(2, (params.maxRefLevel - params.refLevel));
@@ -307,7 +333,8 @@ void generateTargetMesh(SpatialCell* spatial_cell, const std::vector<vmesh::Loca
  * @param params Parameters needed in the propagation.
  * @param vmesh The source mesh.
  * @param blockContainer Source mesh data.*/
-void map_1d(SpatialCell* spatial_cell, PropagParams& params,
+void map_1d(SpatialCell* spatial_cell,
+            PropagParams& params,
             vmesh::VelocityMesh<vmesh::GlobalID, vmesh::LocalID>& vmesh,
             vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer) {
 

@@ -32,7 +32,10 @@ using namespace std;
 void calculateEdgeGradPeTermXComponents(
     FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH>& EGradPeGrid,
     FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
-    FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid, cint i, cint j, cint k) {
+    FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
+    cint i,
+    cint j,
+    cint k) {
    Real hallRhoq = 0.0;
    Real rhoq = 0.0;
    switch (Parameters::ohmGradPeTerm) {
@@ -61,7 +64,10 @@ void calculateEdgeGradPeTermXComponents(
 void calculateEdgeGradPeTermYComponents(
     FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH>& EGradPeGrid,
     FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
-    FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid, cint i, cint j, cint k) {
+    FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
+    cint i,
+    cint j,
+    cint k) {
    Real hallRhoq = 0.0;
    Real rhoq = 0.0;
    switch (Parameters::ohmGradPeTerm) {
@@ -90,7 +96,10 @@ void calculateEdgeGradPeTermYComponents(
 void calculateEdgeGradPeTermZComponents(
     FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH>& EGradPeGrid,
     FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
-    FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid, cint i, cint j, cint k) {
+    FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
+    cint i,
+    cint j,
+    cint k) {
    Real hallRhoq = 0.0;
    Real rhoq = 0.0;
    switch (Parameters::ohmGradPeTerm) {
@@ -122,7 +131,10 @@ void calculateEdgeGradPeTermZComponents(
 void calculateGradPeTerm(FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH>& EGradPeGrid,
                          FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
                          FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
-                         FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k,
+                         FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+                         cint i,
+                         cint j,
+                         cint k,
                          SysBoundary& sysBoundaries) {
 #ifdef DEBUG_FSOLVER
    if (technicalGrid.get(i, j, k) == NULL) {
@@ -156,7 +168,8 @@ void calculateGradPeTermSimple(FsGrid<std::array<Real, fsgrids::egradpe::N_EGRAD
                                FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
                                FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsDt2Grid,
                                FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
-                               FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, SysBoundary& sysBoundaries,
+                               FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+                               SysBoundary& sysBoundaries,
                                cint& RKCase) {
    // const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
    const int* gridDims = &technicalGrid.getLocalSize()[0];

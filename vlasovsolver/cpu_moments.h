@@ -41,10 +41,12 @@ template <typename REAL> void blockVelocityFirstMoments(const Realf* avgs, const
 template <typename REAL>
 void blockVelocitySecondMoments(const Realf* avgs, const Real* blockParams, const REAL v[3], REAL* array);
 
-void calculateMoments_R(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const std::vector<CellID>& cells,
+void calculateMoments_R(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                        const std::vector<CellID>& cells,
                         const bool& computeSecond);
 
-void calculateMoments_V(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const std::vector<CellID>& cells,
+void calculateMoments_V(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                        const std::vector<CellID>& cells,
                         const bool& computeSecond);
 
 // ***** TEMPLATE FUNCTION DEFINITIONS ***** //
@@ -99,8 +101,12 @@ inline void blockVelocityFirstMoments(const Realf* avgs, const Real* blockParams
  * @param averageVZ Bulk velocity z
  * @param array Array where the calculated moments are added.*/
 template <typename REAL>
-inline void blockVelocitySecondMoments(const Realf* avgs, const Real* blockParams, const REAL averageVX,
-                                       const REAL averageVY, const REAL averageVZ, REAL* array) {
+inline void blockVelocitySecondMoments(const Realf* avgs,
+                                       const Real* blockParams,
+                                       const REAL averageVX,
+                                       const REAL averageVY,
+                                       const REAL averageVZ,
+                                       REAL* array) {
 
    const Real HALF = 0.5;
 

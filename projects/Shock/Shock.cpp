@@ -97,11 +97,22 @@ Real Shock::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, 
                (vz - this->VZ0) * (vz - this->VZ0)) /
               (2.0 * kb * this->TEMPERATURE));
    //*exp(-pow(x-Parameters::xmax/2.0, 2.0)/pow(this->SCA_X, 2.0))*exp(-pow(y-Parameters::ymax/4.0, 2.0)/pow(this->SCA_Y,
-   //2.0));
+   // 2.0));
 }
 
-Real Shock::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy,
-                                  creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
+Real Shock::calcPhaseSpaceDensity(creal& x,
+                                  creal& y,
+                                  creal& z,
+                                  creal& dx,
+                                  creal& dy,
+                                  creal& dz,
+                                  creal& vx,
+                                  creal& vy,
+                                  creal& vz,
+                                  creal& dvx,
+                                  creal& dvy,
+                                  creal& dvz,
+                                  const uint popID) const {
    const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
    vmesh::MeshParameters& meshParams = getObjectWrapper().velocityMeshes[meshID];
    if (vx < meshParams.meshMinLimits[0] + 0.5 * dvx || vy < meshParams.meshMinLimits[1] + 0.5 * dvy ||
@@ -127,8 +138,8 @@ Real Shock::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal
             for (uint vi = 0; vi < this->nVelocitySamples; ++vi)
                for (uint vj = 0; vj < this->nVelocitySamples; ++vj)
                   for (uint vk = 0; vk < this->nVelocitySamples; ++vk) {
-                     avg += getDistribValue(x + i * d_x, y + j * d_y, z + k * d_z, vx + vi * d_vx, vy + vj * d_vy,
-                                            vz + vk * d_vz, popID);
+                     avg += getDistribValue(
+                         x + i * d_x, y + j * d_y, z + k * d_z, vx + vi * d_vx, vy + vj * d_vy, vz + vk * d_vz, popID);
                   }
 
    creal result = avg * this->DENSITY * pow(mass / (2.0 * M_PI * kb * this->TEMPERATURE), 1.5) /

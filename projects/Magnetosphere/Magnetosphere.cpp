@@ -52,8 +52,10 @@ void Magnetosphere::addParameters() {
    RP::add("Magnetosphere.constBgBY", "Constant flat By component in the whole simulation box. Default is none.", 0.0);
    RP::add("Magnetosphere.constBgBZ", "Constant flat Bz component in the whole simulation box. Default is none.", 0.0);
    RP::add("Magnetosphere.noDipoleInSW",
-           "If set to 1, the dipole magnetic field is not set in the solar wind inflow cells. Default 0.", 0.0);
-   RP::add("Magnetosphere.dipoleScalingFactor", "Scales the field strength of the magnetic dipole compared to Earths.",
+           "If set to 1, the dipole magnetic field is not set in the solar wind inflow cells. Default 0.",
+           0.0);
+   RP::add("Magnetosphere.dipoleScalingFactor",
+           "Scales the field strength of the magnetic dipole compared to Earths.",
            1.0);
    RP::add("Magnetosphere.dipoleType",
            "0: Normal 3D dipole, 1: line-dipole for 2D polar simulations, 2: line-dipole with mirror, 3: 3D dipole "
@@ -78,16 +80,21 @@ void Magnetosphere::addParameters() {
 
    RP::add("Magnetosphere.dipoleTiltPhi", "Magnitude of dipole tilt, in degrees", 0.0);
    RP::add("Magnetosphere.dipoleTiltTheta", "Direction of dipole tilt from Sun-Earth-line, in degrees", 0.0);
-   RP::add("Magnetosphere.dipoleXFull", "X-coordinate up to which dipole is at full strength, in metres",
+   RP::add("Magnetosphere.dipoleXFull",
+           "X-coordinate up to which dipole is at full strength, in metres",
            9.5565e7); // 15 RE
-   RP::add("Magnetosphere.dipoleXZero", "X-coordinate after which dipole is at zero strength, in metres",
+   RP::add("Magnetosphere.dipoleXZero",
+           "X-coordinate after which dipole is at zero strength, in metres",
            1.9113e8); // 30 RE
    RP::add("Magnetosphere.dipoleInflowBX",
-           "Inflow magnetic field Bx component to which the vector potential dipole converges. Default is none.", 0.0);
+           "Inflow magnetic field Bx component to which the vector potential dipole converges. Default is none.",
+           0.0);
    RP::add("Magnetosphere.dipoleInflowBY",
-           "Inflow magnetic field By component to which the vector potential dipole converges. Default is none.", 0.0);
+           "Inflow magnetic field By component to which the vector potential dipole converges. Default is none.",
+           0.0);
    RP::add("Magnetosphere.dipoleInflowBZ",
-           "Inflow magnetic field Bz component to which the vector potential dipole converges. Default is none.", 0.0);
+           "Inflow magnetic field Bz component to which the vector potential dipole converges. Default is none.",
+           0.0);
    // New Parameter for zeroing out derivativeNew Parameter for zeroing out derivativess
    RP::add("Magnetosphere.zeroOutDerivativesX", "Zero Out Perpendicular components", 1.0);
    RP::add("Magnetosphere.zeroOutDerivativesY", "Zero Out Perpendicular components", 1.0);
@@ -105,9 +112,11 @@ void Magnetosphere::addParameters() {
       RP::add(pop + "_Magnetosphere.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
       RP::add(pop + "_Magnetosphere.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
       RP::add(pop + "_Magnetosphere.taperInnerRadius",
-              "Inner radius of the zone with a density tapering from the ionospheric value to the background (m)", 0.0);
+              "Inner radius of the zone with a density tapering from the ionospheric value to the background (m)",
+              0.0);
       RP::add(pop + "_Magnetosphere.taperOuterRadius",
-              "Outer radius of the zone with a density tapering from the ionospheric value to the background (m)", 0.0);
+              "Outer radius of the zone with a density tapering from the ionospheric value to the background (m)",
+              0.0);
    }
 }
 
@@ -282,8 +291,18 @@ void Magnetosphere::getParameters() {
 
 bool Magnetosphere::initialize() { return Project::initialize(); }
 
-Real Magnetosphere::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx,
-                                          creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,
+Real Magnetosphere::calcPhaseSpaceDensity(creal& x,
+                                          creal& y,
+                                          creal& z,
+                                          creal& dx,
+                                          creal& dy,
+                                          creal& dz,
+                                          creal& vx,
+                                          creal& vy,
+                                          creal& vz,
+                                          creal& dvx,
+                                          creal& dvy,
+                                          creal& dvz,
                                           const uint popID) const {
 
    const MagnetosphereSpeciesParameters& sP = this->speciesParams[popID];
@@ -305,14 +324,30 @@ Real Magnetosphere::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& d
                for (uint vi = 0; vi < sP.nVelocitySamples; ++vi)
                   for (uint vj = 0; vj < sP.nVelocitySamples; ++vj)
                      for (uint vk = 0; vk < sP.nVelocitySamples; ++vk) {
-                        avg += getDistribValue(x + i * d_x, y + j * d_y, z + k * d_z, vx + vi * d_vx, vy + vj * d_vy,
-                                               vz + vk * d_vz, dvx, dvy, dvz, popID);
+                        avg += getDistribValue(x + i * d_x,
+                                               y + j * d_y,
+                                               z + k * d_z,
+                                               vx + vi * d_vx,
+                                               vy + vj * d_vy,
+                                               vz + vk * d_vz,
+                                               dvx,
+                                               dvy,
+                                               dvz,
+                                               popID);
                      }
       return avg / (sP.nSpaceSamples * sP.nSpaceSamples * sP.nSpaceSamples) /
              (sP.nVelocitySamples * sP.nVelocitySamples * sP.nVelocitySamples);
    } else {
-      return getDistribValue(x + 0.5 * dx, y + 0.5 * dy, z + 0.5 * dz, vx + 0.5 * dvx, vy + 0.5 * dvy, vz + 0.5 * dvz,
-                             dvx, dvy, dvz, popID);
+      return getDistribValue(x + 0.5 * dx,
+                             y + 0.5 * dy,
+                             z + 0.5 * dz,
+                             vx + 0.5 * dvx,
+                             vy + 0.5 * dvy,
+                             vz + 0.5 * dvz,
+                             dvx,
+                             dvy,
+                             dvz,
+                             popID);
    }
 }
 
@@ -369,9 +404,17 @@ void Magnetosphere::setProjectBField(FsGrid<std::array<Real, fsgrids::bfield::N_
       if (P::isRestart == false) {
          bgFieldDipole.initialize(-8e15 * this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0);
          setPerturbedField(bgFieldDipole, perBGrid);
-         bgVectorDipole.initialize(8e15 * this->dipoleScalingFactor, 0.0, 0.0, 0.0, this->dipoleTiltPhi * M_PI / 180.,
-                                   this->dipoleTiltTheta * M_PI / 180., this->dipoleXFull, this->dipoleXZero,
-                                   this->dipoleInflowB[0], this->dipoleInflowB[1], this->dipoleInflowB[2]);
+         bgVectorDipole.initialize(8e15 * this->dipoleScalingFactor,
+                                   0.0,
+                                   0.0,
+                                   0.0,
+                                   this->dipoleTiltPhi * M_PI / 180.,
+                                   this->dipoleTiltTheta * M_PI / 180.,
+                                   this->dipoleXFull,
+                                   this->dipoleXZero,
+                                   this->dipoleInflowB[0],
+                                   this->dipoleInflowB[1],
+                                   this->dipoleInflowB[2]);
          setPerturbedField(bgVectorDipole, perBGrid, true);
       }
       break;
@@ -497,8 +540,16 @@ void Magnetosphere::setProjectBField(FsGrid<std::array<Real, fsgrids::bfield::N_
    storeNodeTimer.stop();
 }
 
-Real Magnetosphere::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx,
-                                    creal& dvy, creal& dvz, const uint popID) const {
+Real Magnetosphere::getDistribValue(creal& x,
+                                    creal& y,
+                                    creal& z,
+                                    creal& vx,
+                                    creal& vy,
+                                    creal& vz,
+                                    creal& dvx,
+                                    creal& dvy,
+                                    creal& dvz,
+                                    const uint popID) const {
    const MagnetosphereSpeciesParameters& sP = this->speciesParams[popID];
    Real initRho = sP.rho;
    Real initT = sP.T;

@@ -214,7 +214,10 @@ bool readCellIds(vlsv::ParallelReader& file, vector<CellID>& fileCells, const in
  * @return Returns true if the operation was successful
  @ @see exec_readGrid
 */
-bool readNBlocks(vlsv::ParallelReader& file, const std::string& meshName, std::vector<size_t>& nBlocks, int masterRank,
+bool readNBlocks(vlsv::ParallelReader& file,
+                 const std::string& meshName,
+                 std::vector<size_t>& nBlocks,
+                 int masterRank,
                  MPI_Comm comm) {
    bool success = true;
 
@@ -307,11 +310,17 @@ bool readNBlocks(vlsv::ParallelReader& file, const std::string& meshName, std::v
  * @param popID ID of the particle species who's data is to be read.
  * @return If true, velocity block data was read successfully.*/
 template <typename fileReal>
-bool _readBlockData(vlsv::ParallelReader& file, const std::string& spatMeshName, const std::vector<uint64_t>& fileCells,
-                    const uint64_t localCellStartOffset, const uint64_t localCells, const vmesh::LocalID* blocksPerCell,
-                    const uint64_t localBlockStartOffset, const uint64_t localBlocks,
+bool _readBlockData(vlsv::ParallelReader& file,
+                    const std::string& spatMeshName,
+                    const std::vector<uint64_t>& fileCells,
+                    const uint64_t localCellStartOffset,
+                    const uint64_t localCells,
+                    const vmesh::LocalID* blocksPerCell,
+                    const uint64_t localBlockStartOffset,
+                    const uint64_t localBlocks,
                     dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                    std::function<vmesh::GlobalID(vmesh::GlobalID)> blockIDremapper, const uint popID) {
+                    std::function<vmesh::GlobalID(vmesh::GlobalID)> blockIDremapper,
+                    const uint popID) {
    uint64_t arraySize;
    uint64_t avgVectorSize;
    vlsv::datatype::type dataType;
@@ -403,8 +412,11 @@ bool _readBlockData(vlsv::ParallelReader& file, const std::string& spatMeshName,
  * @param localCells Number of spatial cells assigned to this process.
  * @param mpiGrid Parallel grid library.
  * @return If true, velocity block data was read successfully.*/
-bool readBlockData(vlsv::ParallelReader& file, const string& meshName, const vector<CellID>& fileCells,
-                   const uint64_t localCellStartOffset, const uint64_t localCells,
+bool readBlockData(vlsv::ParallelReader& file,
+                   const string& meshName,
+                   const vector<CellID>& fileCells,
+                   const uint64_t localCellStartOffset,
+                   const uint64_t localCells,
                    dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) {
    bool success = true;
 
@@ -600,39 +612,93 @@ bool readBlockData(vlsv::ParallelReader& file, const string& meshName, const vec
       if (dataType == vlsv::datatype::type::FLOAT) {
          switch (byteSize) {
          case sizeof(double):
-            if (_readBlockData<double>(file, meshName, fileCells, localCellStartOffset, localCells, blocksPerCell,
-                                       myOffset, blockSum, mpiGrid, blockIDremapper, popID) == false)
+            if (_readBlockData<double>(file,
+                                       meshName,
+                                       fileCells,
+                                       localCellStartOffset,
+                                       localCells,
+                                       blocksPerCell,
+                                       myOffset,
+                                       blockSum,
+                                       mpiGrid,
+                                       blockIDremapper,
+                                       popID) == false)
                success = false;
             break;
          case sizeof(float):
-            if (_readBlockData<float>(file, meshName, fileCells, localCellStartOffset, localCells, blocksPerCell,
-                                      myOffset, blockSum, mpiGrid, blockIDremapper, popID) == false)
+            if (_readBlockData<float>(file,
+                                      meshName,
+                                      fileCells,
+                                      localCellStartOffset,
+                                      localCells,
+                                      blocksPerCell,
+                                      myOffset,
+                                      blockSum,
+                                      mpiGrid,
+                                      blockIDremapper,
+                                      popID) == false)
                success = false;
             break;
          }
       } else if (dataType == vlsv::datatype::type::UINT) {
          switch (byteSize) {
          case sizeof(uint32_t):
-            if (_readBlockData<uint32_t>(file, meshName, fileCells, localCellStartOffset, localCells, blocksPerCell,
-                                         myOffset, blockSum, mpiGrid, blockIDremapper, popID) == false)
+            if (_readBlockData<uint32_t>(file,
+                                         meshName,
+                                         fileCells,
+                                         localCellStartOffset,
+                                         localCells,
+                                         blocksPerCell,
+                                         myOffset,
+                                         blockSum,
+                                         mpiGrid,
+                                         blockIDremapper,
+                                         popID) == false)
                success = false;
             break;
          case sizeof(uint64_t):
-            if (_readBlockData<uint64_t>(file, meshName, fileCells, localCellStartOffset, localCells, blocksPerCell,
-                                         myOffset, blockSum, mpiGrid, blockIDremapper, popID) == false)
+            if (_readBlockData<uint64_t>(file,
+                                         meshName,
+                                         fileCells,
+                                         localCellStartOffset,
+                                         localCells,
+                                         blocksPerCell,
+                                         myOffset,
+                                         blockSum,
+                                         mpiGrid,
+                                         blockIDremapper,
+                                         popID) == false)
                success = false;
             break;
          }
       } else if (dataType == vlsv::datatype::type::INT) {
          switch (byteSize) {
          case sizeof(int32_t):
-            if (_readBlockData<int32_t>(file, meshName, fileCells, localCellStartOffset, localCells, blocksPerCell,
-                                        myOffset, blockSum, mpiGrid, blockIDremapper, popID) == false)
+            if (_readBlockData<int32_t>(file,
+                                        meshName,
+                                        fileCells,
+                                        localCellStartOffset,
+                                        localCells,
+                                        blocksPerCell,
+                                        myOffset,
+                                        blockSum,
+                                        mpiGrid,
+                                        blockIDremapper,
+                                        popID) == false)
                success = false;
             break;
          case sizeof(int64_t):
-            if (_readBlockData<int64_t>(file, meshName, fileCells, localCellStartOffset, localCells, blocksPerCell,
-                                        myOffset, blockSum, mpiGrid, blockIDremapper, popID) == false)
+            if (_readBlockData<int64_t>(file,
+                                        meshName,
+                                        fileCells,
+                                        localCellStartOffset,
+                                        localCells,
+                                        blocksPerCell,
+                                        myOffset,
+                                        blockSum,
+                                        mpiGrid,
+                                        blockIDremapper,
+                                        popID) == false)
                success = false;
             break;
          }
@@ -664,9 +730,12 @@ bool readBlockData(vlsv::ParallelReader& file, const string& meshName, const vec
  mpiGrid Vlasiator's grid (the parameters are saved here) \return Returns true if the operation is successful
  */
 template <typename fileReal>
-static bool _readCellParamsVariable(vlsv::ParallelReader& file, const vector<uint64_t>& fileCells,
-                                    const uint64_t localCellStartOffset, const uint64_t localCells,
-                                    const string& variableName, const size_t cellParamsIndex,
+static bool _readCellParamsVariable(vlsv::ParallelReader& file,
+                                    const vector<uint64_t>& fileCells,
+                                    const uint64_t localCellStartOffset,
+                                    const uint64_t localCells,
+                                    const string& variableName,
+                                    const size_t cellParamsIndex,
                                     const size_t expectedVectorSize,
                                     dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) {
    uint64_t arraySize;
@@ -716,9 +785,13 @@ static bool _readCellParamsVariable(vlsv::ParallelReader& file, const vector<uin
  expectedVectorSize The amount of elements in the parameter (parameter can be a scalar or a vector of size N) \param
  mpiGrid Vlasiator's grid (the parameters are saved here) \return Returns true if the operation is successful
  */
-bool readCellParamsVariable(vlsv::ParallelReader& file, const vector<CellID>& fileCells,
-                            const uint64_t localCellStartOffset, const uint64_t localCells, const string& variableName,
-                            const size_t cellParamsIndex, const size_t expectedVectorSize,
+bool readCellParamsVariable(vlsv::ParallelReader& file,
+                            const vector<CellID>& fileCells,
+                            const uint64_t localCellStartOffset,
+                            const uint64_t localCells,
+                            const string& variableName,
+                            const size_t cellParamsIndex,
+                            const size_t expectedVectorSize,
                             dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) {
    uint64_t arraySize;
    uint64_t vectorSize;
@@ -738,35 +811,71 @@ bool readCellParamsVariable(vlsv::ParallelReader& file, const vector<CellID>& fi
    if (dataType == vlsv::datatype::type::FLOAT) {
       switch (byteSize) {
       case sizeof(double):
-         return _readCellParamsVariable<double>(file, fileCells, localCellStartOffset, localCells, variableName,
-                                                cellParamsIndex, expectedVectorSize, mpiGrid);
+         return _readCellParamsVariable<double>(file,
+                                                fileCells,
+                                                localCellStartOffset,
+                                                localCells,
+                                                variableName,
+                                                cellParamsIndex,
+                                                expectedVectorSize,
+                                                mpiGrid);
          break;
       case sizeof(float):
-         return _readCellParamsVariable<float>(file, fileCells, localCellStartOffset, localCells, variableName,
-                                               cellParamsIndex, expectedVectorSize, mpiGrid);
+         return _readCellParamsVariable<float>(file,
+                                               fileCells,
+                                               localCellStartOffset,
+                                               localCells,
+                                               variableName,
+                                               cellParamsIndex,
+                                               expectedVectorSize,
+                                               mpiGrid);
          break;
       }
    } else if (dataType == vlsv::datatype::type::UINT) {
       switch (byteSize) {
 
       case sizeof(uint32_t):
-         return _readCellParamsVariable<uint32_t>(file, fileCells, localCellStartOffset, localCells, variableName,
-                                                  cellParamsIndex, expectedVectorSize, mpiGrid);
+         return _readCellParamsVariable<uint32_t>(file,
+                                                  fileCells,
+                                                  localCellStartOffset,
+                                                  localCells,
+                                                  variableName,
+                                                  cellParamsIndex,
+                                                  expectedVectorSize,
+                                                  mpiGrid);
          break;
       case sizeof(uint64_t):
-         return _readCellParamsVariable<uint64_t>(file, fileCells, localCellStartOffset, localCells, variableName,
-                                                  cellParamsIndex, expectedVectorSize, mpiGrid);
+         return _readCellParamsVariable<uint64_t>(file,
+                                                  fileCells,
+                                                  localCellStartOffset,
+                                                  localCells,
+                                                  variableName,
+                                                  cellParamsIndex,
+                                                  expectedVectorSize,
+                                                  mpiGrid);
          break;
       }
    } else if (dataType == vlsv::datatype::type::INT) {
       switch (byteSize) {
       case sizeof(int32_t):
-         return _readCellParamsVariable<int32_t>(file, fileCells, localCellStartOffset, localCells, variableName,
-                                                 cellParamsIndex, expectedVectorSize, mpiGrid);
+         return _readCellParamsVariable<int32_t>(file,
+                                                 fileCells,
+                                                 localCellStartOffset,
+                                                 localCells,
+                                                 variableName,
+                                                 cellParamsIndex,
+                                                 expectedVectorSize,
+                                                 mpiGrid);
          break;
       case sizeof(int64_t):
-         return _readCellParamsVariable<int64_t>(file, fileCells, localCellStartOffset, localCells, variableName,
-                                                 cellParamsIndex, expectedVectorSize, mpiGrid);
+         return _readCellParamsVariable<int64_t>(file,
+                                                 fileCells,
+                                                 localCellStartOffset,
+                                                 localCells,
+                                                 variableName,
+                                                 cellParamsIndex,
+                                                 expectedVectorSize,
+                                                 mpiGrid);
          break;
       }
    } else {
@@ -784,7 +893,9 @@ bool readCellParamsVariable(vlsv::ParallelReader& file, const vector<CellID>& fi
  * order) \param targetGrid target location where the data will be stored.
  */
 template <unsigned long int N>
-bool readFsGridVariable(vlsv::ParallelReader& file, const string& variableName, int numWritingRanks,
+bool readFsGridVariable(vlsv::ParallelReader& file,
+                        const string& variableName,
+                        int numWritingRanks,
                         FsGrid<std::array<Real, N>, FS_STENCIL_WIDTH>& targetGrid) {
 
    uint64_t arraySize;
@@ -887,16 +998,16 @@ bool readFsGridVariable(vlsv::ParallelReader& file, const string& variableName, 
       for (int task = 0; task < numWritingRanks; task++) {
          std::array<int32_t, 3> thatTasksSize;
          std::array<int32_t, 3> thatTasksStart;
-         thatTasksSize[0] = targetGrid.calcLocalSize(globalSize[0], fileDecomposition[0],
-                                                     task / fileDecomposition[2] / fileDecomposition[1]);
-         thatTasksSize[1] = targetGrid.calcLocalSize(globalSize[1], fileDecomposition[1],
-                                                     (task / fileDecomposition[2]) % fileDecomposition[1]);
+         thatTasksSize[0] = targetGrid.calcLocalSize(
+             globalSize[0], fileDecomposition[0], task / fileDecomposition[2] / fileDecomposition[1]);
+         thatTasksSize[1] = targetGrid.calcLocalSize(
+             globalSize[1], fileDecomposition[1], (task / fileDecomposition[2]) % fileDecomposition[1]);
          thatTasksSize[2] = targetGrid.calcLocalSize(globalSize[2], fileDecomposition[2], task % fileDecomposition[2]);
 
-         thatTasksStart[0] = targetGrid.calcLocalStart(globalSize[0], fileDecomposition[0],
-                                                       task / fileDecomposition[2] / fileDecomposition[1]);
-         thatTasksStart[1] = targetGrid.calcLocalStart(globalSize[1], fileDecomposition[1],
-                                                       (task / fileDecomposition[2]) % fileDecomposition[1]);
+         thatTasksStart[0] = targetGrid.calcLocalStart(
+             globalSize[0], fileDecomposition[0], task / fileDecomposition[2] / fileDecomposition[1]);
+         thatTasksStart[1] = targetGrid.calcLocalStart(
+             globalSize[1], fileDecomposition[1], (task / fileDecomposition[2]) % fileDecomposition[1]);
          thatTasksStart[2] =
              targetGrid.calcLocalStart(globalSize[2], fileDecomposition[2], task % fileDecomposition[2]);
 
@@ -949,7 +1060,8 @@ bool readFsGridVariable(vlsv::ParallelReader& file, const string& variableName, 
                      int index = (z - thatTasksStart[2]) * thatTasksSize[0] * thatTasksSize[1] +
                                  (y - thatTasksStart[1]) * thatTasksSize[0] + (x - thatTasksStart[0]);
 
-                     memcpy(targetGrid.get(x - localStart[0], y - localStart[1], z - localStart[2]), &buffer[index * N],
+                     memcpy(targetGrid.get(x - localStart[0], y - localStart[1], z - localStart[2]),
+                            &buffer[index * N],
                             N * sizeof(Real));
                   }
                }
@@ -974,7 +1086,9 @@ bool readFsGridVariable(vlsv::ParallelReader& file, const string& variableName, 
  * \param grid the ionosphere grid that data will be deposited into
  * \param index index into the nodes' parameters array, where the data will end up.
  */
-bool readIonosphereNodeVariable(vlsv::ParallelReader& file, const string& variableName, SBC::SphericalTriGrid& grid,
+bool readIonosphereNodeVariable(vlsv::ParallelReader& file,
+                                const string& variableName,
+                                SBC::SphericalTriGrid& grid,
                                 ionosphereParameters index) {
 
    uint64_t arraySize;
@@ -1051,7 +1165,10 @@ bool readScalarParameter(vlsv::ParallelReader& file, string name, T& value, int 
  \return Returns true if the operation is successful
  */
 template <typename T>
-bool checkScalarParameter(vlsv::ParallelReader& file, const string& name, T correctValue, int masterRank,
+bool checkScalarParameter(vlsv::ParallelReader& file,
+                          const string& name,
+                          T correctValue,
+                          int masterRank,
                           MPI_Comm comm) {
    T value;
    readScalarParameter(file, name, value, masterRank, comm);
@@ -1078,7 +1195,8 @@ bool checkScalarParameter(vlsv::ParallelReader& file, const string& name, T corr
 bool exec_readGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                    FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
                    FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EGrid,
-                   FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, const std::string& name) {
+                   FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+                   const std::string& name) {
    vector<CellID> fileCells; /*< CellIds for all cells in file*/
    vector<size_t> nBlocks;   /*< Number of blocks for all cells in file*/
    bool success = true;
@@ -1105,7 +1223,8 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid
       MPI_Info_create(&MPIinfo);
 
       for (std::vector<std::pair<std::string, std::string>>::const_iterator it = P::restartReadHints.begin();
-           it != P::restartReadHints.end(); it++) {
+           it != P::restartReadHints.end();
+           it++) {
          MPI_Info_set(MPIinfo, it->first.c_str(), it->second.c_str());
       }
    }
@@ -1265,60 +1384,66 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid
    // todo, check file datatype, and do not just use double
    phiprof::Timer readParametersTimer{"readCellParameters"};
    if (success) {
-      success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "moments", CellParams::RHOM,
-                                       5, mpiGrid);
+      success = readCellParamsVariable(
+          file, fileCells, localCellStartOffset, localCells, "moments", CellParams::RHOM, 5, mpiGrid);
    }
    if (success) {
-      success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "moments_dt2",
-                                       CellParams::RHOM_DT2, 5, mpiGrid);
+      success = readCellParamsVariable(
+          file, fileCells, localCellStartOffset, localCells, "moments_dt2", CellParams::RHOM_DT2, 5, mpiGrid);
    }
    if (success) {
-      success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "moments_r",
-                                       CellParams::RHOM_R, 5, mpiGrid);
+      success = readCellParamsVariable(
+          file, fileCells, localCellStartOffset, localCells, "moments_r", CellParams::RHOM_R, 5, mpiGrid);
    }
    if (success) {
-      success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "moments_v",
-                                       CellParams::RHOM_V, 5, mpiGrid);
+      success = readCellParamsVariable(
+          file, fileCells, localCellStartOffset, localCells, "moments_v", CellParams::RHOM_V, 5, mpiGrid);
    }
    if (success) {
-      success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "pressure", CellParams::P_11,
-                                       3, mpiGrid);
+      success = readCellParamsVariable(
+          file, fileCells, localCellStartOffset, localCells, "pressure", CellParams::P_11, 3, mpiGrid);
    }
    if (success) {
-      success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "pressure_dt2",
-                                       CellParams::P_11_DT2, 3, mpiGrid);
+      success = readCellParamsVariable(
+          file, fileCells, localCellStartOffset, localCells, "pressure_dt2", CellParams::P_11_DT2, 3, mpiGrid);
    }
    if (success) {
-      success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "pressure_r",
-                                       CellParams::P_11_R, 3, mpiGrid);
+      success = readCellParamsVariable(
+          file, fileCells, localCellStartOffset, localCells, "pressure_r", CellParams::P_11_R, 3, mpiGrid);
    }
    if (success) {
-      success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "pressure_v",
-                                       CellParams::P_11_V, 3, mpiGrid);
+      success = readCellParamsVariable(
+          file, fileCells, localCellStartOffset, localCells, "pressure_v", CellParams::P_11_V, 3, mpiGrid);
    }
    if (success) {
-      success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "LB_weight",
-                                       CellParams::LBWEIGHTCOUNTER, 1, mpiGrid);
+      success = readCellParamsVariable(
+          file, fileCells, localCellStartOffset, localCells, "LB_weight", CellParams::LBWEIGHTCOUNTER, 1, mpiGrid);
    }
    if (success) {
-      success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "max_v_dt",
-                                       CellParams::MAXVDT, 1, mpiGrid);
+      success = readCellParamsVariable(
+          file, fileCells, localCellStartOffset, localCells, "max_v_dt", CellParams::MAXVDT, 1, mpiGrid);
    }
    if (success) {
-      success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "max_r_dt",
-                                       CellParams::MAXRDT, 1, mpiGrid);
+      success = readCellParamsVariable(
+          file, fileCells, localCellStartOffset, localCells, "max_r_dt", CellParams::MAXRDT, 1, mpiGrid);
    }
    if (success) {
-      success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "max_fields_dt",
-                                       CellParams::MAXFDT, 1, mpiGrid);
+      success = readCellParamsVariable(
+          file, fileCells, localCellStartOffset, localCells, "max_fields_dt", CellParams::MAXFDT, 1, mpiGrid);
    }
    if (success) {
-      success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "vg_drift",
-                                       CellParams::BULKV_FORCING_X, 3, mpiGrid);
+      success = readCellParamsVariable(
+          file, fileCells, localCellStartOffset, localCells, "vg_drift", CellParams::BULKV_FORCING_X, 3, mpiGrid);
    }
    if (success) {
-      success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "vg_bulk_forcing_flag",
-                                       CellParams::FORCING_CELL_NUM, 1, mpiGrid);
+      success = readCellParamsVariable(file,
+                                       fileCells,
+                                       localCellStartOffset,
+                                       localCells,
+                                       "vg_bulk_forcing_flag",
+                                       CellParams::FORCING_CELL_NUM,
+                                       1,
+                                       mpiGrid);
    }
 
    // Backround B has to be set, there are also the derivatives that should be written/read if we wanted to only read in
@@ -1409,7 +1534,8 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid
 bool readGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
               FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
               FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EGrid,
-              FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, const std::string& name) {
+              FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+              const std::string& name) {
    // Check the vlsv version from the file:
    return exec_readGrid(mpiGrid, perBGrid, EGrid, technicalGrid, name);
 }

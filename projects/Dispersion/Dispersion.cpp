@@ -52,9 +52,11 @@ void Dispersion::addParameters() {
    RP::add("Dispersion.magZPertAbsAmp", "Absolute amplitude of the magnetic perturbation along z (T)", 1.0e-9);
    RP::add("Dispersion.maxwCutoff", "Cutoff for the maxwellian distribution", 1e-12);
    RP::add("Dispersion.angleXY",
-           "Orientation of the guide magnetic field with respect to the x-axis in x-y plane (rad)", 0.001);
+           "Orientation of the guide magnetic field with respect to the x-axis in x-y plane (rad)",
+           0.001);
    RP::add("Dispersion.angleXZ",
-           "Orientation of the guide magnetic field with respect to the x-axis in x-z plane (rad)", 0.001);
+           "Orientation of the guide magnetic field with respect to the x-axis in x-z plane (rad)",
+           0.001);
 
    // Per-population parameters
    for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
@@ -101,7 +103,8 @@ void Dispersion::getParameters() {
    }
 }
 
-void Dispersion::hook(cuint& stage, const dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+void Dispersion::hook(cuint& stage,
+                      const dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                       FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid) const {
    if (hook::END_OF_TIME_STEP == stage) {
       int myRank;
@@ -163,8 +166,18 @@ Real Dispersion::getDistribValue(creal& vx, creal& vy, creal& vz, const uint pop
               (2.0 * kb * sP.TEMPERATURE));
 }
 
-Real Dispersion::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx,
-                                       creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,
+Real Dispersion::calcPhaseSpaceDensity(creal& x,
+                                       creal& y,
+                                       creal& z,
+                                       creal& dx,
+                                       creal& dy,
+                                       creal& dz,
+                                       creal& vx,
+                                       creal& vy,
+                                       creal& vz,
+                                       creal& dvx,
+                                       creal& dvy,
+                                       creal& dvz,
                                        const uint popID) const {
    const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
    const vmesh::MeshParameters& meshParams = getObjectWrapper().velocityMeshes[meshID];
@@ -188,7 +201,8 @@ Real Dispersion::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, 
          for (uint vk = 0; vk < sP.nVelocitySamples; ++vk) {
             avg += getDistribValue(vx + vi * d_vx - sP.velocityPertAbsAmp * (0.5 - this->rndVel[0]),
                                    vy + vj * d_vy - sP.velocityPertAbsAmp * (0.5 - this->rndVel[1]),
-                                   vz + vk * d_vz - sP.velocityPertAbsAmp * (0.5 - this->rndVel[2]), popID);
+                                   vz + vk * d_vz - sP.velocityPertAbsAmp * (0.5 - this->rndVel[2]),
+                                   popID);
          }
 
    creal result = avg * sP.DENSITY * (1.0 + sP.densityPertRelAmp * (0.5 - this->rndRho)) *
@@ -228,7 +242,8 @@ void Dispersion::setProjectBField(FsGrid<std::array<Real, fsgrids::bfield::N_BFI
                                   FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
    ConstantField bgField;
    bgField.initialize(this->B0 * cos(this->angleXY) * cos(this->angleXZ),
-                      this->B0 * sin(this->angleXY) * cos(this->angleXZ), this->B0 * sin(this->angleXZ));
+                      this->B0 * sin(this->angleXY) * cos(this->angleXZ),
+                      this->B0 * sin(this->angleXZ));
 
    setBackgroundField(bgField, BgBGrid);
 

@@ -229,19 +229,25 @@ bool P::addParameters() {
                     "MPI-IO hint value passed to the restart IO. Has to be matched by io.restart_read_mpiio_hint_key.");
 
    RP::add("io.write_initial_state",
-           "Write initial state, not even the 0.5 dt propagation is done. Do not use for restarting. ", false);
+           "Write initial state, not even the 0.5 dt propagation is done. Do not use for restarting. ",
+           false);
 
    RP::add("io.write_full_bgb_data",
-           "Write a dedicated file containing all BGB components and first derivatives, then exit.", false);
+           "Write a dedicated file containing all BGB components and first derivatives, then exit.",
+           false);
 
    RP::add("io.restart_walltime_interval",
-           "Save the complete simulation in given walltime intervals. Negative values disable writes.", -1.0);
-   RP::add("io.number_of_restarts", "Exit the simulation after certain number of walltime-based restarts.",
+           "Save the complete simulation in given walltime intervals. Negative values disable writes.",
+           -1.0);
+   RP::add("io.number_of_restarts",
+           "Exit the simulation after certain number of walltime-based restarts.",
            numeric_limits<uint>::max());
    RP::add("io.vlsv_buffer_size",
-           "Buffer size passed to VLSV writer (bytes, up to uint64_t), default 0 as this is sensible on sisu", 0);
+           "Buffer size passed to VLSV writer (bytes, up to uint64_t), default 0 as this is sensible on sisu",
+           0);
    RP::add("io.write_restart_stripe_factor",
-           "Stripe factor for restart and initial grid writing. Default 0 to inherit.", 0);
+           "Stripe factor for restart and initial grid writing. Default 0 to inherit.",
+           0);
    RP::add("io.write_system_stripe_factor", "Stripe factor for bulk file writing. Default 0 to inherit.", 0);
    RP::add("io.write_as_float", "If true, write in floats instead of doubles", false);
    RP::add("io.restart_write_path",
@@ -294,7 +300,8 @@ bool P::addParameters() {
 
    // Field solver parameters
    RP::add("fieldsolver.maxWaveVelocity",
-           "Maximum wave velocity allowed in the fastest velocity determination in m/s, default unlimited", LARGE_REAL);
+           "Maximum wave velocity allowed in the fastest velocity determination in m/s, default unlimited",
+           LARGE_REAL);
    RP::add("fieldsolver.maxSubcycles", "Maximum allowed field solver subcycles", 1);
    RP::add("fieldsolver.resistivity", "Resistivity for the eta*J term in Ohm's law.", 0.0);
    RP::add("fieldsolver.diffusiveEterms", "Enable diffusive terms in the computation of E", true);
@@ -307,21 +314,26 @@ bool P::addParameters() {
        "Enable/choose spatial order of the electron pressure gradient term in Ohm's law. 0: off, 1: 1st spatial order.",
        0);
    RP::add("fieldsolver.electronTemperature",
-           "Upstream electron temperature to be used for the electron pressure gradient term (K).", 0.0);
+           "Upstream electron temperature to be used for the electron pressure gradient term (K).",
+           0.0);
    RP::add("fieldsolver.electronDensity",
-           "Upstream electron density to be used for the electron pressure gradient term (m^-3).", 0.0);
+           "Upstream electron density to be used for the electron pressure gradient term (m^-3).",
+           0.0);
    RP::add("fieldsolver.electronPTindex",
            "Polytropic index for electron pressure gradient term. 0 is isobaric, 1 is isothermal, 1.667 is adiabatic "
            "electrons, ",
            0.0);
    RP::add("fieldsolver.maxCFL",
-           "The maximum CFL limit for field propagation. Used to set timestep if dynamic_timestep is true.", 0.5);
+           "The maximum CFL limit for field propagation. Used to set timestep if dynamic_timestep is true.",
+           0.5);
    RP::add("fieldsolver.minCFL",
-           "The minimum CFL limit for field propagation. Used to set timestep if dynamic_timestep is true.", 0.4);
+           "The minimum CFL limit for field propagation. Used to set timestep if dynamic_timestep is true.",
+           0.4);
 
    // Vlasov solver parameters
    RP::add("vlasovsolver.maxSlAccelerationRotation",
-           "Maximum rotation angle (degrees) allowed by the Semi-Lagrangian solver (Use >25 values with care)", 25.0);
+           "Maximum rotation angle (degrees) allowed by the Semi-Lagrangian solver (Use >25 values with care)",
+           25.0);
    RP::add("vlasovsolver.maxSlAccelerationSubcycles", "Maximum number of subcycles for acceleration", 1);
    RP::add("vlasovsolver.maxCFL",
            "The maximum CFL limit for vlasov propagation in ordinary space. Used to set timestep if dynamic_timestep "
@@ -332,7 +344,8 @@ bool P::addParameters() {
            "is true.",
            0.8);
    RP::add("vlasovsolver.accelerateMaxwellianBoundaries",
-           "Propagate maxwellian boundary cell contents in velocity space. Default false.", false);
+           "Propagate maxwellian boundary cell contents in velocity space. Default false.",
+           false);
 
    // Load balancing parameters
    RP::add("loadBalance.algorithm", "Load balancing algorithm to be used", string("RCB"));
@@ -416,10 +429,11 @@ bool P::addParameters() {
 
    // bailout parameters
    RP::add("bailout.write_restart",
-           "If 1, write a restart file on bailout. Gets reset when sending a STOP (1) or a KILL (0).", true);
+           "If 1, write a restart file on bailout. Gets reset when sending a STOP (1) or a KILL (0).",
+           true);
    RP::add("bailout.min_dt", "Minimum time step below which bailout occurs (s).", 1e-6);
-   RP::add("bailout.max_memory", "Maximum amount of memory used per node (in GiB) over which bailout occurs.",
-           1073741824.);
+   RP::add(
+       "bailout.max_memory", "Maximum amount of memory used per node (in GiB) over which bailout occurs.", 1073741824.);
    RP::add("bailout.velocity_space_wall_block_margin",
            "Distance from the velocity space limits in blocks, if the distribution function reaches that distance from "
            "the wall we bail out to avoid hitting the wall.",
@@ -429,7 +443,8 @@ bool P::addParameters() {
    RP::add("VAMR.vel_refinement_criterion", "Name of the velocity refinement criterion", string(""));
    RP::add("VAMR.max_velocity_level", "Maximum velocity mesh refinement level", (uint)0);
    RP::add("VAMR.refine_limit",
-           "If the refinement criterion function returns a larger value than this, block is refined", (Realf)1.0);
+           "If the refinement criterion function returns a larger value than this, block is refined",
+           (Realf)1.0);
    RP::add("VAMR.coarsen_limit",
            "If the refinement criterion function returns a smaller value than this, block can be coarsened",
            (Realf)0.5);
@@ -463,7 +478,8 @@ bool P::addParameters() {
    RP::add("fieldtracing.tracer_max_allowed_error", "Maximum allowed error for the adaptive field line tracers ", 1000);
    RP::add("fieldtracing.tracer_max_attempts", "Maximum allowed attempts for the adaptive field line tracers", 100);
    RP::add("fieldtracing.tracer_min_dx",
-           "Minimum allowed field line tracer step length for the adaptive field line tracers (m)", 100e3);
+           "Minimum allowed field line tracer step length for the adaptive field line tracers (m)",
+           100e3);
    RP::add("fieldtracing.fullbox_and_fluxrope_max_absolute_distance_to_trace",
            "Maximum absolute distance in m to trace along the field line before ending. Defaults to the sum of the "
            "simulation box edge lengths LX+LY+LZ if set <= 0.",
@@ -479,7 +495,8 @@ bool P::addParameters() {
            "will be achieved.",
            0);
    RP::add("fieldtracing.use_reconstruction_cache",
-           "Use the cache to store reconstruction coefficients. (0: don't, 1: use)", 0);
+           "Use the cache to store reconstruction coefficients. (0: don't, 1: use)",
+           0);
    RP::add("fieldtracing.fluxrope_max_curvature_radii_to_trace",
            "Maximum number of seedpoint curvature radii to trace forward and backward from each DCCRG cell to find "
            "flux ropes",

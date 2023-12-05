@@ -112,8 +112,8 @@ template <int PAD, int METHOD> inline void accum_xyz(Realf* array, const Real* p
 }
 
 template <int PAD, typename T>
-inline void addToFine_x(const T& j_fine, const T& k_fine, const T* coarseOffset, Realf* fineArray,
-                        const Realf* coarseArray) {
+inline void
+addToFine_x(const T& j_fine, const T& k_fine, const T* coarseOffset, Realf* fineArray, const Realf* coarseArray) {
    /*const T k_coarse = coarseOffset[2] + 2*(octant / 4);
    const T j_coarse = coarseOffset[1] + 2*((octant - 4*(octant/4))/2);
    const T i_coarse = coarseOffset[0] + 2*(octant % 2);*/

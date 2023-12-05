@@ -25,8 +25,11 @@
 #include "vec.h"
 
 void loadColumnBlockData(const vmesh::VelocityMesh<vmesh::GlobalID, vmesh::LocalID>& vmesh,
-                         vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer, vmesh::GlobalID* blocks,
-                         vmesh::LocalID n_blocks, const int dimension, Vec* __restrict__ values) {
+                         vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer,
+                         vmesh::GlobalID* blocks,
+                         vmesh::LocalID n_blocks,
+                         const int dimension,
+                         Vec* __restrict__ values) {
    // first set the 0 values for the two empty blocks
    // we store above and below the existing blocks
 
@@ -200,7 +203,7 @@ cell + 1
          values[i_pcolumnv_b(0, 3, block_k, n_blocks)] =
              gather16d<3, 19, 35, 51, 7, 23, 39, 55, 11, 27, 43, 59, 15, 31, 47, 63>(data);
 #endif // VEC16D_AGNER
-         // zero old output data
+       // zero old output data
          for (uint i = 0; i < WID3; ++i) {
             data[i] = 0;
          }
@@ -325,7 +328,7 @@ cell + 1
          values[i_pcolumnv_b(0, 3, block_k, n_blocks)] =
              gather16d<12, 13, 14, 15, 28, 29, 30, 31, 44, 45, 46, 47, 60, 61, 62, 63>(data);
 #endif // VEC16D_AGNER
-         // zero old output data
+       // zero old output data
          for (uint i = 0; i < WID3; ++i) {
             data[i] = 0;
          }

@@ -14,8 +14,8 @@ template <typename ID> inline bool paircomparator(const std::pair<ID, uint>& l, 
 }
 
 template <typename ID, typename LENGTH>
-inline void sortIds(const uint dimension, const LENGTH meshSize, const std::vector<ID>& ids,
-                    std::map<ID, ID>& mapping) {
+inline void
+sortIds(const uint dimension, const LENGTH meshSize, const std::vector<ID>& ids, std::map<ID, ID>& mapping) {
 
    // sortedIds.resize(ids.size());
    // TODO conditionally parallel version?
@@ -70,9 +70,13 @@ inline void sortIds(const uint dimension, const LENGTH meshSize, const std::vect
 }
 
 template <typename ID, typename LENGTH>
-void sortIdlistByDimension(const uint dimension, const LENGTH meshSize, std::vector<ID>& ids,
-                           std::vector<uint>& columnIdOffsets, std::vector<uint>& columnNumIds,
-                           std::vector<uint>& setColumnOffsets, std::vector<uint>& setNumColumns) {
+void sortIdlistByDimension(const uint dimension,
+                           const LENGTH meshSize,
+                           std::vector<ID>& ids,
+                           std::vector<uint>& columnIdOffsets,
+                           std::vector<uint>& columnNumIds,
+                           std::vector<uint>& setColumnOffsets,
+                           std::vector<uint>& setNumColumns) {
 
    const uint nIds = ids.size();
 

@@ -11,7 +11,9 @@ using namespace fsgrids;
 uint Parameters::ohmHallTerm = 0;
 
 // Very simplified version of CalculateDerivatives from fieldsolver/derivatives.cpp
-void calculateDerivatives(cint i, cint j, cint k,
+void calculateDerivatives(cint i,
+                          cint j,
+                          cint k,
                           FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
                           FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
                           FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
@@ -30,12 +32,12 @@ void calculateDerivatives(cint i, cint j, cint k,
    leftPerB = perBGrid.get(i - 1, j, k);
    rghtPerB = perBGrid.get(i + 1, j, k);
 
-   dPerB->at(fsgrids::dperb::dPERBydx) =
-       limiter(leftPerB->at(fsgrids::bfield::PERBY), centPerB->at(fsgrids::bfield::PERBY),
-               rghtPerB->at(fsgrids::bfield::PERBY));
-   dPerB->at(fsgrids::dperb::dPERBzdx) =
-       limiter(leftPerB->at(fsgrids::bfield::PERBZ), centPerB->at(fsgrids::bfield::PERBZ),
-               rghtPerB->at(fsgrids::bfield::PERBZ));
+   dPerB->at(fsgrids::dperb::dPERBydx) = limiter(leftPerB->at(fsgrids::bfield::PERBY),
+                                                 centPerB->at(fsgrids::bfield::PERBY),
+                                                 rghtPerB->at(fsgrids::bfield::PERBY));
+   dPerB->at(fsgrids::dperb::dPERBzdx) = limiter(leftPerB->at(fsgrids::bfield::PERBZ),
+                                                 centPerB->at(fsgrids::bfield::PERBZ),
+                                                 rghtPerB->at(fsgrids::bfield::PERBZ));
 
    if (Parameters::ohmHallTerm < 2) {
       dPerB->at(fsgrids::dperb::dPERBydxx) = 0.0;
@@ -54,12 +56,12 @@ void calculateDerivatives(cint i, cint j, cint k,
    leftPerB = perBGrid.get(i, j - 1, k);
    rghtPerB = perBGrid.get(i, j + 1, k);
 
-   dPerB->at(fsgrids::dperb::dPERBxdy) =
-       limiter(leftPerB->at(fsgrids::bfield::PERBX), centPerB->at(fsgrids::bfield::PERBX),
-               rghtPerB->at(fsgrids::bfield::PERBX));
-   dPerB->at(fsgrids::dperb::dPERBzdy) =
-       limiter(leftPerB->at(fsgrids::bfield::PERBZ), centPerB->at(fsgrids::bfield::PERBZ),
-               rghtPerB->at(fsgrids::bfield::PERBZ));
+   dPerB->at(fsgrids::dperb::dPERBxdy) = limiter(leftPerB->at(fsgrids::bfield::PERBX),
+                                                 centPerB->at(fsgrids::bfield::PERBX),
+                                                 rghtPerB->at(fsgrids::bfield::PERBX));
+   dPerB->at(fsgrids::dperb::dPERBzdy) = limiter(leftPerB->at(fsgrids::bfield::PERBZ),
+                                                 centPerB->at(fsgrids::bfield::PERBZ),
+                                                 rghtPerB->at(fsgrids::bfield::PERBZ));
 
    if (Parameters::ohmHallTerm < 2) {
       dPerB->at(fsgrids::dperb::dPERBxdyy) = 0.0;
@@ -77,12 +79,12 @@ void calculateDerivatives(cint i, cint j, cint k,
    leftPerB = perBGrid.get(i, j, k - 1);
    rghtPerB = perBGrid.get(i, j, k + 1);
 
-   dPerB->at(fsgrids::dperb::dPERBxdz) =
-       limiter(leftPerB->at(fsgrids::bfield::PERBX), centPerB->at(fsgrids::bfield::PERBX),
-               rghtPerB->at(fsgrids::bfield::PERBX));
-   dPerB->at(fsgrids::dperb::dPERBydz) =
-       limiter(leftPerB->at(fsgrids::bfield::PERBY), centPerB->at(fsgrids::bfield::PERBY),
-               rghtPerB->at(fsgrids::bfield::PERBY));
+   dPerB->at(fsgrids::dperb::dPERBxdz) = limiter(leftPerB->at(fsgrids::bfield::PERBX),
+                                                 centPerB->at(fsgrids::bfield::PERBX),
+                                                 rghtPerB->at(fsgrids::bfield::PERBX));
+   dPerB->at(fsgrids::dperb::dPERBydz) = limiter(leftPerB->at(fsgrids::bfield::PERBY),
+                                                 centPerB->at(fsgrids::bfield::PERBY),
+                                                 rghtPerB->at(fsgrids::bfield::PERBY));
 
    if (Parameters::ohmHallTerm < 2) {
       dPerB->at(fsgrids::dperb::dPERBxdzz) = 0.0;
@@ -168,12 +170,12 @@ int main(int argc, char** argv) {
    const std::array<int, 3> fsGridDimensions = {5, 5, 5};
    std::array<bool, 3> periodicity{true, true, true};
    FsGridCouplingInformation gridCoupling;
-   FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> technicalGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,
-                                                              gridCoupling);
-   FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> perBGrid(fsGridDimensions, MPI_COMM_WORLD,
-                                                                                  periodicity, gridCoupling);
-   FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> dPerBGrid(fsGridDimensions, MPI_COMM_WORLD,
-                                                                                 periodicity, gridCoupling);
+   FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> technicalGrid(
+       fsGridDimensions, MPI_COMM_WORLD, periodicity, gridCoupling);
+   FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> perBGrid(
+       fsGridDimensions, MPI_COMM_WORLD, periodicity, gridCoupling);
+   FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> dPerBGrid(
+       fsGridDimensions, MPI_COMM_WORLD, periodicity, gridCoupling);
    perBGrid.DX = dPerBGrid.DX = technicalGrid.DX = 1.;
    perBGrid.DY = dPerBGrid.DY = technicalGrid.DY = 1.;
    perBGrid.DZ = dPerBGrid.DZ = technicalGrid.DZ = 1.;
@@ -224,8 +226,8 @@ int main(int argc, char** argv) {
       for (int c = 0; c < 3; c++) {
          fsgridCell[c] = floor(randPos[c]); // Round-to-int, as DX = 1.
       }
-      std::array<Real, 3> B = interpolatePerturbedB(perBGrid, dPerBGrid, technicalGrid, cache, fsgridCell[0],
-                                                    fsgridCell[1], fsgridCell[2], randPos);
+      std::array<Real, 3> B = interpolatePerturbedB(
+          perBGrid, dPerBGrid, technicalGrid, cache, fsgridCell[0], fsgridCell[1], fsgridCell[2], randPos);
       sampleFile << randPos[0] << " " << randPos[1] << " " << randPos[2] << " " << B[0] << " " << B[1] << " " << B[2]
                  << endl;
    }

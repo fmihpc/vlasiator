@@ -102,8 +102,12 @@ CellID selectNeighbor(dccrg::Dccrg<grid_data>& grid, CellID id, int dimension = 
    return neighbor;
 }
 
-setOfPencils buildPencilsWithNeighbors(dccrg::Dccrg<grid_data>& grid, setOfPencils& pencils, CellID startingId,
-                                       vector<CellID> ids, uint dimension, vector<uint> path) {
+setOfPencils buildPencilsWithNeighbors(dccrg::Dccrg<grid_data>& grid,
+                                       setOfPencils& pencils,
+                                       CellID startingId,
+                                       vector<CellID> ids,
+                                       uint dimension,
+                                       vector<uint> path) {
 
    const bool debug = false;
    CellID nextNeighbor;

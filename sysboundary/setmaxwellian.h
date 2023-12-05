@@ -63,8 +63,8 @@ protected:
 
    Real maxwellianDistribution(const uint popID, creal& rho, creal& T, creal& vx, creal& vy, creal& vz);
 
-   vector<vmesh::GlobalID> findBlocksToInitialize(const uint popID, SpatialCell& cell, creal& rho, creal& T, creal& VX,
-                                                  creal& VY, creal& VZ);
+   vector<vmesh::GlobalID>
+   findBlocksToInitialize(const uint popID, SpatialCell& cell, creal& rho, creal& T, creal& VX, creal& VY, creal& VZ);
 };
 } // namespace SBC
 

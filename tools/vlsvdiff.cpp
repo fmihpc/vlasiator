@@ -105,8 +105,11 @@ static uint64_t convUInt(const char* ptr, const vlsv::datatype::type& dataType, 
  * @param inputAttributes XML attributes for the copied array.
  * @param optional If true, this parameter is OK to be missing.
  * @return If true, the array was copied successfully.*/
-bool copyArray(vlsv::Reader& input, vlsv::Writer& output, const std::string& tagName,
-               const list<pair<string, string>>& inputAttribs, bool optional = false) {
+bool copyArray(vlsv::Reader& input,
+               vlsv::Writer& output,
+               const std::string& tagName,
+               const list<pair<string, string>>& inputAttribs,
+               bool optional = false) {
    bool success = true;
 
    // Read input array attributes
@@ -298,7 +301,9 @@ bool HandleFsGrid(const string& inputFileName, vlsv::Writer& output, std::map<ui
  * @param output VLSV reader for the file where the cloned mesh is written.
  * @param meshName Name of the mesh.
  * @return If true, the mesh was successfully cloned.*/
-bool cloneMesh(const string& inputFileName, vlsv::Writer& output, const string& meshName,
+bool cloneMesh(const string& inputFileName,
+               vlsv::Writer& output,
+               const string& meshName,
                std::map<uint, Real> orderedData) {
    bool success = true;
 
@@ -382,7 +387,8 @@ int32_t calcLocalSize(int32_t globalCells, int ntasks, int my_n) {
 }
 
 //! Helper function to optimize decomposition of this grid over the given number of tasks
-void computeDomainDecomposition(const std::array<int, 3>& GlobalSize, int nProcs,
+void computeDomainDecomposition(const std::array<int, 3>& GlobalSize,
+                                int nProcs,
                                 std::array<int, 3>& processDomainDecomposition) {
    std::array<double, 3> systemDim;
    std::array<double, 3> processBox;
@@ -429,8 +435,12 @@ void computeDomainDecomposition(const std::array<int, 3>& GlobalSize, int nProcs
  * \param compToExtract Unsigned int designating the component to extract (0 for scalars)
  * \param orderedData Pointer to the return argument map which will get the extracted dataset
  */
-bool convertMesh(vlsvinterface::Reader& vlsvReader, const string& meshName, const char* varToExtract,
-                 const uint compToExtract, map<uint, Real>* orderedData, unordered_map<size_t, size_t>& cellOrder,
+bool convertMesh(vlsvinterface::Reader& vlsvReader,
+                 const string& meshName,
+                 const char* varToExtract,
+                 const uint compToExtract,
+                 map<uint, Real>* orderedData,
+                 unordered_map<size_t, size_t>& cellOrder,
                  const bool& storeCellOrder) {
 
    // Check for null pointer:
@@ -452,8 +462,9 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader, const string& meshName, cons
    variableAttributes.push_back(make_pair("name", _varToExtract));
    // Read in array size, vector size, data type and data size of the array "VARIABLE" in the vlsv file (Needed in
    // reading the array)
-   if (vlsvReader.getArrayInfo("VARIABLE", variableAttributes, variableArraySize, variableVectorSize, variableDataType,
-                               variableDataSize) == false) {
+   if (vlsvReader.getArrayInfo(
+           "VARIABLE", variableAttributes, variableArraySize, variableVectorSize, variableDataType, variableDataSize) ==
+       false) {
       cerr << "ERROR, failed to get array info for '" << _varToExtract << "' on mesh '" << meshName << "' at "
            << __FILE__ << " " << __LINE__ << endl;
       return false;
@@ -494,8 +505,8 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader, const string& meshName, cons
       for (uint64_t i = 0; i < local_cells.size(); ++i) {
          const short int amountToReadIn = 1;
          const uint64_t& startingReadIndex = i;
-         if (vlsvReader.readArray("VARIABLE", variableAttributes, startingReadIndex, amountToReadIn,
-                                  variableBuffer.data()) == false) {
+         if (vlsvReader.readArray(
+                 "VARIABLE", variableAttributes, startingReadIndex, amountToReadIn, variableBuffer.data()) == false) {
             cerr << "ERROR, failed to read variable '" << _varToExtract << "' at " << __FILE__ << " " << __LINE__
                  << endl;
             variableSuccess = false;
@@ -719,8 +730,11 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader, const string& meshName, cons
  * \sa convertMesh
  */
 template <class T>
-bool convertSILO(const string fileName, const char* varToExtract, const uint compToExtract,
-                 map<uint, Real>* orderedData, unordered_map<size_t, size_t>& cellOrder,
+bool convertSILO(const string fileName,
+                 const char* varToExtract,
+                 const uint compToExtract,
+                 map<uint, Real>* orderedData,
+                 unordered_map<size_t, size_t>& cellOrder,
                  const bool& storeCellOrder = false) {
    bool success = true;
 
@@ -760,14 +774,16 @@ bool convertSILO(const string fileName, const char* varToExtract, const uint com
  * \param orderedData2 Pointer to the data to be shifted
  * \param shiftedData2 Pointer to where the shifted data of the second file will be put
  */
-bool shiftAverage(const map<uint, Real>* const orderedData1, const map<uint, Real>* const orderedData2,
+bool shiftAverage(const map<uint, Real>* const orderedData1,
+                  const map<uint, Real>* const orderedData2,
                   map<uint, Real>* shiftedData2) {
    map<uint, Real>::const_iterator it1, it2;
    Real avg1 = 0.0;
    Real avg2 = 0.0;
 
    for (it1 = orderedData1->begin(), it2 = orderedData2->begin();
-        it1 != orderedData1->end(), it2 != orderedData2->end(); it1++, it2++) {
+        it1 != orderedData1->end(), it2 != orderedData2->end();
+        it1++, it2++) {
       avg1 += orderedData1->at(it1->first);
       avg2 += orderedData2->at(it2->first);
    }
@@ -813,9 +829,16 @@ bool shiftAverage(const map<uint, Real>* const orderedData1, const map<uint, Rea
  * \param doShiftAverage Boolean argument to determine whether to shift the second file's data
  * \sa shiftAverage
  */
-bool pDistance(const map<uint, Real>& orderedData1, const map<uint, Real>& orderedData2, creal p, Real* absolute,
-               Real* relative, const bool doShiftAverage, const unordered_map<size_t, size_t>& cellOrder,
-               vlsv::Writer& outputFile, const std::string& meshName, const std::string& varName) {
+bool pDistance(const map<uint, Real>& orderedData1,
+               const map<uint, Real>& orderedData2,
+               creal p,
+               Real* absolute,
+               Real* relative,
+               const bool doShiftAverage,
+               const unordered_map<size_t, size_t>& cellOrder,
+               vlsv::Writer& outputFile,
+               const std::string& meshName,
+               const std::string& varName) {
    map<uint, Real> shiftedData2;
    map<uint, Real>* data2 = const_cast<map<uint, Real>*>(&orderedData2);
 
@@ -917,8 +940,12 @@ bool pDistance(const map<uint, Real>& orderedData1, const map<uint, Real>& order
  * \param lastCall Boolean parameter telling whether this is the last call to the function
  * \sa shiftAverage pDistance
  */
-bool outputDistance(const Real p, const Real* absolute, const Real* relative, const bool shiftedAverage,
-                    const bool verboseOutput, const bool lastCall) {
+bool outputDistance(const Real p,
+                    const Real* absolute,
+                    const Real* relative,
+                    const bool shiftedAverage,
+                    const bool verboseOutput,
+                    const bool lastCall) {
    if (verboseOutput == true) {
       if (shiftedAverage == false) {
          cout << "The absolute " << p << "-distance between both datasets is " << *absolute << endl;
@@ -989,8 +1016,13 @@ bool singleStatistics(map<uint, Real>* orderedData, Real* size, Real* mini, Real
  * \param lastCall Boolean parameter telling whether this is the last call to the function
  * \sa singleStatistics
  */
-bool outputStats(const Real* size, const Real* mini, const Real* maxi, const Real* avg, const Real* stdev,
-                 const bool verboseOutput, const bool lastCall) {
+bool outputStats(const Real* size,
+                 const Real* mini,
+                 const Real* maxi,
+                 const Real* avg,
+                 const Real* stdev,
+                 const bool verboseOutput,
+                 const bool lastCall) {
    if (verboseOutput == true) {
       cout << "Statistics on file: size " << *size << " min = " << *mini << " max = " << *maxi << " average = " << *avg
            << " standard deviation " << *stdev << endl;
@@ -1064,7 +1096,8 @@ bool printNonVerboseData() {
 
 bool getBlockIds(vlsvinterface::Reader& vlsvReader,
                  const unordered_map<uint64_t, pair<uint64_t, uint32_t>>& cellsWithBlocksLocations,
-                 const uint64_t& cellId, vector<uint32_t>& blockIds) {
+                 const uint64_t& cellId,
+                 vector<uint32_t>& blockIds) {
    // Read the block ids:
    // Check if the cell id can be found:
    unordered_map<uint64_t, pair<uint64_t, uint32_t>>::const_iterator it = cellsWithBlocksLocations.find(cellId);
@@ -1085,8 +1118,9 @@ bool getBlockIds(vlsvinterface::Reader& vlsvReader,
    uint64_t blockIds_arraySize, blockIds_vectorSize, blockIds_dataSize;
    vlsv::datatype::type blockIds_dataType;
    // Input blockIds_arraySize, blockIds_vectorSize, blockIds_dataSize blockIds_dataType: (Returns false if fails)
-   if (vlsvReader.getArrayInfo("BLOCKIDS", attribs, blockIds_arraySize, blockIds_vectorSize, blockIds_dataType,
-                               blockIds_dataSize) == false) {
+   if (vlsvReader.getArrayInfo(
+           "BLOCKIDS", attribs, blockIds_arraySize, blockIds_vectorSize, blockIds_dataType, blockIds_dataSize) ==
+       false) {
       cerr << "ERROR, COULD NOT FIND BLOCKIDS AT " << __FILE__ << " " << __LINE__ << endl;
       return false;
    }
@@ -1113,9 +1147,18 @@ bool getBlockIds(vlsvinterface::Reader& vlsvReader,
    return true;
 }
 
-uint32_t getBlockId(const double vx, const double vy, const double vz, const double dvx, const double dvy,
-                    const double dvz, const double vx_min, const double vy_min, const double vz_min,
-                    const double vx_length, const double vy_length, const double vz_length) {
+uint32_t getBlockId(const double vx,
+                    const double vy,
+                    const double vz,
+                    const double dvx,
+                    const double dvy,
+                    const double dvz,
+                    const double vx_min,
+                    const double vy_min,
+                    const double vz_min,
+                    const double vx_length,
+                    const double vy_length,
+                    const double vz_length) {
 
    const array<unsigned int, 3> indices{{(unsigned int)floor((vx - vx_min) / (double)(dvx * 4)),
                                          (unsigned int)floor((vy - vy_min) / (double)(dvy * 4)),
@@ -1133,8 +1176,10 @@ uint32_t getBlockId(const double vx, const double vy, const double vz, const dou
 // [2] avgs -- Saves the output into an unordered map with block id as the key and an array of avgs as the value
 // return false or true depending on whether the operation was successful
 template <class T>
-bool readAvgs(T& vlsvReader, string name,
-              const unordered_map<uint64_t, pair<uint64_t, uint32_t>>& cellsWithBlocksLocations, const uint64_t& cellId,
+bool readAvgs(T& vlsvReader,
+              string name,
+              const unordered_map<uint64_t, pair<uint64_t, uint32_t>>& cellsWithBlocksLocations,
+              const uint64_t& cellId,
               unordered_map<uint32_t, array<double, 64>>& avgs) {
    // Get the block ids:
    vector<uint32_t> blockIds;
@@ -1295,7 +1340,10 @@ bool getCellsWithBlocksLocations(T& vlsvReader,
 }
 
 template <class T, class U>
-bool compareAvgs(const string fileName1, const string fileName2, const bool verboseOutput, vector<uint64_t>& cellIds1,
+bool compareAvgs(const string fileName1,
+                 const string fileName2,
+                 const bool verboseOutput,
+                 vector<uint64_t>& cellIds1,
                  vector<uint64_t>& cellIds2) {
    if (cellIds1.empty() == true || cellIds2.empty() == true) {
       cerr << "ERROR, CELL IDS EMPTY IN COMPARE AVGS" << endl;
@@ -1347,7 +1395,8 @@ bool compareAvgs(const string fileName1, const string fileName2, const bool verb
       cellIds1.clear();
       cellIds2.clear();
       for (unordered_map<uint64_t, pair<uint64_t, uint32_t>>::const_iterator it = cellsWithBlocksLocations1.begin();
-           it != cellsWithBlocksLocations1.end(); ++it) {
+           it != cellsWithBlocksLocations1.end();
+           ++it) {
          cellIds1.push_back(it->first);
          cellIds2.push_back(it->first);
       }
@@ -1391,11 +1440,13 @@ bool compareAvgs(const string fileName1, const string fileName2, const bool verb
       blockIds2.reserve(sizeOfAvgs2);
       // Input block ids:
       for (unordered_map<uint32_t, array<double, velocityCellsPerBlock>>::const_iterator it = avgs1.begin();
-           it != avgs1.end(); ++it) {
+           it != avgs1.end();
+           ++it) {
          blockIds1.push_back(it->first);
       }
       for (unordered_map<uint32_t, array<double, velocityCellsPerBlock>>::const_iterator it = avgs2.begin();
-           it != avgs2.end(); ++it) {
+           it != avgs2.end();
+           ++it) {
          blockIds2.push_back(it->first);
       }
       // Compare block ids:
@@ -1541,8 +1592,12 @@ bool compareAvgs(const string fileName1, const string fileName2, const bool verb
  * \param verboseOutput Boolean parameter telling whether the output will be verbose or compact
  * \sa convertSILO singleStatistics outputStats pDistance outputDistance printNonVerboseData
  */
-bool process2Files(const string fileName1, const string fileName2, const char* varToExtract, const uint compToExtract,
-                   const bool verboseOutput, const uint compToExtract2 = 0) {
+bool process2Files(const string fileName1,
+                   const string fileName2,
+                   const char* varToExtract,
+                   const uint compToExtract,
+                   const bool verboseOutput,
+                   const uint compToExtract2 = 0) {
    map<uint, Real> orderedData1;
    map<uint, Real> orderedData2;
    Real absolute, relative, mini, maxi, size, avg, stdev;
@@ -1557,8 +1612,8 @@ bool process2Files(const string fileName1, const string fileName2, const char* v
       cellIds1.push_back(compToExtract);
       cellIds2.push_back(compToExtract2);
       // Compare files:
-      if (compareAvgs<vlsvinterface::Reader, vlsvinterface::Reader>(fileName1, fileName2, verboseOutput, cellIds1,
-                                                                    cellIds2) == false) {
+      if (compareAvgs<vlsvinterface::Reader, vlsvinterface::Reader>(
+              fileName1, fileName2, verboseOutput, cellIds1, cellIds2) == false) {
          return false;
       }
    } else {
@@ -1622,25 +1677,73 @@ bool process2Files(const string fileName1, const string fileName2, const char* v
       singleStatistics(&orderedData2, &size, &mini, &maxi, &avg, &stdev);
       outputStats(&size, &mini, &maxi, &avg, &stdev, verboseOutput, false);
 
-      pDistance(orderedData1, orderedData2, 0, &absolute, &relative, false, cellOrder, outputFile,
-                attributes["--meshname"], "d0_" + varName);
+      pDistance(orderedData1,
+                orderedData2,
+                0,
+                &absolute,
+                &relative,
+                false,
+                cellOrder,
+                outputFile,
+                attributes["--meshname"],
+                "d0_" + varName);
       outputDistance(0, &absolute, &relative, false, verboseOutput, false);
-      pDistance(orderedData1, orderedData2, 0, &absolute, &relative, true, cellOrder, outputFile,
-                attributes["--meshname"], "d0_sft_" + varName);
+      pDistance(orderedData1,
+                orderedData2,
+                0,
+                &absolute,
+                &relative,
+                true,
+                cellOrder,
+                outputFile,
+                attributes["--meshname"],
+                "d0_sft_" + varName);
       outputDistance(0, &absolute, &relative, true, verboseOutput, false);
 
-      pDistance(orderedData1, orderedData2, 1, &absolute, &relative, false, cellOrder, outputFile,
-                attributes["--meshname"], "d1_" + varName);
+      pDistance(orderedData1,
+                orderedData2,
+                1,
+                &absolute,
+                &relative,
+                false,
+                cellOrder,
+                outputFile,
+                attributes["--meshname"],
+                "d1_" + varName);
       outputDistance(1, &absolute, &relative, false, verboseOutput, false);
-      pDistance(orderedData1, orderedData2, 1, &absolute, &relative, true, cellOrder, outputFile,
-                attributes["--meshname"], "d1_sft_" + varName);
+      pDistance(orderedData1,
+                orderedData2,
+                1,
+                &absolute,
+                &relative,
+                true,
+                cellOrder,
+                outputFile,
+                attributes["--meshname"],
+                "d1_sft_" + varName);
       outputDistance(1, &absolute, &relative, true, verboseOutput, false);
 
-      pDistance(orderedData1, orderedData2, 2, &absolute, &relative, false, cellOrder, outputFile,
-                attributes["--meshname"], "d2_" + varName);
+      pDistance(orderedData1,
+                orderedData2,
+                2,
+                &absolute,
+                &relative,
+                false,
+                cellOrder,
+                outputFile,
+                attributes["--meshname"],
+                "d2_" + varName);
       outputDistance(2, &absolute, &relative, false, verboseOutput, false);
-      pDistance(orderedData1, orderedData2, 2, &absolute, &relative, true, cellOrder, outputFile,
-                attributes["--meshname"], "d2_sft_" + varName);
+      pDistance(orderedData1,
+                orderedData2,
+                2,
+                &absolute,
+                &relative,
+                true,
+                cellOrder,
+                outputFile,
+                attributes["--meshname"],
+                "d2_sft_" + varName);
       outputDistance(2, &absolute, &relative, true, verboseOutput, false);
 
       outputFile.close();
@@ -1942,8 +2045,8 @@ int main(int argn, char* args[]) {
       for (it1 = fileList1.begin(), it2 = fileList2.begin(); it1 != fileList2.end(), it2 != fileList2.end();
            it1++, it2++) {
          // Process two files with non-verbose output (last argument false), give full path to the file processor
-         process2Files(fileName1 + "/" + *it1, fileName2 + "/" + *it2, varToExtract, compToExtract, false,
-                       compToExtract2);
+         process2Files(
+             fileName1 + "/" + *it1, fileName2 + "/" + *it2, varToExtract, compToExtract, false, compToExtract2);
       }
 
       closedir(dir1);

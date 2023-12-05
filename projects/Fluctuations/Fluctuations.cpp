@@ -100,8 +100,18 @@ Real Fluctuations::getDistribValue(creal& vx, creal& vy, creal& vz, const uint p
    return exp(-mass * (vx * vx + vy * vy + vz * vz) / (2.0 * kb * sP.TEMPERATURE));
 }
 
-Real Fluctuations::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx,
-                                         creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,
+Real Fluctuations::calcPhaseSpaceDensity(creal& x,
+                                         creal& y,
+                                         creal& z,
+                                         creal& dx,
+                                         creal& dy,
+                                         creal& dz,
+                                         creal& vx,
+                                         creal& vy,
+                                         creal& vz,
+                                         creal& dvx,
+                                         creal& dvy,
+                                         creal& dvz,
                                          const uint popID) const {
    const FluctuationsSpeciesParameters& sP = speciesParams[popID];
    const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
@@ -125,7 +135,8 @@ Real Fluctuations::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx
          for (uint vk = 0; vk < sP.nVelocitySamples; ++vk) {
             avg += getDistribValue(vx + vi * d_vx - sP.velocityPertAbsAmp * (0.5 - rndVel[0]),
                                    vy + vj * d_vy - sP.velocityPertAbsAmp * (0.5 - rndVel[1]),
-                                   vz + vk * d_vz - sP.velocityPertAbsAmp * (0.5 - rndVel[2]), popID);
+                                   vz + vk * d_vz - sP.velocityPertAbsAmp * (0.5 - rndVel[2]),
+                                   popID);
          }
 
    creal result = avg * sP.DENSITY * (1.0 + sP.densityPertRelAmp * (0.5 - rndRho)) *

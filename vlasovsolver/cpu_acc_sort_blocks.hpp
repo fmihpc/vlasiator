@@ -29,8 +29,12 @@
 #include "../spatial_cell.hpp"
 
 void sortBlocklistByDimension( // const spatial_cell::SpatialCell* spatial_cell,
-    const vmesh::VelocityMesh<vmesh::GlobalID, vmesh::LocalID>& vmesh, const uint dimension, uint* blocks,
-    std::vector<uint>& columnBlockOffsets, std::vector<uint>& columnNumBlocks, std::vector<uint>& setColumnOffsets,
+    const vmesh::VelocityMesh<vmesh::GlobalID, vmesh::LocalID>& vmesh,
+    const uint dimension,
+    uint* blocks,
+    std::vector<uint>& columnBlockOffsets,
+    std::vector<uint>& columnNumBlocks,
+    std::vector<uint>& setColumnOffsets,
     std::vector<uint>& setNumColumns);
 
 #endif

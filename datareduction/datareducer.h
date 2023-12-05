@@ -44,12 +44,20 @@ public:
    ~DataReducer();
 
    bool addOperator(DRO::DataReductionOperator* op);
-   bool getDataVectorInfo(const unsigned int& operatorID, std::string& dataType, unsigned int& dataSize,
+   bool getDataVectorInfo(const unsigned int& operatorID,
+                          std::string& dataType,
+                          unsigned int& dataSize,
                           unsigned int& vectorSize) const;
-   bool addMetadata(const unsigned int operatorID, std::string unit, std::string unitLaTeX, std::string variableLaTeX,
+   bool addMetadata(const unsigned int operatorID,
+                    std::string unit,
+                    std::string unitLaTeX,
+                    std::string variableLaTeX,
                     std::string unitConversion);
-   bool getMetadata(const unsigned int& operatorID, std::string& unit, std::string& unitLaTeX,
-                    std::string& variableLaTeX, std::string& unitConversion) const;
+   bool getMetadata(const unsigned int& operatorID,
+                    std::string& unit,
+                    std::string& unitLaTeX,
+                    std::string& variableLaTeX,
+                    std::string& unitConversion) const;
 
    std::string getName(const unsigned int& operatorID) const;
    bool hasParameters(const unsigned int& operatorID) const;
@@ -66,9 +74,14 @@ public:
                         FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
                         FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
                         FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid,
-                        FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, const std::string& meshName,
-                        const unsigned int operatorID, vlsv::Writer& vlsvWriter, const bool writeAsFloat = false);
-   bool writeIonosphereGridData(SBC::SphericalTriGrid& grid, const std::string& meshName, const unsigned int operatorID,
+                        FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+                        const std::string& meshName,
+                        const unsigned int operatorID,
+                        vlsv::Writer& vlsvWriter,
+                        const bool writeAsFloat = false);
+   bool writeIonosphereGridData(SBC::SphericalTriGrid& grid,
+                                const std::string& meshName,
+                                const unsigned int operatorID,
                                 vlsv::Writer& vlsvWriter);
 
 private:

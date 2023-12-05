@@ -99,7 +99,12 @@ bool SetByUser::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesi
 
 Real SetByUser::fieldSolverBoundaryCondMagneticField(
     FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& bGrid,
-    FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k, creal& dt, cuint& component) {
+    FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+    cint i,
+    cint j,
+    cint k,
+    creal& dt,
+    cuint& component) {
    Real result = 0.0;
    const array<int, 3> globalIndices = technicalGrid.getGlobalIndices(i, j, k);
 
@@ -130,12 +135,19 @@ Real SetByUser::fieldSolverBoundaryCondMagneticField(
 }
 
 void SetByUser::fieldSolverBoundaryCondElectricField(
-    FsGrid<array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EGrid, cint i, cint j, cint k, cuint component) {
+    FsGrid<array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EGrid,
+    cint i,
+    cint j,
+    cint k,
+    cuint component) {
    EGrid.get(i, j, k)->at(fsgrids::efield::EX + component) = 0.0;
 }
 
 void SetByUser::fieldSolverBoundaryCondHallElectricField(
-    FsGrid<array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH>& EHallGrid, cint i, cint j, cint k,
+    FsGrid<array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH>& EHallGrid,
+    cint i,
+    cint j,
+    cint k,
     cuint component) {
    array<Real, fsgrids::ehall::N_EHALL>* cp = EHallGrid.get(i, j, k);
    switch (component) {
@@ -164,26 +176,38 @@ void SetByUser::fieldSolverBoundaryCondHallElectricField(
 }
 
 void SetByUser::fieldSolverBoundaryCondGradPeElectricField(
-    FsGrid<array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH>& EGradPeGrid, cint i, cint j, cint k,
+    FsGrid<array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH>& EGradPeGrid,
+    cint i,
+    cint j,
+    cint k,
     cuint component) {
    EGradPeGrid.get(i, j, k)->at(fsgrids::egradpe::EXGRADPE + component) = 0.0;
 }
 
 void SetByUser::fieldSolverBoundaryCondDerivatives(
     FsGrid<array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
-    FsGrid<array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid, cint i, cint j, cint k,
-    cuint& RKCase, cuint& component) {
+    FsGrid<array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
+    cint i,
+    cint j,
+    cint k,
+    cuint& RKCase,
+    cuint& component) {
    this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, component);
 }
 
 void SetByUser::fieldSolverBoundaryCondBVOLDerivatives(
-    FsGrid<array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid, cint i, cint j, cint k,
+    FsGrid<array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid,
+    cint i,
+    cint j,
+    cint k,
     cuint& component) {
    this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
 }
 
 void SetByUser::vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                        const CellID& cellID, const uint popID, const bool calculate_V_moments) {
+                                        const CellID& cellID,
+                                        const uint popID,
+                                        const bool calculate_V_moments) {
    // No need to do anything in this function, as the propagators do not touch the distribution function
 }
 
@@ -226,8 +250,8 @@ bool SetByUser::setBFromTemplate(FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& t
 
             isThisCellOnAFace.fill(false);
 
-            determineFace(isThisCellOnAFace.data(), cellCenterCoords[0], cellCenterCoords[1], cellCenterCoords[2], dx,
-                          dy, dz);
+            determineFace(
+                isThisCellOnAFace.data(), cellCenterCoords[0], cellCenterCoords[1], cellCenterCoords[2], dx, dy, dz);
 
             for (uint iface = 0; iface < 6; iface++) {
                if (facesToProcess[iface] && isThisCellOnAFace[iface]) {
