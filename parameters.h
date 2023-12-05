@@ -197,7 +197,7 @@ struct Parameters {
    static bool useJPerB;
    static Real jperbRefineThreshold;
    static Real jperbCoarsenThreshold;
-   static uint refineMultiplier;
+   static uint refineCadence;
    static Real refineAfter;
    static Real refineRadius;
    static Real alphaDRhoWeight;
