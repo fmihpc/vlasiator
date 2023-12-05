@@ -86,6 +86,25 @@ jobs:
           retention-days: 5
           if-no-files-found: error
 
+  build_libraries_riscv:
+    # Build libraries for the current version of the docker image
+    # (to be used in any subsequent compilation and run jobs on said image)
+    runs-on: risc-v
+
+    steps:
+      - name: Submit library job
+        run: |
+          srun --interactive -p arriesgado-jammy -J vlasiator-libs --pty -t 01:00:00 bash -lc 'module load openmpi; cp ~/vlasiator/build_libraries.sh .; ./build_libraries.sh arriesgado'
+      - name: Build libraries tar
+        run: tar -czvf libraries-arriesgado.tar.gz libraries-arriesgado/
+      - name: Upload libraries as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: libraries-arriesgado
+          path: libraries-arriesgado.tar.gz
+          retention-days: 5
+          if-no-files-found: error
+
   build_production:
     # Build Vlasiator witth production flags
     runs-on: ubuntu-latest
@@ -117,7 +136,7 @@ jobs:
     - name: Checkout source
       uses: actions/checkout@v3 
     - name: Make clean
-      run: make clean
+      run: VLASIATOR_ARCH=carrington_gcc_openmpi make clean
     - uses: ursg/gcc-problem-matcher@master
     - name: Compile vlasiator (Testpackage build)
       run: |
@@ -138,6 +157,31 @@ jobs:
     #    name: Testpackage build log
     #    path: build.log
 
+  build_riscv:
+    runs-on: risc-v
+    needs: build_libraries_riscv
+
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v3 
+    - name: Download libraries
+      uses: actions/download-artifact@v3
+      with:
+        name: libraries-arriesgado
+    - name: Unpack libraries
+      run: tar -xzvf libraries-arriesgado.tar.gz
+    - name: Make clean
+      run: VLASIATOR_ARCH=arriesgado make clean
+    - name: Compile vlasiator (RISC-V)
+      run: |
+          srun --interactive -p arriesgado-jammy -J vlasiator_build --pty -t 01:00:00 bash -lc 'module load boost papi openmpi; export VLASIATOR_ARCH=arriesgado; make -j4'
+    - name: Upload riscv binary
+      uses: actions/upload-artifact@v3
+      with:
+        name: vlasiator-riscv
+        path: vlasiator
+        if-no-files-found: error
+
   build_tools:
     # Build vlsvdiff and vlsvextract for testepackage use
     runs-on: carrington
@@ -147,7 +191,7 @@ jobs:
       uses: actions/checkout@v3 
     - uses: ursg/gcc-problem-matcher@master
     - name: Make clean
-      run: make clean
+      run: VLASIATOR_ARCH=carrington_gcc_openmpi make clean
     - name: Compile tools
       run: |
         export VLASIATOR_ARCH=carrington_gcc_openmpi

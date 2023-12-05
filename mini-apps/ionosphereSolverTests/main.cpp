@@ -15,6 +15,7 @@ Logger logFile,diagnostic;
 int globalflags::bailingOut=0;
 bool globalflags::writeRestart=0;
 bool globalflags::balanceLoad=0;
+bool globalflags::doRefine=0;
 bool globalflags::ionosphereJustSolved = false;
 ObjectWrapper objectWrapper;
 ObjectWrapper& getObjectWrapper() {
