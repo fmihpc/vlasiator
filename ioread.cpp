@@ -1263,6 +1263,7 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"vg_drift",CellParams::BULKV_FORCING_X,3,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"vg_bulk_forcing_flag",CellParams::FORCING_CELL_NUM,1,mpiGrid); }
    if (P::refineOnRestart) {
+      // Refinement indices alpha_1 and alpha_2
       if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"vg_amr_alpha",CellParams::AMR_ALPHA,1,mpiGrid); }
       if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"vg_amr_jperb",CellParams::AMR_JPERB,1,mpiGrid); }
    }
