@@ -96,7 +96,6 @@ void bailout(
       } else {
          std::cerr << __FILE__ << ":" << __LINE__ << ": " << str << std::endl;
       }
-
-      MPI_Abort(MPI_COMM_WORLD, 1);
    }
+   MPI_Abort(MPI_COMM_WORLD, 1);
 }
