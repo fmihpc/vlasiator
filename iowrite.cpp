@@ -967,10 +967,10 @@ bool writeFsGridMetadata(FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technic
   // Save the FSgrid decomposition
   std::array<int, 3> decom = technicalGrid.getDecomposition();
   if(technicalGrid.getRank() == 0) {
-      vlsvWriter.writeArray("MESH_DECOMPOSITION", xmlAttributes, 1, 3, &decom[0]);
+      vlsvWriter.writeArray("MESH_DECOMPOSITION", xmlAttributes, 3u, 1u, &decom[0]);
   }
   else{
-      vlsvWriter.writeArray("MESH_DECOMPOSITION", xmlAttributes, 0, 3, &decom[0]);
+      vlsvWriter.writeArray("MESH_DECOMPOSITION", xmlAttributes, 0u, 3u, &decom[0]);
   }
 
 

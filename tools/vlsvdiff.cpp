@@ -59,6 +59,7 @@
 #include "vlsvreaderinterface.h"
 #include <vlsv_writer.h>
 
+// #include "../ioread.h" //getFsGridDomainDecomposition
 #include <fsgrid.hpp> // computeDomainDecomposition
 
 using namespace std;
@@ -279,6 +280,52 @@ bool HandleFsGrid(const string& inputFileName,
 
 }
 
+bool getFsgridDecomposition(vlsvinterface::Reader& file, std::array<int,3>& buffer){
+   list<pair<string,string> > attribs;
+   uint64_t arraySize;
+   uint64_t vectorSize;
+   vlsv::datatype::type dataType;
+   uint64_t byteSize;
+
+   attribs.push_back(make_pair("mesh","fsgrid"));
+
+   std::array<uint64_t,3> gridSize;
+   uint64_t* gridSizePtr = &gridSize[0];
+   bool success = file.read("MESH_BBOX",attribs, 0, 3, gridSizePtr, false);
+   if(success == false){
+      std::cerr << "Could not read MESH_BBOX from file" << endl;
+      exit(1);
+   }
+
+   std::array<int,3> fsGridDecomposition={0,0,0}; 
+   int* ptr = &fsGridDecomposition[0];
+
+   success = file.read("MESH_DECOMPOSITION",attribs, 0, 3, ptr, false);
+   if (success == false) {
+      std::cout << "Could not read MESH_DECOMPOSITION" << endl;
+      // std::cerr << "ptr " << fsGridDecomposition[0] <<" "<<  fsGridDecomposition[1] << " " <<  fsGridDecomposition[2]<<"\n";
+      // std::cerr << "No decomposition found in restart file. Computing fsgrid decomposition for ioread, check results!" <<std::endl;
+
+      int fsgridInputRanks=0;
+      if(file.readParameter("numWritingRanks",fsgridInputRanks) == false) {
+         std::cerr << "FSGrid writing rank number not found in restart file" << endl;
+         exit(1);
+      }
+      FsGridTools::computeDomainDecomposition(gridSize, fsgridInputRanks, buffer, FS_STENCIL_WIDTH, true);
+      std::cout << "Fsgrid decomposition computed as " << buffer[0] << " " << buffer[1] << " " <<buffer[2] << endl;
+      return true;   
+   }
+   else{
+      buffer[0] = fsGridDecomposition[0];
+      buffer[1] = fsGridDecomposition[1];
+      buffer[2] = fsGridDecomposition[2];
+      std::cout << "Fsgrid decomposition read as " << buffer[0] << " " << buffer[1] << " " <<buffer[2] << endl;
+      return true;
+   }
+
+   return false;
+}
+
 /** Copy the spatial mesh from input to output.
  * @param inputFileName Name of the input file where the mesh is copied from.
  * @param output VLSV reader for the file where the cloned mesh is written.
@@ -468,7 +515,9 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
             std::array<int,3> thisDomainDecomp;
 
             //Compute Domain Decomposition Scheme for this vlsv file
-            FsGridTools::computeDomainDecomposition(GlobalBox,numtasks,thisDomainDecomp);
+            //FsGridTools::computeDomainDecomposition(GlobalBox,numtasks,thisDomainDecomp);
+            getFsgridDecomposition(vlsvReader, thisDomainDecomp);
+
 
             std::array<int32_t,3> taskSize,taskStart;
             std::array<int32_t,3> taskEnd;

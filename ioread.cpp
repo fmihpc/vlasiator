@@ -289,6 +289,50 @@ bool readNBlocks(vlsv::ParallelReader& file,const std::string& meshName,
    return success;
 }
 
+/*! A function for reading parameters, e.g., 'timestep'.
+ \param file VLSV parallel reader with a file open.
+ \param name Name of the parameter.
+ \param value Variable in which to store the scalar variable (double, float, int .. ).
+ \param masterRank The master process' id (Vlasiator uses 0 so this should equal 0 by default).
+ \param comm MPI comm (MPI_COMM_WORLD should be the default).
+ \return Returns true if the operation is successful. */
+template <typename T>
+bool readScalarParameter(vlsv::ParallelReader& file,string name,T& value,int masterRank,MPI_Comm comm) {
+   if (file.readParameter(name,value) == false) {
+      logFile << "(RESTART) ERROR: Failed to read parameter '" << name << "' value in ";
+      logFile << __FILE__ << ":" << __LINE__ << endl << write;
+      return false;
+   }
+   return true;
+}
+
+/*! A function for checking the scalar parameter
+ \param file Some parallel vlsv reader with a file open
+ \param name Name of the parameter
+ \param correctValue The correct value of the parameter to compare to
+ \param masterRank The master process' id (Vlasiator uses 0 so this should be 0 by default)
+ \param comm MPI comm (Default should be MPI_COMM_WORLD)
+ \return Returns true if the operation is successful
+ */
+
+template <typename T>
+bool checkScalarParameter(vlsv::ParallelReader& file,const string& name,T correctValue,int masterRank,MPI_Comm comm) {
+   T value;
+   readScalarParameter(file,name,value,masterRank,comm);
+   if (value != correctValue){
+      ostringstream s;
+      s << "(RESTART) Parameter " << name << " has mismatching value.";
+      s << " CFG value = " << correctValue;
+      s << " Restart file value = " << value;
+      exitOnError(false,s.str(),MPI_COMM_WORLD);
+      return false;
+   }
+   else{
+      exitOnError(true,"",MPI_COMM_WORLD);
+      return true;
+   }
+}
+
 /** Read velocity block mesh data and distribution function data belonging to this process 
  * for the given particle species. This function must be called simultaneously by all processes.
  * @param file VLSV reader with input file open.
@@ -803,8 +847,20 @@ template<unsigned long int N> bool readFsGridVariable(
    // Determine our tasks storage size
    size_t storageSize = localSize[0]*localSize[1]*localSize[2];
 
-   std::array<int,3> fileDecomposition={0,0,0}; 
-   getFsgridDecomposition(file, fileDecomposition, globalSize);
+   std::array<int,3> fileDecomposition={0,0,0};
+   if(P::manualRestartFsGridDecomposition == fileDecomposition){
+      getFsgridDecomposition(file, fileDecomposition);
+   }
+   else{
+      fileDecomposition = P::manualRestartFsGridDecomposition;
+      int fsgridInputRanks=0;
+      if(readScalarParameter(file,"numWritingRanks",fsgridInputRanks, MASTER_RANK, MPI_COMM_WORLD) == false) {
+         exitOnError(false, "(RESTART) FSGrid writing rank number not found in restart file", MPI_COMM_WORLD);
+      }
+      if(fileDecomposition[0]*fileDecomposition[1]*fileDecomposition[2] != fsgridInputRanks){
+         exitOnError(false, "(RESTART) Trying to use a manual FsGrid decomposition for a file with a differing number of input ranks.", MPI_COMM_WORLD);
+      }
+   }
 
    std::array<int,3> decomposition = targetGrid.getDecomposition();
    // targetGrid.computeDomainDecomposition(globalSize, size, decomposition);
@@ -997,49 +1053,6 @@ bool readIonosphereNodeVariable(
    }
 
    return true;
-}
-
-/*! A function for reading parameters, e.g., 'timestep'.
- \param file VLSV parallel reader with a file open.
- \param name Name of the parameter.
- \param value Variable in which to store the scalar variable (double, float, int .. ).
- \param masterRank The master process' id (Vlasiator uses 0 so this should equal 0 by default).
- \param comm MPI comm (MPI_COMM_WORLD should be the default).
- \return Returns true if the operation is successful. */
-template <typename T>
-bool readScalarParameter(vlsv::ParallelReader& file,string name,T& value,int masterRank,MPI_Comm comm) {
-   if (file.readParameter(name,value) == false) {
-      logFile << "(RESTART) ERROR: Failed to read parameter '" << name << "' value in ";
-      logFile << __FILE__ << ":" << __LINE__ << endl << write;
-      return false;
-   }
-   return true;
-}
-
-/*! A function for checking the scalar parameter
- \param file Some parallel vlsv reader with a file open
- \param name Name of the parameter
- \param correctValue The correct value of the parameter to compare to
- \param masterRank The master process' id (Vlasiator uses 0 so this should be 0 by default)
- \param comm MPI comm (Default should be MPI_COMM_WORLD)
- \return Returns true if the operation is successful
- */
-template <typename T>
-bool checkScalarParameter(vlsv::ParallelReader& file,const string& name,T correctValue,int masterRank,MPI_Comm comm) {
-   T value;
-   readScalarParameter(file,name,value,masterRank,comm);
-   if (value != correctValue){
-      ostringstream s;
-      s << "(RESTART) Parameter " << name << " has mismatching value.";
-      s << " CFG value = " << correctValue;
-      s << " Restart file value = " << value;
-      exitOnError(false,s.str(),MPI_COMM_WORLD);
-      return false;
-   }
-   else{
-      exitOnError(true,"",MPI_COMM_WORLD);
-      return true;
-   }
 }
 
 /*!
@@ -1362,46 +1375,46 @@ bool readFileCells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 }
 
 
-bool getFsgridDecomposition(vlsv::ParallelReader& file, std::array<int,3>& buffer, std::array<uint64_t,3>& gridSize){
+bool getFsgridDecomposition(vlsv::ParallelReader& file, std::array<int,3>& buffer){
    list<pair<string,string> > attribs;
    uint64_t arraySize;
    uint64_t vectorSize;
    vlsv::datatype::type dataType;
    uint64_t byteSize;
 
-   // Also have here a manual override for sketchy decompositions
+   attribs.push_back(make_pair("mesh","fsgrid"));
+
+   std::array<uint64_t,3> gridSize;
+   uint64_t* gridSizePtr = &gridSize[0];
+   bool success = file.read("MESH_BBOX",attribs, 0, 3, gridSizePtr, false);
+   if(success == false){
+      exitOnError(false, "(RESTART) FSGrid gridsize not found in file.", MPI_COMM_WORLD);
+   }
 
    std::array<int,3> fsGridDecomposition={0,0,0}; 
-   int* ptr = fsGridDecomposition.data();
+   int* ptr = &fsGridDecomposition[0];
 
-   bool read_dd = true;
-   attribs.push_back(make_pair("mesh","fsgrid"));
-   if (file.getArrayInfo("MESH_DECOMPOSITION",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
-      logFile << "(RESTART)  ERROR: Failed to read MESH_DECOMPOSITION info" << endl << write;
-      read_dd = false;
-   }
-   else if (file.read("MESH_DECOMPOSITION",attribs, 0, 3, ptr, false) == false) {
-      logFile << "(RESTART)  ERROR: Failed to read MESH_DECOMPOSITION array" << endl << write;
-      read_dd = false;
-   }
-   else{
-      read_dd = true;
-   }
+   success = file.read("MESH_DECOMPOSITION",attribs, 0, 3, ptr, false);
+   if (success == false) {
+      logFile << "(RESTART)  ERROR: Failed to read MESH_DECOMPOSITION" << endl << write;
+      // std::cerr << "ptr " << fsGridDecomposition[0] <<" "<<  fsGridDecomposition[1] << " " <<  fsGridDecomposition[2]<<"\n";
+      // std::cerr << "No decomposition found in restart file. Computing fsgrid decomposition for ioread, check results!" <<std::endl;
 
-   if(read_dd){
-      buffer[0] = fsGridDecomposition[0];
-      buffer[1] = fsGridDecomposition[1];
-      buffer[2] = fsGridDecomposition[2];
-      std::cerr << "Fsgrid decomposition read as " << buffer[0] << " " << buffer[1] << " " <<buffer[2] << "\n";
-      return true;
-   }
-   else{
-      std::cerr << "No decomposition found in restart file. Computing fsgrid decomposition for ioread, check results!" <<std::endl;
       int fsgridInputRanks=0;
       if(readScalarParameter(file,"numWritingRanks",fsgridInputRanks, MASTER_RANK, MPI_COMM_WORLD) == false) {
          exitOnError(false, "(RESTART) FSGrid writing rank number not found in restart file", MPI_COMM_WORLD);
       }
-      FsGridTools::computeDomainDecomposition(gridSize, fsgridInputRanks, buffer, FS_STENCIL_WIDTH);
+      FsGridTools::computeDomainDecomposition(gridSize, fsgridInputRanks, buffer, FS_STENCIL_WIDTH, true);
+      logFile << "(RESTART) Fsgrid decomposition computed as " << buffer[0] << " " << buffer[1] << " " <<buffer[2] << "\n";
+      return true;   
+   }
+   else{
+      buffer[0] = fsGridDecomposition[0];
+      buffer[1] = fsGridDecomposition[1];
+      buffer[2] = fsGridDecomposition[2];
+      logFile << "(RESTART) Fsgrid decomposition read as " << buffer[0] << " " << buffer[1] << " " <<buffer[2] << "\n";
       return true;
    }
+
+   return false;
 }
