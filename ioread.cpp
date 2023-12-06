@@ -1396,7 +1396,7 @@ bool getFsgridDecomposition(vlsv::ParallelReader& file, std::array<int,3>& buffe
 
    success = file.read("MESH_DECOMPOSITION",attribs, 0, 3, ptr, false);
    if (success == false) {
-      logFile << "(RESTART)  ERROR: Failed to read MESH_DECOMPOSITION" << endl << write;
+      logFile << "(RESTART)  Could not read MESH_DECOMPOSITION from file." << endl << write;
       // std::cerr << "ptr " << fsGridDecomposition[0] <<" "<<  fsGridDecomposition[1] << " " <<  fsGridDecomposition[2]<<"\n";
       // std::cerr << "No decomposition found in restart file. Computing fsgrid decomposition for ioread, check results!" <<std::endl;
 
