@@ -32,7 +32,8 @@ testpackage: CXXFLAGS = -g -traceback -O2 -qopenmp -std=c++14 -W -Wno-unused -ma
 not_parallel_tools: CXXFLAGS += -march=native -mno-avx2 -mavx 
 not_parallel_tools: CC_BRAND_VERSION = 4.9.2-noavx2
 
-MATHFLAGS = -ffast-math
+MATHFLAGS = -ffast-math -fno-finite-math-only
+testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
 LDFLAGS = -qopenmp -lifcore -liomp5 -pthread -lboost_program_options -lzoltan -ljemalloc -lvlsv -lphiprof
 LIB_MPI = -lgomp
 

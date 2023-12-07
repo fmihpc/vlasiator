@@ -43,14 +43,14 @@ void calculateEdgeGradPeTermXComponents(
       case 0:
          cerr << __FILE__ << __LINE__ << "You shouldn't be in a electron pressure gradient term function if Parameters::ohmGradPeTerm == 0." << endl;
          break;
-         
+
       case 1:
          rhoq = momentsGrid.get(i,j,k)->at(fsgrids::moments::RHOQ);
          hallRhoq = (rhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : rhoq ;
          //EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE) = -physicalconstants::K_B*Parameters::electronTemperature*dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::drhoqdx) / (hallRhoq*EGradPeGrid.DX);
          EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE) = - dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dPedx) / (hallRhoq*EGradPeGrid.DX);
 	 break;
-         
+
       default:
          cerr << __FILE__ << ":" << __LINE__ << "You are welcome to code higher-order Hall term correction terms." << endl;
          break;
@@ -71,14 +71,14 @@ void calculateEdgeGradPeTermYComponents(
       case 0:
          cerr << __FILE__ << __LINE__ << "You shouldn't be in a electron pressure gradient term function if Parameters::ohmGradPeTerm == 0." << endl;
          break;
-         
+
       case 1:
          rhoq = momentsGrid.get(i,j,k)->at(fsgrids::moments::RHOQ);
          hallRhoq = (rhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : rhoq ;
          //EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EYGRADPE) = -physicalconstants::K_B*Parameters::electronTemperature*dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::drhoqdy) / (hallRhoq*EGradPeGrid.DY);
          EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EYGRADPE) = - dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dPedy) / (hallRhoq*EGradPeGrid.DY);
          break;
-         
+
       default:
          cerr << __FILE__ << ":" << __LINE__ << "You are welcome to code higher-order Hall term correction terms." << endl;
          break;
@@ -99,14 +99,14 @@ void calculateEdgeGradPeTermZComponents(
       case 0:
          cerr << __FILE__ << __LINE__ << "You shouldn't be in a electron pressure gradient term function if Parameters::ohmGradPeTerm == 0." << endl;
          break;
-         
+
       case 1:
          rhoq = momentsGrid.get(i,j,k)->at(fsgrids::moments::RHOQ);
          hallRhoq = (rhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : rhoq ;
          //EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EZGRADPE) = -physicalconstants::K_B*Parameters::electronTemperature*dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::drhoqdz) / (hallRhoq*EGradPeGrid.DZ);
          EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EZGRADPE) = - dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dPedz) / (hallRhoq*EGradPeGrid.DZ);
          break;
-         
+
       default:
          cerr << __FILE__ << ":" << __LINE__ << "You are welcome to code higher-order Hall term correction terms." << endl;
          break;
@@ -132,13 +132,13 @@ void calculateGradPeTerm(
       exit(1);
    }
    #endif
-   
+
    cuint cellSysBoundaryFlag = technicalGrid.get(i,j,k)->sysBoundaryFlag;
-   
+
    if (cellSysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) return;
-   
+
    cuint cellSysBoundaryLayer = technicalGrid.get(i,j,k)->sysBoundaryLayer;
-   
+
    if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) && (cellSysBoundaryLayer != 1)) {
       sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid,i,j,k,0);
       sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid,i,j,k,1);
@@ -159,33 +159,34 @@ void calculateGradPeTermSimple(
    SysBoundary& sysBoundaries,
    cint& RKCase
 ) {
-   int timer;
    //const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
    const int* gridDims = &technicalGrid.getLocalSize()[0];
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
-   phiprof::start("Calculate GradPe term");
+   phiprof::Timer gradPeTimer {"Calculate GradPe term"};
+   int computeTimerId {phiprof::initializeTimer("EgradPe compute cells")};
 
-   timer=phiprof::initializeTimer("MPI","MPI");
-   phiprof::start(timer);
+   phiprof::Timer mpiTimer {"EgradPe field update ghosts MPI", {"MPI"}};
    dMomentsGrid.updateGhostCells();
-   phiprof::stop(timer);
+   mpiTimer.stop();
 
    // Calculate GradPe term
-   timer=phiprof::initializeTimer("Compute cells");
-   phiprof::start(timer);
-   #pragma omp parallel for collapse(3)
-   for (int k=0; k<gridDims[2]; k++) {
-      for (int j=0; j<gridDims[1]; j++) {
-         for (int i=0; i<gridDims[0]; i++) {
-            if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-               calculateGradPeTerm(EGradPeGrid, momentsGrid, dMomentsGrid, technicalGrid, i, j, k, sysBoundaries);
-            } else {
-               calculateGradPeTerm(EGradPeGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, i, j, k, sysBoundaries);
+   #pragma omp parallel
+   {
+      phiprof::Timer computeTimer {computeTimerId};
+      #pragma omp for collapse(2)
+      for (int k=0; k<gridDims[2]; k++) {
+         for (int j=0; j<gridDims[1]; j++) {
+            for (int i=0; i<gridDims[0]; i++) {
+               if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+                  calculateGradPeTerm(EGradPeGrid, momentsGrid, dMomentsGrid, technicalGrid, i, j, k, sysBoundaries);
+               } else {
+                  calculateGradPeTerm(EGradPeGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, i, j, k, sysBoundaries);
+               }
             }
          }
       }
+      computeTimer.stop(N_cells,"Spatial Cells");
    }
-   phiprof::stop(timer,N_cells,"Spatial Cells");
-   
-   phiprof::stop("Calculate GradPe term",N_cells,"Spatial Cells");
+
+   gradPeTimer.stop(N_cells,"Spatial Cells");
 }

@@ -33,7 +33,7 @@ endif
 CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -fabi-version=0 -mfma -mavx2 -Wno-unknown-pragmas -Wno-sign-compare
 testpackage: CXXFLAGS = -g -ggdb -O2 -fopenmp -funroll-loops -std=c++17 -fabi-version=0 -mno-avx -mno-fma -fno-unsafe-math-optimizations
 
-MATHFLAGS = -ffast-math
+MATHFLAGS = -ffast-math -fno-finite-math-only
 testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
 
 #LDFLAGS = -g -ggdb

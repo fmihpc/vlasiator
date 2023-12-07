@@ -52,8 +52,8 @@ namespace projects {
       RP::add("Shock.magPertAmp", "Amplitude of the magnetic perturbation", 1.0e-9);
       RP::add("Shock.densityPertAmp", "Amplitude factor of the density perturbation", 0.1);
       RP::add("Shock.velocityPertAmp", "Amplitude of the velocity perturbation", 1.0e6);
-      RP::add("Shock.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
-      RP::add("Shock.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
+      RP::add("Shock.nSpaceSamples", "Number of sampling points per spatial dimension", 1);
+      RP::add("Shock.nVelocitySamples", "Number of sampling points per velocity dimension", 1);
       RP::add("Shock.maxwCutoff", "Cutoff for the maxwellian distribution", 1e-12);
       RP::add("Shock.Scale_x", "Scale length in x (m)", 2.0e6);
       RP::add("Shock.Scale_y", "Scale length in y (m)", 2.0e6);
