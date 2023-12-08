@@ -1174,6 +1174,7 @@ namespace vmesh {
       #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
       if (prefetchBack) {
          localToGlobalMap->optimizeMetadataGPU(stream);
+         //globalToLocalMap->optimizeUMGPU(stream);
       }
       #endif
       return returnValue;
