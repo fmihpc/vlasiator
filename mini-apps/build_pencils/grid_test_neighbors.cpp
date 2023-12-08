@@ -72,12 +72,10 @@ struct setOfPencils {
 
 CellID selectNeighbor(dccrg::Dccrg<grid_data> &grid, CellID id, int dimension = 0, uint path = 0) {
 
-   const auto neighbors = grid.get_face_neighbors_of(id);
-
    vector < CellID > myNeighbors;
    // Collect neighbor ids in the positive direction of the chosen dimension.
    // Note that dimension indexing starts from 1 (of course it does)
-   for (const auto cell : neighbors) {
+   for (const auto& [neighbor, dir] : grid.get_face_neighbors_of(id)) {
       if (cell.second == dimension + 1)
          myNeighbors.push_back(cell.first);
    }

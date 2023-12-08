@@ -43,39 +43,35 @@ double lineAverage(
 ) {
    using namespace std::placeholders;
    double value;
-   //subroutines not threadsafe 
-#pragma omp critical
+   const double norm = 1/L;
+   const double acc = accuracy*L;
+   const double a = r1[line];
+   const double b = r1[line] + L;
+   
+   switch (line) {
+      case X:
       {
-         const double norm = 1/L;
-         const double acc = accuracy*L;
-         const double a = r1[line];
-         const double b = r1[line] + L;
-         
-         switch (line) {
-            case X:
-            {
-               T1DFunction f=std::bind(f1,std::placeholders::_1,r1[1],r1[2]);
-               value= Romberg(f,a,b,acc)*norm;
-            }
-            break;
-            case Y:
-            {
-               T1DFunction f=std::bind(f1,r1[0],std::placeholders::_1,r1[2]);
-               value= Romberg(f,a,b,acc)*norm;
-            }
-            break;
-            case Z: 
-            {
-               T1DFunction f=std::bind(f1,r1[0],r1[1],std::placeholders::_1);
-               value= Romberg(f,a,b,acc)*norm;
-            }
-            break;
-            default:
-               cerr << "*** lineAverage  is bad\n";
-               value = 0.0;
-            break;
-         }
+         T1DFunction f=std::bind(f1,std::placeholders::_1,r1[1],r1[2]);
+         value= Romberg(f,a,b,acc)*norm;
       }
+      break;
+      case Y:
+      {
+         T1DFunction f=std::bind(f1,r1[0],std::placeholders::_1,r1[2]);
+         value= Romberg(f,a,b,acc)*norm;
+      }
+      break;
+      case Z:
+      {
+         T1DFunction f=std::bind(f1,r1[0],r1[1],std::placeholders::_1);
+         value= Romberg(f,a,b,acc)*norm;
+      }
+      break;
+      default:
+         cerr << "*** lineAverage  is bad\n";
+         value = 0.0;
+      break;
+   }
    return value;
 }
 
@@ -89,34 +85,31 @@ double surfaceAverage(
 ) {
    using namespace std::placeholders;
    double value;
-#pragma omp critical
-   {
-      const double acc = accuracy*L1*L2;
-      const double norm = 1/(L1*L2);
-      switch (face) {
-         case X:
-         {
-            T2DFunction f = std::bind(f1,r1[0],std::placeholders::_1,std::placeholders::_2);
-            value = Romberg(f, r1[1],r1[1]+L1, r1[2],r1[2]+L2, acc)*norm;
-         }
-         break;
-         case Y:
-         {
-            T2DFunction f = std::bind(f1,std::placeholders::_1,r1[1],std::placeholders::_2);
-            value = Romberg(f, r1[0],r1[0]+L1, r1[2],r1[2]+L2, acc)*norm; 
-         }
-         break;
-         case Z:
-         {
-            T2DFunction f = std::bind(f1,std::placeholders::_1,std::placeholders::_2,r1[2]);
-            value = Romberg(f, r1[0],r1[0]+L1, r1[1],r1[1]+L2, acc)*norm;
-         }
-         break;
-         default:
-            cerr << "*** SurfaceAverage  is bad\n";
-            exit(1);
-         break;
+   const double acc = accuracy*L1*L2;
+   const double norm = 1/(L1*L2);
+   switch (face) {
+      case X:
+      {
+         T2DFunction f = std::bind(f1,r1[0],std::placeholders::_1,std::placeholders::_2);
+         value = Romberg(f, r1[1],r1[1]+L1, r1[2],r1[2]+L2, acc)*norm;
       }
+      break;
+      case Y:
+      {
+         T2DFunction f = std::bind(f1,std::placeholders::_1,r1[1],std::placeholders::_2);
+         value = Romberg(f, r1[0],r1[0]+L1, r1[2],r1[2]+L2, acc)*norm; 
+      }
+      break;
+      case Z:
+      {
+         T2DFunction f = std::bind(f1,std::placeholders::_1,std::placeholders::_2,r1[2]);
+         value = Romberg(f, r1[0],r1[0]+L1, r1[1],r1[1]+L2, acc)*norm;
+      }
+      break;
+      default:
+         cerr << "*** SurfaceAverage  is bad\n";
+         exit(1);
+      break;
    }
    return value;
 }
@@ -129,12 +122,9 @@ double volumeAverage(
    const double r2[3]
 ) {
    double value;
-#pragma omp critical
-   {
-      const double acc = accuracy*(r2[0]-r1[0])*(r2[1]-r1[1])*(r2[2]-r1[2]);
-      const double norm = 1.0/((r2[0]-r1[0])*(r2[1]-r1[1])*(r2[2]-r1[2]));
-      value= Romberg(f1, r1[0],r2[0], r1[1],r2[1], r1[2],r2[2], acc)*norm;
-   }
+   const double acc = accuracy*(r2[0]-r1[0])*(r2[1]-r1[1])*(r2[2]-r1[2]);
+   const double norm = 1.0/((r2[0]-r1[0])*(r2[1]-r1[1])*(r2[2]-r1[2]));
+   value= Romberg(f1, r1[0],r2[0], r1[1],r2[1], r1[2],r2[2], acc)*norm;
    return value;
 }
 

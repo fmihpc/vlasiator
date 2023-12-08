@@ -155,7 +155,7 @@ void calculateMoments_R(
         const std::vector<CellID>& cells,
         const bool& computeSecond) {
  
-    phiprof::start("compute-moments-n");
+    phiprof::Timer momentsTimer {"compute-moments-n"};
 
     for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
        #pragma omp parallel for
@@ -238,7 +238,6 @@ void calculateMoments_R(
 
    // Compute second moments only if requested.
    if (computeSecond == false) {
-      phiprof::stop("compute-moments-n");
       return;
    }
 
@@ -283,7 +282,6 @@ void calculateMoments_R(
       } // for-loop over spatial cells
    } // for-loop over particle species
 
-   phiprof::stop("compute-moments-n");
 }
 
 /** Calculate zeroth, first, and (possibly) second bulk velocity moments for the 
@@ -299,7 +297,7 @@ void calculateMoments_V(
         const std::vector<CellID>& cells,
         const bool& computeSecond) {
  
-   phiprof::start("Compute _V moments");
+   phiprof::Timer momentsTimer {"Compute _V moments"};
    
    // Loop over all particle species
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
@@ -369,7 +367,6 @@ void calculateMoments_V(
 
    // Compute second moments only if requested
    if (computeSecond == false) {
-      phiprof::stop("Compute _V moments");
       return;
    }
 
@@ -415,6 +412,4 @@ void calculateMoments_V(
          
       } // for-loop over spatial cells
    } // for-loop over particle species
-
-   phiprof::stop("Compute _V moments");
 }

@@ -18,15 +18,6 @@
 # module purge; module load GCC/11.2.0; module load OpenMPI/4.1.1-GCC-11.2.0 ; module load PMIx/4.1.0-GCCcore-11.2.0; module load PAPI/6.0.0.1-GCCcore-11.2.0
 #
 #################################################################################
-# Important:
-#
-# There is a bug in OpenMPI 4 which breaks the VLSV output files.
-#
-# To fix this you have to have environment variable OMPI_MCA_io set to ^ompio
-# before running Vlasiator. Otherwise the VLSV output is broken.
-#
-# For copy paste: 		export OMPI_MCA_io=^ompio
-#
 # There might be some libefa errors but they are benign.
 # (Benign = pleasant and kind; not harmful or severe. dictionary.cambridge.org)
 #################################################################################
@@ -71,7 +62,9 @@ CC_BRAND_VERSION = 11.2.0
 CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -mavx -march=znver2 #-flto
 testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -mavx -march=znver2
 
-MATHFLAGS = -ffast-math
+MATHFLAGS = -ffast-math -fno-finite-math-only
+testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
+
 LDFLAGS = -lrt -lgfortran -std=c++17 -lgomp
 LIB_MPI = -lgomp -lmpi
 

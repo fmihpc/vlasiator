@@ -92,8 +92,8 @@ namespace projects {
          RP::add(pop + "_Magnetosphere.VX0", "Initial bulk velocity in x-direction", 0.0);
          RP::add(pop + "_Magnetosphere.VY0", "Initial bulk velocity in y-direction", 0.0);
          RP::add(pop + "_Magnetosphere.VZ0", "Initial bulk velocity in z-direction", 0.0);
-         RP::add(pop + "_Magnetosphere.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
-         RP::add(pop + "_Magnetosphere.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
+         RP::add(pop + "_Magnetosphere.nSpaceSamples", "Number of sampling points per spatial dimension", 1);
+         RP::add(pop + "_Magnetosphere.nVelocitySamples", "Number of sampling points per velocity dimension", 1);
          RP::add(pop + "_Magnetosphere.taperInnerRadius", "Inner radius of the zone with a density tapering from the ionospheric value to the background (m)", 0.0);
          RP::add(pop + "_Magnetosphere.taperOuterRadius", "Outer radius of the zone with a density tapering from the ionospheric value to the background (m)", 0.0);
       }
@@ -119,13 +119,13 @@ namespace projects {
 
       RP::get("Magnetosphere.dipoleType", this->dipoleType);
 
-      /** Read inner boundary parameters from either ionospheric or conductingsphere sysboundary condition */
-      if (sysBoundaryContainer.existSysBoundary("Conductingsphere")) {
-         RP::get("conductingsphere.radius", this->ionosphereRadius);
-         RP::get("conductingsphere.centerX", this->center[0]);
-         RP::get("conductingsphere.centerY", this->center[1]);
-         RP::get("conductingsphere.centerZ", this->center[2]);
-         RP::get("conductingsphere.geometry", this->ionosphereGeometry);
+      /** Read inner boundary parameters from either ionospheric or copysphere sysboundary condition */
+      if (sysBoundaryContainer.existSysBoundary("Copysphere")) {
+         RP::get("copysphere.radius", this->ionosphereRadius);
+         RP::get("copysphere.centerX", this->center[0]);
+         RP::get("copysphere.centerY", this->center[1]);
+         RP::get("copysphere.centerZ", this->center[2]);
+         RP::get("copysphere.geometry", this->ionosphereGeometry);
       } else if (sysBoundaryContainer.existSysBoundary("Ionosphere")) {
          RP::get("ionosphere.radius", this->ionosphereRadius);
          RP::get("ionosphere.centerX", this->center[0]);
@@ -134,7 +134,7 @@ namespace projects {
          RP::get("ionosphere.geometry", this->ionosphereGeometry);
       } else {
          if(myRank == MASTER_RANK) {
-            std::cerr<<"Warning in initializing Magnetosphere: Could not find inner boundary (ionosphere or conductingsphere)!"<<std::endl;
+            std::cerr<<"Warning in initializing Magnetosphere: Could not find inner boundary (ionosphere or copysphere)!"<<std::endl;
          }
       }
       if(ionosphereRadius < 1000.) {
@@ -183,13 +183,13 @@ namespace projects {
          RP::get(pop + "_Magnetosphere.nSpaceSamples", sP.nSpaceSamples);
          RP::get(pop + "_Magnetosphere.nVelocitySamples", sP.nVelocitySamples);
 
-         /** Read inner boundary parameters from either ionospheric or conductingsphere sysboundary condition */
-         if (sysBoundaryContainer.existSysBoundary("Conductingsphere")) {
-            RP::get(pop + "_conductingsphere.rho", sP.ionosphereRho);
-            RP::get(pop + "_conductingsphere.T", sP.ionosphereT);
-            RP::get(pop + "_conductingsphere.VX0", sP.ionosphereV0[0]);
-            RP::get(pop + "_conductingsphere.VY0", sP.ionosphereV0[1]);
-            RP::get(pop + "_conductingsphere.VZ0", sP.ionosphereV0[2]);
+         /** Read inner boundary parameters from either ionospheric or copysphere sysboundary condition */
+         if (sysBoundaryContainer.existSysBoundary("Copysphere")) {
+            RP::get(pop + "_copysphere.rho", sP.ionosphereRho);
+            RP::get(pop + "_copysphere.T", sP.ionosphereT);
+            RP::get(pop + "_copysphere.VX0", sP.ionosphereV0[0]);
+            RP::get(pop + "_copysphere.VY0", sP.ionosphereV0[1]);
+            RP::get(pop + "_copysphere.VZ0", sP.ionosphereV0[2]);
          } else if (sysBoundaryContainer.existSysBoundary("Ionosphere")) {
             RP::get(pop + "_ionosphere.rho", sP.ionosphereRho);
             RP::get(pop + "_ionosphere.T", sP.ionosphereT);
@@ -215,20 +215,20 @@ namespace projects {
          }
          if(sP.taperOuterRadius > 0 && sP.taperOuterRadius <= this->ionosphereRadius) {
             if(myRank == MASTER_RANK) {
-               cerr << "Error: " << pop << "_Magnetosphere.taperOuterRadius is non-zero yet smaller than ionosphere.radius / conductingsphere.radius! Aborting." << endl;
+               cerr << "Error: " << pop << "_Magnetosphere.taperOuterRadius is non-zero yet smaller than ionosphere.radius / copysphere.radius! Aborting." << endl;
             }
             abort();
          }
          if(sP.taperInnerRadius == 0 && sP.taperOuterRadius > 0) {
             if(myRank == MASTER_RANK) {
-               cerr << "Warning: " << pop << "_Magnetosphere.taperInnerRadius is zero (default), now setting this to the same value as ionosphere.radius / conductingsphere.radius, that is " << this->ionosphereRadius << ". Set/change " << pop << "_Magnetosphere.taperInnerRadius if this is not the expected behavior." << endl;
+               cerr << "Warning: " << pop << "_Magnetosphere.taperInnerRadius is zero (default), now setting this to the same value as ionosphere.radius / copysphere.radius, that is " << this->ionosphereRadius << ". Set/change " << pop << "_Magnetosphere.taperInnerRadius if this is not the expected behavior." << endl;
             }
             sP.taperInnerRadius = this->ionosphereRadius;
          }
          if(sP.ionosphereT == 0) {
             if(myRank == MASTER_RANK) {
-               if (sysBoundaryContainer.existSysBoundary("Conductingsphere")) {
-                  cerr << "Warning: " << pop << "_conductingsphere.T is zero (default), now setting to the same value as " << pop << "_Magnetosphere.T, that is " << sP.T << ". Set/change " << pop << "_conductingsphere.T if this is not the expected behavior." << endl;
+               if (sysBoundaryContainer.existSysBoundary("Copysphere")) {
+                  cerr << "Warning: " << pop << "_copysphere.T is zero (default), now setting to the same value as " << pop << "_Magnetosphere.T, that is " << sP.T << ". Set/change " << pop << "_copysphere.T if this is not the expected behavior." << endl;
                } else if (sysBoundaryContainer.existSysBoundary("Ionosphere")) {
                   cerr << "Warning: " << pop << "_ionosphere.T is zero (default), now setting to the same value as " << pop << "_Magnetosphere.T, that is " << sP.T << ". Set/change " << pop << "_ionosphere.T if this is not the expected behavior." << endl;
                }
@@ -237,8 +237,8 @@ namespace projects {
          }
          if(sP.ionosphereRho == 0) {
             if(myRank == MASTER_RANK) {
-               if (sysBoundaryContainer.existSysBoundary("Conductingsphere")) {
-                  cerr << "Warning: " << pop << "_conductingsphere.rho is zero (default), now setting to the same value as " << pop << "_Magnetosphere.rho, that is " << sP.rho << ". Set/change " << pop << "_conductingsphere.rho if this is not the expected behavior." << endl;
+               if (sysBoundaryContainer.existSysBoundary("Copysphere")) {
+                  cerr << "Warning: " << pop << "_copysphere.rho is zero (default), now setting to the same value as " << pop << "_Magnetosphere.rho, that is " << sP.rho << ". Set/change " << pop << "_copysphere.rho if this is not the expected behavior." << endl;
                } else if (sysBoundaryContainer.existSysBoundary("Ionosphere")) {
                   cerr << "Warning: " << pop << "_ionosphere.rho is zero (default), now setting to the same value as " << pop << "_Magnetosphere.rho, that is " << sP.rho << ". Set/change " << pop << "_ionosphere.rho if this is not the expected behavior." << endl;
                }
@@ -301,6 +301,7 @@ namespace projects {
       LineDipole bgFieldLineDipole;
       VectorDipole bgVectorDipole;
 
+      phiprof::Timer switchDipoleTypeTimer {"switch-dipoleType"};
       // The hardcoded constants of dipole and line dipole moments are obtained
       // from Daldorff et al (2014), see
       // https://github.com/fmihpc/vlasiator/issues/20 for a derivation of the
@@ -349,9 +350,12 @@ namespace projects {
             default:
                setBackgroundFieldToZero(BgBGrid);
       }
-      
+      switchDipoleTypeTimer.stop();
+
       const auto localSize = BgBGrid.getLocalSize().data();
       
+      phiprof::Timer zeroingTimer {"zeroing-out"};
+
 #pragma omp parallel
       {
          bool doZeroOut;
@@ -359,10 +363,10 @@ namespace projects {
          doZeroOut = P::xcells_ini ==1 && this->zeroOutComponents[0]==1;
       
          if(doZeroOut) {
-#pragma omp for collapse(3)
-            for (int x = 0; x < localSize[0]; ++x) {
+#pragma omp for collapse(2)
+            for (int z = 0; z < localSize[2]; ++z) {
                for (int y = 0; y < localSize[1]; ++y) {
-                  for (int z = 0; z < localSize[2]; ++z) {
+                  for (int x = 0; x < localSize[0]; ++x) {
                      std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
                      cell->at(fsgrids::bgbfield::BGBX)=0;
                      cell->at(fsgrids::bgbfield::BGBXVOL)=0.0;
@@ -378,14 +382,14 @@ namespace projects {
                }
             }
          }
-            
+
           doZeroOut = P::ycells_ini ==1 && this->zeroOutComponents[1]==1;
           if(doZeroOut) {
              /*2D simulation in x and z. Set By and derivatives along Y, and derivatives of By to zero*/
- #pragma omp for collapse(3)
-             for (int x = 0; x < localSize[0]; ++x) {
+#pragma omp for collapse(2)
+             for (int z = 0; z < localSize[2]; ++z) {
                 for (int y = 0; y < localSize[1]; ++y) {
-                   for (int z = 0; z < localSize[2]; ++z) {
+                   for (int x = 0; x < localSize[0]; ++x) {
                       std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
                       cell->at(fsgrids::bgbfield::BGBY)=0.0;
                       cell->at(fsgrids::bgbfield::BGBYVOL)=0.0;
@@ -404,10 +408,10 @@ namespace projects {
 
          doZeroOut = P::zcells_ini ==1 && this->zeroOutComponents[2]==1;
          if(doZeroOut) {
-#pragma omp for collapse(3)
-            for (int x = 0; x < localSize[0]; ++x) {
+#pragma omp for collapse(2)
+            for (int z = 0; z < localSize[2]; ++z) {
                for (int y = 0; y < localSize[1]; ++y) {
-                  for (int z = 0; z < localSize[2]; ++z) {
+                  for (int x = 0; x < localSize[0]; ++x) {
                      std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
                      cell->at(fsgrids::bgbfield::BGBX)=0;
                      cell->at(fsgrids::bgbfield::BGBY)=0;
@@ -428,11 +432,11 @@ namespace projects {
          
          // Remove dipole from inflow cells if this is requested
          if(this->noDipoleInSW) {
-#pragma omp for collapse(3)
-            for (int x = 0; x < localSize[0]; ++x) {
+#pragma omp for collapse(2)
+            for (int z = 0; z < localSize[2]; ++z) {
                for (int y = 0; y < localSize[1]; ++y) {
-                  for (int z = 0; z < localSize[2]; ++z) {
-                     if(technicalGrid.get(x, y, z)->sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN ) {
+                  for (int x = 0; x < localSize[0]; ++x) {
+                     if(technicalGrid.get(x, y, z)->sysBoundaryFlag == sysboundarytype::MAXWELLIAN ) {
                         for (int i = 0; i < fsgrids::bgbfield::N_BGB; ++i) {
                            BgBGrid.get(x,y,z)->at(i) = 0;
                         }
@@ -447,6 +451,10 @@ namespace projects {
             }
          }
       } // end of omp parallel region
+
+      zeroingTimer.stop();
+
+      phiprof::Timer addConstantTimer {"add-constant-field"};
       // Superimpose constant background field if needed
       if(this->constBgB[0] != 0.0 || this->constBgB[1] != 0.0 || this->constBgB[2] != 0.0) {
          ConstantField bgConstantField;
@@ -454,7 +462,10 @@ namespace projects {
          setBackgroundField(bgConstantField, BgBGrid, true);
          SBC::ionosphereGrid.setConstantBackgroundField(this->constBgB);
       }
+      addConstantTimer.stop();
+      phiprof::Timer storeNodeTimer {"ionosphereGrid.storeNodeB"};
       SBC::ionosphereGrid.storeNodeB();
+      storeNodeTimer.stop();
    }
    
    
@@ -561,10 +572,6 @@ namespace projects {
       return centerPoints;
    }
 
-   bool Magnetosphere::canRefine(spatial_cell::SpatialCell* cell) const {
-      return cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY && (cell->sysBoundaryLayer == 0 || cell->sysBoundaryLayer > 2);
-   }
-
    bool Magnetosphere::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
    
       int myRank;       
@@ -577,7 +584,7 @@ namespace projects {
       std::vector<CellID> cells = getLocalCells();
 
       // L1 refinement.
-      if (P::amrMaxSpatialRefLevel > 0) {
+      if (P::amrMaxSpatialRefLevel > 0 && P::amrMaxAllowedSpatialRefLevel > 0) {
          //#pragma omp parallel for
          for (uint i = 0; i < cells.size(); ++i) {
             CellID id = cells[i];
@@ -604,7 +611,7 @@ namespace projects {
       }
       
       // L2 refinement.
-      if (P::amrMaxSpatialRefLevel > 1) {
+      if (P::amrMaxSpatialRefLevel > 1 && P::amrMaxAllowedSpatialRefLevel > 1) {
          //#pragma omp parallel for
          for (uint i = 0; i < cells.size(); ++i) {
             CellID id = cells[i];
@@ -631,7 +638,7 @@ namespace projects {
       }
       
       // L3 refinement.
-      if (P::amrMaxSpatialRefLevel > 2) {
+      if (P::amrMaxSpatialRefLevel > 2 && P::amrMaxAllowedSpatialRefLevel > 2) {
          //#pragma omp parallel for
          for (uint i = 0; i < cells.size(); ++i) {
             CellID id = cells[i];
@@ -657,7 +664,7 @@ namespace projects {
       }
 
       // L4 refinement.
-      if (P::amrMaxSpatialRefLevel > 3) {
+      if (P::amrMaxSpatialRefLevel > 3 && P::amrMaxAllowedSpatialRefLevel > 3) {
          //#pragma omp parallel for
          for (uint i = 0; i < cells.size(); ++i) {
             CellID id = cells[i];
@@ -687,73 +694,7 @@ namespace projects {
       return true;
    }
 
-   bool Magnetosphere::adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
-      phiprof::start("Set refines");
-      int myRank;       
-      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-      if (myRank == MASTER_RANK)
-         std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
-
-      //Real ibr2 {pow(ionosphereRadius + 2*P::dx_ini, 2)};
-
-      std::vector<CellID> cells {getLocalCells()};
-      Real r_max2 {pow(P::refineRadius, 2)};
-
-      //#pragma omp parallel for
-      for (uint j = 0; j < cells.size(); ++j) {
-         CellID id {cells[j]};
-         std::array<double,3> xyz {mpiGrid.get_center(id)};
-         SpatialCell* cell {mpiGrid[id]};
-         int refLevel {mpiGrid.get_refinement_level(id)};
-         Real r2 {pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2)};
-
-         const Real logDx {std::log2(P::dx_ini)};
-         if (!canRefine(mpiGrid[id])) {
-            // Skip refining, touching boundaries during runtime breaks everything
-            mpiGrid.dont_refine(id);
-            mpiGrid.dont_unrefine(id);
-         } else if (r2 < r_max2) {
-            // We don't care about cells that are too far from the ionosphere
-            const Real beta {P::useJPerB ? std::log2(cell->parameters[CellParams::AMR_JPERB]) + logDx + P::JPerBModifier + refLevel : 0.0};
-            bool shouldRefine = cell->parameters[CellParams::AMR_ALPHA] > P::refineThreshold || beta > 0.5;
-            bool shouldUnrefine = cell->parameters[CellParams::AMR_ALPHA] < P::unrefineThreshold || beta < -0.5;
-
-            // Finally, check neighbors
-            int refined_neighbors {0};
-            int coarser_neighbors {0};
-            for (auto i : mpiGrid.get_face_neighbors_of(id)) {
-               const auto neighbor {mpiGrid[i.first]};
-               const int neighborRef = mpiGrid.get_refinement_level(i.first);
-               const Real neighborBeta {P::useJPerB ? std::log2(neighbor->parameters[CellParams::AMR_JPERB]) + logDx + P::JPerBModifier + neighborRef : 0.0};
-               if (neighborRef > refLevel) {
-                  ++refined_neighbors;
-               } else if (neighborRef < refLevel) {
-                  ++coarser_neighbors;
-               } else if (neighbor->parameters[CellParams::AMR_ALPHA] > P::refineThreshold || neighborBeta > 0.5) {
-                  refined_neighbors += 4;
-               } else if (neighbor->parameters[CellParams::AMR_ALPHA] < P::unrefineThreshold || neighborBeta < -0.5) {
-                  ++coarser_neighbors;
-               }
-            }
-
-            if (shouldRefine || refined_neighbors > 12) {
-               // Refine a cell if a majority of its neighbors are refined or about to be
-               mpiGrid.refine_completely(id);
-            } else if (shouldUnrefine && coarser_neighbors > 0) {
-               // Unrefine a cell only if any of its neighbors is unrefined or about to be
-               mpiGrid.unrefine_completely(id);
-            } else {
-               // Ensure no cells above unrefine_threshold are unrefined
-               mpiGrid.dont_unrefine(id);
-            }
-         }
-      }
-
-      phiprof::stop("Set refines");
-      return true;
-   }
-
-   bool Magnetosphere::forceRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
+   bool Magnetosphere::forceRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, int n ) const {
    
       int myRank;       
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
@@ -768,25 +709,25 @@ namespace projects {
          int refLevel {mpiGrid.get_refinement_level(id)};
          int refineTarget {0};
 
-         if (P::amrMaxSpatialRefLevel > 0) {
+         if (P::amrMaxSpatialRefLevel > 0 && P::amrMaxAllowedSpatialRefLevel > 0) {
             bool inSphere = radius2 < refine_L1radius*refine_L1radius;
             bool inTail = xyz[0] < 0 && fabs(xyz[1]) < refine_L1radius && fabs(xyz[2]) < refine_L1tailthick;
             if ((inSphere || inTail) && radius2 < P::refineRadius * P ::refineRadius)
                ++refineTarget;
          }
-         if (P::amrMaxSpatialRefLevel > 1) {
+         if (P::amrMaxSpatialRefLevel > 1 && P::amrMaxAllowedSpatialRefLevel > 1) {
             bool inSphere = radius2 < pow(refine_L2radius, 2);
             bool inTail = xyz[0] < 0 && fabs(xyz[1]) < refine_L2radius && fabs(xyz[2])<refine_L2tailthick;
             if ((inSphere || inTail) && radius2 < P::refineRadius * P ::refineRadius)
                ++refineTarget;
          }
-         if (P::amrMaxSpatialRefLevel > 2) {
+         if (P::amrMaxSpatialRefLevel > 2 && P::amrMaxAllowedSpatialRefLevel > 2) {
             bool inNoseCap = (xyz[0]>refine_L3nosexmin) && (radius2<refine_L3radius*refine_L3radius);
             bool inTail = (xyz[0]>refine_L3tailxmin) && (xyz[0]<refine_L3tailxmax) && (fabs(xyz[1])<refine_L3tailwidth) && (fabs(xyz[2])<refine_L3tailheight);
             if ((inNoseCap || inTail) && radius2 < P::refineRadius * P ::refineRadius)
                ++refineTarget;
          }
-         if (P::amrMaxSpatialRefLevel > 3) {
+         if (P::amrMaxSpatialRefLevel > 3 && P::amrMaxAllowedSpatialRefLevel > 3) {
             bool inNose = refine_L4nosexmin && radius2<refine_L4radius*refine_L4radius;
             if (inNose && radius2 < P::refineRadius * P ::refineRadius)
                ++refineTarget;
@@ -795,9 +736,9 @@ namespace projects {
          if (!canRefine(mpiGrid[id])) {
             mpiGrid.dont_refine(id);
             mpiGrid.dont_unrefine(id);
-         } else if (refLevel < refineTarget) {
+         } else if (refLevel <= n && refLevel < refineTarget) {
             mpiGrid.refine_completely(id);
-         } else if (refLevel > refineTarget) {
+         } else if (refLevel >= mpiGrid.mapping.get_maximum_refinement_level() - n && refLevel > refineTarget) {
             mpiGrid.unrefine_completely(id);
          } else {
             mpiGrid.dont_unrefine(id);

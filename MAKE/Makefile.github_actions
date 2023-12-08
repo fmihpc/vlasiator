@@ -48,7 +48,8 @@ CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 FLAGS =
 CXXFLAGS += -I ${GITHUB_WORKSPACE}/libraries/include -I/usr/include/eigen3 -L ${GITHUB_WORKSPACE}/libraries/lib -march=native -O3 -std=c++17 -fopenmp -Wall -Wno-unused -fabi-version=0 -mavx -g -Wno-cast-function-type
-MATHFLAGS = #-ffast-math
+MATHFLAGS = # -ffast-math -fno-finite-math-only
+testpackage: MATHFLAGS = # -fno-unsafe-math-optimizations
 LDFLAGS = -L ${GITHUB_WORKSPACE}/libraries/lib -Wl,-rpath=${GITHUB_WORKSPACE}/libraries/lib -g
 LIB_MPI = -lgomp 
 

@@ -434,10 +434,6 @@ bool map_1d(SpatialCell* spatial_cell,
                i_indices * cell_indices_to_id[0] +
                j_indices * cell_indices_to_id[1];
        
-            const int target_block_index_common =
-               block_indices_begin[0] * block_indices_to_id[0] +
-               block_indices_begin[1] * block_indices_to_id[1];
-       
             /* 
                intersection_min is the intersection z coordinate (z after
                swaps that is) of the lowest possible z plane for each i,j
@@ -526,8 +522,6 @@ bool map_1d(SpatialCell* spatial_cell,
                   const int blockK = gk/WID;
                   const int gk_mod_WID = (gk - blockK * WID);
 
-                  //the block of the Lagrangian cell to which we map
-                  //const int target_block(target_block_index_common + blockK * block_indices_to_id[2]);
                   
                   //cell indices in the target block  (TODO: to be replaced by
                   //compile time generated scatter write operation)
@@ -572,11 +566,7 @@ bool map_1d(SpatialCell* spatial_cell,
                   else{
                      // total value of integrand
                      const Vec target_density = target_density_r - target_density_l;                  
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunknown-pragmas"
-#pragma ivdep
-#pragma GCC diagnostic pop
-#pragma GCC ivdep                     
+#pragma omp simd
                      for (int target_i=0; target_i < VECL; ++target_i) {
                         // do the conversion from Realv to Realf here, faster than doing it in accumulation
                         const Realf tval = target_density[target_i];

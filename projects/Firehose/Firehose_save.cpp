@@ -67,7 +67,7 @@ bool addProjectParameters(){
    RP::add("Firehose.Bx", "Magnetic field x component (T)", 0.0);
    RP::add("Firehose.By", "Magnetic field y component (T)", 0.0);
    RP::add("Firehose.Bz", "Magnetic field z component (T)", 0.0);
-   RP::add("Firehose.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
+   RP::add("Firehose.nVelocitySamples", "Number of sampling points per velocity dimension", 1);
    return true;
 }
 

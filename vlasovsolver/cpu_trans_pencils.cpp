@@ -1053,11 +1053,11 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
       }
    }
 
-   phiprof::start("getSeedIds");
+   phiprof::Timer getSeedIdsTimer {"getSeedIds"};
    vector<CellID> seedIds;
    getSeedIds(mpiGrid, localPropagatedCells, dimension, seedIds);
-   phiprof::stop("getSeedIds");
-
+   getSeedIdsTimer.stop();
+   
    if (printSeeds) {
       for (int rank=0; rank<mpi_size; ++rank) {
          MPI_Barrier(MPI_COMM_WORLD);
@@ -1081,7 +1081,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
       }
    }
 
-   phiprof::start("buildPencils");
+   phiprof::Timer buildPencilsTimer {"buildPencils"};
    // Clear previous set
    DimensionPencils[dimension].removeAllPencils();
 
@@ -1117,14 +1117,14 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
       }
    }
 
-   phiprof::start("check_ghost_cells");
+   phiprof::Timer checkGhostCellsTimer {"check_ghost_cells"};
    // Check refinement of two ghost cells on each end of each pencil
    // in case pencil needs to be split.
    // This function contains threading.
    check_ghost_cells(mpiGrid,DimensionPencils[dimension],dimension);
-   phiprof::stop("check_ghost_cells");
+   checkGhostCellsTimer.stop();
 
-   phiprof::start("Find_source_cells_ratios_dz");
+   phiprof::Timer findSourceRatiosTimer {"Find_source_cells_ratios_dz"};
    // Compute also the stencil around the pencil (source cells), and
    // Store source cell widths and target cell contribution ratios.
 #pragma omp parallel for schedule(guided)
@@ -1135,7 +1135,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
       Realf* pencilAreaRatio = DimensionPencils[dimension].targetRatios.data() + DimensionPencils[dimension].idsStart[i];
       computeSpatialSourceCellsForPencil(mpiGrid,pencilIds,L,dimension,DimensionPencils[dimension].path[i],pencilDZ,pencilAreaRatio);
    }
-   phiprof::stop("Find_source_cells_ratios_dz");
+   findSourceRatiosTimer.stop();
 
    // ****************************************************************************
 
@@ -1166,6 +1166,5 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
          printPencilsFunc(DimensionPencils[dimension],dimension,myRank,mpiGrid);
       }
    }
-   phiprof::stop("buildPencils");
 
 }
