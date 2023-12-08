@@ -262,12 +262,19 @@ namespace spatial_cell {
          }
       }
       ~Population() {
+         gpu_destructor();
          delete vmesh;
          delete blockContainer;
       }
       void gpu_destructor() {
-         CHK_ERR(gpuFree(dev_vmesh));
-         CHK_ERR(gpuFree(dev_blockContainer));
+         if (dev_vmesh) {
+            CHK_ERR(gpuFree(dev_vmesh));
+            dev_vmesh=0;
+         }
+         if (dev_blockContainer) {
+            CHK_ERR(gpuFree(dev_blockContainer));
+            dev_blockContainer=0;
+         }
          vmesh->gpu_destructor();
          blockContainer->gpu_destructor();
       }
