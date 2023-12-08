@@ -60,7 +60,7 @@ void propagatePencil(
    // const uint nTargetNeighborsPerPencil = 1;
 
    // Go over length of propagated cells
-   for (int i = VLASOV_STENCIL_WIDTH; i < lengthOfPencil-VLASOV_STENCIL_WIDTH; i++){
+   for (int i = VLASOV_STENCIL_WIDTH; i < (int)lengthOfPencil-VLASOV_STENCIL_WIDTH; i++){
       // Get pointers to block data used for output.
       // CUDATODO: use blockGID to get pointers here
       Realf* block_data_m1 = blockDataPointer[i - 1];
@@ -322,7 +322,6 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
       } // pragma omp critical
    } // pragma omp parallel
    unionOfBlocks.insert(unionOfBlocks.end(), unionOfBlocksSet.begin(), unionOfBlocksSet.end());
-<<<<<< HEAD
    buildBlockListimer.stop();       
    /***********************/
    setupTimer.stop();

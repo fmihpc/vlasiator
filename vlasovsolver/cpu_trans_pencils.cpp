@@ -384,9 +384,9 @@ CellID selectNeighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> 
 
    // Iterate through neighbor ids in the positive direction of the chosen dimension,
    // select the neighbor indicated by path, if it is local to this process.
-   for (const auto& nbr : grid.get_face_neighbors_of(id)) {
-     if (nbr.second == ((int)dimension + 1)) {
-	 myNeighbors.push_back(nbr.first);
+   for (const auto& [neighbor, dir] : grid.get_face_neighbors_of(id)) {
+     if (dir == ((int)dimension + 1)) {
+	 myNeighbors.push_back(neighbor);
       }
    }
    // TODO Verify: are neighbours always in the same order? Let's sort based
@@ -660,18 +660,18 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
 
       // First check negative face neighbors (A)
       // Returns all neighbors as (id, direction-dimension) pair pointers.
-      for (const auto& faceNbrPair : mpiGrid.get_face_neighbors_of(celli) ) {
-         if ( faceNbrPair.second == -((int)dimension + 1) ) {
+      for (const auto& [neighbor, dir] : mpiGrid.get_face_neighbors_of(celli) ) {
+         if ( dir == -((int)dimension + 1) ) {
             // Check that the neighbor is not across a periodic boundary by calculating
             // the distance in indices between this cell and its neighbor.
-            auto nbrIndices = mpiGrid.mapping.get_indices(faceNbrPair.first);
+            auto nbrIndices = mpiGrid.mapping.get_indices(neighbor);
 
             // If a neighbor is across a periodic boundary, non-local, or
             // in non-periodic boundary layer 2
             // then we use the current cell as a seed for pencils
             if (abs ( (int64_t)(myIndices[dimension] - nbrIndices[dimension]) ) > pow(2,mpiGrid.get_maximum_refinement_level()) ||
-               !mpiGrid.is_local(faceNbrPair.first) ||
-               !do_translate_cell(mpiGrid[faceNbrPair.first]) )
+               !mpiGrid.is_local(neighbor) ||
+               !do_translate_cell(mpiGrid[neighbor]) )
             {
                addToSeedIds = true;
                break;
