@@ -204,7 +204,7 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
    // These neighborhoods now include the AMR addition beyond the regular vlasov stencil
    int neighborhood = getNeighborhood(dimension,VLASOV_STENCIL_WIDTH);
    stringstream ss;
-   for (auto j = 0; j < L; ++j) {
+   for (uint j = 0; j < L; ++j) {
       ss<< ids[j] << " ";
    }
 
@@ -263,7 +263,7 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
    // Distances are positive here so smallest distance has smallest value.
    iSrc = L - VLASOV_STENCIL_WIDTH;
    for (auto it = distances.begin(); it != distances.end(); ++it) {
-      if (iSrc >= L) break; // Found enough cells
+      if (iSrc >= (int)L) break; // Found enough cells
 
       // Collect all neighbors at distance *it to a vector
       std::vector< CellID > neighbors;
@@ -310,7 +310,7 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
 
    /*loop to positive side and replace all invalid cells with the closest good cell*/
    lastGoodCell = ids[L - VLASOV_STENCIL_WIDTH - 1];
-   for(int i = L - VLASOV_STENCIL_WIDTH; i < L; ++i){
+   for(int i = (int)L - VLASOV_STENCIL_WIDTH; i < (int)L; ++i){
       bool isGood = false;
       if (ids[i]!=0) {
          if (mpiGrid[ids[i]] != NULL) {
@@ -327,13 +327,13 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
    }
 
    // Loop over all cells and store widths in translation direction
-   for (int i = 0; i < L; ++i) {
+   for (int i = 0; i < (int)L; ++i) {
       sourceDZ[i] = mpiGrid[ids[i]]->parameters[CellParams::DX+dimension];
    }
 
    // Loop over all cells and store pencil-to-cell cross-sectional area for target cells
-   for (int i = 0; i < L; ++i) {
-      if ((i < VLASOV_STENCIL_WIDTH-1) || (i > L-VLASOV_STENCIL_WIDTH)) {
+   for (int i = 0; i < (int)L; ++i) {
+      if ((i < VLASOV_STENCIL_WIDTH-1) || (i > (int)L-VLASOV_STENCIL_WIDTH)) {
          // Source cell, not a target cell
          targetRatios[i]=0.0;
          continue;
@@ -669,7 +669,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
             // If a neighbor is across a periodic boundary, non-local, or
             // in non-periodic boundary layer 2
             // then we use the current cell as a seed for pencils
-            if (myIndices[dimension] < nbrIndices[dimension]) ||
+            if ( (myIndices[dimension] < nbrIndices[dimension]) ||
                !mpiGrid.is_local(neighbor) ||
                !do_translate_cell(mpiGrid[neighbor]) )
             {
