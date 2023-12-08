@@ -28,8 +28,8 @@ FLAGS =
 CXXFLAGS = -O3   -funroll-loops -std=c++17 -fopenmp -W -Wall -Wno-unused -Wno-unused-parameter -Wno-missing-braces -fabi-version=0 -mavx
 testpackage: CXXFLAGS = -g -ggdb -O2 -fopenmp -funroll-loops -std=c++17 -fabi-version=0  -mno-avx -mno-fma -fno-unsafe-math-optimizations
 CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE -DPAPI_MEM
-MATHFLAGS = -ffast-math -fno-finite-math-only
-testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
+MATHFLAGS = -ffast-math
+testpackage: MATHFLAGS =  -fno-unsafe-math-optimizations
 LDFLAGS = -L $(HOME)/lib
 LIB_MPI = -lgomp -lpapi 
 
@@ -57,15 +57,15 @@ PAPI_FLAG =
 
 #======== Libraries ===========
 
-LIBRARY_PREFIX = $(HOME)
+LIBRARY_PREFIX = /home/horakons/vlasiator_libs/
 
 INC_VECTORCLASS=-I$(LIBRARY_PREFIX)/version1
 
 INC_BOOST = -I/usr/include/boost/
 LIB_BOOST = -L/usr/lib/x86_64-linux-gnu/ -lboost_program_options
 
-INC_ZOLTAN = -I$(LIBRARY_PREFIX)/include
-LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/lib -lzoltan
+INC_ZOLTAN = -I$(LIBRARY_PREFIX)/zoltan_install/include
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/zoltan_install/lib -lzoltan
 
 INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv
 LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv
@@ -77,14 +77,14 @@ INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg
 
 INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid
 
-INC_PAPI = -I$(LIBRARY_PREFIX)/papi-5.4.3/src
-LIB_PAPI = -L$(LIBRARY_PREFIX)/papi-5.4.3/src -lpapi
+INC_PAPI = -I$(LIBRARY_PREFIX)/papi_install/include/
+LIB_PAPI = -L$(LIBRARY_PREFIX)/papi_install/lib/ -lpapi
 
-INC_JEMALLOC = -I$(LIBRARY_PREFIX)/libraries/jemalloc
-LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/libraries/jemalloc/lib -ljemalloc
+INC_JEMALLOC = -I$(LIBRARY_PREFIX)/jemalloc/include
+LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/jemalloc/lib -ljemalloc
 
 LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof
 INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
 
-INC_EIGEN = -I$(LIBRARY_PREFIX)/eigen-eigen-07105f7124f9
+INC_EIGEN = -I$(LIBRARY_PREFIX)/eigen-3.2.8/
 

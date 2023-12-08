@@ -429,7 +429,7 @@ namespace projects {
 //      const int bw3 = 2*(bw2 + VLASOV_STENCIL_WIDTH);
 
      // Calculate regions for refinement
-     if (P::amrMaxSpatialRefLevel > 0) {
+     if (P::amrMaxSpatialRefLevel > 0 && P::amrMaxAllowedSpatialRefLevel > 0) {
 	// L1 refinement.
 	for (uint i = 0; i < P::xcells_ini; ++i) {
 	   for (uint j = 0; j < P::ycells_ini; ++j) {
@@ -453,7 +453,7 @@ namespace projects {
 	mpiGrid.balance_load();
      }
 
-     if (P::amrMaxSpatialRefLevel > 1) {
+     if (P::amrMaxSpatialRefLevel > 1 && P::amrMaxAllowedSpatialRefLevel > 1) {
 	// L2 refinement.
 	for (uint i = 0; i < 2*P::xcells_ini; ++i) {
 	   for (uint j = 0; j < 2*P::ycells_ini; ++j) {
@@ -477,7 +477,7 @@ namespace projects {
 	mpiGrid.balance_load();
      }
 
-     if (P::amrMaxSpatialRefLevel > 2) {
+     if (P::amrMaxSpatialRefLevel > 2 && P::amrMaxAllowedSpatialRefLevel > 2) {
 	// L3 refinement.
 	for (uint i = 0; i < 4*P::xcells_ini; ++i) {
 	   for (uint j = 0; j < 4*P::ycells_ini; ++j) {
@@ -501,7 +501,7 @@ namespace projects {
 	mpiGrid.balance_load();
      }
 
-     if (P::amrMaxSpatialRefLevel > 3) {
+     if (P::amrMaxSpatialRefLevel > 3 && P::amrMaxAllowedSpatialRefLevel > 3) {
 	// L4 refinement.
 	for (uint i = 0; i < 8*P::xcells_ini; ++i) {
 	   for (uint j = 0; j < 8*P::ycells_ini; ++j) {

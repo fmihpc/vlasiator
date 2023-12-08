@@ -213,8 +213,8 @@ namespace FieldTracing {
       }
       
       // Make sure motion is outwards. Flip b if dot(r,b) < 0
-      if(std::isnan(b[0]) || std::isnan(b[1]) || std::isnan(b[2])) {
-         cerr << "(fieldtracing) Error: magnetic field is nan in getRadialBfieldDirection at location "
+      if(!(std::isfinite(b[0]) && std::isfinite(b[1]) && std::isfinite(b[2]))) {
+         cerr << "(fieldtracing) Error: magnetic field is nan or inf in getRadialBfieldDirection at location "
          << r[0] << ", " << r[1] << ", " << r[2] << ", with B = " << b[0] << ", " << b[1] << ", " << b[2] << endl;
          b[0] = 0;
          b[1] = 0;

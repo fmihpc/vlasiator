@@ -1104,7 +1104,7 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       // Loop over AMR levels
       uint startindex=1;
       uint endindex=1;
-      for (uint AMR = 0; AMR <= P::amrMaxSpatialRefLevel; AMR++) {
+      for (int AMR = 0; AMR <= P::amrMaxSpatialRefLevel; AMR++) {
          int AMRm = 1u << AMR;
          uint cellsthislevel = (AMRm * P::xcells_ini) * (AMRm*P::ycells_ini) * (AMRm * P::zcells_ini);
          startindex = endindex;
@@ -1649,6 +1649,8 @@ bool writeRestart(
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("max_fields_dt",CellParams::MAXFDT,1));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_drift",CellParams::BULKV_FORCING_X,3));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_bulk_forcing_flag",CellParams::FORCING_CELL_NUM,1));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_alpha",CellParams::AMR_ALPHA,1));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_jperb",CellParams::AMR_JPERB,1));
    restartReducer.addOperator(new DRO::VariableBVol);
    restartReducer.addMetadata(restartReducer.size()-1,"T","$\\mathrm{T}$","$B_\\mathrm{vol,vg}$","1.0");
    restartReducer.addOperator(new DRO::MPIrank);

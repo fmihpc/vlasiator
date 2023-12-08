@@ -55,13 +55,16 @@ tasks_per_node=$(echo $units_per_node $t  | gawk '{print $1/$2}')
 export OMP_NUM_THREADS=$t
 
 #command for running stuff
-run_command="mpirun -mca pml ucx --mca btl ^vader,tcp,openib -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_TLS=rc,sm -x UCX_IB_ADDR_TYPE=ib_global -np $tasks"
-small_run_command="mpirun -mca pml ucx --mca btl ^vader,tcp,openib -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_TLS=rc,sm -x UCX_IB_ADDR_TYPE=ib_global -n 1 -N 1"
+run_command="mpirun --mca btl self -mca pml ^vader,tcp,openib,uct,yalla -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_TLS=rc,sm -x UCX_IB_ADDR_TYPE=ib_global -np $tasks"
+small_run_command="mpirun --mca btl self -mca pml ^vader,tcp,openib,uct,yalla -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_TLS=rc,sm -x UCX_IB_ADDR_TYPE=ib_global -n 1 -N 1"
 run_command_tools="srun --mpi=pmix_v3 -n 1 "
 
 umask 007
 # Launch the OpenMP job to the allocated compute node
 echo "Running $exec on $tasks mpi tasks, with $t threads per task on $nodes nodes ($ht threads per physical core)"
+
+# Print the used node
+hostname
 
 # Define test
 source small_test_definitions.sh
@@ -77,6 +80,7 @@ fi
 
 # Get absolute paths
 reference_dir=$( readlink -f $reference_dir )
+reference_revision_full=$( readlink $reference_dir/$reference_revision )
 run_dir=$( readlink -f $run_dir )_$( date +%Y.%m.%d_%H.%M.%S )
 bin=$( readlink -f $bin )
 diffbin=$( readlink -f $diffbin )
@@ -86,9 +90,10 @@ flags=$(  $run_command $bin  --version |grep CXXFLAGS)
 solveropts=$(echo $flags|sed 's/[-+]//g' | gawk '{for(i = 1;i<=NF;i++) { if( $i=="DDP" || $i=="DFP" || index($i,"PF")|| index($i,"DVEC") || index($i,"SEMILAG") ) printf "__%s", $(i) }}')
 revision=$( $run_command $bin --version |gawk '{if(flag==1) {print $1;flag=0}if ($3=="log") flag=1;}' )
 
-$small_run_command $bin --version > VERSION.txt 2> $GITHUB_WORKSPACE/stderr.txt
+#$small_run_command $bin --version > VERSION.txt 2> $GITHUB_WORKSPACE/stderr.txt
 
 echo -e "### Testpackage output:\n" >> $GITHUB_STEP_SUMMARY
+echo "CI_reference pointed to $reference_revision_full" >> $GITHUB_STEP_SUMMARY
 
 NONZEROTESTS=0
 ZEROTESTS=0
@@ -125,6 +130,10 @@ for run in ${run_tests[*]}; do
 
    # Store error return value
    RUN_ERROR=${PIPESTATUS[0]}
+   # Fore set to error if output file does not exist
+   if [ ! -f ${vlsv_dir}/${comparison_vlsv[$run]} ]; then
+       RUN_ERROR=1
+   fi
 
    if [[ $RUN_ERROR != 0 ]]; then
       echo -e "<details><summary>:red_circle: ${test_name[$run]}: Failed to run or died with an error.</summary>\n"  >> $GITHUB_STEP_SUMMARY
@@ -143,15 +152,18 @@ for run in ${run_tests[*]}; do
    test -e test_postproc.sh && ./test_postproc.sh
 
    ##Compare test case with right solutions
-   {
+   { {
    echo "--------------------------------------------------------------------------------------------"
    echo "${test_name[$run]}  -  Verifying ${revision}_$solveropts against $reference_revision"
    echo "--------------------------------------------------------------------------------------------"
+   } 2>&1 1>&3 3>&- | tee -a $GITHUB_WORKSPACE/stderr.txt;} 3>&1 1>&2 | tee -a $GITHUB_WORKSPACE/stdout.txt
    result_dir=${reference_dir}/${reference_revision}/${test_name[$run]}
-   
+
+   { {
    echo "------------------------------------------------------------"
    echo " ref-time     |   new-time       |  speedup                |"
    echo "------------------------------------------------------------"
+   } 2>&1 1>&3 3>&- | tee -a $GITHUB_WORKSPACE/stderr.txt;} 3>&1 1>&2 | tee -a $GITHUB_WORKSPACE/stdout.txt
    if [ -e  ${result_dir}/${comparison_phiprof[$run]} ]; then
       refPerf=$(grep "Propagate   " ${result_dir}/${comparison_phiprof[$run]} | gawk '(NR==1){print $11}')
    else
@@ -165,11 +177,14 @@ for run in ${run_tests[*]}; do
    
    #print speedup if both refPerf and newPerf are numerical values
    speedup=$( echo $refPerf $newPerf |gawk '{if($2 == $2 + 0 && $1 == $1 + 0 ) print $1/$2; else print "NA"}')
+   { {
    echo  "$refPerf        $newPerf         $speedup"
    echo "------------------------------------------------------------"
    echo "  variable     |     absolute diff     |     relative diff | "
    echo "------------------------------------------------------------"
-   
+   } 2>&1 1>&3 3>&- | tee -a $GITHUB_WORKSPACE/stderr.txt;} 3>&1 1>&2 | tee -a $GITHUB_WORKSPACE/stdout.txt
+
+   {
    MAXERR=0.  # Absolute error
    MAXREL=0.  # Relative error
    MAXERRVAR=""  # Variable with max absolute error
@@ -177,6 +192,7 @@ for run in ${run_tests[*]}; do
 
    variables=(${variable_names[$run]// / })
    indices=(${variable_components[$run]// / })
+
    for i in ${!variables[*]}
    do
        if [[ "${variables[$i]}" == "fg_"* ]]
