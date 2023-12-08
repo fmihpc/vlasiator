@@ -669,7 +669,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
             // If a neighbor is across a periodic boundary, non-local, or
             // in non-periodic boundary layer 2
             // then we use the current cell as a seed for pencils
-            if (abs ( (int64_t)(myIndices[dimension] - nbrIndices[dimension]) ) > pow(2,mpiGrid.get_maximum_refinement_level()) ||
+            if (myIndices[dimension] < nbrIndices[dimension]) ||
                !mpiGrid.is_local(neighbor) ||
                !do_translate_cell(mpiGrid[neighbor]) )
             {
