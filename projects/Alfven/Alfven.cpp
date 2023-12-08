@@ -127,7 +127,7 @@ namespace projects {
       Real ksi = ((x + 0.5 * dx)  * cos(this->ALPHA) + (y + 0.5 * dy) * sin(this->ALPHA)) / this->WAVELENGTH;
       Real dBxavg = sin(2.0 * M_PI * ksi);
       Real dByavg = sin(2.0 * M_PI * ksi);
-      Real dBzavg = cos(2.0 * M_PI * ksi);      
+      Real dBzavg = cos(2.0 * M_PI * ksi);
    }
    
    void Alfven::setProjectBField(
