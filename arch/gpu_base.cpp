@@ -449,26 +449,35 @@ __host__ void gpu_compaction_allocate_vec_perthread(
    const uint vectorLength
    ) {
    gpuStream_t stream = gpu_getStream();
-   // Deallocate if: buffer exists, and: requesting zero size or size is not large enough.
+   // Deallocate if buffer exists, and requesting zero size
    if ( (gpu_compaction_vectorsize[cpuThreadID] > 0)
-        && ( (vectorLength == 0) || vectorLength > gpu_compaction_vectorsize[cpuThreadID])
-      ) {
+        && (vectorLength == 0) ) {
       delete vbwcl_gather[cpuThreadID];
       delete vbwncl_gather[cpuThreadID];
       gpu_compaction_vectorsize[cpuThreadID] = 0;
    }
-   // If buffer isn't large enough, allocate.
-   if (vectorLength > gpu_compaction_vectorsize[cpuThreadID]) {
+   // If no buffer exists, create.
+   if ( (gpu_compaction_vectorsize[cpuThreadID] == 0) &&
+        (vectorLength > 0) ) {
       const uint paddedSize = BLOCK_ALLOCATION_FACTOR * vectorLength;
       vbwcl_gather[cpuThreadID] = new split::SplitVector<vmesh::GlobalID>(paddedSize);
       vbwncl_gather[cpuThreadID] = new split::SplitVector<vmesh::GlobalID>(paddedSize);
+      vbwcl_gather[cpuThreadID]->optimizeUMGPU(stream,true); // true: leave metadata on CPU
+      vbwncl_gather[cpuThreadID]->optimizeUMGPU(stream,true);
+      gpu_compaction_vectorsize[cpuThreadID] = paddedSize;
+   }
+   // If buffer isn't large enough, resize.
+   if (vectorLength > gpu_compaction_vectorsize[cpuThreadID]) {
+      const uint paddedSize = BLOCK_ALLOCATION_FACTOR * vectorLength;
+      vbwcl_gather[cpuThreadID]->reserve(paddedSize,true,stream); // True: exact allocation
+      vbwncl_gather[cpuThreadID]->reserve(paddedSize,true,stream);
       // int device = gpu_getDevice();
       // vbwcl_gather[cpuThreadID]->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
       // vbwncl_gather[cpuThreadID]->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
       // vbwcl_gather[cpuThreadID]->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
       // vbwncl_gather[cpuThreadID]->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-      vbwcl_gather[cpuThreadID]->optimizeUMGPU(stream);
-      vbwncl_gather[cpuThreadID]->optimizeUMGPU(stream);
+      vbwcl_gather[cpuThreadID]->optimizeUMGPU(stream,true); // true: leave metadata on CPU
+      vbwncl_gather[cpuThreadID]->optimizeUMGPU(stream,true);
       gpu_compaction_vectorsize[cpuThreadID] = paddedSize;
    }
    CHK_ERR( gpuStreamSynchronize(stream) );
