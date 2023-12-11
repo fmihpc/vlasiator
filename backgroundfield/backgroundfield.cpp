@@ -41,7 +41,7 @@ void setBackgroundField(
    if(append==false) {
       setBackgroundFieldToZero(BgBGrid);
    }
-   const int* gridDims = &BgBGrid.getLocalSize()[0];
+   const FsGridTools::FsIndex_t* gridDims = &BgBGrid.getLocalSize()[0];
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
    phiprof::Timer bgTimer {"set Background field"};
    {

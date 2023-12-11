@@ -886,8 +886,8 @@ bool writeFsGridMetadata(FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technic
 
   //The visit plugin expects MESH_BBOX as a keyword. We only write one
   //from the first rank.
-  std::array<uint64_t, 3>& globalSize = technicalGrid.getGlobalSize();
-  std::array<uint64_t, 6> boundaryBox({globalSize[0], globalSize[1], globalSize[2],
+  std::array<FsGridTools::FsSize_t, 3>& globalSize = technicalGrid.getGlobalSize();
+  std::array<FsGridTools::FsSize_t, 6> boundaryBox({globalSize[0], globalSize[1], globalSize[2],
       1,1,1});
 
   if(technicalGrid.getRank() == 0) {
@@ -934,13 +934,13 @@ bool writeFsGridMetadata(FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technic
   vlsvWriter.writeArray("MESH_GHOST_LOCALIDS", xmlAttributes, 0, 1, &dummyghost);
 
   // Write cell "globalID" numbers, which are just the global array indices.
-  std::array<int32_t,3>& localSize = technicalGrid.getLocalSize();
-  std::vector<uint64_t> globalIds(localSize[0]*localSize[1]*localSize[2]);
+  std::array<FsGridTools::FsIndex_t,3>& localSize = technicalGrid.getLocalSize();
+  std::vector<FsGridTools::FsIndex_t> globalIds(localSize[0]*localSize[1]*localSize[2]);
   int i=0;
   for(int z=0; z<localSize[2]; z++) {
     for(int y=0; y<localSize[1]; y++) {
       for(int x=0; x<localSize[0]; x++) {
-        std::array<int32_t,3> globalIndex = technicalGrid.getGlobalIndices(x,y,z);
+        std::array<FsGridTools::FsIndex_t,3> globalIndex = technicalGrid.getGlobalIndices(x,y,z);
         globalIds[i++] = globalIndex[2]*globalSize[0]*globalSize[1]+
           globalIndex[1]*globalSize[0] +
           globalIndex[0];
@@ -950,7 +950,7 @@ bool writeFsGridMetadata(FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technic
 
 
   // writeDomainSizes
-  std::array<uint64_t,2> meshDomainSize({globalIds.size(), 0});
+  std::array<size_t,2> meshDomainSize({globalIds.size(), 0});
   vlsvWriter.writeArray("MESH_DOMAIN_SIZES", xmlAttributes, 1, 2, &meshDomainSize[0]);
 
   // how many MPI ranks we wrote from
@@ -959,7 +959,7 @@ bool writeFsGridMetadata(FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technic
   vlsvWriter.writeParameter("numWritingRanks", &size);
 
   // Save the FSgrid decomposition
-  std::array<int, 3> decom = technicalGrid.getDecomposition();
+  std::array<FsGridTools::Task_t, 3> decom = technicalGrid.getDecomposition();
   if(technicalGrid.getRank() == 0) {
       vlsvWriter.writeArray("MESH_DECOMPOSITION", xmlAttributes, 3u, 1u, &decom[0]);
   }
@@ -1679,12 +1679,12 @@ bool writeRestart(
                       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<Real> {
-            std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+            std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
             std::vector<Real> retval(gridSize[0]*gridSize[1]*gridSize[2]*fsgrids::efield::N_EFIELD);
             int index=0;
-            for(int z=0; z<gridSize[2]; z++) {
-               for(int y=0; y<gridSize[1]; y++) {
-                  for(int x=0; x<gridSize[0]; x++) {
+            for(FsGridTools::FsIndex_t z=0; z<gridSize[2]; z++) {
+               for(FsGridTools::FsIndex_t y=0; y<gridSize[1]; y++) {
+                  for(FsGridTools::FsIndex_t x=0; x<gridSize[0]; x++) {
                      std::memcpy(&retval[index], EGrid.get(x,y,z), sizeof(Real)*fsgrids::efield::N_EFIELD);
                      index += fsgrids::efield::N_EFIELD;
                   }
@@ -1705,12 +1705,12 @@ bool writeRestart(
                       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<Real> {
-            std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+            std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
             std::vector<Real> retval(gridSize[0]*gridSize[1]*gridSize[2]*fsgrids::bfield::N_BFIELD);
             int index=0;
-            for(int z=0; z<gridSize[2]; z++) {
-               for(int y=0; y<gridSize[1]; y++) {
-                  for(int x=0; x<gridSize[0]; x++) {
+            for(FsGridTools::FsIndex_t z=0; z<gridSize[2]; z++) {
+               for(FsGridTools::FsIndex_t y=0; y<gridSize[1]; y++) {
+                  for(FsGridTools::FsIndex_t x=0; x<gridSize[0]; x++) {
                      std::memcpy(&retval[index], perBGrid.get(x,y,z), sizeof(Real)*fsgrids::bfield::N_BFIELD);
                      index += fsgrids::bfield::N_BFIELD;
                   }

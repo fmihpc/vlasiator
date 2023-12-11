@@ -36,8 +36,8 @@ typedef float TReal;
 
 // Get the (integer valued) global fsgrid cell index (i,j,k) for the magnetic-field traced mapping point that node n is
 // associated with
-template<class T> std::array<int32_t, 3> getGlobalFsGridCellIndexForCoord(T& grid,const std::array<Real, 3>& x) {
-   std::array<int32_t, 3> retval;
+template<class T> std::array<int64_t, 3> getGlobalFsGridCellIndexForCoord(T& grid,const std::array<Real, 3>& x) {
+   std::array<int64_t, 3> retval;
    retval[0] = floor((x[0] - grid.physicalGlobalStart[0]) / grid.DX);
    retval[1] = floor((x[1] - grid.physicalGlobalStart[1]) / grid.DY);
    retval[2] = floor((x[2] - grid.physicalGlobalStart[2]) / grid.DZ);
@@ -45,24 +45,24 @@ template<class T> std::array<int32_t, 3> getGlobalFsGridCellIndexForCoord(T& gri
 }
 // Get the (integer valued) local fsgrid cell index (i,j,k) for the magnetic-field traced mapping point that node n is
 // associated with If the cell is not in our local domain, will return {-1,-1,-1}
-template<class T> std::array<int32_t, 3> getLocalFsGridCellIndexForCoord(T& grid, const std::array<Real, 3>& x) {
-   std::array<int32_t, 3> retval = getGlobalFsGridCellIndexForCoord(grid,x);
+template<class T> std::array<int64_t, 3> getLocalFsGridCellIndexForCoord(T& grid, const std::array<Real, 3>& x) {
+   std::array<int64_t, 3> retval = getGlobalFsGridCellIndexForCoord(grid,x);
    retval = grid.globalToLocal(retval[0], retval[1], retval[2]);
    return retval;
 }
 // Get the (integer valued) local fsgrid cell index (i,j,k) for the magnetic-field traced mapping point that node n is associated with
 // This includes indices beyond local size (positive and negative) as we need to access ghost cells
-template<class T> std::array<int32_t, 3> getLocalFsGridCellIndexWithGhostsForCoord(T& grid, const std::array<Real, 3>& x) {
-   std::array<int32_t, 3> retval = getGlobalFsGridCellIndexForCoord(grid,x);
-   const std::array<int32_t, 3> localStart = grid.getLocalStart();
-   retval = {retval[0]-localStart[0], retval[1]-localStart[1], retval[2]-localStart[2]};
+template<class T> std::array<int64_t, 3> getLocalFsGridCellIndexWithGhostsForCoord(T& grid, const std::array<Real, 3>& x) {
+   std::array<int64_t, 3> retval = getGlobalFsGridCellIndexForCoord(grid,x);
+   const std::array<FsGridTools::FsIndex_t, 3> localStart = grid.getLocalStart();
+   retval = {retval[0]-(int64_t)localStart[0], retval[1]-(int64_t)localStart[1], retval[2]-(int64_t)localStart[2]};
    return retval;
 }
 // Get the fraction fsgrid cell index for the magnetic-field traced mapping point that node n is associated with.
 // Note that these are floating point values between 0 and 1
 template<class T> std::array<Real, 3> getFractionalFsGridCellForCoord(T& grid, const std::array<Real, 3>& x) {
    std::array<Real, 3> retval;
-   std::array<int, 3> fsgridCell = getGlobalFsGridCellIndexForCoord(grid,x);
+   std::array<int64_t, 3> fsgridCell = getGlobalFsGridCellIndexForCoord(grid,x);
    retval[0] = (x[0] - grid.physicalGlobalStart[0]) / grid.DX - fsgridCell[0];
    retval[1] = (x[1] - grid.physicalGlobalStart[1]) / grid.DY - fsgridCell[1];
    retval[2] = (x[2] - grid.physicalGlobalStart[2]) / grid.DZ - fsgridCell[2];
@@ -175,9 +175,9 @@ namespace FieldTracing {
       b[1] = SBC::ionosphereGrid.dipoleField(r[0],r[1],r[2],Y,0,Y) + SBC::ionosphereGrid.BGB[1];
       b[2] = SBC::ionosphereGrid.dipoleField(r[0],r[1],r[2],Z,0,Z) + SBC::ionosphereGrid.BGB[2];
       
-      std::array<int32_t, 3> fsgridCell = getGlobalFsGridCellIndexForCoord(technicalGrid,{(TReal)r[0], (TReal)r[1], (TReal)r[2]});
-      const std::array<int32_t, 3> localStart = technicalGrid.getLocalStart();
-      const std::array<int32_t, 3> localSize = technicalGrid.getLocalSize();
+      std::array<int64_t, 3> fsgridCell = getGlobalFsGridCellIndexForCoord(technicalGrid,{(TReal)r[0], (TReal)r[1], (TReal)r[2]});
+      const std::array<FsGridTools::FsIndex_t, 3> localStart = technicalGrid.getLocalStart();
+      const std::array<FsGridTools::FsIndex_t, 3> localSize = technicalGrid.getLocalSize();
       // Make the global index a local one, bypass the fsgrid function that yields (-1,-1,-1) also for ghost cells.
       fsgridCell[0] -= localStart[0];
       fsgridCell[1] -= localStart[1];

@@ -57,21 +57,21 @@ template <typename T, int stencil> void computeCoupling(dccrg::Dccrg<SpatialCell
   
   
   //size of fsgrid local part
-  const std::array<int, 3> gridDims(momentsGrid.getLocalSize());
+  const std::array<FsGridTools::FsIndex_t, 3> gridDims(momentsGrid.getLocalSize());
   
  
   //Compute what we will receive, and where it should be stored
-  for (int k=0; k<gridDims[2]; k++) {
-    for (int j=0; j<gridDims[1]; j++) {
-      for (int i=0; i<gridDims[0]; i++) {
-        const std::array<int, 3> globalIndices = momentsGrid.getGlobalIndices(i,j,k);
+  for (FsGridTools::FsIndex_t k=0; k<gridDims[2]; k++) {
+    for (FsGridTools::FsIndex_t j=0; j<gridDims[1]; j++) {
+      for (FsGridTools::FsIndex_t i=0; i<gridDims[0]; i++) {
+        const std::array<FsGridTools::FsIndex_t, 3> globalIndices = momentsGrid.getGlobalIndices(i,j,k);
         const dccrg::Types<3>::indices_t  indices = {{(uint64_t)globalIndices[0],
                         (uint64_t)globalIndices[1],
                         (uint64_t)globalIndices[2]}}; //cast to avoid warnings
         CellID dccrgCell = mpiGrid.get_existing_cell(indices, 0, mpiGrid.mapping.get_maximum_refinement_level());
         
         int process = mpiGrid.get_process(dccrgCell);
-        int64_t  fsgridLid = momentsGrid.LocalIDForCoords(i,j,k);
+        FsGridTools::LocalID fsgridLid = momentsGrid.LocalIDForCoords(i,j,k);
         //int64_t  fsgridGid = momentsGrid.GlobalIDForCoords(i,j,k);
         onFsgridMapRemoteProcess[process].insert(dccrgCell); //cells are ordered (sorted) in set
         onFsgridMapCells[dccrgCell].push_back(fsgridLid);
@@ -143,7 +143,7 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
 
    // Get size of local domain and create swapGrid for filtering
-   const int *mntDims= &momentsGrid.getLocalSize()[0];  
+   const FsGridTools::FsIndex_t* mntDims = &momentsGrid.getLocalSize()[0];  
    FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> swapGrid = momentsGrid;  //swap array 
 
    // Filtering Loop
@@ -151,9 +151,9 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
       // Blurring Pass
       #pragma omp parallel for collapse(2)
-      for (int k = 0; k < mntDims[2]; k++){
-         for (int j = 0; j < mntDims[1]; j++){
-            for (int i = 0; i < mntDims[0]; i++){
+      for (FsGridTools::FsIndex_t k = 0; k < mntDims[2]; k++){
+         for (FsGridTools::FsIndex_t j = 0; j < mntDims[1]; j++){
+            for (FsGridTools::FsIndex_t i = 0; i < mntDims[0]; i++){
 
                //  Get refLevel level
                int refLevel = technicalGrid.get(i, j, k)->refLevel;
@@ -165,7 +165,7 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
                // Get pointers to our cells
                std::array<Real, fsgrids::moments::N_MOMENTS> *cell;  
-               std::array<Real,fsgrids::moments::N_MOMENTS> *swap;
+               std::array<Real, fsgrids::moments::N_MOMENTS> *swap;
             
                // Set Cell to zero before passing filter
                swap = swapGrid.get(i,j,k);

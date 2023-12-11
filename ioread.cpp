@@ -329,7 +329,12 @@ bool readScalarParameter(vlsv::ParallelReader& file,string name,T& value,int mas
 template <typename T>
 bool checkScalarParameter(vlsv::ParallelReader& file,const string& name,T correctValue,int masterRank,MPI_Comm comm) {
    T value;
-   readScalarParameter(file,name,value,masterRank,comm);
+   if (readScalarParameter(file,name,value,masterRank,comm) == false) {
+      ostringstream s;
+      s << "(RESTART) ERROR: Failed to read parameter '" << name << "' value in " << __FILE__ << ":" << __LINE__ << endl;
+      exitOnError(false, s.str(), MPI_COMM_WORLD);
+      return false;
+   }
    if (value != correctValue){
       ostringstream s;
       s << "(RESTART) Parameter " << name << " has mismatching value.";
@@ -339,7 +344,6 @@ bool checkScalarParameter(vlsv::ParallelReader& file,const string& name,T correc
       return false;
    }
    else{
-      exitOnError(true,"",MPI_COMM_WORLD);
       return true;
    }
 }
@@ -857,9 +861,9 @@ template<unsigned long int N> bool readFsGridVariable(
    MPI_Comm_size(MPI_COMM_WORLD, &size);
    MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
 
-   std::array<int32_t,3>& localSize = targetGrid.getLocalSize();
-   std::array<int32_t,3>& localStart = targetGrid.getLocalStart();
-   std::array<uint64_t,3>& globalSize = targetGrid.getGlobalSize();
+   std::array<FsGridTools::FsIndex_t,3>& localSize = targetGrid.getLocalSize();
+   std::array<FsGridTools::FsIndex_t,3>& localStart = targetGrid.getLocalStart();
+   std::array<FsGridTools::FsSize_t,3>& globalSize = targetGrid.getGlobalSize();
 
    // Determine our tasks storage size
    size_t storageSize = localSize[0]*localSize[1]*localSize[2];
@@ -867,7 +871,7 @@ template<unsigned long int N> bool readFsGridVariable(
    preparations.stop();
 
 
-   std::array<int,3> fileDecomposition={0,0,0};
+   std::array<FsGridTools::Task_t,3> fileDecomposition={0,0,0};
    if(P::manualRestartFsGridDecomposition == fileDecomposition){
       getFsgridDecomposition(file, fileDecomposition);
    }
@@ -882,7 +886,7 @@ template<unsigned long int N> bool readFsGridVariable(
       }
    }
 
-   std::array<int,3> decomposition = targetGrid.getDecomposition();
+   std::array<FsGridTools::Task_t,3> decomposition = targetGrid.getDecomposition();
    // targetGrid.computeDomainDecomposition(globalSize, size, decomposition);
 
    if(decomposition == fileDecomposition) {
@@ -892,7 +896,7 @@ template<unsigned long int N> bool readFsGridVariable(
       // Determine offset in file by summing up all the previous tasks' sizes.
       size_t localStartOffset = 0;
       for(int task = 0; task < myRank; task++) {
-         std::array<int32_t,3> thatTasksSize;
+         std::array<FsGridTools::Task_t,3> thatTasksSize;
          thatTasksSize[0] = targetGrid.calcLocalSize(globalSize[0], decomposition[0], task/decomposition[2]/decomposition[1]);
          thatTasksSize[1] = targetGrid.calcLocalSize(globalSize[1], decomposition[1], (task/decomposition[2])%decomposition[1]);
          thatTasksSize[2] = targetGrid.calcLocalSize(globalSize[2], decomposition[2], task%decomposition[2]);
@@ -909,9 +913,9 @@ template<unsigned long int N> bool readFsGridVariable(
       
       // Assign buffer into fsgrid
       int index=0;
-      for(int z=0; z<localSize[2]; z++) {
-         for(int y=0; y<localSize[1]; y++) {
-            for(int x=0; x<localSize[0]; x++) {
+      for(FsGridTools::Task_t z=0; z<localSize[2]; z++) {
+         for(FsGridTools::Task_t y=0; y<localSize[1]; y++) {
+            for(FsGridTools::Task_t x=0; x<localSize[0]; x++) {
                memcpy(targetGrid.get(x,y,z), &buffer[index], N*sizeof(Real));
                index += N;
             }
@@ -953,8 +957,8 @@ template<unsigned long int N> bool readFsGridVariable(
 
          phiprof::Timer taskArithmetics1 {"task overlap arithmetics 1"};
 
-         std::array<int32_t,3> thatTasksSize;
-         std::array<int32_t,3> thatTasksStart;
+         std::array<FsGridTools::FsIndex_t,3> thatTasksSize;
+         std::array<FsGridTools::FsIndex_t,3> thatTasksStart;
          thatTasksSize[0] = targetGrid.calcLocalSize(globalSize[0], fileDecomposition[0], task/fileDecomposition[2]/fileDecomposition[1]);
          thatTasksSize[1] = targetGrid.calcLocalSize(globalSize[1], fileDecomposition[1], (task/fileDecomposition[2])%fileDecomposition[1]);
          thatTasksSize[2] = targetGrid.calcLocalSize(globalSize[2], fileDecomposition[2], task%fileDecomposition[2]);
@@ -964,7 +968,7 @@ template<unsigned long int N> bool readFsGridVariable(
          thatTasksStart[2] = targetGrid.calcLocalStart(globalSize[2], fileDecomposition[2], task%fileDecomposition[2]);
 
          // Iterate through overlap area
-         std::array<int,3> overlapStart,overlapEnd,overlapSize;
+         std::array<FsGridTools::FsIndex_t,3> overlapStart,overlapEnd,overlapSize;
          overlapStart[0] = max(localStart[0],thatTasksStart[0]);
          overlapStart[1] = max(localStart[1],thatTasksStart[1]);
          overlapStart[2] = max(localStart[2],thatTasksStart[2]);
@@ -973,9 +977,9 @@ template<unsigned long int N> bool readFsGridVariable(
          overlapEnd[1] = min(localStart[1]+localSize[1], thatTasksStart[1]+thatTasksSize[1]);
          overlapEnd[2] = min(localStart[2]+localSize[2], thatTasksStart[2]+thatTasksSize[2]);
 
-         overlapSize[0] = max(overlapEnd[0]-overlapStart[0],0);
-         overlapSize[1] = max(overlapEnd[1]-overlapStart[1],0);
-         overlapSize[2] = max(overlapEnd[2]-overlapStart[2],0);
+         overlapSize[0] = max(overlapEnd[0]-overlapStart[0],(FsGridTools::FsIndex_t)0);
+         overlapSize[1] = max(overlapEnd[1]-overlapStart[1],(FsGridTools::FsIndex_t)0);
+         overlapSize[2] = max(overlapEnd[2]-overlapStart[2],(FsGridTools::FsIndex_t)0);
 
          taskArithmetics1.stop();
 
@@ -1028,8 +1032,8 @@ template<unsigned long int N> bool readFsGridVariable(
 
          phiprof::Timer taskArithmetics2 {"task overlap arithmetics 2"};
 
-         std::array<int32_t,3> thatTasksSize;
-         std::array<int32_t,3> thatTasksStart;
+         std::array<FsGridTools::FsIndex_t,3> thatTasksSize;
+         std::array<FsGridTools::FsIndex_t,3> thatTasksStart;
          thatTasksSize[0] = targetGrid.calcLocalSize(globalSize[0], fileDecomposition[0], task/fileDecomposition[2]/fileDecomposition[1]);
          thatTasksSize[1] = targetGrid.calcLocalSize(globalSize[1], fileDecomposition[1], (task/fileDecomposition[2])%fileDecomposition[1]);
          thatTasksSize[2] = targetGrid.calcLocalSize(globalSize[2], fileDecomposition[2], task%fileDecomposition[2]);
@@ -1039,7 +1043,7 @@ template<unsigned long int N> bool readFsGridVariable(
          thatTasksStart[2] = targetGrid.calcLocalStart(globalSize[2], fileDecomposition[2], task%fileDecomposition[2]);
 
          // Iterate through overlap area
-         std::array<int,3> overlapStart,overlapEnd,overlapSize;
+         std::array<FsGridTools::FsIndex_t,3> overlapStart,overlapEnd,overlapSize;
          overlapStart[0] = max(localStart[0],thatTasksStart[0]);
          overlapStart[1] = max(localStart[1],thatTasksStart[1]);
          overlapStart[2] = max(localStart[2],thatTasksStart[2]);
@@ -1048,9 +1052,9 @@ template<unsigned long int N> bool readFsGridVariable(
          overlapEnd[1] = min(localStart[1]+localSize[1], thatTasksStart[1]+thatTasksSize[1]);
          overlapEnd[2] = min(localStart[2]+localSize[2], thatTasksStart[2]+thatTasksSize[2]);
 
-         overlapSize[0] = max(overlapEnd[0]-overlapStart[0],0);
-         overlapSize[1] = max(overlapEnd[1]-overlapStart[1],0);
-         overlapSize[2] = max(overlapEnd[2]-overlapStart[2],0);
+         overlapSize[0] = max(overlapEnd[0]-overlapStart[0],(FsGridTools::FsIndex_t)0);
+         overlapSize[1] = max(overlapEnd[1]-overlapStart[1],(FsGridTools::FsIndex_t)0);
+         overlapSize[2] = max(overlapEnd[2]-overlapStart[2],(FsGridTools::FsIndex_t)0);
 
          taskArithmetics2.stop();
 
@@ -1060,7 +1064,7 @@ template<unsigned long int N> bool readFsGridVariable(
          // Read every source rank that we have an overlap with.
          if(overlapSize[0]*overlapSize[1]*overlapSize[2] > 0) {
             if(convertFloatType) {
-               for(uint64_t i=0; i< thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N; i++) {
+               for(FsGridTools::FsIndex_t i=0; i< thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N; i++) {
                   vectorOfBuffers.at(task).at(i)=vectorOfFloatBuffers.at(task).at(i);
                }
             }
@@ -1466,7 +1470,7 @@ bool readFileCells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 }
 
 
-bool getFsgridDecomposition(vlsv::ParallelReader& file, std::array<int,3>& buffer){
+bool getFsgridDecomposition(vlsv::ParallelReader& file, std::array<FsGridTools::Task_t,3>& decomposition){
    list<pair<string,string> > attribs;
    uint64_t arraySize;
    uint64_t vectorSize;
@@ -1477,15 +1481,15 @@ bool getFsgridDecomposition(vlsv::ParallelReader& file, std::array<int,3>& buffe
 
    attribs.push_back(make_pair("mesh","fsgrid"));
 
-   std::array<uint64_t,3> gridSize;
-   uint64_t* gridSizePtr = &gridSize[0];
+   std::array<FsGridTools::FsSize_t,3> gridSize;
+   FsGridTools::FsSize_t* gridSizePtr = &gridSize[0];
    bool success = file.read("MESH_BBOX",attribs, 0, 3, gridSizePtr, false);
    if(success == false){
       exitOnError(false, "(RESTART) FSGrid gridsize not found in file.", MPI_COMM_WORLD);
    }
 
-   std::array<int,3> fsGridDecomposition={0,0,0}; 
-   int* ptr = &fsGridDecomposition[0];
+   std::array<FsGridTools::Task_t,3> fsGridDecomposition={0,0,0}; 
+   FsGridTools::Task_t* ptr = &fsGridDecomposition[0];
 
    success = file.read("MESH_DECOMPOSITION",attribs, 0, 3, ptr, false);
    if (success == false) {
@@ -1497,16 +1501,15 @@ bool getFsgridDecomposition(vlsv::ParallelReader& file, std::array<int,3>& buffe
       if(readScalarParameter(file,"numWritingRanks",fsgridInputRanks, MASTER_RANK, MPI_COMM_WORLD) == false) {
          exitOnError(false, "(RESTART) FSGrid writing rank number not found in restart file", MPI_COMM_WORLD);
       }
-      FsGridTools::computeDomainDecomposition(gridSize, fsgridInputRanks, buffer, FS_STENCIL_WIDTH, true);
-      logFile << "(RESTART) Fsgrid decomposition computed as " << buffer[0] << " " << buffer[1] << " " <<buffer[2] << "\n";
+      FsGridTools::computeLegacyDomainDecomposition(gridSize, fsgridInputRanks, decomposition, FS_STENCIL_WIDTH, true);
+      logFile << "(RESTART) Fsgrid decomposition computed as " << decomposition[0] << " " << decomposition[1] << " " <<decomposition[2] << "\n";
       computeDomainDecomposition.stop();
       return true;   
-   }
-   else{
-      buffer[0] = fsGridDecomposition[0];
-      buffer[1] = fsGridDecomposition[1];
-      buffer[2] = fsGridDecomposition[2];
-      logFile << "(RESTART) Fsgrid decomposition read as " << buffer[0] << " " << buffer[1] << " " <<buffer[2] << "\n";
+   } else {
+      decomposition[0] = fsGridDecomposition[0];
+      decomposition[1] = fsGridDecomposition[1];
+      decomposition[2] = fsGridDecomposition[2];
+      logFile << "(RESTART) Fsgrid decomposition read as " << decomposition[0] << " " << decomposition[1] << " " <<decomposition[2] << "\n";
       computeDomainDecomposition.stop();
       return true;
    }

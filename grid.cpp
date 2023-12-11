@@ -1373,14 +1373,14 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
 
 void mapRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
    phiprof::Timer timer {"Map Refinement Level to FsGrid"};
-   const int *localDims = &technicalGrid.getLocalSize()[0];
+   const FsGridTools::FsIndex_t *localDims = &technicalGrid.getLocalSize()[0];
 
    // #pragma omp parallel for collapse(3)
-   for (int k=0; k<localDims[2]; k++) {
-      for (int j=0; j<localDims[1]; j++) {
-         for (int i=0; i<localDims[0]; i++) {
+   for (FsGridTools::FsIndex_t k=0; k<localDims[2]; k++) {
+      for (FsGridTools::FsIndex_t j=0; j<localDims[1]; j++) {
+         for (FsGridTools::FsIndex_t i=0; i<localDims[0]; i++) {
 
-            const std::array<int, 3> mapIndices = technicalGrid.getGlobalIndices(i,j,k);
+            const std::array<FsGridTools::FsIndex_t, 3> mapIndices = technicalGrid.getGlobalIndices(i,j,k);
             const dccrg::Types<3>::indices_t  indices = {{(uint64_t)mapIndices[0],(uint64_t)mapIndices[1],(uint64_t)mapIndices[2]}}; //cast to avoid warnings
             CellID dccrgCellID2 = mpiGrid.get_existing_cell(indices, 0, mpiGrid.mapping.get_maximum_refinement_level());
             int amrLevel= mpiGrid.get_refinement_level(dccrgCellID2);

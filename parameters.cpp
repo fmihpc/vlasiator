@@ -187,8 +187,8 @@ Realf P::amrBoxCenterZ = 0.0;
 vector<string> P::blurPassString;
 std::vector<int> P::numPasses; //numpasses
 
-std::array<int,3> P::manualFsGridDecomposition = {-1,-1,-1};
-std::array<int,3> P::manualRestartFsGridDecomposition = {-1,-1,-1};
+std::array<FsGridTools::Task_t,3> P::manualFsGridDecomposition = {0,0,0};
+std::array<FsGridTools::Task_t,3> P::manualRestartFsGridDecomposition = {0,0,0};
 
 std::string tracerString; /*!< Fieldline tracer to use for coupling ionosphere and magnetosphere */
 bool P::computeCurvature;
@@ -698,13 +698,13 @@ void Parameters::getParameters() {
       cerr << "ERROR all of restart.manualRestartFsGridDecompositionX,Y,Z should be defined." << endl;
       MPI_Abort(MPI_COMM_WORLD, 1);
    }   
-   int temp;
-   RP::get("restart.manualRestartFsGridDecompositionX", temp);
-   P::manualRestartFsGridDecomposition[0] = temp;
-   RP::get("restart.manualRestartFsGridDecompositionY", temp);
-   P::manualRestartFsGridDecomposition[1] = temp;
-   RP::get("restart.manualRestartFsGridDecompositionZ", temp);
-   P::manualRestartFsGridDecomposition[2] = temp;
+   FsGridTools::Task_t temp_task_t;
+   RP::get("restart.manualRestartFsGridDecompositionX", temp_task_t);
+   P::manualRestartFsGridDecomposition[0] = temp_task_t;
+   RP::get("restart.manualRestartFsGridDecompositionY", temp_task_t);
+   P::manualRestartFsGridDecomposition[1] = temp_task_t;
+   RP::get("restart.manualRestartFsGridDecompositionZ", temp_task_t);
+   P::manualRestartFsGridDecomposition[2] = temp_task_t;
 
    RP::get("project", P::projectName);
    if (RP::helpRequested) {
@@ -888,12 +888,12 @@ void Parameters::getParameters() {
       cerr << "ERROR all of fieldsolver.manualFsGridDecompositionX,Y,Z should be defined." << endl;
       MPI_Abort(MPI_COMM_WORLD, 1);
    }   
-   RP::get("fieldsolver.manualFsGridDecompositionX", temp);
-   P::manualFsGridDecomposition[0] = temp;
-   RP::get("fieldsolver.manualFsGridDecompositionY", temp);
-   P::manualFsGridDecomposition[1] = temp;
-   RP::get("fieldsolver.manualFsGridDecompositionZ", temp);
-   P::manualFsGridDecomposition[2] = temp;
+   RP::get("fieldsolver.manualFsGridDecompositionX", temp_task_t);
+   P::manualFsGridDecomposition[0] = temp_task_t;
+   RP::get("fieldsolver.manualFsGridDecompositionY", temp_task_t);
+   P::manualFsGridDecomposition[1] = temp_task_t;
+   RP::get("fieldsolver.manualFsGridDecompositionZ", temp_task_t);
+   P::manualFsGridDecomposition[2] = temp_task_t;
 
    
 

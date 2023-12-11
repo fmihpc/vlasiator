@@ -127,9 +127,9 @@ namespace projects {
          vector<Real> outputPerBy(P::xcells_ini, 0.0);
          vector<Real> outputPerBz(P::xcells_ini, 0.0);
          
-         const std::array<int32_t, 3> localSize = perBGrid.getLocalSize();
-         const std::array<int32_t, 3> localStart = perBGrid.getLocalStart();
-         for (int x = 0; x < localSize[0]; ++x) {
+         const std::array<FsGridTools::FsIndex_t, 3> localSize = perBGrid.getLocalSize();
+         const std::array<FsGridTools::FsIndex_t, 3> localStart = perBGrid.getLocalStart();
+         for (uint64_t x = 0; x < localSize[0]; ++x) {
             localPerBx[x + localStart[0]] = perBGrid.get(x, 0, 0)->at(fsgrids::bfield::PERBX);
             localPerBy[x + localStart[0]] = perBGrid.get(x, 0, 0)->at(fsgrids::bfield::PERBY);
             localPerBz[x + localStart[0]] = perBGrid.get(x, 0, 0)->at(fsgrids::bfield::PERBZ);

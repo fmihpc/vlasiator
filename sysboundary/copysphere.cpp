@@ -210,7 +210,7 @@ namespace SBC {
       creal dx = technicalGrid.DX;
       creal dy = technicalGrid.DY;
       creal dz = technicalGrid.DZ;
-      const std::array<int, 3> globalIndices = technicalGrid.getGlobalIndices(i,j,k);
+      const std::array<FsGridTools::FsIndex_t, 3> globalIndices = technicalGrid.getGlobalIndices(i,j,k);
       creal x = P::xmin + (convert<Real>(globalIndices[0])+0.5)*dx;
       creal y = P::ymin + (convert<Real>(globalIndices[1])+0.5)*dy;
       creal z = P::zmin + (convert<Real>(globalIndices[2])+0.5)*dz;

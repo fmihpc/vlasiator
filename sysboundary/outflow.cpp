@@ -207,10 +207,10 @@ namespace SBC {
       }
       
       // Assign boundary flags to local fsgrid cells
-      const array<int, 3> gridDims(technicalGrid.getLocalSize());  
-      for (int k=0; k<gridDims[2]; k++) {
-         for (int j=0; j<gridDims[1]; j++) {
-            for (int i=0; i<gridDims[0]; i++) {
+      const array<FsGridTools::FsIndex_t, 3> gridDims(technicalGrid.getLocalSize());  
+      for (FsGridTools::FsIndex_t k=0; k<gridDims[2]; k++) {
+         for (FsGridTools::FsIndex_t j=0; j<gridDims[1]; j++) {
+            for (FsGridTools::FsIndex_t i=0; i<gridDims[0]; i++) {
                const auto& coords = technicalGrid.getPhysicalCoords(i,j,k);
 
                // Shift to the center of the fsgrid cell
