@@ -280,7 +280,7 @@ bool HandleFsGrid(const string& inputFileName,
 
 }
 
-bool getFsgridDecomposition(vlsvinterface::Reader& file, std::array<int,3>& buffer){
+bool getFsgridDecomposition(vlsvinterface::Reader& file, std::array<int,3>& decomposition){
    list<pair<string,string> > attribs;
    uint64_t arraySize;
    uint64_t vectorSize;
@@ -289,15 +289,15 @@ bool getFsgridDecomposition(vlsvinterface::Reader& file, std::array<int,3>& buff
 
    attribs.push_back(make_pair("mesh","fsgrid"));
 
-   std::array<uint64_t,3> gridSize;
-   uint64_t* gridSizePtr = &gridSize[0];
+   std::array<FsGridTools::FsSize_t,3> gridSize;
+   FsGridTools::FsSize_t* gridSizePtr = &gridSize[0];
    bool success = file.read("MESH_BBOX",attribs, 0, 3, gridSizePtr, false);
    if(success == false){
       std::cerr << "Could not read MESH_BBOX from file" << endl;
       exit(1);
    }
 
-   std::array<int,3> fsGridDecomposition={0,0,0}; 
+   std::array<FsGridTools::Task_t,3> fsGridDecomposition={0,0,0}; 
    int* ptr = &fsGridDecomposition[0];
 
    success = file.read("MESH_DECOMPOSITION",attribs, 0, 3, ptr, false);
@@ -311,15 +311,15 @@ bool getFsgridDecomposition(vlsvinterface::Reader& file, std::array<int,3>& buff
          std::cerr << "FSGrid writing rank number not found in restart file" << endl;
          exit(1);
       }
-      FsGridTools::computeDomainDecomposition(gridSize, fsgridInputRanks, buffer, FS_STENCIL_WIDTH, true);
-      std::cout << "Fsgrid decomposition computed as " << buffer[0] << " " << buffer[1] << " " <<buffer[2] << endl;
+      FsGridTools::computeLegacyDomainDecomposition(gridSize, fsgridInputRanks, decomposition, FS_STENCIL_WIDTH, true);
+      std::cout << "Fsgrid decomposition computed as " << decomposition[0] << " " << decomposition[1] << " " <<decomposition[2] << endl;
       return true;   
    }
    else{
-      buffer[0] = fsGridDecomposition[0];
-      buffer[1] = fsGridDecomposition[1];
-      buffer[2] = fsGridDecomposition[2];
-      std::cout << "Fsgrid decomposition read as " << buffer[0] << " " << buffer[1] << " " <<buffer[2] << endl;
+      decomposition[0] = fsGridDecomposition[0];
+      decomposition[1] = fsGridDecomposition[1];
+      decomposition[2] = fsGridDecomposition[2];
+      std::cout << "Fsgrid decomposition read as " << decomposition[0] << " " << decomposition[1] << " " <<decomposition[2] << endl;
       return true;
    }
 
