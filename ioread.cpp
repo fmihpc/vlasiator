@@ -342,8 +342,7 @@ bool checkScalarParameter(vlsv::ParallelReader& file,const string& name,T correc
       s << " Restart file value = " << value;
       exitOnError(false,s.str(),MPI_COMM_WORLD);
       return false;
-   }
-   else{
+   } else {
       return true;
    }
 }
