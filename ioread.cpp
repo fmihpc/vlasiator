@@ -136,8 +136,7 @@ bool exitOnError(bool success, const string& message, MPI_Comm comm) {
    
    if(globalSuccessInt==1) {
       return true;
-   }
-   else{
+   } else {
       logFile << message << endl<<write ;
       exit(1);
    }
@@ -894,7 +893,7 @@ template<unsigned long int N> bool readFsGridVariable(
          computeDomainDecomposition.stop();
          logFile << "(RESTART) Fsgrid decomposition computed as " << fileDecomposition[0] << " " << fileDecomposition[1] << " " << fileDecomposition[2] << std::endl;
       }
-   } else{ 
+   } else { 
       // Override
       logFile << "(RESTART) Using manual override for FsGrid MESH_DECOMPOSITION." << endl << write;
       fileDecomposition = P::overrideReadFsGridDecomposition;
