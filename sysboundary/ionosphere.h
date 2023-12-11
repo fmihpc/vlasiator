@@ -126,7 +126,7 @@ namespace SBC {
             //   * sqrt(2. * M_PI * physicalconstants::MASS_ELECTRON / (physicalconstants::K_B * electronTemperature())) - 1.);
             //// A positive value means an upward current (i.e. electron precipitation).
             //// A negative value quickly gets neutralized from the atmosphere.
-            //if(retval < 0 || isnan(retval)) {
+            //if(retval < 0 || !isfinite(retval)) {
             //   retval = 0;
             //}
             //return retval;
@@ -326,13 +326,13 @@ namespace SBC {
       static void addParameters();
       virtual void getParameters();
       
-      virtual bool initSysBoundary(
+      virtual void initSysBoundary(
          creal& t,
          Project &project
       );
-      virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      virtual void assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid);
-      virtual bool applyInitialState(
+      virtual void applyInitialState(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
@@ -344,8 +344,8 @@ namespace SBC {
          cint i,
          cint j,
          cint k,
-         creal& dt,
-         cuint& component
+         creal dt,
+         cuint component
       );
       virtual void fieldSolverBoundaryCondElectricField(
          FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
@@ -374,15 +374,15 @@ namespace SBC {
          cint i,
          cint j,
          cint k,
-         cuint& RKCase,
-         cuint& component
+         cuint RKCase,
+         cuint component
       );
       virtual void fieldSolverBoundaryCondBVOLDerivatives(
          FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
          cint i,
          cint j,
          cint k,
-         cuint& component
+         cuint component
       );
       // Compute and store the EXB drift into the cell's BULKV_FORCING_X/Y/Z fields and set counter to 1
       virtual void mapCellPotentialAndGetEXBDrift(
@@ -394,7 +394,13 @@ namespace SBC {
          const uint popID,
          const bool calculate_V_moments
       );
+      virtual void updateState(
+         const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+         FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+         creal t
+      );
       
+      virtual void getFaces(bool *faces);
       virtual std::string getName() const;
       virtual uint getIndex() const;
       static Real radius; /*!< Radius of the inner simulation boundary */

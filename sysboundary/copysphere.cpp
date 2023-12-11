@@ -115,18 +115,16 @@ namespace SBC {
       }
    }
    
-   bool Copysphere::initSysBoundary(
+   void Copysphere::initSysBoundary(
       creal& t,
       Project &project
    ) {
       getParameters();
-      isThisDynamic = false;
+      dynamic = false;
 
       // iniSysBoundary is only called once, generateTemplateCell must 
       // init all particle species
       generateTemplateCell(project);
-      
-      return true;
    }
 
    Real getR(creal x,creal y,creal z, uint geometry, Real center[3]) {
@@ -151,14 +149,13 @@ namespace SBC {
          r = sqrt((x-center[0])*(x-center[0]) + (z-center[2])*(z-center[2]));
          break;
       default:
-         std::cerr << __FILE__ << ":" << __LINE__ << ":" << "copysphere.geometry has to be 0, 1 or 2." << std::endl;
-         abort();
+         abort_mpi("copysphere.geometry has to be 0, 1 or 2.", 1);
       }
 
       return r;
    }
    
-   bool Copysphere::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   void Copysphere::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
       const vector<CellID>& cells = getLocalCells();
       for(uint i=0; i<cells.size(); i++) {
@@ -179,10 +176,9 @@ namespace SBC {
          }
       }
 
-      return true;
    }
 
-   bool Copysphere::applyInitialState(
+   void Copysphere::applyInitialState(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
@@ -197,7 +193,6 @@ namespace SBC {
          for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
             setCellFromTemplate(cell,popID);
       }
-      return true;
    }
 
    std::array<Real, 3> Copysphere::fieldSolverGetNormalDirection(
@@ -229,8 +224,7 @@ namespace SBC {
          if (Parameters::ycells_ini == 1) {
             if (Parameters::zcells_ini == 1) {
                // X,Y,Z
-               std::cerr << __FILE__ << ":" << __LINE__ << ":" << "What do you expect to do with a single-cell simulation of copysphere boundary type? Stop kidding." << std::endl;
-               abort();
+               abort_mpi("What do you expect to do with a single-cell simulation of copysphere boundary type? Stop kidding.", 1);
                // end of X,Y,Z
             } else {
                // X,Y
@@ -365,8 +359,7 @@ namespace SBC {
                normalDirection[1] = y / length;
                break;
             default:
-               std::cerr << __FILE__ << ":" << __LINE__ << ":" << "copysphere.geometry has to be 0, 1 or 2 with this grid shape." << std::endl;
-               abort();
+               abort_mpi("copysphere.geometry has to be 0, 1 or 2 with this grid shape.", 1);
          }
          // end of Z
       } else {
@@ -463,8 +456,7 @@ namespace SBC {
                normalDirection[2] = z / length;
                break;
             default:
-               std::cerr << __FILE__ << ":" << __LINE__ << ":" << "copysphere.geometry has to be 0, 1, 2 or 3 with this grid shape." << std::endl;
-               abort();
+               abort_mpi("copysphere.geometry has to be 0, 1, 2 or 3 with this grid shape.", 1);
          }
          // end of 3D
       }
@@ -483,8 +475,8 @@ namespace SBC {
       cint i,
       cint j,
       cint k,
-      creal& dt,
-      cuint& component
+      creal dt,
+      cuint component
    ) {
       if (technicalGrid.get(i,j,k)->sysBoundaryLayer == 1) {
          switch(component) {
@@ -709,8 +701,8 @@ namespace SBC {
       cint i,
       cint j,
       cint k,
-      cuint& RKCase,
-      cuint& component
+      cuint RKCase,
+      cuint component
    ) {
       this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, component);
       return;
@@ -721,7 +713,7 @@ namespace SBC {
       cint i,
       cint j,
       cint k,
-      cuint& component
+      cuint component
    ) {
       // FIXME This should be OK as the BVOL derivatives are only used for Lorentz force JXB, which is not applied on the copy sphere cells.
       this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
@@ -908,6 +900,10 @@ namespace SBC {
    }
 
    std::string Copysphere::getName() const {return "Copysphere";}
+   void Copysphere::getFaces(bool *faces) {}
    
+   void Copysphere::updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                              FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid, creal t) {}
+
    uint Copysphere::getIndex() const {return sysboundarytype::COPYSPHERE;}
 }
