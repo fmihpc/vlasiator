@@ -188,7 +188,7 @@ vector<string> P::blurPassString;
 std::vector<int> P::numPasses; //numpasses
 
 std::array<FsGridTools::Task_t,3> P::manualFsGridDecomposition = {0,0,0};
-std::array<FsGridTools::Task_t,3> P::manualRestartFsGridDecomposition = {0,0,0};
+std::array<FsGridTools::Task_t,3> P::overrideReadFsGridDecomposition = {0,0,0};
 
 std::string tracerString; /*!< Fieldline tracer to use for coupling ionosphere and magnetosphere */
 bool P::computeCurvature;
@@ -284,13 +284,13 @@ bool P::addParameters() {
    RP::add("restart.filename", "Restart from this vlsv file. No restart if empty file.", string(""));
 
    RP::add(
-       "restart.manualRestartFsGridDecompositionX",
+       "restart.overrideReadFsGridDecompositionX",
        "Manual FsGridDecomposition for field solver grid stored in a restart file.", 0);
    RP::add(
-       "restart.manualRestartFsGridDecompositionY",
+       "restart.overrideReadFsGridDecompositionY",
        "Manual FsGridDecomposition for field solver grid stored in a restart file.", 0);
    RP::add(
-       "restart.manualRestartFsGridDecompositionZ",
+       "restart.overrideReadFsGridDecompositionZ",
        "Manual FsGridDecomposition for field solver grid stored in a restart file.", 0);
 
    RP::add("gridbuilder.geometry", "Simulation geometry XY4D,XZ4D,XY5D,XZ5D,XYZ6D", string("XYZ6D"));
@@ -693,18 +693,18 @@ void Parameters::getParameters() {
    P::isRestart = (P::restartFileName != string(""));
 
    // manual FsGrid decomposition should be complete with three values. If at least one is set but all are not set, abort
-   if ((RP::isSet("restart.manualRestartFsGridDecompositionX")||RP::isSet("restart.manualRestartFsGridDecompositionY")||RP::isSet("restart.manualRestartFsGridDecompositionZ")) &&
-        !(RP::isSet("restart.manualRestartFsGridDecompositionX")&&RP::isSet("restart.manualRestartFsGridDecompositionY")&&RP::isSet("restart.manualRestartFsGridDecompositionZ")) ) {
-      cerr << "ERROR all of restart.manualRestartFsGridDecompositionX,Y,Z should be defined." << endl;
+   if ((RP::isSet("restart.overrideReadFsGridDecompositionX")||RP::isSet("restart.overrideReadFsGridDecompositionY")||RP::isSet("restart.overrideReadFsGridDecompositionZ")) &&
+        !(RP::isSet("restart.overrideReadFsGridDecompositionX")&&RP::isSet("restart.overrideReadFsGridDecompositionY")&&RP::isSet("restart.overrideReadFsGridDecompositionZ")) ) {
+      cerr << "ERROR all of restart.overrideReadFsGridDecompositionX,Y,Z should be defined." << endl;
       MPI_Abort(MPI_COMM_WORLD, 1);
    }   
    FsGridTools::Task_t temp_task_t;
-   RP::get("restart.manualRestartFsGridDecompositionX", temp_task_t);
-   P::manualRestartFsGridDecomposition[0] = temp_task_t;
-   RP::get("restart.manualRestartFsGridDecompositionY", temp_task_t);
-   P::manualRestartFsGridDecomposition[1] = temp_task_t;
-   RP::get("restart.manualRestartFsGridDecompositionZ", temp_task_t);
-   P::manualRestartFsGridDecomposition[2] = temp_task_t;
+   RP::get("restart.overrideReadFsGridDecompositionX", temp_task_t);
+   P::overrideReadFsGridDecomposition[0] = temp_task_t;
+   RP::get("restart.overrideReadFsGridDecompositionY", temp_task_t);
+   P::overrideReadFsGridDecomposition[1] = temp_task_t;
+   RP::get("restart.overrideReadFsGridDecompositionZ", temp_task_t);
+   P::overrideReadFsGridDecomposition[2] = temp_task_t;
 
    RP::get("project", P::projectName);
    if (RP::helpRequested) {

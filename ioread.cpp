@@ -870,17 +870,41 @@ template<unsigned long int N> bool readFsGridVariable(
 
    preparations.stop();
 
-
    std::array<FsGridTools::Task_t,3> fileDecomposition={0,0,0};
-   if(P::manualRestartFsGridDecomposition == fileDecomposition){
-      getFsgridDecomposition(file, fileDecomposition);
-   }
-   else{
-      fileDecomposition = P::manualRestartFsGridDecomposition;
+   // No override given (zero array)
+   if(P::overrideReadFsGridDecomposition == fileDecomposition){
+      // Try and read the decomposition from file
+      if (readFsgridDecomposition(file, fileDecomposition))
+      {
+         logFile << "(RESTART) Fsgrid decomposition read as " << fileDecomposition[0] << " " << fileDecomposition[1] << " " << fileDecomposition[2] << std::endl;
+      } else {
+         // If not available, compute a legacy domain decomposition
+         logFile << "(RESTART)  Could not read MESH_DECOMPOSITION from file." << endl << write;
+         phiprof::Timer computeDomainDecomposition {"computeDomainDecomposition"};
+         int fsgridInputRanks=0;
+         if(readScalarParameter(file,"numWritingRanks",fsgridInputRanks, MASTER_RANK, MPI_COMM_WORLD) == false) {
+            exitOnError(false, "(RESTART) FSGrid writing rank number not found in restart file", MPI_COMM_WORLD);
+         }
+         std::array<FsGridTools::FsSize_t,3> gridSize;
+         FsGridTools::FsSize_t* gridSizePtr = &gridSize[0];
+         bool success = file.read("MESH_BBOX",attribs, 0, 3, gridSizePtr, false);
+         if(success == false){
+            exitOnError(false, "(RESTART) FSGrid gridsize not found in file.", MPI_COMM_WORLD);
+         }
+         FsGridTools::computeLegacyDomainDecomposition(gridSize, fsgridInputRanks, fileDecomposition, FS_STENCIL_WIDTH, true);
+         computeDomainDecomposition.stop();
+         logFile << "(RESTART) Fsgrid decomposition computed as " << fileDecomposition[0] << " " << fileDecomposition[1] << " " << fileDecomposition[2] << std::endl;
+      }
+   } else{ 
+      // Override
+      logFile << "(RESTART) Using manual override for FsGrid MESH_DECOMPOSITION." << endl << write;
+      fileDecomposition = P::overrideReadFsGridDecomposition;
       int fsgridInputRanks=0;
+      // Read numWritingRanks from file, that should exist and be sane
       if(readScalarParameter(file,"numWritingRanks",fsgridInputRanks, MASTER_RANK, MPI_COMM_WORLD) == false) {
          exitOnError(false, "(RESTART) FSGrid writing rank number not found in restart file", MPI_COMM_WORLD);
       }
+      // Check that the override is sane wrt. numWritingRanks
       if(fileDecomposition[0]*fileDecomposition[1]*fileDecomposition[2] != fsgridInputRanks){
          exitOnError(false, "(RESTART) Trying to use a manual FsGrid decomposition for a file with a differing number of input ranks.", MPI_COMM_WORLD);
       }
@@ -1470,7 +1494,7 @@ bool readFileCells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 }
 
 
-bool getFsgridDecomposition(vlsv::ParallelReader& file, std::array<FsGridTools::Task_t,3>& decomposition){
+bool readFsgridDecomposition(vlsv::ParallelReader& file, std::array<FsGridTools::Task_t,3>& decomposition){
    list<pair<string,string> > attribs;
    uint64_t arraySize;
    uint64_t vectorSize;
@@ -1493,26 +1517,13 @@ bool getFsgridDecomposition(vlsv::ParallelReader& file, std::array<FsGridTools::
 
    success = file.read("MESH_DECOMPOSITION",attribs, 0, 3, ptr, false);
    if (success == false) {
-      logFile << "(RESTART)  Could not read MESH_DECOMPOSITION from file." << endl << write;
-      // std::cerr << "ptr " << fsGridDecomposition[0] <<" "<<  fsGridDecomposition[1] << " " <<  fsGridDecomposition[2]<<"\n";
-      // std::cerr << "No decomposition found in restart file. Computing fsgrid decomposition for ioread, check results!" <<std::endl;
-
-      int fsgridInputRanks=0;
-      if(readScalarParameter(file,"numWritingRanks",fsgridInputRanks, MASTER_RANK, MPI_COMM_WORLD) == false) {
-         exitOnError(false, "(RESTART) FSGrid writing rank number not found in restart file", MPI_COMM_WORLD);
-      }
-      FsGridTools::computeLegacyDomainDecomposition(gridSize, fsgridInputRanks, decomposition, FS_STENCIL_WIDTH, true);
-      logFile << "(RESTART) Fsgrid decomposition computed as " << decomposition[0] << " " << decomposition[1] << " " <<decomposition[2] << "\n";
-      computeDomainDecomposition.stop();
-      return true;   
+      return false;   
    } else {
       decomposition[0] = fsGridDecomposition[0];
       decomposition[1] = fsGridDecomposition[1];
       decomposition[2] = fsGridDecomposition[2];
-      logFile << "(RESTART) Fsgrid decomposition read as " << decomposition[0] << " " << decomposition[1] << " " <<decomposition[2] << "\n";
-      computeDomainDecomposition.stop();
+      // logFile << "(RESTART) Fsgrid decomposition read as " << decomposition[0] << " " << decomposition[1] << " " <<decomposition[2] << "\n";
       return true;
    }
-   computeDomainDecomposition.stop();
    return false;
 }
