@@ -783,6 +783,8 @@ bool readCellParamsVariable(
 template<unsigned long int N> bool readFsGridVariable(
    vlsv::ParallelReader& file, const string& variableName, int numWritingRanks, FsGrid<std::array<Real, N>,FS_STENCIL_WIDTH> & targetGrid) {
 
+   phiprof::Timer preparations {"preparations"};
+
    uint64_t arraySize;
    uint64_t vectorSize;
    vlsv::datatype::type dataType;
@@ -793,6 +795,7 @@ template<unsigned long int N> bool readFsGridVariable(
    attribs.push_back(make_pair("name",variableName));
    attribs.push_back(make_pair("mesh","fsgrid"));
 
+   phiprof::Timer getArrayInfo {"getArrayInfo"};
    if (file.getArrayInfo("VARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
       logFile << "(RESTART)  ERROR: Failed to read " << endl << write;
       return false;
@@ -800,7 +803,9 @@ template<unsigned long int N> bool readFsGridVariable(
    if(! (dataType == vlsv::datatype::type::FLOAT && byteSize == sizeof(Real))) {
       logFile << "(RESTART) Converting floating point format of fsgrid variable " << variableName << " from " << byteSize * 8 << " bits to " << sizeof(Real) * 8 << " bits." << endl << write;
       convertFloatType = true;
+      // Note: this implicitly assumes that Real is of type double, and we either read a double in directly, or read a float and convert it to double.
    }
+   getArrayInfo.stop();
 
    // Are we restarting from the same number of tasks, or a different number?
    int size, myRank;
@@ -813,6 +818,8 @@ template<unsigned long int N> bool readFsGridVariable(
 
    // Determine our tasks storage size
    size_t storageSize = localSize[0]*localSize[1]*localSize[2];
+
+   preparations.stop();
 
    if(size == numWritingRanks) {
       // Easy case: same number of tasks => slurp it in.
@@ -870,13 +877,18 @@ template<unsigned long int N> bool readFsGridVariable(
       // |            |                |
       // +------------+----------------+
 
+      phiprof::Timer computeDomainDecomposition {"computeDomainDecomposition"};
       // Determine the decomposition in the file and the one in RAM for our restart
       std::array<int,3> fileDecomposition;
       targetGrid.computeDomainDecomposition(globalSize, numWritingRanks, fileDecomposition);
+      computeDomainDecomposition.stop();
 
       // Iterate through tasks and find their overlap with our domain.
       size_t fileOffset = 0;
       for(int task = 0; task < numWritingRanks; task++) {
+
+         phiprof::Timer taskArithmetics1 {"task overlap arithmetics 1"};
+
          std::array<int32_t,3> thatTasksSize;
          std::array<int32_t,3> thatTasksStart;
          thatTasksSize[0] = targetGrid.calcLocalSize(globalSize[0], fileDecomposition[0], task/fileDecomposition[2]/fileDecomposition[1]);
@@ -901,9 +913,12 @@ template<unsigned long int N> bool readFsGridVariable(
          overlapSize[1] = max(overlapEnd[1]-overlapStart[1],0);
          overlapSize[2] = max(overlapEnd[2]-overlapStart[2],0);
 
+         taskArithmetics1.stop();
+
          // Read into buffer
          std::vector<Real> buffer(thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N);
 
+         phiprof::Timer multiRead {"multiRead"};
          file.startMultiread("VARIABLE", attribs);
          // Read every source rank that we have an overlap with.
          if(overlapSize[0]*overlapSize[1]*overlapSize[2] > 0) {
@@ -945,6 +960,7 @@ template<unsigned long int N> bool readFsGridVariable(
             file.endMultiread(fileOffset);
          }
          fileOffset += thatTasksSize[0] * thatTasksSize[1] * thatTasksSize[2];
+         multiRead.stop();
       }
    }
    phiprof::Timer updateGhostsTimer {"updateGhostCells"};
@@ -1284,10 +1300,12 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    phiprof::Timer readfsTimer {"readFsGrid"};
    // Read fsgrid data back in
    int fsgridInputRanks=0;
+   phiprof::Timer tReadScalarParameter {"readScalarParameter"};
    if(readScalarParameter(file,"numWritingRanks",fsgridInputRanks, MASTER_RANK, MPI_COMM_WORLD) == false) {
       exitOnError(false, "(RESTART) FSGrid writing rank number not found in restart file", MPI_COMM_WORLD);
    }
-   
+   tReadScalarParameter.stop();
+
    if (success) { success = readFsGridVariable(file, "fg_PERB", fsgridInputRanks, perBGrid); }
    if (success) { success = readFsGridVariable(file, "fg_E", fsgridInputRanks, EGrid); }
    exitOnError(success,"(RESTART) Failure reading fsgrid restart variables",MPI_COMM_WORLD);
