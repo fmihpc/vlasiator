@@ -113,7 +113,7 @@ LIB_PAPI = -lpapi
 
 #header libraries
 INC_EIGEN = -isystem $(LIBRARY_PREFIX)/ -isystem $(LIBRARY_PREFIX)/Eigen/
-INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid/
+INC_FSGRID = -I./submodules/fsgrid/
 INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg_dAMR/
 INC_VECTORCLASS = -isystem $(LIBRARY_PREFIX)/vectorclass/
 

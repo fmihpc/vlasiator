@@ -114,6 +114,8 @@ jobs:
     steps:
     - name: Checkout source
       uses: actions/checkout@v3 
+    - name: Update submodules
+      run: git submodule update
     - name: Download libraries
       uses: actions/download-artifact@v3
       with:
@@ -134,7 +136,9 @@ jobs:
 
     steps:
     - name: Checkout source
-      uses: actions/checkout@v3 
+      uses: actions/checkout@v3
+    - name: Update submodules
+      run: git submodule update
     - name: Make clean
       run: VLASIATOR_ARCH=carrington_gcc_openmpi make clean
     - uses: ursg/gcc-problem-matcher@master
@@ -164,6 +168,8 @@ jobs:
     steps:
     - name: Checkout source
       uses: actions/checkout@v3 
+    - name: Update submodules
+      run: git submodule update
     - name: Download libraries
       uses: actions/download-artifact@v3
       with:
@@ -183,12 +189,14 @@ jobs:
         if-no-files-found: error
 
   build_tools:
-    # Build vlsvdiff and vlsvextract for testepackage use
+    # Build vlsvdiff and vlsvextract for testpackage use
     runs-on: carrington
       
     steps:
     - name: Checkout source
       uses: actions/checkout@v3 
+    - name: Update submodules
+      run: git submodule update
     - uses: ursg/gcc-problem-matcher@master
     - name: Make clean
       run: VLASIATOR_ARCH=carrington_gcc_openmpi make clean
@@ -213,7 +221,9 @@ jobs:
 
     steps:
     - name: Checkout source
-      uses: actions/checkout@v3 
+      uses: actions/checkout@v3
+    - name: Update submodules
+      run: git submodule update
     - name: Download testpackage binary
       uses: actions/download-artifact@v3
       with:
@@ -256,6 +266,8 @@ jobs:
     steps:
     - name: Checkout source
       uses: actions/checkout@v3 
+    - name: Update submodules
+      run: git submodule update
     - name: Download libraries
       uses: actions/download-artifact@v3
       with:
