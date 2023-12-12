@@ -217,7 +217,6 @@ void calculateMoments_R(
                                       array);
           } // for-loop over velocity blocks
 
-          if (array[0] == 0) {std::cout << "In calculateMoments_R, array[0] = " << array[0] << " for cellid " << cell->parameters[CellParams::CELLID] << ". This cell contains " << blockContainer.size() << " blocks" << std::endl;}
           // Store species' contribution to bulk velocity moments
           Population & pop = cell->get_population(popID);
           pop.RHO_R = array[0];
@@ -358,7 +357,6 @@ void calculateMoments_V(
                                       array);
          }
          
-         if (array[0] == 0) {std::cout << "In calculateMoments_V, array[0] = " << array[0] << " for cellid " << cell->parameters[CellParams::CELLID] << ". This cell contains " << blockContainer.size() << " blocks" << std::endl;}
          // Store species' contribution to bulk velocity moments
          Population & pop = cell->get_population(popID);
          pop.RHO_V = array[0];
