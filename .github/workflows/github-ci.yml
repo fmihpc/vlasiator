@@ -266,6 +266,8 @@ jobs:
     steps:
     - name: Checkout source
       uses: actions/checkout@v3 
+      with:
+        submodules: true
     - name: Update submodules
       run: git submodule update --init
     - name: Download libraries
