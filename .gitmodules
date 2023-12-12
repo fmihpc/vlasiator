@@ -1,0 +1,3 @@
+[submodule "submodules/fsgrid"]
+	path = submodules/fsgrid
+	url = git@github.com:fmihpc/fsgrid.git
