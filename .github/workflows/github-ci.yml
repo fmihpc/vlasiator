@@ -115,7 +115,7 @@ jobs:
     - name: Checkout source
       uses: actions/checkout@v3 
     - name: Update submodules
-      run: git submodule update
+      run: git submodule update --init
     - name: Download libraries
       uses: actions/download-artifact@v3
       with:
@@ -138,7 +138,7 @@ jobs:
     - name: Checkout source
       uses: actions/checkout@v3
     - name: Update submodules
-      run: git submodule update
+      run: git submodule update --init
     - name: Make clean
       run: VLASIATOR_ARCH=carrington_gcc_openmpi make clean
     - uses: ursg/gcc-problem-matcher@master
@@ -169,7 +169,7 @@ jobs:
     - name: Checkout source
       uses: actions/checkout@v3 
     - name: Update submodules
-      run: git submodule update
+      run: git submodule update --init
     - name: Download libraries
       uses: actions/download-artifact@v3
       with:
@@ -196,7 +196,7 @@ jobs:
     - name: Checkout source
       uses: actions/checkout@v3 
     - name: Update submodules
-      run: git submodule update
+      run: git submodule update --init
     - uses: ursg/gcc-problem-matcher@master
     - name: Make clean
       run: VLASIATOR_ARCH=carrington_gcc_openmpi make clean
@@ -223,7 +223,7 @@ jobs:
     - name: Checkout source
       uses: actions/checkout@v3
     - name: Update submodules
-      run: git submodule update
+      run: git submodule update --init
     - name: Download testpackage binary
       uses: actions/download-artifact@v3
       with:
@@ -267,7 +267,7 @@ jobs:
     - name: Checkout source
       uses: actions/checkout@v3 
     - name: Update submodules
-      run: git submodule update
+      run: git submodule update --init
     - name: Download libraries
       uses: actions/download-artifact@v3
       with:
