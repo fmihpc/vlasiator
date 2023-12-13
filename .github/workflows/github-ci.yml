@@ -107,8 +107,8 @@ jobs:
 
   build_production:
     # Build Vlasiator witth production flags
-    runs-on: ubuntu-latest
-    container: ursg/vlasiator_ci:20230220_1
+    runs-on: carrington
+      #container: ursg/vlasiator_ci:20230220_1
     needs: build_libraries
 
     steps:
@@ -260,8 +260,8 @@ jobs:
 
   build_ionosphereTests:
     # Build IonosphereSolverTests miniApp (currently broken)
-    runs-on: ubuntu-latest
-    container: ursg/vlasiator_ci:20230220_1
+    runs-on: carrington
+      #container: ursg/vlasiator_ci:20230220_1
     needs: build_libraries
     steps:
     - name: Checkout source
