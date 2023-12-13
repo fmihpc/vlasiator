@@ -174,8 +174,9 @@ void Inflow::updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geomet
 }
 
 Real Inflow::fieldSolverBoundaryCondMagneticField(
-    FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& bGrid,
-    FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k, creal dt, cuint component) {
+   FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& bGrid,
+   FsGrid<array<Real, fsgrids::bfield::N_BGB>, FS_STENCIL_WIDTH>& bgbGrid,
+   FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k, creal dt, cuint component) {
    Real result = 0.0;
    creal dx = Parameters::dx_ini;
    creal dy = Parameters::dy_ini;
@@ -194,14 +195,12 @@ Real Inflow::fieldSolverBoundaryCondMagneticField(
          break; // This effectively sets the precedence of faces through the order of faces.
       }
    }
-   return result;
 
-   // TODO FIX:
    // There are projects that have non-uniform and non-zero perturbed B, e.g. Magnetosphere with dipole type 4.
-   // We cannot take a value from the templateCell, we need a copy of the value from initialization which has
-   // been set in perBGrid as well as perBDt2Grid and isn't touched as we are in boundary cells for components
-   // that aren't solved.
-   //return bGrid.get(i,j,k)->at(fsgrids::bfield::PERBX+component);
+   // We cannot jsut take the value from the templateCell, we also need a copy of the value from initialization.
+   // This value is stored in the BgBGrid at fsgrids::bgbfield::BGBXVDCORR,BGBYVDCORR,BGBZVDCORR
+   result += bgbGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBXVDCORR + component);
+   return result;
 }
 
 void Inflow::fieldSolverBoundaryCondElectricField(

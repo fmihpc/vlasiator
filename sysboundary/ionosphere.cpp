@@ -2797,6 +2797,7 @@ namespace SBC {
     */
    Real Ionosphere::fieldSolverBoundaryCondMagneticField(
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BGB>, FS_STENCIL_WIDTH> & bgbGrid,
       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
       cint i,
       cint j,
