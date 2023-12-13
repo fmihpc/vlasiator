@@ -116,17 +116,17 @@ jobs:
       uses: actions/checkout@v3 
       with: 
         submodules: true
-    - name: Download libraries
-      uses: actions/download-artifact@v3
-      with:
-        name: libraries
-    - name: Unpack libraries
-      run: tar --zstd -xvf libraries.tar.zstd
-    - uses: ursg/gcc-problem-matcher@master
+          #    - name: Download libraries
+          #      uses: actions/download-artifact@v3
+          #      with:
+          #        name: libraries
+          #    - name: Unpack libraries
+          #      run: tar --zstd -xvf libraries.tar.zstd
+          #    - uses: ursg/gcc-problem-matcher@master
     - name: Compile vlasiator (Release build)
       run: |
-        VLASIATOR_ARCH=github_actions make clean
-        VLASIATOR_ARCH=github_actions make -j 3
+        VLASIATOR_ARCH=carrington_gcc_openmpi make clean
+        VLASIATOR_ARCH=carrington_gcc_openmpi make -j 3
       
   
   build_testpackage:
@@ -268,17 +268,17 @@ jobs:
       uses: actions/checkout@v3 
       with:
         submodules: true
-    - name: Download libraries
-      uses: actions/download-artifact@v3
-      with:
-        name: libraries
-    - name: Unpack libraries
-      run: tar --zstd -xvf libraries.tar.zstd
-    - uses: ursg/gcc-problem-matcher@master
+          #    - name: Download libraries
+          #      uses: actions/download-artifact@v3
+          #      with:
+          #        name: libraries
+          #    - name: Unpack libraries
+          #      run: tar --zstd -xvf libraries.tar.zstd
+          #    - uses: ursg/gcc-problem-matcher@master
     - name: Compile ionosphereSolverTests
       run: |
         cd mini-apps/ionosphereSolverTests/
-        VLASIATOR_ARCH=github_actions make -j 3 main differentialFlux sigmaProfiles
+        VLASIATOR_ARCH=carrington_gcc_openmpi make -j 3 main differentialFlux sigmaProfiles
     - name: Upload ionosphereTest binaries
       uses: actions/upload-artifact@v3
       with:
