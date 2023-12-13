@@ -745,9 +745,9 @@ void calculateHallTerm(
    #endif
 
    cuint cellSysBoundaryFlag = technicalGrid.get(i,j,k)->sysBoundaryFlag;
-   
+
    if (cellSysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE || cellSysBoundaryFlag == sysboundarytype::OUTER_BOUNDARY_PADDING) return;
-   
+
    cuint cellSysBoundaryLayer = technicalGrid.get(i,j,k)->sysBoundaryLayer;
 
    std::array<Real, Rec::N_REC_COEFFICIENTS> perturbedCoefficients;

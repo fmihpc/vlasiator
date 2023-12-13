@@ -117,7 +117,7 @@ void calculateDerivatives(
       abort();
    }
    #endif
-   
+
    if(sysBoundaryLayer == 1 || (sysBoundaryLayer == 2 && sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)) {
       dMoments->at(fsgrids::dmoments::drhomdx) = (rghtMoments->at(fsgrids::moments::RHOM)-leftMoments->at(fsgrids::moments::RHOM))/2;
       dMoments->at(fsgrids::dmoments::drhoqdx) = (rghtMoments->at(fsgrids::moments::RHOQ)-leftMoments->at(fsgrids::moments::RHOQ))/2;
@@ -144,7 +144,7 @@ void calculateDerivatives(
 
    // pres_e = const * np.power(rho_e, index)
    dMoments->at(fsgrids::dmoments::dPedx) = Peconst * limiter(pow(leftMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(centMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(rghtMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex));
-   
+
    if (Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1) {
       dPerB->at(fsgrids::dperb::dPERBydxx) = 0.0;
       dPerB->at(fsgrids::dperb::dPERBzdxx) = 0.0;
@@ -420,7 +420,7 @@ void calculateBVOLDerivatives(
    // Calculate x-derivatives (is not TVD for AMR mesh):
    left = volGrid.get(i-1,j,k);
    rght = volGrid.get(i+1,j,k);
-   
+
    if(left == NULL) {
       left = array;
    }
@@ -441,7 +441,7 @@ void calculateBVOLDerivatives(
    // Calculate y-derivatives (is not TVD for AMR mesh):
    left = volGrid.get(i,j-1,k);
    rght = volGrid.get(i,j+1,k);
-   
+
    if(left == NULL) {
       left = array;
    }
@@ -462,7 +462,7 @@ void calculateBVOLDerivatives(
    // Calculate z-derivatives (is not TVD for AMR mesh):
    left = volGrid.get(i,j,k-1);
    rght = volGrid.get(i,j,k+1);
-   
+
    if(left == NULL) {
       left = array;
    }
