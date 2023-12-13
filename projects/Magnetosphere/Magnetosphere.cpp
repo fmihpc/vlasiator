@@ -40,6 +40,7 @@
 
 using namespace std;
 using namespace spatial_cell;
+extern Logger logFile;
 
 namespace projects {
    Magnetosphere::Magnetosphere(): TriAxisSearch() { }
@@ -336,15 +337,30 @@ namespace projects {
             case 4:  // Vector potential dipole, vanishes or optionally scales to static inflow value after a given x-coordinate
                // What we in fact do is we place the regular dipole in the background field, and the
                // corrective terms in the perturbed field. This maintains the BGB as curl-free.
-               bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
+               bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 ); //set dipole moment
                setBackgroundField(bgFieldDipole, BgBGrid);
                SBC::ionosphereGrid.setDipoleField(bgFieldDipole);
-               // Difference into perBgrid, only if not restarting
+               // Now we calculate the difference required to scale the dipole to zero as we approach the inflow,
+               // and store it inside the BgBGrid object for use by e.g. boundary conditions.
+               bgFieldDipole.initialize(-8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );
+               setPerturbedField(bgFieldDipole, BgBGrid, fsgrids::bgbfield::BGBXVDCORR);
+               bgVectorDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, this->dipoleTiltPhi*M_PI/180., this->dipoleTiltTheta*M_PI/180., this->dipoleXFull, this->dipoleXZero, this->dipoleInflowB[0], this->dipoleInflowB[1], this->dipoleInflowB[2]);
+               setPerturbedField(bgVectorDipole, BgBGrid, fsgrids::bgbfield::BGBXVDCORR, true);
                if (P::isRestart == false) {
-                  bgFieldDipole.initialize(-8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );
-                  setPerturbedField(bgFieldDipole, perBGrid);
-                  bgVectorDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, this->dipoleTiltPhi*M_PI/180., this->dipoleTiltTheta*M_PI/180., this->dipoleXFull, this->dipoleXZero, this->dipoleInflowB[0], this->dipoleInflowB[1], this->dipoleInflowB[2]);
-                  setPerturbedField(bgVectorDipole, perBGrid, true);
+                  // If we are starting a new simulation, we also copy this data into perB.
+                  const auto localSize = BgBGrid.getLocalSize().data();
+                  #pragma omp parallel for collapse(2)
+                  for (int z = 0; z < localSize[2]; ++z) {
+                     for (int y = 0; y < localSize[1]; ++y) {
+                        for (int x = 0; x < localSize[0]; ++x) {
+                           std::array<Real, fsgrids::bgbfield::N_BGB>* BGBcell = BgBGrid.get(x, y, z);
+                           std::array<Real, fsgrids::bgbfield::N_BFIELD>* PERBcell = perBGrid.get(x, y, z);
+                           PERBcell->at(fsgrids::bfield::PERBX) = BGBcell->at(fsgrids::bgbfield::BGBXVDCORR);
+                           PERBcell->at(fsgrids::bfield::PERBY) = BGBcell->at(fsgrids::bgbfield::BGBYVDCORR);
+                           PERBcell->at(fsgrids::bfield::PERBZ) = BGBcell->at(fsgrids::bgbfield::BGBZVDCORR);
+                        }
+                     }
+                  }
                }
                break;
             default:
@@ -441,8 +457,11 @@ namespace projects {
                            BgBGrid.get(x,y,z)->at(i) = 0;
                         }
                         if ( (this->dipoleType==4) && (P::isRestart == false) ) {
+                           logFile << "(MAGNETOSPHERE): Warning, using vector dipole (type 4) but setting solar wind inflow fields to zero." << endl;
+                           logFile << "                 This may result in significant field derivatives at the inflow boundary." << endl;
                            for (int i = 0; i < fsgrids::bfield::N_BFIELD; ++i) {
                               perBGrid.get(x,y,z)->at(i) = 0;
+                              BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::BGBXVDCORR+i) = 0;
                            }
                         }
                      }

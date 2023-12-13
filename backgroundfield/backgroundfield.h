@@ -41,11 +41,13 @@ void setBackgroundFieldToZero(
 void setPerturbedField(
    const FieldFunction& bgFunction,
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+   int offset=fsgrids::bfield::PERBX,
    bool append=false
 );
 
 void setPerturbedFieldToZero(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+   int offset=fsgrids::bfield::PERBX
 );
 
 #endif

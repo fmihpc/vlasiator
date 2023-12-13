@@ -161,17 +161,24 @@ void setBackgroundFieldToZero(
    }
 }
 
-
+/**
+    This function is used along with a field function to append the given function values to the
+    perturbed B grid.
+    A special other use case is, if using a Magnetosphere with dipole type 4 (vector dipole), when
+    the corrective terms to vanish the dipole towards the inflow boundary are stored in 
+    the backgroundfield FSgrid object at offset fsgrids::bgbfield::BGBXVDCORR
+*/
 void setPerturbedField(
    const FieldFunction& bfFunction,
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+   int offset, // default fsgrids::bfield::PERBX
    bool append) {
 
    using namespace std::placeholders;
 
    /*if we do not add a new background to the existing one we first put everything to zero*/
    if(append==false) {
-      setPerturbedFieldToZero(perBGrid);
+      setPerturbedFieldToZero(perBGrid,offset);
    }
 
    //these are doubles, as the averaging functions copied from Gumics
@@ -205,7 +212,7 @@ void setPerturbedField(
             //Face averages
             for(uint fComponent=0; fComponent<3; fComponent++){
                T3DFunction valueFunction = std::bind(bfFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, (coordinate)fComponent, 0, (coordinate)0);
-               perBGrid.get(x,y,z)->at(fsgrids::bfield::PERBX+fComponent) +=
+               perBGrid.get(x,y,z)->at(offset+fComponent) += // offset defaults to fsgrids::bfield::PERBX
                   surfaceAverage(valueFunction,
                      (coordinate)fComponent,
                                  accuracy,
@@ -222,14 +229,16 @@ void setPerturbedField(
 }
 
 void setPerturbedFieldToZero(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid) {
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+   int offset // default fsgrids::bfield::PERBX
+   ) {
    auto localSize = perBGrid.getLocalSize().data();
 
    #pragma omp parallel for collapse(2)
    for (int z = 0; z < localSize[2]; ++z) {
       for (int y = 0; y < localSize[1]; ++y) {
          for (int x = 0; x < localSize[0]; ++x) {
-            for (int i = 0; i < fsgrids::bfield::N_BFIELD; ++i) {
+            for (int i = offset; i < offset+fsgrids::bfield::N_BFIELD; ++i) {
                perBGrid.get(x,y,z)->at(i) = 0;
             }
          }

@@ -364,6 +364,9 @@ namespace fsgrids {
       BGBXVOL,   /*!< background magnetic field x-component averaged over spatial cell.*/
       BGBYVOL,   /*!< background magnetic field y-component averaged over spatial cell.*/
       BGBZVOL,   /*!< background magnetic field z-component averaged over spatial cell.*/
+      BGBXVDCORR, /*!< correction term for background magnetic field, used by vector dipole.*/
+      BGBYVDCORR, /*!< correction term for background magnetic field, used by vector dipole.*/
+      BGBZVDCORR, /*!< correction term for background magnetic field, used by vector dipole.*/
       dBGBxdy,     /*!< Derivative of background face-averaged Bx in y-direction. */
       dBGBxdz,     /*!< Derivative of background face-averaged Bx in z-direction. */
       dBGBydx,     /*!< Derivative of background face-averaged By in x-direction. */
