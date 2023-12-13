@@ -40,7 +40,6 @@
 
 using namespace std;
 using namespace spatial_cell;
-extern Logger logFile;
 
 namespace projects {
    Magnetosphere::Magnetosphere(): TriAxisSearch() { }
@@ -457,11 +456,9 @@ namespace projects {
                            BgBGrid.get(x,y,z)->at(i) = 0;
                         }
                         if ( (this->dipoleType==4) && (P::isRestart == false) ) {
-                           logFile << "(MAGNETOSPHERE): Warning, using vector dipole (type 4) but setting solar wind inflow fields to zero." << endl;
-                           logFile << "                 This may result in significant field derivatives at the inflow boundary." << endl;
+                           // If we set BGB to zero here, then we should also set perB in new runs to zero.
                            for (int i = 0; i < fsgrids::bfield::N_BFIELD; ++i) {
                               perBGrid.get(x,y,z)->at(i) = 0;
-                              BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::BGBXVDCORR+i) = 0;
                            }
                         }
                      }
