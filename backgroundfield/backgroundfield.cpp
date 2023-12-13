@@ -25,8 +25,6 @@
 #include "../parameters.h"
 #include "cmath"
 #include "backgroundfield.h"
-#include "fieldfunction.hpp"
-#include "integratefunction.hpp"
 #include "phiprof.hpp"
 
 //FieldFunction should be initialized
@@ -161,87 +159,3 @@ void setBackgroundFieldToZero(
    }
 }
 
-/**
-    This function is used along with a field function to append the given function values to the
-    perturbed B grid.
-    A special other use case is, if using a Magnetosphere with dipole type 4 (vector dipole), when
-    the corrective terms to vanish the dipole towards the inflow boundary are stored in 
-    the backgroundfield FSgrid object at offset fsgrids::bgbfield::BGBXVDCORR
-*/
-void setPerturbedField(
-   const FieldFunction& bfFunction,
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   int offset, // default fsgrids::bfield::PERBX
-   bool append) {
-
-   using namespace std::placeholders;
-
-   /*if we do not add a new background to the existing one we first put everything to zero*/
-   if(append==false) {
-      setPerturbedFieldToZero(perBGrid,offset);
-   }
-
-   //these are doubles, as the averaging functions copied from Gumics
-   //use internally doubles. In any case, it should provide more
-   //accurate results also for float simulations
-   const double accuracy = 1e-17;
-   unsigned int faceCoord1[3];
-   unsigned int faceCoord2[3];
-
-   //the coordinates of the edges face with a normal in the third coordinate direction, stored here to enable looping
-   faceCoord1[0]=1;
-   faceCoord2[0]=2;
-   faceCoord1[1]=0;
-   faceCoord2[1]=2;
-   faceCoord1[2]=0;
-   faceCoord2[2]=1;
-
-   auto localSize = perBGrid.getLocalSize();
-
-   // These are threaded now that the stuff around here is threadsafe
-   #pragma omp parallel for collapse(2)
-   for (int z = 0; z < localSize[2]; ++z) {
-      for (int y = 0; y < localSize[1]; ++y) {
-         for (int x = 0; x < localSize[0]; ++x) {
-            std::array<double, 3> start = perBGrid.getPhysicalCoords(x, y, z);
-            double dx[3];
-            dx[0] = perBGrid.DX;
-            dx[1] = perBGrid.DY;
-            dx[2] = perBGrid.DZ;
-
-            //Face averages
-            for(uint fComponent=0; fComponent<3; fComponent++){
-               T3DFunction valueFunction = std::bind(bfFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, (coordinate)fComponent, 0, (coordinate)0);
-               perBGrid.get(x,y,z)->at(offset+fComponent) += // offset defaults to fsgrids::bfield::PERBX
-                  surfaceAverage(valueFunction,
-                     (coordinate)fComponent,
-                                 accuracy,
-                                 start.data(),
-                                 dx[faceCoord1[fComponent]],
-                                 dx[faceCoord2[fComponent]]
-                                );
-
-	    }
-	    // Derivatives or volume averages are not calculated for the perBField
-	 }
-      }
-   }
-}
-
-void setPerturbedFieldToZero(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   int offset // default fsgrids::bfield::PERBX
-   ) {
-   auto localSize = perBGrid.getLocalSize().data();
-
-   #pragma omp parallel for collapse(2)
-   for (int z = 0; z < localSize[2]; ++z) {
-      for (int y = 0; y < localSize[1]; ++y) {
-         for (int x = 0; x < localSize[0]; ++x) {
-            for (int i = offset; i < offset+fsgrids::bfield::N_BFIELD; ++i) {
-               perBGrid.get(x,y,z)->at(i) = 0;
-            }
-         }
-      }
-   }
-}

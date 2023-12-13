@@ -175,7 +175,7 @@ void Inflow::updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geomet
 
 Real Inflow::fieldSolverBoundaryCondMagneticField(
    FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& bGrid,
-   FsGrid<array<Real, fsgrids::bfield::N_BGB>, FS_STENCIL_WIDTH>& bgbGrid,
+   FsGrid<array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& bgbGrid,
    FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k, creal dt, cuint component) {
    Real result = 0.0;
    creal dx = Parameters::dx_ini;
