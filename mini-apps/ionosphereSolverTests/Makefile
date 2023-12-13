@@ -9,6 +9,8 @@ LIBS += ${LIB_PROFILE}
 LIBS += ${LIB_ZOLTAN}
 LIBS += ${LIB_VLSV}
 
+INC_FSGRID=-I../../submodules/fsgrid/
+
 all: main differentialFlux sigmaProfiles quadrupoleTests atmosphere.pdf
 .PHONY: clean quadrupoleTests
 
