@@ -119,7 +119,7 @@ namespace FieldTracing {
                while( true ) {
                   
                   // Check if the current coordinates (pre-step) are in our own domain.
-                  std::array<int64_t, 3> fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
+                  std::array<FsGridTools::FsIndex_t, 3> fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
                   // If it is not in our domain, somebody else takes care of it.
                   if(fsgridCell[0] == -1) {
                      nodeNeedsContinuedTracing[n] = 0;
