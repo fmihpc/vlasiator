@@ -175,7 +175,8 @@ namespace FieldTracing {
       b[1] = SBC::ionosphereGrid.dipoleField(r[0],r[1],r[2],Y,0,Y) + SBC::ionosphereGrid.BGB[1];
       b[2] = SBC::ionosphereGrid.dipoleField(r[0],r[1],r[2],Z,0,Z) + SBC::ionosphereGrid.BGB[2];
       
-      std::array<FsGridTools::FsSize_t, 3> fsgridCell = getGlobalFsGridCellIndexForCoord(technicalGrid,{(TReal)r[0], (TReal)r[1], (TReal)r[2]});
+      std::array<FsGridTools::FsSize_t, 3> fsgridCellu = getGlobalFsGridCellIndexForCoord(technicalGrid,{(TReal)r[0], (TReal)r[1], (TReal)r[2]});
+      std::array<FsGridTools::FsIndex_t,3> fsgridCell = {(FsGridTools::FsIndex_t)fsgridCellu[0],(FsGridTools::FsIndex_t)fsgridCellu[1],(FsGridTools::FsIndex_t)fsgridCellu[2]};
       const std::array<FsGridTools::FsIndex_t, 3> localStart = technicalGrid.getLocalStart();
       const std::array<FsGridTools::FsIndex_t, 3> localSize = technicalGrid.getLocalSize();
       // Make the global index a local one, bypass the fsgrid function that yields (-1,-1,-1) also for ghost cells.
@@ -189,6 +190,7 @@ namespace FieldTracing {
          + " for local domain size " + to_string(localSize[0]) + " " + to_string(localSize[1]) + " " + to_string(localSize[2])
          + " at position " + to_string(r[0]) + " " + to_string(r[1]) + " " + to_string(r[2]) + " radius " + to_string(sqrt(r[0]*r[0]+r[1]*r[1]+r[2]*r[2]))
          + "\n");
+         abort();
          return false;
       } else {
          if(technicalGrid.get(fsgridCell[0],fsgridCell[1],fsgridCell[2])->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
