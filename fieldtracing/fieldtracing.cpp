@@ -528,7 +528,7 @@ namespace FieldTracing {
                   nodeStepCounter[n]++;
                   
                   // Check if the current coordinates (pre-step) are in our own domain.
-                  std::array<int64_t, 3> fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,{(TReal)x[0], (TReal)x[1], (TReal)x[2]});
+                  std::array<FsGridTools::FsIndex_t, 3> fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,{(TReal)x[0], (TReal)x[1], (TReal)x[2]});
                   // If it is not in our domain, somebody else takes care of it.
                   if(fsgridCell[0] == -1) {
                      nodeNeedsContinuedTracing[n] = 0;
@@ -660,7 +660,7 @@ namespace FieldTracing {
       std::array<TReal, 3> v({0,0,0});
       while( true ) {
          // Check if the current coordinates (pre-step) are in our own domain.
-         std::array<int64_t, 3> fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,{(Real)x[0], (Real)x[1], (Real)x[2]});
+         std::array<FsGridTools::FsIndex_t, 3> fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,{(Real)x[0], (Real)x[1], (Real)x[2]});
          // If it is not in our domain, somebody else takes care of it.
          if(fsgridCell[0] == -1) {
             cellTracingCoordinates[n] = {0,0,0};

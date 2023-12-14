@@ -302,7 +302,7 @@ bool getFsgridDecomposition(vlsvinterface::Reader& file, std::array<int,3>& deco
 
    success = file.read("MESH_DECOMPOSITION",attribs, 0, 3, ptr, false);
    if (success == false) {
-      std::cout << "Could not read MESH_DECOMPOSITION" << endl;
+      // std::cout << "Could not read MESH_DECOMPOSITION" << endl;
       // std::cerr << "ptr " << fsGridDecomposition[0] <<" "<<  fsGridDecomposition[1] << " " <<  fsGridDecomposition[2]<<"\n";
       // std::cerr << "No decomposition found in restart file. Computing fsgrid decomposition for ioread, check results!" <<std::endl;
 
@@ -314,8 +314,7 @@ bool getFsgridDecomposition(vlsvinterface::Reader& file, std::array<int,3>& deco
       FsGridTools::computeLegacyDomainDecomposition(gridSize, fsgridInputRanks, decomposition, FS_STENCIL_WIDTH, true);
       std::cout << "Fsgrid decomposition computed as " << decomposition[0] << " " << decomposition[1] << " " <<decomposition[2] << endl;
       return true;   
-   }
-   else{
+   } else {
       decomposition[0] = fsGridDecomposition[0];
       decomposition[1] = fsGridDecomposition[1];
       decomposition[2] = fsGridDecomposition[2];

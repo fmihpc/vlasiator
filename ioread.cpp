@@ -871,8 +871,7 @@ template<unsigned long int N> bool readFsGridVariable(
    // No override given (zero array)
    if(P::overrideReadFsGridDecomposition == fileDecomposition){
       // Try and read the decomposition from file
-      if (readFsgridDecomposition(file, fileDecomposition))
-      {
+      if (readFsgridDecomposition(file, fileDecomposition)) {
          logFile << "(RESTART) Fsgrid decomposition read as " << fileDecomposition[0] << " " << fileDecomposition[1] << " " << fileDecomposition[2] << std::endl;
       } else {
          // If not available, compute a legacy domain decomposition
