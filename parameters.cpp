@@ -466,7 +466,7 @@ bool P::addParameters() {
    RP::add("PAD.CFL","Set CFL condition",0);
    RP::add("PAD.vbins","number of bins for velocity",200);
    RP::add("PAD.mubins","number of bins for mu",30);
-   RP::add("PAD.file","Path of txt file for nu0", string(""));
+   RP::add("PAD.file","Path of txt file for nu0", string("NU0BOX.DAT"));
    RP::add("PAD.fudge","fudge factor to lower diffusion",0.25);
    // Fieldtracing
    RP::add("fieldtracing.fieldLineTracer", "Field line tracing method to use for coupling ionosphere and magnetosphere (options are: Euler, BS)", std::string("Euler"));
