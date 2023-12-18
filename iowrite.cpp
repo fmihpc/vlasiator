@@ -935,6 +935,7 @@ bool writeFsGridMetadata(FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technic
   vlsvWriter.writeArray("MESH_GHOST_LOCALIDS", xmlAttributes, 0, 1, &dummyghost);
 
   // writeDomainSizes
+  std::array<int32_t,3>& localSize = technicalGrid.getLocalSize();
   std::array<uint64_t,2> meshDomainSize({localSize[0]*localSize[1]*localSize[2], 0});
   vlsvWriter.writeArray("MESH_DOMAIN_SIZES", xmlAttributes, 1, 2, &meshDomainSize[0]);
 
@@ -953,7 +954,6 @@ bool writeFsGridMetadata(FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technic
 
   if (writeIDs) {
      // Write cell "globalID" numbers, which are just the global array indices.
-     std::array<int32_t,3>& localSize = technicalGrid.getLocalSize();
      std::vector<uint64_t> globalIds(localSize[0]*localSize[1]*localSize[2]);
      int i=0;
      for(int z=0; z<localSize[2]; z++) {
