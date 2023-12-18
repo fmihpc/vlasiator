@@ -936,7 +936,7 @@ bool writeFsGridMetadata(FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technic
 
   // writeDomainSizes
   std::array<int32_t,3>& localSize = technicalGrid.getLocalSize();
-  std::array<uint64_t,2> meshDomainSize({localSize[0]*localSize[1]*localSize[2], 0});
+  std::array<uint64_t,2> meshDomainSize({(uint64_t)localSize[0]*(uint64_t)localSize[1]*(uint64_t)localSize[2], 0});
   vlsvWriter.writeArray("MESH_DOMAIN_SIZES", xmlAttributes, 1, 2, &meshDomainSize[0]);
 
   // how many MPI ranks we wrote from
