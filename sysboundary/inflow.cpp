@@ -148,15 +148,19 @@ void Inflow::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geomet
 
 void Inflow::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-                               FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid, Project& project) {
+                               FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+                               FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+                               Project& project) {
    for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
       setCellsFromTemplate(mpiGrid, popID);
    }
-   setBFromTemplate(mpiGrid, perBGrid);
+   setBFromTemplate(mpiGrid, perBGrid, BgBGrid);
 }
 
 void Inflow::updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                         FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid, creal t) {
+                         FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+                         FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+                         creal t) {
    if (t - tLastApply < tInterval) {
       return;
    } else {
@@ -170,7 +174,7 @@ void Inflow::updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geomet
    for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
       setCellsFromTemplate(mpiGrid, popID);
    }
-   setBFromTemplate(mpiGrid, perBGrid);
+   setBFromTemplate(mpiGrid, perBGrid, BgBGrid);
 }
 
 Real Inflow::fieldSolverBoundaryCondMagneticField(
@@ -238,7 +242,7 @@ void Inflow::fieldSolverBoundaryCondHallElectricField(
 }
 
 void Inflow::fieldSolverBoundaryCondGradPeElectricField(
-   FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid, cint i, cint j, cint k, cuint component) {
+   FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH>& EGradPeGrid, cint i, cint j, cint k, cuint component) {
    EGradPeGrid.get(i, j, k)->at(fsgrids::egradpe::EXGRADPE + component) = 0.0;
 }
 
@@ -262,7 +266,8 @@ void Inflow::vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cart
 }
 
 void Inflow::setBFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                              FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid) {
+                              FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+                              FsGrid<array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid) {
    std::array<bool, 6> isThisCellOnAFace;
    const std::array<int, 3> gridDims(perBGrid.getLocalSize());
 
@@ -294,9 +299,9 @@ void Inflow::setBFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_G
 
             for (uint iface = 0; iface < 6; iface++) {
                if (facesToProcess[iface] && isThisCellOnAFace[iface]) {
-                  perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBX) = templateB[iface][0];
-                  perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBY) = templateB[iface][1];
-                  perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBZ) = templateB[iface][2];
+                  perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBX) = templateB[iface][0] + BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBXVDCORR);
+                  perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBY) = templateB[iface][1] + BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBYVDCORR);
+                  perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBZ) = templateB[iface][2] + BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBZVDCORR);
                   break;
                }
             }

@@ -254,7 +254,7 @@ void initializeGrids(
    if (P::isRestart) {
       //initial state for sys-boundary cells, will skip those not set to be reapplied at restart
       phiprof::Timer timer {"Apply system boundary conditions state"};
-      sysBoundaries.applyInitialState(mpiGrid, technicalGrid, perBGrid, project);
+      sysBoundaries.applyInitialState(mpiGrid, technicalGrid, perBGrid, BgBGrid, project);
    }
 
    // Update technicalGrid
@@ -288,7 +288,7 @@ void initializeGrids(
       // Initial state for sys-boundary cells
       applyInitialTimer.stop();
       phiprof::Timer applyBCTimer {"Apply system boundary conditions state"};
-      sysBoundaries.applyInitialState(mpiGrid, technicalGrid, perBGrid, project);
+      sysBoundaries.applyInitialState(mpiGrid, technicalGrid, perBGrid, BgBGrid, project);
       applyBCTimer.stop();
       
       #pragma omp parallel for schedule(static)

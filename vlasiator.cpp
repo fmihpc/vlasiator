@@ -1112,7 +1112,7 @@ int main(int argn,char* args[]) {
       // Update boundary condition states (time-varying)
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration) {
          phiprof::Timer timer {"Update system boundaries (Vlasov pre-translation)"};
-         sysBoundaryContainer.updateState(mpiGrid, perBGrid, P::t + 0.5 * P::dt);
+         sysBoundaryContainer.updateState(mpiGrid, perBGrid, BgBGrid, P::t + 0.5 * P::dt);
          timer.stop();
          addTimedBarrier("barrier-boundary-conditions");
       }
