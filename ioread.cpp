@@ -1435,6 +1435,10 @@ bool readFsgridDecomposition(vlsv::ParallelReader& file, std::array<FsGridTools:
    vlsv::datatype::type dataType;
    uint64_t byteSize;
 
+   int myRank;   
+   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+
+
    phiprof::Timer computeDomainDecomposition {"computeDomainDecomposition"};
 
    attribs.push_back(make_pair("mesh","fsgrid"));
@@ -1444,14 +1448,74 @@ bool readFsgridDecomposition(vlsv::ParallelReader& file, std::array<FsGridTools:
    bool success = file.read("MESH_BBOX",attribs, 0, 3, gridSizePtr, false);
    if(success == false){
       exitOnError(false, "(RESTART) FSGrid gridsize not found in file.", MPI_COMM_WORLD);
+      return false;
    }
 
    std::array<FsGridTools::Task_t,3> fsGridDecomposition={0,0,0}; 
    FsGridTools::Task_t* ptr = &fsGridDecomposition[0];
 
    success = file.read("MESH_DECOMPOSITION",attribs, 0, 3, ptr, false);
-   if (success == false) {
-      return false;   
+   if (true || success == false) {
+      if (myRank == 0){
+         std::cout << "Could not read MESH_DECOMPOSITION, attempting to calculate it from MESH." << endl;
+      }
+      int fsgridInputRanks=0;
+      if(file.readParameter("numWritingRanks",fsgridInputRanks) == false) {
+         exitOnError(false, "(RESTART) FSGrid writing rank number not found in restart file.", MPI_COMM_WORLD);
+         return false;
+      }
+
+      int64_t* domainInfo = NULL;
+      success = file.read("MESH_DOMAIN_SIZES",attribs, 0, fsgridInputRanks, domainInfo);
+      if(success == false){
+         if (myRank == 0){
+            std::cerr << "Could not read MESH_DOMAIN_SIZES from file" << endl;
+         }
+         return false;
+      }
+      std::vector<uint64_t> mesh_domain_sizes;
+      for (int i = 0; i < 2*fsgridInputRanks; i+=2){
+         mesh_domain_sizes.push_back(domainInfo[i]);
+      }
+      list<pair<string,string> > mesh_attribs;
+      mesh_attribs.push_back(make_pair("name","fsgrid"));
+      std::vector<FsGridTools::FsSize_t> rank_first_ids(fsgridInputRanks);
+      FsGridTools::FsSize_t* ids_ptr = &rank_first_ids[0];
+
+      std::set<FsGridTools::FsIndex_t> x_corners, y_corners, z_corners;
+      
+      int64_t begin_rank = 0;
+      int i = 0;
+      for(auto rank_size : mesh_domain_sizes){
+         if(file.read("MESH", mesh_attribs, begin_rank, 1, ids_ptr, false) == false){
+            if (myRank == 0){
+               std::cerr << "Reading MESH failed.\n";
+            }
+            return false;
+         }
+         std::array<FsGridTools::FsIndex_t,3> inds = FsGridTools::globalIDtoCellCoord(*ids_ptr, gridSize);
+         x_corners.insert(inds[0]);
+         y_corners.insert(inds[1]);
+         z_corners.insert(inds[2]);
+         ++ids_ptr;
+         begin_rank += rank_size;
+      }
+
+      decomposition[0] = x_corners.size();
+      decomposition[1] = y_corners.size();
+      decomposition[2] = z_corners.size();
+      if(decomposition[0]*decomposition[1]*decomposition[2] == fsgridInputRanks){
+         if (myRank == 0){
+            std::cout << "Fsgrid decomposition computed from MESH to be " << decomposition[0] << " " << decomposition[1] << " " <<decomposition[2] << endl;
+         }
+         return true;
+      } else {
+         if (myRank == 0){
+            std::cout << "Fsgrid decomposition computed from MESH to be " << decomposition[0] << " " << decomposition[1] << " " <<decomposition[2] << ", which is not compatible with numWritingRanks ("<<fsgridInputRanks << ")" << endl;
+         }
+         return false;
+      }
+
    } else {
       decomposition[0] = fsGridDecomposition[0];
       decomposition[1] = fsGridDecomposition[1];

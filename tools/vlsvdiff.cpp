@@ -325,7 +325,6 @@ bool getFsgridDecomposition(vlsvinterface::Reader& file, std::array<int,3>& deco
       mesh_attribs.push_back(make_pair("name","fsgrid"));
       std::vector<FsGridTools::FsSize_t> rank_first_ids(fsgridInputRanks);
       FsGridTools::FsSize_t* ids_ptr = &rank_first_ids[0];
-      std::cerr << " " << rank_first_ids.size() <<"\n";
 
       std::set<FsGridTools::FsIndex_t> x_corners, y_corners, z_corners;
       
@@ -336,12 +335,10 @@ bool getFsgridDecomposition(vlsvinterface::Reader& file, std::array<int,3>& deco
             std::cerr << "Reading MESH failed.\n";
             exit(1);
          }
-         std::cerr << "Read " << *ids_ptr << " from " << begin_rank << " size " << rank_size <<" \n";
          std::array<FsGridTools::FsIndex_t,3> inds = FsGridTools::globalIDtoCellCoord(*ids_ptr, gridSize);
          x_corners.insert(inds[0]);
          y_corners.insert(inds[1]);
          z_corners.insert(inds[2]);
-         //rank_first_inds.push_back(inds)
          ++ids_ptr;
          begin_rank += rank_size;
       }
@@ -351,8 +348,8 @@ bool getFsgridDecomposition(vlsvinterface::Reader& file, std::array<int,3>& deco
       decomposition[2] = z_corners.size();
       std::cout << "Fsgrid decomposition computed from MESH to be " << decomposition[0] << " " << decomposition[1] << " " <<decomposition[2] << endl;
 
-      FsGridTools::computeLegacyDomainDecomposition(gridSize, fsgridInputRanks, decomposition, FS_STENCIL_WIDTH, true);
-      std::cout << "Fsgrid decomposition computed as " << decomposition[0] << " " << decomposition[1] << " " <<decomposition[2] << endl;
+      // FsGridTools::computeLegacyDomainDecomposition(gridSize, fsgridInputRanks, decomposition, FS_STENCIL_WIDTH, true);
+      // std::cout << "Fsgrid decomposition computed as " << decomposition[0] << " " << decomposition[1] << " " <<decomposition[2] << endl;
       return true;   
    } else {
       decomposition[0] = fsGridDecomposition[0];
