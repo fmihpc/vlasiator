@@ -46,7 +46,7 @@ namespace SBC {
                           "applyInitialState. Can be used to change boundary condition behaviour during a run.",
                           0);
       Readparameters::add("maxwellian.t_interval", "Time interval in seconds for applying the varying inflow condition.",
-                          0.0);
+                          0.1);
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
