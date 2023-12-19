@@ -89,6 +89,9 @@ namespace SBC {
       uint reapply;
       Readparameters::get("maxwellian.reapplyUponRestart", reapply);
       Readparameters::get("maxwellian.t_interval", tInterval);
+      if (tInterval == 0) {
+         abort_mpi("Error, Dynamic inflow cannot have update interval of zero!", 1);
+      }
       this->applyUponRestart = false;
       if(reapply == 1) {
          this->applyUponRestart = true;
