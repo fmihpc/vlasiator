@@ -73,7 +73,7 @@ LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/zoltan/lib -lzoltan
 INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv_debug
 LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv_debug -lvlsv
 
-INC_FSGRID = -I$(HEADER_LIBRARY_PREFIX)/fsgrid
+INC_FSGRID = -I./submodules/fsgrid
 
 LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof
 INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
