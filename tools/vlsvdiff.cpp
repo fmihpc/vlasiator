@@ -281,26 +281,19 @@ bool HandleFsGrid(const string& inputFileName,
 }
 
 bool getFsgridDecomposition(vlsvinterface::Reader& file, std::array<int,3>& decomposition){
-   list<pair<string,string> > attribs;
    uint64_t arraySize;
    uint64_t vectorSize;
    vlsv::datatype::type dataType;
    uint64_t byteSize;
-
+   
+   list<pair<string,string> > attribs;
    attribs.push_back(make_pair("mesh","fsgrid"));
 
-   std::array<FsGridTools::FsSize_t,3> gridSize;
-   FsGridTools::FsSize_t* gridSizePtr = &gridSize[0];
-   bool success = file.read("MESH_BBOX",attribs, 0, 3, gridSizePtr, false);
-   if(success == false){
-      std::cerr << "Could not read MESH_BBOX from file" << endl;
-      exit(1);
-   }
 
    std::array<FsGridTools::Task_t,3> fsGridDecomposition={0,0,0}; 
    int* ptr = &fsGridDecomposition[0];
 
-   success = file.read("MESH_DECOMPOSITION",attribs, 0, 3, ptr, false);
+   bool success = file.read("MESH_DECOMPOSITION",attribs, 0, 3, ptr, false);
    if (success == false) {
       // std::cout << "Could not read MESH_DECOMPOSITION" << endl;
       // std::cerr << "ptr " << fsGridDecomposition[0] <<" "<<  fsGridDecomposition[1] << " " <<  fsGridDecomposition[2]<<"\n";
@@ -311,6 +304,53 @@ bool getFsgridDecomposition(vlsvinterface::Reader& file, std::array<int,3>& deco
          std::cerr << "FSGrid writing rank number not found in restart file" << endl;
          exit(1);
       }
+      std::array<FsGridTools::FsSize_t,3> gridSize;
+      FsGridTools::FsSize_t* gridSizePtr = &gridSize[0];
+      success = file.read("MESH_BBOX",attribs, 0, 3, gridSizePtr, false);
+      if(success == false){
+         std::cerr << "Could not read MESH_BBOX from file" << endl;
+         exit(1);
+      }
+      int64_t* domainInfo = NULL;
+      success = file.read("MESH_DOMAIN_SIZES",attribs, 0, fsgridInputRanks, domainInfo);
+      if(success == false){
+         std::cerr << "Could not read MESH_DOMAIN_SIZES from file" << endl;
+         exit(1);
+      }
+      std::vector<uint64_t> mesh_domain_sizes;
+      for (int i = 0; i < 2*fsgridInputRanks; i+=2){
+         mesh_domain_sizes.push_back(domainInfo[i]);
+      }
+      list<pair<string,string> > mesh_attribs;
+      mesh_attribs.push_back(make_pair("name","fsgrid"));
+      std::vector<FsGridTools::FsSize_t> rank_first_ids(fsgridInputRanks);
+      FsGridTools::FsSize_t* ids_ptr = &rank_first_ids[0];
+      std::cerr << " " << rank_first_ids.size() <<"\n";
+
+      std::set<FsGridTools::FsIndex_t> x_corners, y_corners, z_corners;
+      
+      int64_t begin_rank = 0;
+      int i = 0;
+      for(auto rank_size : mesh_domain_sizes){
+         if(file.read("MESH", mesh_attribs, begin_rank, 1, ids_ptr, false) == false){
+            std::cerr << "Reading MESH failed.\n";
+            exit(1);
+         }
+         std::cerr << "Read " << *ids_ptr << " from " << begin_rank << " size " << rank_size <<" \n";
+         std::array<FsGridTools::FsIndex_t,3> inds = FsGridTools::globalIDtoCellCoord(*ids_ptr, gridSize);
+         x_corners.insert(inds[0]);
+         y_corners.insert(inds[1]);
+         z_corners.insert(inds[2]);
+         //rank_first_inds.push_back(inds)
+         ++ids_ptr;
+         begin_rank += rank_size;
+      }
+
+      decomposition[0] = x_corners.size();
+      decomposition[1] = y_corners.size();
+      decomposition[2] = z_corners.size();
+      std::cout << "Fsgrid decomposition computed from MESH to be " << decomposition[0] << " " << decomposition[1] << " " <<decomposition[2] << endl;
+
       FsGridTools::computeLegacyDomainDecomposition(gridSize, fsgridInputRanks, decomposition, FS_STENCIL_WIDTH, true);
       std::cout << "Fsgrid decomposition computed as " << decomposition[0] << " " << decomposition[1] << " " <<decomposition[2] << endl;
       return true;   
