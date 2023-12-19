@@ -1455,7 +1455,7 @@ bool readFsgridDecomposition(vlsv::ParallelReader& file, std::array<FsGridTools:
    FsGridTools::Task_t* ptr = &fsGridDecomposition[0];
 
    success = file.read("MESH_DECOMPOSITION",attribs, 0, 3, ptr, false);
-   if (true || success == false) {
+   if (success == false) {
       if (myRank == 0){
          std::cout << "Could not read MESH_DECOMPOSITION, attempting to calculate it from MESH." << endl;
       }
