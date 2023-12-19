@@ -46,7 +46,7 @@ namespace SBC {
                           "applyInitialState. Can be used to change boundary condition behaviour during a run.",
                           0);
       Readparameters::add("maxwellian.t_interval", "Time interval in seconds for applying the varying inflow condition.",
-                          0.1);
+                          0.0); // 0 = re-calculate every time
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
@@ -89,9 +89,6 @@ namespace SBC {
       uint reapply;
       Readparameters::get("maxwellian.reapplyUponRestart", reapply);
       Readparameters::get("maxwellian.t_interval", tInterval);
-      if (tInterval == 0) {
-         abort_mpi("Error, Dynamic inflow cannot have update interval of zero!", 1);
-      }
       this->applyUponRestart = false;
       if(reapply == 1) {
          this->applyUponRestart = true;
