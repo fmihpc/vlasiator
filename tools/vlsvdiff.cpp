@@ -235,6 +235,15 @@ bool HandleFsGrid(const string& inputFileName,
    //Write to file
    output.writeArray("MESH",patch,arraysize,1,&globalIds[0]);
 
+   std::array<int,1> numWritingRanks = {1};
+   output.writeParameter("numWritingRanks", &numWritingRanks[0]);
+
+   // Save the FSgrid decomposition
+   std::map<std::string, std::string> xmlAttributes;
+   const std::string meshName="fsgrid";
+   xmlAttributes["mesh"] = meshName;
+   std::array<FsGridTools::Task_t, 3> decom = {1,1,1};
+   output.writeArray("MESH_DECOMPOSITION", outputAttribs, 3u, 1u, &decom[0]);
    
    //Now for MESH_DOMAIN_SIZES
    inputAttribs.clear();
