@@ -357,8 +357,6 @@ bool getFsgridDecomposition(vlsvinterface::Reader& file, std::array<int,3>& deco
       decomposition[2] = z_corners.size();
       std::cout << "Fsgrid decomposition computed from MESH to be " << decomposition[0] << " " << decomposition[1] << " " <<decomposition[2] << endl;
 
-      // FsGridTools::computeLegacyDomainDecomposition(gridSize, fsgridInputRanks, decomposition, FS_STENCIL_WIDTH, true);
-      // std::cout << "Fsgrid decomposition computed as " << decomposition[0] << " " << decomposition[1] << " " <<decomposition[2] << endl;
       return true;   
    } else {
       decomposition[0] = fsGridDecomposition[0];

@@ -871,25 +871,8 @@ template<unsigned long int N> bool readFsGridVariable(
    // No override given (zero array)
    if(P::overrideReadFsGridDecomposition == fileDecomposition){
       // Try and read the decomposition from file
-      if (readFsgridDecomposition(file, fileDecomposition)) {
-         logFile << "(RESTART) Fsgrid decomposition read as " << fileDecomposition[0] << " " << fileDecomposition[1] << " " << fileDecomposition[2] << std::endl;
-      } else {
-         // If not available, compute a legacy domain decomposition
-         logFile << "(RESTART)  Could not read MESH_DECOMPOSITION from file." << endl << write;
-         phiprof::Timer computeDomainDecomposition {"computeDomainDecomposition"};
-         int fsgridInputRanks=0;
-         if(readScalarParameter(file,"numWritingRanks",fsgridInputRanks, MASTER_RANK, MPI_COMM_WORLD) == false) {
-            exitOnError(false, "(RESTART) FSGrid writing rank number not found in restart file", MPI_COMM_WORLD);
-         }
-         std::array<FsGridTools::FsSize_t,3> gridSize;
-         FsGridTools::FsSize_t* gridSizePtr = &gridSize[0];
-         bool success = file.read("MESH_BBOX",attribs, 0, 3, gridSizePtr, false);
-         if(success == false){
-            exitOnError(false, "(RESTART) FSGrid gridsize not found in file.", MPI_COMM_WORLD);
-         }
-         readFsgridDecomposition(file, fileDecomposition);
-         computeDomainDecomposition.stop();
-         logFile << "(RESTART) Fsgrid decomposition computed as " << fileDecomposition[0] << " " << fileDecomposition[1] << " " << fileDecomposition[2] << std::endl;
+      if (readFsgridDecomposition(file, fileDecomposition) == false) {
+         exitOnError(false, "(RESTART) Failed to get Fsgrid decomposition", MPI_COMM_WORLD);
       }
    } else { 
       // Override
@@ -915,8 +898,8 @@ template<unsigned long int N> bool readFsGridVariable(
 
       // Determine offset in file by summing up all the previous tasks' sizes.
       size_t localStartOffset = 0;
-      for(int task = 0; task < myRank; task++) {
-         std::array<FsGridTools::Task_t,3> thatTasksSize;
+      for(FsGridTools::Task_t task = 0; task < myRank; task++) {
+         std::array<FsGridTools::FsIndex_t, 3> thatTasksSize;
          thatTasksSize[0] = targetGrid.calcLocalSize(globalSize[0], decomposition[0], task/decomposition[2]/decomposition[1]);
          thatTasksSize[1] = targetGrid.calcLocalSize(globalSize[1], decomposition[1], (task/decomposition[2])%decomposition[1]);
          thatTasksSize[2] = targetGrid.calcLocalSize(globalSize[2], decomposition[2], task%decomposition[2]);
@@ -933,9 +916,9 @@ template<unsigned long int N> bool readFsGridVariable(
       
       // Assign buffer into fsgrid
       int index=0;
-      for(FsGridTools::Task_t z=0; z<localSize[2]; z++) {
-         for(FsGridTools::Task_t y=0; y<localSize[1]; y++) {
-            for(FsGridTools::Task_t x=0; x<localSize[0]; x++) {
+      for(FsGridTools::FsIndex_t z=0; z<localSize[2]; z++) {
+         for(FsGridTools::FsIndex_t y=0; y<localSize[1]; y++) {
+            for(FsGridTools::FsIndex_t x=0; x<localSize[0]; x++) {
                memcpy(targetGrid.get(x,y,z), &buffer[index], N*sizeof(Real));
                index += N;
             }
@@ -1024,10 +1007,10 @@ template<unsigned long int N> bool readFsGridVariable(
             }
 
             // Copy continuous stripes in x direction.
-            for(int z=overlapStart[2]; z<overlapEnd[2]; z++) {
-               for(int y=overlapStart[1]; y<overlapEnd[1]; y++) {
-                  for(int x=overlapStart[0]; x<overlapEnd[0]; x++) {
-                     int index = (z - thatTasksStart[2]) * thatTasksSize[0]*thatTasksSize[1]
+            for(FsGridTools::FsIndex_t z=overlapStart[2]; z<overlapEnd[2]; z++) {
+               for(FsGridTools::FsIndex_t y=overlapStart[1]; y<overlapEnd[1]; y++) {
+                  for(FsGridTools::FsIndex_t x=overlapStart[0]; x<overlapEnd[0]; x++) {
+                     FsGridTools::FsIndex_t index = (z - thatTasksStart[2]) * thatTasksSize[0]*thatTasksSize[1]
                         + (y - thatTasksStart[1]) * thatTasksSize[0]
                         + (x - thatTasksStart[0]);
 
