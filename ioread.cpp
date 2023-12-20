@@ -887,7 +887,7 @@ template<unsigned long int N> bool readFsGridVariable(
          if(success == false){
             exitOnError(false, "(RESTART) FSGrid gridsize not found in file.", MPI_COMM_WORLD);
          }
-         FsGridTools::computeLegacyDomainDecomposition(gridSize, fsgridInputRanks, fileDecomposition, FS_STENCIL_WIDTH, true);
+         readFsgridDecomposition(file, fileDecomposition);
          computeDomainDecomposition.stop();
          logFile << "(RESTART) Fsgrid decomposition computed as " << fileDecomposition[0] << " " << fileDecomposition[1] << " " << fileDecomposition[2] << std::endl;
       }
