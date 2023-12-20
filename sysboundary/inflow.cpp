@@ -32,6 +32,7 @@
 #include "../fieldsolver/fs_common.h"
 #include "../object_wrapper.h"
 #include "../vlasovmover.h"
+#include "../grid.h"
 #include "inflow.h"
 
 #ifndef NDEBUG
@@ -146,7 +147,7 @@ void Inflow::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geomet
    }
 }
 
-void Inflow::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+void Inflow::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
                                FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
                                FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
@@ -157,7 +158,7 @@ void Inflow::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_
    setBFromTemplate(mpiGrid, perBGrid, BgBGrid);
 }
 
-void Inflow::updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+void Inflow::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                          FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
                          FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
                          creal t) {
@@ -267,13 +268,13 @@ void Inflow::fieldSolverBoundaryCondBVOLDerivatives(
    this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
 }
 
-void Inflow::vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+void Inflow::vlasovBoundaryCondition(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                      const CellID& cellID, const uint popID, const bool doCalcMomentsV) {
    // This is a no-op because both template cell generation and block data copying takes place in
    // updateState() (at pre-set intervals only)
 }
 
-void Inflow::setBFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+void Inflow::setBFromTemplate(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                               FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
                               FsGrid<array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid) {
    std::array<bool, 6> isThisCellOnAFace;
@@ -318,7 +319,7 @@ void Inflow::setBFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_G
    }
 }
 
-void Inflow::setCellsFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+void Inflow::setCellsFromTemplate(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                   const uint popID) {
    // Assign boundary flags to local DCCRG cells
    const std::vector<CellID>& cells = getLocalCells();
