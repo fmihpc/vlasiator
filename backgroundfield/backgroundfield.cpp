@@ -68,9 +68,9 @@ void setBackgroundField(
 
       // These are threaded now that the dipole field is threadsafe
       #pragma omp parallel for collapse(2)
-      for (int z = 0; z < localSize[2]; ++z) {
-         for (int y = 0; y < localSize[1]; ++y) {
-            for (int x = 0; x < localSize[0]; ++x) {
+      for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
+         for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
+            for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
                phiprof::Timer loopTopTimer {loopTopId};
                std::array<double, 3> start = BgBGrid.getPhysicalCoords(x, y, z);
                double dx[3];
@@ -150,10 +150,10 @@ void setBackgroundFieldToZero(
    auto localSize = BgBGrid.getLocalSize().data();
 
    #pragma omp parallel for collapse(2)
-   for (int z = 0; z < localSize[2]; ++z) {
-      for (int y = 0; y < localSize[1]; ++y) {
-         for (int x = 0; x < localSize[0]; ++x) {
-            for (int i = 0; i < fsgrids::bgbfield::N_BGB; ++i) {
+   for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
+      for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
+         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
+            for (FsGridTools::FsIndex_t i = 0; i < fsgrids::bgbfield::N_BGB; ++i) {
                BgBGrid.get(x,y,z)->at(i) = 0;
             }
          }
@@ -193,9 +193,9 @@ void setPerturbedField(
 
    // These are threaded now that the stuff around here is threadsafe
    #pragma omp parallel for collapse(2)
-   for (int z = 0; z < localSize[2]; ++z) {
-      for (int y = 0; y < localSize[1]; ++y) {
-         for (int x = 0; x < localSize[0]; ++x) {
+   for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
+      for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
+         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
             std::array<double, 3> start = perBGrid.getPhysicalCoords(x, y, z);
             double dx[3];
             dx[0] = perBGrid.DX;
@@ -226,10 +226,10 @@ void setPerturbedFieldToZero(
    auto localSize = perBGrid.getLocalSize().data();
 
    #pragma omp parallel for collapse(2)
-   for (int z = 0; z < localSize[2]; ++z) {
-      for (int y = 0; y < localSize[1]; ++y) {
-         for (int x = 0; x < localSize[0]; ++x) {
-            for (int i = 0; i < fsgrids::bfield::N_BFIELD; ++i) {
+   for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
+      for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
+         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
+            for (FsGridTools::FsIndex_t i = 0; i < fsgrids::bfield::N_BFIELD; ++i) {
                perBGrid.get(x,y,z)->at(i) = 0;
             }
          }
