@@ -866,13 +866,12 @@ template<unsigned long int N> bool readFsGridVariable(
    size_t storageSize = localSize[0]*localSize[1]*localSize[2];
 
    preparations.stop();
-
    std::array<FsGridTools::Task_t,3> fileDecomposition={0,0,0};
    // No override given (zero array)
    if(P::overrideReadFsGridDecomposition == fileDecomposition){
       // Try and read the decomposition from file
       if (readFsgridDecomposition(file, fileDecomposition) == false) {
-         exitOnError(false, "(RESTART) Failed to get Fsgrid decomposition", MPI_COMM_WORLD);
+         exitOnError(false, "(RESTART) Failed to read Fsgrid decomposition", MPI_COMM_WORLD);
       }
    } else { 
       // Override
@@ -1421,8 +1420,7 @@ bool readFsgridDecomposition(vlsv::ParallelReader& file, std::array<FsGridTools:
    int myRank;   
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
-
-   phiprof::Timer computeDomainDecomposition {"computeDomainDecomposition"};
+   phiprof::Timer readFsGridDecomposition {"readFsGridDecomposition"};
 
    attribs.push_back(make_pair("mesh","fsgrid"));
 
@@ -1439,7 +1437,7 @@ bool readFsgridDecomposition(vlsv::ParallelReader& file, std::array<FsGridTools:
 
    success = file.read("MESH_DECOMPOSITION",attribs, 0, 3, ptr, false);
    if (success == false) {
-      if (myRank == 0){
+      if (myRank == MASTER_RANK){
          std::cout << "Could not read MESH_DECOMPOSITION, attempting to calculate it from MESH." << endl;
       }
       int fsgridInputRanks=0;
@@ -1451,7 +1449,7 @@ bool readFsgridDecomposition(vlsv::ParallelReader& file, std::array<FsGridTools:
       int64_t* domainInfo = NULL;
       success = file.read("MESH_DOMAIN_SIZES",attribs, 0, fsgridInputRanks, domainInfo);
       if(success == false){
-         if (myRank == 0){
+         if (myRank == MASTER_RANK){
             std::cerr << "Could not read MESH_DOMAIN_SIZES from file" << endl;
          }
          return false;
@@ -1470,30 +1468,36 @@ bool readFsgridDecomposition(vlsv::ParallelReader& file, std::array<FsGridTools:
       int64_t begin_rank = 0;
       int i = 0;
       for(auto rank_size : mesh_domain_sizes){
-         if(file.read("MESH", mesh_attribs, begin_rank, 1, ids_ptr, false) == false){
-            if (myRank == 0){
-               std::cerr << "Reading MESH failed.\n";
+         if(myRank == MASTER_RANK){
+            if(file.read("MESH", mesh_attribs, begin_rank, 1, ids_ptr, false) == false){
+               if (myRank == 0){
+                  std::cerr << "Reading MESH failed.\n";
+               }
+               return false;
             }
-            return false;
+            std::array<FsGridTools::FsIndex_t,3> inds = FsGridTools::globalIDtoCellCoord(*ids_ptr, gridSize);
+            x_corners.insert(inds[0]);
+            y_corners.insert(inds[1]);
+            z_corners.insert(inds[2]);
+            ++ids_ptr;
+            begin_rank += rank_size;
+         } else {
+            file.read("MESH", mesh_attribs, begin_rank, 0, ids_ptr, false);
          }
-         std::array<FsGridTools::FsIndex_t,3> inds = FsGridTools::globalIDtoCellCoord(*ids_ptr, gridSize);
-         x_corners.insert(inds[0]);
-         y_corners.insert(inds[1]);
-         z_corners.insert(inds[2]);
-         ++ids_ptr;
-         begin_rank += rank_size;
       }
 
       decomposition[0] = x_corners.size();
       decomposition[1] = y_corners.size();
       decomposition[2] = z_corners.size();
+      MPI_Bcast(&decomposition, 3, MPI_INT, MASTER_RANK, MPI_COMM_WORLD);
+
       if(decomposition[0]*decomposition[1]*decomposition[2] == fsgridInputRanks){
-         if (myRank == 0){
+         if (myRank == MASTER_RANK){
             std::cout << "Fsgrid decomposition computed from MESH to be " << decomposition[0] << " " << decomposition[1] << " " <<decomposition[2] << endl;
          }
          return true;
       } else {
-         if (myRank == 0){
+         if (myRank == MASTER_RANK){
             std::cout << "Fsgrid decomposition computed from MESH to be " << decomposition[0] << " " << decomposition[1] << " " <<decomposition[2] << ", which is not compatible with numWritingRanks ("<<fsgridInputRanks << ")" << endl;
          }
          return false;
