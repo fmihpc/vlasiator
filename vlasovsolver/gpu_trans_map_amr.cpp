@@ -755,6 +755,9 @@ void gpu_update_remote_mapping_contribution_amr(
                      // from one rank are sending to the same remote cell so that all sent cells can be
                      // summed for the correct result.
 
+                     if (ccell->neighbor_number_of_blocks.at(sendIndex) == 0) {
+                        continue;
+                     }
                      // GPUTODO: This is now unified memory. With GPU-aware MPI it could be on-device.
                      CHK_ERR( gpuMallocManaged((void**)&ccell->neighbor_block_data.at(sendIndex), ccell->neighbor_number_of_blocks.at(sendIndex) * WID3 * sizeof(Realf)) );
                      CHK_ERR( gpuMemPrefetchAsync(ccell->neighbor_block_data.at(sendIndex),ccell->neighbor_number_of_blocks.at(sendIndex) * WID3 * sizeof(Realf),device,0) );
@@ -791,6 +794,9 @@ void gpu_update_remote_mapping_contribution_amr(
                   // Allocate memory for one sibling at recvIndex.
                   recvIndex = get_sibling_index(mpiGrid,nbr);
                   ncell->neighbor_number_of_blocks.at(recvIndex) = ccell->get_number_of_velocity_blocks(popID);
+                  if (ncell->neighbor_number_of_blocks.at(recvIndex) == 0) {
+                     continue;
+                  }
 
                   // GPUTODO: This is now unified memory. With GPU-aware MPI it could be on-device.
                   CHK_ERR( gpuMallocManaged((void**)&ncell->neighbor_block_data.at(recvIndex), ncell->neighbor_number_of_blocks.at(recvIndex) * WID3 * sizeof(Realf)) );
@@ -819,6 +825,10 @@ void gpu_update_remote_mapping_contribution_amr(
                         && scell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
 
                         ncell->neighbor_number_of_blocks.at(i_sib) = scell->get_number_of_velocity_blocks(popID);
+                        if (ncell->neighbor_number_of_blocks.at(i_sib) == 0) {
+                           continue;
+                        }
+
                         // GPUTODO: This is now unified memory. With GPU-aware MPI it could be on-device.
                         CHK_ERR( gpuMallocManaged((void**)&ncell->neighbor_block_data.at(i_sib), ncell->neighbor_number_of_blocks.at(i_sib) * WID3 * sizeof(Realf)) );
                         CHK_ERR( gpuMemPrefetchAsync(ncell->neighbor_block_data.at(i_sib), ncell->neighbor_number_of_blocks.at(i_sib) * WID3 * sizeof(Realf), device,0) );
