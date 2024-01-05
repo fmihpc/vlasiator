@@ -1347,6 +1347,13 @@ int main(int argn,char* args[]) {
       ) {
       (cell_item->second).gpu_destructor();
    }
+   for (typename std::unordered_map<uint64_t, SpatialCell>::iterator
+           cell_item = mpiGrid.get_remote_cell_data_for_editing().begin();
+        cell_item != mpiGrid.get_remote_cell_data_for_editing().end();
+        cell_item++
+      ) {
+      (cell_item->second).gpu_destructor();
+   }
    // Deallocate buffers, clear device
    vmesh::deallocateMeshWrapper();
    gpu_clear_device();
