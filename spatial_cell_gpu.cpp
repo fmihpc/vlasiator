@@ -598,6 +598,7 @@ namespace spatial_cell {
       BlocksToMove->clear();
       attachedStream=0;
       velocity_block_with_content_list_size=0;
+      gpu_velocity_block_with_content_list_buffer=0;
       BlocksRequiredMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(7);
    }
 
@@ -608,6 +609,38 @@ namespace spatial_cell {
    void SpatialCell::gpu_destructor() {
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          populations[popID].gpu_destructor();
+      }
+      if (velocity_block_with_content_list) {
+         delete velocity_block_with_content_list;
+         velocity_block_with_content_list = 0;
+      }
+      if (velocity_block_with_no_content_list) {
+         delete velocity_block_with_no_content_list;
+         velocity_block_with_no_content_list = 0;
+      }
+      if (BlocksRequired) {
+         delete BlocksRequired;
+         BlocksRequired = 0;
+      }
+      if (BlocksToAdd) {
+         delete BlocksToAdd;
+         BlocksToAdd = 0;
+      }
+      if (BlocksToRemove) {
+         delete BlocksToRemove;
+         BlocksToRemove = 0;
+      }
+      if (BlocksToMove) {
+         delete BlocksToMove;
+         BlocksToMove = 0;
+      }
+      if (BlocksRequiredMap) {
+         delete BlocksRequiredMap;
+         BlocksRequiredMap = 0;
+      }
+      if (gpu_velocity_block_with_content_list_buffer) {
+         CHK_ERR( gpuFree(gpu_velocity_block_with_content_list_buffer) );
+         gpu_velocity_block_with_content_list_buffer = 0;
       }
    }
 
@@ -654,17 +687,22 @@ namespace spatial_cell {
          null_block_data[i] = 0.0;
       }
       for (unsigned int i=0; i<MAX_NEIGHBORS_PER_DIM; ++i) {
-         neighbor_block_data[i] = other.neighbor_block_data[i];
-         neighbor_number_of_blocks[i] = other.neighbor_number_of_blocks[i];
+         neighbor_block_data[i] = 0;
+         neighbor_number_of_blocks[i] = 0;
       }
-
-      if (other.face_neighbor_ranks.size()>0) {
-         face_neighbor_ranks = std::map<int,std::set<int>>(other.face_neighbor_ranks);
-      }
+      face_neighbor_ranks.clear();
+      // for (unsigned int i=0; i<MAX_NEIGHBORS_PER_DIM; ++i) {
+      //    neighbor_block_data[i] = other.neighbor_block_data[i];
+      //    neighbor_number_of_blocks[i] = other.neighbor_number_of_blocks[i];
+      // }
+      // if (other.face_neighbor_ranks.size()>0) {
+      //    face_neighbor_ranks = std::map<int,std::set<int>>(other.face_neighbor_ranks);
+      // }
       if (other.populations.size()>0) {
          populations = std::vector<spatial_cell::Population>(other.populations);
       }
       attachedStream=0;
+      gpu_velocity_block_with_content_list_buffer=0;
    }
    const SpatialCell& SpatialCell::operator=(const SpatialCell& other) {
       const uint reserveSize = (other.BlocksRequired)->capacity();
@@ -705,11 +743,15 @@ namespace spatial_cell {
          null_block_data[i] = 0.0;
       }
       for (unsigned int i=0; i<MAX_NEIGHBORS_PER_DIM; ++i) {
-         neighbor_block_data[i] = other.neighbor_block_data[i];
-         neighbor_number_of_blocks[i] = other.neighbor_number_of_blocks[i];
+         neighbor_block_data[i] = 0;
+         neighbor_number_of_blocks[i] = 0;
       }
-
-      face_neighbor_ranks = std::map<int,std::set<int>>(other.face_neighbor_ranks);
+      face_neighbor_ranks.clear();
+      // for (unsigned int i=0; i<MAX_NEIGHBORS_PER_DIM; ++i) {
+      //    neighbor_block_data[i] = other.neighbor_block_data[i];
+      //    neighbor_number_of_blocks[i] = other.neighbor_number_of_blocks[i];
+      // }
+      //face_neighbor_ranks = std::map<int,std::set<int>>(other.face_neighbor_ranks);
       populations = std::vector<spatial_cell::Population>(other.populations);
 
       attachedStream=0;
@@ -853,6 +895,7 @@ namespace spatial_cell {
          return;
       }
       CHK_ERR( gpuFreeAsync(gpu_velocity_block_with_content_list_buffer, stream) );
+      gpu_velocity_block_with_content_list_buffer = 0;
    }
 
    /** Sets a guidance counter so that vmesh adjustment vectors have sufficient size

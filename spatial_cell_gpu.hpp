@@ -243,6 +243,8 @@ namespace spatial_cell {
       Population() {
          vmesh = new vmesh::VelocityMesh();
          blockContainer = new vmesh::VelocityBlockContainer();
+         dev_vmesh = 0;
+         dev_blockContainer = 0;
          // Host registers seem to break in multi-gpu per node runs
          // CHK_ERR(gpuHostRegister(&vmesh, sizeof(vmesh::VelocityMesh*),gpuHostRegisterPortable));
          // CHK_ERR(gpuHostRegister(&blockContainer, sizeof(vmesh::VelocityBlockContainer*),gpuHostRegisterPortable));
@@ -281,6 +283,8 @@ namespace spatial_cell {
       Population(const Population& other) {
          vmesh = new vmesh::VelocityMesh(*(other.vmesh));
          blockContainer = new vmesh::VelocityBlockContainer(*(other.blockContainer));
+         dev_vmesh = 0;
+         dev_blockContainer = 0;
          // Host registers seem to break in multi-gpu per node runs
          // CHK_ERR(gpuHostRegister(&vmesh, sizeof(vmesh::VelocityMesh*),gpuHostRegisterPortable));
          // CHK_ERR(gpuHostRegister(&blockContainer, sizeof(vmesh::VelocityBlockContainer*),gpuHostRegisterPortable));
