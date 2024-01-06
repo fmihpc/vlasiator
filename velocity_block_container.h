@@ -147,8 +147,8 @@ namespace vmesh {
       // block_data= new split::SplitVector<Realf>(*(other.block_data));
       // parameters= new split::SplitVector<Real>(*(other.parameters));
       gpuStream_t stream = gpu_getStream();
-      block_data->optimizeMetadataCPU(stream);
-      parameters->optimizeMetadataCPU(stream);
+      // block_data->optimizeMetadataCPU(stream);
+      // parameters->optimizeMetadataCPU(stream);
       other.block_data->optimizeMetadataCPU(stream);
       other.parameters->optimizeMetadataCPU(stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
@@ -398,6 +398,9 @@ namespace vmesh {
       vmesh::LocalID currentCapacity = block_data->capacity()/WID3;
 
       vmesh::LocalID requirement = (size > numberOfBlocks) ? size : numberOfBlocks;
+      // Always reserve for at least 50 blocks
+      requirement = (requirement > 50) ? requirement : 50;
+
       if (currentCapacity > BLOCK_ALLOCATION_FACTOR * requirement) {
          return; // Still have enough buffer
       }
