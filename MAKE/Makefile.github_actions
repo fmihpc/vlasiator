@@ -76,7 +76,7 @@ LIB_SILO = -lsiloh5
 INC_PAPI =
 LIB_PAPI = -lpapi
 
-INC_DCCRG =
+INC_DCCRG = -I./submodules/dccrg
 
 INC_FSGRID = -I./submodules/fsgrid
 
