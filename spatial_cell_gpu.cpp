@@ -722,7 +722,8 @@ namespace spatial_cell {
       velocity_block_with_no_content_list->reserve(reserveSize,true);
 
       const int reserveSize2 = reserveSize > 0 ? reserveSize : 1;
-      const vmesh::LocalID HashmapReqSize = ceil(log2(reserveSize2)) +2;
+      vmesh::LocalID HashmapReqSize = ceil(log2(reserveSize2)) +2;
+      HashmapReqSize = HashmapReqSize > 7 ? HashmapReqSize : 7;
       BlocksRequiredMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(HashmapReqSize);
 
       // Member variables
