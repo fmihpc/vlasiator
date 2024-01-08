@@ -38,13 +38,13 @@ vmesh::MeshWrapper* vmesh::host_getMeshWrapper() {
 static vmesh::MeshWrapper** meshWrapperDevRegister[128] = {0};
 vmesh::meshWrapperDevRegistor::meshWrapperDevRegistor(vmesh::MeshWrapper*& v) {
    for (size_t InstanceIdx = 0; InstanceIdx < sizeof(meshWrapperDevRegister) / sizeof(vmesh::MeshWrapper**);
-        ++InstanceIdx)
+        ++InstanceIdx) {
       if (auto*& slot = meshWrapperDevRegister[InstanceIdx]; !slot) {
          slot = &v;
-         printf("Got instance of device mesh wrapper handler %p (index %ld)\n", &v, InstanceIdx);
+         //printf("Got instance of device mesh wrapper handler %p (index %ld)\n", &v, InstanceIdx);
          return;
       }
-
+   }
    assert(false && "Not enough slots to register mesh wrapper slots.");
 }
 
@@ -60,15 +60,18 @@ void vmesh::MeshWrapper::uploadMeshWrapper() {
    CHK_ERR( gpuMalloc((void **)&MWdev, sizeof(vmesh::MeshWrapper)) );
    CHK_ERR( gpuMemcpy(MWdev, meshWrapper, sizeof(vmesh::MeshWrapper),gpuMemcpyHostToDevice) );
    // Set the global symbol of meshWrapper
+   int count=0;
    for (size_t InstanceIdx = 0; InstanceIdx < sizeof(meshWrapperDevRegister) / sizeof(vmesh::MeshWrapper**);
-        ++InstanceIdx)
+        ++InstanceIdx) {
       if (auto* slot = meshWrapperDevRegister[InstanceIdx]; slot) {
-         printf("Setting device mesh wrapper handler %p (index %ld)\n", slot, InstanceIdx);
+         //printf("Setting device mesh wrapper handler %p (index %ld)\n", slot, InstanceIdx);
          CHK_ERR( gpuMemcpyToSymbol(*slot, &MWdev, sizeof(vmesh::MeshWrapper*)) );
-      } else
+         count++;
+      } else {
          break;
-
-   printf("Done setting all instances of device mesh wrapper handler!\n");
+      }
+   }
+   printf("Done setting all %d instances of device mesh wrapper handler!\n",count);
 
    // Copy host-side address back
    meshWrapper->velocityMeshes = temp;
