@@ -397,7 +397,7 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
       }
    }
    // Prefetch vector of vmesh pointers to GPU
-   allVmeshPointer->optimizeUMGPU(bgStream);
+   allVmeshPointer->optimizeGPU(bgStream);
 
    // Reserve size for unionOfBlocksSet
    gpu_trans_allocate(0, 0, largestFoundMeshSize, 0);
@@ -441,8 +441,8 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
       }
    }
    // Prefetch data back to GPU
-   allPencilsMeshes->optimizeUMGPU(bgStream);
-   allPencilsContainers->optimizeUMGPU(bgStream);
+   allPencilsMeshes->optimizeGPU(bgStream);
+   allPencilsContainers->optimizeGPU(bgStream);
 
    // Extract pointers to data in managed memory
    uint* pencilLengths = DimensionPencils[dimension].gpu_lengthOfPencils->data();
@@ -453,13 +453,11 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
 
    phiprof::Timer buildTimer2 {"trans-amr-buildBlockList-2"};
    // Now we ensure the union of blocks gathering is complete and extract the union of blocks into a vector
-   unionOfBlocksSet->optimizeMetadataCPU(bgStream);
    CHK_ERR( gpuStreamSynchronize(bgStream) );
    const vmesh::LocalID unionOfBlocksSetSize = unionOfBlocksSet->size();
    gpu_trans_allocate(0,0,0,unionOfBlocksSetSize);
    const uint nAllBlocks = unionOfBlocksSet->extractAllKeys(*unionOfBlocks,bgStream);
    CHK_ERR( gpuStreamSynchronize(bgStream) );
-   unionOfBlocks->optimizeMetadataCPU(bgStream);
    vmesh::GlobalID *allBlocks = unionOfBlocks->data();
    // This threshold value is used by slope limiters.
    Realv threshold = mpiGrid[DimensionPencils[dimension].ids[VLASOV_STENCIL_WIDTH]]->getVelocityBlockMinValue(popID);

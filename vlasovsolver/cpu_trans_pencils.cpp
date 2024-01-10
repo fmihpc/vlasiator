@@ -1191,10 +1191,10 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    // Send data to GPU
    gpuStream_t stream = gpu_getStream();
    int device = gpu_getDevice();
-   DimensionPencils[dimension].gpu_lengthOfPencils->optimizeUMGPU(stream);
-   DimensionPencils[dimension].gpu_idsStart->optimizeUMGPU(stream);
-   DimensionPencils[dimension].gpu_sourceDZ->optimizeUMGPU(stream);
-   DimensionPencils[dimension].gpu_targetRatios->optimizeUMGPU(stream);
+   DimensionPencils[dimension].gpu_lengthOfPencils->optimizeGPU(stream);
+   DimensionPencils[dimension].gpu_idsStart->optimizeGPU(stream);
+   DimensionPencils[dimension].gpu_sourceDZ->optimizeGPU(stream);
+   DimensionPencils[dimension].gpu_targetRatios->optimizeGPU(stream);
    // SLOW ON AMD:
    // DimensionPencils[dimension].gpu_lengthOfPencils->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
    // DimensionPencils[dimension].gpu_lengthOfPencils->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);

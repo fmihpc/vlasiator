@@ -462,8 +462,8 @@ __host__ void gpu_compaction_allocate_vec_perthread(
       const uint paddedSize = BLOCK_ALLOCATION_FACTOR * vectorLength;
       vbwcl_gather[cpuThreadID] = new split::SplitVector<vmesh::GlobalID>(paddedSize);
       vbwncl_gather[cpuThreadID] = new split::SplitVector<vmesh::GlobalID>(paddedSize);
-      vbwcl_gather[cpuThreadID]->optimizeUMGPU(stream,true); // true: leave metadata on CPU
-      vbwncl_gather[cpuThreadID]->optimizeUMGPU(stream,true);
+      vbwcl_gather[cpuThreadID]->optimizeGPU(stream);
+      vbwncl_gather[cpuThreadID]->optimizeGPU(stream);
       gpu_compaction_vectorsize[cpuThreadID] = paddedSize;
    }
    // If buffer isn't large enough, resize.
@@ -476,8 +476,8 @@ __host__ void gpu_compaction_allocate_vec_perthread(
       // vbwncl_gather[cpuThreadID]->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
       // vbwcl_gather[cpuThreadID]->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
       // vbwncl_gather[cpuThreadID]->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-      vbwcl_gather[cpuThreadID]->optimizeUMGPU(stream,true); // true: leave metadata on CPU
-      vbwncl_gather[cpuThreadID]->optimizeUMGPU(stream,true);
+      vbwcl_gather[cpuThreadID]->optimizeGPU(stream);
+      vbwncl_gather[cpuThreadID]->optimizeGPU(stream);
       gpu_compaction_vectorsize[cpuThreadID] = paddedSize;
    }
    CHK_ERR( gpuStreamSynchronize(stream) );
@@ -521,7 +521,7 @@ __host__ void gpu_trans_allocate(
          allVmeshPointer = new split::SplitVector<vmesh::VelocityMesh*>(nAllCells);
       } else {
          // Resize
-         allVmeshPointer->optimizeUMCPU(stream);
+         allVmeshPointer->optimizeCPU(stream);
          allVmeshPointer->resize(nAllCells,true);
       }
       // Leave on CPU
@@ -535,8 +535,8 @@ __host__ void gpu_trans_allocate(
          allPencilsContainers = new split::SplitVector<vmesh::VelocityBlockContainer*>(sumOfLengths);
       } else {
          // Resize
-         allPencilsMeshes->optimizeUMCPU(stream);
-         allPencilsContainers->optimizeUMCPU(stream);
+         allPencilsMeshes->optimizeCPU(stream);
+         allPencilsContainers->optimizeCPU(stream);
          allPencilsMeshes->resize(sumOfLengths,true);
          allPencilsContainers->resize(sumOfLengths,true);
       }
@@ -549,15 +549,14 @@ __host__ void gpu_trans_allocate(
       if (gpu_allocated_largestVmesh == 0) {
          // New allocation
          unionOfBlocksSet = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(HashmapReqSize);
-         unionOfBlocksSet->optimizeUMGPU(stream);
+         unionOfBlocksSet->optimizeGPU(stream);
       } else {
-         unionOfBlocksSet->optimizeMetadataCPU(stream);
          // Ensure allocation
          const uint currSizePower = unionOfBlocksSet->getSizePower();
          if (currSizePower < HashmapReqSize) {
             unionOfBlocksSet->resize(HashmapReqSize);
          }
-         unionOfBlocksSet->optimizeUMGPU(stream);
+         unionOfBlocksSet->optimizeGPU(stream);
          // Ensure map is empty
          unionOfBlocksSet->clear(Hashinator::targets::device,stream,false);
       }
@@ -570,7 +569,6 @@ __host__ void gpu_trans_allocate(
          unionOfBlocks = new split::SplitVector<vmesh::GlobalID>(unionSetSize);
          unionOfBlocks->clear();
       } else {
-         unionOfBlocks->optimizeMetadataCPU(stream);
          if (unionOfBlocks->capacity() < unionSetSize) {
             // Recapacitate, clear, and prefetch
             unionOfBlocks->reserve(unionSetSize);
@@ -580,7 +578,7 @@ __host__ void gpu_trans_allocate(
             unionOfBlocks->clear();
          }
       }
-      unionOfBlocks->optimizeUMGPU(stream);
+      unionOfBlocks->optimizeGPU(stream);
       gpu_allocated_unionSetSize = unionSetSize;
    }
    CHK_ERR( gpuStreamSynchronize(stream) );

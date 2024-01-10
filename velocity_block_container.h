@@ -149,9 +149,9 @@ namespace vmesh {
       gpuStream_t stream = gpu_getStream();
       // block_data->optimizeMetadataCPU(stream);
       // parameters->optimizeMetadataCPU(stream);
-      other.block_data->optimizeMetadataCPU(stream);
-      other.parameters->optimizeMetadataCPU(stream);
-      CHK_ERR( gpuStreamSynchronize(stream) );
+      // other.block_data->optimizeMetadataCPU(stream);
+      // other.parameters->optimizeMetadataCPU(stream);
+      // CHK_ERR( gpuStreamSynchronize(stream) );
       block_data = new split::SplitVector<Realf>(other.block_data->capacity());
       parameters = new split::SplitVector<Real>(other.block_data->capacity());
       // Overwrite is like a copy assign but takes a stream
@@ -169,11 +169,11 @@ namespace vmesh {
       #ifdef USE_GPU
       attachedStream = other.attachedStream;
       gpuStream_t stream = gpu_getStream();
-      block_data->optimizeMetadataCPU(stream);
-      parameters->optimizeMetadataCPU(stream);
-      other.block_data->optimizeMetadataCPU(stream);
-      other.parameters->optimizeMetadataCPU(stream);
-      CHK_ERR( gpuStreamSynchronize(stream) );
+      // block_data->optimizeMetadataCPU(stream);
+      // parameters->optimizeMetadataCPU(stream);
+      // other.block_data->optimizeMetadataCPU(stream);
+      // other.parameters->optimizeMetadataCPU(stream);
+      // CHK_ERR( gpuStreamSynchronize(stream) );
       block_data->reserve(other.block_data->capacity(), true, stream);
       parameters->reserve(other.parameters->capacity(), true, stream);
       // Overwrite is like a copy assign but takes a stream
@@ -189,22 +189,22 @@ namespace vmesh {
    }
 
    inline ARCH_HOSTDEV vmesh::LocalID VelocityBlockContainer::capacity() const {
-      #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-      gpuStream_t stream = gpu_getStream();
-      block_data->optimizeMetadataCPU(stream);
-      CHK_ERR( gpuStreamSynchronize(stream) );
-      #endif
+      // #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
+      // gpuStream_t stream = gpu_getStream();
+      // block_data->optimizeMetadataCPU(stream);
+      // CHK_ERR( gpuStreamSynchronize(stream) );
+      // #endif
       const vmesh::LocalID currentCapacity = block_data->capacity() / WID3;
       return currentCapacity;
    }
 
    inline ARCH_HOSTDEV size_t VelocityBlockContainer::capacityInBytes() const {
-      #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-      gpuStream_t stream = gpu_getStream();
-      block_data->optimizeMetadataCPU(stream);
-      parameters->optimizeMetadataCPU(stream);
-      CHK_ERR( gpuStreamSynchronize(stream) );
-      #endif
+      // #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
+      // gpuStream_t stream = gpu_getStream();
+      // block_data->optimizeMetadataCPU(stream);
+      // parameters->optimizeMetadataCPU(stream);
+      // CHK_ERR( gpuStreamSynchronize(stream) );
+      // #endif
       const vmesh::LocalID currentCapacity = block_data->capacity();
       const vmesh::LocalID parametersCapacity = parameters->capacity();
       return currentCapacity*sizeof(Realf) + parametersCapacity*sizeof(Real);
@@ -215,8 +215,8 @@ namespace vmesh {
    inline void VelocityBlockContainer::clear() {
 #ifdef USE_GPU
       gpuStream_t stream = gpu_getStream();
-      block_data->optimizeMetadataCPU(stream);
-      parameters->optimizeMetadataCPU(stream);
+      // block_data->optimizeMetadataCPU(stream);
+      // parameters->optimizeMetadataCPU(stream);
       block_data->resize(1,true, stream);
       block_data->shrink_to_fit(stream);
       parameters->resize(1,true,stream);
@@ -237,9 +237,9 @@ namespace vmesh {
    inline ARCH_HOSTDEV void VelocityBlockContainer::move(const vmesh::LocalID& source,const vmesh::LocalID& target) {
       #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
       gpuStream_t stream = gpu_getStream();
-      block_data->optimizeUMCPU(stream);
-      parameters->optimizeUMCPU(stream);
-      CHK_ERR( gpuStreamSynchronize(stream) );
+      // block_data->optimizeUMCPU(stream);
+      // parameters->optimizeUMCPU(stream);
+      // CHK_ERR( gpuStreamSynchronize(stream) );
       #endif
       const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
 
@@ -288,10 +288,10 @@ namespace vmesh {
       parameters->erase(parameters->begin() + BlockParams::N_VELOCITY_BLOCK_PARAMS*(numberOfBlocks-1),
                         parameters->begin() + BlockParams::N_VELOCITY_BLOCK_PARAMS*(numberOfBlocks));
 
-      #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-      block_data->optimizeUMGPU(stream);
-      parameters->optimizeUMGPU(stream);
-      #endif
+      // #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
+      // block_data->optimizeUMGPU(stream);
+      // parameters->optimizeUMGPU(stream);
+      // #endif
    }
 
    inline void VelocityBlockContainer::exitInvalidLocalID(const vmesh::LocalID& localID,const std::string& funcName) const {
@@ -320,34 +320,14 @@ namespace vmesh {
    }
 
    inline ARCH_HOSTDEV Realf* VelocityBlockContainer::getData() {
-      #if defined(USE_GPU) && !(defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
-      gpuStream_t stream = gpu_getStream();
-      block_data->optimizeMetadataCPU(stream);
-      #endif
-      Realf* returnValue = block_data->data();
-      #if defined(USE_GPU) && !(defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
-      block_data->optimizeUMGPU(stream);
-      #endif
-      return returnValue;
+      return block_data->data();
    }
 
    inline ARCH_HOSTDEV const Realf* VelocityBlockContainer::getData() const {
-      #if defined(USE_GPU) && !(defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
-      gpuStream_t stream = gpu_getStream();
-      block_data->optimizeMetadataCPU(stream);
-      #endif
-      const Realf* returnValue = block_data->data();
-      #if defined(USE_GPU) && !(defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
-      block_data->optimizeUMGPU(stream);
-      #endif
-      return returnValue;
+      return block_data->data();
    }
 
    inline ARCH_HOSTDEV Realf* VelocityBlockContainer::getData(const vmesh::LocalID& blockLID) {
-      #if defined(USE_GPU) && !(defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
-      gpuStream_t stream = gpu_getStream();
-      block_data->optimizeMetadataCPU(stream);
-      #endif
       #ifdef DEBUG_VBC
          const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
          #if defined(USE_GPU) && (defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
@@ -356,18 +336,10 @@ namespace vmesh {
          if (blockLID >= numberOfBlocks) exitInvalidLocalID(blockLID,"getData");
          #endif
       #endif
-      Realf* returnValue = block_data->data();
-      #if defined(USE_GPU) && !(defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
-      block_data->optimizeUMGPU(stream);
-      #endif
-      return returnValue + blockLID*WID3;
+      return block_data->data() + blockLID*WID3;
    }
 
    inline ARCH_HOSTDEV const Realf* VelocityBlockContainer::getData(const vmesh::LocalID& blockLID) const {
-      #if defined(USE_GPU) && !(defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
-      gpuStream_t stream = gpu_getStream();
-      block_data->optimizeMetadataCPU(stream);
-      #endif
       #ifdef DEBUG_VBC
          const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
          #if defined(USE_GPU) && (defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
@@ -376,11 +348,7 @@ namespace vmesh {
          if (blockLID >= numberOfBlocks) exitInvalidLocalID(blockLID,"const getData const");
          #endif
       #endif
-      const Realf* returnValue = block_data->data();
-      #if defined(USE_GPU) && !(defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
-      block_data->optimizeUMGPU(stream);
-      #endif
-      return returnValue + blockLID*WID3;
+      return block_data->data() + blockLID*WID3;
    }
 
 #ifdef USE_GPU
@@ -390,9 +358,9 @@ namespace vmesh {
    inline void VelocityBlockContainer::gpu_Allocate(vmesh::LocalID size) {
       #ifdef USE_GPU
       gpuStream_t stream = gpu_getStream();
-      block_data->optimizeMetadataCPU(stream);
-      parameters->optimizeMetadataCPU(stream);
-      CHK_ERR( gpuStreamSynchronize(stream) );
+      // block_data->optimizeMetadataCPU(stream);
+      // parameters->optimizeMetadataCPU(stream);
+      // CHK_ERR( gpuStreamSynchronize(stream) );
       #endif
       const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
       vmesh::LocalID currentCapacity = block_data->capacity()/WID3;
@@ -417,8 +385,8 @@ namespace vmesh {
       block_data->reserve(currentCapacity * WID3, true, stream);
       parameters->reserve(currentCapacity * BlockParams::N_VELOCITY_BLOCK_PARAMS, true, stream);
       #ifdef USE_GPU
-      block_data->optimizeUMGPU(stream);
-      parameters->optimizeUMGPU(stream);
+      block_data->optimizeGPU(stream);
+      parameters->optimizeGPU(stream);
       #endif
       return;
    }
@@ -427,25 +395,16 @@ namespace vmesh {
       if (stream==0) {
          gpuStream_t stream = gpu_getStream();
       }
-      block_data->optimizeUMCPU(stream);
-      parameters->optimizeUMCPU(stream);
+      block_data->optimizeCPU(stream);
+      parameters->optimizeCPU(stream);
       return;
    }
-   inline void VelocityBlockContainer::gpu_prefetchMetadataHost(gpuStream_t stream=0) {
-      if (stream==0) {
-         gpuStream_t stream = gpu_getStream();
-      }
-      block_data->optimizeMetadataCPU(stream);
-      parameters->optimizeMetadataCPU(stream);
-      return;
-   }
-
    inline void VelocityBlockContainer::gpu_prefetchDevice(gpuStream_t stream=0) {
       if (stream==0) {
          gpuStream_t stream = gpu_getStream();
       }
-      block_data->optimizeUMGPU(stream);
-      parameters->optimizeUMGPU(stream);
+      block_data->optimizeGPU(stream);
+      parameters->optimizeGPU(stream);
       return;
    }
 
@@ -502,34 +461,14 @@ namespace vmesh {
 #endif
 
    inline ARCH_HOSTDEV Real* VelocityBlockContainer::getParameters() {
-      #if defined(USE_GPU) && !(defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
-      gpuStream_t stream = gpu_getStream();
-      parameters->optimizeMetadataCPU(stream);
-      #endif
-      Real* returnValue = parameters->data();
-      #if defined(USE_GPU) && !(defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
-      parameters->optimizeUMGPU(stream);
-      #endif
-      return returnValue;
+      return parameters->data();
    }
 
    inline ARCH_HOSTDEV const Real* VelocityBlockContainer::getParameters() const {
-      #if defined(USE_GPU) && !(defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
-      gpuStream_t stream = gpu_getStream();
-      parameters->optimizeMetadataCPU(stream);
-      #endif
-      const Real* returnValue = parameters->data();
-      #if defined(USE_GPU) && !(defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
-      parameters->optimizeUMGPU(stream);
-      #endif
-      return returnValue;
+      return parameters->data();
    }
 
    inline ARCH_HOSTDEV Real* VelocityBlockContainer::getParameters(const vmesh::LocalID& blockLID) {
-      #if defined(USE_GPU) && !(defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
-      gpuStream_t stream = gpu_getStream();
-      parameters->optimizeMetadataCPU(stream);
-      #endif
       #ifdef DEBUG_VBC
          const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
          #if defined(USE_GPU) && (defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
@@ -538,18 +477,10 @@ namespace vmesh {
          if (blockLID >= numberOfBlocks) exitInvalidLocalID(blockLID,"getParameters");
          #endif
       #endif
-      Real* returnValue = parameters->data();
-      #if defined(USE_GPU) && !(defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
-      parameters->optimizeUMGPU(stream);
-      #endif
-      return returnValue + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
+      return parameters->data() + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
    }
 
    inline ARCH_HOSTDEV const Real* VelocityBlockContainer::getParameters(const vmesh::LocalID& blockLID) const {
-      #if defined(USE_GPU) && !(defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
-      gpuStream_t stream = gpu_getStream();
-      parameters->optimizeMetadataCPU(stream);
-      #endif
       #ifdef DEBUG_VBC
          const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
          #if defined(USE_GPU) && (defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
@@ -558,47 +489,25 @@ namespace vmesh {
          if (blockLID >= numberOfBlocks) exitInvalidLocalID(blockLID,"const getParameters const");
          #endif
       #endif
-      const Real* returnValue = parameters->data();
-      #if defined(USE_GPU) && !(defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
-      parameters->optimizeUMGPU(stream);
-      #endif
-      return returnValue + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
+      return parameters->data() + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
    }
 
    inline ARCH_HOSTDEV void VelocityBlockContainer::pop() {
-      #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-      gpuStream_t stream = gpu_getStream();
-      block_data->optimizeUMCPU(stream);
-      parameters->optimizeUMCPU(stream);
-      CHK_ERR( gpuStreamSynchronize(stream) );
-      #endif
       const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
 
       if (numberOfBlocks == 0) {
-         #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-         block_data->optimizeUMGPU(stream);
-         parameters->optimizeUMGPU(stream);
-         #endif
          return;
       }
       block_data->erase(block_data->begin() + WID3*(numberOfBlocks-1),
                         block_data->begin() + WID3*(numberOfBlocks));
       parameters->erase(parameters->begin() + BlockParams::N_VELOCITY_BLOCK_PARAMS*(numberOfBlocks-1),
                         parameters->begin() + BlockParams::N_VELOCITY_BLOCK_PARAMS*(numberOfBlocks));
-
-      #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-      block_data->optimizeUMGPU(stream);
-      parameters->optimizeUMGPU(stream);
-      #endif
    }
 
    /** Grows the size of the VBC, does not touch data */
    inline ARCH_HOSTDEV vmesh::LocalID VelocityBlockContainer::push_back() {
       #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
       gpuStream_t stream = gpu_getStream();
-      block_data->optimizeUMCPU(stream);
-      parameters->optimizeUMCPU(stream);
-      CHK_ERR( gpuStreamSynchronize(stream) );
       #endif
       const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
 
@@ -640,10 +549,6 @@ namespace vmesh {
       parameters->resize((numberOfBlocks+1)*BlockParams::N_VELOCITY_BLOCK_PARAMS,true);
       #endif
 
-      #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-      block_data->optimizeUMGPU(stream);
-      parameters->optimizeUMGPU(stream);
-      #endif
       return newIndex;
    }
 
@@ -651,9 +556,6 @@ namespace vmesh {
    inline ARCH_HOSTDEV vmesh::LocalID VelocityBlockContainer::push_back_and_zero() {
       #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
       gpuStream_t stream = gpu_getStream();
-      block_data->optimizeUMCPU(stream);
-      parameters->optimizeUMCPU(stream);
-      CHK_ERR( gpuStreamSynchronize(stream) );
       #endif
       const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
 
@@ -702,10 +604,6 @@ namespace vmesh {
          (*parameters)[newIndex*BlockParams::N_VELOCITY_BLOCK_PARAMS+i] = 0.0;
       }
 
-      #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-      block_data->optimizeUMGPU(stream);
-      parameters->optimizeUMGPU(stream);
-      #endif
       return newIndex;
    }
 
@@ -713,9 +611,6 @@ namespace vmesh {
    inline ARCH_HOSTDEV vmesh::LocalID VelocityBlockContainer::push_back(const uint32_t& N_blocks) {
       #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
       gpuStream_t stream = gpu_getStream();
-      block_data->optimizeUMCPU(stream);
-      parameters->optimizeUMCPU(stream);
-      CHK_ERR( gpuStreamSynchronize(stream) );
       #endif
       const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
       const vmesh::LocalID currentCapacity = block_data->capacity()/WID3;
@@ -738,10 +633,6 @@ namespace vmesh {
       parameters->resize((numberOfBlocks+N_blocks)*BlockParams::N_VELOCITY_BLOCK_PARAMS);
       #endif
 
-      #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-      block_data->optimizeUMGPU(stream);
-      parameters->optimizeUMGPU(stream);
-      #endif
       return newIndex;
    }
 
@@ -749,10 +640,6 @@ namespace vmesh {
    inline ARCH_HOSTDEV vmesh::LocalID VelocityBlockContainer::push_back_and_zero(const uint32_t& N_blocks) {
       #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
       gpuStream_t stream = gpu_getStream();
-      // Just metadata as we use memset below
-      block_data->optimizeMetadataCPU(stream);
-      parameters->optimizeMetadataCPU(stream);
-      CHK_ERR( gpuStreamSynchronize(stream) );
       #endif
       const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
       const vmesh::LocalID currentCapacity = block_data->capacity()/WID3;
@@ -779,8 +666,8 @@ namespace vmesh {
       // Clear velocity block data to zero values
       Realf* zero_blocks = block_data->data();
       Real* zero_parameters = parameters->data();
-      block_data->optimizeUMGPU(stream);
-      parameters->optimizeUMGPU(stream);
+      block_data->optimizeGPU(stream);
+      parameters->optimizeGPU(stream);
       CHK_ERR( gpuMemsetAsync(zero_blocks + newIndex*WID3, 0, WID3*N_blocks*sizeof(Realf), stream) );
       CHK_ERR( gpuMemsetAsync(zero_parameters + newIndex*BlockParams::N_VELOCITY_BLOCK_PARAMS, 0, BlockParams::N_VELOCITY_BLOCK_PARAMS*N_blocks*sizeof(Real), stream) );
       CHK_ERR( gpuStreamSynchronize(stream) );
@@ -801,9 +688,6 @@ namespace vmesh {
       // Note: No longer ever recapacitates down in size.
       #ifdef USE_GPU
       gpuStream_t stream = gpu_getStream();
-      block_data->optimizeMetadataCPU(stream);
-      parameters->optimizeMetadataCPU(stream);
-      CHK_ERR( gpuStreamSynchronize(stream) );
       #endif
       const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
       const vmesh::LocalID currentCapacity = block_data->capacity()/WID3;
@@ -821,8 +705,8 @@ namespace vmesh {
       #endif
 
       #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-      block_data->optimizeUMGPU(stream);
-      parameters->optimizeUMGPU(stream);
+      block_data->optimizeGPU(stream);
+      parameters->optimizeGPU(stream);
       #endif
       return true;
    }
@@ -833,13 +717,6 @@ namespace vmesh {
       if (stream==0) {
          stream = gpu_getStream();
       }
-      if (!skipPrefetches) {
-         // block_data->optimizeMetadataCPU(stream);
-         // parameters->optimizeMetadataCPU(stream);
-         block_data->optimizeUMCPU(stream);
-         parameters->optimizeUMCPU(stream);
-      }
-      CHK_ERR( gpuStreamSynchronize(stream) );
       #endif
       const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
       vmesh::LocalID currentCapacity = block_data->capacity()/WID3;
@@ -877,22 +754,12 @@ namespace vmesh {
          parameters->reserve(currentCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS);
       }
       #endif
-
-      #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-      if (!skipPrefetches) {
-         block_data->optimizeUMGPU(stream);
-         parameters->optimizeUMGPU(stream);
-      }
-      #endif
    }
 
    inline ARCH_HOSTDEV bool VelocityBlockContainer::setSize(const vmesh::LocalID& newSize) {
       #ifdef USE_GPU
          #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
          gpuStream_t stream = gpu_getStream();
-         block_data->optimizeMetadataCPU(stream);
-         parameters->optimizeMetadataCPU(stream);
-         CHK_ERR( gpuStreamSynchronize(stream) );
          vmesh::LocalID currentCapacity = block_data->capacity()/WID3;
          // resize(newSize - currentCapacity,true); // alters capacity only by adding the first argument
          parameters->resize((newSize)*BlockParams::N_VELOCITY_BLOCK_PARAMS,true,stream);
@@ -912,61 +779,25 @@ namespace vmesh {
       // Ensure buffer afterwards
       resize();
       #endif
-
-      #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-      CHK_ERR( gpuStreamSynchronize(stream) );
-      block_data->optimizeUMGPU(stream);
-      parameters->optimizeUMGPU(stream);
-      CHK_ERR( gpuStreamSynchronize(stream) );
-      #endif
       return true;
    }
 
    /** Return the number of existing velocity blocks.
     * @return Number of existing velocity blocks.*/
    inline ARCH_HOSTDEV vmesh::LocalID VelocityBlockContainer::size(bool prefetchBack) const {
-      #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-      gpuStream_t stream = gpu_getStream();
-      block_data->optimizeMetadataCPU(stream);
-      CHK_ERR( gpuStreamSynchronize(stream) );
-      #endif
-      const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
-      #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-      if (prefetchBack) {
-         block_data->optimizeMetadataGPU(stream);
-      }
-      #endif
-      return numberOfBlocks;
+      return block_data->size()/WID3;
    }
 
    inline ARCH_HOSTDEV size_t VelocityBlockContainer::sizeInBytes() const {
-      #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-      gpuStream_t stream = gpu_getStream();
-      block_data->optimizeMetadataCPU(stream);
-      parameters->optimizeMetadataCPU(stream);
-      CHK_ERR( gpuStreamSynchronize(stream) );
-      #endif
       const vmesh::LocalID currentSize = block_data->size();
       const vmesh::LocalID parametersSize = parameters->size();
-      #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-      block_data->optimizeMetadataGPU(stream);
-      parameters->optimizeMetadataGPU(stream);
-      #endif
       return currentSize*sizeof(Realf) + parametersSize*sizeof(Real);
    }
 
    inline ARCH_HOSTDEV void VelocityBlockContainer::swap(VelocityBlockContainer& vbc) {
       gpuStream_t stream = gpu_getStream();
-      block_data->optimizeMetadataCPU(stream);
-      parameters->optimizeMetadataCPU(stream);
-      vbc.block_data->optimizeMetadataCPU(stream);
-      vbc.parameters->optimizeMetadataCPU(stream);
       block_data->swap(*(vbc.block_data));
       parameters->swap(*(vbc.parameters));
-      block_data->optimizeUMGPU(stream);
-      parameters->optimizeUMGPU(stream);
-      vbc.block_data->optimizeUMGPU(stream);
-      vbc.parameters->optimizeUMGPU(stream);
    }
 
 #ifdef DEBUG_VBC
@@ -987,12 +818,6 @@ namespace vmesh {
    }
 
    inline const Real& VelocityBlockContainer::getParameters(const vmesh::LocalID& blockLID,const unsigned int& cell) const {
-      #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-      gpuStream_t stream = gpu_getStream();
-      block_data->optimizeMetadataCPU(stream);
-      parameters->optimizeMetadataCPU(stream);
-      CHK_ERR( gpuStreamSynchronize(stream) );
-      #endif
       const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
       bool ok = true;
       if (cell >= BlockParams::N_VELOCITY_BLOCK_PARAMS) ok = false;
@@ -1005,20 +830,10 @@ namespace vmesh {
          sleep(1);
          exit(1);
       }
-      #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-      block_data->optimizeMetadataGPU(stream);
-      parameters->optimizeMetadataGPU(stream);
-      #endif
       return (*parameters)[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+cell];
    }
 
    inline void VelocityBlockContainer::setData(const vmesh::LocalID& blockLID,const unsigned int& cell,const Realf& value) {
-      #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-      gpuStream_t stream = gpu_getStream();
-      block_data->optimizeUMCPU(stream);
-      parameters->optimizeUMCPU(stream);
-      CHK_ERR( gpuStreamSynchronize(stream) );
-      #endif
       const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
       bool ok = true;
       if (cell >= WID3) ok = false;
@@ -1033,10 +848,6 @@ namespace vmesh {
       }
 
       (*block_data)[blockLID*WID3+cell] = value;
-      #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-      block_data->optimizeUMGPU(stream);
-      parameters->optimizeUMGPU(stream);
-      #endif
    }
 #endif //debug VBC
 

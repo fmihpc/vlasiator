@@ -1483,8 +1483,8 @@ namespace spatial_cell {
       phiprof::Timer addFromBufferTimer {"GPU add blocks from buffer"};
       // Add blocks to velocity mesh
       gpuStream_t stream = gpu_getStream();
-      blocks->optimizeMetadataCPU(stream);
-      CHK_ERR( gpuStreamSynchronize(stream) );
+      // blocks->optimizeMetadataCPU(stream);
+      // CHK_ERR( gpuStreamSynchronize(stream) );
       const uint nBlocks = blocks->size();
       if (nBlocks==0) {
          // Return if empty
@@ -1502,8 +1502,8 @@ namespace spatial_cell {
       CHK_ERR( gpuStreamSynchronize(stream) );
       populations[popID].vmesh->gpu_prefetchDevice();
       populations[popID].blockContainer->gpu_prefetchDevice();
-      blocks->optimizeUMGPU(stream);
-      CHK_ERR( gpuStreamSynchronize(stream) );
+      // blocks->optimizeUMGPU(stream);
+      // CHK_ERR( gpuStreamSynchronize(stream) );
 
       const uint nGpuBlocks = nBlocks > GPUBLOCKS ? GPUBLOCKS : nBlocks;
       if (nGpuBlocks>0) {

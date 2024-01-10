@@ -3432,7 +3432,7 @@ namespace SBC {
          split::SplitVector<Realf> initBuffer(WID3*nRequested);
          split::SplitVector<vmesh::GlobalID> *blocksToInitializeGPU = new split::SplitVector<vmesh::GlobalID>(blocksToInitialize);
          gpuStream_t stream = gpu_getStream();
-         blocksToInitializeGPU->optimizeUMGPU(stream);
+         blocksToInitializeGPU->optimizeGPU(stream);
          #else
          vector<Realf> initBuffer(WID3*nRequested);
          #endif
