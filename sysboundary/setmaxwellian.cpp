@@ -292,14 +292,14 @@ namespace SBC {
          initBuffer.optimizeGPU();
          templateCell.add_velocity_blocks(popID, blocksToInitializeGPU, initBuffer.data());
          delete blocksToInitializeGPU;
-         templateCell.prefetchDevice();
+         // templateCell.prefetchDevice();
          #else
          templateCell.add_velocity_blocks(popID, blocksToInitialize, initBuffer.data());
          #endif
 
          // Could get rid of blocks not fulfilling the criteria here to save memory.
          templateCell.adjustSingleCellVelocityBlocks(popID);//,true);
-     } // for-loop over particle species
+      } // for-loop over particle species
 
       B[0] = Bx;
       B[1] = By;

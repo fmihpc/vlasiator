@@ -3220,7 +3220,15 @@ namespace SBC {
                   const Realf minValue = cell.getVelocityBlockMinValue(popID);
 
                   // Create temporary buffer for initialization
-                  vector<Realf> initBuffer(WID3);
+                  #ifdef USE_GPU
+                  split::SplitVector<Realf> initBuffer(WID3*nRequested);
+                  split::SplitVector<vmesh::GlobalID> *blocksToInitializeGPU = new split::SplitVector<vmesh::GlobalID>(blocksToInitialize);
+                  gpuStream_t stream = gpu_getStream();
+                  blocksToInitializeGPU->optimizeGPU(stream);
+                  #else
+                  vector<Realf> initBuffer(WID3*nRequested);
+                  #endif
+
                   // Loop over requested blocks. Initialize the contents into the temporary buffer
                   // and return the maximum value.
                   cuint refLevel=0;
@@ -3245,14 +3253,20 @@ namespace SBC {
                               creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell - vDrift[1];
                               creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell - vDrift[2];
                               Realf average = shiftedMaxwellianDistribution(popID, density, temperature, vxCellCenter, vyCellCenter, vzCellCenter);
-                              initBuffer[cellIndex(ic,jc,kc)] = average;
+                              initBuffer[i*WID3+cellIndex(ic,jc,kc)] = average;
                               //maxValue = max(average, maxValue);
                            }
                         }
                      }
-                     // Actually add the velocity block
-                     cell.add_velocity_block(blockGID, popID, &initBuffer[0]);
                   } // for-loop over requested velocity blocks
+                  // Next actually add all the blocks (we don't use the MaxValue)
+                  #ifdef USE_GPU
+                  initBuffer.optimizeGPU();
+                  cell.add_velocity_blocks(popID, blocksToInitializeGPU, initBuffer.data());
+                  delete blocksToInitializeGPU;
+                  #else
+                  cell.add_velocity_blocks(popID, blocksToInitialize, initBuffer.data());
+                  #endif
                } // end case several
                break;
             case CopyAndLosscone:
@@ -3305,7 +3319,15 @@ namespace SBC {
                   const Realf minValue = cell.getVelocityBlockMinValue(popID);
 
                   // Create temporary buffer for initialization
-                  vector<Realf> initBuffer(WID3);
+                  #ifdef USE_GPU
+                  split::SplitVector<Realf> initBuffer(WID3*nRequested);
+                  split::SplitVector<vmesh::GlobalID> *blocksToInitializeGPU = new split::SplitVector<vmesh::GlobalID>(blocksToInitialize);
+                  gpuStream_t stream = gpu_getStream();
+                  blocksToInitializeGPU->optimizeGPU(stream);
+                  #else
+                  vector<Realf> initBuffer(WID3*nRequested);
+                  #endif
+
                   // Loop over requested blocks. Initialize the contents into the temporary buffer
                   // and return the maximum value.
                   cuint refLevel=0;
@@ -3367,16 +3389,21 @@ namespace SBC {
                                                                        vxCellCenter - vDrift[0],
                                                                        vyCellCenter - vDrift[1],
                                                                        vzCellCenter - vDrift[2]);
-                              initBuffer[cellIndex(ic,jc,kc)] = average;
-                              maxValue = max(average, maxValue);
+                              initBuffer[i*WID3+cellIndex(ic,jc,kc)] = average;
+                              //maxValue = max(average, maxValue);
                            }
                         }
                      }
-                     // Only keep this block if it is at least 10% of the sparsity value
-                     if (maxValue > 0.1 * minValue) {
-                        cell.add_velocity_block(blockGID, popID, &initBuffer[0]);
-                     }
                   } // for-loop over requested velocity blocks
+                  // Next actually add all the blocks (we don't use the MaxValue)
+                  #ifdef USE_GPU
+                  initBuffer.optimizeGPU();
+                  cell.add_velocity_blocks(popID, blocksToInitializeGPU, initBuffer.data());
+                  delete blocksToInitializeGPU;
+                  #else
+                  cell.add_velocity_blocks(popID, blocksToInitialize, initBuffer.data());
+                  #endif
+                  templateCell.adjustSingleCellVelocityBlocks(popID);//,true);
 
                } // end case CopyAndLosscone
                break;
@@ -3386,10 +3413,9 @@ namespace SBC {
          #ifdef USE_GPU
          mpiGrid[cellID]->prefetchDevice();
          #endif
-         mpiGrid[cellID]->adjustSingleCellVelocityBlocks(popID,true);
-         // #ifdef USE_GPU
-         // mpiGrid[cellID]->prefetchHost();
-         // #endif
+
+         // Could get rid of blocks not fulfilling the criteria here to save memory.
+         mpiGrid[cellID]->adjustSingleCellVelocityBlocks(popID);//,true);
 
          // TODO: The moments can also be analytically calculated from ionosphere parameters.
          // Maybe that's faster?
@@ -3473,7 +3499,7 @@ namespace SBC {
          initBuffer.optimizeGPU();
          templateCell.add_velocity_blocks(popID, blocksToInitializeGPU, initBuffer.data());
          delete blocksToInitializeGPU;
-         templateCell.prefetchDevice();
+         //templateCell.prefetchDevice();
          #else
          templateCell.add_velocity_blocks(popID, blocksToInitialize, initBuffer.data());
          #endif
