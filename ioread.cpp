@@ -101,6 +101,17 @@ void checkExternalCommands() {
       rename("DOLB", newName);
       return;
    }
+   if(stat("DOMR", &tempStat) == 0) {
+      cerr << "Received an external DOMR command. Refining grid." << endl;
+      globalflags::doRefine = true;
+      char newName[80];
+      // Get the current time.
+      const time_t rawTime = time(NULL);
+      const struct tm * timeInfo = localtime(&rawTime);
+      strftime(newName, 80, "DOMR_%F_%H-%M-%S", timeInfo);
+      rename("DOMR", newName);
+      return;
+   }
 }
 
 /*!
@@ -228,8 +239,6 @@ bool readNBlocks(vlsv::ParallelReader& file,const std::string& meshName,
    // Read mesh bounding box to all processes, the info in bbox contains 
    // the number of spatial cells in the mesh.
    // (This is *not* the physical coordinate bounding box.)
-   uint64_t bbox[6];
-   uint64_t* bbox_ptr = bbox;
    list<pair<string,string> > attribsIn;
    map<string,string> attribsOut;
    attribsIn.push_back(make_pair("mesh",meshName));
@@ -320,7 +329,6 @@ bool _readBlockData(
 ) {   
    uint64_t arraySize;
    uint64_t avgVectorSize;
-   uint64_t cellParamsVectorSize;
    vlsv::datatype::type dataType;
    uint64_t byteSize;
    list<pair<string,string> > avgAttribs;
@@ -775,6 +783,8 @@ bool readCellParamsVariable(
 template<unsigned long int N> bool readFsGridVariable(
    vlsv::ParallelReader& file, const string& variableName, int numWritingRanks, FsGrid<std::array<Real, N>,FS_STENCIL_WIDTH> & targetGrid) {
 
+   phiprof::Timer preparations {"preparations"};
+
    uint64_t arraySize;
    uint64_t vectorSize;
    vlsv::datatype::type dataType;
@@ -785,6 +795,7 @@ template<unsigned long int N> bool readFsGridVariable(
    attribs.push_back(make_pair("name",variableName));
    attribs.push_back(make_pair("mesh","fsgrid"));
 
+   phiprof::Timer getArrayInfo {"getArrayInfo"};
    if (file.getArrayInfo("VARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
       logFile << "(RESTART)  ERROR: Failed to read " << endl << write;
       return false;
@@ -792,7 +803,9 @@ template<unsigned long int N> bool readFsGridVariable(
    if(! (dataType == vlsv::datatype::type::FLOAT && byteSize == sizeof(Real))) {
       logFile << "(RESTART) Converting floating point format of fsgrid variable " << variableName << " from " << byteSize * 8 << " bits to " << sizeof(Real) * 8 << " bits." << endl << write;
       convertFloatType = true;
+      // Note: this implicitly assumes that Real is of type double, and we either read a double in directly, or read a float and convert it to double.
    }
+   getArrayInfo.stop();
 
    // Are we restarting from the same number of tasks, or a different number?
    int size, myRank;
@@ -805,6 +818,8 @@ template<unsigned long int N> bool readFsGridVariable(
 
    // Determine our tasks storage size
    size_t storageSize = localSize[0]*localSize[1]*localSize[2];
+
+   preparations.stop();
 
    if(size == numWritingRanks) {
       // Easy case: same number of tasks => slurp it in.
@@ -862,13 +877,18 @@ template<unsigned long int N> bool readFsGridVariable(
       // |            |                |
       // +------------+----------------+
 
+      phiprof::Timer computeDomainDecomposition {"computeDomainDecomposition"};
       // Determine the decomposition in the file and the one in RAM for our restart
       std::array<int,3> fileDecomposition;
       targetGrid.computeDomainDecomposition(globalSize, numWritingRanks, fileDecomposition);
+      computeDomainDecomposition.stop();
 
       // Iterate through tasks and find their overlap with our domain.
       size_t fileOffset = 0;
       for(int task = 0; task < numWritingRanks; task++) {
+
+         phiprof::Timer taskArithmetics1 {"task overlap arithmetics 1"};
+
          std::array<int32_t,3> thatTasksSize;
          std::array<int32_t,3> thatTasksStart;
          thatTasksSize[0] = targetGrid.calcLocalSize(globalSize[0], fileDecomposition[0], task/fileDecomposition[2]/fileDecomposition[1]);
@@ -893,9 +913,12 @@ template<unsigned long int N> bool readFsGridVariable(
          overlapSize[1] = max(overlapEnd[1]-overlapStart[1],0);
          overlapSize[2] = max(overlapEnd[2]-overlapStart[2],0);
 
+         taskArithmetics1.stop();
+
          // Read into buffer
          std::vector<Real> buffer(thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N);
 
+         phiprof::Timer multiRead {"multiRead"};
          file.startMultiread("VARIABLE", attribs);
          // Read every source rank that we have an overlap with.
          if(overlapSize[0]*overlapSize[1]*overlapSize[2] > 0) {
@@ -937,11 +960,12 @@ template<unsigned long int N> bool readFsGridVariable(
             file.endMultiread(fileOffset);
          }
          fileOffset += thatTasksSize[0] * thatTasksSize[1] * thatTasksSize[2];
+         multiRead.stop();
       }
    }
-   phiprof::start("updateGhostCells");
+   phiprof::Timer updateGhostsTimer {"updateGhostCells"};
    targetGrid.updateGhostCells();
-   phiprof::stop("updateGhostCells");
+   updateGhostsTimer.stop();
    return true;
 }
 
@@ -1058,21 +1082,35 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    bool success=true;
    int myRank,processes;
 
-#warning Spatial grid name hard-coded here
+   // Note: Spatial grid name hard-coded here.
+   // But so are the other mesh names below.
    const string meshName = "SpatialGrid";
    
    // Attempt to open VLSV file for reading:
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    MPI_Comm_size(MPI_COMM_WORLD,&processes);
 
-   phiprof::start("readGrid");
+   phiprof::Timer readGridTimer {"readGrid"};
 
-   phiprof::start("readScalars");
+   phiprof::Timer readScalarsTimer {"readScalars"};
 
    vlsv::ParallelReader file;
-   MPI_Info mpiInfo = MPI_INFO_NULL;
 
-   if (file.open(name,MPI_COMM_WORLD,MASTER_RANK,mpiInfo) == false) {
+   MPI_Info MPIinfo;
+   if (P::restartReadHints.size() == 0) {
+      MPIinfo = MPI_INFO_NULL;
+   } else {
+      MPI_Info_create(&MPIinfo);
+      
+      for (std::vector<std::pair<std::string,std::string>>::const_iterator it = P::restartReadHints.begin();
+           it != P::restartReadHints.end();
+           it++)
+      {
+         MPI_Info_set(MPIinfo, it->first.c_str(), it->second.c_str());
+      }
+   }
+
+   if (file.open(name,MPI_COMM_WORLD,MASTER_RANK,MPIinfo) == false) {
       success=false;
    }
    exitOnError(success,"(RESTART) Could not open file",MPI_COMM_WORLD);
@@ -1113,9 +1151,9 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    checkScalarParameter(file,"ycells_ini",P::ycells_ini,MASTER_RANK,MPI_COMM_WORLD);
    checkScalarParameter(file,"zcells_ini",P::zcells_ini,MASTER_RANK,MPI_COMM_WORLD);
 
-   phiprof::stop("readScalars");
+   readScalarsTimer.stop();
 
-   phiprof::start("readDatalayout");
+   phiprof::Timer readLayoutimer {"readDatalayout"};
    if (success) {
 		success = readCellIds(file,fileCells,MASTER_RANK,MPI_COMM_WORLD);
 	}
@@ -1222,10 +1260,10 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    //for(uint64_t i=localCellStartOffset; i<localCellStartOffset+localCells; ++i) {
    //  localBlocks += nBlocks[i];
    //}
-   phiprof::stop("readDatalayout");
+   readLayoutimer.stop();
 
    //todo, check file datatype, and do not just use double
-   phiprof::start("readCellParameters");
+   phiprof::Timer readParametersTimer {"readCellParameters"};
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"moments",CellParams::RHOM,5,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"moments_dt2",CellParams::RHOM_DT2,5,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"moments_r",CellParams::RHOM_R,5,mpiGrid); }
@@ -1240,33 +1278,40 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"max_fields_dt",CellParams::MAXFDT,1,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"vg_drift",CellParams::BULKV_FORCING_X,3,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"vg_bulk_forcing_flag",CellParams::FORCING_CELL_NUM,1,mpiGrid); }
+   if (P::refineOnRestart) {
+      // Refinement indices alpha_1 and alpha_2
+      if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"vg_amr_alpha",CellParams::AMR_ALPHA,1,mpiGrid); }
+      if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"vg_amr_jperb",CellParams::AMR_JPERB,1,mpiGrid); }
+   }
 
    // Backround B has to be set, there are also the derivatives that should be written/read if we wanted to only read in background field
-   phiprof::stop("readCellParameters");
+   readParametersTimer.stop();
 
-   phiprof::start("readBlockData");
+   phiprof::Timer readBlocksTimer {"readBlockData"};
    if (success == true) {
       success = readBlockData(file,meshName,fileCells,localCellStartOffset,localCells,mpiGrid); 
    }
-   phiprof::stop("readBlockData");
+   readBlocksTimer.stop();
 
-   phiprof::start("updateMpiGridNeighbors");
+   phiprof::Timer updateNeighborsTimer {"updateMpiGridNeighbors"};
    mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
-   phiprof::stop("updateMpiGridNeighbors");
+   updateNeighborsTimer.stop();
    
-   phiprof::start("readFsGrid");
+   phiprof::Timer readfsTimer {"readFsGrid"};
    // Read fsgrid data back in
    int fsgridInputRanks=0;
+   phiprof::Timer tReadScalarParameter {"readScalarParameter"};
    if(readScalarParameter(file,"numWritingRanks",fsgridInputRanks, MASTER_RANK, MPI_COMM_WORLD) == false) {
       exitOnError(false, "(RESTART) FSGrid writing rank number not found in restart file", MPI_COMM_WORLD);
    }
-   
+   tReadScalarParameter.stop();
+
    if (success) { success = readFsGridVariable(file, "fg_PERB", fsgridInputRanks, perBGrid); }
    if (success) { success = readFsGridVariable(file, "fg_E", fsgridInputRanks, EGrid); }
    exitOnError(success,"(RESTART) Failure reading fsgrid restart variables",MPI_COMM_WORLD);
-   phiprof::stop("readFsGrid");
+   readfsTimer.stop();
    
-   phiprof::start("readIonosphere");
+   phiprof::Timer readIonosphereTimer {"readIonosphere"};
    bool ionosphereSuccess=true;
    ionosphereSuccess = readIonosphereNodeVariable(file, "ig_fac", SBC::ionosphereGrid, ionosphereParameters::SOURCE);
    // Reconstruct source term by multiplying the fac density with the element area
@@ -1297,10 +1342,9 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    if(ionosphereSuccess && !ionosphereOptionalSuccess) {
       logFile << "(RESTART) Restart file contains no ionosphere conductivity data. Ionosphere will run fine, but first output bulk file might have bogus conductivities." << std::endl;
    }
-   phiprof::stop("readIonosphere");
+   readIonosphereTimer.stop();
 
    success = file.close();
-   phiprof::stop("readGrid");
 
    exitOnError(success,"(RESTART) Other failure",MPI_COMM_WORLD);
    return success;

@@ -40,18 +40,26 @@ bool printVersion() {
 EOF
 
 echo "    cout << endl << \"----------- Compilation --------- \"<<endl;" >>version.cpp
-echo "    cout <<  \"date:       $(date)\" <<endl;" >>version.cpp
-echo "    cout <<  \"folder:     $PWD \"<<endl;" >>version.cpp
-echo "    cout <<  \"CMP:        $1 \"<<endl;" >>version.cpp
-echo "    cout <<  \"CXXFLAGS:   $2 \"<<endl;" >>version.cpp
-echo "    cout <<  \"FLAGS:      $3 \"<<endl;" >>version.cpp
-echo "    cout <<  \"INC_MPI:    $4 \"<<endl;" >>version.cpp
-echo "    cout <<  \"INC_DCCRG:  $5 \"<<endl;" >>version.cpp
-echo "    cout <<  \"INC_ZOLTAN: $6 \"<<endl;" >>version.cpp
-echo "    cout <<  \"INC_BOOST:  $7 \"<<endl;" >>version.cpp
+echo "    cout <<  \"date:            $(date)\" <<endl;" >>version.cpp
+echo "    cout <<  \"folder:          $PWD \"<<endl;" >>version.cpp
+echo "    cout <<  \"CMP:             $1 \"<<endl;" >>version.cpp
+echo "    cout <<  \"CXXFLAGS:        $2 \"<<endl;" >>version.cpp
+echo "    cout <<  \"FLAGS:           $3 \"<<endl;" >>version.cpp
+echo "    cout <<  \"INC_MPI:         $4 \"<<endl;" >>version.cpp
+echo "    cout <<  \"INC_ZOLTAN:      $5 \"<<endl;" >>version.cpp
+echo "    cout <<  \"INC_BOOST:       $6 \"<<endl;" >>version.cpp
+echo "    cout <<  \"INC_DCCRG:       $7 \"<<endl;" >>version.cpp
+echo "    cout <<  \"                 commit: $8 \"<<endl;" >>version.cpp
+echo "    cout <<  \"INC_FSGRID:      $9 \"<<endl;" >>version.cpp
+echo "    cout <<  \"                 commit: ${10} \"<<endl;" >>version.cpp
+echo "    cout <<  \"INC_VLSV:        ${11} \"<<endl;" >>version.cpp
+echo "    cout <<  \"                 commit: ${12} \"<<endl;" >>version.cpp
+echo "    cout <<  \"INC_HASHINATOR:  ${13} \"<<endl;" >>version.cpp
+echo "    cout <<  \"                 commit: ${14} \"<<endl;" >>version.cpp
+echo "    cout <<  \"INC_PHIPROF:     ${15} \"<<endl;" >>version.cpp
+echo "    cout <<  \"                 commit: ${16} \"<<endl;" >>version.cpp
 
-
-echo "    cout << endl << \"----------- git branch --------- \"<<endl;" >>version.cpp
+        echo "    cout << endl << \"----------- git branch --------- \"<<endl;" >>version.cpp
 git branch  | sed 's/\"/\\"/g' | sed 's/\\\"/\\"/g' | gawk '{printf("%s\"%s\"%s\n","    cout << ",$0," << endl;")}' >> version.cpp
 
 
@@ -69,7 +77,7 @@ git status | sed 's/\"/\\"/g' | sed 's/\\\"/\\"/g'  |gawk '{printf("%s\"%s\"%s\n
 echo "    cout << endl << \"----------- git diff ---------- \"<<endl;" >>version.cpp
 
 echo "    const char diff_data[] = {" >> version.cpp
-DIFF=$(git diff `git diff --name-only |grep -v generate_version.sh` | xxd -i)
+DIFF=$(git diff `git diff --name-only |grep -v generate_version.sh` | xxd -i | sed "s/0x\([0-9a-f]\{2\}\)/'\\\\x\1'/g")
 if [[ -n $DIFF ]]; then
    echo -n $DIFF >> version.cpp
    echo "    ,0 };" >> version.cpp
@@ -123,7 +131,7 @@ git status | sed 's/\"/\\"/g' | sed 's/\\\"/\\"/g'  |gawk '{printf("%s\"%s\"%s\n
 echo "   versionInfo+=\"----------- git diff ---------- \";" >>version.cpp
 
 echo "    const char diff_data[] = {" >> version.cpp
-DIFF=$(git diff `git diff --name-only |grep -v generate_version.sh` | xxd -i)
+DIFF=$(git diff `git diff --name-only |grep -v generate_version.sh` | xxd -i | sed "s/0x\([0-9a-f]\{2\}\)/'\\\\x\1'/g")
 if [[ -n $DIFF ]]; then
    echo -n $DIFF >> version.cpp
    echo "    ,0 };" >> version.cpp

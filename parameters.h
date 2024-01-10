@@ -27,6 +27,7 @@
 #include <stdint.h>
 #include <string>
 #include <vector>
+#include <map>
 
 #include "definitions.h"
 
@@ -92,14 +93,20 @@ struct Parameters {
    static std::vector<int>
        systemWriteDistributionWriteShellStride; /*!< Every this many cells for those on selected shells write out their
                                                    velocity space in each class. */
+   static std::vector<bool> systemWriteFsGrid; /*!< Write fg_ variables in this file class or not.*/
+   static bool systemWriteAllDROs; /*!< Write all output DROs or not.*/
+   static bool diagnosticWriteAllDROs; /*!< Write all diagnostic DROs or not.*/
    static std::vector<int> systemWrites;        /*!< How many files have been written of each class*/
    static std::vector<std::pair<std::string, std::string>>
        systemWriteHints; /*!< Collection of MPI-IO hints passed for non-restart IO. Pairs of key-value strings. */
+   static std::vector<std::pair<std::string, std::string>>
+       restartReadHints; /*!< Collection of MPI-IO hints passed for restart IO. Pairs of key-value strings. */
    static std::vector<std::pair<std::string, std::string>>
        restartWriteHints; /*!< Collection of MPI-IO hints passed for restart IO. Pairs of key-value strings. */
 
    static bool writeInitialState; /*!< If true, initial state is written. This is useful for debugging as the restarts
                                      are always written out after propagation of 0.5dt in real space.*/
+   static bool writeFullBGB; /*!< If true, write full BGB components and derivatives in a dedicated file, then exit.*/
    static Real saveRestartWalltimeInterval; /*!< Interval in walltime seconds for restart data*/
    static uint exitAfterRestarts;           /*!< Exit after this many restarts*/
    static uint64_t vlsvBufferSize;          /*!< Buffer size in bytes passed to VLSV writer. */
@@ -146,7 +153,7 @@ struct Parameters {
                                    in the Lorentz force and in the field solver.*/
 
    static std::string loadBalanceAlgorithm; /*!< Algorithm to be used for load balance.*/
-   static std::string loadBalanceTolerance; /*!< Load imbalance tolerance. */
+   static std::map<std::string, std::string> loadBalanceOptions;  // Other Load balancing options
    static uint rebalanceInterval;           /*!< Load rebalance interval (steps). */
    static bool prepareForRebalance; /**< If true, propagators should measure their time consumption in preparation
                                      * for mesh repartitioning.*/
@@ -178,18 +185,26 @@ struct Parameters {
                                   * refined.  The value must be larger than vamrCoarsenLimit.*/
    static std::string vamrVelRefCriterion; /**< Name of the velocity block refinement criterion function.*/
 
-   static uint amrMaxSpatialRefLevel;
+   static int amrMaxSpatialRefLevel; /*!< Absolute maximum refinement level (conditions the fsgrid resolution), cannot be exceeded after initial setup of the grids. */
+   static int amrMaxAllowedSpatialRefLevel; /*!< Maximum currently allowed refinement level for restart or dynamic refinement. */
    static bool adaptRefinement;
    static bool refineOnRestart;
    static bool forceRefinement;
    static bool shouldFilter;
-   static Real refineThreshold;
-   static Real unrefineThreshold;
-   static uint refineMultiplier;
+   static bool useAlpha;
+   static Real alphaRefineThreshold;
+   static Real alphaCoarsenThreshold;
+   static bool useJPerB;
+   static Real jperbRefineThreshold;
+   static Real jperbCoarsenThreshold;
+   static uint refineCadence;
    static Real refineAfter;
    static Real refineRadius;
-   static bool useJPerB;
-   static Real JPerBModifier;
+   static Real alphaDRhoWeight;
+   static Real alphaDUWeight;
+   static Real alphaDPSqWeight;
+   static Real alphaDBSqWeight;
+   static Real alphaDBWeight;
    static int maxFilteringPasses;
    static uint amrBoxHalfWidthX;
    static uint amrBoxHalfWidthY;

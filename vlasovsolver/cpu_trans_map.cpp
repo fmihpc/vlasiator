@@ -326,7 +326,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
                   const uint popID) {
    // values used with an stencil in 1 dimension, initialized to 0. 
    // Contains a block, and its spatial neighbours in one dimension.
-   Realv dz,z_min, dvz,vz_min;
+   Realv dz,dvz,vz_min;
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
    unsigned char  cellid_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
 
@@ -391,7 +391,6 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    switch (dimension) {
    case 0:
       dz = P::dx_ini;
-      z_min = P::xmin;
       // set values in array that is used to convert block indices 
       // to global ID using a dot product.
       cell_indices_to_id[0]=WID2;
@@ -400,7 +399,6 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       break;
    case 1:
       dz = P::dy_ini;
-      z_min = P::ymin;
       // set values in array that is used to convert block indices 
       // to global ID using a dot product
       cell_indices_to_id[0]=1;
@@ -409,7 +407,6 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       break;
    case 2:
       dz = P::dz_ini;
-      z_min = P::zmin;
       // set values in array that is used to convert block indices
       // to global id using a dot product.
       cell_indices_to_id[0]=1;
@@ -437,9 +434,8 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
    const Realv i_dz=1.0/dz;
    
-   int t1 = phiprof::initializeTimer("mapping");
-   int t2 = phiprof::initializeTimer("store");
-   
+   int mapping_id {phiprof::initializeTimer("mapping")};
+   int store_id {phiprof::initializeTimer("store")};
    
 #pragma omp parallel 
    {
@@ -452,7 +448,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 #pragma omp for schedule(guided)
       for(uint blocki = 0; blocki < unionOfBlocks.size(); blocki++){
          vmesh::GlobalID blockGID = unionOfBlocks[blocki];
-         phiprof::start(t1);
+         phiprof::Timer mappingTimer {mapping_id};
          
          for(uint celli = 0; celli < allCellsPointer.size(); celli++){
             allCellsBlockLocalID[celli] = allCellsPointer[celli]->get_velocity_block_local_id(blockGID, popID);
@@ -559,11 +555,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
                for (uint k=0; k<WID; ++k) {
                   for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
                      targetVecValues[i_trans_pt_blockv(planeVector, k, b)].store(vector);
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunknown-pragmas"
-#pragma ivdep
-#pragma GCC diagnostic pop
-#pragma GCC ivdep
+#pragma omp simd
                      for(uint i = 0; i< VECL; i++){
                         // store data, when reading data from data we swap
                         // dimensions 
@@ -577,8 +569,8 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             }
          }
       
-         phiprof::stop(t1);
-         phiprof::start(t2);
+         mappingTimer.stop();
+         phiprof::Timer storeTimer {store_id};
                
          //reset blocks in all non-sysboundary spatial cells for this block id
          for(uint celli = 0; celli < allCellsPointer.size(); celli++){
@@ -620,7 +612,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             }
          
          }
-         phiprof::stop(t2);
+         storeTimer.stop();
 
       
       } //loop over set of blocks on process
@@ -690,13 +682,13 @@ void update_remote_mapping_contribution(
       CellID p_ngbr = INVALID_CELLID;
       CellID m_ngbr = INVALID_CELLID;
 
-      for (const auto& nbr : mpiGrid.get_face_neighbors_of(local_cells[c])) {
-         if(nbr.second == ((int)dimension + 1) * direction) {
-            p_ngbr = nbr.first;
+      for (const auto& [neighbor, dir] : mpiGrid.get_face_neighbors_of(local_cells[c])) {
+         if(dir == ((int)dimension + 1) * direction) {
+            p_ngbr = neighbor;
          }
 
-         if(nbr.second == -1 * ((int)dimension + 1) * direction) {
-            m_ngbr = nbr.first;
+         if(dir == -1 * ((int)dimension + 1) * direction) {
+            m_ngbr = neighbor;
          }
       }
       

@@ -85,75 +85,80 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
                          const uint popID,     
                          const uint map_order,
                          const Real& dt) {
-   double t1 = MPI_Wtime();
+   //double t1 = MPI_Wtime();
 
    vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh    = spatial_cell->get_velocity_mesh(popID);
-   vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks(popID);
+   //vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks(popID);
 
    // compute transform, forward in time and backward in time
-   phiprof::start("compute-transform");
+   phiprof::Timer transformTimer {"compute-transform"};
 
    //compute the transform performed in this acceleration
    Transform<Real,3,Affine> fwd_transform= compute_acceleration_transformation(spatial_cell,popID,dt);
    Transform<Real,3,Affine> bwd_transform= fwd_transform.inverse();
-   phiprof::stop("compute-transform");
+   transformTimer.stop();
 
    const uint8_t refLevel = 0;
    Real intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk;
    Real intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk;
    Real intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk;
+   int intersections_id {phiprof::initializeTimer("compute-intersections")};
+   int mapping_id {phiprof::initializeTimer("compute-mapping")};
    switch(map_order){
-       case 0:
-          phiprof::start("compute-intersections");
-          //Map order XYZ
-          compute_intersections_1st(vmesh,bwd_transform, fwd_transform, 0, refLevel,
-                                    intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk);
-          compute_intersections_2nd(vmesh,bwd_transform, fwd_transform, 1, refLevel,
-                                    intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk);
-          compute_intersections_3rd(vmesh,bwd_transform, fwd_transform, 2, refLevel,
-                                    intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk);
-          phiprof::stop("compute-intersections");
-          phiprof::start("compute-mapping");
-          map_1d(spatial_cell, popID, intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,0); // map along x
-          map_1d(spatial_cell, popID, intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,1); // map along y
-          map_1d(spatial_cell, popID, intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,2); // map along z
-          phiprof::stop("compute-mapping");
-          break;
-          
-       case 1:
-          phiprof::start("compute-intersections");
-          //Map order YZX
-          compute_intersections_1st(vmesh, bwd_transform, fwd_transform, 1, refLevel,
-                                    intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk);
-          compute_intersections_2nd(vmesh, bwd_transform, fwd_transform, 2, refLevel,
-                                    intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk);
-          compute_intersections_3rd(vmesh, bwd_transform, fwd_transform, 0, refLevel,
-                                    intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk);
+      case 0: {
+         //Map order XYZ
+         phiprof::Timer intersectionsTimer {intersections_id};
+         compute_intersections_1st(vmesh,bwd_transform, fwd_transform, 0, refLevel,
+                                   intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk);
+         compute_intersections_2nd(vmesh,bwd_transform, fwd_transform, 1, refLevel,
+                                   intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk);
+         compute_intersections_3rd(vmesh,bwd_transform, fwd_transform, 2, refLevel,
+                                   intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk);
+         intersectionsTimer.stop();
+         phiprof::Timer mappingTimer {mapping_id};
+         map_1d(spatial_cell, popID, intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,0); // map along x
+         map_1d(spatial_cell, popID, intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,1); // map along y
+         map_1d(spatial_cell, popID, intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,2); // map along z
+         mappingTimer.stop();
+         break;
+      }
+         
+      case 1: {
+         //Map order YZX
+         phiprof::Timer intersectionsTimer{intersections_id};
+         compute_intersections_1st(vmesh, bwd_transform, fwd_transform, 1, refLevel,
+                                   intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk);
+         compute_intersections_2nd(vmesh, bwd_transform, fwd_transform, 2, refLevel,
+                                   intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk);
+         compute_intersections_3rd(vmesh, bwd_transform, fwd_transform, 0, refLevel,
+                                   intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk);
       
-          phiprof::stop("compute-intersections");
-          phiprof::start("compute-mapping");
-          map_1d(spatial_cell, popID, intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,1); // map along y
-          map_1d(spatial_cell, popID, intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,2); // map along z
-          map_1d(spatial_cell, popID, intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,0); // map along x
-          phiprof::stop("compute-mapping");
-          break;
+         intersectionsTimer.stop();
+         phiprof::Timer mappingTimer {mapping_id};
+         map_1d(spatial_cell, popID, intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,1); // map along y
+         map_1d(spatial_cell, popID, intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,2); // map along z
+         map_1d(spatial_cell, popID, intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,0); // map along x
+         mappingTimer.stop();
+         break;
+      }
 
-       case 2:
-          phiprof::start("compute-intersections");
-          //Map order Z X Y
-          compute_intersections_1st(vmesh, bwd_transform, fwd_transform, 2, refLevel,
-                                    intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk);
-          compute_intersections_2nd(vmesh, bwd_transform, fwd_transform, 0, refLevel,
-                                    intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk);
-          compute_intersections_3rd(vmesh, bwd_transform, fwd_transform, 1, refLevel,
-                                    intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk);
-          phiprof::stop("compute-intersections");
-          phiprof::start("compute-mapping");
-          map_1d(spatial_cell, popID, intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,2); // map along z
-          map_1d(spatial_cell, popID, intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,0); // map along x
-          map_1d(spatial_cell, popID, intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,1); // map along y
-          phiprof::stop("compute-mapping");
-          break;
+      case 2: {
+         phiprof::Timer intersectionsTimer{intersections_id};
+         //Map order Z X Y
+         compute_intersections_1st(vmesh, bwd_transform, fwd_transform, 2, refLevel,
+                                   intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk);
+         compute_intersections_2nd(vmesh, bwd_transform, fwd_transform, 0, refLevel,
+                                   intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk);
+         compute_intersections_3rd(vmesh, bwd_transform, fwd_transform, 1, refLevel,
+                                   intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk);
+         intersectionsTimer.stop();
+         phiprof::Timer mappingTimer {mapping_id};
+         map_1d(spatial_cell, popID, intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,2); // map along z
+         map_1d(spatial_cell, popID, intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,0); // map along x
+         map_1d(spatial_cell, popID, intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,1); // map along y
+         mappingTimer.stop();
+         break;
+      }
    }
 
    if (Parameters::prepareForRebalance == true) {

@@ -117,6 +117,7 @@ namespace spatial_cell {
       const uint64_t POP_METADATA             = (1ull<<26);
       const uint64_t RANDOMGEN                = (1ull<<27);
       const uint64_t CELL_GRADPE_TERM         = (1ull<<28);
+      const uint64_t REFINEMENT_PARAMETERS    = (1ull<<29);
       //all data
       const uint64_t ALL_DATA =
       CELL_PARAMETERS
@@ -987,7 +988,7 @@ namespace spatial_cell {
                                                                 const int& i_cell,const int& j_cell,const int& k_cell) {
       uint8_t ref = refLevel;
 
-      vmesh::LocalID i_child,j_child,k_child;
+      vmesh::LocalID i_child=0,j_child=0,k_child=0;
       i_child = 2*i_child + i_cell/2;
       j_child = 2*j_child + j_cell/2;
       k_child = 2*k_child + k_cell/2;
@@ -1603,7 +1604,6 @@ namespace spatial_cell {
     functions of the containers in spatial cell
     */
    inline uint64_t SpatialCell::get_cell_memory_size() {
-      const uint64_t VEL_BLOCK_SIZE = 2*WID3*sizeof(Realf) + BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real);
       uint64_t size = 0;
       size += vmeshTemp.sizeInBytes();
       size += blockContainerTemp.sizeInBytes();
@@ -1627,7 +1627,6 @@ namespace spatial_cell {
     the size() functions of the containers in spatial cell
     */
    inline uint64_t SpatialCell::get_cell_memory_capacity() {
-      const uint64_t VEL_BLOCK_SIZE = 2*WID3*sizeof(Realf) + BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real);
       uint64_t capacity = 0;
       
       capacity += vmeshTemp.capacityInBytes();

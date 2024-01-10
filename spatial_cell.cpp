@@ -575,7 +575,6 @@ namespace spatial_cell {
 
       std::vector<MPI_Aint> displacements;
       std::vector<int> block_lengths;
-      vmesh::LocalID block_index = 0;
 
       // create datatype for actual data if we are in the first two 
       // layers around a boundary, or if we send for the whole system
@@ -740,6 +739,13 @@ namespace spatial_cell {
                block_lengths.push_back(offsetof(spatial_cell::Population, N_blocks));
             }
          }
+
+         // Refinement parameters
+         if ((SpatialCell::mpi_transfer_type & Transfer::REFINEMENT_PARAMETERS)){
+            displacements.push_back(reinterpret_cast<uint8_t*>(this->parameters.data() + CellParams::AMR_ALPHA) - reinterpret_cast<uint8_t*>(this));
+            block_lengths.push_back(sizeof(Real) * (CellParams::AMR_JPERB - CellParams::AMR_ALPHA + 1)); // This is just 2, but let's be explicit
+         }
+
          // Copy random number generator state variables
          //if ((SpatialCell::mpi_transfer_type & Transfer::RANDOMGEN) != 0) {
          //   displacements.push_back((uint8_t*)get_rng_state_buffer() - (uint8_t*)this);
@@ -884,7 +890,6 @@ namespace spatial_cell {
       }
       
       // Iterate over all octants, each octant corresponds to a different child:
-      bool removeBlock = false;
       for (int k_oct=0; k_oct<2; ++k_oct) for (int j_oct=0; j_oct<2; ++j_oct) for (int i_oct=0; i_oct<2; ++i_oct) {
          // Copy data belonging to the octant to a temporary array:
          Realf array[WID3];

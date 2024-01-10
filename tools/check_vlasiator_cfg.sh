@@ -1,6 +1,6 @@
 #!/bin/bash
 
-mpirun_cmd=$(which aprun > /dev/null && echo "aprun" || echo "mpirun")
+mpirun_cmd=$(which aprun &> /dev/null && echo "aprun" || echo "mpirun")
 vlasiator=$1
 cfg=$2
 
@@ -65,7 +65,7 @@ done
 
 
 # List of prefixes to allow (excludes all but the active project's project options)
-for prefix in $project $boundaries $population_prefixes AMR bailout boundaries fieldsolver gridbuilder io loadBalance Project_common restart variables vlasovsolver
+for prefix in $project $boundaries $population_prefixes AMR bailout boundaries fieldsolver fieldtracing gridbuilder io loadBalance Project_common restart variables vlasovsolver
 do
    echo "${prefix}\."
 done > .allowed_prefixes

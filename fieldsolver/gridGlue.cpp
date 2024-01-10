@@ -72,7 +72,7 @@ template <typename T, int stencil> void computeCoupling(dccrg::Dccrg<SpatialCell
         
         int process = mpiGrid.get_process(dccrgCell);
         int64_t  fsgridLid = momentsGrid.LocalIDForCoords(i,j,k);
-        int64_t  fsgridGid = momentsGrid.GlobalIDForCoords(i,j,k);
+        //int64_t  fsgridGid = momentsGrid.GlobalIDForCoords(i,j,k);
         onFsgridMapRemoteProcess[process].insert(dccrgCell); //cells are ordered (sorted) in set
         onFsgridMapCells[dccrgCell].push_back(fsgridLid);
       }
@@ -104,7 +104,6 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
 
    // Kernel Characteristics
-   const int stencilWidth = 5;   // Stencil width of a 3D 5-tap triangle kernel
    const int kernelOffset = 2;   // offset of 5 pointstencil 3D kernel => (floor(stencilWidth/2);)
    const Real kernelSum=729.0;   // the total kernel's sum 
    const static Real kernel[5][5][5] ={
@@ -145,7 +144,6 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
    // Get size of local domain and create swapGrid for filtering
    const int *mntDims= &momentsGrid.getLocalSize()[0];  
-   const int maxRefLevel = mpiGrid.mapping.get_maximum_refinement_level();
    FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> swapGrid = momentsGrid;  //swap array 
 
    // Filtering Loop
@@ -272,7 +270,6 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
         sendBuffer.push_back(cellParams[CellParams::P_33_DT2]);
       }
     }
-    int count = sendBuffer.size(); //note, compared to receive this includes all elements to be sent
     MPI_Isend(sendBuffer.data(), sendBuffer.size() * sizeof(Real),
 	      MPI_BYTE, targetProc, 1, MPI_COMM_WORLD,&(sendRequests[ii]));
     ii++;
@@ -301,9 +298,8 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
    //Filter Moments if this is a 3D AMR run.
   if (P::amrMaxSpatialRefLevel>0) { 
-      phiprof::start("AMR Filtering-Triangle-3D");
+      phiprof::Timer filteringTimer {"AMR Filtering-Triangle-3D"};
       filterMoments(mpiGrid,momentsGrid,technicalGrid);
-      phiprof::stop("AMR Filtering-Triangle-3D");
    }   
 }
 
@@ -588,7 +584,6 @@ void feedBoundaryIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       //Collect data to send for this dccrg cell
       sendBuffer.push_back(mpiGrid[sendCell]->sysBoundaryFlag);
     }
-    int count = sendBuffer.size(); //note, compared to receive this includes all elements to be sent
     MPI_Isend(sendBuffer.data(), sendBuffer.size() * sizeof(int),
 	      MPI_BYTE, targetProc, 1, MPI_COMM_WORLD,&(sendRequests[ii]));
     ii++;

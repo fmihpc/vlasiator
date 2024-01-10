@@ -60,7 +60,7 @@ namespace projects {
       RP::add("testAmr.magYPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along y (T)", 1.0e-9);
       RP::add("testAmr.magZPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along z (T)", 1.0e-9);
       RP::add("testAmr.lambda", "B cosine perturbation wavelength (m)", 1.0);
-      RP::add("testAmr.nVelocitySamples", "Number of sampling points per velocity dimension", 2);
+      RP::add("testAmr.nVelocitySamples", "Number of sampling points per velocity dimension", 1);
       RP::add("testAmr.densityModel","Which spatial density model is used?",string("uniform"));
       RP::add("testAmr.maxSpatialRefinementLevel", "Maximum level for spatial refinement", 1.0);
 
@@ -156,7 +156,7 @@ namespace projects {
       uint N = nVelocitySamples; // Start by using nVelocitySamples
       int N3_sum = 0;           // Sum of sampling points used so far
 
-      const testAmrSpeciesParameters& sP = speciesParams[popID];
+      //const testAmrSpeciesParameters& sP = speciesParams[popID];
 
       const Real avgLimit = 0.01*getObjectWrapper().particleSpecies[popID].sparseMinValue;
       do {
@@ -214,8 +214,9 @@ namespace projects {
    }
 
    void testAmr::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
-      setRandomCellSeed(cell);
-      rhoRnd = 0.5 - getRandomNumber();
+      std::default_random_engine rndState;
+      setRandomCellSeed(cell,rndState);
+      rhoRnd = 0.5 - getRandomNumber(rndState);
    }
 
    void testAmr::setProjectBField(
@@ -242,17 +243,18 @@ namespace projects {
                   
                   const int64_t cellid = perBGrid.GlobalIDForCoords(x, y, z);
                   
-                  setRandomSeed(cellid);
-                  
+                  std::default_random_engine rndState;
+                  setRandomSeed(cellid,rndState);
+
                   if (this->lambda != 0.0) {
                      cell->at(fsgrids::bfield::PERBX) = this->dBx*cos(2.0 * M_PI * xyz[0] / this->lambda);
                      cell->at(fsgrids::bfield::PERBY) = this->dBy*sin(2.0 * M_PI * xyz[0] / this->lambda);
                      cell->at(fsgrids::bfield::PERBZ) = this->dBz*cos(2.0 * M_PI * xyz[0] / this->lambda);
                   }
                   
-                  cell->at(fsgrids::bfield::PERBX) += this->magXPertAbsAmp * (0.5 - getRandomNumber());
-                  cell->at(fsgrids::bfield::PERBY) += this->magYPertAbsAmp * (0.5 - getRandomNumber());
-                  cell->at(fsgrids::bfield::PERBZ) += this->magZPertAbsAmp * (0.5 - getRandomNumber());
+                  cell->at(fsgrids::bfield::PERBX) += this->magXPertAbsAmp * (0.5 - getRandomNumber(rndState));
+                  cell->at(fsgrids::bfield::PERBY) += this->magYPertAbsAmp * (0.5 - getRandomNumber(rndState));
+                  cell->at(fsgrids::bfield::PERBZ) += this->magZPertAbsAmp * (0.5 - getRandomNumber(rndState));
                }
             }
          }
@@ -292,9 +294,9 @@ namespace projects {
                xyz[1] = P::amrBoxCenterY + (0.5 + j - P::amrBoxHalfWidthY) * P::dy_ini;
                xyz[2] = P::amrBoxCenterZ + (0.5 + k - P::amrBoxHalfWidthZ) * P::dz_ini;
                
-               CellID myCell = mpiGrid.get_existing_cell(xyz);
                if (mpiGrid.refine_completely_at(xyz)) {
 #ifndef NDEBUG
+                  CellID myCell = mpiGrid.get_existing_cell(xyz);
                   std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;
 #endif
                }
@@ -326,9 +328,9 @@ namespace projects {
                   xyz[1] = P::amrBoxCenterY + 0.5 * (0.5 + j - P::amrBoxHalfWidthY) * P::dy_ini;
                   xyz[2] = P::amrBoxCenterZ + 0.5 * (0.5 + k - P::amrBoxHalfWidthZ) * P::dz_ini;
                   
-                  CellID myCell = mpiGrid.get_existing_cell(xyz);
                   if (mpiGrid.refine_completely_at(xyz)) {
 #ifndef NDEBUG
+                     CellID myCell = mpiGrid.get_existing_cell(xyz);
                      std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;
 #endif
                   }
