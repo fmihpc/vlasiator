@@ -11,7 +11,6 @@
 static vmesh::MeshWrapper *meshWrapper;
 
 #ifdef USE_GPU
-__device__ __constant__ vmesh::MeshWrapper *meshWrapperDev;
 vmesh::MeshWrapper* MWdev;
 std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT> *velocityMeshes_upload;
 
@@ -33,9 +32,22 @@ vmesh::MeshWrapper* vmesh::host_getMeshWrapper() {
 #ifdef USE_GPU
 //#pragma hd_warning_disable // only applies to next function
 #pragma nv_diag_suppress=20091
-ARCH_HOSTDEV vmesh::MeshWrapper* vmesh::gpu_getMeshWrapper() {
-   return meshWrapperDev;
+// We record the set of constant memory symbols to static arrays. We are avoiding using objects with non-trivial Ctors
+// to not risk they to be constructed after the static object that uses them. There will be an instance of the static
+// objects per compilation unit, so the ordering is hard to control.
+static vmesh::MeshWrapper** meshWrapperDevRegister[128] = {0};
+vmesh::meshWrapperDevRegistor::meshWrapperDevRegistor(vmesh::MeshWrapper*& v) {
+   for (size_t InstanceIdx = 0; InstanceIdx < sizeof(meshWrapperDevRegister) / sizeof(vmesh::MeshWrapper**);
+        ++InstanceIdx) {
+      if (auto*& slot = meshWrapperDevRegister[InstanceIdx]; !slot) {
+         slot = &v;
+         //printf("Got instance of device mesh wrapper handler %p (index %ld)\n", &v, InstanceIdx);
+         return;
+      }
+   }
+   assert(false && "Not enough slots to register mesh wrapper slots.");
 }
+
 void vmesh::MeshWrapper::uploadMeshWrapper() {
    // Store address to velocityMeshes array
    std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT> * temp = meshWrapper->velocityMeshes;
@@ -48,7 +60,19 @@ void vmesh::MeshWrapper::uploadMeshWrapper() {
    CHK_ERR( gpuMalloc((void **)&MWdev, sizeof(vmesh::MeshWrapper)) );
    CHK_ERR( gpuMemcpy(MWdev, meshWrapper, sizeof(vmesh::MeshWrapper),gpuMemcpyHostToDevice) );
    // Set the global symbol of meshWrapper
-   CHK_ERR( gpuMemcpyToSymbol(meshWrapperDev, &MWdev, sizeof(vmesh::MeshWrapper*)) );
+   int count=0;
+   for (size_t InstanceIdx = 0; InstanceIdx < sizeof(meshWrapperDevRegister) / sizeof(vmesh::MeshWrapper**);
+        ++InstanceIdx) {
+      if (auto* slot = meshWrapperDevRegister[InstanceIdx]; slot) {
+         //printf("Setting device mesh wrapper handler %p (index %ld)\n", slot, InstanceIdx);
+         CHK_ERR( gpuMemcpyToSymbol(*slot, &MWdev, sizeof(vmesh::MeshWrapper*)) );
+         count++;
+      } else {
+         break;
+      }
+   }
+   printf("Done setting all %d instances of device mesh wrapper handler!\n",count);
+
    // Copy host-side address back
    meshWrapper->velocityMeshes = temp;
    // And sync
@@ -57,7 +81,7 @@ void vmesh::MeshWrapper::uploadMeshWrapper() {
 void vmesh::deallocateMeshWrapper() {
    CHK_ERR( gpuFree(velocityMeshes_upload) );
    CHK_ERR( gpuFree(MWdev) );
-   CHK_ERR( gpuFree(meshWrapperDev) );
+   CHK_ERR( gpuFree(meshWrapperDevInstance) );
    // And sync
    CHK_ERR( gpuDeviceSynchronize() );
 }
