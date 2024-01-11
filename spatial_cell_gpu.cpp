@@ -986,7 +986,7 @@ namespace spatial_cell {
       const vmesh::LocalID localContentBlocks = velocity_block_with_content_list->size();
       const vmesh::LocalID localNoContentBlocks = velocity_block_with_no_content_list->size();
       const vmesh::LocalID BlocksRequiredCapacity = BlocksRequired->capacity();
-      const int BlocksRequiredMapSizePower = BlocksRequiredMap->getSizePower();
+      int BlocksRequiredMapSizePower = BlocksRequiredMap->getSizePower();
       vmesh::GlobalID* _withContentData = velocity_block_with_content_list->data(); // stored for self blocks
       vmesh::GlobalID* _withNoContentData = velocity_block_with_no_content_list->data();
 
@@ -1013,6 +1013,7 @@ namespace spatial_cell {
          BlocksRequiredMap->clear(Hashinator::targets::device,stream,false);
          CHK_ERR( gpuStreamSynchronize(stream) );
          BlocksRequiredMap->resize(HashmapReqSize,Hashinator::targets::device, stream);
+         BlocksRequiredMapSizePower = HashmapReqSize;
          //delete BlocksRequiredMap;
          //BlocksRequiredMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(HashmapReqSize);
          // int device = gpu_getDevice();
@@ -1126,7 +1127,10 @@ namespace spatial_cell {
 
       // Extract list and count of all required blocks (content or with neighbors in spatial or velocity space)
       //phiprof::Timer gatherTimer {"Gather blocks required"};
-      const vmesh::LocalID nBlocksRequired = BlocksRequiredMap->extractAllKeys(*BlocksRequired,stream,false);
+      // Ensure re-used allocation is sufficient
+      size_t bytesNeeded=split::tools::estimateMemoryForCompaction((size_t)std::pow(2,BlocksRequiredMapSizePower));
+      gpu_compaction_allocate_buf_perthread(thread_id, bytesNeeded);
+      const vmesh::LocalID nBlocksRequired = BlocksRequiredMap->extractAllKeys(*BlocksRequired,compaction_buffer[thread_id],bytesNeeded,stream,false);
       //gatherTimer.stop();
 
       // Flag all blocks in this cell without content + without neighbors with content to be removed
