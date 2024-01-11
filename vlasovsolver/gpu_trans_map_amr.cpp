@@ -228,23 +228,25 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
 
                // Store mapped density in two target cells
                // in the current original cells we will put the rest of the original density
-               // Now because each GPU block handles all pencils for an unique GID, we don't need atomic additions here.
+               // Now because each GPU block handles all pencils for an unique GID, we shouldn't need atomic additions here.
+
+               // NOTE: not using atomic operations causes huge diffs (as if self contribution was neglected)! 11.01.2024 MB
                if (areaRatio && block_data) {
                   const Realf selfContribution = (thisPencilOrderedSource[i_trans_ps_blockv_pencil(threadIdx.y, i, lengthOfPencil)][threadIdx.x] - ngbr_target_density) * areaRatio;
-                  //atomicAdd(&block_data[vcell_transpose[ti]],selfContribution);
-                  block_data[vcell_transpose[ti]] += selfContribution;
+                  atomicAdd(&block_data[vcell_transpose[ti]],selfContribution);
+                  //block_data[vcell_transpose[ti]] += selfContribution;
                }
                if (areaRatio_p1 && block_data_p1) {
                   const Realf p1Contribution = (positiveTranslationDirection ? ngbr_target_density
                                                 * pencilDZ[i] / pencilDZ[i + 1] : 0.0) * areaRatio_p1;
-                  //atomicAdd(&block_data_p1[vcell_transpose[ti]],p1Contribution);
-                  block_data_p1[vcell_transpose[ti]] += p1Contribution;
+                  atomicAdd(&block_data_p1[vcell_transpose[ti]],p1Contribution);
+                  //block_data_p1[vcell_transpose[ti]] += p1Contribution;
                }
                if (areaRatio_m1 && block_data_m1) {
                   const Realf m1Contribution = (!positiveTranslationDirection ? ngbr_target_density
                                                 * pencilDZ[i] / pencilDZ[i - 1] : 0.0) * areaRatio_m1;
-                  //atomicAdd(&block_data_m1[vcell_transpose[ti]],m1Contribution);
-                  block_data_m1[vcell_transpose[ti]] += m1Contribution;
+                  atomicAdd(&block_data_m1[vcell_transpose[ti]],m1Contribution);
+                  //block_data_m1[vcell_transpose[ti]] += m1Contribution;
                }
             } // Did not skip remapping
             __syncthreads();

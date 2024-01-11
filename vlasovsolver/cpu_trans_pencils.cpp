@@ -354,7 +354,8 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
                targetRatios[i] = 0.0;
             } else {
                const int ratio = 1 << -diff;
-               targetRatios[i] = 1.0 / (ratio*ratio);
+               const Realf Rratio = (Realf)ratio;
+               targetRatios[i] = 1.0 / (Rratio*Rratio);
             }
          } else { // Don't write to this cell
             targetRatios[i] = 0.0;
