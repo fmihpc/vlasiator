@@ -115,7 +115,19 @@ namespace vmesh {
    void allocateMeshWrapper();
    MeshWrapper* host_getMeshWrapper();
    #ifdef USE_GPU
-   ARCH_HOSTDEV MeshWrapper* gpu_getMeshWrapper();
+   // To avoid using relocatable code builds, we use static instances of the GPU constant memory for the mesh wrapper.
+   // This means that each compilation unit will use its own. To make sure all instances are initialized with the same
+   // address, we use the Ctor of a static object to register all intances so that the allocated memory pointer
+   // could be copied to all of them.
+   __device__ __constant__ MeshWrapper* meshWrapperDevInstance;
+   ARCH_HOSTDEV static MeshWrapper* gpu_getMeshWrapper() { return meshWrapperDevInstance; };
+   // Static object and corresponding instance whose Ctor is used register all the instances of device meshWrapperDev
+   // symbols.
+   struct meshWrapperDevRegistor {
+      meshWrapperDevRegistor(MeshWrapper*&);
+   };
+   static meshWrapperDevRegistor meshWrapperDevRegistorInstance(meshWrapperDevInstance);
+
    void deallocateMeshWrapper(); /**< Deallocate GPU memory */
    #endif
 
