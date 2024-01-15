@@ -598,8 +598,8 @@ int main(int argn,char* args[]) {
          cerr << "FAILED TO WRITE GRID AT " << __FILE__ << " " << __LINE__ << endl;
       }
 
-      phiprof::stop("Initialization");
-      phiprof::stop("main");
+      initTimer.stop();
+      mainTimer.stop();
       
       phiprof::print(MPI_COMM_WORLD,"phiprof");
       
