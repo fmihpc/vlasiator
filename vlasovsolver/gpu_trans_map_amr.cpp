@@ -586,7 +586,9 @@ __global__ static void __launch_bounds__(WID3,4) remote_increment_kernel (
    // loop over whole velocity space
    for (uint blockLID=blocki; blockLID<nBlocks; blockLID += gpuBlocks) {
       // Increment value
-      blockData[blockLID * WID3 + ti] += neighborData[blockLID * WID3 + ti];
+      atomicAdd(&blockData[blockLID * WID3 + ti],neighborData[blockLID * WID3 + ti]);
+
+      //blockData[blockLID * WID3 + ti] += neighborData[blockLID * WID3 + ti];
       // Note: this is not an atomic operation, so only one kernel per cell can be active at a time.
    }
 }
