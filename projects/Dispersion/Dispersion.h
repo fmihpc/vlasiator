@@ -38,8 +38,6 @@ namespace projects {
       Real TEMPERATURE;
       Real densityPertRelAmp;
       Real velocityPertAbsAmp;
-      uint nSpaceSamples;
-      uint nVelocitySamples;
 
    };
 
