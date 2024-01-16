@@ -39,8 +39,6 @@ namespace SBC {
       Real V0[3];
       Real T;
       Real fluffiness;
-      uint nSpaceSamples;
-      uint nVelocitySamples;
    };
 
    /*!\brief Copysphere is a class applying an ionosphere-ish boundary conditions.
@@ -163,9 +161,6 @@ namespace SBC {
       Real VX0;
       Real VY0;
       Real VZ0;
-      
-      uint nSpaceSamples;
-      uint nVelocitySamples;
       
       spatial_cell::SpatialCell templateCell;
 

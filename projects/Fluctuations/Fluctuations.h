@@ -36,8 +36,6 @@ namespace projects {
       Real densityPertRelAmp;
       Real velocityPertAbsAmp;
       Real maxwCutoff;
-      uint nSpaceSamples;
-      uint nVelocitySamples;
    };
 
    class Fluctuations: public TriAxisSearch {
