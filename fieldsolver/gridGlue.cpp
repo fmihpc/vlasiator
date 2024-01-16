@@ -384,10 +384,17 @@ void getFieldsFromFsGrid(
          //loop over dccrg cells to which we shall send data for this remoteRank
          auto const &fsgridCells = onFsgridMapCells[dccrgCell];
          for (auto const fsgridCell: fsgridCells){
-         //loop over fsgrid cells for which we compute the average that is sent to dccrgCell on rank remoteRank
-//        if(technicalGrid.get(fsgridCell)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
-//           continue;
-//        }
+            //loop over fsgrid cells for which we compute the average that is sent to dccrgCell on rank remoteRank
+            if(technicalGrid.get(fsgridCell)->sysBoundaryFlag == sysboundarytype::OUTER_BOUNDARY_PADDING) {
+               // We skip boundary padding cells on the outer boundaries here,
+               // because their fields anyway don't contribute anything
+               // meaningful (as there are never properly updated).
+               //
+               // Note we do *NOT* skip DO_NOT_COMPUTE cells, because we need
+               // the bg vol fields to contribute to the innermost simulation
+               // cell's DCCRG volume averages.
+               continue;
+            }
             std::array<Real, fsgrids::volfields::N_VOL> * volcell = volumeFieldsGrid.get(fsgridCell);
             std::array<Real, fsgrids::bgbfield::N_BGB> * bgcell = BgBGrid.get(fsgridCell);
             std::array<Real, fsgrids::egradpe::N_EGRADPE> * egradpecell = EGradPeGrid.get(fsgridCell);	
@@ -538,7 +545,7 @@ std::vector<CellID> mapDccrgIdToFsGridGlobalID(dccrg::Dccrg<SpatialCell,dccrg::C
 
 void feedBoundaryIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 			const std::vector<CellID>& cells,
-			FsGrid< fsgrids::technical, 2> & technicalGrid) {
+			FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
 
   int ii;
   //sorted list of dccrg cells. cells is typicall already sorted, but just to make sure....

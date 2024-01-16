@@ -485,6 +485,13 @@ int main(int argn,char* args[]) {
       *project
    );
    
+   // There are projects that have non-uniform and non-zero perturbed B, e.g. Magnetosphere with dipole type 4.
+   // For inflow cells (e.g. maxwellian), we cannot take a FSgrid perturbed B value from the templateCell,
+   // because we need a copy of the value from initialization in both perBGrid and perBDt2Grid and it isn't
+   // touched as we are in boundary cells for components that aren't solved. We do a straight full copy instead
+   // of looping and detecting boundary types here.
+   perBDt2Grid = perBGrid;
+
    const std::vector<CellID>& cells = getLocalCells();
    
    initGridsTimer.stop();
@@ -1105,7 +1112,7 @@ int main(int argn,char* args[]) {
       // Update boundary condition states (time-varying)
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration) {
          phiprof::Timer timer {"Update system boundaries (Vlasov pre-translation)"};
-         sysBoundaryContainer.updateState(mpiGrid, perBGrid, P::t + 0.5 * P::dt);
+         sysBoundaryContainer.updateState(mpiGrid, perBGrid, BgBGrid, P::t + 0.5 * P::dt);
          timer.stop();
          addTimedBarrier("barrier-boundary-conditions");
       }
