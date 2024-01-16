@@ -42,7 +42,7 @@ void setBackgroundFieldToZero(
 /**
    Templated function for setting the perturbed B field to zero.
    Function is templated so it may, if necessary, be called to set the
-   vector dipolel correction terms inside the background field FSgrid
+   vector dipole correction terms inside the background field FSgrid
    object to zero (see setPerturbedField below).
 */
 template<long unsigned int numFields> void setPerturbedFieldToZero(
