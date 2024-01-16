@@ -5,6 +5,8 @@ ARCH = ${VLASIATOR_ARCH}
 # submodules currently include the header library fsgrid
 # git clone --recurse-submodules
 # git pull --recurse-submodules
+# or if you cloned without --recurse-submodules:
+# git submodule update --init --recursive
 
 #set FP precision to SP (single) or DP (double)
 FP_PRECISION = DP
