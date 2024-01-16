@@ -30,10 +30,6 @@ jobs:
           git checkout vlasiator-version
           cp *.hpp $GITHUB_WORKSPACE/libraries/include
           cd ..
-      - name: Download fsgrid
-        run: |
-          git clone https://github.com/fmihpc/fsgrid.git 
-          cp fsgrid/fsgrid.hpp $GITHUB_WORKSPACE/libraries/include
       - name: Build phiprof
         run: |
           git clone https://github.com/fmihpc/phiprof/ 
@@ -106,9 +102,9 @@ jobs:
           if-no-files-found: error
 
   build_production:
-    # Build Vlasiator witth production flags
-    runs-on: carrington
-      #container: ursg/vlasiator_ci:20230220_1
+    # Build Vlasiator with production flags
+    runs-on: ubuntu-latest
+    container: ursg/vlasiator_ci:20230220_1
     needs: build_libraries
 
     steps:
@@ -116,16 +112,20 @@ jobs:
       uses: actions/checkout@v3 
       with: 
         submodules: true
-          #    - name: Download libraries
-          #      uses: actions/download-artifact@v3
-          #      with:
-          #        name: libraries
-          #    - name: Unpack libraries
-          #      run: tar --zstd -xvf libraries.tar.zstd
-          #    - uses: ursg/gcc-problem-matcher@master
+    - name: Download libraries
+      uses: actions/download-artifact@v3
+      with:
+        name: libraries
+    - name: Unpack libraries
+      run: tar --zstd -xvf libraries.tar.zstd
+    - uses: ursg/gcc-problem-matcher@master
     - name: Compile vlasiator (Release build)
       run: |
-        srun -M carrington --job-name release_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p short -t 0:10:0 bash -c 'module purge; module load GCC/11.2.0; module load OpenMPI/4.1.1-GCC-11.2.0 ; module load PMIx/4.1.0-GCCcore-11.2.0; module load PAPI/6.0.0.1-GCCcore-11.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make clean; make -j 16'
+         VLASIATOR_ARCH=github_actions make clean
+         VLASIATOR_ARCH=github_actions make -j 3
+   #  - name: Compile vlasiator (Release build)
+   #    run: |
+   #      srun -M carrington --job-name release_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p short -t 0:10:0 bash -c 'module purge; module load GCC/11.2.0; module load OpenMPI/4.1.1-GCC-11.2.0 ; module load PMIx/4.1.0-GCCcore-11.2.0; module load PAPI/6.0.0.1-GCCcore-11.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make clean; make -j 16'
       
   
   build_testpackage:
