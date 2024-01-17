@@ -175,6 +175,8 @@ jobs:
         name: libraries-arriesgado
     - name: Unpack libraries
       run: tar -xzvf libraries-arriesgado.tar.gz
+    - name: STOPGAP remove conflicting submoduled header libraries from the tarball extract
+      run: .rm /libraries-arriesgado/fsgrid.hpp
     - name: Make clean
       run: VLASIATOR_ARCH=arriesgado make clean
     - name: Compile vlasiator (RISC-V)
