@@ -490,7 +490,7 @@ int main(int argn,char* args[]) {
    // because we need a copy of the value from initialization in both perBGrid and perBDt2Grid and it isn't
    // touched as we are in boundary cells for components that aren't solved. We do a straight full copy instead
    // of looping and detecting boundary types here.
-   perBDt2Grid = perBGrid;
+   perBDt2Grid.copyData(perBGrid);
 
    const std::vector<CellID>& cells = getLocalCells();
    

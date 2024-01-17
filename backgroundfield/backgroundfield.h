@@ -49,7 +49,7 @@ template<long unsigned int numFields> void setPerturbedFieldToZero(
    FsGrid< std::array<Real, numFields>, FS_STENCIL_WIDTH> & BGrid,
    int offset=fsgrids::bfield::PERBX
    ) {
-   auto localSize = BGrid.getLocalSize().data();
+   std::array<FsGridTools::FsIndex_t,3> localSize = BGrid.getLocalSize();
 
    #pragma omp parallel for collapse(2)
    for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
@@ -100,7 +100,7 @@ template<long unsigned int numFields> void setPerturbedField(
    faceCoord1[2]=0;
    faceCoord2[2]=1;
 
-   auto localSize = BGrid.getLocalSize();
+   std::array<FsGridTools::FsIndex_t,3> localSize = BGrid.getLocalSize();
 
    // These are threaded now that the stuff around here is threadsafe
    #pragma omp parallel for collapse(2)
