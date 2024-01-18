@@ -123,9 +123,9 @@ namespace projects {
          vector<Real> outputPerBy(P::xcells_ini, 0.0);
          vector<Real> outputPerBz(P::xcells_ini, 0.0);
          
-         const std::array<int32_t, 3> localSize = perBGrid.getLocalSize();
-         const std::array<int32_t, 3> localStart = perBGrid.getLocalStart();
-         for (int x = 0; x < localSize[0]; ++x) {
+         const std::array<FsGridTools::FsIndex_t, 3> localSize = perBGrid.getLocalSize();
+         const std::array<FsGridTools::FsIndex_t, 3> localStart = perBGrid.getLocalStart();
+         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
             localPerBx[x + localStart[0]] = perBGrid.get(x, 0, 0)->at(fsgrids::bfield::PERBX);
             localPerBy[x + localStart[0]] = perBGrid.get(x, 0, 0)->at(fsgrids::bfield::PERBY);
             localPerBz[x + localStart[0]] = perBGrid.get(x, 0, 0)->at(fsgrids::bfield::PERBZ);
@@ -227,9 +227,9 @@ namespace projects {
          const auto localSize = BgBGrid.getLocalSize().data();
          
 #pragma omp parallel for collapse(3)
-         for (int x = 0; x < localSize[0]; ++x) {
-            for (int y = 0; y < localSize[1]; ++y) {
-               for (int z = 0; z < localSize[2]; ++z) {
+         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
+            for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
+               for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
                   const int64_t cellid = perBGrid.GlobalIDForCoords(x, y, z);
                   

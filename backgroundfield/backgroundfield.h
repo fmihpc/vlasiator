@@ -49,12 +49,12 @@ template<long unsigned int numFields> void setPerturbedFieldToZero(
    FsGrid< std::array<Real, numFields>, FS_STENCIL_WIDTH> & BGrid,
    int offset=fsgrids::bfield::PERBX
    ) {
-   auto localSize = BGrid.getLocalSize().data();
+   std::array<FsGridTools::FsIndex_t,3> localSize = BGrid.getLocalSize();
 
    #pragma omp parallel for collapse(2)
-   for (int z = 0; z < localSize[2]; ++z) {
-      for (int y = 0; y < localSize[1]; ++y) {
-         for (int x = 0; x < localSize[0]; ++x) {
+   for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
+      for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
+         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
             // This is still N_BFIELD (==3) instead of numFields
             for (int i = 0; i < fsgrids::bfield::N_BFIELD; ++i) {
                BGrid.get(x,y,z)->at(offset+i) = 0;
@@ -100,13 +100,13 @@ template<long unsigned int numFields> void setPerturbedField(
    faceCoord1[2]=0;
    faceCoord2[2]=1;
 
-   auto localSize = BGrid.getLocalSize();
+   std::array<FsGridTools::FsIndex_t,3> localSize = BGrid.getLocalSize();
 
    // These are threaded now that the stuff around here is threadsafe
    #pragma omp parallel for collapse(2)
-   for (int z = 0; z < localSize[2]; ++z) {
-      for (int y = 0; y < localSize[1]; ++y) {
-         for (int x = 0; x < localSize[0]; ++x) {
+   for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
+      for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
+         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
             std::array<double, 3> start = BGrid.getPhysicalCoords(x, y, z);
             double dx[3];
             dx[0] = BGrid.DX;

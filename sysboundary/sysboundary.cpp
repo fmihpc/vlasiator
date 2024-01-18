@@ -361,9 +361,9 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
       mpiGrid[cells[i]]->parameters[CellParams::FORCING_CELL_NUM] = -1;
    }
 #pragma omp parallel for collapse(2)
-   for (int z = 0; z < localSize[2]; ++z) {
-      for (int y = 0; y < localSize[1]; ++y) {
-         for (int x = 0; x < localSize[0]; ++x) {
+   for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
+      for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
+         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
             //technicalGrid.get(x, y, z)->sysBoundaryFlag = sysboundarytype::NOT_SYSBOUNDARY;
             // Here for debugging since boundarytype should be fed from MPIGrid
             technicalGrid.get(x, y, z)->sysBoundaryFlag = sysboundarytype::N_SYSBOUNDARY_CONDITIONS;
@@ -503,9 +503,9 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
 
 // loop through all cells in grid
 #pragma omp parallel for collapse(2)
-      for (int z = 0; z < localSize[2]; ++z) {
-         for (int y = 0; y < localSize[1]; ++y) {
-            for (int x = 0; x < localSize[0]; ++x) {
+      for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
+         for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
+            for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
 
                // for the first layer, consider all cells that belong to a boundary, for other layers
                // consider all cells that have not yet been labeled.
@@ -535,9 +535,9 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
 // there is remaining cells of IONOSPHERE type inside the max layers gone through previously.
 // This last pass now gets rid of them.
 #pragma omp parallel for collapse(2)
-   for (int z = 0; z < localSize[2]; ++z) {
-      for (int y = 0; y < localSize[1]; ++y) {
-         for (int x = 0; x < localSize[0]; ++x) {
+   for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
+      for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
+         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
             if (technicalGrid.get(x,y,z)->sysBoundaryLayer == 0 && (
                 technicalGrid.get(x,y,z)->sysBoundaryFlag == sysboundarytype::IONOSPHERE ||
                 technicalGrid.get(x,y,z)->sysBoundaryFlag == sysboundarytype::COPYSPHERE)) {
@@ -549,16 +549,16 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
 
    technicalGrid.updateGhostCells();
 
-   const array<int,3> fsGridDimensions = technicalGrid.getGlobalSize();
+   const array<FsGridTools::FsSize_t,3> fsGridDimensions = technicalGrid.getGlobalSize();
 
    // One pass to setup the bit field to know which components the field solver should propagate.
 #pragma omp parallel for collapse(2)
-   for (int z = 0; z < localSize[2]; ++z) {
-      for (int y = 0; y < localSize[1]; ++y) {
-         for (int x = 0; x < localSize[0]; ++x) {
+   for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
+      for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
+         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
             technicalGrid.get(x, y, z)->SOLVE = 0;
 
-            array<int32_t, 3> globalIndices = technicalGrid.getGlobalIndices(x, y, z);
+            array<FsGridTools::FsIndex_t, 3> globalIndices = technicalGrid.getGlobalIndices(x, y, z);
 
             if (((globalIndices[0] == 0 || globalIndices[0] == fsGridDimensions[0] - 1) &&
                  !this->isPeriodic(0)) ||

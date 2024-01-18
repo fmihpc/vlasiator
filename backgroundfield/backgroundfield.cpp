@@ -39,7 +39,7 @@ void setBackgroundField(
    if(append==false) {
       setBackgroundFieldToZero(BgBGrid);
    }
-   const int* gridDims = &BgBGrid.getLocalSize()[0];
+   const FsGridTools::FsIndex_t* gridDims = &BgBGrid.getLocalSize()[0];
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
    phiprof::Timer bgTimer {"set Background field"};
    {
@@ -66,9 +66,9 @@ void setBackgroundField(
 
       // These are threaded now that the dipole field is threadsafe
       #pragma omp parallel for collapse(2)
-      for (int z = 0; z < localSize[2]; ++z) {
-         for (int y = 0; y < localSize[1]; ++y) {
-            for (int x = 0; x < localSize[0]; ++x) {
+      for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
+         for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
+            for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
                phiprof::Timer loopTopTimer {loopTopId};
                std::array<double, 3> start = BgBGrid.getPhysicalCoords(x, y, z);
                double dx[3];
@@ -148,10 +148,10 @@ void setBackgroundFieldToZero(
    auto localSize = BgBGrid.getLocalSize().data();
 
    #pragma omp parallel for collapse(2)
-   for (int z = 0; z < localSize[2]; ++z) {
-      for (int y = 0; y < localSize[1]; ++y) {
-         for (int x = 0; x < localSize[0]; ++x) {
-            for (int i = 0; i < fsgrids::bgbfield::N_BGB; ++i) {
+   for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
+      for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
+         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
+            for (FsGridTools::FsIndex_t i = 0; i < fsgrids::bgbfield::N_BGB; ++i) {
                BgBGrid.get(x,y,z)->at(i) = 0;
             }
          }

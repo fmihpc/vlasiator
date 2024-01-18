@@ -110,10 +110,10 @@ void Inflow::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geomet
    }
 
    // Assign boundary flags to local fsgrid cells
-   const std::array<int, 3> gridDims(technicalGrid.getLocalSize());
-   for (int k = 0; k < gridDims[2]; k++) {
-      for (int j = 0; j < gridDims[1]; j++) {
-         for (int i = 0; i < gridDims[0]; i++) {
+   const std::array<FsGridTools::FsIndex_t, 3> gridDims(technicalGrid.getLocalSize());
+   for (FsGridTools::FsIndex_t k = 0; k < gridDims[2]; k++) {
+      for (FsGridTools::FsIndex_t j = 0; j < gridDims[1]; j++) {
+         for (FsGridTools::FsIndex_t i = 0; i < gridDims[0]; i++) {
             const auto coords = technicalGrid.getPhysicalCoords(i, j, k);
 
             // Shift to the center of the fsgrid cell
@@ -194,7 +194,7 @@ Real Inflow::fieldSolverBoundaryCondMagneticField(
    creal dx = Parameters::dx_ini;
    creal dy = Parameters::dy_ini;
    creal dz = Parameters::dz_ini;
-   const array<int, 3> globalIndices = technicalGrid.getGlobalIndices(i, j, k);
+   const array<FsGridTools::FsIndex_t, 3> globalIndices = technicalGrid.getGlobalIndices(i, j, k);
    creal x = (convert<Real>(globalIndices[0]) + 0.5) * technicalGrid.DX + Parameters::xmin;
    creal y = (convert<Real>(globalIndices[1]) + 0.5) * technicalGrid.DY + Parameters::ymin;
    creal z = (convert<Real>(globalIndices[2]) + 0.5) * technicalGrid.DZ + Parameters::zmin;
@@ -278,11 +278,11 @@ void Inflow::setBFromTemplate(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometr
                               FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
                               FsGrid<array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid) {
    std::array<bool, 6> isThisCellOnAFace;
-   const std::array<int, 3> gridDims(perBGrid.getLocalSize());
 
-   for (int k = 0; k < gridDims[2]; k++) {
-      for (int j = 0; j < gridDims[1]; j++) {
-         for (int i = 0; i < gridDims[0]; i++) {
+   const std::array<FsGridTools::FsIndex_t, 3> gridDims(perBGrid.getLocalSize());
+   for (FsGridTools::FsIndex_t k = 0; k < gridDims[2]; k++) {
+      for (FsGridTools::FsIndex_t j = 0; j < gridDims[1]; j++) {
+         for (FsGridTools::FsIndex_t i = 0; i < gridDims[0]; i++) {
             const auto coords = perBGrid.getPhysicalCoords(i, j, k);
 
             // TODO: This code up to determineFace() should be in a separate

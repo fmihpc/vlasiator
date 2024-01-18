@@ -221,7 +221,7 @@ void propagateMagneticFieldSimple(
    cint& RKCase
 ) {
    //const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
-   const int* gridDims = &technicalGrid.getLocalSize()[0];
+   const FsGridTools::FsIndex_t* gridDims = &technicalGrid.getLocalSize()[0];
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
    phiprof::Timer propagateBTimer {"Propagate magnetic field"};
 
@@ -231,9 +231,9 @@ void propagateMagneticFieldSimple(
    {
       phiprof::Timer computeTimer {computeTimerId};
       #pragma omp for collapse(2)
-      for (int k=0; k<gridDims[2]; k++) {
-         for (int j=0; j<gridDims[1]; j++) {
-            for (int i=0; i<gridDims[0]; i++) {
+      for (FsGridTools::FsIndex_t k=0; k<gridDims[2]; k++) {
+         for (FsGridTools::FsIndex_t j=0; j<gridDims[1]; j++) {
+            for (FsGridTools::FsIndex_t i=0; i<gridDims[0]; i++) {
                cuint bitfield = technicalGrid.get(i,j,k)->SOLVE;
                propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, ((bitfield & compute::BX) == compute::BX), ((bitfield & compute::BY) == compute::BY), ((bitfield & compute::BZ) == compute::BZ));
             }
