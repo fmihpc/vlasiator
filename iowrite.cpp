@@ -878,7 +878,8 @@ bool writeConfigInfo(std::string config,vlsv::Writer& vlsvWriter,MPI_Comm comm){
  * @param technicalGrid An fsgrid instance used to extract metadata info.
  * @param vlsvWriter file object to write into.
  */
-bool writeFsGridMetadata(FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, vlsv::Writer& vlsvWriter) {
+bool writeFsGridMetadata(FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, vlsv::Writer& vlsvWriter,
+   bool writeIDs=false) {
 
   std::map<std::string, std::string> xmlAttributes;
   const std::string meshName="fsgrid";
@@ -933,24 +934,9 @@ bool writeFsGridMetadata(FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technic
   vlsvWriter.writeArray("MESH_GHOST_DOMAINS", xmlAttributes, 0, 1, &dummyghost);
   vlsvWriter.writeArray("MESH_GHOST_LOCALIDS", xmlAttributes, 0, 1, &dummyghost);
 
-  // Write cell "globalID" numbers, which are just the global array indices.
-  std::array<FsGridTools::FsIndex_t,3>& localSize = technicalGrid.getLocalSize();
-  std::vector<FsGridTools::FsIndex_t> globalIds(localSize[0]*localSize[1]*localSize[2]);
-  int i=0;
-  for(FsGridTools::FsIndex_t z=0; z<localSize[2]; z++) {
-    for(FsGridTools::FsIndex_t y=0; y<localSize[1]; y++) {
-      for(FsGridTools::FsIndex_t x=0; x<localSize[0]; x++) {
-        std::array<FsGridTools::FsIndex_t,3> globalIndex = technicalGrid.getGlobalIndices(x,y,z);
-        globalIds[i++] = globalIndex[2]*globalSize[0]*globalSize[1]+
-          globalIndex[1]*globalSize[0] +
-          globalIndex[0];
-      }
-    }
-  }
-
-
   // writeDomainSizes
-  std::array<size_t,2> meshDomainSize({globalIds.size(), 0});
+  std::array<FsGridTools::FsIndex_t,3>& localSize = technicalGrid.getLocalSize();
+  std::array<uint64_t,2> meshDomainSize({(uint64_t)localSize[0]*(uint64_t)localSize[1]*(uint64_t)localSize[2], 0});
   vlsvWriter.writeArray("MESH_DOMAIN_SIZES", xmlAttributes, 1, 2, &meshDomainSize[0]);
 
   // how many MPI ranks we wrote from
@@ -975,8 +961,22 @@ bool writeFsGridMetadata(FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technic
   xmlAttributes["yperiodic"]=technicalGrid.getPeriodic()[1]?"yes":"no";
   xmlAttributes["zperiodic"]=technicalGrid.getPeriodic()[2]?"yes":"no";
 
-  vlsvWriter.writeArray("MESH", xmlAttributes, globalIds.size(), 1, globalIds.data());
-
+  if (writeIDs) {
+     // Write cell "globalID" numbers, which are just the global array indices.
+     std::vector<FsGridTools::FsIndex_t> globalIds(localSize[0]*localSize[1]*localSize[2]);
+     int i=0;
+     for(int z=0; z<localSize[2]; z++) {
+        for(int y=0; y<localSize[1]; y++) {
+           for(int x=0; x<localSize[0]; x++) {
+              std::array<FsGridTools::FsIndex_t,3> globalIndex = technicalGrid.getGlobalIndices(x,y,z);
+              globalIds[i++] = globalIndex[2]*globalSize[0]*globalSize[1]+
+                 globalIndex[1]*globalSize[0] +
+                 globalIndex[0];
+           }
+        }
+     }
+     vlsvWriter.writeArray("MESH", xmlAttributes, globalIds.size(), 1, globalIds.data());
+  }
   return true;
 }
 
@@ -1427,7 +1427,7 @@ bool writeGrid(
    }
 
    //Write FSGrid metadata
-   if( writeFsGridMetadata( technicalGrid, vlsvWriter ) == false ) {
+   if( writeFsGridMetadata( technicalGrid, vlsvWriter, P::systemWriteFsGrid.at(outputFileTypeIndex) ) == false ) {
       return false;
    }
    
@@ -1628,7 +1628,7 @@ bool writeRestart(
    if( writeDomainSizes( vlsvWriter, meshName, local_cells.size(), ghost_cells.size() ) == false ) return false;
 
    //Write FSGrid metadata
-   if( writeFsGridMetadata( technicalGrid, vlsvWriter ) == false ) return false;
+   if( writeFsGridMetadata( technicalGrid, vlsvWriter, true ) == false ) return false;
    
    //Write Version Info 
    if( writeVersionInfo(versionInfo,vlsvWriter,MPI_COMM_WORLD) == false ) return false;

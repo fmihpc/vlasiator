@@ -1,5 +1,13 @@
 #set default architecture, can be overridden from the compile line
 ARCH = ${VLASIATOR_ARCH}
+
+# NB updating git submodules require e.g. using the --recurse-submodules flag, e.g.:
+# submodules currently include the header library fsgrid
+# git clone --recurse-submodules
+# git pull --recurse-submodules
+# or if you cloned without --recurse-submodules:
+# git submodule update --init --recursive
+
 #set FP precision to SP (single) or DP (double)
 FP_PRECISION = DP
 #Set floating point precision for distribution function to SPF (single) or DPF (double)

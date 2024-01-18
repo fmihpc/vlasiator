@@ -60,7 +60,6 @@ namespace projects {
       RP::add("testAmr.magYPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along y (T)", 1.0e-9);
       RP::add("testAmr.magZPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along z (T)", 1.0e-9);
       RP::add("testAmr.lambda", "B cosine perturbation wavelength (m)", 1.0);
-      RP::add("testAmr.nVelocitySamples", "Number of sampling points per velocity dimension", 1);
       RP::add("testAmr.densityModel","Which spatial density model is used?",string("uniform"));
       RP::add("testAmr.maxSpatialRefinementLevel", "Maximum level for spatial refinement", 1.0);
 
@@ -94,7 +93,6 @@ namespace projects {
       RP::get("testAmr.dBz", this->dBz);
       RP::get("testAmr.lambda", this->lambda);
       RP::get("testAmr.maxSpatialRefinementLevel", this->maxSpatialRefinementLevel);
-      RP::get("testAmr.nVelocitySamples", this->nVelocitySamples);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
@@ -153,7 +151,7 @@ namespace projects {
       // iteration improves the average by less than 1%, return the value.
       Real avgTotal = 0.0;
       bool ok = false;
-      uint N = nVelocitySamples; // Start by using nVelocitySamples
+      uint N = 1;
       int N3_sum = 0;           // Sum of sampling points used so far
 
       //const testAmrSpeciesParameters& sP = speciesParams[popID];
