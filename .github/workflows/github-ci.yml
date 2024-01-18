@@ -23,13 +23,6 @@ jobs:
           mkdir -p libraries/lib
           mkdir library-build
           cd library-build
-      - name: Download DCCRG
-        run: |
-          git clone https://github.com/fmihpc/dccrg.git 
-          cd dccrg
-          git checkout vlasiator-version
-          cp *.hpp $GITHUB_WORKSPACE/libraries/include
-          cd ..
       - name: Build phiprof
         run: |
           git clone https://github.com/fmihpc/phiprof/ 
