@@ -81,6 +81,6 @@ INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
 
 #header libraries
 
-INC_FSGRID = -I$(LIBRARY_PREFIX_HEADERS)/fsgrid/
-INC_DCCRG = -I$(LIBRARY_PREFIX_HEADERS)/dccrg/
+INC_FSGRID = -I./submodules/fsgrid/
+INC_DCCRG = -I./submodules/dccrg/
 INC_VECTORCLASS = -isystem$(LIBRARY_PREFIX_HEADERS)/vectorclass/

@@ -9,6 +9,9 @@ LIBS += ${LIB_PROFILE}
 LIBS += ${LIB_ZOLTAN}
 LIBS += ${LIB_VLSV}
 
+INC_FSGRID=-I../../submodules/fsgrid/
+INC_DCCRG=-I../../submodules/dccrg/
+
 all: main
 .PHONY: clean
 

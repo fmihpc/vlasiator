@@ -23,13 +23,6 @@ jobs:
           mkdir -p libraries/lib
           mkdir library-build
           cd library-build
-      - name: Download DCCRG
-        run: |
-          git clone https://github.com/fmihpc/dccrg.git 
-          cd dccrg
-          git checkout vlasiator-version
-          cp *.hpp $GITHUB_WORKSPACE/libraries/include
-          cd ..
       - name: Build phiprof
         run: |
           git clone https://github.com/fmihpc/phiprof/ 
@@ -176,7 +169,7 @@ jobs:
     - name: Unpack libraries
       run: tar -xzvf libraries-arriesgado.tar.gz
     - name: STOPGAP remove conflicting submoduled header libraries from the tarball extract
-      run: rm ./libraries-arriesgado/include/fsgrid.hpp
+      run: rm ./libraries-arriesgado/include/fsgrid.hpp ./libraries-arriesgado/include/dccrg.hpp
     - name: Make clean
       run: VLASIATOR_ARCH=arriesgado make clean
     - name: Compile vlasiator (RISC-V)

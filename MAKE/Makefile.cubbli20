@@ -97,7 +97,7 @@ LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/Zoltan/build/lib -lzoltan
 INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv
 LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv
 
-INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg
+INC_DCCRG = -I./submodules/dccrg
 
 INC_FSGRID = -I./submodules/fsgrid
 
