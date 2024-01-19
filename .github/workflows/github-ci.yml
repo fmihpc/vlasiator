@@ -13,13 +13,12 @@ jobs:
   clean_workspace:
     # Cleans up Carrington workspace, deleting any old lingering directories and files
     runs-on: carrington
-    continue-on-error: true
     steps:
       - name: Delete files and directories
         run: |
           rm -rf libraries library-build testpackage
-          rm libraries.tar.zst dtestpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
-          rm *.xml
+          rm -f libraries.tar.zst dtestpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+          rm -f *.xml
 
   build_libraries:
     # Build libraries for the current version of the docker image
