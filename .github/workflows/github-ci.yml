@@ -10,6 +10,17 @@ on:
   workflow_dispatch:
 
 jobs:
+  clean_workspace:
+    # Cleans up Carrington workspace, deleting any old lingering directories and files
+    runs-on: carrington
+    continue-on-error: true
+    steps:
+      - name: Delete files and directories
+        run: |
+          rm -rf libraries library-build testpackage
+          rm libraries.tar.zst dtestpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+          rm *.xml
+
   build_libraries:
     # Build libraries for the current version of the docker image
     # (to be used in any subsequent compilation and run jobs on said image)
@@ -125,6 +136,7 @@ jobs:
     # Build Vlasiator with testpackage flags, on the carrington cluster
     # (for subsequent running of the integration test package)
     runs-on: carrington
+    needs: clean_workspace
 
     steps:
     - name: Checkout source
@@ -185,6 +197,7 @@ jobs:
   build_tools:
     # Build vlsvdiff and vlsvextract for testpackage use
     runs-on: carrington
+    needs: clean_workspace
       
     steps:
     - name: Checkout source
@@ -210,7 +223,7 @@ jobs:
   run_testpackage:
     # Run the testpackage on the carrington cluster
     runs-on: carrington
-    needs: [build_testpackage, build_tools]
+    needs: [clean_workspace, build_testpackage, build_tools]
     continue-on-error: true
 
     steps:
@@ -256,7 +269,7 @@ jobs:
     # Build IonosphereSolverTests miniApp (currently broken)
     runs-on: carrington
       #container: ursg/vlasiator_ci:20230220_1
-    needs: build_libraries
+    needs: [clean_workspace, build_libraries]
     steps:
     - name: Checkout source
       uses: actions/checkout@v3 
