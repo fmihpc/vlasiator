@@ -1195,13 +1195,13 @@ int main(int argn,char* args[]) {
       vspaceTimer.stop(computedCells, "Cells");
       addTimedBarrier("barrier-after-acceleration");
      
-      phiprof::start("Diffusion");
-      if (P::artificialPADiff){  
+      if (P::artificialPADiff){
+         phiprof::Timer diffusionTimer {"Pitch-angle diffusion"};
          for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
 	      velocitySpaceDiffusion(mpiGrid,popID);
          }
+         diffusionTimer.stop(computedCells, "Cells");
       }
-      phiprof::stop("Diffusion",computedCells,"Cells");
 
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
          phiprof::Timer timer {"Update system boundaries (Vlasov post-acceleration)"};
