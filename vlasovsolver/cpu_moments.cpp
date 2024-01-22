@@ -47,7 +47,7 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
    }
 
     // Clear old moments to zero value
-    if (skipMoments == false) {
+    if (skipMoments == false && computePopulationMomentsOnly == false) {
         cell->parameters[CellParams::RHOM] = 0.0;
         cell->parameters[CellParams::VX]   = 0.0;
         cell->parameters[CellParams::VY]   = 0.0;
@@ -138,12 +138,14 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
        // Store species' contribution to bulk velocity moments
        for (int i=0; i<6; ++i) {pop.P[i] = mass*array[i];}
 
-       cell->parameters[CellParams::P_11] += pop.P[0];
-       cell->parameters[CellParams::P_22] += pop.P[1];
-       cell->parameters[CellParams::P_33] += pop.P[2];
-       cell->parameters[CellParams::P_12] += pop.P[3];
-       cell->parameters[CellParams::P_13] += pop.P[4];
-       cell->parameters[CellParams::P_23] += pop.P[5];
+       if (!computePopulationMomentsOnly) {
+          cell->parameters[CellParams::P_11] += pop.P[0];
+          cell->parameters[CellParams::P_22] += pop.P[1];
+          cell->parameters[CellParams::P_33] += pop.P[2];
+          cell->parameters[CellParams::P_12] += pop.P[3];
+          cell->parameters[CellParams::P_13] += pop.P[4];
+          cell->parameters[CellParams::P_23] += pop.P[5];
+       }
     } // for-loop over particle species
 }
 
