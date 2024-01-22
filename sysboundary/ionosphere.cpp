@@ -956,7 +956,7 @@ namespace SBC {
 
             for(uint n=0; n<nodes.size(); n++) {
 
-               Real MLT = atan2(nodes[n].x[0],nodes[n].x[1]); // TODO: is this correctly rotated?
+               Real MLT = atan2(nodes[n].x[1],nodes[n].x[0]);
 
                // Calculate FAC density through this node
                Real area = 0;
@@ -982,8 +982,8 @@ namespace SBC {
                   SigmaP1 = interpolate_robinson(SigmaP1u_coefficients, MLT);
                }
 
-               nodes[n].parameters[ionosphereParameters::SIGMAP] = SigmaP0 + SigmaP1 * FAC;
-               nodes[n].parameters[ionosphereParameters::SIGMAH] = SigmaH0 + SigmaH1 * FAC;
+               nodes[n].parameters[ionosphereParameters::SIGMAP] = SigmaP0 + SigmaP1 * -FAC;
+               nodes[n].parameters[ionosphereParameters::SIGMAH] = SigmaH0 + SigmaH1 * -FAC;
                // TODO: What do we do about SIGMAPARALLEL?
             }
          }
