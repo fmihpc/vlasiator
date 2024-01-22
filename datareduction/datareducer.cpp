@@ -524,7 +524,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             species::Species& species=getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::VariableMuSpace(i));
-            outputReducer->addMetadata(outputReducer->size()-1,"1/m^3","$\\mathrm{m}^{-3}$","$f(\\mu)$",conversion.str());
+            outputReducer->addMetadata(outputReducer->size()-1,"1/m^3","$\\mathrm{m}^{-3}$","$f(\\mu)$");
          }
          continue;
       }
