@@ -166,6 +166,8 @@ namespace SBC {
       
       uint nSpaceSamples;
       uint nVelocitySamples;
+
+      bool zeroPerB;
       
       spatial_cell::SpatialCell templateCell;
 
