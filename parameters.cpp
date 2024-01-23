@@ -187,6 +187,9 @@ Realf P::amrBoxCenterZ = 0.0;
 vector<string> P::blurPassString;
 std::vector<int> P::numPasses; //numpasses
 
+std::array<FsGridTools::Task_t,3> P::manualFsGridDecomposition = {0,0,0};
+std::array<FsGridTools::Task_t,3> P::overrideReadFsGridDecomposition = {0,0,0};
+
 std::string tracerString; /*!< Fieldline tracer to use for coupling ionosphere and magnetosphere */
 bool P::computeCurvature;
 
@@ -280,6 +283,16 @@ bool P::addParameters() {
    RP::add("restart.write_as_float", "If true, write restart fields in floats instead of doubles", false);
    RP::add("restart.filename", "Restart from this vlsv file. No restart if empty file.", string(""));
 
+   RP::add(
+       "restart.overrideReadFsGridDecompositionX",
+       "Manual FsGridDecomposition for field solver grid stored in a restart file.", 0);
+   RP::add(
+       "restart.overrideReadFsGridDecompositionY",
+       "Manual FsGridDecomposition for field solver grid stored in a restart file.", 0);
+   RP::add(
+       "restart.overrideReadFsGridDecompositionZ",
+       "Manual FsGridDecomposition for field solver grid stored in a restart file.", 0);
+
    RP::add("gridbuilder.geometry", "Simulation geometry XY4D,XZ4D,XY5D,XZ5D,XYZ6D", string("XYZ6D"));
    RP::add("gridbuilder.x_min", "Minimum value of the x-coordinate.", NAN);
    RP::add("gridbuilder.x_max", "Minimum value of the x-coordinate.", NAN);
@@ -326,6 +339,17 @@ bool P::addParameters() {
            "The maximum CFL limit for field propagation. Used to set timestep if dynamic_timestep is true.", 0.5);
    RP::add("fieldsolver.minCFL",
            "The minimum CFL limit for field propagation. Used to set timestep if dynamic_timestep is true.", 0.4);
+
+   RP::add(
+       "fieldsolver.manualFsGridDecompositionX",
+       "Manual FsGridDecomposition for field solver grid.", 0);
+   RP::add(
+       "fieldsolver.manualFsGridDecompositionY",
+       "Manual FsGridDecomposition for field solver grid.", 0);
+   RP::add(
+       "fieldsolver.manualFsGridDecompositionZ",
+       "Manual FsGridDecomposition for field solver grid.", 0);
+
 
    // Vlasov solver parameters
    RP::add("vlasovsolver.maxSlAccelerationRotation",
@@ -668,6 +692,20 @@ void Parameters::getParameters() {
    RP::get("restart.filename", P::restartFileName);
    P::isRestart = (P::restartFileName != string(""));
 
+   // manual FsGrid decomposition should be complete with three values. If at least one is set but all are not set, abort
+   if ((RP::isSet("restart.overrideReadFsGridDecompositionX")||RP::isSet("restart.overrideReadFsGridDecompositionY")||RP::isSet("restart.overrideReadFsGridDecompositionZ")) &&
+        !(RP::isSet("restart.overrideReadFsGridDecompositionX")&&RP::isSet("restart.overrideReadFsGridDecompositionY")&&RP::isSet("restart.overrideReadFsGridDecompositionZ")) ) {
+      cerr << "ERROR all of restart.overrideReadFsGridDecompositionX,Y,Z should be defined." << endl;
+      MPI_Abort(MPI_COMM_WORLD, 1);
+   }   
+   FsGridTools::Task_t temp_task_t;
+   RP::get("restart.overrideReadFsGridDecompositionX", temp_task_t);
+   P::overrideReadFsGridDecomposition[0] = temp_task_t;
+   RP::get("restart.overrideReadFsGridDecompositionY", temp_task_t);
+   P::overrideReadFsGridDecomposition[1] = temp_task_t;
+   RP::get("restart.overrideReadFsGridDecompositionZ", temp_task_t);
+   P::overrideReadFsGridDecomposition[2] = temp_task_t;
+
    RP::get("project", P::projectName);
    if (RP::helpRequested) {
       P::projectName = string("Magnetosphere");
@@ -843,6 +881,22 @@ void Parameters::getParameters() {
    RP::get("fieldsolver.electronPTindex", P::electronPTindex);
    RP::get("fieldsolver.maxCFL", P::fieldSolverMaxCFL);
    RP::get("fieldsolver.minCFL", P::fieldSolverMinCFL);
+
+   // manual FsGrid decomposition should be complete with three values. If at least one is set but all are not set, abort
+   if ((RP::isSet("fieldsolver.manualFsGridDecompositionX")||RP::isSet("fieldsolver.manualFsGridDecompositionY")||RP::isSet("fieldsolver.manualFsGridDecompositionZ")) &&
+        !(RP::isSet("fieldsolver.manualFsGridDecompositionX")&&RP::isSet("fieldsolver.manualFsGridDecompositionY")&&RP::isSet("fieldsolver.manualFsGridDecompositionZ")) ) {
+      cerr << "ERROR all of fieldsolver.manualFsGridDecompositionX,Y,Z should be defined." << endl;
+      MPI_Abort(MPI_COMM_WORLD, 1);
+   }   
+   RP::get("fieldsolver.manualFsGridDecompositionX", temp_task_t);
+   P::manualFsGridDecomposition[0] = temp_task_t;
+   RP::get("fieldsolver.manualFsGridDecompositionY", temp_task_t);
+   P::manualFsGridDecomposition[1] = temp_task_t;
+   RP::get("fieldsolver.manualFsGridDecompositionZ", temp_task_t);
+   P::manualFsGridDecomposition[2] = temp_task_t;
+
+   
+
    // Get Vlasov solver parameters
    RP::get("vlasovsolver.maxSlAccelerationRotation", P::maxSlAccelerationRotation);
    RP::get("vlasovsolver.maxSlAccelerationSubcycles", P::maxSlAccelerationSubcycles);

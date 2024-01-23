@@ -122,9 +122,9 @@ namespace projects {
          Real areaFactor = 1.0;
          
          #pragma omp parallel for collapse(3)
-         for (int i = 0; i < localSize[0]; ++i) {
-            for (int j = 0; j < localSize[1]; ++j) {
-               for (int k = 0; k < localSize[2]; ++k) {
+         for (FsGridTools::FsIndex_t i = 0; i < localSize[0]; ++i) {
+            for (FsGridTools::FsIndex_t j = 0; j < localSize[1]; ++j) {
+               for (FsGridTools::FsIndex_t k = 0; k < localSize[2]; ++k) {
                   const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(i, j, k);
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(i, j, k);
                   

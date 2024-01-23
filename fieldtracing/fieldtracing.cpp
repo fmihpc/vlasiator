@@ -119,7 +119,7 @@ namespace FieldTracing {
                while( true ) {
                   
                   // Check if the current coordinates (pre-step) are in our own domain.
-                  std::array<int, 3> fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
+                  std::array<FsGridTools::FsIndex_t, 3> fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
                   // If it is not in our domain, somebody else takes care of it.
                   if(fsgridCell[0] == -1) {
                      nodeNeedsContinuedTracing[n] = 0;
@@ -481,7 +481,7 @@ namespace FieldTracing {
       const TReal stepSize = min(1000e3, technicalGrid.DX / 2.);
       std::vector<TReal> nodeTracingStepSize(nodes.size(), stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
       std::vector<TReal> reducedNodeTracingStepSize(nodes.size());
-      std::array<int, 3> gridSize = technicalGrid.getGlobalSize();
+      std::array<FsGridTools::FsSize_t, 3> gridSize = technicalGrid.getGlobalSize();
       uint64_t maxTracingSteps = 8 * (gridSize[0] * technicalGrid.DX + gridSize[1] * technicalGrid.DY + gridSize[2] * technicalGrid.DZ) / stepSize;
       
       std::vector<int> nodeMapping(nodes.size(), TracingLineEndType::UNPROCESSED);                                 /*!< For reduction of node coupling */
@@ -528,7 +528,7 @@ namespace FieldTracing {
                   nodeStepCounter[n]++;
                   
                   // Check if the current coordinates (pre-step) are in our own domain.
-                  std::array<int, 3> fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,{(TReal)x[0], (TReal)x[1], (TReal)x[2]});
+                  std::array<FsGridTools::FsIndex_t, 3> fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,{(TReal)x[0], (TReal)x[1], (TReal)x[2]});
                   // If it is not in our domain, somebody else takes care of it.
                   if(fsgridCell[0] == -1) {
                      nodeNeedsContinuedTracing[n] = 0;
@@ -660,7 +660,7 @@ namespace FieldTracing {
       std::array<TReal, 3> v({0,0,0});
       while( true ) {
          // Check if the current coordinates (pre-step) are in our own domain.
-         std::array<int, 3> fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,{(Real)x[0], (Real)x[1], (Real)x[2]});
+         std::array<FsGridTools::FsIndex_t, 3> fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,{(Real)x[0], (Real)x[1], (Real)x[2]});
          // If it is not in our domain, somebody else takes care of it.
          if(fsgridCell[0] == -1) {
             cellTracingCoordinates[n] = {0,0,0};
@@ -846,7 +846,7 @@ namespace FieldTracing {
       std::vector<TReal> cellFWTracingStepSize(globalDccrgSize, stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
       std::vector<TReal> cellBWTracingStepSize(globalDccrgSize, stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
       
-      std::array<int, 3> gridSize = technicalGrid.getGlobalSize();
+      std::array<FsGridTools::FsSize_t, 3> gridSize = technicalGrid.getGlobalSize();
       // If fullbox_and_fluxrope_max_distance is unset, use this heuristic considering how far an IMF+dipole combo can sensibly stretch in the box before we're safe to assume it's rolled up more or less pathologically.
       const TReal maxTracingDistance = fieldTracingParameters.fullbox_and_fluxrope_max_distance > 0 ? fieldTracingParameters.fullbox_and_fluxrope_max_distance : gridSize[0] * technicalGrid.DX + gridSize[1] * technicalGrid.DY + gridSize[2] * technicalGrid.DZ;
       

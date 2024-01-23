@@ -36,8 +36,6 @@ namespace projects {
       Real rhoBase;
       Real T;
       Real V0[3];
-      uint nSpaceSamples;
-      uint nVelocitySamples;
    };
 
    class Flowthrough: public TriAxisSearch {
