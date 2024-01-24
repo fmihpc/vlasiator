@@ -884,16 +884,21 @@ int main(int argn,char* args[]) {
          beforeTime = MPI_Wtime();
          beforeSimulationTime=P::t;
          beforeStep=P::tstep;
-         //report_grid_memory_consumption(mpiGrid);
-         report_process_memory_consumption();
-         report_cell_and_block_counts(mpiGrid);
       }
       logFile << writeVerbose;
       loggingTimer.stop();
 
 // Check whether diagnostic output has to be produced
       if (P::diagnosticInterval != 0 && P::tstep % P::diagnosticInterval == 0) {
-         
+         phiprof::Timer memTimer {"memory-report"};
+         memTimer.start();
+         report_process_memory_consumption();
+         memTimer.stop();
+         phiprof::Timer cellTimer {"cell-count-report"};
+         cellTimer.start();
+         report_cell_and_block_counts(mpiGrid);
+         cellTimer.stop();
+
          phiprof::Timer diagnosticTimer {"diagnostic-io"};
          if (writeDiagnostic(mpiGrid, diagnosticReducer) == false) {
             if(myRank == MASTER_RANK)  cerr << "ERROR with diagnostic computation" << endl;
