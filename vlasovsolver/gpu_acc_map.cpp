@@ -575,12 +575,12 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
 
    // Thread id used for persistent device memory pointers
 #ifdef _OPENMP
-      const uint cpuThreadID = omp_get_thread_num();
+   const uint cpuThreadID = omp_get_thread_num();
 #else
-      const uint cpuThreadID = 0;
+   const uint cpuThreadID = 0;
 #endif
 
-   const uint nBlocks = vmesh->size(true); // true: Prefetch metadata back to GPU
+   const uint nBlocks = vmesh->size();
    auto minValue = spatial_cell->getVelocityBlockMinValue(popID);
    // These query velocity mesh parameters which are duplicated for both host and device
    const vmesh::LocalID D0 = vmesh->getGridLength()[0];
@@ -606,10 +606,10 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    spatial_cell->BlocksToAdd->clear();
    spatial_cell->BlocksToRemove->clear();
    spatial_cell->BlocksToMove->clear();
-   spatial_cell->BlocksRequired->optimizeGPU(stream);
-   spatial_cell->BlocksToAdd->optimizeGPU(stream);
-   spatial_cell->BlocksToRemove->optimizeGPU(stream);
-   spatial_cell->BlocksToMove->optimizeGPU(stream);
+   // spatial_cell->BlocksRequired->optimizeGPU(stream);
+   // spatial_cell->BlocksToAdd->optimizeGPU(stream);
+   // spatial_cell->BlocksToRemove->optimizeGPU(stream);
+   // spatial_cell->BlocksToMove->optimizeGPU(stream);
 
    phiprof::Timer attachTimer {"stream Attach, prefetch"};
    if (needAttachedStreams) {
