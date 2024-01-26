@@ -14,6 +14,8 @@ jobs:
     steps:
     - name: Checkout source
       uses: actions/checkout@v3 
+      with:
+        submodules: true
     - name: Make clean
       run: VLASIATOR_ARCH=carrington_gcc_openmpi make clean
     - uses: ursg/gcc-problem-matcher@master
@@ -44,6 +46,8 @@ jobs:
     steps:
     - name: Checkout source
       uses: actions/checkout@v3 
+      with:
+        submodules: true
     - name: Download testpackage binary
       uses: actions/download-artifact@v3
       with:
