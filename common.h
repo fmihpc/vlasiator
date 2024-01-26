@@ -257,7 +257,7 @@ namespace bvolderivatives {
  * back and forth.
  */
 namespace fsgrids {
-   enum bfield {
+   enum bfield : int {
       PERBX,  /*!< Perturbed Magnetic field x-component, averaged over cell x-face. Propagated by field solver.*/
       PERBY,  /*!< Perturbed Magnetic field y-component, averaged over cell y-face. Propagated by field solver.*/
       PERBZ,  /*!< Perturbed Magnetic field z-component, averaged over cell z-face. Propagated by field solver.*/
@@ -357,13 +357,16 @@ namespace fsgrids {
    };
 
    // NOTE This contains the BGB derivatives as they do not change either
-   enum bgbfield {
+   enum bgbfield : int  {
       BGBX,   /*!< Background magnetic field x-component, averaged over cell x-face.*/
       BGBY,   /*!< Background magnetic field y-component, averaged over cell y-face.*/
       BGBZ,   /*!< Background magnetic field z-component, averaged over cell z-face.*/
       BGBXVOL,   /*!< background magnetic field x-component averaged over spatial cell.*/
       BGBYVOL,   /*!< background magnetic field y-component averaged over spatial cell.*/
       BGBZVOL,   /*!< background magnetic field z-component averaged over spatial cell.*/
+      BGBXVDCORR, /*!< correction term for background magnetic field, used by vector dipole.*/
+      BGBYVDCORR, /*!< correction term for background magnetic field, used by vector dipole.*/
+      BGBZVDCORR, /*!< correction term for background magnetic field, used by vector dipole.*/
       dBGBxdy,     /*!< Derivative of background face-averaged Bx in y-direction. */
       dBGBxdz,     /*!< Derivative of background face-averaged Bx in z-direction. */
       dBGBydx,     /*!< Derivative of background face-averaged By in x-direction. */
@@ -452,6 +455,7 @@ namespace sysboundarytype {
       OUTFLOW,          /*!< No fixed conditions on the fields and distribution function. */
       MAXWELLIAN,       /*!< Set Maxwellian boundary condition, i.e. set fields and distribution function. */
       COPYSPHERE,       /*!< A sphere with copy-condition for perturbed B as the simple inner boundary */
+      OUTER_BOUNDARY_PADDING, /*!< These cells only occur on FSGrid, where boundaries are not at the highest refinement level */
       N_SYSBOUNDARY_CONDITIONS
    };
 }

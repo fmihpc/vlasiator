@@ -76,9 +76,9 @@ LIB_SILO = -lsiloh5
 INC_PAPI =
 LIB_PAPI = -lpapi
 
-INC_DCCRG =
+INC_DCCRG = -I./submodules/dccrg
 
-INC_FSGRID = -I $(LIBRARY_PREFIX)/include
+INC_FSGRID = -I./submodules/fsgrid
 
 LIB_PROFILE = -I $(LIBRARY_PREFIX)/include ${GITHUB_WORKSPACE}/libraries/lib/libphiprof.a
 INC_PROFILE =

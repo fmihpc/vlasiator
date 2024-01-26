@@ -92,8 +92,6 @@ namespace projects {
          RP::add(pop + "_Magnetosphere.VX0", "Initial bulk velocity in x-direction", 0.0);
          RP::add(pop + "_Magnetosphere.VY0", "Initial bulk velocity in y-direction", 0.0);
          RP::add(pop + "_Magnetosphere.VZ0", "Initial bulk velocity in z-direction", 0.0);
-         RP::add(pop + "_Magnetosphere.nSpaceSamples", "Number of sampling points per spatial dimension", 1);
-         RP::add(pop + "_Magnetosphere.nVelocitySamples", "Number of sampling points per velocity dimension", 1);
          RP::add(pop + "_Magnetosphere.taperInnerRadius", "Inner radius of the zone with a density tapering from the ionospheric value to the background (m)", 0.0);
          RP::add(pop + "_Magnetosphere.taperOuterRadius", "Outer radius of the zone with a density tapering from the ionospheric value to the background (m)", 0.0);
       }
@@ -118,6 +116,14 @@ namespace projects {
       RP::get("Magnetosphere.dipoleMirrorLocationX", this->dipoleMirrorLocationX);
 
       RP::get("Magnetosphere.dipoleType", this->dipoleType);
+
+      /* Enforce no dipole in solar wind with dipole type 4 */
+      if ((this->dipoleType == 4) && (!this->noDipoleInSW)) {
+         if(myRank == MASTER_RANK) {
+            std::cerr<<"Note: Initializing Magnetosphere with dipole type 4, enforcing no dipole in solar wind!"<<std::endl;
+         }
+         this->noDipoleInSW = true;
+      }
 
       /** Read inner boundary parameters from either ionospheric or copysphere sysboundary condition */
       if (sysBoundaryContainer.existSysBoundary("Copysphere")) {
@@ -179,9 +185,6 @@ namespace projects {
          RP::get(pop + "_Magnetosphere.VX0", sP.V0[0]);
          RP::get(pop + "_Magnetosphere.VY0", sP.V0[1]);
          RP::get(pop + "_Magnetosphere.VZ0", sP.V0[2]);
-
-         RP::get(pop + "_Magnetosphere.nSpaceSamples", sP.nSpaceSamples);
-         RP::get(pop + "_Magnetosphere.nVelocitySamples", sP.nVelocitySamples);
 
          /** Read inner boundary parameters from either ionospheric or copysphere sysboundary condition */
          if (sysBoundaryContainer.existSysBoundary("Copysphere")) {
@@ -261,31 +264,7 @@ namespace projects {
 
       const MagnetosphereSpeciesParameters& sP = this->speciesParams[popID];
 
-      if((sP.nSpaceSamples > 1) && (sP.nVelocitySamples > 1)) {
-         creal d_x = dx / (sP.nSpaceSamples-1);
-         creal d_y = dy / (sP.nSpaceSamples-1);
-         creal d_z = dz / (sP.nSpaceSamples-1);
-         creal d_vx = dvx / (sP.nVelocitySamples-1);
-         creal d_vy = dvy / (sP.nVelocitySamples-1);
-         creal d_vz = dvz / (sP.nVelocitySamples-1);
-         
-         Real avg = 0.0;
-         // #pragma omp parallel for collapse(6) reduction(+:avg)
-         // WARNING No threading here if calling functions are already threaded
-         for (uint i=0; i<sP.nSpaceSamples; ++i)
-            for (uint j=0; j<sP.nSpaceSamples; ++j)
-               for (uint k=0; k<sP.nSpaceSamples; ++k)
-                  for (uint vi=0; vi<sP.nVelocitySamples; ++vi)
-                     for (uint vj=0; vj<sP.nVelocitySamples; ++vj)
-                        for (uint vk=0; vk<sP.nVelocitySamples; ++vk) {
-                           avg += getDistribValue(x+i*d_x,y+j*d_y,z+k*d_z,vx+vi*d_vx,vy+vj*d_vy,vz+vk*d_vz,dvx,dvy,dvz,popID);
-                        }
-         return avg /
-         (sP.nSpaceSamples*sP.nSpaceSamples*sP.nSpaceSamples) /
-         (sP.nVelocitySamples*sP.nVelocitySamples*sP.nVelocitySamples);
-      } else {
-         return getDistribValue(x+0.5*dx,y+0.5*dy,z+0.5*dz,vx+0.5*dvx,vy+0.5*dvy,vz+0.5*dvz,dvx,dvy,dvz,popID);
-      }
+      return getDistribValue(x+0.5*dx,y+0.5*dy,z+0.5*dz,vx+0.5*dvx,vy+0.5*dvy,vz+0.5*dvz,dvx,dvy,dvz,popID);
    }
    
    /*! Magnetosphere does not set any extra perturbed B. */
@@ -336,15 +315,30 @@ namespace projects {
             case 4:  // Vector potential dipole, vanishes or optionally scales to static inflow value after a given x-coordinate
                // What we in fact do is we place the regular dipole in the background field, and the
                // corrective terms in the perturbed field. This maintains the BGB as curl-free.
-               bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
+               bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 ); //set dipole moment
                setBackgroundField(bgFieldDipole, BgBGrid);
                SBC::ionosphereGrid.setDipoleField(bgFieldDipole);
-               // Difference into perBgrid, only if not restarting
+               // Now we calculate the difference required to scale the dipole to zero as we approach the inflow,
+               // and store it inside the BgBGrid object for use by e.g. boundary conditions.
+               bgFieldDipole.initialize(-8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );
+               setPerturbedField(bgFieldDipole, BgBGrid, fsgrids::bgbfield::BGBXVDCORR);
+               bgVectorDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, this->dipoleTiltPhi*M_PI/180., this->dipoleTiltTheta*M_PI/180., this->dipoleXFull, this->dipoleXZero, this->dipoleInflowB[0], this->dipoleInflowB[1], this->dipoleInflowB[2]);
+               setPerturbedField(bgVectorDipole, BgBGrid, fsgrids::bgbfield::BGBXVDCORR, true);
                if (P::isRestart == false) {
-                  bgFieldDipole.initialize(-8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );
-                  setPerturbedField(bgFieldDipole, perBGrid);
-                  bgVectorDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, this->dipoleTiltPhi*M_PI/180., this->dipoleTiltTheta*M_PI/180., this->dipoleXFull, this->dipoleXZero, this->dipoleInflowB[0], this->dipoleInflowB[1], this->dipoleInflowB[2]);
-                  setPerturbedField(bgVectorDipole, perBGrid, true);
+                  // If we are starting a new simulation, we also copy this data into perB.
+                  const auto localSize = BgBGrid.getLocalSize().data();
+                  #pragma omp parallel for collapse(2)
+                  for (int z = 0; z < localSize[2]; ++z) {
+                     for (int y = 0; y < localSize[1]; ++y) {
+                        for (int x = 0; x < localSize[0]; ++x) {
+                           std::array<Real, fsgrids::bgbfield::N_BGB>* BGBcell = BgBGrid.get(x, y, z);
+                           std::array<Real, fsgrids::bfield::N_BFIELD>* PERBcell = perBGrid.get(x, y, z);
+                           PERBcell->at(fsgrids::bfield::PERBX) = BGBcell->at(fsgrids::bgbfield::BGBXVDCORR);
+                           PERBcell->at(fsgrids::bfield::PERBY) = BGBcell->at(fsgrids::bgbfield::BGBYVDCORR);
+                           PERBcell->at(fsgrids::bfield::PERBZ) = BGBcell->at(fsgrids::bgbfield::BGBZVDCORR);
+                        }
+                     }
+                  }
                }
                break;
             default:
@@ -364,9 +358,9 @@ namespace projects {
       
          if(doZeroOut) {
 #pragma omp for collapse(2)
-            for (int z = 0; z < localSize[2]; ++z) {
-               for (int y = 0; y < localSize[1]; ++y) {
-                  for (int x = 0; x < localSize[0]; ++x) {
+            for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
+               for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
+                  for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
                      std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
                      cell->at(fsgrids::bgbfield::BGBX)=0;
                      cell->at(fsgrids::bgbfield::BGBXVOL)=0.0;
@@ -387,9 +381,9 @@ namespace projects {
           if(doZeroOut) {
              /*2D simulation in x and z. Set By and derivatives along Y, and derivatives of By to zero*/
 #pragma omp for collapse(2)
-             for (int z = 0; z < localSize[2]; ++z) {
-                for (int y = 0; y < localSize[1]; ++y) {
-                   for (int x = 0; x < localSize[0]; ++x) {
+             for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
+                for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
+                   for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
                       std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
                       cell->at(fsgrids::bgbfield::BGBY)=0.0;
                       cell->at(fsgrids::bgbfield::BGBYVOL)=0.0;
@@ -409,9 +403,9 @@ namespace projects {
          doZeroOut = P::zcells_ini ==1 && this->zeroOutComponents[2]==1;
          if(doZeroOut) {
 #pragma omp for collapse(2)
-            for (int z = 0; z < localSize[2]; ++z) {
-               for (int y = 0; y < localSize[1]; ++y) {
-                  for (int x = 0; x < localSize[0]; ++x) {
+            for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
+               for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
+                  for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
                      std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
                      cell->at(fsgrids::bgbfield::BGBX)=0;
                      cell->at(fsgrids::bgbfield::BGBY)=0;
@@ -433,14 +427,15 @@ namespace projects {
          // Remove dipole from inflow cells if this is requested
          if(this->noDipoleInSW) {
 #pragma omp for collapse(2)
-            for (int z = 0; z < localSize[2]; ++z) {
-               for (int y = 0; y < localSize[1]; ++y) {
-                  for (int x = 0; x < localSize[0]; ++x) {
+            for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
+               for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
+                  for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
                      if(technicalGrid.get(x, y, z)->sysBoundaryFlag == sysboundarytype::MAXWELLIAN ) {
                         for (int i = 0; i < fsgrids::bgbfield::N_BGB; ++i) {
                            BgBGrid.get(x,y,z)->at(i) = 0;
                         }
                         if ( (this->dipoleType==4) && (P::isRestart == false) ) {
+                           // If we set BGB to zero here, then we should also set perB in new runs to zero.
                            for (int i = 0; i < fsgrids::bfield::N_BFIELD; ++i) {
                               perBGrid.get(x,y,z)->at(i) = 0;
                            }

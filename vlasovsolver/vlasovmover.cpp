@@ -288,7 +288,7 @@ void calculateSpatialTranslation(
       }
    }
    computeTimer.stop();
-   
+
    // Translate all particle species
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       string profName = "translate "+getObjectWrapper().particleSpecies[popID].name;
