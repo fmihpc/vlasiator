@@ -360,7 +360,6 @@ void initializeGrids(
 
    // If we only want the full BGB for writeout, we have it now and we can return early.
    if(P::writeFullBGB == true) {
-      phiprof::stop("Set initial state");
       return;
    }
 
