@@ -67,7 +67,7 @@ void flagSpatialCellsForAmrCommunication(const dccrg::Dccrg<SpatialCell,dccrg::C
 
    // return if there's no cells to flag
    if(localPropagatedCells.size() == 0) {
-      std::cerr<<"No cells!"<<std::endl;
+      std::cerr<<"Warning! Pencils flagSpatialCellsForAmrCommunication found no cells to propagate!"<<std::endl;
       return;
    }
 
@@ -790,7 +790,6 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
 
    std::vector<CellID> pencilIdsToSplit;
 
-// Thread this loop here
 #pragma omp parallel for
    for (uint pencili = 0; pencili < pencils.N; ++pencili) {
 

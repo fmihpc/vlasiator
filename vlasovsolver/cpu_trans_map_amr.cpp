@@ -57,7 +57,6 @@ void propagatePencil(
    // Assuming 1 neighbor in the target array because of the CFL condition
    // In fact propagating to > 1 neighbor will give an error
    // Also defined in the calling function for the allocation of targetValues
-   // const uint nTargetNeighborsPerPencil = 1;
 
    // Go over length of propagated cells
    for (int i = VLASOV_STENCIL_WIDTH; i < (int)lengthOfPencil-VLASOV_STENCIL_WIDTH; i++){
@@ -261,7 +260,6 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
 
    // Assuming 1 neighbor in the target array because of the CFL condition
    // In fact propagating to > 1 neighbor will give an error
-   // const uint nTargetNeighborsPerPencil = 1;
 
    // Vector with all cell ids
    vector<CellID> allCells(localPropagatedCells);
@@ -271,12 +269,12 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
    std::vector<SpatialCell*> allCellsPointer(allCells.size());
 
    // Initialize allCellsPointer
-   #pragma omp parallel for
+   #pragma omp parallel for schedule(static)
    for(uint celli = 0; celli < allCells.size(); celli++){
       allCellsPointer[celli] = mpiGrid[allCells[celli]];
    }
    // init cellid_transpose (moved here to take advantage of the omp parallel region)
-#pragma omp parallel for collapse(2)
+   #pragma omp parallel for collapse(2) schedule(static)
    for (uint k=0; k<WID; ++k) {
       for (uint j=0; j<WID; ++j) {
          for (uint i=0; i<WID; ++i) {
