@@ -66,8 +66,6 @@ namespace projects {
          RP::add(pop + "_Firehose.Vy2", "Bulk velocity y component, second peak (m/s)", 0.0);
          RP::add(pop + "_Firehose.Vz1", "Bulk velocity z component, first peak (m/s)", 0.0);
          RP::add(pop + "_Firehose.Vz2", "Bulk velocity z component, second peak (m/s)", 0.0);
-         RP::add(pop + "_Firehose.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
-         RP::add(pop + "_Firehose.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
       }
    }
 
@@ -98,8 +96,6 @@ namespace projects {
          RP::get(pop + "_Firehose.Vy2", sP.Vy[1]);
          RP::get(pop + "_Firehose.Vz1", sP.Vz[0]);
          RP::get(pop + "_Firehose.Vz2", sP.Vz[1]);
-         RP::get(pop + "_Firehose.nSpaceSamples", sP.nSpaceSamples);
-         RP::get(pop + "_Firehose.nVelocitySamples", sP.nVelocitySamples);
 
          speciesParams.push_back(sP);
       }
@@ -132,23 +128,7 @@ namespace projects {
    }
 
    Real Firehose::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
-      const FirehoseSpeciesParameters& sP = speciesParams[popID];
-      creal d_x = dx / (sP.nSpaceSamples-1);
-      creal d_y = dy / (sP.nSpaceSamples-1);
-      creal d_vx = dvx / (sP.nVelocitySamples-1);
-      creal d_vy = dvy / (sP.nVelocitySamples-1);
-      creal d_vz = dvz / (sP.nVelocitySamples-1);
-      Real avg = 0.0;
-   //#pragma omp parallel for collapse(6) reduction(+:avg)
-      for (uint i=0; i<sP.nSpaceSamples; ++i)
-      for (uint j=0; j<sP.nSpaceSamples; ++j)
-         for (uint vi=0; vi<sP.nVelocitySamples; ++vi)
-         for (uint vj=0; vj<sP.nVelocitySamples; ++vj)
-            for (uint vk=0; vk<sP.nVelocitySamples; ++vk)
-         {
-            avg += getDistribValue(x+i*d_x, y+j*d_y, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz, popID);
-         }
-      return avg / pow(sP.nSpaceSamples, 2.0) /  pow(sP.nVelocitySamples, 3.0);
+      return getDistribValue(x+0.5*dx, y+0.5*dy, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, dvx, dvy, dvz, popID);
    }
 
    void Firehose::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }

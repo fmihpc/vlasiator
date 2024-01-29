@@ -61,27 +61,35 @@ namespace SBC {
          static void addParameters();
          virtual void getParameters()=0;
          
-         virtual bool initSysBoundary(
+         virtual void initSysBoundary(
             creal& t,
             Project &project
          )=0;
-         virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell,
+         virtual void assignSysBoundary(dccrg::Dccrg<SpatialCell,
                                         dccrg::Cartesian_Geometry>& mpiGrid,
                                         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)=0;
-         virtual bool applyInitialState(
-            const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+         virtual void applyInitialState(
+            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
             FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+            FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
             Project &project
+         )=0;
+         virtual void updateState(
+            dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+            FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid,
+            FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+            creal t
          )=0;
          virtual Real fieldSolverBoundaryCondMagneticField(
             FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
+            FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & bgbGrid,
             FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
             cint i,
             cint j,
             cint k,
-            creal& dt,
-            cuint& component
+            creal dt,
+            cuint component
          )=0;
          virtual void fieldSolverBoundaryCondElectricField(
             FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
@@ -110,15 +118,15 @@ namespace SBC {
             cint i,
             cint j,
             cint k,
-            cuint& RKCase,
-            cuint& component
+            cuint RKCase,
+            cuint component
          )=0;
          virtual void fieldSolverBoundaryCondBVOLDerivatives(
             FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
             cint i,
             cint j,
             cint k,
-            cuint& component
+            cuint component
          )=0;
          static void setCellDerivativesToZero(
             FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
@@ -126,14 +134,14 @@ namespace SBC {
             cint i,
             cint j,
             cint k,
-            cuint& component
+            cuint component
          );
          static void setCellBVOLDerivativesToZero(
             FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
             cint i,
             cint j,
             cint k,
-            cuint& component
+            cuint component
          );
         
          virtual void mapCellPotentialAndGetEXBDrift(
@@ -147,13 +155,17 @@ namespace SBC {
           * @param cellID Spatial cell ID.
           * @param popID Particle species ID.*/
         virtual void vlasovBoundaryCondition(
-            const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID,
             const uint popID,
             const bool calculate_V_moments
         )=0;
 
-         virtual void getFaces(bool* faces);
+         /*! Function used to know which faces the boundary condition is applied to.
+          * @param faces Pointer to array of 6 bool in which the values are returned whether the corresponding face is of that
+          * type. Order: 0 x+; 1 x-; 2 y+; 3 y-; 4 z+; 5 z-
+          */
+         virtual void getFaces(bool *faces) = 0;
          virtual std::string getName() const=0;
          virtual uint getIndex() const=0;
          uint getPrecedence() const;
@@ -209,32 +221,32 @@ namespace SBC {
       }
       
          void vlasovBoundaryCopyFromTheClosestNbr(
-            const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID,
             const bool& copyMomentsOnly,
             const uint popID,
             const bool calculate_V_moments
          );
          void vlasovBoundaryCopyFromTheClosestNbrAndLimit(
-               const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+               dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                const CellID& cellID,
                const uint popID
          );
          void vlasovBoundaryCopyFromAllClosestNbrs(
-            const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID,
             const uint popID,
             const bool calculate_V_moments
          );
          void vlasovBoundaryFluffyCopyFromAllCloseNbrs(
-            const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID,
             const uint popID,
             const bool calculate_V_moments,
             creal fluffiness
          );
          void vlasovBoundaryReflect(
-            const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID,
             creal& nx,
             creal& ny,
@@ -242,7 +254,7 @@ namespace SBC {
             const uint popID
          );
          void vlasovBoundaryAbsorb(
-            const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID,
             creal& nx,
             creal& ny,
@@ -284,9 +296,9 @@ namespace SBC {
          /*! Precedence value of the system boundary condition. */
          uint precedence;
          /*! Is the boundary condition dynamic in time or not. */
-         bool isThisDynamic;
+         bool dynamic;
          /*! Array of bool telling whether the system is periodic in any direction. */
-         bool isPeriodic[3];
+         bool periodic[3];
          /*! Map of closest nonsysboundarycells. Used in getAllClosestNonsysboundaryCells. */
          std::unordered_map<CellID, std::vector<CellID>> allClosestNonsysboundaryCells;
          /*! Map of close nonsysboundarycells. Used in getAllCloseNonsysboundaryCells. */
@@ -300,7 +312,7 @@ namespace SBC {
 
    class OuterBoundaryCondition: public SysBoundaryCondition {
       public:
-         virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid);
+         virtual void assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid);
       protected:
          /*! Array of bool telling which faces are going to be processed by the system boundary condition.*/
          bool facesToProcess[6];
@@ -308,7 +320,7 @@ namespace SBC {
    
    // Moved outside the class since it's a helper function that doesn't require member access
    void averageCellData (
-      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       std::vector<CellID> cellList,
       SpatialCell *to,
       const uint popID,

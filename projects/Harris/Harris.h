@@ -31,8 +31,6 @@ namespace projects {
    struct HarrisSpeciesParameters {
          Real TEMPERATURE;
          Real DENSITY;
-         Real nSpaceSamples;
-         Real nVelocitySamples;
    };
 
    class Harris: public TriAxisSearch {

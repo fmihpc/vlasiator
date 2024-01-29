@@ -62,7 +62,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
 
                // Iterate through fsgrid cells and extract total magnetic field
@@ -99,7 +99,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
 
                // Iterate through fsgrid cells and extract background B
@@ -133,7 +133,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
             FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
 
                // Iterate through fsgrid cells and extract total BVOL
@@ -168,7 +168,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
 
                // Iterate through fsgrid cells and extract values
@@ -202,7 +202,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
 
                // Iterate through fsgrid cells and extract E values
@@ -257,7 +257,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                // Iterate through fsgrid cells and extract rho valuesg
@@ -296,7 +296,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                // Iterate through fsgrid cells and extract charge density
@@ -347,7 +347,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
 
                // Iterate through fsgrid cells and extract bulk Velocity
@@ -581,7 +581,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                // Iterate through fsgrid cells and extract field solver timestep limit
@@ -622,7 +622,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2],technicalGrid.getRank());
                return retval;
              }
@@ -647,7 +647,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid)->std::vector<double> {
 
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                // Iterate through fsgrid cells and extract corresponding AMR level
@@ -688,7 +688,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                // Iterate through fsgrid cells and extract boundary flag
@@ -729,7 +729,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                // Iterate through fsgrid cells and extract boundary layer
@@ -801,7 +801,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
 
                // Iterate through fsgrid cells and extract EVOL
@@ -837,7 +837,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                          FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                          FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-                  std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+                  std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                   std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                   // Iterate through fsgrid cells and extract EHall
@@ -886,7 +886,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
 
                // Iterate through fsgrid cells and extract total BVOL
@@ -946,7 +946,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                // Iterate through fsgrid cells and extract boundary flag
@@ -1026,7 +1026,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -1052,7 +1052,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -1078,7 +1078,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -1104,7 +1104,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -1130,7 +1130,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -1156,7 +1156,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -1182,7 +1182,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -1208,7 +1208,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -1234,7 +1234,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -1260,7 +1260,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -1286,7 +1286,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -1312,7 +1312,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -1338,7 +1338,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -1364,7 +1364,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -1390,7 +1390,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -1418,7 +1418,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -1444,7 +1444,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -1470,7 +1470,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -1496,7 +1496,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -1522,7 +1522,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -1548,7 +1548,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -1574,7 +1574,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -1600,7 +1600,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -1626,7 +1626,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -1652,7 +1652,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -1678,7 +1678,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -1704,7 +1704,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -1730,7 +1730,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -1756,7 +1756,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -1782,7 +1782,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -1808,7 +1808,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -1834,7 +1834,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -1860,7 +1860,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -1886,7 +1886,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -1912,7 +1912,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -1938,7 +1938,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -1964,7 +1964,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -1990,7 +1990,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -2016,7 +2016,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -2042,7 +2042,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -2068,7 +2068,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -2094,7 +2094,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -2121,7 +2121,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -2147,7 +2147,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -2173,7 +2173,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -2199,7 +2199,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -2225,7 +2225,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -2252,7 +2252,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -2278,7 +2278,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -2304,7 +2304,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -2330,7 +2330,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -2369,7 +2369,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
             FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -2396,7 +2396,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
             FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -2423,7 +2423,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
             FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -2450,7 +2450,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
             FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -2477,7 +2477,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
             FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -2504,7 +2504,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
             FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -2531,7 +2531,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
             FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -2558,7 +2558,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
             FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -2585,7 +2585,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
             FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -2612,7 +2612,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
             FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -2639,7 +2639,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
             FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -2666,7 +2666,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
             FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -2693,7 +2693,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
             FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -2720,7 +2720,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
             FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -2747,7 +2747,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
             FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                for(int z=0; z<gridSize[2]; z++) {
@@ -2799,7 +2799,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                // Iterate through fsgrid cells and extract X coordinate
@@ -2826,7 +2826,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                // Iterate through fsgrid cells and extract Y coordinate
@@ -2853,7 +2853,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                // Iterate through fsgrid cells and extract Z coordinate
@@ -2880,7 +2880,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2], technicalGrid.DX);
                return retval;
          }
@@ -2898,7 +2898,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2], technicalGrid.DY);
                return retval;
          }
@@ -2916,7 +2916,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2], technicalGrid.DZ);
                return retval;
          }
@@ -2978,7 +2978,6 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(P::systemWriteAllDROs || lowercase == "vg_amr_jperb") {
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_jperb",CellParams::AMR_JPERB,1));
          outputReducer->addMetadata(outputReducer->size()-1,"1/m","m^{-1}","J/B_{\\perp}","");
-         outputReducer->addOperator(new DRO::JPerBModifier());
          if(!P::systemWriteAllDROs) {
             continue;
          }
@@ -3586,7 +3585,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
             FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
 
-               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
 
                for(int z=0; z<gridSize[2]; z++) {

@@ -31,7 +31,10 @@ FLAGS =
 # note: std was c++11
 # note: testpackage settings missing
 CXXFLAGS = -I$(HOME)/include -O3 -std=c++17 -W -Wall -pedantic -Wno-unused -Wno-unused-parameter -Wno-missing-braces  -fopenmp -march=native
-MATHFLAGS = -ffast-math
+
+MATHFLAGS = -ffast-math -fno-finite-math-only
+testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
+
 LDFLAGS = -fopenmp
 LIB_MPI =
 # LIB_MPI = 
@@ -48,7 +51,9 @@ LIB_ZOLTAN = -L${LIBRARY_PREFIX}/lib -lzoltan
 INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv
 LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv
 
-INC_DCCRG = -I${LIBRARY_PREFIX}/dccrg -I${LIBRARY_PREFIX}/fsgrid
+INC_DCCRG = -I./submodules/dccrg
+
+INC_FSGRID = -I./submodules/fsgrid
 
 LIB_PROFILE = -L${LIBRARY_PREFIX}/phiprof/lib -lphiprof -Wl,-rpath=${LIBRARY_PREFIX}/phiprof/lib 
 INC_PROFILE = -I${LIBRARY_PREFIX}/phiprof/include

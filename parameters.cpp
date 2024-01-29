@@ -156,18 +156,27 @@ Realf P::vamrRefineLimit = 1.0;
 Realf P::vamrCoarsenLimit = 0.5;
 string P::vamrVelRefCriterion = string("");
 
-uint P::amrMaxSpatialRefLevel = 0;
+int P::amrMaxSpatialRefLevel = 0;
+int P::amrMaxAllowedSpatialRefLevel = -1;
 bool P::adaptRefinement = false;
 bool P::refineOnRestart = false;
 bool P::forceRefinement = false;
 bool P::shouldFilter = false;
-Real P::refineThreshold = 1.0;
-Real P::unrefineThreshold = 0.0;
-uint P::refineMultiplier = 10;
+bool P::useAlpha = true;
+Real P::alphaRefineThreshold = 0.5;
+Real P::alphaCoarsenThreshold = -1.0;
+bool P::useJPerB = true;
+Real P::jperbRefineThreshold = 0.5;
+Real P::jperbCoarsenThreshold = -1.0;
+Real P::alphaDRhoWeight = 1.0;
+Real P::alphaDUWeight = 1.0;
+Real P::alphaDPSqWeight = 1.0;
+Real P::alphaDBSqWeight = 1.0;
+Real P::alphaDBWeight = 1.0;
+
+uint P::refineCadence = 5;
 Real P::refineAfter = 0.0;
 Real P::refineRadius = LARGE_REAL;
-bool P::useJPerB = true;
-Real P::JPerBModifier = 0.0;
 int P::maxFilteringPasses = 0;
 uint P::amrBoxHalfWidthX = 1;
 uint P::amrBoxHalfWidthY = 1;
@@ -184,6 +193,9 @@ int P::PADvbins;
 int P::PADmubins;
 string P::PADnu0 = string("");
 Realf P::PADfudge;
+
+std::array<FsGridTools::Task_t,3> P::manualFsGridDecomposition = {0,0,0};
+std::array<FsGridTools::Task_t,3> P::overrideReadFsGridDecomposition = {0,0,0};
 
 std::string tracerString; /*!< Fieldline tracer to use for coupling ionosphere and magnetosphere */
 bool P::computeCurvature;
@@ -278,6 +290,16 @@ bool P::addParameters() {
    RP::add("restart.write_as_float", "If true, write restart fields in floats instead of doubles", false);
    RP::add("restart.filename", "Restart from this vlsv file. No restart if empty file.", string(""));
 
+   RP::add(
+       "restart.overrideReadFsGridDecompositionX",
+       "Manual FsGridDecomposition for field solver grid stored in a restart file.", 0);
+   RP::add(
+       "restart.overrideReadFsGridDecompositionY",
+       "Manual FsGridDecomposition for field solver grid stored in a restart file.", 0);
+   RP::add(
+       "restart.overrideReadFsGridDecompositionZ",
+       "Manual FsGridDecomposition for field solver grid stored in a restart file.", 0);
+
    RP::add("gridbuilder.geometry", "Simulation geometry XY4D,XZ4D,XY5D,XZ5D,XYZ6D", string("XYZ6D"));
    RP::add("gridbuilder.x_min", "Minimum value of the x-coordinate.", NAN);
    RP::add("gridbuilder.x_max", "Minimum value of the x-coordinate.", NAN);
@@ -324,6 +346,17 @@ bool P::addParameters() {
            "The maximum CFL limit for field propagation. Used to set timestep if dynamic_timestep is true.", 0.5);
    RP::add("fieldsolver.minCFL",
            "The minimum CFL limit for field propagation. Used to set timestep if dynamic_timestep is true.", 0.4);
+
+   RP::add(
+       "fieldsolver.manualFsGridDecompositionX",
+       "Manual FsGridDecomposition for field solver grid.", 0);
+   RP::add(
+       "fieldsolver.manualFsGridDecompositionY",
+       "Manual FsGridDecomposition for field solver grid.", 0);
+   RP::add(
+       "fieldsolver.manualFsGridDecompositionZ",
+       "Manual FsGridDecomposition for field solver grid.", 0);
+
 
    // Vlasov solver parameters
    RP::add("vlasovsolver.maxSlAccelerationRotation",
@@ -438,19 +471,27 @@ bool P::addParameters() {
            "If the refinement criterion function returns a smaller value than this, block can be coarsened",
            (Realf)0.5);
    // Spatial Refinement parameters
-   RP::add("AMR.max_spatial_level", "Maximum spatial mesh refinement level", (uint)0);
+   RP::add("AMR.max_spatial_level", "Maximum absolute spatial mesh refinement level", (uint)0);
+   RP::add("AMR.max_allowed_spatial_level", "Maximum currently allowed spatial mesh refinement level", -1);
    RP::add("AMR.should_refine","If false, do not refine Vlasov grid regardless of max spatial level",true);
-   RP::add("AMR.adapt_refinement","If true, re-refine vlasov grid every refine_multiplier load balance", false);
-   RP::add("AMR.refine_on_restart","If true, re-refine vlasov grid on restart", false);
+   RP::add("AMR.adapt_refinement","If true, re-refine vlasov grid every refine_cadence balance", false);
+   RP::add("AMR.refine_on_restart","If true, re-refine vlasov grid on restart. DEPRECATED, consider using the DOMR command", false);
    RP::add("AMR.force_refinement","If true, refine/unrefine the vlasov grid to match the config on restart", false);
    RP::add("AMR.should_filter","If true, filter vlasov grid with boxcar filter on restart",false);
-   RP::add("AMR.refine_threshold","Determines the minimum value of the refinement parameter to refine cells", 1.0);
-   RP::add("AMR.unrefine_threshold","Determines the maximum value of the refinement parameter to unrefine cells", 0.0);
-   RP::add("AMR.refine_multiplier","Refine every nth load balance", 10);
+   RP::add("AMR.use_alpha1","Use the maximum of dimensionless gradients alpha_1 as a refinement index", true);
+   RP::add("AMR.alpha1_refine_threshold","Determines the minimum value of alpha_1 to refine cells", 0.5);
+   RP::add("AMR.alpha1_coarsen_threshold","Determines the maximum value of alpha_1 to unrefine cells, default half of the refine threshold", -1.0);
+   RP::add("AMR.use_alpha2","Use J/B_perp as a refinement index", true);
+   RP::add("AMR.alpha2_refine_threshold","Determines the minimum value of alpha_2 to refine cells", 0.5);
+   RP::add("AMR.alpha2_coarsen_threshold","Determines the maximum value of alpha_2 to unrefine cells, default half of the refine threshold", -1.0);
+   RP::add("AMR.refine_cadence","Refine every nth load balance", 5);
    RP::add("AMR.refine_after","Start refinement after this many simulation seconds", 0.0);
    RP::add("AMR.refine_radius","Maximum distance from Earth to refine", LARGE_REAL);
-   RP::add("AMR.use_J_per_B","Use J/B_perp as an additional refinement parameter", false);
-   RP::add("AMR.J_per_B_modifier","Factor to add to log2(J / B_perp) in refinement.", 0.0);
+   RP::add("AMR.alpha1_drho_weight","Multiplier for delta rho in alpha calculation", 1.0);
+   RP::add("AMR.alpha1_du_weight","Multiplier for delta U in alpha calculation", 1.0);
+   RP::add("AMR.alpha1_dpsq_weight","Multiplier for delta p squared in alpha calculation", 1.0);
+   RP::add("AMR.alpha1_dbsq_weight","Multiplier for delta B squared in alpha calculation", 1.0);
+   RP::add("AMR.alpha1_db_weight","Multiplier for delta B in alpha calculation", 1.0);
    RP::add("AMR.box_half_width_x", "Half width of the box that is refined (for testing)", (uint)1);
    RP::add("AMR.box_half_width_y", "Half width of the box that is refined (for testing)", (uint)1);
    RP::add("AMR.box_half_width_z", "Half width of the box that is refined (for testing)", (uint)1);
@@ -667,6 +708,20 @@ void Parameters::getParameters() {
    RP::get("restart.filename", P::restartFileName);
    P::isRestart = (P::restartFileName != string(""));
 
+   // manual FsGrid decomposition should be complete with three values. If at least one is set but all are not set, abort
+   if ((RP::isSet("restart.overrideReadFsGridDecompositionX")||RP::isSet("restart.overrideReadFsGridDecompositionY")||RP::isSet("restart.overrideReadFsGridDecompositionZ")) &&
+        !(RP::isSet("restart.overrideReadFsGridDecompositionX")&&RP::isSet("restart.overrideReadFsGridDecompositionY")&&RP::isSet("restart.overrideReadFsGridDecompositionZ")) ) {
+      cerr << "ERROR all of restart.overrideReadFsGridDecompositionX,Y,Z should be defined." << endl;
+      MPI_Abort(MPI_COMM_WORLD, 1);
+   }   
+   FsGridTools::Task_t temp_task_t;
+   RP::get("restart.overrideReadFsGridDecompositionX", temp_task_t);
+   P::overrideReadFsGridDecomposition[0] = temp_task_t;
+   RP::get("restart.overrideReadFsGridDecompositionY", temp_task_t);
+   P::overrideReadFsGridDecomposition[1] = temp_task_t;
+   RP::get("restart.overrideReadFsGridDecompositionZ", temp_task_t);
+   P::overrideReadFsGridDecomposition[2] = temp_task_t;
+
    RP::get("project", P::projectName);
    if (RP::helpRequested) {
       P::projectName = string("Magnetosphere");
@@ -692,17 +747,53 @@ void Parameters::getParameters() {
    RP::get("VAMR.coarsen_limit", P::vamrCoarsenLimit);
 
    RP::get("AMR.max_spatial_level", P::amrMaxSpatialRefLevel);
+   RP::get("AMR.max_allowed_spatial_level", P::amrMaxAllowedSpatialRefLevel);
+   if(P::amrMaxAllowedSpatialRefLevel < 0) { // negative (default is -1) just goes to max
+      P::amrMaxAllowedSpatialRefLevel = P::amrMaxSpatialRefLevel; // set max allowed to the same as the absolute max
+   }
+   if(P::amrMaxSpatialRefLevel < P::amrMaxAllowedSpatialRefLevel) {
+      if(myRank == MASTER_RANK) {
+         cerr << "AMR.max_allowed_spatial_level cannot be greater than AMR.max_spatial_level!\n";
+      }
+      MPI_Abort(MPI_COMM_WORLD, 1);
+   }
    RP::get("AMR.adapt_refinement",P::adaptRefinement);
    RP::get("AMR.refine_on_restart",P::refineOnRestart);
    RP::get("AMR.force_refinement",P::forceRefinement);
    RP::get("AMR.should_filter",P::shouldFilter);
-   RP::get("AMR.refine_threshold",P::refineThreshold);
-   RP::get("AMR.unrefine_threshold",P::unrefineThreshold);
-   RP::get("AMR.refine_multiplier",P::refineMultiplier);
+   RP::get("AMR.use_alpha1",P::useAlpha);
+   RP::get("AMR.alpha1_refine_threshold",P::alphaRefineThreshold);
+   RP::get("AMR.alpha1_coarsen_threshold",P::alphaCoarsenThreshold);
+   if (P::useAlpha && P::alphaCoarsenThreshold < 0) {
+      P::alphaCoarsenThreshold = P::alphaRefineThreshold / 2.0;
+   }
+   if (P::useAlpha && P::alphaRefineThreshold < 0) {
+      if (myRank == MASTER_RANK) {
+         cerr << "ERROR invalid alpha_1 refine threshold" << endl;
+      }
+      MPI_Abort(MPI_COMM_WORLD, 1);
+   }
+   RP::get("AMR.use_alpha2",P::useJPerB);
+   RP::get("AMR.alpha2_refine_threshold",P::jperbRefineThreshold);
+   RP::get("AMR.alpha2_coarsen_threshold",P::jperbCoarsenThreshold);
+   if (P::useJPerB && P::jperbCoarsenThreshold < 0) {
+      P::jperbCoarsenThreshold = P::jperbRefineThreshold / 2.0;
+   }
+   if (P::useJPerB && P::jperbRefineThreshold < 0) {
+      if (myRank == MASTER_RANK) {
+         cerr << "ERROR invalid alpha_2 refine threshold" << endl;
+      }
+      MPI_Abort(MPI_COMM_WORLD, 1);
+   }
+
+   RP::get("AMR.refine_cadence",P::refineCadence);
    RP::get("AMR.refine_after",P::refineAfter);
    RP::get("AMR.refine_radius",P::refineRadius);
-   RP::get("AMR.use_J_per_B",P::useJPerB);
-   RP::get("AMR.J_per_B_modifier",P::JPerBModifier);
+   RP::get("AMR.alpha1_drho_weight", P::alphaDRhoWeight);
+   RP::get("AMR.alpha1_du_weight", P::alphaDUWeight);
+   RP::get("AMR.alpha1_dpsq_weight", P::alphaDPSqWeight);
+   RP::get("AMR.alpha1_dbsq_weight", P::alphaDBSqWeight);
+   RP::get("AMR.alpha1_db_weight", P::alphaDBWeight);
    RP::get("AMR.box_half_width_x", P::amrBoxHalfWidthX);
    RP::get("AMR.box_half_width_y", P::amrBoxHalfWidthY);
    RP::get("AMR.box_half_width_z", P::amrBoxHalfWidthZ);
@@ -717,7 +808,7 @@ void Parameters::getParameters() {
       bool isEmpty = blurPassString.size() == 0;
       if (!isEmpty){
          //sanity check=> user should define a pass for every level
-         if (blurPassString.size() != P::amrMaxSpatialRefLevel + 1) {
+         if ((int)blurPassString.size() != P::amrMaxSpatialRefLevel + 1) {
             cerr << "Filter Passes=" << blurPassString.size() << "\t" << "AMR Levels=" << P::amrMaxSpatialRefLevel + 1 << endl;
             cerr << "FilterPasses do not match AMR levels. \t" << " in " << __FILE__ << ":" << __LINE__ << endl;
             MPI_Abort(MPI_COMM_WORLD, 1);
@@ -741,12 +832,12 @@ void Parameters::getParameters() {
             return retval;
          };
          int maxPasses=g_sequence(P::amrMaxSpatialRefLevel-1);
-         for (uint refLevel=0; refLevel<=P::amrMaxSpatialRefLevel; refLevel++){
+         for (int refLevel=0; refLevel<=P::amrMaxSpatialRefLevel; refLevel++){
             numPasses.push_back(maxPasses);
             maxPasses/=2;
          }
          //Overwrite passes for the highest refLevel. We do not want to filter there.
-         numPasses[P::amrMaxSpatialRefLevel] = 0;
+         numPasses.at(P::amrMaxSpatialRefLevel) = 0;
       }
          P::maxFilteringPasses = numPasses[0];
    }
@@ -806,6 +897,22 @@ void Parameters::getParameters() {
    RP::get("fieldsolver.electronPTindex", P::electronPTindex);
    RP::get("fieldsolver.maxCFL", P::fieldSolverMaxCFL);
    RP::get("fieldsolver.minCFL", P::fieldSolverMinCFL);
+
+   // manual FsGrid decomposition should be complete with three values. If at least one is set but all are not set, abort
+   if ((RP::isSet("fieldsolver.manualFsGridDecompositionX")||RP::isSet("fieldsolver.manualFsGridDecompositionY")||RP::isSet("fieldsolver.manualFsGridDecompositionZ")) &&
+        !(RP::isSet("fieldsolver.manualFsGridDecompositionX")&&RP::isSet("fieldsolver.manualFsGridDecompositionY")&&RP::isSet("fieldsolver.manualFsGridDecompositionZ")) ) {
+      cerr << "ERROR all of fieldsolver.manualFsGridDecompositionX,Y,Z should be defined." << endl;
+      MPI_Abort(MPI_COMM_WORLD, 1);
+   }   
+   RP::get("fieldsolver.manualFsGridDecompositionX", temp_task_t);
+   P::manualFsGridDecomposition[0] = temp_task_t;
+   RP::get("fieldsolver.manualFsGridDecompositionY", temp_task_t);
+   P::manualFsGridDecomposition[1] = temp_task_t;
+   RP::get("fieldsolver.manualFsGridDecompositionZ", temp_task_t);
+   P::manualFsGridDecomposition[2] = temp_task_t;
+
+   
+
    // Get Vlasov solver parameters
    RP::get("vlasovsolver.maxSlAccelerationRotation", P::maxSlAccelerationRotation);
    RP::get("vlasovsolver.maxSlAccelerationSubcycles", P::maxSlAccelerationSubcycles);

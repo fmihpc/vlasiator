@@ -99,7 +99,6 @@ namespace projects {
       Real magZPertAbsAmp;
       Real lambda;
       int maxSpatialRefinementLevel;
-      uint nVelocitySamples;
       std::vector<testAmrSpeciesParameters> speciesParams;
 
       enum densitymodel {

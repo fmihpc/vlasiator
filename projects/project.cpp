@@ -47,7 +47,6 @@
 #include "IPShock/IPShock.h"
 #include "Template/Template.h"
 #include "test_fp/test_fp.h"
-#include "testAmr/testAmr.h"
 #include "testHall/testHall.h"
 #include "test_trans/test_trans.h"
 #include "verificationLarmor/verificationLarmor.h"
@@ -62,7 +61,6 @@ using namespace std;
 extern Logger logFile;
 
 char projects::Project::rngStateBuffer[256];
-random_data projects::Project::rngDataBuffer;
 
 /** Struct for creating a new velocity mesh.
  * The values are read from the configuration file and 
@@ -125,7 +123,6 @@ namespace projects {
       projects::IPShock::addParameters();
       projects::Template::addParameters();
       projects::test_fp::addParameters();
-      projects::testAmr::addParameters();
       projects::TestHall::addParameters();
       projects::test_trans::addParameters();
       projects::verificationLarmor::addParameters();
@@ -467,16 +464,8 @@ namespace projects {
    /** Get random number between 0 and 1.0. One should always first initialize the rng.
     * @param cell Spatial cell.
     * @return Uniformly distributed random number between 0 and 1.*/
-   Real Project::getRandomNumber() const {
-#ifdef _AIX
-      int64_t rndInt;
-      random_r(&rndInt, &rngDataBuffer);
-#else
-      int32_t rndInt;
-      random_r(&rngDataBuffer, &rndInt);
-#endif
-      Real rnd = (Real) rndInt / RAND_MAX;
-      return rnd;
+   Real Project::getRandomNumber(std::default_random_engine& randGen) const {
+      return std::uniform_real_distribution<>(0,1)(randGen);
    }
 
    /*!  Set random seed (thread-safe). Seed is based on the seed read
@@ -484,14 +473,8 @@ namespace projects {
 
      \param seedModifier d. Seed is based on the seed read in from cfg + the seedModifier parameter
    */
-
-   void Project::setRandomSeed(CellID seedModifier) const {
-      memset(&(this->rngDataBuffer), 0, sizeof(this->rngDataBuffer));
-#ifdef _AIX
-      initstate_r(this->seed+seedModifier, &(this->rngStateBuffer[0]), 256, NULL, &(this->rngDataBuffer));
-#else
-      initstate_r(this->seed+seedModifier, &(this->rngStateBuffer[0]), 256, &(this->rngDataBuffer));
-#endif
+   void Project::setRandomSeed(CellID seedModifier, std::default_random_engine& randGen) const {
+      randGen.seed(this->seed+seedModifier);
    }
 
    /*!
@@ -501,7 +484,7 @@ namespace projects {
 
      \param  cellParams The cell parameters list in each spatial cell
    */
-   void Project::setRandomCellSeed(spatial_cell::SpatialCell* cell) const {
+   void Project::setRandomCellSeed(spatial_cell::SpatialCell* cell, std::default_random_engine& randGen) const {
       const creal x = cell->parameters[CellParams::XCRD];
       const creal y = cell->parameters[CellParams::YCRD];
       const creal z = cell->parameters[CellParams::ZCRD];
@@ -512,7 +495,7 @@ namespace projects {
       const CellID cellID = (int) ((x - Parameters::xmin) / dx) +
          (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
          (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
-      setRandomSeed(cellID);
+      setRandomSeed(cellID, randGen);
    }
 
    /*
@@ -541,7 +524,7 @@ namespace projects {
                xyz[1] = P::amrBoxCenterY + (0.5 + j - P::amrBoxHalfWidthY) * P::dy_ini;
                xyz[2] = P::amrBoxCenterZ + (0.5 + k - P::amrBoxHalfWidthZ) * P::dz_ini;
                
-               if (mpiGrid.refine_completely_at(xyz)) {
+               if (mpiGrid.refine_completely_at(xyz) && P::amrMaxAllowedSpatialRefLevel > 0) {
                   #ifndef NDEBUG
                   CellID myCell = mpiGrid.get_existing_cell(xyz);
                   std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;
@@ -564,7 +547,7 @@ namespace projects {
       
       mpiGrid.balance_load();
       
-      if(mpiGrid.get_maximum_refinement_level() > 1) {
+      if(mpiGrid.get_maximum_refinement_level() > 1 && P::amrMaxAllowedSpatialRefLevel > 1) {
          
          for (uint i = 0; i < 2 * P::amrBoxHalfWidthX; ++i) {
             for (uint j = 0; j < 2 * P::amrBoxHalfWidthY; ++j) {
@@ -602,14 +585,78 @@ namespace projects {
          return true;
    }
 
+
+   bool Project::canRefine(spatial_cell::SpatialCell* cell) const {
+      return cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY && (cell->sysBoundaryLayer == 0 || cell->sysBoundaryLayer > 2);
+   }
+
    int Project::adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
-      int myRank;
+      phiprof::Timer refinesTimer {"Set refines"};
+      int myRank;       
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-      if (myRank == MASTER_RANK) {
-         cerr << "(Project.cpp) Base class 'adaptRefinement' in " << __FILE__ << ":" << __LINE__ << " called. Function is not implemented for project." << endl;
+
+      int refines {0};
+      if (!P::useAlpha && !P::useJPerB) {
+         if (myRank == MASTER_RANK) {
+            std::cout << "WARNING All refinement indices disabled" << std::endl;
+         }
+         return refines;
       }
 
-      return 0;
+      std::vector<CellID> cells {getLocalCells()};
+      Real r_max2 {pow(P::refineRadius, 2)};
+
+      //#pragma omp parallel for
+      for (CellID id : cells) {
+         std::array<double,3> xyz {mpiGrid.get_center(id)};
+         SpatialCell* cell {mpiGrid[id]};
+         int refLevel {mpiGrid.get_refinement_level(id)};
+         Real r2 {pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2)};
+
+         if (!canRefine(mpiGrid[id])) {
+            // Skip refining, touching boundaries during runtime breaks everything
+            mpiGrid.dont_refine(id);
+            mpiGrid.dont_unrefine(id);
+         } else if (r2 < r_max2) {
+            // We don't care about cells that are too far from the ionosphere
+            const Real alphaTwo {cell->parameters[CellParams::AMR_JPERB] * cell->parameters[CellParams::DX]};
+            bool shouldRefine = (P::useAlpha ? cell->parameters[CellParams::AMR_ALPHA] > P::alphaRefineThreshold : false) || (P::useJPerB ? alphaTwo > P::jperbRefineThreshold : false);
+            bool shouldUnrefine = (P::useAlpha ? cell->parameters[CellParams::AMR_ALPHA] < P::alphaCoarsenThreshold : true) && (P::useJPerB ? alphaTwo < P::jperbCoarsenThreshold : true);
+
+            // Finally, check neighbors
+            int refined_neighbors {0};
+            int coarser_neighbors {0};
+            for (const auto& [neighbor, dir] : mpiGrid.get_face_neighbors_of(id)) {
+               const int neighborRef = mpiGrid.get_refinement_level(neighbor);
+               const Real neighborAlphaTwo {mpiGrid[neighbor]->parameters[CellParams::AMR_JPERB] * mpiGrid[neighbor]->parameters[CellParams::DX]};
+               if (neighborRef > refLevel) {
+                  ++refined_neighbors;
+               } else if (neighborRef < refLevel) {
+                  ++coarser_neighbors;
+               } else if ((P::useAlpha ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA] > P::alphaRefineThreshold : false) || (P::useJPerB ? neighborAlphaTwo > P::jperbRefineThreshold : false)) {
+                  // If neighbor refines, 4 of its children will be this cells refined neighbors
+                  refined_neighbors += 4;
+               } else if ((P::useAlpha ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA] < P::alphaCoarsenThreshold : true) && (P::useJPerB ? neighborAlphaTwo < P::jperbCoarsenThreshold : true)) {
+                  ++coarser_neighbors;
+               }
+            }
+
+            if ((shouldRefine || refined_neighbors > 12) && refLevel < P::amrMaxAllowedSpatialRefLevel) {
+               // Refine a cell if a majority of its neighbors are refined or about to be
+               // Increment count of refined cells only if we're actually refining
+               refines += mpiGrid.refine_completely(id) && refLevel < P::amrMaxSpatialRefLevel;
+            } else if (refLevel > 0 && shouldUnrefine && coarser_neighbors > 0) {
+               // Unrefine a cell only if any of its neighbors is unrefined or about to be
+               // refLevel check prevents dont_refine() being set
+               mpiGrid.unrefine_completely(id);
+            } else {
+               // Ensure no cells above both unrefine thresholds are unrefined
+               mpiGrid.dont_unrefine(id);
+            }
+         }
+      }
+
+      return refines;
    }
 
    bool Project::forceRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, int n ) const {
@@ -729,9 +776,6 @@ Project* createProject() {
    }
    if(Parameters::projectName == "test_fp") {
       rvalue = new projects::test_fp;
-   }
-   if(Parameters::projectName == "testAmr") {
-      rvalue = new projects::testAmr;
    }
    if(Parameters::projectName == "testHall") {
       rvalue = new projects::TestHall;

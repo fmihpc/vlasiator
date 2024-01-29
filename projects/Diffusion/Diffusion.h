@@ -33,8 +33,6 @@ namespace projects {
       Real TEMPERATURE;
       Real SCA_X;
       Real SCA_Y;
-      uint nSpaceSamples;
-      uint nVelocitySamples;
    };
 
    class Diffusion: public Project {

@@ -58,8 +58,6 @@ namespace projects {
       RP::add("Riemann.By2", "Magnetic field y component, right state (T)", 0.0);
       RP::add("Riemann.Bz1", "Magnetic field z component, left state (T)", 0.0);
       RP::add("Riemann.Bz2", "Magnetic field z component, right state (T)", 0.0);
-      RP::add("Riemann.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
-      RP::add("Riemann.nVelocitySamples", "Number of sampling points per velocity dimension", 5);      
    }
 
    void Riemann1::getParameters(){
@@ -86,8 +84,6 @@ namespace projects {
       RP::get("Riemann.By2", this->By[this->RIGHT]);
       RP::get("Riemann.Bz1", this->Bz[this->LEFT]);
       RP::get("Riemann.Bz2", this->Bz[this->RIGHT]);
-      RP::get("Riemann.nSpaceSamples", this->nSpaceSamples);
-      RP::get("Riemann.nVelocitySamples", this->nVelocitySamples);
    }
 
    Real Riemann1::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
@@ -99,27 +95,7 @@ namespace projects {
 
    Real Riemann1::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz,
       creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
-      if (this->nSpaceSamples > 1 && this->nVelocitySamples > 1) {
-         creal d_x = dx / (this->nSpaceSamples - 1);
-         creal d_y = dy / (this->nSpaceSamples - 1);
-         creal d_z = dz / (this->nSpaceSamples - 1);
-         creal d_vx = dvx / (this->nVelocitySamples - 1);
-         creal d_vy = dvy / (this->nVelocitySamples - 1);
-         creal d_vz = dvz / (this->nVelocitySamples - 1);
-         Real avg = 0.0;
-         for (uint i = 0; i < this->nSpaceSamples; ++i)
-            for (uint j = 0; j < this->nSpaceSamples; ++j)
-               for (uint k = 0; k < this->nSpaceSamples; ++k)
-                  for (uint vi = 0; vi < this->nVelocitySamples; ++vi)
-                     for (uint vj = 0; vj < this->nVelocitySamples; ++vj)
-                        for (uint vk = 0; vk < this->nVelocitySamples; ++vk) {
-                           avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z,
-                              vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz, popID);
-                        }
-         return avg / pow(this->nSpaceSamples, 3.0) / pow(this->nVelocitySamples, 3.0);
-      } else {
-         return getDistribValue(x+0.5*dx, y+0.5*dy, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, dvx, dvy, dvz, popID);
-      }
+      return getDistribValue(x+0.5*dx, y+0.5*dy, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, dvx, dvy, dvz, popID);
    }
 
    void Riemann1::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
@@ -135,34 +111,17 @@ namespace projects {
          auto localSize = perBGrid.getLocalSize().data();
          
          #pragma omp parallel for collapse(3)
-         for (int x = 0; x < localSize[0]; ++x) {
-            for (int y = 0; y < localSize[1]; ++y) {
-               for (int z = 0; z < localSize[2]; ++z) {
+         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
+            for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
+               for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
                   const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
                   
                   Real Bxavg, Byavg, Bzavg;
                   Bxavg = Byavg = Bzavg = 0.0;
-                  if(this->nSpaceSamples > 1) {
-                     Real d_x = perBGrid.DX / (this->nSpaceSamples - 1);
-                     //Real d_z = perBGrid.DZ / (this->nSpaceSamples - 1);
-                     for (uint i=0; i<this->nSpaceSamples; ++i) {
-                        for (uint k=0; k<this->nSpaceSamples; ++k) {
-                           Bxavg += ((xyz[0] + i * d_x) < 0.0) ? this->Bx[this->LEFT] : this->Bx[this->RIGHT];
-                           Byavg += ((xyz[0] + i * d_x) < 0.0) ? this->By[this->LEFT] : this->By[this->RIGHT];
-                           Bzavg += ((xyz[0] + i * d_x) < 0.0) ? this->Bz[this->LEFT] : this->Bz[this->RIGHT];
-                        }
-                     }
-                     cuint nPts = pow(this->nSpaceSamples, 3.0);
-                     
-                     cell->at(fsgrids::bfield::PERBX) = Bxavg / nPts;
-                     cell->at(fsgrids::bfield::PERBY) = Byavg / nPts;
-                     cell->at(fsgrids::bfield::PERBZ) = Bzavg / nPts;
-                  } else {
-                     cell->at(fsgrids::bfield::PERBX) = (xyz[0] < 0.0) ? this->Bx[this->LEFT] : this->Bx[this->RIGHT];
-                     cell->at(fsgrids::bfield::PERBY) = (xyz[0] < 0.0) ? this->By[this->LEFT] : this->By[this->RIGHT];
-                     cell->at(fsgrids::bfield::PERBZ) = (xyz[0] < 0.0) ? this->Bz[this->LEFT] : this->Bz[this->RIGHT];
-                  }
+                  cell->at(fsgrids::bfield::PERBX) = (xyz[0] < 0.0) ? this->Bx[this->LEFT] : this->Bx[this->RIGHT];
+                  cell->at(fsgrids::bfield::PERBY) = (xyz[0] < 0.0) ? this->By[this->LEFT] : this->By[this->RIGHT];
+                  cell->at(fsgrids::bfield::PERBZ) = (xyz[0] < 0.0) ? this->Bz[this->LEFT] : this->Bz[this->RIGHT];
                }
             }
          }

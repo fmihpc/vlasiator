@@ -81,8 +81,6 @@ namespace projects {
        RP::add(pop + "_IPShock.rhod", "Downstream Number density (m^-3)", 1.0e7);
        RP::add(pop + "_IPShock.Temperatured", "Downstream Temperature (K)", 2.0e6);
 
-       RP::add(pop + "_IPShock.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
-       RP::add(pop + "_IPShock.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
        RP::add(pop + "_IPShock.maxwCutoff", "Cutoff for the maxwellian distribution", 1e-12);
     }
 
@@ -122,8 +120,6 @@ namespace projects {
        RP::get(pop + "_IPShock.rhod", sP.DENSITYd);
        RP::get(pop + "_IPShock.Temperatured", sP.TEMPERATUREd);
 
-       RP::get(pop + "_IPShock.nSpaceSamples", sP.nSpaceSamples);
-       RP::get(pop + "_IPShock.nVelocitySamples", sP.nVelocitySamples);
        RP::get(pop + "_IPShock.maxwCutoff", sP.maxwCutoff);
 
        speciesParams.push_back(sP);
@@ -152,8 +148,6 @@ namespace projects {
       //std::cerr << "tempu = " << this->TEMPERATUREu << std::endl;
       //std::cerr << "tempd = " << this->TEMPERATUREd << std::endl;
 
-      //std::cerr << "nSpaceSamples = " << this->nSpaceSamples << std::endl;
-      //std::cerr << "nVelocitySamples = " << this->nVelocitySamples << std::endl;
       //std::cerr << "maxwCutoff = " << this->maxwCutoff << std::endl;
       //std::cerr << "Width = " << this->Shockwidth << std::endl;
     }
@@ -337,32 +331,7 @@ namespace projects {
 
     const IPShockSpeciesParameters& sP = this->speciesParams[popID];
     Real result = 0.0;
-    if((sP.nSpaceSamples > 1) && (sP.nVelocitySamples > 1)) {
-      creal d_x = dx / (sP.nSpaceSamples-1);
-      creal d_y = dy / (sP.nSpaceSamples-1);
-      creal d_z = dz / (sP.nSpaceSamples-1);
-      creal d_vx = dvx / (sP.nVelocitySamples-1);
-      creal d_vy = dvy / (sP.nVelocitySamples-1);
-      creal d_vz = dvz / (sP.nVelocitySamples-1);
-
-      Real avg = 0.0;
-      
-      for (uint i=0; i<sP.nSpaceSamples; ++i)
-         for (uint j=0; j<sP.nSpaceSamples; ++j)
-            for (uint k=0; k<sP.nSpaceSamples; ++k)      
-               for (uint vi=0; vi<sP.nVelocitySamples; ++vi)
-                  for (uint vj=0; vj<sP.nVelocitySamples; ++vj)
-                     for (uint vk=0; vk<sP.nVelocitySamples; ++vk)
-                     {
-                        avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz, popID);
-                     }
-      
-      result = avg /
-	(sP.nSpaceSamples*sP.nSpaceSamples*sP.nSpaceSamples) / 
-	(sP.nVelocitySamples*sP.nVelocitySamples*sP.nVelocitySamples);
-    } else {
-      result = getDistribValue(x+0.5*dx, y+0.5*dy, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, dvx, dvy, dvz, popID);
-    }               
+    result = getDistribValue(x+0.5*dx, y+0.5*dy, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, dvx, dvy, dvz, popID);
 
     if(result < sP.maxwCutoff) {
       return 0.0;
@@ -398,9 +367,9 @@ namespace projects {
          auto localSize = perBGrid.getLocalSize().data();
       
 #pragma omp parallel for collapse(3)
-         for (int x = 0; x < localSize[0]; ++x) {
-            for (int y = 0; y < localSize[1]; ++y) {
-               for (int z = 0; z < localSize[2]; ++z) {
+         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
+            for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
+               for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
                   const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
                   
@@ -460,7 +429,7 @@ namespace projects {
 //      const int bw3 = 2*(bw2 + VLASOV_STENCIL_WIDTH);
 
      // Calculate regions for refinement
-     if (P::amrMaxSpatialRefLevel > 0) {
+     if (P::amrMaxSpatialRefLevel > 0 && P::amrMaxAllowedSpatialRefLevel > 0) {
 	// L1 refinement.
 	for (uint i = 0; i < P::xcells_ini; ++i) {
 	   for (uint j = 0; j < P::ycells_ini; ++j) {
@@ -484,7 +453,7 @@ namespace projects {
 	mpiGrid.balance_load();
      }
 
-     if (P::amrMaxSpatialRefLevel > 1) {
+     if (P::amrMaxSpatialRefLevel > 1 && P::amrMaxAllowedSpatialRefLevel > 1) {
 	// L2 refinement.
 	for (uint i = 0; i < 2*P::xcells_ini; ++i) {
 	   for (uint j = 0; j < 2*P::ycells_ini; ++j) {
@@ -508,7 +477,7 @@ namespace projects {
 	mpiGrid.balance_load();
      }
 
-     if (P::amrMaxSpatialRefLevel > 2) {
+     if (P::amrMaxSpatialRefLevel > 2 && P::amrMaxAllowedSpatialRefLevel > 2) {
 	// L3 refinement.
 	for (uint i = 0; i < 4*P::xcells_ini; ++i) {
 	   for (uint j = 0; j < 4*P::ycells_ini; ++j) {
@@ -532,7 +501,7 @@ namespace projects {
 	mpiGrid.balance_load();
      }
 
-     if (P::amrMaxSpatialRefLevel > 3) {
+     if (P::amrMaxSpatialRefLevel > 3 && P::amrMaxAllowedSpatialRefLevel > 3) {
 	// L4 refinement.
 	for (uint i = 0; i < 8*P::xcells_ini; ++i) {
 	   for (uint j = 0; j < 8*P::ycells_ini; ++j) {
