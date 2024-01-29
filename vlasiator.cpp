@@ -1013,14 +1013,18 @@ int main(int argn,char* args[]) {
             refineNow = false;
             if (!adaptRefinement(mpiGrid, technicalGrid, sysBoundaryContainer, *project)) {
                // OOM, rebalance and try again
-               logFile << "(LB) AMR ran out of memory, attempting to balance." << endl;
+               logFile << "(LB) AMR rebalancing with heavier refinement weights." << endl;
                globalflags::bailingOut = false; // Reset this
                for (auto id : mpiGrid.get_local_cells_to_refine()) {
                   mpiGrid[id]->parameters[CellParams::LBWEIGHTCOUNTER] *= 8.0;
                }
                balanceLoad(mpiGrid, sysBoundaryContainer);
+               // We can /= 8.0 now as cells have potentially migrated. Go back to block-based count for now.
                for (auto id : mpiGrid.get_local_cells_to_refine()) {
-                  mpiGrid[id]->parameters[CellParams::LBWEIGHTCOUNTER] /= 8.0;
+                  mpiGrid[id]->parameters[CellParams::LBWEIGHTCOUNTER] = 0;
+                  for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+                     mpiGrid[id]->parameters[CellParams::LBWEIGHTCOUNTER] += mpiGrid[id]->get_number_of_velocity_blocks(popID);
+                  }
                }
 
                mpiGrid.cancel_refining();
@@ -1039,6 +1043,7 @@ int main(int argn,char* args[]) {
             calculateSpatialTranslation(mpiGrid,0.0);
             calculateAcceleration(mpiGrid,0.0);
          }
+         // This now uses the block-based count just copied between the two refinement calls above.
          balanceLoad(mpiGrid, sysBoundaryContainer);
          addTimedBarrier("barrier-end-load-balance");
          phiprof::Timer shrinkTimer {"Shrink_to_fit"};
