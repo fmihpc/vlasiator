@@ -1720,7 +1720,7 @@ namespace DRO {
 
 	       Vec4i muindex;
                Realf dmubins = 2.0 / Parameters::PADmubins; 
-	       muindex = round_to_int(floor((mu+1.0) / dmubins)); 
+	       muindex = round_to_int32(floor((mu+1.0) / dmubins)); 
 
 	       const Realf* CellValue = &cell->get_data(n,popID)[WID*j+WID*WID*k];
 

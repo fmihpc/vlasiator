@@ -266,10 +266,10 @@ void velocitySpaceDiffusion(
                    Vec4d mu = Vpara/(normV+std::numeric_limits<Real>::min()); // + min value to avoid division by 0
  
                    Vec4i Vindex;
-                   Vindex = round_to_int(floor((normV-Vmin) / dVbins));
+                   Vindex = round_to_int32(floor((normV-Vmin) / dVbins));
 
                    Vec4i muindex;
-                   muindex = round_to_int(floor((mu+1.0) / dmubins));
+                   muindex = round_to_int32(floor((mu+1.0) / dmubins));
                    for (uint i = 0; i<WID; i++) {if (muindex[i] == nbins_mu) {muindex[i] == muindex[i] - 1;}} // Safety check to handle edge case where mu = exactly 1.0
 
                    Vec4d Vmu = dVbins * (to_double(Vindex)+0.5); // Take value at the center of the mu cell
@@ -396,10 +396,10 @@ void velocitySpaceDiffusion(
                    #endif
 
                    Vec4i Vindex;
-                   Vindex = round_to_int(floor((normV-Vmin) / dVbins));
+                   Vindex = round_to_int32(floor((normV-Vmin) / dVbins));
                    
                    Vec4i muindex;
-                   muindex = round_to_int(floor((mu+1.0) / dmubins));
+                   muindex = round_to_int32(floor((mu+1.0) / dmubins));
                    for (uint i = 0; i<WID; i++) {if (muindex[i] == nbins_mu) {muindex[i] == muindex[i] - 1;}} // Safety check to handle edge case where mu = exactly 1.0
 
                    Vec4d Vmu = dVbins * (to_double(Vindex)+0.5);
