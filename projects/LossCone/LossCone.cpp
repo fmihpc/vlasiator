@@ -170,25 +170,14 @@ namespace projects {
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
       
-      creal d_vx = dvx / (sP.nVelocitySamples-1);
-      creal d_vy = dvy / (sP.nVelocitySamples-1);
-      creal d_vz = dvz / (sP.nVelocitySamples-1);
-      Real avg = 0.0;
-      
-      for (uint vi=0; vi<sP.nVelocitySamples; ++vi)
-         for (uint vj=0; vj<sP.nVelocitySamples; ++vj)
-            for (uint vk=0; vk<sP.nVelocitySamples; ++vk)
-            {
-               avg += getDistribValue(
-                  vx+vi*d_vx - sP.velocityPertAbsAmp * (0.5 - rndVel[0] ),
-                  vy+vj*d_vy - sP.velocityPertAbsAmp * (0.5 - rndVel[1] ),
-                  vz+vk*d_vz - sP.velocityPertAbsAmp * (0.5 - rndVel[2] ), popID);
-            }
+      Real avg =  getDistribValue(
+                  vx+0.5*dvx - sP.velocityPertAbsAmp * (0.5 - rndVel[0] ),
+                  vy+0.5*dvy - sP.velocityPertAbsAmp * (0.5 - rndVel[1] ),
+                  vz+0.5*dvz - sP.velocityPertAbsAmp * (0.5 - rndVel[2] ), popID);
       
       creal result = avg *
          sP.DENSITY * (1.0 + sP.densityPertRelAmp * (0.5 - rndRho)) *
-         pow(mass / (2.0 * M_PI * kb ), 1.5) / ( sqrt(sP.TEMPERATUREX) * sqrt(sP.TEMPERATUREY) * sqrt(sP.TEMPERATUREZ) ) /
-         (sP.nVelocitySamples*sP.nVelocitySamples*sP.nVelocitySamples );
+         pow(mass / (2.0 * M_PI * kb ), 1.5) / ( sqrt(sP.TEMPERATUREX) * sqrt(sP.TEMPERATUREY) * sqrt(sP.TEMPERATUREZ) );
       
       // Switching off the cutoff check for now
       // if(result < sP.maxwCutoff) {
@@ -212,18 +201,19 @@ namespace projects {
          (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
          (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
       
-      setRandomSeed(cellID);
+      std::default_random_engine rndState;
+      setRandomCellSeed(cell,rndState);
       
-      this->rndRho=getRandomNumber();
-      this->rndVel[0]=getRandomNumber();
-      this->rndVel[1]=getRandomNumber();
-      this->rndVel[2]=getRandomNumber();
+      this->rndRho=getRandomNumber(rndState);
+      this->rndVel[0]=getRandomNumber(rndState);
+      this->rndVel[1]=getRandomNumber(rndState);
+      this->rndVel[2]=getRandomNumber(rndState);
    }
 
    void LossCone::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
-      FsGrid< fsgrids::technical, 2>& technicalGrid
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
    ) {
       ConstantField bgField;
       bgField.initialize(this->BX0,
@@ -236,17 +226,18 @@ namespace projects {
          const auto localSize = BgBGrid.getLocalSize().data();
          
          #pragma omp parallel for collapse(3)
-         for (int x = 0; x < localSize[0]; ++x) {
-            for (int y = 0; y < localSize[1]; ++y) {
-               for (int z = 0; z < localSize[2]; ++z) {
+         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
+            for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
+               for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
                   const int64_t cellid = perBGrid.GlobalIDForCoords(x, y, z);
                   
-                  setRandomSeed(cellid);
+                  std::default_random_engine rndState;
+                  setRandomSeed(cellid,rndState);
                   
-                  cell->at(fsgrids::bfield::PERBX) = this->magXPertAbsAmp * (0.5 - getRandomNumber());
-                  cell->at(fsgrids::bfield::PERBY) = this->magYPertAbsAmp * (0.5 - getRandomNumber());
-                  cell->at(fsgrids::bfield::PERBZ) = this->magZPertAbsAmp * (0.5 - getRandomNumber());
+                  cell->at(fsgrids::bfield::PERBX) = this->magXPertAbsAmp * (0.5 - getRandomNumber(rndState));
+                  cell->at(fsgrids::bfield::PERBY) = this->magYPertAbsAmp * (0.5 - getRandomNumber(rndState));
+                  cell->at(fsgrids::bfield::PERBZ) = this->magZPertAbsAmp * (0.5 - getRandomNumber(rndState));
                }
             }
          }
