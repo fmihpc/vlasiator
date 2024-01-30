@@ -198,7 +198,7 @@ struct Parameters {
    static bool useJPerB;
    static Real JPerBModifier;
    static int maxFilteringPasses;
-   static uint amrBoxNumber;
+   static int amrBoxNumber;
    static std::vector<uint> amrBoxHalfWidthX;
    static std::vector<uint> amrBoxHalfWidthY;
    static std::vector<uint> amrBoxHalfWidthZ;

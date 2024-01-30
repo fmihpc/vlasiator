@@ -168,7 +168,7 @@ Real P::refineRadius = LARGE_REAL;
 bool P::useJPerB = true;
 Real P::JPerBModifier = 0.0;
 int P::maxFilteringPasses = 0;
-uint P::amrBoxNumber = 0;
+int P::amrBoxNumber = 0;
 std::vector<uint> P::amrBoxHalfWidthX;
 std::vector<uint> P::amrBoxHalfWidthY;
 std::vector<uint> P::amrBoxHalfWidthZ;
@@ -702,13 +702,13 @@ void Parameters::getParameters() {
    RP::get("AMR.filterpasses", P::blurPassString);
 
    // We need the correct number of parameters for the AMR boxes
-   if(   P::amrBoxNumber != P::amrBoxHalfWidthX.size()
-      || P::amrBoxNumber != P::amrBoxHalfWidthY.size()
-      || P::amrBoxNumber != P::amrBoxHalfWidthZ.size()
-      || P::amrBoxNumber != P::amrBoxCenterX.size()
-      || P::amrBoxNumber != P::amrBoxCenterY.size()
-      || P::amrBoxNumber != P::amrBoxCenterZ.size()
-      || P::amrBoxNumber != P::amrBoxMaxLevel.size()
+   if(   P::amrBoxNumber != (int)P::amrBoxHalfWidthX.size()
+      || P::amrBoxNumber != (int)P::amrBoxHalfWidthY.size()
+      || P::amrBoxNumber != (int)P::amrBoxHalfWidthZ.size()
+      || P::amrBoxNumber != (int)P::amrBoxCenterX.size()
+      || P::amrBoxNumber != (int)P::amrBoxCenterY.size()
+      || P::amrBoxNumber != (int)P::amrBoxCenterZ.size()
+      || P::amrBoxNumber != (int)P::amrBoxMaxLevel.size()
    ) {
       cerr << "AMR.number_of_boxes is set to " << P::amrBoxNumber << " so the same number of values is required for AMR.box_half_width_[xyz] and AMR.box_center_[xyz]." << endl;
       MPI_Abort(MPI_COMM_WORLD, 1);
