@@ -1556,7 +1556,7 @@ void calculateElectricField(
 ) {
    cuint cellSysBoundaryFlag = technicalGrid.get(i,j,k)->sysBoundaryFlag;
    
-   if (cellSysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) return;
+   if (cellSysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE || cellSysBoundaryFlag == sysboundarytype::OUTER_BOUNDARY_PADDING) return;
    
    cuint bitfield = technicalGrid.get(i,j,k)->SOLVE;
    
@@ -1659,7 +1659,7 @@ void calculateUpwindedElectricFieldSimple(
    cint& RKCase
 ) {
    //const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
-   const int* gridDims = &technicalGrid.getLocalSize()[0];
+   const FsGridTools::FsIndex_t* gridDims = &technicalGrid.getLocalSize()[0];
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
    phiprof::Timer upwindedETimer {"Calculate upwinded electric field"};
    int computeTimerID {phiprof::initializeTimer("Electric field compute cells")};
@@ -1686,9 +1686,9 @@ void calculateUpwindedElectricFieldSimple(
    {
       phiprof::Timer computeTimer {computeTimerID};
       #pragma omp for collapse(2)
-      for (int k=0; k<gridDims[2]; k++) {
-         for (int j=0; j<gridDims[1]; j++) {
-            for (int i=0; i<gridDims[0]; i++) {
+      for (FsGridTools::FsIndex_t k=0; k<gridDims[2]; k++) {
+         for (FsGridTools::FsIndex_t j=0; j<gridDims[1]; j++) {
+            for (FsGridTools::FsIndex_t i=0; i<gridDims[0]; i++) {
                if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
                   calculateElectricField(
                      perBGrid,

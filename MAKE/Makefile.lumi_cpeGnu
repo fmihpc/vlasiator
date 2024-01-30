@@ -31,7 +31,9 @@ FLAGS =
 CXXFLAGS += -g -ggdb -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -mfma -mavx2 -Wno-unused-parameter
 testpackage: CXXFLAGS = -g -O2 -fopenmp -funroll-loops -std=c++20 -mno-fma -mno-avx2 -mno-avx
 
-MATHFLAGS = -ffast-math
+MATHFLAGS = -ffast-math -fno-finite-math-only
+testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
+
 LDFLAGS = -lrt -fopenmp -lgomp
 LIB_MPI = -lgomp
 
@@ -84,7 +86,7 @@ LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -lgfortran -Wl,-rpath=$(
 INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include 
 
 #header libraries
-INC_FSGRID = -I$(LIBRARY_PREFIX_HEADERS)/fsgrid/
+INC_FSGRID = -I./submodules/fsgrid
 INC_EIGEN = -isystem $(LIBRARY_PREFIX_HEADERS)/eigen/
-INC_DCCRG = -I$(LIBRARY_PREFIX_HEADERS)/dccrg/
+INC_DCCRG = -I./submodules/dccrg
 INC_VECTORCLASS = -I$(LIBRARY_PREFIX_HEADERS)/vectorclass/

@@ -126,7 +126,7 @@ int main(int argc, char** argv) {
 #pragma omp parallel for
       for(unsigned int i=0; i< particles.size(); i++) {
 
-         if(isnan(vector_length(particles[i].x))) {
+         if(!isfinite(vector_length(particles[i].x))) {
             // Skip disabled particles.
             continue;
          }

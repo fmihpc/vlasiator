@@ -288,7 +288,7 @@ void calculateSpatialTranslation(
       }
    }
    computeTimer.stop();
-   
+
    // Translate all particle species
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       string profName = "translate "+getObjectWrapper().particleSpecies[popID].name;
@@ -384,23 +384,12 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
       if (dt<0) subcycleDt = -subcycleDt;
       
       //generate pseudo-random order which is always the same irrespective of parallelization, restarts, etc.
-      char rngStateBuffer[256];
-      random_data rngDataBuffer;
-
+      std::default_random_engine rndState;
       // set seed, initialise generator and get value. The order is the same
       // for all cells, but varies with timestep.
-      memset(&(rngDataBuffer), 0, sizeof(rngDataBuffer));
-      #ifdef _AIX
-         initstate_r(P::tstep, &(rngStateBuffer[0]), 256, NULL, &(rngDataBuffer));
-         int64_t rndInt;
-         random_r(&rndInt, &rngDataBuffer);
-      #else
-         initstate_r(P::tstep, &(rngStateBuffer[0]), 256, &(rngDataBuffer));
-         int32_t rndInt;
-         random_r(&rngDataBuffer, &rndInt);
-      #endif
-         
-      uint map_order=rndInt%3;
+      rndState.seed(P::tstep);
+
+      uint map_order=std::uniform_int_distribution<>(0,2)(rndState);
       phiprof::Timer semilagAccTimer {"cell-semilag-acc"};
       cpu_accelerate_cell(mpiGrid[cellID],popID,map_order,subcycleDt);
       semilagAccTimer.stop();
@@ -460,7 +449,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
             // disregard boundary cells, in preparation for acceleration
             if (  (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) ||
                   // Include inflow-Maxwellian
-                  (P::vlasovAccelerateMaxwellianBoundaries && (SC->sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN)) ) {
+                  (P::vlasovAccelerateMaxwellianBoundaries && (SC->sysBoundaryFlag == sysboundarytype::MAXWELLIAN)) ) {
                if (vmesh.size() != 0){
                   //do not propagate spatial cells with no blocks
                   propagatedCells.push_back(cells[c]);

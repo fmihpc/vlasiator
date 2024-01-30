@@ -75,8 +75,6 @@ namespace projects {
          RP::add(pop + "_Flowthrough.VX0", "Initial bulk velocity in x-direction", 0.0);
          RP::add(pop + "_Flowthrough.VY0", "Initial bulk velocity in y-direction", 0.0);
          RP::add(pop + "_Flowthrough.VZ0", "Initial bulk velocity in z-direction", 0.0);
-         RP::add(pop + "_Flowthrough.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
-         RP::add(pop + "_Flowthrough.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
       }
    }
    
@@ -114,8 +112,6 @@ namespace projects {
          RP::get(pop + "_Flowthrough.VX0", sP.V0[0]);
          RP::get(pop + "_Flowthrough.VY0", sP.V0[1]);
          RP::get(pop + "_Flowthrough.VZ0", sP.V0[2]);
-         RP::get(pop + "_Flowthrough.nSpaceSamples", sP.nSpaceSamples);
-         RP::get(pop + "_Flowthrough.nVelocitySamples", sP.nVelocitySamples);
 
          speciesParams.push_back(sP);
       }
@@ -193,25 +189,7 @@ namespace projects {
       const FlowthroughSpeciesParameters& sP = speciesParams[popID];
 
       if (emptyBox == true) return 0.0;
-      if((sP.nSpaceSamples > 1) && (sP.nVelocitySamples > 1)) {
-         creal d_x = dx / (sP.nSpaceSamples-1);
-         creal d_y = dy / (sP.nSpaceSamples-1);
-         creal d_z = dz / (sP.nSpaceSamples-1);
-         creal d_vx = dvx / (sP.nVelocitySamples-1);
-         creal d_vy = dvy / (sP.nVelocitySamples-1);
-         creal d_vz = dvz / (sP.nVelocitySamples-1);
-
-         Real avg = 0.0;
-         for (uint i=0; i<sP.nSpaceSamples; ++i) for (uint j=0; j<sP.nSpaceSamples; ++j) for (uint k=0; k<sP.nSpaceSamples; ++k) {
-            for (uint vi=0; vi<sP.nVelocitySamples; ++vi) for (uint vj=0; vj<sP.nVelocitySamples; ++vj) for (uint vk=0; vk<sP.nVelocitySamples; ++vk) {
-               avg += getDistribValue(x+i*d_x,y+j*d_y,z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz, popID);
-            }
-         }
-         return avg / (sP.nSpaceSamples*sP.nSpaceSamples*sP.nSpaceSamples*sP.nVelocitySamples*sP.nVelocitySamples*sP.nVelocitySamples);
-      } else {
-         return getDistribValue(x+0.5*dx,y+0.5*dy,z+0.5*dz,vx+0.5*dvx,vy+0.5*dvy,vz+0.5*dvz,dvx,dvy,dvz,popID);
-         
-      }
+      return getDistribValue(x+0.5*dx,y+0.5*dy,z+0.5*dz,vx+0.5*dvx,vy+0.5*dvy,vz+0.5*dvz,dvx,dvy,dvz,popID);
    }
 
    void Flowthrough::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
@@ -238,47 +216,5 @@ namespace projects {
       centerPoints.push_back(point);
       return centerPoints;
    }
-
-   bool Flowthrough::canRefine(const std::array<double,3> xyz, const int refLevel) const {
-      const int bw = (2 + 1*refLevel) * VLASOV_STENCIL_WIDTH; // Seems to be the limit
-
-      return refLevel < (int)P::amrMaxSpatialRefLevel &&
-             xyz[0] > P::xmin + P::dx_ini * bw && 
-             xyz[0] < P::xmax - P::dx_ini * bw;
-   }
-
-   bool Flowthrough::adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
-      int myRank;       
-      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-      if(myRank == MASTER_RANK) {
-         std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
-      }
-
-      if (!P::adaptRefinement) {
-         if (myRank == MASTER_RANK)  {
-            std::cout << "Skipping re-refinement!" << std::endl;
-         }
-         return false;
-      }
-
-      std::vector<CellID> cells = mpiGrid.get_cells();
-      for (CellID id : cells) {
-         std::array<double,3> xyz = mpiGrid.get_center(id);
-         for(uint n = 0; n < P::amrBoxNumber; n++) {
-            bool inBox = xyz[0] > P::amrBoxCenterX[n] - P::amrBoxHalfWidthX[n] * mpiGrid[id]->parameters[CellParams::DX] &&
-                         xyz[0] < P::amrBoxCenterX[n] + P::amrBoxHalfWidthX[n] * mpiGrid[id]->parameters[CellParams::DX] &&
-                         xyz[1] > P::amrBoxCenterY[n] - P::amrBoxHalfWidthY[n] * mpiGrid[id]->parameters[CellParams::DY] &&
-                         xyz[1] < P::amrBoxCenterY[n] + P::amrBoxHalfWidthY[n] * mpiGrid[id]->parameters[CellParams::DY] &&
-                         xyz[2] > P::amrBoxCenterZ[n] - P::amrBoxHalfWidthZ[n] * mpiGrid[id]->parameters[CellParams::DZ] &&
-                         xyz[2] < P::amrBoxCenterZ[n] + P::amrBoxHalfWidthZ[n] * mpiGrid[id]->parameters[CellParams::DZ];
-            if (inBox) {
-               mpiGrid.refine_completely(id);
-            }
-         }
-      }
-
-      return true;
-   }
-   
 
 } //namespace projects

@@ -93,7 +93,7 @@ void precipitationScenario::afterPush(int step, double time, ParticleContainer& 
 
    for(unsigned int i=0; i<particles.size(); i++) {
 
-      if(isnan(vector_length(particles[i].x))) {
+      if(!isfinite(vector_length(particles[i].x))) {
          // skip disabled particles
          continue;
       }
@@ -247,7 +247,7 @@ void shockReflectivityScenario::afterPush(int step, double time, ParticleContain
 
    for(unsigned int i=0; i<particles.size(); i++) {
 
-      if(isnan(vector_length(particles[i].x))) {
+      if(!isfinite(vector_length(particles[i].x))) {
          // skip disabled particles
          continue;
       }
@@ -355,7 +355,7 @@ void ipShockScenario::afterPush(int step, double time, ParticleContainer& partic
   /* Perform transmission / reflection check for each particle */
    for(unsigned int i=0; i<particles.size(); i++) {
 
-      if(isnan(vector_length(particles[i].x))) {
+      if(!isfinite(vector_length(particles[i].x))) {
          // skip disabled particles
          continue;
       }

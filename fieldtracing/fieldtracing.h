@@ -36,8 +36,8 @@ typedef float TReal;
 
 // Get the (integer valued) global fsgrid cell index (i,j,k) for the magnetic-field traced mapping point that node n is
 // associated with
-template<class T> std::array<int32_t, 3> getGlobalFsGridCellIndexForCoord(T& grid,const std::array<Real, 3>& x) {
-   std::array<int32_t, 3> retval;
+template<class T> std::array<FsGridTools::FsSize_t, 3> getGlobalFsGridCellIndexForCoord(T& grid,const std::array<Real, 3>& x) {
+   std::array<FsGridTools::FsSize_t, 3> retval;
    retval[0] = floor((x[0] - grid.physicalGlobalStart[0]) / grid.DX);
    retval[1] = floor((x[1] - grid.physicalGlobalStart[1]) / grid.DY);
    retval[2] = floor((x[2] - grid.physicalGlobalStart[2]) / grid.DZ);
@@ -45,24 +45,24 @@ template<class T> std::array<int32_t, 3> getGlobalFsGridCellIndexForCoord(T& gri
 }
 // Get the (integer valued) local fsgrid cell index (i,j,k) for the magnetic-field traced mapping point that node n is
 // associated with If the cell is not in our local domain, will return {-1,-1,-1}
-template<class T> std::array<int32_t, 3> getLocalFsGridCellIndexForCoord(T& grid, const std::array<Real, 3>& x) {
-   std::array<int32_t, 3> retval = getGlobalFsGridCellIndexForCoord(grid,x);
-   retval = grid.globalToLocal(retval[0], retval[1], retval[2]);
+template<class T> std::array<FsGridTools::FsIndex_t, 3> getLocalFsGridCellIndexForCoord(T& grid, const std::array<Real, 3>& x) {
+   std::array<FsGridTools::FsSize_t, 3> globalInd = getGlobalFsGridCellIndexForCoord(grid,x);
+   std::array<FsGridTools::FsIndex_t, 3> retval = grid.globalToLocal(globalInd[0], globalInd[1], globalInd[2]);
    return retval;
 }
 // Get the (integer valued) local fsgrid cell index (i,j,k) for the magnetic-field traced mapping point that node n is associated with
 // This includes indices beyond local size (positive and negative) as we need to access ghost cells
-template<class T> std::array<int32_t, 3> getLocalFsGridCellIndexWithGhostsForCoord(T& grid, const std::array<Real, 3>& x) {
-   std::array<int32_t, 3> retval = getGlobalFsGridCellIndexForCoord(grid,x);
-   const std::array<int32_t, 3> localStart = grid.getLocalStart();
-   retval = {retval[0]-localStart[0], retval[1]-localStart[1], retval[2]-localStart[2]};
+template<class T> std::array<FsGridTools::FsIndex_t, 3> getLocalFsGridCellIndexWithGhostsForCoord(T& grid, const std::array<Real, 3>& x) {
+   std::array<FsGridTools::FsSize_t, 3> globalInd = getGlobalFsGridCellIndexForCoord(grid,x);
+   const std::array<FsGridTools::FsIndex_t, 3> localStart = grid.getLocalStart();
+   std::array<FsGridTools::FsIndex_t,3> retval = {(FsGridTools::FsIndex_t)globalInd[0]-localStart[0], (FsGridTools::FsIndex_t)globalInd[1]-localStart[1], (FsGridTools::FsIndex_t)globalInd[2]-localStart[2]};
    return retval;
 }
 // Get the fraction fsgrid cell index for the magnetic-field traced mapping point that node n is associated with.
 // Note that these are floating point values between 0 and 1
 template<class T> std::array<Real, 3> getFractionalFsGridCellForCoord(T& grid, const std::array<Real, 3>& x) {
    std::array<Real, 3> retval;
-   std::array<int, 3> fsgridCell = getGlobalFsGridCellIndexForCoord(grid,x);
+   std::array<FsGridTools::FsSize_t, 3> fsgridCell = getGlobalFsGridCellIndexForCoord(grid,x);
    retval[0] = (x[0] - grid.physicalGlobalStart[0]) / grid.DX - fsgridCell[0];
    retval[1] = (x[1] - grid.physicalGlobalStart[1]) / grid.DY - fsgridCell[1];
    retval[2] = (x[2] - grid.physicalGlobalStart[2]) / grid.DZ - fsgridCell[2];
@@ -175,9 +175,10 @@ namespace FieldTracing {
       b[1] = SBC::ionosphereGrid.dipoleField(r[0],r[1],r[2],Y,0,Y) + SBC::ionosphereGrid.BGB[1];
       b[2] = SBC::ionosphereGrid.dipoleField(r[0],r[1],r[2],Z,0,Z) + SBC::ionosphereGrid.BGB[2];
       
-      std::array<int32_t, 3> fsgridCell = getGlobalFsGridCellIndexForCoord(technicalGrid,{(TReal)r[0], (TReal)r[1], (TReal)r[2]});
-      const std::array<int32_t, 3> localStart = technicalGrid.getLocalStart();
-      const std::array<int32_t, 3> localSize = technicalGrid.getLocalSize();
+      std::array<FsGridTools::FsSize_t, 3> fsgridCellu = getGlobalFsGridCellIndexForCoord(technicalGrid,{(TReal)r[0], (TReal)r[1], (TReal)r[2]});
+      std::array<FsGridTools::FsIndex_t,3> fsgridCell = {(FsGridTools::FsIndex_t)fsgridCellu[0],(FsGridTools::FsIndex_t)fsgridCellu[1],(FsGridTools::FsIndex_t)fsgridCellu[2]};
+      const std::array<FsGridTools::FsIndex_t, 3> localStart = technicalGrid.getLocalStart();
+      const std::array<FsGridTools::FsIndex_t, 3> localSize = technicalGrid.getLocalSize();
       // Make the global index a local one, bypass the fsgrid function that yields (-1,-1,-1) also for ghost cells.
       fsgridCell[0] -= localStart[0];
       fsgridCell[1] -= localStart[1];
@@ -189,6 +190,7 @@ namespace FieldTracing {
          + " for local domain size " + to_string(localSize[0]) + " " + to_string(localSize[1]) + " " + to_string(localSize[2])
          + " at position " + to_string(r[0]) + " " + to_string(r[1]) + " " + to_string(r[2]) + " radius " + to_string(sqrt(r[0]*r[0]+r[1]*r[1]+r[2]*r[2]))
          + "\n");
+         abort();
          return false;
       } else {
          if(technicalGrid.get(fsgridCell[0],fsgridCell[1],fsgridCell[2])->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
@@ -213,8 +215,8 @@ namespace FieldTracing {
       }
       
       // Make sure motion is outwards. Flip b if dot(r,b) < 0
-      if(std::isnan(b[0]) || std::isnan(b[1]) || std::isnan(b[2])) {
-         cerr << "(fieldtracing) Error: magnetic field is nan in getRadialBfieldDirection at location "
+      if(!(std::isfinite(b[0]) && std::isfinite(b[1]) && std::isfinite(b[2]))) {
+         cerr << "(fieldtracing) Error: magnetic field is nan or inf in getRadialBfieldDirection at location "
          << r[0] << ", " << r[1] << ", " << r[2] << ", with B = " << b[0] << ", " << b[1] << ", " << b[2] << endl;
          b[0] = 0;
          b[1] = 0;

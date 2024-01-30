@@ -53,8 +53,6 @@ namespace projects {
 
          RP::add(pop + "_Harris.Temperature", "Temperature (K)", 2.0e6);
          RP::add(pop + "_Harris.rho", "Number density at infinity (m^-3)", 1.0e7);
-         RP::add(pop + "_Harris.nSpaceSamples", "Number of sampling points per spatial dimension.", 2);
-         RP::add(pop + "_Harris.nVelocitySamples", "Number of sampling points per velocity dimension.", 2);
       }
    }
    
@@ -74,8 +72,6 @@ namespace projects {
 
          RP::get(pop + "_Harris.Temperature", sP.TEMPERATURE);
          RP::get(pop + "_Harris.rho", sP.DENSITY);
-         RP::get(pop + "_Harris.nSpaceSamples", sP.nSpaceSamples);
-         RP::get(pop + "_Harris.nVelocitySamples", sP.nVelocitySamples);
 
          speciesParams.push_back(sP);
       }
@@ -104,34 +100,7 @@ namespace projects {
       creal& dvx,creal& dvy,creal& dvz,const uint popID
    ) const {
       const HarrisSpeciesParameters& sP = speciesParams[popID];
-      if((sP.nSpaceSamples > 1) && (sP.nVelocitySamples > 1)) {
-         creal d_x = dx / (sP.nSpaceSamples-1);
-         creal d_y = dy / (sP.nSpaceSamples-1);
-         creal d_z = dz / (sP.nSpaceSamples-1);
-         creal d_vx = dvx / (sP.nVelocitySamples-1);
-         creal d_vy = dvy / (sP.nVelocitySamples-1);
-         creal d_vz = dvz / (sP.nVelocitySamples-1);
-         
-         Real avg = 0.0;
-         // #pragma omp parallel for collapse(6) reduction(+:avg)
-         // WARNING No threading here if calling functions are already threaded
-         for (uint i=0; i<sP.nSpaceSamples; ++i)
-            for (uint j=0; j<sP.nSpaceSamples; ++j)
-               for (uint k=0; k<sP.nSpaceSamples; ++k)
-                  for (uint vi=0; vi<sP.nVelocitySamples; ++vi)
-                     for (uint vj=0; vj<sP.nVelocitySamples; ++vj)
-                        for (uint vk=0; vk<sP.nVelocitySamples; ++vk) {
-                           avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, dvx, dvy, dvz, popID);
-                        }
-         return avg /
-         (sP.nSpaceSamples*sP.nSpaceSamples*sP.nSpaceSamples) /
-         (sP.nVelocitySamples*sP.nVelocitySamples*sP.nVelocitySamples);
-      } else {
-         return getDistribValue(x+0.5*dx, y+0.5*dy, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, dvx, dvy, dvz, popID);
-      }
-      
-      
-      
+      return getDistribValue(x+0.5*dx, y+0.5*dy, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, dvx, dvy, dvz, popID);      
    }
    
    void Harris::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
@@ -159,9 +128,9 @@ namespace projects {
          auto localSize = perBGrid.getLocalSize().data();
          
          #pragma omp parallel for collapse(3)
-         for (int x = 0; x < localSize[0]; ++x) {
-            for (int y = 0; y < localSize[1]; ++y) {
-               for (int z = 0; z < localSize[2]; ++z) {
+         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
+            for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
+               for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
                   const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
                   

@@ -98,7 +98,7 @@ namespace DRO {
    }
    bool DataReductionOperatorCellParams::setSpatialCell(const SpatialCell* cell) {
       for (uint i=0; i<vectorSize; i++) {
-         if(std::isinf(cell->parameters[_parameterIndex+i]) || std::isnan(cell->parameters[_parameterIndex+i])) {
+         if(!std::isfinite(cell->parameters[_parameterIndex+i])) {
             string message = "The DataReductionOperator " + this->getName() + " returned a nan or an inf in its " + std::to_string(i) + "-component.";
             bailout(true, message, __FILE__, __LINE__);
          }
@@ -151,7 +151,7 @@ namespace DRO {
       std::vector<double> varBuffer =
          lambda(perBGrid,EGrid,EHallGrid,EGradPeGrid,momentsGrid,dPerBGrid,dMomentsGrid,BgBGrid,volGrid,technicalGrid);
 
-      std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+      std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
       int vectorSize = varBuffer.size() / (gridSize[0]*gridSize[1]*gridSize[2]);
 
       if(writeAsFloat) {
@@ -433,10 +433,7 @@ namespace DRO {
       B[0] = cell->parameters[CellParams::PERBXVOL] +  cell->parameters[CellParams::BGBXVOL];
       B[1] = cell->parameters[CellParams::PERBYVOL] +  cell->parameters[CellParams::BGBYVOL];
       B[2] = cell->parameters[CellParams::PERBZVOL] +  cell->parameters[CellParams::BGBZVOL];
-      if(std::isinf(B[0]) || std::isnan(B[0]) ||
-         std::isinf(B[1]) || std::isnan(B[1]) ||
-         std::isinf(B[2]) || std::isnan(B[2])
-      ) {
+      if(!(std::isfinite(B[0]) && std::isfinite(B[1]) && std::isfinite(B[2]))) {
          string message = "The DataReductionOperator " + this->getName() + " returned a nan or an inf.";
          bailout(true, message, __FILE__, __LINE__);
       }
@@ -1905,17 +1902,6 @@ namespace DRO {
       if( vlsvWriter.writeParameter(popName+"_EnergyDensityELimit1", &e1l) == false ) { return false; }
       if( vlsvWriter.writeParameter(popName+"_EnergyDensityELimit2", &e2l) == false ) { return false; }
       return true;
-   }
-
-   bool JPerBModifier::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      dataType = "float";
-      dataSize =  sizeof(Real);
-      vectorSize = 1; // This is not components, but rather total energy density, density over E1, and density over E2
-      return true;
-   }
-
-   bool JPerBModifier::writeParameters(vlsv::Writer& vlsvWriter) {
-      return vlsvWriter.writeParameter("j_per_b_modifier", &P::JPerBModifier);
    }
 
    // Heat flux density vector

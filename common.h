@@ -54,6 +54,8 @@ void bailout(
    const int line
 );
 
+[[ noreturn ]] void abort_mpi(const std::string str, const int err_type = 0);
+
 #define sqr(x) ((x)*(x))
 #define pow2(x) sqr(x)
 #define pow3(x) ((x)*(x)*(x))
@@ -67,8 +69,8 @@ void bailout(
 #define MAX_BLOCKS_PER_DIM 256
 
 
-/*! A namespace for storing indices into an array which contains 
- * neighbour list for each spatial cell. These indices refer to 
+/*! A namespace for storing indices into an array which contains
+ * neighbour list for each spatial cell. These indices refer to
  * the CPU memory, i.e. the device does not use these.
  */
 namespace NbrsSpa {
@@ -79,7 +81,7 @@ namespace NbrsSpa {
    const uint Y_POS_BND = (1 << 3);  /*!< The cell is a boundary cell in +y direction.*/
    const uint Z_NEG_BND = (1 << 4); /*!< The cell is a boundary cell in -z direction.*/
    const uint Z_POS_BND = (1 << 5); /*!< The cell is a boundary cell in +z direction.*/
-   
+
    enum {
       STATE, /*!< Contains the neighbour information of this cell, i.e. whether it is an inner cell or a boundary cell in one or more coordinate directions.*/
       MYIND, /*!< The index of this cell.*/
@@ -99,7 +101,7 @@ namespace NbrsSpa {
 }
 
 
-/*! A namespace for storing indices into an array which contains 
+/*! A namespace for storing indices into an array which contains
  * the physical parameters of each velocity block.*/
 namespace BlockParams {
    enum {
@@ -113,9 +115,9 @@ namespace BlockParams {
    };
 }
 
-/*! A namespace for storing indices into an array which contains the 
- * physical parameters of each spatial cell. Do not change the order 
- * of variables unless you know what you are doing - MPI transfers in 
+/*! A namespace for storing indices into an array which contains the
+ * physical parameters of each spatial cell. Do not change the order
+ * of variables unless you know what you are doing - MPI transfers in
  * field solver are relying on this particular ordering, even though the actual
  * fsgrid data layouts might be slightly different (see below).
  *
@@ -175,7 +177,7 @@ namespace CellParams {
       EXVOL,    /*!< Volume electric field averaged over spatial cell, x-component.*/
       EYVOL,    /*!< Volume electric field averaged over spatial cell, y-component.*/
       EZVOL,    /*!< Volume electric field averaged over spatial cell, z-component.*/
-      MAXVDT,             /*!< maximum timestep allowed in velocity space for this cell, 
+      MAXVDT,             /*!< maximum timestep allowed in velocity space for this cell,
                            * this is the max allowed timestep over all particle species.*/
       MAXRDT,             /*!< maximum timestep allowed in ordinary space for this cell,
                            * this is the max allowed timestep over all particle species.*/
@@ -206,8 +208,8 @@ namespace CellParams {
       AMR_DBSQ,
       AMR_DB,
       AMR_ALPHA,
-      RECENTLY_REFINED,
       AMR_JPERB,
+      RECENTLY_REFINED,
       BULKV_FORCING_X, /*! Externally forced drift velocity (ex. from the ionosphere) */
       BULKV_FORCING_Y, /*! Externally forced drift velocity (ex. from the ionosphere) */
       BULKV_FORCING_Z, /*! Externally forced drift velocity (ex. from the ionosphere) */
@@ -217,7 +219,7 @@ namespace CellParams {
 }
 
 /*! The namespace bvolderivatives contains the indices to an array which stores the spatial
- * derivatives of the volume-averaged magnetic field, needed for Lorentz force. 
+ * derivatives of the volume-averaged magnetic field, needed for Lorentz force.
  */
 namespace bvolderivatives {
    enum {
@@ -249,26 +251,26 @@ namespace bvolderivatives {
 // FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
 
 /*! Namespace containing enums and structs for the various field solver grid instances
- * 
+ *
  * Note that in some of these, the order of members differs from the cell
  * parameter fields (see above). So double-check before blindly copying data
  * back and forth.
  */
 namespace fsgrids {
-   enum bfield {
+   enum bfield : int {
       PERBX,  /*!< Perturbed Magnetic field x-component, averaged over cell x-face. Propagated by field solver.*/
       PERBY,  /*!< Perturbed Magnetic field y-component, averaged over cell y-face. Propagated by field solver.*/
       PERBZ,  /*!< Perturbed Magnetic field z-component, averaged over cell z-face. Propagated by field solver.*/
       N_BFIELD
    };
-   
+
    enum efield {
       EX,     /*!< Total electric field x-component, averaged over cell edge. Used to propagate BX,BY,BZ.*/
       EY,     /*!< Total electric field y-component, averaged over cell edge. Used to propagate BX,BY,BZ.*/
       EZ,     /*!< Total electric field z-component, averaged over cell edge. Used to propagate BX,BY,BZ.*/
       N_EFIELD
    };
-   
+
    enum ehall {
       EXHALL_000_100,   /*!< Hall term x averaged along x on -y/-z edge of spatial cell.*/
       EYHALL_000_010,   /*!< Hall term y averaged along y on -x/-z edge of spatial cell.*/
@@ -284,14 +286,14 @@ namespace fsgrids {
       EXHALL_011_111,   /*!< Hall term x averaged along x on +y/+z edge of spatial cell.*/
       N_EHALL
    };
-   
+
    enum egradpe {
       EXGRADPE,         /*!< Electron pressure gradient term x.*/
       EYGRADPE,         /*!< Electron pressure gradient term y.*/
       EZGRADPE,         /*!< Electron pressure gradient term z.*/
       N_EGRADPE
    };
-   
+
    enum moments {
       RHOM, /*!< Overall mass density. Calculated by Vlasov propagator, used to propagate fields.*/
       RHOQ, /*!< Overall charge density. Calculated by Vlasov propagator, used to propagate fields.*/
@@ -303,7 +305,7 @@ namespace fsgrids {
       P_33, /*!< Pressure P_zz component, computed by Vlasov propagator. */
       N_MOMENTS
    };
-   
+
    enum dperb {
       dPERBxdy,     /*!< Derivative of face-averaged Bx to y-direction. */
       dPERBxdz,     /*!< Derivative of face-averaged Bx to z-direction. */
@@ -322,7 +324,7 @@ namespace fsgrids {
       dPERBzdxy,     /*!< Second derivative of face-averaged Bz to xy-direction. */
       N_DPERB
    };
-   
+
    enum dmoments {
       drhomdx,    /*!< Derivative of mass density to x-direction. */
       drhomdy,    /*!< Derivative of mass density to y-direction. */
@@ -353,15 +355,18 @@ namespace fsgrids {
       dPedz,    /*!< Derivative of electron pressure to z-direction. */
       N_DMOMENTS
    };
-   
+
    // NOTE This contains the BGB derivatives as they do not change either
-   enum bgbfield {
+   enum bgbfield : int  {
       BGBX,   /*!< Background magnetic field x-component, averaged over cell x-face.*/
       BGBY,   /*!< Background magnetic field y-component, averaged over cell y-face.*/
       BGBZ,   /*!< Background magnetic field z-component, averaged over cell z-face.*/
       BGBXVOL,   /*!< background magnetic field x-component averaged over spatial cell.*/
       BGBYVOL,   /*!< background magnetic field y-component averaged over spatial cell.*/
       BGBZVOL,   /*!< background magnetic field z-component averaged over spatial cell.*/
+      BGBXVDCORR, /*!< correction term for background magnetic field, used by vector dipole.*/
+      BGBYVDCORR, /*!< correction term for background magnetic field, used by vector dipole.*/
+      BGBZVDCORR, /*!< correction term for background magnetic field, used by vector dipole.*/
       dBGBxdy,     /*!< Derivative of background face-averaged Bx in y-direction. */
       dBGBxdz,     /*!< Derivative of background face-averaged Bx in z-direction. */
       dBGBydx,     /*!< Derivative of background face-averaged By in x-direction. */
@@ -379,7 +384,7 @@ namespace fsgrids {
       dBGBZVOLdz,  /*!< Derivative of background volume-averaged Bz in z-direction. */
       N_BGB
    };
-   
+
    // NOTE This contains the PERBVOL derivatives
    enum volfields {
       PERBXVOL,  /*!< perturbed magnetic field  PERBX averaged over spatial cell.*/
@@ -402,7 +407,7 @@ namespace fsgrids {
       CURVATUREZ, /*!< Magnetic field curvature vector z component, grid-glued to DCCRG */
       N_VOL
    };
-   
+
    struct technical {
       uint sysBoundaryFlag;  /*!< System boundary flags. */
       int sysBoundaryLayer; /*!< System boundary layer index. */
@@ -411,13 +416,13 @@ namespace fsgrids {
       uint SOLVE;           /*!< Bit mask to determine whether a given cell should solve E or B components. */
       int refLevel;         /*!<AMR Refinement Level*/
    };
-   
+
 }
 
 // Ionosphere node parameters
 enum ionosphereParameters {
   SOURCE,    /*!< Field aligned current source term (Ampere). Note: this is current, *not* density. */
-  SIGMA,   SIGMA12, SIGMA13, 
+  SIGMA,   SIGMA12, SIGMA13,
   SIGMA21, SIGMA22, SIGMA23, /*!< Overall conductivity tensor */
   SIGMA31, SIGMA32, SIGMA33,
 
@@ -446,10 +451,11 @@ namespace sysboundarytype {
    enum {
       DO_NOT_COMPUTE,   /*!< E.g. cells within the ionospheric outer radius should not be computed at all. */
       NOT_SYSBOUNDARY,  /*!< Cells within the simulation domain are not boundary cells. */
-      IONOSPHERE,       /*!< Ionospheric current model */
+      IONOSPHERE,       /*!< Ionospheric current model. */
       OUTFLOW,          /*!< No fixed conditions on the fields and distribution function. */
-      SET_MAXWELLIAN,   /*!< Set Maxwellian boundary condition, i.e. set fields and distribution function. */
+      MAXWELLIAN,       /*!< Set Maxwellian boundary condition, i.e. set fields and distribution function. */
       COPYSPHERE,       /*!< A sphere with copy-condition for perturbed B as the simple inner boundary */
+      OUTER_BOUNDARY_PADDING, /*!< These cells only occur on FSGrid, where boundaries are not at the highest refinement level */
       N_SYSBOUNDARY_CONDITIONS
    };
 }
@@ -495,6 +501,7 @@ struct globalflags {
    static int bailingOut; /*!< Global flag raised to true if a run bailout (write restart if requested/set and stop the simulation peacefully) is needed. */
    static bool writeRestart; /*!< Global flag raised to true if a restart writing is needed (without bailout). NOTE: used only by MASTER_RANK in vlasiator.cpp. */
    static bool balanceLoad; /*!< Global flag raised to true if a load balancing is needed. NOTE: used only by MASTER_RANK in vlasiator.cpp. */
+   static bool doRefine; /*!< Global flag raised to true if a re-refine is needed. NOTE: used only by MASTER_RANK in vlasiator.cpp. */
    static int AMRstencilWidth; /*!< Global variable used for the extended AMR stencil width */
    static bool ionosphereJustSolved; /*!< Flag used to notify that the ionosphere has been freshly solved, used to check whether the Vlasov boundary/bulk forcing need updating. */
 };
