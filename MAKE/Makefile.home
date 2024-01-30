@@ -35,4 +35,4 @@ LIB_PROFILE = -L${HOME}/phiprof/lib -lphiprof
 INC_PROFILE = -I${HOME}/phiprof/include
 INC_TOPO =
 
-INC_EIGEN = -I${HOME}/include
+INC_EIGEN = -I ./submodules/eigen/
