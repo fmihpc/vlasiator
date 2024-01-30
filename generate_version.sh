@@ -102,14 +102,23 @@ std::string getVersion() {
 EOF
 
 echo "  versionInfo+=\"----------- Compilation --------- \n\";" >>version.cpp
-echo "  versionInfo+=\"date:       $(date)\n\";" >>version.cpp
-echo "  versionInfo+=\"CMP:        $1 \n\";" >>version.cpp
-echo "  versionInfo+=\"CXXFLAGS:   $2 \n\";" >>version.cpp
-echo "  versionInfo+=\"FLAGS:      $3 \n\";" >>version.cpp
-echo "  versionInfo+=\"INC_MPI:    $4 \n\";" >>version.cpp
-echo "  versionInfo+=\"INC_DCCRG:  $5 \n\";" >>version.cpp
-echo "  versionInfo+=\"INC_ZOLTAN: $6 \n\";" >>version.cpp
-echo "  versionInfo+=\"INC_BOOST:  $7 \n\";" >>version.cpp
+echo "  versionInfo+=\"date:           $(date)\n\";" >>version.cpp
+echo "  versionInfo+=\"CMP:            $1 \n\";" >>version.cpp
+echo "  versionInfo+=\"CXXFLAGS:       $2 \n\";" >>version.cpp
+echo "  versionInfo+=\"FLAGS:          $3 \n\";" >>version.cpp
+echo "  versionInfo+=\"INC_MPI:        $4 \n\";" >>version.cpp
+echo "  versionInfo+=\"INC_ZOLTAN:     $5 \n\";" >>version.cpp
+echo "  versionInfo+=\"INC_BOOST:      $6 \n\";" >>version.cpp
+echo "  versionInfo+=\"INC_DCCRG:      $7 \n\";" >>version.cpp
+echo "  versionInfo+=\"                commit: $8 \n\";" >>version.cpp
+echo "  versionInfo+=\"INC_FSGRID:     $9 \n\";" >>version.cpp
+echo "  versionInfo+=\"                commit: ${10} \n\";" >>version.cpp
+echo "  versionInfo+=\"INC_VLSV:       ${11} \n\";" >>version.cpp
+echo "  versionInfo+=\"                commit: ${12} \n\";" >>version.cpp
+echo "  versionInfo+=\"INC_HASHINATOR: ${13} \n\";" >>version.cpp
+echo "  versionInfo+=\"                commit: ${14} \n\";" >>version.cpp
+echo "  versionInfo+=\"INC_PHIPROF:    ${15} \n\";" >>version.cpp
+echo "  versionInfo+=\"                commit: ${16} \n\";" >>version.cpp
 
 
 echo "     versionInfo+= \"----------- git branch ---------n\";" >>version.cpp
