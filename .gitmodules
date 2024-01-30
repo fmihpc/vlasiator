@@ -2,7 +2,11 @@
 	path = submodules/fsgrid
 	url = git@github.com:fmihpc/fsgrid.git
 
-
 [submodule "submodules/dccrg"]
 	path = submodules/dccrg
 	url = https://github.com/fmihpc/dccrg.git
+   
+[submodule "submodules/eigen"]
+	path = submodules/eigen
+	url = https://gitlab.com/libeigen/eigen.git
+	branch = 3.2
