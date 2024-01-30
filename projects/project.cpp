@@ -498,7 +498,7 @@ namespace projects {
 
    /*
      Refine cells of mpiGrid. Each project that wants refinement should implement this function. 
-     Base class function prints a warning and does nothing.
+     Base class function uses AMR box half width parameters
     */
    bool Project::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
       int myRank;
