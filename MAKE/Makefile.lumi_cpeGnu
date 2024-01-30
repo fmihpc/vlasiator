@@ -86,7 +86,4 @@ LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -lgfortran -Wl,-rpath=$(
 INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include 
 
 #header libraries
-INC_FSGRID = -I./submodules/fsgrid
 INC_EIGEN = -isystem $(LIBRARY_PREFIX_HEADERS)/eigen/
-INC_DCCRG = -I./submodules/dccrg
-INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/
