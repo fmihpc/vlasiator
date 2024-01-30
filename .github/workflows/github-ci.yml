@@ -83,7 +83,7 @@ jobs:
     steps:
       - name: Submit library job
         run: |
-          srun --interactive -p arriesgado-jammy -J vlasiator-libs --pty -t 01:00:00 bash -lc 'module load openmpi; cp ~/vlasiator/build_libraries.sh .; ./build_libraries.sh arriesgado'
+          srun --interactive -p arriesgado-jammy -J vlasiator-libs -n 1 -c 4 --pty -t 01:00:00 bash -lc 'module load openmpi; cp ~/vlasiator/build_libraries.sh .; ./build_libraries.sh arriesgado'
       - name: Build libraries tar
         run: tar -czvf libraries-arriesgado.tar.gz libraries-arriesgado/
       - name: Upload libraries as artifact
@@ -174,7 +174,7 @@ jobs:
       run: VLASIATOR_ARCH=arriesgado make clean
     - name: Compile vlasiator (RISC-V)
       run: |
-          srun --interactive -p arriesgado-jammy -J vlasiator_build --pty -t 01:00:00 bash -lc 'module load boost papi openmpi; export VLASIATOR_ARCH=arriesgado; make -j4'
+          srun --interactive -p arriesgado-jammy -J vlasiator_build -n 1 -c 4 --pty -t 01:00:00 bash -lc 'module load boost papi openmpi; export VLASIATOR_ARCH=arriesgado; make -j4'
     - name: Upload riscv binary
       uses: actions/upload-artifact@v3
       with:
