@@ -10,11 +10,11 @@
 
 ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
 #Single-precision        
-        INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/Codes/vectorclass/version1
+        INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/
 	VECTORCLASS = VEC4F_FALLBACK
 else
 #Double-precision
-        INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/Codes/vectorclass/version1
+        INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/
 	VECTORCLASS = VEC4D_FALLBACK
 endif
 

@@ -89,6 +89,6 @@ LIB_PAPI = -L$(LIBRARY_PREFIX)/papi/lib -lpapi -lpfm
 INC_FSGRID = -I./submodules/fsgrid
 INC_EIGEN = -I$(HEADER_LIBRARY_PREFIX)/eigen
 INC_DCCRG = -I./submodules/dccrg
-INC_VECTORCLASS = -I$(HEADER_LIBRARY_PREFIX)/vectorclass
+INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/
 
 
