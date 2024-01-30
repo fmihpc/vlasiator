@@ -39,12 +39,6 @@ jobs:
           cp libvlsv.a $GITHUB_WORKSPACE/libraries/lib
           cp *.h $GITHUB_WORKSPACE/libraries/include
           cd ..
-      - name: Download vectorclass
-        run: |
-          git clone https://github.com/vectorclass/version1
-          git clone https://github.com/vectorclass/add-on
-          cp add-on/vector3d/vector3d.h version1/
-          cp version1/*.h $GITHUB_WORKSPACE/libraries/include
       - name: Build papi
         run: |
           git clone https://github.com/icl-utk-edu/papi

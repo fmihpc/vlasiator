@@ -89,4 +89,4 @@ INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
 INC_FSGRID = -I./submodules/fsgrid
 INC_EIGEN = -isystem $(LIBRARY_PREFIX_HEADERS)/eigen/
 INC_DCCRG = -I./submodules/dccrg
-INC_VECTORCLASS = -I$(LIBRARY_PREFIX_HEADERS)/vectorclass/
+INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/
