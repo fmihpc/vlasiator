@@ -119,20 +119,37 @@ std::vector<double> readFieldData(Reader& r, std::string& name, unsigned int num
       exit(1);
    }
 
-   if(dataType != vlsv::datatype::type::FLOAT || byteSize != 8 || vectorSize != numcomponents) {
+   if(byteSize == 8) {
+      /* Allocate memory for the data */
+      std::vector<double> buffer(arraySize*vectorSize);
+      
+      if( r.readArray("VARIABLE",attribs,0,arraySize,(char*) buffer.data()) == false) {
+         std::cerr << "readArray failed when trying to read VARIABLE \"" << name << "\"." << std::endl;
+         exit(1);
+      }
+      
+      return buffer;
+   } else if(byteSize == 4) {
+      /* Allocate memory for the data */
+      std::vector<double> buffer;
+      std::vector<float>  fbuffer(arraySize*vectorSize);
+      
+      if( r.readArray("VARIABLE",attribs,0,arraySize,(char*) fbuffer.data()) == false) {
+         std::cerr << "readArray faied when trying to read VARIABLE \"" << name << "\"." << std::endl;
+         exit(1);
+      }
+      
+      for(float value : fbuffer) {
+         buffer.push_back((double)value);
+      }
+      
+      return buffer;
+   } else {
       std::cerr << "Datatype of VARIABLE \"" << name << "\" entries is not double." << std::endl;
       exit(1);
    }
-
-   /* Allocate memory for the data */
-   std::vector<double> buffer(arraySize*vectorSize);
-
-   if( r.readArray("VARIABLE",attribs,0,arraySize,(char*) buffer.data()) == false) {
-      std::cerr << "readArray faied when trying to read VARIABLE \"" << name << "\"." << std::endl;
-      exit(1);
-   }
-
-   return buffer;
+   
+   return {0};
 }
 
 /* Read the "raw" FsGrid data in file order */
