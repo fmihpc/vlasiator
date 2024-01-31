@@ -115,5 +115,5 @@ LIB_PAPI = -lpapi
 INC_EIGEN = -isystem $(LIBRARY_PREFIX)/ -isystem $(LIBRARY_PREFIX)/Eigen/
 INC_FSGRID = -I./submodules/fsgrid/
 INC_DCCRG = -I./submodules/dccrg/
-INC_VECTORCLASS = -isystem $(LIBRARY_PREFIX)/vectorclass/
+INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/
 
