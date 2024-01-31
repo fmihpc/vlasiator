@@ -17,6 +17,8 @@ jobs:
     container: ursg/vlasiator_ci:20230220_1
 
     steps:
+      - name: Checkout source
+        uses: actions/checkout@v3
       - name: Run library build script
         run: ./build_libraries.sh
       - name: Build libraries tar
