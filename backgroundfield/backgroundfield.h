@@ -24,6 +24,7 @@
 #define BACKGROUNDFIELD_H
 
 #include "fieldfunction.hpp"
+#include "integratefunction.hpp"
 #include "../definitions.h"
 #include "../common.h"
 #include "fsgrid.hpp"
@@ -38,15 +39,98 @@ void setBackgroundFieldToZero(
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid
 );
 
-void setPerturbedField(
-   const FieldFunction& bgFunction,
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   bool append=false
-);
+/**
+   Templated function for setting the perturbed B field to zero.
+   Function is templated so it may, if necessary, be called to set the
+   vector dipole correction terms inside the background field FSgrid
+   object to zero (see setPerturbedField below).
+*/
+template<long unsigned int numFields> void setPerturbedFieldToZero(
+   FsGrid< std::array<Real, numFields>, FS_STENCIL_WIDTH> & BGrid,
+   int offset=fsgrids::bfield::PERBX
+   ) {
+   std::array<FsGridTools::FsIndex_t,3> localSize = BGrid.getLocalSize();
 
-void setPerturbedFieldToZero(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid
-);
+   #pragma omp parallel for collapse(2)
+   for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
+      for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
+         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
+            // This is still N_BFIELD (==3) instead of numFields
+            for (int i = 0; i < fsgrids::bfield::N_BFIELD; ++i) {
+               BGrid.get(x,y,z)->at(offset+i) = 0;
+            }
+         }
+      }
+   }
+}
+
+
+/**
+    This function is used along with a field function to append the given function values to the
+    perturbed B grid.
+    A special other use case is, if using a Magnetosphere with dipole type 4 (vector dipole), when
+    the corrective terms to vanish the dipole towards the inflow boundary are stored in 
+    the backgroundfield FSgrid object at offset fsgrids::bgbfield::BGBXVDCORR
+*/
+template<long unsigned int numFields> void setPerturbedField(
+   const FieldFunction& bfFunction,
+   FsGrid< std::array<Real, numFields>, FS_STENCIL_WIDTH> & BGrid,
+   int offset=fsgrids::bfield::PERBX,
+   bool append=false) {
+
+   using namespace std::placeholders;
+
+   /*if we do not add a new background to the existing one we first put everything to zero*/
+   if(append==false) {
+      setPerturbedFieldToZero(BGrid,offset);
+   }
+
+   //these are doubles, as the averaging functions copied from Gumics
+   //use internally doubles. In any case, it should provide more
+   //accurate results also for float simulations
+   const double accuracy = 1e-17;
+   unsigned int faceCoord1[3];
+   unsigned int faceCoord2[3];
+
+   //the coordinates of the edges face with a normal in the third coordinate direction, stored here to enable looping
+   faceCoord1[0]=1;
+   faceCoord2[0]=2;
+   faceCoord1[1]=0;
+   faceCoord2[1]=2;
+   faceCoord1[2]=0;
+   faceCoord2[2]=1;
+
+   std::array<FsGridTools::FsIndex_t,3> localSize = BGrid.getLocalSize();
+
+   // These are threaded now that the stuff around here is threadsafe
+   #pragma omp parallel for collapse(2)
+   for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
+      for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
+         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
+            std::array<double, 3> start = BGrid.getPhysicalCoords(x, y, z);
+            double dx[3];
+            dx[0] = BGrid.DX;
+            dx[1] = BGrid.DY;
+            dx[2] = BGrid.DZ;
+
+            //Face averages
+            for(uint fComponent=0; fComponent<3; fComponent++){
+               T3DFunction valueFunction = std::bind(bfFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, (coordinate)fComponent, 0, (coordinate)0);
+               BGrid.get(x,y,z)->at(offset+fComponent) += // offset defaults to fsgrids::bfield::PERBX
+                  surfaceAverage(valueFunction,
+                     (coordinate)fComponent,
+                                 accuracy,
+                                 start.data(),
+                                 dx[faceCoord1[fComponent]],
+                                 dx[faceCoord2[fComponent]]
+                                );
+
+	    }
+	    // Derivatives or volume averages are not calculated for the perBField
+	 }
+      }
+   }
+}
 
 #endif
 

@@ -33,13 +33,8 @@ namespace DRO {
    
    template <typename T> class DataReductionOperatorPopulations: public DataReductionOperator {
    public:
-      DataReductionOperatorPopulations(const std::string& name,const uint popID, const unsigned int byteOffset,const unsigned int vectorSize):
-   DataReductionOperator() {
-      _vectorSize=vectorSize;
-      _name=name;
-      _byteOffset=byteOffset;
-      _popID=popID;
-   };
+      DataReductionOperatorPopulations(const std::string& name,const uint popID, const unsigned int byteOffset,const unsigned int vectorSize) : 
+         DataReductionOperator(), _byteOffset {byteOffset}, _vectorSize {vectorSize}, _popID {popID}, _name {name} {}
       virtual ~DataReductionOperatorPopulations() {};
       
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
@@ -86,7 +81,7 @@ namespace DRO {
          const T* ptr = reinterpret_cast<const T*>(population_struct + _byteOffset);
 
          for (uint i=0; i<_vectorSize; i++) {
-            if(std::isinf(ptr[i]) || std::isnan(ptr[i])) {
+            if(!std::isfinite(ptr[i])) {
                std::string message = "The DataReductionOperator " + this->getName() + " returned a nan or an inf.";
                bailout(true, message, __FILE__, __LINE__);
             }

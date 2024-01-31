@@ -6,7 +6,8 @@ FLAGS =
 # note: testpackage settings missing
 CXXFLAGS = -I$(HOME)/include -I/usr/include -L$(HOME)/lib -L/usr/lib -O3 -funroll-loops -std=c++17 -W -Wall -pedantic -Wno-unused -Wno-unused-parameter -Wno-missing-braces  -fopenmp
 #CXXFLAGS = -I$(HOME)/include -L$(HOME)/lib -O0 -funroll-loops -std=c++17 -W -Wall -pedantic -Wno-unused -Wno-unused-parameter -Wno-missing-braces -g -fopenmp
-MATHFLAGS = -ffast-math
+MATHFLAGS = -ffast-math -fno-finite-math-only
+testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
 LDFLAGS = -L $(HOME)/lib
 LIB_MPI = -lgomp
 # LIB_MPI = 
@@ -26,7 +27,9 @@ LIB_VLSV = -lvlsv
 INC_SILO = -I${HOME}/include
 LIB_SILO = -L${HOME}/lib -lsilo
 
-INC_DCCRG = -I${HOME}/include
+INC_DCCRG = -I./submodules/dccrg
+
+INC_FSGRID = -I./submodules/fsgrid
 
 LIB_PROFILE = -L${HOME}/phiprof/lib -lphiprof
 INC_PROFILE = -I${HOME}/phiprof/include

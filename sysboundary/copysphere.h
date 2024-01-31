@@ -20,8 +20,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef CONDUCTINGSPHERE_H
-#define CONDUCTINGSPHERE_H
+#ifndef COPYSPHERE_H
+#define COPYSPHERE_H
 
 #include <vector>
 #include "../definitions.h"
@@ -34,60 +34,60 @@ using namespace std;
 
 namespace SBC {
 
-   struct ConductingsphereSpeciesParameters {
+   struct CopysphereSpeciesParameters {
       Real rho;
       Real V0[3];
       Real T;
       Real fluffiness;
-      uint nSpaceSamples;
-      uint nVelocitySamples;
    };
 
-   /*!\brief Conductingsphere is a class applying an ionosphere-ish boundary conditions.
+   /*!\brief Copysphere is a class applying an ionosphere-ish boundary conditions.
     * 
-    * Conductingsphere is a class handling cells tagged as sysboundarytype::CONDUCTINGSPHERE by this system boundary condition. It applies perfectly conducting boundary conditions.
+    * Copysphere is a class handling cells tagged as sysboundarytype::COPYSPHERE by this system boundary condition. It applies copy boundary conditions to perturbed magnetic field.
     * 
     * These consist in:
     * - Do nothing for the distribution (keep the initial state constant in time);
-    * - Keep only the normal perturbed B component and null out the other perturbed components (perfect conductor behavior);
+    * - Copy the closest neighbors' perturbed B and average it;
     * - Null out the electric fields.
     *
     * For 3D magnetospheric simulations, you might be interesting in trying the ionosphere boundary instead!
     */
-   class Conductingsphere: public SysBoundaryCondition {
+   class Copysphere: public SysBoundaryCondition {
    public:
-      Conductingsphere();
-      virtual ~Conductingsphere();
+      Copysphere();
+      virtual ~Copysphere();
       
       static void addParameters();
       virtual void getParameters();
       
-      virtual bool initSysBoundary(
+      virtual void initSysBoundary(
          creal& t,
          Project &project
       );
-      virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      virtual void assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid);
-      virtual bool applyInitialState(
-         const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      virtual void applyInitialState(
+         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+         FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
          Project &project
+      );
+      virtual void updateState(
+         dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+         FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid,
+         FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> &BgBGrid,
+         creal t
       );
       virtual Real fieldSolverBoundaryCondMagneticField(
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
+         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & bgbGrid,
          FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
          cint i,
          cint j,
          cint k,
-         creal& dt,
-         cuint& component
-      );
-      virtual void fieldSolverBoundaryCondMagneticFieldProjection(
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-         cint i,
-         cint j,
-         cint k
+         creal dt,
+         cuint component
       );
       virtual void fieldSolverBoundaryCondElectricField(
          FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
@@ -116,23 +116,24 @@ namespace SBC {
          cint i,
          cint j,
          cint k,
-         cuint& RKCase,
-         cuint& component
+         cuint RKCase,
+         cuint component
       );
       virtual void fieldSolverBoundaryCondBVOLDerivatives(
          FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
          cint i,
          cint j,
          cint k,
-         cuint& component
+         cuint component
       );
       virtual void vlasovBoundaryCondition(
-         const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,
          const uint popID,
          const bool calculate_V_moments
       );
       
+      void getFaces(bool *faces) override;
       virtual std::string getName() const;
       virtual uint getIndex() const;
       
@@ -153,21 +154,21 @@ namespace SBC {
          cint k
       );
       
-      Real center[3]; /*!< Coordinates of the centre of the conducting sphere. */
-      Real radius; /*!< Radius of the conducting sphere. */
-      uint geometry; /*!< Geometry of the conducting sphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT), 3: polar-plane cylinder with line dipole. */
+      Real center[3]; /*!< Coordinates of the centre of the copy sphere. */
+      Real radius; /*!< Radius of the copy sphere. */
+      uint geometry; /*!< Geometry of the copy sphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT), 3: polar-plane cylinder with line dipole. */
 
-      std::vector<ConductingsphereSpeciesParameters> speciesParams;
+      std::vector<CopysphereSpeciesParameters> speciesParams;
       Real T;
       Real rho;
       Real VX0;
       Real VY0;
       Real VZ0;
-      
-      uint nSpaceSamples;
-      uint nVelocitySamples;
+
+      bool zeroPerB;
       
       spatial_cell::SpatialCell templateCell;
+
    };
 }
 

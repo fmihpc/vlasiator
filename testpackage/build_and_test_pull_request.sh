@@ -137,7 +137,7 @@ elif [ 1 -eq $(( $MAXERR > 0 )) ]; then
    echo -e ":large_orange_diamond: $CURRENT_TEST: Nonzero diffs: \`$MAXVAR\` has absolute error $MAXERR, relative error $MAXREL."  >> /tmp/githubcomment_$HEAD.txt
 else
    echo -e "\e[32m>>> Zero diffs in test $CURRENT_TEST\e[0m"
-   echo -e ":x: $CURRENT_TEST: Zero diffs." >> /tmp/githubcomment_$HEAD.txt 
+   echo -e ":heav_check_mark: $CURRENT_TEST: Zero diffs." >> /tmp/githubcomment_$HEAD.txt
 fi
 
 echo "\nFull testpackage run output is available in \``pwd`/testpackage_run_$HEAD.log\` on host \`$HOST\`" >> /tmp/githubcomment_$HEAD.txt

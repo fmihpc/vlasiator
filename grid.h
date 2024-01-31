@@ -106,7 +106,7 @@ void report_grid_memory_consumption(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
 void shrink_to_fit_grid_data(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 
 /** Validate the velocity mesh structure. This function is only relevant for 
- * the AMR mesh. It makes sure that the mesh structure is valid for all spatial cells, 
+ * the VAMR mesh. It makes sure that the mesh structure is valid for all spatial cells, 
  * i.e., that each velocity block has at most one refinement level difference to 
  * its neighbors (in spatial and velocity space).
  * @param mpiGrid Parallel grid.
@@ -115,5 +115,18 @@ void shrink_to_fit_grid_data(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
 bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID);
 
 void setFaceNeighborRanks( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid );
+
+/*! Map grid refinement to FsGrid
+ */
+void mapRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid);
+
+/*! Refine spatial cells and update necessary information
+ * \param mpiGrid Spatial grid
+ * \param technicalGrid Technical grid
+ * \param sysBoundaries System boundaries
+ * \param project Project used
+ * \param useStatic Used for forcing static refinement on restart. Negative values use adaptive refinement, non-negative values correspond to static refinement pass in Project::forceRefinement
+ */
+bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, SysBoundary& sysBoundaries, Project& project, int useStatic = -1);
 
 #endif

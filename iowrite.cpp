@@ -45,9 +45,9 @@
 #include "vlasovmover.h"
 #include "object_wrapper.h"
 #include "sysboundary/ionosphere.h"
+#include "fieldtracing/fieldtracing.h"
 
 using namespace std;
-using namespace phiprof;
 using namespace vlsv;
 
 extern Logger logFile, diagnostic;
@@ -95,7 +95,7 @@ bool updateLocalIds(  dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
  \param comm The MPI comm
  \return Returns true if all of the processes running this function had success value of true, false otherwise
  */
-bool globalSuccess(bool success,string errorMessage,MPI_Comm comm){
+bool globalSuccess(bool success, const string& errorMessage, MPI_Comm comm){
    int successInt;
    int globalSuccessInt;
    if(success)
@@ -318,24 +318,24 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
                       const bool writeAsFloat,
+                      const bool writeFsGrid,
                       DataReducer& dataReducer,
-                      int dataReducerIndex,
+                      cint dataReducerIndex,
                       Writer& vlsvWriter){
    map<string,string> attribs;
    string variableName,dataType,unitString,unitStringLaTeX, variableStringLaTeX, unitConversionFactor;
    bool success=true;
-
+   
+   if(!writeFsGrid) { // if we shouldn't write fsgrid DROs
+      variableName = dataReducer.getName(dataReducerIndex);
+      if(variableName.find("fg_", 0) == 0) { // and if the DRO's name includes the string "fg_"
+         return success; // we're good to go
+      }
+   }
+   
    const string meshName = "SpatialGrid";
    variableName = dataReducer.getName(dataReducerIndex);
-   phiprof::start("DRO_"+variableName);
-
-   // If the DataReducer can write its data directly to the output file, do it here.
-   // Otherwise the output data is buffered and written below.
-   if (dataReducer.handlesWriting(dataReducerIndex) == true) {
-      success = dataReducer.writeData(dataReducerIndex,mpiGrid,cells,meshName,vlsvWriter);
-      phiprof::stop("DRO_"+variableName);
-      return success;
-   }
+   phiprof::Timer droTimer {"DRO_"+variableName};
 
    //Get basic data on a variable:
    uint dataSize,vectorSize;
@@ -343,14 +343,12 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    attribs["name"] = variableName;
    if (dataReducer.getDataVectorInfo(dataReducerIndex,dataType,dataSize,vectorSize) == false) {
       cerr << "ERROR when requesting info from DRO " << dataReducerIndex << endl;
-      phiprof::stop("DRO_"+variableName);
       return false;
    }
 
    // Request variable unit metadata: unit, latex-formatted unit, and conversion factor to SI
    if (dataReducer.getMetadata(dataReducerIndex,unitString,unitStringLaTeX,variableStringLaTeX,unitConversionFactor) == false) {
       cerr << "ERROR when requesting unit metadata from DRO " << dataReducerIndex << endl;
-      phiprof::stop("DRO_"+variableName);
       return false;
    }
    attribs["unit"]=unitString;
@@ -360,7 +358,6 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 
    // If DRO has a vector size of 0 it means this DRO should not write out anything. This is used e.g. for DROs we want only for certain populations.
    if (vectorSize == 0) {
-      phiprof::stop("DRO_"+variableName);
       return true;
    }
 
@@ -373,7 +370,6 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    } catch( bad_alloc& ) {
       cerr << "ERROR, FAILED TO ALLOCATE MEMORY AT: " << __FILE__ << " " << __LINE__ << endl;
       logFile << "(MAIN) writeGrid: ERROR FAILED TO ALLOCATE MEMORY AT: " << __FILE__ << " " << __LINE__ << endl << writeVerbose;
-      phiprof::stop("DRO_"+variableName);
       return false;
    }
 
@@ -384,6 +380,7 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
          // Note that this is not an error (anymore), since fsgrid reducers will return false here.
       }
    }
+
    if( success ) {
 
       if( (writeAsFloat == true && dataType.compare("float") == 0) && dataSize == sizeof(double) ) {
@@ -401,7 +398,6 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
             logFile << "(MAIN) writeGrid: ERROR FAILED TO ALLOCATE MEMORY AT: " << __FILE__ << " " << __LINE__ << endl << writeVerbose;
             delete[] varBuffer;
             varBuffer = NULL;
-            phiprof::stop("DRO_"+variableName);
             return false;
          }
          //Input varBuffer_double into varBuffer_smaller:
@@ -412,35 +408,34 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
          //Cast the varBuffer to char:
          char * varBuffer_smaller_char = reinterpret_cast<char*>(varBuffer_smaller);
          //Write the array:
-         phiprof::start("writeArray");
+         phiprof::Timer writeArrayTimer {"writeArray"};
          if (vlsvWriter.writeArray("VARIABLE", attribs, dataType_smaller, arraySize_smaller, vectorSize_smaller, dataSize_smaller, varBuffer_smaller_char) == false) {
             success = false;
             logFile << "(MAIN) writeGrid: ERROR failed to write datareductionoperator data to file!" << endl << writeVerbose;
          }
-         phiprof::stop("writeArray");
+         writeArrayTimer.stop();
          delete[] varBuffer_smaller;
          varBuffer_smaller = NULL;
       } else {
          // Write  reduced data to file if DROP was successful:
-         phiprof::start("writeArray");
+         phiprof::Timer writeArrayTimer {"writeArray"};
          if (vlsvWriter.writeArray("VARIABLE",attribs, dataType, cells.size(), vectorSize, dataSize, varBuffer) == false) {
             success = false;
             logFile << "(MAIN) writeGrid: ERROR failed to write datareductionoperator data to file!" << endl << writeVerbose;
          }
-         phiprof::stop("writeArray");
       }
 
    } else {
       // If the data reducer didn't want to write dccrg data, maybe it will be happy
       // dumping data straight from fsgrid into our file.
-      phiprof::start("writeFsGrid");
+      phiprof::Timer writeFsTimer {"writeFsGrid"};
       success = dataReducer.writeFsGridData(perBGrid,EGrid,EHallGrid,EGradPeGrid,momentsGrid,dPerBGrid,dMomentsGrid,BgBGrid,volGrid, technicalGrid, "fsgrid", dataReducerIndex, vlsvWriter, writeAsFloat);
-      phiprof::stop("writeFsGrid");
+      writeFsTimer.stop();
 
       // Or maybe it will be writing ionosphere data?
-      phiprof::start("writeIonosphere");
+      phiprof::Timer writeIonosphereTimer {"writeIonosphere"};
       success |= dataReducer.writeIonosphereGridData(SBC::ionosphereGrid, "ionosphere", dataReducerIndex, vlsvWriter);
-      phiprof::stop("writeIonosphere");
+      writeIonosphereTimer.stop();
    }
    
    // Check if the DataReducer wants to write paramters to the output file
@@ -450,7 +445,6 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 
    delete[] varBuffer;
    varBuffer = NULL;
-   phiprof::stop("DRO_"+variableName);
    return success;
 }
 
@@ -475,7 +469,6 @@ bool writeCommonGridData(
    // Writes parameters and cell ids into the VLSV file
    int myRank;
    MPI_Comm_rank(comm, &myRank);
-   const int masterProcessId = 0;
    //Write local cells into array as a variable:
    //Note: This needs to be done separately from the array MESH
    const short unsigned int vectorSize = 1;
@@ -502,11 +495,16 @@ bool writeCommonGridData(
    if( vlsvWriter.writeParameter("xcells_ini", &P::xcells_ini) == false ) { return false; }
    if( vlsvWriter.writeParameter("ycells_ini", &P::ycells_ini) == false ) { return false; }
    if( vlsvWriter.writeParameter("zcells_ini", &P::zcells_ini) == false ) { return false; }
+   if( FieldTracing::fieldTracingParameters.doTraceFullBox ) {
+      if( vlsvWriter.writeParameter("fieldTracingFluxRopeMaxDistance", &FieldTracing::fieldTracingParameters.fluxrope_max_curvature_radii_to_trace ) == false ) {
+         return false;
+      }
+   }
 
    //Mark the new version:
    float version = 3.00;
    if( vlsvWriter.writeParameter( "version", &version ) == false ) { return false; }
-   return true; 
+   return true;
 }
 
 /*! Writes ghost cell ids into the file
@@ -629,11 +627,6 @@ bool writeZoneGlobalIdNumbers( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_G
          return false;
       }
    }
-
-   //Get the cells in x, y, z direction right off the bat (for the sake of clarity):
-   const unsigned int xCells = P::xcells_ini;
-   const unsigned int yCells = P::ycells_ini;
-   const unsigned int zCells = P::zcells_ini;
 
    vector<uint64_t> globalIds;
    globalIds.reserve( local_cells.size() + ghost_cells.size() );
@@ -885,7 +878,8 @@ bool writeConfigInfo(std::string config,vlsv::Writer& vlsvWriter,MPI_Comm comm){
  * @param technicalGrid An fsgrid instance used to extract metadata info.
  * @param vlsvWriter file object to write into.
  */
-bool writeFsGridMetadata(FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, vlsv::Writer& vlsvWriter) {
+bool writeFsGridMetadata(FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, vlsv::Writer& vlsvWriter,
+   bool writeIDs=false) {
 
   std::map<std::string, std::string> xmlAttributes;
   const std::string meshName="fsgrid";
@@ -893,8 +887,8 @@ bool writeFsGridMetadata(FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technic
 
   //The visit plugin expects MESH_BBOX as a keyword. We only write one
   //from the first rank.
-  std::array<int32_t, 3>& globalSize = technicalGrid.getGlobalSize();
-  std::array<int64_t, 6> boundaryBox({globalSize[0], globalSize[1], globalSize[2],
+  std::array<FsGridTools::FsSize_t, 3>& globalSize = technicalGrid.getGlobalSize();
+  std::array<FsGridTools::FsSize_t, 6> boundaryBox({globalSize[0], globalSize[1], globalSize[2],
       1,1,1});
 
   if(technicalGrid.getRank() == 0) {
@@ -940,30 +934,24 @@ bool writeFsGridMetadata(FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technic
   vlsvWriter.writeArray("MESH_GHOST_DOMAINS", xmlAttributes, 0, 1, &dummyghost);
   vlsvWriter.writeArray("MESH_GHOST_LOCALIDS", xmlAttributes, 0, 1, &dummyghost);
 
-  // Write cell "globalID" numbers, which are just the global array indices.
-  std::array<int32_t,3>& localSize = technicalGrid.getLocalSize();
-  std::vector<uint64_t> globalIds(localSize[0]*localSize[1]*localSize[2]);
-  int i=0;
-  for(int z=0; z<localSize[2]; z++) {
-    for(int y=0; y<localSize[1]; y++) {
-      for(int x=0; x<localSize[0]; x++) {
-        std::array<int32_t,3> globalIndex = technicalGrid.getGlobalIndices(x,y,z);
-        globalIds[i++] = globalIndex[2]*globalSize[0]*globalSize[1]+
-          globalIndex[1]*globalSize[0] +
-          globalIndex[0];
-      }
-    }
-  }
-
-
   // writeDomainSizes
-  std::array<uint64_t,2> meshDomainSize({globalIds.size(), 0});
+  std::array<FsGridTools::FsIndex_t,3>& localSize = technicalGrid.getLocalSize();
+  std::array<uint64_t,2> meshDomainSize({(uint64_t)localSize[0]*(uint64_t)localSize[1]*(uint64_t)localSize[2], 0});
   vlsvWriter.writeArray("MESH_DOMAIN_SIZES", xmlAttributes, 1, 2, &meshDomainSize[0]);
 
   // how many MPI ranks we wrote from
   int size;
   MPI_Comm_size(MPI_COMM_WORLD, &size);
   vlsvWriter.writeParameter("numWritingRanks", &size);
+
+  // Save the FSgrid decomposition
+  std::array<FsGridTools::Task_t, 3> decom = technicalGrid.getDecomposition();
+  if(technicalGrid.getRank() == 0) {
+      vlsvWriter.writeArray("MESH_DECOMPOSITION", xmlAttributes, 3u, 1u, &decom[0]);
+  } else {
+      vlsvWriter.writeArray("MESH_DECOMPOSITION", xmlAttributes, 0u, 3u, &decom[0]);
+  }
+
 
   // Finally, write mesh object itself.
   xmlAttributes.clear();
@@ -973,8 +961,22 @@ bool writeFsGridMetadata(FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technic
   xmlAttributes["yperiodic"]=technicalGrid.getPeriodic()[1]?"yes":"no";
   xmlAttributes["zperiodic"]=technicalGrid.getPeriodic()[2]?"yes":"no";
 
-  vlsvWriter.writeArray("MESH", xmlAttributes, globalIds.size(), 1, globalIds.data());
-
+  if (writeIDs) {
+     // Write cell "globalID" numbers, which are just the global array indices.
+     std::vector<FsGridTools::FsIndex_t> globalIds(localSize[0]*localSize[1]*localSize[2]);
+     int i=0;
+     for(int z=0; z<localSize[2]; z++) {
+        for(int y=0; y<localSize[1]; y++) {
+           for(int x=0; x<localSize[0]; x++) {
+              std::array<FsGridTools::FsIndex_t,3> globalIndex = technicalGrid.getGlobalIndices(x,y,z);
+              globalIds[i++] = globalIndex[2]*globalSize[0]*globalSize[1]+
+                 globalIndex[1]*globalSize[0] +
+                 globalIndex[0];
+           }
+        }
+     }
+     vlsvWriter.writeArray("MESH", xmlAttributes, globalIds.size(), 1, globalIds.data());
+  }
   return true;
 }
 
@@ -1050,13 +1052,13 @@ bool writeIonosphereGridMetadata(vlsv::Writer& vlsvWriter) {
   //   uint32_t num_nodes = 3; // It has three corners.
   //   std::array<uint32_t, 3> nodes; // The corner data
   //};
-  std::vector<uint32_t> meshData;
+  std::vector<uint32_t> ionosphereGridElementsAndCorners;
   for(uint i=0; i<SBC::ionosphereGrid.elements.size(); i++) {
-     meshData.push_back(vlsv::celltype::TRIANGLE);
-     meshData.push_back(3);
-     meshData.push_back(SBC::ionosphereGrid.elements[i].corners[0]);
-     meshData.push_back(SBC::ionosphereGrid.elements[i].corners[1]);
-     meshData.push_back(SBC::ionosphereGrid.elements[i].corners[2]);
+     ionosphereGridElementsAndCorners.push_back(vlsv::celltype::TRIANGLE);
+     ionosphereGridElementsAndCorners.push_back(3);
+     ionosphereGridElementsAndCorners.push_back(SBC::ionosphereGrid.elements[i].corners[0]);
+     ionosphereGridElementsAndCorners.push_back(SBC::ionosphereGrid.elements[i].corners[1]);
+     ionosphereGridElementsAndCorners.push_back(SBC::ionosphereGrid.elements[i].corners[2]);
   }
 
   // Finally, write mesh object itself.
@@ -1069,9 +1071,9 @@ bool writeIonosphereGridMetadata(vlsv::Writer& vlsvWriter) {
 
   if(rank == 0) {
     // Write this data only on rank 0 
-    vlsvWriter.writeArray("MESH", xmlAttributes, meshData.size(), 1, meshData.data());
+    vlsvWriter.writeArray("MESH", xmlAttributes, ionosphereGridElementsAndCorners.size(), 1, ionosphereGridElementsAndCorners.data());
   } else {
-    vlsvWriter.writeArray("MESH", xmlAttributes, 0, 1, meshData.data());
+    vlsvWriter.writeArray("MESH", xmlAttributes, 0, 1, ionosphereGridElementsAndCorners.data());
   }
 
   return true;
@@ -1087,182 +1089,179 @@ bool writeIonosphereGridMetadata(vlsv::Writer& vlsvWriter) {
  * @sa writeVelocityDistributionData. */
 bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                         Writer& vlsvWriter,int index,const vector<uint64_t>& cells) {
-      //Compute which cells will write out their velocity space
-      vector<uint64_t> velSpaceCells;
-      int lineX, lineY, lineZ;
-      Real shellRadiusSquare;
-      Real cellX, cellY, cellZ, DX, DY, DZ;
-      Real dx_rm, dx_rp, dy_rm, dy_rp, dz_rm, dz_rp;
-      Real rsquare_minus,rsquare_plus;
-      bool withinshell,stridecheck;
-      //#warning TODO: thread evaluation of cells due to trigonometrics in shells?
-      for (uint i = 0; i < cells.size(); i++) {
-         mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 0.0;
-         // CellID stride selection
-         if (P::systemWriteDistributionWriteStride[index] > 0 &&
-             cells[i] % P::systemWriteDistributionWriteStride[index] == 0) {
-            velSpaceCells.push_back(cells[i]);
-            mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 1.0;
-            continue; // Avoid double entries in case the cell also matches following conditions.
-         }
-         // Cell lines selection
-         // Determine cellID's 3D indices
+   //Compute which cells will write out their velocity space
+   vector<uint64_t> velSpaceCells;
+   int lineX, lineY, lineZ;
+   Real shellRadiusSquare;
+   Real cellX, cellY, cellZ, DX, DY, DZ;
+   Real dx_rm, dx_rp, dy_rm, dy_rp, dz_rm, dz_rp;
+   Real rsquare_minus,rsquare_plus;
+   bool withinshell,stridecheck;
+   //#warning TODO: thread evaluation of cells due to trigonometrics in shells?
+   for (uint i = 0; i < cells.size(); i++) {
+      mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 0.0;
+      // CellID stride selection
+      if (P::systemWriteDistributionWriteStride[index] > 0 &&
+         cells[i] % P::systemWriteDistributionWriteStride[index] == 0) {
+         velSpaceCells.push_back(cells[i]);
+         mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 1.0;
+         continue; // Avoid double entries in case the cell also matches following conditions.
+      }
+      // Cell lines selection
+      // Determine cellID's 3D indices
 
-	 // Loop over AMR levels
-	 uint startindex=1;
-	 uint endindex=1;
-	 for (int AMR = 0; AMR <= P::amrMaxSpatialRefLevel; AMR++) {
-	    uint AMRm = std::floor(std::pow(2,AMR));
-	    uint cellsthislevel = (AMRm*P::xcells_ini)*(AMRm*P::ycells_ini)*(AMRm*P::zcells_ini);
-	    startindex = endindex;
-	    endindex = endindex + cellsthislevel;
-	  
-	    // If cell belongs to this AMR level, find indices
-	    if ((cells[i]>=startindex)&&(cells[i]<endindex)) {
-	       lineX =  (cells[i]-startindex) % (AMRm*P::xcells_ini);
-	       lineY = ((cells[i]-startindex) / (AMRm*P::xcells_ini)) % (AMRm*P::ycells_ini);
-	       lineZ = ((cells[i]-startindex) /((AMRm*P::xcells_ini) *  (AMRm*P::ycells_ini))) % (AMRm*P::zcells_ini);
-	       // Check that indices are in correct intersection at least in one plane
-	       if ((P::systemWriteDistributionWriteXlineStride[index] > 0 &&
-		    P::systemWriteDistributionWriteYlineStride[index] > 0 &&
-		    lineX % P::systemWriteDistributionWriteXlineStride[index] == 0 &&
-		    lineY % P::systemWriteDistributionWriteYlineStride[index] == 0)
-		   &&
-		   (P::systemWriteDistributionWriteYlineStride[index] > 0 &&
-		    P::systemWriteDistributionWriteZlineStride[index] > 0 &&
-		    lineY % P::systemWriteDistributionWriteYlineStride[index] == 0 &&
-		    lineZ % P::systemWriteDistributionWriteZlineStride[index] == 0)
-		   &&
-		   (P::systemWriteDistributionWriteZlineStride[index] > 0 &&
-		    P::systemWriteDistributionWriteXlineStride[index] > 0 &&
-		    lineZ % P::systemWriteDistributionWriteZlineStride[index] == 0 &&
-		    lineX % P::systemWriteDistributionWriteXlineStride[index] == 0)
-		   ) {
-		  velSpaceCells.push_back(cells[i]);
-		  mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 1.0;
-                  break; // Avoid double entries in case the cell also matches following conditions.
-	       }
-	    }
-	 }
-         // Avoid double entries in case the cell also matches following conditions.
-         if (mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] > 0) continue;
-
-         // Loop over spherical shells at defined distances
-         for (uint ishell = 0; ishell < P::systemWriteDistributionWriteShellRadius.size(); ishell++) {
-            shellRadiusSquare = P::systemWriteDistributionWriteShellRadius[ishell] * P::systemWriteDistributionWriteShellRadius[ishell];
-            cellX = mpiGrid[cells[i]]->parameters[CellParams::XCRD];
-            cellY = mpiGrid[cells[i]]->parameters[CellParams::YCRD];
-            cellZ = mpiGrid[cells[i]]->parameters[CellParams::ZCRD];
-            DX = mpiGrid[cells[i]]->parameters[CellParams::DX];
-            DY = mpiGrid[cells[i]]->parameters[CellParams::DY];
-            DZ = mpiGrid[cells[i]]->parameters[CellParams::DZ];
-
-            dx_rm = cellX < 0 ? DX : 0;
-            dx_rp = cellX < 0 ? 0 : DX;
-            dy_rm = cellY < 0 ? DY : 0;
-            dy_rp = cellY < 0 ? 0 : DY;
-            dz_rm = cellZ < 0 ? DZ : 0;
-            dz_rp = cellZ < 0 ? 0 : DZ;
-            rsquare_minus = (cellX + dx_rm) * (cellX + dx_rm) + (cellY + dy_rm) * (cellY + dy_rm) + (cellZ + dz_rm) * (cellZ + dz_rm);
-            rsquare_plus  = (cellX + dx_rp) * (cellX + dx_rp) + (cellY + dy_rp) * (cellY + dy_rp) + (cellZ + dz_rp) * (cellZ + dz_rp);
-            // Sometimes two face-neighboring cells can both intersect the sphere. In these cases, if the
-            // stride applied in that region is in a different direction than the neighborhood, both cells will be saved.
-            withinshell = (rsquare_minus <= shellRadiusSquare && rsquare_plus > shellRadiusSquare &&
-                                P::systemWriteDistributionWriteShellStride[ishell] > 0);
-            if (withinshell) {
-               // sort centerpoints
-               std::array<Real, 3> s = {abs(cellX+0.5*DX),abs(cellY+0.5*DY),abs(cellZ+0.5*DZ)};
-               std::sort(s.begin(), s.end());
-               Real shellR = P::systemWriteDistributionWriteShellRadius[ishell];
-               int shellS = P::systemWriteDistributionWriteShellStride[ishell];
-               // After this, assumes DX==DY==DZ
-               // Dominant direction (+-x,+-y,+-z) is used for concentric rings
-               Real D = s[2];
-               // Tangential direction
-               Real T;
-               // Clock angle distance for stride steps
-               Real clock;
-               if ((P::xcells_ini==1) || (P::ycells_ini==1) || (P::zcells_ini==1)) {
-                  // 1D or 2D simulation
-                  T = s[1];
-                  s[0] = 0;
-                  clock = 0;
-               } else { // 3D simulation
-                  T = sqrt(s[0]*s[0]+s[1]*s[1]);
-                  clock = T*atan(s[0]/s[1]);
-               }
-               // Distance along great circle away from dominant coordinate
-               Real dist =  shellR * atan(T/D);
-               // Now find the closest point(s) which fulfills the stride requirement
-               Real dist2 = DX * shellS * round(dist/DX/shellS);
-               Real clock2 = DX * shellS * round(clock/DX/shellS);
-
-               // Find Cartesian coordinates of this stridepoint
-               Real D2 = shellR * cos(dist2/shellR);
-               Real T2 = shellR * sin(dist2/shellR);
-
-               stridecheck = false;
-               // Now check if the stridepoint is exactly in this cell
-               if ((P::xcells_ini==1) || (P::ycells_ini==1) || (P::zcells_ini==1)) {
-                  // 1D or 2D
-                  if ( (D2 >= D-0.5*DX) && (D2 < D+0.5*DX) && (T2 >= T-0.5*DX) && (T2 < T+0.5*DX) ) stridecheck=true;
-                  // Special case for corners:
-                  if ( (abs(D-T)<0.5*DX) && (dist2>dist) ) stridecheck=true;
-
-                  // Only save 1 cell touching axes
-                  if ( (P::ycells_ini==1) && ( ( (cellX>-1.1*DX)&&(cellX<0) ) || ( (cellZ>-1.1*DZ)&&(cellZ<0) ) )) stridecheck=false;
-                  if ( (P::zcells_ini==1) && ( ( (cellX>-1.1*DX)&&(cellX<0) ) || ( (cellY>-1.1*DY)&&(cellY<0) ) )) stridecheck=false;
-
-               } else {
-                  // 3D simulation, account for clock angle
-                  Real T2A = T2 * cos(clock2/T2);
-                  Real T2B = T2 * sin(clock2/T2);
-                  // Rings at given stride from dominant direction
-                  bool ring = (D2 >= D-0.5*DX) && (D2 < D+0.5*DX) && (T2 >= T-0.5*DX) && (T2 < T+0.5*DX);
-                  // Special case for 45 degree ring:
-                  ring = ring || ((abs(D-T)<0.5*DX) && (dist2>dist));
-                  // Clock angle
-                  bool clockcheck = (T2A >= s[1]-0.5*DX) && (T2A < s[1]+0.5*DX) && (T2B >= s[0]-0.5*DX) && (T2B < s[0]+0.5*DX);
-                  // Special case for 45 degree clock angle
-                  clockcheck = clockcheck || ( (abs(s[1]-s[0])<0.5*DX) && (clock2>clock) );
-                  if ( ring && clockcheck ) stridecheck = true;
-
-                  // Ensure cells touching Cartesian axes are included
-                  if ( (s[1]<DX) && (s[0]<DX) && (D2 >= D-0.5*DX) && (D2 < D+0.5*DX) ) stridecheck=true;
-
-                  // Special corner-corner-case
-                  if ( (abs(s[2]-s[1])<DX) && (abs(s[1]-s[0])<DX) && (abs(s[2]-s[0])<DX) ) stridecheck=true;
-
-                  // Only save 1 cell touching axes (assumes origin is at corner intersection of 8 cells)
-                  if ( ( (cellX>-1.1*DX)&&(cellX<0) ) || ( (cellY>-1.1*DY)&&(cellY<0) ) || ( (cellZ>-1.1*DZ)&&(cellZ<0) ) ) stridecheck=false;
-               }
-
-               if (stridecheck) {
-                  velSpaceCells.push_back(cells[i]);
-                  mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 1.0;
-                  break; // Avoid double entries in case the cell also matches following conditions.
-               }
+      // Loop over AMR levels
+      uint startindex=1;
+      uint endindex=1;
+      for (int AMR = 0; AMR <= P::amrMaxSpatialRefLevel; AMR++) {
+         int AMRm = 1u << AMR;
+         uint cellsthislevel = (AMRm * P::xcells_ini) * (AMRm*P::ycells_ini) * (AMRm * P::zcells_ini);
+         startindex = endindex;
+         endindex = endindex + cellsthislevel;
+      
+         // If cell belongs to this AMR level, find indices
+         if ((cells[i]>=startindex)&&(cells[i]<endindex)) {
+            lineX =  (cells[i]-startindex) % (AMRm*P::xcells_ini);
+            lineY = ((cells[i]-startindex) / (AMRm*P::xcells_ini)) % (AMRm*P::ycells_ini);
+            lineZ = ((cells[i]-startindex) /((AMRm*P::xcells_ini) *  (AMRm*P::ycells_ini))) % (AMRm*P::zcells_ini);
+            // Check that indices are in correct intersection at least in one plane
+            if ((P::systemWriteDistributionWriteXlineStride[index] > 0 &&
+                  P::systemWriteDistributionWriteYlineStride[index] > 0 &&
+                  lineX % P::systemWriteDistributionWriteXlineStride[index] == 0 &&
+                  lineY % P::systemWriteDistributionWriteYlineStride[index] == 0
+               ) && (P::systemWriteDistributionWriteYlineStride[index] > 0 &&
+                  P::systemWriteDistributionWriteZlineStride[index] > 0 &&
+                  lineY % P::systemWriteDistributionWriteYlineStride[index] == 0 &&
+                  lineZ % P::systemWriteDistributionWriteZlineStride[index] == 0
+               ) && (P::systemWriteDistributionWriteZlineStride[index] > 0 &&
+                  P::systemWriteDistributionWriteXlineStride[index] > 0 &&
+                  lineZ % P::systemWriteDistributionWriteZlineStride[index] == 0 &&
+                  lineX % P::systemWriteDistributionWriteXlineStride[index] == 0)) 
+            {
+               velSpaceCells.push_back(cells[i]);
+               mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 1.0;
+               break; // Avoid double entries in case the cell also matches following conditions.
             }
          }
       }
+      // Avoid double entries in case the cell also matches following conditions.
+      if (mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] > 0) continue;
 
-      uint64_t numVelSpaceCells;
-      uint64_t localNumVelSpaceCells;
-      localNumVelSpaceCells=velSpaceCells.size();
-      MPI_Allreduce(&localNumVelSpaceCells,&numVelSpaceCells,1,MPI_UINT64_T,MPI_SUM,MPI_COMM_WORLD);
-      //write out velocity space data NOTE: There is mpi communication in writeVelocityDistributionData
-      if (writeVelocityDistributionData(vlsvWriter, mpiGrid, velSpaceCells, MPI_COMM_WORLD ) == false ) {
-         cerr << "ERROR, FAILED TO WRITE VELOCITY DISTRIBUTION DATA AT " << __FILE__ << " " << __LINE__ << endl;
-         logFile << "(MAIN) writeGrid: ERROR FAILED TO WRITE VELOCITY DISTRIBUTION DATA AT: " << __FILE__ << " " << __LINE__ << endl << writeVerbose;
+      // Loop over spherical shells at defined distances
+      for (uint ishell = 0; ishell < P::systemWriteDistributionWriteShellRadius.size(); ishell++) {
+         shellRadiusSquare = P::systemWriteDistributionWriteShellRadius[ishell] * P::systemWriteDistributionWriteShellRadius[ishell];
+         cellX = mpiGrid[cells[i]]->parameters[CellParams::XCRD];
+         cellY = mpiGrid[cells[i]]->parameters[CellParams::YCRD];
+         cellZ = mpiGrid[cells[i]]->parameters[CellParams::ZCRD];
+         DX = mpiGrid[cells[i]]->parameters[CellParams::DX];
+         DY = mpiGrid[cells[i]]->parameters[CellParams::DY];
+         DZ = mpiGrid[cells[i]]->parameters[CellParams::DZ];
+
+         dx_rm = cellX < 0 ? DX : 0;
+         dx_rp = cellX < 0 ? 0 : DX;
+         dy_rm = cellY < 0 ? DY : 0;
+         dy_rp = cellY < 0 ? 0 : DY;
+         dz_rm = cellZ < 0 ? DZ : 0;
+         dz_rp = cellZ < 0 ? 0 : DZ;
+         rsquare_minus = (cellX + dx_rm) * (cellX + dx_rm) + (cellY + dy_rm) * (cellY + dy_rm) + (cellZ + dz_rm) * (cellZ + dz_rm);
+         rsquare_plus  = (cellX + dx_rp) * (cellX + dx_rp) + (cellY + dy_rp) * (cellY + dy_rp) + (cellZ + dz_rp) * (cellZ + dz_rp);
+         // Sometimes two face-neighboring cells can both intersect the sphere. In these cases, if the
+         // stride applied in that region is in a different direction than the neighborhood, both cells will be saved.
+         withinshell = (rsquare_minus <= shellRadiusSquare && rsquare_plus > shellRadiusSquare && P::systemWriteDistributionWriteShellStride[ishell] > 0);
+         if (withinshell) {
+            // sort centerpoints
+            std::array<Real, 3> s = {abs(cellX+0.5*DX),abs(cellY+0.5*DY),abs(cellZ+0.5*DZ)};
+            std::sort(s.begin(), s.end());
+            Real shellR = P::systemWriteDistributionWriteShellRadius[ishell];
+            int shellS = P::systemWriteDistributionWriteShellStride[ishell];
+            // After this, assumes DX==DY==DZ
+            // Dominant direction (+-x,+-y,+-z) is used for concentric rings
+            Real D = s[2];
+            // Tangential direction
+            Real T;
+            // Clock angle distance for stride steps
+            Real clock;
+            if ((P::xcells_ini==1) || (P::ycells_ini==1) || (P::zcells_ini==1)) {
+               // 1D or 2D simulation
+               T = s[1];
+               s[0] = 0;
+               clock = 0;
+            } else { // 3D simulation
+               T = sqrt(s[0]*s[0]+s[1]*s[1]);
+               clock = T*atan(s[0]/s[1]);
+            }
+            // Distance along great circle away from dominant coordinate
+            Real dist =  shellR * atan(T/D);
+            // Now find the closest point(s) which fulfills the stride requirement
+            Real dist2 = DX * shellS * round(dist/DX/shellS);
+            Real clock2 = DX * shellS * round(clock/DX/shellS);
+
+            // Find Cartesian coordinates of this stridepoint
+            Real D2 = shellR * cos(dist2/shellR);
+            Real T2 = shellR * sin(dist2/shellR);
+
+            stridecheck = false;
+            // Now check if the stridepoint is exactly in this cell
+            if ((P::xcells_ini==1) || (P::ycells_ini==1) || (P::zcells_ini==1)) {
+               // 1D or 2D
+               if ( (D2 >= D-0.5*DX) && (D2 < D+0.5*DX) && (T2 >= T-0.5*DX) && (T2 < T+0.5*DX) ) stridecheck=true;
+               // Special case for corners:
+               if ( (abs(D-T)<0.5*DX) && (dist2>dist) ) stridecheck=true;
+
+               // Only save 1 cell touching axes
+               if ( (P::ycells_ini==1) && ( ( (cellX>-1.1*DX)&&(cellX<0) ) || ( (cellZ>-1.1*DZ)&&(cellZ<0) ) )) stridecheck=false;
+               if ( (P::zcells_ini==1) && ( ( (cellX>-1.1*DX)&&(cellX<0) ) || ( (cellY>-1.1*DY)&&(cellY<0) ) )) stridecheck=false;
+
+            } else {
+               // 3D simulation, account for clock angle
+               Real T2A = T2 * cos(clock2/T2);
+               Real T2B = T2 * sin(clock2/T2);
+               // Rings at given stride from dominant direction
+               bool ring = (D2 >= D-0.5*DX) && (D2 < D+0.5*DX) && (T2 >= T-0.5*DX) && (T2 < T+0.5*DX);
+               // Special case for 45 degree ring:
+               ring = ring || ((abs(D-T)<0.5*DX) && (dist2>dist));
+               // Clock angle
+               bool clockcheck = (T2A >= s[1]-0.5*DX) && (T2A < s[1]+0.5*DX) && (T2B >= s[0]-0.5*DX) && (T2B < s[0]+0.5*DX);
+               // Special case for 45 degree clock angle
+               clockcheck = clockcheck || ( (abs(s[1]-s[0])<0.5*DX) && (clock2>clock) );
+               if ( ring && clockcheck ) stridecheck = true;
+
+               // Ensure cells touching Cartesian axes are included
+               if ( (s[1]<DX) && (s[0]<DX) && (D2 >= D-0.5*DX) && (D2 < D+0.5*DX) ) stridecheck=true;
+
+               // Special corner-corner-case
+               if ( (abs(s[2]-s[1])<DX) && (abs(s[1]-s[0])<DX) && (abs(s[2]-s[0])<DX) ) stridecheck=true;
+
+               // Only save 1 cell touching axes (assumes origin is at corner intersection of 8 cells)
+               if ( ( (cellX>-1.1*DX)&&(cellX<0) ) || ( (cellY>-1.1*DY)&&(cellY<0) ) || ( (cellZ>-1.1*DZ)&&(cellZ<0) ) ) stridecheck=false;
+            }
+
+            if (stridecheck) {
+               velSpaceCells.push_back(cells[i]);
+               mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 1.0;
+               break; // Avoid double entries in case the cell also matches following conditions.
+            }
+         }
       }
-      return true;
+   }
+
+   uint64_t numVelSpaceCells;
+   uint64_t localNumVelSpaceCells;
+   localNumVelSpaceCells=velSpaceCells.size();
+   MPI_Allreduce(&localNumVelSpaceCells,&numVelSpaceCells,1,MPI_UINT64_T,MPI_SUM,MPI_COMM_WORLD);
+   //write out velocity space data NOTE: There is mpi communication in writeVelocityDistributionData
+   if (writeVelocityDistributionData(vlsvWriter, mpiGrid, velSpaceCells, MPI_COMM_WORLD ) == false ) {
+      cerr << "ERROR, FAILED TO WRITE VELOCITY DISTRIBUTION DATA AT " << __FILE__ << " " << __LINE__ << endl;
+      logFile << "(MAIN) writeGrid: ERROR FAILED TO WRITE VELOCITY DISTRIBUTION DATA AT: " << __FILE__ << " " << __LINE__ << endl << writeVerbose;
+   }
+   return true;
 }
 
 /*! This function makes sure that local cells and ghost cells do not have any identical members (used for error checking)
  \param local_cells List of local cells within this process
  \param ghost_cells List of ghost cells within this process (cells on the process boundary)
  */
-bool checkForSameMembers( const vector<uint64_t> local_cells, const vector<uint64_t> ghost_cells ) {
+bool checkForSameMembers(const vector<uint64_t>& local_cells, const vector<uint64_t>& ghost_cells ) {
    //NOTE: VECTORS MUST BE SORTED
    //Make sure ghost cells and local cells don't have same members in them:
    vector<uint64_t>::const_iterator i = local_cells.begin();
@@ -1292,41 +1291,40 @@ bool checkForSameMembers( const vector<uint64_t> local_cells, const vector<uint6
 \param index       Index to call the correct member of the various parameter vectors
 \param writeGhosts If true, writes out ghost cells (cells that exist on the process boundary so other process' cells)
 */
-bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
-      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      std::string versionInfo,
-      std::string configInfo,
-               DataReducer* dataReducer,
-               const uint& index,
-               const int& stripe,
-               const bool writeGhosts) {
-   double allStart = MPI_Wtime();
+bool writeGrid(
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+   const std::string& versionInfo,
+   const std::string& configInfo,
+   DataReducer* dataReducer,
+   const uint& outputFileTypeIndex,
+   const int& stripe,
+   const bool writeGhosts
+) {
    bool success = true;
    int myRank;
-   phiprof::initializeTimer("Barrier-entering-writegrid","MPI","Barrier");
-   phiprof::start("Barrier-entering-writegrid");
+   phiprof::Timer barrierWritegridTimer {"Barrier-entering-writegrid", {"MPI","Barrier"}};
    MPI_Barrier(MPI_COMM_WORLD);
-   phiprof::stop("Barrier-entering-writegrid");
+   barrierWritegridTimer.stop();
 
 
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-   phiprof::start("writeGrid-reduced");
+   phiprof::Timer writeReducedTimer {"writeGrid-reduced"};
    // Create a name for the output file and open it with VLSVWriter:
    stringstream fname;
-   fname << P::systemWritePath.at(index) << "/" << P::systemWriteName.at(index) << ".";
+   fname << P::systemWritePath.at(outputFileTypeIndex) << "/" << P::systemWriteName.at(outputFileTypeIndex) << ".";
    fname.width(7);
    fname.fill('0');
-   fname << P::systemWrites.at(index) << ".vlsv";
-
+   fname << P::systemWrites.at(outputFileTypeIndex) << ".vlsv";
 
    //Open the file with vlsvWriter:
    Writer vlsvWriter;
@@ -1358,9 +1356,9 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       MPI_Info_set(MPIinfo, factor, stripeChar);
    }
 
-   phiprof::start("open");
+   phiprof::Timer openTimer {"open"};
    vlsvWriter.open( fname.str(), MPI_COMM_WORLD, masterProcessId, MPIinfo );
-   phiprof::stop("open");
+   openTimer.stop();
    
    if( MPIinfo != MPI_INFO_NULL ) {
       MPI_Info_free(&MPIinfo);
@@ -1368,7 +1366,7 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    
    vlsvWriter.setBuffer(P::vlsvBufferSize);
 
-   phiprof::start("metadataIO");
+   phiprof::Timer metadataTimer {"metadataIO"};
 
    // Get all local cell Ids 
    const vector<CellID>& local_cells = getLocalCells();
@@ -1380,7 +1378,6 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       // Get all ghost cell Ids (NOTE: this works slightly differently depending on whether the grid is periodic or not)
       ghost_cells = mpiGrid.get_remote_cells_on_process_boundary( NEAREST_NEIGHBORHOOD_ID );
    }
-
 
    //Make sure the local cells and ghost cells are fetched properly
    if( local_cells.empty() ) {
@@ -1395,60 +1392,85 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
    //Write mesh boundaries: NOTE: master process only
    //Visit plugin needs to know the boundaries of the mesh so the number of cells in x, y, z direction
-   if( writeMeshBoundingBox( vlsvWriter, meshName, masterProcessId, MPI_COMM_WORLD ) == false ) return false;
+   if( writeMeshBoundingBox( vlsvWriter, meshName, masterProcessId, MPI_COMM_WORLD ) == false ) {
+      return false;
+   }
 
    //Write the node coordinates: NOTE: master process only
-   if( writeBoundingBoxNodeCoordinates( vlsvWriter, meshName, masterProcessId, MPI_COMM_WORLD ) == false ) return false;
+   if( writeBoundingBoxNodeCoordinates( vlsvWriter, meshName, masterProcessId, MPI_COMM_WORLD ) == false ) {
+      return false;
+   }
 
    //Write basic grid variables: NOTE: master process only
-   if( writeCommonGridData(vlsvWriter, mpiGrid, local_cells, P::systemWrites[index], MPI_COMM_WORLD) == false ) return false;
+   if( writeCommonGridData(vlsvWriter, mpiGrid, local_cells, P::systemWrites[outputFileTypeIndex], MPI_COMM_WORLD) == false ) {
+      return false;
+   }
 
    //Write zone global id numbers:
-   if( writeZoneGlobalIdNumbers( mpiGrid, vlsvWriter, meshName, local_cells, ghost_cells ) == false ) return false;
+   if( writeZoneGlobalIdNumbers( mpiGrid, vlsvWriter, meshName, local_cells, ghost_cells ) == false ) {
+      return false;
+   }
 
    //Write domain sizes:
-   if( writeDomainSizes( vlsvWriter, meshName, local_cells.size(), ghost_cells.size() ) == false ) return false;
+   if( writeDomainSizes( vlsvWriter, meshName, local_cells.size(), ghost_cells.size() ) == false ) {
+      return false;
+   }
 
    //Update local ids for cells:
-   if( updateLocalIds( mpiGrid, local_cells, MPI_COMM_WORLD ) == false ) return false;
+   if( updateLocalIds( mpiGrid, local_cells, MPI_COMM_WORLD ) == false ) {
+      return false;
+   }
 
    //Write ghost zone domain and local id numbers ( VisIt plugin needs this for MPI )
-   if( writeGhostZoneDomainAndLocalIdNumbers( mpiGrid, vlsvWriter, meshName, ghost_cells ) == false ) return false;
+   if( writeGhostZoneDomainAndLocalIdNumbers( mpiGrid, vlsvWriter, meshName, ghost_cells ) == false ) {
+      return false;
+   }
 
    //Write FSGrid metadata
-   if( writeFsGridMetadata( technicalGrid, vlsvWriter ) == false ) return false;
-
+   if( writeFsGridMetadata( technicalGrid, vlsvWriter, P::systemWriteFsGrid.at(outputFileTypeIndex) ) == false ) {
+      return false;
+   }
+   
    //Write Ionosphere Grid
-   if( writeIonosphereGridMetadata( vlsvWriter ) == false ) return false;
+   if( writeIonosphereGridMetadata( vlsvWriter ) == false ) {
+      return false;
+   }
    
    //Write Version Info 
-   if( writeVersionInfo(versionInfo,vlsvWriter,MPI_COMM_WORLD) == false ) return false;
+   if( writeVersionInfo(versionInfo,vlsvWriter,MPI_COMM_WORLD) == false ) {
+      return false;
+   }
       
    //Write Config Info 
-   if( writeConfigInfo(configInfo,vlsvWriter,MPI_COMM_WORLD) == false ) return false;
+   if( writeConfigInfo(configInfo,vlsvWriter,MPI_COMM_WORLD) == false ) {
+      return false;
+   }
    
+   metadataTimer.stop();
+   phiprof::Timer vspaceTimer {"velocityspaceIO"};
+   if(writeVelocitySpace( mpiGrid, vlsvWriter, outputFileTypeIndex, local_cells ) == false)  {
+      return false;
+   }
+   vspaceTimer.stop();
 
-   phiprof::stop("metadataIO");
-   phiprof::start("velocityspaceIO");
-   if( writeVelocitySpace( mpiGrid, vlsvWriter, index, local_cells ) == false ) return false;
-   phiprof::stop("velocityspaceIO");
-
-   phiprof::start("reduceddataIO");
+   phiprof::Timer reducedTimer {"reduceddataIO"};
    //Write necessary variables:
    //Determines whether we write in floats or doubles
-   phiprof::start("writeDataReducer");
+   phiprof::Timer writeDataTimer {"writeDataReducer"};
    if (dataReducer != NULL) for( uint i = 0; i < dataReducer->size(); ++i ) {
       if( writeDataReducer( mpiGrid, local_cells,
-               perBGrid, EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid,
-               BgBGrid, volGrid, technicalGrid,
-               (P::writeAsFloat==1), *dataReducer, i, vlsvWriter ) == false ) return false;
+            perBGrid, EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid,
+            BgBGrid, volGrid, technicalGrid,
+            (P::writeAsFloat==1), P::systemWriteFsGrid.at(outputFileTypeIndex), *dataReducer, i, vlsvWriter ) == false
+      ) {
+         return false;
+      }
    }
-   phiprof::stop("writeDataReducer");
+   writeDataTimer.stop();
    
-   phiprof::initializeTimer("Barrier","MPI","Barrier");
-   phiprof::start("Barrier");
+   phiprof::Timer barrierTimer {"Barrier", {"MPI","Barrier"}};
    MPI_Barrier(MPI_COMM_WORLD);
-   phiprof::stop("Barrier");
+   barrierTimer.stop();
    
    const uint64_t bytesWritten = vlsvWriter.getBytesWritten();
    const double writeTime = vlsvWriter.getWriteTime();
@@ -1467,12 +1489,12 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    else logFile << bytesWritten/writeTime << " B/s";
    logFile << endl;
 
-   phiprof::stop("reduceddataIO");
+   reducedTimer.stop();
 
-   phiprof::start("close");
+   phiprof::Timer closeTimer {"close"};
    vlsvWriter.close();
-   phiprof::stop("close");
-   phiprof::stop("writeGrid-reduced",bytesWritten*1e-9,"GB");
+   closeTimer.stop();
+   writeReducedTimer.stop(bytesWritten * 1e-9, "GB");
    return success;
 }
 
@@ -1485,39 +1507,39 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 \param name       File name prefix, file will be called "name.index.vlsv"
 \param fileIndex  File index, file will be called "name.index.vlsv"
 */
-bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
-      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      std::string versionInfo,
-      std::string configInfo,
-                  DataReducer& dataReducer,
-                  const string& name,
-                  const uint& fileIndex,
-                  const int& stripe) {
+bool writeRestart(
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+   const std::string& versionInfo,
+   const std::string& configInfo,
+   DataReducer& dataReducer,
+   const string& name,
+   const uint& fileIndex,
+   const int& stripe) 
+{
    // Writes a restart
-   double allStart = MPI_Wtime();
    bool success = true;
    int myRank;
    
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-   phiprof::initializeTimer("BarrierEnteringWriteRestart","MPI","Barrier");
-   phiprof::start("BarrierEnteringWriteRestart");
+   phiprof::Timer barrierEnteringTimer {"BarrierEnteringWriteRestart", {"MPI","Barrier"}};
    MPI_Barrier(MPI_COMM_WORLD);
-   phiprof::stop("BarrierEnteringWriteRestart");
+   barrierEnteringTimer.stop();
 
-   phiprof::start("writeRestart");
-   phiprof::start("DeallocateRemoteBlocks");
+   phiprof::Timer writeTimer {"writeRestart"};
+   phiprof::Timer deallocateTimer {"DeallocateRemoteBlocks"};
    //deallocate blocks in remote cells to decrease memory load
    deallocateRemoteCellBlocks(mpiGrid);
-   phiprof::stop("DeallocateRemoteBlocks");
+   deallocateTimer.stop();
    
    // Get the current time.
    // Avoid different times on different processes!
@@ -1536,7 +1558,7 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    fname.fill('0');
    fname << fileIndex << "." << currentDate << ".vlsv";
 
-   phiprof::start("open");
+   phiprof::Timer openTimer {"open"};
    //Open the file with vlsvWriter:
    Writer vlsvWriter;
    const int masterProcessId = 0;
@@ -1572,11 +1594,11 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       MPI_Info_free(&MPIinfo);
    }
 
-   phiprof::stop("open");
+   openTimer.stop();
 
    vlsvWriter.setBuffer(P::vlsvBufferSize);
 
-   phiprof::start("metadataIO");
+   phiprof::Timer metadataTimer {"metadataIO"};
    
    // Get all local cell Ids 
    vector<CellID> local_cells = getLocalCells();
@@ -1606,7 +1628,7 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    if( writeDomainSizes( vlsvWriter, meshName, local_cells.size(), ghost_cells.size() ) == false ) return false;
 
    //Write FSGrid metadata
-   if( writeFsGridMetadata( technicalGrid, vlsvWriter ) == false ) return false;
+   if( writeFsGridMetadata( technicalGrid, vlsvWriter, true ) == false ) return false;
    
    //Write Version Info 
    if( writeVersionInfo(versionInfo,vlsvWriter,MPI_COMM_WORLD) == false ) return false;
@@ -1618,8 +1640,8 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    //Write Ionosphere Grid
    if( writeIonosphereGridMetadata( vlsvWriter ) == false ) return false;
 
-   phiprof::stop("metadataIO");
-   phiprof::start("reduceddataIO");   
+   metadataTimer.stop();
+   phiprof::Timer reducedTimer {"reduceddataIO"};
    //write out DROs we need for restarts
    DataReducer restartReducer;
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments",CellParams::RHOM,5));
@@ -1634,6 +1656,10 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("max_v_dt",CellParams::MAXVDT,1));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("max_r_dt",CellParams::MAXRDT,1));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("max_fields_dt",CellParams::MAXFDT,1));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_drift",CellParams::BULKV_FORCING_X,3));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_bulk_forcing_flag",CellParams::FORCING_CELL_NUM,1));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_alpha",CellParams::AMR_ALPHA,1));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_jperb",CellParams::AMR_JPERB,1));
    restartReducer.addOperator(new DRO::VariableBVol);
    restartReducer.addMetadata(restartReducer.size()-1,"T","$\\mathrm{T}$","$B_\\mathrm{vol,vg}$","1.0");
    restartReducer.addOperator(new DRO::MPIrank);
@@ -1652,12 +1678,12 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<Real> {
-            std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+            std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
             std::vector<Real> retval(gridSize[0]*gridSize[1]*gridSize[2]*fsgrids::efield::N_EFIELD);
             int index=0;
-            for(int z=0; z<gridSize[2]; z++) {
-               for(int y=0; y<gridSize[1]; y++) {
-                  for(int x=0; x<gridSize[0]; x++) {
+            for(FsGridTools::FsIndex_t z=0; z<gridSize[2]; z++) {
+               for(FsGridTools::FsIndex_t y=0; y<gridSize[1]; y++) {
+                  for(FsGridTools::FsIndex_t x=0; x<gridSize[0]; x++) {
                      std::memcpy(&retval[index], EGrid.get(x,y,z), sizeof(Real)*fsgrids::efield::N_EFIELD);
                      index += fsgrids::efield::N_EFIELD;
                   }
@@ -1678,12 +1704,12 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<Real> {
-            std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+            std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
             std::vector<Real> retval(gridSize[0]*gridSize[1]*gridSize[2]*fsgrids::bfield::N_BFIELD);
             int index=0;
-            for(int z=0; z<gridSize[2]; z++) {
-               for(int y=0; y<gridSize[1]; y++) {
-                  for(int x=0; x<gridSize[0]; x++) {
+            for(FsGridTools::FsIndex_t z=0; z<gridSize[2]; z++) {
+               for(FsGridTools::FsIndex_t y=0; y<gridSize[1]; y++) {
+                  for(FsGridTools::FsIndex_t x=0; x<gridSize[0]; x++) {
                      std::memcpy(&retval[index], perBGrid.get(x,y,z), sizeof(Real)*fsgrids::bfield::N_BFIELD);
                      index += fsgrids::bfield::N_BFIELD;
                   }
@@ -1789,26 +1815,26 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       writeDataReducer(mpiGrid, local_cells,
             perBGrid, EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid,
             BgBGrid, volGrid, technicalGrid,
-            writeAsFloat, restartReducer, i, vlsvWriter);
+            writeAsFloat, true, restartReducer, i, vlsvWriter);
    }
-   phiprof::stop("reduceddataIO");   
+   reducedTimer.stop();
    //write the velocity distribution data -- note: it's expecting a vector of pointers:
    // Note: restart should always write double values to ensure the accuracy of the restart runs. 
    // In case of distribution data it is not as important as they are mainly used for visualization purpose
-   phiprof::start("velocityspaceIO");
+   phiprof::Timer vspaceTimer {"velocityspaceIO"};
    writeVelocityDistributionData(vlsvWriter, mpiGrid, local_cells, MPI_COMM_WORLD);
-   phiprof::stop("velocityspaceIO");
+   vspaceTimer.stop();
 
-   phiprof::start("close");
+   phiprof::Timer closeTimer {"close"};
    vlsvWriter.close();
-   phiprof::stop("close");
+   closeTimer.stop();
 
-   phiprof::start("updateRemoteBlocks");
+   phiprof::Timer updateRemoteTimer {"updateRemoteBlocks"};
    //Updated newly adjusted velocity block lists on remote cells, and
    //prepare to receive block data
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
       updateRemoteVelocityBlockLists(mpiGrid,popID);
-   phiprof::stop("updateRemoteBlocks");
+   updateRemoteTimer.stop();
 
    const uint64_t bytesWritten = vlsvWriter.getBytesWritten();
    const double writeTime = vlsvWriter.getWriteTime();
@@ -1827,7 +1853,7 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    else logFile << bytesWritten/writeTime << " B/s";
    logFile << endl;
    
-   phiprof::stop("writeRestart",bytesWritten*1e-9,"GB");
+   writeTimer.stop(bytesWritten * 1e-9, "GB");
    return success;
 }
 

@@ -23,7 +23,7 @@
 #ifndef PROJECT_H
 #define PROJECT_H
 
-#include "../definitions.h"
+#include <random>
 #include "../spatial_cell.hpp"
 #include <dccrg.hpp>
 #include <dccrg_cartesian_geometry.hpp>
@@ -77,14 +77,33 @@ namespace projects {
 
       /*!\brief Set the perturbed fields and distribution of a cell according to the default simulation settings.
        * This is used for the NOT_SYSBOUNDARY cells and some other system boundary conditions (e.g. Outflow).
-       * NOTE: This function is called inside parallel region so it must be declared as const.
        * \param cell Pointer to the cell to set.
        */
       void setCell(spatial_cell::SpatialCell* cell);
          
       Real setVelocityBlock(spatial_cell::SpatialCell* cell,const vmesh::LocalID& blockLID,const uint popID) const;
 
+      virtual bool canRefine(spatial_cell::SpatialCell* cell) const;
+
       virtual bool refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const;
+
+      /*!\brief Adapts refinement by one level according to the project. Returns true if any cells were refined, false if not.
+       * \param mpiGrid grid to refine
+       * @return The amount of cells set to refine
+       */
+      virtual int adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const;
+
+
+      /*!\brief Refine/unrefine spatial cells one level to the static criteria in the config
+      * \param mpiGrid Spatial grid
+      * \param n Static refinement pass. 0th pass refines level 0 cells and unrefines max level cells, 1st pass refines level 1 and unrefines max level -1 etc.
+      */
+      virtual bool forceRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, int n ) const;
+
+      /*!\brief Boxcar filters spatial cells that were recently refined
+       * \param mpiGrid grid to filter
+       */
+      virtual bool filterRefined( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const;
       
     protected:
       /*! \brief Returns a list of blocks to loop through when initialising.
@@ -153,24 +172,31 @@ namespace projects {
       virtual bool rescalesDensity(const uint popID) const;
       void rescaleDensity(spatial_cell::SpatialCell* cell,const uint popID) const;
       
-      /*!  Set random seed (thread-safe). Seed is based on the seed read
-       in from cfg + the seedModifier parameter
-       * 
-       \param seedModified d. Seed is based on the seed read in from cfg + the seedModifier parameter                                   
+      /** Get random number between 0 and 1.0. One should always first initialize the rng.
+       * @param rngDataBuffer struct of type random_data
+       * @return Uniformly distributed random number between 0 and 1.*/
+      Real getRandomNumber(std::default_random_engine& randGen) const;
+
+      /** Set random seed (thread-safe). Seed is based on the seed read
+       *  in from cfg + the seedModifier parameter
+       * @param seedModifier CellID value to use as seed modifier
+       * @param rngStateBuffer buffer where random number values are kept
+       * @param rngDataBuffer struct of type random_data
        */
-      void setRandomSeed(uint64_t seedModifier) const;
-      /*!
-       Set random seed (thread-safe) that is always the same for
-       this particular cellID. Can be used to make reproducible
-       simulations that do not depend on number of processes or threads.
+      void setRandomSeed(uint64_t seedModifier, std::default_random_engine& randGen) const;
+
+      /** Set random seed (thread-safe) that is always the same for
+       * this particular cellID. Can be used to make reproducible
+       * simulations that do not depend on number of processes or threads.
+       * @param cell SpatialCell used to infer CellID value to use as seed modifier
+       * @param rngStateBuffer buffer where random number values are kept
+       * @param rngDataBuffer struct of type random_data
        */
-      void setRandomCellSeed(spatial_cell::SpatialCell* cell) const;
+      void setRandomCellSeed(spatial_cell::SpatialCell* cell, std::default_random_engine& randGen) const;
       
     private:
       uint seed;
       static char rngStateBuffer[256];
-      static random_data rngDataBuffer;
-      #pragma omp threadprivate(rngStateBuffer,rngDataBuffer)
 
       bool baseClassInitialized;                      /**< If true, base class has been initialized.*/
    };

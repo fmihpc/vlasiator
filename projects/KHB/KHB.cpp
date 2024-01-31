@@ -60,8 +60,6 @@ namespace projects {
       RP::add("KHB.amp", "Initial perturbation amplitude (m)", 0.0);
       RP::add("KHB.offset", "Boundaries offset from 0 (m)", 0.0);
       RP::add("KHB.transitionWidth", "Width of tanh transition for all changing values", 0.0);
-      RP::add("KHB.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
-      RP::add("KHB.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
    }
 
    void KHB::getParameters() {
@@ -93,8 +91,6 @@ namespace projects {
       RP::get("KHB.amp", this->amp);
       RP::get("KHB.offset", this->offset);
       RP::get("KHB.transitionWidth", this->transitionWidth);
-      RP::get("KHB.nSpaceSamples", this->nSpaceSamples);
-      RP::get("KHB.nVelocitySamples", this->nVelocitySamples);
    }
    
    
@@ -125,31 +121,8 @@ namespace projects {
    }
 
    Real KHB::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {   
-      creal d_x = dx / (this->nSpaceSamples-1);
-      creal d_z = dz / (this->nSpaceSamples-1);
-      creal d_vx = dvx / (this->nVelocitySamples-1);
-      creal d_vy = dvy / (this->nVelocitySamples-1);
-      creal d_vz = dvz / (this->nVelocitySamples-1);
-      Real avg = 0.0;
-      uint samples=0;
-
-      Real middleValue=getDistribValue(x+0.5*dx, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, popID);
-      if (middleValue < 0.000001*getObjectWrapper().particleSpecies[popID].sparseMinValue) {
-         return middleValue; //abort, this will not be accepted anyway
-      }
-      
-   //#pragma omp parallel for collapse(6) reduction(+:avg)
-      for (uint i=0; i<this->nSpaceSamples; ++i)
-         for (uint k=0; k<this->nSpaceSamples; ++k)
-            for (uint vi=0; vi<this->nVelocitySamples; ++vi)
-               for (uint vj=0; vj<this->nVelocitySamples; ++vj)
-                  for (uint vk=0; vk<this->nVelocitySamples; ++vk){
-                     avg +=getDistribValue(x+i*d_x, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, popID);
-                     samples++;
-                  }
-      return avg / samples;
-   }
-   
+      return getDistribValue(x+0.5*dx, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, popID);
+   }   
 
    void KHB::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
    
@@ -164,33 +137,15 @@ namespace projects {
          auto localSize = perBGrid.getLocalSize().data();
          
          #pragma omp parallel for collapse(3)
-         for (int x = 0; x < localSize[0]; ++x) {
-            for (int y = 0; y < localSize[1]; ++y) {
-               for (int z = 0; z < localSize[2]; ++z) {
+         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
+            for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
+               for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
                   const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
                   
-                  Real Bxavg, Byavg, Bzavg;
-                  Bxavg = Byavg = Bzavg = 0.0;
-                  if(this->nSpaceSamples > 1) {
-                     Real d_x = perBGrid.DX / (this->nSpaceSamples - 1);
-                     Real d_z = perBGrid.DZ / (this->nSpaceSamples - 1);
-                     for (uint i=0; i<this->nSpaceSamples; ++i) {
-                        for (uint k=0; k<this->nSpaceSamples; ++k) {
-                           Bxavg += profile(this->Bx[this->BOTTOM], this->Bx[this->TOP], xyz[0]+i*d_x, xyz[2]+k*d_z);
-                           Byavg += profile(this->By[this->BOTTOM], this->By[this->TOP], xyz[0]+i*d_x, xyz[2]+k*d_z);
-                           Bzavg += profile(this->Bz[this->BOTTOM], this->Bz[this->TOP], xyz[0]+i*d_x, xyz[2]+k*d_z);
-                        }
-                     }
-                     cuint nPts = pow(this->nSpaceSamples, 2.0);
-                     cell->at(fsgrids::bfield::PERBX) = Bxavg / nPts;
-                     cell->at(fsgrids::bfield::PERBY) = Byavg / nPts;
-                     cell->at(fsgrids::bfield::PERBZ) = Bzavg / nPts;
-                  } else {
-                     cell->at(fsgrids::bfield::PERBX) = profile(this->Bx[this->BOTTOM], this->Bx[this->TOP], xyz[0]+0.5*perBGrid.DX, xyz[2]+0.5*perBGrid.DZ);
-                     cell->at(fsgrids::bfield::PERBY) = profile(this->By[this->BOTTOM], this->By[this->TOP], xyz[0]+0.5*perBGrid.DX, xyz[2]+0.5*perBGrid.DZ);
-                     cell->at(fsgrids::bfield::PERBZ) = profile(this->Bz[this->BOTTOM], this->Bz[this->TOP], xyz[0]+0.5*perBGrid.DX, xyz[2]+0.5*perBGrid.DZ);
-                  }
+                  cell->at(fsgrids::bfield::PERBX) = profile(this->Bx[this->BOTTOM], this->Bx[this->TOP], xyz[0]+0.5*perBGrid.DX, xyz[2]+0.5*perBGrid.DZ);
+                  cell->at(fsgrids::bfield::PERBY) = profile(this->By[this->BOTTOM], this->By[this->TOP], xyz[0]+0.5*perBGrid.DX, xyz[2]+0.5*perBGrid.DZ);
+                  cell->at(fsgrids::bfield::PERBZ) = profile(this->Bz[this->BOTTOM], this->Bz[this->TOP], xyz[0]+0.5*perBGrid.DX, xyz[2]+0.5*perBGrid.DZ);
                }
             }
          }

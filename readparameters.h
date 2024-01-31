@@ -23,7 +23,6 @@
 #ifndef READPARAMETERS_H
 #define READPARAMETERS_H
 
-#include <boost/lexical_cast.hpp>
 #include <boost/program_options.hpp>
 #include <fstream>
 #include <iomanip>
@@ -94,7 +93,7 @@ public:
          int rank;
          MPI_Comm_rank(MPI_COMM_WORLD, &rank);
          if (rank == MASTER_RANK) {
-            std::cerr << __FILE__ << ":" << __LINE__ << name + " not declared using the add() function!" << std::endl;
+            std::cerr << __FILE__ << ":" << __LINE__ << " " << name + " not declared using the add() function!" << std::endl;
             MPI_Abort(MPI_COMM_WORLD, 1);
          }
       }

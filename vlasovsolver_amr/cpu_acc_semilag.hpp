@@ -61,12 +61,12 @@ using namespace Eigen;
 void cpu_accelerate_cell(SpatialCell* spatial_cell, uint map_order, const Real dt) {
    double t1=MPI_Wtime();
    /*compute transform, forward in time and backward in time*/
-   phiprof::start("compute-transform");
+   phiprof::Timer computeTransformTimer {"compute-transform"};
 
-   //compute the transform performed in this acceleration (ok for AMR)
+   //compute the transform performed in this acceleration
    Transform<Real,3,Affine> fwd_transform= compute_acceleration_transformation(spatial_cell,dt);
    Transform<Real,3,Affine> bwd_transform= fwd_transform.inverse();
-   phiprof::stop("compute-transform");
+   computeTransformTimer.stop();
 
    // NOTE: This is now in a debugging / testing state. The propagator 
    // only does one thing each time step. Currently this does
@@ -122,14 +122,13 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell, uint map_order, const Real d
    
    // BEGIN TEST
    if (counter % 2 != 0) {
-      phiprof::start("mesh coarsening");
-      amr_ref_criteria::Base* refCriterion = getObjectWrapper().amrVelRefCriteria.create(Parameters::amrVelRefCriterion);
+      phiprof::Timer timer {"mesh coarsening"};
+      vamr_ref_criteria::Base* refCriterion = getObjectWrapper().amrVelRefCriteria.create(Parameters::vamrVelRefCriterion);
       if (refCriterion != NULL) {
          refCriterion->initialize("");
          spatial_cell->coarsen_blocks(refCriterion);
          delete refCriterion;
       }
-      phiprof::stop("mesh coarsening");
    } else {
       ++dim;
       if (dim == 2) dim=0;

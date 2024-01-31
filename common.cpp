@@ -35,7 +35,7 @@
  */
 void bailout(
    const bool condition,
-   const std::string message,
+   const std::string& message,
    const char * const file,
    const int line
 ) {
@@ -81,7 +81,22 @@ void bailout(
  */
 void bailout(
    const bool condition,
-   const std::string message
+   const std::string& message
 ) {
    bailout(condition, message, "", 0);
+}
+
+/*! Helper function for error handling. err_type default to 0.*/
+[[ noreturn ]] void abort_mpi(const std::string str, const int err_type) {
+   int myRank;
+   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+   if (myRank == MASTER_RANK) {
+      if (err_type == 0) {
+         std::cerr << str << std::endl;
+      } else {
+         std::cerr << __FILE__ << ":" << __LINE__ << ": " << str << std::endl;
+      }
+
+      MPI_Abort(MPI_COMM_WORLD, 1);
+   }
 }

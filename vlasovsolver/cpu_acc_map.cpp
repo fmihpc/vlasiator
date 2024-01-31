@@ -122,7 +122,7 @@ bool map_1d(SpatialCell* spatial_cell,
 
    Realv dv,v_min;
    Realv is_temp;
-   uint max_v_length;
+   int max_v_length;
    uint block_indices_to_id[3] = {0, 0, 0}; /*< used when computing id of target block, 0 for compiler */
    uint cell_indices_to_id[3] = {0, 0, 0}; /*< used when computing id of target cell in block, 0 for compiler */
 
@@ -130,9 +130,9 @@ bool map_1d(SpatialCell* spatial_cell,
    vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks(popID);
 
    //nothing to do if no blocks
-   if(vmesh.size() == 0 )
+   if(vmesh.size() == 0)
       return true;
-   
+
 
    // Velocity grid refinement level, has no effect but is 
    // needed in some vmesh::VelocityMesh function calls.
@@ -221,7 +221,7 @@ bool map_1d(SpatialCell* spatial_cell,
    bool isTargetBlock[MAX_BLOCKS_PER_DIM];
    bool isSourceBlock[MAX_BLOCKS_PER_DIM];
 
-   for( uint setIndex=0; setIndex< setColumnOffsets.size(); ++setIndex) {
+   for(uint setIndex=0; setIndex< setColumnOffsets.size(); ++setIndex) {
       uint8_t refLevel = 0;
       //init 
       for (uint blockK = 0; blockK < MAX_BLOCKS_PER_DIM; blockK++){
@@ -249,7 +249,7 @@ bool map_1d(SpatialCell* spatial_cell,
       swapBlockIndices(setFirstBlockIndices, dimension);
       /*compute the maximum starting point of the lagrangian (target) grid
         (base level) within the 4 corner cells in this
-        block. Needed for computig maximum extent of target column*/
+        block. Needed for computing maximum extent of target column*/
       
       Realv max_intersectionMin = intersection +
                                       (setFirstBlockIndices[0] * WID + 0) * intersection_di +
@@ -312,25 +312,25 @@ bool map_1d(SpatialCell* spatial_cell,
          const int firstBlock_gk = (int)((firstBlockMinV - max_intersectionMin)/intersection_dk);
          const int lastBlock_gk = (int)((lastBlockMaxV - min_intersectionMin)/intersection_dk);
 
-         int firstBlockIndexK = firstBlock_gk/WID;         
+         int firstBlockIndexK = firstBlock_gk/WID;
          int lastBlockIndexK = lastBlock_gk/WID;
-         
+         int wallmargin = Parameters::bailout_velocity_space_wall_margin;
          //now enforce mesh limits for target column blocks
          firstBlockIndexK = (firstBlockIndexK >= 0)            ? firstBlockIndexK : 0;
          firstBlockIndexK = (firstBlockIndexK < max_v_length ) ? firstBlockIndexK : max_v_length - 1;
          lastBlockIndexK  = (lastBlockIndexK  >= 0)            ? lastBlockIndexK  : 0;
          lastBlockIndexK  = (lastBlockIndexK  < max_v_length ) ? lastBlockIndexK  : max_v_length - 1;
-         if(firstBlockIndexK < Parameters::bailout_velocity_space_wall_margin
-            || firstBlockIndexK >= max_v_length - Parameters::bailout_velocity_space_wall_margin
-            || lastBlockIndexK < Parameters::bailout_velocity_space_wall_margin
-            || lastBlockIndexK >= max_v_length - Parameters::bailout_velocity_space_wall_margin
+         if(firstBlockIndexK < wallmargin
+            || firstBlockIndexK >= max_v_length - wallmargin
+            || lastBlockIndexK < wallmargin
+            || lastBlockIndexK >= max_v_length - wallmargin
          ) {
             string message = "Some target blocks in acceleration are going to be less than ";
-            message += std::to_string(Parameters::bailout_velocity_space_wall_margin);
+            message += std::to_string(wallmargin);
             message += " blocks away from the current velocity space walls for population ";
             message += getObjectWrapper().particleSpecies[popID].name;
             message += " at CellID ";
-            message += std::to_string(spatial_cell->parameters[CellParams::CELLID]);
+            message += std::to_string(static_cast<int>(spatial_cell->parameters[CellParams::CELLID]));
             message += ". Consider expanding velocity space for that population.";
             bailout(true, message, __FILE__, __LINE__);
          }
@@ -341,7 +341,7 @@ bool map_1d(SpatialCell* spatial_cell,
          }
          
          //store target blocks
-         for (int blockK = firstBlockIndexK; blockK <= lastBlockIndexK; blockK++){
+         for (uint blockK = firstBlockIndexK; (int)blockK <= lastBlockIndexK; blockK++){
             isTargetBlock[blockK]=true;
          }
 
@@ -409,7 +409,7 @@ bool map_1d(SpatialCell* spatial_cell,
           
              Note that the i dimension is vectorized, and thus there are no loops over i
          */
-         for (uint j = 0; j < WID; j += VECL/WID){ 
+         for (int j = 0; j < WID; j += VECL/WID){
             // create vectors with the i and j indices in the vector position on the plane.
             #if VECL == 4       
             const Veci i_indices = Veci(0, 1, 2, 3);
@@ -433,10 +433,6 @@ bool map_1d(SpatialCell* spatial_cell,
             const Veci  target_cell_index_common =
                i_indices * cell_indices_to_id[0] +
                j_indices * cell_indices_to_id[1];
-       
-            const int target_block_index_common =
-               block_indices_begin[0] * block_indices_to_id[0] +
-               block_indices_begin[1] * block_indices_to_id[1];
        
             /* 
                intersection_min is the intersection z coordinate (z after
@@ -525,8 +521,7 @@ bool map_1d(SpatialCell* spatial_cell,
                for(int gk = minGk; gk <= maxGk; gk++){ 
                   const int blockK = gk/WID;
                   const int gk_mod_WID = (gk - blockK * WID);
-                  //the block of the Lagrangian cell to which we map
-                  const int target_block(target_block_index_common + blockK * block_indices_to_id[2]);
+
                   
                   //cell indices in the target block  (TODO: to be replaced by
                   //compile time generated scatter write operation)
@@ -571,8 +566,7 @@ bool map_1d(SpatialCell* spatial_cell,
                   else{
                      // total value of integrand
                      const Vec target_density = target_density_r - target_density_l;                  
-#pragma ivdep
-#pragma GCC ivdep                     
+#pragma omp simd
                      for (int target_i=0; target_i < VECL; ++target_i) {
                         // do the conversion from Realv to Realf here, faster than doing it in accumulation
                         const Realf tval = target_density[target_i];

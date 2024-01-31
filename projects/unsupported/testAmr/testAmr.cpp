@@ -60,9 +60,7 @@ namespace projects {
       RP::add("testAmr.magYPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along y (T)", 1.0e-9);
       RP::add("testAmr.magZPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along z (T)", 1.0e-9);
       RP::add("testAmr.lambda", "B cosine perturbation wavelength (m)", 1.0);
-      RP::add("testAmr.nVelocitySamples", "Number of sampling points per velocity dimension", 2);
       RP::add("testAmr.densityModel","Which spatial density model is used?",string("uniform"));
-      RP::add("testAmr.maxSpatialRefinementLevel", "Maximum level for spatial refinement", 1.0);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
@@ -94,7 +92,6 @@ namespace projects {
       RP::get("testAmr.dBz", this->dBz);
       RP::get("testAmr.lambda", this->lambda);
       RP::get("testAmr.maxSpatialRefinementLevel", this->maxSpatialRefinementLevel);
-      RP::get("testAmr.nVelocitySamples", this->nVelocitySamples);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
@@ -153,10 +150,10 @@ namespace projects {
       // iteration improves the average by less than 1%, return the value.
       Real avgTotal = 0.0;
       bool ok = false;
-      uint N = nVelocitySamples; // Start by using nVelocitySamples
+      uint N = 1;
       int N3_sum = 0;           // Sum of sampling points used so far
 
-      const testAmrSpeciesParameters& sP = speciesParams[popID];
+      //const testAmrSpeciesParameters& sP = speciesParams[popID];
 
       const Real avgLimit = 0.01*getObjectWrapper().particleSpecies[popID].sparseMinValue;
       do {
@@ -214,8 +211,9 @@ namespace projects {
    }
 
    void testAmr::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
-      setRandomCellSeed(cell);
-      rhoRnd = 0.5 - getRandomNumber();
+      std::default_random_engine rndState;
+      setRandomCellSeed(cell,rndState);
+      rhoRnd = 0.5 - getRandomNumber(rndState);
    }
 
    void testAmr::setProjectBField(
@@ -234,25 +232,26 @@ namespace projects {
          auto localSize = perBGrid.getLocalSize().data();
          
          #pragma omp parallel for collapse(3)
-         for (int x = 0; x < localSize[0]; ++x) {
-            for (int y = 0; y < localSize[1]; ++y) {
-               for (int z = 0; z < localSize[2]; ++z) {
+         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
+            for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
+               for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
                   const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
                   
                   const int64_t cellid = perBGrid.GlobalIDForCoords(x, y, z);
                   
-                  setRandomSeed(cellid);
-                  
+                  std::default_random_engine rndState;
+                  setRandomSeed(cellid,rndState);
+
                   if (this->lambda != 0.0) {
                      cell->at(fsgrids::bfield::PERBX) = this->dBx*cos(2.0 * M_PI * xyz[0] / this->lambda);
                      cell->at(fsgrids::bfield::PERBY) = this->dBy*sin(2.0 * M_PI * xyz[0] / this->lambda);
                      cell->at(fsgrids::bfield::PERBZ) = this->dBz*cos(2.0 * M_PI * xyz[0] / this->lambda);
                   }
                   
-                  cell->at(fsgrids::bfield::PERBX) += this->magXPertAbsAmp * (0.5 - getRandomNumber());
-                  cell->at(fsgrids::bfield::PERBY) += this->magYPertAbsAmp * (0.5 - getRandomNumber());
-                  cell->at(fsgrids::bfield::PERBZ) += this->magZPertAbsAmp * (0.5 - getRandomNumber());
+                  cell->at(fsgrids::bfield::PERBX) += this->magXPertAbsAmp * (0.5 - getRandomNumber(rndState));
+                  cell->at(fsgrids::bfield::PERBY) += this->magYPertAbsAmp * (0.5 - getRandomNumber(rndState));
+                  cell->at(fsgrids::bfield::PERBZ) += this->magZPertAbsAmp * (0.5 - getRandomNumber(rndState));
                }
             }
          }
@@ -272,85 +271,6 @@ namespace projects {
          centerPoints.push_back(point);
       }
       return centerPoints;
-   }
-
-   bool testAmr::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
-
-     int myRank;       
-     MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-
-     if(myRank == MASTER_RANK) std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
-      
-      std::vector<bool> refineSuccess;
-
-      for (uint i = 0; i < 2 * P::amrBoxHalfWidthX; ++i) {
-         for (uint j = 0; j < 2 * P::amrBoxHalfWidthY; ++j) {
-            for (uint k = 0; k < 2 * P::amrBoxHalfWidthZ; ++k) {
-     
-               std::array<double,3> xyz;
-               xyz[0] = P::amrBoxCenterX + (0.5 + i - P::amrBoxHalfWidthX) * P::dx_ini;
-               xyz[1] = P::amrBoxCenterY + (0.5 + j - P::amrBoxHalfWidthY) * P::dy_ini;
-               xyz[2] = P::amrBoxCenterZ + (0.5 + k - P::amrBoxHalfWidthZ) * P::dz_ini;
-               
-               CellID myCell = mpiGrid.get_existing_cell(xyz);
-               if (mpiGrid.refine_completely_at(xyz)) {
-#ifndef NDEBUG
-                  std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;
-#endif
-               }
-            }
-         }
-      }
-      std::vector<CellID> refinedCells = mpiGrid.stop_refining(true);      
-      if(myRank == MASTER_RANK) std::cout << "Finished first level of refinement" << endl;
-#ifndef NDEBUG
-      if(refinedCells.size() > 0) {
-	std::cout << "Refined cells produced by rank " << myRank << " are: ";
-	for (auto cellid : refinedCells) {
-	  std::cout << cellid << " ";
-	}
-	std::cout << endl;
-      }
-#endif
-                  
-      mpiGrid.balance_load();
-
-      if(mpiGrid.get_maximum_refinement_level() > 1) {
-
-         for (uint i = 0; i < 2 * P::amrBoxHalfWidthX; ++i) {
-            for (uint j = 0; j < 2 * P::amrBoxHalfWidthY; ++j) {
-               for (uint k = 0; k < 2 * P::amrBoxHalfWidthZ; ++k) {
-                  
-                  std::array<double,3> xyz;
-                  xyz[0] = P::amrBoxCenterX + 0.5 * (0.5 + i - P::amrBoxHalfWidthX) * P::dx_ini;
-                  xyz[1] = P::amrBoxCenterY + 0.5 * (0.5 + j - P::amrBoxHalfWidthY) * P::dy_ini;
-                  xyz[2] = P::amrBoxCenterZ + 0.5 * (0.5 + k - P::amrBoxHalfWidthZ) * P::dz_ini;
-                  
-                  CellID myCell = mpiGrid.get_existing_cell(xyz);
-                  if (mpiGrid.refine_completely_at(xyz)) {
-#ifndef NDEBUG
-                     std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;
-#endif
-                  }
-               }
-            }
-         }
-         
-         std::vector<CellID> refinedCells = mpiGrid.stop_refining(true);      
-         if(myRank == MASTER_RANK) std::cout << "Finished second level of refinement" << endl;
-#ifndef NDEBUG
-         if(refinedCells.size() > 0) {
-            std::cout << "Refined cells produced by rank " << myRank << " are: ";
-            for (auto cellid : refinedCells) {
-               std::cout << cellid << " ";
-            }
-            std::cout << endl;
-         }
-#endif              
-         mpiGrid.balance_load();
-      }
-      
-      return true;
    }
    
 }// namespace projects

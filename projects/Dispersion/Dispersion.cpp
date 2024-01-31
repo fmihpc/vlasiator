@@ -64,8 +64,6 @@ namespace projects {
         RP::add(pop + "_Dispersion.Temperature", "Temperature (K)", 2.0e6);
         RP::add(pop + "_Dispersion.densityPertRelAmp", "Relative amplitude of the density perturbation", 0.1);
         RP::add(pop + "_Dispersion.velocityPertAbsAmp", "Absolute amplitude of the velocity perturbation", 1.0e6);
-        RP::add(pop + "_Dispersion.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
-        RP::add(pop + "_Dispersion.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
       }
    }
    
@@ -92,8 +90,6 @@ namespace projects {
         RP::get(pop + "_Dispersion.Temperature", sP.TEMPERATURE);
         RP::get(pop + "_Dispersion.densityPertRelAmp", sP.densityPertRelAmp);
         RP::get(pop + "_Dispersion.velocityPertAbsAmp", sP.velocityPertAbsAmp);
-        RP::get(pop + "_Dispersion.nSpaceSamples", sP.nSpaceSamples);
-        RP::get(pop + "_Dispersion.nVelocitySamples", sP.nVelocitySamples);
 
          speciesParams.push_back(sP);
       }
@@ -127,9 +123,9 @@ namespace projects {
          vector<Real> outputPerBy(P::xcells_ini, 0.0);
          vector<Real> outputPerBz(P::xcells_ini, 0.0);
          
-         const std::array<int32_t, 3> localSize = perBGrid.getLocalSize();
-         const std::array<int32_t, 3> localStart = perBGrid.getLocalStart();
-         for (int x = 0; x < localSize[0]; ++x) {
+         const std::array<FsGridTools::FsIndex_t, 3> localSize = perBGrid.getLocalSize();
+         const std::array<FsGridTools::FsIndex_t, 3> localStart = perBGrid.getLocalStart();
+         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
             localPerBx[x + localStart[0]] = perBGrid.get(x, 0, 0)->at(fsgrids::bfield::PERBX);
             localPerBy[x + localStart[0]] = perBGrid.get(x, 0, 0)->at(fsgrids::bfield::PERBY);
             localPerBz[x + localStart[0]] = perBGrid.get(x, 0, 0)->at(fsgrids::bfield::PERBZ);
@@ -179,28 +175,16 @@ namespace projects {
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
       
-      creal d_vx = dvx / (sP.nVelocitySamples-1);
-      creal d_vy = dvy / (sP.nVelocitySamples-1);
-      creal d_vz = dvz / (sP.nVelocitySamples-1);
-      Real avg = 0.0;
-      
-      for (uint vi=0; vi<sP.nVelocitySamples; ++vi)
-         for (uint vj=0; vj<sP.nVelocitySamples; ++vj)
-            for (uint vk=0; vk<sP.nVelocitySamples; ++vk)
-            {
-               avg += getDistribValue(
-                  vx+vi*d_vx - sP.velocityPertAbsAmp * (0.5 - this->rndVel[0]),
-                  vy+vj*d_vy - sP.velocityPertAbsAmp * (0.5 - this->rndVel[1]),
-                  vz+vk*d_vz - sP.velocityPertAbsAmp * (0.5 - this->rndVel[2]),
-                  popID
-               );
-            }
+      Real avg =  getDistribValue(
+         vx+0.5*dvx - sP.velocityPertAbsAmp * (0.5 - this->rndVel[0]),
+         vy+0.5*dvy - sP.velocityPertAbsAmp * (0.5 - this->rndVel[1]),
+         vz+0.5*dvz - sP.velocityPertAbsAmp * (0.5 - this->rndVel[2]),
+         popID
+         );
             
       creal result = avg *
       sP.DENSITY * (1.0 + sP.densityPertRelAmp * (0.5 - this->rndRho)) *
-      pow(mass / (2.0 * M_PI * kb * sP.TEMPERATURE), 1.5) /
-      //            (Parameters::vzmax - Parameters::vzmin) / 
-      (sP.nVelocitySamples*sP.nVelocitySamples*sP.nVelocitySamples);
+      pow(mass / (2.0 * M_PI * kb * sP.TEMPERATURE), 1.5);
       if(result < this->maxwCutoff) {
          return 0.0;
       } else {
@@ -216,18 +200,15 @@ namespace projects {
       creal dy = cellParams[CellParams::DY];
       creal z = cellParams[CellParams::ZCRD];
       creal dz = cellParams[CellParams::DZ];
-      
-      CellID cellID = (int) ((x - Parameters::xmin) / dx) +
-         (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
-         (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
 
-      setRandomSeed(cellID);
+      std::default_random_engine rndState;
+      setRandomCellSeed(cell,rndState);
       
-      this->rndRho=getRandomNumber();
+      this->rndRho=getRandomNumber(rndState);
       
-      this->rndVel[0]=getRandomNumber();
-      this->rndVel[1]=getRandomNumber();
-      this->rndVel[2]=getRandomNumber();
+      this->rndVel[0]=getRandomNumber(rndState);
+      this->rndVel[1]=getRandomNumber(rndState);
+      this->rndVel[2]=getRandomNumber(rndState);
    }
    
    void Dispersion::setProjectBField(
@@ -246,18 +227,19 @@ namespace projects {
          const auto localSize = BgBGrid.getLocalSize().data();
          
 #pragma omp parallel for collapse(3)
-         for (int x = 0; x < localSize[0]; ++x) {
-            for (int y = 0; y < localSize[1]; ++y) {
-               for (int z = 0; z < localSize[2]; ++z) {
+         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
+            for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
+               for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
                   const int64_t cellid = perBGrid.GlobalIDForCoords(x, y, z);
                   
-                  setRandomSeed(cellid);
+                  std::default_random_engine rndState;
+                  setRandomSeed(cellid,rndState);
                   
                   Real rndBuffer[3];
-                  rndBuffer[0]=getRandomNumber();
-                  rndBuffer[1]=getRandomNumber();
-                  rndBuffer[2]=getRandomNumber();
+                  rndBuffer[0]=getRandomNumber(rndState);
+                  rndBuffer[1]=getRandomNumber(rndState);
+                  rndBuffer[2]=getRandomNumber(rndState);
                   
                   cell->at(fsgrids::bfield::PERBX) = this->magXPertAbsAmp * (0.5 - rndBuffer[0]);
                   cell->at(fsgrids::bfield::PERBY) = this->magYPertAbsAmp * (0.5 - rndBuffer[1]);

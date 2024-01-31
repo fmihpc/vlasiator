@@ -25,6 +25,7 @@
 
 #include "../../definitions.h"
 #include "../projectTriAxisSearch.h"
+#include "../../sysboundary/sysboundary.h"
 
 namespace projects {
 
@@ -37,8 +38,6 @@ namespace projects {
       Real ionosphereT;
       Real taperInnerRadius;
       Real taperOuterRadius;
-      uint nSpaceSamples;
-      uint nVelocitySamples;
    };
 
    class Magnetosphere: public TriAxisSearch {
@@ -70,6 +69,7 @@ namespace projects {
                            const uint popID
                           ) const;
       bool refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const;
+      bool forceRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, int n ) const;
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
       virtual std::vector<std::array<Real, 3> > getV0(
                                                       creal x,
@@ -78,7 +78,7 @@ namespace projects {
                                                       const uint popID
                                                      ) const;
       
-      Real constBgB[3];
+      std::array<Real, 3> constBgB;
       bool noDipoleInSW;
       Real ionosphereRadius;
       uint ionosphereGeometry;
