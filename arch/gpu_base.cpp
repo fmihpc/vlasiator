@@ -89,17 +89,18 @@ uint gpu_acc_columnContainerSize = 0;
 uint gpu_acc_foundColumnsCount = 0;
 
 // SplitVector information structs for use in fetching sizes and capacities without page faulting
-split::SplitInfo *info_1[MAXCPUTHREADS];
-split::SplitInfo *info_2[MAXCPUTHREADS];
-split::SplitInfo *info_3[MAXCPUTHREADS];
-split::SplitInfo *info_4[MAXCPUTHREADS];
-Hashinator::MapInfo *info_m[MAXCPUTHREADS];
+// split::SplitInfo *info_1[MAXCPUTHREADS];
+// split::SplitInfo *info_2[MAXCPUTHREADS];
+// split::SplitInfo *info_3[MAXCPUTHREADS];
+// split::SplitInfo *info_4[MAXCPUTHREADS];
+// Hashinator::MapInfo *info_m[MAXCPUTHREADS];
 
 // SplitVectors and buffers for use in stream compaction
 uint gpu_compaction_vectorsize[MAXCPUTHREADS] = {0};
 uint gpu_compaction_buffersize[MAXCPUTHREADS] = {0};
-split::SplitVector<vmesh::GlobalID> *vbwcl_gather[MAXCPUTHREADS];
-split::SplitVector<vmesh::GlobalID> *vbwncl_gather[MAXCPUTHREADS];
+split::SplitVector<vmesh::GlobalID> *blockLists[MAXCPUTHREADS] = {0};
+split::SplitVector<vmesh::GlobalID> *vbwcl_gather[MAXCPUTHREADS] = {0};
+split::SplitVector<vmesh::GlobalID> *vbwncl_gather[MAXCPUTHREADS] = {0};
 void *compaction_buffer[MAXCPUTHREADS];
 
 __host__ void gpu_init_device() {
@@ -184,11 +185,14 @@ __host__ void gpu_init_device() {
       CHK_ERR( gpuMalloc((void**)&returnReal[i], 8*sizeof(Real)) );
       CHK_ERR( gpuMalloc((void**)&returnRealf[i], 8*sizeof(Realf)) );
       CHK_ERR( gpuMalloc((void**)&returnLID[i], 8*sizeof(vmesh::LocalID)) );
-      CHK_ERR( gpuMallocHost((void **) &info_1[i], sizeof(split::SplitInfo)) );
-      CHK_ERR( gpuMallocHost((void **) &info_2[i], sizeof(split::SplitInfo)) );
-      CHK_ERR( gpuMallocHost((void **) &info_3[i], sizeof(split::SplitInfo)) );
-      CHK_ERR( gpuMallocHost((void **) &info_4[i], sizeof(split::SplitInfo)) );
-      CHK_ERR( gpuMallocHost((void **) &info_m[i], sizeof(Hashinator::MapInfo)) );
+      // CHK_ERR( gpuMallocHost((void **) &info_1[i], sizeof(split::SplitInfo)) );
+      // CHK_ERR( gpuMallocHost((void **) &info_2[i], sizeof(split::SplitInfo)) );
+      // CHK_ERR( gpuMallocHost((void **) &info_3[i], sizeof(split::SplitInfo)) );
+      // CHK_ERR( gpuMallocHost((void **) &info_4[i], sizeof(split::SplitInfo)) );
+      // CHK_ERR( gpuMallocHost((void **) &info_m[i], sizeof(Hashinator::MapInfo)) );
+      if (blockLists[i]==0) {
+         blockLists[i] = new split::SplitVector<vmesh::GlobalID>(1);
+      }
    }
    CHK_ERR( gpuDeviceSynchronize() );
 
@@ -295,6 +299,10 @@ __host__ void gpu_vlasov_allocate_perthread(
    CHK_ERR( gpuMalloc((void**)&gpu_LIDlist_unsorted[cpuThreadID], blockAllocationCount*sizeof(vmesh::GlobalID)) );
    CHK_ERR( gpuMalloc((void**)&gpu_LIDlist[cpuThreadID], blockAllocationCount*sizeof(vmesh::LocalID)) );
    CHK_ERR( gpuMalloc((void**)&gpu_GIDlist[cpuThreadID], blockAllocationCount*sizeof(vmesh::LocalID)) );
+
+   if (blockLists[cpuThreadID]==0) {
+      blockLists[cpuThreadID] = new split::SplitVector<vmesh::GlobalID>(1);
+   }
 }
 
 __host__ void gpu_vlasov_deallocate_perthread (
@@ -309,6 +317,8 @@ __host__ void gpu_vlasov_deallocate_perthread (
    CHK_ERR( gpuFree(gpu_LIDlist_unsorted[cpuThreadID]) );
    CHK_ERR( gpuFree(gpu_LIDlist[cpuThreadID]) );
    CHK_ERR( gpuFree(gpu_GIDlist[cpuThreadID]) );
+   delete blockLists[cpuThreadID];
+   blockLists[cpuThreadID] = 0;
 }
 
 /*

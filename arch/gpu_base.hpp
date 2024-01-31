@@ -175,14 +175,15 @@ extern ColumnOffsets *gpu_columnOffsetData[];
 // SplitVectors and buffers for use in stream compaction
 extern split::SplitVector<vmesh::GlobalID> *vbwcl_gather[];
 extern split::SplitVector<vmesh::GlobalID> *vbwncl_gather[];
+extern split::SplitVector<vmesh::GlobalID> *blockLists[];
 extern void *compaction_buffer[];
 
 // SplitVector information structs for use in fetching sizes and capacities without page faulting
-extern split::SplitInfo *info_1[];
-extern split::SplitInfo *info_2[];
-extern split::SplitInfo *info_3[];
-extern split::SplitInfo *info_4[];
-extern Hashinator::MapInfo *info_m[];
+// extern split::SplitInfo *info_1[];
+// extern split::SplitInfo *info_2[];
+// extern split::SplitInfo *info_3[];
+// extern split::SplitInfo *info_4[];
+// extern Hashinator::MapInfo *info_m[];
 
 // Vectors and set for use in translation, actually declared in vlasovsolver/gpu_trans_map_amr.hpp
 // to sidestep compilation errors
