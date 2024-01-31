@@ -164,6 +164,8 @@ namespace SBC {
       Real VX0;
       Real VY0;
       Real VZ0;
+
+      bool zeroPerB;
       
       spatial_cell::SpatialCell templateCell;
 
