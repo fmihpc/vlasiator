@@ -14,7 +14,7 @@ jobs:
     # Build libraries for the current version of the docker image
     # (to be used in any subsequent compilation and run jobs on said image)
     runs-on: ubuntu-latest
-    container: ursg/vlasiator_ci:20230220_1
+    container: ursg/vlasiator_ci:20240131_1
 
     steps:
       - name: Checkout source
@@ -53,7 +53,7 @@ jobs:
   build_production:
     # Build Vlasiator with production flags
     runs-on: ubuntu-latest
-    container: ursg/vlasiator_ci:20230220_1
+    container: ursg/vlasiator_ci:20240131_1
     needs: build_libraries
 
     steps:
@@ -219,9 +219,8 @@ jobs:
       # (to produce Checks against pull requests)
 
   build_ionosphereTests:
-    # Build IonosphereSolverTests miniApp (currently broken)
+    # Build IonosphereSolverTests miniApp
     runs-on: carrington
-      #container: ursg/vlasiator_ci:20230220_1
     needs: [build_libraries]
     steps:
     - name: Checkout source
