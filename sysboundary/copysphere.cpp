@@ -797,7 +797,7 @@ namespace SBC {
          } // for-loop over velocity blocks
 
          // let's get rid of blocks not fulfilling the criteria here to save memory.
-         templateCell.adjustSingleCellVelocityBlocks(popID);
+         templateCell.adjustSingleCellVelocityBlocks(popID,true);
       } // for-loop over particle species
       
       calculateCellMoments(&templateCell,true,false,true);
