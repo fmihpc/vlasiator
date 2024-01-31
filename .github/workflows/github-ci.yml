@@ -17,48 +17,10 @@ jobs:
     container: ursg/vlasiator_ci:20230220_1
 
     steps:
-      - name: Setup libraries dir
-        run: |
-          mkdir -p libraries/include
-          mkdir -p libraries/lib
-          mkdir library-build
-          cd library-build
-      - name: Build phiprof
-        run: |
-          git clone https://github.com/fmihpc/phiprof/
-          cd phiprof/src
-          make -j 4 CCC=mpic++
-          cp ../include/* $GITHUB_WORKSPACE/libraries/include
-          cp ../lib/* $GITHUB_WORKSPACE/libraries/lib
-          cd ../..
-      - name: Build VLSV
-        run: |
-          git clone https://github.com/fmihpc/vlsv.git
-          cd vlsv
-          make
-          cp libvlsv.a $GITHUB_WORKSPACE/libraries/lib
-          cp *.h $GITHUB_WORKSPACE/libraries/include
-          cd ..
-      - name: Build papi
-        run: |
-          git clone https://github.com/icl-utk-edu/papi
-          cd papi/src
-          ./configure --prefix=$GITHUB_WORKSPACE/libraries && make -j 4 CC=gcc && make install
-          cd ../..
-      - name: Build jemalloc
-        run: |
-          wget https://github.com/jemalloc/jemalloc/releases/download/4.0.4/jemalloc-4.0.4.tar.bz2
-          tar xf jemalloc-4.0.4.tar.bz2
-          cd jemalloc-4.0.4
-          ./configure --prefix=$GITHUB_WORKSPACE/libraries --with-jemalloc-prefix=je_ && make -j 4 && make install
-          cd ..
-      - name: Build Zoltan
-        run: |
-          git clone https://github.com/sandialabs/Zoltan.git
-          mkdir zoltan-build
-          cd zoltan-build
-          ../Zoltan/configure --prefix=$GITHUB_WORKSPACE/libraries --enable-mpi --with-mpi-compilers --with-gnumake --with-id-type=ullong && make -j 4 && make install
-          cd ..
+      - name: Checkout source
+        uses: actions/checkout@v3
+      - name: Run library build script
+        run: ./build_libraries.sh
       - name: Build libraries tar
         run: tar --zstd -cvf libraries.tar.zstd libraries/
       - name: Upload libraries as artifact
