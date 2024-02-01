@@ -99,4 +99,10 @@ void bailout(
 
       MPI_Abort(MPI_COMM_WORLD, 1);
    }
+
+   MPI_Barrier(MPI_COMM_WORLD);
+   // MPI_Barrier should prevent execution reaching here
+   // Dummy abort to convince compiler function doesn't return
+   // TODO replace with std::unreachable once we switch to C++23
+   abort();
 }
