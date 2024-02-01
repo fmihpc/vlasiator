@@ -867,6 +867,7 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    //spatial_cell->BlocksToRemove->optimizeGPU(stream);
    if (toRemoveSize > toAddSize) {
       // If we hit v-space walls, we may end up removing more blocks than we create.
+      // GPUTODO: Adjust this function so that we can use the map/set based move evaluator
       spatial_cell->update_blocks_to_move_caller(popID);
    }
 

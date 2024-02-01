@@ -543,6 +543,7 @@ namespace spatial_cell {
                                   bool doDeleteEmptyBlocks=true);
       void adjust_velocity_blocks_caller(const uint popID);
       void update_blocks_to_move_caller(const uint popID);
+      void update_blocks_to_move_caller_2(const uint popID, const vmesh::LocalID nBlocksRequired, const vmesh::LocalID nBlocksCurrent);
       // Templated function for storing a v-space read from a file
       template <typename fileReal> void add_velocity_blocks(const uint popID, split::SplitVector<vmesh::GlobalID> *blocks,fileReal* avgBuffer);
 
@@ -609,6 +610,7 @@ namespace spatial_cell {
       /**< List of existing cells with no content, only up-to-date after call to update_has_content. This is also never transferred over MPI, so is invalid on remote cells.*/
 
       Realf* gpu_rhoLossAdjust;
+      // GPUTODO: also keep local duplicate values of capacity, updated on resize?
       split::SplitVector<vmesh::GlobalID> *BlocksToRemove, *BlocksToAdd, *BlocksToMove; /**< Lists of blocks to change on GPU device */
       split::SplitVector<vmesh::GlobalID> *BlocksRequired;
       Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *BlocksRequiredMap, *BlocksDeleteMap;
