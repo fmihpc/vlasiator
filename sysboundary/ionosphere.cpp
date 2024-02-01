@@ -3335,7 +3335,6 @@ namespace SBC {
                   creal dvzCell = cell.get_velocity_grid_cell_size(popID,refLevel)[2];
                   for (size_t i = 0; i < blocksToInitialize.size(); i++) {
                      const vmesh::GlobalID blockGID = blocksToInitialize.at(i);
-                     Realf maxValue = 0;
                      // Calculate parameters for new block
                      Real blockCoords[3];
                      cell.get_velocity_block_coordinates(popID,blockGID,&blockCoords[0]);
@@ -3389,7 +3388,6 @@ namespace SBC {
                                                                        vyCellCenter - vDrift[1],
                                                                        vzCellCenter - vDrift[2]);
                               initBuffer[i*WID3+cellIndex(ic,jc,kc)] = average;
-                              //maxValue = max(average, maxValue);
                            }
                         }
                      }

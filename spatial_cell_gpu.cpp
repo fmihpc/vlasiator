@@ -252,7 +252,6 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
          #endif
          const vmesh::LocalID rmLID = vmesh->warpGetLocalID(rmGID,ti);
          #ifdef DEBUG_SPATIAL_CELL
-         assert(rmLID >= nBlocksBeforeAdjust && "Trying to remove block which has LID >= nBlocksBeforeAdjust!");
          if (rmGID == vmesh->invalidGlobalID()) {
             if (rmLID != vmesh->invalidLocalID()) {
                // Valid LID but invalid GID: only remove from vmesh localToGlobal?
@@ -269,6 +268,7 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
             }
             continue;
          }
+         assert(rmLID >= nBlocksBeforeAdjust && "Trying to remove block which has LID >= nBlocksBeforeAdjust!");
          #endif
          // Track mass loss:
          Realf* rm_avgs = blockContainer->getData(rmLID);
