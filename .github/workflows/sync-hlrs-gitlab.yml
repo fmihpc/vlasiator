@@ -2,7 +2,7 @@ name: Generate testpackage reference data
 
 on:
   push:
-    branches : ["dev","master","cudasiator"]
+    branches : ["dev","master","vlasiator_gpu"]
 
 jobs:
   push_to_gitlab:
