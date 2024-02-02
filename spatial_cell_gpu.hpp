@@ -618,7 +618,8 @@ namespace spatial_cell {
       // Host-side cached values to avoid page faults
       size_t velocity_block_with_content_list_capacity, velocity_block_with_no_content_list_capacity;
       size_t BlocksToRemove_capacity, BlocksToAdd_capacity, BlocksToMove_capacity, BlocksRequired_capacity,BlocksRequiredMap_sizepower,BlocksDeleteMap_sizepower;
-      size_t BlocksToRemove_size, BlocksToAdd_size, BlocksRequired_size,BlocksRequiredMap_sizepower,BlocksDeleteMap_sizepower;
+      // TODO: also for sizes?
+      //size_t BlocksToRemove_size, BlocksToAdd_size, BlocksRequired_size,BlocksRequiredMap_fill,BlocksDeleteMap_fill;
       // This is never needed: BlocksToMove_size
 
       static uint64_t mpi_transfer_type;                                      /**< Which data is transferred by the mpi datatype given by spatial cells.*/
