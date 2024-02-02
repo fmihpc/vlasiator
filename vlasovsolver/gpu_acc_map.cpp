@@ -236,6 +236,7 @@ __global__ void __launch_bounds__(GPUTHREADS,4) evaluate_column_extents_kernel(
    const uint blocki = blockIdx.z*gridDim.x*gridDim.y + blockIdx.y*gridDim.x + blockIdx.x;
    const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
 
+   // Shared within all threads in one block
    __shared__ int isTargetBlock[MAX_BLOCKS_PER_DIM];
    __shared__ int isSourceBlock[MAX_BLOCKS_PER_DIM];
    for( uint setIndex=blocki; setIndex < gpu_columnData->setColumnOffsets.size(); setIndex += gpuBlocks) {
@@ -243,7 +244,7 @@ __global__ void __launch_bounds__(GPUTHREADS,4) evaluate_column_extents_kernel(
 
          // Clear flags used for this columnSet
          for(uint tti = 0; tti < MAX_BLOCKS_PER_DIM; tti += warpSize ) {
-            uint index = tti + ti;
+            const uint index = tti + ti;
             if (index < MAX_BLOCKS_PER_DIM) {
                isTargetBlock[index] = 0;
                isSourceBlock[index] = 0;
@@ -380,7 +381,7 @@ __global__ void __launch_bounds__(GPUTHREADS,4) evaluate_column_extents_kernel(
          __syncthreads();
 
          for (uint blockT = 0; blockT < MAX_BLOCKS_PER_DIM; blockT +=warpSize) {
-            uint blockK = blockT + ti;
+            const uint blockK = blockT + ti;
             if (blockK < MAX_BLOCKS_PER_DIM) {
                if(isTargetBlock[blockK]!=0)  {
                   const int targetBlock =

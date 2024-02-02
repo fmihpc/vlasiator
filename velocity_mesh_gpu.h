@@ -56,6 +56,7 @@ namespace vmesh {
 
       size_t capacityInBytes() const;
       ARCH_HOSTDEV bool check() const;
+      ARCH_HOSTDEV void print() const;
       void clear();
       ARCH_HOSTDEV bool move(const vmesh::LocalID& sourceLocalID,const vmesh::LocalID& targetLocalID);
       ARCH_DEV bool warpMove(const vmesh::LocalID& sourceLocalID,const vmesh::LocalID& targetLocalID, const size_t b_tid);
@@ -223,6 +224,35 @@ namespace vmesh {
       globalToLocalMap->optimizeGPU(stream);
       #endif
       return ok;
+   }
+
+   ARCH_HOSTDEV inline void VelocityMesh::print() const {
+      #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
+      gpuStream_t stream = gpu_getStream();
+      localToGlobalMap->optimizeCPU(stream);
+      globalToLocalMap->optimizeCPU(stream);
+      #endif
+
+      if (localToGlobalMap->size() != globalToLocalMap->size()) {
+         printf("VMO ERROR: sizes differ, %lu vs %lu\n",localToGlobalMap->size(),globalToLocalMap->size());
+         assert(0 && "VM check ERROR: sizes differ");
+      }
+      vmesh::LocalID thisSize = size();
+      printf("VM Size: %u \n",thisSize);
+      for (vmesh::LocalID b=0; b<thisSize; ++b) {
+         const vmesh::LocalID globalID = localToGlobalMap->at(b);
+         #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+         auto it = globalToLocalMap->device_find(globalID);
+         #else
+         auto it = globalToLocalMap->find(globalID);
+         #endif
+         const vmesh::GlobalID localID = it->second;
+         printf("vmesh LID [%6u] => GID [%6u] => [%6u]\n",b,globalID,localID);
+      }
+      #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
+      localToGlobalMap->optimizeGPU(stream);
+      globalToLocalMap->optimizeGPU(stream);
+      #endif
    }
 
    inline void VelocityMesh::clear() {
