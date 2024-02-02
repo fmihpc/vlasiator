@@ -443,235 +443,14 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
          #endif
          continue;
       }
+      #ifdef DEBUG_SPATIAL_CELL
       // Fall-through error!
       if (ti==0) {
-         printf("Error! Fall through in update_velocity_blocks_kernel! nToAdd %u nToRemove %u nToMove %u nBlocksBeforeAdjust %u nBlocksAfterAdjust %u \n",nToAdd,nToRemove,nToMove,nBlocksBeforeAdjust,nBlocksAfterAdjust);
+         printf("Error! Fall through in update_velocity_blocks_kernel! nToAdd %u nToRemove %u nToMove %u nBlocksBeforeAdjust %u nBlocksAfterAdjust %u \n",
+                nToAdd,nToRemove,nToMove,nBlocksBeforeAdjust,nBlocksAfterAdjust);
       }
       __syncthreads();
       assert(0 && "Error! Fall through in update_velocity_blocks_kernel!");
-   }
-   // Atomically update accumulated mass loss
-   if (ti==0) {
-      Realf old = atomicAdd(gpu_rhoLossAdjust, local_rhoLoss);
-   }
-}
-
-/** GPU kernel for updating blocks based on generated lists. Old version with tracked indices. */
-__global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel_old(
-   vmesh::VelocityMesh *vmesh,
-   vmesh::VelocityBlockContainer *blockContainer,
-   split::SplitVector<vmesh::GlobalID>* BlocksToAdd,
-   split::SplitVector<vmesh::GlobalID>* BlocksToRemove,
-   split::SplitVector<vmesh::GlobalID>* BlocksToMove,
-   vmesh::LocalID nBlocksBeforeAdjust,
-   vmesh::LocalID nBlocksAfterAdjust,
-   vmesh::LocalID *VectorIndex,
-   Realf* gpu_rhoLossAdjust
-   ) {
-   const int gpuBlocks = gridDim.x;
-   const int blocki = blockIdx.x;
-   const int i = threadIdx.x;
-   const int j = threadIdx.y;
-   const int k = threadIdx.z;
-   const uint ti = k*WID2 + j*WID + i;
-   vmesh::LocalID *addVectorIndex = VectorIndex;
-   vmesh::LocalID *moveVectorIndex = VectorIndex+1;
-
-   const vmesh::LocalID nToAdd = BlocksToAdd->size();
-   const vmesh::LocalID nToRemove = BlocksToRemove->size();
-   const vmesh::LocalID nToMove = BlocksToMove->size();
-   const vmesh::LocalID nToCreate = nToAdd > nToRemove ? (nToAdd-nToRemove) : 0;
-   Realf local_rhoLoss = 0;
-   // For tracking mass-loss
-   __shared__ Realf massloss[WID3];
-   __shared__ vmesh::LocalID moveIndex;
-   __shared__ vmesh::LocalID addIndex;
-
-   for (vmesh::LocalID m=blocki; m<nToRemove; m += gpuBlocks) {
-      // Go through all blocks which are to be removed.
-      // If there is a corresponding block to be added, place that in its stead.
-      // If instead there is a block to be moved into its place, take the corresponding
-      // block from the moved list instead. If neither is valid, just delete the block.
-      #ifdef DEBUG_SPATIAL_CELL
-      const vmesh::GlobalID rmGID = BlocksToRemove->at(m);
-      #else
-      const vmesh::GlobalID rmGID = (*BlocksToRemove)[m];
-      #endif
-      const vmesh::LocalID rmLID = vmesh->warpGetLocalID(rmGID,ti);
-
-      #ifdef DEBUG_SPATIAL_CELL
-      if (rmGID == vmesh->invalidGlobalID()) {
-         if (rmLID != vmesh->invalidLocalID()) {
-            // Valid LID but invalid GID: only remove from vmesh localToGlobal?
-            printf("Removing blocks: Valid LID %u but invalid GID!\n",rmLID);
-         } else {
-            printf("Removing blocks: Invalid LID and GID!\n");
-         }
-         continue;
-      }
-      if (rmLID == vmesh->invalidLocalID()) {
-         if (rmGID != vmesh->invalidGlobalID()) {
-            // Valid GID but invalid LID: only remove from vmesh globalToLocal?
-            printf("Removing blocks: Valid GID %ul but invalid LID!\n",rmGID);
-         }
-         continue;
-      }
-      #endif
-
-      // Track mass loss:
-      Realf* rm_avgs = blockContainer->getData(rmLID);
-      Real* rm_block_parameters = blockContainer->getParameters(rmLID);
-      const Real rm_DV3 = rm_block_parameters[BlockParams::DVX]
-         * rm_block_parameters[BlockParams::DVY]
-         * rm_block_parameters[BlockParams::DVZ];
-
-      // thread-sum for rho
-      massloss[ti] = rm_avgs[ti]*rm_DV3;
-      __syncthreads();
-      // Implemented just a simple non-optimized thread sum
-      for (unsigned int s=WID3/2; s>0; s>>=1) {
-         if (ti < s) {
-            massloss[ti] += massloss[ti + s];
-         }
-         __syncthreads();
-      }
-
-      if (ti==0) {
-         // Bookkeeping only by one thread
-         local_rhoLoss += massloss[0];
-      }
-      __syncthreads();
-
-      // Is this LID so large that we just delete without replacing?
-      if (rmLID >= nBlocksAfterAdjust) {
-         vmesh->warpDeleteBlock(rmGID,rmLID,ti);
-         continue;
-      }
-
-      // If not, we need to replace this block, so let's select the next index (blocks to move):
-      if (ti==0) {
-         moveIndex = atomicAdd(moveVectorIndex,1);
-      }
-      __syncthreads();
-
-      if (moveIndex<nToMove) {
-         // Move in block from latter part of vmesh
-         #ifdef DEBUG_SPATIAL_CELL
-         const vmesh::GlobalID replaceGID = BlocksToMove->at(moveIndex);
-         #else
-         const vmesh::GlobalID replaceGID = (*BlocksToMove)[moveIndex];
-         #endif
-         const vmesh::LocalID replaceLID = vmesh->warpGetLocalID(replaceGID,ti);
-
-         Realf* repl_avgs = blockContainer->getData(replaceLID);
-         Real*  repl_block_parameters = blockContainer->getParameters(replaceLID);
-         rm_avgs[ti] = repl_avgs[ti];
-         if (ti < BlockParams::N_VELOCITY_BLOCK_PARAMS) {
-            rm_block_parameters[ti] = repl_block_parameters[ti];
-         }
-         __syncthreads();
-
-         // Remove hashmap entry for removed block, add instead created block
-         vmesh->warpReplaceBlock(rmGID,rmLID,replaceGID,ti);
-
-         #ifdef DEBUG_SPATIAL_CELL
-         if (vmesh->getGlobalID(rmLID) == vmesh->invalidGlobalID()) {
-            if (ti==0) printf("Invalid GID encountered in update_velocity_blocks_kernel!\n");
-            __syncthreads();
-            continue;
-         }
-         if (vmesh->getLocalID(replaceGID) == vmesh->invalidLocalID()) {
-            if (ti==0) printf("Invalid LID encountered in update_velocity_blocks_kernel!\n");
-            __syncthreads();
-            continue;
-         }
-         #endif
-         continue;
-      }
-
-      // Nothing to move into this position, so let's add instead (blocks to add)
-      if (ti==0) {
-         addIndex = atomicAdd(addVectorIndex,1);
-      }
-      __syncthreads();
-      if (addIndex<nToAdd) {
-         // New GID
-         #ifdef DEBUG_SPATIAL_CELL
-         const vmesh::GlobalID addGID = BlocksToAdd->at(addIndex);
-         #else
-         const vmesh::GlobalID addGID = (*BlocksToAdd)[addIndex];
-         #endif
-
-         #ifdef DEBUG_SPATIAL_CELL
-         // Verify that we don't take from to far in the vector
-         assert(addIndex < nToRemove && "addIndex < nToRemove");
-         if (addGID == vmesh->invalidGlobalID()) {
-            if (ti==0) printf("Error! Adding invalid Global ID in update_velocity_blocks_kernel! \n");
-            __syncthreads();
-            continue;
-         }
-         #endif
-         rm_avgs[ti] = 0;
-         if (ti==0) {
-            // Write in block parameters
-            vmesh->getBlockInfo(addGID, rm_block_parameters+BlockParams::VXCRD);
-         }
-         __syncthreads();
-         vmesh->warpReplaceBlock(rmGID,rmLID,addGID,ti);
-         #ifdef DEBUG_SPATIAL_CELL
-         if (vmesh->getGlobalID(rmLID) == vmesh->invalidGlobalID()) {
-            if (ti==0) printf("Error! Adding resulted in invalid Global ID in update_velocity_blocks_kernel! \n");
-            __syncthreads();
-            continue;
-         }
-         if (vmesh->getLocalID(addGID) == vmesh->invalidLocalID()) {
-            if (ti==0) printf("Error! Adding resulted in invalid Local ID in update_velocity_blocks_kernel! \n");
-            __syncthreads();
-            continue;
-         }
-         #endif
-         continue;
-      }
-      // Fall-through error!
-      if (ti==0) {
-         printf("Error! Fall through in update_velocity_blocks_kernel! nToAdd %u nToRemove %u nToMove %u nToCreate %u addIndex %u moveIndex %u rmLID %u nBlocksBeforeAdjust %u nBlocksAfterAdjust %u \n",nToAdd,nToRemove,nToMove,nToCreate,addIndex,moveIndex,rmLID,nBlocksBeforeAdjust,nBlocksAfterAdjust);
-      }
-      __syncthreads();
-      assert(0 && "Error! Fall through in update_velocity_blocks_kernel!");
-   }
-   // Now, if we need to expand the size of the vmesh, let's add blocks.
-   // For thread-safety, this assumes that the localToGlobalMap is already of sufficient size, as should be
-   // the block_data and block_parameters vectors.
-   for (vmesh::LocalID m=blocki; m<nToCreate; m += gpuBlocks) {
-      // We have already used up nToRemove entries from the addition vector.
-      #ifdef DEBUG_SPATIAL_CELL
-      const vmesh::GlobalID addGID = BlocksToAdd->at(nToRemove+m);
-      #else
-      const vmesh::GlobalID addGID = (*BlocksToAdd)[nToRemove+m];
-      #endif
-      // To be safe, should we select the next entry using atomics?
-
-      // We need to add the data of addGID to a new LID:
-      const vmesh::LocalID addLID = nBlocksBeforeAdjust + m;
-      Realf* add_avgs = blockContainer->getData(addLID);
-      #ifdef DEBUG_SPATIAL_CELL
-      // Debug check: if we are adding elements, then nToMove should be zero
-      assert((nToMove==0) && "nToMove should be zero when adding blocks!");
-      assert((addGID != vmesh->invalidGlobalID()) && "Error! Trying to add invalid GID!");
-      assert((addLID != vmesh->invalidLocalID()) && "Error! Trying to add GID to invalid LID position!");
-      #endif
-      Real* add_block_parameters = blockContainer->getParameters(addLID);
-      // Zero out blockdata
-      add_avgs[ti] = 0;
-      if (ti==0) {
-         // Write in block parameters
-         vmesh->getBlockInfo(addGID, add_block_parameters+BlockParams::VXCRD);
-      }
-      __syncthreads();
-      vmesh->warpPlaceBlock(addGID,addLID,ti);
-      #ifdef DEBUG_SPATIAL_CELL
-      assert((vmesh->getGlobalID(addLID) != vmesh->invalidGlobalID()) && "Error! Trying to add invalid GID!");
-      assert((vmesh->getLocalID(addGID) != vmesh->invalidLocalID()) && "Error! Trying to add GID to invalid LID position!");
       #endif
    }
    // Atomically update accumulated mass loss
@@ -679,7 +458,6 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel_old(
       Realf old = atomicAdd(gpu_rhoLossAdjust, local_rhoLoss);
    }
 }
-
 
 namespace spatial_cell {
    int SpatialCell::activePopID = 0;
@@ -1176,7 +954,7 @@ namespace spatial_cell {
       BlocksRequired->reserve(localContentBlocks+4*localNoContentBlocks);
       nGpuBlocks = localContentBlocks > GPUBLOCKS ? GPUBLOCKS : localContentBlocks;
 
-      phiprof::Timer blockHaloTimer {"Block halo kernel"};
+      //phiprof::Timer blockHaloTimer {"Block halo kernel"};
       if (localContentBlocks > 0) {
          // First add all local content blocks and their v-space halo to the list
          update_blocks_required_halo_kernel<<<nGpuBlocks, haloblock, 0, stream>>> (
@@ -1188,10 +966,10 @@ namespace spatial_cell {
             );
          CHK_ERR( gpuPeekAtLastError() );
       }
-      CHK_ERR( gpuStreamSynchronize(stream) );
-      blockHaloTimer.stop();
+      //CHK_ERR( gpuStreamSynchronize(stream) );
+      //blockHaloTimer.stop();
 
-      phiprof::Timer neighbourTimer {"Neighbour block memcopies"};
+      //phiprof::Timer neighbourTimer {"Neighbour block memcopies"};
       // Then add neighbour blocks
       vmesh::LocalID incrementPoint = halosize3*localContentBlocks;
       if (neighbors_count > 0) {
@@ -1213,10 +991,10 @@ namespace spatial_cell {
                                  localNoContentBlocks*sizeof(vmesh::LocalID), gpuMemcpyDeviceToDevice, stream) );
          incrementPoint += localNoContentBlocks;
       }
-      CHK_ERR( gpuStreamSynchronize(stream) );
-      neighbourTimer.stop();
+      //CHK_ERR( gpuStreamSynchronize(stream) );
+      //neighbourTimer.stop();
 
-      phiprof::Timer resizeTimer {"BlocksRequired hashmap resize / clear"};
+      //phiprof::Timer resizeTimer {"BlocksRequired hashmap resize / clear"};
       // Estimate required size based on existing blocks
       int HashmapReqSize = 2;
       if (localContentBlocks+localNoContentBlocks > 0) {
@@ -1233,34 +1011,30 @@ namespace spatial_cell {
          BlocksRequiredMap->resize(HashmapReqSize,Hashinator::targets::device, stream);
          BlocksRequiredMapSizePower = HashmapReqSize;
       }
-      // Simply clear this map
-      BlocksDeleteMap->clear(Hashinator::targets::device,stream,false);
-      // GPUTODO: only clear when necessary
-      resizeTimer.stop();
-      // I guess no need to clean tombstones as we cleaned already
+      //resizeTimer.stop();
 
       // Dump all required content blocks into set/map with a fast hashinator interface.
       // GPU TODO: In fact, could do sort + unique with a list
       //phiprof::Timer blockInsertTimer {"All blocks with content"};
+      //phiprof::Timer insertTimer {"BlocksRequired insert"};
       // 0.5 is target load factor
-      phiprof::Timer insertTimer {"BlocksRequired insert"};
       BlocksRequiredMap->insert(BlocksList->data(),BlocksList->data(),incrementPoint,0.5,stream,false);
       CHK_ERR( gpuPeekAtLastError() );
-      CHK_ERR( gpuStreamSynchronize(stream) );
-      insertTimer.stop();
+      //CHK_ERR( gpuStreamSynchronize(stream) );
+      //insertTimer.stop();
 
       // Ensure allocation for extraction calls is sufficient
       size_t bytesNeeded = split::tools::estimateMemoryForCompaction((size_t)std::pow(2,BlocksRequiredMapSizePower+4));
       gpu_compaction_allocate_buf_perthread(thread_id, bytesNeeded);
 
-      phiprof::Timer extractRequiredTimer {"BlocksRequired extract"};
+      //phiprof::Timer extractRequiredTimer {"BlocksRequired extract"};
       const vmesh::LocalID nBlocksRequired = BlocksRequiredMap->extractAllKeys(*BlocksRequired,compaction_buffer[thread_id],bytesNeeded,stream,false);
       //const vmesh::LocalID nBlocksRequired = BlocksRequiredMap->extractAllKeys(*BlocksRequired,stream,false);
-      extractRequiredTimer.stop();
+      //extractRequiredTimer.stop();
 
       vmesh::LocalID nBlocksToRemove = 0;
       if (doDeleteEmptyBlocks && localNoContentBlocks>0) {
-         phiprof::Timer resizeDeleteTimer {"Blocksdelete hashmap resize / clear"};
+         //phiprof::Timer resizeDeleteTimer {"Blocksdelete hashmap resize / clear"};
          // Estimate required size based on existing blocks
          int HashmapDeleteReqSize = 2;
          if (localNoContentBlocks > 0) {
@@ -1270,50 +1044,44 @@ namespace spatial_cell {
          int BlocksDeleteMapSizePower = BlocksDeleteMap->getSizePower();
          if (BlocksDeleteMapSizePower >= HashmapDeleteReqSize) {
             // Map is already large enough
-            //BlocksDeleteMap->clear(Hashinator::targets::device,stream,false);
+            BlocksDeleteMap->clear(Hashinator::targets::device,stream,false);
          } else {
             // Need larger empty map
-            //BlocksDeleteMap->clear(Hashinator::targets::device,stream,false);
+            BlocksDeleteMap->clear(Hashinator::targets::device,stream,false);
             BlocksDeleteMap->resize(HashmapDeleteReqSize,Hashinator::targets::device, stream);
             BlocksDeleteMapSizePower = HashmapDeleteReqSize;
          }
-         resizeDeleteTimer.stop();
+         //resizeDeleteTimer.stop();
 
-         phiprof::Timer findDeleteTimer {"BlocksToRemove all"};
+         //phiprof::Timer findDeleteTimer {"BlocksToRemove all"};
          // Build set of blocks to potentially delete from localNoContentBlocks
          // 0.5 is target load factor
-         //std::cerr<<"BlocksDeleteMap 0 size "<<BlocksDeleteMap->size()<<" "<<BlocksDeleteMap->getSizePower()<<" "<<localNoContentBlocks<<std::endl;
          BlocksDeleteMap->insert(_withNoContentData,_withNoContentData,localNoContentBlocks,0.5,stream,false);
          CHK_ERR( gpuPeekAtLastError() );
          CHK_ERR( gpuStreamSynchronize(stream) );
-         //std::cerr<<"BlocksDeleteMap 1 size "<<BlocksDeleteMap->size()<<" "<<BlocksDeleteMap->getSizePower()<<std::endl;
          // then delete all those blocks from the set which are still required
          BlocksDeleteMap->erase(BlocksRequired->data(),nBlocksRequired,stream);
          CHK_ERR( gpuStreamSynchronize(stream) );
-         //std::cerr<<"BlocksDeleteMap 2 size "<<BlocksDeleteMap->size()<<" "<<BlocksDeleteMap->getSizePower()<<std::endl;
          // And finally extract the actual list of blocks to remove
          // This extraction re-uses the same buffer as for required
          if (BlocksDeleteMap->size() > 0) {
             nBlocksToRemove = BlocksDeleteMap->extractAllKeys(*BlocksToRemove,compaction_buffer[thread_id],bytesNeeded,stream,false);
          }
-         findDeleteTimer.stop();
+         //findDeleteTimer.stop();
       }
 
       // Now clean the blocks required set/map of all blocks which already exist (these two calls should be merged)
-      phiprof::Timer eraseTimer {"BlocksRequired erase existing"};
+      //phiprof::Timer eraseTimer {"BlocksRequired erase existing"};
       BlocksRequiredMap->erase(_withContentData,localContentBlocks,stream);
-      CHK_ERR( gpuStreamSynchronize(stream) );
       BlocksRequiredMap->erase(_withNoContentData,localNoContentBlocks,stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
-      eraseTimer.stop();
-      phiprof::Timer toAddTimer {"BlocksToAdd extract"};
+      //eraseTimer.stop();
+      //phiprof::Timer toAddTimer {"BlocksToAdd extract"};
       const vmesh::LocalID nBlocksToAdd = BlocksRequiredMap->extractAllKeys(*BlocksToAdd,compaction_buffer[thread_id],bytesNeeded,stream,false);
-      //const vmesh::LocalID nBlocksToAdd = BlocksRequiredMap->extractAllKeys(*BlocksToAdd,stream,false);
-      toAddTimer.stop();
+      //toAddTimer.stop();
 
-      // Stopgap measure to handle moves
+      // If we remove more blocks than we create, we gather a list of blocks to rescue
       if (nBlocksToRemove > nBlocksToAdd) {
-         // We end up removing more blocks than we create.
          update_blocks_to_move_caller_2(popID, nBlocksRequired, currSize);
       }
 
@@ -1322,12 +1090,6 @@ namespace spatial_cell {
 
       // Perform hashmap cleanup here (instead of at acceleration mid-steps)
       //phiprof::Timer cleanupTimer {"Hashinator cleanup"};
-      // if (needAttachedStreams) {
-      //    populations[popID].vmesh->gpu_attachToStream(stream);
-      // }
-      // if (doPrefetches) {
-      //    populations[popID].vmesh->gpu_prefetchDevice(stream);
-      // }
       populations[popID].vmesh->gpu_cleanHashMap(stream);
       SSYNC;
       //cleanupTimer.stop();
@@ -1358,7 +1120,6 @@ namespace spatial_cell {
          BlocksToMove->reserve(nBlocksRequired*BLOCK_ALLOCATION_PADDING,true);
          BlocksToMove->optimizeGPU(stream);
       }
-      //BlocksRequired->optimizeGPU(stream);
       if (nBlocksRequired>0) {
          //CHK_ERR( gpuStreamSynchronize(stream) );
          //phiprof::Timer blockMoveTimer {"blocks_to_move_kernel"};
@@ -1373,14 +1134,13 @@ namespace spatial_cell {
    }
    void SpatialCell::update_blocks_to_move_caller_2(const uint popID, const vmesh::LocalID nBlocksRequired, const vmesh::LocalID nBlocksCurrent) {
       phiprof::Timer updateToMoveTimer {"update_blocks_to_move"};
-      // stream etc
       #ifdef _OPENMP
       const uint thread_id = omp_get_thread_num();
       #else
       const uint thread_id = 0;
       #endif
-      // This helper calls a kernel which figures out which blocks need
-      // to be rescued from the end-space of the block data.
+      // This helper calls a kernel which figures out which blocks need to be rescued 
+      // from the end-space of the block data. Uses the BlocksDeleteMap (set).
       // To be used during regular block adjustment.
       const gpuStream_t stream = gpu_getStream();
       const int toMoveCapacity = BlocksToMove->capacity();
@@ -1404,11 +1164,11 @@ namespace spatial_cell {
          vbwcl_gather[thread_id]->data() //pass bare pointer to buffer
          );
       CHK_ERR( gpuPeekAtLastError() );
-      CHK_ERR( gpuStreamSynchronize(stream) );
       // Now do stream compaction on BlocksToMove, returning only valid GIDs
       size_t bytesNeeded=split::tools::estimateMemoryForCompaction((size_t)nEvaluate);
       gpu_compaction_allocate_buf_perthread(thread_id, bytesNeeded);
       auto Predicate = [] __host__ __device__ (vmesh::LocalID i ){return i != vmesh::INVALID_LOCALID; };
+      CHK_ERR( gpuStreamSynchronize(stream) ); // Ensure kernel has finished
       const size_t nToMove = split::tools::copy_if(vbwcl_gather[thread_id]->data(), BlocksToMove->data(), nEvaluate,
                             Predicate, compaction_buffer[thread_id], bytesNeeded, stream);
       BlocksToMove->resize(nToMove,true,stream);
@@ -1430,17 +1190,12 @@ namespace spatial_cell {
       gpuStream_t stream = gpu_getStream();
       int nGpuBlocks;
 
-      //phiprof::Timer cleanHashmapTimer {"clean hashmap"};
-      //populations[popID].vmesh->gpu_cleanHashMap(stream);
-      //CHK_ERR( gpuStreamSynchronize(stream) ); // To ensure all previous kernels have finished
-      //cleanHashmapTimer.stop();
-
       //phiprof::Timer sizesTimer {"Block lists sizes"};
       CHK_ERR( gpuStreamSynchronize(stream) ); // To ensure all previous kernels have finished
       const vmesh::LocalID nBlocksBeforeAdjust = populations[popID].vmesh->size();
       const vmesh::LocalID nToAdd = BlocksToAdd->size();
       const vmesh::LocalID nToRemove = BlocksToRemove->size();
-      const vmesh::LocalID nToMove = BlocksToMove->size(); // not used
+      //const vmesh::LocalID nToMove = BlocksToMove->size(); // not used
       const vmesh::LocalID nBlocksAfterAdjust = nBlocksBeforeAdjust + nToAdd - nToRemove;
       const int nBlocksToChange = nToAdd > nToRemove ? nToAdd : nToRemove;
       //sizesTimer.stop();
@@ -1465,6 +1220,7 @@ namespace spatial_cell {
          size_t bytesNeeded=split::tools::estimateMemoryForCompaction((size_t)2*nToRemove);
          gpu_compaction_allocate_buf_perthread(thread_id, bytesNeeded);
          auto Predicate = [] __host__ __device__ (vmesh::GlobalID i ){return i != vmesh::INVALID_GLOBALID; };
+         CHK_ERR( gpuStreamSynchronize(stream) ); // To ensure kernel has finished
          const size_t nCompacted = split::tools::copy_if(BlocksList->data(), BlocksToRemove->data(), 2*nToRemove,
                                                       Predicate, compaction_buffer[thread_id], bytesNeeded, stream);
          #ifdef DEBUG_SPATIAL_CELL
