@@ -778,22 +778,8 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    //CHK_ERR( gpuStreamSynchronize(stream) );
 
    // Make sure the BlocksRequired / -ToAdd and / -ToRemove buffers are large enough
-   //CHK_ERR( gpuStreamSynchronize(stream) );
-   //const vmesh::LocalID BlocksRequiredSize = spatial_cell->BlocksRequired->size();
-   const vmesh::LocalID BlocksRequiredCapacity = spatial_cell->BlocksRequired->capacity();
-   if (BlocksRequiredCapacity < spatial_cell->getReservation(popID) * BLOCK_ALLOCATION_FACTOR) {
-      spatial_cell->BlocksRequired->reserve(spatial_cell->getReservation(popID)*BLOCK_ALLOCATION_PADDING, true);
-      spatial_cell->BlocksToAdd->reserve(spatial_cell->getReservation(popID)*BLOCK_ALLOCATION_PADDING, true);
-      // The remove buffer never needs to be larger than our current size.
-      spatial_cell->BlocksToRemove->reserve(spatial_cell->get_population(popID).reservation,true);
-      spatial_cell->BlocksRequired->optimizeGPU(stream);
-      spatial_cell->BlocksToAdd->optimizeGPU(stream);
-      spatial_cell->BlocksToRemove->optimizeGPU(stream);
-      CHK_ERR( gpuStreamSynchronize(stream) );
-   }
-   //else {
-   //   spatial_cell->BlocksRequired->optimizeGPU(stream);
-   //}
+   spatial_cell->applyReservation(popID);
+
    // Calculate target column extents
    phiprof::Timer evaluateExtentsTimer {"Evaluate column extents kernel"};
    do {
@@ -850,13 +836,8 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
          spatial_cell->BlocksToAdd->clear();
          spatial_cell->BlocksToRemove->clear();
 
-         spatial_cell->BlocksRequired->reserve(newCapacity,true);
-         spatial_cell->BlocksToAdd->reserve(newCapacity,true);
-
-         spatial_cell->BlocksRequired->optimizeGPU(stream);
-         spatial_cell->BlocksToAdd->optimizeGPU(stream);
-         spatial_cell->BlocksToRemove->optimizeGPU(stream);
-         CHK_ERR( gpuStreamSynchronize(stream) );
+         spatial_cell->setReservation(popID, newCapacity);
+         spatial_cell->applyReservation(popID);
       }
    } while(host_returnLID[1] != 0);
    evaluateExtentsTimer.stop();
