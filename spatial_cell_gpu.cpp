@@ -237,13 +237,7 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
    // We loop either up to nToRemove or or nToAdd, whichever is larger.
    const vmesh::LocalID loopExtent = nToAdd > nToRemove ? nToAdd : nToRemove;
 
-   if (ti==0) {
-      printf("nToAdd %u nToRemove %u nToMove %u nBlocksBeforeAdjust %u nBlocksAfterAdjust %u \n",nToAdd,nToRemove,nToMove,nBlocksBeforeAdjust,nBlocksAfterAdjust);
-   }
    for (vmesh::LocalID m=blocki; m<loopExtent; m += gpuBlocks) {
-      if (ti==0) {
-         printf("m %u blocki %u\n",m,blocki);
-      }
       if (m < nToRemove) {
          #ifdef DEBUG_SPATIAL_CELL
          const vmesh::GlobalID rmGID = BlocksToRemove->at(m);
@@ -268,7 +262,7 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
             }
             continue;
          }
-         assert(rmLID >= nBlocksBeforeAdjust && "Trying to remove block which has LID >= nBlocksBeforeAdjust!");
+         assert(rmLID < nBlocksBeforeAdjust && "Trying to remove block which has LID >= nBlocksBeforeAdjust!");
          #endif
          // Track mass loss:
          Realf* rm_avgs = blockContainer->getData(rmLID);
@@ -322,6 +316,8 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
             #endif
             continue;
          } else if (m >= nToAdd && (m < (nToAdd+nToMove))) {
+            // GPUTODO: All these need to have rmLID<nAfterAdjust! So we need to get a semi-sorted list of BlocksToRemove.
+
             // Move replacement from end
             #ifdef DEBUG_SPATIAL_CELL
             const vmesh::GlobalID replaceGID = BlocksToMove->at(m - nToAdd);
@@ -357,7 +353,7 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
          } else {
             // This LID so large that we just delete without replacing
             #ifdef DEBUG_SPATIAL_CELL
-            assert(rmLID < nBlocksAfterAdjust && "Trying to remove block which has LID smaller than nBlocksAfterAdjust!");
+            assert(rmLID >= nBlocksAfterAdjust && "Trying to remove block which has LID smaller than nBlocksAfterAdjust!");
             #endif
             vmesh->warpDeleteBlock(rmGID,rmLID,ti);
             continue;
@@ -1406,10 +1402,6 @@ namespace spatial_cell {
          const dim3 block(WID,WID,WID);
          // Third argument specifies the number of bytes in *shared memory* that is
          // dynamically allocated per block for this call in addition to the statically allocated memory.
-         // #ifdef DEBUG_SPATIAL_CELL
-         // nGpuBlocks=1;
-         // #endif
-         // nGpuBlocks=1;
          //CHK_ERR( gpuStreamSynchronize(stream) );
          update_velocity_blocks_kernel<<<nGpuBlocks, block, 0, stream>>> (
             populations[popID].dev_vmesh,
