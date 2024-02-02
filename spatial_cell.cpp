@@ -353,7 +353,7 @@ namespace spatial_cell {
 
    #endif
 
-   void SpatialCell::adjustSingleCellVelocityBlocks(const uint popID) {
+   void SpatialCell::adjustSingleCellVelocityBlocks(const uint popID, bool doDeleteEmpty) {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
@@ -367,7 +367,7 @@ namespace spatial_cell {
       //space. TODO: should this delete blocks or not? Now not
       std::vector<SpatialCell*> neighbor_ptrs;
       update_velocity_block_content_lists(popID);
-      adjust_velocity_blocks(neighbor_ptrs,popID,false);
+      adjust_velocity_blocks(neighbor_ptrs,popID,doDeleteEmpty);
    }
 
    void SpatialCell::coarsen_block(const vmesh::GlobalID& parent,const std::vector<vmesh::GlobalID>& children,const uint popID) {

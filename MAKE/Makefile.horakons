@@ -59,7 +59,7 @@ PAPI_FLAG =
 
 LIBRARY_PREFIX = /home/horakons/vlasiator_libs/
 
-INC_VECTORCLASS=-I$(LIBRARY_PREFIX)/version1
+INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/
 
 INC_BOOST = -I/usr/include/boost/
 LIB_BOOST = -L/usr/lib/x86_64-linux-gnu/ -lboost_program_options

@@ -85,7 +85,7 @@ LIB_PAPI = -L/opt/hlrs/spack/rev-004_2020-06-17/papi/c048e224f-gcc-9.2.0-hxfnx7k
 INC_EIGEN = -I$(LIBRARY_PREFIX)/
 INC_DCCRG = -I./submodules/dccrg
 INC_FSGRID = -I./submodules/fsgrid
-INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass-version1
+INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/
 
 
 
