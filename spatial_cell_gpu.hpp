@@ -602,7 +602,6 @@ namespace spatial_cell {
       uint sysBoundaryLayer;                                                  /**< Layers counted from closest systemBoundary. If 0 then it has not
                                                                                * been computed. First sysboundary layer is layer 1.*/
       int sysBoundaryLayerNew;
-      size_t velocity_block_with_content_list_capacity, velocity_block_with_no_content_list_capacity;
       split::SplitVector<vmesh::GlobalID> *velocity_block_with_content_list;          /**< List of existing cells with content, only up-to-date after call to update_has_content().*/
       vmesh::LocalID velocity_block_with_content_list_size;                   /**< Size of vector. Needed for MPI communication of size before actual list transfer.*/
       vmesh::LocalID velocity_block_with_no_content_list_size;                   /**< Size of vector. Cached for storage on host.*/
@@ -612,11 +611,15 @@ namespace spatial_cell {
       /**< List of existing cells with no content, only up-to-date after call to update_has_content. This is also never transferred over MPI, so is invalid on remote cells.*/
 
       Realf* gpu_rhoLossAdjust;
-      // GPUTODO: also keep local duplicate values of capacity, updated on resize?
       split::SplitVector<vmesh::GlobalID> *BlocksToRemove, *BlocksToAdd, *BlocksToMove; /**< Lists of blocks to change on GPU device */
       split::SplitVector<vmesh::GlobalID> *BlocksRequired;
-      size_t BlocksToRemove_capacity, BlocksToAdd_capacity, BlocksToMove_capacity, BlocksRequired_capacity,BlocksRequiredMap_sizepower,BlocksDeleteMap_sizepower;
       Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *BlocksRequiredMap, *BlocksDeleteMap;
+
+      // Host-side cached values to avoid page faults
+      size_t velocity_block_with_content_list_capacity, velocity_block_with_no_content_list_capacity;
+      size_t BlocksToRemove_capacity, BlocksToAdd_capacity, BlocksToMove_capacity, BlocksRequired_capacity,BlocksRequiredMap_sizepower,BlocksDeleteMap_sizepower;
+      size_t BlocksToRemove_size, BlocksToAdd_size, BlocksRequired_size,BlocksRequiredMap_sizepower,BlocksDeleteMap_sizepower;
+      // This is never needed: BlocksToMove_size
 
       static uint64_t mpi_transfer_type;                                      /**< Which data is transferred by the mpi datatype given by spatial cells.*/
       static bool mpiTransferAtSysBoundaries;                                 /**< Do we only transfer data at boundaries (true), or in the whole system (false).*/
@@ -1488,8 +1491,6 @@ namespace spatial_cell {
       phiprof::Timer addFromBufferTimer {"GPU add blocks from buffer"};
       // Add blocks to velocity mesh
       gpuStream_t stream = gpu_getStream();
-      // blocks->optimizeMetadataCPU(stream);
-      // CHK_ERR( gpuStreamSynchronize(stream) );
       const uint nBlocks = blocks->size();
       if (nBlocks==0) {
          // Return if empty
@@ -1507,8 +1508,6 @@ namespace spatial_cell {
       CHK_ERR( gpuStreamSynchronize(stream) );
       populations[popID].vmesh->gpu_prefetchDevice();
       populations[popID].blockContainer->gpu_prefetchDevice();
-      // blocks->optimizeUMGPU(stream);
-      // CHK_ERR( gpuStreamSynchronize(stream) );
 
       const uint nGpuBlocks = nBlocks > GPUBLOCKS ? GPUBLOCKS : nBlocks;
       if (nGpuBlocks>0) {

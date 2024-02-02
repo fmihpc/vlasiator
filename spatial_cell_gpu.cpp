@@ -845,7 +845,6 @@ namespace spatial_cell {
    void SpatialCell::gpu_uploadContentLists() {
       //phiprof::Timer timer {"Upload local content lists"};
       gpuStream_t stream = gpu_getStream();
-      velocity_block_with_content_list_size = velocity_block_with_content_list->size();
       if (velocity_block_with_content_list_size==0) {
          return;
       }
@@ -1157,6 +1156,7 @@ namespace spatial_cell {
       // to be rescued from the end-space of the block data.
       // To be used by acceleration in the special case that we hit v-space boundaries
       gpuStream_t stream = gpu_getStream();
+      // GPUTODO: use host-caching for size
       const int nBlocksRequired = BlocksRequired->size();
       const uint nGpuBlocks = nBlocksRequired > GPUBLOCKS ? GPUBLOCKS : nBlocksRequired;
       if (BlocksToMove_capacity < nBlocksRequired) {
@@ -1237,6 +1237,8 @@ namespace spatial_cell {
       //phiprof::Timer sizesTimer {"Block lists sizes"};
       CHK_ERR( gpuStreamSynchronize(stream) ); // To ensure all previous kernels have finished
       const vmesh::LocalID nBlocksBeforeAdjust = populations[popID].vmesh->size();
+      // GPUTODO: If column extent analysis during acceleration is changed to use
+      // buffers and stream compaction, we can use host-cached size values here.
       const vmesh::LocalID nToAdd = BlocksToAdd->size();
       const vmesh::LocalID nToRemove = BlocksToRemove->size();
       //const vmesh::LocalID nToMove = BlocksToMove->size(); // not used
@@ -1273,22 +1275,7 @@ namespace spatial_cell {
          BlocksToRemove->resize(nCompacted,true,stream);
       }
       // populations[popID].vmesh->print();
-      // printf("\n\nBlocksToAdd n=%u |",nToAdd);
-      // for (auto i:*BlocksToAdd){
-      //    printf("%u ",i);
-      // }
-      // printf("\n\nBlocksToRemove n=%u |",nToRemove);
-      // for (auto i:*BlocksToRemove){
-      //    printf("%u ",i);
-      // }
-      // printf("\n\nBlocksToMove n=%u |",nToMove);
-      // for (auto i:*BlocksToMove){
-      //    printf("%u ",i);
-      // }
-      // printf("\n\n");
-      // printf("nBlocksBeforeAdjust=%u nBlocksAfterAdjust=%u vmesh size=%u VBC size=%u\n\n",
-      //        nBlocksBeforeAdjust,nBlocksAfterAdjust,populations[popID].vmesh->size(),
-      //        populations[popID].blockContainer->size());
+
       // Grow the vmesh and block container, if necessary
       if (nBlocksAfterAdjust > nBlocksBeforeAdjust) {
          populations[popID].vmesh->setNewSize(nBlocksAfterAdjust);
@@ -1332,10 +1319,6 @@ namespace spatial_cell {
          }
       }
 
-      // printf("nBlocksBeforeAdjust=%u nBlocksAfterAdjust=%u vmesh size=%u VBC size=%u\n\n",
-      //        nBlocksBeforeAdjust,nBlocksAfterAdjust,populations[popID].vmesh->size(),
-      //        populations[popID].blockContainer->size());
-      // populations[popID].vmesh->print();
       // DEBUG output after kernel
       #ifdef DEBUG_SPATIAL_CELL
       const vmesh::LocalID nAll = populations[popID].vmesh->size();
@@ -1368,7 +1351,7 @@ namespace spatial_cell {
 
       //neighbor_ptrs is empty as we do not have any consistent
       //data in neighbours yet, adjustments done only based on velocity
-      //space. TODO: should this delete blocks or not? Now not
+      //space.
       std::vector<SpatialCell*> neighbor_ptrs;
       update_velocity_block_content_lists(popID);
       adjust_velocity_blocks(neighbor_ptrs,popID,doDeleteEmpty);
@@ -1457,9 +1440,9 @@ namespace spatial_cell {
 
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_WITH_CONTENT_STAGE1) !=0) {
             //Communicate size of list so that buffers can be allocated on receiving side
-            if (!receiving) {
-               this->velocity_block_with_content_list_size = velocity_block_with_content_list->size();
-            }
+            // if (!receiving) { // Already done during block evaluation
+            //    this->velocity_block_with_content_list_size = velocity_block_with_content_list->size();
+            // }
             displacements.push_back((uint8_t*) &(this->velocity_block_with_content_list_size) - (uint8_t*) this);
             block_lengths.push_back(sizeof(vmesh::LocalID));
          }
@@ -1758,16 +1741,9 @@ namespace spatial_cell {
 
       phiprof::Timer updateListsTimer {"GPU update spatial cell block lists"};
       gpuStream_t stream = gpu_getStream();
-      phiprof::Timer prefetchTimer {"VB content list prefetches and allocations"};
-      // phiprof::Timer timer1 {"Timer1"};
-      // velocity_block_with_content_list->optimizeGPU(stream);
-      // velocity_block_with_no_content_list->optimizeGPU(stream);
-      // timer1.stop();
       velocity_block_with_content_list_size = 0;
       velocity_block_with_no_content_list_size = 0;
       const vmesh::LocalID currSize = populations[popID].vmesh->size();
-      //const vmesh::LocalID currCapacity = velocity_block_with_content_list->capacity();
-      const vmesh::LocalID currCapacity = velocity_block_with_content_list_capacity; //host-cached
 
       // Immediate return if no blocks to process
       if (currSize == 0) {
@@ -1776,37 +1752,26 @@ namespace spatial_cell {
          return;
       }
 
-      // Ensure allocation of gathering vectors
-      // Allocation also leaves metadata on CPU, puts data on GPU.
-      phiprof::Timer timer3 {"Timer3"};
+      // Ensure allocation of gathering vectors and buffers
+      size_t bytesNeeded=split::tools::estimateMemoryForCompaction((size_t)currSize);
+      gpu_compaction_allocate_buf_perthread(thread_id, bytesNeeded);
       gpu_compaction_allocate_vec_perthread(thread_id, currSize);
 
+      const vmesh::LocalID currCapacity = velocity_block_with_content_list_capacity; //host-cached
       if (currCapacity < currSize) {
          const uint reserveSize = currSize * BLOCK_ALLOCATION_FACTOR;
          velocity_block_with_content_list->reserve(reserveSize,true, stream);
          velocity_block_with_no_content_list->reserve(reserveSize,true, stream);
          velocity_block_with_content_list_capacity=reserveSize;
          velocity_block_with_no_content_list_capacity=reserveSize;
-         // int device = gpu_getDevice();
-         // velocity_block_with_content_list->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-         // velocity_block_with_no_content_list->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-         // velocity_block_with_content_list->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-         // velocity_block_with_no_content_list->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
       }
       // Set gathering vectors to correct size
-      //CHK_ERR( gpuStreamSynchronize(stream) );
       vbwcl_gather[thread_id]->resize(currSize,true,stream);
       vbwncl_gather[thread_id]->resize(currSize,true,stream);
       velocity_block_with_content_list->resize(currSize,true,stream);
       velocity_block_with_no_content_list->resize(currSize,true,stream);
-      //CHK_ERR( gpuStreamSynchronize(stream) );
-      timer3.stop();
 
-      // populations[popID].vmesh->gpu_prefetchDevice(stream);
-      // populations[popID].blockContainer->gpu_prefetchDevice(stream);
-      prefetchTimer.stop();
-
-      phiprof::Timer kernelTimer {"GPU update spatial cell block lists kernel"};
+      phiprof::Timer kernelTimer {"GPU block lists kernel"};
       const Real velocity_block_min_value = getVelocityBlockMinValue(popID);
       dim3 block(WID,WID,WID);
       // Third argument specifies the number of bytes in *shared memory* that is
@@ -1823,25 +1788,13 @@ namespace spatial_cell {
       CHK_ERR( gpuStreamSynchronize(stream) ); // This sync is required!
       kernelTimer.stop();
 
-      phiprof::Timer compactionTimer {"GPU update spatial cell block lists streamcompaction"};
-      // First ensure temp buffer is large enough:
-      //size_t bytesNeeded=split::tools::estimateMemoryForCompaction(*(vbwcl_gather[thread_id]));
-      size_t bytesNeeded=split::tools::estimateMemoryForCompaction((size_t)currSize);
-      gpu_compaction_allocate_buf_perthread(thread_id, bytesNeeded);
+      phiprof::Timer compactionTimer {"GPU block lists streamcompaction"};
       // Now do stream compaction on those two vectors, returning only valid GIDs
       // into the actual vectors.
       auto Predicate = [] __host__ __device__ (vmesh::GlobalID i ){return i != vmesh::INVALID_GLOBALID; };
-      //CHK_ERR( gpuStreamSynchronize(stream) );
-      // split::tools::copy_if(*vbwcl_gather[thread_id], *velocity_block_with_content_list,
-      //                       Predicate, compaction_buffer[thread_id], bytesNeeded, stream);
-      // CHK_ERR( gpuStreamSynchronize(stream) );
-      // split::tools::copy_if(*vbwncl_gather[thread_id], *velocity_block_with_no_content_list,
-      //                       Predicate, compaction_buffer[thread_id], bytesNeeded, stream);
-      // CHK_ERR( gpuStreamSynchronize(stream) );
       velocity_block_with_content_list_size = split::tools::copy_if(vbwcl_gather[thread_id]->data(), velocity_block_with_content_list->data(), currSize,
                             Predicate, compaction_buffer[thread_id], bytesNeeded, stream);
       velocity_block_with_content_list->resize(velocity_block_with_content_list_size,true,stream);
-      //CHK_ERR( gpuStreamSynchronize(stream) );
       velocity_block_with_no_content_list_size = split::tools::copy_if(vbwncl_gather[thread_id]->data(), velocity_block_with_no_content_list->data(), currSize,
                             Predicate, compaction_buffer[thread_id], bytesNeeded, stream);
       velocity_block_with_no_content_list->resize(velocity_block_with_no_content_list_size,true,stream);
