@@ -730,25 +730,6 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
    transferTimer.stop();
 
-#ifdef USE_GPU
-   // Now loop over ghost cells and upload their velocity block lists into GPU memory
-   const std::vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(NEAREST_NEIGHBORHOOD_ID);
-   int uploadId {phiprof::initializeTimer("Upload with_content_list to device")};
-   #pragma omp parallel
-   {
-      phiprof::Timer timer {uploadId};
-      #pragma omp for
-      for (size_t i=0; i<cellsToAdjust.size(); ++i) {
-         mpiGrid[cellsToAdjust[i]]->gpu_uploadContentLists();
-      }
-      #pragma omp for schedule(dynamic,1)
-      for(size_t i=0; i<remote_cells.size(); ++i) {
-         mpiGrid[remote_cells[i]]->gpu_uploadContentLists();
-      }
-      timer.stop();
-   }
-#endif
-
    //Adjusts velocity blocks in local spatial cells, doesn't adjust velocity blocks in remote cells.
    int adjustId {phiprof::initializeTimer("Adjusting blocks")};
    #pragma omp parallel
@@ -803,21 +784,6 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
       }
       timer.stop();
    }
-
-   #ifdef USE_GPU
-   // Now loop over local and ghost cells and free up the temborary buffer memory
-   #pragma omp parallel
-   {
-      #pragma omp for
-      for (size_t i=0; i<cellsToAdjust.size(); ++i) {
-         mpiGrid[cellsToAdjust[i]]->gpu_clearContentLists();
-      }
-      #pragma omp for
-      for(size_t i=0; i<remote_cells.size(); ++i) {
-         mpiGrid[remote_cells[i]]->gpu_clearContentLists();
-      }
-   }
-   #endif
 
    //Updated newly adjusted velocity block lists on remote cells, and
    //prepare to receive block data

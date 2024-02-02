@@ -518,7 +518,6 @@ namespace spatial_cell {
       BlocksToMove->clear();
       attachedStream=0;
       velocity_block_with_content_list_size=0;
-      gpu_velocity_block_with_content_list_buffer=0;
       BlocksRequiredMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(7);
       BlocksDeleteMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(7);
       velocity_block_with_content_list_capacity=1;
@@ -570,10 +569,6 @@ namespace spatial_cell {
       if (BlocksDeleteMap) {
          delete BlocksDeleteMap;
          BlocksDeleteMap = 0;
-      }
-      if (gpu_velocity_block_with_content_list_buffer) {
-         CHK_ERR( gpuFree(gpu_velocity_block_with_content_list_buffer) );
-         gpu_velocity_block_with_content_list_buffer = 0;
       }
       velocity_block_with_content_list_capacity=0;
       velocity_block_with_no_content_list_capacity=0;
@@ -653,7 +648,6 @@ namespace spatial_cell {
          populations = std::vector<spatial_cell::Population>(other.populations);
       }
       attachedStream=0;
-      gpu_velocity_block_with_content_list_buffer=0;
    }
    const SpatialCell& SpatialCell::operator=(const SpatialCell& other) {
       const uint reserveSize = (other.BlocksRequired)->capacity();
@@ -839,30 +833,6 @@ namespace spatial_cell {
       return;
    }
 
-   /** Sends the contents of velocity_block_with_content_list into a device buffer so that it can be accessed
-       from several streams at once.
-    */
-   void SpatialCell::gpu_uploadContentLists() {
-      //phiprof::Timer timer {"Upload local content lists"};
-      gpuStream_t stream = gpu_getStream();
-      if (velocity_block_with_content_list_size==0) {
-         return;
-      }
-      CHK_ERR( gpuMallocAsync((void**)&gpu_velocity_block_with_content_list_buffer, velocity_block_with_content_list_size*sizeof(vmesh::LocalID), stream) );
-      CHK_ERR( gpuMemcpyAsync(gpu_velocity_block_with_content_list_buffer, velocity_block_with_content_list->data(), velocity_block_with_content_list_size*sizeof(vmesh::LocalID), gpuMemcpyDeviceToDevice, stream) );
-      SSYNC;
-   }
-   /** Clears the device buffer for velocity_block_with_content_list
-    */
-   void SpatialCell::gpu_clearContentLists() {
-      gpuStream_t stream = gpu_getStream();
-      if (velocity_block_with_content_list_size==0) {
-         return;
-      }
-      CHK_ERR( gpuFreeAsync(gpu_velocity_block_with_content_list_buffer, stream) );
-      gpu_velocity_block_with_content_list_buffer = 0;
-   }
-
    /** Sets a guidance counter so that vmesh adjustment vectors have sufficient size
     */
    void SpatialCell::setReservation(const uint popID, const vmesh::LocalID reservationsize, bool force) {
@@ -1021,7 +991,7 @@ namespace spatial_cell {
             const vmesh::LocalID nNeighBlocks = (*neighbor)->velocity_block_with_content_list_size;
             if (nNeighBlocks>0) {
                // just memcpy
-               CHK_ERR( gpuMemcpyAsync(BlocksList->data()+incrementPoint,(*neighbor)->gpu_velocity_block_with_content_list_buffer,
+               CHK_ERR( gpuMemcpyAsync(BlocksList->data()+incrementPoint,(*neighbor)->velocity_block_with_content_list->data(),
                                        nNeighBlocks*sizeof(vmesh::LocalID), gpuMemcpyDeviceToDevice, stream) );
                incrementPoint += nNeighBlocks;
             }
