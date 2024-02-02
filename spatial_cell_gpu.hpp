@@ -602,8 +602,10 @@ namespace spatial_cell {
       uint sysBoundaryLayer;                                                  /**< Layers counted from closest systemBoundary. If 0 then it has not
                                                                                * been computed. First sysboundary layer is layer 1.*/
       int sysBoundaryLayerNew;
+      size_t velocity_block_with_content_list_capacity, velocity_block_with_no_content_list_capacity;
       split::SplitVector<vmesh::GlobalID> *velocity_block_with_content_list;          /**< List of existing cells with content, only up-to-date after call to update_has_content().*/
       vmesh::LocalID velocity_block_with_content_list_size;                   /**< Size of vector. Needed for MPI communication of size before actual list transfer.*/
+      vmesh::LocalID velocity_block_with_no_content_list_size;                   /**< Size of vector. Cached for storage on host.*/
       vmesh::GlobalID *gpu_velocity_block_with_content_list_buffer;  /**< Pointer to device-memory buffer of VB with content list */
       split::SplitVector<vmesh::GlobalID> *velocity_block_with_no_content_list;
 
@@ -613,6 +615,7 @@ namespace spatial_cell {
       // GPUTODO: also keep local duplicate values of capacity, updated on resize?
       split::SplitVector<vmesh::GlobalID> *BlocksToRemove, *BlocksToAdd, *BlocksToMove; /**< Lists of blocks to change on GPU device */
       split::SplitVector<vmesh::GlobalID> *BlocksRequired;
+      size_t BlocksToRemove_capacity, BlocksToAdd_capacity, BlocksToMove_capacity, BlocksRequired_capacity,BlocksRequiredMap_sizepower,BlocksDeleteMap_sizepower;
       Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *BlocksRequiredMap, *BlocksDeleteMap;
 
       static uint64_t mpi_transfer_type;                                      /**< Which data is transferred by the mpi datatype given by spatial cells.*/

@@ -521,6 +521,14 @@ namespace spatial_cell {
       gpu_velocity_block_with_content_list_buffer=0;
       BlocksRequiredMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(7);
       BlocksDeleteMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(7);
+      velocity_block_with_content_list_capacity=1;
+      velocity_block_with_no_content_list_capacity=1;
+      BlocksRequired_capacity=1;
+      BlocksToAdd_capacity=1;
+      BlocksToRemove_capacity=1;
+      BlocksToMove_capacity=1;
+      BlocksRequiredMap_sizepower=7;
+      BlocksDeleteMap_sizepower=7;
    }
 
    SpatialCell::~SpatialCell() {
@@ -567,6 +575,14 @@ namespace spatial_cell {
          CHK_ERR( gpuFree(gpu_velocity_block_with_content_list_buffer) );
          gpu_velocity_block_with_content_list_buffer = 0;
       }
+      velocity_block_with_content_list_capacity=0;
+      velocity_block_with_no_content_list_capacity=0;
+      BlocksRequired_capacity=0;
+      BlocksToAdd_capacity=0;
+      BlocksToRemove_capacity=0;
+      BlocksToMove_capacity=0;
+      BlocksRequiredMap_sizepower=0;
+      BlocksDeleteMap_sizepower=0;
    }
 
    SpatialCell::SpatialCell(const SpatialCell& other) {
@@ -594,6 +610,15 @@ namespace spatial_cell {
       BlocksToMove->reserve(reserveSize,true);
       velocity_block_with_content_list->reserve(reserveSize,true);
       velocity_block_with_no_content_list->reserve(reserveSize,true);
+
+      velocity_block_with_content_list_capacity=reserveSize;
+      velocity_block_with_no_content_list_capacity=reserveSize;
+      BlocksRequired_capacity=reserveSize;
+      BlocksToAdd_capacity=reserveSize;
+      BlocksToRemove_capacity=reserveSize;
+      BlocksToMove_capacity=reserveSize;
+      BlocksRequiredMap_sizepower=7;
+      BlocksDeleteMap_sizepower=7;
 
       // Member variables
       ioLocalCellId = other.ioLocalCellId;
@@ -653,6 +678,15 @@ namespace spatial_cell {
       HashmapReqSize = HashmapReqSize > 7 ? HashmapReqSize : 7;
       BlocksRequiredMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(HashmapReqSize);
       BlocksDeleteMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(HashmapReqSize);
+
+      velocity_block_with_content_list_capacity=reserveSize;
+      velocity_block_with_no_content_list_capacity=reserveSize;
+      BlocksRequired_capacity=reserveSize;
+      BlocksToAdd_capacity=reserveSize;
+      BlocksToRemove_capacity=reserveSize;
+      BlocksToMove_capacity=reserveSize;
+      BlocksRequiredMap_sizepower=HashmapReqSize;
+      BlocksDeleteMap_sizepower=HashmapReqSize;
 
       // Member variables
       ioLocalCellId = other.ioLocalCellId;
@@ -846,24 +880,30 @@ namespace spatial_cell {
       size_t reserveSize = populations[popID].reservation * BLOCK_ALLOCATION_FACTOR;
       size_t newReserve = populations[popID].reservation * BLOCK_ALLOCATION_PADDING;
       gpuStream_t stream = gpu_getStream();
-
-      if (BlocksRequired->capacity() < reserveSize) {
+      // Now uses host-cached values
+      if (BlocksRequired_capacity < reserveSize) {
          BlocksRequired->reserve(newReserve,true);
+         BlocksRequired_capacity = newReserve;
       }
-      if (BlocksToAdd->capacity() < reserveSize) {
+      if (BlocksToAdd_capacity < reserveSize) {
          BlocksToAdd->reserve(newReserve,true);
+         BlocksToAdd_capacity = newReserve;
       }
-      if (BlocksToRemove->capacity() < reserveSize) {
+      if (BlocksToRemove_capacity < reserveSize) {
          BlocksToRemove->reserve(newReserve,true);
+         BlocksToRemove_capacity = newReserve;
       }
-      if (BlocksToMove->capacity() < reserveSize) {
+      if (BlocksToMove_capacity < reserveSize) {
          BlocksToMove->reserve(newReserve,true);
+         BlocksToMove_capacity = newReserve;
       }
-      if (velocity_block_with_content_list->capacity() < reserveSize) {
+      if (velocity_block_with_content_list_capacity < reserveSize) {
          velocity_block_with_content_list->reserve(newReserve,true);
+         velocity_block_with_content_list_capacity = newReserve;
       }
-      if (velocity_block_with_no_content_list->capacity() < reserveSize) {
+      if (velocity_block_with_no_content_list_capacity < reserveSize) {
          velocity_block_with_no_content_list->reserve(newReserve,true);
+         velocity_block_with_no_content_list_capacity = newReserve;
       }
    }
 
@@ -917,10 +957,11 @@ namespace spatial_cell {
       split::SplitVector<vmesh::GlobalID> *BlocksList = blockLists[thread_id];
       phiprof::Timer adjustBlocksTimer {"Adjust velocity blocks"};
       vmesh::LocalID currSize = populations[popID].vmesh->size();
-      const vmesh::LocalID localContentBlocks = velocity_block_with_content_list->size();
-      const vmesh::LocalID localNoContentBlocks = velocity_block_with_no_content_list->size();
-      // const vmesh::LocalID BlocksRequiredCapacity = BlocksRequired->capacity();
-      int BlocksRequiredMapSizePower = BlocksRequiredMap->getSizePower();
+      // Use cached values
+      const vmesh::LocalID localContentBlocks = velocity_block_with_content_list_size;
+      const vmesh::LocalID localNoContentBlocks = velocity_block_with_no_content_list_size;
+      //int BlocksRequiredMapSizePower = BlocksRequiredMap->getSizePower();
+      int BlocksRequiredMapSizePower = BlocksRequiredMap_sizepower; // use host-cached value
       vmesh::GlobalID* _withContentData = velocity_block_with_content_list->data(); // stored for self blocks
       vmesh::GlobalID* _withNoContentData = velocity_block_with_no_content_list->data();
 
@@ -951,7 +992,10 @@ namespace spatial_cell {
          }
       }
       BlocksList->resize(nRequiredBlocksListSize,true);
-      BlocksRequired->reserve(localContentBlocks+4*localNoContentBlocks);
+      if (BlocksRequired_capacity < localContentBlocks+4*localNoContentBlocks) {
+         BlocksRequired_capacity=localContentBlocks+4*localNoContentBlocks;
+         BlocksRequired->reserve(BlocksRequired_capacity,true);
+      }
       nGpuBlocks = localContentBlocks > GPUBLOCKS ? GPUBLOCKS : localContentBlocks;
 
       //phiprof::Timer blockHaloTimer {"Block halo kernel"};
@@ -1114,10 +1158,10 @@ namespace spatial_cell {
       // To be used by acceleration in the special case that we hit v-space boundaries
       gpuStream_t stream = gpu_getStream();
       const int nBlocksRequired = BlocksRequired->size();
-      const int toMoveCapacity = BlocksToMove->capacity();
       const uint nGpuBlocks = nBlocksRequired > GPUBLOCKS ? GPUBLOCKS : nBlocksRequired;
-      if (toMoveCapacity < nBlocksRequired) {
-         BlocksToMove->reserve(nBlocksRequired*BLOCK_ALLOCATION_PADDING,true);
+      if (BlocksToMove_capacity < nBlocksRequired) {
+         BlocksToMove_capacity = nBlocksRequired*BLOCK_ALLOCATION_PADDING;
+         BlocksToMove->reserve(BlocksToMove_capacity,true);
          BlocksToMove->optimizeGPU(stream);
       }
       if (nBlocksRequired>0) {
@@ -1143,7 +1187,6 @@ namespace spatial_cell {
       // from the end-space of the block data. Uses the BlocksDeleteMap (set).
       // To be used during regular block adjustment.
       const gpuStream_t stream = gpu_getStream();
-      const int toMoveCapacity = BlocksToMove->capacity();
       const int nEvaluate = nBlocksCurrent - nBlocksRequired;
       if (nEvaluate <= 0) {
          //blocksToMove->clear(); // Already cleared by block adjustment main function
@@ -1151,8 +1194,9 @@ namespace spatial_cell {
       }
       const uint nGpuBlocks = nEvaluate > GPUBLOCKS ? GPUBLOCKS : nEvaluate;
       gpu_compaction_allocate_vec_perthread(thread_id, nEvaluate);
-      if (toMoveCapacity < nEvaluate) {
-         BlocksToMove->reserve(nEvaluate*BLOCK_ALLOCATION_PADDING,true);
+      if (BlocksToMove_capacity < nEvaluate) {
+         BlocksToMove_capacity = nEvaluate*BLOCK_ALLOCATION_PADDING;
+         BlocksToMove->reserve(BlocksToMove_capacity,true);
          BlocksToMove->optimizeGPU(stream);
       }
       BlocksToMove->resize(nEvaluate,true);
@@ -1720,8 +1764,10 @@ namespace spatial_cell {
       // velocity_block_with_no_content_list->optimizeGPU(stream);
       // timer1.stop();
       velocity_block_with_content_list_size = 0;
+      velocity_block_with_no_content_list_size = 0;
       const vmesh::LocalID currSize = populations[popID].vmesh->size();
-      const vmesh::LocalID currCapacity = velocity_block_with_content_list->capacity();
+      //const vmesh::LocalID currCapacity = velocity_block_with_content_list->capacity();
+      const vmesh::LocalID currCapacity = velocity_block_with_content_list_capacity; //host-cached
 
       // Immediate return if no blocks to process
       if (currSize == 0) {
@@ -1739,6 +1785,8 @@ namespace spatial_cell {
          const uint reserveSize = currSize * BLOCK_ALLOCATION_FACTOR;
          velocity_block_with_content_list->reserve(reserveSize,true, stream);
          velocity_block_with_no_content_list->reserve(reserveSize,true, stream);
+         velocity_block_with_content_list_capacity=reserveSize;
+         velocity_block_with_no_content_list_capacity=reserveSize;
          // int device = gpu_getDevice();
          // velocity_block_with_content_list->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
          // velocity_block_with_no_content_list->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
@@ -1790,13 +1838,13 @@ namespace spatial_cell {
       // split::tools::copy_if(*vbwncl_gather[thread_id], *velocity_block_with_no_content_list,
       //                       Predicate, compaction_buffer[thread_id], bytesNeeded, stream);
       // CHK_ERR( gpuStreamSynchronize(stream) );
-      size_t bwc = split::tools::copy_if(vbwcl_gather[thread_id]->data(), velocity_block_with_content_list->data(), currSize,
+      velocity_block_with_content_list_size = split::tools::copy_if(vbwcl_gather[thread_id]->data(), velocity_block_with_content_list->data(), currSize,
                             Predicate, compaction_buffer[thread_id], bytesNeeded, stream);
-      velocity_block_with_content_list->resize(bwc,true,stream);
+      velocity_block_with_content_list->resize(velocity_block_with_content_list_size,true,stream);
       //CHK_ERR( gpuStreamSynchronize(stream) );
-      size_t bwnc = split::tools::copy_if(vbwncl_gather[thread_id]->data(), velocity_block_with_no_content_list->data(), currSize,
+      velocity_block_with_no_content_list_size = split::tools::copy_if(vbwncl_gather[thread_id]->data(), velocity_block_with_no_content_list->data(), currSize,
                             Predicate, compaction_buffer[thread_id], bytesNeeded, stream);
-      velocity_block_with_no_content_list->resize(bwnc,true,stream);
+      velocity_block_with_no_content_list->resize(velocity_block_with_no_content_list_size,true,stream);
       //CHK_ERR( gpuStreamSynchronize(stream) );
       compactionTimer.stop();
 
