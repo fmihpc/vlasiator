@@ -107,6 +107,7 @@ __global__ void __launch_bounds__(GPUTHREADS,4) update_blocks_required_halo_kern
    const int offset_vy = (int)threadIdx.y - addWidthV; // and addWidthV 1
    const int offset_vz = (int)threadIdx.z - addWidthV;
    const vmesh::LocalID ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
+   // GPUTODO: With warpSize 27 we might get sub-optimal write coalescence. Going to a warpsize of 32 could be better?
    for (vmesh::LocalID index=blocki; index<localContentBlocks; index += gpuBlocks) {
       const vmesh::GlobalID GID = velocity_block_with_content_list_data[index];
       vmesh::LocalID ind0,ind1,ind2;
