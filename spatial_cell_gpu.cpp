@@ -959,8 +959,6 @@ namespace spatial_cell {
       // Use cached values
       const vmesh::LocalID localContentBlocks = velocity_block_with_content_list_size;
       const vmesh::LocalID localNoContentBlocks = velocity_block_with_no_content_list_size;
-      //int BlocksRequiredMapSizePower = BlocksRequiredMap->getSizePower();
-      int BlocksRequiredMapSizePower = BlocksRequiredMap_sizepower; // use host-cached value
       vmesh::GlobalID* _withContentData = velocity_block_with_content_list->data(); // stored for self blocks
       vmesh::GlobalID* _withNoContentData = velocity_block_with_no_content_list->data();
 
@@ -1045,14 +1043,14 @@ namespace spatial_cell {
          HashmapReqSize += ceil(log2(HashmapReqSize2));
       }
 
-      if (BlocksRequiredMapSizePower >= HashmapReqSize) {
+      if (BlocksRequiredMap_sizepower >= HashmapReqSize) {
          // Map is already large enough
          BlocksRequiredMap->clear(Hashinator::targets::device,stream,false);
       } else {
          // Need larger empty map
+         BlocksRequiredMap_sizepower = HashmapReqSize;
          BlocksRequiredMap->clear(Hashinator::targets::device,stream,false);
-         BlocksRequiredMap->resize(HashmapReqSize,Hashinator::targets::device, stream);
-         BlocksRequiredMapSizePower = HashmapReqSize;
+         BlocksRequiredMap->resize(BlocksRequiredMap_sizepower,Hashinator::targets::device, stream);
       }
       //resizeTimer.stop();
 
@@ -1067,7 +1065,7 @@ namespace spatial_cell {
       //insertTimer.stop();
 
       // Ensure allocation for extraction calls is sufficient
-      size_t bytesNeeded = split::tools::estimateMemoryForCompaction((size_t)std::pow(2,BlocksRequiredMapSizePower+4));
+      size_t bytesNeeded = split::tools::estimateMemoryForCompaction((size_t)std::pow(2,BlocksRequiredMap_sizepower+4));
       gpu_compaction_allocate_buf_perthread(thread_id, bytesNeeded);
 
       //phiprof::Timer extractRequiredTimer {"BlocksRequired extract"};
@@ -1084,15 +1082,13 @@ namespace spatial_cell {
             const int HashmapDeleteReqSize2 = (localNoContentBlocks) > 0 ? (localNoContentBlocks) : 1;
             HashmapDeleteReqSize += ceil(log2(HashmapDeleteReqSize2));
          }
-         int BlocksDeleteMapSizePower = BlocksDeleteMap->getSizePower();
-         if (BlocksDeleteMapSizePower >= HashmapDeleteReqSize) {
+         BlocksDeleteMap->clear(Hashinator::targets::device,stream,false);
+         if (BlocksDeleteMap_sizepower >= HashmapDeleteReqSize) {
             // Map is already large enough
-            BlocksDeleteMap->clear(Hashinator::targets::device,stream,false);
          } else {
             // Need larger empty map
-            BlocksDeleteMap->clear(Hashinator::targets::device,stream,false);
-            BlocksDeleteMap->resize(HashmapDeleteReqSize,Hashinator::targets::device, stream);
-            BlocksDeleteMapSizePower = HashmapDeleteReqSize;
+            BlocksDeleteMap_sizepower = HashmapDeleteReqSize;
+            BlocksDeleteMap->resize(BlocksDeleteMap_sizepower,Hashinator::targets::device, stream);
          }
          //resizeDeleteTimer.stop();
 
@@ -1159,8 +1155,9 @@ namespace spatial_cell {
       // GPUTODO: use host-caching for size
       const int nBlocksRequired = BlocksRequired->size();
       const uint nGpuBlocks = nBlocksRequired > GPUBLOCKS ? GPUBLOCKS : nBlocksRequired;
+      // BlocksToMove can be up to BlocksRequired in size
       if (BlocksToMove_capacity < nBlocksRequired) {
-         BlocksToMove_capacity = nBlocksRequired*BLOCK_ALLOCATION_PADDING;
+         BlocksToMove_capacity = nBlocksRequired*BLOCK_ALLOCATION_FACTOR;
          BlocksToMove->reserve(BlocksToMove_capacity,true);
          BlocksToMove->optimizeGPU(stream);
       }
@@ -1195,7 +1192,7 @@ namespace spatial_cell {
       const uint nGpuBlocks = nEvaluate > GPUBLOCKS ? GPUBLOCKS : nEvaluate;
       gpu_compaction_allocate_vec_perthread(thread_id, nEvaluate);
       if (BlocksToMove_capacity < nEvaluate) {
-         BlocksToMove_capacity = nEvaluate*BLOCK_ALLOCATION_PADDING;
+         BlocksToMove_capacity = nEvaluate*BLOCK_ALLOCATION_FACTOR;
          BlocksToMove->reserve(BlocksToMove_capacity,true);
          BlocksToMove->optimizeGPU(stream);
       }
@@ -1757,8 +1754,8 @@ namespace spatial_cell {
       gpu_compaction_allocate_buf_perthread(thread_id, bytesNeeded);
       gpu_compaction_allocate_vec_perthread(thread_id, currSize);
 
-      const vmesh::LocalID currCapacity = velocity_block_with_content_list_capacity; //host-cached
-      if (currCapacity < currSize) {
+      //host-cached capacity
+      if (velocity_block_with_content_list_capacity < currSize) {
          const uint reserveSize = currSize * BLOCK_ALLOCATION_FACTOR;
          velocity_block_with_content_list->reserve(reserveSize,true, stream);
          velocity_block_with_no_content_list->reserve(reserveSize,true, stream);
