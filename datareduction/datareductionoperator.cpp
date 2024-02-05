@@ -1685,50 +1685,42 @@ namespace DRO {
 
        // Build 2d array of f(v,mu)
        for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); n++) { // Iterate through velocity blocks
-	   for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) { // Iterate through coordinates (z,y)
+	   for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) { // Iterate through coordinates (z,y,x)
 
 	       //Get velocity space coordinates                    
-	       const Vec4d VX(parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
-		       + (0 + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX],
-		       parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
-		       + (1 + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX],
-		       parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
-		       + (2 + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX],
-		       parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
-		       + (3 + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]);
+	       const Real VX(parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
+		       + (i + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]);
 
-	       const Vec4d VY(parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
+	       const Real VY(parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
 		       + (j + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY]);
 
-	       const Vec4d VZ(parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD]
+	       const Real VZ(parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD]
 		       + (k + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ]);
 
-	       std::array<Vec4d,3> V = {VX,VY,VZ}; // Velocity in the cell, in the simulation frame
+	       std::array<Real,3> V = {VX,VY,VZ}; // Velocity in the cell, in the simulation frame
 
-	       std::array<Vec4d,3> Vplasma; // Velocity in the cell, in the plasma frame
+	       std::array<Real,3> Vplasma; // Velocity in the cell, in the plasma frame
 
-	       for (int indx = 0; indx < 3; indx++) { Vplasma[indx] = (V[indx] - Vec4d(bulkV[indx])); }
+	       for (int indx = 0; indx < 3; indx++) { Vplasma[indx] = (V[indx] - bulkV[indx]); }
 
-	       Vec4d normV = sqrt(Vplasma[0]*Vplasma[0] + Vplasma[1]*Vplasma[1] + Vplasma[2]*Vplasma[2]);
+	       Real normV = sqrt(Vplasma[0]*Vplasma[0] + Vplasma[1]*Vplasma[1] + Vplasma[2]*Vplasma[2]);
 
-	       Vec4d Vpara = Vplasma[0]*b[0] + Vplasma[1]*b[1] + Vplasma[2]*b[2];
+	       Real Vpara = Vplasma[0]*b[0] + Vplasma[1]*b[1] + Vplasma[2]*b[2];
 
-	       Vec4d mu = Vpara/(normV+std::numeric_limits<Realf>::min()); // + min value to avoid division by 0
+	       Real mu = Vpara/(normV+std::numeric_limits<Realf>::min()); // + min value to avoid division by 0
 
-	       Vec4i muindex;
+	       int muindex;
                Realf dmubins = 2.0 / Parameters::PADmubins; 
-	       muindex = round_to_int32(floor((mu+1.0) / dmubins)); 
+	       muindex = floor((mu+1.0) / dmubins); 
 
-	       const Realf* CellValue = &cell->get_data(n,popID)[WID*j+WID*WID*k];
+	       const Realf CellValue = cell->get_data(n,popID)[i+WID*j+WID*WID*k];
 
                const Real DVX = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
                const Real DVY = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
                const Real DVZ = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
 
-	       for (uint i = 0; i<WID; i++) {
-		   fmu   [muindex[i]] += CellValue[i] * DVX*DVY*DVZ / dmubins;
-		   //fcount[muindex[i]] += 1;
-	       }
+	       fmu   [muindex] += CellValue * DVX*DVY*DVZ / dmubins;
+	     
 
 	   } // End coordinates
        } // End blocks

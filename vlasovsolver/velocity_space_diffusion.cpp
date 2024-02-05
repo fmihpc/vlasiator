@@ -317,7 +317,7 @@ void velocitySpaceDiffusion(
                loop_over_block([&](Veci i_indices, Veci j_indices, int k) -> void { // Witchcraft
 
                    //Get velocity space coordinates                    
-	           const Vec VX(parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
+                   const Vec VX(parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
                                 + (to_realv(i_indices) + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]);
 
                    const Vec VY(parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
@@ -349,8 +349,8 @@ void velocitySpaceDiffusion(
 
                    for (uint i = 0; i<VECL; i++) {
                        Realf CellValue = cell.get_data(n,popID)[WID*j_indices[i]+WID*WID*k+i_indices[i]];
-                       fmu_p    [Vindex[i]*nbins_mu + muindex[i]] += 2.0 * M_PI * Vmu[i]*Vmu[i] * CellValue;
-                       fcount_p [Vindex[i]*nbins_mu + muindex[i]] += 1;
+                       fmu_p    [muindex[i]*nbins_v + Vindex[i]] += 2.0 * M_PI * Vmu[i]*Vmu[i] * CellValue;
+                       fcount_p [muindex[i]*nbins_v + Vindex[i]] += 1;
                    }
 
                 }); // End of Witchcraft
@@ -434,7 +434,7 @@ void velocitySpaceDiffusion(
                loop_over_block([&](Veci i_indices, Veci j_indices, int k) -> void { // Witchcraft
 
                    //Get velocity space coordinates                    
-	           const Vec VX(parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
+                   const Vec VX(parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
                                 + (to_realv(i_indices) + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]);
 
                    const Vec VY(parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
@@ -461,12 +461,12 @@ void velocitySpaceDiffusion(
                    
                    Veci muindex;
                    muindex = roundi(floor((mu+1.0) / dmubins));
-                   for (uint i = 0; i<WID; i++) {if (muindex[i] == nbins_mu) {muindex[i] == muindex[i] - 1;}} // Safety check to handle edge case where mu = exactly 1.0
+                   for (uint i = 0; i<VECL; i++) {if (muindex[i] == nbins_mu) {muindex[i] == muindex[i] - 1;}} // Safety check to handle edge case where mu = exactly 1.0
 
                    Vec Vmu = dVbins * (to_realv(Vindex)+0.5);
 
-                   for (uint i = 0; i < WID; i++) {
-                       dfdt[i] = dfdt_mu_p[Vindex[i]*nbins_mu + muindex[i]] / (2.0 * M_PI * Vmu[i]*Vmu[i]);
+                   for (uint i = 0; i < VECL; i++) {
+                       dfdt[i] = dfdt_mu_p[muindex[i]*nbins_v + Vindex[i]] / (2.0 * M_PI * Vmu[i]*Vmu[i]);
                    }
 
                    //Update cell
