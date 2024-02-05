@@ -97,12 +97,13 @@ namespace vmesh {
     private:
       void exitInvalidLocalID(const vmesh::LocalID& localID,const std::string& funcName) const;
       ARCH_DEV void exitInvalidLocalID(const vmesh::LocalID& localID) const;
-      void resize(vmesh::LocalID add, bool skipPrefetches, gpuStream_t stream);
 
 #ifdef USE_GPU
+      void resize(vmesh::LocalID add, gpuStream_t stream);
       split::SplitVector<Realf> *block_data;
       split::SplitVector<Real> *parameters;
 #else
+      void resize(vmesh::LocalID add);
       std::vector<Realf,aligned_allocator<Realf,WID3> > *block_data;
       std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS> > *parameters;
 #endif
@@ -616,7 +617,11 @@ namespace vmesh {
       return true;
    }
 
-   inline void VelocityBlockContainer::resize(const vmesh::LocalID add=1, bool skipPrefetches=false, gpuStream_t stream=0) {
+   #ifdef USE_GPU
+   inline void VelocityBlockContainer::resize(const vmesh::LocalID add=1, gpuStream_t stream=0) {
+   #else
+   inline void VelocityBlockContainer::resize(const vmesh::LocalID add=1) {
+   #endif
       //This actually only alters capacity, not size.
       #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
       if (stream==0) {
@@ -689,7 +694,6 @@ namespace vmesh {
    }
 
    inline ARCH_HOSTDEV void VelocityBlockContainer::swap(VelocityBlockContainer& vbc) {
-      gpuStream_t stream = gpu_getStream();
       block_data->swap(*(vbc.block_data));
       parameters->swap(*(vbc.parameters));
    }

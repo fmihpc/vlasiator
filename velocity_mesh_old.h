@@ -107,7 +107,7 @@ namespace vmesh {
       bool setMesh(const size_t& meshID);
       void setNewSize(const vmesh::LocalID& newSize);
       void setNewCapacity(const vmesh::LocalID& newCapacity);
-      size_t size(bool dummy) const;
+      size_t size(bool dummy=0) const;
       size_t sizeInBytes() const;
       void swap(VelocityMesh& vm);
 
@@ -612,7 +612,7 @@ namespace vmesh {
       localToGlobalMap->reserve(newCapacity);
    }
 
-   inline size_t VelocityMesh::size(bool dummy=0) const {
+   inline size_t VelocityMesh::size(bool dummy) const {
       (void) dummy; // GPU mesh compatibility
       return localToGlobalMap->size();
    }
