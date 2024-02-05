@@ -78,7 +78,7 @@ namespace vmesh {
       ARCH_HOSTDEV vmesh::LocalID push_back_and_zero(const uint32_t& N_blocks);
       bool recapacitate(const vmesh::LocalID& capacity);
       ARCH_HOSTDEV bool setSize(const vmesh::LocalID& newSize);
-      ARCH_HOSTDEV vmesh::LocalID size(bool prefetchBack=false) const;
+      ARCH_HOSTDEV vmesh::LocalID size() const;
       ARCH_HOSTDEV size_t sizeInBytes() const;
       ARCH_HOSTDEV void swap(VelocityBlockContainer& vbc);
 
@@ -86,7 +86,6 @@ namespace vmesh {
       void gpu_Allocate(vmesh::LocalID size);
       void gpu_prefetchHost(gpuStream_t stream);
       void gpu_prefetchDevice(gpuStream_t stream);
-      void gpu_prefetchMetadataHost(gpuStream_t stream);
       void print_addresses();
 #endif
 
@@ -169,22 +168,11 @@ namespace vmesh {
    }
 
    inline ARCH_HOSTDEV vmesh::LocalID VelocityBlockContainer::capacity() const {
-      // #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-      // gpuStream_t stream = gpu_getStream();
-      // block_data->optimizeMetadataCPU(stream);
-      // CHK_ERR( gpuStreamSynchronize(stream) );
-      // #endif
       const vmesh::LocalID currentCapacity = block_data->capacity() / WID3;
       return currentCapacity;
    }
 
    inline ARCH_HOSTDEV size_t VelocityBlockContainer::capacityInBytes() const {
-      // #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-      // gpuStream_t stream = gpu_getStream();
-      // block_data->optimizeMetadataCPU(stream);
-      // parameters->optimizeMetadataCPU(stream);
-      // CHK_ERR( gpuStreamSynchronize(stream) );
-      // #endif
       const vmesh::LocalID currentCapacity = block_data->capacity();
       const vmesh::LocalID parametersCapacity = parameters->capacity();
       return currentCapacity*sizeof(Realf) + parametersCapacity*sizeof(Real);
@@ -195,8 +183,6 @@ namespace vmesh {
    inline void VelocityBlockContainer::clear() {
 #ifdef USE_GPU
       gpuStream_t stream = gpu_getStream();
-      // block_data->optimizeMetadataCPU(stream);
-      // parameters->optimizeMetadataCPU(stream);
       block_data->resize(1,true, stream);
       block_data->shrink_to_fit(stream);
       parameters->resize(1,true,stream);
@@ -217,9 +203,6 @@ namespace vmesh {
    inline ARCH_HOSTDEV void VelocityBlockContainer::move(const vmesh::LocalID& source,const vmesh::LocalID& target) {
       #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
       gpuStream_t stream = gpu_getStream();
-      // block_data->optimizeUMCPU(stream);
-      // parameters->optimizeUMCPU(stream);
-      // CHK_ERR( gpuStreamSynchronize(stream) );
       #endif
       const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
 
@@ -268,10 +251,6 @@ namespace vmesh {
       parameters->erase(parameters->begin() + BlockParams::N_VELOCITY_BLOCK_PARAMS*(numberOfBlocks-1),
                         parameters->begin() + BlockParams::N_VELOCITY_BLOCK_PARAMS*(numberOfBlocks));
 
-      // #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-      // block_data->optimizeUMGPU(stream);
-      // parameters->optimizeUMGPU(stream);
-      // #endif
    }
 
    inline void VelocityBlockContainer::exitInvalidLocalID(const vmesh::LocalID& localID,const std::string& funcName) const {
@@ -338,9 +317,6 @@ namespace vmesh {
    inline void VelocityBlockContainer::gpu_Allocate(vmesh::LocalID size) {
       #ifdef USE_GPU
       gpuStream_t stream = gpu_getStream();
-      // block_data->optimizeMetadataCPU(stream);
-      // parameters->optimizeMetadataCPU(stream);
-      // CHK_ERR( gpuStreamSynchronize(stream) );
       #endif
       const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
       vmesh::LocalID currentCapacity = block_data->capacity()/WID3;
@@ -702,7 +678,7 @@ namespace vmesh {
 
    /** Return the number of existing velocity blocks.
     * @return Number of existing velocity blocks.*/
-   inline ARCH_HOSTDEV vmesh::LocalID VelocityBlockContainer::size(bool prefetchBack) const {
+   inline ARCH_HOSTDEV vmesh::LocalID VelocityBlockContainer::size() const {
       return block_data->size()/WID3;
    }
 

@@ -111,7 +111,7 @@ namespace vmesh {
       size_t getMeshID();
       void setNewSize(const vmesh::LocalID& newSize);
       void setNewCapacity(const vmesh::LocalID& newCapacity);
-      ARCH_HOSTDEV size_t size(bool prefetchBack=false) const;
+      ARCH_HOSTDEV size_t size() const;
       ARCH_HOSTDEV size_t sizeInBytes() const;
       void swap(VelocityMesh& vm);
 
@@ -1130,7 +1130,7 @@ namespace vmesh {
       globalToLocalMap->optimizeGPU(stream);
    }
 
-   ARCH_HOSTDEV inline size_t VelocityMesh::size(bool prefetchBack) const {
+   ARCH_HOSTDEV inline size_t VelocityMesh::size() const {
       return localToGlobalMap->size();
    }
 

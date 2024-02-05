@@ -1267,7 +1267,7 @@ namespace spatial_cell {
 
             // send velocity block list
             displacements.push_back((uint8_t*) &(populations[activePopID].vmesh->getGrid()[0]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(vmesh::GlobalID) * populations[activePopID].vmesh->size(true));
+            block_lengths.push_back(sizeof(vmesh::GlobalID) * populations[activePopID].vmesh->size());
          }
 
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_WITH_CONTENT_STAGE1) !=0) {
@@ -1464,7 +1464,7 @@ namespace spatial_cell {
    void SpatialCell::prepare_to_receive_blocks(const uint popID) {
       phiprof::Timer setGridTimer {"GPU receive blocks: set grid"};
       populations[popID].vmesh->setGrid();
-      const vmesh::LocalID meshSize = populations[popID].vmesh->size(true);
+      const vmesh::LocalID meshSize = populations[popID].vmesh->size();
       populations[popID].blockContainer->setSize(meshSize);
       // Set velocity block parameters:
       Real* parameters = get_block_parameters(popID);
@@ -1651,7 +1651,7 @@ namespace spatial_cell {
    void SpatialCell::printMeshSizes() {
       cerr << "SC::printMeshSizes:" << endl;
       for (size_t p=0; p<populations.size(); ++p) {
-         cerr << "\t pop " << p << " " << populations[p].vmesh->size(true) << ' ' << populations[p].blockContainer->size(true) << endl;
+         cerr << "\t pop " << p << " " << populations[p].vmesh->size() << ' ' << populations[p].blockContainer->size() << endl;
       }
    }
 

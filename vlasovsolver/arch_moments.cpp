@@ -65,7 +65,7 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
       vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
       vmesh::VelocityBlockContainer* blockContainer = cell->get_velocity_blocks(popID);
       #endif
-      const uint nBlocks = cell->get_velocity_mesh(popID)->size(true);
+      const uint nBlocks = cell->get_velocity_mesh(popID)->size();
       if (nBlocks == 0) {
          continue;
       }
@@ -118,7 +118,7 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
       vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
       vmesh::VelocityBlockContainer* blockContainer = cell->get_velocity_blocks(popID);
       #endif
-      const uint nBlocks = cell->get_velocity_mesh(popID)->size(true);
+      const uint nBlocks = cell->get_velocity_mesh(popID)->size();
       if (nBlocks == 0) {
          continue;
       }
@@ -199,7 +199,7 @@ void calculateMoments_R(
          vmesh::VelocityBlockContainer* blockContainer = cell->get_velocity_blocks(popID);
          #endif
          phiprof::Timer sizeTimer {"mesh size _R"};
-         const uint nBlocks = cell->get_velocity_mesh(popID)->size(true);
+         const uint nBlocks = cell->get_velocity_mesh(popID)->size();
          if (nBlocks == 0) {
             continue;
          }
@@ -280,7 +280,7 @@ void calculateMoments_R(
          vmesh::VelocityBlockContainer* blockContainer = cell->get_velocity_blocks(popID);
          #endif
          phiprof::Timer sizeTimer {"mesh size _R"};
-         const uint nBlocks = cell->get_velocity_mesh(popID)->size(true);
+         const uint nBlocks = cell->get_velocity_mesh(popID)->size();
          if (nBlocks == 0) {
             continue;
          }
@@ -356,7 +356,7 @@ void calculateMoments_V(
          vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
          vmesh::VelocityBlockContainer* blockContainer = cell->get_velocity_blocks(popID);
          #endif
-         const uint nBlocks = cell->get_velocity_mesh(popID)->size(true);
+         const uint nBlocks = cell->get_velocity_mesh(popID)->size();
          if (nBlocks == 0) {
             continue;
          }
@@ -422,7 +422,7 @@ void calculateMoments_V(
          vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
          vmesh::VelocityBlockContainer* blockContainer = cell->get_velocity_blocks(popID);
          #endif
-         const uint nBlocks = cell->get_velocity_mesh(popID)->size(true);
+         const uint nBlocks = cell->get_velocity_mesh(popID)->size();
          if (nBlocks == 0) {
             continue;
          }
