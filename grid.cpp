@@ -308,7 +308,6 @@ void initializeGrids(
          #ifdef USE_GPU
          SpatialCell* cell = mpiGrid[cells[i]];
          cell->prefetchDevice(); // Currently projects still init on host
-         cell->gpu_advise();
          #endif
       }
 
@@ -708,10 +707,8 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
 #ifdef USE_GPU
       #pragma omp for schedule(dynamic,1)
       for (uint i=0; i<cells.size(); ++i) {
-         mpiGrid[cells[i]]->gpu_attachToStream();
          mpiGrid[cells[i]]->updateSparseMinValue(popID);
          mpiGrid[cells[i]]->update_velocity_block_content_lists(popID);
-         mpiGrid[cells[i]]->gpu_detachFromStream();
       }
 #else
       #pragma omp for schedule(dynamic,1)
@@ -756,9 +753,6 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
             // Ensure cell has sufficient reservation
             cell->setReservation(popID,mpiGrid[neighbor_id]->velocity_block_with_content_list_size);
          }
-#ifdef USE_GPU
-         cell->gpu_attachToStream();
-#endif
          // GPUTODO: Vectorize / GPUify
          if (getObjectWrapper().particleSpecies[popID].sparse_conserve_mass) {
             for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
@@ -778,9 +772,6 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
                }
             }
          }
-#ifdef USE_GPU
-         cell->gpu_detachFromStream();
-#endif
       }
       timer.stop();
    }

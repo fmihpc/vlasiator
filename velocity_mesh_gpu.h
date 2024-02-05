@@ -117,15 +117,11 @@ namespace vmesh {
 
       void gpu_prefetchHost(gpuStream_t stream);
       void gpu_prefetchDevice(gpuStream_t stream);
-      void gpu_memAdvise(int device, gpuStream_t stream);
       void gpu_cleanHashMap(gpuStream_t stream);
-      void gpu_attachToStream(gpuStream_t stream);
-      void gpu_detachFromStream();
       void print_addresses();
 
    private:
       size_t meshID;
-      gpuStream_t attachedStream;
 
       //std::vector<vmesh::GlobalID> localToGlobalMap;
       //OpenBucketHashtable<vmesh::GlobalID,vmesh::LocalID> globalToLocalMap;
@@ -142,7 +138,6 @@ namespace vmesh {
       globalToLocalMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(7);
       localToGlobalMap = new split::SplitVector<vmesh::GlobalID>(1);
       localToGlobalMap->clear();
-      attachedStream = 0;
    }
 
    inline VelocityMesh::~VelocityMesh() {
@@ -168,7 +163,6 @@ namespace vmesh {
          localToGlobalMap = new split::SplitVector<vmesh::GlobalID>(1);
          localToGlobalMap->clear();
       }
-      attachedStream = 0;
    }
 
    inline const VelocityMesh& VelocityMesh::operator=(const VelocityMesh& other) {
@@ -177,7 +171,6 @@ namespace vmesh {
       // Overwrite is like a copy assign but takes a stream
       globalToLocalMap->overwrite(*(other.globalToLocalMap),stream);
       localToGlobalMap->overwrite(*(other.localToGlobalMap),stream);
-      attachedStream = 0;
       return *this;
    }
 
@@ -1117,13 +1110,6 @@ namespace vmesh {
          globalToLocalMap->device_rehash(HashmapReqSize, stream);
          CHK_ERR( gpuStreamSynchronize(stream) );
          globalToLocalMap->optimizeGPU(stream);
-         // globalToLocalMap->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-         // globalToLocalMap->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-      }
-      // Re-attach stream if required
-      if ((attachedStream != 0)&&(needAttachedStreams)) {
-         globalToLocalMap->streamAttach(attachedStream);
-         localToGlobalMap->streamAttach(attachedStream);
       }
       CHK_ERR( gpuStreamSynchronize(stream) );
    }
@@ -1182,15 +1168,6 @@ namespace vmesh {
       return;
    }
 
-   inline void VelocityMesh::gpu_memAdvise(int device, gpuStream_t stream) {
-      // int device = gpu_getDevice();
-      // globalToLocalMap->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-      // localToGlobalMap->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-      // globalToLocalMap->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-      // localToGlobalMap->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-      return;
-   }
-
    inline void VelocityMesh::gpu_cleanHashMap(gpuStream_t stream = 0) {
       if (stream==0) {
          stream = gpu_getStream();
@@ -1208,46 +1185,6 @@ namespace vmesh {
       return;
    }
 
-   inline void VelocityMesh::gpu_attachToStream(gpuStream_t stream = 0) {
-      // Return if attaching is not needed
-      if (!needAttachedStreams) {
-         return;
-      }
-      // Attach unified memory regions to streams
-      gpuStream_t newStream;
-      if (stream==0) {
-         newStream = gpu_getStream();
-      } else {
-         newStream = stream;
-      }
-      if (newStream == attachedStream) {
-         return;
-      } else {
-         attachedStream = newStream;
-      }
-      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,globalToLocalMap, 0,gpuMemAttachSingle) );
-      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,localToGlobalMap, 0,gpuMemAttachSingle) );
-      globalToLocalMap->streamAttach(attachedStream);
-      localToGlobalMap->streamAttach(attachedStream);
-      return;
-   }
-   inline void VelocityMesh::gpu_detachFromStream() {
-      // Return if attaching is not needed
-      if (!needAttachedStreams) {
-         return;
-      }
-      // Detach unified memory regions from streams
-      if (attachedStream == 0) {
-         // Already detached
-         return;
-      }
-      attachedStream = 0;
-      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,globalToLocalMap, 0,gpuMemAttachGlobal) );
-      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,localToGlobalMap, 0,gpuMemAttachGlobal) );
-      globalToLocalMap->streamAttach(0,gpuMemAttachGlobal);
-      localToGlobalMap->streamAttach(0,gpuMemAttachGlobal);
-      return;
-   }
    inline void VelocityMesh::print_addresses() {
       printf("GPU localToGlobalMap %p\n GPU globalToLocalMap %p\n",localToGlobalMap,globalToLocalMap);
    }

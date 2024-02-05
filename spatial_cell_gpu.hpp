@@ -454,14 +454,6 @@ namespace spatial_cell {
       SpatialCell(const SpatialCell& other);
       const SpatialCell& operator=(const SpatialCell& other);
 
-      // Attach unified memory to a stream
-      void gpu_attachToStream(gpuStream_t stream=0);
-      void gpu_detachFromStream();
-      // upload a content list to device memory
-      void gpu_uploadContentLists();
-      void gpu_clearContentLists();
-      // Advise on memory location
-      void gpu_advise();
       void setReservation(const uint popID, const vmesh::LocalID reservationsize, bool force=false);
       vmesh::LocalID getReservation(const uint popID) const;
       void applyReservation(const uint popID);
@@ -625,7 +617,6 @@ namespace spatial_cell {
       static bool mpiTransferAtSysBoundaries;                                 /**< Do we only transfer data at boundaries (true), or in the whole system (false).*/
       static bool mpiTransferInAMRTranslation;                                /**< Do we only transfer cells which are required by AMR translation. */
       static int mpiTransferXYZTranslation;                                   /**< Dimension in which AMR translation is happening */
-      gpuStream_t attachedStream;
 
     private:
       static int activePopID;

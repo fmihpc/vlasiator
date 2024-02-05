@@ -87,10 +87,7 @@ namespace vmesh {
       void gpu_prefetchHost(gpuStream_t stream);
       void gpu_prefetchDevice(gpuStream_t stream);
       void gpu_prefetchMetadataHost(gpuStream_t stream);
-      void gpu_attachToStream(gpuStream_t stream);
-      void gpu_detachFromStream();
       void print_addresses();
-      void gpu_memAdvise(int device, gpuStream_t stream);
 #endif
 
       #ifdef DEBUG_VBC
@@ -104,7 +101,6 @@ namespace vmesh {
       void resize(vmesh::LocalID add, bool skipPrefetches, gpuStream_t stream);
 
 #ifdef USE_GPU
-      gpuStream_t attachedStream;
       split::SplitVector<Realf> *block_data;
       split::SplitVector<Real> *parameters;
 #else
@@ -118,7 +114,6 @@ namespace vmesh {
 #ifdef USE_GPU
       block_data = new split::SplitVector<Realf>(1);
       parameters = new split::SplitVector<Real>(1);
-      attachedStream = 0;
 #else
       block_data = new std::vector<Realf,aligned_allocator<Realf,WID3>>(1);
       parameters = new std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS>>(1);
@@ -136,22 +131,13 @@ namespace vmesh {
       if (parameters) delete parameters;
       block_data = NULL;
       parameters = NULL;
-      #ifdef USE_GPU
-      attachedStream = 0;
-      #endif
    }
 
    inline VelocityBlockContainer::VelocityBlockContainer(const VelocityBlockContainer& other) {
 #ifdef USE_GPU
-      attachedStream = 0;
       // block_data= new split::SplitVector<Realf>(*(other.block_data));
       // parameters= new split::SplitVector<Real>(*(other.parameters));
       gpuStream_t stream = gpu_getStream();
-      // block_data->optimizeMetadataCPU(stream);
-      // parameters->optimizeMetadataCPU(stream);
-      // other.block_data->optimizeMetadataCPU(stream);
-      // other.parameters->optimizeMetadataCPU(stream);
-      // CHK_ERR( gpuStreamSynchronize(stream) );
       block_data = new split::SplitVector<Realf>(other.block_data->capacity());
       parameters = new split::SplitVector<Real>(other.block_data->capacity());
       // Overwrite is like a copy assign but takes a stream
@@ -167,13 +153,7 @@ namespace vmesh {
 
    inline const VelocityBlockContainer& VelocityBlockContainer::operator=(const VelocityBlockContainer& other) {
       #ifdef USE_GPU
-      attachedStream = other.attachedStream;
       gpuStream_t stream = gpu_getStream();
-      // block_data->optimizeMetadataCPU(stream);
-      // parameters->optimizeMetadataCPU(stream);
-      // other.block_data->optimizeMetadataCPU(stream);
-      // other.parameters->optimizeMetadataCPU(stream);
-      // CHK_ERR( gpuStreamSynchronize(stream) );
       block_data->reserve(other.block_data->capacity(), true, stream);
       parameters->reserve(other.parameters->capacity(), true, stream);
       // Overwrite is like a copy assign but takes a stream
@@ -405,57 +385,6 @@ namespace vmesh {
       }
       block_data->optimizeGPU(stream);
       parameters->optimizeGPU(stream);
-      return;
-   }
-
-   inline void VelocityBlockContainer::gpu_memAdvise(int device, gpuStream_t stream) {
-      // AMD advise is slow
-      // // int device = gpu_getDevice();
-      // block_data->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-      // parameters->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-      // block_data->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-      // parameters->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-      return;
-   }
-
-   inline void VelocityBlockContainer::gpu_attachToStream(gpuStream_t stream) {
-      // Return if attaching is not needed
-      if (!needAttachedStreams) {
-         return;
-      }
-      // Attach unified memory regions to streams
-      gpuStream_t newStream;
-      if (stream==0) {
-         newStream = gpu_getStream();
-      } else {
-         newStream = stream;
-      }
-      if (newStream == attachedStream) {
-         return;
-      } else {
-         attachedStream = newStream;
-      }
-      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,block_data, 0,gpuMemAttachSingle) );
-      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,parameters, 0,gpuMemAttachSingle) );
-      block_data->streamAttach(attachedStream);
-      parameters->streamAttach(attachedStream);
-      return;
-   }
-   inline void VelocityBlockContainer::gpu_detachFromStream() {
-      // Return if attaching is not needed
-      if (!needAttachedStreams) {
-         return;
-      }
-      if (attachedStream == 0) {
-         // Already detached
-         return;
-      }
-      attachedStream = 0;
-      // Detach unified memory regions from streams
-      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,block_data, 0,gpuMemAttachGlobal) );
-      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,parameters, 0,gpuMemAttachGlobal) );
-      block_data->streamAttach(0,gpuMemAttachGlobal);
-      parameters->streamAttach(0,gpuMemAttachGlobal);
       return;
    }
 #endif
@@ -732,17 +661,6 @@ namespace vmesh {
          // Passing eco flag = true to resize tells splitvector we manage padding manually.
          block_data->reserve(currentCapacity*WID3, true, stream);
          parameters->reserve(currentCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS, true, stream);
-         #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-         if ((attachedStream != 0)&&(needAttachedStreams)) {
-            block_data->streamAttach(attachedStream);
-            parameters->streamAttach(attachedStream);
-         }
-         // int device = gpu_getDevice();
-         // block_data->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-         // parameters->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-         // block_data->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-         // parameters->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-         #endif
       }
       #else
       if ((numberOfBlocks+add) >= currentCapacity) {

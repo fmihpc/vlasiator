@@ -516,7 +516,6 @@ namespace spatial_cell {
       BlocksToAdd->clear();
       BlocksToRemove->clear();
       BlocksToMove->clear();
-      attachedStream=0;
       velocity_block_with_content_list_size=0;
       BlocksRequiredMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(7);
       BlocksDeleteMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(7);
@@ -647,8 +646,8 @@ namespace spatial_cell {
       if (other.populations.size()>0) {
          populations = std::vector<spatial_cell::Population>(other.populations);
       }
-      attachedStream=0;
    }
+
    const SpatialCell& SpatialCell::operator=(const SpatialCell& other) {
       const uint reserveSize = (other.BlocksRequired)->capacity();
       BlocksRequired->clear();
@@ -711,126 +710,7 @@ namespace spatial_cell {
       //face_neighbor_ranks = std::map<int,std::set<int>>(other.face_neighbor_ranks);
       populations = std::vector<spatial_cell::Population>(other.populations);
 
-      attachedStream=0;
       return *this;
-   }
-
-   /** Advises unified memory subsystem on preferred location of memory
-       gpuMemAdviseSetPreferredLocation
-       gpuMemAdviseUnsetPreferredLocation
-       gpuMemAdviseSetReadMostly
-       gpuMemAdviceUnsetReadMostly
-       gpuMemAdviseSetAccessedBy
-       gpuMemAdviseUnsetAccessedBy
-    */
-   void SpatialCell::gpu_advise() {
-      return;
-      // AMD advise is slow
-      int device = gpu_getDevice();
-      gpuStream_t stream = gpu_getStream();
-      BlocksRequired->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-      BlocksToAdd->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-      BlocksToRemove->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-      BlocksToMove->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-      velocity_block_with_content_list->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-      velocity_block_with_no_content_list->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-      BlocksRequiredMap->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-      BlocksDeleteMap->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-
-      BlocksRequired->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-      BlocksToAdd->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-      BlocksToRemove->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-      BlocksToMove->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-      velocity_block_with_content_list->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-      velocity_block_with_no_content_list->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-      BlocksRequiredMap->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-      BlocksDeleteMap->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-
-      // Loop over populations
-      for (size_t p=0; p<populations.size(); ++p) {
-         populations[p].blockContainer->gpu_memAdvise(device,stream);
-         populations[p].vmesh->gpu_memAdvise(device,stream);
-      }
-   }
-
-   /** Attaches or deattaches unified memory to a GPU stream
-       When attached, a stream can access this unified memory without
-       issues.
-    */
-   void SpatialCell::gpu_attachToStream(gpuStream_t stream) {
-      // Return if attaching is not needed
-      if (!needAttachedStreams) {
-         return;
-      }
-      // Attach unified memory regions to streams
-      gpuStream_t newStream;
-      if (stream==0) {
-         newStream = gpu_getStream();
-      } else {
-         newStream = stream;
-      }
-      if (newStream == attachedStream) {
-         return;
-      } else {
-         attachedStream = newStream;
-      }
-      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,velocity_block_with_content_list, 0,gpuMemAttachSingle) );
-      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,velocity_block_with_no_content_list, 0,gpuMemAttachSingle) );
-      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,BlocksToRemove, 0,gpuMemAttachSingle) );
-      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,BlocksToAdd, 0,gpuMemAttachSingle) );
-      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,BlocksToMove, 0,gpuMemAttachSingle) );
-      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,BlocksRequired, 0,gpuMemAttachSingle) );
-      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,BlocksRequiredMap, 0,gpuMemAttachSingle) );
-      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,BlocksDeleteMap, 0,gpuMemAttachSingle) );
-      // Loop over populations
-      for (size_t p=0; p<populations.size(); ++p) {
-         populations[p].blockContainer->gpu_attachToStream(attachedStream);
-         populations[p].vmesh->gpu_attachToStream(attachedStream);
-      }
-      // Also call attach functions on all splitvectors and hashmaps
-      velocity_block_with_content_list->streamAttach(attachedStream);
-      velocity_block_with_no_content_list->streamAttach(attachedStream);
-      BlocksToRemove->streamAttach(attachedStream);
-      BlocksToAdd->streamAttach(attachedStream);
-      BlocksToMove->streamAttach(attachedStream);
-      BlocksRequired->streamAttach(attachedStream);
-      BlocksRequiredMap->streamAttach(attachedStream);
-      BlocksDeleteMap->streamAttach(attachedStream);
-      return;
-   }
-   void SpatialCell::gpu_detachFromStream() {
-      // Return if attaching is not needed
-      if (!needAttachedStreams) {
-         return;
-      }
-      if (attachedStream == 0) {
-         // Already detached
-         return;
-      }
-      attachedStream = 0;
-      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,velocity_block_with_content_list, 0,gpuMemAttachGlobal) );
-      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,velocity_block_with_no_content_list, 0,gpuMemAttachGlobal) );
-      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,BlocksToRemove, 0,gpuMemAttachGlobal) );
-      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,BlocksToAdd, 0,gpuMemAttachGlobal) );
-      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,BlocksToMove, 0,gpuMemAttachGlobal) );
-      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,BlocksRequired, 0,gpuMemAttachGlobal) );
-      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,BlocksRequiredMap, 0,gpuMemAttachGlobal) );
-      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,BlocksDeleteMap, 0,gpuMemAttachGlobal) );
-      // Loop over populations
-      for (size_t p=0; p<populations.size(); ++p) {
-         populations[p].blockContainer->gpu_detachFromStream();
-         populations[p].vmesh->gpu_detachFromStream();
-      }
-      // Also call detach functions on all splitvectors and hashmaps
-      velocity_block_with_content_list->streamAttach(0,gpuMemAttachGlobal);
-      velocity_block_with_no_content_list->streamAttach(0,gpuMemAttachGlobal);
-      BlocksToRemove->streamAttach(0,gpuMemAttachGlobal);
-      BlocksToAdd->streamAttach(0,gpuMemAttachGlobal);
-      BlocksToMove->streamAttach(0,gpuMemAttachGlobal);
-      BlocksRequired->streamAttach(0,gpuMemAttachGlobal);
-      BlocksRequiredMap->streamAttach(0,gpuMemAttachGlobal);
-      BlocksDeleteMap->streamAttach(0,gpuMemAttachGlobal);
-      return;
    }
 
    /** Sets a guidance counter so that vmesh adjustment vectors have sufficient size
@@ -931,14 +811,6 @@ namespace spatial_cell {
       const vmesh::LocalID localNoContentBlocks = velocity_block_with_no_content_list_size;
       vmesh::GlobalID* _withContentData = velocity_block_with_content_list->data(); // stored for self blocks
       vmesh::GlobalID* _withNoContentData = velocity_block_with_no_content_list->data();
-
-      // // Neighbour and own prefetches
-      // if (doPrefetches) {
-      //    //phiprof::Timer prefetchTimer {"Prefetch"};
-      //    populations[popID].vmesh->gpu_prefetchDevice(); // Queries active stream internally
-      //    velocity_block_with_content_list->optimizeGPU(stream);
-      //    velocity_block_with_no_content_list->optimizeGPU(stream);
-      // }
 
       // Evaluate halo size
       const int addWidthV = getObjectWrapper().particleSpecies[popID].sparseBlockAddWidthV;
@@ -1150,7 +1022,7 @@ namespace spatial_cell {
       #else
       const uint thread_id = 0;
       #endif
-      // This helper calls a kernel which figures out which blocks need to be rescued 
+      // This helper calls a kernel which figures out which blocks need to be rescued
       // from the end-space of the block data. Uses the BlocksDeleteMap (set).
       // To be used during regular block adjustment.
       const gpuStream_t stream = gpu_getStream();
@@ -1277,13 +1149,6 @@ namespace spatial_cell {
       if (nBlocksAfterAdjust <= nBlocksBeforeAdjust) {
          populations[popID].vmesh->setNewSize(nBlocksAfterAdjust);
          populations[popID].blockContainer->setSize(nBlocksAfterAdjust);
-         SSYNC;
-         if (doPrefetches) {
-            //phiprof::Timer prefetchTimer {"Vmesh and VBC lists prefetch dev"};
-            populations[popID].vmesh->gpu_prefetchDevice();
-            populations[popID].blockContainer->gpu_prefetchDevice();
-            SSYNC;
-         }
       }
 
       // DEBUG output after kernel
@@ -1418,8 +1283,6 @@ namespace spatial_cell {
             if (receiving) {
                this->velocity_block_with_content_list->resize(this->velocity_block_with_content_list_size,true);
                this->velocity_block_with_content_list->optimizeGPU(stream);
-               // Re receive velocity block content lists only for remote cells (?) so no need to
-               // attach to a stream at this point.
              }
             //velocity_block_with_content_list_size should first be updated, before this can be done (STAGE1)
             displacements.push_back((uint8_t*) this->velocity_block_with_content_list->data() - (uint8_t*) this);

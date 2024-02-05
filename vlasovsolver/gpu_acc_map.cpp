@@ -608,21 +608,7 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    spatial_cell->BlocksToAdd->clear();
    spatial_cell->BlocksToRemove->clear();
    spatial_cell->BlocksToMove->clear();
-   // spatial_cell->BlocksRequired->optimizeGPU(stream);
-   // spatial_cell->BlocksToAdd->optimizeGPU(stream);
-   // spatial_cell->BlocksToRemove->optimizeGPU(stream);
-   // spatial_cell->BlocksToMove->optimizeGPU(stream);
    clearTimer.stop();
-   // phiprof::Timer attachTimer {"stream Attach, prefetch"};
-   // if (needAttachedStreams) {
-   //    blockContainer->gpu_attachToStream(stream);
-   //    vmesh->gpu_attachToStream(stream);
-   // }
-   // if (doPrefetches) {
-   //    blockContainer->gpu_prefetchDevice(stream);
-   //    vmesh->gpu_prefetchDevice(stream);
-   // }
-   // attachTimer.stop();
 
    ColumnOffsets *columnData = gpu_columnOffsetData[cpuThreadID];
    //cpu_columnOffsetData[cpuThreadID]->prefetchDevice(stream);

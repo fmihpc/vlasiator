@@ -44,10 +44,6 @@
 static const double BLOCK_ALLOCATION_PADDING = 2.5;
 static const double BLOCK_ALLOCATION_FACTOR = 1.8;
 
-// Extern flags
-extern bool needAttachedStreams;
-extern bool doPrefetches;
-
 #define DIMS 1
 #define MAXCPUTHREADS 64
 

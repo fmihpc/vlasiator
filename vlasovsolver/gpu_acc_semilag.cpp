@@ -101,9 +101,6 @@ void gpu_accelerate_cell(SpatialCell* spatial_cell,
 #else
    const uint thread_id = 0;
 #endif
-   // Ensure unified memory constructs are attached to correct kernel
-   spatial_cell->gpu_attachToStream(gpuStreamList[thread_id]);
-   spatial_cell->gpu_advise();
 
    // // GPUTEST Launch debug kernel?
    //vmesh::getMeshWrapper()->printVelocityMesh(popID);
@@ -213,8 +210,6 @@ void gpu_accelerate_cell(SpatialCell* spatial_cell,
           break;
       }
    }
-
-   spatial_cell->gpu_detachFromStream();
 
    //if (Parameters::prepareForRebalance == true) {
    //    spatial_cell->parameters[CellParams::LBWEIGHTCOUNTER] += (MPI_Wtime() - t1);

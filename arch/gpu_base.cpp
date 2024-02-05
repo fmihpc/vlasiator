@@ -47,10 +47,6 @@ Real *returnReal[MAXCPUTHREADS];
 Realf *returnRealf[MAXCPUTHREADS];
 vmesh::LocalID *returnLID[MAXCPUTHREADS];
 
-bool needAttachedStreams = false;
-bool doPrefetches=false; // only non-crucial prefetches are behind this check
-// Note: disabling prefetches brings in strange memory errors and crashes (June 2023)
-
 uint *gpu_cell_indices_to_id[MAXCPUTHREADS];
 uint *gpu_block_indices_to_id[MAXCPUTHREADS];
 uint *gpu_vcell_transpose; // only one needed, not one per thread
@@ -168,7 +164,7 @@ __host__ void gpu_init_device() {
    CHK_ERR( cudaDeviceGetAttribute (&supportedMode, cudaDevAttrConcurrentManagedAccess, myDevice) );
    if (supportedMode==0) {
       printf("Warning! Current GPU device does not support concurrent managed memory access from several streams.\n");
-      needAttachedStreams = true;
+      abort();
    }
    #endif
 
@@ -481,11 +477,6 @@ __host__ void gpu_compaction_allocate_vec_perthread(
       const uint paddedSize = BLOCK_ALLOCATION_FACTOR * vectorLength;
       vbwcl_gather[cpuThreadID]->reserve(paddedSize,true,stream); // True: exact allocation
       vbwncl_gather[cpuThreadID]->reserve(paddedSize,true,stream);
-      // int device = gpu_getDevice();
-      // vbwcl_gather[cpuThreadID]->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-      // vbwncl_gather[cpuThreadID]->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
-      // vbwcl_gather[cpuThreadID]->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
-      // vbwncl_gather[cpuThreadID]->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
       vbwcl_gather[cpuThreadID]->optimizeGPU(stream);
       vbwncl_gather[cpuThreadID]->optimizeGPU(stream);
       gpu_compaction_vectorsize[cpuThreadID] = paddedSize;
