@@ -446,7 +446,7 @@ namespace vmesh {
       block_data->device_resize((numberOfBlocks+1)*WID3);
       parameters->device_resize((numberOfBlocks+1)*BlockParams::N_VELOCITY_BLOCK_PARAMS);
       #elif defined(USE_GPU)
-      resize(1,true,stream);
+      resize(1,stream);
       block_data->resize((numberOfBlocks+1)*WID3,true,stream);
       parameters->resize((numberOfBlocks+1)*BlockParams::N_VELOCITY_BLOCK_PARAMS,true,stream);
       #else
@@ -494,7 +494,7 @@ namespace vmesh {
       block_data->device_resize((numberOfBlocks+1)*WID3);
       parameters->device_resize((numberOfBlocks+1)*BlockParams::N_VELOCITY_BLOCK_PARAMS);
       #elif defined(USE_GPU)
-      resize(1,true,stream);
+      resize(1,stream);
       block_data->resize((numberOfBlocks+1)*WID3,true,stream);
       parameters->resize((numberOfBlocks+1)*BlockParams::N_VELOCITY_BLOCK_PARAMS,true,stream);
       #else
@@ -530,7 +530,7 @@ namespace vmesh {
       block_data->device_resize((numberOfBlocks+N_blocks)*WID3);
       parameters->device_resize((numberOfBlocks+N_blocks)*BlockParams::N_VELOCITY_BLOCK_PARAMS);
       #elif defined(USE_GPU)
-      resize(N_blocks,true,stream);
+      resize(N_blocks,stream);
       block_data->resize((numberOfBlocks+N_blocks)*WID3,true,stream);
       parameters->resize((numberOfBlocks+N_blocks)*BlockParams::N_VELOCITY_BLOCK_PARAMS,true,stream);
       #else
@@ -559,7 +559,7 @@ namespace vmesh {
       block_data->device_resize((numberOfBlocks+N_blocks)*WID3);
       parameters->device_resize((numberOfBlocks+N_blocks)*BlockParams::N_VELOCITY_BLOCK_PARAMS);
       #elif defined(USE_GPU)
-      resize(N_blocks,true,stream);
+      resize(N_blocks,stream);
       block_data->resize((numberOfBlocks+N_blocks)*WID3,true,stream);
       parameters->resize((numberOfBlocks+N_blocks)*BlockParams::N_VELOCITY_BLOCK_PARAMS,true,stream);
       #else
@@ -663,7 +663,7 @@ namespace vmesh {
          // resize(newSize - currentCapacity,true); // alters capacity only by adding the first argument
          parameters->resize((newSize)*BlockParams::N_VELOCITY_BLOCK_PARAMS,true,stream);
          block_data->resize((newSize)*WID3,true,stream);
-         resize(1,true,stream); // alters capacity only by adding the first argument
+         resize(1,stream); // alters capacity only by adding the first argument
          #else
          const vmesh::LocalID currentCapacity = block_data->capacity()/WID3;
          if (newSize > currentCapacity) {
