@@ -590,7 +590,7 @@ int main(int argn,char* args[]) {
             writeGhosts
          ) == false
       ) {
-         cerr << "FAILED TO WRITE GRID AT " << __FILE__ << " " << __LINE__ << endl;
+         abort_mpi("FAILED TO WRITE GRID", 1);
       }
 
       phiprof::stop("Initialization");
@@ -729,7 +729,7 @@ int main(int argn,char* args[]) {
             writeGhosts
          ) == false
       ) {
-         cerr << "FAILED TO WRITE GRID AT " << __FILE__ << " " << __LINE__ << endl;
+         abort_mpi("FAILED TO WRITE GRID", 1);
       }
 
       P::systemWriteDistributionWriteStride.pop_back();
@@ -946,7 +946,7 @@ int main(int argn,char* args[]) {
                writeGhosts
                ) == false
             ) {
-               cerr << "FAILED TO WRITE GRID AT" << __FILE__ << " " << __LINE__ << endl;
+               abort_mpi("FAILED TO WRITE GRID", 1);
             }
             P::systemWrites[i]++;
             // Special case for large timesteps
