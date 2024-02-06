@@ -9,7 +9,9 @@ LNK = clang++
 # module load Boost/1.79.0-cpeAMD-22.08
 # one-liner:
 # module load LUMI/22.08; module load partition/G; module load cpeAMD; module load rocm/5.3.3; module load Boost/1.79.0-cpeAMD-22.08
-
+# clang++ linking also requires:
+# export PATH=$PATH:/appl/lumi/SW/LUMI-22.08/G/EB/rocm/5.3.3/llvm/bin/
+ 
 #======== Vectorization ==========
 #Set vector backend type for vlasov solvers, sets precision and length. 
 #Options: 
@@ -62,10 +64,8 @@ testpackage: CXXFLAGS +=  -DPAPI_MEM
 
 #======== Libraries ===========
 # Select the base directory based on which project you are using:
-# Ducks in Snow:
-LIBRARY_PREFIX = /projappl/project_462000129/vlasiator-lib
 # LUMILAPIO
-#LIBRARY_PREFIX = /projappl/project_462000358/libraries
+LIBRARY_PREFIX = /projappl/project_462000358/libraries
 
 # Compiled libraries
 #INC_BOOST = -isystem $(LIBRARY_PREFIX)/boost/include
