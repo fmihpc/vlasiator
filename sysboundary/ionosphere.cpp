@@ -951,7 +951,7 @@ namespace SBC {
 
             // MLT interpolation (eq 7 from the paper)
             auto interpolate_robinson = [](const std::array<Real,3>& variable, Real MLT) -> Real {
-               return variable[0] + variable[1] * cos(variable[2] + MLT);
+               return variable[0] + variable[1] * cos(variable[2]/180.*M_PI + MLT);
             };
 
             for(uint n=0; n<nodes.size(); n++) {
@@ -964,7 +964,9 @@ namespace SBC {
                   area += elementArea(nodes[n].touchingElements[e]);
                }
                area /= 3.; // As every element has 3 corners, don't double-count areas
-               Real FAC = nodes[n].parameters[ionosphereParameters::SOURCE]/area;
+
+               // The Robinson model wants FACS in microAmperes / m^2
+               Real FAC = 1e6*nodes[n].parameters[ionosphereParameters::SOURCE]/area;
 
                // Get A, B and C factor by interpolation
                Real SigmaH0, SigmaH1, SigmaP0, SigmaP1;
@@ -982,8 +984,8 @@ namespace SBC {
                   SigmaP1 = interpolate_robinson(SigmaP1u_coefficients, MLT);
                }
 
-               nodes[n].parameters[ionosphereParameters::SIGMAP] = SigmaP0 + SigmaP1 * -FAC;
-               nodes[n].parameters[ionosphereParameters::SIGMAH] = SigmaH0 + SigmaH1 * -FAC;
+               nodes[n].parameters[ionosphereParameters::SIGMAP] = SigmaP0 + SigmaP1 * fabs(FAC);
+               nodes[n].parameters[ionosphereParameters::SIGMAH] = SigmaH0 + SigmaH1 * fabs(FAC);
                // TODO: What do we do about SIGMAPARALLEL?
             }
          }
