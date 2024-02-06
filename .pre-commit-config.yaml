@@ -1,4 +1,4 @@
-exclude: Doxyfile|libraries|Makefile|README|INSTALL|testpackage|doc|\.txt|\.tex|\.cfg|\.vtk|\.yml|\.clang-format|\.m$|\.sh|\.py
+exclude: Doxyfile|libraries|Makefile|README|INSTALL|testpackage|doc|\.txt|\.tex|\.cfg|\.vtk|\.clang-format|\.m$|\.sh|\.py
 
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks

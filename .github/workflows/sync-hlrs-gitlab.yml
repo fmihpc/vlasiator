@@ -1,0 +1,23 @@
+name: Generate testpackage reference data
+
+on:
+  push:
+    branches : ["dev","master","vlasiator_gpu"]
+
+jobs:
+  push_to_gitlab:
+    # Run the testpackage on the carrington cluster
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v3
+    - name: Push to Gitlab
+      run: |
+        git remote set-url gitlab https://oauth2:${token}@codehub.hlrs.de/coes/plasma-pepsc/uoh/vlasiator.git
+        git push gitlab dev:dev
+        git push gitlab master:master
+        git push gitlab cudasiator:cudasiator
+      with:
+        env:
+          token: ${{ secrets.GITLAB_ACCESS_TOKEN }}
