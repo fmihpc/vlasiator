@@ -954,6 +954,14 @@ namespace SBC {
                return variable[0] + variable[1] * cos(variable[2]/180.*M_PI + MLT);
             };
 
+            // Smooth (cubic hermite) interpolation between two curves a and b, x is clamped to [-1; 1]
+            auto smoothstep = [](Real a, Real b, Real x) -> Real {
+               x = 0.5*(x+1);
+               x = std::clamp((x-a)/(b-a),0.,1.);
+               x = x*x*(3-2*x);
+               return (1.-x)*a + x*b;
+            };
+
             for(uint n=0; n<nodes.size(); n++) {
 
                Real MLT = atan2(nodes[n].x[1],nodes[n].x[0]);
@@ -969,20 +977,11 @@ namespace SBC {
                Real FAC = 1e6*nodes[n].parameters[ionosphereParameters::SOURCE]/area;
 
                // Get A, B and C factor by interpolation
-               Real SigmaH0, SigmaH1, SigmaP0, SigmaP1;
-               if(FAC > 0) {
-                  // Positive FAC value -> downwards FACs.
-                  SigmaH0 = interpolate_robinson(SigmaH0d_coefficients, MLT);
-                  SigmaH1 = interpolate_robinson(SigmaH1d_coefficients, MLT);
-                  SigmaP0 = interpolate_robinson(SigmaP0d_coefficients, MLT);
-                  SigmaP1 = interpolate_robinson(SigmaP1d_coefficients, MLT);
-               } else {
-                  // Negative FAC value -> upwards FACs.
-                  SigmaH0 = interpolate_robinson(SigmaH0u_coefficients, MLT);
-                  SigmaH1 = interpolate_robinson(SigmaH1u_coefficients, MLT);
-                  SigmaP0 = interpolate_robinson(SigmaP0u_coefficients, MLT);
-                  SigmaP1 = interpolate_robinson(SigmaP1u_coefficients, MLT);
-               }
+               // Note: Positive FAC value -> downwards FACs.
+               Real SigmaH0 = smoothstep(interpolate_robinson(SigmaH0u_coefficients, MLT), interpolate_robinson(SigmaH0d_coefficients, MLT), FAC/0.1);
+               Real SigmaH1 = smoothstep(interpolate_robinson(SigmaH1u_coefficients, MLT), interpolate_robinson(SigmaH1d_coefficients, MLT), FAC/0.1);
+               Real SigmaP0 = smoothstep(interpolate_robinson(SigmaP0u_coefficients, MLT), interpolate_robinson(SigmaP0d_coefficients, MLT), FAC/0.1);
+               Real SigmaP1 = smoothstep(interpolate_robinson(SigmaP1u_coefficients, MLT), interpolate_robinson(SigmaP1d_coefficients, MLT), FAC/0.1);
 
                nodes[n].parameters[ionosphereParameters::SIGMAP] = SigmaP0 + SigmaP1 * fabs(FAC);
                nodes[n].parameters[ionosphereParameters::SIGMAH] = SigmaH0 + SigmaH1 * fabs(FAC);
