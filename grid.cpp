@@ -154,10 +154,12 @@ void initializeGrids(
       .initialize(comm)
       .set_geometry(geom_params);
 
+   // Hypergraph partitioning needs stencils initialized
+   initializeStencils(mpiGrid);
 
    phiprof::Timer refineTimer {"Refine spatial cells"};
-   // We need this first as well
    recalculateLocalCellsCache();
+
    if (!P::isRestart) {
       if (P::amrMaxSpatialRefLevel > 0 && project.refineSpatialCells(mpiGrid)) {
          mpiGrid.balance_load();
@@ -175,7 +177,6 @@ void initializeGrids(
    
    // Init velocity mesh on all cells
    initVelocityGridGeometry(mpiGrid);
-   initializeStencils(mpiGrid);
    
    for (const auto& [key, value] : P::loadBalanceOptions) {
       mpiGrid.set_partitioning_option(key, value);
