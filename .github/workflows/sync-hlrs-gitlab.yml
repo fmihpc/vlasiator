@@ -14,12 +14,18 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
-    - name: Push to Gitlab
+    - name: Add Gitlab Remote
       run: |
         git remote add gitlab https://oauth2:${token}@codehub.hlrs.de/coes/plasma-pepsc/uoh/vlasiator.git
         git fetch gitlab
+    - name: Update master
+      run: |
         git push -f gitlab origin/master:master
+    - name: Update dev
+      run: |
         git push -f gitlab origin/dev:dev
+    - name: Update Vlasiator_gpu
+      run: |
         git push -f gitlab origin/vlasiator_gpu:vlasiator_gpu
       env:
         token: ${{ secrets.GITLAB_ACCESS_TOKEN }}
