@@ -1,4 +1,4 @@
-name: Generate testpackage reference data
+name: Generate testpackage reference data (UH)
 
 on:
   # Only run when triggered manually
