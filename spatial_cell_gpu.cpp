@@ -888,7 +888,7 @@ namespace spatial_cell {
          HashmapReqSize += ceil(log2(HashmapReqSize2));
       }
 
-      if (BlocksRequiredMap_sizepower >= HashmapReqSize) {
+      if ((int)BlocksRequiredMap_sizepower >= HashmapReqSize) {
          // Map is already large enough
          BlocksRequiredMap->clear(Hashinator::targets::device,stream,false);
       } else {
@@ -928,7 +928,7 @@ namespace spatial_cell {
             HashmapDeleteReqSize += ceil(log2(HashmapDeleteReqSize2));
          }
          BlocksDeleteMap->clear(Hashinator::targets::device,stream,false);
-         if (BlocksDeleteMap_sizepower >= HashmapDeleteReqSize) {
+         if ((int)BlocksDeleteMap_sizepower >= HashmapDeleteReqSize) {
             // Map is already large enough
          } else {
             // Need larger empty map
@@ -1013,7 +1013,7 @@ namespace spatial_cell {
       const int nBlocksRequired = BlocksRequired->size();
       const uint nGpuBlocks = nBlocksRequired > GPUBLOCKS ? GPUBLOCKS : nBlocksRequired;
       // BlocksToMove can be up to BlocksRequired in size
-      if (BlocksToMove_capacity < nBlocksRequired) {
+      if ((int)BlocksToMove_capacity < nBlocksRequired) {
          BlocksToMove_capacity = nBlocksRequired*BLOCK_ALLOCATION_FACTOR;
          BlocksToMove->reserve(BlocksToMove_capacity,true);
          BlocksToMove->optimizeGPU(stream);
@@ -1048,7 +1048,7 @@ namespace spatial_cell {
       }
       const uint nGpuBlocks = nEvaluate > GPUBLOCKS ? GPUBLOCKS : nEvaluate;
       gpu_compaction_allocate_vec_perthread(thread_id, nEvaluate);
-      if (BlocksToMove_capacity < nEvaluate) {
+      if ((int)BlocksToMove_capacity < nEvaluate) {
          BlocksToMove_capacity = nEvaluate*BLOCK_ALLOCATION_FACTOR;
          BlocksToMove->reserve(BlocksToMove_capacity,true);
          BlocksToMove->optimizeGPU(stream);
