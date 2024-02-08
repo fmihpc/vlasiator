@@ -1059,7 +1059,7 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       std::cerr << "Failed to add neighborhood VLASOV_SOLVER_NEIGHBORHOOD_ID \n";
       abort();
    }
-   mpiGrid.set_partitioning_neighborhood(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
+   mpiGrid.set_partitioning_neighborhood(VLASOV_SOLVER_NEIGHBORHOOD_ID);
 
    // add remaining nearest neighbors for DIST_FUNC neighborhood
    for (int z = -1; z <= 1; z++) {
