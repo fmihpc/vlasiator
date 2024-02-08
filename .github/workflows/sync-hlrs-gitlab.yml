@@ -1,4 +1,4 @@
-name: Generate testpackage reference data
+name: Synchronize HLRS Gitlab data
 
 on:
   push:
