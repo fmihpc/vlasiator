@@ -18,6 +18,8 @@ jobs:
       run: |
         git remote add gitlab https://oauth2:${token}@codehub.hlrs.de/coes/plasma-pepsc/uoh/vlasiator.git
         git fetch gitlab
+      env:
+        token: ${{ secrets.GITLAB_ACCESS_TOKEN }}
     - name: Update master
       run: |
         git push -f gitlab origin/master:master
@@ -27,5 +29,3 @@ jobs:
     - name: Update Vlasiator_gpu
       run: |
         git push -f gitlab origin/vlasiator_gpu:vlasiator_gpu
-      env:
-        token: ${{ secrets.GITLAB_ACCESS_TOKEN }}
