@@ -983,8 +983,8 @@ namespace SBC {
                Real SigmaP0 = smoothstep(interpolate_robinson(SigmaP0u_coefficients, MLT), interpolate_robinson(SigmaP0d_coefficients, MLT), FAC/0.1);
                Real SigmaP1 = smoothstep(interpolate_robinson(SigmaP1u_coefficients, MLT), interpolate_robinson(SigmaP1d_coefficients, MLT), FAC/0.1);
 
-               nodes[n].parameters[ionosphereParameters::SIGMAP] = SigmaP0 + SigmaP1 * -FAC;
-               nodes[n].parameters[ionosphereParameters::SIGMAH] = SigmaH0 + SigmaH1 * -FAC;
+               nodes[n].parameters[ionosphereParameters::SIGMAP] = SigmaP0 + SigmaP1 * FAC;
+               nodes[n].parameters[ionosphereParameters::SIGMAH] = SigmaH0 + SigmaH1 * FAC;
                // TODO: What do we do about SIGMAPARALLEL?
             }
          }
