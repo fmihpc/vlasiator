@@ -243,7 +243,7 @@ void calculateSpatialTranslation(
    
    phiprof::Timer semilagTimer {"semilag-trans"};
    
-   //double t1 = MPI_Wtime();
+   double t1 = MPI_Wtime();
 
    const vector<CellID>& localCells = getLocalCells();
    vector<CellID> remoteTargetCellsx;
