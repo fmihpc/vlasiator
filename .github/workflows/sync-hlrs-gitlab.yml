@@ -18,6 +18,5 @@ jobs:
         git push gitlab dev:dev
         git push gitlab master:master
         git push gitlab cudasiator:cudasiator
-      with:
-        env:
-          token: ${{ secrets.GITLAB_ACCESS_TOKEN }}
+      env:
+        token: ${{ secrets.GITLAB_ACCESS_TOKEN }}
