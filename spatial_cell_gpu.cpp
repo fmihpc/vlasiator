@@ -865,7 +865,7 @@ namespace spatial_cell {
             if (nNeighBlocks>0) {
                // just memcpy
                CHK_ERR( gpuMemcpyAsync(BlocksList->data()+incrementPoint,(*neighbor)->velocity_block_with_content_list->data(),
-                                       nNeighBlocks*sizeof(vmesh::LocalID), gpuMemcpyDeviceToDevice, stream) );
+                                       nNeighBlocks*sizeof(vmesh::GlobalID), gpuMemcpyDeviceToDevice, stream) );
                incrementPoint += nNeighBlocks;
             }
          }
@@ -874,7 +874,7 @@ namespace spatial_cell {
       // Do we leave empty blocks unaltered?
       if (!doDeleteEmptyBlocks && localNoContentBlocks>0) {
          CHK_ERR( gpuMemcpyAsync(BlocksList->data()+incrementPoint,_withNoContentData,
-                                 localNoContentBlocks*sizeof(vmesh::LocalID), gpuMemcpyDeviceToDevice, stream) );
+                                 localNoContentBlocks*sizeof(vmesh::GlobalID), gpuMemcpyDeviceToDevice, stream) );
          incrementPoint += localNoContentBlocks;
       }
       //CHK_ERR( gpuStreamSynchronize(stream) );
@@ -919,7 +919,7 @@ namespace spatial_cell {
       //extractRequiredTimer.stop();
 
       vmesh::LocalID nBlocksToRemove = 0;
-      if (doDeleteEmptyBlocks && localNoContentBlocks>0) {
+      if (doDeleteEmptyBlocks && localNoContentBlocks>0 && nBlocksRequired>0) {
          //phiprof::Timer resizeDeleteTimer {"Blocksdelete hashmap resize / clear"};
          // Estimate required size based on existing blocks
          int HashmapDeleteReqSize = 2;
@@ -952,20 +952,32 @@ namespace spatial_cell {
             nBlocksToRemove = BlocksDeleteMap->extractAllKeys(*BlocksToRemove,compaction_buffer[thread_id],bytesNeeded,stream,false);
          }
          //findDeleteTimer.stop();
+      } else if (doDeleteEmptyBlocks && localNoContentBlocks>0 && nBlocksRequired==0) {
+         // No required blocks, just delete all no content blocks
+         nBlocksToRemove = localNoContentBlocks;
+         BlocksToRemove->resize(localNoContentBlocks,true,stream);
+         CHK_ERR( gpuMemcpyAsync(BlocksToRemove->data(), _withNoContentData, localNoContentBlocks*sizeof(vmesh::GlobalID), gpuMemcpyDeviceToHost, stream) );
       }
 
       // Now clean the blocks required set/map of all blocks which already exist (these two calls should be merged)
-      //phiprof::Timer eraseTimer {"BlocksRequired erase existing"};
-      BlocksRequiredMap->erase(_withContentData,localContentBlocks,stream);
-      BlocksRequiredMap->erase(_withNoContentData,localNoContentBlocks,stream);
-      CHK_ERR( gpuStreamSynchronize(stream) );
-      //eraseTimer.stop();
-      //phiprof::Timer toAddTimer {"BlocksToAdd extract"};
-      const vmesh::LocalID nBlocksToAdd = BlocksRequiredMap->extractAllKeys(*BlocksToAdd,compaction_buffer[thread_id],bytesNeeded,stream,false);
-      //toAddTimer.stop();
+      vmesh::LocalID nBlocksToAdd = 0;
+      if (nBlocksRequired>0) {
+         //phiprof::Timer eraseTimer {"BlocksRequired erase existing"};
+         if (localContentBlocks>0) {
+            BlocksRequiredMap->erase(_withContentData,localContentBlocks,stream);
+         }
+         if (localNoContentBlocks>0) {
+            BlocksRequiredMap->erase(_withNoContentData,localNoContentBlocks,stream);
+         }
+         CHK_ERR( gpuStreamSynchronize(stream) );
+         //eraseTimer.stop();
+         //phiprof::Timer toAddTimer {"BlocksToAdd extract"};
+         nBlocksToAdd = BlocksRequiredMap->extractAllKeys(*BlocksToAdd,compaction_buffer[thread_id],bytesNeeded,stream,false);
+         //toAddTimer.stop();
+      }
 
       // If we remove more blocks than we create, we gather a list of blocks to rescue
-      if (nBlocksToRemove > nBlocksToAdd) {
+      if (nBlocksToRemove > nBlocksToAdd && nBlocksRequired>0) {
          update_blocks_to_move_caller_2(popID, nBlocksRequired, currSize);
       }
 
