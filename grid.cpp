@@ -1059,7 +1059,6 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       std::cerr << "Failed to add neighborhood VLASOV_SOLVER_NEIGHBORHOOD_ID \n";
       abort();
    }
-   mpiGrid.set_partitioning_neighborhood(VLASOV_SOLVER_NEIGHBORHOOD_ID);
 
    // add remaining nearest neighbors for DIST_FUNC neighborhood
    for (int z = -1; z <= 1; z++) {
@@ -1185,6 +1184,9 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       std::cerr << "Failed to add neighborhood SHIFT_P_Z_NEIGHBORHOOD_ID \n";
       abort();
    }
+
+   std::cerr << "Partitioning neighborhood " + std::to_string(P::partitioningNeighborhood) + "\n";
+   mpiGrid.set_partitioning_neighborhood(P::partitioningNeighborhood);
 }
 
 bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID) {

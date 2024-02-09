@@ -131,6 +131,7 @@ bool P::isRestart = false;
 int P::writeAsFloat = false;
 int P::writeRestartAsFloat = false;
 string P::loadBalanceAlgorithm = string("");
+int P::partitioningNeighborhood {FULL_NEIGHBORHOOD_ID};
 std::map<std::string, std::string> P::loadBalanceOptions;
 uint P::rebalanceInterval = numeric_limits<uint>::max();
 
@@ -371,6 +372,7 @@ bool P::addParameters() {
    // Load balancing parameters
    RP::add("loadBalance.algorithm", "Load balancing algorithm to be used", string("HYPERGRAPH"));
    RP::add("loadBalance.hierLevelZero", "Number of tasks for 0th level hierarchical partitioning", 4);
+   RP::add("loadBalance.partitioning_neighborhood", "Neighborhood ID for (hyper)graph partitioning, see definitions.h", FULL_NEIGHBORHOOD_ID);
    RP::add("loadBalance.tolerance", "Load imbalance tolerance", string("1.05"));
    RP::add("loadBalance.rebalanceInterval", "Load rebalance interval (steps)", 10);
 
@@ -925,6 +927,7 @@ void Parameters::getParameters() {
 
    // Get load balance parameters
    RP::get("loadBalance.algorithm", P::loadBalanceAlgorithm);
+   RP::get("loadBalance.partitioning_neighborhood", P::partitioningNeighborhood);
    loadBalanceOptions["IMBALANCE_TOL"] = "";
    RP::get("loadBalance.tolerance", loadBalanceOptions["IMBALANCE_TOL"]);
    RP::get("loadBalance.rebalanceInterval", P::rebalanceInterval);

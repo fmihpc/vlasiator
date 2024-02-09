@@ -154,6 +154,7 @@ struct Parameters {
                                    in the Lorentz force and in the field solver.*/
 
    static std::string loadBalanceAlgorithm; /*!< Algorithm to be used for load balance.*/
+   static int partitioningNeighborhood; /*!< Partitioning neighborhood for (hyper)graph.*/
    static std::map<std::string, std::string> loadBalanceOptions;  // Other Load balancing options
    static uint rebalanceInterval;           /*!< Load rebalance interval (steps). */
    static bool prepareForRebalance; /**< If true, propagators should measure their time consumption in preparation
