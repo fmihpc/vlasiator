@@ -592,11 +592,11 @@ namespace projects {
             // Skip refining, touching boundaries during runtime breaks everything
             mpiGrid.dont_refine(id);
             mpiGrid.dont_unrefine(id);
-         } else if (r2 < r_max2) {
-            // We don't care about cells that are too far from the ionosphere
+         } else {
             const Real alphaTwo {cell->parameters[CellParams::AMR_JPERB] * cell->parameters[CellParams::DX]};
-            bool shouldRefine = (P::useAlpha ? cell->parameters[CellParams::AMR_ALPHA] > P::alphaRefineThreshold : false) || (P::useJPerB ? alphaTwo > P::jperbRefineThreshold : false);
-            bool shouldUnrefine = (P::useAlpha ? cell->parameters[CellParams::AMR_ALPHA] < P::alphaCoarsenThreshold : true) && (P::useJPerB ? alphaTwo < P::jperbCoarsenThreshold : true);
+            // Cells too far from the ionosphere should be unrefined
+            bool shouldRefine {(r2 < r_max2) && ((P::useAlpha ? cell->parameters[CellParams::AMR_ALPHA] > P::alphaRefineThreshold : false) || (P::useJPerB ? alphaTwo > P::jperbRefineThreshold : false))};
+            bool shouldUnrefine {(r2 > r_max2) || ((P::useAlpha ? cell->parameters[CellParams::AMR_ALPHA] < P::alphaCoarsenThreshold : true) && (P::useJPerB ? alphaTwo < P::jperbCoarsenThreshold : true))};
 
             // Finally, check neighbors
             int refined_neighbors {0};
@@ -604,14 +604,16 @@ namespace projects {
             for (const auto& [neighbor, dir] : mpiGrid.get_face_neighbors_of(id)) {
                const int neighborRef = mpiGrid.get_refinement_level(neighbor);
                const Real neighborAlphaTwo {mpiGrid[neighbor]->parameters[CellParams::AMR_JPERB] * mpiGrid[neighbor]->parameters[CellParams::DX]};
+               bool shouldRefineNeighbor {(r2 < r_max2) && ((P::useAlpha ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA] > P::alphaRefineThreshold : false) || (P::useJPerB ? neighborAlphaTwo > P::jperbRefineThreshold : false))};
+               bool shouldUnrefineNeighbor {(r2 > r_max2) || (P::useAlpha ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA] < P::alphaCoarsenThreshold : true) && (P::useJPerB ? neighborAlphaTwo < P::jperbCoarsenThreshold : true)};
                if (neighborRef > refLevel) {
                   ++refined_neighbors;
                } else if (neighborRef < refLevel) {
                   ++coarser_neighbors;
-               } else if ((P::useAlpha ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA] > P::alphaRefineThreshold : false) || (P::useJPerB ? neighborAlphaTwo > P::jperbRefineThreshold : false)) {
+               } else if (shouldRefineNeighbor) {
                   // If neighbor refines, 4 of its children will be this cells refined neighbors
                   refined_neighbors += 4;
-               } else if ((P::useAlpha ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA] < P::alphaCoarsenThreshold : true) && (P::useJPerB ? neighborAlphaTwo < P::jperbCoarsenThreshold : true)) {
+               } else if (shouldUnrefineNeighbor) {
                   ++coarser_neighbors;
                }
             }
