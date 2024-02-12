@@ -1185,8 +1185,10 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       abort();
    }
 
-   std::cerr << "Partitioning neighborhood " + std::to_string(P::partitioningNeighborhood) + "\n";
-   mpiGrid.set_partitioning_neighborhood(P::partitioningNeighborhood);
+   for (auto neighborhood : P::partitioningNeighborhoods) {
+      std::cerr << "Partitioning neighborhood " + std::to_string(neighborhood) + "\n";
+      mpiGrid.add_partitioning_neighborhood(neighborhood);
+   }
 }
 
 bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID) {
