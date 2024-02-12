@@ -1186,7 +1186,6 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    }
 
    for (auto neighborhood : P::partitioningNeighborhoods) {
-      std::cerr << "Partitioning neighborhood " + std::to_string(neighborhood) + "\n";
       mpiGrid.add_partitioning_neighborhood(neighborhood);
    }
 }
