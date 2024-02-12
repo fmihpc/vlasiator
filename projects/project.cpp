@@ -605,7 +605,7 @@ namespace projects {
                const int neighborRef = mpiGrid.get_refinement_level(neighbor);
                const Real neighborAlphaTwo {mpiGrid[neighbor]->parameters[CellParams::AMR_JPERB] * mpiGrid[neighbor]->parameters[CellParams::DX]};
                bool shouldRefineNeighbor {(r2 < r_max2) && ((P::useAlpha ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA] > P::alphaRefineThreshold : false) || (P::useJPerB ? neighborAlphaTwo > P::jperbRefineThreshold : false))};
-               bool shouldUnrefineNeighbor {(r2 > r_max2) || (P::useAlpha ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA] < P::alphaCoarsenThreshold : true) && (P::useJPerB ? neighborAlphaTwo < P::jperbCoarsenThreshold : true)};
+               bool shouldUnrefineNeighbor {(r2 > r_max2) || ((P::useAlpha ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA] < P::alphaCoarsenThreshold : true) && (P::useJPerB ? neighborAlphaTwo < P::jperbCoarsenThreshold : true))};
                if (neighborRef > refLevel && !shouldUnrefineNeighbor) {
                   ++refined_neighbors;
                } else if (neighborRef < refLevel && !shouldRefineNeighbor) {
