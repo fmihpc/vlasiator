@@ -606,9 +606,9 @@ namespace projects {
                const Real neighborAlphaTwo {mpiGrid[neighbor]->parameters[CellParams::AMR_JPERB] * mpiGrid[neighbor]->parameters[CellParams::DX]};
                bool shouldRefineNeighbor {(r2 < r_max2) && ((P::useAlpha ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA] > P::alphaRefineThreshold : false) || (P::useJPerB ? neighborAlphaTwo > P::jperbRefineThreshold : false))};
                bool shouldUnrefineNeighbor {(r2 > r_max2) || (P::useAlpha ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA] < P::alphaCoarsenThreshold : true) && (P::useJPerB ? neighborAlphaTwo < P::jperbCoarsenThreshold : true)};
-               if (neighborRef > refLevel) {
+               if (neighborRef > refLevel && !shouldUnrefineNeighbor) {
                   ++refined_neighbors;
-               } else if (neighborRef < refLevel) {
+               } else if (neighborRef < refLevel && !shouldRefineNeighbor) {
                   ++coarser_neighbors;
                } else if (shouldRefineNeighbor) {
                   // If neighbor refines, 4 of its children will be this cells refined neighbors
