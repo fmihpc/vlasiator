@@ -192,8 +192,9 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          }
       } //spatial loops
 
-      // Copy swapGrid back to momentsGrid
-      momentsGrid=swapGrid;
+      using std::swap;
+      // It's called the swap grid because we swap it
+      swap(momentsGrid, swapGrid);
       // Update Ghost Cells
       momentsGrid.updateGhostCells();
 
