@@ -1324,23 +1324,13 @@ int simulate(int argn,char* args[]) {
    
    phiprof::print(MPI_COMM_WORLD,"phiprof");
    
-   if (myRank == MASTER_RANK) logFile << "(MAIN): Exiting." << endl << writeVerbose;
+   if (myRank == MASTER_RANK) {
+      logFile << "(MAIN): Exiting." << endl << writeVerbose;
+   }
    logFile.close();
-   if (P::diagnosticInterval != 0) diagnostic.close();
-
-   perBGrid.finalize();
-   perBDt2Grid.finalize();
-   EGrid.finalize();
-   EDt2Grid.finalize();
-   EHallGrid.finalize();
-   EGradPeGrid.finalize();
-   momentsGrid.finalize();
-   momentsDt2Grid.finalize();
-   dPerBGrid.finalize();
-   dMomentsGrid.finalize();
-   BgBGrid.finalize();
-   volGrid.finalize();
-   technicalGrid.finalize();
+   if (P::diagnosticInterval != 0) {
+      diagnostic.close();
+   }
 
    return 0;
 }
