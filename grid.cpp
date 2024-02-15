@@ -700,12 +700,12 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
          // If we are within an acceleration substep prior to the last one,
          // it's enough to adjust blocks based on local data only, and in
          // that case we simply pass an empty list of pointers.
-         const auto& neighbors = mpiGrid.get_neighbors_of(cell_id, NEAREST_NEIGHBORHOOD_ID);
+         const auto* neighbors = mpiGrid.get_neighbors_of(cell_id, NEAREST_NEIGHBORHOOD_ID);
          // Note: at AMR refinement boundaries this can cause blocks to propagate further
          // than absolutely required. Face neighbours, however, are not enough as we must
          // account for diagonal propagation.
-         neighbor_ptrs.reserve(neighbors.size());
-         for ( const auto& [neighbor_id, dir] : neighbors) {
+         neighbor_ptrs.reserve(neighbors->size());
+         for ( const auto& [neighbor_id, dir] : *neighbors) {
             if (neighbor_id != 0) {
                neighbor_ptrs.push_back(mpiGrid[neighbor_id]);
             }
