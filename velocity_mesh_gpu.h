@@ -40,9 +40,9 @@
 #include "arch/gpu_base.hpp"
 //#include "arch/arch_device_api.h" // included in above
 
-#ifdef DEBUG_VLASIATOR
+//#ifdef DEBUG_VLASIATOR
    #define DEBUG_VMESH
-#endif
+//#endif
 
 namespace vmesh {
 

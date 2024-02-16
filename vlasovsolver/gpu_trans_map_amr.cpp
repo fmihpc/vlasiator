@@ -494,8 +494,15 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
 
       Realf** pencilBlockData; // Array of pointers into actual block data
       uint* pencilBlocksCount; // Array of counters if pencil needs to be propagated for this block or not
+
+      stringstream ss;
+      ss<<" thread "<<cpuThreadID<<" malloc "<<sumOfLengths<<" * "<<nGpuBlocks<<" * sizeof(Realf*) + ";
+      ss<<nPencils<<" * "<<nGpuBlocks<<" * sizeof(uint) = "<<sumOfLengths*nGpuBlocks*sizeof(Realf*)+nPencils*nGpuBlocks*sizeof(uint)<<std::endl;
+      std::cerr<<ss.str();
+#pragma omp barrier
       CHK_ERR( gpuMallocAsync((void**)&pencilBlockData, sumOfLengths*nGpuBlocks*sizeof(Realf*), stream) );
       CHK_ERR( gpuMallocAsync((void**)&pencilBlocksCount, nPencils*nGpuBlocks*sizeof(uint), stream) );
+      CHK_ERR( gpuStreamSynchronize(stream) );
       bufferTimer.stop();
 
       // Loop over velocity space blocks (threaded, multi-stream, and multi-block parallel, but not using a for-loop)
@@ -505,6 +512,7 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
       // This thread, using its own stream, will launch nGpuBlocks instances of the below kernel, where each instance
       // propagates all pencils for the block in question.
       dim3 block(WID2,WID,1); // assumes VECL==WID2
+#pragma omp barrier
       translation_kernel<<<nGpuBlocks, block, 0, stream>>> (
          dimension,
          gpu_vcell_transpose,
@@ -527,8 +535,11 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
          pencilRatios, // Vector holding target ratios
          pencilBlocksCount // store how many non-empty blocks each pencil has for this GID
          );
+      CHK_ERR( gpuPeekAtLastError() );
       CHK_ERR( gpuStreamSynchronize(stream) );
       mappingTimer.stop(); // mapping (top-level)
+      CHK_ERR( gpuFree(pencilBlockData) );
+      CHK_ERR( gpuFree(pencilBlocksCount) );
 
    } // closes pragma omp parallel
    return true;

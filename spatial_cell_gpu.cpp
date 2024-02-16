@@ -27,9 +27,9 @@
 #include "object_wrapper.h"
 #include "velocity_mesh_parameters.h"
 
-#ifdef DEBUG_VLASIATOR
+//#ifdef DEBUG_VLASIATOR
    #define DEBUG_SPATIAL_CELL
-#endif
+//#endif
 
 using namespace std;
 
@@ -926,7 +926,8 @@ namespace spatial_cell {
       }
       BlocksList->reserve(nRequiredBlocksListSize);
       BlocksList->resize(nRequiredBlocksListSize,true);
-      BlocksRequired->reserve(localContentBlocks+4*localNoContentBlocks);
+      //BlocksRequired->reserve(localContentBlocks+4*localNoContentBlocks);
+      BlocksRequired->reserve(nRequiredBlocksListSize);
       nGpuBlocks = localContentBlocks > GPUBLOCKS ? GPUBLOCKS : localContentBlocks;
 
       if (localContentBlocks > 0) {
@@ -949,7 +950,8 @@ namespace spatial_cell {
             const vmesh::LocalID nNeighBlocks = (*neighbor)->velocity_block_with_content_list_size;
             if (nNeighBlocks>0) {
                // just memcpy
-               CHK_ERR( gpuMemcpyAsync((*neighbor)->gpu_velocity_block_with_content_list_buffer, BlocksList->data()+incrementPoint,
+               CHK_ERR( gpuMemcpyAsync(BlocksList->data()+incrementPoint,
+                                       (*neighbor)->gpu_velocity_block_with_content_list_buffer,
                                        nNeighBlocks*sizeof(vmesh::LocalID), gpuMemcpyDeviceToDevice, stream) );
                incrementPoint += nNeighBlocks;
             }
@@ -1014,14 +1016,17 @@ namespace spatial_cell {
       // 0.5 is target load factor
       BlocksRequiredMap->insert(BlocksList->data(),BlocksList->data(),incrementPoint,0.5,stream,false);
       CHK_ERR( gpuPeekAtLastError() );
+      CHK_ERR( gpuStreamSynchronize(stream) );
+      // Ensure map does not include invalidGID
+      BlocksDeleteMap->erase(invalidGIDpointer,1,stream);
 
       // Ensure allocation for extraction calls is sufficient
-      size_t bytesNeeded = split::tools::estimateMemoryForCompaction((size_t)std::pow(2,BlocksRequiredMapSizePower+4));
+      size_t bytesNeeded = split::tools::estimateMemoryForCompaction((size_t)std::pow(2,BlocksRequiredMapSizePower+2));
       //std::cerr<<"bytesNeeded "<<bytesNeeded<<" BlocksRequiredMapSizePower "<<BlocksRequiredMapSizePower<<" std::pow(2,BlocksRequiredMapSizePower) "<<std::pow(2,BlocksRequiredMapSizePower)<<std::endl;
       gpu_compaction_allocate_buf_perthread(thread_id, bytesNeeded);
 
-      const vmesh::LocalID nBlocksRequired = BlocksRequiredMap->extractAllKeys(*BlocksRequired,compaction_buffer[thread_id],bytesNeeded,stream,false);
-      //const vmesh::LocalID nBlocksRequired = BlocksRequiredMap->extractAllKeys(*BlocksRequired,stream,false);
+      //const vmesh::LocalID nBlocksRequired = BlocksRequiredMap->extractAllKeys(*BlocksRequired,compaction_buffer[thread_id],bytesNeeded,stream,false);
+      const vmesh::LocalID nBlocksRequired = BlocksRequiredMap->extractAllKeys(*BlocksRequired,stream,false);
 
       vmesh::LocalID nBlocksToRemove = 0;
       if (!doDeleteEmptyBlocks && localNoContentBlocks>0) {
@@ -1045,6 +1050,7 @@ namespace spatial_cell {
 
       // Now clean the blocks required set/map of all blocks which already exist (these two calls should be merged)
       BlocksRequiredMap->erase(_withContentData,localContentBlocks,stream);
+      CHK_ERR( gpuStreamSynchronize(stream) );
       BlocksRequiredMap->erase(_withNoContentData,localNoContentBlocks,stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
       const vmesh::LocalID nBlocksToAdd = BlocksRequiredMap->extractAllKeys(*BlocksToAdd,compaction_buffer[thread_id],bytesNeeded,stream,false);

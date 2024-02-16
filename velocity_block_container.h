@@ -27,9 +27,9 @@
 #include "common.h"
 #include "unistd.h"
 
-#ifdef DEBUG_VLASIATOR
+//#ifdef DEBUG_VLASIATOR
    #define DEBUG_VBC
-#endif
+//#endif
 
 #ifdef DEBUG_VBC
 #include <sstream>

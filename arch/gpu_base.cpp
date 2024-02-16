@@ -67,6 +67,7 @@ vmesh::GlobalID *gpu_BlocksID_mapped[MAXCPUTHREADS];
 vmesh::GlobalID *gpu_BlocksID_mapped_sorted[MAXCPUTHREADS];
 vmesh::GlobalID *gpu_LIDlist_unsorted[MAXCPUTHREADS];
 vmesh::LocalID *gpu_columnNBlocks[MAXCPUTHREADS];
+vmesh::GlobalID *invalidGIDpointer = 0;
 void *gpu_RadixSortTemp[MAXCPUTHREADS];
 uint gpu_acc_RadixSortTempSize[MAXCPUTHREADS] = {0};
 
@@ -194,6 +195,9 @@ __host__ void gpu_init_device() {
          blockLists[i] = new split::SplitVector<vmesh::GlobalID>(1);
       }
    }
+   CHK_ERR( gpuMalloc((void**)&invalidGIDpointer, sizeof(vmesh::GlobalID)) );
+   vmesh::GlobalID invalidGIDvalue = vmesh::INVALID_GLOBALID;
+   CHK_ERR( gpuMemcpy(invalidGIDpointer, &invalidGIDvalue, sizeof(vmesh::LocalID), gpuMemcpyHostToDevice) );
    CHK_ERR( gpuDeviceSynchronize() );
 
    // Using just a single context for whole MPI task

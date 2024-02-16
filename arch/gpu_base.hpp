@@ -167,6 +167,7 @@ extern uint gpu_acc_RadixSortTempSize[];
 extern Real *returnReal[];
 extern Realf *returnRealf[];
 extern vmesh::LocalID *returnLID[];
+extern vmesh::GlobalID *invalidGIDpointer;
 
 extern Column *gpu_columns[];
 extern ColumnOffsets *cpu_columnOffsetData[];
