@@ -161,12 +161,12 @@ bool P::adaptRefinement = false;
 bool P::refineOnRestart = false;
 bool P::forceRefinement = false;
 bool P::shouldFilter = false;
-bool P::useAlpha = true;
-Real P::alphaRefineThreshold = 0.5;
-Real P::alphaCoarsenThreshold = -1.0;
-bool P::useJPerB = true;
-Real P::jperbRefineThreshold = 0.5;
-Real P::jperbCoarsenThreshold = -1.0;
+bool P::useAlpha1 = true;
+Real P::alpha1RefineThreshold = 0.5;
+Real P::alpha1CoarsenThreshold = -1.0;
+bool P::useAlpha2 = true;
+Real P::alpha2RefineThreshold = 0.5;
+Real P::alpha2CoarsenThreshold = -1.0;
 Real P::alphaDRhoWeight = 1.0;
 Real P::alphaDUWeight = 1.0;
 Real P::alphaDPSqWeight = 1.0;
@@ -748,25 +748,25 @@ void Parameters::getParameters() {
    RP::get("AMR.refine_on_restart",P::refineOnRestart);
    RP::get("AMR.force_refinement",P::forceRefinement);
    RP::get("AMR.should_filter",P::shouldFilter);
-   RP::get("AMR.use_alpha1",P::useAlpha);
-   RP::get("AMR.alpha1_refine_threshold",P::alphaRefineThreshold);
-   RP::get("AMR.alpha1_coarsen_threshold",P::alphaCoarsenThreshold);
-   if (P::useAlpha && P::alphaCoarsenThreshold < 0) {
-      P::alphaCoarsenThreshold = P::alphaRefineThreshold / 2.0;
+   RP::get("AMR.use_alpha1",P::useAlpha1);
+   RP::get("AMR.alpha1_refine_threshold",P::alpha1RefineThreshold);
+   RP::get("AMR.alpha1_coarsen_threshold",P::alpha1CoarsenThreshold);
+   if (P::useAlpha1 && P::alpha1CoarsenThreshold < 0) {
+      P::alpha1CoarsenThreshold = P::alpha1RefineThreshold / 2.0;
    }
-   if (P::useAlpha && P::alphaRefineThreshold < 0) {
+   if (P::useAlpha1 && P::alpha1RefineThreshold < 0) {
       if (myRank == MASTER_RANK) {
          cerr << "ERROR invalid alpha_1 refine threshold" << endl;
       }
       MPI_Abort(MPI_COMM_WORLD, 1);
    }
-   RP::get("AMR.use_alpha2",P::useJPerB);
-   RP::get("AMR.alpha2_refine_threshold",P::jperbRefineThreshold);
-   RP::get("AMR.alpha2_coarsen_threshold",P::jperbCoarsenThreshold);
-   if (P::useJPerB && P::jperbCoarsenThreshold < 0) {
-      P::jperbCoarsenThreshold = P::jperbRefineThreshold / 2.0;
+   RP::get("AMR.use_alpha2",P::useAlpha2);
+   RP::get("AMR.alpha2_refine_threshold",P::alpha2RefineThreshold);
+   RP::get("AMR.alpha2_coarsen_threshold",P::alpha2CoarsenThreshold);
+   if (P::useAlpha2 && P::alpha2CoarsenThreshold < 0) {
+      P::alpha2CoarsenThreshold = P::alpha2RefineThreshold / 2.0;
    }
-   if (P::useJPerB && P::jperbRefineThreshold < 0) {
+   if (P::useAlpha2 && P::alpha2RefineThreshold < 0) {
       if (myRank == MASTER_RANK) {
          cerr << "ERROR invalid alpha_2 refine threshold" << endl;
       }
