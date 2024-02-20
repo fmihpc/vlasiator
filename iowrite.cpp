@@ -381,7 +381,7 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       }
    }
 
-   if( success ) {
+   if( dataReducer.getName(dataReducerIndex).find("fg_", 0) != 0 ) {
 
       if( (writeAsFloat == true && dataType.compare("float") == 0) && dataSize == sizeof(double) ) {
          double * varBuffer_double = reinterpret_cast<double*>(varBuffer);
