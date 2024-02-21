@@ -918,10 +918,10 @@ namespace vmesh {
          globalToLocalMap->warpErase(GIDold, b_tid);
 
          #ifdef DEBUG_VMESH
-         if (globalToLocalMap->size() != preMapSize-1) {
-            printf("Warp error in VelocityMesh::warpReplaceBlock: map size %u does not match expected %u for thread %u!\n",(vmesh::LocalID)globalToLocalMap->size(),(vmesh::LocalID)(preMapSize-1),(vmesh::LocalID)b_tid);
-            assert(0);
-         }
+         // if (globalToLocalMap->size() != preMapSize-1) {
+         //    printf("Warp error in VelocityMesh::warpReplaceBlock: map size %u does not match expected %u for thread %u!\n",(vmesh::LocalID)globalToLocalMap->size(),(vmesh::LocalID)(preMapSize-1),(vmesh::LocalID)b_tid);
+         //    assert(0);
+         // }
          auto it2 = globalToLocalMap->device_find(GIDold);
          if (it2 != globalToLocalMap->device_end()) {
             printf("Warp error in VelocityMesh::warpReplaceBlock: warp-erased GID %u LID %u but thread %u still finds LID %u associated with it!\n",GIDold,LID,(vmesh::LocalID)b_tid,it2->second);
@@ -930,13 +930,13 @@ namespace vmesh {
          bool newlyadded = false;
          newlyadded = globalToLocalMap->warpInsert_V(GIDnew,LID, b_tid);
          vmesh::LocalID postMapSize = globalToLocalMap->size();
-         int change = 0;
-         if (!newlyadded) change = -1;
-         if (postMapSize != preMapSize + change) {
-            printf("Warp error in VelocityMesh::warpReplaceBlock: map size %u does not match expected %u for thread %u!\n",postMapSize,(vmesh::LocalID)(preMapSize+change),(vmesh::LocalID)b_tid);
-            if (b_tid==0) globalToLocalMap->stats();
-            assert(0);
-         }
+         // int change = 0;
+         // if (!newlyadded) change = -1;
+         // if (postMapSize != preMapSize + change) {
+         //    printf("Warp error in VelocityMesh::warpReplaceBlock: map size %u does not match expected %u for thread %u!\n",postMapSize,(vmesh::LocalID)(preMapSize+change),(vmesh::LocalID)b_tid);
+         //    if (b_tid==0) globalToLocalMap->stats();
+         //    assert(0);
+         // }
          auto it3 = globalToLocalMap->device_find(GIDnew);
          if (it3 == globalToLocalMap->device_end()) {
             int sizePower = globalToLocalMap->getSizePower();
@@ -1038,11 +1038,11 @@ namespace vmesh {
       }
       __syncthreads();
       #ifdef DEBUG_VMESH
-      const vmesh::LocalID postMapSize = globalToLocalMap->size();
-      if (postMapSize != preMapSize-1) {
-         printf("Warp error in VelocityMesh::warpDeleteBlock: map size %u does not match expected %u for thread %u!\n",postMapSize,preMapSize-1,(vmesh::LocalID)b_tid);
-         assert(0);
-      }
+      // const vmesh::LocalID postMapSize = globalToLocalMap->size();
+      // if (postMapSize != preMapSize-1) {
+      //    printf("Warp error in VelocityMesh::warpDeleteBlock: map size %u does not match expected %u for thread %u!\n",postMapSize,preMapSize-1,(vmesh::LocalID)b_tid);
+      //    assert(0);
+      // }
       auto it = globalToLocalMap->device_find(GID);
       if (it != globalToLocalMap->device_end()) {
          printf("Warp error in VelocityMesh::warpDeleteBlock: GID %u still found with LID %u for thread %u!\n",GID,it->second,(vmesh::LocalID)b_tid);

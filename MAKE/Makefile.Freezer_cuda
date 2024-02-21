@@ -55,7 +55,7 @@ LNK = OMPI_CXX='nvcc' OMPI_CXXFLAGS='-arch=sm_60' OMPI_LIBS='-L/usr/lib/x86_64-l
 
 CXXFLAGS = -g -O2 -x cu -std=c++17 -Xcompiler -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_60,code=sm_60 -Xcompiler -fopenmp --generate-line-info -line-info -Xcompiler="-fpermissive" --extra-device-vectorization
 # -Xptxas -v
-testpackage: CXXFLAGS = -g -O2 -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_60,code=sm_60 -Xcompiler -fopenmp --prec-sqrt=true --prec-div=true --ftz=false --fmad=false --generate-line-info -line-info -Xcompiler="-fpermissive"
+testpackage: CXXFLAGS = -g -G -O2 -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_60,code=sm_60 -Xcompiler -fopenmp --prec-sqrt=true --prec-div=true --ftz=false --fmad=false --generate-line-info -line-info -Xcompiler="-fpermissive"
 
 MATHFLAGS = --use_fast_math
 LDFLAGS = -O2 -g -lnvToolsExt

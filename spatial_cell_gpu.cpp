@@ -313,6 +313,9 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
             }
             continue;
          }
+         if (rmLID >= nBlocksBeforeAdjust) {
+            printf("Trying to remove block which has LID %ul >= nBlocksBeforeAdjust %ul!\n",rmLID,nBlocksBeforeAdjust);
+         }
          assert(rmLID < nBlocksBeforeAdjust && "Trying to remove block which has LID >= nBlocksBeforeAdjust!");
          #endif
          // Track mass loss:
@@ -404,6 +407,9 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
          } else {
             // This LID so large that we just delete without replacing
             #ifdef DEBUG_SPATIAL_CELL
+            if (rmLID < nBlocksAfterAdjust) {
+               printf("Trying to remove block which has LID smaller than nBlocksAfterAdjust!\n",rmLID,nBlocksAfterAdjust);
+            }
             assert(rmLID >= nBlocksAfterAdjust && "Trying to remove block which has LID smaller than nBlocksAfterAdjust!");
             #endif
             vmesh->warpDeleteBlock(rmGID,rmLID,ti);
@@ -427,7 +433,16 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
          Realf* add_avgs = blockContainer->getData(addLID);
          #ifdef DEBUG_SPATIAL_CELL
          // Debug check: if we are adding elements, then nToMove should be zero
+         if (nToMove!=0) {
+            printf("Error! Adding elements but nToMove=%u!\n",nToMove);
+         }
          assert((nToMove==0) && "nToMove should be zero when adding blocks!");
+         if (addGID == vmesh::INVALID_GLOBALID) {
+            printf("Error! invalid addGID!\n");
+         }
+         if (addLID == vmesh::INVALID_LOCALID) {
+            printf("Error! invalid addLID!\n");
+         }
          assert((addGID != vmesh::INVALID_GLOBALID) && "Error! Trying to add invalid GID!");
          assert((addLID != vmesh::INVALID_LOCALID) && "Error! Trying to add GID to invalid LID position!");
          #endif
@@ -441,6 +456,12 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
          __syncthreads();
          vmesh->warpPlaceBlock(addGID,addLID,ti);
          #ifdef DEBUG_SPATIAL_CELL
+         if (vmesh->getGlobalID(addLID) == vmesh::INVALID_GLOBALID) {
+            printf("Error! invalid GID after add from addLID!\n");
+         }
+         if (vmesh->getLocalID(addGID) == vmesh::INVALID_LOCALID) {
+            printf("Error! invalid LID after add from addGID!\n");
+         }
          assert((vmesh->getGlobalID(addLID) != vmesh::INVALID_GLOBALID) && "Error! Trying to add invalid GID!");
          assert((vmesh->getLocalID(addGID) != vmesh::INVALID_LOCALID) && "Error! Trying to add GID to invalid LID position!");
          #endif
@@ -453,6 +474,7 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
                 nToAdd,nToRemove,nToMove,nBlocksBeforeAdjust,nBlocksAfterAdjust);
       }
       __syncthreads();
+      printf("Error! Fall-through!!\n");
       assert(0 && "Error! Fall through in update_velocity_blocks_kernel!");
       #endif
    }
