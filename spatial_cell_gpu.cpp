@@ -1162,6 +1162,7 @@ namespace spatial_cell {
          //CHK_ERR( gpuStreamSynchronize(stream) );
          populations[popID].blockContainer->setSize(nBlocksAfterAdjust);
          //CHK_ERR( gpuStreamSynchronize(stream) );
+         populations[popID].Upload();
       }
       // phiprof::Timer vmeshPrefetchTimer {"vmeshPrefetch device"};
       // CHK_ERR( gpuStreamSynchronize(stream) );
@@ -1217,6 +1218,7 @@ namespace spatial_cell {
             populations[popID].blockContainer->gpu_prefetchDevice();
             SSYNC;
          }
+         populations[popID].Upload();
       }
       CHK_ERR( gpuStreamSynchronize(stream) );
 
