@@ -104,6 +104,15 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
             // const vmesh::LocalID blockLID = vmesh->getLocalID(blockGID);
             // Now using warp accessor.
             const vmesh::LocalID blockLID = vmesh->warpGetLocalID(blockGID,ti);
+            #ifdef DEBUG_VLASIATOR
+            const vmesh::LocalID meshSize = vmesh->size();
+            const vmesh::LocalID VBCSize = pencilContainers[start + celli]->size();
+            if ((blockLID>=meshSize) || (blockLID>=VBCSize)) {
+               if (ti==0) {
+                  printf("Error in translation: trying to access LID %ul but sizes are vmesh %ul VBC %ul\n",blockLID,meshSize,VBCSize);
+               }
+            }
+            #endif
             // Store block data pointer for both loading of data and writing back to the cell
             if (blockLID == vmesh->invalidLocalID()) {
                if (ti==0) {
