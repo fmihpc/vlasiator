@@ -145,7 +145,9 @@ namespace vmesh {
       parameters = NULL;
       currentCapacity = 0;
       numberOfBlocks = 0;
+#ifdef USE_GPU
       attachedStream = 0;
+#endif
    }
 
    inline VelocityBlockContainer::VelocityBlockContainer(const VelocityBlockContainer& other) {

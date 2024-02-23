@@ -218,7 +218,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                       const uint dimension,
                       const Realv dt,
                       const uint popID) {
-   
+
    phiprof::Timer setupTimer {"setup"};
    phiprof::Timer transSetupTimer {"trans-amr-setup"};
 
@@ -229,7 +229,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
    }
 
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
-   unsigned char vcell_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
+   unsigned int vcell_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
    // Fiddle indices x,y,z in VELOCITY SPACE
    switch (dimension) {
    case 0:
@@ -277,6 +277,20 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
       }
    }
 
+   // Vector with all cell ids
+   vector<CellID> allCells(localPropagatedCells);
+   allCells.insert(allCells.end(), remoteTargetCells.begin(), remoteTargetCells.end());
+   const uint nAllCells = allCells.size();
+
+   // Vectors of pointers to the cell structs
+   std::vector<SpatialCell*> allCellsPointer(nAllCells);
+
+   // Initialize allCellsPointer.
+   #pragma omp parallel for
+   for(uint celli = 0; celli < nAllCells; celli++){
+      allCellsPointer[celli] = mpiGrid[allCells[celli]];
+   }
+
    if (Parameters::prepareForRebalance == true) {
       for (uint i=0; i<localPropagatedCells.size(); i++) {
          cuint myPencilCount = std::count(DimensionPencils[dimension].ids.begin(), DimensionPencils[dimension].ids.end(), localPropagatedCells[i]);
@@ -287,24 +301,24 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
 
    // Get a pointer to the velocity mesh of the first spatial cell
    const vmesh::VelocityMesh* vmesh = allCellsPointer[0]->get_velocity_mesh(popID);
-   
+
    phiprof::Timer buildBlockListimer {"buildBlockList"};
    // Get a unique sorted list of blockids that are in any of the
    // propagated cells.
    std::vector<vmesh::GlobalID> unionOfBlocks;
    std::unordered_set<vmesh::GlobalID> unionOfBlocksSet;
-#pragma omp parallel
+   #pragma omp parallel
    {
       std::unordered_set<vmesh::GlobalID> thread_unionOfBlocksSet;
-#pragma omp for
-      for(unsigned int i=0; i<allCellsPointer.size(); i++) {
+      #pragma omp for
+      for (unsigned int i=0; i<allCellsPointer.size(); i++) {
          auto cell = &allCellsPointer[i];
          const vmesh::VelocityMesh* cvmesh = (*cell)->get_velocity_mesh(popID);
          for (vmesh::LocalID block_i=0; block_i< cvmesh->size(); ++block_i) {
             thread_unionOfBlocksSet.insert(cvmesh->getGlobalID(block_i));
          }
       }
-#pragma omp critical
+      #pragma omp critical
       {
          unionOfBlocksSet.insert(thread_unionOfBlocksSet.begin(), thread_unionOfBlocksSet.end());
       } // pragma omp critical
@@ -430,7 +444,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
 int get_sibling_index(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const CellID& cellid) {
 
    const int NO_SIBLINGS = 0;
-   
+
    if(mpiGrid.get_refinement_level(cellid) == 0) {
       return NO_SIBLINGS;
    }
@@ -554,7 +568,7 @@ void update_remote_mapping_contribution_amr(
 
       vector<CellID> p_nbrs;
       vector<CellID> n_nbrs;
-      
+
       for (const auto& [neighbor, dir] : mpiGrid.get_face_neighbors_of(c)) {
          if(dir == ((int)dimension + 1) * direction) {
             p_nbrs.push_back(neighbor);
