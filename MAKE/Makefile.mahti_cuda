@@ -51,7 +51,7 @@ CUDABLOCKS=108
 # use "-Xptxas -v" for verbose output of ptx compilation
 
 CXXFLAGS = -g -O2 -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 --generate-line-info -line-info -Xcompiler="-fopenmp" -Xcompiler="-fpermissive" -maxrregcount 24
-testpackage: CXXFLAGS = -g -O2 -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 --generate-line-info -line-info -Xcompiler="-fopenmp" --prec-sqrt=true --prec-div=true --ftz=false --fmad=false -Xcompiler="-fpermissive"  -maxrregcount 24
+testpackage: CXXFLAGS = -g -G -O2 -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 --generate-line-info -line-info -Xcompiler="-fopenmp" --prec-sqrt=true --prec-div=true --ftz=false --fmad=false -Xcompiler="-fpermissive"  -maxrregcount 24
 
 # Tell mpic++ to use nvcc for all compiling
 CMP = OMPI_CXX='nvcc' OMPI_CXXFLAGS='' mpic++

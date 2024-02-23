@@ -104,15 +104,6 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
             // const vmesh::LocalID blockLID = vmesh->getLocalID(blockGID);
             // Now using warp accessor.
             const vmesh::LocalID blockLID = vmesh->warpGetLocalID(blockGID,ti);
-            #ifdef DEBUG_VLASIATOR
-            const vmesh::LocalID meshSize = vmesh->size();
-            const vmesh::LocalID VBCSize = pencilContainers[start + celli]->size();
-            if ((blockLID>=meshSize) || (blockLID>=VBCSize)) {
-               if (ti==0) {
-                  printf("Error in translation: trying to access LID %ul but sizes are vmesh %ul VBC %ul\n",blockLID,meshSize,VBCSize);
-               }
-            }
-            #endif
             // Store block data pointer for both loading of data and writing back to the cell
             if (blockLID == vmesh->invalidLocalID()) {
                if (ti==0) {
@@ -122,6 +113,15 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
                // Non-existing block, push in zeroes
                thisPencilOrderedSource[i_trans_ps_blockv_pencil(threadIdx.y, celli, lengthOfPencil)][threadIdx.x] = 0.0;
             } else {
+               #ifdef DEBUG_VLASIATOR
+               const vmesh::LocalID meshSize = vmesh->size();
+               const vmesh::LocalID VBCSize = pencilContainers[start + celli]->size();
+               if ((blockLID>=meshSize) || (blockLID>=VBCSize)) {
+                  if (ti==0) {
+                     printf("Error in translation: trying to access LID %ul but sizes are vmesh %ul VBC %ul\n",blockLID,meshSize,VBCSize);
+                  }
+               }
+               #endif
                if (ti==0) {
                   pencilBlockData[pencilBlockDataOffset + start + celli] = pencilContainers[start + celli]->getData(blockLID);
                   nonEmptyBlocks++;
@@ -395,6 +395,7 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
       #pragma omp for
       for(uint celli = 0; celli < nAllCells; celli++){
          allCellsPointer[celli] = mpiGrid[allCells[celli]];
+         mpiGrid[allCells[celli]]->dev_upload_population(popID);
          allVmeshPointer->at(celli) = mpiGrid[allCells[celli]]->dev_get_velocity_mesh(popID);
          const uint thisMeshSize = mpiGrid[allCells[celli]]->get_velocity_mesh(popID)->size();
          thread_largestFoundMeshSize = thisMeshSize > thread_largestFoundMeshSize ? thisMeshSize : thread_largestFoundMeshSize;
@@ -503,8 +504,15 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
 
       Realf** pencilBlockData; // Array of pointers into actual block data
       uint* pencilBlocksCount; // Array of counters if pencil needs to be propagated for this block or not
+
+      stringstream ss;
+      ss<<" thread "<<cpuThreadID<<" malloc "<<sumOfLengths<<" * "<<nGpuBlocks<<" * sizeof(Realf*) + ";
+      ss<<nPencils<<" * "<<nGpuBlocks<<" * sizeof(uint) = "<<sumOfLengths*nGpuBlocks*sizeof(Realf*)+nPencils*nGpuBlocks*sizeof(uint)<<std::endl;
+      std::cerr<<ss.str();
+#pragma omp barrier
       CHK_ERR( gpuMallocAsync((void**)&pencilBlockData, sumOfLengths*nGpuBlocks*sizeof(Realf*), stream) );
       CHK_ERR( gpuMallocAsync((void**)&pencilBlocksCount, nPencils*nGpuBlocks*sizeof(uint), stream) );
+      CHK_ERR( gpuStreamSynchronize(stream) );
       bufferTimer.stop();
 
       // Loop over velocity space blocks (threaded, multi-stream, and multi-block parallel, but not using a for-loop)
@@ -514,6 +522,7 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
       // This thread, using its own stream, will launch nGpuBlocks instances of the below kernel, where each instance
       // propagates all pencils for the block in question.
       dim3 block(WID2,WID,1); // assumes VECL==WID2
+#pragma omp barrier
       translation_kernel<<<nGpuBlocks, block, 0, stream>>> (
          dimension,
          gpu_vcell_transpose,
@@ -536,8 +545,11 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
          pencilRatios, // Vector holding target ratios
          pencilBlocksCount // store how many non-empty blocks each pencil has for this GID
          );
+      CHK_ERR( gpuPeekAtLastError() );
       CHK_ERR( gpuStreamSynchronize(stream) );
       mappingTimer.stop(); // mapping (top-level)
+      CHK_ERR( gpuFree(pencilBlockData) );
+      CHK_ERR( gpuFree(pencilBlocksCount) );
 
    } // closes pragma omp parallel
    return true;

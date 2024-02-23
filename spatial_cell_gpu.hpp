@@ -358,6 +358,7 @@ namespace spatial_cell {
          gpuStream_t stream = gpu_getStream();
          CHK_ERR(gpuMemcpyAsync(dev_vmesh, vmesh, sizeof(vmesh::VelocityMesh), gpuMemcpyHostToDevice, stream));
          CHK_ERR(gpuMemcpyAsync(dev_blockContainer, blockContainer, sizeof(vmesh::VelocityBlockContainer), gpuMemcpyHostToDevice, stream));
+         CHK_ERR( gpuStreamSynchronize(stream) );
       }
 
       void Scale(creal factor) {
@@ -552,6 +553,7 @@ namespace spatial_cell {
                 vmesh::VelocityBlockContainer* blockContainer,const uint popID);
       vmesh::VelocityMesh* get_velocity_mesh(const size_t& popID);
       vmesh::VelocityBlockContainer* get_velocity_blocks(const size_t& popID);
+      void SpatialCell::dev_upload_population(const uint popID);
       vmesh::VelocityMesh* dev_get_velocity_mesh(const size_t& popID);
       vmesh::VelocityBlockContainer* dev_get_velocity_blocks(const size_t& popID);
       // Prefetches for both blockContainers and vmeshes, all populations
@@ -724,6 +726,10 @@ namespace spatial_cell {
       }
       #endif
       return populations[popID].blockContainer->getParameters();
+   }
+
+   inline void SpatialCell::dev_upload_population(const uint popID) {
+      populations[popID].Upload();
    }
 
    inline Real* SpatialCell::dev_get_block_parameters(const uint popID) {

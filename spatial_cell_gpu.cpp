@@ -856,9 +856,10 @@ namespace spatial_cell {
          }
       }
       BlocksList->resize(nRequiredBlocksListSize,true);
-      if (BlocksRequired_capacity < localContentBlocks+4*localNoContentBlocks) {
-         BlocksRequired_capacity=localContentBlocks+4*localNoContentBlocks;
-         BlocksRequired->reserve(BlocksRequired_capacity,true);
+
+      if (BlocksRequired_capacity < nRequiredBlocksListSize) {
+         BlocksRequired_capacity = nRequiredBlocksListSize;
+         BlocksRequired->reserve(nRequiredBlocksListSize,true);
       }
       nGpuBlocks = localContentBlocks > GPUBLOCKS ? GPUBLOCKS : localContentBlocks;
 
@@ -927,7 +928,10 @@ namespace spatial_cell {
       //phiprof::Timer insertTimer {"BlocksRequired insert"};
       // 0.5 is target load factor
       BlocksRequiredMap->insert(BlocksList->data(),BlocksList->data(),incrementPoint,0.5,stream,false);
-      CHK_ERR( gpuPeekAtLastError() );
+      // CHK_ERR( gpuPeekAtLastError() );
+      // CHK_ERR( gpuStreamSynchronize(stream) );
+      // Ensure map does not include invalidGID
+      BlocksDeleteMap->erase(invalidGIDpointer,1,stream);
       //CHK_ERR( gpuStreamSynchronize(stream) );
       //insertTimer.stop();
 
@@ -1156,6 +1160,7 @@ namespace spatial_cell {
       if (nBlocksAfterAdjust > nBlocksBeforeAdjust) {
          populations[popID].vmesh->setNewSize(nBlocksAfterAdjust);
          populations[popID].blockContainer->setSize(nBlocksAfterAdjust);
+         populations[popID].Upload();
       }
 
       nGpuBlocks = nBlocksToChange > GPUBLOCKS ? GPUBLOCKS : nBlocksToChange;
@@ -1184,8 +1189,10 @@ namespace spatial_cell {
 
       // Shrink the vmesh and block container, if necessary
       if (nBlocksAfterAdjust <= nBlocksBeforeAdjust) {
+         // Should not re-allocate on shrinking
          populations[popID].vmesh->setNewSize(nBlocksAfterAdjust);
          populations[popID].blockContainer->setSize(nBlocksAfterAdjust);
+         //populations[popID].Upload();
       }
 
       // DEBUG output after kernel
