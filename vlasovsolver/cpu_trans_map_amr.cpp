@@ -569,6 +569,7 @@ void update_remote_mapping_contribution_amr(
       vector<CellID> p_nbrs;
       vector<CellID> n_nbrs;
 
+      phiprof::Timer neighTimer {"get face neighbors"};
       for (const auto& [neighbor, dir] : mpiGrid.get_face_neighbors_of(c)) {
          if(dir == ((int)dimension + 1) * direction) {
             p_nbrs.push_back(neighbor);
@@ -578,13 +579,14 @@ void update_remote_mapping_contribution_amr(
             n_nbrs.push_back(neighbor);
          }
       }
-
+      neighTimer.stop();
       uint sendIndex = 0;
       uint recvIndex = 0;
 
       int mySiblingIndex = get_sibling_index(mpiGrid,c);
 
       // Set up sends if any neighbor cells in p_nbrs are non-local.
+      phiprof::Timer sendsTimer {"setup sends"};
       if (!all_of(p_nbrs.begin(), p_nbrs.end(), [&mpiGrid](CellID i){return mpiGrid.is_local(i);})) {
 
          // ccell adds a neighbor_block_data block for each neighbor in the positive direction to its local data
@@ -647,7 +649,8 @@ void update_remote_mapping_contribution_amr(
          } // closes for(uint i_nbr = 0; i_nbr < nbrs_to.size(); ++i_nbr)
 
       } // closes if(!all_of(nbrs_to.begin(), nbrs_to.end(),[&mpiGrid](CellID i){return mpiGrid.is_local(i);}))
-
+      sendsTimer.stop();
+      phiprof::Timer recvsTimer {"setup recvs"};
       // Set up receives if any neighbor cells in n_nbrs are non-local.
       if (!all_of(n_nbrs.begin(), n_nbrs.end(), [&mpiGrid](CellID i){return mpiGrid.is_local(i);})) {
 
@@ -730,21 +733,23 @@ void update_remote_mapping_contribution_amr(
          } // closes for(uint i_nbr = 0; i_nbr < nbrs_of.size(); ++i_nbr)
 
       } // closes if(!all_of(nbrs_of.begin(), nbrs_of.end(),[&mpiGrid](CellID i){return mpiGrid.is_local(i);}))
-
+      recvsTimer.stop();
    } // closes for (auto c : local_cells) {
 
    MPI_Barrier(MPI_COMM_WORLD);
 
    // Do communication
+   phiprof::Timer commTimer {"update neighbour vel block data"};
    SpatialCell::setCommunicatedSpecies(popID);
    SpatialCell::set_mpi_transfer_type(Transfer::NEIGHBOR_VEL_BLOCK_DATA);
    mpiGrid.update_copies_of_remote_neighbors(neighborhood);
-
+   commTimer.stop();
    MPI_Barrier(MPI_COMM_WORLD);
 
    // Reduce data: sum received data in the data array to
    // the target grid in the temporary block container
    //#pragma omp parallel
+   phiprof::Timer reduceTimer {"merge retreived data"};
    {
       for (size_t c = 0; c < receive_cells.size(); ++c) {
          SpatialCell* receive_cell = mpiGrid[receive_cells[c]];
@@ -775,7 +780,7 @@ void update_remote_mapping_contribution_amr(
          }
       }
    }
-
+   reduceTimer.stop();
    for (auto p : receiveBuffers) {
       aligned_free(p);
    }
