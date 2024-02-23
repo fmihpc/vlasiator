@@ -220,7 +220,7 @@ namespace vmesh {
          if (source >= currentCapacity) ok = false;
          if (target >= numberOfBlocks) ok = false;
          if (target >= currentCapacity) ok = false;
-         if (numberOfBlocks >= currentCapacity) ok = false;
+         if (numberOfBlocks > currentCapacity) ok = false;
          if (source != numberOfBlocks-1) ok = false; // only allows moving from last entry
          if (source*WID3+WID3-1 >= block_data->size()) ok = false;
          if (source*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::N_VELOCITY_BLOCK_PARAMS-1 >= parameters->size()) ok = false;
