@@ -1790,7 +1790,7 @@ namespace spatial_cell {
          return false;
       }
 
-      const vmesh::LocalID VBC_LID = populations[popID].blockContainer->push_back();
+      const vmesh::LocalID VBC_LID = populations[popID].blockContainer->push_back_and_zero();
 
       // Set block parameters:
       Real* parameters = get_block_parameters(VBC_LID,popID);
@@ -1852,6 +1852,11 @@ namespace spatial_cell {
          exit(1);
       }
       #endif
+      // Return if no blocks to add
+      const uint nBlocks = blocks.size();
+      if (nBlocks==0) {
+         return;
+      }
 
       // Add blocks to mesh
       const uint8_t adds = populations[popID].vmesh->push_back(blocks);
@@ -1861,23 +1866,22 @@ namespace spatial_cell {
       }
 
       // Add blocks to block container
-      vmesh::LocalID startLID = populations[popID].blockContainer->push_back(blocks.size());
+      vmesh::LocalID startLID = populations[popID].blockContainer->push_back(nBlocks);
       Real* parameters = populations[popID].blockContainer->getParameters(startLID);
 
       #ifdef DEBUG_SPATIAL_CELL
-         if (populations[popID].vmesh->size() != populations[popID].blockContainer->size()) {
-	    std::cerr << "size mismatch in " << __FILE__ << ' ' << __LINE__ << std::endl; exit(1);
-	 }
+      if (populations[popID].vmesh->size() != populations[popID].blockContainer->size()) {
+         std::cerr << "size mismatch in " << __FILE__ << ' ' << __LINE__ << std::endl; exit(1);
+      }
       #endif
 
       // Set block parameters
-      for (size_t b=0; b<blocks.size(); ++b) {
+      for (size_t b=0; b<nBlocks; ++b) {
          vmesh::GlobalID VBC_GID = blocks.at(b);
          populations[popID].vmesh->getBlockInfo(VBC_GID, parameters);
          parameters += BlockParams::N_VELOCITY_BLOCK_PARAMS;
       }
 
-      const uint nBlocks = blocks.size();
       //copy avgs data, here a conversion may happen between float and double
       Realf *cellBlockData = populations[popID].blockContainer->getData(startLID);
       for(uint64_t i = 0; i< WID3 * nBlocks ; i++){
