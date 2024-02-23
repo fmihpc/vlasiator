@@ -1790,7 +1790,7 @@ namespace spatial_cell {
          return false;
       }
 
-      const vmesh::LocalID VBC_LID = populations[popID].blockContainer->push_back();
+      const vmesh::LocalID VBC_LID = populations[popID].blockContainer->push_back_and_zero();
 
       // Set block parameters:
       Real* parameters = get_block_parameters(VBC_LID,popID);
