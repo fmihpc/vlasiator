@@ -1852,6 +1852,10 @@ namespace spatial_cell {
          exit(1);
       }
       #endif
+      // Return if no blocks to add
+      if (blocks.size()==0) {
+         return;
+      }
 
       // Add blocks to mesh
       const uint8_t adds = populations[popID].vmesh->push_back(blocks);
