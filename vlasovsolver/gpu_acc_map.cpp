@@ -267,9 +267,7 @@ __global__ void __launch_bounds__(GPUTHREADS,4) evaluate_column_extents_kernel(
          /*need x,y coordinate of this column set of blocks, take it from first
            block in first column*/
          vmesh::LocalID setFirstBlockIndices0,setFirstBlockIndices1,setFirstBlockIndices2;
-         uint8_t refLevel=0;
          vmesh->getIndices(GIDlist[gpu_columnData->columnBlockOffsets[gpu_columnData->setColumnOffsets[setIndex]]],
-                           refLevel,
                            setFirstBlockIndices0, setFirstBlockIndices1, setFirstBlockIndices2);
          swapBlockIndices(setFirstBlockIndices0,setFirstBlockIndices1,setFirstBlockIndices2,dimension);
          /*compute the maximum starting point of the lagrangian (target) grid
@@ -319,10 +317,8 @@ __global__ void __launch_bounds__(GPUTHREADS,4) evaluate_column_extents_kernel(
             vmesh::LocalID firstBlockIndices0,firstBlockIndices1,firstBlockIndices2;
             vmesh::LocalID lastBlockIndices0,lastBlockIndices1,lastBlockIndices2;
             vmesh->getIndices(cblocks[0],
-                              refLevel,
                               firstBlockIndices0, firstBlockIndices1, firstBlockIndices2);
             vmesh->getIndices(cblocks[n_cblocks -1],
-                              refLevel,
                               lastBlockIndices0, lastBlockIndices1, lastBlockIndices2);
             swapBlockIndices(firstBlockIndices0,firstBlockIndices1,firstBlockIndices2, dimension);
             swapBlockIndices(lastBlockIndices0,lastBlockIndices1,lastBlockIndices2, dimension);

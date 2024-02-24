@@ -20,8 +20,6 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-// Non-AMR implementation of the velocity space, still in use despite the filename
-
 #ifndef VELOCITY_MESH_OLD_H
 #define VELOCITY_MESH_OLD_H
 
@@ -57,42 +55,30 @@ namespace vmesh {
       bool coarsenAllowed(const vmesh::GlobalID& globalID) const;
       bool move(const vmesh::LocalID& sourceLocalID,const vmesh::LocalID& targetLocalID);
       size_t count(const vmesh::GlobalID& globalID) const;
-      vmesh::GlobalID findBlockDown(uint8_t& refLevel,vmesh::GlobalID cellIndices[3]) const;
-      vmesh::GlobalID findBlock(uint8_t& refLevel,vmesh::GlobalID cellIndices[3]) const;
+      vmesh::GlobalID findBlock(vmesh::GlobalID cellIndices[3]) const;
       bool getBlockCoordinates(const vmesh::GlobalID& globalID,Real coords[3]) const;
       void getBlockInfo(const vmesh::GlobalID& globalID,Real* array) const;
-      const Real* getBlockSize(const uint8_t& refLevel) const;
+      const Real* getBlockSize() const;
       bool getBlockSize(const vmesh::GlobalID& globalID,Real size[3]) const;
-      const Real* getCellSize(const uint8_t& refLevel) const;
+      const Real* getCellSize() const;
       bool getCellSize(const vmesh::GlobalID& globalID,Real size[3]) const;
       void getChildren(const vmesh::GlobalID& globalID,std::vector<vmesh::GlobalID>& children) const;
 //      void     getChildren(const GlobalID& globalID,std::vector<GlobalID>& children);
       vmesh::GlobalID getGlobalID(const vmesh::LocalID& localID) const;
-      vmesh::GlobalID getGlobalID(const uint8_t& refLevel,const Real* coords) const;
-      vmesh::GlobalID getGlobalID(const uint8_t& refLevel,vmesh::LocalID indices[3]) const;
-      vmesh::GlobalID getGlobalID(const uint32_t& refLevel,const vmesh::LocalID& i,const vmesh::LocalID& j,const vmesh::LocalID& k) const;
-      vmesh::GlobalID getGlobalIndexOffset(const uint8_t& refLevel=0);
+      vmesh::GlobalID getGlobalID(const Real* coords) const;
+      vmesh::GlobalID getGlobalID(vmesh::LocalID indices[3]) const;
+      vmesh::GlobalID getGlobalID(const vmesh::LocalID& i,const vmesh::LocalID& j,const vmesh::LocalID& k) const;
+      vmesh::GlobalID getGlobalIndexOffset();
       std::vector<vmesh::GlobalID>& getGrid();
-      const vmesh::LocalID* getGridLength(const uint8_t& refLevel) const;
+      const vmesh::LocalID* getGridLength() const;
 //      void     getNeighbors(const GlobalID& globalID,std::vector<GlobalID>& neighborIDs);
-      void getIndices(const vmesh::GlobalID& globalID,uint8_t& refLevel,vmesh::LocalID& i,vmesh::LocalID& j,vmesh::LocalID& k) const;
+      void getIndices(const vmesh::GlobalID& globalID,vmesh::LocalID& i,vmesh::LocalID& j,vmesh::LocalID& k) const;
       size_t getMesh() const;
       vmesh::LocalID getLocalID(const vmesh::GlobalID& globalID) const;
       uint8_t getMaxAllowedRefinementLevel() const;
       vmesh::GlobalID getMaxVelocityBlocks() const;
       const Real* getMeshMaxLimits() const;
       const Real* getMeshMinLimits() const;
-      void getNeighborsAtSameLevel(const vmesh::GlobalID& globalID,std::vector<vmesh::GlobalID>& neighborIDs) const;
-      void getNeighborsExistingAtOffset(const vmesh::GlobalID& globalID,const int& i,const int& j,
-              const int& k,std::vector<vmesh::LocalID>& neighborLIDs,int32_t& refLevelDifference) const;
-      int getOctant(const vmesh::GlobalID& globalID) const;
-      vmesh::GlobalID getParent(const vmesh::GlobalID& globalID) const;
-      uint8_t getRefinementLevel(const vmesh::GlobalID& globalID) const;
-//      void     getSiblingNeighbors(const GlobalID& globalID,std::vector<GlobalID>& nbrs);
-//      void     getSiblings(const GlobalID& globalID,GlobalID siblings[8]);
-      void getSiblings(const vmesh::GlobalID& globalID,std::vector<vmesh::GlobalID>& siblings) const;
-      bool hasChildren(const vmesh::GlobalID& globalID) const;
-      vmesh::GlobalID hasGrandParent(const vmesh::GlobalID& globalID) const;
       bool initialize(const size_t& meshID);
       static vmesh::LocalID invalidBlockIndex();
       static vmesh::GlobalID invalidGlobalID();
@@ -216,14 +202,14 @@ namespace vmesh {
       return globalToLocalMap->count(globalID);
    }
 
-   inline vmesh::GlobalID VelocityMesh::findBlockDown(uint8_t& refLevel,vmesh::GlobalID cellIndices[3]) const {
+   inline vmesh::GlobalID VelocityMesh::findBlock(vmesh::GlobalID cellIndices[3]) const {
       // Calculate i/j/k indices of the block that would own the cell:
       vmesh::GlobalID i_block = cellIndices[0] / (*vmesh::getMeshWrapper()->velocityMeshes)[meshID].blockLength[0];
       vmesh::GlobalID j_block = cellIndices[1] / (*vmesh::getMeshWrapper()->velocityMeshes)[meshID].blockLength[1];
       vmesh::GlobalID k_block = cellIndices[2] / (*vmesh::getMeshWrapper()->velocityMeshes)[meshID].blockLength[2];
 
       // Calculate block global ID:
-      vmesh::GlobalID blockGID = getGlobalID(0,i_block,j_block,k_block);
+      vmesh::GlobalID blockGID = getGlobalID(i_block,j_block,k_block);
 
       // If the block exists, return it:
       if (globalToLocalMap->find(blockGID) != globalToLocalMap->end()) {
@@ -231,10 +217,6 @@ namespace vmesh {
       } else {
          return invalidGlobalID();
       }
-   }
-
-   inline vmesh::GlobalID VelocityMesh::findBlock(uint8_t& refLevel,vmesh::GlobalID cellIndices[3]) const {
-      return findBlockDown(refLevel,cellIndices);
    }
 
 /*
@@ -256,9 +238,8 @@ namespace vmesh {
          return false;
       }
 
-      uint8_t refLevel;
       vmesh::LocalID indices[3];
-      getIndices(globalID,refLevel,indices[0],indices[1],indices[2]);
+      getIndices(globalID,indices[0],indices[1],indices[2]);
       if (indices[0] == invalidBlockIndex()) {
          for (int i=0; i<3; ++i) coords[i] = std::numeric_limits<Real>::quiet_NaN();
          return false;
@@ -295,7 +276,7 @@ namespace vmesh {
       array[5] = (*vmesh::getMeshWrapper()->velocityMeshes)[meshID].cellSize[2];
    }
 
-   inline const Real* VelocityMesh::getBlockSize(const uint8_t& refLevel) const {
+   inline const Real* VelocityMesh::getBlockSize() const {
       return (*vmesh::getMeshWrapper()->velocityMeshes)[meshID].blockSize;
    }
 
@@ -306,7 +287,7 @@ namespace vmesh {
       return true;
    }
 
-   inline const Real* VelocityMesh::getCellSize(const uint8_t& refLevel) const {
+   inline const Real* VelocityMesh::getCellSize() const {
       return (*vmesh::getMeshWrapper()->velocityMeshes)[meshID].cellSize;
    }
 
@@ -332,7 +313,7 @@ namespace vmesh {
       return localToGlobalMap->at(localID);
    }
 
-   inline vmesh::GlobalID VelocityMesh::getGlobalID(const uint8_t& refLevel,const Real* coords) const {
+   inline vmesh::GlobalID VelocityMesh::getGlobalID(const Real* coords) const {
       if (coords[0] < (*vmesh::getMeshWrapper()->velocityMeshes)[meshID].meshMinLimits[0] || coords[0] >= (*vmesh::getMeshWrapper()->velocityMeshes)[meshID].meshMaxLimits[0] ||
          (coords[1] < (*vmesh::getMeshWrapper()->velocityMeshes)[meshID].meshMinLimits[1] || coords[1] >= (*vmesh::getMeshWrapper()->velocityMeshes)[meshID].meshMaxLimits[1] ||
           coords[2] < (*vmesh::getMeshWrapper()->velocityMeshes)[meshID].meshMinLimits[2] || coords[2] >= (*vmesh::getMeshWrapper()->velocityMeshes)[meshID].meshMaxLimits[2])) {
@@ -349,7 +330,7 @@ namespace vmesh {
               + indices[1]*(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[0] + indices[0];
    }
 
-   inline vmesh::GlobalID VelocityMesh::getGlobalID(const uint8_t& refLevel,vmesh::LocalID indices[3]) const {
+   inline vmesh::GlobalID VelocityMesh::getGlobalID(vmesh::LocalID indices[3]) const {
       if (indices[0] >= (*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[0]) return invalidGlobalID();
       if (indices[1] >= (*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[1]) return invalidGlobalID();
       if (indices[2] >= (*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[2]) return invalidGlobalID();
@@ -357,7 +338,7 @@ namespace vmesh {
               + indices[1]*(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[0] + indices[0];
    }
 
-   inline vmesh::GlobalID VelocityMesh::getGlobalID(const uint32_t& refLevel,const vmesh::LocalID& i,const vmesh::LocalID& j,const vmesh::LocalID& k) const {
+   inline vmesh::GlobalID VelocityMesh::getGlobalID(const vmesh::LocalID& i,const vmesh::LocalID& j,const vmesh::LocalID& k) const {
       if (i >= (*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[0] || j >= (*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[1] || k >= (*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[2]) {
          return invalidGlobalID();
       }
@@ -365,7 +346,7 @@ namespace vmesh {
               + k*(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[0]*(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[1];
    }
 
-   inline vmesh::GlobalID VelocityMesh::getGlobalIndexOffset(const uint8_t& refLevel) {
+   inline vmesh::GlobalID VelocityMesh::getGlobalIndexOffset() {
       return 0;
    }
 
@@ -373,12 +354,11 @@ namespace vmesh {
       return *localToGlobalMap;
    }
 
-   inline const vmesh::LocalID* VelocityMesh::getGridLength(const uint8_t& refLevel) const {
+   inline const vmesh::LocalID* VelocityMesh::getGridLength() const {
       return (*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength;
    }
 
-   inline void VelocityMesh::getIndices(const vmesh::GlobalID& globalID,uint8_t& refLevel,vmesh::LocalID& i,vmesh::LocalID& j,vmesh::LocalID& k) const {
-      refLevel = 0;
+   inline void VelocityMesh::getIndices(const vmesh::GlobalID& globalID,vmesh::LocalID& i,vmesh::LocalID& j,vmesh::LocalID& k) const {
       if (globalID >= invalidGlobalID()) {
          i = j = k = invalidBlockIndex();
       } else {
@@ -412,106 +392,6 @@ namespace vmesh {
 
    inline const Real* VelocityMesh::getMeshMinLimits() const {
       return (*vmesh::getMeshWrapper()->velocityMeshes)[meshID].meshMinLimits;
-   }
-
-   inline void VelocityMesh::getNeighborsAtSameLevel(const vmesh::GlobalID& globalID,std::vector<vmesh::GlobalID>& neighborIDs) const {
-      neighborIDs.resize(27);
-
-      // Calculate block refinement level and indices
-      uint8_t refLevel;
-      vmesh::LocalID i,j,k;
-      getIndices(globalID,refLevel,i,j,k);
-
-      // Calculate global IDs of all 27 blocks:
-      const vmesh::LocalID Nx_max = (*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[0];
-      const vmesh::LocalID Ny_max = (*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[1];
-      const vmesh::LocalID Nz_max = (*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[2];
-
-      int nbr = 0;
-      for (int k_off=-1; k_off<2; ++k_off) for (int j_off=-1; j_off<2; ++j_off) for (int i_off=-1; i_off<2; ++i_off) {
-         if (i+i_off < Nx_max && (j+j_off < Ny_max && k+k_off < Nz_max)) neighborIDs[nbr] = getGlobalID(0,i+i_off,j+j_off,k+k_off);
-         else neighborIDs[nbr] = invalidGlobalID();
-         ++nbr;
-      }
-   }
-
-   inline void VelocityMesh::getNeighborsExistingAtOffset(const vmesh::GlobalID& globalID,const int& i_off,const int& j_off,const int& k_off,std::vector<vmesh::LocalID>& neighborLocalIDs,int32_t& refLevelDifference) const {
-      #ifdef DEBUG_VMESH
-      if (abs(i_off) > 1 || (abs(j_off) > 1 || abs(k_off) > 1)) {
-         std::stringstream ss;
-         ss << "VelocityMesh ERROR: invalid offsets in getNeighborsExistingAtOffset " << i_off << ' ' << j_off << ' ' << k_off << std::endl;
-         std::cerr << ss.str();
-         exit(1);
-      }
-      #endif
-
-      refLevelDifference = 0;
-      neighborLocalIDs.clear();
-
-      // Calculate block refinement level and indices
-      uint8_t refLevel;
-      vmesh::LocalID i,j,k;
-      getIndices(globalID,refLevel,i,j,k);
-
-      // Return the requested neighbor if it exists:
-      vmesh::GlobalID nbrGlobalID = getGlobalID(0,i+i_off,j+j_off,k+k_off);
-      if (nbrGlobalID == invalidGlobalID()) return;
-
-      auto nbr = globalToLocalMap->find(nbrGlobalID);
-      if (nbr != globalToLocalMap->end()) {
-         neighborLocalIDs.push_back(nbr->second);
-         refLevelDifference = 0;
-         return;
-      }
-   }
-
-   inline int VelocityMesh::getOctant(const vmesh::GlobalID& globalID) const {
-      // Calculate block indices and refinement level
-      uint8_t refLevel;
-      vmesh::LocalID i,j,k;
-      getIndices(globalID,refLevel,i,j,k);
-
-      const int i_oct = i % 2;
-      const int j_oct = j % 2;
-      const int k_oct = k % 2;
-      return k_oct*2*2 + j_oct*2 + i_oct;
-   }
-
-   inline vmesh::GlobalID VelocityMesh::getParent(const vmesh::GlobalID& globalID) const {
-      return globalID;
-   }
-
-   inline uint8_t VelocityMesh::getRefinementLevel(const vmesh::GlobalID& globalID) const {
-      return 0;
-   }
-
-   inline void VelocityMesh::getSiblings(const vmesh::GlobalID& globalID,std::vector<vmesh::GlobalID>& siblings) const {
-      uint8_t refLevel;
-      vmesh::LocalID i,j,k;
-      getIndices(globalID,refLevel,i,j,k);
-
-      siblings.resize(8);
-
-      i -= (i % 2);
-      j -= (j % 2);
-      k -= (k % 2);
-
-      siblings[0] = getGlobalID(refLevel,i  ,j  ,k  );
-      siblings[1] = getGlobalID(refLevel,i+1,j  ,k  );
-      siblings[2] = getGlobalID(refLevel,i  ,j+1,k  );
-      siblings[3] = getGlobalID(refLevel,i+1,j+1,k  );
-      siblings[4] = getGlobalID(refLevel,i  ,j  ,k+1);
-      siblings[5] = getGlobalID(refLevel,i+1,j  ,k+1);
-      siblings[6] = getGlobalID(refLevel,i  ,j+1,k+1);
-      siblings[7] = getGlobalID(refLevel,i+1,j+1,k+1);
-   }
-
-   inline bool VelocityMesh::hasChildren(const vmesh::GlobalID& globalID) const {
-      return false;
-   }
-
-   inline vmesh::GlobalID VelocityMesh::hasGrandParent(const vmesh::GlobalID& globalID) const {
-      return invalidGlobalID();
    }
 
    inline bool VelocityMesh::initialize(const size_t& meshID) {

@@ -189,9 +189,10 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
    attribs["mesh"] = getObjectWrapper().particleSpecies[popID].name;
    attribs["type"] = vlsv::mesh::STRING_UCD_AMR;
 
-   // stringstream is necessary here to correctly convert refLevelMaxAllowed into a string 
+   // stringstream is necessary here to correctly convert refLevelMaxAllowed (hardcoded to zero now) into a string 
    stringstream ss;
-   ss << static_cast<unsigned int>(vmesh::getMeshWrapper()->velocityMeshes->at(meshID).refLevelMaxAllowed);
+   //ss << static_cast<unsigned int>(vmesh::getMeshWrapper()->velocityMeshes->at(meshID).refLevelMaxAllowed);
+   ss << static_cast<unsigned int>(0);
    attribs["max_velocity_ref_level"] = ss.str();
    
    if (mpiGrid.get_rank() == MASTER_RANK) {

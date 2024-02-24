@@ -153,11 +153,6 @@ Real P::bailout_min_dt = NAN;
 Real P::bailout_max_memory = 1073741824.;
 uint P::bailout_velocity_space_wall_margin = 0;
 
-uint P::vamrMaxVelocityRefLevel = 0;
-Realf P::vamrRefineLimit = 1.0;
-Realf P::vamrCoarsenLimit = 0.5;
-string P::vamrVelRefCriterion = string("");
-
 uint P::amrMaxSpatialRefLevel = 0;
 bool P::adaptRefinement = false;
 bool P::refineOnRestart = false;
@@ -424,14 +419,6 @@ bool P::addParameters() {
            1073741824.);
    RP::add("bailout.velocity_space_wall_block_margin", "Distance from the velocity space limits in blocks, if the distribution function reaches that distance from the wall we bail out to avoid hitting the wall.", 1);
 
-   // Velocity Refinement parameters
-   RP::add("VAMR.vel_refinement_criterion", "Name of the velocity refinement criterion", string(""));
-   RP::add("VAMR.max_velocity_level", "Maximum velocity mesh refinement level", (uint)0);
-   RP::add("VAMR.refine_limit",
-           "If the refinement criterion function returns a larger value than this, block is refined", (Realf)1.0);
-   RP::add("VAMR.coarsen_limit",
-           "If the refinement criterion function returns a smaller value than this, block can be coarsened",
-           (Realf)0.5);
    // Spatial Refinement parameters
    RP::add("AMR.max_spatial_level", "Maximum spatial mesh refinement level", (uint)0);
    RP::add("AMR.should_refine","If false, do not refine Vlasov grid regardless of max spatial level",true);
@@ -674,11 +661,6 @@ void Parameters::getParameters() {
    RP::get("gridbuilder.y_length", P::ycells_ini);
    RP::get("gridbuilder.z_length", P::zcells_ini);
 
-   RP::get("VAMR.max_velocity_level", P::vamrMaxVelocityRefLevel);
-   RP::get("VAMR.vel_refinement_criterion", P::vamrVelRefCriterion);
-   RP::get("VAMR.refine_limit", P::vamrRefineLimit);
-   RP::get("VAMR.coarsen_limit", P::vamrCoarsenLimit);
-
    RP::get("AMR.max_spatial_level", P::amrMaxSpatialRefLevel);
    RP::get("AMR.adapt_refinement",P::adaptRefinement);
    RP::get("AMR.refine_on_restart",P::refineOnRestart);
@@ -755,10 +737,6 @@ void Parameters::getParameters() {
       MPI_Abort(MPI_COMM_WORLD, 1);
    }
 
-   if (P::vamrCoarsenLimit >= P::vamrRefineLimit) {
-      cerr << "vamrRefineLimit must be smaller than vamrCoarsenLimit!" << endl;
-      MPI_Abort(MPI_COMM_WORLD, 1);
-   }
    if (P::xmax < P::xmin || (P::ymax < P::ymin || P::zmax < P::zmin)) {
       cerr << "Box domain error!" << endl;
       MPI_Abort(MPI_COMM_WORLD, 1);

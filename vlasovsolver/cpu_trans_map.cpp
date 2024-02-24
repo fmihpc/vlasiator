@@ -391,13 +391,9 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       unionOfBlocks.push_back(blockGID);
    }
 
-
-
-
-   const uint8_t REFLEVEL=0;
    const vmesh::VelocityMesh* vmesh = allCellsPointer[0]->get_velocity_mesh(popID);
    // set cell size in dimension direction
-   dvz = vmesh->getCellSize(REFLEVEL)[dimension];
+   dvz = vmesh->getCellSize()[dimension];
    vz_min = vmesh->getMeshMinLimits()[dimension];
    switch (dimension) {
    case 0:
@@ -495,8 +491,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             Vec values[(1 + 2 * VLASOV_STENCIL_WIDTH) * WID3 / VECL];
             copy_trans_block_data(sourceNeighbors.data() + celli * nSourceNeighborsPerCell, blockGID, values, vcell_transpose, popID);
             velocity_block_indices_t block_indices;
-            uint8_t refLevel;
-            vmesh->getIndices(blockGID,refLevel, block_indices[0], block_indices[1], block_indices[2]);
+            vmesh->getIndices(blockGID, block_indices[0], block_indices[1], block_indices[2]);
 
             //i,j,k are now relative to the order in which we copied data to the values array.
             //After this point in the k,j,i loops there should be no branches based on dimensions
