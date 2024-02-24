@@ -178,8 +178,7 @@ namespace projects {
    */
    std::vector<vmesh::GlobalID> Project::findBlocksToInitialize(spatial_cell::SpatialCell* cell,const uint popID) const {
       vector<vmesh::GlobalID> blocksToInitialize;
-      const uint8_t refLevel = 0;
-      const vmesh::LocalID* vblocks_ini = cell->get_velocity_grid_length(popID,refLevel);
+      const vmesh::LocalID* vblocks_ini = cell->get_velocity_grid_length(popID);
 
       for (uint kv=0; kv<vblocks_ini[2]; ++kv)
          for (uint jv=0; jv<vblocks_ini[1]; ++jv)
@@ -188,7 +187,7 @@ namespace projects {
                blockIndices[0] = iv;
                blockIndices[1] = jv;
                blockIndices[2] = kv;
-               const vmesh::GlobalID blockGID = cell->get_velocity_block(popID,blockIndices,refLevel);
+               const vmesh::GlobalID blockGID = cell->get_velocity_block(popID,blockIndices);
                blocksToInitialize.push_back(blockGID);
             }
       return blocksToInitialize;
@@ -247,15 +246,14 @@ namespace projects {
       creal dz = cell->parameters[CellParams::DZ];
 
       // Calculate parameters for new block
-      cuint refLevel=0;
       Real blockCoords[3];
       cell->get_velocity_block_coordinates(popID,blockGID,&blockCoords[0]);
       creal vxBlock = blockCoords[0];
       creal vyBlock = blockCoords[1];
       creal vzBlock = blockCoords[2];
-      creal dvxCell = cell->get_velocity_grid_cell_size(popID,refLevel)[0];
-      creal dvyCell = cell->get_velocity_grid_cell_size(popID,refLevel)[1];
-      creal dvzCell = cell->get_velocity_grid_cell_size(popID,refLevel)[2];
+      creal dvxCell = cell->get_velocity_grid_cell_size(popID)[0];
+      creal dvyCell = cell->get_velocity_grid_cell_size(popID)[1];
+      creal dvzCell = cell->get_velocity_grid_cell_size(popID)[2];
       // Calculate volume average of distribution function for each phase-space cell in the block.
       Real maxValue = 0.0;
       for (uint kc=0; kc<WID_VZ; ++kc) {
@@ -304,8 +302,6 @@ namespace projects {
          // Actually add the velocity block
          cell->add_velocity_block(blockGID, popID, initBuffer.data());
       }
-
-      // Change as of summer 2023: vAMR initialization no longer supported.
 
       if (rescalesDensity(popID) == true) {
          rescaleDensity(cell,popID);

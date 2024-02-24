@@ -39,7 +39,7 @@
    #include "arch/gpu_base.hpp"
 #endif
 
-// One per particle population (no vAMR)
+// One per particle population
 #define MAX_VMESH_PARAMETERS_COUNT 32
 
 namespace vmesh {
@@ -56,7 +56,6 @@ namespace vmesh {
       Real meshLimits[6];                       /**< Velocity mesh bounding box limits vx_min,vx_max,...,vz_max.*/
       vmesh::LocalID gridLength[3];             /**< Number of blocks in mesh per coordinate at base grid level.*/
       vmesh::LocalID blockLength[3];            /**< Number of phase-space cells per coordinate in block.*/
-      uint8_t refLevelMaxAllowed;               /**< Maximum refinement level allowed, 0=no refinement.*/
 
       // ***** DERIVED PARAMETERS, CALCULATED BY INITVELOCITYMESHES ***** //
       bool initialized;                         /**< If true, variables in this struct contain sensible values.*/
@@ -65,20 +64,6 @@ namespace vmesh {
       Real blockSize[3];                        /**< Size of a block at base grid level.*/
       Real cellSize[3];                         /**< Size of a cell in a block at base grid level.*/
       Real gridSize[3];                         /**< Physical size of the grid bounding box.*/
-
-#ifdef VAMR
-      // ***** DERIVED PARAMETERS SPECIFIC TO VAMR ***** //
-      std::vector<vmesh::GlobalID> offsets;     /**< Block global ID offsets for each refinement level.*/
-      std::vector<Real> blockSizes;             /**< Velocity block sizes (dvx,dvy,dvz) for each refinement level.
-                                                 * This vector is initialized to size 3*(refLevelMaxAllowed+1)
-                                                 * in VelocityMesh::initialize (VAMR mesh).*/
-      std::vector<Real> cellSizes;              /**< Velocity block phase-space cell sizes (dvx,dvy,dvz) for each
-                                                 * refinement level. This vector is initialized to size
-                                                 * 3*(refLevelMaxAllowed+1) in VelocityMesh::initialize (VAMR mesh).*/
-      std::vector<vmesh::LocalID> gridLengths;  /**< Velocity grid lengths for each refinement level.
-                                                 * This vector is initialized to size 3*(refLevelMaxAllowed+1)
-                                                 * in VelocityMesh::initialize (VAMR mesh).*/
-#endif
 
       MeshParameters() {
          initialized = false;
@@ -148,7 +133,7 @@ namespace vmesh {
       // printf("Mesh address 0x%lx\n",vMesh);
       printf("Mesh size\n");
       printf(" %d %d %d \n",vMesh->gridLength[0],vMesh->gridLength[1],vMesh->gridLength[2]);
-      printf("Block size (max reflevel %d)\n",vMesh->refLevelMaxAllowed);
+      printf("Block size\n");
       printf(" %d %d %d \n",vMesh->blockLength[0],vMesh->blockLength[1],vMesh->blockLength[2]);
       printf("Mesh limits \n");
       printf(" %f %f %f %f \n",vMesh->meshMinLimits[0],vMesh->meshLimits[0],vMesh->meshMaxLimits[0],vMesh->meshLimits[1]);

@@ -49,9 +49,8 @@ void propagatePencil(
 ) {
    // Get velocity data from vmesh that we need later to calculate the translation
    velocity_block_indices_t block_indices;
-   uint8_t refLevel;
-   vmesh->getIndices(blockGID,refLevel, block_indices[0], block_indices[1], block_indices[2]);
-   Realv dvz = vmesh->getCellSize(refLevel)[dimension];
+   vmesh->getIndices(blockGID, block_indices[0], block_indices[1], block_indices[2]);
+   Realv dvz = vmesh->getCellSize()[dimension];
    Realv vz_min = vmesh->getMeshMinLimits()[dimension];
 
    // Assuming 1 neighbor in the target array because of the CFL condition

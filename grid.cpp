@@ -56,9 +56,7 @@
 #endif
 
 #ifdef DEBUG_VLASIATOR
-   #ifdef VAMR
-      #define DEBUG_VAMR_VALIDATE
-   #endif
+#define DEBUG_GRID
 #endif
 
 using namespace std;
@@ -314,11 +312,6 @@ void initializeGrids(
 
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          adjustVelocityBlocks(mpiGrid,cells,true,popID);
-         #ifdef DEBUG_VAMR_VALIDATE
-            writeVelMesh(mpiGrid);
-            validateMesh(mpiGrid,popID);
-         #endif
-
          // set initial LB metric based on number of blocks, all others
          // will be based on time spent in acceleration
          #pragma omp parallel for schedule(static)
@@ -1274,191 +1267,6 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       std::cerr << "Failed to add neighborhood SHIFT_P_Z_NEIGHBORHOOD_ID \n";
       abort();
    }
-}
-
-bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID) {
-   bool rvalue = true;
-   #ifndef VAMR
-      return rvalue;
-   #else
-
-   phiprof::Timer meshValidationTimer {"mesh validation (init)"};
-
-   // First make sure that all cells local to this process have a valid mesh.
-   // After the mesh is internally valid, we will update mesh structures
-   // with remote neighbors for as many times as needed.
-   //
-   // Note that we still assume that each spatial cell has a valid mesh
-   // with respect to velocity neighbors, i.e., we only validate the mesh
-   // with respect to spatial neighbors here.
-   const vector<CellID>& cells = getLocalCells();
-   int iter=0;
-
-   do {
-      #ifdef DEBUG_VAMR_VALIDATE
-      if (iter == 0) {
-         writeVelMesh(mpiGrid);
-      }
-      #endif
-
-      // Update velocity mesh in remote cells
-      phiprof::Timer mpiTimer {"MPI"};
-      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE1);
-      mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
-      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE2);
-      mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
-      mpiTimer.stop();
-            
-      // Iterate over all local spatial cells and calculate 
-      // the necessary velocity block refinements
-      phiprof::Timer calcTimer {"calc refinements"};
-      vector<set<vmesh::GlobalID> > refinements(cells.size());
-
-      #pragma omp parallel for
-      for (size_t c=0; c<cells.size(); ++c) {
-         SpatialCell* cell = mpiGrid[cells[c]];
-
-         // Get all spatial neighbors
-         //const vector<CellID>* neighbors = mpiGrid.get_neighbors_of(cells[c],NEAREST_NEIGHBORHOOD_ID);
-         const auto* neighbors = mpiGrid.get_neighbors_of(cells[c], NEAREST_NEIGHBORHOOD_ID);
-	 //#warning TODO should VAMR grandparents be checked only for face neighbors instead of NEAREST_NEIGHBORHOOD_ID?
-
-         // Iterate over all spatial neighbors
-         // for (size_t n=0; n<neighbors->size(); ++n) {
-
-         for (const auto& nbrPair : *neighbors) {
-
-            // CellID nbrCellID = (*neighbors)[n];
-            CellID nbrCellID = nbrPair.first;
-            const SpatialCell* nbr = mpiGrid[nbrCellID];
-
-            // Iterate over all blocks in the spatial neighbor,
-            // and check that the neighbor block does not have
-            // existing grandparent in this cell
-            for (vmesh::LocalID b=0; b<nbr->get_number_of_velocity_blocks(popID); ++b) {
-               vmesh::GlobalID blockGID = nbr->get_velocity_block_global_id(b,popID);
-               vmesh::GlobalID grandParentGID = cell->velocity_block_has_grandparent(blockGID,popID);
-               if (grandParentGID != cell->invalid_global_id()) {
-
-                  refinements[c].insert(cell->get_velocity_block_parent(popID,blockGID));
-               }
-            }
-         }
-      }
-      calcTimer.stop();
-            
-      // Apply refinements
-      phiprof::Timer refineTimer {"refine mesh"};
-      bool needAnotherPass=false;
-      vector<vector<pair<vmesh::GlobalID,vmesh::LocalID> > > newBlocks(cells.size());
-
-      #pragma omp parallel for
-      for (size_t c=0; c<cells.size(); ++c) {
-         // Refine blocks (touches mesh structure, cannot be threaded)
-         if (refinements[c].size() > 0) needAnotherPass = true;
-         SpatialCell* cell = mpiGrid[cells[c]];
-         map<vmesh::GlobalID,vmesh::LocalID> insertedBlocks;
-         for (set<vmesh::GlobalID>::const_iterator b=refinements[c].begin(); b!=refinements[c].end(); ++b) {
-            cell->refine_block(*b,insertedBlocks,popID);
-         }
-
-         // Store all new block local IDs
-         for (map<vmesh::GlobalID,vmesh::LocalID>::const_iterator it=insertedBlocks.begin(); it!=insertedBlocks.end(); ++it) {
-            vmesh::LocalID newLocalID = cell->get_velocity_block_local_id(it->first,popID);
-            if (newLocalID != cell->invalid_local_id()) {
-               newBlocks[c].push_back(make_pair(it->first,newLocalID));
-            }
-         }
-      }
-      refineTimer.stop();
-
-      // Recalculate distribution function values on all blocks that were refined
-      phiprof::Timer recalcTimer {"recalculate distrib. functions"};
-      vector<vector<vmesh::GlobalID> > removedBlocks(cells.size());
-
-#ifdef _OPENMP
-      #warning Chance for false sharing, counters may be on same cache line
-      int counter[omp_get_max_threads()];
-      vector<vector<vmesh::GlobalID> > threadRemBlocks(omp_get_max_threads());
-
-      #pragma omp parallel
-      {
-         const int tid = omp_get_thread_num();
-         for (size_t c=0; c<newBlocks.size(); ++c) {
-            SpatialCell* cell = mpiGrid[cells[c]];
-            counter[tid] = 0;
-
-            // Recalculate distribution function and if f is below the sparse
-            // min value, add the block to remove list
-            #pragma omp for
-            for (size_t b=0; b<newBlocks[c].size(); ++b) {
-               if (getObjectWrapper().project->setVelocityBlock(cell,newBlocks[c][b].second,popID) <= cell->getVelocityBlockMinValue(popID)) {
-                  threadRemBlocks[tid].push_back(newBlocks[c][b].first);
-                  ++counter[tid];
-               }
-            }
-
-            // Sum up the number of removed blocks to master thread
-            // and resize the per-cell vector to correct size
-            if (tid == 0) {
-               size_t sum = 0;
-               for (int t=0; t<omp_get_max_threads(); ++t) sum += counter[t];
-               removedBlocks[c].resize(sum);
-            }
-            #pragma omp barrier
-
-            // Copy global IDs of removed blocks to the per-cell vector
-            size_t myOffset = 0;
-            for (int t=0; t<tid; ++t) myOffset += counter[t];
-
-            for (int b=0; b<counter[tid]; ++b) {
-               removedBlocks[c][b+myOffset] = threadRemBlocks[tid][b];
-            }
-         }
-      }
-#else // No openmp version
-      int counter[1];
-      std::vector<vmesh::GlobalID> remBlocks;
-      for (size_t c=0; c<newBlocks.size(); ++c) {
-         SpatialCell* cell = mpiGrid[cells[c]];
-
-         // Recalculate distribution function and if f is below the sparse
-         // min value, add the block to remove list
-         for (size_t b=0; b<newBlocks[c].size(); ++b) {
-            if (getObjectWrapper().project->setVelocityBlock(cell,newBlocks[c][b].second,popID) <= cell->getVelocityBlockMinValue(popID)) {
-               removedBlocks[c].push_back(newBlocks[c][b].first);
-            }
-         }
-      }
-#endif
-
-
-      // Remove blocks with f below sparse min value
-      #pragma omp parallel for
-      for (size_t c=0; c<removedBlocks.size(); ++c) {
-         SpatialCell* cell = mpiGrid[cells[c]];
-         // We touch mesh structure here, cannot be threaded
-         for (size_t b=0; b<removedBlocks[c].size(); ++b) {
-            cell->remove_velocity_block(removedBlocks[c][b],popID);
-         }
-      }
-      recalcTimer.stop()
-       
-      #ifdef DEBUG_VAMR_VALIDATE
-         writeVelMesh(mpiGrid);
-      #endif
-      ++iter;
-
-      // Exit if all processes are done with mesh refinements
-      int16_t globalSuccess = 0;
-      int16_t localSuccess = 0;
-      if (needAnotherPass == true) localSuccess=1;
-      MPI_Allreduce(&localSuccess,&globalSuccess,1,MPI_Type<int16_t>(),MPI_MAX,MPI_COMM_WORLD);
-      if (globalSuccess == 0) break;
-   } while (true);
-   
-   return rvalue;
-   #endif
 }
 
 void mapRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {

@@ -176,10 +176,6 @@ bool ObjectWrapper::getPopulationParameters() {
       #endif
 
       vMesh.blockLength[0] = vMesh.blockLength[1] = vMesh.blockLength[2] = WID;
-      int maxRefLevel; // Temporary variable, since target value is a uint8_t
-      RP::get(pop + "_vspace.max_refinement_level",maxRefLevel);
-      vMesh.refLevelMaxAllowed = maxRefLevel;
-
 
       //Get thermal / suprathermal moments parameters
       Readparameters::get(pop + "_thermal.radius", species.thermalRadius);

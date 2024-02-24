@@ -98,7 +98,6 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
    Transform<Real,3,Affine> bwd_transform= fwd_transform.inverse();
    transformTimer.stop();
 
-   const uint8_t refLevel = 0;
    Real intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk;
    Real intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk;
    Real intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk;
@@ -108,11 +107,11 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
       case 0: {
          //Map order XYZ
          phiprof::Timer intersectionsTimer {"compute-intersections"};
-         compute_intersections_1st(vmesh,bwd_transform, fwd_transform, 0, refLevel,
+         compute_intersections_1st(vmesh,bwd_transform, fwd_transform, 0,
                                    intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk);
-         compute_intersections_2nd(vmesh,bwd_transform, fwd_transform, 1, refLevel,
+         compute_intersections_2nd(vmesh,bwd_transform, fwd_transform, 1,
                                    intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk);
-         compute_intersections_3rd(vmesh,bwd_transform, fwd_transform, 2, refLevel,
+         compute_intersections_3rd(vmesh,bwd_transform, fwd_transform, 2,
                                    intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk);
          intersectionsTimer.stop();
          phiprof::Timer mappingTimer {"compute-mapping"};
@@ -126,11 +125,11 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
       case 1: {
          //Map order YZX
          phiprof::Timer intersectionsTimer {"compute-intersections"};
-         compute_intersections_1st(vmesh, bwd_transform, fwd_transform, 1, refLevel,
+         compute_intersections_1st(vmesh, bwd_transform, fwd_transform, 1,
                                    intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk);
-         compute_intersections_2nd(vmesh, bwd_transform, fwd_transform, 2, refLevel,
+         compute_intersections_2nd(vmesh, bwd_transform, fwd_transform, 2,
                                    intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk);
-         compute_intersections_3rd(vmesh, bwd_transform, fwd_transform, 0, refLevel,
+         compute_intersections_3rd(vmesh, bwd_transform, fwd_transform, 0,
                                    intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk);
       
          intersectionsTimer.stop();
@@ -145,11 +144,11 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
       case 2: {
          phiprof::Timer intersectionsTimer {"compute-intersections"};
          //Map order Z X Y
-         compute_intersections_1st(vmesh, bwd_transform, fwd_transform, 2, refLevel,
+         compute_intersections_1st(vmesh, bwd_transform, fwd_transform, 2,
                                    intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk);
-         compute_intersections_2nd(vmesh, bwd_transform, fwd_transform, 0, refLevel,
+         compute_intersections_2nd(vmesh, bwd_transform, fwd_transform, 0,
                                    intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk);
-         compute_intersections_3rd(vmesh, bwd_transform, fwd_transform, 1, refLevel,
+         compute_intersections_3rd(vmesh, bwd_transform, fwd_transform, 1,
                                    intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk);
          intersectionsTimer.stop();
          phiprof::Timer mappingTimer {"compute-mapping"};

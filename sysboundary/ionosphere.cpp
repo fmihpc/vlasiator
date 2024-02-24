@@ -3223,10 +3223,9 @@ namespace SBC {
                   vector<Realf> initBuffer(WID3);
                   // Loop over requested blocks. Initialize the contents into the temporary buffer
                   // and return the maximum value.
-                  cuint refLevel=0;
-                  creal dvxCell = cell.get_velocity_grid_cell_size(popID,refLevel)[0];
-                  creal dvyCell = cell.get_velocity_grid_cell_size(popID,refLevel)[1];
-                  creal dvzCell = cell.get_velocity_grid_cell_size(popID,refLevel)[2];
+                  creal dvxCell = cell.get_velocity_grid_cell_size(popID)[0];
+                  creal dvyCell = cell.get_velocity_grid_cell_size(popID)[1];
+                  creal dvzCell = cell.get_velocity_grid_cell_size(popID)[2];
                   for (size_t i = 0; i < blocksToInitialize.size(); i++) {
                      const vmesh::GlobalID blockGID = blocksToInitialize.at(i);
                      Realf maxValue = 0;
@@ -3308,10 +3307,9 @@ namespace SBC {
                   vector<Realf> initBuffer(WID3);
                   // Loop over requested blocks. Initialize the contents into the temporary buffer
                   // and return the maximum value.
-                  cuint refLevel=0;
-                  creal dvxCell = cell.get_velocity_grid_cell_size(popID,refLevel)[0];
-                  creal dvyCell = cell.get_velocity_grid_cell_size(popID,refLevel)[1];
-                  creal dvzCell = cell.get_velocity_grid_cell_size(popID,refLevel)[2];
+                  creal dvxCell = cell.get_velocity_grid_cell_size(popID)[0];
+                  creal dvyCell = cell.get_velocity_grid_cell_size(popID)[1];
+                  creal dvzCell = cell.get_velocity_grid_cell_size(popID)[2];
                   for (size_t i = 0; i < blocksToInitialize.size(); i++) {
                      const vmesh::GlobalID blockGID = blocksToInitialize.at(i);
                      Realf maxValue = 0;
@@ -3431,10 +3429,9 @@ namespace SBC {
          vector<Realf> initBuffer(WID3);
          // Loop over requested blocks. Initialize the contents into the temporary buffer
          // and return the maximum value.
-         cuint refLevel=0;
-         creal dvxCell = templateCell.get_velocity_grid_cell_size(popID,refLevel)[0];
-         creal dvyCell = templateCell.get_velocity_grid_cell_size(popID,refLevel)[1];
-         creal dvzCell = templateCell.get_velocity_grid_cell_size(popID,refLevel)[2];
+         creal dvxCell = templateCell.get_velocity_grid_cell_size(popID)[0];
+         creal dvyCell = templateCell.get_velocity_grid_cell_size(popID)[1];
+         creal dvzCell = templateCell.get_velocity_grid_cell_size(popID)[2];
          for (size_t i = 0; i < blocksToInitialize.size(); i++) {
             const vmesh::GlobalID blockGID = blocksToInitialize.at(i);
             Realf maxValue = 0;
@@ -3523,15 +3520,14 @@ namespace SBC {
       vector<vmesh::GlobalID> blocksToInitialize;
       bool search = true;
       uint counter = 0;
-      const uint8_t refLevel = 0;
-
+      
       Real V_crds[3];
       Real dV[3];
-      dV[0] = cell.get_velocity_grid_block_size(popID,refLevel)[0];
-      dV[1] = cell.get_velocity_grid_block_size(popID,refLevel)[1];
-      dV[2] = cell.get_velocity_grid_block_size(popID,refLevel)[2];
+      dV[0] = cell.get_velocity_grid_block_size(popID)[0];
+      dV[1] = cell.get_velocity_grid_block_size(popID)[1];
+      dV[2] = cell.get_velocity_grid_block_size(popID)[2];
       creal minValue = cell.getVelocityBlockMinValue(popID);
-      const vmesh::LocalID* vblocks_ini = cell.get_velocity_grid_length(popID,refLevel);
+      const vmesh::LocalID* vblocks_ini = cell.get_velocity_grid_length(popID);
 
       while (search) {
          if (0.1 * cell.getVelocityBlockMinValue(popID) >
@@ -3552,11 +3548,8 @@ namespace SBC {
                blockIndices[0] = iv;
                blockIndices[1] = jv;
                blockIndices[2] = kv;
-               const vmesh::GlobalID blockGID = cell.get_velocity_block(popID,blockIndices,refLevel);
+               const vmesh::GlobalID blockGID = cell.get_velocity_block(popID,blockIndices);
                cell.get_velocity_block_coordinates(popID,blockGID,V_crds);
-               #ifdef VAMR
-               cell.get_velocity_block_size(popID,blockGID,dV);
-               #endif
                V_crds[0] += ( 0.5*dV[0] - vDrift[0]);
                V_crds[1] += ( 0.5*dV[1] - vDrift[1]);
                V_crds[2] += ( 0.5*dV[2] - vDrift[2]);
