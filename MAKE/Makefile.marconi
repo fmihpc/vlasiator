@@ -31,7 +31,10 @@ CC_BRAND_VERSION = 17.0.1
 # note: std was c++11
 CXXFLAGS +=  -O2 -g -DMAX_VECTOR_SIZE=512 -xMIC-AVX512 -std=c++17 -qopenmp -ansi-alias
 testpackage: CXXFLAGS = -O2 -g -DMAX_VECTOR_SIZE=512 -xMIC-AVX512 -std=c++17 -qopenmp -ansi-alias
-MATHFLAGS = 
+
+MATHFLAGS = #-ffast-math -fno-finite-math-only
+testpackage: MATHFLAGS = #-fno-unsafe-math-optimizations
+
 LDFLAGS += -qopenmp -lifcore -Wl,-rpath,/cineca/prod/opt/libraries/boost/1.61.0/intelmpi--2017--binary/lib,-rpath,/marconi_work/Pra14_3521/libraries/phiprof/lib,-rpath,/marconi_work/Pra14_3521/libraries/papi/lib
 CMP = mpicxx
 LNK = mpicxx
@@ -70,7 +73,6 @@ LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/zoltan/lib -lzoltan
 INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv_debug
 LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv_debug -lvlsv
 
-INC_FSGRID = -I$(HEADER_LIBRARY_PREFIX)/fsgrid
 
 LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof
 INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
@@ -84,8 +86,9 @@ LIB_PAPI = -L$(LIBRARY_PREFIX)/papi/lib -lpapi -lpfm
 
 #header libraries
 
+INC_FSGRID = -I./submodules/fsgrid
 INC_EIGEN = -I$(HEADER_LIBRARY_PREFIX)/eigen
-INC_DCCRG = -I$(HEADER_LIBRARY_PREFIX)/dccrg/
-INC_VECTORCLASS = -I$(HEADER_LIBRARY_PREFIX)/vectorclass
+INC_DCCRG = -I./submodules/dccrg
+INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/
 
 

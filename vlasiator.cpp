@@ -82,6 +82,7 @@ using namespace std;
 int globalflags::bailingOut = 0;
 bool globalflags::writeRestart = 0;
 bool globalflags::balanceLoad = 0;
+bool globalflags::doRefine=0;
 bool globalflags::ionosphereJustSolved = false;
 
 ObjectWrapper objectWrapper;
@@ -94,6 +95,45 @@ void addTimedBarrier(string name){
    phiprof::Timer btimer {name, {"Barriers", "MPI"}};
    MPI_Barrier(MPI_COMM_WORLD);
 }
+
+
+/*! Report spatial cell counts per refinement level as well as velocity cell counts per population into logfile
+ */
+void report_cell_and_block_counts(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid){
+   cint maxRefLevel = mpiGrid.get_maximum_refinement_level();
+   const vector<CellID> localCells = getLocalCells();
+   cint popCount = getObjectWrapper().particleSpecies.size();
+
+   // popCount+1 as we store the spatial cell counts and then the populations' v_cell counts.
+   // maxRefLevel+1 as e.g. there's 2 levels at maxRefLevel == 1
+   std::vector<int64_t> localCounts((popCount+1)*(maxRefLevel+1), 0), globalCounts((popCount+1)*(maxRefLevel+1), 0);
+
+   for (const auto cellid : localCells) {
+      cint level = mpiGrid.get_refinement_level(cellid);
+      localCounts[level]++;
+      for(int pop=0; pop<popCount; pop++) {
+         localCounts[maxRefLevel+1 + level*popCount + pop] += mpiGrid[cellid]->get_number_of_velocity_blocks(pop);
+      }
+   }
+
+   MPI_Reduce(localCounts.data(), globalCounts.data(), (popCount+1)*(maxRefLevel+1), MPI_INT64_T, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
+
+   logFile << "(CELLS) tstep = " << P::tstep << " time = " << P::t << " spatial cells [ ";
+   for(int level = 0; level <= maxRefLevel; level++) {
+      logFile << globalCounts[level] << " ";
+   }
+   logFile << "] blocks ";
+   for(int pop=0; pop<popCount; pop++) {
+      logFile << getObjectWrapper().particleSpecies[pop].name << " [ ";
+      for(int level = 0; level <= maxRefLevel; level++) {
+         logFile << globalCounts[maxRefLevel+1 + level*popCount + pop] << " ";
+      }
+      logFile << "] ";
+   }
+   logFile << endl << flush;
+
+}
+
 
 void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 			FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, Real &newDt, bool &isChanged) {
@@ -170,17 +210,17 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
       if (cell->parameters[CellParams::MAXVDT] != 0 &&
           (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
-           (P::vlasovAccelerateMaxwellianBoundaries && cell->sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN))) {
+           (P::vlasovAccelerateMaxwellianBoundaries && cell->sysBoundaryFlag == sysboundarytype::MAXWELLIAN))) {
          // acceleration only done on non-boundary cells
          dtMaxLocal[1] = min(dtMaxLocal[1], cell->parameters[CellParams::MAXVDT]);
       }
    }
 
    // compute max dt for fieldsolver
-   const std::array<int, 3> gridDims(technicalGrid.getLocalSize());
-   for (int k = 0; k < gridDims[2]; k++) {
-      for (int j = 0; j < gridDims[1]; j++) {
-         for (int i = 0; i < gridDims[0]; i++) {
+   const std::array<FsGridTools::FsIndex_t, 3> gridDims(technicalGrid.getLocalSize());
+   for (FsGridTools::FsIndex_t k = 0; k < gridDims[2]; k++) {
+      for (FsGridTools::FsIndex_t j = 0; j < gridDims[1]; j++) {
+         for (FsGridTools::FsIndex_t i = 0; i < gridDims[0]; i++) {
             fsgrids::technical* cell = technicalGrid.get(i, j, k);
             if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
                (cell->sysBoundaryLayer == 1 && cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY)) {
@@ -445,28 +485,28 @@ int main(int argn,char* args[]) {
    // Needs to be done here already ad the background field will be set right away, before going to initializeGrid even
    phiprof::Timer initFsTimer {"Init fieldsolver grids"};
 
-   const std::array<int,3> fsGridDimensions = {convert<int>(P::xcells_ini * pow(2,P::amrMaxSpatialRefLevel)),
-							    convert<int>(P::ycells_ini * pow(2,P::amrMaxSpatialRefLevel)),
-							    convert<int>(P::zcells_ini * pow(2,P::amrMaxSpatialRefLevel))};
+   std::array<FsGridTools::FsSize_t, 3> fsGridDimensions = {convert<FsGridTools::FsSize_t>(P::xcells_ini * pow(2,P::amrMaxSpatialRefLevel)),
+							    convert<FsGridTools::FsSize_t>(P::ycells_ini * pow(2,P::amrMaxSpatialRefLevel)),
+							    convert<FsGridTools::FsSize_t>(P::zcells_ini * pow(2,P::amrMaxSpatialRefLevel))};
 
-   std::array<bool,3> periodicity{sysBoundaryContainer.isBoundaryPeriodic(0),
-                                  sysBoundaryContainer.isBoundaryPeriodic(1),
-                                  sysBoundaryContainer.isBoundaryPeriodic(2)};
+   std::array<bool,3> periodicity{sysBoundaryContainer.isPeriodic(0),
+                                  sysBoundaryContainer.isPeriodic(1),
+                                  sysBoundaryContainer.isPeriodic(2)};
 
    FsGridCouplingInformation gridCoupling;
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> perBGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> perBDt2Grid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> EGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> EDt2Grid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
-   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> EHallGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
-   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> EGradPeGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> momentsGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> momentsDt2Grid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
-   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> dPerBGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
-   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> dMomentsGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> BgBGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
-   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> volGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> technicalGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> perBGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling, P::manualFsGridDecomposition);
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> perBDt2Grid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling, P::manualFsGridDecomposition);
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> EGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling, P::manualFsGridDecomposition);
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> EDt2Grid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling, P::manualFsGridDecomposition);
+   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> EHallGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling, P::manualFsGridDecomposition);
+   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> EGradPeGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling, P::manualFsGridDecomposition);
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> momentsGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling, P::manualFsGridDecomposition);
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> momentsDt2Grid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling, P::manualFsGridDecomposition);
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> dPerBGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling, P::manualFsGridDecomposition);
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> dMomentsGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling, P::manualFsGridDecomposition);
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> BgBGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling, P::manualFsGridDecomposition);
+   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> volGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling, P::manualFsGridDecomposition);
+   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> technicalGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling, P::manualFsGridDecomposition);
 
    // Set DX, DY and DZ
    // TODO: This is currently just taking the values from cell 1, and assuming them to be
@@ -530,6 +570,13 @@ int main(int argn,char* args[]) {
    }
    report_process_memory_consumption();
    reportMemoryTimer.stop();
+   
+   // There are projects that have non-uniform and non-zero perturbed B, e.g. Magnetosphere with dipole type 4.
+   // For inflow cells (e.g. maxwellian), we cannot take a FSgrid perturbed B value from the templateCell,
+   // because we need a copy of the value from initialization in both perBGrid and perBDt2Grid and it isn't
+   // touched as we are in boundary cells for components that aren't solved. We do a straight full copy instead
+   // of looping and detecting boundary types here.
+   perBDt2Grid.copyData(perBGrid);
 
    const std::vector<CellID>& cells = getLocalCells();
    
@@ -688,6 +735,9 @@ int main(int argn,char* args[]) {
 
    // Save restart data
    if (P::writeInitialState) {
+      // Calculate these so refinement parameters can be tuned based on the vlsv
+      calculateScaledDeltasSimple(mpiGrid);
+
       FieldTracing::reduceData(technicalGrid, perBGrid, dPerBGrid, mpiGrid, SBC::ionosphereGrid.nodes); /*!< Call the reductions (e.g. field tracing) */
       
       phiprof::Timer timer {"write-initial-state"};
@@ -795,7 +845,7 @@ int main(int argn,char* args[]) {
       //report filtering if we are in an AMR run
       if (P::amrMaxSpatialRefLevel>0){
          logFile<<"Filtering Report: "<<endl;
-         for (uint refLevel=0 ; refLevel<= P::amrMaxSpatialRefLevel; refLevel++){
+         for (int refLevel=0 ; refLevel<= P::amrMaxSpatialRefLevel; refLevel++){
             logFile<<"\tRefinement Level " <<refLevel<<"==> Passes "<<P::numPasses.at(refLevel)<<endl;
          }
             logFile<<endl;
@@ -830,10 +880,11 @@ int main(int argn,char* args[]) {
 
    unsigned int wallTimeRestartCounter=1;
 
-   int doNow[2] = {0}; // 0: writeRestartNow, 1: balanceLoadNow ; declared outside main loop
+   int doNow[3] = {0}; // 0: writeRestartNow, 1: balanceLoadNow, 2: refineNow ; declared outside main loop
    int writeRestartNow; // declared outside main loop
    bool overrideRebalanceNow = false; // declared outside main loop
-
+   bool refineNow = false; // declared outside main loop
+   
    addTimedBarrier("barrier-end-initialization");
    
    phiprof::Timer simulationTimer {"Simulation"};
@@ -880,15 +931,21 @@ int main(int argn,char* args[]) {
          beforeTime = MPI_Wtime();
          beforeSimulationTime=P::t;
          beforeStep=P::tstep;
-         //report_grid_memory_consumption(mpiGrid);
-         report_process_memory_consumption();
       }
       logFile << writeVerbose;
       loggingTimer.stop();
 
 // Check whether diagnostic output has to be produced
       if (P::diagnosticInterval != 0 && P::tstep % P::diagnosticInterval == 0) {
-         
+         phiprof::Timer memTimer {"memory-report"};
+         memTimer.start();
+         report_process_memory_consumption();
+         memTimer.stop();
+         phiprof::Timer cellTimer {"cell-count-report"};
+         cellTimer.start();
+         report_cell_and_block_counts(mpiGrid);
+         cellTimer.stop();
+
          phiprof::Timer diagnosticTimer {"diagnostic-io"};
          if (writeDiagnostic(mpiGrid, diagnosticReducer) == false) {
             if(myRank == MASTER_RANK)  cerr << "ERROR with diagnostic computation" << endl;
@@ -971,17 +1028,25 @@ int main(int argn,char* args[]) {
          else {
             doNow[0] = 0;
          }
-         if (globalflags::balanceLoad == true) {
+         if (globalflags::balanceLoad || globalflags::doRefine) {
             doNow[1] = 1;
             globalflags::balanceLoad = false;
+            if (globalflags::doRefine) {
+               doNow[2] = 1;
+               globalflags::doRefine = false;
+            }
          }
       }
-      MPI_Bcast( &doNow, 2 , MPI_INT , MASTER_RANK ,MPI_COMM_WORLD);
+      MPI_Bcast( &doNow, 3 , MPI_INT , MASTER_RANK ,MPI_COMM_WORLD);
       writeRestartNow = doNow[0];
       doNow[0] = 0;
       if (doNow[1] == 1) {
          P::prepareForRebalance = true;
          doNow[1] = 0;
+      }
+      if (doNow[2]) {
+         refineNow = true;
+         doNow[2] = false;
       }
       restartCheckTimer.stop();
 
@@ -991,6 +1056,9 @@ int main(int argn,char* args[]) {
             wallTimeRestartCounter++;
          }
 
+         // Refinement params for restart refinement
+         calculateScaledDeltasSimple(mpiGrid);
+         
          if (myRank == MASTER_RANK)
             logFile << "(IO): Writing restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
          //Write the restart:
@@ -1033,16 +1101,42 @@ int main(int argn,char* args[]) {
       if(((P::tstep % P::rebalanceInterval == 0 && P::tstep > P::tstep_min) || overrideRebalanceNow)) {
          logFile << "(LB): Start load balance, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
          // Refinement includes LB
-         if (!dtIsChanged && P::adaptRefinement && P::tstep % (P::rebalanceInterval * P::refineMultiplier) == 0 && P::t > P::refineAfter) {
+         if (refineNow || (!dtIsChanged && P::adaptRefinement && P::tstep % (P::rebalanceInterval * P::refineCadence) == 0 && P::t > P::refineAfter)) { 
             logFile << "(AMR): Adapting refinement!"  << endl << writeVerbose;
-            if (!adaptRefinement(mpiGrid, technicalGrid, sysBoundaryContainer, *project))
-               continue;   // Refinement failed and we're bailing out
+            refineNow = false;
+            if (!adaptRefinement(mpiGrid, technicalGrid, sysBoundaryContainer, *project)) {
+               // OOM, rebalance and try again
+               logFile << "(LB) AMR rebalancing with heavier refinement weights." << endl;
+               globalflags::bailingOut = false; // Reset this
+               for (auto id : mpiGrid.get_local_cells_to_refine()) {
+                  mpiGrid[id]->parameters[CellParams::LBWEIGHTCOUNTER] *= 8.0;
+               }
+               balanceLoad(mpiGrid, sysBoundaryContainer);
+               // We can /= 8.0 now as cells have potentially migrated. Go back to block-based count for now.
+               for (auto id : mpiGrid.get_local_cells_to_refine()) {
+                  mpiGrid[id]->parameters[CellParams::LBWEIGHTCOUNTER] = 0;
+                  for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+                     mpiGrid[id]->parameters[CellParams::LBWEIGHTCOUNTER] += mpiGrid[id]->get_number_of_velocity_blocks(popID);
+                  }
+               }
+
+               mpiGrid.cancel_refining();
+               if (!adaptRefinement(mpiGrid, technicalGrid, sysBoundaryContainer, *project)) {
+                  for (auto id : mpiGrid.get_local_cells_to_refine()) {
+                     mpiGrid[id]->parameters[CellParams::LBWEIGHTCOUNTER] *= 8.0;
+                  }
+                  continue;   // Refinement failed and we're bailing out
+               } else {
+                  globalflags::bailingOut = false; // Reset this
+               }
+            }
 
             // Calculate new dt limits since we might break CFL when refining
-            phiprof::Timer computeDtimer {"compute-dt"};
+            phiprof::Timer computeDtimer {"compute-dt-amr"};
             calculateSpatialTranslation(mpiGrid,0.0);
-            calculateAcceleration(mpiGrid,0.0);      
+            calculateAcceleration(mpiGrid,0.0);
          }
+         // This now uses the block-based count just copied between the two refinement calls above.
          balanceLoad(mpiGrid, sysBoundaryContainer);
          addTimedBarrier("barrier-end-load-balance");
          phiprof::Timer shrinkTimer {"Shrink_to_fit"};
@@ -1113,6 +1207,14 @@ int main(int argn,char* args[]) {
       phiprof::Timer propagateTimer {"Propagate"};
       //Propagate the state of simulation forward in time by dt:
       
+      // Update boundary condition states (time-varying)
+      if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration) {
+         phiprof::Timer timer {"Update system boundaries (Vlasov pre-translation)"};
+         sysBoundaryContainer.updateState(mpiGrid, perBGrid, BgBGrid, P::t + 0.5 * P::dt);
+         timer.stop();
+         addTimedBarrier("barrier-boundary-conditions");
+      }
+
       phiprof::Timer spatialSpaceTimer {"Spatial-space"};
       if( P::propagateVlasovTranslation) {
          calculateSpatialTranslation(mpiGrid,P::dt);
@@ -1237,7 +1339,7 @@ int main(int argn,char* args[]) {
 
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
          phiprof::Timer timer {"Update system boundaries (Vlasov post-acceleration)"};
-         sysBoundaryContainer.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt, true);
+         sysBoundaryContainer.applySysBoundaryVlasovConditions(mpiGrid, P::t + 0.5 * P::dt, true);
          timer.stop();
          addTimedBarrier("barrier-boundary-conditions");
       }

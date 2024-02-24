@@ -9,6 +9,9 @@ LIBS += ${LIB_PROFILE}
 LIBS += ${LIB_ZOLTAN}
 LIBS += ${LIB_VLSV}
 
+INC_FSGRID=-I../../submodules/fsgrid/
+INC_DCCRG=-I../../submodules/dccrg/
+
 all: main differentialFlux sigmaProfiles quadrupoleTests atmosphere.pdf
 .PHONY: clean quadrupoleTests
 
@@ -18,7 +21,7 @@ clean:
 ionosphere.o: ../../sysboundary/ionosphere.h ../../sysboundary/ionosphere.cpp ../../backgroundfield/backgroundfield.h ../../projects/project.h
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c ../../sysboundary/ionosphere.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN} ${INC_VECTORCLASS} ${INC_PROFILE} ${INC_JEMALLOC} -Wno-comment
 
-sysboundarycondition.o: ../../sysboundary/sysboundarycondition.h ../../sysboundary/sysboundarycondition.cpp ../../sysboundary/donotcompute.h ../../sysboundary/donotcompute.cpp ../../sysboundary/ionosphere.h ../../sysboundary/ionosphere.cpp ../../sysboundary/copysphere.h ../../sysboundary/copysphere.cpp ../../sysboundary/outflow.h ../../sysboundary/outflow.cpp ../../sysboundary/setmaxwellian.h ../../sysboundary/setmaxwellian.cpp ../../sysboundary/setbyuser.h ../../sysboundary/setbyuser.cpp
+sysboundarycondition.o: ../../sysboundary/sysboundarycondition.h ../../sysboundary/sysboundarycondition.cpp ../../sysboundary/donotcompute.h ../../sysboundary/donotcompute.cpp ../../sysboundary/ionosphere.h ../../sysboundary/ionosphere.cpp ../../sysboundary/copysphere.h ../../sysboundary/copysphere.cpp ../../sysboundary/outflow.h ../../sysboundary/outflow.cpp ../../sysboundary/setmaxwellian.h ../../sysboundary/setmaxwellian.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c ../../sysboundary/sysboundarycondition.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN} ${INC_PROFILE} ${INC_JEMALLOC}
 
 parameters.o: ../../parameters.h ../../parameters.cpp ../../readparameters.h
@@ -60,8 +63,8 @@ common.o: ../../common.h ../../common.cpp
 datareducer.o: ../../datareduction/datareducer.h ../../datareduction/datareductionoperator.h ../../datareduction/datareducer.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c ../../datareduction/datareducer.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_MPI} ${INC_BOOST} ${INC_EIGEN} ${INC_VLSV} ${INC_FSGRID} ${INC_JEMALLOC} ${INC_PROFILE}
 
-datareductionoperator.o:  ../../parameters.h ../../datareduction/datareductionoperator.h ../../datareduction/datareductionoperator.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c ../../datareduction/datareductionoperator.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_MPI} ${INC_BOOST} ${INC_EIGEN} ${INC_VLSV} ${INC_FSGRID} ${INC_PROFILE} ${INC_JEMALLOC}
+datareductionoperator.o:  ../../parameters.h ../../datareduction/datareductionoperator.h ../../datareduction/datareductionoperator.cpp 
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c ../../datareduction/datareductionoperator.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_MPI} ${INC_BOOST} ${INC_EIGEN} ${INC_VLSV} ${INC_FSGRID} ${INC_PROFILE} ${INC_JEMALLOC} ${INC_VECTORCLASS}
 
 fs_common.o: ../../fieldsolver/fs_limiters.h ../../fieldsolver/fs_limiters.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c ../../fieldsolver/fs_common.cpp -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_FSGRID} ${INC_PROFILE} ${INC_ZOLTAN} ${INC_JEMALLOC}

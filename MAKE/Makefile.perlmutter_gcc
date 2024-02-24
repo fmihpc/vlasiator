@@ -27,7 +27,9 @@ CC_BRAND_VERSION = 11.2.0
 CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -mfma -mavx2
 testpackage: CXXFLAGS = -g -O2 -fopenmp -funroll-loops -std=c++20 -mno-fma -mno-avx2 -mno-avx
 
-MATHFLAGS = -ffast-math
+MATHFLAGS = -ffast-math -fno-finite-math-only
+testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
+
 LDFLAGS = -lrt -fopenmp -lgomp
 LIB_MPI = -lgomp
 
@@ -81,6 +83,6 @@ INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
 
 #header libraries
 
-INC_FSGRID = -I$(LIBRARY_PREFIX_HEADERS)/fsgrid/
-INC_DCCRG = -I$(LIBRARY_PREFIX_HEADERS)/dccrg/
-INC_VECTORCLASS = -I$(LIBRARY_PREFIX_HEADERS)/vectorclass/
+INC_FSGRID = -I./submodules/fsgrid
+INC_DCCRG = -I./submodules/dccrg
+INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/

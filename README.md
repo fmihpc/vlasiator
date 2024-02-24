@@ -2,6 +2,7 @@
 ![](https://github.com/fmihpc/vlasiator/blob/master/doc/artwork/logo_black.png?raw=true)
 
 Vlasiator - ten letters you can count on
+
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6782211.svg)](https://doi.org/10.5281/zenodo.6782211) 
 
 ## Code description
@@ -17,3 +18,5 @@ See the [wiki](https://github.com/fmihpc/vlasiator/wiki) for build instructions 
 ## Paper references
 - [Palmroth, M., Ganse, U., Pfau-Kempf, Y., Battarbee, M., Turc, L., Brito, T., Grandin, M., Hoilijoki, S., Sandroos, A. & von Alfthan, S. (2018). Vlasov methods in space physics and astrophysics. Living Reviews in Computational Astrophysics, 4, 1. doi: 10.1007/s41115-018-0003-2](https://link.springer.com/article/10.1007/s41115-018-0003-2)
 - [von Alfthan, S., Pokhotelov, D., Kempf, Y., Hoilijoki, S., Honkonen, I., Sandroos, A. & Palmroth, M. (2014). Vlasiator: First global hybrid-Vlasov simulations of Earth's foreshock and magnetosheath . Journal of Atmospheric and Solar-Terrestrial Physics , 120, 24 - 35. doi: http://dx.doi.org/10.1016/j.jastp.2014.08.012](http://www.sciencedirect.com/science/article/pii/S1364682614001916)
+
+[<img src="https://github.com/zulip/zulip/blob/main/static/images/logo/zulip-icon-128x128.png" width="32"/>](https://zulip.com) Sponsored by Zulip, an open-source modern team chat app designed to keep both live and asynchronous conversations organized.

@@ -62,7 +62,9 @@ CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++17 -mavx -march=znver2 #-flto
 testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -mavx -march=znver2 -DIONOSPHERE_SORTED_SUMS
 CXXFLAGS += -Wall -Wextra -Wno-unused
 
-MATHFLAGS = -ffast-math
+MATHFLAGS = -ffast-math -fno-finite-math-only
+testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
+
 LDFLAGS = -lrt -lgfortran -std=c++17 -lgomp
 LIB_MPI = -lgomp -lmpi
 
@@ -111,7 +113,7 @@ LIB_PAPI = -lpapi
 
 #header libraries
 INC_EIGEN = -isystem $(LIBRARY_PREFIX)/ -isystem $(LIBRARY_PREFIX)/Eigen/
-INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid/
-INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg_dAMR/
-INC_VECTORCLASS = -isystem $(LIBRARY_PREFIX)/vectorclass/
+INC_FSGRID = -I./submodules/fsgrid/
+INC_DCCRG = -I./submodules/dccrg/
+INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/
 

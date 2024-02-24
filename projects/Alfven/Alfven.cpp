@@ -65,6 +65,7 @@ namespace projects {
          RP::add(pop + "_Alfven.rho", "Number density (m^-3)", 1.0e8);
          RP::add(pop + "_Alfven.Temperature", "Temperature (K)", 0.86456498092);
          RP::add(pop + "_Alfven.A_vel", "Amplitude of the velocity perturbation", 0.1);
+
       }
    }
 
@@ -123,13 +124,10 @@ namespace projects {
       creal y = cellParams[CellParams::YCRD];
       creal dy = cellParams[CellParams::DY];
       
-      Real dBxavg, dByavg, dBzavg;
-      dBxavg = dByavg = dBzavg = 0.0;
       Real ksi = ((x + 0.5 * dx)  * cos(this->ALPHA) + (y + 0.5 * dy) * sin(this->ALPHA)) / this->WAVELENGTH;
-      dBxavg += sin(2.0 * M_PI * ksi);
-      dByavg += sin(2.0 * M_PI * ksi);
-      dBzavg += cos(2.0 * M_PI * ksi);
-      
+      Real dBxavg = sin(2.0 * M_PI * ksi);
+      Real dByavg = sin(2.0 * M_PI * ksi);
+      Real dBzavg = cos(2.0 * M_PI * ksi);
    }
    
    void Alfven::setProjectBField(
@@ -143,21 +141,18 @@ namespace projects {
          auto localSize = perBGrid.getLocalSize().data();
          
 #pragma omp parallel for collapse(3)
-         for (int x = 0; x < localSize[0]; ++x) {
-            for (int y = 0; y < localSize[1]; ++y) {
-               for (int z = 0; z < localSize[2]; ++z) {
+         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
+            for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
+               for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
                   const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
-                  
-                  Real dBxavg, dByavg, dBzavg;
-                  dBxavg = dByavg = dBzavg = 0.0;
-                  Real d_x = perBGrid.DX;
-                  Real d_y = perBGrid.DY;
-                  
-                  Real ksi = ((xyz[0] + 0.5 * d_x)  * cos(this->ALPHA) + (xyz[1] + 0.5 * d_y) * sin(this->ALPHA)) / this->WAVELENGTH;
-                  dBxavg += sin(2.0 * M_PI * ksi);
-                  dByavg += sin(2.0 * M_PI * ksi);
-                  dBzavg += cos(2.0 * M_PI * ksi);
+                  Real dx = perBGrid.DX;
+                  Real dy = perBGrid.DY;
+                  Real ksi = ((xyz[0] + 0.5 * dx)  * cos(this->ALPHA) + (xyz[1] + 0.5 * dy) * sin(this->ALPHA)) / this->WAVELENGTH;
+                  Real dBxavg = sin(2.0 * M_PI * ksi);
+                  Real dByavg = sin(2.0 * M_PI * ksi);
+                  Real dBzavg = cos(2.0 * M_PI * ksi);
+
                   cell->at(fsgrids::bfield::PERBX) = this->B0 * cos(this->ALPHA) - this->A_MAG * this->B0 * sin(this->ALPHA) * dBxavg;
                   cell->at(fsgrids::bfield::PERBY) = this->B0 * sin(this->ALPHA) + this->A_MAG * this->B0 * cos(this->ALPHA) * dByavg;
                   cell->at(fsgrids::bfield::PERBZ) = this->B0 * this->A_MAG * dBzavg;

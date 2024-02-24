@@ -115,7 +115,7 @@ LIB_PROFILE = -L$(LIBRARY_PREFIX2)/phiprof_nvcc/lib -lphiprof -Xlinker=-rpath=$(
 #======== Header-only Libraries ===========
 
 INC_EIGEN = -isystem $(LIBRARY_PREFIX)/eigen
-INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg
-INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid
-#INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass/
+INC_FSGRID = -I./submodules/fsgrid
+INC_DCCRG = -I./submodules/dccrg
+#INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/
 INC_HASHINATOR = -I$(HOME)/git/hashinator/

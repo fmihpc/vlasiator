@@ -42,7 +42,7 @@ Real projects::MultiPeak::rhoRnd;
 
 namespace projects {
    MultiPeak::MultiPeak(): TriAxisSearch() { }
-   
+
    MultiPeak::~MultiPeak() { }
 
    bool MultiPeak::initialize(void) {
@@ -116,10 +116,10 @@ namespace projects {
 
          speciesParams.push_back(sP);
       }
-      
+
       string densModelString;
       RP::get("MultiPeak.densityModel",densModelString);
-      
+
       if (densModelString == "uniform") densityModel = Uniform;
       else if (densModelString == "testcase") densityModel = TestCase;
    }
@@ -134,15 +134,15 @@ namespace projects {
       for (uint i=0; i<sP.numberOfPeaks; ++i) {
          value += (sP.rho[i] + sP.rhoPertAbsAmp[i] * rhoRnd)
                * pow(mass / (2.0 * M_PI * kb ), 1.5) * 1.0
-               / sqrt(sP.Tx[i]*sP.Ty[i]*sP.Tz[i]) 
-               * exp(- mass * (pow(vx - sP.Vx[i], 2.0) / (2.0 * kb * sP.Tx[i]) 
-                             + pow(vy - sP.Vy[i], 2.0) / (2.0 * kb * sP.Ty[i]) 
+               / sqrt(sP.Tx[i]*sP.Ty[i]*sP.Tz[i])
+               * exp(- mass * (pow(vx - sP.Vx[i], 2.0) / (2.0 * kb * sP.Tx[i])
+                             + pow(vy - sP.Vy[i], 2.0) / (2.0 * kb * sP.Ty[i])
                              + pow(vz - sP.Vz[i], 2.0) / (2.0 * kb * sP.Tz[i])));
       }
       return value;
    }
 
-   Real MultiPeak::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, 
+   Real MultiPeak::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz,
                                          creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,
                                          const uint popID) const {
       Real rhoFactor = 1.0;
@@ -160,7 +160,6 @@ namespace projects {
             rhoFactor = 1.0;
             break;
       }
-      
       return rhoFactor * getDistribValue(vx+0.5*dvx,vy+0.5*dvy,vz+0.5*dvz,dvx,dvy,dvz,popID);
    }
 
@@ -179,28 +178,28 @@ namespace projects {
       bgField.initialize(this->Bx,
                          this->By,
                          this->Bz);
-      
+
       setBackgroundField(bgField, BgBGrid);
-      
+
       if(!P::isRestart) {
          auto localSize = perBGrid.getLocalSize().data();
-         
+
 #pragma omp parallel for collapse(3)
-         for (int x = 0; x < localSize[0]; ++x) {
-            for (int y = 0; y < localSize[1]; ++y) {
-               for (int z = 0; z < localSize[2]; ++z) {
+         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
+            for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
+               for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
                   const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
                   const int64_t cellid = perBGrid.GlobalIDForCoords(x, y, z);
                   std::default_random_engine rndState;
                   setRandomSeed(cellid,rndState);
-                  
+
                   if (this->lambda != 0.0) {
                      cell->at(fsgrids::bfield::PERBX) = this->dBx*cos(2.0 * M_PI * xyz[0] / this->lambda);
                      cell->at(fsgrids::bfield::PERBY) = this->dBy*sin(2.0 * M_PI * xyz[0] / this->lambda);
                      cell->at(fsgrids::bfield::PERBZ) = this->dBz*cos(2.0 * M_PI * xyz[0] / this->lambda);
                   }
-                  
+
                   cell->at(fsgrids::bfield::PERBX) += this->magXPertAbsAmp * (0.5 - getRandomNumber(rndState));
                   cell->at(fsgrids::bfield::PERBY) += this->magYPertAbsAmp * (0.5 - getRandomNumber(rndState));
                   cell->at(fsgrids::bfield::PERBZ) += this->magZPertAbsAmp * (0.5 - getRandomNumber(rndState));
@@ -209,7 +208,7 @@ namespace projects {
          }
       }
    }
-   
+
    std::vector<std::array<Real, 3> > MultiPeak::getV0(
                                                 creal x,
                                                 creal y,
@@ -224,5 +223,5 @@ namespace projects {
       }
       return centerPoints;
    }
-   
+
 }// namespace projects

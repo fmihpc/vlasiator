@@ -906,8 +906,8 @@ namespace SBC {
                Real ne = nodes[n].electronDensity();
                Real electronTemp = nodes[n].electronTemperature();
                Real temperature_keV = (physicalconstants::K_B / physicalconstants::CHARGE) / 1000. * electronTemp;
-               if(std::isnan(energy_keV) || std::isnan(temperature_keV)) {
-                  cerr << "(ionosphere) NaN encountered in conductivity calculation: " << endl
+               if(!(std::isfinite(energy_keV) && std::isfinite(temperature_keV))) {
+                  cerr << "(ionosphere) NaN or inf encountered in conductivity calculation: " << endl
                      << "   `-> DeltaPhi     = " << nodes[n].deltaPhi()/1000. << " keV" << endl
                      << "   `-> energy_keV   = " << energy_keV << endl
                      << "   `-> ne           = " << ne << " m^-3" << endl
@@ -1146,7 +1146,7 @@ namespace SBC {
             }
 
             // Local cell
-            std::array<int,3> lfsc = getLocalFsGridCellIndexForCoord(technicalGrid,nodes[n].xMapped);
+            std::array<FsGridTools::FsIndex_t,3> lfsc = getLocalFsGridCellIndexForCoord(technicalGrid,nodes[n].xMapped);
             if(lfsc[0] == -1 || lfsc[1] == -1 || lfsc[2] == -1) {
                continue;
             }
@@ -2362,12 +2362,12 @@ namespace SBC {
       }
    }
 
-   bool Ionosphere::initSysBoundary(
+   void Ionosphere::initSysBoundary(
       creal& t,
       Project &project
    ) {
       getParameters();
-      isThisDynamic = false;
+      dynamic = false;
 
       // Sanity check: the ionosphere only makes sense in 3D simulations
       if(P::xcells_ini == 1 || P::ycells_ini == 1 || P::zcells_ini == 1) {
@@ -2441,8 +2441,6 @@ namespace SBC {
       // iniSysBoundary is only called once, generateTemplateCell must
       // init all particle species
       generateTemplateCell(project);
-
-      return true;
    }
 
    static Real getR(creal x,creal y,creal z, uint geometry, Real center[3]) {
@@ -2474,7 +2472,7 @@ namespace SBC {
       return r;
    }
 
-   bool Ionosphere::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   void Ionosphere::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
       const vector<CellID>& cells = getLocalCells();
       for(uint i=0; i<cells.size(); i++) {
@@ -2495,13 +2493,13 @@ namespace SBC {
          }
       }
 
-      return true;
    }
 
-   bool Ionosphere::applyInitialState(
-      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   void Ionosphere::applyInitialState(
+      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
       Project &project
    ) {
       const vector<CellID>& cells = getLocalCells();
@@ -2522,7 +2520,6 @@ namespace SBC {
          }
       }
       gpuClear();
-      return true;
    }
 
    void Ionosphere::gpuClear() {
@@ -2548,7 +2545,7 @@ namespace SBC {
       creal dx = technicalGrid.DX;
       creal dy = technicalGrid.DY;
       creal dz = technicalGrid.DZ;
-      const std::array<int, 3> globalIndices = technicalGrid.getGlobalIndices(i,j,k);
+      const std::array<FsGridTools::FsIndex_t, 3> globalIndices = technicalGrid.getGlobalIndices(i,j,k);
       creal x = P::xmin + (convert<Real>(globalIndices[0])+0.5)*dx;
       creal y = P::ymin + (convert<Real>(globalIndices[1])+0.5)*dy;
       creal z = P::zmin + (convert<Real>(globalIndices[2])+0.5)*dz;
@@ -2813,12 +2810,13 @@ namespace SBC {
     */
    Real Ionosphere::fieldSolverBoundaryCondMagneticField(
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & bgbGrid,
       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
       cint i,
       cint j,
       cint k,
-      creal& dt,
-      cuint& component
+      creal dt,
+      cuint component
    ) {
       if (technicalGrid.get(i,j,k)->sysBoundaryLayer == 1) {
          switch(component) {
@@ -3043,8 +3041,8 @@ namespace SBC {
       cint i,
       cint j,
       cint k,
-      cuint& RKCase,
-      cuint& component
+      cuint RKCase,
+      cuint component
    ) {
       this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, component);
       return;
@@ -3055,7 +3053,7 @@ namespace SBC {
       cint i,
       cint j,
       cint k,
-      cuint& component
+      cuint component
    ) {
       // FIXME This should be OK as the BVOL derivatives are only used for Lorentz force JXB, which is not applied on the ionosphere cells.
       this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
@@ -3119,7 +3117,7 @@ namespace SBC {
    }
 
    void Ionosphere::vlasovBoundaryCondition(
-      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
       const uint popID,
       const bool calculate_V_moments
@@ -3466,8 +3464,8 @@ namespace SBC {
          // Block adjustment is done on the GPU, but copying over data from cells is still done on Host
          templateCell.prefetchDevice();
          #endif
-         // Could remove cells without content on next command?
-         templateCell.adjustSingleCellVelocityBlocks(popID);//,true);
+         // let's get rid of blocks not fulfilling the criteria here to save memory.
+         templateCell.adjustSingleCellVelocityBlocks(popID,true);
          #ifdef USE_GPU
          templateCell.prefetchHost();
          #endif
@@ -3574,6 +3572,12 @@ namespace SBC {
    }
 
    std::string Ionosphere::getName() const {return "Ionosphere";}
+   void Ionosphere::getFaces(bool *faces) {}
+
+   void Ionosphere::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                                FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+                                FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+                                creal t) {}
 
    uint Ionosphere::getIndex() const {return sysboundarytype::IONOSPHERE;}
 }
