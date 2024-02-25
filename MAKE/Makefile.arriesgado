@@ -1,0 +1,59 @@
+# Makefile for the arriesgado RISCV cluster at BSC
+#
+# Note:
+# o Load modules:
+#   module load boost eigen papi openmpi
+# o Zoltan's configure script requires a "--build=arm-linux-gnu" parameter.
+#   (Yes, this needs to be arm, not riscv!)
+
+CMP = mpic++
+LNK = mpic++
+
+#======== Vectorization ==========
+#Set vector backend type for vlasov solvers, sets precision and length. 
+#Options: 
+# AVX:      VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX512:   VEC8D_AGNER, VEC16F_AGNER
+# Fallback: VEC4D_FALLBACK, VEC4F_FALLBACK, VEC8F_FALLBACK
+
+ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
+#Single-precision        
+        VECTORCLASS = VEC8F_FALLBACK
+        INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/../vlasiator/vlasovsolver
+else
+#Double-precision
+#       VECTORCLASS = VEC4D_AGNER
+#       INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass
+        VECTORCLASS = VEC4D_FALLBACK
+        INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/../vlasiator/vlasovsolver
+endif
+
+FLAGS =
+# note: std was c++11
+CXXFLAGS = -O1 -std=c++17 -W -Wall -pedantic -Wno-unused -Wno-unused-parameter -Wno-missing-braces  -fopenmp -march=rv64imafdc -isystem /usr/lib/gcc/riscv64-linux-gnu/11/include/
+MATHFLAGS = -ffast-math -fno-finite-math-only
+testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
+LDFLAGS = -fopenmp
+LIB_MPI =
+# LIB_MPI = 
+
+LIBRARY_PREFIX = libraries-arriesgado
+
+INC_BOOST =
+LIB_BOOST = ${BOOST_LIBS} -lboost_program_options
+
+INC_ZOLTAN = -I${LIBRARY_PREFIX}/include
+LIB_ZOLTAN = -L${LIBRARY_PREFIX}/lib -lzoltan
+
+INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv
+LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv
+
+INC_DCCRG = -I./submodules/dccrg
+
+INC_FSGRID = -I./submodules/fsgrid
+
+LIB_PROFILE = -L${LIBRARY_PREFIX}/phiprof/lib -lphiprof -Wl,-rpath=${LIBRARY_PREFIX}/lib 
+INC_PROFILE = -I${LIBRARY_PREFIX}/phiprof/include
+INC_TOPO =
+
+INC_EIGEN = ${EIGEN3_INCL}

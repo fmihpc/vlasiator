@@ -53,11 +53,11 @@ LIB_JEMALLOC = #-L$(LIBRARY_PREFIX)/lib -ljemalloc
 
 ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
 #Single-precision        
-        INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/version1
+        INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/
 	VECTORCLASS = VEC4F_FALLBACK
 else
 #Double-precision
-        INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/version1
+        INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/
 	VECTORCLASS = VEC4D_FALLBACK
 endif
 
@@ -74,7 +74,10 @@ FLAGS =
 # Debug flags:
 #CXXFLAGS = -g  -funroll-loops -std=c++17 -fopenmp -W -Wall -pedantic -Wno-unused -fabi-version=0 -mavx
 CXXFLAGS = -O3  -funroll-loops -std=c++17 -fopenmp -W -Wall -Wno-unused -fabi-version=0 -mavx
-MATHFLAGS = -ffast-math
+
+MATHFLAGS = -ffast-math -fno-finite-math-only
+testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
+
 LDFLAGS = -L $(HOME)/lib
 LIB_MPI = -lgomp 
 
@@ -94,10 +97,9 @@ LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/Zoltan/build/lib -lzoltan
 INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv
 LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv
 
-INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg
+INC_DCCRG = -I./submodules/dccrg
 
-INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid
-
+INC_FSGRID = -I./submodules/fsgrid
 
 INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
 LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX)/phiprof/lib

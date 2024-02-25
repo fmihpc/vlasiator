@@ -367,9 +367,9 @@ namespace projects {
          auto localSize = perBGrid.getLocalSize().data();
       
 #pragma omp parallel for collapse(3)
-         for (int x = 0; x < localSize[0]; ++x) {
-            for (int y = 0; y < localSize[1]; ++y) {
-               for (int z = 0; z < localSize[2]; ++z) {
+         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
+            for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
+               for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
                   const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
                   
@@ -429,7 +429,7 @@ namespace projects {
 //      const int bw3 = 2*(bw2 + VLASOV_STENCIL_WIDTH);
 
      // Calculate regions for refinement
-     if (P::amrMaxSpatialRefLevel > 0) {
+     if (P::amrMaxSpatialRefLevel > 0 && P::amrMaxAllowedSpatialRefLevel > 0) {
 	// L1 refinement.
 	for (uint i = 0; i < P::xcells_ini; ++i) {
 	   for (uint j = 0; j < P::ycells_ini; ++j) {
@@ -453,7 +453,7 @@ namespace projects {
 	mpiGrid.balance_load();
      }
 
-     if (P::amrMaxSpatialRefLevel > 1) {
+     if (P::amrMaxSpatialRefLevel > 1 && P::amrMaxAllowedSpatialRefLevel > 1) {
 	// L2 refinement.
 	for (uint i = 0; i < 2*P::xcells_ini; ++i) {
 	   for (uint j = 0; j < 2*P::ycells_ini; ++j) {
@@ -477,7 +477,7 @@ namespace projects {
 	mpiGrid.balance_load();
      }
 
-     if (P::amrMaxSpatialRefLevel > 2) {
+     if (P::amrMaxSpatialRefLevel > 2 && P::amrMaxAllowedSpatialRefLevel > 2) {
 	// L3 refinement.
 	for (uint i = 0; i < 4*P::xcells_ini; ++i) {
 	   for (uint j = 0; j < 4*P::ycells_ini; ++j) {
@@ -501,7 +501,7 @@ namespace projects {
 	mpiGrid.balance_load();
      }
 
-     if (P::amrMaxSpatialRefLevel > 3) {
+     if (P::amrMaxSpatialRefLevel > 3 && P::amrMaxAllowedSpatialRefLevel > 3) {
 	// L4 refinement.
 	for (uint i = 0; i < 8*P::xcells_ini; ++i) {
 	   for (uint j = 0; j < 8*P::ycells_ini; ++j) {

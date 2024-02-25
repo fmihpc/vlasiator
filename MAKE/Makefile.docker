@@ -24,7 +24,9 @@ FLAGS =
 CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -fabi-version=0 -mavx2
 testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -fabi-version=0  -mavx
 
-MATHFLAGS = -ffast-math
+MATHFLAGS = -ffast-math -fno-finite-math-only
+testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
+
 LDFLAGS = -g
 LIB_MPI = -lgomp
 
@@ -86,6 +88,6 @@ LIB_PAPI = -L$(LIBRARY_PREFIX)/papi/lib -lpapi
 #header libraries
 
 INC_EIGEN = -I/usr/include/eigen3
-INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg/
-INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass
-INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid
+INC_DCCRG = -I./submodules/dccrg
+INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/
+INC_FSGRID = -I./submodules/fsgrid

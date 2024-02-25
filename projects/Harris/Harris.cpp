@@ -99,7 +99,7 @@ namespace projects {
       creal& vx,creal& vy,creal& vz,
       creal& dvx,creal& dvy,creal& dvz,const uint popID
    ) const {
-      return getDistribValue(x+0.5*dx, y+0.5*dy, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, dvx, dvy, dvz, popID);
+      return getDistribValue(x+0.5*dx, y+0.5*dy, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, dvx, dvy, dvz, popID);      
    }
    
    void Harris::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
@@ -127,9 +127,9 @@ namespace projects {
          auto localSize = perBGrid.getLocalSize().data();
          
          #pragma omp parallel for collapse(3)
-         for (int x = 0; x < localSize[0]; ++x) {
-            for (int y = 0; y < localSize[1]; ++y) {
-               for (int z = 0; z < localSize[2]; ++z) {
+         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
+            for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
+               for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
                   const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
                   

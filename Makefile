@@ -1,5 +1,13 @@
 #set default architecture, can be overridden from the compile line
 ARCH = ${VLASIATOR_ARCH}
+
+# NB updating git submodules require e.g. using the --recurse-submodules flag, e.g.:
+# submodules currently include the header library fsgrid
+# git clone --recurse-submodules
+# git pull --recurse-submodules
+# or if you cloned without --recurse-submodules:
+# git submodule update --init --recursive
+
 #set FP precision to SP (single) or DP (double)
 FP_PRECISION = DP
 #Set floating point precision for distribution function to SPF (single) or DPF (double)
@@ -165,7 +173,7 @@ DEPS_COMMON = common.h common.cpp definitions.h mpiconversion.h logger.h object_
 
 OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipole.o vectordipole.o constantfield.o integratefunction.o \
 	datareducer.o datareductionoperator.o dro_populations.o \
-	donotcompute.o ionosphere.o copysphere.o outflow.o setbyuser.o setmaxwellian.o\
+	donotcompute.o ionosphere.o copysphere.o outflow.o inflow.o setmaxwellian.o\
 	fieldtracing.o arch_moments.o \
 	sysboundary.o sysboundarycondition.o particle_species.o\
 	project.o projectTriAxisSearch.o read_gaussian_population.o\
@@ -335,10 +343,10 @@ vlsv2silo:  ${DEPS_VLSVREADERINTERFACE} tools/vlsv2silo.cpp  ${OBJS_VLSVREADERIN
 	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsv2silo.cpp ${INC_SILO} ${INC_VLSV} -I$(CURDIR)
 	${LNK} -o vlsv2silo_${FP_PRECISION} vlsv2silo.o  ${OBJS_VLSVREADERINTERFACE} ${LIB_SILO} ${LIB_VLSV} ${LDFLAGS}
 
-vlsvdiff: tools/vlsvdiff.cpp
+vlsvdiff: ${DEPS_VLSVREADERINTERFACE} tools/vlsvdiff.cpp ${OBJS_VLSVREADEREXTRA} ${OBJS_VLSVREADERINTERFACE}
 	@echo [CC] $<
-	$(SILENT)$(CMP) $(CXXEXTRAFLAGS) ${MATHFLAGS} ${FLAGS} -c tools/vlsvdiff.cpp ${INC_DCCRG} ${INC_VLSV} ${INC_FSGRID}
-	$(SILENT)${LNK} ${LDFLAGS} -o vlsvdiff_${FP_PRECISION} vlsvdiff.o ${OBJS_VLSVREADERINTERFACE} ${LIB_VLSV} ${LIBS}
+	$(SILENT)$(CMP) $(CXXEXTRAFLAGS) ${MATHFLAGS} ${FLAGS} -c tools/vlsvdiff.cpp ${INC_VLSV} ${INC_FSGRID} -I$(CURDIR)
+	$(SILENT)${LNK} ${LDFLAGS} -o vlsvdiff_${FP_PRECISION} vlsvdiff.o ${OBJS_VLSVREADERINTERFACE} ${LIB_VLSV} ${LIBS}}
 
 vlsvreaderinterface.o:  tools/vlsvreaderinterface.h tools/vlsvreaderinterface.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsvreaderinterface.cpp ${INC_VLSV} -I$(CURDIR)

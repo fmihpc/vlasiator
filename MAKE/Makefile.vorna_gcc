@@ -38,7 +38,8 @@ CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++17 -mavx
 testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -mavx
 CXXFLAGS += -Wall -Wextra -Wno-unused
 
-MATHFLAGS = -ffast-math
+MATHFLAGS = -ffast-math -fno-finite-math-only
+testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
 LDFLAGS = -lrt -lgfortran -std=c++17
 LIB_MPI = -lgomp
 
@@ -90,9 +91,9 @@ LIB_PAPI = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MP
 INC_PAPI = -isystem $(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/vorna/papi/include
 
 #header libraries
-INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid/
-INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg/
-INC_VECTORCLASS = -isystem $(LIBRARY_PREFIX)/vectorclass/
+INC_FSGRID = -I./submodules/fsgrid
+INC_DCCRG = -I./submodules/dccrg
+INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/
 INC_EIGEN = -isystem $(LIBRARY_PREFIX)/ -I$(LIBRARY_PREFIX)/Eigen
 
 
