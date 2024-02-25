@@ -45,9 +45,9 @@ LNK = mpic++
 # Geforce GTX 1060 6GB is compute version 61
 # https://arnon.dk/matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/
 
-CXXFLAGS = -g -O2 -x cu -std=c++17 -Xcompiler -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_60,code=sm_60 -Xcompiler -fopenmp --generate-line-info -line-info -Xcompiler="-fpermissive" -Xptxas -v --extra-device-vectorization
+CXXFLAGS = -g -O3 -x cu -std=c++17 -Xcompiler -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_60,code=sm_60 -Xcompiler -fopenmp --generate-line-info -line-info -Xcompiler="-fpermissive" -Xptxas -v --extra-device-vectorization
 
-testpackage: CXXFLAGS = -g -O2 -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_60,code=sm_60 -Xcompiler -fopenmp --prec-sqrt=true --prec-div=true --ftz=false --fmad=false --generate-line-info -line-info -Xcompiler="-fpermissive"
+testpackage: CXXFLAGS = -g -O2 -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_60,code=sm_60 -Xcompiler -fopenmp --generate-line-info -line-info -Xcompiler="-fpermissive"
 
 # Tell mpic++ to use nvcc for all compiling
 CMP = OMPI_CXX='nvcc' OMPI_CXXFLAGS='' mpic++
@@ -58,6 +58,9 @@ CMP = OMPI_CXX='nvcc' OMPI_CXXFLAGS='' mpic++
 LNK = OMPI_CXX='nvcc' OMPI_CXXFLAGS='-arch=sm_60' OMPI_LIBS='-L/usr/lib/x86_64-linux-gnu/openmpi/lib' OMPI_LDFLAGS='-lmpi_cxx -lmpi' mpic++
 
 MATHFLAGS = --use_fast_math
+# nvcc fast_math does not assume only finite math
+testpackage: MATHFLAGS = --prec-sqrt=true --prec-div=true --ftz=false --fmad=false
+
 LDFLAGS = -O2 -g -lnvToolsExt
 LIB_MPI = -lgomp
 

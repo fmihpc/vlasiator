@@ -422,6 +422,25 @@ int main(int argn,char* args[]) {
       exit(1);
    }
 
+   // Verify correct handling of floating point exceptions
+   // see https://github.com/fmihpc/vlasiator/pull/845
+   {
+      double qnan = std::numeric_limits<double>::quiet_NaN();
+      double pinf = std::numeric_limits<double>::infinity();
+      double ninf = -std::numeric_limits<double>::infinity();
+      bool isnan1 = std::isnan(qnan);
+      bool isinf2 = std::isinf(pinf);
+      bool isinf3 = std::isinf(ninf);
+      bool isfinite1 = std::isfinite(qnan);
+      bool isfinite2 = std::isfinite(pinf);
+      bool isfinite3 = std::isfinite(ninf);
+      if (!isnan1||!isinf2||!isinf3||isfinite1||isfinite2||isfinite3) {
+      if (myRank == MASTER_RANK) {
+         cerr << "(MAIN) ERROR: Floating point exceptions not being catched!" << endl;
+      }
+      exit(1);
+      }
+   }
    //Get version and config info here
    std::string version;
    std::string config;
