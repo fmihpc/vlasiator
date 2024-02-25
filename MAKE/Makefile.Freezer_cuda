@@ -107,7 +107,9 @@ INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
 #======== Header-only Libraries ===========
 
 INC_EIGEN = -isystem $(LIBRARY_PREFIX)/eigen
-# DCCRG requires the version from PR #22
-INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg
-INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid
+INC_DCCRG = -I./submodules/dccrg
+INC_FSGRID = -I./submodules/fsgrid
+# Vectorclass only for CPU mode
+#INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/
+# Hashinator not yet as a submodule
 INC_HASHINATOR = -I$(LIBRARY_PREFIX)/hashinator
