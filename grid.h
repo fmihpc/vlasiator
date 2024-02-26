@@ -49,6 +49,8 @@ void initializeGrids(
    Project& project
 );
 
+void setPartitioningNeighborhoods(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+
 /*!
   \brief Balance load
 
