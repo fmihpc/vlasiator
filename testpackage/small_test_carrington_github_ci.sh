@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -t 01:30:00        # Run time (hh:mm:ss)
 #SBATCH --job-name=CI_testpackage
-##SBATCH -A spacephysics 
+##SBATCH -A spacephysics
 #SBATCH -M carrington
 # test short medium 20min1d 3d
 #SBATCH -p short
@@ -16,7 +16,7 @@
 # if 0 then we check the v1
 create_verification_files=0
 
-# folder for all reference data 
+# folder for all reference data
 reference_dir="/proj/group/spacephysics/vlasiator_testpackage/"
 cd $SLURM_SUBMIT_DIR
 #cd $reference_dir # don't run on /proj
@@ -174,7 +174,7 @@ for run in ${run_tests[*]}; do
    else
       newPerf="NA"
    fi
-   
+
    #print speedup if both refPerf and newPerf are numerical values
    speedup=$( echo $refPerf $newPerf |gawk '{if($2 == $2 + 0 && $1 == $1 + 0 ) print $1/$2; else print "NA"}')
    { {
@@ -193,89 +193,96 @@ for run in ${run_tests[*]}; do
    variables=(${variable_names[$run]// / })
    indices=(${variable_components[$run]// / })
 
-   for i in ${!variables[*]}
+   for vlsv in ${comparison_vlsv[$run]}
    do
-       if [[ "${variables[$i]}" == "fg_"* ]]
-       then
-           relativeValue=$($run_command_tools $diffbin --meshname=fsgrid  ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables[$i]} ${indices[$i]} |grep "The relative 0-distance between both datasets" |gawk '{print $8}'  )
-           absoluteValue=$($run_command_tools $diffbin --meshname=fsgrid  ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables[$i]} ${indices[$i]} |grep "The absolute 0-distance between both datasets" |gawk '{print $8}'  )
-           #print the results
-           echo "${variables[$i]}_${indices[$i]}                $absoluteValue                 $relativeValue    "
-   
-           # Also log to metrics file
-           echo "test_carrington{test=\"${test_name[$run]}\",var=\"${variables[$i]}\",index=\"${indices[$i]}\",diff=\"absolute\"} $absoluteValue" >> $GITHUB_WORKSPACE/metrics.txt
-           echo "test_carrington{test=\"${test_name[$run]}\",var=\"${variables[$i]}\",index=\"${indices[$i]}\",diff=\"relative\"} $relativeValue" >> $GITHUB_WORKSPACE/metrics.txt
+       echo "Comparing file ${result_dir}/${vlsv} against reference"
+       for i in ${!variables[*]}
+       do
+           if [[ "${variables[$i]}" == "fg_"* ]]
+           then
+               A=$( $run_command_tools $diffbin --meshname=fsgrid  ${result_dir}/${vlsv} ${vlsv_dir}/${vlsv} ${variables[$i]} ${indices[$i]} )
+               relativeValue=$(grep "The relative 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
+               absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
+               #print the results
+               echo "${variables[$i]}_${indices[$i]}                $absoluteValue                 $relativeValue    "
 
-            # Check if we have a new maximum error
-            if (( $( echo "$absoluteValue $MAXERR" | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
-               MAXERR=$absoluteValue
-               MAXERRVAR=${variables[$i]}
-            fi
-            # ... or new max relative error
-            if (( $( echo "$relativeValue $MAXREL" | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
-               MAXREL=$relativeValue
-               MAXRELVAR=${variables[$i]}
-            fi
-   
-       elif [[ "${variables[$i]}" == "ig_"* ]]
-       then
-           relativeValue=$($run_command_tools $diffbin --meshname=ionosphere  ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables[$i]} ${indices[$i]} |grep "The relative 0-distance between both datasets" |gawk '{print $8}'  )
-           absoluteValue=$($run_command_tools $diffbin --meshname=ionosphere  ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables[$i]} ${indices[$i]} |grep "The absolute 0-distance between both datasets" |gawk '{print $8}'  )
-           # print the results
-           echo "${variables[$i]}_${indices[$i]}                $absoluteValue                 $relativeValue    "
-   
-           # Also log to metrics file
-           echo "test_carrington{test=\"${test_name[$run]}\",var=\"${variables[$i]}\",index=\"${indices[$i]}\",diff=\"absolute\"} $absoluteValue" >> $GITHUB_WORKSPACE/metrics.txt
-           echo "test_carrington{test=\"${test_name[$run]}\",var=\"${variables[$i]}\",index=\"${indices[$i]}\",diff=\"relative\"} $relativeValue" >> $GITHUB_WORKSPACE/metrics.txt
+               # Also log to metrics file
+               echo "test_carrington{test=\"${test_name[$run]}\",var=\"${variables[$i]}\",index=\"${indices[$i]}\",diff=\"absolute\"} $absoluteValue" >> $GITHUB_WORKSPACE/metrics.txt
+               echo "test_carrington{test=\"${test_name[$run]}\",var=\"${variables[$i]}\",index=\"${indices[$i]}\",diff=\"relative\"} $relativeValue" >> $GITHUB_WORKSPACE/metrics.txt
 
-            # Check if we have a new maximum error
-            if (( $( echo "$absoluteValue $MAXERR" | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
-               MAXERR=$absoluteValue
-               MAXERRVAR=${variables[$i]}
-            fi
-            # ... or new max relative error
-            if (( $( echo "$relativeValue $MAXREL" | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
-               MAXREL=$relativeValue
-               MAXRELVAR=${variables[$i]}
-            fi
-   
-       elif [ ! "${variables[$i]}" == "proton" ]
-       then
-           relativeValue=$($run_command_tools $diffbin ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables[$i]} ${indices[$i]} |grep "The relative 0-distance between both datasets" |gawk '{print $8}'  )
-           absoluteValue=$($run_command_tools $diffbin ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables[$i]} ${indices[$i]} |grep "The absolute 0-distance between both datasets" |gawk '{print $8}'  )
-           #print the results
-           echo "${variables[$i]}_${indices[$i]}                $absoluteValue                 $relativeValue    "
-   
-           # Also log to metrics file
-           echo "test_carrington{test=\"${test_name[$run]}\",var=\"${variables[$i]}\",index=\"${indices[$i]}\",diff=\"absolute\"} $absoluteValue" >> $GITHUB_WORKSPACE/metrics.txt
-           echo "test_carrington{test=\"${test_name[$run]}\",var=\"${variables[$i]}\",index=\"${indices[$i]}\",diff=\"relative\"} $relativeValue" >> $GITHUB_WORKSPACE/metrics.txt
+               # Check if we have a new maximum error
+               if (( $( echo "$absoluteValue $MAXERR" | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
+                   MAXERR=$absoluteValue
+                   MAXERRVAR=${variables[$i]}
+               fi
+               # ... or new max relative error
+               if (( $( echo "$relativeValue $MAXREL" | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
+                   MAXREL=$relativeValue
+                   MAXRELVAR=${variables[$i]}
+               fi
 
-            # Check if we have a new maximum error
-            if (( $( echo "$absoluteValue $MAXERR" | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
-               MAXERR=$absoluteValue
-               MAXERRVAR=${variables[$i]}
-            fi
-            # ... or new max relative error
-            if (( $( echo "$relativeValue $MAXREL" | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
-               MAXREL=$relativeValue
-               MAXRELVAR=${variables[$i]}
-            fi
-   
-       elif [ "${variables[$i]}" == "proton" ]
-       then
-           echo "--------------------------------------------------------------------------------------------"
-           echo "   Distribution function diff                                                               "
-           echo "--------------------------------------------------------------------------------------------"
-           $run_command_tools $diffbin ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} proton 0
-       fi
+           elif [[ "${variables[$i]}" == "ig_"* ]]
+           then
+               A=$( $run_command_tools $diffbin --meshname=ionosphere  ${result_dir}/${vlsv} ${vlsv_dir}/${vlsv} ${variables[$i]} ${indices[$i]} )
+               relativeValue=$(grep "The relative 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
+               absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
+               # print the results
+               echo "${variables[$i]}_${indices[$i]}                $absoluteValue                 $relativeValue    "
 
-       # This loop runs in a subshell (because of the stdout and stderr capture below),
-       # so we save the variables to temp files
-       echo $MAXERR > $RUNNER_TEMP/MAXERR.txt
-       echo $MAXREL > $RUNNER_TEMP/MAXREL.txt
-       echo $MAXERRVAR > $RUNNER_TEMP/MAXERRVAR.txt
-       echo $MAXRELVAR > $RUNNER_TEMP/MAXRELVAR.txt
-       echo $speedup > $RUNNER_TEMP/speedup.txt
+               # Also log to metrics file
+               echo "test_carrington{test=\"${test_name[$run]}\",var=\"${variables[$i]}\",index=\"${indices[$i]}\",diff=\"absolute\"} $absoluteValue" >> $GITHUB_WORKSPACE/metrics.txt
+               echo "test_carrington{test=\"${test_name[$run]}\",var=\"${variables[$i]}\",index=\"${indices[$i]}\",diff=\"relative\"} $relativeValue" >> $GITHUB_WORKSPACE/metrics.txt
+
+               # Check if we have a new maximum error
+               if (( $( echo "$absoluteValue $MAXERR" | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
+                   MAXERR=$absoluteValue
+                   MAXERRVAR=${variables[$i]}
+               fi
+               # ... or new max relative error
+               if (( $( echo "$relativeValue $MAXREL" | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
+                   MAXREL=$relativeValue
+                   MAXRELVAR=${variables[$i]}
+               fi
+
+           elif [ ! "${variables[$i]}" == "proton" ]
+           then # Regular vg_ variable
+               A=$( $run_command_tools $diffbin ${result_dir}/${vlsv} ${vlsv_dir}/${vlsv} ${variables[$i]} ${indices[$i]} )
+               relativeValue=$(grep "The relative 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
+               absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
+               #print the results
+               echo "${variables[$i]}_${indices[$i]}                $absoluteValue                 $relativeValue    "
+
+               # Also log to metrics file
+               echo "test_carrington{test=\"${test_name[$run]}\",var=\"${variables[$i]}\",index=\"${indices[$i]}\",diff=\"absolute\"} $absoluteValue" >> $GITHUB_WORKSPACE/metrics.txt
+               echo "test_carrington{test=\"${test_name[$run]}\",var=\"${variables[$i]}\",index=\"${indices[$i]}\",diff=\"relative\"} $relativeValue" >> $GITHUB_WORKSPACE/metrics.txt
+
+               # Check if we have a new maximum error
+               if (( $( echo "$absoluteValue $MAXERR" | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
+                   MAXERR=$absoluteValue
+                   MAXERRVAR=${variables[$i]}
+               fi
+               # ... or new max relative error
+               if (( $( echo "$relativeValue $MAXREL" | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
+                   MAXREL=$relativeValue
+                   MAXRELVAR=${variables[$i]}
+               fi
+
+           elif [ "${variables[$i]}" == "proton" ]
+           then
+               echo "--------------------------------------------------------------------------------------------"
+               echo "   Distribution function diff                                                               "
+               echo "--------------------------------------------------------------------------------------------"
+               $run_command_tools $diffbin ${result_dir}/${vlsv} ${vlsv_dir}/${vlsv} proton 0
+           fi
+
+           # This loop runs in a subshell (because of the stdout and stderr capture below),
+           # so we save the variables to temp files
+           echo $MAXERR > $RUNNER_TEMP/MAXERR.txt
+           echo $MAXREL > $RUNNER_TEMP/MAXREL.txt
+           echo $MAXERRVAR > $RUNNER_TEMP/MAXERRVAR.txt
+           echo $MAXRELVAR > $RUNNER_TEMP/MAXRELVAR.txt
+           echo $speedup > $RUNNER_TEMP/speedup.txt
+       done
    done 2>&1 1>&3 3>&- | tee -a $GITHUB_WORKSPACE/stderr.txt; } 3>&1 1>&2 | tee -a $GITHUB_WORKSPACE/stdout.txt
 
    # Recover error variables
@@ -289,7 +296,7 @@ for run in ${run_tests[*]}; do
    if (( $( echo "$MAXERR 0." | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
       echo -e "<details><summary>:large_orange_diamond: ${test_name[$run]}: Nonzero diffs: : \`$MAXERRVAR\` has absolute error $MAXERR, \`$MAXRELVAR\` has relative error $MAXREL. Speedup: $speedup</summary>\n" >> $GITHUB_STEP_SUMMARY
       NONZEROTESTS=$((NONZEROTESTS+1))
-   else 
+   else
       echo -e "<details><summary>:heavy_check_mark: ${test_name[$run]}: Ran with zero diffs. Speedup: $speedup</summary>\n" >> $GITHUB_STEP_SUMMARY
       ZEROTESTS=$((ZEROTESTS+1))
    fi
@@ -353,4 +360,3 @@ elif [[ $NONZEROTESTS > 0 ]]; then
 else
    echo "conclusion=success" >> $GITHUB_WORKSPACE/testpackage_output_variables.txt
 fi
-
