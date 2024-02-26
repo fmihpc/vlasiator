@@ -405,7 +405,7 @@ bool P::addParameters() {
                         "ig_precipitation ig_deltaphi "+
                         "ig_inplanecurrent ig_b ig_e vg_drift vg_ionospherecoupling vg_connection vg_fluxrope fg_curvature "+
                         "vg_amr_drho vg_amr_du vg_amr_dpsq vg_amr_dbsq vg_amr_db vg_amr_alpha vg_amr_reflevel vg_amr_jperb "+
-                        "vg_amr_translate_comm vg_gridcoordinates fg_gridcoordinates ");
+                        "vg_amr_translate_comm vg_sysboundaries_comm vg_gridcoordinates fg_gridcoordinates ");
 
    RP::addComposing(
        "variables_deprecated.output",
@@ -928,7 +928,7 @@ void Parameters::getParameters() {
    RP::get("loadBalance.algorithm", P::loadBalanceAlgorithm);
    RP::get("loadBalance.partitioning_neighborhood", P::partitioningNeighborhoods);
 
-   if(P::partitioningNeighborhoods.empty()) {
+   if(P::partitioningNeighborhoods.empty() && (P::loadBalanceAlgorithm == "GRAPH" || P::loadBalanceAlgorithm == "HYPERGRAPH")) {
       P::partitioningNeighborhoods.push_back(FULL_NEIGHBORHOOD_ID);
    }
 

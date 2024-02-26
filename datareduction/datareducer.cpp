@@ -244,6 +244,13 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             continue;
          }
       }
+      if(P::systemWriteAllDROs || lowercase == "vg_sysboundaries_comm") { // Flag for sysboundaries vspace communication
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_sysboundaries_comm",CellParams::SYSBOUNDARIES_COMM, 1));
+         outputReducer->addMetadata(outputReducer->size()-1,"","","SysboundariesComm","1.0");
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
+      }
       if(P::systemWriteAllDROs || lowercase == "fg_rhom") { // Overall mass density (summed over all populations)
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_rhom",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
