@@ -210,6 +210,7 @@ namespace SBC {
 
       // Init all particle species
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         templateCell.clear(popID);
          // Interpolate is in setbyuser.cpp and .h
          interpolate(inputDataIndex, popID, t, &buffer[0]);
          rho = buffer[0];
