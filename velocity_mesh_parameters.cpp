@@ -101,7 +101,6 @@ void vmesh::MeshWrapper::initVelocityMeshes(const uint nMeshes) {
       vmesh::MeshParameters* vMesh = &(meshWrapper->velocityMeshes->at(i));
       vmesh::MeshParameters* vMeshIn = &(meshWrapper->velocityMeshesCreation->at(i));
 
-      vMesh->refLevelMaxAllowed = vMeshIn->refLevelMaxAllowed;
       // Limits
       vMesh->meshLimits[0] = vMeshIn->meshLimits[0];
       vMesh->meshLimits[1] = vMeshIn->meshLimits[1];

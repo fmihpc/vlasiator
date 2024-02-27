@@ -1,0 +1,30 @@
+name: Synchronize HLRS Gitlab data
+
+on:
+  push:
+    branches : ["dev","master","vlasiator_gpu"]
+
+jobs:
+  push_to_gitlab:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Add Gitlab Remote
+      run: |
+        git remote add gitlab https://oauth2:${token}@codehub.hlrs.de/coes/plasma-pepsc/uoh/vlasiator.git
+        git fetch gitlab
+      env:
+        token: ${{ secrets.GITLAB_ACCESS_TOKEN }}
+    - name: Update master
+      run: |
+        git push -f gitlab origin/master:master
+    - name: Update dev
+      run: |
+        git push -f gitlab origin/dev:dev
+    - name: Update Vlasiator_gpu
+      run: |
+        git push -f gitlab origin/vlasiator_gpu:vlasiator_gpu

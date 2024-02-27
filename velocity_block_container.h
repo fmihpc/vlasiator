@@ -112,11 +112,12 @@ namespace vmesh {
 
    inline VelocityBlockContainer::VelocityBlockContainer() {
 #ifdef USE_GPU
-      block_data = new split::SplitVector<Realf>(1);
-      parameters = new split::SplitVector<Real>(1);
+      const uint initCapacity = currentCapacity > 0 ? currentCapacity : 1;
+      block_data= new split::SplitVector<Realf>(initCapacity*WID3);
+      parameters= new split::SplitVector<Real>(initCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS);
 #else
-      block_data = new std::vector<Realf,aligned_allocator<Realf,WID3>>(1);
-      parameters = new std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS>>(1);
+      block_data = new std::vector<Realf,aligned_allocator<Realf,WID3>>(currentCapacity*WID3);
+      parameters = new std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS>>(currentCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS);
 #endif
       block_data->clear();
       parameters->clear();
@@ -131,18 +132,26 @@ namespace vmesh {
       if (parameters) delete parameters;
       block_data = NULL;
       parameters = NULL;
+      currentCapacity = 0;
+      numberOfBlocks = 0;
    }
 
    inline VelocityBlockContainer::VelocityBlockContainer(const VelocityBlockContainer& other) {
+      currentCapacity = other.currentCapacity;
+      numberOfBlocks = other.numberOfBlocks;
 #ifdef USE_GPU
-      // block_data= new split::SplitVector<Realf>(*(other.block_data));
-      // parameters= new split::SplitVector<Real>(*(other.parameters));
-      gpuStream_t stream = gpu_getStream();
-      block_data = new split::SplitVector<Realf>(other.block_data->capacity());
-      parameters = new split::SplitVector<Real>(other.block_data->capacity());
-      // Overwrite is like a copy assign but takes a stream
-      block_data->overwrite(*(other.block_data),stream);
-      parameters->overwrite(*(other.parameters),stream);
+      if (other.currentCapacity > 0) {
+         block_data = new split::SplitVector<Realf>(other.block_data->capacity());
+         parameters = new split::SplitVector<Real>(other.parameters->capacity());
+         // Overwrite is like a copy assign but takes a stream
+         gpuStream_t stream = gpu_getStream();
+         block_data->overwrite(*(other.block_data),stream);
+         parameters->overwrite(*(other.parameters),stream);
+      } else {
+         block_data= new split::SplitVector<Realf>(1*WID3);
+         parameters= new split::SplitVector<Real>(1*BlockParams::N_VELOCITY_BLOCK_PARAMS);
+         currentCapacity = 1;
+      }
 #else
       block_data = new std::vector<Realf,aligned_allocator<Realf,WID3>>(*(other.block_data));
       parameters = new std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS>>(*(other.parameters));
@@ -152,11 +161,13 @@ namespace vmesh {
    }
 
    inline const VelocityBlockContainer& VelocityBlockContainer::operator=(const VelocityBlockContainer& other) {
+      currentCapacity = other.currentCapacity;
+      numberOfBlocks = other.numberOfBlocks;
       #ifdef USE_GPU
-      gpuStream_t stream = gpu_getStream();
       block_data->reserve(other.block_data->capacity(), true, stream);
       parameters->reserve(other.parameters->capacity(), true, stream);
       // Overwrite is like a copy assign but takes a stream
+      gpuStream_t stream = gpu_getStream();
       block_data->overwrite(*(other.block_data),stream);
       parameters->overwrite(*(other.parameters),stream);
       #else
@@ -184,13 +195,14 @@ namespace vmesh {
    inline void VelocityBlockContainer::clear() {
 #ifdef USE_GPU
       gpuStream_t stream = gpu_getStream();
-      block_data->resize(1,true, stream);
-      block_data->shrink_to_fit(stream);
-      parameters->resize(1,true,stream);
-      parameters->shrink_to_fit(stream);
+      block_data->resize(1 * WID3,false);
+      block_data->shrink_to_fit();
+      parameters->resize(1 * BlockParams::N_VELOCITY_BLOCK_PARAMS,false);
+      parameters->shrink_to_fit();
+      currentCapacity = 1;
 #else
-      std::vector<Realf,aligned_allocator<Realf,WID3> > *dummy_data = new std::vector<Realf,aligned_allocator<Realf,WID3> >(1);
-      std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS> > *dummy_parameters = new std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS> >(1);
+      std::vector<Realf,aligned_allocator<Realf,WID3> > *dummy_data = new std::vector<Realf,aligned_allocator<Realf,WID3> >(1*WID3);
+      std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS> > *dummy_parameters = new std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS> >(1*BlockParams::N_VELOCITY_BLOCK_PARAMS);
       // initialization with zero capacity returns null pointers
       block_data->swap(*dummy_data);
       parameters->swap(*dummy_parameters);
@@ -218,8 +230,7 @@ namespace vmesh {
          if (source >= currentCapacityP) ok = false;
          if (target >= numberOfBlocks) ok = false;
          if (target >= currentCapacity) ok = false;
-         if (target >= numberOfBlocksP) ok = false;
-         if (target >= currentCapacityP) ok = false;
+         if (numberOfBlocks > currentCapacity) ok = false;
          if (source != numberOfBlocks-1) ok = false; // only allows moving from last entry
          if (source != numberOfBlocksP-1) ok = false;
          if (currentCapacityP != currentCapacity) ok = false;
@@ -381,6 +392,7 @@ namespace vmesh {
          if (blockLID >= numberOfBlocks) exitInvalidLocalID(blockLID);
          #else
          if (blockLID >= numberOfBlocks) exitInvalidLocalID(blockLID,"getParameters");
+         if (blockLID >= parameters->size()/BlockParams::N_VELOCITY_BLOCK_PARAMS) exitInvalidLocalID(blockLID,"getParameters 2");
          #endif
       #endif
       return parameters->data() + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
@@ -393,6 +405,7 @@ namespace vmesh {
          if (blockLID >= numberOfBlocks) exitInvalidLocalID(blockLID);
          #else
          if (blockLID >= numberOfBlocks) exitInvalidLocalID(blockLID,"const getParameters const");
+         if (blockLID >= parameters->size()/BlockParams::N_VELOCITY_BLOCK_PARAMS) exitInvalidLocalID(blockLID,"const getParameters const 2");
          #endif
       #endif
       return parameters->data() + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;

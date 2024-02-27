@@ -55,20 +55,19 @@ namespace projects {
       // ss<<" minValue "<<minValue<<" x "<<x<<" y "<<y<<" z "<<z<<" dx "<<dx<<" dy "<<dy<<" dz "<<dz<<std::endl;
       // std::cerr<<ss.str();
       // ss.str(std::string());
-      const uint8_t refLevel = 0;
-      creal dvxBlock = cell->get_velocity_grid_block_size(popID,refLevel)[0];
-      creal dvyBlock = cell->get_velocity_grid_block_size(popID,refLevel)[1];
-      creal dvzBlock = cell->get_velocity_grid_block_size(popID,refLevel)[2];
-      creal dvxCell = cell->get_velocity_grid_cell_size(popID,refLevel)[0];
-      creal dvyCell = cell->get_velocity_grid_cell_size(popID,refLevel)[1];
-      creal dvzCell = cell->get_velocity_grid_cell_size(popID,refLevel)[2];
+      creal dvxBlock = cell->get_velocity_grid_block_size(popID)[0];
+      creal dvyBlock = cell->get_velocity_grid_block_size(popID)[1];
+      creal dvzBlock = cell->get_velocity_grid_block_size(popID)[2];
+      creal dvxCell = cell->get_velocity_grid_cell_size(popID)[0];
+      creal dvyCell = cell->get_velocity_grid_cell_size(popID)[1];
+      creal dvzCell = cell->get_velocity_grid_cell_size(popID)[2];
       // ss<<" Blocks  dx "<<dvxBlock<<" dy "<<dvyBlock<<" dz "<<dvxBlock<<"  cells dx "<<dvxCell<<" dy "<<dvyCell<<" dz "<<dvzCell<<std::endl;
       // std::cerr<<ss.str();
       // ss.str(std::string());
 
-      const size_t vxblocks_ini = cell->get_velocity_grid_length(popID,refLevel)[0];
-      const size_t vyblocks_ini = cell->get_velocity_grid_length(popID,refLevel)[1];
-      const size_t vzblocks_ini = cell->get_velocity_grid_length(popID,refLevel)[2];
+      const size_t vxblocks_ini = cell->get_velocity_grid_length(popID)[0];
+      const size_t vyblocks_ini = cell->get_velocity_grid_length(popID)[1];
+      const size_t vzblocks_ini = cell->get_velocity_grid_length(popID)[2];
       // ss<<" dxvxblocks_ini "<<vxblocks_ini<<" y "<<vyblocks_ini<<" z "<<vzblocks_ini<<std::endl;
       // std::cerr<<ss.str();
       // ss.str(std::string());
@@ -138,7 +137,7 @@ namespace projects {
                   blockIndices[0] = iv;
                   blockIndices[1] = jv;
                   blockIndices[2] = kv;
-                  const vmesh::GlobalID blockGID = cell->get_velocity_block(popID,blockIndices,refLevel);
+                  const vmesh::GlobalID blockGID = cell->get_velocity_block(popID,blockIndices);
 
                   cell->get_velocity_block_coordinates(popID,blockGID,V_crds);
                   V_crds[0] += (0.5*dvxBlock - it->at(0) );

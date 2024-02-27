@@ -112,10 +112,9 @@ namespace projects {
       exp(- mass * (pow(vx - Vx, 2.0) + pow(vy - Vy, 2.0) + pow(vz - Vz, 2.0)) / (2.0 * kb * T));
    }
 
-   Real KelvinHelmholtz::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {   
+   Real KelvinHelmholtz::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
       return getDistribValue(x+0.5*dx, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz);
    }
-   
 
    void KelvinHelmholtz::calcCellParameters(Real* cellParams,creal& t) {
       cellParams[CellParams::EX   ] = 0.0;
@@ -132,12 +131,8 @@ namespace projects {
       creal z = cell->parameters[CellParams::ZCRD];
       creal dz = cell->parameters[CellParams::DZ];
       
-      Real Bxavg += profile(this->Bx[this->BOTTOM], this->Bx[this->TOP], x+0.5*dx, z+0.5*dz);
-      Real Byavg += profile(this->By[this->BOTTOM], this->By[this->TOP], x+0.5*dx, z+0.5*dz);
-      Real Bzavg += profile(this->Bz[this->BOTTOM], this->Bz[this->TOP], x+0.5*dx, z+0.5*dz);
-      
-      cell->parameters[CellParams::BGBX   ] = Bxavg;
-      cell->parameters[CellParams::BGBY   ] = Byavg;
-      cell->parameters[CellParams::BGBZ   ] = Bzavg;
+      cell->parameters[CellParams::BGBX   ] = profile(this->Bx[this->BOTTOM], this->Bx[this->TOP], x+0.5*dx, z+0.5*dz);
+      cell->parameters[CellParams::BGBY   ] = profile(this->By[this->BOTTOM], this->By[this->TOP], x+0.5*dx, z+0.5*dz);
+      cell->parameters[CellParams::BGBZ   ] = profile(this->Bz[this->BOTTOM], this->Bz[this->TOP], x+0.5*dx, z+0.5*dz);
    }
 } // namespace projects

@@ -124,7 +124,7 @@ namespace SBC {
             //   * sqrt(2. * M_PI * physicalconstants::MASS_ELECTRON / (physicalconstants::K_B * electronTemperature())) - 1.);
             //// A positive value means an upward current (i.e. electron precipitation).
             //// A negative value quickly gets neutralized from the atmosphere.
-            //if(retval < 0 || isnan(retval)) {
+            //if(retval < 0 || !isfinite(retval)) {
             //   retval = 0;
             //}
             //return retval;
@@ -322,80 +322,89 @@ namespace SBC {
       virtual ~Ionosphere();
       
       static void addParameters();
-      virtual void getParameters();
+      virtual void getParameters() override;
       
-      virtual bool initSysBoundary(
+      virtual void initSysBoundary(
          creal& t,
          Project &project
-      );
-      virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                     FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid);
-      virtual bool applyInitialState(
-         const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      ) override;
+      virtual void assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                     FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) override;
+      virtual void applyInitialState(
+         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+         FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
          Project &project
-      );
+      ) override;
       virtual Real fieldSolverBoundaryCondMagneticField(
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
+         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & bgbGrid,
          FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
          cint i,
          cint j,
          cint k,
-         creal& dt,
-         cuint& component
-      );
+         creal dt,
+         cuint component
+      ) override;
       virtual void fieldSolverBoundaryCondElectricField(
          FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
          cint i,
          cint j,
          cint k,
          cuint component
-      );
+      ) override;
       virtual void fieldSolverBoundaryCondHallElectricField(
          FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
          cint i,
          cint j,
          cint k,
          cuint component
-      );
+      ) override;
       virtual void fieldSolverBoundaryCondGradPeElectricField(
          FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
          cint i,
          cint j,
          cint k,
          cuint component
-      );
+      ) override;
       virtual void fieldSolverBoundaryCondDerivatives(
          FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
          FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
          cint i,
          cint j,
          cint k,
-         cuint& RKCase,
-         cuint& component
-      );
+         cuint RKCase,
+         cuint component
+      ) override;
       virtual void fieldSolverBoundaryCondBVOLDerivatives(
          FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
          cint i,
          cint j,
          cint k,
-         cuint& component
-      );
+         cuint component
+      ) override;
       // Compute and store the EXB drift into the cell's BULKV_FORCING_X/Y/Z fields and set counter to 1
       virtual void mapCellPotentialAndGetEXBDrift(
          std::array<Real, CellParams::N_SPATIAL_CELL_PARAMS>& cellParams
-      );
+      ) override;
       virtual void vlasovBoundaryCondition(
-         const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,
          const uint popID,
          const bool calculate_V_moments
-      );
+      ) override;
+      virtual void updateState(
+         dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+         FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+         FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+         creal t
+      ) override;
       
-      virtual std::string getName() const;
-      virtual uint getIndex() const;
-      virtual void gpuClear();
+      virtual void getFaces(bool *faces) override;
+      virtual std::string getName() const override;
+      virtual uint getIndex() const override;
+      virtual void gpuClear() override;
       static Real radius; /*!< Radius of the inner simulation boundary */
       static std::vector<IonosphereSpeciesParameters> speciesParams;
 

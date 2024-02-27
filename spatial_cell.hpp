@@ -20,8 +20,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 /*!
-  Spatial cell wrapper, maps to GPU version or older CPU version which also has some
-  stale VAMR mesh support.
+  Spatial cell wrapper, maps to GPU or CPU version
 */
 #ifndef SPATIAL_CELL_WRAPPER_H
 #define SPATIAL_CELL_WRAPPER_H

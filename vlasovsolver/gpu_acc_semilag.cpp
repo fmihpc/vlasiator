@@ -87,6 +87,51 @@ __global__ void printVBCsizekernel(
    }
 }
 
+/*!
+  Prepare to accelerate species in cell. Sets the maximum allowed dt to the
+  correct value.
+
+ * @param spatial_cell Spatial cell containing the accelerated population.
+ * @param popID ID of the accelerated particle species.
+*/
+
+void prepareAccelerateCell(
+   SpatialCell* spatial_cell,
+   const uint popID){   
+   updateAccelerationMaxdt(spatial_cell, popID);
+}
+
+/*!
+  Compute the number of subcycles needed for the acceleration of the particle
+  species in the spatial cell. Note that one should first prepare to
+  accelerate the cell with prepareAccelerateCell.
+
+ * @param spatial_cell Spatial cell containing the accelerated population.
+ * @param popID ID of the accelerated particle species.
+*/
+
+uint getAccelerationSubcycles(SpatialCell* spatial_cell, Real dt, const uint popID)
+{
+   return max( convert<uint>(ceil(dt / spatial_cell->get_max_v_dt(popID))), 1u);
+}
+
+/*!
+  Propagates the distribution function in velocity space of given real
+  space cell.
+
+  Based on SLICE-3D algorithm: Zerroukat, M., and T. Allen. "A
+  three‐dimensional monotone and conservative semi‐Lagrangian scheme
+  (SLICE‐3D) for transport problems." Quarterly Journal of the Royal
+  Meteorological Society 138.667 (2012): 1640-1651.
+
+ * @param spatial_cell Spatial cell containing the accelerated population.
+ * @param popID ID of the accelerated particle species.
+ * @param vmesh Velocity mesh.
+ * @param blockContainer Velocity block data container.
+ * @param map_order Order in which vx,vy,vz mappings are performed. 
+ * @param dt Time step of one subcycle.
+*/
+
 void gpu_accelerate_cell(SpatialCell* spatial_cell,
                          const uint popID,
                          const uint map_order,
@@ -117,7 +162,6 @@ void gpu_accelerate_cell(SpatialCell* spatial_cell,
    Transform<Real,3,Affine> bwd_transform= fwd_transform.inverse();
    transformTimer.stop();
 
-   const uint8_t refLevel = 0;
    Real intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk;
    Real intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk;
    Real intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk;
@@ -126,11 +170,11 @@ void gpu_accelerate_cell(SpatialCell* spatial_cell,
       case 0: {
          phiprof::Timer intersectionsTimer {"compute-intersections"};
          //Map order XYZ
-         compute_intersections_1st(vmesh,bwd_transform, fwd_transform, 0, refLevel,
+         compute_intersections_1st(vmesh,bwd_transform, fwd_transform, 0,
                                  intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk);
-         compute_intersections_2nd(vmesh,bwd_transform, fwd_transform, 1, refLevel,
+         compute_intersections_2nd(vmesh,bwd_transform, fwd_transform, 1,
                                  intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk);
-         compute_intersections_3rd(vmesh,bwd_transform, fwd_transform, 2, refLevel,
+         compute_intersections_3rd(vmesh,bwd_transform, fwd_transform, 2,
                                  intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk);
          intersectionsTimer.stop();
       
@@ -155,11 +199,11 @@ void gpu_accelerate_cell(SpatialCell* spatial_cell,
        case 1: {
          phiprof::Timer intersectionsTimer {"compute-intersections"};
          //Map order YZX
-         compute_intersections_1st(vmesh, bwd_transform, fwd_transform, 1, refLevel,
+         compute_intersections_1st(vmesh, bwd_transform, fwd_transform, 1,
                                  intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk);
-         compute_intersections_2nd(vmesh, bwd_transform, fwd_transform, 2, refLevel,
+         compute_intersections_2nd(vmesh, bwd_transform, fwd_transform, 2,
                                  intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk);
-         compute_intersections_3rd(vmesh, bwd_transform, fwd_transform, 0, refLevel,
+         compute_intersections_3rd(vmesh, bwd_transform, fwd_transform, 0,
                                  intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk);
          intersectionsTimer.stop();
       
@@ -184,11 +228,11 @@ void gpu_accelerate_cell(SpatialCell* spatial_cell,
        case 2: {
          phiprof::Timer intersectionsTimer {"compute-intersections"};
           //Map order Z X Y
-          compute_intersections_1st(vmesh, bwd_transform, fwd_transform, 2, refLevel,
+          compute_intersections_1st(vmesh, bwd_transform, fwd_transform, 2,
                                     intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk);
-          compute_intersections_2nd(vmesh, bwd_transform, fwd_transform, 0, refLevel,
+          compute_intersections_2nd(vmesh, bwd_transform, fwd_transform, 0,
                                     intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk);
-          compute_intersections_3rd(vmesh, bwd_transform, fwd_transform, 1, refLevel,
+          compute_intersections_3rd(vmesh, bwd_transform, fwd_transform, 1,
                                     intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk);
          intersectionsTimer.stop();
       

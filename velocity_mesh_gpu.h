@@ -68,15 +68,14 @@ namespace vmesh {
       ARCH_HOSTDEV void getBlockInfo(const vmesh::GlobalID& globalID,Real* array) const;
       ARCH_HOSTDEV const Real* getBlockSize() const;
       ARCH_HOSTDEV bool getBlockSize(const vmesh::GlobalID& globalID,Real size[3]) const;
-      ARCH_HOSTDEV const Real* getCellSize(const uint8_t& refLevel=0) const;
+      ARCH_HOSTDEV const Real* getCellSize() const;
       ARCH_HOSTDEV bool getCellSize(const vmesh::GlobalID& globalID,Real size[3]) const;
       ARCH_HOSTDEV vmesh::GlobalID getGlobalID(const vmesh::LocalID& localID) const;
       ARCH_HOSTDEV vmesh::GlobalID getGlobalID(const Real* coords) const;
       ARCH_HOSTDEV vmesh::GlobalID getGlobalID(vmesh::LocalID indices[3]) const;
       ARCH_HOSTDEV vmesh::GlobalID getGlobalID(const vmesh::LocalID& i,const vmesh::LocalID& j,const vmesh::LocalID& k) const;
       ARCH_HOSTDEV split::SplitVector<vmesh::GlobalID>& getGrid();
-      ARCH_HOSTDEV const vmesh::LocalID* getGridLength(const uint8_t& refLevel=0) const;
-      ARCH_HOSTDEV void getIndices(const vmesh::GlobalID& globalID,const uint8_t& refLevel,vmesh::LocalID& i,vmesh::LocalID& j,vmesh::LocalID& k) const;
+      ARCH_HOSTDEV const vmesh::LocalID* getGridLength() const;
       ARCH_HOSTDEV void getIndices(const vmesh::GlobalID& globalID,vmesh::LocalID& i,vmesh::LocalID& j,vmesh::LocalID& k) const;
       ARCH_HOSTDEV void getIndicesX(const vmesh::GlobalID& globalID,vmesh::LocalID& i) const;
       ARCH_HOSTDEV void getIndicesY(const vmesh::GlobalID& globalID,vmesh::LocalID& j) const;
@@ -357,7 +356,7 @@ namespace vmesh {
       return true;
    }
 
-   ARCH_HOSTDEV inline const Real* VelocityMesh::getCellSize(const uint8_t& refLevel) const {
+   ARCH_HOSTDEV inline const Real* VelocityMesh::getCellSize() const {
       return (*(vmesh::getMeshWrapper()->velocityMeshes))[meshID].cellSize;
    }
 
@@ -417,12 +416,8 @@ namespace vmesh {
       return *localToGlobalMap;
    }
 
-   ARCH_HOSTDEV inline const vmesh::LocalID* VelocityMesh::getGridLength(const uint8_t& refLevel) const {
+   ARCH_HOSTDEV inline const vmesh::LocalID* VelocityMesh::getGridLength() const {
       return (*(vmesh::getMeshWrapper()->velocityMeshes))[meshID].gridLength;
-   }
-
-   ARCH_HOSTDEV inline void VelocityMesh::getIndices(const vmesh::GlobalID& globalID,const uint8_t& refLevel,vmesh::LocalID& i,vmesh::LocalID& j,vmesh::LocalID& k) const {
-      getIndices(globalID,i,j,k);
    }
 
    ARCH_HOSTDEV inline void VelocityMesh::getIndices(const vmesh::GlobalID& globalID,vmesh::LocalID& i,vmesh::LocalID& j,vmesh::LocalID& k) const {

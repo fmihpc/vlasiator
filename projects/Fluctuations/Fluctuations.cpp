@@ -119,12 +119,10 @@ namespace projects {
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
       
-      creal avg = getDistribValue(
+      creal result = getDistribValue(
          vx+0.5*dvx - sP.velocityPertAbsAmp * (0.5 - rndVel[0] ),
          vy+0.5*dvy - sP.velocityPertAbsAmp * (0.5 - rndVel[1] ),
-         vz+0.5*dvz - sP.velocityPertAbsAmp * (0.5 - rndVel[2] ), popID);
-      
-      creal result = avg *
+         vz+0.5*dvz - sP.velocityPertAbsAmp * (0.5 - rndVel[2] ), popID) *
          sP.DENSITY * (1.0 + sP.densityPertRelAmp * (0.5 - rndRho)) *
          pow(mass / (2.0 * M_PI * kb * sP.TEMPERATURE), 1.5);
       
@@ -173,9 +171,9 @@ namespace projects {
          const auto localSize = BgBGrid.getLocalSize().data();
          
          #pragma omp parallel for collapse(3)
-         for (int x = 0; x < localSize[0]; ++x) {
-            for (int y = 0; y < localSize[1]; ++y) {
-               for (int z = 0; z < localSize[2]; ++z) {
+         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
+            for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
+               for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
                   const int64_t cellid = perBGrid.GlobalIDForCoords(x, y, z);
                   

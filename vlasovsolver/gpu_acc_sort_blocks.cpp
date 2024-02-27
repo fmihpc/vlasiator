@@ -55,10 +55,6 @@ __global__ void __launch_bounds__(GPUTHREADS,4) blocksID_mapped_dim0_kernel(
    vmesh::GlobalID *blocksID_mapped,
    vmesh::LocalID *blocksLID_unsorted,
    const uint nBlocks
-   // const uint refL=0; //vAMR
-   // const vmesh::LocalID D0 = vmesh->getGridLength(refL)[0];
-   // const vmesh::LocalID D1 = vmesh->getGridLength(refL)[1];
-   // const vmesh::LocalID D2 = vmesh->getGridLength(refL)[2];
    ) {
    const int gpuBlocks = gridDim.x * gridDim.y * gridDim.z;
    const uint warpSize = blockDim.x * blockDim.y * blockDim.z;
@@ -108,10 +104,9 @@ __global__ void __launch_bounds__(GPUTHREADS,4) blocksID_mapped_dim2_kernel(
    const uint warpSize = blockDim.x * blockDim.y * blockDim.z;
    const int blocki = blockIdx.z*gridDim.x*gridDim.y + blockIdx.y*gridDim.x + blockIdx.x;
    const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
-   const uint refL=0; //vAMR
-   const vmesh::LocalID D0 = vmesh->getGridLength(refL)[0];
-   const vmesh::LocalID D1 = vmesh->getGridLength(refL)[1];
-   const vmesh::LocalID D2 = vmesh->getGridLength(refL)[2];
+   const vmesh::LocalID D0 = vmesh->getGridLength()[0];
+   const vmesh::LocalID D1 = vmesh->getGridLength()[1];
+   const vmesh::LocalID D2 = vmesh->getGridLength()[2];
    for (vmesh::LocalID index=blocki*warpSize; index<nBlocks; index += gpuBlocks*warpSize) {
       const vmesh::LocalID LID = (index+ti);
       if (LID < nBlocks) {
@@ -164,17 +159,16 @@ __global__ void __launch_bounds__(GPUTHREADS,4) scan_blocks_for_columns_kernel(
    const uint warpSize = blockDim.x * blockDim.y * blockDim.z;
    const int blocki = blockIdx.z*gridDim.x*gridDim.y + blockIdx.y*gridDim.x + blockIdx.x;
    const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
-   const uint refL=0; //vAMR
    vmesh::LocalID DX;
    switch (dimension) {
       case 0:
-         DX = vmesh->getGridLength(refL)[0];
+         DX = vmesh->getGridLength()[0];
          break;
       case 1:
-         DX = vmesh->getGridLength(refL)[1];
+         DX = vmesh->getGridLength()[1];
          break;
       case 2:
-         DX = vmesh->getGridLength(refL)[2];
+         DX = vmesh->getGridLength()[2];
          break;
       default:
          printf("Incorrect dimension in __FILE__ __LINE__\n");
@@ -217,17 +211,16 @@ __global__ void __launch_bounds__(GPUTHREADS,4) construct_columns_kernel(
       printf("Error in construct_columns_kernel; unsafe gridDim\n");
       return;
    }
-   const uint refL=0; //vAMR
    vmesh::LocalID DX;
    switch (dimension) {
       case 0:
-         DX = vmesh->getGridLength(refL)[0];
+         DX = vmesh->getGridLength()[0];
          break;
       case 1:
-         DX = vmesh->getGridLength(refL)[1];
+         DX = vmesh->getGridLength()[1];
          break;
       case 2:
-         DX = vmesh->getGridLength(refL)[2];
+         DX = vmesh->getGridLength()[2];
          break;
       default:
          printf("Incorrect dimension in __FILE__ __LINE__\n");

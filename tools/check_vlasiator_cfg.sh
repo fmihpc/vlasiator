@@ -1,6 +1,6 @@
 #!/bin/bash
 
-mpirun_cmd=$(which aprun > /dev/null && echo "aprun" || echo "mpirun")
+mpirun_cmd=$(which aprun &> /dev/null && echo "aprun" || echo "mpirun")
 vlasiator=$1
 cfg=$2
 

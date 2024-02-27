@@ -59,6 +59,9 @@
 #include "vlsvreaderinterface.h"
 #include <vlsv_writer.h>
 
+// #include "../ioread.h" //getFsGridDomainDecomposition
+#include <fsgrid.hpp> // computeDomainDecomposition
+
 using namespace std;
 using namespace vlsv;
 
@@ -232,6 +235,15 @@ bool HandleFsGrid(const string& inputFileName,
    //Write to file
    output.writeArray("MESH",patch,arraysize,1,&globalIds[0]);
 
+   std::array<int,1> numWritingRanks = {1};
+   output.writeParameter("numWritingRanks", &numWritingRanks[0]);
+
+   // Save the FSgrid decomposition
+   std::map<std::string, std::string> xmlAttributes;
+   const std::string meshName="fsgrid";
+   xmlAttributes["mesh"] = meshName;
+   std::array<FsGridTools::Task_t, 3> decom = {1,1,1};
+   output.writeArray("MESH_DECOMPOSITION", outputAttribs, 3u, 1u, &decom[0]);
    
    //Now for MESH_DOMAIN_SIZES
    inputAttribs.clear();
@@ -275,6 +287,89 @@ bool HandleFsGrid(const string& inputFileName,
    return true;
 
 
+}
+
+bool getFsgridDecomposition(vlsvinterface::Reader& file, std::array<int,3>& decomposition){
+   uint64_t arraySize;
+   uint64_t vectorSize;
+   vlsv::datatype::type dataType;
+   uint64_t byteSize;
+   
+   list<pair<string,string> > attribs;
+   attribs.push_back(make_pair("mesh","fsgrid"));
+
+
+   std::array<FsGridTools::Task_t,3> fsGridDecomposition={0,0,0}; 
+   int* ptr = &fsGridDecomposition[0];
+
+   // Check if array exists:
+   bool success = file.getArrayInfo("MESH_DECOMPOSITION",attribs,arraySize,vectorSize,dataType,byteSize);
+   if (success == false) {
+      // std::cout << "Could not read MESH_DECOMPOSITION" << endl;
+      // std::cerr << "ptr " << fsGridDecomposition[0] <<" "<<  fsGridDecomposition[1] << " " <<  fsGridDecomposition[2]<<"\n";
+      // std::cerr << "No decomposition found in restart file. Computing fsgrid decomposition for ioread, check results!" <<std::endl;
+
+      int fsgridInputRanks=0;
+      if(file.readParameter("numWritingRanks",fsgridInputRanks) == false) {
+         std::cerr << "FSGrid writing rank number not found in restart file" << endl;
+         exit(1);
+      }
+      std::array<FsGridTools::FsSize_t,3> gridSize;
+      FsGridTools::FsSize_t* gridSizePtr = &gridSize[0];
+      success = file.read("MESH_BBOX",attribs, 0, 3, gridSizePtr, false);
+      if(success == false){
+         std::cerr << "Could not read MESH_BBOX from file" << endl;
+         exit(1);
+      }
+      int64_t* domainInfo = NULL;
+      success = file.read("MESH_DOMAIN_SIZES",attribs, 0, fsgridInputRanks, domainInfo);
+      if(success == false){
+         std::cerr << "Could not read MESH_DOMAIN_SIZES from file" << endl;
+         exit(1);
+      }
+      std::vector<uint64_t> mesh_domain_sizes;
+      for (int i = 0; i < 2*fsgridInputRanks; i+=2){
+         mesh_domain_sizes.push_back(domainInfo[i]);
+      }
+      list<pair<string,string> > mesh_attribs;
+      mesh_attribs.push_back(make_pair("name","fsgrid"));
+      std::vector<FsGridTools::FsSize_t> rank_first_ids(fsgridInputRanks);
+      FsGridTools::FsSize_t* ids_ptr = &rank_first_ids[0];
+
+      std::set<FsGridTools::FsIndex_t> x_corners, y_corners, z_corners;
+      
+      int64_t begin_rank = 0;
+      int i = 0;
+      for(auto rank_size : mesh_domain_sizes){
+         if(file.read("MESH", mesh_attribs, begin_rank, 1, ids_ptr, false) == false){
+            std::cerr << "Reading MESH failed.\n";
+            exit(1);
+         }
+         std::array<FsGridTools::FsIndex_t,3> inds = FsGridTools::globalIDtoCellCoord(*ids_ptr, gridSize);
+         x_corners.insert(inds[0]);
+         y_corners.insert(inds[1]);
+         z_corners.insert(inds[2]);
+         ++ids_ptr;
+         begin_rank += rank_size;
+      }
+
+      decomposition[0] = x_corners.size();
+      decomposition[1] = y_corners.size();
+      decomposition[2] = z_corners.size();
+      std::cout << "Fsgrid decomposition computed from MESH to be " << decomposition[0] << " " << decomposition[1] << " " <<decomposition[2] << endl;
+
+      return true;   
+   } else {
+      // data exists, now read it
+      success = file.read("MESH_DECOMPOSITION",attribs, 0, 3, ptr, false);
+      decomposition[0] = fsGridDecomposition[0];
+      decomposition[1] = fsGridDecomposition[1];
+      decomposition[2] = fsGridDecomposition[2];
+      std::cout << "Fsgrid decomposition read as " << decomposition[0] << " " << decomposition[1] << " " <<decomposition[2] << endl;
+      return true;
+   }
+
+   return false;
 }
 
 /** Copy the spatial mesh from input to output.
@@ -323,81 +418,6 @@ bool cloneMesh(const string& inputFileName,vlsv::Writer& output,const string& me
    input.close();
    return success;
 }
-
-   //! Helper function: calculate position of the local coordinate space for the given dimension
-   // \param globalCells Number of cells in the global Simulation, in this dimension
-   // \param ntasks Total number of tasks in this dimension
-   // \param my_n This task's position in this dimension
-   // \return Cell number at which this task's domains cells start (actual cells, not counting ghost cells)
-   int32_t calcLocalStart(int32_t globalCells, int ntasks, int my_n) {
-      int n_per_task = globalCells / ntasks;
-      int remainder = globalCells % ntasks;
-
-      if(my_n < remainder) {
-         return my_n * (n_per_task+1);
-      } else {
-         return my_n * n_per_task + remainder;
-      }
-   }
-   //! Helper function: calculate size of the local coordinate space for the given dimension
-   // \param globalCells Number of cells in the global Simulation, in this dimension
-   // \param ntasks Total number of tasks in this dimension
-   // \param my_n This task's position in this dimension
-   // \return Nmuber of cells for this task's local domain (actual cells, not counting ghost cells)
-   int32_t calcLocalSize(int32_t globalCells, int ntasks, int my_n) {
-      int n_per_task = globalCells/ntasks;
-      int remainder = globalCells%ntasks;
-      if(my_n < remainder) {
-         return n_per_task+1;
-      } else {
-         return n_per_task;
-      }
-   }
-
-   //! Helper function to optimize decomposition of this grid over the given number of tasks
-   void computeDomainDecomposition(const std::array<int, 3>& GlobalSize, int nProcs, std::array<int,3>& processDomainDecomposition) {
-      std::array<double, 3> systemDim;
-      std::array<double, 3 > processBox;
-      double optimValue = std::numeric_limits<double>::max();
-      for(int i = 0; i < 3; i++) {
-         systemDim[i] = (double)GlobalSize[i];
-      }
-      processDomainDecomposition = {1, 1, 1};
-      for (int i = 1; i <= std::min(nProcs, GlobalSize[0]); i++) {
-         processBox[0] = std::max(systemDim[0]/i, 1.0);
-         for (int j = 1; j <= std::min(nProcs, GlobalSize[1]) ; j++) {
-            if( i * j  > nProcs )
-               break;
-            processBox[1] = std::max(systemDim[1]/j, 1.0);
-            for (int k = 1; k <= std::min(nProcs, GlobalSize[2]); k++) {
-               if( i * j * k > nProcs )
-                  break;
-               processBox[2] = std::max(systemDim[2]/k, 1.0);
-               double value = 
-                  10 * processBox[0] * processBox[1] * processBox[2] + 
-                  (i > 1 ? processBox[1] * processBox[2]: 0) +
-                  (j > 1 ? processBox[0] * processBox[2]: 0) +
-                  (k > 1 ? processBox[0] * processBox[1]: 0);
-
-               if(value < optimValue ){
-                  optimValue = value;
-                  processDomainDecomposition[0] = i;
-                  processDomainDecomposition[1] = j;
-                  processDomainDecomposition[2] = k;
-               }
-            }
-         }
-      }
-
-      if(optimValue == std::numeric_limits<double>::max() ||
-            processDomainDecomposition[0] * processDomainDecomposition[1] * processDomainDecomposition[2] != nProcs) {
-         std::cerr << "FSGrid domain decomposition failed, are you running on a prime number of tasks?" << std::endl;
-         throw std::runtime_error("FSGrid computeDomainDecomposition failed");
-      }
-   }
-
-
-
 
 /*! Extracts the dataset from the VLSV file opened by convertSILO.
  * \param vlsvReader vlsvinterface::Reader class object used to access the VLSV file
@@ -541,7 +561,9 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
             std::array<int,3> thisDomainDecomp;
 
             //Compute Domain Decomposition Scheme for this vlsv file
-            computeDomainDecomposition(GlobalBox,numtasks,thisDomainDecomp);
+            //FsGridTools::computeDomainDecomposition(GlobalBox,numtasks,thisDomainDecomp);
+            getFsgridDecomposition(vlsvReader, thisDomainDecomp);
+
 
             std::array<int32_t,3> taskSize,taskStart;
             std::array<int32_t,3> taskEnd;
@@ -556,13 +578,13 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
                my_z=task%thisDomainDecomp[2];
 
 
-               taskStart[0] = calcLocalStart(GlobalBox[0], thisDomainDecomp[0] ,my_x);
-               taskStart[1] = calcLocalStart(GlobalBox[1], thisDomainDecomp[1] ,my_y);
-               taskStart[2] = calcLocalStart(GlobalBox[2], thisDomainDecomp[2] ,my_z);
+               taskStart[0] = FsGridTools::calcLocalStart(GlobalBox[0], thisDomainDecomp[0], my_x);
+               taskStart[1] = FsGridTools::calcLocalStart(GlobalBox[1], thisDomainDecomp[1], my_y);
+               taskStart[2] = FsGridTools::calcLocalStart(GlobalBox[2], thisDomainDecomp[2], my_z);
 
-               taskSize[0] = calcLocalSize(GlobalBox[0], thisDomainDecomp[0] ,my_x);
-               taskSize[1] = calcLocalSize(GlobalBox[1], thisDomainDecomp[1] ,my_y);
-               taskSize[2] = calcLocalSize(GlobalBox[2], thisDomainDecomp[2] ,my_z);
+               taskSize[0] = FsGridTools::calcLocalSize(GlobalBox[0], thisDomainDecomp[0], my_x);
+               taskSize[1] = FsGridTools::calcLocalSize(GlobalBox[1], thisDomainDecomp[1], my_y);
+               taskSize[2] = FsGridTools::calcLocalSize(GlobalBox[2], thisDomainDecomp[2], my_z);
 
                taskEnd[0]= taskStart[0]+taskSize[0];
                taskEnd[1]= taskStart[1]+taskSize[1];

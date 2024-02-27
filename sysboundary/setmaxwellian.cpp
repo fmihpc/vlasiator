@@ -21,7 +21,7 @@
  */
 
 /*!\file setmaxwellian.cpp
- * \brief Implementation of the class SysBoundaryCondition::SetMaxwellian to handle cells classified as sysboundarytype::MAXWELLIAN.
+ * \brief Implementation of the class SysBoundaryCondition::Maxwellian to handle cells classified as sysboundarytype::MAXWELLIAN.
  */
 
 #include <cstdlib>
@@ -32,11 +32,10 @@
 #include "../object_wrapper.h"
 
 namespace SBC {
-   SetMaxwellian::SetMaxwellian(): SetByUser() {
-   }
-   SetMaxwellian::~SetMaxwellian() { }
+   Maxwellian::Maxwellian() : Inflow() {}
+   Maxwellian::~Maxwellian() {}
 
-   void SetMaxwellian::addParameters() {
+   void Maxwellian::addParameters() {
       Readparameters::addComposing(
           "maxwellian.face", "List of faces on which set Maxwellian boundary conditions are to be applied ([xyz][+-]).");
       Readparameters::add("maxwellian.precedence",
@@ -47,7 +46,7 @@ namespace SBC {
                           "applyInitialState. Can be used to change boundary condition behaviour during a run.",
                           0);
       Readparameters::add("maxwellian.t_interval", "Time interval in seconds for applying the varying inflow condition.",
-                          0.0);
+                          0.0); // 0 = re-calculate every time
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
@@ -81,13 +80,13 @@ namespace SBC {
       }
    }
 
-   void SetMaxwellian::getParameters() {
+   void Maxwellian::getParameters() {
       Readparameters::get("maxwellian.face", faceList);
       Readparameters::get("maxwellian.precedence", precedence);
 
       uint reapply;
       Readparameters::get("maxwellian.reapplyUponRestart", reapply);
-
+      Readparameters::get("maxwellian.t_interval", tInterval);
       this->applyUponRestart = false;
       if(reapply == 1) {
          this->applyUponRestart = true;
@@ -97,10 +96,10 @@ namespace SBC {
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
 
-         UserSpeciesParameters sP;
+         InflowSpeciesParameters sP;
          sP.nParams = 9;
 
-         Readparameters::get(pop + "_maxwellian.dynamic", isThisDynamic);
+         Readparameters::get(pop + "_maxwellian.dynamic", dynamic);
          Readparameters::get(pop + "_maxwellian.file_x+", sP.files[0]);
          Readparameters::get(pop + "_maxwellian.file_x-", sP.files[1]);
          Readparameters::get(pop + "_maxwellian.file_y+", sP.files[2]);
@@ -111,8 +110,8 @@ namespace SBC {
          speciesParams.push_back(sP);
       }
    }
-
-   Real SetMaxwellian::maxwellianDistribution(
+   
+   Real Maxwellian::maxwellianDistribution(
             const uint popID,
             creal& rho,
             creal& T,
@@ -132,7 +131,7 @@ namespace SBC {
    *  Then we iterate through the actual blocks and calculate their radius R2 based on their velocity coordinates
    *  and the plasma bulk velocity. Blocks that fullfil R2<vRadiusSquared are included to blocksToInitialize.
    */
-   std::vector<vmesh::GlobalID> SetMaxwellian::findBlocksToInitialize(
+   std::vector<vmesh::GlobalID> Maxwellian::findBlocksToInitialize(
       const uint popID,
       spatial_cell::SpatialCell& cell,
       creal& rho,
@@ -144,19 +143,18 @@ namespace SBC {
       vector<vmesh::GlobalID> blocksToInitialize;
       bool search = true;
       uint counter = 0;
-      const uint8_t refLevel = 0;
 
-      const vmesh::LocalID* vblocks_ini = cell.get_velocity_grid_length(popID,refLevel);
+      const vmesh::LocalID* vblocks_ini = cell.get_velocity_grid_length(popID);
       Real V_crds[3];
       Real dV[3];
-      dV[0] = cell.get_velocity_grid_block_size(popID,refLevel)[0];
-      dV[1] = cell.get_velocity_grid_block_size(popID,refLevel)[1];
-      dV[2] = cell.get_velocity_grid_block_size(popID,refLevel)[2];
+      dV[0] = cell.get_velocity_grid_block_size(popID)[0];
+      dV[1] = cell.get_velocity_grid_block_size(popID)[1];
+      dV[2] = cell.get_velocity_grid_block_size(popID)[2];
       creal minValue = cell.getVelocityBlockMinValue(popID);
       // Single cell, not block
-      const Real dvx=cell.get_velocity_grid_cell_size(popID,refLevel)[0];
-      const Real dvy=cell.get_velocity_grid_cell_size(popID,refLevel)[1];
-      const Real dvz=cell.get_velocity_grid_cell_size(popID,refLevel)[2];
+      const Real dvx=cell.get_velocity_grid_cell_size(popID)[0];
+      const Real dvy=cell.get_velocity_grid_cell_size(popID)[1];
+      const Real dvz=cell.get_velocity_grid_cell_size(popID)[2];
 
       while (search) {
          if (0.1 * minValue > maxwellianDistribution(popID, rho, T, counter*dV[0]+0.5*dvx, 0.5*dvy, 0.5*dvz) || counter > vblocks_ini[0]) {
@@ -175,12 +173,9 @@ namespace SBC {
                blockIndices[0] = iv;
                blockIndices[1] = jv;
                blockIndices[2] = kv;
-               const vmesh::GlobalID blockGID = cell.get_velocity_block(popID,blockIndices,refLevel);
+               const vmesh::GlobalID blockGID = cell.get_velocity_block(popID,blockIndices);
 
                cell.get_velocity_block_coordinates(popID,blockGID,V_crds);
-               #ifdef VAMR
-               cell.get_velocity_block_size(popID,blockGID,dV);
-               #endif
                V_crds[0] += 0.5*dV[0] - VX0;
                V_crds[1] += 0.5*dV[1] - VY0;
                V_crds[2] += 0.5*dV[2] - VZ0;
@@ -202,29 +197,20 @@ namespace SBC {
     * This function generates a spatial cell which is to be used as a template for the
     * system boundary condition.
     * \param templateCell Address of the template cell to be generated.
+    * \param B Address of the magnetic field to be used as template.
     * \param inputDataIndex Index used for the location of the input data.
     * \param t Current simulation time.
     */
-   void SetMaxwellian::generateTemplateCell(
-      spatial_cell::SpatialCell& templateCell,
-      Real B[3],
-      int inputDataIndex,
-      creal& t
-   ) {
-      Real rho, T, Vx, Vy, Vz, Bx=0.0, By=0.0, Bz=0.0, buffer[8];
+   void Maxwellian::generateTemplateCell(spatial_cell::SpatialCell& templateCell, Real (&B)[3], int inputDataIndex,
+                                         creal t) {
+      Real rho, T, Vx, Vy, Vz, Bx = 0, By = 0, Bz = 0, buffer[8];
 
       templateCell.sysBoundaryFlag = this->getIndex();
       templateCell.sysBoundaryLayer = 1;
 
-      templateCell.parameters[CellParams::XCRD] = 0.0;
-      templateCell.parameters[CellParams::YCRD] = 0.0;
-      templateCell.parameters[CellParams::ZCRD] = 0.0;
-      templateCell.parameters[CellParams::DX] = 1;
-      templateCell.parameters[CellParams::DY] = 1;
-      templateCell.parameters[CellParams::DZ] = 1;
-
       // Init all particle species
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         templateCell.clear(popID);
          // Interpolate is in setbyuser.cpp and .h
          interpolate(inputDataIndex, popID, t, &buffer[0]);
          rho = buffer[0];
@@ -258,10 +244,9 @@ namespace SBC {
 
          // Loop over requested blocks. Initialize the contents into the temporary buffer
          // and return the maximum value.
-         cuint refLevel=0;
-         creal dvxCell = templateCell.get_velocity_grid_cell_size(popID,refLevel)[0];
-         creal dvyCell = templateCell.get_velocity_grid_cell_size(popID,refLevel)[1];
-         creal dvzCell = templateCell.get_velocity_grid_cell_size(popID,refLevel)[2];
+         creal dvxCell = templateCell.get_velocity_grid_cell_size(popID)[0];
+         creal dvyCell = templateCell.get_velocity_grid_cell_size(popID)[1];
+         creal dvzCell = templateCell.get_velocity_grid_cell_size(popID)[2];
          for (uint i=0; i<nRequested; ++i) {
             vmesh::GlobalID blockGID = blocksToInitialize.at(i);
             //Realf maxValue = 0;
@@ -292,13 +277,11 @@ namespace SBC {
          initBuffer.optimizeGPU();
          templateCell.add_velocity_blocks(popID, blocksToInitializeGPU, initBuffer.data());
          delete blocksToInitializeGPU;
-         // templateCell.prefetchDevice();
          #else
          templateCell.add_velocity_blocks(popID, blocksToInitialize, initBuffer.data());
          #endif
-
-         // Could get rid of blocks not fulfilling the criteria here to save memory.
-         templateCell.adjustSingleCellVelocityBlocks(popID);//,true);
+         //let's get rid of blocks not fulfilling the criteria here to save memory.
+         templateCell.adjustSingleCellVelocityBlocks(popID,true);
       } // for-loop over particle species
 
       B[0] = Bx;
@@ -306,33 +289,26 @@ namespace SBC {
       B[2] = Bz;
 
       calculateCellMoments(&templateCell,true,false,true);
-
-      if(!this->isThisDynamic) {
-         // WARNING Time-independence assumed here.
-         templateCell.parameters[CellParams::RHOM_R] = templateCell.parameters[CellParams::RHOM];
-         templateCell.parameters[CellParams::VX_R] = templateCell.parameters[CellParams::VX];
-         templateCell.parameters[CellParams::VY_R] = templateCell.parameters[CellParams::VY];
-         templateCell.parameters[CellParams::VZ_R] = templateCell.parameters[CellParams::VZ];
-         templateCell.parameters[CellParams::RHOQ_R] = templateCell.parameters[CellParams::RHOQ];
-         templateCell.parameters[CellParams::P_11_R] = templateCell.parameters[CellParams::P_11];
-         templateCell.parameters[CellParams::P_22_R] = templateCell.parameters[CellParams::P_22];
-         templateCell.parameters[CellParams::P_33_R] = templateCell.parameters[CellParams::P_33];
-         templateCell.parameters[CellParams::RHOM_V] = templateCell.parameters[CellParams::RHOM];
-         templateCell.parameters[CellParams::VX_V] = templateCell.parameters[CellParams::VX];
-         templateCell.parameters[CellParams::VY_V] = templateCell.parameters[CellParams::VY];
-         templateCell.parameters[CellParams::VZ_V] = templateCell.parameters[CellParams::VZ];
-         templateCell.parameters[CellParams::RHOQ_V] = templateCell.parameters[CellParams::RHOQ];
-         templateCell.parameters[CellParams::P_11_V] = templateCell.parameters[CellParams::P_11];
-         templateCell.parameters[CellParams::P_22_V] = templateCell.parameters[CellParams::P_22];
-         templateCell.parameters[CellParams::P_33_V] = templateCell.parameters[CellParams::P_33];
-      } else {
-         cerr << "ERROR: this is not dynamic in time, please code it!" << endl;
-         abort();
-      }
-
+      
+      templateCell.parameters[CellParams::RHOM_R] = templateCell.parameters[CellParams::RHOM];
+      templateCell.parameters[CellParams::VX_R] = templateCell.parameters[CellParams::VX];
+      templateCell.parameters[CellParams::VY_R] = templateCell.parameters[CellParams::VY];
+      templateCell.parameters[CellParams::VZ_R] = templateCell.parameters[CellParams::VZ];
+      templateCell.parameters[CellParams::RHOQ_R] = templateCell.parameters[CellParams::RHOQ];
+      templateCell.parameters[CellParams::P_11_R] = templateCell.parameters[CellParams::P_11];
+      templateCell.parameters[CellParams::P_22_R] = templateCell.parameters[CellParams::P_22];
+      templateCell.parameters[CellParams::P_33_R] = templateCell.parameters[CellParams::P_33];
+      templateCell.parameters[CellParams::RHOM_V] = templateCell.parameters[CellParams::RHOM];
+      templateCell.parameters[CellParams::VX_V] = templateCell.parameters[CellParams::VX];
+      templateCell.parameters[CellParams::VY_V] = templateCell.parameters[CellParams::VY];
+      templateCell.parameters[CellParams::VZ_V] = templateCell.parameters[CellParams::VZ];
+      templateCell.parameters[CellParams::RHOQ_V] = templateCell.parameters[CellParams::RHOQ];
+      templateCell.parameters[CellParams::P_11_V] = templateCell.parameters[CellParams::P_11];
+      templateCell.parameters[CellParams::P_22_V] = templateCell.parameters[CellParams::P_22];
+      templateCell.parameters[CellParams::P_33_V] = templateCell.parameters[CellParams::P_33];
    }
 
-   string SetMaxwellian::getName() const {return "SetMaxwellian";}
-   uint SetMaxwellian::getIndex() const {return sysboundarytype::SET_MAXWELLIAN;}
+   std::string Maxwellian::getName() const { return "Maxwellian"; }
+   uint Maxwellian::getIndex() const { return sysboundarytype::MAXWELLIAN; }
 
 } // namespace SBC

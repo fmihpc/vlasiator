@@ -81,7 +81,7 @@ namespace DRO {
          const T* ptr = reinterpret_cast<const T*>(population_struct + _byteOffset);
 
          for (uint i=0; i<_vectorSize; i++) {
-            if(std::isinf(ptr[i]) || std::isnan(ptr[i])) {
+            if(!std::isfinite(ptr[i])) {
                std::string message = "The DataReductionOperator " + this->getName() + " returned a nan or an inf.";
                bailout(true, message, __FILE__, __LINE__);
             }
