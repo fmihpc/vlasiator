@@ -156,7 +156,6 @@ namespace SBC {
          setCellsFromTemplate(mpiGrid, popID);
       }
       setBFromTemplate(mpiGrid, perBGrid, BgBGrid);
-      gpuClear();
    }
 
    void Inflow::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
@@ -185,7 +184,6 @@ namespace SBC {
          updateRemoteVelocityBlockLists(mpiGrid,popID,FULL_NEIGHBORHOOD_ID);
       }
       ghostTimer.stop();
-      gpuClear();
    }
 
    void Inflow::gpuClear() {

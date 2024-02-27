@@ -199,7 +199,6 @@ namespace SBC {
             setCellFromTemplate(cell,popID);
          }
       }
-      gpuClear();
    }
 
    void Copysphere::gpuClear() {

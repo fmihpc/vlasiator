@@ -426,7 +426,7 @@ namespace projects {
 
                         if (mpiGrid.refine_completely_at(xyz)) {
                            refineCount++;
-                           #ifndef NDEBUG
+                           #ifdef DEBUG_REFINE
                            CellID myCell = mpiGrid.get_existing_cell(xyz);
                            std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;
                            #endif
@@ -441,7 +441,7 @@ namespace projects {
          if(totalRefineCount > 0) {
             std::vector<CellID> refinedCells = mpiGrid.stop_refining(true);
             
-            #ifndef NDEBUG
+            #ifdef DEBUG_REFINE
             if(refinedCells.size() > 0) {
                std::cerr << "Refined cells produced by rank " << myRank << " for level " << level << " are: ";
                for (auto cellid : refinedCells) {

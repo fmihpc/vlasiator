@@ -2519,7 +2519,6 @@ namespace SBC {
             // cell->get_velocity_mesh(popID)->check();
          }
       }
-      gpuClear();
    }
 
    void Ionosphere::gpuClear() {
