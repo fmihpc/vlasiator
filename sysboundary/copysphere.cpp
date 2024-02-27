@@ -199,7 +199,6 @@ namespace SBC {
             setCellFromTemplate(cell,popID);
          }
       }
-      gpuClear();
    }
 
    void Copysphere::gpuClear() {
@@ -767,6 +766,7 @@ namespace SBC {
 
       // Loop over particle species
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         templateCell.clear(popID);
          const CopysphereSpeciesParameters& sP = this->speciesParams[popID];
          const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(templateCell,popID);
          const uint nRequested = blocksToInitialize.size();

@@ -1465,6 +1465,7 @@ int main(int argn,char* args[]) {
    }
    // Deallocate buffers, clear device
    vmesh::deallocateMeshWrapper();
+   sysBoundaryContainer.clearGpu();
    gpu_clear_device();
    #endif
 

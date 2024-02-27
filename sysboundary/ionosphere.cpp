@@ -2519,7 +2519,6 @@ namespace SBC {
             // cell->get_velocity_mesh(popID)->check();
          }
       }
-      gpuClear();
    }
 
    void Ionosphere::gpuClear() {
@@ -3411,6 +3410,7 @@ namespace SBC {
 
       // Loop over particle species
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         templateCell.clear(popID);
          const IonosphereSpeciesParameters& sP = this->speciesParams[popID];
          const std::array<Real, 3> vDrift = {0,0,0};
          const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(templateCell,sP.rho,sP.T,vDrift,popID);
