@@ -547,7 +547,7 @@ namespace spatial_cell {
       void remove_velocity_block(const vmesh::GlobalID& block,const uint popID);
       vmesh::VelocityMesh* get_velocity_mesh(const size_t& popID);
       vmesh::VelocityBlockContainer* get_velocity_blocks(const size_t& popID);
-      void SpatialCell::dev_upload_population(const uint popID);
+      void dev_upload_population(const uint popID);
       vmesh::VelocityMesh* dev_get_velocity_mesh(const size_t& popID);
       vmesh::VelocityBlockContainer* dev_get_velocity_blocks(const size_t& popID);
       // Prefetches for both blockContainers and vmeshes, all populations

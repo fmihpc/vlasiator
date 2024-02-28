@@ -823,7 +823,6 @@ namespace SBC {
          initBuffer.optimizeGPU();
          templateCell.add_velocity_blocks(popID, blocksToInitializeGPU, initBuffer.data());
          delete blocksToInitializeGPU;
-         //templateCell.prefetchDevice();
          #else
          templateCell.add_velocity_blocks(popID, blocksToInitialize, initBuffer.data());
          #endif

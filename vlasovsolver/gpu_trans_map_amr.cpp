@@ -506,9 +506,9 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
       uint* pencilBlocksCount; // Array of counters if pencil needs to be propagated for this block or not
 
       stringstream ss;
-      ss<<" thread "<<cpuThreadID<<" malloc "<<sumOfLengths<<" * "<<nGpuBlocks<<" * sizeof(Realf*) + ";
-      ss<<nPencils<<" * "<<nGpuBlocks<<" * sizeof(uint) = "<<sumOfLengths*nGpuBlocks*sizeof(Realf*)+nPencils*nGpuBlocks*sizeof(uint)<<std::endl;
-      std::cerr<<ss.str();
+      // ss<<" thread "<<cpuThreadID<<" malloc "<<sumOfLengths<<" * "<<nGpuBlocks<<" * sizeof(Realf*) + ";
+      // ss<<nPencils<<" * "<<nGpuBlocks<<" * sizeof(uint) = "<<sumOfLengths*nGpuBlocks*sizeof(Realf*)+nPencils*nGpuBlocks*sizeof(uint)<<std::endl;
+      // std::cerr<<ss.str();
 #pragma omp barrier
       CHK_ERR( gpuMallocAsync((void**)&pencilBlockData, sumOfLengths*nGpuBlocks*sizeof(Realf*), stream) );
       CHK_ERR( gpuMallocAsync((void**)&pencilBlocksCount, nPencils*nGpuBlocks*sizeof(uint), stream) );
