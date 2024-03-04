@@ -42,9 +42,13 @@ jobs:
         uses: mpi4py/setup-mpi@v1
         with:
           mpi: 'openmpi'
-      #- name: Setup openmp-capable llvm
-      #  run: |
-      #    brew install llvm libomp
+      - name: Setup openmp-capable llvm
+        run: |
+          brew install llvm libomp
+          echo "CXX=/usr/local/opt/llvm/bin/clang++" >> "$GITHUB_ENV"
+          echo "OMPI_CXX=/usr/local/opt/llvm/bin/clang++" >> "$GITHUB_ENV"
+          echo "CC=/usr/local/opt/llvm/bin/clang" >> "$GITHUB_ENV"
+          echo "OMPI_CC=/usr/local/opt/llvm/bin/clang" >> "$GITHUB_ENV"
       - name: Run library build script
         run: ./build_libraries.sh appleM1
       - name: Build libraries tar
@@ -186,9 +190,13 @@ jobs:
       uses: mpi4py/setup-mpi@v1
       with:
         mpi: 'openmpi'
-    #- name: Setup openmp-capable llvm
-    #  run: |
-    #    brew install llvm libomp
+    - name: Setup openmp-capable llvm
+      run: |
+        brew install llvm libomp
+        echo "CXX=/usr/local/opt/llvm/bin/clang++" >> "$GITHUB_ENV"
+        echo "OMPI_CXX=/usr/local/opt/llvm/bin/clang++" >> "$GITHUB_ENV"
+        echo "CC=/usr/local/opt/llvm/bin/clang" >> "$GITHUB_ENV"
+        echo "OMPI_CC=/usr/local/opt/llvm/bin/clang" >> "$GITHUB_ENV"
     - name: Download libraries
       uses: actions/download-artifact@v3
       with:
