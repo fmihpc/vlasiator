@@ -50,7 +50,9 @@ jobs:
           echo "CC=/usr/local/opt/llvm/bin/clang" >> "$GITHUB_ENV"
           echo "OMPI_CC=/usr/local/opt/llvm/bin/clang" >> "$GITHUB_ENV"
       - name: Run library build script
-        run: ./build_libraries.sh appleM1
+        run: |
+          echo OMP_CXX=$OMP_CXX
+          . ./build_libraries.sh appleM1
       - name: Build libraries tar
         run: tar --zstd -cvf libraries.tar.zstd libraries/
       - name: Upload libraries as artifact
