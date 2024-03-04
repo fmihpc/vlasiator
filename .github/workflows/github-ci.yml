@@ -31,6 +31,25 @@ jobs:
           retention-days: 5
           if-no-files-found: error
 
+  build_libraries_appleM1:
+    # Build libraries on macos with M1 hardware, to test both macOS and aarch64 compatibility
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v3
+      - name: Run library build script
+        run: ./build_libraries.sh appleM1
+      - name: Build libraries tar
+        run: tar --zstd -cvf libraries.tar.zstd libraries/
+      - name: Upload libraries as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: libraries-appleM1
+          path: libraries-appleM1.tar.zstd
+          retention-days: 5
+          if-no-files-found: error
+
   build_libraries_riscv:
     # Build libraries for the current version of the docker image
     # (to be used in any subsequent compilation and run jobs on said image)
@@ -146,6 +165,28 @@ jobs:
         name: vlasiator-riscv
         path: vlasiator
         if-no-files-found: error
+
+  build_appleM1:
+    runs-on: macos-14
+    needs: build_libraries_appleM1
+
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v3
+      with:
+        submodules: true
+    - name: Download libraries
+      uses: actions/download-artifact@v3
+      with:
+        name: libraries-appleM1
+    - name: Unpack libraries
+      run: tar -xzvf libraries-appleM1.tar.gz
+    - name: Make clean
+      run: VLASIATOR_ARCH=appleM1 make clean
+    - name: Compile vlasiator (Release build)
+      run: |
+        VLASIATOR_ARCH=appleM1 make clean
+        VLASIATOR_ARCH=appleM1 make -j 3
 
   build_tools:
     # Build vlsvdiff and vlsvextract for testpackage use
