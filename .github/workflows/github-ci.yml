@@ -45,13 +45,12 @@ jobs:
       - name: Setup openmp-capable llvm
         run: |
           brew install llvm libomp
-          echo "CXX=/usr/local/opt/llvm/bin/clang++" >> "$GITHUB_ENV"
-          echo "OMPI_CXX=/usr/local/opt/llvm/bin/clang++" >> "$GITHUB_ENV"
-          echo "CC=/usr/local/opt/llvm/bin/clang" >> "$GITHUB_ENV"
-          echo "OMPI_CC=/usr/local/opt/llvm/bin/clang" >> "$GITHUB_ENV"
+          echo "CXX=/opt/homebrew/opt/llvm/bin/clang++" >> "$GITHUB_ENV"
+          echo "OMPI_CXX=/opt/homebrew/opt/llvm/bin/clang++" >> "$GITHUB_ENV"
+          echo "CC=/opt/homebrew/opt/llvm/bin/clang" >> "$GITHUB_ENV"
+          echo "OMPI_CC=/opt/homebrew/opt/llvm/bin/clang" >> "$GITHUB_ENV"
       - name: Run library build script
         run: |
-          echo OMP_CXX=$OMP_CXX
           . ./build_libraries.sh appleM1
       - name: Build libraries tar
         run: tar --zstd -cvf libraries.tar.zstd libraries/
@@ -195,10 +194,10 @@ jobs:
     - name: Setup openmp-capable llvm
       run: |
         brew install llvm libomp
-        echo "CXX=/usr/local/opt/llvm/bin/clang++" >> "$GITHUB_ENV"
-        echo "OMPI_CXX=/usr/local/opt/llvm/bin/clang++" >> "$GITHUB_ENV"
-        echo "CC=/usr/local/opt/llvm/bin/clang" >> "$GITHUB_ENV"
-        echo "OMPI_CC=/usr/local/opt/llvm/bin/clang" >> "$GITHUB_ENV"
+        echo "CXX=/opt/homebrew/opt/llvm/bin/clang++" >> "$GITHUB_ENV"
+        echo "OMPI_CXX=/opt/homebrew/opt/llvm/bin/clang++" >> "$GITHUB_ENV"
+        echo "CC=/opt/homebrew/opt/llvm/bin/clang" >> "$GITHUB_ENV"
+        echo "OMPI_CC=/opt/homebrew/opt/llvm/bin/clang" >> "$GITHUB_ENV"
     - name: Download libraries
       uses: actions/download-artifact@v3
       with:
