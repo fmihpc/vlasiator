@@ -1120,9 +1120,9 @@ namespace vmesh {
       if (globalToLocalMap->getSizePower() < HashmapReqSize) {
          globalToLocalMap->resize(HashmapReqSize, Hashinator::targets::device, stream);
       }
-      CHK_ERR( gpuStreamSynchronize(stream) );
-      localToGlobalMap->optimizeGPU(stream);
-      globalToLocalMap->optimizeGPU(stream);
+      // CHK_ERR( gpuStreamSynchronize(stream) );
+      // localToGlobalMap->optimizeGPU(stream);
+      // globalToLocalMap->optimizeGPU(stream);
    }
 
    ARCH_HOSTDEV inline size_t VelocityMesh::size() const {

@@ -110,7 +110,7 @@ namespace SBC {
          speciesParams.push_back(sP);
       }
    }
-   
+
    Real Maxwellian::maxwellianDistribution(
             const uint popID,
             creal& rho,
@@ -274,7 +274,7 @@ namespace SBC {
 
          // Next actually add all the blocks (we don't use the MaxValue)
          #ifdef USE_GPU
-         initBuffer.optimizeGPU();
+         initBuffer.optimizeGPU(stream);
          templateCell.add_velocity_blocks(popID, blocksToInitializeGPU, initBuffer.data());
          delete blocksToInitializeGPU;
          #else
@@ -289,7 +289,7 @@ namespace SBC {
       B[2] = Bz;
 
       calculateCellMoments(&templateCell,true,false,true);
-      
+
       templateCell.parameters[CellParams::RHOM_R] = templateCell.parameters[CellParams::RHOM];
       templateCell.parameters[CellParams::VX_R] = templateCell.parameters[CellParams::VX];
       templateCell.parameters[CellParams::VY_R] = templateCell.parameters[CellParams::VY];

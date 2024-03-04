@@ -3256,7 +3256,7 @@ namespace SBC {
                   } // for-loop over requested velocity blocks
                   // Next actually add all the blocks (we don't use the MaxValue)
                   #ifdef USE_GPU
-                  initBuffer.optimizeGPU();
+                  initBuffer.optimizeGPU(stream);
                   cell.add_velocity_blocks(popID, blocksToInitializeGPU, initBuffer.data());
                   delete blocksToInitializeGPU;
                   #else
@@ -3389,25 +3389,21 @@ namespace SBC {
                   } // for-loop over requested velocity blocks
                   // Next actually add all the blocks (we don't use the MaxValue)
                   #ifdef USE_GPU
-                  initBuffer.optimizeGPU();
+                  initBuffer.optimizeGPU(stream);
                   cell.add_velocity_blocks(popID, blocksToInitializeGPU, initBuffer.data());
                   delete blocksToInitializeGPU;
                   #else
                   cell.add_velocity_blocks(popID, blocksToInitialize, initBuffer.data());
                   #endif
-                  templateCell.adjustSingleCellVelocityBlocks(popID);//,true);
 
                } // end case CopyAndLosscone
                break;
          } // end switch VDF method
 
          // Block adjust and recalculate moments
-         #ifdef USE_GPU
-         mpiGrid[cellID]->prefetchDevice();
-         #endif
 
-         // Could get rid of blocks not fulfilling the criteria here to save memory.
-         mpiGrid[cellID]->adjustSingleCellVelocityBlocks(popID);//,true);
+         // let's get rid of blocks not fulfilling the criteria here to save memory.
+         templateCell.adjustSingleCellVelocityBlocks(popID,true);
 
          // TODO: The moments can also be analytically calculated from ionosphere parameters.
          // Maybe that's faster?
@@ -3488,7 +3484,7 @@ namespace SBC {
 
          // Next actually add all the blocks (we don't use the MaxValue)
          #ifdef USE_GPU
-         initBuffer.optimizeGPU();
+         initBuffer.optimizeGPU(stream);
          templateCell.add_velocity_blocks(popID, blocksToInitializeGPU, initBuffer.data());
          delete blocksToInitializeGPU;
          #else
@@ -3545,7 +3541,7 @@ namespace SBC {
       vector<vmesh::GlobalID> blocksToInitialize;
       bool search = true;
       uint counter = 0;
-      
+
       Real V_crds[3];
       Real dV[3];
       dV[0] = cell.get_velocity_grid_block_size(popID)[0];

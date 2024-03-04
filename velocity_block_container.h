@@ -338,10 +338,10 @@ namespace vmesh {
       currentCapacity = BLOCK_ALLOCATION_PADDING * requirement;
       block_data->reserve(currentCapacity * WID3, true, stream);
       parameters->reserve(currentCapacity * BlockParams::N_VELOCITY_BLOCK_PARAMS, true, stream);
-      #ifdef USE_GPU
-      block_data->optimizeGPU(stream);
-      parameters->optimizeGPU(stream);
-      #endif
+      // #ifdef USE_GPU
+      // block_data->optimizeGPU(stream);
+      // parameters->optimizeGPU(stream);
+      // #endif
       return;
    }
 

@@ -119,7 +119,7 @@ namespace SBC {
          speciesParams.push_back(sP);
       }
    }
-   
+
    void Copysphere::initSysBoundary(
       creal& t,
       Project &project
@@ -159,7 +159,7 @@ namespace SBC {
 
       return r;
    }
-   
+
    void Copysphere::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
       const vector<CellID>& cells = getLocalCells();
@@ -660,7 +660,7 @@ namespace SBC {
             return retval / nCells;
          }
       }
-      
+
    }
 
    void Copysphere::fieldSolverBoundaryCondElectricField(
@@ -820,7 +820,7 @@ namespace SBC {
 
          // Next actually add all the blocks (we don't use the MaxValue)
          #ifdef USE_GPU
-         initBuffer.optimizeGPU();
+         initBuffer.optimizeGPU(stream);
          templateCell.add_velocity_blocks(popID, blocksToInitializeGPU, initBuffer.data());
          delete blocksToInitializeGPU;
          #else
@@ -920,7 +920,7 @@ namespace SBC {
 
    std::string Copysphere::getName() const {return "Copysphere";}
    void Copysphere::getFaces(bool *faces) {}
-   
+
    void Copysphere::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                 FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
                                 FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
