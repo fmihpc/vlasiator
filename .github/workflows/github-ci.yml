@@ -42,13 +42,9 @@ jobs:
         uses: mpi4py/setup-mpi@v1
         with:
           mpi: 'openmpi'
-      - name: Setup openmp-capable llvm
-        run: |
-          brew install llvm libomp
-          export CXX=/usr/local/opt/llvm/bin/clang++
-          export OMPI_CXX=/usr/local/opt/llvm/bin/clang++
-          export CC=/usr/local/opt/llvm/bin/clang
-          export OMPI_CC=/usr/local/opt/llvm/bin/clang
+      #- name: Setup openmp-capable llvm
+      #  run: |
+      #    brew install llvm libomp
       - name: Run library build script
         run: ./build_libraries.sh appleM1
       - name: Build libraries tar
@@ -190,13 +186,9 @@ jobs:
       uses: mpi4py/setup-mpi@v1
       with:
         mpi: 'openmpi'
-    - name: Setup openmp-capable llvm
-      run: |
-        brew install llvm libomp
-        export CXX=/usr/local/opt/llvm/bin/clang++
-        export OMPI_CXX=/usr/local/opt/llvm/bin/clang++
-        export CC=/usr/local/opt/llvm/bin/clang
-        export OMPI_CC=/usr/local/opt/llvm/bin/clang
+    #- name: Setup openmp-capable llvm
+    #  run: |
+    #    brew install llvm libomp
     - name: Download libraries
       uses: actions/download-artifact@v3
       with:
