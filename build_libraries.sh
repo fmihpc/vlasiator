@@ -22,7 +22,11 @@ cd library-build
 # Build phiprof
 git clone https://github.com/fmihpc/phiprof/ 
 cd phiprof/src
-make -j 4 CCC=mpic++
+if [[ $PLATFORM != "-appleM1" ]]; then
+   make -j 4 CCC=mpic++
+else
+   make -j 4 CCC=mpic++ CC=clang
+fi
 cp ../include/* $WORKSPACE/libraries${PLATFORM}/include
 cp ../lib/* $WORKSPACE/libraries${PLATFORM}/lib
 cd ../..
