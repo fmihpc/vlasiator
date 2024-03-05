@@ -596,8 +596,8 @@ namespace vmesh {
             }
          }
          localToGlobalMap->insert(localToGlobalMap->end(),blocks->begin(),blocks->end());
-         localToGlobalMap->optimizeGPU(stream);
-         globalToLocalMap->optimizeGPU(stream);
+         // localToGlobalMap->optimizeGPU(stream);
+         // globalToLocalMap->optimizeGPU(stream);
       }
       #endif
       return blocksSize;

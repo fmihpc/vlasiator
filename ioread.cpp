@@ -423,43 +423,38 @@ bool _readBlockData(
       cerr << "ERROR, failed to read BLOCKVARIABLE in " << __FILE__ << ":" << __LINE__ << endl;
       success = false;
    }
-   #ifdef USE_GPU
-   // Upload avgBuffer to Device (stream zero)
-   fileReal* gpu_avgBuffer;
-   CHK_ERR( gpuMalloc((void**)&gpu_avgBuffer, avgVectorSize * localBlocks * sizeof(fileReal)) );
-   CHK_ERR( gpuMemcpy(gpu_avgBuffer, avgBuffer, avgVectorSize * localBlocks * sizeof(fileReal), gpuMemcpyHostToDevice) );
-   #endif
+   // #ifdef USE_GPU
+   // // Upload whole avgBuffer to Device (stream zero)
+   // fileReal* gpu_avgBuffer;
+   // CHK_ERR( gpuMalloc((void**)&gpu_avgBuffer, avgVectorSize * localBlocks * sizeof(fileReal)) );
+   // CHK_ERR( gpuMemcpy(gpu_avgBuffer, avgBuffer, avgVectorSize * localBlocks * sizeof(fileReal), gpuMemcpyHostToDevice) );
+   // #endif
 
    uint64_t blockBufferOffset=0;
    //Go through all spatial cells
-   vector<vmesh::GlobalID> blockIdsInCell; //blockIds in a particular cell, temporary usage
+   // Todo: make OMP parallel
    for(uint64_t i=0; i<localCells; i++) {
       CellID cell = fileCells[localCellStartOffset + i]; //spatial cell id
       vmesh::LocalID nBlocksInCell = blocksPerCell[i];
       //copy blocks in this cell to vector blockIdsInCell, size of read in data has been checked earlier
+      vector<vmesh::GlobalID> blockIdsInCell; //blockIds in a particular cell, temporary usage
       blockIdsInCell.reserve(nBlocksInCell);
       blockIdsInCell.assign(blockIdBuffer + blockBufferOffset, blockIdBuffer + blockBufferOffset + nBlocksInCell);
       for(auto& id : blockIdsInCell) {
          id = blockIDremapper(id);
       }
-      //allocate space for all blocks and create them and fill them
+      // allocate space for all blocks and create them and fill them
       // a conversion may happen between float and double
-      #ifdef USE_GPU
-      // blockIds in a particular cell, temporary usage
-      split::SplitVector<vmesh::GlobalID> *blockIdsInCell2 = new split::SplitVector<vmesh::GlobalID>(blockIdsInCell);
-      mpiGrid[cell]->add_velocity_blocks(popID,blockIdsInCell2,&gpu_avgBuffer[blockBufferOffset*WID3]);
-      delete blockIdsInCell2;
-      CHK_ERR( gpuDeviceSynchronize() );
-      mpiGrid[cell]->checkMesh(popID);
-      #else
       mpiGrid[cell]->add_velocity_blocks(popID,blockIdsInCell,&avgBuffer[blockBufferOffset*WID3]);
-      #endif
       blockBufferOffset += nBlocksInCell; //jump to location of next local cell
+      // #ifdef USE_GPU
+      // mpiGrid[cell]->checkMesh(popID);
+      // #endif
    }
-   #ifdef USE_GPU
-   CHK_ERR( gpuFree(gpu_avgBuffer) );
-   CHK_ERR( gpuDeviceSynchronize() );
-   #endif
+   // #ifdef USE_GPU
+   // CHK_ERR( gpuFree(gpu_avgBuffer) );
+   // CHK_ERR( gpuDeviceSynchronize() );
+   // #endif
    delete[] avgBuffer;
    delete[] blockIdBuffer;
    return success;

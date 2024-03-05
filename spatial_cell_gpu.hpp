@@ -426,8 +426,8 @@ namespace spatial_cell {
       const vmesh::VelocityMesh *vmesh,
       vmesh::VelocityBlockContainer *blockContainer,
       const vmesh::LocalID startLID,
-      const split::SplitVector<vmesh::GlobalID>* blocks,
-      const fileReal* avgBuffer,
+      const vmesh::GlobalID* gpuInitBlocks,
+      const fileReal* gpuInitBuffer,
       const uint nBlocks
       ) {
       const int gpuBlocks = gridDim.x;
@@ -438,10 +438,10 @@ namespace spatial_cell {
       Realf *cellBlockData = blockContainer->getData(startLID);
       for (uint index=blocki; index<nBlocks; index += gpuBlocks) {
          // Copy in cell data, perform conversion float<->double if necessary
-         cellBlockData[index*WID3 + ti] = (Realf)avgBuffer[index*WID3 + ti];
+         cellBlockData[index*WID3 + ti] = (Realf)gpuInitBuffer[index*WID3 + ti];
          // Set block parameters
          if (ti==0) {
-            vmesh::GlobalID GID = blocks->at(index);
+            vmesh::GlobalID GID = gpuInitBlocks[index];
             vmesh->getBlockInfo(GID, parameters + index*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD);
          }
          __syncthreads();
@@ -534,7 +534,7 @@ namespace spatial_cell {
       void update_blocks_to_move_caller(const uint popID);
       void update_blocks_to_move_caller_2(const uint popID, const vmesh::LocalID nBlocksRequired, const vmesh::LocalID nBlocksCurrent);
       // Templated function for storing a v-space read from a file
-      template <typename fileReal> void add_velocity_blocks(const uint popID, split::SplitVector<vmesh::GlobalID> *blocks,fileReal* avgBuffer);
+      template <typename fileReal> void add_velocity_blocks(const uint popID,const std::vector<vmesh::GlobalID>& blocks,fileReal* initBuffer);
 
       void update_velocity_block_content_lists(const uint popID);
       bool checkMesh(const uint popID);
@@ -1224,7 +1224,7 @@ namespace spatial_cell {
        with phase-space densities from the provided buffer (which was read from a file).
        This version calls a kernel to perform operations on-device.
    */
-   template <typename fileReal> void SpatialCell::add_velocity_blocks(const uint popID,split::SplitVector<vmesh::GlobalID> *blocks,fileReal* avgBuffer) {
+   template <typename fileReal> void SpatialCell::add_velocity_blocks(const uint popID,const std::vector<vmesh::GlobalID>& blocks,fileReal* initBuffer) {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
@@ -1236,7 +1236,7 @@ namespace spatial_cell {
       phiprof::Timer addFromBufferTimer {"GPU add blocks from buffer"};
       // Add blocks to velocity mesh
       gpuStream_t stream = gpu_getStream();
-      const uint nBlocks = blocks->size();
+      const uint nBlocks = blocks.size();
       if (nBlocks==0) {
          // Return if empty
          return;
@@ -1250,9 +1250,20 @@ namespace spatial_cell {
 
       // Bookkeeping only: Calls CPU version in order to ensure resize of container.
       const vmesh::LocalID startLID = populations[popID].blockContainer->push_back(nBlocks);
-      CHK_ERR( gpuStreamSynchronize(stream) );
-      populations[popID].vmesh->gpu_prefetchDevice();
-      populations[popID].blockContainer->gpu_prefetchDevice();
+      // CHK_ERR( gpuStreamSynchronize(stream) );
+      // populations[popID].vmesh->gpu_prefetchDevice();
+      // populations[popID].blockContainer->gpu_prefetchDevice();
+
+      // Copy data to GPU
+      fileReal* gpuInitBuffer;
+      vmesh::GlobalID* gpuInitBlocks;
+      // TODO: re-use per-thread buffers here, ensuring sufficient allocation.
+      CHK_ERR( gpuMallocAsync((void**)&gpuInitBuffer,WID3*nBlocks*sizeof(fileReal), stream) );
+      CHK_ERR( gpuMemcpyAsync(gpuInitBuffer, initBuffer,
+                              WID3*nBlocks*sizeof(fileReal), gpuMemcpyHostToDevice, stream) );
+      CHK_ERR( gpuMallocAsync((void**)&gpuInitBlocks,nBlocks*sizeof(vmesh::GlobalID), stream) );
+      CHK_ERR( gpuMemcpyAsync(gpuInitBlocks, blocks.data(),
+                              nBlocks*sizeof(vmesh::GlobalID), gpuMemcpyHostToDevice, stream) );
 
       const uint nGpuBlocks = nBlocks > GPUBLOCKS ? GPUBLOCKS : nBlocks;
       if (nGpuBlocks>0) {
@@ -1264,13 +1275,15 @@ namespace spatial_cell {
             populations[popID].dev_vmesh,
             populations[popID].dev_blockContainer,
             startLID,
-            blocks,
-            avgBuffer,
+            gpuInitBlocks,
+            gpuInitBuffer,
             nBlocks
             );
          CHK_ERR( gpuPeekAtLastError() );
       }
       CHK_ERR( gpuStreamSynchronize(stream) );
+      CHK_ERR( gpuFree(gpuInitBuffer) );
+      CHK_ERR( gpuFree(gpuInitBlocks) );
 
       #ifdef DEBUG_SPATIAL_CELL
       populations[popID].vmesh->check();

@@ -571,8 +571,8 @@ namespace vmesh {
       // Clear velocity block data to zero values
       Realf* zero_blocks = block_data->data();
       Real* zero_parameters = parameters->data();
-      block_data->optimizeGPU(stream);
-      parameters->optimizeGPU(stream);
+      // block_data->optimizeGPU(stream);
+      // parameters->optimizeGPU(stream);
       CHK_ERR( gpuMemsetAsync(zero_blocks + newIndex*WID3, 0, WID3*N_blocks*sizeof(Realf), stream) );
       CHK_ERR( gpuMemsetAsync(zero_parameters + newIndex*BlockParams::N_VELOCITY_BLOCK_PARAMS, 0, BlockParams::N_VELOCITY_BLOCK_PARAMS*N_blocks*sizeof(Real), stream) );
       CHK_ERR( gpuStreamSynchronize(stream) );
@@ -609,10 +609,10 @@ namespace vmesh {
       parameters->reserve(newCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS);
       #endif
 
-      #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-      block_data->optimizeGPU(stream);
-      parameters->optimizeGPU(stream);
-      #endif
+      // #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
+      // block_data->optimizeGPU(stream);
+      // parameters->optimizeGPU(stream);
+      // #endif
       return true;
    }
 

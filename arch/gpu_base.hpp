@@ -128,8 +128,7 @@ struct ColumnOffsets {
       columnNumBlocks.clear();
       setColumnOffsets.clear();
       setNumColumns.clear();
-      // These vectors themselves are not in unified memory, just their content data,
-      // so we call a regular optimizeGPU without the unified flag.
+      // These vectors themselves are not in unified memory, just their content data
       gpuStream_t stream = gpu_getStream();
       columnBlockOffsets.optimizeGPU(stream);
       columnNumBlocks.optimizeGPU(stream);

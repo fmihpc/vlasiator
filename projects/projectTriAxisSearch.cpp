@@ -155,7 +155,6 @@ namespace projects {
                              + (V_crds[2])*(V_crds[2]));
 
                   if (R2 < vRadiusSquared) {
-                     //cell->add_velocity_block(blockGID,popID);
                      blocksToInitialize.insert(blockGID);
                   }
                } // vxblocks_ini

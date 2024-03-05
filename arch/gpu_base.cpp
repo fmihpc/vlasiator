@@ -526,7 +526,7 @@ __host__ void gpu_trans_allocate(
          allVmeshPointer = new split::SplitVector<vmesh::VelocityMesh*>(nAllCells);
       } else {
          // Resize
-         allVmeshPointer->optimizeCPU(stream);
+         //allVmeshPointer->optimizeCPU(stream);
          allVmeshPointer->resize(nAllCells,true);
       }
       // Leave on CPU
@@ -540,8 +540,8 @@ __host__ void gpu_trans_allocate(
          allPencilsContainers = new split::SplitVector<vmesh::VelocityBlockContainer*>(sumOfLengths);
       } else {
          // Resize
-         allPencilsMeshes->optimizeCPU(stream);
-         allPencilsContainers->optimizeCPU(stream);
+         // allPencilsMeshes->optimizeCPU(stream);
+         // allPencilsContainers->optimizeCPU(stream);
          allPencilsMeshes->resize(sumOfLengths,true);
          allPencilsContainers->resize(sumOfLengths,true);
       }
@@ -560,8 +560,8 @@ __host__ void gpu_trans_allocate(
          const uint currSizePower = unionOfBlocksSet->getSizePower();
          if (currSizePower < HashmapReqSize) {
             unionOfBlocksSet->resize(HashmapReqSize);
+            unionOfBlocksSet->optimizeGPU(stream);
          }
-         unionOfBlocksSet->optimizeGPU(stream);
          // Ensure map is empty
          unionOfBlocksSet->clear(Hashinator::targets::device,stream,false);
       }
@@ -573,17 +573,18 @@ __host__ void gpu_trans_allocate(
          // New allocation
          unionOfBlocks = new split::SplitVector<vmesh::GlobalID>(unionSetSize);
          unionOfBlocks->clear();
+         unionOfBlocks->optimizeGPU(stream);
       } else {
          if (unionOfBlocks->capacity() < unionSetSize) {
             // Recapacitate, clear, and prefetch
             unionOfBlocks->reserve(unionSetSize);
             unionOfBlocks->clear();
+            unionOfBlocks->optimizeGPU(stream);
          } else {
             // Clear is enough
             unionOfBlocks->clear();
          }
       }
-      unionOfBlocks->optimizeGPU(stream);
       gpu_allocated_unionSetSize = unionSetSize;
    }
    CHK_ERR( gpuStreamSynchronize(stream) );

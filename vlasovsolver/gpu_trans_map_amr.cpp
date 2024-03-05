@@ -784,7 +784,7 @@ void gpu_update_remote_mapping_contribution_amr(
                      }
                      // GPUTODO: This is now unified memory. With GPU-aware MPI it could be on-device.
                      CHK_ERR( gpuMallocManaged((void**)&ccell->neighbor_block_data.at(sendIndex), ccell->neighbor_number_of_blocks.at(sendIndex) * WID3 * sizeof(Realf)) );
-                     CHK_ERR( gpuMemPrefetchAsync(ccell->neighbor_block_data.at(sendIndex),ccell->neighbor_number_of_blocks.at(sendIndex) * WID3 * sizeof(Realf),device,0) );
+                     // CHK_ERR( gpuMemPrefetchAsync(ccell->neighbor_block_data.at(sendIndex),ccell->neighbor_number_of_blocks.at(sendIndex) * WID3 * sizeof(Realf),device,0) );
                      CHK_ERR( gpuMemset(ccell->neighbor_block_data.at(sendIndex), 0, ccell->neighbor_number_of_blocks.at(sendIndex) * WID3 * sizeof(Realf)) );
                      sendBuffers.push_back(ccell->neighbor_block_data.at(sendIndex));
                   } // closes if(send_cells.find(nbr) == send_cells.end())
