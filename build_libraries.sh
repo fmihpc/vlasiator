@@ -32,7 +32,11 @@ cp ../lib/* $WORKSPACE/libraries${PLATFORM}/lib
 cd ../..
 
 # Build VLSV
-git clone https://github.com/fmihpc/vlsv.git  
+if [[ $PLATFORM != "-appleM1" ]]; then
+   git clone https://github.com/fmihpc/vlsv.git
+else
+   git clone -b appleM1Build https://github.com/ursg/vlsv.git
+fi
 cd vlsv
 make
 cp libvlsv.a $WORKSPACE/libraries${PLATFORM}/lib
