@@ -205,7 +205,7 @@ jobs:
       with:
         name: libraries-appleM1
     - name: Unpack libraries
-      run: tar -xzvf libraries-appleM1.tar.gz
+      run: tar --zstd -xvf libraries-appleM1.tar.zstd
     - name: Make clean
       run: VLASIATOR_ARCH=appleM1 make clean
     - name: Compile vlasiator (Release build)
@@ -221,7 +221,7 @@ jobs:
     - name: Clean workspace
       run: |
         rm -rf libraries library-build testpackage
-        rm -f libraries.tar.zst dtestpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+        rm -f libraries.tar.zstd dtestpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
         rm -f *.xml
     - name: Checkout source
       uses: actions/checkout@v3
