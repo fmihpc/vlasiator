@@ -47,8 +47,10 @@ jobs:
           brew install llvm libomp
           echo "CXX=/opt/homebrew/opt/llvm/bin/clang++" >> "$GITHUB_ENV"
           echo "OMPI_CXX=/opt/homebrew/opt/llvm/bin/clang++" >> "$GITHUB_ENV"
+          echo "MPI_CXX=mpic++" >> "$GITHUB_ENV"
           echo "CC=/opt/homebrew/opt/llvm/bin/clang" >> "$GITHUB_ENV"
           echo "OMPI_CC=/opt/homebrew/opt/llvm/bin/clang" >> "$GITHUB_ENV"
+          echo "MPI_CC=mpicc" >> "$GITHUB_ENV"
       - name: Run library build script
         run: |
           . ./build_libraries.sh appleM1
