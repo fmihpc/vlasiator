@@ -70,4 +70,4 @@ cd ..
 fi
 
 git clone https://gitlab.com/libeigen/eigen.git
-cp -ua eigen/Eigen $WORKSPACE/libraries${PLATFORM}/include
+cp -a eigen/Eigen $WORKSPACE/libraries${PLATFORM}/include
