@@ -381,8 +381,19 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       }
    }
 
-   if( dataReducer.getName(dataReducerIndex).find("fg_", 0) != 0 ) {
+  if( dataReducer.getName(dataReducerIndex).find("fg_", 0) == 0 ) {
+      // Write fsgrid data
+      phiprof::Timer writeFsTimer {"writeFsGrid"};
+      success = dataReducer.writeFsGridData(perBGrid,EGrid,EHallGrid,EGradPeGrid,momentsGrid,dPerBGrid,dMomentsGrid,BgBGrid,volGrid, technicalGrid, "fsgrid", dataReducerIndex, vlsvWriter, writeAsFloat);
+      writeFsTimer.stop();
 
+   } else if( dataReducer.getName(dataReducerIndex).find("ig_", 0) == 0 ) {
+      // Or maybe it will be writing ionosphere data?
+      phiprof::Timer writeIonosphereTimer {"writeIonosphere"};
+      success |= dataReducer.writeIonosphereGridData(SBC::ionosphereGrid, "ionosphere", dataReducerIndex, vlsvWriter);
+      writeIonosphereTimer.stop();
+   } else {
+      // If the data reducer didn't want to write fg or ig data, maybe it will be happy writing dccrg data
       if( (writeAsFloat == true && dataType.compare("float") == 0) && dataSize == sizeof(double) ) {
          double * varBuffer_double = reinterpret_cast<double*>(varBuffer);
          //Declare smaller varbuffer:
@@ -417,25 +428,13 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
          delete[] varBuffer_smaller;
          varBuffer_smaller = NULL;
       } else {
-         // Write  reduced data to file if DROP was successful:
+         // Write reduced data to file if DROP was successful:
          phiprof::Timer writeArrayTimer {"writeArray"};
          if (vlsvWriter.writeArray("VARIABLE",attribs, dataType, cells.size(), vectorSize, dataSize, varBuffer) == false) {
             success = false;
             logFile << "(MAIN) writeGrid: ERROR failed to write datareductionoperator data to file!" << endl << writeVerbose;
          }
       }
-
-   } else {
-      // If the data reducer didn't want to write dccrg data, maybe it will be happy
-      // dumping data straight from fsgrid into our file.
-      phiprof::Timer writeFsTimer {"writeFsGrid"};
-      success = dataReducer.writeFsGridData(perBGrid,EGrid,EHallGrid,EGradPeGrid,momentsGrid,dPerBGrid,dMomentsGrid,BgBGrid,volGrid, technicalGrid, "fsgrid", dataReducerIndex, vlsvWriter, writeAsFloat);
-      writeFsTimer.stop();
-
-      // Or maybe it will be writing ionosphere data?
-      phiprof::Timer writeIonosphereTimer {"writeIonosphere"};
-      success |= dataReducer.writeIonosphereGridData(SBC::ionosphereGrid, "ionosphere", dataReducerIndex, vlsvWriter);
-      writeIonosphereTimer.stop();
    }
    
    // Check if the DataReducer wants to write paramters to the output file
@@ -940,7 +939,8 @@ bool writeFsGridMetadata(FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technic
   vlsvWriter.writeArray("MESH_DOMAIN_SIZES", xmlAttributes, 1, 2, &meshDomainSize[0]);
 
   // how many MPI ranks we wrote from
-  int size = technicalGrid.getSize();
+  int size;
+  MPI_Comm_size(MPI_COMM_WORLD, &size);
   vlsvWriter.writeParameter("numWritingRanks", &size);
 
   // Save the FSgrid decomposition
