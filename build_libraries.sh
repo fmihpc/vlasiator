@@ -25,7 +25,7 @@ cd phiprof/src
 if [[ $PLATFORM != "-appleM1" ]]; then
    make -j 4 CCC=mpic++
 else
-   make -j 4 CCC=mpic++ CC=clang
+   make -j 4 CCC=mpic++ CC=appleLLVM CCFLAGS="-fpic -O2 -std=c++17 -DCLOCK_ID=CLOCK_MONOTONIC -fopenmp" LDFLAGS="-fopenmp"
 fi
 cp ../include/* $WORKSPACE/libraries${PLATFORM}/include
 cp ../lib/* $WORKSPACE/libraries${PLATFORM}/lib
