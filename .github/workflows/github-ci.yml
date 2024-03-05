@@ -55,7 +55,7 @@ jobs:
         run: |
           . ./build_libraries.sh appleM1
       - name: Build libraries tar
-        run: tar --zstd -cvf libraries.tar.zstd libraries/
+        run: tar --zstd -cvf libraries-appleM1.tar.zstd libraries-appleM1
       - name: Upload libraries as artifact
         uses: actions/upload-artifact@v3
         with:
