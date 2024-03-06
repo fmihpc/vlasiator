@@ -200,6 +200,9 @@ jobs:
         echo "OMPI_CXX=/opt/homebrew/opt/llvm/bin/clang++" >> "$GITHUB_ENV"
         echo "CC=/opt/homebrew/opt/llvm/bin/clang" >> "$GITHUB_ENV"
         echo "OMPI_CC=/opt/homebrew/opt/llvm/bin/clang" >> "$GITHUB_ENV"
+    - name: Install boost
+      run: |
+        brew install boost
     - name: Download libraries
       uses: actions/download-artifact@v3
       with:
