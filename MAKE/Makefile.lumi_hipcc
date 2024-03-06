@@ -2,15 +2,17 @@ CMP = hipcc
 LNK = clang++
 
 # Modules loaded (after clean shell, no module purging, one-by-one not oneline)
-# module load LUMI/22.08
+# module load LUMI/23.09
 # module load partition/G
 # module load cpeAMD
-# module load rocm/5.3.3
-# module load Boost/1.79.0-cpeAMD-22.08
+# module load rocm/5.6.1
+# module load Boost/1.82.0-cpeAMD-23.09
+# module load papi/7.0.1.1
+# module load Eigen/3.4.0
 # one-liner:
-# module load LUMI/22.08; module load partition/G; module load cpeAMD; module load rocm/5.3.3; module load Boost/1.79.0-cpeAMD-22.08
+# module load LUMI/23.09; module load partition/G; module load cpeAMD; module load rocm/5.6.1; module load Boost/1.82.0-cpeAMD-23.09; module load papi/7.0.1.1; module load Eigen/3.4.0
 # clang++ linking also requires:
-# export PATH=$PATH:/appl/lumi/SW/LUMI-22.08/G/EB/rocm/5.3.3/llvm/bin/
+# export PATH=$PATH:/appl/lumi/SW/LUMI-23.09/G/EB/rocm/5.6.1/llvm/bin/
  
 #======== Vectorization ==========
 #Set vector backend type for vlasov solvers, sets precision and length. 
@@ -37,9 +39,9 @@ USE_HIP=1
 # LDFLAGS flags for linker
 # Important note: Do not edit COMPFLAGS in this file!
 
-CXXFLAGS += -g -ggdb -O3 -x hip --offload-arch=gfx90a:xnack- -march=znver3 -std=c++17 -funroll-loops -fopenmp -I. -Ihip -Iomp -I${CRAY_MPICH_DIR}/include -W -Wall -Wno-unused-parameter -Wno-unused-result -Wno-unused-function -Wno-unused-variable -Wno-unknown-pragmas -Wno-deprecated-register -Wno-unused-but-set-variable
+CXXFLAGS += -g -ggdb -O3 -x hip --offload-arch=gfx90a:xnack- -march=znver3 -std=c++17 -funroll-loops -fopenmp -I. -Ihip -Iomp -I${CRAY_MPICH_DIR}/include -W -Wall -Wno-unused-parameter -Wno-unused-result -Wno-unused-function -Wno-unused-variable -Wno-unknown-pragmas -Wno-deprecated-register -Wno-unused-but-set-variable -Wno-ignored-attributes
 
-testpackage: CXXFLAGS = -g -ggdb -O2 -x hip --offload-arch=gfx90a:xnack- -march=znver3 -std=c++17 -fopenmp -I. -Ihip -Iomp -I${CRAY_MPICH_DIR}/include -fgpu-sanitize  -W -Wall -Wno-unused-parameter -Wno-unused-result -Wno-unused-function -Wno-unused-variable -Wno-unknown-pragmas -Wno-deprecated-register -Wno-unused-but-set-variable
+testpackage: CXXFLAGS = -g -ggdb -O2 -x hip --offload-arch=gfx90a:xnack- -march=znver3 -std=c++17 -fopenmp -I. -Ihip -Iomp -I${CRAY_MPICH_DIR}/include -fgpu-sanitize  -W -Wall -Wno-unused-parameter -Wno-unused-result -Wno-unused-function -Wno-unused-variable -Wno-unknown-pragmas -Wno-deprecated-register -Wno-unused-but-set-variable -Wno-ignored-attributes
 
 LDFLAGS = -fopenmp -lrt -lpthread -L${CRAY_MPICH_DIR}/lib ${PE_MPICH_GTL_DIR_amd_gfx90a} -L${ROCM_PATH}/lib -lamdhip64
 LIB_MPI = -lmpi ${PE_MPICH_GTL_LIBS_amd_gfx90a}
@@ -65,7 +67,7 @@ testpackage: CXXFLAGS +=  -DPAPI_MEM
 #======== Libraries ===========
 # Select the base directory based on which project you are using:
 # LUMILAPIO
-LIBRARY_PREFIX = /projappl/project_462000358/libraries
+LIBRARY_PREFIX = /projappl/project_462000358/libraries/23.09
 
 # Compiled libraries
 #INC_BOOST = -isystem $(LIBRARY_PREFIX)/boost/include
@@ -78,8 +80,10 @@ LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/zoltan/lib -lzoltan -Wl,-rpath=$(LIBRARY_PREFIX
 #INC_JEMALLOC = -I$(LIBRARY_PREFIX)/jemalloc/include
 #LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/jemalloc/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX)/jemalloc/lib
 
-INC_PAPI = -isystem $(LIBRARY_PREFIX)/papi/include
-LIB_PAPI = -lpapi -L$(LIBRARY_PREFIX)/papi/lib -Wl,-rpath=$(LIBRARY_PREFIX)/papi/lib
+#INC_PAPI = -isystem $(LIBRARY_PREFIX)/papi/include
+#LIB_PAPI = -lpapi -L$(LIBRARY_PREFIX)/papi/lib -Wl,-rpath=$(LIBRARY_PREFIX)/papi/lib
+INC_PAPI = -isystem /opt/cray/pe/papi/7.0.1.1/include/
+LIB_PAPI = -lpapi -L/opt/cray/pe/papi/7.0.1.1/lib -Wl,-rpath=/opt/cray/pe/papi/7.0.1.1/lib
 
 INC_VLSV = -isystem $(LIBRARY_PREFIX)/vlsv
 LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX)/vlsv
@@ -89,7 +93,7 @@ LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -lgfortran -Wl,-rpath=$(
 
 #header libraries
 
-INC_EIGEN = -isystem $(LIBRARY_PREFIX)/eigen/
+#INC_EIGEN = -isystem $(LIBRARY_PREFIX)/eigen/
 INC_FSGRID = -I./submodules/fsgrid
 INC_DCCRG = -I./submodules/dccrg
 # Vectorclass only for CPU mode
