@@ -1511,8 +1511,8 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    for (CellID id : newChildren) {
       *mpiGrid[id] = *mpiGrid[mpiGrid.get_parent(id)];
       // Irrelevant?
-      // mpiGrid[id]->parameters[CellParams::AMR_ALPHA] /= P::refineMultiplier;
-      mpiGrid[id]->parameters[CellParams::AMR_ALPHA] /= 2.0;
+      mpiGrid[id]->parameters[CellParams::AMR_ALPHA1] /= 2.0;
+      mpiGrid[id]->parameters[CellParams::AMR_ALPHA2] /= 2.0;
       mpiGrid[id]->parameters[CellParams::RECENTLY_REFINED] = 1;
    }
    copyChildrenTimer.stop(newChildren.size(), "Spatial cells");
