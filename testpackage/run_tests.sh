@@ -170,8 +170,18 @@ do
                     $run_command_tools $diffbin ${result_dir}/${vlsv} ${vlsv_dir}/${vlsv} proton 0
                 fi
             done # loop over variables
+
+            # Print also time difference, if it is not zero
+            timeDiff=$(grep "delta t" <<< $A |gawk '{print $8}'  )
+            if [[ $timeDiff -ne "0"  ]]
+            then
+                echo "WARNING! TIMESTAMPS DO NOT MATCH! dt=${timeDiff}"
+            else
+                echo "VLSV file timestamps match."
+            fi
             echo "--------------------------------------------------------------------------------------------"
         done # loop over vlsv files to compare
+        echo "--------------------------------------------------------------------------------------------"
         echo "--------------------------------------------------------------------------------------------"
     fi
 done # loop over tests

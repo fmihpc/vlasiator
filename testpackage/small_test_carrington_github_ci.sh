@@ -187,6 +187,7 @@ for run in ${run_tests[*]}; do
    {
    MAXERR=0.  # Absolute error
    MAXREL=0.  # Relative error
+   MAXDT=0.   # Output time difference
    MAXERRVAR=""  # Variable with max absolute error
    MAXRELVAR=""  # Variable with max relative error
 
@@ -275,26 +276,43 @@ for run in ${run_tests[*]}; do
                $run_command_tools $diffbin ${result_dir}/${vlsv} ${vlsv_dir}/${vlsv} proton 0
            fi
 
-           # This loop runs in a subshell (because of the stdout and stderr capture below),
-           # so we save the variables to temp files
-           echo $MAXERR > $RUNNER_TEMP/MAXERR.txt
-           echo $MAXREL > $RUNNER_TEMP/MAXREL.txt
-           echo $MAXERRVAR > $RUNNER_TEMP/MAXERRVAR.txt
-           echo $MAXRELVAR > $RUNNER_TEMP/MAXRELVAR.txt
-           echo $speedup > $RUNNER_TEMP/speedup.txt
-       done
+       done # loop over variables
+
+       # Check if dt is nonzero
+       timeDiff=$(grep "delta t" <<< $A |gawk '{print $8}'  )
+       if (( $( echo "${timeDiff#-} $MAXDT" | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
+           MAXDT=$timeDiff
+           echo "WARNING! TIMESTAMPS DO NOT MATCH! dt=${timeDiff}"
+       else
+           echo "VLSV file timestamps match."
+       fi
+       echo "--------------------------------------------------------------------------------------------"
+
+       # This loop runs in a subshell (because of the stdout and stderr capture below),
+       # so we save the variables to temp files
+       echo $MAXERR > $RUNNER_TEMP/MAXERR.txt
+       echo $MAXREL > $RUNNER_TEMP/MAXREL.txt
+       echo $MAXDT > $RUNNER_TEMP/MAXDT.txt
+       echo $MAXERRVAR > $RUNNER_TEMP/MAXERRVAR.txt
+       echo $MAXRELVAR > $RUNNER_TEMP/MAXRELVAR.txt
+       echo $speedup > $RUNNER_TEMP/speedup.txt
+
    done 2>&1 1>&3 3>&- | tee -a $GITHUB_WORKSPACE/stderr.txt; } 3>&1 1>&2 | tee -a $GITHUB_WORKSPACE/stdout.txt
+   # loop over vlsvfiles
+   echo "--------------------------------------------------------------------------------------------"
+   echo "--------------------------------------------------------------------------------------------"
 
    # Recover error variables
    MAXERR=`cat $RUNNER_TEMP/MAXERR.txt`
    MAXERRVAR=`cat $RUNNER_TEMP/MAXERRVAR.txt`
    MAXREL=`cat $RUNNER_TEMP/MAXREL.txt`
    MAXRELVAR=`cat $RUNNER_TEMP/MAXRELVAR.txt`
+   MAXDT=`cat $RUNNER_TEMP/MAXDT.txt`
    speedup=`cat $RUNNER_TEMP/speedup.txt`
 
    # Output CI step annotation
-   if (( $( echo "$MAXERR 0." | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
-      echo -e "<details><summary>:large_orange_diamond: ${test_name[$run]}: Nonzero diffs: : \`$MAXERRVAR\` has absolute error $MAXERR, \`$MAXRELVAR\` has relative error $MAXREL. Speedup: $speedup</summary>\n" >> $GITHUB_STEP_SUMMARY
+   if (( $( echo "$MAXERR 0." | awk '{ if($1 > $2) print 1; else print 0 }' ) )) || (( $( echo "$MAXDT 0." | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
+      echo -e "<details><summary>:large_orange_diamond: ${test_name[$run]}: Nonzero diffs: : \`$MAXERRVAR\` has absolute error $MAXERR, \`$MAXRELVAR\` has relative error $MAXREL. Max timestamp difference is $MAXDT.   Speedup: $speedup</summary>\n" >> $GITHUB_STEP_SUMMARY
       NONZEROTESTS=$((NONZEROTESTS+1))
    else
       echo -e "<details><summary>:heavy_check_mark: ${test_name[$run]}: Ran with zero diffs. Speedup: $speedup</summary>\n" >> $GITHUB_STEP_SUMMARY
