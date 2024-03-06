@@ -44,7 +44,7 @@ cp *.h $WORKSPACE/libraries${PLATFORM}/include
 cd ..
 
 # Build papi
-if [[ $PLATFORM != "-arriesgado" ]]; then  # This fails on RISCV
+if [[ $PLATFORM != "-arriesgado" && $PLATFORM != "-appleM1" ]]; then  # This fails on RISCV and MacOS
    git clone https://github.com/icl-utk-edu/papi
    cd papi/src
    ./configure --prefix=$WORKSPACE/libraries${PLATFORM} && make -j 4 CC=gcc && make install

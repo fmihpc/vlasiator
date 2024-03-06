@@ -23,7 +23,7 @@ endif
 
 #======== PAPI ==========
 #Add PAPI_MEM define to use papi to report memory consumption?
-CXXFLAGS +=  -DPAPI_MEM
+#CXXFLAGS +=  -DPAPI_MEM   # Papi does not work on MacOS, see https://stackoverflow.com/questions/69531604/installing-papi-on-macos
 
 
 #======== Allocator =========
@@ -72,7 +72,7 @@ INC_SILO =
 LIB_SILO = -lsiloh5
 
 INC_PAPI =
-LIB_PAPI = -lpapi
+LIB_PAPI =
 
 INC_DCCRG = -I./submodules/dccrg
 
