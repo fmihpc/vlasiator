@@ -196,6 +196,16 @@ for run in ${run_tests[*]}; do
 
    for vlsv in ${comparison_vlsv[$run]}
    do
+       if [ -f "${result_dir}/${vlsv}" ]; then
+           echo "Output file ${result_dir}/${vlsv} not found!"
+           echo "--------------------------------------------------------------------------------------------"
+           continue
+       fi
+       if [ -f "${vlsv_dir}/${vlsv}" ]; then
+           echo "Reference file ${vlsv_dir}/${vlsv} not found!"
+           echo "--------------------------------------------------------------------------------------------"
+           continue
+       fi
        echo "Comparing file ${result_dir}/${vlsv} against reference"
        for i in ${!variables[*]}
        do
@@ -298,7 +308,7 @@ for run in ${run_tests[*]}; do
        echo $speedup > $RUNNER_TEMP/speedup.txt
 
    done 2>&1 1>&3 3>&- | tee -a $GITHUB_WORKSPACE/stderr.txt; } 3>&1 1>&2 | tee -a $GITHUB_WORKSPACE/stdout.txt
-   # loop over vlsvfiles
+   # end loop over vlsvfiles
    echo "--------------------------------------------------------------------------------------------"
    echo "--------------------------------------------------------------------------------------------"
 
