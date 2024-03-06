@@ -9,6 +9,7 @@ if [[ z$1 != "z" ]]; then
 else 
    PLATFORM=""
 fi
+echo "Using platform $PLATFORM"
 
 # Clean up old library build dirs and libraries for this platform
 rm -rf library-build libraries${PLATFORM}
