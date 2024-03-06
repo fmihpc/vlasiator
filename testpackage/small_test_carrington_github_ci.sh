@@ -190,6 +190,7 @@ for run in ${run_tests[*]}; do
    MAXDT=0.   # Output time difference
    MAXERRVAR=""  # Variable with max absolute error
    MAXRELVAR=""  # Variable with max relative error
+   COMPAREDFILES=0
 
    variables=(${variable_names[$run]// / })
    indices=(${variable_components[$run]// / })
@@ -207,6 +208,8 @@ for run in ${run_tests[*]}; do
            continue
        fi
        echo "Comparing file ${result_dir}/${vlsv} against reference"
+       COMPAREDFILES=$((COMPAREDFILES+1))
+       
        for i in ${!variables[*]}
        do
            if [[ "${variables[$i]}" == "fg_"* ]]
@@ -310,15 +313,23 @@ for run in ${run_tests[*]}; do
    done 2>&1 1>&3 3>&- | tee -a $GITHUB_WORKSPACE/stderr.txt; } 3>&1 1>&2 | tee -a $GITHUB_WORKSPACE/stdout.txt
    # end loop over vlsvfiles
    echo "--------------------------------------------------------------------------------------------"
-   echo "--------------------------------------------------------------------------------------------"
 
    # Recover error variables
-   MAXERR=`cat $RUNNER_TEMP/MAXERR.txt`
-   MAXERRVAR=`cat $RUNNER_TEMP/MAXERRVAR.txt`
-   MAXREL=`cat $RUNNER_TEMP/MAXREL.txt`
-   MAXRELVAR=`cat $RUNNER_TEMP/MAXRELVAR.txt`
-   MAXDT=`cat $RUNNER_TEMP/MAXDT.txt`
-   speedup=`cat $RUNNER_TEMP/speedup.txt`
+   if [[ $COMPAREDFILES -eq 0  ]]; then
+       MAXERR=42
+       MAXERRVAR=`n/a`
+       MAXREL=42
+       MAXRELVAR=`n/a`
+       MAXDT=42
+       speedup=0
+   else
+       MAXERR=`cat $RUNNER_TEMP/MAXERR.txt`
+       MAXERRVAR=`cat $RUNNER_TEMP/MAXERRVAR.txt`
+       MAXREL=`cat $RUNNER_TEMP/MAXREL.txt`
+       MAXRELVAR=`cat $RUNNER_TEMP/MAXRELVAR.txt`
+       MAXDT=`cat $RUNNER_TEMP/MAXDT.txt`
+       speedup=`cat $RUNNER_TEMP/speedup.txt`
+   fi
 
    # Output CI step annotation
    if (( $( echo "$MAXERR 0." | awk '{ if($1 > $2) print 1; else print 0 }' ) )) || (( $( echo "$MAXDT 0." | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
