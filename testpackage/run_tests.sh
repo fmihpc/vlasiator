@@ -136,6 +136,16 @@ do
 	indices=(${variable_components[$run]// / })
         for vlsv in ${comparison_vlsv[$run]}
         do
+            if [ -f "${result_dir}/${vlsv}" ]; then
+                echo "Output file ${result_dir}/${vlsv} not found!"
+                echo "--------------------------------------------------------------------------------------------"
+                continue
+            fi
+            if [ -f "${vlsv_dir}/${vlsv}" ]; then
+                echo "Reference file ${vlsv_dir}/${vlsv} not found!"
+                echo "--------------------------------------------------------------------------------------------"
+                continue
+            fi
             echo "Comparing file ${result_dir}/${vlsv} against reference"
             for i in ${!variables[*]}
             do
