@@ -6,18 +6,25 @@ on:
 
 jobs:
   push_to_gitlab:
-    # Run the testpackage on the carrington cluster
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout source
-      uses: actions/checkout@v3
-    - name: Push to Gitlab
-      run: |
-        git remote set-url gitlab https://oauth2:${token}@codehub.hlrs.de/coes/plasma-pepsc/uoh/vlasiator.git
-        git push gitlab dev:dev
-        git push gitlab master:master
-        git push gitlab cudasiator:cudasiator
+      uses: actions/checkout@v4
       with:
-        env:
-          token: ${{ secrets.GITLAB_ACCESS_TOKEN }}
+        fetch-depth: 0
+    - name: Add Gitlab Remote
+      run: |
+        git remote add gitlab https://oauth2:${token}@codehub.hlrs.de/coes/plasma-pepsc/uoh/vlasiator.git
+        git fetch gitlab
+      env:
+        token: ${{ secrets.GITLAB_ACCESS_TOKEN }}
+    - name: Update master
+      run: |
+        git push -f gitlab origin/master:master
+    - name: Update dev
+      run: |
+        git push -f gitlab origin/dev:dev
+    - name: Update Vlasiator_gpu
+      run: |
+        git push -f gitlab origin/vlasiator_gpu:vlasiator_gpu
