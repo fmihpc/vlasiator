@@ -21,7 +21,7 @@ test_dir="tests"
 index=1
 
 #######
-# ACCELERATION TESTS
+# ACCELERATION TESTS (1..5)
 #######
 
 # basic multipeak acceleration test (fixed timestep)
@@ -70,7 +70,7 @@ single_cell[${index}]=1
 ((index+=1))
 
 #######
-# 1D/2D TRANSLATION TESTS
+# 1D/2D TRANSLATION TESTS (6..9)
 #######
 
 # Flowthrough tests
@@ -105,7 +105,7 @@ single_cell[${index}]=1
 ((index+=1))
 
 #######
-# 3D AMR TRANSLATION TESTS
+# 3D AMR TRANSLATION TESTS (10..13)
 #######
 
 # Three simple signal flowthroughs
@@ -141,7 +141,7 @@ variable_components[${index}]="0 0 1 2 0 1 2 0 1 2"
 # TBA: Large flowthrough test with dAMR
 
 #######
-# RESTARTING TESTS
+# RESTARTING TESTS (14..17)
 #######
 
 # Restart tests. Writing and reading
@@ -175,7 +175,7 @@ variable_components[${index}]="0 0 1 2 0 1 2 0 1 2"
 ((index+=1))
 
 #######
-# FIELDSOLVER TESTS
+# FIELDSOLVER TESTS (18..19)
 #######
 
 # Field solver test
@@ -195,7 +195,7 @@ variable_components[${index}]="0 1 2 0 1 2"
 ((index+=1))
 
 #######
-# GLOBAL 2D TESTS
+# GLOBAL 2D TESTS (20..21)
 #######
 
 #Very small ecliptic magnetosphere, no subcycling in ACC or FS
@@ -215,7 +215,7 @@ variable_components[${index}]="0 0 1 2 0 1 2 0 1 2 0 1 2 0 1 2"
 ((index+=1))
 
 #######
-# GLOBAL 3D TESTS
+# GLOBAL 3D TESTS (22..23)
 #######
 
 # Magnetosphere 3D
