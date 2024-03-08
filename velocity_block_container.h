@@ -28,7 +28,9 @@
 #include "unistd.h"
 
 #ifdef DEBUG_VLASIATOR
+   #ifndef DEBUG_VBC
    #define DEBUG_VBC
+   #endif
 #endif
 
 #ifdef DEBUG_VBC

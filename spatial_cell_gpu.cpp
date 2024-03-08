@@ -27,10 +27,6 @@
 #include "object_wrapper.h"
 #include "velocity_mesh_parameters.h"
 
-#ifdef DEBUG_VLASIATOR
-   #define DEBUG_SPATIAL_CELL
-#endif
-
 using namespace std;
 
 /** GPU kernel for identifying which blocks have relevant content */

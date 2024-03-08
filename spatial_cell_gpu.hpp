@@ -51,7 +51,9 @@ Spatial cell class for Vlasiator that supports a variable number of velocity blo
 #include "velocity_block_container.h"
 
 #ifdef DEBUG_VLASIATOR
+   #ifndef DEBUG_SPATIAL_CELL
    #define DEBUG_SPATIAL_CELL
+   #endif
 #endif
 
 typedef Parameters P; // Heeded in numerous files which include this one

@@ -26,10 +26,6 @@
 #include "velocity_blocks.h"
 #include "object_wrapper.h"
 
-#ifdef DEBUG_VLASIATOR
-   #define DEBUG_SPATIAL_CELL
-#endif
-
 using namespace std;
 
 namespace spatial_cell {

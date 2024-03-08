@@ -41,7 +41,9 @@
 //#include "arch/arch_device_api.h" // included in above
 
 #ifdef DEBUG_VLASIATOR
+   #ifndef DEBUG_VMESH
    #define DEBUG_VMESH
+   #endif
 #endif
 
 namespace vmesh {

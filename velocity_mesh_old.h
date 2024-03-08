@@ -37,7 +37,9 @@
 #include "velocity_mesh_parameters.h"
 
 #ifdef DEBUG_VLASIATOR
+   #ifndef DEBUG_VMESH
    #define DEBUG_VMESH
+   #endif
 #endif
 
 namespace vmesh {

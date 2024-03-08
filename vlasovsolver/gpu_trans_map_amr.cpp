@@ -387,6 +387,7 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    // Ensure GPU data has sufficient allocations/sizes, perform prefetches to CPU
    cuint sumOfLengths = DimensionPencils[dimension].sumOfLengths;
    gpu_vlasov_allocate(sumOfLengths);
+   // Resize allPencilsMeshes, allPencilsContainers, allVmeshPointer
    gpu_trans_allocate(nAllCells,sumOfLengths,0,0);
    // Initialize allCellsPointer. Find maximum mesh size.
    uint largestFoundMeshSize = 0;
@@ -396,13 +397,15 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
       #pragma omp for
       for(uint celli = 0; celli < nAllCells; celli++){
          allCellsPointer[celli] = mpiGrid[allCells[celli]];
-         mpiGrid[allCells[celli]]->dev_upload_population(popID);
          allVmeshPointer->at(celli) = mpiGrid[allCells[celli]]->dev_get_velocity_mesh(popID);
          const uint thisMeshSize = mpiGrid[allCells[celli]]->get_velocity_mesh(popID)->size();
          thread_largestFoundMeshSize = thisMeshSize > thread_largestFoundMeshSize ? thisMeshSize : thread_largestFoundMeshSize;
          // Prefetches (in fact all data should already reside in device memory)
          // allCellsPointer[celli]->get_velocity_mesh(popID)->gpu_prefetchDevice();
          // allCellsPointer[celli]->get_velocity_blocks(popID)->gpu_prefetchDevice();
+         #ifdef DEBUG_VLASIATOR
+         mpiGrid[allCells[celli]]->checkMesh(popID);
+         #endif
       }
       #pragma omp critical
       {
@@ -500,7 +503,10 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
       cuint currentAllocation = gpu_vlasov_getAllocation(); // in blocks, per thread buffer
       Vec* pencilOrderedSource = gpu_blockDataOrdered[cpuThreadID]; // pre-allocated temp buffer
       // How many blocks can each thread manage in parallel with this existing temp buffer?
+
       cuint nBlocksPerThread = currentAllocation / sumOfLengths;
+      //cuint nBlocksPerThread=1;
+
       uint nGpuBlocks  = nBlocksPerThread > GPUBLOCKS ? GPUBLOCKS : nBlocksPerThread;
 
       Realf** pencilBlockData; // Array of pointers into actual block data
