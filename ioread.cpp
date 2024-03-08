@@ -1299,8 +1299,8 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"vg_bulk_forcing_flag",CellParams::FORCING_CELL_NUM,1,mpiGrid); }
    if (P::refineOnRestart) {
       // Refinement indices alpha_1 and alpha_2
-      if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"vg_amr_alpha",CellParams::AMR_ALPHA,1,mpiGrid); }
-      if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"vg_amr_jperb",CellParams::AMR_JPERB,1,mpiGrid); }
+      if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"vg_amr_alpha1",CellParams::AMR_ALPHA1,1,mpiGrid); }
+      if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"vg_amr_alpha2",CellParams::AMR_ALPHA2,1,mpiGrid); }
    }
 
    // Backround B has to be set, there are also the derivatives that should be written/read if we wanted to only read in background field

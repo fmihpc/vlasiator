@@ -9,6 +9,7 @@ if [[ z$1 != "z" ]]; then
 else 
    PLATFORM=""
 fi
+echo "Using platform $PLATFORM"
 
 # Clean up old library build dirs and libraries for this platform
 rm -rf library-build libraries${PLATFORM}
@@ -22,10 +23,14 @@ cd library-build
 # Build phiprof
 git clone https://github.com/fmihpc/phiprof/ 
 cd phiprof/src
-if [[ $PLATFORM != "-appleM1" ]]; then
-   make -j 4 CCC=mpic++
-else
+
+if [[ $PLATFORM == "-arriesgado" ]]; then
+   # Special workaround for missing include paths on arriesgado
+   make -j 4 CCC=mpic++ CCFLAGS="-I /usr/lib/gcc/riscv64-linux-gnu/11/include -fpic -O2 -std=c++17 -DCLOCK_ID=CLOCK_MONOTONIC -fopenmp -W -Wall -Wextra -pedantic"
+elif [[ $PLATFORM == "-appleM1" ]]; then
    make -j 4 CCC=mpic++ CC=appleLLVM CCFLAGS="-fpic -O2 -std=c++17 -DCLOCK_ID=CLOCK_MONOTONIC -fopenmp" LDFLAGS="-fopenmp"
+else
+   make -j 4 CCC=mpic++
 fi
 cp ../include/* $WORKSPACE/libraries${PLATFORM}/include
 cp ../lib/* $WORKSPACE/libraries${PLATFORM}/lib
