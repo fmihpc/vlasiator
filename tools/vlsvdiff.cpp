@@ -718,6 +718,7 @@ bool convertSILO(const string fileName,
                  const uint compToExtract,
                  map<uint, Real> * orderedData,
                  unordered_map<size_t,size_t>& cellOrder,
+                 Real& time,
                  const bool& storeCellOrder=false) {
    bool success = true;
 
@@ -747,6 +748,9 @@ bool convertSILO(const string fileName,
          return false;
       }      
    }
+
+   vlsvReader.readParameter("time", time);
+
    vlsvReader.close();
    return success;
 }
@@ -960,6 +964,36 @@ bool outputDistance(const Real p,
    return 0;
 }
 
+/*! In verbose mode print delta t, in non-verbose store them for later output when lastCall is true
+ * \param dt delta t
+ * \param verboseOutput Boolean parameter telling whether the output is verbose or compact
+ * \param lastCall Boolean parameter telling whether this is the last call to the function
+ */
+bool outputDt(
+   const Real dt,
+   const bool verboseOutput,
+   const bool lastCall
+) {
+   if(verboseOutput == true) {
+      cout << "The delta t between both datasets is " << dt << endl;
+   } else {
+      static vector<Real> fileOutputData;
+      static uint fileNumber = 0;
+      
+      if(lastCall == true) {
+         vector<Real>::const_iterator it;
+         for(auto f : fileOutputData) {
+            cout << f << "\t";
+         }
+         fileOutputData.clear();
+         return 0;
+      }
+      
+      fileOutputData.push_back(dt);
+   }
+   return 0;
+}
+
 /*! Compute statistics on a single file
  * \param size Return argument pointer, dataset size
  * \param mini Return argument pointer, dataset minimum
@@ -1099,6 +1133,7 @@ bool printNonVerboseData()
    // last argument (lastCall) is true to get the output of the whole stored dataset
    outputStats(NULL, NULL, NULL, NULL, NULL, false, true);
    outputDistance(0, NULL, NULL, false, false, true);
+   outputDt(0, false, true);
    
    return 0;
 }
@@ -1570,7 +1605,12 @@ bool compareAvgs( const string fileName1,
          minDiff = *it;
       }
    }
-   
+
+   Real time1 {0.0};
+   Real time2 {0.0};
+   vlsvReader1.readParameter("time", time1);
+   vlsvReader2.readParameter("time", time2);
+
    const double relativeSumDiff = sumDiff / totalAbsAvgs;
    cout << "File names: " << fileName1 << " & " << fileName2 << endl <<
       "NonIdenticalBlocks:      " << numOfNonIdenticalBlocks << endl <<
@@ -1579,8 +1619,8 @@ bool compareAvgs( const string fileName1,
       "Mean-Absolute-Error:     " << totalAbsDiff / numOfRelevantCells << endl <<
       "Max-Absolute-Error:      " << maxDiff << endl <<
       "Absolute-log-Error:      " << totalAbsLog10Diff << endl <<
-      "Mean-Absolute-log-Error: " << totalAbsLog10Diff / numOfRelevantCells << endl;
-   
+      "Mean-Absolute-log-Error: " << totalAbsLog10Diff / numOfRelevantCells << endl <<
+      "Delta-t: " << time2 - time1 << endl;
 
    return true;
 }
@@ -1613,19 +1653,23 @@ bool process2Files(const string fileName1,
       cellIds1.push_back(compToExtract);
       cellIds2.push_back(compToExtract2);
       // Compare files:
-      if( compareAvgs<vlsvinterface::Reader, vlsvinterface::Reader>(fileName1, fileName2, verboseOutput, cellIds1, cellIds2) == false ) { return false; }
+      if (compareAvgs<vlsvinterface::Reader, vlsvinterface::Reader>(fileName1, fileName2, verboseOutput, cellIds1, cellIds2) == false) { 
+         return false; 
+      }
    } else {
       unordered_map<size_t,size_t> cellOrder;
    
       bool success = true;
-      success = convertSILO<vlsvinterface::Reader>(fileName1, varToExtract, compToExtract, &orderedData1, cellOrder, true);
+      Real time1 {0.0};
+      success = convertSILO<vlsvinterface::Reader>(fileName1, varToExtract, compToExtract, &orderedData1, cellOrder, time1, true);
 
       if( success == false ) {
          cerr << "ERROR Data import error with " << fileName1 << endl;
          return 1;
       }
 
-      success = convertSILO<vlsvinterface::Reader>(fileName2, varToExtract, compToExtract, &orderedData2, cellOrder, false);
+      Real time2 {0.0};
+      success = convertSILO<vlsvinterface::Reader>(fileName2, varToExtract, compToExtract, &orderedData2, cellOrder, time2, false);
 
       if( success == false ) {
          cerr << "ERROR Data import error with " << fileName2 << endl;
@@ -1686,6 +1730,8 @@ bool process2Files(const string fileName1,
       outputDistance(2, &absolute, &relative, false, verboseOutput, false);
       pDistance(orderedData1, orderedData2, 2, &absolute, &relative, true, cellOrder,outputFile,attributes["--meshname"],"d2_sft_"+varName);
       outputDistance(2, &absolute, &relative, true, verboseOutput, false);
+
+      outputDt(time2 - time1, verboseOutput, false);
 
       outputFile.close();
    }
