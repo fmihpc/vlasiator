@@ -713,7 +713,6 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
       mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
       transferTimer.stop();
    }
-<<<<<< HEAD
    //Adjusts velocity blocks in local spatial cells, doesn't adjust velocity blocks in remote cells.
    int adjustId {phiprof::initializeTimer("Adjusting blocks")};
    #pragma omp parallel
