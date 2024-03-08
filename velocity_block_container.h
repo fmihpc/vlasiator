@@ -60,7 +60,7 @@ namespace vmesh {
 
       ARCH_HOSTDEV vmesh::LocalID capacity() const;
       ARCH_HOSTDEV size_t capacityInBytes() const;
-      void clear();
+      void clear(bool shrink=true);
       ARCH_HOSTDEV void move(const vmesh::LocalID& source,const vmesh::LocalID& target);
       ARCH_HOSTDEV static double getBlockAllocationFactor();
       ARCH_HOSTDEV Realf* getData();
@@ -76,11 +76,11 @@ namespace vmesh {
       ARCH_HOSTDEV vmesh::LocalID push_back_and_zero();
       ARCH_HOSTDEV vmesh::LocalID push_back(const uint32_t& N_blocks);
       ARCH_HOSTDEV vmesh::LocalID push_back_and_zero(const uint32_t& N_blocks);
-      bool recapacitate(const vmesh::LocalID& capacity);
-      ARCH_HOSTDEV bool setSize(const vmesh::LocalID& newSize);
+      bool setNewCapacity(const vmesh::LocalID& capacity);
+      ARCH_HOSTDEV bool setNewSize(const vmesh::LocalID& newSize);
       ARCH_HOSTDEV vmesh::LocalID size() const;
       ARCH_HOSTDEV size_t sizeInBytes() const;
-      ARCH_HOSTDEV void swap(VelocityBlockContainer& vbc);
+      // ARCH_HOSTDEV void swap(VelocityBlockContainer& vbc);
 
 #ifdef USE_GPU // for GPU version
       void gpu_Allocate(vmesh::LocalID size);
@@ -179,21 +179,25 @@ namespace vmesh {
 
    /** Clears VelocityBlockContainer data and deallocates all memory
     * reserved for velocity blocks.*/
-   inline void VelocityBlockContainer::clear() {
+   inline void VelocityBlockContainer::clear(bool shrink) {
 #ifdef USE_GPU
-      gpuStream_t stream = gpu_getStream();
-      block_data->resize(WID3,false);
-      block_data->shrink_to_fit();
-      parameters->resize(BlockParams::N_VELOCITY_BLOCK_PARAMS,false);
-      parameters->shrink_to_fit();
+      //gpuStream_t stream = gpu_getStream();
+      if (shrink) {
+         block_data->resize(WID3,false);
+         parameters->resize(BlockParams::N_VELOCITY_BLOCK_PARAMS,false);
+         block_data->shrink_to_fit();
+         parameters->shrink_to_fit();
+      }
 #else
-      std::vector<Realf,aligned_allocator<Realf,WID3> > *dummy_data = new std::vector<Realf,aligned_allocator<Realf,WID3> >(1*WID3);
-      std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS> > *dummy_parameters = new std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS> >(1*BlockParams::N_VELOCITY_BLOCK_PARAMS);
-      // initialization with zero capacity returns null pointers
-      block_data->swap(*dummy_data);
-      parameters->swap(*dummy_parameters);
-      delete dummy_data;
-      delete dummy_parameters;
+      if (shrink) {
+         std::vector<Realf,aligned_allocator<Realf,WID3> > *dummy_data = new std::vector<Realf,aligned_allocator<Realf,WID3> >(1*WID3);
+         std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS> > *dummy_parameters = new std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS> >(1*BlockParams::N_VELOCITY_BLOCK_PARAMS);
+         // initialization with zero capacity returns null pointers
+         block_data->swap(*dummy_data);
+         parameters->swap(*dummy_parameters);
+         delete dummy_data;
+         delete dummy_parameters;
+      }
 #endif
       block_data->clear();
       parameters->clear();
@@ -589,7 +593,7 @@ namespace vmesh {
       return newIndex;
    }
 
-   inline bool VelocityBlockContainer::recapacitate(const vmesh::LocalID& newCapacity) {
+   inline bool VelocityBlockContainer::setNewCapacity(const vmesh::LocalID& newCapacity) {
       // Note: No longer ever recapacitates down in size.
       #ifdef USE_GPU
       gpuStream_t stream = gpu_getStream();
@@ -654,7 +658,7 @@ namespace vmesh {
       #endif
    }
 
-   inline ARCH_HOSTDEV bool VelocityBlockContainer::setSize(const vmesh::LocalID& newSize) {
+   inline ARCH_HOSTDEV bool VelocityBlockContainer::setNewSize(const vmesh::LocalID& newSize) {
       #ifdef USE_GPU
          #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
          gpuStream_t stream = gpu_getStream();
@@ -692,10 +696,10 @@ namespace vmesh {
       return currentSize*sizeof(Realf) + parametersSize*sizeof(Real);
    }
 
-   inline ARCH_HOSTDEV void VelocityBlockContainer::swap(VelocityBlockContainer& vbc) {
-      block_data->swap(*(vbc.block_data));
-      parameters->swap(*(vbc.parameters));
-   }
+   // inline ARCH_HOSTDEV void VelocityBlockContainer::swap(VelocityBlockContainer& vbc) {
+   //    block_data->swap(*(vbc.block_data));
+   //    parameters->swap(*(vbc.parameters));
+   // }
 
 #ifdef DEBUG_VBC
    inline const Realf& VelocityBlockContainer::getData(const vmesh::LocalID& blockLID,const unsigned int& cell) const {

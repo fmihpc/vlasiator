@@ -360,18 +360,16 @@ namespace spatial_cell {
 
       // Following functions adjust velocity blocks stored on the cell //
       bool add_velocity_block(const vmesh::GlobalID& block,const uint popID);
-      bool add_velocity_block(const vmesh::GlobalID& block,const uint popID, Realf* buffer);
-      bool add_velocity_block_octant(const vmesh::GlobalID& blockGID,const uint popID);
       void adjustSingleCellVelocityBlocks(const uint popID, bool doDeleteEmpty=false);
       void adjust_velocity_blocks(const std::vector<SpatialCell*>& spatial_neighbors,
                                   const uint popID,
                                   bool doDeleteEmptyBlocks=true);
-      // Templated function for storing a v-space read from a file
+      // Templated function for storing a v-space read from a file or generated elsewhere
       template <typename fileReal> void add_velocity_blocks(const uint popID,const std::vector<vmesh::GlobalID>& blocks,fileReal* avgBuffer);
 
       void update_velocity_block_content_lists(const uint popID);
       bool checkMesh(const uint popID);
-      void clear(const uint popID);
+      void clear(const uint popID, bool shrink=true);
       uint64_t get_cell_memory_capacity();
       uint64_t get_cell_memory_size();
       void merge_values(const uint popID);
@@ -846,9 +844,9 @@ namespace spatial_cell {
    }
 
    /*!
-    Removes all velocity blocks from this spatial cell and frees memory in the cell
-    */
-    inline void SpatialCell::clear(const uint popID) {
+     Removes all velocity blocks from this spatial cell and frees memory in the cell
+   */
+   inline void SpatialCell::clear(const uint popID, bool shrink) {
        #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
@@ -857,8 +855,8 @@ namespace spatial_cell {
       }
       #endif
 
-      populations[popID].vmesh->clear();
-      populations[popID].blockContainer->clear();
+      populations[popID].vmesh->clear(shrink);
+      populations[popID].blockContainer->clear(shrink);
     }
 
    /*!
@@ -939,45 +937,6 @@ namespace spatial_cell {
       // The following call 'should' be the fastest, but is actually
       // much slower that the parameter setting above
       //vmesh::VelocityMesh::getBlockInfo(block,get_block_parameters( blockContainer->push_back() ));
-      return success;
-   }
-
-   /*!
-    Adds a velocity block into this spatial cell and fills it with data from the provided buffer.
-    Returns true if given block was added or already exists.
-    Returns false if given block is invalid or would be outside
-    of the velocity grid.
-
-    NOTE: this function is not thread-safe when inserting new blocks.
-   */
-   inline bool SpatialCell::add_velocity_block(const vmesh::GlobalID& block,const uint popID,
-                                               Realf* buffer) {
-      #ifdef DEBUG_SPATIAL_CELL
-      if (popID >= populations.size()) {
-         std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
-         std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
-         exit(1);
-      }
-      #endif
-
-      // Block insert will fail, if the block already exists, or if
-      // there are too many blocks in the spatial cell
-      bool success = true;
-      if (populations[popID].vmesh->push_back(block) == false) {
-         return false;
-      }
-
-      const vmesh::LocalID VBC_LID = populations[popID].blockContainer->push_back();
-
-      // Set block parameters:
-      Real* parameters = get_block_parameters(VBC_LID,popID);
-      populations[popID].vmesh->getBlockInfo(block, parameters);
-
-      // Copy the data in (increments in case of multipeak)
-      Realf* data = get_data(VBC_LID,popID);
-      for (uint i=0; i<WID3; ++i) {
-         data[i] += buffer[i];
-      }
       return success;
    }
 

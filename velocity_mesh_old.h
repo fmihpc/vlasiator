@@ -51,8 +51,7 @@ namespace vmesh {
 
       size_t capacityInBytes() const;
       bool check() const;
-      void clear();
-      bool coarsenAllowed(const vmesh::GlobalID& globalID) const;
+      void clear(bool shrink=false);
       bool move(const vmesh::LocalID& sourceLocalID,const vmesh::LocalID& targetLocalID);
       size_t count(const vmesh::GlobalID& globalID) const;
       vmesh::GlobalID findBlock(vmesh::GlobalID cellIndices[3]) const;
@@ -62,8 +61,6 @@ namespace vmesh {
       bool getBlockSize(const vmesh::GlobalID& globalID,Real size[3]) const;
       const Real* getCellSize() const;
       bool getCellSize(const vmesh::GlobalID& globalID,Real size[3]) const;
-      void getChildren(const vmesh::GlobalID& globalID,std::vector<vmesh::GlobalID>& children) const;
-//      void     getChildren(const GlobalID& globalID,std::vector<GlobalID>& children);
       vmesh::GlobalID getGlobalID(const vmesh::LocalID& localID) const;
       vmesh::GlobalID getGlobalID(const Real* coords) const;
       vmesh::GlobalID getGlobalID(vmesh::LocalID indices[3]) const;
@@ -75,7 +72,6 @@ namespace vmesh {
       void getIndices(const vmesh::GlobalID& globalID,vmesh::LocalID& i,vmesh::LocalID& j,vmesh::LocalID& k) const;
       size_t getMesh() const;
       vmesh::LocalID getLocalID(const vmesh::GlobalID& globalID) const;
-      uint8_t getMaxAllowedRefinementLevel() const;
       vmesh::GlobalID getMaxVelocityBlocks() const;
       const Real* getMeshMaxLimits() const;
       const Real* getMeshMinLimits() const;
@@ -87,7 +83,6 @@ namespace vmesh {
       void pop();
       bool push_back(const vmesh::GlobalID& globalID);
       bool push_back(const std::vector<vmesh::GlobalID>& blocks);
-      bool refine(const vmesh::GlobalID& globalID,std::set<vmesh::GlobalID>& erasedBlocks,std::map<vmesh::GlobalID,vmesh::LocalID>& insertedBlocks);
       void setGrid();
       bool setGrid(const std::vector<vmesh::GlobalID>& globalIDs);
       bool setMesh(const size_t& meshID);
@@ -95,7 +90,7 @@ namespace vmesh {
       void setNewCapacity(const vmesh::LocalID& newCapacity);
       size_t size(bool dummy=0) const;
       size_t sizeInBytes() const;
-      void swap(VelocityMesh& vm);
+      // void swap(VelocityMesh& vm);
 
     private:
       size_t meshID;
@@ -173,9 +168,13 @@ namespace vmesh {
       return ok;
    }
 
-   inline void VelocityMesh::clear() {
-      std::vector<vmesh::GlobalID>().swap(*localToGlobalMap);
+   inline void VelocityMesh::clear(bool shrink) {
+      localToGlobalMap->clear();
       globalToLocalMap->clear();
+      if (shrink) {
+         localToGlobalMap->shrink_to_fit(); 
+         globalToLocalMap->shrink_to_fit();
+      }
    }
 
    inline bool VelocityMesh::coarsenAllowed(const vmesh::GlobalID& globalID) const {
@@ -298,11 +297,6 @@ namespace vmesh {
       return true;
    }
 
-   inline void VelocityMesh::getChildren(const vmesh::GlobalID& globalID,std::vector<vmesh::GlobalID>& children) const {
-      children.clear();
-      return;
-   }
-
    inline vmesh::GlobalID VelocityMesh::getGlobalID(const vmesh::LocalID& localID) const {
       #ifdef DEBUG_VMESH
       if (localID >= localToGlobalMap->size()) {
@@ -372,10 +366,6 @@ namespace vmesh {
       auto it = globalToLocalMap->find(globalID);
       if (it != globalToLocalMap->end()) return it->second;
       return invalidLocalID();
-   }
-
-   inline uint8_t VelocityMesh::getMaxAllowedRefinementLevel() const {
-      return 0;
    }
 
    inline vmesh::GlobalID VelocityMesh::getMaxVelocityBlocks() const {
@@ -456,10 +446,6 @@ namespace vmesh {
       return true;
    }
 
-   inline bool VelocityMesh::refine(const vmesh::GlobalID& globalID,std::set<vmesh::GlobalID>& erasedBlocks,std::map<vmesh::GlobalID,vmesh::LocalID>& insertedBlocks) {
-      return false;
-   }
-
    inline void VelocityMesh::setGrid() {
       globalToLocalMap->clear();
       for (size_t i=0; i<localToGlobalMap->size(); ++i) {
@@ -502,10 +488,10 @@ namespace vmesh {
            + localToGlobalMap->size()*(sizeof(vmesh::GlobalID)+sizeof(vmesh::LocalID));
    }
 
-   inline void VelocityMesh::swap(VelocityMesh& vm) {
-      globalToLocalMap->swap(*(vm.globalToLocalMap));
-      localToGlobalMap->swap(*(vm.localToGlobalMap));
-   }
+   // inline void VelocityMesh::swap(VelocityMesh& vm) {
+   //    globalToLocalMap->swap(*(vm.globalToLocalMap));
+   //    localToGlobalMap->swap(*(vm.localToGlobalMap));
+   // }
 
 } // namespace vmesh
 

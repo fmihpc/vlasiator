@@ -634,7 +634,7 @@ namespace spatial_cell {
     * the cell with empty blocks based on the new list.*/
    void SpatialCell::prepare_to_receive_blocks(const uint popID) {
       populations[popID].vmesh->setGrid();
-      populations[popID].blockContainer->setSize(populations[popID].vmesh->size());
+      populations[popID].blockContainer->setNewSize(populations[popID].vmesh->size());
 
       Real* parameters = get_block_parameters(popID);
 
@@ -710,7 +710,7 @@ namespace spatial_cell {
 
          // Allow capacity to be a bit large than needed by number of blocks, shrink otherwise
          if (populations[p].blockContainer->capacity() > amount )
-            if (populations[p].blockContainer->recapacitate(amount) == false) success = false;
+            if (populations[p].blockContainer->setNewCapacity(amount) == false) success = false;
 
       }
       return success;

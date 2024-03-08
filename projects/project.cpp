@@ -287,7 +287,7 @@ namespace projects {
       const uint nRequested = blocksToInitialize.size();
       // Expand the velocity space to the required size
       vmesh->setNewCapacity(nRequested);
-      blockContainer->recapacitate(nRequested);
+      blockContainer->setNewCapacity(nRequested);
       cell->setReservation(popID,nRequested);
 
       // Loop over requested blocks. Initialize the contents into the temporary buffer

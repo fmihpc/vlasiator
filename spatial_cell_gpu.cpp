@@ -408,7 +408,7 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
             // This LID so large that we just delete without replacing
             #ifdef DEBUG_SPATIAL_CELL
             if (rmLID < nBlocksAfterAdjust) {
-               printf("Trying to remove block which has LID smaller than nBlocksAfterAdjust!\n",rmLID,nBlocksAfterAdjust);
+               printf("Trying to remove block which has LID %u smaller than nBlocksAfterAdjust %u!\n",rmLID,nBlocksAfterAdjust);
             }
             assert(rmLID >= nBlocksAfterAdjust && "Trying to remove block which has LID smaller than nBlocksAfterAdjust!");
             #endif
@@ -1013,6 +1013,7 @@ namespace spatial_cell {
       // Perform hashmap cleanup here (instead of at acceleration mid-steps)
       //phiprof::Timer cleanupTimer {"Hashinator cleanup"};
       populations[popID].vmesh->gpu_cleanHashMap(stream);
+      populations[popID].Upload();
       SSYNC;
       //cleanupTimer.stop();
 
@@ -1159,7 +1160,7 @@ namespace spatial_cell {
       // Grow the vmesh and block container, if necessary
       if (nBlocksAfterAdjust > nBlocksBeforeAdjust) {
          populations[popID].vmesh->setNewSize(nBlocksAfterAdjust);
-         populations[popID].blockContainer->setSize(nBlocksAfterAdjust);
+         populations[popID].blockContainer->setNewSize(nBlocksAfterAdjust);
          populations[popID].Upload();
       }
 
@@ -1191,7 +1192,7 @@ namespace spatial_cell {
       if (nBlocksAfterAdjust <= nBlocksBeforeAdjust) {
          // Should not re-allocate on shrinking
          populations[popID].vmesh->setNewSize(nBlocksAfterAdjust);
-         populations[popID].blockContainer->setSize(nBlocksAfterAdjust);
+         populations[popID].blockContainer->setNewSize(nBlocksAfterAdjust);
          //populations[popID].Upload();
       }
 
@@ -1292,7 +1293,7 @@ namespace spatial_cell {
          //add data to send/recv to displacement and block length lists
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_LIST_STAGE1) != 0) {
             //first copy values in case this is the send operation
-            populations[activePopID].N_blocks = populations[activePopID].blockContainer->size();
+            populations[activePopID].N_blocks = populations[activePopID].vmesh->size();
 
             // send velocity block list size
             displacements.push_back((uint8_t*) &(populations[activePopID].N_blocks) - (uint8_t*) this);
@@ -1302,11 +1303,13 @@ namespace spatial_cell {
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_LIST_STAGE2) != 0) {
             // STAGE1 should have been done, otherwise we have problems...
             if (receiving) {
-               //mpi_number_of_blocks transferred earlier
+               // Set population size based on mpi_number_of_blocks transferred earlier,
+               // Cleared to be ready to receive
+               populations[activePopID].vmesh->clear();
                populations[activePopID].vmesh->setNewSize(populations[activePopID].N_blocks);
             } else {
-                //resize to correct size (it will avoid reallocation if it is big enough, I assume)
-                populations[activePopID].N_blocks = populations[activePopID].blockContainer->size();
+                //Ensure N_blocks is still correct
+                populations[activePopID].N_blocks = populations[activePopID].vmesh->size();
             }
 
             // send velocity block list
@@ -1507,9 +1510,9 @@ namespace spatial_cell {
     * the cell with empty blocks based on the new list.*/
    void SpatialCell::prepare_to_receive_blocks(const uint popID) {
       phiprof::Timer setGridTimer {"GPU receive blocks: set grid"};
-      populations[popID].vmesh->setGrid();
+      populations[popID].vmesh->setGrid(); // Based on localToGlobalMap
       const vmesh::LocalID meshSize = populations[popID].vmesh->size();
-      populations[popID].blockContainer->setSize(meshSize);
+      populations[popID].blockContainer->setNewSize(meshSize);
       // Set velocity block parameters:
       Real* parameters = get_block_parameters(popID);
       gpuStream_t stream = gpu_getStream();
@@ -1523,8 +1526,9 @@ namespace spatial_cell {
             meshSize
             );
          CHK_ERR( gpuPeekAtLastError() );
-         CHK_ERR( gpuStreamSynchronize(stream) );
+         //CHK_ERR( gpuStreamSynchronize(stream) );
       }
+      populations[popID].Upload();
    }
 
    /** Set the particle species SpatialCell should use in functions that
@@ -1591,7 +1595,7 @@ namespace spatial_cell {
 
          // Allow capacity to be a bit large than needed by number of blocks, shrink otherwise
          if (populations[p].blockContainer->capacity() > amount )
-            if (populations[p].blockContainer->recapacitate(amount) == false) success = false;
+            if (populations[p].blockContainer->setNewCapacity(amount) == false) success = false;
 
       }
       return success;
@@ -1674,9 +1678,6 @@ namespace spatial_cell {
       velocity_block_with_no_content_list->resize(velocity_block_with_no_content_list_size,true,stream);
       //CHK_ERR( gpuStreamSynchronize(stream) );
       compactionTimer.stop();
-
-      // Note: Content list is not uploaded to device-only buffer here, but rather
-      // in grid.cpp adjustVelocityBlocks()
    }
 
    void SpatialCell::prefetchDevice() {

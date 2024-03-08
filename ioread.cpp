@@ -1193,13 +1193,13 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
    //make sure all cells are empty, we will anyway overwrite everything and
    // in that case moving cells is easier...
-     {
-        const vector<CellID>& gridCells = getLocalCells();
-        for (size_t i=0; i<gridCells.size(); i++) {
-           for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
-             mpiGrid[gridCells[i]]->clear(popID);
-        }
-     }
+   {
+      const vector<CellID>& gridCells = getLocalCells();
+      for (size_t i=0; i<gridCells.size(); i++) {
+         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+            mpiGrid[gridCells[i]]->clear(popID);
+      }
+   }
 
    uint64_t totalNumberOfBlocks=0;
    unsigned int numberOfBlocksPerProcess;

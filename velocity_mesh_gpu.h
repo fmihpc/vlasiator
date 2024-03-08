@@ -57,7 +57,7 @@ namespace vmesh {
       size_t capacityInBytes() const;
       ARCH_HOSTDEV bool check() const;
       ARCH_HOSTDEV void print() const;
-      void clear();
+      void clear(bool shrink=true);
       ARCH_HOSTDEV bool move(const vmesh::LocalID& sourceLocalID,const vmesh::LocalID& targetLocalID);
       ARCH_DEV bool warpMove(const vmesh::LocalID& sourceLocalID,const vmesh::LocalID& targetLocalID, const size_t b_tid);
       ARCH_HOSTDEV size_t count(const vmesh::GlobalID& globalID) const;
@@ -112,7 +112,7 @@ namespace vmesh {
       void setNewCapacity(const vmesh::LocalID& newCapacity);
       ARCH_HOSTDEV size_t size() const;
       ARCH_HOSTDEV size_t sizeInBytes() const;
-      void swap(VelocityMesh& vm);
+      // void swap(VelocityMesh& vm);
 
       void gpu_prefetchHost(gpuStream_t stream);
       void gpu_prefetchDevice(gpuStream_t stream);
@@ -247,10 +247,16 @@ namespace vmesh {
       #endif
    }
 
-   inline void VelocityMesh::clear() {
+   inline void VelocityMesh::clear(bool shrink) {
       gpuStream_t stream = gpu_getStream();
       localToGlobalMap->clear();
-      globalToLocalMap->clear(Hashinator::targets::device,stream,false);
+      if (shrink) {
+         localToGlobalMap->shrink_to_fit();
+         delete globalToLocalMap;
+         globalToLocalMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(7);
+      } else {
+         globalToLocalMap->clear(Hashinator::targets::device,stream,false);
+      }
    }
 
    ARCH_HOSTDEV inline bool VelocityMesh::move(const vmesh::LocalID& sourceLID,const vmesh::LocalID& targetLID) {
@@ -1049,6 +1055,8 @@ namespace vmesh {
 #endif
 
    inline void VelocityMesh::setGrid() {
+      // Assumes we have a valid localToGlobalMap from e.g. MPI communication,
+      // populates globalToLocalMap based on it.
       gpuStream_t stream = gpu_getStream();
       globalToLocalMap->clear(Hashinator::targets::device,stream,false);
       size_t nBlocks = localToGlobalMap->size();
@@ -1103,10 +1111,10 @@ namespace vmesh {
       const int HashmapReqSize = ceil(log2(newSize2)) +2; // Make it really large enough
       if (currentSizePower < HashmapReqSize) {
          globalToLocalMap->device_rehash(HashmapReqSize, stream);
-         CHK_ERR( gpuStreamSynchronize(stream) );
-         globalToLocalMap->optimizeGPU(stream);
+         // CHK_ERR( gpuStreamSynchronize(stream) );
+         // globalToLocalMap->optimizeGPU(stream);
       }
-      CHK_ERR( gpuStreamSynchronize(stream) );
+      //CHK_ERR( gpuStreamSynchronize(stream) );
    }
 
    // Used in initialization
@@ -1137,11 +1145,11 @@ namespace vmesh {
       return sizeInBytes;
    }
 
-   inline void VelocityMesh::swap(VelocityMesh& vm) {
-      gpuStream_t stream = gpu_getStream();
-      globalToLocalMap->swap(*(vm.globalToLocalMap));
-      localToGlobalMap->swap(*(vm.localToGlobalMap));
-   }
+   // inline void VelocityMesh::swap(VelocityMesh& vm) {
+   //    gpuStream_t stream = gpu_getStream();
+   //    globalToLocalMap->swap(*(vm.globalToLocalMap));
+   //    localToGlobalMap->swap(*(vm.localToGlobalMap));
+   // }
 
    inline void VelocityMesh::gpu_prefetchHost(gpuStream_t stream=0) {
       if (stream==0) {

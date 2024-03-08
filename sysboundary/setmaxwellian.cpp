@@ -209,7 +209,7 @@ namespace SBC {
 
       // Init all particle species
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         templateCell.clear(popID);
+         templateCell.clear(popID,false); //clear, do not de-allocate memory
          // Interpolate is in setbyuser.cpp and .h
          interpolate(inputDataIndex, popID, t, &buffer[0]);
          rho = buffer[0];
@@ -227,7 +227,7 @@ namespace SBC {
          vmesh::VelocityMesh* vmesh = templateCell.get_velocity_mesh(popID);
          vmesh::VelocityBlockContainer* blockContainer = templateCell.get_velocity_blocks(popID);
          vmesh->setNewCapacity(nRequested);
-         blockContainer->recapacitate(nRequested);
+         blockContainer->setNewCapacity(nRequested);
          templateCell.setReservation(popID,nRequested);
          const Realf minValue = templateCell.getVelocityBlockMinValue(popID);
 

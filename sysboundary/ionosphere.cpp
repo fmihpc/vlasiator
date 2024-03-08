@@ -3204,14 +3204,14 @@ namespace SBC {
                {
                   // Fill velocity space with new maxwellian data
                   SpatialCell& cell = *mpiGrid[cellID];
-                  cell.clear(popID); // Clear previous velocity space completely
+                  cell.clear(popID,false); // Clear previous velocity space completely, do not de-allocate memory
                   const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(cell,density,temperature,vDrift,popID);
                   const uint nRequested = blocksToInitialize.size();
                   // Expand the velocity space to the required size
                   vmesh::VelocityMesh* vmesh = cell.get_velocity_mesh(popID);
                   vmesh::VelocityBlockContainer* blockContainer = cell.get_velocity_blocks(popID);
                   vmesh->setNewCapacity(nRequested);
-                  blockContainer->recapacitate(nRequested);
+                  blockContainer->setNewCapacity(nRequested);
                   cell.setReservation(popID,nRequested);
                   const Realf minValue = cell.getVelocityBlockMinValue(popID);
 
@@ -3284,7 +3284,7 @@ namespace SBC {
                      cell.parameters[CellParams::ZCRD] + 0.5*cell.parameters[CellParams::DZ]
                   );
 
-                  cell.clear(popID); // Clear previous velocity space completely
+                  cell.clear(popID,false); // Clear previous velocity space completely, do not de-allocate memory
                   const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(cell,density,temperature,vDrift,popID);
 
                   const uint nRequested = blocksToInitialize.size();
@@ -3292,7 +3292,7 @@ namespace SBC {
                   vmesh::VelocityMesh* vmesh = cell.get_velocity_mesh(popID);
                   vmesh::VelocityBlockContainer* blockContainer = cell.get_velocity_blocks(popID);
                   vmesh->setNewCapacity(nRequested);
-                  blockContainer->recapacitate(nRequested);
+                  blockContainer->setNewCapacity(nRequested);
                   cell.setReservation(popID,nRequested);
                   const Realf minValue = cell.getVelocityBlockMinValue(popID);
 
@@ -3395,7 +3395,7 @@ namespace SBC {
 
       // Loop over particle species
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         templateCell.clear(popID);
+         templateCell.clear(popID,false); //clear, do not de-allocate memory
          const IonosphereSpeciesParameters& sP = this->speciesParams[popID];
          const std::array<Real, 3> vDrift = {0,0,0};
          const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(templateCell,sP.rho,sP.T,vDrift,popID);
@@ -3404,7 +3404,7 @@ namespace SBC {
          vmesh::VelocityMesh* vmesh = templateCell.get_velocity_mesh(popID);
          vmesh::VelocityBlockContainer* blockContainer = templateCell.get_velocity_blocks(popID);
          vmesh->setNewCapacity(nRequested);
-         blockContainer->recapacitate(nRequested);
+         blockContainer->setNewCapacity(nRequested);
          templateCell.setReservation(popID,nRequested);
          const Realf minValue = templateCell.getVelocityBlockMinValue(popID);
 
