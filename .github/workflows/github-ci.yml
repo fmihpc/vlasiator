@@ -213,6 +213,7 @@ jobs:
     - name: Install boost
       run: |
         brew install boost
+        ln -s /opt/homebrew/Cellar/boost/* /opt/homebrew/Cellar/boost/latest
     - name: Download libraries
       uses: actions/download-artifact@v3
       with:
