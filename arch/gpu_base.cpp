@@ -20,10 +20,6 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-
 #include <stdio.h>
 #include <iostream>
 #include "common.h"
@@ -100,14 +96,23 @@ split::SplitVector<vmesh::GlobalID> *vbwcl_gather[MAXCPUTHREADS] = {0};
 split::SplitVector<vmesh::GlobalID> *vbwncl_gather[MAXCPUTHREADS] = {0};
 void *compaction_buffer[MAXCPUTHREADS];
 
-__host__ void gpu_init_device() {
-
+__host__ uint gpu_getThread() {
 #ifdef _OPENMP
-   const uint maxThreads = omp_get_max_threads();
+    return omp_get_thread_num();
 #else
-   const uint maxThreads = 1;
+    return 0;
 #endif
+}
+__host__ uint gpu_getMaxThreads() {
+#ifdef _OPENMP
+   return omp_get_max_threads();
+#else
+   return 1;
+#endif
+}
 
+__host__ void gpu_init_device() {
+   const uint maxNThreads = gpu_getMaxThreads();
    // int deviceCount;
    // CHK_ERR( gpuFree(0));
    // CHK_ERR( gpuGetDeviceCount(&deviceCount) );
@@ -176,7 +181,7 @@ __host__ void gpu_init_device() {
    if (*leastPriority==*greatestPriority) {
       printf("Warning when initializing GPU streams: minimum and maximum stream priority are identical! %d == %d \n",*leastPriority, *greatestPriority);
    }
-   for (uint i=0; i<maxThreads; ++i) {
+   for (uint i=0; i<maxNThreads; ++i) {
       CHK_ERR( gpuStreamCreateWithPriority(&(gpuStreamList[i]), gpuStreamDefault, *leastPriority) );
       CHK_ERR( gpuStreamCreateWithPriority(&(gpuPriorityStreamList[i]), gpuStreamDefault, *greatestPriority) );
       CHK_ERR( gpuMalloc((void**)&returnReal[i], 8*sizeof(Real)) );
@@ -191,6 +196,7 @@ __host__ void gpu_init_device() {
          blockLists[i] = new split::SplitVector<vmesh::GlobalID>(1);
       }
    }
+   CHK_ERR( gpuMalloc((void**)&gpu_vcell_transpose, WID3*sizeof(uint)) );
    CHK_ERR( gpuMalloc((void**)&invalidGIDpointer, sizeof(vmesh::GlobalID)) );
    vmesh::GlobalID invalidGIDvalue = vmesh::INVALID_GLOBALID;
    CHK_ERR( gpuMemcpy(invalidGIDpointer, &invalidGIDvalue, sizeof(vmesh::LocalID), gpuMemcpyHostToDevice) );
@@ -206,18 +212,15 @@ __host__ void gpu_clear_device() {
    gpu_trans_deallocate();
    gpu_compaction_deallocate();
    // Destroy streams
-#ifdef _OPENMP
-   const uint maxThreads = omp_get_max_threads();
-#else
-   const uint maxThreads = 1;
-#endif
-   for (uint i=0; i<maxThreads; ++i) {
+   const uint maxNThreads = gpu_getMaxThreads();
+   for (uint i=0; i<maxNThreads; ++i) {
       CHK_ERR( gpuStreamDestroy(gpuStreamList[i]) );
       CHK_ERR( gpuStreamDestroy(gpuPriorityStreamList[i]) );
       CHK_ERR( gpuFree(returnReal[i]) );
       CHK_ERR( gpuFree(returnRealf[i]) );
       CHK_ERR( gpuFree(returnLID[i]) );
    }
+   CHK_ERR( gpuFree(gpu_vcell_transpose) );
    CHK_ERR( gpuDeviceSynchronize() );
 }
 
@@ -252,31 +255,24 @@ __host__ void gpu_vlasov_allocate(
    // If not, add extra padding
    const uint newSize = maxBlocksPerCell * BLOCK_ALLOCATION_PADDING;
 
-   // Deallocate before allocating new memory
-#ifdef _OPENMP
-   const uint maxNThreads = omp_get_max_threads();
-#else
-   const uint maxNThreads = 1;
-#endif
+   const uint maxNThreads = gpu_getMaxThreads();
    for (uint i=0; i<maxNThreads; ++i) {
+      // Deallocate before allocating new memory
       if (gpu_vlasov_allocatedSize > 0) {
          gpu_vlasov_deallocate_perthread(i);
-         CHK_ERR( gpuFree(gpu_vcell_transpose) );
       }
       gpu_vlasov_allocate_perthread(i, newSize);
-      CHK_ERR( gpuMalloc((void**)&gpu_vcell_transpose, WID3*sizeof(uint)) );
    }
    gpu_vlasov_allocatedSize = newSize;
 }
 
 /* Deallocation at end of simulation */
 __host__ void gpu_vlasov_deallocate() {
-   if (gpu_vlasov_allocatedSize == 0) return;
-#ifdef _OPENMP
-   const uint maxNThreads = omp_get_max_threads();
-#else
-   const uint maxNThreads = 1;
-#endif
+   if (gpu_vlasov_allocatedSize == 0) {
+      return;
+   }
+   gpu_vlasov_allocatedSize = 0;
+   const uint maxNThreads = gpu_getMaxThreads();
    for (uint i=0; i<maxNThreads; ++i) {
       gpu_vlasov_deallocate_perthread(i);
    }
@@ -308,7 +304,6 @@ __host__ void gpu_vlasov_allocate_perthread(
 __host__ void gpu_vlasov_deallocate_perthread (
    uint cpuThreadID
    ) {
-   gpu_vlasov_allocatedSize = 0;
    CHK_ERR( gpuFree(gpu_cell_indices_to_id[cpuThreadID]) );
    CHK_ERR( gpuFree(gpu_block_indices_to_id[cpuThreadID]) );
    CHK_ERR( gpuFree(gpu_blockDataOrdered[cpuThreadID]) );
@@ -356,11 +351,7 @@ __host__ void gpu_acc_allocate(
    const uint newSize = requiredColumns * BLOCK_ALLOCATION_PADDING;
 
    // Deallocate before allocating new memory
-#ifdef _OPENMP
-   const uint maxNThreads = omp_get_max_threads();
-#else
-   const uint maxNThreads = 1;
-#endif
+   const uint maxNThreads = gpu_getMaxThreads();
    for (uint i=0; i<maxNThreads; ++i) {
       gpu_acc_deallocate_perthread(i);
    }
@@ -372,11 +363,7 @@ __host__ void gpu_acc_allocate(
 
 /* Deallocation at end of simulation */
 __host__ void gpu_acc_deallocate() {
-#ifdef _OPENMP
-   const uint maxNThreads = omp_get_max_threads();
-#else
-   const uint maxNThreads = 1;
-#endif
+   const uint maxNThreads = gpu_getMaxThreads();
    for (uint i=0; i<maxNThreads; ++i) {
       gpu_acc_deallocate_perthread(i);
    }
@@ -423,11 +410,7 @@ __host__ void gpu_compaction_allocate(
    const uint vectorLength,
    const size_t bytesNeeded
    ) {
-#ifdef _OPENMP
-   const uint maxNThreads = omp_get_max_threads();
-#else
-   const uint maxNThreads = 1;
-#endif
+   const uint maxNThreads = gpu_getMaxThreads();
    for (uint i=0; i<maxNThreads; ++i) {
       gpu_compaction_allocate_vec_perthread(i,vectorLength);
       gpu_compaction_allocate_buf_perthread(i,bytesNeeded);
@@ -436,22 +419,11 @@ __host__ void gpu_compaction_allocate(
 
 /* Deallocation at end of simulation */
 __host__ void gpu_compaction_deallocate() {
-#ifdef _OPENMP
-   const uint maxNThreads = omp_get_max_threads();
-#else
-   const uint maxNThreads = 1;
-#endif
+   const uint maxNThreads = gpu_getMaxThreads();
    for (uint i=0; i<maxNThreads; ++i) {
       gpu_compaction_allocate_vec_perthread(i,0);
       gpu_compaction_allocate_buf_perthread(i,0);
    }
-}
-__host__ uint gpu_getThread() {
-#ifdef _OPENMP
-    return omp_get_thread_num();
-#else
-    return 0;
-#endif
 }
 
 __host__ void gpu_compaction_allocate_vec_perthread(
@@ -619,5 +591,4 @@ __host__ void gpu_trans_deallocate() {
          delete DimensionPencils[dimension].gpu_targetRatios;
       }
    }
-   CHK_ERR( gpuFree(gpu_vcell_transpose) );
 }

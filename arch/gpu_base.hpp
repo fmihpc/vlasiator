@@ -52,6 +52,7 @@ void gpu_clear_device();
 gpuStream_t gpu_getStream();
 gpuStream_t gpu_getPriorityStream();
 uint gpu_getThread();
+uint gpu_getMaxThreads();
 int gpu_getDevice();
 void gpu_vlasov_allocate(uint maxBlockCount);
 void gpu_vlasov_deallocate();

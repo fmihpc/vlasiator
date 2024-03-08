@@ -48,18 +48,18 @@ __host__ __device__ inline bool check_skip_remapping(Vec* values, uint vectorind
 //__launch_bounds__(maxThreadsPerBlock, minBlocksPerMultiprocessor, maxBlocksPerCluster)
 // assume never more than 8 threads/CPUs per GPU
 __global__ void __launch_bounds__(WID3, 4) translation_kernel(
-   const uint dimension,
+   cuint dimension,
    const unsigned int* const vcell_transpose,
    const Realv dt,
    uint* pencilLengths,
    uint* pencilStarts,
    //const vmesh::GlobalID blockGID, // which GID this thread is working on
    vmesh::GlobalID *allBlocks, // List of all blocks
-   const uint nAllBlocks, // size of list of blocks which we won't exceed
-   const uint startingBlockIndex, // First block index for this kernel invocation
-   const uint blockIndexIncrement, // How much each kernel invocation should jump ahead
-   const uint nPencils, // Number of total pencils (constant)
-   const uint sumOfLengths, // sum of all pencil lengths (constant)
+   cuint nAllBlocks, // size of list of blocks which we won't exceed
+   cuint startingBlockIndex, // First block index for this kernel invocation
+   cuint blockIndexIncrement, // How much each kernel invocation should jump ahead
+   cuint nPencils, // Number of total pencils (constant)
+   cuint sumOfLengths, // sum of all pencil lengths (constant)
    const Realv threshold, // used by slope limiters
    split::SplitVector<vmesh::VelocityMesh*> *allPencilsMeshes, // Pointers to velocity meshes
    split::SplitVector<vmesh::VelocityBlockContainer*> *allPencilsContainers, // pointers to BlockContainers
@@ -77,9 +77,9 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
    const vmesh::LocalID ti = threadIdx.y*blockDim.x + threadIdx.x;
 
    // offsets so this block of the kernel uses the correct part of temp arrays
-   const uint pencilBlockDataOffset = blockIdx.x * sumOfLengths;
-   const uint pencilOrderedSourceOffset = blockIdx.x * sumOfLengths * (WID3/VECL);
-   const uint pencilBlocksCountOffset = blockIdx.x * nPencils;
+   cuint pencilBlockDataOffset = blockIdx.x * sumOfLengths;
+   cuint pencilOrderedSourceOffset = blockIdx.x * sumOfLengths * (WID3/VECL);
+   cuint pencilBlocksCountOffset = blockIdx.x * nPencils;
 
    vmesh::VelocityMesh** pencilMeshes = allPencilsMeshes->data();
    vmesh::VelocityBlockContainer** pencilContainers = allPencilsContainers->data();
@@ -89,11 +89,14 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
 
    // Acting on velocity block blockGID, now found from array
    for (uint thisBlockIndex = startingBlockIndex + blockIdx.x; thisBlockIndex < nAllBlocks; thisBlockIndex += blockIndexIncrement) {
-      const uint blockGID = allBlocks[thisBlockIndex];
+      if (thisBlockIndex >= nAllBlocks) {
+         break;
+      }
+      cuint blockGID = allBlocks[thisBlockIndex];
       // First read data in
       for (uint pencili=0; pencili<nPencils; pencili++) {
-         const uint lengthOfPencil = pencilLengths[pencili];
-         const uint start = pencilStarts[pencili];
+         cuint lengthOfPencil = pencilLengths[pencili];
+         cuint start = pencilStarts[pencili];
          // Get pointer to temprary buffer of VEC-ordered data for this kernel
          Vec* thisPencilOrderedSource = pencilOrderedSource + pencilOrderedSourceOffset + start * WID3/VECL;
          uint nonEmptyBlocks = 0;
@@ -172,13 +175,13 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
       // Assuming 1 neighbor in the target array because of the CFL condition
       // In fact propagating to > 1 neighbor will give an error
       // Also defined in the calling function for the allocation of targetValues
-      // const uint nTargetNeighborsPerPencil = 1;
+      // cuint nTargetNeighborsPerPencil = 1;
       for (uint pencili=0; pencili<nPencils; pencili++) {
          if (pencilBlocksCount[pencilBlocksCountOffset + pencili] == 0) {
             continue;
          }
-         const uint lengthOfPencil = pencilLengths[pencili];
-         const uint start = pencilStarts[pencili];
+         cuint lengthOfPencil = pencilLengths[pencili];
+         cuint start = pencilStarts[pencili];
          Vec* thisPencilOrderedSource = pencilOrderedSource + pencilOrderedSourceOffset + start * WID3/VECL;
 
          // Go over length of propagated cells
@@ -276,7 +279,7 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
 __global__ void  __launch_bounds__(GPUTHREADS, 4) gather_union_of_blocks_kernel(
    Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *unionOfBlocksSet,
    split::SplitVector<vmesh::VelocityMesh*> *allVmeshPointer,
-   const uint nAllCells)
+   cuint nAllCells)
 {
    const int gpuBlocks = gridDim.x;
    const int blocki = blockIdx.x;
@@ -314,16 +317,15 @@ __global__ void  __launch_bounds__(GPUTHREADS, 4) gather_union_of_blocks_kernel(
 bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                       const vector<CellID>& localPropagatedCells,
                       const vector<CellID>& remoteTargetCells,
-                      std::vector<uint>& nPencils,
-                      const uint dimension,
+                      std::vector<uint>& nPencilsLB,
+                      cuint dimension,
                       const Realv dt,
-                      const uint popID) {
+                      cuint popID) {
 
    phiprof::Timer setupTimer {"trans-amr-setup"};
 
    // return if there's no cells to propagate
    if(localPropagatedCells.size() == 0) {
-      cout << "Returning because of no cells" << endl;
       return false;
    }
 
@@ -363,7 +365,7 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    for (uint k=0; k<WID; ++k) {
       for (uint j=0; j<WID; ++j) {
          for (uint i=0; i<WID; ++i) {
-            const uint cell =
+            cuint cell =
                i * cell_indices_to_id[0] +
                j * cell_indices_to_id[1] +
                k * cell_indices_to_id[2];
@@ -379,30 +381,24 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    // Vector with all cell ids
    vector<CellID> allCells(localPropagatedCells);
    allCells.insert(allCells.end(), remoteTargetCells.begin(), remoteTargetCells.end());
-   const uint nAllCells = allCells.size();
-
-   // Vectors of pointers to the cell structs
-   std::vector<SpatialCell*> allCellsPointer(nAllCells);
+   cuint nAllCells = allCells.size();
 
    // Ensure GPU data has sufficient allocations/sizes, perform prefetches to CPU
    cuint sumOfLengths = DimensionPencils[dimension].sumOfLengths;
    gpu_vlasov_allocate(sumOfLengths);
-   // Resize allPencilsMeshes, allPencilsContainers, allVmeshPointer
+
+   // Resize allVmeshPointer, allPencilsMeshes, allPencilsContainers
    gpu_trans_allocate(nAllCells,sumOfLengths,0,0);
-   // Initialize allCellsPointer. Find maximum mesh size.
+   // Find maximum mesh size.
    uint largestFoundMeshSize = 0;
    #pragma omp parallel
    {
       uint thread_largestFoundMeshSize = 0;
       #pragma omp for
       for(uint celli = 0; celli < nAllCells; celli++){
-         allCellsPointer[celli] = mpiGrid[allCells[celli]];
          allVmeshPointer->at(celli) = mpiGrid[allCells[celli]]->dev_get_velocity_mesh(popID);
-         const uint thisMeshSize = mpiGrid[allCells[celli]]->get_velocity_mesh(popID)->size();
+         cuint thisMeshSize = mpiGrid[allCells[celli]]->get_velocity_mesh(popID)->size();
          thread_largestFoundMeshSize = thisMeshSize > thread_largestFoundMeshSize ? thisMeshSize : thread_largestFoundMeshSize;
-         // Prefetches (in fact all data should already reside in device memory)
-         // allCellsPointer[celli]->get_velocity_mesh(popID)->gpu_prefetchDevice();
-         // allCellsPointer[celli]->get_velocity_blocks(popID)->gpu_prefetchDevice();
          #ifdef DEBUG_VLASIATOR
          mpiGrid[allCells[celli]]->checkMesh(popID);
          #endif
@@ -411,6 +407,10 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
       {
          largestFoundMeshSize = largestFoundMeshSize > thread_largestFoundMeshSize ? largestFoundMeshSize : thread_largestFoundMeshSize;
       }
+   }
+   // return if there's no blocks to propagate
+   if(largestFoundMeshSize == 0) {
+      return false;
    }
    // Prefetch vector of vmesh pointers to GPU
    allVmeshPointer->optimizeGPU(bgStream);
@@ -422,8 +422,8 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    if (Parameters::prepareForRebalance == true) {
       for (uint i=0; i<localPropagatedCells.size(); i++) {
          cuint myPencilCount = std::count(DimensionPencils[dimension].ids.begin(), DimensionPencils[dimension].ids.end(), localPropagatedCells[i]);
-         nPencils[i] += myPencilCount;
-         nPencils[nPencils.size()-1] += myPencilCount;
+         nPencilsLB[i] += myPencilCount;
+         nPencilsLB[nPencilsLB.size()-1] += myPencilCount;
       }
    }
 
@@ -431,7 +431,7 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    // Get a unique unsorted list of blockids that are in any of the
    // propagated cells. We launch this kernel, and do host-side pointer
    // gathering in parallel with it.
-   const uint nGpuBlocks = nAllCells > GPUBLOCKS ? GPUBLOCKS : nAllCells;
+   uint nGpuBlocks = nAllCells > GPUBLOCKS ? GPUBLOCKS : nAllCells;
    gather_union_of_blocks_kernel<<<nGpuBlocks, GPUTHREADS, 0, bgStream>>> (
       unionOfBlocksSet,
       allVmeshPointer,
@@ -444,9 +444,9 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    // For each cellid listed in the pencils for this dimension, store the pointer to the vmesh.
    // At the same time, we could accumulate a list of unique cells included, but we already
    // get these from vlasovmover. This has to be on the host, as SpatialCells reside in host memory.
-   // Host-side hashmaps are not threadsafe, so the allCellsPointer list cannot feasibly be gathered here.
+   cuint nPencils = DimensionPencils[dimension].N;
    #pragma omp parallel for
-   for (uint pencili = 0; pencili < DimensionPencils[dimension].N; ++pencili) {
+   for (uint pencili = 0; pencili < nPencils; ++pencili) {
       int L = DimensionPencils[dimension].lengthOfPencils[pencili];
       int start = DimensionPencils[dimension].idsStart[pencili];
       // Loop over cells in pencil
@@ -472,7 +472,7 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    CHK_ERR( gpuStreamSynchronize(bgStream) );
    const vmesh::LocalID unionOfBlocksSetSize = unionOfBlocksSet->size();
    gpu_trans_allocate(0,0,0,unionOfBlocksSetSize);
-   const uint nAllBlocks = unionOfBlocksSet->extractAllKeys(*unionOfBlocks,bgStream);
+   cuint nAllBlocks = unionOfBlocksSet->extractAllKeys(*unionOfBlocks,bgStream);
    CHK_ERR( gpuStreamSynchronize(bgStream) );
    vmesh::GlobalID *allBlocks = unionOfBlocks->data();
    // This threshold value is used by slope limiters.
@@ -484,52 +484,50 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    /***********************/
    int bufferId {phiprof::initializeTimer("prepare buffers")};
    int mappingId {phiprof::initializeTimer("trans-amr-mapping")};
+
+   // How many blocks worth of pre-allocated buffer do we have for each thread? 
+   cuint maxThreads = gpu_getMaxThreads();
+   cuint currentAllocation = gpu_vlasov_getAllocation();
+
+   // How many block GIDs could each thread manage in parallel with this existing temp buffer?
+   cuint nBlocksPerThread = currentAllocation / sumOfLengths;
+
+   // And how many block GIDs will we actually manage?
+   nGpuBlocks  = nBlocksPerThread > GPUBLOCKS ? GPUBLOCKS : nBlocksPerThread;
+
    #pragma omp parallel
    {
-      // Thread id used for persistent device memory pointers
-      #ifdef _OPENMP
-      const uint cpuThreadID = omp_get_thread_num();
-      const uint maxThreads = omp_get_max_threads();
-      #else
-      const uint cpuThreadID = 0;
-      const uint maxThreads = 1;
-      #endif
+      // Thread id used for persistent device memory pointers.
+      cuint cpuThreadID = gpu_getThread();
       gpuStream_t stream = gpu_getStream();
 
       phiprof::Timer bufferTimer {bufferId};
-      // Vector of pointers to cell block data, used for both reading and writing
+      Vec* pencilOrderedSource = gpu_blockDataOrdered[cpuThreadID];
+
+      // Two temporary buffers, used in-kernel for both reading and writing
       // GPUTODO: pre-allocate one per thread, here verify sufficient size
-      cuint nPencils = DimensionPencils[dimension].N;
-      cuint currentAllocation = gpu_vlasov_getAllocation(); // in blocks, per thread buffer
-      Vec* pencilOrderedSource = gpu_blockDataOrdered[cpuThreadID]; // pre-allocated temp buffer
-      // How many blocks can each thread manage in parallel with this existing temp buffer?
-
-      cuint nBlocksPerThread = currentAllocation / sumOfLengths;
-      //cuint nBlocksPerThread=1;
-
-      uint nGpuBlocks  = nBlocksPerThread > GPUBLOCKS ? GPUBLOCKS : nBlocksPerThread;
-
       Realf** pencilBlockData; // Array of pointers into actual block data
       uint* pencilBlocksCount; // Array of counters if pencil needs to be propagated for this block or not
 
-      stringstream ss;
+      // stringstream ss;
       // ss<<" thread "<<cpuThreadID<<" malloc "<<sumOfLengths<<" * "<<nGpuBlocks<<" * sizeof(Realf*) + ";
       // ss<<nPencils<<" * "<<nGpuBlocks<<" * sizeof(uint) = "<<sumOfLengths*nGpuBlocks*sizeof(Realf*)+nPencils*nGpuBlocks*sizeof(uint)<<std::endl;
       // std::cerr<<ss.str();
-#pragma omp barrier
+      // #pragma omp barrier
       CHK_ERR( gpuMallocAsync((void**)&pencilBlockData, sumOfLengths*nGpuBlocks*sizeof(Realf*), stream) );
       CHK_ERR( gpuMallocAsync((void**)&pencilBlocksCount, nPencils*nGpuBlocks*sizeof(uint), stream) );
       CHK_ERR( gpuStreamSynchronize(stream) );
       bufferTimer.stop();
 
-      // Loop over velocity space blocks (threaded, multi-stream, and multi-block parallel, but not using a for-loop)
+      // Loop over velocity space blocks (threaded, each thread using one stream, and
+      // each stream launching a kernel running several blocks in parallel, but not using a for-loop)
       phiprof::Timer mappingTimer {mappingId}; // mapping (top-level)
-      const uint startingBlockIndex = cpuThreadID*nGpuBlocks;
-      const uint blockIndexIncrement = maxThreads*nGpuBlocks;
-      // This thread, using its own stream, will launch nGpuBlocks instances of the below kernel, where each instance
+      cuint startingBlockIndex = cpuThreadID*nGpuBlocks;
+      cuint blockIndexIncrement = maxThreads*nGpuBlocks;
+      // Each thread, using its own stream, will launch nGpuBlocks instances of the below kernel, where each instance
       // propagates all pencils for the block in question.
       dim3 block(WID2,WID,1); // assumes VECL==WID2
-#pragma omp barrier
+      //#pragma omp barrier
       translation_kernel<<<nGpuBlocks, block, 0, stream>>> (
          dimension,
          gpu_vcell_transpose,
@@ -537,8 +535,8 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
          pencilLengths,
          pencilStarts,
          //blockGID, // which GID this thread is working on
-         allBlocks, // List of all blocks
-         nAllBlocks, // size of list of blocks which we won't exceed
+         allBlocks, // List of all block GIDs
+         nAllBlocks, // size of list of block GIDs which we won't exceed
          startingBlockIndex, // First block index for this kernel invocation
          blockIndexIncrement, // How much each kernel invocation should jump ahead
          nPencils, // Number of total pencils (constant)
@@ -610,7 +608,7 @@ __global__ static void __launch_bounds__(WID3,4) remote_increment_kernel (
    const int i = threadIdx.x;
    const int j = threadIdx.y;
    const int k = threadIdx.z;
-   const uint ti = k*WID2 + j*WID + i;
+   cuint ti = k*WID2 + j*WID + i;
    // loop over whole velocity space
    for (uint blockLID=blocki; blockLID<nBlocks; blockLID += gpuBlocks) {
       // Increment value
@@ -634,9 +632,9 @@ __global__ static void __launch_bounds__(WID3,4) remote_increment_kernel (
  */
 void gpu_update_remote_mapping_contribution_amr(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   const uint dimension,
+   cuint dimension,
    int direction,
-   const uint popID) {
+   cuint popID) {
 
    // GPUTODO: First attempts at using managed memory for remote neighbours
    // Should move to re-using managed memory buffers and ensuring size is suitable?
@@ -901,12 +899,8 @@ void gpu_update_remote_mapping_contribution_amr(
          Realf *blockData = receive_cell->get_data(popID);
          Realf *neighborData = origin_cell->neighbor_block_data[receive_origin_index[c]];
          vmesh::LocalID nBlocks = receive_cell->get_number_of_velocity_blocks(popID);
-         const uint nGpuBlocks = nBlocks > GPUBLOCKS ? GPUBLOCKS : nBlocks;
-         #ifdef _OPENMP
-         const uint maxThreads = omp_get_max_threads();
-         #else
-         const uint maxThreads = 1;
-         #endif
+         cuint nGpuBlocks = nBlocks > GPUBLOCKS ? GPUBLOCKS : nBlocks;
+         cuint maxThreads = gpu_getMaxThreads();
          // Increment needs to be parallel-safe, so use modulo of cellid as stream number
          gpuStream_t cellStream = gpuStreamList[receive_cells[c] % maxThreads];
          if (nGpuBlocks>0) {
