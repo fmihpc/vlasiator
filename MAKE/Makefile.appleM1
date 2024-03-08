@@ -56,8 +56,8 @@ LIB_MPI =
 
 LIBRARY_PREFIX = ${GITHUB_WORKSPACE}/libraries-appleM1
 
-INC_BOOST = -I /opt/homebrew/Cellar/boost/1.83.0/include
-LIB_BOOST = -L /opt/homebrew/Cellar/boost/1.83.0/lib -lboost_program_options
+INC_BOOST = -I /opt/homebrew/Cellar/boost/1.84.0/include
+LIB_BOOST = -L /opt/homebrew/Cellar/boost/1.84.0/lib -lboost_program_options
 
 INC_JEMALLOC = -I $(LIBRARY_PREFIX)/include
 LIB_JEMALLOC = $(LIBRARY_PREFIX)/lib/libjemalloc.a
