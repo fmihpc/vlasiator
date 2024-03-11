@@ -168,7 +168,11 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          if (nBlocks==0) {
             continue;
          }
+         #ifdef USE_GPU
+         const Real* parameters = cell->dev_get_block_parameters(popID);
+         #else
          const Real* parameters = cell->get_block_parameters(popID);
+         #endif
          const Real HALF = 0.5;
          Real popMin = std::numeric_limits<Real>::max();
          int archId {phiprof::initializeTimer("ARCH reduce timestep")};
@@ -202,8 +206,6 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          cell->set_max_r_dt(popID, popMin);
          cell->parameters[CellParams::MAXRDT] = min(popMin, cell->parameters[CellParams::MAXRDT]);
       } // end loop over popID
-
-
 
       if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
           (cell->sysBoundaryLayer == 1 && cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY)) {
