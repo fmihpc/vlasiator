@@ -63,7 +63,8 @@ uint P::zcells_ini = numeric_limits<uint>::max();
 
 Real P::t = 0;
 Real P::t_min = 0;
-Real P::t_max = LARGE_REAL;
+Real P::t_max  = LARGE_REAL;
+Real P::dt_ceil = -1; 
 Real P::dt = NAN;
 Real P::vlasovSolverMaxCFL = NAN;
 Real P::vlasovSolverMinCFL = NAN;
@@ -320,6 +321,9 @@ bool P::addParameters() {
    RP::add("gridbuilder.timestep_max",
            "Max. value for timesteps. If t_max limit is hit first, this step will never be reached",
            numeric_limits<uint>::max());
+   RP::add("gridbuilder.dt_ceil",
+           "Maximum simulation dt in seconds.",
+           -1);
 
    // Field solver parameters
    RP::add("fieldsolver.maxWaveVelocity",
@@ -893,6 +897,8 @@ void Parameters::getParameters() {
 
    RP::get("gridbuilder.t_max", P::t_max);
    RP::get("gridbuilder.timestep_max", P::tstep_max);
+
+   RP::get("gridbuilder.dt_ceil", P::dt_ceil);
 
    if (P::dynamicTimestep)
       P::dt = 0.0; // if dynamic timestep then first dt is always 0
