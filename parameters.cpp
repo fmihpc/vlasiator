@@ -63,7 +63,8 @@ uint P::zcells_ini = numeric_limits<uint>::max();
 
 Real P::t = 0;
 Real P::t_min = 0;
-Real P::t_max = LARGE_REAL;
+Real P::t_max  = LARGE_REAL;
+Real P::dt_ceil = -1; 
 Real P::dt = NAN;
 Real P::vlasovSolverMaxCFL = NAN;
 Real P::vlasovSolverMinCFL = NAN;
@@ -186,7 +187,14 @@ std::vector<Realf> P::amrBoxCenterY;
 std::vector<Realf> P::amrBoxCenterZ;
 std::vector<int> P::amrBoxMaxLevel;
 vector<string> P::blurPassString;
-std::vector<int> P::numPasses; //numpasses
+vector<int> P::numPasses;
+bool P::artificialPADiff;
+Realf P::PADcoefficient;
+Realf P::PADCFL;
+int P::PADvbins;
+int P::PADmubins;
+string P::PADnu0 = string("");
+Realf P::PADfudge;
 
 std::array<FsGridTools::Task_t,3> P::manualFsGridDecomposition = {0,0,0};
 std::array<FsGridTools::Task_t,3> P::overrideReadFsGridDecomposition = {0,0,0};
@@ -313,6 +321,9 @@ bool P::addParameters() {
    RP::add("gridbuilder.timestep_max",
            "Max. value for timesteps. If t_max limit is hit first, this step will never be reached",
            numeric_limits<uint>::max());
+   RP::add("gridbuilder.dt_ceil",
+           "Maximum simulation dt in seconds.",
+           -1);
 
    // Field solver parameters
    RP::add("fieldsolver.maxWaveVelocity",
@@ -497,6 +508,15 @@ bool P::addParameters() {
    RP::add("AMR.transShortPencils", "if true, use one-cell pencils", false);
    RP::addComposing("AMR.filterpasses", string("AMR filter passes for each individual refinement level"));
 
+   // Diffusion parameters
+   RP::add("PAD.enable","Enable Artificial pitch-angle diffusion",0);
+   RP::add("PAD.coefficient","Set artificial pitch-angle diffusion coefficient",0);
+   RP::add("PAD.CFL","Set CFL condition",0);
+   RP::add("PAD.vbins","number of bins for velocity",200);
+   RP::add("PAD.mubins","number of bins for mu",30);
+   RP::add("PAD.file","Path of txt file for nu0", string("NU0BOX.DAT"));
+   RP::add("PAD.fudge","fudge factor to lower diffusion",0.25);
+   // Fieldtracing
    RP::add("fieldtracing.fieldLineTracer", "Field line tracing method to use for coupling ionosphere and magnetosphere (options are: Euler, BS)", std::string("Euler"));
    RP::add("fieldtracing.tracer_max_allowed_error", "Maximum allowed error for the adaptive field line tracers ", 1000);
    RP::add("fieldtracing.tracer_max_attempts", "Maximum allowed attempts for the adaptive field line tracers", 100);
@@ -878,6 +898,8 @@ void Parameters::getParameters() {
    RP::get("gridbuilder.t_max", P::t_max);
    RP::get("gridbuilder.timestep_max", P::tstep_max);
 
+   RP::get("gridbuilder.dt_ceil", P::dt_ceil);
+
    if (P::dynamicTimestep)
       P::dt = 0.0; // if dynamic timestep then first dt is always 0
 
@@ -970,6 +992,14 @@ void Parameters::getParameters() {
       P::systemWrites.push_back(0);
    }
 
+   RP::get("PAD.enable", P::artificialPADiff);   
+   RP::get("PAD.coefficient", P::PADcoefficient);
+   RP::get("PAD.CFL",P::PADCFL);
+   RP::get("PAD.vbins",P::PADvbins);
+   RP::get("PAD.mubins",P::PADmubins);
+   RP::get("PAD.file",P::PADnu0);
+   RP::get("PAD.fudge",P::PADfudge);
+
    RP::get("fieldtracing.fieldLineTracer", tracerString);
    RP::get("fieldtracing.tracer_max_allowed_error", FieldTracing::fieldTracingParameters.max_allowed_error);
    RP::get("fieldtracing.tracer_max_attempts", FieldTracing::fieldTracingParameters.max_field_tracer_attempts);
@@ -994,3 +1024,5 @@ void Parameters::getParameters() {
       abort();
    }
 }
+
+

@@ -42,6 +42,7 @@
 #include "spatial_cell.hpp"
 #include "datareduction/datareducer.h"
 #include "sysboundary/sysboundary.h"
+#include "vlasovsolver/velocity_space_diffusion.h"
 #include "fieldtracing/fieldtracing.h"
 
 #include "fieldsolver/fs_common.h"
@@ -240,6 +241,9 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       newDt = meanVlasovCFL * dtMaxGlobal[0];
       newDt = min(newDt, meanVlasovCFL * dtMaxGlobal[1] * P::maxSlAccelerationSubcycles);
       newDt = min(newDt, meanFieldsCFL * dtMaxGlobal[2] * P::maxFieldSolverSubcycles);
+      if (P::dt_ceil > 0) {
+          newDt = min(newDt,P::dt_ceil);
+      }
 
       logFile << "(TIMESTEP) New dt = " << newDt << " computed on step " << P::tstep << " at " << P::t
               << "s   Maximum possible dt (not including  vlasovsolver CFL " << P::vlasovSolverMinCFL << "-"
@@ -780,8 +784,11 @@ int main(int argn,char* args[]) {
          CellParams::RHOQ,
          CellParams::P_11,
          CellParams::P_22,
-         CellParams::P_33
-      );
+         CellParams::P_33,
+         CellParams::P_12,
+         CellParams::P_13,
+         CellParams::P_23
+         );
       computeMomentsTimer.stop();
    }
 
@@ -1193,7 +1200,10 @@ int main(int argn,char* args[]) {
          CellParams::RHOQ_DT2,
          CellParams::P_11_DT2,
          CellParams::P_22_DT2,
-         CellParams::P_33_DT2
+         CellParams::P_33_DT2,
+         CellParams::P_12_DT2,
+         CellParams::P_13_DT2,
+         CellParams::P_23_DT2
       );
       momentsTimer.stop();
       
@@ -1288,7 +1298,15 @@ int main(int argn,char* args[]) {
       }
       vspaceTimer.stop(computedCells, "Cells");
       addTimedBarrier("barrier-after-acceleration");
-      
+     
+      if (P::artificialPADiff){
+         phiprof::Timer diffusionTimer {"Pitch-angle diffusion"};
+         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+	      velocitySpaceDiffusion(mpiGrid,popID);
+         }
+         diffusionTimer.stop(computedCells, "Cells");
+      }
+
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
          phiprof::Timer timer {"Update system boundaries (Vlasov post-acceleration)"};
          sysBoundaryContainer.applySysBoundaryVlasovConditions(mpiGrid, P::t + 0.5 * P::dt, true);
@@ -1308,7 +1326,10 @@ int main(int argn,char* args[]) {
          CellParams::RHOQ,
          CellParams::P_11,
          CellParams::P_22,
-         CellParams::P_33
+         CellParams::P_33,
+         CellParams::P_12,
+         CellParams::P_13,
+         CellParams::P_23
       );
       momentsTimer.stop();
 

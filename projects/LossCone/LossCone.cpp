@@ -31,83 +31,131 @@
 #include "../../backgroundfield/backgroundfield.h"
 #include "../../backgroundfield/constantfield.hpp"
 
-#include "Fluctuations.h"
+#include "LossCone.h"
 
 using namespace spatial_cell;
 
-Real projects::Fluctuations::rndRho, projects::Fluctuations::rndVel[3];
+Real projects::LossCone::rndRho, projects::LossCone::rndVel[3];
 
 
 namespace projects {
-   Fluctuations::Fluctuations(): TriAxisSearch() { }
-   Fluctuations::~Fluctuations() { }
-   bool Fluctuations::initialize(void) {return Project::initialize();}
-   
-   void Fluctuations::addParameters() {
+   LossCone::LossCone(): TriAxisSearch() { }
+   LossCone::~LossCone() { }
+   bool LossCone::initialize(void) {return Project::initialize();}
+
+   void LossCone::addParameters() {
       typedef Readparameters RP;
-      RP::add("Fluctuations.BX0", "Background field value (T)", 1.0e-9);
-      RP::add("Fluctuations.BY0", "Background field value (T)", 2.0e-9);
-      RP::add("Fluctuations.BZ0", "Background field value (T)", 3.0e-9);
-      RP::add("Fluctuations.magXPertAbsAmp", "Amplitude of the magnetic perturbation along x", 1.0e-9);
-      RP::add("Fluctuations.magYPertAbsAmp", "Amplitude of the magnetic perturbation along y", 1.0e-9);
-      RP::add("Fluctuations.magZPertAbsAmp", "Amplitude of the magnetic perturbation along z", 1.0e-9);
+      RP::add("LossCone.BX0", "Background field value (T)", 1.0e-9);
+      RP::add("LossCone.BY0", "Background field value (T)", 2.0e-9);
+      RP::add("LossCone.BZ0", "Background field value (T)", 3.0e-9);
+      RP::add("LossCone.magXPertAbsAmp", "Amplitude of the magnetic perturbation along x", 1.0e-9);
+      RP::add("LossCone.magYPertAbsAmp", "Amplitude of the magnetic perturbation along y", 1.0e-9);
+      RP::add("LossCone.magZPertAbsAmp", "Amplitude of the magnetic perturbation along z", 1.0e-9);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
 
-         RP::add(pop + "_Fluctuations.rho", "Number density (m^-3)", 1.0e7);
-         RP::add(pop + "_Fluctuations.TemperatureX", "Temperature (K)", 2.0e6);
-         RP::add(pop + "_Fluctuations.TemperatureY", "Temperature (K)", 2.0e6);
-         RP::add(pop + "_Fluctuations.TemperatureZ", "Temperature (K)", 2.0e6);
-         RP::add(pop + "_Fluctuations.densityPertRelAmp", "Amplitude factor of the density perturbation", 0.1);
-         RP::add(pop + "_Fluctuations.velocityPertAbsAmp", "Amplitude of the velocity perturbation", 1.0e6);
-         RP::add(pop + "_Fluctuations.maxwCutoff", "Cutoff for the maxwellian distribution", 1e-12);
+         RP::add(pop + "_LossCone.rho", "Number density (m^-3)", 1.0e7);
+         RP::add(pop + "_LossCone.TemperatureX", "Temperature (K)", 2.0e6);
+         RP::add(pop + "_LossCone.TemperatureY", "Temperature (K)", 2.0e6);
+         RP::add(pop + "_LossCone.TemperatureZ", "Temperature (K)", 2.0e6);
+         RP::add(pop + "_LossCone.densityPertRelAmp", "Amplitude factor of the density perturbation", 0.1);
+         RP::add(pop + "_LossCone.VX0", "Initial bulk velocity in x-direction", 0.0);
+         RP::add(pop + "_LossCone.VY0", "Initial bulk velocity in y-direction", 0.0);
+         RP::add(pop + "_LossCone.VZ0", "Initial bulk velocity in z-direction", 0.0);
+         RP::add(pop + "_LossCone.velocityPertAbsAmp", "Amplitude of the velocity perturbation", 1.0e6);
+         RP::add(pop + "_LossCone.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
+         RP::add(pop + "_LossCone.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
+         RP::add(pop + "_LossCone.maxwCutoff", "Cutoff for the maxwellian distribution", 1e-12);
+
+         RP::add(pop + "_LossCone.monotonic_maxv", "Cutoff for the monotonic distribution (m s^-1)", 0);
+         RP::add(pop + "_LossCone.monotonic_amp", "Amplitude for the variation of the monotonic distribution (m^-6 s^3)", 1e-15);
+         RP::add(pop + "_LossCone.monotonic_base", "Base phase-space density for the monotonic distribution (m^-6 s^3)", 1e-15);
+         RP::add(pop + "_LossCone.monotonic_subtract", "Subtract monotonic distribution from loss-cone distribution?", false);
       }
    }
 
-   void Fluctuations::getParameters() {
+   void LossCone::getParameters() {
       Project::getParameters();
       typedef Readparameters RP;
       Project::getParameters();
-      RP::get("Fluctuations.BX0", this->BX0);
-      RP::get("Fluctuations.BY0", this->BY0);
-      RP::get("Fluctuations.BZ0", this->BZ0);
-      RP::get("Fluctuations.magXPertAbsAmp", this->magXPertAbsAmp);
-      RP::get("Fluctuations.magYPertAbsAmp", this->magYPertAbsAmp);
-      RP::get("Fluctuations.magZPertAbsAmp", this->magZPertAbsAmp);
+      RP::get("LossCone.BX0", this->BX0);
+      RP::get("LossCone.BY0", this->BY0);
+      RP::get("LossCone.BZ0", this->BZ0);
+      RP::get("LossCone.magXPertAbsAmp", this->magXPertAbsAmp);
+      RP::get("LossCone.magYPertAbsAmp", this->magYPertAbsAmp);
+      RP::get("LossCone.magZPertAbsAmp", this->magZPertAbsAmp);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
-         FluctuationsSpeciesParameters sP;
-         RP::get(pop + "_Fluctuations.rho", sP.DENSITY);
-         RP::get(pop + "_Fluctuations.TemperatureX", sP.TEMPERATUREX);
-         RP::get(pop + "_Fluctuations.TemperatureY", sP.TEMPERATUREY);
-         RP::get(pop + "_Fluctuations.TemperatureZ", sP.TEMPERATUREZ);
-         RP::get(pop + "_Fluctuations.densityPertRelAmp", sP.densityPertRelAmp);
-         RP::get(pop + "_Fluctuations.velocityPertAbsAmp", sP.velocityPertAbsAmp);
-         RP::get(pop + "_Fluctuations.maxwCutoff", sP.maxwCutoff);
+         LossConeSpeciesParameters sP;
+         RP::get(pop + "_LossCone.rho", sP.DENSITY);
+         RP::get(pop + "_LossCone.VX0", sP.V0[0]);
+         RP::get(pop + "_LossCone.VY0", sP.V0[1]);
+         RP::get(pop + "_LossCone.VZ0", sP.V0[2]);
+         RP::get(pop + "_LossCone.TemperatureX", sP.TEMPERATUREX);
+         RP::get(pop + "_LossCone.TemperatureY", sP.TEMPERATUREY);
+         RP::get(pop + "_LossCone.TemperatureZ", sP.TEMPERATUREZ);
+         RP::get(pop + "_LossCone.densityPertRelAmp", sP.densityPertRelAmp);
+         RP::get(pop + "_LossCone.velocityPertAbsAmp", sP.velocityPertAbsAmp);
+         RP::get(pop + "_LossCone.nSpaceSamples", sP.nSpaceSamples);
+         RP::get(pop + "_LossCone.nVelocitySamples", sP.nVelocitySamples);
+         RP::get(pop + "_LossCone.maxwCutoff", sP.maxwCutoff);
 
+         RP::get(pop + "_LossCone.monotonic_maxv",sP.monotonic_maxv);
+         RP::get(pop + "_LossCone.monotonic_amp",sP.monotonic_amp);
+         RP::get(pop + "_LossCone.monotonic_base",sP.monotonic_base);
+         RP::get(pop + "_LossCone.monotonic_subtract",sP.monotonic_subtract);
          speciesParams.push_back(sP);
       }
    }
-   
-   Real Fluctuations::getDistribValue(creal& vx,creal& vy, creal& vz, const uint popID) const {
-      const FluctuationsSpeciesParameters& sP = speciesParams[popID];
 
+   Real LossCone::getDistribValue(creal& vx,creal& vy, creal& vz, const uint popID) const {
+      const LossConeSpeciesParameters& sP = speciesParams[popID];
+
+      Real vpara = vx;
+      Real vperp = sqrt(vy*vy + vz*vz);
+      Real modv = sqrt(vx*vx + vy*vy + vz*vz);
+      Real mu    = vpara / modv;
+
+      Real value = 0;
+      if (sP.monotonic_maxv > 0) {
+         // Calculating monotonic beaming population
+         Real value_monotonic = 0;
+         Real mux = mu;
+         if (modv<=sP.monotonic_maxv) {
+            // Allow flipping of distribution with _base<0
+            if (sP.monotonic_base < 0) {
+               mux = mux * -1;
+            }
+            value_monotonic = sP.monotonic_amp*(mux+1)*(mux+1.) + abs(sP.monotonic_base);
+         }
+         if (sP.monotonic_subtract) {
+            // subtract this monotonic distribution from the losscone distribution
+            value = -value_monotonic;
+         } else {
+            // Just return the monotonic distribution
+            return value_monotonic;
+         }
+      }
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
-      return exp((- mass / (2.0 * kb)) * ((vx*vx) / sP.TEMPERATUREX + (vy*vy) / sP.TEMPERATUREY + (vz*vz) / sP.TEMPERATUREZ));
+      Real theta = atan2(vperp,vpara);
+      //if (mu <= -0.5 or mu >= 0.5) {return 0.0;}
+      //else {return exp((- mass / (2.0 * kb)) * ( ((vx-sP.V0[0])*(vx-sP.V0[0]))  / sP.TEMPERATUREX + ((vy-sP.V0[1])*(vy-sP.V0[1])) / sP.TEMPERATUREY + ((vz-sP.V0[2])*(vz-sP.V0[2])) / sP.TEMPERATUREZ));}
+
+      return value + exp((- mass / (2.0 * kb)) * ((vx*vx) / sP.TEMPERATUREX + (vy*vy) / sP.TEMPERATUREY + (vz*vz) / sP.TEMPERATUREZ));
    }
 
-   Real Fluctuations::calcPhaseSpaceDensity(
+   Real LossCone::calcPhaseSpaceDensity(
       creal& x, creal& y, creal& z,
       creal& dx, creal& dy, creal& dz,
       creal& vx, creal& vy, creal& vz,
       creal& dvx, creal& dvy, creal& dvz,const uint popID
    ) const {
-      const FluctuationsSpeciesParameters& sP = speciesParams[popID];
+      const LossConeSpeciesParameters& sP = speciesParams[popID];
       const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
       vmesh::MeshParameters& meshParams = getObjectWrapper().velocityMeshes[meshID];
       if (vx < meshParams.meshMinLimits[0] + 0.5*dvx ||
@@ -131,14 +179,16 @@ namespace projects {
          sP.DENSITY * (1.0 + sP.densityPertRelAmp * (0.5 - rndRho)) *
          pow(mass / (2.0 * M_PI * kb ), 1.5) / ( sqrt(sP.TEMPERATUREX) * sqrt(sP.TEMPERATUREY) * sqrt(sP.TEMPERATUREZ) );
       
-      if(result < sP.maxwCutoff) {
-         return 0.0;
-      } else {
-         return result;
-      }
+      // Switching off the cutoff check for now
+      // if(result < sP.maxwCutoff) {
+      //    return 0.0;
+      // } else {
+      //    return result;
+      // }
+      return result;
    }
    
-   void Fluctuations::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
+   void LossCone::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
       Real* cellParams = cell->get_cell_parameters();
       creal x = cellParams[CellParams::XCRD];
       creal dx = cellParams[CellParams::DX];
@@ -160,7 +210,7 @@ namespace projects {
       this->rndVel[2]=getRandomNumber(rndState);
    }
 
-   void Fluctuations::setProjectBField(
+   void LossCone::setProjectBField(
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
@@ -194,7 +244,7 @@ namespace projects {
       }
    }
    
-   std::vector<std::array<Real, 3> > Fluctuations::getV0(
+   std::vector<std::array<Real, 3> > LossCone::getV0(
       creal x,
       creal y,
       creal z,

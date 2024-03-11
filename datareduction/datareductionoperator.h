@@ -614,6 +614,24 @@ namespace DRO {
       std::vector<Real> channels, dataDiffFlux;
    };
 
+
+   // V-space flatten into 1D mu-distribution
+   class VariableMuSpace: public DataReductionOperatorHasParameters {
+   public:
+      VariableMuSpace(cuint popID);
+      virtual ~VariableMuSpace();
+
+      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual std::string getName() const;
+      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool setSpatialCell(const SpatialCell* cell);
+      virtual bool writeParameters(vlsv::Writer& vlsvWriter);
+
+   protected:
+      uint popID;
+      std::string popName;
+   };
+      
    // Precipitation directional differential number flux (along line)
    class VariablePrecipitationLineDiffFlux: public DataReductionOperatorHasParameters {
    public:
@@ -625,7 +643,6 @@ namespace DRO {
       virtual bool reduceData(const SpatialCell* cell,char* buffer);
       virtual bool setSpatialCell(const SpatialCell* cell);
       virtual bool writeParameters(vlsv::Writer& vlsvWriter);
-
    protected:
       uint popID;
       std::string popName;

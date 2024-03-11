@@ -32,6 +32,7 @@
 #include "particle_species.h"
 #include "projects/project.h"
 #include "velocity_mesh_parameters.h"
+#include <string>
 #include "sysboundary/sysboundary.h"
 
 struct ObjectWrapper {

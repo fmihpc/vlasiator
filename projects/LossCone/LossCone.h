@@ -20,8 +20,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef FLUCTUATIONS_H
-#define FLUCTUATIONS_H
+#ifndef LOSSCONE_H
+#define LOSSCONE_H
 
 #include <stdlib.h>
 
@@ -30,7 +30,7 @@
 
 namespace projects {
 
-   struct FluctuationsSpeciesParameters {
+   struct LossConeSpeciesParameters {
       Real DENSITY;
       Real TEMPERATUREX;
       Real TEMPERATUREY;
@@ -38,20 +38,29 @@ namespace projects {
       Real densityPertRelAmp;
       Real velocityPertAbsAmp;
       Real maxwCutoff;
+      Real V0[3];
+      uint nSpaceSamples;
+      uint nVelocitySamples;
+
+      // Parameters for instead implementing monotonic population
+      Real monotonic_maxv;
+      Real monotonic_amp;
+      Real monotonic_base;
+      bool monotonic_subtract;
    };
 
-   class Fluctuations: public TriAxisSearch {
+   class LossCone: public TriAxisSearch {
    public:
-      Fluctuations();
-      virtual ~Fluctuations();
+      LossCone();
+      virtual ~LossCone();
       
       virtual bool initialize(void);
       static void addParameters(void);
       virtual void getParameters(void);
       virtual void setProjectBField(
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
+         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+         FsGrid< fsgrids::technical, 2>& technicalGrid
       );
       virtual std::vector<std::array<Real, 3> > getV0(
          creal x,
@@ -76,10 +85,10 @@ namespace projects {
       Real magYPertAbsAmp;
       Real magZPertAbsAmp;
       uint seed;
-      std::vector<FluctuationsSpeciesParameters> speciesParams;
+      std::vector<LossConeSpeciesParameters> speciesParams;
 
       static Real rndRho, rndVel[3];
       #pragma omp threadprivate(rndRho,rndVel)
-   } ; // class Fluctuations
+   } ; // class LossCone
 } // namespace projects
 #endif

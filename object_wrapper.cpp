@@ -1,6 +1,7 @@
 #include "object_wrapper.h"
 #include "readparameters.h"
 #include <iostream>
+#include <string>
 
 bool ObjectWrapper::addParameters() {
    typedef Readparameters RP;

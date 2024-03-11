@@ -174,6 +174,18 @@ namespace CellParams {
       P_11_V,   /*!< P_xx component after propagation in velocity space */
       P_22_V,   /*!< P_yy component after propagation in velocity space */
       P_33_V,   /*!< P_zz component after propagation in velocity space */
+      P_12,     /*!< Pressure P_xy component, computed by Vlasov propagator. */
+      P_13,     /*!< Pressure P_xz component, computed by Vlasov propagator. */
+      P_23,     /*!< Pressure P_yz component, computed by Vlasov propagator. */
+      P_12_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_12_R and P_12_V. */
+      P_13_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_13_R and P_13_V. */
+      P_23_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_23_R and P_23_V. */
+      P_12_R,   /*!< P_xy component after propagation in ordinary space */
+      P_13_R,   /*!< P_xz component after propagation in ordinary space */
+      P_23_R,   /*!< P_yz component after propagation in ordinary space */
+      P_12_V,   /*!< P_xy component after propagation in velocity space */
+      P_13_V,   /*!< P_xz component after propagation in velocity space */
+      P_23_V,   /*!< P_yz component after propagation in velocity space */
       EXVOL,    /*!< Volume electric field averaged over spatial cell, x-component.*/
       EYVOL,    /*!< Volume electric field averaged over spatial cell, y-component.*/
       EZVOL,    /*!< Volume electric field averaged over spatial cell, z-component.*/
@@ -214,6 +226,7 @@ namespace CellParams {
       BULKV_FORCING_Y, /*! Externally forced drift velocity (ex. from the ionosphere) */
       BULKV_FORCING_Z, /*! Externally forced drift velocity (ex. from the ionosphere) */
       FORCING_CELL_NUM, /*! Number of boundary cells that have forced a bulkv here */
+      NU0, /*!< nu0 value for subgrid diffusion */
       N_SPATIAL_CELL_PARAMS
    };
 }
@@ -475,7 +488,9 @@ RK_ORDER2_STEP1,   /*!< Two-step second order method, first step */
 RK_ORDER2_STEP2    /*!< Two-step second order method, second step */
 };
 
-const int WID = 4;         /*!< Number of cells per coordinate in a velocity block. Only a value of 4 supported by vectorized Leveque solver */
+#ifndef WID
+#define WID (4)            /*!< Number of cells per coordinate in a velocity block. Defaults to the historical 4. */
+#endif
 const int WID2 = WID*WID;  /*!< Number of cells per 2D slab in a velocity block. */
 const int WID3 = WID2*WID; /*!< Number of cells in a velocity block. */
 

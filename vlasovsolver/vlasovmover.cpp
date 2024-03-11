@@ -518,7 +518,11 @@ void calculateInterpolatedVelocityMoments(
    const int cp_rhoq,
    const int cp_p11,
    const int cp_p22,
-   const int cp_p33
+   const int cp_p33,
+   const int cp_p12,
+   const int cp_p13,
+   const int cp_p23
+   
 ) {
    const vector<CellID>& cells = getLocalCells();
    
@@ -535,14 +539,15 @@ void calculateInterpolatedVelocityMoments(
       SC->parameters[cp_p11]   = 0.5* ( SC->parameters[CellParams::P_11_R] + SC->parameters[CellParams::P_11_V] );
       SC->parameters[cp_p22]   = 0.5* ( SC->parameters[CellParams::P_22_R] + SC->parameters[CellParams::P_22_V] );
       SC->parameters[cp_p33]   = 0.5* ( SC->parameters[CellParams::P_33_R] + SC->parameters[CellParams::P_33_V] );
+      SC->parameters[cp_p12]   = 0.5* ( SC->parameters[CellParams::P_12_R] + SC->parameters[CellParams::P_12_V] );
+      SC->parameters[cp_p13]   = 0.5* ( SC->parameters[CellParams::P_13_R] + SC->parameters[CellParams::P_13_V] );
+      SC->parameters[cp_p23]   = 0.5* ( SC->parameters[CellParams::P_23_R] + SC->parameters[CellParams::P_23_V] );
 
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          spatial_cell::Population& pop = SC->get_population(popID);
          pop.RHO = 0.5 * ( pop.RHO_R + pop.RHO_V );
-         for(int i=0; i<3; i++) {
-            pop.V[i] = 0.5 * ( pop.V_R[i] + pop.V_V[i] );
-            pop.P[i]    = 0.5 * ( pop.P_R[i] + pop.P_V[i] );
-         }
+         for(int i=0; i<3; i++) {pop.V[i] = 0.5 * ( pop.V_R[i] + pop.V_V[i] );}
+         for(int i=0; i<6; i++) {pop.P[i] = 0.5 * ( pop.P_R[i] + pop.P_V[i] );} 
       }
    }
 }
@@ -569,5 +574,8 @@ void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_G
       SC->parameters[CellParams::P_11_DT2] = SC->parameters[CellParams::P_11];
       SC->parameters[CellParams::P_22_DT2] = SC->parameters[CellParams::P_22];
       SC->parameters[CellParams::P_33_DT2] = SC->parameters[CellParams::P_33];
+      SC->parameters[CellParams::P_12_DT2] = SC->parameters[CellParams::P_12];
+      SC->parameters[CellParams::P_13_DT2] = SC->parameters[CellParams::P_13];
+      SC->parameters[CellParams::P_23_DT2] = SC->parameters[CellParams::P_23];
    } // for-loop over spatial cells
 }

@@ -53,6 +53,7 @@
 #include "../backgroundfield/backgroundfield.h"
 #include "../backgroundfield/constantfield.hpp"
 #include "Shocktest/Shocktest.h"
+#include "LossCone/LossCone.h"
 #include "../sysboundary/sysboundarycondition.h"
 
 using namespace std;
@@ -126,6 +127,7 @@ namespace projects {
       projects::test_trans::addParameters();
       projects::verificationLarmor::addParameters();
       projects::Shocktest::addParameters();
+      projects::LossCone::addParameters();
       RP::add("Project_common.seed", "Seed for the RNG", 42);
       
    }
@@ -762,6 +764,11 @@ Project* createProject() {
    if(Parameters::projectName == "Shocktest") {
       rvalue = new projects::Shocktest;
    }
+   if(Parameters::projectName == "LossCone") {
+      rvalue = new projects::LossCone;
+   }
+   
+
    if (rvalue == NULL) {
       cerr << "Unknown project name!" << endl;
       abort();
