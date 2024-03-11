@@ -83,9 +83,9 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
 
    vmesh::VelocityMesh** pencilMeshes = allPencilsMeshes->data();
    vmesh::VelocityBlockContainer** pencilContainers = allPencilsContainers->data();
-   vmesh::VelocityMesh* vmesh = pencilMeshes[0]; // just some vmesh
-   const Realv dvz = vmesh->getCellSize()[dimension];
-   const Realv vz_min = vmesh->getMeshMinLimits()[dimension];
+   vmesh::VelocityMesh* randovmesh = pencilMeshes[0]; // just some vmesh
+   const Realv dvz = randovmesh->getCellSize()[dimension];
+   const Realv vz_min = randovmesh->getMeshMinLimits()[dimension];
 
    // Acting on velocity block blockGID, now found from array
    for (uint thisBlockIndex = startingBlockIndex + blockIdx.x; thisBlockIndex < nAllBlocks; thisBlockIndex += blockIndexIncrement) {
@@ -165,11 +165,11 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
       __syncthreads();
       vmesh::LocalID blockIndicesD = 0;
       if (dimension==0) {
-         vmesh->getIndicesX(blockGID, blockIndicesD);
+         randovmesh->getIndicesX(blockGID, blockIndicesD);
       } else if (dimension==1) {
-         vmesh->getIndicesY(blockGID, blockIndicesD);
+         randovmesh->getIndicesY(blockGID, blockIndicesD);
       } else if (dimension==2) {
-         vmesh->getIndicesZ(blockGID, blockIndicesD);
+         randovmesh->getIndicesZ(blockGID, blockIndicesD);
       }
 
       // Assuming 1 neighbor in the target array because of the CFL condition
@@ -376,21 +376,25 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    // Copy indexing information to device.
    gpuStream_t bgStream = gpu_getStream(); // uses stream assigned to thread 0, not the blocking default stream
    int device = gpu_getDevice();
-   CHK_ERR( gpuMemcpyAsync(gpu_vcell_transpose, vcell_transpose, WID3*sizeof(uint), gpuMemcpyHostToDevice,bgStream) );
+   CHK_ERR( gpuMemcpyAsync(gpu_vcell_transpose, &vcell_transpose[0], WID3*sizeof(uint), gpuMemcpyHostToDevice,bgStream) );
 
    // Vector with all cell ids
    vector<CellID> allCells(localPropagatedCells);
    allCells.insert(allCells.end(), remoteTargetCells.begin(), remoteTargetCells.end());
    cuint nAllCells = allCells.size();
 
+   phiprof::Timer allocateTimer {"trans-amr-allocs"};
    // Ensure GPU data has sufficient allocations/sizes, perform prefetches to CPU
    cuint sumOfLengths = DimensionPencils[dimension].sumOfLengths;
    gpu_vlasov_allocate(sumOfLengths);
-
    // Resize allVmeshPointer, allPencilsMeshes, allPencilsContainers
    gpu_trans_allocate(nAllCells,sumOfLengths,0,0);
+   allocateTimer.stop();
+
    // Find maximum mesh size.
+   phiprof::Timer maxMeshSizeTimer {"trans-amr-find-maxmesh"};
    uint largestFoundMeshSize = 0;
+   int checkMeshId {phiprof::initializeTimer("trans-amr-checkMesh")};
    #pragma omp parallel
    {
       uint thread_largestFoundMeshSize = 0;
@@ -400,6 +404,7 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
          cuint thisMeshSize = mpiGrid[allCells[celli]]->get_velocity_mesh(popID)->size();
          thread_largestFoundMeshSize = thisMeshSize > thread_largestFoundMeshSize ? thisMeshSize : thread_largestFoundMeshSize;
          #ifdef DEBUG_VLASIATOR
+         phiprof::Timer checkMeshTimer {checkMeshId};
          mpiGrid[allCells[celli]]->checkMesh(popID);
          #endif
       }
@@ -408,17 +413,22 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
          largestFoundMeshSize = largestFoundMeshSize > thread_largestFoundMeshSize ? largestFoundMeshSize : thread_largestFoundMeshSize;
       }
    }
+   maxMeshSizeTimer.stop();
+
    // return if there's no blocks to propagate
    if(largestFoundMeshSize == 0) {
       return false;
    }
+
+   allocateTimer.start();
    // Prefetch vector of vmesh pointers to GPU
    allVmeshPointer->optimizeGPU(bgStream);
-
    // Reserve size for unionOfBlocksSet
    gpu_trans_allocate(0, 0, largestFoundMeshSize, 0);
+   allocateTimer.stop();
 
    // Gather cell weights for load balancing
+   phiprof::Timer pencilCountTimer {"trans-amr-count-pencils"};
    if (Parameters::prepareForRebalance == true) {
       for (uint i=0; i<localPropagatedCells.size(); i++) {
          cuint myPencilCount = std::count(DimensionPencils[dimension].ids.begin(), DimensionPencils[dimension].ids.end(), localPropagatedCells[i]);
@@ -426,6 +436,7 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
          nPencilsLB[nPencilsLB.size()-1] += myPencilCount;
       }
    }
+   pencilCountTimer.stop();
 
    phiprof::Timer buildTimer {"trans-amr-buildBlockList"};
    // Get a unique unsorted list of blockids that are in any of the
@@ -457,8 +468,10 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
       }
    }
    // Prefetch data back to GPU
+   phiprof::Timer gpuPrefetchTimer {"trans-amr-prefetch"};
    allPencilsMeshes->optimizeGPU(bgStream);
    allPencilsContainers->optimizeGPU(bgStream);
+   gpuPrefetchTimer.stop();
 
    // Extract pointers to data in managed memory
    uint* pencilLengths = DimensionPencils[dimension].gpu_lengthOfPencils->data();
@@ -467,11 +480,17 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    Realf* pencilRatios = DimensionPencils[dimension].gpu_targetRatios->data();
    gatherPointerTimer.stop();
 
-   phiprof::Timer buildTimer2 {"trans-amr-buildBlockList-2"};
-   // Now we ensure the union of blocks gathering is complete and extract the union of blocks into a vector
+   gpuPrefetchTimer.start();
    CHK_ERR( gpuStreamSynchronize(bgStream) );
+   gpuPrefetchTimer.stop();
+
+   allocateTimer.start();
    const vmesh::LocalID unionOfBlocksSetSize = unionOfBlocksSet->size();
    gpu_trans_allocate(0,0,0,unionOfBlocksSetSize);
+   allocateTimer.stop();
+
+   phiprof::Timer buildTimer2 {"trans-amr-buildBlockList-2"};
+   // Now we ensure the union of blocks gathering is complete and extract the union of blocks into a vector
    cuint nAllBlocks = unionOfBlocksSet->extractAllKeys(*unionOfBlocks,bgStream);
    CHK_ERR( gpuStreamSynchronize(bgStream) );
    vmesh::GlobalID *allBlocks = unionOfBlocks->data();
@@ -508,12 +527,6 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
       // GPUTODO: pre-allocate one per thread, here verify sufficient size
       Realf** pencilBlockData; // Array of pointers into actual block data
       uint* pencilBlocksCount; // Array of counters if pencil needs to be propagated for this block or not
-
-      // stringstream ss;
-      // ss<<" thread "<<cpuThreadID<<" malloc "<<sumOfLengths<<" * "<<nGpuBlocks<<" * sizeof(Realf*) + ";
-      // ss<<nPencils<<" * "<<nGpuBlocks<<" * sizeof(uint) = "<<sumOfLengths*nGpuBlocks*sizeof(Realf*)+nPencils*nGpuBlocks*sizeof(uint)<<std::endl;
-      // std::cerr<<ss.str();
-      // #pragma omp barrier
       CHK_ERR( gpuMallocAsync((void**)&pencilBlockData, sumOfLengths*nGpuBlocks*sizeof(Realf*), stream) );
       CHK_ERR( gpuMallocAsync((void**)&pencilBlocksCount, nPencils*nGpuBlocks*sizeof(uint), stream) );
       CHK_ERR( gpuStreamSynchronize(stream) );
@@ -524,10 +537,10 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
       phiprof::Timer mappingTimer {mappingId}; // mapping (top-level)
       cuint startingBlockIndex = cpuThreadID*nGpuBlocks;
       cuint blockIndexIncrement = maxThreads*nGpuBlocks;
+
       // Each thread, using its own stream, will launch nGpuBlocks instances of the below kernel, where each instance
       // propagates all pencils for the block in question.
       dim3 block(WID2,WID,1); // assumes VECL==WID2
-      //#pragma omp barrier
       translation_kernel<<<nGpuBlocks, block, 0, stream>>> (
          dimension,
          gpu_vcell_transpose,

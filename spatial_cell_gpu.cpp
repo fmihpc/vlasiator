@@ -860,6 +860,7 @@ namespace spatial_cell {
       nGpuBlocks = localContentBlocks > GPUBLOCKS ? GPUBLOCKS : localContentBlocks;
 
       //phiprof::Timer blockHaloTimer {"Block halo kernel"};
+      phiprof::Timer blockListGatherTimer {"Block List Gathers"};
       if (localContentBlocks > 0) {
          // First add all local content blocks and their v-space halo to the list
          update_blocks_required_halo_kernel<<<nGpuBlocks, haloblock, 0, stream>>> (
@@ -896,10 +897,11 @@ namespace spatial_cell {
                                  localNoContentBlocks*sizeof(vmesh::GlobalID), gpuMemcpyDeviceToDevice, stream) );
          incrementPoint += localNoContentBlocks;
       }
-      //CHK_ERR( gpuStreamSynchronize(stream) );
+      CHK_ERR( gpuStreamSynchronize(stream) );
       //neighbourTimer.stop();
+      blockListGatherTimer.stop();
 
-      //phiprof::Timer resizeTimer {"BlocksRequired hashmap resize / clear"};
+      phiprof::Timer resizeTimer {"BlocksRequired hashmap resize / clear"};
       // Estimate required size based on existing blocks
       int HashmapReqSize = 2;
       if (localContentBlocks+localNoContentBlocks > 0) {
@@ -916,33 +918,32 @@ namespace spatial_cell {
          BlocksRequiredMap->clear(Hashinator::targets::device,stream,false);
          BlocksRequiredMap->resize(BlocksRequiredMap_sizepower,Hashinator::targets::device, stream);
       }
-      //resizeTimer.stop();
+      resizeTimer.stop();
 
       // Dump all required content blocks into set/map with a fast hashinator interface.
       // GPU TODO: In fact, could do sort + unique with a list
       //phiprof::Timer blockInsertTimer {"All blocks with content"};
-      //phiprof::Timer insertTimer {"BlocksRequired insert"};
+      phiprof::Timer insertTimer {"BlocksRequired insert"};
       // 0.5 is target load factor
       BlocksRequiredMap->insert(BlocksList->data(),BlocksList->data(),incrementPoint,0.5,stream,false);
       // CHK_ERR( gpuPeekAtLastError() );
       // CHK_ERR( gpuStreamSynchronize(stream) );
       // Ensure map does not include invalidGID
       BlocksDeleteMap->erase(invalidGIDpointer,1,stream);
-      //CHK_ERR( gpuStreamSynchronize(stream) );
-      //insertTimer.stop();
+      CHK_ERR( gpuStreamSynchronize(stream) );
+      insertTimer.stop();
 
       // Ensure allocation for extraction calls is sufficient
+      phiprof::Timer extractRequiredTimer {"BlocksRequired extract"};
       size_t bytesNeeded = split::tools::estimateMemoryForCompaction((size_t)std::pow(2,BlocksRequiredMap_sizepower+4));
       gpu_compaction_allocate_buf_perthread(thread_id, bytesNeeded);
-
-      //phiprof::Timer extractRequiredTimer {"BlocksRequired extract"};
       const vmesh::LocalID nBlocksRequired = BlocksRequiredMap->extractAllKeys(*BlocksRequired,compaction_buffer[thread_id],bytesNeeded,stream,false);
       //const vmesh::LocalID nBlocksRequired = BlocksRequiredMap->extractAllKeys(*BlocksRequired,stream,false);
-      //extractRequiredTimer.stop();
+      extractRequiredTimer.stop();
 
       vmesh::LocalID nBlocksToRemove = 0;
       if (doDeleteEmptyBlocks && localNoContentBlocks>0 && nBlocksRequired>0) {
-         //phiprof::Timer resizeDeleteTimer {"Blocksdelete hashmap resize / clear"};
+         phiprof::Timer resizeDeleteTimer {"Blocksdelete hashmap resize / clear"};
          // Estimate required size based on existing blocks
          int HashmapDeleteReqSize = 2;
          if (localNoContentBlocks > 0) {
@@ -957,9 +958,9 @@ namespace spatial_cell {
             BlocksDeleteMap_sizepower = HashmapDeleteReqSize;
             BlocksDeleteMap->resize(BlocksDeleteMap_sizepower,Hashinator::targets::device, stream);
          }
-         //resizeDeleteTimer.stop();
+         resizeDeleteTimer.stop();
 
-         //phiprof::Timer findDeleteTimer {"BlocksToRemove all"};
+         phiprof::Timer findDeleteTimer {"BlocksToRemove all"};
          // Build set of blocks to potentially delete from localNoContentBlocks
          // 0.5 is target load factor
          BlocksDeleteMap->insert(_withNoContentData,_withNoContentData,localNoContentBlocks,0.5,stream,false);
@@ -973,7 +974,7 @@ namespace spatial_cell {
          if (BlocksDeleteMap->size() > 0) {
             nBlocksToRemove = BlocksDeleteMap->extractAllKeys(*BlocksToRemove,compaction_buffer[thread_id],bytesNeeded,stream,false);
          }
-         //findDeleteTimer.stop();
+         findDeleteTimer.stop();
       } else if (doDeleteEmptyBlocks && localNoContentBlocks>0 && nBlocksRequired==0) {
          // No required blocks, just delete all no content blocks
          nBlocksToRemove = localNoContentBlocks;
@@ -984,7 +985,7 @@ namespace spatial_cell {
       // Now clean the blocks required set/map of all blocks which already exist (these two calls should be merged)
       vmesh::LocalID nBlocksToAdd = 0;
       if (nBlocksRequired>0) {
-         //phiprof::Timer eraseTimer {"BlocksRequired erase existing"};
+         phiprof::Timer eraseTimer {"BlocksRequired erase existing"};
          if (localContentBlocks>0) {
             BlocksRequiredMap->erase(_withContentData,localContentBlocks,stream);
          }
@@ -992,10 +993,10 @@ namespace spatial_cell {
             BlocksRequiredMap->erase(_withNoContentData,localNoContentBlocks,stream);
          }
          CHK_ERR( gpuStreamSynchronize(stream) );
-         //eraseTimer.stop();
-         //phiprof::Timer toAddTimer {"BlocksToAdd extract"};
+         eraseTimer.stop();
+         phiprof::Timer toAddTimer {"BlocksToAdd extract"};
          nBlocksToAdd = BlocksRequiredMap->extractAllKeys(*BlocksToAdd,compaction_buffer[thread_id],bytesNeeded,stream,false);
-         //toAddTimer.stop();
+         toAddTimer.stop();
       }
 
       // If we remove more blocks than we create, we gather a list of blocks to rescue
@@ -1189,7 +1190,6 @@ namespace spatial_cell {
          // Should not re-allocate on shrinking
          populations[popID].vmesh->setNewSize(nBlocksAfterAdjust);
          populations[popID].blockContainer->setNewSize(nBlocksAfterAdjust);
-         //populations[popID].Upload();
       }
 
       // DEBUG output after kernel
@@ -1303,6 +1303,8 @@ namespace spatial_cell {
                // Cleared to be ready to receive
                populations[activePopID].vmesh->clear();
                populations[activePopID].vmesh->setNewSize(populations[activePopID].N_blocks);
+               // VBC resized in prepare_to_receive_blocks
+               populations[activePopID].Upload();
             } else {
                 //Ensure N_blocks is still correct
                 populations[activePopID].N_blocks = populations[activePopID].vmesh->size();
@@ -1516,6 +1518,7 @@ namespace spatial_cell {
       populations[popID].vmesh->setGrid(); // Based on localToGlobalMap
       const vmesh::LocalID meshSize = populations[popID].vmesh->size();
       populations[popID].blockContainer->setNewSize(meshSize);
+      populations[popID].Upload();
       // Set velocity block parameters:
       Real* parameters = get_block_parameters(popID);
       gpuStream_t stream = gpu_getStream();
@@ -1531,7 +1534,6 @@ namespace spatial_cell {
          CHK_ERR( gpuPeekAtLastError() );
          //CHK_ERR( gpuStreamSynchronize(stream) );
       }
-      populations[popID].Upload();
    }
 
    /** Set the particle species SpatialCell should use in functions that
@@ -1597,9 +1599,11 @@ namespace spatial_cell {
             * populations[p].blockContainer->getBlockAllocationFactor();
 
          // Allow capacity to be a bit large than needed by number of blocks, shrink otherwise
-         if (populations[p].blockContainer->capacity() > amount )
-            if (populations[p].blockContainer->setNewCapacity(amount) == false) success = false;
-
+         if (populations[p].blockContainer->capacity() > amount ) {
+            if (populations[p].blockContainer->setNewCapacity(amount) == false) {
+               success = false;
+            }
+         }
       }
       return success;
    }

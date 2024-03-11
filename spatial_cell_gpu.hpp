@@ -365,7 +365,7 @@ namespace spatial_cell {
          gpuStream_t stream = gpu_getStream();
          CHK_ERR( gpuMemcpyAsync(dev_vmesh, vmesh, sizeof(vmesh::VelocityMesh), gpuMemcpyHostToDevice, stream) );
          CHK_ERR( gpuMemcpyAsync(dev_blockContainer, blockContainer, sizeof(vmesh::VelocityBlockContainer), gpuMemcpyHostToDevice, stream) );
-         CHK_ERR( gpuStreamSynchronize(stream) );
+         //CHK_ERR( gpuStreamSynchronize(stream) );
       }
 
       void Scale(creal factor) {
@@ -400,14 +400,13 @@ namespace spatial_cell {
             // Nothing to add
             return;
          }
+         gpuStream_t stream = gpu_getStream();
          vmesh::LocalID nBlocks = (other.vmesh)->size();
          vmesh::LocalID nExistingBlocks = vmesh->size();
          vmesh->setNewCapacity(nExistingBlocks + nBlocks + 1);
-         blockContainer->gpu_Allocate(nExistingBlocks + nBlocks + 1);
+         blockContainer->setNewCapacity(nExistingBlocks + nBlocks + 1);
          // Upload
-         gpuStream_t stream = gpu_getStream();
-         CHK_ERR( gpuMemcpyAsync(dev_vmesh, vmesh, sizeof(vmesh::VelocityMesh), gpuMemcpyHostToDevice, stream) );
-         CHK_ERR( gpuMemcpyAsync(dev_blockContainer, blockContainer, sizeof(vmesh::VelocityBlockContainer), gpuMemcpyHostToDevice, stream) );
+         Upload();
          // Loop over the whole velocity space, and add scaled values with
          // a kernel. Addition of new blocks is not block-parallel-safe.
          const uint nGpuBlocks = nBlocks > GPUBLOCKS ? GPUBLOCKS : nBlocks;
@@ -1172,11 +1171,7 @@ namespace spatial_cell {
          return;
       }
 
-      // Bookkeeping only: Calls CPU version in order to ensure resize of container.
       const vmesh::LocalID startLID = populations[popID].blockContainer->push_back(nBlocks);
-      // CHK_ERR( gpuStreamSynchronize(stream) );
-      // populations[popID].vmesh->gpu_prefetchDevice();
-      // populations[popID].blockContainer->gpu_prefetchDevice();
       populations[popID].Upload();
 
       // Copy data to GPU

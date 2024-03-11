@@ -85,7 +85,6 @@ namespace vmesh {
       // ARCH_HOSTDEV void swap(VelocityBlockContainer& vbc);
 
 #ifdef USE_GPU // for GPU version
-      void gpu_Allocate(vmesh::LocalID size);
       void gpu_prefetchHost(gpuStream_t stream);
       void gpu_prefetchDevice(gpuStream_t stream);
       void print_addresses();
@@ -318,39 +317,6 @@ namespace vmesh {
    inline void VelocityBlockContainer::print_addresses() {
       printf("GPU block_data %p\n GPU parameters %p\n",block_data,parameters);
    }
-   inline void VelocityBlockContainer::gpu_Allocate(vmesh::LocalID size) {
-      #ifdef USE_GPU
-      gpuStream_t stream = gpu_getStream();
-      #endif
-      const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
-      vmesh::LocalID currentCapacity = block_data->capacity()/WID3;
-
-      vmesh::LocalID requirement = (size > numberOfBlocks) ? size : numberOfBlocks;
-      // Always reserve for at least 50 blocks
-      requirement = (requirement > 50) ? requirement : 50;
-
-      if (currentCapacity > BLOCK_ALLOCATION_FACTOR * requirement) {
-         return; // Still have enough buffer
-      }
-
-      if (numberOfBlocks > size) {
-         std::cerr<<"Error in "<<__FILE__<<" line "<<__LINE__<<": attempting to allocate less than numberOfBlocks"<<std::endl;
-         abort();
-      }
-      if (numberOfBlocks > BLOCK_ALLOCATION_FACTOR * size) {
-         std::cerr<<"Warning in "<<__FILE__<<" line "<<__LINE__<<": attempting to allocate less than safety margins"<<std::endl;
-      }
-      // Passing eco flag = true to reserve tells splitvector we manage padding manually.
-      currentCapacity = BLOCK_ALLOCATION_PADDING * requirement;
-      block_data->reserve(currentCapacity * WID3, true, stream);
-      parameters->reserve(currentCapacity * BlockParams::N_VELOCITY_BLOCK_PARAMS, true, stream);
-      // #ifdef USE_GPU
-      // block_data->optimizeGPU(stream);
-      // parameters->optimizeGPU(stream);
-      // #endif
-      return;
-   }
-
    inline void VelocityBlockContainer::gpu_prefetchHost(gpuStream_t stream=0) {
       if (stream==0) {
          gpuStream_t stream = gpu_getStream();
@@ -595,7 +561,7 @@ namespace vmesh {
       return newIndex;
    }
 
-   inline bool VelocityBlockContainer::setNewCapacity(const vmesh::LocalID& newCapacity) {
+   inline bool VelocityBlockContainer::setNewCapacity(const vmesh::LocalID& reqCapacity) {
       // Note: No longer ever recapacitates down in size.
       #ifdef USE_GPU
       gpuStream_t stream = gpu_getStream();
@@ -603,11 +569,17 @@ namespace vmesh {
       const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
       const vmesh::LocalID currentCapacity = block_data->capacity()/WID3;
 
+      vmesh::LocalID newCapacity = (reqCapacity > 1) ? reqCapacity : 1;
+      if (currentCapacity > BLOCK_ALLOCATION_FACTOR * newCapacity) {
+         return false; // Still have enough buffer
+      }
       if (newCapacity < numberOfBlocks) {
          std::cerr<<" ERROR! Trying to recapacitate to "<<newCapacity<<" when VBC already contains "<<numberOfBlocks<<" blocks!"<<std::endl;
          return false;
       }
+      newCapacity *= BLOCK_ALLOCATION_PADDING;
       #ifdef USE_GPU
+      // Passing eco flag = true to reserve tells splitvector we manage padding manually.
       block_data->reserve(newCapacity*WID3, true, stream);
       parameters->reserve(newCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS, true, stream);
       #else

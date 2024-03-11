@@ -651,14 +651,15 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
          const vmesh::VelocityMesh* vmesh = SC->get_velocity_mesh(popID);
          vmesh::VelocityBlockContainer* blockContainer = SC->get_velocity_blocks(popID);
          gpuBlockCount = vmesh->size();
-         // gpu_Allocate checks if increased allocation is necessary, also performs deallocation first if necessary
-         blockContainer->gpu_Allocate(gpuBlockCount);
+         // checks if increased allocation is necessary, also performs deallocation first if necessary
+         blockContainer->setNewCapacity(gpuBlockCount);
          if (gpuBlockCount > gpuMaxBlockCount) {
             gpuMaxBlockCount = gpuBlockCount;
          }
          // Ensure cell has sufficient reservation, then apply it
          SC->setReservation(popID,gpuBlockCount);
          SC->applyReservation(popID);
+         SC->dev_upload_population(popID);
       }
    }
    // Call GPU routines for per-thread memory allocation for Vlasov solvers

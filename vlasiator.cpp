@@ -171,9 +171,11 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          const Real* parameters = cell->get_block_parameters(popID);
          const Real HALF = 0.5;
          Real popMin = std::numeric_limits<Real>::max();
+         int archId {phiprof::initializeTimer("ARCH reduce timestep")};
 #pragma omp parallel
          {
             Real threadMin = std::numeric_limits<Real>::max();
+            phiprof::Timer archTimer {archId};
             arch::parallel_reduce<arch::min>(
                {WID, WID, WID, nBlocks},
                ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint n, Real *lthreadMin) -> void{
@@ -195,6 +197,7 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             {
                popMin = min(threadMin, popMin);
             }
+            archTimer.stop();
          } // end parallel region
          cell->set_max_r_dt(popID, popMin);
          cell->parameters[CellParams::MAXRDT] = min(popMin, cell->parameters[CellParams::MAXRDT]);
