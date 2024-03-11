@@ -169,9 +169,9 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             continue;
          }
          #ifdef USE_GPU
-         const Real* parameters = cell->dev_get_block_parameters(popID);
+         const vmesh::VelocityBlockContainer *blockContainer = cell->dev_get_velocity_blocks(popID);
          #else
-         const Real* parameters = cell->get_block_parameters(popID);
+         const vmesh::VelocityBlockContainer *blockContainer = cell->get_get_velocity_blocks(popID);
          #endif
          const Real HALF = 0.5;
          Real popMin = std::numeric_limits<Real>::max();
@@ -183,6 +183,7 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             arch::parallel_reduce<arch::min>(
                {WID, WID, WID, nBlocks},
                ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint n, Real *lthreadMin) -> void{
+                  const Realf* parameters = blockContainer->getParameters(popID);
                   const Real VX
                      =            parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD]
                      + (i + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
