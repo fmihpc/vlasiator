@@ -295,6 +295,7 @@ void velocitySpaceDiffusion(
         }      
  
         phiprof::start("Subloop");
+        int subCount = 0;
         while (dtTotalDiff < Parameters::dt) { // Substep loop
 
             phiprof::start("Zeroing");
@@ -361,6 +362,17 @@ void velocitySpaceDiffusion(
             int cRight;
             int cLeft;
             Real checkCFLtmp = std::numeric_limits<Real>::max();
+            std::ofstream muv_array;
+
+            if (subCount == 0) {
+                // Save muspace to text
+                std::string path_save = "/scratch/project_2000203/dubartma/dmumu/Difftest_T3.36_B3.36/bulk/";
+                std::ostringstream tmp;
+                tmp << std::setw(7) << std::setfill('0') << P::tstep;
+                std::string tstepString = tmp.str();
+                muv_array = std::ofstream(path_save + "muv_array_" + tstepString + ".txt");
+                std::cerr << "Opening file " <<  (path_save + "muv_array_" + tstepString + ".txt") << std::endl;
+            }
 
             // Compute space/time derivatives (take first non-zero neighbours) & CFL & Ddt
             for (int indv = 0; indv < nbins_v; indv++) { 
@@ -369,6 +381,14 @@ void velocitySpaceDiffusion(
                 for(int indmu = 0; indmu < nbins_mu; indmu++) { 
                     if (fcount[indv][indmu] == 0 || fmu[indv][indmu] <= 0.0) { fmu[indv][indmu] = std::numeric_limits<Real>::min();}
                     else {fmu[indv][indmu] = fmu[indv][indmu] / fcount[indv][indmu];} 
+
+                    if (subCount == 0) {
+                        muv_array << fmu[indv][indmu] << ' ';
+                    }
+        
+                }
+                if (subCount == 0) {   
+                    muv_array << std::endl;
                 }
 
                 for(int indmu = 0; indmu < nbins_mu; indmu++) {
@@ -484,6 +504,7 @@ void velocitySpaceDiffusion(
             } // End Blocks
             phiprof::stop("diffusion time derivative & update cell");
 
+        subCount++ ;
         } // End Time loop
         phiprof::stop("Subloop");
 
