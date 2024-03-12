@@ -152,7 +152,13 @@ namespace DRO {
          lambda(perBGrid,EGrid,EHallGrid,EGradPeGrid,momentsGrid,dPerBGrid,dMomentsGrid,BgBGrid,volGrid,technicalGrid);
 
       std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
-      int vectorSize = varBuffer.size() / (gridSize[0]*gridSize[1]*gridSize[2]);
+      int vectorSize;
+
+      // Check if there is anything to write (eg, we are a non-FS process)
+      if (gridSize[0]*gridSize[1]*gridSize[2] == 0)
+         vectorSize = 0;
+      else
+         vectorSize = varBuffer.size() / (gridSize[0]*gridSize[1]*gridSize[2]);
 
       if(writeAsFloat) {
          // Convert down to 32bit floats to save output space

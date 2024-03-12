@@ -1,11 +1,12 @@
 [submodule "submodules/fsgrid"]
 	path = submodules/fsgrid
-	url = git@github.com:fmihpc/fsgrid.git
+	url = git@github.com:hokkanen/fsgrid.git
+	branch = fs-split
 
 [submodule "submodules/dccrg"]
 	path = submodules/dccrg
-	url = git@github.com:fmihpc/dccrg.git
-	branch = vlasiator-version
+	url = git@github.com:hokkanen/dccrg.git
+	branch = dccrg-split
 
 [submodule "submodules/vectorclass"]
 	path = submodules/vectorclass
