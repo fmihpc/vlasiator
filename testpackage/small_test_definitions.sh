@@ -18,7 +18,7 @@ run_dir="run"
 test_dir="tests"
 
 # choose tests to run
-run_tests=( 1 2 3 4 5 6 7 8 9 10 11 12 13 14 16 17 18 19 )
+run_tests=( 1 2 3 4 5 6 7 8 9 10 11 12 13 14 16 17 18 19 20 )
 
 # acceleration test
 test_name[1]="acctest_2_maxw_500k_100k_20kms_10deg"
@@ -153,3 +153,9 @@ comparison_phiprof[19]="phiprof_0.txt"
 variable_names[19]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e"
 variable_components[19]="0 0 1 2 0 1 2 0 1 2 0 0"
 single_cell[19]=1
+
+test_name[20]="Flowthrough_damr"
+comparison_vlsv[20]="bulk.0000001.vlsv"
+comparison_phiprof[20]="phiprof_0.txt"
+variable_names[20]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e"
+variable_components[20]="0 0 1 2 0 1 2 0 1 2"
