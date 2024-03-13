@@ -202,6 +202,9 @@ namespace vmesh {
 #endif
       block_data->clear();
       parameters->clear();
+      if ((block_data->size() != 0) || (parameters->size() != 0)) {
+         std::cerr<<"VBC CLEAR FAILED"<<std::endl;
+      }
    }
 
    inline ARCH_HOSTDEV void VelocityBlockContainer::move(const vmesh::LocalID& source,const vmesh::LocalID& target) {

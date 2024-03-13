@@ -1078,7 +1078,7 @@ namespace spatial_cell {
       const size_t vmeshSize = (populations[popID].vmesh)->size();
       const size_t vbcSize = (populations[popID].blockContainer)->size();
       if (vmeshSize != vbcSize) {
-         printf("ERROR: population vmesh %zu and blockcontainer %zu sizes do not match!\n",vmeshSize,vbcSize);
+         printf("checkMesh ERROR: population vmesh %zu and blockcontainer %zu sizes do not match!\n",vmeshSize,vbcSize);
       }
       return populations[popID].vmesh->check();
    }
@@ -1164,8 +1164,15 @@ namespace spatial_cell {
          // Return if empty
          return;
       }
+      
+      if (populations[popID].vmesh->size() != 0) {
+         // TODO: make methods safe to add to a non-empty vmesh
+         std::cerr << "Error in adding from buffer: Vmesh not empty!" << __FILE__ << ' ' << __LINE__ << std::endl;
+         exit(1);
+      }
 
       const vmesh::LocalID adds = populations[popID].vmesh->push_back(blocks);
+      // Verify that we added all requested blocks
       if (adds != nBlocks) {
          std::cerr << "Failed to add blocks" << __FILE__ << ' ' << __LINE__ << std::endl; exit(1);
          return;
@@ -1205,10 +1212,18 @@ namespace spatial_cell {
       CHK_ERR( gpuFree(gpuInitBuffer) );
       CHK_ERR( gpuFree(gpuInitBlocks) );
 
+      //#ifdef DEBUG_VLASIATOR
       #ifdef DEBUG_SPATIAL_CELL
-      populations[popID].vmesh->check();
       if (populations[popID].vmesh->size() != populations[popID].blockContainer->size()) {
          std::cerr << "size mismatch in " << __FILE__ << ' ' << __LINE__ << std::endl;
+         std::cerr << " velocity mesh size "<<populations[popID].vmesh->size();
+         std::cerr << " VBC size "<<populations[popID].blockContainer->size();
+         std::cerr << " nBlocks "<<nBlocks;
+         std::cerr << " adds " << adds << std::endl;
+         exit(1);
+      }
+      if (!populations[popID].vmesh->check()) {
+         std::cerr << "vmesh check error in " << __FILE__ << ' ' << __LINE__ << std::endl;
          std::cerr << " velocity mesh size "<<populations[popID].vmesh->size();
          std::cerr << " VBC size "<<populations[popID].blockContainer->size();
          std::cerr << " nBlocks "<<nBlocks;

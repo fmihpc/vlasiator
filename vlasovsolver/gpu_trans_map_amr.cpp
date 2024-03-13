@@ -405,7 +405,9 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
          thread_largestFoundMeshSize = thisMeshSize > thread_largestFoundMeshSize ? thisMeshSize : thread_largestFoundMeshSize;
          #ifdef DEBUG_VLASIATOR
          phiprof::Timer checkMeshTimer {checkMeshId};
-         mpiGrid[allCells[celli]]->checkMesh(popID);
+         if (!mpiGrid[allCells[celli]]->checkMesh(popID)) {
+            printf("GPU TRANS MAP AMR check of mesh for popID %d cell %lu failed!\n",popID,allCells[celli]);
+         }
          #endif
       }
       #pragma omp critical

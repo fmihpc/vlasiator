@@ -1023,7 +1023,9 @@ namespace spatial_cell {
       #endif
       #ifdef DEBUG_VLASIATOR
       // This is a bit extreme
-      populations[popID].vmesh->check();
+      if (!populations[popID].vmesh->check()) {
+         printf("ERROR in vmesh check: %s at %d\n",__FILE__,__LINE__);
+      }
       #endif
    }
 
