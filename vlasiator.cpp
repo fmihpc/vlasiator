@@ -590,7 +590,7 @@ int main(int argn,char* args[]) {
             writeGhosts
          ) == false
       ) {
-         cerr << "FAILED TO WRITE GRID AT " << __FILE__ << " " << __LINE__ << endl;
+         abort_mpi("FAILED TO WRITE GRID", 1);
       }
 
       phiprof::stop("Initialization");
@@ -729,7 +729,7 @@ int main(int argn,char* args[]) {
             writeGhosts
          ) == false
       ) {
-         cerr << "FAILED TO WRITE GRID AT " << __FILE__ << " " << __LINE__ << endl;
+         abort_mpi("FAILED TO WRITE GRID", 1);
       }
 
       P::systemWriteDistributionWriteStride.pop_back();
@@ -946,7 +946,7 @@ int main(int argn,char* args[]) {
                writeGhosts
                ) == false
             ) {
-               cerr << "FAILED TO WRITE GRID AT" << __FILE__ << " " << __LINE__ << endl;
+               abort_mpi("FAILED TO WRITE GRID", 1);
             }
             P::systemWrites[i]++;
             // Special case for large timesteps
@@ -1029,6 +1029,10 @@ int main(int argn,char* args[]) {
                   version,
                   config,
                   outputReducer,"restart",(uint)P::t,P::restartStripeFactor) == false ) {
+            // If restart write fails, remove the malformed file and hope someone clears space soon
+            MPI_Barrier(MPI_COMM_WORLD);
+            std::remove(P::lastRestart.c_str());
+            P::lastRestart = "";
             logFile << "(IO): ERROR Failed to write restart!" << endl << writeVerbose;
             cerr << "FAILED TO WRITE RESTART" << endl;
          }
