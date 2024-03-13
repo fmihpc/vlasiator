@@ -64,7 +64,7 @@ uint P::zcells_ini = numeric_limits<uint>::max();
 Real P::t = 0;
 Real P::t_min = 0;
 Real P::t_max  = LARGE_REAL;
-Real P::dt_ceil = -1; 
+Real P::dt_ceil = -1.0; 
 Real P::dt = NAN;
 Real P::vlasovSolverMaxCFL = NAN;
 Real P::vlasovSolverMinCFL = NAN;
@@ -323,7 +323,7 @@ bool P::addParameters() {
            numeric_limits<uint>::max());
    RP::add("gridbuilder.dt_ceil",
            "Maximum simulation dt in seconds.",
-           -1);
+           -1.0);
 
    // Field solver parameters
    RP::add("fieldsolver.maxWaveVelocity",
