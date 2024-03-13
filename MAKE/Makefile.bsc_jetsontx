@@ -51,10 +51,6 @@ LIB_ZOLTAN = -L${LIBRARY_PREFIX}/lib -lzoltan
 INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv
 LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv
 
-INC_DCCRG = -I./submodules/dccrg
-
-INC_FSGRID = -I./submodules/fsgrid
-
 LIB_PROFILE = -L${LIBRARY_PREFIX}/phiprof/lib -lphiprof -Wl,-rpath=${LIBRARY_PREFIX}/phiprof/lib 
 INC_PROFILE = -I${LIBRARY_PREFIX}/phiprof/include
 INC_TOPO =
