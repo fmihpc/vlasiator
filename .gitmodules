@@ -1,10 +1,10 @@
 [submodule "submodules/fsgrid"]
 	path = submodules/fsgrid
-	url = git@github.com:fmihpc/fsgrid.git
+	url = https://github.com/fmihpc/fsgrid.git
 
 [submodule "submodules/dccrg"]
 	path = submodules/dccrg
-	url = git@github.com:fmihpc/dccrg.git
+	url = https://github.com/fmihpc/dccrg.git
 	branch = vlasiator-version
 
 [submodule "submodules/vectorclass"]
