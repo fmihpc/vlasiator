@@ -757,11 +757,7 @@ int main(int argn,char* args[]) {
       computeNewTimeStep(mpiGrid, technicalGrid, newDt, dtIsChanged);
       if (P::dynamicTimestep == true && dtIsChanged == true) {
          // Only actually update the timestep if dynamicTimestep is on
-         //if (P::dt_ceil > 0.0 && newDt > P::dt_ceil) {
-         //    P::dt=P::dt_ceil;
-         //} else {
          P::dt=newDt;
-         //}
       }
       computeDtimer.stop();
       
@@ -1153,12 +1149,6 @@ int main(int argn,char* args[]) {
             }
             
             P::dt=newDt;
-
-            //if (P::dt_ceil > 0.0 && newDt > P::dt_ceil) {
-            //    P::dt=P::dt_ceil;
-            //} else {
-            //    P::dt=newDt;
-            //}
 
             logFile <<" dt changed to "<<P::dt <<"s, distribution function was half-stepped to real-time and back"<<endl<<writeVerbose;
             updateDtimer.stop();

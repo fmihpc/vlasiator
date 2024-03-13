@@ -135,17 +135,12 @@ void velocitySpaceDiffusion(
     Real dmubins = 2.0/nbins_mu;
 
     int  fcount [nbins_v*nbins_mu]; // Array to count number of f stored
-    int*  fcount_p = reinterpret_cast<int*> (fcount);
     Real fmu    [nbins_v*nbins_mu]; // Array to store f(v,mu)
-    Real* fmu_p    = reinterpret_cast<Real*> (fmu);
     Real dfdmu  [nbins_v*nbins_mu]; // Array to store dfdmu
-    Real* dfdmu_p    = reinterpret_cast<Real*> (dfdmu);
     Real dfdmu2 [nbins_v*nbins_mu]; // Array to store dfdmumu
-    Real* dfdmu2_p    = reinterpret_cast<Real*> (dfdmu2);
     Real dfdt_mu[nbins_v*nbins_mu]; // Array to store dfdt_mu
-    Real* dfdt_mu_p    = reinterpret_cast<Real*> (dfdt_mu);
 
-#define MUSPACE(var,v,mu) var##_p[(mu)*nbins_v + (v)]
+#define MUSPACE(var,v,mu) var[(mu)*nbins_v + (v)]
 
     std::string PATHfile = Parameters::PADnu0;
 
@@ -195,6 +190,12 @@ void velocitySpaceDiffusion(
     const auto LocalCells=getLocalCells();
     #pragma omp parallel for private(fcount,fmu,dfdmu,dfdmu2,dfdt_mu)
     for (size_t CellIdx = 0; CellIdx < LocalCells.size(); CellIdx++) { //Iterate through spatial cell
+
+        int*  fcount_p  = reinterpret_cast<int*>  (fcount);
+        Real* fmu_p     = reinterpret_cast<Real*> (fmu);
+        Real* dfdmu_p   = reinterpret_cast<Real*> (dfdmu);
+        Real* dfdmu2_p  = reinterpret_cast<Real*> (dfdmu2);
+        Real* dfdt_mu_p = reinterpret_cast<Real*> (dfdt_mu);
 
         phiprof::start("Initialisation");
         auto CellID                        = LocalCells[CellIdx];
@@ -310,8 +311,8 @@ void velocitySpaceDiffusion(
             Real checkCFL = std::numeric_limits<Real>::max();
 
             // Initialised back to zero at each substep
-            memset(fmu          , 0.0, sizeof(fmu));
-            memset(fcount       , 0.0, sizeof(fcount));
+            memset(fmu   , 0.0, sizeof(fmu));
+            memset(fcount, 0.0, sizeof(fcount));
 
             phiprof::stop("Zeroing");
 
@@ -373,7 +374,8 @@ void velocitySpaceDiffusion(
                 // Save muspace to text
                 std::string path_save = "/scratch/project_2000203/dubartma/dmumu/Difftest_T3.36_B3.36/bulk/";
                 std::ostringstream tmp;
-                tmp << std::setw(7) << std::setfill('0') << P::tstep;
+                int index=(int)(P::t/P::systemWriteTimeInterval[0]);
+                tmp << std::setw(7) << std::setfill('0') << index;
                 std::string tstepString = tmp.str();
                 muv_array = std::ofstream(path_save + "muv_array_" + tstepString + ".txt");
                 std::cerr << "Opening file " <<  (path_save + "muv_array_" + tstepString + ".txt") << std::endl;
@@ -452,8 +454,6 @@ void velocitySpaceDiffusion(
             phiprof::start("diffusion time derivative & update cell");
             // Compute dfdt
             for (vmesh::LocalID n=0; n<cell.get_number_of_velocity_blocks(popID); n++) { // Iterate through velocity blocks             
-
-               Real* dfdt_mu_p = reinterpret_cast<Real*> (dfdt_mu);
 
                loop_over_block([&](Veci i_indices, Veci j_indices, int k) -> void { // Witchcraft
 
