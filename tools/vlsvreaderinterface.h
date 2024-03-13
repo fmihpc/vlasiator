@@ -23,8 +23,6 @@
 #ifndef VLSVREADER_INTERFACE_H
 #define VLSVREADER_INTERFACE_H
 
-#define TOOL_NOT_PARALLEL
-
 #include <map>
 #include <vector>
 #include <unordered_map>

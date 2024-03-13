@@ -88,15 +88,11 @@ void bailout(
 
 /*! Helper function for error handling. err_type default to 0.*/
 [[ noreturn ]] void abort_mpi(const std::string str, const int err_type) {
-   int myRank;
-   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
-   if (myRank == MASTER_RANK) {
-      if (err_type == 0) {
-         std::cerr << str << std::endl;
-      } else {
-         std::cerr << __FILE__ << ":" << __LINE__ << ": " << str << std::endl;
-      }
+   // Single string so output isn't mangled by multiple processes
+   std::cerr << (err_type ? std::string(__FILE__) + ":" + std::to_string(__LINE__) + ": " + str : str) + "\n";
+   MPI_Abort(MPI_COMM_WORLD, 1);
 
-      MPI_Abort(MPI_COMM_WORLD, 1);
-   }
+   // Dummy abort to convince compiler function doesn't return
+   // TODO replace with std::unreachable once we switch to C++23
+   abort();
 }

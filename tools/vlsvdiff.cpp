@@ -1964,47 +1964,36 @@ int main(int argn,char* args[]) {
    DIR* dir1 = opendir(fileName1.c_str());
    DIR* dir2 = opendir(fileName2.c_str());
 
-   if (dir1 == NULL && dir2 == NULL) {
+   if (dir1 == nullptr && dir2 == nullptr) {
       cout << "INFO Reading in two files." << endl;
       
       // Process two files with verbose output (last argument true)
       process2Files(fileName1, fileName2, varToExtract, compToExtract, true, compToExtract2);
-      //CONTINUE
-      
-      closedir(dir1);
-      closedir(dir2);
-   }
-   else if (dir1 == NULL || dir2 == NULL)
-   {
+   } else if (dir1 == nullptr || dir2 == nullptr) {
       // Mixed file and directory
       cout << "#INFO Reading in one file and one directory." << endl;
       set<string> fileList;
-      set<string>::iterator it;
 
-      if(dir1 == NULL){
+      if(dir1 == nullptr){
          //file in 1, directory in 2
          processDirectory(dir2, &fileList);
-         for(it = fileList.begin(); it != fileList.end();++it){
+         for(auto f : fileList) {
             // Process two files with non-verbose output (last argument false), give full path to the file processor
-            process2Files(fileName1,fileName2 + "/" + *it, varToExtract, compToExtract, false, compToExtract2);
+            process2Files(fileName1,fileName2 + "/" + f, varToExtract, compToExtract, false, compToExtract2);
          }
+         closedir(dir2);
       }
 
-      if(dir2 == NULL){
+      if(dir2 == nullptr){
          //directory in 1, file in 2
          processDirectory(dir1, &fileList);
-         for(it = fileList.begin(); it != fileList.end();++it){
+         for(auto f : fileList) {
             // Process two files with non-verbose output (last argument false), give full path to the file processor
-            process2Files(fileName1+"/"+*it,fileName2, varToExtract, compToExtract, false, compToExtract2);
+            process2Files(fileName1 + "/" + f,fileName2, varToExtract, compToExtract, false, compToExtract2);
          }
+         closedir(dir1);
       }
-
-      closedir(dir1);
-      closedir(dir2);
-      return 1;
-   }
-   else if (dir1 != NULL && dir2 != NULL)
-   {
+   } else if (dir1 && dir2) {
       // Process two folders, files of the same rank compared, first folder is reference in relative distances
       cout << "#INFO Reading in two directories." << endl;
       set<string> fileList1, fileList2;
@@ -2014,20 +2003,15 @@ int main(int argn,char* args[]) {
       processDirectory(dir2, &fileList2);
       
       // Basic consistency check
-      if(fileList1.size() != fileList2.size())
-      {
+      if(fileList1.size() != fileList2.size()) {
          cerr << "ERROR Folders have different number of files." << endl;
          return 1;
       }
       
-      set<string>::iterator it1, it2;
-      for(it1 = fileList1.begin(), it2 = fileList2.begin();
-          it1 != fileList2.end(), it2 != fileList2.end();
-          it1++, it2++)
-      {
-      // Process two files with non-verbose output (last argument false), give full path to the file processor
-      process2Files(fileName1 + "/" + *it1,
-                    fileName2 + "/" + *it2, varToExtract, compToExtract, false, compToExtract2);
+      // TODO zip these once we're using C++23
+      for (auto it1 = fileList1.begin(), it2 = fileList2.begin(); it1 != fileList2.end(), it2 != fileList2.end(); it1++, it2++) {
+         // Process two files with non-verbose output (last argument false), give full path to the file processor
+         process2Files(fileName1 + "/" + *it1, fileName2 + "/" + *it2, varToExtract, compToExtract, false, compToExtract2);
       }
       
       closedir(dir1);
