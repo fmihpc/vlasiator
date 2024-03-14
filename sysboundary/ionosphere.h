@@ -65,7 +65,7 @@ namespace SBC {
       ForceL2EXB
    };
    extern IonosphereBoundaryVDFmode boundaryVDFmode;
-   
+
    static const int MAX_TOUCHING_ELEMENTS = 12; // Maximum number of elements touching one node
    static const int MAX_DEPENDING_NODES = 22;   // Maximum number of depending nodes
 
@@ -100,7 +100,7 @@ namespace SBC {
          std::array<iSolverReal, N_IONOSPHERE_PARAMETERS> parameters = {0}; // Parameters carried by the node, see common.h
 
          int openFieldLine; /*!< See TracingLineEndType for the types assigned. */
-         
+
          // Some calculation helpers
          Real electronDensity() { // Electron Density
             return parameters[ionosphereParameters::RHON];
@@ -129,11 +129,11 @@ namespace SBC {
             //}
             //return retval;
          }
-         
+
       };
-      
+
       std::vector<Node> nodes;
-      
+
       // Atmospheric height layers that are being integrated over
       constexpr static int numAtmosphereLevels = 20;
       struct AtmosphericLayer {
@@ -159,6 +159,7 @@ namespace SBC {
          Rees1963, // Rees (1963)
          Rees1989, // Rees (1989)
          SergienkoIvanov, // Sergienko & Ivanov (1993)
+         Robinson2020, // Robinson et al (2020)
       } ionizationModel;
 
       // Ionisation production table
@@ -198,7 +199,7 @@ namespace SBC {
       void calculatePrecipitation(); /*!< Estimate precipitation flux */
       void calculateConductivityTensor(const Real F10_7, const Real recombAlpha, const Real backgroundIonisation, const bool refillTensorAtRestart=false); /*!< Update sigma tensor, if last argument is true, just refill the tensor from SIGMAH, SIGMAP and SIGMAPARALLEL from restart data */
       Real interpolateUpmappedPotential(const std::array<Real, 3>& x); /*!< Calculate upmapped potential at the given point */
-      
+
       // Conjugate Gradient solver functions
       void addMatrixDependency(uint node1, uint node2, Real coeff, bool transposed=false); /*!< Add matrix value for the solver */
       void addAllMatrixDependencies(uint nodeIndex);
@@ -227,13 +228,13 @@ namespace SBC {
       // Map field-aligned currents, density and temperature
       // down from the simulation boundary onto this grid
       void mapDownBoundaryData(
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,                                                                                                                                                                                                                                
+         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
          FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
          FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
          FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
          FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
       );
-      
+
       // Returns the surface area of one element on the sphere
       Real elementArea(uint32_t elementIndex) {
          const std::array<Real, 3>& a = nodes[elements[elementIndex].corners[0]].x;
@@ -247,7 +248,7 @@ namespace SBC {
          std::array<Real, 3> area{ e1[1]*e2[2] - e1[2]*e2[1],
                                    e1[2]*e2[0] - e1[0]*e2[2],
                                    e1[0]*e2[1] - e1[1]*e2[0]};
-         
+
          return 0.5 * sqrt( area[0]*area[0] + area[1]*area[1] + area[2]*area[2] );
       }
 
@@ -274,7 +275,7 @@ namespace SBC {
          std::array<Real, 3> area{ 0.5 * (e1[1]*e2[2] - e1[2]*e2[1]),
                                    0.5 * (e1[2]*e2[0] - e1[0]*e2[2]),
                                    0.5 * (e1[0]*e2[1] - e1[1]*e2[0])};
-        
+
          // By definition, the area is oriented outwards, so if dot(r,A) < 0, flip it.
          std::array<Real, 3> r{
             (a[0]+b[0]+c[0])/3.,
@@ -308,9 +309,9 @@ namespace SBC {
    extern SphericalTriGrid ionosphereGrid;
 
    /*!\brief Ionosphere is a class applying ionospheric boundary conditions.
-    * 
+    *
     * Ionosphere is a class handling cells tagged as sysboundarytype::IONOSPHERE by this system boundary condition. It applies ionospheric boundary conditions.
-    * 
+    *
     * These consist in:
     * - Do nothing for the distribution (keep the initial state constant in time);
     * - Copy the closest neighbors' perturbed B and average it;
@@ -320,10 +321,10 @@ namespace SBC {
    public:
       Ionosphere();
       virtual ~Ionosphere();
-      
+
       static void addParameters();
       virtual void getParameters();
-      
+
       virtual void initSysBoundary(
          creal& t,
          Project &project
@@ -400,7 +401,7 @@ namespace SBC {
          FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
          creal t
       );
-      
+
       virtual void getFaces(bool *faces);
       virtual std::string getName() const;
       virtual uint getIndex() const;
@@ -418,7 +419,7 @@ namespace SBC {
       static bool solverToggleMinimumResidualVariant; /*!< Toggle use of the minimum residual variant between solver restarts */
       static Real shieldingLatitude; /*!< Latitude (degree) below which the potential is zeroed in the equator gauge fixing scheme */
       static Real ridleyParallelConductivity; /*!< Constant parallel conductivity */
-      
+
       // TODO: Make these parameters of the IonosphereGrid
       static Real recombAlpha; /*!< Recombination parameter, determining atmosphere ionizability (parameter) */
       static Real F10_7; /*!< Solar 10.7 Flux value (parameter) */
@@ -438,9 +439,9 @@ namespace SBC {
    protected:
       void generateTemplateCell(Project &project);
       void setCellFromTemplate(SpatialCell* cell,const uint popID);
-      
+
       Real shiftedMaxwellianDistribution(const uint popID,creal& density,creal& temperature,creal& vx, creal& vy, creal& vz);
-      
+
       vector<vmesh::GlobalID> findBlocksToInitialize(
          SpatialCell& cell,
          creal& density,
@@ -448,14 +449,14 @@ namespace SBC {
          const std::array<Real, 3> & vDrift,
          const uint popID
       );
-      
+
       std::array<Real, 3> fieldSolverGetNormalDirection(
          FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
          cint i,
          cint j,
          cint k
       );
-      
+
       Real center[3]; /*!< Coordinates of the centre of the ionosphere. */
       uint geometry; /*!< Geometry of the ionosphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT), 3: polar-plane cylinder with line dipole. */
 
@@ -468,7 +469,7 @@ namespace SBC {
       // Boundaries of refinement latitude bands
       std::vector<Real> refineMinLatitudes;
       std::vector<Real> refineMaxLatitudes;
-      
+
       spatial_cell::SpatialCell templateCell;
    };
 }
