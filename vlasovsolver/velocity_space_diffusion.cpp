@@ -370,16 +370,16 @@ void velocitySpaceDiffusion(
             Real checkCFLtmp = std::numeric_limits<Real>::max();
             std::ofstream muv_array;
 
-            if (subCount == 0) {
-                // Save muspace to text
-                std::string path_save = "/scratch/project_2000203/dubartma/dmumu/Difftest_T3.36_B3.36/bulk/";
-                std::ostringstream tmp;
-                int index=(int)(P::t/P::systemWriteTimeInterval[0]);
-                tmp << std::setw(7) << std::setfill('0') << index;
-                std::string tstepString = tmp.str();
-                muv_array = std::ofstream(path_save + "muv_array_" + tstepString + ".txt");
-                std::cerr << "Opening file " <<  (path_save + "muv_array_" + tstepString + ".txt") << std::endl;
-            }
+            //if (subCount == 0) {
+            //    // Save muspace to text
+            //    std::string path_save = "/scratch/project_2000203/dubartma/dmumu/Difftest_T3.36_B3.36/bulk/";
+            //    std::ostringstream tmp;
+            //    int index=(int)(P::t/P::systemWriteTimeInterval[0]);
+            //    tmp << std::setw(7) << std::setfill('0') << index;
+            //    std::string tstepString = tmp.str();
+            //    muv_array = std::ofstream(path_save + "muv_array_" + tstepString + ".txt");
+            //    std::cerr << "Opening file " <<  (path_save + "muv_array_" + tstepString + ".txt") << std::endl;
+            //}
 
             // Compute space/time derivatives (take first non-zero neighbours) & CFL & Ddt
             for (int indv = 0; indv < nbins_v; indv++) { 
@@ -388,14 +388,14 @@ void velocitySpaceDiffusion(
                 for(int indmu = 0; indmu < nbins_mu; indmu++) { 
                     if (MUSPACE(fcount,indv,indmu) == 0 || MUSPACE(fmu,indv,indmu) <= 0.0) { MUSPACE(fmu,indv,indmu) = std::numeric_limits<Real>::min();}
                     else {MUSPACE(fmu,indv,indmu) = MUSPACE(fmu,indv,indmu) / MUSPACE(fcount,indv,indmu);} 
-                    if (subCount == 0) {
-                        muv_array << MUSPACE(fmu,indv,indmu) << ' ';
-                    }
+                    //if (subCount == 0) {
+                    //    muv_array << MUSPACE(fmu,indv,indmu) << ' ';
+                    //}
         
                 }
-                if (subCount == 0) {   
-                    muv_array << std::endl;
-                }
+                //if (subCount == 0) {   
+                //    muv_array << std::endl;
+                //}
 
                 for(int indmu = 0; indmu < nbins_mu; indmu++) {
                     // Compute spatial derivatives
