@@ -958,6 +958,8 @@ namespace spatial_cell {
       if (nBlocks==0) {
          return;
       }
+      populations[popID].vmesh->setNewCapacity(nBlocks);
+      populations[popID].blockContainer->setNewCapacity(nBlocks);
 
       // Add blocks to mesh
       const uint8_t adds = populations[popID].vmesh->push_back(blocks);

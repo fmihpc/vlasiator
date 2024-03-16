@@ -285,9 +285,7 @@ namespace projects {
       // all potential blocks, projectTriAxisSearch provides a more educated guess.
       vector<vmesh::GlobalID> blocksToInitialize = this->findBlocksToInitialize(cell,popID);
       const uint nRequested = blocksToInitialize.size();
-      // Expand the velocity space to the required size
-      vmesh->setNewCapacity(nRequested);
-      blockContainer->setNewCapacity(nRequested);
+      // Set the reservation value (capacity is increased in add_velocity_blocks
       cell->setReservation(popID,nRequested);
 
       // Loop over requested blocks. Initialize the contents into the temporary buffer

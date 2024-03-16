@@ -3210,8 +3210,7 @@ namespace SBC {
                   // Expand the velocity space to the required size
                   vmesh::VelocityMesh* vmesh = cell.get_velocity_mesh(popID);
                   vmesh::VelocityBlockContainer* blockContainer = cell.get_velocity_blocks(popID);
-                  vmesh->setNewCapacity(nRequested);
-                  blockContainer->setNewCapacity(nRequested);
+                  // Set the reservation value (capacity is increased in add_velocity_blocks
                   cell.setReservation(popID,nRequested);
                   const Realf minValue = cell.getVelocityBlockMinValue(popID);
 
@@ -3291,8 +3290,7 @@ namespace SBC {
                   // Expand the velocity space to the required size
                   vmesh::VelocityMesh* vmesh = cell.get_velocity_mesh(popID);
                   vmesh::VelocityBlockContainer* blockContainer = cell.get_velocity_blocks(popID);
-                  vmesh->setNewCapacity(nRequested);
-                  blockContainer->setNewCapacity(nRequested);
+                  // Set the reservation value (capacity is increased in add_velocity_blocks
                   cell.setReservation(popID,nRequested);
                   const Realf minValue = cell.getVelocityBlockMinValue(popID);
 
@@ -3369,7 +3367,7 @@ namespace SBC {
          } // end switch VDF method
 
          // let's get rid of blocks not fulfilling the criteria here to save memory.
-         templateCell.adjustSingleCellVelocityBlocks(popID,true);
+         mpiGrid[cellID]->adjustSingleCellVelocityBlocks(popID,true);
 
          // TODO: The moments can also be analytically calculated from ionosphere parameters.
          // Maybe that's faster?
@@ -3403,8 +3401,7 @@ namespace SBC {
          // Expand the velocity space to the required size
          vmesh::VelocityMesh* vmesh = templateCell.get_velocity_mesh(popID);
          vmesh::VelocityBlockContainer* blockContainer = templateCell.get_velocity_blocks(popID);
-         vmesh->setNewCapacity(nRequested);
-         blockContainer->setNewCapacity(nRequested);
+         // Set the reservation value (capacity is increased in add_velocity_blocks
          templateCell.setReservation(popID,nRequested);
          const Realf minValue = templateCell.getVelocityBlockMinValue(popID);
 

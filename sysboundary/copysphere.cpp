@@ -773,8 +773,7 @@ namespace SBC {
          // Expand the velocity space to the required size
          vmesh::VelocityMesh* vmesh = templateCell.get_velocity_mesh(popID);
          vmesh::VelocityBlockContainer* blockContainer = templateCell.get_velocity_blocks(popID);
-         vmesh->setNewCapacity(nRequested);
-         blockContainer->setNewCapacity(nRequested);
+         // Set the reservation value (capacity is increased in add_velocity_blocks
          templateCell.setReservation(popID,nRequested);
          const Realf minValue = templateCell.getVelocityBlockMinValue(popID);
 

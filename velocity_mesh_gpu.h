@@ -566,44 +566,75 @@ namespace vmesh {
          return false;
       }
       //GPUTODO: Evaluate how many entries were actually added?
-
-      if (mySize==0) {
+      
+      //if (mySize==0) {
+      if (false) {
          // Fast insertion into empty mesh
-         //localToGlobalMap->insert(localToGlobalMap->end(),blocks.begin(),blocks.end());
-         uint pushcount=0;
-         // for (size_t b=0; b<blocksSize; ++b) {
-         //    localToGlobalMap->push_back(blocks.at(b));
-         //    pushcount++;
+         // if (blocksSize > 1048576) {
+         //    printf("Warning blocksSize %zu mySize %zu\n",blocksSize,mySize);
          // }
-         localToGlobalMap->resize(blocksSize);
-         for (size_t b=0; b<blocksSize; ++b) {
-            localToGlobalMap->at(b) = blocks.at(b);
-            pushcount++;
-         }
-         CHK_ERR( gpuStreamSynchronize(stream) );
+         //localToGlobalMap->reserve(blocksSize,true,stream); // includes stream sync
+         localToGlobalMap->insert(localToGlobalMap->end(),blocks.begin(),blocks.end());
          vmesh::GlobalID* _localToGlobalMapData = localToGlobalMap->data();
          localToGlobalMap->optimizeGPU(stream);
          globalToLocalMap->insertIndex(_localToGlobalMapData,blocksSize,0.5,stream,false);
-         CHK_ERR( gpuStreamSynchronize(stream) );
-         const vmesh::LocalID newSize = globalToLocalMap->size();
-         if (newSize != blocksSize) {
-            localToGlobalMap->optimizeCPU(stream);
-            printf("Error! vmesh push_back %u got %zu blocks but map now has only %u elements.\n",pushcount,blocksSize,newSize);
-            printf(" Blocks vector content: \n");
-            for (size_t b=0; b<blocksSize; ++b) {
-               printf(" %u",blocks.at(b));
-            }
-            printf("\n\n");
-            printf(" localToGlobalMap content with size %zu: \n",localToGlobalMap->size());
-            for (size_t b=0; b<blocksSize; ++b) {
-               printf(" %u",localToGlobalMap->at(b));
-            }
-            printf("\n\n");
-            globalToLocalMap->stats();
-            globalToLocalMap->dump_buckets();
-          }
+         // uint pushcount=0;
+         // for (size_t b=0; b<blocksSize; ++b) {
+         //    localToGlobalMap->push_back(blocks[b]);
+         //    pushcount++;
+         // }
+         // const vmesh::LocalID newSize1 = localToGlobalMap->size();
+         // for (size_t b=0; b<newSize1; ++b) {
+         //    if (localToGlobalMap->at(b) != blocks.at(b)) {
+         //       printf(" MM %ux%u",localToGlobalMap->at(b),blocks.at(b));
+         //    }
+         //    //pushcount++;
+         // }
+         // if (newSize1 != blocksSize) {
+         //    printf("Error vector 1! vmesh push_back got %zu blocks but map now has only %u elements.\n",blocksSize,newSize1);
+         //    printf(" Blocks vector content: \n");
+         //    for (size_t b=0; b<blocksSize; ++b) {
+         //       printf(" %u",blocks.at(b));
+         //    }
+         //    printf("\n\n");
+         //    printf(" localToGlobalMap content with size %zu: \n",localToGlobalMap->size());
+         //    for (size_t b=0; b<blocksSize; ++b) {
+         //       printf(" %u",localToGlobalMap->at(b));
+         //    }
+         // }
+         // localToGlobalMap->resize(blocksSize);
+         // for (size_t b=0; b<blocksSize; ++b) {
+         //    (*localToGlobalMap)[b] = blocks.at(b);
+         //    pushcount++;
+         // }
+         // CHK_ERR( gpuStreamSynchronize(stream) );
+         // vmesh::GlobalID* _localToGlobalMapData = localToGlobalMap->data();
+         // localToGlobalMap->optimizeGPU(stream);
+         // globalToLocalMap->insertIndex(_localToGlobalMapData,blocksSize,0.5,stream,false);
+         // globalToLocalMap->insertIndex(localToGlobalMap->data(),blocksSize,0.5,stream,false);
+         // CHK_ERR( gpuStreamSynchronize(stream) );
+         // const vmesh::LocalID newSize = globalToLocalMap->size();
+         // if (newSize != blocksSize) {
+         //    localToGlobalMap->optimizeCPU(stream);
+         //    printf("Error! vmesh push_back %u got %zu blocks but map now has only %u elements.\n",pushcount,blocksSize,newSize);
+         //    printf(" Blocks vector content: \n");
+         //    for (size_t b=0; b<blocksSize; ++b) {
+         //       printf(" %u",blocks.at(b));
+         //    }
+         //    printf("\n\n");
+         //    printf(" localToGlobalMap content with size %zu: \n",localToGlobalMap->size());
+         //    for (size_t b=0; b<blocksSize; ++b) {
+         //       printf(" %u",localToGlobalMap->at(b));
+         //    }
+         //    printf("\n\n");
+         //    globalToLocalMap->stats();
+         //    globalToLocalMap->dump_buckets();
+         //  }
       } else {
          // GPUTODO: do inside kernel
+         // if (blocksSize > 1048576) {
+         //    printf("Warning blocksSize %zu mySize %zu\n",blocksSize,mySize);
+         // }
          for (size_t b=0; b<blocksSize; ++b) {
             auto position
                = globalToLocalMap->insert(Hashinator::make_pair(blocks[b],(vmesh::LocalID)(mySize+b)));
@@ -612,9 +643,28 @@ namespace vmesh {
                return b;
             }
          }
+         //localToGlobalMap->reserve(blocksSize,true,stream); // includes stream sync
          localToGlobalMap->insert(localToGlobalMap->end(),blocks.begin(),blocks.end());
          // localToGlobalMap->optimizeGPU(stream);
          // globalToLocalMap->optimizeGPU(stream);
+         // const vmesh::LocalID newSize1 = localToGlobalMap->size();
+         // for (size_t b=0; b<newSize1; ++b) {
+         //    if (localToGlobalMap->at(b) != blocks.at(b)) {
+         //       printf(" MM %ux%u",localToGlobalMap->at(b),blocks.at(b));
+         //    }
+         // }
+         // if (newSize1 != blocksSize) {
+         //    printf("Error vector 1! vmesh push_back got %zu blocks but map now has only %u elements.\n",blocksSize,newSize1);
+         //    printf(" Blocks vector content: \n");
+         //    for (size_t b=0; b<blocksSize; ++b) {
+         //       printf(" %u",blocks.at(b));
+         //    }
+         //    printf("\n\n");
+         //    printf(" localToGlobalMap content with size %zu: \n",localToGlobalMap->size());
+         //    for (size_t b=0; b<blocksSize; ++b) {
+         //       printf(" %u",localToGlobalMap->at(b));
+         //    }
+         // }
       }
       return blocksSize;
    }
@@ -648,6 +698,7 @@ namespace vmesh {
       #else
       if (mySize==0) {
          // Fast insertion into empty mesh
+         localToGlobalMap->reserve(blocksSize,true,stream);
          localToGlobalMap->insert(localToGlobalMap->end(),blocks->begin(),blocks->end());
          vmesh::GlobalID* _localToGlobalMapData = localToGlobalMap->data();
          localToGlobalMap->optimizeGPU(stream);

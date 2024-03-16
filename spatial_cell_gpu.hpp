@@ -1164,12 +1164,14 @@ namespace spatial_cell {
          // Return if empty
          return;
       }
-      
+
       if (populations[popID].vmesh->size() != 0) {
          // TODO: make methods safe to add to a non-empty vmesh
          std::cerr << "Error in adding from buffer: Vmesh not empty!" << __FILE__ << ' ' << __LINE__ << std::endl;
          exit(1);
       }
+      populations[popID].vmesh->setNewCapacity(nBlocks);
+      populations[popID].blockContainer->setNewCapacity(nBlocks);
 
       const vmesh::LocalID adds = populations[popID].vmesh->push_back(blocks);
       // Verify that we added all requested blocks
@@ -1180,6 +1182,27 @@ namespace spatial_cell {
 
       const vmesh::LocalID startLID = populations[popID].blockContainer->push_back(nBlocks);
       populations[popID].Upload();
+
+      #ifdef DEBUG_SPATIAL_CELL
+      if (populations[popID].vmesh->size() != populations[popID].blockContainer->size()) {
+         std::cerr << "size mismatch in " << __FILE__ << ' ' << __LINE__ << std::endl;
+         std::cerr << " velocity mesh size "<<populations[popID].vmesh->size();
+         std::cerr << " VBC size "<<populations[popID].blockContainer->size();
+         std::cerr << " nBlocks "<<nBlocks;
+         std::cerr << " adds " << adds << std::endl;
+         exit(1);
+      }
+      // #endif
+      //#ifdef DEBUG_VLASIATOR
+      if (!populations[popID].vmesh->check()) {
+         std::cerr << "vmesh check error in " << __FILE__ << ' ' << __LINE__ << std::endl;
+         std::cerr << " velocity mesh size "<<populations[popID].vmesh->size();
+         std::cerr << " VBC size "<<populations[popID].blockContainer->size();
+         std::cerr << " nBlocks "<<nBlocks;
+         std::cerr << " adds " << adds << std::endl;
+         exit(1);
+      }
+      #endif
 
       // Copy data to GPU
       fileReal* gpuInitBuffer;
@@ -1212,25 +1235,6 @@ namespace spatial_cell {
       CHK_ERR( gpuFree(gpuInitBuffer) );
       CHK_ERR( gpuFree(gpuInitBlocks) );
 
-      //#ifdef DEBUG_VLASIATOR
-      #ifdef DEBUG_SPATIAL_CELL
-      if (populations[popID].vmesh->size() != populations[popID].blockContainer->size()) {
-         std::cerr << "size mismatch in " << __FILE__ << ' ' << __LINE__ << std::endl;
-         std::cerr << " velocity mesh size "<<populations[popID].vmesh->size();
-         std::cerr << " VBC size "<<populations[popID].blockContainer->size();
-         std::cerr << " nBlocks "<<nBlocks;
-         std::cerr << " adds " << adds << std::endl;
-         exit(1);
-      }
-      if (!populations[popID].vmesh->check()) {
-         std::cerr << "vmesh check error in " << __FILE__ << ' ' << __LINE__ << std::endl;
-         std::cerr << " velocity mesh size "<<populations[popID].vmesh->size();
-         std::cerr << " VBC size "<<populations[popID].blockContainer->size();
-         std::cerr << " nBlocks "<<nBlocks;
-         std::cerr << " adds " << adds << std::endl;
-         exit(1);
-      }
-      #endif
    }
 
    /*!
