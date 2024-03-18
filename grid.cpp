@@ -645,8 +645,10 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    uint gpuMaxBlockCount = 0;
    vmesh::LocalID gpuBlockCount = 0;
    // Not parallelized
-   for (uint i=0; i<cells.size(); ++i) {
-      SpatialCell* SC = mpiGrid[cells[i]];
+   const vector<CellID>& newCells = getLocalCells();
+   // TODO: Also remote cells?
+   for (uint i=0; i<newCells.size(); ++i) {
+      SpatialCell* SC = mpiGrid[newCells[i]];
       for (size_t popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          const vmesh::VelocityMesh* vmesh = SC->get_velocity_mesh(popID);
          vmesh::VelocityBlockContainer* blockContainer = SC->get_velocity_blocks(popID);

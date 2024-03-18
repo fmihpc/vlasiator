@@ -2509,13 +2509,10 @@ namespace SBC {
 
          for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
             setCellFromTemplate(cell,popID);
-            // // Verify current mesh and blocks
-            // cuint vmeshSize = cell->get_velocity_mesh(popID)->size();
-            // cuint vbcSize = cell->get_velocity_blocks(popID)->size();
-            // if (vmeshSize != vbcSize) {
-            //    printf("ERROR: population vmesh %ul and blockcontainer %ul sizes do not match!\n",vmeshSize,vbcSize);
+            // Verify current mesh and blocks
+            // if (!cell->checkMesh(popID)) {
+            //    printf("ERROR in vmesh check: %s at %d\n",__FILE__,__LINE__);
             // }
-            // cell->get_velocity_mesh(popID)->check();
          }
       }
    }
@@ -3207,9 +3204,6 @@ namespace SBC {
                   cell.clear(popID,false); // Clear previous velocity space completely, do not de-allocate memory
                   const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(cell,density,temperature,vDrift,popID);
                   const uint nRequested = blocksToInitialize.size();
-                  // Expand the velocity space to the required size
-                  vmesh::VelocityMesh* vmesh = cell.get_velocity_mesh(popID);
-                  vmesh::VelocityBlockContainer* blockContainer = cell.get_velocity_blocks(popID);
                   // Set the reservation value (capacity is increased in add_velocity_blocks
                   cell.setReservation(popID,nRequested);
                   const Realf minValue = cell.getVelocityBlockMinValue(popID);
@@ -3287,9 +3281,6 @@ namespace SBC {
                   const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(cell,density,temperature,vDrift,popID);
 
                   const uint nRequested = blocksToInitialize.size();
-                  // Expand the velocity space to the required size
-                  vmesh::VelocityMesh* vmesh = cell.get_velocity_mesh(popID);
-                  vmesh::VelocityBlockContainer* blockContainer = cell.get_velocity_blocks(popID);
                   // Set the reservation value (capacity is increased in add_velocity_blocks
                   cell.setReservation(popID,nRequested);
                   const Realf minValue = cell.getVelocityBlockMinValue(popID);
@@ -3365,7 +3356,15 @@ namespace SBC {
                } // end case CopyAndLosscone
                break;
          } // end switch VDF method
-
+         stringstream ss;
+         ss << "Verifying Ionosphere vmesh for cell " << cellID << std::endl;
+         std::cerr << ss.str();
+         if (cellID==61701) {
+            if (!mpiGrid[cellID]->checkMesh(popID)) {
+               std::cerr << "vmesh check error in " << __FILE__ << ' ' << __LINE__ << std::endl;
+               exit(1);
+            }
+         }
          // let's get rid of blocks not fulfilling the criteria here to save memory.
          mpiGrid[cellID]->adjustSingleCellVelocityBlocks(popID,true);
 
@@ -3398,9 +3397,6 @@ namespace SBC {
          const std::array<Real, 3> vDrift = {0,0,0};
          const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(templateCell,sP.rho,sP.T,vDrift,popID);
          const uint nRequested = blocksToInitialize.size();
-         // Expand the velocity space to the required size
-         vmesh::VelocityMesh* vmesh = templateCell.get_velocity_mesh(popID);
-         vmesh::VelocityBlockContainer* blockContainer = templateCell.get_velocity_blocks(popID);
          // Set the reservation value (capacity is increased in add_velocity_blocks
          templateCell.setReservation(popID,nRequested);
          const Realf minValue = templateCell.getVelocityBlockMinValue(popID);

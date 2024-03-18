@@ -145,10 +145,14 @@ namespace vmesh {
       gpu_destructor();
    }
    inline void VelocityMesh::gpu_destructor() {
-      if (globalToLocalMap) delete globalToLocalMap;
-      if (localToGlobalMap) delete localToGlobalMap;
-      globalToLocalMap = NULL;
-      localToGlobalMap = NULL;
+      if (globalToLocalMap) {
+         delete globalToLocalMap;
+         globalToLocalMap = 0;
+      }
+      if (localToGlobalMap) {
+         delete localToGlobalMap;
+         localToGlobalMap = 0;
+      }
    }
 
    inline VelocityMesh::VelocityMesh(const VelocityMesh& other) {
@@ -196,12 +200,13 @@ namespace vmesh {
       const size_t size2 = globalToLocalMap->size();
       if (size1 != size2) {
          printf("VMO ERROR: sizes differ, %lu vs %lu in %s : %d\n",size1,size2,__FILE__,__LINE__);
-         return false;         
+         return false;
          //assert(0 && "VM check ERROR: sizes differ");
       }
       const size_t thisSize = size();
       for (size_t b=0; b<thisSize; ++b) {
          const vmesh::LocalID globalID = localToGlobalMap->at(b);
+         size_t fail = 0;
          #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
          auto it = globalToLocalMap->device_find(globalID);
          if (it != globalToLocalMap->device_end()) {
@@ -212,13 +217,17 @@ namespace vmesh {
             const vmesh::GlobalID localID = it->second;
             if (localID != b) {
                ok = false;
-               printf("VMO ERROR: localToGlobalMap[%lu] = %u but ",b,globalID);
-               printf("globalToLocalMap[%u] = %u\n",globalID,localID);
+               //printf("VMO ERROR: localToGlobalMap[%lu] = %u but globalToLocalMap[%u] = %u\n",b,globalID,globalID,localID);
                //assert(0 && "VM check ERROR");
+               fail++;
             }
          } else {
             ok = false;
-            printf("VMO ERROR: localToGlobalMap[%lu] = %u but could not find in globalToLocalMap ",b,globalID);
+            //printf("VMO ERROR: localToGlobalMap[%lu] = %u but could not find in globalToLocalMap ",b,globalID);
+            fail++;
+         }
+         if (fail>0) {
+            printf("VMO ERROR: found %lu failures.\n",fail);
          }
       }
       #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
@@ -1109,7 +1118,6 @@ namespace vmesh {
                printf("warpPlaceBlock error GID %u LID %u reported as not newly added! Size %zu.\n",GID,LID,localToGlobalMap->size());
                //globalToLocalMap->dump_buckets();
             }
-            __syncthreads();
             assert(newlyadded && "newlyAdded warpPlaceBlock");
             localToGlobalMap->at(LID) = GID;
          }

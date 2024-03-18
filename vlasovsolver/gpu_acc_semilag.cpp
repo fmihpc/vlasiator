@@ -97,7 +97,7 @@ __global__ void printVBCsizekernel(
 
 void prepareAccelerateCell(
    SpatialCell* spatial_cell,
-   const uint popID){   
+   const uint popID){
    updateAccelerationMaxdt(spatial_cell, popID);
 }
 
@@ -128,7 +128,7 @@ uint getAccelerationSubcycles(SpatialCell* spatial_cell, Real dt, const uint pop
  * @param popID ID of the accelerated particle species.
  * @param vmesh Velocity mesh.
  * @param blockContainer Velocity block data container.
- * @param map_order Order in which vx,vy,vz mappings are performed. 
+ * @param map_order Order in which vx,vy,vz mappings are performed.
  * @param dt Time step of one subcycle.
 */
 
@@ -139,7 +139,7 @@ void gpu_accelerate_cell(SpatialCell* spatial_cell,
    double t1 = MPI_Wtime();
 
    vmesh::VelocityMesh* vmesh    = spatial_cell->get_velocity_mesh(popID);
-   vmesh::VelocityBlockContainer* blockContainer = spatial_cell->get_velocity_blocks(popID);
+   //vmesh::VelocityBlockContainer* blockContainer = spatial_cell->get_velocity_blocks(popID);
 
 #ifdef _OPENMP
    const uint thread_id = omp_get_thread_num();
@@ -171,13 +171,13 @@ void gpu_accelerate_cell(SpatialCell* spatial_cell,
          phiprof::Timer intersectionsTimer {"compute-intersections"};
          //Map order XYZ
          compute_intersections_1st(vmesh,bwd_transform, fwd_transform, 0,
-                                 intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk);
+                                   intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk);
          compute_intersections_2nd(vmesh,bwd_transform, fwd_transform, 1,
-                                 intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk);
+                                   intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk);
          compute_intersections_3rd(vmesh,bwd_transform, fwd_transform, 2,
-                                 intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk);
+                                   intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk);
          intersectionsTimer.stop();
-      
+
          phiprof::Timer mappingTimer1 {"compute-mapping 1"};
          gpu_acc_map_1d(spatial_cell, popID,
                         intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,
@@ -196,17 +196,17 @@ void gpu_accelerate_cell(SpatialCell* spatial_cell,
          break;
       }
 
-       case 1: {
+      case 1: {
          phiprof::Timer intersectionsTimer {"compute-intersections"};
          //Map order YZX
          compute_intersections_1st(vmesh, bwd_transform, fwd_transform, 1,
-                                 intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk);
+                                   intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk);
          compute_intersections_2nd(vmesh, bwd_transform, fwd_transform, 2,
-                                 intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk);
+                                   intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk);
          compute_intersections_3rd(vmesh, bwd_transform, fwd_transform, 0,
-                                 intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk);
+                                   intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk);
          intersectionsTimer.stop();
-      
+
          phiprof::Timer mappingTimer1 {"compute-mapping 1"};
          gpu_acc_map_1d(spatial_cell, popID,
                         intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,
@@ -225,33 +225,33 @@ void gpu_accelerate_cell(SpatialCell* spatial_cell,
          break;
       }
 
-       case 2: {
+      case 2: {
          phiprof::Timer intersectionsTimer {"compute-intersections"};
-          //Map order Z X Y
-          compute_intersections_1st(vmesh, bwd_transform, fwd_transform, 2,
-                                    intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk);
-          compute_intersections_2nd(vmesh, bwd_transform, fwd_transform, 0,
-                                    intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk);
-          compute_intersections_3rd(vmesh, bwd_transform, fwd_transform, 1,
-                                    intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk);
+         //Map order Z X Y
+         compute_intersections_1st(vmesh, bwd_transform, fwd_transform, 2,
+                                   intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk);
+         compute_intersections_2nd(vmesh, bwd_transform, fwd_transform, 0,
+                                   intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk);
+         compute_intersections_3rd(vmesh, bwd_transform, fwd_transform, 1,
+                                   intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk);
          intersectionsTimer.stop();
-      
+
          phiprof::Timer mappingTimer1 {"compute-mapping 1"};
-          gpu_acc_map_1d(spatial_cell, popID,
-                          intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,
-                          2, gpuStreamList[thread_id]); // map along z
+         gpu_acc_map_1d(spatial_cell, popID,
+                        intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,
+                        2, gpuStreamList[thread_id]); // map along z
          mappingTimer1.stop();
          phiprof::Timer mappingTimer2 {"compute-mapping 2"};
-          gpu_acc_map_1d(spatial_cell, popID,
-                          intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,
-                          0, gpuStreamList[thread_id]); // map along x
+         gpu_acc_map_1d(spatial_cell, popID,
+                        intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,
+                        0, gpuStreamList[thread_id]); // map along x
          mappingTimer2.stop();
          phiprof::Timer mappingTimer3 {"compute-mapping 2"};
-          gpu_acc_map_1d(spatial_cell, popID,
-                          intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,
-                          1, gpuStreamList[thread_id]); // map along y
+         gpu_acc_map_1d(spatial_cell, popID,
+                        intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,
+                        1, gpuStreamList[thread_id]); // map along y
          mappingTimer3.stop();
-          break;
+         break;
       }
    }
 

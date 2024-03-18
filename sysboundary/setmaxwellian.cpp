@@ -223,9 +223,6 @@ namespace SBC {
 
          vector<vmesh::GlobalID> blocksToInitialize = this->findBlocksToInitialize(popID,templateCell, rho, T, Vx, Vy, Vz);
          const uint nRequested = blocksToInitialize.size();
-         // Expand the velocity space to the required size
-         vmesh::VelocityMesh* vmesh = templateCell.get_velocity_mesh(popID);
-         vmesh::VelocityBlockContainer* blockContainer = templateCell.get_velocity_blocks(popID);
          // Set the reservation value (capacity is increased in add_velocity_blocks
          templateCell.setReservation(popID,nRequested);
          const Realf minValue = templateCell.getVelocityBlockMinValue(popID);

@@ -407,6 +407,7 @@ namespace spatial_cell {
          blockContainer->setNewCapacity(nExistingBlocks + nBlocks + 1);
          // Upload
          Upload();
+         CHK_ERR( gpuStreamSynchronize(stream) );
          // Loop over the whole velocity space, and add scaled values with
          // a kernel. Addition of new blocks is not block-parallel-safe.
          const uint nGpuBlocks = nBlocks > GPUBLOCKS ? GPUBLOCKS : nBlocks;
@@ -828,6 +829,7 @@ namespace spatial_cell {
       // (pop.blockContainer)->gpu_prefetchDevice();
       //phiprof::Timer setpopTimer {"set population"};
       this->populations[popID] = pop;
+      // Copy assign includes dev_vmesh upload
    }
    inline void SpatialCell::scale_population(creal factor, cuint popID) {
       // (this->populations[popID].vmesh)->gpu_prefetchDevice();
@@ -1192,8 +1194,8 @@ namespace spatial_cell {
          std::cerr << " adds " << adds << std::endl;
          exit(1);
       }
-      // #endif
-      //#ifdef DEBUG_VLASIATOR
+      #endif
+      #ifdef DEBUG_VLASIATOR
       if (!populations[popID].vmesh->check()) {
          std::cerr << "vmesh check error in " << __FILE__ << ' ' << __LINE__ << std::endl;
          std::cerr << " velocity mesh size "<<populations[popID].vmesh->size();

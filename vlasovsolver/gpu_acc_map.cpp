@@ -565,6 +565,7 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    SSYNC;
    //CHK_ERR( gpuStreamSynchronize(stream) );
    phiprof::Timer paramsTimer {"Get acc parameters"};
+   //spatial_cell->dev_upload_population(popID); // Should not be necessary.
    vmesh::VelocityMesh* vmesh    = spatial_cell->get_velocity_mesh(popID);
    vmesh::VelocityBlockContainer* blockContainer = spatial_cell->get_velocity_blocks(popID);
    vmesh::VelocityMesh* dev_vmesh    = spatial_cell->dev_get_velocity_mesh(popID);

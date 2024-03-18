@@ -171,7 +171,7 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          #ifdef USE_GPU
          const vmesh::VelocityBlockContainer *blockContainer = cell->dev_get_velocity_blocks(popID);
          #else
-         const vmesh::VelocityBlockContainer *blockContainer = cell->get_get_velocity_blocks(popID);
+         const vmesh::VelocityBlockContainer *blockContainer = cell->get_velocity_blocks(popID);
          #endif
          const Real HALF = 0.5;
          Real popMin = std::numeric_limits<Real>::max();
@@ -1478,7 +1478,7 @@ int main(int argn,char* args[]) {
    }
    // Deallocate buffers, clear device
    vmesh::deallocateMeshWrapper();
-   sysBoundaryContainer.clearGpu();
+   sysBoundaryContainer.gpuClear();
    gpu_clear_device();
    #endif
 

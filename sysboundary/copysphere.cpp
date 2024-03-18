@@ -198,6 +198,10 @@ namespace SBC {
          for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
             setCellFromTemplate(cell,popID);
          }
+         // Verify current mesh and blocks
+         // if (!cell->checkMesh(popID)) {
+         //    printf("ERROR in vmesh check: %s at %d\n",__FILE__,__LINE__);
+         // }
       }
    }
 
@@ -760,6 +764,7 @@ namespace SBC {
       templateCell.parameters[CellParams::XCRD] = 1.0;
       templateCell.parameters[CellParams::YCRD] = 1.0;
       templateCell.parameters[CellParams::ZCRD] = 1.0;
+
       templateCell.parameters[CellParams::DX] = 1;
       templateCell.parameters[CellParams::DY] = 1;
       templateCell.parameters[CellParams::DZ] = 1;
@@ -770,9 +775,6 @@ namespace SBC {
          const CopysphereSpeciesParameters& sP = this->speciesParams[popID];
          const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(templateCell,popID);
          const uint nRequested = blocksToInitialize.size();
-         // Expand the velocity space to the required size
-         vmesh::VelocityMesh* vmesh = templateCell.get_velocity_mesh(popID);
-         vmesh::VelocityBlockContainer* blockContainer = templateCell.get_velocity_blocks(popID);
          // Set the reservation value (capacity is increased in add_velocity_blocks
          templateCell.setReservation(popID,nRequested);
          const Realf minValue = templateCell.getVelocityBlockMinValue(popID);

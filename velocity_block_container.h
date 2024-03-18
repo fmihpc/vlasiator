@@ -128,10 +128,14 @@ namespace vmesh {
       gpu_destructor();
    }
    inline void VelocityBlockContainer::gpu_destructor() {
-      if (block_data) delete block_data;
-      if (parameters) delete parameters;
-      block_data = NULL;
-      parameters = NULL;
+      if (block_data) {
+         delete block_data;
+         block_data = 0;
+      }
+      if (parameters) {
+         delete parameters;
+         parameters = 0;
+      }
    }
 
    inline VelocityBlockContainer::VelocityBlockContainer(const VelocityBlockContainer& other) {
