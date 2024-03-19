@@ -185,17 +185,20 @@ namespace vmesh {
    /** Clears VelocityBlockContainer data and deallocates all memory
     * reserved for velocity blocks.*/
    inline void VelocityBlockContainer::clear(bool shrink) {
-      // GPU DEBUG: For some reason, non-shrinking clear seems broken
+      // GPU DEBUG: For some reason, calling just clear seems broken?
+      size_t capacity = block_data->capacity()/WID3;
       if (shrink) {
-         delete block_data;
-         delete parameters;
-         #ifdef USE_GPU
-         block_data = new split::SplitVector<Realf>(WID3);
-         parameters = new split::SplitVector<Real>(BlockParams::N_VELOCITY_BLOCK_PARAMS);
-         #else
-         block_data = new std::vector<Realf,aligned_allocator<Realf,WID3>>(WID3);
-         parameters = new std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS>>(BlockParams::N_VELOCITY_BLOCK_PARAMS);
-         #endif
+         capacity = 1;
+      }
+      delete block_data;
+      delete parameters;
+#ifdef USE_GPU
+      block_data = new split::SplitVector<Realf>(capacity*WID3);
+      parameters = new split::SplitVector<Real>(capacity*BlockParams::N_VELOCITY_BLOCK_PARAMS);
+#else
+      block_data = new std::vector<Realf,aligned_allocator<Realf,WID3>>(capacity*WID3);
+      parameters = new std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS>>(capacity*BlockParams::N_VELOCITY_BLOCK_PARAMS);
+#endif
       }
       block_data->clear();
       parameters->clear();
