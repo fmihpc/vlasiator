@@ -199,7 +199,6 @@ namespace vmesh {
       block_data = new std::vector<Realf,aligned_allocator<Realf,WID3>>(capacity*WID3);
       parameters = new std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS>>(capacity*BlockParams::N_VELOCITY_BLOCK_PARAMS);
 #endif
-      }
       block_data->clear();
       parameters->clear();
       if ((block_data->size() != 0) || (parameters->size() != 0)) {

@@ -211,7 +211,7 @@ namespace vmesh {
          //assert(0 && "VM check ERROR: sizes differ");
       }
       const size_t thisSize = size();
-      // size_t fail = 0;
+      size_t fail = 0;
       for (size_t b=0; b<thisSize; ++b) {
          const vmesh::LocalID globalID = localToGlobalMap->at(b);
          #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
@@ -647,7 +647,7 @@ namespace vmesh {
             = globalToLocalMap->device_insert(Hashinator::make_pair((*blocks)[b],(vmesh::LocalID)(mySize+b)));
          // Verify insertion into map and update vector
          if (position.second) { // this is true if the element did not previously exist in the map
-            localToGlobalMap->at(mySize+newElements) = blocks[b];
+            localToGlobalMap[mySize+newElements] = blocks[b];
             newElements++;
          }
       }
@@ -669,10 +669,10 @@ namespace vmesh {
          size_t newElements = 0;
          for (size_t b=0; b<blocksSize; ++b) {
             auto position
-               = globalToLocalMap->insert(Hashinator::make_pair(blocks[b],(vmesh::LocalID)(mySize+b)));
+               = globalToLocalMap->insert(Hashinator::make_pair((*blocks)[b],(vmesh::LocalID)(mySize+b)));
             // Verify insertion into map and update vector
             if (position.second) { // this is true if the element did not previously exist in the map
-               localToGlobalMap->at(mySize+newElements) = blocks[b];
+               localToGlobalMap->at(mySize+newElements) = (*blocks)[b];
                newElements++;
             }
          }
