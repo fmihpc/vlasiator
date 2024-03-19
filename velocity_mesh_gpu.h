@@ -56,6 +56,7 @@ namespace vmesh {
       const VelocityMesh& operator=(const VelocityMesh& other);
       void gpu_destructor();
 
+      size_t capacity() const;
       size_t capacityInBytes() const;
       ARCH_HOSTDEV bool check() const;
       ARCH_HOSTDEV void print() const;
@@ -175,6 +176,9 @@ namespace vmesh {
       meshID = other.meshID;
       // Overwrite is like a copy assign but takes a stream
       globalToLocalMap->overwrite(*(other.globalToLocalMap),stream);
+      // This constructor is used e.g. for boundary cells, where we in fact
+      // don't need any extra capacity, so let's not call this reserve. 
+      //localToGlobalMap->reserve((other.localToGlobalMap)->capacity(),true);
       localToGlobalMap->overwrite(*(other.localToGlobalMap),stream);
       return *this;
    }
@@ -186,6 +190,9 @@ namespace vmesh {
       const size_t capacityInBytes = currentCapacity*sizeof(vmesh::GlobalID)
            + currentBucketCount*(sizeof(vmesh::GlobalID)+sizeof(vmesh::LocalID));
       return capacityInBytes;
+   }
+   inline size_t VelocityMesh::capacity() const {
+      return localToGlobalMap->capacity();
    }
 
    ARCH_HOSTDEV inline bool VelocityMesh::check() const {
@@ -204,9 +211,9 @@ namespace vmesh {
          //assert(0 && "VM check ERROR: sizes differ");
       }
       const size_t thisSize = size();
+      size_t fail = 0;
       for (size_t b=0; b<thisSize; ++b) {
          const vmesh::LocalID globalID = localToGlobalMap->at(b);
-         size_t fail = 0;
          #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
          auto it = globalToLocalMap->device_find(globalID);
          if (it != globalToLocalMap->device_end()) {
@@ -226,9 +233,9 @@ namespace vmesh {
             //printf("VMO ERROR: localToGlobalMap[%lu] = %u but could not find in globalToLocalMap ",b,globalID);
             fail++;
          }
-         if (fail>0) {
-            printf("VMO ERROR: found %lu failures.\n",fail);
-         }
+      }
+      if (fail>0) {
+         printf("VMO ERROR: found %lu failures.\n",fail);
       }
       #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
       localToGlobalMap->optimizeGPU(stream);
@@ -267,16 +274,29 @@ namespace vmesh {
    }
 
    inline void VelocityMesh::clear(bool shrink) {
-      gpuStream_t stream = gpu_getStream();
-      localToGlobalMap->clear();
+      // GPU DEBUG: For some reason, non-shrinking clear seems broken
+      size_t capacity = localToGlobalMap->capacity();
+      int sizePower = globalToLocalMap->getSizePower();
       if (shrink) {
-         localToGlobalMap->shrink_to_fit();
-         delete globalToLocalMap;
-         globalToLocalMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(7);
-      } else {
-         globalToLocalMap->clear(Hashinator::targets::device,stream,false);
-         CHK_ERR( gpuStreamSynchronize(stream) );
+         capacity = 1;
+         sizePower = 7;
       }
+      delete localToGlobalMap;
+      localToGlobalMap = new split::SplitVector<vmesh::GlobalID>(capacity);
+      localToGlobalMap->clear();
+      delete globalToLocalMap;
+      globalToLocalMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(sizePower);
+
+      // gpuStream_t stream = gpu_getStream();
+      // localToGlobalMap->clear();
+      // if (shrink) {
+      //    localToGlobalMap->shrink_to_fit();
+      //    delete globalToLocalMap;
+      //    globalToLocalMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(7);
+      // } else {
+      //    globalToLocalMap->clear(Hashinator::targets::device,stream,false);
+      //    CHK_ERR( gpuStreamSynchronize(stream) );
+      // }
       if ((localToGlobalMap->size() != 0) || (globalToLocalMap->size() != 0)) {
          std::cerr<<"VMESH CLEAR FAILED"<<std::endl;
       }
@@ -576,16 +596,21 @@ namespace vmesh {
       }
       //GPUTODO: Evaluate how many entries were actually added?
       
-      //if (mySize==0) {
-      if (false) {
+      if (mySize==0) {
+         //if (false) {
          // Fast insertion into empty mesh
-         // if (blocksSize > 1048576) {
-         //    printf("Warning blocksSize %zu mySize %zu\n",blocksSize,mySize);
-         // }
          //localToGlobalMap->reserve(blocksSize,true,stream); // includes stream sync
+         // localToGlobalMap->resize(blocksSize);
+         // for (size_t b=0; b<blocksSize; ++b) {
+         //    (*localToGlobalMap)[b] = blocks[b];
+         // }
          localToGlobalMap->insert(localToGlobalMap->end(),blocks.begin(),blocks.end());
+         // delete localToGlobalMap;
+         // localToGlobalMap = new split::SplitVector<vmesh::GlobalID>(blocks);
+         // ss<<" instert-interator begin "<<localToGlobalMap->begin()<<" end "<<localToGlobalMap->end()<<std::endl;
          vmesh::GlobalID* _localToGlobalMapData = localToGlobalMap->data();
          localToGlobalMap->optimizeGPU(stream);
+         CHK_ERR( gpuStreamSynchronize(stream) );
          globalToLocalMap->insertIndex(_localToGlobalMapData,blocksSize,0.5,stream,false);
          // uint pushcount=0;
          // for (size_t b=0; b<blocksSize; ++b) {
@@ -641,9 +666,6 @@ namespace vmesh {
          //  }
       } else {
          // GPUTODO: do inside kernel
-         // if (blocksSize > 1048576) {
-         //    printf("Warning blocksSize %zu mySize %zu\n",blocksSize,mySize);
-         // }
          for (size_t b=0; b<blocksSize; ++b) {
             auto position
                = globalToLocalMap->insert(Hashinator::make_pair(blocks[b],(vmesh::LocalID)(mySize+b)));
@@ -1327,6 +1349,9 @@ namespace vmesh {
 
    inline void VelocityMesh::print_addresses() {
       printf("GPU localToGlobalMap %p\n GPU globalToLocalMap %p\n",localToGlobalMap,globalToLocalMap);
+      printf("GPU localToGlobalMap capacity %u size %u \n GPU globalToLocalMap size %u bucket count %u\n",localToGlobalMap->capacity(),localToGlobalMap->size(),globalToLocalMap->size(),globalToLocalMap->bucket_count());
+      printf("GPU localToGlobalMap data %p\n",localToGlobalMap->data());
+      printf("GPU localToGlobalMap iterators begin %p end  %p\n",localToGlobalMap->begin(),localToGlobalMap->end());
    }
 
 } // namespace vmesh

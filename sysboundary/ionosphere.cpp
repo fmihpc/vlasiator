@@ -3118,7 +3118,6 @@ namespace SBC {
       const bool calculate_V_moments
    ) {
       phiprof::Timer timer {"vlasovBoundaryCondition (Ionosphere)"};
-
       // TODO Make this a more elegant solution
       // Now it's hacky as the counter is incremented in vlasiator.cpp
       if(globalflags::ionosphereJustSolved) { // else we don't update this boundary
@@ -3192,6 +3191,19 @@ namespace SBC {
          }
 #pragma GCC diagnostic pop
 
+         if (cellID==61701) {
+            std::cerr<<"Verifying Ionosphere vmesh for cell " << cellID << std::endl;
+            // std::cerr<<"     get velocity mesh   "<<mpiGrid[cellID]->get_velocity_mesh(popID)<<std::endl;
+            // std::cerr<<" dev get velocity mesh   "<<mpiGrid[cellID]->dev_get_velocity_mesh(popID)<<std::endl;
+            // std::cerr<<"     get velocity blocks "<<mpiGrid[cellID]->get_velocity_blocks(popID)<<std::endl;
+            // std::cerr<<" dev get velocity blocks "<<mpiGrid[cellID]->dev_get_velocity_blocks(popID)<<std::endl;
+            mpiGrid[cellID]->get_velocity_mesh(popID)->print_addresses();
+            if (!mpiGrid[cellID]->checkMesh(popID)) {
+               std::cerr << "vmesh check error in " << __FILE__ << ' ' << __LINE__ << std::endl;
+               exit(1);
+            }
+         }
+
          // Fill velocity space
          switch(boundaryVDFmode) {
             case FixedMoments:
@@ -3201,7 +3213,15 @@ namespace SBC {
                {
                   // Fill velocity space with new maxwellian data
                   SpatialCell& cell = *mpiGrid[cellID];
+                  // if (cellID==61701) {
+                  //    std::cerr<<" cell 61701 pre-clear "<<std::endl;
+                  //    mpiGrid[cellID]->get_velocity_mesh(popID)->print_addresses();
+                  // }
                   cell.clear(popID,false); // Clear previous velocity space completely, do not de-allocate memory
+                  // if (cellID==61701) {
+                  //    std::cerr<<" cell 61701 post-clear "<<std::endl;
+                  //    mpiGrid[cellID]->get_velocity_mesh(popID)->print_addresses();
+                  // }
                   const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(cell,density,temperature,vDrift,popID);
                   const uint nRequested = blocksToInitialize.size();
                   // Set the reservation value (capacity is increased in add_velocity_blocks
@@ -3356,12 +3376,18 @@ namespace SBC {
                } // end case CopyAndLosscone
                break;
          } // end switch VDF method
-         stringstream ss;
-         ss << "Verifying Ionosphere vmesh for cell " << cellID << std::endl;
-         std::cerr << ss.str();
          if (cellID==61701) {
+            stringstream ss;
+            ss << "Verifying Ionosphere vmesh for cell " << cellID << std::endl;
+            std::cerr << ss.str();
             if (!mpiGrid[cellID]->checkMesh(popID)) {
+               // std::cerr<<"     get velocity mesh   "<<mpiGrid[cellID]->get_velocity_mesh(popID)<<std::endl;
+               // std::cerr<<" dev get velocity mesh   "<<mpiGrid[cellID]->dev_get_velocity_mesh(popID)<<std::endl;
+               // std::cerr<<"     get velocity blocks "<<mpiGrid[cellID]->get_velocity_blocks(popID)<<std::endl;
+               // std::cerr<<" dev get velocity blocks "<<mpiGrid[cellID]->dev_get_velocity_blocks(popID)<<std::endl;
+               mpiGrid[cellID]->get_velocity_mesh(popID)->print_addresses();
                std::cerr << "vmesh check error in " << __FILE__ << ' ' << __LINE__ << std::endl;
+               std::cerr<<" with "<<mpiGrid[cellID]->get_velocity_mesh(popID)->size()<<" blocks "<<std::endl;
                exit(1);
             }
          }
@@ -3491,17 +3517,21 @@ namespace SBC {
       dV[2] = cell.get_velocity_grid_block_size(popID)[2];
       creal minValue = cell.getVelocityBlockMinValue(popID);
       const vmesh::LocalID* vblocks_ini = cell.get_velocity_grid_length(popID);
+      // Single cell, not block
+      const Real dvx=cell.get_velocity_grid_cell_size(popID)[0];
+      const Real dvy=cell.get_velocity_grid_cell_size(popID)[1];
+      const Real dvz=cell.get_velocity_grid_cell_size(popID)[2];
 
       while (search) {
-         if (0.1 * cell.getVelocityBlockMinValue(popID) >
-            shiftedMaxwellianDistribution(popID,density,temperature,(counter+0.5)*dV[0] - vDrift[0], 0.5*dV[1] - vDrift[1], 0.5*dV[2] - vDrift[2])
-            || counter > vblocks_ini[0])
-         {
+         if ( 0.1 * minValue > shiftedMaxwellianDistribution(popID,density,temperature,
+                                                            counter*dV[0]+0.5*dvx-vDrift[0], 0.5*dvy-vDrift[1], 0.5*dvz-vDrift[2])
+              || counter > vblocks_ini[0] ) {
             search = false;
          }
-         ++counter;
+         counter++;
       }
       counter+=2;
+
       Real vRadiusSquared = (Real)counter * (Real)counter * dV[0] * dV[0];
 
       for (uint kv=0; kv<vblocks_ini[2]; ++kv) {
@@ -3512,6 +3542,7 @@ namespace SBC {
                blockIndices[1] = jv;
                blockIndices[2] = kv;
                const vmesh::GlobalID blockGID = cell.get_velocity_block(popID,blockIndices);
+
                cell.get_velocity_block_coordinates(popID,blockGID,V_crds);
                V_crds[0] += ( 0.5*dV[0] - vDrift[0]);
                V_crds[1] += ( 0.5*dV[1] - vDrift[1]);
@@ -3533,6 +3564,14 @@ namespace SBC {
       copyCellData(&templateCell,cell,false,popID,true); // copy also vdf, _V
       copyCellData(&templateCell,cell,true,popID,false); // don't copy vdf again but copy _R now
       cell->setReservation(popID,templateCell.getReservation(popID));
+      CellID thisCellID = cell->parameters[CellParams::CELLID];
+      if (thisCellID==61701) {
+         std::cerr<<"     get velocity mesh   "<<cell->get_velocity_mesh(popID)<<std::endl;
+         std::cerr<<" dev get velocity mesh   "<<cell->dev_get_velocity_mesh(popID)<<std::endl;
+         std::cerr<<"     get velocity blocks "<<cell->get_velocity_blocks(popID)<<std::endl;
+         std::cerr<<" dev get velocity blocks "<<cell->dev_get_velocity_blocks(popID)<<std::endl;
+         cell->get_velocity_mesh(popID)->print_addresses();
+      }
    }
 
    std::string Ionosphere::getName() const {return "Ionosphere";}

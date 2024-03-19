@@ -185,25 +185,18 @@ namespace vmesh {
    /** Clears VelocityBlockContainer data and deallocates all memory
     * reserved for velocity blocks.*/
    inline void VelocityBlockContainer::clear(bool shrink) {
-#ifdef USE_GPU
-      //gpuStream_t stream = gpu_getStream();
+      // GPU DEBUG: For some reason, non-shrinking clear seems broken
       if (shrink) {
-         block_data->resize(WID3,false);
-         parameters->resize(BlockParams::N_VELOCITY_BLOCK_PARAMS,false);
-         block_data->shrink_to_fit();
-         parameters->shrink_to_fit();
+         delete block_data;
+         delete parameters;
+         #ifdef USE_GPU
+         block_data = new split::SplitVector<Realf>(WID3);
+         parameters = new split::SplitVector<Real>(BlockParams::N_VELOCITY_BLOCK_PARAMS);
+         #else
+         block_data = new std::vector<Realf,aligned_allocator<Realf,WID3>>(WID3);
+         parameters = new std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS>>(BlockParams::N_VELOCITY_BLOCK_PARAMS);
+         #endif
       }
-#else
-      if (shrink) {
-         std::vector<Realf,aligned_allocator<Realf,WID3> > *dummy_data = new std::vector<Realf,aligned_allocator<Realf,WID3> >(1*WID3);
-         std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS> > *dummy_parameters = new std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS> >(1*BlockParams::N_VELOCITY_BLOCK_PARAMS);
-         // initialization with zero capacity returns null pointers
-         block_data->swap(*dummy_data);
-         parameters->swap(*dummy_parameters);
-         delete dummy_data;
-         delete dummy_parameters;
-      }
-#endif
       block_data->clear();
       parameters->clear();
       if ((block_data->size() != 0) || (parameters->size() != 0)) {

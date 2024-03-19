@@ -796,7 +796,7 @@ void SysBoundary::updateSysBoundariesAfterLoadBalance(dccrg::Dccrg<SpatialCell, 
  */
 void SysBoundary::gpuClear() {
    // Loop over sysboundaries:
-   // for (list<SBC::SysBoundaryCondition*>::iterator it = sysBoundaries.begin(); it != sysBoundaries.end(); ++it) {
-   //    (*it)->gpuClear();
-   // }
+   for (list<SBC::SysBoundaryCondition*>::iterator it = sysBoundaries.begin(); it != sysBoundaries.end(); ++it) {
+      (*it)->gpuClear();
+   }
 }
