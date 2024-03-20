@@ -83,15 +83,15 @@ do
   ###copy new reference data to correct folder
     if [ $create_verification_files == 1 ]
     then
-        result_dir=${reference_dir}/${reference_revision}/${test_name[$run]}
-        if [ -e  $result_dir ]
+        reference_result_dir=${reference_dir}/${reference_revision}/${test_name[$run]}
+        if [ -e  $reference_result_dir ]
         then
             echo "remove old results"
-            rm -rf $result_dir
+            rm -rf $reference_result_dir
         fi
 
-        mkdir -p $result_dir
-        cp * $result_dir
+        mkdir -p $reference_result_dir
+        cp * $reference_result_dir
     fi
 
     cd $base_dir
@@ -105,7 +105,7 @@ do
         echo "--------------------------------------------------------------------------------------------"
         echo "${test_name[$run]}  -  Verifying ${revision}_$solveropts against $reference_revision"
         echo "--------------------------------------------------------------------------------------------"
-        result_dir=${reference_dir}/${reference_revision}/${test_name[$run]}
+        reference_result_dir=${reference_dir}/${reference_revision}/${test_name[$run]}
 
      #print header
 
@@ -113,9 +113,9 @@ do
         echo "------------------------------------------------------------"
         echo " ref-time     |   new-time       |  speedup                |"
         echo "------------------------------------------------------------"
-	if [ -e  ${result_dir}/${comparison_phiprof[$run]} ]
+	if [ -e  ${reference_result_dir}/${comparison_phiprof[$run]} ]
 	then
-            refPerf=$(grep "Propagate   " ${result_dir}/${comparison_phiprof[$run]} |gawk  '(NR==1){print $11}')
+            refPerf=$(grep "Propagate   " ${reference_result_dir}/${comparison_phiprof[$run]} |gawk  '(NR==1){print $11}')
 	else
 	    refPerf="NA"
 	fi
@@ -136,22 +136,22 @@ do
 	indices=(${variable_components[$run]// / })
         for vlsv in ${comparison_vlsv[$run]}
         do
-            if [ ! -f "${result_dir}/${vlsv}" ]; then
-                echo "Output file ${result_dir}/${vlsv} not found!"
-                echo "--------------------------------------------------------------------------------------------"
-                continue
-            fi
             if [ ! -f "${vlsv_dir}/${vlsv}" ]; then
-                echo "Reference file ${vlsv_dir}/${vlsv} not found!"
+                echo "Output file ${vlsv_dir}/${vlsv} not found!"
                 echo "--------------------------------------------------------------------------------------------"
                 continue
             fi
-            echo "Comparing file ${result_dir}/${vlsv} against reference"
+            if [ ! -f "${reference_result_dir}/${vlsv}" ]; then
+                echo "Reference file ${reference_result_dir}/${vlsv} not found!"
+                echo "--------------------------------------------------------------------------------------------"
+                continue
+            fi
+            echo "Comparing file ${vlsv_dir}/${vlsv} against reference"
             for i in ${!variables[*]}
             do
                 if [[ "${variables[$i]}" == "fg_"* ]]
                 then
-                    A=$( $run_command_tools $diffbin --meshname=fsgrid  ${result_dir}/${vlsv} ${vlsv_dir}/${vlsv} ${variables[$i]} ${indices[$i]} )
+                    A=$( $run_command_tools $diffbin --meshname=fsgrid  ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} ${variables[$i]} ${indices[$i]} )
                     relativeValue=$(grep "The relative 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                     absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                     #print the results
@@ -159,7 +159,7 @@ do
 
                 elif [[ "${variables[$i]}" == "ig_"* ]]
                 then
-                    A=$( $run_command_tools $diffbin --meshname=ionosphere  ${result_dir}/${vlsv} ${vlsv_dir}/${vlsv} ${variables[$i]} ${indices[$i]} )
+                    A=$( $run_command_tools $diffbin --meshname=ionosphere  ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} ${variables[$i]} ${indices[$i]} )
                     relativeValue=$(grep "The relative 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                     absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                     #print the results
@@ -167,7 +167,7 @@ do
 
                 elif [ ! "${variables[$i]}" == "proton" ]
                 then # Regular vg_ variable
-                    A=$( $run_command_tools $diffbin ${result_dir}/${vlsv} ${vlsv_dir}/${vlsv} ${variables[$i]} ${indices[$i]} )
+                    A=$( $run_command_tools $diffbin ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} ${variables[$i]} ${indices[$i]} )
                     relativeValue=$(grep "The relative 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                     absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                     #print the results
@@ -177,13 +177,13 @@ do
                     echo "--------------------------------------------------------------------------------------------"
                     echo "   Distribution function diff                                                               "
                     echo "--------------------------------------------------------------------------------------------"
-                    $run_command_tools $diffbin ${result_dir}/${vlsv} ${vlsv_dir}/${vlsv} proton 0
+                    $run_command_tools $diffbin ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} proton 0
                 fi
             done # loop over variables
 
             # Print also time difference, if it is not zero
             timeDiff=$(grep "delta t" <<< $A |gawk '{print $8}'  )
-            if [[ $timeDiff -ne "0"  ]]
+            if (( $(awk 'BEGIN{print ('$timeDiff'!= 0.0)?1:0}') ))
             then
                 echo "WARNING! TIMESTAMPS DO NOT MATCH! dt=${timeDiff}"
             else
