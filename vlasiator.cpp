@@ -1152,7 +1152,9 @@ int main(int argn,char* args[]) {
          }
          #pragma omp parallel for
          for (size_t c=0; c<cells.size(); ++c) {
-            mpiGrid[cells[c]]->get_cell_parameters()[CellParams::LBWEIGHTCOUNTER] = 0;
+            mpiGrid[cells[c]]->get_cell_parameters()[CellParams::LBWEIGHTCOUNTERX] = 0;
+            mpiGrid[cells[c]]->get_cell_parameters()[CellParams::LBWEIGHTCOUNTERY] = 0;
+            mpiGrid[cells[c]]->get_cell_parameters()[CellParams::LBWEIGHTCOUNTERZ] = 0;
          }
       }
       
