@@ -1280,9 +1280,9 @@ namespace vmesh {
 
    inline void VelocityMesh::print_addresses() {
       printf("GPU localToGlobalMap %p\n GPU globalToLocalMap %p\n",localToGlobalMap,globalToLocalMap);
-      printf("GPU localToGlobalMap capacity %u size %u \n GPU globalToLocalMap size %u bucket count %u\n",localToGlobalMap->capacity(),localToGlobalMap->size(),globalToLocalMap->size(),globalToLocalMap->bucket_count());
+      printf("GPU localToGlobalMap capacity %zu size %zu \n GPU globalToLocalMap size %zu bucket count %zu\n",localToGlobalMap->capacity(),localToGlobalMap->size(),globalToLocalMap->size(),globalToLocalMap->bucket_count());
       printf("GPU localToGlobalMap data %p\n",localToGlobalMap->data());
-      printf("GPU localToGlobalMap iterators begin %p end  %p\n",localToGlobalMap->begin(),localToGlobalMap->end());
+      //printf("GPU localToGlobalMap iterators begin %p end  %p\n",localToGlobalMap->begin(),localToGlobalMap->end());
    }
 
 } // namespace vmesh
