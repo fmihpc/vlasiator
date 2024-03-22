@@ -293,11 +293,11 @@ for run in ${run_tests[*]}; do
 
        # Check if dt is nonzero
        timeDiff=$(grep "delta t" <<< $A |gawk '{print $8}'  )
-       if (( $(awk 'BEGIN{print ('$timeDiff'!= 0.0)?1:0}') ))
-          if (( $( echo "${timeDiff#-} $MAXDT" | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
-              MAXDT=$timeDiff
-          fi
-          echo "WARNING! TIMESTAMPS DO NOT MATCH! dt=${timeDiff}"
+       if (( $(awk 'BEGIN{print ('$timeDiff'!= 0.0)?1:0}') )); then
+           if (( $( echo "${timeDiff#-} $MAXDT" | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
+               MAXDT=$timeDiff
+           fi
+           echo "WARNING! TIMESTAMPS DO NOT MATCH! dt=${timeDiff}"
        else
            echo "VLSV file timestamps match."
        fi
