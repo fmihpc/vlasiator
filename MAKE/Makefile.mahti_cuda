@@ -56,6 +56,7 @@ testpackage: MATHFLAGS = --prec-sqrt=true --prec-div=true --ftz=false --fmad=fal
 
 LDFLAGS = -O2 -g -G -L/appl/spack/v020/install-tree/gcc-10.4.0/cuda-12.1.1-2ppwzf/lib64 -lnvToolsExt
 LIB_MPI = -lgomp
+INC_MPI = -I/appl/spack/v020/install-tree/gcc-10.4.0/openmpi-4.1.5-xykxbk/include -I/appl/spack/v020/install-tree/gcc-10.4.0/openmpi-4.1.5-xykxbk/include/openmpi -I/appl/spack/syslibs/include
 
 LIB_CUDA = -L/appl/spack/v020/install-tree/gcc-10.4.0/cuda-12.1.1-2ppwzf/lib64 
 INC_CUDA = -isystem /appl/spack/v020/install-tree/gcc-10.4.0/cuda-12.1.1-2ppwzf/include
