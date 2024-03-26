@@ -537,9 +537,11 @@ namespace spatial_cell {
       void adjust_velocity_blocks(const std::vector<SpatialCell*>& spatial_neighbors,
                                   const uint popID,
                                   bool doDeleteEmptyBlocks=true);
-      void adjust_velocity_blocks_caller(const uint popID);
+      void adjust_velocity_blocks_caller(const uint popID,
+                                         const vmesh::LocalID nBlocksBeforeAdjust,
+                                         const vmesh::LocalID nBlocksToChange,
+                                         const vmesh::LocalID nBlocksAfterAdjust);
       void update_blocks_to_move_caller(const uint popID);
-      void update_blocks_to_move_caller_2(const uint popID, const vmesh::LocalID nBlocksRequired, const vmesh::LocalID nBlocksCurrent);
       // Templated function for storing a v-space read from a file or generated elsewhere
       template <typename fileReal> void add_velocity_blocks(const uint popID,const std::vector<vmesh::GlobalID>& blocks,fileReal* initBuffer);
 
@@ -591,24 +593,12 @@ namespace spatial_cell {
       uint sysBoundaryLayer;                                                  /**< Layers counted from closest systemBoundary. If 0 then it has not
                                                                                * been computed. First sysboundary layer is layer 1.*/
       int sysBoundaryLayerNew;
-      split::SplitVector<vmesh::GlobalID> *velocity_block_with_content_list;          /**< List of existing cells with content, only up-to-date after call to update_has_content().*/
+      split::SplitVector<vmesh::GlobalID> *velocity_block_with_content_list;  /**< List of existing cells with content, only up-to-date after call to update_has_content().*/
       vmesh::LocalID velocity_block_with_content_list_size;                   /**< Size of vector. Needed for MPI communication of size before actual list transfer.*/
-      vmesh::LocalID velocity_block_with_no_content_list_size;                   /**< Size of vector. Cached for storage on host.*/
-      split::SplitVector<vmesh::GlobalID> *velocity_block_with_no_content_list;
-
-      /**< List of existing cells with no content, only up-to-date after call to update_has_content. This is also never transferred over MPI, so is invalid on remote cells.*/
-
+      vmesh::LocalID velocity_block_with_content_list_capacity;               /**< Capacity of vector. Cached value.*/
+      Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *velocity_block_with_content_map, *velocity_block_with_no_content_map;
+      vmesh::LocalID vbwcl_sizePower, vbwncl_sizePower;
       Realf* gpu_rhoLossAdjust;
-      split::SplitVector<vmesh::GlobalID> *BlocksToRemove, *BlocksToAdd, *BlocksToMove; /**< Lists of blocks to change on GPU device */
-      split::SplitVector<vmesh::GlobalID> *BlocksRequired;
-      Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *BlocksRequiredMap, *BlocksDeleteMap;
-
-      // Host-side cached values to avoid page faults
-      size_t velocity_block_with_content_list_capacity, velocity_block_with_no_content_list_capacity;
-      size_t BlocksToRemove_capacity, BlocksToAdd_capacity, BlocksToMove_capacity, BlocksRequired_capacity,BlocksRequiredMap_sizepower,BlocksDeleteMap_sizepower;
-      // TODO: also for sizes?
-      //size_t BlocksToRemove_size, BlocksToAdd_size, BlocksRequired_size,BlocksRequiredMap_fill,BlocksDeleteMap_fill;
-      // This is never needed: BlocksToMove_size
 
       static uint64_t mpi_transfer_type;                                      /**< Which data is transferred by the mpi datatype given by spatial cells.*/
       static bool mpiTransferAtSysBoundaries;                                 /**< Do we only transfer data at boundaries (true), or in the whole system (false).*/
@@ -1109,9 +1099,9 @@ namespace spatial_cell {
    inline uint64_t SpatialCell::get_cell_memory_size() {
       uint64_t size = 0;
       size += 2 * WID3 * sizeof(Realf);
-      //size += mpi_velocity_block_list.size() * sizeof(vmesh::GlobalID);
-      size += velocity_block_with_content_list->size() * sizeof(vmesh::GlobalID);
-      size += velocity_block_with_no_content_list->size() * sizeof(vmesh::GlobalID);
+      size += velocity_block_with_content_list_size * sizeof(vmesh::GlobalID);
+      size += pow(2,vbwcl_sizePower) * (sizeof(vmesh::GlobalID)+sizeof(vmesh::LocalID));
+      size += pow(2,vbwncl_sizePower) * (sizeof(vmesh::GlobalID)+sizeof(vmesh::LocalID));
       size += CellParams::N_SPATIAL_CELL_PARAMS * sizeof(Real);
       size += bvolderivatives::N_BVOL_DERIVATIVES * sizeof(Real);
 
@@ -1131,9 +1121,9 @@ namespace spatial_cell {
       uint64_t capacity = 0;
 
       capacity += 2 * WID3 * sizeof(Realf);
-      //capacity += mpi_velocity_block_list.capacity()  * sizeof(vmesh::GlobalID);
-      capacity += velocity_block_with_content_list->capacity()  * sizeof(vmesh::GlobalID);
-      capacity += velocity_block_with_no_content_list->capacity()  * sizeof(vmesh::GlobalID);
+      capacity += velocity_block_with_content_list_capacity * sizeof(vmesh::GlobalID);
+      capacity += velocity_block_with_content_map->size() * (sizeof(vmesh::GlobalID)+sizeof(vmesh::LocalID));
+      capacity += velocity_block_with_no_content_map->size() * (sizeof(vmesh::GlobalID)+sizeof(vmesh::LocalID));
       capacity += CellParams::N_SPATIAL_CELL_PARAMS * sizeof(Real);
       capacity += bvolderivatives::N_BVOL_DERIVATIVES * sizeof(Real);
 

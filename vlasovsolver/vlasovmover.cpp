@@ -494,6 +494,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
          phiprof::Timer verificationTimer {"gpu allocation verifications"};
          gpu_vlasov_allocate(gpuMaxBlockCount);
          gpu_acc_allocate(gpuMaxBlockCount);
+         gpu_blockadjust_allocate(gpuMaxBlockCount);
          verificationTimer.stop();
 #endif
 

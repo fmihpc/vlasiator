@@ -54,23 +54,31 @@ gpuStream_t gpu_getPriorityStream();
 uint gpu_getThread();
 uint gpu_getMaxThreads();
 int gpu_getDevice();
+
 void gpu_vlasov_allocate(uint maxBlockCount);
 void gpu_vlasov_deallocate();
-uint gpu_vlasov_getAllocation();
 void gpu_vlasov_allocate_perthread(uint cpuThreadID, uint blockAllocationCount);
 void gpu_vlasov_deallocate_perthread(uint cpuThreadID);
+uint gpu_vlasov_getAllocation();
+
 void gpu_acc_allocate(uint maxBlockCount);
-void gpu_acc_deallocate();
 void gpu_acc_allocate_perthread(uint cpuThreadID, uint columnAllocationCount);
+void gpu_acc_deallocate();
 void gpu_acc_deallocate_perthread(uint cpuThreadID);
 
-void gpu_compaction_deallocate();
-void gpu_compaction_allocate(const uint vectorLength, const size_t bytesNeeded);
-void gpu_compaction_allocate_vec_perthread(const uint cpuThreadID, const uint vectorLength);
-void gpu_compaction_allocate_buf_perthread(const uint cpuThreadID, const size_t bytesNeeded);
-
+void gpu_blockadjust_allocate(uint maxBlockCount);
+void gpu_blockadjust_allocate_perthread(uint cpuThreadID, uint maxBlockCount);
+void gpu_blockadjust_deallocate();
+void gpu_blockadjust_deallocate_perthread(uint cpuThreadID);
+   
 void gpu_trans_allocate(cuint nAllCells=0, cuint sumOfLengths=0, cuint largestVmesh=0, cuint unionSetSize=0);
 void gpu_trans_deallocate();
+
+// void gpu_compaction_deallocate();
+// void gpu_compaction_allocate(const uint vectorLength, const size_t bytesNeeded);
+// void gpu_compaction_allocate_vec_perthread(const uint cpuThreadID, const uint vectorLength);
+// void gpu_compaction_allocate_buf_perthread(const uint cpuThreadID, const size_t bytesNeeded);
+
 
 extern gpuStream_t gpuStreamList[];
 extern gpuStream_t gpuPriorityStreamList[];
@@ -169,11 +177,18 @@ extern Column *gpu_columns[];
 extern ColumnOffsets *cpu_columnOffsetData[];
 extern ColumnOffsets *gpu_columnOffsetData[];
 
-// SplitVectors and buffers for use in stream compaction
-extern split::SplitVector<vmesh::GlobalID> *vbwcl_gather[];
-extern split::SplitVector<vmesh::GlobalID> *vbwncl_gather[];
-extern split::SplitVector<vmesh::GlobalID> *blockLists[];
-extern void *compaction_buffer[];
+// Hash map and splitvectors used in block adjustment
+extern Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *gpu_map_add[];
+extern split::SplitVector<vmesh::GlobalID> *gpu_list_with_replace_new[];
+extern split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>> *gpu_list_delete[];
+extern split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>> *gpu_list_to_replace[];
+extern split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>> *gpu_list_with_replace_old[];
+
+// // SplitVectors and buffers for use in stream compaction
+// extern split::SplitVector<vmesh::GlobalID> *vbwcl_gather[];
+// extern split::SplitVector<vmesh::GlobalID> *vbwncl_gather[];
+// extern split::SplitVector<vmesh::GlobalID> *blockLists[];
+// extern void *compaction_buffer[];
 
 // SplitVector information structs for use in fetching sizes and capacities without page faulting
 // extern split::SplitInfo *info_1[];
@@ -191,7 +206,8 @@ extern void *compaction_buffer[];
 // extern Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *unionOfBlocksSet;
 
 // Counters used in allocations
-extern uint gpu_vlasov_allocatedSize;
+extern uint gpu_vlasov_allocatedSize[];
+extern uint gpu_blockadjust_allocatedSize[];
 extern uint gpu_acc_allocatedColumns;
 extern uint gpu_acc_columnContainerSize;
 extern uint gpu_acc_foundColumnsCount;

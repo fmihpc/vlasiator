@@ -1240,7 +1240,6 @@ namespace vmesh {
    //    globalToLocalMap->swap(*(vm.globalToLocalMap));
    //    localToGlobalMap->swap(*(vm.localToGlobalMap));
    // }
-
    inline void VelocityMesh::gpu_prefetchHost(gpuStream_t stream=0) {
       if (stream==0) {
          stream = gpu_getStream();

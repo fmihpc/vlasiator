@@ -183,7 +183,7 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             arch::parallel_reduce<arch::min>(
                {WID, WID, WID, nBlocks},
                ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint n, Real *lthreadMin) -> void{
-                  const Realf* parameters = blockContainer->getParameters(popID);
+                  const Real* parameters = blockContainer->getParameters(popID);
                   const Real VX
                      =            parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD]
                      + (i + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];

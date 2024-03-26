@@ -106,6 +106,9 @@
 #ifndef GPUTHREADS
 #define GPUTHREADS (64)
 #endif
+#ifndef WARPSPERBLOCK
+#define WARPSPERBLOCK (16)
+#endif
 #define FULL_MASK 0xffffffffffffffff
 
 extern hipStream_t gpuStreamList[];

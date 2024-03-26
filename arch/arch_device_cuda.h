@@ -109,6 +109,9 @@
 #ifndef GPUTHREADS
 #define GPUTHREADS (32)
 #endif
+#ifndef WARPSPERBLOCK
+#define WARPSPERBLOCK (32)
+#endif
 #define FULL_MASK 0xffffffff
 
 extern cudaStream_t gpuStreamList[];

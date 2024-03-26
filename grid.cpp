@@ -692,19 +692,11 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    #pragma omp parallel
    {
       phiprof::Timer timer {computeId};
-#ifdef USE_GPU
       #pragma omp for schedule(dynamic,1)
       for (uint i=0; i<cells.size(); ++i) {
          mpiGrid[cells[i]]->updateSparseMinValue(popID);
          mpiGrid[cells[i]]->update_velocity_block_content_lists(popID);
       }
-#else
-      #pragma omp for schedule(dynamic,1)
-      for (uint i=0; i<cells.size(); ++i) {
-         mpiGrid[cells[i]]->updateSparseMinValue(popID);
-         mpiGrid[cells[i]]->update_velocity_block_content_lists(popID);
-      }
-#endif
       timer.stop();
    }
    if (doPrepareToReceiveBlocks) {
@@ -738,13 +730,16 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
             // than absolutely required. Face neighbours, however, are not enough as we must
             // account for diagonal propagation.
             neighbor_ptrs.reserve(neighbors->size());
+            uint reservationSize = cell->getReservation(popID);
             for ( const auto& [neighbor_id, dir] : *neighbors) {
                if (neighbor_id != 0) {
                   neighbor_ptrs.push_back(mpiGrid[neighbor_id]);
                }
                // Ensure cell has sufficient reservation
-               cell->setReservation(popID,mpiGrid[neighbor_id]->velocity_block_with_content_list_size);
+               reservationSize = (mpiGrid[neighbor_id]->velocity_block_with_content_list_size > reservationSize) ?
+                  mpiGrid[neighbor_id]->velocity_block_with_content_list_size : reservationSize;
             }
+            cell->setReservation(popID,reservationSize);
          }
 
          // GPUTODO: Vectorize / GPUify
