@@ -296,7 +296,7 @@ void initializeGrids(
          mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 0;
          #ifdef USE_GPU
          // SpatialCell* cell = mpiGrid[cells[i]];
-         // cell->prefetchDevice(); // Currently projects still init on host
+         // cell->prefetchDevice();
          #endif
       }
 
