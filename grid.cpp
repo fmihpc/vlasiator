@@ -276,9 +276,6 @@ void initializeGrids(
       #pragma omp parallel for schedule(dynamic)
       for (size_t i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
-         // #ifdef USE_GPU
-         // cell->prefetchHost(); // Currently projects still init on host
-         // #endif
          if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
             project.setCell(cell);
          }
@@ -687,7 +684,6 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    int computeId {phiprof::initializeTimer("Compute with_content_list")};
    #pragma omp parallel
    {
-      // 27 March 2024 parallel here breaks blocks in bulk0
       phiprof::Timer timer {computeId};
       #pragma omp for schedule(dynamic,1)
       for (uint i=0; i<cells.size(); ++i) {

@@ -599,6 +599,7 @@ namespace spatial_cell {
       vmesh::LocalID velocity_block_with_content_list_capacity;               /**< Capacity of vector. Cached value.*/
       Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *velocity_block_with_content_map, *velocity_block_with_no_content_map;
       vmesh::LocalID vbwcl_sizePower, vbwncl_sizePower;
+      // vmesh::LocalID content_store, nocontent_store;
       Realf* gpu_rhoLossAdjust;
 
       static uint64_t mpi_transfer_type;                                      /**< Which data is transferred by the mpi datatype given by spatial cells.*/
