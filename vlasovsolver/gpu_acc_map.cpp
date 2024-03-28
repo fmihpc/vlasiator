@@ -843,7 +843,7 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
          // We'll take at least our current velspace size (plus safety factor), or, if that wasn't enough,
          // twice what we had before.
          size_t newCapacity = (size_t)(spatial_cell->getReservation(popID)*BLOCK_ALLOCATION_FACTOR);
-         printf("column data recapacitate! %lu newCapacity\n",(long unsigned)newCapacity);
+         //printf("column data recapacitate! %lu newCapacity\n",(long unsigned)newCapacity);
          list_with_replace_new->clear(); // only if not using map_add
          spatial_cell->setReservation(popID, newCapacity);
          spatial_cell->applyReservation(popID);
@@ -855,7 +855,7 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    vmesh::LocalID nBlocksToChange = 0;
    vmesh::LocalID nAfterAdjust = 0;
    if (host_returnLID[0]) {
-      //if (true) { // GPUTODO BROKEN
+      //if (true) { // GPUTODO BROKEN?
       // if return flag indicates we hit walls, evaluate more carefully what to do with different blocks
       /** Rules used in extracting keys or elements from hashmaps
           Now these include passing pointers to GPU memory in order to evaluate
@@ -910,7 +910,6 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    phiprof::Timer addDeleteTimer {"Add and delete blocks"};
    // Note: in this call, unless hitting v-space walls, we only grow the vspace size
    // and thus do not delete blocks or replace with old blocks.   
-   //printf("ACC adjust_velocity_blocks_caller: before %lu edit %lu after %lu\n",(long unsigned)nBeforeAdjust,(long unsigned)nBlocksToChange,(long unsigned)nAfterAdjust);
    spatial_cell->adjust_velocity_blocks_caller(popID,cpuThreadID,nBeforeAdjust,nBlocksToChange,nAfterAdjust);
    // Velocity space has all extra blocks added and/or removed for the transform target
    // and will not change shape anymore.
