@@ -99,4 +99,5 @@ INC_DCCRG = -I./submodules/dccrg
 # Vectorclass only for CPU mode
 # INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/
 # Hashinator not yet as a submodule
-INC_HASHINATOR = -I$(LIBRARY_PREFIX)/hashinator/
+#INC_HASHINATOR = -I$(LIBRARY_PREFIX)/hashinator/
+INC_HASHINATOR = -I$(HOME)/git/hashinator/

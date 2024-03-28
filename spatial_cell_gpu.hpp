@@ -538,6 +538,7 @@ namespace spatial_cell {
                                   const uint popID,
                                   bool doDeleteEmptyBlocks=true);
       void adjust_velocity_blocks_caller(const uint popID,
+                                         const uint cpuThreadID,
                                          const vmesh::LocalID nBlocksBeforeAdjust,
                                          const vmesh::LocalID nBlocksToChange,
                                          const vmesh::LocalID nBlocksAfterAdjust);

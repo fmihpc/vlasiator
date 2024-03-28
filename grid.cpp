@@ -294,10 +294,6 @@ void initializeGrids(
       #pragma omp parallel for schedule(static)
       for (size_t i=0; i<cells.size(); ++i) {
          mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 0;
-         #ifdef USE_GPU
-         // SpatialCell* cell = mpiGrid[cells[i]];
-         // cell->prefetchDevice();
-         #endif
       }
 
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
@@ -691,6 +687,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    int computeId {phiprof::initializeTimer("Compute with_content_list")};
    #pragma omp parallel
    {
+      // 27 March 2024 parallel here breaks blocks in bulk0
       phiprof::Timer timer {computeId};
       #pragma omp for schedule(dynamic,1)
       for (uint i=0; i<cells.size(); ++i) {
@@ -732,7 +729,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
             neighbor_ptrs.reserve(neighbors->size());
             uint reservationSize = cell->getReservation(popID);
             for ( const auto& [neighbor_id, dir] : *neighbors) {
-               if (neighbor_id != 0) {
+               if ((neighbor_id != 0) && (neighbor_id != cell_id)) {
                   neighbor_ptrs.push_back(mpiGrid[neighbor_id]);
                }
                // Ensure cell has sufficient reservation

@@ -95,14 +95,6 @@ uint gpu_acc_foundColumnsCount = 0;
 // split::SplitInfo *info_4[MAXCPUTHREADS];
 // Hashinator::MapInfo *info_m[MAXCPUTHREADS];
 
-// SplitVectors and buffers for use in stream compaction
-// uint gpu_compaction_vectorsize[MAXCPUTHREADS] = {0};
-// uint gpu_compaction_buffersize[MAXCPUTHREADS] = {0};
-// split::SplitVector<vmesh::GlobalID> *blockLists[MAXCPUTHREADS] = {0};
-// split::SplitVector<vmesh::GlobalID> *vbwcl_gather[MAXCPUTHREADS] = {0};
-// split::SplitVector<vmesh::GlobalID> *vbwncl_gather[MAXCPUTHREADS] = {0};
-// void *compaction_buffer[MAXCPUTHREADS];
-
 __host__ uint gpu_getThread() {
 #ifdef _OPENMP
     return omp_get_thread_num();
@@ -199,9 +191,6 @@ __host__ void gpu_init_device() {
       // CHK_ERR( gpuMallocHost((void **) &info_3[i], sizeof(split::SplitInfo)) );
       // CHK_ERR( gpuMallocHost((void **) &info_4[i], sizeof(split::SplitInfo)) );
       // CHK_ERR( gpuMallocHost((void **) &info_m[i], sizeof(Hashinator::MapInfo)) );
-      // if (blockLists[i]==0) {
-      //    blockLists[i] = new split::SplitVector<vmesh::GlobalID>(1);
-      // }
    }
    CHK_ERR( gpuMalloc((void**)&gpu_vcell_transpose, WID3*sizeof(uint)) );
    CHK_ERR( gpuMalloc((void**)&invalidGIDpointer, sizeof(vmesh::GlobalID)) );
@@ -217,7 +206,6 @@ __host__ void gpu_clear_device() {
    gpu_acc_deallocate();
    gpu_vlasov_deallocate();
    gpu_trans_deallocate();
-   //gpu_compaction_deallocate();
    // Destroy streams
    const uint maxNThreads = gpu_getMaxThreads();
    for (uint i=0; i<maxNThreads; ++i) {
@@ -287,7 +275,7 @@ __host__ void gpu_vlasov_allocate_perthread(
    // Deallocate before new allocation
    gpu_vlasov_deallocate_perthread(cpuThreadID);
 
-      // Mallocs should be in increments of 256 bytes. WID3 is at least 64, and len(Realf) is at least 4, so this is true.
+   // Mallocs should be in increments of 256 bytes. WID3 is at least 64, and len(Realf) is at least 4, so this is true.
    CHK_ERR( gpuMalloc((void**)&gpu_cell_indices_to_id[cpuThreadID], 3*sizeof(uint)) );
    CHK_ERR( gpuMalloc((void**)&gpu_block_indices_to_id[cpuThreadID], 3*sizeof(uint)) );
    CHK_ERR( gpuMalloc((void**)&gpu_blockDataOrdered[cpuThreadID], newSize * (WID3 / VECL) * sizeof(Vec)) );
@@ -431,6 +419,7 @@ __host__ void gpu_blockadjust_allocate_perthread(
    ) {
    // Check if we already have allocated enough memory?
    if (gpu_blockadjust_allocatedSize[cpuThreadID] > blockAllocationCount * BLOCK_ALLOCATION_FACTOR) {
+      //printf("Early return from allocation, thread %lu with blockAllocationCount %lu existing allocation counter %lu and vector capacity %lu \n",(long unsigned)cpuThreadID,(long unsigned)blockAllocationCount,(long unsigned)gpu_blockadjust_allocatedSize[cpuThreadID],(long unsigned)gpu_list_with_replace_new[cpuThreadID]->capacity());
       return;
    }
    // Potential new allocation with extra padding
@@ -439,14 +428,18 @@ __host__ void gpu_blockadjust_allocate_perthread(
    // Deallocate before new allocation
    gpu_blockadjust_deallocate_perthread(cpuThreadID);
 
+   // loop extraction requires extra buffer
+   const uint loopReserve = ((newSize /(WARPSPERBLOCK*GPUTHREADS))+2) * WARPSPERBLOCK * GPUTHREADS;
+
    gpu_map_add[cpuThreadID] = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(HashmapReqSize);
-   gpu_list_with_replace_new[cpuThreadID] = new split::SplitVector<vmesh::GlobalID>(newSize);
-   gpu_list_delete[cpuThreadID] = new split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>(newSize);
-   gpu_list_to_replace[cpuThreadID] = new split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>(newSize);
-   gpu_list_with_replace_old[cpuThreadID] = new split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>(newSize);
-   
+   gpu_list_with_replace_new[cpuThreadID] = new split::SplitVector<vmesh::GlobalID>(loopReserve);
+   gpu_list_delete[cpuThreadID] = new split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>(loopReserve);
+   gpu_list_to_replace[cpuThreadID] = new split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>(loopReserve);
+   gpu_list_with_replace_old[cpuThreadID] = new split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>(loopReserve);
+
    // Store size of new allocation
    gpu_blockadjust_allocatedSize[cpuThreadID] = newSize;
+   //printf("Allocated buffers for thread %lu with newSize %lu and vector length %lu = %lu \n",(long unsigned)cpuThreadID,(long unsigned)newSize,(long unsigned)loopReserve,(long unsigned)gpu_list_with_replace_new[cpuThreadID]->capacity());
 }
 
 __host__ void gpu_blockadjust_deallocate_perthread (
@@ -462,83 +455,6 @@ __host__ void gpu_blockadjust_deallocate_perthread (
    delete gpu_list_with_replace_old[cpuThreadID];
    gpu_blockadjust_allocatedSize[cpuThreadID] = 0;
 }
-
-
-void gpu_blockadjust_deallocate_perthread(uint cpuThreadID);
-
-// __host__ void gpu_compaction_allocate(
-//    const uint vectorLength,
-//    const size_t bytesNeeded
-//    ) {
-//    const uint maxNThreads = gpu_getMaxThreads();
-//    for (uint i=0; i<maxNThreads; ++i) {
-//       gpu_compaction_allocate_vec_perthread(i,vectorLength);
-//       gpu_compaction_allocate_buf_perthread(i,bytesNeeded);
-//    }
-// }
-
-/* Deallocation at end of simulation */
-// __host__ void gpu_compaction_deallocate() {
-//    const uint maxNThreads = gpu_getMaxThreads();
-//    for (uint i=0; i<maxNThreads; ++i) {
-//       gpu_compaction_allocate_vec_perthread(i,0);
-//       gpu_compaction_allocate_buf_perthread(i,0);
-//    }
-// }
-
-// __host__ void gpu_compaction_allocate_vec_perthread(
-//    const uint cpuThreadID,
-//    const uint vectorLength
-//    ) {
-//    gpuStream_t stream = gpu_getStream();
-//    // Deallocate if buffer exists, and requesting zero size
-//    if ( (gpu_compaction_vectorsize[cpuThreadID] > 0)
-//         && (vectorLength == 0) ) {
-//       delete vbwcl_gather[cpuThreadID];
-//       delete vbwncl_gather[cpuThreadID];
-//       gpu_compaction_vectorsize[cpuThreadID] = 0;
-//    }
-//    // If no buffer exists, create.
-//    if ( (gpu_compaction_vectorsize[cpuThreadID] == 0) &&
-//         (vectorLength > 0) ) {
-//       const uint paddedSize = BLOCK_ALLOCATION_FACTOR * vectorLength;
-//       vbwcl_gather[cpuThreadID] = new split::SplitVector<vmesh::GlobalID>(paddedSize);
-//       vbwncl_gather[cpuThreadID] = new split::SplitVector<vmesh::GlobalID>(paddedSize);
-//       vbwcl_gather[cpuThreadID]->optimizeGPU(stream);
-//       vbwncl_gather[cpuThreadID]->optimizeGPU(stream);
-//       gpu_compaction_vectorsize[cpuThreadID] = paddedSize;
-//    }
-//    // If buffer isn't large enough, resize.
-//    if (vectorLength > gpu_compaction_vectorsize[cpuThreadID]) {
-//       const uint paddedSize = BLOCK_ALLOCATION_FACTOR * vectorLength;
-//       vbwcl_gather[cpuThreadID]->reserve(paddedSize,true,stream); // True: exact allocation
-//       vbwncl_gather[cpuThreadID]->reserve(paddedSize,true,stream);
-//       vbwcl_gather[cpuThreadID]->optimizeGPU(stream);
-//       vbwncl_gather[cpuThreadID]->optimizeGPU(stream);
-//       gpu_compaction_vectorsize[cpuThreadID] = paddedSize;
-//    }
-//    CHK_ERR( gpuStreamSynchronize(stream) );
-// }
-// __host__ void gpu_compaction_allocate_buf_perthread(
-//    const uint cpuThreadID,
-//    const size_t bytesNeeded
-//    ) {
-//    gpuStream_t stream = gpu_getStream();
-//    // Deallocate if: buffer exists, and: requesting zero size or size is not large enough.
-//    if ( (gpu_compaction_buffersize[cpuThreadID] > 0)
-//         && ( (bytesNeeded == 0) || bytesNeeded > gpu_compaction_buffersize[cpuThreadID])
-//       ) {
-//       CHK_ERR( gpuFreeAsync(compaction_buffer[cpuThreadID],stream) );
-//       gpu_compaction_buffersize[cpuThreadID] = 0;
-//    }
-//    // If buffer isn't large enough, allocate.
-//    if (bytesNeeded > gpu_compaction_buffersize[cpuThreadID]) {
-//       const uint paddedSize = BLOCK_ALLOCATION_FACTOR * bytesNeeded;
-//       CHK_ERR( gpuMallocAsync((void**)&compaction_buffer[cpuThreadID],paddedSize, stream) );
-//       gpu_compaction_buffersize[cpuThreadID] = paddedSize;
-//    }
-//    CHK_ERR( gpuStreamSynchronize(stream) );
-// }
 
 /*
    Top-level GPU memory allocation function for translation-specific vectors
