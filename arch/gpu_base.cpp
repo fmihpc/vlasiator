@@ -424,7 +424,7 @@ __host__ void gpu_blockadjust_allocate_perthread(
    }
    // Potential new allocation with extra padding
    const uint newSize = blockAllocationCount * BLOCK_ALLOCATION_PADDING;
-   const vmesh::LocalID HashmapReqSize = ceil(log2((int)newSize)) +2;
+   const vmesh::LocalID HashmapReqSize = ceil(log2((int)newSize)) +3;
    // Deallocate before new allocation
    gpu_blockadjust_deallocate_perthread(cpuThreadID);
 
