@@ -870,10 +870,10 @@ namespace spatial_cell {
 
       // Clear map_add
       map_add->clear(Hashinator::targets::device,stream,false); // contains stream sync
-      CHK_ERR( gpuStreamSynchronize(stream) );
+      //CHK_ERR( gpuStreamSynchronize(stream) );
       //printf(" Starting block adjustment, sizes: map_add %lu velocity_block_with_content_list_size %lu with_content_map %lu with_no_content_map %lu.\n",(unsigned long)map_add->size(),(unsigned long)velocity_block_with_content_list_size,(unsigned long)velocity_block_with_content_map->size(),(unsigned long)velocity_block_with_no_content_map->size());
-      stringstream nss;
-      nss<<"pre-counts: withcont "<<velocity_block_with_content_map->size()<<" withnocont "<<velocity_block_with_no_content_map->size()<<" nAdd "<<map_add->size()<<std::endl;
+      //stringstream nss;
+      //nss<<"pre-counts: withcont "<<velocity_block_with_content_map->size()<<" withnocont "<<velocity_block_with_no_content_map->size()<<" nAdd "<<map_add->size()<<std::endl;
       // Evaluate velocity halo for local content blocks
       if (velocity_block_with_content_list_size>0) {
          phiprof::Timer blockHaloTimer {"Block halo kernel"};
@@ -969,12 +969,12 @@ namespace spatial_cell {
 
       // stringstream nss;
       // nss<<"pre-counts: withcont "<<velocity_block_with_content_map->size()<<" withnocont "<<velocity_block_with_no_content_map->size()<<" nAdd "<<map_add->size()<<std::endl;
-      nss<<" mid-counts: withcont "<<velocity_block_with_content_map->size()<<" withnocont "<<velocity_block_with_no_content_map->size()<<" nAdd "<<map_add->size()<<std::endl;
+      //nss<<" mid-counts: withcont "<<velocity_block_with_content_map->size()<<" withnocont "<<velocity_block_with_no_content_map->size()<<" nAdd "<<map_add->size()<<std::endl;
 /*
       if (neighbours_count > 0) {
          phiprof::Timer neighHaloTimer {"Neighbour halo kernel"};
          for (uint neigh_i = 0; neigh_i < neighbours_count; neigh_i++) {
-            nss<<"   n="<<neigh_i<<":"<<neigh_Nvbwcls[neigh_i]<<"  ";
+            // nss<<"   n="<<neigh_i<<":"<<neigh_Nvbwcls[neigh_i]<<"  ";
             update_neighbour_halo_single_kernel<<<1, GPUTHREADS, 0, stream>>> (
                dev_vmesh,
                neigh_vbwcls[neigh_i],
@@ -987,11 +987,11 @@ namespace spatial_cell {
             CHK_ERR( gpuStreamSynchronize(stream) );
          }
          CHK_ERR( gpuStreamSynchronize(stream) );
-         nss<<std::endl;         
-         nss<<" post-counts: withcont "<<velocity_block_with_content_map->size()<<" withnocont "<<velocity_block_with_no_content_map->size()<<" nAdd "<<map_add->size()<<std::endl;
+         // nss<<std::endl;         
+         // nss<<" post-counts: withcont "<<velocity_block_with_content_map->size()<<" withnocont "<<velocity_block_with_no_content_map->size()<<" nAdd "<<map_add->size()<<std::endl;
       }
-      std::cerr<<nss.str();
-*/
+      // std::cerr<<nss.str();
+      */
       // Now we need to know what is going to be the vmesh size after adjustment.
       // GPUTODO: Do with metadata prefetches
       const vmesh::LocalID nBeforeAdjust = populations[popID].vmesh->size();
@@ -1032,12 +1032,12 @@ namespace spatial_cell {
                                     kval.second < nAfterAdjust2 &&
                                     kval.second != dev_vmesh->invalidLocalID(); };
 
-       CHK_ERR( gpuStreamSynchronize(stream) );
+      //CHK_ERR( gpuStreamSynchronize(stream) );
       velocity_block_with_content_map->extractPatternLoop(*list_with_replace_old, rule_delete_move, stream);
       velocity_block_with_no_content_map->extractPatternLoop(*list_delete, rule_delete_move, stream);
       velocity_block_with_no_content_map->extractPatternLoop(*list_to_replace, rule_to_replace, stream);
       map_add->extractAllKeysLoop(*list_with_replace_new,stream);
-       CHK_ERR( gpuStreamSynchronize(stream) );
+      //CHK_ERR( gpuStreamSynchronize(stream) );
       // Note:list_with_replace_new contains both new GIDs to use for replacements and new GIDs to place at end of vmesh
 
       //velocity_block_with_no_content_map->extractKeysByPatternLoop(*list_delete, rule_delete_move, stream);
@@ -1047,7 +1047,7 @@ namespace spatial_cell {
       // Also figure out how many elements to act on in the kernel
       // GPUTODO: Do with metadata prefetches, or get rid of in some other way?
       const vmesh::LocalID nBlocksToChange = nToAdd > nToRemove ? nToAdd : nToRemove;
-            CHK_ERR( gpuStreamSynchronize(stream) );
+      //CHK_ERR( gpuStreamSynchronize(stream) );
       //printf(" nBlocksToChange %zu list_with_replace_old %zu list_delete %zu list_to_replace %zu list_with_replace_new %zu\n     Blckadjust adjust_velocity_blocks_caller: before %lu edit %lu after %lu\n",nBlocksToChange,list_with_replace_old->size(),list_delete->size(),list_to_replace->size(),list_with_replace_new->size(),(long unsigned)nBeforeAdjust,(long unsigned)nBlocksToChange,(long unsigned)nAfterAdjust);
       //std::cerr<<"nBlocksToChange "<<nBlocksToChange<<" list_with_replace_old "<<list_with_replace_old->size()<<" list_delete "<<list_delete->size()<<" list_to_replace "<<list_to_replace->size()<<" list_with_replace_new "<<list_with_replace_new->size()<<std::endl;
       // Actual adjustment calling happens in separate function as it is also called from within acceleration
@@ -1055,7 +1055,7 @@ namespace spatial_cell {
 
       // Perform hashmap cleanup here (instead of at acceleration mid-steps)
       //phiprof::Timer cleanupTimer {"Hashinator cleanup"};
-       CHK_ERR( gpuStreamSynchronize(stream) );
+      //CHK_ERR( gpuStreamSynchronize(stream) );
       populations[popID].vmesh->gpu_cleanHashMap(stream);
       populations[popID].Upload();
       //cleanupTimer.stop();
@@ -1174,6 +1174,78 @@ namespace spatial_cell {
       std::vector<SpatialCell*> neighbor_ptrs;
       update_velocity_block_content_lists(popID);
       adjust_velocity_blocks(neighbor_ptrs,popID,doDeleteEmpty);
+   }
+
+   /** Update the two lists containing blocks with content, and blocks without content.
+    * @see adjustVelocityBlocks */
+   void SpatialCell::update_velocity_block_content_lists(const uint popID) {
+      #ifdef DEBUG_SPATIAL_CELL
+      if (popID >= populations.size()) {
+         std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
+         std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
+         exit(1);
+      }
+      #endif
+      const gpuStream_t stream = gpu_getStream();
+
+      phiprof::Timer reservationTimer {"GPU apply reservation"};
+      applyReservation(popID);
+      //printf("Applied reservation %lu\n",(long unsigned)getReservation(popID));
+      reservationTimer.stop();
+
+      phiprof::Timer updateListsTimer {"GPU update spatial cell block lists"};
+      velocity_block_with_content_list_size = 0;
+      velocity_block_with_content_map->clear(Hashinator::targets::device,stream,false);
+      velocity_block_with_no_content_map->clear(Hashinator::targets::device,stream,false);
+      //CHK_ERR( gpuStreamSynchronize(stream) );
+
+      // GPUTODO still have this PF...
+      const uint nBlocks = populations[popID].vmesh->size();
+      if (nBlocks==0) {
+         return;
+      }
+      // if ((velocity_block_with_content_map->size() != 0) || (velocity_block_with_no_content_map->size() != 0)) {
+      //    printf(" MISMATCH1 %lu %lu \n",(long unsigned)velocity_block_with_content_map->size(),(long unsigned)velocity_block_with_no_content_map->size());
+      // }
+
+      const Real velocity_block_min_value = getVelocityBlockMinValue(popID);
+      dim3 block(WID,WID,WID);
+      // Third argument specifies the number of bytes in *shared memory* that is
+      // dynamically allocated per block for this call in addition to the statically allocated memory.
+      //update_velocity_block_content_lists_kernel<<<GPUBLOCKS, block, WID3*sizeof(int), stream>>> (
+      update_velocity_block_content_lists_kernel<<<GPUBLOCKS, block, 0, stream>>> (
+         populations[popID].dev_vmesh,
+         populations[popID].dev_blockContainer,
+         velocity_block_with_content_map,
+         velocity_block_with_no_content_map,
+         velocity_block_min_value
+         );
+      CHK_ERR( gpuPeekAtLastError() );
+      //CHK_ERR( gpuStreamSynchronize(stream) );
+
+      // Now extract values from the map
+      velocity_block_with_content_map->extractAllKeysLoop(*velocity_block_with_content_list,stream);
+      // GPUTODO: get size via metadata copy?
+      CHK_ERR( gpuStreamSynchronize(stream) );
+      velocity_block_with_content_list_size = velocity_block_with_content_list->size();
+      // content_store = velocity_block_with_content_map->size();
+      // nocontent_store = velocity_block_with_no_content_map->size();
+      // if (velocity_block_with_content_list->size() != content_store) {
+      //    printf(" MISMATCH2 %lu %lu %lu \n",(long unsigned)velocity_block_with_content_list_size,(long unsigned)content_store,(long unsigned)nocontent_store);
+      // }
+   }
+
+   void SpatialCell::prefetchDevice() {
+      for (size_t p=0; p<populations.size(); ++p) {
+         populations[p].vmesh->gpu_prefetchDevice();
+         populations[p].blockContainer->gpu_prefetchDevice();
+      }
+   }
+   void SpatialCell::prefetchHost() {
+      for (size_t p=0; p<populations.size(); ++p) {
+         populations[p].vmesh->gpu_prefetchHost();
+         populations[p].blockContainer->gpu_prefetchHost();
+      }
    }
 
    /** Get maximum translation timestep for the given species.
@@ -1554,79 +1626,6 @@ namespace spatial_cell {
       }
       return success;
    }
-
-   /** Update the two lists containing blocks with content, and blocks without content.
-    * @see adjustVelocityBlocks */
-   void SpatialCell::update_velocity_block_content_lists(const uint popID) {
-      #ifdef DEBUG_SPATIAL_CELL
-      if (popID >= populations.size()) {
-         std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
-         std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
-         exit(1);
-      }
-      #endif
-      const gpuStream_t stream = gpu_getStream();
-
-      phiprof::Timer reservationTimer {"GPU apply reservation"};
-      applyReservation(popID);
-      //printf("Applied reservation %lu\n",(long unsigned)getReservation(popID));
-      reservationTimer.stop();
-
-      phiprof::Timer updateListsTimer {"GPU update spatial cell block lists"};
-      velocity_block_with_content_list_size = 0;
-      velocity_block_with_content_map->clear(Hashinator::targets::device,stream,false);
-      velocity_block_with_no_content_map->clear(Hashinator::targets::device,stream,false);
-       CHK_ERR( gpuStreamSynchronize(stream) );
-
-      // GPUTODO still have this PF...
-      const uint nBlocks = populations[popID].vmesh->size();
-      if (nBlocks==0) {
-         return;
-      }
-      // if ((velocity_block_with_content_map->size() != 0) || (velocity_block_with_no_content_map->size() != 0)) {
-      //    printf(" MISMATCH1 %lu %lu \n",(long unsigned)velocity_block_with_content_map->size(),(long unsigned)velocity_block_with_no_content_map->size());
-      // }
-
-      const Real velocity_block_min_value = getVelocityBlockMinValue(popID);
-      dim3 block(WID,WID,WID);
-      // Third argument specifies the number of bytes in *shared memory* that is
-      // dynamically allocated per block for this call in addition to the statically allocated memory.
-      //update_velocity_block_content_lists_kernel<<<GPUBLOCKS, block, WID3*sizeof(int), stream>>> (
-      update_velocity_block_content_lists_kernel<<<GPUBLOCKS, block, 0, stream>>> (
-         populations[popID].dev_vmesh,
-         populations[popID].dev_blockContainer,
-         velocity_block_with_content_map,
-         velocity_block_with_no_content_map,
-         velocity_block_min_value
-         );
-      CHK_ERR( gpuPeekAtLastError() );
-       CHK_ERR( gpuStreamSynchronize(stream) );
-
-      // Now extract values from the map
-      velocity_block_with_content_map->extractAllKeysLoop(*velocity_block_with_content_list,stream);
-      // GPUTODO: get size via metadata copy?
-      CHK_ERR( gpuStreamSynchronize(stream) );
-      velocity_block_with_content_list_size = velocity_block_with_content_list->size();
-      // content_store = velocity_block_with_content_map->size();
-      // nocontent_store = velocity_block_with_no_content_map->size();
-      // if (velocity_block_with_content_list->size() != content_store) {
-      //    printf(" MISMATCH2 %lu %lu %lu \n",(long unsigned)velocity_block_with_content_list_size,(long unsigned)content_store,(long unsigned)nocontent_store);
-      // }
-   }
-
-   void SpatialCell::prefetchDevice() {
-      for (size_t p=0; p<populations.size(); ++p) {
-         populations[p].vmesh->gpu_prefetchDevice();
-         populations[p].blockContainer->gpu_prefetchDevice();
-      }
-   }
-   void SpatialCell::prefetchHost() {
-      for (size_t p=0; p<populations.size(); ++p) {
-         populations[p].vmesh->gpu_prefetchHost();
-         populations[p].blockContainer->gpu_prefetchHost();
-      }
-   }
-
    void SpatialCell::printMeshSizes() {
       cerr << "SC::printMeshSizes:" << endl;
       for (size_t p=0; p<populations.size(); ++p) {
