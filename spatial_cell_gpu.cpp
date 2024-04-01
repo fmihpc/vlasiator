@@ -143,7 +143,7 @@ __global__ void update_velocity_halo_kernel (
          // Block did not previously exist in velocity_block_with_content_map
          if (LID==vmesh->invalidLocalID()) {
             // Block does not yet exist in mesh at all. Needs adding!
-            map_add->warpInsert(nGID,0,w_tid);
+            map_add->warpInsert(nGID,vmesh->invalidLocalID(),w_tid);
          } else {
             // Block exists in mesh, ensure it won't get deleted:
             // try deleting from no_content map
@@ -190,7 +190,7 @@ __global__ void update_neighbour_halo_kernel (
          // Block did not previously exist in velocity_block_with_content_map
          if (LID==vmesh->invalidLocalID()) {
             // Block does not yet exist in mesh at all. Needs adding!
-            map_add->warpInsert(nGID,0,w_tid);
+            map_add->warpInsert(nGID,vmesh->invalidLocalID(),w_tid);
          } else {
             // Block exists in mesh, ensure it won't get deleted:
             // try deleting from no_content map
@@ -998,6 +998,7 @@ namespace spatial_cell {
 
       // Third argument specifies the number of bytes in *shared memory* that is
       // dynamically allocated per block for this call in addition to the statically allocated memory.
+      //CHK_ERR( gpuStreamSynchronize(stream) );
       update_velocity_blocks_kernel<<<launchBlocks, vlasiBlocksPerWorkUnit * WID3, 0, stream>>> (
          populations[popID].dev_vmesh,
          populations[popID].dev_blockContainer,
