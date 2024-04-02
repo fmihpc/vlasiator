@@ -172,8 +172,8 @@ __global__ void update_neighbour_halo_kernel (
    int myindex = blockIdx.x * WARPSPERBLOCK + ti / GPUTHREADS; // Starts off as total index
    // Find which neighbour we should access
    uint neigh_i = 0;
-   for (int i=0; i<neighbour_count; i++) {
-      if (myindex < dev_neigh_Nvbwcls[neigh_i]) {
+   for (uint i=0; i<neighbour_count; i++) {
+      if (myindex < (int)dev_neigh_Nvbwcls[neigh_i]) {
          break;
       }
       myindex -= dev_neigh_Nvbwcls[neigh_i];
@@ -381,7 +381,7 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
       massloss[ti] = rm_avgs[b_tid]*rm_DV3;
       __syncthreads();
       // Implemented just a simple non-optimized thread sum
-      for (unsigned int s=WID3/2; s>0; s>>=1) {
+      for (int s=WID3/2; s>0; s>>=1) {
          if (b_tid < s) {
             massloss[ti] += massloss[ti + s];
          }
@@ -455,7 +455,7 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
       massloss[ti] = rm_avgs[b_tid]*rm_DV3;
       __syncthreads();
       // Implemented just a simple non-optimized thread sum
-      for (unsigned int s=WID3/2; s>0; s>>=1) {
+      for (int s=WID3/2; s>0; s>>=1) {
          if (b_tid < s) {
             massloss[ti] += massloss[ti + s];
          }
@@ -776,7 +776,7 @@ namespace spatial_cell {
       const size_t reserveSize = populations[popID].reservation * BLOCK_ALLOCATION_FACTOR;
       size_t newReserve = populations[popID].reservation * BLOCK_ALLOCATION_PADDING;
       newReserve = ((newReserve /(WARPSPERBLOCK*GPUTHREADS))+2) * WARPSPERBLOCK * GPUTHREADS;
-      const int HashmapReqSize = ceil(log2(reserveSize));
+      const vmesh::LocalID HashmapReqSize = ceil(log2(reserveSize));
       gpuStream_t stream = gpu_getStream();
       // Now uses host-cached values
       // loop extraction requires extra buffer
