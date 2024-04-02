@@ -65,9 +65,11 @@ inline static void host_unregister(T* ptr){}
 template <reduce_op Op, uint NReductions, uint NDim, typename Lambda, typename T>
 inline static void parallel_reduce_driver(const uint (&limits)[1], Lambda loop_body, T *sum, const uint n_redu_dynamic) {
 
-  #pragma omp for
-  for (uint idx0 = 0; idx0 < limits[0]; ++idx0)
-    loop_body(idx0, sum);
+  uint idx[1];
+         
+  //#pragma omp for
+  for (idx[0] = 0; idx[0] < limits[0]; ++idx[0])
+    loop_body(idx[0], sum);
 
   (void) n_redu_dynamic;
 }
@@ -75,11 +77,13 @@ inline static void parallel_reduce_driver(const uint (&limits)[1], Lambda loop_b
 /* Parallel reduce driver function - specialization for 2D case */
 template <reduce_op Op, uint NReductions, uint NDim, typename Lambda, typename T, typename = typename std::enable_if<std::is_void<typename std::result_of<Lambda(uint, uint, T*)>::type>::value>::type>
 inline static void parallel_reduce_driver(const uint (&limits)[2], Lambda loop_body, T *sum, const uint n_redu_dynamic) {
-   
-  #pragma omp for collapse(2)
-  for (uint idx1 = 0; idx1 < limits[1]; ++idx1) 
-    for (uint idx0 = 0; idx0 < limits[0]; idx0 +=limits[0])
-      loop_body(idx0, idx1, sum);
+
+  uint idx[2];
+         
+  //#pragma omp for collapse(2)
+  for (idx[1] = 0; idx[1] < limits[1]; ++idx[1]) 
+    for (idx[0] = 0; idx[0] < limits[0]; ++idx[0])
+      loop_body(idx[0], idx[1], sum);
 
   (void) n_redu_dynamic;
 }
@@ -87,12 +91,14 @@ inline static void parallel_reduce_driver(const uint (&limits)[2], Lambda loop_b
 /* Parallel reduce driver function - specialization for 2D case with nested bodies */
 template <reduce_op Op, uint NReductions, uint NDim, typename Lambda, typename T, typename = typename std::enable_if<!std::is_void<typename std::result_of<Lambda(uint, uint, T*)>::type>::value>::type, typename = void>
 inline static void parallel_reduce_driver(const uint (&limits)[2], Lambda loop_body, T *sum, const uint n_redu_dynamic) {
-   
-  #pragma omp for //collapse(2)
-  for (uint idx1 = 0; idx1 < limits[1]; ++idx1) {
-    auto inner_loop = loop_body(idx1, idx1, sum);
-    for (uint idx0 = 0; idx0 < limits[0]; ++idx0)
-      inner_loop(idx0, idx1, sum);
+
+  uint idx[2];
+         
+  //#pragma omp for collapse(2)
+  for (idx[1] = 0; idx[1] < limits[1]; ++idx[1]) {
+    auto inner_loop = loop_body(idx[0], idx[1], sum);
+    for (idx[0] = 0; idx[0] < limits[0]; ++idx[0])
+      inner_loop(idx[0], idx[1], sum);
   }
   (void) n_redu_dynamic;
 }
@@ -100,12 +106,14 @@ inline static void parallel_reduce_driver(const uint (&limits)[2], Lambda loop_b
 /* Parallel reduce driver function - specialization for 3D case */
 template <reduce_op Op, uint NReductions, uint NDim, typename Lambda, typename T, typename = typename std::enable_if<std::is_void<typename std::result_of<Lambda(uint, uint, uint, T*)>::type>::value>::type>
 inline static void parallel_reduce_driver(const uint (&limits)[3], Lambda loop_body, T *sum, const uint n_redu_dynamic) {
- 
-  #pragma omp for collapse(3)
-  for (uint idx2 = 0; idx2 < limits[2]; ++idx2) 
-    for (uint idx1 = 0; idx1 < limits[1]; ++idx1) 
-      for (uint idx0 = 0; idx0 < limits[0]; ++idx0)
-        loop_body(idx0, idx1, idx2, sum);
+
+  uint idx[3];
+         
+  //#pragma omp for collapse(3)
+  for (idx[2] = 0; idx[2] < limits[2]; ++idx[2]) 
+    for (idx[1] = 0; idx[1] < limits[1]; ++idx[1]) 
+      for (idx[0] = 0; idx[0] < limits[0]; ++idx[0])
+        loop_body(idx[0], idx[1], idx[2], sum);
 
   (void) n_redu_dynamic;
 }
@@ -113,13 +121,15 @@ inline static void parallel_reduce_driver(const uint (&limits)[3], Lambda loop_b
 /* Parallel reduce driver function - specialization for 3D case with nested bodies */
 template <reduce_op Op, uint NReductions, uint NDim, typename Lambda, typename T, typename = typename std::enable_if<!std::is_void<typename std::result_of<Lambda(uint, uint, uint, T*)>::type>::value>::type, typename = void>
 inline static void parallel_reduce_driver(const uint (&limits)[3], Lambda loop_body, T *sum, const uint n_redu_dynamic) {
- 
-  #pragma omp for //collapse(3)
-  for (uint idx2 = 0; idx2 < limits[2]; ++idx2) {
-    auto inner_loop = loop_body(idx2, idx2, idx2, sum);
-    for (uint idx1 = 0; idx1 < limits[1]; ++idx1) 
-      for (uint idx0 = 0; idx0 < limits[0]; ++idx0)
-        inner_loop(idx0, idx1, idx2, sum);
+
+  uint idx[3];
+         
+  //#pragma omp for collapse(3)
+  for (idx[2] = 0; idx[2] < limits[2]; ++idx[2]) {
+    auto inner_loop = loop_body(idx[0], idx[1], idx[2], sum);
+    for (idx[1] = 0; idx[1] < limits[1]; ++idx[1]) 
+      for (idx[0] = 0; idx[0] < limits[0]; ++idx[0])
+        inner_loop(idx[0], idx[1], idx[2], sum);
   }
   (void) n_redu_dynamic;
 }
@@ -128,13 +138,14 @@ inline static void parallel_reduce_driver(const uint (&limits)[3], Lambda loop_b
 template <reduce_op Op, uint NReductions, uint NDim, typename Lambda, typename T, typename = typename std::enable_if<std::is_void<typename std::result_of<Lambda(uint, uint, uint, uint, T*)>::type>::value>::type>
 inline static void parallel_reduce_driver(const uint (&limits)[4], Lambda loop_body, T *sum, const uint n_redu_dynamic) {
 
-  #pragma omp for collapse(4)
-  for (uint idx3 = 0; idx3 < limits[3]; ++idx3){
-    for (uint idx2 = 0; idx2 < limits[2]; ++idx2) 
-      for (uint idx1 = 0; idx1 < limits[1]; ++idx1) 
-        for (uint idx0 = 0; idx0 < limits[0]; ++idx0)
-          loop_body(idx0, idx1, idx2, idx3, sum);
-  }
+  uint idx[4];
+         
+  //#pragma omp for collapse(4)
+  for (idx[3] = 0; idx[3] < limits[3]; ++idx[3]) 
+    for (idx[2] = 0; idx[2] < limits[2]; ++idx[2]) 
+      for (idx[1] = 0; idx[1] < limits[1]; ++idx[1]) 
+        for (idx[0] = 0; idx[0] < limits[0]; ++idx[0])
+          loop_body(idx[0], idx[1], idx[2], idx[3], sum);
 
   (void) n_redu_dynamic;
 }
@@ -143,13 +154,15 @@ inline static void parallel_reduce_driver(const uint (&limits)[4], Lambda loop_b
 template <reduce_op Op, uint NReductions, uint NDim, typename Lambda, typename T, typename = typename std::enable_if<!std::is_void<typename std::result_of<Lambda(uint, uint, uint, uint, T*)>::type>::value>::type, typename = void>
 inline static void parallel_reduce_driver(const uint (&limits)[4], Lambda loop_body, T *sum, const uint n_redu_dynamic) {
 
-  #pragma omp for //collapse(4)
-  for (uint idx3 = 0; idx3 < limits[3]; ++idx3) { 
-    auto inner_loop = loop_body(idx3, idx3, idx3, idx3, sum);
-    for (uint idx2 = 0; idx2 < limits[2]; ++idx2) 
-      for (uint idx1 = 0; idx1 < limits[1]; ++idx1) 
-        for (uint idx0 = 0; idx0 < limits[0]; ++idx0)
-          inner_loop(idx0, idx1, idx2, idx3, sum);
+  uint idx[4];
+         
+  //#pragma omp for collapse(4)
+  for (idx[3] = 0; idx[3] < limits[3]; ++idx[3]) { 
+    auto inner_loop = loop_body(idx[0], idx[1], idx[2], idx[3], sum);
+    for (idx[2] = 0; idx[2] < limits[2]; ++idx[2]) 
+      for (idx[1] = 0; idx[1] < limits[1]; ++idx[1]) 
+        for (idx[0] = 0; idx[0] < limits[0]; ++idx[0])
+          inner_loop(idx[0], idx[1], idx[2], idx[3], sum);
   } 
   (void) n_redu_dynamic;
 }
