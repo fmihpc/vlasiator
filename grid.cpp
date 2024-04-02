@@ -674,15 +674,17 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    }
    computeTimer.stop();
    
-   phiprof::Timer transferTimer {"Transfer with_content_list", {"MPI"}};
-   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_WITH_CONTENT_STAGE1 );
-   mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
-   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_WITH_CONTENT_STAGE2 );
-   mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
-   transferTimer.stop();
+   if (doPrepareToReceiveBlocks) {
+      // We are in the last substep of acceleration, so need to account for neighbours
+      phiprof::Timer transferTimer {"Transfer with_content_list", {"MPI"}};
+      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_WITH_CONTENT_STAGE1 );
+      mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
+      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_WITH_CONTENT_STAGE2 );
+      mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
+      transferTimer.stop();
+   }
    
    //Adjusts velocity blocks in local spatial cells, doesn't adjust velocity blocks in remote cells.
-
    phiprof::Timer adjustimer {"Adjusting blocks"};
    #pragma omp parallel for schedule(dynamic)
    for (size_t i=0; i<cellsToAdjust.size(); ++i) {
@@ -691,18 +693,22 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
       CellID cell_id=cellsToAdjust[i];
       SpatialCell* cell = mpiGrid[cell_id];
       
-      // gather spatial neighbor list and create vector with pointers to neighbor spatial cells
-      const auto* neighbors = mpiGrid.get_neighbors_of(cell_id, NEAREST_NEIGHBORHOOD_ID);
-      // Note: at AMR refinement boundaries this can cause blocks to propagate further than absolutely required
       vector<SpatialCell*> neighbor_ptrs;
-      neighbor_ptrs.reserve(neighbors->size());
-
-      for ( const auto& nbrPair : *neighbors) {
-         CellID neighbor_id = nbrPair.first;
-         if (neighbor_id == 0 || neighbor_id == cell_id) {
-            continue;
+      if (doPrepareToReceiveBlocks) {
+         // gather spatial neighbor list and gather vector with pointers to cells
+         // If we are within an acceleration substep prior to the last one,
+         // it's enough to adjust blocks based on local data only, and in
+         // that case we simply pass an empty list of pointers.
+         const auto* neighbors = mpiGrid.get_neighbors_of(cell_id, NEAREST_NEIGHBORHOOD_ID);
+         // Note: at AMR refinement boundaries this can cause blocks to propagate further
+         // than absolutely required. Face neighbours, however, are not enough as we must
+         // account for diagonal propagation.
+         neighbor_ptrs.reserve(neighbors->size());
+         for ( const auto& [neighbor_id, dir] : *neighbors) {
+            if (neighbor_id != 0) {
+               neighbor_ptrs.push_back(mpiGrid[neighbor_id]);
+            }
          }
-         neighbor_ptrs.push_back(mpiGrid[neighbor_id]);
       }
       if (getObjectWrapper().particleSpecies[popID].sparse_conserve_mass) {
          for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
@@ -1504,8 +1510,8 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    for (CellID id : newChildren) {
       *mpiGrid[id] = *mpiGrid[mpiGrid.get_parent(id)];
       // Irrelevant?
-      // mpiGrid[id]->parameters[CellParams::AMR_ALPHA] /= P::refineMultiplier;
-      mpiGrid[id]->parameters[CellParams::AMR_ALPHA] /= 2.0;
+      mpiGrid[id]->parameters[CellParams::AMR_ALPHA1] /= 2.0;
+      mpiGrid[id]->parameters[CellParams::AMR_ALPHA2] /= 2.0;
       mpiGrid[id]->parameters[CellParams::RECENTLY_REFINED] = 1;
    }
    copyChildrenTimer.stop(newChildren.size(), "Spatial cells");

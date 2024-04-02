@@ -71,8 +71,6 @@ Real P::fieldSolverMaxCFL = NAN;
 Real P::fieldSolverMinCFL = NAN;
 uint P::fieldSolverSubcycles = 1;
 
-bool P::amrTransShortPencils = false;
-
 uint P::tstep = 0;
 uint P::tstep_min = 0;
 uint P::tstep_max = 0;
@@ -156,18 +154,19 @@ Realf P::vamrRefineLimit = 1.0;
 Realf P::vamrCoarsenLimit = 0.5;
 string P::vamrVelRefCriterion = string("");
 
+bool P::amrTransShortPencils = false;
 int P::amrMaxSpatialRefLevel = 0;
 int P::amrMaxAllowedSpatialRefLevel = -1;
 bool P::adaptRefinement = false;
 bool P::refineOnRestart = false;
 bool P::forceRefinement = false;
 bool P::shouldFilter = false;
-bool P::useAlpha = true;
-Real P::alphaRefineThreshold = 0.5;
-Real P::alphaCoarsenThreshold = -1.0;
-bool P::useJPerB = true;
-Real P::jperbRefineThreshold = 0.5;
-Real P::jperbCoarsenThreshold = -1.0;
+bool P::useAlpha1 = true;
+Real P::alpha1RefineThreshold = 0.5;
+Real P::alpha1CoarsenThreshold = -1.0;
+bool P::useAlpha2 = true;
+Real P::alpha2RefineThreshold = 0.5;
+Real P::alpha2CoarsenThreshold = -1.0;
 Real P::alphaDRhoWeight = 1.0;
 Real P::alphaDUWeight = 1.0;
 Real P::alphaDPSqWeight = 1.0;
@@ -178,12 +177,14 @@ uint P::refineCadence = 5;
 Real P::refineAfter = 0.0;
 Real P::refineRadius = LARGE_REAL;
 int P::maxFilteringPasses = 0;
-uint P::amrBoxHalfWidthX = 1;
-uint P::amrBoxHalfWidthY = 1;
-uint P::amrBoxHalfWidthZ = 1;
-Realf P::amrBoxCenterX = 0.0;
-Realf P::amrBoxCenterY = 0.0;
-Realf P::amrBoxCenterZ = 0.0;
+int P::amrBoxNumber = 0;
+std::vector<uint> P::amrBoxHalfWidthX;
+std::vector<uint> P::amrBoxHalfWidthY;
+std::vector<uint> P::amrBoxHalfWidthZ;
+std::vector<Realf> P::amrBoxCenterX;
+std::vector<Realf> P::amrBoxCenterY;
+std::vector<Realf> P::amrBoxCenterZ;
+std::vector<int> P::amrBoxMaxLevel;
 vector<string> P::blurPassString;
 std::vector<int> P::numPasses; //numpasses
 
@@ -401,7 +402,7 @@ bool P::addParameters() {
                         "ig_electrontemp ig_solverinternals ig_upmappednodecoords ig_upmappedb ig_openclosed ig_potential "+
                         "ig_precipitation ig_deltaphi "+
                         "ig_inplanecurrent ig_b ig_e vg_drift vg_ionospherecoupling vg_connection vg_fluxrope fg_curvature "+
-                        "vg_amr_drho vg_amr_du vg_amr_dpsq vg_amr_dbsq vg_amr_db vg_amr_alpha vg_amr_reflevel vg_amr_jperb "+
+                        "vg_amr_drho vg_amr_du vg_amr_dpsq vg_amr_dbsq vg_amr_db vg_amr_alpha1 vg_amr_reflevel vg_amr_alpha2 "+
                         "vg_amr_translate_comm vg_gridcoordinates fg_gridcoordinates ");
 
    RP::addComposing(
@@ -485,12 +486,14 @@ bool P::addParameters() {
    RP::add("AMR.alpha1_dpsq_weight","Multiplier for delta p squared in alpha calculation", 1.0);
    RP::add("AMR.alpha1_dbsq_weight","Multiplier for delta B squared in alpha calculation", 1.0);
    RP::add("AMR.alpha1_db_weight","Multiplier for delta B in alpha calculation", 1.0);
-   RP::add("AMR.box_half_width_x", "Half width of the box that is refined (for testing)", (uint)1);
-   RP::add("AMR.box_half_width_y", "Half width of the box that is refined (for testing)", (uint)1);
-   RP::add("AMR.box_half_width_z", "Half width of the box that is refined (for testing)", (uint)1);
-   RP::add("AMR.box_center_x", "x coordinate of the center of the box that is refined (for testing)", 0.0);
-   RP::add("AMR.box_center_y", "y coordinate of the center of the box that is refined (for testing)", 0.0);
-   RP::add("AMR.box_center_z", "z coordinate of the center of the box that is refined (for testing)", 0.0);
+   RP::add("AMR.number_of_boxes", "How many boxes to be refined, that number of centers and sizes have to then be defined as well.", 0);
+   RP::addComposing("AMR.box_half_width_x", "Half width in x of the box that is refined");
+   RP::addComposing("AMR.box_half_width_y", "Half width in y of the box that is refined");
+   RP::addComposing("AMR.box_half_width_z", "Half width in z of the box that is refined");
+   RP::addComposing("AMR.box_center_x", "x coordinate of the center of the box that is refined");
+   RP::addComposing("AMR.box_center_y", "y coordinate of the center of the box that is refined");
+   RP::addComposing("AMR.box_center_z", "z coordinate of the center of the box that is refined");
+   RP::addComposing("AMR.box_max_level", "max refinement level of the box that is refined");
    RP::add("AMR.transShortPencils", "if true, use one-cell pencils", false);
    RP::addComposing("AMR.filterpasses", string("AMR filter passes for each individual refinement level"));
 
@@ -745,25 +748,25 @@ void Parameters::getParameters() {
    RP::get("AMR.refine_on_restart",P::refineOnRestart);
    RP::get("AMR.force_refinement",P::forceRefinement);
    RP::get("AMR.should_filter",P::shouldFilter);
-   RP::get("AMR.use_alpha1",P::useAlpha);
-   RP::get("AMR.alpha1_refine_threshold",P::alphaRefineThreshold);
-   RP::get("AMR.alpha1_coarsen_threshold",P::alphaCoarsenThreshold);
-   if (P::useAlpha && P::alphaCoarsenThreshold < 0) {
-      P::alphaCoarsenThreshold = P::alphaRefineThreshold / 2.0;
+   RP::get("AMR.use_alpha1",P::useAlpha1);
+   RP::get("AMR.alpha1_refine_threshold",P::alpha1RefineThreshold);
+   RP::get("AMR.alpha1_coarsen_threshold",P::alpha1CoarsenThreshold);
+   if (P::useAlpha1 && P::alpha1CoarsenThreshold < 0) {
+      P::alpha1CoarsenThreshold = P::alpha1RefineThreshold / 2.0;
    }
-   if (P::useAlpha && P::alphaRefineThreshold < 0) {
+   if (P::useAlpha1 && P::alpha1RefineThreshold < 0) {
       if (myRank == MASTER_RANK) {
          cerr << "ERROR invalid alpha_1 refine threshold" << endl;
       }
       MPI_Abort(MPI_COMM_WORLD, 1);
    }
-   RP::get("AMR.use_alpha2",P::useJPerB);
-   RP::get("AMR.alpha2_refine_threshold",P::jperbRefineThreshold);
-   RP::get("AMR.alpha2_coarsen_threshold",P::jperbCoarsenThreshold);
-   if (P::useJPerB && P::jperbCoarsenThreshold < 0) {
-      P::jperbCoarsenThreshold = P::jperbRefineThreshold / 2.0;
+   RP::get("AMR.use_alpha2",P::useAlpha2);
+   RP::get("AMR.alpha2_refine_threshold",P::alpha2RefineThreshold);
+   RP::get("AMR.alpha2_coarsen_threshold",P::alpha2CoarsenThreshold);
+   if (P::useAlpha2 && P::alpha2CoarsenThreshold < 0) {
+      P::alpha2CoarsenThreshold = P::alpha2RefineThreshold / 2.0;
    }
-   if (P::useJPerB && P::jperbRefineThreshold < 0) {
+   if (P::useAlpha2 && P::alpha2RefineThreshold < 0) {
       if (myRank == MASTER_RANK) {
          cerr << "ERROR invalid alpha_2 refine threshold" << endl;
       }
@@ -778,6 +781,8 @@ void Parameters::getParameters() {
    RP::get("AMR.alpha1_dpsq_weight", P::alphaDPSqWeight);
    RP::get("AMR.alpha1_dbsq_weight", P::alphaDBSqWeight);
    RP::get("AMR.alpha1_db_weight", P::alphaDBWeight);
+   RP::get("AMR.number_of_boxes", P::amrBoxNumber);
+   RP::get("AMR.box_max_level", P::amrBoxMaxLevel);
    RP::get("AMR.box_half_width_x", P::amrBoxHalfWidthX);
    RP::get("AMR.box_half_width_y", P::amrBoxHalfWidthY);
    RP::get("AMR.box_half_width_z", P::amrBoxHalfWidthZ);
@@ -786,6 +791,19 @@ void Parameters::getParameters() {
    RP::get("AMR.box_center_z", P::amrBoxCenterZ);
    RP::get("AMR.transShortPencils", P::amrTransShortPencils);
    RP::get("AMR.filterpasses", P::blurPassString);
+
+   // We need the correct number of parameters for the AMR boxes
+   if(   P::amrBoxNumber != (int)P::amrBoxHalfWidthX.size()
+      || P::amrBoxNumber != (int)P::amrBoxHalfWidthY.size()
+      || P::amrBoxNumber != (int)P::amrBoxHalfWidthZ.size()
+      || P::amrBoxNumber != (int)P::amrBoxCenterX.size()
+      || P::amrBoxNumber != (int)P::amrBoxCenterY.size()
+      || P::amrBoxNumber != (int)P::amrBoxCenterZ.size()
+      || P::amrBoxNumber != (int)P::amrBoxMaxLevel.size()
+   ) {
+      cerr << "AMR.number_of_boxes is set to " << P::amrBoxNumber << " so the same number of values is required for AMR.box_half_width_[xyz] and AMR.box_center_[xyz]." << endl;
+      MPI_Abort(MPI_COMM_WORLD, 1);
+   }
 
    // If we are in an AMR run we need to set up the filtering scheme.
    if (P::amrMaxSpatialRefLevel>0){

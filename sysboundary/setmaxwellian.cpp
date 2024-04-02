@@ -259,7 +259,7 @@ namespace SBC {
          
          //let's get rid of blocks not fulfilling the criteria here to save
          //memory.
-         templateCell.adjustSingleCellVelocityBlocks(popID);
+         templateCell.adjustSingleCellVelocityBlocks(popID,true);
       } // for-loop over particle species
       
       B[0] = Bx;

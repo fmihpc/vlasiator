@@ -265,7 +265,7 @@ namespace spatial_cell {
       bool add_velocity_block(const vmesh::GlobalID& block,const uint popID);
       void add_velocity_blocks(const std::vector<vmesh::GlobalID>& blocks,const uint popID);
       bool add_velocity_block_octant(const vmesh::GlobalID& blockGID,const uint popID);
-      void adjustSingleCellVelocityBlocks(const uint popID);
+      void adjustSingleCellVelocityBlocks(const uint popID, bool doDeleteEmpty=false);
       void adjust_velocity_blocks(const std::vector<SpatialCell*>& spatial_neighbors,
                                   const uint popID,
                                   bool doDeleteEmptyBlocks=true);

@@ -2,7 +2,15 @@
 	path = submodules/fsgrid
 	url = git@github.com:fmihpc/fsgrid.git
 
-
 [submodule "submodules/dccrg"]
 	path = submodules/dccrg
-	url = https://github.com/fmihpc/dccrg.git
+	url = git@github.com:fmihpc/dccrg.git
+	branch = vlasiator-version
+
+[submodule "submodules/vectorclass"]
+	path = submodules/vectorclass
+	url = https://github.com/vectorclass/version2
+
+[submodule "submodules/vectorclass-addon"]
+	path = submodules/vectorclass-addon
+	url = https://github.com/vectorclass/add-on

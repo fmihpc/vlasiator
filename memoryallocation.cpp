@@ -171,11 +171,11 @@ void report_process_memory_consumption(double extra_bytes){
          if (max_mem_papi[3] != 0.0) {
             logFile << "(MEM) Estimating increased high water mark from refinement" << endl;
          }
-         logFile << "(MEM) Resident per node (avg, min, max): " << sum_mem_papi[2]/nNodes/GiB << " " << min_mem_papi[2]/GiB << " "  << max_mem_papi[2]/GiB << endl;
-         logFile << "(MEM) High water mark per node                 (GiB) avg: " << sum_mem_papi[0]/nNodes/GiB << " min: " << min_mem_papi[0]/GiB << " max: "  << max_mem_papi[0]/GiB <<
+         logFile << "(MEM) tstep " << Parameters::tstep << " t " << Parameters::t << " Resident per node (avg, min, max): " << sum_mem_papi[2]/nNodes/GiB << " " << min_mem_papi[2]/GiB << " "  << max_mem_papi[2]/GiB << endl;
+         logFile << "(MEM) tstep " << Parameters::tstep << " t " << Parameters::t << " High water mark per node                 (GiB) avg: " << sum_mem_papi[0]/nNodes/GiB << " min: " << min_mem_papi[0]/GiB << " max: "  << max_mem_papi[0]/GiB <<
             " sum (TiB): " << sum_mem_papi[0]/TiB << " on "<< nNodes << " nodes" << endl;
          if(max_mem_papi[3] != 0.0) {
-            logFile << "(MEM) High water mark per node with refinement (GiB) avg: " << sum_mem_papi[1]/nNodes/GiB << " min: " << min_mem_papi[1]/GiB << " max: "  << max_mem_papi[1]/GiB <<
+            logFile << "(MEM) tstep " << Parameters::tstep << " t " << Parameters::t << " High water mark per node with refinement (GiB) avg: " << sum_mem_papi[1]/nNodes/GiB << " min: " << min_mem_papi[1]/GiB << " max: "  << max_mem_papi[1]/GiB <<
                " sum (TiB): " << sum_mem_papi[1]/TiB << " on "<< nNodes << " nodes" << endl;
          }
       }

@@ -91,6 +91,45 @@ void addTimedBarrier(string name){
    MPI_Barrier(MPI_COMM_WORLD);
 }
 
+
+/*! Report spatial cell counts per refinement level as well as velocity cell counts per population into logfile
+ */
+void report_cell_and_block_counts(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid){
+   cint maxRefLevel = mpiGrid.get_maximum_refinement_level();
+   const vector<CellID> localCells = getLocalCells();
+   cint popCount = getObjectWrapper().particleSpecies.size();
+
+   // popCount+1 as we store the spatial cell counts and then the populations' v_cell counts.
+   // maxRefLevel+1 as e.g. there's 2 levels at maxRefLevel == 1
+   std::vector<int64_t> localCounts((popCount+1)*(maxRefLevel+1), 0), globalCounts((popCount+1)*(maxRefLevel+1), 0);
+
+   for (const auto cellid : localCells) {
+      cint level = mpiGrid.get_refinement_level(cellid);
+      localCounts[level]++;
+      for(int pop=0; pop<popCount; pop++) {
+         localCounts[maxRefLevel+1 + level*popCount + pop] += mpiGrid[cellid]->get_number_of_velocity_blocks(pop);
+      }
+   }
+
+   MPI_Reduce(localCounts.data(), globalCounts.data(), (popCount+1)*(maxRefLevel+1), MPI_INT64_T, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
+
+   logFile << "(CELLS) tstep = " << P::tstep << " time = " << P::t << " spatial cells [ ";
+   for(int level = 0; level <= maxRefLevel; level++) {
+      logFile << globalCounts[level] << " ";
+   }
+   logFile << "] blocks ";
+   for(int pop=0; pop<popCount; pop++) {
+      logFile << getObjectWrapper().particleSpecies[pop].name << " [ ";
+      for(int level = 0; level <= maxRefLevel; level++) {
+         logFile << globalCounts[maxRefLevel+1 + level*popCount + pop] << " ";
+      }
+      logFile << "] ";
+   }
+   logFile << endl << flush;
+
+}
+
+
 void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 			FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, Real &newDt, bool &isChanged) {
 
@@ -844,15 +883,21 @@ int main(int argn,char* args[]) {
          beforeTime = MPI_Wtime();
          beforeSimulationTime=P::t;
          beforeStep=P::tstep;
-         //report_grid_memory_consumption(mpiGrid);
-         report_process_memory_consumption();
       }
       logFile << writeVerbose;
       loggingTimer.stop();
 
 // Check whether diagnostic output has to be produced
       if (P::diagnosticInterval != 0 && P::tstep % P::diagnosticInterval == 0) {
-         
+         phiprof::Timer memTimer {"memory-report"};
+         memTimer.start();
+         report_process_memory_consumption();
+         memTimer.stop();
+         phiprof::Timer cellTimer {"cell-count-report"};
+         cellTimer.start();
+         report_cell_and_block_counts(mpiGrid);
+         cellTimer.stop();
+
          phiprof::Timer diagnosticTimer {"diagnostic-io"};
          if (writeDiagnostic(mpiGrid, diagnosticReducer) == false) {
             if(myRank == MASTER_RANK)  cerr << "ERROR with diagnostic computation" << endl;
@@ -1012,14 +1057,18 @@ int main(int argn,char* args[]) {
             refineNow = false;
             if (!adaptRefinement(mpiGrid, technicalGrid, sysBoundaryContainer, *project)) {
                // OOM, rebalance and try again
-               logFile << "(LB) AMR ran out of memory, attempting to balance." << endl;
+               logFile << "(LB) AMR rebalancing with heavier refinement weights." << endl;
                globalflags::bailingOut = false; // Reset this
                for (auto id : mpiGrid.get_local_cells_to_refine()) {
                   mpiGrid[id]->parameters[CellParams::LBWEIGHTCOUNTER] *= 8.0;
                }
                balanceLoad(mpiGrid, sysBoundaryContainer);
+               // We can /= 8.0 now as cells have potentially migrated. Go back to block-based count for now.
                for (auto id : mpiGrid.get_local_cells_to_refine()) {
-                  mpiGrid[id]->parameters[CellParams::LBWEIGHTCOUNTER] /= 8.0;
+                  mpiGrid[id]->parameters[CellParams::LBWEIGHTCOUNTER] = 0;
+                  for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+                     mpiGrid[id]->parameters[CellParams::LBWEIGHTCOUNTER] += mpiGrid[id]->get_number_of_velocity_blocks(popID);
+                  }
                }
 
                mpiGrid.cancel_refining();
@@ -1038,6 +1087,7 @@ int main(int argn,char* args[]) {
             calculateSpatialTranslation(mpiGrid,0.0);
             calculateAcceleration(mpiGrid,0.0);
          }
+         // This now uses the block-based count just copied between the two refinement calls above.
          balanceLoad(mpiGrid, sysBoundaryContainer);
          addTimedBarrier("barrier-end-load-balance");
          phiprof::Timer shrinkTimer {"Shrink_to_fit"};

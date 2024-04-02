@@ -1,4 +1,3 @@
-# -*- mode: makefile -*-
 CMP = mpic++
 LNK = mpic++
 
@@ -12,35 +11,25 @@ LNK = mpic++
 
 ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
 #Single-precision        
-	VECTORCLASS = VEC8F_AGNER
+	#VECTORCLASS = VEC_FALLBACK_GENERIC
+	#VECTORCLASS = VEC8F_AGNER
+	VECTORCLASS = VEC8F_FALLBACK
 else
 #Double-precision
-	VECTORCLASS = VEC4D_AGNER
+	#VECTORCLASS = VEC4D_AGNER
+	#VECTORCLASS = VEC_FALLBACK_GENERIC
+	VECTORCLASS = VEC8D_FALLBACK
 endif
-
-FLAGS = 
-
-#GNU flags:
-CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -fabi-version=0 -mavx2
-testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -fabi-version=0  -mavx
-
-MATHFLAGS = -ffast-math -fno-finite-math-only
-testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
-
-LDFLAGS = -g
-LIB_MPI = -lgomp
 
 #======== PAPI ==========
 #Add PAPI_MEM define to use papi to report memory consumption?
-CXXFLAGS +=  -DPAPI_MEM
-testpackage: CXXFLAGS +=  -DPAPI_MEM
+#CXXFLAGS +=  -DPAPI_MEM   # Papi does not work on MacOS, see https://stackoverflow.com/questions/69531604/installing-papi-on-macos
 
 
 #======== Allocator =========
 #Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
 #Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
 CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
-testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 
 #======= Compiler and compilation flags =========
@@ -55,39 +44,42 @@ testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 #                         errors that come up when using 
 #                         mpi.h in c++ on Cray
 
-CXXFLAGS += -DMPICH_IGNORE_CXX_SEEK
-testpackage: CXXFLAGS += -DMPICH_IGNORE_CXX_SEEK
+FLAGS =
+CXXFLAGS += -I ${GITHUB_WORKSPACE}/libraries-appleM1/include -I/opt/homebrew/opt/llvm/include -I/opt/homebrew/opt/libomp/include -march=native -O3 -std=c++17 -fopenmp -Wall -Wno-unused -g 
+MATHFLAGS = # -ffast-math -fno-finite-math-only
+testpackage: MATHFLAGS = # -fno-unsafe-math-optimizations
+LDFLAGS = -fopenmp -L/opt/homebrew/opt/llvm/lib -L/opt/homebrew/opt/libomp/lib -L/opt/homebrew/opt/llvm/lib/c++ -g
+LIB_MPI = 
 
-# BOOST_VERSION = current trilinos version
-# ZOLTAN_VERSION = current trilinos verson
 
 #======== Libraries ===========
 
-LIBRARY_PREFIX = /home/lib
+LIBRARY_PREFIX = ${GITHUB_WORKSPACE}/libraries-appleM1
 
+INC_BOOST = -I /opt/homebrew/Cellar/boost/latest/include
+LIB_BOOST = -L /opt/homebrew/Cellar/boost/latest/lib -lboost_program_options
 
-#compiled libraries
-INC_BOOST = -I$/usr/include/boost
-LIB_BOOST = -L$/usr/lib/x86_64-linux-gnu -lboost_program_options
+INC_JEMALLOC = -I $(LIBRARY_PREFIX)/include
+LIB_JEMALLOC = $(LIBRARY_PREFIX)/lib/libjemalloc.a
 
-INC_ZOLTAN = -I$(LIBRARY_PREFIX)/zoltan/include
-LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/zoltan/lib -lzoltan
+INC_ZOLTAN =
+LIB_ZOLTAN = -lzoltan
 
-INC_JEMALLOC = -I$(LIBRARY_PREFIX)/jemalloc/include
-LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/jemalloc/lib -ljemalloc
+INC_VLSV = -I $(LIBRARY_PREFIX)/include
+LIB_VLSV = -L $(LIBRARY_PREFIX)/lib -lvlsv
 
-INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv
-LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv
+INC_SILO =
+LIB_SILO = -lsiloh5
 
-INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof-2.0-beta/include
-LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof-2.0-beta/lib -lphiprof
+INC_PAPI =
+LIB_PAPI =
 
-INC_PAPI = -I$(LIBRARY_PREFIX)/papi/include
-LIB_PAPI = -L$(LIBRARY_PREFIX)/papi/lib -lpapi
-
-#header libraries
-
-INC_EIGEN = -I/usr/include/eigen3
 INC_DCCRG = -I./submodules/dccrg
-INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/
+
 INC_FSGRID = -I./submodules/fsgrid
+
+LIB_PROFILE = -I $(LIBRARY_PREFIX)/include ${LIBRARY_PREFIX}/lib/libphiprof.a
+INC_PROFILE =
+INC_TOPO =
+
+INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/
