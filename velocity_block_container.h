@@ -645,9 +645,7 @@ namespace vmesh {
          resize(1,stream); // alters capacity only by adding the first argument
          #else
          const vmesh::LocalID currentCapacity = block_data->capacity()/WID3;
-         if (newSize > currentCapacity) {
-            assert(0 && "ERROR! Attempting to grow block container on-device beyond capacity (::push_back N_blocks).");
-         }
+         assert(newSize <= currentCapacity && "ERROR! Attempting to grow block container on-device beyond capacity (::push_back N_blocks).");
          block_data->device_resize((newSize)*WID3);
          parameters->device_resize((newSize)*BlockParams::N_VELOCITY_BLOCK_PARAMS);
          #endif

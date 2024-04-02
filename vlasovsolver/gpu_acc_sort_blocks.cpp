@@ -349,7 +349,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
    // Ensure at least one launch block
    uint nGpuBlocks  = (nBlocks/GPUTHREADS) > GPUBLOCKS ? GPUBLOCKS : std::ceil((Real)nBlocks/(Real)GPUTHREADS);
 
-   phiprof::Timer calcTimer {"calc new dimension id"};
+   //phiprof::Timer calcTimer {"calc new dimension id"};
    // Map blocks to new dimensionality
    switch( dimension ) {
       case 0: {
@@ -383,8 +383,9 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
          printf("Incorrect dimension in gpu_acc_sort_blocks.cpp\n");
    }
    CHK_ERR( gpuPeekAtLastError() );
-   SSYNC;
-   calcTimer.stop();
+   CHK_ERR( gpuStreamSynchronize(stream) );
+   //SSYNC;
+   //calcTimer.stop();
 
    phiprof::Timer sortTimer {"CUB sort"};
    // Determine temporary device storage requirements
@@ -405,10 +406,9 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
    #endif
    CHK_ERR( gpuPeekAtLastError() );
 
-   phiprof::Timer cubAllocTimer {"cub alloc"};
+   //phiprof::Timer cubAllocTimer {"cub alloc"};
    gpu_acc_allocate_radix_sort(temp_storage_bytes,cpuThreadID,stream);
-   SSYNC;
-   cubAllocTimer.stop();
+   //cubAllocTimer.stop();
 
    // Now sort
    #ifdef __CUDACC__
@@ -424,11 +424,11 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
                                    0, sizeof(vmesh::GlobalID)*8, stream);
    #endif
    CHK_ERR( gpuPeekAtLastError() );
-   SSYNC;
+   CHK_ERR( gpuStreamSynchronize(stream) );
    sortTimer.stop();
 
    // Gather GIDs in order
-   phiprof::Timer reorderTimer {"reorder GIDs"};
+   //phiprof::Timer reorderTimer {"reorder GIDs"};
    order_GIDs_kernel<<<nGpuBlocks, GPUTHREADS, 0, stream>>> (
       vmesh,
       blocksLID,
@@ -437,9 +437,9 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
       columnData // Pass this just to clear it on device
       );
    CHK_ERR( gpuPeekAtLastError() );
-   reorderTimer.stop();
+   //reorderTimer.stop();
 
-   phiprof::Timer scanTimer {"scan for column block counts"};
+   //phiprof::Timer scanTimer {"scan for column block counts"};
    scan_blocks_for_columns_kernel<<<nGpuBlocks, GPUTHREADS, 0, stream>>> (
       vmesh,
       dimension,
@@ -448,9 +448,9 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
       nBlocks
       );
    CHK_ERR( gpuPeekAtLastError() );
-   scanTimer.stop();
+   //scanTimer.stop();
 
-   phiprof::Timer constructTimer {"construct columns"};
+   //phiprof::Timer constructTimer {"construct columns"};
    // Construct columns. To ensure order,
    // these are done serially, but still form within a kernel.
    construct_columns_kernel<<<1, GPUTHREADS, 0, stream>>> (
@@ -462,8 +462,8 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
       nBlocks
       );
    CHK_ERR( gpuPeekAtLastError() );
-   SSYNC;
-   constructTimer.stop();
+   //SSYNC;
+   //constructTimer.stop();
    // printf("\n Output for dimension %d ",dimension);
    // printf("\nColumnBlockOffsets %d\n", columnData->columnBlockOffsets.size());
    // //for (auto i : columnData->columnBlockOffsets) printf("%d ",i);

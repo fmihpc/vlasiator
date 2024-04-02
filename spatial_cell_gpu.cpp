@@ -223,6 +223,63 @@ __global__ void __launch_bounds__(GPUTHREADS,4) update_blockparameters_kernel (
    }
 }
 
+/** Mini-kernel for checking list sizes and attempting to adjust vmesh and VBC size on-device */
+__global__ void resize_vbc_kernel_pre(
+   vmesh::VelocityMesh *vmesh,
+   vmesh::VelocityBlockContainer *blockContainer,
+   split::SplitVector<vmesh::GlobalID>* list_with_replace_new,
+   split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>* list_delete,
+   split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>* list_to_replace,
+   split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>* list_with_replace_old,
+   vmesh::LocalID* returnLID, // return values: nbefore, nafter, nblockstochange, resize success
+   Realf* gpu_rhoLossAdjust // mass loss, set to zero
+   ) {
+   const vmesh::LocalID n_to_replace = list_to_replace->size(); // replace these blocks
+   const vmesh::LocalID n_with_replace_new = list_with_replace_new->size(); // use to replace, or add at end
+   const vmesh::LocalID n_with_replace_old = list_with_replace_old->size(); // use to replace
+   const vmesh::LocalID n_to_delete = list_delete->size(); // delete from end
+
+   const vmesh::LocalID nBlocksBeforeAdjust = vmesh->size();
+   //const vmesh::LocalID nBlocksAfterAdjust = nBlocksBeforeAdjust + n_with_replace_new - n_to_delete;
+   //const vmesh::LocalID nBlocksToChange = n_with_replace_new + n_with_replace_old + n_to_delete;
+
+   // DEBUG
+   const vmesh::LocalID nToAdd = list_with_replace_new->size();
+   const vmesh::LocalID nToRemove = list_delete->size() + list_to_replace->size();
+   const vmesh::LocalID nBlocksAfterAdjust = nBlocksBeforeAdjust + nToAdd - nToRemove;
+   //const vmesh::LocalID nBlocksToChange = n_with_replace_new + n_with_replace_old + n_to_delete;
+   //OR?
+   const vmesh::LocalID nBlocksToChange = nToAdd > nToRemove ? nToAdd : nToRemove;
+
+   gpu_rhoLossAdjust[0] = 0.0;
+   returnLID[0] = nBlocksBeforeAdjust;
+   returnLID[1] = nBlocksAfterAdjust;
+   returnLID[2] = nBlocksToChange;
+   // Should we grow the size?
+   if (nBlocksAfterAdjust > nBlocksBeforeAdjust) {
+      if ((nBlocksAfterAdjust <= vmesh->capacity()) && (nBlocksAfterAdjust <= blockContainer->capacity())) {
+         returnLID[3] = 1; // Resize on-device will work.
+         vmesh->device_setNewSize(nBlocksAfterAdjust);
+         blockContainer->setNewSize(nBlocksAfterAdjust);
+      } else {
+         returnLID[3] = 0; // Need to recapacitate and resize from host
+      }
+   } else {
+      // No error as no resize.
+      returnLID[3] = 1;
+   }
+}
+
+/** Mini-kernel for adjusting vmesh and VBC size on-device aftewards (shrink only) */
+__global__ void resize_vbc_kernel_post(
+   vmesh::VelocityMesh *vmesh,
+   vmesh::VelocityBlockContainer *blockContainer,
+   vmesh::LocalID nBlocksAfterAdjust
+   ) {
+   vmesh->device_setNewSize(nBlocksAfterAdjust);
+   blockContainer->setNewSize(nBlocksAfterAdjust);
+}
+
 /** GPU kernel for updating blocks based on generated lists */
 __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
    vmesh::VelocityMesh *vmesh,
@@ -799,7 +856,7 @@ namespace spatial_cell {
 
       // Evaluate velocity halo for local content blocks
       if (velocity_block_with_content_list_size>0) {
-         phiprof::Timer blockHaloTimer {"Block halo kernel"};
+         //phiprof::Timer blockHaloTimer {"Block halo kernel"};
          //nGpuBlocks = velocity_block_with_content_list_size > GPUBLOCKS ? GPUBLOCKS : velocity_block_with_content_list_size;
          const int addWidthV = getObjectWrapper().particleSpecies[popID].sparseBlockAddWidthV;
          if (addWidthV!=1) {
@@ -818,8 +875,8 @@ namespace spatial_cell {
             map_add
             );
          CHK_ERR( gpuPeekAtLastError() );
-         CHK_ERR( gpuStreamSynchronize(stream) );
-         blockHaloTimer.stop();
+         //CHK_ERR( gpuStreamSynchronize(stream) );
+         //blockHaloTimer.stop();
       }
 
       // Gather pointers and counts from neighbours
@@ -849,7 +906,7 @@ namespace spatial_cell {
          CHK_ERR( gpuMallocAsync((void**)&dev_neigh_Nvbwcls, neighbours_count*sizeof(vmesh::LocalID), stream) );
          CHK_ERR( gpuMemcpyAsync(dev_neigh_vbwcls, neigh_vbwcls.data(), neighbours_count*sizeof(vmesh::GlobalID*), gpuMemcpyHostToDevice, stream) );
          CHK_ERR( gpuMemcpyAsync(dev_neigh_Nvbwcls, neigh_Nvbwcls.data(), neighbours_count*sizeof(vmesh::LocalID), gpuMemcpyHostToDevice, stream) );
-         phiprof::Timer neighHaloTimer {"Neighbour halo kernel"};
+         //phiprof::Timer neighHaloTimer {"Neighbour halo kernel"};
          // For NVIDIA/CUDA, we dan do 26 neighbours and 32 threads per warp in a single block.
          // For AMD/HIP, we dan do 13 neighbours and 64 threads per warp in a single block, meaning two loops per cell.
          // This is managed in-kernel.
@@ -884,16 +941,9 @@ namespace spatial_cell {
                CHK_ERR( gpuPeekAtLastError() );
             }
          }
-         CHK_ERR( gpuStreamSynchronize(stream) );
-         neighHaloTimer.stop();
+         //CHK_ERR( gpuStreamSynchronize(stream) );
+         //neighHaloTimer.stop();
       }
-
-      // Now we need to know what is going to be the vmesh size after adjustment.
-      // GPUTODO: Do with metadata prefetches
-      const vmesh::LocalID nBeforeAdjust = populations[popID].vmesh->size();
-      const vmesh::LocalID nToRemove = velocity_block_with_no_content_map->size();
-      const vmesh::LocalID nToAdd = map_add->size();
-      const vmesh::LocalID nAfterAdjust = nBeforeAdjust + nToAdd - nToRemove;
 
       // Now extract vectors to be used in actual block adjustment
       // Previous kernels may have added dummy (to be added) entries to
@@ -902,7 +952,7 @@ namespace spatial_cell {
 
       /** Rules used in extracting keys or elements from hashmaps
           Now these include passing pointers to GPU memory in order to evaluate
-          nAfterAdjust without going via host. Pointers are copied by value.
+          nBlocksAfterAdjust without going via host. Pointers are copied by value.
        */
       vmesh::GlobalID EMPTYBUCKET = std::numeric_limits<vmesh::GlobalID>::max();
       vmesh::GlobalID TOMBSTONE = EMPTYBUCKET - 1;
@@ -910,21 +960,21 @@ namespace spatial_cell {
 
       auto rule_delete_move = [EMPTYBUCKET, TOMBSTONE, vbwncm, map_add, dev_vmesh]
          __host__ __device__(const Hashinator::hash_pair<vmesh::GlobalID, vmesh::LocalID>& kval) -> bool {
-                                 const vmesh::LocalID nAfterAdjust1 = dev_vmesh->size()
+                                 const vmesh::LocalID nBlocksAfterAdjust1 = dev_vmesh->size()
                                     + map_add->size() - vbwncm->size();
                                  return kval.first != EMPTYBUCKET &&
                                     kval.first != TOMBSTONE &&
                                     kval.first != dev_vmesh->invalidGlobalID() &&
-                                    kval.second >= nAfterAdjust1 &&
+                                    kval.second >= nBlocksAfterAdjust1 &&
                                     kval.second != dev_vmesh->invalidLocalID(); };
       auto rule_to_replace = [EMPTYBUCKET, TOMBSTONE, vbwncm, map_add, dev_vmesh]
          __host__ __device__(const Hashinator::hash_pair<vmesh::GlobalID, vmesh::LocalID>& kval) -> bool {
-                                 const vmesh::LocalID nAfterAdjust2 = dev_vmesh->size()
+                                 const vmesh::LocalID nBlocksAfterAdjust2 = dev_vmesh->size()
                                     + map_add->size() - vbwncm->size();
                                  return kval.first != EMPTYBUCKET &&
                                     kval.first != TOMBSTONE &&
                                     kval.first != dev_vmesh->invalidGlobalID() &&
-                                    kval.second < nAfterAdjust2 &&
+                                    kval.second < nBlocksAfterAdjust2 &&
                                     kval.second != dev_vmesh->invalidLocalID(); };
 
       velocity_block_with_content_map->extractPatternLoop(*list_with_replace_old, rule_delete_move, stream);
@@ -933,18 +983,14 @@ namespace spatial_cell {
       map_add->extractAllKeysLoop(*list_with_replace_new,stream);
       // Note:list_with_replace_new contains both new GIDs to use for replacements and new GIDs to place at end of vmesh
 
-      // Also figure out how many elements to act on in the kernel
-      // GPUTODO: Do with metadata prefetches, or get rid of in some other way?
-      const vmesh::LocalID nBlocksToChange = nToAdd > nToRemove ? nToAdd : nToRemove;
-
       // Actual adjustment calling happens in separate function as it is also called from within acceleration
-      adjust_velocity_blocks_caller(popID, cpuThreadID, nBeforeAdjust, nBlocksToChange, nAfterAdjust);
+      vmesh::LocalID nBlocksAfterAdjust = adjust_velocity_blocks_caller(popID);
 
       // Perform hashmap cleanup here (instead of at acceleration mid-steps)
-      //phiprof::Timer cleanupTimer {"Hashinator cleanup"};
+      phiprof::Timer cleanupTimer {"Hashinator cleanup"};
       populations[popID].vmesh->gpu_cleanHashMap(stream);
       populations[popID].Upload();
-      //cleanupTimer.stop();
+      cleanupTimer.stop();
 
       #ifdef DEBUG_SPATIAL_CELL
       const size_t vmeshSize = (populations[popID].vmesh)->size();
@@ -964,31 +1010,50 @@ namespace spatial_cell {
    /**
       Call GPU kernel with all necessary information for creation and deletion of blocks.
    **/
-   void SpatialCell::adjust_velocity_blocks_caller(
-      const uint popID,
-      const uint cpuThreadID,
-      const vmesh::LocalID nBlocksBeforeAdjust,
-      const vmesh::LocalID nBlocksToChange,
-      const vmesh::LocalID nBlocksAfterAdjust) {
-      if (nBlocksToChange==0) {
-         return;
-      }
+   vmesh::LocalID SpatialCell::adjust_velocity_blocks_caller(const uint popID) {
       phiprof::Timer addRemoveTimer {"GPU add and remove blocks"};
+      Realf host_rhoLossAdjust = 0;
+      vmesh::LocalID host_returnLID[4];
 
-      //const uint cpuThreadID = gpu_getThread();
+      const uint cpuThreadID = gpu_getThread();
       const gpuStream_t stream = gpu_getStream();
       // populations[popID].vmesh->print();
-      // Grow the vmesh and block container, if necessary
-      if (nBlocksAfterAdjust > nBlocksBeforeAdjust) {
+      // Grow the vmesh and block container, if necessary. Try performing this on-device, if possible.
+      phiprof::Timer preparationTimer {"GPU resize mesh on-device"};
+      resize_vbc_kernel_pre<<<1, 1, 0, stream>>> (
+         populations[popID].dev_vmesh,
+         populations[popID].dev_blockContainer,
+         gpu_list_with_replace_new[cpuThreadID],
+         gpu_list_delete[cpuThreadID],
+         gpu_list_to_replace[cpuThreadID],
+         gpu_list_with_replace_old[cpuThreadID],
+         returnLID[cpuThreadID], // return values: nbefore, nafter, nblockstochange, resize success
+         returnRealf[cpuThreadID] // mass loss, set to zero
+         );
+      CHK_ERR( gpuPeekAtLastError() );
+      CHK_ERR( gpuMemcpyAsync(&host_returnLID[0], returnLID[cpuThreadID], 4*sizeof(vmesh::LocalID), gpuMemcpyDeviceToHost, stream) );
+      CHK_ERR( gpuStreamSynchronize(stream) );
+      // Grow mesh if necessary and on-device resize did not work??
+      const vmesh::LocalID nBlocksBeforeAdjust = host_returnLID[0];
+      const vmesh::LocalID nBlocksAfterAdjust = host_returnLID[1];
+      const vmesh::LocalID nBlocksToChange = host_returnLID[2];
+      const vmesh::LocalID resizeDevSuccess = host_returnLID[3];
+      preparationTimer.stop();
+      if ( (nBlocksAfterAdjust > nBlocksBeforeAdjust) && (resizeDevSuccess == 0)) {
+         //GPUTODO is _FACTOR enough instead of _PADDING?
+         phiprof::Timer preparationHostTimer {"GPU resize mesh on host"};
+         populations[popID].vmesh->setNewCapacity(nBlocksAfterAdjust*BLOCK_ALLOCATION_PADDING);
+         populations[popID].blockContainer->setNewSize(nBlocksAfterAdjust*BLOCK_ALLOCATION_PADDING);
          populations[popID].vmesh->setNewSize(nBlocksAfterAdjust);
          populations[popID].blockContainer->setNewSize(nBlocksAfterAdjust);
          populations[popID].Upload();
       }
 
-      phiprof::Timer addRemoveKernelTimer {"GPU add and remove blocks kernel"};
-      CHK_ERR( gpuMemsetAsync(returnRealf[cpuThreadID], 0, sizeof(Realf), stream) );
-      // How about instead: buffer of size n_delete + n_to_replace, compact values
+      if (nBlocksToChange==0) {
+         return;
+      }
 
+      phiprof::Timer addRemoveKernelTimer {"GPU add and remove blocks kernel"};
       // Each GPU block / workunit could manage several Vlasiator velocity blocks at once.
       // However, thread syncs inside the kernel prevent this.
       // const uint vlasiBlocksPerWorkUnit = WARPSPERBLOCK * GPUTHREADS / WID3;
@@ -1012,17 +1077,22 @@ namespace spatial_cell {
          returnRealf[cpuThreadID] // mass loss
          );
       CHK_ERR( gpuPeekAtLastError() );
-      Realf host_rhoLossAdjust = 0;
       CHK_ERR( gpuMemcpyAsync(&host_rhoLossAdjust, returnRealf[cpuThreadID], sizeof(Realf), gpuMemcpyDeviceToHost, stream) );
       CHK_ERR( gpuStreamSynchronize(stream) );
       this->populations[popID].RHOLOSSADJUST += host_rhoLossAdjust;
       addRemoveKernelTimer.stop();
 
       // Shrink the vmesh and block container, if necessary
-      if (nBlocksAfterAdjust <= nBlocksBeforeAdjust) {
-         // Should not re-allocate on shrinking
-         populations[popID].vmesh->setNewSize(nBlocksAfterAdjust);
-         populations[popID].blockContainer->setNewSize(nBlocksAfterAdjust);
+      if (nBlocksAfterAdjust < nBlocksBeforeAdjust) {
+         // Should not re-allocate on shrinking, so do on-device
+         phiprof::Timer preparationTimer {"GPU resize mesh on-device"};
+         resize_vbc_kernel_post<<<1, 1, 0, stream>>> (
+            populations[popID].dev_vmesh,
+            populations[popID].dev_blockContainer,
+            nBlocksAfterAdjust
+            );
+         CHK_ERR( gpuPeekAtLastError() );
+         CHK_ERR( gpuStreamSynchronize(stream) );
       }
 
       // DEBUG output after kernel
@@ -1041,6 +1111,7 @@ namespace spatial_cell {
          populations[popID].vmesh->gpu_prefetchDevice();
       }
       #endif
+      return nBlocksAfterAdjust;
    }
 
    void SpatialCell::adjustSingleCellVelocityBlocks(const uint popID, bool doDeleteEmpty) {
@@ -1103,6 +1174,7 @@ namespace spatial_cell {
       CHK_ERR( gpuPeekAtLastError() );
 
       // Now extract values from the map
+      std::cerr<<velocity_block_with_content_list->capacity()<<std::endl;
       velocity_block_with_content_map->extractAllKeysLoop(*velocity_block_with_content_list,stream);
       // GPUTODO: get size via metadata copy?
       CHK_ERR( gpuStreamSynchronize(stream) );
@@ -1110,6 +1182,7 @@ namespace spatial_cell {
    }
 
    void SpatialCell::prefetchDevice() {
+
       for (size_t p=0; p<populations.size(); ++p) {
          populations[p].vmesh->gpu_prefetchDevice();
          populations[p].blockContainer->gpu_prefetchDevice();

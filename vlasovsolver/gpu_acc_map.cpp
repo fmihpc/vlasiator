@@ -135,13 +135,13 @@ __global__ void __launch_bounds__(GPUTHREADS,4) identify_block_offsets_kernel(
    const vmesh::VelocityMesh* vmesh,
    Column *columns,
    const uint totalColumns,
-   const uint blockDataSize,
    uint *gpu_block_indices_to_id
    ) {
    const uint gpuBlocks = gridDim.x * gridDim.y * gridDim.z;
    const uint warpSize = blockDim.x * blockDim.y * blockDim.z;
    const uint blocki = blockIdx.z*gridDim.x*gridDim.y + blockIdx.y*gridDim.x + blockIdx.x;
    const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
+   const uint blockDataSize = vmesh->size();
 
    for (uint iColumn = blocki; iColumn < totalColumns; iColumn += gpuBlocks) {
       for (uint blockK = (uint)columns[iColumn].minBlockK; blockK <= (uint)columns[iColumn].maxBlockK; blockK += warpSize) {
@@ -591,8 +591,8 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    vmesh::VelocityBlockContainer* dev_blockContainer = spatial_cell->dev_get_velocity_blocks(popID);
 
    //nothing to do if no blocks
-   vmesh::LocalID nBeforeAdjust = vmesh->size();
-   if (nBeforeAdjust == 0) {
+   vmesh::LocalID nBlocksBeforeAdjust = vmesh->size();
+   if (nBlocksBeforeAdjust == 0) {
       return true;
    }
 
@@ -678,6 +678,17 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    CHK_ERR( gpuMemcpyAsync(gpu_cell_indices_to_id[cpuThreadID], cell_indices_to_id, 3*sizeof(uint), gpuMemcpyHostToDevice, stream) );
    CHK_ERR( gpuMemcpyAsync(gpu_block_indices_to_id[cpuThreadID], block_indices_to_id, 3*sizeof(uint), gpuMemcpyHostToDevice, stream) );
 
+   // Ensure allocations
+   spatial_cell->setReservation(popID, nBlocksBeforeAdjust);
+   spatial_cell->applyReservation(popID);
+   gpu_blockadjust_allocate_perthread(cpuThreadID,spatial_cell->getReservation(popID)*2);
+   // Re-use maps from cell itself
+   Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *map_require = spatial_cell->velocity_block_with_content_map;
+   Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *map_remove = spatial_cell->velocity_block_with_no_content_map;
+   // GPUTODO: Instead of a vector with push_backs, could use map_add? Perhaps not worth it.
+   // Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *map_add = gpu_map_add[cpuThreadID];
+   // map_add->clear(Hashinator::targets::device,stream,false);
+
    // pointers to device memory buffers
    vmesh::GlobalID *GIDlist = gpu_GIDlist[cpuThreadID];
    vmesh::LocalID *LIDlist = gpu_LIDlist[cpuThreadID];
@@ -690,8 +701,6 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    ColumnOffsets *columnData = gpu_columnOffsetData[cpuThreadID];
    //columnData->prefetchDevice(stream);
 
-   // Ensure allocations
-   gpu_blockadjust_allocate_perthread(cpuThreadID,nBeforeAdjust*2);
    // These splitvectors are in unified memory
    split::SplitVector<vmesh::GlobalID> *list_with_replace_new = gpu_list_with_replace_new[cpuThreadID];
    split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>* list_delete = gpu_list_delete[cpuThreadID];
@@ -701,12 +710,12 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
 
    // Call function for sorting block list and building columns from it.
    // Can probably be further optimized.
-   //phiprof::Timer sortTimer {"sortBlockList"};
+   phiprof::Timer sortTimer {"sortBlockList"};
    //gpuStream_t priorityStream = gpu_getPriorityStream();
    CHK_ERR( gpuMemsetAsync(columnNBlocks, 0, gpu_acc_columnContainerSize*sizeof(vmesh::LocalID), stream) );
    //CHK_ERR( gpuStreamSynchronize(stream) ); // Yes needed because we use priority stream for block list sorting
    sortBlocklistByDimension(dev_vmesh,
-                            nBeforeAdjust,
+                            nBlocksBeforeAdjust,
                             dimension,
                             BlocksID_mapped,
                             BlocksID_mapped_sorted,
@@ -718,8 +727,8 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
                             cpuThreadID,
                             stream
       );
-   //CHK_ERR( gpuStreamSynchronize(stream) ); // Yes needed to get column data back to regular stream
-   //sortTimer.stop();
+   CHK_ERR( gpuStreamSynchronize(stream) ); // Yes needed to get column data back to regular stream
+   sortTimer.stop();
 
    // Calculate total sum of columns and total values size
    phiprof::Timer countTimer {"count columns"};
@@ -762,7 +771,7 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       host_valuesSizeRequired
       );
    CHK_ERR( gpuPeekAtLastError() );
-   //SSYNC;
+   //CHK_ERR( gpuStreamSynchronize(stream) );
    //storeTimer.stop();
 
    //phiprof::Timer reorderTimer {"Reorder blocks by dimension"};
@@ -777,20 +786,8 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       columnData
       );
    CHK_ERR( gpuPeekAtLastError() );
-   //SSYNC;
-   //reorderTimer.stop();
    //CHK_ERR( gpuStreamSynchronize(stream) );
-
-   // Make sure the buffers and vectors are large enough
-   // GPUTODO use thread-specific
-   spatial_cell->setReservation(popID, nBeforeAdjust);
-   spatial_cell->applyReservation(popID);
-   // Re-use maps from cell itself
-   Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *map_require = spatial_cell->velocity_block_with_content_map;
-   Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *map_remove = spatial_cell->velocity_block_with_no_content_map;
-   // GPUTODO: Instead of a vector with push_backs, could use map_add
-   // Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *map_add = gpu_map_add[cpuThreadID];
-   // map_add->clear(Hashinator::targets::device,stream,false);
+   //reorderTimer.stop();
 
    // Calculate target column extents
    phiprof::Timer evaluateExtentsTimer {"Evaluate column extents kernel"};
@@ -798,7 +795,8 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       CHK_ERR( gpuMemsetAsync(gpu_returnLID, 0, 2*sizeof(vmesh::LocalID), stream) );
       map_require->clear(Hashinator::targets::device,stream,false);
       map_remove->clear(Hashinator::targets::device,stream,false);
-      CHK_ERR( gpuStreamSynchronize(stream) );
+      // Hashmap clear includes a stream sync
+      //CHK_ERR( gpuStreamSynchronize(stream) );
       //map_add->clear(Hashinator::targets::device,stream,false);
       evaluate_column_extents_kernel<<<gpublocks, GPUTHREADS, 0, stream>>> (
          dimension,
@@ -852,61 +850,48 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    } while (host_returnLID[1] != 0);
    evaluateExtentsTimer.stop();
 
-   vmesh::LocalID nBlocksToChange = 0;
-   vmesh::LocalID nAfterAdjust = 0;
    /** Rules used in extracting keys or elements from hashmaps
        Now these include passing pointers to GPU memory in order to evaluate
-       nAfterAdjust without going via host. Pointers are copied by value.
+       nBlocksAfterAdjust without going via host. Pointers are copied by value.
    */
    vmesh::GlobalID EMPTYBUCKET = std::numeric_limits<vmesh::GlobalID>::max();
    vmesh::GlobalID TOMBSTONE = EMPTYBUCKET - 1;
 
    auto rule_delete_move = [EMPTYBUCKET, TOMBSTONE, map_remove, list_with_replace_new, dev_vmesh]
       __host__ __device__(const Hashinator::hash_pair<vmesh::GlobalID, vmesh::LocalID>& kval) -> bool {
-                              const vmesh::LocalID nAfterAdjust1 = dev_vmesh->size()
+                              const vmesh::LocalID nBlocksAfterAdjust1 = dev_vmesh->size()
                                  + list_with_replace_new->size() - map_remove->size();
                               return kval.first != EMPTYBUCKET &&
                                  kval.first != TOMBSTONE &&
-                                 kval.second >= nAfterAdjust1 &&
+                                 kval.second >= nBlocksAfterAdjust1 &&
                                  kval.second != vmesh::INVALID_LOCALID; };
    auto rule_to_replace = [EMPTYBUCKET, TOMBSTONE, map_remove, list_with_replace_new, dev_vmesh]
       __host__ __device__(const Hashinator::hash_pair<vmesh::GlobalID, vmesh::LocalID>& kval) -> bool {
-                             const vmesh::LocalID nAfterAdjust2 = dev_vmesh->size()
+                             const vmesh::LocalID nBlocksAfterAdjust2 = dev_vmesh->size()
                                 + list_with_replace_new->size() - map_remove->size();
                              return kval.first != EMPTYBUCKET &&
                                 kval.first != TOMBSTONE &&
-                                kval.second < nAfterAdjust2; };
+                                kval.second < nBlocksAfterAdjust2; };
 
    // Additions are gathered directly into list instead of a map/set
    map_require->extractPatternLoop(*list_with_replace_old, rule_delete_move, stream);
    map_remove->extractPatternLoop(*list_delete, rule_delete_move, stream);
    map_remove->extractPatternLoop(*list_to_replace, rule_to_replace, stream);
-   CHK_ERR( gpuStreamSynchronize(stream) );
-
-   //GPUTODO non-PF size calls
-   const vmesh::LocalID n_to_remove = map_remove->size();
-   const vmesh::LocalID n_to_replace = list_to_replace->size();
-   const vmesh::LocalID n_with_replace_new = list_with_replace_new->size();
-   const vmesh::LocalID n_with_replace_old = list_with_replace_old->size();
-   const vmesh::LocalID n_to_delete = list_delete->size();
-   // or const vmesh::LocalID n_with_replace_new = map_add->size();
-   // map_add->extractAllKeysLoop(*list_with_replace_new,stream);
-
-   nAfterAdjust = nBeforeAdjust + n_with_replace_new - n_to_remove;
-   nBlocksToChange = n_with_replace_new + n_with_replace_old + n_to_delete;
+   //CHK_ERR( gpuStreamSynchronize(stream) );
 
    // Note: in this call, unless hitting v-space walls, we only grow the vspace size
    // and thus do not delete blocks or replace with old blocks. There's a timer in this caller function.
-   spatial_cell->adjust_velocity_blocks_caller(popID,cpuThreadID,nBeforeAdjust,nBlocksToChange,nAfterAdjust);
+   vmesh::LocalID nBlocksAfterAdjust = spatial_cell->adjust_velocity_blocks_caller(popID);
    // Velocity space has now all extra blocks added and/or removed for the transform target
    // and will not change shape anymore.
 
    // Put into second (high-priority) stream for concurrency?
-   // Zero out target data on device (unified) (note, pointer needs to be re-fetched)
+   // Zero out target data on device (unified) (note, pointer needs to be re-fetched
+   // here in case VBC size was increased)
    //phiprof::Timer memsetTimer {"Memset ACC blocks to zero"};
    //GPUTODO: direct access to blockContainer getData causes page fault
    Realf *blockData = blockContainer->getData();
-   CHK_ERR( gpuMemsetAsync(blockData, 0, nAfterAdjust*WID3*sizeof(Realf), stream) );
+   CHK_ERR( gpuMemsetAsync(blockData, 0, nBlocksAfterAdjust*WID3*sizeof(Realf), stream) );
    //CHK_ERR( gpuStreamSynchronize(stream) );
    //memsetTimer.stop();
 
@@ -915,7 +900,6 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       dev_vmesh,
       columns,
       host_totalColumns,
-      nAfterAdjust,
       gpu_block_indices_to_id[cpuThreadID]
       );
    CHK_ERR( gpuPeekAtLastError() );

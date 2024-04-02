@@ -56,7 +56,7 @@ namespace vmesh {
       const VelocityMesh& operator=(const VelocityMesh& other);
       void gpu_destructor();
 
-      size_t capacity() const;
+      ARCH_HOSTDEV size_t capacity() const;
       size_t capacityInBytes() const;
       ARCH_HOSTDEV bool check() const;
       ARCH_HOSTDEV void print() const;
@@ -112,6 +112,7 @@ namespace vmesh {
       bool setMesh(const size_t& meshID);
       size_t getMeshID();
       void setNewSize(const vmesh::LocalID& newSize);
+      ARCH_DEV void device_setNewSize(const vmesh::LocalID& newSize);
       void setNewCapacity(const vmesh::LocalID& newCapacity);
       ARCH_HOSTDEV size_t size() const;
       ARCH_HOSTDEV size_t sizeInBytes() const;
@@ -191,7 +192,7 @@ namespace vmesh {
            + currentBucketCount*(sizeof(vmesh::GlobalID)+sizeof(vmesh::LocalID));
       return capacityInBytes;
    }
-   inline size_t VelocityMesh::capacity() const {
+   ARCH_HOSTDEV inline size_t VelocityMesh::capacity() const {
       return localToGlobalMap->capacity();
    }
 
@@ -1191,7 +1192,7 @@ namespace vmesh {
       // Needed by GPU block adjustment
       const uint device = gpu_getDevice();
       gpuStream_t stream = gpu_getStream();
-      vmesh::LocalID currentCapacity =  localToGlobalMap->capacity();
+      vmesh::LocalID currentCapacity = localToGlobalMap->capacity();
       const int currentSizePower = globalToLocalMap->getSizePower();
       // Passing eco flag = true to resize tells splitvector we manage padding manually.
       localToGlobalMap->resize(newSize,true,stream);
@@ -1205,6 +1206,15 @@ namespace vmesh {
          // globalToLocalMap->optimizeGPU(stream);
       }
       //CHK_ERR( gpuStreamSynchronize(stream) );
+   }
+
+   ARCH_DEV inline void VelocityMesh::device_setNewSize(const vmesh::LocalID& newSize) {
+      const vmesh::LocalID currentCapacity = localToGlobalMap->capacity();
+      assert(newSize <= currentCapacity && "insufficient vector capacity in vmesh::device_setNewSize");
+      const int currentSizePower = globalToLocalMap->getSizePower();
+      const int newSize2 = newSize > 0 ? newSize : 1;
+      assert(ceil(log2(newSize2)) <= currentSizePower && "insufficient map capacity in vmesh::device_setNewSize");
+      localToGlobalMap->device_resize(newSize);
    }
 
    // Used in initialization
