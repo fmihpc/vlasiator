@@ -114,7 +114,7 @@ __global__ void update_velocity_halo_kernel (
    #ifdef __CUDACC__
    const int max_i=1;
    #endif
-   #ifdef ___HIP_PLATFORM_HCC___
+   #ifdef __HIP_PLATFORM_HCC___
    const int max_i=2;
    #endif
    for (int i=0; i<max_i; i++) {
@@ -777,12 +777,11 @@ namespace spatial_cell {
       size_t newReserve = populations[popID].reservation * BLOCK_ALLOCATION_PADDING;
       newReserve = ((newReserve /(WARPSPERBLOCK*GPUTHREADS))+2) * WARPSPERBLOCK * GPUTHREADS;
       const int HashmapReqSize = ceil(log2(reserveSize));
-
       gpuStream_t stream = gpu_getStream();
       // Now uses host-cached values
       // loop extraction requires extra buffer
 
-      if (velocity_block_with_content_list_capacity < reserveSize) {
+      if (velocity_block_with_content_list_capacity < newReserve) {
          velocity_block_with_content_list->reserve(newReserve,true);
          velocity_block_with_content_list_capacity = newReserve;
       }
@@ -1050,7 +1049,7 @@ namespace spatial_cell {
       }
 
       if (nBlocksToChange==0) {
-         return;
+         return nBlocksAfterAdjust;
       }
 
       phiprof::Timer addRemoveKernelTimer {"GPU add and remove blocks kernel"};
@@ -1145,7 +1144,6 @@ namespace spatial_cell {
 
       phiprof::Timer reservationTimer {"GPU apply reservation"};
       applyReservation(popID);
-      //printf("Applied reservation %lu\n",(long unsigned)getReservation(popID));
       reservationTimer.stop();
 
       phiprof::Timer updateListsTimer {"GPU update spatial cell block lists"};
@@ -1174,9 +1172,8 @@ namespace spatial_cell {
       CHK_ERR( gpuPeekAtLastError() );
 
       // Now extract values from the map
-      std::cerr<<velocity_block_with_content_list->capacity()<<std::endl;
       velocity_block_with_content_map->extractAllKeysLoop(*velocity_block_with_content_list,stream);
-      // GPUTODO: get size via metadata copy?
+      // GPUTODO: get size via metadata copy or post-looping lambda??
       CHK_ERR( gpuStreamSynchronize(stream) );
       velocity_block_with_content_list_size = velocity_block_with_content_list->size();
    }
