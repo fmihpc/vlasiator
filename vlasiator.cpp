@@ -164,6 +164,9 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       cell->parameters[CellParams::MAXRDT] = numeric_limits<Real>::max();
 
       for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
+         cell->set_max_r_dt(popID, numeric_limits<Real>::max());
+         const Real EPS = numeric_limits<Real>::min() * 1000;
+
          const uint nBlocks = cell->get_number_of_velocity_blocks(popID);
          if (nBlocks==0) {
             continue;
@@ -173,39 +176,27 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          #else
          const vmesh::VelocityBlockContainer *blockContainer = cell->get_velocity_blocks(popID);
          #endif
-         const Real HALF = 0.5;
-         Real popMin = std::numeric_limits<Real>::max();
-         int archId {phiprof::initializeTimer("ARCH reduce timestep")};
-#pragma omp parallel
-         {
-            Real threadMin = std::numeric_limits<Real>::max();
-            phiprof::Timer archTimer {archId};
-            arch::parallel_reduce<arch::min>(
-               {WID, WID, WID, nBlocks},
-               ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint n, Real *lthreadMin) -> void{
-                  const Real* parameters = blockContainer->getParameters(popID);
-                  const Real VX
-                     =            parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD]
-                     + (i + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
-                  const Real VY
-                     =            parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD]
-                     + (j + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
-                  const Real VZ
-                     =            parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD]
-                     + (k + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-                  Real loopMin = dx / fabs(VX);
-                  loopMin = min(dy / fabs(VY), loopMin);
-                  loopMin = min(dz / fabs(VZ), loopMin);
-                  lthreadMin[0] = min(loopMin,lthreadMin[0]);
-               }, threadMin);
-#pragma omp critical
-            {
-               popMin = min(threadMin, popMin);
-            }
-            archTimer.stop();
-         } // end parallel region
-         cell->set_max_r_dt(popID, popMin);
-         cell->parameters[CellParams::MAXRDT] = min(popMin, cell->parameters[CellParams::MAXRDT]);
+
+         Real threadMin = std::numeric_limits<Real>::max();
+         arch::parallel_reduce<arch::min>({2, nBlocks},
+            ARCH_LOOP_LAMBDA (uint i, const uint blockLID, Real *lthreadMin) -> void{
+               i = i * (WID - 1); // ie, i == 0, i == WID - 1
+               const Real* blockParams = blockContainer->getParameters(popID);
+               const Real Vx =
+                   blockParams[blockLID * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] +
+                   (i + HALF) * blockParams[blockLID * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX] + EPS;
+               const Real Vy =
+                   blockParams[blockLID * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] +
+                   (i + HALF) * blockParams[blockLID * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY] + EPS;
+               const Real Vz =
+                   blockParams[blockLID * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] +
+                   (i + HALF) * blockParams[blockLID * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ] + EPS;
+
+               const Real dt_max_cell = min({dx / fabs(Vx), dy / fabs(Vy), dz / fabs(Vz)});
+               lthreadMin[0] = min(dt_max_cell,lthreadMin[0]);
+         }, threadMin);
+         cell->set_max_r_dt(popID, threadMin);
+         cell->parameters[CellParams::MAXRDT] = min(cell->get_max_r_dt(popID), cell->parameters[CellParams::MAXRDT]);
       } // end loop over popID
 
       if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
