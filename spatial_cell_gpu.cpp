@@ -775,11 +775,12 @@ namespace spatial_cell {
    void SpatialCell::applyReservation(const uint popID) {
       const size_t reserveSize = populations[popID].reservation * BLOCK_ALLOCATION_FACTOR;
       size_t newReserve = populations[popID].reservation * BLOCK_ALLOCATION_PADDING;
-      newReserve = ((newReserve /(WARPSPERBLOCK*GPUTHREADS))+2) * WARPSPERBLOCK * GPUTHREADS;
       const vmesh::LocalID HashmapReqSize = ceil(log2(reserveSize));
       gpuStream_t stream = gpu_getStream();
       // Now uses host-cached values
-      // loop extraction requires extra buffer
+
+      // loop extraction used to require extra buffer
+      //newReserve = ((newReserve /(WARPSPERBLOCK*GPUTHREADS))+2) * WARPSPERBLOCK * GPUTHREADS;
 
       if (velocity_block_with_content_list_capacity < newReserve) {
          velocity_block_with_content_list->reserve(newReserve,true);

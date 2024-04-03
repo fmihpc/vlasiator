@@ -428,14 +428,14 @@ __host__ void gpu_blockadjust_allocate_perthread(
    // Deallocate before new allocation
    gpu_blockadjust_deallocate_perthread(cpuThreadID);
 
-   // loop extraction requires extra buffer
-   const uint loopReserve = ((newSize /(WARPSPERBLOCK*GPUTHREADS))+2) * WARPSPERBLOCK * GPUTHREADS;
+   // loop extraction used to require extra buffer
+   //const uint loopReserve = ((newSize /(WARPSPERBLOCK*GPUTHREADS))+2) * WARPSPERBLOCK * GPUTHREADS;
 
    gpu_map_add[cpuThreadID] = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(HashmapReqSize);
-   gpu_list_with_replace_new[cpuThreadID] = new split::SplitVector<vmesh::GlobalID>(loopReserve);
-   gpu_list_delete[cpuThreadID] = new split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>(loopReserve);
-   gpu_list_to_replace[cpuThreadID] = new split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>(loopReserve);
-   gpu_list_with_replace_old[cpuThreadID] = new split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>(loopReserve);
+   gpu_list_with_replace_new[cpuThreadID] = new split::SplitVector<vmesh::GlobalID>(newSize);
+   gpu_list_delete[cpuThreadID] = new split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>(newSize);
+   gpu_list_to_replace[cpuThreadID] = new split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>(newSize);
+   gpu_list_with_replace_old[cpuThreadID] = new split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>(newSize);
 
    // Store size of new allocation
    gpu_blockadjust_allocatedSize[cpuThreadID] = newSize;
