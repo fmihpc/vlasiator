@@ -97,7 +97,6 @@ INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
 INC_EIGEN = -isystem $(LIBRARY_PREFIX)/eigen
 INC_DCCRG = -I./submodules/dccrg
 INC_FSGRID = -I./submodules/fsgrid
+INC_HASHINATOR = -isystem ./submodules/hashinator/
 # Vectorclass only for CPU mode
-#INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/
-# Hashinator not yet as a submodule
-INC_HASHINATOR = -I$(LIBRARY_PREFIX)/hashinator
+# INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/

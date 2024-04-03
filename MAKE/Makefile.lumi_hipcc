@@ -96,8 +96,6 @@ LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -lgfortran -Wl,-rpath=$(
 #INC_EIGEN = -isystem $(LIBRARY_PREFIX)/eigen/
 INC_FSGRID = -I./submodules/fsgrid
 INC_DCCRG = -I./submodules/dccrg
+INC_HASHINATOR = -isystem ./submodules/hashinator/
 # Vectorclass only for CPU mode
-#INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/
-# Hashinator not yet as a submodule
-#INC_HASHINATOR = -isystem $(LIBRARY_PREFIX)/hashinator/
-INC_HASHINATOR = -isystem $(HOME)/git/hashinator/
+# INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/

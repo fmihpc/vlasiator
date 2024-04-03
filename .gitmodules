@@ -14,3 +14,6 @@
 [submodule "submodules/vectorclass-addon"]
 	path = submodules/vectorclass-addon
 	url = https://github.com/vectorclass/add-on
+[submodule "submodules/hashinator"]
+	path = submodules/hashinator
+	url = https://github.com/kstppd/hashinator.git
