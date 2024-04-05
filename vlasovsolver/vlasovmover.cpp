@@ -337,7 +337,7 @@ void calculateSpatialTranslation(
       } else {
          for (size_t c=0; c<local_propagated_cells.size(); ++c) {
             for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-               totalBlocks += nPencils[c] * mpiGrid[local_propagated_cells[c]]->get_number_of_velocity_blocks(popID);
+               totalBlocks += (nPencilsX[c] + nPencilsY[c] + nPencilsZ[c]) * mpiGrid[local_propagated_cells[c]]->get_number_of_velocity_blocks(popID);
             }
          }
          for (size_t c=0; c<local_propagated_cells.size(); ++c) {

@@ -153,6 +153,12 @@ void initializeGrids(
                     sysBoundaries.isPeriodic(2))
       .initialize(comm)
       .set_geometry(geom_params);
+   
+   mpiGrid.set_load_balance_norm(P::loadBalanceNorm);
+
+   for (const auto& [key, value] : P::loadBalanceOptions) {
+      mpiGrid.set_partitioning_option(key, value);
+   }
 
    // Hypergraph partitioning needs stencils initialized
    initializeStencils(mpiGrid);
@@ -179,10 +185,6 @@ void initializeGrids(
    
    // Init velocity mesh on all cells
    initVelocityGridGeometry(mpiGrid);
-   
-   for (const auto& [key, value] : P::loadBalanceOptions) {
-      mpiGrid.set_partitioning_option(key, value);
-   }
 
    mpiGrid.set_partitioning_option("OBJ_WEIGHTS_COMPARABLE", "1");
    /** RCB_MULTICRITERIA_NORM
@@ -342,7 +344,9 @@ void initializeGrids(
    } else if (P::writeFullBGB) {
       // If, instead of starting a regular simulation, we are only writing out the background field, it is enough to set a dummy load balance value of 1 here.
       for (size_t i=0; i<cells.size(); ++i) {
-         mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 1;
+         for (int j = 0; j < 3; ++i) {
+            mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTERX + j] = 1;
+         }
       }
    }
 
@@ -539,15 +543,15 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
       //use the number of blocks.
       std::vector<double> lbthreeweight;
       if (P::propagateVlasovAcceleration) {
-         lbthreeweight.push_back(mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTERX]);
-         lbthreeweight.push_back(mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTERY]);
-         lbthreeweight.push_back(mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTERZ]);
+         lbthreeweight.push_back(mpiGrid[cell]->parameters[CellParams::LBWEIGHTCOUNTERX]);
+         lbthreeweight.push_back(mpiGrid[cell]->parameters[CellParams::LBWEIGHTCOUNTERY]);
+         lbthreeweight.push_back(mpiGrid[cell]->parameters[CellParams::LBWEIGHTCOUNTERZ]);
       } else {
-         lbthreeweight.push_back(mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->get_number_of_all_velocity_blocks()));
-         lbthreeweight.push_back(mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->get_number_of_all_velocity_blocks()));
-         lbthreeweight.push_back(mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->get_number_of_all_velocity_blocks()));
+         lbthreeweight.push_back(mpiGrid[cell]->get_number_of_all_velocity_blocks());
+         lbthreeweight.push_back(mpiGrid[cell]->get_number_of_all_velocity_blocks());
+         lbthreeweight.push_back(mpiGrid[cell]->get_number_of_all_velocity_blocks());
       }
-      mpiGrid.set_cell_weight_vector(cells[i], lbthreeweight);
+      mpiGrid.set_cell_weight(cell, lbthreeweight);
       mpiGrid.set_communication_weight(cell, mpiGrid[cell]->get_number_of_all_velocity_blocks());
    }
 

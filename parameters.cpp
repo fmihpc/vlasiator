@@ -133,6 +133,7 @@ int P::writeRestartAsFloat = false;
 string P::loadBalanceAlgorithm = string("");
 std::vector<int> P::partitioningNeighborhoods {};
 std::map<std::string, std::string> P::loadBalanceOptions;
+int P::loadBalanceNorm {1};
 uint P::rebalanceInterval = numeric_limits<uint>::max();
 
 vector<string> P::outputVariableList;
@@ -373,6 +374,8 @@ bool P::addParameters() {
    RP::add("loadBalance.algorithm", "Load balancing algorithm to be used", string("RIB"));
    RP::addComposing("loadBalance.partitioning_neighborhood", "Neighborhood ID for (hyper)graph partitioning, see definitions.h");
    RP::add("loadBalance.tolerance", "Load imbalance tolerance", string("1.05"));
+   RP::add("loadBalance.weight_dim", "Dimension of object weight", string("1"));
+   RP::add("loadBalance.norm", "Norm to use for cell weights in load balance, default 1-norm (sum)", 1);
    RP::add("loadBalance.rebalanceInterval", "Load rebalance interval (steps)", 10);
 
    RP::addComposing("loadBalance.optionKey", "Zoltan option key. Has to be matched by loadBalance.optionValue.");
@@ -934,7 +937,11 @@ void Parameters::getParameters() {
 
    loadBalanceOptions["IMBALANCE_TOL"] = "";
    RP::get("loadBalance.tolerance", loadBalanceOptions["IMBALANCE_TOL"]);
+   RP::get("loadBalance.norm", P::loadBalanceNorm);
    RP::get("loadBalance.rebalanceInterval", P::rebalanceInterval);
+
+   loadBalanceOptions["OBJ_WEIGHT_DIM"] = "";
+   RP::get("loadBalance.weight_dim", loadBalanceOptions["OBJ_WEIGHT_DIM"]);
 
    std::vector<std::string> loadBalanceKeys;
    std::vector<std::string> loadBalanceValues;
