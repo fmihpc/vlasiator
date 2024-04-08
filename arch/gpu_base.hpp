@@ -33,6 +33,12 @@
 #define SSYNC CHK_ERR( gpuStreamSynchronize(stream) )
 //#define SSYNC
 
+#if defined(USE_UMPIRE)
+  #include "umpire/Allocator.hpp"
+  #include "umpire/ResourceManager.hpp"
+  #include "umpire/strategy/QuickPool.hpp"
+#endif
+
 #include <stdio.h>
 #include "include/splitvector/splitvec.h"
 #include "include/hashinator/hashinator.h"

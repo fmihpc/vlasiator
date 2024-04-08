@@ -91,6 +91,11 @@ LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX)/vlsv
 INC_PROFILE = -isystem $(LIBRARY_PREFIX)/phiprof/include -D_ROCTX -I${ROCM_PATH}/include
 LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -lgfortran -Wl,-rpath=$(LIBRARY_PREFIX)/phiprof/lib -Wl,-rpath=${ROCM_PATH}/lib -lroctx64 -lroctracer64
 
+INC_UMPIRE = -isystem $(LIBRARY_PREFIX)/umpire/include
+LIB_UMPIRE = -L$(LIBRARY_PREFIX)/umpire/lib -L$(LIBRARY_PREFIX)/umpire/lib64 -lcamp -lumpire -lfmt
+CXXFLAGS += -DUSE_UMPIRE
+testpackage: CXXFLAGS += -DUSE_UMPIRE
+
 #header libraries
 
 #INC_EIGEN = -isystem $(LIBRARY_PREFIX)/eigen/

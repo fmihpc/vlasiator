@@ -9,6 +9,12 @@
 
 #include <omp.h>
 
+#if defined(USE_UMPIRE)
+  #include "umpire/Allocator.hpp"
+  #include "umpire/ResourceManager.hpp"
+  #include "umpire/strategy/QuickPool.hpp"
+#endif
+
 /* architecture-agnostic definitions for HIP */
 
 #define gpuGetLastError                  hipGetLastError
@@ -21,11 +27,30 @@
 #define gpuGetDeviceProperties           hipGetDeviceProperties
 #define gpuDeviceSynchronize             hipDeviceSynchronize
 #define gpuDeviceReset                   hipDeviceReset
-
-#define gpuFree                          hipFree
+#if defined(USE_UMPIRE)
+  static hipError_t gpuMalloc(void** dev_ptr, size_t size) {
+      auto& rm = umpire::ResourceManager::getInstance();
+      auto allocator = rm.getAllocator("DEV_POOL");
+      void* umpire_ptr = static_cast<int*>(allocator.allocate(size * sizeof(int)));
+      if (umpire_ptr != nullptr) {
+          *dev_ptr = umpire_ptr;
+          return hipSuccess;
+      } else {
+          return hipErrorMemoryAllocation;
+      }
+  }
+  static hipError_t gpuFree(void* dev_ptr) {
+        auto& rm = umpire::ResourceManager::getInstance();
+        auto allocator = rm.getAllocator("DEV_POOL");
+        allocator.deallocate(dev_ptr);
+        return hipSuccess;
+  }
+#else
+  #define gpuFree                          hipFree
+  #define gpuMalloc                        hipMalloc
+#endif
 #define gpuFreeHost                      hipHostFree
 #define gpuFreeAsync                     hipFreeAsync
-#define gpuMalloc                        hipMalloc
 #define gpuMallocHost                    hipHostMalloc
 #define gpuMallocAsync                   hipMallocAsync
 #define gpuMallocManaged                 hipMallocManaged

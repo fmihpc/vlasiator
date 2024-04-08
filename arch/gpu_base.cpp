@@ -163,6 +163,13 @@ __host__ void gpu_init_device() {
    }
    #endif
 
+   // Init Umpire memory manager
+   #if defined(USE_UMPIRE)
+     auto& rm = umpire::ResourceManager::getInstance();
+     umpire::Allocator allocator = rm.getAllocator("DEVICE");
+     auto pooled_allocator = rm.makeAllocator<umpire::strategy::QuickPool>("DEV_POOL", allocator, 1024, 1024);
+   #endif
+
    // Pre-generate streams, allocate return pointers
    int *leastPriority = new int; // likely 0
    int *greatestPriority = new int; // likely -1
