@@ -11,6 +11,12 @@
   #include <omp.h>
 #endif
 
+#if defined(USE_UMPIRE)
+  #include "umpire/Allocator.hpp"
+  #include "umpire/ResourceManager.hpp"
+  #include "umpire/strategy/QuickPool.hpp"
+#endif
+
 /* architecture-agnostic definitions for CUDA */
 
 #define gpuGetLastError                  cudaGetLastError
@@ -24,13 +30,51 @@
 #define gpuDeviceSynchronize             cudaDeviceSynchronize
 #define gpuDeviceReset                   cudaDeviceReset
 
-#define gpuFree                          cudaFree
+#if defined(USE_UMPIRE)
+  static cudaError_t gpuMalloc(void** dev_ptr, size_t size) {
+      auto& rm = umpire::ResourceManager::getInstance();
+      auto allocator = rm.getAllocator("DEV_POOL");
+      void* umpire_ptr = static_cast<int*>(allocator.allocate(size * sizeof(int)));
+      if (umpire_ptr != nullptr) {
+          *dev_ptr = umpire_ptr;
+          return cudaSuccess;
+      } else {
+          return cudaErrorMemoryAllocation;
+      }
+  }
+  static cudaError_t gpuFree(void* dev_ptr) {
+        auto& rm = umpire::ResourceManager::getInstance();
+        auto allocator = rm.getAllocator("DEV_POOL");
+        allocator.deallocate(dev_ptr);
+        return cudaSuccess;
+  }
+    static cudaError_t gpuMallocManaged(void** dev_ptr, size_t size) {
+      auto& rm = umpire::ResourceManager::getInstance();
+      auto allocator = rm.getAllocator("UM_POOL");
+      void* umpire_ptr = static_cast<int*>(allocator.allocate(size * sizeof(int)));
+      if (umpire_ptr != nullptr) {
+          *dev_ptr = umpire_ptr;
+          return cudaSuccess;
+      } else {
+          return cudaErrorMemoryAllocation;
+      }
+  }
+  static cudaError_t gpuFreeManaged(void* dev_ptr) {
+        auto& rm = umpire::ResourceManager::getInstance();
+        auto allocator = rm.getAllocator("UM_POOL");
+        allocator.deallocate(dev_ptr);
+        return cudaSuccess;
+  }
+#else
+  #define gpuFree                          cudaFree
+  #define gpuFreeManaged                   cudaFree
+  #define gpuMalloc                        cudaMalloc
+  #define gpuMallocManaged                 cudaMallocManaged
+#endif
 #define gpuFreeHost                      cudaFreeHost
 #define gpuFreeAsync                     cudaFreeAsync
-#define gpuMalloc                        cudaMalloc
 #define gpuMallocHost                    cudaMallocHost
 #define gpuMallocAsync                   cudaMallocAsync
-#define gpuMallocManaged                 cudaMallocManaged
 // this goes to cudaMallocHost because we don't support flags
 #define gpuHostAlloc                     cudaMallocHost
 #define gpuHostAllocPortable             cudaHostAllocPortable
