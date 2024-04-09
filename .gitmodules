@@ -5,8 +5,17 @@
 [submodule "submodules/dccrg"]
 	path = submodules/dccrg
 	url = https://github.com/fmihpc/dccrg.git
-   
+	branch = vlasiator-version
+
 [submodule "submodules/eigen"]
 	path = submodules/eigen
 	url = https://gitlab.com/libeigen/eigen.git
 	branch = 3.2
+
+[submodule "submodules/vectorclass"]
+	path = submodules/vectorclass
+	url = https://github.com/vectorclass/version2
+
+[submodule "submodules/vectorclass-addon"]
+	path = submodules/vectorclass-addon
+	url = https://github.com/vectorclass/add-on

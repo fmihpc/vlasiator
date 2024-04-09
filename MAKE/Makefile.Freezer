@@ -13,13 +13,13 @@ LNK = mpic++
 ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
 #Single-precision        
 	VECTORCLASS = VEC8F_AGNER
-	INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass
+	INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/
 # 	VECTORCLASS = VEC8F_FALLBACK
 #	INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/../vlasiator/vlasovsolver
 else
 #Double-precision
 	VECTORCLASS = VEC4D_AGNER
-	INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass
+	INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/
 #	VECTORCLASS = VEC4D_FALLBACK
 #	INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/../vlasiator/vlasovsolver
 endif

@@ -14,57 +14,13 @@ jobs:
     # Build libraries for the current version of the docker image
     # (to be used in any subsequent compilation and run jobs on said image)
     runs-on: ubuntu-latest
-    container: ursg/vlasiator_ci:20230220_1
-    
+    container: ursg/vlasiator_ci:20240131_1
+
     steps:
-      - name: Setup libraries dir
-        run: |
-          mkdir -p libraries/include
-          mkdir -p libraries/lib
-          mkdir library-build
-          cd library-build
-      - name: Build phiprof
-        run: |
-          git clone https://github.com/fmihpc/phiprof/ 
-          cd phiprof/src
-          make -j 4 CCC=mpic++
-          cp ../include/* $GITHUB_WORKSPACE/libraries/include
-          cp ../lib/* $GITHUB_WORKSPACE/libraries/lib
-          cd ../..
-      - name: Build VLSV
-        run: |
-          git clone https://github.com/fmihpc/vlsv.git  
-          cd vlsv
-          make
-          cp libvlsv.a $GITHUB_WORKSPACE/libraries/lib
-          cp *.h $GITHUB_WORKSPACE/libraries/include
-          cd ..
-      - name: Download vectorclass
-        run: | 
-          git clone https://github.com/vectorclass/version1
-          git clone https://github.com/vectorclass/add-on
-          cp add-on/vector3d/vector3d.h version1/
-          cp version1/*.h $GITHUB_WORKSPACE/libraries/include
-      - name: Build papi
-        run: |
-          git clone https://github.com/icl-utk-edu/papi
-          cd papi/src
-          ./configure --prefix=$GITHUB_WORKSPACE/libraries && make -j 4 CC=gcc && make install
-          cd ../..
-      - name: Build jemalloc
-        run: |
-          wget https://github.com/jemalloc/jemalloc/releases/download/4.0.4/jemalloc-4.0.4.tar.bz2
-          tar xf jemalloc-4.0.4.tar.bz2
-          cd jemalloc-4.0.4
-          ./configure --prefix=$GITHUB_WORKSPACE/libraries --with-jemalloc-prefix=je_ && make -j 4 && make install
-          cd ..
-      - name: Build Zoltan
-        run: |
-          git clone https://github.com/sandialabs/Zoltan.git
-          mkdir zoltan-build
-          cd zoltan-build
-          ../Zoltan/configure --prefix=$GITHUB_WORKSPACE/libraries --enable-mpi --with-mpi-compilers --with-gnumake --with-id-type=ullong && make -j 4 && make install
-          cd ..
+      - name: Checkout source
+        uses: actions/checkout@v3
+      - name: Run library build script
+        run: ./build_libraries.sh
       - name: Build libraries tar
         run: tar --zstd -cvf libraries.tar.zstd libraries/
       - name: Upload libraries as artifact
@@ -75,15 +31,55 @@ jobs:
           retention-days: 5
           if-no-files-found: error
 
+  build_libraries_appleM1:
+    # Build libraries on macos with M1 hardware, to test both macOS and aarch64 compatibility
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v3
+      - name: Setup MPI
+        uses: mpi4py/setup-mpi@v1
+        with:
+          mpi: 'openmpi'
+      - name: Setup openmp-capable llvm
+        run: |
+          brew install llvm libomp
+          echo "CXX=/opt/homebrew/opt/llvm/bin/clang++" >> "$GITHUB_ENV"
+          echo "OMPI_CXX=/opt/homebrew/opt/llvm/bin/clang++" >> "$GITHUB_ENV"
+          echo "MPI_CXX=mpic++" >> "$GITHUB_ENV"
+          echo "CC=/opt/homebrew/opt/llvm/bin/clang" >> "$GITHUB_ENV"
+          echo "OMPI_CC=/opt/homebrew/opt/llvm/bin/clang" >> "$GITHUB_ENV"
+          echo "MPI_CC=mpicc" >> "$GITHUB_ENV"
+      - name: Run library build script
+        run: |
+          . ./build_libraries.sh appleM1
+      - name: Build libraries tar
+        run: tar --zstd -cvf libraries-appleM1.tar.zstd libraries-appleM1
+      - name: Upload libraries as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: libraries-appleM1
+          path: libraries-appleM1.tar.zstd
+          retention-days: 5
+          if-no-files-found: error
+
   build_libraries_riscv:
     # Build libraries for the current version of the docker image
     # (to be used in any subsequent compilation and run jobs on said image)
     runs-on: risc-v
 
     steps:
+      - name: Checkout source
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+      - name: Clean workspace
+        run: |
+          rm -rf libraries library-build libraries-arriesgado.tar.gz
       - name: Submit library job
         run: |
-          srun --interactive -p arriesgado-jammy -J vlasiator-libs --pty -t 01:00:00 bash -lc 'module load openmpi; cp ~/vlasiator/build_libraries.sh .; ./build_libraries.sh arriesgado'
+          srun --interactive -p arriesgado-jammy -J vlasiator-libs -n 1 -c 4 -t 01:00:00 bash -lc 'module load openmpi; ./build_libraries.sh arriesgado'
       - name: Build libraries tar
         run: tar -czvf libraries-arriesgado.tar.gz libraries-arriesgado/
       - name: Upload libraries as artifact
@@ -97,13 +93,13 @@ jobs:
   build_production:
     # Build Vlasiator with production flags
     runs-on: ubuntu-latest
-    container: ursg/vlasiator_ci:20230220_1
+    container: ursg/vlasiator_ci:20240131_1
     needs: build_libraries
 
     steps:
     - name: Checkout source
-      uses: actions/checkout@v3 
-      with: 
+      uses: actions/checkout@v3
+      with:
         submodules: true
     - name: Download libraries
       uses: actions/download-artifact@v3
@@ -119,17 +115,22 @@ jobs:
    #  - name: Compile vlasiator (Release build)
    #    run: |
    #      srun -M carrington --job-name release_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p short -t 0:10:0 bash -c 'module purge; module load GCC/11.2.0; module load OpenMPI/4.1.1-GCC-11.2.0 ; module load PMIx/4.1.0-GCCcore-11.2.0; module load PAPI/6.0.0.1-GCCcore-11.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make clean; make -j 16'
-      
-  
+
+
   build_testpackage:
     # Build Vlasiator with testpackage flags, on the carrington cluster
     # (for subsequent running of the integration test package)
     runs-on: carrington
 
     steps:
+    - name: Clean workspace
+      run: |
+        rm -rf libraries library-build testpackage
+        rm -f libraries.tar.zst dtestpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+        rm -f *.xml
     - name: Checkout source
       uses: actions/checkout@v3
-      with: 
+      with:
         submodules: true
     - name: Make clean
       run: VLASIATOR_ARCH=carrington_gcc_openmpi make clean
@@ -138,9 +139,13 @@ jobs:
       run: |
         export VLASIATOR_ARCH=carrington_gcc_openmpi
         srun -M carrington --job-name tp_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p short -t 0:10:0 bash -c 'module purge; module load GCC/11.2.0; module load OpenMPI/4.1.1-GCC-11.2.0 ; module load PMIx/4.1.0-GCCcore-11.2.0; module load PAPI/6.0.0.1-GCCcore-11.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make -j 16 testpackage; sleep 10s'
-    - name: Sleep for 10 seconds
-      run: sleep 10s
-      shell: bash
+    - name: Make sure the output binary is visible in lustre
+      uses: nick-fields/retry@v3
+      with:
+        timeout_seconds: 15
+        max_attempts: 3
+        retry_on: error
+        command: ls vlasiator
     - name: Upload testpackage binary
       uses: actions/upload-artifact@v3
       with:
@@ -159,22 +164,25 @@ jobs:
 
     steps:
     - name: Checkout source
-      uses: actions/checkout@v3 
-      with: 
+      uses: actions/checkout@v3
+      with:
         submodules: true
+    - name: Clean workspace
+      run: |
+        rm -rf libraries library-build libraries-arriesgado.tar.gz
+        rm -rf stdout.txt stderr.txt metrics.txt
+        rm -rf *.xml
     - name: Download libraries
       uses: actions/download-artifact@v3
       with:
         name: libraries-arriesgado
     - name: Unpack libraries
       run: tar -xzvf libraries-arriesgado.tar.gz
-    - name: STOPGAP remove conflicting submoduled header libraries from the tarball extract
-      run: rm ./libraries-arriesgado/include/fsgrid.hpp ./libraries-arriesgado/include/dccrg.hpp
     - name: Make clean
       run: VLASIATOR_ARCH=arriesgado make clean
     - name: Compile vlasiator (RISC-V)
       run: |
-          srun --interactive -p arriesgado-jammy -J vlasiator_build --pty -t 01:00:00 bash -lc 'module load boost papi openmpi; export VLASIATOR_ARCH=arriesgado; make -j4'
+          srun --interactive -p arriesgado-jammy -J vlasiator_build -n 1 -c 4 --pty -t 01:00:00 bash -lc 'module load boost papi openmpi; export VLASIATOR_ARCH=arriesgado; make -j4'
     - name: Upload riscv binary
       uses: actions/upload-artifact@v3
       with:
@@ -182,14 +190,56 @@ jobs:
         path: vlasiator
         if-no-files-found: error
 
+  build_appleM1:
+    runs-on: macos-14
+    needs: build_libraries_appleM1
+
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v3
+      with:
+        submodules: true
+    - name: Setup MPI
+      uses: mpi4py/setup-mpi@v1
+      with:
+        mpi: 'openmpi'
+    - name: Setup openmp-capable llvm
+      run: |
+        brew install llvm libomp
+        echo "CXX=/opt/homebrew/opt/llvm/bin/clang++" >> "$GITHUB_ENV"
+        echo "OMPI_CXX=/opt/homebrew/opt/llvm/bin/clang++" >> "$GITHUB_ENV"
+        echo "CC=/opt/homebrew/opt/llvm/bin/clang" >> "$GITHUB_ENV"
+        echo "OMPI_CC=/opt/homebrew/opt/llvm/bin/clang" >> "$GITHUB_ENV"
+    - name: Install boost
+      run: |
+        brew install boost
+        ln -s /opt/homebrew/Cellar/boost/* /opt/homebrew/Cellar/boost/latest
+    - name: Download libraries
+      uses: actions/download-artifact@v3
+      with:
+        name: libraries-appleM1
+    - name: Unpack libraries
+      run: tar --zstd -xvf libraries-appleM1.tar.zstd
+    - name: Make clean
+      run: VLASIATOR_ARCH=appleM1 make clean
+    - name: Compile vlasiator (Release build)
+      run: |
+        VLASIATOR_ARCH=appleM1 make clean
+        VLASIATOR_ARCH=appleM1 make -j 3
+
   build_tools:
     # Build vlsvdiff and vlsvextract for testpackage use
     runs-on: carrington
-      
+
     steps:
+    - name: Clean workspace
+      run: |
+        rm -rf libraries library-build testpackage
+        rm -f libraries.tar.zstd dtestpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+        rm -f *.xml
     - name: Checkout source
-      uses: actions/checkout@v3 
-      with: 
+      uses: actions/checkout@v3
+      with:
         submodules: true
     - uses: ursg/gcc-problem-matcher@master
     - name: Make clean
@@ -216,7 +266,7 @@ jobs:
     steps:
     - name: Checkout source
       uses: actions/checkout@v3
-      with: 
+      with:
         submodules: true
     - name: Download testpackage binary
       uses: actions/download-artifact@v3
@@ -253,13 +303,12 @@ jobs:
       # (to produce Checks against pull requests)
 
   build_ionosphereTests:
-    # Build IonosphereSolverTests miniApp (currently broken)
+    # Build IonosphereSolverTests miniApp
     runs-on: carrington
-      #container: ursg/vlasiator_ci:20230220_1
-    needs: build_libraries
+    needs: [build_libraries]
     steps:
     - name: Checkout source
-      uses: actions/checkout@v3 
+      uses: actions/checkout@v3
       with:
         submodules: true
           #    - name: Download libraries
@@ -283,4 +332,3 @@ jobs:
           mini-apps/ionosphereSolverTests/differentialFlux
           mini-apps/ionosphereSolverTests/sigmaProfiles
         if-no-files-found: error
-
