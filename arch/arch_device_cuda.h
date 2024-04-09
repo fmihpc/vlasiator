@@ -31,7 +31,7 @@
 #define gpuDeviceReset cudaDeviceReset
 
 #if defined(USE_UMPIRE)
-static cudaError_t gpuMalloc(void** dev_ptr, size_t size) {
+static cudaError_t gpuMalloc(void** dev_ptr, size_t size, cudaStream_t stream = 0) {
    auto& rm = umpire::ResourceManager::getInstance();
    auto allocator = rm.getAllocator("DEV_POOL");
    void* umpire_ptr = static_cast<int*>(allocator.allocate(size * sizeof(int)));
@@ -42,41 +42,62 @@ static cudaError_t gpuMalloc(void** dev_ptr, size_t size) {
       return cudaErrorMemoryAllocation;
    }
 }
-static cudaError_t gpuFree(void* dev_ptr) {
+static cudaError_t gpuFree(void* dev_ptr, cudaStream_t stream = 0) {
    auto& rm = umpire::ResourceManager::getInstance();
    auto allocator = rm.getAllocator("DEV_POOL");
    allocator.deallocate(dev_ptr);
    return cudaSuccess;
 }
-// static cudaError_t gpuMallocManaged(void** dev_ptr, size_t size) {
-//    auto& rm = umpire::ResourceManager::getInstance();
-//    auto allocator = rm.getAllocator("UM_POOL");
-//    void* umpire_ptr = static_cast<int*>(allocator.allocate(size * sizeof(int)));
-//    if (umpire_ptr != nullptr) {
-//       *dev_ptr = umpire_ptr;
-//       return cudaSuccess;
-//    } else {
-//       return cudaErrorMemoryAllocation;
-//    }
-// }
-// static cudaError_t gpuFreeManaged(void* dev_ptr) {
-//    auto& rm = umpire::ResourceManager::getInstance();
-//    auto allocator = rm.getAllocator("UM_POOL");
-//    allocator.deallocate(dev_ptr);
-//    return cudaSuccess;
-// }
-#define gpuFreeManaged cudaFree
+#define gpuMallocAsync gpuMalloc
+#define gpuFreeAsync gpuFree
+static cudaError_t gpuMallocHost(void** pinned_ptr, size_t size) {
+   auto& rm = umpire::ResourceManager::getInstance();
+   auto allocator = rm.getAllocator("PINNED_POOL");
+   void* umpire_ptr = static_cast<int*>(allocator.allocate(size * sizeof(int)));
+   if (umpire_ptr != nullptr) {
+      *pinned_ptr = umpire_ptr;
+      return cudaSuccess;
+   } else {
+      return cudaErrorMemoryAllocation;
+   }
+}
+static cudaError_t gpuFreeHost(void* pinned_ptr) {
+   auto& rm = umpire::ResourceManager::getInstance();
+   auto allocator = rm.getAllocator("PINNED_POOL");
+   allocator.deallocate(pinned_ptr);
+   return cudaSuccess;
+}
+//  static cudaError_t gpuMallocManaged(void** dev_ptr, size_t size) {
+//     auto& rm = umpire::ResourceManager::getInstance();
+//     auto allocator = rm.getAllocator("UM_POOL");
+//     void* umpire_ptr = static_cast<int*>(allocator.allocate(size * sizeof(int)));
+//     if (umpire_ptr != nullptr) {
+//        *dev_ptr = umpire_ptr;
+//        printf("ManagedAlloc: %p\n", umpire_ptr);
+//        return cudaSuccess;
+//     } else {
+//        return cudaErrorMemoryAllocation;
+//     }
+//  }
+//  static cudaError_t gpuFreeManaged(void* dev_ptr) {
+//       printf("ManagedFree: %p\n", dev_ptr);
+//     auto& rm = umpire::ResourceManager::getInstance();
+//     auto allocator = rm.getAllocator("UM_POOL");
+//     allocator.deallocate(dev_ptr);
+//     return cudaSuccess;
+//  }
 #define gpuMallocManaged cudaMallocManaged
+#define gpuFreeManaged cudaFree
 #else
-#define gpuFree cudaFree
-#define gpuFreeManaged cudaFree
 #define gpuMalloc cudaMalloc
-#define gpuMallocManaged cudaMallocManaged
-#endif
-#define gpuFreeHost cudaFreeHost
+#define gpuFree cudaFree
+#define gpuMallocAsync cudaMallocAsync
 #define gpuFreeAsync cudaFreeAsync
 #define gpuMallocHost cudaMallocHost
-#define gpuMallocAsync cudaMallocAsync
+#define gpuFreeHost cudaFreeHost
+#define gpuMallocManaged cudaMallocManaged
+#define gpuFreeManaged cudaFree
+#endif
 // this goes to cudaMallocHost because we don't support flags
 #define gpuHostAlloc cudaMallocHost
 #define gpuHostAllocPortable cudaHostAllocPortable

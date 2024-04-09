@@ -168,6 +168,10 @@ __host__ void gpu_init_device() {
      auto& rm = umpire::ResourceManager::getInstance();
      umpire::Allocator allocator_dev = rm.getAllocator("DEVICE");
      rm.makeAllocator<umpire::strategy::QuickPool>("DEV_POOL", allocator_dev, 1024, 1024);
+
+     umpire::Allocator allocator_pinned = rm.getAllocator("PINNED");
+     rm.makeAllocator<umpire::strategy::QuickPool>("PINNED_POOL", allocator_pinned, 1024, 1024);
+
      umpire::Allocator allocator_um = rm.getAllocator("UM");
      rm.makeAllocator<umpire::strategy::QuickPool>("UM_POOL", allocator_um, 1024, 1024);
    #endif

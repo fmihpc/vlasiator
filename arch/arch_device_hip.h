@@ -29,7 +29,7 @@
 #define gpuDeviceReset hipDeviceReset
 
 #if defined(USE_UMPIRE)
-static hipError_t gpuMalloc(void** dev_ptr, size_t size) {
+static hipError_t gpuMalloc(void** dev_ptr, size_t size, hipStream_t stream = 0) {
    auto& rm = umpire::ResourceManager::getInstance();
    auto allocator = rm.getAllocator("DEV_POOL");
    void* umpire_ptr = static_cast<int*>(allocator.allocate(size * sizeof(int)));
@@ -40,36 +40,61 @@ static hipError_t gpuMalloc(void** dev_ptr, size_t size) {
       return hipErrorMemoryAllocation;
    }
 }
-static hipError_t gpuFree(void* dev_ptr) {
+static hipError_t gpuFree(void* dev_ptr, hipStream_t stream = 0) {
    auto& rm = umpire::ResourceManager::getInstance();
    auto allocator = rm.getAllocator("DEV_POOL");
    allocator.deallocate(dev_ptr);
    return hipSuccess;
 }
-// static hipError_t gpuMallocManaged(void** dev_ptr, size_t size) {
-//    auto& rm = umpire::ResourceManager::getInstance();
-//    auto allocator = rm.getAllocator("UM_POOL");
-//    void* umpire_ptr = static_cast<int*>(allocator.allocate(size * sizeof(int)));
-//    if (umpire_ptr != nullptr) {
-//       *dev_ptr = umpire_ptr;
-//       return hipSuccess;
-//    } else {
-//       return hipErrorMemoryAllocation;
-//    }
-// }
-// static hipError_t gpuFreeManaged(void* dev_ptr) {
-//    auto& rm = umpire::ResourceManager::getInstance();
-//    auto allocator = rm.getAllocator("UM_POOL");
-//    allocator.deallocate(dev_ptr);
-//    return hipSuccess;
-// }
-#define gpuFreeManaged hipFree
+#define gpuMallocAsync gpuMalloc
+#define gpuFreeAsync gpuFree
+static hipError_t gpuMallocHost(void** pinned_ptr, size_t size) {
+   auto& rm = umpire::ResourceManager::getInstance();
+   auto allocator = rm.getAllocator("PINNED_POOL");
+   void* umpire_ptr = static_cast<int*>(allocator.allocate(size * sizeof(int)));
+   if (umpire_ptr != nullptr) {
+      *pinned_ptr = umpire_ptr;
+      return hipSuccess;
+   } else {
+      return hipErrorMemoryAllocation;
+   }
+}
+static hipError_t gpuFreeHost(void* pinned_ptr) {
+   auto& rm = umpire::ResourceManager::getInstance();
+   auto allocator = rm.getAllocator("PINNED_POOL");
+   allocator.deallocate(pinned_ptr);
+   return hipSuccess;
+}
+//  static hipError_t gpuMallocManaged(void** dev_ptr, size_t size) {
+//     auto& rm = umpire::ResourceManager::getInstance();
+//     auto allocator = rm.getAllocator("UM_POOL");
+//     void* umpire_ptr = static_cast<int*>(allocator.allocate(size * sizeof(int)));
+//     if (umpire_ptr != nullptr) {
+//        *dev_ptr = umpire_ptr;
+//        printf("ManagedAlloc: %p\n", umpire_ptr);
+//        return hipSuccess;
+//     } else {
+//        return hipErrorMemoryAllocation;
+//     }
+//  }
+//  static hipError_t gpuFreeManaged(void* dev_ptr) {
+//       printf("ManagedFree: %p\n", dev_ptr);
+//     auto& rm = umpire::ResourceManager::getInstance();
+//     auto allocator = rm.getAllocator("UM_POOL");
+//     allocator.deallocate(dev_ptr);
+//     return hipSuccess;
+//  }
 #define gpuMallocManaged hipMallocManaged
+#define gpuFreeManaged hipFree
 #else
-#define gpuFree hipFree
-#define gpuFreeManaged hipFree
 #define gpuMalloc hipMalloc
+#define gpuFree hipFree
+#define gpuMallocAsync hipMallocAsync
+#define gpuFreeAsync hipFreeAsync
+#define gpuMallocHost hipMallocHost
+#define gpuFreeHost hipFreeHost
 #define gpuMallocManaged hipMallocManaged
+#define gpuFreeManaged hipFree
 #endif
 #define gpuFreeHost hipHostFree
 #define gpuFreeAsync hipFreeAsync
