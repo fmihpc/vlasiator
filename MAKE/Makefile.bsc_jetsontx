@@ -2,7 +2,7 @@
 #
 # Note:
 # o Load modules:
-#   module load boost eigen
+#   module load boost
 # o Zoltan's configure script requires a "--build=arm-linux-gnu" parameter.
 
 CMP = mpic++
