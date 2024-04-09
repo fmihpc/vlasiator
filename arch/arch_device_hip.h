@@ -96,11 +96,7 @@ static hipError_t gpuFreeHost(void* pinned_ptr) {
 #define gpuMallocManaged hipMallocManaged
 #define gpuFreeManaged hipFree
 #endif
-#define gpuFreeHost hipHostFree
-#define gpuFreeAsync hipFreeAsync
-#define gpuMallocHost hipHostMalloc
-#define gpuMallocAsync hipMallocAsync
-#define gpuMallocManaged hipMallocManaged
+// empty comment //
 #define gpuHostAlloc hipHostMalloc
 #define gpuHostAllocPortable hipHostAllocPortable
 #define gpuMemcpy hipMemcpy
