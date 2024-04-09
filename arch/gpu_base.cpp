@@ -166,14 +166,15 @@ __host__ void gpu_init_device() {
    // Init Umpire memory manager
    #if defined(USE_UMPIRE)
      auto& rm = umpire::ResourceManager::getInstance();
-     umpire::Allocator allocator_dev = rm.getAllocator("DEVICE");
-     rm.makeAllocator<umpire::strategy::QuickPool>("DEV_POOL", allocator_dev, 1024, 1024);
 
-     umpire::Allocator allocator_pinned = rm.getAllocator("PINNED");
-     rm.makeAllocator<umpire::strategy::QuickPool>("PINNED_POOL", allocator_pinned, 1024, 1024);
+     auto non_thread_safe_dev_allocator = rm.makeAllocator<umpire::strategy::QuickPool>("NON_THREADSAFE_DEV_POOL", rm.getAllocator("DEVICE"));
+     rm.makeAllocator<umpire::strategy::ThreadSafeAllocator>("DEV_POOL", non_thread_safe_dev_allocator);
 
-     umpire::Allocator allocator_um = rm.getAllocator("UM");
-     rm.makeAllocator<umpire::strategy::QuickPool>("UM_POOL", allocator_um, 1024, 1024);
+     auto non_thread_safe_pinned_allocator = rm.makeAllocator<umpire::strategy::QuickPool>("NON_THREADSAFE_PINNED_POOL", rm.getAllocator("PINNED"));
+     rm.makeAllocator<umpire::strategy::ThreadSafeAllocator>("PINNED_POOL", non_thread_safe_pinned_allocator);
+
+     auto non_thread_safe_um_allocator = rm.makeAllocator<umpire::strategy::QuickPool>("NON_THREADSAFE_UM_POOL", rm.getAllocator("UM"));
+     rm.makeAllocator<umpire::strategy::ThreadSafeAllocator>("UM_POOL", non_thread_safe_um_allocator);
    #endif
 
    // Pre-generate streams, allocate return pointers

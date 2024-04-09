@@ -15,6 +15,7 @@
 #include "umpire/Allocator.hpp"
 #include "umpire/ResourceManager.hpp"
 #include "umpire/strategy/QuickPool.hpp"
+#include "umpire/strategy/ThreadSafeAllocator.hpp"
 #endif
 
 /* architecture-agnostic definitions for CUDA */
@@ -44,7 +45,7 @@ static cudaError_t gpuMalloc(void** dev_ptr, size_t size, cudaStream_t stream = 
 }
 static cudaError_t gpuFree(void* dev_ptr, cudaStream_t stream = 0) {
    auto& rm = umpire::ResourceManager::getInstance();
-   auto allocator = rm.getAllocator("DEV_POOL");
+   auto allocator = rm.getAllocator(dev_ptr);
    allocator.deallocate(dev_ptr);
    return cudaSuccess;
 }
@@ -61,31 +62,21 @@ static cudaError_t gpuMallocHost(void** pinned_ptr, size_t size) {
       return cudaErrorMemoryAllocation;
    }
 }
-static cudaError_t gpuFreeHost(void* pinned_ptr) {
-   auto& rm = umpire::ResourceManager::getInstance();
-   auto allocator = rm.getAllocator("PINNED_POOL");
-   allocator.deallocate(pinned_ptr);
-   return cudaSuccess;
-}
-//  static cudaError_t gpuMallocManaged(void** dev_ptr, size_t size) {
-//     auto& rm = umpire::ResourceManager::getInstance();
-//     auto allocator = rm.getAllocator("UM_POOL");
-//     void* umpire_ptr = static_cast<void*>(allocator.allocate(size));
-//     if (umpire_ptr != nullptr) {
-//        *dev_ptr = umpire_ptr;
-//        printf("ManagedAlloc: %p\n", umpire_ptr);
-//        return cudaSuccess;
-//     } else {
-//        return cudaErrorMemoryAllocation;
-//     }
-//  }
-//  static cudaError_t gpuFreeManaged(void* dev_ptr) {
-//       printf("ManagedFree: %p\n", dev_ptr);
-//     auto& rm = umpire::ResourceManager::getInstance();
-//     auto allocator = rm.getAllocator("UM_POOL");
-//     allocator.deallocate(dev_ptr);
-//     return cudaSuccess;
-//  }
+#define gpuFreeHost gpuFree
+//static cudaError_t gpuMallocManaged(void** dev_ptr, size_t size) {
+//   auto& rm = umpire::ResourceManager::getInstance();
+//   auto allocator = rm.getAllocator("UM_POOL");
+//   void* umpire_ptr = static_cast<void*>(allocator.allocate(size));
+//   if (umpire_ptr != nullptr) {
+//      *dev_ptr = umpire_ptr;
+//      printf("ManagedAlloc: %p\n", umpire_ptr);
+//      return cudaSuccess;
+//   } else {
+//      return cudaErrorMemoryAllocation;
+//   }
+//}
+//#define gpuFreeManaged gpuFree
+
 #define gpuMallocManaged cudaMallocManaged
 #define gpuFreeManaged cudaFree
 #else
