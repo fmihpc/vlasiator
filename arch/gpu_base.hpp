@@ -81,26 +81,26 @@ class Managed {
 public:
    void *operator new(size_t len) {
       void *ptr;
-      gpuMallocManaged(&ptr, len);
-      gpuDeviceSynchronize();
+      CHK_ERR(gpuMallocManaged(&ptr, len));
+      CHK_ERR(gpuDeviceSynchronize());
       return ptr;
    }
 
    void operator delete(void *ptr) {
-      gpuDeviceSynchronize();
-      gpuFreeManaged(ptr);
+      CHK_ERR(gpuDeviceSynchronize());
+      CHK_ERR(gpuFreeManaged(ptr));
    }
 
    void* operator new[] (size_t len) {
       void *ptr;
-      gpuMallocManaged(&ptr, len);
-      gpuDeviceSynchronize();
+      CHK_ERR(gpuMallocManaged(&ptr, len));
+      CHK_ERR(gpuDeviceSynchronize());
       return ptr;
    }
 
    void operator delete[] (void* ptr) {
-      gpuDeviceSynchronize();
-      gpuFreeManaged(ptr);
+      CHK_ERR(gpuDeviceSynchronize());
+      CHK_ERR(gpuFreeManaged(ptr));
    }
 
 };
