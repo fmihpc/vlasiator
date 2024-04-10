@@ -54,7 +54,7 @@ LIB_MPI = -lmpi ${PE_MPICH_GTL_LIBS_amd_gfx90a}
 CXXFLAGS +=  -DPAPI_MEM
 testpackage: CXXFLAGS +=  -DPAPI_MEM
 
-#======== Allocator =========
+#======== Jemalloc =========
 #Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
 #Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
 #Note: jemalloc not supported with GPUs
@@ -63,6 +63,10 @@ testpackage: CXXFLAGS +=  -DPAPI_MEM
 
 #-DNO_WRITE_AT_ALL:  Define to disable write at all to 
 #                    avoid memleak (much slower IO)
+
+#======== Umpire =========
+CXXFLAGS += -DUSE_UMPIRE
+testpackage: CXXFLAGS += -DUSE_UMPIRE
 
 #======== Libraries ===========
 # Select the base directory based on which project you are using:
@@ -93,8 +97,6 @@ LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -lgfortran -Wl,-rpath=$(
 
 INC_UMPIRE = -isystem $(LIBRARY_PREFIX)/umpire/include
 LIB_UMPIRE = -L$(LIBRARY_PREFIX)/umpire/lib -L$(LIBRARY_PREFIX)/umpire/lib64 -lcamp -lumpire -lfmt
-CXXFLAGS += -DUSE_UMPIRE
-testpackage: CXXFLAGS += -DUSE_UMPIRE
 
 #header libraries
 

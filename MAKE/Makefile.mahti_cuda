@@ -75,12 +75,16 @@ INC_CUDA = -isystem /usr/local/cuda/include
 CXXFLAGS += -DPAPI_MEM
 testpackage: CXXFLAGS += -DPAPI_MEM
 
-#======== Allocator =========
+#======== Jemalloc =========
 #Use jemalloc instead of system malloc to reduce memory fragmentation https://github.com/jemalloc/jemalloc
 #Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
 #NOTE: jemalloc not supported with GPUs
 #CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 #testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+
+#======== Umpire =========
+CXXFLAGS += -DUSE_UMPIRE
+testpackage: CXXFLAGS += -DUSE_UMPIRE
 
 #======== Libraries ===========
 
@@ -113,6 +117,9 @@ LIB_VLSV = -L$(LIBRARY_PREFIX2)/vlsv -lvlsv -Xlinker=-rpath=$(LIBRARY_PREFIX2)/v
 INC_PROFILE = -I$(LIBRARY_PREFIX2)/phiprof_nvcc/include
 LIB_PROFILE = -L$(LIBRARY_PREFIX2)/phiprof_nvcc/lib -lphiprof -Xlinker=-rpath=$(LIBRARY_PREFIX2)/phiprof_nvcc/lib
 #LIB_PROFILE = -L$(LIBRARY_PREFIX2)/phiprof_nvcc/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX2)/phiprof_nvcc/lib
+
+INC_UMPIRE = -isystem $(LIBRARY_PREFIX2)/umpire/include
+LIB_UMPIRE = -L$(LIBRARY_PREFIX2)/umpire/lib -L$(LIBRARY_PREFIX)/umpire/lib64 -lcamp -lumpire -lfmt
 
 #======== Header-only Libraries ===========
 
