@@ -470,10 +470,10 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
       }
    }
    // Prefetch data back to GPU
-   phiprof::Timer gpuPrefetchTimer {"trans-amr-prefetch"};
+   //phiprof::Timer gpuPrefetchTimer {"trans-amr-prefetch"};
    allPencilsMeshes->optimizeGPU(bgStream);
    allPencilsContainers->optimizeGPU(bgStream);
-   gpuPrefetchTimer.stop();
+   //gpuPrefetchTimer.stop();
 
    // Extract pointers to data in managed memory
    uint* pencilLengths = DimensionPencils[dimension].gpu_lengthOfPencils->data();
@@ -482,9 +482,9 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    Realf* pencilRatios = DimensionPencils[dimension].gpu_targetRatios->data();
    gatherPointerTimer.stop();
 
-   gpuPrefetchTimer.start();
-   CHK_ERR( gpuStreamSynchronize(bgStream) );
-   gpuPrefetchTimer.stop();
+   //gpuPrefetchTimer.start();
+   //CHK_ERR( gpuStreamSynchronize(bgStream) );
+   //gpuPrefetchTimer.stop();
 
    allocateTimer.start();
    const vmesh::LocalID unionOfBlocksSetSize = unionOfBlocksSet->size();

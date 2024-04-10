@@ -1159,8 +1159,8 @@ namespace spatial_cell {
          std::cerr << "Error in adding from buffer: Vmesh not empty!" << __FILE__ << ' ' << __LINE__ << std::endl;
          exit(1);
       }
-      populations[popID].vmesh->setNewCapacity(nBlocks);
-      populations[popID].blockContainer->setNewCapacity(nBlocks);
+      populations[popID].vmesh->setNewCapacity(nBlocks*BLOCK_ALLOCATION_FACTOR);
+      populations[popID].blockContainer->setNewCapacity(nBlocks*BLOCK_ALLOCATION_FACTOR);
 
       const vmesh::LocalID adds = populations[popID].vmesh->push_back(blocks);
       // Verify that we added all requested blocks

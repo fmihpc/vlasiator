@@ -78,16 +78,19 @@ namespace vmesh {
       ARCH_HOSTDEV vmesh::LocalID push_back_and_zero();
       ARCH_HOSTDEV vmesh::LocalID push_back(const uint32_t& N_blocks);
       ARCH_HOSTDEV vmesh::LocalID push_back_and_zero(const uint32_t& N_blocks);
-      bool setNewCapacity(const vmesh::LocalID& capacity);
+      ARCH_HOSTDEV void resize(const vmesh::LocalID& newSize);
       ARCH_HOSTDEV bool setNewSize(const vmesh::LocalID& newSize);
       ARCH_HOSTDEV vmesh::LocalID size() const;
       ARCH_HOSTDEV size_t sizeInBytes() const;
       // ARCH_HOSTDEV void swap(VelocityBlockContainer& vbc);
 
 #ifdef USE_GPU // for GPU version
+      bool setNewCapacity(const vmesh::LocalID& capacity, gpuStream_t stream);
       void gpu_prefetchHost(gpuStream_t stream);
       void gpu_prefetchDevice(gpuStream_t stream);
       void print_addresses();
+#else
+      bool setNewCapacity(const vmesh::LocalID& capacity);
 #endif
 
       #ifdef DEBUG_VBC
@@ -100,11 +103,9 @@ namespace vmesh {
       ARCH_DEV void exitInvalidLocalID(const vmesh::LocalID& localID) const;
 
 #ifdef USE_GPU
-      void resize(vmesh::LocalID add, gpuStream_t stream);
       split::SplitVector<Realf> *block_data;
       split::SplitVector<Real> *parameters;
 #else
-      void resize(vmesh::LocalID add);
       std::vector<Realf,aligned_allocator<Realf,WID3> > *block_data;
       std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS> > *parameters;
 #endif
@@ -419,11 +420,11 @@ namespace vmesh {
       block_data->device_resize((numberOfBlocks+1)*WID3);
       parameters->device_resize((numberOfBlocks+1)*BlockParams::N_VELOCITY_BLOCK_PARAMS);
       #elif defined(USE_GPU)
-      resize(1,stream);
+      setNewCapacity(numberOfBlocks+1,stream);
       block_data->resize((numberOfBlocks+1)*WID3,true,stream);
       parameters->resize((numberOfBlocks+1)*BlockParams::N_VELOCITY_BLOCK_PARAMS,true,stream);
       #else
-      resize(1);
+      setNewCapacity(numberOfBlocks+1);
       block_data->resize((numberOfBlocks+1)*WID3,true);
       parameters->resize((numberOfBlocks+1)*BlockParams::N_VELOCITY_BLOCK_PARAMS,true);
       #endif
@@ -464,14 +465,14 @@ namespace vmesh {
       if (newIndex >= currentCapacityD) {
          assert(0 && "ERROR! Attempting to grow block container on-device beyond capacity (::push_back_and_zero).");
       }
-      block_data->device_resize((numberOfBlocks+1)*WID3);
-      parameters->device_resize((numberOfBlocks+1)*BlockParams::N_VELOCITY_BLOCK_PARAMS);
+      block_data->device_resize((numberOfBlocks+1)*WID3, false); //construct=false don't construct or set to zero (performed below)
+      parameters->device_resize((numberOfBlocks+1)*BlockParams::N_VELOCITY_BLOCK_PARAMS, false); //construct=false don't construct or set to zero (performed below)
       #elif defined(USE_GPU)
-      resize(1,stream);
+      setNewCapacity(numberOfBlocks+1,stream);
       block_data->resize((numberOfBlocks+1)*WID3,true,stream);
       parameters->resize((numberOfBlocks+1)*BlockParams::N_VELOCITY_BLOCK_PARAMS,true,stream);
       #else
-      resize(1);
+      setNewCapacity(numberOfBlocks+1);
       block_data->resize((numberOfBlocks+1)*WID3);
       parameters->resize((numberOfBlocks+1)*BlockParams::N_VELOCITY_BLOCK_PARAMS);
       #endif
@@ -503,11 +504,11 @@ namespace vmesh {
       block_data->device_resize((numberOfBlocks+N_blocks)*WID3);
       parameters->device_resize((numberOfBlocks+N_blocks)*BlockParams::N_VELOCITY_BLOCK_PARAMS);
       #elif defined(USE_GPU)
-      resize(N_blocks,stream);
+      setNewCapacity(numberOfBlocks+N_blocks,stream);
       block_data->resize((numberOfBlocks+N_blocks)*WID3,true,stream);
       parameters->resize((numberOfBlocks+N_blocks)*BlockParams::N_VELOCITY_BLOCK_PARAMS,true,stream);
       #else
-      resize(N_blocks);
+      setNewCapacity(numberOfBlocks+N_blocks);
       block_data->resize((numberOfBlocks+N_blocks)*WID3);
       parameters->resize((numberOfBlocks+N_blocks)*BlockParams::N_VELOCITY_BLOCK_PARAMS);
       #endif
@@ -529,14 +530,14 @@ namespace vmesh {
       if (newIndex + N_blocks >= currentCapacity-1) {
          assert(0 && "ERROR! Attempting to grow block container on-device beyond capacity (::push_back_and_zero N_blocks).");
       }
-      block_data->device_resize((numberOfBlocks+N_blocks)*WID3);
-      parameters->device_resize((numberOfBlocks+N_blocks)*BlockParams::N_VELOCITY_BLOCK_PARAMS);
+      block_data->device_resize((numberOfBlocks+N_blocks)*WID3, false); //construct=false don't construct or set to zero (performed below)
+      parameters->device_resize((numberOfBlocks+N_blocks)*BlockParams::N_VELOCITY_BLOCK_PARAMS, false); //construct=false don't construct or set to zero (performed below)
       #elif defined(USE_GPU)
-      resize(N_blocks,stream);
+      setNewCapacity(numberOfBlocks+N_blocks,stream);
       block_data->resize((numberOfBlocks+N_blocks)*WID3,true,stream);
       parameters->resize((numberOfBlocks+N_blocks)*BlockParams::N_VELOCITY_BLOCK_PARAMS,true,stream);
       #else
-      resize(N_blocks);
+      setNewCapacity(numberOfBlocks+N_blocks);
       block_data->resize((numberOfBlocks+N_blocks)*WID3);
       parameters->resize((numberOfBlocks+N_blocks)*BlockParams::N_VELOCITY_BLOCK_PARAMS);
       #endif
@@ -563,15 +564,21 @@ namespace vmesh {
       return newIndex;
    }
 
+#ifdef USE_GPU
+   inline bool VelocityBlockContainer::setNewCapacity(const vmesh::LocalID& reqCapacity, gpuStream_t stream=0) {
+      if (stream==0) {
+         gpuStream_t stream = gpu_getStream();
+      }
+#else
    inline bool VelocityBlockContainer::setNewCapacity(const vmesh::LocalID& reqCapacity) {
+#endif
       // Note: No longer ever recapacitates down in size.
-      #ifdef USE_GPU
-      gpuStream_t stream = gpu_getStream();
-      #endif
       const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
       const vmesh::LocalID currentCapacity = block_data->capacity()/WID3;
 
-      vmesh::LocalID newCapacity = (reqCapacity > 1) ? reqCapacity : 1;
+      // Reallocate so that free space is current * block_allocation_padding blocks,
+      // and at least two in case of having zero blocks.
+      vmesh::LocalID newCapacity = (reqCapacity > 2) ? reqCapacity : 2;
       if (currentCapacity > BLOCK_ALLOCATION_FACTOR * newCapacity) {
          return false; // Still have enough buffer
       }
@@ -596,64 +603,29 @@ namespace vmesh {
       return true;
    }
 
-   #ifdef USE_GPU
-   inline void VelocityBlockContainer::resize(const vmesh::LocalID add=1, gpuStream_t stream=0) {
-   #else
-   inline void VelocityBlockContainer::resize(const vmesh::LocalID add=1) {
-   #endif
-      //This actually only alters capacity, not size.
-      #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-      if (stream==0) {
-         stream = gpu_getStream();
-      }
-      #endif
-      const vmesh::LocalID numberOfBlocks = block_data->size()/WID3;
-      vmesh::LocalID currentCapacity = block_data->capacity()/WID3;
-
-      #ifdef USE_GPU
-      if ((numberOfBlocks+add) * BLOCK_ALLOCATION_FACTOR >= currentCapacity) {
-         // Resize so that free space is current * block_allocation_padding blocks,
-         // and at least two in case of having zero blocks.
-         // The order of velocity blocks is unaltered.
-         currentCapacity = 2 + (numberOfBlocks+add) * BLOCK_ALLOCATION_PADDING;
-         // reallocate() doesn't change vector size, would lead to data loss
-         // when further reallocating due to lack of data copy
-         // Passing eco flag = true to resize tells splitvector we manage padding manually.
-         block_data->reserve(currentCapacity*WID3, true, stream);
-         parameters->reserve(currentCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS, true, stream);
-      }
-      #else
-      if ((numberOfBlocks+add) >= currentCapacity) {
-         // Resize so that free space is current * block_allocation_factor blocks,
-         // and at least two in case of having zero blocks.
-         // The order of velocity blocks is unaltered.
-         currentCapacity = 2 + (numberOfBlocks+add) * BLOCK_ALLOCATION_FACTOR;
-         block_data->reserve(currentCapacity*WID3);
-         parameters->reserve(currentCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS);
-      }
-      #endif
+   inline ARCH_HOSTDEV void VelocityBlockContainer::resize(const vmesh::LocalID& newSize) {
+      setNewSize(newSize);
    }
 
    inline ARCH_HOSTDEV bool VelocityBlockContainer::setNewSize(const vmesh::LocalID& newSize) {
+      // Does not set new added blocks to zero
       #ifdef USE_GPU
          #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
          gpuStream_t stream = gpu_getStream();
          vmesh::LocalID currentCapacity = block_data->capacity()/WID3;
-         // resize(newSize - currentCapacity,true); // alters capacity only by adding the first argument
+         setNewCapacity(newSize,stream);
          parameters->resize((newSize)*BlockParams::N_VELOCITY_BLOCK_PARAMS,true,stream);
          block_data->resize((newSize)*WID3,true,stream);
-         resize(1,stream); // alters capacity only by adding the first argument
          #else
          const vmesh::LocalID currentCapacity = block_data->capacity()/WID3;
          assert(newSize <= currentCapacity && "ERROR! Attempting to grow block container on-device beyond capacity (::push_back N_blocks).");
-         block_data->device_resize((newSize)*WID3);
-         parameters->device_resize((newSize)*BlockParams::N_VELOCITY_BLOCK_PARAMS);
+         block_data->device_resize((newSize)*WID3,false); //construct=false don't construct or set to zero
+         parameters->device_resize((newSize)*BlockParams::N_VELOCITY_BLOCK_PARAMS,false); //construct=false don't construct or set to zero
          #endif
       #else
+      setNewCapacity(newSize);
       block_data->resize((newSize)*WID3);
       parameters->resize((newSize)*BlockParams::N_VELOCITY_BLOCK_PARAMS);
-      // Ensure buffer afterwards
-      resize();
       #endif
       return true;
    }

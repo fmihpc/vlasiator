@@ -680,8 +680,12 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
 
    // Ensure allocations
    spatial_cell->setReservation(popID, nBlocksBeforeAdjust);
+   phiprof::Timer cellReservationTimer {"cell-apply-reservation"};
    spatial_cell->applyReservation(popID);
+   cellReservationTimer.stop();
+   phiprof::Timer perthreadReservationTimer {"blockadjust_allocate_perthread"};
    gpu_blockadjust_allocate_perthread(cpuThreadID,spatial_cell->getReservation(popID)*2);
+   perthreadReservationTimer.stop();
    // Re-use maps from cell itself
    Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *map_require = spatial_cell->velocity_block_with_content_map;
    Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *map_remove = spatial_cell->velocity_block_with_no_content_map;

@@ -783,18 +783,28 @@ namespace spatial_cell {
       //newReserve = ((newReserve /(WARPSPERBLOCK*GPUTHREADS))+2) * WARPSPERBLOCK * GPUTHREADS;
 
       if (velocity_block_with_content_list_capacity < newReserve) {
+         //phiprof::Timer vectorTimer {"with_vector"};
          velocity_block_with_content_list->reserve(newReserve,true);
          velocity_block_with_content_list_capacity = newReserve;
+         //vectorTimer.stop();
       }
       if (vbwcl_sizePower < HashmapReqSize) {
+         //phiprof::Timer map1cTimer {"with_map1 clear"};
          velocity_block_with_content_map->clear(Hashinator::targets::device,stream,false);
+         //map1cTimer.stop();
          vbwcl_sizePower = HashmapReqSize+2;
+         //phiprof::Timer map1rTimer {"with_map1 resize"};
          velocity_block_with_content_map->resize(vbwcl_sizePower,Hashinator::targets::device, stream);
+         //map1cTimer.stop();
       }
       if (vbwncl_sizePower < HashmapReqSize) {
+         //phiprof::Timer map2cTimer {"with_map2 clear"};
          velocity_block_with_no_content_map->clear(Hashinator::targets::device,stream,false);
+         //map2cTimer.stop();
          vbwncl_sizePower = HashmapReqSize+2;
+         //phiprof::Timer map2rTimer {"with_map2 resize"};
          velocity_block_with_no_content_map->resize(vbwncl_sizePower,Hashinator::targets::device, stream);
+         //map2cTimer.stop();
       }
    }
 
@@ -1043,8 +1053,8 @@ namespace spatial_cell {
          //GPUTODO is _FACTOR enough instead of _PADDING?
          phiprof::Timer preparationHostTimer {"GPU resize mesh on host"};
          populations[popID].vmesh->setNewCapacity(nBlocksAfterAdjust*BLOCK_ALLOCATION_PADDING);
-         populations[popID].blockContainer->setNewSize(nBlocksAfterAdjust*BLOCK_ALLOCATION_PADDING);
          populations[popID].vmesh->setNewSize(nBlocksAfterAdjust);
+         populations[popID].blockContainer->setNewCapacity(nBlocksAfterAdjust*BLOCK_ALLOCATION_PADDING);
          populations[popID].blockContainer->setNewSize(nBlocksAfterAdjust);
          populations[popID].Upload();
       }

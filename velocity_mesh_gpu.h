@@ -639,7 +639,7 @@ namespace vmesh {
       }
 
       #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-      localToGlobalMap->device_resize(mySize+blocksSize);
+      localToGlobalMap->device_resize(mySize+blocksSize, false); //construct=false don't construct or set to zero
       size_t newElements = 0;
       for (size_t b=0; b<blocksSize; ++b) {
          // device_insert is slower than set_element, returns true or false for whether inserted key was new
@@ -652,7 +652,7 @@ namespace vmesh {
             newElements++;
          }
       }
-      localToGlobalMap->device_resize(mySize+newElements);
+      localToGlobalMap->device_resize(mySize+newElements); //only make smaller so no construct
       return newElements;
       //localToGlobalMap->device_insert(localToGlobalMap->end(),blocks->begin(),blocks->end());
       #else
@@ -1214,7 +1214,7 @@ namespace vmesh {
       const int currentSizePower = globalToLocalMap->getSizePower();
       const int newSize2 = newSize > 0 ? newSize : 1;
       assert(ceil(log2(newSize2)) <= currentSizePower && "insufficient map capacity in vmesh::device_setNewSize");
-      localToGlobalMap->device_resize(newSize);
+      localToGlobalMap->device_resize(newSize,false); //construct=false don't construct or set to zero
    }
 
    // Used in initialization
