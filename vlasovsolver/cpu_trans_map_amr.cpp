@@ -260,20 +260,6 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
 
    // Assuming 1 neighbor in the target array because of the CFL condition
    // In fact propagating to > 1 neighbor will give an error
-
-   // Vector with all cell ids
-   vector<CellID> allCells(localPropagatedCells);
-   allCells.insert(allCells.end(), remoteTargetCells.begin(), remoteTargetCells.end());
-
-   // Vectors of pointers to the cell structs
-   std::vector<SpatialCell*> allCellsPointer(allCells.size());
-
-   // Initialize allCellsPointer
-#pragma omp parallel for schedule(static)
-   for(uint celli = 0; celli < allCells.size(); celli++){
-      allCellsPointer[celli] = mpiGrid[allCells[celli]];
-   }
-
    // init cellid_transpose (moved here to take advantage of the omp parallel region)
 #pragma omp parallel for collapse(2)
    for (uint k=0; k<WID; ++k) {
@@ -297,7 +283,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
    std::vector<SpatialCell*> allCellsPointer(nAllCells);
 
    // Initialize allCellsPointer.
-   #pragma omp parallel for
+   #pragma omp parallel for schedule(static)
    for(uint celli = 0; celli < nAllCells; celli++){
       allCellsPointer[celli] = mpiGrid[allCells[celli]];
    }

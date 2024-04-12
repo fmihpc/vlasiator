@@ -45,6 +45,7 @@
 #else
    // GPU allocation factors are stored in arch/gpu_base.hpp
    static const double BLOCK_ALLOCATION_FACTOR = 1.1;
+   static const double BLOCK_ALLOCATION_PADDING = 1.3;
 #endif
 
 using namespace std;

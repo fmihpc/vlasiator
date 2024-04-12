@@ -171,16 +171,16 @@ namespace vmesh {
    }
 
    inline void VelocityMesh::clear(bool shrink) {
-      localToGlobalMap->clear();
-      globalToLocalMap->clear();
       if (shrink) {
-         localToGlobalMap->shrink_to_fit(); 
-         globalToLocalMap->shrink_to_fit();
+         delete globalToLocalMap;
+         delete localToGlobalMap;
+         globalToLocalMap = new OpenBucketHashtable<vmesh::GlobalID,vmesh::LocalID>();
+         localToGlobalMap = new std::vector<vmesh::GlobalID>(1);
+         localToGlobalMap->clear();
+      } else {
+         globalToLocalMap->clear();
+         localToGlobalMap->clear();
       }
-   }
-
-   inline bool VelocityMesh::coarsenAllowed(const vmesh::GlobalID& globalID) const {
-      return false;
    }
 
    inline bool VelocityMesh::move(const vmesh::LocalID& sourceLID,const vmesh::LocalID& targetLID) {

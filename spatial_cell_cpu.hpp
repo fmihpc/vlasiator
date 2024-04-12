@@ -318,7 +318,6 @@ namespace spatial_cell {
       void scale_population(creal factor, cuint popID);
       void increment_population(const Population& pop, creal factor, cuint popID);
 
-      uint8_t get_maximum_refinement_level(const uint popID);
       const Real& get_max_r_dt(const uint popID) const;
       const Real& get_max_v_dt(const uint popID) const;
 
@@ -578,10 +577,6 @@ namespace spatial_cell {
 
    inline const Real* SpatialCell::get_cell_parameters() const {
       return parameters.data();
-   }
-
-   inline uint8_t SpatialCell::get_maximum_refinement_level(const uint popID) {
-      return populations[popID].vmesh->getMaxAllowedRefinementLevel();
    }
 
    inline vmesh::LocalID SpatialCell::get_number_of_velocity_blocks(const uint popID) const {
