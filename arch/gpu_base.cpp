@@ -64,6 +64,7 @@ uint gpu_acc_RadixSortTempSize[MAXCPUTHREADS] = {0};
 
 // Hash map and splitvectors used in block adjustment
 Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *gpu_map_add[MAXCPUTHREADS];
+Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *gpu_dev_map_add[MAXCPUTHREADS];
 split::SplitVector<vmesh::GlobalID> *gpu_list_with_replace_new[MAXCPUTHREADS];
 split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>> *gpu_list_delete[MAXCPUTHREADS];
 split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>> *gpu_list_to_replace[MAXCPUTHREADS];
@@ -83,6 +84,7 @@ uint gpu_allocated_unionSetSize = 0;
 
 // Memory allocation flags and values (TODO make per-thread?).
 uint gpu_blockadjust_allocatedSize[MAXCPUTHREADS] = {0};
+uint gpu_blockadjust_allocatedSizePower[MAXCPUTHREADS] = {0};
 uint gpu_vlasov_allocatedSize[MAXCPUTHREADS] = {0};
 uint gpu_acc_allocatedColumns = 0;
 uint gpu_acc_columnContainerSize = 0;
@@ -417,21 +419,24 @@ __host__ void gpu_blockadjust_allocate_perthread(
    uint cpuThreadID,
    uint blockAllocationCount
    ) {
+   gpuStream_t stream = gpu_getStream();
    // Check if we already have allocated enough memory?
    if (gpu_blockadjust_allocatedSize[cpuThreadID] > blockAllocationCount * BLOCK_ALLOCATION_FACTOR) {
       //printf("Early return from allocation, thread %lu with blockAllocationCount %lu existing allocation counter %lu and vector capacity %lu \n",(long unsigned)cpuThreadID,(long unsigned)blockAllocationCount,(long unsigned)gpu_blockadjust_allocatedSize[cpuThreadID],(long unsigned)gpu_list_with_replace_new[cpuThreadID]->capacity());
+
+      // Just clear the map_add
+      gpu_map_add[cpuThreadID]->clear(Hashinator::targets::device,stream,false,std::pow(2,gpu_blockadjust_allocatedSizePower[cpuThreadID])); // contains stream sync
       return;
    }
    // Potential new allocation with extra padding
    const uint newSize = blockAllocationCount * BLOCK_ALLOCATION_PADDING;
-   const vmesh::LocalID HashmapReqSize = ceil(log2((int)newSize)) +3;
+   const uint newSizePower = ceil(log2((int)newSize)) +3;
    // Deallocate before new allocation
    gpu_blockadjust_deallocate_perthread(cpuThreadID);
 
-   // loop extraction used to require extra buffer
-   //const uint loopReserve = ((newSize /(WARPSPERBLOCK*GPUTHREADS))+2) * WARPSPERBLOCK * GPUTHREADS;
-
-   gpu_map_add[cpuThreadID] = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(HashmapReqSize);
+   void *buf = malloc(sizeof(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>));
+   gpu_map_add[cpuThreadID] = ::new (buf) Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(newSizePower);
+   gpu_dev_map_add[cpuThreadID] = gpu_map_add[cpuThreadID]->upload(stream);
    gpu_list_with_replace_new[cpuThreadID] = new split::SplitVector<vmesh::GlobalID>(newSize);
    gpu_list_delete[cpuThreadID] = new split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>(newSize);
    gpu_list_to_replace[cpuThreadID] = new split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>(newSize);
@@ -439,6 +444,7 @@ __host__ void gpu_blockadjust_allocate_perthread(
 
    // Store size of new allocation
    gpu_blockadjust_allocatedSize[cpuThreadID] = newSize;
+   gpu_blockadjust_allocatedSizePower[cpuThreadID] = newSizePower;
    //printf("Allocated buffers for thread %lu with newSize %lu and vector length %lu = %lu \n",(long unsigned)cpuThreadID,(long unsigned)newSize,(long unsigned)loopReserve,(long unsigned)gpu_list_with_replace_new[cpuThreadID]->capacity());
 }
 
@@ -448,12 +454,13 @@ __host__ void gpu_blockadjust_deallocate_perthread (
    if (gpu_blockadjust_allocatedSize[cpuThreadID] == 0) {
       return;
    }
-   delete gpu_map_add[cpuThreadID];
+   ::delete gpu_map_add[cpuThreadID];
    delete gpu_list_with_replace_new[cpuThreadID];
    delete gpu_list_delete[cpuThreadID];
    delete gpu_list_to_replace[cpuThreadID];
    delete gpu_list_with_replace_old[cpuThreadID];
    gpu_blockadjust_allocatedSize[cpuThreadID] = 0;
+   gpu_blockadjust_allocatedSizePower[cpuThreadID] = 0;
 }
 
 /*

@@ -229,8 +229,8 @@ __global__ void __launch_bounds__(GPUTHREADS,4) evaluate_column_extents_kernel(
    ColumnOffsets* gpu_columnData,
    Column *gpu_columns,
    split::SplitVector<vmesh::GlobalID> *list_with_replace_new,
-   Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *map_require,
-   Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *map_remove,
+   Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *dev_map_require,
+   Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *dev_map_remove,
    vmesh::GlobalID *GIDlist,
    uint *gpu_block_indices_to_id,
    Realv intersection,
@@ -401,7 +401,7 @@ __global__ void __launch_bounds__(GPUTHREADS,4) evaluate_column_extents_kernel(
                      setFirstBlockIndices0 * gpu_block_indices_to_id[0] +
                      setFirstBlockIndices1 * gpu_block_indices_to_id[1] +
                      blockK                * gpu_block_indices_to_id[2];
-                  map_require->set_element(targetBlock,vmesh->getLocalID(targetBlock));
+                  dev_map_require->set_element(targetBlock,vmesh->getLocalID(targetBlock));
                   // if(!BlocksRequired->device_push_back(targetBlock)) {
                   //    bailout_flag[1]=1;
                   //    return;
@@ -422,7 +422,7 @@ __global__ void __launch_bounds__(GPUTHREADS,4) evaluate_column_extents_kernel(
                      setFirstBlockIndices0 * gpu_block_indices_to_id[0] +
                      setFirstBlockIndices1 * gpu_block_indices_to_id[1] +
                      blockK                * gpu_block_indices_to_id[2];
-                  map_remove->set_element(targetBlock,vmesh->getLocalID(targetBlock));
+                  dev_map_remove->set_element(targetBlock,vmesh->getLocalID(targetBlock));
                   // GPUTODO: could use device_insert to verify insertion, but not worth it
                   // if(!list_to_replace->device_push_back(
                   //       Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>(targetBlock,vmesh->getLocalID(targetBlock)))) {
@@ -689,6 +689,8 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    // Re-use maps from cell itself
    Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *map_require = spatial_cell->velocity_block_with_content_map;
    Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *map_remove = spatial_cell->velocity_block_with_no_content_map;
+   Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *dev_map_require = spatial_cell->dev_velocity_block_with_content_map;
+   Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *dev_map_remove = spatial_cell->dev_velocity_block_with_no_content_map;
    // GPUTODO: Instead of a vector with push_backs, could use map_add? Perhaps not worth it.
    // Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *map_add = gpu_map_add[cpuThreadID];
    // map_add->clear(Hashinator::targets::device,stream,false);
@@ -797,8 +799,8 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    phiprof::Timer evaluateExtentsTimer {"Evaluate column extents kernel"};
    do {
       CHK_ERR( gpuMemsetAsync(gpu_returnLID, 0, 2*sizeof(vmesh::LocalID), stream) );
-      map_require->clear(Hashinator::targets::device,stream,false);
-      map_remove->clear(Hashinator::targets::device,stream,false);
+      map_require->clear(Hashinator::targets::device,stream,false,std::pow(2,spatial_cell->vbwcl_sizePower));
+      map_remove->clear(Hashinator::targets::device,stream,false,std::pow(2,spatial_cell->vbwncl_sizePower));
       // Hashmap clear includes a stream sync
       //CHK_ERR( gpuStreamSynchronize(stream) );
       //map_add->clear(Hashinator::targets::device,stream,false);
@@ -808,8 +810,8 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
          columnData,
          columns,
          list_with_replace_new, // or map_add
-         map_require,
-         map_remove,
+         dev_map_require,
+         dev_map_remove,
          GIDlist,
          gpu_block_indices_to_id[cpuThreadID],
          intersection,
@@ -861,18 +863,18 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    vmesh::GlobalID EMPTYBUCKET = std::numeric_limits<vmesh::GlobalID>::max();
    vmesh::GlobalID TOMBSTONE = EMPTYBUCKET - 1;
 
-   auto rule_delete_move = [EMPTYBUCKET, TOMBSTONE, map_remove, list_with_replace_new, dev_vmesh]
+   auto rule_delete_move = [EMPTYBUCKET, TOMBSTONE, dev_map_remove, list_with_replace_new, dev_vmesh]
       __host__ __device__(const Hashinator::hash_pair<vmesh::GlobalID, vmesh::LocalID>& kval) -> bool {
                               const vmesh::LocalID nBlocksAfterAdjust1 = dev_vmesh->size()
-                                 + list_with_replace_new->size() - map_remove->size();
+                                 + list_with_replace_new->size() - dev_map_remove->size();
                               return kval.first != EMPTYBUCKET &&
                                  kval.first != TOMBSTONE &&
                                  kval.second >= nBlocksAfterAdjust1 &&
                                  kval.second != vmesh::INVALID_LOCALID; };
-   auto rule_to_replace = [EMPTYBUCKET, TOMBSTONE, map_remove, list_with_replace_new, dev_vmesh]
+   auto rule_to_replace = [EMPTYBUCKET, TOMBSTONE, dev_map_remove, list_with_replace_new, dev_vmesh]
       __host__ __device__(const Hashinator::hash_pair<vmesh::GlobalID, vmesh::LocalID>& kval) -> bool {
                              const vmesh::LocalID nBlocksAfterAdjust2 = dev_vmesh->size()
-                                + list_with_replace_new->size() - map_remove->size();
+                                + list_with_replace_new->size() - dev_map_remove->size();
                              return kval.first != EMPTYBUCKET &&
                                 kval.first != TOMBSTONE &&
                                 kval.second < nBlocksAfterAdjust2; };
