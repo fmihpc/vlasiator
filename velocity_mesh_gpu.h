@@ -140,7 +140,7 @@ namespace vmesh {
 
    inline VelocityMesh::VelocityMesh() {
       meshID = std::numeric_limits<size_t>::max();
-      // Set sizepower to 10 (1024 blocks) straight away so there's enough room to grow
+      // Set sizepower to 10 (1024 blocks) straight away so there's enough room to grow?
       globalToLocalMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(7);
       localToGlobalMap = new split::SplitVector<vmesh::GlobalID>(1);
       localToGlobalMap->clear();
@@ -298,6 +298,7 @@ namespace vmesh {
       localToGlobalMap->clear();
       delete globalToLocalMap;
       globalToLocalMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(sizePower);
+      ltg_size = 0;
 
       // gpuStream_t stream = gpu_getStream();
       // localToGlobalMap->clear();

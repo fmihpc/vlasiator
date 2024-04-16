@@ -549,7 +549,6 @@ namespace spatial_cell {
       void prepare_to_receive_blocks(const uint popID);
       bool shrink_to_fit();
       size_t size(const uint popID) const;
-      void remove_velocity_block(const vmesh::GlobalID& block,const uint popID);
       vmesh::VelocityMesh* get_velocity_mesh(const size_t& popID);
       vmesh::VelocityBlockContainer* get_velocity_blocks(const size_t& popID);
       void dev_upload_population(const uint popID);
@@ -1170,6 +1169,7 @@ namespace spatial_cell {
          std::cerr << "Failed to add blocks" << __FILE__ << ' ' << __LINE__ << std::endl; exit(1);
          return;
       }
+      // populations[popID].vmesh->setNewCachedSize(nBlocks); // managed by push_back
 
       const vmesh::LocalID startLID = populations[popID].blockContainer->push_back(nBlocks);
       populations[popID].Upload();
@@ -1225,45 +1225,6 @@ namespace spatial_cell {
       CHK_ERR( gpuStreamSynchronize(stream) );
       CHK_ERR( gpuFree(gpuInitBuffer) );
       CHK_ERR( gpuFree(gpuInitBlocks) );
-
-   }
-
-   /*!
-    Removes given block from the velocity grid.
-    Does nothing if given block doesn't exist.
-    */
-   inline void SpatialCell::remove_velocity_block(const vmesh::GlobalID& block,const uint popID) {
-      #ifdef DEBUG_SPATIAL_CELL
-      if (popID >= populations.size()) {
-         std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
-         std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
-         exit(1);
-      }
-      #endif
-
-      if (block == invalid_global_id()) {
-         //std::cerr << "not removing, block " << block << " is invalid" << std::endl;
-         return;
-      }
-
-      const vmesh::LocalID removedLID = populations[popID].vmesh->getLocalID(block);
-      if (removedLID == invalid_local_id()) {
-         //std::cerr << "not removing since block " << block << " does not exist" << std::endl;
-         return;
-      }
-
-      // Get local ID of the last block:
-      const vmesh::LocalID lastLID = populations[popID].vmesh->size()-1;
-      // If block to remove is already last:
-      if (lastLID == removedLID) {
-         // Just remove the block
-         populations[popID].vmesh->pop();
-         populations[popID].blockContainer->pop();
-      } else {
-         // Move the last block to the removed position
-         populations[popID].vmesh->move(lastLID,removedLID);
-         populations[popID].blockContainer->move(lastLID,removedLID);
-      }
    }
 
    /*!
