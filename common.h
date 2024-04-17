@@ -182,7 +182,9 @@ namespace CellParams {
       MAXRDT,             /*!< maximum timestep allowed in ordinary space for this cell,
                            * this is the max allowed timestep over all particle species.*/
       MAXFDT,             /*!< maximum timestep allowed in ordinary space by fieldsolver for this cell**/
-      LBWEIGHTCOUNTER,    /*!< Counter for storing compute time weights needed by the load balancing**/
+      LBWEIGHTCOUNTERX,    /*!< Counter for storing compute time weights needed by the load balancing**/
+      LBWEIGHTCOUNTERY,    /*!< Counter for storing compute time weights needed by the load balancing**/
+      LBWEIGHTCOUNTERZ,    /*!< Counter for storing compute time weights needed by the load balancing**/
       ISCELLSAVINGF,      /*!< Value telling whether a cell is saving its distribution function when partial f data is written out. */
       FSGRID_RANK, /*!< Rank of this cell in the FsGrid cartesian communicator */
       FSGRID_BOUNDARYTYPE, /*!< Boundary type of this cell, as stored in the fsGrid */
@@ -191,6 +193,7 @@ namespace CellParams {
       AMR_TRANSLATE_COMM_X, /*! < Flag to include this cell in AMR pre-translate communication  */
       AMR_TRANSLATE_COMM_Y, /*! < Flag to include this cell in AMR pre-translate communication  */
       AMR_TRANSLATE_COMM_Z, /*! < Flag to include this cell in AMR pre-translate communication  */
+      SYSBOUNDARIES_COMM, // < Flag if cell is included in sysboundaries communication
       CONNECTION, /*!< Magnetic connection. See TracingPointConnectionType for assigned values. */
       CONNECTION_FW_X, /*!< Endpoint x (forward-propagated) for the magnetic connection tracer*/
       CONNECTION_FW_Y, /*!< Endpoint y (forward-propagated) for the magnetic connection tracer*/

@@ -153,11 +153,21 @@ void initializeGrids(
                     sysBoundaries.isPeriodic(2))
       .initialize(comm)
       .set_geometry(geom_params);
+   
+   mpiGrid.set_load_balance_norm(P::loadBalanceNorm);
 
+   for (const auto& [key, value] : P::loadBalanceOptions) {
+      mpiGrid.set_partitioning_option(key, value);
+   }
+
+   // Hypergraph partitioning needs stencils initialized
+   initializeStencils(mpiGrid);
 
    phiprof::Timer refineTimer {"Refine spatial cells"};
-   // We need this first as well
    recalculateLocalCellsCache();
+
+   setPartitioningNeighborhoods(mpiGrid);
+
    if (!P::isRestart) {
       if (P::amrMaxSpatialRefLevel > 0 && project.refineSpatialCells(mpiGrid)) {
          mpiGrid.balance_load();
@@ -175,13 +185,16 @@ void initializeGrids(
    
    // Init velocity mesh on all cells
    initVelocityGridGeometry(mpiGrid);
-   initializeStencils(mpiGrid);
-   
-   for (const auto& [key, value] : P::loadBalanceOptions) {
-      mpiGrid.set_partitioning_option(key, value);
-   }
+
+   mpiGrid.set_partitioning_option("OBJ_WEIGHTS_COMPARABLE", "1");
+   /** RCB_MULTICRITERIA_NORM
+       Norm used in multicriteria algorithm; this determines how to balance the different weight constraints. Valid values are 1,2, and 3. Roughly, if the weights correspond to different phases, then the value 1 (1-norm) tries to minimize the  total time (sum over all phases) while the value 3 (max-norm) attempts to minimize the worst imbalance in any phase. The 2-norm does something in between. Try a different value if you're not happy with the balance. **/
+
    phiprof::Timer initialLBTimer {"Initial load-balancing"};
    if (myRank == MASTER_RANK) logFile << "(INIT): Starting initial load balance." << endl << writeVerbose;
+
+   // TODO: do we really need two initial LB?
+   setPartitioningNeighborhoods(mpiGrid);
    mpiGrid.balance_load(); // Direct DCCRG call, recalculate cache afterwards
    recalculateLocalCellsCache();
 
@@ -293,7 +306,9 @@ void initializeGrids(
       
       #pragma omp parallel for schedule(static)
       for (size_t i=0; i<cells.size(); ++i) {
-         mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 0;
+         mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTERX] = 0;
+         mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTERY] = 0;
+         mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTERZ] = 0;
       }
 
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
@@ -304,10 +319,12 @@ void initializeGrids(
          #endif
 
          // set initial LB metric based on number of blocks, all others
-         // will be based on time spent in acceleration
+         // will be based on directional pencil counts
          #pragma omp parallel for schedule(static)
          for (size_t i=0; i<cells.size(); ++i) {
-            mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] += mpiGrid[cells[i]]->get_number_of_velocity_blocks(popID);
+            mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTERX] += mpiGrid[cells[i]]->get_number_of_velocity_blocks(popID);
+            mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTERY] += mpiGrid[cells[i]]->get_number_of_velocity_blocks(popID);
+            mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTERZ] += mpiGrid[cells[i]]->get_number_of_velocity_blocks(popID);
          }
       }
       
@@ -326,7 +343,9 @@ void initializeGrids(
    } else if (P::writeFullBGB) {
       // If, instead of starting a regular simulation, we are only writing out the background field, it is enough to set a dummy load balance value of 1 here.
       for (size_t i=0; i<cells.size(); ++i) {
-         mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 1;
+         for (int j = 0; j < 3; ++i) {
+            mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTERX + j] = 1;
+         }
       }
    }
 
@@ -484,6 +503,24 @@ void setFaceNeighborRanks( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    }
 }
 
+void setPartitioningNeighborhoods(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+   const vector<CellID>& cells = getLocalCells();
+   for (auto& cell : cells){
+      mpiGrid.clear_partitioning_neighborhoods(cell);
+      for (auto neighborhood : P::partitioningNeighborhoods) {
+         // TODO: for now, layer 1 cells communicate in the extended neighborhood
+         // If this is ever fixed, SYSBOUNDRIES_NEIGHBORHOOD_ID needs a case
+         if (neighborhood == SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID) {
+            if (mpiGrid[cell]->sysBoundaryLayer == 1 || mpiGrid[cell]->sysBoundaryLayer == 2) {
+               mpiGrid.add_partitioning_neighborhood(cell, neighborhood);
+            }
+         } else {
+            mpiGrid.add_partitioning_neighborhood(cell, neighborhood);
+         }
+      }
+   }
+}
+
 void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, SysBoundary& sysBoundaries){
    // Invalidate cached cell lists
    Parameters::meshRepartitioned = true;
@@ -497,17 +534,24 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
 
    deallocTimer.stop();
    //set weights based on each cells LB weight counter
+   setPartitioningNeighborhoods(mpiGrid);
    const vector<CellID>& cells = getLocalCells();
-   for (size_t i=0; i<cells.size(); ++i){
+   for (auto& cell : cells){
       //Set weight. If acceleration is enabled then we use the weight
       //counter which is updated in acceleration, otherwise we just
       //use the number of blocks.
-//      if (P::propagateVlasovAcceleration) 
-      mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER]);
-//      else
-//         mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->get_number_of_all_velocity_blocks());
-      //reset counter
-      //mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 0.0;
+      std::vector<double> lbthreeweight;
+      if (P::propagateVlasovAcceleration) {
+         lbthreeweight.push_back(mpiGrid[cell]->parameters[CellParams::LBWEIGHTCOUNTERX]);
+         lbthreeweight.push_back(mpiGrid[cell]->parameters[CellParams::LBWEIGHTCOUNTERY]);
+         lbthreeweight.push_back(mpiGrid[cell]->parameters[CellParams::LBWEIGHTCOUNTERZ]);
+      } else {
+         lbthreeweight.push_back(mpiGrid[cell]->get_number_of_all_velocity_blocks());
+         lbthreeweight.push_back(mpiGrid[cell]->get_number_of_all_velocity_blocks());
+         lbthreeweight.push_back(mpiGrid[cell]->get_number_of_all_velocity_blocks());
+      }
+      mpiGrid.set_cell_weight(cell, lbthreeweight);
+      mpiGrid.set_communication_weight(cell, mpiGrid[cell]->get_number_of_all_velocity_blocks());
    }
 
    phiprof::Timer initLBTimer {"dccrg.initialize_balance_load"};
@@ -1058,6 +1102,7 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
         neighborhood.push_back({{0, 0, d}});
      }
    }
+
    if( !mpiGrid.add_neighborhood(VLASOV_SOLVER_NEIGHBORHOOD_ID, neighborhood)){
       std::cerr << "Failed to add neighborhood VLASOV_SOLVER_NEIGHBORHOOD_ID \n";
       abort();
