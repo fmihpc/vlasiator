@@ -1061,21 +1061,27 @@ int main(int argn,char* args[]) {
                logFile << "(LB) AMR rebalancing with heavier refinement weights." << endl;
                globalflags::bailingOut = false; // Reset this
                for (auto id : mpiGrid.get_local_cells_to_refine()) {
-                  mpiGrid[id]->parameters[CellParams::LBWEIGHTCOUNTER] *= 8.0;
+                  for (int i = 0; i < 3; ++i) {
+                     mpiGrid[id]->parameters[CellParams::LBWEIGHTCOUNTERX + i] *= 8.0;
+                  }
                }
                balanceLoad(mpiGrid, sysBoundaryContainer);
                // We can /= 8.0 now as cells have potentially migrated. Go back to block-based count for now.
                for (auto id : mpiGrid.get_local_cells_to_refine()) {
-                  mpiGrid[id]->parameters[CellParams::LBWEIGHTCOUNTER] = 0;
-                  for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-                     mpiGrid[id]->parameters[CellParams::LBWEIGHTCOUNTER] += mpiGrid[id]->get_number_of_velocity_blocks(popID);
+                  for (int i = 0; i < 3; ++i) {
+                     mpiGrid[id]->parameters[CellParams::LBWEIGHTCOUNTERX + i] = 0;
+                     for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+                        mpiGrid[id]->parameters[CellParams::LBWEIGHTCOUNTERX + i] += mpiGrid[id]->get_number_of_velocity_blocks(popID);
+                     }
                   }
                }
 
                mpiGrid.cancel_refining();
                if (!adaptRefinement(mpiGrid, technicalGrid, sysBoundaryContainer, *project)) {
                   for (auto id : mpiGrid.get_local_cells_to_refine()) {
-                     mpiGrid[id]->parameters[CellParams::LBWEIGHTCOUNTER] *= 8.0;
+                     for (int i = 0; i < 3; ++i) {
+                        mpiGrid[id]->parameters[CellParams::LBWEIGHTCOUNTERX + i] *= 8.0;
+                     }
                   }
                   continue;   // Refinement failed and we're bailing out
                } else {
@@ -1152,7 +1158,9 @@ int main(int argn,char* args[]) {
          }
          #pragma omp parallel for
          for (size_t c=0; c<cells.size(); ++c) {
-            mpiGrid[cells[c]]->get_cell_parameters()[CellParams::LBWEIGHTCOUNTER] = 0;
+            mpiGrid[cells[c]]->get_cell_parameters()[CellParams::LBWEIGHTCOUNTERX] = 0;
+            mpiGrid[cells[c]]->get_cell_parameters()[CellParams::LBWEIGHTCOUNTERY] = 0;
+            mpiGrid[cells[c]]->get_cell_parameters()[CellParams::LBWEIGHTCOUNTERZ] = 0;
          }
       }
       

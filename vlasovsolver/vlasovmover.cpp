@@ -71,7 +71,9 @@ void calculateSpatialTranslation(
         const vector<CellID>& remoteTargetCellsx,
         const vector<CellID>& remoteTargetCellsy,
         const vector<CellID>& remoteTargetCellsz,
-        vector<uint>& nPencils,
+        vector<uint>& nPencilsX,
+        vector<uint>& nPencilsY,
+        vector<uint>& nPencilsZ,
         creal dt,
         const uint popID,
         Real &time
@@ -109,7 +111,7 @@ void calculateSpatialTranslation(
       if(P::amrMaxSpatialRefLevel == 0) {
          trans_map_1d(mpiGrid,local_propagated_cells, remoteTargetCellsz, 2, dt,popID); // map along z//
       } else {
-         trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsz, nPencils, 2, dt,popID); // map along z//
+         trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsz, nPencilsZ, 2, dt,popID); // map along z//
       }
       computeTimer.stop();
       time += MPI_Wtime() - t1;
@@ -154,7 +156,7 @@ void calculateSpatialTranslation(
       if(P::amrMaxSpatialRefLevel == 0) {
          trans_map_1d(mpiGrid,local_propagated_cells, remoteTargetCellsx, 0,dt,popID); // map along x//
       } else {
-         trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsx, nPencils, 0,dt,popID); // map along x//
+         trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsx, nPencilsX, 0,dt,popID); // map along x//
       }
       computeTimer.stop();
       time += MPI_Wtime() - t1;
@@ -198,7 +200,7 @@ void calculateSpatialTranslation(
       if(P::amrMaxSpatialRefLevel == 0) {
          trans_map_1d(mpiGrid,local_propagated_cells, remoteTargetCellsy, 1,dt,popID); // map along y//
       } else {
-         trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsy, nPencils, 1,dt,popID); // map along y//      
+         trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsy, nPencilsY, 1,dt,popID); // map along y//
       }
       computeTimer.stop();
       time += MPI_Wtime() - t1;
@@ -251,7 +253,9 @@ void calculateSpatialTranslation(
    vector<CellID> remoteTargetCellsz;
    vector<CellID> local_propagated_cells;
    vector<CellID> local_target_cells;
-   vector<uint> nPencils;
+   vector<uint> nPencilsX;
+   vector<uint> nPencilsY;
+   vector<uint> nPencilsZ;
    Real time=0.0;
    
    // If dt=0 we are either initializing or distribution functions are not translated. 
@@ -284,7 +288,9 @@ void calculateSpatialTranslation(
    if (P::prepareForRebalance == true && P::amrMaxSpatialRefLevel != 0) {
       // One more element to count the sums
       for (size_t c=0; c<local_propagated_cells.size()+1; c++) {
-         nPencils.push_back(0);
+         nPencilsX.push_back(0);
+         nPencilsY.push_back(0);
+         nPencilsZ.push_back(0);
       }
    }
    computeTimer.stop();
@@ -303,7 +309,9 @@ void calculateSpatialTranslation(
          remoteTargetCellsx,
          remoteTargetCellsy,
          remoteTargetCellsz,
-         nPencils,
+         nPencilsX,
+         nPencilsY,
+         nPencilsZ,
          dt,
          popID,
          time
@@ -322,20 +330,21 @@ void calculateSpatialTranslation(
             }
          }
          for (size_t c=0; c<localCells.size(); ++c) {
-            for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-               mpiGrid[localCells[c]]->parameters[CellParams::LBWEIGHTCOUNTER] += deltat * mpiGrid[localCells[c]]->get_number_of_velocity_blocks(popID) / totalBlocks;
-            }
+            mpiGrid[localCells[c]]->parameters[CellParams::LBWEIGHTCOUNTERX] += deltat * mpiGrid[localCells[c]]->get_number_of_all_velocity_blocks() / totalBlocks;
+            mpiGrid[localCells[c]]->parameters[CellParams::LBWEIGHTCOUNTERY] += deltat * mpiGrid[localCells[c]]->get_number_of_all_velocity_blocks() / totalBlocks;
+            mpiGrid[localCells[c]]->parameters[CellParams::LBWEIGHTCOUNTERZ] += deltat * mpiGrid[localCells[c]]->get_number_of_all_velocity_blocks() / totalBlocks;
          }
       } else {
          for (size_t c=0; c<local_propagated_cells.size(); ++c) {
             for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-               totalBlocks += nPencils[c] * mpiGrid[local_propagated_cells[c]]->get_number_of_velocity_blocks(popID);
+               totalBlocks += (nPencilsX[c] + nPencilsY[c] + nPencilsZ[c]) * mpiGrid[local_propagated_cells[c]]->get_number_of_velocity_blocks(popID);
             }
          }
          for (size_t c=0; c<local_propagated_cells.size(); ++c) {
-            for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-               mpiGrid[local_propagated_cells[c]]->parameters[CellParams::LBWEIGHTCOUNTER] += deltat * nPencils[c] * mpiGrid[local_propagated_cells[c]]->get_number_of_velocity_blocks(popID) / totalBlocks;
-            }
+            Real blocks = mpiGrid[local_propagated_cells[c]]->get_number_of_all_velocity_blocks();
+            mpiGrid[local_propagated_cells[c]]->parameters[CellParams::LBWEIGHTCOUNTERX] += deltat * nPencilsX[c] * blocks / totalBlocks;
+            mpiGrid[local_propagated_cells[c]]->parameters[CellParams::LBWEIGHTCOUNTERY] += deltat * nPencilsY[c] * blocks / totalBlocks;
+            mpiGrid[local_propagated_cells[c]]->parameters[CellParams::LBWEIGHTCOUNTERZ] += deltat * nPencilsZ[c] * blocks / totalBlocks;
          }
       }
    }
