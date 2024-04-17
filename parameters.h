@@ -194,12 +194,12 @@ struct Parameters {
    static bool refineOnRestart;
    static bool forceRefinement;
    static bool shouldFilter;
-   static bool useAlpha;
-   static Real alphaRefineThreshold;
-   static Real alphaCoarsenThreshold;
-   static bool useJPerB;
-   static Real jperbRefineThreshold;
-   static Real jperbCoarsenThreshold;
+   static bool useAlpha1;
+   static Real alpha1RefineThreshold;
+   static Real alpha1CoarsenThreshold;
+   static bool useAlpha2;
+   static Real alpha2RefineThreshold;
+   static Real alpha2CoarsenThreshold;
    static uint refineCadence;
    static Real refineAfter;
    static Real refineRadius;
