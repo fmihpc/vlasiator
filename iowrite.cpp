@@ -1075,6 +1075,12 @@ bool writeIonosphereGridMetadata(vlsv::Writer& vlsvWriter) {
   } else {
     vlsvWriter.writeArray("MESH", xmlAttributes, 0, 1, ionosphereGridElementsAndCorners.data());
   }
+  
+  // Write different parameters of the class Ionosphere into the VLSL file
+  if( vlsvWriter.writeParameter("ionosphere_radius", &SBC::ionosphereGrid.innerRadius) == false ) { return false; }
+  if( vlsvWriter.writeParameter("ionosphere_downmapping_radius", &SBC::ionosphereGrid.downmapRadius) == false ) { return false; }
+  if( vlsvWriter.writeParameter("ionosphere_time_smoothing_constant", &SBC::ionosphereGrid.couplingTimescale) == false ) { return false; }
+  if( vlsvWriter.writeParameter("ionosphere_time_interval", &SBC::ionosphereGrid.couplingInterval) == false ) { return false; }
 
   return true;
 
