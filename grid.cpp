@@ -31,7 +31,7 @@
   #include <omp.h>
 #endif
 #include "grid.h"
-#include "vlasovmover.h"
+#include "vlasovsolver/vlasovmover.h"
 #include "definitions.h"
 #include "mpiconversion.h"
 #include "logger.h"

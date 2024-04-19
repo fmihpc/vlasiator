@@ -31,7 +31,7 @@
 #include <iostream>
 
 #include "../parameters.h"
-#include "../vlasovmover.h"
+#include "../vlasovsolver/vlasovmover.h"
 #include "sysboundarycondition.h"
 #include "../projects/projects_common.h"
 

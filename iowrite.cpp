@@ -42,7 +42,7 @@
 #include "phiprof.hpp"
 #include "parameters.h"
 #include "logger.h"
-#include "vlasovmover.h"
+#include "vlasovsolver/vlasovmover.h"
 #include "object_wrapper.h"
 #include "velocity_mesh_parameters.h"
 #include "sysboundary/ionosphere.h"

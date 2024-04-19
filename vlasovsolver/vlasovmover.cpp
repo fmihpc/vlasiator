@@ -34,7 +34,7 @@
 #include <phiprof.hpp>
 
 #include "../spatial_cell.hpp"
-#include "../vlasovmover.h"
+#include "vlasovmover.h"
 #include "../grid.h"
 #include "../definitions.h"
 #include "../object_wrapper.h"

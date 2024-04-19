@@ -25,8 +25,8 @@
 
 #include <vector>
 
-#include "definitions.h"
-#include "spatial_cell.hpp"
+#include "../definitions.h"
+#include "../spatial_cell.hpp"
 using namespace spatial_cell;
 
 #include <stdint.h>

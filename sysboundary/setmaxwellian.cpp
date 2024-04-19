@@ -28,7 +28,7 @@
 #include <iostream>
 
 #include "setmaxwellian.h"
-#include "../vlasovmover.h"
+#include "../vlasovsolver/vlasovmover.h"
 #include "../object_wrapper.h"
 
 namespace SBC {

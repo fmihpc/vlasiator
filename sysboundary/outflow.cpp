@@ -32,7 +32,7 @@
 #include "../projects/projects_common.h"
 #include "../fieldsolver/fs_common.h"
 #include "../fieldsolver/ldz_magnetic_field.hpp"
-#include "../vlasovmover.h"
+#include "../vlasovsolver/vlasovmover.h"
 
 #ifdef DEBUG_VLASIATOR
    #define DEBUG_OUTFLOW

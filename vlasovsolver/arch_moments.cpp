@@ -22,7 +22,7 @@
 
 #include <phiprof.hpp>
 #include "arch_moments.h"
-#include "../vlasovmover.h"
+#include "vlasovmover.h"
 #include "../object_wrapper.h"
 #include "../fieldsolver/fs_common.h" // divideIfNonZero()
 
