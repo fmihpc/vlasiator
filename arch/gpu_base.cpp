@@ -481,7 +481,8 @@ __host__ void gpu_trans_allocate(
          allVmeshPointer = new split::SplitVector<vmesh::VelocityMesh*>(nAllCells);
       } else {
          // Resize
-         //allVmeshPointer->optimizeCPU(stream);
+         allVmeshPointer->clear();
+         allVmeshPointer->optimizeCPU(stream);
          allVmeshPointer->resize(nAllCells,true);
       }
       // Leave on CPU
