@@ -62,6 +62,11 @@ __global__ void first_moments_kernel (
    vmesh::VelocityBlockContainer* blockContainer = dev_VBC[celli];
    uint thisVBCSize = blockContainer->size();
    if (blockContainer==0 || thisVBCSize==0) {
+      if (ti==0) {
+         for (uint imom=0; imom<4; imom++) {
+            dev_moments1[celli*4 + imom] = 0;
+         }
+      }
       return;
    }
    Realf *data = blockContainer->getData();
@@ -86,14 +91,17 @@ __global__ void first_moments_kernel (
    //Now reduce one-by-one for cell
    for (uint imom=0; imom<4; imom++) {
       mom[ti] = myMom[imom];
+      __syncthreads();
       for (unsigned int s=blockSize/2; s>0; s>>=1) {
          if (ti < s) {
             mom[ti] += mom[ti + s];
          }
          __syncthreads();
       }
+      __syncthreads();
       if (ti==0) {
          dev_moments1[celli*4 + imom] = mom[0];
+         //if (imom==0) printf(" celli %d moment %d: %e\n",celli,imom,mom[0]);
       }
       __syncthreads();
    }
@@ -124,6 +132,11 @@ __global__ void second_moments_kernel (
    vmesh::VelocityBlockContainer* blockContainer = dev_VBC[celli];
    uint thisVBCSize = blockContainer->size();
    if (blockContainer==0 || thisVBCSize==0) {
+      if (ti==0) {
+         for (uint imom=0; imom<3; imom++) {
+            dev_moments2[celli*3 + imom] = 0;
+         }
+      }
       return;
    }
    Realf *data = blockContainer->getData();
@@ -152,14 +165,17 @@ __global__ void second_moments_kernel (
    //Now reduce one-by-one for cell
    for (uint imom=0; imom<3; imom++) {
       mom[ti] = myMom[imom];
+      __syncthreads();
       for (unsigned int s=blockSize/2; s>0; s>>=1) {
          if (ti < s) {
             mom[ti] += mom[ti + s];
          }
          __syncthreads();
       }
+      __syncthreads();
       if (ti==0) {
          dev_moments2[celli*3 + imom] = mom[0];
+         //printf(" celli %d pressure %d: %e\n",celli,imom,mom[0]);
       }
       __syncthreads();
    }
@@ -192,6 +208,9 @@ void gpu_calculateMoments_R(
    const bool& computeSecond) {
 
    const uint nAllCells = cells.size();
+   if (nAllCells==0) {
+      return;
+   }
    phiprof::Timer computeMomentsTimer {"Compute _R moments"};
    gpu_moments_allocate(nAllCells);
 
@@ -247,6 +266,7 @@ void gpu_calculateMoments_R(
          pop.V_R[0] = divideIfNonZero(host_moments1[4*celli + 1], host_moments1[4*celli]);
          pop.V_R[1] = divideIfNonZero(host_moments1[4*celli + 2], host_moments1[4*celli]);
          pop.V_R[2] = divideIfNonZero(host_moments1[4*celli + 3], host_moments1[4*celli]);
+
          cell->parameters[CellParams::RHOM_R  ] += host_moments1[4*celli]*mass;
          cell->parameters[CellParams::VX_R] += host_moments1[4*celli + 1]*mass;
          cell->parameters[CellParams::VY_R] += host_moments1[4*celli + 2]*mass;
@@ -329,6 +349,9 @@ void gpu_calculateMoments_V(
    const bool& computeSecond) {
 
    const uint nAllCells = cells.size();
+   if (nAllCells==0) {
+      return;
+   }
    phiprof::Timer computeMomentsTimer {"Compute _V moments"};
    gpu_moments_allocate(nAllCells);
 

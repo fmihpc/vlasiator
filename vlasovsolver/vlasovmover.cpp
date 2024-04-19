@@ -262,11 +262,7 @@ void calculateSpatialTranslation(
    // If dt=0 we are either initializing or distribution functions are not translated.
    // In both cases go to the end of this function and calculate the moments.
    if (dt == 0.0) {
-      #ifdef USE_GPU
-      gpu_calculateMoments_R(mpiGrid,localCells,true);
-      #else
       calculateMoments_R(mpiGrid,localCells,true);
-      #endif
       return;
    }
    
@@ -342,11 +338,7 @@ void calculateSpatialTranslation(
    }
 
    // Mapping complete, update moments and maximum dt limits //
-   #ifdef USE_GPU
-   gpu_calculateMoments_R(mpiGrid,localCells,true);
-   #else
    calculateMoments_R(mpiGrid,localCells,true);
-   #endif
 }
 
 /*
@@ -373,11 +365,7 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
    // Calculate velocity moments, these are needed to
    // calculate the transforms used in the accelerations.
    // Calculated moments are stored in the "_V" variables.
-   #ifdef USE_GPU
-   gpu_calculateMoments_V(mpiGrid, propagatedCells, false);
-   #else
    calculateMoments_V(mpiGrid, propagatedCells, false);
-   #endif
 
    // Semi-Lagrangian acceleration for those cells which are subcycled,
    // dimension-by-dimension
@@ -539,11 +527,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    }
 
    // Recalculate "_V" velocity moments
-   #ifdef USE_GPU
-   gpu_calculateMoments_V(mpiGrid, cells, true);
-   #else
    calculateMoments_V(mpiGrid, cells, true);
-   #endif
 
    // Set CellParams::MAXVDT to be the minimum dt of all per-species values
    #pragma omp parallel for

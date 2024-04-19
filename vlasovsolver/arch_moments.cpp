@@ -26,6 +26,10 @@
 #include "../object_wrapper.h"
 #include "../fieldsolver/fs_common.h" // divideIfNonZero()
 
+#ifdef USE_GPU
+#include "gpu_moments.h"
+#endif
+
 using namespace std;
 
 /** Calculate zeroth, first, and (possibly) second bulk velocity moments for the
@@ -163,6 +167,12 @@ void calculateMoments_R(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const std::vector<CellID>& cells,
    const bool& computeSecond) {
+
+   // override with optimized GPU version
+   #ifdef USE_GPU
+   gpu_calculateMoments_R(mpiGrid,cells,computeSecond);
+   return;
+   #endif
 
    phiprof::Timer computeMomentsTimer {"Compute _R moments"};
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
@@ -316,6 +326,12 @@ void calculateMoments_V(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const std::vector<CellID>& cells,
    const bool& computeSecond) {
+
+   // override with optimized GPU version
+   #ifdef USE_GPU
+   gpu_calculateMoments_V(mpiGrid,cells,computeSecond);
+   return;
+   #endif
 
    phiprof::Timer computeMomentsTimer {"Compute _V moments"};
    // Loop over all particle species
