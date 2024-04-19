@@ -187,10 +187,6 @@ void calculateMoments_R(
             cell->parameters[CellParams::P_33_R] = 0.0;
          }
 
-         const Real dx = cell->parameters[CellParams::DX];
-         const Real dy = cell->parameters[CellParams::DY];
-         const Real dz = cell->parameters[CellParams::DZ];
-
          #ifdef USE_GPU
          vmesh::VelocityMesh* vmesh    = cell->dev_get_velocity_mesh(popID);
          vmesh::VelocityBlockContainer* blockContainer = cell->dev_get_velocity_blocks(popID);
@@ -198,12 +194,10 @@ void calculateMoments_R(
          vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
          vmesh::VelocityBlockContainer* blockContainer = cell->get_velocity_blocks(popID);
          #endif
-         phiprof::Timer sizeTimer {"mesh size _R"};
          const uint nBlocks = cell->get_velocity_mesh(popID)->size();
          if (nBlocks == 0) {
             continue;
          }
-         sizeTimer.stop();
          const Real mass = getObjectWrapper().particleSpecies[popID].mass;
          const Real charge = getObjectWrapper().particleSpecies[popID].charge;
 
@@ -279,12 +273,10 @@ void calculateMoments_R(
          vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
          vmesh::VelocityBlockContainer* blockContainer = cell->get_velocity_blocks(popID);
          #endif
-         phiprof::Timer sizeTimer {"mesh size _R"};
          const uint nBlocks = cell->get_velocity_mesh(popID)->size();
          if (nBlocks == 0) {
             continue;
          }
-         sizeTimer.stop();
          const Real mass = getObjectWrapper().particleSpecies[popID].mass;
 
          // Temporary array where species' contribution to 2nd moments is accumulated

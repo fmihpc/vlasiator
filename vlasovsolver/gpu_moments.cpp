@@ -38,8 +38,8 @@ Real* host_moments1;
 Real* host_moments2;
 uint gpu_allocated_moments = 0;
 
-/** 
-    GPU kernel for calculating first velocity moments from provided 
+/**
+    GPU kernel for calculating first velocity moments from provided
     velocity block containers
 */
 __global__ void first_moments_kernel (
@@ -52,36 +52,38 @@ __global__ void first_moments_kernel (
    const int j = threadIdx.y;
    const int k = threadIdx.z % WID;
    const int bi = threadIdx.z / WID;
-   //const int bincr = blockDim.z / WID;
-   const int bincr = 1;
-   const int blockSize = blockDim.x;
+   const int bincr = blockDim.z / WID;
+   const int blockSize = blockDim.x*blockDim.y*blockDim.z;
    const uint celli = blockIdx.x; // userd for pointer to cell
-   
+
    __shared__ Real mom[GPUTHREADS*WARPSPERBLOCK]; //==blockSize
    Real myMom[4] = {0};
 
    vmesh::VelocityBlockContainer* blockContainer = dev_VBC[celli];
    uint thisVBCSize = blockContainer->size();
+   if (blockContainer==0 || thisVBCSize==0) {
+      return;
+   }
    Realf *data = blockContainer->getData();
    Real *blockParameters = blockContainer->getParameters();
-
-   // this assymes that blockSize is divisible with WID3
+   const Real HALF = 0.5;
+   const int indx = cellIndex(i,j,k);
+   
+   // this assumes that blockSize is divisible with WID3
    for (uint blockIndex = bi; blockIndex < thisVBCSize; blockIndex += bincr) {
        const Realf* avgs = &data[blockIndex*WID3];
        const Real* blockParamsZ = &blockParameters[blockIndex*BlockParams::N_VELOCITY_BLOCK_PARAMS];
        const Real DV3 = blockParamsZ[BlockParams::DVX]*blockParamsZ[BlockParams::DVY]*blockParamsZ[BlockParams::DVZ];
-       const Real HALF = 0.5;
        const Real VX = blockParamsZ[BlockParams::VXCRD] + (i+HALF)*blockParamsZ[BlockParams::DVX];
        const Real VY = blockParamsZ[BlockParams::VYCRD] + (j+HALF)*blockParamsZ[BlockParams::DVY];
-       const Real VZ = blockParamsZ[BlockParams::VZCRD] + (k+HALF)*blockParamsZ[BlockParams::DVZ];       
-       const int indx = cellIndex(i,j,k);
+       const Real VZ = blockParamsZ[BlockParams::VZCRD] + (k+HALF)*blockParamsZ[BlockParams::DVZ];
        myMom[0] += avgs[indx] * DV3;
-       myMom[1] += avgs[indx]*VX * DV3;
-       myMom[2] += avgs[indx]*VY * DV3;
-       myMom[3] += avgs[indx]*VZ * DV3;
+       myMom[1] += avgs[indx] * VX * DV3;
+       myMom[2] += avgs[indx] * VY * DV3;
+       myMom[3] += avgs[indx] * VZ * DV3;
    }
    __syncthreads();
-   // Now reduce one-by-one for cell
+   //Now reduce one-by-one for cell
    for (uint imom=0; imom<4; imom++) {
       mom[ti] = myMom[imom];
       for (unsigned int s=blockSize/2; s>0; s>>=1) {
@@ -95,10 +97,10 @@ __global__ void first_moments_kernel (
       }
       __syncthreads();
    }
-}
+ }
 
-/** 
-    GPU kernel for calculating second velocity moments from provided 
+/**
+    GPU kernel for calculating second velocity moments from provided
     velocity block containers
 */
 __global__ void second_moments_kernel (
@@ -112,18 +114,23 @@ __global__ void second_moments_kernel (
    const int j = threadIdx.y;
    const int k = threadIdx.z % WID;
    const int bi = threadIdx.z / WID;
-   //const int bincr = blockDim.z / WID;
-   const int bincr = 1;
-   const int blockSize = blockDim.x;
+   const int bincr = blockDim.z / WID;
+   const int blockSize = blockDim.x*blockDim.y*blockDim.z;
    const uint celli = blockIdx.x; // userd for pointer to cell
-   
+
    __shared__ Real mom[GPUTHREADS*WARPSPERBLOCK]; //==blockSize
    Real myMom[3] = {0};
 
    vmesh::VelocityBlockContainer* blockContainer = dev_VBC[celli];
    uint thisVBCSize = blockContainer->size();
+   if (blockContainer==0 || thisVBCSize==0) {
+      return;
+   }
    Realf *data = blockContainer->getData();
    Real *blockParameters = blockContainer->getParameters();
+
+   const Real HALF = 0.5;
+   const int indx = cellIndex(i,j,k);
 
    // index +0 is number density
    const Real averageVX = dev_moments1[celli*4 + 1];
@@ -134,17 +141,15 @@ __global__ void second_moments_kernel (
        const Realf* avgs = &data[blockIndex*WID3];
        const Real* blockParamsZ = &blockParameters[blockIndex*BlockParams::N_VELOCITY_BLOCK_PARAMS];
        const Real DV3 = blockParamsZ[BlockParams::DVX]*blockParamsZ[BlockParams::DVY]*blockParamsZ[BlockParams::DVZ];
-       const Real HALF = 0.5;
        const Real VX = blockParamsZ[BlockParams::VXCRD] + (i+HALF)*blockParamsZ[BlockParams::DVX];
        const Real VY = blockParamsZ[BlockParams::VYCRD] + (j+HALF)*blockParamsZ[BlockParams::DVY];
-       const Real VZ = blockParamsZ[BlockParams::VZCRD] + (k+HALF)*blockParamsZ[BlockParams::DVZ];       
-       const int indx = cellIndex(i,j,k);
+       const Real VZ = blockParamsZ[BlockParams::VZCRD] + (k+HALF)*blockParamsZ[BlockParams::DVZ];
        myMom[0] += avgs[indx] * (VX - averageVX) * (VX - averageVX) * DV3;
        myMom[1] += avgs[indx] * (VY - averageVY) * (VY - averageVY) * DV3;
        myMom[2] += avgs[indx] * (VZ - averageVZ) * (VZ - averageVZ) * DV3;
    }
    __syncthreads();
-   // Now reduce one-by-one for cell
+   //Now reduce one-by-one for cell
    for (uint imom=0; imom<3; imom++) {
       mom[ti] = myMom[imom];
       for (unsigned int s=blockSize/2; s>0; s>>=1) {
@@ -235,14 +240,13 @@ void gpu_calculateMoments_R(
          if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
             continue;
          }
-         
+
          // Store species' contribution to bulk velocity moments
          Population &pop = cell->get_population(popID);
          pop.RHO_R = host_moments1[4*celli];
          pop.V_R[0] = divideIfNonZero(host_moments1[4*celli + 1], host_moments1[4*celli]);
          pop.V_R[1] = divideIfNonZero(host_moments1[4*celli + 2], host_moments1[4*celli]);
          pop.V_R[2] = divideIfNonZero(host_moments1[4*celli + 3], host_moments1[4*celli]);
-         
          cell->parameters[CellParams::RHOM_R  ] += host_moments1[4*celli]*mass;
          cell->parameters[CellParams::VX_R] += host_moments1[4*celli + 1]*mass;
          cell->parameters[CellParams::VY_R] += host_moments1[4*celli + 2]*mass;
@@ -250,10 +254,10 @@ void gpu_calculateMoments_R(
          cell->parameters[CellParams::RHOQ_R  ] += host_moments1[4*celli]*charge;
       } // for-loop over spatial cells
    } // for-loop over particle species
-   
+
+   phiprof::Timer computeMomentsVTimer {"compute-moments-R-cell-bulkV"};
    #pragma omp parallel for schedule(static)
-   for (size_t celli=0; celli<cells.size(); ++celli) {
-      phiprof::Timer computeMomentsCellTimer {"compute-moments-R-cell-bulkV"};
+   for (size_t celli=0; celli<nAllCells; ++celli) {
       SpatialCell* cell = mpiGrid[cells[celli]];
       if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
          continue;
@@ -262,25 +266,20 @@ void gpu_calculateMoments_R(
       cell->parameters[CellParams::VY_R] = divideIfNonZero(cell->parameters[CellParams::VY_R], cell->parameters[CellParams::RHOM_R]);
       cell->parameters[CellParams::VZ_R] = divideIfNonZero(cell->parameters[CellParams::VZ_R], cell->parameters[CellParams::RHOM_R]);
 
-      // if we have more than one population, we also need to copy the bulk flow frame back to device
-      if (getObjectWrapper().particleSpecies.size() > 1) {
-         //host_moments1[4*celli + 0] = cell->parameters[CellParams::RHOM_R];
-         host_moments1[4*celli + 1] = cell->parameters[CellParams::VX_R];
-         host_moments1[4*celli + 2] = cell->parameters[CellParams::VY_R];
-         host_moments1[4*celli + 3] = cell->parameters[CellParams::VZ_R];
-      }
+      // copy the bulk flow frame back to device
+      //host_moments1[4*celli + 0] = cell->parameters[CellParams::RHOM_R];
+      host_moments1[4*celli + 1] = cell->parameters[CellParams::VX_R];
+      host_moments1[4*celli + 2] = cell->parameters[CellParams::VY_R];
+      host_moments1[4*celli + 3] = cell->parameters[CellParams::VZ_R];
    }
-   
+   computeMomentsVTimer.stop();
+
    // Compute second moments only if requested.
    if (computeSecond == false) {
       return;
    }
 
-   // if we have more than one population, we also need to copy the bulk flow frame back to device
-   if (getObjectWrapper().particleSpecies.size() > 1) {
-      CHK_ERR( gpuMemcpy(dev_moments1, host_moments1, nAllCells*4*sizeof(Real), gpuMemcpyHostToDevice) );
-   }
-
+   CHK_ERR( gpuMemcpy(dev_moments1, host_moments1, nAllCells*4*sizeof(Real), gpuMemcpyHostToDevice) );
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       // Launch kernel calculating this species' contribution to second velocity moments
       //const uint blocksPerBlock = GPUTHREADS * WARPSPERBLOCK / WID3;
@@ -302,7 +301,7 @@ void gpu_calculateMoments_R(
          if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
             continue;
          }
-         
+
          // Store species' contribution to bulk velocity moments
          Population &pop = cell->get_population(popID);
          pop.P_R[0] = mass*host_moments2[3*celli + 0];
@@ -378,14 +377,14 @@ void gpu_calculateMoments_V(
          if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
             continue;
          }
-         
+
          // Store species' contribution to bulk velocity moments
          Population &pop = cell->get_population(popID);
          pop.RHO_V = host_moments1[4*celli];
          pop.V_V[0] = divideIfNonZero(host_moments1[4*celli + 1], host_moments1[4*celli]);
          pop.V_V[1] = divideIfNonZero(host_moments1[4*celli + 2], host_moments1[4*celli]);
          pop.V_V[2] = divideIfNonZero(host_moments1[4*celli + 3], host_moments1[4*celli]);
-         
+
          cell->parameters[CellParams::RHOM_V  ] += host_moments1[4*celli]*mass;
          cell->parameters[CellParams::VX_V] += host_moments1[4*celli + 1]*mass;
          cell->parameters[CellParams::VY_V] += host_moments1[4*celli + 2]*mass;
@@ -393,9 +392,9 @@ void gpu_calculateMoments_V(
          cell->parameters[CellParams::RHOQ_V  ] += host_moments1[4*celli]*charge;
       } // for-loop over spatial cells
    } // for-loop over particle species
-   
+
    #pragma omp parallel for schedule(static)
-   for (size_t celli=0; celli<cells.size(); ++celli) {
+   for (size_t celli=0; celli<nAllCells; ++celli) {
       phiprof::Timer computeMomentsCellTimer {"compute-moments-R-cell-bulkV"};
       SpatialCell* cell = mpiGrid[cells[celli]];
       if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
@@ -405,25 +404,19 @@ void gpu_calculateMoments_V(
       cell->parameters[CellParams::VY_V] = divideIfNonZero(cell->parameters[CellParams::VY_V], cell->parameters[CellParams::RHOM_V]);
       cell->parameters[CellParams::VZ_V] = divideIfNonZero(cell->parameters[CellParams::VZ_V], cell->parameters[CellParams::RHOM_V]);
 
-      // if we have more than one population, we also need to copy the bulk flow frame back to device
-      if (getObjectWrapper().particleSpecies.size() > 1) {
-         //host_moments1[4*celli + 0] = cell->parameters[CellParams::RHOM_V];
-         host_moments1[4*celli + 1] = cell->parameters[CellParams::VX_V];
-         host_moments1[4*celli + 2] = cell->parameters[CellParams::VY_V];
-         host_moments1[4*celli + 3] = cell->parameters[CellParams::VZ_V];
-      }
+      // copy the bulk flow frame back to device
+      //host_moments1[4*celli + 0] = cell->parameters[CellParams::RHOM_V];
+      host_moments1[4*celli + 1] = cell->parameters[CellParams::VX_V];
+      host_moments1[4*celli + 2] = cell->parameters[CellParams::VY_V];
+      host_moments1[4*celli + 3] = cell->parameters[CellParams::VZ_V];
    }
-   
+
    // Compute second moments only if requested.
    if (computeSecond == false) {
       return;
    }
 
-   // if we have more than one population, we also need to copy the bulk flow frame back to device
-   if (getObjectWrapper().particleSpecies.size() > 1) {
-      CHK_ERR( gpuMemcpy(dev_moments1, host_moments1, nAllCells*4*sizeof(Real), gpuMemcpyHostToDevice) );
-   }
-
+   CHK_ERR( gpuMemcpy(dev_moments1, host_moments1, nAllCells*4*sizeof(Real), gpuMemcpyHostToDevice) );
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       // Launch kernel calculating this species' contribution to second velocity moments
       //const uint blocksPerBlock = GPUTHREADS * WARPSPERBLOCK / WID3;
@@ -445,7 +438,7 @@ void gpu_calculateMoments_V(
          if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
             continue;
          }
-         
+
          // Store species' contribution to bulk velocity moments
          Population &pop = cell->get_population(popID);
          pop.P_V[0] = mass*host_moments2[3*celli + 0];
@@ -467,7 +460,7 @@ void gpu_moments_allocate(const uint nAllCells) {
    }
    gpu_moments_deallocate();
    gpu_allocated_moments = nAllCells * BLOCK_ALLOCATION_FACTOR;
-       
+
    // Host memory will be pinned
    CHK_ERR( gpuMallocHost((void**)&host_VBC, gpu_allocated_moments*sizeof(vmesh::VelocityBlockContainer*)) );
    CHK_ERR( gpuMallocHost((void**)&host_moments1, gpu_allocated_moments*4*sizeof(Real)) );
