@@ -42,6 +42,11 @@ void calculateSpatialTranslation(
                                  dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                  Real dt);
 
+// Vlasov timestep reduction
+void reduce_vlasov_dt(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                      const vector<CellID>& cells,
+                      Real (&dtMaxLocal)[3]);
+
 /** Calculate velocity moments for the given spatial cell.
  * This function is defined in the arch_moments.cpp file.*/
 void calculateCellMoments(
