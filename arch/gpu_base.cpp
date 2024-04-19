@@ -26,6 +26,7 @@
 #include "mpi.h"
 
 #include "gpu_base.hpp"
+#include "../vlasovsolver/gpu_moments.h"
 #include "../velocity_mesh_gpu.h"
 #include "../velocity_block_container.h"
 #include "../vlasovsolver/cpu_trans_pencils.hpp"
@@ -208,6 +209,7 @@ __host__ void gpu_clear_device() {
    gpu_acc_deallocate();
    gpu_vlasov_deallocate();
    gpu_trans_deallocate();
+   gpu_moments_deallocate();
    // Destroy streams
    const uint maxNThreads = gpu_getMaxThreads();
    for (uint i=0; i<maxNThreads; ++i) {
