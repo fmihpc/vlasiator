@@ -166,7 +166,7 @@ void calculateMoments_R(
 
    phiprof::Timer computeMomentsTimer {"Compute _R moments"};
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic,1)
       for (size_t c=0; c<cells.size(); ++c) {
          phiprof::Timer computeMomentsCellTimer {"compute-moments-R-cell-first"};
          SpatialCell* cell = mpiGrid[cells[c]];
@@ -245,7 +245,7 @@ void calculateMoments_R(
       } // for-loop over spatial cells
    } // for-loop over particle species
 
-#pragma omp parallel for
+#pragma omp parallel for schedule(static)
    for (size_t c=0; c<cells.size(); ++c) {
       phiprof::Timer computeMomentsCellTimer {"compute-moments-R-cell-bulkV"};
       SpatialCell* cell = mpiGrid[cells[c]];
@@ -263,7 +263,7 @@ void calculateMoments_R(
    }
 
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic,1)
       for (size_t c=0; c<cells.size(); ++c) {
          phiprof::Timer computeMomentsCellTimer {"compute-moments-R-cell-second"};
          SpatialCell* cell = mpiGrid[cells[c]];
@@ -328,7 +328,7 @@ void calculateMoments_V(
    phiprof::Timer computeMomentsTimer {"Compute _V moments"};
    // Loop over all particle species
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic,1)
       for (size_t c=0; c<cells.size(); ++c) {
          phiprof::Timer computeMomentsCellTimer {"compute-moments-V-cell"};
          SpatialCell* cell = mpiGrid[cells[c]];
@@ -389,7 +389,7 @@ void calculateMoments_V(
       } // for-loop over spatial cells
    } // for-loop over particle species
 
-#pragma omp parallel for
+#pragma omp parallel for schedule(static)
    for (size_t c=0; c<cells.size(); ++c) {
       SpatialCell* cell = mpiGrid[cells[c]];
       if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
@@ -406,7 +406,7 @@ void calculateMoments_V(
    }
 
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic,1)
       for (size_t c=0; c<cells.size(); ++c) {
          phiprof::Timer computeMomentsCellTimer {"compute-moments-V-cell"};
          SpatialCell* cell = mpiGrid[cells[c]];
