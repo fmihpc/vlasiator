@@ -56,7 +56,7 @@ __global__ void first_moments_kernel (
    const int blockSize = blockDim.x*blockDim.y*blockDim.z;
    const uint celli = blockIdx.x; // userd for pointer to cell
 
-   __shared__ Real mom[GPUTHREADS*WARPSPERBLOCK]; //==blockSize
+   __shared__ Real smom[GPUTHREADS*WARPSPERBLOCK]; //==blockSize
    Real myMom[4] = {0};
 
    vmesh::VelocityBlockContainer* blockContainer = dev_VBC[celli];
@@ -67,41 +67,41 @@ __global__ void first_moments_kernel (
             dev_moments1[celli*4 + imom] = 0;
          }
       }
+      __syncthreads();
       return;
    }
    Realf *data = blockContainer->getData();
    Real *blockParameters = blockContainer->getParameters();
    const Real HALF = 0.5;
    const int indx = cellIndex(i,j,k);
-   
    // this assumes that blockSize is divisible with WID3
    for (uint blockIndex = bi; blockIndex < thisVBCSize; blockIndex += bincr) {
-       const Realf* avgs = &data[blockIndex*WID3];
+       const Realf f = data[blockIndex*WID3+indx];
        const Real* blockParamsZ = &blockParameters[blockIndex*BlockParams::N_VELOCITY_BLOCK_PARAMS];
        const Real DV3 = blockParamsZ[BlockParams::DVX]*blockParamsZ[BlockParams::DVY]*blockParamsZ[BlockParams::DVZ];
        const Real VX = blockParamsZ[BlockParams::VXCRD] + (i+HALF)*blockParamsZ[BlockParams::DVX];
        const Real VY = blockParamsZ[BlockParams::VYCRD] + (j+HALF)*blockParamsZ[BlockParams::DVY];
        const Real VZ = blockParamsZ[BlockParams::VZCRD] + (k+HALF)*blockParamsZ[BlockParams::DVZ];
-       myMom[0] += avgs[indx] * DV3;
-       myMom[1] += avgs[indx] * VX * DV3;
-       myMom[2] += avgs[indx] * VY * DV3;
-       myMom[3] += avgs[indx] * VZ * DV3;
+       myMom[0] += f * DV3;
+       myMom[1] += f * VX * DV3;
+       myMom[2] += f * VY * DV3;
+       myMom[3] += f * VZ * DV3;
    }
    __syncthreads();
    //Now reduce one-by-one for cell
    for (uint imom=0; imom<4; imom++) {
-      mom[ti] = myMom[imom];
-      __syncthreads();
+      smom[ti] = myMom[imom];
       for (unsigned int s=blockSize/2; s>0; s>>=1) {
-         if (ti < s) {
-            mom[ti] += mom[ti + s];
-         }
          __syncthreads();
+         if (ti < s) {
+            smom[ti] += smom[ti + s];
+         }
       }
       __syncthreads();
       if (ti==0) {
-         dev_moments1[celli*4 + imom] = mom[0];
-         //if (imom==0) printf(" celli %d moment %d: %e\n",celli,imom,mom[0]);
+         dev_moments1[celli*4 + imom] = smom[0];
+         //if (imom==3) printf(" celli %d moment %d: %e\n",celli,imom,smom[0]);
+         //if (imom==3) printf(" celli %d vz: %e\n",celli,dev_moments1[celli*4 + 3]/dev_moments1[celli*4]);
       }
       __syncthreads();
    }
@@ -126,7 +126,7 @@ __global__ void second_moments_kernel (
    const int blockSize = blockDim.x*blockDim.y*blockDim.z;
    const uint celli = blockIdx.x; // userd for pointer to cell
 
-   __shared__ Real mom[GPUTHREADS*WARPSPERBLOCK]; //==blockSize
+   __shared__ Real smom[GPUTHREADS*WARPSPERBLOCK]; //==blockSize
    Real myMom[3] = {0};
 
    vmesh::VelocityBlockContainer* blockContainer = dev_VBC[celli];
@@ -137,6 +137,7 @@ __global__ void second_moments_kernel (
             dev_moments2[celli*3 + imom] = 0;
          }
       }
+      __syncthreads();
       return;
    }
    Realf *data = blockContainer->getData();
@@ -151,31 +152,30 @@ __global__ void second_moments_kernel (
    const Real averageVZ = dev_moments1[celli*4 + 3];
 
    for (uint blockIndex = bi; blockIndex < thisVBCSize; blockIndex += bincr) {
-       const Realf* avgs = &data[blockIndex*WID3];
+       const Realf f = data[blockIndex*WID3+indx];
        const Real* blockParamsZ = &blockParameters[blockIndex*BlockParams::N_VELOCITY_BLOCK_PARAMS];
        const Real DV3 = blockParamsZ[BlockParams::DVX]*blockParamsZ[BlockParams::DVY]*blockParamsZ[BlockParams::DVZ];
        const Real VX = blockParamsZ[BlockParams::VXCRD] + (i+HALF)*blockParamsZ[BlockParams::DVX];
        const Real VY = blockParamsZ[BlockParams::VYCRD] + (j+HALF)*blockParamsZ[BlockParams::DVY];
        const Real VZ = blockParamsZ[BlockParams::VZCRD] + (k+HALF)*blockParamsZ[BlockParams::DVZ];
-       myMom[0] += avgs[indx] * (VX - averageVX) * (VX - averageVX) * DV3;
-       myMom[1] += avgs[indx] * (VY - averageVY) * (VY - averageVY) * DV3;
-       myMom[2] += avgs[indx] * (VZ - averageVZ) * (VZ - averageVZ) * DV3;
+       myMom[0] += f * (VX - averageVX) * (VX - averageVX) * DV3;
+       myMom[1] += f * (VY - averageVY) * (VY - averageVY) * DV3;
+       myMom[2] += f * (VZ - averageVZ) * (VZ - averageVZ) * DV3;
    }
    __syncthreads();
    //Now reduce one-by-one for cell
    for (uint imom=0; imom<3; imom++) {
-      mom[ti] = myMom[imom];
-      __syncthreads();
+      smom[ti] = myMom[imom];
       for (unsigned int s=blockSize/2; s>0; s>>=1) {
-         if (ti < s) {
-            mom[ti] += mom[ti + s];
-         }
          __syncthreads();
+         if (ti < s) {
+            smom[ti] += smom[ti + s];
+         }
       }
       __syncthreads();
       if (ti==0) {
-         dev_moments2[celli*3 + imom] = mom[0];
-         //printf(" celli %d pressure %d: %e\n",celli,imom,mom[0]);
+         dev_moments2[celli*3 + imom] = smom[0];
+         //printf(" celli %d pressure %d: %e\n",celli,imom,smom[0]);
       }
       __syncthreads();
    }
@@ -204,14 +204,20 @@ __global__ void second_moments_kernel (
  * @param computeSecond If true, second velocity moments are calculated.*/
 void gpu_calculateMoments_R(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   const std::vector<CellID>& cells,
+   const std::vector<CellID>& cells_in,
    const bool& computeSecond) {
+
+   phiprof::Timer computeMomentsTimer {"Compute _R moments"};
+
+   // Ensure unique cells
+   std::vector<CellID> cells = cells_in;
+   std::sort( cells.begin(), cells.end() );
+   cells.erase( std::unique( cells.begin(), cells.end() ), cells.end() );
 
    const uint nAllCells = cells.size();
    if (nAllCells==0) {
       return;
    }
-   phiprof::Timer computeMomentsTimer {"Compute _R moments"};
    gpu_moments_allocate(nAllCells);
 
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
@@ -345,14 +351,20 @@ void gpu_calculateMoments_R(
  * @param computeSecond If true, second velocity moments are calculated.*/
 void gpu_calculateMoments_V(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   const std::vector<CellID>& cells,
+   const std::vector<CellID>& cells_in,
    const bool& computeSecond) {
+
+   phiprof::Timer computeMomentsTimer {"Compute _V moments"};
+
+   // Ensure unique cells
+   std::vector<CellID> cells = cells_in;
+   std::sort( cells.begin(), cells.end() );
+   cells.erase( std::unique( cells.begin(), cells.end() ), cells.end() );
 
    const uint nAllCells = cells.size();
    if (nAllCells==0) {
       return;
    }
-   phiprof::Timer computeMomentsTimer {"Compute _V moments"};
    gpu_moments_allocate(nAllCells);
 
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {

@@ -248,6 +248,9 @@ void recalculateLocalCellsCache() {
         dummy.swap(Parameters::localCells);
      }
    Parameters::localCells = mpiGrid.get_cells();
+   //Ensure local cells are included only once
+   sort( Parameters::localCells.begin(), Parameters::localCells.end() );
+   Parameters::localCells.erase( unique( Parameters::localCells.begin(), Parameters::localCells.end() ), Parameters::localCells.end() );
 }
 
 int main(int argn,char* args[]) {
