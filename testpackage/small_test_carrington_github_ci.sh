@@ -325,7 +325,7 @@ for run in ${run_tests[*]}; do
    if [[ $COMPAREDFILES -neq $TOCOMPAREFILES ]]; then
       echo -e "<details><summary>:orange_circle: ${test_name[$run]}: Comparison failure, accessed \`$COMPAREDFILES\` out of \`$TOCOMPAREFILES\` files: \`$MAXERRVAR\` has absolute error $MAXERR, \`$MAXRELVAR\` has relative error $MAXREL. Max timestamp difference is $MAXDT.   Speedup: $speedup</summary>\n" >> $GITHUB_STEP_SUMMARY
       NONZEROTESTS=$((NONZEROTESTS+1))
-   else if (( $( echo "$MAXERR 0." | awk '{ if($1 > $2) print 1; else print 0 }' ) )) || (( $( echo "$MAXDT 0." | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
+   elif (( $( echo "$MAXERR 0." | awk '{ if($1 > $2) print 1; else print 0 }' ) )) || (( $( echo "$MAXDT 0." | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
       echo -e "<details><summary>:large_orange_diamond: ${test_name[$run]}: Nonzero diffs: \`$MAXERRVAR\` has absolute error $MAXERR, \`$MAXRELVAR\` has relative error $MAXREL. Max timestamp difference is $MAXDT.   Speedup: $speedup</summary>\n" >> $GITHUB_STEP_SUMMARY
       NONZEROTESTS=$((NONZEROTESTS+1))
    else
