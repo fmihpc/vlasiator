@@ -695,10 +695,13 @@ void SysBoundary::applySysBoundaryVlasovConditions(
          cuint sysBoundaryType = mpiGrid[localCells[i]]->sysBoundaryFlag;
          this->getSysBoundary(sysBoundaryType)->vlasovBoundaryCondition(mpiGrid, localCells[i], popID, calculate_V_moments);
       }
-      if (calculate_V_moments) {
-         calculateMoments_V(mpiGrid, localCells, true);
-      } else {
-         calculateMoments_R(mpiGrid, localCells, true);
+      if (popID==getObjectWrapper().particleSpecies.size()-1) {
+         // Only calculate moments when handling last population
+         if (calculate_V_moments) {
+            calculateMoments_V(mpiGrid, localCells, true);
+         } else {
+            calculateMoments_R(mpiGrid, localCells, true);
+         }
       }
       computeInnerTimer.stop();
 
@@ -716,10 +719,13 @@ void SysBoundary::applySysBoundaryVlasovConditions(
          cuint sysBoundaryType = mpiGrid[boundaryCells[i]]->sysBoundaryFlag;
          this->getSysBoundary(sysBoundaryType)->vlasovBoundaryCondition(mpiGrid, boundaryCells[i], popID, calculate_V_moments);
       }
-      if (calculate_V_moments) {
-         calculateMoments_V(mpiGrid, boundaryCells, true);
-      } else {
-         calculateMoments_R(mpiGrid, boundaryCells, true);
+      if (popID==getObjectWrapper().particleSpecies.size()-1) {
+         // Only calculate moments when handling last population
+         if (calculate_V_moments) {
+            calculateMoments_V(mpiGrid, boundaryCells, true);
+         } else {
+            calculateMoments_R(mpiGrid, boundaryCells, true);
+         }
       }
       computeBoundaryTimer.stop();
 
