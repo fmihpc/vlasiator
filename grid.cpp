@@ -41,7 +41,7 @@
 #include "fieldsolver/fs_common.h"
 #include "fieldsolver/gridGlue.hpp"
 #include "fieldsolver/derivatives.hpp"
-#include "vlasovsolver/cpu_trans_map_amr.hpp"
+#include "vlasovsolver/cpu_trans_pencils.hpp"
 #include "projects/project.h"
 #include "iowrite.h"
 #include "ioread.h"
@@ -360,7 +360,6 @@ void initializeGrids(
 
    // If we only want the full BGB for writeout, we have it now and we can return early.
    if(P::writeFullBGB == true) {
-      phiprof::stop("Set initial state");
       return;
    }
 
@@ -647,10 +646,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
 
    // Prepare cellIDs and pencils for AMR translation
    if(P::amrMaxSpatialRefLevel > 0) {
-      phiprof::Timer timer {"GetSeedIdsAndBuildPencils"};
-      for (int dimension=0; dimension<3; dimension++) {
-         prepareSeedIdsAndPencils(mpiGrid,dimension);
-      }
+      prepareSeedIdsAndPencils(mpiGrid);
    }
 }
 
