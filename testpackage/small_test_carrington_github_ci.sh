@@ -322,7 +322,7 @@ for run in ${run_tests[*]}; do
    speedup=`cat $RUNNER_TEMP/speedup.txt`
 
    # Output CI step annotation
-   if [[ $COMPAREDFILES -neq $TOCOMPAREFILES ]]; then
+   if [[ $COMPAREDFILES -ne $TOCOMPAREFILES ]]; then
       echo -e "<details><summary>:orange_circle: ${test_name[$run]}: Comparison failure, accessed \`$COMPAREDFILES\` out of \`$TOCOMPAREFILES\` files: \`$MAXERRVAR\` has absolute error $MAXERR, \`$MAXRELVAR\` has relative error $MAXREL. Max timestamp difference is $MAXDT.   Speedup: $speedup</summary>\n" >> $GITHUB_STEP_SUMMARY
       NONZEROTESTS=$((NONZEROTESTS+1))
    elif (( $( echo "$MAXERR 0." | awk '{ if($1 > $2) print 1; else print 0 }' ) )) || (( $( echo "$MAXDT 0." | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
