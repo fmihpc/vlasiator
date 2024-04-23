@@ -41,7 +41,7 @@
 #include "fieldsolver/fs_common.h"
 #include "fieldsolver/gridGlue.hpp"
 #include "fieldsolver/derivatives.hpp"
-#include "vlasovsolver/cpu_trans_map_amr.hpp"
+#include "vlasovsolver/cpu_trans_pencils.hpp"
 #include "projects/project.h"
 #include "iowrite.h"
 #include "ioread.h"
@@ -360,7 +360,6 @@ void initializeGrids(
 
    // If we only want the full BGB for writeout, we have it now and we can return early.
    if(P::writeFullBGB == true) {
-      phiprof::stop("Set initial state");
       return;
    }
 
@@ -499,15 +498,11 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    //set weights based on each cells LB weight counter
    const vector<CellID>& cells = getLocalCells();
    for (size_t i=0; i<cells.size(); ++i){
-      //Set weight. If acceleration is enabled then we use the weight
-      //counter which is updated in acceleration, otherwise we just
-      //use the number of blocks.
-//      if (P::propagateVlasovAcceleration) 
-//      mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER]);
-//      else
-      mpiGrid.set_cell_weight(cells[i], (Real) (1 + mpiGrid[cells[i]]->get_number_of_all_velocity_blocks()));
-      //reset counter
-      //mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 0.0;
+      // Set cell weight. We could use different counters or number of blocks if different solvers are active.     
+      // if (P::propagateVlasovAcceleration)
+      // When using the FS-SPLIT functionality, Jaro Hokkanen reported issues with using the regular
+      // CellParams::LBWEIGHTCOUNTER, so use of blockscounts + 1 might be required.
+      mpiGrid.set_cell_weight(cells[i], (Real)1 + mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER]);
    }
 
    phiprof::Timer initLBTimer {"dccrg.initialize_balance_load"};

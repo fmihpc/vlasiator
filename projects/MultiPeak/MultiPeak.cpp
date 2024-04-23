@@ -146,8 +146,6 @@ namespace projects {
                                          creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,
                                          const uint popID) const {
 
-      const MultiPeakSpeciesParameters& sP = speciesParams[popID];
-
       Real rhoFactor = 1.0;
       switch (densityModel) {
          case Uniform:
