@@ -67,7 +67,6 @@ void flagSpatialCellsForAmrCommunication(const dccrg::Dccrg<SpatialCell,dccrg::C
 
    // return if there's no cells to flag
    if(localPropagatedCells.size() == 0) {
-      std::cerr<<"Warning! Pencils flagSpatialCellsForAmrCommunication found no cells to propagate!"<<std::endl;
       return;
    }
 
