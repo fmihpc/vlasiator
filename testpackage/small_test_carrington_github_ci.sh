@@ -131,7 +131,7 @@ for run in ${run_tests[*]}; do
    # Store error return value
    RUN_ERROR=${PIPESTATUS[0]}
    # Fore set to error if output file does not exist
-   if [ ! -f ${vlsv_dir}/${comparison_vlsv[$run]} ]; then
+   if [ ! -f "${vlsv_dir}/${comparison_vlsv[$run]}" ]; then
        RUN_ERROR=1
    fi
 
@@ -319,9 +319,9 @@ for run in ${run_tests[*]}; do
    # Recover error variables
    if [[ $COMPAREDFILES -eq 0  ]]; then
        MAXERR=42
-       MAXERRVAR=`n/a`
+       MAXERRVAR=42
        MAXREL=42
-       MAXRELVAR=`n/a`
+       MAXRELVAR=42
        MAXDT=42
        speedup=0
    else
