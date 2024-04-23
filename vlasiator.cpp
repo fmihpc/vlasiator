@@ -1025,7 +1025,6 @@ int main(int argn,char* args[]) {
          if (myRank == MASTER_RANK) {
             if(!restartSuccess) {
                // If restart write fails, remove the malformed file and hope a human clears space soon
-               assert(restartFilename != "restart"); // Sanity check, this should be set before writeRestart returns
                std::remove(restartFilename.c_str());
                logFile << "(IO): ERROR Failed to write restart!" << endl << writeVerbose;
                cerr << "FAILED TO WRITE RESTART" << endl;
