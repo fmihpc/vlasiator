@@ -353,7 +353,7 @@ namespace spatial_cell {
 
    #endif
 
-   void SpatialCell::adjustSingleCellVelocityBlocks(const uint popID) {
+   void SpatialCell::adjustSingleCellVelocityBlocks(const uint popID, bool doDeleteEmpty) {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
@@ -367,7 +367,7 @@ namespace spatial_cell {
       //space. TODO: should this delete blocks or not? Now not
       std::vector<SpatialCell*> neighbor_ptrs;
       update_velocity_block_content_lists(popID);
-      adjust_velocity_blocks(neighbor_ptrs,popID,false);
+      adjust_velocity_blocks(neighbor_ptrs,popID,doDeleteEmpty);
    }
 
    void SpatialCell::coarsen_block(const vmesh::GlobalID& parent,const std::vector<vmesh::GlobalID>& children,const uint popID) {
@@ -742,8 +742,8 @@ namespace spatial_cell {
 
          // Refinement parameters
          if ((SpatialCell::mpi_transfer_type & Transfer::REFINEMENT_PARAMETERS)){
-            displacements.push_back(reinterpret_cast<uint8_t*>(this->parameters.data() + CellParams::AMR_ALPHA) - reinterpret_cast<uint8_t*>(this));
-            block_lengths.push_back(sizeof(Real) * (CellParams::AMR_JPERB - CellParams::AMR_ALPHA + 1)); // This is just 2, but let's be explicit
+            displacements.push_back(reinterpret_cast<uint8_t*>(this->parameters.data() + CellParams::AMR_ALPHA1) - reinterpret_cast<uint8_t*>(this));
+            block_lengths.push_back(sizeof(Real) * (CellParams::AMR_ALPHA2 - CellParams::AMR_ALPHA1 + 1)); // This is just 2, but let's be explicit
          }
 
          // Copy random number generator state variables

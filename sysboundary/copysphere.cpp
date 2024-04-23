@@ -59,6 +59,7 @@ namespace SBC {
       Readparameters::add("copysphere.geometry", "Select the geometry of the copysphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT), 3: 2-norm cylinder aligned with y-axis, use with polar plane/line dipole.", 2);
       Readparameters::add("copysphere.precedence", "Precedence value of the copysphere system boundary condition (integer), the higher the stronger.", 2);
       Readparameters::add("copysphere.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again applyInitialState. Can be used to change boundary condition behaviour during a run.", 0);
+      Readparameters::add("copysphere.zeroPerB","If 0 (default), normal copysphere behaviour of magnetic field at inner boundary. If 1, keep magnetic field static at the inner boundary",0);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
@@ -87,6 +88,12 @@ namespace SBC {
       this->applyUponRestart = false;
       if(reapply == 1) {
          this->applyUponRestart = true;
+      }
+      uint noperb;
+      Readparameters::get("copysphere.zeroPerB",noperb);
+      this->zeroPerB = false;
+      if(noperb == 1) {
+         this->zeroPerB = true;
       }
 
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
@@ -478,169 +485,174 @@ namespace SBC {
       creal dt,
       cuint component
    ) {
-      if (technicalGrid.get(i,j,k)->sysBoundaryLayer == 1) {
-         switch(component) {
-            case 0:
-               if (  ((technicalGrid.get(i-1,j,k)->SOLVE & compute::BX) == compute::BX)
-                  && ((technicalGrid.get(i+1,j,k)->SOLVE & compute::BX) == compute::BX)
-               ) {
-                  return 0.5 * (bGrid.get(i-1,j,k)->at(fsgrids::bfield::PERBX) + bGrid.get(i+1,j,k)->at(fsgrids::bfield::PERBX));
-               } else if ((technicalGrid.get(i-1,j,k)->SOLVE & compute::BX) == compute::BX) {
-                  return bGrid.get(i-1,j,k)->at(fsgrids::bfield::PERBX);
-               } else if ((technicalGrid.get(i+1,j,k)->SOLVE & compute::BX) == compute::BX) {
-                  return bGrid.get(i+1,j,k)->at(fsgrids::bfield::PERBX);
-               } else {
-                  Real retval = 0.0;
-                  uint nCells = 0;
-                  if ((technicalGrid.get(i,j-1,k)->SOLVE & compute::BX) == compute::BX) {
-                     retval += bGrid.get(i,j-1,k)->at(fsgrids::bfield::PERBX);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i,j+1,k)->SOLVE & compute::BX) == compute::BX) {
-                     retval += bGrid.get(i,j+1,k)->at(fsgrids::bfield::PERBX);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i,j,k-1)->SOLVE & compute::BX) == compute::BX) {
-                     retval += bGrid.get(i,j,k-1)->at(fsgrids::bfield::PERBX);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i,j,k+1)->SOLVE & compute::BX) == compute::BX) {
-                     retval += bGrid.get(i,j,k+1)->at(fsgrids::bfield::PERBX);
-                     nCells++;
-                  }
-                  if (nCells == 0) {
-                     for (int a=i-1; a<i+2; a++) {
-                        for (int b=j-1; b<j+2; b++) {
-                           for (int c=k-1; c<k+2; c++) {
-                              if ((technicalGrid.get(a,b,c)->SOLVE & compute::BX) == compute::BX) {
-                                 retval += bGrid.get(a,b,c)->at(fsgrids::bfield::PERBX);
-                                 nCells++;
+      if(this->zeroPerB == true){
+         return bGrid.get(i,j,k)->at(fsgrids::bfield::PERBX+component);
+      } else {
+         if (technicalGrid.get(i,j,k)->sysBoundaryLayer == 1) {
+            switch(component) {
+               case 0:
+                  if (  ((technicalGrid.get(i-1,j,k)->SOLVE & compute::BX) == compute::BX)
+                     && ((technicalGrid.get(i+1,j,k)->SOLVE & compute::BX) == compute::BX)
+                  ) {
+                     return 0.5 * (bGrid.get(i-1,j,k)->at(fsgrids::bfield::PERBX) + bGrid.get(i+1,j,k)->at(fsgrids::bfield::PERBX));
+                  } else if ((technicalGrid.get(i-1,j,k)->SOLVE & compute::BX) == compute::BX) {
+                     return bGrid.get(i-1,j,k)->at(fsgrids::bfield::PERBX);
+                  } else if ((technicalGrid.get(i+1,j,k)->SOLVE & compute::BX) == compute::BX) {
+                     return bGrid.get(i+1,j,k)->at(fsgrids::bfield::PERBX);
+                  } else {
+                     Real retval = 0.0;
+                     uint nCells = 0;
+                     if ((technicalGrid.get(i,j-1,k)->SOLVE & compute::BX) == compute::BX) {
+                        retval += bGrid.get(i,j-1,k)->at(fsgrids::bfield::PERBX);
+                        nCells++;
+                     }
+                     if ((technicalGrid.get(i,j+1,k)->SOLVE & compute::BX) == compute::BX) {
+                        retval += bGrid.get(i,j+1,k)->at(fsgrids::bfield::PERBX);
+                        nCells++;
+                     }
+                     if ((technicalGrid.get(i,j,k-1)->SOLVE & compute::BX) == compute::BX) {
+                        retval += bGrid.get(i,j,k-1)->at(fsgrids::bfield::PERBX);
+                        nCells++;
+                     }
+                     if ((technicalGrid.get(i,j,k+1)->SOLVE & compute::BX) == compute::BX) {
+                        retval += bGrid.get(i,j,k+1)->at(fsgrids::bfield::PERBX);
+                        nCells++;
+                     }
+                     if (nCells == 0) {
+                        for (int a=i-1; a<i+2; a++) {
+                           for (int b=j-1; b<j+2; b++) {
+                              for (int c=k-1; c<k+2; c++) {
+                                 if ((technicalGrid.get(a,b,c)->SOLVE & compute::BX) == compute::BX) {
+                                    retval += bGrid.get(a,b,c)->at(fsgrids::bfield::PERBX);
+                                    nCells++;
+                                 }
                               }
                            }
                         }
                      }
+                     if (nCells == 0) {
+                        cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
+                        return 0.0;
+                     }
+                     return retval / nCells;
                   }
-                  if (nCells == 0) {
-                     cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
-                     return 0.0;
-                  }
-                  return retval / nCells;
-               }
-            case 1:
-               if (  (technicalGrid.get(i,j-1,k)->SOLVE & compute::BY) == compute::BY
-                  && (technicalGrid.get(i,j+1,k)->SOLVE & compute::BY) == compute::BY
-               ) {
-                  return 0.5 * (bGrid.get(i,j-1,k)->at(fsgrids::bfield::PERBY) + bGrid.get(i,j+1,k)->at(fsgrids::bfield::PERBY));
-               } else if ((technicalGrid.get(i,j-1,k)->SOLVE & compute::BY) == compute::BY) {
-                  return bGrid.get(i,j-1,k)->at(fsgrids::bfield::PERBY);
-               } else if ((technicalGrid.get(i,j+1,k)->SOLVE & compute::BY) == compute::BY) {
-                  return bGrid.get(i,j+1,k)->at(fsgrids::bfield::PERBY);
-               } else {
-                  Real retval = 0.0;
-                  uint nCells = 0;
-                  if ((technicalGrid.get(i-1,j,k)->SOLVE & compute::BY) == compute::BY) {
-                     retval += bGrid.get(i-1,j,k)->at(fsgrids::bfield::PERBY);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i+1,j,k)->SOLVE & compute::BY) == compute::BY) {
-                     retval += bGrid.get(i+1,j,k)->at(fsgrids::bfield::PERBY);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i,j,k-1)->SOLVE & compute::BY) == compute::BY) {
-                     retval += bGrid.get(i,j,k-1)->at(fsgrids::bfield::PERBY);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i,j,k+1)->SOLVE & compute::BY) == compute::BY) {
-                     retval += bGrid.get(i,j,k+1)->at(fsgrids::bfield::PERBY);
-                     nCells++;
-                  }
-                  if (nCells == 0) {
-                     for (int a=i-1; a<i+2; a++) {
-                        for (int b=j-1; b<j+2; b++) {
-                           for (int c=k-1; c<k+2; c++) {
-                              if ((technicalGrid.get(a,b,c)->SOLVE & compute::BY) == compute::BY) {
-                                 retval += bGrid.get(a,b,c)->at(fsgrids::bfield::PERBY);
-                                 nCells++;
+               case 1:
+                  if (  (technicalGrid.get(i,j-1,k)->SOLVE & compute::BY) == compute::BY
+                     && (technicalGrid.get(i,j+1,k)->SOLVE & compute::BY) == compute::BY
+                  ) {
+                     return 0.5 * (bGrid.get(i,j-1,k)->at(fsgrids::bfield::PERBY) + bGrid.get(i,j+1,k)->at(fsgrids::bfield::PERBY));
+                  } else if ((technicalGrid.get(i,j-1,k)->SOLVE & compute::BY) == compute::BY) {
+                     return bGrid.get(i,j-1,k)->at(fsgrids::bfield::PERBY);
+                  } else if ((technicalGrid.get(i,j+1,k)->SOLVE & compute::BY) == compute::BY) {
+                     return bGrid.get(i,j+1,k)->at(fsgrids::bfield::PERBY);
+                  } else {
+                     Real retval = 0.0;
+                     uint nCells = 0;
+                     if ((technicalGrid.get(i-1,j,k)->SOLVE & compute::BY) == compute::BY) {
+                        retval += bGrid.get(i-1,j,k)->at(fsgrids::bfield::PERBY);
+                        nCells++;
+                     }
+                     if ((technicalGrid.get(i+1,j,k)->SOLVE & compute::BY) == compute::BY) {
+                        retval += bGrid.get(i+1,j,k)->at(fsgrids::bfield::PERBY);
+                        nCells++;
+                     }
+                     if ((technicalGrid.get(i,j,k-1)->SOLVE & compute::BY) == compute::BY) {
+                        retval += bGrid.get(i,j,k-1)->at(fsgrids::bfield::PERBY);
+                        nCells++;
+                     }
+                     if ((technicalGrid.get(i,j,k+1)->SOLVE & compute::BY) == compute::BY) {
+                        retval += bGrid.get(i,j,k+1)->at(fsgrids::bfield::PERBY);
+                        nCells++;
+                     }
+                     if (nCells == 0) {
+                        for (int a=i-1; a<i+2; a++) {
+                           for (int b=j-1; b<j+2; b++) {
+                              for (int c=k-1; c<k+2; c++) {
+                                 if ((technicalGrid.get(a,b,c)->SOLVE & compute::BY) == compute::BY) {
+                                    retval += bGrid.get(a,b,c)->at(fsgrids::bfield::PERBY);
+                                    nCells++;
+                                 }
                               }
                            }
                         }
                      }
+                     if (nCells == 0) {
+                        cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
+                        return 0.0;
+                     }
+                     return retval / nCells;
                   }
-                  if (nCells == 0) {
-                     cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
-                     return 0.0;
-                  }
-                  return retval / nCells;
-               }
-            case 2:
-               if (  (technicalGrid.get(i,j,k-1)->SOLVE & compute::BZ) == compute::BZ
-                  && (technicalGrid.get(i,j,k+1)->SOLVE & compute::BZ) == compute::BZ
-               ) {
-                  return 0.5 * (bGrid.get(i,j,k-1)->at(fsgrids::bfield::PERBZ) + bGrid.get(i,j,k+1)->at(fsgrids::bfield::PERBZ));
-               } else if ((technicalGrid.get(i,j,k-1)->SOLVE & compute::BZ) == compute::BZ) {
-                  return bGrid.get(i,j,k-1)->at(fsgrids::bfield::PERBZ);
-               } else if ((technicalGrid.get(i,j,k+1)->SOLVE & compute::BZ) == compute::BZ) {
-                  return bGrid.get(i,j,k+1)->at(fsgrids::bfield::PERBZ);
-               } else {
-                  Real retval = 0.0;
-                  uint nCells = 0;
-                  if ((technicalGrid.get(i-1,j,k)->SOLVE & compute::BZ) == compute::BZ) {
-                     retval += bGrid.get(i-1,j,k)->at(fsgrids::bfield::PERBZ);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i+1,j,k)->SOLVE & compute::BZ) == compute::BZ) {
-                     retval += bGrid.get(i+1,j,k)->at(fsgrids::bfield::PERBZ);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i,j-1,k)->SOLVE & compute::BZ) == compute::BZ) {
-                     retval += bGrid.get(i,j-1,k)->at(fsgrids::bfield::PERBZ);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i,j+1,k)->SOLVE & compute::BZ) == compute::BZ) {
-                     retval += bGrid.get(i,j+1,k)->at(fsgrids::bfield::PERBZ);
-                     nCells++;
-                  }
-                  if (nCells == 0) {
-                     for (int a=i-1; a<i+2; a++) {
-                        for (int b=j-1; b<j+2; b++) {
-                           for (int c=k-1; c<k+2; c++) {
-                              if ((technicalGrid.get(a,b,c)->SOLVE & compute::BZ) == compute::BZ) {
-                                 retval += bGrid.get(a,b,c)->at(fsgrids::bfield::PERBZ);
-                                 nCells++;
+               case 2:
+                  if (  (technicalGrid.get(i,j,k-1)->SOLVE & compute::BZ) == compute::BZ
+                     && (technicalGrid.get(i,j,k+1)->SOLVE & compute::BZ) == compute::BZ
+                  ) {
+                     return 0.5 * (bGrid.get(i,j,k-1)->at(fsgrids::bfield::PERBZ) + bGrid.get(i,j,k+1)->at(fsgrids::bfield::PERBZ));
+                  } else if ((technicalGrid.get(i,j,k-1)->SOLVE & compute::BZ) == compute::BZ) {
+                     return bGrid.get(i,j,k-1)->at(fsgrids::bfield::PERBZ);
+                  } else if ((technicalGrid.get(i,j,k+1)->SOLVE & compute::BZ) == compute::BZ) {
+                     return bGrid.get(i,j,k+1)->at(fsgrids::bfield::PERBZ);
+                  } else {
+                     Real retval = 0.0;
+                     uint nCells = 0;
+                     if ((technicalGrid.get(i-1,j,k)->SOLVE & compute::BZ) == compute::BZ) {
+                        retval += bGrid.get(i-1,j,k)->at(fsgrids::bfield::PERBZ);
+                        nCells++;
+                     }
+                     if ((technicalGrid.get(i+1,j,k)->SOLVE & compute::BZ) == compute::BZ) {
+                        retval += bGrid.get(i+1,j,k)->at(fsgrids::bfield::PERBZ);
+                        nCells++;
+                     }
+                     if ((technicalGrid.get(i,j-1,k)->SOLVE & compute::BZ) == compute::BZ) {
+                        retval += bGrid.get(i,j-1,k)->at(fsgrids::bfield::PERBZ);
+                        nCells++;
+                     }
+                     if ((technicalGrid.get(i,j+1,k)->SOLVE & compute::BZ) == compute::BZ) {
+                        retval += bGrid.get(i,j+1,k)->at(fsgrids::bfield::PERBZ);
+                        nCells++;
+                     }
+                     if (nCells == 0) {
+                        for (int a=i-1; a<i+2; a++) {
+                           for (int b=j-1; b<j+2; b++) {
+                              for (int c=k-1; c<k+2; c++) {
+                                 if ((technicalGrid.get(a,b,c)->SOLVE & compute::BZ) == compute::BZ) {
+                                    retval += bGrid.get(a,b,c)->at(fsgrids::bfield::PERBZ);
+                                    nCells++;
+                                 }
                               }
                            }
                         }
                      }
+                     if (nCells == 0) {
+                        cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
+                        return 0.0;
+                     }
+                     return retval / nCells;
                   }
-                  if (nCells == 0) {
-                     cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
-                     return 0.0;
-                  }
-                  return retval / nCells;
-               }
-            default:
-               cerr << "ERROR: copysphere boundary tried to copy nonsensical magnetic field component " << component << endl;
-               return 0.0;
-         }
-      } else { // L2 cells
-         Real retval = 0.0;
-         uint nCells = 0;
-         for (int a=i-1; a<i+2; a++) {
-            for (int b=j-1; b<j+2; b++) {
-               for (int c=k-1; c<k+2; c++) {
-                  if (technicalGrid.get(a,b,c)->sysBoundaryLayer == 1) {
-                     retval += bGrid.get(a,b,c)->at(fsgrids::bfield::PERBX + component);
-                     nCells++;
+               default:
+                  cerr << "ERROR: copysphere boundary tried to copy nonsensical magnetic field component " << component << endl;
+                  return 0.0;
+            }
+         } else { // L2 cells
+            Real retval = 0.0;
+            uint nCells = 0;
+            for (int a=i-1; a<i+2; a++) {
+               for (int b=j-1; b<j+2; b++) {
+                  for (int c=k-1; c<k+2; c++) {
+                     if (technicalGrid.get(a,b,c)->sysBoundaryLayer == 1) {
+                        retval += bGrid.get(a,b,c)->at(fsgrids::bfield::PERBX + component);
+                        nCells++;
+                     }
                   }
                }
             }
+            if (nCells == 0) {
+               cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
+               return 0.0;
+            }
+            return retval / nCells;
          }
-         if (nCells == 0) {
-            cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
-            return 0.0;
-         }
-         return retval / nCells;
       }
+      
    }
 
    void Copysphere::fieldSolverBoundaryCondElectricField(
@@ -785,7 +797,7 @@ namespace SBC {
          } // for-loop over velocity blocks
 
          // let's get rid of blocks not fulfilling the criteria here to save memory.
-         templateCell.adjustSingleCellVelocityBlocks(popID);
+         templateCell.adjustSingleCellVelocityBlocks(popID,true);
       } // for-loop over particle species
       
       calculateCellMoments(&templateCell,true,false,true);
