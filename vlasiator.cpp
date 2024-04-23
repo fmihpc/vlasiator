@@ -1031,8 +1031,10 @@ int main(int argn,char* args[]) {
                   outputReducer,"restart",(uint)P::t,P::restartStripeFactor) == false ) {
             // If restart write fails, remove the malformed file and hope someone clears space soon
             MPI_Barrier(MPI_COMM_WORLD);
-            std::remove(P::lastRestart.c_str());
-            P::lastRestart = "";
+            if(!P::lastRestart.empty()) {
+               std::remove(P::lastRestart.c_str());
+               P::lastRestart.clear();
+            }
             logFile << "(IO): ERROR Failed to write restart!" << endl << writeVerbose;
             cerr << "FAILED TO WRITE RESTART" << endl;
          }
