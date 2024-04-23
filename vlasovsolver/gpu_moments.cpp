@@ -60,8 +60,17 @@ __global__ void first_moments_kernel (
    Real myMom[4] = {0};
 
    vmesh::VelocityBlockContainer* blockContainer = dev_VBC[celli];
+   if (blockContainer==0) {
+      if (ti==0) {
+         for (uint imom=0; imom<4; imom++) {
+            dev_moments1[celli*4 + imom] = 0;
+         }
+      }
+      __syncthreads();
+      return;
+   }
    uint thisVBCSize = blockContainer->size();
-   if (blockContainer==0 || thisVBCSize==0) {
+   if (thisVBCSize==0) {
       if (ti==0) {
          for (uint imom=0; imom<4; imom++) {
             dev_moments1[celli*4 + imom] = 0;
@@ -100,8 +109,6 @@ __global__ void first_moments_kernel (
       __syncthreads();
       if (ti==0) {
          dev_moments1[celli*4 + imom] = smom[0];
-         //if (imom==3) printf(" celli %d moment %d: %e\n",celli,imom,smom[0]);
-         //if (imom==3) printf(" celli %d vz: %e\n",celli,dev_moments1[celli*4 + 3]/dev_moments1[celli*4]);
       }
       __syncthreads();
    }
@@ -130,11 +137,20 @@ __global__ void second_moments_kernel (
    Real myMom[3] = {0};
 
    vmesh::VelocityBlockContainer* blockContainer = dev_VBC[celli];
-   uint thisVBCSize = blockContainer->size();
-   if (blockContainer==0 || thisVBCSize==0) {
+   if (blockContainer==0) {
       if (ti==0) {
-         for (uint imom=0; imom<3; imom++) {
-            dev_moments2[celli*3 + imom] = 0;
+         for (uint imom=0; imom<4; imom++) {
+            dev_moments1[celli*4 + imom] = 0;
+         }
+      }
+      __syncthreads();
+      return;
+   }
+   uint thisVBCSize = blockContainer->size();
+   if (thisVBCSize==0) {
+      if (ti==0) {
+         for (uint imom=0; imom<4; imom++) {
+            dev_moments1[celli*4 + imom] = 0;
          }
       }
       __syncthreads();
@@ -175,7 +191,6 @@ __global__ void second_moments_kernel (
       __syncthreads();
       if (ti==0) {
          dev_moments2[celli*3 + imom] = smom[0];
-         //printf(" celli %d pressure %d: %e\n",celli,imom,smom[0]);
       }
       __syncthreads();
    }
@@ -255,6 +270,7 @@ void gpu_calculateMoments_R(
          nAllCells
          );
       CHK_ERR( gpuPeekAtLastError() );
+      CHK_ERR( gpuDeviceSynchronize());
       CHK_ERR( gpuMemcpy(host_moments1, dev_moments1, nAllCells*4*sizeof(Real), gpuMemcpyDeviceToHost) );
 
       const Real mass = getObjectWrapper().particleSpecies[popID].mass;
@@ -318,6 +334,7 @@ void gpu_calculateMoments_R(
          nAllCells
          );
       CHK_ERR( gpuPeekAtLastError() );
+      CHK_ERR( gpuDeviceSynchronize());
       CHK_ERR( gpuMemcpy(host_moments2, dev_moments2, nAllCells*3*sizeof(Real), gpuMemcpyDeviceToHost) );
 
       const Real mass = getObjectWrapper().particleSpecies[popID].mass;
@@ -402,6 +419,7 @@ void gpu_calculateMoments_V(
          nAllCells
          );
       CHK_ERR( gpuPeekAtLastError() );
+      CHK_ERR( gpuDeviceSynchronize());
       CHK_ERR( gpuMemcpy(host_moments1, dev_moments1, nAllCells*4*sizeof(Real), gpuMemcpyDeviceToHost) );
 
       const Real mass = getObjectWrapper().particleSpecies[popID].mass;
@@ -464,6 +482,7 @@ void gpu_calculateMoments_V(
          nAllCells
          );
       CHK_ERR( gpuPeekAtLastError() );
+      CHK_ERR( gpuDeviceSynchronize());
       CHK_ERR( gpuMemcpy(host_moments2, dev_moments2, nAllCells*3*sizeof(Real), gpuMemcpyDeviceToHost) );
 
       const Real mass = getObjectWrapper().particleSpecies[popID].mass;
@@ -497,12 +516,13 @@ void gpu_moments_allocate(const uint nAllCells) {
    gpu_allocated_moments = nAllCells * BLOCK_ALLOCATION_FACTOR;
 
    // Host memory will be pinned
-   CHK_ERR( gpuMallocHost((void**)&host_VBC, gpu_allocated_moments*sizeof(vmesh::VelocityBlockContainer*)) );
-   CHK_ERR( gpuMallocHost((void**)&host_moments1, gpu_allocated_moments*4*sizeof(Real)) );
-   CHK_ERR( gpuMallocHost((void**)&host_moments2, gpu_allocated_moments*3*sizeof(Real)) );
+   CHK_ERR( gpuHostAlloc((void**)&host_VBC, gpu_allocated_moments*sizeof(vmesh::VelocityBlockContainer*)) );
+   CHK_ERR( gpuHostAlloc((void**)&host_moments1, gpu_allocated_moments*4*sizeof(Real)) );
+   CHK_ERR( gpuHostAlloc((void**)&host_moments2, gpu_allocated_moments*3*sizeof(Real)) );
    CHK_ERR( gpuMalloc((void**)&dev_VBC, gpu_allocated_moments*sizeof(vmesh::VelocityBlockContainer*)) );
    CHK_ERR( gpuMalloc((void**)&dev_moments1, gpu_allocated_moments*4*sizeof(Real)) );
    CHK_ERR( gpuMalloc((void**)&dev_moments2, gpu_allocated_moments*3*sizeof(Real)) );
+   CHK_ERR( gpuDeviceSynchronize());
 }
 
 /* Deallocation at end of simulation */
