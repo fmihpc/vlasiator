@@ -10,7 +10,7 @@
 [submodule "submodules/eigen"]
 	path = submodules/eigen
 	url = https://gitlab.com/libeigen/eigen.git
-	branch = 3.2
+	branch = master
 
 [submodule "submodules/vectorclass"]
 	path = submodules/vectorclass
