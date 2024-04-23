@@ -130,10 +130,6 @@ for run in ${run_tests[*]}; do
 
    # Store error return value
    RUN_ERROR=${PIPESTATUS[0]}
-   # Fore set to error if output file does not exist
-   if [ ! -f "${vlsv_dir}/${comparison_vlsv[$run]}" ]; then
-       RUN_ERROR=1
-   fi
 
    if [[ $RUN_ERROR != 0 ]]; then
       echo -e "<details><summary>:red_circle: ${test_name[$run]}: Failed to run or died with an error.</summary>\n"  >> $GITHUB_STEP_SUMMARY
@@ -191,12 +187,13 @@ for run in ${run_tests[*]}; do
    MAXERRVAR=""  # Variable with max absolute error
    MAXRELVAR=""  # Variable with max relative error
    COMPAREDFILES=0
-
+   TOCOMPAREFILES=0
    variables=(${variable_names[$run]// / })
    indices=(${variable_components[$run]// / })
 
    for vlsv in ${comparison_vlsv[$run]}
    do
+       TOCOMPAREFILES=$((TOCOMPAREFILES+1))
        if [ ! -f "${vlsv_dir}/${vlsv}" ]; then
            echo "Output file ${vlsv_dir}/${vlsv} not found!"
            echo "--------------------------------------------------------------------------------------------"
@@ -317,25 +314,19 @@ for run in ${run_tests[*]}; do
    echo "--------------------------------------------------------------------------------------------"
 
    # Recover error variables
-   if [[ $COMPAREDFILES -eq 0  ]]; then
-       MAXERR=42
-       MAXERRVAR=42
-       MAXREL=42
-       MAXRELVAR=42
-       MAXDT=42
-       speedup=0
-   else
-       MAXERR=`cat $RUNNER_TEMP/MAXERR.txt`
-       MAXERRVAR=`cat $RUNNER_TEMP/MAXERRVAR.txt`
-       MAXREL=`cat $RUNNER_TEMP/MAXREL.txt`
-       MAXRELVAR=`cat $RUNNER_TEMP/MAXRELVAR.txt`
-       MAXDT=`cat $RUNNER_TEMP/MAXDT.txt`
-       speedup=`cat $RUNNER_TEMP/speedup.txt`
-   fi
+   MAXERR=`cat $RUNNER_TEMP/MAXERR.txt`
+   MAXERRVAR=`cat $RUNNER_TEMP/MAXERRVAR.txt`
+   MAXREL=`cat $RUNNER_TEMP/MAXREL.txt`
+   MAXRELVAR=`cat $RUNNER_TEMP/MAXRELVAR.txt`
+   MAXDT=`cat $RUNNER_TEMP/MAXDT.txt`
+   speedup=`cat $RUNNER_TEMP/speedup.txt`
 
    # Output CI step annotation
-   if (( $( echo "$MAXERR 0." | awk '{ if($1 > $2) print 1; else print 0 }' ) )) || (( $( echo "$MAXDT 0." | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
-      echo -e "<details><summary>:large_orange_diamond: ${test_name[$run]}: Nonzero diffs: : \`$MAXERRVAR\` has absolute error $MAXERR, \`$MAXRELVAR\` has relative error $MAXREL. Max timestamp difference is $MAXDT.   Speedup: $speedup</summary>\n" >> $GITHUB_STEP_SUMMARY
+   if [[ $COMPAREDFILES -neq $TOCOMPAREFILES ]]; then
+      echo -e "<details><summary>:orange_circle: ${test_name[$run]}: Comparison failure, accessed \`$COMPAREDFILES\` out of \`$TOCOMPAREFILES\` files: \`$MAXERRVAR\` has absolute error $MAXERR, \`$MAXRELVAR\` has relative error $MAXREL. Max timestamp difference is $MAXDT.   Speedup: $speedup</summary>\n" >> $GITHUB_STEP_SUMMARY
+      NONZEROTESTS=$((NONZEROTESTS+1))
+   else if (( $( echo "$MAXERR 0." | awk '{ if($1 > $2) print 1; else print 0 }' ) )) || (( $( echo "$MAXDT 0." | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
+      echo -e "<details><summary>:large_orange_diamond: ${test_name[$run]}: Nonzero diffs: \`$MAXERRVAR\` has absolute error $MAXERR, \`$MAXRELVAR\` has relative error $MAXREL. Max timestamp difference is $MAXDT.   Speedup: $speedup</summary>\n" >> $GITHUB_STEP_SUMMARY
       NONZEROTESTS=$((NONZEROTESTS+1))
    else
       echo -e "<details><summary>:heavy_check_mark: ${test_name[$run]}: Ran with zero diffs. Speedup: $speedup</summary>\n" >> $GITHUB_STEP_SUMMARY
