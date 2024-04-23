@@ -679,7 +679,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
          }
       } // finish check A
       if ( addToSeedIds ) {
-#pragma omp critical (pencil_seedIds_push_back)
+#pragma omp critical
          seedIds.push_back(celli);
          continue;
       }
@@ -726,7 +726,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
       } // Finish B check
 
       if ( addToSeedIds ) {
-#pragma omp critical (pencil_seedIds_push_back)
+#pragma omp critical
          seedIds.push_back(celli);
          continue;
       }
@@ -755,7 +755,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
       } // Finish C check
 
       if ( addToSeedIds ) {
-#pragma omp critical (pencil_seedIds_push_back)
+#pragma omp critical
          seedIds.push_back(celli);
       }
    }
