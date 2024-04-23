@@ -314,13 +314,22 @@ for run in ${run_tests[*]}; do
    echo "--------------------------------------------------------------------------------------------"
 
    # Recover error variables
-   MAXERR=`cat $RUNNER_TEMP/MAXERR.txt`
-   MAXERRVAR=`cat $RUNNER_TEMP/MAXERRVAR.txt`
-   MAXREL=`cat $RUNNER_TEMP/MAXREL.txt`
-   MAXRELVAR=`cat $RUNNER_TEMP/MAXRELVAR.txt`
-   MAXDT=`cat $RUNNER_TEMP/MAXDT.txt`
-   speedup=`cat $RUNNER_TEMP/speedup.txt`
-
+   if [[ $COMPAREDFILES -ne 0 ]]; then
+       MAXERR=`cat $RUNNER_TEMP/MAXERR.txt`
+       MAXERRVAR=`cat $RUNNER_TEMP/MAXERRVAR.txt`
+       MAXREL=`cat $RUNNER_TEMP/MAXREL.txt`
+       MAXRELVAR=`cat $RUNNER_TEMP/MAXRELVAR.txt`
+       MAXDT=`cat $RUNNER_TEMP/MAXDT.txt`
+       speedup=`cat $RUNNER_TEMP/speedup.txt`
+   else
+       MAXERR=-42
+       MAXERRVAR=42
+       MAXREL=42
+       MAXRELVAR=42
+       MAXDT=0
+       speedup=0
+   fi
+   
    # Output CI step annotation
    if [[ $COMPAREDFILES -ne $TOCOMPAREFILES ]]; then
       echo -e "<details><summary>:orange_circle: ${test_name[$run]}: Comparison failure, accessed \`$COMPAREDFILES\` out of \`$TOCOMPAREFILES\` files: \`$MAXERRVAR\` has absolute error $MAXERR, \`$MAXRELVAR\` has relative error $MAXREL. Max timestamp difference is $MAXDT.   Speedup: $speedup</summary>\n" >> $GITHUB_STEP_SUMMARY
