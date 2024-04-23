@@ -67,7 +67,7 @@ echo "Running $exec on $tasks mpi tasks, with $t threads per task on $nodes node
 hostname
 
 # Define test
-source small_test_definitions.sh
+source test_definitions_small.sh
 wait
 
 
