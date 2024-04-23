@@ -679,7 +679,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
          }
       } // finish check A
       if ( addToSeedIds ) {
-#pragma omp critical
+#pragma omp critical (pencil_seedIds_push_back)
          seedIds.push_back(celli);
          continue;
       }
@@ -726,7 +726,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
       } // Finish B check
 
       if ( addToSeedIds ) {
-         #pragma omp critical
+#pragma omp critical (pencil_seedIds_push_back)
          seedIds.push_back(celli);
          continue;
       }
@@ -755,7 +755,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
       } // Finish C check
 
       if ( addToSeedIds ) {
-#pragma omp critical
+#pragma omp critical (pencil_seedIds_push_back)
          seedIds.push_back(celli);
       }
    }
@@ -1011,6 +1011,22 @@ void printPencilsFunc(const setOfPencils& pencils, const uint dimension, const i
    std::cout<<ss.str();
 }
 
+/* Wrapper function for calling seed ID selection and pencil generation, for all dimensions.
+ * Includes threading and gathering of pencils into thread-containers.
+ *
+ * @param [in] mpiGrid DCCRG grid object
+ */
+void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+      phiprof::Timer timer {"GetSeedIdsAndBuildPencils"};
+      // Remove all old pencils now
+      for (int dimension=0; dimension<3; dimension++) {
+         DimensionPencils[dimension].removeAllPencils();
+      }
+      for (int dimension=0; dimension<3; dimension++) {
+         prepareSeedIdsAndPencils(mpiGrid, dimension);
+      }
+}
+
 /* Wrapper function for calling seed ID selection and pencil generation, per dimension.
  * Includes threading and gathering of pencils into thread-containers.
  *
@@ -1081,8 +1097,8 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    }
 
    phiprof::Timer buildPencilsTimer {"buildPencils"};
-   // Clear previous set
-   DimensionPencils[dimension].removeAllPencils();
+   // Clear previous set - moved to wrapper
+   // DimensionPencils[dimension].removeAllPencils();
 
 #pragma omp parallel
    {
