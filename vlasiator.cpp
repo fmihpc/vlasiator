@@ -590,7 +590,8 @@ int main(int argn,char* args[]) {
             writeGhosts
          ) == false
       ) {
-         abort_mpi("FAILED TO WRITE GRID", 1);
+         // TODO make this std::format when we get C++20
+         abort_mpi(std::string(__FILE__) + ":" + std::to_string(__LINE__) + ": FAILED TO WRITE GRID", 1);
       }
 
       phiprof::stop("Initialization");
