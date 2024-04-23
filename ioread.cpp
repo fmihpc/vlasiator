@@ -38,6 +38,7 @@
 #include "vlsv_reader_parallel.h"
 #include "vlasovmover.h"
 #include "object_wrapper.h"
+#include "grid.h"
 
 using namespace std;
 using namespace phiprof;
@@ -1236,7 +1237,7 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    mpiGrid.balance_load(false);
 
    //update list of local gridcells
-   recalculateLocalCellsCache();
+   recalculateLocalCellsCache(mpiGrid);
 
    //get new list of local gridcells
    const vector<CellID>& gridCells = getLocalCells();
