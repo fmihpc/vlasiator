@@ -193,13 +193,13 @@ namespace projects {
    }
 
    void Dispersion::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
-      Real* cellParams = cell->get_cell_parameters();
-      creal x = cellParams[CellParams::XCRD];
-      creal dx = cellParams[CellParams::DX];
-      creal y = cellParams[CellParams::YCRD];
-      creal dy = cellParams[CellParams::DY];
-      creal z = cellParams[CellParams::ZCRD];
-      creal dz = cellParams[CellParams::DZ];
+      //Real* cellParams = cell->get_cell_parameters();
+      //creal x = cellParams[CellParams::XCRD];
+      //creal dx = cellParams[CellParams::DX];
+      //creal y = cellParams[CellParams::YCRD];
+      //creal dy = cellParams[CellParams::DY];
+      //creal z = cellParams[CellParams::ZCRD];
+      //creal dz = cellParams[CellParams::DZ];
 
       std::default_random_engine rndState;
       setRandomCellSeed(cell,rndState);
