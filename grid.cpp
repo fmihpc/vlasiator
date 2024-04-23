@@ -647,10 +647,6 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    // Prepare cellIDs and pencils for AMR translation
    if(P::amrMaxSpatialRefLevel > 0) {
       prepareSeedIdsAndPencils(mpiGrid);
-      // phiprof::Timer timer {"GetSeedIdsAndBuildPencils"};
-      // for (int dimension=0; dimension<3; dimension++) {
-      //    prepareSeedIdsAndPencils(mpiGrid, dimension);
-      // }
    }
 }
 

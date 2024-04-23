@@ -1097,8 +1097,6 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    }
 
    phiprof::Timer buildPencilsTimer {"buildPencils"};
-   // Clear previous set - moved to wrapper
-   // DimensionPencils[dimension].removeAllPencils();
 
 #pragma omp parallel
    {
