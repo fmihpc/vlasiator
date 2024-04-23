@@ -239,6 +239,7 @@ namespace projects {
     const IPShockSpeciesParameters& sP = this->speciesParams[popID];
 
     std::vector<std::array<Real, 3>> retval;
+    std::array<Real, 3> V0 {0, 0, 0};
       
     if (this->doConvertdHT) {
        // Interpolate density between upstream and downstream
@@ -264,24 +265,29 @@ namespace projects {
        // Disable compiler warnings: (unused variables but the function is inherited)
        (void)y;
        (void)z;
-    
-       std::array<Real, 3> V0 {{VX, VY, VZ}};
-       retval.push_back(V0);
+
+       V0[0] = VX;
+       V0[1] = VY;
+       V0[2] = VZ;
     } else {
-       // Assume shock at x = 0, x > 0 upstream, x < 0 downstream
-       std::array<Real, 3> V0 {0, 0, 0};
-       
-       if (x > 0) {
-          for (int i = 0; i < 3; ++i) {
-             V0[i] = sP.V0u[i];
-          }
+       if (this->Shockwidth > 1e-5) {
+          V0[0] = interpolate(sP.V0u[0], sP.V0d[0], x);
+          V0[1] = interpolate(sP.V0u[1], sP.V0d[1], x);
+          V0[2] = interpolate(sP.V0u[2], sP.V0d[2], x);
        } else {
-          for (int i = 0; i < 3; ++i) {
-             V0[i] = sP.V0d[i];
+          // Assume shock at x = 0, x > 0 upstream, x < 0 downstream
+          if (x > 0) {
+             for (int i = 0; i < 3; ++i) {
+                V0[i] = sP.V0u[i];
+             }
+          } else {
+             for (int i = 0; i < 3; ++i) {
+                V0[i] = sP.V0d[i];
+             }
           }
        }
-       retval.push_back(V0);
     }
+    retval.push_back(V0);
 
     return retval;
   }
@@ -316,20 +322,28 @@ namespace projects {
        hereVY = abs(hereVtang) * sP.Vucosphi * sP.Vyusign;
        hereVZ = abs(hereVtang) * sqrt(1. - sP.Vucosphi * sP.Vucosphi) * sP.Vzusign;
 
-       TEMPERATURE = interpolate(sP.TEMPERATUREu,sP.TEMPERATUREd, x);
+       TEMPERATURE = interpolate(sP.TEMPERATUREu, sP.TEMPERATUREd, x);
     } else {
-       if (x > 0) {
-          DENSITY = sP.DENSITYu;
-          hereVX = sP.V0u[0];
-          hereVY = sP.V0u[1];
-          hereVZ = sP.V0u[2];
-          TEMPERATURE = sP.TEMPERATUREu;
+       if (this->Shockwidth > 1e-5) {
+          DENSITY = interpolate(sP.DENSITYu,sP.DENSITYd, x);
+          hereVX = interpolate(sP.V0u[0], sP.V0d[0], x);
+          hereVY = interpolate(sP.V0u[1], sP.V0d[1], x);
+          hereVZ = interpolate(sP.V0u[2], sP.V0d[2], x);
+          TEMPERATURE = interpolate(sP.TEMPERATUREu, sP.TEMPERATUREd, x);
        } else {
-          DENSITY = sP.DENSITYd;
-          hereVX = sP.V0d[0];
-          hereVY = sP.V0d[1];
-          hereVZ = sP.V0d[2];
-          TEMPERATURE = sP.TEMPERATUREd;
+          if (x > 0) {
+             DENSITY = sP.DENSITYu;
+             hereVX = sP.V0u[0];
+             hereVY = sP.V0u[1];
+             hereVZ = sP.V0u[2];
+             TEMPERATURE = sP.TEMPERATUREu;
+          } else {
+             DENSITY = sP.DENSITYd;
+             hereVX = sP.V0d[0];
+             hereVY = sP.V0d[1];
+             hereVZ = sP.V0d[2];
+             TEMPERATURE = sP.TEMPERATUREd;
+          }
        }
     }
 
@@ -360,7 +374,6 @@ namespace projects {
 
   Real IPShock::interpolate(Real upstream, Real downstream, Real x) const {
     Real coord = 0.5 + x/this->Shockwidth; //Now shock will be from 0 to 1
-    //x /= 0.5 * this->Shockwidth;
     Real a = 0.0;
     if (coord <= 0.0) a = downstream;
     if (coord >= 1.0) a = upstream;
@@ -381,48 +394,87 @@ namespace projects {
       
       if(!P::isRestart) {
          auto localSize = perBGrid.getLocalSize().data();
-      
+
+         if (this->doConvertdHT) {
 #pragma omp parallel for collapse(3)
-         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
-            for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
-               for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
-                  const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
-                  std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
-                  
-                  /* Maintain all values in BPERT for simplicity */
-                  Real mu0 = physicalconstants::MU_0;
-                  
-                  // Interpolate density between upstream and downstream
-                  // All other values are calculated from jump conditions
-                  Real MassDensity = 0.;
-                  Real MassDensityU = 0.;
-                  Real EffectiveVu0 = 0.;
-                  for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-                     const IPShockSpeciesParameters& sP = speciesParams[i];
-                     Real mass = getObjectWrapper().particleSpecies[i].mass;
-                     
-                     MassDensity += mass * interpolate(sP.DENSITYu,sP.DENSITYd, xyz[0]);
-                     MassDensityU += mass * sP.DENSITYu;
-                     EffectiveVu0 += sP.V0u[0] * mass * sP.DENSITYu;
+            for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
+               for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
+                  for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
+                     const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
+                     std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
+
+                     /* Maintain all values in BPERT for simplicity */
+                     Real mu0 = physicalconstants::MU_0;
+
+                     // Interpolate density between upstream and downstream
+                     // All other values are calculated from jump conditions
+                     Real MassDensity = 0.;
+                     Real MassDensityU = 0.;
+                     Real EffectiveVu0 = 0.;
+                     for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+                        const IPShockSpeciesParameters& sP = speciesParams[i];
+                        Real mass = getObjectWrapper().particleSpecies[i].mass;
+
+                        MassDensity += mass * interpolate(sP.DENSITYu,sP.DENSITYd, xyz[0]);
+                        MassDensityU += mass * sP.DENSITYu;
+                        EffectiveVu0 += sP.V0u[0] * mass * sP.DENSITYu;
+                     }
+                     EffectiveVu0 /= MassDensityU;
+
+                     // Solve tangential components for B and V
+                     Real VX = MassDensityU * EffectiveVu0 / MassDensity;
+                     Real BX = this->B0u[0];
+                     Real MAsq = std::pow((EffectiveVu0/this->B0u[0]), 2) * MassDensityU * mu0;
+                     Real Btang = this->B0utangential * (MAsq - 1.0)/(MAsq*VX/EffectiveVu0 -1.0);
+
+                     /* Reconstruct Y and Z components using cos(phi) values and signs. Tangential variables are always positive. */
+                     Real BY = abs(Btang) * this->Bucosphi * this->Byusign;
+                     Real BZ = abs(Btang) * sqrt(1. - this->Bucosphi * this->Bucosphi) * this->Bzusign;
+
+                     cell->at(fsgrids::bfield::PERBX) = BX;
+                     cell->at(fsgrids::bfield::PERBY) = BY;
+                     cell->at(fsgrids::bfield::PERBZ) = BZ;
                   }
-                  EffectiveVu0 /= MassDensityU;
+               }
+            }
+         } else {
+            if (this->Shockwidth > 1e-5) {
+#pragma omp parallel for collapse(3)
+               for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
+                  for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
+                     for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
+                        const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
+                        std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
                   
-                  // Solve tangential components for B and V
-                  Real VX = MassDensityU * EffectiveVu0 / MassDensity;
-                  Real BX = this->B0u[0];
-                  Real MAsq = std::pow((EffectiveVu0/this->B0u[0]), 2) * MassDensityU * mu0;
-                  Real Btang = this->B0utangential * (MAsq - 1.0)/(MAsq*VX/EffectiveVu0 -1.0);
-                  
-                  /* Reconstruct Y and Z components using cos(phi) values and signs. Tangential variables are always positive. */
-                  Real BY = abs(Btang) * this->Bucosphi * this->Byusign;
-                  Real BZ = abs(Btang) * sqrt(1. - this->Bucosphi * this->Bucosphi) * this->Bzusign;
-                  //Real Vtang = VX * Btang / BX;
-                  //Real VY = Vtang * this->Vucosphi * this->Vyusign;
-                  //Real VZ = Vtang * sqrt(1. - this->Vucosphi * this->Vucosphi) * this->Vzusign;
-                  
-                  cell->at(fsgrids::bfield::PERBX) = BX;
-                  cell->at(fsgrids::bfield::PERBY) = BY;
-                  cell->at(fsgrids::bfield::PERBZ) = BZ;
+                        Real BX = interpolate(this->B0d[0], this->B0d[0], xyz[0]);
+                        Real BY = interpolate(this->B0d[1], this->B0d[1], xyz[1]);
+                        Real BZ = interpolate(this->B0d[2], this->B0d[2], xyz[2]);
+
+                        cell->at(fsgrids::bfield::PERBX) = BX;
+                        cell->at(fsgrids::bfield::PERBY) = BY;
+                        cell->at(fsgrids::bfield::PERBZ) = BZ;
+                     }
+                  }
+               }
+            } else {
+#pragma omp parallel for collapse(3)
+               for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
+                  for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
+                     for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
+                        const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
+                        std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
+
+                        if (xyz[0] < 0) {
+                           cell->at(fsgrids::bfield::PERBX) = this->B0d[0];
+                           cell->at(fsgrids::bfield::PERBY) = this->B0d[1];
+                           cell->at(fsgrids::bfield::PERBZ) = this->B0d[2];
+                        } else {
+                           cell->at(fsgrids::bfield::PERBX) = this->B0u[0];
+                           cell->at(fsgrids::bfield::PERBY) = this->B0u[1];
+                           cell->at(fsgrids::bfield::PERBZ) = this->B0u[2];
+                        }
+                     }
+                  }
                }
             }
          }
@@ -541,7 +593,6 @@ namespace projects {
 	mpiGrid.balance_load();
      }
 
-     
      return true;
    }
 
