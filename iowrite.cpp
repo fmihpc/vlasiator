@@ -1522,7 +1522,7 @@ bool writeRestart(
    const std::string& versionInfo,
    const std::string& configInfo,
    DataReducer& dataReducer,
-   const string& name,
+   string& name,
    const uint& fileIndex,
    const int& stripe) 
 {
@@ -1557,7 +1557,7 @@ bool writeRestart(
    fname.width(7);
    fname.fill('0');
    fname << fileIndex << "." << currentDate << ".vlsv";
-   P::lastRestart = fname.str();
+   name = fname.str();
 
    phiprof::Timer openTimer {"open"};
    //Open the file with vlsvWriter:

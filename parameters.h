@@ -224,8 +224,6 @@ struct Parameters {
    
    static bool computeCurvature; /*<! Boolean flag, if true the curvature of magnetic field is computed. */
 
-   static std::string lastRestart;  // Last restart file written
-
    /*! \brief Add the global parameters.
     *
     * This function adds all the parameters that are loaded at a global level.

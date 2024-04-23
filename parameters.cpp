@@ -194,8 +194,6 @@ std::array<FsGridTools::Task_t,3> P::overrideReadFsGridDecomposition = {0,0,0};
 std::string tracerString; /*!< Fieldline tracer to use for coupling ionosphere and magnetosphere */
 bool P::computeCurvature;
 
-std::string P::lastRestart {""};
-
 bool P::addParameters() {
    typedef Readparameters RP;
    // the other default parameters we read through the add/get interface
