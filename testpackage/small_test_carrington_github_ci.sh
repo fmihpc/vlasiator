@@ -186,14 +186,18 @@ for run in ${run_tests[*]}; do
    MAXDT=0.   # Output time difference
    MAXERRVAR=""  # Variable with max absolute error
    MAXRELVAR=""  # Variable with max relative error
-   COMPAREDFILES=0
-   TOCOMPAREFILES=0
+   COMPAREDFILES=0 # How many files we successfully compare
+   TOCOMPAREFILES=0 # How many files we were supposed to compare
+   # Save initial values in case we call continue in the loops below
+   echo $COMPAREDFILES > $RUNNER_TEMP/COMPAREDFILES.txt
+   echo $TOCOMPAREFILES > $RUNNER_TEMP/TOCOMPAREFILES.txt
    variables=(${variable_names[$run]// / })
    indices=(${variable_components[$run]// / })
 
    for vlsv in ${comparison_vlsv[$run]}
    do
        TOCOMPAREFILES=$((TOCOMPAREFILES+1))
+       echo $TOCOMPAREFILES > $RUNNER_TEMP/TOCOMPAREFILES.txt
        if [ ! -f "${vlsv_dir}/${vlsv}" ]; then
            echo "Output file ${vlsv_dir}/${vlsv} not found!"
            echo "--------------------------------------------------------------------------------------------"
@@ -206,6 +210,7 @@ for run in ${run_tests[*]}; do
        fi
        echo "Comparing file ${vlsv_dir}/${vlsv} against reference"
        COMPAREDFILES=$((COMPAREDFILES+1))
+       echo $COMPAREDFILES > $RUNNER_TEMP/COMPAREDFILES.txt
        
        for i in ${!variables[*]}
        do
@@ -314,11 +319,11 @@ for run in ${run_tests[*]}; do
    done 2>&1 1>&3 3>&- | tee -a $GITHUB_WORKSPACE/stderr.txt; } 3>&1 1>&2 | tee -a $GITHUB_WORKSPACE/stdout.txt
    # end loop over vlsvfiles
    echo "--------------------------------------------------------------------------------------------"
-   echo " compared files ${COMPAREDFILES} to compare files ${TOCOMPAREFILES} "
 
    # Recover error variables
    COMPAREDFILES=`cat $RUNNER_TEMP/COMPAREDFILES.txt`
    TOCOMPAREFILES=`cat $RUNNER_TEMP/TOCOMPAREFILES.txt`
+   echo " compared files ${COMPAREDFILES} to compare files ${TOCOMPAREFILES} "
    if [[ $COMPAREDFILES -eq 0 ]]; then
        MAXERR=-42
        MAXERRVAR=42
