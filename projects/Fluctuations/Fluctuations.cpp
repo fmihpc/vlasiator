@@ -135,17 +135,6 @@ namespace projects {
    }
    
    void Fluctuations::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
-      Real* cellParams = cell->get_cell_parameters();
-      creal x = cellParams[CellParams::XCRD];
-      creal dx = cellParams[CellParams::DX];
-      creal y = cellParams[CellParams::YCRD];
-      creal dy = cellParams[CellParams::DY];
-      creal z = cellParams[CellParams::ZCRD];
-      creal dz = cellParams[CellParams::DZ];
-      
-      CellID cellID = (int) ((x - Parameters::xmin) / dx) +
-         (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
-         (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
       
       std::default_random_engine rndState;
       setRandomCellSeed(cell,rndState);
