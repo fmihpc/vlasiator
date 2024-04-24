@@ -1565,5 +1565,8 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
 }
 
 void recalculateLocalCellsCache(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+   // Clear-and-minimize idiom for minimizing capacity
+   // TODO: consider shrink_to_fit() or alternatively benchmark just copy assigning
+   std::vector<CellID>().swap(Parameters::localCells);
    Parameters::localCells = mpiGrid.get_cells();
 }
