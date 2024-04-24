@@ -1,0 +1,85 @@
+CMP = mpic++
+LNK = mpic++
+
+#======== Vectorization ==========
+#Set vector backend type for vlasov solvers, sets precision and length. 
+#NOTE this has to have the same precision as the distribution function define (DISTRIBUTION_FP_PRECISION)
+#Options: 
+# AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX512:   VEC8D_AGNER, VEC16F_AGNER
+# Fallback: VEC4D_FALLBACK, VEC4F_FALLBACK, VEC8F_FALLBACK
+
+ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
+#Single-precision        
+	#VECTORCLASS = VEC_FALLBACK_GENERIC
+	#VECTORCLASS = VEC8F_AGNER
+	VECTORCLASS = VEC8F_FALLBACK
+else
+#Double-precision
+	#VECTORCLASS = VEC4D_AGNER
+	#VECTORCLASS = VEC_FALLBACK_GENERIC
+	VECTORCLASS = VEC8D_FALLBACK
+endif
+
+#======== PAPI ==========
+#Add PAPI_MEM define to use papi to report memory consumption?
+#CXXFLAGS +=  -DPAPI_MEM   # Papi does not work on MacOS, see https://stackoverflow.com/questions/69531604/installing-papi-on-macos
+
+
+#======== Allocator =========
+#Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
+#Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
+CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+
+
+#======= Compiler and compilation flags =========
+# NOTES on compiler flags:
+# CXXFLAGS is for compiler flags, they are always used
+# MATHFLAGS are for special math etc. flags, these are only applied on solver functions
+# LDFLAGS flags for linker
+
+#-DNO_WRITE_AT_ALL:  Define to disable write at all to 
+#                    avoid memleak (much slower IO)
+#-DMPICH_IGNORE_CXX_SEEK: Ignores some multiple definition 
+#                         errors that come up when using 
+#                         mpi.h in c++ on Cray
+
+FLAGS =
+CXXFLAGS += -I ${GITHUB_WORKSPACE}/libraries-appleM1/include -I/opt/homebrew/opt/llvm/include -I/opt/homebrew/opt/libomp/include -march=native -O3 -std=c++17 -fopenmp -Wall -Wno-unused -g 
+MATHFLAGS = # -ffast-math -fno-finite-math-only
+testpackage: MATHFLAGS = # -fno-unsafe-math-optimizations
+LDFLAGS = -fopenmp -L/opt/homebrew/opt/llvm/lib -L/opt/homebrew/opt/libomp/lib -L/opt/homebrew/opt/llvm/lib/c++ -g
+LIB_MPI = 
+
+
+#======== Libraries ===========
+
+LIBRARY_PREFIX = ${GITHUB_WORKSPACE}/libraries-appleM1
+
+INC_BOOST = -I /opt/homebrew/Cellar/boost/latest/include
+LIB_BOOST = -L /opt/homebrew/Cellar/boost/latest/lib -lboost_program_options
+
+INC_JEMALLOC = -I $(LIBRARY_PREFIX)/include
+LIB_JEMALLOC = $(LIBRARY_PREFIX)/lib/libjemalloc.a
+
+INC_ZOLTAN =
+LIB_ZOLTAN = -lzoltan
+
+INC_VLSV = -I $(LIBRARY_PREFIX)/include
+LIB_VLSV = -L $(LIBRARY_PREFIX)/lib -lvlsv
+
+INC_SILO =
+LIB_SILO = -lsiloh5
+
+INC_PAPI =
+LIB_PAPI =
+
+INC_DCCRG = -I./submodules/dccrg
+
+INC_FSGRID = -I./submodules/fsgrid
+
+LIB_PROFILE = -I $(LIBRARY_PREFIX)/include ${LIBRARY_PREFIX}/lib/libphiprof.a
+INC_PROFILE =
+INC_TOPO =
+
+INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/
