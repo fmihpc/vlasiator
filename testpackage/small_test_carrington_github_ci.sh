@@ -308,6 +308,8 @@ for run in ${run_tests[*]}; do
        echo $MAXERRVAR > $RUNNER_TEMP/MAXERRVAR.txt
        echo $MAXRELVAR > $RUNNER_TEMP/MAXRELVAR.txt
        echo $speedup > $RUNNER_TEMP/speedup.txt
+       echo $COMPAREDFILES > $RUNNER_TEMP/COMPAREDFILES.txt
+       echo $TOCOMPAREFILES > $RUNNER_TEMP/TOCOMPAREFILES.txt
 
    done 2>&1 1>&3 3>&- | tee -a $GITHUB_WORKSPACE/stderr.txt; } 3>&1 1>&2 | tee -a $GITHUB_WORKSPACE/stdout.txt
    # end loop over vlsvfiles
@@ -315,6 +317,8 @@ for run in ${run_tests[*]}; do
    echo " compared files ${COMPAREDFILES} to compare files ${TOCOMPAREFILES} "
 
    # Recover error variables
+   COMPAREDFILES=`cat $RUNNER_TEMP/COMPAREDFILES.txt`
+   TOCOMPAREFILES=`cat $RUNNER_TEMP/TOCOMPAREFILES.txt`
    if [[ $COMPAREDFILES -eq 0 ]]; then
        MAXERR=-42
        MAXERRVAR=42
