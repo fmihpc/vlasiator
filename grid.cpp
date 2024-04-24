@@ -1565,9 +1565,5 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
 }
 
 void recalculateLocalCellsCache(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
-     {
-        vector<CellID> dummy;
-        dummy.swap(Parameters::localCells);
-     }
    Parameters::localCells = mpiGrid.get_cells();
 }
