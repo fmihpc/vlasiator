@@ -312,22 +312,23 @@ for run in ${run_tests[*]}; do
    done 2>&1 1>&3 3>&- | tee -a $GITHUB_WORKSPACE/stderr.txt; } 3>&1 1>&2 | tee -a $GITHUB_WORKSPACE/stdout.txt
    # end loop over vlsvfiles
    echo "--------------------------------------------------------------------------------------------"
+   echo " compared files ${COMPAREDFILES} to compare files ${TOCOMPAREFILES} "
 
    # Recover error variables
-   if [[ $COMPAREDFILES -ne 0 ]]; then
-       MAXERR=`cat $RUNNER_TEMP/MAXERR.txt`
-       MAXERRVAR=`cat $RUNNER_TEMP/MAXERRVAR.txt`
-       MAXREL=`cat $RUNNER_TEMP/MAXREL.txt`
-       MAXRELVAR=`cat $RUNNER_TEMP/MAXRELVAR.txt`
-       MAXDT=`cat $RUNNER_TEMP/MAXDT.txt`
-       speedup=`cat $RUNNER_TEMP/speedup.txt`
-   else
+   if [[ $COMPAREDFILES -eq 0 ]]; then
        MAXERR=-42
        MAXERRVAR=42
        MAXREL=42
        MAXRELVAR=42
        MAXDT=0
        speedup=0
+   else
+       MAXERR=`cat $RUNNER_TEMP/MAXERR.txt`
+       MAXERRVAR=`cat $RUNNER_TEMP/MAXERRVAR.txt`
+       MAXREL=`cat $RUNNER_TEMP/MAXREL.txt`
+       MAXRELVAR=`cat $RUNNER_TEMP/MAXRELVAR.txt`
+       MAXDT=`cat $RUNNER_TEMP/MAXDT.txt`
+       speedup=`cat $RUNNER_TEMP/speedup.txt`
    fi
    
    # Output CI step annotation
