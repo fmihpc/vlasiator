@@ -41,8 +41,8 @@
 #include "../velocity_mesh_parameters.h"
 #include <phiprof.hpp>
 
-static const double BLOCK_ALLOCATION_PADDING = 2.5;
-static const double BLOCK_ALLOCATION_FACTOR = 1.8;
+static const double BLOCK_ALLOCATION_PADDING = 1.5;
+static const double BLOCK_ALLOCATION_FACTOR = 1.2;
 
 #define DIMS 1
 #define MAXCPUTHREADS 64
