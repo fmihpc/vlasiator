@@ -60,7 +60,7 @@ static ARCH_HOSTDEV inline Vec slope_limiter_sb(const Vec &l, const Vec &m, cons
 
 static ARCH_HOSTDEV inline Vec slope_limiter_minmod(const Vec& l,const Vec& m, const Vec& r)
 {
-   Vec sign;
+   //Vec sign;
    Vec a=r-m;
    Vec b=m-l;
    return minmod(a,b);
@@ -75,7 +75,7 @@ static ARCH_HOSTDEV inline Vec slope_limiter_mc(const Vec& l,const Vec& m, const
   const Vec veczero(0.0);
   const Vec vectwo(2.0);
   const Vec vechalf(0.5);
-  Vec sign;
+  //Vec sign;
   Vec a=r-m;
   Vec b=m-l;
   Vec minval=min(vectwo*abs(a),vectwo*abs(b));

@@ -36,6 +36,7 @@
 #include "cpu_1d_ppm_nonuniform.hpp"
 #include "cpu_1d_pqm.hpp"
 #include "cpu_trans_map.hpp"
+#include "cpu_trans_pencils.hpp" // for do_translate_cell
 
 using namespace std;
 using namespace spatial_cell;
@@ -54,15 +55,6 @@ using namespace spatial_cell;
 // elements).
 //#define i_trans_pt_blockv(j, k, b_k) ( ( (j) * WID + (k) * WID2 + ((b_k) + 1 ) * WID3) / VECL )
 #define i_trans_pt_blockv(planeVectorIndex, planeIndex, blockIndex)  ( planeVectorIndex + planeIndex * VEC_PER_PLANE + (blockIndex + 1) * VEC_PER_BLOCK)
-
-//Is cell translated? It is not translated if DO_NO_COMPUTE or if it is sysboundary cell and not in first sysboundarylayer
-bool do_translate_cell(SpatialCell* SC){
-   if(SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
-      (SC->sysBoundaryLayer != 1 && SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY))
-      return false;
-   else
-      return true;
-}
 
 /*
  * return INVALID_CELLID if the spatial neighbor does not exist, or if

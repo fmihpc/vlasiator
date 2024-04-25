@@ -70,7 +70,13 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
       vmesh::VelocityBlockContainer* blockContainer = cell->get_velocity_blocks(popID);
       #endif
       const uint nBlocks = cell->get_velocity_mesh(popID)->size();
+      Population &pop = cell->get_population(popID);
       if (nBlocks == 0) {
+         pop.RHO = 0;
+         for (int i=0; i<3; ++i) {
+            pop.V[i]=0;
+            pop.P[i]=0;
+         }
          continue;
       }
 
@@ -86,7 +92,6 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
                                 array,
                                 nBlocks);
       firstMomentsTimer.stop();
-      Population &pop = cell->get_population(popID);
       pop.RHO = array[0];
       pop.V[0] = divideIfNonZero(array[1], array[0]);
       pop.V[1] = divideIfNonZero(array[2], array[0]);
@@ -205,7 +210,13 @@ void calculateMoments_R(
          vmesh::VelocityBlockContainer* blockContainer = cell->get_velocity_blocks(popID);
          #endif
          const uint nBlocks = cell->get_velocity_mesh(popID)->size();
+         Population &pop = cell->get_population(popID);
          if (nBlocks == 0) {
+            pop.RHO_R = 0;
+            for (int i=0; i<3; ++i) {
+               pop.V_R[i]=0;
+               pop.P_R[i]=0;
+            }
             continue;
          }
          const Real mass = getObjectWrapper().particleSpecies[popID].mass;
@@ -235,7 +246,6 @@ void calculateMoments_R(
                                    nBlocks);
          firstMomentsTimer.stop();
          // Store species' contribution to bulk velocity moments
-         Population &pop = cell->get_population(popID);
          pop.RHO_R = array[0];
          pop.V_R[0] = divideIfNonZero(array[1], array[0]);
          pop.V_R[1] = divideIfNonZero(array[2], array[0]);
@@ -365,7 +375,13 @@ void calculateMoments_V(
          vmesh::VelocityBlockContainer* blockContainer = cell->get_velocity_blocks(popID);
          #endif
          const uint nBlocks = cell->get_velocity_mesh(popID)->size();
+         Population &pop = cell->get_population(popID);
          if (nBlocks == 0) {
+            pop.RHO_V = 0;
+            for (int i=0; i<3; ++i) {
+               pop.V_V[i]=0;
+               pop.P_V[i]=0;
+            }
             continue;
          }
 
@@ -382,7 +398,6 @@ void calculateMoments_V(
                                    nBlocks);
          firstMomentsTimer.stop();
          // Store species' contribution to bulk velocity moments
-         Population &pop = cell->get_population(popID);
          pop.RHO_V = array[0];
          pop.V_V[0] = divideIfNonZero(array[1], array[0]);
          pop.V_V[1] = divideIfNonZero(array[2], array[0]);

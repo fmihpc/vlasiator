@@ -56,10 +56,9 @@ void propagatePencil(
    // Assuming 1 neighbor in the target array because of the CFL condition
    // In fact propagating to > 1 neighbor will give an error
    // Also defined in the calling function for the allocation of targetValues
-   // const uint nTargetNeighborsPerPencil = 1;
 
    // Go over length of propagated cells
-   for (int i = VLASOV_STENCIL_WIDTH; i < lengthOfPencil-VLASOV_STENCIL_WIDTH; i++){
+   for (int i = VLASOV_STENCIL_WIDTH; i < (int)lengthOfPencil-VLASOV_STENCIL_WIDTH; i++){
       // Get pointers to block data used for output.
       Realf* block_data_m1 = blockDataPointer[i - 1];
       Realf* block_data    = blockDataPointer[i];
@@ -218,12 +217,12 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                       const Realv dt,
                       const uint popID) {
 
-   phiprof::Timer setupTimer {"setup"};
-   phiprof::Timer transSetupTimer {"trans-amr-setup"};
+   /***********************/
+   phiprof::Timer setupTimer {"trans-amr-setup"};
+   /***********************/
 
    // return if there's no cells to propagate
    if(localPropagatedCells.size() == 0) {
-      cout << "Returning because of no cells" << endl;
       return false;
    }
 
@@ -260,8 +259,22 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
 
    // Assuming 1 neighbor in the target array because of the CFL condition
    // In fact propagating to > 1 neighbor will give an error
-   // init cellid_transpose (moved here to take advantage of the omp parallel region)
-#pragma omp parallel for collapse(2)
+
+   // Vector with all cell ids
+   vector<CellID> allCells(localPropagatedCells);
+   allCells.insert(allCells.end(), remoteTargetCells.begin(), remoteTargetCells.end());
+   const uint nAllCells = allCells.size();
+
+   // Vectors of pointers to the cell structs
+   std::vector<SpatialCell*> allCellsPointer(nAllCells);
+
+   // Initialize allCellsPointer
+   #pragma omp parallel for schedule(static)
+   for(uint celli = 0; celli < allCells.size(); celli++){
+      allCellsPointer[celli] = mpiGrid[allCells[celli]];
+   }
+   // init vcell_transpose (moved here to take advantage of the omp parallel region)
+   #pragma omp parallel for collapse(2) schedule(static)
    for (uint k=0; k<WID; ++k) {
       for (uint j=0; j<WID; ++j) {
          for (uint i=0; i<WID; ++i) {
@@ -272,20 +285,6 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
             vcell_transpose[ i + j * WID + k * WID2] = cell;
          }
       }
-   }
-
-   // Vector with all cell ids
-   vector<CellID> allCells(localPropagatedCells);
-   allCells.insert(allCells.end(), remoteTargetCells.begin(), remoteTargetCells.end());
-   const uint nAllCells = allCells.size();
-
-   // Vectors of pointers to the cell structs
-   std::vector<SpatialCell*> allCellsPointer(nAllCells);
-
-   // Initialize allCellsPointer.
-   #pragma omp parallel for schedule(static)
-   for(uint celli = 0; celli < nAllCells; celli++){
-      allCellsPointer[celli] = mpiGrid[allCells[celli]];
    }
 
    if (Parameters::prepareForRebalance == true) {
@@ -299,15 +298,15 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
    // Get a pointer to the velocity mesh of the first spatial cell
    const vmesh::VelocityMesh* vmesh = allCellsPointer[0]->get_velocity_mesh(popID);
 
-   phiprof::Timer buildBlockListimer {"buildBlockList"};
+   phiprof::Timer buildBlockListimer {"trans-amr-buildBlockList"};
    // Get a unique sorted list of blockids that are in any of the
    // propagated cells.
    std::vector<vmesh::GlobalID> unionOfBlocks;
    std::unordered_set<vmesh::GlobalID> unionOfBlocksSet;
-   #pragma omp parallel
+#pragma omp parallel
    {
       std::unordered_set<vmesh::GlobalID> thread_unionOfBlocksSet;
-      #pragma omp for
+#pragma omp for
       for (unsigned int i=0; i<allCellsPointer.size(); i++) {
          auto cell = &allCellsPointer[i];
          const vmesh::VelocityMesh* cvmesh = (*cell)->get_velocity_mesh(popID);
@@ -315,28 +314,28 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
             thread_unionOfBlocksSet.insert(cvmesh->getGlobalID(block_i));
          }
       }
-      #pragma omp critical
+#pragma omp critical
       {
          unionOfBlocksSet.insert(thread_unionOfBlocksSet.begin(), thread_unionOfBlocksSet.end());
       } // pragma omp critical
    } // pragma omp parallel
    unionOfBlocks.insert(unionOfBlocks.end(), unionOfBlocksSet.begin(), unionOfBlocksSet.end());
-   buildBlockListimer.stop();
+   buildBlockListimer.stop();       
+   /***********************/
+   setupTimer.stop();
+   /***********************/
 
-   transSetupTimer.stop();
-   int mappingId {phiprof::initializeTimer("trans-amr-mapping")};
-   int loadId {phiprof::initializeTimer("trans-amr-load source data")};
-   int memsetId {phiprof::initializeTimer("trans-amr-MemSet")};
-   int propagateId {phiprof::initializeTimer("trans-amr-propagatePencil")};
-   int prepareId {phiprof::initializeTimer("prepare vectors")};
+   int mappingTimerId = phiprof::initializeTimer("trans-amr-mapping");
+   int loadTimerId = phiprof::initializeTimer("trans-amr-load source data");
+   int memsetTimerId = phiprof::initializeTimer("trans-amr-MemSet");
+   int propagateTimerId = phiprof::initializeTimer("trans-amr-propagatePencil");
+
 #pragma omp parallel
    {
-      phiprof::Timer prepareTimer {prepareId};
       // Vector of pointers to cell block data, used for both reading and writing
       std::vector<Vec> blockDataBuffer(DimensionPencils[dimension].sumOfLengths*WID3/VECL);
       std::vector<Realf*> cellBlockData(DimensionPencils[dimension].sumOfLengths);
       std::vector<uint> pencilBlocksCount(DimensionPencils[dimension].N);
-      prepareTimer.stop();
 
       // Loop over velocity space blocks (threaded).
 #pragma omp for schedule(guided,8)
@@ -344,10 +343,10 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
          // Get global id of the velocity block
          vmesh::GlobalID blockGID = unionOfBlocks[blocki];
 
-         phiprof::Timer mappingTimer {mappingId}; // mapping (top-level)
+         phiprof::Timer mappingTimer {mappingTimerId}; // mapping (top-level)
 
          // Load data for pencils.
-         phiprof::Timer loadTimer {loadId};
+         phiprof::Timer loadTimer {loadTimerId};
          for (uint pencili = 0; pencili < DimensionPencils[dimension].N; ++pencili){
             int nonEmptyBlocks = 0;
             int L = DimensionPencils[dimension].lengthOfPencils[pencili];
@@ -378,7 +377,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
          }
          loadTimer.stop();
 
-         phiprof::Timer memsetTimer {memsetId};
+         phiprof::Timer memsetTimer {memsetTimerId};
          // reset blocks in all non-sysboundary neighbor spatial cells for this block id
          for (CellID target_cell_id: DimensionTargetCells[dimension]) {
             SpatialCell* target_cell = mpiGrid[target_cell_id];
@@ -395,7 +394,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
          }
          memsetTimer.stop();
 
-         phiprof::Timer propagateTimer {propagateId};
+         phiprof::Timer propagateTimer {propagateTimerId};
          for(uint pencili = 0; pencili < DimensionPencils[dimension].N; ++pencili){
             // Skip pencils without blocks
             if (pencilBlocksCount.at(pencili) == 0) {
@@ -426,6 +425,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                );
          }
          propagateTimer.stop();
+         mappingTimer.stop(); // mapping (top-level)
       } // Closes loop over blocks
    } // closes pragma omp parallel
 
@@ -441,7 +441,6 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
 int get_sibling_index(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const CellID& cellid) {
 
    const int NO_SIBLINGS = 0;
-
    if(mpiGrid.get_refinement_level(cellid) == 0) {
       return NO_SIBLINGS;
    }
@@ -730,7 +729,6 @@ void update_remote_mapping_contribution_amr(
          } // closes for(uint i_nbr = 0; i_nbr < nbrs_of.size(); ++i_nbr)
 
       } // closes if(!all_of(nbrs_of.begin(), nbrs_of.end(),[&mpiGrid](CellID i){return mpiGrid.is_local(i);}))
-      recvsTimer.stop();
    } // closes for (auto c : local_cells) {
 
    MPI_Barrier(MPI_COMM_WORLD);

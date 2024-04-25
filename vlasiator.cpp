@@ -604,7 +604,6 @@ int main(int argn,char* args[]) {
       ) {
          cerr << "FAILED TO WRITE GRID AT " << __FILE__ << " " << __LINE__ << endl;
       }
-
       initTimer.stop();
       mainTimer.stop();
       
