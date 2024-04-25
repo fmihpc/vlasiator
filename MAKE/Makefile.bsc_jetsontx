@@ -59,4 +59,4 @@ LIB_PROFILE = -L${LIBRARY_PREFIX}/phiprof/lib -lphiprof -Wl,-rpath=${LIBRARY_PRE
 INC_PROFILE = -I${LIBRARY_PREFIX}/phiprof/include
 INC_TOPO =
 
-INC_EIGEN = -I ./submodules/eigen/
+INC_EIGEN = -isystem ./submodules/eigen/

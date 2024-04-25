@@ -90,10 +90,6 @@ INC_PAPI = -I$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VE
 #header libraries
 
 INC_FSGRID = -I./submodules/fsgrid
-INC_EIGEN = -I ./submodules/eigen/
 INC_DCCRG = -I./submodules/dccrg
-INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/
-
-
-
-
+INC_VECTORCLASS = -isystem ./submodules/vectorclass/ -isystem ./submodules/vectorclass-addon/vector3d/
+INC_EIGEN = -isystem ./submodules/eigen/

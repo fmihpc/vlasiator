@@ -84,4 +84,5 @@ LIB_PROFILE = -I $(LIBRARY_PREFIX)/include ${GITHUB_WORKSPACE}/libraries/lib/lib
 INC_PROFILE =
 INC_TOPO =
 
-INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/
+INC_VECTORCLASS = -isystem ${GITHUB_WORKSPACE}/submodules/vectorclass/ -isystem ${GITHUB_WORKSPACE}/submodules/vectorclass-addon/vector3d/
+INC_EIGEN = -isystem ${GITHUB_WORKSPACE}/submodules/eigen/

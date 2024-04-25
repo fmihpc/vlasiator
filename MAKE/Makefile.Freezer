@@ -73,7 +73,7 @@ INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
 
 #header libraries
 
-INC_EIGEN = -I ./submodules/eigen/
+INC_EIGEN = -isystem ./submodules/eigen/
 #INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg_new_neighbours
 INC_DCCRG = -I./submodules/dccrg
 INC_FSGRID = -I./submodules/fsgrid

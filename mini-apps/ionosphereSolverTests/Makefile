@@ -11,7 +11,7 @@ LIBS += ${LIB_VLSV}
 
 INC_FSGRID=-I../../submodules/fsgrid/
 INC_DCCRG=-I../../submodules/dccrg/
-INC_EIGEN = -I../../submodules/eigen/
+INC_EIGEN = -isystem ../../submodules/eigen/
 
 
 all: main differentialFlux sigmaProfiles quadrupoleTests atmosphere.pdf
