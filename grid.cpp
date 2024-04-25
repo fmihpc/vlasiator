@@ -525,9 +525,9 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
          }
       }
 
-      for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
+      for (size_t popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          // Set active population
-         SpatialCell::setCommunicatedSpecies(p);
+         SpatialCell::setCommunicatedSpecies(popID);
 
          //Transfer velocity block list
          SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE1);
@@ -545,7 +545,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
                receives++;
                // reserve space for velocity block data in arriving remote cells
                phiprof::Timer timer {prepareReceives};
-               cell->prepare_to_receive_blocks(p);
+               cell->prepare_to_receive_blocks(popID);
                timer.stop(1, "Spatial cells");
             }
          }
@@ -570,7 +570,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
             // Free memory of this cell as it has already been transferred,
             // it will not be used anymore. NOTE: Only clears memory allocated
             // to the active population.
-            if (cell_id % num_part_transfers == transfer_part) cell->clear(p);
+            if (cell_id % num_part_transfers == transfer_part) cell->clear(popID);
          }
       } // for-loop over populations
    } // for-loop over transfer parts
@@ -1309,9 +1309,9 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    }
 
    phiprof::Timer transfersTimer {"transfers"};
-   for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
+   for (size_t popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       // Set active population
-      SpatialCell::setCommunicatedSpecies(p);
+      SpatialCell::setCommunicatedSpecies(popID);
 
       //Transfer velocity block list
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE1);
@@ -1323,7 +1323,7 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
       for (CellID id : receives) {
          // reserve space for velocity block data in arriving remote cells
          phiprof::Timer timer {prepareReceives};
-         mpiGrid[id]->prepare_to_receive_blocks(p);
+         mpiGrid[id]->prepare_to_receive_blocks(popID);
          timer.stop(1, "Spatial cells");
       }
 
@@ -1397,8 +1397,8 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
 
    // Is this needed?
    technicalGrid.updateGhostCells(); // This needs to be done at some point
-   for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
-      updateRemoteVelocityBlockLists(mpiGrid, p, NEAREST_NEIGHBORHOOD_ID);
+   for (size_t popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      updateRemoteVelocityBlockLists(mpiGrid, popID, NEAREST_NEIGHBORHOOD_ID);
    }
 
    if (P::shouldFilter) {

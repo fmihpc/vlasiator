@@ -156,15 +156,15 @@ namespace projects {
    void Project::setCell(SpatialCell* cell) {
       // Set up cell parameters:
       calcCellParameters(cell,0.0);
-      for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
-         this->setVelocitySpace(p,cell);
+      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         this->setVelocitySpace(popID,cell);
          // Verify current mesh and blocks
-         // cuint vmeshSize = cell->get_velocity_mesh(p)->size();
-         // cuint vbcSize = cell->get_velocity_blocks(p)->size();
+         // cuint vmeshSize = cell->get_velocity_mesh(popID)->size();
+         // cuint vbcSize = cell->get_velocity_blocks(popID)->size();
          // if (vmeshSize != vbcSize) {
          //    printf("ERROR: population vmesh %ul and blockcontainer %ul sizes do not match!\n",vmeshSize,vbcSize);
          // }
-         // cell->get_velocity_mesh(p)->check();
+         // cell->get_velocity_mesh(popID)->check();
       }
 
       // Passing true for the doNotSkip argument as we want to calculate
@@ -197,9 +197,9 @@ namespace projects {
    void Project::printPopulations() {
       logFile << "(PROJECT): Loaded particle populations are:" << endl;
 
-      for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
-         const species::Species& spec = getObjectWrapper().particleSpecies[p];
-         logFile << "Population #" << p << endl;
+      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         const species::Species& spec = getObjectWrapper().particleSpecies[popID];
+         logFile << "Population #" << popID << endl;
          logFile << "\t name             : '" << spec.name << "'" << endl;
          logFile << "\t charge           : '" << spec.charge << "'" << endl;
          logFile << "\t mass             : '" << spec.mass << "'" << endl;

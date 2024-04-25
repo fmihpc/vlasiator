@@ -89,7 +89,7 @@ ObjectWrapper objectWrapper;
 
 void addTimedBarrier(string name){
 #ifndef DEBUG_VLASIATOR
-//let's not do  a barrier
+//let's not do a barrier
    return;
 #endif
    phiprof::Timer btimer {name, {"Barriers", "MPI"}};
