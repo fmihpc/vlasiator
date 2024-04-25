@@ -299,7 +299,7 @@ for run in ${run_tests[*]}; do
            if (( $( echo "${timeDiff#-} $MAXDT" | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
                MAXDT=$timeDiff
            fi
-           echo "WARNING! TIMESTAMPS DO NOT MATCH! dt=${timeDiff}"
+           echo "WARNING! VLSV file timestamps differ by ${timeDiff}s."
        else
            echo "VLSV file timestamps match."
        fi
@@ -338,7 +338,7 @@ for run in ${run_tests[*]}; do
        MAXDT=`cat $RUNNER_TEMP/MAXDT.txt`
        speedup=`cat $RUNNER_TEMP/speedup.txt`
    fi
-   
+
    # Output CI step annotation
    if [[ $COMPAREDFILES -ne $TOCOMPAREFILES ]]; then
       echo -e "<details><summary>:red_square: ${test_name[$run]}: Comparison failure, accessed \`$COMPAREDFILES\` out of \`$TOCOMPAREFILES\` files: \`$MAXERRVAR\` has absolute error $MAXERR, \`$MAXRELVAR\` has relative error $MAXREL. Max timestamp difference is $MAXDT.   Speedup: $speedup</summary>\n" >> $GITHUB_STEP_SUMMARY

@@ -185,7 +185,7 @@ do
             timeDiff=$(grep "delta t" <<< $A |gawk '{print $8}'  )
             if (( $(awk 'BEGIN{print ('$timeDiff'!= 0.0)?1:0}') ))
             then
-                echo "WARNING! TIMESTAMPS DO NOT MATCH! dt=${timeDiff}"
+                echo "WARNING! VLSV file timestamps differ by ${timeDiff}s."
             else
                 echo "VLSV file timestamps match."
             fi
