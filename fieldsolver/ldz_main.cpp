@@ -54,9 +54,6 @@
 #include "mpiconversion.h"
 #include "../fieldtracing/fieldtracing.h"
 
-#include "../logger.h"
-extern Logger logFile;
-
 /*! Re-initialize field propagator after rebalance. E, BGB, RHO, RHO_V,
  cell_dimensions, sysboundaryflag need to be up to date for the
  extended neighborhood

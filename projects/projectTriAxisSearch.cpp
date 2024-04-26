@@ -38,8 +38,6 @@ namespace projects {
       Real maxRelVx,maxRelVy,maxRelVz;
 
       creal minValue = cell->getVelocityBlockMinValue(popID);
-      // How big steps of vcells should we use for sweeping over v-space?
-      const uint increment = 1;
       // And how big a buffer do we add to the edges?
       const uint buffer = 2;
       // How much below the sparsity can a cell be to still be included?
@@ -72,10 +70,10 @@ namespace projects {
                   calcPhaseSpaceDensity(x, y, z, dx, dy, dz,
                                         it->at(0) + counterX*dvxBlock, it->at(1), it->at(2),
                                         dvxCell, dvyCell, dvzCell, popID)
-                  || counterX >= vxblocks_ini ) ) {
+                  || counterX > vxblocks_ini ) ) {
                search = false;
             }
-            counterX+=increment;
+            counterX++;
          }
          counterX+=buffer;
          maxRelVx = counterX*dvxBlock;
@@ -92,7 +90,7 @@ namespace projects {
                   || counterY > vyblocks_ini ) ) {
                search = false;
             }
-            counterY+=increment;
+            counterY++;
          }
          counterY+=buffer;
          maxRelVy = counterY*dvyBlock;
@@ -109,7 +107,7 @@ namespace projects {
                   || counterZ > vzblocks_ini ) ) {
                search = false;
             }
-            counterZ+=increment;
+            counterZ++;
          }
          counterZ+=buffer;
          maxRelVz = counterZ*dvzBlock;
