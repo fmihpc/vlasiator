@@ -25,6 +25,12 @@
 #include "spatial_cell_cpu.hpp"
 #include "object_wrapper.h"
 
+#ifdef DEBUG_VLASIATOR
+#ifndef DEBUG_SPATIAL_CELL
+   #define DEBUG_SPATIAL_CELL
+#endif
+#endif
+
 using namespace std;
 
 namespace spatial_cell {

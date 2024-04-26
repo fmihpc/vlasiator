@@ -23,8 +23,8 @@
 Spatial cell class for Vlasiator that supports a variable number of velocity blocks.
 */
 
-#ifndef VLASIATOR_SPATIAL_CELL_OLD_HPP
-#define VLASIATOR_SPATIAL_CELL_OLD_HPP
+#ifndef VLASIATOR_SPATIAL_CELL_CPU_HPP
+#define VLASIATOR_SPATIAL_CELL_CPU_HPP
 
 #include <algorithm>
 #include <cmath>
