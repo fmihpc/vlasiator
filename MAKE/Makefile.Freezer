@@ -77,7 +77,8 @@ INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
 #INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof_nvcc/include
 
 #header libraries
-INC_EIGEN = -isystem $(LIBRARY_PREFIX)/eigen
+
+INC_EIGEN = -isystem ./submodules/eigen/
 INC_DCCRG = -I./submodules/dccrg
 INC_FSGRID = -I./submodules/fsgrid
 
