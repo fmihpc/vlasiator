@@ -27,7 +27,7 @@
 #include <vector>
 
 #include "../common.h"
-#include "../spatial_cell.hpp"
+#include "../spatial_cell_wrapper.hpp"
 
 void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell, 
                                const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,

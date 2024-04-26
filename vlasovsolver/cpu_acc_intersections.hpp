@@ -25,7 +25,7 @@
 #include <Eigen/Core>
 
 #include "../definitions.h"
-#include "../spatial_cell.hpp"
+#include "../spatial_cell_wrapper.hpp"
 
 Eigen::Matrix<Real,3,1> line_plane_intersection(const Eigen::Matrix<Real,3,1>& l_point,
                                                 const Eigen::Matrix<Real,3,1>& l_direction,
