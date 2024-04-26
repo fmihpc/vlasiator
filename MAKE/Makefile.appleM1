@@ -82,4 +82,6 @@ LIB_PROFILE = -I $(LIBRARY_PREFIX)/include ${LIBRARY_PREFIX}/lib/libphiprof.a
 INC_PROFILE =
 INC_TOPO =
 
-INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/
+INC_EIGEN = -isystem ./submodules/eigen/
+
+INC_VECTORCLASS = -isystem ./submodules/vectorclass/ -isystem ./submodules/vectorclass-addon/vector3d/
