@@ -32,7 +32,7 @@
 #include "../definitions.h"
 #include "../parameters.h"
 #include "../readparameters.h"
-#include "../spatial_cell.hpp"
+#include "../spatial_cell_wrapper.hpp"
 
 #include "sysboundarycondition.h"
 

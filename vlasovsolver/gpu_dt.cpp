@@ -22,7 +22,7 @@
 
 #include <vector>
 #include "../definitions.h"
-#include "../spatial_cell.hpp"
+#include "../spatial_cell_wrapper.hpp"
 #include "../object_wrapper.h"
 #include "../arch/gpu_base.hpp"
 #include "gpu_trans_map_amr.hpp" // for loaning of allVmeshPointer

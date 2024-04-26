@@ -28,7 +28,7 @@
 #include <dccrg.hpp>
 #include <dccrg_cartesian_geometry.hpp>
 #include "../common.h"
-#include "../spatial_cell.hpp"
+#include "../spatial_cell_wrapper.hpp"
 
 struct setOfPencils {
 
