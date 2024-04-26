@@ -24,7 +24,7 @@
 #define TEST_TRANS_1D_H
 
 #include "definitions.h"
-#include "spatial_cell.hpp"
+#include "spatial_cell_wrapper.hpp"
 #include "parameters.h"
 #include "projects/projects_common.h"
 #include "projects/projects_vlasov_acceleration.h"
