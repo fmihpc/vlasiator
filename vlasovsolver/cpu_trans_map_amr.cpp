@@ -223,7 +223,6 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
    /***********************/
    // return if there's no cells to propagate
    if(localPropagatedCells.size() == 0) {
-      cout << "Returning because of no cells" << endl;
       return false;
    }
 

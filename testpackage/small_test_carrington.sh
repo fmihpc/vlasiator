@@ -65,7 +65,7 @@ umask 007
 echo "Running $exec on $tasks mpi tasks, with $t threads per task on $nodes nodes ($ht threads per physical core)"
 
 # Define test
-source small_test_definitions.sh
+source test_definitions_small.sh
 wait
 # Run tests
 source run_tests.sh
