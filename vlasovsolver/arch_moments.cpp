@@ -140,9 +140,9 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
       // Calculate species' contribution to second velocity moments
       phiprof::Timer secondMomentsTimer {"calcSecondMoments"};
       blockVelocitySecondMoments(blockContainer,
-                                 cell->parameters[CellParams::VX_R],
-                                 cell->parameters[CellParams::VY_R],
-                                 cell->parameters[CellParams::VZ_R],
+                                 cell->parameters[CellParams::VX],
+                                 cell->parameters[CellParams::VY],
+                                 cell->parameters[CellParams::VZ],
                                  array,
                                  nBlocks);
       secondMomentsTimer.stop();
@@ -459,9 +459,9 @@ void calculateMoments_V(
          // Calculate species' contribution to second velocity moments
          phiprof::Timer secondMomentsTimer {"calcSecondMoments_V"};
          blockVelocitySecondMoments(blockContainer,
-                                    cell->parameters[CellParams::VX_R],
-                                    cell->parameters[CellParams::VY_R],
-                                    cell->parameters[CellParams::VZ_R],
+                                    cell->parameters[CellParams::VX_V],
+                                    cell->parameters[CellParams::VY_V],
+                                    cell->parameters[CellParams::VZ_V],
                                     array,
                                     nBlocks);
          secondMomentsTimer.stop();
