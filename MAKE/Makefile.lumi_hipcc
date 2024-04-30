@@ -22,7 +22,7 @@ LNK = clang++
 # Fallback: VECTORCLASS = VEC_FALLBACK_GENERIC (Defaults to VECL8)
 VECTORCLASS = VEC_FALLBACK_GENERIC
 
-#===== Vector Lenghts ====
+#===== Vector Lengths ====
 # Default for VEC_FALLBACK_GENERIC is WID=4, VECL=8 
 # WID=8
 # VECL=64

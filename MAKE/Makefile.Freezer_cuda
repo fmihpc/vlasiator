@@ -20,7 +20,7 @@ else
         VECTORCLASS = VEC_FALLBACK_GENERIC
 endif
 
-#===== Vector Lenghts ====
+#===== Vector Lengths ====
 # Default for VEC_FALLBACK_GENERIC is WID=4, VECL=8
 # NOTE: A bug currently results in garbage data already on cell init if VECL is not equal to WID2
 #WID=8

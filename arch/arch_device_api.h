@@ -15,7 +15,7 @@
 namespace arch{
 
 /* Type definition used in the headers */
-typedef std::uint32_t uint;
+typedef uint32_t uint;
 /* Enums for different reduction types */
 enum reduce_op { max, min, sum, prod };
 
