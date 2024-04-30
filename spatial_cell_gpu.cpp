@@ -954,7 +954,6 @@ namespace spatial_cell {
          neighbours_count = neigh_Nvbwcls.size(); // Only manage neighbours with content.
       }
 
-
       if (neighbours_count > 0) {
          // Upload pointers and counters for neighbours
          vmesh::GlobalID** dev_neigh_vbwcls;
@@ -1011,33 +1010,39 @@ namespace spatial_cell {
           Now these include passing pointers to GPU memory in order to evaluate
           nBlocksAfterAdjust without going via host. Pointers are copied by value.
        */
-      vmesh::GlobalID EMPTYBUCKET = std::numeric_limits<vmesh::GlobalID>::max();
-      vmesh::GlobalID TOMBSTONE = EMPTYBUCKET - 1;
-      Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *vbwncm = dev_velocity_block_with_no_content_map;
-      Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *d_addmap = dev_map_add;
+      if (doDeleteEmptyBlocks) {
+         vmesh::GlobalID EMPTYBUCKET = std::numeric_limits<vmesh::GlobalID>::max();
+         vmesh::GlobalID TOMBSTONE = EMPTYBUCKET - 1;
+         Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *vbwncm = dev_velocity_block_with_no_content_map;
+         Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *d_addmap = dev_map_add;
 
-      auto rule_delete_move = [EMPTYBUCKET, TOMBSTONE, vbwncm, d_addmap, dev_vmesh]
-         __host__ __device__(const Hashinator::hash_pair<vmesh::GlobalID, vmesh::LocalID>& kval) -> bool {
-                                 const vmesh::LocalID nBlocksAfterAdjust1 = dev_vmesh->size()
-                                    + d_addmap->size() - vbwncm->size();
-                                 return kval.first != EMPTYBUCKET &&
-                                    kval.first != TOMBSTONE &&
-                                    kval.first != dev_vmesh->invalidGlobalID() &&
-                                    kval.second >= nBlocksAfterAdjust1 &&
-                                    kval.second != dev_vmesh->invalidLocalID(); };
-      auto rule_to_replace = [EMPTYBUCKET, TOMBSTONE, vbwncm, d_addmap, dev_vmesh]
-         __host__ __device__(const Hashinator::hash_pair<vmesh::GlobalID, vmesh::LocalID>& kval) -> bool {
-                                 const vmesh::LocalID nBlocksAfterAdjust2 = dev_vmesh->size()
-                                    + d_addmap->size() - vbwncm->size();
-                                 return kval.first != EMPTYBUCKET &&
-                                    kval.first != TOMBSTONE &&
-                                    kval.first != dev_vmesh->invalidGlobalID() &&
-                                    kval.second < nBlocksAfterAdjust2 &&
-                                    kval.second != dev_vmesh->invalidLocalID(); };
+         auto rule_delete_move = [EMPTYBUCKET, TOMBSTONE, vbwncm, d_addmap, dev_vmesh]
+            __host__ __device__(const Hashinator::hash_pair<vmesh::GlobalID, vmesh::LocalID>& kval) -> bool {
+                                    const vmesh::LocalID nBlocksAfterAdjust1 = dev_vmesh->size()
+                                       + d_addmap->size() - vbwncm->size();
+                                    return kval.first != EMPTYBUCKET &&
+                                       kval.first != TOMBSTONE &&
+                                       kval.first != dev_vmesh->invalidGlobalID() &&
+                                       kval.second >= nBlocksAfterAdjust1 &&
+                                       kval.second != dev_vmesh->invalidLocalID(); };
+         auto rule_to_replace = [EMPTYBUCKET, TOMBSTONE, vbwncm, d_addmap, dev_vmesh]
+            __host__ __device__(const Hashinator::hash_pair<vmesh::GlobalID, vmesh::LocalID>& kval) -> bool {
+                                   const vmesh::LocalID nBlocksAfterAdjust2 = dev_vmesh->size()
+                                      + d_addmap->size() - vbwncm->size();
+                                   return kval.first != EMPTYBUCKET &&
+                                      kval.first != TOMBSTONE &&
+                                      kval.first != dev_vmesh->invalidGlobalID() &&
+                                      kval.second < nBlocksAfterAdjust2 &&
+                                      kval.second != dev_vmesh->invalidLocalID(); };
 
-      velocity_block_with_content_map->extractPatternLoop(*list_with_replace_old, rule_delete_move, stream);
-      velocity_block_with_no_content_map->extractPatternLoop(*list_delete, rule_delete_move, stream);
-      velocity_block_with_no_content_map->extractPatternLoop(*list_to_replace, rule_to_replace, stream);
+         velocity_block_with_content_map->extractPatternLoop(*list_with_replace_old, rule_delete_move, stream);
+         velocity_block_with_no_content_map->extractPatternLoop(*list_delete, rule_delete_move, stream);
+         velocity_block_with_no_content_map->extractPatternLoop(*list_to_replace, rule_to_replace, stream);
+      } else {
+         list_with_replace_old->clear();
+         list_delete->clear();
+         list_to_replace->clear();
+      }
       map_add->extractAllKeysLoop(*list_with_replace_new,stream);
       // Note:list_with_replace_new contains both new GIDs to use for replacements and new GIDs to place at end of vmesh
 
