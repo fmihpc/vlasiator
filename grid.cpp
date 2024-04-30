@@ -537,7 +537,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
 
          int prepareReceives {phiprof::initializeTimer("Preparing receives")};
          int receives = 0;
-         #pragma omp parallel for
+         #pragma omp parallel for schedule(guided)
          for (unsigned int i=0; i<incoming_cells_list.size(); i++) {
             CellID cell_id=incoming_cells_list[i];
             SpatialCell* cell = mpiGrid[cell_id];
@@ -659,7 +659,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    gpu_vlasov_allocate(gpuMaxBlockCount);
    gpu_acc_allocate(gpuMaxBlockCount);
    gpuMallocTimer.stop();
-#endif
+#endif // end USE_GPU
 }
 
 /*

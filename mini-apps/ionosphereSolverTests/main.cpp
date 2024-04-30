@@ -6,6 +6,7 @@
 #include "../../datareduction/datareductionoperator.h"
 #include "../../iowrite.h"
 #include "../../ioread.h"
+#include "../../logger.h"
 
 using namespace std;
 using namespace SBC;
