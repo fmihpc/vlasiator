@@ -721,7 +721,7 @@ static bool _readCellParamsVariable(
    attribs.push_back(make_pair("mesh","SpatialGrid"));
 
    if (file.getArrayInfo("VARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
-      logFile << "(RESTART)  ERROR: Failed to read " << endl << write;
+      logFile << "(RESTART)  ERROR: Failed to read DCCRG ArrayInfo" << endl << write;
       return false;
    }
 
@@ -730,7 +730,7 @@ static bool _readCellParamsVariable(
       return false;
    }
 
-   buffer=new fileReal[vectorSize*localCells];
+   buffer=::new fileReal[vectorSize*localCells];
    if(file.readArray("VARIABLE", attribs, localCellStartOffset, localCells, (char*) buffer) == false ) {
       logFile << "(RESTART)  ERROR: Failed to read " << variableName << endl << write;
       return false;
@@ -777,7 +777,7 @@ bool readCellParamsVariable(
    attribs.push_back(make_pair("mesh","SpatialGrid"));
 
    if (file.getArrayInfo("VARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
-      logFile << "(RESTART)  ERROR: Failed to read " << endl << write;
+      logFile << "(RESTART)  ERROR: Failed to read DCCRG ArrayInfo" << endl << write;
       return false;
    }
 
@@ -840,7 +840,7 @@ template<unsigned long int N> bool readFsGridVariable(
 
    phiprof::Timer getArrayInfo {"getArrayInfo"};
    if (file.getArrayInfo("VARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
-      logFile << "(RESTART)  ERROR: Failed to read " << endl << write;
+      logFile << "(RESTART)  ERROR: Failed to read FsGrid ArrayInfo " << endl << write;
       return false;
    }
    if(! (dataType == vlsv::datatype::type::FLOAT && byteSize == sizeof(Real))) {
