@@ -85,7 +85,7 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_block_content_lists_ke
       }
       // Increment vector only from threads 0...WARPSIZE
       if (b_tid < GPUTHREADS) {
-         if (has_content[ti]) {
+         if (has_content[0]) {
             vbwcl_map->warpInsert(blockGID,blockLID,b_tid);
          } else {
             vbwncl_map->warpInsert(blockGID,blockLID,b_tid);
