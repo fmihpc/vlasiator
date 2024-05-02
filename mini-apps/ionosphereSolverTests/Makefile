@@ -14,7 +14,8 @@ INC_DCCRG=-I../../submodules/dccrg/
 INC_EIGEN = -isystem ../../submodules/eigen/
 
 
-all: main differentialFlux sigmaProfiles quadrupoleTests atmosphere.pdf
+
+all: main differentialFlux sigmaProfiles quadrupoleTests LFMtest atmosphere.pdf
 .PHONY: clean quadrupoleTests
 
 clean: 
@@ -94,3 +95,8 @@ atmosphere.pdf: sigmaProfiles plotAtmosphere.gp
 quadrupoleTests: main plot_ionosphere.py
 	./main -N 1024 -r 40 90 -r 50 80 -sigma 100 -fac hexadecapole -gaugeFix equator
 	./plot_ionosphere.py output.vlsv
+
+LFMtest: main plot_ionosphere.py
+	./main -N 1024  -r 40 90 -r 50 80 -sigma 10 -fac merkin2010 -gaugeFix equator
+	mv output.vlsv LFMtest.vlsv
+	./plot_ionosphereLFM.py LFMtest.vlsv

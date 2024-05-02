@@ -157,6 +157,7 @@ int main(int argc, char** argv) {
       cerr << "            options are:" << endl;
       cerr << "            identity - identity matrix w/ conductivity 1" << endl;
       cerr << "            ponly    - Constant pedersen conductivitu"<< endl;
+      cerr << "            10 -       Sigma_H = 0, Sigma_P = 10" << endl;
       cerr << "            35 -       Sigma_H = 3, Sigma_P = 5" << endl;
       cerr << "            53 -       Sigma_H = 5, Sigma_P = 3" << endl;
       cerr << "            100 -      Sigma_H = 100, Sigma_P=20" << endl;
@@ -168,6 +169,7 @@ int main(int argc, char** argv) {
       cerr << "            quadrupole - east/west quadrupole (L=2, m=1)" << endl;
       cerr << "            octopole   - octopole (L=3, m=2)" << endl;
       cerr << "            hexadecapole - hexadecapole (L=4, m=3)" << endl;
+      cerr << "            merkin2010 - eq13 of Merkin et al (2010)" << endl;
       cerr << "            file       - read FAC distribution from vlsv input file" << endl;
       cerr << " -infile:   Read FACs from this input file" << endl;
       cerr << " -gaugeFix: Solver gauge fixing method (default: pole)" << endl;
@@ -178,7 +180,7 @@ int main(int argc, char** argv) {
       cerr << "            equator60 - Fix potential on all nodes +- 60 degrees of the equator" << endl;
       cerr << " -np:       DON'T use the matrix preconditioner (default: do)" << endl;
       cerr << " -maxIter:  Maximum number of solver iterations" << endl;
-      
+
       return 1;
    }
 
@@ -206,7 +208,7 @@ int main(int argc, char** argv) {
       cerr << "Unknown gauge fixing method " << gaugeFixString << endl;
       return 1;
    }
-   
+
    // Refine the base shape to acheive desired resolution
    auto refineBetweenLatitudes = [](Real phi1, Real phi2) -> void {
       uint numElems=ionosphereGrid.elements.size();
@@ -258,9 +260,13 @@ int main(int argc, char** argv) {
          readIonosphereNodeVariable(inVlsv, "ig_sigmap", ionosphereGrid, ionosphereParameters::SIGMAP);
          //readIonosphereNodeVariable(inVlsv, "ig_sigmaparallel", ionosphereGrid, ionosphereParameters::SIGMAPARALLEL);
          assignConductivityTensorFromLoadedData(nodes);
-      } 
+      }
    } else if(sigmaString == "ponly") {
          Real sigmaP=3.;
+         Real sigmaH=0.;
+         assignConductivityTensor(nodes, sigmaP, sigmaH);
+   } else if(sigmaString == "10") {
+         Real sigmaP=10.;
          Real sigmaH=0.;
          assignConductivityTensor(nodes, sigmaP, sigmaH);
    } else if(sigmaString == "35") {
@@ -337,6 +343,29 @@ int main(int argc, char** argv) {
          area /= 3.; // As every element has 3 corners, don't double-count areas
 
          nodes[n].parameters[ionosphereParameters::SOURCE] = sph_legendre(4,3,theta) * cos(3*phi) * area;
+      }
+   } else if(facString == "merkin2010") {
+
+      // From Merkin et al (2010), LFM's conductivity map test setup (Figure3 / eq 13):
+      const double j_0 = 1e-6;
+      const double theta_0 = 22. / 180 * M_PI;
+      const double deltaTheta = 12. / 180 * M_PI;
+
+      for(uint n=0; n<nodes.size(); n++) {
+         double theta = acos(nodes[n].x[2] / sqrt(nodes[n].x[0]*nodes[n].x[0] + nodes[n].x[1]*nodes[n].x[1] + nodes[n].x[2]*nodes[n].x[2])); // Latitude
+         double phi = atan2(nodes[n].x[0], nodes[n].x[1]); // Longitude
+
+         Real area = 0;
+         for(uint e=0; e<ionosphereGrid.nodes[n].numTouchingElements; e++) {
+            area += ionosphereGrid.elementArea(ionosphereGrid.nodes[n].touchingElements[e]);
+         }
+         area /= 3.; // As every element has 3 corners, don't double-count areas
+
+         double j_parallel=0;
+         if(theta >= theta_0 && theta < theta_0 + deltaTheta) {
+            j_parallel = j_0 * sin(theta) * sin(phi);
+         }
+         nodes[n].parameters[ionosphereParameters::SOURCE] = j_parallel * area;
       }
    } else if(facString == "file") {
       vlsv::ParallelReader inVlsv;
