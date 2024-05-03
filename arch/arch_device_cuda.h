@@ -23,6 +23,7 @@
 #define gpuGetDeviceProperties           cudaGetDeviceProperties
 #define gpuDeviceSynchronize             cudaDeviceSynchronize
 #define gpuDeviceReset                   cudaDeviceReset
+#define gpuCpuDeviceId                   cudaCpuDeviceId
 
 #define gpuFree                          cudaFree
 #define gpuFreeHost                      cudaFreeHost
@@ -38,6 +39,9 @@
 #define gpuMemcpyAsync                   cudaMemcpyAsync
 #define gpuMemset                        cudaMemset
 #define gpuMemsetAsync                   cudaMemsetAsync
+
+#define gpuHostRegister                  cudaHostRegister
+#define gpuHostRegisterPortable          cudaHostRegisterPortable
 
 #define gpuMemAdviseSetAccessedBy        cudaMemAdviseSetAccessedBy
 #define gpuMemAdviseSetPreferredLocation cudaMemAdviseSetPreferredLocation
@@ -104,6 +108,9 @@
 /* values used by kernels */
 #ifndef GPUTHREADS
 #define GPUTHREADS (32)
+#endif
+#ifndef WARPSPERBLOCK
+#define WARPSPERBLOCK (32)
 #endif
 #define FULL_MASK 0xffffffff
 

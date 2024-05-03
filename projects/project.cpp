@@ -25,7 +25,7 @@
 #include "../common.h"
 #include "../parameters.h"
 #include "../readparameters.h"
-#include "../vlasovmover.h"
+#include "../vlasovsolver/vlasovmover.h"
 #include "../logger.h"
 #include "../object_wrapper.h"
 #include "../velocity_mesh_parameters.h"
@@ -156,15 +156,15 @@ namespace projects {
    void Project::setCell(SpatialCell* cell) {
       // Set up cell parameters:
       calcCellParameters(cell,0.0);
-      for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
-         this->setVelocitySpace(p,cell);
+      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         this->setVelocitySpace(popID,cell);
          // Verify current mesh and blocks
-         // cuint vmeshSize = cell->get_velocity_mesh(p)->size();
-         // cuint vbcSize = cell->get_velocity_blocks(p)->size();
+         // cuint vmeshSize = cell->get_velocity_mesh(popID)->size();
+         // cuint vbcSize = cell->get_velocity_blocks(popID)->size();
          // if (vmeshSize != vbcSize) {
          //    printf("ERROR: population vmesh %ul and blockcontainer %ul sizes do not match!\n",vmeshSize,vbcSize);
          // }
-         // cell->get_velocity_mesh(p)->check();
+         // cell->get_velocity_mesh(popID)->check();
       }
 
       // Passing true for the doNotSkip argument as we want to calculate
@@ -197,9 +197,9 @@ namespace projects {
    void Project::printPopulations() {
       logFile << "(PROJECT): Loaded particle populations are:" << endl;
 
-      for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
-         const species::Species& spec = getObjectWrapper().particleSpecies[p];
-         logFile << "Population #" << p << endl;
+      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         const species::Species& spec = getObjectWrapper().particleSpecies[popID];
+         logFile << "Population #" << popID << endl;
          logFile << "\t name             : '" << spec.name << "'" << endl;
          logFile << "\t charge           : '" << spec.charge << "'" << endl;
          logFile << "\t mass             : '" << spec.mass << "'" << endl;
@@ -280,29 +280,23 @@ namespace projects {
       vmesh::VelocityMesh* vmesh = cell->get_velocity_mesh(popID);
       vmesh::VelocityBlockContainer* blockContainer = cell->get_velocity_blocks(popID);
 
+      phiprof::Timer setVSpacetimer {"Set Velocity Space"};
       // Find list of blocks to initialize. The project.cpp version returns
       // all potential blocks, projectTriAxisSearch provides a more educated guess.
       vector<vmesh::GlobalID> blocksToInitialize = this->findBlocksToInitialize(cell,popID);
       const uint nRequested = blocksToInitialize.size();
-      // Expand the velocity space to the required size
-      // stringstream ss;
-      // ss<<"requesting "<<nRequested<<" for popID "<<popID<<std::endl;
-      // std::cerr<<ss.str();
-      vmesh->setNewCapacity(nRequested);
-      blockContainer->recapacitate(nRequested);
+      // Set the reservation value (capacity is increased in add_velocity_blocks
       cell->setReservation(popID,nRequested);
 
-      // Create temporary buffer for initialization
-      vector<Realf> initBuffer(WID3);
       // Loop over requested blocks. Initialize the contents into the temporary buffer
       // and return the maximum value.
+      vector<Realf> initBuffer(WID3*nRequested);
       for (uint i=0; i<nRequested; ++i) {
          vmesh::GlobalID blockGID = blocksToInitialize.at(i);
-         const Real maxValue = setVelocityBlock(cell,blockGID,popID, initBuffer.data());
-         // Actually add the velocity block
-         cell->add_velocity_block(blockGID, popID, initBuffer.data());
+         const Real maxValue = setVelocityBlock(cell,blockGID,popID, initBuffer.data() + i*WID3);
       }
-
+      // Next actually add all the blocks
+      cell->add_velocity_blocks(popID, blocksToInitialize, initBuffer.data());
       if (rescalesDensity(popID) == true) {
          rescaleDensity(cell,popID);
       }
@@ -472,7 +466,7 @@ namespace projects {
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
       int refines {0};
-      if (!P::useAlpha && !P::useJPerB) {
+      if (!P::useAlpha1 && !P::useAlpha2) {
          if (myRank == MASTER_RANK) {
             std::cout << "WARNING All refinement indices disabled" << std::endl;
          }
@@ -493,26 +487,28 @@ namespace projects {
             // Skip refining, touching boundaries during runtime breaks everything
             mpiGrid.dont_refine(id);
             mpiGrid.dont_unrefine(id);
-         } else if (r2 < r_max2) {
-            // We don't care about cells that are too far from the ionosphere
-            const Real alphaTwo {cell->parameters[CellParams::AMR_JPERB] * cell->parameters[CellParams::DX]};
-            bool shouldRefine = (P::useAlpha ? cell->parameters[CellParams::AMR_ALPHA] > P::alphaRefineThreshold : false) || (P::useJPerB ? alphaTwo > P::jperbRefineThreshold : false);
-            bool shouldUnrefine = (P::useAlpha ? cell->parameters[CellParams::AMR_ALPHA] < P::alphaCoarsenThreshold : true) && (P::useJPerB ? alphaTwo < P::jperbCoarsenThreshold : true);
+         } else {
+            // Cells too far from the ionosphere should be unrefined
+            bool shouldRefine {(r2 < r_max2) && ((P::useAlpha1 ? cell->parameters[CellParams::AMR_ALPHA1] > P::alpha1RefineThreshold : false) || (P::useAlpha2 ? cell->parameters[CellParams::AMR_ALPHA2] > P::alpha2RefineThreshold : false))};
+            bool shouldUnrefine {(r2 > r_max2) || ((P::useAlpha1 ? cell->parameters[CellParams::AMR_ALPHA1] < P::alpha1CoarsenThreshold : true) && (P::useAlpha2 ? cell->parameters[CellParams::AMR_ALPHA2] < P::alpha2CoarsenThreshold : true))};
 
             // Finally, check neighbors
             int refined_neighbors {0};
             int coarser_neighbors {0};
             for (const auto& [neighbor, dir] : mpiGrid.get_face_neighbors_of(id)) {
+               std::array<double,3> neighborXyz {mpiGrid.get_center(neighbor)};
+               Real neighborR2 {pow(neighborXyz[0], 2) + pow(neighborXyz[1], 2) + pow(neighborXyz[2], 2)};
                const int neighborRef = mpiGrid.get_refinement_level(neighbor);
-               const Real neighborAlphaTwo {mpiGrid[neighbor]->parameters[CellParams::AMR_JPERB] * mpiGrid[neighbor]->parameters[CellParams::DX]};
-               if (neighborRef > refLevel) {
+               bool shouldRefineNeighbor {(neighborR2 < r_max2) && ((P::useAlpha1 ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA1] > P::alpha1RefineThreshold : false) || (P::useAlpha2 ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA2] > P::alpha2RefineThreshold : false))};
+               bool shouldUnrefineNeighbor {(neighborR2 > r_max2) || ((P::useAlpha1 ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA1] < P::alpha1CoarsenThreshold : true) && (P::useAlpha2 ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA2] < P::alpha2CoarsenThreshold : true))};
+               if (neighborRef > refLevel && !shouldUnrefineNeighbor) {
                   ++refined_neighbors;
-               } else if (neighborRef < refLevel) {
+               } else if (neighborRef < refLevel && !shouldRefineNeighbor) {
                   ++coarser_neighbors;
-               } else if ((P::useAlpha ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA] > P::alphaRefineThreshold : false) || (P::useJPerB ? neighborAlphaTwo > P::jperbRefineThreshold : false)) {
+               } else if (shouldRefineNeighbor) {
                   // If neighbor refines, 4 of its children will be this cells refined neighbors
                   refined_neighbors += 4;
-               } else if ((P::useAlpha ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA] < P::alphaCoarsenThreshold : true) && (P::useJPerB ? neighborAlphaTwo < P::jperbCoarsenThreshold : true)) {
+               } else if (shouldUnrefineNeighbor) {
                   ++coarser_neighbors;
                }
             }

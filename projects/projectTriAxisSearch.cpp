@@ -36,11 +36,8 @@ namespace projects {
       bool search;
       unsigned int counterX, counterY, counterZ;
       Real maxRelVx,maxRelVy,maxRelVz;
-      // stringstream ss;
 
       creal minValue = cell->getVelocityBlockMinValue(popID);
-      // How big steps of vcells should we use for weeping over v-space?
-      const uint increment = 1;
       // And how big a buffer do we add to the edges?
       const uint buffer = 2;
       // How much below the sparsity can a cell be to still be included?
@@ -52,43 +49,31 @@ namespace projects {
       creal dx = cell->parameters[CellParams::DX];
       creal dy = cell->parameters[CellParams::DY];
       creal dz = cell->parameters[CellParams::DZ];
-      // ss<<" minValue "<<minValue<<" x "<<x<<" y "<<y<<" z "<<z<<" dx "<<dx<<" dy "<<dy<<" dz "<<dz<<std::endl;
-      // std::cerr<<ss.str();
-      // ss.str(std::string());
       creal dvxBlock = cell->get_velocity_grid_block_size(popID)[0];
       creal dvyBlock = cell->get_velocity_grid_block_size(popID)[1];
       creal dvzBlock = cell->get_velocity_grid_block_size(popID)[2];
       creal dvxCell = cell->get_velocity_grid_cell_size(popID)[0];
       creal dvyCell = cell->get_velocity_grid_cell_size(popID)[1];
       creal dvzCell = cell->get_velocity_grid_cell_size(popID)[2];
-      // ss<<" Blocks  dx "<<dvxBlock<<" dy "<<dvyBlock<<" dz "<<dvxBlock<<"  cells dx "<<dvxCell<<" dy "<<dvyCell<<" dz "<<dvzCell<<std::endl;
-      // std::cerr<<ss.str();
-      // ss.str(std::string());
 
       const size_t vxblocks_ini = cell->get_velocity_grid_length(popID)[0];
       const size_t vyblocks_ini = cell->get_velocity_grid_length(popID)[1];
       const size_t vzblocks_ini = cell->get_velocity_grid_length(popID)[2];
-      // ss<<" dxvxblocks_ini "<<vxblocks_ini<<" y "<<vyblocks_ini<<" z "<<vzblocks_ini<<std::endl;
-      // std::cerr<<ss.str();
-      // ss.str(std::string());
 
       const vector<std::array<Real, 3>> V0 = this->getV0(x+0.5*dx, y+0.5*dy, z+0.5*dz, popID);
       for (vector<std::array<Real, 3>>::const_iterator it = V0.begin(); it != V0.end(); it++) {
-         // ss<<" V0 "<<it->at(0)<<" "<<it->at(1)<<" "<<it->at(2)<<std::endl;
-         // std::cerr<<ss.str();
-         // ss.str(std::string());
          // VX search
          search = true;
          counterX = 0;
          while (search) {
             if ( (tolerance * minValue >
                   calcPhaseSpaceDensity(x, y, z, dx, dy, dz,
-                                        it->at(0) + (counterX+0.5)*dvxBlock, it->at(1), it->at(2),
+                                        it->at(0) + counterX*dvxBlock, it->at(1), it->at(2),
                                         dvxCell, dvyCell, dvzCell, popID)
-                  || counterX >= vxblocks_ini ) ) {
+                  || counterX > vxblocks_ini ) ) {
                search = false;
             }
-            counterX+=increment;
+            counterX++;
          }
          counterX+=buffer;
          maxRelVx = counterX*dvxBlock;
@@ -100,12 +85,12 @@ namespace projects {
          while(search) {
             if ( (tolerance * minValue >
                   calcPhaseSpaceDensity(x, y, z, dx, dy, dz,
-                                        it->at(0), it->at(1) + (counterY+0.5)*dvyBlock, it->at(2),
+                                        it->at(0), it->at(1) + counterY*dvyBlock, it->at(2),
                                         dvxCell, dvyCell, dvzCell, popID)
                   || counterY > vyblocks_ini ) ) {
                search = false;
             }
-            counterY+=increment;
+            counterY++;
          }
          counterY+=buffer;
          maxRelVy = counterY*dvyBlock;
@@ -117,12 +102,12 @@ namespace projects {
          while(search) {
             if ( (tolerance * minValue >
                   calcPhaseSpaceDensity(x, y, z, dx, dy, dz,
-                                        it->at(0), it->at(1), it->at(2) + (counterZ+0.5)*dvzBlock,
+                                        it->at(0), it->at(1), it->at(2) + counterZ*dvzBlock,
                                         dvxCell, dvyCell, dvzCell, popID)
                   || counterZ > vzblocks_ini ) ) {
                search = false;
             }
-            counterZ+=increment;
+            counterZ++;
          }
          counterZ+=buffer;
          maxRelVz = counterZ*dvzBlock;
@@ -145,31 +130,27 @@ namespace projects {
                   V_crds[2] += (0.5*dvzBlock - it->at(2) );
                   // This check assumes non-maxwellian v-spaces are still constrained by Cartesian directions
                   // (e.g. bi-maxwellian is aligned with coordinate directions)
-                  if ( abs(V_crds[0]) > maxRelVx ||
-                       abs(V_crds[1]) > maxRelVy ||
-                       abs(V_crds[2]) > maxRelVz ) {
-                     continue;
-                  }
+                  // if ( abs(V_crds[0]) > maxRelVx ||
+                  //      abs(V_crds[1]) > maxRelVy ||
+                  //      abs(V_crds[2]) > maxRelVz ) {
+                  //    continue;
+                  // }
                   Real R2 = ((V_crds[0])*(V_crds[0])
                              + (V_crds[1])*(V_crds[1])
                              + (V_crds[2])*(V_crds[2]));
 
                   if (R2 < vRadiusSquared) {
-                     //cell->add_velocity_block(blockGID,popID);
                      blocksToInitialize.insert(blockGID);
                   }
                } // vxblocks_ini
             } // vyblocks_ini
          } // vzblocks_ini
-         // ss<<"vRadiusSquared "<<vRadiusSquared<<" counters "<<counterX<<" "<<counterY<<" "<<counterZ;
       } // iteration over V0's
 
       vector<vmesh::GlobalID> returnVector;
       for (set<vmesh::GlobalID>::const_iterator it=blocksToInitialize.begin(); it!=blocksToInitialize.end(); ++it) {
          returnVector.push_back(*it);
       }
-      // ss<<": Found "<<returnVector.size()<<" required blocks for initialization "<<std::endl;
-      // std::cerr<<ss.str();
       return returnVector;
    }
 

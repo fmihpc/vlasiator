@@ -22,7 +22,7 @@ LNK = clang++
 # Fallback: VECTORCLASS = VEC_FALLBACK_GENERIC (Defaults to VECL8)
 VECTORCLASS = VEC_FALLBACK_GENERIC
 
-#===== Vector Lenghts ====
+#===== Vector Lengths ====
 # Default for VEC_FALLBACK_GENERIC is WID=4, VECL=8 
 # WID=8
 # VECL=64
@@ -41,13 +41,13 @@ USE_HIP=1
 
 CXXFLAGS += -g -ggdb -O3 -x hip --offload-arch=gfx90a:xnack- -march=znver3 -std=c++17 -funroll-loops -fopenmp -I. -Ihip -Iomp -I${CRAY_MPICH_DIR}/include -W -Wall -Wno-unused-parameter -Wno-unused-result -Wno-unused-function -Wno-unused-variable -Wno-unknown-pragmas -Wno-deprecated-register -Wno-unused-but-set-variable -Wno-ignored-attributes
 
-testpackage: CXXFLAGS = -g -ggdb -O2 -x hip --offload-arch=gfx90a:xnack- -march=znver3 -std=c++17 -fopenmp -I. -Ihip -Iomp -I${CRAY_MPICH_DIR}/include -fgpu-sanitize  -W -Wall -Wno-unused-parameter -Wno-unused-result -Wno-unused-function -Wno-unused-variable -Wno-unknown-pragmas -Wno-deprecated-register -Wno-unused-but-set-variable -Wno-ignored-attributes
+testpackage: CXXFLAGS = -g -ggdb -O2 -x hip --offload-arch=gfx90a:xnack- -march=znver3 -std=c++17 -fopenmp -I. -Ihip -Iomp -I${CRAY_MPICH_DIR}/include -W -Wall -Wno-unused-parameter -Wno-unused-result -Wno-unused-function -Wno-unused-variable -Wno-unknown-pragmas -Wno-deprecated-register -Wno-unused-but-set-variable -Wno-ignored-attributes
 
 LDFLAGS = -fopenmp -lrt -lpthread -L${CRAY_MPICH_DIR}/lib ${PE_MPICH_GTL_DIR_amd_gfx90a} -L${ROCM_PATH}/lib -lamdhip64
 LIB_MPI = -lmpi ${PE_MPICH_GTL_LIBS_amd_gfx90a}
 
 # -fgpu-rdc # relocatable device code, needed for the velocity mesh
-# -fgpu-sanitize
+# -fgpu-sanitize -fno-omit-frame-pointer # memory debugging
 
 #======== PAPI ==========
 #Add PAPI_MEM define to use papi to report memory consumption?
@@ -93,10 +93,9 @@ LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -lgfortran -Wl,-rpath=$(
 
 #header libraries
 
-#INC_EIGEN = -isystem $(LIBRARY_PREFIX)/eigen/
+INC_EIGEN = -isystem ./submodules/eigen/
 INC_FSGRID = -I./submodules/fsgrid
 INC_DCCRG = -I./submodules/dccrg
+INC_HASHINATOR = -isystem ./submodules/hashinator/
 # Vectorclass only for CPU mode
-#INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/
-# Hashinator not yet as a submodule
-INC_HASHINATOR = -isystem $(LIBRARY_PREFIX)/hashinator/
+# INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/

@@ -33,7 +33,7 @@
 #include "ionosphere.h"
 #include "../projects/project.h"
 #include "../projects/projects_common.h"
-#include "../vlasovmover.h"
+#include "../vlasovsolver/vlasovmover.h"
 #include "../fieldsolver/fs_common.h"
 #include "../fieldsolver/ldz_magnetic_field.hpp"
 #include "../fieldtracing/fieldtracing.h"
@@ -60,7 +60,7 @@ namespace SBC {
 
    IonosphereBoundaryVDFmode boundaryVDFmode = FixedMoments;
 
-   
+
    SphericalTriGrid ionosphereGrid; /*!< Ionosphere finite element grid */
 
    std::vector<IonosphereSpeciesParameters> Ionosphere::speciesParams;
@@ -867,7 +867,7 @@ namespace SBC {
     * given F10.7 photospheric flux as a solar activity proxy.
     *
     * This assumes the FACs have already been coupled into the grid.
-    * 
+    *
     * If refillTensorAtRestart is true, we don't recompute precipitation and integration, we just refill the tensor from the sigmas as read from restart.
     * That is necessary so ig_inplanecurrent has non-zero data if an output file is written after restart and before the next ionosphere solution step.
     */
@@ -878,17 +878,16 @@ namespace SBC {
       const bool refillTensorAtRestart/*=false*/
    ) {
       phiprof::Timer timer {"ionosphere-calculateConductivityTensor"};
-      
+
       // At restart we have SIGMAP, SIGMAH and SIGMAPARALLEL read in from the restart file already, no need to update here.
       if(!refillTensorAtRestart) {
          // Ranks that don't participate in ionosphere solving skip this function outright
          if(!isCouplingInwards && !isCouplingOutwards) {
-            phiprof::stop("ionosphere-calculateConductivityTensor");
             return;
          }
-         
+
          calculatePrecipitation();
-         
+
          //Calculate height-integrated conductivities and 3D electron density
          // TODO: effdt > 0?
          // (Then, ne += dt*(q - alpha*ne*abs(ne))
@@ -899,7 +898,7 @@ namespace SBC {
             std::array<Real, numAtmosphereLevels> electronDensity;
 
             // Note this loop counts from 1 (std::vector is zero-initialized, so electronDensity[0] = 0)
-            for(int h=1; h<numAtmosphereLevels; h++) { 
+            for(int h=1; h<numAtmosphereLevels; h++) {
                // Calculate production rate
                Real energy_keV = max(nodes[n].deltaPhi()/1000., productionMinAccEnergy);
 
@@ -946,7 +945,7 @@ namespace SBC {
 
          std::array<Real, 3>& x = nodes[n].x;
          // TODO: Perform coordinate transformation here?
-         
+
          // At restart we have SIGMAP, SIGMAH and SIGMAPARALLEL read in from the restart file already.
          if(!refillTensorAtRestart) {
             // Solar incidence parameter for calculating UV ionisation on the dayside
@@ -956,11 +955,11 @@ namespace SBC {
             }
             Real sigmaP_dayside = backgroundIonisation + F10_7_p_049 * (0.34 * coschi + 0.93 * sqrt(coschi));
             Real sigmaH_dayside = backgroundIonisation + F10_7_p_053 * (0.81 * coschi + 0.54 * sqrt(coschi));
-            
+
             nodes[n].parameters[ionosphereParameters::SIGMAP] = sqrt( pow(nodes[n].parameters[ionosphereParameters::SIGMAP],2) + pow(sigmaP_dayside,2));
             nodes[n].parameters[ionosphereParameters::SIGMAH] = sqrt( pow(nodes[n].parameters[ionosphereParameters::SIGMAH],2) + pow(sigmaH_dayside,2));
          }
-         
+
          // Build conductivity tensor
          Real sigmaP = nodes[n].parameters[ionosphereParameters::SIGMAP];
          Real sigmaH = nodes[n].parameters[ionosphereParameters::SIGMAH];
@@ -2510,13 +2509,10 @@ namespace SBC {
 
          for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
             setCellFromTemplate(cell,popID);
-            // // Verify current mesh and blocks
-            // cuint vmeshSize = cell->get_velocity_mesh(popID)->size();
-            // cuint vbcSize = cell->get_velocity_blocks(popID)->size();
-            // if (vmeshSize != vbcSize) {
-            //    printf("ERROR: population vmesh %ul and blockcontainer %ul sizes do not match!\n",vmeshSize,vbcSize);
+            // Verify current mesh and blocks
+            // if (!cell->checkMesh(popID)) {
+            //    printf("ERROR in vmesh check: %s at %d\n",__FILE__,__LINE__);
             // }
-            // cell->get_velocity_mesh(popID)->check();
          }
       }
    }
@@ -3122,7 +3118,6 @@ namespace SBC {
       const bool calculate_V_moments
    ) {
       phiprof::Timer timer {"vlasovBoundaryCondition (Ionosphere)"};
-
       // TODO Make this a more elegant solution
       // Now it's hacky as the counter is incremented in vlasiator.cpp
       if(globalflags::ionosphereJustSolved) { // else we don't update this boundary
@@ -3205,27 +3200,21 @@ namespace SBC {
                {
                   // Fill velocity space with new maxwellian data
                   SpatialCell& cell = *mpiGrid[cellID];
-                  cell.clear(popID); // Clear previous velocity space completely
+                  cell.clear(popID,false); // Clear previous velocity space completely, do not de-allocate memory
                   const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(cell,density,temperature,vDrift,popID);
                   const uint nRequested = blocksToInitialize.size();
-                  // Expand the velocity space to the required size
-                  vmesh::VelocityMesh* vmesh = cell.get_velocity_mesh(popID);
-                  vmesh::VelocityBlockContainer* blockContainer = cell.get_velocity_blocks(popID);
-                  vmesh->setNewCapacity(nRequested);
-                  blockContainer->recapacitate(nRequested);
+                  // Set the reservation value (capacity is increased in add_velocity_blocks
                   cell.setReservation(popID,nRequested);
                   const Realf minValue = cell.getVelocityBlockMinValue(popID);
 
-                  // Create temporary buffer for initialization
-                  vector<Realf> initBuffer(WID3);
                   // Loop over requested blocks. Initialize the contents into the temporary buffer
                   // and return the maximum value.
+                  vector<Realf> initBuffer(WID3*nRequested);
                   creal dvxCell = cell.get_velocity_grid_cell_size(popID)[0];
                   creal dvyCell = cell.get_velocity_grid_cell_size(popID)[1];
                   creal dvzCell = cell.get_velocity_grid_cell_size(popID)[2];
                   for (size_t i = 0; i < blocksToInitialize.size(); i++) {
                      const vmesh::GlobalID blockGID = blocksToInitialize.at(i);
-                     Realf maxValue = 0;
                      // Calculate parameters for new block
                      Real blockCoords[3];
                      cell.get_velocity_block_coordinates(popID,blockGID,&blockCoords[0]);
@@ -3241,14 +3230,13 @@ namespace SBC {
                               creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell - vDrift[1];
                               creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell - vDrift[2];
                               Realf average = shiftedMaxwellianDistribution(popID, density, temperature, vxCellCenter, vyCellCenter, vzCellCenter);
-                              initBuffer[cellIndex(ic,jc,kc)] = average;
-                              maxValue = max(average, maxValue);
+                              initBuffer[i*WID3+cellIndex(ic,jc,kc)] = average;
                            }
                         }
                      }
-                     // Actually add the velocity block
-                     cell.add_velocity_block(blockGID, popID, &initBuffer[0]);
                   } // for-loop over requested velocity blocks
+                  // Next actually add all the blocks
+                  cell.add_velocity_blocks(popID, blocksToInitialize, initBuffer.data());
                } // end case several
                break;
             case CopyAndLosscone:
@@ -3288,28 +3276,22 @@ namespace SBC {
                      cell.parameters[CellParams::ZCRD] + 0.5*cell.parameters[CellParams::DZ]
                   );
 
-                  cell.clear(popID); // Clear previous velocity space completely
+                  cell.clear(popID,false); // Clear previous velocity space completely, do not de-allocate memory
                   const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(cell,density,temperature,vDrift,popID);
 
                   const uint nRequested = blocksToInitialize.size();
-                  // Expand the velocity space to the required size
-                  vmesh::VelocityMesh* vmesh = cell.get_velocity_mesh(popID);
-                  vmesh::VelocityBlockContainer* blockContainer = cell.get_velocity_blocks(popID);
-                  vmesh->setNewCapacity(nRequested);
-                  blockContainer->recapacitate(nRequested);
+                  // Set the reservation value (capacity is increased in add_velocity_blocks
                   cell.setReservation(popID,nRequested);
                   const Realf minValue = cell.getVelocityBlockMinValue(popID);
 
-                  // Create temporary buffer for initialization
-                  vector<Realf> initBuffer(WID3);
                   // Loop over requested blocks. Initialize the contents into the temporary buffer
                   // and return the maximum value.
+                  vector<Realf> initBuffer(WID3*nRequested);
                   creal dvxCell = cell.get_velocity_grid_cell_size(popID)[0];
                   creal dvyCell = cell.get_velocity_grid_cell_size(popID)[1];
                   creal dvzCell = cell.get_velocity_grid_cell_size(popID)[2];
                   for (size_t i = 0; i < blocksToInitialize.size(); i++) {
                      const vmesh::GlobalID blockGID = blocksToInitialize.at(i);
-                     Realf maxValue = 0;
                      // Calculate parameters for new block
                      Real blockCoords[3];
                      cell.get_velocity_block_coordinates(popID,blockGID,&blockCoords[0]);
@@ -3362,29 +3344,19 @@ namespace SBC {
                                                                        vxCellCenter - vDrift[0],
                                                                        vyCellCenter - vDrift[1],
                                                                        vzCellCenter - vDrift[2]);
-                              initBuffer[cellIndex(ic,jc,kc)] = average;
-                              maxValue = max(average, maxValue);
+                              initBuffer[i*WID3+cellIndex(ic,jc,kc)] = average;
                            }
                         }
                      }
-                     // Only keep this block if it is at least 10% of the sparsity value
-                     if (maxValue > 0.1 * minValue) {
-                        cell.add_velocity_block(blockGID, popID, &initBuffer[0]);
-                     }
                   } // for-loop over requested velocity blocks
+                  // Next actually add all the blocks
+                  cell.add_velocity_blocks(popID, blocksToInitialize, initBuffer.data());
 
                } // end case CopyAndLosscone
                break;
          } // end switch VDF method
-
-         // Block adjust and recalculate moments
-         #ifdef USE_GPU
-         mpiGrid[cellID]->prefetchDevice();
-         #endif
+         // let's get rid of blocks not fulfilling the criteria here to save memory.
          mpiGrid[cellID]->adjustSingleCellVelocityBlocks(popID,true);
-         // #ifdef USE_GPU
-         // mpiGrid[cellID]->prefetchHost();
-         // #endif
 
          // TODO: The moments can also be analytically calculated from ionosphere parameters.
          // Maybe that's faster?
@@ -3410,29 +3382,23 @@ namespace SBC {
 
       // Loop over particle species
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         templateCell.clear(popID);
+         templateCell.clear(popID,false); //clear, do not de-allocate memory
          const IonosphereSpeciesParameters& sP = this->speciesParams[popID];
          const std::array<Real, 3> vDrift = {0,0,0};
          const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(templateCell,sP.rho,sP.T,vDrift,popID);
          const uint nRequested = blocksToInitialize.size();
-         // Expand the velocity space to the required size
-         vmesh::VelocityMesh* vmesh = templateCell.get_velocity_mesh(popID);
-         vmesh::VelocityBlockContainer* blockContainer = templateCell.get_velocity_blocks(popID);
-         vmesh->setNewCapacity(nRequested);
-         blockContainer->recapacitate(nRequested);
+         // Set the reservation value (capacity is increased in add_velocity_blocks
          templateCell.setReservation(popID,nRequested);
          const Realf minValue = templateCell.getVelocityBlockMinValue(popID);
 
-         // Create temporary buffer for initialization
-         vector<Realf> initBuffer(WID3);
          // Loop over requested blocks. Initialize the contents into the temporary buffer
          // and return the maximum value.
+         vector<Realf> initBuffer(WID3*nRequested);
          creal dvxCell = templateCell.get_velocity_grid_cell_size(popID)[0];
          creal dvyCell = templateCell.get_velocity_grid_cell_size(popID)[1];
          creal dvzCell = templateCell.get_velocity_grid_cell_size(popID)[2];
          for (size_t i = 0; i < blocksToInitialize.size(); i++) {
             const vmesh::GlobalID blockGID = blocksToInitialize.at(i);
-            Realf maxValue = 0;
             // Calculate parameters for new block
             Real blockCoords[3];
             templateCell.get_velocity_block_coordinates(popID,blockGID,&blockCoords[0]);
@@ -3448,27 +3414,16 @@ namespace SBC {
                      creal vyCell = vyBlock + (jc+convert<Real>(0.5))*dvyCell;
                      creal vzCell = vzBlock + (kc+convert<Real>(0.5))*dvzCell;
                      Realf average = shiftedMaxwellianDistribution(popID,sP.rho,sP.T,vxCell,vyCell,vzCell);
-                     initBuffer[cellIndex(ic,jc,kc)] = average;
-                     maxValue = max(average, maxValue);
+                     initBuffer[i*WID3+cellIndex(ic,jc,kc)] = average;
                   }
                }
             }
-            // Only keep this block if it is at least 10% of the sparsity value
-            if (maxValue > 0.1 * minValue) {
-               templateCell.add_velocity_block(blockGID, popID, &initBuffer[0]);
-            }
          } // for-loop over requested velocity blocks
 
-         // let's get rid of blocks not fulfilling the criteria here to save memory.
-         #ifdef USE_GPU
-         // Block adjustment is done on the GPU, but copying over data from cells is still done on Host
-         templateCell.prefetchDevice();
-         #endif
+         // Next actually add all the blocks
+         templateCell.add_velocity_blocks(popID, blocksToInitialize, initBuffer.data());
          // let's get rid of blocks not fulfilling the criteria here to save memory.
          templateCell.adjustSingleCellVelocityBlocks(popID,true);
-         #ifdef USE_GPU
-         templateCell.prefetchHost();
-         #endif
       } // for-loop over particle species
 
       calculateCellMoments(&templateCell,true,false,true);
@@ -3518,7 +3473,7 @@ namespace SBC {
       vector<vmesh::GlobalID> blocksToInitialize;
       bool search = true;
       uint counter = 0;
-      
+
       Real V_crds[3];
       Real dV[3];
       dV[0] = cell.get_velocity_grid_block_size(popID)[0];
@@ -3526,17 +3481,21 @@ namespace SBC {
       dV[2] = cell.get_velocity_grid_block_size(popID)[2];
       creal minValue = cell.getVelocityBlockMinValue(popID);
       const vmesh::LocalID* vblocks_ini = cell.get_velocity_grid_length(popID);
+      // Single cell, not block
+      const Real dvx=cell.get_velocity_grid_cell_size(popID)[0];
+      const Real dvy=cell.get_velocity_grid_cell_size(popID)[1];
+      const Real dvz=cell.get_velocity_grid_cell_size(popID)[2];
 
       while (search) {
-         if (0.1 * cell.getVelocityBlockMinValue(popID) >
-            shiftedMaxwellianDistribution(popID,density,temperature,(counter+0.5)*dV[0] - vDrift[0], 0.5*dV[1] - vDrift[1], 0.5*dV[2] - vDrift[2])
-            || counter > vblocks_ini[0])
-         {
+         if ( 0.1 * minValue > shiftedMaxwellianDistribution(popID,density,temperature,
+                                                            counter*dV[0]+0.5*dvx-vDrift[0], 0.5*dvy-vDrift[1], 0.5*dvz-vDrift[2])
+              || counter > vblocks_ini[0] ) {
             search = false;
          }
-         ++counter;
+         counter++;
       }
       counter+=2;
+
       Real vRadiusSquared = (Real)counter * (Real)counter * dV[0] * dV[0];
 
       for (uint kv=0; kv<vblocks_ini[2]; ++kv) {
@@ -3547,6 +3506,7 @@ namespace SBC {
                blockIndices[1] = jv;
                blockIndices[2] = kv;
                const vmesh::GlobalID blockGID = cell.get_velocity_block(popID,blockIndices);
+
                cell.get_velocity_block_coordinates(popID,blockGID,V_crds);
                V_crds[0] += ( 0.5*dV[0] - vDrift[0]);
                V_crds[1] += ( 0.5*dV[1] - vDrift[1]);
@@ -3556,7 +3516,6 @@ namespace SBC {
                           + (V_crds[2])*(V_crds[2]));
 
                if (R2 < vRadiusSquared) {
-                  //cell.add_velocity_block(blockGID,popID);
                   blocksToInitialize.push_back(blockGID);
                }
             }

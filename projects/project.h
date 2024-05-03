@@ -24,7 +24,7 @@
 #define PROJECT_H
 
 #include <random>
-#include "../spatial_cell.hpp"
+#include "../spatial_cell_wrapper.hpp"
 #include <dccrg.hpp>
 #include <dccrg_cartesian_geometry.hpp>
 #include "fsgrid.hpp"

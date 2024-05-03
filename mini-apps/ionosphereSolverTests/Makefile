@@ -8,15 +8,17 @@ LIBS += ${LIB_JEMALLOC}
 LIBS += ${LIB_PROFILE}
 LIBS += ${LIB_ZOLTAN}
 LIBS += ${LIB_VLSV}
-
+FLAGS += -Wno-cast-function-type
 INC_FSGRID=-I../../submodules/fsgrid/
 INC_DCCRG=-I../../submodules/dccrg/
+INC_EIGEN = -isystem ../../submodules/eigen/
+
 
 all: main differentialFlux sigmaProfiles quadrupoleTests atmosphere.pdf
 .PHONY: clean quadrupoleTests
 
 clean: 
-	rm *.o main differentialFlux sigmaProfiles
+	rm -f *.o main differentialFlux sigmaProfiles
 
 ionosphere.o: ../../sysboundary/ionosphere.h ../../sysboundary/ionosphere.cpp ../../backgroundfield/backgroundfield.h ../../projects/project.h
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c ../../sysboundary/ionosphere.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN} ${INC_VECTORCLASS} ${INC_PROFILE} ${INC_JEMALLOC} -Wno-comment
@@ -39,14 +41,17 @@ version.o: ../../version.cpp
 object_wrapper.o:  ../../object_wrapper.h ../../object_wrapper.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c ../../object_wrapper.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_FSGRID} ${INC_PROFILE} ${INC_JEMALLOC}
 
+velocity_mesh_parameters.o:  ../../velocity_mesh_parameters.h ../../velocity_mesh_parameters.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c ../../velocity_mesh_parameters.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_FSGRID} ${INC_PROFILE} ${INC_JEMALLOC}
+
 particle_species.o: ../../particle_species.h ../../particle_species.cpp
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c ../../particle_species.cpp
 
-spatial_cell.o: ../../spatial_cell.cpp
-	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c ../../spatial_cell.cpp $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID} ${INC_PROFILE} ${INC_JEMALLOC}
+spatial_cell.o: ../../spatial_cell_cpu.cpp
+	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c ../../spatial_cell_cpu.cpp -o spatial_cell.o $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID} ${INC_PROFILE} ${INC_JEMALLOC}
 
-cpu_moments.o: ../../vlasovsolver/cpu_moments.cpp
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c ../../vlasovsolver/cpu_moments.cpp ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_FSGRID} ${INC_JEMALLOC}
+arch_moments.o: ../../vlasovsolver/arch_moments.cpp
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c ../../vlasovsolver/arch_moments.cpp ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_FSGRID} ${INC_JEMALLOC}
 
 iowrite.o:  ../../parameters.h ../../iowrite.cpp ../../iowrite.h  
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c ../../iowrite.cpp ${INC_MPI} ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV} ${INC_JEMALLOC}
@@ -78,7 +83,7 @@ fieldtracing.o: ../../fieldtracing/fieldtracing.cpp
 main.o: main.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c ./main.cpp  ${INC_VLSV} ${INC_BOOST} ${INC_PROFILE} ${INC_JEMALLOC} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_FSGRID}
 
-main: main.o ionosphere.o sysboundarycondition.o parameters.o readparameters.o object_wrapper.o particle_species.o spatial_cell.o cpu_moments.o iowrite.o logger.o datareducer.o datareductionoperator.o common.o ioread.o fs_common.o version.o fieldtracing.o
+main: main.o ionosphere.o sysboundarycondition.o parameters.o readparameters.o object_wrapper.o particle_species.o spatial_cell.o arch_moments.o iowrite.o logger.o datareducer.o datareductionoperator.o common.o ioread.o fs_common.o version.o fieldtracing.o velocity_mesh_parameters.o
 	${LNK} ${LDFLAGS} -o main $^ $(LIBS) -lgomp
 
 differentialFlux: differentialFlux.cpp
@@ -92,3 +97,8 @@ atmosphere.pdf: sigmaProfiles plotAtmosphere.gp
 quadrupoleTests: main plot_ionosphere.py
 	./main -N 1024 -r 40 90 -r 50 80 -sigma 100 -fac hexadecapole -gaugeFix equator
 	./plot_ionosphere.py output.vlsv
+
+plot_ionosphere.py:
+	@: #do nothing
+plotAtmosphere.gp:
+	@: #do nothing

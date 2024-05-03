@@ -25,8 +25,8 @@
 
 #include <vector>
 
-#include "definitions.h"
-#include "spatial_cell.hpp"
+#include "../definitions.h"
+#include "../spatial_cell_wrapper.hpp"
 using namespace spatial_cell;
 
 #include <stdint.h>
@@ -41,6 +41,12 @@ void calculateAcceleration(
 void calculateSpatialTranslation(
                                  dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                  Real dt);
+
+// Vlasov timestep reduction
+// found in either arch_dt.cpp or gpu_dt.cpp
+void reduce_vlasov_dt(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                      const vector<CellID>& cells,
+                      Real (&dtMaxLocal)[3]);
 
 /** Calculate velocity moments for the given spatial cell.
  * This function is defined in the arch_moments.cpp file.*/

@@ -32,7 +32,7 @@
 #include <Eigen/Geometry>
 
 #include "../common.h"
-#include "../spatial_cell.hpp"
+#include "../spatial_cell_wrapper.hpp"
 #include "cpu_acc_intersections.hpp"
 
 using namespace std;

@@ -387,6 +387,7 @@ namespace FieldTracing {
          Vec3d r1(nodes[el.corners[0]].x.data());
          Vec3d r2(nodes[el.corners[1]].x.data());
          Vec3d r3(nodes[el.corners[2]].x.data());
+         
          Vec3d rx(x[0],x[1],x[2]);
          
          cint handedness = sign(dot_product(cross_product(r2-r1, r3-r1), r1));

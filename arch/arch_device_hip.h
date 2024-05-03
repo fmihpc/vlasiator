@@ -21,6 +21,7 @@
 #define gpuGetDeviceProperties           hipGetDeviceProperties
 #define gpuDeviceSynchronize             hipDeviceSynchronize
 #define gpuDeviceReset                   hipDeviceReset
+#define gpuCpuDeviceId                   hipCpuDeviceId
 
 #define gpuFree                          hipFree
 #define gpuFreeHost                      hipHostFree
@@ -43,6 +44,9 @@
 #define gpuMemPrefetchAsync              hipMemPrefetchAsync
 
 #define gpuStreamCreate                  hipStreamCreate
+#define gpuHostRegister                  hipHostRegister
+#define gpuHostRegisterPortable          hipHostRegisterPortable
+
 #define gpuStreamDestroy                 hipStreamDestroy
 #define gpuStreamWaitEvent               hipStreamWaitEvent
 #define gpuStreamSynchronize             hipStreamSynchronize
@@ -101,6 +105,9 @@
 /* values used by kernels */
 #ifndef GPUTHREADS
 #define GPUTHREADS (64)
+#endif
+#ifndef WARPSPERBLOCK
+#define WARPSPERBLOCK (16)
 #endif
 #define FULL_MASK 0xffffffffffffffff
 

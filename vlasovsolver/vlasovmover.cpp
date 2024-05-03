@@ -33,8 +33,8 @@
 #include <dccrg.hpp>
 #include <phiprof.hpp>
 
-#include "../spatial_cell.hpp"
-#include "../vlasovmover.h"
+#include "../spatial_cell_wrapper.hpp"
+#include "vlasovmover.h"
 #include "../grid.h"
 #include "../definitions.h"
 #include "../object_wrapper.h"
@@ -45,6 +45,7 @@
 #include "cpu_trans_pencils.hpp"
 
 #ifdef USE_GPU
+#include "gpu_moments.h"
 #include "gpu_acc_map.hpp"
 #include "gpu_acc_semilag.hpp"
 #include "gpu_trans_map_amr.hpp"
@@ -494,6 +495,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
          phiprof::Timer verificationTimer {"gpu allocation verifications"};
          gpu_vlasov_allocate(gpuMaxBlockCount);
          gpu_acc_allocate(gpuMaxBlockCount);
+         gpu_blockadjust_allocate(gpuMaxBlockCount);
          verificationTimer.stop();
 #endif
 

@@ -186,8 +186,6 @@ namespace projects {
 
    Real Flowthrough::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
 
-      const FlowthroughSpeciesParameters& sP = speciesParams[popID];
-
       if (emptyBox == true) return 0.0;
       return getDistribValue(x+0.5*dx,y+0.5*dy,z+0.5*dz,vx+0.5*dvx,vy+0.5*dvy,vz+0.5*dvz,dvx,dvy,dvz,popID);
    }

@@ -2946,9 +2946,9 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             continue;
          }
       }
-      if(P::systemWriteAllDROs || lowercase == "vg_amr_alpha") {
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_alpha",CellParams::AMR_ALPHA,1));
-         outputReducer->addMetadata(outputReducer->size()-1,"","","$\\alpha$","");
+      if(P::systemWriteAllDROs || lowercase == "vg_amr_alpha1") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_alpha1",CellParams::AMR_ALPHA1,1));
+         outputReducer->addMetadata(outputReducer->size()-1,"","","$\\alpha_1$","");
          if(!P::systemWriteAllDROs) {
             continue;
          }
@@ -2960,9 +2960,9 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             continue;
          }
       }
-      if(P::systemWriteAllDROs || lowercase == "vg_amr_jperb") {
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_jperb",CellParams::AMR_JPERB,1));
-         outputReducer->addMetadata(outputReducer->size()-1,"1/m","m^{-1}","J/B_{\\perp}","");
+      if(P::systemWriteAllDROs || lowercase == "vg_amr_alpha2") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_alpha2",CellParams::AMR_ALPHA2,1));
+         outputReducer->addMetadata(outputReducer->size()-1,"","","$\\alpha_2","");
          if(!P::systemWriteAllDROs) {
             continue;
          }

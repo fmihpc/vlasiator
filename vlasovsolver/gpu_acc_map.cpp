@@ -67,17 +67,12 @@ __device__ void inline swapBlockIndices(vmesh::LocalID &blockIndices0,vmesh::Loc
 }
 
 __global__ void __launch_bounds__(VECL,4) reorder_blocks_by_dimension_kernel(
-   Realf *gpu_blockData,
+   vmesh::VelocityBlockContainer *blockContainer,
    Vec *gpu_blockDataOrdered,
    uint *gpu_cell_indices_to_id,
    uint totalColumns,
    vmesh::LocalID *gpu_LIDlist,
-   ColumnOffsets* columnData,
-   // These are just cleared
-   split::SplitVector<vmesh::GlobalID>* BlocksRequired,
-   split::SplitVector<vmesh::GlobalID>* BlocksToRemove,
-   split::SplitVector<vmesh::GlobalID>* BlocksToAdd,
-   split::SplitVector<vmesh::GlobalID>* BlocksToMove
+   ColumnOffsets* columnData
 ) {
    // Takes the contents of blockData, sorts it into blockDataOrdered,
    // performing transposes as necessary
@@ -86,6 +81,7 @@ __global__ void __launch_bounds__(VECL,4) reorder_blocks_by_dimension_kernel(
    const int ti = threadIdx.x;
    const int blocki = blockIdx.x;
    const int gpuBlocks = gridDim.x;
+   Realf *gpu_blockData = blockContainer->getData();
    if (nThreads != VECL) {
       if (ti==0) printf("Warning! VECL not matching thread count for GPU kernel!\n");
    }
@@ -129,16 +125,7 @@ __global__ void __launch_bounds__(VECL,4) reorder_blocks_by_dimension_kernel(
                gpu_blockDataOrdered[outputOffset + i_pcolumnv_gpu_b(jk, k, columnLength, columnLength)][ti] = 0.0;
          }
       }
-
    } // end loop iColumn
-   // Clear vectors
-   if (blockIdx.x == blockIdx.y == blockIdx.z == threadIdx.x == threadIdx.y == threadIdx.z == 0) {
-      BlocksRequired->clear();
-      BlocksToRemove->clear();
-      BlocksToAdd->clear();
-      BlocksToMove->clear();
-   }
-
    // Note: this kernel does not memset gpu_blockData to zero.
    // A separate memsetasync call is required for that.
 }
@@ -148,13 +135,13 @@ __global__ void __launch_bounds__(GPUTHREADS,4) identify_block_offsets_kernel(
    const vmesh::VelocityMesh* vmesh,
    Column *columns,
    const uint totalColumns,
-   const uint blockDataSize,
    uint *gpu_block_indices_to_id
    ) {
    const uint gpuBlocks = gridDim.x * gridDim.y * gridDim.z;
    const uint warpSize = blockDim.x * blockDim.y * blockDim.z;
    const uint blocki = blockIdx.z*gridDim.x*gridDim.y + blockIdx.y*gridDim.x + blockIdx.x;
    const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
+   const uint blockDataSize = vmesh->size();
 
    for (uint iColumn = blocki; iColumn < totalColumns; iColumn += gpuBlocks) {
       for (uint blockK = (uint)columns[iColumn].minBlockK; blockK <= (uint)columns[iColumn].maxBlockK; blockK += warpSize) {
@@ -182,7 +169,12 @@ __global__ void __launch_bounds__(GPUTHREADS,4) identify_block_offsets_kernel(
 // Serial kernel only to avoid page faults or prefetches
 __global__ void __launch_bounds__(1,4) count_columns_kernel (
    ColumnOffsets* gpu_columnData,
-   vmesh::LocalID* returnLID // gpu_totalColumns, gpu_valuesSizeRequired
+   vmesh::LocalID* returnLID, // gpu_totalColumns, gpu_valuesSizeRequired
+   // Pass vectors for clearing
+   split::SplitVector<vmesh::GlobalID> *list_with_replace_new,
+   split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>* list_delete,
+   split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>* list_to_replace,
+   split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>* list_with_replace_old
    ) {
    // const int gpuBlocks = gridDim.x * gridDim.y * gridDim.z;
    // const int warpSize = blockDim.x * blockDim.y * blockDim.z;
@@ -195,6 +187,13 @@ __global__ void __launch_bounds__(1,4) count_columns_kernel (
             returnLID[1] += (gpu_columnData->columnNumBlocks[columnIndex] + 2) * WID3 / VECL;
          }
       }
+   }
+   // Also clear these vectors
+   if ((blocki==0)&&(ti==0)) {
+      list_with_replace_new->clear();
+      list_delete->clear();
+      list_to_replace->clear();
+      list_with_replace_old->clear();
    }
 }
 
@@ -229,9 +228,9 @@ __global__ void __launch_bounds__(GPUTHREADS,4) evaluate_column_extents_kernel(
    const vmesh::VelocityMesh* vmesh,
    ColumnOffsets* gpu_columnData,
    Column *gpu_columns,
-   split::SplitVector<vmesh::GlobalID> *BlocksRequired,
-   split::SplitVector<vmesh::GlobalID> *BlocksToAdd,
-   split::SplitVector<vmesh::GlobalID> *BlocksToRemove,
+   split::SplitVector<vmesh::GlobalID> *list_with_replace_new,
+   Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *dev_map_require,
+   Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *dev_map_remove,
    vmesh::GlobalID *GIDlist,
    uint *gpu_block_indices_to_id,
    Realv intersection,
@@ -249,6 +248,7 @@ __global__ void __launch_bounds__(GPUTHREADS,4) evaluate_column_extents_kernel(
    const uint blocki = blockIdx.z*gridDim.x*gridDim.y + blockIdx.y*gridDim.x + blockIdx.x;
    const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
 
+   // Shared within all threads in one block
    __shared__ int isTargetBlock[MAX_BLOCKS_PER_DIM];
    __shared__ int isSourceBlock[MAX_BLOCKS_PER_DIM];
    for( uint setIndex=blocki; setIndex < gpu_columnData->setColumnOffsets.size(); setIndex += gpuBlocks) {
@@ -256,7 +256,7 @@ __global__ void __launch_bounds__(GPUTHREADS,4) evaluate_column_extents_kernel(
 
          // Clear flags used for this columnSet
          for(uint tti = 0; tti < MAX_BLOCKS_PER_DIM; tti += warpSize ) {
-            uint index = tti + ti;
+            const uint index = tti + ti;
             if (index < MAX_BLOCKS_PER_DIM) {
                isTargetBlock[index] = 0;
                isSourceBlock[index] = 0;
@@ -312,6 +312,11 @@ __global__ void __launch_bounds__(GPUTHREADS,4) evaluate_column_extents_kernel(
               ++columnIndex) {
             // Not parallelizing this at this level; not going to be many columns within a set
 
+            // Abort all threads if vector capacity bailout
+            if (bailout_flag[1] ) {
+               return;
+            }
+
             const vmesh::LocalID n_cblocks = gpu_columnData->columnNumBlocks[columnIndex];
             vmesh::GlobalID* cblocks = GIDlist + gpu_columnData->columnBlockOffsets[columnIndex]; //column blocks
             vmesh::LocalID firstBlockIndices0,firstBlockIndices1,firstBlockIndices2;
@@ -351,9 +356,9 @@ __global__ void __launch_bounds__(GPUTHREADS,4) evaluate_column_extents_kernel(
                || lastBlockIndexK < bailout_velocity_space_wall_margin
                || lastBlockIndexK >= max_v_length - bailout_velocity_space_wall_margin
                ) {
-               // Pass bailout flag back to host
+               // Pass bailout (hitting the wall) flag back to host
                if (ti==0) {
-                  *bailout_flag = 1;
+                  bailout_flag[0] = 1;
                }
             }
 
@@ -389,26 +394,26 @@ __global__ void __launch_bounds__(GPUTHREADS,4) evaluate_column_extents_kernel(
          __syncthreads();
 
          for (uint blockT = 0; blockT < MAX_BLOCKS_PER_DIM; blockT +=warpSize) {
-            uint blockK = blockT + ti;
+            const uint blockK = blockT + ti;
             if (blockK < MAX_BLOCKS_PER_DIM) {
                if(isTargetBlock[blockK]!=0)  {
                   const int targetBlock =
                      setFirstBlockIndices0 * gpu_block_indices_to_id[0] +
                      setFirstBlockIndices1 * gpu_block_indices_to_id[1] +
                      blockK                * gpu_block_indices_to_id[2];
-                  if(!BlocksRequired->device_push_back(targetBlock)) {
-                     bailout_flag[1]=1;
-                     return;
-                  }
+                  dev_map_require->set_element(targetBlock,vmesh->getLocalID(targetBlock));
+                  // if(!BlocksRequired->device_push_back(targetBlock)) {
+                  //    bailout_flag[1]=1;
+                  //    return;
+                  // }
                }
                if(isTargetBlock[blockK]!=0 && isSourceBlock[blockK]==0 )  {
                   const int targetBlock =
                      setFirstBlockIndices0 * gpu_block_indices_to_id[0] +
                      setFirstBlockIndices1 * gpu_block_indices_to_id[1] +
                      blockK                * gpu_block_indices_to_id[2];
-                  if(!BlocksToAdd->device_push_back(targetBlock)) {
-                     bailout_flag[1]=2;
-                     return;
+                  if(!list_with_replace_new->device_push_back(targetBlock)) {
+                     bailout_flag[1]=1; // out of capacity
                   }
 
                }
@@ -417,10 +422,13 @@ __global__ void __launch_bounds__(GPUTHREADS,4) evaluate_column_extents_kernel(
                      setFirstBlockIndices0 * gpu_block_indices_to_id[0] +
                      setFirstBlockIndices1 * gpu_block_indices_to_id[1] +
                      blockK                * gpu_block_indices_to_id[2];
-                  if(!BlocksToRemove->device_push_back(targetBlock)) {
-                     bailout_flag[1]=3;
-                     return;
-                  }
+                  dev_map_remove->set_element(targetBlock,vmesh->getLocalID(targetBlock));
+                  // GPUTODO: could use device_insert to verify insertion, but not worth it
+                  // if(!list_to_replace->device_push_back(
+                  //       Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>(targetBlock,vmesh->getLocalID(targetBlock)))) {
+                  //    bailout_flag[2]=1; // out of capacity
+                  //    return;
+                  // }
                }
             } // block within MAX_BLOCKS_PER_DIM
          } // loop over all potential blocks
@@ -429,27 +437,27 @@ __global__ void __launch_bounds__(GPUTHREADS,4) evaluate_column_extents_kernel(
 }
 
 __global__ void __launch_bounds__(VECL,4) acceleration_kernel(
-  Realf *gpu_blockData,
-  Vec *gpu_blockDataOrdered,
-  uint *gpu_cell_indices_to_id,
-  Column *gpu_columns,
-  uint totalColumns,
-  Realv intersection,
-  Realv intersection_di,
-  Realv intersection_dj,
-  Realv intersection_dk,
-  Realv v_min,
-  Realv i_dv,
-  Realv dv,
-  Realv minValue,
-  const uint bdsw3,
-  const size_t invalidLID
+   vmesh::VelocityBlockContainer *blockContainer,
+   Vec *gpu_blockDataOrdered,
+   uint *gpu_cell_indices_to_id,
+   Column *gpu_columns,
+   uint totalColumns,
+   Realv intersection,
+   Realv intersection_di,
+   Realv intersection_dj,
+   Realv intersection_dk,
+   Realv v_min,
+   Realv i_dv,
+   Realv dv,
+   Realv minValue,
+   const size_t invalidLID
 ) {
    const uint gpuBlocks = gridDim.x * gridDim.y * gridDim.z;
    //const uint warpSize = blockDim.x * blockDim.y * blockDim.z;
    const uint blocki = blockIdx.z*gridDim.x*gridDim.y + blockIdx.y*gridDim.x + blockIdx.x;
    const uint index = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
 
+   Realf *gpu_blockData = blockContainer->getData();
    for (uint column = blocki; column < totalColumns; column += gpuBlocks) {
       /* New threading with each warp/wavefront working on one vector */
       Realf v_r0 = ( (WID * gpu_columns[column].kBegin) * dv + v_min);
@@ -573,23 +581,23 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
                               gpuStream_t stream
    ) {
    // Ensure previous actions have completed?
-   SSYNC;
    //CHK_ERR( gpuStreamSynchronize(stream) );
+
    phiprof::Timer paramsTimer {"Get acc parameters"};
+   //spatial_cell->dev_upload_population(popID); // Should not be necessary.
    vmesh::VelocityMesh* vmesh    = spatial_cell->get_velocity_mesh(popID);
    vmesh::VelocityBlockContainer* blockContainer = spatial_cell->get_velocity_blocks(popID);
-   Realf *blockData = blockContainer->getData();
+   vmesh::VelocityMesh* dev_vmesh    = spatial_cell->dev_get_velocity_mesh(popID);
+   vmesh::VelocityBlockContainer* dev_blockContainer = spatial_cell->dev_get_velocity_blocks(popID);
 
-   // Thread id used for persistent device memory pointers
-#ifdef _OPENMP
-      const uint cpuThreadID = omp_get_thread_num();
-#else
-      const uint cpuThreadID = 0;
-#endif
+   //nothing to do if no blocks
+   vmesh::LocalID nBlocksBeforeAdjust = vmesh->size();
+   if (nBlocksBeforeAdjust == 0) {
+      return true;
+   }
 
    auto minValue = spatial_cell->getVelocityBlockMinValue(popID);
    // These query velocity mesh parameters which are duplicated for both host and device
-   const uint nBlocks = vmesh->size();
    const vmesh::LocalID D0 = vmesh->getGridLength()[0];
    const vmesh::LocalID D1 = vmesh->getGridLength()[1];
    //const vmesh::LocalID D2 = vmesh->getGridLength()[2];
@@ -598,53 +606,27 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    const int max_v_length  = (int)vmesh->getGridLength()[dimension];
    const Realv i_dv = 1.0/dv;
 
+   // Thread id used for persistent device memory pointers
+   const uint cpuThreadID = gpu_getThread();
+
    // For use later
-   //Real host_returnReal[8];
+   // Real host_returnReal[8];
    vmesh::LocalID host_returnLID[8];
    vmesh::LocalID *gpu_returnLID = returnLID[cpuThreadID];
    paramsTimer.stop();
 
-   //nothing to do if no blocks
-   if(nBlocks == 0) {
-      return true;
-   }
-
-   phiprof::Timer attachTimer {"stream Attach, prefetch"};
-   if (needAttachedStreams) {
-      blockContainer->gpu_attachToStream(stream);
-      vmesh->gpu_attachToStream(stream);
-   }
-   if (doPrefetches) {
-      blockContainer->gpu_prefetchDevice();
-      vmesh->gpu_prefetchDevice();
-   }
-   attachTimer.stop();
-
-   phiprof::Timer offsetsTimer {"create columnOffsets in unified memory, attach, prefetch"};
-   // lists in unified memory
-   ColumnOffsets *columnData = unif_columnOffsetData[cpuThreadID];
-   // Verify unified memory stream attach
-   if (needAttachedStreams) {
-      columnData->gpu_attachToStream(stream);
-   }
-   if (doPrefetches) {
-      columnData->columnBlockOffsets.optimizeGPU(stream);
-      columnData->columnNumBlocks.optimizeGPU(stream);
-      columnData->setColumnOffsets.optimizeGPU(stream);
-      columnData->setNumColumns.optimizeGPU(stream);
-      CHK_ERR( gpuMemPrefetchAsync(columnData,sizeof(ColumnOffsets),gpu_getDevice(),stream) );
-   }
-   SSYNC;
-   offsetsTimer.stop();
+   phiprof::Timer bookkeepingTimer {"Bookkeeping"};
    // Some kernels in here require the number of threads to be equal to VECL.
    // Future improvements would be to allow setting it directly to WID3.
    // Other kernels (not handling block data) can use GPUTHREADS which
    // is equal to NVIDIA: 32 or AMD: 64.
-   phiprof::Timer bookkeepingTimer {"Bookkeeping"};
 
    /*< used when computing id of target block, 0 for compiler */
    uint block_indices_to_id[3] = {0, 0, 0};
    uint cell_indices_to_id[3] = {0, 0, 0};
+   // 13.11.2023: for some reason these hostRegister calls say the memory is already registered.
+   // CHK_ERR(gpuHostRegister(block_indices_to_id, 3*sizeof(uint),gpuHostRegisterPortable));
+   // CHK_ERR(gpuHostRegister(cell_indices_to_id, 3*sizeof(uint),gpuHostRegisterPortable));
 
    Realv is_temp;
    switch (dimension) {
@@ -696,7 +678,24 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    CHK_ERR( gpuMemcpyAsync(gpu_cell_indices_to_id[cpuThreadID], cell_indices_to_id, 3*sizeof(uint), gpuMemcpyHostToDevice, stream) );
    CHK_ERR( gpuMemcpyAsync(gpu_block_indices_to_id[cpuThreadID], block_indices_to_id, 3*sizeof(uint), gpuMemcpyHostToDevice, stream) );
 
-   // or device memory
+   // Ensure allocations
+   spatial_cell->setReservation(popID, nBlocksBeforeAdjust);
+   phiprof::Timer cellReservationTimer {"cell-apply-reservation"};
+   spatial_cell->applyReservation(popID);
+   cellReservationTimer.stop();
+   phiprof::Timer perthreadReservationTimer {"blockadjust_allocate_perthread"};
+   gpu_blockadjust_allocate_perthread(cpuThreadID,spatial_cell->getReservation(popID)*2);
+   perthreadReservationTimer.stop();
+   // Re-use maps from cell itself
+   Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *map_require = spatial_cell->velocity_block_with_content_map;
+   Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *map_remove = spatial_cell->velocity_block_with_no_content_map;
+   Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *dev_map_require = spatial_cell->dev_velocity_block_with_content_map;
+   Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *dev_map_remove = spatial_cell->dev_velocity_block_with_no_content_map;
+   // GPUTODO: Instead of a vector with push_backs, could use map_add? Perhaps not worth it.
+   // Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *map_add = gpu_map_add[cpuThreadID];
+   // map_add->clear(Hashinator::targets::device,stream,false);
+
+   // pointers to device memory buffers
    vmesh::GlobalID *GIDlist = gpu_GIDlist[cpuThreadID];
    vmesh::LocalID *LIDlist = gpu_LIDlist[cpuThreadID];
    vmesh::GlobalID *BlocksID_mapped = gpu_BlocksID_mapped[cpuThreadID];
@@ -704,15 +703,25 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    vmesh::LocalID *LIDlist_unsorted = gpu_LIDlist_unsorted[cpuThreadID];
    vmesh::LocalID *columnNBlocks = gpu_columnNBlocks[cpuThreadID];
 
+   // Columndata is device construct but contains splitvectors
+   ColumnOffsets *columnData = gpu_columnOffsetData[cpuThreadID];
+   //columnData->prefetchDevice(stream);
+
+   // These splitvectors are in unified memory
+   split::SplitVector<vmesh::GlobalID> *list_with_replace_new = gpu_list_with_replace_new[cpuThreadID];
+   split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>* list_delete = gpu_list_delete[cpuThreadID];
+   split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>* list_to_replace = gpu_list_to_replace[cpuThreadID];
+   split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>* list_with_replace_old = gpu_list_with_replace_old[cpuThreadID];
+   bookkeepingTimer.stop();
+
    // Call function for sorting block list and building columns from it.
    // Can probably be further optimized.
-   bookkeepingTimer.stop();
    phiprof::Timer sortTimer {"sortBlockList"};
-   gpuStream_t priorityStream = gpu_getPriorityStream();
+   //gpuStream_t priorityStream = gpu_getPriorityStream();
    CHK_ERR( gpuMemsetAsync(columnNBlocks, 0, gpu_acc_columnContainerSize*sizeof(vmesh::LocalID), stream) );
-   CHK_ERR( gpuStreamSynchronize(stream) ); // Yes needed because we use priority stream for block list sorting
-   sortBlocklistByDimension(vmesh,
-                            nBlocks,
+   //CHK_ERR( gpuStreamSynchronize(stream) ); // Yes needed because we use priority stream for block list sorting
+   sortBlocklistByDimension(dev_vmesh,
+                            nBlocksBeforeAdjust,
                             dimension,
                             BlocksID_mapped,
                             BlocksID_mapped_sorted,
@@ -733,7 +742,12 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    // this needs to be serial, but is fast.
    count_columns_kernel<<<1, 1, 0, stream>>> (
       columnData,
-      gpu_returnLID //gpu_totalColumns,gpu_valuesSizeRequired
+      gpu_returnLID, //gpu_totalColumns,gpu_valuesSizeRequired
+      // Pass vectors for clearing
+      list_with_replace_new,
+      list_delete,
+      list_to_replace,
+      list_with_replace_old
       );
    CHK_ERR( gpuPeekAtLastError() );
    CHK_ERR( gpuMemcpyAsync(host_returnLID, gpu_returnLID, 2*sizeof(vmesh::LocalID), gpuMemcpyDeviceToHost, stream) );
@@ -746,16 +760,16 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    }
    countTimer.stop();
 
-   phiprof::Timer hostTimer {"Host columns"};
+   //phiprof::Timer hostTimer {"Host columns"};
    // Create array of column objects
    Column host_columns[host_totalColumns];
    // and copy it into device memory
    Column *columns = gpu_columns[cpuThreadID];
    CHK_ERR( gpuMemcpyAsync(columns, &host_columns, host_totalColumns*sizeof(Column), gpuMemcpyHostToDevice, stream) );
-   SSYNC;
-   hostTimer.stop();
+   //SSYNC;
+   //hostTimer.stop();
 
-   phiprof::Timer storeTimer {"Store offsets into columns"};
+   //phiprof::Timer storeTimer {"Store offsets into columns"};
    // this needs to be serial, but is fast.
    offsets_into_columns_kernel<<<1, 1, 0, stream>>> (
       columnData,
@@ -763,52 +777,41 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       host_valuesSizeRequired
       );
    CHK_ERR( gpuPeekAtLastError() );
-   SSYNC;
-   storeTimer.stop();
+   //CHK_ERR( gpuStreamSynchronize(stream) );
+   //storeTimer.stop();
 
-   phiprof::Timer reorderTimer {"Reorder blocks by dimension"};
+   //phiprof::Timer reorderTimer {"Reorder blocks by dimension"};
    uint gpublocks = host_totalColumns > GPUBLOCKS ? GPUBLOCKS : host_totalColumns;
    // Launch kernels for transposing and ordering velocity space data into columns
    reorder_blocks_by_dimension_kernel<<<gpublocks, VECL, 0, stream>>> (
-      blockData, // unified memory, incoming
+      dev_blockContainer,
       gpu_blockDataOrdered[cpuThreadID],
       gpu_cell_indices_to_id[cpuThreadID],
       host_totalColumns,
       LIDlist,
-      columnData,
-      // Also clears these vectors
-      spatial_cell->BlocksRequired,
-      spatial_cell->BlocksToAdd,
-      spatial_cell->BlocksToRemove,
-      spatial_cell->BlocksToMove
+      columnData
       );
    CHK_ERR( gpuPeekAtLastError() );
-   SSYNC;
-   reorderTimer.stop();
-   CHK_ERR( gpuStreamSynchronize(stream) );
+   //CHK_ERR( gpuStreamSynchronize(stream) );
+   //reorderTimer.stop();
 
-   // Make sure the BlocksRequired / -ToAdd and / -ToRemove buffers are large enough
-   if(spatial_cell->BlocksRequired->capacity() < spatial_cell->getReservation(popID) * BLOCK_ALLOCATION_FACTOR) {
-        spatial_cell->BlocksRequired->reserve(spatial_cell->getReservation(popID)*BLOCK_ALLOCATION_PADDING, true);
-        spatial_cell->BlocksRequired->optimizeGPU(stream);
-        spatial_cell->BlocksToAdd->reserve(spatial_cell->getReservation(popID)*BLOCK_ALLOCATION_PADDING, true);
-        spatial_cell->BlocksToAdd->optimizeGPU(stream);
-         // The remove buffer never needs to be larger than our current size.
-        spatial_cell->BlocksToRemove->reserve(spatial_cell->get_population(popID).reservation,true);
-        spatial_cell->BlocksToRemove->optimizeGPU(stream);
-   }
    // Calculate target column extents
    phiprof::Timer evaluateExtentsTimer {"Evaluate column extents kernel"};
    do {
       CHK_ERR( gpuMemsetAsync(gpu_returnLID, 0, 2*sizeof(vmesh::LocalID), stream) );
+      map_require->clear(Hashinator::targets::device,stream,false,std::pow(2,spatial_cell->vbwcl_sizePower));
+      map_remove->clear(Hashinator::targets::device,stream,false,std::pow(2,spatial_cell->vbwncl_sizePower));
+      // Hashmap clear includes a stream sync
+      //CHK_ERR( gpuStreamSynchronize(stream) );
+      //map_add->clear(Hashinator::targets::device,stream,false);
       evaluate_column_extents_kernel<<<gpublocks, GPUTHREADS, 0, stream>>> (
          dimension,
-         vmesh,
+         dev_vmesh,
          columnData,
          columns,
-         spatial_cell->BlocksRequired,
-         spatial_cell->BlocksToAdd,
-         spatial_cell->BlocksToRemove,
+         list_with_replace_new, // or map_add
+         dev_map_require,
+         dev_map_remove,
          GIDlist,
          gpu_block_indices_to_id[cpuThreadID],
          intersection,
@@ -821,10 +824,9 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
          dv,
          gpu_returnLID //gpu_bailout_flag:
                        // - element[0]: touching velspace wall
-                       // - element[1]: splitvector capacity error
+                       // - element[1]: splitvector list_with_replace_new capacity error
          );
       CHK_ERR( gpuPeekAtLastError() );
-      SSYNC;
       // Check if we need to bailout due to hitting v-space edge
       CHK_ERR( gpuMemcpyAsync(host_returnLID, gpu_returnLID, 2*sizeof(vmesh::LocalID), gpuMemcpyDeviceToHost, stream) );
       CHK_ERR( gpuStreamSynchronize(stream) );
@@ -840,64 +842,79 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       }
 
       // Check whether we exceeded the column data splitVectors on the way
-      if (host_returnLID[1] != 0) {  
+      if (host_returnLID[1] != 0) {
          // If so, recapacitate and try again.
          // We'll take at least our current velspace size (plus safety factor), or, if that wasn't enough,
          // twice what we had before.
-         size_t newCapacity = std::max(
-               (size_t)(spatial_cell->getReservation(popID)*BLOCK_ALLOCATION_FACTOR),
-               2*spatial_cell->BlocksRequired->size());
-
-         spatial_cell->BlocksRequired->clear();
-         spatial_cell->BlocksToAdd->clear();
-         spatial_cell->BlocksToRemove->clear();
-
-         spatial_cell->BlocksRequired->reserve(newCapacity,true);
-         spatial_cell->BlocksRequired->optimizeGPU(stream);
-         spatial_cell->BlocksToAdd->reserve(newCapacity,true);
-         spatial_cell->BlocksToAdd->optimizeGPU(stream);
+         size_t newCapacity = (size_t)(spatial_cell->getReservation(popID)*BLOCK_ALLOCATION_FACTOR);
+         //printf("column data recapacitate! %lu newCapacity\n",(long unsigned)newCapacity);
+         list_with_replace_new->clear(); // only if not using map_add
+         spatial_cell->setReservation(popID, newCapacity);
+         spatial_cell->applyReservation(popID);
       }
-   } while(host_returnLID[1] != 0);
+      // Loop until we return without an out-of-capacity error
+   } while (host_returnLID[1] != 0);
    evaluateExtentsTimer.stop();
 
-   if (spatial_cell->BlocksToRemove->size() > spatial_cell->BlocksToAdd->size()) {
-      // If we hit v-space walls, we may end up removing more blocks than we create.
-      spatial_cell->update_blocks_to_move_caller(popID);
-   }
+   /** Rules used in extracting keys or elements from hashmaps
+       Now these include passing pointers to GPU memory in order to evaluate
+       nBlocksAfterAdjust without going via host. Pointers are copied by value.
+   */
+   vmesh::GlobalID EMPTYBUCKET = std::numeric_limits<vmesh::GlobalID>::max();
+   vmesh::GlobalID TOMBSTONE = EMPTYBUCKET - 1;
 
-   phiprof::Timer addDeleteTimer {"Add and delete blocks"};
-   // Note: in this call, unless hitting v-space walls, BlocksToMove is empty as we only grow the vspace size.
-   spatial_cell->adjust_velocity_blocks_caller(popID);
-   // Velocity space has all extra blocks added and/or removed for the transform target
+   auto rule_delete_move = [EMPTYBUCKET, TOMBSTONE, dev_map_remove, list_with_replace_new, dev_vmesh]
+      __host__ __device__(const Hashinator::hash_pair<vmesh::GlobalID, vmesh::LocalID>& kval) -> bool {
+                              const vmesh::LocalID nBlocksAfterAdjust1 = dev_vmesh->size()
+                                 + list_with_replace_new->size() - dev_map_remove->size();
+                              return kval.first != EMPTYBUCKET &&
+                                 kval.first != TOMBSTONE &&
+                                 kval.second >= nBlocksAfterAdjust1 &&
+                                 kval.second != vmesh::INVALID_LOCALID; };
+   auto rule_to_replace = [EMPTYBUCKET, TOMBSTONE, dev_map_remove, list_with_replace_new, dev_vmesh]
+      __host__ __device__(const Hashinator::hash_pair<vmesh::GlobalID, vmesh::LocalID>& kval) -> bool {
+                             const vmesh::LocalID nBlocksAfterAdjust2 = dev_vmesh->size()
+                                + list_with_replace_new->size() - dev_map_remove->size();
+                             return kval.first != EMPTYBUCKET &&
+                                kval.first != TOMBSTONE &&
+                                kval.second < nBlocksAfterAdjust2; };
+
+   // Additions are gathered directly into list instead of a map/set
+   map_require->extractPatternLoop(*list_with_replace_old, rule_delete_move, stream);
+   map_remove->extractPatternLoop(*list_delete, rule_delete_move, stream);
+   map_remove->extractPatternLoop(*list_to_replace, rule_to_replace, stream);
+   //CHK_ERR( gpuStreamSynchronize(stream) );
+
+   // Note: in this call, unless hitting v-space walls, we only grow the vspace size
+   // and thus do not delete blocks or replace with old blocks. There's a timer in this caller function.
+   vmesh::LocalID nBlocksAfterAdjust = spatial_cell->adjust_velocity_blocks_caller(popID);
+   // Velocity space has now all extra blocks added and/or removed for the transform target
    // and will not change shape anymore.
-   const uint newNBlocks = vmesh->size();
-   const uint bdsw3 = newNBlocks * WID3;
-   addDeleteTimer.stop();
 
-   // Put into second (high-priority) stream for concurrency
-   // Zero out target data on device (unified) (note, pointer needs to be re-fetched)
-   phiprof::Timer memsetTimer {"Memset ACC blocks to zero"};
-   blockData = blockContainer->getData();
-   CHK_ERR( gpuMemsetAsync(blockData, 0, bdsw3*sizeof(Realf), stream) );
-   SSYNC;
-   memsetTimer.stop();
+   // Put into second (high-priority) stream for concurrency?
+   // Zero out target data on device (unified) (note, pointer needs to be re-fetched
+   // here in case VBC size was increased)
+   //phiprof::Timer memsetTimer {"Memset ACC blocks to zero"};
+   //GPUTODO: direct access to blockContainer getData causes page fault
+   Realf *blockData = blockContainer->getData();
+   CHK_ERR( gpuMemsetAsync(blockData, 0, nBlocksAfterAdjust*WID3*sizeof(Realf), stream) );
+   //CHK_ERR( gpuStreamSynchronize(stream) );
+   //memsetTimer.stop();
 
-   phiprof::Timer identifyOffsetsTimer {"identify new block offsets kernel"};
+   //phiprof::Timer identifyOffsetsTimer {"identify new block offsets kernel"};
    identify_block_offsets_kernel<<<gpublocks, GPUTHREADS, 0, stream>>> (
-      vmesh,
+      dev_vmesh,
       columns,
       host_totalColumns,
-      newNBlocks,
       gpu_block_indices_to_id[cpuThreadID]
       );
    CHK_ERR( gpuPeekAtLastError() );
-   SSYNC;
-   identifyOffsetsTimer.stop();
+   //CHK_ERR( gpuStreamSynchronize(stream) );
+   //identifyOffsetsTimer.stop();
 
-   CHK_ERR( gpuStreamSynchronize(stream) ); // Yes needed to ensure block data was zeroed
    phiprof::Timer semilagAccKernel {"Semi-Lagrangian acceleration kernel"};
    acceleration_kernel<<<gpublocks, VECL, 0, stream>>> (
-      blockData,
+      dev_blockContainer,
       gpu_blockDataOrdered[cpuThreadID],
       gpu_cell_indices_to_id[cpuThreadID],
       columns,
@@ -910,13 +927,9 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       i_dv,
       dv,
       minValue,
-      bdsw3,
       vmesh->invalidLocalID()
       );
    CHK_ERR( gpuPeekAtLastError() );
-   SSYNC;
-
-   // Wait until everything is complete before returning
    CHK_ERR( gpuStreamSynchronize(stream) );
    semilagAccKernel.stop();
 

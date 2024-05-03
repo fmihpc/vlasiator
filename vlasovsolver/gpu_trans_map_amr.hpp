@@ -25,7 +25,7 @@
 #include <vector>
 #include "vec.h"
 #include "../common.h"
-#include "../spatial_cell.hpp"
+#include "../spatial_cell_wrapper.hpp"
 
 // Vectors and set for use in translation. Cannot be declared in arch/gpu_base.hpp, because of
 // compilation errors.

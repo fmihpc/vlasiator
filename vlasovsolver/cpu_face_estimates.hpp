@@ -25,6 +25,7 @@
 
 #include "vec.h"
 #include "cpu_slope_limiters.hpp"
+#include "../definitions.h"
 
 #include "../arch/arch_device_api.h"
 
@@ -176,6 +177,7 @@ ARCH_HOSTDEV inline void compute_h4_left_face_value(const Vec * const values, ui
   \param h Array with cell widths. Can be in abritrary units since they always cancel. Maybe 1/refinement ratio?
 */
 ARCH_HOSTDEV inline void compute_h4_left_face_value_nonuniform(const Realf * const h, const Vec * const u, uint k, Vec &fv_l) {
+
    fv_l = (
            1.0 / ( h[k - 2] + h[k - 1] + h[k] + h[k + 1] )
            * ( ( h[k - 2] + h[k - 1] ) * ( h[k] + h[k + 1] ) / ( h[k - 1] + h[k] )
