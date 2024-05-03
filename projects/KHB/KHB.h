@@ -61,8 +61,8 @@ namespace projects {
          TOP,
          BOTTOM
          };
+      Real P;
       Real rho[2];
-      Real T[2];
       Real Vx[2];
       Real Vy[2];
       Real Vz[2];
