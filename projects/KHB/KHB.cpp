@@ -92,7 +92,7 @@ namespace projects {
    }
    
    
-   Real KHB::profile(creal top, creal bottom, creal x, creal z) const {
+   Real KHB::profile(creal top, creal bottom, creal x) const {
       if(top == bottom) {
          return top;
       }
@@ -105,25 +105,25 @@ namespace projects {
       }
    }
    
-   Real KHB::getDistribValue(creal& x, creal& z, creal& vx, creal& vy, creal& vz, const uint popID) const {
+   Real KHB::getDistribValue(creal& x, creal& y, creal& vx, creal& vy, creal& vz, const uint popID) const {
       creal mass = physicalconstants::MASS_PROTON;
-      Real rho = profile(this->rho[this->BOTTOM], this->rho[this->TOP], x, z);
-      Real Vx = profile(this->Vx[this->BOTTOM], this->Vx[this->TOP], x, z);
-      Real Vy = profile(this->Vy[this->BOTTOM], this->Vy[this->TOP], x, z);
-      Real Vz = profile(this->Vz[this->BOTTOM], this->Vz[this->TOP], x, z);
+      Real rho = profile(this->rho[this->BOTTOM], this->rho[this->TOP], x);
+      Real Vx = profile(this->Vx[this->BOTTOM], this->Vx[this->TOP], x);
+      Real Vy = profile(this->Vy[this->BOTTOM], this->Vy[this->TOP], x);
+      Real Vz = profile(this->Vz[this->BOTTOM], this->Vz[this->TOP], x);
 
       // add an initial velocity perturbation
       if (this->offset != 0.0) {
-         Vx += amp * sin(2.0 * M_PI * y / this->lambda) * (exp(-pow((x + this->offset) / this->transitionWidth,2)) + exp(-pow((x - this->offset) / this->transitionWidth,2)));
-      } else {
-         Vx += amp * sin(2.0 * M_PI * y / this->lambda) * exp(-pow(x / this->transitionWidth,2));
+         Vx += this->amp * sin(2.0 * M_PI * y / this->lambda) * (exp(-pow((x + this->offset) / this->transitionWidth,2)) + exp(-pow((x - this->offset) / this->transitionWidth,2)));
+      } else {
+         Vx += this->amp * sin(2.0 * M_PI * y / this->lambda) * exp(-pow(x / this->transitionWidth,2));
       }
 
       // calculate the temperature such that the total pressure is constant across the domain
       Real mu0 = physicalconstants::MU_0;
-      Real Bx = profile(this->Bx[LEFT], this->Bx[RIGHT], x, y, z);
-      Real By = profile(this->By[LEFT], this->By[RIGHT], x, y, z);
-      Real Bz = profile(this->Bz[LEFT], this->Bz[RIGHT], x, y, z);
+      Real Bx = profile(this->Bx[this->BOTTOM], this->Bx[this->TOP], x);
+      Real By = profile(this->By[this->BOTTOM], this->By[this->TOP], x);
+      Real Bz = profile(this->Bz[this->BOTTOM], this->Bz[this->TOP], x);
       Real kbT = (this->P - 0.5 * (Bx * Bx + By * By + Bz * Bz) / mu0) / rho;     
  
       return rho * pow(mass / (2.0 * M_PI * kbT), 1.5) *
@@ -131,7 +131,7 @@ namespace projects {
    }
 
    Real KHB::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {   
-      return getDistribValue(x+0.5*dx, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, popID);
+      return getDistribValue(x+0.5*dx, y+0.5*dy, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, popID);
    }   
 
    void KHB::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
@@ -153,9 +153,9 @@ namespace projects {
                   const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
                   
-                  cell->at(fsgrids::bfield::PERBX) = profile(this->Bx[this->BOTTOM], this->Bx[this->TOP], xyz[0]+0.5*perBGrid.DX, xyz[2]+0.5*perBGrid.DZ);
-                  cell->at(fsgrids::bfield::PERBY) = profile(this->By[this->BOTTOM], this->By[this->TOP], xyz[0]+0.5*perBGrid.DX, xyz[2]+0.5*perBGrid.DZ);
-                  cell->at(fsgrids::bfield::PERBZ) = profile(this->Bz[this->BOTTOM], this->Bz[this->TOP], xyz[0]+0.5*perBGrid.DX, xyz[2]+0.5*perBGrid.DZ);
+                  cell->at(fsgrids::bfield::PERBX) = profile(this->Bx[this->BOTTOM], this->Bx[this->TOP], xyz[0]+0.5*perBGrid.DX);
+                  cell->at(fsgrids::bfield::PERBY) = profile(this->By[this->BOTTOM], this->By[this->TOP], xyz[0]+0.5*perBGrid.DX);
+                  cell->at(fsgrids::bfield::PERBZ) = profile(this->Bz[this->BOTTOM], this->Bz[this->TOP], xyz[0]+0.5*perBGrid.DX);
                }
             }
          }
