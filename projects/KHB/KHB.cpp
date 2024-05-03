@@ -59,6 +59,7 @@ namespace projects {
       RP::add("KHB.amp", "Initial velocity perturbation amplitude (m s^-1)", 0.0);
       RP::add("KHB.offset", "Boundaries offset from 0 (m)", 0.0);
       RP::add("KHB.transitionWidth", "Width of tanh transition for all changing values", 0.0);
+      RP::add("KHB.harmonics", "Number of harmonics of lambda included in the initial perturbation", 0);
    }
 
    void KHB::getParameters() {
@@ -89,6 +90,7 @@ namespace projects {
       RP::get("KHB.amp", this->amp);
       RP::get("KHB.offset", this->offset);
       RP::get("KHB.transitionWidth", this->transitionWidth);
+      RP::get("KHB.harmonics", this->harmonics);
    }
    
    
@@ -113,10 +115,12 @@ namespace projects {
       Real Vz = profile(this->Vz[this->BOTTOM], this->Vz[this->TOP], x);
 
       // add an initial velocity perturbation
-      if (this->offset != 0.0) {
-         Vx += this->amp * sin(2.0 * M_PI * y / this->lambda) * (exp(-pow((x + this->offset) / this->transitionWidth,2)) + exp(-pow((x - this->offset) / this->transitionWidth,2)));
-      } else {
-         Vx += this->amp * sin(2.0 * M_PI * y / this->lambda) * exp(-pow(x / this->transitionWidth,2));
+      for (uint i=0; i<=this->harmonics; i++) {
+         if (this->offset != 0.0) {
+            Vx += this->amp * sin(2.0 * (i + 1) * M_PI * y / this->lambda) * (exp(-pow((x + this->offset) / this->transitionWidth,2)) + exp(-pow((x - this->offset) / this->transitionWidth,2)));
+         } else {
+            Vx += this->amp * sin(2.0 * (i + 1) * M_PI * y / this->lambda) * exp(-pow(x / this->transitionWidth,2));
+         }
       }
 
       // calculate the temperature such that the total pressure is constant across the domain

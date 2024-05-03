@@ -73,6 +73,7 @@ namespace projects {
       Real amp;
       Real offset;
       Real transitionWidth;
+      int harmonics;
    }; // class KHB
 } // namespace
 #endif
