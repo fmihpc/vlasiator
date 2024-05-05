@@ -60,6 +60,7 @@ namespace projects {
       RP::add("KHB.offset", "Boundaries offset from 0 (m)", 0.0);
       RP::add("KHB.transitionWidth", "Width of tanh transition for all changing values", 0.0);
       RP::add("KHB.harmonics", "Number of harmonics of lambda included in the initial perturbation", 0);
+      RP::add("KHB.randomPhase", "If true, set a random phase for each mode of the initial perturbation. Seed set via project_common.seed", 0);
    }
 
    void KHB::getParameters() {
@@ -91,6 +92,7 @@ namespace projects {
       RP::get("KHB.offset", this->offset);
       RP::get("KHB.transitionWidth", this->transitionWidth);
       RP::get("KHB.harmonics", this->harmonics);
+      RP::get("KHB.randomPhase", this->randomPhase);
    }
    
    
@@ -114,12 +116,21 @@ namespace projects {
       Real Vy = profile(this->Vy[this->BOTTOM], this->Vy[this->TOP], x);
       Real Vz = profile(this->Vz[this->BOTTOM], this->Vz[this->TOP], x);
 
+      // initialize RNG for calculating random phases for the initial perturbation
+      std::default_random_engine rndState;
+      setRandomSeed(0,rndState);
+      Real phase = 0.0;
+
       // add an initial velocity perturbation
       for (uint i=0; i<=this->harmonics; i++) {
+	 if (this->randomPhase) {
+            phase = 2.0 * M_PI * getRandomNumber(rndState); 
+         }
+
          if (this->offset != 0.0) {
-            Vx += this->amp * sin(2.0 * (i + 1) * M_PI * y / this->lambda) * (exp(-pow((x + this->offset) / this->transitionWidth,2)) + exp(-pow((x - this->offset) / this->transitionWidth,2)));
+            Vx += this->amp * sin(2.0 * (i + 1) * M_PI * y / this->lambda + phase) * (exp(-pow((x + this->offset) / this->transitionWidth,2)) + exp(-pow((x - this->offset) / this->transitionWidth,2)));
          } else {
-            Vx += this->amp * sin(2.0 * (i + 1) * M_PI * y / this->lambda) * exp(-pow(x / this->transitionWidth,2));
+            Vx += this->amp * sin(2.0 * (i + 1) * M_PI * y / this->lambda + phase) * exp(-pow(x / this->transitionWidth,2));
          }
       }
 

@@ -74,6 +74,7 @@ namespace projects {
       Real offset;
       Real transitionWidth;
       int harmonics;
+      bool randomPhase;
    }; // class KHB
 } // namespace
 #endif
