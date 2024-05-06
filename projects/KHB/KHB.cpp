@@ -122,7 +122,7 @@ namespace projects {
       Real phase = 0.0;
 
       // add an initial velocity perturbation
-      for (uint i=0; i<=this->harmonics; i++) {
+      for (int i=0; i<=this->harmonics; i++) {
 	 if (this->randomPhase) {
             phase = 2.0 * M_PI * getRandomNumber(rndState); 
          }
