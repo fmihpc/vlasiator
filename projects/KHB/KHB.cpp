@@ -110,7 +110,7 @@ namespace projects {
    }
    
    Real KHB::getDistribValue(creal& x, creal& y, creal& vx, creal& vy, creal& vz, const uint popID) const {
-      creal mass = physicalconstants::MASS_PROTON;
+      creal mass = getObjectWrapper().particleSpecies[popID].mass;
       Real rho = profile(this->rho[this->BOTTOM], this->rho[this->TOP], x);
       Real Vx = profile(this->Vx[this->BOTTOM], this->Vx[this->TOP], x);
       Real Vy = profile(this->Vy[this->BOTTOM], this->Vy[this->TOP], x);
