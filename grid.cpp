@@ -499,6 +499,12 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    const std::unordered_set<CellID>& outgoing_cells = mpiGrid.get_cells_removed_by_balance_load();
    std::vector<CellID> outgoing_cells_list (outgoing_cells.begin(),outgoing_cells.end());
 
+   int myRank;
+   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+   stringstream ss;
+   ss<<" MPI RANK "<<myRank<<" incoming: "<<incoming_cells.size()<<" outgoing: "<<outgoing_cells.size()<<std::endl;
+   std::cerr<<ss.str();
+
    /*transfer cells in parts to preserve memory*/
    phiprof::Timer transfersTimer {"Data transfers"};
    const uint64_t num_part_transfers=5;
@@ -635,9 +641,14 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    vmesh::LocalID gpuBlockCount = 0;
    // Not parallelized
    const vector<CellID>& newCells = getLocalCells();
-   // TODO: Also remote cells?
-   for (uint i=0; i<newCells.size(); ++i) {
-      SpatialCell* SC = mpiGrid[newCells[i]];
+   const std::vector<CellID>& remote_cells = mpiGrid.get_remote_cells_on_process_boundary(FULL_NEIGHBORHOOD_ID);
+   for (uint i=0; i<newCells.size()+remote_cells.size(); ++i) {
+      SpatialCell* SC;
+      if (i < newCells.size()) {
+         SC = mpiGrid[newCells[i]];
+      } else {
+         SC = mpiGrid[remote_cells[i - newCells.size()]];
+      }
       for (size_t popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          const vmesh::VelocityMesh* vmesh = SC->get_velocity_mesh(popID);
          vmesh::VelocityBlockContainer* blockContainer = SC->get_velocity_blocks(popID);

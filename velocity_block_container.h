@@ -148,6 +148,7 @@ namespace vmesh {
       gpuStream_t stream = gpu_getStream();
       block_data->overwrite(*(other.block_data),stream);
       parameters->overwrite(*(other.parameters),stream);
+      std::cerr<<"VBC copy construct with size "<<block_data->size()/WID3<<", capacity "<<block_data->capacity()/WID3<<std::endl;
 #else
       block_data = new std::vector<Realf,aligned_allocator<Realf,WID3>>(*(other.block_data));
       parameters = new std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS>>(*(other.parameters));
@@ -164,6 +165,7 @@ namespace vmesh {
       // Overwrite is like a copy assign but takes a stream
       block_data->overwrite(*(other.block_data),stream);
       parameters->overwrite(*(other.parameters),stream);
+      std::cerr<<"VBC copy assign with size "<<block_data->size()/WID3<<", capacity "<<block_data->capacity()/WID3<<std::endl;
       #else
       *block_data = *(other.block_data);
       *parameters = *(other.parameters);
@@ -617,6 +619,7 @@ namespace vmesh {
          setNewCapacity(newSize,stream);
          parameters->resize((newSize)*BlockParams::N_VELOCITY_BLOCK_PARAMS,true,stream);
          block_data->resize((newSize)*WID3,true,stream);
+         CHK_ERR( gpuStreamSynchronize(stream) );
          #else
          const vmesh::LocalID currentCapacity = block_data->capacity()/WID3;
          assert(newSize <= currentCapacity && "ERROR! Attempting to grow block container on-device beyond capacity (::push_back N_blocks).");
