@@ -293,7 +293,7 @@ jobs:
         jobspec=$(sbatch --parsable -o testpackage_run_output.txt ./small_test_carrington_github_ci.sh)
         jobspec=(${jobspec//\;/ })
         trap "scancel -M ${jobspec[1]} ${jobspec[0]}" 2
-        srun --dependency afterany:${jobspec[0]} echo "Job finished, checking output."
+        srun -M carrington --dependency afterany:${jobspec[0]} echo "Job finished, checking output."
         cat testpackage_run_output.txt
         cat $GITHUB_STEP_SUMMARY > $GITHUB_WORKSPACE/testpackage_check_description.txt
         cd $GITHUB_WORKSPACE
