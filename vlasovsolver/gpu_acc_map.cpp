@@ -691,9 +691,6 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *map_remove = spatial_cell->velocity_block_with_no_content_map;
    Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *dev_map_require = spatial_cell->dev_velocity_block_with_content_map;
    Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *dev_map_remove = spatial_cell->dev_velocity_block_with_no_content_map;
-   // GPUTODO: Instead of a vector with push_backs, could use map_add? Perhaps not worth it.
-   // Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *map_add = gpu_map_add[cpuThreadID];
-   // map_add->clear(Hashinator::targets::device,stream,false);
 
    // pointers to device memory buffers
    vmesh::GlobalID *GIDlist = gpu_GIDlist[cpuThreadID];
@@ -803,13 +800,12 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       map_remove->clear(Hashinator::targets::device,stream,false,std::pow(2,spatial_cell->vbwncl_sizePower));
       // Hashmap clear includes a stream sync
       //CHK_ERR( gpuStreamSynchronize(stream) );
-      //map_add->clear(Hashinator::targets::device,stream,false);
       evaluate_column_extents_kernel<<<gpublocks, GPUTHREADS, 0, stream>>> (
          dimension,
          dev_vmesh,
          columnData,
          columns,
-         list_with_replace_new, // or map_add
+         list_with_replace_new,
          dev_map_require,
          dev_map_remove,
          GIDlist,
@@ -848,7 +844,7 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
          // twice what we had before.
          size_t newCapacity = (size_t)(spatial_cell->getReservation(popID)*BLOCK_ALLOCATION_FACTOR);
          //printf("column data recapacitate! %lu newCapacity\n",(long unsigned)newCapacity);
-         list_with_replace_new->clear(); // only if not using map_add
+         list_with_replace_new->clear();
          spatial_cell->setReservation(popID, newCapacity);
          spatial_cell->applyReservation(popID);
       }
