@@ -35,7 +35,6 @@ namespace projects {
       set<vmesh::GlobalID> blocksToInitialize;
       bool search;
       unsigned int counterX, counterY, counterZ;
-      Real maxRelVx,maxRelVy,maxRelVz;
 
       creal minValue = cell->getVelocityBlockMinValue(popID);
       // And how big a buffer do we add to the edges?
@@ -76,7 +75,6 @@ namespace projects {
             counterX++;
          }
          counterX+=buffer;
-         maxRelVx = counterX*dvxBlock;
          Real vRadiusSquared = (Real)counterX*(Real)counterX*dvxBlock*dvxBlock;
 
          // VY search
@@ -93,7 +91,6 @@ namespace projects {
             counterY++;
          }
          counterY+=buffer;
-         maxRelVy = counterY*dvyBlock;
          vRadiusSquared = max(vRadiusSquared, (Real)counterY*(Real)counterY*dvyBlock*dvyBlock);
 
          // VZ search
@@ -110,7 +107,6 @@ namespace projects {
             counterZ++;
          }
          counterZ+=buffer;
-         maxRelVz = counterZ*dvzBlock;
          vRadiusSquared = max(vRadiusSquared, (Real)counterZ*(Real)counterZ*dvzBlock*dvzBlock);
 
          // Block listing
@@ -128,13 +124,6 @@ namespace projects {
                   V_crds[0] += (0.5*dvxBlock - it->at(0) );
                   V_crds[1] += (0.5*dvyBlock - it->at(1) );
                   V_crds[2] += (0.5*dvzBlock - it->at(2) );
-                  // This check assumes non-maxwellian v-spaces are still constrained by Cartesian directions
-                  // (e.g. bi-maxwellian is aligned with coordinate directions)
-                  // if ( abs(V_crds[0]) > maxRelVx ||
-                  //      abs(V_crds[1]) > maxRelVy ||
-                  //      abs(V_crds[2]) > maxRelVz ) {
-                  //    continue;
-                  // }
                   Real R2 = ((V_crds[0])*(V_crds[0])
                              + (V_crds[1])*(V_crds[1])
                              + (V_crds[2])*(V_crds[2]));
