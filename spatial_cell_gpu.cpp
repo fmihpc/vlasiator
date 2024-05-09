@@ -64,11 +64,11 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_block_content_lists_ke
       #ifdef DEBUG_SPATIAL_CELL
       if (blockGID == vmesh->invalidGlobalID()) {
          if (b_tid==0) printf("Invalid GID encountered in update_velocity_block_content_lists_kernel!\n");
-         continue;
+         return;
       }
       if (blockLID == vmesh->invalidLocalID()) {
          if (b_tid==0) printf("Invalid LID encountered in update_velocity_block_content_lists_kernel!\n");
-         continue;
+         return;
       }
       #endif
       // Check each velocity cell if it is above the threshold

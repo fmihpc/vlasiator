@@ -1301,7 +1301,7 @@ namespace vmesh {
       //return localToGlobalMap->size();
       #ifdef DEBUG_VMESH
       if (ltg_size != localToGlobalMap->size()) {
-         printf("VMESH CHECK ERROR: cached size mismatch, %lu vs %lu in %s : %d\n",ltg_size,size1,__FILE__,__LINE__);
+         printf("VMESH CHECK ERROR: cached size mismatch, %lu vs %lu in %s : %d\n",ltg_size,localToGlobalMap->size(),__FILE__,__LINE__);
       }
       #endif
       return ltg_size;

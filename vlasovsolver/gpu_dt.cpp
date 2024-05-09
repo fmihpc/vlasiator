@@ -49,8 +49,8 @@ __global__ void reduce_v_dt_kernel(
    const Real* dev_dxdydz,
    const uint nAllCells)
 {
-   const int ti = threadIdx.x; // [0,GPUTHREADS*WARPSPERBLOCK)
-   const int blockSize = blockDim.x;
+   const uint ti = threadIdx.x; // [0,GPUTHREADS*WARPSPERBLOCK)
+   const uint blockSize = blockDim.x;
    const uint cellIndex = blockIdx.x; // userd for pointer to cell (or population)
 
    __shared__ Real smallest[GPUTHREADS*WARPSPERBLOCK]; //==blockSize
