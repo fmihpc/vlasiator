@@ -19,8 +19,6 @@
 
 curdir=$(pwd)
 
-. /etc/profile
-
 # if you use client/server visit and have "cd /lustre/tmp/..." in your ~/.bashrc this workaround is needed
 cd $curdir
 
