@@ -33,7 +33,7 @@
 
 namespace projects {
    using namespace std;
-   KHB::KHB(): Project() { }
+   KHB::KHB(): TriAxisSearch() { }
    KHB::~KHB() { }
    
    bool KHB::initialize(void) {return Project::initialize();}
@@ -109,12 +109,30 @@ namespace projects {
       }
    }
    
-   Real KHB::getDistribValue(creal& x, creal& y, creal& vx, creal& vy, creal& vz, const uint popID) const {
-      creal mass = getObjectWrapper().particleSpecies[popID].mass;
-      Real rho = profile(this->rho[this->BOTTOM], this->rho[this->TOP], x);
+   inline vector<std::array<Real, 3> > KHB::getV0(
+      creal x,
+      creal y,
+      creal z,
+      const uint popID
+   ) const {
       Real Vx = profile(this->Vx[this->BOTTOM], this->Vx[this->TOP], x);
       Real Vy = profile(this->Vy[this->BOTTOM], this->Vy[this->TOP], x);
       Real Vz = profile(this->Vz[this->BOTTOM], this->Vz[this->TOP], x);
+      (void)y,z,popID;
+
+      vector<std::array<Real, 3> > centerPoints;
+      std::array<Real, 3> V0 {{Vx,Vy,Vz}};
+      centerPoints.push_back(V0);
+      return centerPoints;
+   }
+
+   inline Real KHB::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, const uint popID) const {
+      creal mass = getObjectWrapper().particleSpecies[popID].mass;
+      Real rho = profile(this->rho[this->BOTTOM], this->rho[this->TOP], x);
+      std::array<Real, 3> initV0 = this->getV0(x, y, z, popID)[0];
+      Real Vx = initV0[0];
+      Real Vy = initV0[1];
+      Real Vz = initV0[2];
 
       // initialize RNG for calculating random phases for the initial perturbation
       std::default_random_engine rndState;
@@ -146,7 +164,7 @@ namespace projects {
    }
 
    Real KHB::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {   
-      return getDistribValue(x+0.5*dx, y+0.5*dy, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, popID);
+      return getDistribValue(x+0.5*dx, y+0.5*dy, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, popID);
    }   
 
    void KHB::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
