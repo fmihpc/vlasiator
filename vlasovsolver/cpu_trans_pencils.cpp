@@ -5,6 +5,11 @@ using namespace spatial_cell;
 
 #include "cpu_trans_pencils.hpp"
 
+#ifdef USE_GPU
+// just for uploading pencil information to GPU
+#include "../arch/gpu_base.hpp"
+#endif
+
 std::array<setOfPencils,3> DimensionPencils;
 std::array<std::unordered_set<CellID>,3> DimensionTargetCells;
 
@@ -348,7 +353,8 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
                targetRatios[i] = 0.0;
             } else {
                const int ratio = 1 << -diff;
-               targetRatios[i] = 1.0 / (ratio*ratio);
+               const Realf Rratio = (Realf)ratio;
+               targetRatios[i] = 1.0 / (Rratio*Rratio);
             }
          } else { // Don't write to this cell
             targetRatios[i] = 0.0;
@@ -1102,7 +1108,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
       // Empty vectors for internal use of buildPencilsWithNeighbors. Could be default values but
       // default vectors are complicated. Should overload buildPencilsWithNeighbors like suggested here
       // https://stackoverflow.com/questions/3147274/c-default-argument-for-vectorint
-      vector<CellID> ids;
+      std::vector<CellID> ids;
       vector<uint> path;
       // thread-internal pencil set to be accumulated at the end
       setOfPencils thread_pencils;
@@ -1178,5 +1184,33 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
          printPencilsFunc(DimensionPencils[dimension],dimension,myRank,mpiGrid);
       }
    }
+   buildPencilsTimer.stop();
+
+   #ifdef USE_GPU
+   // Clear old allocation if needed
+   if (DimensionPencils[dimension].gpu_allocated) {
+      phiprof::Timer clearOldPencilsTimer {"clearOldPencils"};
+      delete DimensionPencils[dimension].gpu_lengthOfPencils;
+      delete DimensionPencils[dimension].gpu_idsStart;
+      delete DimensionPencils[dimension].gpu_sourceDZ;
+      delete DimensionPencils[dimension].gpu_targetRatios;
+   }
+   // Create GPU copies of these vectors
+   phiprof::Timer SplitVectorPencilsTimer {"new splitVectors pencils"};
+   DimensionPencils[dimension].gpu_lengthOfPencils = new split::SplitVector<uint>(DimensionPencils[dimension].lengthOfPencils);
+   DimensionPencils[dimension].gpu_idsStart = new split::SplitVector<uint>(DimensionPencils[dimension].idsStart);
+   DimensionPencils[dimension].gpu_sourceDZ = new split::SplitVector<Realf>(DimensionPencils[dimension].sourceDZ);
+   DimensionPencils[dimension].gpu_targetRatios = new split::SplitVector<Realf>(DimensionPencils[dimension].targetRatios);
+   // Send data to GPU
+   gpuStream_t stream = gpu_getStream();
+   int device = gpu_getDevice();
+   DimensionPencils[dimension].gpu_lengthOfPencils->optimizeGPU(stream);
+   DimensionPencils[dimension].gpu_idsStart->optimizeGPU(stream);
+   DimensionPencils[dimension].gpu_sourceDZ->optimizeGPU(stream);
+   DimensionPencils[dimension].gpu_targetRatios->optimizeGPU(stream);
+   SplitVectorPencilsTimer.stop();
+   // and raise flag to be used for deallocation
+   DimensionPencils[dimension].gpu_allocated = true;
+   #endif
 
 }

@@ -25,7 +25,10 @@
 #ifndef SPATIAL_CELL_WRAPPER_H
 #define SPATIAL_CELL_WRAPPER_H
 
-// Can be used to include different variants of spatial cell class
+#ifdef USE_GPU
+#include "spatial_cell_gpu.hpp"
+#else
 #include "spatial_cell_cpu.hpp"
+#endif
 
 #endif

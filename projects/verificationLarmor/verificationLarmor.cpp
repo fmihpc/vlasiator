@@ -28,6 +28,7 @@
 #include "../../common.h"
 #include "../../readparameters.h"
 #include "../../object_wrapper.h"
+#include "../../velocity_mesh_parameters.h"
 #include "../../backgroundfield/backgroundfield.h"
 #include "../../backgroundfield/constantfield.hpp"
 #include "verificationLarmor.h"
@@ -82,7 +83,7 @@ namespace projects {
    #pragma omp threadprivate(isSet)
 
       const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
-      const vmesh::MeshParameters& meshParams = getObjectWrapper().velocityMeshes[meshID];
+      const vmesh::MeshParameters& meshParams = vmesh::getMeshWrapper()->velocityMeshes->at(meshID);
       if (vx < meshParams.meshMinLimits[0] + 0.5*dvx ||
           vy < meshParams.meshMinLimits[1] + 0.5*dvy ||
           vz < meshParams.meshMinLimits[2] + 0.5*dvz ||

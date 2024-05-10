@@ -87,8 +87,8 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
                          const Real& dt) {
    //double t1 = MPI_Wtime();
 
-   vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh    = spatial_cell->get_velocity_mesh(popID);
-   //vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks(popID);
+   vmesh::VelocityMesh* vmesh    = spatial_cell->get_velocity_mesh(popID);
+   //vmesh::VelocityBlockContainer* blockContainer = spatial_cell->get_velocity_blocks(popID);
 
    // compute transform, forward in time and backward in time
    phiprof::Timer transformTimer {"compute-transform"};
@@ -98,7 +98,6 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
    Transform<Real,3,Affine> bwd_transform= fwd_transform.inverse();
    transformTimer.stop();
 
-   const uint8_t refLevel = 0;
    Real intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk;
    Real intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk;
    Real intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk;
@@ -107,15 +106,15 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
    switch(map_order){
       case 0: {
          //Map order XYZ
-         phiprof::Timer intersectionsTimer {intersections_id};
-         compute_intersections_1st(vmesh,bwd_transform, fwd_transform, 0, refLevel,
+         phiprof::Timer intersectionsTimer {"compute-intersections"};
+         compute_intersections_1st(vmesh,bwd_transform, fwd_transform, 0,
                                    intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk);
-         compute_intersections_2nd(vmesh,bwd_transform, fwd_transform, 1, refLevel,
+         compute_intersections_2nd(vmesh,bwd_transform, fwd_transform, 1,
                                    intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk);
-         compute_intersections_3rd(vmesh,bwd_transform, fwd_transform, 2, refLevel,
+         compute_intersections_3rd(vmesh,bwd_transform, fwd_transform, 2,
                                    intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk);
          intersectionsTimer.stop();
-         phiprof::Timer mappingTimer {mapping_id};
+         phiprof::Timer mappingTimer {"compute-mapping"};
          map_1d(spatial_cell, popID, intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,0); // map along x
          map_1d(spatial_cell, popID, intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,1); // map along y
          map_1d(spatial_cell, popID, intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,2); // map along z
@@ -125,16 +124,16 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
          
       case 1: {
          //Map order YZX
-         phiprof::Timer intersectionsTimer{intersections_id};
-         compute_intersections_1st(vmesh, bwd_transform, fwd_transform, 1, refLevel,
+         phiprof::Timer intersectionsTimer {"compute-intersections"};
+         compute_intersections_1st(vmesh, bwd_transform, fwd_transform, 1,
                                    intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk);
-         compute_intersections_2nd(vmesh, bwd_transform, fwd_transform, 2, refLevel,
+         compute_intersections_2nd(vmesh, bwd_transform, fwd_transform, 2,
                                    intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk);
-         compute_intersections_3rd(vmesh, bwd_transform, fwd_transform, 0, refLevel,
+         compute_intersections_3rd(vmesh, bwd_transform, fwd_transform, 0,
                                    intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk);
       
          intersectionsTimer.stop();
-         phiprof::Timer mappingTimer {mapping_id};
+         phiprof::Timer mappingTimer {"compute-mapping"};
          map_1d(spatial_cell, popID, intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,1); // map along y
          map_1d(spatial_cell, popID, intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,2); // map along z
          map_1d(spatial_cell, popID, intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,0); // map along x
@@ -143,16 +142,16 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
       }
 
       case 2: {
-         phiprof::Timer intersectionsTimer{intersections_id};
+         phiprof::Timer intersectionsTimer {"compute-intersections"};
          //Map order Z X Y
-         compute_intersections_1st(vmesh, bwd_transform, fwd_transform, 2, refLevel,
+         compute_intersections_1st(vmesh, bwd_transform, fwd_transform, 2,
                                    intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk);
-         compute_intersections_2nd(vmesh, bwd_transform, fwd_transform, 0, refLevel,
+         compute_intersections_2nd(vmesh, bwd_transform, fwd_transform, 0,
                                    intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk);
-         compute_intersections_3rd(vmesh, bwd_transform, fwd_transform, 1, refLevel,
+         compute_intersections_3rd(vmesh, bwd_transform, fwd_transform, 1,
                                    intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk);
          intersectionsTimer.stop();
-         phiprof::Timer mappingTimer {mapping_id};
+         phiprof::Timer mappingTimer {"compute-mapping"};
          map_1d(spatial_cell, popID, intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,2); // map along z
          map_1d(spatial_cell, popID, intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,0); // map along x
          map_1d(spatial_cell, popID, intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,1); // map along y
@@ -161,7 +160,7 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
       }
    }
 
-   if (Parameters::prepareForRebalance == true) {
+//   if (Parameters::prepareForRebalance == true) {
 //       spatial_cell->parameters[CellParams::LBWEIGHTCOUNTER] += (MPI_Wtime() - t1);
-   }
+//   }
 }

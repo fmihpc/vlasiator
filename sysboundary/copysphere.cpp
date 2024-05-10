@@ -30,7 +30,7 @@
 #include "copysphere.h"
 #include "../projects/project.h"
 #include "../projects/projects_common.h"
-#include "../vlasovmover.h"
+#include "../vlasovsolver/vlasovmover.h"
 #include "../fieldsolver/fs_common.h"
 #include "../fieldsolver/fs_limiters.h"
 #include "../fieldsolver/ldz_magnetic_field.hpp"
@@ -39,7 +39,7 @@
 #include "../object_wrapper.h"
 
 
-#ifndef NDEBUG
+#ifdef DEBUG_VLASIATOR
    #define DEBUG_COPYSPHERE
 #endif
 #ifdef DEBUG_SYSBOUNDARY
@@ -48,9 +48,9 @@
 
 namespace SBC {
    Copysphere::Copysphere(): SysBoundaryCondition() { }
-   
+
    Copysphere::~Copysphere() { }
-   
+
    void Copysphere::addParameters() {
       Readparameters::add("copysphere.centerX", "X coordinate of copysphere center (m)", 0.0);
       Readparameters::add("copysphere.centerY", "Y coordinate of copysphere center (m)", 0.0);
@@ -64,7 +64,7 @@ namespace SBC {
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
-         
+
          Readparameters::add(pop + "_copysphere.rho", "Number density of the copysphere (m^-3)", 0.0);
          Readparameters::add(pop + "_copysphere.T", "Temperature of the copysphere (K)", 0.0);
          Readparameters::add(pop + "_copysphere.VX0", "Bulk velocity of copyspheric distribution function in X direction (m/s)", 0.0);
@@ -73,7 +73,7 @@ namespace SBC {
          Readparameters::add(pop + "_copysphere.fluffiness", "Inertia of boundary smoothing when copying neighbour's moments and velocity distributions (0=completely constant boundaries, 1=neighbours are interpolated immediately).", 0);
       }
    }
-   
+
    void Copysphere::getParameters() {
 
       Readparameters::get("copysphere.centerX", this->center[0]);
@@ -119,7 +119,7 @@ namespace SBC {
          speciesParams.push_back(sP);
       }
    }
-   
+
    void Copysphere::initSysBoundary(
       creal& t,
       Project &project
@@ -127,7 +127,7 @@ namespace SBC {
       getParameters();
       dynamic = false;
 
-      // iniSysBoundary is only called once, generateTemplateCell must 
+      // iniSysBoundary is only called once, generateTemplateCell must
       // init all particle species
       generateTemplateCell(project);
    }
@@ -135,7 +135,7 @@ namespace SBC {
    Real getR(creal x,creal y,creal z, uint geometry, Real center[3]) {
 
       Real r;
-      
+
       switch(geometry) {
       case 0:
          // infinity-norm, result is a diamond/square with diagonals aligned on the axes in 2D
@@ -159,7 +159,7 @@ namespace SBC {
 
       return r;
    }
-   
+
    void Copysphere::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
       const vector<CellID>& cells = getLocalCells();
@@ -167,7 +167,7 @@ namespace SBC {
          if(mpiGrid[cells[i]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
             continue;
          }
-         
+
          creal* const cellParams = &(mpiGrid[cells[i]]->parameters[0]);
          creal dx = cellParams[CellParams::DX];
          creal dy = cellParams[CellParams::DY];
@@ -175,7 +175,7 @@ namespace SBC {
          creal x = cellParams[CellParams::XCRD] + 0.5*dx;
          creal y = cellParams[CellParams::YCRD] + 0.5*dy;
          creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
-         
+
          if(getR(x,y,z,this->geometry,this->center) < this->radius) {
             mpiGrid[cells[i]]->sysBoundaryFlag = this->getIndex();
          }
@@ -195,10 +195,22 @@ namespace SBC {
       for (uint i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
          if (cell->sysBoundaryFlag != this->getIndex()) continue;
-         
-         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
             setCellFromTemplate(cell,popID);
+         }
+         // Verify current mesh and blocks
+         // if (!cell->checkMesh(popID)) {
+         //    printf("ERROR in vmesh check: %s at %d\n",__FILE__,__LINE__);
+         // }
       }
+   }
+
+   void Copysphere::gpuClear() {
+      // Remove GPU allocations from template cells
+      #ifdef USE_GPU
+      templateCell.gpu_destructor();
+      #endif
+      return;
    }
 
    std::array<Real, 3> Copysphere::fieldSolverGetNormalDirection(
@@ -209,10 +221,10 @@ namespace SBC {
    ) {
       phiprof::Timer timer {"Copysphere::fieldSolverGetNormalDirection"};
       std::array<Real, 3> normalDirection{{ 0.0, 0.0, 0.0 }};
-      
+
       static creal DIAG2 = 1.0 / sqrt(2.0);
       static creal DIAG3 = 1.0 / sqrt(3.0);
-      
+
       creal dx = technicalGrid.DX;
       creal dy = technicalGrid.DY;
       creal dz = technicalGrid.DZ;
@@ -223,9 +235,9 @@ namespace SBC {
       creal xsign = divideIfNonZero(x, fabs(x));
       creal ysign = divideIfNonZero(y, fabs(y));
       creal zsign = divideIfNonZero(z, fabs(z));
-      
+
       Real length = 0.0;
-      
+
       if (Parameters::xcells_ini == 1) {
          if (Parameters::ycells_ini == 1) {
             if (Parameters::zcells_ini == 1) {
@@ -468,11 +480,11 @@ namespace SBC {
       }
       return normalDirection;
    }
-   
+
    /*! We want here to
-    * 
+    *
     * -- Average perturbed face B from the nearest neighbours
-    * 
+    *
     * -- Retain only the normal components of perturbed face B
     */
    Real Copysphere::fieldSolverBoundaryCondMagneticField(
@@ -652,7 +664,7 @@ namespace SBC {
             return retval / nCells;
          }
       }
-      
+
    }
 
    void Copysphere::fieldSolverBoundaryCondElectricField(
@@ -664,7 +676,7 @@ namespace SBC {
    ) {
       EGrid.get(i,j,k)->at(fsgrids::efield::EX+component) = 0.0;
    }
-   
+
    void Copysphere::fieldSolverBoundaryCondHallElectricField(
       FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
       cint i,
@@ -696,7 +708,7 @@ namespace SBC {
             cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
       }
    }
-   
+
    void Copysphere::fieldSolverBoundaryCondGradPeElectricField(
       FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
       cint i,
@@ -706,7 +718,7 @@ namespace SBC {
    ) {
       EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE+component) = 0.0;
    }
-   
+
    void Copysphere::fieldSolverBoundaryCondDerivatives(
       FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
       FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
@@ -719,7 +731,7 @@ namespace SBC {
       this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, component);
       return;
    }
-   
+
    void Copysphere::fieldSolverBoundaryCondBVOLDerivatives(
       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
       cint i,
@@ -730,7 +742,7 @@ namespace SBC {
       // FIXME This should be OK as the BVOL derivatives are only used for Lorentz force JXB, which is not applied on the copy sphere cells.
       this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
    }
-   
+
    void Copysphere::vlasovBoundaryCondition(
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
@@ -752,53 +764,56 @@ namespace SBC {
       templateCell.parameters[CellParams::XCRD] = 1.0;
       templateCell.parameters[CellParams::YCRD] = 1.0;
       templateCell.parameters[CellParams::ZCRD] = 1.0;
+
       templateCell.parameters[CellParams::DX] = 1;
       templateCell.parameters[CellParams::DY] = 1;
       templateCell.parameters[CellParams::DZ] = 1;
-      
+
       // Loop over particle species
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         templateCell.clear(popID,false); //clear, do not de-allocate memory
+         const CopysphereSpeciesParameters& sP = this->speciesParams[popID];
          const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(templateCell,popID);
-         Realf* data = templateCell.get_data(popID);
-         
+         const uint nRequested = blocksToInitialize.size();
+         // Set the reservation value (capacity is increased in add_velocity_blocks
+         templateCell.setReservation(popID,nRequested);
+         const Realf minValue = templateCell.getVelocityBlockMinValue(popID);
+
+         // Loop over requested blocks. Initialize the contents into the temporary buffer
+         // and return the maximum value.
+         vector<Realf> initBuffer(WID3*nRequested);
+         creal dvxCell = templateCell.get_velocity_grid_cell_size(popID)[0];
+         creal dvyCell = templateCell.get_velocity_grid_cell_size(popID)[1];
+         creal dvzCell = templateCell.get_velocity_grid_cell_size(popID)[2];
          for (size_t i = 0; i < blocksToInitialize.size(); i++) {
             const vmesh::GlobalID blockGID = blocksToInitialize.at(i);
-            const vmesh::LocalID blockLID = templateCell.get_velocity_block_local_id(blockGID,popID);
-            const Real* block_parameters = templateCell.get_block_parameters(blockLID,popID);
-            creal vxBlock = block_parameters[BlockParams::VXCRD];
-            creal vyBlock = block_parameters[BlockParams::VYCRD];
-            creal vzBlock = block_parameters[BlockParams::VZCRD];
-            creal dvxCell = block_parameters[BlockParams::DVX];
-            creal dvyCell = block_parameters[BlockParams::DVY];
-            creal dvzCell = block_parameters[BlockParams::DVZ];
+            // Calculate parameters for new block
+            Real blockCoords[3];
+            templateCell.get_velocity_block_coordinates(popID,blockGID,&blockCoords[0]);
+            creal vxBlock = blockCoords[0];
+            creal vyBlock = blockCoords[1];
+            creal vzBlock = blockCoords[2];
 
-            //creal x = templateCell.parameters[CellParams::XCRD];
-            //creal y = templateCell.parameters[CellParams::YCRD];
-            //creal z = templateCell.parameters[CellParams::ZCRD];
-            //creal dx = templateCell.parameters[CellParams::DX];
-            //creal dy = templateCell.parameters[CellParams::DY];
-            //creal dz = templateCell.parameters[CellParams::DZ];
-         
             // Calculate volume average of distrib. function for each cell in the block.
-            for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
-               creal vxCell = vxBlock + ic*dvxCell;
-               creal vyCell = vyBlock + jc*dvyCell;
-               creal vzCell = vzBlock + kc*dvzCell;
-               Real average = 0.0;
-               average = shiftedMaxwellianDistribution(
-                  popID,
-                  vxCell + 0.5*dvxCell,
-                  vyCell + 0.5*dvyCell,
-                  vzCell + 0.5*dvzCell
-                  );
-               data[blockLID*WID3+cellIndex(ic,jc,kc)] = average;
-            } // for-loop over cells in velocity block
-         } // for-loop over velocity blocks
+            for (uint kc=0; kc<WID; ++kc) {
+               for (uint jc=0; jc<WID; ++jc) {
+                  for (uint ic=0; ic<WID; ++ic) {
+                     creal vxCell = vxBlock + (ic+0.5)*dvxCell - sP.V0[0];
+                     creal vyCell = vyBlock + (jc+0.5)*dvyCell - sP.V0[1];
+                     creal vzCell = vzBlock + (kc+0.5)*dvzCell - sP.V0[2];
+                     Realf average = maxwellianDistribution(popID,vxCell,vyCell,vzCell);
+                     initBuffer[i*WID3+cellIndex(ic,jc,kc)] = average;
+                  }
+               }
+            }
+         } // for-loop over requested velocity blocks
 
+         // Next actually add all the blocks
+         templateCell.add_velocity_blocks(popID, blocksToInitialize, initBuffer.data());
          // let's get rid of blocks not fulfilling the criteria here to save memory.
          templateCell.adjustSingleCellVelocityBlocks(popID,true);
       } // for-loop over particle species
-      
+
       calculateCellMoments(&templateCell,true,false,true);
 
       // WARNING Time-independence assumed here. Normal moments computed in setProjectCell
@@ -819,80 +834,76 @@ namespace SBC {
       templateCell.parameters[CellParams::P_22_V] = templateCell.parameters[CellParams::P_22];
       templateCell.parameters[CellParams::P_33_V] = templateCell.parameters[CellParams::P_33];
    }
-   
-   Real Copysphere::shiftedMaxwellianDistribution(
+
+   Real Copysphere::maxwellianDistribution(
       const uint popID,
       creal& vx, creal& vy, creal& vz
    ) {
-      
+
       const Real MASS = getObjectWrapper().particleSpecies[popID].mass;
       const CopysphereSpeciesParameters& sP = this->speciesParams[popID];
 
-      return sP.rho * pow(MASS /
-      (2.0 * M_PI * physicalconstants::K_B * sP.T), 1.5) *
-      exp(-MASS * ((vx-sP.V0[0])*(vx-sP.V0[0]) + (vy-sP.V0[1])*(vy-sP.V0[1]) + (vz-sP.V0[2])*(vz-sP.V0[2])) /
-      (2.0 * physicalconstants::K_B * sP.T));
-   }
+      return sP.rho * pow(MASS / (2.0 * M_PI * physicalconstants::K_B * sP.T), 1.5) *
+         exp(-MASS * (vx*vx + vy*vy + vz*vz) / (2.0 * physicalconstants::K_B * sP.T));
+      }
 
    std::vector<vmesh::GlobalID> Copysphere::findBlocksToInitialize(spatial_cell::SpatialCell& cell,const uint popID) {
       vector<vmesh::GlobalID> blocksToInitialize;
       bool search = true;
       uint counter = 0;
-      const uint8_t refLevel = 0;
 
-      const vmesh::LocalID* vblocks_ini = cell.get_velocity_grid_length(popID,refLevel);
+      const vmesh::LocalID* vblocks_ini = cell.get_velocity_grid_length(popID);
+      Real V_crds[3];
+      Real dV[3];
+      dV[0] = cell.get_velocity_grid_block_size(popID)[0];
+      dV[1] = cell.get_velocity_grid_block_size(popID)[1];
+      dV[2] = cell.get_velocity_grid_block_size(popID)[2];
+      creal minValue = cell.getVelocityBlockMinValue(popID);
 
       while (search) {
-         if (0.1 * cell.getVelocityBlockMinValue(popID) > shiftedMaxwellianDistribution(popID,counter*cell.get_velocity_grid_block_size(popID,refLevel)[0], 0.0, 0.0) || counter > vblocks_ini[0]) {
+         if (0.1 * minValue > maxwellianDistribution(popID,(counter+0.5)*dV[0], 0.5*dV[1], 0.5*dV[2]) || counter > vblocks_ini[0]) {
             search = false;
          }
-         ++counter;
+         counter++;
       }
       counter+=2;
-      Real vRadiusSquared 
-              = (Real)counter*(Real)counter
-              * cell.get_velocity_grid_block_size(popID,refLevel)[0]
-              * cell.get_velocity_grid_block_size(popID,refLevel)[0];
+      Real vRadiusSquared = (Real)counter * (Real)counter * dV[0] * dV[0];
 
-      for (uint kv=0; kv<vblocks_ini[2]; ++kv) 
-         for (uint jv=0; jv<vblocks_ini[1]; ++jv)
+      for (uint kv=0; kv<vblocks_ini[2]; ++kv) {
+         for (uint jv=0; jv<vblocks_ini[1]; ++jv) {
             for (uint iv=0; iv<vblocks_ini[0]; ++iv) {
-               vmesh::LocalID blockIndices[3];
+               vmesh::GlobalID blockIndices[3];
                blockIndices[0] = iv;
                blockIndices[1] = jv;
                blockIndices[2] = kv;
-               const vmesh::GlobalID blockGID = cell.get_velocity_block(popID,blockIndices,refLevel);
-               Real blockCoords[3];
-               cell.get_velocity_block_coordinates(popID,blockGID,blockCoords);
-               Real blockSize[3];
-               cell.get_velocity_block_size(popID,blockGID,blockSize);
-               blockCoords[0] += 0.5*blockSize[0];
-               blockCoords[1] += 0.5*blockSize[1];
-               blockCoords[2] += 0.5*blockSize[2];
-               //creal vx = P::vxmin + (iv+0.5) * cell.get_velocity_grid_block_size(popID)[0]; // vx-coordinate of the centre
-               //creal vy = P::vymin + (jv+0.5) * cell.get_velocity_grid_block_size(popID)[1]; // vy-
-               //creal vz = P::vzmin + (kv+0.5) * cell.get_velocity_grid_block_size(popID)[2]; // vz-
-               
-               if (blockCoords[0]*blockCoords[0] + blockCoords[1]*blockCoords[1] + blockCoords[2]*blockCoords[2] < vRadiusSquared) {
-               //if (vx*vx + vy*vy + vz*vz < vRadiusSquared) {
-                  // Adds velocity block to active population's velocity mesh
-                  //const vmesh::GlobalID newBlockGID = cell.get_velocity_block(popID,vx,vy,vz);
-                  cell.add_velocity_block(blockGID,popID);
+               const vmesh::GlobalID blockGID = cell.get_velocity_block(popID,blockIndices);
+
+               cell.get_velocity_block_coordinates(popID,blockGID,V_crds);
+               V_crds[0] += ( 0.5*dV[0] -VX0 );
+               V_crds[1] += ( 0.5*dV[1] -VY0 );
+               V_crds[2] += ( 0.5*dV[2] -VZ0 );
+               Real R2 = ((V_crds[0])*(V_crds[0])
+                          + (V_crds[1])*(V_crds[1])
+                          + (V_crds[2])*(V_crds[2]));
+
+               if (R2 < vRadiusSquared) {
                   blocksToInitialize.push_back(blockGID);
                }
             }
-
+         }
+      }
       return blocksToInitialize;
    }
 
    void Copysphere::setCellFromTemplate(SpatialCell* cell,const uint popID) {
       copyCellData(&templateCell,cell,false,popID,true); // copy also vdf, _V
       copyCellData(&templateCell,cell,true,popID,false); // don't copy vdf again but copy _R now
+      cell->setReservation(popID,templateCell.getReservation(popID));
    }
 
    std::string Copysphere::getName() const {return "Copysphere";}
    void Copysphere::getFaces(bool *faces) {}
-   
+
    void Copysphere::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                 FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
                                 FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,

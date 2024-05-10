@@ -77,7 +77,7 @@ namespace projects {
       }
    }
    
-   Real Harris::getDistribValue(
+   inline Real Harris::getDistribValue(
       creal& x,creal& y, creal& z,
       creal& vx, creal& vy, creal& vz,
       creal& dvx, creal& dvy, creal& dvz,

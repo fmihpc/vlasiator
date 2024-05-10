@@ -3,10 +3,10 @@ ARCH = $(VLASIATOR_ARCH)
 include ../../MAKE/Makefile.${ARCH}
 
 #set FP precision to SP (single) or DP (double)
-FP_PRECISION = DP
+FP_PRECISION = SP
 
 #Set floating point precision for distribution function to SPF (single) or DPF (double)
-DISTRIBUTION_FP_PRECISION = DPF
+DISTRIBUTION_FP_PRECISION = SPF
 
 #is profiling on?
 CXXFLAGS += -DPROFILE
@@ -22,7 +22,7 @@ CXXFLAGS += -DACC_SEMILAG_PLM
 #define USE_AGNER_VECTORCLASS to use an external vector class that is used in some of the solvers
 #If not defined a slower but portable implementation is used, as the external one only supports 
 #Linux & x86 processors  
-CXXFLAGS += -DUSE_AGNER_VECTORCLASS
+#CXXFLAGS += -DUSE_AGNER_VECTORCLASS
 
 
 
@@ -39,7 +39,7 @@ CXXFLAGS += -D${FP_PRECISION} -D${DISTRIBUTION_FP_PRECISION}
 
 default: all
 
-all: map_test map_test_3d map_test_3d_openmp
+all: map_test map_test_3d map_test_3d_openmp map_test_3d_openacc
 
 # Compile directory:
 INSTALL = $(CURDIR)
@@ -77,7 +77,8 @@ map_test_3d.o: map_test_3d.cpp
 map_test_3d: map_test_3d.o
 	$(LNK) ${LDFLAGS} -o map_test_3d map_test_3d.o $(LIBS)
 
-
+map_test_3d_openacc.o: map_test_3d_openacc.cpp 
+	${CMP} ${CXXFLAGS} ${FLAG_OPENACC} ${MATHFLAGS} ${FLAGS}  -c map_test_3d_openacc.cpp   ${INC_PROFILE}  ${INC_VECTORCLASS} 
 
 
 map_test_3d_openmp.o: map_test_3d_openmp.cpp 
@@ -87,4 +88,6 @@ map_test_3d_openmp.o: map_test_3d_openmp.cpp
 map_test_3d_openmp: map_test_3d_openmp.o
 	$(LNK) ${LDFLAGS} -o map_test_3d_openmp map_test_3d_openmp.o $(LIBS) $(LIB_MPI)
 
+map_test_3d_openacc: map_test_3d_openacc.o
+	$(LNK) ${LDFLAGS} -o map_test_3d_openacc map_test_3d_openacc.o $(LIBS) $(LIB_MPI)
 

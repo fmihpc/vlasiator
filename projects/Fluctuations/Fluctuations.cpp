@@ -28,6 +28,7 @@
 #include "../../common.h"
 #include "../../readparameters.h"
 #include "../../object_wrapper.h"
+#include "../../velocity_mesh_parameters.h"
 #include "../../backgroundfield/backgroundfield.h"
 #include "../../backgroundfield/constantfield.hpp"
 
@@ -89,7 +90,7 @@ namespace projects {
       }
    }
    
-   Real Fluctuations::getDistribValue(creal& vx,creal& vy, creal& vz, const uint popID) const {
+   inline Real Fluctuations::getDistribValue(creal& vx,creal& vy, creal& vz, const uint popID) const {
       const FluctuationsSpeciesParameters& sP = speciesParams[popID];
 
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
@@ -105,7 +106,7 @@ namespace projects {
    ) const {
       const FluctuationsSpeciesParameters& sP = speciesParams[popID];
       const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
-      vmesh::MeshParameters& meshParams = getObjectWrapper().velocityMeshes[meshID];
+      vmesh::MeshParameters& meshParams = vmesh::getMeshWrapper()->velocityMeshes->at(meshID);
       if (vx < meshParams.meshMinLimits[0] + 0.5*dvx ||
           vy < meshParams.meshMinLimits[1] + 0.5*dvy ||
           vz < meshParams.meshMinLimits[2] + 0.5*dvz ||
@@ -118,12 +119,10 @@ namespace projects {
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
       
-      Real avg =  getDistribValue(
-                  vx+0.5*dvx - sP.velocityPertAbsAmp * (0.5 - rndVel[0] ),
-                  vy+0.5*dvy - sP.velocityPertAbsAmp * (0.5 - rndVel[1] ),
-                  vz+0.5*dvz - sP.velocityPertAbsAmp * (0.5 - rndVel[2] ), popID);
-      
-      creal result = avg *
+      creal result = getDistribValue(
+         vx+0.5*dvx - sP.velocityPertAbsAmp * (0.5 - rndVel[0] ),
+         vy+0.5*dvy - sP.velocityPertAbsAmp * (0.5 - rndVel[1] ),
+         vz+0.5*dvz - sP.velocityPertAbsAmp * (0.5 - rndVel[2] ), popID) *
          sP.DENSITY * (1.0 + sP.densityPertRelAmp * (0.5 - rndRho)) *
          pow(mass / (2.0 * M_PI * kb * sP.TEMPERATURE), 1.5);
       

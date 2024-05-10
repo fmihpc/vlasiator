@@ -29,7 +29,7 @@
 
 #include "../grid.h"
 #include "../object_wrapper.h"
-#include "../vlasovsolver/cpu_moments.h"
+#include "../vlasovsolver/arch_moments.h"
 
 #include "donotcompute.h"
 #include "ionosphere.h"
@@ -771,7 +771,6 @@ bool SysBoundary::isPeriodic(uint direction) const { return periodic[direction];
  * \param mpiGrid Grid
  * \param cellList Vector of cellIDs in which to look for boundary cells
  * \param boundaryCellList Vector of boundary the cells' cellIDs
- * \retval Returns true if the operation is successful
  */
 void getBoundaryCellList(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                          const vector<uint64_t>& cellList, vector<uint64_t>& boundaryCellList) {
@@ -788,7 +787,6 @@ void getBoundaryCellList(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geomet
 
 /*! Updates all NonsysboundaryCells into an internal map. This should be called in loadBalance.
  * \param mpiGrid The DCCRG grid
- * \retval Returns true if the operation is successful
  */
 void SysBoundary::updateSysBoundariesAfterLoadBalance(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) {
    phiprof::Timer timer {"updateSysBoundariesAfterLoadBalance"};
@@ -797,5 +795,14 @@ void SysBoundary::updateSysBoundariesAfterLoadBalance(dccrg::Dccrg<SpatialCell, 
    // Loop over sysboundaries:
    for (list<SBC::SysBoundaryCondition*>::iterator it = sysBoundaries.begin(); it != sysBoundaries.end(); ++it) {
       (*it)->updateSysBoundaryConditionsAfterLoadBalance(mpiGrid, local_cells_on_boundary);
+   }
+}
+
+/*! Clears GPU buffers for all sysboundary template cells.
+ */
+void SysBoundary::gpuClear() {
+   // Loop over sysboundaries:
+   for (list<SBC::SysBoundaryCondition*>::iterator it = sysBoundaries.begin(); it != sysBoundaries.end(); ++it) {
+      (*it)->gpuClear();
    }
 }

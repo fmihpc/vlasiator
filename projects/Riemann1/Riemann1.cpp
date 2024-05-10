@@ -86,7 +86,7 @@ namespace projects {
       RP::get("Riemann.Bz2", this->Bz[this->RIGHT]);
    }
 
-   Real Riemann1::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
+   inline Real Riemann1::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
       cint side = (x < 0.0) ? this->LEFT : this->RIGHT;
       
       return this->rho[side] * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * this->T[side]), 1.5) *
@@ -117,8 +117,6 @@ namespace projects {
                   const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
                   
-                  //Real Bxavg, Byavg, Bzavg;
-                  //Bxavg = Byavg = Bzavg = 0.0;
                   cell->at(fsgrids::bfield::PERBX) = (xyz[0] < 0.0) ? this->Bx[this->LEFT] : this->Bx[this->RIGHT];
                   cell->at(fsgrids::bfield::PERBY) = (xyz[0] < 0.0) ? this->By[this->LEFT] : this->By[this->RIGHT];
                   cell->at(fsgrids::bfield::PERBZ) = (xyz[0] < 0.0) ? this->Bz[this->LEFT] : this->Bz[this->RIGHT];

@@ -105,15 +105,6 @@ void report_grid_memory_consumption(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
  */
 void shrink_to_fit_grid_data(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 
-/** Validate the velocity mesh structure. This function is only relevant for 
- * the VAMR mesh. It makes sure that the mesh structure is valid for all spatial cells, 
- * i.e., that each velocity block has at most one refinement level difference to 
- * its neighbors (in spatial and velocity space).
- * @param mpiGrid Parallel grid.
- * @return If true, the mesh is valid. Otherwise an error has occurred and the simulation 
- * should be aborted.*/
-bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID);
-
 void setFaceNeighborRanks( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid );
 
 /*! Map grid refinement to FsGrid

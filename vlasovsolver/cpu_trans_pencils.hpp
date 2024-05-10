@@ -24,6 +24,9 @@
 
 #include <vector>
 #include "vec.h"
+#include <unordered_set>
+#include <dccrg.hpp>
+#include <dccrg_cartesian_geometry.hpp>
 #include "../common.h"
 #include "../spatial_cell_wrapper.hpp"
 
@@ -40,6 +43,15 @@ struct setOfPencils {
    std::vector< bool > periodic;
    std::vector< std::vector<uint> > path; // Path taken through refinement levels
 
+#ifdef USE_GPU
+   bool gpu_allocated = false;
+   // Pointers to GPU copies of vectors
+   split::SplitVector<uint> *gpu_lengthOfPencils;
+   split::SplitVector<uint> *gpu_idsStart;
+   split::SplitVector<Realf> *gpu_sourceDZ;
+   split::SplitVector<Realf> *gpu_targetRatios;
+#endif
+
    setOfPencils() {
       N = 0;
       sumOfLengths = 0;
@@ -47,7 +59,6 @@ struct setOfPencils {
 
    void removeAllPencils() {
       N = 0;
-      sumOfLengths = 0;
       sumOfLengths = 0;
       lengthOfPencils.clear();
       idsStart.clear();
@@ -64,7 +75,7 @@ struct setOfPencils {
       N++;
       // If necessary, add the zero cells to the beginning and end
       if (idsIn.front() != 0) {
-            idsIn.insert(idsIn.begin(),VLASOV_STENCIL_WIDTH,0);
+         idsIn.insert(idsIn.begin(),VLASOV_STENCIL_WIDTH,0);
       }
       if (idsIn.back() != 0) {
          for (int i = 0; i < VLASOV_STENCIL_WIDTH; i++)
@@ -84,22 +95,27 @@ struct setOfPencils {
       path.push_back(pathIn);
    }
 
-   void removePencil(const uint pencilId) {
-      x.erase(x.begin() + pencilId);
-      y.erase(y.begin() + pencilId);
-      periodic.erase(periodic.begin() + pencilId);
-      path.erase(path.begin() + pencilId);
+   // GPUTODO: Re-instate this (and printing of DZ and ratios in printpencils) when splitvector iterators work completely
+   // void removePencil(const uint pencilId) {
+   //    x.erase(x.begin() + pencilId);
+   //    y.erase(y.begin() + pencilId);
+   //    periodic.erase(periodic.begin() + pencilId);
+   //    path.erase(path.begin() + pencilId);
 
-      uint ibeg = idsStart[pencilId];
-      ids.erase(ids.begin() + ibeg, ids.begin() + ibeg + lengthOfPencils[pencilId] + 2*VLASOV_STENCIL_WIDTH);
-      targetRatios.erase(targetRatios.begin() + ibeg, targetRatios.begin() + ibeg + lengthOfPencils[pencilId] + 2*VLASOV_STENCIL_WIDTH);
-      sourceDZ.erase(sourceDZ.begin() + ibeg, sourceDZ.begin() + ibeg + lengthOfPencils[pencilId] + 2*VLASOV_STENCIL_WIDTH);
-      idsStart.erase(idsStart.begin() + pencilId);
+   //    uint ibeg = idsStart[pencilId];
+   //    ids.erase(ids.begin() + ibeg, ids.begin() + ibeg + lengthOfPencils[pencilId] + 2*VLASOV_STENCIL_WIDTH);
+   //    pencilVecRealf::const_iterator ibeg2 = targetRatios.begin() + (auto)ibeg;
+   //    pencilVecRealf::const_iterator iend2 = targetRatios.begin() + (auto)ibeg + lengthOfPencils[pencilId] + 2*VLASOV_STENCIL_WIDTH;
+   //    targetRatios.erase(ibeg2,iend2);
+   //    ibeg2 = sourceDZ.begin() + ibeg;
+   //    iend2 = sourceDZ.begin() + ibeg + lengthOfPencils[pencilId] + 2*VLASOV_STENCIL_WIDTH;
+   //    sourceDZ.erase(ibeg2,iend2);
+   //    idsStart.erase(idsStart.begin() + pencilId);
 
-      N--;
-      sumOfLengths -= lengthOfPencils[pencilId];
-      lengthOfPencils.erase(lengthOfPencils.begin() + pencilId);
-   }
+   //    N--;
+   //    sumOfLengths -= lengthOfPencils[pencilId];
+   //    lengthOfPencils.erase(lengthOfPencils.begin() + pencilId);
+   // }
 
    std::vector<CellID> getIds(const uint pencilId) const {
       if (pencilId >= N) {

@@ -124,7 +124,7 @@ namespace projects {
       else if (densModelString == "testcase") densityModel = TestCase;
    }
 
-   Real MultiPeak::getDistribValue(creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
+   inline Real MultiPeak::getDistribValue(creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
       const MultiPeakSpeciesParameters& sP = speciesParams[popID];
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
@@ -145,7 +145,6 @@ namespace projects {
    Real MultiPeak::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz,
                                          creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,
                                          const uint popID) const {
-
       Real rhoFactor = 1.0;
       switch (densityModel) {
          case Uniform:
@@ -161,7 +160,6 @@ namespace projects {
             rhoFactor = 1.0;
             break;
       }
-
       return rhoFactor * getDistribValue(vx+0.5*dvx,vy+0.5*dvy,vz+0.5*dvz,dvx,dvy,dvz,popID);
    }
 

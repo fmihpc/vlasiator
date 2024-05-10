@@ -47,13 +47,13 @@ namespace SBC {
       virtual ~Maxwellian();
 
       static void addParameters();
-      virtual void getParameters();
+      virtual void getParameters() override;
       
-      virtual string getName() const;
-      virtual uint getIndex() const;
+      virtual string getName() const override;
+      virtual uint getIndex() const override;
       
    protected:
-      void generateTemplateCell(spatial_cell::SpatialCell& templateCell, Real (&B)[3], int inputDataIndex, creal t);
+      void generateTemplateCell(spatial_cell::SpatialCell& templateCell, Real (&B)[3], int inputDataIndex, creal t) override;
       
       Real maxwellianDistribution(const uint popID,
          creal& rho, creal& T, creal& vx, creal& vy, creal& vz

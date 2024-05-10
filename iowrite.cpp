@@ -42,8 +42,9 @@
 #include "phiprof.hpp"
 #include "parameters.h"
 #include "logger.h"
-#include "vlasovmover.h"
+#include "vlasovsolver/vlasovmover.h"
 #include "object_wrapper.h"
+#include "velocity_mesh_parameters.h"
 #include "sysboundary/ionosphere.h"
 #include "fieldtracing/fieldtracing.h"
 
@@ -124,8 +125,8 @@ bool writeVelocityDistributionData(Writer& vlsvWriter,
                                    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                    const vector<CellID>& cells,MPI_Comm comm) {
    bool success = true;
-   for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
-      if (writeVelocityDistributionData(p,vlsvWriter,mpiGrid,cells,comm) == false) success = false;
+   for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      if (writeVelocityDistributionData(popID,vlsvWriter,mpiGrid,cells,comm) == false) success = false;
    }
    return success;
 }
@@ -173,20 +174,21 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
    // space, but a purely numerical bounding box.
    uint64_t bbox[6];
    const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
-   bbox[0] = getObjectWrapper().velocityMeshes[meshID].gridLength[0];
-   bbox[1] = getObjectWrapper().velocityMeshes[meshID].gridLength[1];
-   bbox[2] = getObjectWrapper().velocityMeshes[meshID].gridLength[2];
-   bbox[3] = getObjectWrapper().velocityMeshes[meshID].blockLength[0];
-   bbox[4] = getObjectWrapper().velocityMeshes[meshID].blockLength[1];
-   bbox[5] = getObjectWrapper().velocityMeshes[meshID].blockLength[2];
+   bbox[0] = vmesh::getMeshWrapper()->velocityMeshes->at(meshID).gridLength[0];
+   bbox[1] = vmesh::getMeshWrapper()->velocityMeshes->at(meshID).gridLength[1];
+   bbox[2] = vmesh::getMeshWrapper()->velocityMeshes->at(meshID).gridLength[2];
+   bbox[3] = vmesh::getMeshWrapper()->velocityMeshes->at(meshID).blockLength[0];
+   bbox[4] = vmesh::getMeshWrapper()->velocityMeshes->at(meshID).blockLength[1];
+   bbox[5] = vmesh::getMeshWrapper()->velocityMeshes->at(meshID).blockLength[2];
 
    attribs.clear();
    attribs["mesh"] = getObjectWrapper().particleSpecies[popID].name;
    attribs["type"] = vlsv::mesh::STRING_UCD_AMR;
 
-   // stringstream is necessary here to correctly convert refLevelMaxAllowed into a string 
+   // stringstream is necessary here to correctly convert refLevelMaxAllowed (hardcoded to zero now) into a string 
    stringstream ss;
-   ss << static_cast<unsigned int>(getObjectWrapper().velocityMeshes[meshID].refLevelMaxAllowed);
+   //ss << static_cast<unsigned int>(vmesh::getMeshWrapper()->velocityMeshes->at(meshID).refLevelMaxAllowed);
+   ss << static_cast<unsigned int>(0);
    attribs["max_velocity_ref_level"] = ss.str();
    
    if (mpiGrid.get_rank() == MASTER_RANK) {
@@ -195,10 +197,10 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
       for (int crd=0; crd<3; ++crd) {
          const size_t N_nodes = bbox[crd]*bbox[crd+3]+1;
          Real* crds = new Real[N_nodes];
-         const Real dV = getObjectWrapper().velocityMeshes[meshID].cellSize[crd];
+         const Real dV = vmesh::getMeshWrapper()->velocityMeshes->at(meshID).cellSize[crd];
 
          for (size_t i=0; i<N_nodes; ++i) {
-            crds[i] = getObjectWrapper().velocityMeshes[meshID].meshMinLimits[crd] + i*dV;
+            crds[i] = vmesh::getMeshWrapper()->velocityMeshes->at(meshID).meshMinLimits[crd] + i*dV;
          }
 
          if (crd == 0) {
@@ -227,7 +229,8 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
       // gather data for writing
       for (size_t cell=0; cell<cells.size(); ++cell) {
          SpatialCell* SC = mpiGrid[cells[cell]];
-         for (vmesh::LocalID block_i=0; block_i<SC->get_number_of_velocity_blocks(popID); ++block_i) {
+         const vmesh::LocalID nBlocks = SC->get_number_of_velocity_blocks(popID);
+         for (vmesh::LocalID block_i=0; block_i<nBlocks; ++block_i) {
             vmesh::GlobalID block = SC->get_velocity_block_global_id(block_i,popID);
             velocityBlockIds.push_back( block );
          }
@@ -258,7 +261,7 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
    attribs["name"] = popName;      // Name of the velocity space distribution is written avgs
    const string datatype_avgs = "float";
    const uint64_t arraySize_avgs = totalBlocks;
-   const uint64_t vectorSize_avgs = WID3; // There are 64 elements in every velocity block
+   const uint64_t vectorSize_avgs = WID3; // There are 64 (WID=4) or 512 (WID=8) elements in every velocity block
 
    // Get the data size needed for writing in data
    uint64_t dataSize_avgs = sizeof(Realf);
@@ -293,6 +296,7 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
    if (success ==false) {
       logFile << "(MAIN) writeGrid: ERROR occurred when writing BLOCKVARIABLE f" << endl << writeVerbose;
    }
+
    return success;
 }
 
@@ -494,6 +498,8 @@ bool writeCommonGridData(
    if( vlsvWriter.writeParameter("xcells_ini", &P::xcells_ini) == false ) { return false; }
    if( vlsvWriter.writeParameter("ycells_ini", &P::ycells_ini) == false ) { return false; }
    if( vlsvWriter.writeParameter("zcells_ini", &P::zcells_ini) == false ) { return false; }
+   const int writewid = WID;
+   if( vlsvWriter.writeParameter("velocity_block_width", &writewid) == false ) { return false; }
    if( FieldTracing::fieldTracingParameters.doTraceFullBox ) {
       if( vlsvWriter.writeParameter("fieldTracingFluxRopeMaxDistance", &FieldTracing::fieldTracingParameters.fluxrope_max_curvature_radii_to_trace ) == false ) {
          return false;
@@ -1434,7 +1440,7 @@ bool writeGrid(
    if( writeFsGridMetadata( technicalGrid, vlsvWriter, P::systemWriteFsGrid.at(outputFileTypeIndex) ) == false ) {
       return false;
    }
-   
+
    //Write Ionosphere Grid
    if( writeIonosphereGridMetadata( vlsvWriter ) == false ) {
       return false;
@@ -1640,7 +1646,6 @@ bool writeRestart(
    //Write Config Info 
    if( writeConfigInfo(configInfo,vlsvWriter,MPI_COMM_WORLD) == false ) return false;
    
-
    //Write Ionosphere Grid
    if( writeIonosphereGridMetadata( vlsvWriter ) == false ) return false;
 

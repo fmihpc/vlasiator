@@ -40,19 +40,18 @@ void propagatePencil(
    const uint dimension,
    const uint blockGID,
    const Realv dt,
-   const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> &vmesh,
-   const uint lengthOfPencil,
+   const vmesh::VelocityMesh* vmesh,
+   const int lengthOfPencil,
    const Realv threshold,
    Realf** blockDataPointer, // Spacing is for sources, but will be written into
    Realf* targetRatios, // Vector holding target ratios
-   const unsigned int* const cellid_transpose
+   const unsigned int* const vcell_transpose
 ) {
    // Get velocity data from vmesh that we need later to calculate the translation
    velocity_block_indices_t block_indices;
-   uint8_t refLevel;
-   vmesh.getIndices(blockGID,refLevel, block_indices[0], block_indices[1], block_indices[2]);
-   Realv dvz = vmesh.getCellSize(refLevel)[dimension];
-   Realv vz_min = vmesh.getMeshMinLimits()[dimension];
+   vmesh->getIndices(blockGID, block_indices[0], block_indices[1], block_indices[2]);
+   Realv dvz = vmesh->getCellSize()[dimension];
+   Realv vz_min = vmesh->getMeshMinLimits()[dimension];
 
    // Assuming 1 neighbor in the target array because of the CFL condition
    // In fact propagating to > 1 neighbor will give an error
@@ -61,7 +60,6 @@ void propagatePencil(
    // Go over length of propagated cells
    for (int i = VLASOV_STENCIL_WIDTH; i < (int)lengthOfPencil-VLASOV_STENCIL_WIDTH; i++){
       // Get pointers to block data used for output.
-      // CUDATODO: use blockGID to get pointers here
       Realf* block_data_m1 = blockDataPointer[i - 1];
       Realf* block_data    = blockDataPointer[i];
       Realf* block_data_p1 = blockDataPointer[i + 1];
@@ -121,7 +119,7 @@ void propagatePencil(
                // Loop over 3rd (vectorized) vspace dimension
                #pragma omp simd
                for (uint iv = 0; iv < VECL; iv++) {
-                  block_data[cellid_transpose[iv + planeVector * VECL + k * WID2]] += vector[iv];
+                  block_data[vcell_transpose[iv + planeVector * VECL + k * WID2]] += vector[iv];
                }
             }
             if (areaRatio_p1 && block_data_p1) {
@@ -131,7 +129,7 @@ void propagatePencil(
                // Loop over 3rd (vectorized) vspace dimension
                #pragma omp simd
                for (uint iv = 0; iv < VECL; iv++) {
-                  block_data_p1[cellid_transpose[iv + planeVector * VECL + k * WID2]] += vector[iv];
+                  block_data_p1[vcell_transpose[iv + planeVector * VECL + k * WID2]] += vector[iv];
                }
             }
             if (areaRatio_m1 && block_data_m1) {
@@ -141,7 +139,7 @@ void propagatePencil(
                // Loop over 3rd (vectorized) vspace dimension
                #pragma omp simd
                for (uint iv = 0; iv < VECL; iv++) {
-                  block_data_m1[cellid_transpose[iv + planeVector * VECL + k * WID2]] += vector[iv];
+                  block_data_m1[vcell_transpose[iv + planeVector * VECL + k * WID2]] += vector[iv];
                }
             }
          }
@@ -158,14 +156,14 @@ void propagatePencil(
  * @param start Index from blockDataPointer to start at
  * @param int lengthOfPencil Number of spatial cells in pencil (not inclusive 2*VLASOV_STENCIL_WIDTH
  * @param values Vector into which the data should be loaded
- * @param cellid_transpose
+ * @param vcell_transpose
  * @param popID ID of the particle species.
  */
 bool copy_trans_block_data_amr(
    Realf** pencilBlockData,
    const int lengthOfPencil,
    Vec* values,
-   const unsigned int* const cellid_transpose,
+   const unsigned int* const vcell_transpose,
    const uint popID) {
 
    //  Copy volume averages of this block from all spatial cells:
@@ -176,7 +174,7 @@ bool copy_trans_block_data_amr(
          // Copy data to a temporary array and transpose values so that mapping is along k direction.
          #pragma omp simd
          for (uint i=0; i<WID3; ++i) {
-            blockValues[i] = block_data[cellid_transpose[i]];
+            blockValues[i] = block_data[vcell_transpose[i]];
          }
          // now load values into the actual values table..
          uint offset =0;
@@ -218,16 +216,18 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                       const uint dimension,
                       const Realv dt,
                       const uint popID) {
+
    /***********************/
    phiprof::Timer setupTimer {"trans-amr-setup"};
    /***********************/
+
    // return if there's no cells to propagate
    if(localPropagatedCells.size() == 0) {
       return false;
    }
 
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
-   unsigned int cellid_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
+   unsigned int vcell_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
    // Fiddle indices x,y,z in VELOCITY SPACE
    switch (dimension) {
    case 0:
@@ -263,16 +263,17 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
    // Vector with all cell ids
    vector<CellID> allCells(localPropagatedCells);
    allCells.insert(allCells.end(), remoteTargetCells.begin(), remoteTargetCells.end());
+   const uint nAllCells = allCells.size();
 
    // Vectors of pointers to the cell structs
-   std::vector<SpatialCell*> allCellsPointer(allCells.size());
+   std::vector<SpatialCell*> allCellsPointer(nAllCells);
 
    // Initialize allCellsPointer
    #pragma omp parallel for schedule(static)
    for(uint celli = 0; celli < allCells.size(); celli++){
       allCellsPointer[celli] = mpiGrid[allCells[celli]];
    }
-   // init cellid_transpose (moved here to take advantage of the omp parallel region)
+   // init vcell_transpose (moved here to take advantage of the omp parallel region)
    #pragma omp parallel for collapse(2) schedule(static)
    for (uint k=0; k<WID; ++k) {
       for (uint j=0; j<WID; ++j) {
@@ -281,7 +282,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                i * cell_indices_to_id[0] +
                j * cell_indices_to_id[1] +
                k * cell_indices_to_id[2];
-            cellid_transpose[ i + j * WID + k * WID2] = cell;
+            vcell_transpose[ i + j * WID + k * WID2] = cell;
          }
       }
    }
@@ -295,8 +296,8 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
    }
 
    // Get a pointer to the velocity mesh of the first spatial cell
-   const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = allCellsPointer[0]->get_velocity_mesh(popID);
-   
+   const vmesh::VelocityMesh* vmesh = allCellsPointer[0]->get_velocity_mesh(popID);
+
    phiprof::Timer buildBlockListimer {"trans-amr-buildBlockList"};
    // Get a unique sorted list of blockids that are in any of the
    // propagated cells.
@@ -306,11 +307,11 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
    {
       std::unordered_set<vmesh::GlobalID> thread_unionOfBlocksSet;
 #pragma omp for
-      for(unsigned int i=0; i<allCellsPointer.size(); i++) {
+      for (unsigned int i=0; i<allCellsPointer.size(); i++) {
          auto cell = &allCellsPointer[i];
-         const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& cvmesh = (*cell)->get_velocity_mesh(popID);
-         for (vmesh::LocalID block_i=0; block_i< cvmesh.size(); ++block_i) {
-            thread_unionOfBlocksSet.insert(cvmesh.getGlobalID(block_i));
+         const vmesh::VelocityMesh* cvmesh = (*cell)->get_velocity_mesh(popID);
+         for (vmesh::LocalID block_i=0; block_i< cvmesh->size(); ++block_i) {
+            thread_unionOfBlocksSet.insert(cvmesh->getGlobalID(block_i));
          }
       }
 #pragma omp critical
@@ -372,7 +373,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
             Vec* blockDataSource = blockDataBuffer.data() + start*WID3/VECL;
             Realf** pencilBlockData = cellBlockData.data() + start;
             bool pencil_has_data = copy_trans_block_data_amr(pencilBlockData, L, blockDataSource,
-                                                             cellid_transpose, popID);
+                                                             vcell_transpose, popID);
          }
          loadTimer.stop();
 
@@ -384,7 +385,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                // Get local velocity block id
                const vmesh::LocalID blockLID = target_cell->get_velocity_block_local_id(blockGID, popID);
                // Check for invalid block id
-               if (blockLID != vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) {
+               if (blockLID != vmesh::VelocityMesh::invalidLocalID()) {
                   // Get a pointer to the block data
                   Realf* blockData = target_cell->get_data(blockLID, popID);
                   memset(blockData, 0, WID3*sizeof(Realf));
@@ -420,11 +421,10 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                             scalingthreshold,
                             pencilBlockData,
                             pencilRatios,
-                            cellid_transpose
+                            vcell_transpose
                );
          }
          propagateTimer.stop();
-
          mappingTimer.stop(); // mapping (top-level)
       } // Closes loop over blocks
    } // closes pragma omp parallel
@@ -564,7 +564,8 @@ void update_remote_mapping_contribution_amr(
 
       vector<CellID> p_nbrs;
       vector<CellID> n_nbrs;
-      
+
+      phiprof::Timer neighTimer {"get face neighbors"};
       for (const auto& [neighbor, dir] : mpiGrid.get_face_neighbors_of(c)) {
          if(dir == ((int)dimension + 1) * direction) {
             p_nbrs.push_back(neighbor);
@@ -574,13 +575,14 @@ void update_remote_mapping_contribution_amr(
             n_nbrs.push_back(neighbor);
          }
       }
-
+      neighTimer.stop();
       uint sendIndex = 0;
       uint recvIndex = 0;
 
       int mySiblingIndex = get_sibling_index(mpiGrid,c);
 
       // Set up sends if any neighbor cells in p_nbrs are non-local.
+      phiprof::Timer sendsTimer {"setup sends"};
       if (!all_of(p_nbrs.begin(), p_nbrs.end(), [&mpiGrid](CellID i){return mpiGrid.is_local(i);})) {
 
          // ccell adds a neighbor_block_data block for each neighbor in the positive direction to its local data
@@ -643,7 +645,8 @@ void update_remote_mapping_contribution_amr(
          } // closes for(uint i_nbr = 0; i_nbr < nbrs_to.size(); ++i_nbr)
 
       } // closes if(!all_of(nbrs_to.begin(), nbrs_to.end(),[&mpiGrid](CellID i){return mpiGrid.is_local(i);}))
-
+      sendsTimer.stop();
+      phiprof::Timer recvsTimer {"setup recvs"};
       // Set up receives if any neighbor cells in n_nbrs are non-local.
       if (!all_of(n_nbrs.begin(), n_nbrs.end(), [&mpiGrid](CellID i){return mpiGrid.is_local(i);})) {
 
@@ -726,21 +729,22 @@ void update_remote_mapping_contribution_amr(
          } // closes for(uint i_nbr = 0; i_nbr < nbrs_of.size(); ++i_nbr)
 
       } // closes if(!all_of(nbrs_of.begin(), nbrs_of.end(),[&mpiGrid](CellID i){return mpiGrid.is_local(i);}))
-
    } // closes for (auto c : local_cells) {
 
    MPI_Barrier(MPI_COMM_WORLD);
 
    // Do communication
+   phiprof::Timer commTimer {"update neighbour vel block data"};
    SpatialCell::setCommunicatedSpecies(popID);
    SpatialCell::set_mpi_transfer_type(Transfer::NEIGHBOR_VEL_BLOCK_DATA);
    mpiGrid.update_copies_of_remote_neighbors(neighborhood);
-
+   commTimer.stop();
    MPI_Barrier(MPI_COMM_WORLD);
 
    // Reduce data: sum received data in the data array to
    // the target grid in the temporary block container
    //#pragma omp parallel
+   phiprof::Timer reduceTimer {"merge retreived data"};
    {
       for (size_t c = 0; c < receive_cells.size(); ++c) {
          SpatialCell* receive_cell = mpiGrid[receive_cells[c]];
@@ -771,7 +775,7 @@ void update_remote_mapping_contribution_amr(
          }
       }
    }
-
+   reduceTimer.stop();
    for (auto p : receiveBuffers) {
       aligned_free(p);
    }

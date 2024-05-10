@@ -81,7 +81,7 @@ namespace projects {
        */
       void setCell(spatial_cell::SpatialCell* cell);
          
-      Real setVelocityBlock(spatial_cell::SpatialCell* cell,const vmesh::LocalID& blockLID,const uint popID) const;
+      Real setVelocityBlock(spatial_cell::SpatialCell* cell,const vmesh::LocalID& blockLID,const uint popID, Realf* buffer) const;
 
       virtual bool canRefine(spatial_cell::SpatialCell* cell) const;
 
@@ -162,11 +162,6 @@ namespace projects {
                                          creal& dvx, creal& dvy, creal& dvz,
                                          const uint popID) const = 0;
       
-      /*!
-       Get random number between 0 and 1.0. One should always first initialize the rng.
-       */
-      Real getRandomNumber() const;
-         
       void printPopulations();
       
       virtual bool rescalesDensity(const uint popID) const;

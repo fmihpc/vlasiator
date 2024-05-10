@@ -33,7 +33,7 @@
 #include "../project.h"
 #include "../../parameters.h"
 #include "../../readparameters.h"
-#include "../../vlasovmover.h"
+#include "../../vlasovsolver/vlasovmover.h"
 
 using namespace std;
 using namespace spatial_cell;
@@ -109,7 +109,7 @@ namespace projects {
       RP::get("Shocktest.Bz2", this->Bz[this->RIGHT]);
    }
    
-   Real Shocktest::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
+   inline Real Shocktest::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
       creal mass = physicalconstants::MASS_PROTON;
       creal kb = physicalconstants::K_B;
       

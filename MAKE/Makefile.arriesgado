@@ -14,19 +14,20 @@ LNK = mpic++
 #Options: 
 # AVX:      VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
 # AVX512:   VEC8D_AGNER, VEC16F_AGNER
-# Fallback: VEC4D_FALLBACK, VEC4F_FALLBACK, VEC8F_FALLBACK
+# Fallback: VEC_FALLBACK_GENERIC
 
 ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
 #Single-precision        
-        VECTORCLASS = VEC8F_FALLBACK
-        INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/../vlasiator/vlasovsolver
+        VECTORCLASS = VEC_FALLBACK_GENERIC
 else
 #Double-precision
-#       VECTORCLASS = VEC4D_AGNER
-#       INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass
-        VECTORCLASS = VEC4D_FALLBACK
-        INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/../vlasiator/vlasovsolver
+        VECTORCLASS = VEC_FALLBACK_GENERIC
 endif
+
+#===== Vector Lengths ====
+# Default for VEC_FALLBACK_GENERIC is WID=4, VECL=8
+WID=4
+VECL=8
 
 FLAGS =
 # note: std was c++11

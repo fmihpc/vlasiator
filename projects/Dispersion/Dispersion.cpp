@@ -28,6 +28,7 @@
 #include "../../common.h"
 #include "../../readparameters.h"
 #include "../../object_wrapper.h"
+#include "../../velocity_mesh_parameters.h"
 #include "../../backgroundfield/backgroundfield.h"
 #include "../../backgroundfield/constantfield.hpp"
 
@@ -152,7 +153,7 @@ namespace projects {
       }
    }
    
-   Real Dispersion::getDistribValue(creal& vx,creal& vy, creal& vz, const uint popID) const {
+   inline Real Dispersion::getDistribValue(creal& vx,creal& vy, creal& vz, const uint popID) const {
       const DispersionSpeciesParameters& sP = speciesParams[popID];
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
@@ -161,7 +162,7 @@ namespace projects {
    
    Real Dispersion::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
       const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
-      const vmesh::MeshParameters& meshParams = getObjectWrapper().velocityMeshes[meshID];
+      const vmesh::MeshParameters& meshParams = vmesh::getMeshWrapper()->velocityMeshes->at(meshID);
       if (vx < meshParams.meshMinLimits[0] + 0.5*dvx ||
           vy < meshParams.meshMinLimits[1] + 0.5*dvy ||
           vz < meshParams.meshMinLimits[2] + 0.5*dvz ||
@@ -175,16 +176,14 @@ namespace projects {
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
       
-      Real avg =  getDistribValue(
+      creal result = getDistribValue(
          vx+0.5*dvx - sP.velocityPertAbsAmp * (0.5 - this->rndVel[0]),
          vy+0.5*dvy - sP.velocityPertAbsAmp * (0.5 - this->rndVel[1]),
          vz+0.5*dvz - sP.velocityPertAbsAmp * (0.5 - this->rndVel[2]),
-         popID
-         );
-            
-      creal result = avg *
+         popID) *
       sP.DENSITY * (1.0 + sP.densityPertRelAmp * (0.5 - this->rndRho)) *
       pow(mass / (2.0 * M_PI * kb * sP.TEMPERATURE), 1.5);
+
       if(result < this->maxwCutoff) {
          return 0.0;
       } else {
@@ -193,14 +192,6 @@ namespace projects {
    }
 
    void Dispersion::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
-      //Real* cellParams = cell->get_cell_parameters();
-      //creal x = cellParams[CellParams::XCRD];
-      //creal dx = cellParams[CellParams::DX];
-      //creal y = cellParams[CellParams::YCRD];
-      //creal dy = cellParams[CellParams::DY];
-      //creal z = cellParams[CellParams::ZCRD];
-      //creal dz = cellParams[CellParams::DZ];
-
       std::default_random_engine rndState;
       setRandomCellSeed(cell,rndState);
       

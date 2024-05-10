@@ -96,7 +96,7 @@ namespace projects {
 
    /*Real calcPhaseSpaceDensity(creal& z,creal& x,creal& y,creal& dz,creal& dx,creal& dy,
                creal& vz,creal& vx,creal& vy,creal& dvz,creal& dvx,creal& dvy) {*/
-   Real Alfven::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
+   inline Real Alfven::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
       const AlfvenSpeciesParameters& sP = speciesParams[popID];
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
@@ -146,7 +146,6 @@ namespace projects {
                for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
                   const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
-                  
                   Real dx = perBGrid.DX;
                   Real dy = perBGrid.DY;
                   Real ksi = ((xyz[0] + 0.5 * dx)  * cos(this->ALPHA) + (xyz[1] + 0.5 * dy) * sin(this->ALPHA)) / this->WAVELENGTH;

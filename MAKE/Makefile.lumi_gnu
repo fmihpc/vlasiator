@@ -9,7 +9,7 @@ LNK = CC
 #Options: 
 # AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
 # AVX512:   VEC8D_AGNER, VEC16F_AGNER
-# Fallback: VEC4D_FALLBACK, VEC4F_FALLBACK, VEC8F_FALLBACK
+# Fallback: VECTORCLASS = VEC_FALLBACK_GENERIC (Defaults to VECL8)
 
 ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
 #Single-precision        
@@ -18,6 +18,12 @@ else
 #Double-precision
 	VECTORCLASS = VEC4D_AGNER
 endif
+#===== Vector Lenghts ====
+# Default for VEC_FALLBACK_GENERIC is WID=4, VECL=8 
+#WID=8
+#VECL=32
+#WID=4
+#VECL=16
 
 FLAGS = 
 
@@ -49,6 +55,7 @@ testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 # CXXFLAGS is for compiler flags, they are always used
 # MATHFLAGS are for special math etc. flags, these are only applied on solver functions
 # LDFLAGS flags for linker
+# Important note: Do not edit CUDAFLAGS or COMPFLAGS in this file!
 
 #-DNO_WRITE_AT_ALL:  Define to disable write at all to 
 #                    avoid memleak (much slower IO)

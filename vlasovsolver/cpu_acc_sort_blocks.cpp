@@ -44,7 +44,7 @@ inline bool paircomparator( const std::pair<uint, uint> & l, const std::pair<uin
 */
 // TODO unfinished documentation
 void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
-                               const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
+                               const vmesh::VelocityMesh* vmesh,
                                const uint dimension,
                                uint* blocks,
                                std::vector<uint> & columnBlockOffsets,
@@ -52,18 +52,14 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
                                std::vector<uint> & setColumnOffsets,
                                std::vector<uint> & setNumColumns) {
    //const uint nBlocks = spatial_cell->get_number_of_velocity_blocks(); // Number of blocks
-   const vmesh::LocalID nBlocks = vmesh.size();
+   const vmesh::LocalID nBlocks = vmesh->size();
 
-   // Velocity mesh refinement level, has no effect here
-   // but is needed in some vmesh::VelocityMesh function calls.
-   const uint8_t REFLEVEL = 0;
-   
    // Copy block data to vector
    std::vector<std::pair<vmesh::GlobalID,vmesh::GlobalID> > block_pairs;
    block_pairs.resize( nBlocks );
    for (vmesh::LocalID i = 0; i < nBlocks; ++i ) {
       //const vmesh::GlobalID block = spatial_cell->get_velocity_block_global_id(i);
-      const vmesh::GlobalID block = vmesh.getGlobalID(i);
+      const vmesh::GlobalID block = vmesh->getGlobalID(i);
       switch( dimension ) {
        case 0: {
           const vmesh::GlobalID blockId_mapped = block; // Mapping the block id to different coordinate system if dimension is not zero:
@@ -77,8 +73,8 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
           //          = y + x*y_max + z*y_max*x_max
           //const uint x_indice = block%SpatialCell::get_velocity_grid_length()[0];
           //const uint y_indice = (block/SpatialCell::get_velocity_grid_length()[0])%SpatialCell::SpatialCell::get_velocity_grid_length()[1];
-          const vmesh::LocalID x_index = block % vmesh.getGridLength(REFLEVEL)[0];
-          const vmesh::LocalID y_index = (block / vmesh.getGridLength(REFLEVEL)[0]) % vmesh.getGridLength(REFLEVEL)[1];
+          const vmesh::LocalID x_index = block % vmesh->getGridLength()[0];
+          const vmesh::LocalID y_index = (block / vmesh->getGridLength()[0]) % vmesh->getGridLength()[1];
 
           // Mapping the block id to different coordinate system if dimension is not zero:
           //const uint blockId_mapped 
@@ -86,9 +82,9 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
           //        + y_indice 
           //        + x_indice * SpatialCell::SpatialCell::get_velocity_grid_length()[1];
           const vmesh::GlobalID blockId_mapped 
-                  = block - (x_index + y_index*vmesh.getGridLength(REFLEVEL)[0])
+                  = block - (x_index + y_index*vmesh->getGridLength()[0])
                   + y_index 
-                  + x_index * vmesh.getGridLength(REFLEVEL)[1];
+                  + x_index * vmesh->getGridLength()[1];
           block_pairs[i] = std::make_pair( blockId_mapped, block );
        }
          break;
@@ -99,9 +95,9 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
           //const uint x_indice = block%SpatialCell::get_velocity_grid_length()[0];
           //const uint y_indice = (block/SpatialCell::get_velocity_grid_length()[0])%SpatialCell::SpatialCell::get_velocity_grid_length()[1];
           //const uint z_indice =  (block/(SpatialCell::get_velocity_grid_length()[0]*SpatialCell::SpatialCell::get_velocity_grid_length()[1]));
-          const vmesh::LocalID x_index = block % vmesh.getGridLength(REFLEVEL)[0];
-          const vmesh::LocalID y_index = (block / vmesh.getGridLength(REFLEVEL)[0]) % vmesh.getGridLength(REFLEVEL)[1];
-          const vmesh::LocalID z_index = (block / (vmesh.getGridLength(REFLEVEL)[0]*vmesh.getGridLength(REFLEVEL)[1]));
+          const vmesh::LocalID x_index = block % vmesh->getGridLength()[0];
+          const vmesh::LocalID y_index = (block / vmesh->getGridLength()[0]) % vmesh->getGridLength()[1];
+          const vmesh::LocalID z_index = (block / (vmesh->getGridLength()[0]*vmesh->getGridLength()[1]));
 
           // Mapping the block id to different coordinate system if dimension is not zero:
           //const uint blockId_mapped 
@@ -110,8 +106,8 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
           //  + x_indice*SpatialCell::SpatialCell::get_velocity_grid_length()[1]*SpatialCell::SpatialCell::get_velocity_grid_length()[2];
           const vmesh::GlobalID blockId_mapped 
             = z_index 
-            + y_index*vmesh.getGridLength(REFLEVEL)[2]
-            + x_index*vmesh.getGridLength(REFLEVEL)[1]*vmesh.getGridLength(REFLEVEL)[2];
+            + y_index*vmesh->getGridLength()[2]
+            + x_index*vmesh->getGridLength()[1]*vmesh->getGridLength()[2];
           block_pairs[i] = std::make_pair( blockId_mapped, block );
        }
          break;
@@ -127,10 +123,10 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
 
    for (vmesh::LocalID i=0; i<nBlocks; ++i) {
        // identifies a particular column
-       vmesh::LocalID column_id = block_pairs[i].first / vmesh.getGridLength(REFLEVEL)[dimension];     
+       vmesh::LocalID column_id = block_pairs[i].first / vmesh->getGridLength()[dimension];     
        
        // identifies a particular block in a column (along the dimension)
-       vmesh::LocalID dimension_id = block_pairs[i].first % vmesh.getGridLength(REFLEVEL)[dimension];
+       vmesh::LocalID dimension_id = block_pairs[i].first % vmesh->getGridLength()[dimension];
       
        //sorted list
        blocks[i] = block_pairs[i].second;

@@ -27,7 +27,7 @@
 
 #include "datareductionoperator.h"
 #include "../object_wrapper.h"
-#include "../vlasovsolver/cpu_moments.h"
+#include "../vlasovsolver/arch_moments.h"
 
 namespace DRO {
    

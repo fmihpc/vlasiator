@@ -166,6 +166,7 @@ namespace SBC {
           * type. Order: 0 x+; 1 x-; 2 y+; 3 y-; 4 z+; 5 z-
           */
          virtual void getFaces(bool *faces) = 0;
+         virtual void gpuClear() {};
          virtual std::string getName() const=0;
          virtual uint getIndex() const=0;
          uint getPrecedence() const;
@@ -197,7 +198,7 @@ namespace SBC {
             SpatialCell *to,
             const bool copyMomentsOnly,
             const uint popID,
-            const bool calculate_V_moments
+            const bool copy_V_moments
          );
          std::array<SpatialCell*,27> & getFlowtoCells(
                const CellID& cellID
@@ -227,11 +228,6 @@ namespace SBC {
             const uint popID,
             const bool calculate_V_moments
          );
-         void vlasovBoundaryCopyFromTheClosestNbrAndLimit(
-               dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-               const CellID& cellID,
-               const uint popID
-         );
          void vlasovBoundaryCopyFromAllClosestNbrs(
             dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID,
@@ -244,23 +240,6 @@ namespace SBC {
             const uint popID,
             const bool calculate_V_moments,
             creal fluffiness
-         );
-         void vlasovBoundaryReflect(
-            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-            const CellID& cellID,
-            creal& nx,
-            creal& ny,
-            creal& nz,
-            const uint popID
-         );
-         void vlasovBoundaryAbsorb(
-            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-            const CellID& cellID,
-            creal& nx,
-            creal& ny,
-            creal& nz,
-            creal& quenchingFactor,
-            const uint popID
          );
          std::array<int, 3> getTheClosestNonsysboundaryCell(
             FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,

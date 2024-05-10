@@ -281,7 +281,7 @@ namespace projects {
     return retval;
   }
 
-  Real IPShock::getDistribValue(creal& x, creal& y, creal& z, 
+  inline Real IPShock::getDistribValue(creal& x, creal& y, creal& z, 
 				creal& vx, creal& vy, creal& vz, 
 				creal& dvx, creal& dvy, creal& dvz,
         const uint popID) const {

@@ -123,7 +123,7 @@ namespace projects {
       RP::get("Distributions.lambda", this->lambda);
    }
 
-   Real Distributions::getDistribValue(
+   inline Real Distributions::getDistribValue(
       creal& x, creal& y, creal& z,
       creal& vx, creal& vy, creal& vz,
       const uint popID

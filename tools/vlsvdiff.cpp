@@ -54,7 +54,7 @@
 #include <algorithm>
 #include <cstring>
 
-#include "definitions.h"
+#include "../definitions.h"
 #include <vlsv_reader.h>
 #include "vlsvreaderinterface.h"
 #include <vlsv_writer.h>
