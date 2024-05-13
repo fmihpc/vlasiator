@@ -120,6 +120,25 @@ namespace projects {
       Real Vz = profile(this->Vz[this->BOTTOM], this->Vz[this->TOP], x);
       (void)y,z,popID;
 
+      // add an initial velocity perturbation to Vx
+      // initialize RNG for calculating random phases for the initial perturbation
+      std::default_random_engine rndState;
+      setRandomSeed(0,rndState);
+      Real phase = 0.0;
+
+      // add each mode to the initial perturbation
+      for (int i=0; i<=this->harmonics; i++) {
+	 if (this->randomPhase) {
+            phase = 2.0 * M_PI * getRandomNumber(rndState); 
+         }
+
+         if (this->offset != 0.0) {
+            Vx += this->amp * sin(2.0 * (i + 1) * M_PI * y / this->lambda + phase) * (exp(-pow((x + this->offset) / this->transitionWidth,2)) + exp(-pow((x - this->offset) / this->transitionWidth,2)));
+         } else {
+            Vx += this->amp * sin(2.0 * (i + 1) * M_PI * y / this->lambda + phase) * exp(-pow(x / this->transitionWidth,2));
+         }
+      }
+
       vector<std::array<Real, 3> > centerPoints;
       std::array<Real, 3> V0 {{Vx,Vy,Vz}};
       centerPoints.push_back(V0);
@@ -133,24 +152,6 @@ namespace projects {
       Real Vx = initV0[0];
       Real Vy = initV0[1];
       Real Vz = initV0[2];
-
-      // initialize RNG for calculating random phases for the initial perturbation
-      std::default_random_engine rndState;
-      setRandomSeed(0,rndState);
-      Real phase = 0.0;
-
-      // add an initial velocity perturbation
-      for (int i=0; i<=this->harmonics; i++) {
-	 if (this->randomPhase) {
-            phase = 2.0 * M_PI * getRandomNumber(rndState); 
-         }
-
-         if (this->offset != 0.0) {
-            Vx += this->amp * sin(2.0 * (i + 1) * M_PI * y / this->lambda + phase) * (exp(-pow((x + this->offset) / this->transitionWidth,2)) + exp(-pow((x - this->offset) / this->transitionWidth,2)));
-         } else {
-            Vx += this->amp * sin(2.0 * (i + 1) * M_PI * y / this->lambda + phase) * exp(-pow(x / this->transitionWidth,2));
-         }
-      }
 
       // calculate the temperature such that the total pressure is constant across the domain
       Real mu0 = physicalconstants::MU_0;
