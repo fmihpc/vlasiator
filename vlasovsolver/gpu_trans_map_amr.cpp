@@ -607,25 +607,22 @@ int get_sibling_index(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
 /** GPU kernel for incrementing one set of blocks with another
     used for accruing remote neighbor contributions
 */
-__global__ static void __launch_bounds__(WID3,4) remote_increment_kernel (
+__global__ static void remote_increment_kernel (
    Realf* blockData,
    Realf* neighborData,
    vmesh::LocalID nBlocks
    ) {
    const int gpuBlocks = gridDim.x;
-   const int blocki = blockIdx.x;
+   const int blocki = blockIdx.x; // ==LID
    const int i = threadIdx.x;
    const int j = threadIdx.y;
    const int k = threadIdx.z;
    const uint ti = k*WID2 + j*WID + i;
-   // loop over whole velocity space
-   for (uint blockLID=blocki; blockLID<nBlocks; blockLID += gpuBlocks) {
-      // Increment value
-      atomicAdd(&blockData[blockLID * WID3 + ti],neighborData[blockLID * WID3 + ti]);
-
-      //blockData[blockLID * WID3 + ti] += neighborData[blockLID * WID3 + ti];
-      // Note: this is not an atomic operation, so only one kernel per cell can be active at a time.
-   }
+   // Increment value
+   // atomicAdd(&blockData[blocki * WID3 + ti],neighborData[blocki * WID3 + ti]);
+   // As each target block has its own GPU stream, we ensure that we don't write concurrently from
+   // several different threads or kernels, and thus don't need to use atomic operations.
+   blockData[blocki * WID3 + ti] += neighborData[blocki * WID3 + ti];
 }
 
 /* This function communicates the mapping on process boundaries, and then updates the data to their correct values.
@@ -645,6 +642,13 @@ void gpu_update_remote_mapping_contribution_amr(
    int direction,
    const uint popID) {
 
+   // Fast return if no cells to process
+   int mpiProcs;
+   MPI_Comm_size(MPI_COMM_WORLD,&mpiProcs);
+   if (mpiProcs == 1) {
+      return;
+   }
+
    // GPUTODO: First attempts at using managed memory for remote neighbours
    // Should move to re-using managed memory buffers and ensuring size is suitable?
    // If that path is taken, it should also check for any local cells *not* on process
@@ -652,23 +656,18 @@ void gpu_update_remote_mapping_contribution_amr(
    int device = gpu_getDevice();
 
    int neighborhood = 0;
-   int both_neighborhood = 0;
-
    //normalize and set neighborhoods
    if(direction > 0) {
       direction = 1;
       switch (dimension) {
       case 0:
          neighborhood = SHIFT_P_X_NEIGHBORHOOD_ID;
-         both_neighborhood = VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID;
          break;
       case 1:
          neighborhood = SHIFT_P_Y_NEIGHBORHOOD_ID;
-         both_neighborhood = VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID;
          break;
       case 2:
          neighborhood = SHIFT_P_Z_NEIGHBORHOOD_ID;
-         both_neighborhood = VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID;
          break;
       }
    }
@@ -677,27 +676,19 @@ void gpu_update_remote_mapping_contribution_amr(
       switch (dimension) {
       case 0:
          neighborhood = SHIFT_M_X_NEIGHBORHOOD_ID;
-         both_neighborhood = VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID;
          break;
       case 1:
          neighborhood = SHIFT_M_Y_NEIGHBORHOOD_ID;
-         both_neighborhood = VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID;
          break;
       case 2:
          neighborhood = SHIFT_M_Z_NEIGHBORHOOD_ID;
-         both_neighborhood = VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID;
          break;
       }
    }
 
    //const vector<CellID>& local_cells = getLocalCells();
-   const vector<CellID>& local_cells = mpiGrid.get_local_cells_on_process_boundary(both_neighborhood);
-   const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(both_neighborhood);
-
-   // Fast return if no cells to process
-   if (local_cells.size() == remote_cells.size() == 0) {
-      return;
-   }
+   const vector<CellID> local_cells = mpiGrid.get_local_cells_on_process_boundary(VLASOV_SOLVER_NEIGHBORHOOD_ID);
+   const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_NEIGHBORHOOD_ID);
 
    vector<CellID> receive_cells;
    set<CellID> send_cells;
@@ -742,12 +733,12 @@ void gpu_update_remote_mapping_contribution_amr(
       if (!ccell) continue;
       vector<CellID> p_nbrs;
       vector<CellID> n_nbrs;
-      for (const auto& nbr : mpiGrid.get_face_neighbors_of(c)) {
-         if(nbr.second == ((int)dimension + 1) * direction) {
-            p_nbrs.push_back(nbr.first);
+      for (const auto& [neighbor, dir] : mpiGrid.get_face_neighbors_of(c)) {
+         if(dir == ((int)dimension + 1) * direction) {
+            p_nbrs.push_back(neighbor);
          }
-         if(nbr.second == -1 * ((int)dimension + 1) * direction) {
-            n_nbrs.push_back(nbr.first);
+         if(dir == -1 * ((int)dimension + 1) * direction) {
+            n_nbrs.push_back(neighbor);
          }
       }
 
@@ -793,13 +784,15 @@ void gpu_update_remote_mapping_contribution_amr(
                      // summed for the correct result.
 
                      if (ccell->neighbor_number_of_blocks.at(sendIndex) == 0) {
-                        continue;
+                        ccell->neighbor_block_data.at(sendIndex) = 0;
+                        sendBuffers.push_back(0);
+                     } else {
+                        // GPUTODO: This is now unified memory. With GPU-aware MPI it could be on-device.
+                        CHK_ERR( gpuMallocManaged((void**)&ccell->neighbor_block_data.at(sendIndex), ccell->neighbor_number_of_blocks.at(sendIndex) * WID3 * sizeof(Realf)) );
+                        // CHK_ERR( gpuMemPrefetchAsync(ccell->neighbor_block_data.at(sendIndex),ccell->neighbor_number_of_blocks.at(sendIndex) * WID3 * sizeof(Realf),device,0) );
+                        CHK_ERR( gpuMemset(ccell->neighbor_block_data.at(sendIndex), 0, ccell->neighbor_number_of_blocks.at(sendIndex) * WID3 * sizeof(Realf)) );
+                        sendBuffers.push_back(ccell->neighbor_block_data.at(sendIndex));
                      }
-                     // GPUTODO: This is now unified memory. With GPU-aware MPI it could be on-device.
-                     CHK_ERR( gpuMallocManaged((void**)&ccell->neighbor_block_data.at(sendIndex), ccell->neighbor_number_of_blocks.at(sendIndex) * WID3 * sizeof(Realf)) );
-                     // CHK_ERR( gpuMemPrefetchAsync(ccell->neighbor_block_data.at(sendIndex),ccell->neighbor_number_of_blocks.at(sendIndex) * WID3 * sizeof(Realf),device,0) );
-                     CHK_ERR( gpuMemset(ccell->neighbor_block_data.at(sendIndex), 0, ccell->neighbor_number_of_blocks.at(sendIndex) * WID3 * sizeof(Realf)) );
-                     sendBuffers.push_back(ccell->neighbor_block_data.at(sendIndex));
                   } // closes if(send_cells.find(nbr) == send_cells.end())
                } // closes if(pcell && pcell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)
             } // closes if(nbr != INVALID_CELLID && do_translate_cell(ccell) && !mpiGrid.is_local(nbr))
@@ -832,13 +825,13 @@ void gpu_update_remote_mapping_contribution_amr(
                   recvIndex = get_sibling_index(mpiGrid,nbr);
                   ncell->neighbor_number_of_blocks.at(recvIndex) = ccell->get_number_of_velocity_blocks(popID);
                   if (ncell->neighbor_number_of_blocks.at(recvIndex) == 0) {
-                     continue;
+                     receiveBuffers.push_back(0);
+                  } else {
+                     // GPUTODO: This is now unified memory. With GPU-aware MPI it could be on-device.
+                     CHK_ERR( gpuMallocManaged((void**)&ncell->neighbor_block_data.at(recvIndex), ncell->neighbor_number_of_blocks.at(recvIndex) * WID3 * sizeof(Realf)) );
+                     CHK_ERR( gpuMemPrefetchAsync(ncell->neighbor_block_data.at(recvIndex), ncell->neighbor_number_of_blocks.at(recvIndex) * WID3 * sizeof(Realf), device,0) );
+                     receiveBuffers.push_back(ncell->neighbor_block_data.at(recvIndex));
                   }
-
-                  // GPUTODO: This is now unified memory. With GPU-aware MPI it could be on-device.
-                  CHK_ERR( gpuMallocManaged((void**)&ncell->neighbor_block_data.at(recvIndex), ncell->neighbor_number_of_blocks.at(recvIndex) * WID3 * sizeof(Realf)) );
-                  CHK_ERR( gpuMemPrefetchAsync(ncell->neighbor_block_data.at(recvIndex), ncell->neighbor_number_of_blocks.at(recvIndex) * WID3 * sizeof(Realf), device,0) );
-                  receiveBuffers.push_back(ncell->neighbor_block_data.at(recvIndex));
                } else {
                   recvIndex = mySiblingIndex;
                   // std::array<uint64_t, 8> siblingarr = mpiGrid.mapping.get_all_children(mpiGrid.mapping.get_parent(c));
@@ -863,13 +856,13 @@ void gpu_update_remote_mapping_contribution_amr(
 
                         ncell->neighbor_number_of_blocks.at(i_sib) = scell->get_number_of_velocity_blocks(popID);
                         if (ncell->neighbor_number_of_blocks.at(i_sib) == 0) {
-                           continue;
+                           receiveBuffers.push_back(0);
+                        } else {
+                           // GPUTODO: This is now unified memory. With GPU-aware MPI it could be on-device.
+                           CHK_ERR( gpuMallocManaged((void**)&ncell->neighbor_block_data.at(i_sib), ncell->neighbor_number_of_blocks.at(i_sib) * WID3 * sizeof(Realf)) );
+                           CHK_ERR( gpuMemPrefetchAsync(ncell->neighbor_block_data.at(i_sib), ncell->neighbor_number_of_blocks.at(i_sib) * WID3 * sizeof(Realf), device,0) );
+                           receiveBuffers.push_back(ncell->neighbor_block_data.at(i_sib));
                         }
-
-                        // GPUTODO: This is now unified memory. With GPU-aware MPI it could be on-device.
-                        CHK_ERR( gpuMallocManaged((void**)&ncell->neighbor_block_data.at(i_sib), ncell->neighbor_number_of_blocks.at(i_sib) * WID3 * sizeof(Realf)) );
-                        CHK_ERR( gpuMemPrefetchAsync(ncell->neighbor_block_data.at(i_sib), ncell->neighbor_number_of_blocks.at(i_sib) * WID3 * sizeof(Realf), device,0) );
-                        receiveBuffers.push_back(ncell->neighbor_block_data.at(i_sib));
                      }
                   }
                }
@@ -895,26 +888,24 @@ void gpu_update_remote_mapping_contribution_amr(
 
    // Reduce data: sum received data in the data array to
    // the target grid in the temporary block container
-   // #pragma omp parallel
    if (receive_cells.size() != 0) {
       phiprof::Timer updateRemoteTimerIncrement {"trans-amr-remotes-increment"};
       for (size_t c = 0; c < receive_cells.size(); ++c) {
          SpatialCell* receive_cell = mpiGrid[receive_cells[c]];
          SpatialCell* origin_cell = mpiGrid[receive_origin_cells[c]];
-         if(!receive_cell || !origin_cell) {
+         if (!receive_cell || !origin_cell) {
             continue;
          }
 
          Realf *blockData = receive_cell->get_data(popID);
          Realf *neighborData = origin_cell->neighbor_block_data[receive_origin_index[c]];
          vmesh::LocalID nBlocks = receive_cell->get_number_of_velocity_blocks(popID);
-         const uint nGpuBlocks = nBlocks > GPUBLOCKS ? GPUBLOCKS : nBlocks;
          const uint maxThreads = gpu_getMaxThreads();
          // Increment needs to be parallel-safe, so use modulo of cellid as stream number
          gpuStream_t cellStream = gpuStreamList[receive_cells[c] % maxThreads];
-         if (nGpuBlocks>0) {
+         if (nBlocks>0) {
             dim3 block(WID,WID,WID);
-            remote_increment_kernel<<<nGpuBlocks, block, 0, cellStream>>> (
+            remote_increment_kernel<<<nBlocks, block, 0, cellStream>>> (
                blockData,
                neighborData,
                nBlocks
@@ -929,7 +920,6 @@ void gpu_update_remote_mapping_contribution_amr(
       // send cell data is set to zero. This is to avoid double copy if
       // one cell is the neighbor on bot + and - side to the same process
       vector<CellID> send_cells_vector(send_cells.begin(), send_cells.end());
-      #pragma omp parallel for
       for (uint c = 0; c < send_cells_vector.size(); c++) {
          SpatialCell* send_cell = mpiGrid[send_cells_vector[c]];
          gpuStream_t stream = gpu_getStream();

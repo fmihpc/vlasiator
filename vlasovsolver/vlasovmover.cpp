@@ -414,7 +414,9 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
    //- All cells update and communicate their lists of content blocks
    //- Only cells which were accerelated on this step need to be adjusted (blocks removed or added).
    //- Not done here on last step (done after loop)
-   if(step < (globalMaxSubcycles - 1)) adjustVelocityBlocks(mpiGrid, propagatedCells, false, popID);
+   if (step < (globalMaxSubcycles - 1)) {
+      adjustVelocityBlocks(mpiGrid, propagatedCells, false, popID);
+   }
 }
 
 /** Accelerate all particle populations to new time t+dt.
