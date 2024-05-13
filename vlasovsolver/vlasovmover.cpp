@@ -91,7 +91,6 @@ void calculateSpatialTranslation(
    phiprof::Timer btzTimer {"barrier-trans-pre-z", {"Barriers","MPI"}};
    MPI_Barrier(MPI_COMM_WORLD);
    btzTimer.stop();
-   std::cerr<<"translate z start"<<std::endl;
  
     // ------------- SLICE - map dist function in Z --------------- //
    if(P::zcells_ini > 1){
@@ -138,7 +137,6 @@ void calculateSpatialTranslation(
    MPI_Barrier(MPI_COMM_WORLD);
    btxTimer.stop();
    
-   std::cerr<<"translate x start"<<std::endl;
    // ------------- SLICE - map dist function in X --------------- //
    if(P::xcells_ini > 1){
       
@@ -149,7 +147,6 @@ void calculateSpatialTranslation(
       mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
       transTimer.stop();
       
-      std::cerr<<"translate x updates done"<<std::endl;
       // bt=phiprof::initializeTimer("barrier-trans-pre-trans_map_1d-x","Barriers","MPI");
       // phiprof::start(bt);
       // MPI_Barrier(MPI_COMM_WORLD);
@@ -164,7 +161,6 @@ void calculateSpatialTranslation(
 #endif
       computeTimer.stop();
       time += MPI_Wtime() - t1;
-      std::cerr<<"translate x translates done"<<std::endl;
 
       phiprof::Timer btTimer {"barrier-trans-pre-update_remote-x", {"Barriers","MPI"}};
       MPI_Barrier(MPI_COMM_WORLD);
@@ -179,14 +175,13 @@ void calculateSpatialTranslation(
       update_remote_mapping_contribution_amr(mpiGrid, 0,-1,popID);
 #endif
       updateRemoteTimer.stop();
-      std::cerr<<"translate x rem nei cont done"<<std::endl;
+
    }
 
    phiprof::Timer btyTimer {"barrier-trans-pre-y", {"Barriers","MPI"}};
    MPI_Barrier(MPI_COMM_WORLD);
    btyTimer.stop();
 
-   std::cerr<<"translate y start"<<std::endl;
    // ------------- SLICE - map dist function in Y --------------- //
    if(P::ycells_ini > 1) {
       
@@ -275,7 +270,7 @@ void calculateSpatialTranslation(
    remoteTargetCellsx = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID);
    remoteTargetCellsy = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID);
    remoteTargetCellsz = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID);
-   std::cerr<<"got remote cells"<<std::endl;
+
    // Figure out which spatial cells are translated,
    // result independent of particle species.
    for (size_t c=0; c<localCells.size(); ++c) {
@@ -419,7 +414,9 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
    //- All cells update and communicate their lists of content blocks
    //- Only cells which were accerelated on this step need to be adjusted (blocks removed or added).
    //- Not done here on last step (done after loop)
-   if(step < (globalMaxSubcycles - 1)) adjustVelocityBlocks(mpiGrid, propagatedCells, false, popID);
+   if (step < (globalMaxSubcycles - 1)) {
+      adjustVelocityBlocks(mpiGrid, propagatedCells, false, popID);
+   }
 }
 
 /** Accelerate all particle populations to new time t+dt.

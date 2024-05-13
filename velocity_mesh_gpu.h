@@ -174,8 +174,7 @@ namespace vmesh {
          localToGlobalMap = new split::SplitVector<vmesh::GlobalID>(1);
          localToGlobalMap->clear();
       }
-      ltg_size = localToGlobalMap->size();
-      std::cerr<<"vmesh copy construct with size "<<ltg_size<<std::endl;
+      ltg_size = other.ltg_size;
    }
 
    inline const VelocityMesh& VelocityMesh::operator=(const VelocityMesh& other) {
@@ -188,7 +187,6 @@ namespace vmesh {
       // localToGlobalMap->reserve((other.localToGlobalMap)->capacity(),true);
       localToGlobalMap->overwrite(*(other.localToGlobalMap),stream);
       ltg_size = other.ltg_size;
-      std::cerr<<"vmesh copy assign with size "<<ltg_size<<std::endl;
       return *this;
    }
 
@@ -1246,7 +1244,7 @@ namespace vmesh {
 
    inline void VelocityMesh::setNewSize(const vmesh::LocalID& newSize) {
       // Needed by GPU block adjustment
-      // const uint device = gpu_getDevice();
+      const uint device = gpu_getDevice();
       gpuStream_t stream = gpu_getStream();
       vmesh::LocalID currentCapacity = localToGlobalMap->capacity();
       const int currentSizePower = globalToLocalMap->getSizePower();
@@ -1262,7 +1260,7 @@ namespace vmesh {
          // globalToLocalMap->optimizeGPU(stream);
       }
       ltg_size = newSize;
-      CHK_ERR( gpuStreamSynchronize(stream) );
+      //CHK_ERR( gpuStreamSynchronize(stream) );
    }
 
    ARCH_DEV inline void VelocityMesh::device_setNewSize(const vmesh::LocalID& newSize) {

@@ -619,7 +619,10 @@ __global__ static void remote_increment_kernel (
    const int k = threadIdx.z;
    const uint ti = k*WID2 + j*WID + i;
    // Increment value
-   atomicAdd(&blockData[blocki * WID3 + ti],neighborData[blocki * WID3 + ti]);
+   // atomicAdd(&blockData[blocki * WID3 + ti],neighborData[blocki * WID3 + ti]);
+   // As each target block has its own GPU stream, we ensure that we don't write concurrently from
+   // several different threads or kernels, and thus don't need to use atomic operations.
+   blockData[blocki * WID3 + ti] += neighborData[blocki * WID3 + ti];
 }
 
 /* This function communicates the mapping on process boundaries, and then updates the data to their correct values.
@@ -639,6 +642,13 @@ void gpu_update_remote_mapping_contribution_amr(
    int direction,
    const uint popID) {
 
+   // Fast return if no cells to process
+   int mpiProcs;
+   MPI_Comm_size(MPI_COMM_WORLD,&mpiProcs);
+   if (mpiProcs == 1) {
+      return;
+   }
+
    // GPUTODO: First attempts at using managed memory for remote neighbours
    // Should move to re-using managed memory buffers and ensuring size is suitable?
    // If that path is taken, it should also check for any local cells *not* on process
@@ -646,23 +656,18 @@ void gpu_update_remote_mapping_contribution_amr(
    int device = gpu_getDevice();
 
    int neighborhood = 0;
-   int both_neighborhood = 0;
-
    //normalize and set neighborhoods
    if(direction > 0) {
       direction = 1;
       switch (dimension) {
       case 0:
          neighborhood = SHIFT_P_X_NEIGHBORHOOD_ID;
-         both_neighborhood = VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID;
          break;
       case 1:
          neighborhood = SHIFT_P_Y_NEIGHBORHOOD_ID;
-         both_neighborhood = VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID;
          break;
       case 2:
          neighborhood = SHIFT_P_Z_NEIGHBORHOOD_ID;
-         both_neighborhood = VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID;
          break;
       }
    }
@@ -671,28 +676,18 @@ void gpu_update_remote_mapping_contribution_amr(
       switch (dimension) {
       case 0:
          neighborhood = SHIFT_M_X_NEIGHBORHOOD_ID;
-         both_neighborhood = VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID;
          break;
       case 1:
          neighborhood = SHIFT_M_Y_NEIGHBORHOOD_ID;
-         both_neighborhood = VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID;
          break;
       case 2:
          neighborhood = SHIFT_M_Z_NEIGHBORHOOD_ID;
-         both_neighborhood = VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID;
          break;
       }
    }
 
-   const vector<CellID>& local_cells_pb = mpiGrid.get_local_cells_on_process_boundary(both_neighborhood);
-   const vector<CellID> remote_cells_pb = mpiGrid.get_remote_cells_on_process_boundary(both_neighborhood);
-
-   // Fast return if no cells to process
-   if (local_cells_pb.size() == remote_cells_pb.size() == 0) {
-      return;
-   }
-
-   const vector<CellID>& local_cells = getLocalCells();
+   //const vector<CellID>& local_cells = getLocalCells();
+   const vector<CellID> local_cells = mpiGrid.get_local_cells_on_process_boundary(VLASOV_SOLVER_NEIGHBORHOOD_ID);
    const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_NEIGHBORHOOD_ID);
 
    vector<CellID> receive_cells;
@@ -702,7 +697,7 @@ void gpu_update_remote_mapping_contribution_amr(
 
    phiprof::Timer updateRemoteTimerPre {"trans-amr-remotes-setup-getcells"};
    // Initialize remote cells
-   //#pragma omp parallel for
+   #pragma omp parallel for
    for (auto rc : remote_cells) {
       SpatialCell *ccell = mpiGrid[rc];
       // Initialize number of blocks to 0 and block data to a default value.
@@ -716,7 +711,7 @@ void gpu_update_remote_mapping_contribution_amr(
    }
 
    // Initialize local cells
-   //#pragma omp parallel for
+   #pragma omp parallel for
    for (auto lc : local_cells) {
       SpatialCell *ccell = mpiGrid[lc];
       if(ccell) {
@@ -880,7 +875,6 @@ void gpu_update_remote_mapping_contribution_amr(
    } // closes for (auto c : local_cells) {
    updateRemoteTimer0.stop();
 
-   std::cerr<<"completed prepares "<<std::endl;
    MPI_Barrier(MPI_COMM_WORLD);
    phiprof::Timer updateRemoteTimer3 {"trans-amr-remotes-MPI"};
 
@@ -890,18 +884,16 @@ void gpu_update_remote_mapping_contribution_amr(
    mpiGrid.update_copies_of_remote_neighbors(neighborhood);
    updateRemoteTimer3.stop();
 
-   std::cerr<<"completed TRANSFERS "<<std::endl;
    MPI_Barrier(MPI_COMM_WORLD);
 
    // Reduce data: sum received data in the data array to
    // the target grid in the temporary block container
-   // #pragma omp parallel
    if (receive_cells.size() != 0) {
       phiprof::Timer updateRemoteTimerIncrement {"trans-amr-remotes-increment"};
       for (size_t c = 0; c < receive_cells.size(); ++c) {
          SpatialCell* receive_cell = mpiGrid[receive_cells[c]];
          SpatialCell* origin_cell = mpiGrid[receive_origin_cells[c]];
-         if(!receive_cell || !origin_cell) {
+         if (!receive_cell || !origin_cell) {
             continue;
          }
 
@@ -928,7 +920,6 @@ void gpu_update_remote_mapping_contribution_amr(
       // send cell data is set to zero. This is to avoid double copy if
       // one cell is the neighbor on bot + and - side to the same process
       vector<CellID> send_cells_vector(send_cells.begin(), send_cells.end());
-      //#pragma omp parallel for
       for (uint c = 0; c < send_cells_vector.size(); c++) {
          SpatialCell* send_cell = mpiGrid[send_cells_vector[c]];
          gpuStream_t stream = gpu_getStream();
