@@ -1,6 +1,11 @@
 # -*- mode: makefile -*-
+# GCC
 CMP = mpicxx
 LNK = mpicxx
+
+# Intel
+#CMP = mpiicpx
+#LNK = mpiicpx
 
 # Starting Makefile for the general partition of the MareNostrum5 supercomputer located at the BSC.
 
@@ -27,8 +32,12 @@ testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -fabi-version=0  
 MATHFLAGS = -ffast-math -fno-finite-math-only
 testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
 
-LDFLAGS += -fopenmp -Wl,--as-needed
+# GCC
+LDFLAGS = -fopenmp -Wl,--as-needed
 LIB_MPI = -lgomp
+
+# Intel
+#LDFLAGS = -qopenmp -liomp -Wl,--as-needed
 
 #======== Allocator =========
 # Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
