@@ -46,7 +46,6 @@ __host__ __device__ inline bool check_skip_remapping(Vec* values, uint vectorind
  */
 
 //__launch_bounds__(maxThreadsPerBlock, minBlocksPerMultiprocessor, maxBlocksPerCluster)
-// assume never more than 8 threads/CPUs per GPU
 __global__ void __launch_bounds__(WID3, 4) translation_kernel(
    const uint dimension,
    const unsigned int* const vcell_transpose,
@@ -508,7 +507,8 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    const uint nBlocksPerThread = currentAllocation / sumOfLengths;
 
    // And how many block GIDs will we actually manage?
-   const uint nGpuBlocks  = nBlocksPerThread > GPUBLOCKS ? GPUBLOCKS : nBlocksPerThread;
+   //const uint nGpuBlocks  = nBlocksPerThread > GPUBLOCKS ? GPUBLOCKS : nBlocksPerThread;
+   const uint nGpuBlocks  = nBlocksPerThread  < nAllBlocks ? nBlocksPerThread : nAllBlocks;
 
    #pragma omp parallel
    {
@@ -533,7 +533,7 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
       phiprof::Timer mappingTimer {mappingId}; // mapping (top-level)
       const uint startingBlockIndex = cpuThreadID*nGpuBlocks;
       const uint blockIndexIncrement = maxThreads*nGpuBlocks;
-
+      std::cerr<<"nGpuBlocks "<<nGpuBlocks<<" nBlocksPerThread "<<nBlocksPerThread<<" nAllBlocks "<<nAllBlocks<<std::endl;
       // Each thread, using its own stream, will launch nGpuBlocks instances of the below kernel, where each instance
       // propagates all pencils for the block in question.
       dim3 block(WID2,WID,1); // assumes VECL==WID2
@@ -612,7 +612,7 @@ __global__ static void remote_increment_kernel (
    Realf* neighborData,
    vmesh::LocalID nBlocks
    ) {
-   const int gpuBlocks = gridDim.x;
+   //const int gpuBlocks = gridDim.x;
    const int blocki = blockIdx.x; // ==LID
    const int i = threadIdx.x;
    const int j = threadIdx.y;

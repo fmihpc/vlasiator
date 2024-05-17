@@ -243,7 +243,7 @@ __host__ void gpu_vlasov_allocate(
    uint maxBlockCount // Largest found vmesh size
    ) {
    // Always prepare for at least 2500 blocks (affects also translation parallelism)
-   const uint maxBlocksPerCell = maxBlockCount > 2500 ? maxBlockCount : 2500;
+   const uint maxBlocksPerCell = 300*(maxBlockCount > 2500 ? maxBlockCount : 2500);
    const uint maxNThreads = gpu_getMaxThreads();
    for (uint i=0; i<maxNThreads; ++i) {
       gpu_vlasov_allocate_perthread(i, maxBlocksPerCell);
