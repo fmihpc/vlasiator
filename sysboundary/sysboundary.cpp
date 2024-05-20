@@ -669,7 +669,7 @@ void SysBoundary::applySysBoundaryVlasovConditions(
 
 /*Transfer along boundaries*/
 // First the small stuff without overlapping in an extended neighbourhood:
-#warning TODO This now communicates in the wider neighbourhood for both layers, could be reduced to smaller neighbourhood for layer 1, larger neighbourhood for layer 2.
+// TODO This now communicates in the wider neighbourhood for both layers, could be reduced to smaller neighbourhood for layer 1, larger neighbourhood for layer 2.
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_PARAMETERS | Transfer::POP_METADATA | Transfer::CELL_SYSBOUNDARYFLAG, true);
    mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
 
@@ -695,10 +695,13 @@ void SysBoundary::applySysBoundaryVlasovConditions(
          cuint sysBoundaryType = mpiGrid[localCells[i]]->sysBoundaryFlag;
          this->getSysBoundary(sysBoundaryType)->vlasovBoundaryCondition(mpiGrid, localCells[i], popID, calculate_V_moments);
       }
-      if (calculate_V_moments) {
-         calculateMoments_V(mpiGrid, localCells, true);
-      } else {
-         calculateMoments_R(mpiGrid, localCells, true);
+      if (popID==getObjectWrapper().particleSpecies.size()-1) {
+         // Only calculate moments when handling last population
+         if (calculate_V_moments) {
+            calculateMoments_V(mpiGrid, localCells, true);
+         } else {
+            calculateMoments_R(mpiGrid, localCells, true);
+         }
       }
       computeInnerTimer.stop();
 
@@ -716,10 +719,13 @@ void SysBoundary::applySysBoundaryVlasovConditions(
          cuint sysBoundaryType = mpiGrid[boundaryCells[i]]->sysBoundaryFlag;
          this->getSysBoundary(sysBoundaryType)->vlasovBoundaryCondition(mpiGrid, boundaryCells[i], popID, calculate_V_moments);
       }
-      if (calculate_V_moments) {
-         calculateMoments_V(mpiGrid, boundaryCells, true);
-      } else {
-         calculateMoments_R(mpiGrid, boundaryCells, true);
+      if (popID==getObjectWrapper().particleSpecies.size()-1) {
+         // Only calculate moments when handling last population
+         if (calculate_V_moments) {
+            calculateMoments_V(mpiGrid, boundaryCells, true);
+         } else {
+            calculateMoments_R(mpiGrid, boundaryCells, true);
+         }
       }
       computeBoundaryTimer.stop();
 

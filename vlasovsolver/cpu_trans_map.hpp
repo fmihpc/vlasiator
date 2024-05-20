@@ -26,7 +26,7 @@
 
 #include "vec.h"
 #include "../common.h"
-#include "../spatial_cell.hpp"
+#include "../spatial_cell_wrapper.hpp"
 
 void compute_spatial_source_neighbors(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                       const CellID& cellID,const uint dimension,SpatialCell **neighbors);
