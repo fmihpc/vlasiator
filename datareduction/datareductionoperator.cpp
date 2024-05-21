@@ -601,7 +601,7 @@ namespace DRO {
       const Realf *block_data = cell->get_data(popID);
       const Real *parameters = cell->get_block_parameters(popID);
       const Real HALF = 0.5;
-      # pragma omp parallel
+      ///#pragma omp parallel
       {
          Real sum[3] = {0.0, 0.0, 0.0};
          Real averageVX = this->averageVX, averageVY = this->averageVY, averageVZ = this->averageVZ;
@@ -634,7 +634,7 @@ namespace DRO {
          // Accumulate contributions coming from this velocity block to the
          // spatial cell velocity moments. If multithreading / OpenMP is used,
          // these updates need to be atomic:
-         # pragma omp critical
+         ///# pragma omp critical
          {
             PTensor[0] += sum[0];
             PTensor[1] += sum[1];
@@ -673,7 +673,7 @@ namespace DRO {
       const Realf *block_data = cell->get_data(popID);
       const Real *parameters = cell->get_block_parameters(popID);
       const Real HALF = 0.5;
-      # pragma omp parallel
+      ///#pragma omp parallel
       {
          Real sum[3] = {0.0, 0.0, 0.0};
          Real averageVX = this->averageVX, averageVY = this->averageVY, averageVZ = this->averageVZ;
@@ -707,7 +707,7 @@ namespace DRO {
          // Accumulate contributions coming from this velocity block to the
          // spatial cell velocity moments. If multithreading / OpenMP is used,
          // these updates need to be atomic:
-# pragma omp critical
+///# pragma omp critical
          {
             PTensor[0] += sum[2];
             PTensor[1] += sum[1];
@@ -746,7 +746,7 @@ namespace DRO {
       maxF = std::numeric_limits<Real>::min();
       const Realf* block_data = cell->get_data(popID);
 
-#pragma omp parallel
+///#pragma omp parallel
       {
          Real threadMax = std::numeric_limits<Real>::min();
          if (cell->get_number_of_velocity_blocks(popID) != 0)
@@ -755,7 +755,7 @@ namespace DRO {
                                              lthreadMax[0] = max((Real)(block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)]), lthreadMax[0]);
                                           }, threadMax);
 
-         #pragma omp critical
+         ///#pragma omp critical
          {
             maxF = max(threadMax, maxF);
          }
@@ -797,7 +797,7 @@ namespace DRO {
       minF =  std::numeric_limits<Real>::max();
       const Realf* block_data = cell->get_data(popID);
 
-#pragma omp parallel
+///#pragma omp parallel
       {
          Real threadMin = std::numeric_limits<Real>::max();
          if (cell->get_number_of_velocity_blocks(popID) != 0)
@@ -806,7 +806,7 @@ namespace DRO {
                                              lthreadMin[0] = min((Real)(block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)]), lthreadMin[0]);
                                           }, threadMin);
 
-         #pragma omp critical
+         ///#pragma omp critical
          {
             minF = min(threadMin, minF);
          }
@@ -843,7 +843,7 @@ namespace DRO {
       const Real* parameters = cell->get_block_parameters(popID);
       const Realf* block_data = cell->get_data(popID);
 
-# pragma omp parallel
+///#pragma omp parallel
       {
          Real thread_n_sum = 0.0;
          Real thermalV0 = thermalV[0];
@@ -884,7 +884,7 @@ namespace DRO {
          // If multithreading / OpenMP is used,
          // these updates need to be atomic:
          // todo: use omp reduction
-         # pragma omp critical
+         ///# pragma omp critical
          {
             rho += thread_n_sum;
          }
@@ -906,7 +906,7 @@ namespace DRO {
       const Real* parameters = cell->get_block_parameters(popID);
       const Realf* block_data = cell->get_data(popID);
 
-# pragma omp parallel
+///#pragma omp parallel
       {
 
          Real sum[4] = {0};
@@ -952,7 +952,7 @@ namespace DRO {
          // Accumulate contributions coming from this velocity block.
          // If multithreading / OpenMP is used,
          // these updates need to be atomic:
-# pragma omp critical
+///# pragma omp critical
          {
             V[0] += sum[0];
             V[1] += sum[1];
@@ -985,7 +985,7 @@ namespace DRO {
       const Real* parameters = cell->get_block_parameters(popID);
       const Realf* block_data = cell->get_data(popID);
 
-# pragma omp parallel
+///#pragma omp parallel
       {
          Real sum[3] = {0};
          Real thermalV0 = thermalV[0];
@@ -1031,7 +1031,7 @@ namespace DRO {
          // Accumulate contributions coming from this velocity block to the
          // spatial cell velocity moments. If multithreading / OpenMP is used,
          // these updates need to be atomic:
-# pragma omp critical
+///# pragma omp critical
          {
             PTensor[0] += sum[0];
             PTensor[1] += sum[1];
@@ -1055,7 +1055,7 @@ namespace DRO {
       const Real* parameters = cell->get_block_parameters(popID);
       const Realf* block_data = cell->get_data(popID);
 
-# pragma omp parallel
+///#pragma omp parallel
       {
          Real sum[3] = {0};
          Real thermalV0 = thermalV[0];
@@ -1101,7 +1101,7 @@ namespace DRO {
          // Accumulate contributions coming from this velocity block to the
          // spatial cell velocity moments. If multithreading / OpenMP is used,
          // these updates need to be atomic:
-# pragma omp critical
+///# pragma omp critical
          {
             PTensor[0] += sum[2];
             PTensor[1] += sum[1];
@@ -1508,7 +1508,7 @@ namespace DRO {
       const Real* parameters  = cell->get_block_parameters(popID);
       const Realf* block_data = cell->get_data(popID);
 
-# pragma omp parallel
+///#pragma omp parallel
       {
          std::vector<Real> sum(2 * nChannels,0.0);
          int nChannelsLocal = nChannels; 
@@ -1555,7 +1555,7 @@ namespace DRO {
 
          // Accumulate contributions coming from this velocity block
          // If multithreading / OpenMP is used, these updates need to be atomic:
-         # pragma omp critical
+         ///# pragma omp critical
          {
             for (int i=0; i<nChannels; i++) {
                dataDiffFlux[i] += sum[i];
@@ -1642,7 +1642,7 @@ namespace DRO {
          }
       }
 
-      # pragma omp parallel
+      #pragma omp parallel
       {
          std::vector<Real> thread_line_sum(nChannels,0.0);
          std::vector<Real> thread_count(nChannels,0.0);
@@ -1772,7 +1772,7 @@ namespace DRO {
          EDensity[i] = 0.0;
       }
 
-# pragma omp parallel
+///#pragma omp parallel
       {
          Real sum[3] = {0.0, 0.0, 0.0};
          Real E1limitLocal = E1limit;
@@ -1808,7 +1808,7 @@ namespace DRO {
          // Accumulate contributions coming from this velocity block to the
          // spatial cell velocity moments. If multithreading / OpenMP is used,
          // these updates need to be atomic:
-# pragma omp critical
+///# pragma omp critical
          {
             EDensity[0] += sum[0];
             EDensity[1] += sum[1];
@@ -1862,7 +1862,7 @@ namespace DRO {
 
    bool VariableHeatFluxVector::reduceData(const SpatialCell* cell,char* buffer) {
       const Real HALF = 0.5;
-      # pragma omp parallel
+      #pragma omp parallel
       {
          Real thread_nvxvx_sum = 0.0;
          Real thread_nvyvy_sum = 0.0;
@@ -1964,7 +1964,7 @@ namespace DRO {
       // thermal speed in parallel direction
       const Real V_par_th_sq = 2.0 * physicalconstants::K_B * T_par / getObjectWrapper().particleSpecies[popID].mass;
 
-#pragma omp parallel
+///#pragma omp parallel
       {
          Real thread_epsilon_sum = 0.0;
 
@@ -2015,7 +2015,7 @@ namespace DRO {
    // Accumulate contributions coming from this velocity block to the
    // spatial cell velocity moments. If multithreading / OpenMP is used,
    // these updates need to be atomic:
-#pragma omp critical
+///#pragma omp critical
          { epsilon += thread_epsilon_sum; }
       }
 
