@@ -146,7 +146,7 @@ variable_components[${index}]="0 0 1 2 0 1 2 0 1 2"
 test_name[${index}]="Flowthrough_damr"
 comparison_vlsv[${index}]="bulk.0000001.vlsv"
 comparison_phiprof[${index}]="phiprof_0.txt"
-variable_names[${index}]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e"
+variable_names[${index}]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v vg_amr_alpha1 vg_amr_alpha2 fg_b fg_b fg_b fg_e fg_e fg_e"
 variable_components[${index}]="0 0 1 2 0 1 2 0 1 2"
 ((index+=1))
 
