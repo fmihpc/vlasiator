@@ -15,8 +15,8 @@ INC_EIGEN = -isystem ../../submodules/eigen/
 
 
 
-all: main differentialFlux sigmaProfiles quadrupoleTests LFMtest atmosphere.pdf
-.PHONY: clean quadrupoleTests
+all: main differentialFlux sigmaProfiles multipoleTests LFMtest atmosphere.pdf
+.PHONY: clean multipoleTests
 
 clean: 
 	rm *.o main differentialFlux sigmaProfiles
@@ -90,13 +90,47 @@ sigmaProfiles: sigmaProfiles.cpp
 
 atmosphere.pdf: sigmaProfiles plotAtmosphere.gp
 	./sigmaProfiles 1e6 1.16046e7 > atmosphere.dat
+	./sigmaProfiles 1e6 1.16046e8 > atmosphere10.dat
+	./sigmaProfiles 1e6 1.16046e9 > atmosphere100.dat
 	./plotAtmosphere.gp
 
-quadrupoleTests: main plot_ionosphere.py
-	./main -N 1024 -r 40 90 -r 50 80 -sigma 100 -fac hexadecapole -gaugeFix equator
-	./plot_ionosphere.py output.vlsv
+MULTIPOLES := $(shell seq 1 6)
+MULTIPOLEJOBS := $(addprefix multipole,${MULTIPOLES})
+multipole-1-%.vlsv: main
+		OMP_NUM_THREADS=1 ./main -N 1024 -r 40 90 -r 50 80 -sigma identity -fac multipole 1 $* -gaugeFix pole -o multipole-1-$*.vlsv
+multipole-2-%.vlsv: main
+		OMP_NUM_THREADS=1 ./main -N 1024 -r 40 90 -r 50 80 -sigma identity -fac multipole 2 $* -gaugeFix pole -o multipole-2-$*.vlsv
+multipole-3-%.vlsv: main
+		OMP_NUM_THREADS=1 ./main -N 1024 -r 40 90 -r 50 80 -sigma identity -fac multipole 3 $* -gaugeFix pole -o multipole-3-$*.vlsv
+multipole-4-%.vlsv: main
+		OMP_NUM_THREADS=1 ./main -N 1024 -r 40 90 -r 50 80 -sigma identity -fac multipole 4 $* -gaugeFix pole -o multipole-4-$*.vlsv
+multipole-5-%.vlsv: main
+		OMP_NUM_THREADS=1 ./main -N 1024 -r 40 90 -r 50 80 -sigma identity -fac multipole 5 $* -gaugeFix pole -o multipole-5-$*.vlsv
+multipole-6-%.vlsv: main
+		OMP_NUM_THREADS=1 ./main -N 1024 -r 40 90 -r 50 80 -sigma identity -fac multipole 6 $* -gaugeFix pole -o multipole-6-$*.vlsv
 
-LFMtest: main plot_ionosphere.py
-	./main -N 1024  -r 40 90 -r 50 80 -sigma 10 -fac merkin2010 -gaugeFix equator
-	mv output.vlsv LFMtest.vlsv
+${MULTIPOLEJOBS}: multipole%: main plot_ionosphere.py multipole-%--1.vlsv multipole-%-1.vlsv multipole-%-0.vlsv
+	echo "Running multipoles with L=$*"
+	for m in `seq -$* $*`; do \
+		make multipole-$*-$$m.vlsv; \
+		./plot_ionosphere.py multipole-$*-$$m.vlsv; \
+		echo "Running ./plot_ionosphere.py multipole-$*-$$m.vlsv"; \
+	done;
+
+convergence%.dat: main
+	#for nodecount in 50 100 200 500 1000 2000 5000; do \
+	#	for i in {1..500}; do j=$(( $$RANDOM % (2*$i) - $i )); \
+	#		echo -n "$i $j "; 
+	#		OMP_NUM_THREADS=4 ./main -q -N $nodecount -sigma identity -fac multipole $i $i -gaugeFix pole -o multipole-$i-$j.vlsv; \
+	#	done | tee multipole$nodecount.dat; \
+	#done
+	zsh -c 'i=$* j=$$(($$RANDOM%(2*$$i)-$$i)); \
+		for nodecount in {20..2000}; do \
+			echo -n "$$nodecount $$i $$j "; \
+			OMP_NUM_THREADS=4 ./main -q -N $$nodecount -sigma identity -fac multipole $$i $$i -gaugeFix pole -o multipole-$$i-$$j.vlsv; \
+		done | tee multipole$$i.dat'
+multipoleTests: ${MULTIPOLEJOBS}
+
+LFMtest: main plot_ionosphereLFM.py
+	./main -N 1024  -r 40 90 -r 50 80 -sigma 10 -fac merkin2010 -gaugeFix equator -o LFMtest.vlsv
 	./plot_ionosphereLFM.py LFMtest.vlsv

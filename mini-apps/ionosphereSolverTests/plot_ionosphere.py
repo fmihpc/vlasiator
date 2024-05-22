@@ -17,5 +17,5 @@ filename = sys.argv[1]
 pt.plot.plot_ionosphere(filename=filename,outputdir="./ionosphereplot/",var="ig_fac",vmin=-.5, vmax=.5, lin=True, wmark="NE", minlatitude=40)
 #pt.plot.plot_ionosphere(filename=inputfile,outputdir="./ionosphereplot/",var="ig_sigmah",vmin=0, vmax=1e-3, colormap="viridis", lin=True, wmark="NE")
 #pt.plot.plot_ionosphere(filename=inputfile,outputdir="./ionosphereplot/",var="ig_sigmap",vmin=0, vmax=1e-3, colormap="viridis", lin=True, wmark="NE")
-pt.plot.plot_ionosphere(filename=filename,outputdir="./ionosphereplot/",var="ig_potential", colormap="PuOr", vmin=-4e10, vmax=4e10, lin=True, wmark="NE", symmetric=True, minlatitude=40)
+pt.plot.plot_ionosphere(filename=filename,outputdir="./ionosphereplot/",var="ig_potential", colormap="PuOr", vmin=-1e12, vmax=1e12, lin=True, wmark="NE", symmetric=True, minlatitude=40)
 #pt.plot.plot_ionosphere(filename=inputfile,outputdir="./ionosphereplot/",var="ig_rhon", colormap="turbo", vmin=0, vmax=1e8, wmark="NE")
