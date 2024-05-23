@@ -388,7 +388,7 @@ int main(int argc, char** argv) {
          }
          area /= 3.; // As every element has 3 corners, don't double-count areas
 
-         nodes[n].parameters[ionosphereParameters::SOURCE] = sph_legendre(multipoleL,multipolem,theta) * cos(multipolem*phi) * area;
+         nodes[n].parameters[ionosphereParameters::SOURCE] = sph_legendre(multipoleL,fabs(multipolem),theta) * cos(multipolem*phi) * area;
       }
    } else if(facString == "merkin2010") {
 
@@ -497,8 +497,8 @@ int main(int argc, char** argv) {
 
             totalArea += area;
             selfNorm += pow(nodes[n].parameters[ionosphereParameters::SOLUTION],2.) * area;
-            sphNorm += pow(sph_legendre(multipoleL,multipolem,theta) * cos(multipolem*phi), 2.) * area;
-            correlate += nodes[n].parameters[ionosphereParameters::SOLUTION] * sph_legendre(multipoleL,multipolem,theta) * cos(multipolem*phi) * area;
+            sphNorm += pow(sph_legendre(multipoleL,fabs(multipolem),theta) * cos(multipolem*phi), 2.) * area;
+            correlate += nodes[n].parameters[ionosphereParameters::SOLUTION] * sph_legendre(multipoleL,fabs(multipolem),theta) * cos(multipolem*phi) * area;
          }
 
          selfNorm = sqrt(selfNorm/totalArea);
