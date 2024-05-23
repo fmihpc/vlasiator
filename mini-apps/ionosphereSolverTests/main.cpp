@@ -467,7 +467,6 @@ int main(int argc, char** argv) {
    ionosphereGrid.rank = 0;
    int iterations, nRestarts;
    Real residual, minPotentialN, minPotentialS, maxPotentialN, maxPotentialS;
-   cerr << "Solving.\n";
    ionosphereGrid.solve(iterations, nRestarts, residual, minPotentialN, maxPotentialN, minPotentialS, maxPotentialS);
    if(!quiet) {
       cout << "Ionosphere solver: iterations " << iterations << " restarts " << nRestarts
