@@ -118,7 +118,7 @@ namespace vmesh {
 
    // Caller, inlined into other compilation units, will call either host or device getter
    ARCH_HOSTDEV inline MeshWrapper* getMeshWrapper() {
-      #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+      #if defined(USE_GPU) && (defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
       return gpu_getMeshWrapper();
       #else
       return host_getMeshWrapper();
