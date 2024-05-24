@@ -128,9 +128,9 @@ convergence%.dat: main
 		for nodecount in {20..2000}; do \
 			echo -n "$$nodecount $$i $$j "; \
 			OMP_NUM_THREADS=4 ./main -q -N $$nodecount -sigma identity -fac multipole $$i $$i -gaugeFix pole -o multipole-$$i-$$j.vlsv; \
-		done | tee multipole$$i.dat'
+		done | tee convergence$$i.dat'
 multipoleTests: ${MULTIPOLEJOBS}
 
 LFMtest: main plot_ionosphereLFM.py
-	./main -N 1024  -r 40 90 -r 50 80 -sigma 10 -fac merkin2010 -gaugeFix equator -o LFMtest.vlsv
+	./main -N 2000 -r 40 90 -r 50 80 -sigma 10 -fac merkin2010 -gaugeFix equator -o LFMtest.vlsv
 	./plot_ionosphereLFM.py LFMtest.vlsv
