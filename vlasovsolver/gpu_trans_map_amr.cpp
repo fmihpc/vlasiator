@@ -11,7 +11,6 @@
 
 // indices in padded source block, which is of type Vec with VECL
 // elements in each vector.
-//#define i_trans_ps_blockv_pencil(planeVectorIndex, planeIndex, blockIndex, lengthOfPencil) ( (blockIndex)  +  ( (planeVectorIndex) + (planeIndex) * VEC_PER_PLANE ) * ( lengthOfPencil) )
 #define i_trans_ps_blockv_pencil(planeIndex, blockIndex, lengthOfPencil) ( (blockIndex)  +  ( (planeIndex) * VEC_PER_PLANE ) * ( lengthOfPencil) )
 
 // Skip remapping if whole stencil for all vector elements consists of zeroes
@@ -23,36 +22,34 @@ __host__ __device__ inline bool check_skip_remapping(Vec* values, uint vectorind
 }
 
 /* Propagate a given velocity block in all spatial cells of a pencil by a time step dt using a PPM reconstruction.
+   Includes preparing intermediate buffers.
  *
- * @param pencilDZ Width of spatial cells in the direction of the pencil, vector datatype
- * @param values Density values of the block, vector datatype
- * @param dimension Satial dimension
- * @param blockGID Global ID of the velocity block.
- * @param dt Time step
- * @param vmesh Velocity mesh object
- * @param lengthOfPencil Number of cells in the pencil
- */
-/* Copy the pencil source data to the temporary values array, so that the
- * dimensions are correctly swapped.
- *
- * This function must be thread-safe.
- *
- * @param blockDataPointer Vector of pre-prepared pointers to input (cell) block data
- * @param start Index from blockDataPointer to start at
- * @param int lengthOfPencil Number of spatial cells in pencil (not inclusive 2*VLASOV_STENCIL_WIDTH
- * @param values Vector into which the data should be loaded
- * @param vcell_transpose
- * @param popID ID of the particle species.
+ * @param  dimension  Cartesian direction of propagation
+ * @param  dt  Time step length
+ * @param  pencilLengths  pointer to buffer of lengths of all pencils to propagate
+ * @param  pencilStarts  pointer to buffer of indexes of first cells of pencils
+ * @param  allBlocks  pointer to list of all GIDs to propagate
+ * @param  nAllBlocks  how many blocks exist in total
+ * @param  startingBlockIndex  First block index for this kernel invocation
+ * @param  blockIndexIncrement  How much each kernel invocation should jump ahead
+ * @param  nPencils  Number of total pencils (constant)
+ * @param  sumOfLengths  sum of all pencil lengths (constant)
+ * @param  threshold  sparsity threshold, used by slope limiters
+ * @param  allPencilsMeshes  Pointer to vector of pointers to velocity meshes
+ * @param  allPencilsContainers  Pointer to vector of pointers to BlockContainers
+ * @param  pencilBlockData  Pointer to buffer of pointers into cell block data, both written and read
+ * @param  pencilOrderedSource  Pointer to Vec-ordered buffer used as interim values
+ * @param  pencilDZ  Pointer into buffer of pencil cell sizes
+ * @param  pencilRatios  Pointer into buffer with pencil target ratios (due to AMR)
+ * @param  pencilBlocksCount  Pointer into buffer for storing how many non-empty blocks each pencil has for current GID
  */
 
 //__launch_bounds__(maxThreadsPerBlock, minBlocksPerMultiprocessor, maxBlocksPerCluster)
 __global__ void __launch_bounds__(WID3, 4) translation_kernel(
    const uint dimension,
-   const unsigned int* const vcell_transpose,
    const Realv dt,
    uint* pencilLengths,
    uint* pencilStarts,
-   //const vmesh::GlobalID blockGID, // which GID this thread is working on
    vmesh::GlobalID *allBlocks, // List of all blocks
    const uint nAllBlocks, // size of list of blocks which we won't exceed
    const uint startingBlockIndex, // First block index for this kernel invocation
@@ -68,12 +65,30 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
    Realf* pencilRatios, // Vector holding target ratios
    uint* pencilBlocksCount // store how many non-empty blocks each pencil has for this GID
    ) {
-
    //const int gpuBlocks = gridDim.x;
    //const int blocki = blockIdx.x;
    //const int warpSize = blockDim.x*blockDim.y*blockDim.z;
-   // This is launched with block size (WID2,WID,1) assuming that VECL==WID2
-   const vmesh::LocalID ti = threadIdx.y*blockDim.x + threadIdx.x;
+   // This is launched with block size (WID,WID,WID) assuming that VECL==WID2 and VEC_PER_BLOCK=WID
+   const vmesh::LocalID ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
+   const uint vecIndex = threadIdx.y*blockDim.x + threadIdx.x;
+   const uint planeIndex = threadIdx.z;
+
+   // Translation direction
+   uint vz_index;
+   switch (dimension) {
+   case 0:
+      vz_index = threadIdx.x;
+      break;
+   case 1:
+      vz_index = threadIdx.y;
+      break;
+   case 2:
+      vz_index = threadIdx.z;
+      break;
+   default:
+      printf(" Wrong dimension, abort\n");
+      break;
+   }
 
    // offsets so this block of the kernel uses the correct part of temp arrays
    const uint pencilBlockDataOffset = blockIdx.x * sumOfLengths;
@@ -102,7 +117,6 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
          // Go over pencil length, gather cellblock data into aligned pencil source data
          for (uint celli = 0; celli < lengthOfPencil; celli++) {
             vmesh::VelocityMesh* vmesh = pencilMeshes[start + celli];
-            // GPUTODO: Should we use the accelerated Hashinator interface to prefetch all LID-GID-pairs?
             // const vmesh::LocalID blockLID = vmesh->getLocalID(blockGID);
             // Now using warp accessor.
             const vmesh::LocalID blockLID = vmesh->warpGetLocalID(blockGID,ti);
@@ -113,7 +127,7 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
                }
                __syncthreads();
                // Non-existing block, push in zeroes
-               thisPencilOrderedSource[i_trans_ps_blockv_pencil(threadIdx.y, celli, lengthOfPencil)][threadIdx.x] = 0.0;
+               thisPencilOrderedSource[i_trans_ps_blockv_pencil(planeIndex, celli, lengthOfPencil)][vecIndex] = 0.0;
             } else {
                #ifdef DEBUG_VLASIATOR
                const vmesh::LocalID meshSize = vmesh->size();
@@ -131,8 +145,8 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
                __syncthreads();
                // Valid block, store values in Vec-order for efficient reading in propagation
                // Transpose block values so that mapping is along k direction.
-               thisPencilOrderedSource[i_trans_ps_blockv_pencil(threadIdx.y, celli, lengthOfPencil)][threadIdx.x]
-                  = (pencilBlockData[pencilBlockDataOffset + start + celli])[vcell_transpose[ti]];
+               thisPencilOrderedSource[i_trans_ps_blockv_pencil(planeIndex, celli, lengthOfPencil)][vecIndex]
+                  = (pencilBlockData[pencilBlockDataOffset + start + celli])[ti];
             }
          } // End loop over this pencil
          if (ti==0) {
@@ -196,8 +210,8 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
             Realf areaRatio =    pencilRatios[start + i];
             Realf areaRatio_p1 = pencilRatios[start + i + 1];
 
-            // (no longer loop over) planes (threadIdx.y) and vectors within planes (just 1 by construction)
-            const Realf cell_vz = (blockIndicesD * WID + threadIdx.y + 0.5) * dvz + vz_min; //cell centered velocity
+            // (no longer loop over) planes (threadIdx.z) and vectors within planes (just 1 by construction)
+            const Realf cell_vz = (blockIndicesD * WID + vz_index + 0.5) * dvz + vz_min; //cell centered velocity
             const Realf z_translation = cell_vz * dt / pencilDZ[start + i]; // how much it moved in time dt (reduced units)
 
             // Determine direction of translation
@@ -221,7 +235,7 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
 
             // Check if all values are 0:
             if (!check_skip_remapping(thisPencilOrderedSource
-                                      + i_trans_ps_blockv_pencil(threadIdx.y, i, lengthOfPencil),threadIdx.x)) {
+                                      + i_trans_ps_blockv_pencil(planeIndex, i, lengthOfPencil),vecIndex)) {
                // Note, you cannot request to sync threads within this code block or you risk deadlock.
 
                // Compute polynomial coefficients
@@ -230,9 +244,9 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
                // built-in assumptions of unsigned indexing.
                compute_ppm_coeff_nonuniform(pencilDZ + start + i - VLASOV_STENCIL_WIDTH,
                                             thisPencilOrderedSource
-                                            + i_trans_ps_blockv_pencil(threadIdx.y, i, lengthOfPencil)
+                                            + i_trans_ps_blockv_pencil(planeIndex, i, lengthOfPencil)
                                             - VLASOV_STENCIL_WIDTH,
-                                            h4, VLASOV_STENCIL_WIDTH, a, threshold, threadIdx.x);
+                                            h4, VLASOV_STENCIL_WIDTH, a, threshold, vecIndex);
                // Compute integral
                const Realf ngbr_target_density =
                   z_2 * ( a[0] + z_2 * ( a[1] + z_2 * a[2] ) ) -
@@ -244,21 +258,21 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
 
                // NOTE: not using atomic operations causes huge diffs (as if self contribution was neglected)! 11.01.2024 MB
                if (areaRatio && block_data) {
-                  const Realf selfContribution = (thisPencilOrderedSource[i_trans_ps_blockv_pencil(threadIdx.y, i, lengthOfPencil)][threadIdx.x] - ngbr_target_density) * areaRatio;
-                  //atomicAdd(&block_data[vcell_transpose[ti]],selfContribution);
-                  block_data[vcell_transpose[ti]] += selfContribution;
+                  const Realf selfContribution = (thisPencilOrderedSource[i_trans_ps_blockv_pencil(planeIndex, i, lengthOfPencil)][vecIndex] - ngbr_target_density) * areaRatio;
+                  //atomicAdd(&block_data[ti],selfContribution);
+                  block_data[ti] += selfContribution;
                }
                if (areaRatio_p1 && block_data_p1) {
                   const Realf p1Contribution = (positiveTranslationDirection ? ngbr_target_density
                                                 * pencilDZ[start + i] / pencilDZ[start + i + 1] : 0.0) * areaRatio_p1;
-                  //atomicAdd(&block_data_p1[vcell_transpose[ti]],p1Contribution);
-                  block_data_p1[vcell_transpose[ti]] += p1Contribution;
+                  //atomicAdd(&block_data_p1[ti],p1Contribution);
+                  block_data_p1[ti] += p1Contribution;
                }
                if (areaRatio_m1 && block_data_m1) {
                   const Realf m1Contribution = (!positiveTranslationDirection ? ngbr_target_density
                                                 * pencilDZ[start + i] / pencilDZ[start + i - 1] : 0.0) * areaRatio_m1;
-                  //atomicAdd(&block_data_m1[vcell_transpose[ti]],m1Contribution);
-                  block_data_m1[vcell_transpose[ti]] += m1Contribution;
+                  //atomicAdd(&block_data_m1[ti],m1Contribution);
+                  block_data_m1[ti] += m1Contribution;
                }
             } // Did not skip remapping
             __syncthreads();
@@ -321,55 +335,8 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    if(localPropagatedCells.size() == 0) {
       return false;
    }
-
-   uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
-   unsigned int vcell_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
-   // Fiddle indices x,y,z in VELOCITY SPACE
-   switch (dimension) {
-   case 0:
-      // set values in array that is used to convert block indices
-      // to global ID using a dot product.
-      cell_indices_to_id[0]=WID2;
-      cell_indices_to_id[1]=WID;
-      cell_indices_to_id[2]=1;
-      break;
-   case 1:
-      // set values in array that is used to convert block indices
-      // to global ID using a dot product
-      cell_indices_to_id[0]=1;
-      cell_indices_to_id[1]=WID2;
-      cell_indices_to_id[2]=WID;
-      break;
-   case 2:
-      // set values in array that is used to convert block indices
-      // to global id using a dot product.
-      cell_indices_to_id[0]=1;
-      cell_indices_to_id[1]=WID;
-      cell_indices_to_id[2]=WID2;
-      break;
-   default:
-      cerr << __FILE__ << ":"<< __LINE__ << " Wrong dimension, abort"<<endl;
-      abort();
-      break;
-   }
-
-   // init vcell_transpose (moved here to take advantage of the omp parallel region)
-#pragma omp parallel for collapse(3)
-   for (uint k=0; k<WID; ++k) {
-      for (uint j=0; j<WID; ++j) {
-         for (uint i=0; i<WID; ++i) {
-            const uint cell =
-               i * cell_indices_to_id[0] +
-               j * cell_indices_to_id[1] +
-               k * cell_indices_to_id[2];
-            vcell_transpose[ i + j * WID + k * WID2] = cell;
-         }
-      }
-   }
-   // Copy indexing information to device.
    gpuStream_t bgStream = gpu_getStream(); // uses stream assigned to thread 0, not the blocking default stream
    int device = gpu_getDevice();
-   CHK_ERR( gpuMemcpyAsync(gpu_vcell_transpose, &vcell_transpose[0], WID3*sizeof(uint), gpuMemcpyHostToDevice,bgStream) );
 
    // Vector with all cell ids
    vector<CellID> allCells(localPropagatedCells);
@@ -533,17 +500,14 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
       phiprof::Timer mappingTimer {mappingId}; // mapping (top-level)
       const uint startingBlockIndex = cpuThreadID*nGpuBlocks;
       const uint blockIndexIncrement = maxThreads*nGpuBlocks;
-      std::cerr<<"nGpuBlocks "<<nGpuBlocks<<" nBlocksPerThread "<<nBlocksPerThread<<" nAllBlocks "<<nAllBlocks<<std::endl;
       // Each thread, using its own stream, will launch nGpuBlocks instances of the below kernel, where each instance
       // propagates all pencils for the block in question.
-      dim3 block(WID2,WID,1); // assumes VECL==WID2
+      dim3 block(WID,WID,WID); // assumes VECL==WID2
       translation_kernel<<<nGpuBlocks, block, 0, stream>>> (
          dimension,
-         gpu_vcell_transpose,
          dt,
          pencilLengths,
          pencilStarts,
-         //blockGID, // which GID this thread is working on
          allBlocks, // List of all block GIDs
          nAllBlocks, // size of list of block GIDs which we won't exceed
          startingBlockIndex, // First block index for this kernel invocation
