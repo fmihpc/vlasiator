@@ -3207,7 +3207,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 
                      return retval;
                      }));
-         outputReducer->addMetadata(outputReducer->size()-1, "kg m^-3", "$\\mathrm{kg m^{-3}}$", "$\\rho_m$", "1.0");
+         outputReducer->addMetadata(outputReducer->size()-1, "m^-3", "$\\mathrm{m^{-3}}$", "$\\n_e$", "1.0");
          if(!P::systemWriteAllDROs) {
             continue;
          }
