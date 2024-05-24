@@ -466,16 +466,18 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    int bufferId {phiprof::initializeTimer("prepare buffers")};
    int mappingId {phiprof::initializeTimer("trans-amr-mapping")};
 
-   // How many blocks worth of pre-allocated buffer do we have for each thread? 
+   // How many blocks worth of pre-allocated buffer do we have for each thread?
    const uint maxThreads = gpu_getMaxThreads();
-   const uint currentAllocation = gpu_vlasov_getAllocation();
+   const uint currentAllocation = gpu_vlasov_getSmallestAllocation() * TRANSLATION_BUFFER_ALLOCATION_FACTOR;
+   // GPUTODO: make tmep buffer allocation a config parameter? Current approach is not necessarily
+   // good if average block count vs grid size are mismatcheds
 
-   // How many block GIDs could each thread manage in parallel with this existing temp buffer?
+   // How many block GIDs could each thread manage in parallel with this existing temp buffer? // floor int division
    const uint nBlocksPerThread = currentAllocation / sumOfLengths;
 
    // And how many block GIDs will we actually manage?
-   //const uint nGpuBlocks  = nBlocksPerThread > GPUBLOCKS ? GPUBLOCKS : nBlocksPerThread;
-   const uint nGpuBlocks  = nBlocksPerThread  < nAllBlocks ? nBlocksPerThread : nAllBlocks;
+   const uint totalPerThread =  1 + ((nAllBlocks - 1) / maxThreads); // ceil int division, no more than this
+   const uint nGpuBlocks  = nBlocksPerThread  < totalPerThread ? nBlocksPerThread : totalPerThread;
 
    #pragma omp parallel
    {

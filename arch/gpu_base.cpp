@@ -242,8 +242,8 @@ __host__ int gpu_getDevice() {
 __host__ void gpu_vlasov_allocate(
    uint maxBlockCount // Largest found vmesh size
    ) {
-   // Always prepare for at least 2500 blocks (affects also translation parallelism)
-   const uint maxBlocksPerCell = 300*(maxBlockCount > 2500 ? maxBlockCount : 2500);
+   // Always prepare for at least 2500 blocks
+   const uint maxBlocksPerCell = maxBlockCount > 2500 ? maxBlockCount : 2500;
    const uint maxNThreads = gpu_getMaxThreads();
    for (uint i=0; i<maxNThreads; ++i) {
       gpu_vlasov_allocate_perthread(i, maxBlocksPerCell);
@@ -262,6 +262,17 @@ __host__ uint gpu_vlasov_getAllocation() {
    const uint cpuThreadID = gpu_getThread();
    return gpu_vlasov_allocatedSize[cpuThreadID];
 }
+__host__ uint gpu_vlasov_getSmallestAllocation() {
+   uint smallestAllocation = std::numeric_limits<uint>::max();
+   const uint maxNThreads = gpu_getMaxThreads();
+   for (uint i=0; i<maxNThreads; ++i) {
+      const uint threadAllocation = gpu_vlasov_allocatedSize[i];
+      if (threadAllocation < smallestAllocation) {
+         smallestAllocation = threadAllocation;
+      }
+   }
+   return smallestAllocation;
+}
 
 __host__ void gpu_vlasov_allocate_perthread(
    uint cpuThreadID,
@@ -279,7 +290,7 @@ __host__ void gpu_vlasov_allocate_perthread(
    // Mallocs should be in increments of 256 bytes. WID3 is at least 64, and len(Realf) is at least 4, so this is true.
    CHK_ERR( gpuMalloc((void**)&gpu_cell_indices_to_id[cpuThreadID], 3*sizeof(uint)) );
    CHK_ERR( gpuMalloc((void**)&gpu_block_indices_to_id[cpuThreadID], 3*sizeof(uint)) );
-   CHK_ERR( gpuMalloc((void**)&gpu_blockDataOrdered[cpuThreadID], newSize * (WID3 / VECL) * sizeof(Vec)) );
+   CHK_ERR( gpuMalloc((void**)&gpu_blockDataOrdered[cpuThreadID], newSize * TRANSLATION_BUFFER_ALLOCATION_FACTOR * (WID3 / VECL) * sizeof(Vec)) );
    CHK_ERR( gpuMalloc((void**)&gpu_BlocksID_mapped[cpuThreadID], newSize*sizeof(vmesh::GlobalID)) );
    CHK_ERR( gpuMalloc((void**)&gpu_BlocksID_mapped_sorted[cpuThreadID], newSize*sizeof(vmesh::GlobalID)) );
    CHK_ERR( gpuMalloc((void**)&gpu_LIDlist_unsorted[cpuThreadID], newSize*sizeof(vmesh::GlobalID)) );
