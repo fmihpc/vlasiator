@@ -160,12 +160,6 @@ namespace SBC {
       uint geometry; /*!< Geometry of the copy sphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT), 3: polar-plane cylinder with line dipole. */
 
       std::vector<CopysphereSpeciesParameters> speciesParams;
-      Real T;
-      Real rho;
-      Real VX0;
-      Real VY0;
-      Real VZ0;
-
       bool zeroPerB;
       
       spatial_cell::SpatialCell templateCell;

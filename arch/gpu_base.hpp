@@ -43,6 +43,8 @@
 
 static const double BLOCK_ALLOCATION_PADDING = 1.5;
 static const double BLOCK_ALLOCATION_FACTOR = 1.2;
+// buffers need to be larger for translation
+static const int TRANSLATION_BUFFER_ALLOCATION_FACTOR = 20;
 
 #define DIMS 1
 #define MAXCPUTHREADS 64
@@ -60,6 +62,7 @@ void gpu_vlasov_deallocate();
 void gpu_vlasov_allocate_perthread(uint cpuThreadID, uint blockAllocationCount);
 void gpu_vlasov_deallocate_perthread(uint cpuThreadID);
 uint gpu_vlasov_getAllocation();
+uint gpu_vlasov_getSmallestAllocation();
 
 void gpu_acc_allocate(uint maxBlockCount);
 void gpu_acc_allocate_perthread(uint cpuThreadID, uint columnAllocationCount);

@@ -3,7 +3,7 @@
 #define ARCH_DEVICE_API_H
 
 /* Host-device function declarations */
-#if defined(__CUDACC__) || defined(__HIP_PLATFORM_HCC___)
+#if (defined(USE_GPU) && (defined(__CUDACC__) || defined(__HIP_PLATFORM_HCC___)))
   #define ARCH_HOSTDEV __host__ __device__
   #define ARCH_DEV __device__
 #else

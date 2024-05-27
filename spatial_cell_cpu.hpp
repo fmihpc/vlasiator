@@ -258,9 +258,8 @@ namespace spatial_cell {
 
             // Get local ID of the target block. If the block doesn't exist, create it.
             vmesh::GlobalID toBlockLID = vmesh->getLocalID(incBlockGID);
-            bool success = true;
             if (toBlockLID == vmesh->invalidLocalID()) {
-               success = vmesh->push_back(incBlockGID);
+               bool success = vmesh->push_back(incBlockGID);
                toBlockLID = blockContainer->push_back_and_zero();
                Real* parameters = blockContainer->getParameters(toBlockLID);
                vmesh->getBlockInfo(incBlockGID, parameters+BlockParams::VXCRD);

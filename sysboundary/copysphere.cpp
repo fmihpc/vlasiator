@@ -852,6 +852,7 @@ namespace SBC {
       bool search = true;
       uint counter = 0;
 
+      const CopysphereSpeciesParameters& sP = this->speciesParams[popID];
       const vmesh::LocalID* vblocks_ini = cell.get_velocity_grid_length(popID);
       Real V_crds[3];
       Real dV[3];
@@ -859,7 +860,6 @@ namespace SBC {
       dV[1] = cell.get_velocity_grid_block_size(popID)[1];
       dV[2] = cell.get_velocity_grid_block_size(popID)[2];
       creal minValue = cell.getVelocityBlockMinValue(popID);
-
       while (search) {
          if (0.1 * minValue > maxwellianDistribution(popID,(counter+0.5)*dV[0], 0.5*dV[1], 0.5*dV[2]) || counter > vblocks_ini[0]) {
             search = false;
@@ -879,13 +879,12 @@ namespace SBC {
                const vmesh::GlobalID blockGID = cell.get_velocity_block(popID,blockIndices);
 
                cell.get_velocity_block_coordinates(popID,blockGID,V_crds);
-               V_crds[0] += ( 0.5*dV[0] -VX0 );
-               V_crds[1] += ( 0.5*dV[1] -VY0 );
-               V_crds[2] += ( 0.5*dV[2] -VZ0 );
+               V_crds[0] += ( 0.5*dV[0] - sP.V0[0] );
+               V_crds[1] += ( 0.5*dV[1] - sP.V0[1] );
+               V_crds[2] += ( 0.5*dV[2] - sP.V0[2] );
                Real R2 = ((V_crds[0])*(V_crds[0])
                           + (V_crds[1])*(V_crds[1])
                           + (V_crds[2])*(V_crds[2]));
-
                if (R2 < vRadiusSquared) {
                   blocksToInitialize.push_back(blockGID);
                }
