@@ -149,16 +149,16 @@ for run in ${run_tests[*]}; do
 
    ##Compare test case with right solutions
    { {
-   echo "--------------------------------------------------------------------------------------------"
+   echo "+++"
    echo "${test_name[$run]}  -  Verifying ${revision}_$solveropts against $reference_revision"
-   echo "--------------------------------------------------------------------------------------------"
+   echo "+++"
    } 2>&1 1>&3 3>&- | tee -a $GITHUB_WORKSPACE/stderr.txt;} 3>&1 1>&2 | tee -a $GITHUB_WORKSPACE/stdout.txt
    reference_result_dir=${reference_dir}/${reference_revision}/${test_name[$run]}
 
    { {
-   echo "------------------------------------------------------------"
-   echo " ref-time     |   new-time       |  speedup                |"
-   echo "------------------------------------------------------------"
+   echo "+++"
+   echo " ref-time | new-time | speedup |"
+   echo "+++"
    } 2>&1 1>&3 3>&- | tee -a $GITHUB_WORKSPACE/stderr.txt;} 3>&1 1>&2 | tee -a $GITHUB_WORKSPACE/stdout.txt
    if [ -e  ${reference_result_dir}/${comparison_phiprof[$run]} ]; then
       refPerf=$(grep "Propagate   " ${reference_result_dir}/${comparison_phiprof[$run]} | gawk '(NR==1){print $11}')
@@ -175,9 +175,9 @@ for run in ${run_tests[*]}; do
    speedup=$( echo $refPerf $newPerf |gawk '{if($2 == $2 + 0 && $1 == $1 + 0 ) print $1/$2; else print "NA"}')
    { {
    echo  "$refPerf        $newPerf         $speedup"
-   echo "------------------------------------------------------------"
-   echo "  variable     |     absolute diff     |     relative diff | "
-   echo "------------------------------------------------------------"
+   echo "+++"
+   echo " variable | absolute diff | relative diff |"
+   echo "+++"
    } 2>&1 1>&3 3>&- | tee -a $GITHUB_WORKSPACE/stderr.txt;} 3>&1 1>&2 | tee -a $GITHUB_WORKSPACE/stdout.txt
 
    {
@@ -200,12 +200,12 @@ for run in ${run_tests[*]}; do
        echo $TOCOMPAREFILES > $RUNNER_TEMP/TOCOMPAREFILES.txt
        if [ ! -f "${vlsv_dir}/${vlsv}" ]; then
            echo "Output file ${vlsv_dir}/${vlsv} not found!"
-           echo "--------------------------------------------------------------------------------------------"
+           echo "+++"
            continue
        fi
        if [ ! -f "${reference_result_dir}/${vlsv}" ]; then
             echo "Reference file ${reference_result_dir}/${vlsv} not found!"
-           echo "--------------------------------------------------------------------------------------------"
+           echo "+++"
            continue
        fi
        echo "Comparing file ${vlsv_dir}/${vlsv} against reference"
@@ -285,9 +285,9 @@ for run in ${run_tests[*]}; do
 
            elif [ "${variables[$i]}" == "proton" ]
            then
-               echo "--------------------------------------------------------------------------------------------"
-               echo "   Distribution function diff                                                               "
-               echo "--------------------------------------------------------------------------------------------"
+               echo "+++"
+               echo "   Distribution function diff"
+               echo "+++"
                $run_command_tools $diffbin ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} proton 0
            fi
 
@@ -303,7 +303,7 @@ for run in ${run_tests[*]}; do
        else
            echo "VLSV file timestamps match."
        fi
-       echo "--------------------------------------------------------------------------------------------"
+       echo "+++"
 
        # This loop runs in a subshell (because of the stdout and stderr capture below),
        # so we save the variables to temp files
@@ -318,7 +318,7 @@ for run in ${run_tests[*]}; do
 
    done 2>&1 1>&3 3>&- | tee -a $GITHUB_WORKSPACE/stderr.txt; } 3>&1 1>&2 | tee -a $GITHUB_WORKSPACE/stdout.txt
    # end loop over vlsvfiles
-   echo "--------------------------------------------------------------------------------------------"
+   echo "+++"
 
    # Recover error variables
    COMPAREDFILES=`cat $RUNNER_TEMP/COMPAREDFILES.txt`
