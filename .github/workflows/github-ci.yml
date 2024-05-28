@@ -306,6 +306,13 @@ jobs:
           # Fail this step if any test failed.
           exit 1
         fi
+    - name: Make sure the output binary is visible in lustre
+      uses: nick-fields/retry@v3
+      with:
+        timeout_seconds: 15
+        max_attempts: 3
+        retry_on: error
+        command: ls $GITHUB_WORKSPACE/testpackage-output.tar.gz
     - name: Upload testpackage output
       uses: actions/upload-artifact@v3
       if: always()
