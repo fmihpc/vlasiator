@@ -638,7 +638,7 @@ void Parameters::getParameters() {
       if(P::systemWriteDistributionWriteStride[i] != 0 ||
          P::systemWriteDistributionWriteXlineStride[i] > 0 ||
          P::systemWriteDistributionWriteYlineStride[i] > 0 ||
-         P::systemWriteDistributionWriteZlineStride[i] > 0
+         P::systemWriteDistributionWriteZlineStride[i] > 0) {
          includefSaved = true;
       }
    }
