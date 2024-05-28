@@ -816,12 +816,12 @@ namespace spatial_cell {
          velocity_block_with_content_list->reserve(newReserve,true);
          velocity_block_with_content_list_capacity = newReserve;
          dev_velocity_block_with_content_list = velocity_block_with_content_list->upload(stream);
-         velocity_block_with_content_list->optimizeGPU(stream);
+         //velocity_block_with_content_list->optimizeGPU(stream); // included in upload()
          //vectorTimer.stop();
       }
       if (vbwcl_sizePower < HashmapReqSize) {
          //phiprof::Timer map1cTimer {"with_map1 clear"};
-         //velocity_block_with_content_map->clear(Hashinator::targets::device,stream,false);
+         //velocity_block_with_content_map->clear<false>(Hashinator::targets::device,stream);
          //map1cTimer.stop();
          vbwcl_sizePower = HashmapReqSize+2;
          //velocity_block_with_content_map->resize(vbwcl_sizePower, targets::device, stream);
@@ -832,12 +832,12 @@ namespace spatial_cell {
          velocity_block_with_content_map = ::new (buf) Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(vbwcl_sizePower);
          // velocity_block_with_content_map = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(vbwcl_sizePower);
          dev_velocity_block_with_content_map = velocity_block_with_content_map->upload(stream);
-         velocity_block_with_content_map->optimizeGPU(stream);
+         //velocity_block_with_content_map->optimizeGPU(stream); // included in upload()
          //map1cTimer.stop();
       }
       if (vbwncl_sizePower < HashmapReqSize) {
          //phiprof::Timer map2cTimer {"with_map2 clear"};
-         //velocity_block_with_no_content_map->clear(Hashinator::targets::device,stream,false);
+         //velocity_block_with_no_content_map->clear<false>(Hashinator::targets::device,stream);
          //map2cTimer.stop();
          vbwncl_sizePower = HashmapReqSize+2;
          //phiprof::Timer map2rTimer {"with_map2 resize"};
@@ -847,7 +847,7 @@ namespace spatial_cell {
          velocity_block_with_no_content_map = ::new (buf) Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(vbwncl_sizePower);
          //velocity_block_with_no_content_map = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(vbwncl_sizePower);
          dev_velocity_block_with_no_content_map = velocity_block_with_no_content_map->upload(stream);
-         velocity_block_with_no_content_map->optimizeGPU(stream);
+         //velocity_block_with_no_content_map->optimizeGPU(stream); // included in upload()
          //map2cTimer.stop();
       }
    }
@@ -1217,8 +1217,8 @@ namespace spatial_cell {
 
       phiprof::Timer clearTimer {"GPU clear maps"};
       velocity_block_with_content_list_size = 0;
-      velocity_block_with_content_map->clear(Hashinator::targets::device,stream,false,std::pow(2,vbwcl_sizePower));
-      velocity_block_with_no_content_map->clear(Hashinator::targets::device,stream,false,std::pow(2,vbwncl_sizePower));
+      velocity_block_with_content_map->clear<false>(Hashinator::targets::device,stream,std::pow(2,vbwcl_sizePower));
+      velocity_block_with_no_content_map->clear<false>(Hashinator::targets::device,stream,std::pow(2,vbwncl_sizePower));
       CHK_ERR( gpuStreamSynchronize(stream) );
       clearTimer.stop();
       phiprof::Timer sizeTimer {"GPU size"};
@@ -1371,9 +1371,9 @@ namespace spatial_cell {
             const gpuStream_t stream = gpu_getStream();
             if (receiving) {
                this->velocity_block_with_content_list->resize(this->velocity_block_with_content_list_size,true);
-               this->dev_velocity_block_with_content_list = this->velocity_block_with_content_list->upload();
                this->velocity_block_with_content_list_capacity = this->velocity_block_with_content_list->capacity();
-               this->velocity_block_with_content_list->optimizeGPU(stream);
+               this->dev_velocity_block_with_content_list = this->velocity_block_with_content_list->upload();
+               //this->velocity_block_with_content_list->optimizeGPU(stream); // included in upload()
              }
             //velocity_block_with_content_list_size should first be updated, before this can be done (STAGE1)
             displacements.push_back((uint8_t*) this->velocity_block_with_content_list->data() - (uint8_t*) this);
