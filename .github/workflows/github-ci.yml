@@ -299,7 +299,7 @@ jobs:
         cat $GITHUB_STEP_SUMMARY > $GITHUB_WORKSPACE/testpackage_check_description.txt
         cd $GITHUB_WORKSPACE
         tar -czvf testpackage-output.tar.gz testpackage_check_description.txt testpackage_output_variables.txt
-MOI
+        MOI
         if [ -f $GITHUB_WORKSPACE/testpackage_failed ]; then
           # Fail this step if any test failed.
           exit 1
