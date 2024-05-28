@@ -119,7 +119,7 @@ jobs:
         VLASIATOR_ARCH=github_actions make -j 3
    #  - name: Compile vlasiator (Release build)
    #    run: |
-   #      srun -M carrington --job-name release_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p short -t 0:10:0 bash -c 'module purge; module load GCC/11.2.0; module load OpenMPI/4.1.1-GCC-11.2.0 ; module load PMIx/4.1.0-GCCcore-11.2.0; module load PAPI/6.0.0.1-GCCcore-11.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make clean; make -j 16'
+   #      srun -M carrington --job-name CI_release_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p short -t 0:10:0 bash -c 'module purge; module load GCC/11.2.0; module load OpenMPI/4.1.1-GCC-11.2.0 ; module load PMIx/4.1.0-GCCcore-11.2.0; module load PAPI/6.0.0.1-GCCcore-11.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make clean; make -j 16'
 
 
   build_testpackage:
@@ -143,7 +143,7 @@ jobs:
     - name: Compile vlasiator (Testpackage build)
       run: |
         export VLASIATOR_ARCH=carrington_gcc_openmpi
-        srun -M carrington --job-name tp_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p short -t 0:10:0 bash -c 'module purge; module load GCC/11.2.0; module load OpenMPI/4.1.1-GCC-11.2.0 ; module load PMIx/4.1.0-GCCcore-11.2.0; module load PAPI/6.0.0.1-GCCcore-11.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make -j 16 testpackage; sleep 10s'
+        srun -M carrington --job-name CI_tp_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p short -t 0:10:0 bash -c 'module purge; module load GCC/11.2.0; module load OpenMPI/4.1.1-GCC-11.2.0 ; module load PMIx/4.1.0-GCCcore-11.2.0; module load PAPI/6.0.0.1-GCCcore-11.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make -j 16 testpackage; sleep 10s'
     - name: Make sure the output binary is visible in lustre
       uses: nick-fields/retry@v3
       with:
@@ -253,7 +253,7 @@ jobs:
     - name: Compile tools
       run: |
         export VLASIATOR_ARCH=carrington_gcc_openmpi
-        srun -M carrington --job-name tp_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p short -t 0:10:0 bash -c 'module purge; module load GCC/11.2.0; module load OpenMPI/4.1.1-GCC-11.2.0 ; module load PMIx/4.1.0-GCCcore-11.2.0; module load PAPI/6.0.0.1-GCCcore-11.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make -j 16 vlsvextract vlsvdiff'
+        srun -M carrington --job-name CI_tp_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p short -t 0:10:0 bash -c 'module purge; module load GCC/11.2.0; module load OpenMPI/4.1.1-GCC-11.2.0 ; module load PMIx/4.1.0-GCCcore-11.2.0; module load PAPI/6.0.0.1-GCCcore-11.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make -j 16 vlsvextract vlsvdiff'
     - name: Upload tools binaries
       uses: actions/upload-artifact@v4
       with:
@@ -303,7 +303,7 @@ jobs:
         tar -czf testpackage-output.tar.gz testpackage_check_description.txt testpackage_output_variables.txt
         MORO
         )
-        srun -M carrington --dependency afterany:${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]} bash -c "$RUN_STRING"
+        srun --job-name CI_wait -M carrington --dependency afterany:${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]} bash -c "$RUN_STRING"
         if [ -f $GITHUB_WORKSPACE/testpackage_failed ]; then
           # Fail this step if any test failed.
           exit 1
@@ -343,7 +343,7 @@ jobs:
     - name: Compile ionosphereSolverTests
       run: |
         cd mini-apps/ionosphereSolverTests/
-        srun -M carrington --job-name iST_compile --interactive --nodes=1 -n 1 -c 3 --mem=40G -p short -t 0:10:0 bash -c 'module purge; module load GCC/11.2.0; module load OpenMPI/4.1.1-GCC-11.2.0 ; module load PMIx/4.1.0-GCCcore-11.2.0; module load PAPI/6.0.0.1-GCCcore-11.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make -j 3 main differentialFlux sigmaProfiles'
+        srun -M carrington --job-name CI_iST_compile --interactive --nodes=1 -n 1 -c 3 --mem=40G -p short -t 0:10:0 bash -c 'module purge; module load GCC/11.2.0; module load OpenMPI/4.1.1-GCC-11.2.0 ; module load PMIx/4.1.0-GCCcore-11.2.0; module load PAPI/6.0.0.1-GCCcore-11.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make -j 3 main differentialFlux sigmaProfiles'
         #        VLASIATOR_ARCH=carrington_gcc_openmpi make -j 3 main differentialFlux sigmaProfiles
     - name: Upload ionosphereTest binaries
       uses: actions/upload-artifact@v4
