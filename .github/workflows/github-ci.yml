@@ -301,7 +301,7 @@ jobs:
         tar -czvf testpackage-output.tar.gz testpackage_check_description.txt testpackage_output_variables.txt ;
         MORO
         )
-        srun -M carrington --dependency afterany:${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]} bash -c $RUN_STRING
+        srun -M carrington --dependency afterany:${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]} bash -c "$RUN_STRING"
         if [ -f $GITHUB_WORKSPACE/testpackage_failed ]; then
           # Fail this step if any test failed.
           exit 1
