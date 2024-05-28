@@ -1,16 +1,13 @@
 #!/bin/bash
 #SBATCH -t 01:30:00        # Run time (hh:mm:ss)
 #SBATCH --job-name=CI_testpackage
-##SBATCH -A spacephysics
-#SBATCH -M carrington
-# test short medium 20min1d 3d
 #SBATCH -p short
+#SBATCH -M carrington
 #SBATCH --exclusive
 #SBATCH --nodes=1
+#SBATCH --mem=0
 #SBATCH -c 4                 # CPU cores per task
 #SBATCH -n 16                  # number of tasks
-#SBATCH --mem=0
-##SBATCH -x carrington-[801-808]
 
 #If 1, the reference vlsv files are generated
 # if 0 then we check the v1
@@ -53,10 +50,11 @@ units_per_node=$(echo $cores_per_node $ht | gawk '{print $1*$2}')
 tasks=$(echo $total_units $t  | gawk '{print $1/$2}')
 tasks_per_node=$(echo $units_per_node $t  | gawk '{print $1/$2}')
 export OMP_NUM_THREADS=$t
+export UCX_NET_DEVICES=eth0
 
 #command for running stuff
-run_command="mpirun --mca btl self -mca pml ^vader,tcp,openib,uct,yalla -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_TLS=rc,sm -x UCX_IB_ADDR_TYPE=ib_global -np $tasks"
-small_run_command="mpirun --mca btl self -mca pml ^vader,tcp,openib,uct,yalla -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_TLS=rc,sm -x UCX_IB_ADDR_TYPE=ib_global -n 1 -N 1"
+run_command="srun --mpi=pmix -n $tasks"
+small_run_command="srun --mpi=pmix -n 1"
 run_command_tools="mpirun -np 1 "
 
 umask 007
