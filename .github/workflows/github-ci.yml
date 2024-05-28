@@ -335,7 +335,7 @@ jobs:
     - name: Upload ionosphereTest binaries
       uses: actions/upload-artifact@v4
       with:
-        name: vlasiator-tools
+        name: ionosphereTests
         path: |
           mini-apps/ionosphereSolverTests/main
           mini-apps/ionosphereSolverTests/differentialFlux
