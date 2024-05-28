@@ -293,11 +293,13 @@ jobs:
         VLASIATOR_CIRUNNER_JOBSPEC_TP=$(sbatch --parsable -o testpackage_run_output.txt ./small_test_carrington_github_ci.sh)
         VLASIATOR_CIRUNNER_JOBSPEC_TP=(${VLASIATOR_CIRUNNER_JOBSPEC_TP//\;/ })
         trap "scancel -M ${VLASIATOR_CIRUNNER_JOBSPEC_TP[1]} ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}" SIGINT
-        srun -M carrington --dependency afterany:${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]} echo "Job finished, checking output."
+        srun -M carrington --dependency afterany:${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]} << MOI
+        echo "Job finished, checking output."
         cat testpackage_run_output.txt
         cat $GITHUB_STEP_SUMMARY > $GITHUB_WORKSPACE/testpackage_check_description.txt
         cd $GITHUB_WORKSPACE
         tar -czvf testpackage-output.tar.gz testpackage_check_description.txt testpackage_output_variables.txt
+MOI
         if [ -f $GITHUB_WORKSPACE/testpackage_failed ]; then
           # Fail this step if any test failed.
           exit 1
