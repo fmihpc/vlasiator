@@ -250,5 +250,5 @@ do
 done
 
 # Alternatively, set tests manually, e.g.
-run_tests=( 1 )
+# run_tests=( 1 6 9 )
 
