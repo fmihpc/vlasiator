@@ -6,8 +6,10 @@
 # ./sigmaProfiles 1e6 1e7 > atmosphere.dat
 #
 
-set terminal pdfcairo size 4.8,8 dashed
-set output "atmosphere.pdf"
+#set terminal pdfcairo size 4.8,8 dashed
+#set output "atmosphere.pdf"
+set terminal pngcairo size 960,1600 dashed
+set output "atmosphere.png"
 
 set multiplot
 

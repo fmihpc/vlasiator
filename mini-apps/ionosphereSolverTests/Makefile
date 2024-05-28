@@ -15,7 +15,7 @@ INC_EIGEN = -isystem ../../submodules/eigen/
 
 
 
-all: main differentialFlux sigmaProfiles multipoleTests LFMtest atmosphere.pdf
+all: main differentialFlux sigmaProfiles multipoleTests LFMtest atmosphere.png
 .PHONY: clean multipoleTests
 
 clean: 
@@ -88,7 +88,7 @@ differentialFlux: differentialFlux.cpp
 
 sigmaProfiles: sigmaProfiles.cpp
 
-atmosphere.pdf: sigmaProfiles plotAtmosphere.gp
+atmosphere.png: sigmaProfiles plotAtmosphere.gp
 	./sigmaProfiles 1e6 1.16046e7 > atmosphere.dat
 	./sigmaProfiles 1e6 1.16046e8 > atmosphere10.dat
 	./sigmaProfiles 1e6 1.16046e9 > atmosphere100.dat
@@ -131,6 +131,12 @@ convergence%.dat: main
 		done | tee convergence$$i.dat'
 multipoleTests: ${MULTIPOLEJOBS}
 
-LFMtest: main plot_ionosphereLFM.py
-	./main -N 2000 -r 40 90 -r 50 80 -sigma 10 -fac merkin2010 -gaugeFix equator -o LFMtest.vlsv
-	./plot_ionosphereLFM.py LFMtest.vlsv
+LFMtest.vlsv: main
+	#./main -N 2000 -sigma 10 -fac merkin2010 -gaugeFix equator45 -o LFMtest0.vlsv -maxIter 10000
+	OMP_NUM_THREADS=1 ./main -N 2000 -r 40 90 -r 50 90 -r 60 80 -sigma 10 -fac merkin2010 -gaugeFix equator45 -o LFMtest.vlsv -maxIter 10000
+
+lfmtest.dat: LFMtest.vlsv
+	./lfmformat.py LFMtest.vlsv > lfmtest.dat
+LFMtest: lfmtest.dat
+	./plot_LFMtest.gp
+	#./plot_ionosphereLFM.py LFMtest.vlsv
