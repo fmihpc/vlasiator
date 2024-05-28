@@ -22,7 +22,7 @@ jobs:
 
     steps:
       - name: Checkout source
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Run library build script
         run: ./build_libraries.sh
       - name: Build libraries tar
@@ -41,7 +41,7 @@ jobs:
 
     steps:
       - name: Checkout source
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Setup MPI
         uses: mpi4py/setup-mpi@v1
         with:
@@ -75,7 +75,7 @@ jobs:
 
     steps:
       - name: Checkout source
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: true
       - name: Clean workspace
@@ -103,7 +103,7 @@ jobs:
 
     steps:
     - name: Checkout source
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: true
     - name: Download libraries
@@ -134,7 +134,7 @@ jobs:
         rm -f libraries.tar.zst dtestpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
         rm -f *.xml
     - name: Checkout source
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: true
     - name: Make clean
@@ -169,7 +169,7 @@ jobs:
 
     steps:
     - name: Checkout source
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: true
     - name: Clean workspace
@@ -202,7 +202,7 @@ jobs:
 
     steps:
     - name: Checkout source
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: true
     - name: Setup MPI
@@ -244,7 +244,7 @@ jobs:
         rm -f libraries.tar.zstd dtestpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
         rm -f *.xml
     - name: Checkout source
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: true
     - uses: ursg/gcc-problem-matcher@master
@@ -271,7 +271,7 @@ jobs:
 
     steps:
     - name: Checkout source
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: true
     - name: Download testpackage binary
@@ -317,7 +317,7 @@ jobs:
     needs: [build_libraries]
     steps:
     - name: Checkout source
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: true
           #    - name: Download libraries
