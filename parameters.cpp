@@ -525,17 +525,6 @@ void Parameters::getParameters() {
    RP::get("io.system_write_distribution_zline_stride", P::systemWriteDistributionWriteZlineStride);
    RP::get("io.system_write_distribution_shell_radius", P::systemWriteDistributionWriteShellRadius);
    RP::get("io.system_write_distribution_shell_stride", P::systemWriteDistributionWriteShellStride);
-
-   bool includefSaved = false;
-   if(P::systemWriteDistributionWriteStride != 0 ||
-      P::systemWriteDistributionWriteXlineStride > 0 ||
-      P::systemWriteDistributionWriteYlineStride > 0 ||
-      P::systemWriteDistributionWriteZlineStride > 0 ||
-      P::systemWriteDistributionWriteShellRadius > 0 ||
-      P::systemWriteDistributionWriteShellStride > 0) {
-      includefSaved = true;
-   }
-
    RP::get("io.system_write_fsgrid_variables", P::systemWriteFsGrid);
    RP::get("io.system_write_all_data_reducers", P::systemWriteAllDROs);
    RP::get("io.write_initial_state", P::writeInitialState);
@@ -643,6 +632,19 @@ void Parameters::getParameters() {
          }
       }
    }
+
+   bool includefSaved = false;
+   for(uint i=0; i<maxSize; i++) {
+      if(P::systemWriteDistributionWriteStride[i] != 0 ||
+         P::systemWriteDistributionWriteXlineStride[i] > 0 ||
+         P::systemWriteDistributionWriteYlineStride[i] > 0 ||
+         P::systemWriteDistributionWriteZlineStride[i] > 0 ||
+         P::systemWriteDistributionWriteShellRadius[i] > 0 ||
+         P::systemWriteDistributionWriteShellStride[i] > 0) {
+         includefSaved = true;
+      }
+   }
+
 
    vector<string> mpiioKeys, mpiioValues;
    RP::get("io.system_write_mpiio_hint_key", mpiioKeys);
