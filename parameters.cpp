@@ -525,6 +525,17 @@ void Parameters::getParameters() {
    RP::get("io.system_write_distribution_zline_stride", P::systemWriteDistributionWriteZlineStride);
    RP::get("io.system_write_distribution_shell_radius", P::systemWriteDistributionWriteShellRadius);
    RP::get("io.system_write_distribution_shell_stride", P::systemWriteDistributionWriteShellStride);
+
+   bool includefSaved = false;
+   if(P::systemWriteDistributionWriteStride != 0 ||
+      P::systemWriteDistributionWriteXlineStride ||
+      P::systemWriteDistributionWriteYlineStride ||
+      P::systemWriteDistributionWriteZlineStride ||
+      P::systemWriteDistributionWriteShellRadius ||
+      P::systemWriteDistributionWriteShellStride) {
+      includefSaved = true;
+   }
+
    RP::get("io.system_write_fsgrid_variables", P::systemWriteFsGrid);
    RP::get("io.system_write_all_data_reducers", P::systemWriteAllDROs);
    RP::get("io.write_initial_state", P::writeInitialState);
@@ -945,6 +956,11 @@ void Parameters::getParameters() {
    // Get output variable parameters
    RP::get("variables.output", P::outputVariableList);
    RP::get("variables.diagnostic", P::diagnosticVariableList);
+
+   // Insert vg_f_saved to the list if necessary
+   if(includefSaved) {
+      P::outputVariableList.push_back("vg_f_saved");
+   }
 
    // Filter duplicate variable names
    set<string> dummy(P::outputVariableList.begin(), P::outputVariableList.end());
