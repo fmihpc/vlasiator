@@ -638,9 +638,12 @@ void Parameters::getParameters() {
       if(P::systemWriteDistributionWriteStride[i] != 0 ||
          P::systemWriteDistributionWriteXlineStride[i] > 0 ||
          P::systemWriteDistributionWriteYlineStride[i] > 0 ||
-         P::systemWriteDistributionWriteZlineStride[i] > 0 ||
-         P::systemWriteDistributionWriteShellRadius[i] > 0 ||
-         P::systemWriteDistributionWriteShellStride[i] > 0) {
+         P::systemWriteDistributionWriteZlineStride[i] > 0
+         includefSaved = true;
+      }
+   }
+   for(uint i=0; i<P::systemWriteDistributionWriteShellRadius.size(); i++) {
+      if(P::systemWriteDistributionWriteShellRadius[i] > 0) {
          includefSaved = true;
       }
    }
