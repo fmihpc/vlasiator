@@ -528,11 +528,11 @@ void Parameters::getParameters() {
 
    bool includefSaved = false;
    if(P::systemWriteDistributionWriteStride != 0 ||
-      P::systemWriteDistributionWriteXlineStride ||
-      P::systemWriteDistributionWriteYlineStride ||
-      P::systemWriteDistributionWriteZlineStride ||
-      P::systemWriteDistributionWriteShellRadius ||
-      P::systemWriteDistributionWriteShellStride) {
+      P::systemWriteDistributionWriteXlineStride > 0 ||
+      P::systemWriteDistributionWriteYlineStride > 0 ||
+      P::systemWriteDistributionWriteZlineStride > 0 ||
+      P::systemWriteDistributionWriteShellRadius > 0 ||
+      P::systemWriteDistributionWriteShellStride > 0) {
       includefSaved = true;
    }
 
