@@ -108,7 +108,6 @@ FAILEDTESTS=0
 
 # loop over different test cases
 for run in ${run_tests[*]}; do
-   echo "running ${test_name[$run]} "
    # directory for test results
    vlsv_dir=${run_dir}/${test_name[$run]}
    cfg_dir=${test_dir}/${test_name[$run]}
@@ -156,8 +155,7 @@ for run in ${run_tests[*]}; do
 
    ##Compare test case with right solutions
    { {
-   echo "----------"
-   echo "${test_name[$run]}"
+   echo "\nrunning ${test_name[$run]} "
    echo "----------"
    } 2>&1 1>&3 3>&- | tee -a $GITHUB_WORKSPACE/stderr.txt;} 3>&1 1>&2 | tee -a $GITHUB_WORKSPACE/stdout.txt
    reference_result_dir=${reference_dir}/${reference_revision}/${test_name[$run]}
