@@ -156,6 +156,7 @@ for run in ${run_tests[*]}; do
    ##Compare test case with right solutions
    { {
    echo -e "\n"
+   echo "----------"
    echo "running ${test_name[$run]} "
    echo "----------"
    } 2>&1 1>&3 3>&- | tee -a $GITHUB_WORKSPACE/stderr.txt;} 3>&1 1>&2 | tee -a $GITHUB_WORKSPACE/stdout.txt
@@ -324,7 +325,6 @@ for run in ${run_tests[*]}; do
 
    done 2>&1 1>&3 3>&- | tee -a $GITHUB_WORKSPACE/stderr.txt; } 3>&1 1>&2 | tee -a $GITHUB_WORKSPACE/stdout.txt
    # end loop over vlsvfiles
-   echo "----------"
 
    # Recover error variables
    COMPAREDFILES=`cat $RUNNER_TEMP/COMPAREDFILES.txt`
