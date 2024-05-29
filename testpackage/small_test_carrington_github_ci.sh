@@ -155,7 +155,8 @@ for run in ${run_tests[*]}; do
 
    ##Compare test case with right solutions
    { {
-   echo "\nrunning ${test_name[$run]} "
+   echo -e "\n"
+   echo "running ${test_name[$run]} "
    echo "----------"
    } 2>&1 1>&3 3>&- | tee -a $GITHUB_WORKSPACE/stderr.txt;} 3>&1 1>&2 | tee -a $GITHUB_WORKSPACE/stdout.txt
    reference_result_dir=${reference_dir}/${reference_revision}/${test_name[$run]}
