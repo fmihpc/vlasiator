@@ -63,10 +63,6 @@ umask 007
 # Launch the OpenMP job to the allocated compute node
 echo "Running $exec on $tasks mpi tasks, with $t threads per task on $nodes nodes ($ht threads per physical core)"
 
-echo "----------"
-echo "This will be verifying ${revision}_$solveropts against $reference_revision"
-echo "----------"
-
 # Print the used node
 hostname
 
@@ -93,6 +89,10 @@ test_dir=$( readlink -f $test_dir)
 flags=$(  $run_command $bin  --version |grep CXXFLAGS)
 solveropts=$(echo $flags|sed 's/[-+]//g' | gawk '{for(i = 1;i<=NF;i++) { if( $i=="DDP" || $i=="DFP" || index($i,"PF")|| index($i,"DVEC") || index($i,"SEMILAG") ) printf "__%s", $(i) }}')
 revision=$( $run_command $bin --version |gawk '{if(flag==1) {print $1;flag=0}if ($3=="log") flag=1;}' )
+
+echo "----------"
+echo "This will be verifying ${revision}_$solveropts against $reference_revision"
+echo "----------"
 
 #$small_run_command $bin --version > VERSION.txt 2> $GITHUB_WORKSPACE/stderr.txt
 
