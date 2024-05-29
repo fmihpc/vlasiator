@@ -63,6 +63,10 @@ umask 007
 # Launch the OpenMP job to the allocated compute node
 echo "Running $exec on $tasks mpi tasks, with $t threads per task on $nodes nodes ($ht threads per physical core)"
 
+echo "----------"
+echo "This will be verifying ${revision}_$solveropts against $reference_revision"
+echo "----------"
+
 # Print the used node
 hostname
 
@@ -150,7 +154,7 @@ for run in ${run_tests[*]}; do
    ##Compare test case with right solutions
    { {
    echo "----------"
-   echo "${test_name[$run]}  -  Verifying ${revision}_$solveropts against $reference_revision"
+   echo "${test_name[$run]}"
    echo "----------"
    } 2>&1 1>&3 3>&- | tee -a $GITHUB_WORKSPACE/stderr.txt;} 3>&1 1>&2 | tee -a $GITHUB_WORKSPACE/stdout.txt
    reference_result_dir=${reference_dir}/${reference_revision}/${test_name[$run]}
