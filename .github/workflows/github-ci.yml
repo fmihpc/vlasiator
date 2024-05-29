@@ -298,7 +298,7 @@ jobs:
         cat testpackage_run_output.txt ;
         cat $GITHUB_STEP_SUMMARY > $GITHUB_WORKSPACE/testpackage_check_description.txt ;
         cd $GITHUB_WORKSPACE ;
-        tar -czvf testpackage-output.tar.gz testpackage_check_description.txt testpackage_output_variables.txt ;
+        tar -czf testpackage-output.tar.gz testpackage_check_description.txt testpackage_output_variables.txt ;
         MORO
         )
         srun -M carrington --dependency afterany:${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]} bash -c "$RUN_STRING"
