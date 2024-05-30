@@ -359,6 +359,9 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
    for (uint i = 0; i < cells.size(); i++) {
       mpiGrid[cells[i]]->sysBoundaryFlag = sysboundarytype::NOT_SYSBOUNDARY;
       mpiGrid[cells[i]]->parameters[CellParams::FORCING_CELL_NUM] = -1;
+      mpiGrid[cells[i]]->parameters[CellParams::BULKV_FORCING_X] = 0;
+      mpiGrid[cells[i]]->parameters[CellParams::BULKV_FORCING_Y] = 0;
+      mpiGrid[cells[i]]->parameters[CellParams::BULKV_FORCING_Z] = 0;
    }
 #pragma omp parallel for collapse(2)
    for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
