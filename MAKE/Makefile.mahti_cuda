@@ -96,6 +96,6 @@ LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -Xlinker=-rpath=$(LIBRAR
 INC_EIGEN = -isystem ./submodules/eigen
 INC_FSGRID = -I./submodules/fsgrid
 INC_DCCRG = -I./submodules/dccrg
-INC_HASHINATOR = -isystem ./submodules/hashinator/
+INC_HASHINATOR = -I./submodules/hashinator/
 # Vectorclass only for CPU mode
 # INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/

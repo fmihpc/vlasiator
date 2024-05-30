@@ -307,7 +307,7 @@ namespace vmesh {
       //    delete globalToLocalMap;
       //    globalToLocalMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(7);
       // } else {
-      //    globalToLocalMap->clear(Hashinator::targets::device,stream,false);
+      //    globalToLocalMap->clear<false>(Hashinator::targets::device,stream);
       //    CHK_ERR( gpuStreamSynchronize(stream) );
       // }
       #ifdef DEBUG_VMESH
@@ -628,7 +628,7 @@ namespace vmesh {
          localToGlobalMap->insert(localToGlobalMap->end(),blocks.begin(),blocks.end());
          vmesh::GlobalID* _localToGlobalMapData = localToGlobalMap->data();
          localToGlobalMap->optimizeGPU(stream);
-         globalToLocalMap->insertIndex(_localToGlobalMapData,blocksSize,0.5,stream,false);
+         globalToLocalMap->insertIndex<false>(_localToGlobalMapData,blocksSize,0.5,stream);
          ltg_size = blocksSize;
          return blocksSize;
       } else {
@@ -690,7 +690,7 @@ namespace vmesh {
          localToGlobalMap->insert(localToGlobalMap->end(),blocks->begin(),blocks->end());
          vmesh::GlobalID* _localToGlobalMapData = localToGlobalMap->data();
          localToGlobalMap->optimizeGPU(stream);
-         globalToLocalMap->insertIndex(_localToGlobalMapData,blocksSize,0.5,stream,false);
+         globalToLocalMap->insertIndex<false>(_localToGlobalMapData,blocksSize,0.5,stream);
          ltg_size = blocksSize;
          return blocksSize;
       } else {
@@ -1197,10 +1197,10 @@ namespace vmesh {
       // Assumes we have a valid localToGlobalMap from e.g. MPI communication,
       // populates globalToLocalMap based on it.
       gpuStream_t stream = gpu_getStream();
-      globalToLocalMap->clear(Hashinator::targets::device,stream,false);
+      globalToLocalMap->clear<false>(Hashinator::targets::device,stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
       size_t nBlocks = localToGlobalMap->size();
-      globalToLocalMap->insertIndex(localToGlobalMap->data(),nBlocks,0.5,stream,false);
+      globalToLocalMap->insertIndex<false>(localToGlobalMap->data(),nBlocks,0.5,stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
       ltg_size = nBlocks;
    }
@@ -1209,7 +1209,7 @@ namespace vmesh {
    inline bool VelocityMesh::setGrid(const std::vector<vmesh::GlobalID>& globalIDs) {
       printf("Warning! Slow version of VelocityMesh::setGrid.\n");
       gpuStream_t stream = gpu_getStream();
-      globalToLocalMap->clear(Hashinator::targets::device,stream,false);
+      globalToLocalMap->clear<false>(Hashinator::targets::device,stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
       for (vmesh::LocalID i=0; i<globalIDs.size(); ++i) {
          globalToLocalMap->insert(Hashinator::make_pair(globalIDs[i],(vmesh::LocalID)i));
@@ -1222,7 +1222,7 @@ namespace vmesh {
    inline bool VelocityMesh::setGrid(const split::SplitVector<vmesh::GlobalID>& globalIDs) {
       printf("Warning! Slow version of VelocityMesh::setGrid.\n");
       gpuStream_t stream = gpu_getStream();
-      globalToLocalMap->clear(Hashinator::targets::device,stream,false);
+      globalToLocalMap->clear<false>(Hashinator::targets::device,stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
       for (vmesh::LocalID i=0; i<globalIDs.size(); ++i) {
          globalToLocalMap->insert(Hashinator::make_pair(globalIDs[i],(vmesh::LocalID)i));
@@ -1255,7 +1255,7 @@ namespace vmesh {
       const int newSize2 = newSize > 0 ? newSize : 1;
       const int HashmapReqSize = ceil(log2(newSize2)) +2; // Make it really large enough
       if (currentSizePower < HashmapReqSize) {
-         globalToLocalMap->device_rehash(HashmapReqSize, stream);
+         globalToLocalMap->device_rehash<false>(HashmapReqSize, stream);
          // CHK_ERR( gpuStreamSynchronize(stream) );
          // globalToLocalMap->optimizeGPU(stream);
       }
@@ -1346,14 +1346,14 @@ namespace vmesh {
       }
 
       // phiprof::Timer resizeTimer {"Hashinator resize"};
-      // //globalToLocalMap->performCleanupTasks(stream);
+      // //globalToLocalMap->performCleanupTasks<false>(stream);
       // globalToLocalMap->resize_to_lf(0.5, Hashinator::targets::device, stream);
       // CHK_ERR( gpuStreamSynchronize(stream) );
       // resizeTimer.stop();
 
       phiprof::Timer cleanupTimer {"Hashinator tombstones"};
-      // globalToLocalMap->clean_tombstones(stream, false);
-      globalToLocalMap->performCleanupTasks(stream);
+      // globalToLocalMap->clean_tombstones<false>(stream);
+      globalToLocalMap->performCleanupTasks<false>(stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
       cleanupTimer.stop();
       return;

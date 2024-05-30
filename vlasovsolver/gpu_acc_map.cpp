@@ -796,8 +796,8 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    phiprof::Timer evaluateExtentsTimer {"Evaluate column extents kernel"};
    do {
       CHK_ERR( gpuMemsetAsync(gpu_returnLID, 0, 2*sizeof(vmesh::LocalID), stream) );
-      map_require->clear(Hashinator::targets::device,stream,false,std::pow(2,spatial_cell->vbwcl_sizePower));
-      map_remove->clear(Hashinator::targets::device,stream,false,std::pow(2,spatial_cell->vbwncl_sizePower));
+      map_require->clear<false>(Hashinator::targets::device,stream,std::pow(2,spatial_cell->vbwcl_sizePower));
+      map_remove->clear<false>(Hashinator::targets::device,stream,std::pow(2,spatial_cell->vbwncl_sizePower));
       // Hashmap clear includes a stream sync
       //CHK_ERR( gpuStreamSynchronize(stream) );
       evaluate_column_extents_kernel<<<gpublocks, GPUTHREADS, 0, stream>>> (
