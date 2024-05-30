@@ -118,7 +118,7 @@ namespace projects {
       Real Vx = profile(this->Vx[this->BOTTOM], this->Vx[this->TOP], x);
       Real Vy = profile(this->Vy[this->BOTTOM], this->Vy[this->TOP], x);
       Real Vz = profile(this->Vz[this->BOTTOM], this->Vz[this->TOP], x);
-      (void)y,z,popID;
+      (void)y,(void)z,(void)popID;
 
       // add an initial velocity perturbation to Vx
       // initialize RNG for calculating random phases for the initial perturbation
