@@ -227,7 +227,7 @@ for run in ${run_tests[*]}; do
                relativeValue=$(grep "The relative 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                #print the results
-               echo "${variables[$i]}_${indices[$i]}                $absoluteValue                 $relativeValue    "
+               echo -e "${variables[$i]}_${indices[$i]}\t\t\t${absoluteValue}\t\t\t${relativeValue}"
 
                # Also log to metrics file
                echo "test_carrington{test=\"${test_name[$run]}\",var=\"${variables[$i]}\",index=\"${indices[$i]}\",diff=\"absolute\"} $absoluteValue" >> $GITHUB_WORKSPACE/metrics.txt
@@ -250,7 +250,7 @@ for run in ${run_tests[*]}; do
                relativeValue=$(grep "The relative 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                # print the results
-               echo "${variables[$i]}_${indices[$i]}                $absoluteValue                 $relativeValue    "
+               echo -e "${variables[$i]}_${indices[$i]}\t\t\t${absoluteValue}\t\t\t${relativeValue}"
 
                # Also log to metrics file
                echo "test_carrington{test=\"${test_name[$run]}\",var=\"${variables[$i]}\",index=\"${indices[$i]}\",diff=\"absolute\"} $absoluteValue" >> $GITHUB_WORKSPACE/metrics.txt
@@ -273,7 +273,7 @@ for run in ${run_tests[*]}; do
                relativeValue=$(grep "The relative 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                #print the results
-               echo "${variables[$i]}_${indices[$i]}                $absoluteValue                 $relativeValue    "
+               echo -e "${variables[$i]}_${indices[$i]}\t\t\t${absoluteValue}\t\t\t${relativeValue}"
 
                # Also log to metrics file
                echo "test_carrington{test=\"${test_name[$run]}\",var=\"${variables[$i]}\",index=\"${indices[$i]}\",diff=\"absolute\"} $absoluteValue" >> $GITHUB_WORKSPACE/metrics.txt
