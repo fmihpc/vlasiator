@@ -79,6 +79,9 @@ if [ $create_verification_files == 1 ]; then
    exit 1
 fi
 
+# discreetly, decide that tabs will be 15 so we have aligned output in tables with not-too-long variable names
+tabs 15
+
 # Note we are *not* using run_tests.sh here, as we are creating JUnit XML output.
 
 # Get absolute paths
@@ -227,7 +230,7 @@ for run in ${run_tests[*]}; do
                relativeValue=$(grep "The relative 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                #print the results
-               echo -e "${variables[$i]}_${indices[$i]}\t\t\t${absoluteValue}\t\t\t${relativeValue}"
+               echo -e "${variables[$i]}_${indices[$i]}\t${absoluteValue}\t${relativeValue}"
 
                # Also log to metrics file
                echo "test_carrington{test=\"${test_name[$run]}\",var=\"${variables[$i]}\",index=\"${indices[$i]}\",diff=\"absolute\"} $absoluteValue" >> $GITHUB_WORKSPACE/metrics.txt
@@ -250,7 +253,7 @@ for run in ${run_tests[*]}; do
                relativeValue=$(grep "The relative 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                # print the results
-               echo -e "${variables[$i]}_${indices[$i]}\t\t\t${absoluteValue}\t\t\t${relativeValue}"
+               echo -e "${variables[$i]}_${indices[$i]}\t${absoluteValue}\t${relativeValue}"
 
                # Also log to metrics file
                echo "test_carrington{test=\"${test_name[$run]}\",var=\"${variables[$i]}\",index=\"${indices[$i]}\",diff=\"absolute\"} $absoluteValue" >> $GITHUB_WORKSPACE/metrics.txt
@@ -273,7 +276,7 @@ for run in ${run_tests[*]}; do
                relativeValue=$(grep "The relative 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                #print the results
-               echo -e "${variables[$i]}_${indices[$i]}\t\t\t${absoluteValue}\t\t\t${relativeValue}"
+               echo -e "${variables[$i]}_${indices[$i]}\t${absoluteValue}\t${relativeValue}"
 
                # Also log to metrics file
                echo "test_carrington{test=\"${test_name[$run]}\",var=\"${variables[$i]}\",index=\"${indices[$i]}\",diff=\"absolute\"} $absoluteValue" >> $GITHUB_WORKSPACE/metrics.txt
