@@ -79,8 +79,9 @@ if [ $create_verification_files == 1 ]; then
    exit 1
 fi
 
-# discreetly, decide that tabs will be 15 so we have aligned output in tables with not-too-long variable names
-tabs 15
+# define tab interval sequence so that we have aligned output
+# this is now covering at least up proton/vg_ptensor_nonthermal_offdiagonal_0 and numbers printed at setprecision(3) with negative mantissa and exponent
+tabs 1 +45 +15 +15 +15 +15
 
 # Note we are *not* using run_tests.sh here, as we are creating JUnit XML output.
 
