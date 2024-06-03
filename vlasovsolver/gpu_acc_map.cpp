@@ -1,6 +1,6 @@
 /*
  * This file is part of Vlasiator.
- * Copyright 2010-2022 Finnish Meteorological Institute and University of Helsinki
+ * Copyright 2010-2024 Finnish Meteorological Institute and University of Helsinki
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
  * at http://www.physics.helsinki.fi/vlasiator/
@@ -128,42 +128,6 @@ __global__ void __launch_bounds__(VECL,4) reorder_blocks_by_dimension_kernel(
    } // end loop iColumn
    // Note: this kernel does not memset gpu_blockData to zero.
    // A separate memsetasync call is required for that.
-}
-
-
-__global__ void __launch_bounds__(GPUTHREADS,4) identify_block_offsets_kernel(
-   const vmesh::VelocityMesh* vmesh,
-   Column *columns,
-   const uint totalColumns,
-   uint *gpu_block_indices_to_id
-   ) {
-   const uint gpuBlocks = gridDim.x * gridDim.y * gridDim.z;
-   const uint warpSize = blockDim.x * blockDim.y * blockDim.z;
-   const uint blocki = blockIdx.z*gridDim.x*gridDim.y + blockIdx.y*gridDim.x + blockIdx.x;
-   const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
-   const uint blockDataSize = vmesh->size();
-
-   for (uint iColumn = blocki; iColumn < totalColumns; iColumn += gpuBlocks) {
-      for (uint blockK = (uint)columns[iColumn].minBlockK; blockK <= (uint)columns[iColumn].maxBlockK; blockK += warpSize) {
-         if (blockK+ti <= (uint)columns[iColumn].maxBlockK) {
-            const int targetBlock =
-               columns[iColumn].i * gpu_block_indices_to_id[0] +
-               columns[iColumn].j * gpu_block_indices_to_id[1] +
-               (blockK+ti)       * gpu_block_indices_to_id[2];
-            const vmesh::LocalID tblockLID = vmesh->getLocalID(targetBlock);
-            if (tblockLID == vmesh->invalidLocalID()) {
-               // Trying to propagate outside the velocity domain
-               columns[iColumn].targetBlockOffsets[blockK+ti] = vmesh->invalidLocalID();
-               printf("Error: block for index [%d,%d,%d] attempts to propagate outside domain!\n",columns[iColumn].i,columns[iColumn].j,blockK+ti);
-            } else {
-               columns[iColumn].targetBlockOffsets[blockK+ti] = tblockLID*WID3;
-               if (tblockLID >= blockDataSize) {
-                  printf("Error: block for index [%d,%d,%d] has invalid blockLID %d \n",columns[iColumn].i,columns[iColumn].j,blockK+ti,tblockLID);
-               }
-            }
-         }
-      }
-   }
 }
 
 // Serial kernel only to avoid page faults or prefetches
@@ -437,9 +401,11 @@ __global__ void __launch_bounds__(GPUTHREADS,4) evaluate_column_extents_kernel(
 }
 
 __global__ void __launch_bounds__(VECL,4) acceleration_kernel(
+   const vmesh::VelocityMesh* vmesh,
    vmesh::VelocityBlockContainer *blockContainer,
    Vec *gpu_blockDataOrdered,
    uint *gpu_cell_indices_to_id,
+   uint *gpu_block_indices_to_id,
    Column *gpu_columns,
    uint totalColumns,
    Realv intersection,
@@ -452,13 +418,15 @@ __global__ void __launch_bounds__(VECL,4) acceleration_kernel(
    Realv minValue,
    const size_t invalidLID
 ) {
-   const uint gpuBlocks = gridDim.x * gridDim.y * gridDim.z;
+   //const uint gpuBlocks = gridDim.x * gridDim.y * gridDim.z;
    //const uint warpSize = blockDim.x * blockDim.y * blockDim.z;
    const uint blocki = blockIdx.z*gridDim.x*gridDim.y + blockIdx.y*gridDim.x + blockIdx.x;
-   const uint index = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
+   const uint w_tid = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
 
    Realf *gpu_blockData = blockContainer->getData();
-   for (uint column = blocki; column < totalColumns; column += gpuBlocks) {
+   //for (uint column = blocki; column < totalColumns; column += gpuBlocks) {
+   const uint column = blocki;
+   {
       /* New threading with each warp/wavefront working on one vector */
       Realf v_r0 = ( (WID * gpu_columns[column].kBegin) * dv + v_min);
 
@@ -471,8 +439,8 @@ __global__ void __launch_bounds__(VECL,4) acceleration_kernel(
          // This loop is still needed for e.g. Warp=VECL=32, WID2=64 (then j==0 or 4)
          const vmesh::LocalID nblocks = gpu_columns[column].nblocks;
 
-         uint i_indices = index % WID;
-         uint j_indices = j + index/WID;
+         uint i_indices = w_tid % WID;
+         uint j_indices = j + w_tid/WID;
          //int jk = j / (VECL/WID);
 
          int target_cell_index_common =
@@ -499,15 +467,15 @@ __global__ void __launch_bounds__(VECL,4) acceleration_kernel(
             // as __shared__ had no impact on performance.
 #ifdef ACC_SEMILAG_PLM
             Realv a[2];
-            compute_plm_coeff(gpu_blockDataOrdered + gpu_columns[column].valuesOffset + i_pcolumnv_gpu(j, 0, -1, nblocks), (k + WID), a, minValue, index);
+            compute_plm_coeff(gpu_blockDataOrdered + gpu_columns[column].valuesOffset + i_pcolumnv_gpu(j, 0, -1, nblocks), (k + WID), a, minValue, w_tid);
 #endif
 #ifdef ACC_SEMILAG_PPM
             Realv a[3];
-            compute_ppm_coeff(gpu_blockDataOrdered + gpu_columns[column].valuesOffset + i_pcolumnv_gpu(j, 0, -1, nblocks), h4, (k + WID), a, minValue, index);
+            compute_ppm_coeff(gpu_blockDataOrdered + gpu_columns[column].valuesOffset + i_pcolumnv_gpu(j, 0, -1, nblocks), h4, (k + WID), a, minValue, w_tid);
 #endif
 #ifdef ACC_SEMILAG_PQM
             Realv a[5];
-            compute_pqm_coeff(gpu_blockDataOrdered + gpu_columns[column].valuesOffset + i_pcolumnv_gpu(j, 0, -1, nblocks), h8, (k + WID), a, minValue, index);
+            compute_pqm_coeff(gpu_blockDataOrdered + gpu_columns[column].valuesOffset + i_pcolumnv_gpu(j, 0, -1, nblocks), h8, (k + WID), a, minValue, w_tid);
 #endif
 
             // set the initial value for the integrand at the boundary at v = 0
@@ -521,7 +489,7 @@ __global__ void __launch_bounds__(VECL,4) acceleration_kernel(
 
             //limits in lagrangian k for target column. Also take into
             //account limits of target column
-            // Now all indexes in the warp should have the same gk loop extents
+            // Now all w_tids in the warp should have the same gk loop extents
             const int minGk = max(lagrangian_gk_l, int(gpu_columns[column].minBlockK * WID));
             const int maxGk = min(lagrangian_gk_r, int((gpu_columns[column].maxBlockK + 1) * WID - 1));
             // Run along the column and perform the polynomial reconstruction
@@ -556,9 +524,15 @@ __global__ void __launch_bounds__(VECL,4) acceleration_kernel(
 
                //store value
                Realf tval = target_density_r - target_density_l;
-               const size_t toffset = gpu_columns[column].targetBlockOffsets[blockK];
-               if (isfinite(tval) && tval>0 && toffset!=invalidLID ) {
-                  (&gpu_blockData[toffset])[tcell] += tval;
+
+               const int targetBlock =
+                  gpu_columns[column].i * gpu_block_indices_to_id[0] +
+                  gpu_columns[column].j * gpu_block_indices_to_id[1] +
+                  blockK                * gpu_block_indices_to_id[2];
+               //const vmesh::LocalID tblockLID = vmesh->getLocalID(targetBlock);
+               const vmesh::LocalID tblockLID = vmesh->warpGetLocalID(targetBlock, w_tid);
+               if (isfinite(tval) && (tval>0) && (tblockLID != invalidLID) ) {
+                  (&gpu_blockData[tblockLID*WID3])[tcell] += tval;
                }
             } // for loop over target k-indices of current source block
          } // for-loop over source blocks
@@ -887,7 +861,6 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    // Velocity space has now all extra blocks added and/or removed for the transform target
    // and will not change shape anymore.
 
-   // Put into second (high-priority) stream for concurrency?
    // Zero out target data on device (unified) (note, pointer needs to be re-fetched
    // here in case VBC size was increased)
    //phiprof::Timer memsetTimer {"Memset ACC blocks to zero"};
@@ -897,22 +870,14 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    //CHK_ERR( gpuStreamSynchronize(stream) );
    //memsetTimer.stop();
 
-   //phiprof::Timer identifyOffsetsTimer {"identify new block offsets kernel"};
-   identify_block_offsets_kernel<<<gpublocks, GPUTHREADS, 0, stream>>> (
-      dev_vmesh,
-      columns,
-      host_totalColumns,
-      gpu_block_indices_to_id[cpuThreadID]
-      );
-   CHK_ERR( gpuPeekAtLastError() );
-   //CHK_ERR( gpuStreamSynchronize(stream) );
-   //identifyOffsetsTimer.stop();
-
    phiprof::Timer semilagAccKernel {"Semi-Lagrangian acceleration kernel"};
-   acceleration_kernel<<<gpublocks, VECL, 0, stream>>> (
+   // GPUTODO: Adapt to work as VECL=WID3 instead of VECL=WID2
+   acceleration_kernel<<<host_totalColumns, VECL, 0, stream>>> (
+      dev_vmesh,
       dev_blockContainer,
       gpu_blockDataOrdered[cpuThreadID],
       gpu_cell_indices_to_id[cpuThreadID],
+      gpu_block_indices_to_id[cpuThreadID],
       columns,
       host_totalColumns,
       intersection,

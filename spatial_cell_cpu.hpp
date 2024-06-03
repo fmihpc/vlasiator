@@ -1,6 +1,6 @@
 /*
  * This file is part of Vlasiator.
- * Copyright 2010-2016 Finnish Meteorological Institute
+ * Copyright 2010-2024 Finnish Meteorological Institute and University of Helsinki
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
  * at http://www.physics.helsinki.fi/vlasiator/
@@ -19,6 +19,7 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+
 /*!
 Spatial cell class for Vlasiator that supports a variable number of velocity blocks.
 */
