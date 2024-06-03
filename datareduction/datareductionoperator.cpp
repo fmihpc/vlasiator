@@ -1675,14 +1675,14 @@ namespace DRO {
                   * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
 
                const Real normV = sqrt(VX*VX + VY*VY + VZ*VZ);
-               std::array<Real,3> BnormV;
+               Real BnormV[3];
                BnormV[0] = B0 * normV;
                BnormV[1] = B1 * normV;
                BnormV[2] = B2 * normV;
 
                // We will use a gate function based on criteria that Vi-0.5*DVi <= BnormV[i] <= Vi+0.5*DVi (for i=x,y,z or 0,1,2)
                bool xGateCrit, yGateCrit, zGateCrit;
-	       const Real _DVX= parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+	            const Real _DVX= parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
                const Real _DVY= parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
                const Real _DVZ= parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
                xGateCrit = (BnormV[0] - (VX - 0.5*_DVX)) * (BnormV[0] - (VX + 0.5*_DVX)) <= 0;
@@ -1693,9 +1693,9 @@ namespace DRO {
                const Real energy = 0.5 * mass * normV*normV; // in SI
 
                // Find the correct energy bin number to update
-               int binNumber = round((log(energy) - log(emin)) / log(emaxLocal/eminLocal) * (nChannels-1));
+               int binNumber = round((log(energy) - log(eminLocal)) / log(emaxLocal/eminLocal) * (nChannelsLocal-1));
                binNumber = max(binNumber,0); // anything < eminLocal goes to the lowest channel
-               binNumber = min(binNumber,nChannels-1); // anything > emaxLocal goes to the highest channel
+               binNumber = min(binNumber,nChannelsLocal-1); // anything > emaxLocal goes to the highest channel
 
                lsum[binNumber] += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * countAndGate * normV*normV * DV3;
                lsum[nChannelsLocal + binNumber] += countAndGate * DV3;
