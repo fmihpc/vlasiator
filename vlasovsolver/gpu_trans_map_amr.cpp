@@ -453,7 +453,7 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
 
    phiprof::Timer buildTimer2 {"trans-amr-buildBlockList-2"};
    // Now we ensure the union of blocks gathering is complete and extract the union of blocks into a vector
-   const uint nAllBlocks = unionOfBlocksSet->extractAllKeys(*unionOfBlocks,bgStream);
+   const uint nAllBlocks = unionOfBlocksSet->extractAllKeys<false>(*unionOfBlocks,bgStream);
    CHK_ERR( gpuStreamSynchronize(bgStream) );
    vmesh::GlobalID *allBlocks = unionOfBlocks->data();
    // This threshold value is used by slope limiters.
