@@ -131,7 +131,7 @@ jobs:
     - name: Clean workspace
       run: |
         rm -rf libraries library-build testpackage
-        rm -f libraries.tar.zst dtestpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+        rm -f libraries.tar.zst testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
         rm -f *.xml
     - name: Checkout source
       uses: actions/checkout@v4
@@ -241,7 +241,7 @@ jobs:
     - name: Clean workspace
       run: |
         rm -rf libraries library-build testpackage
-        rm -f libraries.tar.zstd dtestpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+        rm -f libraries.tar.zstd testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
         rm -f *.xml
     - name: Checkout source
       uses: actions/checkout@v4
@@ -292,16 +292,29 @@ jobs:
         #srun -M carrington -t 01:30:00 --job-name CI_testpackage --interactive --nodes=1 -c 4 -n 16 --mem-per-cpu=5G -p short ./small_test_carrington_github_ci.sh
         VLASIATOR_CIRUNNER_JOBSPEC_TP=$(sbatch --parsable -o testpackage_run_output.txt ./small_test_carrington_github_ci.sh)
         VLASIATOR_CIRUNNER_JOBSPEC_TP=(${VLASIATOR_CIRUNNER_JOBSPEC_TP//\;/ })
-        trap "scancel -M ${VLASIATOR_CIRUNNER_JOBSPEC_TP[1]} ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}" SIGINT
-        srun -M carrington --dependency afterany:${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]} echo "Job finished, checking output."
+        trap "scancel -M carrington ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}" SIGINT
+        trap "scancel -M carrington ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}" SIGTERM
+        RUN_STRING=$( cat << MORO
+        echo "Job finished, checking output."
         cat testpackage_run_output.txt
         cat $GITHUB_STEP_SUMMARY > $GITHUB_WORKSPACE/testpackage_check_description.txt
         cd $GITHUB_WORKSPACE
-        tar -czvf testpackage-output.tar.gz testpackage_check_description.txt testpackage_output_variables.txt
+        ls -halB testpackage_check_description.txt
+        tar -czf testpackage-output.tar.gz testpackage_check_description.txt testpackage_output_variables.txt
+        MORO
+        )
+        srun -M carrington --dependency afterany:${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]} bash -c "$RUN_STRING"
         if [ -f $GITHUB_WORKSPACE/testpackage_failed ]; then
           # Fail this step if any test failed.
           exit 1
         fi
+    - name: Make sure the output tarball is visible in lustre
+      uses: nick-fields/retry@v3
+      with:
+        timeout_seconds: 15
+        max_attempts: 3
+        retry_on: error
+        command: ls $GITHUB_WORKSPACE/testpackage-output.tar.gz
     - name: Upload testpackage output
       uses: actions/upload-artifact@v4
       if: always()
