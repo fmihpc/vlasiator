@@ -551,9 +551,11 @@ namespace spatial_cell {
       size_t size(const uint popID) const;
       vmesh::VelocityMesh* get_velocity_mesh(const size_t& popID);
       vmesh::VelocityBlockContainer* get_velocity_blocks(const size_t& popID);
+      const vmesh::VelocityBlockContainer* get_velocity_blocks(const size_t& popID) const;
       void dev_upload_population(const uint popID);
       vmesh::VelocityMesh* dev_get_velocity_mesh(const size_t& popID);
       vmesh::VelocityBlockContainer* dev_get_velocity_blocks(const size_t& popID);
+      const vmesh::VelocityBlockContainer* dev_get_velocity_blocks(const size_t& popID) const;
       // Prefetches for both blockContainers and vmeshes, all populations
       void prefetchDevice();
       void prefetchHost();
@@ -1046,7 +1048,27 @@ namespace spatial_cell {
       #endif
       return populations[popID].blockContainer;
    }
+   inline const vmesh::VelocityBlockContainer* SpatialCell::get_velocity_blocks(const size_t& popID) const {
+      #ifdef DEBUG_SPATIAL_CELL
+      if (popID >= populations.size()) {
+         std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
+         std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
+         exit(1);
+      }
+      #endif
+      return populations[popID].blockContainer;
+   }
    inline vmesh::VelocityBlockContainer* SpatialCell::dev_get_velocity_blocks(const size_t& popID) {
+      #ifdef DEBUG_SPATIAL_CELL
+      if (popID >= populations.size()) {
+         std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
+         std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
+         exit(1);
+      }
+      #endif
+      return populations[popID].dev_blockContainer;
+   }
+   inline const vmesh::VelocityBlockContainer* SpatialCell::dev_get_velocity_blocks(const size_t& popID) const {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";

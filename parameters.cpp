@@ -430,8 +430,7 @@ bool P::addParameters() {
                         "Available (20221221): " + "populations_vg_blocks " +
                         "vg_rhom populations_vg_rho_loss_adjust " + "vg_loadbalance_weight " +
                         "vg_maxdt_acceleration vg_maxdt_translation " + "fg_maxdt_fieldsolver " +
-                        "populations_vg_maxdt_acceleration populations_vg_maxdt_translation " +
-                        "populations_vg_maxdistributionfunction populations_vg_mindistributionfunction");
+                        "populations_vg_maxdt_acceleration populations_vg_maxdt_translation ");
 
    RP::addComposing("variables_deprecated.diagnostic",
                     string() +
@@ -442,7 +441,6 @@ bool P::addParameters() {
                         "maxvdt maxdt_acceleration " + "maxrdt maxdt_translation " +
                         "populations_maxvdt populations_maxrdt " +
                         "populations_maxdt_acceleration populations_maxdt_translation " +
-                        "populations_maxdistributionfunction populations_mindistributionfunction " +
                         "maxfieldsdt maxdt_fieldsolver fg_maxfieldsdt");
 
    // bailout parameters
