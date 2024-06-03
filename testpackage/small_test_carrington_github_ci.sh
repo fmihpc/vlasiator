@@ -81,7 +81,7 @@ fi
 
 # define tab interval sequence so that we have aligned output
 # this is now covering at least up proton/vg_ptensor_nonthermal_offdiagonal_0 and numbers printed at setprecision(3) with negative mantissa and exponent
-tabs 1 +45 +15 +15 +15 +15
+tabs 1,46,61,76,91,106 &> /dev/null # suppress special character output, list matches expand below (3 times)
 
 # Note we are *not* using run_tests.sh here, as we are creating JUnit XML output.
 
@@ -231,7 +231,7 @@ for run in ${run_tests[*]}; do
                relativeValue=$(grep "The relative 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                #print the results
-               echo -e "${variables[$i]}_${indices[$i]}\t${absoluteValue}\t${relativeValue}"
+               echo -e "${variables[$i]}_${indices[$i]}\t${absoluteValue}\t${relativeValue}" | expand -t 1,46,61,76,91,106 #list matches tabs above
 
                # Also log to metrics file
                echo "test_carrington{test=\"${test_name[$run]}\",var=\"${variables[$i]}\",index=\"${indices[$i]}\",diff=\"absolute\"} $absoluteValue" >> $GITHUB_WORKSPACE/metrics.txt
@@ -254,7 +254,7 @@ for run in ${run_tests[*]}; do
                relativeValue=$(grep "The relative 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                # print the results
-               echo -e "${variables[$i]}_${indices[$i]}\t${absoluteValue}\t${relativeValue}"
+               echo -e "${variables[$i]}_${indices[$i]}\t${absoluteValue}\t${relativeValue}" | expand -t 1,46,61,76,91,106 # list matches tabs above
 
                # Also log to metrics file
                echo "test_carrington{test=\"${test_name[$run]}\",var=\"${variables[$i]}\",index=\"${indices[$i]}\",diff=\"absolute\"} $absoluteValue" >> $GITHUB_WORKSPACE/metrics.txt
@@ -277,7 +277,7 @@ for run in ${run_tests[*]}; do
                relativeValue=$(grep "The relative 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                #print the results
-               echo -e "${variables[$i]}_${indices[$i]}\t${absoluteValue}\t${relativeValue}"
+               echo -e "${variables[$i]}_${indices[$i]}\t${absoluteValue}\t${relativeValue}" | expand -t 1,46,61,76,91,106 # list matches tabs above
 
                # Also log to metrics file
                echo "test_carrington{test=\"${test_name[$run]}\",var=\"${variables[$i]}\",index=\"${indices[$i]}\",diff=\"absolute\"} $absoluteValue" >> $GITHUB_WORKSPACE/metrics.txt
