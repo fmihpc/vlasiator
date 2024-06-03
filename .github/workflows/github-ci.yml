@@ -131,7 +131,7 @@ jobs:
     - name: Clean workspace
       run: |
         rm -rf libraries library-build testpackage
-        rm -f libraries.tar.zst dtestpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+        rm -f libraries.tar.zst testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
         rm -f *.xml
     - name: Checkout source
       uses: actions/checkout@v3
@@ -241,7 +241,7 @@ jobs:
     - name: Clean workspace
       run: |
         rm -rf libraries library-build testpackage
-        rm -f libraries.tar.zstd dtestpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+        rm -f libraries.tar.zstd testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
         rm -f *.xml
     - name: Checkout source
       uses: actions/checkout@v3
@@ -295,11 +295,12 @@ jobs:
         trap "scancel -M carrington ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}" SIGINT
         trap "scancel -M carrington ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}" SIGTERM
         RUN_STRING=$( cat << MORO
-        echo "Job finished, checking output." ;
-        cat testpackage_run_output.txt ;
-        cat $GITHUB_STEP_SUMMARY > $GITHUB_WORKSPACE/testpackage_check_description.txt ;
-        cd $GITHUB_WORKSPACE ;
-        tar -czf testpackage-output.tar.gz testpackage_check_description.txt testpackage_output_variables.txt ;
+        echo "Job finished, checking output."
+        cat testpackage_run_output.txt
+        cat $GITHUB_STEP_SUMMARY > $GITHUB_WORKSPACE/testpackage_check_description.txt
+        cd $GITHUB_WORKSPACE
+        ls -halB testpackage_check_description.txt
+        tar -czf testpackage-output.tar.gz testpackage_check_description.txt testpackage_output_variables.txt
         MORO
         )
         srun -M carrington --dependency afterany:${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]} bash -c "$RUN_STRING"
@@ -307,7 +308,7 @@ jobs:
           # Fail this step if any test failed.
           exit 1
         fi
-    - name: Make sure the output binary is visible in lustre
+    - name: Make sure the output tarball is visible in lustre
       uses: nick-fields/retry@v3
       with:
         timeout_seconds: 15
