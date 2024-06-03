@@ -186,8 +186,10 @@ for run in ${run_tests[*]}; do
    #print speedup if both refPerf and newPerf are numerical values
    speedup=$( echo $refPerf $newPerf |gawk '{if($2 == $2 + 0 && $1 == $1 + 0 ) print $1/$2; else print "NA"}')
    { {
-   echo  "$refPerf        $newPerf         $speedup"
+   tabs 2,13,24 &> /dev/null # match next line
+   echo  -e "$refPerf\t$newPerf\t$speedup" | expand -t 2,13,24 # match previous line
    echo "-------------------------------------------"
+   tabs $tabseq &> /dev/null # reset for other printouts
    echo -e " variable |\tabsolute diff |\trelative diff |" | expand -t $tabseq # list matches tabs above
    echo "-------------------------------------------"
    } 2>&1 1>&3 3>&- | tee -a $GITHUB_WORKSPACE/stderr.txt;} 3>&1 1>&2 | tee -a $GITHUB_WORKSPACE/stdout.txt
