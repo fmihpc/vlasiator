@@ -83,7 +83,7 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_block_content_lists_ke
          }
          __syncthreads();
       }
-      // Increment vector only from threads 0...WARPSIZE
+      // Insert into map only from threads 0...WARPSIZE
       if (b_tid < GPUTHREADS) {
          if (has_content[0]) {
             vbwcl_map->warpInsert(blockGID,blockLID,b_tid);
@@ -511,7 +511,6 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
       }
       // Remove hashmap entry for removed block, add instead created block
       vmesh->warpReplaceBlock(rmGID,rmLID,replaceGID,b_tid);
-
       #ifdef DEBUG_SPATIAL_CELL
       if (vmesh->getGlobalID(rmLID) != replaceGID) {
          if (b_tid==0) {
@@ -573,7 +572,6 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
 
       // Insert new hashmap entry into vmesh
       vmesh->warpPlaceBlock(addGID,addLID,b_tid);
-
       #ifdef DEBUG_SPATIAL_CELL
       if (vmesh->getGlobalID(addLID) == vmesh->invalidGlobalID()) {
          printf("Error! invalid GID after add from addLID!\n");

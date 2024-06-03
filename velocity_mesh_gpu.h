@@ -835,7 +835,7 @@ namespace vmesh {
 
       // at-function will throw out_of_range exception for non-existing global ID:
       if (b_tid < GPUTHREADS) {
-         globalToLocalMap->warpInsert(moveGID,targetLID,b_tid);
+         globalToLocalMap->warpInsert(moveGID,targetLID,b_tid); // will overwrite
          globalToLocalMap->warpErase(removeGID,b_tid);
       }
       if (b_tid==0) {
@@ -934,7 +934,8 @@ namespace vmesh {
       }
       __syncthreads();
       if (b_tid < GPUTHREADS) {
-         inserted = globalToLocalMap->warpInsert_V(globalID,(vmesh::LocalID)mySize, b_tid);
+         // If exists, do not overwrite
+         inserted = globalToLocalMap->warpInsert_V<true>(globalID,(vmesh::LocalID)mySize, b_tid);
          if (inserted == true && b_tid==0) {
             localToGlobalMap->device_push_back(globalID);
             ltg_size++;
@@ -986,7 +987,8 @@ namespace vmesh {
       __syncthreads();
       if (b_tid < GPUTHREADS) {
          for (vmesh::LocalID b=0; b<blocksSize; ++b) { // GPUTODO parallelize
-            inserted = inserted && globalToLocalMap->warpInsert_V(blocks[b],(vmesh::LocalID)(mySize+b), b_tid);
+            // Do not overwrite
+            inserted = inserted && globalToLocalMap->warpInsert_V<true>(blocks[b],(vmesh::LocalID)(mySize+b), b_tid);
             if (inserted == true && b_tid == 0) {
                nInserted = b;
             }
@@ -1055,6 +1057,7 @@ namespace vmesh {
             assert(0);
          }
          bool newlyadded = false;
+         // Do not overwrite
          newlyadded = globalToLocalMap->warpInsert_V(GIDnew,LID, b_tid);
          vmesh::LocalID postMapSize = globalToLocalMap->size();
          // int change = 0;
@@ -1117,15 +1120,15 @@ namespace vmesh {
       if (b_tid < GPUTHREADS) {
          bool newlyadded = false;
          newlyadded = globalToLocalMap->warpInsert_V(GID,LID, b_tid);
-         if (b_tid==0) {
-            if (!newlyadded) {
+         if (!newlyadded) {
+            if (b_tid==0) {
                globalToLocalMap->stats();
                printf("warpPlaceBlock error GID %u LID %u reported as not newly added! Size %zu.\n",GID,LID,localToGlobalMap->size());
                //globalToLocalMap->dump_buckets();
             }
             assert(newlyadded && "newlyAdded warpPlaceBlock");
-            localToGlobalMap->at(LID) = GID;
          }
+         localToGlobalMap->at(LID) = GID;
       }
       #ifdef DEBUG_VMESH
       __syncthreads();

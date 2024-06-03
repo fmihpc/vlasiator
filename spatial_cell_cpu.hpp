@@ -441,11 +441,6 @@ namespace spatial_cell {
       bool initialized;
       bool mpiTransferEnabled;
 
-      // Temporary mesh used in acceleration and propagation.
-      vmesh::VelocityMesh *vmeshTemp;            /**< Temporary velocity mesh that is used in Vlasov solver.
-                                                                                 * NOTE: Do not call the get-functions using this mesh as object
-                                                                                 * before you have set the correct meshID using setMesh function.*/
-      vmesh::VelocityBlockContainer *blockContainerTemp;
       std::vector<spatial_cell::Population> populations;                        /**< Particle population variables.*/
    };
 
@@ -872,10 +867,7 @@ namespace spatial_cell {
     */
    inline uint64_t SpatialCell::get_cell_memory_size() {
       uint64_t size = 0;
-      size += vmeshTemp->sizeInBytes();
-      size += blockContainerTemp->sizeInBytes();
       size += 2 * WID3 * sizeof(Realf);
-      //size += mpi_velocity_block_list.size() * sizeof(vmesh::GlobalID);
       size += velocity_block_with_content_list->size() * sizeof(vmesh::GlobalID);
       size += velocity_block_with_no_content_list->size() * sizeof(vmesh::GlobalID);
       size += CellParams::N_SPATIAL_CELL_PARAMS * sizeof(Real);
@@ -896,10 +888,7 @@ namespace spatial_cell {
    inline uint64_t SpatialCell::get_cell_memory_capacity() {
       uint64_t capacity = 0;
 
-      capacity += vmeshTemp->capacityInBytes();
-      capacity += blockContainerTemp->capacityInBytes();
       capacity += 2 * WID3 * sizeof(Realf);
-      //capacity += mpi_velocity_block_list.capacity()  * sizeof(vmesh::GlobalID);
       capacity += velocity_block_with_content_list->capacity()  * sizeof(vmesh::GlobalID);
       capacity += velocity_block_with_no_content_list->capacity()  * sizeof(vmesh::GlobalID);
       capacity += CellParams::N_SPATIAL_CELL_PARAMS * sizeof(Real);
