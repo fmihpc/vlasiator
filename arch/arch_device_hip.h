@@ -86,6 +86,7 @@ static hipError_t gpuFreeManaged(void* dev_ptr) {
 #else
 #define gpuMalloc hipMalloc
 #define gpuFree hipFree
+#define gpuFreeManaged hipFree
 #define gpuMallocAsync hipMallocAsync
 #define gpuFreeAsync hipFreeAsync
 #define gpuMallocHost hipMallocHost

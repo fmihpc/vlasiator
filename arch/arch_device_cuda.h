@@ -88,6 +88,7 @@ static cudaError_t gpuFreeManaged(void* dev_ptr) {
 #else
 #define gpuMalloc cudaMalloc
 #define gpuFree cudaFree
+#define gpuFreeManaged cudaFree
 #define gpuMallocAsync cudaMallocAsync
 #define gpuFreeAsync cudaFreeAsync
 #define gpuMallocHost cudaMallocHost
