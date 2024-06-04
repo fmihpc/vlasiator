@@ -137,19 +137,17 @@ namespace spatial_cell {
       vmesh::VelocityBlockContainer *blockContainer,
       const Real factor
       ) {
-      const int gpuBlocks = gridDim.x;
       const int blocki = blockIdx.x;
       const int i = threadIdx.x;
       const int j = threadIdx.y;
       const int k = threadIdx.z;
       const uint ti = k*WID2 + j*WID + i;
       // loop over whole velocity space and scale the values
-      for (uint blockLID=blocki; blockLID<nBlocks; blockLID += gpuBlocks) {
-         // Pointer to target block data
-         Realf* data = blockContainer->getData(blockLID);
-         // Scale value
-         data[ti] = data[ti] * factor;
-      }
+      const uint blockLID = blocki;
+      // Pointer to target block data
+      Realf* data = blockContainer->getData(blockLID);
+      // Scale value
+      data[ti] = data[ti] * factor;
    }
    /** GPU kernel for adding a particle population to another with a scaling factor
     This kernel increments existing blocks, creates new ones if the block does
@@ -379,11 +377,10 @@ namespace spatial_cell {
          }
          // Now loop over whole velocity space and scale the values
          vmesh::LocalID nBlocks = vmesh->size();
-         const uint nGpuBlocks = nBlocks > GPUBLOCKS ? GPUBLOCKS : nBlocks;
          gpuStream_t stream = gpu_getStream();
-         if (nGpuBlocks > 0) {
+         if (nBlocks > 0) {
             dim3 block(WID,WID,WID);
-            population_scale_kernel<<<nGpuBlocks, block, 0, stream>>> (
+            population_scale_kernel<<<nBlocks, block, 0, stream>>> (
                nBlocks,
                dev_vmesh,
                dev_blockContainer,
@@ -410,8 +407,7 @@ namespace spatial_cell {
          CHK_ERR( gpuStreamSynchronize(stream) );
          // Loop over the whole velocity space, and add scaled values with
          // a kernel. Addition of new blocks is not block-parallel-safe.
-         const uint nGpuBlocks = nBlocks > GPUBLOCKS ? GPUBLOCKS : nBlocks;
-         if (nGpuBlocks > 0) {
+         if (nBlocks > 0) {
             dim3 block(WID,WID,WID);
             // Now serial
             population_increment_kernel<<<1, block, 0, stream>>> (
@@ -439,13 +435,13 @@ namespace spatial_cell {
       const fileReal* gpuInitBuffer,
       const uint nBlocks
       ) {
-      const int gpuBlocks = gridDim.x;
       const int blocki = blockIdx.x;
       //const int warpSize = blockDim.x*blockDim.y*blockDim.z;
       const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
       Real* parameters = blockContainer->getParameters(startLID);
       Realf *cellBlockData = blockContainer->getData(startLID);
-      for (uint index=blocki; index<nBlocks; index += gpuBlocks) {
+      const uint index = blocki;
+      {
          // Copy in cell data, perform conversion float<->double if necessary
          cellBlockData[index*WID3 + ti] = (Realf)gpuInitBuffer[index*WID3 + ti];
          // Set block parameters
@@ -1229,13 +1225,12 @@ namespace spatial_cell {
       CHK_ERR( gpuMemcpyAsync(gpuInitBlocks, blocks.data(),
                               nBlocks*sizeof(vmesh::GlobalID), gpuMemcpyHostToDevice, stream) );
 
-      const uint nGpuBlocks = nBlocks > GPUBLOCKS ? GPUBLOCKS : nBlocks;
-      if (nGpuBlocks>0) {
+      if (nBlocks>0) {
          dim3 block(WID,WID,WID);
          // Third argument specifies the number of bytes in *shared memory* that is
          // dynamically allocated per block for this call in addition to the statically allocated memory.
          CHK_ERR( gpuStreamSynchronize(stream) );
-         spatial_cell::add_blocks_from_buffer_kernel<<<nGpuBlocks, block, 0, stream>>> (
+         spatial_cell::add_blocks_from_buffer_kernel<<<nBlocks, block, 0, stream>>> (
             populations[popID].dev_vmesh,
             populations[popID].dev_blockContainer,
             startLID,

@@ -70,7 +70,6 @@ __global__ void __launch_bounds__(VECL,4) reorder_blocks_by_dimension_kernel(
    vmesh::VelocityBlockContainer *blockContainer,
    Vec *gpu_blockDataOrdered,
    uint *gpu_cell_indices_to_id,
-   uint totalColumns,
    vmesh::LocalID *gpu_LIDlist,
    ColumnOffsets* columnData
 ) {
@@ -79,14 +78,13 @@ __global__ void __launch_bounds__(VECL,4) reorder_blocks_by_dimension_kernel(
    // Works column-per-column and adds the necessary one empty block at each end
    const int nThreads = blockDim.x; // should be equal to VECL
    const int ti = threadIdx.x;
-   const int blocki = blockIdx.x;
-   const int gpuBlocks = gridDim.x;
+   const uint iColumn = blockIdx.x;
    Realf *gpu_blockData = blockContainer->getData();
    if (nThreads != VECL) {
       if (ti==0) printf("Warning! VECL not matching thread count for GPU kernel!\n");
    }
-   // Loop over columns in steps of gpuBlocks. Each gpuBlock deals with one column.
-   for (uint iColumn = blocki; iColumn < totalColumns; iColumn += gpuBlocks) {
+   // Each gpuBlock deals with one column.
+   {
       uint inputOffset = columnData->columnBlockOffsets[iColumn];
       uint outputOffset = (inputOffset + 2 * iColumn) * (WID3/VECL);
       uint columnLength = columnData->columnNumBlocks[iColumn];
@@ -125,7 +123,7 @@ __global__ void __launch_bounds__(VECL,4) reorder_blocks_by_dimension_kernel(
                gpu_blockDataOrdered[outputOffset + i_pcolumnv_gpu_b(jk, k, columnLength, columnLength)][ti] = 0.0;
          }
       }
-   } // end loop iColumn
+   } // end iColumn
    // Note: this kernel does not memset gpu_blockData to zero.
    // A separate memsetasync call is required for that.
 }
@@ -207,7 +205,6 @@ __global__ void __launch_bounds__(GPUTHREADS,4) evaluate_column_extents_kernel(
    Realv dv,
    uint *bailout_flag
    ) {
-   const uint gpuBlocks = gridDim.x * gridDim.y * gridDim.z;
    const uint warpSize = blockDim.x * blockDim.y * blockDim.z;
    const uint blocki = blockIdx.z*gridDim.x*gridDim.y + blockIdx.y*gridDim.x + blockIdx.x;
    const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
@@ -215,189 +212,188 @@ __global__ void __launch_bounds__(GPUTHREADS,4) evaluate_column_extents_kernel(
    // Shared within all threads in one block
    __shared__ int isTargetBlock[MAX_BLOCKS_PER_DIM];
    __shared__ int isSourceBlock[MAX_BLOCKS_PER_DIM];
-   for( uint setIndex=blocki; setIndex < gpu_columnData->setColumnOffsets.size(); setIndex += gpuBlocks) {
-      if (setIndex < gpu_columnData->setColumnOffsets.size()) {
+   const uint setIndex=blocki;
+   if (setIndex < gpu_columnData->setColumnOffsets.size()) {
 
-         // Clear flags used for this columnSet
-         for(uint tti = 0; tti < MAX_BLOCKS_PER_DIM; tti += warpSize ) {
-            const uint index = tti + ti;
-            if (index < MAX_BLOCKS_PER_DIM) {
-               isTargetBlock[index] = 0;
-               isSourceBlock[index] = 0;
+      // Clear flags used for this columnSet
+      for(uint tti = 0; tti < MAX_BLOCKS_PER_DIM; tti += warpSize ) {
+         const uint index = tti + ti;
+         if (index < MAX_BLOCKS_PER_DIM) {
+            isTargetBlock[index] = 0;
+            isSourceBlock[index] = 0;
+         }
+      }
+      __syncthreads();
+
+      /*need x,y coordinate of this column set of blocks, take it from first
+        block in first column*/
+      vmesh::LocalID setFirstBlockIndices0,setFirstBlockIndices1,setFirstBlockIndices2;
+      vmesh->getIndices(GIDlist[gpu_columnData->columnBlockOffsets[gpu_columnData->setColumnOffsets[setIndex]]],
+                        setFirstBlockIndices0, setFirstBlockIndices1, setFirstBlockIndices2);
+      swapBlockIndices(setFirstBlockIndices0,setFirstBlockIndices1,setFirstBlockIndices2,dimension);
+      /*compute the maximum starting point of the lagrangian (target) grid
+        (base level) within the 4 corner cells in this
+        block. Needed for computig maximum extent of target column*/
+
+      Realv max_intersectionMin = intersection +
+         (setFirstBlockIndices0 * WID + 0) * intersection_di +
+         (setFirstBlockIndices1 * WID + 0) * intersection_dj;
+      max_intersectionMin =  std::max(max_intersectionMin,
+                                      intersection +
+                                      (setFirstBlockIndices0 * WID + 0) * intersection_di +
+                                      (setFirstBlockIndices1 * WID + WID - 1) * intersection_dj);
+      max_intersectionMin =  std::max(max_intersectionMin,
+                                      intersection +
+                                      (setFirstBlockIndices0 * WID + WID - 1) * intersection_di +
+                                      (setFirstBlockIndices1 * WID + 0) * intersection_dj);
+      max_intersectionMin =  std::max(max_intersectionMin,
+                                      intersection +
+                                      (setFirstBlockIndices0 * WID + WID - 1) * intersection_di +
+                                      (setFirstBlockIndices1 * WID + WID - 1) * intersection_dj);
+
+      Realv min_intersectionMin = intersection +
+         (setFirstBlockIndices0 * WID + 0) * intersection_di +
+         (setFirstBlockIndices1 * WID + 0) * intersection_dj;
+      min_intersectionMin =  std::min(min_intersectionMin,
+                                      intersection +
+                                      (setFirstBlockIndices0 * WID + 0) * intersection_di +
+                                      (setFirstBlockIndices1 * WID + WID - 1) * intersection_dj);
+      min_intersectionMin =  std::min(min_intersectionMin,
+                                      intersection +
+                                      (setFirstBlockIndices0 * WID + WID - 1) * intersection_di +
+                                      (setFirstBlockIndices1 * WID + 0) * intersection_dj);
+      min_intersectionMin =  std::min(min_intersectionMin,
+                                      intersection +
+                                      (setFirstBlockIndices0 * WID + WID - 1) * intersection_di +
+                                      (setFirstBlockIndices1 * WID + WID - 1) * intersection_dj);
+
+      //now, record which blocks are target blocks
+      for (uint columnIndex = gpu_columnData->setColumnOffsets[setIndex];
+           columnIndex < gpu_columnData->setColumnOffsets[setIndex] + gpu_columnData->setNumColumns[setIndex] ;
+           ++columnIndex) {
+         // Not parallelizing this at this level; not going to be many columns within a set
+
+         // Abort all threads if vector capacity bailout
+         if (bailout_flag[1] ) {
+            return;
+         }
+
+         const vmesh::LocalID n_cblocks = gpu_columnData->columnNumBlocks[columnIndex];
+         vmesh::GlobalID* cblocks = GIDlist + gpu_columnData->columnBlockOffsets[columnIndex]; //column blocks
+         vmesh::LocalID firstBlockIndices0,firstBlockIndices1,firstBlockIndices2;
+         vmesh::LocalID lastBlockIndices0,lastBlockIndices1,lastBlockIndices2;
+         vmesh->getIndices(cblocks[0],
+                           firstBlockIndices0, firstBlockIndices1, firstBlockIndices2);
+         vmesh->getIndices(cblocks[n_cblocks -1],
+                           lastBlockIndices0, lastBlockIndices1, lastBlockIndices2);
+         swapBlockIndices(firstBlockIndices0,firstBlockIndices1,firstBlockIndices2, dimension);
+         swapBlockIndices(lastBlockIndices0,lastBlockIndices1,lastBlockIndices2, dimension);
+
+         /* firstBlockV is in z the minimum velocity value of the lower
+          *  edge in source grid.
+          * lastBlockV is in z the maximum velocity value of the upper
+          *  edge in source grid. */
+         Realv firstBlockMinV = (WID * firstBlockIndices2) * dv + v_min;
+         Realv lastBlockMaxV = (WID * (lastBlockIndices2 + 1)) * dv + v_min;
+
+         /* gk is now the k value in terms of cells in target
+            grid. This distance between max_intersectionMin (so lagrangian
+            plan, well max value here) and V of source grid, divided by
+            intersection_dk to find out how many grid cells that is*/
+         const int firstBlock_gk = (int)((firstBlockMinV - max_intersectionMin)/intersection_dk);
+         const int lastBlock_gk = (int)((lastBlockMaxV - min_intersectionMin)/intersection_dk);
+
+         int firstBlockIndexK = firstBlock_gk/WID;
+         int lastBlockIndexK = lastBlock_gk/WID;
+
+         // now enforce mesh limits for target column blocks (and check if we are
+         // too close to the velocity space boundaries)
+         firstBlockIndexK = (firstBlockIndexK >= 0)            ? firstBlockIndexK : 0;
+         firstBlockIndexK = (firstBlockIndexK < max_v_length ) ? firstBlockIndexK : max_v_length - 1;
+         lastBlockIndexK  = (lastBlockIndexK  >= 0)            ? lastBlockIndexK  : 0;
+         lastBlockIndexK  = (lastBlockIndexK  < max_v_length ) ? lastBlockIndexK  : max_v_length - 1;
+         if(firstBlockIndexK < bailout_velocity_space_wall_margin
+            || firstBlockIndexK >= max_v_length - bailout_velocity_space_wall_margin
+            || lastBlockIndexK < bailout_velocity_space_wall_margin
+            || lastBlockIndexK >= max_v_length - bailout_velocity_space_wall_margin
+            ) {
+            // Pass bailout (hitting the wall) flag back to host
+            if (ti==0) {
+               bailout_flag[0] = 1;
+            }
+         }
+
+         //store source blocks
+         for (uint blockK = firstBlockIndices2; blockK <= lastBlockIndices2; blockK +=warpSize){
+            if ((blockK+ti) <= lastBlockIndices2) {
+               //const int old  = atomicAdd(&isSourceBlock[blockK+ti],1);
+               isSourceBlock[blockK+ti] = 1; // Does not need to be atomic, as long as it's no longer zero
             }
          }
          __syncthreads();
 
-         /*need x,y coordinate of this column set of blocks, take it from first
-           block in first column*/
-         vmesh::LocalID setFirstBlockIndices0,setFirstBlockIndices1,setFirstBlockIndices2;
-         vmesh->getIndices(GIDlist[gpu_columnData->columnBlockOffsets[gpu_columnData->setColumnOffsets[setIndex]]],
-                           setFirstBlockIndices0, setFirstBlockIndices1, setFirstBlockIndices2);
-         swapBlockIndices(setFirstBlockIndices0,setFirstBlockIndices1,setFirstBlockIndices2,dimension);
-         /*compute the maximum starting point of the lagrangian (target) grid
-           (base level) within the 4 corner cells in this
-           block. Needed for computig maximum extent of target column*/
-
-         Realv max_intersectionMin = intersection +
-            (setFirstBlockIndices0 * WID + 0) * intersection_di +
-            (setFirstBlockIndices1 * WID + 0) * intersection_dj;
-         max_intersectionMin =  std::max(max_intersectionMin,
-                                         intersection +
-                                         (setFirstBlockIndices0 * WID + 0) * intersection_di +
-                                         (setFirstBlockIndices1 * WID + WID - 1) * intersection_dj);
-         max_intersectionMin =  std::max(max_intersectionMin,
-                                         intersection +
-                                         (setFirstBlockIndices0 * WID + WID - 1) * intersection_di +
-                                         (setFirstBlockIndices1 * WID + 0) * intersection_dj);
-         max_intersectionMin =  std::max(max_intersectionMin,
-                                         intersection +
-                                         (setFirstBlockIndices0 * WID + WID - 1) * intersection_di +
-                                         (setFirstBlockIndices1 * WID + WID - 1) * intersection_dj);
-
-         Realv min_intersectionMin = intersection +
-            (setFirstBlockIndices0 * WID + 0) * intersection_di +
-            (setFirstBlockIndices1 * WID + 0) * intersection_dj;
-         min_intersectionMin =  std::min(min_intersectionMin,
-                                         intersection +
-                                         (setFirstBlockIndices0 * WID + 0) * intersection_di +
-                                         (setFirstBlockIndices1 * WID + WID - 1) * intersection_dj);
-         min_intersectionMin =  std::min(min_intersectionMin,
-                                         intersection +
-                                         (setFirstBlockIndices0 * WID + WID - 1) * intersection_di +
-                                         (setFirstBlockIndices1 * WID + 0) * intersection_dj);
-         min_intersectionMin =  std::min(min_intersectionMin,
-                                         intersection +
-                                         (setFirstBlockIndices0 * WID + WID - 1) * intersection_di +
-                                         (setFirstBlockIndices1 * WID + WID - 1) * intersection_dj);
-
-         //now, record which blocks are target blocks
-         for (uint columnIndex = gpu_columnData->setColumnOffsets[setIndex];
-              columnIndex < gpu_columnData->setColumnOffsets[setIndex] + gpu_columnData->setNumColumns[setIndex] ;
-              ++columnIndex) {
-            // Not parallelizing this at this level; not going to be many columns within a set
-
-            // Abort all threads if vector capacity bailout
-            if (bailout_flag[1] ) {
-               return;
+         //store target blocks
+         for (uint blockK = (uint)firstBlockIndexK; blockK <= (uint)lastBlockIndexK; blockK+=warpSize){
+            if ((blockK+ti) <= (uint)lastBlockIndexK) {
+               isTargetBlock[blockK+ti] = 1; // Does not need to be atomic, as long as it's no longer zero
+               //const int old  = atomicAdd(&isTargetBlock[blockK+ti],1);
             }
-
-            const vmesh::LocalID n_cblocks = gpu_columnData->columnNumBlocks[columnIndex];
-            vmesh::GlobalID* cblocks = GIDlist + gpu_columnData->columnBlockOffsets[columnIndex]; //column blocks
-            vmesh::LocalID firstBlockIndices0,firstBlockIndices1,firstBlockIndices2;
-            vmesh::LocalID lastBlockIndices0,lastBlockIndices1,lastBlockIndices2;
-            vmesh->getIndices(cblocks[0],
-                              firstBlockIndices0, firstBlockIndices1, firstBlockIndices2);
-            vmesh->getIndices(cblocks[n_cblocks -1],
-                              lastBlockIndices0, lastBlockIndices1, lastBlockIndices2);
-            swapBlockIndices(firstBlockIndices0,firstBlockIndices1,firstBlockIndices2, dimension);
-            swapBlockIndices(lastBlockIndices0,lastBlockIndices1,lastBlockIndices2, dimension);
-
-            /* firstBlockV is in z the minimum velocity value of the lower
-             *  edge in source grid.
-             * lastBlockV is in z the maximum velocity value of the upper
-             *  edge in source grid. */
-            Realv firstBlockMinV = (WID * firstBlockIndices2) * dv + v_min;
-            Realv lastBlockMaxV = (WID * (lastBlockIndices2 + 1)) * dv + v_min;
-
-            /* gk is now the k value in terms of cells in target
-               grid. This distance between max_intersectionMin (so lagrangian
-               plan, well max value here) and V of source grid, divided by
-               intersection_dk to find out how many grid cells that is*/
-            const int firstBlock_gk = (int)((firstBlockMinV - max_intersectionMin)/intersection_dk);
-            const int lastBlock_gk = (int)((lastBlockMaxV - min_intersectionMin)/intersection_dk);
-
-            int firstBlockIndexK = firstBlock_gk/WID;
-            int lastBlockIndexK = lastBlock_gk/WID;
-
-            // now enforce mesh limits for target column blocks (and check if we are
-            // too close to the velocity space boundaries)
-            firstBlockIndexK = (firstBlockIndexK >= 0)            ? firstBlockIndexK : 0;
-            firstBlockIndexK = (firstBlockIndexK < max_v_length ) ? firstBlockIndexK : max_v_length - 1;
-            lastBlockIndexK  = (lastBlockIndexK  >= 0)            ? lastBlockIndexK  : 0;
-            lastBlockIndexK  = (lastBlockIndexK  < max_v_length ) ? lastBlockIndexK  : max_v_length - 1;
-            if(firstBlockIndexK < bailout_velocity_space_wall_margin
-               || firstBlockIndexK >= max_v_length - bailout_velocity_space_wall_margin
-               || lastBlockIndexK < bailout_velocity_space_wall_margin
-               || lastBlockIndexK >= max_v_length - bailout_velocity_space_wall_margin
-               ) {
-               // Pass bailout (hitting the wall) flag back to host
-               if (ti==0) {
-                  bailout_flag[0] = 1;
-               }
-            }
-
-            //store source blocks
-            for (uint blockK = firstBlockIndices2; blockK <= lastBlockIndices2; blockK +=warpSize){
-               if ((blockK+ti) <= lastBlockIndices2) {
-                  //const int old  = atomicAdd(&isSourceBlock[blockK+ti],1);
-                  isSourceBlock[blockK+ti] = 1; // Does not need to be atomic, as long as it's no longer zero
-               }
-            }
-            __syncthreads();
-
-            //store target blocks
-            for (uint blockK = (uint)firstBlockIndexK; blockK <= (uint)lastBlockIndexK; blockK+=warpSize){
-               if ((blockK+ti) <= (uint)lastBlockIndexK) {
-                  isTargetBlock[blockK+ti] = 1; // Does not need to be atomic, as long as it's no longer zero
-                  //const int old  = atomicAdd(&isTargetBlock[blockK+ti],1);
-               }
-            }
-            __syncthreads();
-
-            if (ti==0) {
-               // Set columns' transverse coordinates
-               gpu_columns[columnIndex].i = setFirstBlockIndices0;
-               gpu_columns[columnIndex].j = setFirstBlockIndices1;
-               gpu_columns[columnIndex].kBegin = firstBlockIndices2;
-
-               //store also for each column firstBlockIndexK, and lastBlockIndexK
-               gpu_columns[columnIndex].minBlockK = firstBlockIndexK;
-               gpu_columns[columnIndex].maxBlockK = lastBlockIndexK;
-            }
-         } // end loop over columns in set
+         }
          __syncthreads();
 
-         for (uint blockT = 0; blockT < MAX_BLOCKS_PER_DIM; blockT +=warpSize) {
-            const uint blockK = blockT + ti;
-            if (blockK < MAX_BLOCKS_PER_DIM) {
-               if(isTargetBlock[blockK]!=0)  {
-                  const int targetBlock =
-                     setFirstBlockIndices0 * gpu_block_indices_to_id[0] +
-                     setFirstBlockIndices1 * gpu_block_indices_to_id[1] +
-                     blockK                * gpu_block_indices_to_id[2];
-                  dev_map_require->set_element(targetBlock,vmesh->getLocalID(targetBlock));
-                  // if(!BlocksRequired->device_push_back(targetBlock)) {
-                  //    bailout_flag[1]=1;
-                  //    return;
-                  // }
-               }
-               if(isTargetBlock[blockK]!=0 && isSourceBlock[blockK]==0 )  {
-                  const int targetBlock =
-                     setFirstBlockIndices0 * gpu_block_indices_to_id[0] +
-                     setFirstBlockIndices1 * gpu_block_indices_to_id[1] +
-                     blockK                * gpu_block_indices_to_id[2];
-                  if(!list_with_replace_new->device_push_back(targetBlock)) {
-                     bailout_flag[1]=1; // out of capacity
-                  }
+         if (ti==0) {
+            // Set columns' transverse coordinates
+            gpu_columns[columnIndex].i = setFirstBlockIndices0;
+            gpu_columns[columnIndex].j = setFirstBlockIndices1;
+            gpu_columns[columnIndex].kBegin = firstBlockIndices2;
 
+            //store also for each column firstBlockIndexK, and lastBlockIndexK
+            gpu_columns[columnIndex].minBlockK = firstBlockIndexK;
+            gpu_columns[columnIndex].maxBlockK = lastBlockIndexK;
+         }
+      } // end loop over columns in set
+      __syncthreads();
+
+      for (uint blockT = 0; blockT < MAX_BLOCKS_PER_DIM; blockT +=warpSize) {
+         const uint blockK = blockT + ti;
+         if (blockK < MAX_BLOCKS_PER_DIM) {
+            if(isTargetBlock[blockK]!=0)  {
+               const int targetBlock =
+                  setFirstBlockIndices0 * gpu_block_indices_to_id[0] +
+                  setFirstBlockIndices1 * gpu_block_indices_to_id[1] +
+                  blockK                * gpu_block_indices_to_id[2];
+               dev_map_require->set_element(targetBlock,vmesh->getLocalID(targetBlock));
+               // if(!BlocksRequired->device_push_back(targetBlock)) {
+               //    bailout_flag[1]=1;
+               //    return;
+               // }
+            }
+            if(isTargetBlock[blockK]!=0 && isSourceBlock[blockK]==0 )  {
+               const int targetBlock =
+                  setFirstBlockIndices0 * gpu_block_indices_to_id[0] +
+                  setFirstBlockIndices1 * gpu_block_indices_to_id[1] +
+                  blockK                * gpu_block_indices_to_id[2];
+               if(!list_with_replace_new->device_push_back(targetBlock)) {
+                  bailout_flag[1]=1; // out of capacity
                }
-               if(isTargetBlock[blockK]==0 && isSourceBlock[blockK]!=0 )  {
-                  const int targetBlock =
-                     setFirstBlockIndices0 * gpu_block_indices_to_id[0] +
-                     setFirstBlockIndices1 * gpu_block_indices_to_id[1] +
-                     blockK                * gpu_block_indices_to_id[2];
-                  dev_map_remove->set_element(targetBlock,vmesh->getLocalID(targetBlock));
-                  // GPUTODO: could use device_insert to verify insertion, but not worth it
-                  // if(!list_to_replace->device_push_back(
-                  //       Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>(targetBlock,vmesh->getLocalID(targetBlock)))) {
-                  //    bailout_flag[2]=1; // out of capacity
-                  //    return;
-                  // }
-               }
-            } // block within MAX_BLOCKS_PER_DIM
-         } // loop over all potential blocks
-      } // if valid setIndez
-   } // for setIndexB
+
+            }
+            if(isTargetBlock[blockK]==0 && isSourceBlock[blockK]!=0 )  {
+               const int targetBlock =
+                  setFirstBlockIndices0 * gpu_block_indices_to_id[0] +
+                  setFirstBlockIndices1 * gpu_block_indices_to_id[1] +
+                  blockK                * gpu_block_indices_to_id[2];
+               dev_map_remove->set_element(targetBlock,vmesh->getLocalID(targetBlock));
+               // GPUTODO: could use device_insert to verify insertion, but not worth it
+               // if(!list_to_replace->device_push_back(
+               //       Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>(targetBlock,vmesh->getLocalID(targetBlock)))) {
+               //    bailout_flag[2]=1; // out of capacity
+               //    return;
+               // }
+            }
+         } // block within MAX_BLOCKS_PER_DIM
+      } // loop over all potential blocks
+   } // if valid setIndex
 }
 
 __global__ void __launch_bounds__(VECL,4) acceleration_kernel(
@@ -424,7 +420,6 @@ __global__ void __launch_bounds__(VECL,4) acceleration_kernel(
    const uint w_tid = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
 
    Realf *gpu_blockData = blockContainer->getData();
-   //for (uint column = blocki; column < totalColumns; column += gpuBlocks) {
    const uint column = blocki;
    {
       /* New threading with each warp/wavefront working on one vector */
@@ -538,7 +533,7 @@ __global__ void __launch_bounds__(VECL,4) acceleration_kernel(
             } // for loop over target k-indices of current source block
          } // for-loop over source blocks
       } //for loop over j index
-   } // End loop over columns
+   } // End this column
 } // end semilag acc kernel
 
 /*
@@ -753,13 +748,11 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    //storeTimer.stop();
 
    //phiprof::Timer reorderTimer {"Reorder blocks by dimension"};
-   uint gpublocks = host_totalColumns > GPUBLOCKS ? GPUBLOCKS : host_totalColumns;
    // Launch kernels for transposing and ordering velocity space data into columns
-   reorder_blocks_by_dimension_kernel<<<gpublocks, VECL, 0, stream>>> (
+   reorder_blocks_by_dimension_kernel<<<host_totalColumns, VECL, 0, stream>>> (
       dev_blockContainer,
       gpu_blockDataOrdered[cpuThreadID],
       gpu_cell_indices_to_id[cpuThreadID],
-      host_totalColumns,
       LIDlist,
       columnData
       );
@@ -775,7 +768,7 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       map_remove->clear<false>(Hashinator::targets::device,stream,std::pow(2,spatial_cell->vbwncl_sizePower));
       // Hashmap clear includes a stream sync
       //CHK_ERR( gpuStreamSynchronize(stream) );
-      evaluate_column_extents_kernel<<<gpublocks, GPUTHREADS, 0, stream>>> (
+      evaluate_column_extents_kernel<<<host_totalColumns, GPUTHREADS, 0, stream>>> (
          dimension,
          dev_vmesh,
          columnData,

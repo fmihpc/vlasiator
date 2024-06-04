@@ -97,11 +97,6 @@
 #define ARCH_BLOCKSIZE_R 512
 #define ARCH_BLOCKSIZE_R_SMALL 64
 
-/* GPU blocksize used by Vlasov solvers */
-#ifndef GPUBLOCKS
-#  define GPUBLOCKS (108)
-#endif
-
 /* values used by kernels */
 #ifndef GPUTHREADS
 #define GPUTHREADS (64)
