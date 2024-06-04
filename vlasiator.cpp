@@ -1275,6 +1275,8 @@ int main(int argn,char* args[]) {
                mpiGrid[cells[i]]->parameters[CellParams::FORCING_CELL_NUM] = 0;
             }
          }
+         SpatialCell::set_mpi_transfer_type(Transfer::FORCING_CELL_NUM);
+         mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
       }
       
       phiprof::Timer vspaceTimer {"Velocity-space"};

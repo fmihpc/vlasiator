@@ -746,6 +746,12 @@ namespace spatial_cell {
             block_lengths.push_back(sizeof(Real) * (CellParams::AMR_ALPHA2 - CellParams::AMR_ALPHA1 + 1)); // This is just 2, but let's be explicit
          }
 
+         // forcing number
+         if ((SpatialCell::mpi_transfer_type & Transfer::FORCING_CELL_NUM)){
+            displacements.push_back(reinterpret_cast<uint8_t*>(this->parameters.data() + CellParams::FORCING_CELL_NUM) - reinterpret_cast<uint8_t*>(this));
+            block_lengths.push_back(sizeof(Real));
+         }
+
          // Copy random number generator state variables
          //if ((SpatialCell::mpi_transfer_type & Transfer::RANDOMGEN) != 0) {
          //   displacements.push_back((uint8_t*)get_rng_state_buffer() - (uint8_t*)this);

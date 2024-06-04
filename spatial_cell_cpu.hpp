@@ -118,6 +118,7 @@ namespace spatial_cell {
       const uint64_t RANDOMGEN                = (1ull<<27);
       const uint64_t CELL_GRADPE_TERM         = (1ull<<28);
       const uint64_t REFINEMENT_PARAMETERS    = (1ull<<29);
+      const uint64_t FORCING_CELL_NUM         = (1ull<<30);
       //all data
       const uint64_t ALL_DATA =
       CELL_PARAMETERS
