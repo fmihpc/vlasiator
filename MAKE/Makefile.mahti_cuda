@@ -94,8 +94,8 @@ LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv -Xlinker=-rpath=$(LIBRARY_PREFIX)/vls
 INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
 LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -Xlinker=-rpath=$(LIBRARY_PREFIX)/phiprof/lib
 
-INC_UMPIRE = -isystem $(LIBRARY_PREFIX2)/umpire/include
-LIB_UMPIRE = -L$(LIBRARY_PREFIX2)/umpire/lib -L$(LIBRARY_PREFIX)/umpire/lib64 -lcamp -lumpire -lfmt
+INC_UMPIRE = -isystem $(LIBRARY_PREFIX)/umpire/include
+LIB_UMPIRE = -L$(LIBRARY_PREFIX)/umpire/lib -L$(LIBRARY_PREFIX)/umpire/lib64 -lcamp -lumpire -lfmt
 
 #======== Header-only Libraries ===========
 
