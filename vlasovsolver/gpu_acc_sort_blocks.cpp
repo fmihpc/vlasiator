@@ -56,16 +56,13 @@ __global__ void __launch_bounds__(GPUTHREADS,4) blocksID_mapped_dim0_kernel(
    vmesh::LocalID *blocksLID_unsorted,
    const uint nBlocks
    ) {
-   const int gpuBlocks = gridDim.x * gridDim.y * gridDim.z;
    const uint warpSize = blockDim.x * blockDim.y * blockDim.z;
    const int blocki = blockIdx.z*gridDim.x*gridDim.y + blockIdx.y*gridDim.x + blockIdx.x;
    const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
-   for (vmesh::LocalID index=blocki*warpSize; index<nBlocks; index += gpuBlocks*warpSize) {
-      const vmesh::LocalID LID = (index+ti);
-      if (LID < nBlocks) {
-         blocksID_mapped[LID] = vmesh->getGlobalID(LID);
-         blocksLID_unsorted[LID]=LID;
-      }
+   const vmesh::LocalID LID = blocki * warpSize + ti;
+   if (LID < nBlocks) {
+      blocksID_mapped[LID] = vmesh->getGlobalID(LID);
+      blocksLID_unsorted[LID]=LID;
    }
 }
 
@@ -75,22 +72,19 @@ __global__ void __launch_bounds__(GPUTHREADS,4) blocksID_mapped_dim1_kernel(
    vmesh::LocalID *blocksLID_unsorted,
    const uint nBlocks
    ) {
-   const int gpuBlocks = gridDim.x * gridDim.y * gridDim.z;
    const uint warpSize = blockDim.x * blockDim.y * blockDim.z;
    const int blocki = blockIdx.z*gridDim.x*gridDim.y + blockIdx.y*gridDim.x + blockIdx.x;
    const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
    const vmesh::LocalID D0 = vmesh->getGridLength()[0];
    const vmesh::LocalID D1 = vmesh->getGridLength()[1];
    // const vmesh::LocalID D2 = vmesh->getGridLength()[2];
-   for (vmesh::LocalID index=blocki*warpSize; index<nBlocks; index += gpuBlocks*warpSize) {
-      const vmesh::LocalID LID = (index+ti);
-      if (LID < nBlocks) {
-         const vmesh::GlobalID GID = vmesh->getGlobalID(LID);
-         const vmesh::LocalID x_index = GID % D0;
-         const vmesh::LocalID y_index = (GID / D0) % D1;
-         blocksID_mapped[LID] = GID - (x_index + y_index*D0) + y_index + x_index * D1;
-         blocksLID_unsorted[LID]=LID;
-      }
+   const vmesh::LocalID LID = blocki * warpSize + ti;
+   if (LID < nBlocks) {
+      const vmesh::GlobalID GID = vmesh->getGlobalID(LID);
+      const vmesh::LocalID x_index = GID % D0;
+      const vmesh::LocalID y_index = (GID / D0) % D1;
+      blocksID_mapped[LID] = GID - (x_index + y_index*D0) + y_index + x_index * D1;
+      blocksLID_unsorted[LID]=LID;
    }
 }
 
@@ -100,65 +94,40 @@ __global__ void __launch_bounds__(GPUTHREADS,4) blocksID_mapped_dim2_kernel(
    vmesh::LocalID *blocksLID_unsorted,
    const uint nBlocks
    ) {
-   const int gpuBlocks = gridDim.x * gridDim.y * gridDim.z;
    const uint warpSize = blockDim.x * blockDim.y * blockDim.z;
    const int blocki = blockIdx.z*gridDim.x*gridDim.y + blockIdx.y*gridDim.x + blockIdx.x;
    const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
    const vmesh::LocalID D0 = vmesh->getGridLength()[0];
    const vmesh::LocalID D1 = vmesh->getGridLength()[1];
    const vmesh::LocalID D2 = vmesh->getGridLength()[2];
-   for (vmesh::LocalID index=blocki*warpSize; index<nBlocks; index += gpuBlocks*warpSize) {
-      const vmesh::LocalID LID = (index+ti);
-      if (LID < nBlocks) {
-         const vmesh::GlobalID GID = vmesh->getGlobalID(LID);
-         const vmesh::LocalID x_index = GID % D0;
-         const vmesh::LocalID y_index = (GID / D0) % D1;
-         const vmesh::LocalID z_index = (GID / (D0*D1));
-         blocksID_mapped[LID] = z_index + y_index*D2 + x_index*D1*D2;
-         blocksLID_unsorted[LID]=LID;
-      }
+   const vmesh::LocalID LID = blocki * warpSize + ti;
+   if (LID < nBlocks) {
+      const vmesh::GlobalID GID = vmesh->getGlobalID(LID);
+      const vmesh::LocalID x_index = GID % D0;
+      const vmesh::LocalID y_index = (GID / D0) % D1;
+      const vmesh::LocalID z_index = (GID / (D0*D1));
+      blocksID_mapped[LID] = z_index + y_index*D2 + x_index*D1*D2;
+      blocksLID_unsorted[LID]=LID;
    }
 }
 
 // LIDs are already in order.
 // Now also order GIDS. (can be ridiculously parallel, minus memory access patterns)
+// also used for scanning columnsets for block counts
 __global__ void __launch_bounds__(GPUTHREADS,4) order_GIDs_kernel(
    const vmesh::VelocityMesh* vmesh,
    vmesh::GlobalID *blocksLID,
    vmesh::GlobalID *blocksGID,
-   const uint nBlocks,
-   ColumnOffsets* columnData // passed just for resetting
-   ) {
-   const int gpuBlocks = gridDim.x * gridDim.y * gridDim.z;
-   const uint warpSize = blockDim.x * blockDim.y * blockDim.z;
-   const int blocki = blockIdx.z*gridDim.x*gridDim.y + blockIdx.y*gridDim.x + blockIdx.x;
-   const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
-   for (vmesh::LocalID index=blocki*warpSize; index<nBlocks; index += gpuBlocks*warpSize) {
-      const vmesh::LocalID i = (index+ti);
-      if (i < nBlocks) {
-         blocksGID[i]=vmesh->getGlobalID(blocksLID[i]);
-      }
-   }
-   if (blockIdx.x == blockIdx.y == blockIdx.z == threadIdx.x == threadIdx.y == threadIdx.z == 0) {
-      columnData->columnBlockOffsets.clear();
-      columnData->columnNumBlocks.clear();
-      columnData->setColumnOffsets.clear();
-      columnData->setNumColumns.clear();
-   }
-}
-
-// Kernel for scanning columnsets for block counts
-__global__ void __launch_bounds__(GPUTHREADS,4) scan_blocks_for_columns_kernel(
-   const vmesh::VelocityMesh* vmesh,
    const uint dimension,
    vmesh::GlobalID *blocksID_mapped_sorted,
    vmesh::LocalID *gpu_columnNBlocks,
-   const uint nBlocks
+   const uint nBlocks,
+   ColumnOffsets* columnData // passed just for resetting
    ) {
-   const int gpuBlocks = gridDim.x * gridDim.y * gridDim.z;
    const uint warpSize = blockDim.x * blockDim.y * blockDim.z;
    const int blocki = blockIdx.z*gridDim.x*gridDim.y + blockIdx.y*gridDim.x + blockIdx.x;
    const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
+
    vmesh::LocalID DX;
    switch (dimension) {
       case 0:
@@ -173,21 +142,29 @@ __global__ void __launch_bounds__(GPUTHREADS,4) scan_blocks_for_columns_kernel(
       default:
          printf("Incorrect dimension in __FILE__ __LINE__\n");
    }
-   for (vmesh::LocalID LID=blocki*warpSize; LID<nBlocks; LID += gpuBlocks*warpSize) {
-      if (LID+ti < nBlocks) {
-         vmesh::LocalID column_id = blocksID_mapped_sorted[LID+ti] / DX;
-         // Increment number of blocks in column
-         const vmesh::LocalID old  = atomicAdd(&gpu_columnNBlocks[column_id],1);
-         // // Evaluate smallest GID in column
-         // old = atomicMin(&columnMinBlock[columnid],GID);
-         // // Evaluate largest GID in colum
-         // old = atomicMax(&columnMaxBlock[columnid],GID);
-      }
+
+   const vmesh::LocalID index = blocki * warpSize + ti;
+   if (index < nBlocks) {
+      blocksGID[index] = vmesh->getGlobalID(blocksLID[index]);
+
+      const vmesh::LocalID column_id = blocksID_mapped_sorted[index] / DX;
+      // Increment number of blocks in column
+      const vmesh::LocalID old  = atomicAdd(&gpu_columnNBlocks[column_id],1);
+      // // Evaluate smallest GID in column
+      // old = atomicMin(&columnMinBlock[columnid],GID);
+      // // Evaluate largest GID in colum
+      // old = atomicMax(&columnMaxBlock[columnid],GID);
+   }
+   if (blockIdx.x == blockIdx.y == blockIdx.z == threadIdx.x == threadIdx.y == threadIdx.z == 0) {
+      columnData->columnBlockOffsets.clear();
+      columnData->columnNumBlocks.clear();
+      columnData->setColumnOffsets.clear();
+      columnData->setNumColumns.clear();
    }
 }
 
 /*** Kernel for constructing columns
- Checks if all blocks in a columnset belong to a single kernel, and
+ Checks if all blocks in a columnset belong to a single column, and
  can quickly jump through the whole column.
  For columnsets containing several columns, it trials blocks by scanning
  warpSize GIDs at a time.
@@ -346,14 +323,17 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
                                gpuStream_t stream
    ) {
 
-   // Ensure at least one launch block
-   uint nGpuBlocks  = (nBlocks/GPUTHREADS) > GPUBLOCKS ? GPUBLOCKS : std::ceil((Real)nBlocks/(Real)GPUTHREADS);
+   // Ensure at least one launch block, ceil int division
+   //const uint maxThreads = WARPSPERBLOCK*GPUTHREADS;
+   // For some reason, a direct increase of launch threads breaks things. Stick with GPUTHREADS for now.
+   const uint maxThreads = GPUTHREADS;
+   const uint launchBlocks = 1 + ((nBlocks - 1) / (maxThreads));
 
    //phiprof::Timer calcTimer {"calc new dimension id"};
    // Map blocks to new dimensionality
    switch( dimension ) {
       case 0: {
-         blocksID_mapped_dim0_kernel<<<nGpuBlocks, GPUTHREADS, 0, stream>>> (
+         blocksID_mapped_dim0_kernel<<<launchBlocks, maxThreads, 0, stream>>> (
             vmesh,
             blocksID_mapped,
             blocksLID_unsorted,
@@ -362,7 +342,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
          break;
       }
       case 1: {
-         blocksID_mapped_dim1_kernel<<<nGpuBlocks, GPUTHREADS, 0, stream>>> (
+         blocksID_mapped_dim1_kernel<<<launchBlocks, maxThreads, 0, stream>>> (
             vmesh,
             blocksID_mapped,
             blocksLID_unsorted,
@@ -371,7 +351,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
          break;
       }
       case 2: {
-         blocksID_mapped_dim2_kernel<<<nGpuBlocks, GPUTHREADS, 0, stream>>> (
+         blocksID_mapped_dim2_kernel<<<launchBlocks, maxThreads, 0, stream>>> (
             vmesh,
             blocksID_mapped,
             blocksLID_unsorted,
@@ -428,31 +408,28 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
    sortTimer.stop();
 
    // Gather GIDs in order
-   //phiprof::Timer reorderTimer {"reorder GIDs"};
-   order_GIDs_kernel<<<nGpuBlocks, GPUTHREADS, 0, stream>>> (
+   //phiprof::Timer reorderTimer {"reorder GIDs"}; // and scan for column block counts
+   order_GIDs_kernel<<<launchBlocks, maxThreads, 0, stream>>> (
       vmesh,
       blocksLID,
       blocksGID,
+      dimension,
+      blocksID_mapped,
+      gpu_columnNBlocks,
       nBlocks,
       columnData // Pass this just to clear it on device
       );
    CHK_ERR( gpuPeekAtLastError() );
    //reorderTimer.stop();
 
-   //phiprof::Timer scanTimer {"scan for column block counts"};
-   scan_blocks_for_columns_kernel<<<nGpuBlocks, GPUTHREADS, 0, stream>>> (
-      vmesh,
-      dimension,
-      blocksID_mapped,
-      gpu_columnNBlocks,
-      nBlocks
-      );
-   CHK_ERR( gpuPeekAtLastError() );
-   //scanTimer.stop();
-
    //phiprof::Timer constructTimer {"construct columns"};
    // Construct columns. To ensure order,
    // these are done serially, but still form within a kernel.
+   // Optimizing launch threads for this kernel as well needs a bit more checking
+   // uint columnThreads = maxThreads;
+   // columnThreads = (vmesh->getGridLength()[0]) < columnThreads ? vmesh->getGridLength()[0] : columnThreads;
+   // columnThreads = (vmesh->getGridLength()[1]) < columnThreads ? vmesh->getGridLength()[1] : columnThreads;
+   // columnThreads = (vmesh->getGridLength()[2]) < columnThreads ? vmesh->getGridLength()[2] : columnThreads;
    construct_columns_kernel<<<1, GPUTHREADS, 0, stream>>> (
       vmesh,
       dimension,

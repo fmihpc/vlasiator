@@ -906,7 +906,6 @@ namespace spatial_cell {
       // Evaluate velocity halo for local content blocks
       if (velocity_block_with_content_list_size>0) {
          //phiprof::Timer blockHaloTimer {"Block halo kernel"};
-         //nGpuBlocks = velocity_block_with_content_list_size > GPUBLOCKS ? GPUBLOCKS : velocity_block_with_content_list_size;
          const int addWidthV = getObjectWrapper().particleSpecies[popID].sparseBlockAddWidthV;
          if (addWidthV!=1) {
             std::cerr<<"Warning! "<<__FILE__<<":"<<__LINE__<<" Halo extent is not 1, unsupported size."<<std::endl;
@@ -1237,7 +1236,7 @@ namespace spatial_cell {
 
       // Third argument specifies the number of bytes in *shared memory* that is
       // dynamically allocated per block for this call in addition to the statically allocated memory.
-      //update_velocity_block_content_lists_kernel<<<GPUBLOCKS, WID3, WID3*sizeof(int), stream>>> (
+      //update_velocity_block_content_lists_kernel<<<launchBlocks, WID3, WID3*sizeof(int), stream>>> (
       update_velocity_block_content_lists_kernel<<<launchBlocks, (vlasiBlocksPerWorkUnit * WID3), 0, stream>>> (
          populations[popID].dev_vmesh,
          populations[popID].dev_blockContainer,
