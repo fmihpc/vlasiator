@@ -29,7 +29,7 @@
 
 #include "fsgrid.hpp"
 #include "../definitions.h"
-#include "../spatial_cell.hpp"
+#include "../spatial_cell_wrapper.hpp"
 #include "../parameters.h"
 #include "../sysboundary/ionosphere.h"
 using namespace spatial_cell;
@@ -381,40 +381,6 @@ namespace DRO {
 
    protected:
 
-   };
-
-   class MaxDistributionFunction: public DataReductionOperator {
-   public:
-      MaxDistributionFunction(cuint popID);
-      virtual ~MaxDistributionFunction();
-
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
-      virtual std::string getName() const;
-      virtual bool reduceData(const SpatialCell* cell,char* buffer);
-      virtual bool reduceDiagnostic(const SpatialCell* cell,Real *buffer);
-      virtual bool setSpatialCell(const SpatialCell* cell);
-
-   protected:
-      Real maxF;
-      uint popID;
-      std::string popName;
-   };
-
-   class MinDistributionFunction: public DataReductionOperator {
-   public:
-      MinDistributionFunction(cuint popID);
-      virtual ~MinDistributionFunction();
-
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
-      virtual std::string getName() const;
-      virtual bool reduceData(const SpatialCell* cell,char* buffer);
-      virtual bool reduceDiagnostic(const SpatialCell* cell,Real *buffer);
-      virtual bool setSpatialCell(const SpatialCell* cell);
-
-   protected:
-      Real minF;
-      uint popID;
-      std::string popName;
    };
 
    class VariableRhoThermal: public DataReductionOperator {

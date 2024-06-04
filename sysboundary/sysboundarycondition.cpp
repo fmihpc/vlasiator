@@ -31,7 +31,7 @@
 #include <iostream>
 
 #include "../parameters.h"
-#include "../vlasovmover.h"
+#include "../vlasovsolver/vlasovmover.h"
 #include "sysboundarycondition.h"
 #include "../projects/projects_common.h"
 
@@ -428,7 +428,7 @@ namespace SBC {
       creal factor = fluffiness / convert<Real>(numberOfCells);
 
       // Rescale own vspace
-      if (fluffiness != 0) {
+      if (fluffiness != 0.0) {
          to->scale_population(1.0 - fluffiness, popID);
       }
       // Add other cell vspaces

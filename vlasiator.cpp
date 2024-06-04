@@ -36,14 +36,14 @@
 
 #include <fsgrid.hpp>
 
-#include "vlasovmover.h"
+#include "vlasovsolver/vlasovmover.h"
 #include "vlasovsolver/vec.h"
 #include "definitions.h"
 #include "mpiconversion.h"
 #include "logger.h"
 #include "parameters.h"
 #include "readparameters.h"
-#include "spatial_cell.hpp"
+#include "spatial_cell_wrapper.hpp"
 #include "datareduction/datareducer.h"
 #include "sysboundary/sysboundary.h"
 #include "fieldtracing/fieldtracing.h"
@@ -89,7 +89,7 @@ ObjectWrapper objectWrapper;
 
 void addTimedBarrier(string name){
 #ifndef DEBUG_VLASIATOR
-//let's not do  a barrier
+//let's not do a barrier
    return;
 #endif
    phiprof::Timer btimer {name, {"Barriers", "MPI"}};
@@ -156,57 +156,8 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    dtMaxLocal[1] = numeric_limits<Real>::max();
    dtMaxLocal[2] = numeric_limits<Real>::max();
 
-   for (vector<CellID>::const_iterator cell_id = cells.begin(); cell_id != cells.end(); ++cell_id) {
-      SpatialCell* cell = mpiGrid[*cell_id];
-      const Real dx = cell->parameters[CellParams::DX];
-      const Real dy = cell->parameters[CellParams::DY];
-      const Real dz = cell->parameters[CellParams::DZ];
-      cell->parameters[CellParams::MAXRDT] = numeric_limits<Real>::max();
-
-      for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
-         cell->set_max_r_dt(popID, numeric_limits<Real>::max());
-         const Real* blockParams = cell->get_block_parameters(popID);
-         const Real EPS = numeric_limits<Real>::min() * 1000;
-
-         const uint nBlocks = cell->get_number_of_velocity_blocks(popID);
-         if (nBlocks==0) continue;
-
-         Real threadMin = std::numeric_limits<Real>::max();
-         arch::parallel_reduce<arch::min>({2, nBlocks},
-            ARCH_LOOP_LAMBDA (uint i, const uint blockLID, Real *lthreadMin) -> void{
-               i = i * (WID - 1); // ie, i == 0, i == WID - 1
-               const Real Vx =
-                   blockParams[blockLID * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] +
-                   (i + HALF) * blockParams[blockLID * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX] + EPS;
-               const Real Vy =
-                   blockParams[blockLID * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] +
-                   (i + HALF) * blockParams[blockLID * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY] + EPS;
-               const Real Vz =
-                   blockParams[blockLID * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] +
-                   (i + HALF) * blockParams[blockLID * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ] + EPS;
-
-               const Real dt_max_cell = min({dx / fabs(Vx), dy / fabs(Vy), dz / fabs(Vz)});
-               lthreadMin[0] = min(dt_max_cell,lthreadMin[0]);
-         }, threadMin);
-         cell->set_max_r_dt(popID, threadMin);
-         cell->parameters[CellParams::MAXRDT] = min(cell->get_max_r_dt(popID), cell->parameters[CellParams::MAXRDT]);
-      } // end loop over popID
-
-
-
-      if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
-          (cell->sysBoundaryLayer == 1 && cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY)) {
-         // spatial fluxes computed also for boundary cells
-         dtMaxLocal[0] = min(dtMaxLocal[0], cell->parameters[CellParams::MAXRDT]);
-      }
-
-      if (cell->parameters[CellParams::MAXVDT] != 0 &&
-          (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
-           (P::vlasovAccelerateMaxwellianBoundaries && cell->sysBoundaryFlag == sysboundarytype::MAXWELLIAN))) {
-         // acceleration only done on non-boundary cells
-         dtMaxLocal[1] = min(dtMaxLocal[1], cell->parameters[CellParams::MAXVDT]);
-      }
-   }
+   // Compute max dt for Vlasov solver
+   reduce_vlasov_dt(mpiGrid, cells, dtMaxLocal);
 
    // compute max dt for fieldsolver
    const std::array<FsGridTools::FsIndex_t, 3> gridDims(technicalGrid.getLocalSize());
@@ -297,6 +248,9 @@ void recalculateLocalCellsCache() {
         dummy.swap(Parameters::localCells);
      }
    Parameters::localCells = mpiGrid.get_cells();
+   //Ensure local cells are included only once
+   sort( Parameters::localCells.begin(), Parameters::localCells.end() );
+   Parameters::localCells.erase( unique( Parameters::localCells.begin(), Parameters::localCells.end() ), Parameters::localCells.end() );
 }
 
 int main(int argn,char* args[]) {
@@ -345,7 +299,11 @@ int main(int argn,char* args[]) {
       exit(1);
    }
    if (myRank == MASTER_RANK) {
-      cout << mpiioMessage.str();
+      const char* mpiioenv = std::getenv("OMPI_MCA_io");
+      std::string mpiioenvstr(mpiioenv);
+      if(mpiioenvstr.find("^ompio") == std::string::npos) {
+         cout << mpiioMessage.str();
+      }
    }
 
    phiprof::initialize();
@@ -650,9 +608,8 @@ int main(int argn,char* args[]) {
       ) {
          cerr << "FAILED TO WRITE GRID AT " << __FILE__ << " " << __LINE__ << endl;
       }
-
-      phiprof::stop("Initialization");
-      phiprof::stop("main");
+      initTimer.stop();
+      mainTimer.stop();
       
       phiprof::print(MPI_COMM_WORLD,"phiprof");
       
@@ -867,9 +824,8 @@ int main(int argn,char* args[]) {
    report_process_memory_consumption();
    reportMemTimer.stop();
    
-   unsigned int computedCells=0;
-   unsigned int computedTotalCells=0;
-  //Compute here based on time what the file intervals are
+   uint64_t computedCells=0;
+   //Compute here based on time what the file intervals are
    P::systemWrites.clear();
    for(uint i=0;i< P::systemWriteTimeInterval.size();i++){
       int index=(int)(P::t_min/P::systemWriteTimeInterval[i]);
@@ -1171,9 +1127,8 @@ int main(int argn,char* args[]) {
       computedCells=0;
       for(size_t i=0; i<cells.size(); i++) {
          for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
-            computedCells += mpiGrid[cells[i]]->get_number_of_velocity_blocks(popID)*WID3;
+            computedCells += (uint64_t)mpiGrid[cells[i]]->get_number_of_velocity_blocks(popID)*WID3;
       }
-      computedTotalCells+=computedCells;
 
       //Check if dt needs to be changed, and propagate V back a half-step to change dt and set up new situation
       //do not compute new dt on first step (in restarts dt comes from file, otherwise it was initialized before we entered
@@ -1455,9 +1410,16 @@ int main(int argn,char* args[]) {
       ) {
       (cell_item->second).gpu_destructor();
    }
+   for (typename std::unordered_map<uint64_t, SpatialCell>::iterator
+           cell_item = mpiGrid.get_remote_cell_data_for_editing().begin();
+        cell_item != mpiGrid.get_remote_cell_data_for_editing().end();
+        cell_item++
+      ) {
+      (cell_item->second).gpu_destructor();
+   }
    // Deallocate buffers, clear device
    vmesh::deallocateMeshWrapper();
-   sysBoundaryContainer.clearGpu();
+   sysBoundaryContainer.gpuClear();
    gpu_clear_device();
    #endif
 

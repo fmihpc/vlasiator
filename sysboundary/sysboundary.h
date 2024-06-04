@@ -32,7 +32,7 @@
 #include "../definitions.h"
 #include "../parameters.h"
 #include "../readparameters.h"
-#include "../spatial_cell.hpp"
+#include "../spatial_cell_wrapper.hpp"
 
 #include "sysboundarycondition.h"
 
@@ -89,7 +89,7 @@ class SysBoundary {
    bool isAnyDynamic() const;
    bool isPeriodic(uint direction) const;
    void updateSysBoundariesAfterLoadBalance(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid);
-   void clearGpu();
+   void gpuClear();
 
    private:
       /*! Private copy-constructor to prevent copying the class. */

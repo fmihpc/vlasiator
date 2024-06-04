@@ -1,6 +1,6 @@
 /*
  * This file is part of Vlasiator.
- * Copyright 2010-2023 Finnish Meteorological Institute & University of Helsinki
+ * Copyright 2010-2024 Finnish Meteorological Institute and University of Helsinki
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
  * at http://www.physics.helsinki.fi/vlasiator/
@@ -118,11 +118,15 @@ namespace vmesh {
 
    // Caller, inlined into other compilation units, will call either host or device getter
    ARCH_HOSTDEV inline MeshWrapper* getMeshWrapper() {
-      #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+   #if defined(USE_GPU)
+      #if (defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
       return gpu_getMeshWrapper();
       #else
       return host_getMeshWrapper();
       #endif
+   #else
+      return host_getMeshWrapper();
+   #endif
    }
 
    ARCH_HOSTDEV inline void printVelocityMesh(const uint meshIndex) {

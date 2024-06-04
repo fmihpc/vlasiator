@@ -1,6 +1,6 @@
 /*
  * This file is part of Vlasiator.
- * Copyright 2010-2016 Finnish Meteorological Institute
+ * Copyright 2010-2024 Finnish Meteorological Institute and University of Helsinki
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
  * at http://www.physics.helsinki.fi/vlasiator/
@@ -23,11 +23,12 @@
 #include <unordered_set>
 
 #include "spatial_cell_cpu.hpp"
-#include "velocity_blocks.h"
 #include "object_wrapper.h"
 
 #ifdef DEBUG_VLASIATOR
+#ifndef DEBUG_SPATIAL_CELL
    #define DEBUG_SPATIAL_CELL
+#endif
 #endif
 
 using namespace std;
@@ -551,17 +552,10 @@ namespace spatial_cell {
 
          // Refinement parameters
          if ((SpatialCell::mpi_transfer_type & Transfer::REFINEMENT_PARAMETERS)){
-            displacements.push_back(reinterpret_cast<uint8_t*>(this->parameters.data() + CellParams::AMR_ALPHA) - reinterpret_cast<uint8_t*>(this));
-            block_lengths.push_back(sizeof(Real) * (CellParams::AMR_JPERB - CellParams::AMR_ALPHA + 1)); // This is just 2, but let's be explicit
+            displacements.push_back(reinterpret_cast<uint8_t*>(this->parameters.data() + CellParams::AMR_ALPHA1) - reinterpret_cast<uint8_t*>(this));
+            block_lengths.push_back(sizeof(Real) * (CellParams::AMR_ALPHA2 - CellParams::AMR_ALPHA1 + 1)); // This is just 2, but let's be explicit
          }
 
-         // Copy random number generator state variables
-         //if ((SpatialCell::mpi_transfer_type & Transfer::RANDOMGEN) != 0) {
-         //   displacements.push_back((uint8_t*)get_rng_state_buffer() - (uint8_t*)this);
-         //   block_lengths.push_back(256/8);
-         //   displacements.push_back((uint8_t*)get_rng_data_buffer() - (uint8_t*)this);
-         //   block_lengths.push_back(sizeof(random_data));
-         //}
       }
 
       void* address = this;
@@ -634,7 +628,7 @@ namespace spatial_cell {
     * the cell with empty blocks based on the new list.*/
    void SpatialCell::prepare_to_receive_blocks(const uint popID) {
       populations[popID].vmesh->setGrid();
-      populations[popID].blockContainer->setSize(populations[popID].vmesh->size());
+      populations[popID].blockContainer->setNewSize(populations[popID].vmesh->size());
 
       Real* parameters = get_block_parameters(popID);
 
@@ -710,7 +704,7 @@ namespace spatial_cell {
 
          // Allow capacity to be a bit large than needed by number of blocks, shrink otherwise
          if (populations[p].blockContainer->capacity() > amount )
-            if (populations[p].blockContainer->recapacitate(amount) == false) success = false;
+            if (populations[p].blockContainer->setNewCapacity(amount) == false) success = false;
 
       }
       return success;
@@ -745,7 +739,6 @@ namespace spatial_cell {
       for (size_t p=0; p<populations.size(); ++p) {
          cerr << "\t pop " << p << " " << populations[p].vmesh->size() << ' ' << populations[p].blockContainer->size() << endl;
       }
-      cerr << "\t temp sizes are " << vmeshTemp->size() << ' ' << blockContainerTemp->size() << endl;
    }
 
    /** Updates minValue based on algorithm value from parameters (see parameters.cpp).

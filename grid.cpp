@@ -31,7 +31,7 @@
   #include <omp.h>
 #endif
 #include "grid.h"
-#include "vlasovmover.h"
+#include "vlasovsolver/vlasovmover.h"
 #include "definitions.h"
 #include "mpiconversion.h"
 #include "logger.h"
@@ -41,6 +41,7 @@
 #include "fieldsolver/fs_common.h"
 #include "fieldsolver/gridGlue.hpp"
 #include "fieldsolver/derivatives.hpp"
+#include "vlasovsolver/cpu_trans_pencils.hpp"
 #include "projects/project.h"
 #include "iowrite.h"
 #include "ioread.h"
@@ -276,9 +277,6 @@ void initializeGrids(
       #pragma omp parallel for schedule(dynamic)
       for (size_t i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
-         // #ifdef USE_GPU
-         // cell->prefetchHost(); // Currently projects still init on host
-         // #endif
          if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
             project.setCell(cell);
          }
@@ -294,11 +292,6 @@ void initializeGrids(
       #pragma omp parallel for schedule(static)
       for (size_t i=0; i<cells.size(); ++i) {
          mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 0;
-         #ifdef USE_GPU
-         // SpatialCell* cell = mpiGrid[cells[i]];
-         // cell->prefetchDevice();
-         // cell->gpu_advise();
-         #endif
       }
 
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
@@ -360,7 +353,6 @@ void initializeGrids(
 
    // If we only want the full BGB for writeout, we have it now and we can return early.
    if(P::writeFullBGB == true) {
-      phiprof::stop("Set initial state");
       return;
    }
 
@@ -490,15 +482,11 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    //set weights based on each cells LB weight counter
    const vector<CellID>& cells = getLocalCells();
    for (size_t i=0; i<cells.size(); ++i){
-      //Set weight. If acceleration is enabled then we use the weight
-      //counter which is updated in acceleration, otherwise we just
-      //use the number of blocks.
-//      if (P::propagateVlasovAcceleration)
-      mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER]);
-//      else
-//         mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->get_number_of_all_velocity_blocks());
-      //reset counter
-      //mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 0.0;
+      // Set cell weight. We could use different counters or number of blocks if different solvers are active.     
+      // if (P::propagateVlasovAcceleration)
+      // When using the FS-SPLIT functionality, Jaro Hokkanen reported issues with using the regular
+      // CellParams::LBWEIGHTCOUNTER, so use of blockscounts + 1 might be required.
+      mpiGrid.set_cell_weight(cells[i], (Real)1 + mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER]);
    }
 
    phiprof::Timer initLBTimer {"dccrg.initialize_balance_load"};
@@ -537,9 +525,9 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
          }
       }
 
-      for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
+      for (size_t popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          // Set active population
-         SpatialCell::setCommunicatedSpecies(p);
+         SpatialCell::setCommunicatedSpecies(popID);
 
          //Transfer velocity block list
          SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE1);
@@ -549,7 +537,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
 
          int prepareReceives {phiprof::initializeTimer("Preparing receives")};
          int receives = 0;
-         #pragma omp parallel for
+         #pragma omp parallel for schedule(guided)
          for (unsigned int i=0; i<incoming_cells_list.size(); i++) {
             CellID cell_id=incoming_cells_list[i];
             SpatialCell* cell = mpiGrid[cell_id];
@@ -557,7 +545,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
                receives++;
                // reserve space for velocity block data in arriving remote cells
                phiprof::Timer timer {prepareReceives};
-               cell->prepare_to_receive_blocks(p);
+               cell->prepare_to_receive_blocks(popID);
                timer.stop(1, "Spatial cells");
             }
          }
@@ -582,7 +570,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
             // Free memory of this cell as it has already been transferred,
             // it will not be used anymore. NOTE: Only clears memory allocated
             // to the active population.
-            if (cell_id % num_part_transfers == transfer_part) cell->clear(p);
+            if (cell_id % num_part_transfers == transfer_part) cell->clear(popID);
          }
       } // for-loop over populations
    } // for-loop over transfer parts
@@ -638,29 +626,36 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
 
    // Prepare cellIDs and pencils for AMR translation
    phiprof::Timer seedIdsTimer("GetSeedIdsAndBuildPencils");
-   for (int dimension=0; dimension<3; dimension++) {
-      prepareSeedIdsAndPencils(mpiGrid,dimension);
-   }
+   prepareSeedIdsAndPencils(mpiGrid);
+   seedIdsTimer.stop();
 
 #ifdef USE_GPU
    phiprof::Timer gpuMallocTimer("GPU_malloc");
    uint gpuMaxBlockCount = 0;
    vmesh::LocalID gpuBlockCount = 0;
    // Not parallelized
-   for (uint i=0; i<cells.size(); ++i) {
-      SpatialCell* SC = mpiGrid[cells[i]];
+   const vector<CellID>& newCells = getLocalCells();
+   const std::vector<CellID>& remote_cells = mpiGrid.get_remote_cells_on_process_boundary(FULL_NEIGHBORHOOD_ID);
+   for (uint i=0; i<newCells.size()+remote_cells.size(); ++i) {
+      SpatialCell* SC;
+      if (i < newCells.size()) {
+         SC = mpiGrid[newCells[i]];
+      } else {
+         SC = mpiGrid[remote_cells[i - newCells.size()]];
+      }
       for (size_t popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          const vmesh::VelocityMesh* vmesh = SC->get_velocity_mesh(popID);
          vmesh::VelocityBlockContainer* blockContainer = SC->get_velocity_blocks(popID);
          gpuBlockCount = vmesh->size();
-         // gpu_Allocate checks if increased allocation is necessary, also performs deallocation first if necessary
-         blockContainer->gpu_Allocate(gpuBlockCount);
+         // checks if increased allocation is necessary, also performs deallocation first if necessary
+         blockContainer->setNewCapacity(gpuBlockCount);
          if (gpuBlockCount > gpuMaxBlockCount) {
             gpuMaxBlockCount = gpuBlockCount;
          }
          // Ensure cell has sufficient reservation, then apply it
          SC->setReservation(popID,gpuBlockCount);
          SC->applyReservation(popID);
+         SC->dev_upload_population(popID);
       }
    }
    // Call GPU routines for per-thread memory allocation for Vlasov solvers
@@ -669,9 +664,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    gpu_vlasov_allocate(gpuMaxBlockCount);
    gpu_acc_allocate(gpuMaxBlockCount);
    gpuMallocTimer.stop();
-#endif
-
-   seedIdsTimer.stop();
+#endif // end USE_GPU
 }
 
 /*
@@ -691,48 +684,22 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    #pragma omp parallel
    {
       phiprof::Timer timer {computeId};
-#ifdef USE_GPU
-      #pragma omp for schedule(dynamic,1)
-      for (uint i=0; i<cells.size(); ++i) {
-         mpiGrid[cells[i]]->gpu_attachToStream();
-         mpiGrid[cells[i]]->updateSparseMinValue(popID);
-         mpiGrid[cells[i]]->update_velocity_block_content_lists(popID);
-         mpiGrid[cells[i]]->gpu_detachFromStream();
-      }
-#else
       #pragma omp for schedule(dynamic,1)
       for (uint i=0; i<cells.size(); ++i) {
          mpiGrid[cells[i]]->updateSparseMinValue(popID);
          mpiGrid[cells[i]]->update_velocity_block_content_lists(popID);
       }
-#endif
+      timer.stop();
    }
-   // Note: We could try not updating remote lists unless explicitly wanting to keep remote contributions?
-   phiprof::Timer transferTimer {"Transfer with_content_list", {"MPI"}};
-   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_WITH_CONTENT_STAGE1 );
-   mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
-   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_WITH_CONTENT_STAGE2 );
-   mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
-   transferTimer.stop();
-
-#ifdef USE_GPU
-   // Now loop over ghost cells and upload their velocity block lists into GPU memory
-   const std::vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(NEAREST_NEIGHBORHOOD_ID);
-   int uploadId {phiprof::initializeTimer("Upload with_content_list to device")};
-   #pragma omp parallel
-   {
-      phiprof::Timer timer {uploadId};
-      #pragma omp for
-      for (size_t i=0; i<cellsToAdjust.size(); ++i) {
-         mpiGrid[cellsToAdjust[i]]->gpu_uploadContentLists();
-      }
-      #pragma omp for schedule(dynamic,1)
-      for(size_t i=0; i<remote_cells.size(); ++i) {
-         mpiGrid[remote_cells[i]]->gpu_uploadContentLists();
-      }
+   if (doPrepareToReceiveBlocks) {
+      // We are in the last substep of acceleration, so need to account for neighbours
+      phiprof::Timer transferTimer {"Transfer with_content_list", {"MPI"}};
+      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_WITH_CONTENT_STAGE1 );
+      mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
+      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_WITH_CONTENT_STAGE2 );
+      mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
+      transferTimer.stop();
    }
-#endif
-
    //Adjusts velocity blocks in local spatial cells, doesn't adjust velocity blocks in remote cells.
    int adjustId {phiprof::initializeTimer("Adjusting blocks")};
    #pragma omp parallel
@@ -744,30 +711,36 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
          Real density_post_adjust=0.0;
          CellID cell_id=cellsToAdjust[i];
          SpatialCell* cell = mpiGrid[cell_id];
-         // gather spatial neighbor list and create vector with pointers to neighbor spatial cells
-         const auto* neighbors = mpiGrid.get_neighbors_of(cell_id, NEAREST_NEIGHBORHOOD_ID);
-         // Note: at AMR refinement boundaries this can cause blocks to propagate further than absolutely required
          vector<SpatialCell*> neighbor_ptrs;
-         neighbor_ptrs.reserve(neighbors->size());
-
-         for ( const auto& nbrPair : *neighbors) {
-            CellID neighbor_id = nbrPair.first;
-            if (neighbor_id == 0 || neighbor_id == cell_id) {
-               continue;
+         if (doPrepareToReceiveBlocks) {
+            // gather spatial neighbor list and gather vector with pointers to cells
+            // If we are within an acceleration substep prior to the last one,
+            // it's enough to adjust blocks based on local data only, and in
+            // that case we simply pass an empty list of pointers.
+            const auto* neighbors = mpiGrid.get_neighbors_of(cell_id, NEAREST_NEIGHBORHOOD_ID);
+            // Note: at AMR refinement boundaries this can cause blocks to propagate further
+            // than absolutely required. Face neighbours, however, are not enough as we must
+            // account for diagonal propagation.
+            neighbor_ptrs.reserve(neighbors->size());
+            uint reservationSize = cell->getReservation(popID);
+            for ( const auto& [neighbor_id, dir] : *neighbors) {
+               if ((neighbor_id != 0) && (neighbor_id != cell_id)) {
+                  neighbor_ptrs.push_back(mpiGrid[neighbor_id]);
+               }
+               // Ensure cell has sufficient reservation
+               reservationSize = (mpiGrid[neighbor_id]->velocity_block_with_content_list_size > reservationSize) ?
+                  mpiGrid[neighbor_id]->velocity_block_with_content_list_size : reservationSize;
             }
-            neighbor_ptrs.push_back(mpiGrid[neighbor_id]);
-            // Ensure cell has sufficient reservation
-            cell->setReservation(popID,mpiGrid[neighbor_id]->velocity_block_with_content_list_size);
+            cell->setReservation(popID,reservationSize);
          }
-#ifdef USE_GPU
-         cell->gpu_attachToStream();
-#endif
+
          // GPUTODO: Vectorize / GPUify
          if (getObjectWrapper().particleSpecies[popID].sparse_conserve_mass) {
             for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
                density_pre_adjust += cell->get_data(popID)[i];
             }
          }
+
          cell->adjust_velocity_blocks(neighbor_ptrs,popID);
 
          // GPUTODO: Vectorize / GPUify
@@ -781,26 +754,9 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
                }
             }
          }
-#ifdef USE_GPU
-         cell->gpu_detachFromStream();
-#endif
       }
+      timer.stop();
    }
-
-   #ifdef USE_GPU
-   // Now loop over local and ghost cells and free up the temborary buffer memory
-   #pragma omp parallel
-   {
-      #pragma omp for
-      for (size_t i=0; i<cellsToAdjust.size(); ++i) {
-         mpiGrid[cellsToAdjust[i]]->gpu_clearContentLists();
-      }
-      #pragma omp for
-      for(size_t i=0; i<remote_cells.size(); ++i) {
-         mpiGrid[remote_cells[i]]->gpu_clearContentLists();
-      }
-   }
-   #endif
 
    //Updated newly adjusted velocity block lists on remote cells, and
    //prepare to receive block data
@@ -1358,9 +1314,9 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    }
 
    phiprof::Timer transfersTimer {"transfers"};
-   for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
+   for (size_t popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       // Set active population
-      SpatialCell::setCommunicatedSpecies(p);
+      SpatialCell::setCommunicatedSpecies(popID);
 
       //Transfer velocity block list
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE1);
@@ -1372,7 +1328,7 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
       for (CellID id : receives) {
          // reserve space for velocity block data in arriving remote cells
          phiprof::Timer timer {prepareReceives};
-         mpiGrid[id]->prepare_to_receive_blocks(p);
+         mpiGrid[id]->prepare_to_receive_blocks(popID);
          timer.stop(1, "Spatial cells");
       }
 
@@ -1395,8 +1351,8 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    for (CellID id : newChildren) {
       *mpiGrid[id] = *mpiGrid[mpiGrid.get_parent(id)];
       // Irrelevant?
-      // mpiGrid[id]->parameters[CellParams::AMR_ALPHA] /= P::refineMultiplier;
-      mpiGrid[id]->parameters[CellParams::AMR_ALPHA] /= 2.0;
+      mpiGrid[id]->parameters[CellParams::AMR_ALPHA1] /= 2.0;
+      mpiGrid[id]->parameters[CellParams::AMR_ALPHA2] /= 2.0;
       mpiGrid[id]->parameters[CellParams::RECENTLY_REFINED] = 1;
    }
    copyChildrenTimer.stop(newChildren.size(), "Spatial cells");
@@ -1446,8 +1402,8 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
 
    // Is this needed?
    technicalGrid.updateGhostCells(); // This needs to be done at some point
-   for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
-      updateRemoteVelocityBlockLists(mpiGrid, p, NEAREST_NEIGHBORHOOD_ID);
+   for (size_t popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      updateRemoteVelocityBlockLists(mpiGrid, popID, NEAREST_NEIGHBORHOOD_ID);
    }
 
    if (P::shouldFilter) {

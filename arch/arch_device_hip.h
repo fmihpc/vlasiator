@@ -27,6 +27,7 @@
 #define gpuGetDeviceProperties hipGetDeviceProperties
 #define gpuDeviceSynchronize hipDeviceSynchronize
 #define gpuDeviceReset hipDeviceReset
+#define gpuCpuDeviceId hipCpuDeviceId
 
 #if defined(USE_UMPIRE)
 static hipError_t gpuMalloc(void** dev_ptr, size_t size, hipStream_t stream = 0) {
@@ -107,6 +108,9 @@ static hipError_t gpuFreeManaged(void* dev_ptr) {
 #define gpuMemPrefetchAsync hipMemPrefetchAsync
 
 #define gpuStreamCreate hipStreamCreate
+#define gpuHostRegister hipHostRegister
+#define gpuHostRegisterPortable hipHostRegisterPortable
+
 #define gpuStreamDestroy hipStreamDestroy
 #define gpuStreamWaitEvent hipStreamWaitEvent
 #define gpuStreamSynchronize hipStreamSynchronize
@@ -157,14 +161,12 @@ static hipError_t gpuFreeManaged(void* dev_ptr) {
 #define ARCH_BLOCKSIZE_R 512
 #define ARCH_BLOCKSIZE_R_SMALL 64
 
-/* GPU blocksize used by Vlasov solvers */
-#ifndef GPUBLOCKS
-#define GPUBLOCKS (108)
-#endif
-
 /* values used by kernels */
 #ifndef GPUTHREADS
 #define GPUTHREADS (64)
+#endif
+#ifndef WARPSPERBLOCK
+#define WARPSPERBLOCK (16)
 #endif
 #define FULL_MASK 0xffffffffffffffff
 

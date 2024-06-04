@@ -29,6 +29,7 @@
 #define gpuGetDeviceProperties cudaGetDeviceProperties
 #define gpuDeviceSynchronize cudaDeviceSynchronize
 #define gpuDeviceReset cudaDeviceReset
+#define gpuCpuDeviceId cudaCpuDeviceId
 
 #if defined(USE_UMPIRE)
 static cudaError_t gpuMalloc(void** dev_ptr, size_t size, cudaStream_t stream = 0) {
@@ -102,6 +103,9 @@ static cudaError_t gpuFreeManaged(void* dev_ptr) {
 #define gpuMemset cudaMemset
 #define gpuMemsetAsync cudaMemsetAsync
 
+#define gpuHostRegister cudaHostRegister
+#define gpuHostRegisterPortable cudaHostRegisterPortable
+
 #define gpuMemAdviseSetAccessedBy cudaMemAdviseSetAccessedBy
 #define gpuMemAdviseSetPreferredLocation cudaMemAdviseSetPreferredLocation
 #define gpuMemAttachSingle cudaMemAttachSingle
@@ -159,14 +163,12 @@ static cudaError_t gpuFreeManaged(void* dev_ptr) {
 #define ARCH_BLOCKSIZE_R 512
 #define ARCH_BLOCKSIZE_R_SMALL 32
 
-/* GPU blocksize used by Vlasov solvers */
-#ifndef GPUBLOCKS
-#define GPUBLOCKS (108)
-#endif
-
 /* values used by kernels */
 #ifndef GPUTHREADS
 #define GPUTHREADS (32)
+#endif
+#ifndef WARPSPERBLOCK
+#define WARPSPERBLOCK (32)
 #endif
 #define FULL_MASK 0xffffffff
 

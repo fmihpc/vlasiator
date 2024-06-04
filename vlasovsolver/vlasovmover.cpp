@@ -33,8 +33,8 @@
 #include <dccrg.hpp>
 #include <phiprof.hpp>
 
-#include "../spatial_cell.hpp"
-#include "../vlasovmover.h"
+#include "../spatial_cell_wrapper.hpp"
+#include "vlasovmover.h"
 #include "../grid.h"
 #include "../definitions.h"
 #include "../object_wrapper.h"
@@ -45,6 +45,7 @@
 #include "cpu_trans_pencils.hpp"
 
 #ifdef USE_GPU
+#include "gpu_moments.h"
 #include "gpu_acc_map.hpp"
 #include "gpu_acc_semilag.hpp"
 #include "gpu_trans_map_amr.hpp"
@@ -413,7 +414,9 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
    //- All cells update and communicate their lists of content blocks
    //- Only cells which were accerelated on this step need to be adjusted (blocks removed or added).
    //- Not done here on last step (done after loop)
-   if(step < (globalMaxSubcycles - 1)) adjustVelocityBlocks(mpiGrid, propagatedCells, false, popID);
+   if (step < (globalMaxSubcycles - 1)) {
+      adjustVelocityBlocks(mpiGrid, propagatedCells, false, popID);
+   }
 }
 
 /** Accelerate all particle populations to new time t+dt.
@@ -494,6 +497,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
          phiprof::Timer verificationTimer {"gpu allocation verifications"};
          gpu_vlasov_allocate(gpuMaxBlockCount);
          gpu_acc_allocate(gpuMaxBlockCount);
+         gpu_blockadjust_allocate(gpuMaxBlockCount);
          verificationTimer.stop();
 #endif
 

@@ -31,6 +31,7 @@
 #include "../arch/arch_device_api.h"
 #include "cpu_slope_limiters.hpp"
 #include "cpu_face_estimates.hpp"
+#include "../definitions.h"
 
 using namespace std;
 

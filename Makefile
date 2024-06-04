@@ -55,10 +55,10 @@ COMPFLAGS += -DPROFILE
 
 #Optional debugging: performance will degrade significantly
 # COMPFLAGS += -DDEBUG_VLASIATOR
-# COMPFLAGS += -DIONOSPHERE_SORTED_SUMS
 # COMPFLAGS += -DDEBUG_SOLVERS
 # COMPFLAGS += -DDEBUG_IONOSPHERE
-# COMPFLAGS += -DHASHINATOR_DEBUG -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC
+# COMPFLAGS += -DIONOSPHERE_SORTED_SUMS
+# COMPFLAGS += -DHASHINATOR_DEBUG
 # COMPFLAGS += -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC
 
 #Add -DNDEBUG to turn debugging (including asserts) off on compiler-level
@@ -200,10 +200,10 @@ OBJS += cpu_acc_intersections.o cpu_acc_transform.o \
 # Only build GPU version object files if active
 ifeq ($(USE_GPU),1)
 	OBJS += gpu_acc_map.o gpu_acc_semilag.o gpu_acc_sort_blocks.o \
-		gpu_base.o gpu_trans_map_amr.o
+		gpu_base.o gpu_trans_map_amr.o gpu_dt.o gpu_moments.o
 else
-# if *not* building GPU version, build regular CPU version
-	OBJS += cpu_acc_map.o cpu_acc_sort_blocks.o cpu_acc_load_blocks.o cpu_acc_semilag.o  cpu_trans_map_amr.o
+# if *not* building GPU version, build regular CPU/ARCH version
+	OBJS += cpu_acc_map.o cpu_acc_sort_blocks.o cpu_acc_load_blocks.o cpu_acc_semilag.o  cpu_trans_map_amr.o arch_dt.o
 endif
 
 # Add field solver objects

@@ -1,18 +1,7 @@
 # Suggested modules
-# This is updated for Mahti RHEL8 as of 18th May 2022
-
+#
 # module purge
-# module load StdEnv
-# module load gcc/9.4.0
-# module load cuda/11.5.0
-# module load openmpi/4.1.2-cuda
-# module load jemalloc
-# module load papi
-# one-liner:
-# module purge; module load StdEnv; module load gcc/9.4.0; module load cuda/11.5.0; module load openmpi/4.1.2-cuda; module load jemalloc; module load papi
-
-#  Also, add this to your job script!
-#export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/projappl/project_2000203/libraries_rhel8_gcccuda/boost/lib
+# ml gcc/10.4.0 openmpi/4.1.5-cuda cuda/12.1.1 boost/1.82.0-mpi papi/7.1.0
 
 #======== Vectorization ==========
 #Set vector backend type for vlasov solvers, sets precision and length.
@@ -22,7 +11,7 @@
 # Fallback: VECTORCLASS = VEC_FALLBACK_GENERIC (Defaults to VECL8)
 VECTORCLASS = VEC_FALLBACK_GENERIC
 
-#===== Vector Lenghts ====
+#===== Vector Lengths ====
 # Default for VEC_FALLBACK_GENERIC is WID=4, VECL=8
 # NOTE: A bug currently results in garbage data already on cell init if VECL is not equal to WID2
 #WID=8
@@ -44,31 +33,32 @@ VECL=16
 #                         mpi.h in c++ on Cray
 
 USE_CUDA=1
-CUDABLOCKS=108
 
 #-ggdb not available on nvcc
 #-G (device debug) overrides --generate-line-info -line-info but also requires more device-side resources to run
 # use "-Xptxas -v" for verbose output of ptx compilation
-
-CXXFLAGS = -g -O3 -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 --generate-line-info -line-info -Xcompiler="-fopenmp" -Xcompiler="-fpermissive" -maxrregcount 24
-testpackage: CXXFLAGS = -g -O2 -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 --generate-line-info -line-info -Xcompiler="-fopenmp" -Xcompiler="-fpermissive" -maxrregcount 24
+# --cudart shared used for Kostis' mempool_ts
+CXXFLAGS = -g -O3 -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 --cudart shared --generate-line-info -line-info -Xcompiler="-fopenmp" -Xcompiler="-fpermissive" -maxrregcount 24 -Wno-deprecated-declarations
+testpackage: CXXFLAGS = -g -O2 -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 --cudart shared --generate-line-info -line-info -Xcompiler="-fopenmp" -Xcompiler="-fpermissive" -maxrregcount 24 -Wno-deprecated-declarations
 
 # Tell mpic++ to use nvcc for all compiling
 CMP = OMPI_CXX='nvcc' OMPI_CXXFLAGS='' mpic++
 
-# Now tell also the linker to use nvcc
+# Now tell also the linker to use nvcc. Contents of these were retrieved with "mpic++ --showme:link".
+# Use this same linker command also for building and linking phiprof.
 ## The line below indeed uses OMPI_CXX, not OMPI_LD
-LNK = OMPI_CXX='nvcc' OMPI_CXXFLAGS='-arch=sm_80' OMPI_LIBS='-L/appl/spack/v017/install-tree/gcc-9.4.0/openmpi-4.1.2-cgr4nz/lib -L/appl/spack/syslibs/lib' OMPI_LDFLAGS=' -Xlinker=-rpath=/appl/spack/v017/install-tree/gcc-8.5.0/gcc-9.4.0-nfm4wc/lib/gcc/x86_64-pc-linux-gnu/9.4.0 -Xlinker=-rpath=/appl/spack/v017/install-tree/gcc-8.5.0/gcc-9.4.0-nfm4wc/lib64 -Xlinker=-rpath=/appl/spack/v017/install-tree/gcc-9.4.0/openmpi-4.1.2-cgr4nz -Xlinker=-rpath=/lib/appl/spack/syslibs/lib -lmpi ' mpic++
+LNK = OMPI_CXX='nvcc' OMPI_CXXFLAGS='-arch=sm_80' OMPI_LIBS='-L/appl/spack/v020/install-tree/gcc-10.4.0/openmpi-4.1.5-xykxbk/lib -L/appl/spack/syslibs/lib' OMPI_LDFLAGS=' -Xlinker=-rpath=/appl/spack/v020/install-tree/gcc-8.5.0/gcc-10.4.0-2oazqj/lib/gcc/x86_64-pc-linux-gnu/10.4.0 -Xlinker=-rpath=/appl/spack/v020/install-tree/gcc-8.5.0/gcc-10.4.0-2oazqj/lib64 -Xlinker=-rpath=/appl/spack/v020/install-tree/gcc-10.4.0/openmpi-4.1.5-xykxbk/lib -Xlinker=-rpath=/lib/appl/spack/syslibs/lib -Xlinker=-rpath=/appl/spack/v020/install-tree/gcc-10.4.0/cuda-12.1.1-2ppwzf/lib64 -lmpi ' mpic++
 
 MATHFLAGS = --use_fast_math
 # nvcc fast_math does not assume only finite math
 testpackage: MATHFLAGS = --prec-sqrt=true --prec-div=true --ftz=false --fmad=false
 
-LDFLAGS = -O2 -g -G -L/appl/spack/v016/install-tree/gcc-4.8.5/nvhpc-21.2-l6xyb4/Linux_x86_64/21.2/cuda/11.2/lib64 -lnvToolsExt
+LDFLAGS = -O2 -g -G -L/appl/spack/v020/install-tree/gcc-10.4.0/cuda-12.1.1-2ppwzf/lib64 -lnvToolsExt --cudart shared
 LIB_MPI = -lgomp
+INC_MPI = -I/appl/spack/v020/install-tree/gcc-10.4.0/openmpi-4.1.5-xykxbk/include -I/appl/spack/v020/install-tree/gcc-10.4.0/openmpi-4.1.5-xykxbk/include/openmpi -I/appl/spack/syslibs/include
 
-LIB_CUDA = -L/usr/local/cuda/lib64
-INC_CUDA = -isystem /usr/local/cuda/include
+LIB_CUDA = -L/appl/spack/v020/install-tree/gcc-10.4.0/cuda-12.1.1-2ppwzf/lib64 
+INC_CUDA = -isystem /appl/spack/v020/install-tree/gcc-10.4.0/cuda-12.1.1-2ppwzf/include
 
 #======== PAPI ==========
 #Add PAPI_MEM define to use papi to report memory consumption?
@@ -88,45 +78,30 @@ testpackage: CXXFLAGS += -DUSE_UMPIRE
 
 #======== Libraries ===========
 
-LIBRARY_PREFIX = /projappl/project_2002873/libraries/nvhpc/21.2
-LIBRARY_PREFIX2 = /projappl/project_2000203/libraries_rhel8_gcccuda
+LIBRARY_PREFIX = /projappl/project_2004522/libraries/gcc-10.4.0/openmpi-4.1.5-cuda/cuda-12.1.1/
 
 #======== Compiled Libraries ===========
+LIB_BOOST = -lboost_program_options -Xlinker=-rpath=/appl/spack/v020/install-tree/gcc-10.4.0/boost-1.82.0-ystwi2/lib/
 
-INC_BOOST = -isystem /$(LIBRARY_PREFIX2)/boost/include
-LIB_BOOST = -L/$(LIBRARY_PREFIX2)/boost/lib -lboost_program_options
+LIB_PAPI = -lpapi -Xlinker=-rpath=/appl/spack/v020/install-tree/gcc-10.4.0/papi-7.1.0-pl56uv/lib
 
-# module
-LIB_PAPI = -lpapi
-#INC_PAPI = -isystem /$(LIBRARY_PREFIX2)/papi/include
-#LIB_PAPI = -L/$(LIBRARY_PREFIX2)/papi/lib -lpapi
+INC_ZOLTAN = -isystem /$(LIBRARY_PREFIX)/zoltan/include
+LIB_ZOLTAN = -L/$(LIBRARY_PREFIX)/zoltan/lib -lzoltan
 
-INC_ZOLTAN = -isystem /$(LIBRARY_PREFIX2)/zoltan/include
-LIB_ZOLTAN = -L/$(LIBRARY_PREFIX2)/zoltan/lib -lzoltan
+INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv
+LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv -Xlinker=-rpath=$(LIBRARY_PREFIX)/vlsv/lib
 
-# module
-#LIB_JEMALLOC = -ljemalloc
-#INC_JEMALLOC = -isystem /$(LIBRARY_PREFIX2)/jemalloc/include
-#LIB_JEMALLOC = -L/$(LIBRARY_PREFIX2)/jemalloc/lib -ljemalloc -Xlinker=-rpath=$(LIBRARY_PREFIX2)/jemalloc/lib
-#LIB_JEMALLOC = -L/$(LIBRARY_PREFIX2)/jemalloc/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX2)/jemalloc/lib
-
-INC_VLSV = -I$(LIBRARY_PREFIX2)/vlsv
-LIB_VLSV = -L$(LIBRARY_PREFIX2)/vlsv -lvlsv -Xlinker=-rpath=$(LIBRARY_PREFIX2)/vlsv/lib
-#LIB_VLSV = -L$(LIBRARY_PREFIX2)/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX2)/vlsv/lib
-
-INC_PROFILE = -I$(LIBRARY_PREFIX2)/phiprof_nvcc/include
-LIB_PROFILE = -L$(LIBRARY_PREFIX2)/phiprof_nvcc/lib -lphiprof -Xlinker=-rpath=$(LIBRARY_PREFIX2)/phiprof_nvcc/lib
-#LIB_PROFILE = -L$(LIBRARY_PREFIX2)/phiprof_nvcc/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX2)/phiprof_nvcc/lib
+INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -Xlinker=-rpath=$(LIBRARY_PREFIX)/phiprof/lib
 
 INC_UMPIRE = -isystem $(LIBRARY_PREFIX2)/umpire/include
 LIB_UMPIRE = -L$(LIBRARY_PREFIX2)/umpire/lib -L$(LIBRARY_PREFIX)/umpire/lib64 -lcamp -lumpire -lfmt
 
 #======== Header-only Libraries ===========
 
-INC_EIGEN = -isystem $(LIBRARY_PREFIX)/eigen
+INC_EIGEN = -isystem ./submodules/eigen
 INC_FSGRID = -I./submodules/fsgrid
 INC_DCCRG = -I./submodules/dccrg
+INC_HASHINATOR = -I./submodules/hashinator/
 # Vectorclass only for CPU mode
-#INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/
-# Hashinator not yet as a submodule
-INC_HASHINATOR = -I$(HOME)/git/hashinator/
+# INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/

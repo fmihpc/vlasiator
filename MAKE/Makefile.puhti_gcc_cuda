@@ -45,7 +45,6 @@ VECL=64
 #                         mpi.h in c++ on Cray
 
 USE_CUDA=1
-CUDABLOCKS=108
 CMP = mpic++
 LNK = mpic++
 NVCC = nvcc

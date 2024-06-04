@@ -28,7 +28,7 @@
 #include <functional>
 #include "../definitions.h"
 #include "../readparameters.h"
-#include "../spatial_cell.hpp"
+#include "../spatial_cell_wrapper.hpp"
 #include "sysboundarycondition.h"
 #include "../backgroundfield/fieldfunction.hpp"
 #include "../fieldsolver/fs_common.h"
@@ -271,15 +271,17 @@ namespace SBC {
          std::array<Real, 3> e1{b[0]-c[0], b[1]-c[1],b[2]-c[2]};
          std::array<Real, 3> e2{c[0]-a[0], c[1]-a[1],c[2]-a[2]};
          // Area vector A = cross(e1 e2)
-         std::array<Real, 3> area{ 0.5 * (e1[1]*e2[2] - e1[2]*e2[1]),
-                                   0.5 * (e1[2]*e2[0] - e1[0]*e2[2]),
-                                   0.5 * (e1[0]*e2[1] - e1[1]*e2[0])};
+         const Real HALF = 0.5;
+         const Real THIRD = 1./3.;
+         std::array<Real, 3> area{ HALF * (e1[1]*e2[2] - e1[2]*e2[1]),
+                                   HALF * (e1[2]*e2[0] - e1[0]*e2[2]),
+                                   HALF * (e1[0]*e2[1] - e1[1]*e2[0])};
         
          // By definition, the area is oriented outwards, so if dot(r,A) < 0, flip it.
          std::array<Real, 3> r{
-            (a[0]+b[0]+c[0])/3.,
-            (a[1]+b[1]+c[1])/3.,
-            (a[2]+b[2]+c[2])/3.};
+            (a[0]+b[0]+c[0]) * THIRD,
+            (a[1]+b[1]+c[1]) * THIRD,
+            (a[2]+b[2]+c[2]) * THIRD};
          if(area[0]*r[0] + area[1]*r[1] + area[2] *r[2] < 0) {
             area[0]*=-1.;
             area[1]*=-1.;

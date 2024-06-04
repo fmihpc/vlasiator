@@ -158,12 +158,12 @@ bool P::adaptRefinement = false;
 bool P::refineOnRestart = false;
 bool P::forceRefinement = false;
 bool P::shouldFilter = false;
-bool P::useAlpha = true;
-Real P::alphaRefineThreshold = 0.5;
-Real P::alphaCoarsenThreshold = -1.0;
-bool P::useJPerB = true;
-Real P::jperbRefineThreshold = 0.5;
-Real P::jperbCoarsenThreshold = -1.0;
+bool P::useAlpha1 = true;
+Real P::alpha1RefineThreshold = 0.5;
+Real P::alpha1CoarsenThreshold = -1.0;
+bool P::useAlpha2 = true;
+Real P::alpha2RefineThreshold = 0.5;
+Real P::alpha2CoarsenThreshold = -1.0;
 Real P::alphaDRhoWeight = 1.0;
 Real P::alphaDUWeight = 1.0;
 Real P::alphaDPSqWeight = 1.0;
@@ -399,7 +399,7 @@ bool P::addParameters() {
                         "ig_electrontemp ig_solverinternals ig_upmappednodecoords ig_upmappedb ig_openclosed ig_potential "+
                         "ig_precipitation ig_deltaphi "+
                         "ig_inplanecurrent ig_b ig_e vg_drift vg_ionospherecoupling vg_connection vg_fluxrope fg_curvature "+
-                        "vg_amr_drho vg_amr_du vg_amr_dpsq vg_amr_dbsq vg_amr_db vg_amr_alpha vg_amr_reflevel vg_amr_jperb "+
+                        "vg_amr_drho vg_amr_du vg_amr_dpsq vg_amr_dbsq vg_amr_db vg_amr_alpha1 vg_amr_reflevel vg_amr_alpha2 "+
                         "vg_amr_translate_comm vg_gridcoordinates fg_gridcoordinates ");
 
    RP::addComposing(
@@ -430,8 +430,7 @@ bool P::addParameters() {
                         "Available (20221221): " + "populations_vg_blocks " +
                         "vg_rhom populations_vg_rho_loss_adjust " + "vg_loadbalance_weight " +
                         "vg_maxdt_acceleration vg_maxdt_translation " + "fg_maxdt_fieldsolver " +
-                        "populations_vg_maxdt_acceleration populations_vg_maxdt_translation " +
-                        "populations_vg_maxdistributionfunction populations_vg_mindistributionfunction");
+                        "populations_vg_maxdt_acceleration populations_vg_maxdt_translation ");
 
    RP::addComposing("variables_deprecated.diagnostic",
                     string() +
@@ -442,7 +441,6 @@ bool P::addParameters() {
                         "maxvdt maxdt_acceleration " + "maxrdt maxdt_translation " +
                         "populations_maxvdt populations_maxrdt " +
                         "populations_maxdt_acceleration populations_maxdt_translation " +
-                        "populations_maxdistributionfunction populations_mindistributionfunction " +
                         "maxfieldsdt maxdt_fieldsolver fg_maxfieldsdt");
 
    // bailout parameters
@@ -734,25 +732,25 @@ void Parameters::getParameters() {
    RP::get("AMR.refine_on_restart",P::refineOnRestart);
    RP::get("AMR.force_refinement",P::forceRefinement);
    RP::get("AMR.should_filter",P::shouldFilter);
-   RP::get("AMR.use_alpha1",P::useAlpha);
-   RP::get("AMR.alpha1_refine_threshold",P::alphaRefineThreshold);
-   RP::get("AMR.alpha1_coarsen_threshold",P::alphaCoarsenThreshold);
-   if (P::useAlpha && P::alphaCoarsenThreshold < 0) {
-      P::alphaCoarsenThreshold = P::alphaRefineThreshold / 2.0;
+   RP::get("AMR.use_alpha1",P::useAlpha1);
+   RP::get("AMR.alpha1_refine_threshold",P::alpha1RefineThreshold);
+   RP::get("AMR.alpha1_coarsen_threshold",P::alpha1CoarsenThreshold);
+   if (P::useAlpha1 && P::alpha1CoarsenThreshold < 0) {
+      P::alpha1CoarsenThreshold = P::alpha1RefineThreshold / 2.0;
    }
-   if (P::useAlpha && P::alphaRefineThreshold < 0) {
+   if (P::useAlpha1 && P::alpha1RefineThreshold < 0) {
       if (myRank == MASTER_RANK) {
          cerr << "ERROR invalid alpha_1 refine threshold" << endl;
       }
       MPI_Abort(MPI_COMM_WORLD, 1);
    }
-   RP::get("AMR.use_alpha2",P::useJPerB);
-   RP::get("AMR.alpha2_refine_threshold",P::jperbRefineThreshold);
-   RP::get("AMR.alpha2_coarsen_threshold",P::jperbCoarsenThreshold);
-   if (P::useJPerB && P::jperbCoarsenThreshold < 0) {
-      P::jperbCoarsenThreshold = P::jperbRefineThreshold / 2.0;
+   RP::get("AMR.use_alpha2",P::useAlpha2);
+   RP::get("AMR.alpha2_refine_threshold",P::alpha2RefineThreshold);
+   RP::get("AMR.alpha2_coarsen_threshold",P::alpha2CoarsenThreshold);
+   if (P::useAlpha2 && P::alpha2CoarsenThreshold < 0) {
+      P::alpha2CoarsenThreshold = P::alpha2RefineThreshold / 2.0;
    }
-   if (P::useJPerB && P::jperbRefineThreshold < 0) {
+   if (P::useAlpha2 && P::alpha2RefineThreshold < 0) {
       if (myRank == MASTER_RANK) {
          cerr << "ERROR invalid alpha_2 refine threshold" << endl;
       }

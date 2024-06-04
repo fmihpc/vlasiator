@@ -42,7 +42,7 @@
 #include "phiprof.hpp"
 #include "parameters.h"
 #include "logger.h"
-#include "vlasovmover.h"
+#include "vlasovsolver/vlasovmover.h"
 #include "object_wrapper.h"
 #include "velocity_mesh_parameters.h"
 #include "sysboundary/ionosphere.h"
@@ -125,8 +125,8 @@ bool writeVelocityDistributionData(Writer& vlsvWriter,
                                    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                    const vector<CellID>& cells,MPI_Comm comm) {
    bool success = true;
-   for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
-      if (writeVelocityDistributionData(p,vlsvWriter,mpiGrid,cells,comm) == false) success = false;
+   for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      if (writeVelocityDistributionData(popID,vlsvWriter,mpiGrid,cells,comm) == false) success = false;
    }
    return success;
 }
@@ -155,10 +155,6 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
    for (size_t cell=0; cell<cells.size(); ++cell){
       totalBlocks+=mpiGrid[cells[cell]]->get_number_of_velocity_blocks(popID);
       blocksPerCell.push_back(mpiGrid[cells[cell]]->get_number_of_velocity_blocks(popID));
-      #ifdef USE_GPU
-      mpiGrid[cells[cell]]->get_velocity_mesh(popID)->gpu_prefetchHost();
-      mpiGrid[cells[cell]]->get_velocity_blocks(popID)->gpu_prefetchHost();
-      #endif
    }
 
    // The name of the mesh is "SpatialGrid"
@@ -233,7 +229,8 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
       // gather data for writing
       for (size_t cell=0; cell<cells.size(); ++cell) {
          SpatialCell* SC = mpiGrid[cells[cell]];
-         for (vmesh::LocalID block_i=0; block_i<SC->get_number_of_velocity_blocks(popID); ++block_i) {
+         const vmesh::LocalID nBlocks = SC->get_number_of_velocity_blocks(popID);
+         for (vmesh::LocalID block_i=0; block_i<nBlocks; ++block_i) {
             vmesh::GlobalID block = SC->get_velocity_block_global_id(block_i,popID);
             velocityBlockIds.push_back( block );
          }
@@ -299,12 +296,6 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
    if (success ==false) {
       logFile << "(MAIN) writeGrid: ERROR occurred when writing BLOCKVARIABLE f" << endl << writeVerbose;
    }
-   #ifdef USE_GPU
-   for (size_t cell=0; cell<cells.size(); ++cell){
-      mpiGrid[cells[cell]]->get_velocity_mesh(popID)->gpu_prefetchDevice();
-      mpiGrid[cells[cell]]->get_velocity_blocks(popID)->gpu_prefetchDevice();
-   }
-   #endif
 
    return success;
 }
@@ -394,8 +385,19 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       }
    }
 
-   if( success ) {
+  if( dataReducer.getName(dataReducerIndex).find("fg_", 0) == 0 ) {
+      // Write fsgrid data
+      phiprof::Timer writeFsTimer {"writeFsGrid"};
+      success = dataReducer.writeFsGridData(perBGrid,EGrid,EHallGrid,EGradPeGrid,momentsGrid,dPerBGrid,dMomentsGrid,BgBGrid,volGrid, technicalGrid, "fsgrid", dataReducerIndex, vlsvWriter, writeAsFloat);
+      writeFsTimer.stop();
 
+   } else if( dataReducer.getName(dataReducerIndex).find("ig_", 0) == 0 ) {
+      // Or maybe it will be writing ionosphere data?
+      phiprof::Timer writeIonosphereTimer {"writeIonosphere"};
+      success |= dataReducer.writeIonosphereGridData(SBC::ionosphereGrid, "ionosphere", dataReducerIndex, vlsvWriter);
+      writeIonosphereTimer.stop();
+   } else {
+      // If the data reducer didn't want to write fg or ig data, maybe it will be happy writing dccrg data
       if( (writeAsFloat == true && dataType.compare("float") == 0) && dataSize == sizeof(double) ) {
          double * varBuffer_double = reinterpret_cast<double*>(varBuffer);
          //Declare smaller varbuffer:
@@ -430,25 +432,13 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
          delete[] varBuffer_smaller;
          varBuffer_smaller = NULL;
       } else {
-         // Write  reduced data to file if DROP was successful:
+         // Write reduced data to file if DROP was successful:
          phiprof::Timer writeArrayTimer {"writeArray"};
          if (vlsvWriter.writeArray("VARIABLE",attribs, dataType, cells.size(), vectorSize, dataSize, varBuffer) == false) {
             success = false;
             logFile << "(MAIN) writeGrid: ERROR failed to write datareductionoperator data to file!" << endl << writeVerbose;
          }
       }
-
-   } else {
-      // If the data reducer didn't want to write dccrg data, maybe it will be happy
-      // dumping data straight from fsgrid into our file.
-      phiprof::Timer writeFsTimer {"writeFsGrid"};
-      success = dataReducer.writeFsGridData(perBGrid,EGrid,EHallGrid,EGradPeGrid,momentsGrid,dPerBGrid,dMomentsGrid,BgBGrid,volGrid, technicalGrid, "fsgrid", dataReducerIndex, vlsvWriter, writeAsFloat);
-      writeFsTimer.stop();
-
-      // Or maybe it will be writing ionosphere data?
-      phiprof::Timer writeIonosphereTimer {"writeIonosphere"};
-      success |= dataReducer.writeIonosphereGridData(SBC::ionosphereGrid, "ionosphere", dataReducerIndex, vlsvWriter);
-      writeIonosphereTimer.stop();
    }
    
    // Check if the DataReducer wants to write paramters to the output file
@@ -955,8 +945,7 @@ bool writeFsGridMetadata(FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technic
   vlsvWriter.writeArray("MESH_DOMAIN_SIZES", xmlAttributes, 1, 2, &meshDomainSize[0]);
 
   // how many MPI ranks we wrote from
-  int size;
-  MPI_Comm_size(MPI_COMM_WORLD, &size);
+  int size = technicalGrid.getSize();
   vlsvWriter.writeParameter("numWritingRanks", &size);
 
   // Save the FSgrid decomposition
@@ -1090,6 +1079,12 @@ bool writeIonosphereGridMetadata(vlsv::Writer& vlsvWriter) {
   } else {
     vlsvWriter.writeArray("MESH", xmlAttributes, 0, 1, ionosphereGridElementsAndCorners.data());
   }
+  
+  // Write different parameters of the class Ionosphere into the VLSV file
+  if( vlsvWriter.writeParameter("ionosphere_radius", &SBC::Ionosphere::innerRadius) == false ) { return false; }
+  if( vlsvWriter.writeParameter("ionosphere_downmapping_radius", &SBC::Ionosphere::downmapRadius) == false ) { return false; }
+  if( vlsvWriter.writeParameter("ionosphere_time_smoothing_constant", &SBC::Ionosphere::couplingTimescale) == false ) { return false; }
+  if( vlsvWriter.writeParameter("ionosphere_time_interval", &SBC::Ionosphere::couplingInterval) == false ) { return false; }
 
   return true;
 
@@ -1672,8 +1667,8 @@ bool writeRestart(
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("max_fields_dt",CellParams::MAXFDT,1));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_drift",CellParams::BULKV_FORCING_X,3));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_bulk_forcing_flag",CellParams::FORCING_CELL_NUM,1));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_alpha",CellParams::AMR_ALPHA,1));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_jperb",CellParams::AMR_JPERB,1));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_alpha1",CellParams::AMR_ALPHA1,1));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_alpha2",CellParams::AMR_ALPHA2,1));
    restartReducer.addOperator(new DRO::VariableBVol);
    restartReducer.addMetadata(restartReducer.size()-1,"T","$\\mathrm{T}$","$B_\\mathrm{vol,vg}$","1.0");
    restartReducer.addOperator(new DRO::MPIrank);

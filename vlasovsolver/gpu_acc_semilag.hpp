@@ -1,6 +1,6 @@
 /*
  * This file is part of Vlasiator.
- * Copyright 2010-2016 Finnish Meteorological Institute
+ * Copyright 2010-2024 Finnish Meteorological Institute and University of Helsinki
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
  * at http://www.physics.helsinki.fi/vlasiator/
@@ -24,7 +24,7 @@
 #define GPU_ACC_SEMILAG_H
 
 #include "../common.h"
-#include "../spatial_cell.hpp"
+#include "../spatial_cell_wrapper.hpp"
 
 void prepareAccelerateCell(spatial_cell::SpatialCell* spatial_cell, const uint popID);
 uint getAccelerationSubcycles(spatial_cell::SpatialCell* spatial_cell, Real dt, const uint popID);

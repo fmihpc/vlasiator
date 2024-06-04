@@ -9,6 +9,10 @@ on:
   # ... or when the workflow is started manually
   workflow_dispatch:
 
+concurrency:
+   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+   cancel-in-progress: true
+
 jobs:
   build_libraries:
     # Build libraries for the current version of the docker image
@@ -18,16 +22,49 @@ jobs:
 
     steps:
       - name: Checkout source
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Run library build script
         run: ./build_libraries.sh
       - name: Build libraries tar
         run: tar --zstd -cvf libraries.tar.zstd libraries/
       - name: Upload libraries as artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: libraries
           path: libraries.tar.zstd
+          retention-days: 5
+          if-no-files-found: error
+
+  build_libraries_appleM1:
+    # Build libraries on macos with M1 hardware, to test both macOS and aarch64 compatibility
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Setup MPI
+        uses: mpi4py/setup-mpi@v1
+        with:
+          mpi: 'openmpi'
+      - name: Setup openmp-capable llvm
+        run: |
+          brew install llvm libomp
+          echo "CXX=/opt/homebrew/opt/llvm/bin/clang++" >> "$GITHUB_ENV"
+          echo "OMPI_CXX=/opt/homebrew/opt/llvm/bin/clang++" >> "$GITHUB_ENV"
+          echo "MPI_CXX=mpic++" >> "$GITHUB_ENV"
+          echo "CC=/opt/homebrew/opt/llvm/bin/clang" >> "$GITHUB_ENV"
+          echo "OMPI_CC=/opt/homebrew/opt/llvm/bin/clang" >> "$GITHUB_ENV"
+          echo "MPI_CC=mpicc" >> "$GITHUB_ENV"
+      - name: Run library build script
+        run: |
+          . ./build_libraries.sh appleM1
+      - name: Build libraries tar
+        run: tar --zstd -cvf libraries-appleM1.tar.zstd libraries-appleM1
+      - name: Upload libraries as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libraries-appleM1
+          path: libraries-appleM1.tar.zstd
           retention-days: 5
           if-no-files-found: error
 
@@ -37,13 +74,21 @@ jobs:
     runs-on: risc-v
 
     steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Clean workspace
+        run: |
+          rm -rf libraries library-build libraries-arriesgado.tar.gz
       - name: Submit library job
         run: |
-          srun --interactive -p arriesgado-jammy -J vlasiator-libs -n 1 -c 4 --pty -t 01:00:00 bash -lc 'module load openmpi; cp ~/vlasiator/build_libraries.sh .; ./build_libraries.sh arriesgado'
+          #srun --interactive -p arriesgado-jammy -J vlasiator-libs -n 1 -c 4 -t 01:00:00 bash -lc 'module load openmpi; ./build_libraries.sh arriesgado'
+          ssh synth-hca 'source /etc/profile.d/lmod.sh; export PATH=$PATH:$HOME/bin; module load llvm/cross/EPI-0.7-development; cd '$GITHUB_WORKSPACE'; ./build_libraries.sh arriesgado'
       - name: Build libraries tar
         run: tar -czvf libraries-arriesgado.tar.gz libraries-arriesgado/
       - name: Upload libraries as artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: libraries-arriesgado
           path: libraries-arriesgado.tar.gz
@@ -58,11 +103,11 @@ jobs:
 
     steps:
     - name: Checkout source
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: true
     - name: Download libraries
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: libraries
     - name: Unpack libraries
@@ -86,10 +131,10 @@ jobs:
     - name: Clean workspace
       run: |
         rm -rf libraries library-build testpackage
-        rm -f libraries.tar.zst dtestpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+        rm -f libraries.tar.zst testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
         rm -f *.xml
     - name: Checkout source
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: true
     - name: Make clean
@@ -107,13 +152,13 @@ jobs:
         retry_on: error
         command: ls vlasiator
     - name: Upload testpackage binary
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: vlasiator-testpackage
         path: vlasiator
         if-no-files-found: error
     #- name: Upload build log
-    #  uses: actions/upload-artifact@v3
+    #  uses: actions/upload-artifact@v4
     #  with:
     #    name: Testpackage build log
     #    path: build.log
@@ -124,28 +169,69 @@ jobs:
 
     steps:
     - name: Checkout source
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: true
+    - name: Clean workspace
+      run: |
+        rm -rf libraries library-build libraries-arriesgado.tar.gz
+        rm -rf stdout.txt stderr.txt metrics.txt
+        rm -rf *.xml
     - name: Download libraries
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: libraries-arriesgado
     - name: Unpack libraries
       run: tar -xzvf libraries-arriesgado.tar.gz
-    - name: STOPGAP remove conflicting submoduled header libraries from the tarball extract
-      run: rm ./libraries-arriesgado/include/fsgrid.hpp ./libraries-arriesgado/include/dccrg.hpp
     - name: Make clean
       run: VLASIATOR_ARCH=arriesgado make clean
     - name: Compile vlasiator (RISC-V)
       run: |
-          srun --interactive -p arriesgado-jammy -J vlasiator_build -n 1 -c 4 --pty -t 01:00:00 bash -lc 'module load boost papi openmpi; export VLASIATOR_ARCH=arriesgado; make -j4'
+        #srun --interactive -p arriesgado-jammy -J vlasiator_build -n 1 -c 4 --pty -t 01:00:00 bash -lc 'module load boost papi openmpi; export VLASIATOR_ARCH=arriesgado; make -j4'
+        ssh synth-hca 'source /etc/profile.d/lmod.sh; export PATH=$PATH:$HOME/bin; module load llvm/cross/EPI-0.7-development; export VLASIATOR_ARCH=arriesgado; cd '$GITHUB_WORKSPACE'; make -j 12'
     - name: Upload riscv binary
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: vlasiator-riscv
         path: vlasiator
         if-no-files-found: error
+
+  build_appleM1:
+    runs-on: macos-14
+    needs: build_libraries_appleM1
+
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v4
+      with:
+        submodules: true
+    - name: Setup MPI
+      uses: mpi4py/setup-mpi@v1
+      with:
+        mpi: 'openmpi'
+    - name: Setup openmp-capable llvm
+      run: |
+        brew install llvm libomp
+        echo "CXX=/opt/homebrew/opt/llvm/bin/clang++" >> "$GITHUB_ENV"
+        echo "OMPI_CXX=/opt/homebrew/opt/llvm/bin/clang++" >> "$GITHUB_ENV"
+        echo "CC=/opt/homebrew/opt/llvm/bin/clang" >> "$GITHUB_ENV"
+        echo "OMPI_CC=/opt/homebrew/opt/llvm/bin/clang" >> "$GITHUB_ENV"
+    - name: Install boost
+      run: |
+        brew install boost
+        ln -s /opt/homebrew/Cellar/boost/* /opt/homebrew/Cellar/boost/latest
+    - name: Download libraries
+      uses: actions/download-artifact@v4
+      with:
+        name: libraries-appleM1
+    - name: Unpack libraries
+      run: tar --zstd -xvf libraries-appleM1.tar.zstd
+    - name: Make clean
+      run: VLASIATOR_ARCH=appleM1 make clean
+    - name: Compile vlasiator (Release build)
+      run: |
+        VLASIATOR_ARCH=appleM1 make clean
+        VLASIATOR_ARCH=appleM1 make -j 3
 
   build_tools:
     # Build vlsvdiff and vlsvextract for testpackage use
@@ -155,10 +241,10 @@ jobs:
     - name: Clean workspace
       run: |
         rm -rf libraries library-build testpackage
-        rm -f libraries.tar.zst dtestpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+        rm -f libraries.tar.zstd testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
         rm -f *.xml
     - name: Checkout source
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: true
     - uses: ursg/gcc-problem-matcher@master
@@ -169,7 +255,7 @@ jobs:
         export VLASIATOR_ARCH=carrington_gcc_openmpi
         srun -M carrington --job-name tp_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p short -t 0:10:0 bash -c 'module purge; module load GCC/11.2.0; module load OpenMPI/4.1.1-GCC-11.2.0 ; module load PMIx/4.1.0-GCCcore-11.2.0; module load PAPI/6.0.0.1-GCCcore-11.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make -j 16 vlsvextract vlsvdiff'
     - name: Upload tools binaries
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: vlasiator-tools
         path: |
@@ -185,15 +271,15 @@ jobs:
 
     steps:
     - name: Checkout source
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: true
     - name: Download testpackage binary
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: vlasiator-testpackage
     - name: Download tools
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: vlasiator-tools
     - name: Run testpackage
@@ -204,17 +290,33 @@ jobs:
         cd testpackage
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries/lib
         #srun -M carrington -t 01:30:00 --job-name CI_testpackage --interactive --nodes=1 -c 4 -n 16 --mem-per-cpu=5G -p short ./small_test_carrington_github_ci.sh
-        sbatch -W -o testpackage_run_output.txt ./small_test_carrington_github_ci.sh
+        VLASIATOR_CIRUNNER_JOBSPEC_TP=$(sbatch --parsable -o testpackage_run_output.txt ./small_test_carrington_github_ci.sh)
+        VLASIATOR_CIRUNNER_JOBSPEC_TP=(${VLASIATOR_CIRUNNER_JOBSPEC_TP//\;/ })
+        trap "scancel -M carrington ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}" SIGINT
+        trap "scancel -M carrington ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}" SIGTERM
+        RUN_STRING=$( cat << MORO
+        echo "Job finished, checking output."
         cat testpackage_run_output.txt
         cat $GITHUB_STEP_SUMMARY > $GITHUB_WORKSPACE/testpackage_check_description.txt
         cd $GITHUB_WORKSPACE
-        tar -czvf testpackage-output.tar.gz testpackage_check_description.txt testpackage_output_variables.txt
+        ls -halB testpackage_check_description.txt
+        tar -czf testpackage-output.tar.gz testpackage_check_description.txt testpackage_output_variables.txt
+        MORO
+        )
+        srun -M carrington --dependency afterany:${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]} bash -c "$RUN_STRING"
         if [ -f $GITHUB_WORKSPACE/testpackage_failed ]; then
           # Fail this step if any test failed.
           exit 1
         fi
+    - name: Make sure the output tarball is visible in lustre
+      uses: nick-fields/retry@v3
+      with:
+        timeout_seconds: 15
+        max_attempts: 3
+        retry_on: error
+        command: ls $GITHUB_WORKSPACE/testpackage-output.tar.gz
     - name: Upload testpackage output
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: testpackage-output
@@ -228,11 +330,11 @@ jobs:
     needs: [build_libraries]
     steps:
     - name: Checkout source
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: true
           #    - name: Download libraries
-          #      uses: actions/download-artifact@v3
+          #      uses: actions/download-artifact@v4
           #      with:
           #        name: libraries
           #    - name: Unpack libraries
@@ -244,9 +346,9 @@ jobs:
         srun -M carrington --job-name iST_compile --interactive --nodes=1 -n 1 -c 3 --mem=40G -p short -t 0:10:0 bash -c 'module purge; module load GCC/11.2.0; module load OpenMPI/4.1.1-GCC-11.2.0 ; module load PMIx/4.1.0-GCCcore-11.2.0; module load PAPI/6.0.0.1-GCCcore-11.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make -j 3 main differentialFlux sigmaProfiles'
         #        VLASIATOR_ARCH=carrington_gcc_openmpi make -j 3 main differentialFlux sigmaProfiles
     - name: Upload ionosphereTest binaries
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: vlasiator-tools
+        name: ionosphereTests
         path: |
           mini-apps/ionosphereSolverTests/main
           mini-apps/ionosphereSolverTests/differentialFlux

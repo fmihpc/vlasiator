@@ -3,7 +3,7 @@
 #define ARCH_DEVICE_API_H
 
 /* Host-device function declarations */
-#if defined(__CUDACC__) || defined(__HIP_PLATFORM_HCC___)
+#if (defined(USE_GPU) && (defined(__CUDACC__) || defined(__HIP_PLATFORM_HCC___)))
   #define ARCH_HOSTDEV __host__ __device__
   #define ARCH_DEV __device__
 #else
@@ -15,7 +15,7 @@
 namespace arch{
 
 /* Type definition used in the headers */
-typedef std::uint32_t uint;
+typedef uint32_t uint;
 /* Enums for different reduction types */
 enum reduce_op { max, min, sum, prod };
 

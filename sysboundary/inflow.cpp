@@ -31,7 +31,7 @@
 
 #include "../fieldsolver/fs_common.h"
 #include "../object_wrapper.h"
-#include "../vlasovmover.h"
+#include "../vlasovsolver/vlasovmover.h"
 #include "../grid.h"
 #include "inflow.h"
 
@@ -358,13 +358,10 @@ namespace SBC {
             }
          }
       }
-      // // Verify current mesh and blocks
-      // cuint vmeshSize = cell->get_velocity_mesh(popID)->size();
-      // cuint vbcSize = cell->get_velocity_blocks(popID)->size();
-      // if (vmeshSize != vbcSize) {
-      //    printf("ERROR: population vmesh %ul and blockcontainer %ul sizes do not match!\n",vmeshSize,vbcSize);
+      // Verify current mesh and blocks
+      // if (!cell->checkMesh(popID)) {
+      //    printf("ERROR in vmesh check: %s at %d\n",__FILE__,__LINE__);
       // }
-      // cell->get_velocity_mesh(popID)->check();}
    }
 
    void Inflow::getFaces(bool* faces) {
