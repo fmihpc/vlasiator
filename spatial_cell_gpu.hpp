@@ -834,6 +834,7 @@ namespace spatial_cell {
       // (pop.blockContainer)->gpu_prefetchDevice();
       //phiprof::Timer incpopTimer {"increment population"};
       (this->populations[popID]).Increment(pop, factor);
+      populations[popID].vmesh->updateCachedSize();
    }
 
    inline const vmesh::LocalID* SpatialCell::get_velocity_grid_length(const uint popID) {
@@ -1120,8 +1121,8 @@ namespace spatial_cell {
       uint64_t size = 0;
       size += 2 * WID3 * sizeof(Realf);
       size += velocity_block_with_content_list_size * sizeof(vmesh::GlobalID);
-      size += pow(2,vbwcl_sizePower) * (sizeof(vmesh::GlobalID)+sizeof(vmesh::LocalID));
-      size += pow(2,vbwncl_sizePower) * (sizeof(vmesh::GlobalID)+sizeof(vmesh::LocalID));
+      size += velocity_block_with_content_map->size() * (sizeof(vmesh::GlobalID)+sizeof(vmesh::LocalID));
+      size += velocity_block_with_no_content_map->size() * (sizeof(vmesh::GlobalID)+sizeof(vmesh::LocalID));
       size += CellParams::N_SPATIAL_CELL_PARAMS * sizeof(Real);
       size += bvolderivatives::N_BVOL_DERIVATIVES * sizeof(Real);
 
@@ -1142,8 +1143,8 @@ namespace spatial_cell {
 
       capacity += 2 * WID3 * sizeof(Realf);
       capacity += velocity_block_with_content_list_capacity * sizeof(vmesh::GlobalID);
-      capacity += velocity_block_with_content_map->size() * (sizeof(vmesh::GlobalID)+sizeof(vmesh::LocalID));
-      capacity += velocity_block_with_no_content_map->size() * (sizeof(vmesh::GlobalID)+sizeof(vmesh::LocalID));
+      capacity += pow(2,vbwcl_sizePower) * (sizeof(vmesh::GlobalID)+sizeof(vmesh::LocalID));
+      capacity += pow(2,vbwncl_sizePower) * (sizeof(vmesh::GlobalID)+sizeof(vmesh::LocalID));
       capacity += CellParams::N_SPATIAL_CELL_PARAMS * sizeof(Real);
       capacity += bvolderivatives::N_BVOL_DERIVATIVES * sizeof(Real);
 

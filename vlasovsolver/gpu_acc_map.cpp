@@ -529,8 +529,9 @@ __global__ void __launch_bounds__(VECL,4) acceleration_kernel(
                   gpu_columns[column].i * gpu_block_indices_to_id[0] +
                   gpu_columns[column].j * gpu_block_indices_to_id[1] +
                   blockK                * gpu_block_indices_to_id[2];
-               //const vmesh::LocalID tblockLID = vmesh->getLocalID(targetBlock);
-               const vmesh::LocalID tblockLID = vmesh->warpGetLocalID(targetBlock, w_tid);
+               const vmesh::LocalID tblockLID = vmesh->getLocalID(targetBlock);
+               // Using a warp search here seems to get only partial warp masks, resulting in an error
+               //const vmesh::LocalID tblockLID = vmesh->warpGetLocalID(targetBlock, w_tid);
                if (isfinite(tval) && (tval>0) && (tblockLID != invalidLID) ) {
                   (&gpu_blockData[tblockLID*WID3])[tcell] += tval;
                }

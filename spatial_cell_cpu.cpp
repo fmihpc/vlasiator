@@ -739,7 +739,6 @@ namespace spatial_cell {
       for (size_t p=0; p<populations.size(); ++p) {
          cerr << "\t pop " << p << " " << populations[p].vmesh->size() << ' ' << populations[p].blockContainer->size() << endl;
       }
-      cerr << "\t temp sizes are " << vmeshTemp->size() << ' ' << blockContainerTemp->size() << endl;
    }
 
    /** Updates minValue based on algorithm value from parameters (see parameters.cpp).
