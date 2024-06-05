@@ -506,7 +506,7 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
 
    // Two temporary buffers, used in-kernel for both reading and writing
    allocateTimer.start();
-   gpu_trans_allocate(sumOfLengths,0,0,0,nGpuBlocks,nPencils);
+   gpu_trans_allocate(0,sumOfLengths,0,0,nGpuBlocks,nPencils);
    allocateTimer.stop();
    bufferTimer.stop();
 
@@ -520,7 +520,7 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    // Launch 2D grid: First dimension is how many blocks fit in one temp buffer, second one
    // is "per-thread" so which temp buffer to use.
    dim3 block(WID,WID,WID); // assumes VECL==WID2
-   translation_kernel<<<nGpuBlocks, block, 0, bgStream>>> (
+   translation_kernel<<<grid, block, 0, bgStream>>> (
       dimension,
       dt,
       pencilLengths,

@@ -606,10 +606,18 @@ __host__ void gpu_trans_deallocate() {
    if (gpu_allocated_unionSetSize != 0) {
       delete unionOfBlocks;
    }
+   if (gpu_allocated_trans_pencilBlockData != 0) {
+      CHK_ERR( gpuFree(dev_pencilBlockData) );
+   }
+   if (gpu_allocated_trans_pencilBlocksCount != 0) {
+      CHK_ERR( gpuFree(dev_pencilBlocksCount) );
+   }
    gpu_allocated_nAllCells = 0;
    gpu_allocated_sumOfLengths = 0;
    gpu_allocated_largestVmesh = 0;
    gpu_allocated_unionSetSize = 0;
+   gpu_allocated_trans_pencilBlockData = 0;
+   gpu_allocated_trans_pencilBlocksCount = 0;
    // Delete also the vectors for pencils for each dimension
    for (uint dimension=0; dimension<3; dimension++) {
       if (DimensionPencils[dimension].gpu_allocated) {
@@ -619,11 +627,4 @@ __host__ void gpu_trans_deallocate() {
          delete DimensionPencils[dimension].gpu_targetRatios;
       }
    }
-   if (gpu_allocated_trans_pencilBlockData != 0) {
-      CHK_ERR( gpuFree(dev_pencilBlockData) );
-   }
-   if (gpu_allocated_trans_pencilBlocksCount != 0) {
-      CHK_ERR( gpuFree(dev_pencilBlocksCount) );
-   }
-
 }
