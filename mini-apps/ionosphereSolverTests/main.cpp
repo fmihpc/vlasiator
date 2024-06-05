@@ -414,7 +414,7 @@ int main(int argc, char** argv) {
          double j_parallel=0;
 
          // Merkin et al specifies colatitude as degrees-from-the-pole
-         if(theta >= theta_0 && theta < theta_0 + deltaTheta) {
+         if(fabs(theta) >= theta_0 && fabs(theta) < theta_0 + deltaTheta) {
             j_parallel = j_0 * sin(M_PI/2 - theta) * sin(phi);
          }
          nodes[n].parameters[ionosphereParameters::SOURCE] = j_parallel * area;
