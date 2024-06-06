@@ -143,7 +143,7 @@ void initializeGrids(
    geom_params.level_0_cell_length[0] = P::dx_ini;
    geom_params.level_0_cell_length[1] = P::dy_ini;
    geom_params.level_0_cell_length[2] = P::dz_ini;
-   
+
    mpiGrid.set_initial_length(grid_length)
       .set_load_balancing_method(&P::loadBalanceAlgorithm[0])
       .set_neighborhood_length(neighborhood_size)
@@ -159,6 +159,8 @@ void initializeGrids(
    for (const auto& [key, value] : P::loadBalanceOptions) {
       mpiGrid.set_partitioning_option(key, value);
    }
+
+   mpiGrid.set_partitioning_option("LB_APPROACH", "PARTITION");
 
    // Hypergraph partitioning needs stencils initialized
    initializeStencils(mpiGrid);
@@ -419,7 +421,9 @@ void initializeGrids(
       }
       P::dt = P::bailout_min_dt;
    }
-   
+
+   mpiGrid.set_partitioning_option("LB_APPROACH", P::loadBalanceOptions.count("LB_APPROACH") ? P::loadBalanceOptions["LB_APPROACH"] : "REPARTITION");
+
    initialStateTimer.stop();
 }
 
