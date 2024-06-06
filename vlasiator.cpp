@@ -335,9 +335,11 @@ int main(int argn,char* args[]) {
    }
    if (myRank == MASTER_RANK) {
       const char* mpiioenv = std::getenv("OMPI_MCA_io");
-      std::string mpiioenvstr(mpiioenv);
-      if(mpiioenvstr.find("^ompio") == std::string::npos) {
-         cout << mpiioMessage.str();
+      if(mpiioenv != nullptr) {
+         std::string mpiioenvstr(mpiioenv);
+         if(mpiioenvstr.find("^ompio") == std::string::npos) {
+            cout << mpiioMessage.str();
+         }
       }
    }
 
