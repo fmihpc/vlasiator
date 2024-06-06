@@ -23,7 +23,7 @@
 #define TESTTRANS2_H
 
 #include "definitions.h"
-#include "spatial_cell.hpp"
+#include "spatial_cell_wrapper.hpp"
 #include "projects/projects_common.h"
 #include "projects/projects_vlasov_acceleration.h"
 

@@ -30,7 +30,7 @@
 
 #include "../definitions.h"
 #include "../common.h"
-#include "../spatial_cell.hpp"
+#include "../spatial_cell_wrapper.hpp"
 
 using namespace spatial_cell;
 

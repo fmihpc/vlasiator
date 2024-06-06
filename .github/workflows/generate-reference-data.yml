@@ -1,0 +1,65 @@
+name: Generate testpackage reference data
+
+on:
+  # Only run when triggered manually
+  workflow_dispatch:
+
+jobs:
+  # This should be kept identical to the build_testpackage job in github-ci.yml
+  build_testpackage:
+    # Build Vlasiator with testpackage flags, on the carrington cluster
+    # (for subsequent running of the integration test package)
+    runs-on: carrington
+
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v3 
+      with:
+        submodules: true
+    - name: Make clean
+      run: VLASIATOR_ARCH=carrington_gcc_openmpi make clean
+    - uses: ursg/gcc-problem-matcher@master
+    - name: Compile vlasiator (Testpackage build)
+      run: |
+        export VLASIATOR_ARCH=carrington_gcc_openmpi
+        srun -M carrington --job-name tp_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p short -t 0:10:0 bash -c 'module purge; module load GCC/11.2.0; module load OpenMPI/4.1.1-GCC-11.2.0 ; module load PMIx/4.1.0-GCCcore-11.2.0; module load PAPI/6.0.0.1-GCCcore-11.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make -j 16 testpackage; sleep 10s'
+    - name: Sleep for 10 seconds
+      run: sleep 10s
+      shell: bash
+    - name: Upload testpackage binary
+      uses: actions/upload-artifact@v3
+      with:
+        name: vlasiator-testpackage
+        path: vlasiator
+        if-no-files-found: error
+    #- name: Upload build log
+    #  uses: actions/upload-artifact@v3
+    #  with:
+    #    name: Testpackage build log
+    #    path: build.log
+  
+  run_testpackage:
+    # Run the testpackage on the carrington cluster
+    runs-on: carrington
+    needs: [build_testpackage]
+
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v3 
+      with:
+        submodules: true
+    - name: Download testpackage binary
+      uses: actions/download-artifact@v3
+      with:
+        name: vlasiator-testpackage
+    - name: Run testpackage
+      id: run
+      run: |
+        chmod +x $GITHUB_WORKSPACE/vlasiator
+        cd testpackage
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries/lib
+        # Fudge the run script
+        sed -i 's/\/proj\/USERNAME\/BINARYNAME/$GITHUB_WORKSPACE\/vlasiator/' ./small_test_carrington.sh
+        sbatch -W -o testpackage_run_output.txt ./small_test_carrington.sh
+        cat testpackage_run_output.txt
+    # We don't bother to create artefacts or anything here.

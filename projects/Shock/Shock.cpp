@@ -52,8 +52,6 @@ namespace projects {
       RP::add("Shock.magPertAmp", "Amplitude of the magnetic perturbation", 1.0e-9);
       RP::add("Shock.densityPertAmp", "Amplitude factor of the density perturbation", 0.1);
       RP::add("Shock.velocityPertAmp", "Amplitude of the velocity perturbation", 1.0e6);
-      RP::add("Shock.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
-      RP::add("Shock.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
       RP::add("Shock.maxwCutoff", "Cutoff for the maxwellian distribution", 1e-12);
       RP::add("Shock.Scale_x", "Scale length in x (m)", 2.0e6);
       RP::add("Shock.Scale_y", "Scale length in y (m)", 2.0e6);
@@ -80,8 +78,6 @@ namespace projects {
       RP::get("Shock.magPertAmp", this->magPertAmp);
       RP::get("Shock.densityPertAmp", this->densityPertAmp);
       RP::get("Shock.velocityPertAmp", this->velocityPertAmp);
-      RP::get("Shock.nSpaceSamples", this->nSpaceSamples);
-      RP::get("Shock.nVelocitySamples", this->nVelocitySamples);
       RP::get("Shock.maxwCutoff", this->maxwCutoff);
       RP::get("Shock.Scale_x", this->SCA_X);
       RP::get("Shock.Scale_y", this->SCA_Y);
@@ -111,29 +107,8 @@ namespace projects {
       creal mass = physicalconstants::MASS_PROTON;
       creal kb = physicalconstants::K_B;
       
-      creal d_x = dx / (this->nSpaceSamples-1);
-      creal d_y = dy / (this->nSpaceSamples-1);
-      creal d_z = dz / (this->nSpaceSamples-1);
-      creal d_vx = dvx / (this->nVelocitySamples-1);
-      creal d_vy = dvy / (this->nVelocitySamples-1);
-      creal d_vz = dvz / (this->nVelocitySamples-1);
-      Real avg = 0.0;
-      
-      for (uint i=0; i<this->nSpaceSamples; ++i)
-      for (uint j=0; j<this->nSpaceSamples; ++j)
-      for (uint k=0; k<this->nSpaceSamples; ++k)      
-      for (uint vi=0; vi<this->nVelocitySamples; ++vi)
-         for (uint vj=0; vj<this->nVelocitySamples; ++vj)
-      for (uint vk=0; vk<this->nVelocitySamples; ++vk)
-            {
-         avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, popID);
-         }
-      
-      creal result = avg *this->DENSITY * pow(mass / (2.0 * M_PI * kb * this->TEMPERATURE), 1.5) /
-                     (this->nSpaceSamples*this->nSpaceSamples*this->nSpaceSamples) / 
-   //                (Parameters::vzmax - Parameters::vzmin) / 
-                     (this->nVelocitySamples*this->nVelocitySamples*this->nVelocitySamples);
-               
+      Real avg = getDistribValue(x+0.5*dx, y+0.5*dy, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, popID);
+      creal result = avg *this->DENSITY * pow(mass / (2.0 * M_PI * kb * this->TEMPERATURE), 1.5);
                
       if(result < this->maxwCutoff) {
          return 0.0;
@@ -155,9 +130,9 @@ namespace projects {
          auto localSize = perBGrid.getLocalSize().data();
          
 #pragma omp parallel for collapse(3)
-         for (int x = 0; x < localSize[0]; ++x) {
-            for (int y = 0; y < localSize[1]; ++y) {
-               for (int z = 0; z < localSize[2]; ++z) {
+         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
+            for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
+               for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
                   const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
                   

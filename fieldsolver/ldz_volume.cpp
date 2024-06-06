@@ -39,7 +39,7 @@ void calculateVolumeAveragedFields(
    FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
 ) {
    //const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
-   const int* gridDims = &technicalGrid.getLocalSize()[0];
+   const FsGridTools::FsIndex_t* gridDims = &technicalGrid.getLocalSize()[0];
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
 
    phiprof::Timer timer {"Calculate volume averaged fields"};
@@ -48,15 +48,14 @@ void calculateVolumeAveragedFields(
    {
       phiprof::Timer parallelTimer {parallelTimerId};
       #pragma omp for collapse(2)
-      for (int k=0; k<gridDims[2]; k++) {
-         for (int j=0; j<gridDims[1]; j++) {
-            for (int i=0; i<gridDims[0]; i++) {
-               if(technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
-
+      for (FsGridTools::FsIndex_t k=0; k<gridDims[2]; k++) {
+         for (FsGridTools::FsIndex_t j=0; j<gridDims[1]; j++) {
+            for (FsGridTools::FsIndex_t i=0; i<gridDims[0]; i++) {
                std::array<Real, Rec::N_REC_COEFFICIENTS> perturbedCoefficients;
                std::array<Real, fsgrids::volfields::N_VOL> * volGrid0 = volGrid.get(i,j,k);
 
                // Calculate reconstruction coefficients for this cell:
+               // This handles domain edges so no need to skip DO_NOT_COMPUTE or OUTER_BOUNDARY_PADDING cells.
                reconstructionCoefficients(
                   perBGrid,
                   dPerBGrid,
@@ -65,13 +64,15 @@ void calculateVolumeAveragedFields(
                   j,
                   k,
                   2
-                  );
+               );
 
                // Calculate volume average of B:
                volGrid0->at(fsgrids::volfields::PERBXVOL) = perturbedCoefficients[Rec::a_0];
                volGrid0->at(fsgrids::volfields::PERBYVOL) = perturbedCoefficients[Rec::b_0];
                volGrid0->at(fsgrids::volfields::PERBZVOL) = perturbedCoefficients[Rec::c_0];
 
+               // This avoids out of domain accesses below.
+               if(technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE || technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::OUTER_BOUNDARY_PADDING) continue;
                // Calculate volume average of E (FIXME NEEDS IMPROVEMENT):
                std::array<Real, fsgrids::efield::N_EFIELD> * EGrid_i1j1k1 = EGrid.get(i,j,k);
                if ( technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||

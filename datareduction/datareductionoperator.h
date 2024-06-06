@@ -29,7 +29,7 @@
 
 #include "fsgrid.hpp"
 #include "../definitions.h"
-#include "../spatial_cell.hpp"
+#include "../spatial_cell_wrapper.hpp"
 #include "../parameters.h"
 #include "../sysboundary/ionosphere.h"
 using namespace spatial_cell;
@@ -632,15 +632,6 @@ namespace DRO {
       int nChannels;
       Real emin, emax;
       std::vector<Real> channels, dataLineDiffFlux;
-   };
-
-   class JPerBModifier: public DataReductionOperatorHasParameters {
-   public:
-      virtual bool reduceData(const SpatialCell* cell,char* buffer) {return true;}
-      virtual std::string getName() const {return "j_per_b_modifier";}
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
-      virtual bool setSpatialCell(const SpatialCell* cell) {return true;}
-      virtual bool writeParameters(vlsv::Writer& vlsvWriter);
    };
 
    // Heat flux vector

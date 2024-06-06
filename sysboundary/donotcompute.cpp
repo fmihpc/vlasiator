@@ -39,24 +39,24 @@ namespace SBC {
    void DoNotCompute::addParameters() { }
    void DoNotCompute::getParameters() { }
    
-   bool DoNotCompute::initSysBoundary(
+   void DoNotCompute::initSysBoundary(
       creal& t,
       Project &project
    ) {
       precedence = 0;
-      isThisDynamic = false;
-      return true;
+      dynamic = false;
    }
    
-   bool DoNotCompute::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&,
+   void DoNotCompute::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>&,
                                         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
-      return true;
+      // Does nothing.
    }
    
-   bool DoNotCompute::applyInitialState(
-      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   void DoNotCompute::applyInitialState(
+      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
       FsGrid< array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
       Project&
    ) {
      const vector<CellID>& cells = getLocalCells();
@@ -79,13 +79,19 @@ namespace SBC {
          
          //let's get rid of blocks not fulfilling the criteria here to save
          //memory.
-         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
-            cell->adjustSingleCellVelocityBlocks(popID);
+         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+            cell->adjustSingleCellVelocityBlocks(popID,true);
+         }
       }
-      
-      return true;
    }
    
+   void DoNotCompute::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+                                  FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid,
+                                  FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+                                  creal t) {}
+
+   void DoNotCompute::getFaces(bool *faces) {}
+
    string DoNotCompute::getName() const {return "DoNotCompute";}
    
    uint DoNotCompute::getIndex() const {return sysboundarytype::DO_NOT_COMPUTE;}

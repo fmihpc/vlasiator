@@ -23,6 +23,7 @@
 #define MEMORYALLOCATION_H
 
 #include <cstdlib>
+#include <cstdint>
 #include <cstddef>
 #include <cstdint>
 #include <stdexcept>
@@ -44,12 +45,12 @@
 #endif
 #endif
 
-/*! Return the amount of free memory on the node in bytes*/  
+/*! Return the amount of free memory on the node in bytes*/
 uint64_t get_node_free_memory();
 
 /*! Measures memory consumption and writes it into logfile. Collective
  *  operation on MPI_COMM_WORLD
- *  extra_bytes is used for additional buffer for the high water mark, 
+ *  extra_bytes is used for additional buffer for the high water mark,
  *  for example when estimating refinement memory usage
  */
 void report_process_memory_consumption(double extra_bytes = 0.0);
@@ -68,10 +69,10 @@ inline void * aligned_malloc(size_t size,std::size_t align) {
 #else
    void *p = malloc(size + align - 1 + sizeof(void*));
 #endif
-#ifdef INITIALIZE_ALIGNED_MALLOC_WITH_NAN 
+#ifdef INITIALIZE_ALIGNED_MALLOC_WITH_NAN
    memset(p, ~0u, size + align - 1 + sizeof(void*));
 #endif
-   
+
    if (p != NULL) {
       /* Address of the aligned memory according to the align parameter*/
       ptr = (void*) (((unsigned long)p + sizeof(void*) + align -1) & ~(align-1));

@@ -32,7 +32,7 @@
 #include <dccrg.hpp>
 #include <phiprof.hpp>
 
-#include "../spatial_cell.hpp"
+#include "../spatial_cell_wrapper.hpp"
 #include "../vlasovmover.h"
 #include "../grid.h"
 #include "../definitions.h"
@@ -55,13 +55,13 @@ creal ONE     = 1.0;
 creal TWO     = 2.0;
 creal EPSILON = 1.0e-25;
 
-/** Propagates the distribution function in spatial space. 
-    
+/** Propagates the distribution function in spatial space.
+
     Based on SLICE-3D algorithm: Zerroukat, M., and T. Allen. "A
     three‐dimensional monotone and conservative semi‐Lagrangian scheme
     (SLICE‐3D) for transport problems." Quarterly Journal of the Royal
     Meteorological Society 138.667 (2012): 1640-1651.
-  
+
  */
 void calculateSpatialTranslation(
         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -81,7 +81,7 @@ void calculateSpatialTranslation(
     if (P::amrMaxSpatialRefLevel > 0) AMRtranslationActive = true;
 
     double t1;
-    
+
     int myRank;
     MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    
@@ -195,11 +195,11 @@ void calculateSpatialTranslation(
 
       t1 = MPI_Wtime();
       phiprof::Timer computeTimer {"compute-mapping-y"};
-      //if(P::amrMaxSpatialRefLevel == 0) {
-      //   trans_map_1d(mpiGrid,local_propagated_cells, remoteTargetCellsy, 1,dt,popID); // map along y//
-      //} else {
-      //   trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsy, nPencils, 1,dt,popID); // map along y//      
-      //}
+      if(P::amrMaxSpatialRefLevel == 0) {
+         trans_map_1d(mpiGrid,local_propagated_cells, remoteTargetCellsy, 1,dt,popID); // map along y//
+      } else {
+         trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsy, nPencils, 1,dt,popID); // map along y//
+      }
       computeTimer.stop();
       time += MPI_Wtime() - t1;
       
@@ -227,9 +227,9 @@ void calculateSpatialTranslation(
 }
 
 /*!
-  
-  Propagates the distribution function in spatial space. 
-  
+
+  Propagates the distribution function in spatial space.
+
   Based on SLICE-3D algorithm: Zerroukat, M., and T. Allen. "A
   three‐dimensional monotone and conservative semi‐Lagrangian scheme
   (SLICE‐3D) for transport problems." Quarterly Journal of the Royal
@@ -253,8 +253,8 @@ void calculateSpatialTranslation(
    vector<CellID> local_target_cells;
    vector<uint> nPencils;
    Real time=0.0;
-   
-   // If dt=0 we are either initializing or distribution functions are not translated. 
+
+   // If dt=0 we are either initializing or distribution functions are not translated.
    // In both cases go to the end of this function and calculate the moments.
    if (dt == 0.0) {
       calculateMoments_R(mpiGrid,localCells,true);
@@ -265,7 +265,7 @@ void calculateSpatialTranslation(
    remoteTargetCellsx = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID);
    remoteTargetCellsy = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID);
    remoteTargetCellsz = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID);
-   
+
    // Figure out which spatial cells are translated,
    // result independent of particle species.
    for (size_t c=0; c<localCells.size(); ++c) {
@@ -273,7 +273,7 @@ void calculateSpatialTranslation(
          local_propagated_cells.push_back(localCells[c]);
       }
    }
-   
+
    // Figure out target spatial cells, result
    // independent of particle species.
    for (size_t c=0; c<localCells.size(); ++c) {
@@ -288,7 +288,7 @@ void calculateSpatialTranslation(
       }
    }
    computeTimer.stop();
-   
+
    // Translate all particle species
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       string profName = "translate "+getObjectWrapper().particleSpecies[popID].name;
@@ -309,7 +309,7 @@ void calculateSpatialTranslation(
          time
       );
    }
-   
+
    if (Parameters::prepareForRebalance == true) {
       if(P::amrMaxSpatialRefLevel == 0) {
 //          const double deltat = (MPI_Wtime() - t1) / local_propagated_cells.size();
@@ -331,7 +331,7 @@ void calculateSpatialTranslation(
          }
       }
    }
-   
+
    // Mapping complete, update moments and maximum dt limits //
    calculateMoments_R(mpiGrid,localCells,true);
 }
@@ -356,8 +356,8 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
                            const Real& dt) {
    // Set active population
    SpatialCell::setCommunicatedSpecies(popID);
-   
-   // Calculate velocity moments, these are needed to 
+
+   // Calculate velocity moments, these are needed to
    // calculate the transforms used in the accelerations.
    // Calculated moments are stored in the "_V" variables.
    calculateMoments_V(mpiGrid, propagatedCells, false);
@@ -367,7 +367,7 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
    for (size_t c=0; c<propagatedCells.size(); ++c) {
       const CellID cellID = propagatedCells[c];
       const Real maxVdt = mpiGrid[cellID]->get_max_v_dt(popID);
-      
+
       //compute subcycle dt. The length is maxVdt on all steps
       //except the last one. This is to keep the neighboring
       //spatial cells in sync, so that two neighboring cells with
@@ -382,25 +382,14 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
          subcycleDt = maxVdt;
       }
       if (dt<0) subcycleDt = -subcycleDt;
-      
-      //generate pseudo-random order which is always the same irrespective of parallelization, restarts, etc.
-      char rngStateBuffer[256];
-      random_data rngDataBuffer;
 
+      //generate pseudo-random order which is always the same irrespective of parallelization, restarts, etc.
+      std::default_random_engine rndState;
       // set seed, initialise generator and get value. The order is the same
       // for all cells, but varies with timestep.
-      memset(&(rngDataBuffer), 0, sizeof(rngDataBuffer));
-      #ifdef _AIX
-         initstate_r(P::tstep, &(rngStateBuffer[0]), 256, NULL, &(rngDataBuffer));
-         int64_t rndInt;
-         random_r(&rndInt, &rngDataBuffer);
-      #else
-         initstate_r(P::tstep, &(rngStateBuffer[0]), 256, &(rngDataBuffer));
-         int32_t rndInt;
-         random_r(&rngDataBuffer, &rndInt);
-      #endif
-         
-      uint map_order=rndInt%3;
+      rndState.seed(P::tstep);
+
+      uint map_order=std::uniform_int_distribution<>(0,2)(rndState);
       phiprof::Timer semilagAccTimer {"cell-semilag-acc"};
       cpu_accelerate_cell(mpiGrid[cellID],popID,map_order,subcycleDt);
       semilagAccTimer.stop();
@@ -417,23 +406,23 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
    if(step < (globalMaxSubcycles - 1)) adjustVelocityBlocks(mpiGrid, propagatedCells, false, popID);
 }
 
-/** Accelerate all particle populations to new time t+dt. 
+/** Accelerate all particle populations to new time t+dt.
  * This function is AMR safe.
  * @param mpiGrid Parallel grid library.
  * @param dt Time step.*/
 void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                            Real dt
-                          ) {    
+                          ) {
    typedef Parameters P;
    const vector<CellID>& cells = getLocalCells();
 
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-   
+
    if (dt == 0.0 && P::tstep > 0) {
-      
-      // Even if acceleration is turned off we need to adjust velocity blocks 
-      // because the boundary conditions may have altered the velocity space, 
+
+      // Even if acceleration is turned off we need to adjust velocity blocks
+      // because the boundary conditions may have altered the velocity space,
       // and to update changes in no-content blocks during translation.
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          adjustVelocityBlocks(mpiGrid, cells, true, popID);
@@ -460,7 +449,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
             // disregard boundary cells, in preparation for acceleration
             if (  (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) ||
                   // Include inflow-Maxwellian
-                  (P::vlasovAccelerateMaxwellianBoundaries && (SC->sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN)) ) {
+                  (P::vlasovAccelerateMaxwellianBoundaries && (SC->sysBoundaryFlag == sysboundarytype::MAXWELLIAN)) ) {
                if (vmesh.size() != 0){
                   //do not propagate spatial cells with no blocks
                   propagatedCells.push_back(cells[c]);
@@ -532,7 +521,7 @@ void calculateInterpolatedVelocityMoments(
    const int cp_p33
 ) {
    const vector<CellID>& cells = getLocalCells();
-   
+
    //Iterate through all local cells
     #pragma omp parallel for
    for (size_t c=0; c<cells.size(); ++c) {

@@ -31,7 +31,7 @@
 #include "cmath"
 #include "utility"
 #include "common.h"
-#include "spatial_cell.hpp"
+#include "spatial_cell_wrapper.hpp"
 #include "cpu_1d_plm.hpp"
 #include "cpu_1d_ppm.hpp"
 #include "cpu_1d_pqm.hpp"

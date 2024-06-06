@@ -32,7 +32,7 @@
 #include "boost/unordered_map.hpp"
 
 #include "common.h"
-#include "spatial_cell.hpp"
+#include "spatial_cell_wrapper.hpp"
 
 #include <Eigen/Geometry>
 #include <Eigen/Core>

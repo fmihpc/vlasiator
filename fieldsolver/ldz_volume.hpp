@@ -23,7 +23,7 @@
 #include <vector>
 
 #include "fs_common.h"
-#include "../spatial_cell.hpp"
+#include "../spatial_cell_wrapper.hpp"
 
 /*! \brief Top-level field averaging function.
  * 
