@@ -53,8 +53,6 @@ namespace projects {
       RP::add("Larmor.VZ0", "Bulk velocuty in z", 0.0);
       RP::add("Larmor.rho", "Number density (m^-3)", 1.0e7);
       RP::add("Larmor.Temperature", "Temperature (K)", 2.0e6);
-      RP::add("Larmor.nSpaceSamples", "Number of sampling points per spatial dimension", 1);
-      RP::add("Larmor.nVelocitySamples", "Number of sampling points per velocity dimension", 1);
       RP::add("Larmor.maxwCutoff", "Cutoff for the maxwellian distribution", 1e-12);
       RP::add("Larmor.Scale_x", "Scale length in x (m)", 2.0e6);
       RP::add("Larmor.Scale_y", "Scale length in y (m)", 2.0e6);
@@ -77,8 +75,6 @@ namespace projects {
       RP::get("Larmor.VZ0", this->VZ0);
       RP::get("Larmor.rho", this->DENSITY);
       RP::get("Larmor.Temperature", this->TEMPERATURE);
-      RP::get("Larmor.nSpaceSamples", this->nSpaceSamples);
-      RP::get("Larmor.nVelocitySamples", this->nVelocitySamples);
       RP::get("Larmor.maxwCutoff", this->maxwCutoff);
       RP::get("Larmor.Scale_x", this->SCA_X);
       RP::get("Larmor.Scale_y", this->SCA_Y);
@@ -108,27 +104,8 @@ namespace projects {
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
 
-      creal d_x = dx / (this->nSpaceSamples-1);
-      creal d_y = dy / (this->nSpaceSamples-1);
-      creal d_z = dz / (this->nSpaceSamples-1);
-      creal d_vx = dvx / (this->nVelocitySamples-1);
-      creal d_vy = dvy / (this->nVelocitySamples-1);
-      creal d_vz = dvz / (this->nVelocitySamples-1);
-      Real avg = 0.0;
-      
-      for (uint i=0; i<this->nSpaceSamples; ++i)
-         for (uint j=0; j<this->nSpaceSamples; ++j)
-            for (uint k=0; k<this->nSpaceSamples; ++k)
-               for (uint vi=0; vi<this->nVelocitySamples; ++vi)
-                  for (uint vj=0; vj<this->nVelocitySamples; ++vj)
-                     for (uint vk=0; vk<this->nVelocitySamples; ++vk)
-                     {
-                        avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, popID);
-                     }
-      
-      creal result = avg *this->DENSITY * pow(mass / (2.0 * M_PI * kb * this->TEMPERATURE), 1.5) /
-                     (this->nSpaceSamples*this->nSpaceSamples*this->nSpaceSamples) / 
-                     (this->nVelocitySamples*this->nVelocitySamples*this->nVelocitySamples);
+      Real avg = getDistribValue(x+0.5*dx, y+0.5*dy, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, popID);
+      creal result = avg *this->DENSITY * pow(mass / (2.0 * M_PI * kb * this->TEMPERATURE), 1.5);
       
       if(result < this->maxwCutoff) {
          return 0.0;

@@ -29,7 +29,7 @@
 #include <vlsv_writer.h>
 
 #include "definitions.h"
-#include "spatial_cell.hpp"
+#include "spatial_cell_wrapper.hpp"
 #include "datareduction/datareducer.h"
 
 /*!

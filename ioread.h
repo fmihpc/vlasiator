@@ -28,7 +28,7 @@
 
 #include "vlsv_reader_parallel.h"
 #include "definitions.h"
-#include "spatial_cell.hpp"
+#include "spatial_cell_wrapper.hpp"
 #include "datareduction/datareducer.h"
 
 
@@ -59,5 +59,7 @@ void checkExternalCommands();
 
 bool readIonosphereNodeVariable(
    vlsv::ParallelReader& file, const string& variableName, SBC::SphericalTriGrid& grid, ionosphereParameters index);
+
+bool readFsgridDecomposition(vlsv::ParallelReader& file, std::array<FsGridTools::Task_t,3>& decomposition);
 
 #endif

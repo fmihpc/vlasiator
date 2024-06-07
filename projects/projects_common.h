@@ -22,7 +22,7 @@
 
 #ifndef PROJECTS_COMMON_H
 #define PROJECTS_COMMON_H
-#include "../spatial_cell.hpp"
+#include "../spatial_cell_wrapper.hpp"
 #include <dccrg.hpp>
 #include <dccrg_cartesian_geometry.hpp>
 

@@ -23,7 +23,7 @@
 #define GRID_H
 
 #include "definitions.h"
-#include "spatial_cell.hpp"
+#include "spatial_cell_wrapper.hpp"
 #include <dccrg.hpp>
 #include <dccrg_cartesian_geometry.hpp>
 #include "sysboundary/sysboundary.h"
@@ -121,7 +121,12 @@ void setFaceNeighborRanks( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 void mapRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid);
 
 /*! Refine spatial cells and update necessary information
+ * \param mpiGrid Spatial grid
+ * \param technicalGrid Technical grid
+ * \param sysBoundaries System boundaries
+ * \param project Project used
+ * \param useStatic Used for forcing static refinement on restart. Negative values use adaptive refinement, non-negative values correspond to static refinement pass in Project::forceRefinement
  */
-bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, SysBoundary& sysBoundaries, Project& project, bool useStatic = false);
+bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, SysBoundary& sysBoundaries, Project& project, int useStatic = -1);
 
 #endif

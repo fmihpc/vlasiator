@@ -121,8 +121,7 @@ namespace SBC {
            } else if(vlasovSysBoundarySchemeName[j] == "Limit") {
               sP.faceVlasovScheme[j] = vlasovscheme::LIMIT;
            } else {
-              if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: " << vlasovSysBoundarySchemeName[j] << " is an invalid Outflow Vlasov scheme!" << endl;
-              exit(1);
+              abort_mpi("ERROR: " + vlasovSysBoundarySchemeName[j] + " is an invalid Outflow Vlasov scheme!");
            }
         }
 
@@ -131,8 +130,8 @@ namespace SBC {
         speciesParams.push_back(sP);
       }
    }
-
-   bool Outflow::initSysBoundary(
+   
+   void Outflow::initSysBoundary(
       creal& t,
       Project &project
    ) {
@@ -147,9 +146,9 @@ namespace SBC {
       }
 
       this->getParameters();
-
-      isThisDynamic = false;
-
+      
+      dynamic = false;
+      
       vector<string>::const_iterator it;
       for (it = faceNoFieldsList.begin();
            it != faceNoFieldsList.end();
@@ -175,13 +174,78 @@ namespace SBC {
             if(*it == "z-") facesToReapply[5] = true;
          }
       }
-      return true;
    }
 
-   bool Outflow::applyInitialState(
-      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+
+   void Outflow::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                                   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
+
+      bool doAssign;
+      array<bool,6> isThisCellOnAFace;
+      
+      // Assign boundary flags to local DCCRG cells
+      const vector<CellID>& cells = getLocalCells();
+      for(const auto& dccrgId : cells) {
+         if(mpiGrid[dccrgId]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
+         creal* const cellParams = &(mpiGrid[dccrgId]->parameters[0]);
+         creal dx = cellParams[CellParams::DX];
+         creal dy = cellParams[CellParams::DY];
+         creal dz = cellParams[CellParams::DZ];
+         creal x = cellParams[CellParams::XCRD] + 0.5*dx;
+         creal y = cellParams[CellParams::YCRD] + 0.5*dy;
+         creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
+         
+         isThisCellOnAFace.fill(false);
+         determineFace(isThisCellOnAFace.data(), x, y, z, dx, dy, dz);
+         
+         // Comparison of the array defining which faces to use and the array telling on which faces this cell is
+         doAssign = false;
+         for(int j=0; j<6; j++) doAssign = doAssign || (facesToProcess[j] && isThisCellOnAFace[j]);
+         if(doAssign) {
+            mpiGrid[dccrgId]->sysBoundaryFlag = this->getIndex();
+         }         
+      }
+      
+      // Assign boundary flags to local fsgrid cells
+      const array<FsGridTools::FsIndex_t, 3> gridDims(technicalGrid.getLocalSize());  
+      for (FsGridTools::FsIndex_t k=0; k<gridDims[2]; k++) {
+         for (FsGridTools::FsIndex_t j=0; j<gridDims[1]; j++) {
+            for (FsGridTools::FsIndex_t i=0; i<gridDims[0]; i++) {
+               const auto& coords = technicalGrid.getPhysicalCoords(i,j,k);
+
+               // Shift to the center of the fsgrid cell
+               auto cellCenterCoords = coords;
+               cellCenterCoords[0] += 0.5 * technicalGrid.DX;
+               cellCenterCoords[1] += 0.5 * technicalGrid.DY;
+               cellCenterCoords[2] += 0.5 * technicalGrid.DZ;
+               const auto refLvl = mpiGrid.get_refinement_level(mpiGrid.get_existing_cell(cellCenterCoords));
+
+               if (refLvl == -1) {
+                  abort_mpi("ERROR: Could not get refinement level of remote DCCRG cell!", 1);
+               }
+
+               creal dx = P::dx_ini / pow(2, refLvl);
+               creal dy = P::dy_ini / pow(2, refLvl);
+               creal dz = P::dz_ini / pow(2, refLvl);
+
+               isThisCellOnAFace.fill(false);
+               doAssign = false;
+
+               determineFace(isThisCellOnAFace.data(), cellCenterCoords[0], cellCenterCoords[1], cellCenterCoords[2], dx, dy, dz);
+               for(int iface=0; iface<6; iface++) doAssign = doAssign || (facesToProcess[iface] && isThisCellOnAFace[iface]);
+               if(doAssign) {
+                  technicalGrid.get(i,j,k)->sysBoundaryFlag = this->getIndex();
+               }
+            }
+         }
+      }
+   }
+   
+   void Outflow::applyInitialState(
+      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
       FsGrid< array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
       Project &project
    ) {
       const vector<CellID>& cells = getLocalCells();
@@ -218,18 +282,22 @@ namespace SBC {
             cell->parameters[CellParams::P_33_DT2] = cell->parameters[CellParams::P_33];
          }
       }
-
-      return true;
    }
+
+   void Outflow::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                             FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+                             FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+                             creal t) {}
 
    Real Outflow::fieldSolverBoundaryCondMagneticField(
       FsGrid< array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & bgbGrid,
       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
       cint i,
       cint j,
       cint k,
-      creal& dt,
-      cuint& component
+      creal dt,
+      cuint component
    ) {
       switch(component) {
       case 0:
@@ -305,8 +373,8 @@ namespace SBC {
       cint i,
       cint j,
       cint k,
-      cuint& RKCase,
-      cuint& component
+      cuint RKCase,
+      cuint component
    ) {
       this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, component);
    }
@@ -316,7 +384,7 @@ namespace SBC {
       cint i,
       cint j,
       cint k,
-      cuint& component
+      cuint component
    ) {
       this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
    }
@@ -327,7 +395,7 @@ namespace SBC {
     * @param cellID
     */
    void Outflow::vlasovBoundaryCondition(
-      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
       const uint popID,
       const bool calculate_V_moments
@@ -353,9 +421,7 @@ namespace SBC {
                   vlasovBoundaryCopyFromTheClosestNbrAndLimit(mpiGrid,cellID,popID);
                   break;
                default:
-                  cerr << __FILE__ << ":" << __LINE__ << "ERROR: invalid Outflow Vlasov scheme!" << endl;
-                  exit(1);
-                  break;
+                  abort_mpi("ERROR: invalid Outflow Vlasov scheme", 1);
             }
          }
       }

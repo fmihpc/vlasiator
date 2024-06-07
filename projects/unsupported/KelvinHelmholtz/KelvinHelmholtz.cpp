@@ -59,8 +59,6 @@ namespace projects {
       RP::add("KelvinHelmholtz.amp", "Initial perturbation amplitude (m)", 0.0);
       RP::add("KelvinHelmholtz.offset", "Boundaries offset from 0 (m)", 0.0);
       RP::add("KelvinHelmholtz.transitionWidth", "Width of tanh transition for all changing values", 0.0);
-      RP::add("KelvinHelmholtz.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
-      RP::add("KelvinHelmholtz.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
    }
 
    void KelvinHelmholtz::getParameters() {
@@ -85,8 +83,6 @@ namespace projects {
       RP::get("KelvinHelmholtz.amp", this->amp);
       RP::get("KelvinHelmholtz.offset", this->offset);
       RP::get("KelvinHelmholtz.transitionWidth", this->transitionWidth);
-      RP::get("KelvinHelmholtz.nSpaceSamples", this->nSpaceSamples);
-      RP::get("KelvinHelmholtz.nVelocitySamples", this->nVelocitySamples);
    }
    
    
@@ -116,33 +112,9 @@ namespace projects {
       exp(- mass * (pow(vx - Vx, 2.0) + pow(vy - Vy, 2.0) + pow(vz - Vz, 2.0)) / (2.0 * kb * T));
    }
 
-   Real KelvinHelmholtz::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {   
-      creal d_x = dx / (this->nSpaceSamples-1);
-      creal d_z = dz / (this->nSpaceSamples-1);
-      creal d_vx = dvx / (this->nVelocitySamples-1);
-      creal d_vy = dvy / (this->nVelocitySamples-1);
-      creal d_vz = dvz / (this->nVelocitySamples-1);
-      Real avg = 0.0;
-      uint samples=0;
-
-      Real middleValue=getDistribValue(x+0.5*dx, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz);
-      #warning TODO: add SpatialCell::velocity_block_threshold() in place of sparseMinValue
-      if(middleValue<0.000001*Parameters::sparseMinValue){
-         return middleValue; //abort, this will not be accepted anyway
-      }
-      
-   //#pragma omp parallel for collapse(6) reduction(+:avg)
-      for (uint i=0; i<this->nSpaceSamples; ++i)
-         for (uint k=0; k<this->nSpaceSamples; ++k)
-            for (uint vi=0; vi<this->nVelocitySamples; ++vi)
-               for (uint vj=0; vj<this->nVelocitySamples; ++vj)
-                  for (uint vk=0; vk<this->nVelocitySamples; ++vk){
-                     avg +=getDistribValue(x+i*d_x, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz);
-                     samples++;
-                  }
-      return avg / samples;
+   Real KelvinHelmholtz::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz) {
+      return getDistribValue(x+0.5*dx, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz);
    }
-   
 
    void KelvinHelmholtz::calcCellParameters(Real* cellParams,creal& t) {
       cellParams[CellParams::EX   ] = 0.0;
@@ -159,20 +131,8 @@ namespace projects {
       creal z = cell->parameters[CellParams::ZCRD];
       creal dz = cell->parameters[CellParams::DZ];
       
-      Real Bxavg, Byavg, Bzavg;
-      Bxavg = Byavg = Bzavg = 0.0;
-      Real d_x = dx / (this->nSpaceSamples - 1);
-      Real d_z = dz / (this->nSpaceSamples - 1);
-      for (uint i=0; i<this->nSpaceSamples; ++i)
-         for (uint k=0; k<this->nSpaceSamples; ++k) {
-            Bxavg += profile(this->Bx[this->BOTTOM], this->Bx[this->TOP], x+i*d_x, z+k*d_z);
-            Byavg += profile(this->By[this->BOTTOM], this->By[this->TOP], x+i*d_x, z+k*d_z);
-            Bzavg += profile(this->Bz[this->BOTTOM], this->Bz[this->TOP], x+i*d_x, z+k*d_z);
-         }
-      cuint nPts = pow(this->nSpaceSamples, 2.0);
-      
-      cell->parameters[CellParams::BGBX   ] = Bxavg / nPts;
-      cell->parameters[CellParams::BGBY   ] = Byavg / nPts;
-      cell->parameters[CellParams::BGBZ   ] = Bzavg / nPts;
+      cell->parameters[CellParams::BGBX   ] = profile(this->Bx[this->BOTTOM], this->Bx[this->TOP], x+0.5*dx, z+0.5*dz);
+      cell->parameters[CellParams::BGBY   ] = profile(this->By[this->BOTTOM], this->By[this->TOP], x+0.5*dx, z+0.5*dz);
+      cell->parameters[CellParams::BGBZ   ] = profile(this->Bz[this->BOTTOM], this->Bz[this->TOP], x+0.5*dx, z+0.5*dz);
    }
 } // namespace projects
