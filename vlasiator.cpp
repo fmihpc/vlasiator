@@ -334,7 +334,13 @@ int main(int argn,char* args[]) {
       exit(1);
    }
    if (myRank == MASTER_RANK) {
-      cout << mpiioMessage.str();
+      const char* mpiioenv = std::getenv("OMPI_MCA_io");
+      if(mpiioenv != nullptr) {
+         std::string mpiioenvstr(mpiioenv);
+         if(mpiioenvstr.find("^ompio") == std::string::npos) {
+            cout << mpiioMessage.str();
+         }
+      }
    }
 
    phiprof::initialize();
