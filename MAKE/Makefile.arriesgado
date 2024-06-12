@@ -2,7 +2,7 @@
 #
 # Note:
 # o Load modules:
-#   module load boost eigen papi openmpi
+#   module load boost papi openmpi
 # o Zoltan's configure script requires a "--build=arm-linux-gnu" parameter.
 #   (Yes, this needs to be arm, not riscv!)
 
@@ -56,4 +56,4 @@ LIB_PROFILE = -L${LIBRARY_PREFIX}/lib -lphiprof -Wl,-rpath=${LIBRARY_PREFIX}/lib
 INC_PROFILE = -I${LIBRARY_PREFIX}/include
 INC_TOPO =
 
-INC_EIGEN = ${EIGEN3_INCL}
+INC_EIGEN = -isystem ./submodules/eigen/

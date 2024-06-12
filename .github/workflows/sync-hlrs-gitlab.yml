@@ -6,6 +6,7 @@ on:
 
 jobs:
   push_to_gitlab:
+    if: github.repository_owner == 'fmihpc'
     runs-on: ubuntu-latest
 
     steps:
