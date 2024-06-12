@@ -1,7 +1,7 @@
 #include <dccrg.hpp>
 #include <dccrg_cartesian_geometry.hpp>
 #include "../grid.h"
-#include "../spatial_cell.hpp"
+#include "../spatial_cell_wrapper.hpp"
 #include "../definitions.h"
 #include "../common.h"
 #include "gridGlue.hpp"

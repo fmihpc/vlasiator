@@ -24,7 +24,7 @@
 #define CPU_ACC_MAP_H
 
 #include "../common.h"
-#include "../spatial_cell.hpp"
+#include "../spatial_cell_wrapper.hpp"
 #include "vec.h"
 
 using namespace spatial_cell;

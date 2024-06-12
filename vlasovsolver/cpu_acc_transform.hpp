@@ -27,7 +27,7 @@
 #include <Eigen/Core>
 
 #include "../common.h"
-#include "../spatial_cell.hpp"
+#include "../spatial_cell_wrapper.hpp"
 
 Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    spatial_cell::SpatialCell* spatial_cell,const uint popID,const Real& dt);

@@ -39,7 +39,7 @@
 #include "logger.h"
 #include "parameters.h"
 #include "readparameters.h"
-#include "spatial_cell.hpp"
+#include "spatial_cell_wrapper.hpp"
 #include "datareduction/datareducer.h"
 #include "sysboundary/sysboundary.h"
 #include "fieldtracing/fieldtracing.h"
@@ -1367,7 +1367,13 @@ int main(int argn, char* args[]) {
       exit(1);
    }
    if (myRank == MASTER_RANK) {
-      cout << mpiioMessage.str();
+      const char* mpiioenv = std::getenv("OMPI_MCA_io");
+      if(mpiioenv != nullptr) {
+         std::string mpiioenvstr(mpiioenv);
+         if(mpiioenvstr.find("^ompio") == std::string::npos) {
+            cout << mpiioMessage.str();
+         }
+      }
    }
 
    int ret {simulate(argn, args)};

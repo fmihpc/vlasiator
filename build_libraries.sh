@@ -75,6 +75,3 @@ else
    ../Zoltan/configure --prefix=$WORKSPACE/libraries${PLATFORM} --enable-mpi --with-mpi-compilers --with-gnumake --with-id-type=ullong && make -j 4 && make install
 cd ..
 fi
-
-git clone https://gitlab.com/libeigen/eigen.git
-cp -a eigen/Eigen $WORKSPACE/libraries${PLATFORM}/include
