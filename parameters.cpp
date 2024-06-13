@@ -633,6 +633,22 @@ void Parameters::getParameters() {
       }
    }
 
+   bool includefSaved = false;
+   for(uint i=0; i<maxSize; i++) {
+      if(P::systemWriteDistributionWriteStride[i] != 0 ||
+         P::systemWriteDistributionWriteXlineStride[i] > 0 ||
+         P::systemWriteDistributionWriteYlineStride[i] > 0 ||
+         P::systemWriteDistributionWriteZlineStride[i] > 0) {
+         includefSaved = true;
+      }
+   }
+   for(uint i=0; i<P::systemWriteDistributionWriteShellRadius.size(); i++) {
+      if(P::systemWriteDistributionWriteShellRadius[i] > 0) {
+         includefSaved = true;
+      }
+   }
+
+
    vector<string> mpiioKeys, mpiioValues;
    RP::get("io.system_write_mpiio_hint_key", mpiioKeys);
    RP::get("io.system_write_mpiio_hint_value", mpiioValues);
@@ -945,6 +961,11 @@ void Parameters::getParameters() {
    // Get output variable parameters
    RP::get("variables.output", P::outputVariableList);
    RP::get("variables.diagnostic", P::diagnosticVariableList);
+
+   // Insert vg_f_saved to the list if necessary
+   if(includefSaved) {
+      P::outputVariableList.push_back("vg_f_saved");
+   }
 
    // Filter duplicate variable names
    set<string> dummy(P::outputVariableList.begin(), P::outputVariableList.end());
