@@ -306,8 +306,8 @@ jobs:
         # VLASIATOR_CIRUNNER_JOBSPEC_TP[0] contains the jobid
         # VLASIATOR_CIRUNNER_JOBSPEC_TP[1] contains the slurm cluster (carrington)
         echo "Launched job ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]} (CI_testpackage). The next srun jobid is blocking until CI_testpackage finishes and then collects output."
-        trap "echo 'SIGINT caught, scancelling ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}; scancel --full -M ${VLASIATOR_CIRUNNER_JOBSPEC_TP[1]} ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}" SIGINT
-        trap "echo 'SIGTERM caught, scancelling ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}; scancel --full -M ${VLASIATOR_CIRUNNER_JOBSPEC_TP[1]} ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}" SIGTERM
+        #trap "echo 'SIGINT caught, scancelling ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}; scancel --full -M ${VLASIATOR_CIRUNNER_JOBSPEC_TP[1]} ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}" SIGINT
+        #trap "echo 'SIGTERM caught, scancelling ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}; scancel --full -M ${VLASIATOR_CIRUNNER_JOBSPEC_TP[1]} ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}" SIGTERM
         RUN_STRING=$( cat << MORO
         echo "Job finished, checking output."
         cat testpackage_run_output.txt
@@ -322,6 +322,10 @@ jobs:
           # Fail this step if any test failed.
           exit 1
         fi
+    - name: Scancel dangling job upon cancellation
+      if: cancelled()
+      run: |
+        scancel ${{ steps.submit.outputs.SLURM_JOB_ID }}
     - name: Make sure the output tarball is visible in lustre
       uses: nick-fields/retry@v3
       with:
