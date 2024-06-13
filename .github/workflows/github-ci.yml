@@ -311,7 +311,7 @@ jobs:
         RUN_STRING=$( cat << MORO
         if [[ "$( sacct -M ${VLASIATOR_CIRUNNER_JOBSPEC_TP[1]} -j ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]} -p | grep 'CI_testpackage')" == *"CANCELLED"* ]]
         then
-           echo "Job cancelled, not bothering with output."
+           echo "Job cancelled, not bothering with output handling."
            exit
         fi
         echo "Job finished, checking output."
