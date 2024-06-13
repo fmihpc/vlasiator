@@ -301,7 +301,7 @@ jobs:
         cd testpackage
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries/lib
         sbatch -W -o testpackage_run_output.txt ./small_test_carrington_github_ci.sh
-        PARSE_OUTPUT_STRING=$( cat << MORO
+        PARSE_OUTPUT_CMD=$( cat << MORO
         echo "Job finished, checking output."
         cat testpackage_run_output.txt
         cat $GITHUB_STEP_SUMMARY > $GITHUB_WORKSPACE/testpackage_check_description.txt
@@ -310,7 +310,7 @@ jobs:
         tar -czf testpackage-output.tar.gz testpackage_check_description.txt testpackage_output_variables.txt
         MORO
         )
-        srun --job-name CI_package_results -M carrington -N 1 -c 1 --mem=1G bash -c "$PARSE_OUTPUT_STRING"
+        srun --job-name CI_package_results -M carrington -N 1 -c 1 --mem=1G bash -c "$PARSE_OUTPUT_CMD"
         if [ -f $GITHUB_WORKSPACE/testpackage_failed ]; then
           # Fail this step if any test failed.
           exit 1
