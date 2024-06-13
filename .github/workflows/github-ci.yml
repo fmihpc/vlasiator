@@ -325,7 +325,7 @@ jobs:
     - name: Scancel dangling job upon cancellation
       if: cancelled()
       run: |
-        scancel ${{ steps.submit.outputs.SLURM_JOB_ID }}
+        scancel ${{ steps.run.outputs.SLURM_JOB_ID }}
     - name: Make sure the output tarball is visible in lustre
       uses: nick-fields/retry@v3
       with:
