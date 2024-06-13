@@ -788,12 +788,12 @@ void Parameters::getParameters() {
    RP::get("AMR.refine_cadence",P::refineCadence);
    RP::get("AMR.refine_after",P::refineAfter);
    RP::get("AMR.refine_radius",P::refineRadius);
-   RP::get("AMR.no_refinement_under_x", P::refinementMinX);
-   RP::get("AMR.no_refinement_under_y", P::refinementMinY);
-   RP::get("AMR.no_refinement_under_z", P::refinementMinZ);
-   RP::get("AMR.no_refinement_over_x", P::refinementMaxX);
-   RP::get("AMR.no_refinement_over_y", P::refinementMaxY);
-   RP::get("AMR.no_refinement_over_z", P::refinementMaxZ);
+   RP::get("AMR.refinement_min_x", P::refinementMinX);
+   RP::get("AMR.refinement_min_y", P::refinementMinY);
+   RP::get("AMR.refinement_min_z", P::refinementMinZ);
+   RP::get("AMR.refinement_max_x", P::refinementMaxX);
+   RP::get("AMR.refinement_max_y", P::refinementMaxY);
+   RP::get("AMR.refinement_max_z", P::refinementMaxZ);
    RP::get("AMR.alpha1_drho_weight", P::alphaDRhoWeight);
    RP::get("AMR.alpha1_du_weight", P::alphaDUWeight);
    RP::get("AMR.alpha1_dpsq_weight", P::alphaDPSqWeight);
