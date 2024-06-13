@@ -289,21 +289,17 @@ jobs:
         chmod +x $GITHUB_WORKSPACE/vlsv*_DP
         cd testpackage
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries/lib
-        #srun -M carrington -t 01:30:00 --job-name CI_testpackage --interactive --nodes=1 -c 4 -n 16 --mem-per-cpu=5G -p short ./small_test_carrington_github_ci.sh
-        VLASIATOR_CIRUNNER_JOBSPEC_TP=$(sbatch --parsable -o testpackage_run_output.txt ./small_test_carrington_github_ci.sh)
-        VLASIATOR_CIRUNNER_JOBSPEC_TP=(${VLASIATOR_CIRUNNER_JOBSPEC_TP//\;/ })
-        trap "scancel -M carrington ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}" SIGINT
-        trap "scancel -M carrington ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}" SIGTERM
+        srun -M carrington -t 01:30:00 --dependency singleton --job-name CI_testpackage --interactive --nodes=1 -c 4 -n 16 --mem=0 -p short ./small_test_carrington_github_ci.sh | tee testpackage_run_output.txt
+        #sbatch --parsable -o testpackage_run_output.txt ./small_test_carrington_github_ci.sh
         RUN_STRING=$( cat << MORO
         echo "Job finished, checking output."
-        cat testpackage_run_output.txt
         cat $GITHUB_STEP_SUMMARY > $GITHUB_WORKSPACE/testpackage_check_description.txt
         cd $GITHUB_WORKSPACE
         ls -halB testpackage_check_description.txt
         tar -czf testpackage-output.tar.gz testpackage_check_description.txt testpackage_output_variables.txt
         MORO
         )
-        srun -M carrington --dependency afterany:${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]} bash -c "$RUN_STRING"
+        srun -M carrington bash -c "$RUN_STRING"
         if [ -f $GITHUB_WORKSPACE/testpackage_failed ]; then
           # Fail this step if any test failed.
           exit 1
