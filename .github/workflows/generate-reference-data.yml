@@ -72,6 +72,6 @@ jobs:
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries/lib
         # Fudge the run script
         sed -i 's/\/proj\/USERNAME\/BINARYNAME/$GITHUB_WORKSPACE\/vlasiator/' ./small_test_carrington.sh
-        sbatch -W -o testpackage_run_output.txt ./small_test_carrington.sh
+        sbatch -W -o testpackage_run_output.txt --job-name CI_ref_generate ./small_test_carrington.sh
         cat testpackage_run_output.txt
     # We don't bother to create artefacts or anything here.
