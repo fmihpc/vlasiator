@@ -593,17 +593,22 @@ namespace projects {
             mpiGrid.dont_refine(id);
             mpiGrid.dont_unrefine(id);
          } else {
+            // Evaluate possible refinement or unrefinement for this cell
+
             // Cells too far from the ionosphere should be unrefined
             bool shouldRefine {(r2 < r_max2) && ((P::useAlpha1 ? cell->parameters[CellParams::AMR_ALPHA1] > P::alpha1RefineThreshold : false) || (P::useAlpha2 ? cell->parameters[CellParams::AMR_ALPHA2] > P::alpha2RefineThreshold : false))};
             bool shouldUnrefine {(r2 > r_max2) || ((P::useAlpha1 ? cell->parameters[CellParams::AMR_ALPHA1] < P::alpha1CoarsenThreshold : true) && (P::useAlpha2 ? cell->parameters[CellParams::AMR_ALPHA2] < P::alpha2CoarsenThreshold : true))};
 
             if(shouldRefine
+               // If this cell is planned to be refined, but is outside the allowed refinement region, cancel that refinement.
               && ((xyz[0] < P::refinementMinX) || (xyz[0] > P::refinementMaxX)
                || (xyz[1] < P::refinementMinY) || (xyz[1] > P::refinementMaxY)
                || (xyz[2] < P::refinementMinZ) || (xyz[2] > P::refinementMaxZ))) {
                shouldRefine = false;
             }
             if(!shouldUnrefine
+               // If this cell is planned to remain at the current refinement level, but is outside the allowed refinement region, 
+               // attempt to unrefine it instead. (If it is already at the lowest refinement level, DCCRG should not go belly-up.)
               && ((xyz[0] < P::refinementMinX) || (xyz[0] > P::refinementMaxX)
                || (xyz[1] < P::refinementMinY) || (xyz[1] > P::refinementMaxY)
                || (xyz[2] < P::refinementMinZ) || (xyz[2] > P::refinementMaxZ))) {
@@ -614,21 +619,27 @@ namespace projects {
             int refined_neighbors {0};
             int coarser_neighbors {0};
             for (const auto& [neighbor, dir] : mpiGrid.get_face_neighbors_of(id)) {
+               // Evaluate all face neighbors of the current cell
                std::array<double,3> neighborXyz {mpiGrid.get_center(neighbor)};
                Real neighborR2 {pow(neighborXyz[0], 2) + pow(neighborXyz[1], 2) + pow(neighborXyz[2], 2)};
                const int neighborRef = mpiGrid.get_refinement_level(neighbor);
                bool shouldRefineNeighbor {(neighborR2 < r_max2) && ((P::useAlpha1 ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA1] > P::alpha1RefineThreshold : false) || (P::useAlpha2 ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA2] > P::alpha2RefineThreshold : false))};
-               if(shouldRefineNeighbor && ((neighborXyz[0] < P::refinementMinX) || (neighborXyz[0] > P::refinementMaxX)
+               if(shouldRefineNeighbor &&
+                  // If the neighbor is planned to be refined, but is outside the allowed refinement region, cancel that refinement.
+                    ((neighborXyz[0] < P::refinementMinX) || (neighborXyz[0] > P::refinementMaxX)
                   || (neighborXyz[1] < P::refinementMinY) || (neighborXyz[1] > P::refinementMaxY)
                   || (neighborXyz[2] < P::refinementMinZ) || (neighborXyz[2] > P::refinementMaxZ))) {
                   shouldRefineNeighbor = false;
                }
                bool shouldUnrefineNeighbor {(neighborR2 > r_max2) || ((P::useAlpha1 ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA1] < P::alpha1CoarsenThreshold : true) && (P::useAlpha2 ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA2] < P::alpha2CoarsenThreshold : true))};
-               if(!shouldUnrefineNeighbor && ((neighborXyz[0] < P::refinementMinX) || (neighborXyz[0] > P::refinementMaxX)
-               || (neighborXyz[1] < P::refinementMinY) || (neighborXyz[1] > P::refinementMaxY)
-               || (neighborXyz[2] < P::refinementMinZ) || (neighborXyz[2] > P::refinementMaxZ))) {
-               shouldUnrefine = true;
-            }
+               if(!shouldUnrefineNeighbor &&
+                  // If the neighbor is planned to remain at the current refinement level, but is outside the allowed refinement region, 
+                  // consider it as unrefining instead for purposes of evaluating the neighbors of this cell.
+                    ((neighborXyz[0] < P::refinementMinX) || (neighborXyz[0] > P::refinementMaxX)
+                  || (neighborXyz[1] < P::refinementMinY) || (neighborXyz[1] > P::refinementMaxY)
+                  || (neighborXyz[2] < P::refinementMinZ) || (neighborXyz[2] > P::refinementMaxZ))) {
+                  shouldUnrefineNeighbor = true;
+               }
                if (neighborRef > refLevel && !shouldUnrefineNeighbor) {
                   ++refined_neighbors;
                } else if (neighborRef < refLevel && !shouldRefineNeighbor) {
