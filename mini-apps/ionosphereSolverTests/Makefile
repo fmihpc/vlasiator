@@ -13,13 +13,16 @@ INC_FSGRID=-I../../submodules/fsgrid/
 INC_DCCRG=-I../../submodules/dccrg/
 INC_EIGEN = -isystem ../../submodules/eigen/
 
+# Default makefile target: only build the test binaries, don't run anything
+# (in particular, nothing that would require python)
+default: main differentialFlux sigmaProfiles
 
-
+# The "all" target actually builds and runs the tests proper.
 all: main differentialFlux sigmaProfiles multipoleTests LFMtest atmosphere.png
 .PHONY: clean multipoleTests
 
 clean: 
-	rm *.o main differentialFlux sigmaProfiles
+	-rm *.o main differentialFlux sigmaProfiles
 
 ionosphere.o: ../../sysboundary/ionosphere.h ../../sysboundary/ionosphere.cpp ../../backgroundfield/backgroundfield.h ../../projects/project.h
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c ../../sysboundary/ionosphere.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN} ${INC_VECTORCLASS} ${INC_PROFILE} ${INC_JEMALLOC} -Wno-comment
