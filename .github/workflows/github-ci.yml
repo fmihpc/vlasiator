@@ -117,9 +117,12 @@ jobs:
       run: |
         VLASIATOR_ARCH=github_actions make clean
         VLASIATOR_ARCH=github_actions make -j 3
-   #  - name: Compile vlasiator (Release build)
-   #    run: |
-   #      srun -M carrington --job-name release_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p short -t 0:10:0 bash -c 'module purge; module load GCC/11.2.0; module load OpenMPI/4.1.1-GCC-11.2.0 ; module load PMIx/4.1.0-GCCcore-11.2.0; module load PAPI/6.0.0.1-GCCcore-11.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make clean; make -j 16'
+    - name: Upload release binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: vlasiator-release
+        path: vlasiator
+        if-no-files-found: error
 
 
   build_testpackage:
@@ -406,3 +409,34 @@ jobs:
           mini-apps/ionosphereSolverTests/LFMtest.png
           mini-apps/ionosphereSolverTests/atmosphere.png
         if-no-files-found: error
+
+  check_cfg_files:
+    runs-on: ubuntu-latest
+    container: ursg/vlasiator_ci:20240131_1
+    needs: build_production
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v4
+      with:
+        submodules: false
+    - name: Download release binary
+      uses: actions/download-artifact@v4
+      with:
+        name: vlasiator-release
+    - name: Make release binary executable
+      run: |
+        chmod +x $GITHUB_WORKSPACE/vlasiator
+    - name: Check cfg files in projects/
+      run: |
+        retval=0
+        for cfg in `find projects -name \*.cfg`; do
+          echo -n "Testing cfg file $cfg... "
+          tools/check_vlasiator_cfg.sh $GITHUB_WORKSPACE/vlasiator $cfg 2>&1 > /dev/null
+          if [[ $? != 0 ]]; then
+            echo "FAILED!";
+            retval=127
+          else
+            echo "ok."
+          fi;
+        done
+        exit $retval

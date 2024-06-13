@@ -4,6 +4,12 @@ mpirun_cmd=$(which aprun &> /dev/null && echo "aprun" || echo "mpirun")
 vlasiator=$1
 cfg=$2
 
+# Return a nonzero exit code if anything invalid was found
+retval=0
+
+# Abort on error.
+set -e
+
 
 if [ $# -ne 2 ]
 then
@@ -13,21 +19,21 @@ Prints out differences between parameters in a cfg file and the options that the
 Usage: $0 vlasiator_executable cfg_file
 
 EOF
-    exit
+    exit 127
 fi
 
 
 if [ ! -x $vlasiator ]
 then
     echo "ERROR: Vlasiator executable $vlasiator does not exist or is not executable"
-    exit
+    exit 127
 fi
 
 
 if [ ! -e $cfg ]
 then
     echo "ERROR: cfg file $cfg does not exist"
-    exit
+    exit 127
 fi
 
 
@@ -142,6 +148,7 @@ then
    echo "------------------------------------------------------------------------------------------------------------"
    comm -13 .vlasiator_variable_names .cfg_variable_names
    echo "------------------------------------------------------------------------------------------------------------"
+   retval=1
 else
    echo "------------------------------------------------------------------------------------------------------------"
    echo "No invalid options"
@@ -164,6 +171,7 @@ then
       comm -13 .vlasiator_diagnostic_variable_names .cfg_diagnostic_variable_names
    fi
    echo "------------------------------------------------------------------------------------------------------------"
+   retval=2
 else
    echo "------------------------------------------------------------------------------------------------------------"
    echo "No invalid output or diagnostic variables (as of "$output_update" resp. "$diagnostic_update")"
@@ -171,5 +179,6 @@ else
 fi
 
 
-
 rm .cfg_variables .cfg_variable_names .vlasiator_variables .vlasiator_variable_names .allowed_prefixes .unused_variables  .vlasiator_variable_names_default_val .cfg_output_variable_names .cfg_diagnostic_variable_names .vlasiator_diagnostic_variable_names .vlasiator_output_variable_names
+
+exit $retval
