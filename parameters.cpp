@@ -284,7 +284,7 @@ bool P::addParameters() {
    RP::add("project",
            "Specify the name of the project to use. Supported to date (20150610): Alfven Diffusion Dispersion "
            "Distributions Firehose Flowthrough Fluctuations Harris KHB Larmor Magnetosphere Multipeak Riemann1 Shock "
-           "Shocktest Template test_fp testHall test_trans VelocityBox verificationLarmor",
+           "Shocktest Template test_fp testHall test_trans verificationLarmor",
            string(""));
 
    RP::add("restart.write_as_float", "If true, write restart fields in floats instead of doubles", false);

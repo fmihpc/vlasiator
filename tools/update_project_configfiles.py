@@ -25,8 +25,6 @@ projects = [
     'test_fp',
     'testHall',
     'test_trans',
-    'unsupported',
-    'VelocityBox',
     'verificationLarmor'
 ]
 
