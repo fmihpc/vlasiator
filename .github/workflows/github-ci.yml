@@ -337,7 +337,7 @@ jobs:
     - name: Compile ionosphereSolverTests
       run: |
         cd mini-apps/ionosphereSolverTests/
-        VLASIATOR_ARCH=github_actions make -j 3 main differentialFlux sigmaProfiles
+        VLASIATOR_ARCH=github_actions make -j 3
     - name: Upload ionosphereTest binaries
       uses: actions/upload-artifact@v4
       with:
