@@ -13,10 +13,6 @@ cfg=$2
 # Return a nonzero exit code if anything invalid was found
 retval=0
 
-# Abort on error.
-set -e
-
-
 if [ $# -ne 2 ]
 then
     cat    <<EOF

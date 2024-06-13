@@ -435,12 +435,17 @@ jobs:
     - name: Check cfg files in projects/
       run: |
         retval=0
+        set +e
         for cfg in `find projects -name \*.cfg`; do
           echo -n "Testing cfg file $cfg... "
           LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries/lib tools/check_vlasiator_cfg.sh $GITHUB_WORKSPACE/vlasiator $cfg 2>&1 > /dev/null
           if [[ $? != 0 ]]; then
-            echo "FAILED!";
-            retval=127
+            if `echo $cfg | grep -sq unsupported`; then
+              echo "failed (unsurprising)"
+            else
+              echo "FAILED!";
+              retval=127
+            fi
           else
             echo "ok."
           fi;
@@ -449,6 +454,7 @@ jobs:
     - name: Check cfg files in samples/
       run: |
         retval=0
+        set +e
         for cfg in `find samples -name \*.cfg`; do
           echo -n "Testing cfg file $cfg... "
           LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries/lib tools/check_vlasiator_cfg.sh $GITHUB_WORKSPACE/vlasiator $cfg 2>&1 > /dev/null
@@ -463,6 +469,7 @@ jobs:
     - name: Check cfg files in testpackage/
       run: |
         retval=0
+        set +e
         for cfg in `find testpackage -name \*.cfg`; do
           echo -n "Testing cfg file $cfg... "
           LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries/lib tools/check_vlasiator_cfg.sh $GITHUB_WORKSPACE/vlasiator $cfg 2>&1 > /dev/null
