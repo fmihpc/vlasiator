@@ -299,7 +299,7 @@ jobs:
         tar -czf testpackage-output.tar.gz testpackage_check_description.txt testpackage_output_variables.txt
         MORO
         )
-        srun -M carrington bash -c "$RUN_STRING"
+        srun -M carrington bash --job-name "CI_gatherresults" -c "$RUN_STRING"
         if [ -f $GITHUB_WORKSPACE/testpackage_failed ]; then
           # Fail this step if any test failed.
           exit 1
