@@ -325,6 +325,7 @@ jobs:
     - name: Scancel dangling job upon cancellation
       if: cancelled()
       run: |
+        # Try accessing the job id echoed by the job script.
         scancel ${{ steps.run.outputs.SLURM_JOB_ID }}
     - name: Make sure the output tarball is visible in lustre
       uses: nick-fields/retry@v3
