@@ -178,13 +178,9 @@ jobs:
         submodules: true
     - name: Clean workspace
       run: |
-        RUN_STRING=$( cat << MORO
         rm -rf libraries library-build libraries-arriesgado.tar.gz
         rm -f stdout.txt stderr.txt metrics.txt
         rm -f *.xml
-        MORO
-        )
-        srun -M carrington bash -c "$RUN_STRING"
     - name: Download libraries
       uses: actions/download-artifact@v4
       with:
