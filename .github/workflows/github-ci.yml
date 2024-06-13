@@ -301,19 +301,19 @@ jobs:
         cd testpackage
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries/lib
         #srun -M carrington -t 01:30:00 --job-name CI_testpackage --interactive --nodes=1 -c 4 -n 16 --mem-per-cpu=5G -p short ./small_test_carrington_github_ci.sh
-        export VLASIATOR_CIRUNNER_JOBSPEC_TP=$(sbatch --parsable -o testpackage_run_output.txt ./small_test_carrington_github_ci.sh)
+        export VLASIATOR_CIRUNNER_JOBSPEC_TP=$(sbatch -W --parsable -o testpackage_run_output.txt ./small_test_carrington_github_ci.sh)
         export VLASIATOR_CIRUNNER_JOBSPEC_TP=(${VLASIATOR_CIRUNNER_JOBSPEC_TP//\;/ })
         # VLASIATOR_CIRUNNER_JOBSPEC_TP[0] contains the jobid
         # VLASIATOR_CIRUNNER_JOBSPEC_TP[1] contains the slurm cluster (carrington)
-        echo "Launched job ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]} (CI_testpackage). The next srun jobid is blocking until CI_testpackage finishes and then collects output."
+        #echo "Launched job ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]} (CI_testpackage). The next srun jobid is blocking until CI_testpackage finishes and then collects output."
         #trap "echo 'SIGINT caught, scancelling ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}; scancel --full -M ${VLASIATOR_CIRUNNER_JOBSPEC_TP[1]} ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}" SIGINT
         #trap "echo 'SIGTERM caught, scancelling ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}; scancel --full -M ${VLASIATOR_CIRUNNER_JOBSPEC_TP[1]} ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}" SIGTERM
         RUN_STRING=$( cat << MORO
-        if [[ "$( sacct -M ${VLASIATOR_CIRUNNER_JOBSPEC_TP[1]} -j ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]} -p | grep 'CI_testpackage')" == *"CANCELLED"* ]]
-        then
-           echo "Job cancelled, not bothering with output handling."
-           exit
-        fi
+        #if [[ "$( sacct -M ${VLASIATOR_CIRUNNER_JOBSPEC_TP[1]} -j ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]} -p | grep 'CI_testpackage')" == *"CANCELLED"* ]]
+        #then
+        #   echo "Job cancelled, not bothering with output handling."
+        #   exit
+        #fi
         echo "Job finished, checking output."
         cat testpackage_run_output.txt
         cat $GITHUB_STEP_SUMMARY > $GITHUB_WORKSPACE/testpackage_check_description.txt
