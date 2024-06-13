@@ -80,11 +80,7 @@ jobs:
           submodules: true
       - name: Clean workspace
         run: |
-          RUN_STRING=$( cat << MORO
           rm -rf libraries library-build libraries-arriesgado.tar.gz
-          MORO
-          )
-          srun -M carrington bash -c "$RUN_STRING"
       - name: Submit library job
         run: |
           #srun --interactive -p arriesgado-jammy -J vlasiator-libs -n 1 -c 4 -t 01:00:00 bash -lc 'module load openmpi; ./build_libraries.sh arriesgado'
