@@ -128,20 +128,22 @@ output_update=`expr match "$( cat .vlasiator_variables | grep "variables.output"
 diagnostic_update=`expr match "$( cat .vlasiator_variables | grep "variables.diagnostic" )" '.*\([0-9]\{8\}\).*'`
 
 
-echo "------------------------------------------------------------------------------------------------------------"
-echo "Available unused options"
-echo "------------------------------------------------------------------------------------------------------------"
-comm -23 .vlasiator_variable_names .cfg_variable_names | grep -v "\." > .unused_variables
-comm -23 .vlasiator_variable_names .cfg_variable_names | grep -f .allowed_prefixes  >> .unused_variables
-grep -f .unused_variables .vlasiator_variable_names_default_val
-echo "------------------------------------------------------------------------------------------------------------"
+if [ z$PRINT_ONLY_ERRORS == "z" ]; then
+   echo "------------------------------------------------------------------------------------------------------------"
+   echo "Available unused options"
+   echo "------------------------------------------------------------------------------------------------------------"
+   comm -23 .vlasiator_variable_names .cfg_variable_names | grep -v "\." > .unused_variables
+   comm -23 .vlasiator_variable_names .cfg_variable_names | grep -f .allowed_prefixes  >> .unused_variables
+   grep -f .unused_variables .vlasiator_variable_names_default_val
+   echo "------------------------------------------------------------------------------------------------------------"
 
-echo "------------------------------------------------------------------------------------------------------------"
-echo "Available unused output and diagnostic variables (as of "$output_update" resp. "$diagnostic_update")"
-echo "------------------------------------------------------------------------------------------------------------"
-comm -23 .vlasiator_output_variable_names .cfg_output_variable_names
-comm -23 .vlasiator_diagnostic_variable_names .cfg_diagnostic_variable_names
-echo "------------------------------------------------------------------------------------------------------------"
+   echo "------------------------------------------------------------------------------------------------------------"
+   echo "Available unused output and diagnostic variables (as of "$output_update" resp. "$diagnostic_update")"
+   echo "------------------------------------------------------------------------------------------------------------"
+   comm -23 .vlasiator_output_variable_names .cfg_output_variable_names
+   comm -23 .vlasiator_diagnostic_variable_names .cfg_diagnostic_variable_names
+   echo "------------------------------------------------------------------------------------------------------------"
+fi
 
 output=$( comm -13 .vlasiator_variable_names .cfg_variable_names )
 if [ ${#output} -ne 0 ]

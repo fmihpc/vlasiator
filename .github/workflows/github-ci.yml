@@ -438,12 +438,13 @@ jobs:
         set +e
         for cfg in `find projects -name \*.cfg`; do
           echo -n "Testing cfg file $cfg... "
-          LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries/lib tools/check_vlasiator_cfg.sh $GITHUB_WORKSPACE/vlasiator $cfg 2>&1 > /dev/null
+          PRINT_ONLY_ERRORS=true LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries/lib tools/check_vlasiator_cfg.sh $GITHUB_WORKSPACE/vlasiator $cfg 2>&1 > cfgtest.out
           if [ $? != 0 ]; then
             if `echo $cfg | grep -sq unsupported`; then
               echo "failed (unsurprising)"
             else
-              echo "FAILED!";
+              echo "FAILED:";
+              cat cfgtest.out;
               retval=127
             fi
           else
@@ -457,9 +458,10 @@ jobs:
         set +e
         for cfg in `find samples -name \*.cfg`; do
           echo -n "Testing cfg file $cfg... "
-          LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries/lib tools/check_vlasiator_cfg.sh $GITHUB_WORKSPACE/vlasiator $cfg 2>&1 > /dev/null
+          PRINT_ONLY_ERRORS=true LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries/lib tools/check_vlasiator_cfg.sh $GITHUB_WORKSPACE/vlasiator $cfg 2>&1 > cfgtest.out
           if [ $? != 0 ]; then
-            echo "FAILED!";
+            echo "FAILED:";
+            cat cfgtest.out;
             retval=127
           else
             echo "ok."
@@ -472,9 +474,10 @@ jobs:
         set +e
         for cfg in `find testpackage -name \*.cfg`; do
           echo -n "Testing cfg file $cfg... "
-          LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries/lib tools/check_vlasiator_cfg.sh $GITHUB_WORKSPACE/vlasiator $cfg 2>&1 > /dev/null
+          PRINT_ONLY_ERRORS=true LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries/lib tools/check_vlasiator_cfg.sh $GITHUB_WORKSPACE/vlasiator $cfg 2>&1 > cfgtest.out
           if [ $? != 0 ]; then
-            echo "FAILED!";
+            echo "FAILED:";
+            cat cfgtest.out;
             retval=127
           else
             echo "ok."
