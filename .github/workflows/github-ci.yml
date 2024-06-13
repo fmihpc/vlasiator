@@ -293,8 +293,8 @@ jobs:
         VLASIATOR_CIRUNNER_JOBSPEC_TP=$(sbatch --parsable -o testpackage_run_output.txt ./small_test_carrington_github_ci.sh)
         VLASIATOR_CIRUNNER_JOBSPEC_TP=(${VLASIATOR_CIRUNNER_JOBSPEC_TP//\;/ })
         echo "Launched job ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}"
-        trap "scancel -M ${VLASIATOR_CIRUNNER_JOBSPEC_TP[1]} ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]} && echo 'SIGINT caught, scancelling ${jobspec[0]}" SIGINT
-        trap "scancel -M ${VLASIATOR_CIRUNNER_JOBSPEC_TP[1]} ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]} && echo 'SIGTERM caught, scancelling ${jobspec[0]}" SIGTERM
+        trap "echo 'SIGINT caught, scancelling ${jobspec[0]}; scancel -M ${VLASIATOR_CIRUNNER_JOBSPEC_TP[1]} ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}" SIGINT
+        trap "echo 'SIGTERM caught, scancelling ${jobspec[0]}; scancel -M ${VLASIATOR_CIRUNNER_JOBSPEC_TP[1]} ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}" SIGTERM
         RUN_STRING=$( cat << MORO
         echo "Job finished, checking output."
         cat testpackage_run_output.txt
