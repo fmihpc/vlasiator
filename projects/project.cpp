@@ -597,12 +597,14 @@ namespace projects {
             bool shouldRefine {(r2 < r_max2) && ((P::useAlpha1 ? cell->parameters[CellParams::AMR_ALPHA1] > P::alpha1RefineThreshold : false) || (P::useAlpha2 ? cell->parameters[CellParams::AMR_ALPHA2] > P::alpha2RefineThreshold : false))};
             bool shouldUnrefine {(r2 > r_max2) || ((P::useAlpha1 ? cell->parameters[CellParams::AMR_ALPHA1] < P::alpha1CoarsenThreshold : true) && (P::useAlpha2 ? cell->parameters[CellParams::AMR_ALPHA2] < P::alpha2CoarsenThreshold : true))};
 
-            if(shouldRefine && ((xyz[0] < P::refinementMinX) || (xyz[0] > P::refinementMaxX)
+            if(shouldRefine
+              && ((xyz[0] < P::refinementMinX) || (xyz[0] > P::refinementMaxX)
                || (xyz[1] < P::refinementMinY) || (xyz[1] > P::refinementMaxY)
                || (xyz[2] < P::refinementMinZ) || (xyz[2] > P::refinementMaxZ))) {
                shouldRefine = false;
             }
-            if(!shouldUnrefine && ((xyz[0] < P::refinementMinX) || (xyz[0] > P::refinementMaxX)
+            if(!shouldUnrefine
+              && ((xyz[0] < P::refinementMinX) || (xyz[0] > P::refinementMaxX)
                || (xyz[1] < P::refinementMinY) || (xyz[1] > P::refinementMaxY)
                || (xyz[2] < P::refinementMinZ) || (xyz[2] > P::refinementMaxZ))) {
                shouldUnrefine = true;
