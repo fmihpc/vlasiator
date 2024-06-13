@@ -133,9 +133,13 @@ jobs:
     steps:
     - name: Clean workspace
       run: |
+        RUN_STRING=$( cat << MORO
         rm -rf libraries library-build testpackage
         rm -f libraries.tar.zst testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
         rm -f *.xml
+        MORO
+        )
+        srun -M carrington bash -c "$RUN_STRING"
     - name: Checkout source
       uses: actions/checkout@v4
       with:
@@ -146,7 +150,7 @@ jobs:
     - name: Compile vlasiator (Testpackage build)
       run: |
         export VLASIATOR_ARCH=carrington_gcc_openmpi
-        srun -M carrington --job-name tp_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p short -t 0:10:0 bash -c 'module purge; module load GCC/11.2.0; module load OpenMPI/4.1.1-GCC-11.2.0 ; module load PMIx/4.1.0-GCCcore-11.2.0; module load PAPI/6.0.0.1-GCCcore-11.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make -j 16 testpackage; sleep 10s'
+        srun -M carrington --job-name CI_tp_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p short -t 0:10:0 bash -c 'module purge; module load GCC/11.2.0; module load OpenMPI/4.1.1-GCC-11.2.0 ; module load PMIx/4.1.0-GCCcore-11.2.0; module load PAPI/6.0.0.1-GCCcore-11.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make -j 16 testpackage; sleep 10s'
     - name: Make sure the output binary is visible in lustre
       uses: nick-fields/retry@v3
       with:
@@ -178,8 +182,8 @@ jobs:
     - name: Clean workspace
       run: |
         rm -rf libraries library-build libraries-arriesgado.tar.gz
-        rm -rf stdout.txt stderr.txt metrics.txt
-        rm -rf *.xml
+        rm -f stdout.txt stderr.txt metrics.txt
+        rm -f *.xml
     - name: Download libraries
       uses: actions/download-artifact@v4
       with:
@@ -243,9 +247,13 @@ jobs:
     steps:
     - name: Clean workspace
       run: |
+        RUN_STRING=$( cat << MORO
         rm -rf libraries library-build testpackage
         rm -f libraries.tar.zstd testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
         rm -f *.xml
+        MORO
+        )
+        srun -M carrington bash -c "$RUN_STRING"
     - name: Checkout source
       uses: actions/checkout@v4
       with:
@@ -256,7 +264,7 @@ jobs:
     - name: Compile tools
       run: |
         export VLASIATOR_ARCH=carrington_gcc_openmpi
-        srun -M carrington --job-name tp_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p short -t 0:10:0 bash -c 'module purge; module load GCC/11.2.0; module load OpenMPI/4.1.1-GCC-11.2.0 ; module load PMIx/4.1.0-GCCcore-11.2.0; module load PAPI/6.0.0.1-GCCcore-11.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make -j 16 vlsvextract vlsvdiff'
+        srun -M carrington --job-name CI_tp_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p short -t 0:10:0 bash -c 'module purge; module load GCC/11.2.0; module load OpenMPI/4.1.1-GCC-11.2.0 ; module load PMIx/4.1.0-GCCcore-11.2.0; module load PAPI/6.0.0.1-GCCcore-11.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make -j 16 vlsvextract vlsvdiff'
     - name: Upload tools binaries
       uses: actions/upload-artifact@v4
       with:
@@ -295,9 +303,11 @@ jobs:
         #srun -M carrington -t 01:30:00 --job-name CI_testpackage --interactive --nodes=1 -c 4 -n 16 --mem-per-cpu=5G -p short ./small_test_carrington_github_ci.sh
         VLASIATOR_CIRUNNER_JOBSPEC_TP=$(sbatch --parsable -o testpackage_run_output.txt ./small_test_carrington_github_ci.sh)
         VLASIATOR_CIRUNNER_JOBSPEC_TP=(${VLASIATOR_CIRUNNER_JOBSPEC_TP//\;/ })
-
-        trap "scancel --full -M carrington ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}" SIGINT
-        trap "scancel --full -M carrington ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}" SIGTERM
+        # VLASIATOR_CIRUNNER_JOBSPEC_TP[0] contains the jobid
+        # VLASIATOR_CIRUNNER_JOBSPEC_TP[1] contains the slurm cluster (carrington)
+        echo "Launched job ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]} (CI_testpackage). The next srun jobid is blocking until CI_testpackage finishes and then collects output."
+        trap "echo 'SIGINT caught, scancelling ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}; scancel --full -M ${VLASIATOR_CIRUNNER_JOBSPEC_TP[1]} ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}" SIGINT
+        trap "echo 'SIGTERM caught, scancelling ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}; scancel --full -M ${VLASIATOR_CIRUNNER_JOBSPEC_TP[1]} ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}" SIGTERM
         RUN_STRING=$( cat << MORO
         echo "Job finished, checking output."
         cat testpackage_run_output.txt
@@ -307,7 +317,7 @@ jobs:
         tar -czf testpackage-output.tar.gz testpackage_check_description.txt testpackage_output_variables.txt
         MORO
         )
-        srun -M carrington --dependency afterany:${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]} bash -c "$RUN_STRING"
+        srun --job-name CI_wait -M carrington -N 1 -c 1 --mem=1G --dependency afterany:${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]} bash -c "$RUN_STRING"
         if [ -f $GITHUB_WORKSPACE/testpackage_failed ]; then
           # Fail this step if any test failed.
           exit 1

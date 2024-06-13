@@ -176,6 +176,12 @@ Real P::alphaDBWeight = 1.0;
 uint P::refineCadence = 5;
 Real P::refineAfter = 0.0;
 Real P::refineRadius = LARGE_REAL;
+Real P::refinementMinX = -LARGE_REAL;
+Real P::refinementMinY = -LARGE_REAL;
+Real P::refinementMinZ = -LARGE_REAL;
+Real P::refinementMaxX = LARGE_REAL;
+Real P::refinementMaxY = LARGE_REAL;
+Real P::refinementMaxZ = LARGE_REAL;
 int P::maxFilteringPasses = 0;
 int P::amrBoxNumber = 0;
 std::vector<uint> P::amrBoxHalfWidthX;
@@ -278,7 +284,7 @@ bool P::addParameters() {
    RP::add("project",
            "Specify the name of the project to use. Supported to date (20150610): Alfven Diffusion Dispersion "
            "Distributions Firehose Flowthrough Fluctuations Harris KHB Larmor Magnetosphere Multipeak Riemann1 Shock "
-           "Shocktest Template test_fp testHall test_trans VelocityBox verificationLarmor",
+           "Shocktest Template test_fp testHall test_trans verificationLarmor",
            string(""));
 
    RP::add("restart.write_as_float", "If true, write restart fields in floats instead of doubles", false);
@@ -481,6 +487,12 @@ bool P::addParameters() {
    RP::add("AMR.refine_cadence","Refine every nth load balance", 5);
    RP::add("AMR.refine_after","Start refinement after this many simulation seconds", 0.0);
    RP::add("AMR.refine_radius","Maximum distance from Earth to refine", LARGE_REAL);
+   RP::add("AMR.refinement_min_x", "Refinement minimum X coordinate, no refinement at x < this value (m)", -LARGE_REAL);
+   RP::add("AMR.refinement_min_y", "Refinement minimum Y coordinate, no refinement at y < this value (m)", -LARGE_REAL);
+   RP::add("AMR.refinement_min_z", "Refinement minimum Z coordinate, no refinement at z < this value (m)", -LARGE_REAL);
+   RP::add("AMR.refinement_max_x", "Refinement maximum X coordinate, no refinement at x > this value (m)", LARGE_REAL);
+   RP::add("AMR.refinement_max_y", "Refinement maximum Y coordinate, no refinement at y > this value (m)", LARGE_REAL);
+   RP::add("AMR.refinement_max_z", "Refinement maximum Z coordinate, no refinement at z > this value (m)", LARGE_REAL);
    RP::add("AMR.alpha1_drho_weight","Multiplier for delta rho in alpha calculation", 1.0);
    RP::add("AMR.alpha1_du_weight","Multiplier for delta U in alpha calculation", 1.0);
    RP::add("AMR.alpha1_dpsq_weight","Multiplier for delta p squared in alpha calculation", 1.0);
@@ -792,6 +804,12 @@ void Parameters::getParameters() {
    RP::get("AMR.refine_cadence",P::refineCadence);
    RP::get("AMR.refine_after",P::refineAfter);
    RP::get("AMR.refine_radius",P::refineRadius);
+   RP::get("AMR.refinement_min_x", P::refinementMinX);
+   RP::get("AMR.refinement_min_y", P::refinementMinY);
+   RP::get("AMR.refinement_min_z", P::refinementMinZ);
+   RP::get("AMR.refinement_max_x", P::refinementMaxX);
+   RP::get("AMR.refinement_max_y", P::refinementMaxY);
+   RP::get("AMR.refinement_max_z", P::refinementMaxZ);
    RP::get("AMR.alpha1_drho_weight", P::alphaDRhoWeight);
    RP::get("AMR.alpha1_du_weight", P::alphaDUWeight);
    RP::get("AMR.alpha1_dpsq_weight", P::alphaDPSqWeight);
@@ -994,7 +1012,7 @@ void Parameters::getParameters() {
    RP::get("fieldtracing.fieldLineTracer", tracerString);
    RP::get("fieldtracing.tracer_max_allowed_error", FieldTracing::fieldTracingParameters.max_allowed_error);
    RP::get("fieldtracing.tracer_max_attempts", FieldTracing::fieldTracingParameters.max_field_tracer_attempts);
-   RP::get("fieldtracing.tracer_min_dx", FieldTracing::fieldTracingParameters.min_tracer_dx);
+   RP::get("fieldtracing.tracer_min_dx", FieldTracing::fieldTracingParameters.min_tracer_dx_full_box);
    RP::get("fieldtracing.fullbox_max_incomplete_cells", FieldTracing::fieldTracingParameters.fullbox_max_incomplete_cells);
    RP::get("fieldtracing.fluxrope_max_incomplete_cells", FieldTracing::fieldTracingParameters.fluxrope_max_incomplete_cells);
    RP::get("fieldtracing.fullbox_and_fluxrope_max_absolute_distance_to_trace", FieldTracing::fieldTracingParameters.fullbox_and_fluxrope_max_distance);
