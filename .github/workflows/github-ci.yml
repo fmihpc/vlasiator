@@ -309,6 +309,11 @@ jobs:
         #trap "echo 'SIGINT caught, scancelling ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}; scancel --full -M ${VLASIATOR_CIRUNNER_JOBSPEC_TP[1]} ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}" SIGINT
         #trap "echo 'SIGTERM caught, scancelling ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}; scancel --full -M ${VLASIATOR_CIRUNNER_JOBSPEC_TP[1]} ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}" SIGTERM
         RUN_STRING=$( cat << MORO
+        if [[ "$( sacct -M ${VLASIATOR_CIRUNNER_JOBSPEC_TP[1]} -j ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]} -p | grep 'CI_testpackage')" == *"CANCELLED"* ]]
+        then
+           echo "Job cancelled, not bothering with output."
+           exit
+        fi
         echo "Job finished, checking output."
         cat testpackage_run_output.txt
         cat $GITHUB_STEP_SUMMARY > $GITHUB_WORKSPACE/testpackage_check_description.txt
