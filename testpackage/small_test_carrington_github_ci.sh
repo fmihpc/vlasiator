@@ -1,16 +1,5 @@
 #!/bin/bash
-#SBATCH -t 01:30:00        # Run time (hh:mm:ss)
-#SBATCH --job-name=CI_testpackage
-##SBATCH -A spacephysics
-#SBATCH -M carrington
-# test short medium 20min1d 3d
-#SBATCH -p short
-#SBATCH --exclusive
-#SBATCH --nodes=1
-#SBATCH -c 4                 # CPU cores per task
-#SBATCH -n 16                  # number of tasks
-#SBATCH --mem=0
-##SBATCH -x carrington-[801-808]
+# (SBATCH headers are removed from this file, as this is dispatched directly from the github actions script)
 
 #If 1, the reference vlsv files are generated
 # if 0 then we check the v1
@@ -56,11 +45,12 @@ export OMP_NUM_THREADS=$t
 
 # With this the code won't print the warning, so we have a shorter report
 export OMPI_MCA_io="^ompio"
+export UCX_NET_DEVICES="eth0"
 
 #command for running stuff
-run_command="mpirun --mca btl self -mca pml ^vader,tcp,openib,uct,yalla -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_TLS=rc,sm -x UCX_IB_ADDR_TYPE=ib_global -np $tasks"
-small_run_command="mpirun --mca btl self -mca pml ^vader,tcp,openib,uct,yalla -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_TLS=rc,sm -x UCX_IB_ADDR_TYPE=ib_global -n 1 -N 1"
-run_command_tools="mpirun -np 1 "
+run_command="srun --job-name 'CI_run' -M carrington --nodes=1 -n 16 -c 4 --mem=0 -p short -t 0:30:00 --mpi=pmix -n $tasks"
+small_run_command="srun --job-name 'CI_smallrun' -M carrington --nodes=1 -n 1 -c 4 --mem=0 -p short -t 0:30:00 --mpi=pmix -n 1"
+run_command_tools="srun --job-name 'CI_tool' -M carrington --nodes=1 -n 1 -c 4 --mem=0 -p short -t 0:30:00 --mpi=pmix -n 1"
 
 umask 007
 # Launch the OpenMP job to the allocated compute node

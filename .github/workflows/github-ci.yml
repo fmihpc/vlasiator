@@ -289,7 +289,8 @@ jobs:
         chmod +x $GITHUB_WORKSPACE/vlsv*_DP
         cd testpackage
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries/lib
-        srun -M carrington -t 01:30:00 --dependency singleton --job-name CI_testpackage --pty --nodes=1 -c 4 -n 16 --mem=0 -p short ./small_test_carrington_github_ci.sh | tee testpackage_run_output.txt
+        ./small_test_carrington_github_ci.sh | tee testpackage_run_output.txt
+        #srun -M carrington -t 01:30:00 --dependency singleton --job-name CI_testpackage --pty --nodes=1 -c 4 -n 16 --mem=0 -p short ./small_test_carrington_github_ci.sh | tee testpackage_run_output.txt
         #sbatch --parsable -o testpackage_run_output.txt ./small_test_carrington_github_ci.sh
         RUN_STRING=$( cat << MORO
         echo "Job finished, checking output."
