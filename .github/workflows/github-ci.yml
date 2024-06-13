@@ -439,7 +439,7 @@ jobs:
         for cfg in `find projects -name \*.cfg`; do
           echo -n "Testing cfg file $cfg... "
           LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries/lib tools/check_vlasiator_cfg.sh $GITHUB_WORKSPACE/vlasiator $cfg 2>&1 > /dev/null
-          if [[ $? != 0 ]]; then
+          if [ $? != 0 ]; then
             if `echo $cfg | grep -sq unsupported`; then
               echo "failed (unsurprising)"
             else
@@ -458,7 +458,7 @@ jobs:
         for cfg in `find samples -name \*.cfg`; do
           echo -n "Testing cfg file $cfg... "
           LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries/lib tools/check_vlasiator_cfg.sh $GITHUB_WORKSPACE/vlasiator $cfg 2>&1 > /dev/null
-          if [[ $? != 0 ]]; then
+          if [ $? != 0 ]; then
             echo "FAILED!";
             retval=127
           else
@@ -473,7 +473,7 @@ jobs:
         for cfg in `find testpackage -name \*.cfg`; do
           echo -n "Testing cfg file $cfg... "
           LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries/lib tools/check_vlasiator_cfg.sh $GITHUB_WORKSPACE/vlasiator $cfg 2>&1 > /dev/null
-          if [[ $? != 0 ]]; then
+          if [ $? != 0 ]; then
             echo "FAILED!";
             retval=127
           else
