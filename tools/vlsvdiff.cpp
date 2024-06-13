@@ -939,11 +939,11 @@ bool outputDistance(const Real p,
 {
    if(verboseOutput == true) {
       if(shiftedAverage == false) {
-         cout << "The absolute " << p << "-distance between both datasets is " << *absolute  << endl;
-         cout << "The relative " << p << "-distance between both datasets is " << *relative  << endl;
+         cout << "The absolute " << p << "-distance between both datasets is " << setprecision(3) << *absolute  << endl;
+         cout << "The relative " << p << "-distance between both datasets is " << setprecision(3) << *relative  << endl;
       } else {
-         cout << "The average-shifted absolute " << p << "-distance between both datasets is " << *absolute  << endl;
-         cout << "The average-shifted relative " << p << "-distance between both datasets is " << *relative  << endl;
+         cout << "The average-shifted absolute " << p << "-distance between both datasets is " << setprecision(3) << *absolute  << endl;
+         cout << "The average-shifted relative " << p << "-distance between both datasets is " << setprecision(3) << *relative  << endl;
       }
    } else {
       static vector<Real> fileOutputData;
@@ -952,7 +952,7 @@ bool outputDistance(const Real p,
       if(lastCall == true) {
          vector<Real>::const_iterator it;
          for(it = fileOutputData.begin(); it != fileOutputData.end(); it++) {
-            cout << *it << "\t";
+            cout << setprecision(3) << *it << "\t";
          }
          fileOutputData.clear();
          return 0;
@@ -1613,6 +1613,7 @@ bool compareAvgs( const string fileName1,
 
    const double relativeSumDiff = sumDiff / totalAbsAvgs;
    cout << "File names: " << fileName1 << " & " << fileName2 << endl <<
+      setprecision(3) <<
       "NonIdenticalBlocks:      " << numOfNonIdenticalBlocks << endl <<
       "IdenticalBlocks:         " << numOfIdenticalBlocks <<  endl <<
       "Absolute_Error:          " << totalAbsDiff  << endl <<
