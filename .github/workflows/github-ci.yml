@@ -294,7 +294,7 @@ jobs:
         VLASIATOR_CIRUNNER_JOBSPEC_TP=(${VLASIATOR_CIRUNNER_JOBSPEC_TP//\;/ })
         # VLASIATOR_CIRUNNER_JOBSPEC_TP[0] contains the jobid
         # VLASIATOR_CIRUNNER_JOBSPEC_TP[1] contains the slurm cluster (carrington)
-        echo "Launched job ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}"
+        echo "Launched job ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]} (CI_testpackage). The next srun jobid is blocking until CI_testpackage finishes."
         trap "echo 'SIGINT caught, scancelling ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}; scancel --full -M ${VLASIATOR_CIRUNNER_JOBSPEC_TP[1]} ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}" SIGINT
         trap "echo 'SIGTERM caught, scancelling ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}; scancel --full -M ${VLASIATOR_CIRUNNER_JOBSPEC_TP[1]} ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}" SIGTERM
         RUN_STRING=$( cat << MORO
