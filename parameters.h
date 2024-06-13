@@ -206,12 +206,12 @@ struct Parameters {
    static Real alphaDPSqWeight;
    static Real alphaDBSqWeight;
    static Real alphaDBWeight;
-   static Real noRefinementUnderX; /*!< Do not refine at x coordinates below this value. */
-   static Real noRefinementUnderY; /*!< Do not refine at y coordinates below this value. */
-   static Real noRefinementUnderZ; /*!< Do not refine at z coordinates below this value. */
-   static Real noRefinementOverX; /*!< Do not refine at x coordinates above this value. */
-   static Real noRefinementOverY; /*!< Do not refine at y coordinates above this value. */
-   static Real noRefinementOverZ; /*!< Do not refine at z coordinates above this value. */
+   static Real refinementMinX; /*!< Do not refine at x coordinates below this value. */
+   static Real refinementMinY; /*!< Do not refine at y coordinates below this value. */
+   static Real refinementMinZ; /*!< Do not refine at z coordinates below this value. */
+   static Real refinementMaxX; /*!< Do not refine at x coordinates above this value. */
+   static Real refinementMaxY; /*!< Do not refine at y coordinates above this value. */
+   static Real refinementMaxZ; /*!< Do not refine at z coordinates above this value. */
    static int maxFilteringPasses;
    static int amrBoxNumber;
    static std::vector<uint> amrBoxHalfWidthX;
