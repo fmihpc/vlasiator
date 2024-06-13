@@ -413,12 +413,18 @@ jobs:
   check_cfg_files:
     runs-on: ubuntu-latest
     container: ursg/vlasiator_ci:20240131_1
-    needs: build_production
+    needs: [build_libraries, build_production]
     steps:
     - name: Checkout source
       uses: actions/checkout@v4
       with:
         submodules: false
+    - name: Download libraries
+      uses: actions/download-artifact@v4
+      with:
+        name: libraries
+    - name: Unpack libraries
+      run: tar --zstd -xvf libraries.tar.zstd
     - name: Download release binary
       uses: actions/download-artifact@v4
       with:
@@ -431,7 +437,35 @@ jobs:
         retval=0
         for cfg in `find projects -name \*.cfg`; do
           echo -n "Testing cfg file $cfg... "
-          tools/check_vlasiator_cfg.sh $GITHUB_WORKSPACE/vlasiator $cfg 2>&1 > /dev/null
+          LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries/lib tools/check_vlasiator_cfg.sh $GITHUB_WORKSPACE/vlasiator $cfg 2>&1 > /dev/null
+          if [[ $? != 0 ]]; then
+            echo "FAILED!";
+            retval=127
+          else
+            echo "ok."
+          fi;
+        done
+        exit $retval
+    - name: Check cfg files in samples/
+      run: |
+        retval=0
+        for cfg in `find samples -name \*.cfg`; do
+          echo -n "Testing cfg file $cfg... "
+          LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries/lib tools/check_vlasiator_cfg.sh $GITHUB_WORKSPACE/vlasiator $cfg 2>&1 > /dev/null
+          if [[ $? != 0 ]]; then
+            echo "FAILED!";
+            retval=127
+          else
+            echo "ok."
+          fi;
+        done
+        exit $retval
+    - name: Check cfg files in testpackage/
+      run: |
+        retval=0
+        for cfg in `find testpackage -name \*.cfg`; do
+          echo -n "Testing cfg file $cfg... "
+          LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries/lib tools/check_vlasiator_cfg.sh $GITHUB_WORKSPACE/vlasiator $cfg 2>&1 > /dev/null
           if [[ $? != 0 ]]; then
             echo "FAILED!";
             retval=127
