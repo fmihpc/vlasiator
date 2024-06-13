@@ -1,6 +1,12 @@
 #!/bin/bash
 
-mpirun_cmd=$(which aprun &> /dev/null && echo "aprun" || echo "mpirun")
+# use this when running locally/on a frontend
+mpirun_cmd=" "
+# or pick the launcher you need
+#mpirun_cmd="srun"
+#mpirun_cmd="mpirun"
+#mpirun_cmd="aprun"
+
 vlasiator=$1
 cfg=$2
 
