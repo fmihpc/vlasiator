@@ -130,9 +130,13 @@ jobs:
     steps:
     - name: Clean workspace
       run: |
+        RUN_STRING=$( cat << MORO
         rm -rf libraries library-build testpackage
         rm -f libraries.tar.zst testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
         rm -f *.xml
+        MORO
+        )
+        srun -M carrington bash -c "$RUN_STRING"
     - name: Checkout source
       uses: actions/checkout@v4
       with:
@@ -175,8 +179,8 @@ jobs:
     - name: Clean workspace
       run: |
         rm -rf libraries library-build libraries-arriesgado.tar.gz
-        rm -rf stdout.txt stderr.txt metrics.txt
-        rm -rf *.xml
+        rm -f stdout.txt stderr.txt metrics.txt
+        rm -f *.xml
     - name: Download libraries
       uses: actions/download-artifact@v4
       with:
@@ -240,9 +244,13 @@ jobs:
     steps:
     - name: Clean workspace
       run: |
+        RUN_STRING=$( cat << MORO
         rm -rf libraries library-build testpackage
         rm -f libraries.tar.zstd testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
         rm -f *.xml
+        MORO
+        )
+        srun -M carrington bash -c "$RUN_STRING"
     - name: Checkout source
       uses: actions/checkout@v4
       with:
