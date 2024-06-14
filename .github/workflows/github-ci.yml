@@ -300,15 +300,8 @@ jobs:
         chmod +x $GITHUB_WORKSPACE/vlsv*_DP
         cd testpackage
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries/lib
-        #srun -M carrington -t 01:30:00 --job-name CI_testpackage --interactive --nodes=1 -c 4 -n 16 --mem-per-cpu=5G -p short ./small_test_carrington_github_ci.sh
-        VLASIATOR_CIRUNNER_JOBSPEC_TP=$(sbatch --parsable -o testpackage_run_output.txt ./small_test_carrington_github_ci.sh)
-        VLASIATOR_CIRUNNER_JOBSPEC_TP=(${VLASIATOR_CIRUNNER_JOBSPEC_TP//\;/ })
-        # VLASIATOR_CIRUNNER_JOBSPEC_TP[0] contains the jobid
-        # VLASIATOR_CIRUNNER_JOBSPEC_TP[1] contains the slurm cluster (carrington)
-        echo "Launched job ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]} (CI_testpackage). The next srun jobid is blocking until CI_testpackage finishes and then collects output."
-        trap "echo 'SIGINT caught, scancelling ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}; scancel --full -M ${VLASIATOR_CIRUNNER_JOBSPEC_TP[1]} ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}" SIGINT
-        trap "echo 'SIGTERM caught, scancelling ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}; scancel --full -M ${VLASIATOR_CIRUNNER_JOBSPEC_TP[1]} ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}" SIGTERM
-        RUN_STRING=$( cat << MORO
+        sbatch -W -o testpackage_run_output.txt ./small_test_carrington_github_ci.sh
+        PARSE_OUTPUT_CMD=$( cat << MORO
         echo "Job finished, checking output."
         cat testpackage_run_output.txt
         cat $GITHUB_STEP_SUMMARY > $GITHUB_WORKSPACE/testpackage_check_description.txt
@@ -317,11 +310,16 @@ jobs:
         tar -czf testpackage-output.tar.gz testpackage_check_description.txt testpackage_output_variables.txt
         MORO
         )
-        srun --job-name CI_wait -M carrington -N 1 -c 1 --mem=1G --dependency afterany:${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]} bash -c "$RUN_STRING"
+        srun --job-name CI_package_results -M carrington -N 1 -c 1 --mem=1G bash -c "$PARSE_OUTPUT_CMD"
         if [ -f $GITHUB_WORKSPACE/testpackage_failed ]; then
           # Fail this step if any test failed.
           exit 1
         fi
+    - name: Scancel dangling job upon cancellation
+      if: cancelled()
+      run: |
+        # Try accessing the job id echoed by the job script.
+        scancel ${{ steps.run.outputs.SLURM_JOB_ID }}
     - name: Make sure the output tarball is visible in lustre
       uses: nick-fields/retry@v3
       with:
