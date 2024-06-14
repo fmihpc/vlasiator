@@ -163,6 +163,10 @@ namespace projects {
                //rvalue = 0;
             }
             break;
+         default:
+            rvalue = sP.rho;
+            break;
+
       }  
       
       return rvalue;
