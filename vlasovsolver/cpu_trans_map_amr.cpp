@@ -371,8 +371,8 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
             // Transpose and copy block data from cells to source buffer
             Vec* blockDataSource = blockDataBuffer.data() + start*WID3/VECL;
             Realf** pencilBlockData = cellBlockData.data() + start;
-            bool pencil_has_data = copy_trans_block_data_amr(pencilBlockData, L, blockDataSource,
-                                                             cellid_transpose, popID);
+            copy_trans_block_data_amr(pencilBlockData, L, blockDataSource,
+                                      cellid_transpose, popID);
          }
          loadTimer.stop();
 
