@@ -157,17 +157,17 @@ void initializeGrids(
 
    phiprof::Timer refineTimer {"Refine spatial cells"};
    // We need this first as well
-   recalculateLocalCellsCache();
+   recalculateLocalCellsCache(mpiGrid);
    if (!P::isRestart) {
       if (P::amrMaxSpatialRefLevel > 0 && project.refineSpatialCells(mpiGrid)) {
          mpiGrid.balance_load();
-         recalculateLocalCellsCache();
+         recalculateLocalCellsCache(mpiGrid);
          mapRefinement(mpiGrid, technicalGrid);
       }
    } else {
       if (readFileCells(mpiGrid, P::restartFileName)) {
          mpiGrid.balance_load();
-         recalculateLocalCellsCache();
+         recalculateLocalCellsCache(mpiGrid);
          mapRefinement(mpiGrid, technicalGrid);
       }
    }
@@ -183,7 +183,7 @@ void initializeGrids(
    phiprof::Timer initialLBTimer {"Initial load-balancing"};
    if (myRank == MASTER_RANK) logFile << "(INIT): Starting initial load balance." << endl << writeVerbose;
    mpiGrid.balance_load(); // Direct DCCRG call, recalculate cache afterwards
-   recalculateLocalCellsCache();
+   recalculateLocalCellsCache(mpiGrid);
 
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
    mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
@@ -597,7 +597,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    finishLBTimer.stop();
 
    //Make sure transfers are enabled for all cells
-   recalculateLocalCellsCache();
+   recalculateLocalCellsCache(mpiGrid);
    #pragma omp parallel for
    for (uint i=0; i<cells.size(); ++i) {
       mpiGrid[cells[i]]->set_mpi_transfer_enabled(true);
@@ -1536,7 +1536,7 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    finishTimer.stop();
    dccrgTimer.stop();
 
-   recalculateLocalCellsCache();
+   recalculateLocalCellsCache(mpiGrid);
    initSpatialCellCoordinates(mpiGrid);
 
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_DIMENSIONS);
@@ -1562,4 +1562,11 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
       project.filterRefined(mpiGrid);
    }
    return true;
+}
+
+void recalculateLocalCellsCache(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+   // Clear-and-minimize idiom for minimizing capacity
+   // TODO: consider shrink_to_fit() or alternatively benchmark just copy assigning
+   std::vector<CellID>().swap(Parameters::localCells);
+   Parameters::localCells = mpiGrid.get_cells();
 }
