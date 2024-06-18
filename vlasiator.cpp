@@ -293,7 +293,7 @@ int main(int argn,char* args[]) {
    const creal DT_EPSILON=1e-12;
    typedef Parameters P;
    Real newDt;
-   bool dtIsChanged;
+   bool dtIsChanged {false};
    
    // Before MPI_Init we hardwire some settings, if we are in OpenMPI
    int required=MPI_THREAD_FUNNELED;
@@ -753,6 +753,8 @@ int main(int argn,char* args[]) {
       if (P::dynamicTimestep == true && dtIsChanged == true) {
          // Only actually update the timestep if dynamicTimestep is on
          P::dt=newDt;
+      } else {
+         dtIsChanged = false;
       }
       computeDtimer.stop();
       
