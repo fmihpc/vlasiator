@@ -594,13 +594,13 @@ namespace projects {
             // Evaluate possible refinement or unrefinement for this cell
 
             // Cells too far from the ionosphere should be unrefined but
-            // induced neighbours are still possible just beyond this r_max2 limit.
+            // induced neighbors are still possible just beyond this r_max2 limit.
             bool shouldRefine {(r2 < r_max2) && ((P::useAlpha1 ? cell->parameters[CellParams::AMR_ALPHA1] > P::alpha1RefineThreshold : false) || (P::useAlpha2 ? cell->parameters[CellParams::AMR_ALPHA2] > P::alpha2RefineThreshold : false))};
             bool shouldUnrefine {(r2 > r_max2) || ((P::useAlpha1 ? cell->parameters[CellParams::AMR_ALPHA1] < P::alpha1CoarsenThreshold : true) && (P::useAlpha2 ? cell->parameters[CellParams::AMR_ALPHA2] < P::alpha2CoarsenThreshold : true))};
 
             if(shouldRefine
                // If this cell is planned to be refined, but is outside the allowed refinement region, cancel that refinement.
-               // Induced neighbours are still possible just beyond that limit.
+               // Induced neighbors are still possible just beyond that limit.
               && ((xyz[0] < P::refinementMinX) || (xyz[0] > P::refinementMaxX)
                || (xyz[1] < P::refinementMinY) || (xyz[1] > P::refinementMaxY)
                || (xyz[2] < P::refinementMinZ) || (xyz[2] > P::refinementMaxZ))) {
@@ -609,7 +609,7 @@ namespace projects {
             if(!shouldUnrefine
                // If this cell is planned to remain at the current refinement level, but is outside the allowed refinement region,
                // attempt to unrefine it instead. (If it is already at the lowest refinement level, DCCRG should not go belly-up.)
-               // Induced neighbours are still possible just beyond that limit.
+               // Induced neighbors are still possible just beyond that limit.
               && ((xyz[0] < P::refinementMinX) || (xyz[0] > P::refinementMaxX)
                || (xyz[1] < P::refinementMinY) || (xyz[1] > P::refinementMaxY)
                || (xyz[2] < P::refinementMinZ) || (xyz[2] > P::refinementMaxZ))) {
@@ -624,22 +624,22 @@ namespace projects {
                std::array<double,3> neighborXyz {mpiGrid.get_center(neighbor)};
                Real neighborR2 {pow(neighborXyz[0], 2) + pow(neighborXyz[1], 2) + pow(neighborXyz[2], 2)};
                const int neighborRef = mpiGrid.get_refinement_level(neighbor);
-               // Induced neighbours are still possible just beyond the r_max2 limit.
+               // Induced neighbors are still possible just beyond the r_max2 limit.
                bool shouldRefineNeighbor {(neighborR2 < r_max2) && ((P::useAlpha1 ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA1] > P::alpha1RefineThreshold : false) || (P::useAlpha2 ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA2] > P::alpha2RefineThreshold : false))};
                if(shouldRefineNeighbor &&
                   // If the neighbor is planned to be refined, but is outside the allowed refinement region, cancel that refinement.
-                  // Induced neighbours are still possible just beyond that limit.
+                  // Induced neighbors are still possible just beyond that limit.
                     ((neighborXyz[0] < P::refinementMinX) || (neighborXyz[0] > P::refinementMaxX)
                   || (neighborXyz[1] < P::refinementMinY) || (neighborXyz[1] > P::refinementMaxY)
                   || (neighborXyz[2] < P::refinementMinZ) || (neighborXyz[2] > P::refinementMaxZ))) {
                   shouldRefineNeighbor = false;
                }
-               // Induced neighbours are still possible just beyond the r_max2 limit.
+               // Induced neighbors are still possible just beyond the r_max2 limit.
                bool shouldUnrefineNeighbor {(neighborR2 > r_max2) || ((P::useAlpha1 ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA1] < P::alpha1CoarsenThreshold : true) && (P::useAlpha2 ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA2] < P::alpha2CoarsenThreshold : true))};
                if(!shouldUnrefineNeighbor &&
                   // If the neighbor is planned to remain at the current refinement level, but is outside the allowed refinement region, 
                   // consider it as unrefining instead for purposes of evaluating the neighbors of this cell.
-                  // Induced neighbours are still possible just beyond that limit.
+                  // Induced neighbors are still possible just beyond that limit.
                     ((neighborXyz[0] < P::refinementMinX) || (neighborXyz[0] > P::refinementMaxX)
                   || (neighborXyz[1] < P::refinementMinY) || (neighborXyz[1] > P::refinementMaxY)
                   || (neighborXyz[2] < P::refinementMinZ) || (neighborXyz[2] > P::refinementMaxZ))) {
@@ -701,21 +701,21 @@ namespace projects {
          CellID id = cellPair.first;
          // To preserve the mean, we must only consider refined cells
          int refLevel = mpiGrid.get_refinement_level(id);
-         std::vector<CellID> refinedNeighbours;
-         for (auto& neighbour : *mpiGrid.get_neighbors_of(id, NEAREST_NEIGHBORHOOD_ID)) {
-            if (mpiGrid[neighbour.first]->parameters[CellParams::RECENTLY_REFINED] && mpiGrid.get_refinement_level(neighbour.first) == refLevel) {
-               refinedNeighbours.push_back(neighbour.first);
+         std::vector<CellID> refinedNeighbors;
+         for (auto& neighbor : *mpiGrid.get_neighbors_of(id, NEAREST_NEIGHBORHOOD_ID)) {
+            if (mpiGrid[neighbor.first]->parameters[CellParams::RECENTLY_REFINED] && mpiGrid.get_refinement_level(neighbor.first) == refLevel) {
+               refinedNeighbors.push_back(neighbor.first);
             }
          }
 
-         if (refinedNeighbours.size() == 7) {
-            continue;   // Simple heuristic, in these cases all neighbours are from the same parent cell, ergo are identical
+         if (refinedNeighbors.size() == 7) {
+            continue;   // Simple heuristic, in these cases all neighbors are from the same parent cell, ergo are identical
          }
 
-         // In boxcar filter, we take the average of each of the neighbours and the cell itself. For each missing neighbour, add the cell one more time
-         Real fluffiness = (Real) refinedNeighbours.size() / 27.0;
+         // In boxcar filter, we take the average of each of the neighbors and the cell itself. For each missing neighbour, add the cell one more time
+         Real fluffiness = (Real) refinedNeighbors.size() / 27.0;
          for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-            SBC::averageCellData(mpiGrid, refinedNeighbours, &cellPair.second, popID, fluffiness);
+            SBC::averageCellData(mpiGrid, refinedNeighbors, &cellPair.second, popID, fluffiness);
          }
 
          calculateCellMoments(&cellPair.second, true, false);
