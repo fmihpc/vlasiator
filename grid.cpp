@@ -429,7 +429,7 @@ void setFaceNeighborRanks( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
       cell->face_neighbor_ranks.clear();
       
-      for (const auto& [neighbor, dir] : mpiGrid.get_face_neighbors_of(cellid)) {
+      for (const auto& [neighbor, dir] : mpiGrid.find_face_neighbors_of(cellid)) {
 
          int neighborhood;
 
