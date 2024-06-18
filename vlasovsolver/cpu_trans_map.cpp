@@ -685,7 +685,7 @@ void update_remote_mapping_contribution(
 
       //}
 
-      for (const auto& [neighbor, dir] : mpiGrid.get_face_neighbors_of(local_cells[c])) {
+      for (const auto& [neighbor, dir] : mpiGrid.find_face_neighbors_of(local_cells[c])) {
          if(dir == ((int)dimension + 1) * direction) {
             p_ngbr = neighbor;
          }
