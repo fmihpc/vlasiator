@@ -21,8 +21,8 @@ FLAGS =
 #GNU flags:
 CC_BRAND = intel
 CC_BRAND_VERSION = 19.0.4
-CXXFLAGS += -traceback -g -O3 -qopenmp -std=c++17 -W -Wall -Wno-unused -xHost -ipo -qopt-zmm-usage=high 
-testpackage: CXXFLAGS = -g -traceback -O2 -qopenmp -std=c++17 -W -Wno-unused -xHost -ipo
+CXXFLAGS += -traceback -g -O3 -qopenmp -std=c++20 -W -Wall -Wno-unused -xHost -ipo -qopt-zmm-usage=high 
+testpackage: CXXFLAGS = -g -traceback -O2 -qopenmp -std=c++20 -W -Wno-unused -xHost -ipo
 
 MATHFLAGS = -ffast-math -fno-finite-math-only
 testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
