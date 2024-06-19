@@ -186,8 +186,8 @@ int main(int argc, char** argv) {
 
 
       // GUMICS version
-      const double gyro = (1.6e-19*Bval/(31*1.66e-27));
-      const double rho = atmosphere[h].nui/gyro;
+      //const double gyro = (1.6e-19*Bval/(31*1.66e-27));
+      //const double rho = atmosphere[h].nui/gyro;
       //atmosphere[h].pedersencoeff = (1.6e-19/Bval)*(rho/(1+rho*rho));
       //atmosphere[h].hallcoeff = rho * atmosphere[h].pedersencoeff;
    }
@@ -227,7 +227,7 @@ int main(int argc, char** argv) {
       for(int h=0; h<numAtmosphereLevels; h++) {
          // Rees et al 1963, eq. 1
          //const Real lambda = ReesIsotropicLambda(atmosphere[h].depth/electronRange);
-         //const Real rate = particle_energy[e] / (electronRange / rho_R) / eps_ion_keV *   lambda   *   atmosphere[h].density / integratedDensity; 
+         //const Real rate = particle_energy[e] / (electronRange / rho_R) / eps_ion_keV *   lambda   *   atmosphere[h].density / integratedDensity;
          // Rees 1989, eq. 3.3.7 / 3.3.8
          const Real lambda = ReesIsotropicLambda(atmosphere[h].depth/electronRange);
          const Real rate = particle_energy[e] * lambda * atmosphere[h].density / electronRange / eps_ion_keV;

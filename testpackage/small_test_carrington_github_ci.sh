@@ -40,6 +40,9 @@ module load OpenMPI/4.1.1-GCC-11.2.0
 module load PMIx/4.1.0-GCCcore-11.2.0
 module load PAPI/6.0.0.1-GCCcore-11.2.0
 
+# send JOB ID to output usable by CI eg to scancel this job
+echo "SLURM_JOB_ID=$SLURM_JOB_ID" >> $GITHUB_OUTPUT
+
 #--------------------------------------------------------------------
 #---------------------DO NOT TOUCH-----------------------------------
 nodes=$SLURM_NNODES
