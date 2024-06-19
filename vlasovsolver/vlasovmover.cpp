@@ -90,10 +90,10 @@ void calculateSpatialTranslation(
    btzTimer.stop();
  
     // ------------- SLICE - map dist function in Z --------------- //
-   //if(P::zcells_ini > 1){
+   if(P::zcells_ini > 1){
 
       phiprof::Timer transTimer {"transfer-stencil-data-z", {"MPI"}};
-      updateRemoteVelocityBlockLists(mpiGrid,popID,VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
+      //updateRemoteVelocityBlockLists(mpiGrid,popID,VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
       SpatialCell::set_mpi_transfer_direction(2);
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false,AMRtranslationActive);
       mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
@@ -128,7 +128,7 @@ void calculateSpatialTranslation(
       }
       updateRemoteTimer.stop();
 
-   //}
+   }
 
    phiprof::Timer btxTimer {"barrier-trans-pre-x", {"Barriers","MPI"}};
    MPI_Barrier(MPI_COMM_WORLD);
@@ -138,7 +138,7 @@ void calculateSpatialTranslation(
    if(P::xcells_ini > 1){
       
       phiprof::Timer transTimer {"transfer-stencil-data-x", {"MPI"}};
-      updateRemoteVelocityBlockLists(mpiGrid,popID,VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
+      //updateRemoteVelocityBlockLists(mpiGrid,popID,VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
       SpatialCell::set_mpi_transfer_direction(0);
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false,AMRtranslationActive);
       mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
@@ -182,7 +182,7 @@ void calculateSpatialTranslation(
    if(P::ycells_ini > 1) {
       
       phiprof::Timer transTimer {"transfer-stencil-data-y", {"MPI"}};
-      updateRemoteVelocityBlockLists(mpiGrid,popID,VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
+      //updateRemoteVelocityBlockLists(mpiGrid,popID,VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
       SpatialCell::set_mpi_transfer_direction(1);
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false,AMRtranslationActive);
       mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
@@ -316,7 +316,7 @@ void calculateSpatialTranslation(
          for (size_t c=0; c<localCells.size(); ++c) {
 //            mpiGrid[localCells[c]]->parameters[CellParams::LBWEIGHTCOUNTER] += time / localCells.size();
             for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-               mpiGrid[localCells[c]]->parameters[CellParams::LBWEIGHTCOUNTER] = 1; // += mpiGrid[localCells[c]]->get_number_of_velocity_blocks(popID);
+               mpiGrid[localCells[c]]->parameters[CellParams::LBWEIGHTCOUNTER] += mpiGrid[localCells[c]]->get_number_of_velocity_blocks(popID);
             }
          }
       } else {

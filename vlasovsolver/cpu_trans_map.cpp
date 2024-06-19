@@ -730,8 +730,6 @@ void update_remote_mapping_contribution(
       }    
    }
 
-   //std::cerr << "send_cells.size = " << send_cells.size() << ", recieve_cells.size = " << receive_cells.size() << std::endl;
-
    // Do communication
    SpatialCell::setCommunicatedSpecies(popID);
    SpatialCell::set_mpi_transfer_type(Transfer::NEIGHBOR_VEL_BLOCK_DATA);
@@ -753,27 +751,12 @@ void update_remote_mapping_contribution(
    {
       //reduce data: sum received data in the data array to 
       // the target grid in the temporary block container
-      //std::cerr << "Recieve_cells are [ ";
-      //for (size_t c=0; c < receive_cells.size(); ++c) {
-      //   std::cerr << receive_cells[c] << " ";
-      //}
-      //std::cerr << "\n";
       for (size_t c=0; c < receive_cells.size(); ++c) {
          SpatialCell* spatial_cell = mpiGrid[receive_cells[c]];
          Realf *blockData = spatial_cell->get_data(popID);
-          
-         //fprintf(stderr, "Cell %i's recieveBuffer is at 0x%08lx, recieveBuffers[c][cell] is at 0x%08lx\n",
-         //     receive_cells[c],
-         //     mpiGrid[(( receive_cells[c]+((direction>0)?-1:1) - 1 ) % 8 ) + 1  ]->neighbor_block_data[0],
-         //     receiveBuffers[c]);
 
 #pragma omp for 
          for(unsigned int cell = 0; cell<VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++cell) {
-            if(isnan(receiveBuffers[c][cell]) || isinf(receiveBuffers[c][cell])) {
-               fprintf(stderr, "NaN received at cell %li, vel_cell %i (%i blocks)\n", receive_cells[c], cell, spatial_cell->get_number_of_velocity_blocks(popID));
-               //abort();
-               //break;
-            }
             blockData[cell] += receiveBuffers[c][cell];
          }
       }
