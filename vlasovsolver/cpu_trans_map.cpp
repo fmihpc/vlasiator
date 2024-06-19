@@ -87,19 +87,11 @@ CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geom
    //get nbrID
    CellID nbrID = *nbrIDs.begin();
    if (nbrID == dccrg::error_cell ) {
-      //std::cerr << __FILE__ << ":" << __LINE__
-      //          << " No neighbor for cell " << cellID << " (indices [" << indices[0] << ", " << indices[1] << ", " << indices[2] << "]"
-      //          << " at offsets [" << spatial_di << ", " << spatial_dj << ", " << spatial_dk
-      //          << "]"
-      //          << std::endl;
-      //abort();
       return INVALID_CELLID;
    }
    
    // not existing cell or do not compute
    if( mpiGrid[nbrID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
-      //std::cerr << "Cell " << cellID << " has no neighbour in offset [" << spatial_di << ", " << spatial_dj << ", " << spatial_dk << "] "
-      //   "because the cell would be DO_NOT_COMPUTE" << std::endl;
       return INVALID_CELLID;
    }
 
@@ -108,8 +100,6 @@ CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geom
    if( include_first_boundary_layer &&
        mpiGrid[nbrID]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
        mpiGrid[nbrID]->sysBoundaryLayer != 1 ) {
-      //std::cerr << "Cell " << cellID << " has no neighbour in offset [" << spatial_di << ", " << spatial_dj << ", " << spatial_dk << "] "
-      //   "because the cell would be boundary layer 1." << std::endl;
       return INVALID_CELLID;
    }
 
@@ -117,12 +107,9 @@ CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geom
    //invalid.(e.g. when we compute targets)
    if( !include_first_boundary_layer &&
        mpiGrid[nbrID]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY){
-      //std::cerr << "Cell " << cellID << " has no neighbour in offset [" << spatial_di << ", " << spatial_dj << ", " << spatial_dk << "] "
-      //   "because the cell would be on the boundary." << std::endl;
       return INVALID_CELLID;
    }
 
-   //std::cerr << "Cell " << cellID << " has neighbour " << nbrID << "in offset [" << spatial_di << ", " << spatial_dj << ", " << spatial_dk << "] " << std::endl;
    return nbrID; //no AMR
 }
                                       
