@@ -734,7 +734,8 @@ void update_remote_mapping_contribution(
       if(direction < 0) mpiGrid.update_copies_of_remote_neighbors(SHIFT_M_Z_NEIGHBORHOOD_ID);
       break;
    }
-   
+
+   #pragma omp parallel
    {
       //reduce data: sum received data in the data array to 
       // the target grid in the temporary block container
