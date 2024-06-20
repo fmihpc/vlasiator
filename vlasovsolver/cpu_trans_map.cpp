@@ -657,21 +657,6 @@ void update_remote_mapping_contribution(
       CellID p_ngbr = INVALID_CELLID;
       CellID m_ngbr = INVALID_CELLID;
 
-      //if(local_cells[c] == 4 || local_cells[c] == 5) {
-      //   fprintf(stderr, "Cell %li has neighbours in SHIFT_P_X_NEIGHBORHOOD_ID: [\n", local_cells[c]);
-      //   
-      //   for(auto& nbr : *mpiGrid.get_neighbors_of(local_cells[c], SHIFT_P_X_NEIGHBORHOOD_ID)) {
-      //         fprintf(stderr, "\t%li (%i %i %i %i)\n", nbr.first, nbr.second[0], nbr.second[1], nbr.second[2], nbr.second[3]);
-      //   }
-      //   fprintf(stderr, "]\n");
-      //   fprintf(stderr, "Cell %li has neighbours in SHIFT_M_X_NEIGHBORHOOD_ID: [\n", local_cells[c]);
-      //   for(auto& nbr : *mpiGrid.get_neighbors_of(local_cells[c], SHIFT_M_X_NEIGHBORHOOD_ID)) {
-      //         fprintf(stderr, "\t%li (%i %i %i %i)\n", nbr.first, nbr.second[0], nbr.second[1], nbr.second[2], nbr.second[3]);
-      //   }
-      //   fprintf(stderr, "]\n");
-
-      //}
-
       for (const auto& [neighbor, dir] : mpiGrid.find_face_neighbors_of(local_cells[c])) {
          if(dir == ((int)dimension + 1) * direction) {
             p_ngbr = neighbor;
@@ -704,12 +689,14 @@ void update_remote_mapping_contribution(
             //translated
             ccell->neighbor_block_data[0] = pcell->get_data(popID);
 
+            #ifdef DDEBUG
             for(unsigned int cell = 0; cell<VELOCITY_BLOCK_LENGTH * pcell->get_number_of_velocity_blocks(popID); ++cell) {
                if(isnan( pcell->get_data(popID)[cell] ) || isinf(  pcell->get_data(popID)[cell])) {
                   fprintf(stderr,"NaN sent at cell %li, vel cell %i",receive_cells[c], cell);
                   abort();
                }
             }
+            #endif
 
 
             ccell->neighbor_number_of_blocks[0] = pcell->get_number_of_velocity_blocks(popID);
