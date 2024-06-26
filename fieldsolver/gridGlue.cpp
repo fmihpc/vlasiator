@@ -176,6 +176,7 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                // Perform the blur
                for (int c=-kernelOffset; c<=kernelOffset; c++){
                   for (int b=-kernelOffset; b<=kernelOffset; b++){
+                     #pragma omp simd
                      for (int a=-kernelOffset; a<=kernelOffset; a++){
                         cell = momentsGrid.get(i+a,j+b,k+c);
                         for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
