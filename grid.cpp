@@ -912,16 +912,16 @@ DIST_FUNC  (Includes all cells which should know about each others blocks and ha
     
 -----------    
 
-   
-FULL (Includes all possible communication, possible AMR extension)
 -----------
-    A
+
+
+FULL (Includes all possible communication)
+-----------
   xxxxx
   xxxxx
- AxxoxxA
+  xxoxx
   xxxxx
   xxxxx
-    A
 -----------
 
 SHIFT_M_X    ox
@@ -973,8 +973,6 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       abort();
    }
 
-   // In spatial AMR using DCCRG, the neighbors are considered relative to a given cell's size.
-   // To get two coarse neighbors from a fine cell at interfaces, the stencil size needs to be increased by one.
    int full_neighborhood_size = max(2, VLASOV_STENCIL_WIDTH);
 
    neighborhood.clear();
@@ -1182,7 +1180,7 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
          // Get all spatial neighbors
          //const vector<CellID>* neighbors = mpiGrid.get_neighbors_of(cells[c],NEAREST_NEIGHBORHOOD_ID);
          const auto* neighbors = mpiGrid.get_neighbors_of(cells[c], NEAREST_NEIGHBORHOOD_ID);
-	 //#warning TODO should VAMR grandparents be checked only for face neighbors instead of NEAREST_NEIGHBORHOOD_ID?
+         //#warning TODO should VAMR grandparents be checked only for face neighbors instead of NEAREST_NEIGHBORHOOD_ID?
 
          // Iterate over all spatial neighbors
          // for (size_t n=0; n<neighbors->size(); ++n) {
