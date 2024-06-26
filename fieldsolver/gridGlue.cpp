@@ -150,7 +150,7 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    for (int blurPass = 0; blurPass < Parameters::maxFilteringPasses; blurPass++){
 
       // Blurring Pass
-      #pragma omp parallel for collapse(2)
+      // #pragma omp parallel for collapse(2)
       for (FsGridTools::FsIndex_t k = 0; k < mntDims[2]; k++){
          for (FsGridTools::FsIndex_t j = 0; j < mntDims[1]; j++){
             for (FsGridTools::FsIndex_t i = 0; i < mntDims[0]; i++){
@@ -176,7 +176,7 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                // Perform the blur
                for (int c=-kernelOffset; c<=kernelOffset; c++){
                   for (int b=-kernelOffset; b<=kernelOffset; b++){
-                     #pragma omp simd
+                     // #pragma omp simd
                      for (int a=-kernelOffset; a<=kernelOffset; a++){
                         cell = momentsGrid.get(i+a,j+b,k+c);
                         for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
