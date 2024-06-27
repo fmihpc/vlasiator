@@ -169,6 +169,7 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             
                // Set Cell to zero before passing filter
                swap = swapGrid.get(i,j,k);
+               #pragma omp simd
                for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
                   swap->at(e)=0.0;
                }
@@ -176,9 +177,9 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                // Perform the blur
                for (int c=-kernelOffset; c<=kernelOffset; c++){
                   for (int b=-kernelOffset; b<=kernelOffset; b++){
-                     // #pragma omp simd
                      for (int a=-kernelOffset; a<=kernelOffset; a++){
                         cell = momentsGrid.get(i+a,j+b,k+c);
+                        #pragma omp simd
                         for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
                            swap->at(e)+=cell->at(e) *kernel[kernelOffset+a][kernelOffset+b][kernelOffset+c];
                         } 
@@ -186,6 +187,7 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                   }
                }//inner filtering loop
                //divide by the total kernel sum
+               #pragma omp simd
                for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
                   swap->at(e)/=kernelSum;
                }
