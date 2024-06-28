@@ -54,6 +54,7 @@ COMPFLAGS += -D OMPI_SKIP_MPICXX
 COMPFLAGS += -DPROFILE
 
 #Add -DNDEBUG to turn debugging off. If debugging is enabled performance will degrade significantly
+#COMPFLAGS += -DDEBUG
 COMPFLAGS += -DNDEBUG
 # COMPFLAGS += -DIONOSPHERE_SORTED_SUMS
 # COMPFLAGS += -DDEBUG_SOLVERS

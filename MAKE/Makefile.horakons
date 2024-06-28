@@ -25,8 +25,8 @@ endif
 #======== Flags =========
 
 FLAGS =
-CXXFLAGS = -O3   -funroll-loops -std=c++17 -fopenmp -W -Wall -Wno-unused -Wno-unused-parameter -Wno-missing-braces -fabi-version=0 -mavx
-testpackage: CXXFLAGS = -g -ggdb -O2 -fopenmp -funroll-loops -std=c++17 -fabi-version=0  -mno-avx -mno-fma -fno-unsafe-math-optimizations
+CXXFLAGS = -O3   -funroll-loops -std=c++20 -fopenmp -W -Wall -Wno-unused -Wno-unused-parameter -Wno-missing-braces -fabi-version=0 -mavx
+testpackage: CXXFLAGS = -g -ggdb -O2 -fopenmp -funroll-loops -std=c++20 -fabi-version=0  -mno-avx -mno-fma -fno-unsafe-math-optimizations
 CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE -DPAPI_MEM
 MATHFLAGS = -ffast-math
 testpackage: MATHFLAGS =  -fno-unsafe-math-optimizations

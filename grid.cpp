@@ -115,24 +115,6 @@ void initializeGrids(
    
    MPI_Comm comm = MPI_COMM_WORLD;
    int neighborhood_size = VLASOV_STENCIL_WIDTH;
-   if (P::amrMaxSpatialRefLevel > 0) {
-      switch (VLASOV_STENCIL_WIDTH) {
-         case 1:
-            // Required cells will be included already
-            break;
-         case 2:
-            // looking from high to low refinement: stencil 2 will only give 1 cell, so need to add 1 
-            neighborhood_size = VLASOV_STENCIL_WIDTH+1;
-            break;
-         case 3:
-            // looking from high to low refinement: stencil 3 will only give 2 cells, so need to add 2
-            // to reach surely into the third low-refinement neighbour  
-            neighborhood_size = VLASOV_STENCIL_WIDTH+2;
-            break;
-         default:
-            std::cerr<<"Warning: unrecognized VLASOV_STENCIL_WIDTH in grid.cpp"<<std::endl;
-      }
-   }
    globalflags::AMRstencilWidth = neighborhood_size;
 
    const std::array<uint64_t, 3> grid_length = {{P::xcells_ini, P::ycells_ini, P::zcells_ini}};
@@ -447,7 +429,7 @@ void setFaceNeighborRanks( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
       cell->face_neighbor_ranks.clear();
       
-      for (const auto& [neighbor, dir] : mpiGrid.get_face_neighbors_of(cellid)) {
+      for (const auto& [neighbor, dir] : mpiGrid.find_face_neighbors_of(cellid)) {
 
          int neighborhood;
 
@@ -930,16 +912,16 @@ DIST_FUNC  (Includes all cells which should know about each others blocks and ha
     
 -----------    
 
-   
-FULL (Includes all possible communication, possible AMR extension)
 -----------
-    A
+
+
+FULL (Includes all possible communication)
+-----------
   xxxxx
   xxxxx
- AxxoxxA
+  xxoxx
   xxxxx
   xxxxx
-    A
 -----------
 
 SHIFT_M_X    ox
@@ -991,27 +973,6 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       abort();
    }
 
-   // In spatial AMR using DCCRG, the neighbors are considered relative to a given cell's size.
-   // To get two coarse neighbors from a fine cell at interfaces, the stencil size needs to be increased by one.
-   int addStencilDepth = 0;
-   if (P::amrMaxSpatialRefLevel > 0) {
-      switch (VLASOV_STENCIL_WIDTH) {
-	 case 1:
-	    // Required cells will be included already
-	    break;
-	 case 2:
-	    // looking from high to low refinement: stencil 2 will only give 1 cell, so need to add 1 
-	    addStencilDepth = 1;
-            break;
-         case 3:
-	    // looking from high to low refinement: stencil 3 will only give 2 cells, so need to add 2
-	    // to reach surely into the third low-refinement neighbour  
-            addStencilDepth = 2;
-            break;
-         default:
-            std::cerr<<"Warning: unrecognized VLASOV_STENCIL_WIDTH in grid.cpp"<<std::endl;
-      }
-   }
    int full_neighborhood_size = max(2, VLASOV_STENCIL_WIDTH);
 
    neighborhood.clear();
@@ -1026,15 +987,6 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          }
       }
    }
-   /* Add extra face neighbors if required by AMR */
-   for (int d = full_neighborhood_size+1; d <= full_neighborhood_size+addStencilDepth; d++) {
-      neighborhood.push_back({{ d, 0, 0}});
-      neighborhood.push_back({{-d, 0, 0}});
-      neighborhood.push_back({{0, d, 0}});
-      neighborhood.push_back({{0,-d, 0}});
-      neighborhood.push_back({{0, 0, d}});
-      neighborhood.push_back({{0, 0,-d}});     
-   }
    /*all possible communication pairs*/
    if( !mpiGrid.add_neighborhood(FULL_NEIGHBORHOOD_ID, neighborhood)){
       std::cerr << "Failed to add neighborhood FULL_NEIGHBORHOOD_ID \n";
@@ -1043,7 +995,7 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    
    /*stencils for semilagrangian propagators*/ 
    neighborhood.clear();
-   for (int d = -VLASOV_STENCIL_WIDTH-addStencilDepth; d <= VLASOV_STENCIL_WIDTH+addStencilDepth; d++) {
+   for (int d = -VLASOV_STENCIL_WIDTH; d <= VLASOV_STENCIL_WIDTH; d++) {
      if (d != 0) {
         neighborhood.push_back({{d, 0, 0}});
         neighborhood.push_back({{0, d, 0}});
@@ -1075,7 +1027,7 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    }
    
    neighborhood.clear();
-   for (int d = -VLASOV_STENCIL_WIDTH-addStencilDepth; d <= VLASOV_STENCIL_WIDTH+addStencilDepth; d++) {
+   for (int d = -VLASOV_STENCIL_WIDTH; d <= VLASOV_STENCIL_WIDTH; d++) {
      if (d != 0) {
         neighborhood.push_back({{d, 0, 0}});
      }
@@ -1087,7 +1039,7 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
 
    neighborhood.clear();
-   for (int d = -VLASOV_STENCIL_WIDTH-addStencilDepth; d <= VLASOV_STENCIL_WIDTH+addStencilDepth; d++) {
+   for (int d = -VLASOV_STENCIL_WIDTH; d <= VLASOV_STENCIL_WIDTH; d++) {
      if (d != 0) {
         neighborhood.push_back({{0, d, 0}});
      }
@@ -1099,7 +1051,7 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
    
    neighborhood.clear();
-   for (int d = -VLASOV_STENCIL_WIDTH-addStencilDepth; d <= VLASOV_STENCIL_WIDTH+addStencilDepth; d++) {
+   for (int d = -VLASOV_STENCIL_WIDTH; d <= VLASOV_STENCIL_WIDTH; d++) {
      if (d != 0) {
         neighborhood.push_back({{0, 0, d}});
      }
@@ -1228,7 +1180,7 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
          // Get all spatial neighbors
          //const vector<CellID>* neighbors = mpiGrid.get_neighbors_of(cells[c],NEAREST_NEIGHBORHOOD_ID);
          const auto* neighbors = mpiGrid.get_neighbors_of(cells[c], NEAREST_NEIGHBORHOOD_ID);
-	 //#warning TODO should VAMR grandparents be checked only for face neighbors instead of NEAREST_NEIGHBORHOOD_ID?
+         //#warning TODO should VAMR grandparents be checked only for face neighbors instead of NEAREST_NEIGHBORHOOD_ID?
 
          // Iterate over all spatial neighbors
          // for (size_t n=0; n<neighbors->size(); ++n) {
