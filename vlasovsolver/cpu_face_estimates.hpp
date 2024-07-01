@@ -28,6 +28,7 @@
 #include "algorithm"
 #include "cmath"
 #include "cpu_slope_limiters.hpp"
+#include "../definitions.h"
 
 /*enum for setting face value and derivative estimates. Implicit ones
   not supported in the solver, so they are now not listed*/
@@ -177,7 +178,7 @@ inline void compute_h4_left_face_value(const Vec * const values, uint k, Vec &fv
   \param fv_l Face value on left face of cell i
   \param h Array with cell widths. Can be in abritrary units since they always cancel. Maybe 1/refinement ratio?
 */
-inline void compute_h4_left_face_value_nonuniform(const Vec * const h, const Vec * const u, uint k, Vec &fv_l) {
+inline void compute_h4_left_face_value_nonuniform(const Realf * const h, const Vec * const u, uint k, Vec &fv_l) {
 
    fv_l = (
            1.0 / ( h[k - 2] + h[k - 1] + h[k] + h[k + 1] )
@@ -338,7 +339,7 @@ inline void compute_filtered_face_values(const Vec * const values,uint k, face_e
 }
 
 
-inline void compute_filtered_face_values_nonuniform(const Vec * const dv, const Vec * const values,uint k, face_estimate_order order, Vec &fv_l, Vec &fv_r, const Realv threshold){
+inline void compute_filtered_face_values_nonuniform(const Realf * const dv, const Vec * const values,uint k, face_estimate_order order, Vec &fv_l, Vec &fv_r, const Realv threshold){
   switch(order){
   case h4:
      compute_h4_left_face_value_nonuniform(dv, values, k, fv_l);
@@ -391,7 +392,7 @@ inline void compute_filtered_face_values_nonuniform(const Vec * const dv, const 
    }
 }
 
-inline Vec get_D2aLim(const Vec * h, const Vec * values, uint k, const Vec C, Vec & fv) {
+inline Vec get_D2aLim(const Realf * h, const Vec * values, uint k, const Vec C, Vec & fv) {
 
   // Colella & Sekora, eq. 18
   Vec invh2 = 1.0 / (h[k] * h[k]);
@@ -410,7 +411,7 @@ inline Vec get_D2aLim(const Vec * h, const Vec * values, uint k, const Vec C, Ve
 
 }
 
-inline pair<Vec,Vec> constrain_face_values(const Vec * h,const Vec * values,uint k,Vec & fv_l, Vec & fv_r) {
+inline pair<Vec,Vec> constrain_face_values(const Realf * h,const Vec * values,uint k,Vec & fv_l, Vec & fv_r) {
 
   const Vec C = 1.25;
   Vec invh2 = 1.0 / (h[k] * h[k]);
@@ -457,7 +458,7 @@ inline pair<Vec,Vec> constrain_face_values(const Vec * h,const Vec * values,uint
   return faceInterpolants;
 }
 
-inline void compute_filtered_face_values_nonuniform_conserving(const Vec * const dv, const Vec * const values,uint k, face_estimate_order order, Vec &fv_l, Vec &fv_r, const Realv threshold){
+inline void compute_filtered_face_values_nonuniform_conserving(const Realf * const dv, const Vec * const values,uint k, face_estimate_order order, Vec &fv_l, Vec &fv_r, const Realv threshold){
    switch(order){
       case h4:
          compute_h4_left_face_value_nonuniform(dv, values, k, fv_l);
@@ -490,9 +491,9 @@ inline void compute_filtered_face_values_nonuniform_conserving(const Vec * const
    }
 
    //check for extrema
-   Vecb is_extrema = (slope_abs == Vec(0.0));
-   Vecb filter_l = (values[k - 1] - fv_l) * (fv_l - values[k]) < 0 ;
-   Vecb filter_r = (values[k + 1] - fv_r) * (fv_r - values[k]) < 0;
+   //Vecb is_extrema = (slope_abs == Vec(0.0));
+   //Vecb filter_l = (values[k - 1] - fv_l) * (fv_l - values[k]) < 0 ;
+   //Vecb filter_r = (values[k + 1] - fv_r) * (fv_r - values[k]) < 0;
    //  if(horizontal_or(is_extrema) || horizontal_or(filter_l) || horizontal_or(filter_r)) {
    // Colella & Sekora, eq. 20
    if(horizontal_or((fv_r - values[k]) * (values[k] - fv_l) <= Vec(0.0))

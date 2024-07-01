@@ -26,7 +26,7 @@
 #include <vector>
 
 #include "../../definitions.h"
-#include "../../spatial_cell.hpp"
+#include "../../spatial_cell_wrapper.hpp"
 #include "../project.h"
 #include "../projectTriAxisSearch.h"
 
@@ -53,8 +53,6 @@ namespace projects {
       Real Bx[2];
       Real By[2];
       Real Bz[2];
-      uint nSpaceSamples;
-      uint nVelocitySamples;
       
       Real getDistribValue(
                            creal& x,creal& y, creal& z,

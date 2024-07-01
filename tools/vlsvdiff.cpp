@@ -59,6 +59,9 @@
 #include "vlsvreaderinterface.h"
 #include <vlsv_writer.h>
 
+// #include "../ioread.h" //getFsGridDomainDecomposition
+#include <fsgrid.hpp> // computeDomainDecomposition
+
 using namespace std;
 using namespace vlsv;
 
@@ -105,21 +108,29 @@ static uint64_t convUInt(const char* ptr, const vlsv::datatype::type& dataType, 
  * @param output Output file reader.
  * @param tagName Name of the copied array.
  * @param inputAttributes XML attributes for the copied array.
+ * @param optional If true, this parameter is OK to be missing.
  * @return If true, the array was copied successfully.*/
 bool copyArray(vlsv::Reader& input,vlsv::Writer& output,
                const std::string& tagName,
-               const list<pair<string,string> >& inputAttribs) {
+               const list<pair<string,string> >& inputAttribs,
+               bool optional=false) {
    bool success = true;
 
    // Read input array attributes
    map<string,string> outputAttribs;
    if (input.getArrayAttributes(tagName,inputAttribs,outputAttribs) == false) {
-      cerr << "ERROR: Failed to read array '" << tagName << "' attributes in " << __FILE__ << ":" << __LINE__ << endl;
-      cerr << "Input attributes are:" << endl;
-      for (list<pair<string,string> >::const_iterator it=inputAttribs.begin(); it!=inputAttribs.end(); ++it) {
-         cerr << "\t '" << it->first << "' = '" << it->second << "'" << endl;
+
+      if(!optional) {
+         cerr << "ERROR: Failed to read array '" << tagName << "' attributes in " << __FILE__ << ":" << __LINE__ << endl;
+         cerr << "Input attributes are:" << endl;
+         for (list<pair<string,string> >::const_iterator it=inputAttribs.begin(); it!=inputAttribs.end(); ++it) {
+            cerr << "\t '" << it->first << "' = '" << it->second << "'" << endl;
+         }
+         return false;
+      } else {
+         // This was an optional parameter, so whatever.
+         return true;
       }
-      return false;
    }
 
    // Figure out arraysize, vectorsize, datasize, and datatype of the copied array
@@ -224,6 +235,15 @@ bool HandleFsGrid(const string& inputFileName,
    //Write to file
    output.writeArray("MESH",patch,arraysize,1,&globalIds[0]);
 
+   std::array<int,1> numWritingRanks = {1};
+   output.writeParameter("numWritingRanks", &numWritingRanks[0]);
+
+   // Save the FSgrid decomposition
+   std::map<std::string, std::string> xmlAttributes;
+   const std::string meshName="fsgrid";
+   xmlAttributes["mesh"] = meshName;
+   std::array<FsGridTools::Task_t, 3> decom = {1,1,1};
+   output.writeArray("MESH_DECOMPOSITION", outputAttribs, 3u, 1u, &decom[0]);
    
    //Now for MESH_DOMAIN_SIZES
    inputAttribs.clear();
@@ -269,6 +289,89 @@ bool HandleFsGrid(const string& inputFileName,
 
 }
 
+bool getFsgridDecomposition(vlsvinterface::Reader& file, std::array<int,3>& decomposition){
+   uint64_t arraySize;
+   uint64_t vectorSize;
+   vlsv::datatype::type dataType;
+   uint64_t byteSize;
+   
+   list<pair<string,string> > attribs;
+   attribs.push_back(make_pair("mesh","fsgrid"));
+
+
+   std::array<FsGridTools::Task_t,3> fsGridDecomposition={0,0,0}; 
+   int* ptr = &fsGridDecomposition[0];
+
+   // Check if array exists:
+   bool success = file.getArrayInfo("MESH_DECOMPOSITION",attribs,arraySize,vectorSize,dataType,byteSize);
+   if (success == false) {
+      // std::cout << "Could not read MESH_DECOMPOSITION" << endl;
+      // std::cerr << "ptr " << fsGridDecomposition[0] <<" "<<  fsGridDecomposition[1] << " " <<  fsGridDecomposition[2]<<"\n";
+      // std::cerr << "No decomposition found in restart file. Computing fsgrid decomposition for ioread, check results!" <<std::endl;
+
+      int fsgridInputRanks=0;
+      if(file.readParameter("numWritingRanks",fsgridInputRanks) == false) {
+         std::cerr << "FSGrid writing rank number not found in restart file" << endl;
+         exit(1);
+      }
+      std::array<FsGridTools::FsSize_t,3> gridSize;
+      FsGridTools::FsSize_t* gridSizePtr = &gridSize[0];
+      success = file.read("MESH_BBOX",attribs, 0, 3, gridSizePtr, false);
+      if(success == false){
+         std::cerr << "Could not read MESH_BBOX from file" << endl;
+         exit(1);
+      }
+      int64_t* domainInfo = NULL;
+      success = file.read("MESH_DOMAIN_SIZES",attribs, 0, fsgridInputRanks, domainInfo);
+      if(success == false){
+         std::cerr << "Could not read MESH_DOMAIN_SIZES from file" << endl;
+         exit(1);
+      }
+      std::vector<uint64_t> mesh_domain_sizes;
+      for (int i = 0; i < 2*fsgridInputRanks; i+=2){
+         mesh_domain_sizes.push_back(domainInfo[i]);
+      }
+      list<pair<string,string> > mesh_attribs;
+      mesh_attribs.push_back(make_pair("name","fsgrid"));
+      std::vector<FsGridTools::FsSize_t> rank_first_ids(fsgridInputRanks);
+      FsGridTools::FsSize_t* ids_ptr = &rank_first_ids[0];
+
+      std::set<FsGridTools::FsIndex_t> x_corners, y_corners, z_corners;
+      
+      int64_t begin_rank = 0;
+      int i = 0;
+      for(auto rank_size : mesh_domain_sizes){
+         if(file.read("MESH", mesh_attribs, begin_rank, 1, ids_ptr, false) == false){
+            std::cerr << "Reading MESH failed.\n";
+            exit(1);
+         }
+         std::array<FsGridTools::FsIndex_t,3> inds = FsGridTools::globalIDtoCellCoord(*ids_ptr, gridSize);
+         x_corners.insert(inds[0]);
+         y_corners.insert(inds[1]);
+         z_corners.insert(inds[2]);
+         ++ids_ptr;
+         begin_rank += rank_size;
+      }
+
+      decomposition[0] = x_corners.size();
+      decomposition[1] = y_corners.size();
+      decomposition[2] = z_corners.size();
+      std::cout << "Fsgrid decomposition computed from MESH to be " << decomposition[0] << " " << decomposition[1] << " " <<decomposition[2] << endl;
+
+      return true;   
+   } else {
+      // data exists, now read it
+      success = file.read("MESH_DECOMPOSITION",attribs, 0, 3, ptr, false);
+      decomposition[0] = fsGridDecomposition[0];
+      decomposition[1] = fsGridDecomposition[1];
+      decomposition[2] = fsGridDecomposition[2];
+      std::cout << "Fsgrid decomposition read as " << decomposition[0] << " " << decomposition[1] << " " <<decomposition[2] << endl;
+      return true;
+   }
+
+   return false;
+}
+
 /** Copy the spatial mesh from input to output.
  * @param inputFileName Name of the input file where the mesh is copied from.
  * @param output VLSV reader for the file where the cloned mesh is written.
@@ -288,14 +391,21 @@ bool cloneMesh(const string& inputFileName,vlsv::Writer& output,const string& me
    inputAttribs.clear();
    inputAttribs.push_back(make_pair("mesh",meshName));
    if (copyArray(input,output,"MESH_BBOX",inputAttribs) == false) success = false;
-   if (copyArray(input,output,"MESH_NODE_CRDS_X",inputAttribs) == false) success = false;
-   if (copyArray(input,output,"MESH_NODE_CRDS_Y",inputAttribs) == false) success = false;
-   if (copyArray(input,output,"MESH_NODE_CRDS_Z",inputAttribs) == false) success = false;
-   if (copyArray(input,output,"MESH_GHOST_LOCALIDS",inputAttribs) == false) success = false;
-   if (copyArray(input,output,"MESH_GHOST_DOMAINS",inputAttribs) == false) success = false;
+
+   // Mesh have either individual coordinate arrays (for cartesian geometries)...
+   if (copyArray(input,output,"MESH_NODE_CRDS_X",inputAttribs, meshName == "ionosphere") == false) success = false;
+   if (copyArray(input,output,"MESH_NODE_CRDS_Y",inputAttribs, meshName == "ionosphere") == false) success = false;
+   if (copyArray(input,output,"MESH_NODE_CRDS_Z",inputAttribs, meshName == "ionosphere") == false) success = false;
+   
+   // Or they have per-node coordinate arrays (for unstructured meshes)
+   if (copyArray(input,output,"MESH_NODE_CRDS",inputAttribs, meshName != "ionosphere") == false) success = false;
+   if (copyArray(input,output,"MESH_OFFSETS",inputAttribs, meshName != "ionosphere") == false) success = false;
+
+   if (copyArray(input,output,"MESH_GHOST_LOCALIDS",inputAttribs, meshName == "ionosphere") == false) success = false;
+   if (copyArray(input,output,"MESH_GHOST_DOMAINS",inputAttribs, meshName == "ionosphere") == false) success = false;
    
    //Only do this if we diff SpatialGrid data
-   if (gridName==gridType::SpatialGrid){
+   if (gridName==gridType::SpatialGrid || gridName==gridType::ionosphere){
       if (copyArray(input,output,"MESH_DOMAIN_SIZES",inputAttribs) == false) success = false;
 
       inputAttribs.clear();
@@ -308,81 +418,6 @@ bool cloneMesh(const string& inputFileName,vlsv::Writer& output,const string& me
    input.close();
    return success;
 }
-
-   //! Helper function: calculate position of the local coordinate space for the given dimension
-   // \param globalCells Number of cells in the global Simulation, in this dimension
-   // \param ntasks Total number of tasks in this dimension
-   // \param my_n This task's position in this dimension
-   // \return Cell number at which this task's domains cells start (actual cells, not counting ghost cells)
-   int32_t calcLocalStart(int32_t globalCells, int ntasks, int my_n) {
-      int n_per_task = globalCells / ntasks;
-      int remainder = globalCells % ntasks;
-
-      if(my_n < remainder) {
-         return my_n * (n_per_task+1);
-      } else {
-         return my_n * n_per_task + remainder;
-      }
-   }
-   //! Helper function: calculate size of the local coordinate space for the given dimension
-   // \param globalCells Number of cells in the global Simulation, in this dimension
-   // \param ntasks Total number of tasks in this dimension
-   // \param my_n This task's position in this dimension
-   // \return Nmuber of cells for this task's local domain (actual cells, not counting ghost cells)
-   int32_t calcLocalSize(int32_t globalCells, int ntasks, int my_n) {
-      int n_per_task = globalCells/ntasks;
-      int remainder = globalCells%ntasks;
-      if(my_n < remainder) {
-         return n_per_task+1;
-      } else {
-         return n_per_task;
-      }
-   }
-
-   //! Helper function to optimize decomposition of this grid over the given number of tasks
-   void computeDomainDecomposition(const std::array<int, 3>& GlobalSize, int nProcs, std::array<int,3>& processDomainDecomposition) {
-      std::array<double, 3> systemDim;
-      std::array<double, 3 > processBox;
-      double optimValue = std::numeric_limits<double>::max();
-      for(int i = 0; i < 3; i++) {
-         systemDim[i] = (double)GlobalSize[i];
-      }
-      processDomainDecomposition = {1, 1, 1};
-      for (int i = 1; i <= std::min(nProcs, GlobalSize[0]); i++) {
-         processBox[0] = std::max(systemDim[0]/i, 1.0);
-         for (int j = 1; j <= std::min(nProcs, GlobalSize[1]) ; j++) {
-            if( i * j  > nProcs )
-               break;
-            processBox[1] = std::max(systemDim[1]/j, 1.0);
-            for (int k = 1; k <= std::min(nProcs, GlobalSize[2]); k++) {
-               if( i * j * k > nProcs )
-                  break;
-               processBox[2] = std::max(systemDim[2]/k, 1.0);
-               double value = 
-                  10 * processBox[0] * processBox[1] * processBox[2] + 
-                  (i > 1 ? processBox[1] * processBox[2]: 0) +
-                  (j > 1 ? processBox[0] * processBox[2]: 0) +
-                  (k > 1 ? processBox[0] * processBox[1]: 0);
-
-               if(value < optimValue ){
-                  optimValue = value;
-                  processDomainDecomposition[0] = i;
-                  processDomainDecomposition[1] = j;
-                  processDomainDecomposition[2] = k;
-               }
-            }
-         }
-      }
-
-      if(optimValue == std::numeric_limits<double>::max() ||
-            processDomainDecomposition[0] * processDomainDecomposition[1] * processDomainDecomposition[2] != nProcs) {
-         std::cerr << "FSGrid domain decomposition failed, are you running on a prime number of tasks?" << std::endl;
-         throw std::runtime_error("FSGrid computeDomainDecomposition failed");
-      }
-   }
-
-
-
 
 /*! Extracts the dataset from the VLSV file opened by convertSILO.
  * \param vlsvReader vlsvinterface::Reader class object used to access the VLSV file
@@ -418,171 +453,247 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
    variableAttributes.push_back( make_pair("name", _varToExtract) );
    //Read in array size, vector size, data type and data size of the array "VARIABLE" in the vlsv file (Needed in reading the array)
    if (vlsvReader.getArrayInfo("VARIABLE", variableAttributes, variableArraySize, variableVectorSize, variableDataType, variableDataSize) == false) {
-      cerr << "ERROR, failed to get array info for '" << _varToExtract << "' at " << __FILE__ << " " << __LINE__ << endl;
+      cerr << "ERROR, failed to get array info for '" << _varToExtract << "' on mesh '" << meshName << "' at " << __FILE__ << " " << __LINE__ << endl;
       return false;
    }
-      char *variableBuffer = new char[variableVectorSize * variableDataSize];
-      float *variablePtrFloat = reinterpret_cast<float *>(variableBuffer);
-      double *variablePtrDouble = reinterpret_cast<double *>(variableBuffer);
-      uint *variablePtrUint = reinterpret_cast<uint *>(variableBuffer);
-      int *variablePtrInt = reinterpret_cast<int *>(variableBuffer);
 
+   switch(gridName) {
+      case gridType::SpatialGrid:
+         {
+            std::vector<char> variableBuffer(variableVectorSize * variableDataSize);
+            float *variablePtrFloat = reinterpret_cast<float *>(variableBuffer.data());
+            double *variablePtrDouble = reinterpret_cast<double *>(variableBuffer.data());
+            uint *variablePtrUint = reinterpret_cast<uint *>(variableBuffer.data());
+            int *variablePtrInt = reinterpret_cast<int *>(variableBuffer.data());
 
-   if (gridName==gridType::SpatialGrid){
-  
-      // Read the mesh array one node (of a spatial cell) at a time
-      // and create a map which contains each cell's CellID and variable to be extracted
-         //Get local cell ids:
-      vector<uint64_t> local_cells;
-      if ( vlsvReader.getCellIds( local_cells, meshName) == false ) {
-         cerr << "Failed to read cell ids at "  << __FILE__ << " " << __LINE__ << endl;
-         return false;
-       }
+            // Read the mesh array one node (of a spatial cell) at a time
+            // and create a map which contains each cell's CellID and variable to be extracted
+            //Get local cell ids:
+            vector<uint64_t> local_cells;
+            if ( vlsvReader.getCellIds( local_cells, meshName) == false ) {
+               cerr << "Failed to read cell ids at "  << __FILE__ << " " << __LINE__ << endl;
+               return false;
+            }
 
-      //Check for correct output:
-      if (local_cells.size() != variableArraySize) {
-         cerr << "ERROR array size mismatch: " << local_cells.size() << " " << variableArraySize << endl;
-      }
-      if (compToExtract + 1 > variableVectorSize) {
-         cerr << "ERROR invalid component, this variable has size " << variableVectorSize << endl;
-         abort();
-         }
-      
-      if (storeCellOrder == true) {
-         cellOrder.clear();
-       }
-      
-      orderedData->clear();
+            //Check for correct output:
+            if (local_cells.size() != variableArraySize) {
+               cerr << "ERROR array size mismatch: " << local_cells.size() << " " << variableArraySize << endl;
+            }
+            if (compToExtract + 1 > variableVectorSize) {
+               cerr << "ERROR invalid component, this variable has size " << variableVectorSize << endl;
+               abort();
+            }
 
-      for (uint64_t i=0; i<local_cells.size(); ++i) {
-         const short int amountToReadIn = 1;
-         const uint64_t & startingReadIndex = i;
-         if (vlsvReader.readArray("VARIABLE", variableAttributes, startingReadIndex, amountToReadIn, variableBuffer) == false) {
-            cerr << "ERROR, failed to read variable '" << _varToExtract << "' at " << __FILE__ << " " << __LINE__ << endl;
-            variableSuccess = false; 
-            break;
-         }
-         // Get the CellID
-         uint64_t & CellID = local_cells[i];
-         
-         // Get the variable value
-         Real extract = NAN;
+            if (storeCellOrder == true) {
+               cellOrder.clear();
+            }
 
-         switch (variableDataType) {
-            case datatype::type::FLOAT:
-               if(variableDataSize == sizeof(float)) extract = (Real)(variablePtrFloat[compToExtract]);
-               if(variableDataSize == sizeof(double)) extract = (Real)(variablePtrDouble[compToExtract]);
-               break;
-            case datatype::type::UINT:
-               extract = (Real)(variablePtrUint[compToExtract]);
-               break;
-            case datatype::type::INT:
-               extract = (Real)(variablePtrInt[compToExtract]);
-               break;
-            case datatype::type::UNKNOWN:
-               cerr << "ERROR, BAD DATATYPE AT " << __FILE__ << " " << __LINE__ << endl;
-               break;
-         }
-         // Put those into the map
-         orderedData->insert(pair<uint64_t, Real>(CellID, extract));
-         if (storeCellOrder == true) {
-            cellOrder[CellID] = i;
-         }
-       }
-  
-   }else if (gridName==gridType::fsgrid){
- 
- 
-      int numtasks;
-      int xcells,ycells,zcells; 
-      vlsvReader.readParameter("numWritingRanks",numtasks);
-      vlsvReader.readParameter("xcells_ini",xcells);
-      vlsvReader.readParameter("ycells_ini",ycells);
-      vlsvReader.readParameter("zcells_ini",zcells);
-      std::array<int,3> GlobalBox={xcells,ycells,zcells};
-      std::array<int,3> thisDomainDecomp;
-      
-      //Compute Domain Decomposition Scheme for this vlsv file
-      computeDomainDecomposition(GlobalBox,numtasks,thisDomainDecomp);
+            orderedData->clear();
 
+            for (uint64_t i=0; i<local_cells.size(); ++i) {
+               const short int amountToReadIn = 1;
+               const uint64_t & startingReadIndex = i;
+               if (vlsvReader.readArray("VARIABLE", variableAttributes, startingReadIndex, amountToReadIn, variableBuffer.data()) == false) {
+                  cerr << "ERROR, failed to read variable '" << _varToExtract << "' at " << __FILE__ << " " << __LINE__ << endl;
+                  variableSuccess = false; 
+                  break;
+               }
+               // Get the CellID
+               uint64_t & CellID = local_cells[i];
 
-      std::array<int32_t,3> taskSize,taskStart;
-      std::array<int32_t,3> taskEnd;
-      int readOffset=0;
-      size_t readSize;
-      int index,my_x,my_y,my_z;
-      orderedData->clear();
+               // Get the variable value
+               Real extract = NAN;
 
-      //Read into buffer
-      for (int task=0; task<numtasks; task++){
-
-         my_x=task/thisDomainDecomp[2]/thisDomainDecomp[1];
-         my_y=(task/thisDomainDecomp[2])%thisDomainDecomp[1];
-         my_z=task%thisDomainDecomp[2];
-
-      
-         taskStart[0] = calcLocalStart(GlobalBox[0], thisDomainDecomp[0] ,my_x);
-         taskStart[1] = calcLocalStart(GlobalBox[1], thisDomainDecomp[1] ,my_y);
-         taskStart[2] = calcLocalStart(GlobalBox[2], thisDomainDecomp[2] ,my_z);
-            
-         taskSize[0] = calcLocalSize(GlobalBox[0], thisDomainDecomp[0] ,my_x);
-         taskSize[1] = calcLocalSize(GlobalBox[1], thisDomainDecomp[1] ,my_y);
-         taskSize[2] = calcLocalSize(GlobalBox[2], thisDomainDecomp[2] ,my_z);
-          
-         taskEnd[0]= taskStart[0]+taskSize[0];
-         taskEnd[1]= taskStart[1]+taskSize[1];
-         taskEnd[2]= taskStart[2]+taskSize[2];
-         
-         readSize= taskSize[0] * taskSize[1] * taskSize[2];
-         std::vector<Real> readIn(variableVectorSize * variableDataSize*readSize);
-
-         
-         int counter2=0;
-         uint64_t globalindex;
-         int64_t counter=0;
-         for(int z=taskStart[2]; z<taskEnd[2]; z++) {
-            for(int y=taskStart[1]; y<taskEnd[1]; y++) {
-               for(int x=taskStart[0]; x<taskEnd[0]; x++) {
-
-                  //Get global index
-                  globalindex= x + y*xcells + z*xcells*ycells;
-
-                  if (vlsvReader.readArray("VARIABLE", variableAttributes, readOffset+counter,1, variableBuffer) == false) {
-                     cerr << "ERROR, failed to read variable '" << _varToExtract << "' at " << __FILE__ << " " << __LINE__ << endl;
-                     variableSuccess = false; 
-                     abort();
+               switch (variableDataType) {
+                  case datatype::type::FLOAT:
+                     if(variableDataSize == sizeof(float)) extract = (Real)(variablePtrFloat[compToExtract]);
+                     if(variableDataSize == sizeof(double)) extract = (Real)(variablePtrDouble[compToExtract]);
                      break;
-                  }
-
-                  // Get the variable value
-                  Real extract = NAN;
-
-                  switch (variableDataType) {
-                     case datatype::type::FLOAT:
-                        if(variableDataSize == sizeof(float)) extract = (Real)(variablePtrFloat[compToExtract]);
-                        if(variableDataSize == sizeof(double)) extract = (Real)(variablePtrDouble[compToExtract]);
-                        break;
-                     case datatype::type::UINT:
-                        extract = (Real)(variablePtrUint[compToExtract]);
-                        break;
-                     case datatype::type::INT:
-                        extract = (Real)(variablePtrInt[compToExtract]);
-                        break;
-                     case datatype::type::UNKNOWN:
-                        cerr << "ERROR, BAD DATATYPE AT " << __FILE__ << " " << __LINE__ << endl;
-                        break;
-                  }
-                  orderedData->insert(pair<uint64_t, Real>(globalindex, extract));
-                  counter++;
-               
+                  case datatype::type::UINT:
+                     extract = (Real)(variablePtrUint[compToExtract]);
+                     break;
+                  case datatype::type::INT:
+                     extract = (Real)(variablePtrInt[compToExtract]);
+                     break;
+                  case datatype::type::UNKNOWN:
+                     cerr << "ERROR, BAD DATATYPE AT " << __FILE__ << " " << __LINE__ << endl;
+                     break;
+               }
+               // Put those into the map
+               orderedData->insert(pair<uint64_t, Real>(CellID, extract));
+               if (storeCellOrder == true) {
+                  cellOrder[CellID] = i;
                }
             }
          }
-         readOffset+=readSize;
-      }
-   }else{
-    cerr<<"meshName not recognized\t" << __FILE__ << " " << __LINE__ <<endl;
-    abort();
+         break;
+ 
+      case gridType::fsgrid:
+
+         {
+            // Get Spatial Grid's  max refinement Level
+            int maxRefLevel=0;
+            list<pair<string, string>> meshAttributesIn;
+            meshAttributesIn.push_back(make_pair("name", "SpatialGrid"));
+            map<string,string> meshAttributesOut;
+            if (vlsvReader.getArrayAttributes("MESH", meshAttributesIn,meshAttributesOut) == false)
+            {
+               cerr << "ERROR, failed to get array info for '" << _varToExtract << "' at " << __FILE__ << " " << __LINE__ << endl;
+               return false;
+            }
+
+            std::map<string, string>::iterator attributesOutIt;
+            attributesOutIt = meshAttributesOut.find("max_refinement_level");
+            if (attributesOutIt != meshAttributesOut.end())
+            {
+               maxRefLevel = stoi(attributesOutIt->second);
+            }
+            int numtasks;
+            int xcells,ycells,zcells;
+            vlsvReader.readParameter("numWritingRanks",numtasks);
+            vlsvReader.readParameter("xcells_ini",xcells);
+            vlsvReader.readParameter("ycells_ini",ycells);
+            vlsvReader.readParameter("zcells_ini",zcells);
+            xcells*=pow(2,maxRefLevel);
+            ycells*=pow(2,maxRefLevel);
+            zcells*=pow(2,maxRefLevel);
+            std::array<int,3> GlobalBox={xcells,ycells,zcells};
+            std::array<int,3> thisDomainDecomp;
+
+            //Compute Domain Decomposition Scheme for this vlsv file
+            //FsGridTools::computeDomainDecomposition(GlobalBox,numtasks,thisDomainDecomp);
+            getFsgridDecomposition(vlsvReader, thisDomainDecomp);
+
+
+            std::array<int32_t,3> taskSize,taskStart;
+            std::array<int32_t,3> taskEnd;
+            int readOffset=0;
+            int index,my_x,my_y,my_z;
+            orderedData->clear();
+
+            for (int task=0; task<numtasks; task++){
+
+               my_x=task/thisDomainDecomp[2]/thisDomainDecomp[1];
+               my_y=(task/thisDomainDecomp[2])%thisDomainDecomp[1];
+               my_z=task%thisDomainDecomp[2];
+
+
+               taskStart[0] = FsGridTools::calcLocalStart(GlobalBox[0], thisDomainDecomp[0], my_x);
+               taskStart[1] = FsGridTools::calcLocalStart(GlobalBox[1], thisDomainDecomp[1], my_y);
+               taskStart[2] = FsGridTools::calcLocalStart(GlobalBox[2], thisDomainDecomp[2], my_z);
+
+               taskSize[0] = FsGridTools::calcLocalSize(GlobalBox[0], thisDomainDecomp[0], my_x);
+               taskSize[1] = FsGridTools::calcLocalSize(GlobalBox[1], thisDomainDecomp[1], my_y);
+               taskSize[2] = FsGridTools::calcLocalSize(GlobalBox[2], thisDomainDecomp[2], my_z);
+
+               taskEnd[0]= taskStart[0]+taskSize[0];
+               taskEnd[1]= taskStart[1]+taskSize[1];
+               taskEnd[2]= taskStart[2]+taskSize[2];
+
+               int64_t readSize=  taskSize[0] * taskSize[1] * taskSize[2] ;
+               //Allocate vector for reading
+               std::vector<Real> buffer(readSize*variableVectorSize);
+
+               if ( variableDataSize==sizeof(Real)){
+                  if (vlsvReader.readArray("VARIABLE", variableAttributes, readOffset, readSize,  (char*)buffer.data()) == false) {
+                     cerr << "ERROR, failed to read variable '" << _varToExtract << "' at " << __FILE__ << " " << __LINE__ << endl;
+                     variableSuccess = false; 
+                     break;
+                  }
+               }else{
+                  std::vector<float> tmpbuffer(readSize * variableVectorSize);
+                  if (vlsvReader.readArray("VARIABLE", variableAttributes, readOffset, readSize, (char *)tmpbuffer.data()) == false){
+                     cerr << "ERROR, failed to read variable '" << _varToExtract << "' at " << __FILE__ << " " << __LINE__ << endl;
+                     variableSuccess = false;
+                     break;
+                  }
+                  for (unsigned int i = 0; i < readSize * variableVectorSize; i++){
+                     buffer[i] = tmpbuffer[i];
+                  }
+               }
+
+               uint64_t globalindex,counter=0;;
+               for (int z=taskStart[2]; z<taskEnd[2]; z++){
+                  for (int y=taskStart[1]; y< taskEnd[1]; y++){
+                     for (int x=taskStart[0]; x<taskEnd[0]; x++){
+                        globalindex= x + y*xcells + z*xcells*ycells;
+                        Real data;
+                        switch (variableDataType){
+                           case datatype::type::FLOAT:
+                              if (variableDataSize == sizeof(float))
+                                 memcpy(&data, &buffer[counter + compToExtract], sizeof(float));
+                              if (variableDataSize == sizeof(double))
+                                 memcpy(&data, &buffer[counter + compToExtract], sizeof(double));
+                              break;
+                           case datatype::type::UINT:
+                              memcpy(&data, &buffer[counter + compToExtract], sizeof(uint));
+                              break;
+                           case datatype::type::INT:
+                              memcpy(&data, &buffer[counter + compToExtract], sizeof(int));
+                              break;
+                           case datatype::type::UNKNOWN:
+                              cerr << "ERROR, BAD DATATYPE AT " << __FILE__ << " " << __LINE__ << endl;
+                              break;
+                        }
+                        //Add to map
+                        orderedData->insert(pair<uint64_t, Real>(globalindex, data));
+                        counter+=variableVectorSize;
+                     }
+                  }
+               }
+               readOffset+=readSize;
+
+            }
+         }
+         break;
+
+      case gridType::ionosphere:
+
+         if(compToExtract >= variableVectorSize) {
+            cerr << "ERROR invalid component, this variable has size " << variableVectorSize << endl;
+            abort();
+         }
+         orderedData->clear();
+         
+         switch(variableDataType) {
+            case datatype::type::FLOAT: 
+               {
+                  if(variableDataSize == sizeof(double)) { 
+                     std::vector<double> buffer(variableVectorSize * variableArraySize);
+                     // The mesh is simply one big blob that can be read in one go.
+                     if(vlsvReader.readArray("VARIABLE", variableAttributes, 0, variableArraySize, (char*)buffer.data()) == false) {
+                        cerr << "ERROR, failed to read variable '" << _varToExtract << "' at " << __FILE__ << " " << __LINE__ << endl;
+                        variableSuccess = false; 
+                        break;
+                     }
+
+                     for(unsigned int i=0; i<variableArraySize; i++) {
+                        orderedData->insert(pair<uint64_t, Real>(i, buffer[i*variableVectorSize + compToExtract]));
+                     }
+                  } else if(variableDataSize == sizeof(float)) {
+                     std::vector<double> buffer(variableVectorSize * variableArraySize);
+                     // The mesh is simply one big blob that can be read in one go.
+                     if(vlsvReader.readArray("VARIABLE", variableAttributes, 0, variableArraySize, (char*)buffer.data()) == false) {
+                        cerr << "ERROR, failed to read variable '" << _varToExtract << "' at " << __FILE__ << " " << __LINE__ << endl;
+                        variableSuccess = false; 
+                        break;
+                     }
+
+                     for(unsigned int i=0; i<variableArraySize; i++) {
+                        orderedData->insert(pair<uint64_t, Real>(i, buffer[i*variableVectorSize + compToExtract]));
+                     }
+                  }
+               }
+               break;
+            default:
+               cerr << "Error: No support for ionosphere parameters that are not float-valued implemented, at " << __FILE__ << " " << __LINE__ << endl;
+               break;
+         }
+
+         break;
+      default:
+         cerr<<"meshName not recognized\t" << __FILE__ << " " << __LINE__ <<endl;
+         abort();
    }
 
    if (meshSuccess == false) {
@@ -591,7 +702,6 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
    if (variableSuccess == false) {
       cerr << "ERROR reading array VARIABLE " << varToExtract << endl;
    }
-   delete variableBuffer;
    return meshSuccess && variableSuccess;
 }
 
@@ -608,6 +718,7 @@ bool convertSILO(const string fileName,
                  const uint compToExtract,
                  map<uint, Real> * orderedData,
                  unordered_map<size_t,size_t>& cellOrder,
+                 Real& time,
                  const bool& storeCellOrder=false) {
    bool success = true;
 
@@ -637,6 +748,9 @@ bool convertSILO(const string fileName,
          return false;
       }      
    }
+
+   vlsvReader.readParameter("time", time);
+
    vlsvReader.close();
    return success;
 }
@@ -741,10 +855,9 @@ bool pDistance(const map<uint, Real>& orderedData1,
             }
          if (gridName==gridType::SpatialGrid){  
             array[cellOrder.at(it1->first)] = value;
-         }else if (gridName==gridType::fsgrid) {   
-
+         }else if (gridName==gridType::fsgrid || gridName==gridType::ionosphere) {   
             array.at(it1->first)=value;
-            }  
+         }  
       }
    } else if (p == 1) {
       for (map<uint,Real>::const_iterator it1=orderedData1.begin(); it1!=orderedData1.end(); ++it1) {
@@ -758,9 +871,9 @@ bool pDistance(const map<uint, Real>& orderedData1,
             }
          if (gridName==gridType::SpatialGrid){  
             array[cellOrder.at(it1->first)] = value;
-         }else if (gridName==gridType::fsgrid){   
+         }else if (gridName==gridType::fsgrid || gridName==gridType::ionosphere) {   
             array[it1->first]=value;
-            }  
+         }  
       }
    } else {
       for (map<uint,Real>::const_iterator it1=orderedData1.begin(); it1!=orderedData1.end(); ++it1) {
@@ -774,9 +887,9 @@ bool pDistance(const map<uint, Real>& orderedData1,
             }
          if (gridName==gridType::SpatialGrid){  
             array[cellOrder.at(it1->first)] = pow(value,1.0/p);
-         }else if (gridName==gridType::fsgrid){   
+         }else if (gridName==gridType::fsgrid || gridName==gridType::ionosphere) {   
             array[it1->first]=pow(value,1.0/p);
-            }  
+         }  
       }
       *absolute = pow(*absolute, 1.0 / p);
       length = pow(length, 1.0 / p);
@@ -793,6 +906,9 @@ bool pDistance(const map<uint, Real>& orderedData1,
       map<string,string> attributes;
       attributes["mesh"] = meshName;
       attributes["name"] = varName;
+      if(meshName == "ionosphere") {
+         attributes["centering"] = "node";
+      }
 
 
       if (outputFile.writeArray("VARIABLE",attributes,array.size(),1,&(array[0])) == false) {
@@ -823,11 +939,11 @@ bool outputDistance(const Real p,
 {
    if(verboseOutput == true) {
       if(shiftedAverage == false) {
-         cout << "The absolute " << p << "-distance between both datasets is " << *absolute  << endl;
-         cout << "The relative " << p << "-distance between both datasets is " << *relative  << endl;
+         cout << "The absolute " << p << "-distance between both datasets is " << setprecision(3) << *absolute  << endl;
+         cout << "The relative " << p << "-distance between both datasets is " << setprecision(3) << *relative  << endl;
       } else {
-         cout << "The average-shifted absolute " << p << "-distance between both datasets is " << *absolute  << endl;
-         cout << "The average-shifted relative " << p << "-distance between both datasets is " << *relative  << endl;
+         cout << "The average-shifted absolute " << p << "-distance between both datasets is " << setprecision(3) << *absolute  << endl;
+         cout << "The average-shifted relative " << p << "-distance between both datasets is " << setprecision(3) << *relative  << endl;
       }
    } else {
       static vector<Real> fileOutputData;
@@ -836,7 +952,7 @@ bool outputDistance(const Real p,
       if(lastCall == true) {
          vector<Real>::const_iterator it;
          for(it = fileOutputData.begin(); it != fileOutputData.end(); it++) {
-            cout << *it << "\t";
+            cout << setprecision(3) << *it << "\t";
          }
          fileOutputData.clear();
          return 0;
@@ -844,6 +960,36 @@ bool outputDistance(const Real p,
       
       fileOutputData.push_back(*absolute);
       fileOutputData.push_back(*relative);
+   }
+   return 0;
+}
+
+/*! In verbose mode print delta t, in non-verbose store them for later output when lastCall is true
+ * \param dt delta t
+ * \param verboseOutput Boolean parameter telling whether the output is verbose or compact
+ * \param lastCall Boolean parameter telling whether this is the last call to the function
+ */
+bool outputDt(
+   const Real dt,
+   const bool verboseOutput,
+   const bool lastCall
+) {
+   if(verboseOutput == true) {
+      cout << "The delta t between both datasets is " << dt << endl;
+   } else {
+      static vector<Real> fileOutputData;
+      static uint fileNumber = 0;
+      
+      if(lastCall == true) {
+         vector<Real>::const_iterator it;
+         for(auto f : fileOutputData) {
+            cout << f << "\t";
+         }
+         fileOutputData.clear();
+         return 0;
+      }
+      
+      fileOutputData.push_back(dt);
    }
    return 0;
 }
@@ -987,6 +1133,7 @@ bool printNonVerboseData()
    // last argument (lastCall) is true to get the output of the whole stored dataset
    outputStats(NULL, NULL, NULL, NULL, NULL, false, true);
    outputDistance(0, NULL, NULL, false, false, true);
+   outputDt(0, false, true);
    
    return 0;
 }
@@ -1458,17 +1605,23 @@ bool compareAvgs( const string fileName1,
          minDiff = *it;
       }
    }
-   
+
+   Real time1 {0.0};
+   Real time2 {0.0};
+   vlsvReader1.readParameter("time", time1);
+   vlsvReader2.readParameter("time", time2);
+
    const double relativeSumDiff = sumDiff / totalAbsAvgs;
    cout << "File names: " << fileName1 << " & " << fileName2 << endl <<
+      setprecision(3) <<
       "NonIdenticalBlocks:      " << numOfNonIdenticalBlocks << endl <<
       "IdenticalBlocks:         " << numOfIdenticalBlocks <<  endl <<
       "Absolute_Error:          " << totalAbsDiff  << endl <<
       "Mean-Absolute-Error:     " << totalAbsDiff / numOfRelevantCells << endl <<
       "Max-Absolute-Error:      " << maxDiff << endl <<
       "Absolute-log-Error:      " << totalAbsLog10Diff << endl <<
-      "Mean-Absolute-log-Error: " << totalAbsLog10Diff / numOfRelevantCells << endl;
-   
+      "Mean-Absolute-log-Error: " << totalAbsLog10Diff / numOfRelevantCells << endl <<
+      "Delta-t: " << time2 - time1 << endl;
 
    return true;
 }
@@ -1501,19 +1654,23 @@ bool process2Files(const string fileName1,
       cellIds1.push_back(compToExtract);
       cellIds2.push_back(compToExtract2);
       // Compare files:
-      if( compareAvgs<vlsvinterface::Reader, vlsvinterface::Reader>(fileName1, fileName2, verboseOutput, cellIds1, cellIds2) == false ) { return false; }
+      if (compareAvgs<vlsvinterface::Reader, vlsvinterface::Reader>(fileName1, fileName2, verboseOutput, cellIds1, cellIds2) == false) { 
+         return false; 
+      }
    } else {
       unordered_map<size_t,size_t> cellOrder;
    
       bool success = true;
-      success = convertSILO<vlsvinterface::Reader>(fileName1, varToExtract, compToExtract, &orderedData1, cellOrder, true);
+      Real time1 {0.0};
+      success = convertSILO<vlsvinterface::Reader>(fileName1, varToExtract, compToExtract, &orderedData1, cellOrder, time1, true);
 
       if( success == false ) {
          cerr << "ERROR Data import error with " << fileName1 << endl;
          return 1;
       }
 
-      success = convertSILO<vlsvinterface::Reader>(fileName2, varToExtract, compToExtract, &orderedData2, cellOrder, false);
+      Real time2 {0.0};
+      success = convertSILO<vlsvinterface::Reader>(fileName2, varToExtract, compToExtract, &orderedData2, cellOrder, time2, false);
 
       if( success == false ) {
          cerr << "ERROR Data import error with " << fileName2 << endl;
@@ -1574,6 +1731,8 @@ bool process2Files(const string fileName1,
       outputDistance(2, &absolute, &relative, false, verboseOutput, false);
       pDistance(orderedData1, orderedData2, 2, &absolute, &relative, true, cellOrder,outputFile,attributes["--meshname"],"d2_sft_"+varName);
       outputDistance(2, &absolute, &relative, true, verboseOutput, false);
+
+      outputDt(time2 - time1, verboseOutput, false);
 
       outputFile.close();
    }
@@ -1669,7 +1828,7 @@ void printHelp(const map<string,string>& defAttribs,const map<string,string>& de
             i += text[s].size()+1;
          } else {
             cout << endl;
-            for (int j=0; j<optionWidth; ++j) cout << ' ';
+            for (unsigned int j=0; j<optionWidth; ++j) cout << ' ';
             i = optionWidth;
             
             cout << text[s] << ' ';
@@ -1806,47 +1965,36 @@ int main(int argn,char* args[]) {
    DIR* dir1 = opendir(fileName1.c_str());
    DIR* dir2 = opendir(fileName2.c_str());
 
-   if (dir1 == NULL && dir2 == NULL) {
+   if (dir1 == nullptr && dir2 == nullptr) {
       cout << "INFO Reading in two files." << endl;
       
       // Process two files with verbose output (last argument true)
       process2Files(fileName1, fileName2, varToExtract, compToExtract, true, compToExtract2);
-      //CONTINUE
-      
-      closedir(dir1);
-      closedir(dir2);
-   }
-   else if (dir1 == NULL || dir2 == NULL)
-   {
+   } else if (dir1 == nullptr || dir2 == nullptr) {
       // Mixed file and directory
       cout << "#INFO Reading in one file and one directory." << endl;
       set<string> fileList;
-      set<string>::iterator it;
 
-      if(dir1 == NULL){
+      if(dir1 == nullptr){
          //file in 1, directory in 2
          processDirectory(dir2, &fileList);
-         for(it = fileList.begin(); it != fileList.end();++it){
+         for(auto f : fileList) {
             // Process two files with non-verbose output (last argument false), give full path to the file processor
-            process2Files(fileName1,fileName2 + "/" + *it, varToExtract, compToExtract, false, compToExtract2);
+            process2Files(fileName1,fileName2 + "/" + f, varToExtract, compToExtract, false, compToExtract2);
          }
+         closedir(dir2);
       }
 
-      if(dir2 == NULL){
+      if(dir2 == nullptr){
          //directory in 1, file in 2
          processDirectory(dir1, &fileList);
-         for(it = fileList.begin(); it != fileList.end();++it){
+         for(auto f : fileList) {
             // Process two files with non-verbose output (last argument false), give full path to the file processor
-            process2Files(fileName1+"/"+*it,fileName2, varToExtract, compToExtract, false, compToExtract2);
+            process2Files(fileName1 + "/" + f,fileName2, varToExtract, compToExtract, false, compToExtract2);
          }
+         closedir(dir1);
       }
-
-      closedir(dir1);
-      closedir(dir2);
-      return 1;
-   }
-   else if (dir1 != NULL && dir2 != NULL)
-   {
+   } else if (dir1 && dir2) {
       // Process two folders, files of the same rank compared, first folder is reference in relative distances
       cout << "#INFO Reading in two directories." << endl;
       set<string> fileList1, fileList2;
@@ -1856,20 +2004,15 @@ int main(int argn,char* args[]) {
       processDirectory(dir2, &fileList2);
       
       // Basic consistency check
-      if(fileList1.size() != fileList2.size())
-      {
+      if(fileList1.size() != fileList2.size()) {
          cerr << "ERROR Folders have different number of files." << endl;
          return 1;
       }
       
-      set<string>::iterator it1, it2;
-      for(it1 = fileList1.begin(), it2 = fileList2.begin();
-          it1 != fileList2.end(), it2 != fileList2.end();
-          it1++, it2++)
-      {
-      // Process two files with non-verbose output (last argument false), give full path to the file processor
-      process2Files(fileName1 + "/" + *it1,
-                    fileName2 + "/" + *it2, varToExtract, compToExtract, false, compToExtract2);
+      // TODO zip these once we're using C++23
+      for (auto it1 = fileList1.begin(), it2 = fileList2.begin(); it1 != fileList2.end(), it2 != fileList2.end(); it1++, it2++) {
+         // Process two files with non-verbose output (last argument false), give full path to the file processor
+         process2Files(fileName1 + "/" + *it1, fileName2 + "/" + *it2, varToExtract, compToExtract, false, compToExtract2);
       }
       
       closedir(dir1);

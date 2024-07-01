@@ -21,6 +21,8 @@
  */
 
 #include "../object_wrapper.h"
+#include "../sysboundary/ionosphere.h"
+
 #include "cpu_moments.h"
 #include "cpu_acc_transform.hpp"
 
@@ -144,6 +146,23 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       if(Parameters::ohmGradPeTerm > 0) {
          total_transform=Translation<Real,3>( (fabs(getObjectWrapper().particleSpecies[popID].charge)/getObjectWrapper().particleSpecies[popID].mass) * EgradPe * substeps_dt) * total_transform;
       }
+   }
+
+   // If a bulk velocity is being forced here, perform that last, after things were gyrated in the Hall frame
+   // If a cell is a remote L2 and was not caught in the loop over neighbours of L1 cells, compute its forcing here
+   if(globalflags::ionosphereJustSolved
+      && spatial_cell->parameters[CellParams::FORCING_CELL_NUM] == 0
+      && SBC::boundaryVDFmode == SBC::ForceL2EXB
+   ) {
+      getObjectWrapper().sysBoundaryContainer.getSysBoundary(sysboundarytype::IONOSPHERE)->mapCellPotentialAndGetEXBDrift(spatial_cell->parameters); // This sets the FORCING_CELL_NUM to 1
+   }
+   if(spatial_cell->parameters[CellParams::FORCING_CELL_NUM] > 0) {
+      Eigen::Matrix<Real,3,1> forced_bulkv(spatial_cell->parameters[CellParams::BULKV_FORCING_X],
+                                           spatial_cell->parameters[CellParams::BULKV_FORCING_Y],
+                                           spatial_cell->parameters[CellParams::BULKV_FORCING_Z]);
+
+      Eigen::Matrix<Real,3,1> bulkDeltaV = forced_bulkv - bulk_velocity;
+      total_transform=Translation<Real,3>(bulkDeltaV) * total_transform;
    }
 
    return total_transform;

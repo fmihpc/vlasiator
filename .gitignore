@@ -5,6 +5,7 @@ diagnostic.txt
 *.vlsv
 *.silo
 *.o
+*.d
 vscode/
 .vscode/
 cppcheck/
@@ -15,3 +16,5 @@ nbproject
 vlasiator
 vlasiator+pat
 nbproject
+vlsvdiff_DP
+vlsvextract_DP

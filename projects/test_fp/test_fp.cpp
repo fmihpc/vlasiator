@@ -122,9 +122,9 @@ namespace projects {
          Real areaFactor = 1.0;
          
          #pragma omp parallel for collapse(3)
-         for (int i = 0; i < localSize[0]; ++i) {
-            for (int j = 0; j < localSize[1]; ++j) {
-               for (int k = 0; k < localSize[2]; ++k) {
+         for (FsGridTools::FsIndex_t i = 0; i < localSize[0]; ++i) {
+            for (FsGridTools::FsIndex_t j = 0; j < localSize[1]; ++j) {
+               for (FsGridTools::FsIndex_t k = 0; k < localSize[2]; ++k) {
                   const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(i, j, k);
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(i, j, k);
                   
@@ -180,8 +180,6 @@ namespace projects {
    
    void test_fp::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
       
-      typedef Parameters P;
-      
    }
    
    vector<std::array<Real, 3>> test_fp::getV0(
@@ -198,24 +196,25 @@ namespace projects {
       Real VX=0.0,VY=0.0,VZ=0.0;
       if (this->shear == true)
       {
-         Real ksi,eta;
+         //Real ksi;
+         Real eta;
          switch (this->CASE) {
             case BXCASE:
-               ksi = ((y + 0.5 * dy)  * cos(this->ALPHA) + (z + 0.5 * dz) * sin(this->ALPHA)) / (2.0 * sqrt(2.0));
+               //ksi = ((y + 0.5 * dy)  * cos(this->ALPHA) + (z + 0.5 * dz) * sin(this->ALPHA)) / (2.0 * sqrt(2.0));
                eta = (-(y + 0.5 * dy)  * sin(this->ALPHA) + (z + 0.5 * dz) * cos(this->ALPHA)) / (2.0 * sqrt(2.0));
                VX = 0.0;
                VY = sign(cos(this->ALPHA)) * 0.5 + 0.1*cos(this->ALPHA) * sin(2.0 * M_PI * eta);
                VZ = sign(sin(this->ALPHA)) * 0.5 + 0.1*sin(this->ALPHA) * sin(2.0 * M_PI * eta);
                break;
             case BYCASE:
-               ksi = ((z + 0.5 * dz)  * cos(this->ALPHA) + (x + 0.5 * dx) * sin(this->ALPHA)) / (2.0 * sqrt(2.0));
+               //ksi = ((z + 0.5 * dz)  * cos(this->ALPHA) + (x + 0.5 * dx) * sin(this->ALPHA)) / (2.0 * sqrt(2.0));
                eta = (-(z + 0.5 * dz)  * sin(this->ALPHA) + (x + 0.5 * dx) * cos(this->ALPHA)) / (2.0 * sqrt(2.0));
                VX = sign(sin(this->ALPHA)) * 0.5 + 0.1*sin(this->ALPHA) * sin(2.0 * M_PI * eta);
                VY = 0.0;
                VZ = sign(cos(this->ALPHA)) * 0.5 + 0.1*cos(this->ALPHA) * sin(2.0 * M_PI * eta);
                break;
             case BZCASE:
-               ksi = ((x + 0.5 * dx)  * cos(this->ALPHA) + (y + 0.5 * dy) * sin(this->ALPHA)) / (2.0 * sqrt(2.0));
+               //ksi = ((x + 0.5 * dx)  * cos(this->ALPHA) + (y + 0.5 * dy) * sin(this->ALPHA)) / (2.0 * sqrt(2.0));
                eta = (-(x + 0.5 * dx)  * sin(this->ALPHA) + (y + 0.5 * dy) * cos(this->ALPHA)) / (2.0 * sqrt(2.0));
                VX = sign(cos(this->ALPHA)) * 0.5 + 0.1*cos(this->ALPHA) * sin(2.0 * M_PI * eta);
                VY = sign(sin(this->ALPHA)) * 0.5 + 0.1*sin(this->ALPHA) * sin(2.0 * M_PI * eta);
@@ -273,59 +272,6 @@ namespace projects {
       creal dz = 0.0;
       
       return this->getV0(x,y,z,dx,dy,dz,popID);
-   }
-
-   bool test_fp::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
- 
-     int myRank;       
-     MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-
-     // mpiGrid.set_maximum_refinement_level(std::min(this->maxSpatialRefinementLevel, mpiGrid.mapping.get_maximum_refinement_level()));
-
-      // cout << "I am at line " << __LINE__ << " of " << __FILE__ <<  endl;
-     if(myRank == MASTER_RANK) std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
-
-
-      for (double x = P::amrBoxCenterX - P::amrBoxHalfWidthX * P::dx_ini; x <= P::amrBoxCenterX + P::amrBoxHalfWidthX * P::dx_ini; x += 0.99 * P::dx_ini) {
-         for (double y = P::amrBoxCenterY - P::amrBoxHalfWidthY * P::dy_ini; y <= P::amrBoxCenterY + P::amrBoxHalfWidthY * P::dy_ini; y += 0.99 * P::dy_ini) {
-            for (double z = P::amrBoxCenterZ - P::amrBoxHalfWidthZ * P::dz_ini; z <= P::amrBoxCenterZ + P::amrBoxHalfWidthZ * P::dz_ini; z += 0.99 * P::dz_ini) {
-     
-               std::array<double,3> xyz;
-               xyz[0] = x;
-               xyz[1] = y;
-               xyz[2] = z;
-               CellID myCell = mpiGrid.get_existing_cell(xyz);
-               if (mpiGrid.refine_completely_at(xyz)) {
-                  std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;
-               }
-            }
-         }
-      }
-
-      std::vector<CellID> refinedCells = mpiGrid.stop_refining(true);      
-      if(myRank == MASTER_RANK) std::cout << "Finished first level of refinement" << endl;
-      if(refinedCells.size() > 0) {
-	std::cout << "Refined cells produced by rank " << myRank << " are: ";
-	for (auto cellid : refinedCells) {
-	  std::cout << cellid << " ";
-	}
-	std::cout << endl;
-      }      
-                  
-      mpiGrid.balance_load();
-
-//       const vector<CellID>& cells = getLocalCells();
-//       if(cells.empty()) {
-//          std::cout << "Rank " << myRank << " has no cells!" << std::endl;
-//       } else {
-//          std::cout << "Cells on rank " << myRank << ": ";
-//          for (auto c : cells) {
-//             std::cout << c << " ";
-//          }
-//          std::cout << std::endl;
-//       }
-
-      return true;
    }
 
 }// namespace projects

@@ -69,8 +69,6 @@ namespace projects {
          Real Bx[2];
          Real By[2];
          Real Bz[2];
-         uint nSpaceSamples;
-         uint nVelocitySamples;
    }; // class Riemann1
 }  // namespace projects
 

@@ -1,0 +1,92 @@
+# -*- mode: makefile -*-
+# GCC
+CMP = mpicxx
+LNK = mpicxx
+
+# Intel
+#CMP = mpiicpx
+#LNK = mpiicpx
+
+# Starting Makefile for the general partition of the MareNostrum5 supercomputer located at the BSC.
+
+#======== Vectorization ==========
+# Set vector backend type for vlasov solvers, sets precision and length. 
+# NOTE this has to have the same precision as the distribution function define (DISTRIBUTION_FP_PRECISION)
+# Options: 
+# AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX512:   VEC8D_AGNER, VEC16F_AGNER
+# Fallback: VEC4D_FALLBACK, VEC4F_FALLBACK, VEC8F_FALLBACK
+
+ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
+	# Single-precision        
+	VECTORCLASS = VEC16F_AGNER
+else
+	# Double-precision
+	VECTORCLASS = VEC8D_AGNER
+endif
+
+# GNU flags:
+CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++20 -W -Wall -Wno-unused -mavx2
+testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++20 -fabi-version=0  -mavx
+
+MATHFLAGS = -ffast-math -fno-finite-math-only
+testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
+
+# GCC
+LDFLAGS = -fopenmp -Wl,--as-needed
+LIB_MPI = -lgomp
+
+# Intel
+#LDFLAGS = -qopenmp -liomp -Wl,--as-needed
+
+#======== Allocator =========
+# Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
+# Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
+CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+
+#======= Compiler and compilation flags =========
+# NOTES on compiler flags:
+# CXXFLAGS is for compiler flags, they are always used
+# MATHFLAGS are for special math etc. flags, these are only applied on solver functions
+# LDFLAGS flags for linker
+
+#-DNO_WRITE_AT_ALL:  Define to disable write at all to 
+#                    avoid memleak (much slower IO)
+#-DMPICH_IGNORE_CXX_SEEK: Ignores some multiple definition 
+#                         errors that come up when using 
+#                         mpi.h in c++ on Cray
+
+CXXFLAGS += -DMPICH_IGNORE_CXX_SEEK
+testpackage: CXXFLAGS += -DMPICH_IGNORE_CXX_SEEK
+
+# BOOST_VERSION = current trilinos version
+# ZOLTAN_VERSION = current trilinos verson
+
+#======== Libraries ===========
+
+# Adjust to where your own libraries/dependencies have been built.
+LIBRARY_PREFIX = /gpfs/projects/bsc33/bsc033626/LIBS
+
+# Compiled libraries
+INC_BOOST = -I/apps/GPP/BSCTOOLS/deps/boost/1.84.0/include
+LIB_BOOST = -L/apps/GPP/BSCTOOLS/deps/boost/1.84.0/lib -lboost_program_options
+
+INC_ZOLTAN = -I$(LIBRARY_PREFIX)/zoltan/VLASIATOR.GCC.DEV/include
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/zoltan/VLASIATOR.GCC.DEV/lib -lzoltan
+
+INC_JEMALLOC = -I$(LIBRARY_PREFIX)/jemalloc/VLASIATOR.GCC.DEV-5.3.0/include
+LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/jemalloc/VLASIATOR.GCC.DEV-5.3.0/lib -ljemalloc
+
+INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv/VLASIATOR.GCC.DEV/include
+LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv/VLASIATOR.GCC.DEV/lib -lvlsv
+
+INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/VLASIATOR.GCC.DEV/include
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/VLASIATOR.GCC.DEV/lib -lphiprof
+
+# Header libraries
+
+INC_EIGEN = -isystem ./submodules/eigen/
+INC_DCCRG = -I./submodules/dccrg
+INC_VECTORCLASS = -isystem ./submodules/vectorclass/ -isystem ./submodules/vectorclass-addon/vector3d/
+INC_FSGRID = -I./submodules/fsgrid

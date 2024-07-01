@@ -85,3 +85,14 @@ void bailout(
 ) {
    bailout(condition, message, "", 0);
 }
+
+/*! Helper function for error handling. err_type default to 0.*/
+[[ noreturn ]] void abort_mpi(const std::string str, const int err_type) {
+   // Single string so output isn't mangled by multiple processes
+   std::cerr << (err_type ? std::string(__FILE__) + ":" + std::to_string(__LINE__) + ": " + str : str) + "\n";
+   MPI_Abort(MPI_COMM_WORLD, 1);
+
+   // Dummy abort to convince compiler function doesn't return
+   // TODO replace with std::unreachable once we switch to C++23
+   abort();
+}

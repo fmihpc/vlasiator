@@ -55,8 +55,6 @@ namespace projects {
          RP::add(pop + "_Diffusion.Temperature", "Temperature (K)", 2.0e6);
          RP::add(pop + "_Diffusion.Scale_x", "Scale length in x (m)", 100000.0);
          RP::add(pop + "_Diffusion.Scale_y", "Scale length in y (m)", 100000.0);
-         RP::add(pop + "_Diffusion.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
-         RP::add(pop + "_Diffusion.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
       }
    }
 
@@ -75,8 +73,6 @@ namespace projects {
         RP::get(pop + "_Diffusion.Temperature", sP.TEMPERATURE);
         RP::get(pop + "_Diffusion.Scale_x", sP.SCA_X);
         RP::get(pop + "_Diffusion.Scale_y", sP.SCA_Y);
-        RP::get(pop + "_Diffusion.nSpaceSamples", sP.nSpaceSamples);
-        RP::get(pop + "_Diffusion.nVelocitySamples", sP.nVelocitySamples);
 
         speciesParams.push_back(sP);
       }
@@ -99,24 +95,7 @@ namespace projects {
    }
    
    Real Diffusion::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
-      const DiffusionSpeciesParameters& sP = speciesParams[popID];
-      creal d_x = dx / (sP.nSpaceSamples-1);
-      creal d_y = dy / (sP.nSpaceSamples-1);
-      creal d_z = dz / (sP.nSpaceSamples-1);
-      creal d_vx = dvx / (sP.nVelocitySamples-1);
-      creal d_vy = dvy / (sP.nVelocitySamples-1);
-      creal d_vz = dvz / (sP.nVelocitySamples-1);
-      Real avg = 0.0;
-      for (uint i=0; i<sP.nSpaceSamples; ++i)
-         for (uint j=0; j<sP.nSpaceSamples; ++j)
-      for (uint k=0; k<sP.nSpaceSamples; ++k)
-         for (uint vi=0; vi<sP.nVelocitySamples; ++vi)
-            for (uint vj=0; vj<sP.nVelocitySamples; ++vj)
-         for (uint vk=0; vk<sP.nVelocitySamples; ++vk)
-         {
-            avg += getDistribValue(x+i*d_x, y+j*d_y, z+k*d_z, vx+vi*d_vx, vy+vj*d_vy, vz+vk*d_vz, popID);
-         }
-      return avg / (sP.nSpaceSamples*sP.nSpaceSamples*sP.nSpaceSamples) / (sP.nVelocitySamples*sP.nVelocitySamples*sP.nVelocitySamples);
+      return getDistribValue(x+0.5*dx, y+0.5*dy, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, popID);
    }
    
    void Diffusion::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }

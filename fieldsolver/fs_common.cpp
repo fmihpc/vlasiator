@@ -21,6 +21,7 @@
  */
 
 #include "fs_common.h"
+#include "../fieldtracing/fieldtracing.h"
 
 /*! \brief Helper function
  * 
@@ -198,26 +199,6 @@ void reconstructionCoefficients(
    perturbedResult[Rec::c_0 ] = HALF*(cep_i1j1k2->at(fsgrids::bfield::PERBZ) + cep_i1j1k1->at(fsgrids::bfield::PERBZ)) - SIXTH*perturbedResult[Rec::c_zz];
 }
 
-// Get the (integer valued) global fsgrid cell index (i,j,k) for the magnetic-field traced mapping point that node n is
-// associated with
-template<class T> std::array<int32_t, 3> getGlobalFsGridCellIndexForCoord(T& grid,const std::array<Real, 3>& x) {
-   std::array<int32_t, 3> retval;
-   retval[0] = (x[0] - grid.physicalGlobalStart[0]) / grid.DX;
-   retval[1] = (x[1] - grid.physicalGlobalStart[1]) / grid.DY;
-   retval[2] = (x[2] - grid.physicalGlobalStart[2]) / grid.DZ;
-   return retval;
-}
-// Get the fraction fsgrid cell index for the magnetic-field traced mapping point that node n is associated with.
-// Note that these are floating point values between 0 and 1
-template<class T> std::array<Real, 3> getFractionalFsGridCellForCoord(T& grid, const std::array<Real, 3>& x) {
-   std::array<Real, 3> retval;
-   std::array<int, 3> fsgridCell = getGlobalFsGridCellIndexForCoord(grid,x);
-   retval[0] = (x[0] - grid.physicalGlobalStart[0]) / grid.DX - fsgridCell[0];
-   retval[1] = (x[1] - grid.physicalGlobalStart[1]) / grid.DY - fsgridCell[1];
-   retval[2] = (x[2] - grid.physicalGlobalStart[2]) / grid.DZ - fsgridCell[2];
-   return retval;
-}
-
 /*! Interpolate perturbed B to arbitrary x,y,z in cell
  *  Uses the reconstruction coefficients and equations from
  *  Divergence-free reconstruction of magnetic fields and WENO schemes for magnetohydrodynamics
@@ -260,38 +241,37 @@ std::array<Real, 3> interpolatePerturbedB(
    }
 
    std::array<int, 3> cellIds = {i,j,k};
-
-   //#pragma omp critical
-   //{
-   //   if (reconstructionCoefficientsCache.find(cellIds) == reconstructionCoefficientsCache.end()) {
-   //      std::array<Real, Rec::N_REC_COEFFICIENTS> rc;
-   //      
-   //      reconstructionCoefficients(
-   //         perBGrid,
-   //         dPerBGrid,
-   //         rc,
-   //         i,
-   //         j,
-   //         k,
-   //         3 // Reconstruction order of the fields after Balsara 2009, 2 used for general B, but 3 used here to allow for cache reuse, see interpolatePerturbedJ below
-   //      );
-   //      
-   //      reconstructionCoefficientsCache.insert({cellIds, rc});
-   //   }
-   //}
-   //
-   //std::array<Real, Rec::N_REC_COEFFICIENTS> rc = reconstructionCoefficientsCache.at(cellIds);
-
    std::array<Real, Rec::N_REC_COEFFICIENTS> rc;
-   reconstructionCoefficients(
-      perBGrid,
-      dPerBGrid,
-      rc,
-      i,
-      j,
-      k,
-      3 // // Reconstruction order of the fields after Balsara 2009, 3 used to obtain 2nd order curl(B) and allows for cache reuse, see interpolatePerturbedB above
-   );
+   
+   if(FieldTracing::fieldTracingParameters.useCache) {
+      #pragma omp critical
+      {
+         if (reconstructionCoefficientsCache.find(cellIds) == reconstructionCoefficientsCache.end()) {
+            reconstructionCoefficients(
+               perBGrid,
+               dPerBGrid,
+               rc,
+               i,
+               j,
+               k,
+               3 // Reconstruction order of the fields after Balsara 2009, 2 used for general B, but 3 used here to allow for cache reuse, see interpolatePerturbedJ below
+            );
+            reconstructionCoefficientsCache.insert({cellIds, rc});
+         } else {
+            rc = reconstructionCoefficientsCache.at(cellIds);
+         }
+      }
+   } else {
+      reconstructionCoefficients(
+         perBGrid,
+         dPerBGrid,
+         rc,
+         i,
+         j,
+         k,
+         3 // // Reconstruction order of the fields after Balsara 2009, 3 used to obtain 2nd order curl(B) and allows for cache reuse, see interpolatePerturbedB above
+      );
+   }
 
    std::array<Real, 3> interpolatedB;
    // Eq. (7) Balsara 2009
@@ -352,38 +332,38 @@ std::array<Real, 3> interpolateCurlB(
    }
 
    std::array<int, 3> cellIds = {i,j,k};
+   std::array<Real, Rec::N_REC_COEFFICIENTS> rc;
 
    //// Actual use of the coefficient cache has proven not to be thread safe. But it appears to be reasonably fast even without it.
-   //#pragma omp critical
-   //{
-   //   if (reconstructionCoefficientsCache.find(cellIds) == reconstructionCoefficientsCache.end()) {
-   //      std::array<Real, Rec::N_REC_COEFFICIENTS> rc;
-   //
-   //      reconstructionCoefficients(
-   //         perBGrid,
-   //         dPerBGrid,
-   //         rc,
-   //         i,
-   //         j,
-   //         k,
-   //         3 // // Reconstruction order of the fields after Balsara 2009, 3 used to obtain 2nd order curl(B) and allows for cache reuse, see interpolatePerturbedB above
-   //      );
-   //
-   //      reconstructionCoefficientsCache.insert({cellIds, rc});
-   //   }
-   //}
-   //std::array<Real, Rec::N_REC_COEFFICIENTS> rc = reconstructionCoefficientsCache.at(cellIds);
-
-   std::array<Real, Rec::N_REC_COEFFICIENTS> rc;
-   reconstructionCoefficients(
-      perBGrid,
-      dPerBGrid,
-      rc,
-      i,
-      j,
-      k,
-      3 // // Reconstruction order of the fields after Balsara 2009, 3 used to obtain 2nd order curl(B) and allows for cache reuse, see interpolatePerturbedB above
-   );
+   if(FieldTracing::fieldTracingParameters.useCache) {
+      #pragma omp critical
+      {
+         if (reconstructionCoefficientsCache.find(cellIds) == reconstructionCoefficientsCache.end()) {
+            reconstructionCoefficients(
+               perBGrid,
+               dPerBGrid,
+               rc,
+               i,
+               j,
+               k,
+               3 // // Reconstruction order of the fields after Balsara 2009, 3 used to obtain 2nd order curl(B) and allows for cache reuse, see interpolatePerturbedB above
+            );
+            reconstructionCoefficientsCache.insert({cellIds, rc});
+         } else {
+            rc = reconstructionCoefficientsCache.at(cellIds);
+         }
+      }
+   } else {
+      reconstructionCoefficients(
+         perBGrid,
+         dPerBGrid,
+         rc,
+         i,
+         j,
+         k,
+         3 // // Reconstruction order of the fields after Balsara 2009, 3 used to obtain 2nd order curl(B) and allows for cache reuse, see interpolatePerturbedB above
+      );
+   }
 
    std::array<Real, 3> interpolatedCurlB;
    interpolatedCurlB[0] = (

@@ -33,7 +33,7 @@
 #include <dccrg.hpp>
 
 #include "../vlasovmover.h"
-#include "../spatial_cell.hpp"
+#include "../spatial_cell_wrapper.hpp"
 #include "../grid.h"
 #include "../definitions.h"
 #include "../iowrite.h"
@@ -45,14 +45,6 @@
 
 using namespace std;
 using namespace spatial_cell;
-
-creal ZERO    = 0.0;
-creal HALF    = 0.5;
-creal FOURTH  = 1.0/4.0;
-creal SIXTH   = 1.0/6.0;
-creal ONE     = 1.0;
-creal TWO     = 2.0;
-creal EPSILON = 1.0e-25;
 
 #warning TESTING can be removed later
 static void writeVelMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {

@@ -123,7 +123,7 @@ bool convertSlicedVelocityMesh(vlsvinterface::Reader& vlsvReader,const string& f
       return false;
    }
 
-   vector<uint64_t> cellIDs;
+   std::vector<uint64_t> cellIDs;
    if (vlsvReader.getCellIds(cellIDs) == false) {
       cerr << "ERROR: failed to get cell IDs in " << __FILE__ << ' ' << __LINE__ << endl;
       return false;
@@ -165,13 +165,13 @@ bool convertSlicedVelocityMesh(vlsvinterface::Reader& vlsvReader,const string& f
       uint64_t vectorSize;
       uint64_t dataSize;
    };
-   vector<BlockVarInfo> varInfo;
+   std::vector<BlockVarInfo> varInfo;
 
    // Assume that two of the coordinates are spatial, i.e., that the first 
    // sliced coordinate is a spatial one
-   vector<float> nodeCoords;
-   vector<int> connectivity;
-   vector<vector<char> > variables;
+   std::vector<float> nodeCoords;
+   std::vector<int> connectivity;
+   std::vector<std::vector<char> > variables;
    for (size_t cell=0; cell<cellIDs.size(); ++cell) {
       uint64_t cellId = cellIDs[cell]-1;
       uint64_t cellIndices[3];
@@ -188,7 +188,7 @@ bool convertSlicedVelocityMesh(vlsvinterface::Reader& vlsvReader,const string& f
       if (cellCrds[cellStruct.slicedCoords[0]+3] < cellStruct.slicedCoordValues[0]) continue;
 
       // Buffer all velocity mesh variables
-      vector<char*> varBuffer(blockVarNames.size());
+      std::vector<char*> varBuffer(blockVarNames.size());
       int counter=0;
       for (set<string>::const_iterator var=blockVarNames.begin(); var!=blockVarNames.end(); ++var) {
          varBuffer[counter] = NULL;
@@ -214,7 +214,7 @@ bool convertSlicedVelocityMesh(vlsvinterface::Reader& vlsvReader,const string& f
       }
       if (varInfo.size() > variables.size()) variables.resize(varInfo.size());
 
-      vector<uint64_t> blockIDs;
+      std::vector<uint64_t> blockIDs;
       if (vlsvReader.getBlockIds(cellIDs[cell],blockIDs,popName) == false) {
          for (size_t v=0; v<varBuffer.size(); ++v) delete [] varBuffer[v];
          continue;
@@ -447,7 +447,7 @@ void applyRotation(const Real* B,Real* transform) {
    }
 }
 
-void getBulkVelocity(Real* V_bulk,vlsvinterface::Reader& vlsvReader,const string& meshName,const uint64_t& cellID) {
+void getBulkVelocity(Real* V_bulk,vlsvinterface::Reader& vlsvReader,const string& meshName,const string& popName,const uint64_t& cellID) {
    //Declarations
    vlsv::datatype::type cellIdDataType;
    uint64_t cellIdArraySize, cellIdVectorSize, cellIdDataSize;
@@ -492,31 +492,72 @@ void getBulkVelocity(Real* V_bulk,vlsvinterface::Reader& vlsvReader,const string
       exit(1);
    }
    
-   // Read number density
-   double numberDensity;
-   double* ptr = &numberDensity;
-   xmlAttributes.clear();
-   xmlAttributes.push_back(make_pair("mesh",meshName));
-   xmlAttributes.push_back(make_pair("name","rho"));
-   if (vlsvReader.read("VARIABLE",xmlAttributes,cellIndex,1,ptr,false) == false) {
-      cerr << "Could not read number density in " << __FILE__ << ":" << __LINE__ << endl;
+   do {
+      // Read combined vg_v
+      double velocity[3];
+      double* ptr = velocity;
+      xmlAttributes.clear();
+      xmlAttributes.push_back(make_pair("mesh",meshName));
+      xmlAttributes.push_back(make_pair("name","vg_v"));
+      if (vlsvReader.read("VARIABLE",xmlAttributes,cellIndex,1,ptr,false) == true) {
+         cerr << "NOTE: Using combined vg_v (all populations!) for plasma frame shifting." << endl;
+         V_bulk[0] = velocity[0];
+         V_bulk[0] = velocity[0];
+         V_bulk[0] = velocity[0];
+         break;
+      }
+      // Read <pop>/vg_v
+      xmlAttributes.clear();
+      xmlAttributes.push_back(make_pair("mesh",meshName));
+      xmlAttributes.push_back(make_pair("name",popName+"/vg_v"));
+      if (vlsvReader.read("VARIABLE",xmlAttributes,cellIndex,1,ptr,false) == true) {
+         cerr << "NOTE: Using <pop>/vg_v for plasma frame shifting." << endl;
+         V_bulk[0] = velocity[0];
+         V_bulk[0] = velocity[0];
+         V_bulk[0] = velocity[0];
+         break;
+      }
+      // Try old style
+      // Read number density
+      double numberDensity;
+      ptr = &numberDensity;
+      xmlAttributes.clear();
+      xmlAttributes.push_back(make_pair("mesh",meshName));
+      xmlAttributes.push_back(make_pair("name","rho"));
+      if (vlsvReader.read("VARIABLE",xmlAttributes,cellIndex,1,ptr,false) == true) {
+         // Read number density times velocity
+         double momentum[3];
+         ptr = momentum;
+         xmlAttributes.clear();
+         xmlAttributes.push_back(make_pair("mesh",meshName));
+         xmlAttributes.push_back(make_pair("name","rho_v"));
+         if (vlsvReader.read("VARIABLE",xmlAttributes,cellIndex,1,ptr,false) == true) {
+            cerr << "NOTE: Using rho_v / rho for plasma frame shifting." << endl;
+            V_bulk[0] = momentum[0] / (numberDensity + numeric_limits<double>::min());
+            V_bulk[1] = momentum[1] / (numberDensity + numeric_limits<double>::min());
+            V_bulk[2] = momentum[2] / (numberDensity + numeric_limits<double>::min());
+            break;
+         }
+      }
+      // Read combined vg_v in restart file style
+      double moments[5];
+      ptr = moments;
+      xmlAttributes.clear();
+      xmlAttributes.push_back(make_pair("mesh",meshName));
+      xmlAttributes.push_back(make_pair("name","moments"));
+      if (vlsvReader.read("VARIABLE",xmlAttributes,cellIndex,1,ptr,false) == true) {
+         cerr << "NOTE: Using combined vg_v (all populations!) from restart for plasma frame shifting." << endl;
+         V_bulk[0] = moments[1];
+         V_bulk[0] = moments[2];
+         V_bulk[0] = moments[3];
+         break;
+      }
+      // We should have broken out before or we're doomed
+      cerr << "ERROR: Could not find a usable velocity for plasma frame shift!" << endl;
       exit(1);
-   }
-   
-   // Read number density times velocity
-   double momentum[3];
-   ptr = momentum;
-   xmlAttributes.clear();
-   xmlAttributes.push_back(make_pair("mesh",meshName));
-   xmlAttributes.push_back(make_pair("name","rho_v"));
-   if (vlsvReader.read("VARIABLE",xmlAttributes,cellIndex,1,ptr,false) == false) {
-      cerr << "Could not read momentum in " << __FILE__ << ":" << __LINE__ << endl;
-      exit(1);
-   }
+      break;
+   } while (true);
 
-   V_bulk[0] = momentum[0] / (numberDensity + numeric_limits<double>::min());
-   V_bulk[1] = momentum[1] / (numberDensity + numeric_limits<double>::min());
-   V_bulk[2] = momentum[2] / (numberDensity + numeric_limits<double>::min());
 }
 
 void getB(Real* B,vlsvinterface::Reader& vlsvReader,const string& meshName,const uint64_t& cellID) {
@@ -570,6 +611,7 @@ void getB(Real* B,vlsvinterface::Reader& vlsvReader,const string& meshName,const
 
    // Magnetic field can exists in the file in few different variables.
    // Here we go with the following priority:
+   // - vg_b_vol
    // - B_vol
    // - BGB_vol + PERB_vol
    // - B
@@ -586,6 +628,32 @@ void getB(Real* B,vlsvinterface::Reader& vlsvReader,const string& meshName,const
 
    bool B_read = true;
    do {
+      // Attempt to read 'vg_b_vol'
+      B_read = true;
+      xmlAttributes.clear();
+      xmlAttributes.push_back(make_pair("mesh",meshName));
+      xmlAttributes.push_back(make_pair("name","vg_b_vol"));
+      if (vlsvReader.read("VARIABLE",xmlAttributes,cellIndex,1,B1_ptr,false) == false) B_read = false;
+      if (B_read == true) {
+	 if (runDebug == true) cerr << "Using vg_b_vol" << endl;
+	 break;
+      }
+
+      // Attempt to read 'vg_b_background_vol' + 'vg_b_perturbed_vol'
+      B_read = true;
+      xmlAttributes.clear();
+      xmlAttributes.push_back(make_pair("mesh",meshName));
+      xmlAttributes.push_back(make_pair("name","vg_b_background_vol"));
+      if (vlsvReader.read("VARIABLE",xmlAttributes,cellIndex,1,B1_ptr,false) == false) B_read = false;
+      xmlAttributes.clear();
+      xmlAttributes.push_back(make_pair("mesh",meshName));
+      xmlAttributes.push_back(make_pair("name","vg_b_perturbed_vol"));
+      if (vlsvReader.read("VARIABLE",xmlAttributes,cellIndex,1,B2_ptr,false) == false) B_read = false;
+      if (B_read == true) {
+	 if (runDebug == true) cerr << "Using vg_b_background_vol + vg_b_perturbed_vol" << endl;
+	 break;
+      }
+
       // Attempt to read 'B_vol'
       B_read = true;
       xmlAttributes.clear();
@@ -696,7 +764,7 @@ bool convertVelocityBlocks2(
 
    if (plasmaFrame == true) {
       Real V_bulk[3];
-      getBulkVelocity(V_bulk,vlsvReader,meshName,cellID);
+      getBulkVelocity(V_bulk,vlsvReader,meshName,popName,cellID);
       applyTranslation(V_bulk,transform);
    }
 
@@ -715,7 +783,7 @@ bool convertVelocityBlocks2(
    }
 
    // Read velocity block global IDs and write them out
-   vector<uint64_t> blockIds;
+   std::vector<uint64_t> blockIds;
    if (vlsvReader.getBlockIds(cellID,blockIds,popName) == false ) {
       cerr << "Trying older Vlasiator file format..." << endl;
       if (vlsvReader.getBlockIds(cellID,blockIds,"") == false) {
@@ -744,7 +812,7 @@ bool convertVelocityBlocks2(
 
    // Create array of phase-space mesh cell IDs, this is needed to make 
    // vlsvdiff work with extracted velocity meshes
-   vector<uint64_t> cellIDs(blockIds.size()*64);
+   std::vector<uint64_t> cellIDs(blockIds.size()*64);
    for (size_t b=0; b<blockIds.size(); ++b) {
       for (int c=0; c<64; ++c) cellIDs[b*64+c] = blockIds[b]*64+c;
    }
@@ -760,7 +828,7 @@ bool convertVelocityBlocks2(
    attributes["mesh"] = outputMeshName;
    if (out.writeArray("MESH_DOMAIN_SIZES",attributes,1,2,domainSize) == false) success = false;
      {
-        vector<uint64_t> ().swap(blockIds);
+	std::vector<uint64_t> ().swap(blockIds);
      }
    
    attributes["mesh"] = "VelBlocks_" + popName;
@@ -786,7 +854,7 @@ bool convertVelocityBlocks2(
    if (out.writeArray("MESH_BBOX",attributes,6,1,bbox) == false) success = false;
 
    // Make node coordinate arrays
-   vector<float> coords;
+   std::vector<float> coords;
    for (int crd=0; crd<3; ++crd) {
       // crd enumerates the coordinate: 0 = vx, 1 = vy, 2 = vz
       coords.clear();
@@ -816,7 +884,7 @@ bool convertVelocityBlocks2(
       }
    }
      {
-        vector<float> ().swap(coords);
+        std::vector<float> ().swap(coords);
      }
    
    for (int crd=0; crd<3; ++crd) {
@@ -838,7 +906,7 @@ bool convertVelocityBlocks2(
       }
    }
      {
-        vector<float> ().swap(coords);
+	std::vector<float> ().swap(coords);
      }
    
    // Write dummy ghost zone data (not applicable here):
@@ -1120,7 +1188,7 @@ uint64_t searchForBestCellId( const CellStructure & cellStruct,
 //[0] Returns the closest cell id to the given coordinates
 uint64_t searchForBestCellId( const CellStructure & cellStruct,
                               const unordered_set<uint64_t> & cellIdList, 
-                              const array<Real, 3> coordinates ) {
+                              const std::array<Real, 3> coordinates ) {
    //Check for null pointer:
    if( coordinates.empty() ) {
       cerr << "ERROR, PASSED AN EMPTY COORDINATES AT " << __FILE__ << " " << __LINE__ << endl;
@@ -1396,7 +1464,7 @@ bool setSpatialCellVariables(Reader& vlsvReader,CellStructure& cellStruct) {
 //[0] Returns the cell id in uint64_t
 uint64_t getCellIdFromCoords( const CellStructure & cellStruct, 
                               const unordered_set<uint64_t> cellIdList,
-                              const array<Real, 3> coords) {
+                              const std::array<Real, 3> coords) {
    if( coords.empty() ) {
       cerr << "ERROR, PASSED AN EMPTY STD::ARRAY FOR COORDINATES AT " << __FILE__ << " " << __LINE__ << endl;
    }
@@ -1450,12 +1518,12 @@ bool retrieveOptions( const int argn, char *args[], UserOptions & mainOptions ) 
    bool & rotateVectors = mainOptions.rotateVectors;
    bool & plasmaFrame = mainOptions.plasmaFrame;
    uint64_t & cellId = mainOptions.cellId;
-   vector<uint64_t> & cellIdList = mainOptions.cellIdList;
+   std::vector<uint64_t> & cellIdList = mainOptions.cellIdList;
    uint32_t & numberOfCoordinatesInALine = mainOptions.numberOfCoordinatesInALine;
-   vector<string>  & outputDirectoryPath = mainOptions.outputDirectoryPath;
-   array<Real, 3> & coordinates = mainOptions.coordinates;
-   array<Real, 3> & point1 = mainOptions.point1;
-   array<Real, 3> & point2 = mainOptions.point2;
+   std::vector<string>  & outputDirectoryPath = mainOptions.outputDirectoryPath;
+   std::array<Real, 3> & coordinates = mainOptions.coordinates;
+   std::array<Real, 3> & point1 = mainOptions.point1;
+   std::array<Real, 3> & point2 = mainOptions.point2;
 
    //By default every bool input should be false and vectors should be empty
    if( getCellIdFromCoordinates == true || rotateVectors == true || plasmaFrame == true || getCellIdFromInput == true || getCellIdFromLine == true || outputDirectoryPath.empty() == false ) {
@@ -1470,15 +1538,15 @@ bool retrieveOptions( const int argn, char *args[], UserOptions & mainOptions ) 
          ("help", "display help")
          ("debug", "write debugging info to stderr")
          ("cellid", po::value<uint64_t>(), "Set cell id")
-         ("cellidlist", po::value< vector<uint64_t>>()->multitoken(), "Set list of cell ids")
+         ("cellidlist", po::value< std::vector<uint64_t>>()->multitoken(), "Set list of cell ids")
          ("rotate", "Rotate velocities so that they face z-axis")
          ("plasmaFrame", "Shift the distribution so that the bulk velocity is 0")
-         ("coordinates", po::value< vector<Real> >()->multitoken(), "Set spatial coordinates x y z")
+         ("coordinates", po::value< std::vector<Real> >()->multitoken(), "Set spatial coordinates x y z")
          ("unit", po::value<string>(), "Sets the units. Options: re, km, m (OPTIONAL)")
-         ("point1", po::value< vector<Real> >()->multitoken(), "Set the starting point x y z of a line")
-         ("point2", po::value< vector<Real> >()->multitoken(), "Set the ending point x y z of a line")
+         ("point1", po::value< std::vector<Real> >()->multitoken(), "Set the starting point x y z of a line")
+         ("point2", po::value< std::vector<Real> >()->multitoken(), "Set the ending point x y z of a line")
          ("pointamount", po::value<unsigned int>(), "Number of points along a line (OPTIONAL)")
-         ("outputdirectory", po::value< vector<string> >(), "The directory where the file is saved (default current folder) (OPTIONAL)");
+         ("outputdirectory", po::value< std::vector<string> >(), "The directory where the file is saved (default current folder) (OPTIONAL)");
          
       //For mapping input
       po::variables_map vm;
@@ -1493,20 +1561,20 @@ bool retrieveOptions( const int argn, char *args[], UserOptions & mainOptions ) 
       }
       //Check if coordinates have been input and make sure there's only 3 coordinates
       const size_t _size = 3;
-      if( !vm["coordinates"].empty() && vm["coordinates"].as< vector<Real> >().size() == _size ) {
+      if( !vm["coordinates"].empty() && vm["coordinates"].as< std::vector<Real> >().size() == _size ) {
         //Save input into coordinates vector (later on the values are stored into a *Real pointer
-        vector<Real> _coordinates = vm["coordinates"].as< vector<Real> >();
+	std::vector<Real> _coordinates = vm["coordinates"].as< std::vector<Real> >();
         for( uint i = 0; i < 3; ++i ) {
            coordinates[i] = _coordinates[i];
         }
         //Let the program know we want to get the cell id from coordinates
         getCellIdFromCoordinates = true;
       }
-      if( !vm["point1"].empty() && vm["point1"].as< vector<Real> >().size() == _size
-       && !vm["point2"].empty() && vm["point2"].as< vector<Real> >().size() == _size ) {
+      if( !vm["point1"].empty() && vm["point1"].as< std::vector<Real> >().size() == _size
+       && !vm["point2"].empty() && vm["point2"].as< std::vector<Real> >().size() == _size ) {
         //Save input into point vector (later on the values are stored into a *Real pointer
-        vector<Real> _point1 = vm["point1"].as< vector<Real> >();
-        vector<Real> _point2 = vm["point2"].as< vector<Real> >();
+	std::vector<Real> _point1 = vm["point1"].as< std::vector<Real> >();
+	std::vector<Real> _point2 = vm["point2"].as< std::vector<Real> >();
         //Input the values
         for( uint i = 0; i < 3; ++i ) {
            point1[i] = _point1[i];
@@ -1544,12 +1612,12 @@ bool retrieveOptions( const int argn, char *args[], UserOptions & mainOptions ) 
          getCellIdFromInput = true;
       }
       if( vm.count("cellidlist") ) {
-         cellIdList = vm["cellidlist"].as< vector<uint64_t> >();
+         cellIdList = vm["cellidlist"].as< std::vector<uint64_t> >();
          getCellIdFromInput = true;
       }
       if( vm.count("outputdirectory") ) {
          //Save input
-         outputDirectoryPath = vm["outputdirectory"].as< vector<string> >();
+         outputDirectoryPath = vm["outputdirectory"].as< std::vector<string> >();
          //Make sure the vector is of length 1:
          if( outputDirectoryPath.size() != 1 ) {
             return false;
@@ -1665,8 +1733,8 @@ bool retrieveOptions( const int argn, char *args[], UserOptions & mainOptions ) 
 //output
 void setCoordinatesAlongALine( 
                                const CellStructure & cellStruct,
-                               const array<Real, 3> & start, const array<Real, 3> & end, uint32_t numberOfCoordinates,
-                               vector< array<Real, 3> > & outputCoordinates 
+                               const std::array<Real, 3> & start, const std::array<Real, 3> & end, uint32_t numberOfCoordinates,
+                               std::vector< std::array<Real, 3> > & outputCoordinates 
                              ) {
    //Used in calculations in place of numberOfCoordinates
    uint32_t _numberOfCoordinates;
@@ -1710,7 +1778,7 @@ void setCoordinatesAlongALine(
       _numberOfCoordinates = numberOfCoordinates;
    }
    //Store the unit of line vector ( the vector from start to end divided by the numberOfCoordinates ) into line_unit
-   array<Real, 3> line_unit;
+   std::array<Real, 3> line_unit;
    for( uint i = 0; i < 3; ++i ) {
       line_unit[i] = (end[i] - start[i]) / (Real)(_numberOfCoordinates - 1);
    }
@@ -1718,7 +1786,7 @@ void setCoordinatesAlongALine(
    //Insert the coordinates:
    outputCoordinates.reserve(_numberOfCoordinates);
    for( uint j = 0; j < _numberOfCoordinates; ++j ) {
-      const array<Real, 3> input{{start[0] + j * line_unit[0],
+      const std::array<Real, 3> input{{start[0] + j * line_unit[0],
                                   start[1] + j * line_unit[1],
                                   start[2] + j * line_unit[2],}};
       outputCoordinates.push_back(input);
@@ -1747,7 +1815,7 @@ void extractDistribution( const string & fileName, const UserOptions & mainOptio
    setSpatialCellVariables( vlsvReader, cellStruct );
 
    //Declare a vector for holding multiple cell ids (Note: Used only if we want to calculate the cell id along a line)
-   vector<uint64_t> cellIdList;
+   std::vector<uint64_t> cellIdList;
 
    //Determine how to get the cell id:
    //(getCellIdFromCoords might as well take a vector parameter but since I have not seen many vectors used, I'm keeping to
@@ -1782,19 +1850,19 @@ void extractDistribution( const string & fileName, const UserOptions & mainOptio
       //but now for multiple cell ids
 
       //Declare a vector for storing coordinates:
-      vector< array<Real, 3> > coordinateList;
+      std::vector< std::array<Real, 3> > coordinateList;
       //Store cell ids into coordinateList:
       //Note: All mainOptions are user-input
       setCoordinatesAlongALine( cellStruct, mainOptions.point1, mainOptions.point2, mainOptions.numberOfCoordinatesInALine, coordinateList );
       //Note: (getCellIdFromCoords might as well take a vector parameter but since I have not seen many vectors used,
       // I'm keeping to previously used syntax)
       //Declare an iterator
-      vector< array<Real, 3> >::iterator it;
+      std::vector< std::array<Real, 3> >::iterator it;
       //Calculate every cell id in coordinateList
       for( it = coordinateList.begin(); it != coordinateList.end(); ++it ) {
          //NOTE: since this code is nearly identical to the code for calculating single coordinates, it could be smart to create a separate function for this
          //declare coordinates array
-         const array<Real, 3> & coords = *it;
+         const std::array<Real, 3> & coords = *it;
          //Get the cell id from coordinates
          const uint64_t cellID = getCellIdFromCoords( cellStruct, cellIdList_velocity, coords );
          if( cellID != numeric_limits<uint64_t>::max() ) {
@@ -1812,7 +1880,7 @@ void extractDistribution( const string & fileName, const UserOptions & mainOptio
    } else if( mainOptions.getCellIdFromInput ) {
       //Declare cellID and set it if the cell id is specified by the user
       //bool getCellIdFromLine equals true) -- this is done later on in the code ( After the file has been opened)
-      for(vector<uint64_t>::const_iterator id = mainOptions.cellIdList.begin(); id != mainOptions.cellIdList.end() ; id++) {
+      for(std::vector<uint64_t>::const_iterator id = mainOptions.cellIdList.begin(); id != mainOptions.cellIdList.end() ; id++) {
          //store the cell id in the list of cell ids (This is only used because it makes the code for 
          //calculating the cell ids from a line clearer)
          cellIdList.push_back( *id );
@@ -1832,7 +1900,7 @@ void extractDistribution( const string & fileName, const UserOptions & mainOptio
 
    //Next task is to iterate through the cell ids and save files:
    //Save all of the cell ids' velocities into files:
-   vector<uint64_t>::iterator it;
+   std::vector<uint64_t>::iterator it;
    //declare extractNum for keeping track of which extraction is going on and informing the user (used in the iteration)
    int extractNum = 1;
    //Give some info on how many extractions there are and what the save path is:
@@ -1925,7 +1993,7 @@ int main(int argn, char* args[]) {
 
    //Get the file name
    const string mask = args[1];
-   vector<string> fileList = toolutil::getFiles(mask);
+   std::vector<string> fileList = toolutil::getFiles(mask);
 
    //Retrieve options variables:
    UserOptions mainOptions;
