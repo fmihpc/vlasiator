@@ -208,4 +208,8 @@ extern std::array<std::unordered_set<CellID>,3> DimensionTargetCells;
 void flagSpatialCellsForAmrCommunication(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                          const std::vector<CellID>& localPropagatedCells);
 
+// Local translation cell lists (no interim comms)
+void prepareLocalTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                      const std::vector<CellID>& localPropagatedCells);
+
 #endif
