@@ -44,7 +44,7 @@
 static const double BLOCK_ALLOCATION_PADDING = 1.5;
 static const double BLOCK_ALLOCATION_FACTOR = 1.2;
 // buffers need to be larger for translation
-static const int TRANSLATION_BUFFER_ALLOCATION_FACTOR = 20;
+static const int TRANSLATION_BUFFER_ALLOCATION_FACTOR = 5;
 
 #define DIMS 1
 #define MAXCPUTHREADS 64
