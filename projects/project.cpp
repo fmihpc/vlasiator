@@ -686,8 +686,10 @@ namespace projects {
    }
 
    bool Project::filterRefined( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
-      int myRank;       
+      int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+
+      phiprof::Timer timer {"filter-refines"};
 
       auto cells = getLocalCells();
       std::map<CellID, SpatialCell> cellsMap;
@@ -702,20 +704,21 @@ namespace projects {
          // To preserve the mean, we must only consider refined cells
          int refLevel = mpiGrid.get_refinement_level(id);
          std::vector<CellID> refinedNeighbors;
-         for (auto& neighbor : *mpiGrid.get_neighbors_of(id, NEAREST_NEIGHBORHOOD_ID)) {
-            if (mpiGrid[neighbor.first]->parameters[CellParams::RECENTLY_REFINED] && mpiGrid.get_refinement_level(neighbor.first) == refLevel) {
-               refinedNeighbors.push_back(neighbor.first);
+         std::vector<double> weights;
+         int missingNeighbors {0}; 
+         for (auto& [neighbor, dir] : *mpiGrid.get_neighbors_of(id, NEAREST_NEIGHBORHOOD_ID)) {
+            if (neighbor != dccrg::error_cell) {
+               refinedNeighbors.push_back(neighbor);
+               weights.push_back(dir[3] == 2 ? 1.0 / 8.0  : 1.0); // Assumption: only larger neighbors are duplicated, by the amount of offsets they are found in
+            } else {
+               ++missingNeighbors;
             }
          }
 
-         if (refinedNeighbors.size() == 7) {
-            continue;   // Simple heuristic, in these cases all neighbors are from the same parent cell, ergo are identical
-         }
-
-         // In boxcar filter, we take the average of each of the neighbors and the cell itself. For each missing neighbour, add the cell one more time
-         Real fluffiness = (Real) refinedNeighbors.size() / 27.0;
+         // In boxcar filter, we take the average of each of the neighbors and the cell itself.
+         // TODO should we be adding cell based on missing neighbors after all?
          for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-            SBC::averageCellData(mpiGrid, refinedNeighbors, &cellPair.second, popID, fluffiness);
+            SBC::averageCellData(mpiGrid, refinedNeighbors, &cellPair.second, popID, weights, 1.0);
          }
 
          calculateCellMoments(&cellPair.second, true, false);

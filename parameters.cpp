@@ -161,6 +161,7 @@ bool P::adaptRefinement = false;
 bool P::refineOnRestart = false;
 bool P::forceRefinement = false;
 bool P::shouldFilter = false;
+int P::filterPasses = 0;
 bool P::useAlpha1 = true;
 Real P::alpha1RefineThreshold = 0.5;
 Real P::alpha1CoarsenThreshold = -1.0;
@@ -478,6 +479,7 @@ bool P::addParameters() {
    RP::add("AMR.refine_on_restart","If true, re-refine vlasov grid on restart. DEPRECATED, consider using the DOMR command", false);
    RP::add("AMR.force_refinement","If true, refine/unrefine the vlasov grid to match the config on restart", false);
    RP::add("AMR.should_filter","If true, filter vlasov grid with boxcar filter on restart",false);
+   RP::add("AMR.filter_passes","AMR filtering passes", 1);
    RP::add("AMR.use_alpha1","Use the maximum of dimensionless gradients alpha_1 as a refinement index", true);
    RP::add("AMR.alpha1_refine_threshold","Determines the minimum value of alpha_1 to refine cells", 0.5);
    RP::add("AMR.alpha1_coarsen_threshold","Determines the maximum value of alpha_1 to unrefine cells, default half of the refine threshold", -1.0);
@@ -776,6 +778,7 @@ void Parameters::getParameters() {
    RP::get("AMR.refine_on_restart",P::refineOnRestart);
    RP::get("AMR.force_refinement",P::forceRefinement);
    RP::get("AMR.should_filter",P::shouldFilter);
+   RP::get("AMR.filter_passes",P::filterPasses);
    RP::get("AMR.use_alpha1",P::useAlpha1);
    RP::get("AMR.alpha1_refine_threshold",P::alpha1RefineThreshold);
    RP::get("AMR.alpha1_coarsen_threshold",P::alpha1CoarsenThreshold);

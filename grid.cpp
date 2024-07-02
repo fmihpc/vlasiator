@@ -1559,7 +1559,14 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    }
 
    if (P::shouldFilter) {
-      project.filterRefined(mpiGrid);
+      // TODO: two loops potentially
+      // But make triangle filter here to avoid horrid overhead
+      for (int i = 0; i < P::filterPasses; ++i) {
+         phiprof::Timer timer {"transfer-and-filter"};
+         SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
+         mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
+         project.filterRefined(mpiGrid);
+      }
    }
    return true;
 }
