@@ -45,7 +45,7 @@ namespace projects {
       this->constBgB[2] = 0.0;
       this->dipoleScalingFactor = 1.0;
       this->dipoleTilt = 0.0;
-      this->dipoleInSW = 1;
+      this->noDipoleInSW = 0;
       return success;
    }
    

@@ -55,7 +55,7 @@ namespace projects {
             creal& dvx, creal& dvy, creal& dvz
          );
          
-         bool dipoleInSW;
+         bool noDipoleInSW;
          Real constBgB[3];
          Real dipoleScalingFactor;
          Real dipoleTilt;

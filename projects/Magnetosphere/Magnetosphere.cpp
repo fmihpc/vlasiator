@@ -51,7 +51,7 @@ namespace projects {
       RP::add("Magnetosphere.constBgBX", "Constant flat Bx component in the whole simulation box. Default is none.", 0.0);
       RP::add("Magnetosphere.constBgBY", "Constant flat By component in the whole simulation box. Default is none.", 0.0);
       RP::add("Magnetosphere.constBgBZ", "Constant flat Bz component in the whole simulation box. Default is none.", 0.0);
-      RP::add("Magnetosphere.dipoleInSW", "If set to 0, the dipole magnetic field is not set in the solar wind inflow cells. Default 1.", 1.0);
+      RP::add("Magnetosphere.noDipoleInSW", "If set to 1, the dipole magnetic field is not set in the solar wind inflow cells. Default 0.", 0.0);
       RP::add("Magnetosphere.dipoleScalingFactor","Scales the field strength of the magnetic dipole compared to Earths.", 1.0);
       RP::add("Magnetosphere.dipoleType","0: Normal 3D dipole, 1: line-dipole for 2D polar simulations, 2: line-dipole with mirror, 3: 3D dipole with mirror", 0);
       RP::add("Magnetosphere.dipoleMirrorLocationX","x-coordinate of dipole Mirror", -1.0);
@@ -109,18 +109,18 @@ namespace projects {
       RP::get("Magnetosphere.constBgBX", this->constBgB[0]);
       RP::get("Magnetosphere.constBgBY", this->constBgB[1]);
       RP::get("Magnetosphere.constBgBZ", this->constBgB[2]);
-      RP::get("Magnetosphere.dipoleInSW", dummy);
-      this->dipoleInSW = dummy == 1 ? true:false;
+      RP::get("Magnetosphere.noDipoleInSW", dummy);
+      this->noDipoleInSW = dummy == 1 ? true:false;
       RP::get("Magnetosphere.dipoleScalingFactor", this->dipoleScalingFactor);
 
       RP::get("Magnetosphere.dipoleMirrorLocationX", this->dipoleMirrorLocationX);
 
       RP::get("Magnetosphere.dipoleType", this->dipoleType);
 
-      /* Remind the user of what they might want to do, current wisdom is that type 4 needs the dipole in the inflow cells too. */
-      if ((this->dipoleType == 4) && (!this->dipoleInSW)) {
+      /* Actually, rather do not enforce no dipole in solar wind with dipole type 4, but remind the user of what they might want to do. */
+      if ((this->dipoleType == 4) && (this->noDipoleInSW)) {
          if(myRank == MASTER_RANK) {
-            std::cerr<<"Note: Initializing Magnetosphere with dipole type 4, you should probably have the dipole in the solar wind and therefore set dipoleInSW = 1 (default)."<<std::endl;
+            std::cerr<<"Note: Initializing Magnetosphere with dipole type 4, you might want to actually have the dipole in the solar wind and therefore set noDipoleInSW = 0."<<std::endl;
          }
       }
 
@@ -422,7 +422,7 @@ namespace projects {
          }
          
          // Remove dipole from inflow cells if this is requested
-         if(!this->dipoleInSW) {
+         if(this->noDipoleInSW) {
 #pragma omp for collapse(2)
             for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
                for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
