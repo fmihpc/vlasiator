@@ -52,35 +52,31 @@ bool check_is_translated(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometr
 }
 
 bool check_is_written_to(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, CellID cid, int dimension) {
-   if (P::vlasovSolverGhostTranslate) {
-      SpatialCell *cell = mpiGrid[cid];
-      // Order is z -> x -> y
-      switch (dimension) {
-         // checks for (cell) && (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) are before call
-         case 0: // Second direction (x): Write into all cells which are used in y-translation
-            if (LocalSet_y.count(cid)) {
-               return true;
-            }
-            break;
-         case 1: // Last direction (y): Write only into local cells
-            if (mpiGrid.is_local(cid)) {
-               return true;
-            }
-            break;
-         case 2: // First direction (z): Write into all cells which are used in x-translation
-            if (LocalSet_x.count(cid)) {
-               return true;
-            }
-            break;
-         default:
-            cerr << __FILE__ << ":"<< __LINE__ << " Wrong dimension, abort"<<endl;
-            abort();
-      }
-      return false;
-   } else {
-      if (mpiGrid.is_local(cid)) return true;
-      return false;
+   // Only called if doing ghost translation
+   SpatialCell *cell = mpiGrid[cid];
+   // Order is z -> x -> y
+   switch (dimension) {
+      // checks for (cell) && (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) are before call
+      case 0: // Second direction (x): Write into all cells which are used in y-translation
+         if (LocalSet_y.count(cid)) {
+            return true;
+         }
+         break;
+      case 1: // Last direction (y): Write only into local cells
+         if (mpiGrid.is_local(cid)) {
+            return true;
+         }
+         break;
+      case 2: // First direction (z): Write into all cells which are used in x-translation
+         if (LocalSet_x.count(cid)) {
+            return true;
+         }
+         break;
+      default:
+         cerr << __FILE__ << ":"<< __LINE__ << " Wrong dimension, abort"<<endl;
+         abort();
    }
+   return false;
 }
 
 /* Get the one-dimensional neighborhood index for a given direction and neighborhood size.

@@ -589,7 +589,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    if((P::amrMaxSpatialRefLevel > 0) && (P::vlasovSolverGhostTranslate)) {
       // Update (face and other) neighbor information for remote cells on boundary
       const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(FULL_NEIGHBORHOOD_ID);
-      mpiGrid.force_update_cell_neighborhoods(remote_cells);
+      // mpiGrid.force_update_cell_neighborhoods(remote_cells);
 
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
       mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
