@@ -60,7 +60,7 @@ struct Parameters {
                                         timestep if useCFLlimit is true. */
    static Real vlasovSolverMinCFL;   /*!< The minimum CFL limit for propagation of distribution function. Used to set
                                         timestep if useCFLlimit is true. */
-   static bool vlasovSolverLocalTranslate;   /*!< Flag for activating all-local translation. */
+   static bool vlasovSolverGhostTranslate;   /*!< Flag for activating all-local ghost translation. */
    static Real fieldSolverMinCFL;    /*!< The minimum CFL limit for propagation of fields. Used to set timestep if
                                         useCFLlimit is true.*/
    static Real fieldSolverMaxCFL;    /*!< The maximum CFL limit for propagation of fields. Used to set timestep if
@@ -223,7 +223,6 @@ struct Parameters {
    static std::vector<Realf> amrBoxCenterZ;
    static std::vector<int> amrBoxMaxLevel;
    static bool amrTransShortPencils;        /*!< Use short or long pencils in AMR translation.*/
-   static bool amrTransSplitPencilsOnlyForFace;        /*!< Only split AMR pencils for face neighour cell requirements */
    static std::vector<std::string> blurPassString;
    static std::vector<int> numPasses;
 

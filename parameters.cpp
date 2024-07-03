@@ -68,7 +68,7 @@ Real P::t_max = LARGE_REAL;
 Real P::dt = NAN;
 Real P::vlasovSolverMaxCFL = NAN;
 Real P::vlasovSolverMinCFL = NAN;
-bool P::vlasovSolverLocalTranslate = false;
+bool P::vlasovSolverGhostTranslate = false;
 Real P::fieldSolverMaxCFL = NAN;
 Real P::fieldSolverMinCFL = NAN;
 uint P::fieldSolverSubcycles = 1;
@@ -158,7 +158,6 @@ Realf P::vamrCoarsenLimit = 0.5;
 string P::vamrVelRefCriterion = string("");
 
 bool P::amrTransShortPencils = false;
-bool P::amrTransSplitPencilsOnlyForFace = false;
 int P::amrMaxSpatialRefLevel = 0;
 int P::amrMaxAllowedSpatialRefLevel = -1;
 bool P::adaptRefinement = false;
@@ -377,7 +376,7 @@ bool P::addParameters() {
    RP::add("vlasovsolver.accelerateMaxwellianBoundaries",
            "Propagate maxwellian boundary cell contents in velocity space. Default false.",
            false);
-   RP::add("vlasovsolver.LocalTranslate","Boolean for activating all-local translation",false);
+   RP::add("vlasovsolver.GhostTranslate","Boolean for activating all-local ghost translation",false);
 
    // Load balancing parameters
    RP::add("loadBalance.algorithm", "Load balancing algorithm to be used", string("RCB"));
@@ -512,7 +511,6 @@ bool P::addParameters() {
    RP::addComposing("AMR.box_center_z", "z coordinate of the center of the box that is refined");
    RP::addComposing("AMR.box_max_level", "max refinement level of the box that is refined");
    RP::add("AMR.transShortPencils", "if true, use one-cell pencils", false);
-   RP::add("AMR.transSplitPencilsOnlyForFace", "if true, only split AMR pencils for face neighour cell requirements", false);
    RP::addComposing("AMR.filterpasses", string("AMR filter passes for each individual refinement level"));
 
    RP::add("fieldtracing.fieldLineTracer", "Field line tracing method to use for coupling ionosphere and magnetosphere (options are: Euler, BS)", std::string("Euler"));
@@ -830,9 +828,6 @@ void Parameters::getParameters() {
    RP::get("AMR.box_center_y", P::amrBoxCenterY);
    RP::get("AMR.box_center_z", P::amrBoxCenterZ);
    RP::get("AMR.transShortPencils", P::amrTransShortPencils);
-   RP::get("AMR.transSplitPencilsOnlyForFace", P::amrTransSplitPencilsOnlyForFace);
-
-   /*Read Blur Passes per Refinement Level*/
    RP::get("AMR.filterpasses", P::blurPassString);
 
    // We need the correct number of parameters for the AMR boxes
@@ -963,10 +958,10 @@ void Parameters::getParameters() {
    RP::get("vlasovsolver.maxSlAccelerationSubcycles", P::maxSlAccelerationSubcycles);
    RP::get("vlasovsolver.maxCFL", P::vlasovSolverMaxCFL);
    RP::get("vlasovsolver.minCFL", P::vlasovSolverMinCFL);
-   RP::get("vlasovsolver.LocalTranslate",P::vlasovSolverLocalTranslate);
+   RP::get("vlasovsolver.GhostTranslate",P::vlasovSolverGhostTranslate);
    RP::get("vlasovsolver.accelerateMaxwellianBoundaries",  P::vlasovAccelerateMaxwellianBoundaries);
-   if ((myRank == MASTER_RANK)&&(P::vlasovSolverLocalTranslate==true)) {
-      logFile<<"Performing all spatial translation locally using ghost cell information"<<endl;
+   if ((myRank == MASTER_RANK)&&(P::vlasovSolverGhostTranslate==true)) {
+      logFile<<"Performing spatial translation using ghost cell information with coalesced MPI updates"<<endl;
    }
 
    // Get load balance parameters

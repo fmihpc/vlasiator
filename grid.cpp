@@ -59,8 +59,6 @@
 
 using namespace std;
 
-int globalflags::AMRstencilWidth = VLASOV_STENCIL_WIDTH;
-
 extern Logger logFile, diagnostic;
 
 void initVelocityGridGeometry(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
@@ -115,7 +113,10 @@ void initializeGrids(
    
    MPI_Comm comm = MPI_COMM_WORLD;
    int neighborhood_size = VLASOV_STENCIL_WIDTH;
-   globalflags::AMRstencilWidth = neighborhood_size;
+   if (P::vlasovSolverGhostTranslate) {
+      // One extra layer for translation of ghost cells
+      neighborhood_size++;
+   }
 
    const std::array<uint64_t, 3> grid_length = {{P::xcells_ini, P::ycells_ini, P::zcells_ini}};
    dccrg::Cartesian_Geometry::Parameters geom_params;
@@ -170,7 +171,7 @@ void initializeGrids(
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
    mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
 
-   if((P::amrMaxSpatialRefLevel > 0) && (!P::vlasovSolverLocalTranslate)) {
+   if((P::amrMaxSpatialRefLevel > 0) && (!P::vlasovSolverGhostTranslate)) {
       setFaceNeighborRanks( mpiGrid ); // Only needed for remote contribution in translation
    }
    const vector<CellID>& cells = getLocalCells();
@@ -584,17 +585,18 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
       mpiGrid[cells[i]]->set_mpi_transfer_enabled(true);
    }
 
-   // flag transfers if AMR
    phiprof::Timer computeTransferTimer {"compute_amr_transfer_flags"};
-   if (P::vlasovSolverLocalTranslate) {
+   if((P::amrMaxSpatialRefLevel > 0) && (P::vlasovSolverGhostTranslate)) {
       // Update (face and other) neighbor information for remote cells on boundary
       const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(FULL_NEIGHBORHOOD_ID);
-      mpiGrid.update_remote_cell_information(remote_cells);
+      mpiGrid.force_update_cell_neighborhoods(remote_cells);
 
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
       mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
-      prepareLocalTranslationCellLists(mpiGrid,cells);
-   } else {
+      prepareGhostTranslationCellLists(mpiGrid,cells);
+   }
+   if((P::amrMaxSpatialRefLevel > 0) && (!P::vlasovSolverGhostTranslate)) {
+      // flag transfers per translation direction
       flagSpatialCellsForAmrCommunication(mpiGrid,cells);
    }
    computeTransferTimer.stop();
@@ -607,7 +609,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    phiprof::Timer updateBlocksTimer {"update block lists"};
    //new partition, re/initialize blocklists of remote cells.
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-      if (P::vlasovSolverLocalTranslate) {
+      if (P::vlasovSolverGhostTranslate) {
          updateRemoteVelocityBlockLists(mpiGrid,popID,FULL_NEIGHBORHOOD_ID);
       } else {
          updateRemoteVelocityBlockLists(mpiGrid,popID);
@@ -630,7 +632,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    initSolversTimer.stop();
    
    // Record ranks of face neighbors
-   if((P::amrMaxSpatialRefLevel > 0) && (!P::vlasovSolverLocalTranslate)) {
+   if((P::amrMaxSpatialRefLevel > 0) && (!P::vlasovSolverGhostTranslate)) {
       phiprof::Timer timer {"set face neighbor ranks"};
       setFaceNeighborRanks( mpiGrid );
    }
@@ -721,7 +723,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    //Updated newly adjusted velocity block lists on remote cells, and
    //prepare to receive block data
    if (doPrepareToReceiveBlocks) {
-      if (P::vlasovSolverLocalTranslate) {
+      if (P::vlasovSolverGhostTranslate) {
          updateRemoteVelocityBlockLists(mpiGrid,popID,FULL_NEIGHBORHOOD_ID);
       } else {
          updateRemoteVelocityBlockLists(mpiGrid,popID);
@@ -961,7 +963,6 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          }
       }
    }
-   //mpiGrid.add_neighborhood(FIELD_SOLVER_NEIGHBORHOOD_ID, neighborhood);
    if (!mpiGrid.add_neighborhood(NEAREST_NEIGHBORHOOD_ID, neighborhood)){
       std::cerr << "Failed to add neighborhood NEAREST_NEIGHBORHOOD_ID \n";
       abort();
@@ -989,7 +990,10 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    }
 
    int full_neighborhood_size = max(2, VLASOV_STENCIL_WIDTH);
-
+   if (P::vlasovSolverGhostTranslate) {
+      // One extra layer for translation of ghost cells
+      full_neighborhood_size++;
+   }
    neighborhood.clear();
    for (int z = -full_neighborhood_size; z <= full_neighborhood_size; z++) {
       for (int y = -full_neighborhood_size; y <= full_neighborhood_size; y++) {

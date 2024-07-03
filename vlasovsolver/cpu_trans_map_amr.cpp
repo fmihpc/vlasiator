@@ -7,16 +7,8 @@
 #include "cpu_trans_map_amr.hpp"
 #include "cpu_trans_pencils.hpp"
 
-// use DCCRG version 970ae46 on 12 May 2021
-// https://github.com/markusbattarbee/dccrg/tree/vlasiator_neighbor_face_testing
-
 using namespace std;
 using namespace spatial_cell;
-
-// Cell lists for local translation
-std::unordered_set<CellID> LocalSet_x;
-std::unordered_set<CellID> LocalSet_y;
-std::unordered_set<CellID> LocalSet_z;
 
 // indices in padded source block, which is of type Vec with VECL
 // elements in each vector.
@@ -195,45 +187,10 @@ bool copy_trans_block_data_amr(
             }
          }
       } else {
-         // Source cell is at higher refinement level than pencil (P::amrTransSplitPencilsOnlyForFace==true)
-         Realf blockValues[WID3] = { 0.0 };
-         // Average source information over 4 sibling cells. Find siblings:
-         auto mySiblings = mpiGrid.get_all_children(mpiGrid.get_parent(source_neighbors[b + VLASOV_STENCIL_WIDTH]));
-         auto myIndices = mpiGrid.mapping.get_indices(source_neighbors[b + VLASOV_STENCIL_WIDTH]);
-         uint siblingCount=0;
-         const Realf rescale = 0.25; // assumes 4 parallel siblings
-         for (uint i_sib = 0; i_sib < 8; ++i_sib) {
-            auto sibling = mySiblings.at(i_sib);
-            auto sibIndices = mpiGrid.mapping.get_indices(sibling);
-
-            // Only use siblings at same position in pencil
-            if (myIndices.at(dimension) == sibIndices.at(dimension)) {
-               siblingCount++; // increment regardless of if block exists or not
-               // Get cell pointer and local block id
-               SpatialCell* srcCell = mpiGrid[sibling];
-               const vmesh::LocalID blockLID = srcCell->get_velocity_block_local_id(blockGID,popID);
-               if (blockLID != srcCell->invalid_local_id()) {
-                  const Realf* block_data = srcCell->get_data(blockLID,popID);
-                  for (uint i=0; i<WID3; ++i) {
-                     blockValues[i] += block_data[cellid_transpose[i]]*rescale;
-                  }
-               }
+         for (uint k=0; k<WID; ++k) {
+            for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++) {
+               values[i_trans_ps_blockv_pencil(planeVector, k, b, lengthOfPencil)] = Vec(0);
             }
-         }
-         if (siblingCount==4) {
-            // now load values into the actual values table..
-            uint offset =0;
-            for (uint k=0; k<WID; k++) {
-               for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
-                  // store data, when reading data from data we swap dimensions
-                  // using precomputed plane_index_to_id and cell_indices_to_id
-                  values[i_trans_ps_blockv_pencil(planeVector, k, b, lengthOfPencil)].load(blockValues + offset);
-                  offset += VECL;
-               }
-            }
-         } else {
-            cerr << __FILE__ << ":"<< __LINE__ << " Incorrect parallel sibling count ("<<siblingCount<<") for CellID "<<source_neighbors[b + VLASOV_STENCIL_WIDTH]<<", abort"<<endl;
-            abort();
          }
       }
    }
@@ -263,15 +220,6 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
    // return if there's no cells to propagate
    if(localPropagatedCells.size() == 0) {
       return false;
-   }
-
-   // Vectors of pointers to the propagated cell structs
-   std::vector<SpatialCell*> propagatedCellsPointer(localPropagatedCells.size());
-
-   // Initialize propagatedCellsPointer
-#pragma omp parallel for
-   for(uint celli = 0; celli < localPropagatedCells.size(); celli++){
-      propagatedCellsPointer[celli] = mpiGrid[localPropagatedCells[celli]];
    }
 
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
@@ -328,15 +276,11 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
    }
 
    // Get a pointer to the velocity mesh of the first spatial cell
-   const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = propagatedCellsPointer[0]->get_velocity_mesh(popID);
-   
-   phiprof::Timer buildBlockListimer {"trans-amr-buildBlockList"};
-   // Get a unique sorted list of blockids that are in any of the
+   const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = mpiGrid[localPropagatedCells[0]]->get_velocity_mesh(popID);
 
-   // propagated cells. First use set for this, then add to vector (may not
-   // be the most nice way to do this and in any case we could do it along
-   // dimension for data locality reasons => copy acc map column code, TODO: FIXME
-   // TODO: Do this separately for each pencil?
+   phiprof::Timer buildBlockListTimer {"trans-amr-buildBlockList"};
+   // Get a unique sorted list of blockids that are in any of the
+   // local target cells.
    // Note: Now only considers local propagated cells, as there's no point in
    // Propagating data which does not have an existing target block.
    std::vector<vmesh::GlobalID> unionOfBlocks;
@@ -346,9 +290,13 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
       std::unordered_set<vmesh::GlobalID> thread_unionOfBlocksSet;
 
 #pragma omp for
-      for(unsigned int i=0; i<propagatedCellsPointer.size(); i++) {
-         auto cell = &propagatedCellsPointer[i];
-         vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& cvmesh = (*cell)->get_velocity_mesh(popID);
+      for(unsigned int i=0; i<localPropagatedCells.size(); i++) {
+         CellID cellid = localPropagatedCells[i];
+         // Only propagate those blocks which exist for local cells
+         if (!mpiGrid.is_local(cellid)) {
+            continue;
+         }
+         vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& cvmesh = mpiGrid[cellid]->get_velocity_mesh(popID);
          for (vmesh::LocalID block_i=0; block_i< cvmesh.size(); ++block_i) {
             thread_unionOfBlocksSet.insert(cvmesh.getGlobalID(block_i));
          }
@@ -359,7 +307,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
       } // pragma omp critical
    } // pragma omp parallel
    unionOfBlocks.insert(unionOfBlocks.end(), unionOfBlocksSet.begin(), unionOfBlocksSet.end());
-   buildBlockListimer.stop();       
+   buildBlockListTimer.stop();
    /***********************/
    setupTimer.stop();
    /***********************/
@@ -513,8 +461,8 @@ int get_sibling_index(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
  * This is partially due to DCCRG defining neighborhood size relative to the host cell. For details, see
  * https://github.com/fmihpc/dccrg/issues/12
  *
- * This function is not used if local translation is active.
- * 
+ * This function is not used if local ghost translation is active.
+ *
  * @param mpiGrid DCCRG grid object
  * @param dimension Spatial dimension
  * @param direction Direction of communication (+ or -)
@@ -612,7 +560,7 @@ void update_remote_mapping_contribution_amr(
 
       vector<CellID> p_nbrs;
       vector<CellID> n_nbrs;
-      
+
       for (const auto& [neighbor, dir] : mpiGrid.find_face_neighbors_of(c)) {
          if(dir == ((int)dimension + 1) * direction) {
             p_nbrs.push_back(neighbor);
@@ -633,7 +581,7 @@ void update_remote_mapping_contribution_amr(
 
          // ccell adds a neighbor_block_data block for each neighbor in the positive direction to its local data
          for (const auto& nbr : p_nbrs) {
-            
+
             //Send data in nbr target array that we just mapped to, if
             // 1) it is a valid target,
             // 2) the source cell in center was translated,
@@ -697,7 +645,7 @@ void update_remote_mapping_contribution_amr(
 
          // ccell adds a neighbor_block_data block for each neighbor in the positive direction to its local data
          for (const auto& nbr : n_nbrs) {
-         
+
             if (nbr != INVALID_CELLID && !mpiGrid.is_local(nbr) &&
                 ccell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
                //Receive data that ncell mapped to this local cell data array,
