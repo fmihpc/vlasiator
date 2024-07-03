@@ -79,7 +79,7 @@ namespace projects {
                                                      ) const;
       
       std::array<Real, 3> constBgB;
-      bool noDipoleInSW;
+      bool dipoleInSW;
       Real ionosphereRadius;
       uint ionosphereGeometry;
       Real center[3];
