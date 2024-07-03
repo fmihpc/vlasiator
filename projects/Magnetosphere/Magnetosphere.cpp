@@ -122,7 +122,7 @@ namespace projects {
          if(myRank == MASTER_RANK) {
             std::cerr<<"Note: Initializing Magnetosphere with dipole type 4, you want to have the dipole + vector potential correction terms in the solar wind and therefore set noDipoleInSW = 0."<<std::endl;
          }
-         this->noDipoleInSW = true;
+         this->noDipoleInSW = false;
       }
 
       /** Read inner boundary parameters from either ionospheric or copysphere sysboundary condition */
