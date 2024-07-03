@@ -488,6 +488,7 @@ namespace SBC {
 
       // Normalize targetWeight and weights
       double totalWeight {std::reduce(weights.cbegin(), weights.cend(), targetWeight)};
+      std::cout << "targetWeight " + std::to_string(targetWeight) + " totalWeight " + std::to_string(totalWeight) + " = " + std::to_string(targetWeight / totalWeight) + "\n";
       targetWeight /= totalWeight;
       std::transform(weights.cbegin(), weights.cend(), weights.begin(), [totalWeight](double d) {return d / totalWeight;});
 

@@ -1567,6 +1567,10 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
          mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
          project.filterRefined(mpiGrid);
       }
+
+      for (auto id : getLocalCells()) {
+         mpiGrid[id]->parameters[CellParams::RECENTLY_REFINED] = 0;
+      }
    }
    return true;
 }

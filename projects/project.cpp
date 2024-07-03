@@ -691,7 +691,7 @@ namespace projects {
 
       phiprof::Timer timer {"filter-refines"};
 
-      auto cells = getLocalCells();
+      auto cells = mpiGrid.get_cells();   // Trust nobody
       std::map<CellID, SpatialCell> cellsMap;
       for (CellID id : cells) {
          if (mpiGrid[id]->parameters[CellParams::RECENTLY_REFINED]) {
@@ -703,12 +703,12 @@ namespace projects {
          CellID id = cellPair.first;
          // To preserve the mean, we must only consider refined cells
          int refLevel = mpiGrid.get_refinement_level(id);
-         std::vector<CellID> refinedNeighbors;
+         std::vector<CellID> neighbors;
          std::vector<double> weights;
          int missingNeighbors {0}; 
          for (auto& [neighbor, dir] : *mpiGrid.get_neighbors_of(id, NEAREST_NEIGHBORHOOD_ID)) {
             if (neighbor != dccrg::error_cell) {
-               refinedNeighbors.push_back(neighbor);
+               neighbors.push_back(neighbor);
                weights.push_back(dir[3] == 2 ? 1.0 / 8.0  : 1.0); // Assumption: only larger neighbors are duplicated, by the amount of offsets they are found in
             } else {
                ++missingNeighbors;
@@ -718,7 +718,7 @@ namespace projects {
          // In boxcar filter, we take the average of each of the neighbors and the cell itself.
          // TODO should we be adding cell based on missing neighbors after all?
          for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-            SBC::averageCellData(mpiGrid, refinedNeighbors, &cellPair.second, popID, weights, 1.0);
+            SBC::averageCellData(mpiGrid, neighbors, &cellPair.second, popID, weights, 1.0);
          }
 
          calculateCellMoments(&cellPair.second, true, false);
@@ -726,12 +726,9 @@ namespace projects {
 
       for (auto cellPair : cellsMap) {
          *mpiGrid[cellPair.first] = cellPair.second;
-         mpiGrid[cellPair.first]->parameters[CellParams::RECENTLY_REFINED] = 0;
       }
 
-      if (myRank == MASTER_RANK) {
-         std::cout << "Filtered refined cells!" << std::endl;
-      }
+      std::cout << std::to_string(myRank) + " filtered " + std::to_string(cellsMap.size()) + " refined cells!\n";
 
       return true;
    }
