@@ -117,11 +117,12 @@ namespace projects {
 
       RP::get("Magnetosphere.dipoleType", this->dipoleType);
 
-      /* Actually, rather do not enforce no dipole in solar wind with dipole type 4, but remind the user of what they might want to do. */
+      /* Enforce "dipole" (incl. correction terms) in solar wind with dipole type 4. */
       if ((this->dipoleType == 4) && (this->noDipoleInSW)) {
          if(myRank == MASTER_RANK) {
-            std::cerr<<"Note: Initializing Magnetosphere with dipole type 4, you might want to actually have the dipole in the solar wind and therefore set noDipoleInSW = 0."<<std::endl;
+            std::cerr<<"Note: Initializing Magnetosphere with dipole type 4, you want to have the dipole + vector potential correction terms in the solar wind and therefore set noDipoleInSW = 0."<<std::endl;
          }
+         this->noDipoleInSW = true;
       }
 
       /** Read inner boundary parameters from either ionospheric or copysphere sysboundary condition */
