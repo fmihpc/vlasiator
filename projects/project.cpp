@@ -762,8 +762,6 @@ namespace projects {
          std::swap(*mpiGrid[id], cell);
       }
 
-      std::cout << std::to_string(myRank) + " filtered " + std::to_string(cellsMap.size()) + " refined cells!\n";
-
       return true;
    }
    
