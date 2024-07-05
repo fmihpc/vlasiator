@@ -1571,6 +1571,11 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
       for (auto id : getLocalCells()) {
          mpiGrid[id]->parameters[CellParams::RECENTLY_REFINED] = 0;
       }
+
    }
+
+   // AMR happens between acceleration and translation, so we need to update _V moments.
+   calculateAcceleration(mpiGrid, 0.0);
+
    return true;
 }
