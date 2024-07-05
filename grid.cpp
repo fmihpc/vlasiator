@@ -589,10 +589,10 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    if((P::amrMaxSpatialRefLevel > 0) && (P::vlasovSolverGhostTranslate)) {
       // Update (face and other) neighbor information for remote cells on boundary
       const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(FULL_NEIGHBORHOOD_ID);
-      // mpiGrid.force_update_cell_neighborhoods(remote_cells);
+      mpiGrid.force_update_cell_neighborhoods(remote_cells);
 
-      SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
-      mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
+      // SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
+      // mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
       prepareGhostTranslationCellLists(mpiGrid,cells);
    }
    if((P::amrMaxSpatialRefLevel > 0) && (!P::vlasovSolverGhostTranslate)) {
@@ -1527,6 +1527,25 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
 
    if (P::shouldFilter) {
       project.filterRefined(mpiGrid);
+   }
+
+   const vector<CellID>& localCells = getLocalCells();
+   if((P::amrMaxSpatialRefLevel > 0) && (P::vlasovSolverGhostTranslate)) {
+      // Update (face and other) neighbor information for remote cells on boundary
+      const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(FULL_NEIGHBORHOOD_ID);
+      mpiGrid.force_update_cell_neighborhoods(remote_cells);
+
+      // SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
+      // mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
+      prepareGhostTranslationCellLists(mpiGrid,localCells);
+   }
+   if((P::amrMaxSpatialRefLevel > 0) && (!P::vlasovSolverGhostTranslate)) {
+      // flag transfers per translation direction
+      flagSpatialCellsForAmrCommunication(mpiGrid,localCells);
+   }
+   // Prepare cellIDs and pencils for AMR translation
+   if(P::amrMaxSpatialRefLevel > 0) {
+      prepareSeedIdsAndPencils(mpiGrid);
    }
    return true;
 }

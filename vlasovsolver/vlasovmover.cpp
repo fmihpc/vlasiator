@@ -225,7 +225,7 @@ void calculateSpatialTranslation(
 }
 
 /** Propagates the distribution function in spatial space.
-    Now does extra calculations locally without interim MPI communication.
+    Now does extra calculations on ghost cells locally without interim MPI communication.
 
     Based on SLICE-3D algorithm: Zerroukat, M., and T. Allen. "A
     three-dimensional monotone and conservative semi-Lagrangian scheme
