@@ -686,12 +686,46 @@ namespace projects {
    }
 
    bool Project::filterRefined( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
+      // Grabbed from gridglue
+      // TODO Maybe we should define this in one place...
+      const static Real kernel[5][5][5] ={
+                                    {{ 1,  2,  3,  2,  1},
+                                    { 2,  4,  6,  4,  2},
+                                    { 3,  6,  9,  6,  3},
+                                    { 2,  4,  6,  4,  2},
+                                    { 1,  2,  3,  2,  1}},
+
+                                    {{ 2,  4,  6,  4,  2},
+                                    { 4,  8, 12,  8,  4},
+                                    { 6, 12, 18, 12,  6},
+                                    { 4,  8, 12,  8,  4},
+                                    { 2,  4,  6,  4,  2}},
+
+                                    {{ 3,  6,  9,  6,  3},
+                                    { 6, 12, 18, 12,  6},
+                                    { 9, 18, 27, 18,  9},
+                                    { 6, 12, 18, 12,  6},
+                                    { 3,  6,  9,  6,  3}},
+
+                                    {{ 2,  4,  6,  4,  2},
+                                    { 4,  8, 12,  8,  4},
+                                    { 6, 12, 18, 12,  6},
+                                    { 4,  8, 12,  8,  4},
+                                    { 2,  4,  6,  4,  2}},
+
+                                    {{ 1,  2,  3,  2,  1},
+                                    { 2,  4,  6,  4,  2},
+                                    { 3,  6,  9,  6,  3},
+                                    { 2,  4,  6,  4,  2},
+                                    { 1,  2,  3,  2,  1}}
+                                    };
+
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
       phiprof::Timer timer {"filter-refines"};
 
-      auto cells = mpiGrid.get_cells();   // Trust nobody
+      auto cells = getLocalCells();
       std::map<CellID, SpatialCell> cellsMap;
       for (CellID id : cells) {
          if (mpiGrid[id]->parameters[CellParams::RECENTLY_REFINED]) {
@@ -699,24 +733,26 @@ namespace projects {
          }
       }
 
+
       for (auto& [id, cell] : cellsMap) {
          int refLevel = mpiGrid.get_refinement_level(id);
          std::vector<CellID> neighbors;
          std::vector<double> weights;
          int missingNeighbors {0}; 
-         for (auto& [neighbor, dir] : *mpiGrid.get_neighbors_of(id, NEAREST_NEIGHBORHOOD_ID)) {
+         for (auto& [neighbor, dir] : *mpiGrid.get_neighbors_of(id, SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID)) {
             if (neighbor != dccrg::error_cell) {
                neighbors.push_back(neighbor);
-               weights.push_back(dir[3] == 2 ? 1.0 / 8.0  : 1.0); // Assumption: only larger neighbors are duplicated, by the amount of offsets they are found in
+               // Assumption: only larger neighbors are duplicated, by the amount of offsets they are found in
+               weights.push_back(kernel[2+dir[0]][2+dir[1]][2+dir[2]] / (dir[3] == 2 ? 8.0 : 1.0));
             } else {
                ++missingNeighbors;
             }
          }
 
          // In boxcar filter, we take the average of each of the neighbors and the cell itself.
-         // TODO should we be adding cell based on missing neighbors after all?
+         // TODO how does this match fsgrid filtering wrt. boundaries?
          for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-            SBC::averageCellData(mpiGrid, neighbors, &cell, popID, weights, 1.0);
+            SBC::averageCellData(mpiGrid, neighbors, &cell, popID, weights, 27.0);
          }
 
          calculateCellMoments(&cell, true, false, true);

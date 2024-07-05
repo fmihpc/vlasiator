@@ -1559,12 +1559,16 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    }
 
    if (P::shouldFilter) {
-      // TODO: two loops potentially
-      // But make triangle filter here to avoid horrid overhead
+      // TODO: More than one loop potentially
+      // But this should be based on fsgrid filter passes
       for (int i = 0; i < P::filterPasses; ++i) {
          phiprof::Timer timer {"transfer-and-filter"};
-         SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
-         mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
+         for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
+            SpatialCell::setCommunicatedSpecies(popID);
+            updateRemoteVelocityBlockLists(mpiGrid, popID, SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
+            SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
+            mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
+         }
          project.filterRefined(mpiGrid);
       }
 
