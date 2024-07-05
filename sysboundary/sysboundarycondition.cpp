@@ -539,7 +539,7 @@ namespace SBC {
          const uint popID,
          creal fluffiness /* default =0.0*/
    ) {
-      std::vector<double> weights {cellList.size(), fluffiness};
+      std::vector<double> weights {cellList.size(), fluffiness / cellList.size()};
       averageCellData(mpiGrid, cellList, to, popID, weights, 1.0 - fluffiness);
    }
 
