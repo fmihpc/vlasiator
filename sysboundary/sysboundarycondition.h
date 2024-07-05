@@ -320,17 +320,17 @@ namespace SBC {
 
    void averageCellData (
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      std::vector<CellID> cellList,
+      const std::vector<CellID>& cellList,
       SpatialCell *to,
       const uint popID,
-      std::vector<double> weights,
+      std::vector<double>& weights,
       double targetWeight = 1.0
    );
    
    // Moved outside the class since it's a helper function that doesn't require member access
    void averageCellData (
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      std::vector<CellID> cellList,
+      const std::vector<CellID>& cellList,
       SpatialCell *to,
       const uint popID,
       creal fluffiness = 0

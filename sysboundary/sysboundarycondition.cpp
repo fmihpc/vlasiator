@@ -477,10 +477,10 @@ namespace SBC {
     */
    void averageCellData(
          dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         const vector<CellID> cellList,
+         const vector<CellID>& cellList,
          SpatialCell *to,
          const uint popID,
-         std::vector<double> weights,
+         std::vector<double>& weights,
          double targetWeight
    ) {
       // TODO vector<pair> perhaps?
@@ -533,7 +533,7 @@ namespace SBC {
 
    void averageCellData(
          dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         const vector<CellID> cellList,
+         const vector<CellID>& cellList,
          SpatialCell *to,
          const uint popID,
          creal fluffiness /* default =0.0*/

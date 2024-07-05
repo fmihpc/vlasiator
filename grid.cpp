@@ -1524,7 +1524,7 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
          }
 
          // Averaging moments
-         calculateCellMoments(mpiGrid[parent], true, false);
+         calculateCellMoments(mpiGrid[parent], true, false, true);
 
          processed.insert(parent);
       }

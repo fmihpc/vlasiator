@@ -699,9 +699,7 @@ namespace projects {
          }
       }
 
-      for (auto cellPair : cellsMap) {
-         CellID id = cellPair.first;
-         // To preserve the mean, we must only consider refined cells
+      for (auto& [id, cell] : cellsMap) {
          int refLevel = mpiGrid.get_refinement_level(id);
          std::vector<CellID> neighbors;
          std::vector<double> weights;
@@ -718,14 +716,14 @@ namespace projects {
          // In boxcar filter, we take the average of each of the neighbors and the cell itself.
          // TODO should we be adding cell based on missing neighbors after all?
          for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-            SBC::averageCellData(mpiGrid, neighbors, &cellPair.second, popID, weights, 1.0);
+            SBC::averageCellData(mpiGrid, neighbors, &cell, popID, weights, 1.0);
          }
 
-         calculateCellMoments(&cellPair.second, true, false);
+         calculateCellMoments(&cell, true, false, true);
       }
 
-      for (auto cellPair : cellsMap) {
-         *mpiGrid[cellPair.first] = cellPair.second;
+      for (auto& [id, cell] : cellsMap) {
+         std::swap(*mpiGrid[id], cell);
       }
 
       std::cout << std::to_string(myRank) + " filtered " + std::to_string(cellsMap.size()) + " refined cells!\n";
