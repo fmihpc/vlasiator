@@ -742,8 +742,26 @@ namespace projects {
          for (auto& [neighbor, dir] : *mpiGrid.get_neighbors_of(id, SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID)) {
             if (neighbor != dccrg::error_cell) {
                neighbors.push_back(neighbor);
-               // Assumption: only larger neighbors are duplicated, by the amount of offsets they are found in
-               weights.push_back(kernel[2+dir[0]][2+dir[1]][2+dir[2]] / (dir[3] == 2 ? 8.0 : 1.0));
+
+               auto scaled_dir = dir;
+               if (dir[3] > 1) {
+                  for (size_t i = 0; i < 3; i++) {
+                     // round away from zero, stackoverflow.com/a/2745086
+                     if (scaled_dir[i] > 1) {
+                        scaled_dir[i] += scaled_dir[3] - 1;
+                     } else {
+                        scaled_dir[i] -= scaled_dir[3] - 1;
+                     }
+                     scaled_dir[i] /= scaled_dir[3];
+                  }
+               }
+
+               //if(dir[3] != 1) {
+               //   std::cout << "cell " + std::to_string(id) + " neighbor " + std::to_string(neighbor) + " dir = [" + std::to_string(dir[0]) + ", " + std::to_string(dir[1]) + ", " + std::to_string(dir[2]) + ", " + std::to_string(dir[3]) + "]\n";
+               //}
+
+               // Larger neighbors are duplicated, by the amount of offsets they are found in
+               weights.push_back(kernel[2+scaled_dir[0]][2+scaled_dir[1]][2+scaled_dir[2]] / (scaled_dir[3] == 2 ? 8.0 : 1.0));
             } else {
                ++missingNeighbors;
             }
@@ -752,7 +770,7 @@ namespace projects {
          // In boxcar filter, we take the average of each of the neighbors and the cell itself.
          // TODO how does this match fsgrid filtering wrt. boundaries?
          for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-            SBC::averageCellData(mpiGrid, neighbors, &cell, popID, weights, 27.0);
+            SBC::averageCellData(mpiGrid, neighbors, &cell, popID, weights, kernel[2][2][2]);
          }
 
          calculateCellMoments(&cell, true, false, true);
