@@ -204,6 +204,7 @@ void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
        First: y-direction
    */
 
+   phiprof::Timer ghostYTimer {"prepare ghost translation Y lists"};
    int dimension = 1;
    for (CellID c : localPropagatedCells) {
       SpatialCell *ccell = mpiGrid[c];
@@ -234,10 +235,12 @@ void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
          ghostTranslate_active_y.insert(cid);
       }
    } // end loop over local propagated cells
+   ghostYtimer.stop();
 
    /** Now use y-translation source cells as starting points
        and evaluate x-direction
    */
+   phiprof::Timer ghostXTimer {"prepare ghost translation X lists"};
    dimension = 0;
    for (CellID c : ghostTranslate_sources_y) {
       SpatialCell *ccell = mpiGrid[c];
@@ -267,10 +270,12 @@ void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
          ghostTranslate_active_x.insert(cid);
       }
    } // end loop over y-translation sources
+   ghostXtimer.stop();
 
    /** Now use x-translation source cells as starting points
        and evaluate z-direction
    */
+   phiprof::Timer ghostZTimer {"prepare ghost translation Z lists"};
    dimension = 2;
    for (CellID c : ghostTranslate_sources_x) {
       SpatialCell *ccell = mpiGrid[c];
@@ -300,7 +305,7 @@ void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
          ghostTranslate_active_z.insert(cid);
       }
    } // end loop over y-translation sources
-
+   ghostZTimer.stop();
    return;
 }
 

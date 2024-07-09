@@ -585,11 +585,13 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
       mpiGrid[cells[i]]->set_mpi_transfer_enabled(true);
    }
 
-   phiprof::Timer computeTransferTimer {"compute_amr_transfer_flags"};
+   phiprof::Timer computeTransferTimer {"compute_amr_flags_lists"};
    if((P::amrMaxSpatialRefLevel > 0) && (P::vlasovSolverGhostTranslate)) {
       // Update (face and other) neighbor information for remote cells on boundary
       const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(FULL_NEIGHBORHOOD_ID);
+      phiprof::Timer updateRemoteNeighborsTimer {"update neighbor lists of remote cells"};
       mpiGrid.force_update_cell_neighborhoods(remote_cells);
+      updateRemoteNeighborsTimer.stop();
 
       // Verified July 9th 2024: at this point, sysb-flags are not up to date
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
