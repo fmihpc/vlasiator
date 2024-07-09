@@ -208,12 +208,16 @@ extern std::array<std::unordered_set<CellID>,3> DimensionTargetCells;
 void flagSpatialCellsForAmrCommunication(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                          const std::vector<CellID>& localPropagatedCells);
 
-// Local translation cell lists (no interim comms)
+// Ghost translation cell lists (no interim comms)
 void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                       const std::vector<CellID>& localPropagatedCells);
 
-extern std::unordered_set<CellID> LocalSet_x;
-extern std::unordered_set<CellID> LocalSet_y;
-extern std::unordered_set<CellID> LocalSet_z;
+// defined in cpu_trans_map_amr.cpp
+extern std::unordered_set<CellID> ghostTranslate_sources_x;
+extern std::unordered_set<CellID> ghostTranslate_sources_y;
+extern std::unordered_set<CellID> ghostTranslate_sources_z;
+extern std::unordered_set<CellID> ghostTranslate_active_x;
+extern std::unordered_set<CellID> ghostTranslate_active_y;
+extern std::unordered_set<CellID> ghostTranslate_active_z;
 
 #endif

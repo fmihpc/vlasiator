@@ -43,6 +43,7 @@
 #include "cpu_acc_semilag.hpp"
 #include "cpu_trans_map.hpp"
 #include "cpu_trans_map_amr.hpp"
+#include "cpu_trans_pencils.hpp"
 
 using namespace std;
 using namespace spatial_cell;
@@ -235,7 +236,7 @@ void calculateSpatialTranslation(
  */
 void calculateSpatialGhostTranslation(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   const vector<CellID>& local_propagated_cells, // Used for loadbalancing, not selecting active cells
+   const vector<CellID>& local_propagated_cells,
    vector<uint>& nPencils,
    creal dt,
    const uint popID,
@@ -317,7 +318,7 @@ void calculateSpatialTranslation(
    }
    
    phiprof::Timer computeTimer {"compute_cell_lists"};
-   if (P::vlasovSolverGhostTranslate==false && P::amrMaxSpatialRefLevel==0) {
+   if (!P::vlasovSolverGhostTranslate || P::amrMaxSpatialRefLevel==0) {
       remoteTargetCellsx = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID);
       remoteTargetCellsy = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID);
       remoteTargetCellsz = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID);
@@ -325,7 +326,7 @@ void calculateSpatialTranslation(
 
    // Figure out which spatial cells are translated,
    // result independent of particle species.
-   // If performing all-local translation, this is used for LB.
+   // If performing ghost translation, this is used for LB.
    for (size_t c=0; c<localCells.size(); ++c) {
       if (do_translate_cell(mpiGrid[localCells[c]])) {
          local_propagated_cells.push_back(localCells[c]);
