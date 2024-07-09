@@ -965,18 +965,21 @@ void Parameters::getParameters() {
    RP::get("vlasovsolver.accelerateMaxwellianBoundaries",  P::vlasovAccelerateMaxwellianBoundaries);
    if ((myRank == MASTER_RANK)&&(P::vlasovSolverGhostTranslate==true)) {
       logFile<<"Performing spatial translation using ghost cell information with coalesced MPI updates."<<endl;
-      if (P::vlasovSolverGhostTranslateExtent == 0) {
+   }
+   if (P::vlasovSolverGhostTranslateExtent == 0) {
+      P::vlasovSolverGhostTranslateExtent = VLASOV_STENCIL_WIDTH+1;
+   } else {
+      if (P::vlasovSolverGhostTranslateExtent > VLASOV_STENCIL_WIDTH+1) {
          P::vlasovSolverGhostTranslateExtent = VLASOV_STENCIL_WIDTH+1;
-      } else {
-         if (P::vlasovSolverGhostTranslateExtent > VLASOV_STENCIL_WIDTH+1) {
-            P::vlasovSolverGhostTranslateExtent = VLASOV_STENCIL_WIDTH+1;
+         if (myRank == MASTER_RANK) {
             logFile<<"Capping ghost translation stencil size to VLASOV_STENCIL_WIDTH+1 around local domain."<<endl;
-         } else {
+         }
+      } else {
+         if (myRank == MASTER_RANK) {
             logFile<<"Translating only stencil of size "<<P::vlasovSolverGhostTranslateExtent<<" around local domain."<<endl;
          }
       }
    }
-
    // Get load balance parameters
    RP::get("loadBalance.algorithm", P::loadBalanceAlgorithm);
    loadBalanceOptions["IMBALANCE_TOL"] = "";
