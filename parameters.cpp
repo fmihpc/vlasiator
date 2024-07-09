@@ -69,6 +69,7 @@ Real P::dt = NAN;
 Real P::vlasovSolverMaxCFL = NAN;
 Real P::vlasovSolverMinCFL = NAN;
 bool P::vlasovSolverGhostTranslate = true;
+bool P::vlasovSolverGhostTranslateFull = true;
 Real P::fieldSolverMaxCFL = NAN;
 Real P::fieldSolverMinCFL = NAN;
 uint P::fieldSolverSubcycles = 1;
@@ -377,6 +378,7 @@ bool P::addParameters() {
            "Propagate maxwellian boundary cell contents in velocity space. Default false.",
            false);
    RP::add("vlasovsolver.GhostTranslate","Boolean for activating all-local ghost translation",true);
+   RP::add("vlasovsolver.GhostTranslateFull","Boolean for activating full stencils in all-local ghost translation",true);
 
    // Load balancing parameters
    RP::add("loadBalance.algorithm", "Load balancing algorithm to be used", string("RCB"));
@@ -959,9 +961,13 @@ void Parameters::getParameters() {
    RP::get("vlasovsolver.maxCFL", P::vlasovSolverMaxCFL);
    RP::get("vlasovsolver.minCFL", P::vlasovSolverMinCFL);
    RP::get("vlasovsolver.GhostTranslate",P::vlasovSolverGhostTranslate);
+   RP::get("vlasovsolver.GhostTranslateFull",P::vlasovSolverGhostTranslateFull);
    RP::get("vlasovsolver.accelerateMaxwellianBoundaries",  P::vlasovAccelerateMaxwellianBoundaries);
    if ((myRank == MASTER_RANK)&&(P::vlasovSolverGhostTranslate==true)) {
       logFile<<"Performing spatial translation using ghost cell information with coalesced MPI updates"<<endl;
+      if (!P::vlasovSolverGhostTranslateFull) {
+         logFile<<"(Only translating minimal stencil around local domain)"<<endl;
+      }
    }
 
    // Get load balance parameters
