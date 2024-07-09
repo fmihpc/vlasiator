@@ -69,7 +69,7 @@ Real P::dt = NAN;
 Real P::vlasovSolverMaxCFL = NAN;
 Real P::vlasovSolverMinCFL = NAN;
 bool P::vlasovSolverGhostTranslate = true;
-bool P::vlasovSolverGhostTranslateFull = true;
+uint P::vlasovSolverGhostTranslateExtent = 0;
 Real P::fieldSolverMaxCFL = NAN;
 Real P::fieldSolverMinCFL = NAN;
 uint P::fieldSolverSubcycles = 1;
@@ -378,7 +378,7 @@ bool P::addParameters() {
            "Propagate maxwellian boundary cell contents in velocity space. Default false.",
            false);
    RP::add("vlasovsolver.GhostTranslate","Boolean for activating all-local ghost translation",true);
-   RP::add("vlasovsolver.GhostTranslateFull","Boolean for activating full stencils in all-local ghost translation",true);
+   RP::add("vlasovsolver.GhostTranslateExtent","Stencil size in all-local ghost translation (default: VLASOV_STENCIL_WIDTH+1",0);
 
    // Load balancing parameters
    RP::add("loadBalance.algorithm", "Load balancing algorithm to be used", string("RCB"));
@@ -734,7 +734,7 @@ void Parameters::getParameters() {
         !(RP::isSet("restart.overrideReadFsGridDecompositionX")&&RP::isSet("restart.overrideReadFsGridDecompositionY")&&RP::isSet("restart.overrideReadFsGridDecompositionZ")) ) {
       cerr << "ERROR all of restart.overrideReadFsGridDecompositionX,Y,Z should be defined." << endl;
       MPI_Abort(MPI_COMM_WORLD, 1);
-   }   
+   }
    FsGridTools::Task_t temp_task_t;
    RP::get("restart.overrideReadFsGridDecompositionX", temp_task_t);
    P::overrideReadFsGridDecomposition[0] = temp_task_t;
@@ -945,7 +945,7 @@ void Parameters::getParameters() {
         !(RP::isSet("fieldsolver.manualFsGridDecompositionX")&&RP::isSet("fieldsolver.manualFsGridDecompositionY")&&RP::isSet("fieldsolver.manualFsGridDecompositionZ")) ) {
       cerr << "ERROR all of fieldsolver.manualFsGridDecompositionX,Y,Z should be defined." << endl;
       MPI_Abort(MPI_COMM_WORLD, 1);
-   }   
+   }
    RP::get("fieldsolver.manualFsGridDecompositionX", temp_task_t);
    P::manualFsGridDecomposition[0] = temp_task_t;
    RP::get("fieldsolver.manualFsGridDecompositionY", temp_task_t);
@@ -953,7 +953,7 @@ void Parameters::getParameters() {
    RP::get("fieldsolver.manualFsGridDecompositionZ", temp_task_t);
    P::manualFsGridDecomposition[2] = temp_task_t;
 
-   
+
 
    // Get Vlasov solver parameters
    RP::get("vlasovsolver.maxSlAccelerationRotation", P::maxSlAccelerationRotation);
@@ -961,12 +961,19 @@ void Parameters::getParameters() {
    RP::get("vlasovsolver.maxCFL", P::vlasovSolverMaxCFL);
    RP::get("vlasovsolver.minCFL", P::vlasovSolverMinCFL);
    RP::get("vlasovsolver.GhostTranslate",P::vlasovSolverGhostTranslate);
-   RP::get("vlasovsolver.GhostTranslateFull",P::vlasovSolverGhostTranslateFull);
+   RP::get("vlasovsolver.GhostTranslateExtent",P::vlasovSolverGhostTranslateExtent);
    RP::get("vlasovsolver.accelerateMaxwellianBoundaries",  P::vlasovAccelerateMaxwellianBoundaries);
    if ((myRank == MASTER_RANK)&&(P::vlasovSolverGhostTranslate==true)) {
-      logFile<<"Performing spatial translation using ghost cell information with coalesced MPI updates"<<endl;
-      if (!P::vlasovSolverGhostTranslateFull) {
-         logFile<<"(Only translating minimal stencil around local domain)"<<endl;
+      logFile<<"Performing spatial translation using ghost cell information with coalesced MPI updates."<<endl;
+      if (P::vlasovSolverGhostTranslateExtent == 0) {
+         P::vlasovSolverGhostTranslateExtent = VLASOV_STENCIL_WIDTH+1;
+      } else {
+         if (P::vlasovSolverGhostTranslateExtent > VLASOV_STENCIL_WIDTH+1) {
+            P::vlasovSolverGhostTranslateExtent = VLASOV_STENCIL_WIDTH+1;
+            logFile<<"Capping ghost translation stencil size to VLASOV_STENCIL_WIDTH+1 around local domain."<<endl;
+         } else {
+            logFile<<"Translating only stencil of size "<<P::vlasovSolverGhostTranslateExtent<<" around local domain."<<endl;
+         }
       }
    }
 

@@ -196,13 +196,8 @@ void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
    //    as source cells
    // Done only at LB so not threaded for now
 
-   int searchLength = 1;
-   if (P::vlasovSolverGhostTranslateFull) {
-      // If the full stencil flag is not set, use a light-weight approach of only translating a one-cell
-      // thick ghost domain. Otherwise, all translation source cells will be included.
-      searchLength = VLASOV_STENCIL_WIDTH+1;
-      // TODO: Allow more flexible solving extent
-   }
+   // Ghost translation stencil size set by parameter, defaults to VLASOV_STENCIL_WIDTH+1;
+   int searchLength = P::vlasovSolverGhostTranslateExtent;
 
    /** Translation order (dimensions) is 1: z 2: x 3: y
        Prepare in reverse order
