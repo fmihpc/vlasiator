@@ -235,7 +235,7 @@ void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
          ghostTranslate_active_y.insert(cid);
       }
    } // end loop over local propagated cells
-   ghostYtimer.stop();
+   ghostYTimer.stop();
 
    /** Now use y-translation source cells as starting points
        and evaluate x-direction
@@ -270,7 +270,7 @@ void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
          ghostTranslate_active_x.insert(cid);
       }
    } // end loop over y-translation sources
-   ghostXtimer.stop();
+   ghostXTimer.stop();
 
    /** Now use x-translation source cells as starting points
        and evaluate z-direction
@@ -490,8 +490,8 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
       neighbors.erase(unique(neighbors.begin(), neighbors.end()), neighbors.end());
 
       // Find source cells (VLASOV_STENCIL_WIDTH at each end)
-      int refLvl = mpiGrid.get_refinement_level(ids[VLASOV_STENCIL_WIDTH]);
-      int pathPos = 0;
+      size_t refLvl = mpiGrid.get_refinement_level(ids[VLASOV_STENCIL_WIDTH]);
+      size_t pathPos = 0;
       if (path.size() > refLvl) {
          pathPos = path[refLvl];
       }
@@ -537,8 +537,8 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
       std::sort(neighbors.begin(), neighbors.end());
       neighbors.erase(unique(neighbors.begin(), neighbors.end()), neighbors.end());
 
-      int refLvl = mpiGrid.get_refinement_level(ids[L-VLASOV_STENCIL_WIDTH-1]);
-      int pathPos = 0;
+      size_t refLvl = mpiGrid.get_refinement_level(ids[L-VLASOV_STENCIL_WIDTH-1]);
+      size_t pathPos = 0;
       if (path.size() > refLvl) {
          pathPos = path[refLvl];
       }
