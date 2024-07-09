@@ -739,31 +739,20 @@ namespace projects {
          std::vector<CellID> neighbors;
          std::vector<double> weights;
          int missingNeighbors {0}; 
-         for (auto& [neighbor, dir] : *mpiGrid.get_neighbors_of(id, SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID)) {
-            if (neighbor != dccrg::error_cell) {
-               neighbors.push_back(neighbor);
-
-               auto scaled_dir = dir;
-               if (dir[3] > 1) {
-                  for (size_t i = 0; i < 3; i++) {
-                     // round away from zero, stackoverflow.com/a/2745086
-                     if (scaled_dir[i] > 1) {
-                        scaled_dir[i] += scaled_dir[3] - 1;
-                     } else {
-                        scaled_dir[i] -= scaled_dir[3] - 1;
+         int denom = std::pow(2, P::amrMaxSpatialRefLevel - refLevel);
+         std::cerr << std::to_string(id) + "\n";
+         for (int x = -2; x <= 2; ++x) {
+            for (int y = -2; y <= 2; ++y) {
+               for (int z = -2; z <=2; ++z) {
+                  if (x || y || z) {
+                     for (auto& [neighbor, dir] : mpiGrid.get_neighbors_of_at_offset(id, x, y, z, denom)) {
+                        // TODO this should have exactly one element
+                        // neighbors_of_at_offset doesn't return error cells
+                        neighbors.push_back(neighbor);
+                        weights.push_back(kernel[2 + x][2 + y][2 + z]);
                      }
-                     scaled_dir[i] /= scaled_dir[3];
                   }
                }
-
-               //if(dir[3] != 1) {
-               //   std::cout << "cell " + std::to_string(id) + " neighbor " + std::to_string(neighbor) + " dir = [" + std::to_string(dir[0]) + ", " + std::to_string(dir[1]) + ", " + std::to_string(dir[2]) + ", " + std::to_string(dir[3]) + "]\n";
-               //}
-
-               // Larger neighbors are duplicated, by the amount of offsets they are found in
-               weights.push_back(kernel[2+scaled_dir[0]][2+scaled_dir[1]][2+scaled_dir[2]] / (scaled_dir[3] == 2 ? 8.0 : 1.0));
-            } else {
-               ++missingNeighbors;
             }
          }
 
