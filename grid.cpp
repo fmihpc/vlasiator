@@ -592,7 +592,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
       phiprof::Timer updateRemoteNeighborsTimer {"update neighbor lists of remote cells"};
 #pragma omp parallel for schedule(dynamic)
       for (uint i=0; i<remote_cells.size(); ++i) {
-         const vector<CellID> remote_cells2;
+         vector<CellID> remote_cells2;
          remote_cells2.push_back(remote_cells[i]);
          mpiGrid.force_update_cell_neighborhoods(remote_cells2);
       }
@@ -1579,7 +1579,7 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
       const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(FULL_NEIGHBORHOOD_ID);
 #pragma omp parallel for schedule(dynamic)
       for (uint i=0; i<remote_cells.size(); ++i) {
-         const vector<CellID> remote_cells2;
+         vector<CellID> remote_cells2;
          remote_cells2.push_back(remote_cells[i]);
          mpiGrid.force_update_cell_neighborhoods(remote_cells2);
       }
