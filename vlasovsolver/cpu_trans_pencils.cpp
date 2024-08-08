@@ -206,6 +206,7 @@ void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
 
    phiprof::Timer ghostYTimer {"prepare ghost translation Y lists"};
    int dimension = 1;
+#pragma omp parallel for schedule(dynamic)
    for (CellID c : localPropagatedCells) {
       SpatialCell *ccell = mpiGrid[c];
       if (!ccell) {
@@ -242,6 +243,7 @@ void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
    */
    phiprof::Timer ghostXTimer {"prepare ghost translation X lists"};
    dimension = 0;
+#pragma omp parallel for schedule(dynamic)
    for (CellID c : ghostTranslate_sources_y) {
       SpatialCell *ccell = mpiGrid[c];
       if (!ccell) {
@@ -277,6 +279,7 @@ void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
    */
    phiprof::Timer ghostZTimer {"prepare ghost translation Z lists"};
    dimension = 2;
+#pragma omp parallel for schedule(dynamic)
    for (CellID c : ghostTranslate_sources_x) {
       SpatialCell *ccell = mpiGrid[c];
       if (!ccell) {

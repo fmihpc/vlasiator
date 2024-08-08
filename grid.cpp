@@ -585,24 +585,31 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
       mpiGrid[cells[i]]->set_mpi_transfer_enabled(true);
    }
 
-   phiprof::Timer computeTransferTimer {"compute_amr_flags_lists"};
+   phiprof::Timer computeFlagsListTimer {"compute_amr_flags_lists"};
    if((P::amrMaxSpatialRefLevel > 0) && (P::vlasovSolverGhostTranslate)) {
       // Update (face and other) neighbor information for remote cells on boundary
       const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(FULL_NEIGHBORHOOD_ID);
       phiprof::Timer updateRemoteNeighborsTimer {"update neighbor lists of remote cells"};
-      mpiGrid.force_update_cell_neighborhoods(remote_cells);
+#pragma omp parallel for schedule(dynamic)
+      for (uint i=0; i<remote_cells.size(); ++i) {
+         const vector<CellID> remote_cells2;
+         remote_cells2.push_back(remote_cells[i]);
+         mpiGrid.force_update_cell_neighborhoods(remote_cells2);
+      }
       updateRemoteNeighborsTimer.stop();
 
       // Verified July 9th 2024: at this point, sysb-flags are not up to date
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
       mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
+      phiprof::Timer ghostListsTimer {"update lists for ghost translation"};
       prepareGhostTranslationCellLists(mpiGrid,cells);
+      ghostListsTimer.stop();
    }
    if((P::amrMaxSpatialRefLevel > 0) && (!P::vlasovSolverGhostTranslate)) {
       // flag transfers per translation direction
       flagSpatialCellsForAmrCommunication(mpiGrid,cells);
    }
-   computeTransferTimer.stop();
+   computeFlagsListTimer.stop();
 
    // Communicate all spatial data for FULL neighborhood, which
    // includes all data with the exception of dist function data
@@ -1566,20 +1573,29 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    }
 
    const vector<CellID>& localCells = getLocalCells();
+   phiprof::Timer computeFlagsListTimer {"compute_amr_flags_lists"};
    if((P::amrMaxSpatialRefLevel > 0) && (P::vlasovSolverGhostTranslate)) {
       // Update (face and other) neighbor information for remote cells on boundary
       const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(FULL_NEIGHBORHOOD_ID);
-      mpiGrid.force_update_cell_neighborhoods(remote_cells);
+#pragma omp parallel for schedule(dynamic)
+      for (uint i=0; i<remote_cells.size(); ++i) {
+         const vector<CellID> remote_cells2;
+         remote_cells2.push_back(remote_cells[i]);
+         mpiGrid.force_update_cell_neighborhoods(remote_cells2);
+      }
 
       // Perhaps not needed? Do just to be sure.
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
       mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
+      phiprof::Timer ghostListsTimer {"update lists for ghost translation"};
       prepareGhostTranslationCellLists(mpiGrid,localCells);
+      ghostListsTimer.stop();
    }
    if((P::amrMaxSpatialRefLevel > 0) && (!P::vlasovSolverGhostTranslate)) {
       // flag transfers per translation direction
       flagSpatialCellsForAmrCommunication(mpiGrid,localCells);
    }
+   computeFlagsListTimer.stop();
    // Prepare cellIDs and pencils for AMR translation
    if(P::amrMaxSpatialRefLevel > 0) {
       prepareSeedIdsAndPencils(mpiGrid);
