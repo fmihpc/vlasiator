@@ -226,14 +226,18 @@ void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
       findNeighborhoodCells(mpiGrid, c, dimension, searchLength, foundCells);
       for (CellID cid: foundCells) {
          // Update as sources only non-sysb cells
-         if (mpiGrid[cid]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-            ghostTranslate_sources_y.insert(cid);
+         if (mpiGrid[cid]) {
+            if (mpiGrid[cid]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+               ghostTranslate_sources_y.insert(cid);
+            }
          }
       }
       // Cells to be translated so local end result is good
       findNeighborhoodCells(mpiGrid, c, dimension, 1, foundCells);
       for (CellID cid: foundCells) {
-         ghostTranslate_active_y.insert(cid);
+         if (mpiGrid[cid]) {
+            ghostTranslate_active_y.insert(cid);
+         }
       }
    } // end loop over local propagated cells
    ghostYTimer.stop();
@@ -266,14 +270,18 @@ void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
       findNeighborhoodCells(mpiGrid, c, dimension, searchLength, foundCells);
       for (CellID cid: foundCells) {
          // Update as sources only non-sysb cells
-         if (mpiGrid[cid]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-            ghostTranslate_sources_x.insert(cid);
+         if (mpiGrid[cid]) {
+            if (mpiGrid[cid]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+               ghostTranslate_sources_x.insert(cid);
+            }
          }
       }
       // Cells to be translated so local end result is good
       findNeighborhoodCells(mpiGrid, c, dimension, 1, foundCells);
       for (CellID cid: foundCells) {
-         ghostTranslate_active_x.insert(cid);
+         if (mpiGrid[cid]) {
+            ghostTranslate_active_x.insert(cid);
+         }
       }
    } // end loop over y-translation sources
    ghostXTimer.stop();
@@ -305,14 +313,18 @@ void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
       findNeighborhoodCells(mpiGrid, c, dimension, searchLength, foundCells);
       for (CellID cid: foundCells) {
          // Update as sources only non-sysb cells
-         if (mpiGrid[cid]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-            ghostTranslate_sources_z.insert(cid);
+         if (mpiGrid[cid]) {
+            if (mpiGrid[cid]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+               ghostTranslate_sources_z.insert(cid);
+            }
          }
       }
       // Cells to be translated so local end result is good
       findNeighborhoodCells(mpiGrid, c, dimension, 1, foundCells);
       for (CellID cid: foundCells) {
-         ghostTranslate_active_z.insert(cid);
+         if (mpiGrid[cid]) {
+            ghostTranslate_active_z.insert(cid);
+         }
       }
    } // end loop over y-translation sources
    ghostZTimer.stop();
