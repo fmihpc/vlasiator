@@ -204,7 +204,6 @@ void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
        First: y-direction
    */
 
-   std::cerr<<" 1"<<std::endl;
    phiprof::Timer ghostYTimer {"prepare ghost translation Y lists"};
    int dimension = 1;
    for (CellID c : localPropagatedCells) {
@@ -241,7 +240,6 @@ void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
    /** Now use y-translation source cells as starting points
        and evaluate x-direction
    */
-   std::cerr<<" 2"<<std::endl;
    phiprof::Timer ghostXTimer {"prepare ghost translation X lists"};
    dimension = 0;
 
@@ -278,7 +276,6 @@ void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
    /** Now use x-translation source cells as starting points
        and evaluate z-direction
    */
-   std::cerr<<" 3"<<std::endl;
    phiprof::Timer ghostZTimer {"prepare ghost translation Z lists"};
    dimension = 2;
    for (CellID c : ghostTranslate_sources_x) {
@@ -310,7 +307,6 @@ void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
       }
    } // end loop over y-translation sources
    ghostZTimer.stop();
-   std::cerr<<" 4"<<std::endl;
    return;
 }
 
