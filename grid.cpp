@@ -588,20 +588,40 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    phiprof::Timer computeFlagsListTimer {"compute_amr_flags_lists"};
    if((P::amrMaxSpatialRefLevel > 0) && (P::vlasovSolverGhostTranslate)) {
       // Update (face and other) neighbor information for remote cells on boundary
+      phiprof::Timer getRemoteCellsTimer {"get lists of remote cells"};
       const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(FULL_NEIGHBORHOOD_ID);
+      getRemoteCellsTimer.stop();
       phiprof::Timer updateRemoteNeighborsTimer {"update neighbor lists of remote cells"};
-#pragma omp parallel for schedule(dynamic)
-      for (uint i=0; i<remote_cells.size(); ++i) {
-         vector<CellID> remote_cells2;
-         remote_cells2.push_back(remote_cells[i]);
-         mpiGrid.force_update_cell_neighborhoods(remote_cells2);
+      mpiGrid.force_update_cell_neighborhoods(remote_cells);
+      std::cerr<<" flag "<<P::vlasovSolverGhostTranslateExtent<<std::endl;
+      switch (P::vlasovSolverGhostTranslateExtent) {
+      case 1:
+         mpiGrid.force_update_cell_neighborhoods(remote_cells,VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID);
+         mpiGrid.force_update_cell_neighborhoods(remote_cells,VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID);
+         mpiGrid.force_update_cell_neighborhoods(remote_cells,VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID);
+         break;
+      case 2: //VLASOV_STENCIL_WIDTH
+         mpiGrid.force_update_cell_neighborhoods(remote_cells,VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
+         mpiGrid.force_update_cell_neighborhoods(remote_cells,VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
+         mpiGrid.force_update_cell_neighborhoods(remote_cells,VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
+         break;
+      case 3: //VLASOV_STENCIL_WIDTH+1
+         mpiGrid.force_update_cell_neighborhoods(remote_cells,VLASOV_SOLVER_X_GHOST_NEIGHBORHOOD_ID);
+         mpiGrid.force_update_cell_neighborhoods(remote_cells,VLASOV_SOLVER_Y_GHOST_NEIGHBORHOOD_ID);
+         mpiGrid.force_update_cell_neighborhoods(remote_cells,VLASOV_SOLVER_Z_GHOST_NEIGHBORHOOD_ID);
+         break;
+      default:
+         cerr << __FILE__ << ":"<< __LINE__ << " Unsupported ghost stencil size, abort"<<endl;
+         abort();
       }
-      // mpiGrid.force_update_cell_neighborhoods(remote_cells);
+      std::cerr<<" done "<<std::endl;
       updateRemoteNeighborsTimer.stop();
 
       // Verified July 9th 2024: at this point, sysb-flags are not up to date
+      phiprof::Timer communicateSysbTimer {"update sysb flags"};
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
       mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
+      communicateSysbTimer.stop();
       phiprof::Timer ghostListsTimer {"update lists for ghost translation"};
       prepareGhostTranslationCellLists(mpiGrid,cells);
       ghostListsTimer.stop();
@@ -1577,18 +1597,36 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    phiprof::Timer computeFlagsListTimer {"compute_amr_flags_lists"};
    if((P::amrMaxSpatialRefLevel > 0) && (P::vlasovSolverGhostTranslate)) {
       // Update (face and other) neighbor information for remote cells on boundary
+      phiprof::Timer getRemoteCellsTimer {"get lists of remote cells"};
       const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(FULL_NEIGHBORHOOD_ID);
-#pragma omp parallel for schedule(dynamic)
-      for (uint i=0; i<remote_cells.size(); ++i) {
-         vector<CellID> remote_cells2;
-         remote_cells2.push_back(remote_cells[i]);
-         mpiGrid.force_update_cell_neighborhoods(remote_cells2);
+      getRemoteCellsTimer.stop();
+      mpiGrid.force_update_cell_neighborhoods(remote_cells);
+      switch (P::vlasovSolverGhostTranslateExtent) {
+      case 1:
+         mpiGrid.force_update_cell_neighborhoods(remote_cells,VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID);
+         mpiGrid.force_update_cell_neighborhoods(remote_cells,VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID);
+         mpiGrid.force_update_cell_neighborhoods(remote_cells,VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID);
+         break;
+      case 2: //VLASOV_STENCIL_WIDTH
+         mpiGrid.force_update_cell_neighborhoods(remote_cells,VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
+         mpiGrid.force_update_cell_neighborhoods(remote_cells,VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
+         mpiGrid.force_update_cell_neighborhoods(remote_cells,VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
+         break;
+      case 3: //VLASOV_STENCIL_WIDTH+1
+         mpiGrid.force_update_cell_neighborhoods(remote_cells,VLASOV_SOLVER_X_GHOST_NEIGHBORHOOD_ID);
+         mpiGrid.force_update_cell_neighborhoods(remote_cells,VLASOV_SOLVER_Y_GHOST_NEIGHBORHOOD_ID);
+         mpiGrid.force_update_cell_neighborhoods(remote_cells,VLASOV_SOLVER_Z_GHOST_NEIGHBORHOOD_ID);
+         break;
+      default:
+         cerr << __FILE__ << ":"<< __LINE__ << " Unsupported ghost stencil size, abort"<<endl;
+         abort();
       }
-      // mpiGrid.force_update_cell_neighborhoods(remote_cells);
 
       // Perhaps not needed? Do just to be sure.
+      phiprof::Timer communicateSysbTimer {"update sysb flags"};
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
       mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
+      communicateSysbTimer.stop();
       phiprof::Timer ghostListsTimer {"update lists for ghost translation"};
       prepareGhostTranslationCellLists(mpiGrid,localCells);
       ghostListsTimer.stop();
