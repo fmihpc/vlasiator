@@ -584,15 +584,10 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
    lastGoodCell = ids[L - VLASOV_STENCIL_WIDTH - 1];
    for(int i = (int)L - VLASOV_STENCIL_WIDTH; i < (int)L; ++i){
       bool isGood = false;
-      if (ids[i]!=0) {
-         if (mpiGrid[ids[i]] != NULL
-             || mpiGrid[ids[i]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE
-             || ids[i] != mpiGrid[ids[i]]->parameters[CellParams::CELLID]
-             // Last check required as DCCRG may have valid cell pointers which have not been ghost-updated?
-            ) {
-            if (mpiGrid[ids[i]]->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE) {
-               isGood = true;
-            }
+      if ( (ids[i]!=0) && (mpiGrid[ids[i]] != NULL)) {
+         if ( (mpiGrid[ids[i]]->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE)
+              && (ids[i] == mpiGrid[ids[i]]->parameters[CellParams::CELLID]) ) {
+            isGood = true;
          }
       }
       if (!isGood) {
