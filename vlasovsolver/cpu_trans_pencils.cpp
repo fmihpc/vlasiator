@@ -171,7 +171,7 @@ void findNeighborhoodCells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    }
 }
 
-void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+void prepareGhostTranslationCellLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                       const vector<CellID>& localPropagatedCells) {
    // Clear existing lists
    ghostTranslate_sources_x.clear();
@@ -240,9 +240,9 @@ void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
    /** Now use y-translation source cells as starting points
        and evaluate x-direction
    */
+
    phiprof::Timer ghostXTimer {"prepare ghost translation X lists"};
    dimension = 0;
-
    for (CellID c : ghostTranslate_sources_y) {
       SpatialCell *ccell = mpiGrid[c];
       if (!ccell) {
@@ -276,6 +276,7 @@ void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
    /** Now use x-translation source cells as starting points
        and evaluate z-direction
    */
+
    phiprof::Timer ghostZTimer {"prepare ghost translation Z lists"};
    dimension = 2;
    for (CellID c : ghostTranslate_sources_x) {

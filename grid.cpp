@@ -633,35 +633,42 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
 void prepareAMRFlagLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid)
 {
    const vector<CellID>& localCells = getLocalCells();
-   phiprof::Timer computeFlagsListTimer {"compute_amr_flags_lists"};
-   if((P::amrMaxSpatialRefLevel > 0) && (P::vlasovSolverGhostTranslate)) {
-      // Update (face and other) neighbor information for remote cells on boundary
-      const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(FULL_NEIGHBORHOOD_ID);
-      phiprof::Timer updateRemoteNeighborsTimer {"update neighbor lists of remote cells"};
-      mpiGrid.force_update_cell_neighborhoods(remote_cells);
-      updateRemoteNeighborsTimer.stop();
 
-      // Verified July 9th 2024: at this point, sysb-flags are not up to date
+   if ((P::amrMaxSpatialRefLevel > 0) && (P::vlasovSolverGhostTranslate)) {
+      phiprof::Timer ghostTimer {"prepare_ghost_translation_lists"};
+
+      // Verified July 9th 2024: at this point (after LB), sysb-flags are not up to date
       phiprof::Timer communicateSysbTimer {"update sysb flags"};
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
       mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
       communicateSysbTimer.stop();
-      phiprof::Timer ghostListsTimer {"update lists for ghost translation"};
+
+      // Update (face and other) neighbor information for remote cells on boundary
+      phiprof::Timer updateRemoteNeighborsTimer {"update neighbor lists of remote cells"};
+      const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(FULL_NEIGHBORHOOD_ID);
+      mpiGrid.force_update_cell_neighborhoods(remote_cells);
+      updateRemoteNeighborsTimer.stop();
+
+      phiprof::Timer ghostListsTimer {"update active cell lists for ghost translation"};
       prepareGhostTranslationCellLists(mpiGrid,localCells);
       ghostListsTimer.stop();
+
+      ghostTimer.stop();
    }
-   if((P::amrMaxSpatialRefLevel > 0) && (!P::vlasovSolverGhostTranslate)) {
+
+   if ((P::amrMaxSpatialRefLevel > 0) && (!P::vlasovSolverGhostTranslate)) {
       // flag transfers per translation direction
+      phiprof::Timer computeFlagsListTimer {"prepare_amr_translation_communication_lists"};
       flagSpatialCellsForAmrCommunication(mpiGrid,localCells);
+      computeFlagsListTimer.stop();
    }
-   computeFlagsListTimer.stop();
 
    // Prepare cellIDs and pencils for AMR translation
-   if(P::amrMaxSpatialRefLevel > 0) {
+   if (P::amrMaxSpatialRefLevel > 0) {
       prepareSeedIdsAndPencils(mpiGrid);
    }
-
 }
+
 /*
   Adjust sparse velocity space to make it consistent in all 6 dimensions.
 
