@@ -349,11 +349,19 @@ void initializeGrids(
    BgBGrid.updateGhostCells();
    EGrid.updateGhostCells();
 
+   // computing coupling
+   // Datastructure for coupling
+   std::map<int, std::set<CellID> > onDccrgMapRemoteProcess; 
+   std::map<int, std::set<CellID> > onFsgridMapRemoteProcess; 
+   std::map<CellID, std::vector<int64_t> >  onFsgridMapCells;
+
+   computeCoupling(mpiGrid, cells, momentsGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells);
+
    // This will only have the BGB set up properly at this stage but we need the BGBvol for the Vlasov boundaries below.
    volGrid.updateGhostCells();
    fsGridGhostTimer.stop();
    phiprof::Timer getFieldsTimer {"getFieldsFromFsGrid"};
-   getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, technicalGrid, mpiGrid, cells);
+   getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, technicalGrid, mpiGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells, cells);
    getFieldsTimer.stop();
 
    setBTimer.stop();
@@ -378,12 +386,12 @@ void initializeGrids(
    }
    
    phiprof::Timer finishFSGridTimer {"Finish fsgrid setup"};
-   feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid,technicalGrid, false);
+   feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid, technicalGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells, false);
    if(!P::isRestart) {
       // WARNING this means moments and dt2 moments are the same here at t=0, which is a feature so far.
-      feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid, technicalGrid, false);
+      feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells, false);
    } else {
-      feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid, technicalGrid, true);
+      feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells, technicalGrid, true);
    }
    momentsGrid.updateGhostCells();
    momentsDt2Grid.updateGhostCells();

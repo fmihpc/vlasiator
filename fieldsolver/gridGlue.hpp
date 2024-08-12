@@ -47,6 +47,9 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
                            const std::vector<CellID>& cells,
                            FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
                            FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+                           std::map<int, std::set<CellID> >& onDccrgMapRemoteProcess,
+                           std::map<int, std::set<CellID> >& onFsgridMapRemoteProcess,
+                           std::map<CellID, std::vector<int64_t> >&  onFsgridMapCells,
                            bool dt2=false);
 
 /*! Copy field solver result (VOLB, VOLE, VOLPERB derivatives, gradpe) and store them back into DCCRG
@@ -57,12 +60,15 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
  * This function assumes that proper grid coupling has been set up.
  */
 void getFieldsFromFsGrid(FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volumeFieldsGrid,
-			 FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-			 FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-			 FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-			 dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-			 const std::vector<CellID>& cells
-			 );
+                        FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                        FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                        FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+                        dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                        std::map<int, std::set<CellID> >& onDccrgMapRemoteProcess,
+                        std::map<int, std::set<CellID> >& onFsgridMapRemoteProcess,
+                        std::map<CellID, std::vector<int64_t> >&  onFsgridMapCells,
+                        const std::vector<CellID>& cells
+);
 
 /*! Copy background B fields and store them into DCCRG
  * \param mpiGrid The DCCRG grid carrying fields.

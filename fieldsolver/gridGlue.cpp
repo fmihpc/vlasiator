@@ -207,18 +207,15 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
                            const std::vector<CellID>& cells,
                            FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
                            FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-
+                           std::map<int, std::set<CellID> >& onDccrgMapRemoteProcess,
+                           std::map<int, std::set<CellID> >& onFsgridMapRemoteProcess,
+                           std::map<CellID, std::vector<int64_t> >&  onFsgridMapCells,
                            bool dt2 /*=false*/) {
 
   int ii;
   //sorted list of dccrg cells. cells is typicall already sorted, but just to make sure....
   std::vector<CellID> dccrgCells = cells;
   std::sort(dccrgCells.begin(), dccrgCells.end());
-
-  //Datastructure for coupling
-  std::map<int, std::set<CellID> > onDccrgMapRemoteProcess; 
-  std::map<int, std::set<CellID> > onFsgridMapRemoteProcess; 
-  std::map<CellID, std::vector<int64_t> >  onFsgridMapCells;
     
   // map receive process => receive buffers 
   std::map<int, std::vector<Real> > receivedData; 
@@ -229,9 +226,6 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
   //list of requests
   std::vector<MPI_Request> sendRequests;
   std::vector<MPI_Request> receiveRequests;
- 
-  //computeCoupling
-  computeCoupling(mpiGrid, cells, momentsGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells);
  
   // Post receives
   receiveRequests.resize(onFsgridMapRemoteProcess.size());  
@@ -312,6 +306,9 @@ void getFieldsFromFsGrid(
    FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
    FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   std::map<int, std::set<CellID> >& onDccrgMapRemoteProcess,
+   std::map<int, std::set<CellID> >& onFsgridMapRemoteProcess,
+   std::map<CellID, std::vector<int64_t> >&  onFsgridMapCells,
    const std::vector<CellID>& cells
 ) {
    // TODO: solver only needs bgb + PERB, we could combine them
@@ -340,11 +337,6 @@ void getFieldsFromFsGrid(
    std::vector<CellID> dccrgCells = cells;
    std::sort(dccrgCells.begin(), dccrgCells.end());
    
-   //Datastructure for coupling
-   std::map<int, std::set<CellID> > onDccrgMapRemoteProcess; 
-   std::map<int, std::set<CellID> > onFsgridMapRemoteProcess; 
-   std::map<CellID, std::vector<int64_t> >  onFsgridMapCells;
-   
    // map receive process => receive buffers 
    std::map<int, std::vector<Average> > receivedData; 
    
@@ -357,10 +349,6 @@ void getFieldsFromFsGrid(
    //list of requests
    std::vector<MPI_Request> sendRequests;
    std::vector<MPI_Request> receiveRequests;
-   
-   
-   //computeCoupling
-   computeCoupling(mpiGrid, cells, volumeFieldsGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells);
    
    //post receives
    ii=0;
