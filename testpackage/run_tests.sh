@@ -2,6 +2,11 @@
 ## code, no need to touch ##
 ##--------------------------------------------------##
 
+# define tab interval sequence so that we have aligned output
+# this is now covering at least up proton/vg_ptensor_nonthermal_offdiagonal_0 and numbers printed at setprecision(3) with negative mantissa and exponent
+tabseq="1,46,62,78,94,110"
+tabs $tabseq &> /dev/null # suppress special character output, list matches expand below
+
 
 ## add absolute paths to folder names, filenames
 reference_dir=$( readlink -f $reference_dir )
@@ -86,7 +91,7 @@ do
         reference_result_dir=${reference_dir}/${reference_revision}/${test_name[$run]}
         if [ -e  $reference_result_dir ]
         then
-            echo "remove old results"
+            echo "Removing previous reference results"
             rm -rf $reference_result_dir
         fi
 
@@ -127,9 +132,12 @@ do
 	fi
 	#print speedup if both refPerf and newPerf are numerical values
         speedup=$( echo $refPerf $newPerf |gawk '{if($2 == $2 + 0 && $1 == $1 + 0 ) print $1/$2; else print "NA"}')
-        echo  "$refPerf        $newPerf         $speedup"
+
+        tabs 1,14,33,59 &> /dev/null # match next line
+        echo  -e " $refPerf\t|  $newPerf\t|  $speedup\t|" | expand -t 1,14,33,59 # match previous line
         echo "------------------------------------------------------------"
-        echo "  variable     |     absolute diff     |     relative diff | "
+        tabs $tabseq &> /dev/null # reset for other printouts
+        echo -e " variable\t| absolute diff\t| relative diff |" | expand -t $tabseq # list matches tabs above
         echo "------------------------------------------------------------"
 
 	variables=(${variable_names[$run]// / })
@@ -155,23 +163,21 @@ do
                     relativeValue=$(grep "The relative 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                     absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                     #print the results
-                    echo "${variables[$i]}_${indices[$i]}                $absoluteValue                 $relativeValue"
-
+                    echo -e " ${variables[$i]}_${indices[$i]}\t  ${absoluteValue}\t  ${relativeValue}" | expand -t $tabseq #list matches tabs above
                 elif [[ "${variables[$i]}" == "ig_"* ]]
                 then
                     A=$( $run_command_tools $diffbin --meshname=ionosphere  ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} ${variables[$i]} ${indices[$i]} )
                     relativeValue=$(grep "The relative 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                     absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                     #print the results
-                    echo "${variables[$i]}_${indices[$i]}                $absoluteValue                 $relativeValue"
-
+                    echo -e " ${variables[$i]}_${indices[$i]}\t  ${absoluteValue}\t  ${relativeValue}" | expand -t $tabseq # list matches tabs above
                 elif [ ! "${variables[$i]}" == "proton" ]
                 then # Regular vg_ variable
                     A=$( $run_command_tools $diffbin ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} ${variables[$i]} ${indices[$i]} )
                     relativeValue=$(grep "The relative 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                     absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                     #print the results
-                    echo "${variables[$i]}_${indices[$i]}                $absoluteValue                 $relativeValue"
+                    echo -e " ${variables[$i]}_${indices[$i]}\t  ${absoluteValue}\t  ${relativeValue}" | expand -t $tabseq # list matches tabs above
                 elif [ "${variables[$i]}" == "proton" ]
                 then
                     echo "--------------------------------------------------------------------------------------------"
