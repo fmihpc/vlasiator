@@ -314,11 +314,13 @@ void initializeGrids(
 
 
    // Balance load before we transfer all data below
-   balanceLoad(mpiGrid, sysBoundaries, true); // true skips ghost flag stuff at this stage
-   // Function includes re-calculation of local cells cache
+   balanceLoad(mpiGrid, sysBoundaries, true);
+   // Function includes re-calculation of local cells cache, but
+   // setting third parameter to true skips preparation of
+   // translation cell lists, amr communication flags, and building of pencils.
 
    phiprof::Timer fetchNeighbourTimer {"Fetch Neighbour data", {"MPI"}};
-   // update complete cell spatial data for full stencil (
+   // update complete cell spatial data for full stencil
    SpatialCell::set_mpi_transfer_type(Transfer::ALL_SPATIAL_DATA);
    mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
    fetchNeighbourTimer.stop();
@@ -382,14 +384,14 @@ void initializeGrids(
       P::dt = P::bailout_min_dt;
    }
 
-   // Verified July 9th 2024: at this point (after LB), sysb-flags are not up to date
-   phiprof::Timer communicateSysbTimer {"update sysb flags"};
-   SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
-   mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
-   communicateSysbTimer.stop();
+   // phiprof::Timer communicateSysbTimer {"update sysb flags"};
+   // // Needed for building ghost pencils
+   // SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
+   // mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
+   // communicateSysbTimer.stop();
 
    // With all cell data in place, make preparations for translation
-   prepareAMRFlagLists(mpiGrid);
+   prepareAMRLists(mpiGrid);
    initialStateTimer.stop();
 }
 
@@ -473,7 +475,7 @@ void setFaceNeighborRanks( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    }
 }
 
-void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, SysBoundary& sysBoundaries, bool skipGhostFlags){
+void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, SysBoundary& sysBoundaries, bool skipTranslationLists){
    // Invalidate cached cell lists
    Parameters::meshRepartitioned = true;
 
@@ -624,8 +626,8 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    initSolversTimer.stop();
 
    // Prepare AMR communication flags, ghost translation cell lists, and build pencils for translation.
-   if (!skipGhostFlags) {
-      prepareAMRFlagLists(mpiGrid);
+   if (!skipTranslationLists) {
+      prepareAMRLists(mpiGrid);
    }
 
    // Record ranks of face neighbors
@@ -635,13 +637,16 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    }
 }
 
-/* helper for calculating AMR flags and cell lists
+/* helper for calculating AMR flags, cell lists, and building pencils
  */
-void prepareAMRFlagLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid)
+void prepareAMRLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid)
 {
+   if (P::amrMaxSpatialRefLevel == 0) {
+      return;
+   }
    const vector<CellID>& localCells = getLocalCells();
 
-   if ((P::amrMaxSpatialRefLevel > 0) && (P::vlasovSolverGhostTranslate)) {
+   if (P::vlasovSolverGhostTranslate) {
       phiprof::Timer ghostTimer {"prepare_ghost_translation_lists"};
 
       // Update (face and other) neighbor information for remote cells on boundary
@@ -655,9 +660,7 @@ void prepareAMRFlagLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mp
       ghostListsTimer.stop();
 
       ghostTimer.stop();
-   }
-
-   if ((P::amrMaxSpatialRefLevel > 0) && (!P::vlasovSolverGhostTranslate)) {
+   } else {
       // flag transfers per translation direction
       phiprof::Timer computeFlagsListTimer {"prepare_amr_translation_communication_lists"};
       flagSpatialCellsForAmrCommunication(mpiGrid,localCells);
@@ -665,9 +668,7 @@ void prepareAMRFlagLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mp
    }
 
    // Prepare cellIDs and pencils for AMR translation
-   if (P::amrMaxSpatialRefLevel > 0) {
-      prepareSeedIdsAndPencils(mpiGrid);
-   }
+   prepareSeedIdsAndPencils(mpiGrid);
 }
 
 /*
@@ -1588,6 +1589,6 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    }
 
    // ghost translation cell lists, amr communication flags, build pencils
-   prepareAMRFlagLists(mpiGrid);
+   prepareAMRLists(mpiGrid);
    return true;
 }
