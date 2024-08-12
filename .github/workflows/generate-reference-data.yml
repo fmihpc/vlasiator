@@ -1,4 +1,4 @@
-name: Generate testpackage reference data
+name: Generate testpackage reference data on Carrington
 
 on:
   # Only run when triggered manually
@@ -12,8 +12,17 @@ jobs:
     runs-on: carrington
 
     steps:
+    - name: Clean workspace
+      run: |
+        RUN_STRING=$( cat << MORO
+        rm -rf libraries library-build testpackage
+        rm -f libraries.tar.zst testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+        rm -f *.xml
+        MORO
+        )
+        srun -M carrington bash -c "$RUN_STRING"
     - name: Checkout source
-      uses: actions/checkout@v3 
+      uses: actions/checkout@v4
       with:
         submodules: true
     - name: Make clean
@@ -21,13 +30,16 @@ jobs:
     - uses: ursg/gcc-problem-matcher@master
     - name: Compile vlasiator (Testpackage build)
       run: |
-        export VLASIATOR_ARCH=carrington_gcc_openmpi
-        srun -M carrington --job-name tp_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p short -t 0:10:0 bash -c 'module purge; module load GCC/11.2.0; module load OpenMPI/4.1.1-GCC-11.2.0 ; module load PMIx/4.1.0-GCCcore-11.2.0; module load PAPI/6.0.0.1-GCCcore-11.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make -j 16 testpackage; sleep 10s'
-    - name: Sleep for 10 seconds
-      run: sleep 10s
-      shell: bash
+        srun -M carrington --job-name CI_ref_tp_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p short -t 0:10:0 bash -c 'module purge; module load GCC/11.2.0; module load OpenMPI/4.1.1-GCC-11.2.0 ; module load PMIx/4.1.0-GCCcore-11.2.0; module load PAPI/6.0.0.1-GCCcore-11.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make -j 16 testpackage; sleep 10s'
+    - name: Make sure the output binary is visible in lustre
+      uses: nick-fields/retry@v3
+      with:
+        timeout_seconds: 15
+        max_attempts: 3
+        retry_on: error
+        command: ls vlasiator
     - name: Upload testpackage binary
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: vlasiator-testpackage
         path: vlasiator
@@ -45,11 +57,11 @@ jobs:
 
     steps:
     - name: Checkout source
-      uses: actions/checkout@v3 
+      uses: actions/checkout@v4
       with:
         submodules: true
     - name: Download testpackage binary
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: vlasiator-testpackage
     - name: Run testpackage
@@ -60,6 +72,6 @@ jobs:
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries/lib
         # Fudge the run script
         sed -i 's/\/proj\/USERNAME\/BINARYNAME/$GITHUB_WORKSPACE\/vlasiator/' ./small_test_carrington.sh
-        sbatch -W -o testpackage_run_output.txt ./small_test_carrington.sh
+        sbatch -W -o testpackage_run_output.txt --job-name CI_ref_generate ./small_test_carrington.sh
         cat testpackage_run_output.txt
     # We don't bother to create artefacts or anything here.

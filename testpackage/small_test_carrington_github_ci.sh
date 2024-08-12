@@ -40,6 +40,9 @@ module load OpenMPI/4.1.1-GCC-11.2.0
 module load PMIx/4.1.0-GCCcore-11.2.0
 module load PAPI/6.0.0.1-GCCcore-11.2.0
 
+# send JOB ID to output usable by CI eg to scancel this job
+echo "SLURM_JOB_ID=$SLURM_JOB_ID" >> $GITHUB_OUTPUT
+
 #--------------------------------------------------------------------
 #---------------------DO NOT TOUCH-----------------------------------
 nodes=$SLURM_NNODES
@@ -53,6 +56,9 @@ units_per_node=$(echo $cores_per_node $ht | gawk '{print $1*$2}')
 tasks=$(echo $total_units $t  | gawk '{print $1/$2}')
 tasks_per_node=$(echo $units_per_node $t  | gawk '{print $1/$2}')
 export OMP_NUM_THREADS=$t
+
+# With this the code won't print the warning, so we have a shorter report
+export OMPI_MCA_io="^ompio"
 
 #command for running stuff
 run_command="mpirun --mca btl self -mca pml ^vader,tcp,openib,uct,yalla -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_TLS=rc,sm -x UCX_IB_ADDR_TYPE=ib_global -np $tasks"
@@ -76,6 +82,11 @@ if [ $create_verification_files == 1 ]; then
    exit 1
 fi
 
+# define tab interval sequence so that we have aligned output
+# this is now covering at least up proton/vg_ptensor_nonthermal_offdiagonal_0 and numbers printed at setprecision(3) with negative mantissa and exponent
+tabseq="1,46,62,78,94,110"
+tabs $tabseq &> /dev/null # suppress special character output, list matches expand below
+
 # Note we are *not* using run_tests.sh here, as we are creating JUnit XML output.
 
 # Get absolute paths
@@ -90,6 +101,10 @@ flags=$(  $run_command $bin  --version |grep CXXFLAGS)
 solveropts=$(echo $flags|sed 's/[-+]//g' | gawk '{for(i = 1;i<=NF;i++) { if( $i=="DDP" || $i=="DFP" || index($i,"PF")|| index($i,"DVEC") || index($i,"SEMILAG") ) printf "__%s", $(i) }}')
 revision=$( $run_command $bin --version |gawk '{if(flag==1) {print $1;flag=0}if ($3=="log") flag=1;}' )
 
+echo "----------"
+echo "This will be verifying ${revision}_$solveropts against $reference_revision"
+echo "----------"
+
 #$small_run_command $bin --version > VERSION.txt 2> $GITHUB_WORKSPACE/stderr.txt
 
 echo -e "### Testpackage output:\n" >> $GITHUB_STEP_SUMMARY
@@ -101,7 +116,6 @@ FAILEDTESTS=0
 
 # loop over different test cases
 for run in ${run_tests[*]}; do
-   echo "running ${test_name[$run]} "
    # directory for test results
    vlsv_dir=${run_dir}/${test_name[$run]}
    cfg_dir=${test_dir}/${test_name[$run]}
@@ -149,16 +163,17 @@ for run in ${run_tests[*]}; do
 
    ##Compare test case with right solutions
    { {
-   echo "--------------------------------------------------------------------------------------------"
-   echo "${test_name[$run]}  -  Verifying ${revision}_$solveropts against $reference_revision"
-   echo "--------------------------------------------------------------------------------------------"
+   echo -e "\n"
+   echo "----------"
+   echo "running ${test_name[$run]} "
+   echo "----------"
    } 2>&1 1>&3 3>&- | tee -a $GITHUB_WORKSPACE/stderr.txt;} 3>&1 1>&2 | tee -a $GITHUB_WORKSPACE/stdout.txt
    reference_result_dir=${reference_dir}/${reference_revision}/${test_name[$run]}
 
    { {
-   echo "------------------------------------------------------------"
-   echo " ref-time     |   new-time       |  speedup                |"
-   echo "------------------------------------------------------------"
+   echo "--------------------------------"
+   echo " ref-time | new-time | speedup |"
+   echo "--------------------------------"
    } 2>&1 1>&3 3>&- | tee -a $GITHUB_WORKSPACE/stderr.txt;} 3>&1 1>&2 | tee -a $GITHUB_WORKSPACE/stdout.txt
    if [ -e  ${reference_result_dir}/${comparison_phiprof[$run]} ]; then
       refPerf=$(grep "Propagate   " ${reference_result_dir}/${comparison_phiprof[$run]} | gawk '(NR==1){print $11}')
@@ -174,10 +189,12 @@ for run in ${run_tests[*]}; do
    #print speedup if both refPerf and newPerf are numerical values
    speedup=$( echo $refPerf $newPerf |gawk '{if($2 == $2 + 0 && $1 == $1 + 0 ) print $1/$2; else print "NA"}')
    { {
-   echo  "$refPerf        $newPerf         $speedup"
-   echo "------------------------------------------------------------"
-   echo "  variable     |     absolute diff     |     relative diff | "
-   echo "------------------------------------------------------------"
+   tabs 1,12,23 &> /dev/null # match next line
+   echo  -e " $refPerf\t$newPerf\t$speedup" | expand -t 1,12,23 # match previous line
+   echo "-------------------------------------------"
+   tabs $tabseq &> /dev/null # reset for other printouts
+   echo -e " variable\t| absolute diff\t| relative diff |" | expand -t $tabseq # list matches tabs above
+   echo "-------------------------------------------"
    } 2>&1 1>&3 3>&- | tee -a $GITHUB_WORKSPACE/stderr.txt;} 3>&1 1>&2 | tee -a $GITHUB_WORKSPACE/stdout.txt
 
    {
@@ -200,12 +217,12 @@ for run in ${run_tests[*]}; do
        echo $TOCOMPAREFILES > $RUNNER_TEMP/TOCOMPAREFILES.txt
        if [ ! -f "${vlsv_dir}/${vlsv}" ]; then
            echo "Output file ${vlsv_dir}/${vlsv} not found!"
-           echo "--------------------------------------------------------------------------------------------"
+           echo "----------"
            continue
        fi
        if [ ! -f "${reference_result_dir}/${vlsv}" ]; then
             echo "Reference file ${reference_result_dir}/${vlsv} not found!"
-           echo "--------------------------------------------------------------------------------------------"
+           echo "----------"
            continue
        fi
        echo "Comparing file ${vlsv_dir}/${vlsv} against reference"
@@ -220,7 +237,7 @@ for run in ${run_tests[*]}; do
                relativeValue=$(grep "The relative 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                #print the results
-               echo "${variables[$i]}_${indices[$i]}                $absoluteValue                 $relativeValue    "
+               echo -e " ${variables[$i]}_${indices[$i]}\t  ${absoluteValue}\t  ${relativeValue}" | expand -t $tabseq #list matches tabs above
 
                # Also log to metrics file
                echo "test_carrington{test=\"${test_name[$run]}\",var=\"${variables[$i]}\",index=\"${indices[$i]}\",diff=\"absolute\"} $absoluteValue" >> $GITHUB_WORKSPACE/metrics.txt
@@ -243,7 +260,7 @@ for run in ${run_tests[*]}; do
                relativeValue=$(grep "The relative 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                # print the results
-               echo "${variables[$i]}_${indices[$i]}                $absoluteValue                 $relativeValue    "
+               echo -e " ${variables[$i]}_${indices[$i]}\t  ${absoluteValue}\t  ${relativeValue}" | expand -t $tabseq # list matches tabs above
 
                # Also log to metrics file
                echo "test_carrington{test=\"${test_name[$run]}\",var=\"${variables[$i]}\",index=\"${indices[$i]}\",diff=\"absolute\"} $absoluteValue" >> $GITHUB_WORKSPACE/metrics.txt
@@ -266,7 +283,7 @@ for run in ${run_tests[*]}; do
                relativeValue=$(grep "The relative 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                #print the results
-               echo "${variables[$i]}_${indices[$i]}                $absoluteValue                 $relativeValue    "
+               echo -e " ${variables[$i]}_${indices[$i]}\t  ${absoluteValue}\t  ${relativeValue}" | expand -t $tabseq # list matches tabs above
 
                # Also log to metrics file
                echo "test_carrington{test=\"${test_name[$run]}\",var=\"${variables[$i]}\",index=\"${indices[$i]}\",diff=\"absolute\"} $absoluteValue" >> $GITHUB_WORKSPACE/metrics.txt
@@ -285,9 +302,9 @@ for run in ${run_tests[*]}; do
 
            elif [ "${variables[$i]}" == "proton" ]
            then
-               echo "--------------------------------------------------------------------------------------------"
-               echo "   Distribution function diff                                                               "
-               echo "--------------------------------------------------------------------------------------------"
+               echo "----------"
+               echo "Distribution function diff"
+               echo "----------"
                $run_command_tools $diffbin ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} proton 0
            fi
 
@@ -303,7 +320,7 @@ for run in ${run_tests[*]}; do
        else
            echo "VLSV file timestamps match."
        fi
-       echo "--------------------------------------------------------------------------------------------"
+       echo "----------"
 
        # This loop runs in a subshell (because of the stdout and stderr capture below),
        # so we save the variables to temp files
@@ -318,7 +335,6 @@ for run in ${run_tests[*]}; do
 
    done 2>&1 1>&3 3>&- | tee -a $GITHUB_WORKSPACE/stderr.txt; } 3>&1 1>&2 | tee -a $GITHUB_WORKSPACE/stdout.txt
    # end loop over vlsvfiles
-   echo "--------------------------------------------------------------------------------------------"
 
    # Recover error variables
    COMPAREDFILES=`cat $RUNNER_TEMP/COMPAREDFILES.txt`

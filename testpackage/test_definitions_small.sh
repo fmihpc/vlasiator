@@ -136,7 +136,7 @@ variable_components[${index}]="0 0 1 2"
 
 # 13 Large AMR translation flowthrough test
 test_name[${index}]="Flowthrough_amr"
-comparison_vlsv[${index}]="bulk.0000001.vlsv bulk.0000002.vlsv bulk.0000003.vlsv bulk.0000004.vlsv"
+comparison_vlsv[${index}]="bulk.0000001.vlsv"
 comparison_phiprof[${index}]="phiprof_0.txt"
 variable_names[${index}]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e"
 variable_components[${index}]="0 0 1 2 0 1 2 0 1 2"
@@ -144,10 +144,10 @@ variable_components[${index}]="0 0 1 2 0 1 2 0 1 2"
 
 # 14 Large (dynamic) AMR translation flowthrough test
 test_name[${index}]="Flowthrough_damr"
-comparison_vlsv[${index}]="bulk.0000001.vlsv"
+comparison_vlsv[${index}]="bulk.0000001.vlsv bulk.0000002.vlsv bulk.0000003.vlsv bulk.0000004.vlsv"
 comparison_phiprof[${index}]="phiprof_0.txt"
 variable_names[${index}]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v vg_amr_alpha1 vg_amr_alpha2 fg_b fg_b fg_b fg_e fg_e fg_e"
-variable_components[${index}]="0 0 1 2 0 1 2 0 1 2"
+variable_components[${index}]="0 0 1 2 0 0 0 1 2 0 1 2"
 ((index+=1))
 
 # TBA: Large flowthrough test with dAMR
