@@ -1576,13 +1576,16 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
 	// This needs to be done before LB
    sysBoundaries.classifyCells(mpiGrid,technicalGrid);
 
-   phiprof::Timer updateAllDataTimer {"update all data of new remote cells"};
-   SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
+   SpatialCell::set_mpi_transfer_type(Transfer::CELL_PARAMETERS);
    mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
-   updateAllDataTimer.stop();
+   SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
+   mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
 
    // Is this needed?
    technicalGrid.updateGhostCells(); // This needs to be done at some point
+   for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
+      updateRemoteVelocityBlockLists(mpiGrid, p, NEAREST_NEIGHBORHOOD_ID);
+   }
 
    if (P::shouldFilter) {
       project.filterRefined(mpiGrid);
