@@ -5,7 +5,7 @@ using namespace spatial_cell;
 
 #include "cpu_trans_pencils.hpp"
 
-// Cell lists for local translation
+// Cell lists for ghost translation
 std::unordered_set<CellID> ghostTranslate_sources_x;
 std::unordered_set<CellID> ghostTranslate_sources_y;
 std::unordered_set<CellID> ghostTranslate_sources_z;
@@ -637,7 +637,7 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
 /* Select one nearest neighbor of a cell on the + side in a given dimension. If the neighbor
  * has a higher level of refinement, a path variable is needed to make the selection.
  * Returns INVALID_CELLID if the nearest neighbor is not local to this process.
- * (or, if activated, not included in the translation list for local translation)
+ * (or, if activated, not included in the translation list for ghost translation)
  *
  * @param grid DCCRG grid object
  * @param id DCCRG cell id

@@ -226,7 +226,8 @@ void calculateSpatialTranslation(
 }
 
 /** Propagates the distribution function in spatial space.
-    Now does extra calculations on ghost cells locally without interim MPI communication.
+    Now does all required calculations on ghost cells,
+    coalescing all interim MPI communication into one call..
 
     Based on SLICE-3D algorithm: Zerroukat, M., and T. Allen. "A
     three-dimensional monotone and conservative semi-Lagrangian scheme
@@ -243,20 +244,20 @@ void calculateSpatialGhostTranslation(
    Real &time
    ) {
 
-   // Local translation, need all cell information, not just for a single direction
+   // Ghost translation, need all cell information, not just for a single direction
    // TODO: purge AMR translation flags as not needed with new neighbourhoods
    bool AMRtranslationActive = false;
 
    phiprof::Timer transferTimer {"transfer-stencil-data-all",{"MPI"}};
-   updateRemoteVelocityBlockLists(mpiGrid,popID,FULL_NEIGHBORHOOD_ID); // already done in ACC under adjustVelocityBlocks, repeated just to be safe
-   SpatialCell::set_mpi_transfer_direction(0); // Local translation would use just the X flag
-   //SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false,AMRtranslationActive);
-   SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA,false,AMRtranslationActive); // all data to be safe
+   //updateRemoteVelocityBlockLists(mpiGrid,popID,FULL_NEIGHBORHOOD_ID); // already done in ACC under adjustVelocityBlocks, repeated just to be safe
+   //SpatialCell::set_mpi_transfer_direction(0); // Ghost translation would use just the X flag
+   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false,AMRtranslationActive);
+   //SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA,false,AMRtranslationActive); // all data to be safe
    mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
    transferTimer.stop();
    MPI_Barrier(MPI_COMM_WORLD);
 
-   //#warning TODO: Implement also 2D / non-AMR local translation
+   //#warning TODO: Implement also 2D / non-AMR ghost translation?
    // ------------- SLICE - map dist function in Z --------------- //
    phiprof::Timer mappingZTimer {"compute-mapping-z"};
    trans_map_1d_amr(mpiGrid,local_propagated_cells, nPencils, 2, dt,popID); // map along z//
@@ -271,14 +272,6 @@ void calculateSpatialGhostTranslation(
    phiprof::Timer mappingYTimer {"compute-mapping-y"};
    trans_map_1d_amr(mpiGrid,local_propagated_cells, nPencils, 1,dt,popID); // map along y//
    mappingYTimer.stop();
-
-   // Now let's update again just to be sure to get neighbour info correct for boundaries etc
-   transferTimer.start();
-   // updateRemoteVelocityBlockLists(mpiGrid,popID,FULL_NEIGHBORHOOD_ID); // already done in ACC under adjustVelocityBlocks
-   SpatialCell::set_mpi_transfer_direction(0); // Local translation uses just the X flag
-   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false,AMRtranslationActive);
-   mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
-   transferTimer.stop();
 
    return;
 }

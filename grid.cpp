@@ -384,12 +384,6 @@ void initializeGrids(
       P::dt = P::bailout_min_dt;
    }
 
-   // phiprof::Timer communicateSysbTimer {"update sysb flags"};
-   // // Needed for building ghost pencils
-   // SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
-   // mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
-   // communicateSysbTimer.stop();
-
    // With all cell data in place, make preparations for translation
    prepareAMRLists(mpiGrid);
    initialStateTimer.stop();
@@ -1105,37 +1099,39 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       abort();
    }
 
-   neighborhood.clear();
-   for (int d = -VLASOV_STENCIL_WIDTH-1; d <= VLASOV_STENCIL_WIDTH+1; d++) {
-     if (d != 0) {
-        neighborhood.push_back({{d, 0, 0}});
-     }
-   }
-   if (!mpiGrid.add_neighborhood(VLASOV_SOLVER_X_GHOST_NEIGHBORHOOD_ID, neighborhood)){
-      std::cerr << "Failed to add neighborhood VLASOV_SOLVER_X_GHOST_NEIGHBORHOOD_ID \n";
-      abort();
-   }
+   if (P::vlasovSolverGhostTranslate) {
+      neighborhood.clear();
+      for (int d = -VLASOV_STENCIL_WIDTH-1; d <= VLASOV_STENCIL_WIDTH+1; d++) {
+         if (d != 0) {
+            neighborhood.push_back({{d, 0, 0}});
+         }
+      }
+      if (!mpiGrid.add_neighborhood(VLASOV_SOLVER_X_GHOST_NEIGHBORHOOD_ID, neighborhood)){
+         std::cerr << "Failed to add neighborhood VLASOV_SOLVER_X_GHOST_NEIGHBORHOOD_ID \n";
+         abort();
+      }
 
-   neighborhood.clear();
-   for (int d = -VLASOV_STENCIL_WIDTH-1; d <= VLASOV_STENCIL_WIDTH+1; d++) {
-     if (d != 0) {
-        neighborhood.push_back({{0, d, 0}});
-     }
-   }
-   if (!mpiGrid.add_neighborhood(VLASOV_SOLVER_Y_GHOST_NEIGHBORHOOD_ID, neighborhood)){
-      std::cerr << "Failed to add neighborhood VLASOV_SOLVER_Y_GHOST_NEIGHBORHOOD_ID \n";
-      abort();
-   }
+      neighborhood.clear();
+      for (int d = -VLASOV_STENCIL_WIDTH-1; d <= VLASOV_STENCIL_WIDTH+1; d++) {
+         if (d != 0) {
+            neighborhood.push_back({{0, d, 0}});
+         }
+      }
+      if (!mpiGrid.add_neighborhood(VLASOV_SOLVER_Y_GHOST_NEIGHBORHOOD_ID, neighborhood)){
+         std::cerr << "Failed to add neighborhood VLASOV_SOLVER_Y_GHOST_NEIGHBORHOOD_ID \n";
+         abort();
+      }
 
-   neighborhood.clear();
-   for (int d = -VLASOV_STENCIL_WIDTH-1; d <= VLASOV_STENCIL_WIDTH+1; d++) {
-     if (d != 0) {
-        neighborhood.push_back({{0, 0, d}});
-     }
-   }
-   if (!mpiGrid.add_neighborhood(VLASOV_SOLVER_Z_GHOST_NEIGHBORHOOD_ID, neighborhood)){
-      std::cerr << "Failed to add neighborhood VLASOV_SOLVER_Z_GHOST_NEIGHBORHOOD_ID \n";
-      abort();
+      neighborhood.clear();
+      for (int d = -VLASOV_STENCIL_WIDTH-1; d <= VLASOV_STENCIL_WIDTH+1; d++) {
+         if (d != 0) {
+            neighborhood.push_back({{0, 0, d}});
+         }
+      }
+      if (!mpiGrid.add_neighborhood(VLASOV_SOLVER_Z_GHOST_NEIGHBORHOOD_ID, neighborhood)){
+         std::cerr << "Failed to add neighborhood VLASOV_SOLVER_Z_GHOST_NEIGHBORHOOD_ID \n";
+         abort();
+      }
    }
 
    neighborhood.clear();
@@ -1576,13 +1572,18 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
 	// This needs to be done before LB
    sysBoundaries.classifyCells(mpiGrid,technicalGrid);
 
-   SpatialCell::set_mpi_transfer_type(Transfer::CELL_PARAMETERS);
-   mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
-   SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
-   mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
+   if (P::vlasovSolverGhostTranslate) {
+      SpatialCell::set_mpi_transfer_type(Transfer::CELL_PARAMETERS);
+      mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
+      SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
+      mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
+   } else {
+      SpatialCell::set_mpi_transfer_type(Transfer::CELL_PARAMETERS);
+      mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
+   }
 
    // Is this needed?
-   technicalGrid.updateGhostCells(); // This needs to be done at some point
+   //technicalGrid.updateGhostCells(); // This needs to be done at some point
    for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
       updateRemoteVelocityBlockLists(mpiGrid, p, NEAREST_NEIGHBORHOOD_ID);
    }
