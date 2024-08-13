@@ -188,9 +188,6 @@ namespace CellParams {
       FSGRID_BOUNDARYTYPE, /*!< Boundary type of this cell, as stored in the fsGrid */
       CELLID, /*! < DCCRG cell index */
       REFINEMENT_LEVEL, /*! < Refinement level */
-      AMR_TRANSLATE_COMM_X, /*! < Flag to include this cell in AMR pre-translate communication  */
-      AMR_TRANSLATE_COMM_Y, /*! < Flag to include this cell in AMR pre-translate communication  */
-      AMR_TRANSLATE_COMM_Z, /*! < Flag to include this cell in AMR pre-translate communication  */
       CONNECTION, /*!< Magnetic connection. See TracingPointConnectionType for assigned values. */
       CONNECTION_FW_X, /*!< Endpoint x (forward-propagated) for the magnetic connection tracer*/
       CONNECTION_FW_Y, /*!< Endpoint y (forward-propagated) for the magnetic connection tracer*/

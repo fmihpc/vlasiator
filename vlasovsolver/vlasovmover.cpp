@@ -76,9 +76,6 @@ void calculateSpatialTranslation(
         Real &time
 ) {
 
-    bool AMRtranslationActive = false;
-    if (P::amrMaxSpatialRefLevel > 0) AMRtranslationActive = true;
-
     double t1;
 
     int myRank;
@@ -93,8 +90,7 @@ void calculateSpatialTranslation(
 
       phiprof::Timer transTimer {"transfer-stencil-data-z", {"MPI"}};
       //updateRemoteVelocityBlockLists(mpiGrid,popID,VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
-      SpatialCell::set_mpi_transfer_direction(2);
-      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false,AMRtranslationActive);
+      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false);
       mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
       transTimer.stop();
 
@@ -138,8 +134,7 @@ void calculateSpatialTranslation(
       
       phiprof::Timer transTimer {"transfer-stencil-data-x", {"MPI"}};
       //updateRemoteVelocityBlockLists(mpiGrid,popID,VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
-      SpatialCell::set_mpi_transfer_direction(0);
-      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false,AMRtranslationActive);
+      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false);
       mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
       transTimer.stop();
       
@@ -182,8 +177,7 @@ void calculateSpatialTranslation(
       
       phiprof::Timer transTimer {"transfer-stencil-data-y", {"MPI"}};
       //updateRemoteVelocityBlockLists(mpiGrid,popID,VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
-      SpatialCell::set_mpi_transfer_direction(1);
-      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false,AMRtranslationActive);
+      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false);
       mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
       transTimer.stop();
       
@@ -245,14 +239,9 @@ void calculateSpatialGhostTranslation(
    ) {
 
    // Ghost translation, need all cell information, not just for a single direction
-   // TODO: purge AMR translation flags as not needed with new neighbourhoods
-   bool AMRtranslationActive = false;
 
    phiprof::Timer transferTimer {"transfer-stencil-data-all",{"MPI"}};
-   //updateRemoteVelocityBlockLists(mpiGrid,popID,FULL_NEIGHBORHOOD_ID); // already done in ACC under adjustVelocityBlocks, repeated just to be safe
-   //SpatialCell::set_mpi_transfer_direction(0); // Ghost translation would use just the X flag
-   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false,AMRtranslationActive);
-   //SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA,false,AMRtranslationActive); // all data to be safe
+   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false);
    mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
    transferTimer.stop();
    MPI_Barrier(MPI_COMM_WORLD);

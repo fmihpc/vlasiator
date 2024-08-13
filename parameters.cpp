@@ -415,7 +415,7 @@ bool P::addParameters() {
                         "ig_precipitation ig_deltaphi "+
                         "ig_inplanecurrent ig_b ig_e vg_drift vg_ionospherecoupling vg_connection vg_fluxrope fg_curvature "+
                         "vg_amr_drho vg_amr_du vg_amr_dpsq vg_amr_dbsq vg_amr_db vg_amr_alpha1 vg_amr_reflevel vg_amr_alpha2 "+
-                        "vg_amr_translate_comm vg_gridcoordinates fg_gridcoordinates ");
+                        "vg_gridcoordinates fg_gridcoordinates ");
 
    RP::addComposing(
        "variables_deprecated.output",

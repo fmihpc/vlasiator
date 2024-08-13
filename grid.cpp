@@ -317,7 +317,7 @@ void initializeGrids(
    balanceLoad(mpiGrid, sysBoundaries, true);
    // Function includes re-calculation of local cells cache, but
    // setting third parameter to true skips preparation of
-   // translation cell lists, amr communication flags, and building of pencils.
+   // translation cell lists and building of pencils.
 
    phiprof::Timer fetchNeighbourTimer {"Fetch Neighbour data", {"MPI"}};
    // update complete cell spatial data for full stencil
@@ -619,7 +619,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    }
    initSolversTimer.stop();
 
-   // Prepare AMR communication flags, ghost translation cell lists, and build pencils for translation.
+   // Prepare ghost translation cell lists and build pencils for translation.
    if (!skipTranslationLists) {
       prepareAMRLists(mpiGrid);
    }
@@ -631,7 +631,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    }
 }
 
-/* helper for calculating AMR flags, cell lists, and building pencils
+/* helper for calculating AMR cell lists and building pencils
  */
 void prepareAMRLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid)
 {
@@ -654,11 +654,6 @@ void prepareAMRLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
       ghostListsTimer.stop();
 
       ghostTimer.stop();
-   } else {
-      // flag transfers per translation direction
-      phiprof::Timer computeFlagsListTimer {"prepare_amr_translation_communication_lists"};
-      flagSpatialCellsForAmrCommunication(mpiGrid,localCells);
-      computeFlagsListTimer.stop();
    }
 
    // Prepare cellIDs and pencils for AMR translation
@@ -1592,7 +1587,7 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
       project.filterRefined(mpiGrid);
    }
 
-   // ghost translation cell lists, amr communication flags, build pencils
+   // ghost translation cell lists, build pencils
    prepareAMRLists(mpiGrid);
    return true;
 }
