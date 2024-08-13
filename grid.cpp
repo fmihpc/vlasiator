@@ -218,7 +218,7 @@ void initializeGrids(
    std::map<int, std::set<CellID> > onFsgridMapRemoteProcess; 
    std::map<CellID, std::vector<int64_t> >  onFsgridMapCells;
 
-   computeCoupling(mpiGrid, cells, momentsGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells);
+   computeCoupling(mpiGrid, cells, technicalGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells);
 
    // We want this before restart refinement
    phiprof::Timer classifyTimer {"Classify cells (sys boundary conditions)"};
@@ -362,6 +362,7 @@ void initializeGrids(
    volGrid.updateGhostCells();
    fsGridGhostTimer.stop();
    phiprof::Timer getFieldsTimer {"getFieldsFromFsGrid"};
+   computeCoupling(mpiGrid, cells, volGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells);
    getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, technicalGrid, mpiGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells, cells);
    getFieldsTimer.stop();
 
@@ -385,7 +386,10 @@ void initializeGrids(
          calculateCellMoments(mpiGrid[cells[i]], true, true);
       }
    }
-   
+
+   // recompute coupling
+   computeCoupling(mpiGrid, cells, momentsGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells);
+
    phiprof::Timer finishFSGridTimer {"Finish fsgrid setup"};
    feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid, technicalGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells, false);
    if(!P::isRestart) {
