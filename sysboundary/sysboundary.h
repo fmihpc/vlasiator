@@ -71,7 +71,10 @@ class SysBoundary {
    bool existSysBoundary(std::string name);
    void checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
    void classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid);
+                     FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, 
+                     std::map<int, std::set<CellID> >& onDccrgMapRemoteProcess,
+                     std::map<int, std::set<CellID> >& onFsgridMapRemoteProcess,
+                     std::map<CellID, std::vector<int64_t> >&  onFsgridMapCells);
    void applyInitialState(
                           dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                           FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,

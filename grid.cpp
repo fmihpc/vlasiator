@@ -20,6 +20,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include "common.h"
 #include <cstdlib>
 #include <iostream>
 #include <iomanip> // for setprecision()
@@ -211,9 +212,17 @@ void initializeGrids(
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_DIMENSIONS);
    mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
 
+   // computing coupling
+   // Datastructure for coupling
+   std::map<int, std::set<CellID> > onDccrgMapRemoteProcess; 
+   std::map<int, std::set<CellID> > onFsgridMapRemoteProcess; 
+   std::map<CellID, std::vector<int64_t> >  onFsgridMapCells;
+
+   computeCoupling(mpiGrid, cells, momentsGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells);
+
    // We want this before restart refinement
    phiprof::Timer classifyTimer {"Classify cells (sys boundary conditions)"};
-   sysBoundaries.classifyCells(mpiGrid,technicalGrid);
+   sysBoundaries.classifyCells(mpiGrid,technicalGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells);
    classifyTimer.stop();
    
    if (P::isRestart) {
@@ -349,14 +358,6 @@ void initializeGrids(
    BgBGrid.updateGhostCells();
    EGrid.updateGhostCells();
 
-   // computing coupling
-   // Datastructure for coupling
-   std::map<int, std::set<CellID> > onDccrgMapRemoteProcess; 
-   std::map<int, std::set<CellID> > onFsgridMapRemoteProcess; 
-   std::map<CellID, std::vector<int64_t> >  onFsgridMapCells;
-
-   computeCoupling(mpiGrid, cells, momentsGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells);
-
    // This will only have the BGB set up properly at this stage but we need the BGBvol for the Vlasov boundaries below.
    volGrid.updateGhostCells();
    fsGridGhostTimer.stop();
@@ -389,9 +390,9 @@ void initializeGrids(
    feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid, technicalGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells, false);
    if(!P::isRestart) {
       // WARNING this means moments and dt2 moments are the same here at t=0, which is a feature so far.
-      feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells, false);
+      feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid, technicalGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells, false);
    } else {
-      feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells, technicalGrid, true);
+      feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid, technicalGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells, true);
    }
    momentsGrid.updateGhostCells();
    momentsDt2Grid.updateGhostCells();
@@ -1552,9 +1553,21 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
 
    mapRefinement(mpiGrid, technicalGrid);
 
+   const vector<CellID>& cellsVec = getLocalCells();
+
+   // computing coupling
+   // Datastructure for coupling
+   std::map<int, std::set<CellID> > onDccrgMapRemoteProcess; 
+   std::map<int, std::set<CellID> > onFsgridMapRemoteProcess; 
+   std::map<CellID, std::vector<int64_t> >  onFsgridMapCells;
+
+
+
+   computeCoupling(mpiGrid, cellsVec, technicalGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells);
+
    // Initialise system boundary conditions (they need the initialised positions!!)
 	// This needs to be done before LB
-   sysBoundaries.classifyCells(mpiGrid,technicalGrid);
+   sysBoundaries.classifyCells(mpiGrid,technicalGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells);
 
    //SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_PARAMETERS);

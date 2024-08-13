@@ -30,68 +30,6 @@ int getNumberOfCellsOnMaxRefLvl(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
 }
 
 
-/*Compute coupling DCCRG <=> FSGRID 
-
-  onDccrgMapRemoteProcess   maps fsgrid processes (key) => set of dccrg cellIDs owned by current rank that map to  the fsgrid cells owned by fsgrid process (val)
-
-  onFsgridMapRemoteProcess  maps dccrg processes  (key) => set of dccrg cellIDs owned by dccrg-process that map to current rank fsgrid cells 
-  onFsgridMapCells          maps remote dccrg CellIDs to local fsgrid cells
-*/
-
-template <typename T, int stencil> void computeCoupling(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-							const std::vector<CellID>& cells,
-							FsGrid< T, stencil>& momentsGrid,
-							std::map<int, std::set<CellID> >& onDccrgMapRemoteProcess,
-							std::map<int, std::set<CellID> >& onFsgridMapRemoteProcess,
-							std::map<CellID, std::vector<int64_t> >& onFsgridMapCells
-							) {
-    
-  //sorted list of dccrg cells. cells is typicall already sorted, but just to make sure....
-  std::vector<CellID> dccrgCells = cells;
-  std::sort(dccrgCells.begin(), dccrgCells.end());
-
-  //make sure the datastructures are clean
-  onDccrgMapRemoteProcess.clear();
-  onFsgridMapRemoteProcess.clear();
-  onFsgridMapCells.clear();
-  
-  
-  //size of fsgrid local part
-  const std::array<FsGridTools::FsIndex_t, 3> gridDims(momentsGrid.getLocalSize());
-  
- 
-  //Compute what we will receive, and where it should be stored
-  for (FsGridTools::FsIndex_t k=0; k<gridDims[2]; k++) {
-    for (FsGridTools::FsIndex_t j=0; j<gridDims[1]; j++) {
-      for (FsGridTools::FsIndex_t i=0; i<gridDims[0]; i++) {
-        const std::array<FsGridTools::FsIndex_t, 3> globalIndices = momentsGrid.getGlobalIndices(i,j,k);
-        const dccrg::Types<3>::indices_t  indices = {{(uint64_t)globalIndices[0],
-                        (uint64_t)globalIndices[1],
-                        (uint64_t)globalIndices[2]}}; //cast to avoid warnings
-        CellID dccrgCell = mpiGrid.get_existing_cell(indices, 0, mpiGrid.mapping.get_maximum_refinement_level());
-        
-        int process = mpiGrid.get_process(dccrgCell);
-        FsGridTools::LocalID fsgridLid = momentsGrid.LocalIDForCoords(i,j,k);
-        //int64_t  fsgridGid = momentsGrid.GlobalIDForCoords(i,j,k);
-        onFsgridMapRemoteProcess[process].insert(dccrgCell); //cells are ordered (sorted) in set
-        onFsgridMapCells[dccrgCell].push_back(fsgridLid);
-      }
-    }
-  }
-
-  // Compute where to send data and what to send
-  for(uint64_t i=0; i< dccrgCells.size(); i++) {
-     //compute to which processes this cell maps
-     std::vector<CellID> fsCells = mapDccrgIdToFsGridGlobalID(mpiGrid, dccrgCells[i]);
-
-     //loop over fsgrid cells which this dccrg cell maps to
-     for (auto const &fsCellID : fsCells) {
-       int process = momentsGrid.getTaskForGlobalID(fsCellID).first; //process on fsgrid
-       onDccrgMapRemoteProcess[process].insert(dccrgCells[i]); //add to map
-     }    
-  }
-}
-
 /*
 Filter moments after feeding them to FsGrid to alleviate the staircase effect caused in AMR runs.
 This is using a 3D, 5-point stencil triangle kernel.
@@ -150,7 +88,7 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    for (int blurPass = 0; blurPass < Parameters::maxFilteringPasses; blurPass++){
 
       // Blurring Pass
-      #pragma omp parallel for collapse(3)
+      #pragma omp parallel for collapse(2)
       for (FsGridTools::FsIndex_t k = 0; k < mntDims[2]; k++){
          for (FsGridTools::FsIndex_t j = 0; j < mntDims[1]; j++){
             for (FsGridTools::FsIndex_t i = 0; i < mntDims[0]; i++){
@@ -169,7 +107,6 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             
                // Set Cell to zero before passing filter
                swap = swapGrid.get(i,j,k);
-               #pragma omp simd
                for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
                   swap->at(e)=0.0;
                }
@@ -179,7 +116,6 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                   for (int b=-kernelOffset; b<=kernelOffset; b++){
                      for (int a=-kernelOffset; a<=kernelOffset; a++){
                         cell = momentsGrid.get(i+a,j+b,k+c);
-                        #pragma omp simd
                         for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
                            swap->at(e)+=cell->at(e) *kernel[kernelOffset+a][kernelOffset+b][kernelOffset+c];
                         } 
@@ -187,7 +123,6 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                   }
                }//inner filtering loop
                //divide by the total kernel sum
-               #pragma omp simd
                for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
                   swap->at(e)/=kernelSum;
                }
@@ -536,17 +471,15 @@ std::vector<CellID> mapDccrgIdToFsGridGlobalID(dccrg::Dccrg<SpatialCell,dccrg::C
 
 void feedBoundaryIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 			const std::vector<CellID>& cells,
-			FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
+			FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+         std::map<int, std::set<CellID> >& onDccrgMapRemoteProcess,
+         std::map<int, std::set<CellID> >& onFsgridMapRemoteProcess,
+         std::map<CellID, std::vector<int64_t> >&  onFsgridMapCells) {
 
   int ii;
   //sorted list of dccrg cells. cells is typicall already sorted, but just to make sure....
   std::vector<CellID> dccrgCells = cells;
   std::sort(dccrgCells.begin(), dccrgCells.end());
-
-  //Datastructure for coupling
-  std::map<int, std::set<CellID> > onDccrgMapRemoteProcess; 
-  std::map<int, std::set<CellID> > onFsgridMapRemoteProcess; 
-  std::map<CellID, std::vector<int64_t> >  onFsgridMapCells;
     
   // map receive process => receive buffers 
   std::map<int, std::vector<int> > receivedData; 
@@ -557,9 +490,6 @@ void feedBoundaryIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
   //list of requests
   std::vector<MPI_Request> sendRequests;
   std::vector<MPI_Request> receiveRequests;
-  
-  //computeCoupling
-  computeCoupling(mpiGrid, cells, technicalGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells);
  
   // Post receives
   receiveRequests.resize(onFsgridMapRemoteProcess.size());  
