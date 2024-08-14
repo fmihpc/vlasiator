@@ -132,6 +132,8 @@ template <typename T, int stencil> void computeCoupling(dccrg::Dccrg<SpatialCell
 							std::map<CellID, std::vector<int64_t> >& onFsgridMapCells
 							) {
     
+  phiprof::Timer couplingTimerActual {"CouplingTimerActual"};
+
   //sorted list of dccrg cells. cells is typicall already sorted, but just to make sure....
   std::vector<CellID> dccrgCells = cells;
   std::sort(dccrgCells.begin(), dccrgCells.end());

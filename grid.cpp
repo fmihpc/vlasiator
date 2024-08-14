@@ -1565,8 +1565,6 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    std::map<int, std::set<CellID> > onFsgridMapRemoteProcess; 
    std::map<CellID, std::vector<int64_t> >  onFsgridMapCells;
 
-
-
    computeCoupling(mpiGrid, cellsVec, technicalGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells);
 
    // Initialise system boundary conditions (they need the initialised positions!!)
