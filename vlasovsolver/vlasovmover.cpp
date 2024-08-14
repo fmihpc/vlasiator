@@ -240,6 +240,10 @@ void calculateSpatialGhostTranslation(
 
    // Ghost translation, need all cell information, not just for a single direction
 
+   updateRemoteVelocityBlockLists(mpiGrid,popID,FULL_NEIGHBORHOOD_ID);
+   // Need to re-do in case block lists of boundary cells change after
+   // the block adjustment just after ACC.
+
    phiprof::Timer transferTimer {"transfer-stencil-data-all",{"MPI"}};
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false);
    mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
