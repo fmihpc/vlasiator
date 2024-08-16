@@ -647,18 +647,12 @@ int main(int argn,char* args[]) {
       );
    }
 
-
-   // Datastructure for coupling
-   std::map<int, std::set<CellID> > onDccrgMapRemoteProcess; 
-   std::map<int, std::set<CellID> > onFsgridMapRemoteProcess; 
-   std::map<CellID, std::vector<int64_t> >  onFsgridMapCells;
-
    // computing coupling of grids (recalculated when load balancing)
-   computeCoupling(mpiGrid, cells, momentsGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells);
+   computeCoupling(mpiGrid, cells, momentsGrid, onDccrgMapRemoteProcessGlobal, onFsgridMapRemoteProcessGlobal, onFsgridMapCellsGlobal);
 
    phiprof::Timer getFieldsTimer {"getFieldsFromFsGrid"};
    volGrid.updateGhostCells();
-   getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, technicalGrid, mpiGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells, cells);
+   getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, technicalGrid, mpiGrid, cells);
    getFieldsTimer.stop();
 
    // Build communicator for ionosphere solving
@@ -1120,9 +1114,8 @@ int main(int argn,char* args[]) {
          // moved.
          SBC::ionosphereGrid.updateIonosphereCommunicator(mpiGrid, technicalGrid);
 
-         // Recompute coupling of grids (and get cells just in case)
-         const vector<CellID>& cells = getLocalCells();
-         computeCoupling(mpiGrid, cells, momentsGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells);
+         // recompute coupling of grids after load balance
+         computeCoupling(mpiGrid, cells, momentsGrid, onDccrgMapRemoteProcessGlobal, onFsgridMapRemoteProcessGlobal, onFsgridMapCellsGlobal);
       }
       
       //get local cells
@@ -1225,8 +1218,8 @@ int main(int argn,char* args[]) {
          phiprof::Timer couplingInTimer {"fsgrid-coupling-in"};
          // Copy moments over into the fsgrid.
          //setupTechnicalFsGrid(mpiGrid, cells, technicalGrid);
-         feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid, technicalGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells, false);
-         feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid, technicalGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells, true);
+         feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid, technicalGrid, false);
+         feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid, technicalGrid, true);
          couplingInTimer.stop();
          
          propagateFields(
@@ -1252,7 +1245,7 @@ int main(int argn,char* args[]) {
          // Copy results back from fsgrid.
          volGrid.updateGhostCells();
          technicalGrid.updateGhostCells();
-         getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, technicalGrid, mpiGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells, cells);
+         getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, technicalGrid, mpiGrid, cells);
          getFieldsTimer.stop();
          propagateTimer.stop(cells.size(),"SpatialCells");
          addTimedBarrier("barrier-after-field-solver");

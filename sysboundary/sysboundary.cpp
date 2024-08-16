@@ -350,10 +350,7 @@ bool belongsToLayer(const int layer, const int x, const int y, const int z,
  * \param mpiGrid Grid
  */
 void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                 FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-                                 std::map<int, std::set<CellID> >& onDccrgMapRemoteProcess,
-                                 std::map<int, std::set<CellID> >& onFsgridMapRemoteProcess,
-                                 std::map<CellID, std::vector<int64_t> >&  onFsgridMapCells) {
+                                 FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
                                  const vector<CellID>& cells = getLocalCells();
                                  auto localSize = technicalGrid.getLocalSize().data();
 
@@ -394,7 +391,7 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
    mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
 
-   feedBoundaryIntoFsGrid(mpiGrid, cells, technicalGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells);
+   feedBoundaryIntoFsGrid(mpiGrid, cells, technicalGrid);
 
    // set distance 1 cells to boundary cells, that have neighbors which are normal cells
    for (CellID cell : cells) {

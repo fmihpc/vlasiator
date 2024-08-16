@@ -3,6 +3,13 @@
 #include <fsgrid.hpp>
 #include <vector>
 #include <array>
+#include <map>
+#include <set>
+
+// Datastructure for coupling
+inline std::map<int, std::set<CellID> > onDccrgMapRemoteProcessGlobal; 
+inline std::map<int, std::set<CellID> > onFsgridMapRemoteProcessGlobal; 
+inline std::map<CellID, std::vector<int64_t> >  onFsgridMapCellsGlobal;
 
 enum FieldsToCommunicate {
    PERBXVOL,
@@ -54,9 +61,6 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
                            const std::vector<CellID>& cells,
                            FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
                            FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-                           std::map<int, std::set<CellID> >& onDccrgMapRemoteProcess,
-                           std::map<int, std::set<CellID> >& onFsgridMapRemoteProcess,
-                           std::map<CellID, std::vector<int64_t> >&  onFsgridMapCells,
                            bool dt2=false);
 
 /*! Copy field solver result (VOLB, VOLE, VOLPERB derivatives, gradpe) and store them back into DCCRG
@@ -71,9 +75,6 @@ void getFieldsFromFsGrid(FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS
                         FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
                         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
                         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                        std::map<int, std::set<CellID> >& onDccrgMapRemoteProcess,
-                        std::map<int, std::set<CellID> >& onFsgridMapRemoteProcess,
-                        std::map<CellID, std::vector<int64_t> >&  onFsgridMapCells,
                         const std::vector<CellID>& cells
 );
 
@@ -109,10 +110,7 @@ int getNumberOfCellsOnMaxRefLvl(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
 
 void feedBoundaryIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 			const std::vector<CellID>& cells,
-			FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-         std::map<int, std::set<CellID> >& onDccrgMapRemoteProcess,
-         std::map<int, std::set<CellID> >& onFsgridMapRemoteProcess,
-         std::map<CellID, std::vector<int64_t> >&  onFsgridMapCells);
+			FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid);
 
 /*Compute coupling DCCRG <=> FSGRID 
 
@@ -127,7 +125,7 @@ void feedBoundaryIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 template <typename T, int stencil> void computeCoupling(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 							const std::vector<CellID>& cells,
 							FsGrid< T, stencil>& momentsGrid,
-							std::map<int, std::set<CellID> >& onDccrgMapRemoteProcess,
+              std::map<int, std::set<CellID> >& onDccrgMapRemoteProcess,
 							std::map<int, std::set<CellID> >& onFsgridMapRemoteProcess,
 							std::map<CellID, std::vector<int64_t> >& onFsgridMapCells
 							) {

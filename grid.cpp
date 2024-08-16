@@ -212,17 +212,11 @@ void initializeGrids(
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_DIMENSIONS);
    mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
 
-   // computing coupling
-   // Datastructure for coupling
-   std::map<int, std::set<CellID> > onDccrgMapRemoteProcess; 
-   std::map<int, std::set<CellID> > onFsgridMapRemoteProcess; 
-   std::map<CellID, std::vector<int64_t> >  onFsgridMapCells;
-
-   computeCoupling(mpiGrid, cells, technicalGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells);
+   computeCoupling(mpiGrid, cells, technicalGrid, onDccrgMapRemoteProcessGlobal, onFsgridMapRemoteProcessGlobal, onFsgridMapCellsGlobal);
 
    // We want this before restart refinement
    phiprof::Timer classifyTimer {"Classify cells (sys boundary conditions)"};
-   sysBoundaries.classifyCells(mpiGrid,technicalGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells);
+   sysBoundaries.classifyCells(mpiGrid,technicalGrid);
    classifyTimer.stop();
    
    if (P::isRestart) {
@@ -362,8 +356,8 @@ void initializeGrids(
    volGrid.updateGhostCells();
    fsGridGhostTimer.stop();
    phiprof::Timer getFieldsTimer {"getFieldsFromFsGrid"};
-   computeCoupling(mpiGrid, cells, volGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells);
-   getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, technicalGrid, mpiGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells, cells);
+   computeCoupling(mpiGrid, cells, volGrid, onDccrgMapRemoteProcessGlobal, onFsgridMapRemoteProcessGlobal, onFsgridMapCellsGlobal);
+   getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, technicalGrid, mpiGrid, cells);
    getFieldsTimer.stop();
 
    setBTimer.stop();
@@ -388,15 +382,15 @@ void initializeGrids(
    }
 
    // recompute coupling
-   computeCoupling(mpiGrid, cells, momentsGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells);
+   computeCoupling(mpiGrid, cells, momentsGrid, onDccrgMapRemoteProcessGlobal, onFsgridMapRemoteProcessGlobal, onFsgridMapCellsGlobal);
 
    phiprof::Timer finishFSGridTimer {"Finish fsgrid setup"};
-   feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid, technicalGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells, false);
+   feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid, technicalGrid, false);
    if(!P::isRestart) {
       // WARNING this means moments and dt2 moments are the same here at t=0, which is a feature so far.
-      feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid, technicalGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells, false);
+      feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid, technicalGrid, false);
    } else {
-      feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid, technicalGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells, true);
+      feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid, technicalGrid, true);
    }
    momentsGrid.updateGhostCells();
    momentsDt2Grid.updateGhostCells();
@@ -1559,17 +1553,11 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
 
    const vector<CellID>& cellsVec = getLocalCells();
 
-   // computing coupling
-   // Datastructure for coupling
-   std::map<int, std::set<CellID> > onDccrgMapRemoteProcess; 
-   std::map<int, std::set<CellID> > onFsgridMapRemoteProcess; 
-   std::map<CellID, std::vector<int64_t> >  onFsgridMapCells;
-
-   computeCoupling(mpiGrid, cellsVec, technicalGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells);
+   computeCoupling(mpiGrid, cellsVec, technicalGrid, onDccrgMapRemoteProcessGlobal, onFsgridMapRemoteProcessGlobal, onFsgridMapCellsGlobal);
 
    // Initialise system boundary conditions (they need the initialised positions!!)
 	// This needs to be done before LB
-   sysBoundaries.classifyCells(mpiGrid,technicalGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells);
+   sysBoundaries.classifyCells(mpiGrid,technicalGrid);
 
    //SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_PARAMETERS);
