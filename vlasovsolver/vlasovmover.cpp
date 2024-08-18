@@ -278,7 +278,6 @@ void calculateSpatialGhostTranslation(
    phiprof::Timer postBarrierTimer {"MPI barrier-post-trans"};
    MPI_Barrier(MPI_COMM_WORLD);
    postBarrierTimer.stop();
-
    return;
 }
 
