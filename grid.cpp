@@ -653,6 +653,10 @@ void prepareAMRLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
       prepareGhostTranslationCellLists(mpiGrid,localCells);
       ghostListsTimer.stop();
 
+      phiprof::Timer barrierTimer {"MPI barrier"};
+      MPI_Barrier(MPI_COMM_WORLD);
+      barrierTimer.stop();
+
       ghostTimer.stop();
    }
 

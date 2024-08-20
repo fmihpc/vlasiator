@@ -244,11 +244,18 @@ void calculateSpatialGhostTranslation(
    // Need to re-do in case block lists of boundary cells change after
    // the block adjustment just after ACC.
 
+   phiprof::Timer prepreBarrierTimer {"MPI barrier-pre-trans-comm"};
+   MPI_Barrier(MPI_COMM_WORLD);
+   prepreBarrierTimer.stop();
+
    phiprof::Timer transferTimer {"transfer-stencil-data-all",{"MPI"}};
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false);
    mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
    transferTimer.stop();
+
+   phiprof::Timer preBarrierTimer {"MPI barrier-pre-trans"};
    MPI_Barrier(MPI_COMM_WORLD);
+   preBarrierTimer.stop();
 
    //#warning TODO: Implement also 2D / non-AMR ghost translation?
    // ------------- SLICE - map dist function in Z --------------- //
@@ -265,6 +272,10 @@ void calculateSpatialGhostTranslation(
    phiprof::Timer mappingYTimer {"compute-mapping-y"};
    trans_map_1d_amr(mpiGrid,local_propagated_cells, nPencils, 1,dt,popID); // map along y//
    mappingYTimer.stop();
+
+   phiprof::Timer postBarrierTimer {"MPI barrier-post-trans"};
+   MPI_Barrier(MPI_COMM_WORLD);
+   postBarrierTimer.stop();
 
    return;
 }
