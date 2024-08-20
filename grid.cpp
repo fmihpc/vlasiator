@@ -240,8 +240,8 @@ void initializeGrids(
       sysBoundaries.applyInitialState(mpiGrid, technicalGrid, perBGrid, BgBGrid, project);
    }
 
-   // Update technicalGrid
-   technicalGrid.updateGhostCells(); // This needs to be done at some point
+   // Update technicalGrid (e.g. sysboundary flags)
+   technicalGrid.updateGhostCells();
 
    if (!P::isRestart && !P::writeFullBGB) {
       // If we are starting a new regular simulation, we need to prepare all cells with their initial state.
@@ -1568,7 +1568,7 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    mapRefinement(mpiGrid, technicalGrid);
 
    // Initialise system boundary conditions (they need the initialised positions!!)
-	// This needs to be done before LB
+   // This needs to be done before LB
    sysBoundaries.classifyCells(mpiGrid,technicalGrid);
 
    if (P::vlasovSolverGhostTranslate) {
@@ -1581,8 +1581,8 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
       mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
    }
 
-   // Is this needed?
-   //technicalGrid.updateGhostCells(); // This needs to be done at some point
+   // Update as ghost cell refLevels may have changed
+   technicalGrid.updateGhostCells();
    for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
       updateRemoteVelocityBlockLists(mpiGrid, p, NEAREST_NEIGHBORHOOD_ID);
    }
