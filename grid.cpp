@@ -638,7 +638,6 @@ void prepareAMRLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    if (P::amrMaxSpatialRefLevel == 0) {
       return;
    }
-   const vector<CellID>& localCells = getLocalCells();
 
    if (P::vlasovSolverGhostTranslate) {
       phiprof::Timer ghostTimer {"prepare_ghost_translation_lists"};
@@ -650,6 +649,7 @@ void prepareAMRLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
       updateRemoteNeighborsTimer.stop();
 
       phiprof::Timer ghostListsTimer {"update active cell lists for ghost translation"};
+      const vector<CellID>& localCells = getLocalCells();
       prepareGhostTranslationCellLists(mpiGrid,localCells);
       ghostListsTimer.stop();
 
@@ -837,8 +837,12 @@ void report_grid_memory_consumption(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
  * \param mpiGrid Spatial grid
  */
 void deallocateRemoteCellBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
-   const std::vector<uint64_t> incoming_cells
-      = mpiGrid.get_remote_cells_on_process_boundary(FULL_NEIGHBORHOOD_ID);
+   std::vector<uint64_t> incoming_cells;
+   if (P::vlasovSolverGhostTranslate) {
+      incoming_cells = mpiGrid.get_remote_cells_on_process_boundary(FULL_NEIGHBORHOOD_ID);
+   } else {
+      incoming_cells = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_NEIGHBORHOOD_ID);
+   }
    for(unsigned int i=0;i<incoming_cells.size();i++){
       uint64_t cell_id=incoming_cells[i];
       SpatialCell* cell = mpiGrid[cell_id];
