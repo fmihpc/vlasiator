@@ -315,7 +315,7 @@ void calculateSpatialTranslation(
    }
    
    phiprof::Timer computeTimer {"compute_cell_lists"};
-   if (!P::vlasovSolverGhostTranslate || P::amrMaxSpatialRefLevel==0) {
+   if (P::amrMaxSpatialRefLevel==0) {
       remoteTargetCellsx = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID);
       remoteTargetCellsy = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID);
       remoteTargetCellsz = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID);

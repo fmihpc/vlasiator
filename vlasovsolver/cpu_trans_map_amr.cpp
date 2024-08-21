@@ -296,7 +296,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
          if (!mpiGrid.is_local(cellid)) {
             continue;
          }
-         vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& cvmesh = mpiGrid[cellid]->get_velocity_mesh(popID);
+         const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& cvmesh = mpiGrid[cellid]->get_velocity_mesh(popID);
          for (vmesh::LocalID block_i=0; block_i< cvmesh.size(); ++block_i) {
             thread_unionOfBlocksSet.insert(cvmesh.getGlobalID(block_i));
          }

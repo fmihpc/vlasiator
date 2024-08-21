@@ -68,7 +68,7 @@ Real P::t_max = LARGE_REAL;
 Real P::dt = NAN;
 Real P::vlasovSolverMaxCFL = NAN;
 Real P::vlasovSolverMinCFL = NAN;
-bool P::vlasovSolverGhostTranslate = true;
+bool P::vlasovSolverGhostTranslate = false;
 uint P::vlasovSolverGhostTranslateExtent = 0;
 Real P::fieldSolverMaxCFL = NAN;
 Real P::fieldSolverMinCFL = NAN;
@@ -377,7 +377,7 @@ bool P::addParameters() {
    RP::add("vlasovsolver.accelerateMaxwellianBoundaries",
            "Propagate maxwellian boundary cell contents in velocity space. Default false.",
            false);
-   RP::add("vlasovsolver.GhostTranslate","Boolean for activating all-local ghost translation",true);
+   RP::add("vlasovsolver.GhostTranslate","Boolean for activating all-local ghost translation",false);
    RP::add("vlasovsolver.GhostTranslateExtent","Stencil size in all-local ghost translation (default: VLASOV_STENCIL_WIDTH+1",0);
 
    // Load balancing parameters

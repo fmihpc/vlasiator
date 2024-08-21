@@ -363,10 +363,6 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
          distances.insert(-nbrPair.second[dimension]);
       }
    }
-   if ( (distances.size() != VLASOV_STENCIL_WIDTH) &&
-        (mpiGrid[ids[VLASOV_STENCIL_WIDTH]]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)) {
-      std::cerr<<distances.size()<<" Mdistances!"<<std::endl;
-   }
    int iSrc = VLASOV_STENCIL_WIDTH - 1;
    // Iterate through distances for VLASOV_STENCIL_WIDTH elements starting from the smallest distance.
    for (auto it = distances.begin(); it != distances.end(); ++it) {
@@ -408,10 +404,6 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
       if (nbrPair.second[dimension] > 0) {
          distances.insert(nbrPair.second[dimension]);
       }
-   }
-   if ( (distances.size() != VLASOV_STENCIL_WIDTH) &&
-        (mpiGrid[ids[L-VLASOV_STENCIL_WIDTH-1]]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)) {
-      std::cerr<<distances.size()<<" Pdistances!"<<std::endl;
    }
 
    // Iterate through distances for VLASOV_STENCIL_WIDTH elements starting from the smallest distance.
@@ -788,7 +780,7 @@ void buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
  * then we use this cell as a seed for pencils
  *
  * @param [in] mpiGrid DCCRG grid object
- * @param [in] localPropagatedCells List of local cells that get propagated
+ * @param [in] propagatedCells List of local cells that get propagated
  * ie. not L2-boundary or DO_NOT_COMPUTE
  * @param [in] dimension Spatial dimension
  * @param [out] seedIds list of cell ids that will be starting points for pencils
@@ -1083,42 +1075,6 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
    }
 }
 
-/* Checks that each local spatial cell appears in pencils at least 1 time.
- *
- * @param mpiGrid DCCRG grid object
- * @param cells Local spatial cells
- * @param pencils Pencil data struct
- */
-bool checkPencils(
-   const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   const std::vector<CellID> &cells,
-   const setOfPencils& pencils
-) {
-   bool correct = true;
-   for (auto id : cells) {
-      if (mpiGrid[id]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY )  {
-         int myCount = std::count(pencils.ids.begin(), pencils.ids.end(), id);
-         if ( myCount == 0) {
-            std::cerr << "ERROR: Cell ID " << id << " Appears in pencils " << myCount << " times!"<< std::endl;
-            correct = false;
-         }
-      }
-   }
-   for (uint ipencil = 0; ipencil < pencils.N; ++ipencil) {
-      cint nPencilsThroughThisCell = pow(pow(2,pencils.path[ipencil].size()),2);
-      auto ids = pencils.getIds(ipencil);
-      for (auto id : ids) {
-         cint myCount = std::count(pencils.ids.begin(), pencils.ids.end(), id);
-         if (myCount > nPencilsThroughThisCell) {
-            std::cerr << "ERROR: Cell ID " << id << " Appears in pencils " << myCount << " times!"<< std::endl;
-            std::cerr << "       It should not appear more than " << nPencilsThroughThisCell << " times." << std::endl;
-            correct = false;
-         }
-      }
-   }
-   return correct;
-}
-
 /* Debugging function, prints the list of cells in each pencil
  *
  * @param pencils Pencil data struct
@@ -1269,7 +1225,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    vector<CellID> seedIds;
    getSeedIds(mpiGrid, propagatedCells, dimension, seedIds);
    getSeedIdsTimer.stop();
-
+   std::cerr<<" dimension "<<dimension<<" seedIds "<<seedIds.size()<<std::endl;
    if (printSeeds) {
       for (int rank=0; rank<mpi_size; ++rank) {
          MPI_Barrier(MPI_COMM_WORLD);
@@ -1326,6 +1282,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
          }
       }
    }
+   std::cerr<<" dimension "<<dimension<<" pencils firstN "<<DimensionPencils[dimension].N<<std::endl;
 
    phiprof::Timer checkGhostCellsTimer {"check_ghost_cells"};
    // Check refinement of two ghost cells on each end of each pencil
@@ -1333,6 +1290,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    // This function contains threading.
    check_ghost_cells(mpiGrid,DimensionPencils[dimension],dimension);
    checkGhostCellsTimer.stop();
+   std::cerr<<" dimension "<<dimension<<" pencils secondN "<<DimensionPencils[dimension].N<<std::endl;
 
    phiprof::Timer findSourceRatiosTimer {"Find_source_cells_ratios_dz"};
    // Compute also the stencil around the pencil (source cells), and
@@ -1362,12 +1320,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
          }
       }
    }
-
-   // Warning: checkPencils fails to understand situations where pencils reach across 3 levels of refinement.
-   // if (!checkPencils(mpiGrid, localPropagatedCells, pencils)) {
-   //    std::cerr<<"abort checkpencils"<<std::endl;
-   //    abort();
-   // }
+   std::cerr<<" dimension "<<dimension<<" targetcells "<<DimensionTargetCells[dimension].size()<<std::endl;
 
    if (printPencils) {
       for (int rank=0; rank<mpi_size; ++rank) {
