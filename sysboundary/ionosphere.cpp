@@ -3095,6 +3095,9 @@ namespace SBC {
       const Real Bsqr = B[0]*B[0] + B[1]*B[1] + B[2]*B[2];
 
       // Calculate cell bulk velocity as E x B / B^2
+      cellParams[CellParams::BULKV_FORCING_X_OLD] = cellParams[CellParams::BULKV_FORCING_X];
+      cellParams[CellParams::BULKV_FORCING_Y_OLD] = cellParams[CellParams::BULKV_FORCING_Y];
+      cellParams[CellParams::BULKV_FORCING_Z_OLD] = cellParams[CellParams::BULKV_FORCING_Z];
       cellParams[CellParams::BULKV_FORCING_X] = (E[1] * B[2] - E[2] * B[1])/Bsqr;
       cellParams[CellParams::BULKV_FORCING_Y] = (E[2] * B[0] - E[0] * B[2])/Bsqr;
       cellParams[CellParams::BULKV_FORCING_Z] = (E[0] * B[1] - E[1] * B[0])/Bsqr;
