@@ -80,3 +80,9 @@ LIB_PROFILE = -I $(LIBRARY_PREFIX)/include ${GITHUB_WORKSPACE}/libraries/lib/lib
 INC_PROFILE =
 INC_TOPO =
 
+# Works without but as an example: arch-specific INCLUDE paths be like this:
+INC_DCCRG = -I${GITHUB_WORKSPACE}/submodules/dccrg
+INC_EIGEN = -I${GITHUB_WORKSPACE}/submodules/eigen
+INC_FSGRID = -I${GITHUB_WORKSPACE}/submodules/fsgrid
+INC_VECTORCLASS = -isystem ${GITHUB_WORKSPACE}/submodules/vectorclass/ -isystem ${GITHUB_WORKSPACE}/submodules/vectorclass-addon/vector3d/
+INC_EIGEN = -isystem ${GITHUB_WORKSPACE}/submodules/eigen/
