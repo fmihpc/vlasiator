@@ -298,10 +298,6 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
 #pragma omp for
       for(unsigned int i=0; i<allCells.size(); i++) {
          CellID cellid = allCells[i];
-         // Only propagate those blocks which exist for local cells
-         if (!mpiGrid.is_local(cellid)) {
-            continue;
-         }
          const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& cvmesh = mpiGrid[cellid]->get_velocity_mesh(popID);
          for (vmesh::LocalID block_i=0; block_i< cvmesh.size(); ++block_i) {
             thread_unionOfBlocksSet.insert(cvmesh.getGlobalID(block_i));
