@@ -1,9 +1,17 @@
 #!/bin/bash
 
-mpirun_cmd=$(which aprun &> /dev/null && echo "aprun" || echo "mpirun")
+# use this when running locally/on a frontend
+mpirun_cmd=" "
+# or pick the launcher you need
+#mpirun_cmd="srun"
+#mpirun_cmd="mpirun"
+#mpirun_cmd="aprun"
+
 vlasiator=$1
 cfg=$2
 
+# Return a nonzero exit code if anything invalid was found
+retval=0
 
 if [ $# -ne 2 ]
 then
@@ -13,21 +21,21 @@ Prints out differences between parameters in a cfg file and the options that the
 Usage: $0 vlasiator_executable cfg_file
 
 EOF
-    exit
+    exit 127
 fi
 
 
 if [ ! -x $vlasiator ]
 then
     echo "ERROR: Vlasiator executable $vlasiator does not exist or is not executable"
-    exit
+    exit 127
 fi
 
 
 if [ ! -e $cfg ]
 then
     echo "ERROR: cfg file $cfg does not exist"
-    exit
+    exit 127
 fi
 
 
@@ -120,20 +128,22 @@ output_update=`expr match "$( cat .vlasiator_variables | grep "variables.output"
 diagnostic_update=`expr match "$( cat .vlasiator_variables | grep "variables.diagnostic" )" '.*\([0-9]\{8\}\).*'`
 
 
-echo "------------------------------------------------------------------------------------------------------------"
-echo "Available unused options"
-echo "------------------------------------------------------------------------------------------------------------"
-comm -23 .vlasiator_variable_names .cfg_variable_names | grep -v "\." > .unused_variables
-comm -23 .vlasiator_variable_names .cfg_variable_names | grep -f .allowed_prefixes  >> .unused_variables
-grep -f .unused_variables .vlasiator_variable_names_default_val
-echo "------------------------------------------------------------------------------------------------------------"
+if [ z$PRINT_ONLY_ERRORS == "z" ]; then
+   echo "------------------------------------------------------------------------------------------------------------"
+   echo "Available unused options"
+   echo "------------------------------------------------------------------------------------------------------------"
+   comm -23 .vlasiator_variable_names .cfg_variable_names | grep -v "\." > .unused_variables
+   comm -23 .vlasiator_variable_names .cfg_variable_names | grep -f .allowed_prefixes  >> .unused_variables
+   grep -f .unused_variables .vlasiator_variable_names_default_val
+   echo "------------------------------------------------------------------------------------------------------------"
 
-echo "------------------------------------------------------------------------------------------------------------"
-echo "Available unused output and diagnostic variables (as of "$output_update" resp. "$diagnostic_update")"
-echo "------------------------------------------------------------------------------------------------------------"
-comm -23 .vlasiator_output_variable_names .cfg_output_variable_names
-comm -23 .vlasiator_diagnostic_variable_names .cfg_diagnostic_variable_names
-echo "------------------------------------------------------------------------------------------------------------"
+   echo "------------------------------------------------------------------------------------------------------------"
+   echo "Available unused output and diagnostic variables (as of "$output_update" resp. "$diagnostic_update")"
+   echo "------------------------------------------------------------------------------------------------------------"
+   comm -23 .vlasiator_output_variable_names .cfg_output_variable_names
+   comm -23 .vlasiator_diagnostic_variable_names .cfg_diagnostic_variable_names
+   echo "------------------------------------------------------------------------------------------------------------"
+fi
 
 output=$( comm -13 .vlasiator_variable_names .cfg_variable_names )
 if [ ${#output} -ne 0 ]
@@ -142,6 +152,7 @@ then
    echo "------------------------------------------------------------------------------------------------------------"
    comm -13 .vlasiator_variable_names .cfg_variable_names
    echo "------------------------------------------------------------------------------------------------------------"
+   retval=1
 else
    echo "------------------------------------------------------------------------------------------------------------"
    echo "No invalid options"
@@ -164,6 +175,7 @@ then
       comm -13 .vlasiator_diagnostic_variable_names .cfg_diagnostic_variable_names
    fi
    echo "------------------------------------------------------------------------------------------------------------"
+   retval=2
 else
    echo "------------------------------------------------------------------------------------------------------------"
    echo "No invalid output or diagnostic variables (as of "$output_update" resp. "$diagnostic_update")"
@@ -171,5 +183,6 @@ else
 fi
 
 
+rm -f .cfg_variables .cfg_variable_names .vlasiator_variables .vlasiator_variable_names .allowed_prefixes .unused_variables  .vlasiator_variable_names_default_val .cfg_output_variable_names .cfg_diagnostic_variable_names .vlasiator_diagnostic_variable_names .vlasiator_output_variable_names
 
-rm .cfg_variables .cfg_variable_names .vlasiator_variables .vlasiator_variable_names .allowed_prefixes .unused_variables  .vlasiator_variable_names_default_val .cfg_output_variable_names .cfg_diagnostic_variable_names .vlasiator_diagnostic_variable_names .vlasiator_output_variable_names
+exit $retval

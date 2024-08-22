@@ -117,9 +117,12 @@ jobs:
       run: |
         VLASIATOR_ARCH=github_actions make clean
         VLASIATOR_ARCH=github_actions make -j 3
-   #  - name: Compile vlasiator (Release build)
-   #    run: |
-   #      srun -M carrington --job-name release_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p short -t 0:10:0 bash -c 'module purge; module load GCC/11.2.0; module load OpenMPI/4.1.1-GCC-11.2.0 ; module load PMIx/4.1.0-GCCcore-11.2.0; module load PAPI/6.0.0.1-GCCcore-11.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make clean; make -j 16'
+    - name: Upload release binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: vlasiator-release
+        path: vlasiator
+        if-no-files-found: error
 
 
   build_testpackage:
@@ -130,9 +133,13 @@ jobs:
     steps:
     - name: Clean workspace
       run: |
+        RUN_STRING=$( cat << MORO
         rm -rf libraries library-build testpackage
         rm -f libraries.tar.zst testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
         rm -f *.xml
+        MORO
+        )
+        srun -M carrington bash -c "$RUN_STRING"
     - name: Checkout source
       uses: actions/checkout@v4
       with:
@@ -143,7 +150,7 @@ jobs:
     - name: Compile vlasiator (Testpackage build)
       run: |
         export VLASIATOR_ARCH=carrington_gcc_openmpi
-        srun -M carrington --job-name tp_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p short -t 0:10:0 bash -c 'module purge; module load GCC/11.2.0; module load OpenMPI/4.1.1-GCC-11.2.0 ; module load PMIx/4.1.0-GCCcore-11.2.0; module load PAPI/6.0.0.1-GCCcore-11.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make -j 16 testpackage; sleep 10s'
+        srun -M carrington --job-name CI_tp_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p short -t 0:10:0 bash -c 'module purge; module load GCC/11.2.0; module load OpenMPI/4.1.1-GCC-11.2.0 ; module load PMIx/4.1.0-GCCcore-11.2.0; module load PAPI/6.0.0.1-GCCcore-11.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make -j 16 testpackage; sleep 10s'
     - name: Make sure the output binary is visible in lustre
       uses: nick-fields/retry@v3
       with:
@@ -175,8 +182,8 @@ jobs:
     - name: Clean workspace
       run: |
         rm -rf libraries library-build libraries-arriesgado.tar.gz
-        rm -rf stdout.txt stderr.txt metrics.txt
-        rm -rf *.xml
+        rm -f stdout.txt stderr.txt metrics.txt
+        rm -f *.xml
     - name: Download libraries
       uses: actions/download-artifact@v4
       with:
@@ -240,9 +247,13 @@ jobs:
     steps:
     - name: Clean workspace
       run: |
+        RUN_STRING=$( cat << MORO
         rm -rf libraries library-build testpackage
         rm -f libraries.tar.zstd testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
         rm -f *.xml
+        MORO
+        )
+        srun -M carrington bash -c "$RUN_STRING"
     - name: Checkout source
       uses: actions/checkout@v4
       with:
@@ -253,7 +264,7 @@ jobs:
     - name: Compile tools
       run: |
         export VLASIATOR_ARCH=carrington_gcc_openmpi
-        srun -M carrington --job-name tp_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p short -t 0:10:0 bash -c 'module purge; module load GCC/11.2.0; module load OpenMPI/4.1.1-GCC-11.2.0 ; module load PMIx/4.1.0-GCCcore-11.2.0; module load PAPI/6.0.0.1-GCCcore-11.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make -j 16 vlsvextract vlsvdiff'
+        srun -M carrington --job-name CI_tp_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p short -t 0:10:0 bash -c 'module purge; module load GCC/11.2.0; module load OpenMPI/4.1.1-GCC-11.2.0 ; module load PMIx/4.1.0-GCCcore-11.2.0; module load PAPI/6.0.0.1-GCCcore-11.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make -j 16 vlsvextract vlsvdiff'
     - name: Upload tools binaries
       uses: actions/upload-artifact@v4
       with:
@@ -273,7 +284,7 @@ jobs:
     - name: Checkout source
       uses: actions/checkout@v4
       with:
-        submodules: true
+        submodules: false
     - name: Download testpackage binary
       uses: actions/download-artifact@v4
       with:
@@ -289,12 +300,8 @@ jobs:
         chmod +x $GITHUB_WORKSPACE/vlsv*_DP
         cd testpackage
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries/lib
-        #srun -M carrington -t 01:30:00 --job-name CI_testpackage --interactive --nodes=1 -c 4 -n 16 --mem-per-cpu=5G -p short ./small_test_carrington_github_ci.sh
-        VLASIATOR_CIRUNNER_JOBSPEC_TP=$(sbatch --parsable -o testpackage_run_output.txt ./small_test_carrington_github_ci.sh)
-        VLASIATOR_CIRUNNER_JOBSPEC_TP=(${VLASIATOR_CIRUNNER_JOBSPEC_TP//\;/ })
-        trap "scancel -M carrington ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}" SIGINT
-        trap "scancel -M carrington ${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]}" SIGTERM
-        RUN_STRING=$( cat << MORO
+        sbatch -W -o testpackage_run_output.txt ./small_test_carrington_github_ci.sh
+        PARSE_OUTPUT_CMD=$( cat << MORO
         echo "Job finished, checking output."
         cat testpackage_run_output.txt
         cat $GITHUB_STEP_SUMMARY > $GITHUB_WORKSPACE/testpackage_check_description.txt
@@ -303,11 +310,16 @@ jobs:
         tar -czf testpackage-output.tar.gz testpackage_check_description.txt testpackage_output_variables.txt
         MORO
         )
-        srun -M carrington --dependency afterany:${VLASIATOR_CIRUNNER_JOBSPEC_TP[0]} bash -c "$RUN_STRING"
+        srun --job-name CI_package_results -M carrington -N 1 -c 1 --mem=1G bash -c "$PARSE_OUTPUT_CMD"
         if [ -f $GITHUB_WORKSPACE/testpackage_failed ]; then
           # Fail this step if any test failed.
           exit 1
         fi
+    - name: Scancel dangling job upon cancellation
+      if: cancelled()
+      run: |
+        # Try accessing the job id echoed by the job script.
+        scancel ${{ steps.run.outputs.SLURM_JOB_ID }}
     - name: Make sure the output tarball is visible in lustre
       uses: nick-fields/retry@v3
       with:
@@ -326,8 +338,9 @@ jobs:
 
   build_ionosphereTests:
     # Build IonosphereSolverTests miniApp
-    runs-on: carrington
-    needs: [build_libraries]
+    runs-on: ubuntu-latest
+    container: ursg/vlasiator_ci:20240131_1
+    needs: build_libraries
     steps:
     - name: Checkout source
       uses: actions/checkout@v4
@@ -340,11 +353,16 @@ jobs:
           #    - name: Unpack libraries
           #      run: tar --zstd -xvf libraries.tar.zstd
           #    - uses: ursg/gcc-problem-matcher@master
+    - name: Download libraries
+      uses: actions/download-artifact@v4
+      with:
+        name: libraries
+    - name: Unpack libraries
+      run: tar --zstd -xvf libraries.tar.zstd
     - name: Compile ionosphereSolverTests
       run: |
         cd mini-apps/ionosphereSolverTests/
-        srun -M carrington --job-name iST_compile --interactive --nodes=1 -n 1 -c 3 --mem=40G -p short -t 0:10:0 bash -c 'module purge; module load GCC/11.2.0; module load OpenMPI/4.1.1-GCC-11.2.0 ; module load PMIx/4.1.0-GCCcore-11.2.0; module load PAPI/6.0.0.1-GCCcore-11.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make -j 3 main differentialFlux sigmaProfiles'
-        #        VLASIATOR_ARCH=carrington_gcc_openmpi make -j 3 main differentialFlux sigmaProfiles
+        VLASIATOR_ARCH=github_actions make -j 3
     - name: Upload ionosphereTest binaries
       uses: actions/upload-artifact@v4
       with:
@@ -354,3 +372,123 @@ jobs:
           mini-apps/ionosphereSolverTests/differentialFlux
           mini-apps/ionosphereSolverTests/sigmaProfiles
         if-no-files-found: error
+
+  run_ionosphere_LFMtest:
+    runs-on: ubuntu-latest
+    container: ursg/vlasiator_ci:20240131_1
+    needs: build_ionosphereTests
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v4
+      with:
+        submodules: false
+    - name: Download ionosphereTests
+      uses: actions/download-artifact@v4
+      with:
+        name: ionosphereTests
+    - name: checkout Analysator
+      run: |
+        apt update
+        apt -y install python3 python3-numpy python3-matplotlib gnuplot-nox
+        cd mini-apps/ionosphereSolverTests/
+        git clone https://github.com/fmihpc/analysator
+    - name: Run LFMtest
+      run: |
+        chmod +x $GITHUB_WORKSPACE/main
+        cd mini-apps/ionosphereSolverTests/
+        OMP_NUM_THREADS=1 $GITHUB_WORKSPACE/main -N 2000 -r 40 90 -r 50 90 -r 60 80 -sigma 10 -fac merkin2010 -gaugeFix equator45 -o LFMtest.vlsv -maxIter 10000
+        export PYTHONPATH=$PYTHONPATH:analysator
+        export PTNONINTERACTIVE=1
+        python3 ./lfmformat.py LFMtest.vlsv > lfmtest.dat
+        ./plot_LFMtest.gp
+    - name: Run atmospheric profile test
+      run: |
+        chmod +x $GITHUB_WORKSPACE/sigmaProfiles
+        cd mini-apps/ionosphereSolverTests/
+        $GITHUB_WORKSPACE/sigmaProfiles 1e6 1.16046e7 > atmosphere.dat
+        $GITHUB_WORKSPACE/sigmaProfiles 1e6 1.16046e8 > atmosphere10.dat
+        $GITHUB_WORKSPACE/sigmaProfiles 1e6 1.16046e9 > atmosphere100.dat
+        ./plotAtmosphere.gp
+    - name: Upload ionosphereTest result images
+      uses: actions/upload-artifact@v4
+      with:
+        name: ionosphereTestResults
+        path: |
+          mini-apps/ionosphereSolverTests/LFMtest.png
+          mini-apps/ionosphereSolverTests/atmosphere.png
+        if-no-files-found: error
+
+  check_cfg_files:
+    runs-on: ubuntu-latest
+    container: ursg/vlasiator_ci:20240131_1
+    needs: [build_libraries, build_production]
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v4
+      with:
+        submodules: false
+    - name: Download libraries
+      uses: actions/download-artifact@v4
+      with:
+        name: libraries
+    - name: Unpack libraries
+      run: tar --zstd -xvf libraries.tar.zstd
+    - name: Download release binary
+      uses: actions/download-artifact@v4
+      with:
+        name: vlasiator-release
+    - name: Make release binary executable
+      run: |
+        chmod +x $GITHUB_WORKSPACE/vlasiator
+    - name: Check cfg files in projects/
+      run: |
+        retval=0
+        set +e
+        for cfg in `find projects -name \*.cfg`; do
+          echo -n "Testing cfg file $cfg... "
+          PRINT_ONLY_ERRORS=true LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries/lib tools/check_vlasiator_cfg.sh $GITHUB_WORKSPACE/vlasiator $cfg 2>&1 > cfgtest.out
+          if [ $? != 0 ]; then
+            if `echo $cfg | grep -sq unsupported`; then
+              echo "failed (unsurprising)"
+            else
+              echo "FAILED:";
+              cat cfgtest.out;
+              retval=127
+            fi
+          else
+            echo "ok."
+          fi;
+        done
+        exit $retval
+    - name: Check cfg files in samples/
+      run: |
+        retval=0
+        set +e
+        for cfg in `find samples -name \*.cfg`; do
+          echo -n "Testing cfg file $cfg... "
+          PRINT_ONLY_ERRORS=true LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries/lib tools/check_vlasiator_cfg.sh $GITHUB_WORKSPACE/vlasiator $cfg 2>&1 > cfgtest.out
+          if [ $? != 0 ]; then
+            echo "FAILED:";
+            cat cfgtest.out;
+            retval=127
+          else
+            echo "ok."
+          fi;
+        done
+        exit $retval
+    - name: Check cfg files in testpackage/
+      run: |
+        retval=0
+        set +e
+        for cfg in `find testpackage -name \*.cfg`; do
+          echo -n "Testing cfg file $cfg... "
+          PRINT_ONLY_ERRORS=true LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries/lib tools/check_vlasiator_cfg.sh $GITHUB_WORKSPACE/vlasiator $cfg 2>&1 > cfgtest.out
+          if [ $? != 0 ]; then
+            echo "FAILED:";
+            cat cfgtest.out;
+            retval=127
+          else
+            echo "ok."
+          fi;
+        done
+        exit $retval
