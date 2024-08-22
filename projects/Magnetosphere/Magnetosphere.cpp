@@ -120,7 +120,8 @@ namespace projects {
       /* Enforce "dipole" (incl. correction terms) in solar wind with dipole type 4. */
       if ((this->dipoleType == 4) && (this->noDipoleInSW)) {
          if(myRank == MASTER_RANK) {
-            std::cerr<<"Note: Initializing Magnetosphere with dipole type 4, you want to have the dipole + vector potential correction terms in the solar wind and therefore set noDipoleInSW = 0."<<std::endl;
+            std::cerr<<"Note: Initializing Magnetosphere with dipole type 4, which requires the dipole + vector potential "
+            <<"correction terms in the solar wind. Thus overriding the config and setting Magnetosphere.noDipoleInSW=0."<<std::endl;
          }
          this->noDipoleInSW = false;
       }
