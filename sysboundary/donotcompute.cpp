@@ -76,12 +76,6 @@ namespace SBC {
          cell->parameters[CellParams::VY_DT2] = 0.0;
          cell->parameters[CellParams::VZ_DT2] = 0.0;
          cell->parameters[CellParams::RHOQ_DT2] = 0.0;
-         
-         //let's get rid of blocks not fulfilling the criteria here to save
-         //memory.
-         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-            cell->adjustSingleCellVelocityBlocks(popID,true);
-         }
       }
    }
    

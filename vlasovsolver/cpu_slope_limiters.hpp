@@ -58,7 +58,7 @@ inline Vec slope_limiter_sb(const Vec& l,const Vec& m, const Vec& r) {
 */
 
 inline Vec slope_limiter_minmod(const Vec& l,const Vec& m, const Vec& r) {
-   Vec sign;
+   //Vec sign;
    Vec a=r-m;
    Vec b=m-l; 
    return minmod(a,b);
@@ -69,7 +69,7 @@ inline Vec slope_limiter_minmod(const Vec& l,const Vec& m, const Vec& r) {
 */
 
 inline Vec slope_limiter_mc(const Vec& l,const Vec& m, const Vec& r) {
-  Vec sign;
+  //Vec sign;
   Vec a=r-m;
   Vec b=m-l; 
   Vec minval=min(two*abs(a),two*abs(b));

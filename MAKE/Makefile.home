@@ -31,4 +31,5 @@ LIB_PROFILE = -L${HOME}/phiprof/lib -lphiprof
 INC_PROFILE = -I${HOME}/phiprof/include
 INC_TOPO =
 
-INC_EIGEN = -I${HOME}/include
+INC_VECTORCLASS = -isystem ./submodules/vectorclass/ -isystem ./submodules/vectorclass-addon/vector3d/
+INC_EIGEN = -isystem ./submodules/eigen/

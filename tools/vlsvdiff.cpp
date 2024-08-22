@@ -718,6 +718,7 @@ bool convertSILO(const string fileName,
                  const uint compToExtract,
                  map<uint, Real> * orderedData,
                  unordered_map<size_t,size_t>& cellOrder,
+                 Real& time,
                  const bool& storeCellOrder=false) {
    bool success = true;
 
@@ -747,6 +748,9 @@ bool convertSILO(const string fileName,
          return false;
       }      
    }
+
+   vlsvReader.readParameter("time", time);
+
    vlsvReader.close();
    return success;
 }
@@ -935,11 +939,11 @@ bool outputDistance(const Real p,
 {
    if(verboseOutput == true) {
       if(shiftedAverage == false) {
-         cout << "The absolute " << p << "-distance between both datasets is " << *absolute  << endl;
-         cout << "The relative " << p << "-distance between both datasets is " << *relative  << endl;
+         cout << "The absolute " << p << "-distance between both datasets is " << setprecision(3) << *absolute  << endl;
+         cout << "The relative " << p << "-distance between both datasets is " << setprecision(3) << *relative  << endl;
       } else {
-         cout << "The average-shifted absolute " << p << "-distance between both datasets is " << *absolute  << endl;
-         cout << "The average-shifted relative " << p << "-distance between both datasets is " << *relative  << endl;
+         cout << "The average-shifted absolute " << p << "-distance between both datasets is " << setprecision(3) << *absolute  << endl;
+         cout << "The average-shifted relative " << p << "-distance between both datasets is " << setprecision(3) << *relative  << endl;
       }
    } else {
       static vector<Real> fileOutputData;
@@ -948,7 +952,7 @@ bool outputDistance(const Real p,
       if(lastCall == true) {
          vector<Real>::const_iterator it;
          for(it = fileOutputData.begin(); it != fileOutputData.end(); it++) {
-            cout << *it << "\t";
+            cout << setprecision(3) << *it << "\t";
          }
          fileOutputData.clear();
          return 0;
@@ -956,6 +960,36 @@ bool outputDistance(const Real p,
       
       fileOutputData.push_back(*absolute);
       fileOutputData.push_back(*relative);
+   }
+   return 0;
+}
+
+/*! In verbose mode print delta t, in non-verbose store them for later output when lastCall is true
+ * \param dt delta t
+ * \param verboseOutput Boolean parameter telling whether the output is verbose or compact
+ * \param lastCall Boolean parameter telling whether this is the last call to the function
+ */
+bool outputDt(
+   const Real dt,
+   const bool verboseOutput,
+   const bool lastCall
+) {
+   if(verboseOutput == true) {
+      cout << "The delta t between both datasets is " << dt << endl;
+   } else {
+      static vector<Real> fileOutputData;
+      static uint fileNumber = 0;
+      
+      if(lastCall == true) {
+         vector<Real>::const_iterator it;
+         for(auto f : fileOutputData) {
+            cout << f << "\t";
+         }
+         fileOutputData.clear();
+         return 0;
+      }
+      
+      fileOutputData.push_back(dt);
    }
    return 0;
 }
@@ -1099,6 +1133,7 @@ bool printNonVerboseData()
    // last argument (lastCall) is true to get the output of the whole stored dataset
    outputStats(NULL, NULL, NULL, NULL, NULL, false, true);
    outputDistance(0, NULL, NULL, false, false, true);
+   outputDt(0, false, true);
    
    return 0;
 }
@@ -1570,17 +1605,23 @@ bool compareAvgs( const string fileName1,
          minDiff = *it;
       }
    }
-   
+
+   Real time1 {0.0};
+   Real time2 {0.0};
+   vlsvReader1.readParameter("time", time1);
+   vlsvReader2.readParameter("time", time2);
+
    const double relativeSumDiff = sumDiff / totalAbsAvgs;
    cout << "File names: " << fileName1 << " & " << fileName2 << endl <<
+      setprecision(3) <<
       "NonIdenticalBlocks:      " << numOfNonIdenticalBlocks << endl <<
       "IdenticalBlocks:         " << numOfIdenticalBlocks <<  endl <<
       "Absolute_Error:          " << totalAbsDiff  << endl <<
       "Mean-Absolute-Error:     " << totalAbsDiff / numOfRelevantCells << endl <<
       "Max-Absolute-Error:      " << maxDiff << endl <<
       "Absolute-log-Error:      " << totalAbsLog10Diff << endl <<
-      "Mean-Absolute-log-Error: " << totalAbsLog10Diff / numOfRelevantCells << endl;
-   
+      "Mean-Absolute-log-Error: " << totalAbsLog10Diff / numOfRelevantCells << endl <<
+      "Delta-t: " << time2 - time1 << endl;
 
    return true;
 }
@@ -1613,19 +1654,23 @@ bool process2Files(const string fileName1,
       cellIds1.push_back(compToExtract);
       cellIds2.push_back(compToExtract2);
       // Compare files:
-      if( compareAvgs<vlsvinterface::Reader, vlsvinterface::Reader>(fileName1, fileName2, verboseOutput, cellIds1, cellIds2) == false ) { return false; }
+      if (compareAvgs<vlsvinterface::Reader, vlsvinterface::Reader>(fileName1, fileName2, verboseOutput, cellIds1, cellIds2) == false) { 
+         return false; 
+      }
    } else {
       unordered_map<size_t,size_t> cellOrder;
    
       bool success = true;
-      success = convertSILO<vlsvinterface::Reader>(fileName1, varToExtract, compToExtract, &orderedData1, cellOrder, true);
+      Real time1 {0.0};
+      success = convertSILO<vlsvinterface::Reader>(fileName1, varToExtract, compToExtract, &orderedData1, cellOrder, time1, true);
 
       if( success == false ) {
          cerr << "ERROR Data import error with " << fileName1 << endl;
          return 1;
       }
 
-      success = convertSILO<vlsvinterface::Reader>(fileName2, varToExtract, compToExtract, &orderedData2, cellOrder, false);
+      Real time2 {0.0};
+      success = convertSILO<vlsvinterface::Reader>(fileName2, varToExtract, compToExtract, &orderedData2, cellOrder, time2, false);
 
       if( success == false ) {
          cerr << "ERROR Data import error with " << fileName2 << endl;
@@ -1686,6 +1731,8 @@ bool process2Files(const string fileName1,
       outputDistance(2, &absolute, &relative, false, verboseOutput, false);
       pDistance(orderedData1, orderedData2, 2, &absolute, &relative, true, cellOrder,outputFile,attributes["--meshname"],"d2_sft_"+varName);
       outputDistance(2, &absolute, &relative, true, verboseOutput, false);
+
+      outputDt(time2 - time1, verboseOutput, false);
 
       outputFile.close();
    }
@@ -1918,47 +1965,36 @@ int main(int argn,char* args[]) {
    DIR* dir1 = opendir(fileName1.c_str());
    DIR* dir2 = opendir(fileName2.c_str());
 
-   if (dir1 == NULL && dir2 == NULL) {
+   if (dir1 == nullptr && dir2 == nullptr) {
       cout << "INFO Reading in two files." << endl;
       
       // Process two files with verbose output (last argument true)
       process2Files(fileName1, fileName2, varToExtract, compToExtract, true, compToExtract2);
-      //CONTINUE
-      
-      closedir(dir1);
-      closedir(dir2);
-   }
-   else if (dir1 == NULL || dir2 == NULL)
-   {
+   } else if (dir1 == nullptr || dir2 == nullptr) {
       // Mixed file and directory
       cout << "#INFO Reading in one file and one directory." << endl;
       set<string> fileList;
-      set<string>::iterator it;
 
-      if(dir1 == NULL){
+      if(dir1 == nullptr){
          //file in 1, directory in 2
          processDirectory(dir2, &fileList);
-         for(it = fileList.begin(); it != fileList.end();++it){
+         for(auto f : fileList) {
             // Process two files with non-verbose output (last argument false), give full path to the file processor
-            process2Files(fileName1,fileName2 + "/" + *it, varToExtract, compToExtract, false, compToExtract2);
+            process2Files(fileName1,fileName2 + "/" + f, varToExtract, compToExtract, false, compToExtract2);
          }
+         closedir(dir2);
       }
 
-      if(dir2 == NULL){
+      if(dir2 == nullptr){
          //directory in 1, file in 2
          processDirectory(dir1, &fileList);
-         for(it = fileList.begin(); it != fileList.end();++it){
+         for(auto f : fileList) {
             // Process two files with non-verbose output (last argument false), give full path to the file processor
-            process2Files(fileName1+"/"+*it,fileName2, varToExtract, compToExtract, false, compToExtract2);
+            process2Files(fileName1 + "/" + f,fileName2, varToExtract, compToExtract, false, compToExtract2);
          }
+         closedir(dir1);
       }
-
-      closedir(dir1);
-      closedir(dir2);
-      return 1;
-   }
-   else if (dir1 != NULL && dir2 != NULL)
-   {
+   } else if (dir1 && dir2) {
       // Process two folders, files of the same rank compared, first folder is reference in relative distances
       cout << "#INFO Reading in two directories." << endl;
       set<string> fileList1, fileList2;
@@ -1968,20 +2004,15 @@ int main(int argn,char* args[]) {
       processDirectory(dir2, &fileList2);
       
       // Basic consistency check
-      if(fileList1.size() != fileList2.size())
-      {
+      if(fileList1.size() != fileList2.size()) {
          cerr << "ERROR Folders have different number of files." << endl;
          return 1;
       }
       
-      set<string>::iterator it1, it2;
-      for(it1 = fileList1.begin(), it2 = fileList2.begin();
-          it1 != fileList2.end(), it2 != fileList2.end();
-          it1++, it2++)
-      {
-      // Process two files with non-verbose output (last argument false), give full path to the file processor
-      process2Files(fileName1 + "/" + *it1,
-                    fileName2 + "/" + *it2, varToExtract, compToExtract, false, compToExtract2);
+      // TODO zip these once we're using C++23
+      for (auto it1 = fileList1.begin(), it2 = fileList2.begin(); it1 != fileList2.end(), it2 != fileList2.end(); it1++, it2++) {
+         // Process two files with non-verbose output (last argument false), give full path to the file processor
+         process2Files(fileName1 + "/" + *it1, fileName2 + "/" + *it2, varToExtract, compToExtract, false, compToExtract2);
       }
       
       closedir(dir1);

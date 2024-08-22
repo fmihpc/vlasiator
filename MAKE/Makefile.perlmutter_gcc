@@ -2,7 +2,7 @@ CMP = CC
 LNK = CC
 
 # Modules loaded
-# module load PrgEnv-gnu; module load eigen; module load papi
+# module load PrgEnv-gnu; module load papi
 
 #======== Vectorization ==========
 #Set vector backend type for vlasov solvers, sets precision and length. 
@@ -79,6 +79,3 @@ LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX)/vlsv
 
 LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -lgfortran -Wl,-rpath=$(LIBRARY_PREFIX)/phiprof/lib
 INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include 
-
-
-#header libraries

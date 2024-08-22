@@ -62,6 +62,7 @@ namespace projects {
       RP::add("Flowthrough.emptyBox","Is the simulation domain empty initially?",false);
       RP::add("Flowthrough.densityModel","Plasma density model, 'Maxwellian' or 'SheetMaxwellian'",string("Maxwellian"));
       RP::add("Flowthrough.densityWidth","Width of signal around origin",6.e7);
+      RP::add("Flowthrough.rescaleDensity","Rescale VDF to match spatial ",false);
       RP::add("Flowthrough.Bx", "Magnetic field x component (T)", 0.0);
       RP::add("Flowthrough.By", "Magnetic field y component (T)", 0.0);
       RP::add("Flowthrough.Bz", "Magnetic field z component (T)", 0.0);
@@ -100,6 +101,7 @@ namespace projects {
          exit(1);
       }
       RP::get("Flowthrough.densityWidth",this->densityWidth);
+      RP::get("Flowthrough.rescaleDensity",this->rescaleDensityFlag);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
@@ -115,6 +117,60 @@ namespace projects {
 
          speciesParams.push_back(sP);
       }
+   }
+   Real Flowthrough::getCorrectNumberDensity(spatial_cell::SpatialCell* cell,const uint popID) const {
+      const FlowthroughSpeciesParameters& sP = speciesParams[popID];
+      Real x,y,z;
+      Real rvalue;
+      x = cell->parameters[CellParams::XCRD];
+      y = cell->parameters[CellParams::YCRD];
+      z = cell->parameters[CellParams::ZCRD];
+      switch (densityModel) {
+         case Maxwellian:
+            rvalue = sP.rho;
+            break;
+         case SheetMaxwellian:
+            rvalue = sqrt(x*x + y*y + z*z);
+            if (rvalue <= 0.5*densityWidth) {
+               rvalue = 4*sP.rho;
+            } else {
+               rvalue = 0;
+            }
+            break;
+         case Square:
+            if (abs(x) < 0.5*densityWidth) {
+               rvalue = 4*sP.rho;
+            } else {
+               rvalue = 4*sP.rhoBase;
+               //rvalue = 0;
+            }
+            break;
+         case Triangle:
+            if (abs(x) < 0.5*densityWidth) {            
+               rvalue = 4;
+               rvalue *= ( sP.rhoBase + (sP.rho-sP.rhoBase) * (1.-abs(x) / (0.5*densityWidth)));
+            } else {
+               rvalue = 4*sP.rhoBase;
+               //rvalue = 0;
+            }
+            break;
+         case Sinewave:
+            if (abs(x) < 0.5*densityWidth) {            
+               rvalue = 4;
+               rvalue *= ( sP.rhoBase + (sP.rho-sP.rhoBase) * (0.5 + 0.5*cos(M_PI * x / (0.5*densityWidth))));
+            } else {
+               rvalue = 4*sP.rhoBase;
+               //rvalue = 0;
+            }
+            break;
+         default:
+            rvalue = sP.rho;
+            break;
+
+      }  
+      
+      return rvalue;
+
    }
 
    Real Flowthrough::getDistribValue(creal& x,creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
@@ -185,8 +241,6 @@ namespace projects {
    }
 
    Real Flowthrough::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
-
-      const FlowthroughSpeciesParameters& sP = speciesParams[popID];
 
       if (emptyBox == true) return 0.0;
       return getDistribValue(x+0.5*dx,y+0.5*dy,z+0.5*dz,vx+0.5*dvx,vy+0.5*dvy,vz+0.5*dvz,dvx,dvy,dvz,popID);

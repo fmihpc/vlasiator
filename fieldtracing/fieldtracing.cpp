@@ -129,7 +129,7 @@ namespace FieldTracing {
                   }
                   
                   // Make one step along the fieldline
-                  stepFieldLine(x,v, nodeTracingStepSize[n],fieldTracingParameters.min_tracer_dx,technicalGrid.DX/2,fieldTracingParameters.tracingMethod,tracingFullField,(no.x[2] < 0));
+                  stepFieldLine(x,v, nodeTracingStepSize[n],fieldTracingParameters.min_tracer_dx_full_box,technicalGrid.DX/2,fieldTracingParameters.tracingMethod,tracingFullField,(no.x[2] < 0));
                   
                   // If we map back into the ionosphere, we obviously don't couple out to SBC::Ionosphere::downmapRadius.
                   if(x.at(0)*x.at(0) + x.at(1)*x.at(1) + x.at(2)*x.at(2) < SBC::Ionosphere::innerRadius*SBC::Ionosphere::innerRadius) {
@@ -143,10 +143,14 @@ namespace FieldTracing {
                      const std::array<Real, 3> x_out = x;
 
                      // Take a step back and find the downmapRadius crossing point
-                     stepFieldLine(x,v, nodeTracingStepSize[n],fieldTracingParameters.min_tracer_dx,technicalGrid.DX/2,fieldTracingParameters.tracingMethod,tracingFullField,!(no.x[2] < 0));
+                     stepFieldLine(x,v, nodeTracingStepSize[n],fieldTracingParameters.min_tracer_dx_full_box,technicalGrid.DX/2,fieldTracingParameters.tracingMethod,tracingFullField,!(no.x[2] < 0));
                      Real r_out = sqrt(x_out[0]*x_out[0] + x_out[1]*x_out[1] + x_out[2]*x_out[2]);
                      Real r_in = sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]);
                      Real alpha = (SBC::Ionosphere::downmapRadius-r_out)/(r_in - r_out);
+                     alpha = std::fmax(std::fmin(alpha,1.0),0.0);
+                     if (fabs(r_out-r_in) < 0.01*fieldTracingParameters.min_tracer_dx_full_box) {
+                        alpha = 0.5;
+                     }
                      Real xi = x[0]-x_out[0];
                      Real yi = x[1]-x_out[1];
                      Real zi = x[2]-x_out[2];
@@ -336,7 +340,7 @@ namespace FieldTracing {
       while(x[0]*x[0]+x[1]*x[1]+x[2]*x[2] > SBC::Ionosphere::innerRadius*SBC::Ionosphere::innerRadius) {
          
          // Make one step along the fieldline
-         stepFieldLine(x,v, stepSize,50e3,100e3,fieldTracingParameters.tracingMethod,dipoleFieldOnly,false);
+         stepFieldLine(x,v, stepSize,fieldTracingParameters.min_tracer_dx_ionospere_coupling,fieldTracingParameters.max_tracer_dx_ionospere_coupling,fieldTracingParameters.tracingMethod,dipoleFieldOnly,false);
          
          // If the field lines is moving even further outwards, abort.
          // (this shouldn't happen under normal magnetospheric conditions, but who
@@ -352,9 +356,13 @@ namespace FieldTracing {
       const std::array<Real,3> x_in = x;
       Real r_in = sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]);
       // Take a step back and find the innerRadius crossing point
-      stepFieldLine(x,v, stepSize,50e3,100e3,fieldTracingParameters.tracingMethod,dipoleFieldOnly,false);
+      stepFieldLine(x,v, stepSize,fieldTracingParameters.min_tracer_dx_ionospere_coupling,fieldTracingParameters.max_tracer_dx_ionospere_coupling,fieldTracingParameters.tracingMethod,dipoleFieldOnly,false);
       Real r_out = sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]);
       Real alpha = (SBC::Ionosphere::innerRadius - r_in)/(r_out - r_in);
+      alpha = std::fmax(std::fmin(alpha,1.0),0.0);
+      if (fabs(r_out-r_in) < 0.01*fieldTracingParameters.min_tracer_dx_ionospere_coupling) {
+         alpha = 0.5;
+      }
       Real xi = x[0]-x_in[0];
       Real yi = x[1]-x_in[1];
       Real zi = x[2]-x_in[2];
@@ -549,7 +557,7 @@ namespace FieldTracing {
                   
                   // Make one step along the fieldline
                   // If the node is in the North, trace along -B (false for last argument), in the South, trace along B
-                  stepFieldLine(x,v, nodeTracingStepSize[n],(TReal)fieldTracingParameters.min_tracer_dx,(TReal)technicalGrid.DX/2,fieldTracingParameters.tracingMethod,tracingFullField,(no.x[2] < 0));
+                  stepFieldLine(x,v, nodeTracingStepSize[n],(TReal)fieldTracingParameters.min_tracer_dx_full_box,(TReal)technicalGrid.DX/2,fieldTracingParameters.tracingMethod,tracingFullField,(no.x[2] < 0));
                   nodeTracingStepCount[n]++;
                   
                   // Look up the fsgrid cell belonging to these coordinates
@@ -682,10 +690,14 @@ namespace FieldTracing {
             cellConnection[n] += TracingLineEndType::CLOSED;
 
             // Take a step back and find the innerRadius crossing point
-            stepFieldLine(x,v, cellTracingStepSize[n],(TReal)100e3,(TReal)technicalGrid.DX/2,fieldTracingParameters.tracingMethod,tracingFullField,!(DIRECTION == Direction::FORWARD));
-            TReal r_in = sqrt(cellTracingCoordinates[n][0]*cellTracingCoordinates[n][0] + cellTracingCoordinates[n][1]*cellTracingCoordinates[n][1] + cellTracingCoordinates[n][2]*cellTracingCoordinates[n][2]);
-            TReal r_out = sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]);
-            TReal alpha = (fieldTracingParameters.innerBoundaryRadius-r_in)/(r_out - r_in);
+            stepFieldLine(x,v, cellTracingStepSize[n],(TReal)fieldTracingParameters.min_tracer_dx_full_box,(TReal)technicalGrid.DX/2,fieldTracingParameters.tracingMethod,tracingFullField,!(DIRECTION == Direction::FORWARD));
+            Real r_in = sqrt(cellTracingCoordinates[n][0]*cellTracingCoordinates[n][0] + cellTracingCoordinates[n][1]*cellTracingCoordinates[n][1] + cellTracingCoordinates[n][2]*cellTracingCoordinates[n][2]);
+            Real r_out = sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]);
+            Real alpha = (fieldTracingParameters.innerBoundaryRadius-r_in)/(r_out - r_in);
+            alpha = std::fmax(std::fmin(alpha,1.0),0.0);
+            if (fabs(r_out-r_in) < 0.01*fieldTracingParameters.min_tracer_dx_full_box) {
+               alpha = 0.5;
+            }
             TReal xi = x[0]-cellTracingCoordinates[n][0];
             TReal yi = x[1]-cellTracingCoordinates[n][1];
             TReal zi = x[2]-cellTracingCoordinates[n][2];

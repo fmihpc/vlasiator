@@ -99,4 +99,4 @@ INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
 LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX)/phiprof/lib
 
 
-INC_EIGEN = -I$(LIBRARY_PREFIX)/eigen-3.4.0
+INC_EIGEN = -isystem ./submodules/eigen/

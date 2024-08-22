@@ -192,12 +192,12 @@ struct Parameters {
    static bool refineOnRestart;
    static bool forceRefinement;
    static bool shouldFilter;
-   static bool useAlpha;
-   static Real alphaRefineThreshold;
-   static Real alphaCoarsenThreshold;
-   static bool useJPerB;
-   static Real jperbRefineThreshold;
-   static Real jperbCoarsenThreshold;
+   static bool useAlpha1;
+   static Real alpha1RefineThreshold;
+   static Real alpha1CoarsenThreshold;
+   static bool useAlpha2;
+   static Real alpha2RefineThreshold;
+   static Real alpha2CoarsenThreshold;
    static uint refineCadence;
    static Real refineAfter;
    static Real refineRadius;
@@ -206,6 +206,12 @@ struct Parameters {
    static Real alphaDPSqWeight;
    static Real alphaDBSqWeight;
    static Real alphaDBWeight;
+   static Real refinementMinX; /*!< Do not refine at x coordinates below this value. */
+   static Real refinementMinY; /*!< Do not refine at y coordinates below this value. */
+   static Real refinementMinZ; /*!< Do not refine at z coordinates below this value. */
+   static Real refinementMaxX; /*!< Do not refine at x coordinates above this value. */
+   static Real refinementMaxY; /*!< Do not refine at y coordinates above this value. */
+   static Real refinementMaxZ; /*!< Do not refine at z coordinates above this value. */
    static int maxFilteringPasses;
    static int amrBoxNumber;
    static std::vector<uint> amrBoxHalfWidthX;

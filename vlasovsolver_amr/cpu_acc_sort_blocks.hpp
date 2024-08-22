@@ -27,7 +27,7 @@
 #include "cmath"
 #include "utility"
 #include "common.h"
-#include "spatial_cell.hpp"
+#include "spatial_cell_wrapper.hpp"
 
 
 

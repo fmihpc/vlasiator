@@ -1,4 +1,4 @@
-/*
+/* 
  * This file is part of Vlasiator.
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
@@ -207,8 +207,8 @@ namespace CellParams {
       AMR_DPSQ,
       AMR_DBSQ,
       AMR_DB,
-      AMR_ALPHA,
-      AMR_JPERB,
+      AMR_ALPHA1,
+      AMR_ALPHA2,
       RECENTLY_REFINED,
       BULKV_FORCING_X, /*! Externally forced drift velocity (ex. from the ionosphere) */
       BULKV_FORCING_Y, /*! Externally forced drift velocity (ex. from the ionosphere) */
