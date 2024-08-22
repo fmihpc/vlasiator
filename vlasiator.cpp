@@ -814,6 +814,7 @@ int main(int argn,char* args[]) {
 
    phiprof::Timer reportMemTimer {"report-memory-consumption"};
    report_process_memory_consumption();
+   report_grid_memory_consumption(mpiGrid);
    reportMemTimer.stop();
    
    unsigned int computedCells=0;
@@ -900,6 +901,7 @@ int main(int argn,char* args[]) {
          phiprof::Timer memTimer {"memory-report"};
          memTimer.start();
          report_process_memory_consumption();
+         report_grid_memory_consumption(mpiGrid);
          memTimer.stop();
          phiprof::Timer cellTimer {"cell-count-report"};
          cellTimer.start();
