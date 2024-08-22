@@ -59,7 +59,7 @@ FLAGS =
 CC_BRAND = gcc
 CC_BRAND_VERSION = 11.2.0
 CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++17 -mavx -march=znver2 #-flto
-testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -mavx -march=znver2 -DIONOSPHERE_SORTED_SUMS
+testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -DIONOSPHERE_SORTED_SUMS
 CXXFLAGS += -Wall -Wextra -Wno-unused
 
 MATHFLAGS = -ffast-math -fno-finite-math-only
