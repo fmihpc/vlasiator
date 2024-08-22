@@ -55,7 +55,7 @@ void initializeGrids(
     \param[in,out] mpiGrid The DCCRG grid with spatial cells
 */
 void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, SysBoundary& sysBoundaries,
-   bool skipTranslationLists = false);
+   bool doTranslationLists = true);
 
 /* helper for calculating AMR flags and cell lists and building pencils
  */

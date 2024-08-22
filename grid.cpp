@@ -314,9 +314,9 @@ void initializeGrids(
 
 
    // Balance load before we transfer all data below
-   balanceLoad(mpiGrid, sysBoundaries, true);
+   balanceLoad(mpiGrid, sysBoundaries, false);
    // Function includes re-calculation of local cells cache, but
-   // setting third parameter to true skips preparation of
+   // setting third parameter to false skips preparation of
    // translation cell lists and building of pencils.
 
    phiprof::Timer fetchNeighbourTimer {"Fetch Neighbour data", {"MPI"}};
@@ -469,7 +469,7 @@ void setFaceNeighborRanks( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    }
 }
 
-void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, SysBoundary& sysBoundaries, bool skipTranslationLists){
+void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, SysBoundary& sysBoundaries, bool doTranslationLists){
    // Invalidate cached cell lists
    Parameters::meshRepartitioned = true;
 
@@ -620,7 +620,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    initSolversTimer.stop();
 
    // Prepare ghost translation cell lists and build pencils for translation.
-   if (!skipTranslationLists) {
+   if (doTranslationLists) {
       prepareAMRLists(mpiGrid);
    }
 
