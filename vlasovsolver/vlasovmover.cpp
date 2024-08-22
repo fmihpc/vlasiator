@@ -104,7 +104,7 @@ void calculateSpatialTranslation(
       if(P::amrMaxSpatialRefLevel == 0) {
          trans_map_1d(mpiGrid,local_propagated_cells, remoteTargetCellsz, 2, dt,popID); // map along z//
       } else {
-         trans_map_1d_amr(mpiGrid,local_propagated_cells, nPencils, 2, dt,popID); // map along z//
+         trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsz, nPencils, 2, dt,popID); // map along z//
       }
       computeTimer.stop();
       time += MPI_Wtime() - t1;
@@ -148,7 +148,7 @@ void calculateSpatialTranslation(
       if(P::amrMaxSpatialRefLevel == 0) {
          trans_map_1d(mpiGrid,local_propagated_cells, remoteTargetCellsx, 0,dt,popID); // map along x//
       } else {
-         trans_map_1d_amr(mpiGrid,local_propagated_cells, nPencils, 0,dt,popID); // map along x//
+         trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsx, nPencils, 0,dt,popID); // map along x//
       }
       computeTimer.stop();
       time += MPI_Wtime() - t1;
@@ -191,7 +191,7 @@ void calculateSpatialTranslation(
       if(P::amrMaxSpatialRefLevel == 0) {
          trans_map_1d(mpiGrid,local_propagated_cells, remoteTargetCellsy, 1,dt,popID); // map along y//
       } else {
-         trans_map_1d_amr(mpiGrid,local_propagated_cells, nPencils, 1,dt,popID); // map along y//
+         trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsy, nPencils, 1,dt,popID); // map along y//
       }
       computeTimer.stop();
       time += MPI_Wtime() - t1;
@@ -238,7 +238,9 @@ void calculateSpatialGhostTranslation(
    Real &time
    ) {
 
-   // Ghost translation, need all cell information, not just for a single direction
+   // Ghost translation, need all cell information, not just for a single direction.
+   // No need for remote target cells; pass a dummy list.
+   const vector<CellID> dummy_cells;
 
    updateRemoteVelocityBlockLists(mpiGrid,popID,FULL_NEIGHBORHOOD_ID);
    // Need to re-do in case block lists of boundary cells change after
@@ -260,17 +262,17 @@ void calculateSpatialGhostTranslation(
    //#warning TODO: Implement also 2D / non-AMR ghost translation?
    // ------------- SLICE - map dist function in Z --------------- //
    phiprof::Timer mappingZTimer {"compute-mapping-z"};
-   trans_map_1d_amr(mpiGrid,local_propagated_cells, nPencils, 2, dt,popID); // map along z//
+   trans_map_1d_amr(mpiGrid,local_propagated_cells, dummy_cells, nPencils, 2, dt,popID); // map along z//
    mappingZTimer.stop();
 
    // ------------- SLICE - map dist function in X --------------- //
    phiprof::Timer mappingXTimer {"compute-mapping-x"};
-   trans_map_1d_amr(mpiGrid,local_propagated_cells, nPencils, 0,dt,popID); // map along x//
+   trans_map_1d_amr(mpiGrid,local_propagated_cells, dummy_cells, nPencils, 0,dt,popID); // map along x//
    mappingXTimer.stop();
 
    // ------------- SLICE - map dist function in Y --------------- //
    phiprof::Timer mappingYTimer {"compute-mapping-y"};
-   trans_map_1d_amr(mpiGrid,local_propagated_cells, nPencils, 1,dt,popID); // map along y//
+   trans_map_1d_amr(mpiGrid,local_propagated_cells, dummy_cells, nPencils, 1,dt,popID); // map along y//
    mappingYTimer.stop();
 
    phiprof::Timer postBarrierTimer {"MPI barrier-post-trans"};
@@ -315,7 +317,7 @@ void calculateSpatialTranslation(
    }
    
    phiprof::Timer computeTimer {"compute_cell_lists"};
-   if (P::amrMaxSpatialRefLevel==0) {
+   if (!P::vlasovSolverGhostTranslate) {
       remoteTargetCellsx = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID);
       remoteTargetCellsy = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID);
       remoteTargetCellsz = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID);

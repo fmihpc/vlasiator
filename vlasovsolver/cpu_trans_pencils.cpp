@@ -1225,7 +1225,6 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    vector<CellID> seedIds;
    getSeedIds(mpiGrid, propagatedCells, dimension, seedIds);
    getSeedIdsTimer.stop();
-   std::cerr<<" dimension "<<dimension<<" seedIds "<<seedIds.size()<<std::endl;
    if (printSeeds) {
       for (int rank=0; rank<mpi_size; ++rank) {
          MPI_Barrier(MPI_COMM_WORLD);
@@ -1282,7 +1281,6 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
          }
       }
    }
-   std::cerr<<" dimension "<<dimension<<" pencils firstN "<<DimensionPencils[dimension].N<<std::endl;
 
    phiprof::Timer checkGhostCellsTimer {"check_ghost_cells"};
    // Check refinement of two ghost cells on each end of each pencil
@@ -1290,7 +1288,6 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    // This function contains threading.
    check_ghost_cells(mpiGrid,DimensionPencils[dimension],dimension);
    checkGhostCellsTimer.stop();
-   std::cerr<<" dimension "<<dimension<<" pencils secondN "<<DimensionPencils[dimension].N<<std::endl;
 
    phiprof::Timer findSourceRatiosTimer {"Find_source_cells_ratios_dz"};
    // Compute also the stencil around the pencil (source cells), and
@@ -1320,7 +1317,6 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
          }
       }
    }
-   std::cerr<<" dimension "<<dimension<<" targetcells "<<DimensionTargetCells[dimension].size()<<std::endl;
 
    if (printPencils) {
       for (int rank=0; rank<mpi_size; ++rank) {

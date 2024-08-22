@@ -204,12 +204,14 @@ bool copy_trans_block_data_amr(
  * @param [in] mpiGrid DCCRG grid object
  * @param [in] localPropagatedCells List of local cells that get propagated
  * ie. not boundary or DO_NOT_COMPUTE
+ * @param [in] remoteTargetCells List of non-local target cells
  * @param [in] dimension Spatial dimension
  * @param [in] dt Time step
  * @param [in] popId Particle population ID
  */
 bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                       const vector<CellID>& localPropagatedCells,
+                      const vector<CellID>& remoteTargetCells,
                       std::vector<uint>& nPencils,
                       const uint dimension,
                       const Realv dt,
@@ -253,6 +255,10 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
       break;
    }
 
+   // Vector with all cell ids
+   vector<CellID> allCells(localPropagatedCells);
+   allCells.insert(allCells.end(), remoteTargetCells.begin(), remoteTargetCells.end());
+
    // init cellid_transpose (moved here to take advantage of the omp parallel region)
    #pragma omp parallel for collapse(2) schedule(static)
    for (uint k=0; k<WID; ++k) {
@@ -290,8 +296,8 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
       std::unordered_set<vmesh::GlobalID> thread_unionOfBlocksSet;
 
 #pragma omp for
-      for(unsigned int i=0; i<localPropagatedCells.size(); i++) {
-         CellID cellid = localPropagatedCells[i];
+      for(unsigned int i=0; i<allCells.size(); i++) {
+         CellID cellid = allCells[i];
          // Only propagate those blocks which exist for local cells
          if (!mpiGrid.is_local(cellid)) {
             continue;
