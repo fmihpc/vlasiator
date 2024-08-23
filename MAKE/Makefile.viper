@@ -1,8 +1,11 @@
-CMP = CC
-LNK = CC
+CMP = mpic++
+LNK = mpic++
 
-# Modules loaded
-# module load LUMI/22.08 ; module load cpeCray ; module load papi; module load Eigen; module load Boost/1.79.0-cpeCray-22.08
+# Makefile for MPCDF's Viper system (https://docs.mpcdf.mpg.de/doc/computing/viper-user-guide.html)
+# Modules loaded:
+# module load gcc/13 openmpi
+# module load papi
+# module load boost
 
 #======== Vectorization ==========
 #Set vector backend type for vlasov solvers, sets precision and length. 
@@ -58,23 +61,31 @@ testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 #
 #======== Libraries ===========
 
-LIBRARY_PREFIX = /scratch/project_465000287/kempfyan/libraries/LUMI22.08_cpeCray
-LIBRARY_PREFIX_HEADERS = /scratch/project_465000287/libraries
+LIBRARY_PREFIX = $(HOME)/vlasiator/libraries
+LIBRARY_PREFIX_HEADERS = $(HOME)/vlasiator/libraries
 
 #compiled libraries
-LIB_BOOST = -lboost_program_options
+INC_BOOST = -I$(BOOST_HOME)/include
+LIB_BOOST = -L$(BOOST_HOME)/lib -lboost_program_options -Wl,-rpath=$(BOOST_HOME)/lib
 
-INC_ZOLTAN = -isystem$(LIBRARY_PREFIX)/zoltan/include
-LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/zoltan/lib -lzoltan -Wl,-rpath=$(LIBRARY_PREFIX)/zoltan/lib
+INC_ZOLTAN = -isystem$(LIBRARY_PREFIX)/include
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/lib -lzoltan -Wl,-rpath=$(LIBRARY_PREFIX)/lib
 
-INC_JEMALLOC = -isystem$(LIBRARY_PREFIX)/jemalloc/include
-LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/jemalloc/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX)/jemalloc/lib
+INC_JEMALLOC = -isystem$(LIBRARY_PREFIX)/include
+LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX)/lib
 
-INC_PAPI =
 LIB_PAPI = -lpapi
 
-INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv
-LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX)/vlsv
+INC_VLSV = -I$(LIBRARY_PREFIX)/include
+LIB_VLSV = -L$(LIBRARY_PREFIX)/lib -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX)/lib
 
-LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -lgfortran -Wl,-rpath=$(LIBRARY_PREFIX)/phiprof/lib
-INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include 
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/lib -lphiprof -lgfortran -Wl,-rpath=$(LIBRARY_PREFIX)/lib
+INC_PROFILE = -I$(LIBRARY_PREFIX)/include 
+
+
+#header libraries
+
+INC_FSGRID = -I./submodules/fsgrid
+INC_DCCRG = -I./submodules/dccrg
+INC_VECTORCLASS = -isystem ./submodules/vectorclass/ -isystem ./submodules/vectorclass-addon/vector3d/
+INC_EIGEN = -isystem ./submodules/eigen/

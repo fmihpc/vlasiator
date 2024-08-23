@@ -13,12 +13,16 @@ INC_FSGRID=-I../../submodules/fsgrid/
 INC_DCCRG=-I../../submodules/dccrg/
 INC_EIGEN = -isystem ../../submodules/eigen/
 
+# Default makefile target: only build the test binaries, don't run anything
+# (in particular, nothing that would require python)
+default: main differentialFlux sigmaProfiles
 
-all: main differentialFlux sigmaProfiles quadrupoleTests atmosphere.pdf
-.PHONY: clean quadrupoleTests
+# The "all" target actually builds and runs the tests proper.
+all: main differentialFlux sigmaProfiles multipoleTests LFMtest atmosphere.png
+.PHONY: clean multipoleTests
 
 clean: 
-	rm -f *.o main differentialFlux sigmaProfiles
+	-rm *.o main differentialFlux sigmaProfiles
 
 ionosphere.o: ../../sysboundary/ionosphere.h ../../sysboundary/ionosphere.cpp ../../backgroundfield/backgroundfield.h ../../projects/project.h
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c ../../sysboundary/ionosphere.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN} ${INC_VECTORCLASS} ${INC_PROFILE} ${INC_JEMALLOC} -Wno-comment
@@ -90,15 +94,55 @@ differentialFlux: differentialFlux.cpp
 
 sigmaProfiles: sigmaProfiles.cpp
 
-atmosphere.pdf: sigmaProfiles plotAtmosphere.gp
+atmosphere.png: sigmaProfiles plotAtmosphere.gp
 	./sigmaProfiles 1e6 1.16046e7 > atmosphere.dat
+	./sigmaProfiles 1e6 1.16046e8 > atmosphere10.dat
+	./sigmaProfiles 1e6 1.16046e9 > atmosphere100.dat
 	./plotAtmosphere.gp
 
-quadrupoleTests: main plot_ionosphere.py
-	./main -N 1024 -r 40 90 -r 50 80 -sigma 100 -fac hexadecapole -gaugeFix equator
-	./plot_ionosphere.py output.vlsv
+MULTIPOLES := $(shell seq 1 6)
+MULTIPOLEJOBS := $(addprefix multipole,${MULTIPOLES})
+multipole-1-%.vlsv: main
+		OMP_NUM_THREADS=1 ./main -N 1024 -r 40 90 -r 50 80 -sigma identity -fac multipole 1 $* -gaugeFix pole -o multipole-1-$*.vlsv
+multipole-2-%.vlsv: main
+		OMP_NUM_THREADS=1 ./main -N 1024 -r 40 90 -r 50 80 -sigma identity -fac multipole 2 $* -gaugeFix pole -o multipole-2-$*.vlsv
+multipole-3-%.vlsv: main
+		OMP_NUM_THREADS=1 ./main -N 1024 -r 40 90 -r 50 80 -sigma identity -fac multipole 3 $* -gaugeFix pole -o multipole-3-$*.vlsv
+multipole-4-%.vlsv: main
+		OMP_NUM_THREADS=1 ./main -N 1024 -r 40 90 -r 50 80 -sigma identity -fac multipole 4 $* -gaugeFix pole -o multipole-4-$*.vlsv
+multipole-5-%.vlsv: main
+		OMP_NUM_THREADS=1 ./main -N 1024 -r 40 90 -r 50 80 -sigma identity -fac multipole 5 $* -gaugeFix pole -o multipole-5-$*.vlsv
+multipole-6-%.vlsv: main
+		OMP_NUM_THREADS=1 ./main -N 1024 -r 40 90 -r 50 80 -sigma identity -fac multipole 6 $* -gaugeFix pole -o multipole-6-$*.vlsv
 
-plot_ionosphere.py:
-	@: #do nothing
-plotAtmosphere.gp:
-	@: #do nothing
+${MULTIPOLEJOBS}: multipole%: main plot_ionosphere.py multipole-%--1.vlsv multipole-%-1.vlsv multipole-%-0.vlsv
+	echo "Running multipoles with L=$*"
+	for m in `seq -$* $*`; do \
+		make multipole-$*-$$m.vlsv; \
+		./plot_ionosphere.py multipole-$*-$$m.vlsv; \
+		echo "Running ./plot_ionosphere.py multipole-$*-$$m.vlsv"; \
+	done;
+
+convergence%.dat: main
+	#for nodecount in 50 100 200 500 1000 2000 5000; do \
+	#	for i in {1..500}; do j=$(( $$RANDOM % (2*$i) - $i )); \
+	#		echo -n "$i $j "; 
+	#		OMP_NUM_THREADS=4 ./main -q -N $nodecount -sigma identity -fac multipole $i $i -gaugeFix pole -o multipole-$i-$j.vlsv; \
+	#	done | tee multipole$nodecount.dat; \
+	#done
+	zsh -c 'i=$* j=$$(($$RANDOM%(2*$$i)-$$i)); \
+		for nodecount in {20..2000}; do \
+			echo -n "$$nodecount $$i $$j "; \
+			OMP_NUM_THREADS=4 ./main -q -N $$nodecount -sigma identity -fac multipole $$i $$i -gaugeFix pole -o multipole-$$i-$$j.vlsv; \
+		done | tee convergence$$i.dat'
+multipoleTests: ${MULTIPOLEJOBS}
+
+LFMtest.vlsv: main
+	#./main -N 2000 -sigma 10 -fac merkin2010 -gaugeFix equator45 -o LFMtest0.vlsv -maxIter 10000
+	OMP_NUM_THREADS=1 ./main -N 2000 -r 40 90 -r 50 90 -r 60 80 -sigma 10 -fac merkin2010 -gaugeFix equator45 -o LFMtest.vlsv -maxIter 10000
+
+lfmtest.dat: LFMtest.vlsv
+	./lfmformat.py LFMtest.vlsv > lfmtest.dat
+LFMtest: lfmtest.dat
+	./plot_LFMtest.gp
+	#./plot_ionosphereLFM.py LFMtest.vlsv

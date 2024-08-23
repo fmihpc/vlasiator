@@ -91,12 +91,9 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
    //vmesh::VelocityBlockContainer* blockContainer = spatial_cell->get_velocity_blocks(popID);
 
    // compute transform, forward in time and backward in time
-   phiprof::Timer transformTimer {"compute-transform"};
-
    //compute the transform performed in this acceleration
    Transform<Real,3,Affine> fwd_transform= compute_acceleration_transformation(spatial_cell,popID,dt);
    Transform<Real,3,Affine> bwd_transform= fwd_transform.inverse();
-   transformTimer.stop();
 
    Real intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk;
    Real intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk;

@@ -367,6 +367,8 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
    // Calculated moments are stored in the "_V" variables.
    calculateMoments_V(mpiGrid, propagatedCells, false);
 
+   int timerId {phiprof::initializeTimer("cell-semilag-acc")};
+
    // Semi-Lagrangian acceleration for those cells which are subcycled,
    // dimension-by-dimension
    #pragma omp parallel for schedule(dynamic,1)
@@ -398,7 +400,7 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
       rndState.seed(P::tstep);
       uint map_order=std::uniform_int_distribution<>(0,2)(rndState);
 
-      phiprof::Timer semilagAccTimer {"cell-semilag-acc"};
+      phiprof::Timer semilagAccTimer {timerId};
 #ifdef USE_GPU
       gpu_accelerate_cell(mpiGrid[cellID],popID,map_order,subcycleDt);
 #else

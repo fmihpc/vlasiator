@@ -71,10 +71,6 @@ LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv
 INC_SILO = -I$(LIBRARY_PREFIX)/include
 LIB_SILO = -L$(LIBRARY_PREFIX)/lib -lsilo
 
-INC_DCCRG = -I./submodules/dccrg
-
-INC_FSGRID = -I./submodules/fsgrid
-
 INC_PAPI = -I$(LIBRARY_PREFIX)/papi_install/include/
 LIB_PAPI = -L$(LIBRARY_PREFIX)/papi_install/lib/ -lpapi
 

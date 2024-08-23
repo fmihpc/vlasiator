@@ -258,7 +258,7 @@ int main(int argn,char* args[]) {
    const creal DT_EPSILON=1e-12;
    typedef Parameters P;
    Real newDt;
-   bool dtIsChanged;
+   bool dtIsChanged {false};
    
    // Before MPI_Init we hardwire some settings, if we are in OpenMPI
    int required=MPI_THREAD_FUNNELED;
@@ -300,9 +300,11 @@ int main(int argn,char* args[]) {
    }
    if (myRank == MASTER_RANK) {
       const char* mpiioenv = std::getenv("OMPI_MCA_io");
-      std::string mpiioenvstr(mpiioenv);
-      if(mpiioenvstr.find("^ompio") == std::string::npos) {
-         cout << mpiioMessage.str();
+      if(mpiioenv != nullptr) {
+         std::string mpiioenvstr(mpiioenv);
+         if(mpiioenvstr.find("^ompio") == std::string::npos) {
+            cout << mpiioMessage.str();
+         }
       }
    }
 
@@ -763,6 +765,8 @@ int main(int argn,char* args[]) {
       if (P::dynamicTimestep == true && dtIsChanged == true) {
          // Only actually update the timestep if dynamicTimestep is on
          P::dt=newDt;
+      } else {
+         dtIsChanged = false;
       }
       computeDtTimer.stop();
       
@@ -1067,7 +1071,12 @@ int main(int argn,char* args[]) {
       //TODO - add LB measure and do LB if it exceeds threshold
       if(((P::tstep % P::rebalanceInterval == 0 && P::tstep > P::tstep_min) || overrideRebalanceNow)) {
          logFile << "(LB): Start load balance, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
-         // Refinement includes LB
+
+         phiprof::Timer shrinkTimer {"Shrink_to_fit"};
+         // * shrink to fit before LB * //
+         shrink_to_fit_grid_data(mpiGrid);
+         shrinkTimer.stop();
+
          if (refineNow || (!dtIsChanged && P::adaptRefinement && P::tstep % (P::rebalanceInterval * P::refineCadence) == 0 && P::t > P::refineAfter)) { 
             logFile << "(AMR): Adapting refinement!"  << endl << writeVerbose;
             refineNow = false;
@@ -1106,10 +1115,6 @@ int main(int argn,char* args[]) {
          // This now uses the block-based count just copied between the two refinement calls above.
          balanceLoad(mpiGrid, sysBoundaryContainer);
          addTimedBarrier("barrier-end-load-balance");
-         phiprof::Timer shrinkTimer {"Shrink_to_fit"};
-         // * shrink to fit after LB * //
-         shrink_to_fit_grid_data(mpiGrid);
-         shrinkTimer.stop();
          logFile << "(LB): ... done!"  << endl << writeVerbose;
          P::prepareForRebalance = false;
 

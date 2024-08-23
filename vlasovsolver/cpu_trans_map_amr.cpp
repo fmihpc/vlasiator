@@ -372,8 +372,8 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
             // Transpose and copy block data from cells to source buffer
             Vec* blockDataSource = blockDataBuffer.data() + start*WID3/VECL;
             Realf** pencilBlockData = cellBlockData.data() + start;
-            bool pencil_has_data = copy_trans_block_data_amr(pencilBlockData, L, blockDataSource,
-                                                             vcell_transpose, popID);
+            copy_trans_block_data_amr(pencilBlockData, L, blockDataSource,
+                                      cellid_transpose, popID);
          }
          loadTimer.stop();
 
@@ -484,7 +484,7 @@ void update_remote_mapping_contribution_amr(
    int direction,
    const uint popID) {
 
-   const vector<CellID>& local_cells = getLocalCells();
+   const vector<CellID> local_cells = mpiGrid.get_local_cells_on_process_boundary(VLASOV_SOLVER_NEIGHBORHOOD_ID);
    const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_NEIGHBORHOOD_ID);
    vector<CellID> receive_cells;
    set<CellID> send_cells;
