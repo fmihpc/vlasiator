@@ -142,10 +142,18 @@ variable_names[${index}]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b
 variable_components[${index}]="0 0 1 2 0 1 2 0 1 2"
 ((index+=1))
 
+# 14 Large (dynamic) AMR translation flowthrough test
+test_name[${index}]="Flowthrough_damr"
+comparison_vlsv[${index}]="bulk.0000001.vlsv bulk.0000002.vlsv bulk.0000003.vlsv bulk.0000004.vlsv"
+comparison_phiprof[${index}]="phiprof_0.txt"
+variable_names[${index}]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v vg_amr_alpha1 vg_amr_alpha2 fg_b fg_b fg_b fg_e fg_e fg_e"
+variable_components[${index}]="0 0 1 2 0 0 0 1 2 0 1 2"
+((index+=1))
+
 # TBA: Large flowthrough test with dAMR
 
 #######
-# RESTARTING TESTS (14..17)
+# RESTARTING TESTS (15..18)
 #######
 
 # Restart tests. Writing and reading
@@ -182,7 +190,7 @@ variable_components[${index}]="0 0 1 2 0 1 2 0 1 2"
 ((index+=1))
 
 #######
-# FIELDSOLVER TESTS (18..19)
+# FIELDSOLVER TESTS (19..20)
 #######
 
 # 18 3D Field solver test
@@ -202,7 +210,7 @@ variable_components[${index}]="0 1 2 0 1 2"
 ((index+=1))
 
 #######
-# GLOBAL 2D TESTS (20..21)
+# GLOBAL 2D TESTS (21..22)
 #######
 
 # 20 Very small ecliptic magnetosphere, no subcycling in ACC or FS
@@ -222,7 +230,7 @@ variable_components[${index}]="0 0 1 2 0 1 2 0 1 2 0 1 2 0 1 2"
 ((index+=1))
 
 #######
-# GLOBAL 3D TESTS (22..23)
+# GLOBAL 3D TESTS (23..24)
 #######
 
 # 22 Magnetosphere 3D, very small, 40 timesteps

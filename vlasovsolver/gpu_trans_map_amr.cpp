@@ -74,22 +74,29 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
    uint* pencilStarts,
    vmesh::GlobalID *allBlocks, // List of all blocks
    const uint nAllBlocks, // size of list of blocks which we won't exceed
-   const uint startingBlockIndex, // First block index for this kernel invocation
-   const uint blockIndexIncrement, // How much each kernel invocation should jump ahead
+   // const uint startingBlockIndex, // First block index for this kernel invocation
+   // const uint blockIndexIncrement, // How much each kernel invocation should jump ahead
    const uint nPencils, // Number of total pencils (constant)
    const uint sumOfLengths, // sum of all pencil lengths (constant)
    const Realv threshold, // used by slope limiters
    split::SplitVector<vmesh::VelocityMesh*> *allPencilsMeshes, // Pointers to velocity meshes
    split::SplitVector<vmesh::VelocityBlockContainer*> *allPencilsContainers, // pointers to BlockContainers
    Realf** pencilBlockData, // pointers into cell block data, both written and read
-   Vec* pencilOrderedSource, // Vec-ordered block data values for pencils
+   Vec** dev_pencilOrderedPointers, // buffer of pointers to below
+   //Vec* pencilOrderedSource, // Vec-ordered block data values for pencils
    Realf* pencilDZ,
    Realf* pencilRatios, // Vector holding target ratios
    uint* pencilBlocksCount // store how many non-empty blocks each pencil has for this GID
    ) {
-   //const int gpuBlocks = gridDim.x;
+   // This is launched with grid size (nGpuBlocks,maxCpuThreads,1)
+   // where maxCpuThreads is the number of temp buffers to use
+   // and  nGpuBlocks is the count of blocks which fit in the smallest temp buffer
    //const int blocki = blockIdx.x;
    //const int warpSize = blockDim.x*blockDim.y*blockDim.z;
+   const uint startingBlockIndex = blockIdx.y*gridDim.x;
+   const uint blockIndexIncrement = gridDim.y*gridDim.x;
+   Vec* pencilOrderedSource = dev_pencilOrderedPointers[blockIdx.y];
+
    // This is launched with block size (WID,WID,WID) assuming that VECL==WID2 and VEC_PER_BLOCK=WID
    const vmesh::LocalID ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
    const uint vecIndex = threadIdx.y*blockDim.x + threadIdx.x;
@@ -113,10 +120,9 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
    }
 
    // offsets so this block of the kernel uses the correct part of temp arrays
-   const uint pencilBlockDataOffset = blockIdx.x * sumOfLengths;
+   const uint pencilBlockDataOffset = (blockIdx.x * sumOfLengths) + (blockIdx.y * sumOfLengths * gridDim.x);
    const uint pencilOrderedSourceOffset = blockIdx.x * sumOfLengths * (WID3/VECL);
-   const uint pencilBlocksCountOffset = blockIdx.x * nPencils;
-
+   const uint pencilBlocksCountOffset = (blockIdx.x * nPencils) + (blockIdx.y * nPencils * gridDim.x);
    vmesh::VelocityMesh** pencilMeshes = allPencilsMeshes->data();
    vmesh::VelocityBlockContainer** pencilContainers = allPencilsContainers->data();
    vmesh::VelocityMesh* randovmesh = pencilMeshes[0]; // just some vmesh
@@ -358,7 +364,6 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
       return false;
    }
    gpuStream_t bgStream = gpu_getStream(); // uses stream assigned to thread 0, not the blocking default stream
-   int device = gpu_getDevice();
 
    // Vector with all cell ids
    vector<CellID> allCells(localPropagatedCells);
@@ -370,7 +375,7 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    const uint sumOfLengths = DimensionPencils[dimension].sumOfLengths;
    gpu_vlasov_allocate(sumOfLengths);
    // Resize allVmeshPointer, allPencilsMeshes, allPencilsContainers
-   gpu_trans_allocate(nAllCells,sumOfLengths,0,0);
+   gpu_trans_allocate(nAllCells,sumOfLengths,0,0,0,0);
    allocateTimer.stop();
 
    // Find maximum mesh size.
@@ -408,7 +413,7 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    // Prefetch vector of vmesh pointers to GPU
    allVmeshPointer->optimizeGPU(bgStream);
    // Reserve size for unionOfBlocksSet
-   gpu_trans_allocate(0, 0, largestFoundMeshSize, 0);
+   gpu_trans_allocate(0,0,largestFoundMeshSize,0,0,0);
    allocateTimer.stop();
 
    // Gather cell weights for load balancing
@@ -452,10 +457,8 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
       }
    }
    // Prefetch data back to GPU
-   //phiprof::Timer gpuPrefetchTimer {"trans-amr-prefetch"};
    allPencilsMeshes->optimizeGPU(bgStream);
    allPencilsContainers->optimizeGPU(bgStream);
-   //gpuPrefetchTimer.stop();
 
    // Extract pointers to data in managed memory
    uint* pencilLengths = DimensionPencils[dimension].gpu_lengthOfPencils->data();
@@ -464,13 +467,9 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    Realf* pencilRatios = DimensionPencils[dimension].gpu_targetRatios->data();
    gatherPointerTimer.stop();
 
-   //gpuPrefetchTimer.start();
-   //CHK_ERR( gpuStreamSynchronize(bgStream) );
-   //gpuPrefetchTimer.stop();
-
    allocateTimer.start();
    const vmesh::LocalID unionOfBlocksSetSize = unionOfBlocksSet->size();
-   gpu_trans_allocate(0,0,0,unionOfBlocksSetSize);
+   gpu_trans_allocate(0,0,0,unionOfBlocksSetSize,0,0);
    allocateTimer.stop();
 
    phiprof::Timer buildTimer2 {"trans-amr-buildBlockList-2"};
@@ -482,78 +481,70 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    Realv threshold = mpiGrid[DimensionPencils[dimension].ids[VLASOV_STENCIL_WIDTH]]->getVelocityBlockMinValue(popID);
    buildTimer2.stop();
 
-   /***********************/
-   setupTimer.stop();
-   /***********************/
-   int bufferId {phiprof::initializeTimer("prepare buffers")};
-   int mappingId {phiprof::initializeTimer("trans-amr-mapping")};
-
    // How many blocks worth of pre-allocated buffer do we have for each thread?
-   const uint maxThreads = gpu_getMaxThreads();
    const uint currentAllocation = gpu_vlasov_getSmallestAllocation() * TRANSLATION_BUFFER_ALLOCATION_FACTOR;
-   // GPUTODO: make tmep buffer allocation a config parameter? Current approach is not necessarily
+   // GPUTODO: make temp buffer allocation a config parameter? Current approach is not necessarily
    // good if average block count vs grid size are mismatcheds
 
    // How many block GIDs could each thread manage in parallel with this existing temp buffer? // floor int division
+   // Note: we no longer launch from several threads, but some buffers are still identified via threads.
    const uint nBlocksPerThread = currentAllocation / sumOfLengths;
 
-   // And how many block GIDs will we actually manage?
-   const uint totalPerThread =  1 + ((nAllBlocks - 1) / maxThreads); // ceil int division, no more than this
+   // And how many block GIDs will we actually manage at once?
+   const uint maxThreads = gpu_getMaxThreads();
+   const uint totalPerThread =  1 + ((nAllBlocks - 1) / maxThreads); // ceil int division
+   // no more than this per "thread"
    const uint nGpuBlocks  = nBlocksPerThread  < totalPerThread ? nBlocksPerThread : totalPerThread;
+   // Limit is either how many blocks exist, or how many fit in buffer.
 
-   #pragma omp parallel
-   {
-      // Thread id used for persistent device memory pointers.
-      const uint cpuThreadID = gpu_getThread();
-      gpuStream_t stream = gpu_getStream();
+   phiprof::Timer bufferTimer {"trans-amr-buffers"};
+   // For now: using maxThreads separate buffers of gpu_blockDataOrdered. Gather pointers to them.
+   for (uint i=0; i<maxThreads; ++i) {
+      host_pencilOrderedPointers[i] = gpu_blockDataOrdered[i];
+   }
+   CHK_ERR( gpuMemcpy(dev_pencilOrderedPointers, host_pencilOrderedPointers, maxThreads*sizeof(Vec*), gpuMemcpyHostToDevice) );
 
-      phiprof::Timer bufferTimer {bufferId};
-      Vec* pencilOrderedSource = gpu_blockDataOrdered[cpuThreadID];
+   // Two temporary buffers, used in-kernel for both reading and writing
+   allocateTimer.start();
+   gpu_trans_allocate(0,sumOfLengths,0,0,nGpuBlocks,nPencils);
+   allocateTimer.stop();
+   bufferTimer.stop();
 
-      // Two temporary buffers, used in-kernel for both reading and writing
-      // GPUTODO: pre-allocate one per thread, here verify sufficient size
-      Realf** pencilBlockData; // Array of pointers into actual block data
-      uint* pencilBlocksCount; // Array of counters if pencil needs to be propagated for this block or not
-      CHK_ERR( gpuMallocAsync((void**)&pencilBlockData, sumOfLengths*nGpuBlocks*sizeof(Realf*), stream) );
-      CHK_ERR( gpuMallocAsync((void**)&pencilBlocksCount, nPencils*nGpuBlocks*sizeof(uint), stream) );
-      CHK_ERR( gpuStreamSynchronize(stream) );
-      bufferTimer.stop();
+   /***********************/
+   setupTimer.stop();
+   /***********************/
 
-      // Loop over velocity space blocks (threaded, each thread using one stream, and
-      // each stream launching a kernel running several blocks in parallel, but not using a for-loop)
-      phiprof::Timer mappingTimer {mappingId}; // mapping (top-level)
-      const uint startingBlockIndex = cpuThreadID*nGpuBlocks;
-      const uint blockIndexIncrement = maxThreads*nGpuBlocks;
-      // Each thread, using its own stream, will launch nGpuBlocks instances of the below kernel, where each instance
-      // propagates all pencils for the block in question.
-      dim3 block(WID,WID,WID); // assumes VECL==WID2
-      translation_kernel<<<nGpuBlocks, block, 0, stream>>> (
-         dimension,
-         dt,
-         pencilLengths,
-         pencilStarts,
-         allBlocks, // List of all block GIDs
-         nAllBlocks, // size of list of block GIDs which we won't exceed
-         startingBlockIndex, // First block index for this kernel invocation
-         blockIndexIncrement, // How much each kernel invocation should jump ahead
-         nPencils, // Number of total pencils (constant)
-         sumOfLengths, // sum of all pencil lengths (constant)
-         threshold,
-         allPencilsMeshes, // Pointers to velocity meshes
-         allPencilsContainers, // pointers to BlockContainers
-         pencilBlockData, // pointers into cell block data, both written and read
-         pencilOrderedSource, // Vec-ordered block data values for pencils
-         pencilDZ,
-         pencilRatios, // Vector holding target ratios
-         pencilBlocksCount // store how many non-empty blocks each pencil has for this GID
-         );
-      CHK_ERR( gpuPeekAtLastError() );
-      CHK_ERR( gpuStreamSynchronize(stream) );
-      mappingTimer.stop(); // mapping (top-level)
-      CHK_ERR( gpuFree(pencilBlockData) );
-      CHK_ERR( gpuFree(pencilBlocksCount) );
+   // Loop over velocity space blocks
+   phiprof::Timer mappingTimer {"trans-amr-mapping"};
+   dim3 grid(nGpuBlocks,maxThreads,1);
+   // Launch 2D grid: First dimension is how many blocks fit in one temp buffer, second one
+   // is "per-thread" so which temp buffer to use.
+   dim3 block(WID,WID,WID); // assumes VECL==WID2
+   translation_kernel<<<grid, block, 0, bgStream>>> (
+      dimension,
+      dt,
+      pencilLengths,
+      pencilStarts,
+      allBlocks, // List of all block GIDs
+      nAllBlocks, // size of list of block GIDs which we won't exceed
+      //startingBlockIndex, // First block index for this kernel invocation // now calculated from launch grid
+      //blockIndexIncrement, // How much each kernel invocation should jump ahead // now calculated from launch grid
+      nPencils, // Number of total pencils (constant)
+      sumOfLengths, // sum of all pencil lengths (constant)
+      threshold,
+      allPencilsMeshes, // Pointers to velocity meshes
+      allPencilsContainers, // pointers to BlockContainers
+      dev_pencilBlockData, // pointers into cell block data, both written and read
+      //pencilOrderedSource, // Vec-ordered block data values for pencils
+      dev_pencilOrderedPointers, // buffer of pointers
+      pencilDZ,
+      pencilRatios, // Vector holding target ratios
+      dev_pencilBlocksCount // store how many non-empty blocks each pencil has for this GID
+      );
+   CHK_ERR( gpuPeekAtLastError() );
+   CHK_ERR( gpuStreamSynchronize(bgStream) );
+   mappingTimer.stop();
 
-   } // closes pragma omp parallel
    return true;
 }
 

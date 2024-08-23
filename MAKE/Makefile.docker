@@ -84,10 +84,3 @@ LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof-2.0-beta/lib -lphiprof
 
 INC_PAPI = -I$(LIBRARY_PREFIX)/papi/include
 LIB_PAPI = -L$(LIBRARY_PREFIX)/papi/lib -lpapi
-
-#header libraries
-
-INC_EIGEN = -isystem ./submodules/eigen/
-INC_DCCRG = -I./submodules/dccrg
-INC_VECTORCLASS = -isystem ./submodules/vectorclass/ -isystem ./submodules/vectorclass-addon/vector3d/
-INC_FSGRID = -I./submodules/fsgrid

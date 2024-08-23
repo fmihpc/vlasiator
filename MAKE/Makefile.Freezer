@@ -13,13 +13,11 @@ LNK = mpic++
 ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
 #Single-precision        
 	VECTORCLASS = VEC8F_AGNER
-	INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/
 # 	VECTORCLASS = VEC8F_FALLBACK
 #	INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/../vlasiator/vlasovsolver
 else
 #Double-precision
 	VECTORCLASS = VEC4D_AGNER
-	INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/
 #	VECTORCLASS = VEC4D_FALLBACK
 #	INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/../vlasiator/vlasovsolver
 endif
@@ -72,15 +70,7 @@ LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX)/vlsv/lib
 
 LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX)/phiprof/lib
 INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
+
 #enable nvtx on cpu mode as well
 #LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof_nvcc/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX)/phiprof_nvcc/lib
 #INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof_nvcc/include
-
-#header libraries
-
-INC_EIGEN = -isystem ./submodules/eigen/
-INC_DCCRG = -I./submodules/dccrg
-INC_FSGRID = -I./submodules/fsgrid
-
-
-

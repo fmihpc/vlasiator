@@ -75,11 +75,21 @@ split::SplitVector<vmesh::VelocityMesh*> *allPencilsMeshes;
 split::SplitVector<vmesh::VelocityBlockContainer*> *allPencilsContainers;
 split::SplitVector<vmesh::GlobalID> *unionOfBlocks;
 Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *unionOfBlocksSet;
+
+// pointers for translation
+Vec** host_pencilOrderedPointers;
+Vec** dev_pencilOrderedPointers;
+Realf** dev_pencilBlockData; // Array of pointers into actual block data
+uint* dev_pencilBlocksCount; // Array of counters if pencil needs to be propagated for this block or not
+
+
 // counters for allocated sizes in translation
 uint gpu_allocated_nAllCells = 0;
 uint gpu_allocated_sumOfLengths = 0;
 uint gpu_allocated_largestVmesh = 0;
 uint gpu_allocated_unionSetSize = 0;
+uint gpu_allocated_trans_pencilBlockData = 0;
+uint gpu_allocated_trans_pencilBlocksCount = 0;
 
 // Memory allocation flags and values (TODO make per-thread?).
 uint gpu_blockadjust_allocatedSize[MAXCPUTHREADS] = {0};
@@ -192,6 +202,9 @@ __host__ void gpu_init_device() {
       // CHK_ERR( gpuMallocHost((void **) &info_4[i], sizeof(split::SplitInfo)) );
       // CHK_ERR( gpuMallocHost((void **) &info_m[i], sizeof(Hashinator::MapInfo)) );
    }
+   CHK_ERR( gpuMalloc((void**)&dev_pencilOrderedPointers, maxNThreads*sizeof(Vec*)) );
+   CHK_ERR( gpuMallocHost((void **)&host_pencilOrderedPointers, maxNThreads*sizeof(Vec*)) );
+
    CHK_ERR( gpuMalloc((void**)&gpu_vcell_transpose, WID3*sizeof(uint)) );
    CHK_ERR( gpuMalloc((void**)&invalidGIDpointer, sizeof(vmesh::GlobalID)) );
    vmesh::GlobalID invalidGIDvalue = vmesh::INVALID_GLOBALID;
@@ -216,6 +229,8 @@ __host__ void gpu_clear_device() {
       CHK_ERR( gpuFree(returnRealf[i]) );
       CHK_ERR( gpuFree(returnLID[i]) );
    }
+   CHK_ERR( gpuFree(dev_pencilOrderedPointers) );
+   CHK_ERR( gpuFreeHost(host_pencilOrderedPointers) );
    CHK_ERR( gpuFree(gpu_vcell_transpose) );
    CHK_ERR( gpuDeviceSynchronize() );
 }
@@ -472,7 +487,9 @@ __host__ void gpu_trans_allocate(
    cuint nAllCells,
    cuint sumOfLengths,
    cuint largestVmesh,
-   cuint unionSetSize
+   cuint unionSetSize,
+   cuint transGpuBlocks,
+   cuint nPencils
    ) {
    gpuStream_t stream = gpu_getStream();
    // Vectors with one entry per cell (prefetch to host)
@@ -544,6 +561,32 @@ __host__ void gpu_trans_allocate(
       }
       gpu_allocated_unionSetSize = unionSetSize;
    }
+   // Two temporary buffers, used in-kernel for both reading and writing
+   if (transGpuBlocks != 0) {
+      if (nPencils == 0) {
+         printf("Calling gpu_trans_allocate with transGpuBlocks but without nPencils is not supported!\n");
+         abort();
+      }
+      const uint maxNThreads = gpu_getMaxThreads();
+      if (gpu_allocated_trans_pencilBlockData < sumOfLengths*transGpuBlocks*maxNThreads) {
+         // Need larger allocation
+         if (gpu_allocated_trans_pencilBlockData != 0) {
+            CHK_ERR( gpuFree(dev_pencilBlockData) ); // Free old
+         }
+         // New allocations
+         gpu_allocated_trans_pencilBlockData = sumOfLengths*transGpuBlocks*maxNThreads * BLOCK_ALLOCATION_FACTOR;
+         CHK_ERR( gpuMalloc((void**)&dev_pencilBlockData, gpu_allocated_trans_pencilBlockData*sizeof(Realf*)) );
+      }
+      if (gpu_allocated_trans_pencilBlocksCount < nPencils*transGpuBlocks*maxNThreads) {
+         // Need larger allocation
+         if (gpu_allocated_trans_pencilBlocksCount  != 0) {
+            CHK_ERR( gpuFree(dev_pencilBlocksCount) ); // Free old
+         }
+         // New allocations
+         gpu_allocated_trans_pencilBlocksCount = nPencils*transGpuBlocks*maxNThreads * BLOCK_ALLOCATION_FACTOR;
+         CHK_ERR( gpuMalloc((void**)&dev_pencilBlocksCount, gpu_allocated_trans_pencilBlocksCount*sizeof(uint)) );
+      }
+   }
    CHK_ERR( gpuStreamSynchronize(stream) );
 }
 
@@ -563,10 +606,18 @@ __host__ void gpu_trans_deallocate() {
    if (gpu_allocated_unionSetSize != 0) {
       delete unionOfBlocks;
    }
+   if (gpu_allocated_trans_pencilBlockData != 0) {
+      CHK_ERR( gpuFree(dev_pencilBlockData) );
+   }
+   if (gpu_allocated_trans_pencilBlocksCount != 0) {
+      CHK_ERR( gpuFree(dev_pencilBlocksCount) );
+   }
    gpu_allocated_nAllCells = 0;
    gpu_allocated_sumOfLengths = 0;
    gpu_allocated_largestVmesh = 0;
    gpu_allocated_unionSetSize = 0;
+   gpu_allocated_trans_pencilBlockData = 0;
+   gpu_allocated_trans_pencilBlocksCount = 0;
    // Delete also the vectors for pencils for each dimension
    for (uint dimension=0; dimension<3; dimension++) {
       if (DimensionPencils[dimension].gpu_allocated) {

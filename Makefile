@@ -21,6 +21,12 @@ ifneq (,$(findstring testpackage,$(MAKECMDGOALS)))
 	COMPFLAGS += -DIONOSPHERE_SORTED_SUMS -DINITIALIZE_ALIGNED_MALLOC_WITH_NAN
 endif
 
+# Use submodules by default
+# This can be overridden in architecture-specific makefiles
+INC_FSGRID = -I./submodules/fsgrid/
+INC_DCCRG = -I./submodules/dccrg/
+INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/
+INC_EIGEN = -I ./submodules/eigen/
 
 include MAKE/Makefile.${ARCH}
 
@@ -179,7 +185,7 @@ OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipo
 	project.o projectTriAxisSearch.o read_gaussian_population.o\
 	Alfven.o Diffusion.o Dispersion.o Distributions.o Firehose.o\
 	Flowthrough.o Fluctuations.o Harris.o KHB.o Larmor.o Magnetosphere.o MultiPeak.o\
-	VelocityBox.o Riemann1.o Shock.o Template.o test_fp.o testHall.o test_trans.o\
+	Riemann1.o Shock.o Template.o test_fp.o testHall.o test_trans.o\
 	IPShock.o object_wrapper.o\
 	verificationLarmor.o Shocktest.o grid.o ioread.o iowrite.o vlasiator.o logger.o\
 	common.o parameters.o readparameters.o spatial_cell.o velocity_mesh_parameters.o\
