@@ -899,9 +899,9 @@ template<unsigned long int N> bool readFsGridVariable(
       size_t localStartOffset = 0;
       for(FsGridTools::Task_t task = 0; task < myRank; task++) {
          std::array<FsGridTools::FsIndex_t, 3> thatTasksSize;
-         thatTasksSize[0] = targetGrid.calcLocalSize(globalSize[0], decomposition[0], task/decomposition[2]/decomposition[1]);
-         thatTasksSize[1] = targetGrid.calcLocalSize(globalSize[1], decomposition[1], (task/decomposition[2])%decomposition[1]);
-         thatTasksSize[2] = targetGrid.calcLocalSize(globalSize[2], decomposition[2], task%decomposition[2]);
+         thatTasksSize[0] = FsGridTools::calcLocalSize(globalSize[0], decomposition[0], task/decomposition[2]/decomposition[1]);
+         thatTasksSize[1] = FsGridTools::calcLocalSize(globalSize[1], decomposition[1], (task/decomposition[2])%decomposition[1]);
+         thatTasksSize[2] = FsGridTools::calcLocalSize(globalSize[2], decomposition[2], task%decomposition[2]);
          localStartOffset += thatTasksSize[0] * thatTasksSize[1] * thatTasksSize[2];
       }
       
@@ -953,13 +953,13 @@ template<unsigned long int N> bool readFsGridVariable(
 
          std::array<FsGridTools::FsIndex_t,3> thatTasksSize;
          std::array<FsGridTools::FsIndex_t,3> thatTasksStart;
-         thatTasksSize[0] = targetGrid.calcLocalSize(globalSize[0], fileDecomposition[0], task/fileDecomposition[2]/fileDecomposition[1]);
-         thatTasksSize[1] = targetGrid.calcLocalSize(globalSize[1], fileDecomposition[1], (task/fileDecomposition[2])%fileDecomposition[1]);
-         thatTasksSize[2] = targetGrid.calcLocalSize(globalSize[2], fileDecomposition[2], task%fileDecomposition[2]);
+         thatTasksSize[0] = FsGridTools::calcLocalSize(globalSize[0], fileDecomposition[0], task/fileDecomposition[2]/fileDecomposition[1]);
+         thatTasksSize[1] = FsGridTools::calcLocalSize(globalSize[1], fileDecomposition[1], (task/fileDecomposition[2])%fileDecomposition[1]);
+         thatTasksSize[2] = FsGridTools::calcLocalSize(globalSize[2], fileDecomposition[2], task%fileDecomposition[2]);
 
-         thatTasksStart[0] = targetGrid.calcLocalStart(globalSize[0], fileDecomposition[0], task/fileDecomposition[2]/fileDecomposition[1]);
-         thatTasksStart[1] = targetGrid.calcLocalStart(globalSize[1], fileDecomposition[1], (task/fileDecomposition[2])%fileDecomposition[1]);
-         thatTasksStart[2] = targetGrid.calcLocalStart(globalSize[2], fileDecomposition[2], task%fileDecomposition[2]);
+         thatTasksStart[0] = FsGridTools::calcLocalStart(globalSize[0], fileDecomposition[0], task/fileDecomposition[2]/fileDecomposition[1]);
+         thatTasksStart[1] = FsGridTools::calcLocalStart(globalSize[1], fileDecomposition[1], (task/fileDecomposition[2])%fileDecomposition[1]);
+         thatTasksStart[2] = FsGridTools::calcLocalStart(globalSize[2], fileDecomposition[2], task%fileDecomposition[2]);
 
          // Iterate through overlap area
          std::array<FsGridTools::FsIndex_t,3> overlapStart,overlapEnd,overlapSize;
