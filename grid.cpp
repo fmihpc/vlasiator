@@ -543,7 +543,8 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    }
    // otherwise we increase the number of chunks until all chunks are below transfer_block_fraction_limit
    while(!count_determined) {
-      for (uint64_t transfer_part=0; transfer_part<num_part_transfers_local; transfer_part++) {
+      uint64_t transfer_part; // we use this in the logic after the for
+      for (transfer_part=0; transfer_part<num_part_transfers_local; transfer_part++) {
          uint64_t transfer_part_block_count=0;
          for (unsigned int i=0;i<outgoing_cells_list.size();i++){
             CellID cell_id=outgoing_cells_list[i];
@@ -557,7 +558,11 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
             break; // out of for
          }
       }
-      count_determined = true; // we got a break out if any chunk was still too big
+      if(transfer_part == num_part_transfers_local // either the loop ended or we hit that number with the *= 2
+         && outgoing_block_fraction <= transfer_block_fraction_limit // so cross-check with this
+      ) {
+         count_determined = true; // we got a break out if any chunk was still too big
+      }
    }
    // ...and finally we reduce this across all tasks of course.
    MPI_Allreduce(&num_part_transfers_local, &num_part_transfers, 1, MPI_UINT64_T, MPI_MAX, MPI_COMM_WORLD);
