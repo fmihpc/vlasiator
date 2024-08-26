@@ -489,7 +489,7 @@ namespace FieldTracing {
       const TReal stepSize = min(1000e3, technicalGrid.DX / 2.);
       std::vector<TReal> nodeTracingStepSize(nodes.size(), stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
       std::vector<TReal> reducedNodeTracingStepSize(nodes.size());
-      const std::array<FsGridTools::FsSize_t, 3> gridSize = technicalGrid.getGlobalSize();
+      std::array<FsGridTools::FsSize_t, 3> gridSize = technicalGrid.getGlobalSize();
       uint64_t maxTracingSteps = 8 * (gridSize[0] * technicalGrid.DX + gridSize[1] * technicalGrid.DY + gridSize[2] * technicalGrid.DZ) / stepSize;
       
       std::vector<int> nodeMapping(nodes.size(), TracingLineEndType::UNPROCESSED);                                 /*!< For reduction of node coupling */
@@ -857,8 +857,8 @@ namespace FieldTracing {
       const TReal stepSize = min(1000e3, technicalGrid.DX / 2.);
       std::vector<TReal> cellFWTracingStepSize(globalDccrgSize, stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
       std::vector<TReal> cellBWTracingStepSize(globalDccrgSize, stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
-
-      const std::array<FsGridTools::FsSize_t, 3> gridSize = technicalGrid.getGlobalSize();
+      
+      std::array<FsGridTools::FsSize_t, 3> gridSize = technicalGrid.getGlobalSize();
       // If fullbox_and_fluxrope_max_distance is unset, use this heuristic considering how far an IMF+dipole combo can sensibly stretch in the box before we're safe to assume it's rolled up more or less pathologically.
       const TReal maxTracingDistance = fieldTracingParameters.fullbox_and_fluxrope_max_distance > 0 ? fieldTracingParameters.fullbox_and_fluxrope_max_distance : gridSize[0] * technicalGrid.DX + gridSize[1] * technicalGrid.DY + gridSize[2] * technicalGrid.DZ;
       

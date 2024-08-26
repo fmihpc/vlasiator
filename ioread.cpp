@@ -860,7 +860,7 @@ template<unsigned long int N> bool readFsGridVariable(
 
    std::array<FsGridTools::FsIndex_t,3>& localSize = targetGrid.getLocalSize();
    std::array<FsGridTools::FsIndex_t,3>& localStart = targetGrid.getLocalStart();
-   const std::array<FsGridTools::FsSize_t, 3>& globalSize = targetGrid.getGlobalSize();
+   std::array<FsGridTools::FsSize_t,3>& globalSize = targetGrid.getGlobalSize();
 
    // Determine our tasks storage size
    size_t storageSize = localSize[0]*localSize[1]*localSize[2];

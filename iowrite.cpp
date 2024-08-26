@@ -886,7 +886,7 @@ bool writeFsGridMetadata(FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technic
 
   //The visit plugin expects MESH_BBOX as a keyword. We only write one
   //from the first rank.
-  const std::array<FsGridTools::FsSize_t, 3>& globalSize = technicalGrid.getGlobalSize();
+  std::array<FsGridTools::FsSize_t, 3>& globalSize = technicalGrid.getGlobalSize();
   std::array<FsGridTools::FsSize_t, 6> boundaryBox({globalSize[0], globalSize[1], globalSize[2],
       1,1,1});
 
