@@ -219,9 +219,7 @@ std::vector<double> readFsGridData(Reader& r, std::string& name, unsigned int nu
    // |            |                |
    // +------------+----------------+
 
-   std::array<int, 3> fileDecomposition = FsGridTools::computeDomainDecomposition(size, numWritingRanks, 0);
-   //computeFsGridDecomposition(size, numWritingRanks, fileDecomposition);
-
+   const std::array<int, 3> fileDecomposition = FsGridTools::computeDomainDecomposition(size, numWritingRanks);
 
    // Iterate through tasks and find their overlap with our domain.
    size_t fileOffset = 0;
