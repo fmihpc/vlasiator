@@ -219,8 +219,7 @@ std::vector<double> readFsGridData(Reader& r, std::string& name, unsigned int nu
    // |            |                |
    // +------------+----------------+
 
-   std::array<int,3> fileDecomposition;
-   FsGridTools::computeDomainDecomposition(size, numWritingRanks, fileDecomposition);
+   std::array<int, 3> fileDecomposition = FsGridTools::computeDomainDecomposition(size, numWritingRanks, 0);
    //computeFsGridDecomposition(size, numWritingRanks, fileDecomposition);
 
 
