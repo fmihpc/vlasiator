@@ -13,10 +13,12 @@ In Vlasiator, ions are represented as velocity distribution functions, while ele
 Due to the multi-dimensional approach at ion scales, Vlasiator's computational challenges are immense. We use advanced high performance computing techniques to allow massively parallel computations on tens of thousands of cores.
 
 ## git submodules
-We are transferring to use `git submodules` for the dependent libraries. Some of the header libraries have already been moved to this framework. Thus, we recommend to use the `--recurse-submodules` option when cloning, pulling, or checking out branches.
+We are transferring to use `git submodules` for the dependent libraries. Some of the header libraries have already been moved to this framework. Thus, we recommend to use the `--recurse-submodules` option when pulling or checking out branches.
+
+For first-time cloning, the following is required in order to initialize submodules correctly:
 ```
 git clone --recurse-submodules https://github.com/fmihpc/vlasiator
-git checkout <branch> --recurse-submodules
+git checkout <branch>
 git submodule update --init --recursive
 ```
 
