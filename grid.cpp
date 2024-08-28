@@ -736,7 +736,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
  */
 void shrink_to_fit_grid_data(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
    const std::vector<CellID>& cells = getLocalCells();
-   const std::vector<CellID>& remote_cells = mpiGrid.get_remote_cells_on_process_boundary(NeighborHoods::FULL_NEIGHBORHOOD_ID);
+   const std::vector<CellID>& remote_cells = get_all_remote_cells_on_process_boundary(mpiGrid);
    #pragma omp parallel for
    for(size_t i=0; i<cells.size() + remote_cells.size(); ++i) {
       if(i < cells.size()){
@@ -753,13 +753,24 @@ void shrink_to_fit_grid_data(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
    }
 }
 
+std::vector<CellID> get_all_remote_cells_on_process_boundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+   std::set<CellID> ids;
+   for(uint i=0; i<NeighborHoods::N_NEIGHBORHOODS; i++) {
+      for(CellID id : mpiGrid.get_remote_cells_on_process_boundary(i)) {
+         ids.insert(id);
+      }
+   }
+   std::vector<CellID> retval(ids.begin(), ids.end());
+   return retval;
+}
+
 /*! Estimates memory consumption and writes it into logfile. Collective operation on MPI_COMM_WORLD
  * \param mpiGrid Spatial grid
  */
 void report_grid_memory_consumption(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
    /*now report memory consumption into logfile*/
    const vector<CellID>& cells = getLocalCells();
-   const std::vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary();   
+   const std::vector<CellID> remote_cells = get_all_remote_cells_on_process_boundary(mpiGrid);
    int rank,n_procs;
    MPI_Comm_size(MPI_COMM_WORLD, &n_procs);
    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -816,7 +827,7 @@ void report_grid_memory_consumption(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
  */
 void deallocateRemoteCellBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
    const std::vector<uint64_t> incoming_cells
-      = mpiGrid.get_remote_cells_on_process_boundary(NeighborHoods::VLASOV_SOLVER_NEIGHBORHOOD_ID);
+      = get_all_remote_cells_on_process_boundary(mpiGrid);
    for(unsigned int i=0;i<incoming_cells.size();i++){
       uint64_t cell_id=incoming_cells[i];
       SpatialCell* cell = mpiGrid[cell_id];
