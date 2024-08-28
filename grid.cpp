@@ -792,7 +792,7 @@ void report_grid_memory_consumption(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    }
 
    for(unsigned int i=0;i<remote_cells.size();i++){
-      if(mpiGrid[remote_cells[i] != NULL]) {
+      if(mpiGrid[remote_cells[i]] != NULL) {
          mem[1] += mpiGrid[remote_cells[i]]->get_cell_memory_size();
          mem[4] += mpiGrid[remote_cells[i]]->get_cell_memory_capacity();
       }
