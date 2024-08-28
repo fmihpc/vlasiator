@@ -69,37 +69,6 @@ void bailout(
 #define MAX_BLOCKS_PER_DIM 256
 
 
-/*! A namespace for storing indices into an array which contains
- * neighbour list for each spatial cell. These indices refer to
- * the CPU memory, i.e. the device does not use these.
- */
-namespace NbrsSpa {
-   const uint INNER = 0;      /*!< The cell is an inner cell, i.e. all its neighbours are located on the same computation node.*/
-   const uint X_NEG_BND = (1 << 0);  /*!< The cell is a boundary cell in -x direction.*/
-   const uint X_POS_BND = (1 << 1);  /*!< The cell is a boundary cell in +x direction.*/
-   const uint Y_NEG_BND = (1 << 2);  /*!< The cell is a boundary cell in -y direction.*/
-   const uint Y_POS_BND = (1 << 3);  /*!< The cell is a boundary cell in +y direction.*/
-   const uint Z_NEG_BND = (1 << 4); /*!< The cell is a boundary cell in -z direction.*/
-   const uint Z_POS_BND = (1 << 5); /*!< The cell is a boundary cell in +z direction.*/
-
-   enum {
-      STATE, /*!< Contains the neighbour information of this cell, i.e. whether it is an inner cell or a boundary cell in one or more coordinate directions.*/
-      MYIND, /*!< The index of this cell.*/
-      X1NEG,  /*!< The index of the -x neighbouring block, distance 1.*/
-      Y1NEG,  /*!< The index of the -y neighbouring block, distance 1.*/
-      Z1NEG,  /*!< The index of the -z neighbouring block, distance 1.*/
-      X1POS,  /*!< The index of the +x neighbouring block, distance 1.*/
-      Y1POS,  /*!< The index of the +y neighbouring block, distance 1.*/
-      Z1POS,  /*!< The index of the +z neighbouring block, distance 1.*/
-      X2NEG,  /*!< The index of the -x neighbouring block, distance 1.*/
-      Y2NEG,  /*!< The index of the -y neighbouring block, distance 1.*/
-      Z2NEG,  /*!< The index of the -z neighbouring block, distance 1.*/
-      X2POS,  /*!< The index of the +x neighbouring block, distance 1.*/
-      Y2POS,  /*!< The index of the +y neighbouring block, distance 1.*/
-      Z2POS   /*!< The index of the +z neighbouring block, distance 1.*/
-   };
-}
-
 
 /*! A namespace for storing indices into an array which contains
  * the physical parameters of each velocity block.*/
