@@ -824,7 +824,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 /*
 void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const uint dimension, int direction) {
    const vector<CellID>& local_cells = getLocalCells();
-   const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(NeighborHoods::VLASOV_SOLVER_NEIGHBORHOOD_ID);
+   const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(Neighborhoods::VLASOV_SOLVER_NEIGHBORHOOD_ID);
    vector<CellID> receive_cells;
    vector<CellID> send_cells;
    
@@ -898,16 +898,16 @@ void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell,dccrg::Cartesia
 
    switch (dimension) {
     case 0:
-      if (direction > 0) mpiGrid.update_copies_of_remote_neighbors(NeighborHoods::SHIFT_P_X_NEIGHBORHOOD_ID);  
-      if (direction < 0) mpiGrid.update_copies_of_remote_neighbors(NeighborHoods::SHIFT_M_X_NEIGHBORHOOD_ID);  
+      if (direction > 0) mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::SHIFT_P_X_NEIGHBORHOOD_ID);  
+      if (direction < 0) mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::SHIFT_M_X_NEIGHBORHOOD_ID);  
       break;
     case 1:
-      if (direction > 0) mpiGrid.update_copies_of_remote_neighbors(NeighborHoods::SHIFT_P_Y_NEIGHBORHOOD_ID);  
-      if (direction < 0) mpiGrid.update_copies_of_remote_neighbors(NeighborHoods::SHIFT_M_Y_NEIGHBORHOOD_ID);  
+      if (direction > 0) mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::SHIFT_P_Y_NEIGHBORHOOD_ID);  
+      if (direction < 0) mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::SHIFT_M_Y_NEIGHBORHOOD_ID);  
       break;
     case 2:
-      if (direction > 0) mpiGrid.update_copies_of_remote_neighbors(NeighborHoods::SHIFT_P_Z_NEIGHBORHOOD_ID);  
-      if (direction < 0) mpiGrid.update_copies_of_remote_neighbors(NeighborHoods::SHIFT_M_Z_NEIGHBORHOOD_ID);  
+      if (direction > 0) mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::SHIFT_P_Z_NEIGHBORHOOD_ID);  
+      if (direction < 0) mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::SHIFT_M_Z_NEIGHBORHOOD_ID);  
       break;
    }
 

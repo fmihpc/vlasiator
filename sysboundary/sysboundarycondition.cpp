@@ -121,7 +121,7 @@ namespace SBC {
       isThisCellOnAFace.fill(false);
 
       std::array<std::set<CellID>, 6> dirNeighbors;
-      auto* p = mpiGrid.get_neighbors_of(id, NeighborHoods::VLASOV_SOLVER_NEIGHBORHOOD_ID);
+      auto* p = mpiGrid.get_neighbors_of(id, Neighborhoods::VLASOV_SOLVER_NEIGHBORHOOD_ID);
       if (!p) {
          std::cerr << "No neighbors found for " << id << std::endl;
          return;
@@ -690,7 +690,7 @@ namespace SBC {
 
          // This is broken, but also obsolete.
          // Find flowto cells (note, L2 cells do not have flowto cells)
-         // auto* nearNbrs = mpiGrid.get_neighbors_of(cellId, NeighborHoods::NEAREST_NEIGHBORHOOD_ID);
+         // auto* nearNbrs = mpiGrid.get_neighbors_of(cellId, Neighborhoods::NEAREST_NEIGHBORHOOD_ID);
          // for (auto nbrPair : *nearNbrs) {
          //    if(nbrPair.first != INVALID_CELLID) {
          //       if(mpiGrid[nbrPair.first]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
@@ -702,13 +702,13 @@ namespace SBC {
 
          // Only closer neighborhood for layer 1
          if(mpiGrid[cellId]->sysBoundaryLayer == 1) {		      
-            for (auto nbrPair : *mpiGrid.get_neighbors_of(cellId, NeighborHoods::SYSBOUNDARIES_NEIGHBORHOOD_ID)) {
+            for (auto nbrPair : *mpiGrid.get_neighbors_of(cellId, Neighborhoods::SYSBOUNDARIES_NEIGHBORHOOD_ID)) {
                if(nbrPair.first != INVALID_CELLID) {
                   CellID neighbor = nbrPair.first;
                   if(mpiGrid[neighbor]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
                      // Find distance and update closestCells
                      d2 = nbrPair.second[0]*nbrPair.second[0] + nbrPair.second[1]*nbrPair.second[1] + nbrPair.second[2]*nbrPair.second[2];
-                     for (auto i : *mpiGrid.get_neighbors_to(cellId, NeighborHoods::SYSBOUNDARIES_NEIGHBORHOOD_ID)) {
+                     for (auto i : *mpiGrid.get_neighbors_to(cellId, Neighborhoods::SYSBOUNDARIES_NEIGHBORHOOD_ID)) {
                         if (i.first == neighbor) {
                            closeCells.push_back(neighbor);
                            if(d2 == dist) {
@@ -727,7 +727,7 @@ namespace SBC {
 
          // search further for L2
          if (mpiGrid[cellId]->sysBoundaryLayer == 2) {
-            for (auto nbrPair : *mpiGrid.get_neighbors_of(cellId, NeighborHoods::SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID)) {
+            for (auto nbrPair : *mpiGrid.get_neighbors_of(cellId, Neighborhoods::SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID)) {
                if(nbrPair.first != INVALID_CELLID) {
                   CellID neighbor = nbrPair.first;
                   if(mpiGrid[neighbor]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {

@@ -186,7 +186,7 @@ void initializeGrids(
    recalculateLocalCellsCache();
 
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
-   mpiGrid.update_copies_of_remote_neighbors(NeighborHoods::NEAREST_NEIGHBORHOOD_ID);
+   mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::NEAREST_NEIGHBORHOOD_ID);
 
    if(P::amrMaxSpatialRefLevel > 0) {
       setFaceNeighborRanks( mpiGrid );
@@ -209,7 +209,7 @@ void initializeGrids(
    initBoundaryTimer.stop();
    
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_DIMENSIONS);
-   mpiGrid.update_copies_of_remote_neighbors(NeighborHoods::SYSBOUNDARIES_NEIGHBORHOOD_ID);
+   mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::SYSBOUNDARIES_NEIGHBORHOOD_ID);
 
    // We want this before restart refinement
    phiprof::Timer classifyTimer {"Classify cells (sys boundary conditions)"};
@@ -338,7 +338,7 @@ void initializeGrids(
    phiprof::Timer fetchNeighbourTimer {"Fetch Neighbour data", {"MPI"}};
    // update complete cell spatial data for full stencil (
    SpatialCell::set_mpi_transfer_type(Transfer::ALL_SPATIAL_DATA);
-   mpiGrid.update_copies_of_remote_neighbors(NeighborHoods::FULL_NEIGHBORHOOD_ID);
+   mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::FULL_NEIGHBORHOOD_ID);
    fetchNeighbourTimer.stop();
    
    phiprof::Timer setBTimer {"project.setProjectBField"};
@@ -455,22 +455,22 @@ void setFaceNeighborRanks( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
          
          switch (dir) {
          case -3:
-            neighborhood = NeighborHoods::SHIFT_M_Z_NEIGHBORHOOD_ID;
+            neighborhood = Neighborhoods::SHIFT_M_Z_NEIGHBORHOOD_ID;
             break;
          case -2:
-            neighborhood = NeighborHoods::SHIFT_M_Y_NEIGHBORHOOD_ID;
+            neighborhood = Neighborhoods::SHIFT_M_Y_NEIGHBORHOOD_ID;
             break;
          case -1: 
-            neighborhood = NeighborHoods::SHIFT_M_X_NEIGHBORHOOD_ID;
+            neighborhood = Neighborhoods::SHIFT_M_X_NEIGHBORHOOD_ID;
             break;
          case +1: 
-            neighborhood = NeighborHoods::SHIFT_P_X_NEIGHBORHOOD_ID;
+            neighborhood = Neighborhoods::SHIFT_P_X_NEIGHBORHOOD_ID;
             break;
          case +2:
-            neighborhood = NeighborHoods::SHIFT_P_Y_NEIGHBORHOOD_ID;
+            neighborhood = Neighborhoods::SHIFT_P_Y_NEIGHBORHOOD_ID;
             break;
          case +3:
-            neighborhood = NeighborHoods::SHIFT_P_Z_NEIGHBORHOOD_ID;
+            neighborhood = Neighborhoods::SHIFT_P_Z_NEIGHBORHOOD_ID;
             break;
          default:
             cerr << "Invalid face neighbor dimension: " << dir << " in " << __FILE__ << ":" << __LINE__ << std::endl;
@@ -611,7 +611,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    // Communicate all spatial data for FULL neighborhood, which
    // includes all data with the exception of dist function data
    SpatialCell::set_mpi_transfer_type(Transfer::ALL_SPATIAL_DATA);
-   mpiGrid.update_copies_of_remote_neighbors(NeighborHoods::FULL_NEIGHBORHOOD_ID);
+   mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::FULL_NEIGHBORHOOD_ID);
 
    phiprof::Timer updateBlocksTimer {"update block lists"};
    //new partition, re/initialize blocklists of remote cells.
@@ -671,9 +671,9 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
       // We are in the last substep of acceleration, so need to account for neighbours
       phiprof::Timer transferTimer {"Transfer with_content_list", {"MPI"}};
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_WITH_CONTENT_STAGE1 );
-      mpiGrid.update_copies_of_remote_neighbors(NeighborHoods::NEAREST_NEIGHBORHOOD_ID);
+      mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::NEAREST_NEIGHBORHOOD_ID);
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_WITH_CONTENT_STAGE2 );
-      mpiGrid.update_copies_of_remote_neighbors(NeighborHoods::NEAREST_NEIGHBORHOOD_ID);
+      mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::NEAREST_NEIGHBORHOOD_ID);
       transferTimer.stop();
    }
    
@@ -692,7 +692,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
          // If we are within an acceleration substep prior to the last one,
          // it's enough to adjust blocks based on local data only, and in
          // that case we simply pass an empty list of pointers.
-         const auto* neighbors = mpiGrid.get_neighbors_of(cell_id, NeighborHoods::NEAREST_NEIGHBORHOOD_ID);
+         const auto* neighbors = mpiGrid.get_neighbors_of(cell_id, Neighborhoods::NEAREST_NEIGHBORHOOD_ID);
          // Note: at AMR refinement boundaries this can cause blocks to propagate further
          // than absolutely required. Face neighbours, however, are not enough as we must
          // account for diagonal propagation.
@@ -755,7 +755,7 @@ void shrink_to_fit_grid_data(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
 
 std::vector<CellID> get_all_remote_cells_on_process_boundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
    std::set<CellID> ids;
-   for(uint i=0; i<NeighborHoods::N_NEIGHBORHOODS; i++) {
+   for(uint i=0; i<Neighborhoods::N_NEIGHBORHOODS; i++) {
       for(CellID id : mpiGrid.get_remote_cells_on_process_boundary(i)) {
          ids.insert(id);
       }
@@ -846,7 +846,7 @@ copies of remote neighbors for receiving velocity block data.
 void updateRemoteVelocityBlockLists(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const uint popID,
-   const uint neighborhood/*=NeighborHoods::DIST_FUNC_NEIGHBORHOOD_ID default*/
+   const uint neighborhood/*=Neighborhoods::DIST_FUNC_NEIGHBORHOOD_ID default*/
 )
 {
    SpatialCell::setCommunicatedSpecies(popID);
@@ -976,12 +976,12 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       }
    }
    //mpiGrid.add_neighborhood(FIELD_SOLVER_NEIGHBORHOOD_ID, neighborhood);
-   if (!mpiGrid.add_neighborhood(NeighborHoods::NEAREST_NEIGHBORHOOD_ID, neighborhood)){
-      std::cerr << "Failed to add neighborhood NeighborHoods::NEAREST_NEIGHBORHOOD_ID \n";
+   if (!mpiGrid.add_neighborhood(Neighborhoods::NEAREST_NEIGHBORHOOD_ID, neighborhood)){
+      std::cerr << "Failed to add neighborhood Neighborhoods::NEAREST_NEIGHBORHOOD_ID \n";
       abort();
    }
-   if (!mpiGrid.add_neighborhood(NeighborHoods::SYSBOUNDARIES_NEIGHBORHOOD_ID, neighborhood)){
-      std::cerr << "Failed to add neighborhood NeighborHoods::SYSBOUNDARIES_NEIGHBORHOOD_ID \n";
+   if (!mpiGrid.add_neighborhood(Neighborhoods::SYSBOUNDARIES_NEIGHBORHOOD_ID, neighborhood)){
+      std::cerr << "Failed to add neighborhood Neighborhoods::SYSBOUNDARIES_NEIGHBORHOOD_ID \n";
       abort();
    }
 
@@ -997,8 +997,8 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          }
       }
    }
-   if (!mpiGrid.add_neighborhood(NeighborHoods::SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID, neighborhood)){
-      std::cerr << "Failed to add neighborhood NeighborHoods::SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID \n";
+   if (!mpiGrid.add_neighborhood(Neighborhoods::SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID, neighborhood)){
+      std::cerr << "Failed to add neighborhood Neighborhoods::SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID \n";
       abort();
    }
 
@@ -1047,8 +1047,8 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       neighborhood.push_back({{0, 0,-d}});     
    }
    /*all possible communication pairs*/
-   if( !mpiGrid.add_neighborhood(NeighborHoods::FULL_NEIGHBORHOOD_ID, neighborhood)){
-      std::cerr << "Failed to add neighborhood NeighborHoods::FULL_NEIGHBORHOOD_ID \n";
+   if( !mpiGrid.add_neighborhood(Neighborhoods::FULL_NEIGHBORHOOD_ID, neighborhood)){
+      std::cerr << "Failed to add neighborhood Neighborhoods::FULL_NEIGHBORHOOD_ID \n";
       abort();
    }
    
@@ -1061,8 +1061,8 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
         neighborhood.push_back({{0, 0, d}});
      }
    }
-   if( !mpiGrid.add_neighborhood(NeighborHoods::VLASOV_SOLVER_NEIGHBORHOOD_ID, neighborhood)){
-      std::cerr << "Failed to add neighborhood NeighborHoods::VLASOV_SOLVER_NEIGHBORHOOD_ID \n";
+   if( !mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_NEIGHBORHOOD_ID, neighborhood)){
+      std::cerr << "Failed to add neighborhood Neighborhoods::VLASOV_SOLVER_NEIGHBORHOOD_ID \n";
       abort();
    }
 
@@ -1080,8 +1080,8 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          }
       }
    }
-   if( !mpiGrid.add_neighborhood(NeighborHoods::DIST_FUNC_NEIGHBORHOOD_ID, neighborhood)){
-      std::cerr << "Failed to add neighborhood NeighborHoods::DIST_FUNC_NEIGHBORHOOD_ID \n";
+   if( !mpiGrid.add_neighborhood(Neighborhoods::DIST_FUNC_NEIGHBORHOOD_ID, neighborhood)){
+      std::cerr << "Failed to add neighborhood Neighborhoods::DIST_FUNC_NEIGHBORHOOD_ID \n";
       abort();
    }
    
@@ -1091,8 +1091,8 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
         neighborhood.push_back({{d, 0, 0}});
      }
    }
-   if( !mpiGrid.add_neighborhood(NeighborHoods::VLASOV_SOLVER_X_NEIGHBORHOOD_ID, neighborhood)){
-      std::cerr << "Failed to add neighborhood NeighborHoods::VLASOV_SOLVER_X_NEIGHBORHOOD_ID \n";
+   if( !mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_X_NEIGHBORHOOD_ID, neighborhood)){
+      std::cerr << "Failed to add neighborhood Neighborhoods::VLASOV_SOLVER_X_NEIGHBORHOOD_ID \n";
       abort();
    }
 
@@ -1103,8 +1103,8 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
         neighborhood.push_back({{0, d, 0}});
      }
    }
-   if( !mpiGrid.add_neighborhood(NeighborHoods::VLASOV_SOLVER_Y_NEIGHBORHOOD_ID, neighborhood)){
-      std::cerr << "Failed to add neighborhood NeighborHoods::VLASOV_SOLVER_Y_NEIGHBORHOOD_ID \n";
+   if( !mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_Y_NEIGHBORHOOD_ID, neighborhood)){
+      std::cerr << "Failed to add neighborhood Neighborhoods::VLASOV_SOLVER_Y_NEIGHBORHOOD_ID \n";
       abort();
    }
 
@@ -1115,8 +1115,8 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
         neighborhood.push_back({{0, 0, d}});
      }
    }
-   if (!mpiGrid.add_neighborhood(NeighborHoods::VLASOV_SOLVER_Z_NEIGHBORHOOD_ID, neighborhood)){
-      std::cerr << "Failed to add neighborhood NeighborHoods::VLASOV_SOLVER_Z_NEIGHBORHOOD_ID \n";
+   if (!mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_Z_NEIGHBORHOOD_ID, neighborhood)){
+      std::cerr << "Failed to add neighborhood Neighborhoods::VLASOV_SOLVER_Z_NEIGHBORHOOD_ID \n";
       abort();
    }
 
@@ -1126,8 +1126,8 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
         neighborhood.push_back({{d, 0, 0}});
      }
    }
-   if (!mpiGrid.add_neighborhood(NeighborHoods::VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID, neighborhood)){
-      std::cerr << "Failed to add neighborhood NeighborHoods::VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID \n";
+   if (!mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID, neighborhood)){
+      std::cerr << "Failed to add neighborhood Neighborhoods::VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID \n";
       abort();
    }
 
@@ -1137,8 +1137,8 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
         neighborhood.push_back({{0, d, 0}});
      }
    }
-   if (!mpiGrid.add_neighborhood(NeighborHoods::VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID, neighborhood)){
-      std::cerr << "Failed to add neighborhood NeighborHoods::VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID \n";
+   if (!mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID, neighborhood)){
+      std::cerr << "Failed to add neighborhood Neighborhoods::VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID \n";
       abort();
    }
 
@@ -1148,46 +1148,46 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
         neighborhood.push_back({{0, 0, d}});
      }
    }
-   if (!mpiGrid.add_neighborhood(NeighborHoods::VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID, neighborhood)){
-      std::cerr << "Failed to add neighborhood NeighborHoods::VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID \n";
+   if (!mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID, neighborhood)){
+      std::cerr << "Failed to add neighborhood Neighborhoods::VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID \n";
       abort();
    }
 
 
    neighborhood.clear();
    neighborhood.push_back({{1, 0, 0}});
-   if (!mpiGrid.add_neighborhood(NeighborHoods::SHIFT_M_X_NEIGHBORHOOD_ID, neighborhood)){
-      std::cerr << "Failed to add neighborhood NeighborHoods::SHIFT_M_X_NEIGHBORHOOD_ID \n";
+   if (!mpiGrid.add_neighborhood(Neighborhoods::SHIFT_M_X_NEIGHBORHOOD_ID, neighborhood)){
+      std::cerr << "Failed to add neighborhood Neighborhoods::SHIFT_M_X_NEIGHBORHOOD_ID \n";
       abort();
    }
    neighborhood.clear();
    neighborhood.push_back({{0, 1, 0}});
-   if (!mpiGrid.add_neighborhood(NeighborHoods::SHIFT_M_Y_NEIGHBORHOOD_ID, neighborhood)){
-      std::cerr << "Failed to add neighborhood NeighborHoods::SHIFT_M_Y_NEIGHBORHOOD_ID \n";
+   if (!mpiGrid.add_neighborhood(Neighborhoods::SHIFT_M_Y_NEIGHBORHOOD_ID, neighborhood)){
+      std::cerr << "Failed to add neighborhood Neighborhoods::SHIFT_M_Y_NEIGHBORHOOD_ID \n";
       abort();
    }
    neighborhood.clear();
    neighborhood.push_back({{0, 0, 1}});
-   if (!mpiGrid.add_neighborhood(NeighborHoods::SHIFT_M_Z_NEIGHBORHOOD_ID, neighborhood)){
-      std::cerr << "Failed to add neighborhood NeighborHoods::SHIFT_M_Z_NEIGHBORHOOD_ID \n";
+   if (!mpiGrid.add_neighborhood(Neighborhoods::SHIFT_M_Z_NEIGHBORHOOD_ID, neighborhood)){
+      std::cerr << "Failed to add neighborhood Neighborhoods::SHIFT_M_Z_NEIGHBORHOOD_ID \n";
       abort();
    }
    neighborhood.clear();
    neighborhood.push_back({{-1, 0, 0}});
-   if (!mpiGrid.add_neighborhood(NeighborHoods::SHIFT_P_X_NEIGHBORHOOD_ID, neighborhood)){
-      std::cerr << "Failed to add neighborhood NeighborHoods::SHIFT_P_X_NEIGHBORHOOD_ID \n";
+   if (!mpiGrid.add_neighborhood(Neighborhoods::SHIFT_P_X_NEIGHBORHOOD_ID, neighborhood)){
+      std::cerr << "Failed to add neighborhood Neighborhoods::SHIFT_P_X_NEIGHBORHOOD_ID \n";
       abort();
    }
    neighborhood.clear();
    neighborhood.push_back({{0, -1, 0}});
-   if (!mpiGrid.add_neighborhood(NeighborHoods::SHIFT_P_Y_NEIGHBORHOOD_ID, neighborhood)){
-      std::cerr << "Failed to add neighborhood NeighborHoods::SHIFT_P_Y_NEIGHBORHOOD_ID \n";
+   if (!mpiGrid.add_neighborhood(Neighborhoods::SHIFT_P_Y_NEIGHBORHOOD_ID, neighborhood)){
+      std::cerr << "Failed to add neighborhood Neighborhoods::SHIFT_P_Y_NEIGHBORHOOD_ID \n";
       abort();
    }
    neighborhood.clear();
    neighborhood.push_back({{0, 0, -1}});
-   if (!mpiGrid.add_neighborhood(NeighborHoods::SHIFT_P_Z_NEIGHBORHOOD_ID, neighborhood)){
-      std::cerr << "Failed to add neighborhood NeighborHoods::SHIFT_P_Z_NEIGHBORHOOD_ID \n";
+   if (!mpiGrid.add_neighborhood(Neighborhoods::SHIFT_P_Z_NEIGHBORHOOD_ID, neighborhood)){
+      std::cerr << "Failed to add neighborhood Neighborhoods::SHIFT_P_Z_NEIGHBORHOOD_ID \n";
       abort();
    }
 }
@@ -1222,9 +1222,9 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
       // Update velocity mesh in remote cells
       phiprof::Timer mpiTimer {"MPI"};
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE1);
-      mpiGrid.update_copies_of_remote_neighbors(NeighborHoods::NEAREST_NEIGHBORHOOD_ID);
+      mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::NEAREST_NEIGHBORHOOD_ID);
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE2);
-      mpiGrid.update_copies_of_remote_neighbors(NeighborHoods::NEAREST_NEIGHBORHOOD_ID);
+      mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::NEAREST_NEIGHBORHOOD_ID);
       mpiTimer.stop();
             
       // Iterate over all local spatial cells and calculate 
@@ -1237,9 +1237,9 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
          SpatialCell* cell = mpiGrid[cells[c]];
             
          // Get all spatial neighbors
-         //const vector<CellID>* neighbors = mpiGrid.get_neighbors_of(cells[c],NeighborHoods::NEAREST_NEIGHBORHOOD_ID);
-         const auto* neighbors = mpiGrid.get_neighbors_of(cells[c], NeighborHoods::NEAREST_NEIGHBORHOOD_ID);
-	 //#warning TODO should VAMR grandparents be checked only for face neighbors instead of NeighborHoods::NEAREST_NEIGHBORHOOD_ID?
+         //const vector<CellID>* neighbors = mpiGrid.get_neighbors_of(cells[c],Neighborhoods::NEAREST_NEIGHBORHOOD_ID);
+         const auto* neighbors = mpiGrid.get_neighbors_of(cells[c], Neighborhoods::NEAREST_NEIGHBORHOOD_ID);
+	 //#warning TODO should VAMR grandparents be checked only for face neighbors instead of Neighborhoods::NEAREST_NEIGHBORHOOD_ID?
 
          // Iterate over all spatial neighbors
          // for (size_t n=0; n<neighbors->size(); ++n) {
@@ -1410,7 +1410,7 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
          calculateScaledDeltasSimple(mpiGrid);
       }
       SpatialCell::set_mpi_transfer_type(Transfer::REFINEMENT_PARAMETERS);
-      mpiGrid.update_copies_of_remote_neighbors(NeighborHoods::NEAREST_NEIGHBORHOOD_ID);
+      mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::NEAREST_NEIGHBORHOOD_ID);
 
       refines = project.adaptRefinement(mpiGrid);
    }
@@ -1551,7 +1551,7 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    initSpatialCellCoordinates(mpiGrid);
 
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_DIMENSIONS);
-   mpiGrid.update_copies_of_remote_neighbors(NeighborHoods::SYSBOUNDARIES_NEIGHBORHOOD_ID);
+   mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::SYSBOUNDARIES_NEIGHBORHOOD_ID);
 
    mapRefinement(mpiGrid, technicalGrid);
 
@@ -1561,12 +1561,12 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
 
    //SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_PARAMETERS);
-   mpiGrid.update_copies_of_remote_neighbors(NeighborHoods::NEAREST_NEIGHBORHOOD_ID);
+   mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::NEAREST_NEIGHBORHOOD_ID);
 
    // Is this needed?
    technicalGrid.updateGhostCells(); // This needs to be done at some point
    for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
-      updateRemoteVelocityBlockLists(mpiGrid, p, NeighborHoods::NEAREST_NEIGHBORHOOD_ID);
+      updateRemoteVelocityBlockLists(mpiGrid, p, Neighborhoods::NEAREST_NEIGHBORHOOD_ID);
    }
 
    if (P::shouldFilter) {

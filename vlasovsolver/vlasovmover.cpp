@@ -93,10 +93,10 @@ void calculateSpatialTranslation(
    if(P::zcells_ini > 1){
 
       phiprof::Timer transTimer {"transfer-stencil-data-z", {"MPI"}};
-      //updateRemoteVelocityBlockLists(mpiGrid,popID,NeighborHoods::VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
+      //updateRemoteVelocityBlockLists(mpiGrid,popID,Neighborhoods::VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
       SpatialCell::set_mpi_transfer_direction(2);
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false,AMRtranslationActive);
-      mpiGrid.update_copies_of_remote_neighbors(NeighborHoods::VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
+      mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
       transTimer.stop();
 
       // bt=phiprof::initializeTimer("barrier-trans-pre-trans_map_1d-z","Barriers","MPI");
@@ -138,10 +138,10 @@ void calculateSpatialTranslation(
    if(P::xcells_ini > 1){
       
       phiprof::Timer transTimer {"transfer-stencil-data-x", {"MPI"}};
-      //updateRemoteVelocityBlockLists(mpiGrid,popID,NeighborHoods::VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
+      //updateRemoteVelocityBlockLists(mpiGrid,popID,Neighborhoods::VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
       SpatialCell::set_mpi_transfer_direction(0);
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false,AMRtranslationActive);
-      mpiGrid.update_copies_of_remote_neighbors(NeighborHoods::VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
+      mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
       transTimer.stop();
       
       // bt=phiprof::initializeTimer("barrier-trans-pre-trans_map_1d-x","Barriers","MPI");
@@ -182,10 +182,10 @@ void calculateSpatialTranslation(
    if(P::ycells_ini > 1) {
       
       phiprof::Timer transTimer {"transfer-stencil-data-y", {"MPI"}};
-      //updateRemoteVelocityBlockLists(mpiGrid,popID,NeighborHoods::VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
+      //updateRemoteVelocityBlockLists(mpiGrid,popID,Neighborhoods::VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
       SpatialCell::set_mpi_transfer_direction(1);
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false,AMRtranslationActive);
-      mpiGrid.update_copies_of_remote_neighbors(NeighborHoods::VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
+      mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
       transTimer.stop();
       
       // bt=phiprof::initializeTimer("barrier-trans-pre-trans_map_1d-y","Barriers","MPI");
@@ -262,9 +262,9 @@ void calculateSpatialTranslation(
    }
    
    phiprof::Timer computeTimer {"compute_cell_lists"};
-   remoteTargetCellsx = mpiGrid.get_remote_cells_on_process_boundary(NeighborHoods::VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID);
-   remoteTargetCellsy = mpiGrid.get_remote_cells_on_process_boundary(NeighborHoods::VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID);
-   remoteTargetCellsz = mpiGrid.get_remote_cells_on_process_boundary(NeighborHoods::VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID);
+   remoteTargetCellsx = mpiGrid.get_remote_cells_on_process_boundary(Neighborhoods::VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID);
+   remoteTargetCellsy = mpiGrid.get_remote_cells_on_process_boundary(Neighborhoods::VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID);
+   remoteTargetCellsz = mpiGrid.get_remote_cells_on_process_boundary(Neighborhoods::VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID);
 
    // Figure out which spatial cells are translated,
    // result independent of particle species.

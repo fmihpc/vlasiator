@@ -68,7 +68,7 @@ void bailout(
 */
 #define MAX_BLOCKS_PER_DIM 256
 
-namespace NeighborHoods {
+namespace Neighborhoods {
    enum {
       VLASOV_SOLVER_NEIGHBORHOOD_ID,   /*!< up to third(PPM) neighbor in each face direction */
       VLASOV_SOLVER_X_NEIGHBORHOOD_ID, /*!< up to third(PPM) neighbor in x face directions */

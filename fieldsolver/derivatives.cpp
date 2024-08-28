@@ -826,7 +826,7 @@ void calculateScaledDeltasSimple(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    phiprof::Timer commTimer {"Calculate volume gradients ghost updates MPI", {"MPI"}};
    // We only need nearest neighbourhood and spatial data here
    SpatialCell::set_mpi_transfer_type(Transfer::ALL_SPATIAL_DATA);
-   mpiGrid.update_copies_of_remote_neighbors(NeighborHoods::NEAREST_NEIGHBORHOOD_ID);
+   mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::NEAREST_NEIGHBORHOOD_ID);
    commTimer.stop(N_cells,"Spatial Cells");
 
    // Calculate derivatives

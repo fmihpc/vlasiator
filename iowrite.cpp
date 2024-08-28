@@ -84,7 +84,7 @@ bool updateLocalIds(  dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
    }
    //Update the local ids (let the other processes know they've been updated)
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_IOLOCALCELLID);
-   mpiGrid.update_copies_of_remote_neighbors(NeighborHoods::FULL_NEIGHBORHOOD_ID);
+   mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::FULL_NEIGHBORHOOD_ID);
 
    return true;
 }
@@ -1380,7 +1380,7 @@ bool writeGrid(
    if( writeGhosts ) {
       // Writing ghost cells:
       // Get all ghost cell Ids (NOTE: this works slightly differently depending on whether the grid is periodic or not)
-      ghost_cells = mpiGrid.get_remote_cells_on_process_boundary( NeighborHoods::NEAREST_NEIGHBORHOOD_ID );
+      ghost_cells = mpiGrid.get_remote_cells_on_process_boundary( Neighborhoods::NEAREST_NEIGHBORHOOD_ID );
    }
 
    //Make sure the local cells and ghost cells are fetched properly
