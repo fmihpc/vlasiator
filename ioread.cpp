@@ -1313,7 +1313,7 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    readBlocksTimer.stop();
 
    phiprof::Timer updateNeighborsTimer {"updateMpiGridNeighbors"};
-   mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
+   mpiGrid.update_copies_of_remote_neighbors(NeighborHoods::FULL_NEIGHBORHOOD_ID);
    updateNeighborsTimer.stop();
    
    phiprof::Timer readfsTimer {"readFsGrid"};

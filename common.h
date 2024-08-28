@@ -68,6 +68,29 @@ void bailout(
 */
 #define MAX_BLOCKS_PER_DIM 256
 
+namespace NeighborHoods {
+   enum {
+      VLASOV_SOLVER_NEIGHBORHOOD_ID,   /*!< up to third(PPM) neighbor in each face direction */
+      VLASOV_SOLVER_X_NEIGHBORHOOD_ID, /*!< up to third(PPM) neighbor in x face directions */
+      VLASOV_SOLVER_Y_NEIGHBORHOOD_ID, /*!< up to third(PPM) neighbor in y face directions */
+      VLASOV_SOLVER_Z_NEIGHBORHOOD_ID, /*!< up to third(PPM) neighbor in z face directions */
+      VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID, /*!< nearest neighbor in X face direction, f() can propagate to local cells in X dir, and are target for local cells */
+      VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID, /*!< nearest neighbor in Y face direction, f() can propagate to local cells in Y dir, and are target for local cells */
+      VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID, /*!< nearest neighbor in Z face direction, f() can propagate to local cells in Z dir, and are target for local cells */
+      SYSBOUNDARIES_NEIGHBORHOOD_ID, /*!<  When classifying sysboundaries, all 26 nearest neighbors are included */
+      SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID, /*!< Up to second nearest neighbors in all directions (also diagonals) */
+      NEAREST_NEIGHBORHOOD_ID,  /*!< nearest neighbors */
+      FULL_NEIGHBORHOOD_ID,      /*!< Up to second nearest neighbors in all directions (also diagonals) + vlasov solver neighborhood */
+      DIST_FUNC_NEIGHBORHOOD_ID, /*!< nearest neighbors in all directions (also diagonals) + vlasov solver neighborhood */
+      SHIFT_P_X_NEIGHBORHOOD_ID, /*!< Shift in +x direction */
+      SHIFT_P_Y_NEIGHBORHOOD_ID, /*!< Shift in +y direction */
+      SHIFT_P_Z_NEIGHBORHOOD_ID, /*!< Shift in +z direction */
+      SHIFT_M_X_NEIGHBORHOOD_ID, /*!< Shift in -x direction */
+      SHIFT_M_Y_NEIGHBORHOOD_ID, /*!< Shift in -y direction */
+      SHIFT_M_Z_NEIGHBORHOOD_ID, /*!< Shift in -z direction */
+      N_NEIGHBORHOODS
+   };
+}
 
 
 /*! A namespace for storing indices into an array which contains

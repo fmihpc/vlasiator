@@ -630,7 +630,7 @@ void update_remote_mapping_contribution(
    const uint popID) {
    
    const vector<CellID>& local_cells = getLocalCells();
-   const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_NEIGHBORHOOD_ID);
+   const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(NeighborHoods::VLASOV_SOLVER_NEIGHBORHOOD_ID);
    vector<CellID> receive_cells;
    vector<CellID> send_cells;
    vector<Realf*> receiveBuffers;
@@ -721,16 +721,16 @@ void update_remote_mapping_contribution(
    SpatialCell::set_mpi_transfer_type(Transfer::NEIGHBOR_VEL_BLOCK_DATA);
    switch(dimension) {
    case 0:
-      if(direction > 0) mpiGrid.update_copies_of_remote_neighbors(SHIFT_P_X_NEIGHBORHOOD_ID);
-      if(direction < 0) mpiGrid.update_copies_of_remote_neighbors(SHIFT_M_X_NEIGHBORHOOD_ID);
+      if(direction > 0) mpiGrid.update_copies_of_remote_neighbors(NeighborHoods::SHIFT_P_X_NEIGHBORHOOD_ID);
+      if(direction < 0) mpiGrid.update_copies_of_remote_neighbors(NeighborHoods::SHIFT_M_X_NEIGHBORHOOD_ID);
       break;
    case 1:
-      if(direction > 0) mpiGrid.update_copies_of_remote_neighbors(SHIFT_P_Y_NEIGHBORHOOD_ID);
-      if(direction < 0) mpiGrid.update_copies_of_remote_neighbors(SHIFT_M_Y_NEIGHBORHOOD_ID);
+      if(direction > 0) mpiGrid.update_copies_of_remote_neighbors(NeighborHoods::SHIFT_P_Y_NEIGHBORHOOD_ID);
+      if(direction < 0) mpiGrid.update_copies_of_remote_neighbors(NeighborHoods::SHIFT_M_Y_NEIGHBORHOOD_ID);
       break;
    case 2:
-      if(direction > 0) mpiGrid.update_copies_of_remote_neighbors(SHIFT_P_Z_NEIGHBORHOOD_ID);
-      if(direction < 0) mpiGrid.update_copies_of_remote_neighbors(SHIFT_M_Z_NEIGHBORHOOD_ID);
+      if(direction > 0) mpiGrid.update_copies_of_remote_neighbors(NeighborHoods::SHIFT_P_Z_NEIGHBORHOOD_ID);
+      if(direction < 0) mpiGrid.update_copies_of_remote_neighbors(NeighborHoods::SHIFT_M_Z_NEIGHBORHOOD_ID);
       break;
    }
    
