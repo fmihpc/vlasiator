@@ -804,8 +804,8 @@ void report_grid_memory_consumption(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
 
    MPI_Reduce(mem, sum_mem, 6, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 
-   logFile << "(MEM) Total size: " << sum_mem[2] << endl;   
-   logFile << "(MEM) Total capacity " << sum_mem[5] << endl;   
+   logFile << "(MEM) tstep " << P::tstep << " t " << P::t << " Total size: " << sum_mem[2] << endl;
+   logFile << "(MEM) tstep " << P::tstep << " t " << P::t << " Total capacity " << sum_mem[5] << endl;
    
    struct {
       double val;
@@ -819,9 +819,9 @@ void report_grid_memory_consumption(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    MPI_Reduce(mem_usage_loc, max_mem, 3, MPI_DOUBLE_INT, MPI_MAXLOC, 0, MPI_COMM_WORLD);
    MPI_Reduce(mem_usage_loc, min_mem, 3, MPI_DOUBLE_INT, MPI_MINLOC, 0, MPI_COMM_WORLD);
    
-   logFile << "(MEM)   Average capacity: " << sum_mem[5]/n_procs << " local cells " << sum_mem[3]/n_procs << " remote cells " << sum_mem[4]/n_procs << endl;
-   logFile << "(MEM)   Max capacity:     " << max_mem[2].val   << " on  process " << max_mem[2].rank << endl;
-   logFile << "(MEM)   Min capacity:     " << min_mem[2].val   << " on  process " << min_mem[2].rank << endl;
+   logFile << "(MEM) tstep " << P::tstep << " t " << P::t << " Average capacity: " << sum_mem[5]/n_procs << " local cells " << sum_mem[3]/n_procs << " remote cells " << sum_mem[4]/n_procs << endl;
+   logFile << "(MEM) tstep " << P::tstep << " t " << P::t << " Max capacity:     " << max_mem[2].val   << " on  process " << max_mem[2].rank << endl;
+   logFile << "(MEM) tstep " << P::tstep << " t " << P::t << " Min capacity:     " << min_mem[2].val   << " on  process " << min_mem[2].rank << endl;
    logFile << writeVerbose;
 }
 
