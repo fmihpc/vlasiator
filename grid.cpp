@@ -757,7 +757,9 @@ std::vector<CellID> get_all_remote_cells_on_process_boundary(dccrg::Dccrg<Spatia
    std::set<CellID> ids;
    for(uint i=0; i<Neighborhoods::N_NEIGHBORHOODS; i++) {
       for(CellID id : mpiGrid.get_remote_cells_on_process_boundary(i)) {
-         ids.insert(id);
+         if(id != INVALID_CELLID) {
+            ids.insert(id);
+         }
       }
    }
    std::vector<CellID> retval(ids.begin(), ids.end());
@@ -790,8 +792,10 @@ void report_grid_memory_consumption(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    }
 
    for(unsigned int i=0;i<remote_cells.size();i++){
-      mem[1] += mpiGrid[remote_cells[i]]->get_cell_memory_size();
-      mem[4] += mpiGrid[remote_cells[i]]->get_cell_memory_capacity();
+      if(mpiGrid[remote_cells[i] != NULL]) {
+         mem[1] += mpiGrid[remote_cells[i]]->get_cell_memory_size();
+         mem[4] += mpiGrid[remote_cells[i]]->get_cell_memory_capacity();
+      }
    }
    
    mem[2] = mem[0] + mem[1];//total meory according to size()
