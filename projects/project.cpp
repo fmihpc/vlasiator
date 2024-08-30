@@ -598,6 +598,13 @@ namespace projects {
             bool shouldRefine {(r2 < r_max2) && ((P::useAlpha1 ? cell->parameters[CellParams::AMR_ALPHA1] > P::alpha1RefineThreshold : false) || (P::useAlpha2 ? cell->parameters[CellParams::AMR_ALPHA2] > P::alpha2RefineThreshold : false))};
             bool shouldUnrefine {(r2 > r_max2) || ((P::useAlpha1 ? cell->parameters[CellParams::AMR_ALPHA1] < P::alpha1CoarsenThreshold : true) && (P::useAlpha2 ? cell->parameters[CellParams::AMR_ALPHA2] < P::alpha2CoarsenThreshold : true))};
 
+            // Pressure anisotropy forces refinement
+            // TODO make this a config thingie
+            if (cell->parameters[CellParams::P_ANISOTROPY] < 0.5) {
+               shouldRefine = true;
+               shouldUnrefine = false;
+            }
+
             if(shouldRefine
                // If this cell is planned to be refined, but is outside the allowed refinement region, cancel that refinement.
                // Induced refinement still possible just beyond that limit.
