@@ -563,7 +563,7 @@ void update_remote_mapping_contribution_amr(
       vector<CellID> p_nbrs;
       vector<CellID> n_nbrs;
 
-      for (const auto& [neighbor, dir] : mpiGrid.find_face_neighbors_of(c)) {
+      for (const auto& [neighbor, dir] : mpiGrid.get_face_neighbors_of(c)) {
          if(dir == ((int)dimension + 1) * direction) {
             p_nbrs.push_back(neighbor);
          }

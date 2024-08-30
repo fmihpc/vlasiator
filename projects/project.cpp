@@ -619,7 +619,7 @@ namespace projects {
             // Finally, check neighbors
             int refined_neighbors {0};
             int coarser_neighbors {0};
-            for (const auto& [neighbor, dir] : mpiGrid.find_face_neighbors_of(id)) {
+            for (const auto& [neighbor, dir] : mpiGrid.get_face_neighbors_of(id)) {
                // Evaluate all face neighbors of the current cell
                std::array<double,3> neighborXyz {mpiGrid.get_center(neighbor)};
                Real neighborR2 {pow(neighborXyz[0], 2) + pow(neighborXyz[1], 2) + pow(neighborXyz[2], 2)};

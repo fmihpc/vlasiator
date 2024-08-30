@@ -541,7 +541,7 @@ CellID selectPositiveNeighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
 
    // Iterate through neighbor ids in the positive direction of the chosen dimension,
    // select the neighbor indicated by path, if it is local to this process.
-   for (const auto& [neighbor, dir] : grid.find_face_neighbors_of(id)) {
+   for (const auto& [neighbor, dir] : grid.get_face_neighbors_of(id)) {
      if (dir == ((int)dimension + 1)) {
 	 myNeighbors.push_back(neighbor);
       }
@@ -824,7 +824,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
 
       // First check negative face neighbors (A)
       // Returns all neighbors as (id, direction-dimension) pair pointers.
-      for (const auto& [neighbor, dir] : mpiGrid.find_face_neighbors_of(celli) ) {
+      for (const auto& [neighbor, dir] : mpiGrid.get_face_neighbors_of(celli) ) {
          if ( dir == -((int)dimension + 1) ) {
             // Check that the neighbor is not across a periodic boundary by calculating
             // the distance in indices between this cell and its neighbor.

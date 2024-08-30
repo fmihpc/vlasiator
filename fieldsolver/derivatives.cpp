@@ -838,7 +838,7 @@ void calculateScaledDeltasSimple(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
          CellID id = cells[i];
          SpatialCell* cell = mpiGrid[id];
          std::vector<SpatialCell*> neighbors;
-         for (const auto& [neighbor, dir] : mpiGrid.find_face_neighbors_of(id)) {
+         for (const auto& [neighbor, dir] : mpiGrid.get_face_neighbors_of(id)) {
             neighbors.push_back(mpiGrid[neighbor]);
          }
          calculateScaledDeltas(cell, neighbors);
