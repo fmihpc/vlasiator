@@ -198,6 +198,7 @@ struct Parameters {
    static bool useAlpha2;
    static Real alpha2RefineThreshold;
    static Real alpha2CoarsenThreshold;
+   static Real anisotropyThreshold;
    static uint refineCadence;
    static Real refineAfter;
    static Real refineRadius;

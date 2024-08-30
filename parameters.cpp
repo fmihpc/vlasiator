@@ -167,6 +167,7 @@ Real P::alpha1CoarsenThreshold = -1.0;
 bool P::useAlpha2 = true;
 Real P::alpha2RefineThreshold = 0.5;
 Real P::alpha2CoarsenThreshold = -1.0;
+Real P::anisotropyThreshold = -1;
 Real P::alphaDRhoWeight = 1.0;
 Real P::alphaDUWeight = 1.0;
 Real P::alphaDPSqWeight = 1.0;
@@ -409,7 +410,7 @@ bool P::addParameters() {
                         "ig_precipitation ig_deltaphi "+
                         "ig_inplanecurrent ig_b ig_e vg_drift vg_ionospherecoupling vg_connection vg_fluxrope fg_curvature "+
                         "vg_amr_drho vg_amr_du vg_amr_dpsq vg_amr_dbsq vg_amr_db vg_amr_alpha1 vg_amr_reflevel vg_amr_alpha2 "+
-                        "vg_amr_translate_comm vg_gridcoordinates fg_gridcoordinates ");
+                        "vg_amr_translate_comm vg_gridcoordinates fg_gridcoordinates vg_pressure_anisotropy");
 
    RP::addComposing(
        "variables_deprecated.output",
@@ -484,6 +485,7 @@ bool P::addParameters() {
    RP::add("AMR.use_alpha2","Use J/B_perp as a refinement index", true);
    RP::add("AMR.alpha2_refine_threshold","Determines the minimum value of alpha_2 to refine cells", 0.5);
    RP::add("AMR.alpha2_coarsen_threshold","Determines the maximum value of alpha_2 to unrefine cells, default half of the refine threshold", -1.0);
+   RP::add("AMR.anisotropy_threshold","Determines the maximum value of pressure anisotropy to refine cells", -1.0);
    RP::add("AMR.refine_cadence","Refine every nth load balance", 5);
    RP::add("AMR.refine_after","Start refinement after this many simulation seconds", 0.0);
    RP::add("AMR.refine_radius","Maximum distance from origin to allow refinement within. Only induced refinement allowed outside this radius.", LARGE_REAL);
@@ -800,6 +802,7 @@ void Parameters::getParameters() {
       }
       MPI_Abort(MPI_COMM_WORLD, 1);
    }
+   RP::get("AMR.anisotropy_threshold", P::anisotropyThreshold);
 
    RP::get("AMR.refine_cadence",P::refineCadence);
    RP::get("AMR.refine_after",P::refineAfter);

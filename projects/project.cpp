@@ -600,7 +600,7 @@ namespace projects {
 
             // Pressure anisotropy forces refinement
             // TODO make this a config thingie
-            if (cell->parameters[CellParams::P_ANISOTROPY] < 0.5) {
+            if (P::anisotropyThreshold > 0 && cell->parameters[CellParams::P_ANISOTROPY] < P::anisotropyThreshold) {
                shouldRefine = true;
                shouldUnrefine = false;
             }
