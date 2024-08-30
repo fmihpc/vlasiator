@@ -787,7 +787,10 @@ int main(int argn,char* args[]) {
          CellParams::RHOQ,
          CellParams::P_11,
          CellParams::P_22,
-         CellParams::P_33
+         CellParams::P_33,
+         CellParams::P_23,
+         CellParams::P_13,
+         CellParams::P_12
       );
       computeMomentsTimer.stop();
    }
@@ -1202,7 +1205,10 @@ int main(int argn,char* args[]) {
          CellParams::RHOQ_DT2,
          CellParams::P_11_DT2,
          CellParams::P_22_DT2,
-         CellParams::P_33_DT2
+         CellParams::P_33_DT2,
+         CellParams::P_23_DT2,
+         CellParams::P_13_DT2,
+         CellParams::P_12_DT2
       );
       momentsTimer.stop();
       
@@ -1317,7 +1323,10 @@ int main(int argn,char* args[]) {
          CellParams::RHOQ,
          CellParams::P_11,
          CellParams::P_22,
-         CellParams::P_33
+         CellParams::P_33,
+         CellParams::P_23,
+         CellParams::P_13,
+         CellParams::P_12
       );
       momentsTimer.stop();
 
