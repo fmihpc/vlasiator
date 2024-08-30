@@ -25,6 +25,7 @@
 #include "fs_common.h"
 #include "derivatives.hpp"
 #include "fs_limiters.h"
+#include <Eigen/Geometry>
 
 /*! \brief Low-level spatial derivatives calculation.
  *
@@ -800,6 +801,22 @@ void calculateScaledDeltas(
       }
       Bperp = std::sqrt(Bperp);
    }
+
+   // Now, rotation matrix to get parallel and perpendicular pressure
+   //Eigen::Quaterniond q {Quaterniond::FromTwoVectors(Eigen::vector3d{0, 0, 1}, Eigen::vector3d{myB[0], myB[1], myB[2]})};
+   //Eigen::Matrix3d rot = q.toRotationMatrix();
+   Eigen::Matrix3d rot = Eigen::Quaterniond::FromTwoVectors(Eigen::Vector3d{0, 0, 1}, Eigen::Vector3d{myB[0], myB[1], myB[2]}).toRotationMatrix();
+   Eigen::Matrix3d P {
+      {cell->parameters[CellParams::P_11], cell->parameters[CellParams::P_12], cell->parameters[CellParams::P_13]},
+      {cell->parameters[CellParams::P_12], cell->parameters[CellParams::P_22], cell->parameters[CellParams::P_23]},
+      {cell->parameters[CellParams::P_13], cell->parameters[CellParams::P_23], cell->parameters[CellParams::P_33]},
+   };
+   
+   Eigen::Matrix3d Pprime = rot * P * rot.transpose();
+   cell->parameters[CellParams::P_ANISOTROPY] = (Pprime(0, 0) + Pprime(1, 1)) / (2 * Pprime(2, 2));
+
+   // Vorticity: dmoments
+   // Pressure: devise a rotation matrix for B, see zulip and good old wikipedia
 
    cell->parameters[CellParams::AMR_DRHO] = dRho;
    cell->parameters[CellParams::AMR_DU] = dU;

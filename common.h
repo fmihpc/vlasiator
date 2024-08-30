@@ -219,6 +219,7 @@ namespace CellParams {
       AMR_ALPHA1,
       AMR_ALPHA2,
       RECENTLY_REFINED,
+      P_ANISOTROPY,
       BULKV_FORCING_X, /*! Externally forced drift velocity (ex. from the ionosphere) */
       BULKV_FORCING_Y, /*! Externally forced drift velocity (ex. from the ionosphere) */
       BULKV_FORCING_Z, /*! Externally forced drift velocity (ex. from the ionosphere) */
