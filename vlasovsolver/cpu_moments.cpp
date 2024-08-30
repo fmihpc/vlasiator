@@ -439,9 +439,9 @@ void calculateMoments_V(
          cell->parameters[CellParams::P_11_V] += mass * array[0];
          cell->parameters[CellParams::P_22_V] += mass * array[1];
          cell->parameters[CellParams::P_33_V] += mass * array[2];
-         cell->parameters[CellParams::P_23_V] += mass * array[4];
-         cell->parameters[CellParams::P_13_V] += mass * array[5];
-         cell->parameters[CellParams::P_12_V] += mass * array[6];
+         cell->parameters[CellParams::P_23_V] += mass * array[3];
+         cell->parameters[CellParams::P_13_V] += mass * array[4];
+         cell->parameters[CellParams::P_12_V] += mass * array[5];
 
       } // for-loop over spatial cells
    } // for-loop over particle species
