@@ -488,9 +488,9 @@ bool P::addParameters() {
    RP::add("AMR.use_alpha2","Use J/B_perp as a refinement index", true);
    RP::add("AMR.alpha2_refine_threshold","Determines the minimum value of alpha_2 to refine cells", 0.5);
    RP::add("AMR.alpha2_coarsen_threshold","Determines the maximum value of alpha_2 to unrefine cells, default half of the refine threshold", -1.0);
-   RP::add("AMR.use_alpha2","Use vorticity as a refinement index", true);
-   RP::add("AMR.alpha2_refine_threshold","Determines the minimum value of vorticity to refine cells", 0.5);
-   RP::add("AMR.alpha2_coarsen_threshold","Determines the maximum value of vorticity to unrefine cells, default half of the refine threshold", -1.0);
+   RP::add("AMR.use_vorticity","Use vorticity as a refinement index", true);
+   RP::add("AMR.vorticity_refine_threshold","Determines the minimum value of vorticity to refine cells", 0.5);
+   RP::add("AMR.vorticity_coarsen_threshold","Determines the maximum value of vorticity to unrefine cells, default half of the refine threshold", -1.0);
    RP::add("AMR.anisotropyRefineThreshold","Determines the maximum value of pressure anisotropy to refine cells", -1.0);
    RP::add("AMR.refine_cadence","Refine every nth load balance", 5);
    RP::add("AMR.refine_after","Start refinement after this many simulation seconds", 0.0);
