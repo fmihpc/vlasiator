@@ -170,7 +170,7 @@ Real P::alpha2CoarsenThreshold = -1.0;
 bool P::useVorticity = true;
 Real P::vorticityRefineThreshold = 0.5;
 Real P::vorticityCoarsenThreshold = -1.0;
-Real P::anisotropyThreshold = -1;
+Real P::anisotropyRefineThreshold = -1;
 Real P::alphaDRhoWeight = 1.0;
 Real P::alphaDUWeight = 1.0;
 Real P::alphaDPSqWeight = 1.0;
@@ -491,7 +491,7 @@ bool P::addParameters() {
    RP::add("AMR.use_alpha2","Use vorticity as a refinement index", true);
    RP::add("AMR.alpha2_refine_threshold","Determines the minimum value of vorticity to refine cells", 0.5);
    RP::add("AMR.alpha2_coarsen_threshold","Determines the maximum value of vorticity to unrefine cells, default half of the refine threshold", -1.0);
-   RP::add("AMR.anisotropy_threshold","Determines the maximum value of pressure anisotropy to refine cells", -1.0);
+   RP::add("AMR.anisotropyRefineThreshold","Determines the maximum value of pressure anisotropy to refine cells", -1.0);
    RP::add("AMR.refine_cadence","Refine every nth load balance", 5);
    RP::add("AMR.refine_after","Start refinement after this many simulation seconds", 0.0);
    RP::add("AMR.refine_radius","Maximum distance from origin to allow refinement within. Only induced refinement allowed outside this radius.", LARGE_REAL);
@@ -823,7 +823,7 @@ void Parameters::getParameters() {
       MPI_Abort(MPI_COMM_WORLD, 1);
    }
 
-   RP::get("AMR.anisotropy_threshold", P::anisotropyThreshold);
+   RP::get("AMR.anisotropy_refine_threshold", P::anisotropyRefineThreshold);
 
    RP::get("AMR.refine_cadence",P::refineCadence);
    RP::get("AMR.refine_after",P::refineAfter);

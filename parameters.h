@@ -202,7 +202,7 @@ struct Parameters {
    static bool useVorticity;
    static Real vorticityRefineThreshold;
    static Real vorticityCoarsenThreshold;
-   static Real anisotropyThreshold;
+   static Real anisotropyRefineThreshold;
    static uint refineCadence;
    static Real refineAfter;
    static Real refineRadius;
