@@ -242,7 +242,7 @@ void calculateSpatialGhostTranslation(
    // No need for remote target cells; pass a dummy list.
    const vector<CellID> dummy_cells;
 
-   updateRemoteVelocityBlockLists(mpiGrid,popID,FULL_NEIGHBORHOOD_ID);
+   updateRemoteVelocityBlockLists(mpiGrid,popID,VLASOV_SOLVER_GHOST_NEIGHBORHOOD_ID);
    // Need to re-do in case block lists of boundary cells change after
    // the block adjustment just after ACC.
 
@@ -252,7 +252,7 @@ void calculateSpatialGhostTranslation(
 
    phiprof::Timer transferTimer {"transfer-stencil-data-all",{"MPI"}};
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false);
-   mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
+   mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_GHOST_NEIGHBORHOOD_ID);
    transferTimer.stop();
 
    phiprof::Timer preBarrierTimer {"MPI barrier-pre-trans"};

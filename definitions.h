@@ -115,6 +115,8 @@ typedef Realf (*VAmrVelRefinement)(const Realf* velBlock);
 #define VLASOV_SOLVER_X_GHOST_NEIGHBORHOOD_ID 20 //up to third(PPM+ghost) neighbor in x face directions
 #define VLASOV_SOLVER_Y_GHOST_NEIGHBORHOOD_ID 21 //up to third(PPM+ghost) neighbor in y face directions
 #define VLASOV_SOLVER_Z_GHOST_NEIGHBORHOOD_ID 22 //up to third(PPM+ghost) neighbor in z face directions
+#define VLASOV_SOLVER_GHOST_NEIGHBORHOOD_ID 23 //all required neighbors for ghost translation
+//#define VLASOV_SOLVER_GHOST_REQNEIGH_NEIGHBORHOOD_ID 24 //all ghost translation neighbors which require own neighbor information
 
 //fieldsolver stencil.
 #define FS_STENCIL_WIDTH 2
