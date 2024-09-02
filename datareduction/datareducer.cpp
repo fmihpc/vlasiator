@@ -2974,6 +2974,13 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             continue;
          }
       }
+      if(P::systemWriteAllDROs || lowercase == "vg_amr_vorticity") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_vorticity",CellParams::AMR_VORTICITY,1));
+         outputReducer->addMetadata(outputReducer->size()-1,"","","Vorticity","");
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
+      }
       if(P::systemWriteAllDROs || lowercase == "ig_latitude") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_latitude", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
