@@ -221,8 +221,9 @@ namespace CellParams {
       AMR_DB,
       AMR_ALPHA1,
       AMR_ALPHA2,
-      RECENTLY_REFINED,
       P_ANISOTROPY,
+      AMR_VORTICITY,
+      RECENTLY_REFINED,
       BULKV_FORCING_X, /*! Externally forced drift velocity (ex. from the ionosphere) */
       BULKV_FORCING_Y, /*! Externally forced drift velocity (ex. from the ionosphere) */
       BULKV_FORCING_Z, /*! Externally forced drift velocity (ex. from the ionosphere) */
@@ -246,6 +247,22 @@ namespace bvolderivatives {
       dPERBZVOLdy, /*!< Derivative of perturbed volume-averaged Bz in y-direction. */
       dPERBZVOLdz, /*!< Derivative of perturbed volume-averaged Bz in z-direction. */
       N_BVOL_DERIVATIVES
+   };
+}
+
+namespace vderivatives {
+   // Essentially a copy from dmoments
+   enum {
+      dVxdx,     /*!< Derivative of volume-averaged Vx to x-direction. */
+      dVxdy,     /*!< Derivative of volume-averaged Vx to y-direction. */
+      dVxdz,     /*!< Derivative of volume-averaged Vx to z-direction. */
+      dVydx,     /*!< Derivative of volume-averaged Vy to x-direction. */
+      dVydy,     /*!< Derivative of volume-averaged Vy to y-direction. */
+      dVydz,     /*!< Derivative of volume-averaged Vy to z-direction. */
+      dVzdx,     /*!< Derivative of volume-averaged Vz to x-direction. */
+      dVzdy,     /*!< Derivative of volume-averaged Vz to y-direction. */
+      dVzdz,     /*!< Derivative of volume-averaged Vz to z-direction. */
+      N_V_DERIVATIVES
    };
 }
 

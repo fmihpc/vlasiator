@@ -813,10 +813,16 @@ void calculateScaledDeltas(
    };
    
    Eigen::Matrix3d Pprime = rot * P * rot.transpose();
-   cell->parameters[CellParams::P_ANISOTROPY] = (Pprime(0, 0) + Pprime(1, 1)) / (2 * Pprime(2, 2));
 
-   // Vorticity: dmoments
-   // Pressure: devise a rotation matrix for B, see zulip and good old wikipedia
+   // Vorticity
+   Real dVxdy {cell->derivativesV[vderivatives::dVxdy]};
+   Real dVxdz {cell->derivativesV[vderivatives::dVxdz]};
+   Real dVydx {cell->derivativesV[vderivatives::dVydx]};
+   Real dVydz {cell->derivativesV[vderivatives::dVydz]};
+   Real dVzdx {cell->derivativesV[vderivatives::dVzdx]};
+   Real dVzdy {cell->derivativesV[vderivatives::dVzdy]};
+   Real vorticity {std::sqrt(std::pow(dVxdy - dVydz, 2) + std::pow(dVxdz - dVzdx, 2 ) + std::pow(dVydx - dVxdy, 2))};
+   Real velocity {std::sqrt(std::pow(myP[0], 2) + std::pow(myP[1], 2) + std::pow(myP[2], 2)) / myRho};
 
    cell->parameters[CellParams::AMR_DRHO] = dRho;
    cell->parameters[CellParams::AMR_DU] = dU;
@@ -825,6 +831,9 @@ void calculateScaledDeltas(
    cell->parameters[CellParams::AMR_DB] = dB;
    cell->parameters[CellParams::AMR_ALPHA1] = alpha;
    cell->parameters[CellParams::AMR_ALPHA2] = cell->parameters[CellParams::DX] * J / (Bperp + EPS);   // Epsilon in denominator so we don't get infinities
+   cell->parameters[CellParams::P_ANISOTROPY] = (Pprime(0, 0) + Pprime(1, 1)) / (2 * Pprime(2, 2));
+   // Experimental, consider other values for scaling (term here is V = myP / myRho)
+   cell->parameters[CellParams::AMR_VORTICITY] = vorticity * cell->parameters[CellParams::DX] / (velocity + EPS);
 }
 
 /*! \brief High-level scaled gradient calculation wrapper function.

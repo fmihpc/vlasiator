@@ -522,6 +522,7 @@ int main(int argn,char* args[]) {
       BgBGrid,
       momentsGrid,
       momentsDt2Grid,
+      dMomentsGrid,
       EGrid,
       EGradPeGrid,
       volGrid,
@@ -649,7 +650,7 @@ int main(int argn,char* args[]) {
 
    phiprof::Timer getFieldsTimer {"getFieldsFromFsGrid"};
    volGrid.updateGhostCells();
-   getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, technicalGrid, mpiGrid, cells);
+   getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, dMomentsGrid, technicalGrid, mpiGrid, cells);
    getFieldsTimer.stop();
 
    // Build communicator for ionosphere solving
@@ -1247,7 +1248,7 @@ int main(int argn,char* args[]) {
          // Copy results back from fsgrid.
          volGrid.updateGhostCells();
          technicalGrid.updateGhostCells();
-         getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, technicalGrid, mpiGrid, cells);
+         getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, dMomentsGrid, technicalGrid, mpiGrid, cells);
          getFieldsTimer.stop();
          propagateTimer.stop(cells.size(),"SpatialCells");
          addTimedBarrier("barrier-after-field-solver");
