@@ -822,7 +822,7 @@ void calculateScaledDeltas(
    Real dVzdx {cell->derivativesV[vderivatives::dVzdx]};
    Real dVzdy {cell->derivativesV[vderivatives::dVzdy]};
    Real vorticity {std::sqrt(std::pow(dVxdy - dVydz, 2) + std::pow(dVxdz - dVzdx, 2 ) + std::pow(dVydx - dVxdy, 2))};
-   Real velocity {std::sqrt(std::pow(myP[0], 2) + std::pow(myP[1], 2) + std::pow(myP[2], 2)) / myRho};
+   Real vA {std::sqrt(Bsq / (physicalconstants::MU_0 * myRho))};
 
    cell->parameters[CellParams::AMR_DRHO] = dRho;
    cell->parameters[CellParams::AMR_DU] = dU;
@@ -832,8 +832,8 @@ void calculateScaledDeltas(
    cell->parameters[CellParams::AMR_ALPHA1] = alpha;
    cell->parameters[CellParams::AMR_ALPHA2] = cell->parameters[CellParams::DX] * J / (Bperp + EPS);   // Epsilon in denominator so we don't get infinities
    cell->parameters[CellParams::P_ANISOTROPY] = (Pprime(0, 0) + Pprime(1, 1)) / (2 * Pprime(2, 2));
-   // Experimental, consider other values for scaling (term here is V = myP / myRho)
-   cell->parameters[CellParams::AMR_VORTICITY] = vorticity * cell->parameters[CellParams::DX] / (velocity + EPS);
+   // Experimental, current scaling is Alfven velocity
+   cell->parameters[CellParams::AMR_VORTICITY] = vorticity * cell->parameters[CellParams::DX] / (vA + EPS);
 }
 
 /*! \brief High-level scaled gradient calculation wrapper function.
