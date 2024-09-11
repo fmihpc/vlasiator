@@ -150,7 +150,7 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    for (int blurPass = 0; blurPass < Parameters::maxFilteringPasses; blurPass++){
 
       // Blurring Pass
-      #pragma omp parallel for collapse(2)
+      #pragma omp parallel for collapse(3)
       for (FsGridTools::FsIndex_t k = 0; k < mntDims[2]; k++){
          for (FsGridTools::FsIndex_t j = 0; j < mntDims[1]; j++){
             for (FsGridTools::FsIndex_t i = 0; i < mntDims[0]; i++){

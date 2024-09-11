@@ -963,20 +963,26 @@ void Parameters::getParameters() {
    RP::get("vlasovsolver.GhostTranslate",P::vlasovSolverGhostTranslate);
    RP::get("vlasovsolver.GhostTranslateExtent",P::vlasovSolverGhostTranslateExtent);
    RP::get("vlasovsolver.accelerateMaxwellianBoundaries",  P::vlasovAccelerateMaxwellianBoundaries);
-   if ((myRank == MASTER_RANK)&&(P::vlasovSolverGhostTranslate==true)) {
-      logFile<<"Performing spatial translation using ghost cell information with coalesced MPI updates."<<endl;
-   }
-   if (P::vlasovSolverGhostTranslateExtent == 0) {
-      P::vlasovSolverGhostTranslateExtent = VLASOV_STENCIL_WIDTH+1;
-   } else {
-      if (P::vlasovSolverGhostTranslateExtent > VLASOV_STENCIL_WIDTH+1) {
+   if (P::vlasovSolverGhostTranslate==true) {
+      if (myRank == MASTER_RANK) {
+         logFile<<"Performing spatial translation using ghost cell information with coalesced MPI updates."<<endl;
+      }
+      if (P::vlasovSolverGhostTranslateExtent == 0) {
          P::vlasovSolverGhostTranslateExtent = VLASOV_STENCIL_WIDTH+1;
-         if (myRank == MASTER_RANK) {
-            logFile<<"Capping ghost translation stencil size to VLASOV_STENCIL_WIDTH+1 around local domain."<<endl;
-         }
       } else {
-         if (myRank == MASTER_RANK) {
-            logFile<<"Translating only stencil of size "<<P::vlasovSolverGhostTranslateExtent<<" around local domain."<<endl;
+         if (P::vlasovSolverGhostTranslateExtent == VLASOV_STENCIL_WIDTH+1) {
+            if (myRank == MASTER_RANK) {
+               logFile<<"Ghost translating full stencil of size "<<P::vlasovSolverGhostTranslateExtent<<" around local domain."<<endl;
+            }
+         } else if (P::vlasovSolverGhostTranslateExtent > VLASOV_STENCIL_WIDTH+1) {
+            P::vlasovSolverGhostTranslateExtent = VLASOV_STENCIL_WIDTH+1;
+            if (myRank == MASTER_RANK) {
+               logFile<<"Capping ghost translation stencil size to VLASOV_STENCIL_WIDTH+1 around local domain."<<endl;
+            }
+         } else {
+            if (myRank == MASTER_RANK) {
+               logFile<<"Ghost translating reduced stencil of size "<<P::vlasovSolverGhostTranslateExtent<<" around local domain."<<endl;
+            }
          }
       }
    }

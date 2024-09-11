@@ -3,6 +3,7 @@ LNK = mpic++
 
 # Modules loaded
 # module load gcc openmpi jemalloc papi boost
+# module load gcc/13 openmpi jemalloc papi
 # also load cuda/11.5.0 for nvtx support
 #======== Vectorization ==========
 #Set vector backend type for vlasov solvers, sets precision and length.

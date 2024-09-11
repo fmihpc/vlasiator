@@ -499,6 +499,7 @@ namespace projects {
      Base class function uses AMR box half width parameters
     */
    bool Project::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
+      phiprof::Timer refineSCTimer {"Project: refine spatial cells"};
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       
@@ -512,22 +513,27 @@ namespace projects {
          int refineCount = 0;
          for (int n = 0; n < P::amrBoxNumber; n++) {
             if (level < P::amrBoxMaxLevel[n]) {
-               for (int i = 0; i < pow(2, level+1) * P::amrBoxHalfWidthX[n]; ++i) {
-                  for (int j = 0; j < pow(2, level+1) * P::amrBoxHalfWidthY[n]; ++j) {
-                     for (int k = 0; k < pow(2, level+1) * P::amrBoxHalfWidthZ[n]; ++k) {
+               const int maxloop = pow(2, level+1);
+               #pragma omp parallel for schedule(guided) collapse(3)
+               for (int i = 0; i < maxloop * (int)P::amrBoxHalfWidthX[n]; ++i) {
+                  for (int j = 0; j < maxloop * (int)P::amrBoxHalfWidthY[n]; ++j) {
+                     for (int k = 0; k < maxloop * (int)P::amrBoxHalfWidthZ[n]; ++k) {
                      
                         std::array<double,3> xyz;
                         xyz[0] = P::amrBoxCenterX[n] + (0.5 + i - pow(2, level)*P::amrBoxHalfWidthX[n]) * P::dx_ini / pow(2, level);
                         xyz[1] = P::amrBoxCenterY[n] + (0.5 + j - pow(2, level)*P::amrBoxHalfWidthY[n]) * P::dy_ini / pow(2, level);
                         xyz[2] = P::amrBoxCenterZ[n] + (0.5 + k - pow(2, level)*P::amrBoxHalfWidthZ[n]) * P::dz_ini / pow(2, level);
 
-                        if (mpiGrid.refine_completely_at(xyz)) {
-                           refineCount++;
-                           #ifndef NDEBUG
-                           CellID myCell = mpiGrid.get_existing_cell(xyz);
-                           std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;
-                           #endif
-                        } // if
+                        #pragma omp critical
+                        {
+                           if (mpiGrid.refine_completely_at(xyz)) {
+                              refineCount++;
+                              #ifndef NDEBUG
+                              CellID myCell = mpiGrid.get_existing_cell(xyz);
+                              std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;
+                              #endif
+                           } // if
+                        }
                      } // box z
                   } // box y
                } // box x
@@ -579,7 +585,7 @@ namespace projects {
       std::vector<CellID> cells {getLocalCells()};
       Real r_max2 {pow(P::refineRadius, 2)};
 
-      //#pragma omp parallel for
+      #pragma omp parallel for
       for (CellID id : cells) {
          std::array<double,3> xyz {mpiGrid.get_center(id)};
          SpatialCell* cell {mpiGrid[id]};
@@ -588,8 +594,11 @@ namespace projects {
 
          if (!canRefine(mpiGrid[id])) {
             // Skip refining, touching boundaries during runtime breaks everything
-            mpiGrid.dont_refine(id);
-            mpiGrid.dont_unrefine(id);
+            #pragma omp critical
+            {
+               mpiGrid.dont_refine(id);
+               mpiGrid.dont_unrefine(id);
+            }
          } else {
             // Evaluate possible refinement or unrefinement for this cell
 
@@ -657,17 +666,20 @@ namespace projects {
                }
             }
 
-            if ((shouldRefine || refined_neighbors > 12) && refLevel < P::amrMaxAllowedSpatialRefLevel) {
-               // Refine a cell if a majority of its neighbors are refined or about to be
-               // Increment count of refined cells only if we're actually refining
-               refines += mpiGrid.refine_completely(id) && refLevel < P::amrMaxSpatialRefLevel;
-            } else if (refLevel > 0 && shouldUnrefine && coarser_neighbors > 0) {
-               // Unrefine a cell only if any of its neighbors is unrefined or about to be
-               // refLevel check prevents dont_refine() being set
-               mpiGrid.unrefine_completely(id);
-            } else {
-               // Ensure no cells above both unrefine thresholds are unrefined
-               mpiGrid.dont_unrefine(id);
+            #pragma omp critical
+            {
+               if ((shouldRefine || refined_neighbors > 12) && refLevel < P::amrMaxAllowedSpatialRefLevel) {
+                  // Refine a cell if a majority of its neighbors are refined or about to be
+                  // Increment count of refined cells only if we're actually refining
+                  refines += mpiGrid.refine_completely(id) && refLevel < P::amrMaxSpatialRefLevel;
+               } else if (refLevel > 0 && shouldUnrefine && coarser_neighbors > 0) {
+                  // Unrefine a cell only if any of its neighbors is unrefined or about to be
+                  // refLevel check prevents dont_refine() being set
+                  mpiGrid.unrefine_completely(id);
+               } else {
+                  // Ensure no cells above both unrefine thresholds are unrefined
+                  mpiGrid.dont_unrefine(id);
+               }
             }
          }
       }

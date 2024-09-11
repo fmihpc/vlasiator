@@ -1391,6 +1391,7 @@ bool readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 */
 bool readFileCells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const std::string& name)
 {
+   phiprof::Timer readCellIdsTimer {"Restart read File cellIDs"};
    vector<CellID> fileCells; /*< CellIds for all cells in file*/
    bool success = true;
    vlsv::ParallelReader file;
@@ -1401,8 +1402,10 @@ bool readFileCells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    exitOnError(success,"(READ_FILE_CELLS) Could not open file",MPI_COMM_WORLD);
 
    readCellIds(file,fileCells,MASTER_RANK,MPI_COMM_WORLD);
+   phiprof::Timer loadCellsTimer {"load CellIDs into grid"};
    success = mpiGrid.load_cells(fileCells);
    exitOnError(success,"(READ_FILE_CELLS) Failed to refine grid",MPI_COMM_WORLD);
+   loadCellsTimer.stop();
 
    success = file.close();
    exitOnError(success,"(READ_FILE_CELLS) Other error",MPI_COMM_WORLD);
