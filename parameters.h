@@ -203,6 +203,7 @@ struct Parameters {
    static Real vorticityRefineThreshold;
    static Real vorticityCoarsenThreshold;
    static Real anisotropyRefineThreshold;
+   static int anisotropyMaxReflevel;
    static uint refineCadence;
    static Real refineAfter;
    static Real refineRadius;

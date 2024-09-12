@@ -612,7 +612,7 @@ namespace projects {
             };
 
             // Pressure anisotropy forces refinement when under threshold
-            if (P::anisotropyRefineThreshold > 0 && cell->parameters[CellParams::P_ANISOTROPY] < P::anisotropyRefineThreshold) {
+            if (P::anisotropyRefineThreshold > 0 && cell->parameters[CellParams::P_ANISOTROPY] < P::anisotropyRefineThreshold && refLevel < P::anisotropyMaxReflevel) {
                shouldRefine = true;
                shouldUnrefine = false;
             }
