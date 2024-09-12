@@ -99,7 +99,6 @@ namespace projects {
       creal& vx,creal& vy,creal& vz,
       creal& dvx,creal& dvy,creal& dvz,const uint popID
    ) const {
-      const HarrisSpeciesParameters& sP = speciesParams[popID];
       return getDistribValue(x+0.5*dx, y+0.5*dy, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, dvx, dvy, dvz, popID);      
    }
    

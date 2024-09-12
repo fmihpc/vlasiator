@@ -1,7 +1,7 @@
 #include <dccrg.hpp>
 #include <dccrg_cartesian_geometry.hpp>
 #include "../grid.h"
-#include "../spatial_cell.hpp"
+#include "../spatial_cell_wrapper.hpp"
 #include "../definitions.h"
 #include "../common.h"
 #include "gridGlue.hpp"
@@ -105,37 +105,37 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
    // Kernel Characteristics
    const int kernelOffset = 2;   // offset of 5 pointstencil 3D kernel => (floor(stencilWidth/2);)
-   const Real kernelSum=729.0;   // the total kernel's sum 
+   const Real inverseKernelSum = 1.0 / 729.0;   // the inverse of the total kernel's sum 
    const static Real kernel[5][5][5] ={
-                                 {{ 1,  2,  3,  2,  1},
-                                 { 2,  4,  6,  4,  2},
-                                 { 3,  6,  9,  6,  3},
-                                 { 2,  4,  6,  4,  2},
-                                 { 1,  2,  3,  2,  1}},
+                                 {{ 1 * inverseKernelSum,  2 * inverseKernelSum,  3 * inverseKernelSum,  2 * inverseKernelSum,  1 * inverseKernelSum},
+                                 { 2 * inverseKernelSum,  4 * inverseKernelSum,  6 * inverseKernelSum,  4 * inverseKernelSum,  2 * inverseKernelSum},
+                                 { 3 * inverseKernelSum,  6 * inverseKernelSum,  9 * inverseKernelSum,  6 * inverseKernelSum,  3 * inverseKernelSum},
+                                 { 2 * inverseKernelSum,  4 * inverseKernelSum,  6 * inverseKernelSum,  4 * inverseKernelSum,  2 * inverseKernelSum},
+                                 { 1 * inverseKernelSum,  2 * inverseKernelSum,  3 * inverseKernelSum,  2 * inverseKernelSum,  1 * inverseKernelSum}},
 
-                                 {{ 2,  4,  6,  4,  2},
-                                 { 4,  8, 12,  8,  4},
-                                 { 6, 12, 18, 12,  6},
-                                 { 4,  8, 12,  8,  4},
-                                 { 2,  4,  6,  4,  2}},
+                                 {{ 2 * inverseKernelSum,  4 * inverseKernelSum,  6 * inverseKernelSum,  4 * inverseKernelSum,  2 * inverseKernelSum},
+                                 { 4 * inverseKernelSum,  8 * inverseKernelSum, 12 * inverseKernelSum,  8 * inverseKernelSum,  4 * inverseKernelSum},
+                                 { 6 * inverseKernelSum, 12 * inverseKernelSum, 18 * inverseKernelSum, 12 * inverseKernelSum,  6 * inverseKernelSum},
+                                 { 4 * inverseKernelSum,  8 * inverseKernelSum, 12 * inverseKernelSum,  8 * inverseKernelSum,  4 * inverseKernelSum},
+                                 { 2 * inverseKernelSum,  4 * inverseKernelSum,  6 * inverseKernelSum,  4 * inverseKernelSum,  2 * inverseKernelSum}},
 
-                                 {{ 3,  6,  9,  6,  3},
-                                 { 6, 12, 18, 12,  6},
-                                 { 9, 18, 27, 18,  9},
-                                 { 6, 12, 18, 12,  6},
-                                 { 3,  6,  9,  6,  3}},
+                                 {{ 3 * inverseKernelSum,  6 * inverseKernelSum,  9 * inverseKernelSum,  6 * inverseKernelSum,  3 * inverseKernelSum},
+                                 { 6 * inverseKernelSum, 12 * inverseKernelSum, 18 * inverseKernelSum, 12 * inverseKernelSum,  6 * inverseKernelSum},
+                                 { 9 * inverseKernelSum, 18 * inverseKernelSum, 27 * inverseKernelSum, 18 * inverseKernelSum,  9 * inverseKernelSum},
+                                 { 6 * inverseKernelSum, 12 * inverseKernelSum, 18 * inverseKernelSum, 12 * inverseKernelSum,  6 * inverseKernelSum},
+                                 { 3 * inverseKernelSum,  6 * inverseKernelSum,  9 * inverseKernelSum,  6 * inverseKernelSum,  3 * inverseKernelSum}},
 
-                                 {{ 2,  4,  6,  4,  2},
-                                 { 4,  8, 12,  8,  4},
-                                 { 6, 12, 18, 12,  6},
-                                 { 4,  8, 12,  8,  4},
-                                 { 2,  4,  6,  4,  2}},
+                                 {{ 2 * inverseKernelSum,  4 * inverseKernelSum,  6 * inverseKernelSum,  4 * inverseKernelSum,  2 * inverseKernelSum},
+                                 { 4 * inverseKernelSum,  8 * inverseKernelSum, 12 * inverseKernelSum,  8 * inverseKernelSum,  4 * inverseKernelSum},
+                                 { 6 * inverseKernelSum, 12 * inverseKernelSum, 18 * inverseKernelSum, 12 * inverseKernelSum,  6 * inverseKernelSum},
+                                 { 4 * inverseKernelSum,  8 * inverseKernelSum, 12 * inverseKernelSum,  8 * inverseKernelSum,  4 * inverseKernelSum},
+                                 { 2 * inverseKernelSum,  4 * inverseKernelSum,  6 * inverseKernelSum,  4 * inverseKernelSum,  2 * inverseKernelSum}},
 
-                                 {{ 1,  2,  3,  2,  1},
-                                 { 2,  4,  6,  4,  2},
-                                 { 3,  6,  9,  6,  3},
-                                 { 2,  4,  6,  4,  2},
-                                 { 1,  2,  3,  2,  1}}
+                                 {{ 1 * inverseKernelSum,  2 * inverseKernelSum,  3 * inverseKernelSum,  2 * inverseKernelSum,  1 * inverseKernelSum},
+                                 { 2 * inverseKernelSum,  4 * inverseKernelSum,  6 * inverseKernelSum,  4 * inverseKernelSum,  2 * inverseKernelSum},
+                                 { 3 * inverseKernelSum,  6 * inverseKernelSum,  9 * inverseKernelSum,  6 * inverseKernelSum,  3 * inverseKernelSum},
+                                 { 2 * inverseKernelSum,  4 * inverseKernelSum,  6 * inverseKernelSum,  4 * inverseKernelSum,  2 * inverseKernelSum},
+                                 { 1 * inverseKernelSum,  2 * inverseKernelSum,  3 * inverseKernelSum,  2 * inverseKernelSum,  1 * inverseKernelSum}}
                                  };
 
    // Update momentsGrid Ghost Cells
@@ -150,7 +150,7 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    for (int blurPass = 0; blurPass < Parameters::maxFilteringPasses; blurPass++){
 
       // Blurring Pass
-      #pragma omp parallel for collapse(2)
+      #pragma omp parallel for collapse(3)
       for (FsGridTools::FsIndex_t k = 0; k < mntDims[2]; k++){
          for (FsGridTools::FsIndex_t j = 0; j < mntDims[1]; j++){
             for (FsGridTools::FsIndex_t i = 0; i < mntDims[0]; i++){
@@ -169,6 +169,7 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             
                // Set Cell to zero before passing filter
                swap = swapGrid.get(i,j,k);
+               #pragma omp simd
                for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
                   swap->at(e)=0.0;
                }
@@ -178,16 +179,13 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                   for (int b=-kernelOffset; b<=kernelOffset; b++){
                      for (int a=-kernelOffset; a<=kernelOffset; a++){
                         cell = momentsGrid.get(i+a,j+b,k+c);
+                        #pragma omp simd
                         for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
                            swap->at(e)+=cell->at(e) *kernel[kernelOffset+a][kernelOffset+b][kernelOffset+c];
                         } 
                      }
                   }
                }//inner filtering loop
-               //divide by the total kernel sum
-               for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
-                  swap->at(e)/=kernelSum;
-               }
             }
          }
       } //spatial loops

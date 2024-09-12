@@ -26,10 +26,10 @@
 #include <stdlib.h>
 
 #include "../../definitions.h"
-#include "../project.h"
+#include "../projectTriAxisSearch.h"
 
 namespace projects {
-   class KHB: public Project {
+   class KHB: public TriAxisSearch {
     public:
       KHB();
       virtual ~KHB();
@@ -38,6 +38,12 @@ namespace projects {
       static void addParameters(void);
       virtual void getParameters(void);
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
+      virtual std::vector<std::array<Real, 3> > getV0(
+                                                      creal x,
+                                                      creal y,
+                                                      creal z,
+                                                      const uint popID
+                                                     ) const;
       virtual Real calcPhaseSpaceDensity(
                                          creal& x, creal& y, creal& z,
                                          creal& dx, creal& dy, creal& dz,
@@ -52,17 +58,17 @@ namespace projects {
       );
     protected:
       Real getDistribValue(
-                           creal& x, creal& z,
+                           creal& x, creal& y, creal& z,
                            creal& vx, creal& vy, creal& vz,
                            const uint popID) const;
-      Real profile(creal top, creal bottom, creal x, creal z) const;
+      Real profile(creal top, creal bottom, creal x) const;
       
       enum {
          TOP,
          BOTTOM
          };
+      Real P;
       Real rho[2];
-      Real T[2];
       Real Vx[2];
       Real Vy[2];
       Real Vz[2];
@@ -73,6 +79,8 @@ namespace projects {
       Real amp;
       Real offset;
       Real transitionWidth;
+      int harmonics;
+      bool randomPhase;
    }; // class KHB
 } // namespace
 #endif

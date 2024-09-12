@@ -53,6 +53,11 @@ namespace projects {
       );
 
     protected:
+      bool rescalesDensity(const uint popID) const {
+         return this->rescaleDensityFlag;
+      };
+      Real getCorrectNumberDensity(spatial_cell::SpatialCell* cell,const uint popID) const;
+
       Real getDistribValue(
                            creal& x,creal& y, creal& z,
                            creal& vx, creal& vy, creal& vz,
@@ -77,6 +82,7 @@ namespace projects {
                                     * and matter will flow in only through the boundaries.*/
 
       Real densityWidth;
+      bool rescaleDensityFlag;
       Real Bx;
       Real By;
       Real Bz;

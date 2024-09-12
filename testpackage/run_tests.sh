@@ -2,6 +2,11 @@
 ## code, no need to touch ##
 ##--------------------------------------------------##
 
+# define tab interval sequence so that we have aligned output
+# this is now covering at least up proton/vg_ptensor_nonthermal_offdiagonal_0 and numbers printed at setprecision(3) with negative mantissa and exponent
+tabseq="1,46,62,78,94,110"
+tabs $tabseq &> /dev/null # suppress special character output, list matches expand below
+
 
 ## add absolute paths to folder names, filenames
 reference_dir=$( readlink -f $reference_dir )
@@ -83,15 +88,15 @@ do
   ###copy new reference data to correct folder
     if [ $create_verification_files == 1 ]
     then
-        result_dir=${reference_dir}/${reference_revision}/${test_name[$run]}
-        if [ -e  $result_dir ]
+        reference_result_dir=${reference_dir}/${reference_revision}/${test_name[$run]}
+        if [ -e  $reference_result_dir ]
         then
-            echo "remove old results"
-            rm -rf $result_dir
+            echo "Removing previous reference results"
+            rm -rf $reference_result_dir
         fi
 
-        mkdir -p $result_dir
-        cp * $result_dir
+        mkdir -p $reference_result_dir
+        cp * $reference_result_dir
     fi
 
     cd $base_dir
@@ -105,7 +110,7 @@ do
         echo "--------------------------------------------------------------------------------------------"
         echo "${test_name[$run]}  -  Verifying ${revision}_$solveropts against $reference_revision"
         echo "--------------------------------------------------------------------------------------------"
-        result_dir=${reference_dir}/${reference_revision}/${test_name[$run]}
+        reference_result_dir=${reference_dir}/${reference_revision}/${test_name[$run]}
 
      #print header
 
@@ -113,9 +118,9 @@ do
         echo "------------------------------------------------------------"
         echo " ref-time     |   new-time       |  speedup                |"
         echo "------------------------------------------------------------"
-	if [ -e  ${result_dir}/${comparison_phiprof[$run]} ]
+	if [ -e  ${reference_result_dir}/${comparison_phiprof[$run]} ]
 	then
-            refPerf=$(grep "Propagate   " ${result_dir}/${comparison_phiprof[$run]} |gawk  '(NR==1){print $11}')
+            refPerf=$(grep "Propagate   " ${reference_result_dir}/${comparison_phiprof[$run]} |gawk  '(NR==1){print $11}')
 	else
 	    refPerf="NA"
 	fi
@@ -127,44 +132,71 @@ do
 	fi
 	#print speedup if both refPerf and newPerf are numerical values
         speedup=$( echo $refPerf $newPerf |gawk '{if($2 == $2 + 0 && $1 == $1 + 0 ) print $1/$2; else print "NA"}')
-        echo  "$refPerf        $newPerf         $speedup"
+
+        tabs 1,14,33,59 &> /dev/null # match next line
+        echo  -e " $refPerf\t|  $newPerf\t|  $speedup\t|" | expand -t 1,14,33,59 # match previous line
         echo "------------------------------------------------------------"
-        echo "  variable     |     absolute diff     |     relative diff | "
+        tabs $tabseq &> /dev/null # reset for other printouts
+        echo -e " variable\t| absolute diff\t| relative diff |" | expand -t $tabseq # list matches tabs above
         echo "------------------------------------------------------------"
 
 	variables=(${variable_names[$run]// / })
 	indices=(${variable_components[$run]// / })
-        for i in ${!variables[*]}
+        for vlsv in ${comparison_vlsv[$run]}
         do
-            if [[ "${variables[$i]}" == "fg_"* ]]
-            then
-                relativeValue=$($run_command_tools $diffbin --meshname=fsgrid  ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables[$i]} ${indices[$i]} |grep "The relative 0-distance between both datasets" |gawk '{print $8}'  )
-                absoluteValue=$($run_command_tools $diffbin --meshname=fsgrid  ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables[$i]} ${indices[$i]} |grep "The absolute 0-distance between both datasets" |gawk '{print $8}'  )
-#print the results
-                echo "${variables[$i]}_${indices[$i]}                $absoluteValue                 $relativeValue    "
-
-            elif [[ "${variables[$i]}" == "ig_"* ]]
-            then
-                relativeValue=$($run_command_tools $diffbin --meshname=ionosphere  ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables[$i]} ${indices[$i]} |grep "The relative 0-distance between both datasets" |gawk '{print $8}'  )
-                absoluteValue=$($run_command_tools $diffbin --meshname=ionosphere  ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables[$i]} ${indices[$i]} |grep "The absolute 0-distance between both datasets" |gawk '{print $8}'  )
-#print the results
-                echo "${variables[$i]}_${indices[$i]}                $absoluteValue                 $relativeValue    "
-
-            elif [ ! "${variables[$i]}" == "proton" ]
-            then
-                relativeValue=$($run_command_tools $diffbin ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables[$i]} ${indices[$i]} |grep "The relative 0-distance between both datasets" |gawk '{print $8}'  )
-                absoluteValue=$($run_command_tools $diffbin ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables[$i]} ${indices[$i]} |grep "The absolute 0-distance between both datasets" |gawk '{print $8}'  )
-#print the results
-                echo "${variables[$i]}_${indices[$i]}                $absoluteValue                 $relativeValue    "
-            elif [ "${variables[$i]}" == "proton" ]
-            then
+            if [ ! -f "${vlsv_dir}/${vlsv}" ]; then
+                echo "Output file ${vlsv_dir}/${vlsv} not found!"
                 echo "--------------------------------------------------------------------------------------------"
-                echo "   Distribution function diff                                                               "
-                echo "--------------------------------------------------------------------------------------------"
-                $run_command_tools $diffbin ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} proton 0
+                continue
             fi
-        done # loop over variables
+            if [ ! -f "${reference_result_dir}/${vlsv}" ]; then
+                echo "Reference file ${reference_result_dir}/${vlsv} not found!"
+                echo "--------------------------------------------------------------------------------------------"
+                continue
+            fi
+            echo "Comparing file ${vlsv_dir}/${vlsv} against reference"
+            for i in ${!variables[*]}
+            do
+                if [[ "${variables[$i]}" == "fg_"* ]]
+                then
+                    A=$( $run_command_tools $diffbin --meshname=fsgrid  ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} ${variables[$i]} ${indices[$i]} )
+                    relativeValue=$(grep "The relative 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
+                    absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
+                    #print the results
+                    echo -e " ${variables[$i]}_${indices[$i]}\t  ${absoluteValue}\t  ${relativeValue}" | expand -t $tabseq #list matches tabs above
+                elif [[ "${variables[$i]}" == "ig_"* ]]
+                then
+                    A=$( $run_command_tools $diffbin --meshname=ionosphere  ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} ${variables[$i]} ${indices[$i]} )
+                    relativeValue=$(grep "The relative 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
+                    absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
+                    #print the results
+                    echo -e " ${variables[$i]}_${indices[$i]}\t  ${absoluteValue}\t  ${relativeValue}" | expand -t $tabseq # list matches tabs above
+                elif [ ! "${variables[$i]}" == "proton" ]
+                then # Regular vg_ variable
+                    A=$( $run_command_tools $diffbin ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} ${variables[$i]} ${indices[$i]} )
+                    relativeValue=$(grep "The relative 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
+                    absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
+                    #print the results
+                    echo -e " ${variables[$i]}_${indices[$i]}\t  ${absoluteValue}\t  ${relativeValue}" | expand -t $tabseq # list matches tabs above
+                elif [ "${variables[$i]}" == "proton" ]
+                then
+                    echo "--------------------------------------------------------------------------------------------"
+                    echo "   Distribution function diff                                                               "
+                    echo "--------------------------------------------------------------------------------------------"
+                    $run_command_tools $diffbin ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} proton 0
+                fi
+            done # loop over variables
 
+            # Print also time difference, if it is not zero
+            timeDiff=$(grep "delta t" <<< $A |gawk '{print $8}'  )
+            if (( $(awk 'BEGIN{print ('$timeDiff'!= 0.0)?1:0}') ))
+            then
+                echo "WARNING! VLSV file timestamps differ by ${timeDiff}s."
+            else
+                echo "VLSV file timestamps match."
+            fi
+            echo "--------------------------------------------------------------------------------------------"
+        done # loop over vlsv files to compare
         echo "--------------------------------------------------------------------------------------------"
     fi
 done # loop over tests

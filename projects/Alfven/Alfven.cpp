@@ -118,16 +118,16 @@ namespace projects {
    }
    
    void Alfven::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
-      Real* cellParams = cell->get_cell_parameters();
-      creal x = cellParams[CellParams::XCRD];
-      creal dx = cellParams[CellParams::DX];
-      creal y = cellParams[CellParams::YCRD];
-      creal dy = cellParams[CellParams::DY];
-      
-      Real ksi = ((x + 0.5 * dx)  * cos(this->ALPHA) + (y + 0.5 * dy) * sin(this->ALPHA)) / this->WAVELENGTH;
-      Real dBxavg = sin(2.0 * M_PI * ksi);
-      Real dByavg = sin(2.0 * M_PI * ksi);
-      Real dBzavg = cos(2.0 * M_PI * ksi);
+      //Real* cellParams = cell->get_cell_parameters();
+      //creal x = cellParams[CellParams::XCRD];
+      //creal dx = cellParams[CellParams::DX];
+      //creal y = cellParams[CellParams::YCRD];
+      //creal dy = cellParams[CellParams::DY];
+      //
+      //Real ksi = ((x + 0.5 * dx)  * cos(this->ALPHA) + (y + 0.5 * dy) * sin(this->ALPHA)) / this->WAVELENGTH;
+      //Real dBxavg = sin(2.0 * M_PI * ksi);
+      //Real dByavg = sin(2.0 * M_PI * ksi);
+      //Real dBzavg = cos(2.0 * M_PI * ksi);
    }
    
    void Alfven::setProjectBField(

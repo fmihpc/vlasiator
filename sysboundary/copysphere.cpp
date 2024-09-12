@@ -737,7 +737,6 @@ namespace SBC {
       const uint popID,
       const bool calculate_V_moments
    ) {
-      phiprof::Timer timer {"vlasovBoundaryCondition (Copysphere)"};
       this->vlasovBoundaryFluffyCopyFromAllCloseNbrs(mpiGrid, cellID, popID, calculate_V_moments, this->speciesParams[popID].fluffiness);
    }
 
@@ -758,7 +757,6 @@ namespace SBC {
       
       // Loop over particle species
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         const CopysphereSpeciesParameters& sP = this->speciesParams[popID];
          const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(templateCell,popID);
          Realf* data = templateCell.get_data(popID);
          
