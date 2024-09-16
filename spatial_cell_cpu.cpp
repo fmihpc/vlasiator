@@ -1385,11 +1385,11 @@ namespace spatial_cell {
     * @return True on success.*/
    bool SpatialCell::shrink_to_fit() {
       bool success = true;
-      return success;
+      //return success;
 
       for (size_t p=0; p<populations.size(); ++p) {
          const uint64_t amount 
-            = 2 + populations[p].blockContainer.size() 
+            = 2 + populations[p].blockContainer.size()
             * populations[p].blockContainer.getBlockAllocationFactor();
          
          // Allow capacity to be a bit large than needed by number of blocks, shrink otherwise

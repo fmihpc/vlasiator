@@ -542,7 +542,7 @@ namespace projects {
          int totalRefineCount;
          MPI_Allreduce(&refineCount, &totalRefineCount, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
          if(totalRefineCount > 0) {
-            std::vector<CellID> refinedCells = mpiGrid.stop_refining(true);
+            std::vector<CellID> refinedCells = mpiGrid.stop_refining();
             
             #ifndef NDEBUG
             if(refinedCells.size() > 0) {
@@ -554,7 +554,8 @@ namespace projects {
             }
             #endif
             
-            mpiGrid.balance_load();
+            // Don't do LB, as this function is called only before v-spaces have been created
+            // mpiGrid.balance_load();
          }
          if(myRank == MASTER_RANK) {
             std::cout << "Finished level of refinement " << level+1 << endl;

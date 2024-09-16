@@ -448,9 +448,10 @@ namespace projects {
 	      }
 	   }
 	}
-	refinedCells = mpiGrid.stop_refining(true);      
+	refinedCells = mpiGrid.stop_refining();
 	if(myRank == MASTER_RANK) std::cout << "Finished first level of refinement" << endl;
-	mpiGrid.balance_load();
+	// Don't do LB, as this function is called only before v-spaces have been created
+	//mpiGrid.balance_load();
      }
 
      if (P::amrMaxSpatialRefLevel > 1 && P::amrMaxAllowedSpatialRefLevel > 1) {
@@ -472,9 +473,10 @@ namespace projects {
 	      }
 	   }
 	}
-	refinedCells = mpiGrid.stop_refining(true);      
+	refinedCells = mpiGrid.stop_refining();
 	if(myRank == MASTER_RANK) std::cout << "Finished second level of refinement" << endl;
-	mpiGrid.balance_load();
+	// Don't do LB, as this function is called only before v-spaces have been created
+	//mpiGrid.balance_load();
      }
 
      if (P::amrMaxSpatialRefLevel > 2 && P::amrMaxAllowedSpatialRefLevel > 2) {
@@ -496,9 +498,10 @@ namespace projects {
 	      }
 	   }
 	}
-	refinedCells = mpiGrid.stop_refining(true);      
+	refinedCells = mpiGrid.stop_refining();
 	if(myRank == MASTER_RANK) std::cout << "Finished third level of refinement" << endl;
-	mpiGrid.balance_load();
+	// Don't do LB, as this function is called only before v-spaces have been created
+	//mpiGrid.balance_load();
      }
 
      if (P::amrMaxSpatialRefLevel > 3 && P::amrMaxAllowedSpatialRefLevel > 3) {
@@ -520,11 +523,11 @@ namespace projects {
 	      }
 	   }
 	}
-	refinedCells = mpiGrid.stop_refining(true);      
+	refinedCells = mpiGrid.stop_refining();
 	if(myRank == MASTER_RANK) std::cout << "Finished fourth level of refinement" << endl;
-	mpiGrid.balance_load();
+	// Don't do LB, as this function is called only before v-spaces have been created
+	//mpiGrid.balance_load();
      }
-
      
      return true;
    }

@@ -428,10 +428,15 @@ bool _readBlockData(
       success = false;
    }
    
+   int size, myRank;
+   MPI_Comm_size(MPI_COMM_WORLD, &size);
+   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
    uint64_t blockBufferOffset=0;
    //Go through all spatial cells     
    vector<vmesh::GlobalID> blockIdsInCell; //blockIds in a particular cell, temporary usage
+   uint step = localCells/20;
    for(uint64_t i=0; i<localCells; i++) {
+      if (i%step==0 && myRank==0) std::cerr<<" reading in cell "<<i<<" of "<<localCells<<std::endl;
       CellID cell = fileCells[localCellStartOffset + i]; //spatial cell id 
       vmesh::LocalID nBlocksInCell = blocksPerCell[i];
       //copy blocks in this cell to vector blockIdsInCell, size of read in data has been checked earlier
@@ -1174,8 +1179,8 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
    phiprof::Timer readLayoutimer {"readDatalayout"};
    if (success) {
-		success = readCellIds(file,fileCells,MASTER_RANK,MPI_COMM_WORLD);
-	}
+      success = readCellIds(file,fileCells,MASTER_RANK,MPI_COMM_WORLD);
+   }
 
    // Check that the cellID lists are identical in file and grid
    if (myRank==0) {
@@ -1315,6 +1320,7 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    phiprof::Timer updateNeighborsTimer {"updateMpiGridNeighbors"};
    mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
    updateNeighborsTimer.stop();
+   logFile << "neighborUpdates done. Read FS grid ";
    
    phiprof::Timer readfsTimer {"readFsGrid"};
    // Read fsgrid data back in
@@ -1329,6 +1335,7 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    if (success) { success = readFsGridVariable(file, "fg_E", fsgridInputRanks, EGrid); }
    exitOnError(success,"(RESTART) Failure reading fsgrid restart variables",MPI_COMM_WORLD);
    readfsTimer.stop();
+   logFile << "readFS done. read Iono: ";
    
    phiprof::Timer readIonosphereTimer {"readIonosphere"};
    bool ionosphereSuccess=true;
@@ -1362,6 +1369,7 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       logFile << "(RESTART) Restart file contains no ionosphere conductivity data. Ionosphere will run fine, but first output bulk file might have bogus conductivities." << std::endl;
    }
    readIonosphereTimer.stop();
+   logFile << "read iono done ";
 
    success = file.close();
 
