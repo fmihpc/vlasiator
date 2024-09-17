@@ -318,10 +318,11 @@ void initializeGrids(
                SC->parameters[CellParams::LBWEIGHTCOUNTER] = 0;
             } else if (SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
                // Set sysb cells to a small weight
-               SC->parameters[CellParams::LBWEIGHTCOUNTER] += 0.5 * SC->get_number_of_velocity_blocks(popID);;
+               SC->parameters[CellParams::LBWEIGHTCOUNTER] += 0.5 * SC->get_number_of_velocity_blocks(popID);
             } else {
                SC->parameters[CellParams::LBWEIGHTCOUNTER] += SC->get_number_of_velocity_blocks(popID);
             }
+         }
       }
 
       shrink_to_fit_grid_data(mpiGrid); //get rid of excess data already here
