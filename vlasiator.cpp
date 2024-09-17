@@ -1101,10 +1101,6 @@ int main(int argn,char* args[]) {
             calculateSpatialTranslation(mpiGrid,0.0);
             calculateAcceleration(mpiGrid,0.0);
          }
-         phiprof::Timer shrinkTimer {"Shrink_to_fit"};
-         // * shrink to fit before LB * //
-         shrink_to_fit_grid_data(mpiGrid);
-         shrinkTimer.stop();
          // This now uses the block-based count just copied between the two refinement calls above.
          balanceLoad(mpiGrid, sysBoundaryContainer);
          addTimedBarrier("barrier-end-load-balance");
