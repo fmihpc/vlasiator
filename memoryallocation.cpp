@@ -37,6 +37,9 @@ extern Logger logFile, diagnostic;
 using namespace std;
 
 #ifdef USE_JEMALLOC
+#define STRINGIFY_HELPER(x) #x
+#define STRINGIFY(x) STRINGIFY_HELPER(x)
+
 // Global new using jemalloc
 void *operator new(size_t size)
 {
@@ -84,6 +87,12 @@ void operator delete[](void *ptr, std::size_t size) noexcept {
 }
 #endif  // __cpp_sized_deallocation
 
+// Purge allocations from all arenas to actually release memory back to system
+void memory_purge() {
+   je_mallctl("arena." STRINGIFY(MALLCTL_ARENAS_ALL) ".purge", NULL, NULL, NULL, 0);
+}
+#else
+void memory_purge() { } // does nothing
 #endif 
 
 

@@ -51,11 +51,6 @@
 #include "papi.h" 
 #endif 
 
-#ifdef USE_JEMALLOC
-#define STRINGIFY_HELPER(x) #x
-#define STRINGIFY(x) STRINGIFY_HELPER(x)
-#endif
-
 #ifndef NDEBUG
    #ifdef VAMR
       #define DEBUG_VAMR_VALIDATE
@@ -593,11 +588,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
             if (cell_id % num_part_transfers == transfer_part) cell->clear(p);
          }
 
-         // Purge jemalloc allocator to actually release memory
-#ifdef USE_JEMALLOC
-         je_mallctl("arena." STRINGIFY(MALLCTL_ARENAS_ALL) ".purge", NULL, NULL, NULL, 0);
-#endif
-
+         memory_purge(); // Purge jemalloc allocator to actually release memory
       } // for-loop over populations
    } // for-loop over transfer parts
    transfersTimer.stop();
@@ -762,10 +753,7 @@ void shrink_to_fit_grid_data(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
          }
       }
    }
-   // Purge jemalloc allocator to actually release memory
-#ifdef USE_JEMALLOC
-   je_mallctl("arena." STRINGIFY(MALLCTL_ARENAS_ALL) ".purge", NULL, NULL, NULL, 0);
-#endif
+   memory_purge(); // Purge jemalloc allocator to actually release memory
 }
 
 /*! Estimates memory consumption and writes it into logfile. Collective operation on MPI_COMM_WORLD
@@ -840,10 +828,7 @@ void deallocateRemoteCellBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
             cell->clear(popID);
       }
    }
-   // Purge jemalloc allocator to actually release memory
-#ifdef USE_JEMALLOC
-   je_mallctl("arena." STRINGIFY(MALLCTL_ARENAS_ALL) ".purge", NULL, NULL, NULL, 0);
-#endif
+   memory_purge(); // Purge jemalloc allocator to actually release memory
 }
 
 /*
