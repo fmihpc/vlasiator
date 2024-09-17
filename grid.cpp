@@ -310,12 +310,18 @@ void initializeGrids(
             validateMesh(mpiGrid,popID);
          #endif
 
-         // set initial LB metric based on number of blocks, all others
-         // will be based on time spent in acceleration
+         // set initial LB metric based on number of blocks
          #pragma omp parallel for schedule(static)
          for (size_t i=0; i<cells.size(); ++i) {
-            mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] += mpiGrid[cells[i]]->get_number_of_velocity_blocks(popID);
-         }
+            SpatialCell* SC = mpiGrid[cells[i]];
+            if (SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+               SC->parameters[CellParams::LBWEIGHTCOUNTER] = 0;
+            } else if (SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+               // Set sysb cells to a small weight
+               SC->parameters[CellParams::LBWEIGHTCOUNTER] += 0.5 * SC->get_number_of_velocity_blocks(popID);;
+            } else {
+               SC->parameters[CellParams::LBWEIGHTCOUNTER] += SC->get_number_of_velocity_blocks(popID);
+            }
       }
 
       shrink_to_fit_grid_data(mpiGrid); //get rid of excess data already here
