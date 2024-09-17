@@ -212,7 +212,7 @@ void initializeGrids(
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_DIMENSIONS);
    mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
 
-   computeCoupling(mpiGrid, cells, technicalGrid, onDccrgMapRemoteProcessGlobal, onFsgridMapRemoteProcessGlobal, onFsgridMapCellsGlobal);
+   computeCoupling(mpiGrid, cells, technicalGrid);
 
    // We want this before restart refinement
    phiprof::Timer classifyTimer {"Classify cells (sys boundary conditions)"};
@@ -237,15 +237,15 @@ void initializeGrids(
                cerr << "(MAIN) ERROR: Forcing refinement takes too much memory" << endl;
                exit(1);
             }
-            balanceLoad(mpiGrid, sysBoundaries);
+            balanceLoad(mpiGrid, sysBoundaries, technicalGrid);
          }
       } else if (P::refineOnRestart) {
          // Considered deprecated
          phiprof::Timer timer {"Restart refinement"};
          // Get good load balancing for refinement
-         balanceLoad(mpiGrid, sysBoundaries);
+         balanceLoad(mpiGrid, sysBoundaries, technicalGrid);
          adaptRefinement(mpiGrid, technicalGrid, sysBoundaries, project);
-         balanceLoad(mpiGrid, sysBoundaries);
+         balanceLoad(mpiGrid, sysBoundaries, technicalGrid);
       }
    }
 
@@ -335,7 +335,7 @@ void initializeGrids(
 
 
    // Balance load before we transfer all data below
-   balanceLoad(mpiGrid, sysBoundaries);
+   balanceLoad(mpiGrid, sysBoundaries, technicalGrid);
    // Function includes re-calculation of local cells cache
 
    phiprof::Timer fetchNeighbourTimer {"Fetch Neighbour data", {"MPI"}};
@@ -356,7 +356,7 @@ void initializeGrids(
    volGrid.updateGhostCells();
    fsGridGhostTimer.stop();
    phiprof::Timer getFieldsTimer {"getFieldsFromFsGrid"};
-   computeCoupling(mpiGrid, cells, volGrid, onDccrgMapRemoteProcessGlobal, onFsgridMapRemoteProcessGlobal, onFsgridMapCellsGlobal);
+   computeCoupling(mpiGrid, cells, volGrid);
    getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, technicalGrid, mpiGrid, cells);
    getFieldsTimer.stop();
 
@@ -381,8 +381,6 @@ void initializeGrids(
       }
    }
 
-   // recompute coupling
-   computeCoupling(mpiGrid, cells, momentsGrid, onDccrgMapRemoteProcessGlobal, onFsgridMapRemoteProcessGlobal, onFsgridMapCellsGlobal);
 
    phiprof::Timer finishFSGridTimer {"Finish fsgrid setup"};
    feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid, technicalGrid, false);
@@ -490,7 +488,7 @@ void setFaceNeighborRanks( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    }
 }
 
-void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, SysBoundary& sysBoundaries){
+void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, SysBoundary& sysBoundaries, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid){
    // Invalidate cached cell lists
    Parameters::meshRepartitioned = true;
 
@@ -609,6 +607,9 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    for (uint i=0; i<cells.size(); ++i) {
       mpiGrid[cells[i]]->set_mpi_transfer_enabled(true);
    }
+
+   // recompute coupling of grids after load balance
+   computeCoupling(mpiGrid, cells, technicalGrid);
 
    // flag transfers if AMR
    phiprof::Timer computeTransferTimer {"compute_amr_transfer_flags"};
@@ -1553,7 +1554,7 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
 
    const vector<CellID>& cellsVec = getLocalCells();
 
-   computeCoupling(mpiGrid, cellsVec, technicalGrid, onDccrgMapRemoteProcessGlobal, onFsgridMapRemoteProcessGlobal, onFsgridMapCellsGlobal);
+   computeCoupling(mpiGrid, cellsVec, technicalGrid);
 
    // Initialise system boundary conditions (they need the initialised positions!!)
 	// This needs to be done before LB

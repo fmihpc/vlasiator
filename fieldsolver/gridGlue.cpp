@@ -7,9 +7,10 @@
 #include "gridGlue.hpp"
 
 
-
-
-
+// Datastructure for coupling
+std::map<int, std::set<CellID> > onDccrgMapRemoteProcessGlobal; 
+std::map<int, std::set<CellID> > onFsgridMapRemoteProcessGlobal; 
+std::map<CellID, std::vector<int64_t> >  onFsgridMapCellsGlobal;
 
 
 /*

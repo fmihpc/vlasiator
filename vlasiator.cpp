@@ -647,9 +647,6 @@ int main(int argn,char* args[]) {
       );
    }
 
-   // computing coupling of grids (recalculated when load balancing)
-   computeCoupling(mpiGrid, cells, momentsGrid, onDccrgMapRemoteProcessGlobal, onFsgridMapRemoteProcessGlobal, onFsgridMapCellsGlobal);
-
    phiprof::Timer getFieldsTimer {"getFieldsFromFsGrid"};
    volGrid.updateGhostCells();
    getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, technicalGrid, mpiGrid, cells);
@@ -1073,7 +1070,7 @@ int main(int argn,char* args[]) {
                for (auto id : mpiGrid.get_local_cells_to_refine()) {
                   mpiGrid[id]->parameters[CellParams::LBWEIGHTCOUNTER] *= 8.0;
                }
-               balanceLoad(mpiGrid, sysBoundaryContainer);
+               balanceLoad(mpiGrid, sysBoundaryContainer, technicalGrid);
                // We can /= 8.0 now as cells have potentially migrated. Go back to block-based count for now.
                for (auto id : mpiGrid.get_local_cells_to_refine()) {
                   mpiGrid[id]->parameters[CellParams::LBWEIGHTCOUNTER] = 0;
@@ -1099,7 +1096,7 @@ int main(int argn,char* args[]) {
             calculateAcceleration(mpiGrid,0.0);
          }
          // This now uses the block-based count just copied between the two refinement calls above.
-         balanceLoad(mpiGrid, sysBoundaryContainer);
+         balanceLoad(mpiGrid, sysBoundaryContainer, technicalGrid);
          addTimedBarrier("barrier-end-load-balance");
          phiprof::Timer shrinkTimer {"Shrink_to_fit"};
          // * shrink to fit after LB * //
@@ -1113,9 +1110,6 @@ int main(int argn,char* args[]) {
          // Make sure the ionosphere communicator is up-to-date, in case inner boundary cells
          // moved.
          SBC::ionosphereGrid.updateIonosphereCommunicator(mpiGrid, technicalGrid);
-
-         // recompute coupling of grids after load balance
-         computeCoupling(mpiGrid, cells, momentsGrid, onDccrgMapRemoteProcessGlobal, onFsgridMapRemoteProcessGlobal, onFsgridMapCellsGlobal);
       }
       
       //get local cells
