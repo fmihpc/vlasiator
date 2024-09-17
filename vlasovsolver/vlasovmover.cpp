@@ -372,18 +372,22 @@ void calculateSpatialTranslation(
    }
 
    if (Parameters::prepareForRebalance == true) {
-      // Evaluate all local cells
+      // clear weight on all local cells
       for (size_t c=0; c<localCells.size(); ++c) {
          SpatialCell* SC = mpiGrid[localCells[c]];
-         // int accelerationsteps = 0; // Account for time spent in acceleration as well
-         // if (mpiGrid[local_propagated_cells[c]]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) accelerationsteps = 3;
+         SC->parameters[CellParams::LBWEIGHTCOUNTER] = 0;
+      }
+      for (size_t c=0; c<local_propagated_cells.size(); ++c) {
+         // Gather total blocks in cell
+         SpatialCell* SC = mpiGrid[local_propagated_cells[c]];
          Real counter = 0;
          for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
             counter += SC->get_number_of_velocity_blocks(popID);
          }
-         if (SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
-            SC->parameters[CellParams::LBWEIGHTCOUNTER] = 0;
-         } else if (SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+
+         // int accelerationsteps = 0; // Account for time spent in acceleration as well
+         // if (mpiGrid[local_propagated_cells[c]]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) accelerationsteps = 3;
+         if (SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
             // Set sysb cells to a small weight
             SC->parameters[CellParams::LBWEIGHTCOUNTER] = counter * 0.5;
          } else {
