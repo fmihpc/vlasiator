@@ -558,8 +558,8 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
             break; // out of for
          }
       }
-      if(transfer_part == num_part_transfers_local // either the loop ended or we hit that number with the *= 2
-         && outgoing_block_fraction <= transfer_block_fraction_limit // so cross-check with this
+      if((transfer_part == num_part_transfers_local // either the loop ended or we hit that number with the *= 2
+         && outgoing_block_fraction <= transfer_block_fraction_limit) // so cross-check with this
          || num_part_transfers_local >= cells.size()
       ) {
          count_determined = true; // we got a break out if any chunk was still too big
