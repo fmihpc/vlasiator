@@ -27,10 +27,6 @@ LIB_VLSV = -lvlsv
 INC_SILO = -I${HOME}/include
 LIB_SILO = -L${HOME}/lib -lsilo
 
-INC_DCCRG = -I./submodules/dccrg
-
-INC_FSGRID = -I./submodules/fsgrid
-
 LIB_PROFILE = -L${HOME}/phiprof/lib -lphiprof
 INC_PROFILE = -I${HOME}/phiprof/include
 INC_TOPO =

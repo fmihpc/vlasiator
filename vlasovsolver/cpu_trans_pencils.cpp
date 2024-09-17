@@ -217,6 +217,7 @@ void prepareGhostTranslationCellLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
       }
       ghostTranslate_active_y.insert(c);
       // Update as sources only non-sysb cells
+      // (note, source cells not part of these lists are still updated through MPI)
       if (mpiGrid[c]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
          ghostTranslate_sources_y.insert(c);
       }
@@ -229,7 +230,7 @@ void prepareGhostTranslationCellLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
             ghostTranslate_sources_y.insert(cid);
          }
       }
-      // Cells to be translated so local end result is good
+      // Cells to be translated so local end result is good (find neighborhood contains do_translate check)
       findNeighborhoodCells(mpiGrid, c, dimension, 1, foundCells);
       for (CellID cid: foundCells) {
          ghostTranslate_active_y.insert(cid);
@@ -324,12 +325,12 @@ void prepareGhostTranslationCellLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
    int world_size;
    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
    MPI_Reduce(localCounts.data(), globalCounts.data(), nc, MPI_INT64_T, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
-   MPI_Reduce(localCounts.data(), globalCounts.data()+nc, nc, MPI_INT64_T, MPI_MIN, MASTER_RANK, MPI_COMM_WORLD);
-   MPI_Reduce(localCounts.data(), globalCounts.data()+2*nc, nc, MPI_INT64_T, MPI_MAX, MASTER_RANK, MPI_COMM_WORLD);
+   MPI_Reduce(localCounts.data(), &(globalCounts.at(nc)), nc, MPI_INT64_T, MPI_MIN, MASTER_RANK, MPI_COMM_WORLD);
+   MPI_Reduce(localCounts.data(), &(globalCounts.at(2*nc)), nc, MPI_INT64_T, MPI_MAX, MASTER_RANK, MPI_COMM_WORLD);
    for(int i = 0; i <nc; i++) { // calc avgs
       globalCounts.at(3*nc+i) = globalCounts.at(i) / world_size;
    }
-   logFile << "(CELLS) tstep = " << P::tstep << " time = " << P::t << " source cells (tot / avg / min / max) (x,y,z) [ ";
+   logFile << "(CELLS) tstep = " << P::tstep << " time = " << P::t << " \n source cells (tot / avg / min / max) (x y z) [ ";
    for(int dim = 0; dim <3; dim++) { // tot
       logFile << globalCounts.at(dim) << " ";
    }
@@ -345,7 +346,7 @@ void prepareGhostTranslationCellLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
    for(int dim = 0; dim <3; dim++) { // max
       logFile << globalCounts.at(2*nc+dim) << " ";
    }
-   logFile << "] active cells (tot / avg / min / max) (x,y,z) [ ";
+   logFile << "] \n active cells (tot / avg / min / max) (x y z) [ ";
    for(int dim = 3; dim <6; dim++) { // tot
       logFile << globalCounts.at(dim) << " ";
    }
@@ -361,27 +362,51 @@ void prepareGhostTranslationCellLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
    for(int dim = 3; dim <6; dim++) { // max
       logFile << globalCounts.at(2*nc+dim) << " ";
    }
-   logFile << "] local cells (tot / avg / min / max) [ ";
-   logFile << globalCounts.at(nc-1) << " ";
-   logFile << globalCounts.at(4*nc-1) << " ";
-   logFile << globalCounts.at(2*nc-1) << " ";
-   logFile << globalCounts.at(3*nc-1) << " ";
+   logFile << "] \n  local cells (tot / avg / min / max) [ ";
+   logFile << globalCounts.at(nc-1) << " / ";
+   logFile << globalCounts.at(4*nc-1) << " / ";
+   logFile << globalCounts.at(2*nc-1) << " / ";
+   logFile << globalCounts.at(3*nc-1);
 
    std::vector<float> localCountsF;
+   localCountsF.push_back((float)localCounts.at(0) / (float)localCounts.at(6));
+   localCountsF.push_back((float)localCounts.at(1) / (float)localCounts.at(6));
    localCountsF.push_back((float)localCounts.at(2) / (float)localCounts.at(6));
+   localCountsF.push_back((float)localCounts.at(3) / (float)localCounts.at(6));
+   localCountsF.push_back((float)localCounts.at(4) / (float)localCounts.at(6));
    localCountsF.push_back((float)localCounts.at(5) / (float)localCounts.at(6));
    int fc = localCountsF.size();
    std::vector<float> globalCountsF(4*fc);
    MPI_Reduce(localCountsF.data(), globalCountsF.data(), fc, MPI_FLOAT, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
-   MPI_Reduce(localCountsF.data(), globalCountsF.data()+fc, fc, MPI_FLOAT, MPI_MIN, MASTER_RANK, MPI_COMM_WORLD);
-   MPI_Reduce(localCountsF.data(), globalCountsF.data()+2*fc, fc, MPI_FLOAT, MPI_MAX, MASTER_RANK, MPI_COMM_WORLD);
+   MPI_Reduce(localCountsF.data(), &(globalCountsF.at(fc)), fc, MPI_FLOAT, MPI_MIN, MASTER_RANK, MPI_COMM_WORLD);
+   MPI_Reduce(localCountsF.data(), &(globalCountsF.at(2*fc)), fc, MPI_FLOAT, MPI_MAX, MASTER_RANK, MPI_COMM_WORLD);
    for(int i = 0; i <fc; i++) { // calc avgs
       globalCountsF.at(3*fc+i) = globalCountsF.at(i) / world_size;
    }
-   logFile << "] ratios (avg / min / max) (sources, active) [ ";
-   logFile << globalCountsF.at(3*fc) << " " << globalCountsF.at(3*fc +1) << " "; // avg
-   logFile << globalCountsF.at(fc) << " " << globalCountsF.at(fc +1) << " "; // avg
-   logFile << globalCountsF.at(2*fc) << " " << globalCountsF.at(2*fc +1) << " "; // avg
+   logFile << "] \n source ratios (avg / min / max)      (x y z) [ ";
+   for(int dim = 0; dim <3; dim++) { // avg
+      logFile << globalCountsF.at(3*fc+dim) << " ";
+   }
+   logFile << " / ";
+   for(int dim = 0; dim <3; dim++) { // min
+      logFile << globalCountsF.at(fc+dim) << " ";
+   }
+   logFile << " / ";
+   for(int dim = 0; dim <3; dim++) { // max
+      logFile << globalCountsF.at(2*fc+dim) << " ";
+   }
+   logFile << "] \n active ratios (avg / min / max)      (x y z) [ ";
+   for(int dim = 3; dim <6; dim++) { // avg
+      logFile << globalCountsF.at(3*fc+dim) << " ";
+   }
+   logFile << " / ";
+   for(int dim = 3; dim <6; dim++) { // min
+      logFile << globalCountsF.at(fc+dim) << " ";
+   }
+   logFile << " / ";
+   for(int dim = 3; dim <6; dim++) { // max
+      logFile << globalCountsF.at(2*fc+dim) << " ";
+   }
    logFile << "]" << endl << flush;
    return;
 }

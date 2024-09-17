@@ -372,26 +372,28 @@ void calculateSpatialTranslation(
    }
 
    if (Parameters::prepareForRebalance == true) {
-      if(P::amrMaxSpatialRefLevel == 0) {
-         //const double deltat = (MPI_Wtime() - t1) / local_propagated_cells.size();
-         for (size_t c=0; c<localCells.size(); ++c) {
-            //mpiGrid[localCells[c]]->parameters[CellParams::LBWEIGHTCOUNTER] += time / localCells.size();
-            for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-               mpiGrid[localCells[c]]->parameters[CellParams::LBWEIGHTCOUNTER] += mpiGrid[localCells[c]]->get_number_of_velocity_blocks(popID);
-            }
+      // Evaluate all local cells
+      for (size_t c=0; c<localCells.size(); ++c) {
+         SpatialCell* SC = mpiGrid[localCells[c]];
+         // int accelerationsteps = 0; // Account for time spent in acceleration as well
+         // if (mpiGrid[local_propagated_cells[c]]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) accelerationsteps = 3;
+         Real counter = 0;
+         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+            counter += SC->get_number_of_velocity_blocks(popID);
          }
-      } else {
-         //const double deltat = MPI_Wtime() - t1;
-         for (size_t c=0; c<local_propagated_cells.size(); ++c) {
-            // int accelerationsteps = 0; // Account for time spent in acceleration as well
-            // if (mpiGrid[local_propagated_cells[c]]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) accelerationsteps = 3;
-            Real counter = 0;
-            for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-               counter += mpiGrid[local_propagated_cells[c]]->get_number_of_velocity_blocks(popID);
+         if (SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+            SC->parameters[CellParams::LBWEIGHTCOUNTER] = 0;
+         } else if (SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+            // Set sysb cells to a small weight
+            SC->parameters[CellParams::LBWEIGHTCOUNTER] = counter * 0.5;
+         } else {
+            if (P::amrMaxSpatialRefLevel == 0) {
+               SC->parameters[CellParams::LBWEIGHTCOUNTER] = 3 * counter;
+            } else {
+               SC->parameters[CellParams::LBWEIGHTCOUNTER] = nPencils[c] * counter;
+               // mpiGrid[local_propagated_cells[c]]->parameters[CellParams::LBWEIGHTCOUNTER] += (nPencils[c]+accelerationsteps) * counter;
+               // mpiGrid[localCells[c]]->parameters[CellParams::LBWEIGHTCOUNTER] += time / localCells.size();
             }
-            mpiGrid[local_propagated_cells[c]]->parameters[CellParams::LBWEIGHTCOUNTER] += nPencils[c] * counter;
-            // mpiGrid[local_propagated_cells[c]]->parameters[CellParams::LBWEIGHTCOUNTER] += (nPencils[c]+accelerationsteps) * counter;
-            // mpiGrid[localCells[c]]->parameters[CellParams::LBWEIGHTCOUNTER] += time / localCells.size();
          }
       }
    }

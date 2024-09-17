@@ -22,13 +22,11 @@ LNK = mpicxx
 ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
 #Single-precision        
 	VECTORCLASS = VEC8F_AGNER
-	INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/
 #	VECTORCLASS = VEC8F_FALLBACK
 #	INC_VECTORCLASS = -I$(HOME)/vlasiator/vlasovsolver
 else
 #Double-precision
 	VECTORCLASS = VEC4D_AGNER
-	INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/
 #	VECTORCLASS = VEC4D_FALLBACK
 #	VECTORCLASS = VEC8D_FALLBACK
 #	INC_VECTORCLASS = -I$(HOME)/vlasiator/vlasovsolver
@@ -97,10 +95,3 @@ INC_PROFILE = -I$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_B
 
 INC_PAPI = -I/opt/hlrs/spack/rev-004_2020-06-17/papi/c048e224f-gcc-9.2.0-hxfnx7kt/include
 LIB_PAPI = -L/opt/hlrs/spack/rev-004_2020-06-17/papi/c048e224f-gcc-9.2.0-hxfnx7kt/lib -lpapi
-
-#header libraries
-
-INC_DCCRG = -I./submodules/dccrg
-INC_FSGRID = -I./submodules/fsgrid
-INC_VECTORCLASS = -isystem ./submodules/vectorclass/ -isystem ./submodules/vectorclass-addon/vector3d/
-INC_EIGEN = -isystem ./submodules/eigen/
