@@ -612,7 +612,7 @@ namespace projects {
             };
 
             // Pressure anisotropy forces refinement when under threshold
-            if (P::anisotropyRefineThreshold > 0 && cell->parameters[CellParams::P_ANISOTROPY] < P::anisotropyRefineThreshold && refLevel < P::anisotropyMaxReflevel) {
+            if (r2 < r_max2 && P::anisotropyRefineThreshold > 0 && cell->parameters[CellParams::P_ANISOTROPY] < P::anisotropyRefineThreshold && refLevel < P::anisotropyMaxReflevel) {
                shouldRefine = true;
                shouldUnrefine = false;
             }
@@ -648,7 +648,8 @@ namespace projects {
                   (neighborR2 < r_max2) && (
                      (P::useAlpha1 ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA1] > P::alpha1RefineThreshold : false) || 
                      (P::useAlpha2 ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA2] > P::alpha2RefineThreshold : false) ||
-                     (P::useVorticity ? mpiGrid[neighbor]->parameters[CellParams::AMR_VORTICITY] > P::vorticityRefineThreshold : false)
+                     (P::useVorticity ? mpiGrid[neighbor]->parameters[CellParams::AMR_VORTICITY] > P::vorticityRefineThreshold : false) ||
+                     (P::anisotropyRefineThreshold > 0 && cell->parameters[CellParams::P_ANISOTROPY] < P::anisotropyRefineThreshold && refLevel < P::anisotropyMaxReflevel)
                   )};
                if (shouldRefineNeighbor &&
                   // If the neighbor is planned to be refined, but is outside the allowed refinement region, cancel that refinement.
