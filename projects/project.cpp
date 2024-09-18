@@ -649,7 +649,7 @@ namespace projects {
                      (P::useAlpha1 ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA1] > P::alpha1RefineThreshold : false) || 
                      (P::useAlpha2 ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA2] > P::alpha2RefineThreshold : false) ||
                      (P::useVorticity ? mpiGrid[neighbor]->parameters[CellParams::AMR_VORTICITY] > P::vorticityRefineThreshold : false) ||
-                     (P::anisotropyRefineThreshold > 0 && cell->parameters[CellParams::P_ANISOTROPY] < P::anisotropyRefineThreshold && refLevel < P::anisotropyMaxReflevel)
+                     (P::anisotropyRefineThreshold > 0 && mpiGrid[neighbor]->parameters[CellParams::P_ANISOTROPY] < P::anisotropyRefineThreshold && neighborRef < P::anisotropyMaxReflevel)
                   )};
                if (shouldRefineNeighbor &&
                   // If the neighbor is planned to be refined, but is outside the allowed refinement region, cancel that refinement.
