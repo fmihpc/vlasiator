@@ -836,7 +836,7 @@ void calculateScaledDeltas(
    Real vorticity {std::sqrt(std::pow(dVxdy - dVydz, 2) + std::pow(dVxdz - dVzdx, 2 ) + std::pow(dVydx - dVxdy, 2))};
    //Real vA {std::sqrt(Bsq / (physicalconstants::MU_0 * myRho))};
    Real amr_vorticity {0.0};
-   if (maxV > eps) {
+   if (maxV > EPS) {
       amr_vorticity = vorticity * cell->parameters[CellParams::DX] / maxV;
    }
 
