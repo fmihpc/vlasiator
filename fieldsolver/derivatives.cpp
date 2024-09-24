@@ -25,6 +25,7 @@
 #include "fs_common.h"
 #include "derivatives.hpp"
 #include "fs_limiters.h"
+#include <Eigen/Geometry>
 
 /*! \brief Low-level spatial derivatives calculation.
  *
@@ -801,6 +802,29 @@ void calculateScaledDeltas(
       Bperp = std::sqrt(Bperp);
    }
 
+   // Now, rotation matrix to get parallel and perpendicular pressure
+   //Eigen::Quaterniond q {Quaterniond::FromTwoVectors(Eigen::vector3d{0, 0, 1}, Eigen::vector3d{myB[0], myB[1], myB[2]})};
+   //Eigen::Matrix3d rot = q.toRotationMatrix();
+   Eigen::Matrix3d rot = Eigen::Quaterniond::FromTwoVectors(Eigen::Vector3d{0, 0, 1}, Eigen::Vector3d{myB[0], myB[1], myB[2]}).toRotationMatrix();
+   Eigen::Matrix3d P {
+      {cell->parameters[CellParams::P_11], cell->parameters[CellParams::P_12], cell->parameters[CellParams::P_13]},
+      {cell->parameters[CellParams::P_12], cell->parameters[CellParams::P_22], cell->parameters[CellParams::P_23]},
+      {cell->parameters[CellParams::P_13], cell->parameters[CellParams::P_23], cell->parameters[CellParams::P_33]},
+   };
+   
+   Eigen::Matrix3d Pprime = rot * P * rot.transpose();
+
+   // Vorticity
+   Real dVxdy {cell->derivativesV[vderivatives::dVxdy]};
+   Real dVxdz {cell->derivativesV[vderivatives::dVxdz]};
+   Real dVydx {cell->derivativesV[vderivatives::dVydx]};
+   Real dVydz {cell->derivativesV[vderivatives::dVydz]};
+   Real dVzdx {cell->derivativesV[vderivatives::dVzdx]};
+   Real dVzdy {cell->derivativesV[vderivatives::dVzdy]};
+   Real vorticity {std::sqrt(std::pow(dVxdy - dVydz, 2) + std::pow(dVxdz - dVzdx, 2 ) + std::pow(dVydx - dVxdy, 2))};
+   //Real vA {std::sqrt(Bsq / (physicalconstants::MU_0 * myRho))};
+   Real myV {std::sqrt(std::pow(myP[0], 2) + std::pow(myP[1], 2) + std::pow(myP[2], 2)) / myRho};
+
    cell->parameters[CellParams::AMR_DRHO] = dRho;
    cell->parameters[CellParams::AMR_DU] = dU;
    cell->parameters[CellParams::AMR_DPSQ] = dPsq;
@@ -808,6 +832,9 @@ void calculateScaledDeltas(
    cell->parameters[CellParams::AMR_DB] = dB;
    cell->parameters[CellParams::AMR_ALPHA1] = alpha;
    cell->parameters[CellParams::AMR_ALPHA2] = cell->parameters[CellParams::DX] * J / (Bperp + EPS);   // Epsilon in denominator so we don't get infinities
+   cell->parameters[CellParams::P_ANISOTROPY] = (Pprime(0, 0) + Pprime(1, 1)) / (2 * Pprime(2, 2));
+   // Experimental, current scaling is bulk velocity
+   cell->parameters[CellParams::AMR_VORTICITY] = vorticity * cell->parameters[CellParams::DX] / (myV + EPS);
 }
 
 /*! \brief High-level scaled gradient calculation wrapper function.

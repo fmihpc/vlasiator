@@ -198,6 +198,12 @@ struct Parameters {
    static bool useAlpha2;
    static Real alpha2RefineThreshold;
    static Real alpha2CoarsenThreshold;
+   // TODO: consider renaming to alpha3 or something to that effect
+   static bool useVorticity;
+   static Real vorticityRefineThreshold;
+   static Real vorticityCoarsenThreshold;
+   static Real anisotropyRefineThreshold;
+   static int anisotropyMaxReflevel;
    static uint refineCadence;
    static Real refineAfter;
    static Real refineRadius;

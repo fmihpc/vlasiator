@@ -595,8 +595,27 @@ namespace projects {
 
             // Cells too far from the ionosphere should be unrefined but
             // induced refinement still possible just beyond this r_max2 limit.
-            bool shouldRefine {(r2 < r_max2) && ((P::useAlpha1 ? cell->parameters[CellParams::AMR_ALPHA1] > P::alpha1RefineThreshold : false) || (P::useAlpha2 ? cell->parameters[CellParams::AMR_ALPHA2] > P::alpha2RefineThreshold : false))};
-            bool shouldUnrefine {(r2 > r_max2) || ((P::useAlpha1 ? cell->parameters[CellParams::AMR_ALPHA1] < P::alpha1CoarsenThreshold : true) && (P::useAlpha2 ? cell->parameters[CellParams::AMR_ALPHA2] < P::alpha2CoarsenThreshold : true))};
+            // TODO starting to look truly cursed. Might need refactoring
+            bool shouldRefine {
+               (r2 < r_max2) && (
+                  (P::useAlpha1 ? cell->parameters[CellParams::AMR_ALPHA1] > P::alpha1RefineThreshold : false) || 
+                  (P::useAlpha2 ? cell->parameters[CellParams::AMR_ALPHA2] > P::alpha2RefineThreshold : false) ||
+                  (P::useVorticity ? cell->parameters[CellParams::AMR_VORTICITY] > P::vorticityRefineThreshold : false)
+               )
+            };
+            bool shouldUnrefine {
+               (r2 > r_max2) || (
+                  (P::useAlpha1 ? cell->parameters[CellParams::AMR_ALPHA1] < P::alpha1CoarsenThreshold : true) && 
+                  (P::useAlpha2 ? cell->parameters[CellParams::AMR_ALPHA2] < P::alpha2CoarsenThreshold : true) &&
+                  (P::useVorticity ? cell->parameters[CellParams::AMR_VORTICITY] < P::vorticityCoarsenThreshold : true)
+               )
+            };
+
+            // Pressure anisotropy forces refinement when under threshold
+            if (P::anisotropyRefineThreshold > 0 && cell->parameters[CellParams::P_ANISOTROPY] < P::anisotropyRefineThreshold && refLevel < P::anisotropyMaxReflevel) {
+               shouldRefine = true;
+               shouldUnrefine = false;
+            }
 
             if(shouldRefine
                // If this cell is planned to be refined, but is outside the allowed refinement region, cancel that refinement.
@@ -625,8 +644,13 @@ namespace projects {
                Real neighborR2 {pow(neighborXyz[0], 2) + pow(neighborXyz[1], 2) + pow(neighborXyz[2], 2)};
                const int neighborRef = mpiGrid.get_refinement_level(neighbor);
                // Induced refinement still possible just beyond the r_max2 limit.
-               bool shouldRefineNeighbor {(neighborR2 < r_max2) && ((P::useAlpha1 ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA1] > P::alpha1RefineThreshold : false) || (P::useAlpha2 ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA2] > P::alpha2RefineThreshold : false))};
-               if(shouldRefineNeighbor &&
+               bool shouldRefineNeighbor {
+                  (neighborR2 < r_max2) && (
+                     (P::useAlpha1 ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA1] > P::alpha1RefineThreshold : false) || 
+                     (P::useAlpha2 ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA2] > P::alpha2RefineThreshold : false) ||
+                     (P::useVorticity ? mpiGrid[neighbor]->parameters[CellParams::AMR_VORTICITY] > P::vorticityRefineThreshold : false)
+                  )};
+               if (shouldRefineNeighbor &&
                   // If the neighbor is planned to be refined, but is outside the allowed refinement region, cancel that refinement.
                   // Induced refinement still possible just beyond that limit.
                     ((neighborXyz[0] < P::refinementMinX) || (neighborXyz[0] > P::refinementMaxX)
@@ -635,8 +659,14 @@ namespace projects {
                   shouldRefineNeighbor = false;
                }
                // Induced refinement still possible just beyond the r_max2 limit.
-               bool shouldUnrefineNeighbor {(neighborR2 > r_max2) || ((P::useAlpha1 ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA1] < P::alpha1CoarsenThreshold : true) && (P::useAlpha2 ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA2] < P::alpha2CoarsenThreshold : true))};
-               if(!shouldUnrefineNeighbor &&
+               bool shouldUnrefineNeighbor {
+                  (neighborR2 > r_max2) || (
+                     (P::useAlpha1 ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA1] < P::alpha1CoarsenThreshold : true) && 
+                     (P::useAlpha2 ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA2] < P::alpha2CoarsenThreshold : true) &&
+                     (P::useVorticity ? mpiGrid[neighbor]->parameters[CellParams::AMR_VORTICITY] < P::vorticityCoarsenThreshold : true)
+                  )
+               };
+               if (!shouldUnrefineNeighbor &&
                   // If the neighbor is planned to remain at the current refinement level, but is outside the allowed refinement region, 
                   // consider it as unrefining instead for purposes of evaluating the neighbors of this cell.
                   // Induced refinement still possible just beyond that limit.

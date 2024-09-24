@@ -520,7 +520,10 @@ void calculateInterpolatedVelocityMoments(
    const int cp_rhoq,
    const int cp_p11,
    const int cp_p22,
-   const int cp_p33
+   const int cp_p33,
+   const int cp_p23,
+   const int cp_p13,
+   const int cp_p12
 ) {
    const vector<CellID>& cells = getLocalCells();
 
@@ -537,6 +540,9 @@ void calculateInterpolatedVelocityMoments(
       SC->parameters[cp_p11]   = 0.5* ( SC->parameters[CellParams::P_11_R] + SC->parameters[CellParams::P_11_V] );
       SC->parameters[cp_p22]   = 0.5* ( SC->parameters[CellParams::P_22_R] + SC->parameters[CellParams::P_22_V] );
       SC->parameters[cp_p33]   = 0.5* ( SC->parameters[CellParams::P_33_R] + SC->parameters[CellParams::P_33_V] );
+      SC->parameters[cp_p23]   = 0.5* ( SC->parameters[CellParams::P_23_R] + SC->parameters[CellParams::P_23_V] );
+      SC->parameters[cp_p13]   = 0.5* ( SC->parameters[CellParams::P_13_R] + SC->parameters[CellParams::P_13_V] );
+      SC->parameters[cp_p12]   = 0.5* ( SC->parameters[CellParams::P_12_R] + SC->parameters[CellParams::P_12_V] );
 
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          spatial_cell::Population& pop = SC->get_population(popID);

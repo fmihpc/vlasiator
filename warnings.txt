@@ -1,0 +1,34 @@
+./generate_version.sh: line 78: xxd: command not found
+./generate_version.sh: line 141: xxd: command not found
+make: *** [Makefile:235: datareducer.o] Interrupt
+make: *** [Makefile:235: datareductionoperator.o] Interrupt
+make: *** [Makefile:225: vamr_refinement_criteria.o] Interrupt
+make: *** [Makefile:240: donotcompute.o] Interrupt
+make: *** [Makefile:240: ionosphere.o] Interrupt
+make: *** [Makefile:240: copysphere.o] Interrupt
+make: *** [Makefile:240: outflow.o] Interrupt
+make: *** [Makefile:240: inflow.o] Interrupt
+make: *** [Makefile:240: setmaxwellian.o] Interrupt
+make: *** [Makefile:245: fieldtracing.o] Interrupt
+make: *** [Makefile:240: sysboundary.o] Interrupt
+make: *** [Makefile:240: sysboundarycondition.o] Interrupt
+make: *** [Makefile:250: project.o] Interrupt
+make: *** [Makefile:250: projectTriAxisSearch.o] Interrupt
+make: *** [Makefile:256: Alfven.o] Interrupt
+make: *** [Makefile:256: Diffusion.o] Interrupt
+make: *** [Makefile:256: Dispersion.o] Interrupt
+make: *** [Makefile:256: Distributions.o] Interrupt
+make: *** [Makefile:256: Firehose.o] Interrupt
+make: *** [Makefile:256: Flowthrough.o] Interrupt
+make: *** [Makefile:256: Fluctuations.o] Interrupt
+make: *** [Makefile:256: Harris.o] Interrupt
+make: *** [Makefile:256: KHB.o] Interrupt
+make: *** [Makefile:256: Larmor.o] Interrupt
+make: *** [Makefile:256: Magnetosphere.o] Interrupt
+make: *** [Makefile:256: MultiPeak.o] Interrupt
+make: *** [Makefile:256: Riemann1.o] Interrupt
+make: *** [Makefile:256: Shock.o] Interrupt
+make: *** [Makefile:256: Template.o] Interrupt
+make: *** [Makefile:256: test_fp.o] Interrupt
+make: *** [Makefile:256: testHall.o] Interrupt
+make: *** [Makefile:256: test_trans.o] Interrupt
