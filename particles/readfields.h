@@ -183,7 +183,7 @@ std::vector<double> readFsGridData(Reader& r, std::string& name, unsigned int nu
    }
 
    // Are we restarting from the same number of tasks, or a different number?
-   std::array<int, 3> size;
+   std::array<uint, 3> size;
    r.readParameter("xcells_ini",size[0]);
    r.readParameter("ycells_ini",size[1]);
    r.readParameter("zcells_ini",size[2]);

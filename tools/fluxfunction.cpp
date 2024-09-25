@@ -68,7 +68,7 @@ std::vector<double> computeFluxUp(Field& B, int outerBoundary, double innerBound
          break;
       }
 
-      Vec3d bval = B.getCell(x,y,z);
+      std::vector<double> bval = B.getCell(x,y,z);
 
       bottom_flux -= bval[yCoord] * B.dx[0];
       flux[B.dimension[0]->cells * i + x] = bottom_flux;
@@ -116,7 +116,7 @@ std::vector<double> computeFluxDown(Field& B, int outerBoundary, double innerBou
          break;
       }
 
-      Vec3d bval = B.getCell(x, y, z);
+      std::vector<double> bval = B.getCell(x, y, z);
 
       top_flux -= bval[0]*B.dx[yCoord];
       flux[B.dimension[0]->cells * i + x] = top_flux;
@@ -132,7 +132,7 @@ std::vector<double> computeFluxDown(Field& B, int outerBoundary, double innerBou
          break;
       }
 
-      Vec3d bval = B.getCell(x, y, z);
+      std::vector<double> bval = B.getCell(x, y, z);
 
       top_flux -= bval[yCoord] * B.dx[0];
       flux[B.dimension[0]->cells * i + x] = top_flux;
@@ -179,7 +179,7 @@ std::vector<double> computeFluxLeft(Field& B, int outerBoundary, double innerBou
          break;
       }
 
-      Vec3d bval = B.getCell(x, y, z);
+      std::vector<double> bval = B.getCell(x, y, z);
 
       right_flux -= bval[0] * B.dx[yCoord];
       flux[B.dimension[0]->cells * i + x] = right_flux;
@@ -225,7 +225,7 @@ std::vector<double> computeFluxUpRight(Field& B, int outerBoundary, double inner
          break;
       }
 
-      Vec3d bval = B.getCell(x,y,z);
+      std:vector<double> bval = B.getCell(x,y,z);
 
       left_flux -= bval[yCoord] * B.dx[0];
       flux[B.dimension[0]->cells * i + x] = left_flux;
@@ -241,7 +241,7 @@ std::vector<double> computeFluxUpRight(Field& B, int outerBoundary, double inner
          break;
       }
 
-      Vec3d bval = B.getCell(x, y, z);
+      std::vector<double> bval = B.getCell(x, y, z);
 
       left_flux -= bval[0] * B.dx[yCoord];
       flux[B.dimension[0]->cells * i + x] = left_flux;
@@ -288,7 +288,7 @@ std::vector<double> computeFluxDownRight(Field& B, int outerBoundary, double inn
          break;
       }
 
-      Vec3d bval = B.getCell(x, y, z);
+      std::vector<double> bval = B.getCell(x, y, z);
 
       left_flux -= bval[0]*B.dx[yCoord];
       flux[B.dimension[0]->cells * i + x] = left_flux;
@@ -303,7 +303,7 @@ std::vector<double> computeFluxDownRight(Field& B, int outerBoundary, double inn
          break;
       }
 
-      Vec3d bval = B.getCell(x, y, z);
+      std::vector<double> bval = B.getCell(x, y, z);
 
       left_flux -= bval[yCoord]*B.dx[0];
       flux[B.dimension[0]->cells * i + x] = left_flux;
@@ -319,7 +319,7 @@ std::vector<double> computeFluxDownRight(Field& B, int outerBoundary, double inn
          break;
       }
 
-      Vec3d bval = B.getCell(x, y, z);
+      std::vector<double> bval = B.getCell(x, y, z);
 
       left_flux += bval[0] * B.dx[yCoord];
       flux[B.dimension[0]->cells * i + x] = left_flux;
