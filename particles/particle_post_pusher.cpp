@@ -132,7 +132,7 @@ int main(int argc, char** argv) {
          }
 
          /* Get E- and B-Field at their position */
-         Vec3d Eval,Bval;
+         Vec3Dd Eval,Bval;
 
          Eval = cur_E(particles[i].x);
          Bval = cur_B(particles[i].x);

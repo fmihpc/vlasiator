@@ -140,7 +140,7 @@ struct ReflectBoundary : public Boundary
 
    // Vector to multiply with in order to flip velocity
    // vectors for our dimension
-   Vec3d flip_v;
+   Vec3Dd flip_v;
 
 };
 
@@ -174,7 +174,7 @@ struct PeriodicBoundary : public Boundary
 
    // Vector to offset particle positions that leave through
    // one boundary with, to come out the other end
-   Vec3d offset_p;
+   Vec3Dd offset_p;
 
 };
 

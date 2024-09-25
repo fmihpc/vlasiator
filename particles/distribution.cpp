@@ -80,7 +80,7 @@ Kappa2::Kappa2(std::default_random_engine& _rand) : Kappa(_rand) {
 
 
 Particle Maxwell_Boltzmann::next_particle() {
-   Vec3d v(velocity_distribution(rand), velocity_distribution(rand), velocity_distribution(rand));
+   Vec3Dd v(velocity_distribution(rand), velocity_distribution(rand), velocity_distribution(rand));
 
-   return Particle(mass, charge, Vec3d(0.), v);
+   return Particle(mass, charge, Vec3Dd(0.), v);
 }
