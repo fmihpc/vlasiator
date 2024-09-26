@@ -65,12 +65,16 @@ INC_CUDA = -isystem /appl/spack/v020/install-tree/gcc-10.4.0/cuda-12.1.1-2ppwzf/
 CXXFLAGS += -DPAPI_MEM
 testpackage: CXXFLAGS += -DPAPI_MEM
 
-#======== Allocator =========
+#======== Jemalloc =========
 #Use jemalloc instead of system malloc to reduce memory fragmentation https://github.com/jemalloc/jemalloc
 #Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
 #NOTE: jemalloc not supported with GPUs
 #CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 #testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+
+#======== Umpire =========
+CXXFLAGS += -DUSE_UMPIRE
+testpackage: CXXFLAGS += -DUSE_UMPIRE
 
 #======== Libraries ===========
 
@@ -89,6 +93,9 @@ LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv -Xlinker=-rpath=$(LIBRARY_PREFIX)/vls
 
 INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
 LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -Xlinker=-rpath=$(LIBRARY_PREFIX)/phiprof/lib
+
+INC_UMPIRE = -isystem $(LIBRARY_PREFIX)/umpire/include
+LIB_UMPIRE = -L$(LIBRARY_PREFIX)/umpire/lib -L$(LIBRARY_PREFIX)/umpire/lib64 -lcamp -lumpire -lfmt
 
 #======== Header-only Libraries ===========
 

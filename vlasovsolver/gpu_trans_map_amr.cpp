@@ -909,10 +909,10 @@ void gpu_update_remote_mapping_contribution_amr(
 
    phiprof::Timer updateRemoteTimerFree {"trans-amr-remotes-free"};
    for (auto p : receiveBuffers) {
-      CHK_ERR( gpuFree(p) );
+      CHK_ERR( gpuFreeManaged(p) );
    }
    for (auto p : sendBuffers) {
-      CHK_ERR( gpuFree(p) );
+      CHK_ERR( gpuFreeManaged(p) );
    }
    updateRemoteTimerFree.stop();
 }

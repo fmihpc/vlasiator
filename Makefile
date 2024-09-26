@@ -94,6 +94,9 @@ COMPFLAGS += ${INC_PROFILE}
 #use jemalloc
 COMPFLAGS += ${INC_JEMALLOC}
 
+#use umpire
+COMPFLAGS += ${INC_UMPIRE}
+
 #define precision
 COMPFLAGS += -D${FP_PRECISION}
 
@@ -171,6 +174,8 @@ LIBS += ${LIB_PROFILE}
 LIBS += ${LIB_VLSV}
 LIBS += ${LIB_JEMALLOC}
 LIBS += ${LIB_PAPI}
+LIBS += ${LIB_UMPIRE}
+
 
 # Define common dependencies
 DEPS_COMMON = common.h common.cpp definitions.h mpiconversion.h logger.h object_wrapper.h
