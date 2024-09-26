@@ -1526,7 +1526,7 @@ bool writeRestart(
    const std::string& versionInfo,
    const std::string& configInfo,
    DataReducer& dataReducer,
-   const string& name,
+   string& name,
    const uint& fileIndex,
    const int& stripe) 
 {
@@ -1561,6 +1561,7 @@ bool writeRestart(
    fname.width(7);
    fname.fill('0');
    fname << fileIndex << "." << currentDate << ".vlsv";
+   name = fname.str();
 
    phiprof::Timer openTimer {"open"};
    //Open the file with vlsvWriter:
@@ -1592,7 +1593,9 @@ bool writeRestart(
       MPI_Info_set(MPIinfo, factor, stripeChar);
    }
    
-   if( vlsvWriter.open( fname.str(), MPI_COMM_WORLD, masterProcessId, MPIinfo ) == false) return false;
+   if (vlsvWriter.open( fname.str(), MPI_COMM_WORLD, masterProcessId, MPIinfo ) == false) {
+      return false;
+   }
 
    if( MPIinfo != MPI_INFO_NULL ) {
       MPI_Info_free(&MPIinfo);

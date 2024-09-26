@@ -596,7 +596,8 @@ int main(int argn,char* args[]) {
             writeGhosts
          ) == false
       ) {
-         cerr << "FAILED TO WRITE GRID AT " << __FILE__ << " " << __LINE__ << endl;
+         // TODO make this std::format when we get C++20
+         abort_mpi(std::string(__FILE__) + ":" + std::to_string(__LINE__) + ": FAILED TO WRITE GRID", 1);
       }
       initTimer.stop();
       mainTimer.stop();
@@ -734,7 +735,8 @@ int main(int argn,char* args[]) {
             writeGhosts
          ) == false
       ) {
-         cerr << "FAILED TO WRITE GRID AT " << __FILE__ << " " << __LINE__ << endl;
+         // TODO make this std::format when we get C++20
+         abort_mpi(std::string(__FILE__) + ":" + std::to_string(__LINE__) + ": FAILED TO WRITE GRID", 1);
       }
 
       P::systemWriteDistributionWriteStride.pop_back();
@@ -953,7 +955,8 @@ int main(int argn,char* args[]) {
                writeGhosts
                ) == false
             ) {
-               cerr << "FAILED TO WRITE GRID AT" << __FILE__ << " " << __LINE__ << endl;
+               // TODO make this std::format when we get C++20
+               abort_mpi(std::string(__FILE__) + ":" + std::to_string(__LINE__) + ": FAILED TO WRITE GRID", 1);
             }
             P::systemWrites[i]++;
             // Special case for large timesteps
@@ -1022,25 +1025,22 @@ int main(int argn,char* args[]) {
          if (myRank == MASTER_RANK)
             logFile << "(IO): Writing restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
          //Write the restart:
-         if( writeRestart(mpiGrid,
-                  perBGrid, // TODO: Merge all the fsgrids passed here into one meta-object
-                  EGrid,
-                  EHallGrid,
-                  EGradPeGrid,
-                  momentsGrid,
-                  dPerBGrid,
-                  dMomentsGrid,
-                  BgBGrid,
-                  volGrid,
-                  technicalGrid,
-                  version,
-                  config,
-                  outputReducer,"restart",(uint)P::t,P::restartStripeFactor) == false ) {
-            logFile << "(IO): ERROR Failed to write restart!" << endl << writeVerbose;
-            cerr << "FAILED TO WRITE RESTART" << endl;
-         }
+         // TODO: Merge all the fsgrids passed here into one meta-object
+         std::string restartFilename {"restart"};
+         bool restartSuccess {writeRestart(mpiGrid, perBGrid, EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, volGrid, technicalGrid, version, config, outputReducer, restartFilename, (uint)P::t,P::restartStripeFactor)};
+         MPI_Reduce(myRank == MASTER_RANK ? MPI_IN_PLACE : &restartSuccess, &restartSuccess, 1, MPI_CXX_BOOL, MPI_LAND, MASTER_RANK, MPI_COMM_WORLD);
          if (myRank == MASTER_RANK) {
-            logFile << "(IO): .... done!"<< endl << writeVerbose;
+            if(!restartSuccess) {
+               // If restart write fails, remove the malformed file and hope a human clears space soon
+               // Sanity check, this should be set before writeRestart returns
+               if (restartFilename != "restart") {
+                  std::remove(restartFilename.c_str());
+               }
+               logFile << "(IO): ERROR Failed to write restart!" << endl << writeVerbose;
+               cerr << "FAILED TO WRITE RESTART" << endl;
+            } else {
+               logFile << "(IO): .... done!"<< endl << writeVerbose;
+            }
          }
          timer.stop();
       }
