@@ -56,6 +56,9 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
       cell->parameters[CellParams::P_11] = 0.0;
       cell->parameters[CellParams::P_22] = 0.0;
       cell->parameters[CellParams::P_33] = 0.0;
+      cell->parameters[CellParams::P_23] = 0.0;
+      cell->parameters[CellParams::P_13] = 0.0;
+      cell->parameters[CellParams::P_12] = 0.0;
    }
 
     // Loop over all particle species
@@ -187,6 +190,9 @@ void calculateMoments_R(
              cell->parameters[CellParams::P_11_R] = 0.0;
              cell->parameters[CellParams::P_22_R] = 0.0;
              cell->parameters[CellParams::P_33_R] = 0.0;
+             cell->parameters[CellParams::P_23_R] = 0.0;
+             cell->parameters[CellParams::P_13_R] = 0.0;
+             cell->parameters[CellParams::P_12_R] = 0.0;
           }
 
           vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
@@ -341,6 +347,9 @@ void calculateMoments_V(
              cell->parameters[CellParams::P_11_V] = 0.0;
              cell->parameters[CellParams::P_22_V] = 0.0;
              cell->parameters[CellParams::P_33_V] = 0.0;
+             cell->parameters[CellParams::P_23_V] = 0.0;
+             cell->parameters[CellParams::P_13_V] = 0.0;
+             cell->parameters[CellParams::P_12_V] = 0.0;
          }
 
          vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
