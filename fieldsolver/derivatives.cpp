@@ -740,15 +740,22 @@ void calculateScaledDeltas(
 
    Real myRho {cell->parameters[CellParams::RHOM]};
    Real myU {calculateU(cell)};
+   Real myV {std::sqrt(std::pow(cell->parameters[CellParams::VX], 2) + std::pow(cell->parameters[CellParams::VY], 2) + std::pow(cell->parameters[CellParams::VZ], 2))};
+   Real maxV {myV};
    std::array<Real, 3> myP = getMomentumDensity(cell);
    std::array<Real, 3> myB = getBVol(cell);
    for (SpatialCell* neighbor : neighbors) {
       Real otherRho = neighbor->parameters[CellParams::RHOM];
       Real otherU = calculateU(neighbor);
+      Real otherV {std::sqrt(std::pow(neighbor->parameters[CellParams::VX], 2) + std::pow(neighbor->parameters[CellParams::VY], 2) + std::pow(neighbor->parameters[CellParams::VZ], 2))};
       std::array<Real, 3> otherP = getMomentumDensity(neighbor);
       std::array<Real, 3> otherB = getBVol(neighbor);
       Real deltaBsq = pow(myB[0] - otherB[0], 2) + pow(myB[1] - otherB[1], 2) + pow(myB[2] - otherB[2], 2);
 
+      if (myV < EPS) {
+         maxV = std::max(maxV,otherV);
+      }
+      
       Real maxRho = std::max(myRho, otherRho);
       if (maxRho > EPS) {
          dRho = std::max(fabs(myRho - otherRho) / maxRho, dRho);
@@ -805,14 +812,20 @@ void calculateScaledDeltas(
    // Now, rotation matrix to get parallel and perpendicular pressure
    //Eigen::Quaterniond q {Quaterniond::FromTwoVectors(Eigen::vector3d{0, 0, 1}, Eigen::vector3d{myB[0], myB[1], myB[2]})};
    //Eigen::Matrix3d rot = q.toRotationMatrix();
-   Eigen::Matrix3d rot = Eigen::Quaterniond::FromTwoVectors(Eigen::Vector3d{0, 0, 1}, Eigen::Vector3d{myB[0], myB[1], myB[2]}).toRotationMatrix();
+   Eigen::Matrix3d rot = Eigen::Quaterniond::FromTwoVectors(Eigen::Vector3d{myB[0], myB[1], myB[2]}, Eigen::Vector3d{0, 0, 1}).normalized().toRotationMatrix();
    Eigen::Matrix3d P {
       {cell->parameters[CellParams::P_11], cell->parameters[CellParams::P_12], cell->parameters[CellParams::P_13]},
       {cell->parameters[CellParams::P_12], cell->parameters[CellParams::P_22], cell->parameters[CellParams::P_23]},
       {cell->parameters[CellParams::P_13], cell->parameters[CellParams::P_23], cell->parameters[CellParams::P_33]},
    };
    
-   Eigen::Matrix3d Pprime = rot * P * rot.transpose();
+   Eigen::Matrix3d transposerot = rot.transpose();
+   Eigen::Matrix3d Pprime = rot * P * transposerot;
+
+   Real Panisotropy {0.0};
+   if (Pprime(2, 2) > EPS) {
+      Panisotropy = (Pprime(0, 0) + Pprime(1, 1)) / (2 * Pprime(2, 2));
+   }
 
    // Vorticity
    Real dVxdy {cell->derivativesV[vderivatives::dVxdy]};
@@ -823,7 +836,10 @@ void calculateScaledDeltas(
    Real dVzdy {cell->derivativesV[vderivatives::dVzdy]};
    Real vorticity {std::sqrt(std::pow(dVxdy - dVydz, 2) + std::pow(dVxdz - dVzdx, 2 ) + std::pow(dVydx - dVxdy, 2))};
    //Real vA {std::sqrt(Bsq / (physicalconstants::MU_0 * myRho))};
-   Real myV {std::sqrt(std::pow(myP[0], 2) + std::pow(myP[1], 2) + std::pow(myP[2], 2)) / myRho};
+   Real amr_vorticity {0.0};
+   if (maxV > EPS) {
+      amr_vorticity = vorticity * cell->parameters[CellParams::DX] / maxV;
+   }
 
    cell->parameters[CellParams::AMR_DRHO] = dRho;
    cell->parameters[CellParams::AMR_DU] = dU;
@@ -832,9 +848,9 @@ void calculateScaledDeltas(
    cell->parameters[CellParams::AMR_DB] = dB;
    cell->parameters[CellParams::AMR_ALPHA1] = alpha;
    cell->parameters[CellParams::AMR_ALPHA2] = cell->parameters[CellParams::DX] * J / (Bperp + EPS);   // Epsilon in denominator so we don't get infinities
-   cell->parameters[CellParams::P_ANISOTROPY] = (Pprime(0, 0) + Pprime(1, 1)) / (2 * Pprime(2, 2));
+   cell->parameters[CellParams::P_ANISOTROPY] = Panisotropy;
    // Experimental, current scaling is bulk velocity
-   cell->parameters[CellParams::AMR_VORTICITY] = vorticity * cell->parameters[CellParams::DX] / (myV + EPS);
+   cell->parameters[CellParams::AMR_VORTICITY] = amr_vorticity;
 }
 
 /*! \brief High-level scaled gradient calculation wrapper function.
