@@ -86,17 +86,25 @@ void operator delete[](void *ptr, std::size_t size) noexcept {
    je_sdallocx(ptr, size, /*flags=*/0);
 }
 #endif  // __cpp_sized_deallocation
+#endif // use jemalloc
 
-// Purge allocations from all arenas to actually release memory back to system
+/*! Purge allocations from all arenas to actually release memory back to system */
 void memory_purge() {
+#ifdef USE_JEMALLOC
    je_mallctl("arena." STRINGIFY(MALLCTL_ARENAS_ALL) ".purge", NULL, NULL, NULL, 0);
+#endif
 }
-#else
-void memory_purge() { } // does nothing
-#endif 
 
+/*! Initialize memory allocator configuration.*/
+void memory_configurator() {
+#ifdef USE_JEMALLOC
+   bool foo = true;
+   size_t bar = 1;
+   je_mallctl("background_thread", NULL, NULL, &foo, bar);
+#endif
+}
 
-/*! Return the amount of free memory on the node in bytes*/  
+/*! Return the amount of free memory on the node in bytes*/
 uint64_t get_node_free_memory(){
    uint64_t mem_proc_free = 0;
    FILE * in_file = fopen("/proc/meminfo", "r");
