@@ -1014,6 +1014,12 @@ int simulate(int argn,char* args[]) {
       //TODO - add LB measure and do LB if it exceeds threshold
       if(((P::tstep % P::rebalanceInterval == 0 && P::tstep > P::tstep_min) || overrideRebalanceNow)) {
          logFile << "(LB): Start load balance, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
+
+         phiprof::Timer shrinkTimer {"Shrink_to_fit"};
+         // * shrink to fit before LB * //
+         shrink_to_fit_grid_data(mpiGrid);
+         shrinkTimer.stop();
+
          if (refineNow || (!dtIsChanged && P::adaptRefinement && P::tstep % (P::rebalanceInterval * P::refineCadence) == 0 && P::t > P::refineAfter)) { 
             logFile << "(AMR): Adapting refinement!"  << endl << writeVerbose;
             refineNow = false;
@@ -1052,10 +1058,6 @@ int simulate(int argn,char* args[]) {
          // This now uses the block-based count just copied between the two refinement calls above.
          balanceLoad(mpiGrid, sysBoundaryContainer);
          addTimedBarrier("barrier-end-load-balance");
-         phiprof::Timer shrinkTimer {"Shrink_to_fit"};
-         // * shrink to fit after LB * //
-         shrink_to_fit_grid_data(mpiGrid);
-         shrinkTimer.stop();
          logFile << "(LB): ... done!"  << endl << writeVerbose;
          P::prepareForRebalance = false;
 
