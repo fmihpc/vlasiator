@@ -333,9 +333,7 @@ void calculateSpatialTranslation(
 
    if (P::prepareForRebalance == true && P::amrMaxSpatialRefLevel != 0) {
       // One more element to count the sums
-      for (size_t c=0; c<local_propagated_cells.size()+1; c++) {
-         nPencils.push_back(0);
-      }
+      nPencils.resize(local_propagated_cells.size()+1, 0);
    }
    computeTimer.stop();
 
@@ -394,9 +392,10 @@ void calculateSpatialTranslation(
             if (P::amrMaxSpatialRefLevel == 0) {
                SC->parameters[CellParams::LBWEIGHTCOUNTER] = 3 * counter;
             } else {
-               SC->parameters[CellParams::LBWEIGHTCOUNTER] = nPencils[c] * counter;
-               // mpiGrid[local_propagated_cells[c]]->parameters[CellParams::LBWEIGHTCOUNTER] += (nPencils[c]+accelerationsteps) * counter;
-               // mpiGrid[localCells[c]]->parameters[CellParams::LBWEIGHTCOUNTER] += time / localCells.size();
+               // SC->parameters[CellParams::LBWEIGHTCOUNTER] = nPencils[c] * counter;
+               SC->parameters[CellParams::LBWEIGHTCOUNTER] = 3 * counter;
+               // SC->parameters[CellParams::LBWEIGHTCOUNTER] += (nPencils[c]+accelerationsteps) * counter;
+               // SC->parameters[CellParams::LBWEIGHTCOUNTER] += time / localCells.size();
             }
          }
       }

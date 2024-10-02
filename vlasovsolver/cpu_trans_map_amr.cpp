@@ -273,11 +273,16 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
       }
    }
 
+   // Only needed if pencil counts are used as weight multiplier in load balance
    if (Parameters::prepareForRebalance == true) {
       for (uint i=0; i<localPropagatedCells.size(); i++) {
-         cuint myPencilCount = std::count(DimensionPencils[dimension].ids.begin(), DimensionPencils[dimension].ids.end(), localPropagatedCells[i]);
-         nPencils[i] += myPencilCount;
-         nPencils[nPencils.size()-1] += myPencilCount;
+         for (uint ip=0; ip<DimensionPencils[dimension].N; ip++) {
+            // Read only central IDs for each pencil
+            std::vector<CellID> centerIds = DimensionPencils[dimension].getIds(ip);
+            cuint myPencilCount = std::count(centerIds.begin(), centerIds.end(), localPropagatedCells[i]);
+            nPencils[i] += myPencilCount;
+            nPencils[nPencils.size()-1] += myPencilCount;
+         }
       }
    }
 
