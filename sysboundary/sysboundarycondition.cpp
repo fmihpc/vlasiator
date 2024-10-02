@@ -472,18 +472,24 @@ namespace SBC {
     * \param cellList Vector of cells to copy from.
     * \param to Pointer to cell in which to set the averaged distribution.
     * \param popID ID of population to average the distribution of
-    * \param fluffiness Factor to replace data with from 0.0 (default, do nothing) to 1.0 (replace all destination data with source data)
+    * \param targetWeight weight of the target cell (to)
+    * \param weights weights of the cellList cells
     */
    void averageCellData(
          dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         const vector<CellID> cellList,
+         const vector<CellID>& cellList,
          SpatialCell *to,
          const uint popID,
-         creal fluffiness /* default =0.0*/
+         std::vector<double>& weights,
+         double targetWeight
    ) {
-      const size_t numberOfCells = cellList.size();
-      creal factor = fluffiness / convert<Real>(numberOfCells);
-      
+      // TODO vector<pair> perhaps?
+      assert(cellList.size() == weights.size());
+
+      // Normalize targetWeight and weights
+      double totalWeight {std::reduce(weights.cbegin(), weights.cend(), targetWeight)};
+      targetWeight /= totalWeight;
+      std::transform(weights.cbegin(), weights.cend(), weights.begin(), [totalWeight](double d) {return d / totalWeight;});
 
       // Rescale own vspace
       for (vmesh::LocalID toBlockLID=0; toBlockLID<to->get_number_of_velocity_blocks(popID); ++toBlockLID) {
@@ -492,13 +498,13 @@ namespace SBC {
          
          // Add values from source cells
          for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
-            toData[cellIndex(ic,jc,kc)] *= 1.0 - fluffiness;
+            toData[cellIndex(ic,jc,kc)] *= targetWeight;
          }
          toData += SIZE_VELBLOCK;
       } // for-loop over velocity blocks
 
       
-      for (size_t i=0; i<numberOfCells; i++) {
+      for (size_t i = 0; i < cellList.size(); ++i) {
          const SpatialCell* incomingCell = mpiGrid[cellList[i]];
 
          const Realf* fromData = incomingCell->get_data(popID);
@@ -518,11 +524,22 @@ namespace SBC {
 
             // Add values from source cells
             for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
-               toData[cellIndex(ic,jc,kc)] += factor*fromData[cellIndex(ic,jc,kc)];
+               toData[cellIndex(ic,jc,kc)] += weights[i] * fromData[cellIndex(ic,jc,kc)];
             }
             fromData += SIZE_VELBLOCK;
          } // for-loop over velocity blocks
       }
+   }
+
+   void averageCellData(
+         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+         const vector<CellID>& cellList,
+         SpatialCell *to,
+         const uint popID,
+         creal fluffiness /* default =0.0*/
+   ) {
+      std::vector<double> weights(cellList.size(), fluffiness / cellList.size());
+      averageCellData(mpiGrid, cellList, to, popID, weights, 1.0 - fluffiness);
    }
 
    /*! Take neighboring distribution and reflect all parts going in the direction opposite to the normal vector given in.

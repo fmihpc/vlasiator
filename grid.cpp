@@ -1574,7 +1574,7 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
          }
 
          // Averaging moments
-         calculateCellMoments(mpiGrid[parent], true, false);
+         calculateCellMoments(mpiGrid[parent], true, false, true);
 
          processed.insert(parent);
       }
@@ -1609,7 +1609,27 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    }
 
    if (P::shouldFilter) {
-      project.filterRefined(mpiGrid);
+      // TODO: More than one loop potentially
+      // But this should be based on fsgrid filter passes
+      for (int i = 0; i < P::filterPasses; ++i) {
+         phiprof::Timer timer {"transfer-and-filter"};
+         for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
+            SpatialCell::setCommunicatedSpecies(popID);
+            updateRemoteVelocityBlockLists(mpiGrid, popID, SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
+            SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
+            mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
+         }
+         project.filterRefined(mpiGrid);
+      }
+
+      for (auto id : getLocalCells()) {
+         mpiGrid[id]->parameters[CellParams::RECENTLY_REFINED] = 0;
+      }
+
    }
+
+   // AMR happens between acceleration and translation, so we need to update _V moments.
+   calculateAcceleration(mpiGrid, 0.0);
+
    return true;
 }
