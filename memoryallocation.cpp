@@ -98,30 +98,34 @@ void memory_purge() {
 /*! Initialize memory allocator configuration.*/
 void memory_configurator() {
 #ifdef USE_JEMALLOC
+   bool logResult = false;
    bool foo {false};
    size_t bar {1};
-   // Read initial value
-   je_mallctl("background_thread", &foo, &bar, NULL, 0);
-   logFile << "(MEM) mallctl: background_thread value was ";
-   if (foo) {
-      logFile << "true";
-   } else {
-      logFile << "false";
+   if (logResult) {
+      // Read initial value
+      je_mallctl("background_thread", &foo, &bar, NULL, 0);
+      logFile << "(MEM) mallctl: background_thread value was ";
+      if (foo) {
+         logFile << "true";
+      } else {
+         logFile << "false";
+      }
    }
-   logFile << "(" << bar << ")";
    // Set background threads to true
    foo = true;
    bar = 1;
    je_mallctl("background_thread", NULL, NULL, &foo, bar);
-   // Read updated value
-   je_mallctl("background_thread", &foo, &bar, NULL, 0);
-   logFile << ", now set to ";
-   if (foo) {
-      logFile << "true";
-   } else {
-      logFile << "false";
+   if (logResult) {
+      // Read updated value
+      je_mallctl("background_thread", &foo, &bar, NULL, 0);
+      logFile << ", now set to ";
+      if (foo) {
+         logFile << "true";
+      } else {
+         logFile << "false";
+      }
+      logFile << "." << endl;
    }
-   logFile << "(" << bar << ")." << endl;
 #endif
 }
 
