@@ -1378,7 +1378,6 @@ namespace spatial_cell {
     * @return True on success.*/
    bool SpatialCell::shrink_to_fit() {
       bool success = true;
-      return success;
 
       for (size_t p=0; p<populations.size(); ++p) {
          const uint64_t amount 

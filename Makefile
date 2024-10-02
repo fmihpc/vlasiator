@@ -21,6 +21,12 @@ ifneq (,$(findstring testpackage,$(MAKECMDGOALS)))
 	COMPFLAGS += -DIONOSPHERE_SORTED_SUMS -DINITIALIZE_ALIGNED_MALLOC_WITH_NAN
 endif
 
+# Use submodules by default
+# This can be overridden in architecture-specific makefiles
+INC_FSGRID = -I./submodules/fsgrid/
+INC_DCCRG = -I./submodules/dccrg/
+INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/
+INC_EIGEN = -I ./submodules/eigen/
 
 include MAKE/Makefile.${ARCH}
 
