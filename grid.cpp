@@ -541,7 +541,57 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
 
    /*transfer cells in parts to preserve memory*/
    phiprof::Timer transfersTimer {"Data transfers"};
-   const uint64_t num_part_transfers=50;
+
+   // Idea: do as many cell sending passes hereafter so that there's not more than transfer_block_fraction_limit
+   // blocks of this task's total block count that gets sent. Helps in reducing memory peaks during load balancing.
+   creal transfer_block_fraction_limit = 0.1;
+   uint64_t num_part_transfers_local = 1, num_part_transfers, outgoing_block_count = 0, total_block_count = 0;
+   bool count_determined = false;
+   Real outgoing_block_fraction;
+
+   // count blocks
+   for (unsigned int i=0; i<outgoing_cells_list.size(); i++) {
+      CellID cell_id=outgoing_cells_list[i];
+      SpatialCell* cell = mpiGrid[cell_id];
+      outgoing_block_count += cell->get_number_of_all_velocity_blocks();
+   }
+   for (unsigned int i=0; i<cells.size(); i++) {
+      CellID cell_id=cells[i];
+      SpatialCell* cell = mpiGrid[cell_id];
+      total_block_count += cell->get_number_of_all_velocity_blocks();
+   }
+   outgoing_block_fraction = (Real)outgoing_block_count / ((Real)total_block_count + 1);
+   // if we're not exceeding transfer_block_fraction_limit we're good
+   if(outgoing_block_fraction < transfer_block_fraction_limit) {
+      count_determined = true;
+   }
+   // otherwise we increase the number of chunks until all chunks are below transfer_block_fraction_limit
+   while(!count_determined) {
+      uint64_t transfer_part; // we use this in the logic after the for
+      for (transfer_part=0; transfer_part<num_part_transfers_local; transfer_part++) {
+         uint64_t transfer_part_block_count=0;
+         for (unsigned int i=0;i<outgoing_cells_list.size();i++){
+            CellID cell_id=outgoing_cells_list[i];
+            if (cell_id%num_part_transfers_local==transfer_part) {
+               transfer_part_block_count += mpiGrid[cell_id]->get_number_of_all_velocity_blocks();
+            }
+         }
+         outgoing_block_fraction = (Real)transfer_part_block_count / ((Real)total_block_count + 1);
+         if(outgoing_block_fraction > transfer_block_fraction_limit) {
+            num_part_transfers_local *= 2;
+            break; // out of for
+         }
+      }
+      if((transfer_part == num_part_transfers_local // either the loop ended or we hit that number with the *= 2
+         && outgoing_block_fraction <= transfer_block_fraction_limit) // so cross-check with this
+         || num_part_transfers_local >= cells.size()
+      ) {
+         count_determined = true; // we got a break out if any chunk was still too big
+      }
+   }
+   // ...and finally we reduce this across all tasks of course.
+   MPI_Allreduce(&num_part_transfers_local, &num_part_transfers, 1, MPI_UINT64_T, MPI_MAX, MPI_COMM_WORLD);
+
    for (uint64_t transfer_part=0; transfer_part<num_part_transfers; transfer_part++) {
       //Set transfers on/off for the incoming cells in this transfer set and prepare for receive
       for (unsigned int i=0;i<incoming_cells_list.size();i++){
