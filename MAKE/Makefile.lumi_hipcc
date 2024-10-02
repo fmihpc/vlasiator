@@ -1,18 +1,17 @@
 CMP = hipcc
-LNK = clang++
+LNK = amdclang++
 
 # Modules loaded (after clean shell, no module purging, one-by-one not oneline)
-# module load LUMI/23.09
+# module load LUMI/24.03
 # module load partition/G
 # module load cpeAMD
-# module load rocm/5.6.1
-# module load Boost/1.82.0-cpeAMD-23.09
-# module load papi/7.0.1.1
-# module load Eigen/3.4.0
+# module load rocm/6.0.3
+# module load Boost/1.83.0-cpeGNU-24.03
+# module load papi/7.1.0.1
 # one-liner:
-# module load LUMI/23.09; module load partition/G; module load cpeAMD; module load rocm/5.6.1; module load Boost/1.82.0-cpeAMD-23.09; module load papi/7.0.1.1; module load Eigen/3.4.0
+# module load LUMI/24.03; module load partition/G; module load cpeAMD; module load rocm/6.0.3; module load Boost/1.83.0-cpeGNU-24.03; module load papi/7.1.0.1
 # clang++ linking also requires:
-# export PATH=$PATH:/appl/lumi/SW/LUMI-23.09/G/EB/rocm/5.6.1/llvm/bin/
+# export PATH=$PATH:/opt/rocm-6.0.3/bin/
  
 #======== Vectorization ==========
 #Set vector backend type for vlasov solvers, sets precision and length. 
@@ -24,8 +23,8 @@ VECTORCLASS = VEC_FALLBACK_GENERIC
 
 #===== Vector Lengths ====
 # Default for VEC_FALLBACK_GENERIC is WID=4, VECL=8 
-# WID=8
-# VECL=64
+#WID=8
+#VECL=64
 WID=4
 VECL=16
 
@@ -67,23 +66,23 @@ testpackage: CXXFLAGS +=  -DPAPI_MEM
 #======== Libraries ===========
 # Select the base directory based on which project you are using:
 # LUMILAPIO
-LIBRARY_PREFIX = /projappl/project_462000358/libraries/23.09
+LIBRARY_PREFIX = /projappl/project_462000358/libraries/24.03
 
 # Compiled libraries
 #INC_BOOST = -isystem $(LIBRARY_PREFIX)/boost/include
 #LIB_BOOST = -L$(LIBRARY_PREFIX)/boost/lib -lboost_program_options -Wl,-rpath=$(LIBRARY_PREFIX)/boost/lib
 LIB_BOOST = -lboost_program_options
 
-INC_ZOLTAN = -isystem $(LIBRARY_PREFIX)/zoltan/include
-LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/zoltan/lib -lzoltan -Wl,-rpath=$(LIBRARY_PREFIX)/zoltan/lib
+INC_ZOLTAN = -isystem $(LIBRARY_PREFIX)/Zoltan/include
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/Zoltan/lib -lzoltan -Wl,-rpath=$(LIBRARY_PREFIX)/Zoltan/lib
 
 #INC_JEMALLOC = -I$(LIBRARY_PREFIX)/jemalloc/include
 #LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/jemalloc/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX)/jemalloc/lib
 
 #INC_PAPI = -isystem $(LIBRARY_PREFIX)/papi/include
 #LIB_PAPI = -lpapi -L$(LIBRARY_PREFIX)/papi/lib -Wl,-rpath=$(LIBRARY_PREFIX)/papi/lib
-INC_PAPI = -isystem /opt/cray/pe/papi/7.0.1.1/include/
-LIB_PAPI = -lpapi -L/opt/cray/pe/papi/7.0.1.1/lib -Wl,-rpath=/opt/cray/pe/papi/7.0.1.1/lib
+INC_PAPI = -isystem /opt/cray/pe/papi/7.1.0.1/include/
+LIB_PAPI = -lpapi -L/opt/cray/pe/papi/7.1.0.1/lib -Wl,-rpath=/opt/cray/pe/papi/7.1.0.1/lib
 
 INC_VLSV = -isystem $(LIBRARY_PREFIX)/vlsv
 LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX)/vlsv
