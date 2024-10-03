@@ -547,7 +547,9 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
                for (uint k=0; k<WID; ++k) {
                   for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
                      targetVecValues[i_trans_pt_blockv(planeVector, k, b)].store(vector);
+#ifndef SKIP_SIMD
 #pragma omp simd
+#endif
                      for(uint i = 0; i< VECL; i++){
                         // store data, when reading data from data we swap
                         // dimensions 
