@@ -119,7 +119,9 @@ void propagatePencil(
                const Vec selfContribution = (values[i_trans_ps_blockv_pencil(planeVector, k, i, lengthOfPencil)] - ngbr_target_density) * areaRatio;
                selfContribution.store(vector);
                // Loop over 3rd (vectorized) vspace dimension
+#ifndef SKIP_SIMD
                #pragma omp simd
+#endif
                for (uint iv = 0; iv < VECL; iv++) {
                   block_data[cellid_transpose[iv + planeVector * VECL + k * WID2]] += vector[iv];
                }
@@ -129,7 +131,9 @@ void propagatePencil(
                                                  * dz[i] / dz[i + 1], Vec(0.0)) * areaRatio_p1;
                p1Contribution.store(vector);
                // Loop over 3rd (vectorized) vspace dimension
+#ifndef SKIP_SIMD
                #pragma omp simd
+#endif
                for (uint iv = 0; iv < VECL; iv++) {
                   block_data_p1[cellid_transpose[iv + planeVector * VECL + k * WID2]] += vector[iv];
                }
@@ -139,7 +143,9 @@ void propagatePencil(
                                                  * dz[i] / dz[i - 1], Vec(0.0)) * areaRatio_m1;
                m1Contribution.store(vector);
                // Loop over 3rd (vectorized) vspace dimension
+#ifndef SKIP_SIMD
                #pragma omp simd
+#endif
                for (uint iv = 0; iv < VECL; iv++) {
                   block_data_m1[cellid_transpose[iv + planeVector * VECL + k * WID2]] += vector[iv];
                }
