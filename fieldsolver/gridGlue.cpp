@@ -169,7 +169,9 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             
                // Set Cell to zero before passing filter
                swap = swapGrid.get(i,j,k);
+#ifndef SKIP_SIMD
                #pragma omp simd
+#endif
                for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
                   swap->at(e)=0.0;
                }
