@@ -75,11 +75,15 @@ do
     # Run the actual simulation
     if [[ ${single_cell[$run]} ]]; then
     	$small_run_command $bin --version  > VERSION.txt
-	$small_run_command $bin --run_config=${test_name[$run]}.cfg
+	$small_run_command $tau_command $bin --run_config=${test_name[$run]}.cfg
     else
 	$run_command $bin --version  > VERSION.txt
-	$run_command $bin --run_config=${test_name[$run]}.cfg
+	$run_command $tau_command $bin --run_config=${test_name[$run]}.cfg
     fi
+
+    paraprof --pack ${test_name[$run]}.ppk
+    rm profile*
+    taudb_loadtrial -a Vlasiator -x ${revision}${solveropts} -n ${test_name[$run]} ${test_name[$run]}.ppk
 
     # Run postprocessing script, if it exists
     test -e test_postproc.sh && ./test_postproc.sh
