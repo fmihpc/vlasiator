@@ -113,10 +113,10 @@ void initializeGrids(
 
    MPI_Comm comm = MPI_COMM_WORLD;
    int neighborhood_size = VLASOV_STENCIL_WIDTH;
-//   if (P::vlasovSolverGhostTranslate) {
+   if (P::vlasovSolverGhostTranslate) {
       // One extra layer for translation of ghost cells
       neighborhood_size++;
-//   }
+   }
 
    const std::array<uint64_t, 3> grid_length = {{P::xcells_ini, P::ycells_ini, P::zcells_ini}};
    dccrg::Cartesian_Geometry::Parameters geom_params;
@@ -137,8 +137,6 @@ void initializeGrids(
       .initialize(comm)
       .set_geometry(geom_params);
 
-
-   report_process_memory_consumption();
    phiprof::Timer refineTimer {"Refine spatial cells"};
    // We need this first as well
    recalculateLocalCellsCache();
@@ -160,7 +158,6 @@ void initializeGrids(
       }
    }
    refineTimer.stop();
-   report_process_memory_consumption();
 
    // Init velocity mesh on all cells
    initVelocityGridGeometry(mpiGrid);
@@ -192,32 +189,19 @@ void initializeGrids(
    phiprof::Timer setCoordsTimer {"Set spatial cell coordinates"};
    initSpatialCellCoordinates(mpiGrid);
    setCoordsTimer.stop();
-   if (myRank == MASTER_RANK) {
-      logFile << "(INIT): coords ok." << endl << writeVerbose;
-   }
 
    phiprof::Timer initBoundaryTimer {"Initialize system boundary conditions"};
    sysBoundaries.initSysBoundaries(project, P::t_min);
    initBoundaryTimer.stop();
 
-   if (myRank == MASTER_RANK) {
-      logFile << "(INIT): Sysboundaries init ok." << endl << writeVerbose;
-   }
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_DIMENSIONS);
    mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
-   if (myRank == MASTER_RANK) {
-      logFile << "(INIT): Neighbour updates ok." << endl << writeVerbose;
-   }
 
    // We want this before restart refinement
    phiprof::Timer classifyTimer {"Classify cells (sys boundary conditions)"};
    sysBoundaries.classifyCells(mpiGrid,technicalGrid);
    classifyTimer.stop();
-   if (myRank == MASTER_RANK) {
-      logFile << "(INIT): Classify sysb ok." << endl << writeVerbose;
-   }
 
-   report_process_memory_consumption();
    if (P::isRestart) {
       logFile << "Restart from "<< P::restartFileName << std::endl << writeVerbose;
       phiprof::Timer restartReadTimer {"Read restart"};
@@ -226,7 +210,6 @@ void initializeGrids(
          exit(1);
       }
       restartReadTimer.stop();
-      logFile << " finish readGrid" << std::endl << writeVerbose;
 
       if (P::forceRefinement) {
          // Adapt refinement to match new static refinement parameters
@@ -248,22 +231,18 @@ void initializeGrids(
          balanceLoad(mpiGrid, sysBoundaries);
       }
    }
-   report_process_memory_consumption();
 
    // Check refined cells do not touch boundary cells
    phiprof::Timer boundaryCheckTimer {"Check boundary refinement"};
-   logFile << " check sysb refinement" << std::endl << writeVerbose;
    sysBoundaries.checkRefinement(mpiGrid);
    boundaryCheckTimer.stop();
 
    if (P::isRestart) {
       //initial state for sys-boundary cells, will skip those not set to be reapplied at restart
       phiprof::Timer timer {"Apply system boundary conditions state"};
-      logFile << " sysb apply initial state" << std::endl << writeVerbose;
       sysBoundaries.applyInitialState(mpiGrid, technicalGrid, perBGrid, BgBGrid, project);
    }
 
-   logFile << " technicalGrid.updateGhostCells();" << std::endl << writeVerbose;
    // Update technicalGrid (e.g. sysboundary flags)
    technicalGrid.updateGhostCells();
 
@@ -320,7 +299,7 @@ void initializeGrids(
                // Set sysb cells to a small weight
                SC->parameters[CellParams::LBWEIGHTCOUNTER] += 0.5 * SC->get_number_of_velocity_blocks(popID);
             } else {
-               SC->parameters[CellParams::LBWEIGHTCOUNTER] += SC->get_number_of_velocity_blocks(popID);
+               SC->parameters[CellParams::LBWEIGHTCOUNTER] += 3.0 * SC->get_number_of_velocity_blocks(popID);
             }
          }
       }
@@ -345,26 +324,21 @@ void initializeGrids(
 
 
    // Balance load before we transfer all data below
-   logFile << "start LB." << endl << writeVerbose;
    balanceLoad(mpiGrid, sysBoundaries, false);
-   logFile << "finish LB." << endl << writeVerbose;
    // Function includes re-calculation of local cells cache, but
    // setting third parameter to false skips preparation of
    // translation cell lists and building of pencils.
 
    phiprof::Timer fetchNeighbourTimer {"Fetch Neighbour data", {"MPI"}};
    // update complete cell spatial data for full stencil
-   logFile << "update spatial data neighbors." << endl << writeVerbose;
    SpatialCell::set_mpi_transfer_type(Transfer::ALL_SPATIAL_DATA);
    mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
    fetchNeighbourTimer.stop();
 
-   logFile << "set B-field." << endl << writeVerbose;
    phiprof::Timer setBTimer {"project.setProjectBField"};
    project.setProjectBField(perBGrid, BgBGrid, technicalGrid);
    setBTimer.stop();
    phiprof::Timer fsGridGhostTimer {"fsgrid-ghost-updates"};
-   logFile << "fs ghost updates." << endl << writeVerbose;
    perBGrid.updateGhostCells();
    BgBGrid.updateGhostCells();
    EGrid.updateGhostCells();
@@ -373,7 +347,6 @@ void initializeGrids(
    volGrid.updateGhostCells();
    fsGridGhostTimer.stop();
    phiprof::Timer getFieldsTimer {"getFieldsFromFsGrid"};
-   logFile << "get fields from FS." << endl << writeVerbose;
    getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, technicalGrid, mpiGrid, cells);
    getFieldsTimer.stop();
 
@@ -393,7 +366,6 @@ void initializeGrids(
       calculateInitialVelocityMoments(mpiGrid);
    } else {
       phiprof::Timer timer {"Init moments"};
-      logFile << "init moments." << endl << writeVerbose;
       for (size_t i=0; i<cells.size(); ++i) {
          calculateCellMoments(mpiGrid[cells[i]], true, true);
       }
