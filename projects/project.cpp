@@ -583,11 +583,12 @@ namespace projects {
          return refines;
       }
 
-      std::vector<CellID> cells {getLocalCells()};
+      const std::vector<CellID> cells {getLocalCells()};
       Real r_max2 {pow(P::refineRadius, 2)};
 
       #pragma omp parallel for
-      for (CellID id : cells) {
+      for (uint cid = 0; cid < cells.size(); ++cid) {
+         CellID id = cells[cid];
          std::array<double,3> xyz {mpiGrid.get_center(id)};
          SpatialCell* cell {mpiGrid[id]};
          int refLevel {mpiGrid.get_refinement_level(id)};
@@ -702,7 +703,7 @@ namespace projects {
       int myRank;       
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
-      auto cells = getLocalCells();
+      const vector<CellID>& cells = getLocalCells();
       std::map<CellID, SpatialCell> cellsMap;
       for (CellID id : cells) {
          if (mpiGrid[id]->parameters[CellParams::RECENTLY_REFINED]) {
