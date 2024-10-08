@@ -180,7 +180,9 @@ bool copy_trans_block_data_amr(
          Realf blockValues[WID3];
          Realf* block_data = pencilBlockData[b];
          // Copy data to a temporary array and transpose values so that mapping is along k direction.
+#ifndef SKIP_SIMD
          #pragma omp simd
+#endif
          for (uint i=0; i<WID3; ++i) {
             blockValues[i] = block_data[cellid_transpose[i]];
          }
