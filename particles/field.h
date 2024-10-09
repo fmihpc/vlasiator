@@ -21,6 +21,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include <vector>
+#include <array>
 #include "boundaries.h"
 #include "particleparameters.h"
 
@@ -58,7 +59,7 @@ struct Field
       }
    }
 
-   std::vector<double> getCell(int x, int y, int z) {
+   std::array<double,3> getCell(int x, int y, int z) {
 
       // Map these cell coordinates using the boundaries
       x = dimension[0]->cellCoordinate(x);
@@ -66,15 +67,11 @@ struct Field
       z = dimension[2]->cellCoordinate(z);
 
       double* cell = getCellRef(x,y,z);
-      std::vector<double> retval;
-      retval.push_back(cell[0]);
-      retval.push_back(cell[1]);
-      retval.push_back(cell[2]);
-      return retval;
+      return {cell[0],cell[1],cell[2]};
    }
 
    // Round-Brace indexing: indexing by physical location, with interpolation
-   virtual std::vector<double> operator()(std::vector<double> v) {
+   virtual std::array<double,3> operator()(std::array<double,3> v) {
       double min[3] = { min[0] = dimension[0]->min, dimension[1]->min, dimension[2]->min};
 
       int32_t index[3];
@@ -90,23 +87,23 @@ struct Field
       if(dimension[2]->cells <= 1) {
          // Equatorial plane
          std::vector<double> interp(12);
-         std::vector<double> tmp;
+         std::array<double,3> tmp;
          tmp = getCell(index[0],index[1],index[2]);
          interp[0] = tmp[0]; // former interp 0
          interp[1] = tmp[1];
          interp[2] = tmp[2];
          tmp = getCell(index[0]+1,index[1],index[2]);
-         interp[3] = tmp[3]; // former interp 1
-         interp[4] = tmp[4];
-         interp[5] = tmp[5];
+         interp[3] = tmp[0]; // former interp 1
+         interp[4] = tmp[1];
+         interp[5] = tmp[2];
          tmp = getCell(index[0],index[1]+1,index[2]);
-         interp[6] = tmp[6]; // former interp 2
-         interp[7] = tmp[7];
-         interp[8] = tmp[8];
+         interp[6] = tmp[0]; // former interp 2
+         interp[7] = tmp[1];
+         interp[8] = tmp[2];
          tmp = getCell(index[0]+1,index[1]+1,index[2]);
-         interp[9] = tmp[9]; // former interp 3
-         interp[10] = tmp[10];
-         interp[11] = tmp[11];
+         interp[9] = tmp[0]; // former interp 3
+         interp[10] = tmp[1];
+         interp[11] = tmp[2];
 
          tmp[0] = fract[0]*(fract[1]*interp[9]+(1.-fract[1])*interp[3])
             + (1.-fract[0])*(fract[1]*interp[6]+(1.-fract[1])*interp[0]);
@@ -120,24 +117,24 @@ struct Field
       } else if (dimension[1]->cells <= 1) {
          // Polar plane
          std::vector<double> interp(12);
-         std::vector<double> tmp;
+         std::array<double,3> tmp;
 
          tmp = getCell(index[0],index[1],index[2]);
          interp[0] = tmp[0]; // former interp 0
          interp[1] = tmp[1];
          interp[2] = tmp[2];
          tmp = getCell(index[0]+1,index[1],index[2]);
-         interp[3] = tmp[3]; // former interp 1
-         interp[4] = tmp[4];
-         interp[5] = tmp[5];
+         interp[3] = tmp[0]; // former interp 1
+         interp[4] = tmp[1];
+         interp[5] = tmp[2];
          tmp = getCell(index[0],index[1],index[2]+1);
-         interp[6] = tmp[6]; // former interp 2
-         interp[7] = tmp[7];
-         interp[8] = tmp[8];
+         interp[6] = tmp[0]; // former interp 2
+         interp[7] = tmp[1];
+         interp[8] = tmp[2];
          tmp = getCell(index[0]+1,index[1],index[2]+1);
-         interp[9] = tmp[9]; // former interp 3
-         interp[10] = tmp[10];
-         interp[11] = tmp[11];
+         interp[9] = tmp[0]; // former interp 3
+         interp[10] = tmp[1];
+         interp[11] = tmp[2];
 
          tmp[0] = fract[0]*(fract[2]*interp[9]+(1.-fract[2])*interp[3])
             + (1.-fract[0])*(fract[2]*interp[6]+(1.-fract[2])*interp[0]);
@@ -149,41 +146,41 @@ struct Field
       } else {
          // Proper 3D
          std::vector<double> interp(24);
-         std::vector<double> tmp;
+         std::array<double,3> tmp;
          tmp = getCell(index[0],index[1],index[2]);
          interp[0] = tmp[0]; // former interp 0
          interp[1] = tmp[1];
          interp[2] = tmp[2];
          tmp = getCell(index[0]+1,index[1],index[2]);
-         interp[3] = tmp[3]; // former interp 1
-         interp[4] = tmp[4];
-         interp[5] = tmp[5];
+         interp[3] = tmp[0]; // former interp 1
+         interp[4] = tmp[1];
+         interp[5] = tmp[2];
          tmp = getCell(index[0],index[1]+1,index[2]);
-         interp[6] = tmp[6]; // former interp 2
-         interp[7] = tmp[7];
-         interp[8] = tmp[8];
+         interp[6] = tmp[0]; // former interp 2
+         interp[7] = tmp[1];
+         interp[8] = tmp[2];
          tmp = getCell(index[0]+1,index[1]+1,index[2]);
-         interp[9] = tmp[9]; // former interp 3
-         interp[10] = tmp[10];
-         interp[11] = tmp[11];
+         interp[9] = tmp[0]; // former interp 3
+         interp[10] = tmp[1];
+         interp[11] = tmp[2];
          tmp = getCell(index[0],index[1],index[2]+1);
-         interp[12] = tmp[12]; // former interp 4
-         interp[13] = tmp[13];
-         interp[14] = tmp[14];
+         interp[12] = tmp[0]; // former interp 4
+         interp[13] = tmp[1];
+         interp[14] = tmp[2];
          tmp = getCell(index[0]+1,index[1],index[2]+1);
-         interp[15] = tmp[15]; // former interp 5
-         interp[16] = tmp[16];
-         interp[17] = tmp[17];
+         interp[15] = tmp[0]; // former interp 5
+         interp[16] = tmp[1];
+         interp[17] = tmp[2];
          tmp = getCell(index[0],index[1]+1,index[2]+1);
-         interp[18] = tmp[18]; // former interp 6
-         interp[19] = tmp[19];
-         interp[20] = tmp[20];
+         interp[18] = tmp[0]; // former interp 6
+         interp[19] = tmp[1];
+         interp[20] = tmp[2];
          tmp = getCell(index[0]+1,index[1]+1,index[2]+1);
-         interp[21] = tmp[21]; // former interp 7
-         interp[22] = tmp[22];
-         interp[23] = tmp[23];
+         interp[21] = tmp[0]; // former interp 7
+         interp[22] = tmp[1];
+         interp[23] = tmp[2];
 
-         
+
 
          tmp[0] = fract[2] * (
                fract[0]*(fract[1]*interp[9]+(1.-fract[1])*interp[3])
@@ -207,8 +204,8 @@ struct Field
       }
 
    }
-   virtual std::vector<double> operator()(double x, double y, double z) {
-      std::vector<double> v = {x,y,z};
+   virtual std::array<double,3> operator()(double x, double y, double z) {
+      std::array<double,3> v = {x,y,z};
       return operator()(v);
    }
 
@@ -226,12 +223,12 @@ struct Interpolated_Field : Field{
    Interpolated_Field(Field& _a, Field& _b, float _t) : a(_a),b(_b),t(_t) {
    }
 
-   virtual std::vector<double> operator()(std::vector<double> v) {
-      std::vector<double> aval=a(v);
-      std::vector<double> bval=b(v);
+   virtual std::array<double,3> operator()(std::array<double,3> v) {
+      std::array<double,3> aval=a(v);
+      std::array<double,3> bval=b(v);
 
       double fract = (t - a.time)/(b.time-a.time);
-      std::vector<double> tmp(3);
+      std::array<double,3> tmp;
       tmp[0] = fract*bval[0] + (1.-fract)*aval[0];
       tmp[1] = fract*bval[1] + (1.-fract)*aval[1];
       tmp[2] = fract*bval[2] + (1.-fract)*aval[2];
