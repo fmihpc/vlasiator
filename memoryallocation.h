@@ -25,6 +25,7 @@
 #include <cstdlib>
 #include <cstdint>
 #include <cstddef>
+#include <cstdint>
 #include <stdexcept>
 #include <string.h>
 

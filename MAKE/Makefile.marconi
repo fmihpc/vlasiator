@@ -29,8 +29,8 @@ endif
 CC_BRAND = intel
 CC_BRAND_VERSION = 17.0.1
 # note: std was c++11
-CXXFLAGS +=  -O2 -g -DMAX_VECTOR_SIZE=512 -xMIC-AVX512 -std=c++17 -qopenmp -ansi-alias
-testpackage: CXXFLAGS = -O2 -g -DMAX_VECTOR_SIZE=512 -xMIC-AVX512 -std=c++17 -qopenmp -ansi-alias
+CXXFLAGS +=  -O2 -g -DMAX_VECTOR_SIZE=512 -xMIC-AVX512 -std=c++20 -qopenmp -ansi-alias
+testpackage: CXXFLAGS = -O2 -g -DMAX_VECTOR_SIZE=512 -xMIC-AVX512 -std=c++20 -qopenmp -ansi-alias
 
 MATHFLAGS = #-ffast-math -fno-finite-math-only
 testpackage: MATHFLAGS = #-fno-unsafe-math-optimizations
