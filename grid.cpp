@@ -1467,7 +1467,7 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    initTimer.stop();
 
    refines = mpiGrid.get_local_cells_to_refine().size();
-   double coarsens = mpiGrid.get_local_cells_to_unrefine().size();
+   int coarsens {mpiGrid.get_local_cells_to_unrefine().size()};
    MPI_Allreduce(MPI_IN_PLACE, &refines, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
    MPI_Allreduce(MPI_IN_PLACE, &coarsens, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
    ratio_refines = static_cast<double>(refines) / static_cast<double>(cells);
