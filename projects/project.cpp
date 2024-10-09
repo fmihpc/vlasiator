@@ -677,8 +677,8 @@ namespace projects {
             int coarser_neighbors {0};
             for (const auto& [neighbor, dir] : mpiGrid.get_face_neighbors_of(id)) {
                // Evaluate all face neighbors of the current cell
-               shouldRefineNeighbor = shouldRefineCell(mpiGrid, neighbor, r_max2);
-               shouldUnrefineNeighbor = shouldUnrefineCell(mpiGrid, neighbor, r_max2);
+               bool shouldRefineNeighbor = shouldRefineCell(mpiGrid, neighbor, r_max2);
+               bool shouldUnrefineNeighbor = shouldUnrefineCell(mpiGrid, neighbor, r_max2);
                int neighborRef {mpiGrid.get_refinement_level(neighbor)};
                
                if (neighborRef > refLevel && !shouldUnrefineNeighbor) {
