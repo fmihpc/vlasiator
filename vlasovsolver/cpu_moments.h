@@ -43,7 +43,7 @@ void blockVelocityFirstMoments(const Realf* avgs,const Real* blockParams,
 template<typename REAL> 
 void blockVelocitySecondMoments(const Realf* avgs,const Real* blockParams,
                                 const REAL v[3],
-                                REAL* array);
+                                std::vector<Real>& array);
 
 void calculateMoments_R(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                               const std::vector<CellID>& cells,
@@ -114,13 +114,16 @@ void blockVelocitySecondMoments(
         const REAL averageVX,
         const REAL averageVY,
         const REAL averageVZ,
-        REAL* array) {
+        std::vector<Real>& array) {
 
    const Real HALF = 0.5;
 
    Real nvx2_sum = 0.0;
    Real nvy2_sum = 0.0;
    Real nvz2_sum = 0.0;
+   Real nvyvz_sum = 0.0;
+   Real nvxvz_sum = 0.0;
+   Real nvxvy_sum = 0.0;
    for (uint k=0; k<WID; ++k) for (uint j=0; j<WID; ++j) for (uint i=0; i<WID; ++i) {
       const Real VX = blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX];
       const Real VY = blockParams[BlockParams::VYCRD] + (j+HALF)*blockParams[BlockParams::DVY];
@@ -129,12 +132,19 @@ void blockVelocitySecondMoments(
       nvx2_sum += avgs[cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX);
       nvy2_sum += avgs[cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY);
       nvz2_sum += avgs[cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ);
+
+      nvyvz_sum += avgs[cellIndex(i, j, k)] * (VY - averageVY) * (VZ - averageVZ);
+      nvxvz_sum += avgs[cellIndex(i, j, k)] * (VX - averageVX) * (VZ - averageVZ);
+      nvxvy_sum += avgs[cellIndex(i, j, k)] * (VX - averageVX) * (VY - averageVY);
    }
    
    const Real DV3 = blockParams[BlockParams::DVX]*blockParams[BlockParams::DVY]*blockParams[BlockParams::DVZ];
    array[0] += nvx2_sum * DV3;
    array[1] += nvy2_sum * DV3;
    array[2] += nvz2_sum * DV3;
+   array[3] += nvyvz_sum * DV3;
+   array[4] += nvxvz_sum * DV3;
+   array[5] += nvxvy_sum * DV3;
 }
 
 #endif

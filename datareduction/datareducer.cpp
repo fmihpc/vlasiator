@@ -2962,7 +2962,21 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       }
       if(P::systemWriteAllDROs || lowercase == "vg_amr_alpha2") {
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_alpha2",CellParams::AMR_ALPHA2,1));
-         outputReducer->addMetadata(outputReducer->size()-1,"","","$\\alpha_2","");
+         outputReducer->addMetadata(outputReducer->size()-1,"","","$\\alpha_2$","");
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
+      }
+      if(P::systemWriteAllDROs || lowercase == "vg_pressure_anisotropy") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_pressure_anisotropy",CellParams::P_ANISOTROPY,1));
+         outputReducer->addMetadata(outputReducer->size()-1,"","","$P_\\perp / P_\\parallel$","");
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
+      }
+      if(P::systemWriteAllDROs || lowercase == "vg_amr_vorticity") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_vorticity",CellParams::AMR_VORTICITY,1));
+         outputReducer->addMetadata(outputReducer->size()-1,"","","Vorticity","");
          if(!P::systemWriteAllDROs) {
             continue;
          }

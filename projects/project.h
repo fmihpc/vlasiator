@@ -85,6 +85,10 @@ namespace projects {
 
       virtual bool canRefine(spatial_cell::SpatialCell* cell) const;
 
+      virtual bool shouldRefineCell(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, CellID id, Real r_max2) const;
+
+      virtual bool shouldUnrefineCell(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, CellID id, Real r_max2) const;
+
       virtual bool refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const;
 
       /*!\brief Adapts refinement by one level according to the project. Returns true if any cells were refined, false if not.

@@ -56,6 +56,9 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
       cell->parameters[CellParams::P_11] = 0.0;
       cell->parameters[CellParams::P_22] = 0.0;
       cell->parameters[CellParams::P_33] = 0.0;
+      cell->parameters[CellParams::P_23] = 0.0;
+      cell->parameters[CellParams::P_13] = 0.0;
+      cell->parameters[CellParams::P_12] = 0.0;
    }
 
     // Loop over all particle species
@@ -125,10 +128,7 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
       const Real mass = getObjectWrapper().particleSpecies[popID].mass;
 
       // Temporary array for storing moments
-      Real array[3];
-      for (int i=0; i<3; ++i) {
-         array[i] = 0.0;
-      }
+      std::vector<Real> array(6, 0.0);
 
       // Calculate species' contribution to second velocity moments
       Population & pop = cell->get_population(popID);
@@ -147,9 +147,12 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
       pop.P[2] = mass*array[2];
 
       if (!computePopulationMomentsOnly) {
-         cell->parameters[CellParams::P_11] += pop.P[0];
-         cell->parameters[CellParams::P_22] += pop.P[1];
-         cell->parameters[CellParams::P_33] += pop.P[2];
+         cell->parameters[CellParams::P_11] += mass * array[0];
+         cell->parameters[CellParams::P_22] += mass * array[1];
+         cell->parameters[CellParams::P_33] += mass * array[2];
+         cell->parameters[CellParams::P_23] += mass * array[3];
+         cell->parameters[CellParams::P_13] += mass * array[4];
+         cell->parameters[CellParams::P_12] += mass * array[5];
       }
    } // for-loop over particle species
 }
@@ -187,6 +190,9 @@ void calculateMoments_R(
              cell->parameters[CellParams::P_11_R] = 0.0;
              cell->parameters[CellParams::P_22_R] = 0.0;
              cell->parameters[CellParams::P_33_R] = 0.0;
+             cell->parameters[CellParams::P_23_R] = 0.0;
+             cell->parameters[CellParams::P_13_R] = 0.0;
+             cell->parameters[CellParams::P_12_R] = 0.0;
           }
 
           vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
@@ -277,10 +283,7 @@ void calculateMoments_R(
          const Real mass = getObjectWrapper().particleSpecies[popID].mass;
 
          // Temporary array where species' contribution to 2nd moments is accumulated
-         Real array[3];
-         for (int i=0; i<3; ++i) {
-            array[i] = 0.0;
-         }
+         std::vector<Real> array(6, 0.0);
 
          // Calculate species' contribution to second velocity moments
          Population & pop = cell->get_population(popID);
@@ -298,9 +301,12 @@ void calculateMoments_R(
          pop.P_R[1] = mass*array[1];
          pop.P_R[2] = mass*array[2];
 
-         cell->parameters[CellParams::P_11_R] += pop.P_R[0];
-         cell->parameters[CellParams::P_22_R] += pop.P_R[1];
-         cell->parameters[CellParams::P_33_R] += pop.P_R[2];
+         cell->parameters[CellParams::P_11_R] += mass * array[0];
+         cell->parameters[CellParams::P_22_R] += mass * array[1];
+         cell->parameters[CellParams::P_33_R] += mass * array[2];
+         cell->parameters[CellParams::P_23_R] += mass * array[3];
+         cell->parameters[CellParams::P_13_R] += mass * array[4];
+         cell->parameters[CellParams::P_12_R] += mass * array[5];
       } // for-loop over spatial cells
    } // for-loop over particle species
 
@@ -341,6 +347,9 @@ void calculateMoments_V(
              cell->parameters[CellParams::P_11_V] = 0.0;
              cell->parameters[CellParams::P_22_V] = 0.0;
              cell->parameters[CellParams::P_33_V] = 0.0;
+             cell->parameters[CellParams::P_23_V] = 0.0;
+             cell->parameters[CellParams::P_13_V] = 0.0;
+             cell->parameters[CellParams::P_12_V] = 0.0;
          }
 
          vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
@@ -417,10 +426,7 @@ void calculateMoments_V(
          const Real mass = getObjectWrapper().particleSpecies[popID].mass;
 
          // Temporary array where moments are stored
-         Real array[3];
-         for (int i=0; i<3; ++i) {
-            array[i] = 0.0;
-         }
+         std::vector<Real> array(6, 0.0);
 
          // Calculate species' contribution to second velocity moments
          Population & pop = cell->get_population(popID);
@@ -439,9 +445,12 @@ void calculateMoments_V(
          pop.P_V[1] = mass*array[1];
          pop.P_V[2] = mass*array[2];
 
-         cell->parameters[CellParams::P_11_V] += pop.P_V[0];
-         cell->parameters[CellParams::P_22_V] += pop.P_V[1];
-         cell->parameters[CellParams::P_33_V] += pop.P_V[2];
+         cell->parameters[CellParams::P_11_V] += mass * array[0];
+         cell->parameters[CellParams::P_22_V] += mass * array[1];
+         cell->parameters[CellParams::P_33_V] += mass * array[2];
+         cell->parameters[CellParams::P_23_V] += mass * array[3];
+         cell->parameters[CellParams::P_13_V] += mass * array[4];
+         cell->parameters[CellParams::P_12_V] += mass * array[5];
 
       } // for-loop over spatial cells
    } // for-loop over particle species

@@ -167,6 +167,13 @@ Real P::alpha1CoarsenThreshold = -1.0;
 bool P::useAlpha2 = true;
 Real P::alpha2RefineThreshold = 0.5;
 Real P::alpha2CoarsenThreshold = -1.0;
+bool P::useVorticity = false;
+Real P::vorticityRefineThreshold = 0.5;
+Real P::vorticityCoarsenThreshold = -1.0;
+bool P::useAnisotropy = false;
+Real P::anisotropyRefineThreshold = 0.5;
+Real P::anisotropyCoarsenThreshold = -1.0;
+int P::anisotropyMaxReflevel = 2;
 Real P::alphaDRhoWeight = 1.0;
 Real P::alphaDUWeight = 1.0;
 Real P::alphaDPSqWeight = 1.0;
@@ -409,7 +416,7 @@ bool P::addParameters() {
                         "ig_precipitation ig_deltaphi "+
                         "ig_inplanecurrent ig_b ig_e vg_drift vg_ionospherecoupling vg_connection vg_fluxrope fg_curvature "+
                         "vg_amr_drho vg_amr_du vg_amr_dpsq vg_amr_dbsq vg_amr_db vg_amr_alpha1 vg_amr_reflevel vg_amr_alpha2 "+
-                        "vg_amr_translate_comm vg_gridcoordinates fg_gridcoordinates ");
+                        "vg_amr_translate_comm vg_gridcoordinates fg_gridcoordinates vg_pressure_anisotropy vg_amr_vorticity");
 
    RP::addComposing(
        "variables_deprecated.output",
@@ -484,6 +491,13 @@ bool P::addParameters() {
    RP::add("AMR.use_alpha2","Use J/B_perp as a refinement index", true);
    RP::add("AMR.alpha2_refine_threshold","Determines the minimum value of alpha_2 to refine cells", 0.5);
    RP::add("AMR.alpha2_coarsen_threshold","Determines the maximum value of alpha_2 to unrefine cells, default half of the refine threshold", -1.0);
+   RP::add("AMR.use_vorticity","Use vorticity as a refinement index", false);
+   RP::add("AMR.vorticity_refine_threshold","Determines the minimum value of vorticity to refine cells", 0.5);
+   RP::add("AMR.vorticity_coarsen_threshold","Determines the maximum value of vorticity to unrefine cells, default half of the refine threshold", -1.0);
+   RP::add("AMR.use_anisotropy","Use pressure anisotropy as a refinement index", false);
+   RP::add("AMR.anisotropy_refine_threshold","Determines the maximum value of pressure anisotropy to refine cells", 0.5);
+   RP::add("AMR.anisotropy_coarsen_threshold","Determines the minimum value of pressure anisotropy to unrefine cells, default twice the refine threshold", -1.0);
+   RP::add("AMR.anisotropy_max_reflevel","When anisotropy is below the refine threshold, defines the maximum level to refine to", 2);
    RP::add("AMR.refine_cadence","Refine every nth load balance", 5);
    RP::add("AMR.refine_after","Start refinement after this many simulation seconds", 0.0);
    RP::add("AMR.refine_radius","Maximum distance from origin to allow refinement within. Only induced refinement allowed outside this radius.", LARGE_REAL);
@@ -788,6 +802,7 @@ void Parameters::getParameters() {
       }
       MPI_Abort(MPI_COMM_WORLD, 1);
    }
+
    RP::get("AMR.use_alpha2",P::useAlpha2);
    RP::get("AMR.alpha2_refine_threshold",P::alpha2RefineThreshold);
    RP::get("AMR.alpha2_coarsen_threshold",P::alpha2CoarsenThreshold);
@@ -797,6 +812,33 @@ void Parameters::getParameters() {
    if (P::useAlpha2 && P::alpha2RefineThreshold < 0) {
       if (myRank == MASTER_RANK) {
          cerr << "ERROR invalid alpha_2 refine threshold" << endl;
+      }
+      MPI_Abort(MPI_COMM_WORLD, 1);
+   }
+
+   RP::get("AMR.use_vorticity",P::useVorticity);
+   RP::get("AMR.vorticity_refine_threshold",P::vorticityRefineThreshold);
+   RP::get("AMR.vorticity_coarsen_threshold",P::vorticityCoarsenThreshold);
+   if (P::useVorticity && P::vorticityCoarsenThreshold < 0) {
+      P::vorticityCoarsenThreshold = P::vorticityRefineThreshold / 2.0;
+   }
+   if (P::useVorticity && P::vorticityRefineThreshold < 0) {
+      if (myRank == MASTER_RANK) {
+         cerr << "ERROR invalid vorticity refine threshold" << endl;
+      }
+      MPI_Abort(MPI_COMM_WORLD, 1);
+   }
+
+   RP::get("AMR.use_anisotropy",P::useAnisotropy);
+   RP::get("AMR.anisotropy_refine_threshold", P::anisotropyRefineThreshold);
+   RP::get("AMR.anisotropy_coarsen_threshold", P::anisotropyCoarsenThreshold);
+   RP::get("AMR.anisotropy_max_reflevel", P::anisotropyMaxReflevel);
+   if (P::useAnisotropy && P::anisotropyCoarsenThreshold < 0) {
+      P::anisotropyCoarsenThreshold = P::anisotropyRefineThreshold * 2.0;
+   }
+   if (P::useAnisotropy && P::anisotropyRefineThreshold < 0) {
+      if (myRank == MASTER_RANK) {
+         cerr << "ERROR invalid anisotropy refine threshold" << endl;
       }
       MPI_Abort(MPI_COMM_WORLD, 1);
    }

@@ -563,6 +563,81 @@ namespace projects {
       return cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY && (cell->sysBoundaryLayer == 0 || cell->sysBoundaryLayer > 2);
    }
 
+   bool Project::shouldRefineCell(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, CellID id, Real r_max2) const {
+      // Evaluate possible refinement for this cell
+
+      // Cells too far from the ionosphere should not be refined but
+      // induced refinement still possible just beyond this r_max2 limit.
+
+      std::array<double,3> xyz {mpiGrid.get_center(id)};
+      SpatialCell* cell {mpiGrid[id]};
+      int refLevel {mpiGrid.get_refinement_level(id)};
+      Real r2 {pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2)};
+
+      bool alpha1ShouldRefine = (P::useAlpha1 && cell->parameters[CellParams::AMR_ALPHA1] > P::alpha1RefineThreshold);
+      bool alpha2ShouldRefine = (P::useAlpha2 && cell->parameters[CellParams::AMR_ALPHA2] > P::alpha2RefineThreshold);
+      bool vorticityShouldRefine = (P::useVorticity && cell->parameters[CellParams::AMR_VORTICITY] > P::vorticityRefineThreshold);
+      bool anisotropyShouldRefine = (P::useAnisotropy && cell->parameters[CellParams::P_ANISOTROPY] < P::anisotropyRefineThreshold && refLevel < P::anisotropyMaxReflevel);
+
+      bool shouldRefine {
+         (r2 < r_max2) && (
+            alpha1ShouldRefine || 
+            alpha2ShouldRefine ||
+            vorticityShouldRefine ||
+            anisotropyShouldRefine
+         )
+      };
+
+      if(
+         // If this cell is planned to be refined, but is outside the allowed refinement region, cancel that refinement.
+         // Induced refinement still possible just beyond that limit.
+         (xyz[0] < P::refinementMinX) || (xyz[0] > P::refinementMaxX)
+         || (xyz[1] < P::refinementMinY) || (xyz[1] > P::refinementMaxY)
+         || (xyz[2] < P::refinementMinZ) || (xyz[2] > P::refinementMaxZ)) {
+         shouldRefine = false;
+      }
+
+      return shouldRefine;
+   }
+
+   bool Project::shouldUnrefineCell(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, CellID id, Real r_max2) const {
+      // Evaluate possible unrefinement for this cell
+
+      // Cells too far from the ionosphere should be unrefined but
+      // induced refinement still possible just beyond this r_max2 limit.
+
+      std::array<double,3> xyz {mpiGrid.get_center(id)};
+      SpatialCell* cell {mpiGrid[id]};
+      int refLevel {mpiGrid.get_refinement_level(id)};
+      Real r2 {pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2)};
+
+      bool alpha1ShouldUnrefine = (!P::useAlpha1 || cell->parameters[CellParams::AMR_ALPHA1] < P::alpha1CoarsenThreshold);
+      bool alpha2ShouldUnrefine = (!P::useAlpha2 || cell->parameters[CellParams::AMR_ALPHA2] < P::alpha2CoarsenThreshold);
+      bool vorticityShouldUnrefine = (!P::useVorticity || cell->parameters[CellParams::AMR_VORTICITY] < P::vorticityCoarsenThreshold);
+      bool anisotropyShouldUnrefine = (!P::useAnisotropy || cell->parameters[CellParams::P_ANISOTROPY] > P::anisotropyCoarsenThreshold || refLevel > P::anisotropyMaxReflevel);
+
+      bool shouldUnrefine {
+         (r2 > r_max2) || (
+            alpha1ShouldUnrefine && 
+            alpha2ShouldUnrefine &&
+            vorticityShouldUnrefine &&
+            anisotropyShouldUnrefine
+         )
+      };
+
+      if(
+         // If this cell is planned to remain at the current refinement level, but is outside the allowed refinement region,
+         // attempt to unrefine it instead. (If it is already at the lowest refinement level, DCCRG should not go belly-up.)
+         // Induced refinement still possible just beyond that limit.
+         (xyz[0] < P::refinementMinX) || (xyz[0] > P::refinementMaxX)
+         || (xyz[1] < P::refinementMinY) || (xyz[1] > P::refinementMaxY)
+         || (xyz[2] < P::refinementMinZ) || (xyz[2] > P::refinementMaxZ)) {
+         shouldUnrefine = true;
+      }
+
+      return shouldUnrefine;
+   }
+
    int Project::adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
       phiprof::Timer refinesTimer {"Set refines"};
       int myRank;       
@@ -581,10 +656,7 @@ namespace projects {
 
       //#pragma omp parallel for
       for (CellID id : cells) {
-         std::array<double,3> xyz {mpiGrid.get_center(id)};
-         SpatialCell* cell {mpiGrid[id]};
          int refLevel {mpiGrid.get_refinement_level(id)};
-         Real r2 {pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2)};
 
          if (!canRefine(mpiGrid[id])) {
             // Skip refining, touching boundaries during runtime breaks everything
@@ -595,56 +667,20 @@ namespace projects {
 
             // Cells too far from the ionosphere should be unrefined but
             // induced refinement still possible just beyond this r_max2 limit.
-            bool shouldRefine {(r2 < r_max2) && ((P::useAlpha1 ? cell->parameters[CellParams::AMR_ALPHA1] > P::alpha1RefineThreshold : false) || (P::useAlpha2 ? cell->parameters[CellParams::AMR_ALPHA2] > P::alpha2RefineThreshold : false))};
-            bool shouldUnrefine {(r2 > r_max2) || ((P::useAlpha1 ? cell->parameters[CellParams::AMR_ALPHA1] < P::alpha1CoarsenThreshold : true) && (P::useAlpha2 ? cell->parameters[CellParams::AMR_ALPHA2] < P::alpha2CoarsenThreshold : true))};
+            // TODO starting to look truly cursed. Might need refactoring
 
-            if(shouldRefine
-               // If this cell is planned to be refined, but is outside the allowed refinement region, cancel that refinement.
-               // Induced refinement still possible just beyond that limit.
-              && ((xyz[0] < P::refinementMinX) || (xyz[0] > P::refinementMaxX)
-               || (xyz[1] < P::refinementMinY) || (xyz[1] > P::refinementMaxY)
-               || (xyz[2] < P::refinementMinZ) || (xyz[2] > P::refinementMaxZ))) {
-               shouldRefine = false;
-            }
-            if(!shouldUnrefine
-               // If this cell is planned to remain at the current refinement level, but is outside the allowed refinement region,
-               // attempt to unrefine it instead. (If it is already at the lowest refinement level, DCCRG should not go belly-up.)
-               // Induced refinement still possible just beyond that limit.
-              && ((xyz[0] < P::refinementMinX) || (xyz[0] > P::refinementMaxX)
-               || (xyz[1] < P::refinementMinY) || (xyz[1] > P::refinementMaxY)
-               || (xyz[2] < P::refinementMinZ) || (xyz[2] > P::refinementMaxZ))) {
-               shouldUnrefine = true;
-            }
+            bool shouldRefine = shouldRefineCell(mpiGrid, id, r_max2);
+            bool shouldUnrefine = shouldUnrefineCell(mpiGrid, id, r_max2);
 
             // Finally, check neighbors
             int refined_neighbors {0};
             int coarser_neighbors {0};
             for (const auto& [neighbor, dir] : mpiGrid.get_face_neighbors_of(id)) {
                // Evaluate all face neighbors of the current cell
-               std::array<double,3> neighborXyz {mpiGrid.get_center(neighbor)};
-               Real neighborR2 {pow(neighborXyz[0], 2) + pow(neighborXyz[1], 2) + pow(neighborXyz[2], 2)};
-               const int neighborRef = mpiGrid.get_refinement_level(neighbor);
-               // Induced refinement still possible just beyond the r_max2 limit.
-               bool shouldRefineNeighbor {(neighborR2 < r_max2) && ((P::useAlpha1 ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA1] > P::alpha1RefineThreshold : false) || (P::useAlpha2 ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA2] > P::alpha2RefineThreshold : false))};
-               if(shouldRefineNeighbor &&
-                  // If the neighbor is planned to be refined, but is outside the allowed refinement region, cancel that refinement.
-                  // Induced refinement still possible just beyond that limit.
-                    ((neighborXyz[0] < P::refinementMinX) || (neighborXyz[0] > P::refinementMaxX)
-                  || (neighborXyz[1] < P::refinementMinY) || (neighborXyz[1] > P::refinementMaxY)
-                  || (neighborXyz[2] < P::refinementMinZ) || (neighborXyz[2] > P::refinementMaxZ))) {
-                  shouldRefineNeighbor = false;
-               }
-               // Induced refinement still possible just beyond the r_max2 limit.
-               bool shouldUnrefineNeighbor {(neighborR2 > r_max2) || ((P::useAlpha1 ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA1] < P::alpha1CoarsenThreshold : true) && (P::useAlpha2 ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA2] < P::alpha2CoarsenThreshold : true))};
-               if(!shouldUnrefineNeighbor &&
-                  // If the neighbor is planned to remain at the current refinement level, but is outside the allowed refinement region, 
-                  // consider it as unrefining instead for purposes of evaluating the neighbors of this cell.
-                  // Induced refinement still possible just beyond that limit.
-                    ((neighborXyz[0] < P::refinementMinX) || (neighborXyz[0] > P::refinementMaxX)
-                  || (neighborXyz[1] < P::refinementMinY) || (neighborXyz[1] > P::refinementMaxY)
-                  || (neighborXyz[2] < P::refinementMinZ) || (neighborXyz[2] > P::refinementMaxZ))) {
-                  shouldUnrefineNeighbor = true;
-               }
+               bool shouldRefineNeighbor = shouldRefineCell(mpiGrid, neighbor, r_max2);
+               bool shouldUnrefineNeighbor = shouldUnrefineCell(mpiGrid, neighbor, r_max2);
+               int neighborRef {mpiGrid.get_refinement_level(neighbor)};
+               
                if (neighborRef > refLevel && !shouldUnrefineNeighbor) {
                   ++refined_neighbors;
                } else if (neighborRef < refLevel && !shouldRefineNeighbor) {
