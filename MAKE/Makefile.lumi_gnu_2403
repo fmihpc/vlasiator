@@ -2,7 +2,7 @@ CMP = CC
 LNK = CC
 
 # Modules loaded
-# module --force purge ; module load LUMI/24.03 ; module load cpeGNU ; module load craype-x86-milan ; module load papi ; module load Boost ; module load Eigen
+# module --force purge ; module load LUMI/24.03 ; module load cpeGNU ; module load craype-x86-milan ; module load papi ; module load Boost
 
 #======== Vectorization ==========
 #Set vector backend type for vlasov solvers, sets precision and length. 
@@ -77,10 +77,3 @@ LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX)/vlsv
 
 LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -lgfortran -Wl,-rpath=$(LIBRARY_PREFIX)/phiprof/lib
 INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include 
-
-
-#header libraries
-
-INC_FSGRID = -I./submodules/fsgrid
-INC_DCCRG = -I./submodules/dccrg
-INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/
