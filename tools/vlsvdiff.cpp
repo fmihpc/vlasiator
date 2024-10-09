@@ -37,22 +37,21 @@
  * "$ vlsvdiff <file1> <folder2> <Variable> <component>" or "$ vlsvdiff <folder1> <file2> <Variable> <component>": Gives single-file statistics and distances between a file, and files grid*.vlsv taken in alphanumeric order in the given folder, for the variable and component given
  */
 
-
-
-#include <cstdlib>
-#include <exception>
-#include <iostream>
-#include <stdint.h>
+#include <algorithm>
 #include <cmath>
+#include <cstdlib>
+#include <cstring>
+#include <dirent.h>
+#include <exception>
+#include <iomanip>
+#include <iostream>
 #include <limits> // YK
 #include <list>
 #include <set>
 #include <sstream>
-#include <dirent.h>
+#include <stdint.h>
 #include <string>
 #include <typeinfo>
-#include <algorithm>
-#include <cstring>
 
 #include "definitions.h"
 #include <vlsv_reader.h>
