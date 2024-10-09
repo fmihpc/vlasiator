@@ -1454,9 +1454,9 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
       refines = project.adaptRefinement(mpiGrid);
    }
 
-   uint64_t cells = getLocalCells().size();
-   MPI_Allreduce(MPI_IN_PLACE, &refines, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-   MPI_Allreduce(MPI_IN_PLACE, &cells, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+   uint64_t cells {getLocalCells().size()};
+   MPI_Allreduce(MPI_IN_PLACE, &refines, 1, MPI_UINT64_T, MPI_SUM, MPI_COMM_WORLD);
+   MPI_Allreduce(MPI_IN_PLACE, &cells, 1, MPI_UINT64_T, MPI_SUM, MPI_COMM_WORLD);
    double ratio_refines = static_cast<double>(refines) / static_cast<double>(cells);
    logFile << "(AMR) Refining " << refines << " cells, " << 100.0 * ratio_refines << "% of grid" << std::endl;
 
