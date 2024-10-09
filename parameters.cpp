@@ -172,6 +172,7 @@ Real P::vorticityRefineThreshold = 0.5;
 Real P::vorticityCoarsenThreshold = -1.0;
 bool P::useAnisotropy = false;
 Real P::anisotropyRefineThreshold = 0.5;
+Real P::anisotropyCoarsenThreshold = -1.0;
 int P::anisotropyMaxReflevel = 2;
 Real P::alphaDRhoWeight = 1.0;
 Real P::alphaDUWeight = 1.0;
@@ -495,6 +496,7 @@ bool P::addParameters() {
    RP::add("AMR.vorticity_coarsen_threshold","Determines the maximum value of vorticity to unrefine cells, default half of the refine threshold", -1.0);
    RP::add("AMR.use_anisotropy","Use pressure anisotropy as a refinement index", false);
    RP::add("AMR.anisotropy_refine_threshold","Determines the maximum value of pressure anisotropy to refine cells", 0.5);
+   RP::add("AMR.anisotropy_coarsen_threshold","Determines the minimum value of pressure anisotropy to unrefine cells, default twice the refine threshold", -1.0);
    RP::add("AMR.anisotropy_max_reflevel","When anisotropy is below the refine threshold, defines the maximum level to refine to", 2);
    RP::add("AMR.refine_cadence","Refine every nth load balance", 5);
    RP::add("AMR.refine_after","Start refinement after this many simulation seconds", 0.0);
@@ -829,7 +831,11 @@ void Parameters::getParameters() {
 
    RP::get("AMR.use_anisotropy",P::useAnisotropy);
    RP::get("AMR.anisotropy_refine_threshold", P::anisotropyRefineThreshold);
+   RP::get("AMR.anisotropy_coarsen_threshold", P::anisotropyCoarsenThreshold);
    RP::get("AMR.anisotropy_max_reflevel", P::anisotropyMaxReflevel);
+   if (P::useAnisotropy && P::anisotropyCoarsenThreshold < 0) {
+      P::anisotropyCoarsenThreshold = P::anisotropyRefineThreshold * 2.0;
+   }
    if (P::useAnisotropy && P::anisotropyRefineThreshold < 0) {
       if (myRank == MASTER_RANK) {
          cerr << "ERROR invalid anisotropy refine threshold" << endl;
