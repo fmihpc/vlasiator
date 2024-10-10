@@ -30,13 +30,13 @@ int getNeighborhood(const uint dimension, const uint stencil) {
    if (stencil == 1) {
       switch (dimension) {
       case 0:
-         neighborhood = VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID;
+         neighborhood = Neighborhoods::VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID;
          break;
       case 1:
-         neighborhood = VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID;
+         neighborhood = Neighborhoods::VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID;
          break;
       case 2:
-         neighborhood = VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID;
+         neighborhood = Neighborhoods::VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID;
          break;
       }
    }
@@ -44,13 +44,13 @@ int getNeighborhood(const uint dimension, const uint stencil) {
    if (stencil > 1) {
       switch (dimension) {
       case 0:
-         neighborhood = VLASOV_SOLVER_X_NEIGHBORHOOD_ID;
+         neighborhood = Neighborhoods::VLASOV_SOLVER_X_NEIGHBORHOOD_ID;
          break;
       case 1:
-         neighborhood = VLASOV_SOLVER_Y_NEIGHBORHOOD_ID;
+         neighborhood = Neighborhoods::VLASOV_SOLVER_Y_NEIGHBORHOOD_ID;
          break;
       case 2:
-         neighborhood = VLASOV_SOLVER_Z_NEIGHBORHOOD_ID;
+         neighborhood = Neighborhoods::VLASOV_SOLVER_Z_NEIGHBORHOOD_ID;
          break;
       }
    }

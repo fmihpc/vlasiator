@@ -702,7 +702,7 @@ namespace projects {
          // To preserve the mean, we must only consider refined cells
          int refLevel = mpiGrid.get_refinement_level(id);
          std::vector<CellID> refinedNeighbors;
-         for (auto& neighbor : *mpiGrid.get_neighbors_of(id, NEAREST_NEIGHBORHOOD_ID)) {
+         for (auto& neighbor : *mpiGrid.get_neighbors_of(id, Neighborhoods::NEAREST_NEIGHBORHOOD_ID)) {
             if (mpiGrid[neighbor.first]->parameters[CellParams::RECENTLY_REFINED] && mpiGrid.get_refinement_level(neighbor.first) == refLevel) {
                refinedNeighbors.push_back(neighbor.first);
             }

@@ -68,35 +68,27 @@ void bailout(
 */
 #define MAX_BLOCKS_PER_DIM 256
 
-
-/*! A namespace for storing indices into an array which contains
- * neighbour list for each spatial cell. These indices refer to
- * the CPU memory, i.e. the device does not use these.
- */
-namespace NbrsSpa {
-   const uint INNER = 0;      /*!< The cell is an inner cell, i.e. all its neighbours are located on the same computation node.*/
-   const uint X_NEG_BND = (1 << 0);  /*!< The cell is a boundary cell in -x direction.*/
-   const uint X_POS_BND = (1 << 1);  /*!< The cell is a boundary cell in +x direction.*/
-   const uint Y_NEG_BND = (1 << 2);  /*!< The cell is a boundary cell in -y direction.*/
-   const uint Y_POS_BND = (1 << 3);  /*!< The cell is a boundary cell in +y direction.*/
-   const uint Z_NEG_BND = (1 << 4); /*!< The cell is a boundary cell in -z direction.*/
-   const uint Z_POS_BND = (1 << 5); /*!< The cell is a boundary cell in +z direction.*/
-
+namespace Neighborhoods {
    enum {
-      STATE, /*!< Contains the neighbour information of this cell, i.e. whether it is an inner cell or a boundary cell in one or more coordinate directions.*/
-      MYIND, /*!< The index of this cell.*/
-      X1NEG,  /*!< The index of the -x neighbouring block, distance 1.*/
-      Y1NEG,  /*!< The index of the -y neighbouring block, distance 1.*/
-      Z1NEG,  /*!< The index of the -z neighbouring block, distance 1.*/
-      X1POS,  /*!< The index of the +x neighbouring block, distance 1.*/
-      Y1POS,  /*!< The index of the +y neighbouring block, distance 1.*/
-      Z1POS,  /*!< The index of the +z neighbouring block, distance 1.*/
-      X2NEG,  /*!< The index of the -x neighbouring block, distance 1.*/
-      Y2NEG,  /*!< The index of the -y neighbouring block, distance 1.*/
-      Z2NEG,  /*!< The index of the -z neighbouring block, distance 1.*/
-      X2POS,  /*!< The index of the +x neighbouring block, distance 1.*/
-      Y2POS,  /*!< The index of the +y neighbouring block, distance 1.*/
-      Z2POS   /*!< The index of the +z neighbouring block, distance 1.*/
+      VLASOV_SOLVER_NEIGHBORHOOD_ID,   /*!< up to third(PPM) neighbor in each face direction */
+      VLASOV_SOLVER_X_NEIGHBORHOOD_ID, /*!< up to third(PPM) neighbor in x face directions */
+      VLASOV_SOLVER_Y_NEIGHBORHOOD_ID, /*!< up to third(PPM) neighbor in y face directions */
+      VLASOV_SOLVER_Z_NEIGHBORHOOD_ID, /*!< up to third(PPM) neighbor in z face directions */
+      VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID, /*!< nearest neighbor in X face direction, f() can propagate to local cells in X dir, and are target for local cells */
+      VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID, /*!< nearest neighbor in Y face direction, f() can propagate to local cells in Y dir, and are target for local cells */
+      VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID, /*!< nearest neighbor in Z face direction, f() can propagate to local cells in Z dir, and are target for local cells */
+      SYSBOUNDARIES_NEIGHBORHOOD_ID, /*!<  When classifying sysboundaries, all 26 nearest neighbors are included */
+      SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID, /*!< Up to second nearest neighbors in all directions (also diagonals) */
+      NEAREST_NEIGHBORHOOD_ID,  /*!< nearest neighbors */
+      FULL_NEIGHBORHOOD_ID,      /*!< Up to second nearest neighbors in all directions (also diagonals) + vlasov solver neighborhood */
+      DIST_FUNC_NEIGHBORHOOD_ID, /*!< nearest neighbors in all directions (also diagonals) + vlasov solver neighborhood */
+      SHIFT_P_X_NEIGHBORHOOD_ID, /*!< Shift in +x direction */
+      SHIFT_P_Y_NEIGHBORHOOD_ID, /*!< Shift in +y direction */
+      SHIFT_P_Z_NEIGHBORHOOD_ID, /*!< Shift in +z direction */
+      SHIFT_M_X_NEIGHBORHOOD_ID, /*!< Shift in -x direction */
+      SHIFT_M_Y_NEIGHBORHOOD_ID, /*!< Shift in -y direction */
+      SHIFT_M_Z_NEIGHBORHOOD_ID, /*!< Shift in -z direction */
+      N_NEIGHBORHOODS
    };
 }
 
