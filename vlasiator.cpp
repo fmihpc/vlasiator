@@ -1354,9 +1354,6 @@ int main(int argn,char* args[]) {
 
    simulationTimer.stop();
    phiprof::Timer finalizationTimer {"Finalization"};
-   if (P::propagateField ) { 
-      finalizeFieldPropagator();
-   }
    if (myRank == MASTER_RANK) {
       if (doBailout > 0) {
          logFile << "(BAILOUT): Bailing out, see error log for details." << endl;
