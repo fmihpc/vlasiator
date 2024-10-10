@@ -238,7 +238,7 @@ void LinearHistogram3D::writeBovAscii(const char* filename, int index, const cha
 void LinearHistogram3D::readBov(const char* filename) {
    char buffer[256];
    char datafilename[256];
-   Vec3d size;
+   Vec3Dd size;
    bool filenameread=false;
    FILE* f = fopen(filename, "r");
    if(!f) {

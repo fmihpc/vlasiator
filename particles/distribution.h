@@ -72,10 +72,10 @@ class Monoenergetic : public Distribution
          u = 2.*direction_random(rand)-1.;
          v = direction_random(rand) * 2. * M_PI;
 
-         Vec3d dir(sqrt(1-u*u) * cos(v),
+         Vec3Dd dir(sqrt(1-u*u) * cos(v),
                sqrt(1-u*u) * sin(v),
                u);
-         return Particle(mass, charge, Vec3d(0.), vel*dir);
+         return Particle(mass, charge, Vec3Dd(0.), vel*dir);
       }
    private:
 
@@ -104,10 +104,10 @@ class Kappa : public Distribution
          u = 2.*r(rand)-1.;
          v = r(rand) * 2. * M_PI;
 
-         Vec3d dir(sqrt(1-u*u) * cos(v),
+         Vec3Dd dir(sqrt(1-u*u) * cos(v),
                sqrt(1-u*u) * sin(v),
                u);
-         return Particle(mass, charge, Vec3d(0.), vel*dir);
+         return Particle(mass, charge, Vec3Dd(0.), vel*dir);
       }
 
    protected:

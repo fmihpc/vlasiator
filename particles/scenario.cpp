@@ -27,9 +27,9 @@ ParticleContainer singleParticleScenario::initialParticles(Field& E, Field& B, F
 
    ParticleContainer particles;
 
-   Vec3d vpos(ParticleParameters::init_x, ParticleParameters::init_y, ParticleParameters::init_z);
+   Vec3Dd vpos(ParticleParameters::init_x, ParticleParameters::init_y, ParticleParameters::init_z);
    /* Look up builk velocity in the V-field */
-   Vec3d bulk_vel = V(vpos);
+   Vec3Dd bulk_vel = V(vpos);
 
    particles.push_back(Particle(PhysicalConstantsSI::mp, PhysicalConstantsSI::e, vpos, bulk_vel));
 
@@ -39,8 +39,8 @@ ParticleContainer singleParticleScenario::initialParticles(Field& E, Field& B, F
 void singleParticleScenario::afterPush(int step, double time, ParticleContainer& particles, 
       Field& E, Field& B, Field& V) {
 
-   Vec3d& x = particles[0].x;
-   Vec3d& v = particles[0].v;
+   Vec3Dd& x = particles[0].x;
+   Vec3Dd& v = particles[0].v;
 
    std::cout << 0 << " " << time << "\t" <<  x[0] << " " << x[1] << " " << x[2] << "\t"
       << v[0] << " " << v[1] << " " << v[2] << std::endl;
@@ -55,10 +55,10 @@ ParticleContainer distributionScenario::initialParticles(Field& E, Field& B, Fie
    std::default_random_engine generator(ParticleParameters::random_seed);
    Distribution* velocity_distribution=ParticleParameters::distribution(generator);
 
-   Vec3d vpos(ParticleParameters::init_x, ParticleParameters::init_y, ParticleParameters::init_z);
+   Vec3Dd vpos(ParticleParameters::init_x, ParticleParameters::init_y, ParticleParameters::init_z);
 
    /* Look up builk velocity in the V-field */
-   Vec3d bulk_vel = V(vpos);
+   Vec3Dd bulk_vel = V(vpos);
 
    for(unsigned int i=0; i< ParticleParameters::num_particles; i++) {
       /* Create a particle with velocity drawn from the given distribution ... */
@@ -112,15 +112,15 @@ void precipitationScenario::afterPush(int step, double time, ParticleContainer& 
                dot_product(particles[i].v,particles[i].v)/PhysicalConstantsSI::e);
 
          // Disable by setting position to NaN and velocity to 0
-         particles[i].x = Vec3d(std::numeric_limits<double>::quiet_NaN(),0.,0.);
-         particles[i].v = Vec3d(0,0,0);
+         particles[i].x = Vec3Dd(std::numeric_limits<double>::quiet_NaN(),0.,0.);
+         particles[i].v = Vec3Dd(0,0,0);
       } else if (particles[i].x[0] <= ParticleParameters::precip_start_x) {
 
          // Record marker value for lost particle
          printf("%u %i %lf -5. -1.\n", i, start_timestep, start_pos);
          // Disable by setting position to NaN and velocity to 0
-         particles[i].x = Vec3d(std::numeric_limits<double>::quiet_NaN(),0.,0.);
-         particles[i].v = Vec3d(0,0,0);
+         particles[i].x = Vec3Dd(std::numeric_limits<double>::quiet_NaN(),0.,0.);
+         particles[i].v = Vec3Dd(0,0,0);
       }
    }
 }
@@ -136,12 +136,12 @@ void precipitationScenario::newTimestep(int input_file_counter, int step, double
       double start_x = ParticleParameters::precip_start_x +
          ((double)i)/ParticleParameters::num_particles *
           (ParticleParameters::precip_stop_x - ParticleParameters::precip_start_x);
-      Vec3d pos(start_x,0,0);
+      Vec3Dd pos(start_x,0,0);
 
       // Find cell with minimum B value in this plane
       double min_B = 99999999999.;
       for(double z=-1e7; z<1e7; z+=1e5) {
-         Vec3d candidate_pos(start_x,0,z);
+         Vec3Dd candidate_pos(start_x,0,z);
          double B_here = vector_length(B(candidate_pos));
          if(B_here < min_B) {
             pos = candidate_pos;
@@ -173,7 +173,7 @@ ParticleContainer analysatorScenario::initialParticles(Field& E, Field& B, Field
       std::cin >> x0 >> x1 >> x2 >> v0 >> v1 >> v2;
       if(std::cin) {
          particles.push_back(Particle(PhysicalConstantsSI::mp, PhysicalConstantsSI::e,
-                  Vec3d(x0,x1,x2), Vec3d(v0,v1,v2)));
+                  Vec3Dd(x0,x1,x2), Vec3Dd(v0,v1,v2)));
       }
    }
 
@@ -184,8 +184,8 @@ void analysatorScenario::newTimestep(int input_file_counter, int step, double ti
       Field& E, Field& B, Field& V) {
 
    for(unsigned int i=0; i< particles.size(); i++) {
-      Vec3d& x = particles[i].x;
-      Vec3d& v = particles[i].v;
+      Vec3Dd& x = particles[i].x;
+      Vec3Dd& v = particles[i].v;
       std::cout << i << " " << time << "\t" <<  x[0] << " " << x[1] << " " << x[2] << "\t"
          << v[0] << " " << v[1] << " " << v[2] << std::endl;
    }
@@ -213,13 +213,13 @@ void shockReflectivityScenario::newTimestep(int input_file_counter, int step, do
       x *= ParticleParameters::reflect_y_scale - 10e6*(time-250.)/435.;
       x += ParticleParameters::reflect_x_offset + 10e6*(time-250.)/435.;
 
-      Vec3d pos(x,start_y,0);
+      Vec3Dd pos(x,start_y,0);
       // Add a particle at this location, with bulk velocity at its starting point
       // TODO: Multiple
       //particles.push_back(Particle(PhysicalConstantsSI::mp, PhysicalConstantsSI::e, pos, V(pos)));
 
       /* Look up builk velocity in the V-field */
-      Vec3d bulk_vel = V(pos);
+      Vec3Dd bulk_vel = V(pos);
 
       for(unsigned int i=0; i< ParticleParameters::num_particles; i++) {
          /* Create a particle with velocity drawn from the given distribution ... */
@@ -274,16 +274,16 @@ void shockReflectivityScenario::afterPush(int step, double time, ParticleContain
          transmitted.addValue(Vec2d(y,start_time));
 
          // Disable by setting position to NaN and velocity to 0
-         particles[i].x = Vec3d(std::numeric_limits<double>::quiet_NaN(),0.,0.);
-         particles[i].v = Vec3d(0,0,0);
+         particles[i].x = Vec3Dd(std::numeric_limits<double>::quiet_NaN(),0.,0.);
+         particles[i].v = Vec3Dd(0,0,0);
       } else if (particles[i].x[0] > boundary_right) {
 
          //Record it as reflected
          reflected.addValue(Vec2d(y,start_time));
 
          // Disable by setting position to NaN and velocity to 0
-         particles[i].x = Vec3d(std::numeric_limits<double>::quiet_NaN(),0.,0.);
-         particles[i].v = Vec3d(0.,0.,0.);
+         particles[i].x = Vec3Dd(std::numeric_limits<double>::quiet_NaN(),0.,0.);
+         particles[i].v = Vec3Dd(0.,0.,0.);
       }
    }
 }
@@ -322,10 +322,10 @@ ParticleContainer ipShockScenario::initialParticles(Field& E, Field& B, Field& V
      Real posx = disx(gen);
      Real posy = disy(gen);
      Real posz = disz(gen);
-     Vec3d vpos(posx, posy, posz);
+     Vec3Dd vpos(posx, posy, posz);
 
      /* Look up bulk velocity in the V-field */
-     Vec3d bulk_vel = V(vpos); 
+     Vec3Dd bulk_vel = V(vpos); 
      
      /* Create a particle with velocity drawn from the given distribution ... */
      Particle p = velocity_distribution->next_particle();
@@ -377,8 +377,8 @@ void ipShockScenario::afterPush(int step, double time, ParticleContainer& partic
 		dot_product(normalize_vector(particles[i].v), normalize_vector(B(particles[i].x))) );
 
 	// Disable by setting position to NaN and velocity to 0
-	particles[i].x = Vec3d(std::numeric_limits<double>::quiet_NaN(),0.,0.);
-	particles[i].v = Vec3d(0,0,0);
+	particles[i].x = Vec3Dd(std::numeric_limits<double>::quiet_NaN(),0.,0.);
+	particles[i].v = Vec3Dd(0,0,0);
       } else if (particles[i].x[0] > ParticleParameters::ipshock_reflect) {
 	// Record it as reflected
 	//reflected.addValue(Vec2d(y,start_time));
@@ -392,8 +392,8 @@ void ipShockScenario::afterPush(int step, double time, ParticleContainer& partic
 		dot_product(normalize_vector(particles[i].v), normalize_vector(B(particles[i].x))) );
 
 	// Disable by setting position to NaN and velocity to 0
-	particles[i].x = Vec3d(std::numeric_limits<double>::quiet_NaN(),0.,0.);
-	particles[i].v = Vec3d(0.,0.,0.);
+	particles[i].x = Vec3Dd(std::numeric_limits<double>::quiet_NaN(),0.,0.);
+	particles[i].v = Vec3Dd(0.,0.,0.);
       }
    }
    fflush(traFile);
