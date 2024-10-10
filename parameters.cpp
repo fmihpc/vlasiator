@@ -41,6 +41,7 @@ using namespace std;
 
 typedef Parameters P;
 
+extern Logger logFile;
 // Using numeric_limits<Real>::max() leads to FP exceptions inside boost programoptions, use a slightly smaller value to
 // avoid...
 
@@ -67,9 +68,12 @@ Real P::t_max = LARGE_REAL;
 Real P::dt = NAN;
 Real P::vlasovSolverMaxCFL = NAN;
 Real P::vlasovSolverMinCFL = NAN;
+bool P::vlasovSolverGhostTranslate = false;
+uint P::vlasovSolverGhostTranslateExtent = 0;
 Real P::fieldSolverMaxCFL = NAN;
 Real P::fieldSolverMinCFL = NAN;
 uint P::fieldSolverSubcycles = 1;
+
 
 uint P::tstep = 0;
 uint P::tstep_min = 0;
@@ -373,6 +377,8 @@ bool P::addParameters() {
    RP::add("vlasovsolver.accelerateMaxwellianBoundaries",
            "Propagate maxwellian boundary cell contents in velocity space. Default false.",
            false);
+   RP::add("vlasovsolver.GhostTranslate","Boolean for activating all-local ghost translation",false);
+   RP::add("vlasovsolver.GhostTranslateExtent","Stencil size in all-local ghost translation (default: VLASOV_STENCIL_WIDTH+1",0);
 
    // Load balancing parameters
    RP::add("loadBalance.algorithm", "Load balancing algorithm to be used", string("RCB"));
@@ -409,7 +415,7 @@ bool P::addParameters() {
                         "ig_precipitation ig_deltaphi "+
                         "ig_inplanecurrent ig_b ig_e vg_drift vg_ionospherecoupling vg_connection vg_fluxrope fg_curvature "+
                         "vg_amr_drho vg_amr_du vg_amr_dpsq vg_amr_dbsq vg_amr_db vg_amr_alpha1 vg_amr_reflevel vg_amr_alpha2 "+
-                        "vg_amr_translate_comm vg_gridcoordinates fg_gridcoordinates ");
+                        "vg_gridcoordinates fg_gridcoordinates ");
 
    RP::addComposing(
        "variables_deprecated.output",
@@ -728,7 +734,7 @@ void Parameters::getParameters() {
         !(RP::isSet("restart.overrideReadFsGridDecompositionX")&&RP::isSet("restart.overrideReadFsGridDecompositionY")&&RP::isSet("restart.overrideReadFsGridDecompositionZ")) ) {
       cerr << "ERROR all of restart.overrideReadFsGridDecompositionX,Y,Z should be defined." << endl;
       MPI_Abort(MPI_COMM_WORLD, 1);
-   }   
+   }
    FsGridTools::Task_t temp_task_t;
    RP::get("restart.overrideReadFsGridDecompositionX", temp_task_t);
    P::overrideReadFsGridDecomposition[0] = temp_task_t;
@@ -939,7 +945,7 @@ void Parameters::getParameters() {
         !(RP::isSet("fieldsolver.manualFsGridDecompositionX")&&RP::isSet("fieldsolver.manualFsGridDecompositionY")&&RP::isSet("fieldsolver.manualFsGridDecompositionZ")) ) {
       cerr << "ERROR all of fieldsolver.manualFsGridDecompositionX,Y,Z should be defined." << endl;
       MPI_Abort(MPI_COMM_WORLD, 1);
-   }   
+   }
    RP::get("fieldsolver.manualFsGridDecompositionX", temp_task_t);
    P::manualFsGridDecomposition[0] = temp_task_t;
    RP::get("fieldsolver.manualFsGridDecompositionY", temp_task_t);
@@ -947,15 +953,39 @@ void Parameters::getParameters() {
    RP::get("fieldsolver.manualFsGridDecompositionZ", temp_task_t);
    P::manualFsGridDecomposition[2] = temp_task_t;
 
-   
+
 
    // Get Vlasov solver parameters
    RP::get("vlasovsolver.maxSlAccelerationRotation", P::maxSlAccelerationRotation);
    RP::get("vlasovsolver.maxSlAccelerationSubcycles", P::maxSlAccelerationSubcycles);
    RP::get("vlasovsolver.maxCFL", P::vlasovSolverMaxCFL);
    RP::get("vlasovsolver.minCFL", P::vlasovSolverMinCFL);
+   RP::get("vlasovsolver.GhostTranslate",P::vlasovSolverGhostTranslate);
+   RP::get("vlasovsolver.GhostTranslateExtent",P::vlasovSolverGhostTranslateExtent);
    RP::get("vlasovsolver.accelerateMaxwellianBoundaries",  P::vlasovAccelerateMaxwellianBoundaries);
-
+   if (P::vlasovSolverGhostTranslate==true) {
+      if (myRank == MASTER_RANK) {
+         logFile<<"Performing spatial translation using ghost cell information with coalesced MPI updates."<<endl;
+      }
+      if (P::vlasovSolverGhostTranslateExtent == 0) {
+         P::vlasovSolverGhostTranslateExtent = VLASOV_STENCIL_WIDTH+1;
+      } else {
+         if (P::vlasovSolverGhostTranslateExtent == VLASOV_STENCIL_WIDTH+1) {
+            if (myRank == MASTER_RANK) {
+               logFile<<"Ghost translating full stencil of size "<<P::vlasovSolverGhostTranslateExtent<<" around local domain."<<endl;
+            }
+         } else if (P::vlasovSolverGhostTranslateExtent > VLASOV_STENCIL_WIDTH+1) {
+            P::vlasovSolverGhostTranslateExtent = VLASOV_STENCIL_WIDTH+1;
+            if (myRank == MASTER_RANK) {
+               logFile<<"Capping ghost translation stencil size to VLASOV_STENCIL_WIDTH+1 around local domain."<<endl;
+            }
+         } else {
+            if (myRank == MASTER_RANK) {
+               logFile<<"Ghost translating reduced stencil of size "<<P::vlasovSolverGhostTranslateExtent<<" around local domain."<<endl;
+            }
+         }
+      }
+   }
    // Get load balance parameters
    RP::get("loadBalance.algorithm", P::loadBalanceAlgorithm);
    loadBalanceOptions["IMBALANCE_TOL"] = "";

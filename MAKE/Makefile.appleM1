@@ -45,7 +45,7 @@ CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 #                         mpi.h in c++ on Cray
 
 FLAGS =
-CXXFLAGS += -I ${GITHUB_WORKSPACE}/libraries-appleM1/include -I/opt/homebrew/opt/llvm/include -I/opt/homebrew/opt/libomp/include -march=native -O3 -std=c++17 -fopenmp -Wall -Wno-unused -g 
+CXXFLAGS += -I ${GITHUB_WORKSPACE}/libraries-appleM1/include -I/opt/homebrew/opt/llvm/include -I/opt/homebrew/opt/libomp/include -march=native -O3 -std=c++20 -fopenmp -Wall -Wno-unused -g 
 MATHFLAGS = # -ffast-math -fno-finite-math-only
 testpackage: MATHFLAGS = # -fno-unsafe-math-optimizations
 LDFLAGS = -fopenmp -L/opt/homebrew/opt/llvm/lib -L/opt/homebrew/opt/libomp/lib -L/opt/homebrew/opt/llvm/lib/c++ -g

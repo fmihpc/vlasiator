@@ -2,13 +2,7 @@ CMP = CC
 LNK = CC
 
 # Modules loaded
-# module load PrgEnv-gnu
-# module load gcc/10.3.0
-# module load craype-x86-milan
-# module load papi
-
-## OR optionally instead of papi:
-# module load perftools
+# module load LUMI/24.03 ; module load Boost/1.83.0-cpeGNU-24.03 ; module load partition/C
 
 #======== Vectorization ==========
 #Set vector backend type for vlasov solvers, sets precision and length. 
@@ -28,14 +22,14 @@ endif
 FLAGS = 
 
 #GNU flags:
-CXXFLAGS += -g -ggdb -O3 -fopenmp -funroll-loops -std=c++20 -W -Wall -Wno-unused -mfma -mavx2 -Wno-unused-parameter
+CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++20 -W -Wall -Wno-unused -mfma -mavx2
 testpackage: CXXFLAGS = -g -O2 -fopenmp -funroll-loops -std=c++20 -mno-fma -mno-avx2 -mno-avx
 
 MATHFLAGS = -ffast-math -fno-finite-math-only
 testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
 
-LDFLAGS = -lrt -fopenmp -lgomp
-LIB_MPI = -lgomp
+LDFLAGS = -lrt -fopenmp -lpapi
+LIB_MPI = -fopenmp
 
 #======== PAPI ==========
 #Add PAPI_MEM define to use papi to report memory consumption?
@@ -57,30 +51,23 @@ testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 #-DNO_WRITE_AT_ALL:  Define to disable write at all to 
 #                    avoid memleak (much slower IO)
 
-# BOOST_VERSION = current trilinos version
-# ZOLTAN_VERSION = current trilinos verson
-#
 #======== Libraries ===========
-
-LIBRARY_PREFIX = /scratch/project_465000287/libraries/PrgEnv-gnu-gcc10
-LIBRARY_PREFIX_HEADERS = /scratch/project_465000287/libraries
+LIB_BOOST = -lboost_program_options
 
 #compiled libraries
-INC_BOOST = -I$(LIBRARY_PREFIX)/boost/include
-LIB_BOOST = -L$(LIBRARY_PREFIX)/boost/lib -lboost_program_options -Wl,-rpath=$(LIBRARY_PREFIX)/boost/lib
+LIBRARY_PREFIX = /projappl/project_462000358/cpu-libraries/2403
 
-INC_ZOLTAN = -I$(LIBRARY_PREFIX)/zoltan/include
+INC_ZOLTAN = -isystem$(LIBRARY_PREFIX)/zoltan/include
 LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/zoltan/lib -lzoltan -Wl,-rpath=$(LIBRARY_PREFIX)/zoltan/lib
 
-INC_JEMALLOC = -I$(LIBRARY_PREFIX)/jemalloc/include
+INC_JEMALLOC = -isystem$(LIBRARY_PREFIX)/jemalloc/include
 LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/jemalloc/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX)/jemalloc/lib
 
-# PAPI can't be loaded at the same time as perftools
-INC_PAPI =
-LIB_PAPI = -lpapi
+INC_PAPI = -I$(LIBRARY_PREFIX)/papi/include -lpapi
+LIB_PAPI = -L$(LIBRARY_PREFIX)/papi/lib -Wl,-rpath=$(LIBRARY_PREFIX)/papi/lib
 
 INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv
-LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX2)/vlsv
+LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX)/vlsv
 
 LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -lgfortran -Wl,-rpath=$(LIBRARY_PREFIX)/phiprof/lib
 INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include 

@@ -7,8 +7,6 @@
 #include "cpu_trans_map_amr.hpp"
 #include "cpu_trans_pencils.hpp"
 
-// use DCCRG version Nov 8th 2018 01482cfba8
-
 using namespace std;
 using namespace spatial_cell;
 
@@ -257,21 +255,10 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
       break;
    }
 
-   // Assuming 1 neighbor in the target array because of the CFL condition
-   // In fact propagating to > 1 neighbor will give an error
-
    // Vector with all cell ids
    vector<CellID> allCells(localPropagatedCells);
    allCells.insert(allCells.end(), remoteTargetCells.begin(), remoteTargetCells.end());
 
-   // Vectors of pointers to the cell structs
-   std::vector<SpatialCell*> allCellsPointer(allCells.size());
-
-   // Initialize allCellsPointer
-   #pragma omp parallel for schedule(static)
-   for(uint celli = 0; celli < allCells.size(); celli++){
-      allCellsPointer[celli] = mpiGrid[allCells[celli]];
-   }
    // init cellid_transpose (moved here to take advantage of the omp parallel region)
    #pragma omp parallel for collapse(2) schedule(static)
    for (uint k=0; k<WID; ++k) {
@@ -286,29 +273,37 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
       }
    }
 
+   // Only needed if pencil counts are used as weight multiplier in load balance
    if (Parameters::prepareForRebalance == true) {
       for (uint i=0; i<localPropagatedCells.size(); i++) {
-         cuint myPencilCount = std::count(DimensionPencils[dimension].ids.begin(), DimensionPencils[dimension].ids.end(), localPropagatedCells[i]);
-         nPencils[i] += myPencilCount;
-         nPencils[nPencils.size()-1] += myPencilCount;
+         for (uint ip=0; ip<DimensionPencils[dimension].N; ip++) {
+            // Read only central IDs for each pencil
+            std::vector<CellID> centerIds = DimensionPencils[dimension].getIds(ip);
+            cuint myPencilCount = std::count(centerIds.begin(), centerIds.end(), localPropagatedCells[i]);
+            nPencils[i] += myPencilCount;
+            nPencils[nPencils.size()-1] += myPencilCount;
+         }
       }
    }
 
    // Get a pointer to the velocity mesh of the first spatial cell
-   const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = allCellsPointer[0]->get_velocity_mesh(popID);
-   
-   phiprof::Timer buildBlockListimer {"trans-amr-buildBlockList"};
+   const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = mpiGrid[localPropagatedCells[0]]->get_velocity_mesh(popID);
+
+   phiprof::Timer buildBlockListTimer {"trans-amr-buildBlockList"};
    // Get a unique sorted list of blockids that are in any of the
-   // propagated cells.
+   // local target cells.
+   // Note: Now only considers local propagated cells, as there's no point in
+   // Propagating data which does not have an existing target block.
    std::vector<vmesh::GlobalID> unionOfBlocks;
    std::unordered_set<vmesh::GlobalID> unionOfBlocksSet;
 #pragma omp parallel
    {
       std::unordered_set<vmesh::GlobalID> thread_unionOfBlocksSet;
+
 #pragma omp for
-      for(unsigned int i=0; i<allCellsPointer.size(); i++) {
-         auto cell = &allCellsPointer[i];
-         const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& cvmesh = (*cell)->get_velocity_mesh(popID);
+      for(unsigned int i=0; i<allCells.size(); i++) {
+         CellID cellid = allCells[i];
+         const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& cvmesh = mpiGrid[cellid]->get_velocity_mesh(popID);
          for (vmesh::LocalID block_i=0; block_i< cvmesh.size(); ++block_i) {
             thread_unionOfBlocksSet.insert(cvmesh.getGlobalID(block_i));
          }
@@ -319,7 +314,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
       } // pragma omp critical
    } // pragma omp parallel
    unionOfBlocks.insert(unionOfBlocks.end(), unionOfBlocksSet.begin(), unionOfBlocksSet.end());
-   buildBlockListimer.stop();       
+   buildBlockListTimer.stop();
    /***********************/
    setupTimer.stop();
    /***********************/
@@ -473,6 +468,8 @@ int get_sibling_index(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
  * This is partially due to DCCRG defining neighborhood size relative to the host cell. For details, see
  * https://github.com/fmihpc/dccrg/issues/12
  *
+ * This function is not used if local ghost translation is active.
+ *
  * @param mpiGrid DCCRG grid object
  * @param dimension Spatial dimension
  * @param direction Direction of communication (+ or -)
@@ -507,6 +504,9 @@ void update_remote_mapping_contribution_amr(
       case 2:
          neighborhood = SHIFT_P_Z_NEIGHBORHOOD_ID;
          break;
+      default:
+         cerr << __FILE__ << ":"<< __LINE__ << " Wrong dimension, abort"<<endl;
+         abort();
       }
    }
    if(direction < 0) {
@@ -521,6 +521,9 @@ void update_remote_mapping_contribution_amr(
       case 2:
          neighborhood = SHIFT_M_Z_NEIGHBORHOOD_ID;
          break;
+      default:
+         cerr << __FILE__ << ":"<< __LINE__ << " Wrong dimension, abort"<<endl;
+         abort();
       }
    }
 
@@ -564,7 +567,7 @@ void update_remote_mapping_contribution_amr(
 
       vector<CellID> p_nbrs;
       vector<CellID> n_nbrs;
-      
+
       for (const auto& [neighbor, dir] : mpiGrid.get_face_neighbors_of(c)) {
          if(dir == ((int)dimension + 1) * direction) {
             p_nbrs.push_back(neighbor);
@@ -584,7 +587,7 @@ void update_remote_mapping_contribution_amr(
       if (!all_of(p_nbrs.begin(), p_nbrs.end(), [&mpiGrid](CellID i){return mpiGrid.is_local(i);})) {
 
          // ccell adds a neighbor_block_data block for each neighbor in the positive direction to its local data
-         for (const auto nbr : p_nbrs) {
+         for (const auto& nbr : p_nbrs) {
 
             //Send data in nbr target array that we just mapped to, if
             // 1) it is a valid target,
@@ -648,7 +651,7 @@ void update_remote_mapping_contribution_amr(
       if (!all_of(n_nbrs.begin(), n_nbrs.end(), [&mpiGrid](CellID i){return mpiGrid.is_local(i);})) {
 
          // ccell adds a neighbor_block_data block for each neighbor in the positive direction to its local data
-         for (const auto nbr : n_nbrs) {
+         for (const auto& nbr : n_nbrs) {
 
             if (nbr != INVALID_CELLID && !mpiGrid.is_local(nbr) &&
                 ccell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
