@@ -152,6 +152,7 @@ void calculateGradPeTerm(
 
 void calculateGradPeTermSimple(
    FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeDt2Grid,
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsDt2Grid,
    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
@@ -180,7 +181,7 @@ void calculateGradPeTermSimple(
                if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
                   calculateGradPeTerm(EGradPeGrid, momentsGrid, dMomentsGrid, technicalGrid, i, j, k, sysBoundaries);
                } else {
-                  calculateGradPeTerm(EGradPeGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, i, j, k, sysBoundaries);
+                  calculateGradPeTerm(EGradPeDt2Grid, momentsDt2Grid, dMomentsGrid, technicalGrid, i, j, k, sysBoundaries);
                }
             }
          }

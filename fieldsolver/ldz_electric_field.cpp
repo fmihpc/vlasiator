@@ -1649,6 +1649,7 @@ void calculateUpwindedElectricFieldSimple(
    FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EDt2Grid,
    FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
    FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeDt2Grid,
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsDt2Grid,
    FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
@@ -1656,7 +1657,8 @@ void calculateUpwindedElectricFieldSimple(
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
    FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
    SysBoundary& sysBoundaries,
-   cint& RKCase
+   cint& RKCase,
+   const bool communicateEGradPe
 ) {
    //const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
    const FsGridTools::FsIndex_t* gridDims = &technicalGrid.getLocalSize()[0];
@@ -1669,8 +1671,12 @@ void calculateUpwindedElectricFieldSimple(
    if(P::ohmHallTerm > 0) {
       EHallGrid.updateGhostCells();
    }
-   if(P::ohmGradPeTerm > 0) {
-      EGradPeGrid.updateGhostCells();
+   if(P::ohmGradPeTerm > 0 && communicateEGradPe) {
+      if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+         EGradPeGrid.updateGhostCells();
+      } else {
+         EGradPeDt2Grid.updateGhostCells();
+      }
    }
    if(P::ohmHallTerm == 0) {
       dPerBGrid.updateGhostCells();
@@ -1711,7 +1717,7 @@ void calculateUpwindedElectricFieldSimple(
                      perBDt2Grid,
                      EDt2Grid,
                      EHallGrid,
-                     EGradPeGrid,
+                     EGradPeDt2Grid,
                      momentsDt2Grid,
                      dPerBGrid,
                      dMomentsGrid,
