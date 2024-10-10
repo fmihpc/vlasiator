@@ -60,8 +60,8 @@ LIB_ZOLTAN = -I/usr/lib/x86_64-linux-gnu -ltrilinos_zoltan
 #INC_PAPI = -I$(LIBRARY_PREFIX)/papi/include
 #LIB_PAPI = -I$(LIBRARY_PREFIX)/papi/lib -Wl,-rpath=$(LIBRARY_PREFIX)/papi/lib
 
-INC_JEMALLOC = -isystem $(LIBRARY_PREFIX)/jemalloc/include
-LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/jemalloc/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX)/jemalloc/lib
+INC_JEMALLOC = -isystem $(LIBRARY_PREFIX)/jemalloc-530/include
+LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/jemalloc-530/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX)/jemalloc-530/lib
 
 INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv
 LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX)/vlsv/lib

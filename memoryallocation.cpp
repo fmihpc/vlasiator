@@ -40,11 +40,13 @@ using namespace std;
 #define STRINGIFY_HELPER(x) #x
 #define STRINGIFY(x) STRINGIFY_HELPER(x)
 
+// Declare global new etc. only if using old legacy versions of jemalloc, prior to 5.0.0
+#if JEMALLOC_VERSION_MAJOR < 5
+
 // Global new using jemalloc
 void *operator new(size_t size)
 {
    void *p;
-
    p =  je_malloc(size);
    if(!p) {
       bad_alloc ba;
@@ -57,7 +59,6 @@ void *operator new(size_t size)
 void *operator new[](size_t size)
 {
    void *p;
-
    p =  je_malloc(size);
    if(!p) {
       bad_alloc ba;
@@ -86,6 +87,7 @@ void operator delete[](void *ptr, std::size_t size) noexcept {
    je_sdallocx(ptr, size, /*flags=*/0);
 }
 #endif  // __cpp_sized_deallocation
+#endif // JEMALLOC_VERSION_MAJOR < 5
 #endif // use jemalloc
 
 /*! Purge allocations from all arenas to actually release memory back to system */
