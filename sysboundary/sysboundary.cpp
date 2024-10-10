@@ -350,9 +350,9 @@ bool belongsToLayer(const int layer, const int x, const int y, const int z,
  * \param mpiGrid Grid
  */
 void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
-   const vector<CellID>& cells = getLocalCells();
-   auto localSize = technicalGrid.getLocalSize().data();
+                                 FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
+                                 const vector<CellID>& cells = getLocalCells();
+                                 auto localSize = technicalGrid.getLocalSize().data();
 
    /*set all cells to default value, not_sysboundary and no forcing of the bulkv */
 #pragma omp parallel for

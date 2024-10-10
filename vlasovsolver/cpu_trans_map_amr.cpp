@@ -337,7 +337,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
       std::vector<uint> pencilBlocksCount(DimensionPencils[dimension].N);
 
       // Loop over velocity space blocks (threaded).
-#pragma omp for schedule(guided,8)
+#pragma omp for schedule(dynamic,1)
       for(uint blocki = 0; blocki < unionOfBlocks.size(); blocki++) {
          // Get global id of the velocity block
          vmesh::GlobalID blockGID = unionOfBlocks[blocki];
