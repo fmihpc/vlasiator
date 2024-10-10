@@ -1634,7 +1634,8 @@ void calculateElectricField(
  * \param momentsGrid fsGrid holding the moment quantities at runge-kutta t=0
  * \param momentsDt2Grid fsGrid holding the moment quantities at runge-kutta t=0.5
  * \param dPerBGrid fsGrid holding the derivatives of perturbed B
- * \param dMomentsGrid fsGrid holding the derviatives of moments
+ * \param dMomentsGrid fsGrid holding the derivatives of moments
+ * \param dMomentsGrid fsGrid holding the derivatives of moments at runge-kutta t=0.5
  * \param BgBGrid fsGrid holding the background B quantities
  * \param technicalGrid fsGrid holding technical information (such as boundary types)
  * \param sysBoundaries System boundary conditions existing
@@ -1654,11 +1655,12 @@ void calculateUpwindedElectricFieldSimple(
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsDt2Grid,
    FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsDt2Grid,
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
    FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
    SysBoundary& sysBoundaries,
    cint& RKCase,
-   const bool communicateEGradPe
+   const bool communicateEGradPeOrMomentsDerivatives
 ) {
    //const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
    const FsGridTools::FsIndex_t* gridDims = &technicalGrid.getLocalSize()[0];
@@ -1671,7 +1673,7 @@ void calculateUpwindedElectricFieldSimple(
    if(P::ohmHallTerm > 0) {
       EHallGrid.updateGhostCells();
    }
-   if(P::ohmGradPeTerm > 0 && communicateEGradPe) {
+   if(P::ohmGradPeTerm > 0 && communicateEGradPeOrMomentsDerivatives) {
       if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
          EGradPeGrid.updateGhostCells();
       } else {
@@ -1681,8 +1683,12 @@ void calculateUpwindedElectricFieldSimple(
    if(P::ohmHallTerm == 0) {
       dPerBGrid.updateGhostCells();
    }
-   if(P::ohmHallTerm == 0 && P::ohmGradPeTerm == 0) {
-      dMomentsGrid.updateGhostCells();
+   if(P::ohmHallTerm == 0 && P::ohmGradPeTerm == 0 && communicateEGradPeOrMomentsDerivatives) {
+      if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+         dMomentsGrid.updateGhostCells();
+      } else {
+         dMomentsDt2Grid.updateGhostCells();
+      }
    }
    
    mpiTimer.stop();
@@ -1711,7 +1717,7 @@ void calculateUpwindedElectricFieldSimple(
                      k,
                      sysBoundaries,
                      RKCase
-                     );
+                  );
                } else { // RKCase == RK_ORDER2_STEP1
                   calculateElectricField(
                      perBDt2Grid,
@@ -1720,7 +1726,7 @@ void calculateUpwindedElectricFieldSimple(
                      EGradPeDt2Grid,
                      momentsDt2Grid,
                      dPerBGrid,
-                     dMomentsGrid,
+                     dMomentsDt2Grid,
                      BgBGrid,
                      technicalGrid,
                      i,
@@ -1728,7 +1734,7 @@ void calculateUpwindedElectricFieldSimple(
                      k,
                      sysBoundaries,
                      RKCase
-                     );
+                  );
                }
             }
          }
