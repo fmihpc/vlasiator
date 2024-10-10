@@ -493,11 +493,11 @@ bool P::addParameters() {
    RP::add("AMR.refinement_max_x", "Refinement maximum X coordinate, no refinement at x > this value (m) except induced refinement.", LARGE_REAL);
    RP::add("AMR.refinement_max_y", "Refinement maximum Y coordinate, no refinement at y > this value (m) except induced refinement.", LARGE_REAL);
    RP::add("AMR.refinement_max_z", "Refinement maximum Z coordinate, no refinement at z > this value (m) except induced refinement.", LARGE_REAL);
-   RP::add("AMR.alpha1_drho_weight","Multiplier for delta rho in alpha calculation", 1.0);
-   RP::add("AMR.alpha1_du_weight","Multiplier for delta U in alpha calculation", 1.0);
-   RP::add("AMR.alpha1_dpsq_weight","Multiplier for delta p squared in alpha calculation", 1.0);
-   RP::add("AMR.alpha1_dbsq_weight","Multiplier for delta B squared in alpha calculation", 1.0);
-   RP::add("AMR.alpha1_db_weight","Multiplier for delta B in alpha calculation", 1.0);
+   RP::add("AMR.alpha1_drho_weight","Multiplier for delta rho (plasma density) in alpha calculation", 1.0);
+   RP::add("AMR.alpha1_du_weight","Multiplier for delta U (total kinetic + field energy density) in alpha calculation", 1.0);
+   RP::add("AMR.alpha1_dpsq_weight","Multiplier for delta p squared (kinetic energy) in alpha calculation", 1.0);
+   RP::add("AMR.alpha1_dbsq_weight","Multiplier for delta B squared (field energy) in alpha calculation", 1.0);
+   RP::add("AMR.alpha1_db_weight","Multiplier for delta B (magnetic field strength) in alpha calculation", 1.0);
    RP::add("AMR.number_of_boxes", "How many boxes to be refined, that number of centers and sizes have to then be defined as well.", 0);
    RP::addComposing("AMR.box_half_width_x", "Half width in x of the box that is refined");
    RP::addComposing("AMR.box_half_width_y", "Half width in y of the box that is refined");
