@@ -47,6 +47,12 @@
 /*! Return the amount of free memory on the node in bytes*/
 uint64_t get_node_free_memory();
 
+/*! Purge jemalloc arenas to actually return memory to the system. If not using jemalloc, does nothing.*/
+void memory_purge();
+
+/*! Initialize memory allocator configuration.*/
+void memory_configurator();
+
 /*! Measures memory consumption and writes it into logfile. Collective
  *  operation on MPI_COMM_WORLD
  *  extra_bytes is used for additional buffer for the high water mark,

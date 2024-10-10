@@ -56,6 +56,9 @@ export OMP_NUM_THREADS=$t
 # With this the code won't print the warning, so we have a shorter report
 export OMPI_MCA_io="^ompio"
 
+# Abort on invalid jemalloc configuration parameters
+export MALLOC_CONF="abort_conf:true"
+
 #command for running stuff
 run_command="mpirun --mca btl self -mca pml ^vader,tcp,openib,uct,yalla -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_TLS=rc,sm -x UCX_IB_ADDR_TYPE=ib_global -np $tasks"
 small_run_command="mpirun --mca btl self -mca pml ^vader,tcp,openib,uct,yalla -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_TLS=rc,sm -x UCX_IB_ADDR_TYPE=ib_global -n 1 -N 1"

@@ -357,6 +357,9 @@ int main(int argn,char* args[]) {
    signal(SIGFPE, fpehandler);
    #endif
 
+   // Initialize memory allocator configuration.
+   memory_configurator();
+
    phiprof::Timer mainTimer {"main"};
    phiprof::Timer initTimer {"Initialization"};
    phiprof::Timer readParamsTimer {"Read parameters"};

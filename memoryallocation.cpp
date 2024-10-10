@@ -37,11 +37,16 @@ extern Logger logFile, diagnostic;
 using namespace std;
 
 #ifdef USE_JEMALLOC
+#define STRINGIFY_HELPER(x) #x
+#define STRINGIFY(x) STRINGIFY_HELPER(x)
+
+// Declare global new etc. only if using old legacy versions of jemalloc, prior to 5.0.0
+#if JEMALLOC_VERSION_MAJOR < 5
+
 // Global new using jemalloc
 void *operator new(size_t size)
 {
    void *p;
-
    p =  je_malloc(size);
    if(!p) {
       bad_alloc ba;
@@ -54,7 +59,6 @@ void *operator new(size_t size)
 void *operator new[](size_t size)
 {
    void *p;
-
    p =  je_malloc(size);
    if(!p) {
       bad_alloc ba;
@@ -83,11 +87,51 @@ void operator delete[](void *ptr, std::size_t size) noexcept {
    je_sdallocx(ptr, size, /*flags=*/0);
 }
 #endif  // __cpp_sized_deallocation
+#endif // JEMALLOC_VERSION_MAJOR < 5
+#endif // use jemalloc
 
-#endif 
+/*! Purge allocations from all arenas to actually release memory back to system */
+void memory_purge() {
+#ifdef USE_JEMALLOC
+   je_mallctl("arena." STRINGIFY(MALLCTL_ARENAS_ALL) ".purge", NULL, NULL, NULL, 0);
+#endif
+}
 
+/*! Initialize memory allocator configuration.*/
+void memory_configurator() {
+#ifdef USE_JEMALLOC
+   bool logResult = false;
+   bool foo {false};
+   size_t bar {1};
+   if (logResult) {
+      // Read initial value
+      je_mallctl("background_thread", &foo, &bar, NULL, 0);
+      logFile << "(MEM) mallctl: background_thread value was ";
+      if (foo) {
+         logFile << "true";
+      } else {
+         logFile << "false";
+      }
+   }
+   // Set background threads to true
+   foo = true;
+   bar = 1;
+   je_mallctl("background_thread", NULL, NULL, &foo, bar);
+   if (logResult) {
+      // Read updated value
+      je_mallctl("background_thread", &foo, &bar, NULL, 0);
+      logFile << ", now set to ";
+      if (foo) {
+         logFile << "true";
+      } else {
+         logFile << "false";
+      }
+      logFile << "." << endl;
+   }
+#endif
+}
 
-/*! Return the amount of free memory on the node in bytes*/  
+/*! Return the amount of free memory on the node in bytes*/
 uint64_t get_node_free_memory(){
    uint64_t mem_proc_free = 0;
    FILE * in_file = fopen("/proc/meminfo", "r");

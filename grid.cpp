@@ -641,6 +641,8 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
             // to the active population.
             if (cell_id % num_part_transfers == transfer_part) cell->clear(p);
          }
+
+         memory_purge(); // Purge jemalloc allocator to actually release memory
       } // for-loop over populations
    } // for-loop over transfer parts
    transfersTimer.stop();
@@ -795,19 +797,20 @@ void shrink_to_fit_grid_data(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
    const std::vector<CellID>& cells = getLocalCells();
    const std::vector<CellID>& remote_cells = mpiGrid.get_remote_cells_on_process_boundary(FULL_NEIGHBORHOOD_ID);
    #pragma omp parallel for
-   for(size_t i=0; i<cells.size() + remote_cells.size(); ++i) {
-      if(i < cells.size()){
-         SpatialCell* target= mpiGrid[cells[i]];
-         if (target!=nullptr){
+   for (size_t i=0; i<cells.size() + remote_cells.size(); ++i) {
+      if (i < cells.size()) {
+         SpatialCell* target = mpiGrid[cells[i]];
+         if (target != nullptr){
             target->shrink_to_fit();
          }
-      }else{
+      } else {
          SpatialCell* target= mpiGrid[remote_cells[i - cells.size()]];
-         if (target!=nullptr){
+         if (target != nullptr) {
             target->shrink_to_fit();
          }
       }
    }
+   memory_purge(); // Purge jemalloc allocator to actually release memory
 }
 
 /*! Estimates memory consumption and writes it into logfile. Collective operation on MPI_COMM_WORLD
@@ -872,17 +875,17 @@ void report_grid_memory_consumption(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
  * \param mpiGrid Spatial grid
  */
 void deallocateRemoteCellBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
-   const std::vector<uint64_t> incoming_cells
-      = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_NEIGHBORHOOD_ID);
-   for(unsigned int i=0;i<incoming_cells.size();i++){
-      uint64_t cell_id=incoming_cells[i];
+   const std::vector<uint64_t> remote_cells
+      = mpiGrid.get_remote_cells_on_process_boundary();
+   for (unsigned int i=0; i<remote_cells.size(); i++) {
+      uint64_t cell_id = remote_cells[i];
       SpatialCell* cell = mpiGrid[cell_id];
       if (cell != NULL) {
          for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
             cell->clear(popID);
       }
    }
-
+   memory_purge(); // Purge jemalloc allocator to actually release memory
 }
 
 /*
@@ -1553,6 +1556,8 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
       SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
       mpiGrid.continue_refining();
       transferTimer.stop();
+   
+      memory_purge(); // Purge jemalloc allocator to actually release memory
    }
    transfersTimer.stop();
 
@@ -1592,6 +1597,8 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    mpiGrid.finish_refining();
    finishTimer.stop();
    dccrgTimer.stop();
+
+   memory_purge(); // Purge jemalloc allocator to actually release memory
 
    recalculateLocalCellsCache();
    initSpatialCellCoordinates(mpiGrid);
