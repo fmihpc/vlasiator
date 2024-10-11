@@ -29,16 +29,12 @@ reference_revision="CI_reference"
 
 # threads per job (equal to -c )
 t=4
-module purge
-#module load gnu9/9.3.0
-#module load openmpi4/4.0.5
-#module load pmix/3.1.4
 
 module purge
-module load GCC/11.2.0
-module load OpenMPI/4.1.1-GCC-11.2.0
-module load PMIx/4.1.0-GCCcore-11.2.0
-module load PAPI/6.0.0.1-GCCcore-11.2.0
+module load GCC/13.2.0
+module load OpenMPI/4.1.6-GCC-13.2.0
+module load PMIx/4.2.6-GCCcore-13.2.0
+module load PAPI/7.1.0-GCCcore-13.2.0
 
 # send JOB ID to output usable by CI eg to scancel this job
 echo "SLURM_JOB_ID=$SLURM_JOB_ID" >> $GITHUB_OUTPUT
@@ -59,6 +55,9 @@ export OMP_NUM_THREADS=$t
 
 # With this the code won't print the warning, so we have a shorter report
 export OMPI_MCA_io="^ompio"
+
+# Abort on invalid jemalloc configuration parameters
+export MALLOC_CONF="abort_conf:true"
 
 #command for running stuff
 run_command="mpirun --mca btl self -mca pml ^vader,tcp,openib,uct,yalla -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_TLS=rc,sm -x UCX_IB_ADDR_TYPE=ib_global -np $tasks"

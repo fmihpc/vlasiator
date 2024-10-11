@@ -81,11 +81,3 @@ INC_PROFILE = -I$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND
 
 LIB_PAPI = -L$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/papi/lib -lpapi -Wl,-rpath=$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/papi/lib
 INC_PAPI = -I$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/papi/include
-
-
-#header libraries
-
-INC_FSGRID = -I./submodules/fsgrid
-INC_DCCRG = -I./submodules/dccrg
-INC_VECTORCLASS = -isystem ./submodules/vectorclass/ -isystem ./submodules/vectorclass-addon/vector3d/
-INC_EIGEN = -isystem ./submodules/eigen/

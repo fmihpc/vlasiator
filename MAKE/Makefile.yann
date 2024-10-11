@@ -10,11 +10,9 @@
 
 ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
 #Single-precision
-        INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/
 	VECTORCLASS = VEC8F_AGNER
 else
 #Double-precision
-        INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/
 	VECTORCLASS = VEC4D_AGNER
 endif
 
@@ -63,15 +61,9 @@ LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/zoltan/lib -lzoltan
 INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv
 LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv
 
-INC_DCCRG = -I./submodules/dccrg
-
-INC_FSGRID = -I./submodules/fsgrid
-
 INC_JEMALLOC = -I$(LIBRARY_PREFIX)/jemalloc/include
 LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/jemalloc/lib -ljemalloc
 
 LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof
 INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
 INC_TOPO =
-
-INC_EIGEN = -isystem ./submodules/eigen/

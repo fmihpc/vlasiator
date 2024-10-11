@@ -164,7 +164,7 @@ void SysBoundary::initSysBoundaries(Project& project, creal& t) {
    }
 
    for (it = sysBoundaryCondList.begin(); it != sysBoundaryCondList.end(); it++) {
-      if (*it == "Outflow") {
+      if (*it == "Outflow" || *it == "outflow") {
          this->addSysBoundary(new SBC::Outflow, project, t);
 
          anyDynamic = anyDynamic | this->getSysBoundary(sysboundarytype::OUTFLOW)->isDynamic();
@@ -191,15 +191,15 @@ void SysBoundary::initSysBoundaries(Project& project, creal& t) {
 
          if ((faces[4] || faces[5]) && P::zcells_ini < 5)
             abort_mpi("Outflow condition loaded on z- or z+ face but not enough cells in z!");
-      } else if (*it == "Ionosphere") {
+      } else if (*it == "Ionosphere" || *it == "ionosphere") {
          this->addSysBoundary(new SBC::Ionosphere, project, t);
          this->addSysBoundary(new SBC::DoNotCompute, project, t);
          anyDynamic = anyDynamic | this->getSysBoundary(sysboundarytype::IONOSPHERE)->isDynamic();
-      } else if(*it == "Copysphere") {
+      } else if(*it == "Copysphere" || *it == "copysphere") {
          this->addSysBoundary(new SBC::Copysphere, project, t);
          this->addSysBoundary(new SBC::DoNotCompute, project, t);
          anyDynamic = anyDynamic | this->getSysBoundary(sysboundarytype::COPYSPHERE)->isDynamic();
-      } else if (*it == "Maxwellian") {
+      } else if (*it == "Maxwellian" || *it == "maxwellian") {
          this->addSysBoundary(new SBC::Maxwellian, project, t);
          anyDynamic = anyDynamic | this->getSysBoundary(sysboundarytype::MAXWELLIAN)->isDynamic();
          bool faces[6];
@@ -350,9 +350,9 @@ bool belongsToLayer(const int layer, const int x, const int y, const int z,
  * \param mpiGrid Grid
  */
 void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
-   const vector<CellID>& cells = getLocalCells();
-   auto localSize = technicalGrid.getLocalSize().data();
+                                 FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
+                                 const vector<CellID>& cells = getLocalCells();
+                                 auto localSize = technicalGrid.getLocalSize().data();
 
    /*set all cells to default value, not_sysboundary and no forcing of the bulkv */
 #pragma omp parallel for
