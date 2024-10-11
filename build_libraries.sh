@@ -69,7 +69,7 @@ mkdir zoltan-build
 cd zoltan-build
 if [[ $PLATFORM == "-arriesgado" ]]; then
    ../Zoltan/configure --prefix=$WORKSPACE/libraries${PLATFORM} --enable-mpi --with-mpi-compilers --with-gnumake --with-id-type=ullong --host=riscv64-unknown-linux-gnu --build=arm-linux-gnu && make -j 4 && make install
-elif [[ $PLATFORM == "-appleM1" ]]; then
+elif [[ $PLATFORM == "-appleM1" || $PLATFORM == "-meluxina" ]]; then
    ../Zoltan/configure --prefix=$WORKSPACE/libraries${PLATFORM} --enable-mpi --with-mpi-compilers --with-gnumake --with-id-type=ullong CC=mpicc CXX=mpic++ && make -j 4 && make install
 else
    ../Zoltan/configure --prefix=$WORKSPACE/libraries${PLATFORM} --enable-mpi --with-mpi-compilers --with-gnumake --with-id-type=ullong && make -j 4 && make install
