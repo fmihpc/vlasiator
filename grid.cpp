@@ -682,16 +682,6 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    phiprof::Timer updateBoundariesTimer {"update sysboundaries"};
    sysBoundaries.updateSysBoundariesAfterLoadBalance( mpiGrid );
    updateBoundariesTimer.stop();
-
-   phiprof::Timer initSolversTimer {"Init solvers"};
-   // Initialize field propagator (only if in use):
-   if (Parameters::propagateField == true) {
-      if (initializeFieldPropagatorAfterRebalance() == false) {
-         logFile << "(MAIN): Field propagator did not initialize correctly!" << endl << writeVerbose;
-         exit(1);
-      }
-   }
-   initSolversTimer.stop();
    
    // Record ranks of face neighbors
    if(P::amrMaxSpatialRefLevel > 0) {
