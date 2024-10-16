@@ -192,7 +192,7 @@ namespace projects {
                for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
                   const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
-                  const int64_t cellid = perBGrid.GlobalIDForCoords(x, y, z);
+                  const int64_t cellid = perBGrid.globalIDFromLocalCoordinates(x, y, z);
                   std::default_random_engine rndState;
                   setRandomSeed(cellid,rndState);
 

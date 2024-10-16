@@ -165,8 +165,8 @@ namespace projects {
             for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
                for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
-                  const int64_t cellid = perBGrid.GlobalIDForCoords(x, y, z);
-                  
+                  const int64_t cellid = perBGrid.globalIDFromLocalCoordinates(x, y, z);
+
                   std::default_random_engine rndState;
                   setRandomSeed(cellid,rndState);
                   
