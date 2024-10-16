@@ -552,7 +552,7 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
          for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
             technicalGrid.get(x, y, z)->SOLVE = 0;
 
-            array<FsGridTools::FsIndex_t, 3> globalIndices = technicalGrid.getGlobalIndices(x, y, z);
+            array<FsGridTools::FsIndex_t, 3> globalIndices = technicalGrid.localToGlobal(x, y, z);
 
             if (((globalIndices[0] == 0 || globalIndices[0] == (FsGridTools::FsIndex_t)fsGridDimensions[0] - 1) &&
                  !this->isPeriodic(0)) ||
