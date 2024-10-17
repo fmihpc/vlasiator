@@ -178,17 +178,21 @@ namespace projects {
       
       if(!P::isRestart) {
          auto localSize = perBGrid.getLocalSize().data();
-         
-         #pragma omp parallel for collapse(3)
+         const auto& gridSpacing = perBGrid.getGridSpacing();
+
+#pragma omp parallel for collapse(3)
          for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
             for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
                for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
                   const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
-                  
-                  cell->at(fsgrids::bfield::PERBX) = profile(this->Bx[this->BOTTOM], this->Bx[this->TOP], xyz[0]+0.5*perBGrid.DX);
-                  cell->at(fsgrids::bfield::PERBY) = profile(this->By[this->BOTTOM], this->By[this->TOP], xyz[0]+0.5*perBGrid.DX);
-                  cell->at(fsgrids::bfield::PERBZ) = profile(this->Bz[this->BOTTOM], this->Bz[this->TOP], xyz[0]+0.5*perBGrid.DX);
+
+                  cell->at(fsgrids::bfield::PERBX) =
+                      profile(this->Bx[this->BOTTOM], this->Bx[this->TOP], xyz[0] + 0.5 * gridSpacing[0]);
+                  cell->at(fsgrids::bfield::PERBY) =
+                      profile(this->By[this->BOTTOM], this->By[this->TOP], xyz[0] + 0.5 * gridSpacing[0]);
+                  cell->at(fsgrids::bfield::PERBZ) =
+                      profile(this->Bz[this->BOTTOM], this->Bz[this->TOP], xyz[0] + 0.5 * gridSpacing[0]);
                }
             }
          }

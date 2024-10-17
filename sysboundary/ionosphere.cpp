@@ -1176,16 +1176,23 @@ namespace SBC {
             );
 
             // Dot curl(B) with normalized B, scale by ratio of B(ionosphere)/B(upmapped), multiply by geometric area around ionosphere node to obtain current from density
-            FACinput[n] = nodeAreaGeometric * (nodes[n].parameters[ionosphereParameters::UPMAPPED_BX]*curlB[0] + nodes[n].parameters[ionosphereParameters::UPMAPPED_BY]*curlB[1] + nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ]*curlB[2])
-               * sqrt((nodes[n].parameters[ionosphereParameters::NODE_BX]*nodes[n].parameters[ionosphereParameters::NODE_BX]
-                  + nodes[n].parameters[ionosphereParameters::NODE_BY]*nodes[n].parameters[ionosphereParameters::NODE_BY]
-                  + nodes[n].parameters[ionosphereParameters::NODE_BZ]*nodes[n].parameters[ionosphereParameters::NODE_BZ])
-               )
-               / ((nodes[n].parameters[ionosphereParameters::UPMAPPED_BX]*nodes[n].parameters[ionosphereParameters::UPMAPPED_BX]
-                  + nodes[n].parameters[ionosphereParameters::UPMAPPED_BY]*nodes[n].parameters[ionosphereParameters::UPMAPPED_BY]
-                  + nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ]*nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ])
-               * physicalconstants::MU_0 * technicalGrid.DX
-            );
+            FACinput[n] = nodeAreaGeometric *
+                          (nodes[n].parameters[ionosphereParameters::UPMAPPED_BX] * curlB[0] +
+                           nodes[n].parameters[ionosphereParameters::UPMAPPED_BY] * curlB[1] +
+                           nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ] * curlB[2]) *
+                          sqrt((nodes[n].parameters[ionosphereParameters::NODE_BX] *
+                                    nodes[n].parameters[ionosphereParameters::NODE_BX] +
+                                nodes[n].parameters[ionosphereParameters::NODE_BY] *
+                                    nodes[n].parameters[ionosphereParameters::NODE_BY] +
+                                nodes[n].parameters[ionosphereParameters::NODE_BZ] *
+                                    nodes[n].parameters[ionosphereParameters::NODE_BZ])) /
+                          ((nodes[n].parameters[ionosphereParameters::UPMAPPED_BX] *
+                                nodes[n].parameters[ionosphereParameters::UPMAPPED_BX] +
+                            nodes[n].parameters[ionosphereParameters::UPMAPPED_BY] *
+                                nodes[n].parameters[ionosphereParameters::UPMAPPED_BY] +
+                            nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ] *
+                                nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ]) *
+                           physicalconstants::MU_0 * technicalGrid.getGridSpacing()[0]);
 
             // By definition, a downwards current into the ionosphere has a positive FAC value,
             // as it corresponds to positive divergence of horizontal current in the ionospheric plane.
@@ -2524,10 +2531,11 @@ namespace SBC {
 
       static creal DIAG2 = 1.0 / sqrt(2.0);
       static creal DIAG3 = 1.0 / sqrt(3.0);
+      const auto& gridSpacing = technicalGrid.getGridSpacing();
 
-      creal dx = technicalGrid.DX;
-      creal dy = technicalGrid.DY;
-      creal dz = technicalGrid.DZ;
+      creal dx = gridSpacing[0];
+      creal dy = gridSpacing[1];
+      creal dz = gridSpacing[2];
       const std::array<FsGridTools::FsSize_t, 3> globalIndices = technicalGrid.localToGlobal(i, j, k);
       creal x = P::xmin + (convert<Real>(globalIndices[0])+0.5)*dx;
       creal y = P::ymin + (convert<Real>(globalIndices[1])+0.5)*dy;

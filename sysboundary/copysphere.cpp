@@ -212,10 +212,12 @@ namespace SBC {
       
       static creal DIAG2 = 1.0 / sqrt(2.0);
       static creal DIAG3 = 1.0 / sqrt(3.0);
-      
-      creal dx = technicalGrid.DX;
-      creal dy = technicalGrid.DY;
-      creal dz = technicalGrid.DZ;
+
+      const auto& gridSpacing = technicalGrid.getGridSpacing();
+
+      creal dx = gridSpacing[0];
+      creal dy = gridSpacing[1];
+      creal dz = gridSpacing[2];
       const std::array<FsGridTools::FsSize_t, 3> globalIndices = technicalGrid.localToGlobal(i, j, k);
       creal x = P::xmin + (convert<Real>(globalIndices[0])+0.5)*dx;
       creal y = P::ymin + (convert<Real>(globalIndices[1])+0.5)*dy;

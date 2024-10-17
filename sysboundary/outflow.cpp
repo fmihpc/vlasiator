@@ -212,12 +212,13 @@ namespace SBC {
          for (FsGridTools::FsIndex_t j=0; j<gridDims[1]; j++) {
             for (FsGridTools::FsIndex_t i=0; i<gridDims[0]; i++) {
                const auto& coords = technicalGrid.getPhysicalCoords(i,j,k);
+               const auto& gridSpacing = technicalGrid.getGridSpacing();
 
                // Shift to the center of the fsgrid cell
                auto cellCenterCoords = coords;
-               cellCenterCoords[0] += 0.5 * technicalGrid.DX;
-               cellCenterCoords[1] += 0.5 * technicalGrid.DY;
-               cellCenterCoords[2] += 0.5 * technicalGrid.DZ;
+               cellCenterCoords[0] += 0.5 * gridSpacing[0];
+               cellCenterCoords[1] += 0.5 * gridSpacing[1];
+               cellCenterCoords[2] += 0.5 * gridSpacing[2];
                const auto refLvl = mpiGrid.get_refinement_level(mpiGrid.get_existing_cell(cellCenterCoords));
 
                if (refLvl == -1) {
