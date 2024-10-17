@@ -1634,6 +1634,7 @@ namespace spatial_cell {
       }
 
       // Add blocks to block container
+      vmesh::LocalID startLID = populations[popID].blockContainer.push_back(blocks.size());
       #ifdef DEBUG_SPATIAL_CELL
          if (populations[popID].vmesh.size() != populations[popID].blockContainer.size()) {
 	    std::cerr << "size mismatch in " << __FILE__ << ' ' << __LINE__ << std::endl; exit(1);
