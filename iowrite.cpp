@@ -886,7 +886,7 @@ bool writeFsGridMetadata(FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technic
 
   //The visit plugin expects MESH_BBOX as a keyword. We only write one
   //from the first rank.
-  std::array<FsGridTools::FsSize_t, 3>& globalSize = technicalGrid.getGlobalSize();
+  const std::array<FsGridTools::FsSize_t, 3>& globalSize = technicalGrid.getGlobalSize();
   std::array<FsGridTools::FsSize_t, 6> boundaryBox({globalSize[0], globalSize[1], globalSize[2],
       1,1,1});
 
@@ -934,7 +934,7 @@ bool writeFsGridMetadata(FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technic
   vlsvWriter.writeArray("MESH_GHOST_LOCALIDS", xmlAttributes, 0, 1, &dummyghost);
 
   // writeDomainSizes
-  std::array<FsGridTools::FsIndex_t,3>& localSize = technicalGrid.getLocalSize();
+  const std::array<FsGridTools::FsIndex_t, 3>& localSize = technicalGrid.getLocalSize();
   std::array<uint64_t,2> meshDomainSize({(uint64_t)localSize[0]*(uint64_t)localSize[1]*(uint64_t)localSize[2], 0});
   vlsvWriter.writeArray("MESH_DOMAIN_SIZES", xmlAttributes, 1, 2, &meshDomainSize[0]);
 
@@ -1671,57 +1671,57 @@ bool writeRestart(
    restartReducer.addOperator(new DRO::BoundaryLayer);
 
    // Fsgrid Reducers
-   restartReducer.addOperator(new DRO::DataReductionOperatorFsGrid("fg_E",[](
-                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
-                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<Real> {
-            std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
-            std::vector<Real> retval(gridSize[0]*gridSize[1]*gridSize[2]*fsgrids::efield::N_EFIELD);
-            int index=0;
-            for(FsGridTools::FsIndex_t z=0; z<gridSize[2]; z++) {
-               for(FsGridTools::FsIndex_t y=0; y<gridSize[1]; y++) {
-                  for(FsGridTools::FsIndex_t x=0; x<gridSize[0]; x++) {
-                     std::memcpy(&retval[index], EGrid.get(x,y,z), sizeof(Real)*fsgrids::efield::N_EFIELD);
-                     index += fsgrids::efield::N_EFIELD;
-                  }
-               }
-            }
-            return retval;
-         }
-   ));
-   
-   restartReducer.addOperator(new DRO::DataReductionOperatorFsGrid("fg_PERB",[](
-                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
-                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<Real> {
-            std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
-            std::vector<Real> retval(gridSize[0]*gridSize[1]*gridSize[2]*fsgrids::bfield::N_BFIELD);
-            int index=0;
-            for(FsGridTools::FsIndex_t z=0; z<gridSize[2]; z++) {
-               for(FsGridTools::FsIndex_t y=0; y<gridSize[1]; y++) {
-                  for(FsGridTools::FsIndex_t x=0; x<gridSize[0]; x++) {
-                     std::memcpy(&retval[index], perBGrid.get(x,y,z), sizeof(Real)*fsgrids::bfield::N_BFIELD);
-                     index += fsgrids::bfield::N_BFIELD;
-                  }
-               }
-            }
-            return retval;
-         }
-   ));
+   restartReducer.addOperator(new DRO::DataReductionOperatorFsGrid(
+       "fg_E",
+       [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+          FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EGrid,
+          FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH>& EHallGrid,
+          FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH>& EGradPeGrid,
+          FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
+          FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
+          FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
+          FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+          FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid,
+          FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) -> std::vector<Real> {
+          const std::array<FsGridTools::FsIndex_t, 3>& gridSize = technicalGrid.getLocalSize();
+          std::vector<Real> retval(gridSize[0] * gridSize[1] * gridSize[2] * fsgrids::efield::N_EFIELD);
+          int index = 0;
+          for (FsGridTools::FsIndex_t z = 0; z < gridSize[2]; z++) {
+             for (FsGridTools::FsIndex_t y = 0; y < gridSize[1]; y++) {
+                for (FsGridTools::FsIndex_t x = 0; x < gridSize[0]; x++) {
+                   std::memcpy(&retval[index], EGrid.get(x, y, z), sizeof(Real) * fsgrids::efield::N_EFIELD);
+                   index += fsgrids::efield::N_EFIELD;
+                }
+             }
+          }
+          return retval;
+       }));
+
+   restartReducer.addOperator(new DRO::DataReductionOperatorFsGrid(
+       "fg_PERB",
+       [](FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+          FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EGrid,
+          FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH>& EHallGrid,
+          FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH>& EGradPeGrid,
+          FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
+          FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
+          FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
+          FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+          FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid,
+          FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) -> std::vector<Real> {
+          const auto& gridSize = technicalGrid.getLocalSize();
+          std::vector<Real> retval(gridSize[0] * gridSize[1] * gridSize[2] * fsgrids::bfield::N_BFIELD);
+          int index = 0;
+          for (FsGridTools::FsIndex_t z = 0; z < gridSize[2]; z++) {
+             for (FsGridTools::FsIndex_t y = 0; y < gridSize[1]; y++) {
+                for (FsGridTools::FsIndex_t x = 0; x < gridSize[0]; x++) {
+                   std::memcpy(&retval[index], perBGrid.get(x, y, z), sizeof(Real) * fsgrids::bfield::N_BFIELD);
+                   index += fsgrids::bfield::N_BFIELD;
+                }
+             }
+          }
+          return retval;
+       }));
 
    // Add ionosphere restart variables
    // (To reconstruct state, we need the time-smoothed downmapped quantities: FACs, rhon and pressure.

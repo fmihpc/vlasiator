@@ -858,9 +858,9 @@ template<unsigned long int N> bool readFsGridVariable(
    MPI_Comm_size(MPI_COMM_WORLD, &size);
    MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
 
-   std::array<FsGridTools::FsIndex_t,3>& localSize = targetGrid.getLocalSize();
-   std::array<FsGridTools::FsIndex_t,3>& localStart = targetGrid.getLocalStart();
-   std::array<FsGridTools::FsSize_t,3>& globalSize = targetGrid.getGlobalSize();
+   const auto& localSize = targetGrid.getLocalSize();
+   const auto& localStart = targetGrid.getLocalStart();
+   const auto& globalSize = targetGrid.getGlobalSize();
 
    // Determine our tasks storage size
    size_t storageSize = localSize[0]*localSize[1]*localSize[2];
@@ -888,7 +888,7 @@ template<unsigned long int N> bool readFsGridVariable(
       }
    }
 
-   std::array<FsGridTools::Task_t,3> decomposition = targetGrid.getDecomposition();
+   const auto& decomposition = targetGrid.getDecomposition();
    // targetGrid.computeDomainDecomposition(globalSize, size, decomposition);
 
    if(decomposition == fileDecomposition) {
