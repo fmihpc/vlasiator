@@ -288,15 +288,18 @@ namespace projects {
       creal dy = cell->parameters[CellParams::DY];
       creal dz = cell->parameters[CellParams::DZ];
 
-      const Real* parameters = cell->get_block_parameters(popID);
       Realf* data = cell->get_data(popID);
+      const Real* DV = cell->get_population(popID).vmesh.getCellSize(0);
       
-      creal vxBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD];
-      creal vyBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD];
-      creal vzBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD];
-      creal dvxCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
-      creal dvyCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
-      creal dvzCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+      Real vcoords[3];
+      vmesh::GlobalID blockGID = cell->get_velocity_block_global_id(blockLID,popID);
+      cell->get_population(popID).vmesh.getBlockCoordinates(blockGID,vcoords);
+      creal vxBlock = vcoords[0];
+      creal vyBlock = vcoords[1];
+      creal vzBlock = vcoords[2];
+      creal dvxCell = DV[0];
+      creal dvyCell = DV[1];
+      creal dvzCell = DV[2];
       
       // Calculate volume average of distribution function for each phase-space cell in the block.
       Real maxValue = 0.0;
@@ -374,25 +377,6 @@ namespace projects {
             }
          }
 
-         // Refine blocks in vector refineList. All blocks that were created 
-         // as a result of the refine, including blocks created because of induced 
-         // refinement, are added to map insertedBlocks
-         map<vmesh::GlobalID,vmesh::LocalID> insertedBlocks;
-         for (size_t b=0; b<refineList.size(); ++b) {
-            cell->refine_block(refineList[b],insertedBlocks,popID);
-         }
-
-         // Loop over blocks in map insertedBlocks and recalculate 
-         // values of distribution functions
-         for (map<vmesh::GlobalID,vmesh::LocalID>::const_iterator it=insertedBlocks.begin(); it!=insertedBlocks.end(); ++it) {
-            const vmesh::GlobalID blockGID = it->first;
-            const vmesh::LocalID blockLID = it->second;
-            const Real maxValue = setVelocityBlock(cell,blockLID,popID);
-            if (maxValue <= cell->getVelocityBlockMinValue(popID)) {
-               removeList.push_back(blockGID);
-            }
-         }
-
          // Remove blocks with f below sparse min value
          for (size_t b=0; b<removeList.size(); ++b) cell->remove_velocity_block(removeList[b],popID);
 
@@ -421,13 +405,12 @@ namespace projects {
       // Re-scale densities
       Real sum = 0.0;
       Realf* data = cell->get_data(popID);
-      const Real* blockParams = cell->get_block_parameters(popID);
+      const Real* DV = cell->get_population(popID).vmesh.getCellSize(0);
       for (vmesh::LocalID blockLID=0; blockLID<cell->get_number_of_velocity_blocks(popID); ++blockLID) {
          Real tmp = 0.0;
          for (unsigned int i=0; i<WID3; ++i) tmp += data[blockLID*WID3+i];
-         const Real DV3 = blockParams[BlockParams::DVX]*blockParams[BlockParams::DVY]*blockParams[BlockParams::DVZ];
+         const Real DV3 = DV[0] * DV[1] * DV[2];
          sum += tmp*DV3;
-         blockParams += BlockParams::N_VELOCITY_BLOCK_PARAMS;
       }
       
       const Real correctSum = getCorrectNumberDensity(cell,popID);

@@ -174,10 +174,8 @@ namespace spatial_cell {
             if (removeBlock == true) {
                //No content, and also no neighbor have content -> remove
                //and increment rho loss counters
-               const Real* block_parameters = get_block_parameters(popID)+blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
-               const Real DV3 = block_parameters[BlockParams::DVX]
-                 * block_parameters[BlockParams::DVY]
-                 * block_parameters[BlockParams::DVZ];
+               const Real* DV = get_population(popID).vmesh.getCellSize(0);
+               const Real DV3 = DV[0] * DV[1] * DV[2];
                Real sum=0;
                for (unsigned int i=0; i<WID3; ++i) sum += get_data(popID)[blockLID*SIZE_VELBLOCK+i];
                this->populations[popID].RHOLOSSADJUST += DV3*sum;
@@ -728,10 +726,6 @@ namespace spatial_cell {
             block_lengths.push_back(sizeof(uint));
          }
          
-         if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_PARAMETERS) !=0) {
-            displacements.push_back((uint8_t*) get_block_parameters(activePopID) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(Real) * size(activePopID) * BlockParams::N_VELOCITY_BLOCK_PARAMS);
-         }
          // Copy particle species metadata
          if ((SpatialCell::mpi_transfer_type & Transfer::POP_METADATA) != 0) {
             for (uint popID=0; popID<populations.size(); ++popID) {
@@ -1262,65 +1256,6 @@ namespace spatial_cell {
       populations[popID].vmesh.setGrid();
       populations[popID].blockContainer.setSize(populations[popID].vmesh.size());
 
-      Real* parameters = get_block_parameters(popID);
-      
-      // Set velocity block parameters:
-      for (vmesh::LocalID blockLID=0; blockLID<size(popID); ++blockLID) {
-         const vmesh::GlobalID blockGID = get_velocity_block_global_id(blockLID,popID);
-         parameters[BlockParams::VXCRD] = get_velocity_block_vx_min(popID,blockGID);
-         parameters[BlockParams::VYCRD] = get_velocity_block_vy_min(popID,blockGID);
-         parameters[BlockParams::VZCRD] = get_velocity_block_vz_min(popID,blockGID);
-         populations[popID].vmesh.getCellSize(blockGID,&(parameters[BlockParams::DVX]));
-         parameters += BlockParams::N_VELOCITY_BLOCK_PARAMS;
-      }
-   }
-
-   void SpatialCell::refine_block(const vmesh::GlobalID& blockGID,std::map<vmesh::GlobalID,vmesh::LocalID>& insertedBlocks,const uint popID) {
-      #ifdef DEBUG_SPATIAL_CELL
-      if (blockGID == invalid_global_id()) {
-         std::cerr << "invalid global ID, skip refinement" << std::endl;
-         return;
-      }
-      #endif
-
-      // Tell mesh to refine the given block. In return we get the erased 
-      // and inserted blocks. Note that multiple blocks can be removed 
-      // (and inserted) due to induced refinement. There are eight entries 
-      // in newInserted (the children) for each entry in erasedBlocks.
-      std::set<vmesh::GlobalID> erasedBlocks;
-      std::map<vmesh::GlobalID,vmesh::LocalID> newInserted;
-      if (populations[popID].vmesh.refine(blockGID,erasedBlocks,newInserted) == false) {
-         return;
-      }
-
-      // Resize the block container, this preserves old data.
-      const size_t newBlocks = newInserted.size()-erasedBlocks.size();
-      populations[popID].blockContainer.setSize(populations[popID].blockContainer.size() + newBlocks);
-
-      std::map<vmesh::GlobalID,vmesh::LocalID>::const_iterator ins=newInserted.begin();
-      for (std::set<vmesh::GlobalID>::const_iterator er=erasedBlocks.begin(); er!=erasedBlocks.end(); ++er) {
-         for (int child=0; child<8; ++child) {
-            // Copy / interpolate data from old (coarse) block to new refined blocks.
-            
-            
-            // Set refined block parameters
-            Real* blockParams = populations[popID].blockContainer.getParameters(ins->second);
-            populations[popID].vmesh.getBlockCoordinates(ins->first,blockParams);
-            populations[popID].vmesh.getCellSize(ins->first,blockParams+3);
-            
-            ++ins;
-         }
-      }
-      
-      for (std::map<vmesh::GlobalID,vmesh::LocalID>::iterator it=newInserted.begin(); it!=newInserted.end(); ++it) {
-         // Set refined block parameters
-         Real* blockParams = populations[popID].blockContainer.getParameters(it->second);
-         populations[popID].vmesh.getBlockCoordinates(it->first,blockParams);
-         populations[popID].vmesh.getCellSize(it->first,blockParams+3);
-         
-      }
-
-      insertedBlocks.insert(newInserted.begin(),newInserted.end());
    }
 
    /** Set the particle species SpatialCell should use in functions that 
