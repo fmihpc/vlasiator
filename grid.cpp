@@ -1511,7 +1511,7 @@ void mapRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       for (FsGridTools::FsIndex_t j=0; j<localDims[1]; j++) {
          for (FsGridTools::FsIndex_t i=0; i<localDims[0]; i++) {
 
-            const std::array<FsGridTools::FsIndex_t, 3> mapIndices = technicalGrid.localToGlobal(i, j, k);
+            const std::array<FsGridTools::FsSize_t, 3> mapIndices = technicalGrid.localToGlobal(i, j, k);
             const dccrg::Types<3>::indices_t  indices = {{(uint64_t)mapIndices[0],(uint64_t)mapIndices[1],(uint64_t)mapIndices[2]}}; //cast to avoid warnings
             CellID dccrgCellID2 = mpiGrid.get_existing_cell(indices, 0, mpiGrid.mapping.get_maximum_refinement_level());
             int amrLevel= mpiGrid.get_refinement_level(dccrgCellID2);

@@ -194,7 +194,7 @@ Real Inflow::fieldSolverBoundaryCondMagneticField(
    creal dx = Parameters::dx_ini;
    creal dy = Parameters::dy_ini;
    creal dz = Parameters::dz_ini;
-   const array<FsGridTools::FsIndex_t, 3> globalIndices = technicalGrid.localToGlobal(i, j, k);
+   const array<FsGridTools::FsSize_t, 3> globalIndices = technicalGrid.localToGlobal(i, j, k);
    creal x = (convert<Real>(globalIndices[0]) + 0.5) * technicalGrid.DX + Parameters::xmin;
    creal y = (convert<Real>(globalIndices[1]) + 0.5) * technicalGrid.DY + Parameters::ymin;
    creal z = (convert<Real>(globalIndices[2]) + 0.5) * technicalGrid.DZ + Parameters::zmin;

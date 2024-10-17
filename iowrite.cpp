@@ -961,12 +961,13 @@ bool writeFsGridMetadata(FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technic
 
   if (writeIDs) {
      // Write cell "globalID" numbers, which are just the global array indices.
-     std::vector<FsGridTools::FsIndex_t> globalIds(localSize[0]*localSize[1]*localSize[2]);
+     std::vector<FsGridTools::FsSize_t> globalIds(
+         static_cast<FsGridTools::FsSize_t>(localSize[0] * localSize[1] * localSize[2]));
      int i=0;
      for(int z=0; z<localSize[2]; z++) {
         for(int y=0; y<localSize[1]; y++) {
            for(int x=0; x<localSize[0]; x++) {
-              std::array<FsGridTools::FsIndex_t, 3> globalIndex = technicalGrid.localToGlobal(x, y, z);
+              const std::array<FsGridTools::FsSize_t, 3> globalIndex = technicalGrid.localToGlobal(x, y, z);
               globalIds[i++] = globalIndex[2]*globalSize[0]*globalSize[1]+
                  globalIndex[1]*globalSize[0] +
                  globalIndex[0];
