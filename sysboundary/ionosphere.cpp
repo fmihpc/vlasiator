@@ -3192,18 +3192,20 @@ namespace SBC {
                   cell.clear(popID); // Clear previous velocity space completely
                   const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(cell,density,temperature,vDrift,popID);
                   Realf* data = cell.get_data(popID);
+                  const Real* DV = cell.get_population(popID).vmesh.getCellSize(0);
 
                   for (size_t i = 0; i < blocksToInitialize.size(); i++) {
                      const vmesh::GlobalID blockGID = blocksToInitialize[i];
                      cell.add_velocity_block(blockGID,popID);
                      const vmesh::LocalID block = cell.get_velocity_block_local_id(blockGID,popID);
-                     const Real* blockParameters = cell.get_block_parameters(block,popID);
-                     creal vxBlock = blockParameters[BlockParams::VXCRD];
-                     creal vyBlock = blockParameters[BlockParams::VYCRD];
-                     creal vzBlock = blockParameters[BlockParams::VZCRD];
-                     creal dvxCell = blockParameters[BlockParams::DVX];
-                     creal dvyCell = blockParameters[BlockParams::DVY];
-                     creal dvzCell = blockParameters[BlockParams::DVZ];
+                     Real vcoords[3];
+                     cell.get_population(popID).vmesh.getBlockCoordinates(blockGID,vcoords);
+                     creal vxBlock = vcoords[0];
+                     creal vyBlock = vcoords[1];
+                     creal vzBlock = vcoords[2];
+                     creal dvxCell = DV[0];
+                     creal dvyCell = DV[1];
+                     creal dvzCell = DV[2];
 
                      // Iterate over cells within block
                      for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
@@ -3255,17 +3257,19 @@ namespace SBC {
                   cell.clear(popID); // Clear previous velocity space completely
                   const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(cell,density,temperature,vDrift,popID);
                   Realf* data = cell.get_data(popID);
+                  const Real* DV = cell.get_population(popID).vmesh.getCellSize(0);
                   for (size_t i = 0; i < blocksToInitialize.size(); i++) {
                      const vmesh::GlobalID blockGID = blocksToInitialize[i];
                      cell.add_velocity_block(blockGID,popID);
                      const vmesh::LocalID block = cell.get_velocity_block_local_id(blockGID,popID);
-                     const Real* blockParameters = cell.get_block_parameters(block,popID);
-                     creal vxBlock = blockParameters[BlockParams::VXCRD];
-                     creal vyBlock = blockParameters[BlockParams::VYCRD];
-                     creal vzBlock = blockParameters[BlockParams::VZCRD];
-                     creal dvxCell = blockParameters[BlockParams::DVX];
-                     creal dvyCell = blockParameters[BlockParams::DVY];
-                     creal dvzCell = blockParameters[BlockParams::DVZ];
+                     Real vcoords[3];
+                     cell.get_population(popID).vmesh.getBlockCoordinates(blockGID,vcoords);
+                     creal vxBlock = vcoords[0];
+                     creal vyBlock = vcoords[1];
+                     creal vzBlock = vcoords[2];
+                     creal dvxCell = DV[0];
+                     creal dvyCell = DV[1];
+                     creal dvzCell = DV[2];
 
                      // Iterate over cells within block
                      for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
@@ -3341,17 +3345,19 @@ namespace SBC {
          const std::array<Real, 3> vDrift = {0,0,0};
          const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(templateCell,sP.rho,sP.T,vDrift,popID);
          Realf* data = templateCell.get_data(popID);
+         const Real* DV = templateCell.get_population(popID).vmesh.getCellSize(0);
 
          for (size_t i = 0; i < blocksToInitialize.size(); i++) {
             const vmesh::GlobalID blockGID = blocksToInitialize.at(i);
             const vmesh::LocalID blockLID = templateCell.get_velocity_block_local_id(blockGID,popID);
-            const Real* block_parameters = templateCell.get_block_parameters(blockLID,popID);
-            creal vxBlock = block_parameters[BlockParams::VXCRD];
-            creal vyBlock = block_parameters[BlockParams::VYCRD];
-            creal vzBlock = block_parameters[BlockParams::VZCRD];
-            creal dvxCell = block_parameters[BlockParams::DVX];
-            creal dvyCell = block_parameters[BlockParams::DVY];
-            creal dvzCell = block_parameters[BlockParams::DVZ];
+            Real vcoords[3];
+            templateCell.get_population(popID).vmesh.getBlockCoordinates(blockGID, vcoords);
+            creal vxBlock = vcoords[0];
+            creal vyBlock = vcoords[1];
+            creal vzBlock = vcoords[2];
+            creal dvxCell = DV[0];
+            creal dvyCell = DV[1];
+            creal dvzCell = DV[2];
 
             //creal x = templateCell.parameters[CellParams::XCRD];
             //creal y = templateCell.parameters[CellParams::YCRD];

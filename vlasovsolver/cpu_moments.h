@@ -37,11 +37,11 @@ using namespace spatial_cell;
 // ***** FUNCTION DECLARATIONS ***** //
 
 template<typename REAL> 
-void blockVelocityFirstMoments(const Realf* avgs,const Real* blockParams,
+void blockVelocityFirstMoments(const Realf* avgs,const Real* vcoords, const Real* dv,
                                REAL* array);
 
 template<typename REAL> 
-void blockVelocitySecondMoments(const Realf* avgs,const Real* blockParams,
+void blockVelocitySecondMoments(const Realf* avgs,const Real* vcoords, const Real* dv,
                                 const REAL v[3],
                                 REAL* array);
 
@@ -69,7 +69,8 @@ void calculateMoments_V(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 template<typename REAL> inline
 void blockVelocityFirstMoments(
         const Realf* avgs,
-        const Real* blockParams,
+        const Real* vcoords,
+        const Real* dv,
         REAL* array) {
 
    const Real HALF = 0.5;
@@ -79,9 +80,9 @@ void blockVelocityFirstMoments(
    Real nvy_sum = 0.0;
    Real nvz_sum = 0.0;
    for (uint k=0; k<WID; ++k) for (uint j=0; j<WID; ++j) for (uint i=0; i<WID; ++i) {
-      const REAL VX = blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX];
-      const REAL VY = blockParams[BlockParams::VYCRD] + (j+HALF)*blockParams[BlockParams::DVY];
-      const REAL VZ = blockParams[BlockParams::VZCRD] + (k+HALF)*blockParams[BlockParams::DVZ];
+      const REAL VX = vcoords[0] + (i+HALF)*dv[0];
+      const REAL VY = vcoords[1] + (j+HALF)*dv[1];
+      const REAL VZ = vcoords[2] + (k+HALF)*dv[2];
       
       n_sum   += avgs[cellIndex(i,j,k)];
       nvx_sum += avgs[cellIndex(i,j,k)]*VX;
@@ -89,7 +90,7 @@ void blockVelocityFirstMoments(
       nvz_sum += avgs[cellIndex(i,j,k)]*VZ;
    }
    
-   const Real DV3 = blockParams[BlockParams::DVX]*blockParams[BlockParams::DVY]*blockParams[BlockParams::DVZ];
+   const Real DV3 = dv[0]*dv[1]*dv[2];
    array[0] += n_sum   * DV3;
    array[1] += nvx_sum * DV3;
    array[2] += nvy_sum * DV3;
@@ -110,7 +111,8 @@ void blockVelocityFirstMoments(
 template<typename REAL> inline
 void blockVelocitySecondMoments(
         const Realf* avgs,
-        const Real* blockParams,
+        const Real* vcoords,
+        const Real* dv,
         const REAL averageVX,
         const REAL averageVY,
         const REAL averageVZ,
@@ -122,16 +124,16 @@ void blockVelocitySecondMoments(
    Real nvy2_sum = 0.0;
    Real nvz2_sum = 0.0;
    for (uint k=0; k<WID; ++k) for (uint j=0; j<WID; ++j) for (uint i=0; i<WID; ++i) {
-      const Real VX = blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX];
-      const Real VY = blockParams[BlockParams::VYCRD] + (j+HALF)*blockParams[BlockParams::DVY];
-      const Real VZ = blockParams[BlockParams::VZCRD] + (k+HALF)*blockParams[BlockParams::DVZ];
+      const REAL VX = vcoords[0] + (i+HALF)*dv[0];
+      const REAL VY = vcoords[1] + (j+HALF)*dv[1];
+      const REAL VZ = vcoords[2] + (k+HALF)*dv[2];
       
       nvx2_sum += avgs[cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX);
       nvy2_sum += avgs[cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY);
       nvz2_sum += avgs[cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ);
    }
    
-   const Real DV3 = blockParams[BlockParams::DVX]*blockParams[BlockParams::DVY]*blockParams[BlockParams::DVZ];
+   const Real DV3 = dv[0]*dv[1]*dv[2];
    array[0] += nvx2_sum * DV3;
    array[1] += nvy2_sum * DV3;
    array[2] += nvz2_sum * DV3;

@@ -51,10 +51,6 @@ namespace vmesh {
       Realf* getData(const LID& blockLID);
       const Realf* getData(const LID& blockLID) const;
       Realf* getNullData();
-      Real* getParameters();
-      const Real* getParameters() const;
-      Real* getParameters(const LID& blockLID);      
-      const Real* getParameters(const LID& blockLID) const;
       void pop();
       LID push_back();
       LID push_back(const uint32_t& N_blocks);
@@ -66,7 +62,6 @@ namespace vmesh {
 
       #ifdef DEBUG_VBC
       const Realf& getData(const LID& blockLID,const unsigned int& cell) const;
-      const Real& getParameters(const LID& blockLID,const unsigned int& i) const;
       void setData(const LID& blockLID,const unsigned int& cell,const Realf& value);
       #endif
 
@@ -189,34 +184,6 @@ namespace vmesh {
        return null_block_data;
    }
 
-   template<typename LID> inline
-   Real* VelocityBlockContainer<LID>::getParameters() {
-      return parameters.data();
-   }
-   
-   template<typename LID> inline
-   const Real* VelocityBlockContainer<LID>::getParameters() const {
-      return parameters.data();
-   }
-
-   template<typename LID> inline
-   Real* VelocityBlockContainer<LID>::getParameters(const LID& blockLID) {
-      #ifdef DEBUG_VBC
-         if (blockLID >= numberOfBlocks) exitInvalidLocalID(blockLID,"getParameters");
-         if (blockLID >= parameters.size()/BlockParams::N_VELOCITY_BLOCK_PARAMS) exitInvalidLocalID(blockLID,"getParameters");
-      #endif
-      return parameters.data() + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
-   }
-   
-   template<typename LID> inline
-   const Real* VelocityBlockContainer<LID>::getParameters(const LID& blockLID) const {
-      #ifdef DEBUG_VBC
-         if (blockLID >= numberOfBlocks) exitInvalidLocalID(blockLID,"const getParameters const");
-         if (blockLID >= parameters.size()/BlockParams::N_VELOCITY_BLOCK_PARAMS) exitInvalidLocalID(blockLID,"getParameters");
-      #endif
-      return parameters.data() + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
-   }
-   
    template<typename LID> inline
    void VelocityBlockContainer<LID>::pop() {
       if (numberOfBlocks == 0) return;
@@ -343,23 +310,6 @@ namespace vmesh {
       return block_data[blockLID*WID3+cell];
    }
 
-   template<typename LID> inline
-   const Real& VelocityBlockContainer<LID>::getParameters(const LID& blockLID,const unsigned int& cell) const {
-      bool ok = true;
-      if (cell >= BlockParams::N_VELOCITY_BLOCK_PARAMS) ok = false;
-      if (blockLID >= numberOfBlocks) ok = false;
-      if (blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+cell >= parameters.size()) ok = false;
-      if (ok == false) {
-         std::stringstream ss;
-         ss << "VBC ERROR: out of bounds in getParameters, LID=" << blockLID << " cell=" << cell << " #blocks=" << numberOfBlocks << " parameters.size()=" << parameters.size() << std::endl;
-         std::cerr << ss.str();
-         sleep(1);
-         exit(1);
-      }
-      
-      return parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+cell];
-   }
-   
    template<typename LID> inline
    void VelocityBlockContainer<LID>::setData(const LID& blockLID,const unsigned int& cell,const Realf& value) {
       bool ok = true;
