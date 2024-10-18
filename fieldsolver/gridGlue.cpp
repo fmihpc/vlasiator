@@ -94,18 +94,15 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          for (FsGridTools::FsIndex_t j = 0; j < mntDims[1]; j++){
             for (FsGridTools::FsIndex_t i = 0; i < mntDims[0]; i++){
 
-               //  Get refLevel level
                int refLevel = technicalGrid.get(i, j, k)->refLevel;
-
                auto* swap {swapGrid.get(i, j, k)};
 
-               // Skip pass
+               // Skip pass and copy value
                if (blurPass >= P::numPasses.at(refLevel) || technicalGrid.get(i, j, k)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
                   *swap = *momentsGrid.get(i, j, k);
                   continue;
                }
 
-               // Get pointers to our cells
                // Set Cell to zero before passing filter
                for (auto& moment : *swap) {
                   moment = 0.0;
@@ -130,7 +127,6 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       // i.e. use specialized swap if it exists, fall back on std
       using std::swap;
       swap(momentsGrid, swapGrid);
-      // Update Ghost Cells
       momentsGrid.updateGhostCells();
    }
 }
