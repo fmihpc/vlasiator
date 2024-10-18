@@ -358,6 +358,8 @@ namespace SBC {
          abort_mpi("No closest cell found!", 1);
       }
       
+      const Real* DV = to->get_population(popID).vmesh.getCellSize(0);
+
       const array<SpatialCell*,27>& flowtoCells = getFlowtoCells(cellID);
       //Do not allow block adjustment, the block structure when calling vlasovBoundaryCondition should be static
       //just copy data to existing blocks, no modification of to blocks allowed
@@ -370,14 +372,15 @@ namespace SBC {
                toBlock_data[i] = 0.0; //block did not exist in from cell, fill with zeros.
             }
          } else {
-            const Real* blockParameters = to->get_block_parameters(blockLID, popID);
             // check where cells are
-            creal vxBlock = blockParameters[BlockParams::VXCRD];
-            creal vyBlock = blockParameters[BlockParams::VYCRD];
-            creal vzBlock = blockParameters[BlockParams::VZCRD];
-            creal dvxCell = blockParameters[BlockParams::DVX];
-            creal dvyCell = blockParameters[BlockParams::DVY];
-            creal dvzCell = blockParameters[BlockParams::DVZ];
+            Real vcoords[3];
+            to->get_population(popID).vmesh.getBlockCoordinates(blockGID,vcoords);
+            creal vxBlock = vcoords[0];
+            creal vyBlock = vcoords[1];
+            creal vzBlock = vcoords[2];
+            creal dvxCell = DV[0];
+            creal dvyCell = DV[1];
+            creal dvzCell = DV[2];
             
             array<Realf*,27> flowtoCellsBlockCache = getFlowtoCellsBlock(flowtoCells, blockGID, popID);
             
@@ -550,17 +553,20 @@ namespace SBC {
       
       for (size_t i=0; i<numberOfCells; i++) {
          SpatialCell* incomingCell = mpiGrid[cellList[i]];
-         const Real* blockParameters = incomingCell->get_block_parameters(popID);
+         const Real* DV = incomingCell->get_population(popID).vmesh.getCellSize(0);
 
          // add blocks
          for (vmesh::LocalID blockLID=0; blockLID<incomingCell->get_number_of_velocity_blocks(popID); ++blockLID) {
             // check where cells are
-            creal vxBlock = blockParameters[BlockParams::VXCRD];
-            creal vyBlock = blockParameters[BlockParams::VYCRD];
-            creal vzBlock = blockParameters[BlockParams::VZCRD];
-            creal dvxCell = blockParameters[BlockParams::DVX];
-            creal dvyCell = blockParameters[BlockParams::DVY];
-            creal dvzCell = blockParameters[BlockParams::DVZ];
+            Real vcoords[3];
+            vmesh::GlobalID blockGID = incomingCell->get_velocity_block_global_id(blockLID, popID);
+            incomingCell->get_population(popID).vmesh.getBlockCoordinates(blockGID,vcoords);
+            creal vxBlock = vcoords[0];
+            creal vyBlock = vcoords[1];
+            creal vzBlock = vcoords[2];
+            creal dvxCell = DV[0];
+            creal dvyCell = DV[1];
+            creal dvzCell = DV[2];
             for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
                creal vxCellCenter = vxBlock + (ic+convert<Real>(0.5))*dvxCell;
                creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell;
@@ -588,7 +594,6 @@ namespace SBC {
                }
             } // for-loop over cells in velocity block
          } // for-loop over velocity blocks
-         blockParameters += BlockParams::N_VELOCITY_BLOCK_PARAMS;
       } // for-loop over spatial cells
    }
    
@@ -619,17 +624,21 @@ namespace SBC {
       
       for (size_t i=0; i<numberOfCells; i++) {
          SpatialCell* incomingCell = mpiGrid[cellList[i]];
-         const Real* blockParameters = incomingCell->get_block_parameters(popID);
+         const Real* DV = incomingCell->get_population(popID).vmesh.getCellSize(0);
          
          // add blocks
          for (vmesh::LocalID blockLID=0; blockLID<incomingCell->get_number_of_velocity_blocks(popID); ++blockLID) {
             // check where cells are
-            creal vxBlock = blockParameters[BlockParams::VXCRD];
-            creal vyBlock = blockParameters[BlockParams::VYCRD];
-            creal vzBlock = blockParameters[BlockParams::VZCRD];
-            creal dvxCell = blockParameters[BlockParams::DVX];
-            creal dvyCell = blockParameters[BlockParams::DVY];
-            creal dvzCell = blockParameters[BlockParams::DVZ];
+            Real vcoords[3];
+            vmesh::GlobalID blockGID = incomingCell->get_velocity_block_global_id(blockLID, popID);
+            incomingCell->get_population(popID).vmesh.getBlockCoordinates(blockGID,vcoords);
+            creal vxBlock = vcoords[0];
+            creal vyBlock = vcoords[1];
+            creal vzBlock = vcoords[2];
+            creal dvxCell = DV[0];
+            creal dvyCell = DV[1];
+            creal dvzCell = DV[2];
+
             for (uint kc=0; kc<WID; ++kc) 
                for (uint jc=0; jc<WID; ++jc) 
                   for (uint ic=0; ic<WID; ++ic) {
@@ -659,7 +668,6 @@ namespace SBC {
                      }
             }
          } // for-loop over velocity blocks
-         blockParameters += BlockParams::N_VELOCITY_BLOCK_PARAMS;
       } // for-loop over spatial cells
    }
 

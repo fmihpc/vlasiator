@@ -759,17 +759,19 @@ namespace SBC {
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(templateCell,popID);
          Realf* data = templateCell.get_data(popID);
+         const Real* DV = templateCell.get_population(popID).vmesh.getCellSize(0);
          
          for (size_t i = 0; i < blocksToInitialize.size(); i++) {
             const vmesh::GlobalID blockGID = blocksToInitialize.at(i);
             const vmesh::LocalID blockLID = templateCell.get_velocity_block_local_id(blockGID,popID);
-            const Real* block_parameters = templateCell.get_block_parameters(blockLID,popID);
-            creal vxBlock = block_parameters[BlockParams::VXCRD];
-            creal vyBlock = block_parameters[BlockParams::VYCRD];
-            creal vzBlock = block_parameters[BlockParams::VZCRD];
-            creal dvxCell = block_parameters[BlockParams::DVX];
-            creal dvyCell = block_parameters[BlockParams::DVY];
-            creal dvzCell = block_parameters[BlockParams::DVZ];
+            Real vcoords[3];
+            templateCell.get_population(popID).vmesh.getBlockCoordinates(blockGID,vcoords);
+            creal vxBlock = vcoords[0];
+            creal vyBlock = vcoords[1];
+            creal vzBlock = vcoords[2];
+            creal dvxCell = DV[0];
+            creal dvyCell = DV[1];
+            creal dvzCell = DV[2];
 
             //creal x = templateCell.parameters[CellParams::XCRD];
             //creal y = templateCell.parameters[CellParams::YCRD];
