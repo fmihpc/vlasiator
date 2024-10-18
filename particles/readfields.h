@@ -59,7 +59,7 @@ static void detect_field_names(Reader& r) {
       #ifdef DEBUG
       #endif
       B_field_name = "B";
-   } else if (find(variableNames.begin(), variableNames.end(), std::string("fg_b_background")) != variableNames.end() && 
+   } else if (find(variableNames.begin(), variableNames.end(), std::string("fg_b_background")) != variableNames.end() &&
               find(variableNames.begin(), variableNames.end(), std::string("fg_b_perturbed")) != variableNames.end()) {
       B_field_name = "fg_b_background";
    } else if (find(variableNames.begin(), variableNames.end(), std::string("B_vol"))!=variableNames.end()) {
@@ -70,14 +70,14 @@ static void detect_field_names(Reader& r) {
       #ifdef DEBUG
       #endif
       B_field_name = "vg_b_vol";
-   } else if (find(variableNames.begin(), variableNames.end(), std::string("vg_b_background_vol")) != variableNames.end() && 
+   } else if (find(variableNames.begin(), variableNames.end(), std::string("vg_b_background_vol")) != variableNames.end() &&
               find(variableNames.begin(), variableNames.end(), std::string("vg_b_perturbed_vol")) != variableNames.end()) {
       B_field_name = "vg_b_background_vol";
    } else {
       std::cerr << "No B-fields found! Strange file format?" << std::endl;
       exit(1);
    }
-   
+
    if (find(variableNames.begin(), variableNames.end(), std::string("fg_e"))!=variableNames.end()) {
       #ifdef DEBUG
       #endif
@@ -122,33 +122,33 @@ std::vector<double> readFieldData(Reader& r, std::string& name, unsigned int num
    if(byteSize == 8) {
       /* Allocate memory for the data */
       std::vector<double> buffer(arraySize*vectorSize);
-      
+
       if( r.readArray("VARIABLE",attribs,0,arraySize,(char*) buffer.data()) == false) {
          std::cerr << "readArray failed when trying to read VARIABLE \"" << name << "\"." << std::endl;
          exit(1);
       }
-      
+
       return buffer;
    } else if(byteSize == 4) {
       /* Allocate memory for the data */
       std::vector<double> buffer;
       std::vector<float>  fbuffer(arraySize*vectorSize);
-      
+
       if( r.readArray("VARIABLE",attribs,0,arraySize,(char*) fbuffer.data()) == false) {
          std::cerr << "readArray faied when trying to read VARIABLE \"" << name << "\"." << std::endl;
          exit(1);
       }
-      
+
       for(float value : fbuffer) {
          buffer.push_back((double)value);
       }
-      
+
       return buffer;
    } else {
       std::cerr << "Datatype of VARIABLE \"" << name << "\" entries is not double." << std::endl;
       exit(1);
    }
-   
+
    return {0};
 }
 
@@ -161,7 +161,7 @@ std::vector<double> readFsGridData(Reader& r, std::string& name, unsigned int nu
    vlsv::datatype::type dataType;
    uint64_t byteSize;
    std::list<std::pair<std::string,std::string> > attribs;
-   
+
    attribs.push_back(std::make_pair("name",name));
    attribs.push_back(std::make_pair("mesh","fsgrid"));
 
@@ -183,7 +183,7 @@ std::vector<double> readFsGridData(Reader& r, std::string& name, unsigned int nu
    }
 
    // Are we restarting from the same number of tasks, or a different number?
-   std::array<int, 3> size;
+   std::array<uint, 3> size;
    r.readParameter("xcells_ini",size[0]);
    r.readParameter("ycells_ini",size[1]);
    r.readParameter("zcells_ini",size[2]);
@@ -315,13 +315,13 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int step, F
          if (B_field_name == "fg_b_background") {
             name = "fg_b_perturbed";
             std::vector<double> perturbedBbuffer = readFsGridData(r,name,3u);
-            for (int i = 0; i < Bbuffer.size(); ++i) {
+            for (unsigned int i = 0; i < Bbuffer.size(); ++i) {
                Bbuffer[i] += perturbedBbuffer[i];
             }
          }
          name = E_field_name;
          Ebuffer = readFsGridData(r,name,3u);
-         for (int i = 0; i < cellIds.size(); ++i) {
+         for (unsigned int i = 0; i < cellIds.size(); ++i) {
             cellIds[i] = i+1;
          }
       } else {
@@ -329,7 +329,7 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int step, F
          if (B_field_name == "vg_b_background_vol") {
             name = "vg_b_perturbed_vol";
             std::vector<double> perturbedBbuffer = readFieldData(r,name,3u);
-            for (int i = 0; i < Bbuffer.size(); ++i) {
+            for (unsigned int i = 0; i < Bbuffer.size(); ++i) {
                Bbuffer[i] += perturbedBbuffer[i];
             }
          }
@@ -422,13 +422,13 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, bool doV=tru
       if (B_field_name == "fg_b_background") {
          name = "fg_b_perturbed";
          std::vector<double> perturbedBbuffer = readFsGridData(r,name,3u);
-         for (int i = 0; i < Bbuffer.size(); ++i) {
+         for (unsigned int i = 0; i < Bbuffer.size(); ++i) {
             Bbuffer[i] += perturbedBbuffer[i];
          }
       }
       name = E_field_name;
       Ebuffer = readFsGridData(r,name,3u);
-      for (int i = 0; i < cellIds.size(); ++i) {
+      for (unsigned int i = 0; i < cellIds.size(); ++i) {
          cellIds[i] = i+1;
       }
    } else {
@@ -436,7 +436,7 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, bool doV=tru
       if (B_field_name == "vg_b_background_vol") {
          name = "vg_b_perturbed_vol";
          std::vector<double> perturbedBbuffer = readFieldData(r,name,3u);
-         for (int i = 0; i < Bbuffer.size(); ++i) {
+         for (unsigned int i = 0; i < Bbuffer.size(); ++i) {
             Bbuffer[i] += perturbedBbuffer[i];
          }
       }
