@@ -103,22 +103,19 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                }
 
                // Get pointers to our cells
-               std::array<Real, fsgrids::moments::N_MOMENTS> *cell;  
-               std::array<Real, fsgrids::moments::N_MOMENTS> *swap;
-            
+               std::array<Real, fsgrids::moments::N_MOMENTS> *swap {swapGrid.get(i, j, k)};
                // Set Cell to zero before passing filter
-               swap = swapGrid.get(i,j,k);
-               for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
-                  swap->at(e)=0.0;
+               for (auto& moment : *swap) {
+                  moment = 0.0;
                }
 
                // Perform the blur
                for (int c=-kernelOffset; c<=kernelOffset; c++){
                   for (int b=-kernelOffset; b<=kernelOffset; b++){
                      for (int a=-kernelOffset; a<=kernelOffset; a++){
-                        cell = momentsGrid.get(i+a,j+b,k+c);
+                        auto* cell {momentsGrid.get(i+a,j+b,k+c)};
                         for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
-                           swap->at(e)+=cell->at(e) *kernel[kernelOffset+a][kernelOffset+b][kernelOffset+c];
+                           swap->at(e) += cell->at(e) * kernel[kernelOffset+a][kernelOffset+b][kernelOffset+c];
                         } 
                      }
                   }
