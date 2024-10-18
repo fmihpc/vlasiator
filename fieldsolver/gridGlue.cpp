@@ -103,9 +103,9 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                   continue;
                }
 
-               // Set Cell to zero before passing filter
-               for (auto& moment : *swap) {
-                  moment = 0.0;
+               // Set moments to zero before passing filter
+               for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
+                  swap->at(e) = 0.0;
                }
 
                // Perform the blur
