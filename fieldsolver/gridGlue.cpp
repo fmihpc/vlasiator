@@ -83,10 +83,10 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
    // Get size of local domain and create swapGrid for filtering
    const FsGridTools::FsIndex_t* mntDims = &momentsGrid.getLocalSize()[0];  
+   FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> swapGrid = momentsGrid;  //swap array 
 
    // Filtering Loop
    for (int blurPass = 0; blurPass < Parameters::maxFilteringPasses; blurPass++){
-      FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> swapGrid = momentsGrid;  //swap array 
 
       // Blurring Pass
       #pragma omp parallel for collapse(2)
@@ -97,13 +97,15 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                //  Get refLevel level
                int refLevel = technicalGrid.get(i, j, k)->refLevel;
 
+               auto* swap {swapGrid.get(i, j, k)};
+
                // Skip pass
                if (blurPass >= P::numPasses.at(refLevel) || technicalGrid.get(i, j, k)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+                  *swap = *momentsGrid.get(i, j, k);
                   continue;
                }
 
                // Get pointers to our cells
-               std::array<Real, fsgrids::moments::N_MOMENTS> *swap {swapGrid.get(i, j, k)};
                // Set Cell to zero before passing filter
                for (auto& moment : *swap) {
                   moment = 0.0;
@@ -113,8 +115,8 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                for (int c=-kernelOffset; c<=kernelOffset; c++){
                   for (int b=-kernelOffset; b<=kernelOffset; b++){
                      for (int a=-kernelOffset; a<=kernelOffset; a++){
-                        auto* cell {momentsGrid.get(i+a,j+b,k+c)};
                         for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
+                           const auto* cell {momentsGrid.get(i+a,j+b,k+c)};
                            swap->at(e) += cell->at(e) * kernel[kernelOffset+a][kernelOffset+b][kernelOffset+c];
                         } 
                      }
