@@ -43,9 +43,9 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
 
    // Kernel Characteristics
-   const int kernelOffset = 2;   // offset of 5 pointstencil 3D kernel => (floor(stencilWidth/2);)
-   const Real inverseKernelSum = 1.0 / 729.0;   // the inverse of the total kernel's sum 
-   const static Real kernel[5][5][5] ={
+   constexpr int kernelOffset = 2;   // offset of 5 pointstencil 3D kernel => (floor(stencilWidth/2);)
+   constexpr Real inverseKernelSum = 1.0 / 729.0;   // the inverse of the total kernel's sum 
+   constexpr static Real kernel[5][5][5] ={
                                  {{ 1 * inverseKernelSum,  2 * inverseKernelSum,  3 * inverseKernelSum,  2 * inverseKernelSum,  1 * inverseKernelSum},
                                  { 2 * inverseKernelSum,  4 * inverseKernelSum,  6 * inverseKernelSum,  4 * inverseKernelSum,  2 * inverseKernelSum},
                                  { 3 * inverseKernelSum,  6 * inverseKernelSum,  9 * inverseKernelSum,  6 * inverseKernelSum,  3 * inverseKernelSum},
@@ -94,31 +94,27 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          for (FsGridTools::FsIndex_t j = 0; j < mntDims[1]; j++){
             for (FsGridTools::FsIndex_t i = 0; i < mntDims[0]; i++){
 
-               //  Get refLevel level
                int refLevel = technicalGrid.get(i, j, k)->refLevel;
+               auto* swap {swapGrid.get(i, j, k)};
 
-               // Skip pass
+               // Skip pass and copy value
                if (blurPass >= P::numPasses.at(refLevel) || technicalGrid.get(i, j, k)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+                  *swap = *momentsGrid.get(i, j, k);
                   continue;
                }
 
-               // Get pointers to our cells
-               std::array<Real, fsgrids::moments::N_MOMENTS> *cell;  
-               std::array<Real, fsgrids::moments::N_MOMENTS> *swap;
-            
-               // Set Cell to zero before passing filter
-               swap = swapGrid.get(i,j,k);
+               // Set moments to zero before passing filter
                for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
-                  swap->at(e)=0.0;
+                  swap->at(e) = 0.0;
                }
 
                // Perform the blur
                for (int c=-kernelOffset; c<=kernelOffset; c++){
                   for (int b=-kernelOffset; b<=kernelOffset; b++){
                      for (int a=-kernelOffset; a<=kernelOffset; a++){
-                        cell = momentsGrid.get(i+a,j+b,k+c);
+                        const auto* cell {momentsGrid.get(i+a,j+b,k+c)};
                         for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
-                           swap->at(e)+=cell->at(e) *kernel[kernelOffset+a][kernelOffset+b][kernelOffset+c];
+                           swap->at(e) += cell->at(e) * kernel[kernelOffset+a][kernelOffset+b][kernelOffset+c];
                         } 
                      }
                   }
@@ -127,12 +123,12 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          }
       } //spatial loops
 
-      // Copy swapGrid back to momentsGrid
-      momentsGrid=swapGrid;
-      // Update Ghost Cells
+      // Allows argument dependent lookup (ADL)
+      // i.e. use specialized swap if it exists, fall back on std
+      using std::swap;
+      swap(momentsGrid, swapGrid);
       momentsGrid.updateGhostCells();
-
-    }
+   }
 }
 
 void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
