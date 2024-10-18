@@ -73,7 +73,6 @@ namespace vmesh {
       Realf null_block_data[WID3];
       LID currentCapacity;
       LID numberOfBlocks;
-      std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS> > parameters;
    };
    
    template<typename LID> inline
@@ -86,7 +85,7 @@ namespace vmesh {
    
    template<typename LID> inline
    size_t VelocityBlockContainer<LID>::capacityInBytes() const {
-      return (block_data.capacity())*sizeof(Realf) + parameters.capacity()*sizeof(Real);
+      return (block_data.capacity())*sizeof(Realf);
    }
 
    /** Clears VelocityBlockContainer data and deallocates all memory 
@@ -94,10 +93,8 @@ namespace vmesh {
    template<typename LID> inline
    void VelocityBlockContainer<LID>::clear() {
       std::vector<Realf,aligned_allocator<Realf,WID3> > dummy_data;
-      std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS> > dummy_parameters;
       
       block_data.swap(dummy_data);
-      parameters.swap(dummy_parameters);
       
       currentCapacity = 0;
       numberOfBlocks = 0;
@@ -114,13 +111,10 @@ namespace vmesh {
          if (numberOfBlocks >= currentCapacity) ok = false;
          if (source != numberOfBlocks-1) ok = false;
          if (source*WID3+WID3-1 >= block_data.size()) ok = false;
-         if (source*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::N_VELOCITY_BLOCK_PARAMS-1 >= parameters.size()) ok = false;
-         if (target*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::N_VELOCITY_BLOCK_PARAMS-1 >= parameters.size()) ok = false;
-         if (parameters.size()/BlockParams::N_VELOCITY_BLOCK_PARAMS != block_data.size()/WID3) ok = false;
          if (ok == false) {
             std::stringstream ss;
             ss << "VBC ERROR: invalid source LID=" << source << " in copy, target=" << target << " #blocks=" << numberOfBlocks << " capacity=" << currentCapacity << std::endl;
-            ss << "or sizes are wrong, data.size()=" << block_data.size() << " parameters.size()=" << parameters.size() << std::endl;
+            ss << "or sizes are wrong, data.size()=" << block_data.size() << std::endl;
             std::cerr << ss.str();
             sleep(1);
             exit(1);
@@ -128,9 +122,6 @@ namespace vmesh {
       #endif
 
       for (unsigned int i=0; i<WID3; ++i) block_data[target*WID3+i] = block_data[source*WID3+i];
-      for (int i=0; i<BlockParams::N_VELOCITY_BLOCK_PARAMS; ++i) {
-         parameters[target*BlockParams::N_VELOCITY_BLOCK_PARAMS+i] = parameters[source*BlockParams::N_VELOCITY_BLOCK_PARAMS+i];
-      }
    }
 
    template<typename LID> inline
@@ -196,10 +187,10 @@ namespace vmesh {
       if (newIndex >= currentCapacity) resize();
 
       #ifdef DEBUG_VBC
-      if (newIndex >= block_data.size()/WID3 || newIndex >= parameters.size()/BlockParams::N_VELOCITY_BLOCK_PARAMS) {
+      if (newIndex >= block_data.size()/WID3) {
          std::stringstream ss;
          ss << "VBC ERROR in push_back, LID=" << newIndex << " for new block is out of bounds" << std::endl;
-         ss << "\t data.size()=" << block_data.size()  << " parameters.size()=" << parameters.size() << std::endl;
+         ss << "\t data.size()=" << block_data.size() << std::endl;
          std::cerr << ss.str();
          sleep(1);
          exit(1);
@@ -208,8 +199,6 @@ namespace vmesh {
 
       // Clear velocity block data to zero values
       for (size_t i=0; i<WID3; ++i) block_data[newIndex*WID3+i] = 0.0;
-      for (size_t i=0; i<BlockParams::N_VELOCITY_BLOCK_PARAMS; ++i) 
-         parameters[newIndex*BlockParams::N_VELOCITY_BLOCK_PARAMS+i] = 0.0;
 
       ++numberOfBlocks;
       return newIndex;
@@ -223,8 +212,6 @@ namespace vmesh {
       
       // Clear velocity block data to zero values
       for (size_t i=0; i<WID3*N_blocks; ++i) block_data[newIndex*WID3+i] = 0.0;
-      for (size_t i=0; i<BlockParams::N_VELOCITY_BLOCK_PARAMS*N_blocks; ++i)
-	parameters[newIndex*BlockParams::N_VELOCITY_BLOCK_PARAMS+i] = 0.0;
 
       return newIndex;
    }
@@ -236,11 +223,6 @@ namespace vmesh {
          std::vector<Realf,aligned_allocator<Realf,WID3> > dummy_data(newCapacity*WID3);
          for (size_t i=0; i<numberOfBlocks*WID3; ++i) dummy_data[i] = block_data[i];
          dummy_data.swap(block_data);
-      }
-      {
-         std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS> > dummy_parameters(newCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS);
-         for (size_t i=0; i<numberOfBlocks*BlockParams::N_VELOCITY_BLOCK_PARAMS; ++i) dummy_parameters[i] = parameters[i];
-         dummy_parameters.swap(parameters);
       }
       currentCapacity = newCapacity;
       return true;
@@ -254,7 +236,6 @@ namespace vmesh {
          // The order of velocity blocks is unaltered.
          currentCapacity = 2 + numberOfBlocks * BLOCK_ALLOCATION_FACTOR;
          block_data.resize(currentCapacity*WID3);
-         parameters.resize(currentCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS);
       }
    }
 
@@ -274,13 +255,12 @@ namespace vmesh {
 
    template<typename LID> inline
    size_t VelocityBlockContainer<LID>::sizeInBytes() const {
-      return block_data.size()*sizeof(Realf) + parameters.size()*sizeof(Real);
+      return block_data.size()*sizeof(Realf);
    }
 
    template<typename LID> inline
    void VelocityBlockContainer<LID>::swap(VelocityBlockContainer& vbc) {
       block_data.swap(vbc.block_data);
-      parameters.swap(vbc.parameters);
 
       LID dummy = currentCapacity;
       currentCapacity = vbc.currentCapacity;
