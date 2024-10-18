@@ -43,9 +43,9 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
 
    // Kernel Characteristics
-   const int kernelOffset = 2;   // offset of 5 pointstencil 3D kernel => (floor(stencilWidth/2);)
-   const Real inverseKernelSum = 1.0 / 729.0;   // the inverse of the total kernel's sum 
-   const static Real kernel[5][5][5] ={
+   constexpr int kernelOffset = 2;   // offset of 5 pointstencil 3D kernel => (floor(stencilWidth/2);)
+   constexpr Real inverseKernelSum = 1.0 / 729.0;   // the inverse of the total kernel's sum 
+   constexpr static Real kernel[5][5][5] ={
                                  {{ 1 * inverseKernelSum,  2 * inverseKernelSum,  3 * inverseKernelSum,  2 * inverseKernelSum,  1 * inverseKernelSum},
                                  { 2 * inverseKernelSum,  4 * inverseKernelSum,  6 * inverseKernelSum,  4 * inverseKernelSum,  2 * inverseKernelSum},
                                  { 3 * inverseKernelSum,  6 * inverseKernelSum,  9 * inverseKernelSum,  6 * inverseKernelSum,  3 * inverseKernelSum},
@@ -83,10 +83,10 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
    // Get size of local domain and create swapGrid for filtering
    const FsGridTools::FsIndex_t* mntDims = &momentsGrid.getLocalSize()[0];  
-   FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> swapGrid = momentsGrid;  //swap array 
 
    // Filtering Loop
    for (int blurPass = 0; blurPass < Parameters::maxFilteringPasses; blurPass++){
+      FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> swapGrid = momentsGrid;  //swap array 
 
       // Blurring Pass
       #pragma omp parallel for collapse(2)
@@ -133,8 +133,7 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       swap(momentsGrid, swapGrid);
       // Update Ghost Cells
       momentsGrid.updateGhostCells();
-
-    }
+   }
 }
 
 void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
