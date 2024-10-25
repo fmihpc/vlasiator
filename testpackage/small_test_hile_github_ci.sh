@@ -13,7 +13,7 @@
 create_verification_files=0
 
 # folder for all reference data
-reference_dir="/wrk-vakka/group/spacephysics/vlasiator/testpackage/"
+reference_dir="/wrk-vakka/group/spacephysics/proj/vlasiator_testpackage/"
 cd $SLURM_SUBMIT_DIR
 
 bin="$GITHUB_WORKSPACE/vlasiator"
