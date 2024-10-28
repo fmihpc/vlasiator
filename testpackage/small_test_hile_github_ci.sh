@@ -28,11 +28,10 @@ t=8
 # send JOB ID to output usable by CI eg to scancel this job
 echo "SLURM_JOB_ID=$SLURM_JOB_ID" >> $GITHUB_OUTPUT
 
-ldd $bin
 #--------------------------------------------------------------------
 #---------------------DO NOT TOUCH-----------------------------------
 nodes=$SLURM_NNODES
-#Carrington has 4 x 32 cores
+#HILE has 4 x 32 cores
 cores_per_node=128
 # Hyperthreading
 ht=1
