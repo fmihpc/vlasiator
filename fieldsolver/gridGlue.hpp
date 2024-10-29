@@ -151,17 +151,17 @@ template <typename T, int stencil> void computeCoupling(dccrg::Dccrg<SpatialCell
       for (FsGridTools::FsIndex_t k=0; k<gridDims[2]; k++) {
          for (FsGridTools::FsIndex_t j=0; j<gridDims[1]; j++) {
             for (FsGridTools::FsIndex_t i=0; i<gridDims[0]; i++) {
-               const std::array<FsGridTools::FsIndex_t, 3> globalIndices = momentsGrid.getGlobalIndices(i,j,k);
+               const std::array<FsGridTools::FsSize_t, 3> globalIndices = momentsGrid.localToGlobal(i, j, k);
                const dccrg::Types<3>::indices_t  indices = {{(uint64_t)globalIndices[0],
                         (uint64_t)globalIndices[1],
                         (uint64_t)globalIndices[2]}}; //cast to avoid warnings
-         CellID dccrgCell = mpiGrid.get_existing_cell(indices, 0, mpiGrid.mapping.get_maximum_refinement_level());
-        
-         int process = mpiGrid.get_process(dccrgCell);
-         FsGridTools::LocalID fsgridLid = momentsGrid.LocalIDForCoords(i,j,k);
-         //int64_t  fsgridGid = momentsGrid.GlobalIDForCoords(i,j,k);
-         onFsgridMapRemoteProcessGlobal[process].insert(dccrgCell); //cells are ordered (sorted) in set
-         onFsgridMapCellsGlobal[dccrgCell].push_back(fsgridLid);
+               const CellID dccrgCell =
+                   mpiGrid.get_existing_cell(indices, 0, mpiGrid.mapping.get_maximum_refinement_level());
+
+               const int process = mpiGrid.get_process(dccrgCell);
+               const FsGridTools::LocalID fsgridLid = momentsGrid.localIDFromLocalCoordinates(i, j, k);
+               onFsgridMapRemoteProcessGlobal[process].insert(dccrgCell); // cells are ordered (sorted) in set
+               onFsgridMapCellsGlobal[dccrgCell].push_back(fsgridLid);
          }
       }
    }
@@ -169,11 +169,11 @@ template <typename T, int stencil> void computeCoupling(dccrg::Dccrg<SpatialCell
    // Compute where to send data and what to send
    for(uint64_t i=0; i< dccrgCells.size(); i++) {
       //compute to which processes this cell maps
-      std::vector<CellID> fsCells = mapDccrgIdToFsGridGlobalID(mpiGrid, dccrgCells[i]);
+      const std::vector<CellID> fsCells = mapDccrgIdToFsGridGlobalID(mpiGrid, dccrgCells[i]);
 
       //loop over fsgrid cells which this dccrg cell maps to
       for (auto const &fsCellID : fsCells) {
-         int process = momentsGrid.getTaskForGlobalID(fsCellID).first; //process on fsgrid
+         const int process = momentsGrid.getTaskForGlobalID(fsCellID); // process on fsgrid
          onDccrgMapRemoteProcessGlobal[process].insert(dccrgCells[i]); //add to map
       }    
    }
