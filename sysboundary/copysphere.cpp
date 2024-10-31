@@ -885,7 +885,11 @@ namespace SBC {
    }
 
    void Copysphere::setCellFromTemplate(SpatialCell* cell,const uint popID) {
-      copyCellData(&templateCell,cell,false,popID,true); // copy also vdf, _V
+      if(cell->sysBoundaryLayer != 1) {
+         copyCellData(&templateCell,cell,true,popID,true); // do not copy vdf, _V
+      } else {
+         copyCellData(&templateCell,cell,false,popID,true); // copy also vdf, _V
+      }
       copyCellData(&templateCell,cell,true,popID,false); // don't copy vdf again but copy _R now
    }
 

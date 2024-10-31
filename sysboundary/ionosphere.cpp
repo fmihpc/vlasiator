@@ -3189,31 +3189,42 @@ namespace SBC {
                {
                   // Fill velocity space with new maxwellian data
                   SpatialCell& cell = *mpiGrid[cellID];
-                  cell.clear(popID); // Clear previous velocity space completely
-                  const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(cell,density,temperature,vDrift,popID);
-                  Realf* data = cell.get_data(popID);
+                  if(cell.sysBoundaryLayer == 1) { // L1 cells need full VDF
+                     cell.clear(popID); // Clear previous velocity space completely
+                     const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(cell,density,temperature,vDrift,popID);
+                     Realf* data = cell.get_data(popID);
 
-                  for (size_t i = 0; i < blocksToInitialize.size(); i++) {
-                     const vmesh::GlobalID blockGID = blocksToInitialize[i];
-                     cell.add_velocity_block(blockGID,popID);
-                     const vmesh::LocalID block = cell.get_velocity_block_local_id(blockGID,popID);
-                     const Real* blockParameters = cell.get_block_parameters(block,popID);
-                     creal vxBlock = blockParameters[BlockParams::VXCRD];
-                     creal vyBlock = blockParameters[BlockParams::VYCRD];
-                     creal vzBlock = blockParameters[BlockParams::VZCRD];
-                     creal dvxCell = blockParameters[BlockParams::DVX];
-                     creal dvyCell = blockParameters[BlockParams::DVY];
-                     creal dvzCell = blockParameters[BlockParams::DVZ];
+                     for (size_t i = 0; i < blocksToInitialize.size(); i++) {
+                        const vmesh::GlobalID blockGID = blocksToInitialize[i];
+                        cell.add_velocity_block(blockGID,popID);
+                        const vmesh::LocalID block = cell.get_velocity_block_local_id(blockGID,popID);
+                        const Real* blockParameters = cell.get_block_parameters(block,popID);
+                        creal vxBlock = blockParameters[BlockParams::VXCRD];
+                        creal vyBlock = blockParameters[BlockParams::VYCRD];
+                        creal vzBlock = blockParameters[BlockParams::VZCRD];
+                        creal dvxCell = blockParameters[BlockParams::DVX];
+                        creal dvyCell = blockParameters[BlockParams::DVY];
+                        creal dvzCell = blockParameters[BlockParams::DVZ];
 
-                     // Iterate over cells within block
-                     for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
-                        creal vxCellCenter = vxBlock + (ic+convert<Real>(0.5))*dvxCell - vDrift[0];
-                        creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell - vDrift[1];
-                        creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell - vDrift[2];
+                        // Iterate over cells within block
+                        for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
+                           creal vxCellCenter = vxBlock + (ic+convert<Real>(0.5))*dvxCell - vDrift[0];
+                           creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell - vDrift[1];
+                           creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell - vDrift[2];
 
-                        data[block*WID3 + cellIndex(ic,jc,kc)] = shiftedMaxwellianDistribution(popID, density, temperature, vxCellCenter, vyCellCenter, vzCellCenter);
+                           data[block*WID3 + cellIndex(ic,jc,kc)] = shiftedMaxwellianDistribution(popID, density, temperature, vxCellCenter, vyCellCenter, vzCellCenter);
+                        }
                      }
-                  }
+                  } else { // L2+ cells need only moments
+                     Population & pop = cell.get_population(popID);
+                     pop.RHO = density * getObjectWrapper().particleSpecies[popID].mass;
+                     pop.V[0] = vDrift[0];
+                     pop.V[1] = vDrift[1];
+                     pop.V[2] = vDrift[2];
+                     pop.P[0] = density*physicalconstants::K_B*temperature;
+                     pop.P[1] = density*physicalconstants::K_B*temperature;
+                     pop.P[2] = density*physicalconstants::K_B*temperature;
+                  } // end of L2+
                }
                break;
             case CopyAndLosscone:
@@ -3315,9 +3326,32 @@ namespace SBC {
          mpiGrid[cellID]->adjustSingleCellVelocityBlocks(popID,true);
          // TODO: The moments can also be analytically calculated from ionosphere parameters.
          // Maybe that's faster?
-         calculateCellMoments(mpiGrid[cellID], true, false, true);
+         if(popID == getObjectWrapper().particleSpecies.size() - 1) { // we only recompute moments once when all pops are done
+            if(mpiGrid[cellID]->sysBoundaryLayer == 1 || boundaryVDFmode == CopyAndLosscone) { // got new VDFs, the other layers are done manually
+               calculateCellMoments(mpiGrid[cellID], true, false, true);
+            } else {
+               mpiGrid[cellID]->parameters[CellParams::RHOM] = 0.0;
+               mpiGrid[cellID]->parameters[CellParams::RHOQ] = 0.0;
+               mpiGrid[cellID]->parameters[CellParams::VX] = 0.0;
+               mpiGrid[cellID]->parameters[CellParams::VY] = 0.0;
+               mpiGrid[cellID]->parameters[CellParams::VZ] = 0.0;
+               mpiGrid[cellID]->parameters[CellParams::P_11] = 0.0;
+               mpiGrid[cellID]->parameters[CellParams::P_22] = 0.0;
+               mpiGrid[cellID]->parameters[CellParams::P_33] = 0.0;
+               for (uint popop = 0; popop < getObjectWrapper().particleSpecies.size(); ++popop) {
+                  Population & pop = mpiGrid[cellID]->get_population(popop);
+                  mpiGrid[cellID]->parameters[CellParams::RHOM] += pop.RHO * getObjectWrapper().particleSpecies[popop].mass;
+                  mpiGrid[cellID]->parameters[CellParams::RHOQ] += pop.RHO * getObjectWrapper().particleSpecies[popop].charge;
+                  mpiGrid[cellID]->parameters[CellParams::VX] += pop.V[0];
+                  mpiGrid[cellID]->parameters[CellParams::VY] += pop.V[1];
+                  mpiGrid[cellID]->parameters[CellParams::VZ] += pop.V[2];
+                  mpiGrid[cellID]->parameters[CellParams::P_11] += pop.P[0];
+                  mpiGrid[cellID]->parameters[CellParams::P_22] += pop.P[1];
+                  mpiGrid[cellID]->parameters[CellParams::P_33] += pop.P[2];
+               }
+            }
+         }
       } // End of if for coupling interval, we skip this altogether
-
    }
 
    /**
@@ -3480,7 +3514,11 @@ namespace SBC {
    }
 
    void Ionosphere::setCellFromTemplate(SpatialCell* cell,const uint popID) {
-      copyCellData(&templateCell,cell,false,popID,true); // copy also vdf, _V
+      if(cell->sysBoundaryLayer != 1) {
+         copyCellData(&templateCell,cell,true,popID,true); // do not copy vdf, _V
+      } else {
+         copyCellData(&templateCell,cell,false,popID,true); // copy also vdf, _V
+      }
       copyCellData(&templateCell,cell,true,popID,false); // don't copy vdf again but copy _R now
    }
 

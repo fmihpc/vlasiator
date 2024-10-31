@@ -271,7 +271,7 @@ namespace SBC {
          }
 
          if (doApply) {
-            project.setCell(cell);
+            project.setCell(cell); // We set everything including VDF even in L2 cells to avoid a pile of spaghetti. Won't get communicated.
             cell->parameters[CellParams::RHOM_DT2] = cell->parameters[CellParams::RHOM];
             cell->parameters[CellParams::RHOQ_DT2] = cell->parameters[CellParams::RHOQ];
             cell->parameters[CellParams::VX_DT2] = cell->parameters[CellParams::VX];
@@ -415,10 +415,14 @@ namespace SBC {
                case vlasovscheme::NONE:
                   break;
                case vlasovscheme::COPY:
-                  vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,false,popID,calculate_V_moments);
+                  if(mpiGrid[cellID]->sysBoundaryLayer == 1) {
+                     vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,false,popID,calculate_V_moments); // copies VDF too
+                  } else {
+                     vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,true,popID,calculate_V_moments); // no VDF copy
+                  }
                   break;
                case vlasovscheme::LIMIT:
-                  vlasovBoundaryCopyFromTheClosestNbrAndLimit(mpiGrid,cellID,popID);
+                  vlasovBoundaryCopyFromTheClosestNbrAndLimit(mpiGrid,cellID,popID); // may do VDF but easier this way
                   break;
                default:
                   abort_mpi("ERROR: invalid Outflow Vlasov scheme", 1);

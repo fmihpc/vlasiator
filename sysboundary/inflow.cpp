@@ -341,7 +341,11 @@ void Inflow::setCellsFromTemplate(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geo
 
       for (uint i = 0; i < 6; i++) {
          if (facesToProcess[i] && isThisCellOnAFace[i]) {
-            copyCellData(&templateCells[i], cell, false, popID, true); // copy also vdf, _V
+            if(cell->sysBoundaryLayer != 1) {
+               copyCellData(&templateCells[i], cell, true, popID, true); // don't copy vdf, _V
+            } else {
+               copyCellData(&templateCells[i], cell, false, popID, true); // copy also vdf, _V
+            }
             copyCellData(&templateCells[i], cell, true, popID, false); // don't copy vdf again but copy _R now
             break; // Effectively sets the precedence of faces through the order of faces.
          }
