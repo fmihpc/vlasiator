@@ -2,7 +2,7 @@ CMP = CC
 LNK = CC
 
 # Modules loaded
-# module load LUMI/22.08 ; module load cpeGNU ; module load papi; module load Eigen; module load Boost/1.79.0-cpeGNU-22.08
+# module load LUMI/23.09 ; module load cpeGNU ; module load papi; module load Eigen; module load Boost ; module load craype-x86-milan
 
 #======== Vectorization ==========
 #Set vector backend type for vlasov solvers, sets precision and length. 
@@ -58,8 +58,7 @@ testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 #
 #======== Libraries ===========
 
-LIBRARY_PREFIX = /scratch/project_465000287/kempfyan/libraries/LUMI22.08_cpeGNU
-LIBRARY_PREFIX_HEADERS = /scratch/project_465000287/libraries
+LIBRARY_PREFIX = /scratch/project_462000504/libraries/LUMI_23.09
 
 #compiled libraries
 LIB_BOOST = -lboost_program_options
