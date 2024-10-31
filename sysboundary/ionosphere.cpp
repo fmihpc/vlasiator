@@ -3338,6 +3338,22 @@ namespace SBC {
                mpiGrid[cellID]->parameters[CellParams::P_11] = 0.0;
                mpiGrid[cellID]->parameters[CellParams::P_22] = 0.0;
                mpiGrid[cellID]->parameters[CellParams::P_33] = 0.0;
+               mpiGrid[cellID]->parameters[CellParams::RHOM_R] = 0.0;
+               mpiGrid[cellID]->parameters[CellParams::RHOQ_R] = 0.0;
+               mpiGrid[cellID]->parameters[CellParams::VX_R] = 0.0;
+               mpiGrid[cellID]->parameters[CellParams::VY_R] = 0.0;
+               mpiGrid[cellID]->parameters[CellParams::VZ_R] = 0.0;
+               mpiGrid[cellID]->parameters[CellParams::P_11_R] = 0.0;
+               mpiGrid[cellID]->parameters[CellParams::P_22_R] = 0.0;
+               mpiGrid[cellID]->parameters[CellParams::P_33_R] = 0.0;
+               mpiGrid[cellID]->parameters[CellParams::RHOM_V] = 0.0;
+               mpiGrid[cellID]->parameters[CellParams::RHOQ_V] = 0.0;
+               mpiGrid[cellID]->parameters[CellParams::VX_V] = 0.0;
+               mpiGrid[cellID]->parameters[CellParams::VY_V] = 0.0;
+               mpiGrid[cellID]->parameters[CellParams::VZ_V] = 0.0;
+               mpiGrid[cellID]->parameters[CellParams::P_11_V] = 0.0;
+               mpiGrid[cellID]->parameters[CellParams::P_22_V] = 0.0;
+               mpiGrid[cellID]->parameters[CellParams::P_33_V] = 0.0;
                for (uint popop = 0; popop < getObjectWrapper().particleSpecies.size(); ++popop) {
                   Population & pop = mpiGrid[cellID]->get_population(popop);
                   mpiGrid[cellID]->parameters[CellParams::RHOM] += pop.RHO * getObjectWrapper().particleSpecies[popop].mass;
@@ -3348,6 +3364,22 @@ namespace SBC {
                   mpiGrid[cellID]->parameters[CellParams::P_11] += pop.P[0];
                   mpiGrid[cellID]->parameters[CellParams::P_22] += pop.P[1];
                   mpiGrid[cellID]->parameters[CellParams::P_33] += pop.P[2];
+                  mpiGrid[cellID]->parameters[CellParams::RHOM_R] += pop.RHO * getObjectWrapper().particleSpecies[popop].mass;
+                  mpiGrid[cellID]->parameters[CellParams::RHOQ_R] += pop.RHO * getObjectWrapper().particleSpecies[popop].charge;
+                  mpiGrid[cellID]->parameters[CellParams::VX_R] += pop.V[0];
+                  mpiGrid[cellID]->parameters[CellParams::VY_R] += pop.V[1];
+                  mpiGrid[cellID]->parameters[CellParams::VZ_R] += pop.V[2];
+                  mpiGrid[cellID]->parameters[CellParams::P_11_R] += pop.P[0];
+                  mpiGrid[cellID]->parameters[CellParams::P_22_R] += pop.P[1];
+                  mpiGrid[cellID]->parameters[CellParams::P_33_R] += pop.P[2];
+                  mpiGrid[cellID]->parameters[CellParams::RHOM_V] += pop.RHO * getObjectWrapper().particleSpecies[popop].mass;
+                  mpiGrid[cellID]->parameters[CellParams::RHOQ_V] += pop.RHO * getObjectWrapper().particleSpecies[popop].charge;
+                  mpiGrid[cellID]->parameters[CellParams::VX_V] += pop.V[0];
+                  mpiGrid[cellID]->parameters[CellParams::VY_V] += pop.V[1];
+                  mpiGrid[cellID]->parameters[CellParams::VZ_V] += pop.V[2];
+                  mpiGrid[cellID]->parameters[CellParams::P_11_V] += pop.P[0];
+                  mpiGrid[cellID]->parameters[CellParams::P_22_V] += pop.P[1];
+                  mpiGrid[cellID]->parameters[CellParams::P_33_V] += pop.P[2];
                }
             }
          }
