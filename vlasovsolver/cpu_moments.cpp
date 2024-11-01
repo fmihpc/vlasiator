@@ -176,7 +176,7 @@ void calculateMoments_R(
           if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
              continue;
           }
-          if (cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY && cell->sysBoundaryLayer != 1) { // these should have been handled by the boundary code
+          if (cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY && cell->sysBoundaryLayer != 1 && P::tstep != 0) { // these should have been handled by the boundary code
              continue;
           }
 
@@ -252,7 +252,7 @@ void calculateMoments_R(
        if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
           continue;
        }
-       if (cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY && cell->sysBoundaryLayer != 1) { // these should have been handled by the boundary code
+       if (cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY && cell->sysBoundaryLayer != 1 && P::tstep != 0) { // these should have been handled by the boundary code
           continue;
        }
        cell->parameters[CellParams::VX_R] = divideIfNonZero(cell->parameters[CellParams::VX_R], cell->parameters[CellParams::RHOM_R]);
@@ -273,7 +273,7 @@ void calculateMoments_R(
          if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
             continue;
          }
-         if (cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY && cell->sysBoundaryLayer != 1) { // these should have been handled by the boundary code
+         if (cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY && cell->sysBoundaryLayer != 1 && P::tstep != 0) { // these should have been handled by the boundary code
             continue;
          }
 
@@ -339,7 +339,7 @@ void calculateMoments_V(
          if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
             continue;
          }
-         if (cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY && cell->sysBoundaryLayer != 1) { // these should have been handled by the boundary code
+         if (cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY && cell->sysBoundaryLayer != 1 && P::tstep != 0) { // these should have been handled by the boundary code
             continue;
          }
 
@@ -401,7 +401,7 @@ void calculateMoments_V(
       if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
          continue;
       }
-      if (cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY && cell->sysBoundaryLayer != 1) { // these should have been handled by the boundary code
+      if (cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY && cell->sysBoundaryLayer != 1 && P::tstep != 0) { // these should have been handled by the boundary code
          continue;
       }
 
@@ -423,7 +423,7 @@ void calculateMoments_V(
          if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
             continue;
          }
-         if (cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY && cell->sysBoundaryLayer != 1) { // these should have been handled by the boundary code
+         if (cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY && cell->sysBoundaryLayer != 1 && P::tstep != 0) { // these should have been handled by the boundary code
             continue;
          }
 
