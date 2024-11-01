@@ -34,6 +34,7 @@
 #include "../vlasovmover.h"
 #include "sysboundarycondition.h"
 #include "../projects/projects_common.h"
+#include "../object_wrapper.h"
 
 using namespace std;
 
@@ -485,43 +486,122 @@ namespace SBC {
       creal factor = fluffiness / convert<Real>(numberOfCells);
       
 
-      // Rescale own vspace
-      for (vmesh::LocalID toBlockLID=0; toBlockLID<to->get_number_of_velocity_blocks(popID); ++toBlockLID) {
-         // Pointer to target block data
-         Realf* toData = to->get_data(toBlockLID,popID);
-         
-         // Add values from source cells
-         for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
-            toData[cellIndex(ic,jc,kc)] *= 1.0 - fluffiness;
-         }
-         toData += SIZE_VELBLOCK;
-      } // for-loop over velocity blocks
-
-      
-      for (size_t i=0; i<numberOfCells; i++) {
-         const SpatialCell* incomingCell = mpiGrid[cellList[i]];
-
-         const Realf* fromData = incomingCell->get_data(popID);
-         for (vmesh::LocalID incBlockLID=0; incBlockLID<incomingCell->get_number_of_velocity_blocks(popID); ++incBlockLID) {
-            // Global ID of the block containing incoming data
-            vmesh::GlobalID incBlockGID = incomingCell->get_velocity_block_global_id(incBlockLID,popID);
-            
-            // Get local ID of the target block. If the block doesn't exist, create it.
-            vmesh::GlobalID toBlockLID = to->get_velocity_block_local_id(incBlockGID,popID);
-            if (toBlockLID == SpatialCell::invalid_local_id()) {
-               to->add_velocity_block(incBlockGID,popID);
-               toBlockLID = to->get_velocity_block_local_id(incBlockGID,popID);
-            }
-            
+      if(to->sysBoundaryFlag == 1) {
+         // Rescale own vspace
+         for (vmesh::LocalID toBlockLID=0; toBlockLID<to->get_number_of_velocity_blocks(popID); ++toBlockLID) {
             // Pointer to target block data
             Realf* toData = to->get_data(toBlockLID,popID);
-
+            
             // Add values from source cells
             for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
-               toData[cellIndex(ic,jc,kc)] += factor*fromData[cellIndex(ic,jc,kc)];
+               toData[cellIndex(ic,jc,kc)] *= 1.0 - fluffiness;
             }
-            fromData += SIZE_VELBLOCK;
+            toData += SIZE_VELBLOCK;
          } // for-loop over velocity blocks
+
+         
+         for (size_t i=0; i<numberOfCells; i++) {
+            const SpatialCell* incomingCell = mpiGrid[cellList[i]];
+
+            const Realf* fromData = incomingCell->get_data(popID);
+            for (vmesh::LocalID incBlockLID=0; incBlockLID<incomingCell->get_number_of_velocity_blocks(popID); ++incBlockLID) {
+               // Global ID of the block containing incoming data
+               vmesh::GlobalID incBlockGID = incomingCell->get_velocity_block_global_id(incBlockLID,popID);
+               
+               // Get local ID of the target block. If the block doesn't exist, create it.
+               vmesh::GlobalID toBlockLID = to->get_velocity_block_local_id(incBlockGID,popID);
+               if (toBlockLID == SpatialCell::invalid_local_id()) {
+                  to->add_velocity_block(incBlockGID,popID);
+                  toBlockLID = to->get_velocity_block_local_id(incBlockGID,popID);
+               }
+               
+               // Pointer to target block data
+               Realf* toData = to->get_data(toBlockLID,popID);
+
+               // Add values from source cells
+               for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
+                  toData[cellIndex(ic,jc,kc)] += factor*fromData[cellIndex(ic,jc,kc)];
+               }
+               fromData += SIZE_VELBLOCK;
+            } // for-loop over velocity blocks
+         }
+      } else { // copy only moments, and do that only at last pop iteration ; not sure but V and P might be incorrect for fluffiness not 0 or 1.
+         if(popID == getObjectWrapper().particleSpecies.size() - 1) { // we only recompute moments once when all pops are done
+            // first compute the shebang for all pop.XXX values
+            for (uint popop = 0; popop < getObjectWrapper().particleSpecies.size(); ++popop) {
+               Population & popto = to->get_population(popop);
+               popto.RHO *= 1.0 - fluffiness;
+               popto.V[0] *= 1.0 - fluffiness;
+               popto.V[1] *= 1.0 - fluffiness;
+               popto.V[2] *= 1.0 - fluffiness;
+               popto.P[0] *= 1.0 - fluffiness;
+               popto.P[1] *= 1.0 - fluffiness;
+               popto.P[2] *= 1.0 - fluffiness;
+               for (size_t i=0; i<numberOfCells; i++) {
+                  Population & popfrom = mpiGrid[cellList[i]]->get_population(popop);
+                  popto.RHO += factor*popfrom.RHO;
+                  popto.V[0] += factor*popfrom.V[0];
+                  popto.V[1] += factor*popfrom.V[1];
+                  popto.V[2] += factor*popfrom.V[2];
+                  popto.P[0] += factor*popfrom.P[0];
+                  popto.P[1] += factor*popfrom.P[1];
+                  popto.P[2] += factor*popfrom.P[2];
+               }
+            }
+
+            // then mash them into the combined moments
+            to->parameters[CellParams::RHOM] = 0.0;
+            to->parameters[CellParams::RHOQ] = 0.0;
+            to->parameters[CellParams::VX] = 0.0;
+            to->parameters[CellParams::VY] = 0.0;
+            to->parameters[CellParams::VZ] = 0.0;
+            to->parameters[CellParams::P_11] = 0.0;
+            to->parameters[CellParams::P_22] = 0.0;
+            to->parameters[CellParams::P_33] = 0.0;
+            to->parameters[CellParams::RHOM_R] = 0.0;
+            to->parameters[CellParams::RHOQ_R] = 0.0;
+            to->parameters[CellParams::VX_R] = 0.0;
+            to->parameters[CellParams::VY_R] = 0.0;
+            to->parameters[CellParams::VZ_R] = 0.0;
+            to->parameters[CellParams::P_11_R] = 0.0;
+            to->parameters[CellParams::P_22_R] = 0.0;
+            to->parameters[CellParams::P_33_R] = 0.0;
+            to->parameters[CellParams::RHOM_V] = 0.0;
+            to->parameters[CellParams::RHOQ_V] = 0.0;
+            to->parameters[CellParams::VX_V] = 0.0;
+            to->parameters[CellParams::VY_V] = 0.0;
+            to->parameters[CellParams::VZ_V] = 0.0;
+            to->parameters[CellParams::P_11_V] = 0.0;
+            to->parameters[CellParams::P_22_V] = 0.0;
+            to->parameters[CellParams::P_33_V] = 0.0;
+            for (uint popop = 0; popop < getObjectWrapper().particleSpecies.size(); ++popop) {
+               Population & pop = to->get_population(popop);
+               to->parameters[CellParams::RHOM] += pop.RHO * getObjectWrapper().particleSpecies[popop].mass;
+               to->parameters[CellParams::RHOQ] += pop.RHO * getObjectWrapper().particleSpecies[popop].charge;
+               to->parameters[CellParams::VX] += pop.V[0];
+               to->parameters[CellParams::VY] += pop.V[1];
+               to->parameters[CellParams::VZ] += pop.V[2];
+               to->parameters[CellParams::P_11] += pop.P[0];
+               to->parameters[CellParams::P_22] += pop.P[1];
+               to->parameters[CellParams::P_33] += pop.P[2];
+               to->parameters[CellParams::RHOM_R] += pop.RHO * getObjectWrapper().particleSpecies[popop].mass;
+               to->parameters[CellParams::RHOQ_R] += pop.RHO * getObjectWrapper().particleSpecies[popop].charge;
+               to->parameters[CellParams::VX_R] += pop.V[0];
+               to->parameters[CellParams::VY_R] += pop.V[1];
+               to->parameters[CellParams::VZ_R] += pop.V[2];
+               to->parameters[CellParams::P_11_R] += pop.P[0];
+               to->parameters[CellParams::P_22_R] += pop.P[1];
+               to->parameters[CellParams::P_33_R] += pop.P[2];
+               to->parameters[CellParams::RHOM_V] += pop.RHO * getObjectWrapper().particleSpecies[popop].mass;
+               to->parameters[CellParams::RHOQ_V] += pop.RHO * getObjectWrapper().particleSpecies[popop].charge;
+               to->parameters[CellParams::VX_V] += pop.V[0];
+               to->parameters[CellParams::VY_V] += pop.V[1];
+               to->parameters[CellParams::VZ_V] += pop.V[2];
+               to->parameters[CellParams::P_11_V] += pop.P[0];
+               to->parameters[CellParams::P_22_V] += pop.P[1];
+               to->parameters[CellParams::P_33_V] += pop.P[2];
+            }
+         }
       }
    }
 
