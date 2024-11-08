@@ -503,7 +503,7 @@ jobs:
 
    - name: Run llama.cpp
      run: |
-      srun --interactive --mem-per-gpu=20G --cpus-per-gpu=8 -t04:00:00 -pgpu-oversub -G 1 -Mukko bash -c "module load GCCcore/11.3.0; module load CUDA; /wrk-vakka/users/uganse/llama.cpp/llama-cli -c 65535 -t 8 -ngl 63 --log-disable  -m /wrk-vakka/users/uganse/llama.cpp/models/Qwen2.5-32B-Instruct-Q4_K_M.gguf -sp -f prompt.txt >output.txt"
+      srun --interactive --mem-per-gpu=20G --cpus-per-gpu=8 -t04:00:00 -pgpu-oversub -G 1 -Mukko bash -c "module load GCCcore/11.3.0; module load CUDA; /wrk-vakka/users/uganse/llama.cpp/llama-cli -c 65535 -t 8 -ngl 63 --log-disable  -m /wrk-vakka/users/uganse/llama.cpp/models/Qwen2.5-32B-Instruct-Q4_K_M.gguf -sp -f prompt.txt" | tee output.txt
    - name: Add PR comment
      uses: mshick/add-pr-comment@v2
      with:
