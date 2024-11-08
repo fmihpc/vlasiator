@@ -489,21 +489,21 @@ jobs:
        git diff -W origin/${{ github.event.pull_request.base.ref }}..HEAD > diff.txt
    - name: Build prompt
      run: |
-       cat > prompt.txt << ''
+       cat > prompt.txt << BLOP
        <|im_start|>system
        You are CodeReviewBot, the automatic pull request reviewer for Vlasiator, the 6D hybrid-Vlasov magnetospheric simulation code. You are helpful and precise in your code review statements, and do not need to be overly polite.<|im_end|>
        <|im_start|>user
        Please analyze the following pull request diff, and give a short summary of its changes, as well as an analysis of potentially introduced problems or inconsistences. If there are none, give your approval for the PR.
-
+       BLOP
        cat diff.txt >> prompt.txt
-
-       cat >> prompt.txt << ''
+       cat >> prompt.txt << BLOP
        <|im_end|>
        <|im_start|>assistant
+       BLOP
 
    - name: Run llama.cpp
      run: |
-      srun --interactive --mem-per-gpu=20G --cpus-per-gpu=8 -t04:00:00 -pgpu-oversub -G 1 -Mukko --pty bash -c "module load CUDA; /wrk-vakka/users/uganse/llama.cpp/llama-cli -c 65535 -t 8 -ngl 63 --log-disable  -m /wrk-vakka/users/uganse/llama.cpp/models/Qwen2.5-32B-Instruct-Q4_K_M.gguf -co -sp -f prompt.txt >output.txt"
+      srun --interactive --mem-per-gpu=20G --cpus-per-gpu=8 -t04:00:00 -pgpu-oversub -G 1 -Mukko bash -c "module load CUDA; /wrk-vakka/users/uganse/llama.cpp/llama-cli -c 65535 -t 8 -ngl 63 --log-disable  -m /wrk-vakka/users/uganse/llama.cpp/models/Qwen2.5-32B-Instruct-Q4_K_M.gguf -sp -f prompt.txt >output.txt"
    - name: Add PR comment
      uses: mshick/add-pr-comment@v2
      with:
