@@ -486,7 +486,7 @@ jobs:
        submodules: false
    - name: Diff with PR target
      run: |
-       git diff -W ${{ github.event.pull_request.base.ref }}..HEAD > diff.txt
+       git diff -W origin/${{ github.event.pull_request.base.ref }}..HEAD > diff.txt
    - name: Build prompt
      run: |
        cat > prompt.txt << ''
