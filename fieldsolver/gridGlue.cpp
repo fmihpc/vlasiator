@@ -83,47 +83,50 @@ void filterMoments(FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STEN
 
    // Get size of local domain
    const auto& mntDims = momentsGrid.getLocalSize();
+   auto& moments = momentsGrid.getData();
+   const auto& technical = technicalGrid.getData();
    // Create a copy of momentsGrid data for filtering
-   std::vector<std::array<Real, fsgrids::moments::N_MOMENTS>> swapData(momentsGrid.getData());
+   std::vector<std::array<Real, fsgrids::moments::N_MOMENTS>> blurred(moments.size());
 
    // Filtering Loop
-   for (int blurPass = 0; blurPass < Parameters::maxFilteringPasses; blurPass++){
-
+   for (auto blurPass = 0; blurPass < Parameters::maxFilteringPasses; blurPass++) {
       // Blurring Pass
       #pragma omp parallel for collapse(2)
-      for (FsGridTools::FsIndex_t k = 0; k < mntDims[2]; k++){
-         for (FsGridTools::FsIndex_t j = 0; j < mntDims[1]; j++){
-            for (FsGridTools::FsIndex_t i = 0; i < mntDims[0]; i++){
+      for (auto k = 0; k < mntDims[2]; k++) {
+         for (auto j = 0; j < mntDims[1]; j++) {
+            for (auto i = 0; i < mntDims[0]; i++) {
+               const auto localId = technicalGrid.localIDFromLocalCoordinates(i, j, k);
+               const auto refLevel = technical[localId].refLevel;
+               const auto flag = technical[localId].sysBoundaryFlag;
+               auto& blurCell = blurred[localId];
 
-               const int refLevel = technicalGrid.get(i, j, k)->refLevel;
-               // Skip pass
-               if (blurPass >= P::numPasses.at(refLevel) || technicalGrid.get(i, j, k)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+               // Skip pass, set blurCell value equal to original
+               if (blurPass >= P::numPasses.at(refLevel) || flag != sysboundarytype::NOT_SYSBOUNDARY) {
+                  blurCell = moments[localId];
                   continue;
+               } else {
+                  // Set Cell to zero before passing filter
+                  blurCell.fill(0.0);
                }
 
-               // Set Cell to zero before passing filter
-               auto& swap = swapData[momentsGrid.localIDFromLocalCoordinates(i, j, k)];
-               swap.fill(0.0);
-
                // Perform the blur
-               for (int c=-kernelOffset; c<=kernelOffset; c++){
-                  for (int b=-kernelOffset; b<=kernelOffset; b++){
-                     for (int a=-kernelOffset; a<=kernelOffset; a++){
-                        const auto* cell = momentsGrid.get(i + a, j + b, k + c);
-#pragma omp simd
+               for (int c = -kernelOffset; c <= kernelOffset; c++) {
+                  for (int b = -kernelOffset; b <= kernelOffset; b++) {
+                     for (int a = -kernelOffset; a <= kernelOffset; a++) {
+                        const auto localId = technicalGrid.localIDFromLocalCoordinates(i + a, j + b, k + c);
+                        const auto& cell = moments[localId];
+			#pragma omp simd
                         for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
-                           swap.at(e) += cell->at(e) * kernel[kernelOffset + a][kernelOffset + b][kernelOffset + c];
-                        } 
+                           blurCell[e] += cell[e] * kernel[kernelOffset + a][kernelOffset + b][kernelOffset + c];
+                        }
                      }
                   }
-               }//inner filtering loop
+               } // inner filtering loop
             }
          }
-      } //spatial loops
+      } // spatial loops
 
-      // Swap filtered data with momentsGrid old data
-      std::swap(momentsGrid.getData(), swapData);
-      // Update Ghost Cells
+      std::swap(moments, blurred);
       momentsGrid.updateGhostCells();
    }
 }
