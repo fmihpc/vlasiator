@@ -484,6 +484,7 @@ jobs:
      uses: actions/checkout@v4
      with:
        submodules: false
+       ref: ${{ github.event.pull_request.head.ref }}
    - name: Diff with PR target
      run: |
        git diff -W origin/${{ github.event.pull_request.base.ref }}..HEAD > diff.txt
@@ -508,7 +509,6 @@ jobs:
      uses: mshick/add-pr-comment@v2
      with:
           message-path: output.txt
-          repo-directory: './'
 
   check_cfg_files:
     runs-on: ubuntu-latest
