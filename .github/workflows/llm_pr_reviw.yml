@@ -1,0 +1,50 @@
+name: PR LLM auto-review
+
+on:
+  # Dispatch this workflow whenever master or dev get a PR 
+  pull_request:
+    branches: ["dev","master"]
+
+concurrency:
+   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+   cancel-in-progress: true
+
+jobs:
+  llm_pr_review:
+   runs-on: carrington
+   continue-on-error: true
+   permissions:
+      pull-requests: write
+   steps:
+   - name: Checkout source
+     uses: actions/checkout@v4
+     with:
+       submodules: false
+       ref: ${{ github.event.pull_request.head.sha }}
+   - name: Try to merge with target
+     run: git merge ${{ github.event.pull_request.base.sha }}
+   - name: Diff with PR target
+     run: |
+       git diff -W ${{ github.event.pull_request.base.sha }}..HEAD > diff.txt
+   - name: Build prompt
+     run: |
+       cat > prompt.txt << BLOP
+       <|im_start|>system
+       You are CodeReviewBot, the automatic pull request reviewer for Vlasiator, the 6D hybrid-Vlasov magnetospheric simulation code. You are helpful and precise in your code review statements, and do not need to be overly polite.<|im_end|>
+       <|im_start|>user
+       Please analyze the following pull request diff, and give a short summary of its changes, as well as an analysis of potentially introduced problems or inconsistences. If there are none, give your approval for the PR.
+       BLOP
+       cat diff.txt >> prompt.txt
+       cat >> prompt.txt << BLOP
+       <|im_end|>
+       <|im_start|>assistant
+       BLOP
+
+   - name: Run llama.cpp
+     run: |
+      srun --interactive --mem-per-gpu=20G --cpus-per-gpu=8 -t00:10:00 -pgpu-oversub -G 1 -Mukko bash -c "module load GCCcore/11.3.0; module load CUDA; /wrk-vakka/users/uganse/llama.cpp/llama-cli -c 65535 -t 8 -ngl 63 -m /wrk-vakka/users/uganse/llama.cpp/models/Qwen2.5-32B-Instruct-Q4_K_M.gguf --no-display-prompt -f prompt.txt" | tee output.txt
+   - name: Add PR comment
+     uses: mshick/add-pr-comment@v2
+     with:
+          message-path: output.txt
+
