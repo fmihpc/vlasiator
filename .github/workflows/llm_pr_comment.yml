@@ -29,9 +29,9 @@ jobs:
           run_id: ${{ github.event.workflow_run.id }}
       - name: Ser PR number env variable
         run: |
-            echo "PR=`cat pr_number`" >> $GITHUB_ENV
+            echo "PR_NUMBER=`cat pr_number`" >> $GITHUB_ENV
       - name: Add PR comment
         uses: mshick/add-pr-comment@v2
         with:
              message-path: output.txt
-             issue: ${{ env.PR }}
+             issue: ${{ env.PR_NUMBER }}
