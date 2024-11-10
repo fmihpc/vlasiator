@@ -21,6 +21,7 @@ jobs:
      with:
        submodules: false
        ref: ${{ github.event.pull_request.head.sha }}
+       fetch-depth: 0
    - name: Try to merge with target
      run: git merge ${{ github.event.pull_request.base.sha }}
    - name: Diff with PR target
