@@ -12,9 +12,6 @@ concurrency:
 jobs:
   llm_pr_review:
    runs-on: carrington
-   continue-on-error: true
-   permissions:
-      pull-requests: write
    steps:
    - name: Checkout source
      uses: actions/checkout@v4
@@ -44,8 +41,22 @@ jobs:
    - name: Run llama.cpp
      run: |
       srun --interactive --mem-per-gpu=20G --cpus-per-gpu=8 -t00:10:00 -pgpu-oversub -G 1 -Mukko bash -c "module load GCCcore/11.3.0; module load CUDA; /wrk-vakka/users/uganse/llama.cpp/llama-cli -c 65535 -t 8 -ngl 63 -m /wrk-vakka/users/uganse/llama.cpp/models/Qwen2.5-32B-Instruct-Q4_K_M.gguf --no-display-prompt -f prompt.txt" | tee output.txt
-   - name: Add PR comment
-     uses: mshick/add-pr-comment@v2
+   - name: Save PR number
+     env:
+       PR_NUMBER: ${{ github.event.number }}
+     run: |
+       mkdir -p ./pr
+       echo $PR_NUMBER > ./pr_number
+   - uses: actions/upload-artifact@v4
      with:
-          message-path: output.txt
-
+       name: pr_number
+       path: pr_number
+       retention-days: 1
+       if-no-files-found: error
+   - name: Upload review as artifact
+     uses: actions/upload-artifact@v4
+     with:
+       name: llm-output
+       path: output.txt
+       retention-days: 1
+       if-no-files-found: error
