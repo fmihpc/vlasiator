@@ -40,7 +40,7 @@ jobs:
 
    - name: Run llama.cpp
      run: |
-      srun --interactive --mem-per-gpu=20G --cpus-per-gpu=8 -t00:10:00 -pgpu-oversub -G 1 -Mukko bash -c "module load GCCcore/11.3.0; module load CUDA; /wrk-vakka/users/uganse/llama.cpp/llama-cli -c 65535 -t 8 -ngl 63 -m /wrk-vakka/users/uganse/llama.cpp/models/Qwen2.5-32B-Instruct-Q4_K_M.gguf --no-display-prompt -f prompt.txt" | tee output.txt
+      srun --interactive --mem-per-gpu=20G --cpus-per-gpu=8 -t00:10:00 -pgpu-oversub -G 1 -Mukko bash -c "module load GCCcore/11.3.0; module load CUDA; /wrk-vakka/users/uganse/llama.cpp/llama-cli -c 65535 -t 8 -ngl 63 -m /wrk-vakka/users/uganse/llama.cpp/models/Qwen2.5-32B-Instruct-Q6_K.gguf --no-display-prompt -f prompt.txt" | tee output.txt
    - name: Save PR number
      env:
        PR_NUMBER: ${{ github.event.number }}
