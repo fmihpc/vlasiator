@@ -686,8 +686,44 @@ namespace projects {
    }
 
    bool Project::filterRefined( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
-      int myRank;       
+      // Grabbed from gridglue
+      // TODO Maybe we should define this in one place...
+      const static Real kernel[5][5][5] ={
+                                    {{ 1,  2,  3,  2,  1},
+                                    { 2,  4,  6,  4,  2},
+                                    { 3,  6,  9,  6,  3},
+                                    { 2,  4,  6,  4,  2},
+                                    { 1,  2,  3,  2,  1}},
+
+                                    {{ 2,  4,  6,  4,  2},
+                                    { 4,  8, 12,  8,  4},
+                                    { 6, 12, 18, 12,  6},
+                                    { 4,  8, 12,  8,  4},
+                                    { 2,  4,  6,  4,  2}},
+
+                                    {{ 3,  6,  9,  6,  3},
+                                    { 6, 12, 18, 12,  6},
+                                    { 9, 18, 27, 18,  9},
+                                    { 6, 12, 18, 12,  6},
+                                    { 3,  6,  9,  6,  3}},
+
+                                    {{ 2,  4,  6,  4,  2},
+                                    { 4,  8, 12,  8,  4},
+                                    { 6, 12, 18, 12,  6},
+                                    { 4,  8, 12,  8,  4},
+                                    { 2,  4,  6,  4,  2}},
+
+                                    {{ 1,  2,  3,  2,  1},
+                                    { 2,  4,  6,  4,  2},
+                                    { 3,  6,  9,  6,  3},
+                                    { 2,  4,  6,  4,  2},
+                                    { 1,  2,  3,  2,  1}}
+                                    };
+
+      int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+
+      phiprof::Timer timer {"filter-refines"};
 
       auto cells = getLocalCells();
       std::map<CellID, SpatialCell> cellsMap;
@@ -697,37 +733,39 @@ namespace projects {
          }
       }
 
-      for (auto cellPair : cellsMap) {
-         CellID id = cellPair.first;
-         // To preserve the mean, we must only consider refined cells
+
+      for (auto& [id, cell] : cellsMap) {
          int refLevel = mpiGrid.get_refinement_level(id);
-         std::vector<CellID> refinedNeighbors;
-         for (auto& neighbor : *mpiGrid.get_neighbors_of(id, NEAREST_NEIGHBORHOOD_ID)) {
-            if (mpiGrid[neighbor.first]->parameters[CellParams::RECENTLY_REFINED] && mpiGrid.get_refinement_level(neighbor.first) == refLevel) {
-               refinedNeighbors.push_back(neighbor.first);
+         std::vector<CellID> neighbors;
+         std::vector<double> weights;
+         int missingNeighbors {0}; 
+         int denom = std::pow(2, P::amrMaxSpatialRefLevel - refLevel);
+         for (int x = -2; x <= 2; ++x) {
+            for (int y = -2; y <= 2; ++y) {
+               for (int z = -2; z <=2; ++z) {
+                  if (x || y || z) {
+                     for (auto& [neighbor, dir] : mpiGrid.get_neighbors_of_at_offset(id, x, y, z, denom)) {
+                        // TODO this should have exactly one element
+                        // neighbors_of_at_offset doesn't return error cells
+                        neighbors.push_back(neighbor);
+                        weights.push_back(kernel[2 + x][2 + y][2 + z]);
+                     }
+                  }
+               }
             }
          }
 
-         if (refinedNeighbors.size() == 7) {
-            continue;   // Simple heuristic, in these cases all neighbors are from the same parent cell, ergo are identical
-         }
-
-         // In boxcar filter, we take the average of each of the neighbors and the cell itself. For each missing neighbour, add the cell one more time
-         Real fluffiness = (Real) refinedNeighbors.size() / 27.0;
+         // In boxcar filter, we take the average of each of the neighbors and the cell itself.
+         // TODO how does this match fsgrid filtering wrt. boundaries?
          for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-            SBC::averageCellData(mpiGrid, refinedNeighbors, &cellPair.second, popID, fluffiness);
+            SBC::averageCellData(mpiGrid, neighbors, &cell, popID, weights, kernel[2][2][2]);
          }
 
-         calculateCellMoments(&cellPair.second, true, false);
+         calculateCellMoments(&cell, true, false, true);
       }
 
-      for (auto cellPair : cellsMap) {
-         *mpiGrid[cellPair.first] = cellPair.second;
-         mpiGrid[cellPair.first]->parameters[CellParams::RECENTLY_REFINED] = 0;
-      }
-
-      if (myRank == MASTER_RANK) {
-         std::cout << "Filtered refined cells!" << std::endl;
+      for (auto& [id, cell] : cellsMap) {
+         std::swap(*mpiGrid[id], cell);
       }
 
       return true;

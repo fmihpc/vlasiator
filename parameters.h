@@ -192,6 +192,7 @@ struct Parameters {
    static bool refineOnRestart;
    static bool forceRefinement;
    static bool shouldFilter;
+   static int filterPasses;
    static bool useAlpha1;
    static Real alpha1RefineThreshold;
    static Real alpha1CoarsenThreshold;
