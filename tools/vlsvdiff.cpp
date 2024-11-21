@@ -77,7 +77,7 @@ static map<string, string> attributes;
 
 // Global enum and variable
 static int gridName;
-enum gridType { SpatialGrid, fsgrid, ionosphere };
+enum GridType { SPATIALGRID, FSGRID, IONOSPHERE };
 
 static uint64_t convUInt(const char* ptr, const vlsv::datatype::type& dataType, const uint64_t& dataSize) {
    if (dataType != vlsv::datatype::type::UINT) {
@@ -434,7 +434,7 @@ bool cloneMesh(const string& inputFileName, vlsv::Writer& output, const string& 
       success = false;
 
    // Only do this if we diff SpatialGrid data
-   if (gridName == gridType::SpatialGrid || gridName == gridType::ionosphere) {
+   if (gridName == GridType::SPATIALGRID || gridName == GridType::IONOSPHERE) {
       if (copyArray(input, output, "MESH_DOMAIN_SIZES", inputAttribs) == false)
          success = false;
 
@@ -488,7 +488,7 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader, const string& meshName, cons
    }
 
    switch (gridName) {
-   case gridType::SpatialGrid: {
+   case GridType::SPATIALGRID: {
       std::vector<char> variableBuffer(variableVectorSize * variableDataSize);
       float* variablePtrFloat = reinterpret_cast<float*>(variableBuffer.data());
       double* variablePtrDouble = reinterpret_cast<double*>(variableBuffer.data());
@@ -560,7 +560,7 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader, const string& meshName, cons
       }
    } break;
 
-   case gridType::fsgrid:
+   case GridType::FSGRID:
 
    {
       // Get Spatial Grid's  max refinement Level
@@ -679,7 +679,7 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader, const string& meshName, cons
       }
    } break;
 
-   case gridType::ionosphere:
+   case GridType::IONOSPHERE:
 
       if (compToExtract >= variableVectorSize) {
          cerr << "ERROR invalid component, this variable has size " << variableVectorSize << endl;
@@ -874,9 +874,9 @@ bool pDistance(const map<uint, Real>& orderedData1, const map<uint, Real>& order
             *absolute = max(*absolute, value);
             length = max(length, abs(it1->second));
          }
-         if (gridName == gridType::SpatialGrid) {
+         if (gridName == GridType::SPATIALGRID) {
             array[cellOrder.at(it1->first)] = value;
-         } else if (gridName == gridType::fsgrid || gridName == gridType::ionosphere) {
+         } else if (gridName == GridType::FSGRID || gridName == GridType::IONOSPHERE) {
             array.at(it1->first) = value;
          }
       }
@@ -889,9 +889,9 @@ bool pDistance(const map<uint, Real>& orderedData1, const map<uint, Real>& order
             *absolute += value;
             length += abs(it1->second);
          }
-         if (gridName == gridType::SpatialGrid) {
+         if (gridName == GridType::SPATIALGRID) {
             array[cellOrder.at(it1->first)] = value;
-         } else if (gridName == gridType::fsgrid || gridName == gridType::ionosphere) {
+         } else if (gridName == GridType::FSGRID || gridName == GridType::IONOSPHERE) {
             array[it1->first] = value;
          }
       }
@@ -904,9 +904,9 @@ bool pDistance(const map<uint, Real>& orderedData1, const map<uint, Real>& order
             *absolute += value;
             length += pow(abs(it1->second), p);
          }
-         if (gridName == gridType::SpatialGrid) {
+         if (gridName == GridType::SPATIALGRID) {
             array[cellOrder.at(it1->first)] = pow(value, 1.0 / p);
-         } else if (gridName == gridType::fsgrid || gridName == gridType::ionosphere) {
+         } else if (gridName == GridType::FSGRID || gridName == GridType::IONOSPHERE) {
             array[it1->first] = pow(value, 1.0 / p);
          }
       }
@@ -1944,11 +1944,11 @@ int main(int argn, char* args[]) {
 
    // Figure out Meshname
    if (attributes["--meshname"] == "SpatialGrid") {
-      gridName = gridType::SpatialGrid;
+      gridName = GridType::SPATIALGRID;
    } else if (attributes["--meshname"] == "fsgrid") {
-      gridName = gridType::fsgrid;
+      gridName = GridType::FSGRID;
    } else if (attributes["--meshname"] == "ionosphere") {
-      gridName = gridType::ionosphere;
+      gridName = GridType::IONOSPHERE;
    } else {
       std::cout << attributes["--meshname"] << std::endl;
       std::cerr << "Wrong grid type" << std::endl;
