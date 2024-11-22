@@ -23,8 +23,9 @@
 #ifndef DATAREDUCER_H
 #define DATAREDUCER_H
 
-#include <vector>
+#include "../grid.h"
 #include "fsgrid.hpp"
+#include <vector>
 
 #include "../definitions.h"
 #include "../spatial_cells/spatial_cell_wrapper.hpp"
@@ -55,20 +56,8 @@ class DataReducer {
    bool reduceDiagnostic(const SpatialCell* cell,const unsigned int& operatorID,Real * result);
    unsigned int size() const;
    bool writeParameters(const unsigned int& operatorID, vlsv::Writer& vlsvWriter);
-   bool writeFsGridData(
-                      fsgrid::FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-                      fsgrid::FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-                      fsgrid::FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
-                      fsgrid::FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-                      fsgrid::FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-                      fsgrid::FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-                      fsgrid::FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-                      fsgrid::FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-                      fsgrid::FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-                      fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-                      const std::string& meshName, const unsigned int operatorID,
-                      vlsv::Writer& vlsvWriter,
-                      const bool writeAsFloat = false);
+   bool writeFsGridData(FsGrids& fsgrids, const std::string& meshName, const unsigned int operatorID,
+                        vlsv::Writer& vlsvWriter, const bool writeAsFloat = false);
    bool writeIonosphereGridData(SBC::SphericalTriGrid& grid, const std::string& meshName,
          const unsigned int operatorID, vlsv::Writer& vlsvWriter);
 

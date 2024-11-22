@@ -534,25 +534,11 @@ int simulate(int argn,char* args[]) {
       }
 
       const bool writeGhosts = true;
-      if( writeGrid(mpiGrid,
-            perBGrid,
-            EGrid,
-            EHallGrid,
-            EGradPeGrid,
-            momentsGrid,
-            dPerBGrid,
-            dMomentsGrid,
-            BgBGrid,
-            volGrid,
-            technicalGrid,
-            version,
-            config,
-            &outputReducer,
-            P::systemWriteName.size()-1,
-            P::restartStripeFactor,
-            writeGhosts
-         ) == false
-      ) {
+      if (writeGrid(mpiGrid,
+                    FsGrids(perBGrid, perBDt2Grid, EGrid, EDt2Grid, EHallGrid, EGradPeGrid, EGradPeDt2Grid, momentsGrid,
+                            momentsDt2Grid, dPerBGrid, dMomentsGrid, dMomentsDt2Grid, BgBGrid, volGrid, technicalGrid),
+                    version, config, &outputReducer, P::systemWriteName.size() - 1, P::restartStripeFactor,
+                    writeGhosts) == false) {
          cerr << "FAILED TO WRITE GRID AT " << __FILE__ << " " << __LINE__ << endl;
       }
       initTimer.stop();
@@ -677,25 +663,11 @@ int simulate(int argn,char* args[]) {
       }
 
       const bool writeGhosts = true;
-      if( writeGrid(mpiGrid,
-            perBGrid, // TODO: Merge all the fsgrids passed here into one meta-object
-            EGrid,
-            EHallGrid,
-            EGradPeGrid,
-            momentsGrid,
-            dPerBGrid,
-            dMomentsGrid,
-            BgBGrid,
-            volGrid,
-            technicalGrid,
-            version,
-            config,
-            &outputReducer,
-            P::systemWriteName.size()-1,
-            P::restartStripeFactor,
-            writeGhosts
-         ) == false
-      ) {
+      if (writeGrid(mpiGrid,
+                    FsGrids(perBGrid, perBDt2Grid, EGrid, EDt2Grid, EHallGrid, EGradPeGrid, EGradPeDt2Grid, momentsGrid,
+                            momentsDt2Grid, dPerBGrid, dMomentsGrid, dMomentsDt2Grid, BgBGrid, volGrid, technicalGrid),
+                    version, config, &outputReducer, P::systemWriteName.size() - 1, P::restartStripeFactor,
+                    writeGhosts) == false) {
          cerr << "FAILED TO WRITE GRID AT " << __FILE__ << " " << __LINE__ << endl;
       }
 
@@ -903,25 +875,11 @@ int simulate(int argn,char* args[]) {
             phiprof::Timer writeSysTimer {"write-system"};
             logFile << "(IO): Writing spatial cell and reduced system data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
             const bool writeGhosts = true;
-            if(writeGrid(mpiGrid,
-               perBGrid, // TODO: Merge all the fsgrids passed here into one meta-object
-               EGrid,
-               EHallGrid,
-               EGradPeGrid,
-               momentsGrid,
-               dPerBGrid,
-               dMomentsGrid,
-               BgBGrid,
-               volGrid,
-               technicalGrid,
-               version,
-               config,
-               &outputReducer,
-               i,
-               P::systemStripeFactor,
-               writeGhosts
-               ) == false
-            ) {
+            if (writeGrid(mpiGrid,
+                          FsGrids(perBGrid, perBDt2Grid, EGrid, EDt2Grid, EHallGrid, EGradPeGrid, EGradPeDt2Grid,
+                                  momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, dMomentsDt2Grid, BgBGrid,
+                                  volGrid, technicalGrid),
+                          version, config, &outputReducer, i, P::systemStripeFactor, writeGhosts) == false) {
                cerr << "FAILED TO WRITE GRID AT" << __FILE__ << " " << __LINE__ << endl;
             }
             P::systemWrites[i]++;
@@ -991,20 +949,11 @@ int simulate(int argn,char* args[]) {
          if (myRank == MASTER_RANK)
             logFile << "(IO): Writing restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
          //Write the restart:
-         if( writeRestart(mpiGrid,
-                  perBGrid, // TODO: Merge all the fsgrids passed here into one meta-object
-                  EGrid,
-                  EHallGrid,
-                  EGradPeGrid,
-                  momentsGrid,
-                  dPerBGrid,
-                  dMomentsGrid,
-                  BgBGrid,
-                  volGrid,
-                  technicalGrid,
-                  version,
-                  config,
-                  outputReducer,"restart",(uint)P::t,P::restartStripeFactor) == false ) {
+         if (writeRestart(mpiGrid,
+                          FsGrids(perBGrid, perBDt2Grid, EGrid, EDt2Grid, EHallGrid, EGradPeGrid, EGradPeDt2Grid,
+                                  momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, dMomentsDt2Grid, BgBGrid,
+                                  volGrid, technicalGrid),
+                          version, config, outputReducer, "restart", (uint)P::t, P::restartStripeFactor) == false) {
             logFile << "(IO): ERROR Failed to write restart!" << endl << writeVerbose;
             cerr << "FAILED TO WRITE RESTART" << endl;
          }
