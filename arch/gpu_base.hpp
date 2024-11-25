@@ -97,7 +97,7 @@ public:
 
    void operator delete(void *ptr) {
       CHK_ERR(gpuDeviceSynchronize());
-      CHK_ERR(gpuFree(ptr));
+      CHK_ERR(gpuFreeManaged(ptr));
    }
 
    void* operator new[] (size_t len) {
@@ -109,7 +109,7 @@ public:
 
    void operator delete[] (void* ptr) {
       CHK_ERR(gpuDeviceSynchronize());
-      CHK_ERR(gpuFree(ptr));
+      CHK_ERR(gpuFreeManaged(ptr));
    }
 
 };
