@@ -547,9 +547,11 @@ void calculateInterpolatedVelocityMoments(
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          spatial_cell::Population& pop = SC->get_population(popID);
          pop.RHO = 0.5 * ( pop.RHO_R + pop.RHO_V );
-         for(int i=0; i<3; i++) {
+         for (int i = 0; i < 3; i++) {
             pop.V[i] = 0.5 * ( pop.V_R[i] + pop.V_V[i] );
-            pop.P[i]    = 0.5 * ( pop.P_R[i] + pop.P_V[i] );
+         }
+         for (int i = 0; i < 6; i++) {
+            pop.P[i] = 0.5 * ( pop.P_R[i] + pop.P_V[i] );
          }
       }
    }

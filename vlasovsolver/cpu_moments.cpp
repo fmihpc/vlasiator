@@ -142,17 +142,17 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
       }
 
       // Store species' contribution to bulk velocity moments
-      pop.P[0] = mass*array[0];
-      pop.P[1] = mass*array[1];
-      pop.P[2] = mass*array[2];
+      for (size_t i = 0; i < array.size(); ++i) {
+         pop.P[i] = mass * array[i];
+      }
 
       if (!computePopulationMomentsOnly) {
-         cell->parameters[CellParams::P_11] += mass * array[0];
-         cell->parameters[CellParams::P_22] += mass * array[1];
-         cell->parameters[CellParams::P_33] += mass * array[2];
-         cell->parameters[CellParams::P_23] += mass * array[3];
-         cell->parameters[CellParams::P_13] += mass * array[4];
-         cell->parameters[CellParams::P_12] += mass * array[5];
+         cell->parameters[CellParams::P_11] += pop.P[0];
+         cell->parameters[CellParams::P_22] += pop.P[1];
+         cell->parameters[CellParams::P_33] += pop.P[2];
+         cell->parameters[CellParams::P_23] += pop.P[3];
+         cell->parameters[CellParams::P_13] += pop.P[4];
+         cell->parameters[CellParams::P_12] += pop.P[5];
       }
    } // for-loop over particle species
 }
@@ -199,9 +199,11 @@ void calculateMoments_R(
           Population & pop = cell->get_population(popID);
           if (blockContainer.size() == 0) {
              pop.RHO_R = 0;
-            for (int i=0; i<3; ++i) {
-               pop.V_R[i]=0;
-               pop.P_R[i]=0;
+            for (int i = 0; i < 3; ++i) {
+               pop.V_R[i] = 0;
+            }
+            for (int i = 0; i < 6; ++i) {
+               pop.P_R[i] = 0;
             }
              continue;
           }
@@ -297,16 +299,16 @@ void calculateMoments_R(
          } // for-loop over velocity blocks
 
          // Store species' contribution to 2nd bulk velocity moments
-         pop.P_R[0] = mass*array[0];
-         pop.P_R[1] = mass*array[1];
-         pop.P_R[2] = mass*array[2];
+         for (size_t i = 0; i < array.size(); ++i) {
+            pop.P_R[i] = mass * array[i];
+         }
 
-         cell->parameters[CellParams::P_11_R] += mass * array[0];
-         cell->parameters[CellParams::P_22_R] += mass * array[1];
-         cell->parameters[CellParams::P_33_R] += mass * array[2];
-         cell->parameters[CellParams::P_23_R] += mass * array[3];
-         cell->parameters[CellParams::P_13_R] += mass * array[4];
-         cell->parameters[CellParams::P_12_R] += mass * array[5];
+         cell->parameters[CellParams::P_11_R] += pop.P_R[0];
+         cell->parameters[CellParams::P_22_R] += pop.P_R[1];
+         cell->parameters[CellParams::P_33_R] += pop.P_R[2];
+         cell->parameters[CellParams::P_23_R] += pop.P_R[3];
+         cell->parameters[CellParams::P_13_R] += pop.P_R[4];
+         cell->parameters[CellParams::P_12_R] += pop.P_R[5];
       } // for-loop over spatial cells
    } // for-loop over particle species
 
@@ -356,9 +358,11 @@ void calculateMoments_V(
          Population & pop = cell->get_population(popID);
          if (blockContainer.size() == 0) {
             pop.RHO_V = 0;
-            for (int i=0; i<3; ++i) {
-               pop.V_V[i]=0;
-               pop.P_V[i]=0;
+            for (int i = 0; i < 3; ++i) {
+               pop.V_V [i] = 0;
+            }
+            for (int i = 0; i < 6; ++i) {
+               pop.P_V [i] = 0;
             }
             continue;
          }
@@ -441,17 +445,16 @@ void calculateMoments_V(
          } // for-loop over velocity blocks
 
          // Store species' contribution to 2nd bulk velocity moments
-         pop.P_V[0] = mass*array[0];
-         pop.P_V[1] = mass*array[1];
-         pop.P_V[2] = mass*array[2];
+         for (size_t i = 0; i < array.size(); ++i) {
+            pop.P_V[i] = mass * array[i];
+         }
 
-         cell->parameters[CellParams::P_11_V] += mass * array[0];
-         cell->parameters[CellParams::P_22_V] += mass * array[1];
-         cell->parameters[CellParams::P_33_V] += mass * array[2];
-         cell->parameters[CellParams::P_23_V] += mass * array[3];
-         cell->parameters[CellParams::P_13_V] += mass * array[4];
-         cell->parameters[CellParams::P_12_V] += mass * array[5];
-
+         cell->parameters[CellParams::P_11_V] += pop.P_V[0];
+         cell->parameters[CellParams::P_22_V] += pop.P_V[1];
+         cell->parameters[CellParams::P_33_V] += pop.P_V[2];
+         cell->parameters[CellParams::P_23_V] += pop.P_V[3];
+         cell->parameters[CellParams::P_13_V] += pop.P_V[4];
+         cell->parameters[CellParams::P_12_V] += pop.P_V[5];
       } // for-loop over spatial cells
    } // for-loop over particle species
 }

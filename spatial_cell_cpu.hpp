@@ -156,9 +156,9 @@ namespace spatial_cell {
       Real V_R[3];
       Real RHO_V;
       Real V_V[3];
-      Real P[3];
-      Real P_R[3];
-      Real P_V[3];
+      Real P[6];
+      Real P_R[6];
+      Real P_V[6];
       Real RHOLOSSADJUST = 0.0;      /*!< Counter for particle number loss from the destroying blocks in blockadjustment*/
       Real max_dt[2];                                                /**< Element[0] is max_r_dt, element[1] max_v_dt.*/
       Real velocityBlockMinValue;
@@ -205,6 +205,9 @@ namespace spatial_cell {
       Population & get_population(const uint popID);
       const Population & get_population(const uint popID) const;
       void set_population(const Population& pop, cuint popID);
+
+      std::vector<Population>& get_populations();
+      const std::vector<Population>& get_populations() const;
 
       uint8_t get_maximum_refinement_level(const uint popID);
       const Real& get_max_r_dt(const uint popID) const;
@@ -927,6 +930,14 @@ namespace spatial_cell {
    
    inline void SpatialCell::set_population(const Population& pop, cuint popID) {
       this->populations[popID] = pop;
+   }
+
+   inline std::vector<Population>& SpatialCell::get_populations() {
+      return populations;
+   }
+   
+   inline const std::vector<Population>& SpatialCell::get_populations() const {
+      return populations;
    }
 
    inline const vmesh::LocalID* SpatialCell::get_velocity_grid_length(const uint popID,const uint8_t& refLevel) {

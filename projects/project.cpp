@@ -577,7 +577,7 @@ namespace projects {
       bool alpha1ShouldRefine = (P::useAlpha1 && cell->parameters[CellParams::AMR_ALPHA1] > P::alpha1RefineThreshold);
       bool alpha2ShouldRefine = (P::useAlpha2 && cell->parameters[CellParams::AMR_ALPHA2] > P::alpha2RefineThreshold);
       bool vorticityShouldRefine = (P::useVorticity && cell->parameters[CellParams::AMR_VORTICITY] > P::vorticityRefineThreshold);
-      bool anisotropyShouldRefine = (P::useAnisotropy && cell->parameters[CellParams::P_ANISOTROPY] < P::anisotropyRefineThreshold && refLevel < P::anisotropyMaxReflevel);
+      bool anisotropyShouldRefine = (P::useAnisotropy && cell->parameters[CellParams::P_ANISOTROPY] >= 0 && cell->parameters[CellParams::P_ANISOTROPY] < P::anisotropyRefineThreshold && refLevel < P::anisotropyMaxReflevel);
 
       bool shouldRefine {
          (r2 < r_max2) && (
@@ -614,7 +614,7 @@ namespace projects {
       bool alpha1ShouldUnrefine = (!P::useAlpha1 || cell->parameters[CellParams::AMR_ALPHA1] < P::alpha1CoarsenThreshold);
       bool alpha2ShouldUnrefine = (!P::useAlpha2 || cell->parameters[CellParams::AMR_ALPHA2] < P::alpha2CoarsenThreshold);
       bool vorticityShouldUnrefine = (!P::useVorticity || cell->parameters[CellParams::AMR_VORTICITY] < P::vorticityCoarsenThreshold);
-      bool anisotropyShouldUnrefine = (!P::useAnisotropy || cell->parameters[CellParams::P_ANISOTROPY] > P::anisotropyCoarsenThreshold || refLevel > P::anisotropyMaxReflevel);
+      bool anisotropyShouldUnrefine = (!(P::useAnisotropy && cell->parameters[CellParams::P_ANISOTROPY] >= 0) || cell->parameters[CellParams::P_ANISOTROPY] > P::anisotropyCoarsenThreshold || refLevel > P::anisotropyMaxReflevel);
 
       bool shouldUnrefine {
          (r2 > r_max2) || (
