@@ -200,9 +200,6 @@ namespace CellParams {
       FSGRID_BOUNDARYTYPE, /*!< Boundary type of this cell, as stored in the fsGrid */
       CELLID, /*! < DCCRG cell index */
       REFINEMENT_LEVEL, /*! < Refinement level */
-      AMR_TRANSLATE_COMM_X, /*! < Flag to include this cell in AMR pre-translate communication  */
-      AMR_TRANSLATE_COMM_Y, /*! < Flag to include this cell in AMR pre-translate communication  */
-      AMR_TRANSLATE_COMM_Z, /*! < Flag to include this cell in AMR pre-translate communication  */
       CONNECTION, /*!< Magnetic connection. See TracingPointConnectionType for assigned values. */
       CONNECTION_FW_X, /*!< Endpoint x (forward-propagated) for the magnetic connection tracer*/
       CONNECTION_FW_Y, /*!< Endpoint y (forward-propagated) for the magnetic connection tracer*/
@@ -531,7 +528,6 @@ struct globalflags {
    static bool writeRestart; /*!< Global flag raised to true if a restart writing is needed (without bailout). NOTE: used only by MASTER_RANK in vlasiator.cpp. */
    static bool balanceLoad; /*!< Global flag raised to true if a load balancing is needed. NOTE: used only by MASTER_RANK in vlasiator.cpp. */
    static bool doRefine; /*!< Global flag raised to true if a re-refine is needed. NOTE: used only by MASTER_RANK in vlasiator.cpp. */
-   static int AMRstencilWidth; /*!< Global variable used for the extended AMR stencil width */
    static bool ionosphereJustSolved; /*!< Flag used to notify that the ionosphere has been freshly solved, used to check whether the Vlasov boundary/bulk forcing need updating. */
 };
 
@@ -557,6 +553,5 @@ namespace physicalconstants {
 }
 
 const std::vector<CellID>& getLocalCells();
-void recalculateLocalCellsCache();
 
 #endif

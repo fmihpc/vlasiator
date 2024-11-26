@@ -3,6 +3,7 @@ LNK = mpic++
 
 # Modules loaded
 # module load gcc openmpi jemalloc papi boost
+# module load gcc/13 openmpi jemalloc papi
 # also load cuda/11.5.0 for nvtx support
 #======== Vectorization ==========
 #Set vector backend type for vlasov solvers, sets precision and length.
@@ -29,8 +30,8 @@ FLAGS =
 #GNU flags:
 CC_BRAND = gcc
 CC_BRAND_VERSION = 9.3.0
-CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -fabi-version=0 -march=native -mfma -mavx2 -fpermissive
-testpackage: CXXFLAGS = -g -ggdb -O2 -fopenmp -funroll-loops -std=c++17 -fabi-version=0 -mfma -fpermissive
+CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++20 -W -Wall -Wno-unused -fabi-version=0 -march=native -mfma -mavx2 -fpermissive
+testpackage: CXXFLAGS = -g -ggdb -O2 -fopenmp -funroll-loops -std=c++20 -fabi-version=0 -mfma -fpermissive
 
 
 MATHFLAGS = -ffast-math -fno-finite-math-only

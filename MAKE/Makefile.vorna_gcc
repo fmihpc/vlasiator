@@ -34,13 +34,13 @@ FLAGS =
 #GNU flags:
 CC_BRAND = gcc
 CC_BRAND_VERSION = 10.2.0
-CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++17 -mavx
-testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -mavx
+CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++20 -mavx
+testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++20 -mavx
 CXXFLAGS += -Wall -Wextra -Wno-unused
 
 MATHFLAGS = -ffast-math -fno-finite-math-only
 testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
-LDFLAGS = -lrt -lgfortran -std=c++17
+LDFLAGS = -lrt -lgfortran -std=c++20
 LIB_MPI = -lgomp
 
 #======== PAPI ==========

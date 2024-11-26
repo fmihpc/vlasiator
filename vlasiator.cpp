@@ -71,7 +71,6 @@ void fpehandler(int sig_num)
 #include "phiprof.hpp"
 
 Logger logFile, diagnostic;
-static dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> mpiGrid;
 
 using namespace std;
 
@@ -281,14 +280,6 @@ const std::vector<CellID>& getLocalCells() {
    return Parameters::localCells;
 }
 
-void recalculateLocalCellsCache() {
-     {
-        vector<CellID> dummy;
-        dummy.swap(Parameters::localCells);
-     }
-   Parameters::localCells = mpiGrid.get_cells();
-}
-
 int simulate(int argn,char* args[]) {
    int myRank, doBailout=0;
    const creal DT_EPSILON=1e-12;
@@ -473,6 +464,8 @@ int simulate(int argn,char* args[]) {
    // FULL_NEIGHBORHOOD. Block lists up to date for
    // VLASOV_SOLVER_NEIGHBORHOOD (but dist function has not been communicated)
    phiprof::Timer initGridsTimer {"Init grids"};
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> mpiGrid;
+
    initializeGrids(
       argn,
       args,

@@ -36,8 +36,6 @@ namespace spatial_cell {
    int SpatialCell::activePopID = 0;
    uint64_t SpatialCell::mpi_transfer_type = 0;
    bool SpatialCell::mpiTransferAtSysBoundaries = false;
-   bool SpatialCell::mpiTransferInAMRTranslation = false;
-   int SpatialCell::mpiTransferXYZTranslation = 0;
 
    SpatialCell::SpatialCell() {
       // Block list and cache always have room for all blocks
@@ -81,7 +79,7 @@ namespace spatial_cell {
     * velocity_block_with_no_content_list needs to be up to date in local cells.
     *         
     * update_velocity_block_with_content_lists() should have
-    * been called with the current distribution function values, and then the contetn list transferred.
+    * been called with the current distribution function values, and then the content list transferred.
     * 
     * Removes all velocity blocks from this spatial cell which don't
     * have content and don't have spatial or velocity neighbors with
@@ -578,11 +576,8 @@ namespace spatial_cell {
 
       // create datatype for actual data if we are in the first two 
       // layers around a boundary, or if we send for the whole system
-      // in AMR translation, only send the necessary cells
-      if (this->mpiTransferEnabled && ((SpatialCell::mpiTransferAtSysBoundaries==false && SpatialCell::mpiTransferInAMRTranslation==false) ||
-                                       (SpatialCell::mpiTransferAtSysBoundaries==true && (this->sysBoundaryLayer ==1 || this->sysBoundaryLayer ==2)) ||
-                                       (SpatialCell::mpiTransferInAMRTranslation==true &&
-                                        this->parameters[CellParams::AMR_TRANSLATE_COMM_X+SpatialCell::mpiTransferXYZTranslation]==true ))) {
+      if (this->mpiTransferEnabled && (SpatialCell::mpiTransferAtSysBoundaries==false ||
+                                       this->sysBoundaryLayer ==1 || this->sysBoundaryLayer ==2 )) {
 
          //add data to send/recv to displacement and block length lists
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_LIST_STAGE1) != 0) {
@@ -605,8 +600,13 @@ namespace spatial_cell {
             }
 
             // send velocity block list
-            displacements.push_back((uint8_t*) &(populations[activePopID].vmesh.getGrid()[0]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(vmesh::GlobalID) * populations[activePopID].vmesh.size());
+            if(populations[activePopID].vmesh.size() > 0) {
+               displacements.push_back((uint8_t*) &(populations[activePopID].vmesh.getGrid()[0]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(vmesh::GlobalID) * populations[activePopID].vmesh.size());
+            } else {
+               displacements.push_back(0);
+               block_lengths.push_back(0);
+            }
          }
 
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_WITH_CONTENT_STAGE1) !=0) {
@@ -621,8 +621,13 @@ namespace spatial_cell {
             }
 
             //velocity_block_with_content_list_size should first be updated, before this can be done (STAGE1)
-            displacements.push_back((uint8_t*) &(this->velocity_block_with_content_list[0]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(vmesh::GlobalID)*this->velocity_block_with_content_list_size);
+            if(velocity_block_with_content_list_size > 0) {
+               displacements.push_back((uint8_t*) &(this->velocity_block_with_content_list[0]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(vmesh::GlobalID)*this->velocity_block_with_content_list_size);
+            } else {
+               displacements.push_back(0);
+               block_lengths.push_back(0);
+            }
          }
 
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_DATA) !=0) {
@@ -780,12 +785,14 @@ namespace spatial_cell {
          MPI_Type_size(datatype,&mpiSize);
          MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
          cout << myRank << " get_mpi_datatype: " << cellID << " " << sender_rank << " " << receiver_rank << " " << mpiSize << ", Nblocks = " << populations[activePopID].N_blocks << ", nbr Nblocks =";
-         for (uint i = 0; i < MAX_NEIGHBORS_PER_DIM; ++i) {
-            const set<int>& ranks = this->face_neighbor_ranks[neighborhood];
-            if ( receiving || ranks.find(receiver_rank) != ranks.end()) {
-               cout << " " << this->neighbor_number_of_blocks[i];
-            } else {
-               cout << " " << 0;
+         if (!P::vlasovSolverGhostTranslate || (P::amrMaxSpatialRefLevel==0) ) {
+            for (uint i = 0; i < MAX_NEIGHBORS_PER_DIM; ++i) {
+               const set<int>& ranks = this->face_neighbor_ranks[neighborhood];
+               if ( receiving || ranks.find(receiver_rank) != ranks.end()) {
+                  cout << " " << this->neighbor_number_of_blocks[i];
+               } else {
+                  cout << " " << 0;
+               }
             }
          }
          cout << " face_neighbor_ranks =";
@@ -1378,10 +1385,11 @@ namespace spatial_cell {
     * @return True on success.*/
    bool SpatialCell::shrink_to_fit() {
       bool success = true;
+      //return success;
 
       for (size_t p=0; p<populations.size(); ++p) {
          const uint64_t amount 
-            = 2 + populations[p].blockContainer.size() 
+            = 2 + populations[p].blockContainer.size()
             * populations[p].blockContainer.getBlockAllocationFactor();
          
          // Allow capacity to be a bit large than needed by number of blocks, shrink otherwise

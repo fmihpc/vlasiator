@@ -94,10 +94,10 @@ typedef Realf (*VAmrVelRefinement)(const Realf* velBlock);
 // neighborhoods, these are initialized in grid.cpp:initializeGrid
 
 //#define FIELD_SOLVER_NEIGHBORHOOD_ID 1 // Now fields on FSgrid
-#define VLASOV_SOLVER_NEIGHBORHOOD_ID 2   //up to third(PPM) neighbor in each face direction
-#define VLASOV_SOLVER_X_NEIGHBORHOOD_ID 3 //up to third(PPM) neighbor in x face directions
-#define VLASOV_SOLVER_Y_NEIGHBORHOOD_ID 4 //up to third(PPM) neighbor in y face directions
-#define VLASOV_SOLVER_Z_NEIGHBORHOOD_ID 5 //up to third(PPM) neighbor in z face directions
+#define VLASOV_SOLVER_NEIGHBORHOOD_ID 2   //up to second(PPM) neighbor in each face direction
+#define VLASOV_SOLVER_X_NEIGHBORHOOD_ID 3 //up to second(PPM) neighbor in x face directions
+#define VLASOV_SOLVER_Y_NEIGHBORHOOD_ID 4 //up to second(PPM) neighbor in y face directions
+#define VLASOV_SOLVER_Z_NEIGHBORHOOD_ID 5 //up to second(PPM) neighbor in z face directions
 #define VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID 6 //nearest neighbor in X face direction, f() can propagate to local cells in X dir, and are target for local cells
 #define VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID 7 //nearest neighbor in Y face direction, f() can propagate to local cells in Y dir, and are target for local cells
 #define VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID 8 //nearest neighbor in Z face direction, f() can propagate to local cells in Z dir, and are target for local cells
@@ -112,6 +112,11 @@ typedef Realf (*VAmrVelRefinement)(const Realf* velBlock);
 #define SHIFT_M_X_NEIGHBORHOOD_ID 17 //Shift in -x direction
 #define SHIFT_M_Y_NEIGHBORHOOD_ID 18 //Shift in -y direction
 #define SHIFT_M_Z_NEIGHBORHOOD_ID 19 //Shift in -z direction
+#define VLASOV_SOLVER_X_GHOST_NEIGHBORHOOD_ID 20 //up to third(PPM+ghost) neighbor in x face directions
+#define VLASOV_SOLVER_Y_GHOST_NEIGHBORHOOD_ID 21 //up to third(PPM+ghost) neighbor in y face directions
+#define VLASOV_SOLVER_Z_GHOST_NEIGHBORHOOD_ID 22 //up to third(PPM+ghost) neighbor in z face directions
+#define VLASOV_SOLVER_GHOST_NEIGHBORHOOD_ID 23 //all required neighbors for ghost translation
+#define VLASOV_SOLVER_GHOST_REQNEIGH_NEIGHBORHOOD_ID 24 //all ghost translation neighbors which require own neighbor information
 
 //fieldsolver stencil.
 #define FS_STENCIL_WIDTH 2

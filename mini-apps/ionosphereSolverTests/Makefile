@@ -31,7 +31,7 @@ sysboundarycondition.o: ../../sysboundary/sysboundarycondition.h ../../sysbounda
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c ../../sysboundary/sysboundarycondition.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN} ${INC_PROFILE} ${INC_JEMALLOC}
 
 parameters.o: ../../parameters.h ../../parameters.cpp ../../readparameters.h
-	$(CMP) $(CXXFLAGS) $(FLAGS) -c ../../parameters.cpp ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_FSGRID} ${INC_PROFILE} ${INC_JEMALLOC}
+	$(CMP) $(CXXFLAGS) $(FLAGS) ${MATHFLAGS} -c ../../parameters.cpp ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_FSGRID} ${INC_PROFILE} ${INC_JEMALLOC}
 
 readparameters.o: ../../readparameters.h ../../readparameters.cpp ../../version.h ../../version.cpp
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c ../../readparameters.cpp ${INC_BOOST} ${INC_EIGEN}
