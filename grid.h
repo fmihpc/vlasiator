@@ -30,27 +30,28 @@
 #include "sysboundary/sysboundary.h"
 #include <dccrg.hpp>
 #include <dccrg_cartesian_geometry.hpp>
+#include <span>
 #include <string>
 
 struct FsGrids {
    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid;
 
    // Data of the grids above
-   std::vector<std::array<Real, fsgrids::bfield::N_BFIELD>>& perB;
-   std::vector<std::array<Real, fsgrids::bfield::N_BFIELD>>& perBDt2;
-   std::vector<std::array<Real, fsgrids::efield::N_EFIELD>>& E;
-   std::vector<std::array<Real, fsgrids::efield::N_EFIELD>>& EDt2;
-   std::vector<std::array<Real, fsgrids::ehall::N_EHALL>>& EHall;
-   std::vector<std::array<Real, fsgrids::egradpe::N_EGRADPE>>& EGradPe;
-   std::vector<std::array<Real, fsgrids::egradpe::N_EGRADPE>>& EGradPeDt2;
-   std::vector<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments;
-   std::vector<std::array<Real, fsgrids::moments::N_MOMENTS>>& momentsDt2;
-   std::vector<std::array<Real, fsgrids::dperb::N_DPERB>>& dPerB;
-   std::vector<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dMoments;
-   std::vector<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dMomentsDt2;
-   std::vector<std::array<Real, fsgrids::bgbfield::N_BGB>>& BgB;
-   std::vector<std::array<Real, fsgrids::volfields::N_VOL>>& vol;
-   std::vector<fsgrids::technical>& technical;
+   std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perB;
+   std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perBDt2;
+   std::span<std::array<Real, fsgrids::efield::N_EFIELD>> E;
+   std::span<std::array<Real, fsgrids::efield::N_EFIELD>> EDt2;
+   std::span<std::array<Real, fsgrids::ehall::N_EHALL>> EHall;
+   std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> EGradPe;
+   std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> EGradPeDt2;
+   std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments;
+   std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> momentsDt2;
+   std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dPerB;
+   std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dMoments;
+   std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dMomentsDt2;
+   std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> BgB;
+   std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol;
+   std::span<fsgrids::technical> technical;
 
    FsGrids(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
            fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBDt2Grid,
