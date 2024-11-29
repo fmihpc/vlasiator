@@ -554,9 +554,9 @@ void calculateEdgeElectricFieldX(
                          (-dmoments_SW->at(fsgrids::dmoments::dVydy) - dmoments_SW->at(fsgrids::dmoments::dVydz)) -
                      dBzdy_W * Vy0 + SIXTH * dBzdx_W * dmoments_SW->at(fsgrids::dmoments::dVydx));
 #endif
-   auto wavespeeds = calculateWaveSpeedYZ(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid,
-                                          technicalGrid.getGridSpacing(), i, j, k, i + 1, j, k, By_S, Bz_W, dBydx_S,
-                                          dBydz_S, dBzdx_W, dBzdy_W, MINUS, MINUS, rhomLimits);
+   auto wavespeeds =
+       calculateWaveSpeedYZ(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, gridSpacing, i, j, k, i + 1, j, k,
+                            By_S, Bz_W, dBydx_S, dBydz_S, dBzdx_W, dBzdy_W, MINUS, MINUS, rhomLimits);
    c_y = wavespeeds.minVelocity();
    c_z = c_y;
    ay_neg = max(ZERO, -Vy0 + c_y);
@@ -598,9 +598,9 @@ void calculateEdgeElectricFieldX(
                      dBzdy_E * Vy0 + SIXTH * dBzdx_E * dmoments_SE->at(fsgrids::dmoments::dVydx));
 #endif
 
-   wavespeeds = calculateWaveSpeedYZ(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid,
-                                     technicalGrid.getGridSpacing(), i, j - 1, k, i + 1, j - 1, k, By_S, Bz_E, dBydx_S,
-                                     dBydz_S, dBzdx_E, dBzdy_E, PLUS, MINUS, rhomLimits);
+   wavespeeds =
+       calculateWaveSpeedYZ(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, gridSpacing, i, j - 1, k, i + 1,
+                            j - 1, k, By_S, Bz_E, dBydx_S, dBydz_S, dBzdx_E, dBzdy_E, PLUS, MINUS, rhomLimits);
    c_y = wavespeeds.minVelocity();
    c_z = c_y;
    ay_neg = max(ay_neg, -Vy0 + c_y);
@@ -642,9 +642,9 @@ void calculateEdgeElectricFieldX(
                      dBzdy_W * Vy0 + SIXTH * dBzdx_W * dmoments_NW->at(fsgrids::dmoments::dVydx));
 #endif
 
-   wavespeeds = calculateWaveSpeedYZ(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid,
-                                     technicalGrid.getGridSpacing(), i, j, k - 1, i + 1, j, k - 1, By_N, Bz_W, dBydx_N,
-                                     dBydz_N, dBzdx_W, dBzdy_W, MINUS, PLUS, rhomLimits);
+   wavespeeds =
+       calculateWaveSpeedYZ(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, gridSpacing, i, j, k - 1, i + 1, j,
+                            k - 1, By_N, Bz_W, dBydx_N, dBydz_N, dBzdx_W, dBzdy_W, MINUS, PLUS, rhomLimits);
    c_y = wavespeeds.minVelocity();
    c_z = c_y;
    ay_neg = max(ay_neg, -Vy0 + c_y);
@@ -686,9 +686,9 @@ void calculateEdgeElectricFieldX(
                      dBzdy_E * Vy0 + SIXTH * dBzdx_E * dmoments_NE->at(fsgrids::dmoments::dVydx));
 #endif
 
-   wavespeeds = calculateWaveSpeedYZ(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid,
-                                     technicalGrid.getGridSpacing(), i, j - 1, k - 1, i + 1, j - 1, k - 1, By_N, Bz_E,
-                                     dBydx_N, dBydz_N, dBzdx_E, dBzdy_E, PLUS, PLUS, rhomLimits);
+   wavespeeds = calculateWaveSpeedYZ(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, gridSpacing, i, j - 1,
+                                     k - 1, i + 1, j - 1, k - 1, By_N, Bz_E, dBydx_N, dBydz_N, dBzdx_E, dBzdy_E, PLUS,
+                                     PLUS, rhomLimits);
    c_y = wavespeeds.minVelocity();
    c_z = c_y;
    ay_neg = max(ay_neg, -Vy0 + c_y);
@@ -828,9 +828,9 @@ void calculateEdgeElectricFieldY(
                      dBxdz_W * Vz0 + SIXTH * dBxdy_W * dmoments_SW->at(fsgrids::dmoments::dVzdy));
 #endif
 
-   auto wavespeeds = calculateWaveSpeedXZ(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid,
-                                          technicalGrid.getGridSpacing(), i, j, k, i, j + 1, k, Bx_W, Bz_S, dBxdy_W,
-                                          dBxdz_W, dBzdx_S, dBzdy_S, MINUS, MINUS, rhomLimits);
+   auto wavespeeds =
+       calculateWaveSpeedXZ(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, gridSpacing, i, j, k, i, j + 1, k,
+                            Bx_W, Bz_S, dBxdy_W, dBxdz_W, dBzdx_S, dBzdy_S, MINUS, MINUS, rhomLimits);
    c_z = wavespeeds.minVelocity();
    c_x = c_z;
    az_neg = max(ZERO, -Vz0 + c_z);
@@ -872,9 +872,9 @@ void calculateEdgeElectricFieldY(
                      dBxdz_E * Vz0 + SIXTH * dBxdy_E * dmoments_SE->at(fsgrids::dmoments::dVzdy));
 #endif
 
-   wavespeeds = calculateWaveSpeedXZ(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid,
-                                     technicalGrid.getGridSpacing(), i, j, k - 1, i, j + 1, k - 1, Bx_E, Bz_S, dBxdy_E,
-                                     dBxdz_E, dBzdx_S, dBzdy_S, MINUS, PLUS, rhomLimits);
+   wavespeeds =
+       calculateWaveSpeedXZ(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, gridSpacing, i, j, k - 1, i, j + 1,
+                            k - 1, Bx_E, Bz_S, dBxdy_E, dBxdz_E, dBzdx_S, dBzdy_S, MINUS, PLUS, rhomLimits);
    c_z = wavespeeds.minVelocity();
    c_x = c_z;
    az_neg = max(az_neg, -Vz0 + c_z);
@@ -916,9 +916,9 @@ void calculateEdgeElectricFieldY(
                      dBxdz_W * Vz0 + SIXTH * dBxdy_W * dmoments_NW->at(fsgrids::dmoments::dVzdy));
 #endif
 
-   wavespeeds = calculateWaveSpeedXZ(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid,
-                                     technicalGrid.getGridSpacing(), i - 1, j, k, i - 1, j + 1, k, Bx_W, Bz_N, dBxdy_W,
-                                     dBxdz_W, dBzdx_N, dBzdy_N, PLUS, MINUS, rhomLimits);
+   wavespeeds =
+       calculateWaveSpeedXZ(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, gridSpacing, i - 1, j, k, i - 1,
+                            j + 1, k, Bx_W, Bz_N, dBxdy_W, dBxdz_W, dBzdx_N, dBzdy_N, PLUS, MINUS, rhomLimits);
    c_z = wavespeeds.minVelocity();
    c_x = c_z;
    az_neg = max(az_neg, -Vz0 + c_z);
@@ -960,9 +960,9 @@ void calculateEdgeElectricFieldY(
                      dBxdz_E * Vz0 + SIXTH * dBxdy_E * dmoments_NE->at(fsgrids::dmoments::dVzdy));
 #endif
 
-   wavespeeds = calculateWaveSpeedXZ(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid,
-                                     technicalGrid.getGridSpacing(), i - 1, j, k - 1, i - 1, j + 1, k - 1, Bx_E, Bz_N,
-                                     dBxdy_E, dBxdz_E, dBzdx_N, dBzdy_N, PLUS, PLUS, rhomLimits);
+   wavespeeds = calculateWaveSpeedXZ(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, gridSpacing, i - 1, j,
+                                     k - 1, i - 1, j + 1, k - 1, Bx_E, Bz_N, dBxdy_E, dBxdz_E, dBzdx_N, dBzdy_N, PLUS,
+                                     PLUS, rhomLimits);
    c_z = wavespeeds.minVelocity();
    c_x = c_z;
    az_neg = max(az_neg, -Vz0 + c_z);
@@ -1107,9 +1107,9 @@ void calculateEdgeElectricFieldZ(
 
    // Calculate maximum wave speed (fast magnetosonic speed) on SW cell. In order
    // to get Alfven speed we need to calculate some reconstruction coeff. for Bz:
-   auto wavespeeds = calculateWaveSpeedXY(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid,
-                                          technicalGrid.getGridSpacing(), i, j, k, i, j, k + 1, Bx_S, By_W, dBxdy_S,
-                                          dBxdz_S, dBydx_W, dBydz_W, MINUS, MINUS, rhomLimits);
+   auto wavespeeds =
+       calculateWaveSpeedXY(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, gridSpacing, i, j, k, i, j, k + 1,
+                            Bx_S, By_W, dBxdy_S, dBxdz_S, dBydx_W, dBydz_W, MINUS, MINUS, rhomLimits);
    c_x = wavespeeds.minVelocity();
    c_y = c_x;
    ax_neg = max(ZERO, -Vx0 + c_x);
@@ -1151,9 +1151,9 @@ void calculateEdgeElectricFieldZ(
                      dBydx_E * Vx0 + SIXTH * dBydz_E * dmoments_SE->at(fsgrids::dmoments::dVxdz));
 #endif
 
-   wavespeeds = calculateWaveSpeedXY(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid,
-                                     technicalGrid.getGridSpacing(), i - 1, j, k, i - 1, j, k + 1, Bx_S, By_E, dBxdy_S,
-                                     dBxdz_S, dBydx_E, dBydz_E, PLUS, MINUS, rhomLimits);
+   wavespeeds =
+       calculateWaveSpeedXY(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, gridSpacing, i - 1, j, k, i - 1, j,
+                            k + 1, Bx_S, By_E, dBxdy_S, dBxdz_S, dBydx_E, dBydz_E, PLUS, MINUS, rhomLimits);
    c_x = wavespeeds.minVelocity();
    c_y = c_x;
    ax_neg = max(ax_neg, -Vx0 + c_x);
@@ -1195,9 +1195,9 @@ void calculateEdgeElectricFieldZ(
                      dBydx_W * Vx0 + SIXTH * dBydz_W * dmoments_NW->at(fsgrids::dmoments::dVxdz));
 #endif
 
-   wavespeeds = calculateWaveSpeedXY(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid,
-                                     technicalGrid.getGridSpacing(), i, j - 1, k, i, j - 1, k + 1, Bx_N, By_W, dBxdy_N,
-                                     dBxdz_N, dBydx_W, dBydz_W, MINUS, PLUS, rhomLimits);
+   wavespeeds =
+       calculateWaveSpeedXY(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, gridSpacing, i, j - 1, k, i, j - 1,
+                            k + 1, Bx_N, By_W, dBxdy_N, dBxdz_N, dBydx_W, dBydz_W, MINUS, PLUS, rhomLimits);
    c_x = wavespeeds.minVelocity();
    c_y = c_x;
    ax_neg = max(ax_neg, -Vx0 + c_x);
@@ -1239,9 +1239,9 @@ void calculateEdgeElectricFieldZ(
                      dBydx_E * Vx0 + SIXTH * dBydz_E * dmoments_NE->at(fsgrids::dmoments::dVxdz));
 #endif
 
-   wavespeeds = calculateWaveSpeedXY(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid,
-                                     technicalGrid.getGridSpacing(), i - 1, j - 1, k, i - 1, j - 1, k + 1, Bx_N, By_E,
-                                     dBxdy_N, dBxdz_N, dBydx_E, dBydz_E, PLUS, PLUS, rhomLimits);
+   wavespeeds = calculateWaveSpeedXY(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, gridSpacing, i - 1, j - 1,
+                                     k, i - 1, j - 1, k + 1, Bx_N, By_E, dBxdy_N, dBxdz_N, dBydx_E, dBydz_E, PLUS, PLUS,
+                                     rhomLimits);
    c_x = wavespeeds.minVelocity();
    c_y = c_x;
    ax_neg = max(ax_neg, -Vx0 + c_x);
