@@ -392,6 +392,43 @@ Real resistiveTerm(const auto& bgb, const auto& perb, const auto& moments, const
           (dperb[indices[0]] / spacing[0] - dperb[indices[1]] / spacing[1]);
 }
 
+struct FieldValues {
+   Real E_NE = 0.0;
+   Real E_SE = 0.0;
+   Real E_NW = 0.0;
+   Real E_SW = 0.0;
+   Real apos = 0.0;
+   Real aneg = 0.0;
+   Real bpos = 0.0;
+   Real bneg = 0.0;
+   Real perB_S = 0.0;
+   Real perB_N = 0.0;
+   Real perB_W = 0.0;
+   Real perB_E = 0.0;
+   Real dperB_S = 0.0;
+   Real dperB_N = 0.0;
+   Real dperB_W = 0.0;
+   Real dperB_E = 0.0;
+
+   Real field() const {
+      Real efield = apos * bpos * E_NE + apos * bneg * E_SE + aneg * bpos * E_NW + aneg * bneg * E_SW;
+      efield /= ((apos + aneg) * (bpos + bneg) + EPS);
+      if (Parameters::fieldSolverDiffusiveEterms) {
+#ifdef FS_1ST_ORDER_SPACE
+         // 1st order diffusive terms:
+         efield -= bpos * bneg / (bpos + bneg + EPS) * (perB_S - perB_N);
+         efield += apos * aneg / (apos + aneg + EPS) * (perB_W - perB_E);
+#else
+         // 2nd     order diffusive terms
+         efield -= bpos * bneg / (bpos + bneg + EPS) * ((perB_S - HALF * dperB_S) - (perB_N + HALF * dperB_N));
+         efield += apos * aneg / (apos + aneg + EPS) * ((perB_W - HALF * dperB_W) - (perB_E + HALF * dperB_E));
+#endif
+      }
+
+      return efield;
+   }
+};
+
 /*! \brief Low-level electric field propagation function.
  *
  * Computes the upwinded electric field X component along the cell's corresponding edge as the cross product of B and V
@@ -661,23 +698,9 @@ void calculateEdgeElectricFieldX(
    maxV = max(maxV, wavespeeds.cflSpeed(Vy0, Vz0));
 
    // Calculate properly upwinded edge-averaged Ex:
-   std::array<Real, fsgrids::efield::N_EFIELD>* efield_SW = EGrid.get(i, j, k);
-   efield_SW->at(fsgrids::efield::EX) =
-       ay_pos * az_pos * Ex_NE + ay_pos * az_neg * Ex_SE + ay_neg * az_pos * Ex_NW + ay_neg * az_neg * Ex_SW;
-   efield_SW->at(fsgrids::efield::EX) /= ((ay_pos + ay_neg) * (az_pos + az_neg) + EPS);
-   if (Parameters::fieldSolverDiffusiveEterms) {
-#ifdef FS_1ST_ORDER_SPACE
-      // 1st order diffusive terms:
-      efield_SW->at(fsgrids::efield::EX) -= az_pos * az_neg / (az_pos + az_neg + EPS) * (perBy_S - perBy_N);
-      efield_SW->at(fsgrids::efield::EX) += ay_pos * ay_neg / (ay_pos + ay_neg + EPS) * (perBz_W - perBz_E);
-#else
-      // 2nd     order diffusive terms
-      efield_SW->at(fsgrids::efield::EX) -=
-          az_pos * az_neg / (az_pos + az_neg + EPS) * ((perBy_S - HALF * dperBydz_S) - (perBy_N + HALF * dperBydz_N));
-      efield_SW->at(fsgrids::efield::EX) +=
-          ay_pos * ay_neg / (ay_pos + ay_neg + EPS) * ((perBz_W - HALF * dperBzdy_W) - (perBz_E + HALF * dperBzdy_E));
-#endif
-   }
+   const FieldValues f(Ex_NE, Ex_SE, Ex_NW, Ex_SW, ay_pos, ay_neg, az_pos, az_neg, perBy_S, perBy_N, perBz_W, perBz_E,
+                       dperBydz_S, dperBydz_N, dperBzdy_W, dperBzdy_E);
+   EGrid.get(i, j, k)->at(fsgrids::efield::EX) = f.field();
 
    if ((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) {
       // compute maximum timestep for fieldsolver in this cell (CFL=1)
@@ -947,23 +970,11 @@ void calculateEdgeElectricFieldY(
    ax_neg = max(ax_neg, -Vx0 + c_x);
    ax_pos = max(ax_pos, +Vx0 + c_x);
    maxV = max(maxV, wavespeeds.cflSpeed(Vz0, Vx0));
-   // Calculate properly upwinded edge-averaged Ey:
-   std::array<Real, fsgrids::efield::N_EFIELD>* efield_SW = EGrid.get(i, j, k);
-   efield_SW->at(fsgrids::efield::EY) =
-       az_pos * ax_pos * Ey_NE + az_pos * ax_neg * Ey_SE + az_neg * ax_pos * Ey_NW + az_neg * ax_neg * Ey_SW;
-   efield_SW->at(fsgrids::efield::EY) /= ((az_pos + az_neg) * (ax_pos + ax_neg) + EPS);
 
-   if (Parameters::fieldSolverDiffusiveEterms) {
-#ifdef FS_1ST_ORDER_SPACE
-      efield_SW->at(fsgrids::efield::EY) -= ax_pos * ax_neg / (ax_pos + ax_neg + EPS) * (perBz_S - perBz_N);
-      efield_SW->at(fsgrids::efield::EY) += az_pos * az_neg / (az_pos + az_neg + EPS) * (perBx_W - perBx_E);
-#else
-      efield_SW->at(fsgrids::efield::EY) -=
-          ax_pos * ax_neg / (ax_pos + ax_neg + EPS) * ((perBz_S - HALF * dperBzdx_S) - (perBz_N + HALF * dperBzdx_N));
-      efield_SW->at(fsgrids::efield::EY) +=
-          az_pos * az_neg / (az_pos + az_neg + EPS) * ((perBx_W - HALF * dperBxdz_W) - (perBx_E + HALF * dperBxdz_E));
-#endif
-   }
+   // Calculate properly upwinded edge-averaged Ey:
+   const FieldValues f(Ey_NE, Ey_SE, Ey_NW, Ey_SW, az_pos, az_neg, ax_pos, ax_neg, perBz_S, perBz_N, perBx_W, perBx_E,
+                       dperBzdx_S, dperBzdx_N, dperBxdz_W, dperBxdz_E);
+   EGrid.get(i, j, k)->at(fsgrids::efield::EY) = f.field();
 
    if ((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) {
       // compute maximum timestep for fieldsolver in this cell (CFL=1)
@@ -1240,22 +1251,9 @@ void calculateEdgeElectricFieldZ(
    maxV = max(maxV, wavespeeds.cflSpeed(Vx0, Vy0));
 
    // Calculate properly upwinded edge-averaged Ez:
-   std::array<Real, fsgrids::efield::N_EFIELD>* efield_SW = EGrid.get(i, j, k);
-   efield_SW->at(fsgrids::efield::EZ) =
-       ax_pos * ay_pos * Ez_NE + ax_pos * ay_neg * Ez_SE + ax_neg * ay_pos * Ez_NW + ax_neg * ay_neg * Ez_SW;
-   efield_SW->at(fsgrids::efield::EZ) /= ((ax_pos + ax_neg) * (ay_pos + ay_neg) + EPS);
-
-   if (Parameters::fieldSolverDiffusiveEterms) {
-#ifdef FS_1ST_ORDER_SPACE
-      efield_SW->at(fsgrids::efield::EZ) -= ay_pos * ay_neg / (ay_pos + ay_neg + EPS) * (perBx_S - perBx_N);
-      efield_SW->at(fsgrids::efield::EZ) += ax_pos * ax_neg / (ax_pos + ax_neg + EPS) * (perBy_W - perBy_E);
-#else
-      efield_SW->at(fsgrids::efield::EZ) -=
-          ay_pos * ay_neg / (ay_pos + ay_neg + EPS) * ((perBx_S - HALF * dperBxdy_S) - (perBx_N + HALF * dperBxdy_N));
-      efield_SW->at(fsgrids::efield::EZ) +=
-          ax_pos * ax_neg / (ax_pos + ax_neg + EPS) * ((perBy_W - HALF * dperBydx_W) - (perBy_E + HALF * dperBydx_E));
-#endif
-   }
+   const FieldValues f(Ez_NE, Ez_SE, Ez_NW, Ez_SW, ax_pos, ax_neg, ay_pos, ay_neg, perBx_S, perBx_N, perBy_W, perBy_E,
+                       dperBxdy_S, dperBxdy_N, dperBydx_W, dperBydx_E);
+   EGrid.get(i, j, k)->at(fsgrids::efield::EZ) = f.field();
 
    if ((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) {
       // compute maximum timestep for fieldsolver in this cell (CFL=1)
