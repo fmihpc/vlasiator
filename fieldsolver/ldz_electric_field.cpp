@@ -378,17 +378,13 @@ Limits getRhomLimits(const std::array<std::array<Real, fsgrids::moments::N_MOMEN
    };
 }
 
-Real resistiveTerm(const auto& bgb, const auto& perb, const auto& moments, const auto& dperb,
-                   std::array<size_t, 2> indices, std::array<Real, 2> spacing) {
-   const auto ax = bgb[fsgrids::bgbfield::BGBX];
-   const auto bx = perb[fsgrids::bfield::PERBX];
-   const auto ay = bgb[fsgrids::bgbfield::BGBY];
-   const auto by = perb[fsgrids::bfield::PERBY];
-   const auto az = bgb[fsgrids::bgbfield::BGBZ];
-   const auto bz = perb[fsgrids::bfield::PERBZ];
+Real resistiveTerm(const auto& bgb, const auto& perb, const auto& dperb, Real rhoq, std::array<size_t, 2> indices,
+                   std::array<Real, 2> spacing) {
+   const auto x = bgb[fsgrids::bgbfield::BGBX] + perb[fsgrids::bfield::PERBX];
+   const auto y = bgb[fsgrids::bgbfield::BGBY] + perb[fsgrids::bfield::PERBY];
+   const auto z = bgb[fsgrids::bgbfield::BGBZ] + perb[fsgrids::bfield::PERBZ];
 
-   return Parameters::resistivity * sqrt((ax + bx) * (ax + bx) + (ay + by) * (ay + by) + (az + bz) * (az + bz)) /
-          moments[fsgrids::moments::RHOQ] / physicalconstants::MU_0 *
+   return Parameters::resistivity * sqrt(x * x + y * y + z * z) / rhoq / physicalconstants::MU_0 *
           (dperb[indices[0]] / spacing[0] - dperb[indices[1]] / spacing[1]);
 }
 
@@ -639,10 +635,10 @@ void calculateEdgeElectricFieldX(
                                   static_cast<size_t>(fsgrids::dperb::dPERBydz)};
       const std::array spacing = {gridSpacing[1], gridSpacing[2]};
 
-      Ex_SW += resistiveTerm(*bgb_SW, *perb_SW, *moments_SW, *dperb_SW, indices, spacing);
-      Ex_SE += resistiveTerm(*bgb_SE, *perb_SE, *moments_SE, *dperb_SE, indices, spacing);
-      Ex_NW += resistiveTerm(*bgb_NW, *perb_NW, *moments_NW, *dperb_NW, indices, spacing);
-      Ex_NE += resistiveTerm(*bgb_NE, *perb_NE, *moments_NE, *dperb_NE, indices, spacing);
+      Ex_SW += resistiveTerm(*bgb_SW, *perb_SW, *dperb_SW, (*moments_SW)[fsgrids::moments::RHOQ], indices, spacing);
+      Ex_SE += resistiveTerm(*bgb_SE, *perb_SE, *dperb_SE, (*moments_SE)[fsgrids::moments::RHOQ], indices, spacing);
+      Ex_NW += resistiveTerm(*bgb_NW, *perb_NW, *dperb_NW, (*moments_NW)[fsgrids::moments::RHOQ], indices, spacing);
+      Ex_NE += resistiveTerm(*bgb_NE, *perb_NE, *dperb_NE, (*moments_NE)[fsgrids::moments::RHOQ], indices, spacing);
    }
 
    // Hall terms
@@ -877,10 +873,10 @@ void calculateEdgeElectricFieldY(
                                   static_cast<size_t>(fsgrids::dperb::dPERBzdx)};
       const std::array spacing = {gridSpacing[2], gridSpacing[0]};
 
-      Ey_SW += resistiveTerm(*bgb_SW, *perb_SW, *moments_SW, *dperb_SW, indices, spacing);
-      Ey_SE += resistiveTerm(*bgb_SE, *perb_SE, *moments_SE, *dperb_SE, indices, spacing);
-      Ey_NW += resistiveTerm(*bgb_NW, *perb_NW, *moments_NW, *dperb_NW, indices, spacing);
-      Ey_NE += resistiveTerm(*bgb_NE, *perb_NE, *moments_NE, *dperb_NE, indices, spacing);
+      Ey_SW += resistiveTerm(*bgb_SW, *perb_SW, *dperb_SW, (*moments_SW)[fsgrids::moments::RHOQ], indices, spacing);
+      Ey_SE += resistiveTerm(*bgb_SE, *perb_SE, *dperb_SE, (*moments_SE)[fsgrids::moments::RHOQ], indices, spacing);
+      Ey_NW += resistiveTerm(*bgb_NW, *perb_NW, *dperb_NW, (*moments_NW)[fsgrids::moments::RHOQ], indices, spacing);
+      Ey_NE += resistiveTerm(*bgb_NE, *perb_NE, *dperb_NE, (*moments_NE)[fsgrids::moments::RHOQ], indices, spacing);
    }
 
    // Hall terms
@@ -1120,10 +1116,10 @@ void calculateEdgeElectricFieldZ(
                                   static_cast<size_t>(fsgrids::dperb::dPERBxdy)};
       const std::array spacing = {gridSpacing[0], gridSpacing[1]};
 
-      Ez_SW += resistiveTerm(*bgb_SW, *perb_SW, *moments_SW, *dperb_SW, indices, spacing);
-      Ez_SE += resistiveTerm(*bgb_SE, *perb_SE, *moments_SE, *dperb_SE, indices, spacing);
-      Ez_NW += resistiveTerm(*bgb_NW, *perb_NW, *moments_NW, *dperb_NW, indices, spacing);
-      Ez_NE += resistiveTerm(*bgb_NE, *perb_NE, *moments_NE, *dperb_NE, indices, spacing);
+      Ez_SW += resistiveTerm(*bgb_SW, *perb_SW, *dperb_SW, (*moments_SW)[fsgrids::moments::RHOQ], indices, spacing);
+      Ez_SE += resistiveTerm(*bgb_SE, *perb_SE, *dperb_SE, (*moments_SE)[fsgrids::moments::RHOQ], indices, spacing);
+      Ez_NW += resistiveTerm(*bgb_NW, *perb_NW, *dperb_NW, (*moments_NW)[fsgrids::moments::RHOQ], indices, spacing);
+      Ez_NE += resistiveTerm(*bgb_NE, *perb_NE, *dperb_NE, (*moments_NE)[fsgrids::moments::RHOQ], indices, spacing);
    }
 
    // Hall terms
