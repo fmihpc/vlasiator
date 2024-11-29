@@ -405,7 +405,6 @@ void calculateEdgeElectricFieldX(
    // electric field in each of the four cells per edge.
    Real ay_pos,ay_neg;              // Max. characteristic velocities to y-direction
    Real az_pos,az_neg;              // Max. characteristic velocities to z-direction
-   Real Vy0,Vz0;                    // Reconstructed V
    Real maxV = 0.0;                 // Max velocity for CFL purposes
    Real c_y, c_z;                   // Wave speeds to yz-directions
 
@@ -433,7 +432,6 @@ void calculateEdgeElectricFieldX(
    
    std::array<Real, fsgrids::efield::N_EFIELD> * efield_SW = EGrid.get(i,j,k);
    
-   Real By_S, Bz_W, Bz_E, By_N, perBy_S, perBz_W, perBz_E, perBy_N;
    const auto rhomLimits = getRhomLimits({
        *moments_SW,
        *moments_SE,
@@ -441,17 +439,17 @@ void calculateEdgeElectricFieldX(
        *moments_NE,
    });
 
-   By_S = perb_SW->at(fsgrids::bfield::PERBY)+bgb_SW->at(fsgrids::bgbfield::BGBY);
-   Bz_W = perb_SW->at(fsgrids::bfield::PERBZ)+bgb_SW->at(fsgrids::bgbfield::BGBZ);
-   Bz_E = perb_SE->at(fsgrids::bfield::PERBZ)+bgb_SE->at(fsgrids::bgbfield::BGBZ);
-   By_N = perb_NW->at(fsgrids::bfield::PERBY)+bgb_NW->at(fsgrids::bgbfield::BGBY);
-   perBy_S = perb_SW->at(fsgrids::bfield::PERBY);
-   perBz_W = perb_SW->at(fsgrids::bfield::PERBZ);
-   perBz_E = perb_SE->at(fsgrids::bfield::PERBZ);
-   perBy_N = perb_NW->at(fsgrids::bfield::PERBY);
-   Vy0  = moments_SW->at(fsgrids::moments::VY);
-   Vz0  = moments_SW->at(fsgrids::moments::VZ);
-   
+   const Real By_S = perb_SW->at(fsgrids::bfield::PERBY) + bgb_SW->at(fsgrids::bgbfield::BGBY);
+   const Real Bz_W = perb_SW->at(fsgrids::bfield::PERBZ) + bgb_SW->at(fsgrids::bgbfield::BGBZ);
+   const Real Bz_E = perb_SE->at(fsgrids::bfield::PERBZ) + bgb_SE->at(fsgrids::bgbfield::BGBZ);
+   const Real By_N = perb_NW->at(fsgrids::bfield::PERBY) + bgb_NW->at(fsgrids::bgbfield::BGBY);
+   const Real perBy_S = perb_SW->at(fsgrids::bfield::PERBY);
+   const Real perBz_W = perb_SW->at(fsgrids::bfield::PERBZ);
+   const Real perBz_E = perb_SE->at(fsgrids::bfield::PERBZ);
+   const Real perBy_N = perb_NW->at(fsgrids::bfield::PERBY);
+   Real Vy0 = moments_SW->at(fsgrids::moments::VY);
+   Real Vz0 = moments_SW->at(fsgrids::moments::VZ);
+
    creal dBydx_S = dperb_SW->at(fsgrids::dperb::dPERBydx) + bgb_SW->at(fsgrids::bgbfield::dBGBydx);
    creal dBydz_S = dperb_SW->at(fsgrids::dperb::dPERBydz) + bgb_SW->at(fsgrids::bgbfield::dBGBydz);
    creal dBzdx_W = dperb_SW->at(fsgrids::dperb::dPERBzdx) + bgb_SW->at(fsgrids::bgbfield::dBGBzdx);
@@ -709,7 +707,6 @@ void calculateEdgeElectricFieldY(
    // electric field in each of the four cells per edge.
    Real ax_pos,ax_neg;              // Max. characteristic velocities to x-direction
    Real az_pos,az_neg;              // Max. characteristic velocities to z-direction
-   Real Vx0,Vz0;                    // Reconstructed V
    Real maxV = 0.0;                 // Max velocity for CFL purposes
    Real c_x,c_z;                    // Wave speeds to xz-directions
    
@@ -736,25 +733,24 @@ void calculateEdgeElectricFieldY(
    
    std::array<Real, fsgrids::efield::N_EFIELD> * efield_SW = EGrid.get(i,j,k);
    
-   // Fetch required plasma parameters:
-   Real Bz_S, Bx_W, Bx_E, Bz_N, perBz_S, perBx_W, perBx_E, perBz_N;
    const auto rhomLimits = getRhomLimits({
        *moments_SW,
        *moments_SE,
        *moments_NW,
        *moments_NE,
    });
-   Bz_S = perb_SW->at(fsgrids::bfield::PERBZ)+bgb_SW->at(fsgrids::bgbfield::BGBZ);
-   Bx_W = perb_SW->at(fsgrids::bfield::PERBX)+bgb_SW->at(fsgrids::bgbfield::BGBX);
-   Bx_E = perb_SE->at(fsgrids::bfield::PERBX)+bgb_SE->at(fsgrids::bgbfield::BGBX);
-   Bz_N = perb_NW->at(fsgrids::bfield::PERBZ)+bgb_NW->at(fsgrids::bgbfield::BGBZ);
-   perBz_S = perb_SW->at(fsgrids::bfield::PERBZ);
-   perBx_W = perb_SW->at(fsgrids::bfield::PERBX);
-   perBx_E = perb_SE->at(fsgrids::bfield::PERBX);
-   perBz_N = perb_NW->at(fsgrids::bfield::PERBZ);
-   Vx0  = moments_SW->at(fsgrids::moments::VX);
-   Vz0  = moments_SW->at(fsgrids::moments::VZ);
-   
+   // Fetch required plasma parameters:
+   const Real Bz_S = perb_SW->at(fsgrids::bfield::PERBZ) + bgb_SW->at(fsgrids::bgbfield::BGBZ);
+   const Real Bx_W = perb_SW->at(fsgrids::bfield::PERBX) + bgb_SW->at(fsgrids::bgbfield::BGBX);
+   const Real Bx_E = perb_SE->at(fsgrids::bfield::PERBX) + bgb_SE->at(fsgrids::bgbfield::BGBX);
+   const Real Bz_N = perb_NW->at(fsgrids::bfield::PERBZ) + bgb_NW->at(fsgrids::bgbfield::BGBZ);
+   const Real perBz_S = perb_SW->at(fsgrids::bfield::PERBZ);
+   const Real perBx_W = perb_SW->at(fsgrids::bfield::PERBX);
+   const Real perBx_E = perb_SE->at(fsgrids::bfield::PERBX);
+   const Real perBz_N = perb_NW->at(fsgrids::bfield::PERBZ);
+   Real Vx0 = moments_SW->at(fsgrids::moments::VX);
+   Real Vz0 = moments_SW->at(fsgrids::moments::VZ);
+
    creal dBxdy_W = dperb_SW->at(fsgrids::dperb::dPERBxdy) + bgb_SW->at(fsgrids::bgbfield::dBGBxdy);
    creal dBxdz_W = dperb_SW->at(fsgrids::dperb::dPERBxdz) + bgb_SW->at(fsgrids::bgbfield::dBGBxdz);
    creal dBzdx_S = dperb_SW->at(fsgrids::dperb::dPERBzdx) + bgb_SW->at(fsgrids::bgbfield::dBGBzdx);
@@ -1012,7 +1008,6 @@ void calculateEdgeElectricFieldZ(
    // electric field in each of the four cells per edge.
    Real ax_pos,ax_neg;              // Max. characteristic velocities to x-direction
    Real ay_pos,ay_neg;              // Max. characteristic velocities to y-direction
-   Real Vx0,Vy0;                    // Reconstructed V
    Real maxV = 0.0;                 // Max velocity for CFL purposes
    Real c_x,c_y;                    // Characteristic speeds to xy-directions
    
@@ -1040,8 +1035,6 @@ void calculateEdgeElectricFieldZ(
    
    std::array<Real, fsgrids::efield::N_EFIELD> * efield_SW = EGrid.get(i,j,k);
    
-   // Fetch needed plasma parameters/derivatives from the four cells:
-   Real Bx_S, By_W, By_E, Bx_N, perBx_S, perBy_W, perBy_E, perBx_N;
    const auto rhomLimits = getRhomLimits({
        *moments_SW,
        *moments_SE,
@@ -1049,17 +1042,18 @@ void calculateEdgeElectricFieldZ(
        *moments_NE,
    });
 
-   Bx_S    = perb_SW->at(fsgrids::bfield::PERBX) + bgb_SW->at(fsgrids::bgbfield::BGBX);
-   By_W    = perb_SW->at(fsgrids::bfield::PERBY) + bgb_SW->at(fsgrids::bgbfield::BGBY);
-   By_E    = perb_SE->at(fsgrids::bfield::PERBY) + bgb_SE->at(fsgrids::bgbfield::BGBY);
-   Bx_N    = perb_NW->at(fsgrids::bfield::PERBX) + bgb_NW->at(fsgrids::bgbfield::BGBX);
-   perBx_S    = perb_SW->at(fsgrids::bfield::PERBX);
-   perBy_W    = perb_SW->at(fsgrids::bfield::PERBY);
-   perBy_E    = perb_SE->at(fsgrids::bfield::PERBY);
-   perBx_N    = perb_NW->at(fsgrids::bfield::PERBX);
-   Vx0  = moments_SW->at(fsgrids::moments::VX);
-   Vy0  = moments_SW->at(fsgrids::moments::VY);
-   
+   // Fetch needed plasma parameters/derivatives from the four cells:
+   const Real Bx_S = perb_SW->at(fsgrids::bfield::PERBX) + bgb_SW->at(fsgrids::bgbfield::BGBX);
+   const Real By_W = perb_SW->at(fsgrids::bfield::PERBY) + bgb_SW->at(fsgrids::bgbfield::BGBY);
+   const Real By_E = perb_SE->at(fsgrids::bfield::PERBY) + bgb_SE->at(fsgrids::bgbfield::BGBY);
+   const Real Bx_N = perb_NW->at(fsgrids::bfield::PERBX) + bgb_NW->at(fsgrids::bgbfield::BGBX);
+   const Real perBx_S = perb_SW->at(fsgrids::bfield::PERBX);
+   const Real perBy_W = perb_SW->at(fsgrids::bfield::PERBY);
+   const Real perBy_E = perb_SE->at(fsgrids::bfield::PERBY);
+   const Real perBx_N = perb_NW->at(fsgrids::bfield::PERBX);
+   Real Vx0 = moments_SW->at(fsgrids::moments::VX);
+   Real Vy0 = moments_SW->at(fsgrids::moments::VY);
+
    creal dBxdy_S = dperb_SW->at(fsgrids::dperb::dPERBxdy) + bgb_SW->at(fsgrids::bgbfield::dBGBxdy);
    creal dBxdz_S = dperb_SW->at(fsgrids::dperb::dPERBxdz) + bgb_SW->at(fsgrids::bgbfield::dBGBxdz);
    creal dBydx_W = dperb_SW->at(fsgrids::dperb::dPERBydx) + bgb_SW->at(fsgrids::bgbfield::dBGBydx);
