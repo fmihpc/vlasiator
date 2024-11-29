@@ -456,8 +456,6 @@ void calculateEdgeElectricFieldX(
    std::array<Real, fsgrids::dperb::N_DPERB>* dperb_NE = dPerBGrid.get(i, j - 1, k - 1);
    std::array<Real, fsgrids::dperb::N_DPERB>* dperb_NW = dPerBGrid.get(i, j, k - 1);
 
-   std::array<Real, fsgrids::efield::N_EFIELD>* efield_SW = EGrid.get(i, j, k);
-
    const auto rhomLimits = getRhomLimits({
        *moments_SW,
        *moments_SE,
@@ -661,7 +659,9 @@ void calculateEdgeElectricFieldX(
    az_neg = max(az_neg, -Vz0 + c_z);
    az_pos = max(az_pos, +Vz0 + c_z);
    maxV = max(maxV, wavespeeds.cflSpeed(Vy0, Vz0));
+
    // Calculate properly upwinded edge-averaged Ex:
+   std::array<Real, fsgrids::efield::N_EFIELD>* efield_SW = EGrid.get(i, j, k);
    efield_SW->at(fsgrids::efield::EX) =
        ay_pos * az_pos * Ex_NE + ay_pos * az_neg * Ex_SE + ay_neg * az_pos * Ex_NW + ay_neg * az_neg * Ex_SW;
    efield_SW->at(fsgrids::efield::EX) /= ((ay_pos + ay_neg) * (az_pos + az_neg) + EPS);
@@ -682,8 +682,8 @@ void calculateEdgeElectricFieldX(
    if ((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) {
       // compute maximum timestep for fieldsolver in this cell (CFL=1)
       Real min_dx = std::numeric_limits<Real>::max();
-      min_dx = min(min_dx, technicalGrid.getGridSpacing()[1]);
-      min_dx = min(min_dx, technicalGrid.getGridSpacing()[2]);
+      min_dx = min(min_dx, gridSpacing[1]);
+      min_dx = min(min_dx, gridSpacing[2]);
       // update max allowed timestep for field propagation in this cell, which is the minimum of CFL=1 timesteps
       if (maxV != ZERO)
          technicalGrid.get(i, j, k)->maxFsDt = min(technicalGrid.get(i, j, k)->maxFsDt, min_dx / maxV);
@@ -742,8 +742,6 @@ void calculateEdgeElectricFieldY(
    std::array<Real, fsgrids::dperb::N_DPERB>* dperb_SE = dPerBGrid.get(i, j, k - 1);
    std::array<Real, fsgrids::dperb::N_DPERB>* dperb_NW = dPerBGrid.get(i - 1, j, k);
    std::array<Real, fsgrids::dperb::N_DPERB>* dperb_NE = dPerBGrid.get(i - 1, j, k - 1);
-
-   std::array<Real, fsgrids::efield::N_EFIELD>* efield_SW = EGrid.get(i, j, k);
 
    const auto rhomLimits = getRhomLimits({
        *moments_SW,
@@ -950,6 +948,7 @@ void calculateEdgeElectricFieldY(
    ax_pos = max(ax_pos, +Vx0 + c_x);
    maxV = max(maxV, wavespeeds.cflSpeed(Vz0, Vx0));
    // Calculate properly upwinded edge-averaged Ey:
+   std::array<Real, fsgrids::efield::N_EFIELD>* efield_SW = EGrid.get(i, j, k);
    efield_SW->at(fsgrids::efield::EY) =
        az_pos * ax_pos * Ey_NE + az_pos * ax_neg * Ey_SE + az_neg * ax_pos * Ey_NW + az_neg * ax_neg * Ey_SW;
    efield_SW->at(fsgrids::efield::EY) /= ((az_pos + az_neg) * (ax_pos + ax_neg) + EPS);
@@ -970,8 +969,8 @@ void calculateEdgeElectricFieldY(
       // compute maximum timestep for fieldsolver in this cell (CFL=1)
       Real min_dx = std::numeric_limits<Real>::max();
       ;
-      min_dx = min(min_dx, technicalGrid.getGridSpacing()[0]);
-      min_dx = min(min_dx, technicalGrid.getGridSpacing()[2]);
+      min_dx = min(min_dx, gridSpacing[0]);
+      min_dx = min(min_dx, gridSpacing[2]);
       // update max allowed timestep for field propagation in this cell, which is the minimum of CFL=1 timesteps
       if (maxV != ZERO)
          technicalGrid.get(i, j, k)->maxFsDt = min(technicalGrid.get(i, j, k)->maxFsDt, min_dx / maxV);
@@ -1031,8 +1030,6 @@ void calculateEdgeElectricFieldZ(
    std::array<Real, fsgrids::dperb::N_DPERB>* dperb_SE = dPerBGrid.get(i - 1, j, k);
    std::array<Real, fsgrids::dperb::N_DPERB>* dperb_NE = dPerBGrid.get(i - 1, j - 1, k);
    std::array<Real, fsgrids::dperb::N_DPERB>* dperb_NW = dPerBGrid.get(i, j - 1, k);
-
-   std::array<Real, fsgrids::efield::N_EFIELD>* efield_SW = EGrid.get(i, j, k);
 
    const auto rhomLimits = getRhomLimits({
        *moments_SW,
@@ -1243,6 +1240,7 @@ void calculateEdgeElectricFieldZ(
    maxV = max(maxV, wavespeeds.cflSpeed(Vx0, Vy0));
 
    // Calculate properly upwinded edge-averaged Ez:
+   std::array<Real, fsgrids::efield::N_EFIELD>* efield_SW = EGrid.get(i, j, k);
    efield_SW->at(fsgrids::efield::EZ) =
        ax_pos * ay_pos * Ez_NE + ax_pos * ay_neg * Ez_SE + ax_neg * ay_pos * Ez_NW + ax_neg * ay_neg * Ez_SW;
    efield_SW->at(fsgrids::efield::EZ) /= ((ax_pos + ax_neg) * (ay_pos + ay_neg) + EPS);
@@ -1262,9 +1260,8 @@ void calculateEdgeElectricFieldZ(
    if ((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) {
       // compute maximum timestep for fieldsolver in this cell (CFL=1)
       Real min_dx = std::numeric_limits<Real>::max();
-      ;
-      min_dx = min(min_dx, technicalGrid.getGridSpacing()[0]);
-      min_dx = min(min_dx, technicalGrid.getGridSpacing()[1]);
+      min_dx = min(min_dx, gridSpacing[0]);
+      min_dx = min(min_dx, gridSpacing[1]);
       // update max allowed timestep for field propagation in this cell, which is the minimum of CFL=1 timesteps
       if (maxV != ZERO)
          technicalGrid.get(i, j, k)->maxFsDt = min(technicalGrid.get(i, j, k)->maxFsDt, min_dx / maxV);
