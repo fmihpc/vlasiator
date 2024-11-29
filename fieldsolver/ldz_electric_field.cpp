@@ -61,6 +61,45 @@ Real calculateCflSpeed(
    return max(v + vMS, v + vW);
 }
 
+struct Wavespeeds {
+   const Real alfven = 0.0;
+   const Real sound = 0.0;
+   const Real whistler = 0.0;
+};
+
+Wavespeeds calculateEffectiveWavespeeds(Real bmag2, Real rhom, Real p11, Real p22, Real p33,
+                                        const std::array<Real, 3>& gridSpacing) {
+   // Effective wave speeds for advection and CFL calculation
+   // Note that these are calculated as if the plasma is purely made up of hydrogen, which
+   // is a reasonable approximation if it is proton-dominant.
+   // Simulations which predominantly contain heavier ion species will have to change this!
+   //
+   // See
+   // T E Stringer, Low-frequency waves in an unbounded plasma
+   // Journal of Nuclear Energy. Part C, Plasma Physics, Accelerators, Thermonuclear Research
+   // Volume 5, Number 2, page 89
+   // Section BC in Fig. 1 and Table 1, referenced later e.g. by Gary, for the current one,
+   // and the below for the heavy ions
+   // https://www.ann-geophys.net/26/1605/2008/  (Whistler waves)
+   // and
+   // http://iopscience.iop.org/article/10.1088/0253-6102/43/2/026/meta (Alfven waves)
+   // for details.
+   const Real vA2 = divideIfNonZero(bmag2, pc::MU_0 * rhom); // Alfven speed
+   const Real vS2 = divideIfNonZero(p11 + p22 + p33,
+                                    2.0 * rhom); // sound speed, adiabatic coefficient 3/2, P=1/3*trace in sound speed
+   const Real vW =
+       Parameters::ohmHallTerm > 0
+           ? sqrt(vA2) *
+                 (1 + divideIfNonZero(2 * M_PI * M_PI * pc::MASS_PROTON * pc::MASS_PROTON,
+                                      gridSpacing[0] * gridSpacing[0] * rhom * pc::CHARGE * pc::CHARGE * pc::MU_0) /
+                          sqrt(1 + divideIfNonZero(M_PI * M_PI * pc::MASS_PROTON * pc::MASS_PROTON,
+                                                   gridSpacing[0] * gridSpacing[0] * rhom * pc::CHARGE * pc::CHARGE *
+                                                       pc::MU_0)))
+           : 0.0; // whistler speed
+
+   return {sqrt(vA2), sqrt(vS2), vW};
+}
+
 /*! \brief Low-level helper function.
  * 
  * Computes the magnetosonic speed in the YZ plane. Used in upwinding the electric field X component,
@@ -157,38 +196,11 @@ void calculateWaveSpeedYZ(
    p22 = p22 < 0.0 ? 0.0 : p22;
    p33 = p33 < 0.0 ? 0.0 : p33;
 
-   // Effective wave speeds for advection and CFL calculation
-   // Note that these are calculated as if the plasma is purely made up of hydrogen, which
-   // is a reasonable approximation if it is proton-dominant.
-   // Simulations which predominantly contain heavier ion species will have to change this!
-   //
-   // See
-   // T E Stringer, Low-frequency waves in an unbounded plasma
-   // Journal of Nuclear Energy. Part C, Plasma Physics, Accelerators, Thermonuclear Research
-   // Volume 5, Number 2, page 89
-   // Section BC in Fig. 1 and Table 1, referenced later e.g. by Gary, for the current one,
-   // and the below for the heavy ions
-   // https://www.ann-geophys.net/26/1605/2008/  (Whistler waves)
-   // and
-   // http://iopscience.iop.org/article/10.1088/0253-6102/43/2/026/meta (Alfven waves)
-   // for details.
-   const Real vA2 = divideIfNonZero(Bmag2, pc::MU_0*rhom); // Alfven speed
-   const Real vS2 = divideIfNonZero(p11+p22+p33, 2.0*rhom); // sound speed, adiabatic coefficient 3/2, P=1/3*trace in sound speed
-   //   const Real vW = Parameters::ohmHallTerm > 0 ? divideIfNonZero(2.0*M_PI*vA2*pc::MASS_PROTON,
-   //   perBGrid.getGridSpacing()[0]*pc::CHARGE*sqrt(Bmag2)) : 0.0; // whistler speed
-   const Real vW =
-       Parameters::ohmHallTerm > 0
-           ? sqrt(vA2) * (1 + divideIfNonZero(2 * M_PI * M_PI * pc::MASS_PROTON * pc::MASS_PROTON,
-                                              perBGrid.getGridSpacing()[0] * perBGrid.getGridSpacing()[0] * rhom *
-                                                  pc::CHARGE * pc::CHARGE * pc::MU_0) /
-                                  sqrt(1 + divideIfNonZero(M_PI * M_PI * pc::MASS_PROTON * pc::MASS_PROTON,
-                                                           perBGrid.getGridSpacing()[0] * perBGrid.getGridSpacing()[0] *
-                                                               rhom * pc::CHARGE * pc::CHARGE * pc::MU_0)))
-           : 0.0; // whistler speed
-
-   ret_vA = sqrt(vA2);
-   ret_vS = sqrt(vS2);
-   ret_vW = vW;
+   const auto& gridSpacing = perBGrid.getGridSpacing();
+   const auto wavespeeds = calculateEffectiveWavespeeds(Bmag2, rhom, p11, p22, p33, gridSpacing);
+   ret_vA = wavespeeds.alfven;
+   ret_vS = wavespeeds.sound;
+   ret_vW = wavespeeds.whistler;
 }
 
 /*! \brief Low-level helper function.
@@ -285,39 +297,12 @@ void calculateWaveSpeedXZ(
    p11 = p11 < 0.0 ? 0.0 : p11;
    p22 = p22 < 0.0 ? 0.0 : p22;
    p33 = p33 < 0.0 ? 0.0 : p33;
-   
-   // Effective wave speeds for advection and CFL calculation
-   // Note that these are calculated as if the plasma is purely made up of hydrogen, which
-   // is a reasonable approximation if it is proton-dominant.
-   // Simulations which predominantly contain heavier ion species will have to change this!
-   //
-   // See
-   // T E Stringer, Low-frequency waves in an unbounded plasma
-   // Journal of Nuclear Energy. Part C, Plasma Physics, Accelerators, Thermonuclear Research
-   // Volume 5, Number 2, page 89
-   // Section BC in Fig. 1 and Table 1, referenced later e.g. by Gary, for the current one,
-   // and the below for the heavy ions
-   // https://www.ann-geophys.net/26/1605/2008/  (Whistler waves)
-   // and
-   // http://iopscience.iop.org/article/10.1088/0253-6102/43/2/026/meta (Alfven waves)
-   // for details.
-   const Real vA2 = divideIfNonZero(Bmag2, pc::MU_0*rhom); // Alfven speed
-   const Real vS2 = divideIfNonZero(p11+p22+p33, 2.0*rhom); // sound speed, adiabatic coefficient 3/2, P=1/3*trace in sound speed
-   //   const Real vW = Parameters::ohmHallTerm > 0 ? divideIfNonZero(2.0*M_PI*vA2*pc::MASS_PROTON,
-   //   perBGrid.getGridSpacing()[0]*pc::CHARGE*sqrt(Bmag2)) : 0.0; // whistler speed
-   const Real vW =
-       Parameters::ohmHallTerm > 0
-           ? sqrt(vA2) * (1 + divideIfNonZero(2 * M_PI * M_PI * pc::MASS_PROTON * pc::MASS_PROTON,
-                                              perBGrid.getGridSpacing()[0] * perBGrid.getGridSpacing()[0] * rhom *
-                                                  pc::CHARGE * pc::CHARGE * pc::MU_0) /
-                                  sqrt(1 + divideIfNonZero(M_PI * M_PI * pc::MASS_PROTON * pc::MASS_PROTON,
-                                                           perBGrid.getGridSpacing()[0] * perBGrid.getGridSpacing()[0] *
-                                                               rhom * pc::CHARGE * pc::CHARGE * pc::MU_0)))
-           : 0.0; // whistler speed
 
-   ret_vA = sqrt(vA2);
-   ret_vS = sqrt(vS2);
-   ret_vW = vW;
+   const auto& gridSpacing = perBGrid.getGridSpacing();
+   const auto wavespeeds = calculateEffectiveWavespeeds(Bmag2, rhom, p11, p22, p33, gridSpacing);
+   ret_vA = wavespeeds.alfven;
+   ret_vS = wavespeeds.sound;
+   ret_vW = wavespeeds.whistler;
 }
 
 /*! \brief Low-level helper function.
@@ -414,39 +399,12 @@ void calculateWaveSpeedXY(
    p11 = p11 < 0.0 ? 0.0 : p11;
    p22 = p22 < 0.0 ? 0.0 : p22;
    p33 = p33 < 0.0 ? 0.0 : p33;
-      
-   // Effective wave speeds for advection and CFL calculation
-   // Note that these are calculated as if the plasma is purely made up of hydrogen, which
-   // is a reasonable approximation if it is proton-dominant.
-   // Simulations which predominantly contain heavier ion species will have to change this!
-   //
-   // See
-   // T E Stringer, Low-frequency waves in an unbounded plasma
-   // Journal of Nuclear Energy. Part C, Plasma Physics, Accelerators, Thermonuclear Research
-   // Volume 5, Number 2, page 89
-   // Section BC in Fig. 1 and Table 1, referenced later e.g. by Gary, for the current one,
-   // and the below for the heavy ions
-   // https://www.ann-geophys.net/26/1605/2008/  (Whistler waves)
-   // and
-   // http://iopscience.iop.org/article/10.1088/0253-6102/43/2/026/meta (Alfven waves)
-   // for details.
-   const Real vA2 = divideIfNonZero(Bmag2, pc::MU_0*rhom); // Alfven speed
-   const Real vS2 = divideIfNonZero(p11+p22+p33, 2.0*rhom); // sound speed, adiabatic coefficient 3/2, P=1/3*trace in sound speed
-   //   const Real vW = Parameters::ohmHallTerm > 0 ? divideIfNonZero(2.0*M_PI*vA2*pc::MASS_PROTON,
-   //   perBGrid.getGridSpacing()[0]*pc::CHARGE*sqrt(Bmag2)) : 0.0; // whistler speed
-   const Real vW =
-       Parameters::ohmHallTerm > 0
-           ? sqrt(vA2) * (1 + divideIfNonZero(2 * M_PI * M_PI * pc::MASS_PROTON * pc::MASS_PROTON,
-                                              perBGrid.getGridSpacing()[0] * perBGrid.getGridSpacing()[0] * rhom *
-                                                  pc::CHARGE * pc::CHARGE * pc::MU_0) /
-                                  sqrt(1 + divideIfNonZero(M_PI * M_PI * pc::MASS_PROTON * pc::MASS_PROTON,
-                                                           perBGrid.getGridSpacing()[0] * perBGrid.getGridSpacing()[0] *
-                                                               rhom * pc::CHARGE * pc::CHARGE * pc::MU_0)))
-           : 0.0; // whistler speed
 
-   ret_vA = sqrt(vA2);
-   ret_vS = sqrt(vS2);
-   ret_vW = vW;
+   const auto& gridSpacing = perBGrid.getGridSpacing();
+   const auto wavespeeds = calculateEffectiveWavespeeds(Bmag2, rhom, p11, p22, p33, gridSpacing);
+   ret_vA = wavespeeds.alfven;
+   ret_vS = wavespeeds.sound;
+   ret_vW = wavespeeds.whistler;
 }
 
 void fsdebugCheck([[maybe_unused]] fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
