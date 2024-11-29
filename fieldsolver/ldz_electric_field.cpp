@@ -379,7 +379,7 @@ Limits getRhomLimits(const std::array<std::array<Real, fsgrids::moments::N_MOMEN
 }
 
 Real resistiveTerm(const auto& bgb, const auto& perb, const auto& moments, const auto& dperb,
-                   std::array<Real, 2> indices, std::array<Real, 2> spacing) {
+                   std::array<size_t, 2> indices, std::array<Real, 2> spacing) {
    const auto ax = bgb[fsgrids::bgbfield::BGBX];
    const auto bx = perb[fsgrids::bfield::PERBX];
    const auto ay = bgb[fsgrids::bgbfield::BGBY];
@@ -493,6 +493,7 @@ void calculateEdgeElectricFieldX(
    std::array<Real, fsgrids::dperb::N_DPERB>* dperb_NE = dPerBGrid.get(i, j - 1, k - 1);
    std::array<Real, fsgrids::dperb::N_DPERB>* dperb_NW = dPerBGrid.get(i, j, k - 1);
 
+   const auto& gridSpacing = technicalGrid.getGridSpacing();
    const auto rhomLimits = getRhomLimits({
        *moments_SW,
        *moments_SE,
@@ -528,23 +529,6 @@ void calculateEdgeElectricFieldX(
    // 1st order terms:
    Real Ex_SW = By_S * Vz0 - Bz_W * Vy0;
 
-   const auto& gridSpacing = technicalGrid.getGridSpacing();
-   // Resistive term
-   if (Parameters::resistivity > 0) {
-      Ex_SW += resistiveTerm(*bgb_SW, *perb_SW, *moments_SW, *dperb_SW,
-                             {fsgrids::dperb::dPERBzdy, fsgrids::dperb::dPERBydz}, {gridSpacing[1], gridSpacing[2]});
-   }
-
-   // Hall term
-   if (Parameters::ohmHallTerm > 0) {
-      Ex_SW += EHallGrid.get(i, j, k)->at(fsgrids::ehall::EXHALL_000_100);
-   }
-
-   // Electron pressure gradient term
-   if (Parameters::ohmGradPeTerm > 0) {
-      Ex_SW += EGradPeGrid.get(i, j, k)->at(fsgrids::egradpe::EXGRADPE);
-   }
-
 #ifndef FS_1ST_ORDER_SPACE
    // 2nd order terms:
    Ex_SW += +HALF * ((By_S - HALF * dBydz_S) *
@@ -571,22 +555,6 @@ void calculateEdgeElectricFieldX(
 
    // 1st order terms:
    Real Ex_SE = By_S * Vz0 - Bz_E * Vy0;
-
-   // Resistive term
-   if (Parameters::resistivity > 0) {
-      Ex_SE += resistiveTerm(*bgb_SE, *perb_SE, *moments_SE, *dperb_SE,
-                             {fsgrids::dperb::dPERBzdy, fsgrids::dperb::dPERBydz}, {gridSpacing[1], gridSpacing[2]});
-   }
-
-   // Hall term
-   if (Parameters::ohmHallTerm > 0) {
-      Ex_SE += EHallGrid.get(i, j - 1, k)->at(fsgrids::ehall::EXHALL_010_110);
-   }
-
-   // Electron pressure gradient term
-   if (Parameters::ohmGradPeTerm > 0) {
-      Ex_SE += EGradPeGrid.get(i, j - 1, k)->at(fsgrids::egradpe::EXGRADPE);
-   }
 
 #ifndef FS_1ST_ORDER_SPACE
    // 2nd order terms:
@@ -616,22 +584,6 @@ void calculateEdgeElectricFieldX(
    // 1st order terms:
    Real Ex_NW = By_N * Vz0 - Bz_W * Vy0;
 
-   // Resistive term
-   if (Parameters::resistivity > 0) {
-      Ex_NW += resistiveTerm(*bgb_NW, *perb_NW, *moments_NW, *dperb_NW,
-                             {fsgrids::dperb::dPERBzdy, fsgrids::dperb::dPERBydz}, {gridSpacing[1], gridSpacing[2]});
-   }
-
-   // Hall term
-   if (Parameters::ohmHallTerm > 0) {
-      Ex_NW += EHallGrid.get(i, j, k - 1)->at(fsgrids::ehall::EXHALL_001_101);
-   }
-
-   // Electron pressure gradient term
-   if (Parameters::ohmGradPeTerm > 0) {
-      Ex_NW += EGradPeGrid.get(i, j, k - 1)->at(fsgrids::egradpe::EXGRADPE);
-   }
-
 #ifndef FS_1ST_ORDER_SPACE
    // 2nd order terms:
    Ex_NW += +HALF * ((By_N + HALF * dBydz_N) *
@@ -660,22 +612,6 @@ void calculateEdgeElectricFieldX(
    // 1st order terms:
    Real Ex_NE = By_N * Vz0 - Bz_E * Vy0;
 
-   // Resistive term
-   if (Parameters::resistivity > 0) {
-      Ex_NE += resistiveTerm(*bgb_NE, *perb_NE, *moments_NE, *dperb_NE,
-                             {fsgrids::dperb::dPERBzdy, fsgrids::dperb::dPERBydz}, {gridSpacing[1], gridSpacing[2]});
-   }
-
-   // Hall term
-   if (Parameters::ohmHallTerm > 0) {
-      Ex_NE += EHallGrid.get(i, j - 1, k - 1)->at(fsgrids::ehall::EXHALL_011_111);
-   }
-
-   // Electron pressure gradient term
-   if (Parameters::ohmGradPeTerm > 0) {
-      Ex_NE += EGradPeGrid.get(i, j - 1, k - 1)->at(fsgrids::egradpe::EXGRADPE);
-   }
-
 #ifndef FS_1ST_ORDER_SPACE
    // 2nd order terms:
    Ex_NE += +HALF * ((By_N + HALF * dBydz_N) *
@@ -696,6 +632,34 @@ void calculateEdgeElectricFieldX(
    az_neg = max(az_neg, -Vz0 + c_z);
    az_pos = max(az_pos, +Vz0 + c_z);
    maxV = max(maxV, wavespeeds.cflSpeed(Vy0, Vz0));
+
+   // Resistive terms
+   if (Parameters::resistivity > 0) {
+      const std::array indices = {static_cast<size_t>(fsgrids::dperb::dPERBzdy),
+                                  static_cast<size_t>(fsgrids::dperb::dPERBydz)};
+      const std::array spacing = {gridSpacing[1], gridSpacing[2]};
+
+      Ex_SW += resistiveTerm(*bgb_SW, *perb_SW, *moments_SW, *dperb_SW, indices, spacing);
+      Ex_SE += resistiveTerm(*bgb_SE, *perb_SE, *moments_SE, *dperb_SE, indices, spacing);
+      Ex_NW += resistiveTerm(*bgb_NW, *perb_NW, *moments_NW, *dperb_NW, indices, spacing);
+      Ex_NE += resistiveTerm(*bgb_NE, *perb_NE, *moments_NE, *dperb_NE, indices, spacing);
+   }
+
+   // Hall terms
+   if (Parameters::ohmHallTerm > 0) {
+      Ex_SW += EHallGrid.get(i, j, k)->at(fsgrids::ehall::EXHALL_000_100);
+      Ex_SE += EHallGrid.get(i, j - 1, k)->at(fsgrids::ehall::EXHALL_010_110);
+      Ex_NW += EHallGrid.get(i, j, k - 1)->at(fsgrids::ehall::EXHALL_001_101);
+      Ex_NE += EHallGrid.get(i, j - 1, k - 1)->at(fsgrids::ehall::EXHALL_011_111);
+   }
+
+   // Electron pressure gradient terms
+   if (Parameters::ohmGradPeTerm > 0) {
+      Ex_SW += EGradPeGrid.get(i, j, k)->at(fsgrids::egradpe::EXGRADPE);
+      Ex_SE += EGradPeGrid.get(i, j - 1, k)->at(fsgrids::egradpe::EXGRADPE);
+      Ex_NW += EGradPeGrid.get(i, j, k - 1)->at(fsgrids::egradpe::EXGRADPE);
+      Ex_NE += EGradPeGrid.get(i, j - 1, k - 1)->at(fsgrids::egradpe::EXGRADPE);
+   }
 
    // Calculate properly upwinded edge-averaged Ex:
    const FieldValues f(Ex_NE, Ex_SE, Ex_NW, Ex_SW, ay_pos, ay_neg, az_pos, az_neg, perBy_S, perBy_N, perBz_W, perBz_E,
@@ -766,6 +730,7 @@ void calculateEdgeElectricFieldY(
    std::array<Real, fsgrids::dperb::N_DPERB>* dperb_NW = dPerBGrid.get(i - 1, j, k);
    std::array<Real, fsgrids::dperb::N_DPERB>* dperb_NE = dPerBGrid.get(i - 1, j, k - 1);
 
+   const auto& gridSpacing = technicalGrid.getGridSpacing();
    const auto rhomLimits = getRhomLimits({
        *moments_SW,
        *moments_SE,
@@ -801,23 +766,6 @@ void calculateEdgeElectricFieldY(
    // 1st order terms:
    Real Ey_SW = Bz_S * Vx0 - Bx_W * Vz0;
 
-   const auto& gridSpacing = technicalGrid.getGridSpacing();
-   // Resistive term
-   if (Parameters::resistivity > 0) {
-      Ey_SW += resistiveTerm(*bgb_SW, *perb_SW, *moments_SW, *dperb_SW,
-                             {fsgrids::dperb::dPERBxdz, fsgrids::dperb::dPERBzdx}, {gridSpacing[2], gridSpacing[0]});
-   }
-
-   // Hall term
-   if (Parameters::ohmHallTerm > 0) {
-      Ey_SW += EHallGrid.get(i, j, k)->at(fsgrids::ehall::EYHALL_000_010);
-   }
-
-   // Electron pressure gradient term
-   if (Parameters::ohmGradPeTerm > 0) {
-      Ey_SW += EGradPeGrid.get(i, j, k)->at(fsgrids::egradpe::EYGRADPE);
-   }
-
 #ifndef FS_1ST_ORDER_SPACE
    // 2nd order terms
    Ey_SW += +HALF * ((Bz_S - HALF * dBzdx_S) *
@@ -845,22 +793,6 @@ void calculateEdgeElectricFieldY(
 
    // 1st order terms:
    Real Ey_SE = Bz_S * Vx0 - Bx_E * Vz0;
-
-   // Resistive term
-   if (Parameters::resistivity > 0) {
-      Ey_SE += resistiveTerm(*bgb_SE, *perb_SE, *moments_SE, *dperb_SE,
-                             {fsgrids::dperb::dPERBxdz, fsgrids::dperb::dPERBzdx}, {gridSpacing[2], gridSpacing[0]});
-   }
-
-   // Hall term
-   if (Parameters::ohmHallTerm > 0) {
-      Ey_SE += EHallGrid.get(i, j, k - 1)->at(fsgrids::ehall::EYHALL_001_011);
-   }
-
-   // Electron pressure gradient term
-   if (Parameters::ohmGradPeTerm > 0) {
-      Ey_SE += EGradPeGrid.get(i, j, k - 1)->at(fsgrids::egradpe::EYGRADPE);
-   }
 
 #ifndef FS_1ST_ORDER_SPACE
    // 2nd order terms:
@@ -890,22 +822,6 @@ void calculateEdgeElectricFieldY(
    // 1st order terms:
    Real Ey_NW = Bz_N * Vx0 - Bx_W * Vz0;
 
-   // Resistive term
-   if (Parameters::resistivity > 0) {
-      Ey_NW += resistiveTerm(*bgb_NW, *perb_NW, *moments_NW, *dperb_NW,
-                             {fsgrids::dperb::dPERBxdz, fsgrids::dperb::dPERBzdx}, {gridSpacing[2], gridSpacing[0]});
-   }
-
-   // Hall term
-   if (Parameters::ohmHallTerm > 0) {
-      Ey_NW += EHallGrid.get(i - 1, j, k)->at(fsgrids::ehall::EYHALL_100_110);
-   }
-
-   // Electron pressure gradient term
-   if (Parameters::ohmGradPeTerm > 0) {
-      Ey_NW += EGradPeGrid.get(i - 1, j, k)->at(fsgrids::egradpe::EYGRADPE);
-   }
-
 #ifndef FS_1ST_ORDER_SPACE
    // 2nd order terms:
    Ey_NW += +HALF * ((Bz_N + HALF * dBzdx_N) *
@@ -934,22 +850,6 @@ void calculateEdgeElectricFieldY(
    // 1st order terms:
    Real Ey_NE = Bz_N * Vx0 - Bx_E * Vz0;
 
-   // Resistive term
-   if (Parameters::resistivity > 0) {
-      Ey_NE += resistiveTerm(*bgb_NE, *perb_NE, *moments_NE, *dperb_NE,
-                             {fsgrids::dperb::dPERBxdz, fsgrids::dperb::dPERBzdx}, {gridSpacing[2], gridSpacing[0]});
-   }
-
-   // Hall term
-   if (Parameters::ohmHallTerm > 0) {
-      Ey_NE += EHallGrid.get(i - 1, j, k - 1)->at(fsgrids::ehall::EYHALL_101_111);
-   }
-
-   // Electron pressure gradient term
-   if (Parameters::ohmGradPeTerm > 0) {
-      Ey_NE += EGradPeGrid.get(i - 1, j, k - 1)->at(fsgrids::egradpe::EYGRADPE);
-   }
-
 #ifndef FS_1ST_ORDER_SPACE
    // 2nd order terms:
    Ey_NE += +HALF * ((Bz_N + HALF * dBzdx_N) *
@@ -970,6 +870,34 @@ void calculateEdgeElectricFieldY(
    ax_neg = max(ax_neg, -Vx0 + c_x);
    ax_pos = max(ax_pos, +Vx0 + c_x);
    maxV = max(maxV, wavespeeds.cflSpeed(Vz0, Vx0));
+
+   // Resistive terms
+   if (Parameters::resistivity > 0) {
+      const std::array indices = {static_cast<size_t>(fsgrids::dperb::dPERBxdz),
+                                  static_cast<size_t>(fsgrids::dperb::dPERBzdx)};
+      const std::array spacing = {gridSpacing[2], gridSpacing[0]};
+
+      Ey_SW += resistiveTerm(*bgb_SW, *perb_SW, *moments_SW, *dperb_SW, indices, spacing);
+      Ey_SE += resistiveTerm(*bgb_SE, *perb_SE, *moments_SE, *dperb_SE, indices, spacing);
+      Ey_NW += resistiveTerm(*bgb_NW, *perb_NW, *moments_NW, *dperb_NW, indices, spacing);
+      Ey_NE += resistiveTerm(*bgb_NE, *perb_NE, *moments_NE, *dperb_NE, indices, spacing);
+   }
+
+   // Hall terms
+   if (Parameters::ohmHallTerm > 0) {
+      Ey_SW += EHallGrid.get(i, j, k)->at(fsgrids::ehall::EYHALL_000_010);
+      Ey_SE += EHallGrid.get(i, j, k - 1)->at(fsgrids::ehall::EYHALL_001_011);
+      Ey_NW += EHallGrid.get(i - 1, j, k)->at(fsgrids::ehall::EYHALL_100_110);
+      Ey_NE += EHallGrid.get(i - 1, j, k - 1)->at(fsgrids::ehall::EYHALL_101_111);
+   }
+
+   // Electron pressure gradient terms
+   if (Parameters::ohmGradPeTerm > 0) {
+      Ey_SW += EGradPeGrid.get(i, j, k)->at(fsgrids::egradpe::EYGRADPE);
+      Ey_SE += EGradPeGrid.get(i, j, k - 1)->at(fsgrids::egradpe::EYGRADPE);
+      Ey_NW += EGradPeGrid.get(i - 1, j, k)->at(fsgrids::egradpe::EYGRADPE);
+      Ey_NE += EGradPeGrid.get(i - 1, j, k - 1)->at(fsgrids::egradpe::EYGRADPE);
+   }
 
    // Calculate properly upwinded edge-averaged Ey:
    const FieldValues f(Ey_NE, Ey_SE, Ey_NW, Ey_SW, az_pos, az_neg, ax_pos, ax_neg, perBz_S, perBz_N, perBx_W, perBx_E,
@@ -1042,6 +970,7 @@ void calculateEdgeElectricFieldZ(
    std::array<Real, fsgrids::dperb::N_DPERB>* dperb_NE = dPerBGrid.get(i - 1, j - 1, k);
    std::array<Real, fsgrids::dperb::N_DPERB>* dperb_NW = dPerBGrid.get(i, j - 1, k);
 
+   const auto& gridSpacing = technicalGrid.getGridSpacing();
    const auto rhomLimits = getRhomLimits({
        *moments_SW,
        *moments_SE,
@@ -1078,23 +1007,6 @@ void calculateEdgeElectricFieldZ(
    // 1st order terms:
    Real Ez_SW = Bx_S * Vy0 - By_W * Vx0;
 
-   const auto& gridSpacing = technicalGrid.getGridSpacing();
-   // Resistive term
-   if (Parameters::resistivity > 0) {
-      Ez_SW += resistiveTerm(*bgb_SW, *perb_SW, *moments_SW, *dperb_SW,
-                             {fsgrids::dperb::dPERBydx, fsgrids::dperb::dPERBxdy}, {gridSpacing[0], gridSpacing[1]});
-   }
-
-   // Hall term
-   if (Parameters::ohmHallTerm > 0) {
-      Ez_SW += EHallGrid.get(i, j, k)->at(fsgrids::ehall::EZHALL_000_001);
-   }
-
-   // Electron pressure gradient term
-   if (Parameters::ohmGradPeTerm > 0) {
-      Ez_SW += EGradPeGrid.get(i, j, k)->at(fsgrids::egradpe::EZGRADPE);
-   }
-
 #ifndef FS_1ST_ORDER_SPACE
    // 2nd order terms:
    Ez_SW += +HALF * ((Bx_S - HALF * dBxdy_S) *
@@ -1125,22 +1037,6 @@ void calculateEdgeElectricFieldZ(
    // 1st order terms:
    Real Ez_SE = Bx_S * Vy0 - By_E * Vx0;
 
-   // Resistive term
-   if (Parameters::resistivity > 0) {
-      Ez_SE += resistiveTerm(*bgb_SE, *perb_SE, *moments_SE, *dperb_SE,
-                             {fsgrids::dperb::dPERBydx, fsgrids::dperb::dPERBxdy}, {gridSpacing[0], gridSpacing[1]});
-   }
-
-   // Hall term
-   if (Parameters::ohmHallTerm > 0) {
-      Ez_SE += EHallGrid.get(i - 1, j, k)->at(fsgrids::ehall::EZHALL_100_101);
-   }
-
-   // Electron pressure gradient term
-   if (Parameters::ohmGradPeTerm > 0) {
-      Ez_SE += EGradPeGrid.get(i - 1, j, k)->at(fsgrids::egradpe::EZGRADPE);
-   }
-
 #ifndef FS_1ST_ORDER_SPACE
    // 2nd order terms:
    Ez_SE += +HALF * ((Bx_S - HALF * dBxdy_S) *
@@ -1168,22 +1064,6 @@ void calculateEdgeElectricFieldZ(
 
    // 1st order terms:
    Real Ez_NW = Bx_N * Vy0 - By_W * Vx0;
-
-   // Resistive term
-   if (Parameters::resistivity > 0) {
-      Ez_NW += resistiveTerm(*bgb_NW, *perb_NW, *moments_NW, *dperb_NW,
-                             {fsgrids::dperb::dPERBydx, fsgrids::dperb::dPERBxdy}, {gridSpacing[0], gridSpacing[1]});
-   }
-
-   // Hall term
-   if (Parameters::ohmHallTerm > 0) {
-      Ez_NW += EHallGrid.get(i, j - 1, k)->at(fsgrids::ehall::EZHALL_010_011);
-   }
-
-   // Electron pressure gradient term
-   if (Parameters::ohmGradPeTerm > 0) {
-      Ez_NW += EGradPeGrid.get(i, j - 1, k)->at(fsgrids::egradpe::EZGRADPE);
-   }
 
 #ifndef FS_1ST_ORDER_SPACE
    // 2nd order terms:
@@ -1213,22 +1093,6 @@ void calculateEdgeElectricFieldZ(
    // 1st order terms:
    Real Ez_NE = Bx_N * Vy0 - By_E * Vx0;
 
-   // Resistive term
-   if (Parameters::resistivity > 0) {
-      Ez_NE += resistiveTerm(*bgb_NE, *perb_NE, *moments_NE, *dperb_NE,
-                             {fsgrids::dperb::dPERBydx, fsgrids::dperb::dPERBxdy}, {gridSpacing[0], gridSpacing[1]});
-   }
-
-   // Hall term
-   if (Parameters::ohmHallTerm > 0) {
-      Ez_NE += EHallGrid.get(i - 1, j - 1, k)->at(fsgrids::ehall::EZHALL_110_111);
-   }
-
-   // Electron pressure gradient term
-   if (Parameters::ohmGradPeTerm > 0) {
-      Ez_NE += EGradPeGrid.get(i - 1, j - 1, k)->at(fsgrids::egradpe::EZGRADPE);
-   }
-
 #ifndef FS_1ST_ORDER_SPACE
    // 2nd order terms:
    Ez_NE += +HALF * ((Bx_N + HALF * dBxdy_N) *
@@ -1249,6 +1113,34 @@ void calculateEdgeElectricFieldZ(
    ay_neg = max(ay_neg, -Vy0 + c_y);
    ay_pos = max(ay_pos, +Vy0 + c_y);
    maxV = max(maxV, wavespeeds.cflSpeed(Vx0, Vy0));
+
+   // Resistive terms
+   if (Parameters::resistivity > 0) {
+      const std::array indices = {static_cast<size_t>(fsgrids::dperb::dPERBydx),
+                                  static_cast<size_t>(fsgrids::dperb::dPERBxdy)};
+      const std::array spacing = {gridSpacing[0], gridSpacing[1]};
+
+      Ez_SW += resistiveTerm(*bgb_SW, *perb_SW, *moments_SW, *dperb_SW, indices, spacing);
+      Ez_SE += resistiveTerm(*bgb_SE, *perb_SE, *moments_SE, *dperb_SE, indices, spacing);
+      Ez_NW += resistiveTerm(*bgb_NW, *perb_NW, *moments_NW, *dperb_NW, indices, spacing);
+      Ez_NE += resistiveTerm(*bgb_NE, *perb_NE, *moments_NE, *dperb_NE, indices, spacing);
+   }
+
+   // Hall terms
+   if (Parameters::ohmHallTerm > 0) {
+      Ez_SW += EHallGrid.get(i, j, k)->at(fsgrids::ehall::EZHALL_000_001);
+      Ez_SE += EHallGrid.get(i - 1, j, k)->at(fsgrids::ehall::EZHALL_100_101);
+      Ez_NW += EHallGrid.get(i, j - 1, k)->at(fsgrids::ehall::EZHALL_010_011);
+      Ez_NE += EHallGrid.get(i - 1, j - 1, k)->at(fsgrids::ehall::EZHALL_110_111);
+   }
+
+   // Electron pressure gradient terms
+   if (Parameters::ohmGradPeTerm > 0) {
+      Ez_SW += EGradPeGrid.get(i, j, k)->at(fsgrids::egradpe::EZGRADPE);
+      Ez_SE += EGradPeGrid.get(i - 1, j, k)->at(fsgrids::egradpe::EZGRADPE);
+      Ez_NW += EGradPeGrid.get(i, j - 1, k)->at(fsgrids::egradpe::EZGRADPE);
+      Ez_NE += EGradPeGrid.get(i - 1, j - 1, k)->at(fsgrids::egradpe::EZGRADPE);
+   }
 
    // Calculate properly upwinded edge-averaged Ez:
    const FieldValues f(Ez_NE, Ez_SE, Ez_NW, Ez_SW, ax_pos, ax_neg, ay_pos, ay_neg, perBx_S, perBx_N, perBy_W, perBy_E,
