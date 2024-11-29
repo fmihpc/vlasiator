@@ -371,6 +371,20 @@ void fsdebugCheck([[maybe_unused]] fsgrid::FsGrid<fsgrids::technical, FS_STENCIL
 #endif
 }
 
+std::array<Real, 2> getRhomLimits(const std::array<std::array<Real, fsgrids::moments::N_MOMENTS>, 4>& moments) {
+   Real minRhom = std::numeric_limits<Real>::max();
+   Real maxRhom = std::numeric_limits<Real>::min();
+   for (const auto& m : moments) {
+      const auto rhom = m[fsgrids::moments::RHOM];
+      minRhom = min(minRhom, rhom);
+      maxRhom = max(maxRhom, rhom);
+   }
+   return {
+       minRhom,
+       maxRhom,
+   };
+}
+
 /*! \brief Low-level electric field propagation function.
  * 
  * Computes the upwinded electric field X component along the cell's corresponding edge as the cross product of B and V in the YZ plane. Also includes the calculation of the maximally allowed time step.
@@ -442,8 +456,12 @@ void calculateEdgeElectricFieldX(
    std::array<Real, fsgrids::efield::N_EFIELD> * efield_SW = EGrid.get(i,j,k);
    
    Real By_S, Bz_W, Bz_E, By_N, perBy_S, perBz_W, perBz_E, perBy_N;
-   Real minRhom = std::numeric_limits<Real>::max();
-   Real maxRhom = std::numeric_limits<Real>::min();
+   const auto rhomLimits = getRhomLimits({
+       *moments_SW,
+       *moments_SE,
+       *moments_NW,
+       *moments_NE,
+   });
 
    By_S = perb_SW->at(fsgrids::bfield::PERBY)+bgb_SW->at(fsgrids::bgbfield::BGBY);
    Bz_W = perb_SW->at(fsgrids::bfield::PERBZ)+bgb_SW->at(fsgrids::bgbfield::BGBZ);
@@ -455,22 +473,6 @@ void calculateEdgeElectricFieldX(
    perBy_N = perb_NW->at(fsgrids::bfield::PERBY);
    Vy0  = moments_SW->at(fsgrids::moments::VY);
    Vz0  = moments_SW->at(fsgrids::moments::VZ);
-   minRhom = min(minRhom,
-       min(moments_SW->at(fsgrids::moments::RHOM),
-         min(moments_SE->at(fsgrids::moments::RHOM),
-           min(moments_NW->at(fsgrids::moments::RHOM),
-             moments_NE->at(fsgrids::moments::RHOM))
-           )
-         )
-       );
-   maxRhom = max(maxRhom,
-       max(moments_SW->at(fsgrids::moments::RHOM),
-         max(moments_SE->at(fsgrids::moments::RHOM),
-           max(moments_NW->at(fsgrids::moments::RHOM),
-             moments_NE->at(fsgrids::moments::RHOM))
-           )
-         )
-       );
    
    creal dBydx_S = dperb_SW->at(fsgrids::dperb::dPERBydx) + bgb_SW->at(fsgrids::bgbfield::dBGBydx);
    creal dBydz_S = dperb_SW->at(fsgrids::dperb::dPERBydz) + bgb_SW->at(fsgrids::bgbfield::dBGBydz);
@@ -519,7 +521,8 @@ void calculateEdgeElectricFieldX(
       Ex_SW += -HALF*((Bz_W - HALF*dBzdy_W)*(-dmoments_SW->at(fsgrids::dmoments::dVydy) - dmoments_SW->at(fsgrids::dmoments::dVydz)) - dBzdy_W*Vy0 + SIXTH*dBzdx_W*dmoments_SW->at(fsgrids::dmoments::dVydx));
    #endif
       calculateWaveSpeedYZ(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, i, j, k, i + 1, j, k,
-                           By_S, Bz_W, dBydx_S, dBydz_S, dBzdx_W, dBzdy_W, MINUS, MINUS, minRhom, maxRhom, vA, vS, vW);
+                           By_S, Bz_W, dBydx_S, dBydz_S, dBzdx_W, dBzdy_W, MINUS, MINUS, rhomLimits[0], rhomLimits[1],
+                           vA, vS, vW);
       c_y = min(Parameters::maxWaveVelocity, sqrt(vA * vA + vS * vS) + vW);
       c_z = c_y;
       ay_neg = max(ZERO, -Vy0 + c_y);
@@ -566,8 +569,8 @@ void calculateEdgeElectricFieldX(
    #endif
 
       calculateWaveSpeedYZ(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, i, j - 1, k, i + 1,
-                           j - 1, k, By_S, Bz_E, dBydx_S, dBydz_S, dBzdx_E, dBzdy_E, PLUS, MINUS, minRhom, maxRhom, vA,
-                           vS, vW);
+                           j - 1, k, By_S, Bz_E, dBydx_S, dBydz_S, dBzdx_E, dBzdy_E, PLUS, MINUS, rhomLimits[0],
+                           rhomLimits[1], vA, vS, vW);
       c_y = min(Parameters::maxWaveVelocity, sqrt(vA * vA + vS * vS) + vW);
       c_z = c_y;
       ay_neg = max(ay_neg, -Vy0 + c_y);
@@ -614,8 +617,8 @@ void calculateEdgeElectricFieldX(
    #endif
 
       calculateWaveSpeedYZ(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, i, j, k - 1, i + 1,
-                           j, k - 1, By_N, Bz_W, dBydx_N, dBydz_N, dBzdx_W, dBzdy_W, MINUS, PLUS, minRhom, maxRhom, vA,
-                           vS, vW);
+                           j, k - 1, By_N, Bz_W, dBydx_N, dBydz_N, dBzdx_W, dBzdy_W, MINUS, PLUS, rhomLimits[0],
+                           rhomLimits[1], vA, vS, vW);
       c_y = min(Parameters::maxWaveVelocity, sqrt(vA * vA + vS * vS) + vW);
       c_z = c_y;
       ay_neg = max(ay_neg, -Vy0 + c_y);
@@ -662,8 +665,8 @@ void calculateEdgeElectricFieldX(
    #endif
 
       calculateWaveSpeedYZ(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, i, j - 1, k - 1,
-                           i + 1, j - 1, k - 1, By_N, Bz_E, dBydx_N, dBydz_N, dBzdx_E, dBzdy_E, PLUS, PLUS, minRhom,
-                           maxRhom, vA, vS, vW);
+                           i + 1, j - 1, k - 1, By_N, Bz_E, dBydx_N, dBydz_N, dBzdx_E, dBzdy_E, PLUS, PLUS,
+                           rhomLimits[0], rhomLimits[1], vA, vS, vW);
       c_y = min(Parameters::maxWaveVelocity, sqrt(vA * vA + vS * vS) + vW);
       c_z = c_y;
       ay_neg = max(ay_neg, -Vy0 + c_y);
@@ -758,8 +761,12 @@ void calculateEdgeElectricFieldY(
    
    // Fetch required plasma parameters:
    Real Bz_S, Bx_W, Bx_E, Bz_N, perBz_S, perBx_W, perBx_E, perBz_N;
-   Real minRhom = std::numeric_limits<Real>::max();
-   Real maxRhom = std::numeric_limits<Real>::min();
+   const auto rhomLimits = getRhomLimits({
+       *moments_SW,
+       *moments_SE,
+       *moments_NW,
+       *moments_NE,
+   });
    Bz_S = perb_SW->at(fsgrids::bfield::PERBZ)+bgb_SW->at(fsgrids::bgbfield::BGBZ);
    Bx_W = perb_SW->at(fsgrids::bfield::PERBX)+bgb_SW->at(fsgrids::bgbfield::BGBX);
    Bx_E = perb_SE->at(fsgrids::bfield::PERBX)+bgb_SE->at(fsgrids::bgbfield::BGBX);
@@ -770,22 +777,6 @@ void calculateEdgeElectricFieldY(
    perBz_N = perb_NW->at(fsgrids::bfield::PERBZ);
    Vx0  = moments_SW->at(fsgrids::moments::VX);
    Vz0  = moments_SW->at(fsgrids::moments::VZ);
-   minRhom = min(minRhom,
-       min(moments_SW->at(fsgrids::moments::RHOM),
-         min(moments_SE->at(fsgrids::moments::RHOM),
-           min(moments_NW->at(fsgrids::moments::RHOM),
-             moments_NE->at(fsgrids::moments::RHOM))
-           )
-         )
-       );
-   maxRhom = max(maxRhom,
-       max(moments_SW->at(fsgrids::moments::RHOM),
-         max(moments_SE->at(fsgrids::moments::RHOM),
-           max(moments_NW->at(fsgrids::moments::RHOM),
-             moments_NE->at(fsgrids::moments::RHOM))
-           )
-         )
-       );
    
    creal dBxdy_W = dperb_SW->at(fsgrids::dperb::dPERBxdy) + bgb_SW->at(fsgrids::bgbfield::dBGBxdy);
    creal dBxdz_W = dperb_SW->at(fsgrids::dperb::dPERBxdz) + bgb_SW->at(fsgrids::bgbfield::dBGBxdz);
@@ -835,7 +826,8 @@ void calculateEdgeElectricFieldY(
    #endif
 
       calculateWaveSpeedXZ(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, i, j, k, i, j + 1, k,
-                           Bx_W, Bz_S, dBxdy_W, dBxdz_W, dBzdx_S, dBzdy_S, MINUS, MINUS, minRhom, maxRhom, vA, vS, vW);
+                           Bx_W, Bz_S, dBxdy_W, dBxdz_W, dBzdx_S, dBzdy_S, MINUS, MINUS, rhomLimits[0], rhomLimits[1],
+                           vA, vS, vW);
       c_z = min(Parameters::maxWaveVelocity, sqrt(vA * vA + vS * vS) + vW);
       c_x = c_z;
       az_neg = max(ZERO, -Vz0 + c_z);
@@ -882,8 +874,8 @@ void calculateEdgeElectricFieldY(
    #endif
 
       calculateWaveSpeedXZ(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, i, j, k - 1, i,
-                           j + 1, k - 1, Bx_E, Bz_S, dBxdy_E, dBxdz_E, dBzdx_S, dBzdy_S, MINUS, PLUS, minRhom, maxRhom,
-                           vA, vS, vW);
+                           j + 1, k - 1, Bx_E, Bz_S, dBxdy_E, dBxdz_E, dBzdx_S, dBzdy_S, MINUS, PLUS, rhomLimits[0],
+                           rhomLimits[1], vA, vS, vW);
       c_z = min(Parameters::maxWaveVelocity, sqrt(vA * vA + vS * vS) + vW);
       c_x = c_z;
       az_neg = max(az_neg, -Vz0 + c_z);
@@ -930,8 +922,8 @@ void calculateEdgeElectricFieldY(
    #endif
 
       calculateWaveSpeedXZ(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, i - 1, j, k, i - 1,
-                           j + 1, k, Bx_W, Bz_N, dBxdy_W, dBxdz_W, dBzdx_N, dBzdy_N, PLUS, MINUS, minRhom, maxRhom, vA,
-                           vS, vW);
+                           j + 1, k, Bx_W, Bz_N, dBxdy_W, dBxdz_W, dBzdx_N, dBzdy_N, PLUS, MINUS, rhomLimits[0],
+                           rhomLimits[1], vA, vS, vW);
       c_z = min(Parameters::maxWaveVelocity, sqrt(vA * vA + vS * vS) + vW);
       c_x = c_z;
       az_neg = max(az_neg, -Vz0 + c_z);
@@ -978,8 +970,8 @@ void calculateEdgeElectricFieldY(
    #endif
 
       calculateWaveSpeedXZ(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, i - 1, j, k - 1,
-                           i - 1, j + 1, k - 1, Bx_E, Bz_N, dBxdy_E, dBxdz_E, dBzdx_N, dBzdy_N, PLUS, PLUS, minRhom,
-                           maxRhom, vA, vS, vW);
+                           i - 1, j + 1, k - 1, Bx_E, Bz_N, dBxdy_E, dBxdz_E, dBzdx_N, dBzdy_N, PLUS, PLUS,
+                           rhomLimits[0], rhomLimits[1], vA, vS, vW);
       c_z = min(Parameters::maxWaveVelocity, sqrt(vA * vA + vS * vS) + vW);
       c_x = c_z;
       az_neg = max(az_neg, -Vz0 + c_z);
@@ -1074,8 +1066,12 @@ void calculateEdgeElectricFieldZ(
    
    // Fetch needed plasma parameters/derivatives from the four cells:
    Real Bx_S, By_W, By_E, Bx_N, perBx_S, perBy_W, perBy_E, perBx_N;
-   Real minRhom = std::numeric_limits<Real>::max();
-   Real maxRhom = std::numeric_limits<Real>::min();
+   const auto rhomLimits = getRhomLimits({
+       *moments_SW,
+       *moments_SE,
+       *moments_NW,
+       *moments_NE,
+   });
 
    Bx_S    = perb_SW->at(fsgrids::bfield::PERBX) + bgb_SW->at(fsgrids::bgbfield::BGBX);
    By_W    = perb_SW->at(fsgrids::bfield::PERBY) + bgb_SW->at(fsgrids::bgbfield::BGBY);
@@ -1087,22 +1083,6 @@ void calculateEdgeElectricFieldZ(
    perBx_N    = perb_NW->at(fsgrids::bfield::PERBX);
    Vx0  = moments_SW->at(fsgrids::moments::VX);
    Vy0  = moments_SW->at(fsgrids::moments::VY);
-   minRhom = min(minRhom,
-         min(moments_SW->at(fsgrids::moments::RHOM),
-            min(moments_SE->at(fsgrids::moments::RHOM),
-               min(moments_NW->at(fsgrids::moments::RHOM),
-                  moments_NE->at(fsgrids::moments::RHOM))
-               )
-            )
-         );
-   maxRhom = max(maxRhom,
-         max(moments_SW->at(fsgrids::moments::RHOM),
-            max(moments_SE->at(fsgrids::moments::RHOM),
-               max(moments_NW->at(fsgrids::moments::RHOM),
-                  moments_NE->at(fsgrids::moments::RHOM))
-               )
-            )
-         );
    
    creal dBxdy_S = dperb_SW->at(fsgrids::dperb::dPERBxdy) + bgb_SW->at(fsgrids::bgbfield::dBGBxdy);
    creal dBxdz_S = dperb_SW->at(fsgrids::dperb::dPERBxdz) + bgb_SW->at(fsgrids::bgbfield::dBGBxdz);
@@ -1154,7 +1134,8 @@ void calculateEdgeElectricFieldZ(
    // Calculate maximum wave speed (fast magnetosonic speed) on SW cell. In order 
    // to get Alfven speed we need to calculate some reconstruction coeff. for Bz:
       calculateWaveSpeedXY(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, i, j, k, i, j, k + 1,
-                           Bx_S, By_W, dBxdy_S, dBxdz_S, dBydx_W, dBydz_W, MINUS, MINUS, minRhom, maxRhom, vA, vS, vW);
+                           Bx_S, By_W, dBxdy_S, dBxdz_S, dBydx_W, dBydz_W, MINUS, MINUS, rhomLimits[0], rhomLimits[1],
+                           vA, vS, vW);
       c_x = min(Parameters::maxWaveVelocity, sqrt(vA * vA + vS * vS) + vW);
       c_y = c_x;
       ax_neg = max(ZERO, -Vx0 + c_x);
@@ -1201,8 +1182,8 @@ void calculateEdgeElectricFieldZ(
    #endif
 
       calculateWaveSpeedXY(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, i - 1, j, k, i - 1,
-                           j, k + 1, Bx_S, By_E, dBxdy_S, dBxdz_S, dBydx_E, dBydz_E, PLUS, MINUS, minRhom, maxRhom, vA,
-                           vS, vW);
+                           j, k + 1, Bx_S, By_E, dBxdy_S, dBxdz_S, dBydx_E, dBydz_E, PLUS, MINUS, rhomLimits[0],
+                           rhomLimits[1], vA, vS, vW);
       c_x = min(Parameters::maxWaveVelocity, sqrt(vA * vA + vS * vS) + vW);
       c_y = c_x;
       ax_neg = max(ax_neg, -Vx0 + c_x);
@@ -1249,8 +1230,8 @@ void calculateEdgeElectricFieldZ(
    #endif
 
       calculateWaveSpeedXY(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, i, j - 1, k, i,
-                           j - 1, k + 1, Bx_N, By_W, dBxdy_N, dBxdz_N, dBydx_W, dBydz_W, MINUS, PLUS, minRhom, maxRhom,
-                           vA, vS, vW);
+                           j - 1, k + 1, Bx_N, By_W, dBxdy_N, dBxdz_N, dBydx_W, dBydz_W, MINUS, PLUS, rhomLimits[0],
+                           rhomLimits[1], vA, vS, vW);
       c_x = min(Parameters::maxWaveVelocity, sqrt(vA * vA + vS * vS) + vW);
       c_y = c_x;
       ax_neg = max(ax_neg, -Vx0 + c_x);
@@ -1297,8 +1278,8 @@ void calculateEdgeElectricFieldZ(
    #endif
 
       calculateWaveSpeedXY(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, i - 1, j - 1, k,
-                           i - 1, j - 1, k + 1, Bx_N, By_E, dBxdy_N, dBxdz_N, dBydx_E, dBydz_E, PLUS, PLUS, minRhom,
-                           maxRhom, vA, vS, vW);
+                           i - 1, j - 1, k + 1, Bx_N, By_E, dBxdy_N, dBxdz_N, dBydx_E, dBydz_E, PLUS, PLUS,
+                           rhomLimits[0], rhomLimits[1], vA, vS, vW);
       c_x = min(Parameters::maxWaveVelocity, sqrt(vA * vA + vS * vS) + vW);
       c_y = c_x;
       ax_neg = max(ax_neg, -Vx0 + c_x);
