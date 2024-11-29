@@ -132,31 +132,15 @@ Wavespeeds calculateEffectiveWavespeeds(Real bmag2, Real rhom, Real p11, Real p2
  * \param ret_vW Whistler speed returned
  */
 void calculateWaveSpeedYZ(
-   fsgrid::FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   fsgrid::FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-   fsgrid::FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-   fsgrid::FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-   fsgrid::FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-   cint i,
-   cint j,
-   cint k,
-   cint nbi,
-   cint nbj,
-   cint nbk,
-   const Real& By,
-   const Real& Bz,
-   const Real& dBydx,
-   const Real& dBydz,
-   const Real& dBzdx,
-   const Real& dBzdy,
-   const Real& ydir,
-   const Real& zdir,
-   const Real& minRhom,
-   const Real& maxRhom,
-   Real& ret_vA,
-   Real& ret_vS,
-   Real& ret_vW
-) {
+    fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+    fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
+    fsgrid::FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
+    fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
+    fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k, cint nbi, cint nbj,
+    cint nbk, const Real& By, const Real& Bz, const Real& dBydx, const Real& dBydz, const Real& dBzdx,
+    const Real& dBzdy, const Real& ydir, const Real& zdir, const Real& minRhom, const Real& maxRhom, Real& ret_vA,
+    Real& ret_vS, Real& ret_vW) {
    std::array<Real, fsgrids::bfield::N_BFIELD> * perb = perBGrid.get(i,j,k);
    std::array<Real, fsgrids::bfield::N_BFIELD> * nbr_perb = perBGrid.get(nbi,nbj,nbk);
    std::array<Real, fsgrids::moments::N_MOMENTS> * moments = momentsGrid.get(i,j,k);
@@ -196,7 +180,7 @@ void calculateWaveSpeedYZ(
    p22 = p22 < 0.0 ? 0.0 : p22;
    p33 = p33 < 0.0 ? 0.0 : p33;
 
-   const auto& gridSpacing = perBGrid.getGridSpacing();
+   const auto& gridSpacing = technicalGrid.getGridSpacing();
    const auto wavespeeds = calculateEffectiveWavespeeds(Bmag2, rhom, p11, p22, p33, gridSpacing);
    ret_vA = wavespeeds.alfven;
    ret_vS = wavespeeds.sound;
@@ -234,31 +218,15 @@ void calculateWaveSpeedYZ(
  * \param ret_vW Whistler speed returned
  */
 void calculateWaveSpeedXZ(
-   fsgrid::FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   fsgrid::FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-   fsgrid::FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-   fsgrid::FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-   fsgrid::FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-   cint i,
-   cint j,
-   cint k,
-   cint nbi,
-   cint nbj,
-   cint nbk,
-   const Real& Bx,
-   const Real& Bz,
-   const Real& dBxdy,
-   const Real& dBxdz,
-   const Real& dBzdx,
-   const Real& dBzdy,
-   const Real& xdir,
-   const Real& zdir,
-   const Real& minRhom,
-   const Real& maxRhom,
-   Real& ret_vA,
-   Real& ret_vS,
-   Real& ret_vW
-) {
+    fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+    fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
+    fsgrid::FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
+    fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
+    fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k, cint nbi, cint nbj,
+    cint nbk, const Real& Bx, const Real& Bz, const Real& dBxdy, const Real& dBxdz, const Real& dBzdx,
+    const Real& dBzdy, const Real& xdir, const Real& zdir, const Real& minRhom, const Real& maxRhom, Real& ret_vA,
+    Real& ret_vS, Real& ret_vW) {
    std::array<Real, fsgrids::bfield::N_BFIELD> * perb = perBGrid.get(i,j,k);
    std::array<Real, fsgrids::bfield::N_BFIELD> * nbr_perb = perBGrid.get(nbi,nbj,nbk);
    std::array<Real, fsgrids::moments::N_MOMENTS> * moments = momentsGrid.get(i,j,k);
@@ -298,7 +266,7 @@ void calculateWaveSpeedXZ(
    p22 = p22 < 0.0 ? 0.0 : p22;
    p33 = p33 < 0.0 ? 0.0 : p33;
 
-   const auto& gridSpacing = perBGrid.getGridSpacing();
+   const auto& gridSpacing = technicalGrid.getGridSpacing();
    const auto wavespeeds = calculateEffectiveWavespeeds(Bmag2, rhom, p11, p22, p33, gridSpacing);
    ret_vA = wavespeeds.alfven;
    ret_vS = wavespeeds.sound;
@@ -336,31 +304,15 @@ void calculateWaveSpeedXZ(
  * \param ret_vW Whistler speed returned
  */
 void calculateWaveSpeedXY(
-   fsgrid::FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   fsgrid::FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-   fsgrid::FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-   fsgrid::FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-   fsgrid::FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-   cint i,
-   cint j,
-   cint k,
-   cint nbi,
-   cint nbj,
-   cint nbk,
-   const Real& Bx,
-   const Real& By,
-   const Real& dBxdy,
-   const Real& dBxdz,
-   const Real& dBydx,
-   const Real& dBydz,
-   const Real& xdir,
-   const Real& ydir,
-   const Real& minRhom,
-   const Real& maxRhom,
-   Real& ret_vA,
-   Real& ret_vS,
-   Real& ret_vW
-) {
+    fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+    fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
+    fsgrid::FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
+    fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
+    fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k, cint nbi, cint nbj,
+    cint nbk, const Real& Bx, const Real& By, const Real& dBxdy, const Real& dBxdz, const Real& dBydx,
+    const Real& dBydz, const Real& xdir, const Real& ydir, const Real& minRhom, const Real& maxRhom, Real& ret_vA,
+    Real& ret_vS, Real& ret_vW) {
    std::array<Real, fsgrids::bfield::N_BFIELD> * perb = perBGrid.get(i,j,k);
    std::array<Real, fsgrids::bfield::N_BFIELD> * nbr_perb = perBGrid.get(nbi,nbj,nbk);
    std::array<Real, fsgrids::moments::N_MOMENTS> * moments = momentsGrid.get(i,j,k);
@@ -400,7 +352,7 @@ void calculateWaveSpeedXY(
    p22 = p22 < 0.0 ? 0.0 : p22;
    p33 = p33 < 0.0 ? 0.0 : p33;
 
-   const auto& gridSpacing = perBGrid.getGridSpacing();
+   const auto& gridSpacing = technicalGrid.getGridSpacing();
    const auto wavespeeds = calculateEffectiveWavespeeds(Bmag2, rhom, p11, p22, p33, gridSpacing);
    ret_vA = wavespeeds.alfven;
    ret_vS = wavespeeds.sound;
@@ -566,43 +518,35 @@ void calculateEdgeElectricFieldX(
       Ex_SW += +HALF*((By_S - HALF*dBydz_S)*(-dmoments_SW->at(fsgrids::dmoments::dVzdy) - dmoments_SW->at(fsgrids::dmoments::dVzdz)) - dBydz_S*Vz0 + SIXTH*dBydx_S*dmoments_SW->at(fsgrids::dmoments::dVzdx));
       Ex_SW += -HALF*((Bz_W - HALF*dBzdy_W)*(-dmoments_SW->at(fsgrids::dmoments::dVydy) - dmoments_SW->at(fsgrids::dmoments::dVydz)) - dBzdy_W*Vy0 + SIXTH*dBzdx_W*dmoments_SW->at(fsgrids::dmoments::dVydx));
    #endif
-   calculateWaveSpeedYZ(
-      perBGrid,
-      momentsGrid,
-      dPerBGrid,
-      dMomentsGrid,
-      BgBGrid,
-      i  , j, k,
-      i+1, j, k,
-      By_S, Bz_W, dBydx_S, dBydz_S, dBzdx_W, dBzdy_W, MINUS, MINUS, minRhom, maxRhom, vA, vS, vW
-   );
-   c_y = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
-   c_z = c_y;
-   ay_neg   = max(ZERO,-Vy0 + c_y);
-   ay_pos   = max(ZERO,+Vy0 + c_y);
-   az_neg   = max(ZERO,-Vz0 + c_z);
-   az_pos   = max(ZERO,+Vz0 + c_z);
-   maxV = max(maxV, calculateCflSpeed(Vy0, Vz0, vA, vS, vW));
+      calculateWaveSpeedYZ(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, i, j, k, i + 1, j, k,
+                           By_S, Bz_W, dBydx_S, dBydz_S, dBzdx_W, dBzdy_W, MINUS, MINUS, minRhom, maxRhom, vA, vS, vW);
+      c_y = min(Parameters::maxWaveVelocity, sqrt(vA * vA + vS * vS) + vW);
+      c_z = c_y;
+      ay_neg = max(ZERO, -Vy0 + c_y);
+      ay_pos = max(ZERO, +Vy0 + c_y);
+      az_neg = max(ZERO, -Vz0 + c_z);
+      az_pos = max(ZERO, +Vz0 + c_z);
+      maxV = max(maxV, calculateCflSpeed(Vy0, Vz0, vA, vS, vW));
 
-   // Ex and characteristic speeds on j-1 neighbour:
-   Vy0  = moments_SE->at(fsgrids::moments::VY);
-   Vz0  = moments_SE->at(fsgrids::moments::VZ);
-   
-   // 1st order terms:
-   Real Ex_SE = By_S*Vz0 - Bz_E*Vy0;
-   
-   // Resistive term
-   if (Parameters::resistivity > 0) {
-      Ex_SE += Parameters::resistivity *
-               sqrt((bgb_SE->at(fsgrids::bgbfield::BGBX) + perb_SE->at(fsgrids::bfield::PERBX)) *
-                        (bgb_SE->at(fsgrids::bgbfield::BGBX) + perb_SE->at(fsgrids::bfield::PERBX)) +
-                    (bgb_SE->at(fsgrids::bgbfield::BGBY) + perb_SE->at(fsgrids::bfield::PERBY)) *
-                        (bgb_SE->at(fsgrids::bgbfield::BGBY) + perb_SE->at(fsgrids::bfield::PERBY)) +
-                    (bgb_SE->at(fsgrids::bgbfield::BGBZ) + perb_SE->at(fsgrids::bfield::PERBZ)) *
-                        (bgb_SE->at(fsgrids::bgbfield::BGBZ) + perb_SE->at(fsgrids::bfield::PERBZ))) /
-               moments_SE->at(fsgrids::moments::RHOQ) / physicalconstants::MU_0 *
-               (dperb_SE->at(fsgrids::dperb::dPERBzdy) / technicalGrid.getGridSpacing()[1] -
-                dperb_SE->at(fsgrids::dperb::dPERBydz) / technicalGrid.getGridSpacing()[2]);
+      // Ex and characteristic speeds on j-1 neighbour:
+      Vy0 = moments_SE->at(fsgrids::moments::VY);
+      Vz0 = moments_SE->at(fsgrids::moments::VZ);
+
+      // 1st order terms:
+      Real Ex_SE = By_S * Vz0 - Bz_E * Vy0;
+
+      // Resistive term
+      if (Parameters::resistivity > 0) {
+         Ex_SE += Parameters::resistivity *
+                  sqrt((bgb_SE->at(fsgrids::bgbfield::BGBX) + perb_SE->at(fsgrids::bfield::PERBX)) *
+                           (bgb_SE->at(fsgrids::bgbfield::BGBX) + perb_SE->at(fsgrids::bfield::PERBX)) +
+                       (bgb_SE->at(fsgrids::bgbfield::BGBY) + perb_SE->at(fsgrids::bfield::PERBY)) *
+                           (bgb_SE->at(fsgrids::bgbfield::BGBY) + perb_SE->at(fsgrids::bfield::PERBY)) +
+                       (bgb_SE->at(fsgrids::bgbfield::BGBZ) + perb_SE->at(fsgrids::bfield::PERBZ)) *
+                           (bgb_SE->at(fsgrids::bgbfield::BGBZ) + perb_SE->at(fsgrids::bfield::PERBZ))) /
+                  moments_SE->at(fsgrids::moments::RHOQ) / physicalconstants::MU_0 *
+                  (dperb_SE->at(fsgrids::dperb::dPERBzdy) / technicalGrid.getGridSpacing()[1] -
+                   dperb_SE->at(fsgrids::dperb::dPERBydz) / technicalGrid.getGridSpacing()[2]);
    }
 
    // Hall term
@@ -620,44 +564,37 @@ void calculateEdgeElectricFieldX(
       Ex_SE += +HALF*((By_S - HALF*dBydz_S)*(+dmoments_SE->at(fsgrids::dmoments::dVzdy) - dmoments_SE->at(fsgrids::dmoments::dVzdz)) - dBydz_S*Vz0 + SIXTH*dBydx_S*dmoments_SE->at(fsgrids::dmoments::dVzdx));
       Ex_SE += -HALF*((Bz_E + HALF*dBzdy_E)*(+dmoments_SE->at(fsgrids::dmoments::dVydy) - dmoments_SE->at(fsgrids::dmoments::dVydz)) + dBzdy_E*Vy0 + SIXTH*dBzdx_E*dmoments_SE->at(fsgrids::dmoments::dVydx));
    #endif
-   
-   calculateWaveSpeedYZ(
-      perBGrid,
-      momentsGrid,
-      dPerBGrid,
-      dMomentsGrid,
-      BgBGrid,
-      i  , j-1, k,
-      i+1, j-1, k,
-      By_S, Bz_E, dBydx_S, dBydz_S, dBzdx_E, dBzdy_E, PLUS, MINUS, minRhom, maxRhom, vA, vS, vW
-   );
-   c_y = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
-   c_z = c_y;
-   ay_neg   = max(ay_neg,-Vy0 + c_y);
-   ay_pos   = max(ay_pos,+Vy0 + c_y);
-   az_neg   = max(az_neg,-Vz0 + c_z);
-   az_pos   = max(az_pos,+Vz0 + c_z);
-   maxV = max(maxV, calculateCflSpeed(Vy0, Vz0, vA, vS, vW));
 
-   // Ex and characteristic speeds on k-1 neighbour:
-   Vy0  = moments_NW->at(fsgrids::moments::VY);
-   Vz0  = moments_NW->at(fsgrids::moments::VZ);
-   
-   // 1st order terms:
-   Real Ex_NW    = By_N*Vz0 - Bz_W*Vy0;
-   
-   // Resistive term
-   if (Parameters::resistivity > 0) {
-      Ex_NW += Parameters::resistivity *
-               sqrt((bgb_NW->at(fsgrids::bgbfield::BGBX) + perb_NW->at(fsgrids::bfield::PERBX)) *
-                        (bgb_NW->at(fsgrids::bgbfield::BGBX) + perb_NW->at(fsgrids::bfield::PERBX)) +
-                    (bgb_NW->at(fsgrids::bgbfield::BGBY) + perb_NW->at(fsgrids::bfield::PERBY)) *
-                        (bgb_NW->at(fsgrids::bgbfield::BGBY) + perb_NW->at(fsgrids::bfield::PERBY)) +
-                    (bgb_NW->at(fsgrids::bgbfield::BGBZ) + perb_NW->at(fsgrids::bfield::PERBZ)) *
-                        (bgb_NW->at(fsgrids::bgbfield::BGBZ) + perb_NW->at(fsgrids::bfield::PERBZ))) /
-               moments_NW->at(fsgrids::moments::RHOQ) / physicalconstants::MU_0 *
-               (dperb_NW->at(fsgrids::dperb::dPERBzdy) / technicalGrid.getGridSpacing()[1] -
-                dperb_NW->at(fsgrids::dperb::dPERBydz) / technicalGrid.getGridSpacing()[2]);
+      calculateWaveSpeedYZ(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, i, j - 1, k, i + 1,
+                           j - 1, k, By_S, Bz_E, dBydx_S, dBydz_S, dBzdx_E, dBzdy_E, PLUS, MINUS, minRhom, maxRhom, vA,
+                           vS, vW);
+      c_y = min(Parameters::maxWaveVelocity, sqrt(vA * vA + vS * vS) + vW);
+      c_z = c_y;
+      ay_neg = max(ay_neg, -Vy0 + c_y);
+      ay_pos = max(ay_pos, +Vy0 + c_y);
+      az_neg = max(az_neg, -Vz0 + c_z);
+      az_pos = max(az_pos, +Vz0 + c_z);
+      maxV = max(maxV, calculateCflSpeed(Vy0, Vz0, vA, vS, vW));
+
+      // Ex and characteristic speeds on k-1 neighbour:
+      Vy0 = moments_NW->at(fsgrids::moments::VY);
+      Vz0 = moments_NW->at(fsgrids::moments::VZ);
+
+      // 1st order terms:
+      Real Ex_NW = By_N * Vz0 - Bz_W * Vy0;
+
+      // Resistive term
+      if (Parameters::resistivity > 0) {
+         Ex_NW += Parameters::resistivity *
+                  sqrt((bgb_NW->at(fsgrids::bgbfield::BGBX) + perb_NW->at(fsgrids::bfield::PERBX)) *
+                           (bgb_NW->at(fsgrids::bgbfield::BGBX) + perb_NW->at(fsgrids::bfield::PERBX)) +
+                       (bgb_NW->at(fsgrids::bgbfield::BGBY) + perb_NW->at(fsgrids::bfield::PERBY)) *
+                           (bgb_NW->at(fsgrids::bgbfield::BGBY) + perb_NW->at(fsgrids::bfield::PERBY)) +
+                       (bgb_NW->at(fsgrids::bgbfield::BGBZ) + perb_NW->at(fsgrids::bfield::PERBZ)) *
+                           (bgb_NW->at(fsgrids::bgbfield::BGBZ) + perb_NW->at(fsgrids::bfield::PERBZ))) /
+                  moments_NW->at(fsgrids::moments::RHOQ) / physicalconstants::MU_0 *
+                  (dperb_NW->at(fsgrids::dperb::dPERBzdy) / technicalGrid.getGridSpacing()[1] -
+                   dperb_NW->at(fsgrids::dperb::dPERBydz) / technicalGrid.getGridSpacing()[2]);
    }
    
    // Hall term
@@ -675,44 +612,37 @@ void calculateEdgeElectricFieldX(
       Ex_NW += +HALF*((By_N + HALF*dBydz_N)*(-dmoments_NW->at(fsgrids::dmoments::dVzdy) + dmoments_NW->at(fsgrids::dmoments::dVzdz)) + dBydz_N*Vz0 + SIXTH*dBydx_N*dmoments_NW->at(fsgrids::dmoments::dVzdx));
       Ex_NW += -HALF*((Bz_W - HALF*dBzdy_W)*(-dmoments_NW->at(fsgrids::dmoments::dVydy) + dmoments_NW->at(fsgrids::dmoments::dVydz)) - dBzdy_W*Vy0 + SIXTH*dBzdx_W*dmoments_NW->at(fsgrids::dmoments::dVydx));
    #endif
-   
-   calculateWaveSpeedYZ(
-      perBGrid,
-      momentsGrid,
-      dPerBGrid,
-      dMomentsGrid,
-      BgBGrid,
-      i  , j, k-1,
-      i+1, j, k-1,
-      By_N, Bz_W, dBydx_N, dBydz_N, dBzdx_W, dBzdy_W, MINUS, PLUS, minRhom, maxRhom, vA, vS, vW
-   );
-   c_y = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
-   c_z = c_y;
-   ay_neg   = max(ay_neg,-Vy0 + c_y);
-   ay_pos   = max(ay_pos,+Vy0 + c_y);
-   az_neg   = max(az_neg,-Vz0 + c_z);
-   az_pos   = max(az_pos,+Vz0 + c_z);
-   maxV = max(maxV, calculateCflSpeed(Vy0, Vz0, vA, vS, vW));
 
-   // Ex and characteristic speeds on j-1,k-1 neighbour:
-   Vy0 = moments_NE->at(fsgrids::moments::VY);
-   Vz0 = moments_NE->at(fsgrids::moments::VZ);
-   
-   // 1st order terms:
-   Real Ex_NE    = By_N*Vz0 - Bz_E*Vy0;
+      calculateWaveSpeedYZ(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, i, j, k - 1, i + 1,
+                           j, k - 1, By_N, Bz_W, dBydx_N, dBydz_N, dBzdx_W, dBzdy_W, MINUS, PLUS, minRhom, maxRhom, vA,
+                           vS, vW);
+      c_y = min(Parameters::maxWaveVelocity, sqrt(vA * vA + vS * vS) + vW);
+      c_z = c_y;
+      ay_neg = max(ay_neg, -Vy0 + c_y);
+      ay_pos = max(ay_pos, +Vy0 + c_y);
+      az_neg = max(az_neg, -Vz0 + c_z);
+      az_pos = max(az_pos, +Vz0 + c_z);
+      maxV = max(maxV, calculateCflSpeed(Vy0, Vz0, vA, vS, vW));
 
-   // Resistive term
-   if (Parameters::resistivity > 0) {
-      Ex_NE += Parameters::resistivity *
-               sqrt((bgb_NE->at(fsgrids::bgbfield::BGBX) + perb_NE->at(fsgrids::bfield::PERBX)) *
-                        (bgb_NE->at(fsgrids::bgbfield::BGBX) + perb_NE->at(fsgrids::bfield::PERBX)) +
-                    (bgb_NE->at(fsgrids::bgbfield::BGBY) + perb_NE->at(fsgrids::bfield::PERBY)) *
-                        (bgb_NE->at(fsgrids::bgbfield::BGBY) + perb_NE->at(fsgrids::bfield::PERBY)) +
-                    (bgb_NE->at(fsgrids::bgbfield::BGBZ) + perb_NE->at(fsgrids::bfield::PERBZ)) *
-                        (bgb_NE->at(fsgrids::bgbfield::BGBZ) + perb_NE->at(fsgrids::bfield::PERBZ))) /
-               moments_NE->at(fsgrids::moments::RHOQ) / physicalconstants::MU_0 *
-               (dperb_NE->at(fsgrids::dperb::dPERBzdy) / technicalGrid.getGridSpacing()[1] -
-                dperb_NE->at(fsgrids::dperb::dPERBydz) / technicalGrid.getGridSpacing()[2]);
+      // Ex and characteristic speeds on j-1,k-1 neighbour:
+      Vy0 = moments_NE->at(fsgrids::moments::VY);
+      Vz0 = moments_NE->at(fsgrids::moments::VZ);
+
+      // 1st order terms:
+      Real Ex_NE = By_N * Vz0 - Bz_E * Vy0;
+
+      // Resistive term
+      if (Parameters::resistivity > 0) {
+         Ex_NE += Parameters::resistivity *
+                  sqrt((bgb_NE->at(fsgrids::bgbfield::BGBX) + perb_NE->at(fsgrids::bfield::PERBX)) *
+                           (bgb_NE->at(fsgrids::bgbfield::BGBX) + perb_NE->at(fsgrids::bfield::PERBX)) +
+                       (bgb_NE->at(fsgrids::bgbfield::BGBY) + perb_NE->at(fsgrids::bfield::PERBY)) *
+                           (bgb_NE->at(fsgrids::bgbfield::BGBY) + perb_NE->at(fsgrids::bfield::PERBY)) +
+                       (bgb_NE->at(fsgrids::bgbfield::BGBZ) + perb_NE->at(fsgrids::bfield::PERBZ)) *
+                           (bgb_NE->at(fsgrids::bgbfield::BGBZ) + perb_NE->at(fsgrids::bfield::PERBZ))) /
+                  moments_NE->at(fsgrids::moments::RHOQ) / physicalconstants::MU_0 *
+                  (dperb_NE->at(fsgrids::dperb::dPERBzdy) / technicalGrid.getGridSpacing()[1] -
+                   dperb_NE->at(fsgrids::dperb::dPERBydz) / technicalGrid.getGridSpacing()[2]);
    }
 
    // Hall term
@@ -730,28 +660,22 @@ void calculateEdgeElectricFieldX(
       Ex_NE += +HALF*((By_N + HALF*dBydz_N)*(+dmoments_NE->at(fsgrids::dmoments::dVzdy) + dmoments_NE->at(fsgrids::dmoments::dVzdz)) + dBydz_N*Vz0 + SIXTH*dBydx_N*dmoments_NE->at(fsgrids::dmoments::dVzdx));
       Ex_NE += -HALF*((Bz_E + HALF*dBzdy_E)*(+dmoments_NE->at(fsgrids::dmoments::dVydy) + dmoments_NE->at(fsgrids::dmoments::dVydz)) + dBzdy_E*Vy0 + SIXTH*dBzdx_E*dmoments_NE->at(fsgrids::dmoments::dVydx));
    #endif
-   
-   calculateWaveSpeedYZ(
-      perBGrid,
-      momentsGrid,
-      dPerBGrid,
-      dMomentsGrid,
-      BgBGrid,
-      i  ,j-1,k-1,
-      i+1,j-1,k-1,
-      By_N, Bz_E, dBydx_N, dBydz_N, dBzdx_E, dBzdy_E, PLUS, PLUS, minRhom, maxRhom, vA, vS, vW
-   );
-   c_y = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
-   c_z = c_y;
-   ay_neg   = max(ay_neg,-Vy0 + c_y);
-   ay_pos   = max(ay_pos,+Vy0 + c_y);
-   az_neg   = max(az_neg,-Vz0 + c_z);
-   az_pos   = max(az_pos,+Vz0 + c_z);
-   maxV = max(maxV, calculateCflSpeed(Vy0, Vz0, vA, vS, vW));
-   // Calculate properly upwinded edge-averaged Ex:
-   efield_SW->at(fsgrids::efield::EX)  = ay_pos*az_pos*Ex_NE + ay_pos*az_neg*Ex_SE + ay_neg*az_pos*Ex_NW + ay_neg*az_neg*Ex_SW;
-   efield_SW->at(fsgrids::efield::EX) /= ((ay_pos+ay_neg)*(az_pos+az_neg)+EPS);
-   if (Parameters::fieldSolverDiffusiveEterms) {
+
+      calculateWaveSpeedYZ(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, i, j - 1, k - 1,
+                           i + 1, j - 1, k - 1, By_N, Bz_E, dBydx_N, dBydz_N, dBzdx_E, dBzdy_E, PLUS, PLUS, minRhom,
+                           maxRhom, vA, vS, vW);
+      c_y = min(Parameters::maxWaveVelocity, sqrt(vA * vA + vS * vS) + vW);
+      c_z = c_y;
+      ay_neg = max(ay_neg, -Vy0 + c_y);
+      ay_pos = max(ay_pos, +Vy0 + c_y);
+      az_neg = max(az_neg, -Vz0 + c_z);
+      az_pos = max(az_pos, +Vz0 + c_z);
+      maxV = max(maxV, calculateCflSpeed(Vy0, Vz0, vA, vS, vW));
+      // Calculate properly upwinded edge-averaged Ex:
+      efield_SW->at(fsgrids::efield::EX) =
+          ay_pos * az_pos * Ex_NE + ay_pos * az_neg * Ex_SE + ay_neg * az_pos * Ex_NW + ay_neg * az_neg * Ex_SW;
+      efield_SW->at(fsgrids::efield::EX) /= ((ay_pos + ay_neg) * (az_pos + az_neg) + EPS);
+      if (Parameters::fieldSolverDiffusiveEterms) {
 #ifdef FS_1ST_ORDER_SPACE
       // 1st order diffusive terms:
       efield_SW->at(fsgrids::efield::EX) -= az_pos*az_neg/(az_pos+az_neg+EPS)*(perBy_S-perBy_N);
@@ -909,44 +833,36 @@ void calculateEdgeElectricFieldY(
       Ey_SW += +HALF*((Bz_S - HALF*dBzdx_S)*(-dmoments_SW->at(fsgrids::dmoments::dVxdx) - dmoments_SW->at(fsgrids::dmoments::dVxdz)) - dBzdx_S*Vx0 + SIXTH*dBzdy_S*dmoments_SW->at(fsgrids::dmoments::dVxdy));
       Ey_SW += -HALF*((Bx_W - HALF*dBxdz_W)*(-dmoments_SW->at(fsgrids::dmoments::dVzdx) - dmoments_SW->at(fsgrids::dmoments::dVzdz)) - dBxdz_W*Vz0 + SIXTH*dBxdy_W*dmoments_SW->at(fsgrids::dmoments::dVzdy));
    #endif
-   
-   calculateWaveSpeedXZ(
-      perBGrid,
-      momentsGrid,
-      dPerBGrid,
-      dMomentsGrid,
-      BgBGrid,
-      i, j, k,
-      i, j+1, k,
-      Bx_W, Bz_S, dBxdy_W, dBxdz_W, dBzdx_S, dBzdy_S, MINUS, MINUS, minRhom, maxRhom, vA, vS, vW
-   );
-   c_z = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
-   c_x = c_z;
-   az_neg   = max(ZERO,-Vz0 + c_z);
-   az_pos   = max(ZERO,+Vz0 + c_z);
-   ax_neg   = max(ZERO,-Vx0 + c_x);
-   ax_pos   = max(ZERO,+Vx0 + c_x);
-   maxV = max(maxV, calculateCflSpeed(Vz0, Vx0, vA, vS, vW));
 
-   // Ey and characteristic speeds on k-1 neighbour:
-   Vx0  = moments_SE->at(fsgrids::moments::VX);
-   Vz0  = moments_SE->at(fsgrids::moments::VZ);
+      calculateWaveSpeedXZ(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, i, j, k, i, j + 1, k,
+                           Bx_W, Bz_S, dBxdy_W, dBxdz_W, dBzdx_S, dBzdy_S, MINUS, MINUS, minRhom, maxRhom, vA, vS, vW);
+      c_z = min(Parameters::maxWaveVelocity, sqrt(vA * vA + vS * vS) + vW);
+      c_x = c_z;
+      az_neg = max(ZERO, -Vz0 + c_z);
+      az_pos = max(ZERO, +Vz0 + c_z);
+      ax_neg = max(ZERO, -Vx0 + c_x);
+      ax_pos = max(ZERO, +Vx0 + c_x);
+      maxV = max(maxV, calculateCflSpeed(Vz0, Vx0, vA, vS, vW));
 
-   // 1st order terms:
-   Real Ey_SE    = Bz_S*Vx0 - Bx_E*Vz0;
+      // Ey and characteristic speeds on k-1 neighbour:
+      Vx0 = moments_SE->at(fsgrids::moments::VX);
+      Vz0 = moments_SE->at(fsgrids::moments::VZ);
 
-   // Resistive term
-   if (Parameters::resistivity > 0) {
-      Ey_SE += Parameters::resistivity *
-               sqrt((bgb_SE->at(fsgrids::bgbfield::BGBX) + perb_SE->at(fsgrids::bfield::PERBX)) *
-                        (bgb_SE->at(fsgrids::bgbfield::BGBX) + perb_SE->at(fsgrids::bfield::PERBX)) +
-                    (bgb_SE->at(fsgrids::bgbfield::BGBY) + perb_SE->at(fsgrids::bfield::PERBY)) *
-                        (bgb_SE->at(fsgrids::bgbfield::BGBY) + perb_SE->at(fsgrids::bfield::PERBY)) +
-                    (bgb_SE->at(fsgrids::bgbfield::BGBZ) + perb_SE->at(fsgrids::bfield::PERBZ)) *
-                        (bgb_SE->at(fsgrids::bgbfield::BGBZ) + perb_SE->at(fsgrids::bfield::PERBZ))) /
-               moments_SE->at(fsgrids::moments::RHOQ) / physicalconstants::MU_0 *
-               (dperb_SE->at(fsgrids::dperb::dPERBxdz) / technicalGrid.getGridSpacing()[2] -
-                dperb_SE->at(fsgrids::dperb::dPERBzdx) / technicalGrid.getGridSpacing()[0]);
+      // 1st order terms:
+      Real Ey_SE = Bz_S * Vx0 - Bx_E * Vz0;
+
+      // Resistive term
+      if (Parameters::resistivity > 0) {
+         Ey_SE += Parameters::resistivity *
+                  sqrt((bgb_SE->at(fsgrids::bgbfield::BGBX) + perb_SE->at(fsgrids::bfield::PERBX)) *
+                           (bgb_SE->at(fsgrids::bgbfield::BGBX) + perb_SE->at(fsgrids::bfield::PERBX)) +
+                       (bgb_SE->at(fsgrids::bgbfield::BGBY) + perb_SE->at(fsgrids::bfield::PERBY)) *
+                           (bgb_SE->at(fsgrids::bgbfield::BGBY) + perb_SE->at(fsgrids::bfield::PERBY)) +
+                       (bgb_SE->at(fsgrids::bgbfield::BGBZ) + perb_SE->at(fsgrids::bfield::PERBZ)) *
+                           (bgb_SE->at(fsgrids::bgbfield::BGBZ) + perb_SE->at(fsgrids::bfield::PERBZ))) /
+                  moments_SE->at(fsgrids::moments::RHOQ) / physicalconstants::MU_0 *
+                  (dperb_SE->at(fsgrids::dperb::dPERBxdz) / technicalGrid.getGridSpacing()[2] -
+                   dperb_SE->at(fsgrids::dperb::dPERBzdx) / technicalGrid.getGridSpacing()[0]);
    }
 
    // Hall term
@@ -964,44 +880,37 @@ void calculateEdgeElectricFieldY(
       Ey_SE += +HALF*((Bz_S - HALF*dBzdx_S)*(-dmoments_SE->at(fsgrids::dmoments::dVxdx) + dmoments_SE->at(fsgrids::dmoments::dVxdz)) - dBzdx_S*Vx0 + SIXTH*dBzdy_S*dmoments_SE->at(fsgrids::dmoments::dVxdy));
       Ey_SE += -HALF*((Bx_E + HALF*dBxdz_E)*(-dmoments_SE->at(fsgrids::dmoments::dVzdx) + dmoments_SE->at(fsgrids::dmoments::dVzdz)) + dBxdz_E*Vz0 + SIXTH*dBxdy_E*dmoments_SE->at(fsgrids::dmoments::dVzdy));
    #endif
-   
-   calculateWaveSpeedXZ(
-      perBGrid,
-      momentsGrid,
-      dPerBGrid,
-      dMomentsGrid,
-      BgBGrid,
-      i, j  , k-1,
-      i, j+1, k-1,
-      Bx_E, Bz_S, dBxdy_E, dBxdz_E, dBzdx_S, dBzdy_S, MINUS, PLUS, minRhom, maxRhom, vA, vS, vW
-   );
-   c_z = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
-   c_x = c_z;
-   az_neg   = max(az_neg,-Vz0 + c_z);
-   az_pos   = max(az_pos,+Vz0 + c_z);
-   ax_neg   = max(ax_neg,-Vx0 + c_x);
-   ax_pos   = max(ax_pos,+Vx0 + c_x);
-   maxV = max(maxV, calculateCflSpeed(Vz0, Vx0, vA, vS, vW));
-   
-   // Ey and characteristic speeds on i-1 neighbour:
-   Vz0  = moments_NW->at(fsgrids::moments::VZ);
-   Vx0  = moments_NW->at(fsgrids::moments::VX);
-   
-   // 1st order terms:
-   Real Ey_NW    = Bz_N*Vx0 - Bx_W*Vz0;
 
-   // Resistive term
-   if (Parameters::resistivity > 0) {
-      Ey_NW += Parameters::resistivity *
-               sqrt((bgb_NW->at(fsgrids::bgbfield::BGBX) + perb_NW->at(fsgrids::bfield::PERBX)) *
-                        (bgb_NW->at(fsgrids::bgbfield::BGBX) + perb_NW->at(fsgrids::bfield::PERBX)) +
-                    (bgb_NW->at(fsgrids::bgbfield::BGBY) + perb_NW->at(fsgrids::bfield::PERBY)) *
-                        (bgb_NW->at(fsgrids::bgbfield::BGBY) + perb_NW->at(fsgrids::bfield::PERBY)) +
-                    (bgb_NW->at(fsgrids::bgbfield::BGBZ) + perb_NW->at(fsgrids::bfield::PERBZ)) *
-                        (bgb_NW->at(fsgrids::bgbfield::BGBZ) + perb_NW->at(fsgrids::bfield::PERBZ))) /
-               moments_NW->at(fsgrids::moments::RHOQ) / physicalconstants::MU_0 *
-               (dperb_NW->at(fsgrids::dperb::dPERBxdz) / technicalGrid.getGridSpacing()[2] -
-                dperb_NW->at(fsgrids::dperb::dPERBzdx) / technicalGrid.getGridSpacing()[0]);
+      calculateWaveSpeedXZ(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, i, j, k - 1, i,
+                           j + 1, k - 1, Bx_E, Bz_S, dBxdy_E, dBxdz_E, dBzdx_S, dBzdy_S, MINUS, PLUS, minRhom, maxRhom,
+                           vA, vS, vW);
+      c_z = min(Parameters::maxWaveVelocity, sqrt(vA * vA + vS * vS) + vW);
+      c_x = c_z;
+      az_neg = max(az_neg, -Vz0 + c_z);
+      az_pos = max(az_pos, +Vz0 + c_z);
+      ax_neg = max(ax_neg, -Vx0 + c_x);
+      ax_pos = max(ax_pos, +Vx0 + c_x);
+      maxV = max(maxV, calculateCflSpeed(Vz0, Vx0, vA, vS, vW));
+
+      // Ey and characteristic speeds on i-1 neighbour:
+      Vz0 = moments_NW->at(fsgrids::moments::VZ);
+      Vx0 = moments_NW->at(fsgrids::moments::VX);
+
+      // 1st order terms:
+      Real Ey_NW = Bz_N * Vx0 - Bx_W * Vz0;
+
+      // Resistive term
+      if (Parameters::resistivity > 0) {
+         Ey_NW += Parameters::resistivity *
+                  sqrt((bgb_NW->at(fsgrids::bgbfield::BGBX) + perb_NW->at(fsgrids::bfield::PERBX)) *
+                           (bgb_NW->at(fsgrids::bgbfield::BGBX) + perb_NW->at(fsgrids::bfield::PERBX)) +
+                       (bgb_NW->at(fsgrids::bgbfield::BGBY) + perb_NW->at(fsgrids::bfield::PERBY)) *
+                           (bgb_NW->at(fsgrids::bgbfield::BGBY) + perb_NW->at(fsgrids::bfield::PERBY)) +
+                       (bgb_NW->at(fsgrids::bgbfield::BGBZ) + perb_NW->at(fsgrids::bfield::PERBZ)) *
+                           (bgb_NW->at(fsgrids::bgbfield::BGBZ) + perb_NW->at(fsgrids::bfield::PERBZ))) /
+                  moments_NW->at(fsgrids::moments::RHOQ) / physicalconstants::MU_0 *
+                  (dperb_NW->at(fsgrids::dperb::dPERBxdz) / technicalGrid.getGridSpacing()[2] -
+                   dperb_NW->at(fsgrids::dperb::dPERBzdx) / technicalGrid.getGridSpacing()[0]);
    }
 
    // Hall term
@@ -1019,44 +928,37 @@ void calculateEdgeElectricFieldY(
       Ey_NW += +HALF*((Bz_N + HALF*dBzdx_N)*(+dmoments_NW->at(fsgrids::dmoments::dVxdx) - dmoments_NW->at(fsgrids::dmoments::dVxdz)) + dBzdx_N*Vx0 + SIXTH*dBzdy_N*dmoments_NW->at(fsgrids::dmoments::dVxdy));
       Ey_NW += -HALF*((Bx_W - HALF*dBxdz_W)*(+dmoments_NW->at(fsgrids::dmoments::dVzdx) - dmoments_NW->at(fsgrids::dmoments::dVzdz)) - dBxdz_W*Vz0 + SIXTH*dBxdy_W*dmoments_NW->at(fsgrids::dmoments::dVzdy));
    #endif
-   
-   calculateWaveSpeedXZ(
-      perBGrid,
-      momentsGrid,
-      dPerBGrid,
-      dMomentsGrid,
-      BgBGrid,
-      i-1,j  ,k,
-      i-1,j+1,k,
-      Bx_W, Bz_N, dBxdy_W, dBxdz_W, dBzdx_N, dBzdy_N, PLUS, MINUS, minRhom, maxRhom, vA, vS, vW
-   );
-   c_z = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
-   c_x = c_z;
-   az_neg   = max(az_neg,-Vz0 + c_z);
-   az_pos   = max(az_pos,+Vz0 + c_z);
-   ax_neg   = max(ax_neg,-Vx0 + c_x);
-   ax_pos   = max(ax_pos,+Vx0 + c_x);
-   maxV = max(maxV, calculateCflSpeed(Vz0, Vx0, vA, vS, vW));
 
-   // Ey and characteristic speeds on i-1,k-1 neighbour:
-   Vz0 = moments_NE->at(fsgrids::moments::VZ);
-   Vx0 = moments_NE->at(fsgrids::moments::VX);
-   
-   // 1st order terms:
-   Real Ey_NE    = Bz_N*Vx0 - Bx_E*Vz0;
-   
-   // Resistive term
-   if (Parameters::resistivity > 0) {
-      Ey_NE += Parameters::resistivity *
-               sqrt((bgb_NE->at(fsgrids::bgbfield::BGBX) + perb_NE->at(fsgrids::bfield::PERBX)) *
-                        (bgb_NE->at(fsgrids::bgbfield::BGBX) + perb_NE->at(fsgrids::bfield::PERBX)) +
-                    (bgb_NE->at(fsgrids::bgbfield::BGBY) + perb_NE->at(fsgrids::bfield::PERBY)) *
-                        (bgb_NE->at(fsgrids::bgbfield::BGBY) + perb_NE->at(fsgrids::bfield::PERBY)) +
-                    (bgb_NE->at(fsgrids::bgbfield::BGBZ) + perb_NE->at(fsgrids::bfield::PERBZ)) *
-                        (bgb_NE->at(fsgrids::bgbfield::BGBZ) + perb_NE->at(fsgrids::bfield::PERBZ))) /
-               moments_NE->at(fsgrids::moments::RHOQ) / physicalconstants::MU_0 *
-               (dperb_NE->at(fsgrids::dperb::dPERBxdz) / technicalGrid.getGridSpacing()[2] -
-                dperb_NE->at(fsgrids::dperb::dPERBzdx) / technicalGrid.getGridSpacing()[0]);
+      calculateWaveSpeedXZ(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, i - 1, j, k, i - 1,
+                           j + 1, k, Bx_W, Bz_N, dBxdy_W, dBxdz_W, dBzdx_N, dBzdy_N, PLUS, MINUS, minRhom, maxRhom, vA,
+                           vS, vW);
+      c_z = min(Parameters::maxWaveVelocity, sqrt(vA * vA + vS * vS) + vW);
+      c_x = c_z;
+      az_neg = max(az_neg, -Vz0 + c_z);
+      az_pos = max(az_pos, +Vz0 + c_z);
+      ax_neg = max(ax_neg, -Vx0 + c_x);
+      ax_pos = max(ax_pos, +Vx0 + c_x);
+      maxV = max(maxV, calculateCflSpeed(Vz0, Vx0, vA, vS, vW));
+
+      // Ey and characteristic speeds on i-1,k-1 neighbour:
+      Vz0 = moments_NE->at(fsgrids::moments::VZ);
+      Vx0 = moments_NE->at(fsgrids::moments::VX);
+
+      // 1st order terms:
+      Real Ey_NE = Bz_N * Vx0 - Bx_E * Vz0;
+
+      // Resistive term
+      if (Parameters::resistivity > 0) {
+         Ey_NE += Parameters::resistivity *
+                  sqrt((bgb_NE->at(fsgrids::bgbfield::BGBX) + perb_NE->at(fsgrids::bfield::PERBX)) *
+                           (bgb_NE->at(fsgrids::bgbfield::BGBX) + perb_NE->at(fsgrids::bfield::PERBX)) +
+                       (bgb_NE->at(fsgrids::bgbfield::BGBY) + perb_NE->at(fsgrids::bfield::PERBY)) *
+                           (bgb_NE->at(fsgrids::bgbfield::BGBY) + perb_NE->at(fsgrids::bfield::PERBY)) +
+                       (bgb_NE->at(fsgrids::bgbfield::BGBZ) + perb_NE->at(fsgrids::bfield::PERBZ)) *
+                           (bgb_NE->at(fsgrids::bgbfield::BGBZ) + perb_NE->at(fsgrids::bfield::PERBZ))) /
+                  moments_NE->at(fsgrids::moments::RHOQ) / physicalconstants::MU_0 *
+                  (dperb_NE->at(fsgrids::dperb::dPERBxdz) / technicalGrid.getGridSpacing()[2] -
+                   dperb_NE->at(fsgrids::dperb::dPERBzdx) / technicalGrid.getGridSpacing()[0]);
    }
 
    // Hall term
@@ -1074,29 +976,23 @@ void calculateEdgeElectricFieldY(
       Ey_NE += +HALF*((Bz_N + HALF*dBzdx_N)*(+dmoments_NE->at(fsgrids::dmoments::dVxdx) + dmoments_NE->at(fsgrids::dmoments::dVxdz)) + dBzdx_N*Vx0 + SIXTH*dBzdy_N*dmoments_NE->at(fsgrids::dmoments::dVxdy));
       Ey_NE += -HALF*((Bx_E + HALF*dBxdz_E)*(+dmoments_NE->at(fsgrids::dmoments::dVzdx) + dmoments_NE->at(fsgrids::dmoments::dVzdz)) + dBxdz_E*Vz0 + SIXTH*dBxdy_E*dmoments_NE->at(fsgrids::dmoments::dVzdy));
    #endif
-   
-   calculateWaveSpeedXZ(
-      perBGrid,
-      momentsGrid,
-      dPerBGrid,
-      dMomentsGrid,
-      BgBGrid,
-      i-1,j  ,k-1,
-      i-1,j+1,k-1,
-      Bx_E, Bz_N, dBxdy_E, dBxdz_E, dBzdx_N, dBzdy_N, PLUS, PLUS, minRhom, maxRhom, vA, vS, vW
-   );
-   c_z = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
-   c_x = c_z;
-   az_neg   = max(az_neg,-Vz0 + c_z);
-   az_pos   = max(az_pos,+Vz0 + c_z);
-   ax_neg   = max(ax_neg,-Vx0 + c_x);
-   ax_pos   = max(ax_pos,+Vx0 + c_x);
-   maxV = max(maxV, calculateCflSpeed(Vz0, Vx0, vA, vS, vW));
-   // Calculate properly upwinded edge-averaged Ey:
-   efield_SW->at(fsgrids::efield::EY)  = az_pos*ax_pos*Ey_NE + az_pos*ax_neg*Ey_SE + az_neg*ax_pos*Ey_NW + az_neg*ax_neg*Ey_SW;
-   efield_SW->at(fsgrids::efield::EY) /= ((az_pos+az_neg)*(ax_pos+ax_neg)+EPS);
 
-   if (Parameters::fieldSolverDiffusiveEterms) {
+      calculateWaveSpeedXZ(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, i - 1, j, k - 1,
+                           i - 1, j + 1, k - 1, Bx_E, Bz_N, dBxdy_E, dBxdz_E, dBzdx_N, dBzdy_N, PLUS, PLUS, minRhom,
+                           maxRhom, vA, vS, vW);
+      c_z = min(Parameters::maxWaveVelocity, sqrt(vA * vA + vS * vS) + vW);
+      c_x = c_z;
+      az_neg = max(az_neg, -Vz0 + c_z);
+      az_pos = max(az_pos, +Vz0 + c_z);
+      ax_neg = max(ax_neg, -Vx0 + c_x);
+      ax_pos = max(ax_pos, +Vx0 + c_x);
+      maxV = max(maxV, calculateCflSpeed(Vz0, Vx0, vA, vS, vW));
+      // Calculate properly upwinded edge-averaged Ey:
+      efield_SW->at(fsgrids::efield::EY) =
+          az_pos * ax_pos * Ey_NE + az_pos * ax_neg * Ey_SE + az_neg * ax_pos * Ey_NW + az_neg * ax_neg * Ey_SW;
+      efield_SW->at(fsgrids::efield::EY) /= ((az_pos + az_neg) * (ax_pos + ax_neg) + EPS);
+
+      if (Parameters::fieldSolverDiffusiveEterms) {
 #ifdef FS_1ST_ORDER_SPACE
       efield_SW->at(fsgrids::efield::EY) -= ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*(perBz_S-perBz_N);
       efield_SW->at(fsgrids::efield::EY) += az_pos*az_neg/(az_pos+az_neg+EPS)*(perBx_W-perBx_E);
@@ -1257,43 +1153,35 @@ void calculateEdgeElectricFieldZ(
    
    // Calculate maximum wave speed (fast magnetosonic speed) on SW cell. In order 
    // to get Alfven speed we need to calculate some reconstruction coeff. for Bz:
-   calculateWaveSpeedXY(
-      perBGrid,
-      momentsGrid,
-      dPerBGrid,
-      dMomentsGrid,
-      BgBGrid,
-      i, j, k,
-      i, j, k+1,
-      Bx_S, By_W, dBxdy_S, dBxdz_S, dBydx_W, dBydz_W, MINUS, MINUS, minRhom, maxRhom, vA, vS, vW
-   );
-   c_x = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
-   c_y = c_x;
-   ax_neg   = max(ZERO,-Vx0 + c_x);
-   ax_pos   = max(ZERO,+Vx0 + c_x);
-   ay_neg   = max(ZERO,-Vy0 + c_y);
-   ay_pos   = max(ZERO,+Vy0 + c_y);
-   maxV = max(maxV, calculateCflSpeed(Vx0, Vy0, vA, vS, vW));
+      calculateWaveSpeedXY(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, i, j, k, i, j, k + 1,
+                           Bx_S, By_W, dBxdy_S, dBxdz_S, dBydx_W, dBydz_W, MINUS, MINUS, minRhom, maxRhom, vA, vS, vW);
+      c_x = min(Parameters::maxWaveVelocity, sqrt(vA * vA + vS * vS) + vW);
+      c_y = c_x;
+      ax_neg = max(ZERO, -Vx0 + c_x);
+      ax_pos = max(ZERO, +Vx0 + c_x);
+      ay_neg = max(ZERO, -Vy0 + c_y);
+      ay_pos = max(ZERO, +Vy0 + c_y);
+      maxV = max(maxV, calculateCflSpeed(Vx0, Vy0, vA, vS, vW));
 
-   // Ez and characteristic speeds on SE (i-1) cell:
-   Vx0  = moments_SE->at(fsgrids::moments::VX);
-   Vy0  = moments_SE->at(fsgrids::moments::VY);
-   
-   // 1st order terms:
-   Real Ez_SE = Bx_S*Vy0 - By_E*Vx0;
+      // Ez and characteristic speeds on SE (i-1) cell:
+      Vx0 = moments_SE->at(fsgrids::moments::VX);
+      Vy0 = moments_SE->at(fsgrids::moments::VY);
 
-   // Resistive term
-   if (Parameters::resistivity > 0) {
-      Ez_SE += Parameters::resistivity *
-               sqrt((bgb_SE->at(fsgrids::bgbfield::BGBX) + perb_SE->at(fsgrids::bfield::PERBX)) *
-                        (bgb_SE->at(fsgrids::bgbfield::BGBX) + perb_SE->at(fsgrids::bfield::PERBX)) +
-                    (bgb_SE->at(fsgrids::bgbfield::BGBY) + perb_SE->at(fsgrids::bfield::PERBY)) *
-                        (bgb_SE->at(fsgrids::bgbfield::BGBY) + perb_SE->at(fsgrids::bfield::PERBY)) +
-                    (bgb_SE->at(fsgrids::bgbfield::BGBZ) + perb_SE->at(fsgrids::bfield::PERBZ)) *
-                        (bgb_SE->at(fsgrids::bgbfield::BGBZ) + perb_SE->at(fsgrids::bfield::PERBZ))) /
-               moments_SE->at(fsgrids::moments::RHOQ) / physicalconstants::MU_0 *
-               (dperb_SE->at(fsgrids::dperb::dPERBydx) / technicalGrid.getGridSpacing()[0] -
-                dperb_SE->at(fsgrids::dperb::dPERBxdy) / technicalGrid.getGridSpacing()[1]);
+      // 1st order terms:
+      Real Ez_SE = Bx_S * Vy0 - By_E * Vx0;
+
+      // Resistive term
+      if (Parameters::resistivity > 0) {
+         Ez_SE += Parameters::resistivity *
+                  sqrt((bgb_SE->at(fsgrids::bgbfield::BGBX) + perb_SE->at(fsgrids::bfield::PERBX)) *
+                           (bgb_SE->at(fsgrids::bgbfield::BGBX) + perb_SE->at(fsgrids::bfield::PERBX)) +
+                       (bgb_SE->at(fsgrids::bgbfield::BGBY) + perb_SE->at(fsgrids::bfield::PERBY)) *
+                           (bgb_SE->at(fsgrids::bgbfield::BGBY) + perb_SE->at(fsgrids::bfield::PERBY)) +
+                       (bgb_SE->at(fsgrids::bgbfield::BGBZ) + perb_SE->at(fsgrids::bfield::PERBZ)) *
+                           (bgb_SE->at(fsgrids::bgbfield::BGBZ) + perb_SE->at(fsgrids::bfield::PERBZ))) /
+                  moments_SE->at(fsgrids::moments::RHOQ) / physicalconstants::MU_0 *
+                  (dperb_SE->at(fsgrids::dperb::dPERBydx) / technicalGrid.getGridSpacing()[0] -
+                   dperb_SE->at(fsgrids::dperb::dPERBxdy) / technicalGrid.getGridSpacing()[1]);
    }
    
    // Hall term
@@ -1311,44 +1199,37 @@ void calculateEdgeElectricFieldZ(
       Ez_SE  += +HALF*((Bx_S - HALF*dBxdy_S)*(+dmoments_SE->at(fsgrids::dmoments::dVydx) - dmoments_SE->at(fsgrids::dmoments::dVydy)) - dBxdy_S*Vy0 + SIXTH*dBxdz_S*dmoments_SE->at(fsgrids::dmoments::dVydz));
       Ez_SE  += -HALF*((By_E + HALF*dBydx_E)*(+dmoments_SE->at(fsgrids::dmoments::dVxdx) - dmoments_SE->at(fsgrids::dmoments::dVxdy)) + dBydx_E*Vx0 + SIXTH*dBydz_E*dmoments_SE->at(fsgrids::dmoments::dVxdz));
    #endif
-   
-   calculateWaveSpeedXY(
-      perBGrid,
-      momentsGrid,
-      dPerBGrid,
-      dMomentsGrid,
-      BgBGrid,
-      i-1,j  ,k,
-      i-1,j  ,k+1,
-      Bx_S, By_E, dBxdy_S, dBxdz_S, dBydx_E, dBydz_E, PLUS, MINUS, minRhom, maxRhom, vA, vS, vW
-   );
-   c_x = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
-   c_y = c_x;
-   ax_neg = max(ax_neg,-Vx0 + c_x);
-   ax_pos = max(ax_pos,+Vx0 + c_x);
-   ay_neg = max(ay_neg,-Vy0 + c_y);
-   ay_pos = max(ay_pos,+Vy0 + c_y);
-   maxV = max(maxV, calculateCflSpeed(Vx0, Vy0, vA, vS, vW));
 
-   // Ez and characteristic speeds on NW (j-1) cell:
-   Vx0  = moments_NW->at(fsgrids::moments::VX);
-   Vy0  = moments_NW->at(fsgrids::moments::VY);
-   
-   // 1st order terms:
-   Real Ez_NW = Bx_N*Vy0 - By_W*Vx0;
-   
-   // Resistive term
-   if (Parameters::resistivity > 0) {
-      Ez_NW += Parameters::resistivity *
-               sqrt((bgb_NW->at(fsgrids::bgbfield::BGBX) + perb_NW->at(fsgrids::bfield::PERBX)) *
-                        (bgb_NW->at(fsgrids::bgbfield::BGBX) + perb_NW->at(fsgrids::bfield::PERBX)) +
-                    (bgb_NW->at(fsgrids::bgbfield::BGBY) + perb_NW->at(fsgrids::bfield::PERBY)) *
-                        (bgb_NW->at(fsgrids::bgbfield::BGBY) + perb_NW->at(fsgrids::bfield::PERBY)) +
-                    (bgb_NW->at(fsgrids::bgbfield::BGBZ) + perb_NW->at(fsgrids::bfield::PERBZ)) *
-                        (bgb_NW->at(fsgrids::bgbfield::BGBZ) + perb_NW->at(fsgrids::bfield::PERBZ))) /
-               moments_NW->at(fsgrids::moments::RHOQ) / physicalconstants::MU_0 *
-               (dperb_NW->at(fsgrids::dperb::dPERBydx) / technicalGrid.getGridSpacing()[0] -
-                dperb_NW->at(fsgrids::dperb::dPERBxdy) / technicalGrid.getGridSpacing()[1]);
+      calculateWaveSpeedXY(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, i - 1, j, k, i - 1,
+                           j, k + 1, Bx_S, By_E, dBxdy_S, dBxdz_S, dBydx_E, dBydz_E, PLUS, MINUS, minRhom, maxRhom, vA,
+                           vS, vW);
+      c_x = min(Parameters::maxWaveVelocity, sqrt(vA * vA + vS * vS) + vW);
+      c_y = c_x;
+      ax_neg = max(ax_neg, -Vx0 + c_x);
+      ax_pos = max(ax_pos, +Vx0 + c_x);
+      ay_neg = max(ay_neg, -Vy0 + c_y);
+      ay_pos = max(ay_pos, +Vy0 + c_y);
+      maxV = max(maxV, calculateCflSpeed(Vx0, Vy0, vA, vS, vW));
+
+      // Ez and characteristic speeds on NW (j-1) cell:
+      Vx0 = moments_NW->at(fsgrids::moments::VX);
+      Vy0 = moments_NW->at(fsgrids::moments::VY);
+
+      // 1st order terms:
+      Real Ez_NW = Bx_N * Vy0 - By_W * Vx0;
+
+      // Resistive term
+      if (Parameters::resistivity > 0) {
+         Ez_NW += Parameters::resistivity *
+                  sqrt((bgb_NW->at(fsgrids::bgbfield::BGBX) + perb_NW->at(fsgrids::bfield::PERBX)) *
+                           (bgb_NW->at(fsgrids::bgbfield::BGBX) + perb_NW->at(fsgrids::bfield::PERBX)) +
+                       (bgb_NW->at(fsgrids::bgbfield::BGBY) + perb_NW->at(fsgrids::bfield::PERBY)) *
+                           (bgb_NW->at(fsgrids::bgbfield::BGBY) + perb_NW->at(fsgrids::bfield::PERBY)) +
+                       (bgb_NW->at(fsgrids::bgbfield::BGBZ) + perb_NW->at(fsgrids::bfield::PERBZ)) *
+                           (bgb_NW->at(fsgrids::bgbfield::BGBZ) + perb_NW->at(fsgrids::bfield::PERBZ))) /
+                  moments_NW->at(fsgrids::moments::RHOQ) / physicalconstants::MU_0 *
+                  (dperb_NW->at(fsgrids::dperb::dPERBydx) / technicalGrid.getGridSpacing()[0] -
+                   dperb_NW->at(fsgrids::dperb::dPERBxdy) / technicalGrid.getGridSpacing()[1]);
    }
    
    // Hall term
@@ -1366,44 +1247,37 @@ void calculateEdgeElectricFieldZ(
       Ez_NW  += +HALF*((Bx_N + HALF*dBxdy_N)*(-dmoments_NW->at(fsgrids::dmoments::dVydx) + dmoments_NW->at(fsgrids::dmoments::dVydy)) + dBxdy_N*Vy0 + SIXTH*dBxdz_N*dmoments_NW->at(fsgrids::dmoments::dVydz));
       Ez_NW  += -HALF*((By_W - HALF*dBydx_W)*(-dmoments_NW->at(fsgrids::dmoments::dVxdx) + dmoments_NW->at(fsgrids::dmoments::dVxdy)) - dBydx_W*Vx0 + SIXTH*dBydz_W*dmoments_NW->at(fsgrids::dmoments::dVxdz));
    #endif
-   
-   calculateWaveSpeedXY(
-      perBGrid,
-      momentsGrid,
-      dPerBGrid,
-      dMomentsGrid,
-      BgBGrid,
-      i, j-1, k,
-      i, j-1, k+1,
-      Bx_N, By_W, dBxdy_N, dBxdz_N, dBydx_W, dBydz_W, MINUS, PLUS, minRhom, maxRhom, vA, vS, vW
-   );
-   c_x = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
-   c_y = c_x;
-   ax_neg = max(ax_neg,-Vx0 + c_x); 
-   ax_pos = max(ax_pos,+Vx0 + c_x);
-   ay_neg = max(ay_neg,-Vy0 + c_y);
-   ay_pos = max(ay_pos,+Vy0 + c_y);
-   maxV = max(maxV, calculateCflSpeed(Vx0, Vy0, vA, vS, vW));
-   
-   // Ez and characteristic speeds on NE (i-1,j-1) cell:
-   Vx0  = moments_NE->at(fsgrids::moments::VX);
-   Vy0  = moments_NE->at(fsgrids::moments::VY);
-   
-   // 1st order terms:
-   Real Ez_NE = Bx_N*Vy0 - By_E*Vx0;
-   
-   // Resistive term
-   if (Parameters::resistivity > 0) {
-      Ez_NE += Parameters::resistivity *
-               sqrt((bgb_NE->at(fsgrids::bgbfield::BGBX) + perb_NE->at(fsgrids::bfield::PERBX)) *
-                        (bgb_NE->at(fsgrids::bgbfield::BGBX) + perb_NE->at(fsgrids::bfield::PERBX)) +
-                    (bgb_NE->at(fsgrids::bgbfield::BGBY) + perb_NE->at(fsgrids::bfield::PERBY)) *
-                        (bgb_NE->at(fsgrids::bgbfield::BGBY) + perb_NE->at(fsgrids::bfield::PERBY)) +
-                    (bgb_NE->at(fsgrids::bgbfield::BGBZ) + perb_NE->at(fsgrids::bfield::PERBZ)) *
-                        (bgb_NE->at(fsgrids::bgbfield::BGBZ) + perb_NE->at(fsgrids::bfield::PERBZ))) /
-               moments_NE->at(fsgrids::moments::RHOQ) / physicalconstants::MU_0 *
-               (dperb_NE->at(fsgrids::dperb::dPERBydx) / technicalGrid.getGridSpacing()[0] -
-                dperb_NE->at(fsgrids::dperb::dPERBxdy) / technicalGrid.getGridSpacing()[1]);
+
+      calculateWaveSpeedXY(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, i, j - 1, k, i,
+                           j - 1, k + 1, Bx_N, By_W, dBxdy_N, dBxdz_N, dBydx_W, dBydz_W, MINUS, PLUS, minRhom, maxRhom,
+                           vA, vS, vW);
+      c_x = min(Parameters::maxWaveVelocity, sqrt(vA * vA + vS * vS) + vW);
+      c_y = c_x;
+      ax_neg = max(ax_neg, -Vx0 + c_x);
+      ax_pos = max(ax_pos, +Vx0 + c_x);
+      ay_neg = max(ay_neg, -Vy0 + c_y);
+      ay_pos = max(ay_pos, +Vy0 + c_y);
+      maxV = max(maxV, calculateCflSpeed(Vx0, Vy0, vA, vS, vW));
+
+      // Ez and characteristic speeds on NE (i-1,j-1) cell:
+      Vx0 = moments_NE->at(fsgrids::moments::VX);
+      Vy0 = moments_NE->at(fsgrids::moments::VY);
+
+      // 1st order terms:
+      Real Ez_NE = Bx_N * Vy0 - By_E * Vx0;
+
+      // Resistive term
+      if (Parameters::resistivity > 0) {
+         Ez_NE += Parameters::resistivity *
+                  sqrt((bgb_NE->at(fsgrids::bgbfield::BGBX) + perb_NE->at(fsgrids::bfield::PERBX)) *
+                           (bgb_NE->at(fsgrids::bgbfield::BGBX) + perb_NE->at(fsgrids::bfield::PERBX)) +
+                       (bgb_NE->at(fsgrids::bgbfield::BGBY) + perb_NE->at(fsgrids::bfield::PERBY)) *
+                           (bgb_NE->at(fsgrids::bgbfield::BGBY) + perb_NE->at(fsgrids::bfield::PERBY)) +
+                       (bgb_NE->at(fsgrids::bgbfield::BGBZ) + perb_NE->at(fsgrids::bfield::PERBZ)) *
+                           (bgb_NE->at(fsgrids::bgbfield::BGBZ) + perb_NE->at(fsgrids::bfield::PERBZ))) /
+                  moments_NE->at(fsgrids::moments::RHOQ) / physicalconstants::MU_0 *
+                  (dperb_NE->at(fsgrids::dperb::dPERBydx) / technicalGrid.getGridSpacing()[0] -
+                   dperb_NE->at(fsgrids::dperb::dPERBxdy) / technicalGrid.getGridSpacing()[1]);
    }
    
    // Hall term
@@ -1421,30 +1295,24 @@ void calculateEdgeElectricFieldZ(
       Ez_NE  += +HALF*((Bx_N + HALF*dBxdy_N)*(+dmoments_NE->at(fsgrids::dmoments::dVydx) + dmoments_NE->at(fsgrids::dmoments::dVydy)) + dBxdy_N*Vy0 + SIXTH*dBxdz_N*dmoments_NE->at(fsgrids::dmoments::dVydz));
       Ez_NE  += -HALF*((By_E + HALF*dBydx_E)*(+dmoments_NE->at(fsgrids::dmoments::dVxdx) + dmoments_NE->at(fsgrids::dmoments::dVxdy)) + dBydx_E*Vx0 + SIXTH*dBydz_E*dmoments_NE->at(fsgrids::dmoments::dVxdz));
    #endif
-   
-   calculateWaveSpeedXY(
-      perBGrid,
-      momentsGrid,
-      dPerBGrid,
-      dMomentsGrid,
-      BgBGrid,
-      i-1,j-1,k,
-      i-1,j-1,k+1,
-      Bx_N, By_E, dBxdy_N, dBxdz_N, dBydx_E, dBydz_E, PLUS, PLUS, minRhom, maxRhom, vA, vS, vW
-   );
-   c_x = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
-   c_y = c_x;
-   ax_neg = max(ax_neg,-Vx0 + c_x);
-   ax_pos = max(ax_pos,+Vx0 + c_x);
-   ay_neg = max(ay_neg,-Vy0 + c_y);
-   ay_pos = max(ay_pos,+Vy0 + c_y);
-   maxV = max(maxV, calculateCflSpeed(Vx0, Vy0, vA, vS, vW));
 
-   // Calculate properly upwinded edge-averaged Ez:
-   efield_SW->at(fsgrids::efield::EZ) = ax_pos*ay_pos*Ez_NE + ax_pos*ay_neg*Ez_SE + ax_neg*ay_pos*Ez_NW + ax_neg*ay_neg*Ez_SW;
-   efield_SW->at(fsgrids::efield::EZ) /= ((ax_pos+ax_neg)*(ay_pos+ay_neg)+EPS);
+      calculateWaveSpeedXY(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, i - 1, j - 1, k,
+                           i - 1, j - 1, k + 1, Bx_N, By_E, dBxdy_N, dBxdz_N, dBydx_E, dBydz_E, PLUS, PLUS, minRhom,
+                           maxRhom, vA, vS, vW);
+      c_x = min(Parameters::maxWaveVelocity, sqrt(vA * vA + vS * vS) + vW);
+      c_y = c_x;
+      ax_neg = max(ax_neg, -Vx0 + c_x);
+      ax_pos = max(ax_pos, +Vx0 + c_x);
+      ay_neg = max(ay_neg, -Vy0 + c_y);
+      ay_pos = max(ay_pos, +Vy0 + c_y);
+      maxV = max(maxV, calculateCflSpeed(Vx0, Vy0, vA, vS, vW));
 
-   if (Parameters::fieldSolverDiffusiveEterms) {
+      // Calculate properly upwinded edge-averaged Ez:
+      efield_SW->at(fsgrids::efield::EZ) =
+          ax_pos * ay_pos * Ez_NE + ax_pos * ay_neg * Ez_SE + ax_neg * ay_pos * Ez_NW + ax_neg * ay_neg * Ez_SW;
+      efield_SW->at(fsgrids::efield::EZ) /= ((ax_pos + ax_neg) * (ay_pos + ay_neg) + EPS);
+
+      if (Parameters::fieldSolverDiffusiveEterms) {
 #ifdef FS_1ST_ORDER_SPACE
       efield_SW->at(fsgrids::efield::EZ) -= ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*(perBx_S-perBx_N);
       efield_SW->at(fsgrids::efield::EZ) += ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*(perBy_W-perBy_E);
