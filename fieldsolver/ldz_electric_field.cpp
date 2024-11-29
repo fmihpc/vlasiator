@@ -449,6 +449,18 @@ void calculateWaveSpeedXY(
    ret_vW = vW;
 }
 
+void fsdebugCheck([[maybe_unused]] fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+                  [[maybe_unused]] int32_t i, [[maybe_unused]] int32_t j, [[maybe_unused]] int32_t k) {
+#ifdef DEBUG_FSOLVER
+   const bool ok = technicalGrid.get(i, j, k) != NULL && technicalGrid.get(i - 1, j, k) != NULL &&
+                   technicalGrid.get(i - 1, j - 1, k) != NULL && technicalGrid.get(i, j - 1, k) != NULL;
+   if (!ok) {
+      cerr << "NULL pointer in " << __FILE__ << ":" << __LINE__ << std::endl;
+      exit(1);
+   }
+#endif
+}
+
 /*! \brief Low-level electric field propagation function.
  * 
  * Computes the upwinded electric field X component along the cell's corresponding edge as the cross product of B and V in the YZ plane. Also includes the calculation of the maximally allowed time step.
@@ -484,17 +496,7 @@ void calculateEdgeElectricFieldX(
    cint k,
    cint& RKCase
 ) {
-   #ifdef DEBUG_FSOLVER
-   bool ok = true;
-   if (technicalGrid.get(i,j,k) == NULL) ok = false;
-   if (technicalGrid.get(i,j-1,k) == NULL) ok = false;
-   if (technicalGrid.get(i,j-1,k-1) == NULL) ok = false;
-   if (technicalGrid.get(i,j,k-1) == NULL) ok = false;
-   if (ok == false) {
-      cerr << "NULL pointer in " << __FILE__ << ":" << __LINE__ << std::endl;
-      exit(1);
-   }
-   #endif
+   fsdebugCheck(technicalGrid, i, j, k);
 
    // An edge has four neighbouring spatial cells. Calculate
    // electric field in each of the four cells per edge.
@@ -838,18 +840,8 @@ void calculateEdgeElectricFieldY(
    cint k,
    cint& RKCase
 ) {
-   #ifdef DEBUG_FSOLVER
-   bool ok = true;
-   if (technicalGrid.get(i,j,k) == NULL) ok = false;
-   if (technicalGrid.get(i,j,k-1) == NULL) ok = false;
-   if (technicalGrid.get(i-1,j,k) == NULL) ok = false;
-   if (technicalGrid.get(i-1,j,k-1) == NULL) ok = false;
-   if (ok == false) {
-      cerr << "NULL pointer in " << __FILE__ << ":" << __LINE__ << std::endl;
-      exit(1);
-   }
-   #endif
-   
+   fsdebugCheck(technicalGrid, i, j, k);
+
    // An edge has four neighbouring spatial cells. Calculate
    // electric field in each of the four cells per edge.
    Real ax_pos,ax_neg;              // Max. characteristic velocities to x-direction
@@ -1191,17 +1183,7 @@ void calculateEdgeElectricFieldZ(
    cint k,
    cint& RKCase
 ) {
-   #ifdef DEBUG_FSOLVER
-   bool ok = true;
-   if (technicalGrid.get(i,j,k) == NULL) ok = false;
-   if (technicalGrid.get(i-1,j,k) == NULL) ok = false;
-   if (technicalGrid.get(i-1,j-1,k) == NULL) ok = false;
-   if (technicalGrid.get(i,j-1,k) == NULL) ok = false;
-   if (ok == false) {
-      cerr << "NULL pointer in " << __FILE__ << ":" << __LINE__ << std::endl;
-      exit(1);
-   }
-   #endif
+   fsdebugCheck(technicalGrid, i, j, k);
 
    // An edge has four neighbouring spatial cells. Calculate 
    // electric field in each of the four cells per edge.
