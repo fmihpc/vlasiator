@@ -106,6 +106,8 @@ Wavespeeds calculateEffectiveWavespeeds(Real bmag2, Real rhom, Real p11, Real p2
    return {sqrt(vA2), sqrt(vS2), vW};
 }
 
+Real clampNegativeToZero(Real v) { return std::clamp(v, 0.0, v); }
+
 /*! \brief Low-level helper function.
  * 
  * Computes the magnetosonic speed in the YZ plane. Used in upwinding the electric field X component,
@@ -156,17 +158,23 @@ void calculateWaveSpeedYZ(
    std::array<Real, fsgrids::bgbfield::N_BGB> * bgb = BgBGrid.get(i,j,k);
    std::array<Real, fsgrids::bgbfield::N_BGB> *  nbr_bgb = BgBGrid.get(nbi,nbj,nbk);
 
-   Real A_0, A_X, p11, p22, p33;
+   Real A_0, A_X;
    A_0  = HALF*(nbr_perb->at(fsgrids::bfield::PERBX) + nbr_bgb->at(fsgrids::bgbfield::BGBX) + perb->at(fsgrids::bfield::PERBX) + bgb->at(fsgrids::bgbfield::BGBX));
    A_X  = (nbr_perb->at(fsgrids::bfield::PERBX) + nbr_bgb->at(fsgrids::bgbfield::BGBX)) - (perb->at(fsgrids::bfield::PERBX) + bgb->at(fsgrids::bgbfield::BGBX));
    const Real rhom =
        std::clamp(moments->at(fsgrids::moments::RHOM) + ydir * HALF * dmoments->at(fsgrids::dmoments::drhomdy) +
                       zdir * HALF * dmoments->at(fsgrids::dmoments::drhomdz),
                   rhomLimits.min, rhomLimits.max);
-   p11 = moments->at(fsgrids::moments::P_11) + ydir*HALF*dmoments->at(fsgrids::dmoments::dp11dy) + zdir*HALF*dmoments->at(fsgrids::dmoments::dp11dz);
-   p22 = moments->at(fsgrids::moments::P_22) + ydir*HALF*dmoments->at(fsgrids::dmoments::dp22dy) + zdir*HALF*dmoments->at(fsgrids::dmoments::dp22dz);
-   p33 = moments->at(fsgrids::moments::P_33) + ydir*HALF*dmoments->at(fsgrids::dmoments::dp33dy) + zdir*HALF*dmoments->at(fsgrids::dmoments::dp33dz);
-   
+   const Real p11 =
+       clampNegativeToZero(moments->at(fsgrids::moments::P_11) + ydir * HALF * dmoments->at(fsgrids::dmoments::dp11dy) +
+                           zdir * HALF * dmoments->at(fsgrids::dmoments::dp11dz));
+   const Real p22 =
+       clampNegativeToZero(moments->at(fsgrids::moments::P_22) + ydir * HALF * dmoments->at(fsgrids::dmoments::dp22dy) +
+                           zdir * HALF * dmoments->at(fsgrids::dmoments::dp22dz));
+   const Real p33 =
+       clampNegativeToZero(moments->at(fsgrids::moments::P_33) + ydir * HALF * dmoments->at(fsgrids::dmoments::dp33dy) +
+                           zdir * HALF * dmoments->at(fsgrids::dmoments::dp33dz));
+
    const Real A_Y  = nbr_dperb->at(fsgrids::dperb::dPERBxdy) + nbr_bgb->at(fsgrids::bgbfield::dBGBxdy) + dperb->at(fsgrids::dperb::dPERBxdy) + bgb->at(fsgrids::bgbfield::dBGBxdy);
    const Real A_XY = nbr_dperb->at(fsgrids::dperb::dPERBxdy) + nbr_bgb->at(fsgrids::bgbfield::dBGBxdy) - (dperb->at(fsgrids::dperb::dPERBxdy) + bgb->at(fsgrids::bgbfield::dBGBxdy));
    const Real A_Z  = nbr_dperb->at(fsgrids::dperb::dPERBxdz) + nbr_bgb->at(fsgrids::bgbfield::dBGBxdz) + dperb->at(fsgrids::dperb::dPERBxdz) + bgb->at(fsgrids::bgbfield::dBGBxdz);
@@ -179,10 +187,6 @@ void calculateWaveSpeedYZ(
    
    const Real Bmag2 = Bx2 + By2 + Bz2;
    
-   p11 = p11 < 0.0 ? 0.0 : p11;
-   p22 = p22 < 0.0 ? 0.0 : p22;
-   p33 = p33 < 0.0 ? 0.0 : p33;
-
    const auto& gridSpacing = technicalGrid.getGridSpacing();
    const auto wavespeeds = calculateEffectiveWavespeeds(Bmag2, rhom, p11, p22, p33, gridSpacing);
    ret_vA = wavespeeds.alfven;
@@ -239,17 +243,23 @@ void calculateWaveSpeedXZ(
    std::array<Real, fsgrids::bgbfield::N_BGB> * bgb = BgBGrid.get(i,j,k);
    std::array<Real, fsgrids::bgbfield::N_BGB> *  nbr_bgb = BgBGrid.get(nbi,nbj,nbk);
 
-   Real B_0, B_Y, p11, p22, p33;
+   Real B_0, B_Y;
    B_0  = HALF*(nbr_perb->at(fsgrids::bfield::PERBY) + nbr_bgb->at(fsgrids::bgbfield::BGBY) + perb->at(fsgrids::bfield::PERBY) + bgb->at(fsgrids::bgbfield::BGBY));
    B_Y  = (nbr_perb->at(fsgrids::bfield::PERBY) + nbr_bgb->at(fsgrids::bgbfield::BGBY)) - (perb->at(fsgrids::bfield::PERBY) + bgb->at(fsgrids::bgbfield::BGBY));
    const Real rhom =
        std::clamp(moments->at(fsgrids::moments::RHOM) + xdir * HALF * dmoments->at(fsgrids::dmoments::drhomdx) +
                       zdir * HALF * dmoments->at(fsgrids::dmoments::drhomdz),
                   rhomLimits.min, rhomLimits.max);
-   p11 = moments->at(fsgrids::moments::P_11) + xdir*HALF*dmoments->at(fsgrids::dmoments::dp11dx) + zdir*HALF*dmoments->at(fsgrids::dmoments::dp11dz);
-   p22 = moments->at(fsgrids::moments::P_22) + xdir*HALF*dmoments->at(fsgrids::dmoments::dp22dx) + zdir*HALF*dmoments->at(fsgrids::dmoments::dp22dz);
-   p33 = moments->at(fsgrids::moments::P_33) + xdir*HALF*dmoments->at(fsgrids::dmoments::dp33dx) + zdir*HALF*dmoments->at(fsgrids::dmoments::dp33dz);
-   
+   const Real p11 =
+       clampNegativeToZero(moments->at(fsgrids::moments::P_11) + xdir * HALF * dmoments->at(fsgrids::dmoments::dp11dx) +
+                           zdir * HALF * dmoments->at(fsgrids::dmoments::dp11dz));
+   const Real p22 =
+       clampNegativeToZero(moments->at(fsgrids::moments::P_22) + xdir * HALF * dmoments->at(fsgrids::dmoments::dp22dx) +
+                           zdir * HALF * dmoments->at(fsgrids::dmoments::dp22dz));
+   const Real p33 =
+       clampNegativeToZero(moments->at(fsgrids::moments::P_33) + xdir * HALF * dmoments->at(fsgrids::dmoments::dp33dx) +
+                           zdir * HALF * dmoments->at(fsgrids::dmoments::dp33dz));
+
    const Real B_X  = nbr_dperb->at(fsgrids::dperb::dPERBydx) + nbr_bgb->at(fsgrids::bgbfield::dBGBydx) + dperb->at(fsgrids::dperb::dPERBydx) + bgb->at(fsgrids::bgbfield::dBGBydx);
    const Real B_XY = nbr_dperb->at(fsgrids::dperb::dPERBydx) + nbr_bgb->at(fsgrids::bgbfield::dBGBydx) - (dperb->at(fsgrids::dperb::dPERBydx) + bgb->at(fsgrids::bgbfield::dBGBydx));
    const Real B_Z  = nbr_dperb->at(fsgrids::dperb::dPERBydz) + nbr_bgb->at(fsgrids::bgbfield::dBGBydz) + dperb->at(fsgrids::dperb::dPERBydz) + bgb->at(fsgrids::bgbfield::dBGBydz);
@@ -262,10 +272,6 @@ void calculateWaveSpeedXZ(
    
    const Real Bmag2 = Bx2 + By2 + Bz2;
    
-   p11 = p11 < 0.0 ? 0.0 : p11;
-   p22 = p22 < 0.0 ? 0.0 : p22;
-   p33 = p33 < 0.0 ? 0.0 : p33;
-
    const auto& gridSpacing = technicalGrid.getGridSpacing();
    const auto wavespeeds = calculateEffectiveWavespeeds(Bmag2, rhom, p11, p22, p33, gridSpacing);
    ret_vA = wavespeeds.alfven;
@@ -322,17 +328,23 @@ void calculateWaveSpeedXY(
    std::array<Real, fsgrids::bgbfield::N_BGB> * bgb = BgBGrid.get(i,j,k);
    std::array<Real, fsgrids::bgbfield::N_BGB> *  nbr_bgb = BgBGrid.get(nbi,nbj,nbk);
 
-   Real C_0, C_Z, p11, p22, p33;
+   Real C_0, C_Z;
    C_0  = HALF*(nbr_perb->at(fsgrids::bfield::PERBZ) + nbr_bgb->at(fsgrids::bgbfield::BGBZ) + perb->at(fsgrids::bfield::PERBZ) + bgb->at(fsgrids::bgbfield::BGBZ));
    C_Z  = (nbr_perb->at(fsgrids::bfield::PERBZ) + nbr_bgb->at(fsgrids::bgbfield::BGBZ)) - (perb->at(fsgrids::bfield::PERBZ) + bgb->at(fsgrids::bgbfield::BGBZ));
    const Real rhom =
        std::clamp(moments->at(fsgrids::moments::RHOM) + xdir * HALF * dmoments->at(fsgrids::dmoments::drhomdx) +
                       ydir * HALF * dmoments->at(fsgrids::dmoments::drhomdy),
                   rhomLimits.min, rhomLimits.max);
-   p11 = moments->at(fsgrids::moments::P_11) + xdir*HALF*dmoments->at(fsgrids::dmoments::dp11dx) + ydir*HALF*dmoments->at(fsgrids::dmoments::dp11dy);
-   p22 = moments->at(fsgrids::moments::P_22) + xdir*HALF*dmoments->at(fsgrids::dmoments::dp22dx) + ydir*HALF*dmoments->at(fsgrids::dmoments::dp22dy);
-   p33 = moments->at(fsgrids::moments::P_33) + xdir*HALF*dmoments->at(fsgrids::dmoments::dp33dx) + ydir*HALF*dmoments->at(fsgrids::dmoments::dp33dy);
-   
+   const Real p11 =
+       clampNegativeToZero(moments->at(fsgrids::moments::P_11) + xdir * HALF * dmoments->at(fsgrids::dmoments::dp11dx) +
+                           ydir * HALF * dmoments->at(fsgrids::dmoments::dp11dy));
+   const Real p22 =
+       clampNegativeToZero(moments->at(fsgrids::moments::P_22) + xdir * HALF * dmoments->at(fsgrids::dmoments::dp22dx) +
+                           ydir * HALF * dmoments->at(fsgrids::dmoments::dp22dy));
+   const Real p33 =
+       clampNegativeToZero(moments->at(fsgrids::moments::P_33) + xdir * HALF * dmoments->at(fsgrids::dmoments::dp33dx) +
+                           ydir * HALF * dmoments->at(fsgrids::dmoments::dp33dy));
+
    const Real C_X  = nbr_dperb->at(fsgrids::dperb::dPERBzdx) + nbr_bgb->at(fsgrids::bgbfield::dBGBzdx) + dperb->at(fsgrids::dperb::dPERBzdx) + bgb->at(fsgrids::bgbfield::dBGBzdx);
    const Real C_XZ = nbr_dperb->at(fsgrids::dperb::dPERBzdx) + nbr_bgb->at(fsgrids::bgbfield::dBGBzdx) - (dperb->at(fsgrids::dperb::dPERBzdx) + bgb->at(fsgrids::bgbfield::dBGBzdx));
    const Real C_Y  = nbr_dperb->at(fsgrids::dperb::dPERBzdy) + nbr_bgb->at(fsgrids::bgbfield::dBGBzdy) + dperb->at(fsgrids::dperb::dPERBzdy) + bgb->at(fsgrids::bgbfield::dBGBzdy);
@@ -345,10 +357,6 @@ void calculateWaveSpeedXY(
    
    const Real Bmag2 = Bx2 + By2 + Bz2;
    
-   p11 = p11 < 0.0 ? 0.0 : p11;
-   p22 = p22 < 0.0 ? 0.0 : p22;
-   p33 = p33 < 0.0 ? 0.0 : p33;
-
    const auto& gridSpacing = technicalGrid.getGridSpacing();
    const auto wavespeeds = calculateEffectiveWavespeeds(Bmag2, rhom, p11, p22, p33, gridSpacing);
    ret_vA = wavespeeds.alfven;
