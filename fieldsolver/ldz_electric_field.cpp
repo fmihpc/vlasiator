@@ -410,7 +410,7 @@ struct FieldValues {
    Real dperB_W = 0.0;
    Real dperB_E = 0.0;
 
-   Real field() const {
+   Real operator()() const {
       Real efield = apos * bpos * E_NE + apos * bneg * E_SE + aneg * bpos * E_NW + aneg * bneg * E_SW;
       efield /= ((apos + aneg) * (bpos + bneg) + EPS);
       if (Parameters::fieldSolverDiffusiveEterms) {
@@ -700,7 +700,7 @@ void calculateEdgeElectricFieldX(
    // Calculate properly upwinded edge-averaged Ex:
    const FieldValues f(Ex_NE, Ex_SE, Ex_NW, Ex_SW, ay_pos, ay_neg, az_pos, az_neg, perBy_S, perBy_N, perBz_W, perBz_E,
                        dperBydz_S, dperBydz_N, dperBzdy_W, dperBzdy_E);
-   EGrid.get(i, j, k)->at(fsgrids::efield::EX) = f.field();
+   EGrid.get(i, j, k)->at(fsgrids::efield::EX) = f();
 
    if ((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) {
       // compute maximum timestep for fieldsolver in this cell (CFL=1)
@@ -974,7 +974,7 @@ void calculateEdgeElectricFieldY(
    // Calculate properly upwinded edge-averaged Ey:
    const FieldValues f(Ey_NE, Ey_SE, Ey_NW, Ey_SW, az_pos, az_neg, ax_pos, ax_neg, perBz_S, perBz_N, perBx_W, perBx_E,
                        dperBzdx_S, dperBzdx_N, dperBxdz_W, dperBxdz_E);
-   EGrid.get(i, j, k)->at(fsgrids::efield::EY) = f.field();
+   EGrid.get(i, j, k)->at(fsgrids::efield::EY) = f();
 
    if ((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) {
       // compute maximum timestep for fieldsolver in this cell (CFL=1)
@@ -1253,7 +1253,7 @@ void calculateEdgeElectricFieldZ(
    // Calculate properly upwinded edge-averaged Ez:
    const FieldValues f(Ez_NE, Ez_SE, Ez_NW, Ez_SW, ax_pos, ax_neg, ay_pos, ay_neg, perBx_S, perBx_N, perBy_W, perBy_E,
                        dperBxdy_S, dperBxdy_N, dperBydx_W, dperBydx_E);
-   EGrid.get(i, j, k)->at(fsgrids::efield::EZ) = f.field();
+   EGrid.get(i, j, k)->at(fsgrids::efield::EZ) = f();
 
    if ((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) {
       // compute maximum timestep for fieldsolver in this cell (CFL=1)
