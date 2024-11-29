@@ -20,6 +20,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include <algorithm>
 #include <cstdlib>
 
 #include "fs_common.h"
@@ -65,6 +66,11 @@ struct Wavespeeds {
    const Real alfven = 0.0;
    const Real sound = 0.0;
    const Real whistler = 0.0;
+};
+
+struct Limits {
+   const Real min = 0.0;
+   const Real max = 0.0;
 };
 
 Wavespeeds calculateEffectiveWavespeeds(Real bmag2, Real rhom, Real p11, Real p22, Real p33,
@@ -139,8 +145,8 @@ void calculateWaveSpeedYZ(
     fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k, cint nbi, cint nbj,
     cint nbk, const Real& By, const Real& Bz, const Real& dBydx, const Real& dBydz, const Real& dBzdx,
-    const Real& dBzdy, const Real& ydir, const Real& zdir, const Real& minRhom, const Real& maxRhom, Real& ret_vA,
-    Real& ret_vS, Real& ret_vW) {
+    const Real& dBzdy, const Real& ydir, const Real& zdir, Limits rhomLimits, Real& ret_vA, Real& ret_vS,
+    Real& ret_vW) {
    std::array<Real, fsgrids::bfield::N_BFIELD> * perb = perBGrid.get(i,j,k);
    std::array<Real, fsgrids::bfield::N_BFIELD> * nbr_perb = perBGrid.get(nbi,nbj,nbk);
    std::array<Real, fsgrids::moments::N_MOMENTS> * moments = momentsGrid.get(i,j,k);
@@ -149,20 +155,17 @@ void calculateWaveSpeedYZ(
    std::array<Real, fsgrids::dperb::N_DPERB> * nbr_dperb = dPerBGrid.get(nbi,nbj,nbk);
    std::array<Real, fsgrids::bgbfield::N_BGB> * bgb = BgBGrid.get(i,j,k);
    std::array<Real, fsgrids::bgbfield::N_BGB> *  nbr_bgb = BgBGrid.get(nbi,nbj,nbk);
-   
-   Real A_0, A_X, rhom, p11, p22, p33;
+
+   Real A_0, A_X, p11, p22, p33;
    A_0  = HALF*(nbr_perb->at(fsgrids::bfield::PERBX) + nbr_bgb->at(fsgrids::bgbfield::BGBX) + perb->at(fsgrids::bfield::PERBX) + bgb->at(fsgrids::bgbfield::BGBX));
    A_X  = (nbr_perb->at(fsgrids::bfield::PERBX) + nbr_bgb->at(fsgrids::bgbfield::BGBX)) - (perb->at(fsgrids::bfield::PERBX) + bgb->at(fsgrids::bgbfield::BGBX));
-   rhom = moments->at(fsgrids::moments::RHOM) + ydir*HALF*dmoments->at(fsgrids::dmoments::drhomdy) + zdir*HALF*dmoments->at(fsgrids::dmoments::drhomdz);
+   const Real rhom =
+       std::clamp(moments->at(fsgrids::moments::RHOM) + ydir * HALF * dmoments->at(fsgrids::dmoments::drhomdy) +
+                      zdir * HALF * dmoments->at(fsgrids::dmoments::drhomdz),
+                  rhomLimits.min, rhomLimits.max);
    p11 = moments->at(fsgrids::moments::P_11) + ydir*HALF*dmoments->at(fsgrids::dmoments::dp11dy) + zdir*HALF*dmoments->at(fsgrids::dmoments::dp11dz);
    p22 = moments->at(fsgrids::moments::P_22) + ydir*HALF*dmoments->at(fsgrids::dmoments::dp22dy) + zdir*HALF*dmoments->at(fsgrids::dmoments::dp22dz);
    p33 = moments->at(fsgrids::moments::P_33) + ydir*HALF*dmoments->at(fsgrids::dmoments::dp33dy) + zdir*HALF*dmoments->at(fsgrids::dmoments::dp33dz);
-   
-   if (rhom < minRhom) {
-      rhom = minRhom;
-   } else if (rhom > maxRhom) {
-      rhom = maxRhom;
-   }
    
    const Real A_Y  = nbr_dperb->at(fsgrids::dperb::dPERBxdy) + nbr_bgb->at(fsgrids::bgbfield::dBGBxdy) + dperb->at(fsgrids::dperb::dPERBxdy) + bgb->at(fsgrids::bgbfield::dBGBxdy);
    const Real A_XY = nbr_dperb->at(fsgrids::dperb::dPERBxdy) + nbr_bgb->at(fsgrids::bgbfield::dBGBxdy) - (dperb->at(fsgrids::dperb::dPERBxdy) + bgb->at(fsgrids::bgbfield::dBGBxdy));
@@ -225,8 +228,8 @@ void calculateWaveSpeedXZ(
     fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k, cint nbi, cint nbj,
     cint nbk, const Real& Bx, const Real& Bz, const Real& dBxdy, const Real& dBxdz, const Real& dBzdx,
-    const Real& dBzdy, const Real& xdir, const Real& zdir, const Real& minRhom, const Real& maxRhom, Real& ret_vA,
-    Real& ret_vS, Real& ret_vW) {
+    const Real& dBzdy, const Real& xdir, const Real& zdir, Limits rhomLimits, Real& ret_vA, Real& ret_vS,
+    Real& ret_vW) {
    std::array<Real, fsgrids::bfield::N_BFIELD> * perb = perBGrid.get(i,j,k);
    std::array<Real, fsgrids::bfield::N_BFIELD> * nbr_perb = perBGrid.get(nbi,nbj,nbk);
    std::array<Real, fsgrids::moments::N_MOMENTS> * moments = momentsGrid.get(i,j,k);
@@ -235,20 +238,17 @@ void calculateWaveSpeedXZ(
    std::array<Real, fsgrids::dperb::N_DPERB> * nbr_dperb = dPerBGrid.get(nbi,nbj,nbk);
    std::array<Real, fsgrids::bgbfield::N_BGB> * bgb = BgBGrid.get(i,j,k);
    std::array<Real, fsgrids::bgbfield::N_BGB> *  nbr_bgb = BgBGrid.get(nbi,nbj,nbk);
-   
-   Real B_0, B_Y, rhom, p11, p22, p33;
+
+   Real B_0, B_Y, p11, p22, p33;
    B_0  = HALF*(nbr_perb->at(fsgrids::bfield::PERBY) + nbr_bgb->at(fsgrids::bgbfield::BGBY) + perb->at(fsgrids::bfield::PERBY) + bgb->at(fsgrids::bgbfield::BGBY));
    B_Y  = (nbr_perb->at(fsgrids::bfield::PERBY) + nbr_bgb->at(fsgrids::bgbfield::BGBY)) - (perb->at(fsgrids::bfield::PERBY) + bgb->at(fsgrids::bgbfield::BGBY));
-   rhom = moments->at(fsgrids::moments::RHOM) + xdir*HALF*dmoments->at(fsgrids::dmoments::drhomdx) + zdir*HALF*dmoments->at(fsgrids::dmoments::drhomdz);
+   const Real rhom =
+       std::clamp(moments->at(fsgrids::moments::RHOM) + xdir * HALF * dmoments->at(fsgrids::dmoments::drhomdx) +
+                      zdir * HALF * dmoments->at(fsgrids::dmoments::drhomdz),
+                  rhomLimits.min, rhomLimits.max);
    p11 = moments->at(fsgrids::moments::P_11) + xdir*HALF*dmoments->at(fsgrids::dmoments::dp11dx) + zdir*HALF*dmoments->at(fsgrids::dmoments::dp11dz);
    p22 = moments->at(fsgrids::moments::P_22) + xdir*HALF*dmoments->at(fsgrids::dmoments::dp22dx) + zdir*HALF*dmoments->at(fsgrids::dmoments::dp22dz);
    p33 = moments->at(fsgrids::moments::P_33) + xdir*HALF*dmoments->at(fsgrids::dmoments::dp33dx) + zdir*HALF*dmoments->at(fsgrids::dmoments::dp33dz);
-   
-   if (rhom < minRhom) {
-      rhom = minRhom;
-   } else if (rhom > maxRhom) {
-      rhom = maxRhom;
-   }
    
    const Real B_X  = nbr_dperb->at(fsgrids::dperb::dPERBydx) + nbr_bgb->at(fsgrids::bgbfield::dBGBydx) + dperb->at(fsgrids::dperb::dPERBydx) + bgb->at(fsgrids::bgbfield::dBGBydx);
    const Real B_XY = nbr_dperb->at(fsgrids::dperb::dPERBydx) + nbr_bgb->at(fsgrids::bgbfield::dBGBydx) - (dperb->at(fsgrids::dperb::dPERBydx) + bgb->at(fsgrids::bgbfield::dBGBydx));
@@ -311,8 +311,8 @@ void calculateWaveSpeedXY(
     fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k, cint nbi, cint nbj,
     cint nbk, const Real& Bx, const Real& By, const Real& dBxdy, const Real& dBxdz, const Real& dBydx,
-    const Real& dBydz, const Real& xdir, const Real& ydir, const Real& minRhom, const Real& maxRhom, Real& ret_vA,
-    Real& ret_vS, Real& ret_vW) {
+    const Real& dBydz, const Real& xdir, const Real& ydir, Limits rhomLimits, Real& ret_vA, Real& ret_vS,
+    Real& ret_vW) {
    std::array<Real, fsgrids::bfield::N_BFIELD> * perb = perBGrid.get(i,j,k);
    std::array<Real, fsgrids::bfield::N_BFIELD> * nbr_perb = perBGrid.get(nbi,nbj,nbk);
    std::array<Real, fsgrids::moments::N_MOMENTS> * moments = momentsGrid.get(i,j,k);
@@ -321,20 +321,17 @@ void calculateWaveSpeedXY(
    std::array<Real, fsgrids::dperb::N_DPERB> * nbr_dperb = dPerBGrid.get(nbi,nbj,nbk);
    std::array<Real, fsgrids::bgbfield::N_BGB> * bgb = BgBGrid.get(i,j,k);
    std::array<Real, fsgrids::bgbfield::N_BGB> *  nbr_bgb = BgBGrid.get(nbi,nbj,nbk);
-   
-   Real C_0, C_Z, rhom, p11, p22, p33;
+
+   Real C_0, C_Z, p11, p22, p33;
    C_0  = HALF*(nbr_perb->at(fsgrids::bfield::PERBZ) + nbr_bgb->at(fsgrids::bgbfield::BGBZ) + perb->at(fsgrids::bfield::PERBZ) + bgb->at(fsgrids::bgbfield::BGBZ));
    C_Z  = (nbr_perb->at(fsgrids::bfield::PERBZ) + nbr_bgb->at(fsgrids::bgbfield::BGBZ)) - (perb->at(fsgrids::bfield::PERBZ) + bgb->at(fsgrids::bgbfield::BGBZ));
-   rhom = moments->at(fsgrids::moments::RHOM) + xdir*HALF*dmoments->at(fsgrids::dmoments::drhomdx) + ydir*HALF*dmoments->at(fsgrids::dmoments::drhomdy);
+   const Real rhom =
+       std::clamp(moments->at(fsgrids::moments::RHOM) + xdir * HALF * dmoments->at(fsgrids::dmoments::drhomdx) +
+                      ydir * HALF * dmoments->at(fsgrids::dmoments::drhomdy),
+                  rhomLimits.min, rhomLimits.max);
    p11 = moments->at(fsgrids::moments::P_11) + xdir*HALF*dmoments->at(fsgrids::dmoments::dp11dx) + ydir*HALF*dmoments->at(fsgrids::dmoments::dp11dy);
    p22 = moments->at(fsgrids::moments::P_22) + xdir*HALF*dmoments->at(fsgrids::dmoments::dp22dx) + ydir*HALF*dmoments->at(fsgrids::dmoments::dp22dy);
    p33 = moments->at(fsgrids::moments::P_33) + xdir*HALF*dmoments->at(fsgrids::dmoments::dp33dx) + ydir*HALF*dmoments->at(fsgrids::dmoments::dp33dy);
-   
-   if (rhom < minRhom) {
-      rhom = minRhom;
-   } else if (rhom > maxRhom) {
-      rhom = maxRhom;
-   }
    
    const Real C_X  = nbr_dperb->at(fsgrids::dperb::dPERBzdx) + nbr_bgb->at(fsgrids::bgbfield::dBGBzdx) + dperb->at(fsgrids::dperb::dPERBzdx) + bgb->at(fsgrids::bgbfield::dBGBzdx);
    const Real C_XZ = nbr_dperb->at(fsgrids::dperb::dPERBzdx) + nbr_bgb->at(fsgrids::bgbfield::dBGBzdx) - (dperb->at(fsgrids::dperb::dPERBzdx) + bgb->at(fsgrids::bgbfield::dBGBzdx));
@@ -371,7 +368,7 @@ void fsdebugCheck([[maybe_unused]] fsgrid::FsGrid<fsgrids::technical, FS_STENCIL
 #endif
 }
 
-std::array<Real, 2> getRhomLimits(const std::array<std::array<Real, fsgrids::moments::N_MOMENTS>, 4>& moments) {
+Limits getRhomLimits(const std::array<std::array<Real, fsgrids::moments::N_MOMENTS>, 4>& moments) {
    Real minRhom = std::numeric_limits<Real>::max();
    Real maxRhom = std::numeric_limits<Real>::min();
    for (const auto& m : moments) {
@@ -521,8 +518,7 @@ void calculateEdgeElectricFieldX(
       Ex_SW += -HALF*((Bz_W - HALF*dBzdy_W)*(-dmoments_SW->at(fsgrids::dmoments::dVydy) - dmoments_SW->at(fsgrids::dmoments::dVydz)) - dBzdy_W*Vy0 + SIXTH*dBzdx_W*dmoments_SW->at(fsgrids::dmoments::dVydx));
    #endif
       calculateWaveSpeedYZ(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, i, j, k, i + 1, j, k,
-                           By_S, Bz_W, dBydx_S, dBydz_S, dBzdx_W, dBzdy_W, MINUS, MINUS, rhomLimits[0], rhomLimits[1],
-                           vA, vS, vW);
+                           By_S, Bz_W, dBydx_S, dBydz_S, dBzdx_W, dBzdy_W, MINUS, MINUS, rhomLimits, vA, vS, vW);
       c_y = min(Parameters::maxWaveVelocity, sqrt(vA * vA + vS * vS) + vW);
       c_z = c_y;
       ay_neg = max(ZERO, -Vy0 + c_y);
@@ -569,8 +565,8 @@ void calculateEdgeElectricFieldX(
    #endif
 
       calculateWaveSpeedYZ(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, i, j - 1, k, i + 1,
-                           j - 1, k, By_S, Bz_E, dBydx_S, dBydz_S, dBzdx_E, dBzdy_E, PLUS, MINUS, rhomLimits[0],
-                           rhomLimits[1], vA, vS, vW);
+                           j - 1, k, By_S, Bz_E, dBydx_S, dBydz_S, dBzdx_E, dBzdy_E, PLUS, MINUS, rhomLimits, vA, vS,
+                           vW);
       c_y = min(Parameters::maxWaveVelocity, sqrt(vA * vA + vS * vS) + vW);
       c_z = c_y;
       ay_neg = max(ay_neg, -Vy0 + c_y);
@@ -617,8 +613,8 @@ void calculateEdgeElectricFieldX(
    #endif
 
       calculateWaveSpeedYZ(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, i, j, k - 1, i + 1,
-                           j, k - 1, By_N, Bz_W, dBydx_N, dBydz_N, dBzdx_W, dBzdy_W, MINUS, PLUS, rhomLimits[0],
-                           rhomLimits[1], vA, vS, vW);
+                           j, k - 1, By_N, Bz_W, dBydx_N, dBydz_N, dBzdx_W, dBzdy_W, MINUS, PLUS, rhomLimits, vA, vS,
+                           vW);
       c_y = min(Parameters::maxWaveVelocity, sqrt(vA * vA + vS * vS) + vW);
       c_z = c_y;
       ay_neg = max(ay_neg, -Vy0 + c_y);
@@ -665,8 +661,8 @@ void calculateEdgeElectricFieldX(
    #endif
 
       calculateWaveSpeedYZ(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, i, j - 1, k - 1,
-                           i + 1, j - 1, k - 1, By_N, Bz_E, dBydx_N, dBydz_N, dBzdx_E, dBzdy_E, PLUS, PLUS,
-                           rhomLimits[0], rhomLimits[1], vA, vS, vW);
+                           i + 1, j - 1, k - 1, By_N, Bz_E, dBydx_N, dBydz_N, dBzdx_E, dBzdy_E, PLUS, PLUS, rhomLimits,
+                           vA, vS, vW);
       c_y = min(Parameters::maxWaveVelocity, sqrt(vA * vA + vS * vS) + vW);
       c_z = c_y;
       ay_neg = max(ay_neg, -Vy0 + c_y);
@@ -826,8 +822,7 @@ void calculateEdgeElectricFieldY(
    #endif
 
       calculateWaveSpeedXZ(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, i, j, k, i, j + 1, k,
-                           Bx_W, Bz_S, dBxdy_W, dBxdz_W, dBzdx_S, dBzdy_S, MINUS, MINUS, rhomLimits[0], rhomLimits[1],
-                           vA, vS, vW);
+                           Bx_W, Bz_S, dBxdy_W, dBxdz_W, dBzdx_S, dBzdy_S, MINUS, MINUS, rhomLimits, vA, vS, vW);
       c_z = min(Parameters::maxWaveVelocity, sqrt(vA * vA + vS * vS) + vW);
       c_x = c_z;
       az_neg = max(ZERO, -Vz0 + c_z);
@@ -874,8 +869,8 @@ void calculateEdgeElectricFieldY(
    #endif
 
       calculateWaveSpeedXZ(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, i, j, k - 1, i,
-                           j + 1, k - 1, Bx_E, Bz_S, dBxdy_E, dBxdz_E, dBzdx_S, dBzdy_S, MINUS, PLUS, rhomLimits[0],
-                           rhomLimits[1], vA, vS, vW);
+                           j + 1, k - 1, Bx_E, Bz_S, dBxdy_E, dBxdz_E, dBzdx_S, dBzdy_S, MINUS, PLUS, rhomLimits, vA,
+                           vS, vW);
       c_z = min(Parameters::maxWaveVelocity, sqrt(vA * vA + vS * vS) + vW);
       c_x = c_z;
       az_neg = max(az_neg, -Vz0 + c_z);
@@ -922,8 +917,8 @@ void calculateEdgeElectricFieldY(
    #endif
 
       calculateWaveSpeedXZ(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, i - 1, j, k, i - 1,
-                           j + 1, k, Bx_W, Bz_N, dBxdy_W, dBxdz_W, dBzdx_N, dBzdy_N, PLUS, MINUS, rhomLimits[0],
-                           rhomLimits[1], vA, vS, vW);
+                           j + 1, k, Bx_W, Bz_N, dBxdy_W, dBxdz_W, dBzdx_N, dBzdy_N, PLUS, MINUS, rhomLimits, vA, vS,
+                           vW);
       c_z = min(Parameters::maxWaveVelocity, sqrt(vA * vA + vS * vS) + vW);
       c_x = c_z;
       az_neg = max(az_neg, -Vz0 + c_z);
@@ -970,8 +965,8 @@ void calculateEdgeElectricFieldY(
    #endif
 
       calculateWaveSpeedXZ(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, i - 1, j, k - 1,
-                           i - 1, j + 1, k - 1, Bx_E, Bz_N, dBxdy_E, dBxdz_E, dBzdx_N, dBzdy_N, PLUS, PLUS,
-                           rhomLimits[0], rhomLimits[1], vA, vS, vW);
+                           i - 1, j + 1, k - 1, Bx_E, Bz_N, dBxdy_E, dBxdz_E, dBzdx_N, dBzdy_N, PLUS, PLUS, rhomLimits,
+                           vA, vS, vW);
       c_z = min(Parameters::maxWaveVelocity, sqrt(vA * vA + vS * vS) + vW);
       c_x = c_z;
       az_neg = max(az_neg, -Vz0 + c_z);
@@ -1134,8 +1129,7 @@ void calculateEdgeElectricFieldZ(
    // Calculate maximum wave speed (fast magnetosonic speed) on SW cell. In order 
    // to get Alfven speed we need to calculate some reconstruction coeff. for Bz:
       calculateWaveSpeedXY(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, i, j, k, i, j, k + 1,
-                           Bx_S, By_W, dBxdy_S, dBxdz_S, dBydx_W, dBydz_W, MINUS, MINUS, rhomLimits[0], rhomLimits[1],
-                           vA, vS, vW);
+                           Bx_S, By_W, dBxdy_S, dBxdz_S, dBydx_W, dBydz_W, MINUS, MINUS, rhomLimits, vA, vS, vW);
       c_x = min(Parameters::maxWaveVelocity, sqrt(vA * vA + vS * vS) + vW);
       c_y = c_x;
       ax_neg = max(ZERO, -Vx0 + c_x);
@@ -1182,8 +1176,8 @@ void calculateEdgeElectricFieldZ(
    #endif
 
       calculateWaveSpeedXY(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, i - 1, j, k, i - 1,
-                           j, k + 1, Bx_S, By_E, dBxdy_S, dBxdz_S, dBydx_E, dBydz_E, PLUS, MINUS, rhomLimits[0],
-                           rhomLimits[1], vA, vS, vW);
+                           j, k + 1, Bx_S, By_E, dBxdy_S, dBxdz_S, dBydx_E, dBydz_E, PLUS, MINUS, rhomLimits, vA, vS,
+                           vW);
       c_x = min(Parameters::maxWaveVelocity, sqrt(vA * vA + vS * vS) + vW);
       c_y = c_x;
       ax_neg = max(ax_neg, -Vx0 + c_x);
@@ -1230,8 +1224,8 @@ void calculateEdgeElectricFieldZ(
    #endif
 
       calculateWaveSpeedXY(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, i, j - 1, k, i,
-                           j - 1, k + 1, Bx_N, By_W, dBxdy_N, dBxdz_N, dBydx_W, dBydz_W, MINUS, PLUS, rhomLimits[0],
-                           rhomLimits[1], vA, vS, vW);
+                           j - 1, k + 1, Bx_N, By_W, dBxdy_N, dBxdz_N, dBydx_W, dBydz_W, MINUS, PLUS, rhomLimits, vA,
+                           vS, vW);
       c_x = min(Parameters::maxWaveVelocity, sqrt(vA * vA + vS * vS) + vW);
       c_y = c_x;
       ax_neg = max(ax_neg, -Vx0 + c_x);
@@ -1278,8 +1272,8 @@ void calculateEdgeElectricFieldZ(
    #endif
 
       calculateWaveSpeedXY(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, i - 1, j - 1, k,
-                           i - 1, j - 1, k + 1, Bx_N, By_E, dBxdy_N, dBxdz_N, dBydx_E, dBydz_E, PLUS, PLUS,
-                           rhomLimits[0], rhomLimits[1], vA, vS, vW);
+                           i - 1, j - 1, k + 1, Bx_N, By_E, dBxdy_N, dBxdz_N, dBydx_E, dBydz_E, PLUS, PLUS, rhomLimits,
+                           vA, vS, vW);
       c_x = min(Parameters::maxWaveVelocity, sqrt(vA * vA + vS * vS) + vW);
       c_y = c_x;
       ax_neg = max(ax_neg, -Vx0 + c_x);
