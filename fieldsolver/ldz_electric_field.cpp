@@ -107,6 +107,9 @@ private:
    const std::array<Real, fsgrids::dperb::N_DPERB>& nbr_dperb;
    const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb;
    const std::array<Real, fsgrids::bgbfield::N_BGB>& nbr_bgb;
+   const std::array<Real, fsgrids::moments::N_MOMENTS>& moment;
+   const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoment;
+   const Limits& rhomLimits;
 
    template <size_t N>
    std::tuple<Real, Real> compute(const std::array<Real, N>& nbr_arr, const std::array<Real, N>& arr, size_t i,
@@ -117,16 +120,31 @@ private:
       return {mul0 * (a + b), mul1 * (a - b)};
    }
 
+   Real momentsCoeff(Real dir0, Real dir1, size_t i, size_t j, size_t k) const {
+      return moment[i] + HALF * (dir0 * dmoment[j] + dir1 * dmoment[k]);
+   }
+
 public:
    FieldCoefficients(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perB,
                      std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dPerB,
-                     std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> BgB, size_t self, size_t nbr)
+                     std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> BgB,
+                     std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                     std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dMoments, size_t self, size_t nbr,
+                     const Limits& rhomLimits)
        : perb(perB[self]), nbr_perb(perB[nbr]), dperb(dPerB[self]), nbr_dperb(dPerB[nbr]), bgb(BgB[self]),
-         nbr_bgb(BgB[nbr]) {}
+         nbr_bgb(BgB[nbr]), moment(moments[self]), dmoment(dMoments[self]), rhomLimits(rhomLimits) {}
 
    std::tuple<Real, Real> perBCoeffs(size_t i, size_t j) const { return compute(nbr_perb, perb, i, j, HALF, 1.0); }
 
    std::tuple<Real, Real> dPerBCoeffs(size_t i, size_t j) const { return compute(nbr_dperb, dperb, i, j, HALF, 1.0); }
+
+   Real rhom(Real dir0, Real dir1, size_t i, size_t j, size_t k) const {
+      return std::clamp(momentsCoeff(dir0, dir1, i, j, k), rhomLimits.min, rhomLimits.max);
+   }
+
+   Real p(Real dir0, Real dir1, size_t i, size_t j, size_t k) const {
+      return clampNegativeToZero(momentsCoeff(dir0, dir1, i, j, k));
+   }
 };
 
 /*! \brief Low-level helper function.
@@ -168,29 +186,15 @@ Wavespeeds calculateWaveSpeedYZ(std::span<std::array<Real, fsgrids::bfield::N_BF
                                 const std::array<Real, 3>& gridSpacing, size_t self, size_t nbr, const Real& By,
                                 const Real& Bz, const Real& dBydx, const Real& dBydz, const Real& dBzdx,
                                 const Real& dBzdy, const Real& ydir, const Real& zdir, const Limits& rhomLimits) {
-   const std::array<Real, fsgrids::moments::N_MOMENTS>& moment = moments[self];
-   const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoment = dMoments[self];
-
-   const Real rhom = std::clamp(moment[fsgrids::moments::RHOM] + ydir * HALF * dmoment[fsgrids::dmoments::drhomdy] +
-                                    zdir * HALF * dmoment[fsgrids::dmoments::drhomdz],
-                                rhomLimits.min, rhomLimits.max);
-   const Real p11 =
-       clampNegativeToZero(moment[fsgrids::moments::P_11] + ydir * HALF * dmoment[fsgrids::dmoments::dp11dy] +
-                           zdir * HALF * dmoment[fsgrids::dmoments::dp11dz]);
-   const Real p22 =
-       clampNegativeToZero(moment[fsgrids::moments::P_22] + ydir * HALF * dmoment[fsgrids::dmoments::dp22dy] +
-                           zdir * HALF * dmoment[fsgrids::dmoments::dp22dz]);
-   const Real p33 =
-       clampNegativeToZero(moment[fsgrids::moments::P_33] + ydir * HALF * dmoment[fsgrids::dmoments::dp33dy] +
-                           zdir * HALF * dmoment[fsgrids::dmoments::dp33dz]);
-
-   const FieldCoefficients fc(perB, dPerB, BgB, self, nbr);
-   const auto [A_0, A_X] =
-       fc.perBCoeffs(static_cast<size_t>(fsgrids::bfield::PERBX), static_cast<size_t>(fsgrids::bgbfield::BGBX));
-   const auto [A_Y, A_XY] =
-       fc.dPerBCoeffs(static_cast<size_t>(fsgrids::dperb::dPERBxdy), static_cast<size_t>(fsgrids::bgbfield::dBGBxdy));
-   const auto [A_Z, A_XZ] =
-       fc.dPerBCoeffs(static_cast<size_t>(fsgrids::dperb::dPERBxdz), static_cast<size_t>(fsgrids::bgbfield::dBGBxdz));
+   const FieldCoefficients fc(perB, dPerB, BgB, moments, dMoments, self, nbr, rhomLimits);
+   const Real rhom =
+       fc.rhom(ydir, zdir, fsgrids::moments::RHOM, fsgrids::dmoments::drhomdy, fsgrids::dmoments::drhomdz);
+   const Real p11 = fc.p(ydir, zdir, fsgrids::moments::P_11, fsgrids::dmoments::dp11dy, fsgrids::dmoments::dp11dz);
+   const Real p22 = fc.p(ydir, zdir, fsgrids::moments::P_22, fsgrids::dmoments::dp22dy, fsgrids::dmoments::dp22dz);
+   const Real p33 = fc.p(ydir, zdir, fsgrids::moments::P_33, fsgrids::dmoments::dp33dy, fsgrids::dmoments::dp33dz);
+   const auto [A_0, A_X] = fc.perBCoeffs(fsgrids::bfield::PERBX, fsgrids::bgbfield::BGBX);
+   const auto [A_Y, A_XY] = fc.dPerBCoeffs(fsgrids::dperb::dPERBxdy, fsgrids::bgbfield::dBGBxdy);
+   const auto [A_Z, A_XZ] = fc.dPerBCoeffs(fsgrids::dperb::dPERBxdz, fsgrids::bgbfield::dBGBxdz);
 
    const Real bx2 = (A_0 + ydir * HALF * A_Y + zdir * HALF * A_Z) * (A_0 + ydir * HALF * A_Y + zdir * HALF * A_Z) +
                     TWELWTH * (A_X + ydir * HALF * A_XY + zdir * HALF * A_XZ) *
@@ -240,29 +244,17 @@ Wavespeeds calculateWaveSpeedXZ(std::span<std::array<Real, fsgrids::bfield::N_BF
                                 const std::array<Real, 3>& gridSpacing, size_t self, size_t nbr, const Real& Bx,
                                 const Real& Bz, const Real& dBxdy, const Real& dBxdz, const Real& dBzdx,
                                 const Real& dBzdy, const Real& xdir, const Real& zdir, const Limits& rhomLimits) {
-   const std::array<Real, fsgrids::moments::N_MOMENTS>& moment = moments[self];
-   const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoment = dMoments[self];
+   const FieldCoefficients fc(perB, dPerB, BgB, moments, dMoments, self, nbr, rhomLimits);
 
-   const Real rhom = std::clamp(moment[fsgrids::moments::RHOM] + xdir * HALF * dmoment[fsgrids::dmoments::drhomdx] +
-                                    zdir * HALF * dmoment[fsgrids::dmoments::drhomdz],
-                                rhomLimits.min, rhomLimits.max);
-   const Real p11 =
-       clampNegativeToZero(moment[fsgrids::moments::P_11] + xdir * HALF * dmoment[fsgrids::dmoments::dp11dx] +
-                           zdir * HALF * dmoment[fsgrids::dmoments::dp11dz]);
-   const Real p22 =
-       clampNegativeToZero(moment[fsgrids::moments::P_22] + xdir * HALF * dmoment[fsgrids::dmoments::dp22dx] +
-                           zdir * HALF * dmoment[fsgrids::dmoments::dp22dz]);
-   const Real p33 =
-       clampNegativeToZero(moment[fsgrids::moments::P_33] + xdir * HALF * dmoment[fsgrids::dmoments::dp33dx] +
-                           zdir * HALF * dmoment[fsgrids::dmoments::dp33dz]);
+   const Real rhom =
+       fc.rhom(xdir, zdir, fsgrids::moments::RHOM, fsgrids::dmoments::drhomdx, fsgrids::dmoments::drhomdz);
+   const Real p11 = fc.p(xdir, zdir, fsgrids::moments::P_11, fsgrids::dmoments::dp11dx, fsgrids::dmoments::dp11dz);
+   const Real p22 = fc.p(xdir, zdir, fsgrids::moments::P_22, fsgrids::dmoments::dp22dx, fsgrids::dmoments::dp22dz);
+   const Real p33 = fc.p(xdir, zdir, fsgrids::moments::P_33, fsgrids::dmoments::dp33dx, fsgrids::dmoments::dp33dz);
 
-   const FieldCoefficients fc(perB, dPerB, BgB, self, nbr);
-   const auto [B_0, B_Y] =
-       fc.perBCoeffs(static_cast<size_t>(fsgrids::bfield::PERBY), static_cast<size_t>(fsgrids::bgbfield::BGBY));
-   const auto [B_X, B_XY] =
-       fc.dPerBCoeffs(static_cast<size_t>(fsgrids::dperb::dPERBydx), static_cast<size_t>(fsgrids::bgbfield::dBGBydx));
-   const auto [B_Z, B_YZ] =
-       fc.dPerBCoeffs(static_cast<size_t>(fsgrids::dperb::dPERBydz), static_cast<size_t>(fsgrids::bgbfield::dBGBydz));
+   const auto [B_0, B_Y] = fc.perBCoeffs(fsgrids::bfield::PERBY, fsgrids::bgbfield::BGBY);
+   const auto [B_X, B_XY] = fc.dPerBCoeffs(fsgrids::dperb::dPERBydx, fsgrids::bgbfield::dBGBydx);
+   const auto [B_Z, B_YZ] = fc.dPerBCoeffs(fsgrids::dperb::dPERBydz, fsgrids::bgbfield::dBGBydz);
 
    const Real by2 = (B_0 + xdir * HALF * B_X + zdir * HALF * B_Z) * (B_0 + xdir * HALF * B_X + zdir * HALF * B_Z) +
                     TWELWTH * (B_Y + xdir * HALF * B_XY + zdir * HALF * B_YZ) *
@@ -312,29 +304,17 @@ Wavespeeds calculateWaveSpeedXY(std::span<std::array<Real, fsgrids::bfield::N_BF
                                 const std::array<Real, 3>& gridSpacing, size_t self, size_t nbr, const Real& Bx,
                                 const Real& By, const Real& dBxdy, const Real& dBxdz, const Real& dBydx,
                                 const Real& dBydz, const Real& xdir, const Real& ydir, const Limits& rhomLimits) {
-   const std::array<Real, fsgrids::moments::N_MOMENTS>& moment = moments[self];
-   const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoment = dMoments[self];
+   const FieldCoefficients fc(perB, dPerB, BgB, moments, dMoments, self, nbr, rhomLimits);
 
-   const Real rhom = std::clamp(moment[fsgrids::moments::RHOM] + xdir * HALF * dmoment[fsgrids::dmoments::drhomdx] +
-                                    ydir * HALF * dmoment[fsgrids::dmoments::drhomdy],
-                                rhomLimits.min, rhomLimits.max);
-   const Real p11 =
-       clampNegativeToZero(moment[fsgrids::moments::P_11] + xdir * HALF * dmoment[fsgrids::dmoments::dp11dx] +
-                           ydir * HALF * dmoment[fsgrids::dmoments::dp11dy]);
-   const Real p22 =
-       clampNegativeToZero(moment[fsgrids::moments::P_22] + xdir * HALF * dmoment[fsgrids::dmoments::dp22dx] +
-                           ydir * HALF * dmoment[fsgrids::dmoments::dp22dy]);
-   const Real p33 =
-       clampNegativeToZero(moment[fsgrids::moments::P_33] + xdir * HALF * dmoment[fsgrids::dmoments::dp33dx] +
-                           ydir * HALF * dmoment[fsgrids::dmoments::dp33dy]);
+   const Real rhom =
+       fc.rhom(xdir, ydir, fsgrids::moments::RHOM, fsgrids::dmoments::drhomdx, fsgrids::dmoments::drhomdy);
+   const Real p11 = fc.p(xdir, ydir, fsgrids::moments::P_11, fsgrids::dmoments::dp11dx, fsgrids::dmoments::dp11dy);
+   const Real p22 = fc.p(xdir, ydir, fsgrids::moments::P_22, fsgrids::dmoments::dp22dx, fsgrids::dmoments::dp22dy);
+   const Real p33 = fc.p(xdir, ydir, fsgrids::moments::P_33, fsgrids::dmoments::dp33dx, fsgrids::dmoments::dp33dy);
 
-   const FieldCoefficients fc(perB, dPerB, BgB, self, nbr);
-   const auto [C_0, C_Z] =
-       fc.perBCoeffs(static_cast<size_t>(fsgrids::bfield::PERBZ), static_cast<size_t>(fsgrids::bgbfield::BGBZ));
-   const auto [C_X, C_XZ] =
-       fc.dPerBCoeffs(static_cast<size_t>(fsgrids::dperb::dPERBzdx), static_cast<size_t>(fsgrids::bgbfield::dBGBzdx));
-   const auto [C_Y, C_YZ] =
-       fc.dPerBCoeffs(static_cast<size_t>(fsgrids::dperb::dPERBzdy), static_cast<size_t>(fsgrids::bgbfield::dBGBzdy));
+   const auto [C_0, C_Z] = fc.perBCoeffs(fsgrids::bfield::PERBZ, fsgrids::bgbfield::BGBZ);
+   const auto [C_X, C_XZ] = fc.dPerBCoeffs(fsgrids::dperb::dPERBzdx, fsgrids::bgbfield::dBGBzdx);
+   const auto [C_Y, C_YZ] = fc.dPerBCoeffs(fsgrids::dperb::dPERBzdy, fsgrids::bgbfield::dBGBzdy);
 
    const Real bz2 =
        (C_0 + xdir * HALF * C_X + ydir * HALF * C_Y) * (C_0 + xdir * HALF * C_X + ydir * HALF * C_Y) +
