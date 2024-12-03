@@ -172,6 +172,9 @@ namespace spatial_cell {
       vmesh::VelocityBlockContainer<vmesh::LocalID> blockContainer;  /**< Velocity block data.*/
    };
 
+   typedef uint8_t transferType;
+   const MPI_Datatype transferTypeMPI {MPI_BYTE};
+
    class SpatialCell {
    public:
       SpatialCell();
@@ -354,10 +357,30 @@ namespace spatial_cell {
       //SpatialCell& operator=(const SpatialCell& other);
     private:
       //SpatialCell& operator=(const SpatialCell&);
-      
+      template<typename T>
+      inline MPI_Aint displacement_of(const T* p) const
+      {
+         // if (alignof(SpatialCell) % 4) {
+         //    std::cerr << "SpatialCell alignment is " + std::to_string(alignof(SpatialCell)) + "\n";
+         //    abort_mpi("SpatialCell is unaligned to uint32_t!");
+         // }
+         // if (sizeof(T) < 4) {
+         //    abort_mpi("Pointer too small to cast to uint32_t!");
+         // }
+         return reinterpret_cast<const transferType*>(p) - reinterpret_cast<const transferType*>(this);
+      }
+
+      template<typename T>
+      static inline constexpr int block_length(const size_t len = 1)
+      {
+         // if (sizeof(T) < 4) {
+         //    abort_mpi("Pointer too small to cast to uint32_t!");
+         // }
+         return len * sizeof(T) / sizeof(transferType);
+      }
+
       bool compute_block_has_content(const vmesh::GlobalID& block,const uint popID) const;
-      void merge_values_recursive(const uint popID,vmesh::GlobalID parentGID,vmesh::GlobalID blockGID,uint8_t refLevel,bool recursive,const Realf* data,
-				  std::set<vmesh::GlobalID>& blockRemovalList);
+      void merge_values_recursive(const uint popID,vmesh::GlobalID parentGID,vmesh::GlobalID blockGID,uint8_t refLevel,bool recursive,const Realf* data, std::set<vmesh::GlobalID>& blockRemovalList);
 
       static int activePopID;
       bool initialized;
