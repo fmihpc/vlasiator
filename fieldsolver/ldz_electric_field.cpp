@@ -98,6 +98,37 @@ struct Limits {
 
 Real clampNegativeToZero(Real v) { return std::clamp(v, 0.0, v); }
 
+// TODO: move rhom, p11, p22, p33 here as well
+struct FieldCoefficients {
+private:
+   const std::array<Real, fsgrids::bfield::N_BFIELD>& perb;
+   const std::array<Real, fsgrids::bfield::N_BFIELD>& nbr_perb;
+   const std::array<Real, fsgrids::dperb::N_DPERB>& dperb;
+   const std::array<Real, fsgrids::dperb::N_DPERB>& nbr_dperb;
+   const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb;
+   const std::array<Real, fsgrids::bgbfield::N_BGB>& nbr_bgb;
+
+   template <size_t N>
+   std::tuple<Real, Real> compute(const std::array<Real, N>& nbr_arr, const std::array<Real, N>& arr, size_t i,
+                                  size_t j, Real mul0 = 1.0, Real mul1 = 1.0) const {
+      const Real a = nbr_arr[i] + nbr_bgb[j];
+      const Real b = arr[i] + nbr_bgb[j];
+
+      return {mul0 * (a + b), mul1 * (a - b)};
+   }
+
+public:
+   FieldCoefficients(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perB,
+                     std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dPerB,
+                     std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> BgB, size_t self, size_t nbr)
+       : perb(perB[self]), nbr_perb(perB[nbr]), dperb(dPerB[self]), nbr_dperb(dPerB[nbr]), bgb(BgB[self]),
+         nbr_bgb(BgB[nbr]) {}
+
+   std::tuple<Real, Real> perBCoeffs(size_t i, size_t j) const { return compute(nbr_perb, perb, i, j, HALF, 1.0); }
+
+   std::tuple<Real, Real> dPerBCoeffs(size_t i, size_t j) const { return compute(nbr_dperb, dperb, i, j, HALF, 1.0); }
+};
+
 /*! \brief Low-level helper function.
  *
  * Computes the magnetosonic speed in the YZ plane. Used in upwinding the electric field X component,
@@ -137,19 +168,9 @@ Wavespeeds calculateWaveSpeedYZ(std::span<std::array<Real, fsgrids::bfield::N_BF
                                 const std::array<Real, 3>& gridSpacing, size_t self, size_t nbr, const Real& By,
                                 const Real& Bz, const Real& dBydx, const Real& dBydz, const Real& dBzdx,
                                 const Real& dBzdy, const Real& ydir, const Real& zdir, const Limits& rhomLimits) {
-   const std::array<Real, fsgrids::bfield::N_BFIELD>& perb = perB[self];
-   const std::array<Real, fsgrids::bfield::N_BFIELD>& nbr_perb = perB[nbr];
    const std::array<Real, fsgrids::moments::N_MOMENTS>& moment = moments[self];
    const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoment = dMoments[self];
-   const std::array<Real, fsgrids::dperb::N_DPERB>& dperb = dPerB[self];
-   const std::array<Real, fsgrids::dperb::N_DPERB>& nbr_dperb = dPerB[nbr];
-   const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb = BgB[self];
-   const std::array<Real, fsgrids::bgbfield::N_BGB>& nbr_bgb = BgB[nbr];
 
-   const Real A_0 = HALF * (nbr_perb[fsgrids::bfield::PERBX] + nbr_bgb[fsgrids::bgbfield::BGBX] +
-                            perb[fsgrids::bfield::PERBX] + bgb[fsgrids::bgbfield::BGBX]);
-   const Real A_X = (nbr_perb[fsgrids::bfield::PERBX] + nbr_bgb[fsgrids::bgbfield::BGBX]) -
-                    (perb[fsgrids::bfield::PERBX] + bgb[fsgrids::bgbfield::BGBX]);
    const Real rhom = std::clamp(moment[fsgrids::moments::RHOM] + ydir * HALF * dmoment[fsgrids::dmoments::drhomdy] +
                                     zdir * HALF * dmoment[fsgrids::dmoments::drhomdz],
                                 rhomLimits.min, rhomLimits.max);
@@ -163,14 +184,13 @@ Wavespeeds calculateWaveSpeedYZ(std::span<std::array<Real, fsgrids::bfield::N_BF
        clampNegativeToZero(moment[fsgrids::moments::P_33] + ydir * HALF * dmoment[fsgrids::dmoments::dp33dy] +
                            zdir * HALF * dmoment[fsgrids::dmoments::dp33dz]);
 
-   const Real A_Y = nbr_dperb[fsgrids::dperb::dPERBxdy] + nbr_bgb[fsgrids::bgbfield::dBGBxdy] +
-                    dperb[fsgrids::dperb::dPERBxdy] + bgb[fsgrids::bgbfield::dBGBxdy];
-   const Real A_XY = nbr_dperb[fsgrids::dperb::dPERBxdy] + nbr_bgb[fsgrids::bgbfield::dBGBxdy] -
-                     (dperb[fsgrids::dperb::dPERBxdy] + bgb[fsgrids::bgbfield::dBGBxdy]);
-   const Real A_Z = nbr_dperb[fsgrids::dperb::dPERBxdz] + nbr_bgb[fsgrids::bgbfield::dBGBxdz] +
-                    dperb[fsgrids::dperb::dPERBxdz] + bgb[fsgrids::bgbfield::dBGBxdz];
-   const Real A_XZ = nbr_dperb[fsgrids::dperb::dPERBxdz] + nbr_bgb[fsgrids::bgbfield::dBGBxdz] -
-                     (dperb[fsgrids::dperb::dPERBxdz] + bgb[fsgrids::bgbfield::dBGBxdz]);
+   const FieldCoefficients fc(perB, dPerB, BgB, self, nbr);
+   const auto [A_0, A_X] =
+       fc.perBCoeffs(static_cast<size_t>(fsgrids::bfield::PERBX), static_cast<size_t>(fsgrids::bgbfield::BGBX));
+   const auto [A_Y, A_XY] =
+       fc.dPerBCoeffs(static_cast<size_t>(fsgrids::dperb::dPERBxdy), static_cast<size_t>(fsgrids::bgbfield::dBGBxdy));
+   const auto [A_Z, A_XZ] =
+       fc.dPerBCoeffs(static_cast<size_t>(fsgrids::dperb::dPERBxdz), static_cast<size_t>(fsgrids::bgbfield::dBGBxdz));
 
    const Real bx2 = (A_0 + ydir * HALF * A_Y + zdir * HALF * A_Z) * (A_0 + ydir * HALF * A_Y + zdir * HALF * A_Z) +
                     TWELWTH * (A_X + ydir * HALF * A_XY + zdir * HALF * A_XZ) *
@@ -220,19 +240,9 @@ Wavespeeds calculateWaveSpeedXZ(std::span<std::array<Real, fsgrids::bfield::N_BF
                                 const std::array<Real, 3>& gridSpacing, size_t self, size_t nbr, const Real& Bx,
                                 const Real& Bz, const Real& dBxdy, const Real& dBxdz, const Real& dBzdx,
                                 const Real& dBzdy, const Real& xdir, const Real& zdir, const Limits& rhomLimits) {
-   const std::array<Real, fsgrids::bfield::N_BFIELD>& perb = perB[self];
-   const std::array<Real, fsgrids::bfield::N_BFIELD>& nbr_perb = perB[nbr];
    const std::array<Real, fsgrids::moments::N_MOMENTS>& moment = moments[self];
    const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoment = dMoments[self];
-   const std::array<Real, fsgrids::dperb::N_DPERB>& dperb = dPerB[self];
-   const std::array<Real, fsgrids::dperb::N_DPERB>& nbr_dperb = dPerB[nbr];
-   const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb = BgB[self];
-   const std::array<Real, fsgrids::bgbfield::N_BGB>& nbr_bgb = BgB[nbr];
 
-   const Real B_0 = HALF * (nbr_perb[fsgrids::bfield::PERBY] + nbr_bgb[fsgrids::bgbfield::BGBY] +
-                            perb[fsgrids::bfield::PERBY] + bgb[fsgrids::bgbfield::BGBY]);
-   const Real B_Y = (nbr_perb[fsgrids::bfield::PERBY] + nbr_bgb[fsgrids::bgbfield::BGBY]) -
-                    (perb[fsgrids::bfield::PERBY] + bgb[fsgrids::bgbfield::BGBY]);
    const Real rhom = std::clamp(moment[fsgrids::moments::RHOM] + xdir * HALF * dmoment[fsgrids::dmoments::drhomdx] +
                                     zdir * HALF * dmoment[fsgrids::dmoments::drhomdz],
                                 rhomLimits.min, rhomLimits.max);
@@ -246,14 +256,13 @@ Wavespeeds calculateWaveSpeedXZ(std::span<std::array<Real, fsgrids::bfield::N_BF
        clampNegativeToZero(moment[fsgrids::moments::P_33] + xdir * HALF * dmoment[fsgrids::dmoments::dp33dx] +
                            zdir * HALF * dmoment[fsgrids::dmoments::dp33dz]);
 
-   const Real B_X = nbr_dperb[fsgrids::dperb::dPERBydx] + nbr_bgb[fsgrids::bgbfield::dBGBydx] +
-                    dperb[fsgrids::dperb::dPERBydx] + bgb[fsgrids::bgbfield::dBGBydx];
-   const Real B_XY = nbr_dperb[fsgrids::dperb::dPERBydx] + nbr_bgb[fsgrids::bgbfield::dBGBydx] -
-                     (dperb[fsgrids::dperb::dPERBydx] + bgb[fsgrids::bgbfield::dBGBydx]);
-   const Real B_Z = nbr_dperb[fsgrids::dperb::dPERBydz] + nbr_bgb[fsgrids::bgbfield::dBGBydz] +
-                    dperb[fsgrids::dperb::dPERBydz] + bgb[fsgrids::bgbfield::dBGBydz];
-   const Real B_YZ = nbr_dperb[fsgrids::dperb::dPERBydz] + nbr_bgb[fsgrids::bgbfield::dBGBydz] -
-                     (dperb[fsgrids::dperb::dPERBydz] + bgb[fsgrids::bgbfield::dBGBydz]);
+   const FieldCoefficients fc(perB, dPerB, BgB, self, nbr);
+   const auto [B_0, B_Y] =
+       fc.perBCoeffs(static_cast<size_t>(fsgrids::bfield::PERBY), static_cast<size_t>(fsgrids::bgbfield::BGBY));
+   const auto [B_X, B_XY] =
+       fc.dPerBCoeffs(static_cast<size_t>(fsgrids::dperb::dPERBydx), static_cast<size_t>(fsgrids::bgbfield::dBGBydx));
+   const auto [B_Z, B_YZ] =
+       fc.dPerBCoeffs(static_cast<size_t>(fsgrids::dperb::dPERBydz), static_cast<size_t>(fsgrids::bgbfield::dBGBydz));
 
    const Real by2 = (B_0 + xdir * HALF * B_X + zdir * HALF * B_Z) * (B_0 + xdir * HALF * B_X + zdir * HALF * B_Z) +
                     TWELWTH * (B_Y + xdir * HALF * B_XY + zdir * HALF * B_YZ) *
@@ -303,19 +312,9 @@ Wavespeeds calculateWaveSpeedXY(std::span<std::array<Real, fsgrids::bfield::N_BF
                                 const std::array<Real, 3>& gridSpacing, size_t self, size_t nbr, const Real& Bx,
                                 const Real& By, const Real& dBxdy, const Real& dBxdz, const Real& dBydx,
                                 const Real& dBydz, const Real& xdir, const Real& ydir, const Limits& rhomLimits) {
-   const std::array<Real, fsgrids::bfield::N_BFIELD>& perb = perB[self];
-   const std::array<Real, fsgrids::bfield::N_BFIELD>& nbr_perb = perB[nbr];
    const std::array<Real, fsgrids::moments::N_MOMENTS>& moment = moments[self];
    const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoment = dMoments[self];
-   const std::array<Real, fsgrids::dperb::N_DPERB>& dperb = dPerB[self];
-   const std::array<Real, fsgrids::dperb::N_DPERB>& nbr_dperb = dPerB[nbr];
-   const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb = BgB[self];
-   const std::array<Real, fsgrids::bgbfield::N_BGB>& nbr_bgb = BgB[nbr];
 
-   const Real C_0 = HALF * (nbr_perb[fsgrids::bfield::PERBZ] + nbr_bgb[fsgrids::bgbfield::BGBZ] +
-                            perb[fsgrids::bfield::PERBZ] + bgb[fsgrids::bgbfield::BGBZ]);
-   const Real C_Z = (nbr_perb[fsgrids::bfield::PERBZ] + nbr_bgb[fsgrids::bgbfield::BGBZ]) -
-                    (perb[fsgrids::bfield::PERBZ] + bgb[fsgrids::bgbfield::BGBZ]);
    const Real rhom = std::clamp(moment[fsgrids::moments::RHOM] + xdir * HALF * dmoment[fsgrids::dmoments::drhomdx] +
                                     ydir * HALF * dmoment[fsgrids::dmoments::drhomdy],
                                 rhomLimits.min, rhomLimits.max);
@@ -329,14 +328,13 @@ Wavespeeds calculateWaveSpeedXY(std::span<std::array<Real, fsgrids::bfield::N_BF
        clampNegativeToZero(moment[fsgrids::moments::P_33] + xdir * HALF * dmoment[fsgrids::dmoments::dp33dx] +
                            ydir * HALF * dmoment[fsgrids::dmoments::dp33dy]);
 
-   const Real C_X = nbr_dperb[fsgrids::dperb::dPERBzdx] + nbr_bgb[fsgrids::bgbfield::dBGBzdx] +
-                    dperb[fsgrids::dperb::dPERBzdx] + bgb[fsgrids::bgbfield::dBGBzdx];
-   const Real C_XZ = nbr_dperb[fsgrids::dperb::dPERBzdx] + nbr_bgb[fsgrids::bgbfield::dBGBzdx] -
-                     (dperb[fsgrids::dperb::dPERBzdx] + bgb[fsgrids::bgbfield::dBGBzdx]);
-   const Real C_Y = nbr_dperb[fsgrids::dperb::dPERBzdy] + nbr_bgb[fsgrids::bgbfield::dBGBzdy] +
-                    dperb[fsgrids::dperb::dPERBzdy] + bgb[fsgrids::bgbfield::dBGBzdy];
-   const Real C_YZ = nbr_dperb[fsgrids::dperb::dPERBzdy] + nbr_bgb[fsgrids::bgbfield::dBGBzdy] -
-                     (dperb[fsgrids::dperb::dPERBzdy] + bgb[fsgrids::bgbfield::dBGBzdy]);
+   const FieldCoefficients fc(perB, dPerB, BgB, self, nbr);
+   const auto [C_0, C_Z] =
+       fc.perBCoeffs(static_cast<size_t>(fsgrids::bfield::PERBZ), static_cast<size_t>(fsgrids::bgbfield::BGBZ));
+   const auto [C_X, C_XZ] =
+       fc.dPerBCoeffs(static_cast<size_t>(fsgrids::dperb::dPERBzdx), static_cast<size_t>(fsgrids::bgbfield::dBGBzdx));
+   const auto [C_Y, C_YZ] =
+       fc.dPerBCoeffs(static_cast<size_t>(fsgrids::dperb::dPERBzdy), static_cast<size_t>(fsgrids::bgbfield::dBGBzdy));
 
    const Real bz2 =
        (C_0 + xdir * HALF * C_X + ydir * HALF * C_Y) * (C_0 + xdir * HALF * C_X + ydir * HALF * C_Y) +
