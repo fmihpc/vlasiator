@@ -98,7 +98,6 @@ struct Limits {
 
 Real clampNegativeToZero(Real v) { return std::clamp(v, 0.0, v); }
 
-// TODO: move rhom, p11, p22, p33 here as well
 struct FieldCoefficients {
 private:
    const std::array<Real, fsgrids::bfield::N_BFIELD>& perb;
@@ -187,11 +186,13 @@ Wavespeeds calculateWaveSpeedYZ(std::span<std::array<Real, fsgrids::bfield::N_BF
                                 const Real& Bz, const Real& dBydx, const Real& dBydz, const Real& dBzdx,
                                 const Real& dBzdy, const Real& ydir, const Real& zdir, const Limits& rhomLimits) {
    const FieldCoefficients fc(perB, dPerB, BgB, moments, dMoments, self, nbr, rhomLimits);
+
    const Real rhom =
        fc.rhom(ydir, zdir, fsgrids::moments::RHOM, fsgrids::dmoments::drhomdy, fsgrids::dmoments::drhomdz);
    const Real p11 = fc.p(ydir, zdir, fsgrids::moments::P_11, fsgrids::dmoments::dp11dy, fsgrids::dmoments::dp11dz);
    const Real p22 = fc.p(ydir, zdir, fsgrids::moments::P_22, fsgrids::dmoments::dp22dy, fsgrids::dmoments::dp22dz);
    const Real p33 = fc.p(ydir, zdir, fsgrids::moments::P_33, fsgrids::dmoments::dp33dy, fsgrids::dmoments::dp33dz);
+
    const auto [A_0, A_X] = fc.perBCoeffs(fsgrids::bfield::PERBX, fsgrids::bgbfield::BGBX);
    const auto [A_Y, A_XY] = fc.dPerBCoeffs(fsgrids::dperb::dPERBxdy, fsgrids::bgbfield::dBGBxdy);
    const auto [A_Z, A_XZ] = fc.dPerBCoeffs(fsgrids::dperb::dPERBxdz, fsgrids::bgbfield::dBGBxdz);
