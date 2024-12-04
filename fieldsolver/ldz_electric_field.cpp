@@ -35,8 +35,9 @@ namespace pc = physicalconstants;
 using namespace std;
 
 struct Wavespeeds {
-   Real alfven = 0.0;
-   Real sound = 0.0;
+private:
+   Real alfvenSq = 0.0;
+   Real soundSq = 0.0;
    Real whistler = 0.0;
 
    // Effective wave speeds for advection and CFL calculation
@@ -54,21 +55,20 @@ struct Wavespeeds {
    // and
    // http://iopscience.iop.org/article/10.1088/0253-6102/43/2/026/meta (Alfven waves)
    // for details.
+public:
    Wavespeeds(Real bmag2, Real rhom, Real p11, Real p22, Real p33, const std::array<Real, 3>& gridSpacing)
-       : alfven(sqrt(divideIfNonZero(bmag2, pc::MU_0 * rhom))),
-         sound(sqrt(divideIfNonZero(p11 + p22 + p33, 2.0 * rhom))),
+       : alfvenSq(divideIfNonZero(bmag2, pc::MU_0 * rhom)), soundSq(divideIfNonZero(p11 + p22 + p33, 2.0 * rhom)),
          whistler(Parameters::ohmHallTerm > 0
-                      ? alfven * (1 + divideIfNonZero(2 * M_PI * M_PI * pc::MASS_PROTON * pc::MASS_PROTON,
-                                                      gridSpacing[0] * gridSpacing[0] * rhom * pc::CHARGE * pc::CHARGE *
-                                                          pc::MU_0) /
-                                          sqrt(1 + divideIfNonZero(M_PI * M_PI * pc::MASS_PROTON * pc::MASS_PROTON,
-                                                                   gridSpacing[0] * gridSpacing[0] * rhom * pc::CHARGE *
-                                                                       pc::CHARGE * pc::MU_0)))
+                      ? sqrt(alfvenSq) *
+                            (1 + divideIfNonZero(2 * M_PI * M_PI * pc::MASS_PROTON * pc::MASS_PROTON,
+                                                 gridSpacing[0] * gridSpacing[0] * rhom * pc::CHARGE * pc::CHARGE *
+                                                     pc::MU_0) /
+                                     sqrt(1 + divideIfNonZero(M_PI * M_PI * pc::MASS_PROTON * pc::MASS_PROTON,
+                                                              gridSpacing[0] * gridSpacing[0] * rhom * pc::CHARGE *
+                                                                  pc::CHARGE * pc::MU_0)))
                       : 0.0) {}
 
-   Real minVelocity() const {
-      return min(Parameters::maxWaveVelocity, sqrt(alfven * alfven + sound * sound) + whistler);
-   }
+   Real minVelocity() const { return min(Parameters::maxWaveVelocity, sqrt(alfvenSq + soundSq) + whistler); }
 
    /*! \brief Low-level helper function.
     *
@@ -86,7 +86,7 @@ struct Wavespeeds {
     */
    Real cflSpeed(Real v0, Real v1) const {
       const Real v = sqrt(v0 * v0 + v1 * v1);
-      const Real vMS = sqrt(alfven * alfven + sound * sound);
+      const Real vMS = sqrt(alfvenSq + soundSq);
       return max(v + vMS, v + whistler);
    }
 };
@@ -95,8 +95,6 @@ struct Limits {
    Real min = 0.0;
    Real max = 0.0;
 };
-
-Real clampNegativeToZero(Real v) { return std::clamp(v, 0.0, v); }
 
 struct FieldCoefficients {
 private:
@@ -119,8 +117,8 @@ private:
       return {mul0 * (a + b), mul1 * (a - b)};
    }
 
-   Real momentsCoeff(Real dir0, Real dir1, size_t i, size_t j, size_t k) const {
-      return moment[i] + HALF * (dir0 * dmoment[j] + dir1 * dmoment[k]);
+   Real momentsCoeff(Real dir0, Real dir1, size_t i, size_t j, size_t k, Real min, Real max) const {
+      return std::clamp(moment[i] + HALF * (dir0 * dmoment[j] + dir1 * dmoment[k]), min, max);
    }
 
 public:
@@ -138,12 +136,14 @@ public:
    std::tuple<Real, Real> dPerBCoeffs(size_t i, size_t j) const { return compute(nbr_dperb, dperb, i, j, HALF, 1.0); }
 
    Real rhom(Real dir0, Real dir1, size_t i, size_t j, size_t k) const {
-      return std::clamp(momentsCoeff(dir0, dir1, i, j, k), rhomLimits.min, rhomLimits.max);
+      return momentsCoeff(dir0, dir1, i, j, k, rhomLimits.min, rhomLimits.max);
    }
 
    Real p(Real dir0, Real dir1, size_t i, size_t j, size_t k) const {
-      return clampNegativeToZero(momentsCoeff(dir0, dir1, i, j, k));
+      return momentsCoeff(dir0, dir1, i, j, k, 0.0, std::numeric_limits<Real>::max());
    }
+
+   Real squared(Real a, Real b) const { return a * a + TWELWTH * b * b; }
 };
 
 /*! \brief Low-level helper function.
@@ -197,11 +197,10 @@ Wavespeeds calculateWaveSpeedYZ(std::span<std::array<Real, fsgrids::bfield::N_BF
    const auto [A_Y, A_XY] = fc.dPerBCoeffs(fsgrids::dperb::dPERBxdy, fsgrids::bgbfield::dBGBxdy);
    const auto [A_Z, A_XZ] = fc.dPerBCoeffs(fsgrids::dperb::dPERBxdz, fsgrids::bgbfield::dBGBxdz);
 
-   const Real bx2 = (A_0 + ydir * HALF * A_Y + zdir * HALF * A_Z) * (A_0 + ydir * HALF * A_Y + zdir * HALF * A_Z) +
-                    TWELWTH * (A_X + ydir * HALF * A_XY + zdir * HALF * A_XZ) *
-                        (A_X + ydir * HALF * A_XY + zdir * HALF * A_XZ);                               // OK
-   const Real by2 = (By + zdir * HALF * dBydz) * (By + zdir * HALF * dBydz) + TWELWTH * dBydx * dBydx; // OK
-   const Real bz2 = (Bz + ydir * HALF * dBzdy) * (Bz + ydir * HALF * dBzdy) + TWELWTH * dBzdx * dBzdx; // OK
+   const Real bx2 =
+       fc.squared(A_0 + ydir * HALF * A_Y + zdir * HALF * A_Z, A_X + ydir * HALF * A_XY + zdir * HALF * A_XZ);
+   const Real by2 = fc.squared(By + zdir * HALF * dBydz, dBydx);
+   const Real bz2 = fc.squared(Bz + ydir * HALF * dBzdy, dBzdx);
 
    return Wavespeeds(bx2 + by2 + bz2, rhom, p11, p22, p33, gridSpacing);
 }
@@ -257,11 +256,10 @@ Wavespeeds calculateWaveSpeedXZ(std::span<std::array<Real, fsgrids::bfield::N_BF
    const auto [B_X, B_XY] = fc.dPerBCoeffs(fsgrids::dperb::dPERBydx, fsgrids::bgbfield::dBGBydx);
    const auto [B_Z, B_YZ] = fc.dPerBCoeffs(fsgrids::dperb::dPERBydz, fsgrids::bgbfield::dBGBydz);
 
-   const Real by2 = (B_0 + xdir * HALF * B_X + zdir * HALF * B_Z) * (B_0 + xdir * HALF * B_X + zdir * HALF * B_Z) +
-                    TWELWTH * (B_Y + xdir * HALF * B_XY + zdir * HALF * B_YZ) *
-                        (B_Y + xdir * HALF * B_XY + zdir * HALF * B_YZ);                               // OK
-   const Real bx2 = (Bx + zdir * HALF * dBxdz) * (Bx + zdir * HALF * dBxdz) + TWELWTH * dBxdy * dBxdy; // OK
-   const Real bz2 = (Bz + xdir * HALF * dBzdx) * (Bz + xdir * HALF * dBzdx) + TWELWTH * dBzdy * dBzdy; // OK
+   const Real by2 =
+       fc.squared(B_0 + xdir * HALF * B_X + zdir * HALF * B_Z, B_Y + xdir * HALF * B_XY + zdir * HALF * B_YZ);
+   const Real bx2 = fc.squared(Bx + zdir * HALF * dBxdz, dBxdy);
+   const Real bz2 = fc.squared(Bz + xdir * HALF * dBzdx, dBzdy);
 
    return Wavespeeds(bx2 + by2 + bz2, rhom, p11, p22, p33, gridSpacing);
 }
@@ -318,10 +316,9 @@ Wavespeeds calculateWaveSpeedXY(std::span<std::array<Real, fsgrids::bfield::N_BF
    const auto [C_Y, C_YZ] = fc.dPerBCoeffs(fsgrids::dperb::dPERBzdy, fsgrids::bgbfield::dBGBzdy);
 
    const Real bz2 =
-       (C_0 + xdir * HALF * C_X + ydir * HALF * C_Y) * (C_0 + xdir * HALF * C_X + ydir * HALF * C_Y) +
-       TWELWTH * (C_Z + xdir * HALF * C_XZ + ydir * HALF * C_YZ) * (C_Z + xdir * HALF * C_XZ + ydir * HALF * C_YZ);
-   const Real bx2 = (Bx + ydir * HALF * dBxdy) * (Bx + ydir * HALF * dBxdy) + TWELWTH * dBxdz * dBxdz;
-   const Real by2 = (By + xdir * HALF * dBydx) * (By + xdir * HALF * dBydx) + TWELWTH * dBydz * dBydz;
+       fc.squared(C_0 + xdir * HALF * C_X + ydir * HALF * C_Y, C_Z + xdir * HALF * C_XZ + ydir * HALF * C_YZ);
+   const Real bx2 = fc.squared(Bx + ydir * HALF * dBxdy, dBxdz);
+   const Real by2 = fc.squared(By + xdir * HALF * dBydx, dBydz);
 
    return Wavespeeds(bx2 + by2 + bz2, rhom, p11, p22, p33, gridSpacing);
 }
