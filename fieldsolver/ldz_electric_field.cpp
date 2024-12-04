@@ -451,7 +451,8 @@ void calculateEdgeElectricFieldX(
     fsgrid::FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
     fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
     fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k, cint& RKCase) {
+    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k, cint& RKCase,
+    const std::array<Real, 3>& gridSpacing) {
    const auto& stencil = technicalGrid.makeStencil(i, j, k);
    std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
    std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb = BgBGrid.getData();
@@ -478,7 +479,6 @@ void calculateEdgeElectricFieldX(
    const DataArrays nw{perb, dperb, moments, dmoments, bgb, ci.nw};
    const DataArrays ne{perb, dperb, moments, dmoments, bgb, ci.ne};
 
-   const auto& gridSpacing = technicalGrid.getGridSpacing();
    const auto rhomLimits = getRhomLimits({
        sw.moments,
        se.moments,
@@ -690,7 +690,8 @@ void calculateEdgeElectricFieldY(
     fsgrid::FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
     fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
     fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k, cint& RKCase) {
+    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k, cint& RKCase,
+    const std::array<Real, 3>& gridSpacing) {
    const auto& stencil = technicalGrid.makeStencil(i, j, k);
    std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
    std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb = BgBGrid.getData();
@@ -717,7 +718,6 @@ void calculateEdgeElectricFieldY(
    const DataArrays nw{perb, dperb, moments, dmoments, bgb, ci.nw};
    const DataArrays ne{perb, dperb, moments, dmoments, bgb, ci.ne};
 
-   const auto& gridSpacing = technicalGrid.getGridSpacing();
    const auto rhomLimits = getRhomLimits({
        sw.moments,
        se.moments,
@@ -930,7 +930,8 @@ void calculateEdgeElectricFieldZ(
     fsgrid::FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
     fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
     fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k, cint& RKCase) {
+    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k, cint& RKCase,
+    const std::array<Real, 3>& gridSpacing) {
    const auto& stencil = technicalGrid.makeStencil(i, j, k);
    std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
    std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb = BgBGrid.getData();
@@ -957,7 +958,6 @@ void calculateEdgeElectricFieldZ(
    const DataArrays nw{perb, dperb, moments, dmoments, bgb, ci.nw};
    const DataArrays ne{perb, dperb, moments, dmoments, bgb, ci.ne};
 
-   const auto& gridSpacing = technicalGrid.getGridSpacing();
    const auto rhomLimits = getRhomLimits({
        sw.moments,
        se.moments,
@@ -1182,6 +1182,7 @@ void calculateElectricField(
     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k,
     SysBoundary& sysBoundaries, cint& RKCase) {
    cuint cellSysBoundaryFlag = technicalGrid.get(i, j, k)->sysBoundaryFlag;
+   const auto& gridSpacing = technicalGrid.getGridSpacing();
 
    if (cellSysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
        cellSysBoundaryFlag == sysboundarytype::OUTER_BOUNDARY_PADDING)
@@ -1191,21 +1192,21 @@ void calculateElectricField(
 
    if ((bitfield & compute::EX) == compute::EX) {
       calculateEdgeElectricFieldX(perBGrid, EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid,
-                                  BgBGrid, technicalGrid, i, j, k, RKCase);
+                                  BgBGrid, technicalGrid, i, j, k, RKCase, gridSpacing);
    } else {
       sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 0);
    }
 
    if ((bitfield & compute::EY) == compute::EY) {
       calculateEdgeElectricFieldY(perBGrid, EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid,
-                                  BgBGrid, technicalGrid, i, j, k, RKCase);
+                                  BgBGrid, technicalGrid, i, j, k, RKCase, gridSpacing);
    } else {
       sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 1);
    }
 
    if ((bitfield & compute::EZ) == compute::EZ) {
       calculateEdgeElectricFieldZ(perBGrid, EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid,
-                                  BgBGrid, technicalGrid, i, j, k, RKCase);
+                                  BgBGrid, technicalGrid, i, j, k, RKCase, gridSpacing);
    } else {
       sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 2);
    }
