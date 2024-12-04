@@ -197,8 +197,7 @@ Wavespeeds calculateWaveSpeedYZ(std::span<std::array<Real, fsgrids::bfield::N_BF
    const auto [A_Y, A_XY] = fc.dPerBCoeffs(fsgrids::dperb::dPERBxdy, fsgrids::bgbfield::dBGBxdy);
    const auto [A_Z, A_XZ] = fc.dPerBCoeffs(fsgrids::dperb::dPERBxdz, fsgrids::bgbfield::dBGBxdz);
 
-   const Real bx2 =
-       fc.squared(A_0 + ydir * HALF * A_Y + zdir * HALF * A_Z, A_X + ydir * HALF * A_XY + zdir * HALF * A_XZ);
+   const Real bx2 = fc.squared(A_0 + HALF * (ydir * A_Y + zdir * A_Z), A_X + HALF * (ydir * A_XY + zdir * A_XZ));
    const Real by2 = fc.squared(By + zdir * HALF * dBydz, dBydx);
    const Real bz2 = fc.squared(Bz + ydir * HALF * dBzdy, dBzdx);
 
@@ -256,8 +255,7 @@ Wavespeeds calculateWaveSpeedXZ(std::span<std::array<Real, fsgrids::bfield::N_BF
    const auto [B_X, B_XY] = fc.dPerBCoeffs(fsgrids::dperb::dPERBydx, fsgrids::bgbfield::dBGBydx);
    const auto [B_Z, B_YZ] = fc.dPerBCoeffs(fsgrids::dperb::dPERBydz, fsgrids::bgbfield::dBGBydz);
 
-   const Real by2 =
-       fc.squared(B_0 + xdir * HALF * B_X + zdir * HALF * B_Z, B_Y + xdir * HALF * B_XY + zdir * HALF * B_YZ);
+   const Real by2 = fc.squared(B_0 + HALF * (xdir * B_X + zdir * B_Z), B_Y + HALF * (xdir * B_XY + zdir * B_YZ));
    const Real bx2 = fc.squared(Bx + zdir * HALF * dBxdz, dBxdy);
    const Real bz2 = fc.squared(Bz + xdir * HALF * dBzdx, dBzdy);
 
@@ -315,8 +313,7 @@ Wavespeeds calculateWaveSpeedXY(std::span<std::array<Real, fsgrids::bfield::N_BF
    const auto [C_X, C_XZ] = fc.dPerBCoeffs(fsgrids::dperb::dPERBzdx, fsgrids::bgbfield::dBGBzdx);
    const auto [C_Y, C_YZ] = fc.dPerBCoeffs(fsgrids::dperb::dPERBzdy, fsgrids::bgbfield::dBGBzdy);
 
-   const Real bz2 =
-       fc.squared(C_0 + xdir * HALF * C_X + ydir * HALF * C_Y, C_Z + xdir * HALF * C_XZ + ydir * HALF * C_YZ);
+   const Real bz2 = fc.squared(C_0 + HALF * (xdir * C_X + ydir * C_Y), C_Z + HALF * (xdir * C_XZ + ydir * C_YZ));
    const Real bx2 = fc.squared(Bx + ydir * HALF * dBxdy, dBxdz);
    const Real by2 = fc.squared(By + xdir * HALF * dBydx, dBydz);
 
