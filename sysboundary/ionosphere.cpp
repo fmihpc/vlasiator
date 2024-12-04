@@ -2982,14 +2982,9 @@ namespace SBC {
       }
    }
 
-   void Ionosphere::fieldSolverBoundaryCondElectricField(
-      fsgrid::FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint component
-   ) {
-      EGrid.get(i,j,k)->at(fsgrids::efield::EX+component) = 0.0;
+   void Ionosphere::fieldSolverBoundaryCondElectricField(std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
+                                                         const fsgrid::FsStencil& stencil, cuint component) {
+      e[stencil.center()][fsgrids::efield::EX + component] = 0.0;
    }
 
    void Ionosphere::fieldSolverBoundaryCondHallElectricField(

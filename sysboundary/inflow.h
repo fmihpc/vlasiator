@@ -76,9 +76,8 @@ public:
                                         fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& bgbGrid,
                                         fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j,
                                         cint k, creal dt, cuint component);
-   virtual void
-   fieldSolverBoundaryCondElectricField(fsgrid::FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EGrid,
-                                        cint i, cint j, cint k, cuint component);
+   virtual void fieldSolverBoundaryCondElectricField(std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
+                                                     const fsgrid::FsStencil& stencil, cuint component);
    virtual void
    fieldSolverBoundaryCondHallElectricField(fsgrid::FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH>& EHallGrid,
                                             cint i, cint j, cint k, cuint component);

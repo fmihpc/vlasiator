@@ -312,14 +312,9 @@ namespace SBC {
       }
    }
 
-   void Outflow::fieldSolverBoundaryCondElectricField(
-      fsgrid::FsGrid< array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint component
-   ) {
-      EGrid.get(i,j,k)->at(fsgrids::efield::EX+component) = 0.0;
+   void Outflow::fieldSolverBoundaryCondElectricField(std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
+                                                      const fsgrid::FsStencil& stencil, cuint component) {
+      e[stencil.center()][fsgrids::efield::EX + component] = 0.0;
    }
 
    void Outflow::fieldSolverBoundaryCondHallElectricField(

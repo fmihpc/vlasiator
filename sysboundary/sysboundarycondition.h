@@ -27,11 +27,12 @@
 #include <dccrg_cartesian_geometry.hpp>
 #include <fsgrid.hpp>
 
-#include <vector>
 #include "../common.h"
 #include "../definitions.h"
-#include "../spatial_cells/spatial_cell_wrapper.hpp"
 #include "../projects/project.h"
+#include "../spatial_cells/spatial_cell_wrapper.hpp"
+#include <span>
+#include <vector>
 
 using namespace spatial_cell;
 using namespace projects;
@@ -91,13 +92,8 @@ namespace SBC {
             creal dt,
             cuint component
          )=0;
-         virtual void fieldSolverBoundaryCondElectricField(
-            fsgrid::FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-            cint i,
-            cint j,
-            cint k,
-            cuint component
-         )=0;
+         virtual void fieldSolverBoundaryCondElectricField(std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
+                                                           const fsgrid::FsStencil& stencil, cuint component) = 0;
          virtual void fieldSolverBoundaryCondHallElectricField(
             fsgrid::FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
             cint i,
