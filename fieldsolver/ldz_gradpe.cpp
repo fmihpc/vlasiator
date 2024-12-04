@@ -32,13 +32,14 @@
 
 using namespace std;
 
-Real calculateEdgeGradPeTermComponent(
-    fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid, cint i, cint j,
-    cint k, size_t index1, Real spacing) {
-   const Real hallRhoq = std::clamp(momentsGrid.get(i, j, k)->at(fsgrids::moments::RHOQ), Parameters::hallMinimumRhoq,
-                                    std::numeric_limits<Real>::max());
-   return -dMomentsGrid.get(i, j, k)->at(index1) / (hallRhoq * spacing);
+Real calculateEdgeGradPeTermComponent(std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                                      std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+                                      const fsgrid::FsStencil& stencil, size_t i, Real spacing) {
+   const Real rhoq = moments[stencil.center()][fsgrids::moments::RHOQ];
+   const Real min = Parameters::hallMinimumRhoq;
+   const Real max = std::numeric_limits<Real>::max();
+   const Real hallRhoq = std::clamp(rhoq, min, max);
+   return -dmoments[stencil.center()][i] / (hallRhoq * spacing);
 }
 
 /** Calculate the electron pressure gradient term on all given cells.
@@ -58,8 +59,14 @@ void calculateGradPeTerm(
 #endif
 
    const auto& gridSpacing = technicalGrid.getGridSpacing();
-   cuint cellSysBoundaryFlag = technicalGrid.get(i, j, k)->sysBoundaryFlag;
-   cuint cellSysBoundaryLayer = technicalGrid.get(i, j, k)->sysBoundaryLayer;
+   const auto& stencil = technicalGrid.makeStencil(i, j, k);
+   std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe = EGradPeGrid.getData();
+   std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments = momentsGrid.getData();
+   std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments = dMomentsGrid.getData();
+   std::span<fsgrids::technical> technical = technicalGrid.getData();
+
+   cuint cellSysBoundaryFlag = technical[stencil.center()].sysBoundaryFlag;
+   cuint cellSysBoundaryLayer = technical[stencil.center()].sysBoundaryLayer;
 
    if (cellSysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
        cellSysBoundaryFlag == sysboundarytype::OUTER_BOUNDARY_PADDING) {
@@ -80,12 +87,12 @@ void calculateGradPeTerm(
               << "You shouldn't be in a electron pressure gradient term function if Parameters::ohmGradPeTerm == 0."
               << endl;
       } else if (Parameters::ohmGradPeTerm == 1) {
-         EGradPeGrid.get(i, j, k)->at(fsgrids::egradpe::EXGRADPE) = calculateEdgeGradPeTermComponent(
-             momentsGrid, dMomentsGrid, i, j, k, fsgrids::dmoments::dPedx, gridSpacing[0]);
-         EGradPeGrid.get(i, j, k)->at(fsgrids::egradpe::EYGRADPE) = calculateEdgeGradPeTermComponent(
-             momentsGrid, dMomentsGrid, i, j, k, fsgrids::dmoments::dPedy, gridSpacing[1]);
-         EGradPeGrid.get(i, j, k)->at(fsgrids::egradpe::EZGRADPE) = calculateEdgeGradPeTermComponent(
-             momentsGrid, dMomentsGrid, i, j, k, fsgrids::dmoments::dPedz, gridSpacing[2]);
+         egradpe[stencil.center()][fsgrids::egradpe::EXGRADPE] =
+             calculateEdgeGradPeTermComponent(moments, dmoments, stencil, fsgrids::dmoments::dPedx, gridSpacing[0]);
+         egradpe[stencil.center()][fsgrids::egradpe::EYGRADPE] =
+             calculateEdgeGradPeTermComponent(moments, dmoments, stencil, fsgrids::dmoments::dPedy, gridSpacing[1]);
+         egradpe[stencil.center()][fsgrids::egradpe::EZGRADPE] =
+             calculateEdgeGradPeTermComponent(moments, dmoments, stencil, fsgrids::dmoments::dPedz, gridSpacing[2]);
       } else {
          cerr << __FILE__ << ":" << __LINE__ << "You are welcome to code higher-order Hall term correction terms."
               << endl;
