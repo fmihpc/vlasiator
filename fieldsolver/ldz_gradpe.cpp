@@ -67,11 +67,11 @@ void calculateGradPeTerm(
 
    if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) && (cellSysBoundaryLayer != 1)) {
       sysBoundaries.getSysBoundary(cellSysBoundaryFlag)
-          ->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid, i, j, k, 0);
+          ->fieldSolverBoundaryCondGradPeElectricField(egradpes, stencil, 0);
       sysBoundaries.getSysBoundary(cellSysBoundaryFlag)
-          ->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid, i, j, k, 1);
+          ->fieldSolverBoundaryCondGradPeElectricField(egradpes, stencil, 1);
       sysBoundaries.getSysBoundary(cellSysBoundaryFlag)
-          ->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid, i, j, k, 2);
+          ->fieldSolverBoundaryCondGradPeElectricField(egradpes, stencil, 2);
    } else {
       if (Parameters::ohmGradPeTerm == 0) {
          cerr << __FILE__ << __LINE__
