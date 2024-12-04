@@ -323,13 +323,14 @@ Wavespeeds calculateWaveSpeedXY(std::span<std::array<Real, fsgrids::bfield::N_BF
    return Wavespeeds(bx2 + by2 + bz2, rhom, p11, p22, p33, gridSpacing);
 }
 
-void fsdebugCheck([[maybe_unused]] fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-                  [[maybe_unused]] int32_t i, [[maybe_unused]] int32_t j, [[maybe_unused]] int32_t k) {
+void fsdebugCheck([[maybe_unused]] const fsgrid::FsStencil& stencil, [[maybe_unused]] size_t len,
+                  [[maybe_unused]] const char* file, [[maybe_unused]] uint32_t line) {
 #ifdef DEBUG_FSOLVER
-   const bool ok = technicalGrid.get(i, j, k) != NULL && technicalGrid.get(i - 1, j, k) != NULL &&
-                   technicalGrid.get(i - 1, j - 1, k) != NULL && technicalGrid.get(i, j - 1, k) != NULL;
+   const bool ok = stencil.center() < len && stencil.far() < len && stencil.down() < len && stencil.downfar() < len &&
+                   stencil.left() < len && stencil.leftfar() < len && stencil.leftdown() < len;
+
    if (!ok) {
-      cerr << "NULL pointer in " << __FILE__ << ":" << __LINE__ << std::endl;
+      cerr << "Out-of-bounds access in " << file << ":" << line << std::endl;
       exit(1);
    }
 #endif
@@ -451,8 +452,6 @@ void calculateEdgeElectricFieldX(
     fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
     fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k, cint& RKCase) {
-   fsdebugCheck(technicalGrid, i, j, k);
-
    const auto& stencil = technicalGrid.makeStencil(i, j, k);
    std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
    std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb = BgBGrid.getData();
@@ -463,6 +462,8 @@ void calculateEdgeElectricFieldX(
    std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall = EHallGrid.getData();
    std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe = EGradPeGrid.getData();
    std::span<fsgrids::technical> technical = technicalGrid.getData();
+
+   fsdebugCheck(stencil, perb.size(), __FILE__, __LINE__);
 
    // An edge has four neighbouring spatial cells. Calculate
    // electric field in each of the four cells per edge.
@@ -690,8 +691,6 @@ void calculateEdgeElectricFieldY(
     fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
     fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k, cint& RKCase) {
-   fsdebugCheck(technicalGrid, i, j, k);
-
    const auto& stencil = technicalGrid.makeStencil(i, j, k);
    std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
    std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb = BgBGrid.getData();
@@ -702,6 +701,8 @@ void calculateEdgeElectricFieldY(
    std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall = EHallGrid.getData();
    std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe = EGradPeGrid.getData();
    std::span<fsgrids::technical> technical = technicalGrid.getData();
+
+   fsdebugCheck(stencil, perb.size(), __FILE__, __LINE__);
 
    // An edge has four neighbouring spatial cells. Calculate
    // electric field in each of the four cells per edge.
@@ -930,8 +931,6 @@ void calculateEdgeElectricFieldZ(
     fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
     fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k, cint& RKCase) {
-   fsdebugCheck(technicalGrid, i, j, k);
-
    const auto& stencil = technicalGrid.makeStencil(i, j, k);
    std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
    std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb = BgBGrid.getData();
@@ -942,6 +941,8 @@ void calculateEdgeElectricFieldZ(
    std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall = EHallGrid.getData();
    std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe = EGradPeGrid.getData();
    std::span<fsgrids::technical> technical = technicalGrid.getData();
+
+   fsdebugCheck(stencil, perb.size(), __FILE__, __LINE__);
 
    // An edge has four neighbouring spatial cells. Calculate
    // electric field in each of the four cells per edge.
