@@ -462,6 +462,7 @@ void calculateEdgeElectricFieldX(
    std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e = EGrid.getData();
    std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall = EHallGrid.getData();
    std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe = EGradPeGrid.getData();
+   std::span<fsgrids::technical> technical = technicalGrid.getData();
 
    // An edge has four neighbouring spatial cells. Calculate
    // electric field in each of the four cells per edge.
@@ -634,24 +635,24 @@ void calculateEdgeElectricFieldX(
 
    // Hall terms
    if (Parameters::ohmHallTerm > 0) {
-      Ex_SW += (*EHallGrid.get(i, j, k))[fsgrids::ehall::EXHALL_000_100];
-      Ex_SE += (*EHallGrid.get(i, j - 1, k))[fsgrids::ehall::EXHALL_010_110];
-      Ex_NW += (*EHallGrid.get(i, j, k - 1))[fsgrids::ehall::EXHALL_001_101];
-      Ex_NE += (*EHallGrid.get(i, j - 1, k - 1))[fsgrids::ehall::EXHALL_011_111];
+      Ex_SW += ehall[ci.sw][fsgrids::ehall::EXHALL_000_100];
+      Ex_SE += ehall[ci.se][fsgrids::ehall::EXHALL_010_110];
+      Ex_NW += ehall[ci.nw][fsgrids::ehall::EXHALL_001_101];
+      Ex_NE += ehall[ci.ne][fsgrids::ehall::EXHALL_011_111];
    }
 
    // Electron pressure gradient terms
    if (Parameters::ohmGradPeTerm > 0) {
-      Ex_SW += (*EGradPeGrid.get(i, j, k))[fsgrids::egradpe::EXGRADPE];
-      Ex_SE += (*EGradPeGrid.get(i, j - 1, k))[fsgrids::egradpe::EXGRADPE];
-      Ex_NW += (*EGradPeGrid.get(i, j, k - 1))[fsgrids::egradpe::EXGRADPE];
-      Ex_NE += (*EGradPeGrid.get(i, j - 1, k - 1))[fsgrids::egradpe::EXGRADPE];
+      Ex_SW += egradpe[ci.sw][fsgrids::egradpe::EXGRADPE];
+      Ex_SE += egradpe[ci.se][fsgrids::egradpe::EXGRADPE];
+      Ex_NW += egradpe[ci.nw][fsgrids::egradpe::EXGRADPE];
+      Ex_NE += egradpe[ci.ne][fsgrids::egradpe::EXGRADPE];
    }
 
    // Calculate properly upwinded edge-averaged Ex:
    const FieldValues f(Ex_NE, Ex_SE, Ex_NW, Ex_SW, ay_pos, ay_neg, az_pos, az_neg, perBy_S, perBy_N, perBz_W, perBz_E,
                        dperBydz_S, dperBydz_N, dperBzdy_W, dperBzdy_E);
-   (*EGrid.get(i, j, k))[fsgrids::efield::EX] = f();
+   e[ci.sw][fsgrids::efield::EX] = f();
 
    if ((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) {
       // compute maximum timestep for fieldsolver in this cell (CFL=1)
@@ -659,8 +660,10 @@ void calculateEdgeElectricFieldX(
       min_dx = min(min_dx, gridSpacing[1]);
       min_dx = min(min_dx, gridSpacing[2]);
       // update max allowed timestep for field propagation in this cell, which is the minimum of CFL=1 timesteps
-      if (maxV != ZERO)
-         technicalGrid.get(i, j, k)->maxFsDt = min(technicalGrid.get(i, j, k)->maxFsDt, min_dx / maxV);
+      if (maxV != ZERO) {
+         auto& maxFsDt = technical[stencil.center()].maxFsDt;
+         maxFsDt = min(maxFsDt, min_dx / maxV);
+      }
    }
 }
 
@@ -698,6 +701,7 @@ void calculateEdgeElectricFieldY(
    std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e = EGrid.getData();
    std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall = EHallGrid.getData();
    std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe = EGradPeGrid.getData();
+   std::span<fsgrids::technical> technical = technicalGrid.getData();
 
    // An edge has four neighbouring spatial cells. Calculate
    // electric field in each of the four cells per edge.
@@ -871,34 +875,35 @@ void calculateEdgeElectricFieldY(
 
    // Hall terms
    if (Parameters::ohmHallTerm > 0) {
-      Ey_SW += (*EHallGrid.get(i, j, k))[fsgrids::ehall::EYHALL_000_010];
-      Ey_SE += (*EHallGrid.get(i, j, k - 1))[fsgrids::ehall::EYHALL_001_011];
-      Ey_NW += (*EHallGrid.get(i - 1, j, k))[fsgrids::ehall::EYHALL_100_110];
-      Ey_NE += (*EHallGrid.get(i - 1, j, k - 1))[fsgrids::ehall::EYHALL_101_111];
+      Ey_SW += ehall[ci.sw][fsgrids::ehall::EYHALL_000_010];
+      Ey_SE += ehall[ci.se][fsgrids::ehall::EYHALL_001_011];
+      Ey_NW += ehall[ci.nw][fsgrids::ehall::EYHALL_100_110];
+      Ey_NE += ehall[ci.ne][fsgrids::ehall::EYHALL_101_111];
    }
 
    // Electron pressure gradient terms
    if (Parameters::ohmGradPeTerm > 0) {
-      Ey_SW += (*EGradPeGrid.get(i, j, k))[fsgrids::egradpe::EYGRADPE];
-      Ey_SE += (*EGradPeGrid.get(i, j, k - 1))[fsgrids::egradpe::EYGRADPE];
-      Ey_NW += (*EGradPeGrid.get(i - 1, j, k))[fsgrids::egradpe::EYGRADPE];
-      Ey_NE += (*EGradPeGrid.get(i - 1, j, k - 1))[fsgrids::egradpe::EYGRADPE];
+      Ey_SW += egradpe[ci.sw][fsgrids::egradpe::EYGRADPE];
+      Ey_SE += egradpe[ci.se][fsgrids::egradpe::EYGRADPE];
+      Ey_NW += egradpe[ci.nw][fsgrids::egradpe::EYGRADPE];
+      Ey_NE += egradpe[ci.ne][fsgrids::egradpe::EYGRADPE];
    }
 
    // Calculate properly upwinded edge-averaged Ey:
    const FieldValues f(Ey_NE, Ey_SE, Ey_NW, Ey_SW, az_pos, az_neg, ax_pos, ax_neg, perBz_S, perBz_N, perBx_W, perBx_E,
                        dperBzdx_S, dperBzdx_N, dperBxdz_W, dperBxdz_E);
-   (*EGrid.get(i, j, k))[fsgrids::efield::EY] = f();
+   e[ci.sw][fsgrids::efield::EY] = f();
 
    if ((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) {
       // compute maximum timestep for fieldsolver in this cell (CFL=1)
       Real min_dx = std::numeric_limits<Real>::max();
-      ;
       min_dx = min(min_dx, gridSpacing[0]);
       min_dx = min(min_dx, gridSpacing[2]);
       // update max allowed timestep for field propagation in this cell, which is the minimum of CFL=1 timesteps
-      if (maxV != ZERO)
-         technicalGrid.get(i, j, k)->maxFsDt = min(technicalGrid.get(i, j, k)->maxFsDt, min_dx / maxV);
+      if (maxV != ZERO) {
+         auto& maxFsDt = technical[stencil.center()].maxFsDt;
+         maxFsDt = min(maxFsDt, min_dx / maxV);
+      }
    }
 }
 
@@ -936,6 +941,7 @@ void calculateEdgeElectricFieldZ(
    std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e = EGrid.getData();
    std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall = EHallGrid.getData();
    std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe = EGradPeGrid.getData();
+   std::span<fsgrids::technical> technical = technicalGrid.getData();
 
    // An edge has four neighbouring spatial cells. Calculate
    // electric field in each of the four cells per edge.
@@ -1110,24 +1116,24 @@ void calculateEdgeElectricFieldZ(
 
    // Hall terms
    if (Parameters::ohmHallTerm > 0) {
-      Ez_SW += (*EHallGrid.get(i, j, k))[fsgrids::ehall::EZHALL_000_001];
-      Ez_SE += (*EHallGrid.get(i - 1, j, k))[fsgrids::ehall::EZHALL_100_101];
-      Ez_NW += (*EHallGrid.get(i, j - 1, k))[fsgrids::ehall::EZHALL_010_011];
-      Ez_NE += (*EHallGrid.get(i - 1, j - 1, k))[fsgrids::ehall::EZHALL_110_111];
+      Ez_SW += ehall[ci.sw][fsgrids::ehall::EZHALL_000_001];
+      Ez_SE += ehall[ci.se][fsgrids::ehall::EZHALL_100_101];
+      Ez_NW += ehall[ci.nw][fsgrids::ehall::EZHALL_010_011];
+      Ez_NE += ehall[ci.ne][fsgrids::ehall::EZHALL_110_111];
    }
 
    // Electron pressure gradient terms
    if (Parameters::ohmGradPeTerm > 0) {
-      Ez_SW += (*EGradPeGrid.get(i, j, k))[fsgrids::egradpe::EZGRADPE];
-      Ez_SE += (*EGradPeGrid.get(i - 1, j, k))[fsgrids::egradpe::EZGRADPE];
-      Ez_NW += (*EGradPeGrid.get(i, j - 1, k))[fsgrids::egradpe::EZGRADPE];
-      Ez_NE += (*EGradPeGrid.get(i - 1, j - 1, k))[fsgrids::egradpe::EZGRADPE];
+      Ez_SW += egradpe[ci.sw][fsgrids::egradpe::EZGRADPE];
+      Ez_SE += egradpe[ci.se][fsgrids::egradpe::EZGRADPE];
+      Ez_NW += egradpe[ci.nw][fsgrids::egradpe::EZGRADPE];
+      Ez_NE += egradpe[ci.ne][fsgrids::egradpe::EZGRADPE];
    }
 
    // Calculate properly upwinded edge-averaged Ez:
    const FieldValues f(Ez_NE, Ez_SE, Ez_NW, Ez_SW, ax_pos, ax_neg, ay_pos, ay_neg, perBx_S, perBx_N, perBy_W, perBy_E,
                        dperBxdy_S, dperBxdy_N, dperBydx_W, dperBydx_E);
-   (*EGrid.get(i, j, k))[fsgrids::efield::EZ] = f();
+   e[ci.sw][fsgrids::efield::EZ] = f();
 
    if ((RKCase == RK_ORDER1) || (RKCase == RK_ORDER2_STEP2)) {
       // compute maximum timestep for fieldsolver in this cell (CFL=1)
@@ -1135,8 +1141,10 @@ void calculateEdgeElectricFieldZ(
       min_dx = min(min_dx, gridSpacing[0]);
       min_dx = min(min_dx, gridSpacing[1]);
       // update max allowed timestep for field propagation in this cell, which is the minimum of CFL=1 timesteps
-      if (maxV != ZERO)
-         technicalGrid.get(i, j, k)->maxFsDt = min(technicalGrid.get(i, j, k)->maxFsDt, min_dx / maxV);
+      if (maxV != ZERO) {
+         auto& maxFsDt = technical[stencil.center()].maxFsDt;
+         maxFsDt = min(maxFsDt, min_dx / maxV);
+      }
    }
 }
 
