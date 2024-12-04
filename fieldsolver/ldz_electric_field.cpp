@@ -1134,37 +1134,23 @@ void calculateEdgeElectricFieldZ(std::span<const std::array<Real, fsgrids::bfiel
  * calculateEdgeElectricFieldZ
  *
  */
-void calculateElectricField(
-    fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH>& EHallGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH>& EGradPeGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k,
-    SysBoundary& sysBoundaries, int32_t RKCase) {
-   const auto& stencil = technicalGrid.makeStencil(i, j, k);
-   std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
-   std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb = dPerBGrid.getData();
-   std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e = EGrid.getData();
-   std::span<const std::array<Real, fsgrids::ehall::N_EHALL>> ehall = EHallGrid.getData();
-   std::span<const std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe = EGradPeGrid.getData();
-   std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments = momentsGrid.getData();
-   std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments = dMomentsGrid.getData();
-   std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb = BgBGrid.getData();
-   std::span<fsgrids::technical> technical = technicalGrid.getData();
-
+void calculateElectricField(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                            std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                            std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
+                            std::span<const std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
+                            std::span<const std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe,
+                            std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                            std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+                            std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                            std::span<fsgrids::technical> technical, const fsgrid::FsStencil& stencil,
+                            const std::array<Real, 3>& gridSpacing, SysBoundary& sysBoundaries, int32_t RKCase) {
    cuint cellSysBoundaryFlag = technical[stencil.center()].sysBoundaryFlag;
-   const auto& gridSpacing = technicalGrid.getGridSpacing();
+   cuint bitfield = technical[stencil.center()].SOLVE;
 
    if (cellSysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
        cellSysBoundaryFlag == sysboundarytype::OUTER_BOUNDARY_PADDING) {
       return;
    }
-
-   cuint bitfield = technical[stencil.center()].SOLVE;
 
    if ((bitfield & compute::EX) == compute::EX) {
       calculateEdgeElectricFieldX(perb, dperb, e, ehall, egradpe, moments, dmoments, bgb, technical, stencil, RKCase,
@@ -1226,29 +1212,53 @@ void calculateUpwindedElectricFieldSimple(
     fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, SysBoundary& sysBoundaries, int32_t RKCase,
     const bool communicateEGradPeOrMomentsDerivatives) {
-   // const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
-   const fsgrid::FsIndex_t* gridDims = &technicalGrid.getLocalSize()[0];
-   const size_t N_cells = gridDims[0] * gridDims[1] * gridDims[2];
+   const auto& gridSpacing = technicalGrid.getGridSpacing();
+   const auto& localSize = technicalGrid.getLocalSize();
+   const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
+   const bool case0 = RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2;
+
+   std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
+   std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e = EGrid.getData();
+   std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall = EHallGrid.getData();
+   std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe = EGradPeGrid.getData();
+   std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments = momentsGrid.getData();
+   std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb = dPerBGrid.getData();
+   std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments = dMomentsGrid.getData();
+   std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb = BgBGrid.getData();
+   std::span<fsgrids::technical> technical = technicalGrid.getData();
+
+   if (!case0) {
+      perb = perBDt2Grid.getData();
+      e = EDt2Grid.getData();
+      egradpe = EGradPeDt2Grid.getData();
+      moments = momentsDt2Grid.getData();
+      dmoments = dMomentsDt2Grid.getData();
+   }
+
    phiprof::Timer upwindedETimer{"Calculate upwinded electric field"};
    int computeTimerID{phiprof::initializeTimer("Electric field compute cells")};
 
    phiprof::Timer mpiTimer{"Electric field ghost updates MPI", {"MPI"}};
+
    // Update ghosts if necessary, unless previous terms have already updated them
    if (P::ohmHallTerm > 0) {
       EHallGrid.updateGhostCells();
    }
+
    if (P::ohmGradPeTerm > 0 && communicateEGradPeOrMomentsDerivatives) {
-      if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+      if (case0) {
          EGradPeGrid.updateGhostCells();
       } else {
          EGradPeDt2Grid.updateGhostCells();
       }
    }
+
    if (P::ohmHallTerm == 0) {
       dPerBGrid.updateGhostCells();
    }
+
    if (P::ohmHallTerm == 0 && P::ohmGradPeTerm == 0 && communicateEGradPeOrMomentsDerivatives) {
-      if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+      if (case0) {
          dMomentsGrid.updateGhostCells();
       } else {
          dMomentsDt2Grid.updateGhostCells();
@@ -1262,16 +1272,12 @@ void calculateUpwindedElectricFieldSimple(
    {
       phiprof::Timer computeTimer{computeTimerID};
 #pragma omp for collapse(2)
-      for (fsgrid::FsIndex_t k = 0; k < gridDims[2]; k++) {
-         for (fsgrid::FsIndex_t j = 0; j < gridDims[1]; j++) {
-            for (fsgrid::FsIndex_t i = 0; i < gridDims[0]; i++) {
-               if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-                  calculateElectricField(perBGrid, EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid,
-                                         BgBGrid, technicalGrid, i, j, k, sysBoundaries, RKCase);
-               } else { // RKCase == RK_ORDER2_STEP1
-                  calculateElectricField(perBDt2Grid, EDt2Grid, EHallGrid, EGradPeDt2Grid, momentsDt2Grid, dPerBGrid,
-                                         dMomentsDt2Grid, BgBGrid, technicalGrid, i, j, k, sysBoundaries, RKCase);
-               }
+      for (auto k = 0; k < localSize[2]; k++) {
+         for (auto j = 0; j < localSize[1]; j++) {
+            for (auto i = 0; i < localSize[0]; i++) {
+               const auto& stencil = technicalGrid.makeStencil(i, j, k);
+               calculateElectricField(perb, dperb, e, ehall, egradpe, moments, dmoments, bgb, technical, stencil,
+                                      gridSpacing, sysBoundaries, RKCase);
             }
          }
       }
@@ -1280,7 +1286,7 @@ void calculateUpwindedElectricFieldSimple(
 
    mpiTimer.start();
    // Exchange electric field with neighbouring processes
-   if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+   if (case0) {
       EGrid.updateGhostCells();
    } else {
       EDt2Grid.updateGhostCells();
