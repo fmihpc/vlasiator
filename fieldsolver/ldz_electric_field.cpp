@@ -431,6 +431,7 @@ void calculateEdgeElectricFieldX(
     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k, cint& RKCase) {
    fsdebugCheck(technicalGrid, i, j, k);
 
+   const auto& stencil = technicalGrid.makeStencil(i, j, k);
    std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
    std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb = BgBGrid.getData();
    std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments = momentsGrid.getData();
@@ -444,28 +445,27 @@ void calculateEdgeElectricFieldX(
    Real maxV = 0.0;     // Max velocity for CFL purposes
    Real c_y, c_z;       // Wave speeds to yz-directions
 
-   // const auto &stencil = technicalGrid.makeStencil(i, j, k);
    //  Get values at all four neighbours, result is written to SW.
-   const std::array<Real, fsgrids::bfield::N_BFIELD>& perb_SW = *perBGrid.get(i, j, k);
-   const std::array<Real, fsgrids::bfield::N_BFIELD>& perb_SE = *perBGrid.get(i, j - 1, k);
-   const std::array<Real, fsgrids::bfield::N_BFIELD>& perb_NE = *perBGrid.get(i, j - 1, k - 1);
-   const std::array<Real, fsgrids::bfield::N_BFIELD>& perb_NW = *perBGrid.get(i, j, k - 1);
-   const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb_SW = *BgBGrid.get(i, j, k);
-   const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb_SE = *BgBGrid.get(i, j - 1, k);
-   const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb_NE = *BgBGrid.get(i, j - 1, k - 1);
-   const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb_NW = *BgBGrid.get(i, j, k - 1);
-   const std::array<Real, fsgrids::moments::N_MOMENTS>& moments_SW = *momentsGrid.get(i, j, k);
-   const std::array<Real, fsgrids::moments::N_MOMENTS>& moments_SE = *momentsGrid.get(i, j - 1, k);
-   const std::array<Real, fsgrids::moments::N_MOMENTS>& moments_NE = *momentsGrid.get(i, j - 1, k - 1);
-   const std::array<Real, fsgrids::moments::N_MOMENTS>& moments_NW = *momentsGrid.get(i, j, k - 1);
-   const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoments_SW = *dMomentsGrid.get(i, j, k);
-   const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoments_SE = *dMomentsGrid.get(i, j - 1, k);
-   const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoments_NE = *dMomentsGrid.get(i, j - 1, k - 1);
-   const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoments_NW = *dMomentsGrid.get(i, j, k - 1);
-   const std::array<Real, fsgrids::dperb::N_DPERB>& dperb_SW = *dPerBGrid.get(i, j, k);
-   const std::array<Real, fsgrids::dperb::N_DPERB>& dperb_SE = *dPerBGrid.get(i, j - 1, k);
-   const std::array<Real, fsgrids::dperb::N_DPERB>& dperb_NE = *dPerBGrid.get(i, j - 1, k - 1);
-   const std::array<Real, fsgrids::dperb::N_DPERB>& dperb_NW = *dPerBGrid.get(i, j, k - 1);
+   const std::array<Real, fsgrids::bfield::N_BFIELD>& perb_SW = perb[stencil.center()];
+   const std::array<Real, fsgrids::bfield::N_BFIELD>& perb_SE = perb[stencil.down()];
+   const std::array<Real, fsgrids::bfield::N_BFIELD>& perb_NE = perb[stencil.downfar()];
+   const std::array<Real, fsgrids::bfield::N_BFIELD>& perb_NW = perb[stencil.far()];
+   const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb_SW = bgb[stencil.center()];
+   const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb_SE = bgb[stencil.down()];
+   const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb_NE = bgb[stencil.downfar()];
+   const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb_NW = bgb[stencil.far()];
+   const std::array<Real, fsgrids::moments::N_MOMENTS>& moments_SW = moments[stencil.center()];
+   const std::array<Real, fsgrids::moments::N_MOMENTS>& moments_SE = moments[stencil.down()];
+   const std::array<Real, fsgrids::moments::N_MOMENTS>& moments_NE = moments[stencil.downfar()];
+   const std::array<Real, fsgrids::moments::N_MOMENTS>& moments_NW = moments[stencil.far()];
+   const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoments_SW = dmoments[stencil.center()];
+   const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoments_SE = dmoments[stencil.down()];
+   const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoments_NE = dmoments[stencil.downfar()];
+   const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoments_NW = dmoments[stencil.far()];
+   const std::array<Real, fsgrids::dperb::N_DPERB>& dperb_SW = dperb[stencil.center()];
+   const std::array<Real, fsgrids::dperb::N_DPERB>& dperb_SE = dperb[stencil.down()];
+   const std::array<Real, fsgrids::dperb::N_DPERB>& dperb_NE = dperb[stencil.downfar()];
+   const std::array<Real, fsgrids::dperb::N_DPERB>& dperb_NW = dperb[stencil.far()];
 
    const auto& gridSpacing = technicalGrid.getGridSpacing();
    const auto rhomLimits = getRhomLimits({
@@ -680,6 +680,7 @@ void calculateEdgeElectricFieldY(
     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k, cint& RKCase) {
    fsdebugCheck(technicalGrid, i, j, k);
 
+   const auto& stencil = technicalGrid.makeStencil(i, j, k);
    std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
    std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb = BgBGrid.getData();
    std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments = momentsGrid.getData();
@@ -693,26 +694,26 @@ void calculateEdgeElectricFieldY(
    Real maxV = 0.0;     // Max velocity for CFL purposes
    Real c_x, c_z;       // Wave speeds to xz-directions
 
-   const std::array<Real, fsgrids::bfield::N_BFIELD>& perb_SW = *perBGrid.get(i, j, k);
-   const std::array<Real, fsgrids::bfield::N_BFIELD>& perb_SE = *perBGrid.get(i, j, k - 1);
-   const std::array<Real, fsgrids::bfield::N_BFIELD>& perb_NW = *perBGrid.get(i - 1, j, k);
-   const std::array<Real, fsgrids::bfield::N_BFIELD>& perb_NE = *perBGrid.get(i - 1, j, k - 1);
-   const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb_SW = *BgBGrid.get(i, j, k);
-   const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb_SE = *BgBGrid.get(i, j, k - 1);
-   const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb_NW = *BgBGrid.get(i - 1, j, k);
-   const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb_NE = *BgBGrid.get(i - 1, j, k - 1);
-   const std::array<Real, fsgrids::moments::N_MOMENTS>& moments_SW = *momentsGrid.get(i, j, k);
-   const std::array<Real, fsgrids::moments::N_MOMENTS>& moments_SE = *momentsGrid.get(i, j, k - 1);
-   const std::array<Real, fsgrids::moments::N_MOMENTS>& moments_NW = *momentsGrid.get(i - 1, j, k);
-   const std::array<Real, fsgrids::moments::N_MOMENTS>& moments_NE = *momentsGrid.get(i - 1, j, k - 1);
-   const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoments_SW = *dMomentsGrid.get(i, j, k);
-   const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoments_SE = *dMomentsGrid.get(i, j, k - 1);
-   const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoments_NW = *dMomentsGrid.get(i - 1, j, k);
-   const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoments_NE = *dMomentsGrid.get(i - 1, j, k - 1);
-   const std::array<Real, fsgrids::dperb::N_DPERB>& dperb_SW = *dPerBGrid.get(i, j, k);
-   const std::array<Real, fsgrids::dperb::N_DPERB>& dperb_SE = *dPerBGrid.get(i, j, k - 1);
-   const std::array<Real, fsgrids::dperb::N_DPERB>& dperb_NW = *dPerBGrid.get(i - 1, j, k);
-   const std::array<Real, fsgrids::dperb::N_DPERB>& dperb_NE = *dPerBGrid.get(i - 1, j, k - 1);
+   const std::array<Real, fsgrids::bfield::N_BFIELD>& perb_SW = perb[stencil.center()];
+   const std::array<Real, fsgrids::bfield::N_BFIELD>& perb_SE = perb[stencil.far()];
+   const std::array<Real, fsgrids::bfield::N_BFIELD>& perb_NW = perb[stencil.left()];
+   const std::array<Real, fsgrids::bfield::N_BFIELD>& perb_NE = perb[stencil.leftfar()];
+   const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb_SW = bgb[stencil.center()];
+   const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb_SE = bgb[stencil.far()];
+   const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb_NW = bgb[stencil.left()];
+   const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb_NE = bgb[stencil.leftfar()];
+   const std::array<Real, fsgrids::moments::N_MOMENTS>& moments_SW = moments[stencil.center()];
+   const std::array<Real, fsgrids::moments::N_MOMENTS>& moments_SE = moments[stencil.far()];
+   const std::array<Real, fsgrids::moments::N_MOMENTS>& moments_NW = moments[stencil.left()];
+   const std::array<Real, fsgrids::moments::N_MOMENTS>& moments_NE = moments[stencil.leftfar()];
+   const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoments_SW = dmoments[stencil.center()];
+   const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoments_SE = dmoments[stencil.far()];
+   const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoments_NW = dmoments[stencil.left()];
+   const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoments_NE = dmoments[stencil.leftfar()];
+   const std::array<Real, fsgrids::dperb::N_DPERB>& dperb_SW = dperb[stencil.center()];
+   const std::array<Real, fsgrids::dperb::N_DPERB>& dperb_SE = dperb[stencil.far()];
+   const std::array<Real, fsgrids::dperb::N_DPERB>& dperb_NW = dperb[stencil.left()];
+   const std::array<Real, fsgrids::dperb::N_DPERB>& dperb_NE = dperb[stencil.leftfar()];
 
    const auto& gridSpacing = technicalGrid.getGridSpacing();
    const auto rhomLimits = getRhomLimits({
@@ -929,6 +930,7 @@ void calculateEdgeElectricFieldZ(
     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k, cint& RKCase) {
    fsdebugCheck(technicalGrid, i, j, k);
 
+   const auto& stencil = technicalGrid.makeStencil(i, j, k);
    std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
    std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb = BgBGrid.getData();
    std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments = momentsGrid.getData();
@@ -942,26 +944,26 @@ void calculateEdgeElectricFieldZ(
    Real maxV = 0.0;     // Max velocity for CFL purposes
    Real c_x, c_y;       // Characteristic speeds to xy-directions
 
-   const std::array<Real, fsgrids::bfield::N_BFIELD>& perb_SW = *perBGrid.get(i, j, k);
-   const std::array<Real, fsgrids::bfield::N_BFIELD>& perb_SE = *perBGrid.get(i - 1, j, k);
-   const std::array<Real, fsgrids::bfield::N_BFIELD>& perb_NE = *perBGrid.get(i - 1, j - 1, k);
-   const std::array<Real, fsgrids::bfield::N_BFIELD>& perb_NW = *perBGrid.get(i, j - 1, k);
-   const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb_SW = *BgBGrid.get(i, j, k);
-   const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb_SE = *BgBGrid.get(i - 1, j, k);
-   const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb_NE = *BgBGrid.get(i - 1, j - 1, k);
-   const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb_NW = *BgBGrid.get(i, j - 1, k);
-   const std::array<Real, fsgrids::moments::N_MOMENTS>& moments_SW = *momentsGrid.get(i, j, k);
-   const std::array<Real, fsgrids::moments::N_MOMENTS>& moments_SE = *momentsGrid.get(i - 1, j, k);
-   const std::array<Real, fsgrids::moments::N_MOMENTS>& moments_NE = *momentsGrid.get(i - 1, j - 1, k);
-   const std::array<Real, fsgrids::moments::N_MOMENTS>& moments_NW = *momentsGrid.get(i, j - 1, k);
-   const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoments_SW = *dMomentsGrid.get(i, j, k);
-   const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoments_SE = *dMomentsGrid.get(i - 1, j, k);
-   const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoments_NE = *dMomentsGrid.get(i - 1, j - 1, k);
-   const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoments_NW = *dMomentsGrid.get(i, j - 1, k);
-   const std::array<Real, fsgrids::dperb::N_DPERB>& dperb_SW = *dPerBGrid.get(i, j, k);
-   const std::array<Real, fsgrids::dperb::N_DPERB>& dperb_SE = *dPerBGrid.get(i - 1, j, k);
-   const std::array<Real, fsgrids::dperb::N_DPERB>& dperb_NE = *dPerBGrid.get(i - 1, j - 1, k);
-   const std::array<Real, fsgrids::dperb::N_DPERB>& dperb_NW = *dPerBGrid.get(i, j - 1, k);
+   const std::array<Real, fsgrids::bfield::N_BFIELD>& perb_SW = perb[stencil.center()];
+   const std::array<Real, fsgrids::bfield::N_BFIELD>& perb_SE = perb[stencil.left()];
+   const std::array<Real, fsgrids::bfield::N_BFIELD>& perb_NE = perb[stencil.leftdown()];
+   const std::array<Real, fsgrids::bfield::N_BFIELD>& perb_NW = perb[stencil.down()];
+   const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb_SW = bgb[stencil.center()];
+   const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb_SE = bgb[stencil.left()];
+   const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb_NE = bgb[stencil.leftdown()];
+   const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb_NW = bgb[stencil.down()];
+   const std::array<Real, fsgrids::moments::N_MOMENTS>& moments_SW = moments[stencil.center()];
+   const std::array<Real, fsgrids::moments::N_MOMENTS>& moments_SE = moments[stencil.left()];
+   const std::array<Real, fsgrids::moments::N_MOMENTS>& moments_NE = moments[stencil.leftdown()];
+   const std::array<Real, fsgrids::moments::N_MOMENTS>& moments_NW = moments[stencil.down()];
+   const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoments_SW = dmoments[stencil.center()];
+   const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoments_SE = dmoments[stencil.left()];
+   const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoments_NE = dmoments[stencil.leftdown()];
+   const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoments_NW = dmoments[stencil.down()];
+   const std::array<Real, fsgrids::dperb::N_DPERB>& dperb_SW = dperb[stencil.center()];
+   const std::array<Real, fsgrids::dperb::N_DPERB>& dperb_SE = dperb[stencil.left()];
+   const std::array<Real, fsgrids::dperb::N_DPERB>& dperb_NE = dperb[stencil.leftdown()];
+   const std::array<Real, fsgrids::dperb::N_DPERB>& dperb_NW = dperb[stencil.down()];
 
    const auto& gridSpacing = technicalGrid.getGridSpacing();
    const auto rhomLimits = getRhomLimits({
