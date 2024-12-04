@@ -396,6 +396,28 @@ struct FieldValues {
    }
 };
 
+struct CardinalIndices {
+   size_t sw = 0;
+   size_t se = 0;
+   size_t nw = 0;
+   size_t ne = 0;
+};
+
+struct DataArrays {
+   const std::array<Real, fsgrids::bfield::N_BFIELD>& perb;
+   const std::array<Real, fsgrids::dperb::N_DPERB>& dperb;
+   const std::array<Real, fsgrids::moments::N_MOMENTS>& moments;
+   const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoments;
+   const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb;
+
+   DataArrays(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+              std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+              std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+              std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+              std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, size_t index)
+       : perb(perb[index]), dperb(dperb[index]), moments(moments[index]), dmoments(dmoments[index]), bgb(bgb[index]) {}
+};
+
 /*! \brief Low-level electric field propagation function.
  *
  * Computes the upwinded electric field X component along the cell's corresponding edge as the cross product of B and V
@@ -448,59 +470,43 @@ void calculateEdgeElectricFieldX(
    Real maxV = 0.0;     // Max velocity for CFL purposes
    Real c_y, c_z;       // Wave speeds to yz-directions
 
-   //  Get values at all four neighbours, result is written to SW.
-   const std::array<Real, fsgrids::bfield::N_BFIELD>& perb_SW = perb[stencil.center()];
-   const std::array<Real, fsgrids::bfield::N_BFIELD>& perb_SE = perb[stencil.down()];
-   const std::array<Real, fsgrids::bfield::N_BFIELD>& perb_NE = perb[stencil.downfar()];
-   const std::array<Real, fsgrids::bfield::N_BFIELD>& perb_NW = perb[stencil.far()];
-   const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb_SW = bgb[stencil.center()];
-   const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb_SE = bgb[stencil.down()];
-   const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb_NE = bgb[stencil.downfar()];
-   const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb_NW = bgb[stencil.far()];
-   const std::array<Real, fsgrids::moments::N_MOMENTS>& moments_SW = moments[stencil.center()];
-   const std::array<Real, fsgrids::moments::N_MOMENTS>& moments_SE = moments[stencil.down()];
-   const std::array<Real, fsgrids::moments::N_MOMENTS>& moments_NE = moments[stencil.downfar()];
-   const std::array<Real, fsgrids::moments::N_MOMENTS>& moments_NW = moments[stencil.far()];
-   const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoments_SW = dmoments[stencil.center()];
-   const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoments_SE = dmoments[stencil.down()];
-   const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoments_NE = dmoments[stencil.downfar()];
-   const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoments_NW = dmoments[stencil.far()];
-   const std::array<Real, fsgrids::dperb::N_DPERB>& dperb_SW = dperb[stencil.center()];
-   const std::array<Real, fsgrids::dperb::N_DPERB>& dperb_SE = dperb[stencil.down()];
-   const std::array<Real, fsgrids::dperb::N_DPERB>& dperb_NE = dperb[stencil.downfar()];
-   const std::array<Real, fsgrids::dperb::N_DPERB>& dperb_NW = dperb[stencil.far()];
+   const CardinalIndices ci{stencil.center(), stencil.down(), stencil.far(), stencil.downfar()};
+   const DataArrays sw{perb, dperb, moments, dmoments, bgb, ci.sw};
+   const DataArrays se{perb, dperb, moments, dmoments, bgb, ci.se};
+   const DataArrays nw{perb, dperb, moments, dmoments, bgb, ci.nw};
+   const DataArrays ne{perb, dperb, moments, dmoments, bgb, ci.ne};
 
    const auto& gridSpacing = technicalGrid.getGridSpacing();
    const auto rhomLimits = getRhomLimits({
-       moments_SW,
-       moments_SE,
-       moments_NW,
-       moments_NE,
+       sw.moments,
+       se.moments,
+       nw.moments,
+       ne.moments,
    });
 
-   const Real By_S = perb_SW[fsgrids::bfield::PERBY] + bgb_SW[fsgrids::bgbfield::BGBY];
-   const Real Bz_W = perb_SW[fsgrids::bfield::PERBZ] + bgb_SW[fsgrids::bgbfield::BGBZ];
-   const Real Bz_E = perb_SE[fsgrids::bfield::PERBZ] + bgb_SE[fsgrids::bgbfield::BGBZ];
-   const Real By_N = perb_NW[fsgrids::bfield::PERBY] + bgb_NW[fsgrids::bgbfield::BGBY];
-   const Real perBy_S = perb_SW[fsgrids::bfield::PERBY];
-   const Real perBz_W = perb_SW[fsgrids::bfield::PERBZ];
-   const Real perBz_E = perb_SE[fsgrids::bfield::PERBZ];
-   const Real perBy_N = perb_NW[fsgrids::bfield::PERBY];
-   Real Vy0 = moments_SW[fsgrids::moments::VY];
-   Real Vz0 = moments_SW[fsgrids::moments::VZ];
+   const Real By_S = sw.perb[fsgrids::bfield::PERBY] + sw.bgb[fsgrids::bgbfield::BGBY];
+   const Real Bz_W = sw.perb[fsgrids::bfield::PERBZ] + sw.bgb[fsgrids::bgbfield::BGBZ];
+   const Real Bz_E = se.perb[fsgrids::bfield::PERBZ] + se.bgb[fsgrids::bgbfield::BGBZ];
+   const Real By_N = nw.perb[fsgrids::bfield::PERBY] + nw.bgb[fsgrids::bgbfield::BGBY];
+   const Real perBy_S = sw.perb[fsgrids::bfield::PERBY];
+   const Real perBz_W = sw.perb[fsgrids::bfield::PERBZ];
+   const Real perBz_E = se.perb[fsgrids::bfield::PERBZ];
+   const Real perBy_N = nw.perb[fsgrids::bfield::PERBY];
+   Real Vy0 = sw.moments[fsgrids::moments::VY];
+   Real Vz0 = sw.moments[fsgrids::moments::VZ];
 
-   creal dBydx_S = dperb_SW[fsgrids::dperb::dPERBydx] + bgb_SW[fsgrids::bgbfield::dBGBydx];
-   creal dBydz_S = dperb_SW[fsgrids::dperb::dPERBydz] + bgb_SW[fsgrids::bgbfield::dBGBydz];
-   creal dBzdx_W = dperb_SW[fsgrids::dperb::dPERBzdx] + bgb_SW[fsgrids::bgbfield::dBGBzdx];
-   creal dBzdy_W = dperb_SW[fsgrids::dperb::dPERBzdy] + bgb_SW[fsgrids::bgbfield::dBGBzdy];
-   creal dBzdx_E = dperb_SE[fsgrids::dperb::dPERBzdx] + bgb_SE[fsgrids::bgbfield::dBGBzdx];
-   creal dBzdy_E = dperb_SE[fsgrids::dperb::dPERBzdy] + bgb_SE[fsgrids::bgbfield::dBGBzdy];
-   creal dBydx_N = dperb_NW[fsgrids::dperb::dPERBydx] + bgb_NW[fsgrids::bgbfield::dBGBydx];
-   creal dBydz_N = dperb_NW[fsgrids::dperb::dPERBydz] + bgb_NW[fsgrids::bgbfield::dBGBydz];
-   creal dperBydz_S = dperb_SW[fsgrids::dperb::dPERBydz];
-   creal dperBydz_N = dperb_NW[fsgrids::dperb::dPERBydz];
-   creal dperBzdy_W = dperb_SW[fsgrids::dperb::dPERBzdy];
-   creal dperBzdy_E = dperb_SE[fsgrids::dperb::dPERBzdy];
+   creal dBydx_S = sw.dperb[fsgrids::dperb::dPERBydx] + sw.bgb[fsgrids::bgbfield::dBGBydx];
+   creal dBydz_S = sw.dperb[fsgrids::dperb::dPERBydz] + sw.bgb[fsgrids::bgbfield::dBGBydz];
+   creal dBzdx_W = sw.dperb[fsgrids::dperb::dPERBzdx] + sw.bgb[fsgrids::bgbfield::dBGBzdx];
+   creal dBzdy_W = sw.dperb[fsgrids::dperb::dPERBzdy] + sw.bgb[fsgrids::bgbfield::dBGBzdy];
+   creal dBzdx_E = se.dperb[fsgrids::dperb::dPERBzdx] + se.bgb[fsgrids::bgbfield::dBGBzdx];
+   creal dBzdy_E = se.dperb[fsgrids::dperb::dPERBzdy] + se.bgb[fsgrids::bgbfield::dBGBzdy];
+   creal dBydx_N = nw.dperb[fsgrids::dperb::dPERBydx] + nw.bgb[fsgrids::bgbfield::dBGBydx];
+   creal dBydz_N = nw.dperb[fsgrids::dperb::dPERBydz] + nw.bgb[fsgrids::bgbfield::dBGBydz];
+   creal dperBydz_S = sw.dperb[fsgrids::dperb::dPERBydz];
+   creal dperBydz_N = nw.dperb[fsgrids::dperb::dPERBydz];
+   creal dperBzdy_W = sw.dperb[fsgrids::dperb::dPERBzdy];
+   creal dperBzdy_E = se.dperb[fsgrids::dperb::dPERBzdy];
 
    // Ex and characteristic speeds on this cell:
    // 1st order terms:
@@ -509,11 +515,11 @@ void calculateEdgeElectricFieldX(
 #ifndef FS_1ST_ORDER_SPACE
    // 2nd order terms:
    Ex_SW += +HALF * ((By_S - HALF * dBydz_S) *
-                         (-dmoments_SW[fsgrids::dmoments::dVzdy] - dmoments_SW[fsgrids::dmoments::dVzdz]) -
-                     dBydz_S * Vz0 + SIXTH * dBydx_S * dmoments_SW[fsgrids::dmoments::dVzdx]);
+                         (-sw.dmoments[fsgrids::dmoments::dVzdy] - sw.dmoments[fsgrids::dmoments::dVzdz]) -
+                     dBydz_S * Vz0 + SIXTH * dBydx_S * sw.dmoments[fsgrids::dmoments::dVzdx]);
    Ex_SW += -HALF * ((Bz_W - HALF * dBzdy_W) *
-                         (-dmoments_SW[fsgrids::dmoments::dVydy] - dmoments_SW[fsgrids::dmoments::dVydz]) -
-                     dBzdy_W * Vy0 + SIXTH * dBzdx_W * dmoments_SW[fsgrids::dmoments::dVydx]);
+                         (-sw.dmoments[fsgrids::dmoments::dVydy] - sw.dmoments[fsgrids::dmoments::dVydz]) -
+                     dBzdy_W * Vy0 + SIXTH * dBzdx_W * sw.dmoments[fsgrids::dmoments::dVydx]);
 #endif
    size_t self = technicalGrid.localIDFromCellCoordinates(i, j, k);
    size_t nbr = technicalGrid.localIDFromCellCoordinates(i + 1, j, k);
@@ -528,8 +534,8 @@ void calculateEdgeElectricFieldX(
    maxV = max(maxV, wavespeeds.cflSpeed(Vy0, Vz0));
 
    // Ex and characteristic speeds on j-1 neighbour:
-   Vy0 = moments_SE[fsgrids::moments::VY];
-   Vz0 = moments_SE[fsgrids::moments::VZ];
+   Vy0 = se.moments[fsgrids::moments::VY];
+   Vz0 = se.moments[fsgrids::moments::VZ];
 
    // 1st order terms:
    Real Ex_SE = By_S * Vz0 - Bz_E * Vy0;
@@ -537,11 +543,11 @@ void calculateEdgeElectricFieldX(
 #ifndef FS_1ST_ORDER_SPACE
    // 2nd order terms:
    Ex_SE += +HALF * ((By_S - HALF * dBydz_S) *
-                         (+dmoments_SE[fsgrids::dmoments::dVzdy] - dmoments_SE[fsgrids::dmoments::dVzdz]) -
-                     dBydz_S * Vz0 + SIXTH * dBydx_S * dmoments_SE[fsgrids::dmoments::dVzdx]);
+                         (+se.dmoments[fsgrids::dmoments::dVzdy] - se.dmoments[fsgrids::dmoments::dVzdz]) -
+                     dBydz_S * Vz0 + SIXTH * dBydx_S * se.dmoments[fsgrids::dmoments::dVzdx]);
    Ex_SE += -HALF * ((Bz_E + HALF * dBzdy_E) *
-                         (+dmoments_SE[fsgrids::dmoments::dVydy] - dmoments_SE[fsgrids::dmoments::dVydz]) +
-                     dBzdy_E * Vy0 + SIXTH * dBzdx_E * dmoments_SE[fsgrids::dmoments::dVydx]);
+                         (+se.dmoments[fsgrids::dmoments::dVydy] - se.dmoments[fsgrids::dmoments::dVydz]) +
+                     dBzdy_E * Vy0 + SIXTH * dBzdx_E * se.dmoments[fsgrids::dmoments::dVydx]);
 #endif
 
    self = technicalGrid.localIDFromCellCoordinates(i, j - 1, k);
@@ -557,8 +563,8 @@ void calculateEdgeElectricFieldX(
    maxV = max(maxV, wavespeeds.cflSpeed(Vy0, Vz0));
 
    // Ex and characteristic speeds on k-1 neighbour:
-   Vy0 = moments_NW[fsgrids::moments::VY];
-   Vz0 = moments_NW[fsgrids::moments::VZ];
+   Vy0 = nw.moments[fsgrids::moments::VY];
+   Vz0 = nw.moments[fsgrids::moments::VZ];
 
    // 1st order terms:
    Real Ex_NW = By_N * Vz0 - Bz_W * Vy0;
@@ -566,11 +572,11 @@ void calculateEdgeElectricFieldX(
 #ifndef FS_1ST_ORDER_SPACE
    // 2nd order terms:
    Ex_NW += +HALF * ((By_N + HALF * dBydz_N) *
-                         (-dmoments_NW[fsgrids::dmoments::dVzdy] + dmoments_NW[fsgrids::dmoments::dVzdz]) +
-                     dBydz_N * Vz0 + SIXTH * dBydx_N * dmoments_NW[fsgrids::dmoments::dVzdx]);
+                         (-nw.dmoments[fsgrids::dmoments::dVzdy] + nw.dmoments[fsgrids::dmoments::dVzdz]) +
+                     dBydz_N * Vz0 + SIXTH * dBydx_N * nw.dmoments[fsgrids::dmoments::dVzdx]);
    Ex_NW += -HALF * ((Bz_W - HALF * dBzdy_W) *
-                         (-dmoments_NW[fsgrids::dmoments::dVydy] + dmoments_NW[fsgrids::dmoments::dVydz]) -
-                     dBzdy_W * Vy0 + SIXTH * dBzdx_W * dmoments_NW[fsgrids::dmoments::dVydx]);
+                         (-nw.dmoments[fsgrids::dmoments::dVydy] + nw.dmoments[fsgrids::dmoments::dVydz]) -
+                     dBzdy_W * Vy0 + SIXTH * dBzdx_W * nw.dmoments[fsgrids::dmoments::dVydx]);
 #endif
 
    self = technicalGrid.localIDFromCellCoordinates(i, j, k - 1);
@@ -586,8 +592,8 @@ void calculateEdgeElectricFieldX(
    maxV = max(maxV, wavespeeds.cflSpeed(Vy0, Vz0));
 
    // Ex and characteristic speeds on j-1,k-1 neighbour:
-   Vy0 = moments_NE[fsgrids::moments::VY];
-   Vz0 = moments_NE[fsgrids::moments::VZ];
+   Vy0 = ne.moments[fsgrids::moments::VY];
+   Vz0 = ne.moments[fsgrids::moments::VZ];
 
    // 1st order terms:
    Real Ex_NE = By_N * Vz0 - Bz_E * Vy0;
@@ -595,11 +601,11 @@ void calculateEdgeElectricFieldX(
 #ifndef FS_1ST_ORDER_SPACE
    // 2nd order terms:
    Ex_NE += +HALF * ((By_N + HALF * dBydz_N) *
-                         (+dmoments_NE[fsgrids::dmoments::dVzdy] + dmoments_NE[fsgrids::dmoments::dVzdz]) +
-                     dBydz_N * Vz0 + SIXTH * dBydx_N * dmoments_NE[fsgrids::dmoments::dVzdx]);
+                         (+ne.dmoments[fsgrids::dmoments::dVzdy] + ne.dmoments[fsgrids::dmoments::dVzdz]) +
+                     dBydz_N * Vz0 + SIXTH * dBydx_N * ne.dmoments[fsgrids::dmoments::dVzdx]);
    Ex_NE += -HALF * ((Bz_E + HALF * dBzdy_E) *
-                         (+dmoments_NE[fsgrids::dmoments::dVydy] + dmoments_NE[fsgrids::dmoments::dVydz]) +
-                     dBzdy_E * Vy0 + SIXTH * dBzdx_E * dmoments_NE[fsgrids::dmoments::dVydx]);
+                         (+ne.dmoments[fsgrids::dmoments::dVydy] + ne.dmoments[fsgrids::dmoments::dVydz]) +
+                     dBzdy_E * Vy0 + SIXTH * dBzdx_E * ne.dmoments[fsgrids::dmoments::dVydx]);
 #endif
 
    self = technicalGrid.localIDFromCellCoordinates(i, j - 1, k - 1);
@@ -620,10 +626,10 @@ void calculateEdgeElectricFieldX(
                                   static_cast<size_t>(fsgrids::dperb::dPERBydz)};
       const std::array spacing = {gridSpacing[1], gridSpacing[2]};
 
-      Ex_SW += resistiveTerm(bgb_SW, perb_SW, dperb_SW, moments_SW[fsgrids::moments::RHOQ], indices, spacing);
-      Ex_SE += resistiveTerm(bgb_SE, perb_SE, dperb_SE, moments_SE[fsgrids::moments::RHOQ], indices, spacing);
-      Ex_NW += resistiveTerm(bgb_NW, perb_NW, dperb_NW, moments_NW[fsgrids::moments::RHOQ], indices, spacing);
-      Ex_NE += resistiveTerm(bgb_NE, perb_NE, dperb_NE, moments_NE[fsgrids::moments::RHOQ], indices, spacing);
+      Ex_SW += resistiveTerm(sw.bgb, sw.perb, sw.dperb, sw.moments[fsgrids::moments::RHOQ], indices, spacing);
+      Ex_SE += resistiveTerm(se.bgb, se.perb, se.dperb, se.moments[fsgrids::moments::RHOQ], indices, spacing);
+      Ex_NW += resistiveTerm(nw.bgb, nw.perb, nw.dperb, nw.moments[fsgrids::moments::RHOQ], indices, spacing);
+      Ex_NE += resistiveTerm(ne.bgb, ne.perb, ne.dperb, ne.moments[fsgrids::moments::RHOQ], indices, spacing);
    }
 
    // Hall terms
@@ -700,58 +706,43 @@ void calculateEdgeElectricFieldY(
    Real maxV = 0.0;     // Max velocity for CFL purposes
    Real c_x, c_z;       // Wave speeds to xz-directions
 
-   const std::array<Real, fsgrids::bfield::N_BFIELD>& perb_SW = perb[stencil.center()];
-   const std::array<Real, fsgrids::bfield::N_BFIELD>& perb_SE = perb[stencil.far()];
-   const std::array<Real, fsgrids::bfield::N_BFIELD>& perb_NW = perb[stencil.left()];
-   const std::array<Real, fsgrids::bfield::N_BFIELD>& perb_NE = perb[stencil.leftfar()];
-   const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb_SW = bgb[stencil.center()];
-   const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb_SE = bgb[stencil.far()];
-   const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb_NW = bgb[stencil.left()];
-   const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb_NE = bgb[stencil.leftfar()];
-   const std::array<Real, fsgrids::moments::N_MOMENTS>& moments_SW = moments[stencil.center()];
-   const std::array<Real, fsgrids::moments::N_MOMENTS>& moments_SE = moments[stencil.far()];
-   const std::array<Real, fsgrids::moments::N_MOMENTS>& moments_NW = moments[stencil.left()];
-   const std::array<Real, fsgrids::moments::N_MOMENTS>& moments_NE = moments[stencil.leftfar()];
-   const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoments_SW = dmoments[stencil.center()];
-   const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoments_SE = dmoments[stencil.far()];
-   const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoments_NW = dmoments[stencil.left()];
-   const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoments_NE = dmoments[stencil.leftfar()];
-   const std::array<Real, fsgrids::dperb::N_DPERB>& dperb_SW = dperb[stencil.center()];
-   const std::array<Real, fsgrids::dperb::N_DPERB>& dperb_SE = dperb[stencil.far()];
-   const std::array<Real, fsgrids::dperb::N_DPERB>& dperb_NW = dperb[stencil.left()];
-   const std::array<Real, fsgrids::dperb::N_DPERB>& dperb_NE = dperb[stencil.leftfar()];
+   const CardinalIndices ci{stencil.center(), stencil.far(), stencil.left(), stencil.leftfar()};
+   const DataArrays sw{perb, dperb, moments, dmoments, bgb, ci.sw};
+   const DataArrays se{perb, dperb, moments, dmoments, bgb, ci.se};
+   const DataArrays nw{perb, dperb, moments, dmoments, bgb, ci.nw};
+   const DataArrays ne{perb, dperb, moments, dmoments, bgb, ci.ne};
 
    const auto& gridSpacing = technicalGrid.getGridSpacing();
    const auto rhomLimits = getRhomLimits({
-       moments_SW,
-       moments_SE,
-       moments_NW,
-       moments_NE,
+       sw.moments,
+       se.moments,
+       nw.moments,
+       ne.moments,
    });
    // Fetch required plasma parameters:
-   const Real Bz_S = perb_SW[fsgrids::bfield::PERBZ] + bgb_SW[fsgrids::bgbfield::BGBZ];
-   const Real Bx_W = perb_SW[fsgrids::bfield::PERBX] + bgb_SW[fsgrids::bgbfield::BGBX];
-   const Real Bx_E = perb_SE[fsgrids::bfield::PERBX] + bgb_SE[fsgrids::bgbfield::BGBX];
-   const Real Bz_N = perb_NW[fsgrids::bfield::PERBZ] + bgb_NW[fsgrids::bgbfield::BGBZ];
-   const Real perBz_S = perb_SW[fsgrids::bfield::PERBZ];
-   const Real perBx_W = perb_SW[fsgrids::bfield::PERBX];
-   const Real perBx_E = perb_SE[fsgrids::bfield::PERBX];
-   const Real perBz_N = perb_NW[fsgrids::bfield::PERBZ];
-   Real Vx0 = moments_SW[fsgrids::moments::VX];
-   Real Vz0 = moments_SW[fsgrids::moments::VZ];
+   const Real Bz_S = sw.perb[fsgrids::bfield::PERBZ] + sw.bgb[fsgrids::bgbfield::BGBZ];
+   const Real Bx_W = sw.perb[fsgrids::bfield::PERBX] + sw.bgb[fsgrids::bgbfield::BGBX];
+   const Real Bx_E = se.perb[fsgrids::bfield::PERBX] + se.bgb[fsgrids::bgbfield::BGBX];
+   const Real Bz_N = nw.perb[fsgrids::bfield::PERBZ] + nw.bgb[fsgrids::bgbfield::BGBZ];
+   const Real perBz_S = sw.perb[fsgrids::bfield::PERBZ];
+   const Real perBx_W = sw.perb[fsgrids::bfield::PERBX];
+   const Real perBx_E = se.perb[fsgrids::bfield::PERBX];
+   const Real perBz_N = nw.perb[fsgrids::bfield::PERBZ];
+   Real Vx0 = sw.moments[fsgrids::moments::VX];
+   Real Vz0 = sw.moments[fsgrids::moments::VZ];
 
-   creal dBxdy_W = dperb_SW[fsgrids::dperb::dPERBxdy] + bgb_SW[fsgrids::bgbfield::dBGBxdy];
-   creal dBxdz_W = dperb_SW[fsgrids::dperb::dPERBxdz] + bgb_SW[fsgrids::bgbfield::dBGBxdz];
-   creal dBzdx_S = dperb_SW[fsgrids::dperb::dPERBzdx] + bgb_SW[fsgrids::bgbfield::dBGBzdx];
-   creal dBzdy_S = dperb_SW[fsgrids::dperb::dPERBzdy] + bgb_SW[fsgrids::bgbfield::dBGBzdy];
-   creal dBxdy_E = dperb_SE[fsgrids::dperb::dPERBxdy] + bgb_SE[fsgrids::bgbfield::dBGBxdy];
-   creal dBxdz_E = dperb_SE[fsgrids::dperb::dPERBxdz] + bgb_SE[fsgrids::bgbfield::dBGBxdz];
-   creal dBzdx_N = dperb_NW[fsgrids::dperb::dPERBzdx] + bgb_NW[fsgrids::bgbfield::dBGBzdx];
-   creal dBzdy_N = dperb_NW[fsgrids::dperb::dPERBzdy] + bgb_NW[fsgrids::bgbfield::dBGBzdy];
-   creal dperBzdx_S = dperb_SW[fsgrids::dperb::dPERBzdx];
-   creal dperBzdx_N = dperb_NW[fsgrids::dperb::dPERBzdx];
-   creal dperBxdz_W = dperb_SW[fsgrids::dperb::dPERBxdz];
-   creal dperBxdz_E = dperb_SE[fsgrids::dperb::dPERBxdz];
+   creal dBxdy_W = sw.dperb[fsgrids::dperb::dPERBxdy] + sw.bgb[fsgrids::bgbfield::dBGBxdy];
+   creal dBxdz_W = sw.dperb[fsgrids::dperb::dPERBxdz] + sw.bgb[fsgrids::bgbfield::dBGBxdz];
+   creal dBzdx_S = sw.dperb[fsgrids::dperb::dPERBzdx] + sw.bgb[fsgrids::bgbfield::dBGBzdx];
+   creal dBzdy_S = sw.dperb[fsgrids::dperb::dPERBzdy] + sw.bgb[fsgrids::bgbfield::dBGBzdy];
+   creal dBxdy_E = se.dperb[fsgrids::dperb::dPERBxdy] + se.bgb[fsgrids::bgbfield::dBGBxdy];
+   creal dBxdz_E = se.dperb[fsgrids::dperb::dPERBxdz] + se.bgb[fsgrids::bgbfield::dBGBxdz];
+   creal dBzdx_N = nw.dperb[fsgrids::dperb::dPERBzdx] + nw.bgb[fsgrids::bgbfield::dBGBzdx];
+   creal dBzdy_N = nw.dperb[fsgrids::dperb::dPERBzdy] + nw.bgb[fsgrids::bgbfield::dBGBzdy];
+   creal dperBzdx_S = sw.dperb[fsgrids::dperb::dPERBzdx];
+   creal dperBzdx_N = nw.dperb[fsgrids::dperb::dPERBzdx];
+   creal dperBxdz_W = sw.dperb[fsgrids::dperb::dPERBxdz];
+   creal dperBxdz_E = se.dperb[fsgrids::dperb::dPERBxdz];
 
    // Ey and characteristic speeds on this cell:
    // 1st order terms:
@@ -760,11 +751,11 @@ void calculateEdgeElectricFieldY(
 #ifndef FS_1ST_ORDER_SPACE
    // 2nd order terms
    Ey_SW += +HALF * ((Bz_S - HALF * dBzdx_S) *
-                         (-dmoments_SW[fsgrids::dmoments::dVxdx] - dmoments_SW[fsgrids::dmoments::dVxdz]) -
-                     dBzdx_S * Vx0 + SIXTH * dBzdy_S * dmoments_SW[fsgrids::dmoments::dVxdy]);
+                         (-sw.dmoments[fsgrids::dmoments::dVxdx] - sw.dmoments[fsgrids::dmoments::dVxdz]) -
+                     dBzdx_S * Vx0 + SIXTH * dBzdy_S * sw.dmoments[fsgrids::dmoments::dVxdy]);
    Ey_SW += -HALF * ((Bx_W - HALF * dBxdz_W) *
-                         (-dmoments_SW[fsgrids::dmoments::dVzdx] - dmoments_SW[fsgrids::dmoments::dVzdz]) -
-                     dBxdz_W * Vz0 + SIXTH * dBxdy_W * dmoments_SW[fsgrids::dmoments::dVzdy]);
+                         (-sw.dmoments[fsgrids::dmoments::dVzdx] - sw.dmoments[fsgrids::dmoments::dVzdz]) -
+                     dBxdz_W * Vz0 + SIXTH * dBxdy_W * sw.dmoments[fsgrids::dmoments::dVzdy]);
 #endif
 
    size_t self = technicalGrid.localIDFromCellCoordinates(i, j, k);
@@ -780,8 +771,8 @@ void calculateEdgeElectricFieldY(
    maxV = max(maxV, wavespeeds.cflSpeed(Vz0, Vx0));
 
    // Ey and characteristic speeds on k-1 neighbour:
-   Vx0 = moments_SE[fsgrids::moments::VX];
-   Vz0 = moments_SE[fsgrids::moments::VZ];
+   Vx0 = se.moments[fsgrids::moments::VX];
+   Vz0 = se.moments[fsgrids::moments::VZ];
 
    // 1st order terms:
    Real Ey_SE = Bz_S * Vx0 - Bx_E * Vz0;
@@ -789,11 +780,11 @@ void calculateEdgeElectricFieldY(
 #ifndef FS_1ST_ORDER_SPACE
    // 2nd order terms:
    Ey_SE += +HALF * ((Bz_S - HALF * dBzdx_S) *
-                         (-dmoments_SE[fsgrids::dmoments::dVxdx] + dmoments_SE[fsgrids::dmoments::dVxdz]) -
-                     dBzdx_S * Vx0 + SIXTH * dBzdy_S * dmoments_SE[fsgrids::dmoments::dVxdy]);
+                         (-se.dmoments[fsgrids::dmoments::dVxdx] + se.dmoments[fsgrids::dmoments::dVxdz]) -
+                     dBzdx_S * Vx0 + SIXTH * dBzdy_S * se.dmoments[fsgrids::dmoments::dVxdy]);
    Ey_SE += -HALF * ((Bx_E + HALF * dBxdz_E) *
-                         (-dmoments_SE[fsgrids::dmoments::dVzdx] + dmoments_SE[fsgrids::dmoments::dVzdz]) +
-                     dBxdz_E * Vz0 + SIXTH * dBxdy_E * dmoments_SE[fsgrids::dmoments::dVzdy]);
+                         (-se.dmoments[fsgrids::dmoments::dVzdx] + se.dmoments[fsgrids::dmoments::dVzdz]) +
+                     dBxdz_E * Vz0 + SIXTH * dBxdy_E * se.dmoments[fsgrids::dmoments::dVzdy]);
 #endif
 
    self = technicalGrid.localIDFromCellCoordinates(i, j, k - 1);
@@ -809,8 +800,8 @@ void calculateEdgeElectricFieldY(
    maxV = max(maxV, wavespeeds.cflSpeed(Vz0, Vx0));
 
    // Ey and characteristic speeds on i-1 neighbour:
-   Vz0 = moments_NW[fsgrids::moments::VZ];
-   Vx0 = moments_NW[fsgrids::moments::VX];
+   Vz0 = nw.moments[fsgrids::moments::VZ];
+   Vx0 = nw.moments[fsgrids::moments::VX];
 
    // 1st order terms:
    Real Ey_NW = Bz_N * Vx0 - Bx_W * Vz0;
@@ -818,11 +809,11 @@ void calculateEdgeElectricFieldY(
 #ifndef FS_1ST_ORDER_SPACE
    // 2nd order terms:
    Ey_NW += +HALF * ((Bz_N + HALF * dBzdx_N) *
-                         (+dmoments_NW[fsgrids::dmoments::dVxdx] - dmoments_NW[fsgrids::dmoments::dVxdz]) +
-                     dBzdx_N * Vx0 + SIXTH * dBzdy_N * dmoments_NW[fsgrids::dmoments::dVxdy]);
+                         (+nw.dmoments[fsgrids::dmoments::dVxdx] - nw.dmoments[fsgrids::dmoments::dVxdz]) +
+                     dBzdx_N * Vx0 + SIXTH * dBzdy_N * nw.dmoments[fsgrids::dmoments::dVxdy]);
    Ey_NW += -HALF * ((Bx_W - HALF * dBxdz_W) *
-                         (+dmoments_NW[fsgrids::dmoments::dVzdx] - dmoments_NW[fsgrids::dmoments::dVzdz]) -
-                     dBxdz_W * Vz0 + SIXTH * dBxdy_W * dmoments_NW[fsgrids::dmoments::dVzdy]);
+                         (+nw.dmoments[fsgrids::dmoments::dVzdx] - nw.dmoments[fsgrids::dmoments::dVzdz]) -
+                     dBxdz_W * Vz0 + SIXTH * dBxdy_W * nw.dmoments[fsgrids::dmoments::dVzdy]);
 #endif
 
    self = technicalGrid.localIDFromCellCoordinates(i - 1, j, k);
@@ -838,8 +829,8 @@ void calculateEdgeElectricFieldY(
    maxV = max(maxV, wavespeeds.cflSpeed(Vz0, Vx0));
 
    // Ey and characteristic speeds on i-1,k-1 neighbour:
-   Vz0 = moments_NE[fsgrids::moments::VZ];
-   Vx0 = moments_NE[fsgrids::moments::VX];
+   Vz0 = ne.moments[fsgrids::moments::VZ];
+   Vx0 = ne.moments[fsgrids::moments::VX];
 
    // 1st order terms:
    Real Ey_NE = Bz_N * Vx0 - Bx_E * Vz0;
@@ -847,11 +838,11 @@ void calculateEdgeElectricFieldY(
 #ifndef FS_1ST_ORDER_SPACE
    // 2nd order terms:
    Ey_NE += +HALF * ((Bz_N + HALF * dBzdx_N) *
-                         (+dmoments_NE[fsgrids::dmoments::dVxdx] + dmoments_NE[fsgrids::dmoments::dVxdz]) +
-                     dBzdx_N * Vx0 + SIXTH * dBzdy_N * dmoments_NE[fsgrids::dmoments::dVxdy]);
+                         (+ne.dmoments[fsgrids::dmoments::dVxdx] + ne.dmoments[fsgrids::dmoments::dVxdz]) +
+                     dBzdx_N * Vx0 + SIXTH * dBzdy_N * ne.dmoments[fsgrids::dmoments::dVxdy]);
    Ey_NE += -HALF * ((Bx_E + HALF * dBxdz_E) *
-                         (+dmoments_NE[fsgrids::dmoments::dVzdx] + dmoments_NE[fsgrids::dmoments::dVzdz]) +
-                     dBxdz_E * Vz0 + SIXTH * dBxdy_E * dmoments_NE[fsgrids::dmoments::dVzdy]);
+                         (+ne.dmoments[fsgrids::dmoments::dVzdx] + ne.dmoments[fsgrids::dmoments::dVzdz]) +
+                     dBxdz_E * Vz0 + SIXTH * dBxdy_E * ne.dmoments[fsgrids::dmoments::dVzdy]);
 #endif
 
    self = technicalGrid.localIDFromCellCoordinates(i - 1, j, k - 1);
@@ -872,10 +863,10 @@ void calculateEdgeElectricFieldY(
                                   static_cast<size_t>(fsgrids::dperb::dPERBzdx)};
       const std::array spacing = {gridSpacing[2], gridSpacing[0]};
 
-      Ey_SW += resistiveTerm(bgb_SW, perb_SW, dperb_SW, moments_SW[fsgrids::moments::RHOQ], indices, spacing);
-      Ey_SE += resistiveTerm(bgb_SE, perb_SE, dperb_SE, moments_SE[fsgrids::moments::RHOQ], indices, spacing);
-      Ey_NW += resistiveTerm(bgb_NW, perb_NW, dperb_NW, moments_NW[fsgrids::moments::RHOQ], indices, spacing);
-      Ey_NE += resistiveTerm(bgb_NE, perb_NE, dperb_NE, moments_NE[fsgrids::moments::RHOQ], indices, spacing);
+      Ey_SW += resistiveTerm(sw.bgb, sw.perb, sw.dperb, sw.moments[fsgrids::moments::RHOQ], indices, spacing);
+      Ey_SE += resistiveTerm(se.bgb, se.perb, se.dperb, se.moments[fsgrids::moments::RHOQ], indices, spacing);
+      Ey_NW += resistiveTerm(nw.bgb, nw.perb, nw.dperb, nw.moments[fsgrids::moments::RHOQ], indices, spacing);
+      Ey_NE += resistiveTerm(ne.bgb, ne.perb, ne.dperb, ne.moments[fsgrids::moments::RHOQ], indices, spacing);
    }
 
    // Hall terms
@@ -953,59 +944,44 @@ void calculateEdgeElectricFieldZ(
    Real maxV = 0.0;     // Max velocity for CFL purposes
    Real c_x, c_y;       // Characteristic speeds to xy-directions
 
-   const std::array<Real, fsgrids::bfield::N_BFIELD>& perb_SW = perb[stencil.center()];
-   const std::array<Real, fsgrids::bfield::N_BFIELD>& perb_SE = perb[stencil.left()];
-   const std::array<Real, fsgrids::bfield::N_BFIELD>& perb_NE = perb[stencil.leftdown()];
-   const std::array<Real, fsgrids::bfield::N_BFIELD>& perb_NW = perb[stencil.down()];
-   const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb_SW = bgb[stencil.center()];
-   const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb_SE = bgb[stencil.left()];
-   const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb_NE = bgb[stencil.leftdown()];
-   const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb_NW = bgb[stencil.down()];
-   const std::array<Real, fsgrids::moments::N_MOMENTS>& moments_SW = moments[stencil.center()];
-   const std::array<Real, fsgrids::moments::N_MOMENTS>& moments_SE = moments[stencil.left()];
-   const std::array<Real, fsgrids::moments::N_MOMENTS>& moments_NE = moments[stencil.leftdown()];
-   const std::array<Real, fsgrids::moments::N_MOMENTS>& moments_NW = moments[stencil.down()];
-   const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoments_SW = dmoments[stencil.center()];
-   const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoments_SE = dmoments[stencil.left()];
-   const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoments_NE = dmoments[stencil.leftdown()];
-   const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoments_NW = dmoments[stencil.down()];
-   const std::array<Real, fsgrids::dperb::N_DPERB>& dperb_SW = dperb[stencil.center()];
-   const std::array<Real, fsgrids::dperb::N_DPERB>& dperb_SE = dperb[stencil.left()];
-   const std::array<Real, fsgrids::dperb::N_DPERB>& dperb_NE = dperb[stencil.leftdown()];
-   const std::array<Real, fsgrids::dperb::N_DPERB>& dperb_NW = dperb[stencil.down()];
+   const CardinalIndices ci{stencil.center(), stencil.left(), stencil.down(), stencil.leftdown()};
+   const DataArrays sw{perb, dperb, moments, dmoments, bgb, ci.sw};
+   const DataArrays se{perb, dperb, moments, dmoments, bgb, ci.se};
+   const DataArrays nw{perb, dperb, moments, dmoments, bgb, ci.nw};
+   const DataArrays ne{perb, dperb, moments, dmoments, bgb, ci.ne};
 
    const auto& gridSpacing = technicalGrid.getGridSpacing();
    const auto rhomLimits = getRhomLimits({
-       moments_SW,
-       moments_SE,
-       moments_NW,
-       moments_NE,
+       sw.moments,
+       se.moments,
+       nw.moments,
+       ne.moments,
    });
 
    // Fetch needed plasma parameters/derivatives from the four cells:
-   const Real Bx_S = perb_SW[fsgrids::bfield::PERBX] + bgb_SW[fsgrids::bgbfield::BGBX];
-   const Real By_W = perb_SW[fsgrids::bfield::PERBY] + bgb_SW[fsgrids::bgbfield::BGBY];
-   const Real By_E = perb_SE[fsgrids::bfield::PERBY] + bgb_SE[fsgrids::bgbfield::BGBY];
-   const Real Bx_N = perb_NW[fsgrids::bfield::PERBX] + bgb_NW[fsgrids::bgbfield::BGBX];
-   const Real perBx_S = perb_SW[fsgrids::bfield::PERBX];
-   const Real perBy_W = perb_SW[fsgrids::bfield::PERBY];
-   const Real perBy_E = perb_SE[fsgrids::bfield::PERBY];
-   const Real perBx_N = perb_NW[fsgrids::bfield::PERBX];
-   Real Vx0 = moments_SW[fsgrids::moments::VX];
-   Real Vy0 = moments_SW[fsgrids::moments::VY];
+   const Real Bx_S = sw.perb[fsgrids::bfield::PERBX] + sw.bgb[fsgrids::bgbfield::BGBX];
+   const Real By_W = sw.perb[fsgrids::bfield::PERBY] + sw.bgb[fsgrids::bgbfield::BGBY];
+   const Real By_E = se.perb[fsgrids::bfield::PERBY] + se.bgb[fsgrids::bgbfield::BGBY];
+   const Real Bx_N = nw.perb[fsgrids::bfield::PERBX] + nw.bgb[fsgrids::bgbfield::BGBX];
+   const Real perBx_S = sw.perb[fsgrids::bfield::PERBX];
+   const Real perBy_W = sw.perb[fsgrids::bfield::PERBY];
+   const Real perBy_E = se.perb[fsgrids::bfield::PERBY];
+   const Real perBx_N = nw.perb[fsgrids::bfield::PERBX];
+   Real Vx0 = sw.moments[fsgrids::moments::VX];
+   Real Vy0 = sw.moments[fsgrids::moments::VY];
 
-   creal dBxdy_S = dperb_SW[fsgrids::dperb::dPERBxdy] + bgb_SW[fsgrids::bgbfield::dBGBxdy];
-   creal dBxdz_S = dperb_SW[fsgrids::dperb::dPERBxdz] + bgb_SW[fsgrids::bgbfield::dBGBxdz];
-   creal dBydx_W = dperb_SW[fsgrids::dperb::dPERBydx] + bgb_SW[fsgrids::bgbfield::dBGBydx];
-   creal dBydz_W = dperb_SW[fsgrids::dperb::dPERBydz] + bgb_SW[fsgrids::bgbfield::dBGBydz];
-   creal dBydx_E = dperb_SE[fsgrids::dperb::dPERBydx] + bgb_SE[fsgrids::bgbfield::dBGBydx];
-   creal dBydz_E = dperb_SE[fsgrids::dperb::dPERBydz] + bgb_SE[fsgrids::bgbfield::dBGBydz];
-   creal dBxdy_N = dperb_NW[fsgrids::dperb::dPERBxdy] + bgb_NW[fsgrids::bgbfield::dBGBxdy];
-   creal dBxdz_N = dperb_NW[fsgrids::dperb::dPERBxdz] + bgb_NW[fsgrids::bgbfield::dBGBxdz];
-   creal dperBxdy_S = dperb_SW[fsgrids::dperb::dPERBxdy];
-   creal dperBxdy_N = dperb_NW[fsgrids::dperb::dPERBxdy];
-   creal dperBydx_W = dperb_SW[fsgrids::dperb::dPERBydx];
-   creal dperBydx_E = dperb_SE[fsgrids::dperb::dPERBydx];
+   creal dBxdy_S = sw.dperb[fsgrids::dperb::dPERBxdy] + sw.bgb[fsgrids::bgbfield::dBGBxdy];
+   creal dBxdz_S = sw.dperb[fsgrids::dperb::dPERBxdz] + sw.bgb[fsgrids::bgbfield::dBGBxdz];
+   creal dBydx_W = sw.dperb[fsgrids::dperb::dPERBydx] + sw.bgb[fsgrids::bgbfield::dBGBydx];
+   creal dBydz_W = sw.dperb[fsgrids::dperb::dPERBydz] + sw.bgb[fsgrids::bgbfield::dBGBydz];
+   creal dBydx_E = se.dperb[fsgrids::dperb::dPERBydx] + se.bgb[fsgrids::bgbfield::dBGBydx];
+   creal dBydz_E = se.dperb[fsgrids::dperb::dPERBydz] + se.bgb[fsgrids::bgbfield::dBGBydz];
+   creal dBxdy_N = nw.dperb[fsgrids::dperb::dPERBxdy] + nw.bgb[fsgrids::bgbfield::dBGBxdy];
+   creal dBxdz_N = nw.dperb[fsgrids::dperb::dPERBxdz] + nw.bgb[fsgrids::bgbfield::dBGBxdz];
+   creal dperBxdy_S = sw.dperb[fsgrids::dperb::dPERBxdy];
+   creal dperBxdy_N = nw.dperb[fsgrids::dperb::dPERBxdy];
+   creal dperBydx_W = sw.dperb[fsgrids::dperb::dPERBydx];
+   creal dperBydx_E = se.dperb[fsgrids::dperb::dPERBydx];
 
    // Ez and characteristic speeds on SW cell:
    // 1st order terms:
@@ -1014,11 +990,11 @@ void calculateEdgeElectricFieldZ(
 #ifndef FS_1ST_ORDER_SPACE
    // 2nd order terms:
    Ez_SW += +HALF * ((Bx_S - HALF * dBxdy_S) *
-                         (-dmoments_SW[fsgrids::dmoments::dVydx] - dmoments_SW[fsgrids::dmoments::dVydy]) -
-                     dBxdy_S * Vy0 + SIXTH * dBxdz_S * dmoments_SW[fsgrids::dmoments::dVydz]);
+                         (-sw.dmoments[fsgrids::dmoments::dVydx] - sw.dmoments[fsgrids::dmoments::dVydy]) -
+                     dBxdy_S * Vy0 + SIXTH * dBxdz_S * sw.dmoments[fsgrids::dmoments::dVydz]);
    Ez_SW += -HALF * ((By_W - HALF * dBydx_W) *
-                         (-dmoments_SW[fsgrids::dmoments::dVxdx] - dmoments_SW[fsgrids::dmoments::dVxdy]) -
-                     dBydx_W * Vx0 + SIXTH * dBydz_W * dmoments_SW[fsgrids::dmoments::dVxdz]);
+                         (-sw.dmoments[fsgrids::dmoments::dVxdx] - sw.dmoments[fsgrids::dmoments::dVxdy]) -
+                     dBydx_W * Vx0 + SIXTH * dBydz_W * sw.dmoments[fsgrids::dmoments::dVxdz]);
 #endif
 
    size_t self = technicalGrid.localIDFromCellCoordinates(i, j, k);
@@ -1034,8 +1010,8 @@ void calculateEdgeElectricFieldZ(
    maxV = max(maxV, wavespeeds.cflSpeed(Vx0, Vy0));
 
    // Ez and characteristic speeds on SE (i-1) cell:
-   Vx0 = moments_SE[fsgrids::moments::VX];
-   Vy0 = moments_SE[fsgrids::moments::VY];
+   Vx0 = se.moments[fsgrids::moments::VX];
+   Vy0 = se.moments[fsgrids::moments::VY];
 
    // 1st order terms:
    Real Ez_SE = Bx_S * Vy0 - By_E * Vx0;
@@ -1043,11 +1019,11 @@ void calculateEdgeElectricFieldZ(
 #ifndef FS_1ST_ORDER_SPACE
    // 2nd order terms:
    Ez_SE += +HALF * ((Bx_S - HALF * dBxdy_S) *
-                         (+dmoments_SE[fsgrids::dmoments::dVydx] - dmoments_SE[fsgrids::dmoments::dVydy]) -
-                     dBxdy_S * Vy0 + SIXTH * dBxdz_S * dmoments_SE[fsgrids::dmoments::dVydz]);
+                         (+se.dmoments[fsgrids::dmoments::dVydx] - se.dmoments[fsgrids::dmoments::dVydy]) -
+                     dBxdy_S * Vy0 + SIXTH * dBxdz_S * se.dmoments[fsgrids::dmoments::dVydz]);
    Ez_SE += -HALF * ((By_E + HALF * dBydx_E) *
-                         (+dmoments_SE[fsgrids::dmoments::dVxdx] - dmoments_SE[fsgrids::dmoments::dVxdy]) +
-                     dBydx_E * Vx0 + SIXTH * dBydz_E * dmoments_SE[fsgrids::dmoments::dVxdz]);
+                         (+se.dmoments[fsgrids::dmoments::dVxdx] - se.dmoments[fsgrids::dmoments::dVxdy]) +
+                     dBydx_E * Vx0 + SIXTH * dBydz_E * se.dmoments[fsgrids::dmoments::dVxdz]);
 #endif
 
    self = technicalGrid.localIDFromCellCoordinates(i - 1, j, k);
@@ -1063,8 +1039,8 @@ void calculateEdgeElectricFieldZ(
    maxV = max(maxV, wavespeeds.cflSpeed(Vx0, Vy0));
 
    // Ez and characteristic speeds on NW (j-1) cell:
-   Vx0 = moments_NW[fsgrids::moments::VX];
-   Vy0 = moments_NW[fsgrids::moments::VY];
+   Vx0 = nw.moments[fsgrids::moments::VX];
+   Vy0 = nw.moments[fsgrids::moments::VY];
 
    // 1st order terms:
    Real Ez_NW = Bx_N * Vy0 - By_W * Vx0;
@@ -1072,11 +1048,11 @@ void calculateEdgeElectricFieldZ(
 #ifndef FS_1ST_ORDER_SPACE
    // 2nd order terms:
    Ez_NW += +HALF * ((Bx_N + HALF * dBxdy_N) *
-                         (-dmoments_NW[fsgrids::dmoments::dVydx] + dmoments_NW[fsgrids::dmoments::dVydy]) +
-                     dBxdy_N * Vy0 + SIXTH * dBxdz_N * dmoments_NW[fsgrids::dmoments::dVydz]);
+                         (-nw.dmoments[fsgrids::dmoments::dVydx] + nw.dmoments[fsgrids::dmoments::dVydy]) +
+                     dBxdy_N * Vy0 + SIXTH * dBxdz_N * nw.dmoments[fsgrids::dmoments::dVydz]);
    Ez_NW += -HALF * ((By_W - HALF * dBydx_W) *
-                         (-dmoments_NW[fsgrids::dmoments::dVxdx] + dmoments_NW[fsgrids::dmoments::dVxdy]) -
-                     dBydx_W * Vx0 + SIXTH * dBydz_W * dmoments_NW[fsgrids::dmoments::dVxdz]);
+                         (-nw.dmoments[fsgrids::dmoments::dVxdx] + nw.dmoments[fsgrids::dmoments::dVxdy]) -
+                     dBydx_W * Vx0 + SIXTH * dBydz_W * nw.dmoments[fsgrids::dmoments::dVxdz]);
 #endif
 
    self = technicalGrid.localIDFromCellCoordinates(i, j - 1, k);
@@ -1092,8 +1068,8 @@ void calculateEdgeElectricFieldZ(
    maxV = max(maxV, wavespeeds.cflSpeed(Vx0, Vy0));
 
    // Ez and characteristic speeds on NE (i-1,j-1) cell:
-   Vx0 = moments_NE[fsgrids::moments::VX];
-   Vy0 = moments_NE[fsgrids::moments::VY];
+   Vx0 = ne.moments[fsgrids::moments::VX];
+   Vy0 = ne.moments[fsgrids::moments::VY];
 
    // 1st order terms:
    Real Ez_NE = Bx_N * Vy0 - By_E * Vx0;
@@ -1101,11 +1077,11 @@ void calculateEdgeElectricFieldZ(
 #ifndef FS_1ST_ORDER_SPACE
    // 2nd order terms:
    Ez_NE += +HALF * ((Bx_N + HALF * dBxdy_N) *
-                         (+dmoments_NE[fsgrids::dmoments::dVydx] + dmoments_NE[fsgrids::dmoments::dVydy]) +
-                     dBxdy_N * Vy0 + SIXTH * dBxdz_N * dmoments_NE[fsgrids::dmoments::dVydz]);
+                         (+ne.dmoments[fsgrids::dmoments::dVydx] + ne.dmoments[fsgrids::dmoments::dVydy]) +
+                     dBxdy_N * Vy0 + SIXTH * dBxdz_N * ne.dmoments[fsgrids::dmoments::dVydz]);
    Ez_NE += -HALF * ((By_E + HALF * dBydx_E) *
-                         (+dmoments_NE[fsgrids::dmoments::dVxdx] + dmoments_NE[fsgrids::dmoments::dVxdy]) +
-                     dBydx_E * Vx0 + SIXTH * dBydz_E * dmoments_NE[fsgrids::dmoments::dVxdz]);
+                         (+ne.dmoments[fsgrids::dmoments::dVxdx] + ne.dmoments[fsgrids::dmoments::dVxdy]) +
+                     dBydx_E * Vx0 + SIXTH * dBydz_E * ne.dmoments[fsgrids::dmoments::dVxdz]);
 #endif
 
    self = technicalGrid.localIDFromCellCoordinates(i - 1, j - 1, k);
@@ -1126,10 +1102,10 @@ void calculateEdgeElectricFieldZ(
                                   static_cast<size_t>(fsgrids::dperb::dPERBxdy)};
       const std::array spacing = {gridSpacing[0], gridSpacing[1]};
 
-      Ez_SW += resistiveTerm(bgb_SW, perb_SW, dperb_SW, moments_SW[fsgrids::moments::RHOQ], indices, spacing);
-      Ez_SE += resistiveTerm(bgb_SE, perb_SE, dperb_SE, moments_SE[fsgrids::moments::RHOQ], indices, spacing);
-      Ez_NW += resistiveTerm(bgb_NW, perb_NW, dperb_NW, moments_NW[fsgrids::moments::RHOQ], indices, spacing);
-      Ez_NE += resistiveTerm(bgb_NE, perb_NE, dperb_NE, moments_NE[fsgrids::moments::RHOQ], indices, spacing);
+      Ez_SW += resistiveTerm(sw.bgb, sw.perb, sw.dperb, sw.moments[fsgrids::moments::RHOQ], indices, spacing);
+      Ez_SE += resistiveTerm(se.bgb, se.perb, se.dperb, se.moments[fsgrids::moments::RHOQ], indices, spacing);
+      Ez_NW += resistiveTerm(nw.bgb, nw.perb, nw.dperb, nw.moments[fsgrids::moments::RHOQ], indices, spacing);
+      Ez_NE += resistiveTerm(ne.bgb, ne.perb, ne.dperb, ne.moments[fsgrids::moments::RHOQ], indices, spacing);
    }
 
    // Hall terms
