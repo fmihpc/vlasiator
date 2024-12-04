@@ -143,7 +143,7 @@ public:
       return momentsCoeff(dir0, dir1, i, j, k, 0.0, std::numeric_limits<Real>::max());
    }
 
-   Real squared(Real a, Real b) const { return a * a + TWELWTH * b * b; }
+   static Real squared(Real a, Real b) { return a * a + TWELWTH * b * b; }
 };
 
 /*! \brief Low-level helper function.
@@ -197,9 +197,10 @@ Wavespeeds calculateWaveSpeedYZ(std::span<std::array<Real, fsgrids::bfield::N_BF
    const auto [A_Y, A_XY] = fc.dPerBCoeffs(fsgrids::dperb::dPERBxdy, fsgrids::bgbfield::dBGBxdy);
    const auto [A_Z, A_XZ] = fc.dPerBCoeffs(fsgrids::dperb::dPERBxdz, fsgrids::bgbfield::dBGBxdz);
 
-   const Real bx2 = fc.squared(A_0 + HALF * (ydir * A_Y + zdir * A_Z), A_X + HALF * (ydir * A_XY + zdir * A_XZ));
-   const Real by2 = fc.squared(By + zdir * HALF * dBydz, dBydx);
-   const Real bz2 = fc.squared(Bz + ydir * HALF * dBzdy, dBzdx);
+   const Real bx2 =
+       FieldCoefficients::squared(A_0 + HALF * (ydir * A_Y + zdir * A_Z), A_X + HALF * (ydir * A_XY + zdir * A_XZ));
+   const Real by2 = FieldCoefficients::squared(By + zdir * HALF * dBydz, dBydx);
+   const Real bz2 = FieldCoefficients::squared(Bz + ydir * HALF * dBzdy, dBzdx);
 
    return Wavespeeds(bx2 + by2 + bz2, rhom, p11, p22, p33, gridSpacing);
 }
@@ -255,9 +256,10 @@ Wavespeeds calculateWaveSpeedXZ(std::span<std::array<Real, fsgrids::bfield::N_BF
    const auto [B_X, B_XY] = fc.dPerBCoeffs(fsgrids::dperb::dPERBydx, fsgrids::bgbfield::dBGBydx);
    const auto [B_Z, B_YZ] = fc.dPerBCoeffs(fsgrids::dperb::dPERBydz, fsgrids::bgbfield::dBGBydz);
 
-   const Real by2 = fc.squared(B_0 + HALF * (xdir * B_X + zdir * B_Z), B_Y + HALF * (xdir * B_XY + zdir * B_YZ));
-   const Real bx2 = fc.squared(Bx + zdir * HALF * dBxdz, dBxdy);
-   const Real bz2 = fc.squared(Bz + xdir * HALF * dBzdx, dBzdy);
+   const Real by2 =
+       FieldCoefficients::squared(B_0 + HALF * (xdir * B_X + zdir * B_Z), B_Y + HALF * (xdir * B_XY + zdir * B_YZ));
+   const Real bx2 = FieldCoefficients::squared(Bx + zdir * HALF * dBxdz, dBxdy);
+   const Real bz2 = FieldCoefficients::squared(Bz + xdir * HALF * dBzdx, dBzdy);
 
    return Wavespeeds(bx2 + by2 + bz2, rhom, p11, p22, p33, gridSpacing);
 }
@@ -313,9 +315,10 @@ Wavespeeds calculateWaveSpeedXY(std::span<std::array<Real, fsgrids::bfield::N_BF
    const auto [C_X, C_XZ] = fc.dPerBCoeffs(fsgrids::dperb::dPERBzdx, fsgrids::bgbfield::dBGBzdx);
    const auto [C_Y, C_YZ] = fc.dPerBCoeffs(fsgrids::dperb::dPERBzdy, fsgrids::bgbfield::dBGBzdy);
 
-   const Real bz2 = fc.squared(C_0 + HALF * (xdir * C_X + ydir * C_Y), C_Z + HALF * (xdir * C_XZ + ydir * C_YZ));
-   const Real bx2 = fc.squared(Bx + ydir * HALF * dBxdy, dBxdz);
-   const Real by2 = fc.squared(By + xdir * HALF * dBydx, dBydz);
+   const Real bz2 =
+       FieldCoefficients::squared(C_0 + HALF * (xdir * C_X + ydir * C_Y), C_Z + HALF * (xdir * C_XZ + ydir * C_YZ));
+   const Real bx2 = FieldCoefficients::squared(Bx + ydir * HALF * dBxdy, dBxdz);
+   const Real by2 = FieldCoefficients::squared(By + xdir * HALF * dBydx, dBydz);
 
    return Wavespeeds(bx2 + by2 + bz2, rhom, p11, p22, p33, gridSpacing);
 }
