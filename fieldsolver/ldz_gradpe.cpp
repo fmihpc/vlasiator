@@ -35,17 +35,11 @@ using namespace std;
 /** Calculate the electron pressure gradient term on all given cells.
  * @param sysBoundaries System boundary condition functions.
  */
-void calculateGradPeTerm(
-    fsgrid::FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH>& EGradPeGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
-    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k,
-    const auto& gridSpacing, SysBoundary& sysBoundaries) {
-   const auto& stencil = technicalGrid.makeStencil(i, j, k);
-   std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpes = EGradPeGrid.getData();
-   std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments = momentsGrid.getData();
-   std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments = dMomentsGrid.getData();
-   std::span<const fsgrids::technical> technical = technicalGrid.getData();
+void calculateGradPeTerm(std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpes,
+                         std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                         std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+                         std::span<const fsgrids::technical> technical, const fsgrid::FsStencil& stencil,
+                         const auto& gridSpacing, SysBoundary& sysBoundaries) {
 #ifdef DEBUG_FSOLVER
    if (stencil.center() >= moments.size()) {
       cerr << "Out-of-bounds access in " << __FILE__ << ":" << __LINE__ << endl;
@@ -104,14 +98,25 @@ void calculateGradPeTermSimple(
     fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsDt2Grid,
     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, SysBoundary& sysBoundaries, cint& RKCase) {
    const auto& gridSpacing = technicalGrid.getGridSpacing();
-   // const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
-   const fsgrid::FsIndex_t* gridDims = &technicalGrid.getLocalSize()[0];
-   const size_t N_cells = gridDims[0] * gridDims[1] * gridDims[2];
+   const auto& localSize = technicalGrid.getLocalSize();
+   const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
+   const bool case0 = RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2;
+
+   std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpes = EGradPeGrid.getData();
+   std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments = momentsGrid.getData();
+   std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments = dMomentsGrid.getData();
+   std::span<const fsgrids::technical> technical = technicalGrid.getData();
+   if (case0) {
+      egradpes = EGradPeDt2Grid.getData();
+      moments = momentsDt2Grid.getData();
+      dmoments = dMomentsDt2Grid.getData();
+   }
+
    phiprof::Timer gradPeTimer{"Calculate GradPe term"};
    int computeTimerId{phiprof::initializeTimer("EgradPe compute cells")};
 
    phiprof::Timer mpiTimer{"EgradPe field update ghosts MPI", {"MPI"}};
-   if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+   if (case0) {
       dMomentsGrid.updateGhostCells();
    } else {
       dMomentsDt2Grid.updateGhostCells();
@@ -123,16 +128,11 @@ void calculateGradPeTermSimple(
    {
       phiprof::Timer computeTimer{computeTimerId};
 #pragma omp for collapse(2)
-      for (fsgrid::FsIndex_t k = 0; k < gridDims[2]; k++) {
-         for (fsgrid::FsIndex_t j = 0; j < gridDims[1]; j++) {
-            for (fsgrid::FsIndex_t i = 0; i < gridDims[0]; i++) {
-               if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-                  calculateGradPeTerm(EGradPeGrid, momentsGrid, dMomentsGrid, technicalGrid, i, j, k, gridSpacing,
-                                      sysBoundaries);
-               } else {
-                  calculateGradPeTerm(EGradPeDt2Grid, momentsDt2Grid, dMomentsDt2Grid, technicalGrid, i, j, k,
-                                      gridSpacing, sysBoundaries);
-               }
+      for (auto k = 0; k < localSize[2]; k++) {
+         for (auto j = 0; j < localSize[1]; j++) {
+            for (auto i = 0; i < localSize[0]; i++) {
+               const auto& stencil = technicalGrid.makeStencil(i, j, k);
+               calculateGradPeTerm(egradpes, moments, dmoments, technical, stencil, gridSpacing, sysBoundaries);
             }
          }
       }
