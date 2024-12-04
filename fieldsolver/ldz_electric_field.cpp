@@ -523,8 +523,8 @@ void calculateEdgeElectricFieldX(
                          (-sw.dmoments[fsgrids::dmoments::dVydy] - sw.dmoments[fsgrids::dmoments::dVydz]) -
                      dBzdy_W * Vy0 + SIXTH * dBzdx_W * sw.dmoments[fsgrids::dmoments::dVydx]);
 #endif
-   size_t self = technicalGrid.localIDFromCellCoordinates(i, j, k);
-   size_t nbr = technicalGrid.localIDFromCellCoordinates(i + 1, j, k);
+   size_t self = stencil.center();
+   size_t nbr = stencil.right();
    auto wavespeeds = calculateWaveSpeedYZ(perb, moments, dperb, dmoments, bgb, gridSpacing, rhomLimits, self, nbr, By_S,
                                           Bz_W, dBydx_S, dBydz_S, dBzdx_W, dBzdy_W, MINUS, MINUS);
    c_y = wavespeeds.minVelocity();
@@ -552,8 +552,8 @@ void calculateEdgeElectricFieldX(
                      dBzdy_E * Vy0 + SIXTH * dBzdx_E * se.dmoments[fsgrids::dmoments::dVydx]);
 #endif
 
-   self = technicalGrid.localIDFromCellCoordinates(i, j - 1, k);
-   nbr = technicalGrid.localIDFromCellCoordinates(i + 1, j - 1, k);
+   self = stencil.down();
+   nbr = stencil.rightdown();
    wavespeeds = calculateWaveSpeedYZ(perb, moments, dperb, dmoments, bgb, gridSpacing, rhomLimits, self, nbr, By_S,
                                      Bz_E, dBydx_S, dBydz_S, dBzdx_E, dBzdy_E, PLUS, MINUS);
    c_y = wavespeeds.minVelocity();
@@ -581,8 +581,8 @@ void calculateEdgeElectricFieldX(
                      dBzdy_W * Vy0 + SIXTH * dBzdx_W * nw.dmoments[fsgrids::dmoments::dVydx]);
 #endif
 
-   self = technicalGrid.localIDFromCellCoordinates(i, j, k - 1);
-   nbr = technicalGrid.localIDFromCellCoordinates(i + 1, j, k - 1);
+   self = stencil.far();
+   nbr = stencil.rightfar();
    wavespeeds = calculateWaveSpeedYZ(perb, moments, dperb, dmoments, bgb, gridSpacing, rhomLimits, self, nbr, By_N,
                                      Bz_W, dBydx_N, dBydz_N, dBzdx_W, dBzdy_W, MINUS, PLUS);
    c_y = wavespeeds.minVelocity();
@@ -610,8 +610,8 @@ void calculateEdgeElectricFieldX(
                      dBzdy_E * Vy0 + SIXTH * dBzdx_E * ne.dmoments[fsgrids::dmoments::dVydx]);
 #endif
 
-   self = technicalGrid.localIDFromCellCoordinates(i, j - 1, k - 1);
-   nbr = technicalGrid.localIDFromCellCoordinates(i + 1, j - 1, k - 1);
+   self = stencil.downfar();
+   nbr = stencil.rightdownfar();
    wavespeeds = calculateWaveSpeedYZ(perb, moments, dperb, dmoments, bgb, gridSpacing, rhomLimits, self, nbr, By_N,
                                      Bz_E, dBydx_N, dBydz_N, dBzdx_E, dBzdy_E, PLUS, PLUS);
    c_y = wavespeeds.minVelocity();
@@ -763,8 +763,8 @@ void calculateEdgeElectricFieldY(
                      dBxdz_W * Vz0 + SIXTH * dBxdy_W * sw.dmoments[fsgrids::dmoments::dVzdy]);
 #endif
 
-   size_t self = technicalGrid.localIDFromCellCoordinates(i, j, k);
-   size_t nbr = technicalGrid.localIDFromCellCoordinates(i, j + 1, k);
+   size_t self = stencil.center();
+   size_t nbr = stencil.up();
    auto wavespeeds = calculateWaveSpeedXZ(perb, moments, dperb, dmoments, bgb, gridSpacing, rhomLimits, self, nbr, Bx_W,
                                           Bz_S, dBxdy_W, dBxdz_W, dBzdx_S, dBzdy_S, MINUS, MINUS);
    c_z = wavespeeds.minVelocity();
@@ -792,8 +792,8 @@ void calculateEdgeElectricFieldY(
                      dBxdz_E * Vz0 + SIXTH * dBxdy_E * se.dmoments[fsgrids::dmoments::dVzdy]);
 #endif
 
-   self = technicalGrid.localIDFromCellCoordinates(i, j, k - 1);
-   nbr = technicalGrid.localIDFromCellCoordinates(i, j + 1, k - 1);
+   self = stencil.far();
+   nbr = stencil.upfar();
    wavespeeds = calculateWaveSpeedXZ(perb, moments, dperb, dmoments, bgb, gridSpacing, rhomLimits, self, nbr, Bx_E,
                                      Bz_S, dBxdy_E, dBxdz_E, dBzdx_S, dBzdy_S, MINUS, PLUS);
    c_z = wavespeeds.minVelocity();
@@ -821,8 +821,8 @@ void calculateEdgeElectricFieldY(
                      dBxdz_W * Vz0 + SIXTH * dBxdy_W * nw.dmoments[fsgrids::dmoments::dVzdy]);
 #endif
 
-   self = technicalGrid.localIDFromCellCoordinates(i - 1, j, k);
-   nbr = technicalGrid.localIDFromCellCoordinates(i - 1, j + 1, k);
+   self = stencil.left();
+   nbr = stencil.leftup();
    wavespeeds = calculateWaveSpeedXZ(perb, moments, dperb, dmoments, bgb, gridSpacing, rhomLimits, self, nbr, Bx_W,
                                      Bz_N, dBxdy_W, dBxdz_W, dBzdx_N, dBzdy_N, PLUS, MINUS);
    c_z = wavespeeds.minVelocity();
@@ -850,8 +850,8 @@ void calculateEdgeElectricFieldY(
                      dBxdz_E * Vz0 + SIXTH * dBxdy_E * ne.dmoments[fsgrids::dmoments::dVzdy]);
 #endif
 
-   self = technicalGrid.localIDFromCellCoordinates(i - 1, j, k - 1);
-   nbr = technicalGrid.localIDFromCellCoordinates(i - 1, j + 1, k - 1);
+   self = stencil.leftfar();
+   nbr = stencil.leftupfar();
    wavespeeds = calculateWaveSpeedXZ(perb, moments, dperb, dmoments, bgb, gridSpacing, rhomLimits, self, nbr, Bx_E,
                                      Bz_N, dBxdy_E, dBxdz_E, dBzdx_N, dBzdy_N, PLUS, PLUS);
    c_z = wavespeeds.minVelocity();
@@ -1004,8 +1004,8 @@ void calculateEdgeElectricFieldZ(
                      dBydx_W * Vx0 + SIXTH * dBydz_W * sw.dmoments[fsgrids::dmoments::dVxdz]);
 #endif
 
-   size_t self = technicalGrid.localIDFromCellCoordinates(i, j, k);
-   size_t nbr = technicalGrid.localIDFromCellCoordinates(i, j, k + 1);
+   size_t self = stencil.center();
+   size_t nbr = stencil.near();
    auto wavespeeds = calculateWaveSpeedXY(perb, moments, dperb, dmoments, bgb, gridSpacing, rhomLimits, self, nbr, Bx_S,
                                           By_W, dBxdy_S, dBxdz_S, dBydx_W, dBydz_W, MINUS, MINUS);
    c_x = wavespeeds.minVelocity();
@@ -1033,8 +1033,8 @@ void calculateEdgeElectricFieldZ(
                      dBydx_E * Vx0 + SIXTH * dBydz_E * se.dmoments[fsgrids::dmoments::dVxdz]);
 #endif
 
-   self = technicalGrid.localIDFromCellCoordinates(i - 1, j, k);
-   nbr = technicalGrid.localIDFromCellCoordinates(i - 1, j, k + 1);
+   self = stencil.left();
+   nbr = stencil.leftnear();
    wavespeeds = calculateWaveSpeedXY(perb, moments, dperb, dmoments, bgb, gridSpacing, rhomLimits, self, nbr, Bx_S,
                                      By_E, dBxdy_S, dBxdz_S, dBydx_E, dBydz_E, PLUS, MINUS);
    c_x = wavespeeds.minVelocity();
@@ -1062,8 +1062,8 @@ void calculateEdgeElectricFieldZ(
                      dBydx_W * Vx0 + SIXTH * dBydz_W * nw.dmoments[fsgrids::dmoments::dVxdz]);
 #endif
 
-   self = technicalGrid.localIDFromCellCoordinates(i, j - 1, k);
-   nbr = technicalGrid.localIDFromCellCoordinates(i, j - 1, k + 1);
+   self = stencil.down();
+   nbr = stencil.downnear();
    wavespeeds = calculateWaveSpeedXY(perb, moments, dperb, dmoments, bgb, gridSpacing, rhomLimits, self, nbr, Bx_N,
                                      By_W, dBxdy_N, dBxdz_N, dBydx_W, dBydz_W, MINUS, PLUS);
    c_x = wavespeeds.minVelocity();
@@ -1091,8 +1091,8 @@ void calculateEdgeElectricFieldZ(
                      dBydx_E * Vx0 + SIXTH * dBydz_E * ne.dmoments[fsgrids::dmoments::dVxdz]);
 #endif
 
-   self = technicalGrid.localIDFromCellCoordinates(i - 1, j - 1, k);
-   nbr = technicalGrid.localIDFromCellCoordinates(i - 1, j - 1, k + 1);
+   self = stencil.leftdown();
+   nbr = stencil.leftdownnear();
    wavespeeds = calculateWaveSpeedXY(perb, moments, dperb, dmoments, bgb, gridSpacing, rhomLimits, self, nbr, Bx_N,
                                      By_E, dBxdy_N, dBxdz_N, dBydx_E, dBydz_E, PLUS, PLUS);
    c_x = wavespeeds.minVelocity();
