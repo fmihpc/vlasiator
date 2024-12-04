@@ -182,9 +182,9 @@ Wavespeeds calculateWaveSpeedYZ(std::span<std::array<Real, fsgrids::bfield::N_BF
                                 std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dPerB,
                                 std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dMoments,
                                 std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> BgB,
-                                const std::array<Real, 3>& gridSpacing, size_t self, size_t nbr, const Real& By,
-                                const Real& Bz, const Real& dBydx, const Real& dBydz, const Real& dBzdx,
-                                const Real& dBzdy, const Real& ydir, const Real& zdir, const Limits& rhomLimits) {
+                                const std::array<Real, 3>& gridSpacing, const Limits& rhomLimits, size_t self,
+                                size_t nbr, Real By, Real Bz, Real dBydx, Real dBydz, Real dBzdx, Real dBzdy, Real ydir,
+                                Real zdir) {
    const FieldCoefficients fc(perB, dPerB, BgB, moments, dMoments, self, nbr, rhomLimits);
 
    const Real rhom =
@@ -241,9 +241,9 @@ Wavespeeds calculateWaveSpeedXZ(std::span<std::array<Real, fsgrids::bfield::N_BF
                                 std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dPerB,
                                 std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dMoments,
                                 std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> BgB,
-                                const std::array<Real, 3>& gridSpacing, size_t self, size_t nbr, const Real& Bx,
-                                const Real& Bz, const Real& dBxdy, const Real& dBxdz, const Real& dBzdx,
-                                const Real& dBzdy, const Real& xdir, const Real& zdir, const Limits& rhomLimits) {
+                                const std::array<Real, 3>& gridSpacing, const Limits& rhomLimits, size_t self,
+                                size_t nbr, Real Bx, Real Bz, Real dBxdy, Real dBxdz, Real dBzdx, Real dBzdy, Real xdir,
+                                Real zdir) {
    const FieldCoefficients fc(perB, dPerB, BgB, moments, dMoments, self, nbr, rhomLimits);
 
    const Real rhom =
@@ -300,9 +300,9 @@ Wavespeeds calculateWaveSpeedXY(std::span<std::array<Real, fsgrids::bfield::N_BF
                                 std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dPerB,
                                 std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dMoments,
                                 std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> BgB,
-                                const std::array<Real, 3>& gridSpacing, size_t self, size_t nbr, const Real& Bx,
-                                const Real& By, const Real& dBxdy, const Real& dBxdz, const Real& dBydx,
-                                const Real& dBydz, const Real& xdir, const Real& ydir, const Limits& rhomLimits) {
+                                const std::array<Real, 3>& gridSpacing, const Limits& rhomLimits, size_t self,
+                                size_t nbr, Real Bx, Real By, Real dBxdy, Real dBxdz, Real dBydx, Real dBydz, Real xdir,
+                                Real ydir) {
    const FieldCoefficients fc(perB, dPerB, BgB, moments, dMoments, self, nbr, rhomLimits);
 
    const Real rhom =
@@ -513,8 +513,8 @@ void calculateEdgeElectricFieldX(
 #endif
    size_t self = technicalGrid.localIDFromCellCoordinates(i, j, k);
    size_t nbr = technicalGrid.localIDFromCellCoordinates(i + 1, j, k);
-   auto wavespeeds = calculateWaveSpeedYZ(perb, moments, dperb, dmoments, bgb, gridSpacing, self, nbr, By_S, Bz_W,
-                                          dBydx_S, dBydz_S, dBzdx_W, dBzdy_W, MINUS, MINUS, rhomLimits);
+   auto wavespeeds = calculateWaveSpeedYZ(perb, moments, dperb, dmoments, bgb, gridSpacing, rhomLimits, self, nbr, By_S,
+                                          Bz_W, dBydx_S, dBydz_S, dBzdx_W, dBzdy_W, MINUS, MINUS);
    c_y = wavespeeds.minVelocity();
    c_z = c_y;
    ay_neg = max(ZERO, -Vy0 + c_y);
@@ -542,8 +542,8 @@ void calculateEdgeElectricFieldX(
 
    self = technicalGrid.localIDFromCellCoordinates(i, j - 1, k);
    nbr = technicalGrid.localIDFromCellCoordinates(i + 1, j - 1, k);
-   wavespeeds = calculateWaveSpeedYZ(perb, moments, dperb, dmoments, bgb, gridSpacing, self, nbr, By_S, Bz_E, dBydx_S,
-                                     dBydz_S, dBzdx_E, dBzdy_E, PLUS, MINUS, rhomLimits);
+   wavespeeds = calculateWaveSpeedYZ(perb, moments, dperb, dmoments, bgb, gridSpacing, rhomLimits, self, nbr, By_S,
+                                     Bz_E, dBydx_S, dBydz_S, dBzdx_E, dBzdy_E, PLUS, MINUS);
    c_y = wavespeeds.minVelocity();
    c_z = c_y;
    ay_neg = max(ay_neg, -Vy0 + c_y);
@@ -571,8 +571,8 @@ void calculateEdgeElectricFieldX(
 
    self = technicalGrid.localIDFromCellCoordinates(i, j, k - 1);
    nbr = technicalGrid.localIDFromCellCoordinates(i + 1, j, k - 1);
-   wavespeeds = calculateWaveSpeedYZ(perb, moments, dperb, dmoments, bgb, gridSpacing, self, nbr, By_N, Bz_W, dBydx_N,
-                                     dBydz_N, dBzdx_W, dBzdy_W, MINUS, PLUS, rhomLimits);
+   wavespeeds = calculateWaveSpeedYZ(perb, moments, dperb, dmoments, bgb, gridSpacing, rhomLimits, self, nbr, By_N,
+                                     Bz_W, dBydx_N, dBydz_N, dBzdx_W, dBzdy_W, MINUS, PLUS);
    c_y = wavespeeds.minVelocity();
    c_z = c_y;
    ay_neg = max(ay_neg, -Vy0 + c_y);
@@ -600,8 +600,8 @@ void calculateEdgeElectricFieldX(
 
    self = technicalGrid.localIDFromCellCoordinates(i, j - 1, k - 1);
    nbr = technicalGrid.localIDFromCellCoordinates(i + 1, j - 1, k - 1);
-   wavespeeds = calculateWaveSpeedYZ(perb, moments, dperb, dmoments, bgb, gridSpacing, self, nbr, By_N, Bz_E, dBydx_N,
-                                     dBydz_N, dBzdx_E, dBzdy_E, PLUS, PLUS, rhomLimits);
+   wavespeeds = calculateWaveSpeedYZ(perb, moments, dperb, dmoments, bgb, gridSpacing, rhomLimits, self, nbr, By_N,
+                                     Bz_E, dBydx_N, dBydz_N, dBzdx_E, dBzdy_E, PLUS, PLUS);
    c_y = wavespeeds.minVelocity();
    c_z = c_y;
    ay_neg = max(ay_neg, -Vy0 + c_y);
@@ -761,8 +761,8 @@ void calculateEdgeElectricFieldY(
 
    size_t self = technicalGrid.localIDFromCellCoordinates(i, j, k);
    size_t nbr = technicalGrid.localIDFromCellCoordinates(i, j + 1, k);
-   auto wavespeeds = calculateWaveSpeedXZ(perb, moments, dperb, dmoments, bgb, gridSpacing, self, nbr, Bx_W, Bz_S,
-                                          dBxdy_W, dBxdz_W, dBzdx_S, dBzdy_S, MINUS, MINUS, rhomLimits);
+   auto wavespeeds = calculateWaveSpeedXZ(perb, moments, dperb, dmoments, bgb, gridSpacing, rhomLimits, self, nbr, Bx_W,
+                                          Bz_S, dBxdy_W, dBxdz_W, dBzdx_S, dBzdy_S, MINUS, MINUS);
    c_z = wavespeeds.minVelocity();
    c_x = c_z;
    az_neg = max(ZERO, -Vz0 + c_z);
@@ -790,8 +790,8 @@ void calculateEdgeElectricFieldY(
 
    self = technicalGrid.localIDFromCellCoordinates(i, j, k - 1);
    nbr = technicalGrid.localIDFromCellCoordinates(i, j + 1, k - 1);
-   wavespeeds = calculateWaveSpeedXZ(perb, moments, dperb, dmoments, bgb, gridSpacing, self, nbr, Bx_E, Bz_S, dBxdy_E,
-                                     dBxdz_E, dBzdx_S, dBzdy_S, MINUS, PLUS, rhomLimits);
+   wavespeeds = calculateWaveSpeedXZ(perb, moments, dperb, dmoments, bgb, gridSpacing, rhomLimits, self, nbr, Bx_E,
+                                     Bz_S, dBxdy_E, dBxdz_E, dBzdx_S, dBzdy_S, MINUS, PLUS);
    c_z = wavespeeds.minVelocity();
    c_x = c_z;
    az_neg = max(az_neg, -Vz0 + c_z);
@@ -819,8 +819,8 @@ void calculateEdgeElectricFieldY(
 
    self = technicalGrid.localIDFromCellCoordinates(i - 1, j, k);
    nbr = technicalGrid.localIDFromCellCoordinates(i - 1, j + 1, k);
-   wavespeeds = calculateWaveSpeedXZ(perb, moments, dperb, dmoments, bgb, gridSpacing, self, nbr, Bx_W, Bz_N, dBxdy_W,
-                                     dBxdz_W, dBzdx_N, dBzdy_N, PLUS, MINUS, rhomLimits);
+   wavespeeds = calculateWaveSpeedXZ(perb, moments, dperb, dmoments, bgb, gridSpacing, rhomLimits, self, nbr, Bx_W,
+                                     Bz_N, dBxdy_W, dBxdz_W, dBzdx_N, dBzdy_N, PLUS, MINUS);
    c_z = wavespeeds.minVelocity();
    c_x = c_z;
    az_neg = max(az_neg, -Vz0 + c_z);
@@ -848,8 +848,8 @@ void calculateEdgeElectricFieldY(
 
    self = technicalGrid.localIDFromCellCoordinates(i - 1, j, k - 1);
    nbr = technicalGrid.localIDFromCellCoordinates(i - 1, j + 1, k - 1);
-   wavespeeds = calculateWaveSpeedXZ(perb, moments, dperb, dmoments, bgb, gridSpacing, self, nbr, Bx_E, Bz_N, dBxdy_E,
-                                     dBxdz_E, dBzdx_N, dBzdy_N, PLUS, PLUS, rhomLimits);
+   wavespeeds = calculateWaveSpeedXZ(perb, moments, dperb, dmoments, bgb, gridSpacing, rhomLimits, self, nbr, Bx_E,
+                                     Bz_N, dBxdy_E, dBxdz_E, dBzdx_N, dBzdy_N, PLUS, PLUS);
    c_z = wavespeeds.minVelocity();
    c_x = c_z;
    az_neg = max(az_neg, -Vz0 + c_z);
@@ -1012,8 +1012,8 @@ void calculateEdgeElectricFieldZ(
 
    size_t self = technicalGrid.localIDFromCellCoordinates(i, j, k);
    size_t nbr = technicalGrid.localIDFromCellCoordinates(i, j, k + 1);
-   auto wavespeeds = calculateWaveSpeedXY(perb, moments, dperb, dmoments, bgb, gridSpacing, self, nbr, Bx_S, By_W,
-                                          dBxdy_S, dBxdz_S, dBydx_W, dBydz_W, MINUS, MINUS, rhomLimits);
+   auto wavespeeds = calculateWaveSpeedXY(perb, moments, dperb, dmoments, bgb, gridSpacing, rhomLimits, self, nbr, Bx_S,
+                                          By_W, dBxdy_S, dBxdz_S, dBydx_W, dBydz_W, MINUS, MINUS);
    c_x = wavespeeds.minVelocity();
    c_y = c_x;
    ax_neg = max(ZERO, -Vx0 + c_x);
@@ -1041,8 +1041,8 @@ void calculateEdgeElectricFieldZ(
 
    self = technicalGrid.localIDFromCellCoordinates(i - 1, j, k);
    nbr = technicalGrid.localIDFromCellCoordinates(i - 1, j, k + 1);
-   wavespeeds = calculateWaveSpeedXY(perb, moments, dperb, dmoments, bgb, gridSpacing, self, nbr, Bx_S, By_E, dBxdy_S,
-                                     dBxdz_S, dBydx_E, dBydz_E, PLUS, MINUS, rhomLimits);
+   wavespeeds = calculateWaveSpeedXY(perb, moments, dperb, dmoments, bgb, gridSpacing, rhomLimits, self, nbr, Bx_S,
+                                     By_E, dBxdy_S, dBxdz_S, dBydx_E, dBydz_E, PLUS, MINUS);
    c_x = wavespeeds.minVelocity();
    c_y = c_x;
    ax_neg = max(ax_neg, -Vx0 + c_x);
@@ -1070,8 +1070,8 @@ void calculateEdgeElectricFieldZ(
 
    self = technicalGrid.localIDFromCellCoordinates(i, j - 1, k);
    nbr = technicalGrid.localIDFromCellCoordinates(i, j - 1, k + 1);
-   wavespeeds = calculateWaveSpeedXY(perb, moments, dperb, dmoments, bgb, gridSpacing, self, nbr, Bx_N, By_W, dBxdy_N,
-                                     dBxdz_N, dBydx_W, dBydz_W, MINUS, PLUS, rhomLimits);
+   wavespeeds = calculateWaveSpeedXY(perb, moments, dperb, dmoments, bgb, gridSpacing, rhomLimits, self, nbr, Bx_N,
+                                     By_W, dBxdy_N, dBxdz_N, dBydx_W, dBydz_W, MINUS, PLUS);
    c_x = wavespeeds.minVelocity();
    c_y = c_x;
    ax_neg = max(ax_neg, -Vx0 + c_x);
@@ -1099,8 +1099,8 @@ void calculateEdgeElectricFieldZ(
 
    self = technicalGrid.localIDFromCellCoordinates(i - 1, j - 1, k);
    nbr = technicalGrid.localIDFromCellCoordinates(i - 1, j - 1, k + 1);
-   wavespeeds = calculateWaveSpeedXY(perb, moments, dperb, dmoments, bgb, gridSpacing, self, nbr, Bx_N, By_E, dBxdy_N,
-                                     dBxdz_N, dBydx_E, dBydz_E, PLUS, PLUS, rhomLimits);
+   wavespeeds = calculateWaveSpeedXY(perb, moments, dperb, dmoments, bgb, gridSpacing, rhomLimits, self, nbr, Bx_N,
+                                     By_E, dBxdy_N, dBxdz_N, dBydx_E, dBydz_E, PLUS, PLUS);
    c_x = wavespeeds.minVelocity();
    c_y = c_x;
    ax_neg = max(ax_neg, -Vx0 + c_x);
