@@ -22,6 +22,7 @@
 
 // clang-format off
 #include "fs_common.h"
+#include <limits>
 #include "ldz_gradpe.hpp"
 // clang-format on
 
@@ -36,25 +37,9 @@ void calculateEdgeGradPeTermComponent(
     fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
     fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid, cint i, cint j,
     cint k, size_t index0, size_t index1, Real spacing) {
-   Real hallRhoq = 0.0;
-   Real rhoq = 0.0;
-   switch (Parameters::ohmGradPeTerm) {
-   case 0:
-      cerr << __FILE__ << __LINE__
-           << "You shouldn't be in a electron pressure gradient term function if Parameters::ohmGradPeTerm == 0."
-           << endl;
-      break;
-
-   case 1:
-      rhoq = momentsGrid.get(i, j, k)->at(fsgrids::moments::RHOQ);
-      hallRhoq = (rhoq <= Parameters::hallMinimumRhoq) ? Parameters::hallMinimumRhoq : rhoq;
-      EGradPeGrid.get(i, j, k)->at(index0) = -dMomentsGrid.get(i, j, k)->at(index1) / (hallRhoq * spacing);
-      break;
-
-   default:
-      cerr << __FILE__ << ":" << __LINE__ << "You are welcome to code higher-order Hall term correction terms." << endl;
-      break;
-   }
+   const Real hallRhoq = std::clamp(momentsGrid.get(i, j, k)->at(fsgrids::moments::RHOQ), Parameters::hallMinimumRhoq,
+                                    std::numeric_limits<Real>::max());
+   EGradPeGrid.get(i, j, k)->at(index0) = -dMomentsGrid.get(i, j, k)->at(index1) / (hallRhoq * spacing);
 }
 
 /** Calculate the electron pressure gradient term on all given cells.
@@ -90,12 +75,21 @@ void calculateGradPeTerm(
       sysBoundaries.getSysBoundary(cellSysBoundaryFlag)
           ->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid, i, j, k, 2);
    } else {
-      calculateEdgeGradPeTermComponent(EGradPeGrid, momentsGrid, dMomentsGrid, i, j, k, fsgrids::egradpe::EXGRADPE,
-                                       fsgrids::dmoments::dPedx, gridSpacing[0]);
-      calculateEdgeGradPeTermComponent(EGradPeGrid, momentsGrid, dMomentsGrid, i, j, k, fsgrids::egradpe::EYGRADPE,
-                                       fsgrids::dmoments::dPedy, gridSpacing[1]);
-      calculateEdgeGradPeTermComponent(EGradPeGrid, momentsGrid, dMomentsGrid, i, j, k, fsgrids::egradpe::EZGRADPE,
-                                       fsgrids::dmoments::dPedz, gridSpacing[2]);
+      if (Parameters::ohmGradPeTerm == 0) {
+         cerr << __FILE__ << __LINE__
+              << "You shouldn't be in a electron pressure gradient term function if Parameters::ohmGradPeTerm == 0."
+              << endl;
+      } else if (Parameters::ohmGradPeTerm == 1) {
+         calculateEdgeGradPeTermComponent(EGradPeGrid, momentsGrid, dMomentsGrid, i, j, k, fsgrids::egradpe::EXGRADPE,
+                                          fsgrids::dmoments::dPedx, gridSpacing[0]);
+         calculateEdgeGradPeTermComponent(EGradPeGrid, momentsGrid, dMomentsGrid, i, j, k, fsgrids::egradpe::EYGRADPE,
+                                          fsgrids::dmoments::dPedy, gridSpacing[1]);
+         calculateEdgeGradPeTermComponent(EGradPeGrid, momentsGrid, dMomentsGrid, i, j, k, fsgrids::egradpe::EZGRADPE,
+                                          fsgrids::dmoments::dPedz, gridSpacing[2]);
+      } else {
+         cerr << __FILE__ << ":" << __LINE__ << "You are welcome to code higher-order Hall term correction terms."
+              << endl;
+      }
    }
 }
 
