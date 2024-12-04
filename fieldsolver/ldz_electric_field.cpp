@@ -122,11 +122,11 @@ private:
    }
 
 public:
-   FieldCoefficients(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perB,
-                     std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dPerB,
-                     std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> BgB,
-                     std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
-                     std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dMoments, size_t self, size_t nbr,
+   FieldCoefficients(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perB,
+                     std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dPerB,
+                     std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> BgB,
+                     std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                     std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dMoments, size_t self, size_t nbr,
                      const Limits& rhomLimits)
        : perb(perB[self]), nbr_perb(perB[nbr]), dperb(dPerB[self]), nbr_dperb(dPerB[nbr]), bgb(BgB[self]),
          nbr_bgb(BgB[nbr]), moment(moments[self]), dmoment(dMoments[self]), rhomLimits(rhomLimits) {}
@@ -177,11 +177,11 @@ public:
  * \param ret_vS Sound speed returned
  * \param ret_vW Whistler speed returned
  */
-Wavespeeds calculateWaveSpeedYZ(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perB,
-                                std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
-                                std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dPerB,
-                                std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dMoments,
-                                std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> BgB,
+Wavespeeds calculateWaveSpeedYZ(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perB,
+                                std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                                std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dPerB,
+                                std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dMoments,
+                                std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> BgB,
                                 const std::array<Real, 3>& gridSpacing, const Limits& rhomLimits, size_t self,
                                 size_t nbr, Real By, Real Bz, Real dBydx, Real dBydz, Real dBzdx, Real dBzdy, Real ydir,
                                 Real zdir) {
@@ -236,11 +236,11 @@ Wavespeeds calculateWaveSpeedYZ(std::span<std::array<Real, fsgrids::bfield::N_BF
  * \param ret_vS Sound speed returned
  * \param ret_vW Whistler speed returned
  */
-Wavespeeds calculateWaveSpeedXZ(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perB,
-                                std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
-                                std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dPerB,
-                                std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dMoments,
-                                std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> BgB,
+Wavespeeds calculateWaveSpeedXZ(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perB,
+                                std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                                std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dPerB,
+                                std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dMoments,
+                                std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> BgB,
                                 const std::array<Real, 3>& gridSpacing, const Limits& rhomLimits, size_t self,
                                 size_t nbr, Real Bx, Real Bz, Real dBxdy, Real dBxdz, Real dBzdx, Real dBzdy, Real xdir,
                                 Real zdir) {
@@ -295,11 +295,11 @@ Wavespeeds calculateWaveSpeedXZ(std::span<std::array<Real, fsgrids::bfield::N_BF
  * \param ret_vS Sound speed returned
  * \param ret_vW Whistler speed returned
  */
-Wavespeeds calculateWaveSpeedXY(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perB,
-                                std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
-                                std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dPerB,
-                                std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dMoments,
-                                std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> BgB,
+Wavespeeds calculateWaveSpeedXY(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perB,
+                                std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                                std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dPerB,
+                                std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dMoments,
+                                std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> BgB,
                                 const std::array<Real, 3>& gridSpacing, const Limits& rhomLimits, size_t self,
                                 size_t nbr, Real Bx, Real By, Real dBxdy, Real dBxdz, Real dBydx, Real dBydz, Real xdir,
                                 Real ydir) {
@@ -411,11 +411,11 @@ struct DataArrays {
    const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoments;
    const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb;
 
-   DataArrays(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-              std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
-              std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
-              std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
-              std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, size_t index)
+   DataArrays(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+              std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+              std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+              std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+              std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, size_t index)
        : perb(perb[index]), dperb(dperb[index]), moments(moments[index]), dmoments(dmoments[index]), bgb(bgb[index]) {}
 };
 
@@ -442,28 +442,16 @@ struct DataArrays {
  * \param i,j,k fsGrid cell coordinates for the current cell
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
-void calculateEdgeElectricFieldX(
-    fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH>& EHallGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH>& EGradPeGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k, cint& RKCase,
-    const std::array<Real, 3>& gridSpacing) {
-   const auto& stencil = technicalGrid.makeStencil(i, j, k);
-   std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
-   std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb = BgBGrid.getData();
-   std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments = momentsGrid.getData();
-   std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments = dMomentsGrid.getData();
-   std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb = dPerBGrid.getData();
-   std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e = EGrid.getData();
-   std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall = EHallGrid.getData();
-   std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe = EGradPeGrid.getData();
-   std::span<fsgrids::technical> technical = technicalGrid.getData();
-
+void calculateEdgeElectricFieldX(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                 std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                                 std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
+                                 std::span<const std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
+                                 std::span<const std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe,
+                                 std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                                 std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+                                 std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                                 std::span<fsgrids::technical> technical, const fsgrid::FsStencil& stencil,
+                                 int32_t RKCase, const std::array<Real, 3>& gridSpacing) {
    fsdebugCheck(stencil, perb.size(), __FILE__, __LINE__);
 
    // An edge has four neighbouring spatial cells. Calculate
@@ -535,7 +523,7 @@ void calculateEdgeElectricFieldX(
    az_pos = max(ZERO, +Vz0 + c_z);
    maxV = max(maxV, wavespeeds.cflSpeed(Vy0, Vz0));
 
-   // Ex and characteristic speeds on j-1 neighbour:
+   // Ex and characteristic speeds on SE neighbour:
    Vy0 = se.moments[fsgrids::moments::VY];
    Vz0 = se.moments[fsgrids::moments::VZ];
 
@@ -564,7 +552,7 @@ void calculateEdgeElectricFieldX(
    az_pos = max(az_pos, +Vz0 + c_z);
    maxV = max(maxV, wavespeeds.cflSpeed(Vy0, Vz0));
 
-   // Ex and characteristic speeds on k-1 neighbour:
+   // Ex and characteristic speeds on NW neighbour:
    Vy0 = nw.moments[fsgrids::moments::VY];
    Vz0 = nw.moments[fsgrids::moments::VZ];
 
@@ -593,7 +581,7 @@ void calculateEdgeElectricFieldX(
    az_pos = max(az_pos, +Vz0 + c_z);
    maxV = max(maxV, wavespeeds.cflSpeed(Vy0, Vz0));
 
-   // Ex and characteristic speeds on j-1,k-1 neighbour:
+   // Ex and characteristic speeds on NE neighbour:
    Vy0 = ne.moments[fsgrids::moments::VY];
    Vz0 = ne.moments[fsgrids::moments::VZ];
 
@@ -681,28 +669,16 @@ void calculateEdgeElectricFieldX(
  *
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
-void calculateEdgeElectricFieldY(
-    fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH>& EHallGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH>& EGradPeGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k, cint& RKCase,
-    const std::array<Real, 3>& gridSpacing) {
-   const auto& stencil = technicalGrid.makeStencil(i, j, k);
-   std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
-   std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb = BgBGrid.getData();
-   std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments = momentsGrid.getData();
-   std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments = dMomentsGrid.getData();
-   std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb = dPerBGrid.getData();
-   std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e = EGrid.getData();
-   std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall = EHallGrid.getData();
-   std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe = EGradPeGrid.getData();
-   std::span<fsgrids::technical> technical = technicalGrid.getData();
-
+void calculateEdgeElectricFieldY(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                 std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                                 std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
+                                 std::span<const std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
+                                 std::span<const std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe,
+                                 std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                                 std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+                                 std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                                 std::span<fsgrids::technical> technical, const fsgrid::FsStencil& stencil,
+                                 int32_t RKCase, const std::array<Real, 3>& gridSpacing) {
    fsdebugCheck(stencil, perb.size(), __FILE__, __LINE__);
 
    // An edge has four neighbouring spatial cells. Calculate
@@ -775,7 +751,7 @@ void calculateEdgeElectricFieldY(
    ax_pos = max(ZERO, +Vx0 + c_x);
    maxV = max(maxV, wavespeeds.cflSpeed(Vz0, Vx0));
 
-   // Ey and characteristic speeds on k-1 neighbour:
+   // Ey and characteristic speeds on SE neighbour:
    Vx0 = se.moments[fsgrids::moments::VX];
    Vz0 = se.moments[fsgrids::moments::VZ];
 
@@ -804,7 +780,7 @@ void calculateEdgeElectricFieldY(
    ax_pos = max(ax_pos, +Vx0 + c_x);
    maxV = max(maxV, wavespeeds.cflSpeed(Vz0, Vx0));
 
-   // Ey and characteristic speeds on i-1 neighbour:
+   // Ey and characteristic speeds on NW neighbour:
    Vz0 = nw.moments[fsgrids::moments::VZ];
    Vx0 = nw.moments[fsgrids::moments::VX];
 
@@ -833,7 +809,7 @@ void calculateEdgeElectricFieldY(
    ax_pos = max(ax_pos, +Vx0 + c_x);
    maxV = max(maxV, wavespeeds.cflSpeed(Vz0, Vx0));
 
-   // Ey and characteristic speeds on i-1,k-1 neighbour:
+   // Ey and characteristic speeds on NE neighbour:
    Vz0 = ne.moments[fsgrids::moments::VZ];
    Vx0 = ne.moments[fsgrids::moments::VX];
 
@@ -921,28 +897,16 @@ void calculateEdgeElectricFieldY(
  *
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
-void calculateEdgeElectricFieldZ(
-    fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH>& EHallGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH>& EGradPeGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k, cint& RKCase,
-    const std::array<Real, 3>& gridSpacing) {
-   const auto& stencil = technicalGrid.makeStencil(i, j, k);
-   std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
-   std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb = BgBGrid.getData();
-   std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments = momentsGrid.getData();
-   std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments = dMomentsGrid.getData();
-   std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb = dPerBGrid.getData();
-   std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e = EGrid.getData();
-   std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall = EHallGrid.getData();
-   std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe = EGradPeGrid.getData();
-   std::span<fsgrids::technical> technical = technicalGrid.getData();
-
+void calculateEdgeElectricFieldZ(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                 std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                                 std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
+                                 std::span<const std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
+                                 std::span<const std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe,
+                                 std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                                 std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+                                 std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                                 std::span<fsgrids::technical> technical, const fsgrid::FsStencil& stencil,
+                                 int32_t RKCase, const std::array<Real, 3>& gridSpacing) {
    fsdebugCheck(stencil, perb.size(), __FILE__, __LINE__);
 
    // An edge has four neighbouring spatial cells. Calculate
@@ -1016,7 +980,7 @@ void calculateEdgeElectricFieldZ(
    ay_pos = max(ZERO, +Vy0 + c_y);
    maxV = max(maxV, wavespeeds.cflSpeed(Vx0, Vy0));
 
-   // Ez and characteristic speeds on SE (i-1) cell:
+   // Ez and characteristic speeds on SE cell:
    Vx0 = se.moments[fsgrids::moments::VX];
    Vy0 = se.moments[fsgrids::moments::VY];
 
@@ -1045,7 +1009,7 @@ void calculateEdgeElectricFieldZ(
    ay_pos = max(ay_pos, +Vy0 + c_y);
    maxV = max(maxV, wavespeeds.cflSpeed(Vx0, Vy0));
 
-   // Ez and characteristic speeds on NW (j-1) cell:
+   // Ez and characteristic speeds on NW cell:
    Vx0 = nw.moments[fsgrids::moments::VX];
    Vy0 = nw.moments[fsgrids::moments::VY];
 
@@ -1074,7 +1038,7 @@ void calculateEdgeElectricFieldZ(
    ay_pos = max(ay_pos, +Vy0 + c_y);
    maxV = max(maxV, wavespeeds.cflSpeed(Vx0, Vy0));
 
-   // Ez and characteristic speeds on NE (i-1,j-1) cell:
+   // Ez and characteristic speeds on NE cell:
    Vx0 = ne.moments[fsgrids::moments::VX];
    Vy0 = ne.moments[fsgrids::moments::VY];
 
@@ -1180,33 +1144,45 @@ void calculateElectricField(
     fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
     fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k,
-    SysBoundary& sysBoundaries, cint& RKCase) {
-   cuint cellSysBoundaryFlag = technicalGrid.get(i, j, k)->sysBoundaryFlag;
+    SysBoundary& sysBoundaries, int32_t RKCase) {
+   const auto& stencil = technicalGrid.makeStencil(i, j, k);
+   std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
+   std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb = dPerBGrid.getData();
+   std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e = EGrid.getData();
+   std::span<const std::array<Real, fsgrids::ehall::N_EHALL>> ehall = EHallGrid.getData();
+   std::span<const std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe = EGradPeGrid.getData();
+   std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments = momentsGrid.getData();
+   std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments = dMomentsGrid.getData();
+   std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb = BgBGrid.getData();
+   std::span<fsgrids::technical> technical = technicalGrid.getData();
+
+   cuint cellSysBoundaryFlag = technical[stencil.center()].sysBoundaryFlag;
    const auto& gridSpacing = technicalGrid.getGridSpacing();
 
    if (cellSysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
-       cellSysBoundaryFlag == sysboundarytype::OUTER_BOUNDARY_PADDING)
+       cellSysBoundaryFlag == sysboundarytype::OUTER_BOUNDARY_PADDING) {
       return;
+   }
 
-   cuint bitfield = technicalGrid.get(i, j, k)->SOLVE;
+   cuint bitfield = technical[stencil.center()].SOLVE;
 
    if ((bitfield & compute::EX) == compute::EX) {
-      calculateEdgeElectricFieldX(perBGrid, EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid,
-                                  BgBGrid, technicalGrid, i, j, k, RKCase, gridSpacing);
+      calculateEdgeElectricFieldX(perb, dperb, e, ehall, egradpe, moments, dmoments, bgb, technical, stencil, RKCase,
+                                  gridSpacing);
    } else {
       sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 0);
    }
 
    if ((bitfield & compute::EY) == compute::EY) {
-      calculateEdgeElectricFieldY(perBGrid, EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid,
-                                  BgBGrid, technicalGrid, i, j, k, RKCase, gridSpacing);
+      calculateEdgeElectricFieldY(perb, dperb, e, ehall, egradpe, moments, dmoments, bgb, technical, stencil, RKCase,
+                                  gridSpacing);
    } else {
       sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 1);
    }
 
    if ((bitfield & compute::EZ) == compute::EZ) {
-      calculateEdgeElectricFieldZ(perBGrid, EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid,
-                                  BgBGrid, technicalGrid, i, j, k, RKCase, gridSpacing);
+      calculateEdgeElectricFieldZ(perb, dperb, e, ehall, egradpe, moments, dmoments, bgb, technical, stencil, RKCase,
+                                  gridSpacing);
    } else {
       sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 2);
    }
@@ -1248,7 +1224,7 @@ void calculateUpwindedElectricFieldSimple(
     fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
     fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsDt2Grid,
     fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, SysBoundary& sysBoundaries, cint& RKCase,
+    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, SysBoundary& sysBoundaries, int32_t RKCase,
     const bool communicateEGradPeOrMomentsDerivatives) {
    // const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
    const fsgrid::FsIndex_t* gridDims = &technicalGrid.getLocalSize()[0];
