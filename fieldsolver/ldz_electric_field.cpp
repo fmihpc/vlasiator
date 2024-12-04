@@ -437,6 +437,9 @@ void calculateEdgeElectricFieldX(
    std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments = momentsGrid.getData();
    std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments = dMomentsGrid.getData();
    std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb = dPerBGrid.getData();
+   std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e = EGrid.getData();
+   std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall = EHallGrid.getData();
+   std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe = EGradPeGrid.getData();
 
    // An edge has four neighbouring spatial cells. Calculate
    // electric field in each of the four cells per edge.
@@ -686,6 +689,9 @@ void calculateEdgeElectricFieldY(
    std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments = momentsGrid.getData();
    std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments = dMomentsGrid.getData();
    std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb = dPerBGrid.getData();
+   std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e = EGrid.getData();
+   std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall = EHallGrid.getData();
+   std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe = EGradPeGrid.getData();
 
    // An edge has four neighbouring spatial cells. Calculate
    // electric field in each of the four cells per edge.
@@ -936,6 +942,9 @@ void calculateEdgeElectricFieldZ(
    std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments = momentsGrid.getData();
    std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments = dMomentsGrid.getData();
    std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb = dPerBGrid.getData();
+   std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e = EGrid.getData();
+   std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall = EHallGrid.getData();
+   std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe = EGradPeGrid.getData();
 
    // An edge has four neighbouring spatial cells. Calculate
    // electric field in each of the four cells per edge.
