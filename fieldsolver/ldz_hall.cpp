@@ -876,9 +876,8 @@ void calculateHallTermSimple(
    cint& RKCase,
    const bool communicateMomentsDerivatives
 ) {
-   //const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
-   const fsgrid::FsIndex_t* gridDims = &technicalGrid.getLocalSize()[0];
-   const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
+   const auto& localSize = technicalGrid.getLocalSize();
+   const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
 
    phiprof::Timer hallTimer {"Calculate Hall term"};
    phiprof::Timer mpiTimer {"EHall ghost updates MPI", {"MPI"}};
@@ -897,9 +896,9 @@ void calculateHallTermSimple(
    {
       phiprof::Timer computeTimer {computeTimerId};
       #pragma omp for collapse(2)
-      for (fsgrid::FsIndex_t k=0; k<gridDims[2]; k++) {
-         for (fsgrid::FsIndex_t j=0; j<gridDims[1]; j++) {
-            for (fsgrid::FsIndex_t i=0; i<gridDims[0]; i++) {
+      for (auto k = 0; k < localSize[2]; k++) {
+         for (auto j = 0; j < localSize[1]; j++) {
+            for (auto i = 0; i < localSize[0]; i++) {
                if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
                   calculateHallTerm(perBGrid, EHallGrid, momentsGrid, dPerBGrid, BgBGrid, technicalGrid, sysBoundaries,
                                     i, j, k);
