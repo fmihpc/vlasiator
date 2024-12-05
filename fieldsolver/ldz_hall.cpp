@@ -823,6 +823,19 @@ void calculateEdgeHallTermXComponents(
    const Real bgby = bgb[fsgrids::bgbfield::BGBY];
    const Real bgbz = bgb[fsgrids::bgbfield::BGBZ];
 
+   auto computeHallRhoq = [&momentsGrid, &moments](const std::array<std::array<int32_t, 3>, 4>& arr) {
+      const auto min = Parameters::hallMinimumRhoq;
+      const auto max = std::numeric_limits<Real>::max();
+
+      return std::clamp(Parameters::ohmHallTerm == 1
+                            ? moments[fsgrids::moments::RHOQ]
+                            : FOURTH * (momentsGrid.get(arr[0][0], arr[0][1], arr[0][2])->at(fsgrids::moments::RHOQ) +
+                                        momentsGrid.get(arr[1][0], arr[1][1], arr[1][2])->at(fsgrids::moments::RHOQ) +
+                                        momentsGrid.get(arr[2][0], arr[2][1], arr[2][2])->at(fsgrids::moments::RHOQ) +
+                                        momentsGrid.get(arr[3][0], arr[3][1], arr[3][2])->at(fsgrids::moments::RHOQ)),
+                        min, max);
+   };
+
    switch (Parameters::ohmHallTerm) {
    case 0:
       cerr << __FILE__ << __LINE__ << "You shouldn't be in a Hall term function if Parameters::ohmHallTerm == 0."
@@ -833,8 +846,7 @@ void calculateEdgeHallTermXComponents(
       const Real By = perb[fsgrids::bfield::PERBY] + bgby;
       const Real Bz = perb[fsgrids::bfield::PERBZ] + bgbz;
 
-      const Real hallRhoq =
-          std::clamp(moments[fsgrids::moments::RHOQ], Parameters::hallMinimumRhoq, std::numeric_limits<Real>::max());
+      const Real hallRhoq = computeHallRhoq({});
       const Real EXHall =
           (Bz * ((bgb[fsgrids::bgbfield::dBGBxdz] + dperb[fsgrids::dperb::dPERBxdz]) / gridSpacing[2] -
                  (bgb[fsgrids::bgbfield::dBGBzdx] + dperb[fsgrids::dperb::dPERBzdx]) / gridSpacing[0]) -
@@ -850,16 +862,6 @@ void calculateEdgeHallTermXComponents(
       break;
    }
    case 2: {
-      auto computeHallRhoq = [&momentsGrid](const std::array<std::array<int32_t, 3>, 4>& arr) {
-         const auto min = Parameters::hallMinimumRhoq;
-         const auto max = std::numeric_limits<Real>::max();
-         return std::clamp(FOURTH * (momentsGrid.get(arr[0][0], arr[0][1], arr[0][2])->at(fsgrids::moments::RHOQ) +
-                                     momentsGrid.get(arr[1][0], arr[1][1], arr[1][2])->at(fsgrids::moments::RHOQ) +
-                                     momentsGrid.get(arr[2][0], arr[2][1], arr[2][2])->at(fsgrids::moments::RHOQ) +
-                                     momentsGrid.get(arr[3][0], arr[3][1], arr[3][2])->at(fsgrids::moments::RHOQ)),
-                           min, max);
-      };
-
       auto computeEHall = [&ehall, &perturbedCoefficients, &bgbx, &bgby, &bgbz, &gridSpacing](fsgrids::ehall term,
                                                                                               Real hallRhoq) {
          ehall[term] =
