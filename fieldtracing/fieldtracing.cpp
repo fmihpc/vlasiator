@@ -75,7 +75,7 @@ namespace FieldTracing {
       
       phiprof::Timer timer {"fieldtracing-ionosphere-fsgridCoupling"};
       // Pick an initial stepsize
-      creal stepSize = min(100e3, technicalGrid.DX / 2.);
+      creal stepSize = min(100e3, technicalGrid.getGridSpacing()[0] / 2.);
       std::vector<Real> nodeTracingStepSize(nodes.size(), stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
       std::vector<Real> reducedNodeTracingStepSize(nodes.size());
       
@@ -129,8 +129,10 @@ namespace FieldTracing {
                   }
                   
                   // Make one step along the fieldline
-                  stepFieldLine(x,v, nodeTracingStepSize[n],fieldTracingParameters.min_tracer_dx_full_box,technicalGrid.DX/2,fieldTracingParameters.tracingMethod,tracingFullField,(no.x[2] < 0));
-                  
+                  stepFieldLine(x, v, nodeTracingStepSize[n], fieldTracingParameters.min_tracer_dx_full_box,
+                                technicalGrid.getGridSpacing()[0] / 2, fieldTracingParameters.tracingMethod,
+                                tracingFullField, (no.x[2] < 0));
+
                   // If we map back into the ionosphere, we obviously don't couple out to SBC::Ionosphere::downmapRadius.
                   if(x.at(0)*x.at(0) + x.at(1)*x.at(1) + x.at(2)*x.at(2) < SBC::Ionosphere::innerRadius*SBC::Ionosphere::innerRadius) {
                      nodeNeedsContinuedTracing.at(n) = 0;
@@ -143,7 +145,9 @@ namespace FieldTracing {
                      const std::array<Real, 3> x_out = x;
 
                      // Take a step back and find the downmapRadius crossing point
-                     stepFieldLine(x,v, nodeTracingStepSize[n],fieldTracingParameters.min_tracer_dx_full_box,technicalGrid.DX/2,fieldTracingParameters.tracingMethod,tracingFullField,!(no.x[2] < 0));
+                     stepFieldLine(x, v, nodeTracingStepSize[n], fieldTracingParameters.min_tracer_dx_full_box,
+                                   technicalGrid.getGridSpacing()[0] / 2, fieldTracingParameters.tracingMethod,
+                                   tracingFullField, !(no.x[2] < 0));
                      Real r_out = sqrt(x_out[0]*x_out[0] + x_out[1]*x_out[1] + x_out[2]*x_out[2]);
                      Real r_in = sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]);
                      Real alpha = (SBC::Ionosphere::downmapRadius-r_out)/(r_in - r_out);
@@ -486,12 +490,16 @@ namespace FieldTracing {
 
       phiprof::Timer tracingTimer {"fieldtracing-ionosphere-openclosedTracing"};
       // Pick an initial stepsize
-      const TReal stepSize = min(1000e3, technicalGrid.DX / 2.);
+      const TReal stepSize = min(1000e3, technicalGrid.getGridSpacing()[0] / 2.);
       std::vector<TReal> nodeTracingStepSize(nodes.size(), stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
       std::vector<TReal> reducedNodeTracingStepSize(nodes.size());
       std::array<FsGridTools::FsSize_t, 3> gridSize = technicalGrid.getGlobalSize();
-      uint64_t maxTracingSteps = 8 * (gridSize[0] * technicalGrid.DX + gridSize[1] * technicalGrid.DY + gridSize[2] * technicalGrid.DZ) / stepSize;
-      
+      uint64_t maxTracingSteps =
+          8 *
+          (gridSize[0] * technicalGrid.getGridSpacing()[0] + gridSize[1] * technicalGrid.getGridSpacing()[1] +
+           gridSize[2] * technicalGrid.getGridSpacing()[2]) /
+          stepSize;
+
       std::vector<int> nodeMapping(nodes.size(), TracingLineEndType::UNPROCESSED);                                 /*!< For reduction of node coupling */
       std::vector<uint64_t> nodeStepCounter(nodes.size());                                 /*!< Count number of field line tracing steps */
       std::vector<int> nodeNeedsContinuedTracing(nodes.size(), 1);                    /*!< Flag, whether tracing needs to continue on another task */
@@ -557,7 +565,9 @@ namespace FieldTracing {
                   
                   // Make one step along the fieldline
                   // If the node is in the North, trace along -B (false for last argument), in the South, trace along B
-                  stepFieldLine(x,v, nodeTracingStepSize[n],(TReal)fieldTracingParameters.min_tracer_dx_full_box,(TReal)technicalGrid.DX/2,fieldTracingParameters.tracingMethod,tracingFullField,(no.x[2] < 0));
+                  stepFieldLine(x, v, nodeTracingStepSize[n], (TReal)fieldTracingParameters.min_tracer_dx_full_box,
+                                (TReal)technicalGrid.getGridSpacing()[0] / 2, fieldTracingParameters.tracingMethod,
+                                tracingFullField, (no.x[2] < 0));
                   nodeTracingStepCount[n]++;
                   
                   // Look up the fsgrid cell belonging to these coordinates
@@ -678,7 +688,8 @@ namespace FieldTracing {
          
          // Make one step along the fieldline
          // Forward tracing means true for last argument
-         stepFieldLine(x,v, cellTracingStepSize[n],(TReal)100e3,(TReal)technicalGrid.DX/2,fieldTracingParameters.tracingMethod,tracingFullField,(DIRECTION == Direction::FORWARD));
+         stepFieldLine(x, v, cellTracingStepSize[n], (TReal)100e3, (TReal)technicalGrid.getGridSpacing()[0] / 2,
+                       fieldTracingParameters.tracingMethod, tracingFullField, (DIRECTION == Direction::FORWARD));
          cellRunningDistance[n] += cellTracingStepSize[n];
          
          // Look up the fsgrid cell belonging to these coordinates
@@ -690,7 +701,9 @@ namespace FieldTracing {
             cellConnection[n] += TracingLineEndType::CLOSED;
 
             // Take a step back and find the innerRadius crossing point
-            stepFieldLine(x,v, cellTracingStepSize[n],(TReal)fieldTracingParameters.min_tracer_dx_full_box,(TReal)technicalGrid.DX/2,fieldTracingParameters.tracingMethod,tracingFullField,!(DIRECTION == Direction::FORWARD));
+            stepFieldLine(x, v, cellTracingStepSize[n], (TReal)fieldTracingParameters.min_tracer_dx_full_box,
+                          (TReal)technicalGrid.getGridSpacing()[0] / 2, fieldTracingParameters.tracingMethod,
+                          tracingFullField, !(DIRECTION == Direction::FORWARD));
             Real r_in = sqrt(cellTracingCoordinates[n][0]*cellTracingCoordinates[n][0] + cellTracingCoordinates[n][1]*cellTracingCoordinates[n][1] + cellTracingCoordinates[n][2]*cellTracingCoordinates[n][2]);
             Real r_out = sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]);
             Real alpha = (fieldTracingParameters.innerBoundaryRadius-r_in)/(r_out - r_in);
@@ -854,14 +867,18 @@ namespace FieldTracing {
       MPI_Allgatherv(localDccrgCells.data(), localDccrgSize, MPI_UINT64_T, allDccrgCells.data(), amounts.data(), displacements.data(), MPI_UINT64_T, MPI_COMM_WORLD);
       
       // Pick an initial stepsize
-      const TReal stepSize = min(1000e3, technicalGrid.DX / 2.);
+      const TReal stepSize = min(1000e3, technicalGrid.getGridSpacing()[0] / 2.);
       std::vector<TReal> cellFWTracingStepSize(globalDccrgSize, stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
       std::vector<TReal> cellBWTracingStepSize(globalDccrgSize, stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
       
       std::array<FsGridTools::FsSize_t, 3> gridSize = technicalGrid.getGlobalSize();
       // If fullbox_and_fluxrope_max_distance is unset, use this heuristic considering how far an IMF+dipole combo can sensibly stretch in the box before we're safe to assume it's rolled up more or less pathologically.
-      const TReal maxTracingDistance = fieldTracingParameters.fullbox_and_fluxrope_max_distance > 0 ? fieldTracingParameters.fullbox_and_fluxrope_max_distance : gridSize[0] * technicalGrid.DX + gridSize[1] * technicalGrid.DY + gridSize[2] * technicalGrid.DZ;
-      
+      const TReal maxTracingDistance = fieldTracingParameters.fullbox_and_fluxrope_max_distance > 0
+                                           ? fieldTracingParameters.fullbox_and_fluxrope_max_distance
+                                           : gridSize[0] * technicalGrid.getGridSpacing()[0] +
+                                                 gridSize[1] * technicalGrid.getGridSpacing()[1] +
+                                                 gridSize[2] * technicalGrid.getGridSpacing()[2];
+
       std::vector<TReal> cellCurvatureRadius(globalDccrgSize);
       std::vector<TReal> reducedCellCurvatureRadius(globalDccrgSize);
       

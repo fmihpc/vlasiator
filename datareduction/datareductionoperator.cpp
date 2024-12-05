@@ -151,7 +151,7 @@ namespace DRO {
       std::vector<double> varBuffer =
          lambda(perBGrid,EGrid,EHallGrid,EGradPeGrid,momentsGrid,dPerBGrid,dMomentsGrid,BgBGrid,volGrid,technicalGrid);
 
-      std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
+      const auto& gridSize = technicalGrid.getLocalSize();
       int vectorSize;
 
       // Check if there is anything to write (eg, we are a non-FS process)

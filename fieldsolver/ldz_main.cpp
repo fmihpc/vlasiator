@@ -355,7 +355,7 @@ bool propagateFields(
          Real dtMaxGlobal;
          dtMaxLocal=std::numeric_limits<Real>::max();
 
-         std::array<FsGridTools::FsIndex_t, 3>& localSize = technicalGrid.getLocalSize();
+         const auto& localSize = technicalGrid.getLocalSize();
          for(FsGridTools::FsIndex_t z=0; z<localSize[2]; z++) {
             for(FsGridTools::FsIndex_t y=0; y<localSize[1]; y++) {
                for(FsGridTools::FsIndex_t x=0; x<localSize[0]; x++) {

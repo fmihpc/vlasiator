@@ -146,9 +146,9 @@ namespace projects {
                for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
                   const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
-                  
-                  Real dx = perBGrid.DX;
-                  Real dy = perBGrid.DY;
+
+                  Real dx = perBGrid.getGridSpacing()[0];
+                  Real dy = perBGrid.getGridSpacing()[1];
                   Real ksi = ((xyz[0] + 0.5 * dx)  * cos(this->ALPHA) + (xyz[1] + 0.5 * dy) * sin(this->ALPHA)) / this->WAVELENGTH;
                   Real dBxavg = sin(2.0 * M_PI * ksi);
                   Real dByavg = sin(2.0 * M_PI * ksi);

@@ -428,9 +428,10 @@ std::array<Real, 3> interpolateCurlB(
    std::array<Real,3> cell;
    std::array<int,3> fsc,lfsc;
    // Convert physical coordinate to cell index
-   cell[0] =  (x[0] - P::xmin) / technicalGrid.DX;
-   cell[1] =  (x[1] - P::ymin) / technicalGrid.DY;
-   cell[2] =  (x[2] - P::zmin) / technicalGrid.DZ;
+   const auto& gridSpacing = technicalGrid.getGridSpacing();
+   cell[0] = (x[0] - P::xmin) / gridSpacing[0];
+   cell[1] = (x[1] - P::ymin) / gridSpacing[1];
+   cell[2] = (x[2] - P::zmin) / gridSpacing[2];
    for(int c=0; c<3; c++) {
       fsc[c] = floor(cell[c]);
    }
@@ -469,13 +470,19 @@ std::array<Real, 3> interpolateCurlB(
 
             // Calc rotB
             std::array<Real, 3> rotB;
-            rotB[0] += (volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBZVOLdy)
-                  - volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBYVOLdz)) / volgrid.DX;
-            rotB[1] += (volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBXVOLdz)
-                  - volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBZVOLdx)) / volgrid.DX;
-            rotB[2] += (volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBYVOLdx)
-                  - volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBXVOLdy)) / volgrid.DX;
-
+            const auto& gridSpacing = volgrid.getGridSpacing();
+            rotB[0] +=
+                (volgrid.get(lfsc[0] + xoffset, lfsc[1] + yoffset, lfsc[2] + zoffset)->at(fsgrids::dPERBZVOLdy) -
+                 volgrid.get(lfsc[0] + xoffset, lfsc[1] + yoffset, lfsc[2] + zoffset)->at(fsgrids::dPERBYVOLdz)) /
+                gridSpacing[0];
+            rotB[1] +=
+                (volgrid.get(lfsc[0] + xoffset, lfsc[1] + yoffset, lfsc[2] + zoffset)->at(fsgrids::dPERBXVOLdz) -
+                 volgrid.get(lfsc[0] + xoffset, lfsc[1] + yoffset, lfsc[2] + zoffset)->at(fsgrids::dPERBZVOLdx)) /
+                gridSpacing[0];
+            rotB[2] +=
+                (volgrid.get(lfsc[0] + xoffset, lfsc[1] + yoffset, lfsc[2] + zoffset)->at(fsgrids::dPERBYVOLdx) -
+                 volgrid.get(lfsc[0] + xoffset, lfsc[1] + yoffset, lfsc[2] + zoffset)->at(fsgrids::dPERBXVOLdy)) /
+                gridSpacing[0];
          }
       }
    }

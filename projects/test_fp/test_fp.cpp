@@ -114,11 +114,12 @@ namespace projects {
       
       if(!P::isRestart) {
          auto localSize = perBGrid.getLocalSize().data();
-         
-         creal dx = perBGrid.DX * 3.5;
-         creal dy = perBGrid.DY * 3.5;
-         creal dz = perBGrid.DZ * 3.5;
-         
+         const auto& gridSpacing = perBGrid.getGridSpacing();
+
+         creal dx = gridSpacing[0] * 3.5;
+         creal dy = gridSpacing[1] * 3.5;
+         creal dz = gridSpacing[2] * 3.5;
+
          Real areaFactor = 1.0;
          
          #pragma omp parallel for collapse(3)
@@ -127,11 +128,12 @@ namespace projects {
                for (FsGridTools::FsIndex_t k = 0; k < localSize[2]; ++k) {
                   const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(i, j, k);
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(i, j, k);
-                  
-                  creal x = xyz[0] + 0.5 * perBGrid.DX;
-                  creal y = xyz[1] + 0.5 * perBGrid.DY;
-                  creal z = xyz[2] + 0.5 * perBGrid.DZ;
-                  
+                  const auto& gridSpacing = perBGrid.getGridSpacing();
+
+                  creal x = xyz[0] + 0.5 * gridSpacing[0];
+                  creal y = xyz[1] + 0.5 * gridSpacing[1];
+                  creal z = xyz[2] + 0.5 * gridSpacing[2];
+
                   switch (this->CASE) {
                      case BXCASE:         
                         cell->at(fsgrids::bfield::PERBX) = 0.1 * this->B0 * areaFactor;

@@ -552,14 +552,11 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
          for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
             technicalGrid.get(x, y, z)->SOLVE = 0;
 
-            array<FsGridTools::FsIndex_t, 3> globalIndices = technicalGrid.getGlobalIndices(x, y, z);
+            const array<FsGridTools::FsSize_t, 3> globalIndices = technicalGrid.localToGlobal(x, y, z);
 
-            if (((globalIndices[0] == 0 || globalIndices[0] == (FsGridTools::FsIndex_t)fsGridDimensions[0] - 1) &&
-                 !this->isPeriodic(0)) ||
-                ((globalIndices[1] == 0 || globalIndices[1] == (FsGridTools::FsIndex_t)fsGridDimensions[1] - 1) &&
-                 !this->isPeriodic(1)) ||
-                ((globalIndices[2] == 0 || globalIndices[2] == (FsGridTools::FsIndex_t)fsGridDimensions[2] - 1) &&
-                 !this->isPeriodic(2))) {
+            if (((globalIndices[0] == 0 || globalIndices[0] == fsGridDimensions[0] - 1) && !this->isPeriodic(0)) ||
+                ((globalIndices[1] == 0 || globalIndices[1] == fsGridDimensions[1] - 1) && !this->isPeriodic(1)) ||
+                ((globalIndices[2] == 0 || globalIndices[2] == fsGridDimensions[2] - 1) && !this->isPeriodic(2))) {
                continue;
             }
             if (technicalGrid.get(x, y, z)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {

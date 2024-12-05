@@ -47,9 +47,12 @@ void calculateEdgeGradPeTermXComponents(
       case 1:
          rhoq = momentsGrid.get(i,j,k)->at(fsgrids::moments::RHOQ);
          hallRhoq = (rhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : rhoq ;
-         //EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE) = -physicalconstants::K_B*Parameters::electronTemperature*dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::drhoqdx) / (hallRhoq*EGradPeGrid.DX);
-         EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE) = - dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dPedx) / (hallRhoq*EGradPeGrid.DX);
-	 break;
+         // EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE) =
+         // -physicalconstants::K_B*Parameters::electronTemperature*dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::drhoqdx)
+         // / (hallRhoq*EGradPeGrid.getGridSpacing()[0]);
+         EGradPeGrid.get(i, j, k)->at(fsgrids::egradpe::EXGRADPE) =
+             -dMomentsGrid.get(i, j, k)->at(fsgrids::dmoments::dPedx) / (hallRhoq * EGradPeGrid.getGridSpacing()[0]);
+         break;
 
       default:
          cerr << __FILE__ << ":" << __LINE__ << "You are welcome to code higher-order Hall term correction terms." << endl;
@@ -75,8 +78,11 @@ void calculateEdgeGradPeTermYComponents(
       case 1:
          rhoq = momentsGrid.get(i,j,k)->at(fsgrids::moments::RHOQ);
          hallRhoq = (rhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : rhoq ;
-         //EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EYGRADPE) = -physicalconstants::K_B*Parameters::electronTemperature*dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::drhoqdy) / (hallRhoq*EGradPeGrid.DY);
-         EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EYGRADPE) = - dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dPedy) / (hallRhoq*EGradPeGrid.DY);
+         // EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EYGRADPE) =
+         // -physicalconstants::K_B*Parameters::electronTemperature*dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::drhoqdy)
+         // / (hallRhoq*EGradPeGrid.getGridSpacing()[1]);
+         EGradPeGrid.get(i, j, k)->at(fsgrids::egradpe::EYGRADPE) =
+             -dMomentsGrid.get(i, j, k)->at(fsgrids::dmoments::dPedy) / (hallRhoq * EGradPeGrid.getGridSpacing()[1]);
          break;
 
       default:
@@ -103,8 +109,11 @@ void calculateEdgeGradPeTermZComponents(
       case 1:
          rhoq = momentsGrid.get(i,j,k)->at(fsgrids::moments::RHOQ);
          hallRhoq = (rhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : rhoq ;
-         //EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EZGRADPE) = -physicalconstants::K_B*Parameters::electronTemperature*dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::drhoqdz) / (hallRhoq*EGradPeGrid.DZ);
-         EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EZGRADPE) = - dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::dPedz) / (hallRhoq*EGradPeGrid.DZ);
+         // EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EZGRADPE) =
+         // -physicalconstants::K_B*Parameters::electronTemperature*dMomentsGrid.get(i,j,k)->at(fsgrids::dmoments::drhoqdz)
+         // / (hallRhoq*EGradPeGrid.getGridSpacing()[2]);
+         EGradPeGrid.get(i, j, k)->at(fsgrids::egradpe::EZGRADPE) =
+             -dMomentsGrid.get(i, j, k)->at(fsgrids::dmoments::dPedz) / (hallRhoq * EGradPeGrid.getGridSpacing()[2]);
          break;
 
       default:

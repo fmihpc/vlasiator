@@ -108,10 +108,7 @@ template<long unsigned int numFields> void setPerturbedField(
       for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
          for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
             std::array<double, 3> start = BGrid.getPhysicalCoords(x, y, z);
-            double dx[3];
-            dx[0] = BGrid.DX;
-            dx[1] = BGrid.DY;
-            dx[2] = BGrid.DZ;
+            const auto dx = BGrid.getGridSpacing();
 
             //Face averages
             for(uint fComponent=0; fComponent<3; fComponent++){

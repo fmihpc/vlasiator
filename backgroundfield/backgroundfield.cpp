@@ -71,10 +71,7 @@ void setBackgroundField(
             for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
                phiprof::Timer loopTopTimer {loopTopId};
                std::array<double, 3> start = BgBGrid.getPhysicalCoords(x, y, z);
-               double dx[3];
-               dx[0] = BgBGrid.DX;
-               dx[1] = BgBGrid.DY;
-               dx[2] = BgBGrid.DZ;
+               const auto& dx = BgBGrid.getGridSpacing();
                double end[3];
                end[0]=start[0]+dx[0];
                end[1]=start[1]+dx[1];

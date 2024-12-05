@@ -640,9 +640,16 @@ void calculateCurvature(
       rght_z_by /= rght_z_bnorm;
       rght_z_bz /= rght_z_bnorm;
 
-      vol->at(fsgrids::volfields::CURVATUREX) = bx * 0.5*(rght_x_bx-left_x_bx) / technicalGrid.DX + by * 0.5*(rght_y_bx-left_y_bx) / technicalGrid.DY + bz * 0.5*(rght_z_bx-left_z_bx) / technicalGrid.DZ;
-      vol->at(fsgrids::volfields::CURVATUREY) = bx * 0.5*(rght_x_by-left_x_by) / technicalGrid.DX + by * 0.5*(rght_y_by-left_y_by) / technicalGrid.DY + bz * 0.5*(rght_z_by-left_z_by) / technicalGrid.DZ;
-      vol->at(fsgrids::volfields::CURVATUREZ) = bx * 0.5*(rght_x_bz-left_x_bz) / technicalGrid.DX + by * 0.5*(rght_y_bz-left_y_bz) / technicalGrid.DY + bz * 0.5*(rght_z_bz-left_z_bz) / technicalGrid.DZ;
+      const auto& gridSpacing = technicalGrid.getGridSpacing();
+      vol->at(fsgrids::volfields::CURVATUREX) = bx * 0.5 * (rght_x_bx - left_x_bx) / gridSpacing[0] +
+                                                by * 0.5 * (rght_y_bx - left_y_bx) / gridSpacing[1] +
+                                                bz * 0.5 * (rght_z_bx - left_z_bx) / gridSpacing[2];
+      vol->at(fsgrids::volfields::CURVATUREY) = bx * 0.5 * (rght_x_by - left_x_by) / gridSpacing[0] +
+                                                by * 0.5 * (rght_y_by - left_y_by) / gridSpacing[1] +
+                                                bz * 0.5 * (rght_z_by - left_z_by) / gridSpacing[2];
+      vol->at(fsgrids::volfields::CURVATUREZ) = bx * 0.5 * (rght_x_bz - left_x_bz) / gridSpacing[0] +
+                                                by * 0.5 * (rght_y_bz - left_y_bz) / gridSpacing[1] +
+                                                bz * 0.5 * (rght_z_bz - left_z_bz) / gridSpacing[2];
    }
 }
 

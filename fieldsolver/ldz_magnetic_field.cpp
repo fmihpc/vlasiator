@@ -60,9 +60,10 @@ void propagateMagneticField(
    const bool doY, //=true (default)
    const bool doZ  //=true (default)
 ) {
-   creal dx = perBGrid.DX;
-   creal dy = perBGrid.DY;
-   creal dz = perBGrid.DZ;
+   const auto& gridSpacing = perBGrid.getGridSpacing();
+   creal dx = gridSpacing[0];
+   creal dy = gridSpacing[1];
+   creal dz = gridSpacing[2];
 
    std::array<Real, fsgrids::bfield::N_BFIELD> * perBGrid0 = perBGrid.get(i,j,k);
    std::array<Real, fsgrids::efield::N_EFIELD> * EGrid0;
