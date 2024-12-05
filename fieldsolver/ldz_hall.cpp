@@ -44,8 +44,8 @@ using namespace std;
  *
  */
 template <typename REAL>
-inline REAL JXBX_000_100(const std::array<REAL, Rec::N_REC_COEFFICIENTS> pC, creal BGBY, creal BGBZ, creal dx, creal dy,
-                         creal dz) {
+inline REAL JXBX_000_100(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, creal BGBY, creal BGBZ, creal dx,
+                         creal dy, creal dz) {
    using namespace Rec;
    return -(pC[a_zz] * BGBZ) / dz + (pC[a_z] * BGBZ) / dz - (pC[a_yz] * BGBZ) / (2 * dz) -
           (pC[c_xzz] * BGBZ) / (6 * dx) + (pC[c_xz] * BGBZ) / (2 * dx) - (pC[c_xyz] * BGBZ) / (4 * dx) +
@@ -737,6 +737,53 @@ inline REAL JXBZ_110_111(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, cr
           (pC[a_x] * pC[c_xx]) / (2 * dx) + (pC[a_0] * pC[c_xx]) / dx + (pC[a_y] * pC[c_x]) / (2 * dx) +
           (pC[a_xy] * pC[c_x]) / (4 * dx) + (pC[a_xx] * pC[c_x]) / (6 * dx) + (pC[a_x] * pC[c_x]) / (2 * dx) +
           (pC[a_0] * pC[c_x]) / dx;
+}
+
+template <typename REAL>
+inline REAL JXB(fsgrids::ehall term, const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, creal BGBX, creal BGBY,
+                creal BGBZ, creal dx, creal dy, creal dz) {
+   switch (term) {
+   case fsgrids::EXHALL_000_100: {
+      return JXBX_000_100(pC, BGBY, BGBZ, dx, dy, dz);
+   }
+   case fsgrids::EXHALL_010_110: {
+      return JXBX_010_110(pC, BGBY, BGBZ, dx, dy, dz);
+   }
+   case fsgrids::EXHALL_001_101: {
+      return JXBX_001_101(pC, BGBY, BGBZ, dx, dy, dz);
+   }
+   case fsgrids::EXHALL_011_111: {
+      return JXBX_011_111(pC, BGBY, BGBZ, dx, dy, dz);
+   }
+   case fsgrids::EYHALL_000_010: {
+      return JXBY_000_010(pC, BGBX, BGBZ, dx, dy, dz);
+   }
+   case fsgrids::EYHALL_100_110: {
+      return JXBY_100_110(pC, BGBX, BGBZ, dx, dy, dz);
+   }
+   case fsgrids::EYHALL_001_011: {
+      return JXBY_001_011(pC, BGBX, BGBZ, dx, dy, dz);
+   }
+   case fsgrids::EYHALL_101_111: {
+      return JXBY_101_111(pC, BGBX, BGBZ, dx, dy, dz);
+   }
+   case fsgrids::EZHALL_000_001: {
+      return JXBZ_000_001(pC, BGBX, BGBY, dx, dy, dz);
+   }
+   case fsgrids::EZHALL_100_101: {
+      return JXBZ_100_101(pC, BGBX, BGBY, dx, dy, dz);
+   }
+   case fsgrids::EZHALL_010_011: {
+      return JXBZ_010_011(pC, BGBX, BGBY, dx, dy, dz);
+   }
+   case fsgrids::EZHALL_110_111: {
+      return JXBZ_110_111(pC, BGBX, BGBY, dx, dy, dz);
+   }
+   case fsgrids::N_EHALL: {
+      break;
+   }
+   }
+   return 0.0;
 }
 
 /*! \brief Low-level function computing the Hall term numerator x components.
