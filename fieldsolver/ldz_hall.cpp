@@ -43,13 +43,16 @@ using namespace std;
  * \param dy Cell dy
  * \param dz Cell dz
  *
- * \sa calculateEdgeHallTermXComponents
+ * \sa calculateEdgeHallTermComponents
  *
  */
 template <typename REAL>
-inline REAL JXBX_000_100(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, creal BGBY, creal BGBZ, creal dx,
-                         creal dy, creal dz) {
+inline REAL JXBX_000_100(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, creal BGBY, creal BGBZ,
+                         const std::array<Real, 3>& gridSpacing) {
    using namespace Rec;
+   const auto dx = gridSpacing[0];
+   const auto dy = gridSpacing[1];
+   const auto dz = gridSpacing[2];
    return -(pC[a_zz] * BGBZ) / dz + (pC[a_z] * BGBZ) / dz - (pC[a_yz] * BGBZ) / (2 * dz) -
           (pC[c_xzz] * BGBZ) / (6 * dx) + (pC[c_xz] * BGBZ) / (2 * dx) - (pC[c_xyz] * BGBZ) / (4 * dx) +
           (pC[c_xy] * BGBZ) / (2 * dx) - (pC[c_x] * BGBZ) / dx - (pC[a_yz] * BGBY) / (2 * dy) - (pC[a_yy] * BGBY) / dy +
@@ -102,13 +105,16 @@ inline REAL JXBX_000_100(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, cr
  * \param dy Cell dy
  * \param dz Cell dz
  *
- * \sa calculateEdgeHallTermXComponents
+ * \sa calculateEdgeHallTermComponents
  *
  */
 template <typename REAL>
-inline REAL JXBX_010_110(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, creal BGBY, creal BGBZ, creal dx,
-                         creal dy, creal dz) {
+inline REAL JXBX_010_110(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, creal BGBY, creal BGBZ,
+                         const std::array<Real, 3>& gridSpacing) {
    using namespace Rec;
+   const auto dx = gridSpacing[0];
+   const auto dy = gridSpacing[1];
+   const auto dz = gridSpacing[2];
    return -(pC[a_zz] * BGBZ) / dz + (pC[a_z] * BGBZ) / dz + (pC[a_yz] * BGBZ) / (2 * dz) -
           (pC[c_xzz] * BGBZ) / (6 * dx) + (pC[c_xz] * BGBZ) / (2 * dx) + (pC[c_xyz] * BGBZ) / (4 * dx) -
           (pC[c_xy] * BGBZ) / (2 * dx) - (pC[c_x] * BGBZ) / dx - (pC[a_yz] * BGBY) / (2 * dy) + (pC[a_yy] * BGBY) / dy +
@@ -161,13 +167,16 @@ inline REAL JXBX_010_110(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, cr
  * \param dy Cell dy
  * \param dz Cell dz
  *
- * \sa calculateEdgeHallTermXComponents
+ * \sa calculateEdgeHallTermComponents
  *
  */
 template <typename REAL>
-inline REAL JXBX_001_101(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, creal BGBY, creal BGBZ, creal dx,
-                         creal dy, creal dz) {
+inline REAL JXBX_001_101(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, creal BGBY, creal BGBZ,
+                         const std::array<Real, 3>& gridSpacing) {
    using namespace Rec;
+   const auto dx = gridSpacing[0];
+   const auto dy = gridSpacing[1];
+   const auto dz = gridSpacing[2];
    return (pC[a_zz] * BGBZ) / dz + (pC[a_z] * BGBZ) / dz - (pC[a_yz] * BGBZ) / (2 * dz) -
           (pC[c_xzz] * BGBZ) / (6 * dx) - (pC[c_xz] * BGBZ) / (2 * dx) + (pC[c_xyz] * BGBZ) / (4 * dx) +
           (pC[c_xy] * BGBZ) / (2 * dx) - (pC[c_x] * BGBZ) / dx + (pC[a_yz] * BGBY) / (2 * dy) - (pC[a_yy] * BGBY) / dy +
@@ -220,13 +229,16 @@ inline REAL JXBX_001_101(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, cr
  * \param dy Cell dy
  * \param dz Cell dz
  *
- * \sa calculateEdgeHallTermXComponents
+ * \sa calculateEdgeHallTermComponents
  *
  */
 template <typename REAL>
-inline REAL JXBX_011_111(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, creal BGBY, creal BGBZ, creal dx,
-                         creal dy, creal dz) {
+inline REAL JXBX_011_111(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, creal BGBY, creal BGBZ,
+                         const std::array<Real, 3>& gridSpacing) {
    using namespace Rec;
+   const auto dx = gridSpacing[0];
+   const auto dy = gridSpacing[1];
+   const auto dz = gridSpacing[2];
    return (pC[a_zz] * BGBZ) / dz + (pC[a_z] * BGBZ) / dz + (pC[a_yz] * BGBZ) / (2 * dz) -
           (pC[c_xzz] * BGBZ) / (6 * dx) - (pC[c_xz] * BGBZ) / (2 * dx) - (pC[c_xyz] * BGBZ) / (4 * dx) -
           (pC[c_xy] * BGBZ) / (2 * dx) - (pC[c_x] * BGBZ) / dx + (pC[a_yz] * BGBY) / (2 * dy) + (pC[a_yy] * BGBY) / dy +
@@ -284,9 +296,12 @@ inline REAL JXBX_011_111(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, cr
  *
  */
 template <typename REAL>
-inline REAL JXBY_000_010(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, creal BGBX, creal BGBZ, creal dx,
-                         creal dy, creal dz) {
+inline REAL JXBY_000_010(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, creal BGBX, creal BGBZ,
+                         const std::array<Real, 3>& gridSpacing) {
    using namespace Rec;
+   const auto dx = gridSpacing[0];
+   const auto dy = gridSpacing[1];
+   const auto dz = gridSpacing[2];
    return -(pC[b_zz] * BGBZ) / dz + (pC[b_z] * BGBZ) / dz - (pC[b_xz] * BGBZ) / (2 * dz) -
           (pC[c_yzz] * BGBZ) / (6 * dy) + (pC[c_yz] * BGBZ) / (2 * dy) - (pC[c_y] * BGBZ) / dy -
           (pC[c_xyz] * BGBZ) / (4 * dy) + (pC[c_xy] * BGBZ) / (2 * dy) + (pC[a_yz] * BGBX) / (2 * dy) -
@@ -343,9 +358,12 @@ inline REAL JXBY_000_010(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, cr
  *
  */
 template <typename REAL>
-inline REAL JXBY_100_110(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, creal BGBX, creal BGBZ, creal dx,
-                         creal dy, creal dz) {
+inline REAL JXBY_100_110(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, creal BGBX, creal BGBZ,
+                         const std::array<Real, 3>& gridSpacing) {
    using namespace Rec;
+   const auto dx = gridSpacing[0];
+   const auto dy = gridSpacing[1];
+   const auto dz = gridSpacing[2];
    return -(pC[b_zz] * BGBZ) / dz + (pC[b_z] * BGBZ) / dz + (pC[b_xz] * BGBZ) / (2 * dz) -
           (pC[c_yzz] * BGBZ) / (6 * dy) + (pC[c_yz] * BGBZ) / (2 * dy) - (pC[c_y] * BGBZ) / dy +
           (pC[c_xyz] * BGBZ) / (4 * dy) - (pC[c_xy] * BGBZ) / (2 * dy) + (pC[a_yz] * BGBX) / (2 * dy) -
@@ -402,9 +420,12 @@ inline REAL JXBY_100_110(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, cr
  *
  */
 template <typename REAL>
-inline REAL JXBY_001_011(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, creal BGBX, creal BGBZ, creal dx,
-                         creal dy, creal dz) {
+inline REAL JXBY_001_011(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, creal BGBX, creal BGBZ,
+                         const std::array<Real, 3>& gridSpacing) {
    using namespace Rec;
+   const auto dx = gridSpacing[0];
+   const auto dy = gridSpacing[1];
+   const auto dz = gridSpacing[2];
    return (pC[b_zz] * BGBZ) / dz + (pC[b_z] * BGBZ) / dz - (pC[b_xz] * BGBZ) / (2 * dz) -
           (pC[c_yzz] * BGBZ) / (6 * dy) - (pC[c_yz] * BGBZ) / (2 * dy) - (pC[c_y] * BGBZ) / dy +
           (pC[c_xyz] * BGBZ) / (4 * dy) + (pC[c_xy] * BGBZ) / (2 * dy) - (pC[a_yz] * BGBX) / (2 * dy) -
@@ -461,9 +482,12 @@ inline REAL JXBY_001_011(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, cr
  *
  */
 template <typename REAL>
-inline REAL JXBY_101_111(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, creal BGBX, creal BGBZ, creal dx,
-                         creal dy, creal dz) {
+inline REAL JXBY_101_111(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, creal BGBX, creal BGBZ,
+                         const std::array<Real, 3>& gridSpacing) {
    using namespace Rec;
+   const auto dx = gridSpacing[0];
+   const auto dy = gridSpacing[1];
+   const auto dz = gridSpacing[2];
    return (pC[b_zz] * BGBZ) / dz + (pC[b_z] * BGBZ) / dz + (pC[b_xz] * BGBZ) / (2 * dz) -
           (pC[c_yzz] * BGBZ) / (6 * dy) - (pC[c_yz] * BGBZ) / (2 * dy) - (pC[c_y] * BGBZ) / dy -
           (pC[c_xyz] * BGBZ) / (4 * dy) - (pC[c_xy] * BGBZ) / (2 * dy) - (pC[a_yz] * BGBX) / (2 * dy) -
@@ -521,9 +545,12 @@ inline REAL JXBY_101_111(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, cr
  *
  */
 template <typename REAL>
-inline REAL JXBZ_000_001(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, creal BGBX, creal BGBY, creal dx,
-                         creal dy, creal dz) {
+inline REAL JXBZ_000_001(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, creal BGBX, creal BGBY,
+                         const std::array<Real, 3>& gridSpacing) {
    using namespace Rec;
+   const auto dx = gridSpacing[0];
+   const auto dy = gridSpacing[1];
+   const auto dz = gridSpacing[2];
    return -(pC[b_z] * BGBY) / dz + (pC[b_yz] * BGBY) / (2 * dz) - (pC[b_yyz] * BGBY) / (6 * dz) +
           (pC[b_xz] * BGBY) / (2 * dz) - (pC[b_xyz] * BGBY) / (4 * dz) - (pC[c_yy] * BGBY) / dy +
           (pC[c_y] * BGBY) / dy - (pC[c_xy] * BGBY) / (2 * dy) - (pC[a_z] * BGBX) / dz + (pC[a_yz] * BGBX) / (2 * dz) +
@@ -580,9 +607,12 @@ inline REAL JXBZ_000_001(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, cr
  *
  */
 template <typename REAL>
-inline REAL JXBZ_100_101(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, creal BGBX, creal BGBY, creal dx,
-                         creal dy, creal dz) {
+inline REAL JXBZ_100_101(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, creal BGBX, creal BGBY,
+                         const std::array<Real, 3>& gridSpacing) {
    using namespace Rec;
+   const auto dx = gridSpacing[0];
+   const auto dy = gridSpacing[1];
+   const auto dz = gridSpacing[2];
    return -(pC[b_z] * BGBY) / dz + (pC[b_yz] * BGBY) / (2 * dz) - (pC[b_yyz] * BGBY) / (6 * dz) -
           (pC[b_xz] * BGBY) / (2 * dz) + (pC[b_xyz] * BGBY) / (4 * dz) - (pC[c_yy] * BGBY) / dy +
           (pC[c_y] * BGBY) / dy + (pC[c_xy] * BGBY) / (2 * dy) - (pC[a_z] * BGBX) / dz + (pC[a_yz] * BGBX) / (2 * dz) -
@@ -639,9 +669,12 @@ inline REAL JXBZ_100_101(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, cr
  *
  */
 template <typename REAL>
-inline REAL JXBZ_010_011(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, creal BGBX, creal BGBY, creal dx,
-                         creal dy, creal dz) {
+inline REAL JXBZ_010_011(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, creal BGBX, creal BGBY,
+                         const std::array<Real, 3>& gridSpacing) {
    using namespace Rec;
+   const auto dx = gridSpacing[0];
+   const auto dy = gridSpacing[1];
+   const auto dz = gridSpacing[2];
    return -(pC[b_z] * BGBY) / dz - (pC[b_yz] * BGBY) / (2 * dz) - (pC[b_yyz] * BGBY) / (6 * dz) +
           (pC[b_xz] * BGBY) / (2 * dz) + (pC[b_xyz] * BGBY) / (4 * dz) + (pC[c_yy] * BGBY) / dy +
           (pC[c_y] * BGBY) / dy - (pC[c_xy] * BGBY) / (2 * dy) - (pC[a_z] * BGBX) / dz - (pC[a_yz] * BGBX) / (2 * dz) +
@@ -698,9 +731,12 @@ inline REAL JXBZ_010_011(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, cr
  *
  */
 template <typename REAL>
-inline REAL JXBZ_110_111(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, creal BGBX, creal BGBY, creal dx,
-                         creal dy, creal dz) {
+inline REAL JXBZ_110_111(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, creal BGBX, creal BGBY,
+                         const std::array<Real, 3>& gridSpacing) {
    using namespace Rec;
+   const auto dx = gridSpacing[0];
+   const auto dy = gridSpacing[1];
+   const auto dz = gridSpacing[2];
    return -(pC[b_z] * BGBY) / dz - (pC[b_yz] * BGBY) / (2 * dz) - (pC[b_yyz] * BGBY) / (6 * dz) -
           (pC[b_xz] * BGBY) / (2 * dz) - (pC[b_xyz] * BGBY) / (4 * dz) + (pC[c_yy] * BGBY) / dy +
           (pC[c_y] * BGBY) / dy + (pC[c_xy] * BGBY) / (2 * dy) - (pC[a_z] * BGBX) / dz - (pC[a_yz] * BGBX) / (2 * dz) -
@@ -747,40 +783,40 @@ inline REAL JXB(fsgrids::ehall term, const std::array<REAL, Rec::N_REC_COEFFICIE
                 Real BGBZ, const std::array<Real, 3>& gridSpacing) {
    switch (term) {
    case fsgrids::EXHALL_000_100: {
-      return JXBX_000_100(pC, BGBY, BGBZ, gridSpacing[0], gridSpacing[1], gridSpacing[2]);
+      return JXBX_000_100(pC, BGBY, BGBZ, gridSpacing);
    }
    case fsgrids::EXHALL_010_110: {
-      return JXBX_010_110(pC, BGBY, BGBZ, gridSpacing[0], gridSpacing[1], gridSpacing[2]);
+      return JXBX_010_110(pC, BGBY, BGBZ, gridSpacing);
    }
    case fsgrids::EXHALL_001_101: {
-      return JXBX_001_101(pC, BGBY, BGBZ, gridSpacing[0], gridSpacing[1], gridSpacing[2]);
+      return JXBX_001_101(pC, BGBY, BGBZ, gridSpacing);
    }
    case fsgrids::EXHALL_011_111: {
-      return JXBX_011_111(pC, BGBY, BGBZ, gridSpacing[0], gridSpacing[1], gridSpacing[2]);
+      return JXBX_011_111(pC, BGBY, BGBZ, gridSpacing);
    }
    case fsgrids::EYHALL_000_010: {
-      return JXBY_000_010(pC, BGBX, BGBZ, gridSpacing[0], gridSpacing[1], gridSpacing[2]);
+      return JXBY_000_010(pC, BGBX, BGBZ, gridSpacing);
    }
    case fsgrids::EYHALL_100_110: {
-      return JXBY_100_110(pC, BGBX, BGBZ, gridSpacing[0], gridSpacing[1], gridSpacing[2]);
+      return JXBY_100_110(pC, BGBX, BGBZ, gridSpacing);
    }
    case fsgrids::EYHALL_001_011: {
-      return JXBY_001_011(pC, BGBX, BGBZ, gridSpacing[0], gridSpacing[1], gridSpacing[2]);
+      return JXBY_001_011(pC, BGBX, BGBZ, gridSpacing);
    }
    case fsgrids::EYHALL_101_111: {
-      return JXBY_101_111(pC, BGBX, BGBZ, gridSpacing[0], gridSpacing[1], gridSpacing[2]);
+      return JXBY_101_111(pC, BGBX, BGBZ, gridSpacing);
    }
    case fsgrids::EZHALL_000_001: {
-      return JXBZ_000_001(pC, BGBX, BGBY, gridSpacing[0], gridSpacing[1], gridSpacing[2]);
+      return JXBZ_000_001(pC, BGBX, BGBY, gridSpacing);
    }
    case fsgrids::EZHALL_100_101: {
-      return JXBZ_100_101(pC, BGBX, BGBY, gridSpacing[0], gridSpacing[1], gridSpacing[2]);
+      return JXBZ_100_101(pC, BGBX, BGBY, gridSpacing);
    }
    case fsgrids::EZHALL_010_011: {
-      return JXBZ_010_011(pC, BGBX, BGBY, gridSpacing[0], gridSpacing[1], gridSpacing[2]);
+      return JXBZ_010_011(pC, BGBX, BGBY, gridSpacing);
    }
    case fsgrids::EZHALL_110_111: {
-      return JXBZ_110_111(pC, BGBX, BGBY, gridSpacing[0], gridSpacing[1], gridSpacing[2]);
+      return JXBZ_110_111(pC, BGBX, BGBY, gridSpacing);
    }
    case fsgrids::N_EHALL: {
       break;
@@ -805,7 +841,8 @@ inline REAL JXB(fsgrids::ehall term, const std::array<REAL, Rec::N_REC_COEFFICIE
  * \sa calculateHallTerm JXBX_000_100 JXBX_001_101 JXBX_010_110 JXBX_011_111
  *
  */
-void calculateEdgeHallTermXComponents(
+// TODO remove FsGrids
+void calculateEdgeHallTermComponents(
     fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
     fsgrid::FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH>& EHallGrid,
     fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
@@ -877,219 +914,101 @@ void calculateEdgeHallTermXComponents(
       break;
    }
    case 2: {
-      auto computeEHall = [&ehall, &perturbedCoefficients, &bgbx, &bgby, &bgbz, &gridSpacing](fsgrids::ehall term,
-                                                                                              Real hallRhoq) {
-         ehall[term] =
-             JXB(term, perturbedCoefficients, bgbx, bgby, bgbz, gridSpacing) / (physicalconstants::MU_0 * hallRhoq);
+      auto computeEHall = [&perturbedCoefficients, &bgbx, &bgby, &bgbz, &gridSpacing](fsgrids::ehall term,
+                                                                                      Real hallRhoq) {
+         return JXB(term, perturbedCoefficients, bgbx, bgby, bgbz, gridSpacing) / (physicalconstants::MU_0 * hallRhoq);
       };
 
-      Real hallRhoq = computeHallRhoq({
-          std::array{i, j, k},
-          std::array{i, j - 1, k},
-          std::array{i, j, k - 1},
-          std::array{i, j - 1, k - 1},
-      });
+      // clang-format off
+      const std::array<std::array<std::array<int32_t, 3>, 4>, 12> indices = {
+          std::array{
+              std::array{i    , j    , k    },
+              std::array{i    , j - 1, k    },
+              std::array{i    , j    , k - 1},
+              std::array{i    , j - 1, k - 1},
+          },
+          std::array{
+              std::array{i    , j    , k    },
+              std::array{i - 1, j    , k    },
+              std::array{i    , j    , k - 1},
+              std::array{i - 1, j    , k - 1},
+          },
+          std::array{
+              std::array{i    , j    , k    },
+              std::array{i - 1, j    , k    },
+              std::array{i    , j - 1, k    },
+              std::array{i - 1, j - 1, k    },
+          },
+          std::array{
+              std::array{i    , j    , k    },
+              std::array{i + 1, j    , k    },
+              std::array{i    , j    , k - 1},
+              std::array{i + 1, j    , k - 1},
+          },
+          std::array{
+              std::array{i    , j    , k    },
+              std::array{i + 1, j    , k    },
+              std::array{i    , j - 1, k    },
+              std::array{i + 1, j - 1, k    },
+          },
+          std::array{
+              std::array{i    , j    , k    },
+              std::array{i    , j + 1, k    },
+              std::array{i    , j    , k - 1},
+              std::array{i    , j + 1, k - 1},
+          },
+          std::array{
+              std::array{i    , j    , k    },
+              std::array{i - 1, j    , k    },
+              std::array{i    , j + 1, k    },
+              std::array{i - 1, j + 1, k    },
+          },
+          std::array{
+              std::array{i    , j    , k    },
+              std::array{i + 1, j    , k    },
+              std::array{i    , j + 1, k    },
+              std::array{i + 1, j + 1, k    },
+          },
+          std::array{
+              std::array{i    , j    , k    },
+              std::array{i    , j - 1, k    },
+              std::array{i    , j    , k + 1},
+              std::array{i    , j - 1, k + 1},
+          },
+          std::array{
+              std::array{i    , j    , k    },
+              std::array{i - 1, j    , k    },
+              std::array{i    , j    , k + 1},
+              std::array{i - 1, j    , k + 1},
+          },
+          std::array{
+              std::array{i    , j    , k    },
+              std::array{i + 1, j    , k    },
+              std::array{i    , j    , k + 1},
+              std::array{i + 1, j    , k + 1},
+          },
+          std::array{
+              std::array{i    , j    , k    },
+              std::array{i    , j + 1, k    },
+              std::array{i    , j    , k + 1},
+              std::array{i    , j + 1, k + 1},
+          },
+      };
+      // clang-format on
 
-      computeEHall(fsgrids::ehall::EXHALL_000_100, hallRhoq);
+      const std::array<fsgrids::ehall, 12> terms = {
+          fsgrids::ehall::EXHALL_000_100, fsgrids::ehall::EYHALL_000_010, fsgrids::ehall::EZHALL_000_001,
+          fsgrids::ehall::EYHALL_100_110, fsgrids::ehall::EZHALL_100_101, fsgrids::ehall::EXHALL_010_110,
+          fsgrids::ehall::EZHALL_010_011, fsgrids::ehall::EZHALL_110_111, fsgrids::ehall::EXHALL_001_101,
+          fsgrids::ehall::EYHALL_001_011, fsgrids::ehall::EYHALL_101_111, fsgrids::ehall::EXHALL_011_111,
+      };
 
-      hallRhoq = computeHallRhoq({
-          std::array{i, j, k},
-          std::array{i, j + 1, k},
-          std::array{i, j, k - 1},
-          std::array{i, j + 1, k - 1},
-      });
+      for (size_t index = 0; index < terms.size(); index++) {
+         ehall[terms[index]] = computeEHall(terms[index], computeHallRhoq(indices[index]));
+      }
 
-      computeEHall(fsgrids::ehall::EXHALL_010_110, hallRhoq);
-
-      hallRhoq = computeHallRhoq({
-          std::array{i, j, k},
-          std::array{i, j - 1, k},
-          std::array{i, j, k + 1},
-          std::array{i, j - 1, k + 1},
-      });
-
-      computeEHall(fsgrids::ehall::EXHALL_001_101, hallRhoq);
-
-      hallRhoq = computeHallRhoq({
-          std::array{i, j, k},
-          std::array{i, j + 1, k},
-          std::array{i, j, k + 1},
-          std::array{i, j + 1, k + 1},
-      });
-
-      computeEHall(fsgrids::ehall::EXHALL_011_111, hallRhoq);
       break;
    }
-
-   default:
-      cerr << __FILE__ << ":" << __LINE__ << "You are welcome to code higher-order Hall term correction terms." << endl;
-      break;
-   }
-}
-
-/*! \brief Low-level function computing the Hall term numerator y components.
- *
- * Calls the lower-level inline templates and scales the components properly.
- *
- * \param perBGrid fsGrid holding the perturbed B quantities
- * \param EHallGrid fsGrid holding the Hall contributions to the electric field
- * \param momentsGrid fsGrid holding the moment quantities
- * \param dPerBGrid fsGrid holding the derivatives of perturbed B
- * \param BgBGrid fsGrid holding the background B quantities
- * \param technicalGrid fsGrid holding technical information (such as boundary types)
- * \param perturbedCoefficients Reconstruction coefficients
- * \param i,j,k fsGrid cell coordinates for the current cell
- *
- * \sa calculateHallTerm JXBY_000_010 JXBY_001_011 JXBY_100_110 JXBY_101_111
- *
- */
-void calculateEdgeHallTermYComponents(
-    fsgrid::FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH>& EHallGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-    const std::array<Real, Rec::N_REC_COEFFICIENTS>& perturbedCoefficients, cint i, cint j, cint k) {
-   Real Bx = 0.0;
-   Real Bz = 0.0;
-   Real hallRhoq = 0.0;
-   Real EYHall = 0.0;
-
-   switch (Parameters::ohmHallTerm) {
-   case 0:
-      cerr << __FILE__ << __LINE__ << "You shouldn't be in a Hall term function if Parameters::ohmHallTerm == 0."
-           << endl;
-      break;
-
-   case 1:
-      break;
-
-   case 2:
-      hallRhoq = FOURTH * (momentsGrid.get(i, j, k)->at(fsgrids::moments::RHOQ) +
-                           momentsGrid.get(i - 1, j, k)->at(fsgrids::moments::RHOQ) +
-                           momentsGrid.get(i, j, k - 1)->at(fsgrids::moments::RHOQ) +
-                           momentsGrid.get(i - 1, j, k - 1)->at(fsgrids::moments::RHOQ));
-      hallRhoq = (hallRhoq <= Parameters::hallMinimumRhoq) ? Parameters::hallMinimumRhoq : hallRhoq;
-      EHallGrid.get(i, j, k)->at(fsgrids::ehall::EYHALL_000_010) =
-          JXBY_000_010(perturbedCoefficients, BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBX),
-                       BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBZ), technicalGrid.getGridSpacing()[0],
-                       technicalGrid.getGridSpacing()[1], technicalGrid.getGridSpacing()[2]) /
-          (physicalconstants::MU_0 * hallRhoq);
-      hallRhoq = FOURTH * (momentsGrid.get(i, j, k)->at(fsgrids::moments::RHOQ) +
-                           momentsGrid.get(i + 1, j, k)->at(fsgrids::moments::RHOQ) +
-                           momentsGrid.get(i, j, k - 1)->at(fsgrids::moments::RHOQ) +
-                           momentsGrid.get(i + 1, j, k - 1)->at(fsgrids::moments::RHOQ));
-      hallRhoq = (hallRhoq <= Parameters::hallMinimumRhoq) ? Parameters::hallMinimumRhoq : hallRhoq;
-      EHallGrid.get(i, j, k)->at(fsgrids::ehall::EYHALL_100_110) =
-          JXBY_100_110(perturbedCoefficients, BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBX),
-                       BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBZ), technicalGrid.getGridSpacing()[0],
-                       technicalGrid.getGridSpacing()[1], technicalGrid.getGridSpacing()[2]) /
-          (physicalconstants::MU_0 * hallRhoq);
-      hallRhoq = FOURTH * (momentsGrid.get(i, j, k)->at(fsgrids::moments::RHOQ) +
-                           momentsGrid.get(i - 1, j, k)->at(fsgrids::moments::RHOQ) +
-                           momentsGrid.get(i, j, k + 1)->at(fsgrids::moments::RHOQ) +
-                           momentsGrid.get(i - 1, j, k + 1)->at(fsgrids::moments::RHOQ));
-      hallRhoq = (hallRhoq <= Parameters::hallMinimumRhoq) ? Parameters::hallMinimumRhoq : hallRhoq;
-      EHallGrid.get(i, j, k)->at(fsgrids::ehall::EYHALL_001_011) =
-          JXBY_001_011(perturbedCoefficients, BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBX),
-                       BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBZ), technicalGrid.getGridSpacing()[0],
-                       technicalGrid.getGridSpacing()[1], technicalGrid.getGridSpacing()[2]) /
-          (physicalconstants::MU_0 * hallRhoq);
-      hallRhoq = FOURTH * (momentsGrid.get(i, j, k)->at(fsgrids::moments::RHOQ) +
-                           momentsGrid.get(i + 1, j, k)->at(fsgrids::moments::RHOQ) +
-                           momentsGrid.get(i, j, k + 1)->at(fsgrids::moments::RHOQ) +
-                           momentsGrid.get(i + 1, j, k + 1)->at(fsgrids::moments::RHOQ));
-      hallRhoq = (hallRhoq <= Parameters::hallMinimumRhoq) ? Parameters::hallMinimumRhoq : hallRhoq;
-      EHallGrid.get(i, j, k)->at(fsgrids::ehall::EYHALL_101_111) =
-          JXBY_101_111(perturbedCoefficients, BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBX),
-                       BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBZ), technicalGrid.getGridSpacing()[0],
-                       technicalGrid.getGridSpacing()[1], technicalGrid.getGridSpacing()[2]) /
-          (physicalconstants::MU_0 * hallRhoq);
-      break;
-
-   default:
-      cerr << __FILE__ << ":" << __LINE__ << "You are welcome to code higher-order Hall term correction terms." << endl;
-      break;
-   }
-}
-
-/*! \brief Low-level function computing the Hall term numerator z components.
- *
- * Calls the lower-level inline templates and scales the components properly.
- *
- * \param perBGrid fsGrid holding the perturbed B quantities
- * \param EHallGrid fsGrid holding the Hall contributions to the electric field
- * \param momentsGrid fsGrid holding the moment quantities
- * \param dPerBGrid fsGrid holding the derivatives of perturbed B
- * \param BgBGrid fsGrid holding the background B quantities
- * \param technicalGrid fsGrid holding technical information (such as boundary types)
- * \param perturbedCoefficients Reconstruction coefficients
- * \param i,j,k fsGrid cell coordinates for the current cell
- *
- * \sa calculateHallTerm JXBZ_000_001 JXBZ_010_011 JXBZ_100_101 JXBZ_110_111
- *
- */
-void calculateEdgeHallTermZComponents(
-    fsgrid::FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH>& EHallGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-    const std::array<Real, Rec::N_REC_COEFFICIENTS>& perturbedCoefficients, cint i, cint j, cint k) {
-   Real Bx = 0.0;
-   Real By = 0.0;
-   Real hallRhoq = 0.0;
-   Real EZHall = 0.0;
-
-   switch (Parameters::ohmHallTerm) {
-   case 0:
-      cerr << __FILE__ << __LINE__ << "You shouldn't be in a Hall term function if Parameters::ohmHallTerm == 0."
-           << endl;
-      break;
-
-   case 1:
-      break;
-
-   case 2:
-      hallRhoq = FOURTH * (momentsGrid.get(i, j, k)->at(fsgrids::moments::RHOQ) +
-                           momentsGrid.get(i - 1, j, k)->at(fsgrids::moments::RHOQ) +
-                           momentsGrid.get(i, j - 1, k)->at(fsgrids::moments::RHOQ) +
-                           momentsGrid.get(i - 1, j - 1, k)->at(fsgrids::moments::RHOQ));
-      hallRhoq = (hallRhoq <= Parameters::hallMinimumRhoq) ? Parameters::hallMinimumRhoq : hallRhoq;
-      EHallGrid.get(i, j, k)->at(fsgrids::ehall::EZHALL_000_001) =
-          JXBZ_000_001(perturbedCoefficients, BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBX),
-                       BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBY), technicalGrid.getGridSpacing()[0],
-                       technicalGrid.getGridSpacing()[1], technicalGrid.getGridSpacing()[2]) /
-          (physicalconstants::MU_0 * hallRhoq);
-      hallRhoq = FOURTH * (momentsGrid.get(i, j, k)->at(fsgrids::moments::RHOQ) +
-                           momentsGrid.get(i + 1, j, k)->at(fsgrids::moments::RHOQ) +
-                           momentsGrid.get(i, j - 1, k)->at(fsgrids::moments::RHOQ) +
-                           momentsGrid.get(i + 1, j - 1, k)->at(fsgrids::moments::RHOQ));
-      hallRhoq = (hallRhoq <= Parameters::hallMinimumRhoq) ? Parameters::hallMinimumRhoq : hallRhoq;
-      EHallGrid.get(i, j, k)->at(fsgrids::ehall::EZHALL_100_101) =
-          JXBZ_100_101(perturbedCoefficients, BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBX),
-                       BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBY), technicalGrid.getGridSpacing()[0],
-                       technicalGrid.getGridSpacing()[1], technicalGrid.getGridSpacing()[2]) /
-          (physicalconstants::MU_0 * hallRhoq);
-      hallRhoq = FOURTH * (momentsGrid.get(i, j, k)->at(fsgrids::moments::RHOQ) +
-                           momentsGrid.get(i - 1, j, k)->at(fsgrids::moments::RHOQ) +
-                           momentsGrid.get(i, j + 1, k)->at(fsgrids::moments::RHOQ) +
-                           momentsGrid.get(i - 1, j + 1, k)->at(fsgrids::moments::RHOQ));
-      hallRhoq = (hallRhoq <= Parameters::hallMinimumRhoq) ? Parameters::hallMinimumRhoq : hallRhoq;
-      EHallGrid.get(i, j, k)->at(fsgrids::ehall::EZHALL_010_011) =
-          JXBZ_010_011(perturbedCoefficients, BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBX),
-                       BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBY), technicalGrid.getGridSpacing()[0],
-                       technicalGrid.getGridSpacing()[1], technicalGrid.getGridSpacing()[2]) /
-          (physicalconstants::MU_0 * hallRhoq);
-      hallRhoq = FOURTH * (momentsGrid.get(i, j, k)->at(fsgrids::moments::RHOQ) +
-                           momentsGrid.get(i + 1, j, k)->at(fsgrids::moments::RHOQ) +
-                           momentsGrid.get(i, j + 1, k)->at(fsgrids::moments::RHOQ) +
-                           momentsGrid.get(i + 1, j + 1, k)->at(fsgrids::moments::RHOQ));
-      hallRhoq = (hallRhoq <= Parameters::hallMinimumRhoq) ? Parameters::hallMinimumRhoq : hallRhoq;
-      EHallGrid.get(i, j, k)->at(fsgrids::ehall::EZHALL_110_111) =
-          JXBZ_110_111(perturbedCoefficients, BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBX),
-                       BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBY), technicalGrid.getGridSpacing()[0],
-                       technicalGrid.getGridSpacing()[1], technicalGrid.getGridSpacing()[2]) /
-          (physicalconstants::MU_0 * hallRhoq);
-      break;
 
    default:
       cerr << __FILE__ << ":" << __LINE__ << "You are welcome to code higher-order Hall term correction terms." << endl;
@@ -1108,8 +1027,7 @@ void calculateEdgeHallTermZComponents(
  * \param sysBoundaries System boundary condition functions.
  * \param i,j,k fsGrid cell coordinates for the current cell
  *
- * \sa calculateHallTermSimple calculateEdgeHallTermXComponents calculateEdgeHallTermYComponents
- * calculateEdgeHallTermZComponents
+ * \sa calculateHallTermSimple calculateEdgeHallTermComponents
  */
 void calculateHallTerm(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
                        fsgrid::FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH>& EHallGrid,
@@ -1149,10 +1067,8 @@ void calculateHallTerm(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD
       sysBoundaries.getSysBoundary(cellSysBoundaryFlag)
           ->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, 2);
    } else {
-      calculateEdgeHallTermXComponents(perBGrid, EHallGrid, momentsGrid, dPerBGrid, BgBGrid,
-                                       technicalGrid.getGridSpacing(), perturbedCoefficients, i, j, k);
-      calculateEdgeHallTermYComponents(EHallGrid, momentsGrid, BgBGrid, technicalGrid, perturbedCoefficients, i, j, k);
-      calculateEdgeHallTermZComponents(EHallGrid, momentsGrid, BgBGrid, technicalGrid, perturbedCoefficients, i, j, k);
+      calculateEdgeHallTermComponents(perBGrid, EHallGrid, momentsGrid, dPerBGrid, BgBGrid,
+                                      technicalGrid.getGridSpacing(), perturbedCoefficients, i, j, k);
    }
 }
 
