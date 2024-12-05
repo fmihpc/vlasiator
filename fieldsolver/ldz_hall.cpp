@@ -863,6 +863,16 @@ void calculateEdgeHallTermXComponents(
                            min, max);
       };
 
+      auto computeEHall = [&EHallGrid, &i, &j, &k, &perturbedCoefficients, &BgBGrid,
+                           &technicalGrid](fsgrids::ehall term, Real hallRhoq) {
+         EHallGrid.get(i, j, k)->at(term) =
+             JXB(term, perturbedCoefficients, BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBX),
+                 BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBY), BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBZ),
+                 technicalGrid.getGridSpacing()[0], technicalGrid.getGridSpacing()[1],
+                 technicalGrid.getGridSpacing()[2]) /
+             (physicalconstants::MU_0 * hallRhoq);
+      };
+
       hallRhoq = computeHallRhoq({
           std::array{i, j, k},
           std::array{i, j - 1, k},
@@ -870,11 +880,7 @@ void calculateEdgeHallTermXComponents(
           std::array{i, j - 1, k - 1},
       });
 
-      EHallGrid.get(i, j, k)->at(fsgrids::ehall::EXHALL_000_100) =
-          JXB(fsgrids::ehall::EXHALL_000_100, perturbedCoefficients, BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBX),
-              BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBY), BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBZ),
-              technicalGrid.getGridSpacing()[0], technicalGrid.getGridSpacing()[1], technicalGrid.getGridSpacing()[2]) /
-          (physicalconstants::MU_0 * hallRhoq);
+      computeEHall(fsgrids::ehall::EXHALL_000_100, hallRhoq);
 
       hallRhoq = computeHallRhoq({
           std::array{i, j, k},
@@ -883,11 +889,7 @@ void calculateEdgeHallTermXComponents(
           std::array{i, j + 1, k - 1},
       });
 
-      EHallGrid.get(i, j, k)->at(fsgrids::ehall::EXHALL_010_110) =
-          JXB(fsgrids::ehall::EXHALL_010_110, perturbedCoefficients, BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBX),
-              BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBY), BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBZ),
-              technicalGrid.getGridSpacing()[0], technicalGrid.getGridSpacing()[1], technicalGrid.getGridSpacing()[2]) /
-          (physicalconstants::MU_0 * hallRhoq);
+      computeEHall(fsgrids::ehall::EXHALL_010_110, hallRhoq);
 
       hallRhoq = computeHallRhoq({
           std::array{i, j, k},
@@ -896,11 +898,7 @@ void calculateEdgeHallTermXComponents(
           std::array{i, j - 1, k + 1},
       });
 
-      EHallGrid.get(i, j, k)->at(fsgrids::ehall::EXHALL_001_101) =
-          JXB(fsgrids::ehall::EXHALL_001_101, perturbedCoefficients, BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBX),
-              BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBY), BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBZ),
-              technicalGrid.getGridSpacing()[0], technicalGrid.getGridSpacing()[1], technicalGrid.getGridSpacing()[2]) /
-          (physicalconstants::MU_0 * hallRhoq);
+      computeEHall(fsgrids::ehall::EXHALL_001_101, hallRhoq);
 
       hallRhoq = computeHallRhoq({
           std::array{i, j, k},
@@ -909,11 +907,7 @@ void calculateEdgeHallTermXComponents(
           std::array{i, j + 1, k + 1},
       });
 
-      EHallGrid.get(i, j, k)->at(fsgrids::ehall::EXHALL_011_111) =
-          JXB(fsgrids::ehall::EXHALL_011_111, perturbedCoefficients, BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBX),
-              BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBY), BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBZ),
-              technicalGrid.getGridSpacing()[0], technicalGrid.getGridSpacing()[1], technicalGrid.getGridSpacing()[2]) /
-          (physicalconstants::MU_0 * hallRhoq);
+      computeEHall(fsgrids::ehall::EXHALL_011_111, hallRhoq);
       break;
    }
 
