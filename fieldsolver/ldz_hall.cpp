@@ -20,8 +20,11 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include "ldz_hall.hpp"
+// clang-format off
 #include "fs_common.h"
+#include "ldz_hall.hpp"
+// clang-format on
+#include <limits>
 
 #ifdef DEBUG_VLASIATOR
 #define DEBUG_FSOLVER
@@ -821,7 +824,7 @@ void calculateEdgeHallTermXComponents(
            << endl;
       break;
 
-   case 1:
+   case 1: {
       By = perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBY) + BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBY);
       Bz = perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBZ) + BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBZ);
 
@@ -848,51 +851,71 @@ void calculateEdgeHallTermXComponents(
                   EHallGrid.get(i, j, k)->at(fsgrids::ehall::EXHALL_011_111) = EXHall;
 
       break;
-   case 2:
-      hallRhoq = FOURTH * (momentsGrid.get(i, j, k)->at(fsgrids::moments::RHOQ) +
-                           momentsGrid.get(i, j - 1, k)->at(fsgrids::moments::RHOQ) +
-                           momentsGrid.get(i, j, k - 1)->at(fsgrids::moments::RHOQ) +
-                           momentsGrid.get(i, j - 1, k - 1)->at(fsgrids::moments::RHOQ));
-      hallRhoq = (hallRhoq <= Parameters::hallMinimumRhoq) ? Parameters::hallMinimumRhoq : hallRhoq;
+   }
+   case 2: {
+      auto computeHallRhoq = [&momentsGrid](const std::array<std::array<int32_t, 3>, 4>& arr) {
+         const auto min = Parameters::hallMinimumRhoq;
+         const auto max = std::numeric_limits<Real>::max();
+         return std::clamp(FOURTH * (momentsGrid.get(arr[0][0], arr[0][1], arr[0][2])->at(fsgrids::moments::RHOQ) +
+                                     momentsGrid.get(arr[1][0], arr[1][1], arr[1][2])->at(fsgrids::moments::RHOQ) +
+                                     momentsGrid.get(arr[2][0], arr[2][1], arr[2][2])->at(fsgrids::moments::RHOQ) +
+                                     momentsGrid.get(arr[3][0], arr[3][1], arr[3][2])->at(fsgrids::moments::RHOQ)),
+                           min, max);
+      };
+
+      hallRhoq = computeHallRhoq({
+          std::array{i, j, k},
+          std::array{i, j - 1, k},
+          std::array{i, j, k - 1},
+          std::array{i, j - 1, k - 1},
+      });
+
       EHallGrid.get(i, j, k)->at(fsgrids::ehall::EXHALL_000_100) =
           JXB(fsgrids::ehall::EXHALL_000_100, perturbedCoefficients, BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBX),
               BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBY), BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBZ),
               technicalGrid.getGridSpacing()[0], technicalGrid.getGridSpacing()[1], technicalGrid.getGridSpacing()[2]) /
           (physicalconstants::MU_0 * hallRhoq);
 
-      hallRhoq = FOURTH * (momentsGrid.get(i, j, k)->at(fsgrids::moments::RHOQ) +
-                           momentsGrid.get(i, j + 1, k)->at(fsgrids::moments::RHOQ) +
-                           momentsGrid.get(i, j, k - 1)->at(fsgrids::moments::RHOQ) +
-                           momentsGrid.get(i, j + 1, k - 1)->at(fsgrids::moments::RHOQ));
-      hallRhoq = (hallRhoq <= Parameters::hallMinimumRhoq) ? Parameters::hallMinimumRhoq : hallRhoq;
+      hallRhoq = computeHallRhoq({
+          std::array{i, j, k},
+          std::array{i, j + 1, k},
+          std::array{i, j, k - 1},
+          std::array{i, j + 1, k - 1},
+      });
+
       EHallGrid.get(i, j, k)->at(fsgrids::ehall::EXHALL_010_110) =
           JXB(fsgrids::ehall::EXHALL_010_110, perturbedCoefficients, BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBX),
               BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBY), BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBZ),
               technicalGrid.getGridSpacing()[0], technicalGrid.getGridSpacing()[1], technicalGrid.getGridSpacing()[2]) /
           (physicalconstants::MU_0 * hallRhoq);
 
-      hallRhoq = FOURTH * (momentsGrid.get(i, j, k)->at(fsgrids::moments::RHOQ) +
-                           momentsGrid.get(i, j - 1, k)->at(fsgrids::moments::RHOQ) +
-                           momentsGrid.get(i, j, k + 1)->at(fsgrids::moments::RHOQ) +
-                           momentsGrid.get(i, j - 1, k + 1)->at(fsgrids::moments::RHOQ));
-      hallRhoq = (hallRhoq <= Parameters::hallMinimumRhoq) ? Parameters::hallMinimumRhoq : hallRhoq;
+      hallRhoq = computeHallRhoq({
+          std::array{i, j, k},
+          std::array{i, j - 1, k},
+          std::array{i, j, k + 1},
+          std::array{i, j - 1, k + 1},
+      });
+
       EHallGrid.get(i, j, k)->at(fsgrids::ehall::EXHALL_001_101) =
           JXB(fsgrids::ehall::EXHALL_001_101, perturbedCoefficients, BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBX),
               BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBY), BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBZ),
               technicalGrid.getGridSpacing()[0], technicalGrid.getGridSpacing()[1], technicalGrid.getGridSpacing()[2]) /
           (physicalconstants::MU_0 * hallRhoq);
 
-      hallRhoq = FOURTH * (momentsGrid.get(i, j, k)->at(fsgrids::moments::RHOQ) +
-                           momentsGrid.get(i, j + 1, k)->at(fsgrids::moments::RHOQ) +
-                           momentsGrid.get(i, j, k + 1)->at(fsgrids::moments::RHOQ) +
-                           momentsGrid.get(i, j + 1, k + 1)->at(fsgrids::moments::RHOQ));
-      hallRhoq = (hallRhoq <= Parameters::hallMinimumRhoq) ? Parameters::hallMinimumRhoq : hallRhoq;
+      hallRhoq = computeHallRhoq({
+          std::array{i, j, k},
+          std::array{i, j + 1, k},
+          std::array{i, j, k + 1},
+          std::array{i, j + 1, k + 1},
+      });
+
       EHallGrid.get(i, j, k)->at(fsgrids::ehall::EXHALL_011_111) =
           JXB(fsgrids::ehall::EXHALL_011_111, perturbedCoefficients, BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBX),
               BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBY), BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBZ),
               technicalGrid.getGridSpacing()[0], technicalGrid.getGridSpacing()[1], technicalGrid.getGridSpacing()[2]) /
           (physicalconstants::MU_0 * hallRhoq);
       break;
+   }
 
    default:
       cerr << __FILE__ << ":" << __LINE__ << "You are welcome to code higher-order Hall term correction terms." << endl;
