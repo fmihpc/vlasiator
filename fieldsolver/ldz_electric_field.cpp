@@ -112,7 +112,7 @@ private:
    std::tuple<Real, Real> compute(const std::array<Real, N>& nbr_arr, const std::array<Real, N>& arr, size_t i,
                                   size_t j, Real mul0 = 1.0, Real mul1 = 1.0) const {
       const Real a = nbr_arr[i] + nbr_bgb[j];
-      const Real b = arr[i] + nbr_bgb[j];
+      const Real b = arr[i] + bgb[j];
 
       return {mul0 * (a + b), mul1 * (a - b)};
    }
