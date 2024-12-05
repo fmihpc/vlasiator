@@ -811,12 +811,13 @@ void calculateEdgeHallTermXComponents(
     fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
     fsgrid::FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
     fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-    const std::array<Real, Rec::N_REC_COEFFICIENTS>& perturbedCoefficients, cint i, cint j, cint k) {
-   Real By = 0.0;
-   Real Bz = 0.0;
-   Real hallRhoq = 0.0;
-   Real EXHall = 0.0;
+    const std::array<Real, 3>& gridSpacing, const std::array<Real, Rec::N_REC_COEFFICIENTS>& perturbedCoefficients,
+    cint i, cint j, cint k) {
+   const auto& bgb = *BgBGrid.get(i, j, k);
+   const auto& perb = *perBGrid.get(i, j, k);
+   const auto& dperb = *dPerBGrid.get(i, j, k);
+   const auto& moments = *momentsGrid.get(i, j, k);
+   auto& ehall = *EHallGrid.get(i, j, k);
 
    switch (Parameters::ohmHallTerm) {
    case 0:
@@ -825,30 +826,22 @@ void calculateEdgeHallTermXComponents(
       break;
 
    case 1: {
-      By = perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBY) + BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBY);
-      Bz = perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBZ) + BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBZ);
+      const Real By = perb[fsgrids::bfield::PERBY] + bgb[fsgrids::bgbfield::BGBY];
+      const Real Bz = perb[fsgrids::bfield::PERBZ] + bgb[fsgrids::bgbfield::BGBZ];
 
-      hallRhoq = (momentsGrid.get(i, j, k)->at(fsgrids::moments::RHOQ) <= Parameters::hallMinimumRhoq)
-                     ? Parameters::hallMinimumRhoq
-                     : momentsGrid.get(i, j, k)->at(fsgrids::moments::RHOQ);
-      EXHall = Bz * ((BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::dBGBxdz) +
-                      dPerBGrid.get(i, j, k)->at(fsgrids::dperb::dPERBxdz)) /
-                         technicalGrid.getGridSpacing()[2] -
-                     (BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::dBGBzdx) +
-                      dPerBGrid.get(i, j, k)->at(fsgrids::dperb::dPERBzdx)) /
-                         technicalGrid.getGridSpacing()[0]) -
-               By * ((BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::dBGBydx) +
-                      dPerBGrid.get(i, j, k)->at(fsgrids::dperb::dPERBydx)) /
-                         technicalGrid.getGridSpacing()[0] -
-                     (BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::dBGBxdy) +
-                      dPerBGrid.get(i, j, k)->at(fsgrids::dperb::dPERBxdy)) /
-                         technicalGrid.getGridSpacing()[1]);
-      EXHall /= physicalconstants::MU_0 * hallRhoq;
+      const Real hallRhoq =
+          std::clamp(moments[fsgrids::moments::RHOQ], Parameters::hallMinimumRhoq, std::numeric_limits<Real>::max());
+      const Real EXHall =
+          (Bz * ((bgb[fsgrids::bgbfield::dBGBxdz] + dperb[fsgrids::dperb::dPERBxdz]) / gridSpacing[2] -
+                 (bgb[fsgrids::bgbfield::dBGBzdx] + dperb[fsgrids::dperb::dPERBzdx]) / gridSpacing[0]) -
+           By * ((bgb[fsgrids::bgbfield::dBGBydx] + dperb[fsgrids::dperb::dPERBydx]) / gridSpacing[0] -
+                 (bgb[fsgrids::bgbfield::dBGBxdy] + dperb[fsgrids::dperb::dPERBxdy]) / gridSpacing[1])) /
+          physicalconstants::MU_0 * hallRhoq;
 
-      EHallGrid.get(i, j, k)->at(fsgrids::ehall::EXHALL_000_100) =
-          EHallGrid.get(i, j, k)->at(fsgrids::ehall::EXHALL_010_110) =
-              EHallGrid.get(i, j, k)->at(fsgrids::ehall::EXHALL_001_101) =
-                  EHallGrid.get(i, j, k)->at(fsgrids::ehall::EXHALL_011_111) = EXHall;
+      ehall[fsgrids::ehall::EXHALL_000_100] = EXHall;
+      ehall[fsgrids::ehall::EXHALL_010_110] = EXHall;
+      ehall[fsgrids::ehall::EXHALL_001_101] = EXHall;
+      ehall[fsgrids::ehall::EXHALL_011_111] = EXHall;
 
       break;
    }
@@ -863,17 +856,13 @@ void calculateEdgeHallTermXComponents(
                            min, max);
       };
 
-      auto computeEHall = [&EHallGrid, &i, &j, &k, &perturbedCoefficients, &BgBGrid,
-                           &technicalGrid](fsgrids::ehall term, Real hallRhoq) {
-         EHallGrid.get(i, j, k)->at(term) =
-             JXB(term, perturbedCoefficients, BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBX),
-                 BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBY), BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBZ),
-                 technicalGrid.getGridSpacing()[0], technicalGrid.getGridSpacing()[1],
-                 technicalGrid.getGridSpacing()[2]) /
-             (physicalconstants::MU_0 * hallRhoq);
+      auto computeEHall = [&ehall, &perturbedCoefficients, &bgb, &gridSpacing](fsgrids::ehall term, Real hallRhoq) {
+         ehall[term] = JXB(term, perturbedCoefficients, bgb[fsgrids::bgbfield::BGBX], bgb[fsgrids::bgbfield::BGBY],
+                           bgb[fsgrids::bgbfield::BGBZ], gridSpacing[0], gridSpacing[1], gridSpacing[2]) /
+                       (physicalconstants::MU_0 * hallRhoq);
       };
 
-      hallRhoq = computeHallRhoq({
+      Real hallRhoq = computeHallRhoq({
           std::array{i, j, k},
           std::array{i, j - 1, k},
           std::array{i, j, k - 1},
@@ -1191,8 +1180,8 @@ void calculateHallTerm(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD
       sysBoundaries.getSysBoundary(cellSysBoundaryFlag)
           ->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, 2);
    } else {
-      calculateEdgeHallTermXComponents(perBGrid, EHallGrid, momentsGrid, dPerBGrid, BgBGrid, technicalGrid,
-                                       perturbedCoefficients, i, j, k);
+      calculateEdgeHallTermXComponents(perBGrid, EHallGrid, momentsGrid, dPerBGrid, BgBGrid,
+                                       technicalGrid.getGridSpacing(), perturbedCoefficients, i, j, k);
       calculateEdgeHallTermYComponents(perBGrid, EHallGrid, momentsGrid, dPerBGrid, BgBGrid, technicalGrid,
                                        perturbedCoefficients, i, j, k);
       calculateEdgeHallTermZComponents(perBGrid, EHallGrid, momentsGrid, dPerBGrid, BgBGrid, technicalGrid,
