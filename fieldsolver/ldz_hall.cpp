@@ -743,44 +743,44 @@ inline REAL JXBZ_110_111(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, cr
 }
 
 template <typename REAL>
-inline REAL JXB(fsgrids::ehall term, const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, creal BGBX, creal BGBY,
-                creal BGBZ, creal dx, creal dy, creal dz) {
+inline REAL JXB(fsgrids::ehall term, const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, Real BGBX, Real BGBY,
+                Real BGBZ, const std::array<Real, 3>& gridSpacing) {
    switch (term) {
    case fsgrids::EXHALL_000_100: {
-      return JXBX_000_100(pC, BGBY, BGBZ, dx, dy, dz);
+      return JXBX_000_100(pC, BGBY, BGBZ, gridSpacing[0], gridSpacing[1], gridSpacing[2]);
    }
    case fsgrids::EXHALL_010_110: {
-      return JXBX_010_110(pC, BGBY, BGBZ, dx, dy, dz);
+      return JXBX_010_110(pC, BGBY, BGBZ, gridSpacing[0], gridSpacing[1], gridSpacing[2]);
    }
    case fsgrids::EXHALL_001_101: {
-      return JXBX_001_101(pC, BGBY, BGBZ, dx, dy, dz);
+      return JXBX_001_101(pC, BGBY, BGBZ, gridSpacing[0], gridSpacing[1], gridSpacing[2]);
    }
    case fsgrids::EXHALL_011_111: {
-      return JXBX_011_111(pC, BGBY, BGBZ, dx, dy, dz);
+      return JXBX_011_111(pC, BGBY, BGBZ, gridSpacing[0], gridSpacing[1], gridSpacing[2]);
    }
    case fsgrids::EYHALL_000_010: {
-      return JXBY_000_010(pC, BGBX, BGBZ, dx, dy, dz);
+      return JXBY_000_010(pC, BGBX, BGBZ, gridSpacing[0], gridSpacing[1], gridSpacing[2]);
    }
    case fsgrids::EYHALL_100_110: {
-      return JXBY_100_110(pC, BGBX, BGBZ, dx, dy, dz);
+      return JXBY_100_110(pC, BGBX, BGBZ, gridSpacing[0], gridSpacing[1], gridSpacing[2]);
    }
    case fsgrids::EYHALL_001_011: {
-      return JXBY_001_011(pC, BGBX, BGBZ, dx, dy, dz);
+      return JXBY_001_011(pC, BGBX, BGBZ, gridSpacing[0], gridSpacing[1], gridSpacing[2]);
    }
    case fsgrids::EYHALL_101_111: {
-      return JXBY_101_111(pC, BGBX, BGBZ, dx, dy, dz);
+      return JXBY_101_111(pC, BGBX, BGBZ, gridSpacing[0], gridSpacing[1], gridSpacing[2]);
    }
    case fsgrids::EZHALL_000_001: {
-      return JXBZ_000_001(pC, BGBX, BGBY, dx, dy, dz);
+      return JXBZ_000_001(pC, BGBX, BGBY, gridSpacing[0], gridSpacing[1], gridSpacing[2]);
    }
    case fsgrids::EZHALL_100_101: {
-      return JXBZ_100_101(pC, BGBX, BGBY, dx, dy, dz);
+      return JXBZ_100_101(pC, BGBX, BGBY, gridSpacing[0], gridSpacing[1], gridSpacing[2]);
    }
    case fsgrids::EZHALL_010_011: {
-      return JXBZ_010_011(pC, BGBX, BGBY, dx, dy, dz);
+      return JXBZ_010_011(pC, BGBX, BGBY, gridSpacing[0], gridSpacing[1], gridSpacing[2]);
    }
    case fsgrids::EZHALL_110_111: {
-      return JXBZ_110_111(pC, BGBX, BGBY, dx, dy, dz);
+      return JXBZ_110_111(pC, BGBX, BGBY, gridSpacing[0], gridSpacing[1], gridSpacing[2]);
    }
    case fsgrids::N_EHALL: {
       break;
@@ -819,6 +819,10 @@ void calculateEdgeHallTermXComponents(
    const auto& moments = *momentsGrid.get(i, j, k);
    auto& ehall = *EHallGrid.get(i, j, k);
 
+   const Real bgbx = bgb[fsgrids::bgbfield::BGBX];
+   const Real bgby = bgb[fsgrids::bgbfield::BGBY];
+   const Real bgbz = bgb[fsgrids::bgbfield::BGBZ];
+
    switch (Parameters::ohmHallTerm) {
    case 0:
       cerr << __FILE__ << __LINE__ << "You shouldn't be in a Hall term function if Parameters::ohmHallTerm == 0."
@@ -826,8 +830,8 @@ void calculateEdgeHallTermXComponents(
       break;
 
    case 1: {
-      const Real By = perb[fsgrids::bfield::PERBY] + bgb[fsgrids::bgbfield::BGBY];
-      const Real Bz = perb[fsgrids::bfield::PERBZ] + bgb[fsgrids::bgbfield::BGBZ];
+      const Real By = perb[fsgrids::bfield::PERBY] + bgby;
+      const Real Bz = perb[fsgrids::bfield::PERBZ] + bgbz;
 
       const Real hallRhoq =
           std::clamp(moments[fsgrids::moments::RHOQ], Parameters::hallMinimumRhoq, std::numeric_limits<Real>::max());
@@ -856,10 +860,10 @@ void calculateEdgeHallTermXComponents(
                            min, max);
       };
 
-      auto computeEHall = [&ehall, &perturbedCoefficients, &bgb, &gridSpacing](fsgrids::ehall term, Real hallRhoq) {
-         ehall[term] = JXB(term, perturbedCoefficients, bgb[fsgrids::bgbfield::BGBX], bgb[fsgrids::bgbfield::BGBY],
-                           bgb[fsgrids::bgbfield::BGBZ], gridSpacing[0], gridSpacing[1], gridSpacing[2]) /
-                       (physicalconstants::MU_0 * hallRhoq);
+      auto computeEHall = [&ehall, &perturbedCoefficients, &bgbx, &bgby, &bgbz, &gridSpacing](fsgrids::ehall term,
+                                                                                              Real hallRhoq) {
+         ehall[term] =
+             JXB(term, perturbedCoefficients, bgbx, bgby, bgbz, gridSpacing) / (physicalconstants::MU_0 * hallRhoq);
       };
 
       Real hallRhoq = computeHallRhoq({
