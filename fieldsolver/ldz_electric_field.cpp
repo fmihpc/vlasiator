@@ -133,7 +133,7 @@ public:
 
    std::tuple<Real, Real> perBCoeffs(size_t i, size_t j) const { return compute(nbr_perb, perb, i, j, HALF, 1.0); }
 
-   std::tuple<Real, Real> dPerBCoeffs(size_t i, size_t j) const { return compute(nbr_dperb, dperb, i, j, HALF, 1.0); }
+   std::tuple<Real, Real> dPerBCoeffs(size_t i, size_t j) const { return compute(nbr_dperb, dperb, i, j, 1.0, 1.0); }
 
    Real rhom(Real dir0, Real dir1, size_t i, size_t j, size_t k) const {
       return momentsCoeff(dir0, dir1, i, j, k, rhomLimits.min, rhomLimits.max);
