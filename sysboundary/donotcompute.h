@@ -82,13 +82,10 @@ namespace SBC {
                                                 const fsgrid::FsStencil&, cuint) {
          std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondElectricField called!" << std::endl;
       }
-      void fieldSolverBoundaryCondHallElectricField(
-         fsgrid::FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
-         cint i,
-         cint j,
-         cint k,
-         cuint component
-      ) { std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondHallElectricField called!" << std::endl;}
+      void fieldSolverBoundaryCondHallElectricField(std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
+                                                    const fsgrid::FsStencil& stencil, cuint component) {
+         std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondHallElectricField called!" << std::endl;
+      }
       void fieldSolverBoundaryCondGradPeElectricField(std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> EGradPe,
                                                       const fsgrid::FsStencil& stencil, cuint component) {
          std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondGradPeElectricField called!" << std::endl;

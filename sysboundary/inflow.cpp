@@ -223,28 +223,27 @@ void Inflow::fieldSolverBoundaryCondElectricField(std::span<std::array<Real, fsg
    e[stencil.center()][fsgrids::efield::EX + component] = 0.0;
 }
 
-void Inflow::fieldSolverBoundaryCondHallElectricField(
-    fsgrid::FsGrid<array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH>& EHallGrid, cint i, cint j, cint k,
-    cuint component) {
-   std::array<Real, fsgrids::ehall::N_EHALL>* cp = EHallGrid.get(i, j, k);
+void Inflow::fieldSolverBoundaryCondHallElectricField(std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
+                                                      const fsgrid::FsStencil& stencil, cuint component) {
+   std::array<Real, fsgrids::ehall::N_EHALL>& cp = ehall[stencil.center()];
    switch (component) {
    case 0:
-      cp->at(fsgrids::ehall::EXHALL_000_100) = 0.0;
-      cp->at(fsgrids::ehall::EXHALL_010_110) = 0.0;
-      cp->at(fsgrids::ehall::EXHALL_001_101) = 0.0;
-      cp->at(fsgrids::ehall::EXHALL_011_111) = 0.0;
+      cp[fsgrids::ehall::EXHALL_000_100] = 0.0;
+      cp[fsgrids::ehall::EXHALL_010_110] = 0.0;
+      cp[fsgrids::ehall::EXHALL_001_101] = 0.0;
+      cp[fsgrids::ehall::EXHALL_011_111] = 0.0;
       break;
    case 1:
-      cp->at(fsgrids::ehall::EYHALL_000_010) = 0.0;
-      cp->at(fsgrids::ehall::EYHALL_100_110) = 0.0;
-      cp->at(fsgrids::ehall::EYHALL_001_011) = 0.0;
-      cp->at(fsgrids::ehall::EYHALL_101_111) = 0.0;
+      cp[fsgrids::ehall::EYHALL_000_010] = 0.0;
+      cp[fsgrids::ehall::EYHALL_100_110] = 0.0;
+      cp[fsgrids::ehall::EYHALL_001_011] = 0.0;
+      cp[fsgrids::ehall::EYHALL_101_111] = 0.0;
       break;
    case 2:
-      cp->at(fsgrids::ehall::EZHALL_000_001) = 0.0;
-      cp->at(fsgrids::ehall::EZHALL_100_101) = 0.0;
-      cp->at(fsgrids::ehall::EZHALL_010_011) = 0.0;
-      cp->at(fsgrids::ehall::EZHALL_110_111) = 0.0;
+      cp[fsgrids::ehall::EZHALL_000_001] = 0.0;
+      cp[fsgrids::ehall::EZHALL_100_101] = 0.0;
+      cp[fsgrids::ehall::EZHALL_010_011] = 0.0;
+      cp[fsgrids::ehall::EZHALL_110_111] = 0.0;
       break;
    default:
       abort_mpi("Invalid component", 1);

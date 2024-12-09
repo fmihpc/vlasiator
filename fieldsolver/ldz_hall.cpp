@@ -1028,6 +1028,7 @@ void calculateEdgeHallTermComponents(std::span<std::array<Real, fsgrids::bfield:
  *
  * \sa calculateHallTermSimple calculateEdgeHallTermComponents
  */
+// TODO change these to spans, once reconstructionCoefficients takes spans
 void calculateHallTerm(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
                        fsgrid::FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH>& EHallGrid,
                        fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
@@ -1068,12 +1069,10 @@ void calculateHallTerm(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD
    );
 
    if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) && (cellSysBoundaryLayer != 1)) {
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)
-          ->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, 0);
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)
-          ->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, 1);
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)
-          ->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, 2);
+      auto* const sb = sysBoundaries.getSysBoundary(cellSysBoundaryFlag);
+      sb->fieldSolverBoundaryCondHallElectricField(ehall, stencil, 0);
+      sb->fieldSolverBoundaryCondHallElectricField(ehall, stencil, 1);
+      sb->fieldSolverBoundaryCondHallElectricField(ehall, stencil, 2);
    } else {
       calculateEdgeHallTermComponents(perb, ehall, moments, dperb, bgb, gridSpacing, perturbedCoefficients, stencil);
    }
