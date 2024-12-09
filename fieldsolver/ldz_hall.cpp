@@ -1061,12 +1061,10 @@ void calculateHallTerm(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD
       return;
    }
 
-   // TODO: change this to accept spans & stencil once volume is ready to pass those to it too
-   std::array<Real, Rec::N_REC_COEFFICIENTS> perturbedCoefficients;
-   reconstructionCoefficients(perBGrid, dPerBGrid, perturbedCoefficients, i, j, k,
-                              3 // Reconstruction order of the fields after Balsara 2009, 2 used for general B, 3 used
-                                // here for 2nd-order Hall term
-   );
+   // Reconstruction order of the fields after Balsara 2009, 2 used for general B, 3 used
+   // here for 2nd-order Hall term
+   const std::array<Real, Rec::N_REC_COEFFICIENTS> perturbedCoefficients =
+       reconstructionCoefficients(perb, dperb, stencil, 3);
 
    if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) && (cellSysBoundaryLayer != 1)) {
       auto* const sb = sysBoundaries.getSysBoundary(cellSysBoundaryFlag);

@@ -23,14 +23,15 @@
 #ifndef FS_COMMON_H
 #define FS_COMMON_H
 
+#include <cmath>
 #include <cstdlib>
 #include <iostream>
-#include <cmath>
-#include <vector>
-#include <map>
 #include <list>
+#include <map>
 #include <set>
+#include <span>
 #include <stdint.h>
+#include <vector>
 
 #include <fsgrid.hpp>
 #include <phiprof.hpp>
@@ -96,15 +97,10 @@ namespace Rec {
    };
 }
 
-void reconstructionCoefficients(
-   fsgrid::FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   fsgrid::FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-   std::array<Real, Rec::N_REC_COEFFICIENTS> & perturbedResult,
-   cint i,
-   cint j,
-   cint k,
-   creal& reconstructionOrder
-);
+std::array<Real, Rec::N_REC_COEFFICIENTS>
+reconstructionCoefficients(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                           std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb, const fsgrid::FsStencil& stencil,
+                           Real reconstructionOrder);
 
 std::array<Real, 3> interpolatePerturbedB(
    fsgrid::FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,

@@ -24,17 +24,14 @@
 #include "../fieldtracing/fieldtracing.h"
 
 /*! \brief Helper function
- * 
+ *
  * Divides the first value by the second or returns zero if the denominator is zero.
- * 
+ *
  * \param numerator Numerator
  * \param denominator Denominator
  */
-Real divideIfNonZero(
-   creal numerator,
-   creal denominator
-) {
-   if(denominator <= 0.0) {
+Real divideIfNonZero(creal numerator, creal denominator) {
+   if (denominator <= 0.0) {
       return 0.0;
    } else {
       return numerator / denominator;
@@ -42,48 +39,43 @@ Real divideIfNonZero(
 }
 
 /*! \brief Low-level helper function.
- * 
+ *
  * Computes the reconstruction coefficients used for field component reconstruction.
  * Only implemented for 2nd and 3rd order.
- * 
- * \param perBGrid fsGrid holding the perturbed B quantities 
+ *
+ * \param perBGrid fsGrid holding the perturbed B quantities
  * \param dPerBGrid fsGrid holding the derivatives of perturbed B
  * \param perturbedResult Array in which to store the coefficients.
  * \param i,j,k fsGrid cell coordinates for the current cell
- * \param reconstructionOrder Reconstruction order of the fields after Balsara 2009, 2 used for BVOL, 3 used for 2nd-order Hall term calculations.
+ * \param reconstructionOrder Reconstruction order of the fields after Balsara 2009, 2 used for BVOL, 3 used for
+ * 2nd-order Hall term calculations.
  */
-void reconstructionCoefficients(
-   fsgrid::FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   fsgrid::FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-   std::array<Real, Rec::N_REC_COEFFICIENTS> & perturbedResult,
-   cint i,
-   cint j,
-   cint k,
-   creal& reconstructionOrder
-) {
-   const std::array<Real, fsgrids::dperb::N_DPERB>& der_i1j1k1 = *dPerBGrid.get(i, j, k);
-   const std::array<Real, fsgrids::bfield::N_BFIELD>& cep_i1j1k1 = *perBGrid.get(i, j, k);
+std::array<Real, Rec::N_REC_COEFFICIENTS>
+reconstructionCoefficients(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                           std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb, const fsgrid::FsStencil& stencil,
+                           Real reconstructionOrder) {
+   std::array<Real, Rec::N_REC_COEFFICIENTS> perturbedResult;
 
-   auto ptr = perBGrid.get(i + 1, j, k);
-   const std::array<Real, fsgrids::bfield::N_BFIELD>& cep_i2j1k1 = ptr != NULL ? *ptr : cep_i1j1k1;
-   ptr = perBGrid.get(i, j + 1, k);
-   const std::array<Real, fsgrids::bfield::N_BFIELD>& cep_i1j2k1 = ptr != NULL ? *ptr : cep_i1j1k1;
-   ptr = perBGrid.get(i, j, k + 1);
-   const std::array<Real, fsgrids::bfield::N_BFIELD>& cep_i1j1k2 = ptr != NULL ? *ptr : cep_i1j1k1;
+   const std::array<Real, fsgrids::dperb::N_DPERB>& der_i1j1k1 = dperb[stencil.center()];
+   const std::array<Real, fsgrids::bfield::N_BFIELD>& cep_i1j1k1 = perb[stencil.center()];
+
+   const bool rightOk = stencil.cellExists(1, 0, 0);
+   const bool upOk = stencil.cellExists(0, 1, 0);
+   const bool nearOk = stencil.cellExists(0, 0, 1);
+   const std::array<Real, fsgrids::bfield::N_BFIELD>& cep_i2j1k1 = rightOk ? perb[stencil.right()] : cep_i1j1k1;
+   const std::array<Real, fsgrids::bfield::N_BFIELD>& cep_i1j2k1 = upOk ? perb[stencil.up()] : cep_i1j1k1;
+   const std::array<Real, fsgrids::bfield::N_BFIELD>& cep_i1j1k2 = nearOk ? perb[stencil.near()] : cep_i1j1k1;
 
 #ifndef FS_1ST_ORDER_SPACE
    // Create a dummy array for containing zero values for derivatives on non-existing cells:
    std::array<Real, fsgrids::dperb::N_DPERB> dummyDerivatives;
    dummyDerivatives.fill(0.0);
 
-   // Fetch neighbour cell derivatives, or in case the neighbour does not 
+   // Fetch neighbour cell derivatives, or in case the neighbour does not
    // exist, use dummyDerivatives array:
-   auto ptr2 = dPerBGrid.get(i + 1, j, k);
-   const std::array<Real, fsgrids::dperb::N_DPERB>& der_i2j1k1 = ptr2 != NULL ? *ptr2 : dummyDerivatives;
-   ptr2 = dPerBGrid.get(i, j + 1, k);
-   const std::array<Real, fsgrids::dperb::N_DPERB>& der_i1j2k1 = ptr2 != NULL ? *ptr2 : dummyDerivatives;
-   ptr2 = dPerBGrid.get(i, j, k + 1);
-   const std::array<Real, fsgrids::dperb::N_DPERB>& der_i1j1k2 = ptr2 != NULL ? *ptr2 : dummyDerivatives;
+   const std::array<Real, fsgrids::dperb::N_DPERB>& der_i2j1k1 = rightOk ? dperb[stencil.right()] : dummyDerivatives;
+   const std::array<Real, fsgrids::dperb::N_DPERB>& der_i1j2k1 = upOk ? dperb[stencil.up()] : dummyDerivatives;
+   const std::array<Real, fsgrids::dperb::N_DPERB>& der_i1j1k2 = nearOk ? dperb[stencil.near()] : dummyDerivatives;
 
    // Calculate 3rd order reconstruction coefficients:
    if (reconstructionOrder == 2) {
@@ -145,22 +137,23 @@ void reconstructionCoefficients(
       perturbedResult[Rec::c_xyz] = (der_i1j1k2[fsgrids::dperb::dPERBzdxy] - der_i1j1k1[fsgrids::dperb::dPERBzdxy]);
       perturbedResult[Rec::c_yyz] = (der_i1j1k2[fsgrids::dperb::dPERBzdyy] - der_i1j1k1[fsgrids::dperb::dPERBzdyy]);
 
-      perturbedResult[Rec::a_xxx] = -THIRD*(perturbedResult[Rec::b_xxy] + perturbedResult[Rec::c_xxz]);
-      perturbedResult[Rec::a_xxy] = -FOURTH*perturbedResult[Rec::c_xyz];
-      perturbedResult[Rec::a_xxz] = -FOURTH*perturbedResult[Rec::b_xyz];
-      
-      perturbedResult[Rec::b_xyy] = -FOURTH*perturbedResult[Rec::c_xyz];
-      perturbedResult[Rec::b_yyy] = -THIRD*(perturbedResult[Rec::c_yyz] + perturbedResult[Rec::a_xyy]);
-      perturbedResult[Rec::b_yyz] = -FOURTH*perturbedResult[Rec::a_xyz];
-      
-      perturbedResult[Rec::c_xzz] = -FOURTH*perturbedResult[Rec::b_xyz];
-      perturbedResult[Rec::c_yzz] = -FOURTH*perturbedResult[Rec::a_xyz];
-      perturbedResult[Rec::c_zzz] = -THIRD*(perturbedResult[Rec::a_xzz] + perturbedResult[Rec::b_yzz]);
+      perturbedResult[Rec::a_xxx] = -THIRD * (perturbedResult[Rec::b_xxy] + perturbedResult[Rec::c_xxz]);
+      perturbedResult[Rec::a_xxy] = -FOURTH * perturbedResult[Rec::c_xyz];
+      perturbedResult[Rec::a_xxz] = -FOURTH * perturbedResult[Rec::b_xyz];
+
+      perturbedResult[Rec::b_xyy] = -FOURTH * perturbedResult[Rec::c_xyz];
+      perturbedResult[Rec::b_yyy] = -THIRD * (perturbedResult[Rec::c_yyz] + perturbedResult[Rec::a_xyy]);
+      perturbedResult[Rec::b_yyz] = -FOURTH * perturbedResult[Rec::a_xyz];
+
+      perturbedResult[Rec::c_xzz] = -FOURTH * perturbedResult[Rec::b_xyz];
+      perturbedResult[Rec::c_yzz] = -FOURTH * perturbedResult[Rec::a_xyz];
+      perturbedResult[Rec::c_zzz] = -THIRD * (perturbedResult[Rec::a_xzz] + perturbedResult[Rec::b_yzz]);
    } else {
-      cerr << __FILE__ << ":" << __LINE__ << ":" << " Not coded yet!" << endl;
+      cerr << __FILE__ << ":" << __LINE__ << ":"
+           << " Not coded yet!" << endl;
       abort();
    }
-   
+
    // Calculate 2nd order reconstruction coefficients:
    perturbedResult[Rec::a_xy] = der_i2j1k1[fsgrids::dperb::dPERBxdy] - der_i1j1k1[fsgrids::dperb::dPERBxdy];
    perturbedResult[Rec::a_xz] = der_i2j1k1[fsgrids::dperb::dPERBxdz] - der_i1j1k1[fsgrids::dperb::dPERBxdz];
@@ -183,9 +176,9 @@ void reconstructionCoefficients(
    perturbedResult[Rec::c_y] = HALF * (der_i1j1k2[fsgrids::dperb::dPERBzdy] + der_i1j1k1[fsgrids::dperb::dPERBzdy]) -
                                SIXTH * perturbedResult[Rec::c_yzz];
 
-   perturbedResult[Rec::a_xx] = -HALF*(perturbedResult[Rec::b_xy] + perturbedResult[Rec::c_xz]);
-   perturbedResult[Rec::b_yy] = -HALF*(perturbedResult[Rec::a_xy] + perturbedResult[Rec::c_yz]);
-   perturbedResult[Rec::c_zz] = -HALF*(perturbedResult[Rec::a_xz] + perturbedResult[Rec::b_yz]);
+   perturbedResult[Rec::a_xx] = -HALF * (perturbedResult[Rec::b_xy] + perturbedResult[Rec::c_xz]);
+   perturbedResult[Rec::b_yy] = -HALF * (perturbedResult[Rec::a_xy] + perturbedResult[Rec::c_yz]);
+   perturbedResult[Rec::c_zz] = -HALF * (perturbedResult[Rec::a_xz] + perturbedResult[Rec::b_yz]);
 
    perturbedResult[Rec::a_x] =
        cep_i2j1k1[fsgrids::bfield::PERBX] - cep_i1j1k1[fsgrids::bfield::PERBX] - TENTH * perturbedResult[Rec::a_xxx];
@@ -195,10 +188,8 @@ void reconstructionCoefficients(
        cep_i1j1k2[fsgrids::bfield::PERBZ] - cep_i1j1k1[fsgrids::bfield::PERBZ] - TENTH * perturbedResult[Rec::c_zzz];
 
 #else
-   for (int i=0; i<Rec::N_REC_COEFFICIENTS; ++i) {
-      perturbedResult[i] = 0.0;
-   }
-   #endif
+   perturbedResult.fill(0.0);
+#endif
 
    // Calculate 1st order reconstruction coefficients:
    perturbedResult[Rec::a_0] = HALF * (cep_i2j1k1[fsgrids::bfield::PERBX] + cep_i1j1k1[fsgrids::bfield::PERBX]) -
@@ -207,6 +198,8 @@ void reconstructionCoefficients(
                                SIXTH * perturbedResult[Rec::b_yy];
    perturbedResult[Rec::c_0] = HALF * (cep_i1j1k2[fsgrids::bfield::PERBZ] + cep_i1j1k1[fsgrids::bfield::PERBZ]) -
                                SIXTH * perturbedResult[Rec::c_zz];
+
+   return perturbedResult;
 }
 
 /*! Interpolate perturbed B to arbitrary x,y,z in cell
@@ -224,19 +217,18 @@ void reconstructionCoefficients(
  * \param x 3D global simulation x,y,z coordinates of point to interpolate to
  */
 std::array<Real, 3> interpolatePerturbedB(
-   fsgrid::FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   fsgrid::FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-   fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-   std::map< std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS> > & reconstructionCoefficientsCache,
-   cint i,
-   cint j,
-   cint k,
-   const std::array<Real, 3> x
-) {
-   cuint cellSysBoundaryFlag = technicalGrid.get(i,j,k)->sysBoundaryFlag;
+    fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+    fsgrid::FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
+    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+    std::map<std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS>>& reconstructionCoefficientsCache, cint i,
+    cint j, cint k, const std::array<Real, 3> x) {
+   std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
+   std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb = dPerBGrid.getData();
+   const auto stencil = technicalGrid.makeStencil(i, j, k);
+
+   cuint cellSysBoundaryFlag = technicalGrid.get(i, j, k)->sysBoundaryFlag;
    if (cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
-      std::array<Real, 3> zero = {0,0,0};
-      return zero;
+      return {0, 0, 0};
    }
 
    // Balsara reconstruction formulas: x,y,z are in [-1/2, 1/2] local coordinates
@@ -246,54 +238,45 @@ std::array<Real, 3> interpolatePerturbedB(
    xLocal[2] -= 0.5;
 
    if (fabs(xLocal[0]) > 0.5 || fabs(xLocal[1]) > 0.5 || fabs(xLocal[2]) > 0.5) {
-      cerr << __FILE__ << ":" << __LINE__ << ": Coordinate (" << xLocal[0] << "," << xLocal[1] << "," << xLocal[2] << ")  outside of this cell!" << endl;
+      cerr << __FILE__ << ":" << __LINE__ << ": Coordinate (" << xLocal[0] << "," << xLocal[1] << "," << xLocal[2]
+           << ")  outside of this cell!" << endl;
       abort();
    }
 
-   std::array<int, 3> cellIds = {i,j,k};
-   std::array<Real, Rec::N_REC_COEFFICIENTS> rc;
-   
-   if(FieldTracing::fieldTracingParameters.useCache) {
-      #pragma omp critical
-      {
-         if (reconstructionCoefficientsCache.find(cellIds) == reconstructionCoefficientsCache.end()) {
-            reconstructionCoefficients(
-               perBGrid,
-               dPerBGrid,
-               rc,
-               i,
-               j,
-               k,
-               3 // Reconstruction order of the fields after Balsara 2009, 2 used for general B, but 3 used here to allow for cache reuse, see interpolatePerturbedJ below
-            );
-            reconstructionCoefficientsCache.insert({cellIds, rc});
-         } else {
-            rc = reconstructionCoefficientsCache.at(cellIds);
+   const std::array<Real, Rec::N_REC_COEFFICIENTS> rc = [&i, &j, &k, &stencil, &reconstructionCoefficientsCache, &perb,
+                                                         &dperb]() {
+      const std::array<int, 3> cellIds = {i, j, k};
+      if (FieldTracing::fieldTracingParameters.useCache) {
+#pragma omp critical
+         {
+            // Reconstruction order of the fields after Balsara 2009, 2 used for general B, but 3 used here to
+            // allow for cache reuse, see interpolatePerturbedJ below
+            if (reconstructionCoefficientsCache.find(cellIds) == reconstructionCoefficientsCache.end()) {
+               const auto rc = reconstructionCoefficients(perb, dperb, stencil, 3);
+               reconstructionCoefficientsCache.insert({cellIds, rc});
+            }
          }
-      }
-   } else {
-      reconstructionCoefficients(
-         perBGrid,
-         dPerBGrid,
-         rc,
-         i,
-         j,
-         k,
-         3 // // Reconstruction order of the fields after Balsara 2009, 3 used to obtain 2nd order curl(B) and allows for cache reuse, see interpolatePerturbedB above
-      );
-   }
 
-   std::array<Real, 3> interpolatedB;
-   // Eq. (7) Balsara 2009
-   interpolatedB[0] = rc[Rec::a_0] + rc[Rec::a_x]*xLocal[0] + rc[Rec::a_y]*xLocal[1] + rc[Rec::a_z]*xLocal[2]
-                    + rc[Rec::a_xx] * (xLocal[0]*xLocal[0] - TWELWTH) + rc[Rec::a_xy]*xLocal[0]*xLocal[1] + rc[Rec::a_xz]*xLocal[0]*xLocal[2];
-   // Eq. (8) Balsara 2009
-   interpolatedB[1] = rc[Rec::b_0] + rc[Rec::b_x]*xLocal[0] + rc[Rec::b_y]*xLocal[1] + rc[Rec::b_z]*xLocal[2]
-                    + rc[Rec::b_yy] * (xLocal[1]*xLocal[1] - TWELWTH) + rc[Rec::b_xy]*xLocal[0]*xLocal[1] + rc[Rec::b_yz]*xLocal[1]*xLocal[2];
-   // Eq. (9) Balsara 2009
-   interpolatedB[2] = rc[Rec::c_0] + rc[Rec::c_x]*xLocal[0] + rc[Rec::c_y]*xLocal[1] + rc[Rec::c_z]*xLocal[2]
-                    + rc[Rec::c_zz] * (xLocal[2]*xLocal[2] - TWELWTH) + rc[Rec::c_xz]*xLocal[0]*xLocal[2] + rc[Rec::c_yz]*xLocal[1]*xLocal[2];
-   return interpolatedB;
+         return reconstructionCoefficientsCache.at(cellIds);
+      } else {
+         return reconstructionCoefficients(perb, dperb, stencil, 3);
+      }
+   }();
+
+   return {
+       // Eq. (7) Balsara 2009
+       rc[Rec::a_0] + rc[Rec::a_x] * xLocal[0] + rc[Rec::a_y] * xLocal[1] + rc[Rec::a_z] * xLocal[2] +
+           rc[Rec::a_xx] * (xLocal[0] * xLocal[0] - TWELWTH) + rc[Rec::a_xy] * xLocal[0] * xLocal[1] +
+           rc[Rec::a_xz] * xLocal[0] * xLocal[2],
+       // Eq. (8) Balsara 2009
+       rc[Rec::b_0] + rc[Rec::b_x] * xLocal[0] + rc[Rec::b_y] * xLocal[1] + rc[Rec::b_z] * xLocal[2] +
+           rc[Rec::b_yy] * (xLocal[1] * xLocal[1] - TWELWTH) + rc[Rec::b_xy] * xLocal[0] * xLocal[1] +
+           rc[Rec::b_yz] * xLocal[1] * xLocal[2],
+       // Eq. (9) Balsara 2009
+       rc[Rec::c_0] + rc[Rec::c_x] * xLocal[0] + rc[Rec::c_y] * xLocal[1] + rc[Rec::c_z] * xLocal[2] +
+           rc[Rec::c_zz] * (xLocal[2] * xLocal[2] - TWELWTH) + rc[Rec::c_xz] * xLocal[0] * xLocal[2] +
+           rc[Rec::c_yz] * xLocal[1] * xLocal[2],
+   };
 }
 
 /*! Interpolate curl(perturbed B) to arbitrary x,y,z in cell
@@ -313,23 +296,20 @@ std::array<Real, 3> interpolatePerturbedB(
  * \param x 3D global simulation x,y,z coordinates of point to interpolate to
  */
 std::array<Real, 3> interpolateCurlB(
-   fsgrid::FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   fsgrid::FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-   fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-   std::map< std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS> > & reconstructionCoefficientsCache,
-   cint i,
-   cint j,
-   cint k,
-   const std::array<Real, 3> x
-) {
-   cuint cellSysBoundaryFlag = technicalGrid.get(i,j,k)->sysBoundaryFlag;
+    fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+    fsgrid::FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
+    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+    std::map<std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS>>& reconstructionCoefficientsCache, cint i,
+    cint j, cint k, const std::array<Real, 3> x) {
+   std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
+   std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb = dPerBGrid.getData();
+   const auto stencil = technicalGrid.makeStencil(i, j, k);
+
+   cuint cellSysBoundaryFlag = technicalGrid.get(i, j, k)->sysBoundaryFlag;
    if (cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
-      std::array<Real, 3> zero = {0,0,0};
-      return zero;
+      return {0, 0, 0};
    }
 
-#define BALSARA_CURLB_IMPLEMENTATION
-#ifdef BALSARA_CURLB_IMPLEMENTATION
    // Balsara reconstruction formulas: x,y,z are in [-1/2, 1/2] local coordinates
    std::array<Real, 3> xLocal = getFractionalFsGridCellForCoord(technicalGrid, x);
    xLocal[0] -= 0.5;
@@ -337,174 +317,54 @@ std::array<Real, 3> interpolateCurlB(
    xLocal[2] -= 0.5;
 
    if (fabs(xLocal[0]) > 0.5 || fabs(xLocal[1]) > 0.5 || fabs(xLocal[2]) > 0.5) {
-      cerr << __FILE__ << ":" << __LINE__ << ": Coordinate (" << xLocal[0] << "," << xLocal[1] << "," << xLocal[2] << ")  outside of this cell!" << endl;
+      cerr << __FILE__ << ":" << __LINE__ << ": Coordinate (" << xLocal[0] << "," << xLocal[1] << "," << xLocal[2]
+           << ")  outside of this cell!" << endl;
       abort();
    }
 
-   std::array<int, 3> cellIds = {i,j,k};
-   std::array<Real, Rec::N_REC_COEFFICIENTS> rc;
-
-   //// Actual use of the coefficient cache has proven not to be thread safe. But it appears to be reasonably fast even without it.
-   if(FieldTracing::fieldTracingParameters.useCache) {
-      #pragma omp critical
-      {
-         if (reconstructionCoefficientsCache.find(cellIds) == reconstructionCoefficientsCache.end()) {
-            reconstructionCoefficients(
-               perBGrid,
-               dPerBGrid,
-               rc,
-               i,
-               j,
-               k,
-               3 // // Reconstruction order of the fields after Balsara 2009, 3 used to obtain 2nd order curl(B) and allows for cache reuse, see interpolatePerturbedB above
-            );
-            reconstructionCoefficientsCache.insert({cellIds, rc});
-         } else {
-            rc = reconstructionCoefficientsCache.at(cellIds);
-         }
-      }
-   } else {
-      reconstructionCoefficients(
-         perBGrid,
-         dPerBGrid,
-         rc,
-         i,
-         j,
-         k,
-         3 // // Reconstruction order of the fields after Balsara 2009, 3 used to obtain 2nd order curl(B) and allows for cache reuse, see interpolatePerturbedB above
-      );
-   }
-
-   std::array<Real, 3> interpolatedCurlB;
-   interpolatedCurlB[0] = (
-       12*rc[Rec::c_yzz]*xLocal[2]*xLocal[2]
-      +24*rc[Rec::c_yyz]*xLocal[1]*xLocal[2]
-      -24*rc[Rec::b_yzz]*xLocal[1]*xLocal[2]
-      +12*rc[Rec::c_xyz]*xLocal[0]*xLocal[2]
-      +12*rc[Rec::c_yz]*xLocal[2]
-      -24*rc[Rec::b_zz]*xLocal[2]
-      -12*rc[Rec::b_yyz]*xLocal[1]*xLocal[1]
-      -12*rc[Rec::b_xyz]*xLocal[0]*xLocal[1]
-      +24*rc[Rec::c_yy]*xLocal[1]
-      -12*rc[Rec::b_yz]*xLocal[1]
-      +12*rc[Rec::c_xy]*xLocal[0]
-      -12*rc[Rec::b_xz]*xLocal[0]
-      -rc[Rec::c_yzz]
-      +12*rc[Rec::c_y]
-      -12*rc[Rec::b_z]
-      +rc[Rec::b_yyz]
-      )/12;
-   // See that minus if you ever copy again from wxMaxima!
-   interpolatedCurlB[1] = -(
-       12*rc[Rec::c_xzz]*xLocal[2]*xLocal[2]
-      +12*rc[Rec::c_xyz]*xLocal[1]*xLocal[2]
-      +24*rc[Rec::c_xxz]*xLocal[0]*xLocal[2]
-      -24*rc[Rec::a_xzz]*xLocal[0]*xLocal[2]
-      +12*rc[Rec::c_xz]*xLocal[2]
-      -24*rc[Rec::a_zz]*xLocal[2]
-      -12*rc[Rec::a_xyz]*xLocal[0]*xLocal[1]
-      +12*rc[Rec::c_xy]*xLocal[1]
-      -12*rc[Rec::a_yz]*xLocal[1]
-      -12*rc[Rec::a_xxz]*xLocal[0]*xLocal[0]
-      +24*rc[Rec::c_xx]*xLocal[0]
-      -12*rc[Rec::a_xz]*xLocal[0]
-      -rc[Rec::c_xzz]
-      +12*rc[Rec::c_x]
-      -12*rc[Rec::a_z]
-      +rc[Rec::a_xxz]
-      )/12;
-   interpolatedCurlB[2] = (
-       12*rc[Rec::b_xyz]*xLocal[1]*xLocal[2]
-      -12*rc[Rec::a_xyz]*xLocal[0]*xLocal[2]
-      +12*rc[Rec::b_xz]*xLocal[2]
-      -12*rc[Rec::a_yz]*xLocal[2]
-      +12*rc[Rec::b_xyy]*xLocal[1]*xLocal[1]
-      +24*rc[Rec::b_xxy]*xLocal[0]*xLocal[1]
-      -24*rc[Rec::a_xyy]*xLocal[0]*xLocal[1]
-      +12*rc[Rec::b_xy]*xLocal[1]
-      -24*rc[Rec::a_yy]*xLocal[1]
-      -12*rc[Rec::a_xxy]*xLocal[0]*xLocal[0]
-      +24*rc[Rec::b_xx]*xLocal[0]
-      -12*rc[Rec::a_xy]*xLocal[0]
-      -rc[Rec::b_xyy]
-      +12*rc[Rec::b_x]
-      -12*rc[Rec::a_y]
-      +rc[Rec::a_xxy]
-      )/12;
-   return interpolatedCurlB;
-#else // Not BALSARA_CURLB_IMPLEMENTATION
-
-   // Alternative implementation using linear interpolation of volume fields for curlB lookup.
-   std::array<Real,3> cell;
-   std::array<int,3> fsc,lfsc;
-   // Convert physical coordinate to cell index
-   const auto& gridSpacing = technicalGrid.getGridSpacing();
-   cell[0] = (x[0] - P::xmin) / gridSpacing[0];
-   cell[1] = (x[1] - P::ymin) / gridSpacing[1];
-   cell[2] = (x[2] - P::zmin) / gridSpacing[2];
-   for(int c=0; c<3; c++) {
-      fsc[c] = floor(cell[c]);
-   }
-   // Local cell
-   lfsc = technicalGrid.globalToLocal(fsc[0],fsc[1],fsc[2]);
-   if(lfsc[0] == -1 || lfsc[1] == -1 || lfsc[2] == -1) {
-      cerr << "interpolateCurlB: Trying to access nonlocal cell at " << x[0] << ", " << x[1] << ", " << x[2] << ", which would be local coordinate "
-         << lfsc[0] << ", " << lfsc[1] << ", " << lfsc[2] << endl;
-      return {0,0,0};
-   }
-
-   for(int c=0; c<3; c++) {
-      // Shift by half a cell, as we are sampling volume quantities that are logically located at cell centres.
-      Real frac = cell[c] - floor(cell[c]);
-      if(frac < 0.5) {
-         lfsc[c] -= 1;
-         fsc[c]-= 1;
-      }
-      cell[c] -= 0.5;
-   }
-
-   Real couplingSum = 0;
-   std::array<Real, 3> rotB;
-   for (int xoffset : {0, 1}) {
-      for(int yoffset : {0,1}) {
-         for(int zoffset : {0,1}) {
-
-            Real coupling = abs(xoffset - (cell[0]-fsc[0])) * abs(yoffset - (cell[1]-fsc[1])) * abs(zoffset - (cell[2]-fsc[2]));
-
-            // Only couple to actual simulation cells
-            if(technicalGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-               couplingSum += coupling;
-            } else {
-               continue;
+   const std::array<Real, Rec::N_REC_COEFFICIENTS> rc = [&i, &j, &k, &stencil, &reconstructionCoefficientsCache, &perb,
+                                                         &dperb]() {
+      std::array<int, 3> cellIds = {i, j, k};
+      // Actual use of the coefficient cache has proven not to be thread safe. But it appears to be reasonably fast even
+      // without it.
+      if (FieldTracing::fieldTracingParameters.useCache) {
+#pragma omp critical
+         {
+            // Reconstruction order of the fields after Balsara 2009, 3 used to obtain 2nd
+            // order curl(B) and allows for cache reuse, see interpolatePerturbedB above
+            if (reconstructionCoefficientsCache.find(cellIds) == reconstructionCoefficientsCache.end()) {
+               const auto rc = reconstructionCoefficients(perb, dperb, stencil, 3);
+               reconstructionCoefficientsCache.insert({cellIds, rc});
             }
-
-            // Calc rotB
-            std::array<Real, 3> rotB;
-            const auto& gridSpacing = volgrid.getGridSpacing();
-            rotB[0] +=
-                (volgrid.get(lfsc[0] + xoffset, lfsc[1] + yoffset, lfsc[2] + zoffset)->at(fsgrids::dPERBZVOLdy) -
-                 volgrid.get(lfsc[0] + xoffset, lfsc[1] + yoffset, lfsc[2] + zoffset)->at(fsgrids::dPERBYVOLdz)) /
-                gridSpacing[0];
-            rotB[1] +=
-                (volgrid.get(lfsc[0] + xoffset, lfsc[1] + yoffset, lfsc[2] + zoffset)->at(fsgrids::dPERBXVOLdz) -
-                 volgrid.get(lfsc[0] + xoffset, lfsc[1] + yoffset, lfsc[2] + zoffset)->at(fsgrids::dPERBZVOLdx)) /
-                gridSpacing[0];
-            rotB[2] +=
-                (volgrid.get(lfsc[0] + xoffset, lfsc[1] + yoffset, lfsc[2] + zoffset)->at(fsgrids::dPERBYVOLdx) -
-                 volgrid.get(lfsc[0] + xoffset, lfsc[1] + yoffset, lfsc[2] + zoffset)->at(fsgrids::dPERBXVOLdy)) /
-                gridSpacing[0];
          }
+         return reconstructionCoefficientsCache.at(cellIds);
+      } else {
+         return reconstructionCoefficients(perb, dperb, stencil, 3);
       }
-   }
-   if(couplingSum > 0) {
-      rotB[0] /= couplingSum;
-      rotB[1] /= couplingSum;
-      rotB[2] /= couplingSum;
-   } else {
-      rotB[0] = 0;
-      rotB[1] = 0;
-      rotB[2] = 0;
-   }
-   return rotB;
-#endif // Not BALSARA_CURLB_IMPLEMENTATION
+   }();
+
+   return {
+       (12 * rc[Rec::c_yzz] * xLocal[2] * xLocal[2] + 24 * rc[Rec::c_yyz] * xLocal[1] * xLocal[2] -
+        24 * rc[Rec::b_yzz] * xLocal[1] * xLocal[2] + 12 * rc[Rec::c_xyz] * xLocal[0] * xLocal[2] +
+        12 * rc[Rec::c_yz] * xLocal[2] - 24 * rc[Rec::b_zz] * xLocal[2] - 12 * rc[Rec::b_yyz] * xLocal[1] * xLocal[1] -
+        12 * rc[Rec::b_xyz] * xLocal[0] * xLocal[1] + 24 * rc[Rec::c_yy] * xLocal[1] - 12 * rc[Rec::b_yz] * xLocal[1] +
+        12 * rc[Rec::c_xy] * xLocal[0] - 12 * rc[Rec::b_xz] * xLocal[0] - rc[Rec::c_yzz] + 12 * rc[Rec::c_y] -
+        12 * rc[Rec::b_z] + rc[Rec::b_yyz]) /
+           12,
+       // See that minus if you ever copy again from wxMaxima!
+       -(12 * rc[Rec::c_xzz] * xLocal[2] * xLocal[2] + 12 * rc[Rec::c_xyz] * xLocal[1] * xLocal[2] +
+         24 * rc[Rec::c_xxz] * xLocal[0] * xLocal[2] - 24 * rc[Rec::a_xzz] * xLocal[0] * xLocal[2] +
+         12 * rc[Rec::c_xz] * xLocal[2] - 24 * rc[Rec::a_zz] * xLocal[2] - 12 * rc[Rec::a_xyz] * xLocal[0] * xLocal[1] +
+         12 * rc[Rec::c_xy] * xLocal[1] - 12 * rc[Rec::a_yz] * xLocal[1] - 12 * rc[Rec::a_xxz] * xLocal[0] * xLocal[0] +
+         24 * rc[Rec::c_xx] * xLocal[0] - 12 * rc[Rec::a_xz] * xLocal[0] - rc[Rec::c_xzz] + 12 * rc[Rec::c_x] -
+         12 * rc[Rec::a_z] + rc[Rec::a_xxz]) /
+           12,
+       (12 * rc[Rec::b_xyz] * xLocal[1] * xLocal[2] - 12 * rc[Rec::a_xyz] * xLocal[0] * xLocal[2] +
+        12 * rc[Rec::b_xz] * xLocal[2] - 12 * rc[Rec::a_yz] * xLocal[2] + 12 * rc[Rec::b_xyy] * xLocal[1] * xLocal[1] +
+        24 * rc[Rec::b_xxy] * xLocal[0] * xLocal[1] - 24 * rc[Rec::a_xyy] * xLocal[0] * xLocal[1] +
+        12 * rc[Rec::b_xy] * xLocal[1] - 24 * rc[Rec::a_yy] * xLocal[1] - 12 * rc[Rec::a_xxy] * xLocal[0] * xLocal[0] +
+        24 * rc[Rec::b_xx] * xLocal[0] - 12 * rc[Rec::a_xy] * xLocal[0] - rc[Rec::b_xyy] + 12 * rc[Rec::b_x] -
+        12 * rc[Rec::a_y] + rc[Rec::a_xxy]) /
+           12,
+   };
 }

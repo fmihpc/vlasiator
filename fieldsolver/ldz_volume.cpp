@@ -53,8 +53,7 @@ void calculateVolumeAveragedFields(
 
    // Calculate reconstruction coefficients for this cell:
    // This handles domain edges so no need to skip DO_NOT_COMPUTE or OUTER_BOUNDARY_PADDING cells.
-   std::array<Real, Rec::N_REC_COEFFICIENTS> perturbedCoefficients;
-   reconstructionCoefficients(perBGrid, dPerBGrid, perturbedCoefficients, i, j, k, 2);
+   const auto perturbedCoefficients = reconstructionCoefficients(perBGrid.getData(), dPerBGrid.getData(), stencil, 2);
 
    // Calculate volume average of B:
    vol[fsgrids::volfields::PERBXVOL] = perturbedCoefficients[Rec::a_0];
