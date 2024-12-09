@@ -35,17 +35,17 @@ void calculateVolumeAveragedFields(
     fsgrid::FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
     fsgrid::FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid,
     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, int32_t i, int32_t j, int32_t k) {
-   std::array<Real, Rec::N_REC_COEFFICIENTS> perturbedCoefficients;
-   std::array<Real, fsgrids::volfields::N_VOL>* volGrid0 = volGrid.get(i, j, k);
+   std::array<Real, fsgrids::volfields::N_VOL>& vol = *volGrid.get(i, j, k);
 
    // Calculate reconstruction coefficients for this cell:
    // This handles domain edges so no need to skip DO_NOT_COMPUTE or OUTER_BOUNDARY_PADDING cells.
+   std::array<Real, Rec::N_REC_COEFFICIENTS> perturbedCoefficients;
    reconstructionCoefficients(perBGrid, dPerBGrid, perturbedCoefficients, i, j, k, 2);
 
    // Calculate volume average of B:
-   volGrid0->at(fsgrids::volfields::PERBXVOL) = perturbedCoefficients[Rec::a_0];
-   volGrid0->at(fsgrids::volfields::PERBYVOL) = perturbedCoefficients[Rec::b_0];
-   volGrid0->at(fsgrids::volfields::PERBZVOL) = perturbedCoefficients[Rec::c_0];
+   vol[fsgrids::volfields::PERBXVOL] = perturbedCoefficients[Rec::a_0];
+   vol[fsgrids::volfields::PERBYVOL] = perturbedCoefficients[Rec::b_0];
+   vol[fsgrids::volfields::PERBZVOL] = perturbedCoefficients[Rec::c_0];
 
    // This avoids out of domain accesses below.
    if (technicalGrid.get(i, j, k)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
@@ -81,12 +81,12 @@ void calculateVolumeAveragedFields(
       CHECK_FLOAT(EGrid_i1j2k1->at(fsgrids::efield::EX));
       CHECK_FLOAT(EGrid_i1j1k2->at(fsgrids::efield::EX));
       CHECK_FLOAT(EGrid_i1j2k2->at(fsgrids::efield::EX));
-      volGrid0->at(fsgrids::volfields::EXVOL) =
+      vol[fsgrids::volfields::EXVOL] =
           FOURTH * (EGrid_i1j1k1->at(fsgrids::efield::EX) + EGrid_i1j2k1->at(fsgrids::efield::EX) +
                     EGrid_i1j1k2->at(fsgrids::efield::EX) + EGrid_i1j2k2->at(fsgrids::efield::EX));
-      CHECK_FLOAT(volGrid0->at(fsgrids::volfields::EXVOL));
+      CHECK_FLOAT(vol[fsgrids::volfields::EXVOL]);
    } else {
-      volGrid0->at(fsgrids::volfields::EXVOL) = 0.0;
+      vol[fsgrids::volfields::EXVOL] = 0.0;
    }
 
    if (technicalGrid.get(i, j, k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
@@ -116,12 +116,12 @@ void calculateVolumeAveragedFields(
       CHECK_FLOAT(EGrid_i2j1k1->at(fsgrids::efield::EY));
       CHECK_FLOAT(EGrid_i1j1k2->at(fsgrids::efield::EY));
       CHECK_FLOAT(EGrid_i2j1k2->at(fsgrids::efield::EY));
-      volGrid0->at(fsgrids::volfields::EYVOL) =
+      vol[fsgrids::volfields::EYVOL] =
           FOURTH * (EGrid_i1j1k1->at(fsgrids::efield::EY) + EGrid_i2j1k1->at(fsgrids::efield::EY) +
                     EGrid_i1j1k2->at(fsgrids::efield::EY) + EGrid_i2j1k2->at(fsgrids::efield::EY));
-      CHECK_FLOAT(volGrid0->at(fsgrids::volfields::EYVOL));
+      CHECK_FLOAT(vol[fsgrids::volfields::EYVOL]);
    } else {
-      volGrid0->at(fsgrids::volfields::EYVOL) = 0.0;
+      vol[fsgrids::volfields::EYVOL] = 0.0;
    }
 
    if (technicalGrid.get(i, j, k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
@@ -151,12 +151,12 @@ void calculateVolumeAveragedFields(
       CHECK_FLOAT(EGrid_i2j1k1->at(fsgrids::efield::EZ));
       CHECK_FLOAT(EGrid_i1j2k1->at(fsgrids::efield::EZ));
       CHECK_FLOAT(EGrid_i2j2k1->at(fsgrids::efield::EZ));
-      volGrid0->at(fsgrids::volfields::EZVOL) =
+      vol[fsgrids::volfields::EZVOL] =
           FOURTH * (EGrid_i1j1k1->at(fsgrids::efield::EZ) + EGrid_i2j1k1->at(fsgrids::efield::EZ) +
                     EGrid_i1j2k1->at(fsgrids::efield::EZ) + EGrid_i2j2k1->at(fsgrids::efield::EZ));
-      CHECK_FLOAT(volGrid0->at(fsgrids::volfields::EZVOL));
+      CHECK_FLOAT(vol[fsgrids::volfields::EZVOL]);
    } else {
-      volGrid0->at(fsgrids::volfields::EZVOL) = 0.0;
+      vol[fsgrids::volfields::EZVOL] = 0.0;
    }
 }
 
