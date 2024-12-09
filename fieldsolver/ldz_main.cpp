@@ -403,8 +403,8 @@ bool propagateFields(
          logFile << "Effective field solver subcycles were " << subcycleCount << " instead of " << P::fieldSolverSubcycles << " on step " <<  P::tstep << std::endl;
       }
    }
-   
-   calculateVolumeAveragedFields(perBGrid,EGrid,dPerBGrid,volGrid,technicalGrid);
+
+   calculateVolumeAveragedFieldsSimple(perBGrid, EGrid, dPerBGrid, volGrid, technicalGrid);
    calculateBVOLDerivativesSimple(volGrid, technicalGrid, sysBoundaries);
    if(FieldTracing::fieldTracingParameters.doTraceFullBox || Parameters::computeCurvature) {
       volGrid.updateGhostCells();
