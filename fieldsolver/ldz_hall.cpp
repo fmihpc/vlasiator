@@ -25,6 +25,7 @@
 #include "ldz_hall.hpp"
 // clang-format on
 #include <limits>
+#include <span>
 
 #ifdef DEBUG_VLASIATOR
 #define DEBUG_FSOLVER
@@ -841,36 +842,34 @@ inline REAL JXB(fsgrids::ehall term, const std::array<REAL, Rec::N_REC_COEFFICIE
  * \sa calculateHallTerm JXBX_000_100 JXBX_001_101 JXBX_010_110 JXBX_011_111
  *
  */
-// TODO remove FsGrids
-void calculateEdgeHallTermComponents(
-    fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH>& EHallGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-    const std::array<Real, 3>& gridSpacing, const std::array<Real, Rec::N_REC_COEFFICIENTS>& perturbedCoefficients,
-    cint i, cint j, cint k) {
-   const auto& bgb = *BgBGrid.get(i, j, k);
-   const auto& perb = *perBGrid.get(i, j, k);
-   const auto& dperb = *dPerBGrid.get(i, j, k);
-   const auto& moments = *momentsGrid.get(i, j, k);
-   auto& ehall = *EHallGrid.get(i, j, k);
+void calculateEdgeHallTermComponents(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perbs,
+                                     std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehalls,
+                                     std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                                     std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperbs,
+                                     std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgbs,
+                                     const std::array<Real, 3>& gridSpacing,
+                                     const std::array<Real, Rec::N_REC_COEFFICIENTS>& perturbedCoefficients,
+                                     const fsgrid::FsStencil& stencil) {
+   const auto& bgb = bgbs[stencil.center()];
+   const auto& perb = perbs[stencil.center()];
+   const auto& dperb = dperbs[stencil.center()];
+   const auto& moment = moments[stencil.center()];
+   auto& ehall = ehalls[stencil.center()];
 
    const Real bgbx = bgb[fsgrids::bgbfield::BGBX];
    const Real bgby = bgb[fsgrids::bgbfield::BGBY];
    const Real bgbz = bgb[fsgrids::bgbfield::BGBZ];
 
-   auto computeHallRhoq = [&momentsGrid, &moments](const std::array<std::array<int32_t, 3>, 4>& arr) {
+   auto computeHallRhoq = [&moments, &moment](const std::array<size_t, 4>& indices) {
       const auto min = Parameters::hallMinimumRhoq;
       const auto max = std::numeric_limits<Real>::max();
 
-      return std::clamp(Parameters::ohmHallTerm == 1
-                            ? moments[fsgrids::moments::RHOQ]
-                            : FOURTH * (momentsGrid.get(arr[0][0], arr[0][1], arr[0][2])->at(fsgrids::moments::RHOQ) +
-                                        momentsGrid.get(arr[1][0], arr[1][1], arr[1][2])->at(fsgrids::moments::RHOQ) +
-                                        momentsGrid.get(arr[2][0], arr[2][1], arr[2][2])->at(fsgrids::moments::RHOQ) +
-                                        momentsGrid.get(arr[3][0], arr[3][1], arr[3][2])->at(fsgrids::moments::RHOQ)),
-                        min, max);
+      return std::clamp(
+          Parameters::ohmHallTerm == 1
+              ? moment[fsgrids::moments::RHOQ]
+              : FOURTH * (moments[indices[0]][fsgrids::moments::RHOQ] + moments[indices[1]][fsgrids::moments::RHOQ] +
+                          moments[indices[2]][fsgrids::moments::RHOQ] + moments[indices[3]][fsgrids::moments::RHOQ]),
+          min, max);
    };
 
    switch (Parameters::ohmHallTerm) {
@@ -920,78 +919,78 @@ void calculateEdgeHallTermComponents(
       };
 
       // clang-format off
-      const std::array<std::array<std::array<int32_t, 3>, 4>, 12> indices = {
+      const std::array<std::array<size_t, 4>, 12> indices = {
           std::array{
-              std::array{i    , j    , k    },
-              std::array{i    , j - 1, k    },
-              std::array{i    , j    , k - 1},
-              std::array{i    , j - 1, k - 1},
+              stencil.center(),
+              stencil.down(),
+              stencil.far(),
+              stencil.downfar(),
           },
           std::array{
-              std::array{i    , j    , k    },
-              std::array{i - 1, j    , k    },
-              std::array{i    , j    , k - 1},
-              std::array{i - 1, j    , k - 1},
+              stencil.center(),
+              stencil.left(),
+              stencil.far(),
+              stencil.leftfar(),
           },
           std::array{
-              std::array{i    , j    , k    },
-              std::array{i - 1, j    , k    },
-              std::array{i    , j - 1, k    },
-              std::array{i - 1, j - 1, k    },
+              stencil.center(),
+              stencil.left(),
+              stencil.down(),
+              stencil.leftdown(),
           },
           std::array{
-              std::array{i    , j    , k    },
-              std::array{i + 1, j    , k    },
-              std::array{i    , j    , k - 1},
-              std::array{i + 1, j    , k - 1},
+              stencil.center(),
+              stencil.right(),
+              stencil.far(),
+              stencil.rightfar(),
           },
           std::array{
-              std::array{i    , j    , k    },
-              std::array{i + 1, j    , k    },
-              std::array{i    , j - 1, k    },
-              std::array{i + 1, j - 1, k    },
+              stencil.center(),
+              stencil.right(),
+              stencil.down(),
+              stencil.rightdown(),
           },
           std::array{
-              std::array{i    , j    , k    },
-              std::array{i    , j + 1, k    },
-              std::array{i    , j    , k - 1},
-              std::array{i    , j + 1, k - 1},
+              stencil.center(),
+              stencil.up(),
+              stencil.far(),
+              stencil.upfar(),
           },
           std::array{
-              std::array{i    , j    , k    },
-              std::array{i - 1, j    , k    },
-              std::array{i    , j + 1, k    },
-              std::array{i - 1, j + 1, k    },
+              stencil.center(),
+              stencil.left(),
+              stencil.up(),
+              stencil.leftup(),
           },
           std::array{
-              std::array{i    , j    , k    },
-              std::array{i + 1, j    , k    },
-              std::array{i    , j + 1, k    },
-              std::array{i + 1, j + 1, k    },
+              stencil.center(),
+              stencil.right(),
+              stencil.up(),
+              stencil.rightup(),
           },
           std::array{
-              std::array{i    , j    , k    },
-              std::array{i    , j - 1, k    },
-              std::array{i    , j    , k + 1},
-              std::array{i    , j - 1, k + 1},
+              stencil.center(),
+              stencil.down(),
+              stencil.near(),
+              stencil.downnear(),
           },
           std::array{
-              std::array{i    , j    , k    },
-              std::array{i - 1, j    , k    },
-              std::array{i    , j    , k + 1},
-              std::array{i - 1, j    , k + 1},
+              stencil.center(),
+              stencil.left(),
+              stencil.near(),
+              stencil.leftnear(),
           },
           std::array{
-              std::array{i    , j    , k    },
-              std::array{i + 1, j    , k    },
-              std::array{i    , j    , k + 1},
-              std::array{i + 1, j    , k + 1},
+              stencil.center(),
+              stencil.right(),
+              stencil.near(),
+              stencil.rightnear(),
           },
           std::array{
-              std::array{i    , j    , k    },
-              std::array{i    , j + 1, k    },
-              std::array{i    , j    , k + 1},
-              std::array{i    , j + 1, k + 1},
+              stencil.center(),
+              stencil.up(),
+              stencil.near(),
+              stencil.upnear(),
           },
       };
       // clang-format on
@@ -1036,24 +1035,33 @@ void calculateHallTerm(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD
                        fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
                        fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, SysBoundary& sysBoundaries,
                        cint i, cint j, cint k) {
+   const auto stencil = technicalGrid.makeStencil(i, j, k);
+   const auto gridSpacing = technicalGrid.getGridSpacing();
+   std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
+   std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall = EHallGrid.getData();
+   std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments = momentsGrid.getData();
+   std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb = dPerBGrid.getData();
+   std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb = BgBGrid.getData();
+   std::span<fsgrids::technical> technical = technicalGrid.getData();
 
 #ifdef DEBUG_FSOLVER
-   if (technicalGrid.get(i, j, k) == NULL) {
-      cerr << "NULL pointer in " << __FILE__ << ":" << __LINE__ << endl;
+   if (!stencil.cellExists(0, 0, 0)) {
+      cerr << "Out-of-bounds access in " << __FILE__ << ":" << __LINE__ << endl;
       exit(1);
    }
 #endif
 
-   cuint cellSysBoundaryFlag = technicalGrid.get(i, j, k)->sysBoundaryFlag;
+   const auto& tech = technical[stencil.center()];
+   cuint cellSysBoundaryFlag = tech.sysBoundaryFlag;
+   cuint cellSysBoundaryLayer = tech.sysBoundaryLayer;
 
    if (cellSysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
-       cellSysBoundaryFlag == sysboundarytype::OUTER_BOUNDARY_PADDING)
+       cellSysBoundaryFlag == sysboundarytype::OUTER_BOUNDARY_PADDING) {
       return;
+   }
 
-   cuint cellSysBoundaryLayer = technicalGrid.get(i, j, k)->sysBoundaryLayer;
-
+   // TODO: change this to accept spans & stencil once volume is ready to pass those to it too
    std::array<Real, Rec::N_REC_COEFFICIENTS> perturbedCoefficients;
-
    reconstructionCoefficients(perBGrid, dPerBGrid, perturbedCoefficients, i, j, k,
                               3 // Reconstruction order of the fields after Balsara 2009, 2 used for general B, 3 used
                                 // here for 2nd-order Hall term
@@ -1067,8 +1075,7 @@ void calculateHallTerm(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD
       sysBoundaries.getSysBoundary(cellSysBoundaryFlag)
           ->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, 2);
    } else {
-      calculateEdgeHallTermComponents(perBGrid, EHallGrid, momentsGrid, dPerBGrid, BgBGrid,
-                                      technicalGrid.getGridSpacing(), perturbedCoefficients, i, j, k);
+      calculateEdgeHallTermComponents(perb, ehall, moments, dperb, bgb, gridSpacing, perturbedCoefficients, stencil);
    }
 }
 
