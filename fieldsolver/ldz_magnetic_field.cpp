@@ -26,6 +26,147 @@
 
 #include "ldz_magnetic_field.hpp"
 
+void x(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+       fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBDt2Grid,
+       fsgrid::FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EGrid,
+       fsgrid::FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EDt2Grid, int32_t i, int32_t j,
+       int32_t k, Real dt, int32_t RKCase, const std::array<Real, 3>& gridSpacing) {
+   creal dtdx = dt / gridSpacing[0];
+   creal dtdy = dt / gridSpacing[1];
+   creal dtdz = dt / gridSpacing[2];
+
+   auto compute = [](auto a, auto b, auto c, auto i, auto j, const auto& e0, const auto& e1, const auto& e2) {
+      return a * (b * (e2[i] - e0[i]) + c * (e0[j] - e1[j]));
+   };
+
+   switch (RKCase) {
+   case RK_ORDER1: {
+      const auto& e0 = *EGrid.get(i, j, k);
+      const auto& e1 = *EGrid.get(i, j + 1, k);
+      const auto& e2 = *EGrid.get(i, j, k + 1);
+      perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBX) +=
+          compute(1.0, dtdz, dtdy, fsgrids::efield::EY, fsgrids::efield::EZ, e0, e1, e2);
+      break;
+   }
+
+   case RK_ORDER2_STEP1: {
+      const auto& e0 = *EGrid.get(i, j, k);
+      const auto& e1 = *EGrid.get(i, j + 1, k);
+      const auto& e2 = *EGrid.get(i, j, k + 1);
+      perBDt2Grid.get(i, j, k)->at(fsgrids::bfield::PERBX) =
+          perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBX) +
+          compute(0.5, dtdz, dtdy, fsgrids::efield::EY, fsgrids::efield::EZ, e0, e1, e2);
+      break;
+   }
+
+   case RK_ORDER2_STEP2: {
+      const auto& e0 = *EDt2Grid.get(i, j, k);
+      const auto& e1 = *EDt2Grid.get(i, j + 1, k);
+      const auto& e2 = *EDt2Grid.get(i, j, k + 1);
+      perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBX) +=
+          compute(1.0, dtdz, dtdy, fsgrids::efield::EY, fsgrids::efield::EZ, e0, e1, e2);
+      break;
+   }
+
+   default:
+      std::cerr << __FILE__ << ":" << __LINE__ << ":"
+                << "Invalid RK case." << std::endl;
+      abort();
+   }
+}
+
+void y(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+       fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBDt2Grid,
+       fsgrid::FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EGrid,
+       fsgrid::FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EDt2Grid, int32_t i, int32_t j,
+       int32_t k, Real dt, int32_t RKCase, const std::array<Real, 3>& gridSpacing) {
+   creal dtdx = dt / gridSpacing[0];
+   creal dtdy = dt / gridSpacing[1];
+   creal dtdz = dt / gridSpacing[2];
+
+   auto compute = [](auto a, auto b, auto c, auto i, auto j, const auto& e0, const auto& e1, const auto& e2) {
+      return a * (b * (e2[i] - e0[i]) + c * (e0[j] - e1[j]));
+   };
+
+   switch (RKCase) {
+   case RK_ORDER1: {
+      const auto& e0 = *EGrid.get(i, j, k);
+      const auto& e1 = *EGrid.get(i, j, k + 1);
+      const auto& e2 = *EGrid.get(i + 1, j, k);
+      perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBY) +=
+          compute(1.0, dtdx, dtdz, fsgrids::efield::EZ, fsgrids::efield::EX, e0, e1, e2);
+      break;
+   }
+   case RK_ORDER2_STEP1: {
+      const auto& e0 = *EGrid.get(i, j, k);
+      const auto& e1 = *EGrid.get(i, j, k + 1);
+      const auto& e2 = *EGrid.get(i + 1, j, k);
+      perBDt2Grid.get(i, j, k)->at(fsgrids::bfield::PERBY) =
+          perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBY) +
+          compute(0.5, dtdx, dtdz, fsgrids::efield::EZ, fsgrids::efield::EX, e0, e1, e2);
+      break;
+   }
+   case RK_ORDER2_STEP2: {
+      const auto& e0 = *EDt2Grid.get(i, j, k);
+      const auto& e1 = *EDt2Grid.get(i, j, k + 1);
+      const auto& e2 = *EDt2Grid.get(i + 1, j, k);
+      perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBY) +=
+          compute(1.0, dtdx, dtdz, fsgrids::efield::EZ, fsgrids::efield::EX, e0, e1, e2);
+      break;
+   }
+   default:
+      std::cerr << __FILE__ << ":" << __LINE__ << ":"
+                << "Invalid RK case." << std::endl;
+      abort();
+   }
+}
+
+void z(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+       fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBDt2Grid,
+       fsgrid::FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EGrid,
+       fsgrid::FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EDt2Grid, int32_t i, int32_t j,
+       int32_t k, Real dt, int32_t RKCase, const std::array<Real, 3>& gridSpacing) {
+   creal dtdx = dt / gridSpacing[0];
+   creal dtdy = dt / gridSpacing[1];
+   creal dtdz = dt / gridSpacing[2];
+
+   auto compute = [](auto a, auto b, auto c, auto i, auto j, const auto& e0, const auto& e1, const auto& e2) {
+      return a * (b * (e2[i] - e0[i]) + c * (e0[j] - e1[j]));
+   };
+
+   switch (RKCase) {
+   case RK_ORDER1: {
+      const auto& e0 = *EGrid.get(i, j, k);
+      const auto& e1 = *EGrid.get(i + 1, j, k);
+      const auto& e2 = *EGrid.get(i, j + 1, k);
+      perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBZ) +=
+          compute(1.0, dtdy, dtdx, fsgrids::efield::EX, fsgrids::efield::EY, e0, e1, e2);
+      break;
+   }
+   case RK_ORDER2_STEP1: {
+      const auto& e0 = *EGrid.get(i, j, k);
+      const auto& e1 = *EGrid.get(i + 1, j, k);
+      const auto& e2 = *EGrid.get(i, j + 1, k);
+      perBDt2Grid.get(i, j, k)->at(fsgrids::bfield::PERBZ) =
+          perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBZ) +
+          compute(0.5, dtdy, dtdx, fsgrids::efield::EX, fsgrids::efield::EY, e0, e1, e2);
+      break;
+   }
+   case RK_ORDER2_STEP2: {
+      const auto& e0 = *EDt2Grid.get(i, j, k);
+      const auto& e1 = *EDt2Grid.get(i + 1, j, k);
+      const auto& e2 = *EDt2Grid.get(i, j + 1, k);
+      perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBZ) +=
+          compute(1.0, dtdy, dtdx, fsgrids::efield::EX, fsgrids::efield::EY, e0, e1, e2);
+      break;
+   }
+   default:
+      std::cerr << __FILE__ << ":" << __LINE__ << ":"
+                << "Invalid RK case." << std::endl;
+      abort();
+   }
+}
+
 /*! \brief Low-level magnetic field propagation function.
  *
  * Propagates the cell's face-averaged magnetic field components by
@@ -52,122 +193,16 @@ void propagateMagneticField(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_B
                             fsgrid::FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EDt2Grid,
                             int32_t i, int32_t j, int32_t k, Real dt, int32_t RKCase, bool doX, bool doY, bool doZ,
                             const std::array<Real, 3>& gridSpacing) {
-   creal dtdx = dt / gridSpacing[0];
-   creal dtdy = dt / gridSpacing[1];
-   creal dtdz = dt / gridSpacing[2];
-
    if (doX == true) {
-      switch (RKCase) {
-      case RK_ORDER1: {
-         const auto& EGrid0 = EGrid.get(i, j, k);
-         const auto& EGrid1 = EGrid.get(i, j + 1, k);
-         const auto& EGrid2 = EGrid.get(i, j, k + 1);
-         perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBX) +=
-             dtdz * (EGrid2->at(fsgrids::efield::EY) - EGrid0->at(fsgrids::efield::EY)) +
-             dtdy * (EGrid0->at(fsgrids::efield::EZ) - EGrid1->at(fsgrids::efield::EZ));
-         break;
-      }
-
-      case RK_ORDER2_STEP1: {
-         const auto& EGrid0 = EGrid.get(i, j, k);
-         const auto& EGrid1 = EGrid.get(i, j + 1, k);
-         const auto& EGrid2 = EGrid.get(i, j, k + 1);
-         perBDt2Grid.get(i, j, k)->at(fsgrids::bfield::PERBX) =
-             perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBX) +
-             0.5 * (dtdz * (EGrid2->at(fsgrids::efield::EY) - EGrid0->at(fsgrids::efield::EY)) +
-                    dtdy * (EGrid0->at(fsgrids::efield::EZ) - EGrid1->at(fsgrids::efield::EZ)));
-         break;
-      }
-
-      case RK_ORDER2_STEP2: {
-         const auto& EGrid0 = EDt2Grid.get(i, j, k);
-         const auto& EGrid1 = EDt2Grid.get(i, j + 1, k);
-         const auto& EGrid2 = EDt2Grid.get(i, j, k + 1);
-         perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBX) +=
-             dtdz * (EGrid2->at(fsgrids::efield::EY) - EGrid0->at(fsgrids::efield::EY)) +
-             dtdy * (EGrid0->at(fsgrids::efield::EZ) - EGrid1->at(fsgrids::efield::EZ));
-         break;
-      }
-
-      default:
-         std::cerr << __FILE__ << ":" << __LINE__ << ":"
-                   << "Invalid RK case." << std::endl;
-         abort();
-      }
+      x(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, gridSpacing);
    }
 
    if (doY == true) {
-      switch (RKCase) {
-      case RK_ORDER1: {
-         const auto& EGrid0 = EGrid.get(i, j, k);
-         const auto& EGrid1 = EGrid.get(i, j, k + 1);
-         const auto& EGrid2 = EGrid.get(i + 1, j, k);
-         perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBY) +=
-             dtdx * (EGrid2->at(fsgrids::efield::EZ) - EGrid0->at(fsgrids::efield::EZ)) +
-             dtdz * (EGrid0->at(fsgrids::efield::EX) - EGrid1->at(fsgrids::efield::EX));
-         break;
-      }
-      case RK_ORDER2_STEP1: {
-         const auto& EGrid0 = EGrid.get(i, j, k);
-         const auto& EGrid1 = EGrid.get(i, j, k + 1);
-         const auto& EGrid2 = EGrid.get(i + 1, j, k);
-         perBDt2Grid.get(i, j, k)->at(fsgrids::bfield::PERBY) =
-             perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBY) +
-             0.5 * (dtdx * (EGrid2->at(fsgrids::efield::EZ) - EGrid0->at(fsgrids::efield::EZ)) +
-                    dtdz * (EGrid0->at(fsgrids::efield::EX) - EGrid1->at(fsgrids::efield::EX)));
-         break;
-      }
-      case RK_ORDER2_STEP2: {
-         const auto& EGrid0 = EDt2Grid.get(i, j, k);
-         const auto& EGrid1 = EDt2Grid.get(i, j, k + 1);
-         const auto& EGrid2 = EDt2Grid.get(i + 1, j, k);
-         perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBY) +=
-             dtdx * (EGrid2->at(fsgrids::efield::EZ) - EGrid0->at(fsgrids::efield::EZ)) +
-             dtdz * (EGrid0->at(fsgrids::efield::EX) - EGrid1->at(fsgrids::efield::EX));
-         break;
-      }
-      default:
-         std::cerr << __FILE__ << ":" << __LINE__ << ":"
-                   << "Invalid RK case." << std::endl;
-         abort();
-      }
+      y(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, gridSpacing);
    }
 
    if (doZ == true) {
-      switch (RKCase) {
-      case RK_ORDER1: {
-         const auto& EGrid0 = EGrid.get(i, j, k);
-         const auto& EGrid1 = EGrid.get(i + 1, j, k);
-         const auto& EGrid2 = EGrid.get(i, j + 1, k);
-         perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBZ) +=
-             dtdy * (EGrid2->at(fsgrids::efield::EX) - EGrid0->at(fsgrids::efield::EX)) +
-             dtdx * (EGrid0->at(fsgrids::efield::EY) - EGrid1->at(fsgrids::efield::EY));
-         break;
-      }
-      case RK_ORDER2_STEP1: {
-         const auto& EGrid0 = EGrid.get(i, j, k);
-         const auto& EGrid1 = EGrid.get(i + 1, j, k);
-         const auto& EGrid2 = EGrid.get(i, j + 1, k);
-         perBDt2Grid.get(i, j, k)->at(fsgrids::bfield::PERBZ) =
-             perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBZ) +
-             0.5 * (dtdy * (EGrid2->at(fsgrids::efield::EX) - EGrid0->at(fsgrids::efield::EX)) +
-                    dtdx * (EGrid0->at(fsgrids::efield::EY) - EGrid1->at(fsgrids::efield::EY)));
-         break;
-      }
-      case RK_ORDER2_STEP2: {
-         const auto& EGrid0 = EDt2Grid.get(i, j, k);
-         const auto& EGrid1 = EDt2Grid.get(i + 1, j, k);
-         const auto& EGrid2 = EDt2Grid.get(i, j + 1, k);
-         perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBZ) +=
-             dtdy * (EGrid2->at(fsgrids::efield::EX) - EGrid0->at(fsgrids::efield::EX)) +
-             dtdx * (EGrid0->at(fsgrids::efield::EY) - EGrid1->at(fsgrids::efield::EY));
-         break;
-      }
-      default:
-         std::cerr << __FILE__ << ":" << __LINE__ << ":"
-                   << "Invalid RK case." << std::endl;
-         abort();
-      }
+      z(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, gridSpacing);
    }
 }
 
