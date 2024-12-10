@@ -30,13 +30,9 @@ void x(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WI
        fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBDt2Grid,
        fsgrid::FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EGrid,
        fsgrid::FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EDt2Grid, int32_t i, int32_t j,
-       int32_t k, Real dt, int32_t RKCase, const std::array<Real, 3>& gridSpacing) {
-   creal dtdx = dt / gridSpacing[0];
-   creal dtdy = dt / gridSpacing[1];
-   creal dtdz = dt / gridSpacing[2];
-
-   auto compute = [](auto a, auto b, auto c, auto i, auto j, const auto& e0, const auto& e1, const auto& e2) {
-      return a * (b * (e2[i] - e0[i]) + c * (e0[j] - e1[j]));
+       int32_t k, Real dt0, Real dt1, int32_t RKCase, const std::array<size_t, 2>& eindices) {
+   auto compute = [&dt0, &dt1, &eindices](auto a, const auto& e0, const auto& e1, const auto& e2) {
+      return a * (dt0 * (e2[eindices[0]] - e0[eindices[0]]) + dt1 * (e0[eindices[1]] - e1[eindices[1]]));
    };
 
    switch (RKCase) {
@@ -44,8 +40,7 @@ void x(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WI
       const auto& e0 = *EGrid.get(i, j, k);
       const auto& e1 = *EGrid.get(i, j + 1, k);
       const auto& e2 = *EGrid.get(i, j, k + 1);
-      perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBX) +=
-          compute(1.0, dtdz, dtdy, fsgrids::efield::EY, fsgrids::efield::EZ, e0, e1, e2);
+      perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBX) += compute(1.0, e0, e1, e2);
       break;
    }
 
@@ -54,8 +49,7 @@ void x(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WI
       const auto& e1 = *EGrid.get(i, j + 1, k);
       const auto& e2 = *EGrid.get(i, j, k + 1);
       perBDt2Grid.get(i, j, k)->at(fsgrids::bfield::PERBX) =
-          perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBX) +
-          compute(0.5, dtdz, dtdy, fsgrids::efield::EY, fsgrids::efield::EZ, e0, e1, e2);
+          perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBX) + compute(0.5, e0, e1, e2);
       break;
    }
 
@@ -63,8 +57,7 @@ void x(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WI
       const auto& e0 = *EDt2Grid.get(i, j, k);
       const auto& e1 = *EDt2Grid.get(i, j + 1, k);
       const auto& e2 = *EDt2Grid.get(i, j, k + 1);
-      perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBX) +=
-          compute(1.0, dtdz, dtdy, fsgrids::efield::EY, fsgrids::efield::EZ, e0, e1, e2);
+      perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBX) += compute(1.0, e0, e1, e2);
       break;
    }
 
@@ -193,8 +186,13 @@ void propagateMagneticField(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_B
                             fsgrid::FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EDt2Grid,
                             int32_t i, int32_t j, int32_t k, Real dt, int32_t RKCase, bool doX, bool doY, bool doZ,
                             const std::array<Real, 3>& gridSpacing) {
+   creal dtdx = dt / gridSpacing[0];
+   creal dtdy = dt / gridSpacing[1];
+   creal dtdz = dt / gridSpacing[2];
+
    if (doX == true) {
-      x(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, gridSpacing);
+      x(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dtdz, dtdy, RKCase,
+        {fsgrids::efield::EY, fsgrids::efield::EZ});
    }
 
    if (doY == true) {
