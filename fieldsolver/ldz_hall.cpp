@@ -842,11 +842,11 @@ inline REAL JXB(fsgrids::ehall term, const std::array<REAL, Rec::N_REC_COEFFICIE
  * \sa calculateHallTerm JXBX_000_100 JXBX_001_101 JXBX_010_110 JXBX_011_111
  *
  */
-void calculateEdgeHallTermComponents(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perbs,
+void calculateEdgeHallTermComponents(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perbs,
                                      std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehalls,
-                                     std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
-                                     std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperbs,
-                                     std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgbs,
+                                     std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                                     std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperbs,
+                                     std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgbs,
                                      const std::array<Real, 3>& gridSpacing,
                                      const std::array<Real, Rec::N_REC_COEFFICIENTS>& perturbedCoefficients,
                                      const fsgrid::FsStencil& stencil) {
@@ -1028,23 +1028,13 @@ void calculateEdgeHallTermComponents(std::span<std::array<Real, fsgrids::bfield:
  *
  * \sa calculateHallTermSimple calculateEdgeHallTermComponents
  */
-// TODO change these to spans, once reconstructionCoefficients takes spans
-void calculateHallTerm(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-                       fsgrid::FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH>& EHallGrid,
-                       fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
-                       fsgrid::FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
-                       fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-                       fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, SysBoundary& sysBoundaries,
-                       cint i, cint j, cint k) {
-   const auto stencil = technicalGrid.makeStencil(i, j, k);
-   const auto gridSpacing = technicalGrid.getGridSpacing();
-   std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
-   std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall = EHallGrid.getData();
-   std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments = momentsGrid.getData();
-   std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb = dPerBGrid.getData();
-   std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb = BgBGrid.getData();
-   std::span<fsgrids::technical> technical = technicalGrid.getData();
-
+void calculateHallTerm(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                       std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
+                       std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                       std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                       std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                       std::span<const fsgrids::technical> technical, const fsgrid::FsStencil& stencil,
+                       SysBoundary& sysBoundaries, const std::array<Real, 3>& gridSpacing) {
 #ifdef DEBUG_FSOLVER
    if (!stencil.cellExists(0, 0, 0)) {
       cerr << "Out-of-bounds access in " << __FILE__ << ":" << __LINE__ << endl;
@@ -1087,13 +1077,10 @@ void calculateHallTerm(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD
  * \param momentsGrid fsGrid holding the moment quantities
  * \param momentsDt2Grid fsGrid holding the moment quantities at runge-kutta half step
  * \param dPerBGrid fsGrid holding the derivatives of perturbed B
- * \param dMomentsGrid fsGrid holding the derivatives of moments
- * \param dMomentsDt2Grid fsGrid holding the derivatives of moments at runge-kutta half step
  * \param BgBGrid fsGrid holding the background B quantities
  * \param technicalGrid fsGrid holding technical information (such as boundary types)
  * \param sysBoundaries System boundary condition functions.
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
- * \param communicateMomentsDerivatives whether to communicate derivatives with the neighbour CPUs
  *
  * \sa calculateHallTerm
  */
@@ -1104,25 +1091,30 @@ void calculateHallTermSimple(
     fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
     fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsDt2Grid,
     fsgrid::FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsDt2Grid,
     fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, SysBoundary& sysBoundaries, cint& RKCase,
-    const bool communicateMomentsDerivatives) {
+    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, SysBoundary& sysBoundaries, cint& RKCase) {
+
+   std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
+   std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall = EHallGrid.getData();
+   std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments = momentsGrid.getData();
+   std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb = dPerBGrid.getData();
+   std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb = BgBGrid.getData();
+   std::span<const fsgrids::technical> technical = technicalGrid.getData();
+
+   if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+      perb = perBDt2Grid.getData();
+      moments = momentsDt2Grid.getData();
+   }
+
+   const auto& gridSpacing = technicalGrid.getGridSpacing();
    const auto& localSize = technicalGrid.getLocalSize();
    const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
 
    phiprof::Timer hallTimer{"Calculate Hall term"};
+
    phiprof::Timer mpiTimer{"EHall ghost updates MPI", {"MPI"}};
    int computeTimerId{phiprof::initializeTimer("EHall compute cells")};
    dPerBGrid.updateGhostCells();
-   if (P::ohmGradPeTerm == 0 && communicateMomentsDerivatives) {
-      if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-         dMomentsGrid.updateGhostCells();
-      } else {
-         dMomentsDt2Grid.updateGhostCells();
-      }
-   }
    mpiTimer.stop();
 
 #pragma omp parallel
@@ -1132,13 +1124,8 @@ void calculateHallTermSimple(
       for (auto k = 0; k < localSize[2]; k++) {
          for (auto j = 0; j < localSize[1]; j++) {
             for (auto i = 0; i < localSize[0]; i++) {
-               if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-                  calculateHallTerm(perBGrid, EHallGrid, momentsGrid, dPerBGrid, BgBGrid, technicalGrid, sysBoundaries,
-                                    i, j, k);
-               } else {
-                  calculateHallTerm(perBDt2Grid, EHallGrid, momentsDt2Grid, dPerBGrid, BgBGrid, technicalGrid,
-                                    sysBoundaries, i, j, k);
-               }
+               const auto stencil = technicalGrid.makeStencil(i, j, k);
+               calculateHallTerm(perb, ehall, moments, dperb, bgb, technical, stencil, sysBoundaries, gridSpacing);
             }
          }
       }

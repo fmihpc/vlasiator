@@ -51,9 +51,9 @@ Real divideIfNonZero(creal numerator, creal denominator) {
  * 2nd-order Hall term calculations.
  */
 std::array<Real, Rec::N_REC_COEFFICIENTS>
-reconstructionCoefficients(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                           std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb, const fsgrid::FsStencil& stencil,
-                           Real reconstructionOrder) {
+reconstructionCoefficients(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                           std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                           const fsgrid::FsStencil& stencil, Real reconstructionOrder) {
    std::array<Real, Rec::N_REC_COEFFICIENTS> perturbedResult;
 
    const std::array<Real, fsgrids::dperb::N_DPERB>& der_i1j1k1 = dperb[stencil.center()];
@@ -222,8 +222,8 @@ std::array<Real, 3> interpolatePerturbedB(
     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
     std::map<std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS>>& reconstructionCoefficientsCache, cint i,
     cint j, cint k, const std::array<Real, 3> x) {
-   std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
-   std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb = dPerBGrid.getData();
+   std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
+   std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb = dPerBGrid.getData();
    const auto stencil = technicalGrid.makeStencil(i, j, k);
 
    cuint cellSysBoundaryFlag = technicalGrid.get(i, j, k)->sysBoundaryFlag;
@@ -301,8 +301,8 @@ std::array<Real, 3> interpolateCurlB(
     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
     std::map<std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS>>& reconstructionCoefficientsCache, cint i,
     cint j, cint k, const std::array<Real, 3> x) {
-   std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
-   std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb = dPerBGrid.getData();
+   std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
+   std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb = dPerBGrid.getData();
    const auto stencil = technicalGrid.makeStencil(i, j, k);
 
    cuint cellSysBoundaryFlag = technicalGrid.get(i, j, k)->sysBoundaryFlag;

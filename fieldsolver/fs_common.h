@@ -98,9 +98,9 @@ namespace Rec {
 }
 
 std::array<Real, Rec::N_REC_COEFFICIENTS>
-reconstructionCoefficients(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                           std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb, const fsgrid::FsStencil& stencil,
-                           Real reconstructionOrder);
+reconstructionCoefficients(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                           std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                           const fsgrid::FsStencil& stencil, Real reconstructionOrder);
 
 std::array<Real, 3> interpolatePerturbedB(
    fsgrid::FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
