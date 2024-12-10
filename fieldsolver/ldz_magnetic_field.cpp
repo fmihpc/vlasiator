@@ -20,39 +20,31 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include <span>
 #ifdef _OPENMP
 #include <omp.h>
 #endif
 
 #include "ldz_magnetic_field.hpp"
 
-void propagateMagneticFieldComponent(
-    fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBDt2Grid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EDt2Grid, int32_t i, int32_t j,
-    int32_t k, Real dt0, Real dt1, int32_t RKCase, size_t perbIdx, const std::array<size_t, 2>& eIdx,
-    const std::array<std::array<int32_t, 3>, 3>& egridIndices) {
-   auto compute = [&dt0, &dt1, &eIdx](auto a, const auto& e0, const auto& e1, const auto& e2) {
-      return a * (dt0 * (e2[eIdx[0]] - e0[eIdx[0]]) + dt1 * (e0[eIdx[1]] - e1[eIdx[1]]));
-   };
-
-   const auto& e0 = RKCase == RK_ORDER2_STEP2
-                        ? *EDt2Grid.get(egridIndices[0][0], egridIndices[0][1], egridIndices[0][2])
-                        : *EGrid.get(egridIndices[0][0], egridIndices[0][1], egridIndices[0][2]);
-   const auto& e1 = RKCase == RK_ORDER2_STEP2
-                        ? *EDt2Grid.get(egridIndices[1][0], egridIndices[1][1], egridIndices[1][2])
-                        : *EGrid.get(egridIndices[1][0], egridIndices[1][1], egridIndices[1][2]);
-   const auto& e2 = RKCase == RK_ORDER2_STEP2
-                        ? *EDt2Grid.get(egridIndices[2][0], egridIndices[2][1], egridIndices[2][2])
-                        : *EGrid.get(egridIndices[2][0], egridIndices[2][1], egridIndices[2][2]);
+void propagateMagneticFieldComponent(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                     std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perbdt2,
+                                     std::span<const std::array<Real, fsgrids::efield::N_EFIELD>> e,
+                                     std::span<const std::array<Real, fsgrids::efield::N_EFIELD>> edt2,
+                                     const fsgrid::FsStencil& stencil, Real dt0, Real dt1, int32_t RKCase,
+                                     size_t perbIdx, size_t i, size_t j, const std::array<size_t, 3>& idx) {
+   const auto& e0 = RKCase == RK_ORDER2_STEP2 ? edt2[idx[0]] : e[idx[0]];
+   const auto& e1 = RKCase == RK_ORDER2_STEP2 ? edt2[idx[1]] : e[idx[1]];
+   const auto& e2 = RKCase == RK_ORDER2_STEP2 ? edt2[idx[2]] : e[idx[2]];
+   auto& pb = perb[stencil.center()][perbIdx];
+   const Real v = dt0 * (e2[i] - e0[i]) + dt1 * (e0[j] - e1[j]);
 
    switch (RKCase) {
    case RK_ORDER1 | RK_ORDER2_STEP2:
-      perBGrid.get(i, j, k)->at(perbIdx) += compute(1.0, e0, e1, e2);
+      pb += v;
       break;
    case RK_ORDER2_STEP1:
-      perBDt2Grid.get(i, j, k)->at(perbIdx) = perBGrid.get(i, j, k)->at(perbIdx) + compute(0.5, e0, e1, e2);
+      perbdt2[stencil.center()][perbIdx] = pb + 0.5 * v;
       break;
    default:
       std::cerr << __FILE__ << ":" << __LINE__ << ":"
@@ -81,32 +73,32 @@ void propagateMagneticFieldComponent(
  * \param doY If true, compute the y component (default true).
  * \param doZ If true, compute the z component (default true).
  */
-void propagateMagneticField(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-                            fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBDt2Grid,
-                            fsgrid::FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EGrid,
-                            fsgrid::FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EDt2Grid,
-                            int32_t i, int32_t j, int32_t k, Real dt, int32_t RKCase, bool doX, bool doY, bool doZ,
+void propagateMagneticField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                            std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perbdt2,
+                            std::span<const std::array<Real, fsgrids::efield::N_EFIELD>> e,
+                            std::span<const std::array<Real, fsgrids::efield::N_EFIELD>> edt2,
+                            const fsgrid::FsStencil& stencil, Real dt, int32_t RKCase, bool doX, bool doY, bool doZ,
                             const std::array<Real, 3>& gridSpacing) {
    creal dtdx = dt / gridSpacing[0];
    creal dtdy = dt / gridSpacing[1];
    creal dtdz = dt / gridSpacing[2];
 
    if (doX == true) {
-      propagateMagneticFieldComponent(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dtdz, dtdy, RKCase,
-                                      fsgrids::bfield::PERBX, {fsgrids::efield::EY, fsgrids::efield::EZ},
-                                      {std::array{i, j, k}, std::array{i, j + 1, k}, std::array{i, j, k + 1}});
+      propagateMagneticFieldComponent(perb, perbdt2, e, edt2, stencil, dtdz, dtdy, RKCase, fsgrids::bfield::PERBX,
+                                      fsgrids::efield::EY, fsgrids::efield::EZ,
+                                      {stencil.center(), stencil.up(), stencil.near()});
    }
 
    if (doY == true) {
-      propagateMagneticFieldComponent(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dtdx, dtdz, RKCase,
-                                      fsgrids::bfield::PERBY, {fsgrids::efield::EZ, fsgrids::efield::EX},
-                                      {std::array{i, j, k}, std::array{i, j, k + 1}, std::array{i + 1, j, k}});
+      propagateMagneticFieldComponent(perb, perbdt2, e, edt2, stencil, dtdx, dtdz, RKCase, fsgrids::bfield::PERBY,
+                                      fsgrids::efield::EZ, fsgrids::efield::EX,
+                                      {stencil.center(), stencil.near(), stencil.right()});
    }
 
    if (doZ == true) {
-      propagateMagneticFieldComponent(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dtdy, dtdx, RKCase,
-                                      fsgrids::bfield::PERBZ, {fsgrids::efield::EX, fsgrids::efield::EY},
-                                      {std::array{i, j, k}, std::array{i + 1, j, k}, std::array{i, j + 1, k}});
+      propagateMagneticFieldComponent(perb, perbdt2, e, edt2, stencil, dtdy, dtdx, RKCase, fsgrids::bfield::PERBZ,
+                                      fsgrids::efield::EX, fsgrids::efield::EY,
+                                      {stencil.center(), stencil.right(), stencil.up()});
    }
 }
 
@@ -170,22 +162,29 @@ void propagateMagneticFieldSimple(
    const auto& localSize = technicalGrid.getLocalSize();
    const auto& gridSpacing = technicalGrid.getGridSpacing();
    const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
-   phiprof::Timer propagateBTimer{"Propagate magnetic field"};
 
+   std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
+   std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perbdt2 = perBDt2Grid.getData();
+   std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb = bgbGrid.getData();
+   std::span<const std::array<Real, fsgrids::efield::N_EFIELD>> e = EGrid.getData();
+   std::span<const std::array<Real, fsgrids::efield::N_EFIELD>> edt2 = EDt2Grid.getData();
+   std::span<const fsgrids::technical> technical = technicalGrid.getData();
+
+   phiprof::Timer propagateBTimer{"Propagate magnetic field"};
    int computeTimerId{phiprof::initializeTimer("Magnetic Field compute cells")};
    int sysBoundaryTimerId{phiprof::initializeTimer("Magnetic Field compute sysboundary cells")};
 #pragma omp parallel
    {
       phiprof::Timer computeTimer{computeTimerId};
 #pragma omp for collapse(2)
-      for (fsgrid::FsIndex_t k = 0; k < localSize[2]; k++) {
-         for (fsgrid::FsIndex_t j = 0; j < localSize[1]; j++) {
-            for (fsgrid::FsIndex_t i = 0; i < localSize[0]; i++) {
-               cuint bitfield = technicalGrid.get(i, j, k)->SOLVE;
-               propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase,
-                                      ((bitfield & compute::BX) == compute::BX),
-                                      ((bitfield & compute::BY) == compute::BY),
-                                      ((bitfield & compute::BZ) == compute::BZ), gridSpacing);
+      for (auto k = 0; k < localSize[2]; k++) {
+         for (auto j = 0; j < localSize[1]; j++) {
+            for (auto i = 0; i < localSize[0]; i++) {
+               const fsgrid::FsStencil stencil = technicalGrid.makeStencil(i, j, k);
+               cuint bitfield = technical[stencil.center()].SOLVE;
+               propagateMagneticField(
+                   perb, perbdt2, e, edt2, stencil, dt, RKCase, ((bitfield & compute::BX) == compute::BX),
+                   ((bitfield & compute::BY) == compute::BY), ((bitfield & compute::BZ) == compute::BZ), gridSpacing);
             }
          }
       }
@@ -210,12 +209,14 @@ void propagateMagneticFieldSimple(
       phiprof::Timer sysBoundaryTimer{sysBoundaryTimerId};
 // L1 pass
 #pragma omp for collapse(2)
-      for (int k = 0; k < localSize[2]; k++) {
-         for (int j = 0; j < localSize[1]; j++) {
-            for (int i = 0; i < localSize[0]; i++) {
-               cuint bitfield = technicalGrid.get(i, j, k)->SOLVE;
+      for (auto k = 0; k < localSize[2]; k++) {
+         for (auto j = 0; j < localSize[1]; j++) {
+            for (auto i = 0; i < localSize[0]; i++) {
+               const fsgrid::FsStencil stencil = technicalGrid.makeStencil(i, j, k);
+               const auto tech = technical[stencil.center()];
+               cuint bitfield = tech.SOLVE;
                // L1 pass
-               if (technicalGrid.get(i, j, k)->sysBoundaryLayer == 1) {
+               if (tech.sysBoundaryLayer == 1) {
                   if ((bitfield & compute::BX) != compute::BX) {
                      propagateSysBoundaryMagneticField(perBGrid, perBDt2Grid, bgbGrid, technicalGrid, i, j, k,
                                                        sysBoundaries, dt, RKCase, 0);
@@ -249,11 +250,12 @@ void propagateMagneticFieldSimple(
       phiprof::Timer sysBoundaryTimer{sysBoundaryTimerId};
 // L2 pass
 #pragma omp for collapse(2)
-      for (int k = 0; k < localSize[2]; k++) {
-         for (int j = 0; j < localSize[1]; j++) {
-            for (int i = 0; i < localSize[0]; i++) {
-               if (technicalGrid.get(i, j, k)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
-                   technicalGrid.get(i, j, k)->sysBoundaryLayer == 2) {
+      for (auto k = 0; k < localSize[2]; k++) {
+         for (auto j = 0; j < localSize[1]; j++) {
+            for (auto i = 0; i < localSize[0]; i++) {
+               const fsgrid::FsStencil stencil = technicalGrid.makeStencil(i, j, k);
+               const auto tech = technical[stencil.center()];
+               if (tech.sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY && tech.sysBoundaryLayer == 2) {
                   for (uint component = 0; component < 3; component++) {
                      propagateSysBoundaryMagneticField(perBGrid, perBDt2Grid, bgbGrid, technicalGrid, i, j, k,
                                                        sysBoundaries, dt, RKCase, component);
