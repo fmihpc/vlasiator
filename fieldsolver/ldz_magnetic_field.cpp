@@ -52,47 +52,42 @@ void propagateMagneticField(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_B
                             fsgrid::FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EDt2Grid,
                             int32_t i, int32_t j, int32_t k, Real dt, int32_t RKCase, bool doX, bool doY, bool doZ,
                             const std::array<Real, 3>& gridSpacing) {
-   creal dx = gridSpacing[0];
-   creal dy = gridSpacing[1];
-   creal dz = gridSpacing[2];
-
-   std::array<Real, fsgrids::bfield::N_BFIELD>* perBGrid0 = perBGrid.get(i, j, k);
-   std::array<Real, fsgrids::efield::N_EFIELD>* EGrid0;
-   std::array<Real, fsgrids::efield::N_EFIELD>* EGrid1;
-   std::array<Real, fsgrids::efield::N_EFIELD>* EGrid2;
-   std::array<Real, fsgrids::bfield::N_BFIELD>* perBDt2Grid0;
+   creal dtdx = dt / gridSpacing[0];
+   creal dtdy = dt / gridSpacing[1];
+   creal dtdz = dt / gridSpacing[2];
 
    if (doX == true) {
       switch (RKCase) {
-      case RK_ORDER1:
-         EGrid0 = EGrid.get(i, j, k);
-         EGrid1 = EGrid.get(i, j + 1, k);
-         EGrid2 = EGrid.get(i, j, k + 1);
-         perBGrid0->at(fsgrids::bfield::PERBX) +=
-             dt / dz * (EGrid2->at(fsgrids::efield::EY) - EGrid0->at(fsgrids::efield::EY)) +
-             dt / dy * (EGrid0->at(fsgrids::efield::EZ) - EGrid1->at(fsgrids::efield::EZ));
+      case RK_ORDER1: {
+         const auto& EGrid0 = EGrid.get(i, j, k);
+         const auto& EGrid1 = EGrid.get(i, j + 1, k);
+         const auto& EGrid2 = EGrid.get(i, j, k + 1);
+         perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBX) +=
+             dtdz * (EGrid2->at(fsgrids::efield::EY) - EGrid0->at(fsgrids::efield::EY)) +
+             dtdy * (EGrid0->at(fsgrids::efield::EZ) - EGrid1->at(fsgrids::efield::EZ));
          break;
+      }
 
-      case RK_ORDER2_STEP1:
-         perBDt2Grid0 = perBDt2Grid.get(i, j, k);
-         EGrid0 = EGrid.get(i, j, k);
-         EGrid1 = EGrid.get(i, j + 1, k);
-         EGrid2 = EGrid.get(i, j, k + 1);
-         perBDt2Grid0->at(fsgrids::bfield::PERBX) =
-             perBGrid0->at(fsgrids::bfield::PERBX) +
-             0.5 * dt *
-                 (1.0 / dz * (EGrid2->at(fsgrids::efield::EY) - EGrid0->at(fsgrids::efield::EY)) +
-                  1.0 / dy * (EGrid0->at(fsgrids::efield::EZ) - EGrid1->at(fsgrids::efield::EZ)));
+      case RK_ORDER2_STEP1: {
+         const auto& EGrid0 = EGrid.get(i, j, k);
+         const auto& EGrid1 = EGrid.get(i, j + 1, k);
+         const auto& EGrid2 = EGrid.get(i, j, k + 1);
+         perBDt2Grid.get(i, j, k)->at(fsgrids::bfield::PERBX) =
+             perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBX) +
+             0.5 * (dtdz * (EGrid2->at(fsgrids::efield::EY) - EGrid0->at(fsgrids::efield::EY)) +
+                    dtdy * (EGrid0->at(fsgrids::efield::EZ) - EGrid1->at(fsgrids::efield::EZ)));
          break;
+      }
 
-      case RK_ORDER2_STEP2:
-         EGrid0 = EDt2Grid.get(i, j, k);
-         EGrid1 = EDt2Grid.get(i, j + 1, k);
-         EGrid2 = EDt2Grid.get(i, j, k + 1);
-         perBGrid0->at(fsgrids::bfield::PERBX) +=
-             dt * (1.0 / dz * (EGrid2->at(fsgrids::efield::EY) - EGrid0->at(fsgrids::efield::EY)) +
-                   1.0 / dy * (EGrid0->at(fsgrids::efield::EZ) - EGrid1->at(fsgrids::efield::EZ)));
+      case RK_ORDER2_STEP2: {
+         const auto& EGrid0 = EDt2Grid.get(i, j, k);
+         const auto& EGrid1 = EDt2Grid.get(i, j + 1, k);
+         const auto& EGrid2 = EDt2Grid.get(i, j, k + 1);
+         perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBX) +=
+             dtdz * (EGrid2->at(fsgrids::efield::EY) - EGrid0->at(fsgrids::efield::EY)) +
+             dtdy * (EGrid0->at(fsgrids::efield::EZ) - EGrid1->at(fsgrids::efield::EZ));
          break;
+      }
 
       default:
          std::cerr << __FILE__ << ":" << __LINE__ << ":"
@@ -103,33 +98,34 @@ void propagateMagneticField(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_B
 
    if (doY == true) {
       switch (RKCase) {
-      case RK_ORDER1:
-         EGrid0 = EGrid.get(i, j, k);
-         EGrid1 = EGrid.get(i, j, k + 1);
-         EGrid2 = EGrid.get(i + 1, j, k);
-         perBGrid0->at(fsgrids::bfield::PERBY) +=
-             dt / dx * (EGrid2->at(fsgrids::efield::EZ) - EGrid0->at(fsgrids::efield::EZ)) +
-             dt / dz * (EGrid0->at(fsgrids::efield::EX) - EGrid1->at(fsgrids::efield::EX));
+      case RK_ORDER1: {
+         const auto& EGrid0 = EGrid.get(i, j, k);
+         const auto& EGrid1 = EGrid.get(i, j, k + 1);
+         const auto& EGrid2 = EGrid.get(i + 1, j, k);
+         perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBY) +=
+             dtdx * (EGrid2->at(fsgrids::efield::EZ) - EGrid0->at(fsgrids::efield::EZ)) +
+             dtdz * (EGrid0->at(fsgrids::efield::EX) - EGrid1->at(fsgrids::efield::EX));
          break;
-      case RK_ORDER2_STEP1:
-         perBDt2Grid0 = perBDt2Grid.get(i, j, k);
-         EGrid0 = EGrid.get(i, j, k);
-         EGrid1 = EGrid.get(i, j, k + 1);
-         EGrid2 = EGrid.get(i + 1, j, k);
-         perBDt2Grid0->at(fsgrids::bfield::PERBY) =
-             perBGrid0->at(fsgrids::bfield::PERBY) +
-             0.5 * dt *
-                 (1.0 / dx * (EGrid2->at(fsgrids::efield::EZ) - EGrid0->at(fsgrids::efield::EZ)) +
-                  1.0 / dz * (EGrid0->at(fsgrids::efield::EX) - EGrid1->at(fsgrids::efield::EX)));
+      }
+      case RK_ORDER2_STEP1: {
+         const auto& EGrid0 = EGrid.get(i, j, k);
+         const auto& EGrid1 = EGrid.get(i, j, k + 1);
+         const auto& EGrid2 = EGrid.get(i + 1, j, k);
+         perBDt2Grid.get(i, j, k)->at(fsgrids::bfield::PERBY) =
+             perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBY) +
+             0.5 * (dtdx * (EGrid2->at(fsgrids::efield::EZ) - EGrid0->at(fsgrids::efield::EZ)) +
+                    dtdz * (EGrid0->at(fsgrids::efield::EX) - EGrid1->at(fsgrids::efield::EX)));
          break;
-      case RK_ORDER2_STEP2:
-         EGrid0 = EDt2Grid.get(i, j, k);
-         EGrid1 = EDt2Grid.get(i, j, k + 1);
-         EGrid2 = EDt2Grid.get(i + 1, j, k);
-         perBGrid0->at(fsgrids::bfield::PERBY) +=
-             dt * (1.0 / dx * (EGrid2->at(fsgrids::efield::EZ) - EGrid0->at(fsgrids::efield::EZ)) +
-                   1.0 / dz * (EGrid0->at(fsgrids::efield::EX) - EGrid1->at(fsgrids::efield::EX)));
+      }
+      case RK_ORDER2_STEP2: {
+         const auto& EGrid0 = EDt2Grid.get(i, j, k);
+         const auto& EGrid1 = EDt2Grid.get(i, j, k + 1);
+         const auto& EGrid2 = EDt2Grid.get(i + 1, j, k);
+         perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBY) +=
+             dtdx * (EGrid2->at(fsgrids::efield::EZ) - EGrid0->at(fsgrids::efield::EZ)) +
+             dtdz * (EGrid0->at(fsgrids::efield::EX) - EGrid1->at(fsgrids::efield::EX));
          break;
+      }
       default:
          std::cerr << __FILE__ << ":" << __LINE__ << ":"
                    << "Invalid RK case." << std::endl;
@@ -139,33 +135,34 @@ void propagateMagneticField(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_B
 
    if (doZ == true) {
       switch (RKCase) {
-      case RK_ORDER1:
-         EGrid0 = EGrid.get(i, j, k);
-         EGrid1 = EGrid.get(i + 1, j, k);
-         EGrid2 = EGrid.get(i, j + 1, k);
-         perBGrid0->at(fsgrids::bfield::PERBZ) +=
-             dt / dy * (EGrid2->at(fsgrids::efield::EX) - EGrid0->at(fsgrids::efield::EX)) +
-             dt / dx * (EGrid0->at(fsgrids::efield::EY) - EGrid1->at(fsgrids::efield::EY));
+      case RK_ORDER1: {
+         const auto& EGrid0 = EGrid.get(i, j, k);
+         const auto& EGrid1 = EGrid.get(i + 1, j, k);
+         const auto& EGrid2 = EGrid.get(i, j + 1, k);
+         perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBZ) +=
+             dtdy * (EGrid2->at(fsgrids::efield::EX) - EGrid0->at(fsgrids::efield::EX)) +
+             dtdx * (EGrid0->at(fsgrids::efield::EY) - EGrid1->at(fsgrids::efield::EY));
          break;
-      case RK_ORDER2_STEP1:
-         perBDt2Grid0 = perBDt2Grid.get(i, j, k);
-         EGrid0 = EGrid.get(i, j, k);
-         EGrid1 = EGrid.get(i + 1, j, k);
-         EGrid2 = EGrid.get(i, j + 1, k);
-         perBDt2Grid0->at(fsgrids::bfield::PERBZ) =
-             perBGrid0->at(fsgrids::bfield::PERBZ) +
-             0.5 * dt *
-                 (1.0 / dy * (EGrid2->at(fsgrids::efield::EX) - EGrid0->at(fsgrids::efield::EX)) +
-                  1.0 / dx * (EGrid0->at(fsgrids::efield::EY) - EGrid1->at(fsgrids::efield::EY)));
+      }
+      case RK_ORDER2_STEP1: {
+         const auto& EGrid0 = EGrid.get(i, j, k);
+         const auto& EGrid1 = EGrid.get(i + 1, j, k);
+         const auto& EGrid2 = EGrid.get(i, j + 1, k);
+         perBDt2Grid.get(i, j, k)->at(fsgrids::bfield::PERBZ) =
+             perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBZ) +
+             0.5 * (dtdy * (EGrid2->at(fsgrids::efield::EX) - EGrid0->at(fsgrids::efield::EX)) +
+                    dtdx * (EGrid0->at(fsgrids::efield::EY) - EGrid1->at(fsgrids::efield::EY)));
          break;
-      case RK_ORDER2_STEP2:
-         EGrid0 = EDt2Grid.get(i, j, k);
-         EGrid1 = EDt2Grid.get(i + 1, j, k);
-         EGrid2 = EDt2Grid.get(i, j + 1, k);
-         perBGrid0->at(fsgrids::bfield::PERBZ) +=
-             dt * (1.0 / dy * (EGrid2->at(fsgrids::efield::EX) - EGrid0->at(fsgrids::efield::EX)) +
-                   1.0 / dx * (EGrid0->at(fsgrids::efield::EY) - EGrid1->at(fsgrids::efield::EY)));
+      }
+      case RK_ORDER2_STEP2: {
+         const auto& EGrid0 = EDt2Grid.get(i, j, k);
+         const auto& EGrid1 = EDt2Grid.get(i + 1, j, k);
+         const auto& EGrid2 = EDt2Grid.get(i, j + 1, k);
+         perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBZ) +=
+             dtdy * (EGrid2->at(fsgrids::efield::EX) - EGrid0->at(fsgrids::efield::EX)) +
+             dtdx * (EGrid0->at(fsgrids::efield::EY) - EGrid1->at(fsgrids::efield::EY));
          break;
+      }
       default:
          std::cerr << __FILE__ << ":" << __LINE__ << ":"
                    << "Invalid RK case." << std::endl;
