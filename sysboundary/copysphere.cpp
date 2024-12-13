@@ -519,9 +519,7 @@ Real Copysphere::fieldSolverBoundaryCondMagneticField(
         solve(*technicalGrid.get(i, j, k - 1), bitfield),
         solve(*technicalGrid.get(i, j, k + 1), bitfield),
    };
-   // clang-format on
 
-   // clang-format off
    const std::array bvalues = {
         *bGrid.get(i - 1, j, k),
         *bGrid.get(i + 1, j, k),
@@ -530,12 +528,48 @@ Real Copysphere::fieldSolverBoundaryCondMagneticField(
         *bGrid.get(i, j, k - 1),
         *bGrid.get(i, j, k + 1),
    };
+
+   // 0, 1, 2, 3, 4, 5 for component 0
+   // 2, 3, 4, 5, 0, 1 for component 1
+   // 4, 5, 0, 1, 2, 3 for component 2
+   const std::array ind = {
+       (0 + 2 * component) % 6,
+       (1 + 2 * component) % 6,
+       (2 + 2 * component) % 6,
+       (3 + 2 * component) % 6,
+       (4 + 2 * component) % 6,
+       (5 + 2 * component) % 6,
+   };
    // clang-format on
+
+   auto avgOverNeighbours = [&i, &j, &k, &technicalGrid, &bGrid, &solve, &bitfield, &perbComponent](auto nCells,
+                                                                                                    auto& retval) {
+      if (nCells == 0) {
+         for (int a = i - 1; a < i + 2; a++) {
+            for (int b = j - 1; b < j + 2; b++) {
+               for (int c = k - 1; c < k + 2; c++) {
+                  if (solve(*technicalGrid.get(a, b, c), bitfield)) {
+                     retval += bGrid.get(a, b, c)->at(perbComponent);
+                     nCells++;
+                  }
+               }
+            }
+         }
+      }
+
+      if (nCells == 0) {
+         cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
+         return 0.0;
+      }
+
+      return retval / nCells;
+   };
 
    if (this->zeroPerB == true) {
       return bGrid.get(i, j, k)->at(perbComponent);
    } else {
       if (technicalGrid.get(i, j, k)->sysBoundaryLayer == 1) {
+
          switch (component) {
          case 0: {
             if ((solved[0]) && (solved[1])) {
@@ -547,39 +581,28 @@ Real Copysphere::fieldSolverBoundaryCondMagneticField(
             } else {
                Real retval = 0.0;
                uint nCells = 0;
+
                if (solved[2]) {
                   retval += bvalues[2][perbComponent];
                   nCells++;
                }
+
                if (solved[3]) {
                   retval += bvalues[3][perbComponent];
                   nCells++;
                }
+
                if (solved[4]) {
                   retval += bvalues[4][perbComponent];
                   nCells++;
                }
+
                if (solved[5]) {
                   retval += bvalues[5][perbComponent];
                   nCells++;
                }
-               if (nCells == 0) {
-                  for (int a = i - 1; a < i + 2; a++) {
-                     for (int b = j - 1; b < j + 2; b++) {
-                        for (int c = k - 1; c < k + 2; c++) {
-                           if (solve(*technicalGrid.get(a, b, c), bitfield)) {
-                              retval += bGrid.get(a, b, c)->at(perbComponent);
-                              nCells++;
-                           }
-                        }
-                     }
-                  }
-               }
-               if (nCells == 0) {
-                  cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
-                  return 0.0;
-               }
-               return retval / nCells;
+
+               return avgOverNeighbours(nCells, retval);
             }
          }
          case 1: {
@@ -592,39 +615,28 @@ Real Copysphere::fieldSolverBoundaryCondMagneticField(
             } else {
                Real retval = 0.0;
                uint nCells = 0;
-               if (solved[0]) {
-                  retval += bvalues[0][perbComponent];
-                  nCells++;
-               }
-               if (solved[1]) {
-                  retval += bvalues[1][perbComponent];
-                  nCells++;
-               }
+
                if (solved[4]) {
                   retval += bvalues[4][perbComponent];
                   nCells++;
                }
+
                if (solved[5]) {
                   retval += bvalues[5][perbComponent];
                   nCells++;
                }
-               if (nCells == 0) {
-                  for (int a = i - 1; a < i + 2; a++) {
-                     for (int b = j - 1; b < j + 2; b++) {
-                        for (int c = k - 1; c < k + 2; c++) {
-                           if (solve(*technicalGrid.get(a, b, c), bitfield)) {
-                              retval += bGrid.get(a, b, c)->at(perbComponent);
-                              nCells++;
-                           }
-                        }
-                     }
-                  }
+
+               if (solved[0]) {
+                  retval += bvalues[0][perbComponent];
+                  nCells++;
                }
-               if (nCells == 0) {
-                  cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
-                  return 0.0;
+
+               if (solved[1]) {
+                  retval += bvalues[1][perbComponent];
+                  nCells++;
                }
-               return retval / nCells;
+
+               return avgOverNeighbours(nCells, retval);
             }
          }
          case 2: {
@@ -637,39 +649,28 @@ Real Copysphere::fieldSolverBoundaryCondMagneticField(
             } else {
                Real retval = 0.0;
                uint nCells = 0;
+
                if (solved[0]) {
                   retval += bvalues[0][perbComponent];
                   nCells++;
                }
+
                if (solved[1]) {
                   retval += bvalues[1][perbComponent];
                   nCells++;
                }
+
                if (solved[2]) {
                   retval += bvalues[2][perbComponent];
                   nCells++;
                }
+
                if (solved[3]) {
                   retval += bvalues[3][perbComponent];
                   nCells++;
                }
-               if (nCells == 0) {
-                  for (int a = i - 1; a < i + 2; a++) {
-                     for (int b = j - 1; b < j + 2; b++) {
-                        for (int c = k - 1; c < k + 2; c++) {
-                           if (solve(*technicalGrid.get(a, b, c), bitfield)) {
-                              retval += bGrid.get(a, b, c)->at(perbComponent);
-                              nCells++;
-                           }
-                        }
-                     }
-                  }
-               }
-               if (nCells == 0) {
-                  cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
-                  return 0.0;
-               }
-               return retval / nCells;
+
+               return avgOverNeighbours(nCells, retval);
             }
          }
          default: {
