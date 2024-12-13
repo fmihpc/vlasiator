@@ -191,7 +191,6 @@ Real Inflow::fieldSolverBoundaryCondMagneticField(
    fsgrid::FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& bGrid,
    fsgrid::FsGrid<array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& bgbGrid,
    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k, creal dt, cuint component) {
-
    std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb = bgbGrid.getData();
    const auto stencil = technicalGrid.makeStencil(i, j, k);
 
@@ -199,7 +198,7 @@ Real Inflow::fieldSolverBoundaryCondMagneticField(
    creal dx = Parameters::dx_ini;
    creal dy = Parameters::dy_ini;
    creal dz = Parameters::dz_ini;
-   const array<fsgrid::FsSize_t, 3> globalIndices = technicalGrid.localToGlobal(i, j, k);
+   const array<fsgrid::FsSize_t, 3> globalIndices = technicalGrid.localToGlobal(stencil.i, stencil.j, stencil.k);
    const auto& gridSpacing = technicalGrid.getGridSpacing();
    creal x = (convert<Real>(globalIndices[0]) + 0.5) * gridSpacing[0] + Parameters::xmin;
    creal y = (convert<Real>(globalIndices[1]) + 0.5) * gridSpacing[1] + Parameters::ymin;
