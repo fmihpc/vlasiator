@@ -38,9 +38,8 @@ void calculateVolumeAveragedFields(std::span<const std::array<Real, fsgrids::bfi
    const auto sbflag = technical[stencil.center()].sysBoundaryFlag;
 
 #ifdef DEBUG_FSOLVER
-   const bool ok = stencil.cellExists(i, j + 1, k) && stencil.cellExists(i, j, k + 1) &&
-                   stencil.cellExists(i, j + 1, k + 1) && stencil.cellExists(i + 1, j, k) &&
-                   stencil.cellExists(i + 1, j + 1, k) && stencil.cellExists(i + 1, j, k + 1);
+   const bool ok = stencil.cellExists(0, 1, 0) && stencil.cellExists(0, 0, 1) && stencil.cellExists(0, 1, 1) &&
+                   stencil.cellExists(1, 0, 0) && stencil.cellExists(1, 1, 0) && stencil.cellExists(1, 0, 1);
 
    if (ok == false) {
       std::cerr << "Out-of-bounds access in " << __FILE__ << ":" << __LINE__ << endl;
