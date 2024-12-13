@@ -509,34 +509,33 @@ Real Copysphere::fieldSolverBoundaryCondMagneticField(
    const uint32_t bitfield = 1 << component;
 
    // clang-format off
-   const std::array solve = {
-        (technical[stencil.left()].SOLVE & bitfield) == bitfield,
-        (technical[stencil.right()].SOLVE & bitfield) == bitfield,
-        (technical[stencil.down()].SOLVE & bitfield) == bitfield,
-        (technical[stencil.up()].SOLVE & bitfield) == bitfield,
-        (technical[stencil.far()].SOLVE & bitfield) == bitfield,
-        (technical[stencil.near()].SOLVE & bitfield) == bitfield,
-   };
-
-   const std::array<const std::array<Real, fsgrids::bfield::N_BFIELD> *, 6> bvalues = {
-        &b[stencil.left()],
-        &b[stencil.right()],
-        &b[stencil.down()],
-        &b[stencil.up()],
-        &b[stencil.far()],
-        &b[stencil.near()],
-   };
-
    // 0, 1, 2, 3, 4, 5 for component 0
    // 2, 3, 4, 5, 0, 1 for component 1
    // 4, 5, 0, 1, 2, 3 for component 2
-   const std::array ind = {
+   const std::array permutation = {
        (0 + 2 * component) % 6,
        (1 + 2 * component) % 6,
        (2 + 2 * component) % 6,
        (3 + 2 * component) % 6,
        (4 + 2 * component) % 6,
        (5 + 2 * component) % 6,
+   };
+
+   std::array<size_t, 6> inds;
+   inds[permutation[0]] = stencil.left();
+   inds[permutation[1]] = stencil.right();
+   inds[permutation[2]] = stencil.down();
+   inds[permutation[3]] = stencil.up();
+   inds[permutation[4]] = stencil.far();
+   inds[permutation[5]] = stencil.near();
+
+   const std::array solve = {
+        (technical[inds[0]].SOLVE & bitfield) == bitfield,
+        (technical[inds[1]].SOLVE & bitfield) == bitfield,
+        (technical[inds[2]].SOLVE & bitfield) == bitfield,
+        (technical[inds[3]].SOLVE & bitfield) == bitfield,
+        (technical[inds[4]].SOLVE & bitfield) == bitfield,
+        (technical[inds[5]].SOLVE & bitfield) == bitfield,
    };
    // clang-format on
 
@@ -547,19 +546,19 @@ Real Copysphere::fieldSolverBoundaryCondMagneticField(
       nCells = 1;
    } else {
       if (technical[stencil.center()].sysBoundaryLayer == 1) {
-         if (solve[ind[0]] && solve[ind[1]]) {
-            sum = (*bvalues[ind[0]])[perbComponent] + (*bvalues[ind[1]])[perbComponent];
+         if (solve[0] && solve[1]) {
+            sum = b[inds[0]][perbComponent] + b[inds[1]][perbComponent];
             nCells = 2;
-         } else if (solve[ind[0]]) {
-            sum = (*bvalues[ind[0]])[perbComponent];
+         } else if (solve[0]) {
+            sum = b[inds[0]][perbComponent];
             nCells = 1;
-         } else if (solve[ind[1]]) {
-            sum = (*bvalues[ind[1]])[perbComponent];
+         } else if (solve[1]) {
+            sum = b[inds[1]][perbComponent];
             nCells = 1;
          } else {
-            for (size_t i = 2; i < bvalues.size(); i++) {
-               if (solve[ind[i]]) {
-                  sum += (*bvalues[ind[i]])[perbComponent];
+            for (size_t i = 2; i < 6; i++) {
+               if (solve[i]) {
+                  sum += b[inds[i]][perbComponent];
                   nCells++;
                }
             }
