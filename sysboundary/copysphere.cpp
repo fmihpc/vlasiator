@@ -521,6 +521,17 @@ Real Copysphere::fieldSolverBoundaryCondMagneticField(
    };
    // clang-format on
 
+   // clang-format off
+   const std::array bvalues = {
+        *bGrid.get(i - 1, j, k),
+        *bGrid.get(i + 1, j, k),
+        *bGrid.get(i, j - 1, k),
+        *bGrid.get(i, j + 1, k),
+        *bGrid.get(i, j, k - 1),
+        *bGrid.get(i, j, k + 1),
+   };
+   // clang-format on
+
    if (this->zeroPerB == true) {
       return bGrid.get(i, j, k)->at(perbComponent);
    } else {
@@ -528,28 +539,28 @@ Real Copysphere::fieldSolverBoundaryCondMagneticField(
          switch (component) {
          case 0: {
             if ((solved[0]) && (solved[1])) {
-               return 0.5 * (bGrid.get(i - 1, j, k)->at(perbComponent) + bGrid.get(i + 1, j, k)->at(perbComponent));
+               return 0.5 * (bvalues[0][perbComponent] + bvalues[1][perbComponent]);
             } else if (solved[0]) {
-               return bGrid.get(i - 1, j, k)->at(perbComponent);
+               return bvalues[0][perbComponent];
             } else if (solved[1]) {
-               return bGrid.get(i + 1, j, k)->at(perbComponent);
+               return bvalues[1][perbComponent];
             } else {
                Real retval = 0.0;
                uint nCells = 0;
                if (solved[2]) {
-                  retval += bGrid.get(i, j - 1, k)->at(perbComponent);
+                  retval += bvalues[2][perbComponent];
                   nCells++;
                }
                if (solved[3]) {
-                  retval += bGrid.get(i, j + 1, k)->at(perbComponent);
+                  retval += bvalues[3][perbComponent];
                   nCells++;
                }
                if (solved[4]) {
-                  retval += bGrid.get(i, j, k - 1)->at(perbComponent);
+                  retval += bvalues[4][perbComponent];
                   nCells++;
                }
                if (solved[5]) {
-                  retval += bGrid.get(i, j, k + 1)->at(perbComponent);
+                  retval += bvalues[5][perbComponent];
                   nCells++;
                }
                if (nCells == 0) {
@@ -573,28 +584,28 @@ Real Copysphere::fieldSolverBoundaryCondMagneticField(
          }
          case 1: {
             if (solved[2] && solved[3]) {
-               return 0.5 * (bGrid.get(i, j - 1, k)->at(perbComponent) + bGrid.get(i, j + 1, k)->at(perbComponent));
+               return 0.5 * (bvalues[2][perbComponent] + bvalues[3][perbComponent]);
             } else if (solved[2]) {
-               return bGrid.get(i, j - 1, k)->at(perbComponent);
+               return bvalues[2][perbComponent];
             } else if (solved[3]) {
-               return bGrid.get(i, j + 1, k)->at(perbComponent);
+               return bvalues[3][perbComponent];
             } else {
                Real retval = 0.0;
                uint nCells = 0;
                if (solved[0]) {
-                  retval += bGrid.get(i - 1, j, k)->at(perbComponent);
+                  retval += bvalues[0][perbComponent];
                   nCells++;
                }
                if (solved[1]) {
-                  retval += bGrid.get(i + 1, j, k)->at(perbComponent);
+                  retval += bvalues[1][perbComponent];
                   nCells++;
                }
                if (solved[4]) {
-                  retval += bGrid.get(i, j, k - 1)->at(perbComponent);
+                  retval += bvalues[4][perbComponent];
                   nCells++;
                }
                if (solved[5]) {
-                  retval += bGrid.get(i, j, k + 1)->at(perbComponent);
+                  retval += bvalues[5][perbComponent];
                   nCells++;
                }
                if (nCells == 0) {
@@ -618,28 +629,28 @@ Real Copysphere::fieldSolverBoundaryCondMagneticField(
          }
          case 2: {
             if (solved[4] && solved[5]) {
-               return 0.5 * (bGrid.get(i, j, k - 1)->at(perbComponent) + bGrid.get(i, j, k + 1)->at(perbComponent));
+               return 0.5 * (bvalues[4][perbComponent] + bvalues[5][perbComponent]);
             } else if (solved[4]) {
-               return bGrid.get(i, j, k - 1)->at(perbComponent);
+               return bvalues[4][perbComponent];
             } else if (solved[5]) {
-               return bGrid.get(i, j, k + 1)->at(perbComponent);
+               return bvalues[5][perbComponent];
             } else {
                Real retval = 0.0;
                uint nCells = 0;
                if (solved[0]) {
-                  retval += bGrid.get(i - 1, j, k)->at(perbComponent);
+                  retval += bvalues[0][perbComponent];
                   nCells++;
                }
                if (solved[1]) {
-                  retval += bGrid.get(i + 1, j, k)->at(perbComponent);
+                  retval += bvalues[1][perbComponent];
                   nCells++;
                }
                if (solved[2]) {
-                  retval += bGrid.get(i, j - 1, k)->at(perbComponent);
+                  retval += bvalues[2][perbComponent];
                   nCells++;
                }
                if (solved[3]) {
-                  retval += bGrid.get(i, j + 1, k)->at(perbComponent);
+                  retval += bvalues[3][perbComponent];
                   nCells++;
                }
                if (nCells == 0) {
