@@ -53,8 +53,7 @@ void calculateDerivatives(
     fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
     fsgrid::FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
     fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
-    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, SysBoundary& sysBoundaries,
-    const bool calculateMoments) {
+    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, const bool calculateMoments) {
    std::array<Real, fsgrids::dperb::N_DPERB>* dPerB = dPerBGrid.get(i, j, k);
    std::array<Real, fsgrids::dmoments::N_DMOMENTS>* dMoments = dMomentsGrid.get(i, j, k);
 
@@ -381,9 +380,8 @@ void calculateDerivatives(
       dPerB->at(fsgrids::dperb::dPERBxdyz) = 0.0;
       dPerB->at(fsgrids::dperb::dPERBydxz) = 0.0;
       dPerB->at(fsgrids::dperb::dPERBzdxy) = 0.0;
-   } else {
+   } else if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
       // Calculate xy mixed derivatives:
-      if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
          botLeft = perBGrid.get(i - 1, j - 1, k);
          botRght = perBGrid.get(i + 1, j - 1, k);
          topLeft = perBGrid.get(i - 1, j + 1, k);
@@ -391,12 +389,8 @@ void calculateDerivatives(
          dPerB->at(fsgrids::dperb::dPERBzdxy) =
              FOURTH * (botLeft->at(fsgrids::bfield::PERBZ) + topRght->at(fsgrids::bfield::PERBZ) -
                        botRght->at(fsgrids::bfield::PERBZ) - topLeft->at(fsgrids::bfield::PERBZ));
-      } else {
-         SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 3);
-      }
 
       // Calculate xz mixed derivatives:
-      if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
          botLeft = perBGrid.get(i - 1, j, k - 1);
          botRght = perBGrid.get(i + 1, j, k - 1);
          topLeft = perBGrid.get(i - 1, j, k + 1);
@@ -404,12 +398,8 @@ void calculateDerivatives(
          dPerB->at(fsgrids::dperb::dPERBydxz) =
              FOURTH * (botLeft->at(fsgrids::bfield::PERBY) + topRght->at(fsgrids::bfield::PERBY) -
                        botRght->at(fsgrids::bfield::PERBY) - topLeft->at(fsgrids::bfield::PERBY));
-      } else {
-         SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 4);
-      }
 
       // Calculate yz mixed derivatives:
-      if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
          botLeft = perBGrid.get(i, j - 1, k - 1);
          botRght = perBGrid.get(i, j + 1, k - 1);
          topLeft = perBGrid.get(i, j - 1, k + 1);
@@ -417,9 +407,11 @@ void calculateDerivatives(
          dPerB->at(fsgrids::dperb::dPERBxdyz) =
              FOURTH * (botLeft->at(fsgrids::bfield::PERBX) + topRght->at(fsgrids::bfield::PERBX) -
                        botRght->at(fsgrids::bfield::PERBX) - topLeft->at(fsgrids::bfield::PERBX));
-      } else {
-         SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 5);
-      }
+
+   } else {
+      SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 3);
+      SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 4);
+      SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 5);
    }
 }
 
@@ -453,8 +445,7 @@ void calculateDerivativesSimple(
     fsgrid::FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
     fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
     fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsDt2Grid,
-    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, SysBoundary& sysBoundaries, cint& RKCase,
-    const bool doMoments) {
+    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, int32_t RKCase, const bool doMoments) {
    const auto& localSize = technicalGrid.getLocalSize();
    const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
    phiprof::Timer derivativesTimer{"Calculate face derivatives"};
@@ -499,10 +490,10 @@ void calculateDerivativesSimple(
             for (auto i = 0; i < localSize[0]; i++) {
                if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
                   calculateDerivatives(i, j, k, perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, technicalGrid,
-                                       sysBoundaries, doMoments);
+                                       doMoments);
                } else {
                   calculateDerivatives(i, j, k, perBDt2Grid, momentsDt2Grid, dPerBGrid, dMomentsDt2Grid, technicalGrid,
-                                       sysBoundaries, doMoments);
+                                       doMoments);
                }
             }
          }
@@ -531,7 +522,7 @@ void calculateDerivativesSimple(
 
 void calculateBVOLDerivatives(fsgrid::FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid,
                               fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j,
-                              cint k, SysBoundary& sysBoundaries) {
+                              cint k) {
    std::array<Real, fsgrids::volfields::N_VOL>* array = volGrid.get(i, j, k);
 
    std::array<Real, fsgrids::volfields::N_VOL>* left = NULL;
@@ -644,7 +635,7 @@ void calculateBVOLDerivatives(fsgrid::FsGrid<std::array<Real, fsgrids::volfields
  */
 void calculateBVOLDerivativesSimple(
     fsgrid::FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid,
-    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, SysBoundary& sysBoundaries) {
+    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
    const auto& localSize = technicalGrid.getLocalSize();
    const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
    phiprof::Timer derivsTimer{"Calculate volume derivatives"};
@@ -662,7 +653,7 @@ void calculateBVOLDerivativesSimple(
       for (auto k = 0; k < localSize[2]; k++) {
          for (auto j = 0; j < localSize[1]; j++) {
             for (auto i = 0; i < localSize[0]; i++) {
-               calculateBVOLDerivatives(volGrid, technicalGrid, i, j, k, sysBoundaries);
+               calculateBVOLDerivatives(volGrid, technicalGrid, i, j, k);
             }
          }
       }
@@ -688,8 +679,7 @@ void calculateBVOLDerivativesSimple(
 
 void calculateCurvature(fsgrid::FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid,
                         fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& bgbGrid,
-                        fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k,
-                        SysBoundary& sysBoundaries) {
+                        fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k) {
    if (technicalGrid.get(i, j, k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY &&
        technicalGrid.get(i, j, k)->sysBoundaryLayer != 1 && technicalGrid.get(i, j, k)->sysBoundaryLayer != 2) {
       std::array<Real, fsgrids::volfields::N_VOL>* vol = volGrid.get(i, j, k);
@@ -787,8 +777,7 @@ void calculateCurvature(fsgrid::FsGrid<std::array<Real, fsgrids::volfields::N_VO
  */
 void calculateCurvatureSimple(fsgrid::FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid,
                               fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& bgbGrid,
-                              fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-                              SysBoundary& sysBoundaries) {
+                              fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
    const auto& localSize = technicalGrid.getLocalSize();
    const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
    phiprof::Timer curvatureTimer{"Calculate curvature"};
@@ -809,7 +798,7 @@ void calculateCurvatureSimple(fsgrid::FsGrid<std::array<Real, fsgrids::volfields
                    technicalGrid.get(i, j, k)->sysBoundaryFlag == sysboundarytype::OUTER_BOUNDARY_PADDING) {
                   continue;
                }
-               calculateCurvature(volGrid, bgbGrid, technicalGrid, i, j, k, sysBoundaries);
+               calculateCurvature(volGrid, bgbGrid, technicalGrid, i, j, k);
             }
          }
       }

@@ -612,7 +612,6 @@ int simulate(int argn,char* args[]) {
          dMomentsGrid,
          dMomentsDt2Grid,
          technicalGrid,
-         sysBoundaryContainer,
          RK_ORDER1, // Update and compute on non-dt2 grids.
          false // Don't communicate moments, they are not needed here.
       );
