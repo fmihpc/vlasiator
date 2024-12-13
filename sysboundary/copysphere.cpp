@@ -521,14 +521,13 @@ Real Copysphere::fieldSolverBoundaryCondMagneticField(
    };
 
    const std::array bvalues = {
-        *bGrid.get(i - 1, j, k),
-        *bGrid.get(i + 1, j, k),
-        *bGrid.get(i, j - 1, k),
-        *bGrid.get(i, j + 1, k),
-        *bGrid.get(i, j, k - 1),
-        *bGrid.get(i, j, k + 1),
+        bGrid.get(i - 1, j, k),
+        bGrid.get(i + 1, j, k),
+        bGrid.get(i, j - 1, k),
+        bGrid.get(i, j + 1, k),
+        bGrid.get(i, j, k - 1),
+        bGrid.get(i, j, k + 1),
    };
-
    // 0, 1, 2, 3, 4, 5 for component 0
    // 2, 3, 4, 5, 0, 1 for component 1
    // 4, 5, 0, 1, 2, 3 for component 2
@@ -569,115 +568,24 @@ Real Copysphere::fieldSolverBoundaryCondMagneticField(
       return bGrid.get(i, j, k)->at(perbComponent);
    } else {
       if (technicalGrid.get(i, j, k)->sysBoundaryLayer == 1) {
+         if (solved[ind[0]] && solved[ind[1]]) {
+            return 0.5 * ((*bvalues[ind[0]])[perbComponent] + (*bvalues[ind[1]])[perbComponent]);
+         } else if (solved[ind[0]]) {
+            return (*bvalues[ind[0]])[perbComponent];
+         } else if (solved[ind[1]]) {
+            return (*bvalues[ind[1]])[perbComponent];
+         } else {
+            Real retval = 0.0;
+            uint nCells = 0;
 
-         switch (component) {
-         case 0: {
-            if ((solved[0]) && (solved[1])) {
-               return 0.5 * (bvalues[0][perbComponent] + bvalues[1][perbComponent]);
-            } else if (solved[0]) {
-               return bvalues[0][perbComponent];
-            } else if (solved[1]) {
-               return bvalues[1][perbComponent];
-            } else {
-               Real retval = 0.0;
-               uint nCells = 0;
-
-               if (solved[2]) {
-                  retval += bvalues[2][perbComponent];
+            for (size_t i = 2; i < bvalues.size(); i++) {
+               if (solved[ind[i]]) {
+                  retval += (*bvalues[ind[i]])[perbComponent];
                   nCells++;
                }
-
-               if (solved[3]) {
-                  retval += bvalues[3][perbComponent];
-                  nCells++;
-               }
-
-               if (solved[4]) {
-                  retval += bvalues[4][perbComponent];
-                  nCells++;
-               }
-
-               if (solved[5]) {
-                  retval += bvalues[5][perbComponent];
-                  nCells++;
-               }
-
-               return avgOverNeighbours(nCells, retval);
             }
-         }
-         case 1: {
-            if (solved[2] && solved[3]) {
-               return 0.5 * (bvalues[2][perbComponent] + bvalues[3][perbComponent]);
-            } else if (solved[2]) {
-               return bvalues[2][perbComponent];
-            } else if (solved[3]) {
-               return bvalues[3][perbComponent];
-            } else {
-               Real retval = 0.0;
-               uint nCells = 0;
 
-               if (solved[4]) {
-                  retval += bvalues[4][perbComponent];
-                  nCells++;
-               }
-
-               if (solved[5]) {
-                  retval += bvalues[5][perbComponent];
-                  nCells++;
-               }
-
-               if (solved[0]) {
-                  retval += bvalues[0][perbComponent];
-                  nCells++;
-               }
-
-               if (solved[1]) {
-                  retval += bvalues[1][perbComponent];
-                  nCells++;
-               }
-
-               return avgOverNeighbours(nCells, retval);
-            }
-         }
-         case 2: {
-            if (solved[4] && solved[5]) {
-               return 0.5 * (bvalues[4][perbComponent] + bvalues[5][perbComponent]);
-            } else if (solved[4]) {
-               return bvalues[4][perbComponent];
-            } else if (solved[5]) {
-               return bvalues[5][perbComponent];
-            } else {
-               Real retval = 0.0;
-               uint nCells = 0;
-
-               if (solved[0]) {
-                  retval += bvalues[0][perbComponent];
-                  nCells++;
-               }
-
-               if (solved[1]) {
-                  retval += bvalues[1][perbComponent];
-                  nCells++;
-               }
-
-               if (solved[2]) {
-                  retval += bvalues[2][perbComponent];
-                  nCells++;
-               }
-
-               if (solved[3]) {
-                  retval += bvalues[3][perbComponent];
-                  nCells++;
-               }
-
-               return avgOverNeighbours(nCells, retval);
-            }
-         }
-         default: {
-            cerr << "ERROR: copysphere boundary tried to copy nonsensical magnetic field component " << component
-                 << endl;
-            return 0.0;
-         }
+            return avgOverNeighbours(nCells, retval);
          }
       } else { // L2 cells
          Real retval = 0.0;
