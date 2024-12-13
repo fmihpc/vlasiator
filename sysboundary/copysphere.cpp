@@ -502,8 +502,8 @@ Real Copysphere::fieldSolverBoundaryCondMagneticField(
     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k, creal dt,
     cuint component) {
    const auto stencil = technicalGrid.makeStencil(i, j, k);
-   std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> b;
-   std::span<const fsgrids::technical> technical;
+   std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> b = bGrid.getData();
+   std::span<const fsgrids::technical> technical = technicalGrid.getData();
 
    const uint32_t perbComponent = fsgrids::bfield::PERBX + component;
    const uint32_t bitfield = 1 << component;
@@ -521,23 +521,38 @@ Real Copysphere::fieldSolverBoundaryCondMagneticField(
        (5 + 2 * component) % 6,
    };
 
-   std::array<size_t, 6> inds;
-   inds[permutation[0]] = stencil.left();
-   inds[permutation[1]] = stencil.right();
-   inds[permutation[2]] = stencil.down();
-   inds[permutation[3]] = stencil.up();
-   inds[permutation[4]] = stencil.far();
-   inds[permutation[5]] = stencil.near();
-
-   const std::array solve = {
-        (technical[inds[0]].SOLVE & bitfield) == bitfield,
-        (technical[inds[1]].SOLVE & bitfield) == bitfield,
-        (technical[inds[2]].SOLVE & bitfield) == bitfield,
-        (technical[inds[3]].SOLVE & bitfield) == bitfield,
-        (technical[inds[4]].SOLVE & bitfield) == bitfield,
-        (technical[inds[5]].SOLVE & bitfield) == bitfield,
+   const std::array<size_t, 6> inds = {
+       stencil.left(),
+       stencil.right(),
+       stencil.down(),
+       stencil.up(),
+       stencil.far(),
+       stencil.near(),
    };
    // clang-format on
+
+   auto bitFieldSet = [&bitfield](auto& tech) { return (tech.SOLVE & bitfield) == bitfield; };
+   auto sbLayerIsOne = [](auto& tech) { return tech.sysBoundaryLayer == 1; };
+   auto averageNeigbours = [&technical, &b, &inds, &permutation, &perbComponent,
+                            &bitFieldSet](auto begin, auto end, auto& sum, auto& nCells) {
+      for (size_t i = begin; i < end; i++) {
+         const auto j = inds[permutation[i]];
+         if (bitFieldSet(technical[j])) {
+            sum += b[j][perbComponent];
+            nCells++;
+         }
+      }
+   };
+
+   auto averageAllNeighbours = [&stencil, &technical, &b, &perbComponent](auto predicateLambda, auto& sum,
+                                                                          auto& nCells) {
+      for (const auto& i : stencil.indices()) {
+         if (predicateLambda(technical[i])) {
+            sum += b[i][perbComponent];
+            nCells++;
+         }
+      }
+   };
 
    Real sum = 0.0;
    uint nCells = 0;
@@ -545,40 +560,19 @@ Real Copysphere::fieldSolverBoundaryCondMagneticField(
       sum = b[stencil.center()][perbComponent];
       nCells = 1;
    } else {
-      if (technical[stencil.center()].sysBoundaryLayer == 1) {
-         if (solve[0] && solve[1]) {
-            sum = b[inds[0]][perbComponent] + b[inds[1]][perbComponent];
-            nCells = 2;
-         } else if (solve[0]) {
-            sum = b[inds[0]][perbComponent];
-            nCells = 1;
-         } else if (solve[1]) {
-            sum = b[inds[1]][perbComponent];
-            nCells = 1;
-         } else {
-            for (size_t i = 2; i < 6; i++) {
-               if (solve[i]) {
-                  sum += b[inds[i]][perbComponent];
-                  nCells++;
-               }
-            }
+      if (sbLayerIsOne(technical[stencil.center()])) {
+         averageNeigbours(0ul, 2ul, sum, nCells);
 
-            if (nCells == 0) {
-               for (const auto& i : stencil.indices()) {
-                  if ((technical[i].SOLVE & bitfield) == bitfield) {
-                     sum += b[i][perbComponent];
-                     nCells++;
-                  }
-               }
-            }
+         if (nCells == 0) {
+            averageNeigbours(2ul, 6ul, sum, nCells);
          }
-      } else { // L2 cells
-         for (const auto& i : stencil.indices()) {
-            if (technical[i].sysBoundaryLayer == 1) {
-               sum += b[i][perbComponent];
-               nCells++;
-            }
+
+         if (nCells == 0) {
+            averageAllNeighbours(bitFieldSet, sum, nCells);
          }
+      } else {
+         // L2 cells
+         averageAllNeighbours(sbLayerIsOne, sum, nCells);
       }
    }
 
