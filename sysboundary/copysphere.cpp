@@ -540,23 +540,26 @@ Real Copysphere::fieldSolverBoundaryCondMagneticField(
    };
    // clang-format on
 
+   Real sum = 0.0;
+   uint nCells = 0;
    if (this->zeroPerB == true) {
-      return b[stencil.center()][perbComponent];
+      sum = b[stencil.center()][perbComponent];
+      nCells = 1;
    } else {
       if (technical[stencil.center()].sysBoundaryLayer == 1) {
          if (solve[ind[0]] && solve[ind[1]]) {
-            return 0.5 * ((*bvalues[ind[0]])[perbComponent] + (*bvalues[ind[1]])[perbComponent]);
+            sum = (*bvalues[ind[0]])[perbComponent] + (*bvalues[ind[1]])[perbComponent];
+            nCells = 2;
          } else if (solve[ind[0]]) {
-            return (*bvalues[ind[0]])[perbComponent];
+            sum = (*bvalues[ind[0]])[perbComponent];
+            nCells = 1;
          } else if (solve[ind[1]]) {
-            return (*bvalues[ind[1]])[perbComponent];
+            sum = (*bvalues[ind[1]])[perbComponent];
+            nCells = 1;
          } else {
-            Real retval = 0.0;
-            uint nCells = 0;
-
             for (size_t i = 2; i < bvalues.size(); i++) {
                if (solve[ind[i]]) {
-                  retval += (*bvalues[ind[i]])[perbComponent];
+                  sum += (*bvalues[ind[i]])[perbComponent];
                   nCells++;
                }
             }
@@ -564,37 +567,29 @@ Real Copysphere::fieldSolverBoundaryCondMagneticField(
             if (nCells == 0) {
                for (const auto& i : stencil.indices()) {
                   if ((technical[i].SOLVE & bitfield) == bitfield) {
-                     retval += b[i][perbComponent];
+                     sum += b[i][perbComponent];
                      nCells++;
                   }
                }
             }
-
-            if (nCells == 0) {
-               cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
-               return 0.0;
-            }
-
-            return retval / nCells;
          }
       } else { // L2 cells
-         Real retval = 0.0;
-         uint nCells = 0;
          for (const auto& i : stencil.indices()) {
             if (technical[i].sysBoundaryLayer == 1) {
-               retval += b[i][perbComponent];
+               sum += b[i][perbComponent];
                nCells++;
             }
          }
-
-         if (nCells == 0) {
-            cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
-            return 0.0;
-         }
-
-         return retval / nCells;
       }
    }
+
+   if (nCells == 0) {
+      cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
+      sum = 0.0;
+      nCells = 1;
+   }
+
+   return sum / nCells;
 }
 
 void Copysphere::fieldSolverBoundaryCondElectricField(std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
