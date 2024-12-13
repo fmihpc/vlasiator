@@ -655,20 +655,10 @@ namespace SBC {
       }
       return flowtoCellsBlock;
    }
-   
-   Real SysBoundaryCondition::fieldBoundaryCopyFromSolvingNbrMagneticField(
-      fsgrid::FsGrid< array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
-      fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint component,
-      cuint mask
-   ) {
-      const fsgrid::FsStencil stencil = technicalGrid.makeStencil(i, j, k);
-      std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> b = bGrid.getData();
-      std::span<const fsgrids::technical> technical = technicalGrid.getData();
 
+   Real SysBoundaryCondition::fieldBoundaryCopyFromSolvingNbrMagneticField(
+       std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> b, std::span<const fsgrids::technical> technical,
+       const fsgrid::FsStencil& stencil, cuint component, cuint mask) {
       int distance = numeric_limits<int>::max();
       auto closestCellIndex = 0;
 
@@ -697,7 +687,7 @@ namespace SBC {
 
       return b[closestCellIndex][fsgrids::bfield::PERBX + component];
    }
-   
+
    /*! Function used in some cases to know which faces the system boundary condition is being applied to.
     * \param faces Pointer to array of 6 bool in which the values are returned whether the corresponding face is of that type. Order: 0 x+; 1 x-; 2 y+; 3 y-; 4 z+; 5 z-
     */

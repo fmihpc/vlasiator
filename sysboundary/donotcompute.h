@@ -68,16 +68,15 @@ namespace SBC {
       uint getIndex() const;
 
       // Explicit warning functions to inform the user if a doNotCompute cell gets computed
-      Real fieldSolverBoundaryCondMagneticField(
-         fsgrid::FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-         fsgrid::FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & bgbGrid,
-         fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-         cint i,
-         cint j,
-         cint k,
-         creal dt,
-         cuint component
-      ) { std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondMagneticField called!" << std::endl; return 0.;}
+      Real fieldSolverBoundaryCondMagneticField(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> b,
+                                                std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                                                std::span<const fsgrids::technical> technical,
+                                                const std::array<Real, 3>& gridSpacing,
+                                                const std::array<fsgrid::FsSize_t, 3>& globalCoordinates,
+                                                const fsgrid::FsStencil& stencil, cuint component) {
+         std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondMagneticField called!" << std::endl;
+         return 0.;
+      }
       void fieldSolverBoundaryCondElectricField(std::span<std::array<Real, fsgrids::efield::N_EFIELD>>,
                                                 const fsgrid::FsStencil&, cuint) {
          std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondElectricField called!" << std::endl;

@@ -496,15 +496,12 @@ Copysphere::fieldSolverGetNormalDirection(fsgrid::FsGrid<fsgrids::technical, FS_
  *
  * -- Retain only the normal components of perturbed face B
  */
-Real Copysphere::fieldSolverBoundaryCondMagneticField(
-    fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& bGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& bgbGrid,
-    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k, creal dt,
-    cuint component) {
-   const auto stencil = technicalGrid.makeStencil(i, j, k);
-   std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> b = bGrid.getData();
-   std::span<const fsgrids::technical> technical = technicalGrid.getData();
-
+Real Copysphere::fieldSolverBoundaryCondMagneticField(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> b,
+                                                      std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                                                      std::span<const fsgrids::technical> technical,
+                                                      const std::array<Real, 3>& gridSpacing,
+                                                      const std::array<fsgrid::FsSize_t, 3>& globalCoordinates,
+                                                      const fsgrid::FsStencil& stencil, cuint component) {
    const uint32_t perbComponent = fsgrids::bfield::PERBX + component;
    const uint32_t bitfield = 1 << component;
 

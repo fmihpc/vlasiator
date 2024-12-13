@@ -187,22 +187,19 @@ void Inflow::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& m
    ghostTimer.stop();
 }
 
-Real Inflow::fieldSolverBoundaryCondMagneticField(
-   fsgrid::FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& bGrid,
-   fsgrid::FsGrid<array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& bgbGrid,
-   fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k, creal dt, cuint component) {
-   std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb = bgbGrid.getData();
-   const auto stencil = technicalGrid.makeStencil(i, j, k);
-
+Real Inflow::fieldSolverBoundaryCondMagneticField(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> b,
+                                                  std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                                                  std::span<const fsgrids::technical> technical,
+                                                  const std::array<Real, 3>& gridSpacing,
+                                                  const std::array<fsgrid::FsSize_t, 3>& globalCoordinates,
+                                                  const fsgrid::FsStencil& stencil, cuint component) {
    Real result = 0.0;
    creal dx = Parameters::dx_ini;
    creal dy = Parameters::dy_ini;
    creal dz = Parameters::dz_ini;
-   const array<fsgrid::FsSize_t, 3> globalIndices = technicalGrid.localToGlobal(stencil.i, stencil.j, stencil.k);
-   const auto& gridSpacing = technicalGrid.getGridSpacing();
-   creal x = (convert<Real>(globalIndices[0]) + 0.5) * gridSpacing[0] + Parameters::xmin;
-   creal y = (convert<Real>(globalIndices[1]) + 0.5) * gridSpacing[1] + Parameters::ymin;
-   creal z = (convert<Real>(globalIndices[2]) + 0.5) * gridSpacing[2] + Parameters::zmin;
+   creal x = (convert<Real>(globalCoordinates[0]) + 0.5) * gridSpacing[0] + Parameters::xmin;
+   creal y = (convert<Real>(globalCoordinates[1]) + 0.5) * gridSpacing[1] + Parameters::ymin;
+   creal z = (convert<Real>(globalCoordinates[2]) + 0.5) * gridSpacing[2] + Parameters::zmin;
 
    bool isThisCellOnAFace[6];
    determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, true);

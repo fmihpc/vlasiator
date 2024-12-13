@@ -119,21 +119,22 @@ void propagateMagneticField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD
  *
  * \sa propagateMagneticFieldSimple propagateMagneticField
  */
-void propagateSysBoundaryMagneticField(
-    fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBDt2Grid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& bgbGrid,
-    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, int32_t i, int32_t j, int32_t k,
-    SysBoundary& sysBoundaries, Real dt, int32_t RKCase, uint32_t component) {
-   if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBX + component) =
-          sysBoundaries.getSysBoundary(technicalGrid.get(i, j, k)->sysBoundaryFlag)
-              ->fieldSolverBoundaryCondMagneticField(perBGrid, bgbGrid, technicalGrid, i, j, k, dt, component);
-   } else {
-      perBDt2Grid.get(i, j, k)->at(fsgrids::bfield::PERBX + component) =
-          sysBoundaries.getSysBoundary(technicalGrid.get(i, j, k)->sysBoundaryFlag)
-              ->fieldSolverBoundaryCondMagneticField(perBDt2Grid, bgbGrid, technicalGrid, i, j, k, dt, component);
-   }
+void propagateSysBoundaryMagneticField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                       std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perbdt2,
+                                       std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                                       std::span<const fsgrids::technical> technical,
+                                       const std::array<Real, 3>& gridSpacing,
+                                       const std::array<fsgrid::FsSize_t, 3>& globalCoordinates,
+                                       const fsgrid::FsStencil& stencil, SysBoundary& sysBoundaries, int32_t RKCase,
+                                       uint32_t component) {
+   const bool case0 = RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2;
+   auto& out = case0 ? perb[stencil.center()] : perbdt2[stencil.center()];
+   const auto& pb = case0 ? perb : perbdt2;
+
+   out[fsgrids::bfield::PERBX + component] =
+       sysBoundaries.getSysBoundary(technical[stencil.center()].sysBoundaryFlag)
+           ->fieldSolverBoundaryCondMagneticField(pb, bgb, technical, gridSpacing, globalCoordinates, stencil,
+                                                  component);
 }
 
 /*! \brief High-level magnetic field propagation function.
@@ -213,21 +214,22 @@ void propagateMagneticFieldSimple(
          for (auto j = 0; j < localSize[1]; j++) {
             for (auto i = 0; i < localSize[0]; i++) {
                const fsgrid::FsStencil stencil = technicalGrid.makeStencil(i, j, k);
+               const auto globalCoordinates = technicalGrid.localToGlobal(stencil.i, stencil.j, stencil.k);
                const auto tech = technical[stencil.center()];
                cuint bitfield = tech.SOLVE;
                // L1 pass
                if (tech.sysBoundaryLayer == 1) {
                   if ((bitfield & compute::BX) != compute::BX) {
-                     propagateSysBoundaryMagneticField(perBGrid, perBDt2Grid, bgbGrid, technicalGrid, i, j, k,
-                                                       sysBoundaries, dt, RKCase, 0);
+                     propagateSysBoundaryMagneticField(perb, perbdt2, bgb, technical, gridSpacing, globalCoordinates,
+                                                       stencil, sysBoundaries, RKCase, 0);
                   }
                   if ((bitfield & compute::BY) != compute::BY) {
-                     propagateSysBoundaryMagneticField(perBGrid, perBDt2Grid, bgbGrid, technicalGrid, i, j, k,
-                                                       sysBoundaries, dt, RKCase, 1);
+                     propagateSysBoundaryMagneticField(perb, perbdt2, bgb, technical, gridSpacing, globalCoordinates,
+                                                       stencil, sysBoundaries, RKCase, 1);
                   }
                   if ((bitfield & compute::BZ) != compute::BZ) {
-                     propagateSysBoundaryMagneticField(perBGrid, perBDt2Grid, bgbGrid, technicalGrid, i, j, k,
-                                                       sysBoundaries, dt, RKCase, 2);
+                     propagateSysBoundaryMagneticField(perb, perbdt2, bgb, technical, gridSpacing, globalCoordinates,
+                                                       stencil, sysBoundaries, RKCase, 2);
                   }
                }
             }
@@ -254,11 +256,12 @@ void propagateMagneticFieldSimple(
          for (auto j = 0; j < localSize[1]; j++) {
             for (auto i = 0; i < localSize[0]; i++) {
                const fsgrid::FsStencil stencil = technicalGrid.makeStencil(i, j, k);
+               const auto globalCoordinates = technicalGrid.localToGlobal(stencil.i, stencil.j, stencil.k);
                const auto tech = technical[stencil.center()];
                if (tech.sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY && tech.sysBoundaryLayer == 2) {
                   for (uint component = 0; component < 3; component++) {
-                     propagateSysBoundaryMagneticField(perBGrid, perBDt2Grid, bgbGrid, technicalGrid, i, j, k,
-                                                       sysBoundaries, dt, RKCase, component);
+                     propagateSysBoundaryMagneticField(perb, perbdt2, bgb, technical, gridSpacing, globalCoordinates,
+                                                       stencil, sysBoundaries, RKCase, component);
                   }
                }
             }
