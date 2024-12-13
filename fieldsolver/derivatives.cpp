@@ -455,9 +455,8 @@ void calculateDerivativesSimple(
     fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsDt2Grid,
     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, SysBoundary& sysBoundaries, cint& RKCase,
     const bool doMoments) {
-   // const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
-   const fsgrid::FsIndex_t* gridDims = &technicalGrid.getLocalSize()[0];
-   const size_t N_cells = gridDims[0] * gridDims[1] * gridDims[2];
+   const auto& localSize = technicalGrid.getLocalSize();
+   const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
    phiprof::Timer derivativesTimer{"Calculate face derivatives"};
    int computeTimerId{phiprof::initializeTimer("FS derivatives compute cells")};
 
@@ -502,9 +501,9 @@ void calculateDerivativesSimple(
    {
       phiprof::Timer computeTimer{computeTimerId};
 #pragma omp for collapse(2)
-      for (fsgrid::FsIndex_t k = 0; k < gridDims[2]; k++) {
-         for (fsgrid::FsIndex_t j = 0; j < gridDims[1]; j++) {
-            for (fsgrid::FsIndex_t i = 0; i < gridDims[0]; i++) {
+      for (auto k = 0; k < localSize[2]; k++) {
+         for (auto j = 0; j < localSize[1]; j++) {
+            for (auto i = 0; i < localSize[0]; i++) {
                if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
                   calculateDerivatives(i, j, k, perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, technicalGrid,
                                        sysBoundaries, doMoments);
@@ -653,9 +652,8 @@ void calculateBVOLDerivatives(fsgrid::FsGrid<std::array<Real, fsgrids::volfields
 void calculateBVOLDerivativesSimple(
     fsgrid::FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid,
     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, SysBoundary& sysBoundaries) {
-   // const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
-   const fsgrid::FsIndex_t* gridDims = &technicalGrid.getLocalSize()[0];
-   const size_t N_cells = gridDims[0] * gridDims[1] * gridDims[2];
+   const auto& localSize = technicalGrid.getLocalSize();
+   const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
    phiprof::Timer derivsTimer{"Calculate volume derivatives"};
    int computeTimerId{phiprof::initializeTimer("FS derivatives BVOL compute cells")};
 
@@ -668,9 +666,9 @@ void calculateBVOLDerivativesSimple(
    {
       phiprof::Timer computeTimer{computeTimerId};
 #pragma omp for collapse(2)
-      for (fsgrid::FsIndex_t k = 0; k < gridDims[2]; k++) {
-         for (fsgrid::FsIndex_t j = 0; j < gridDims[1]; j++) {
-            for (fsgrid::FsIndex_t i = 0; i < gridDims[0]; i++) {
+      for (auto k = 0; k < localSize[2]; k++) {
+         for (auto j = 0; j < localSize[1]; j++) {
+            for (auto i = 0; i < localSize[0]; i++) {
                calculateBVOLDerivatives(volGrid, technicalGrid, i, j, k, sysBoundaries);
             }
          }
@@ -798,9 +796,8 @@ void calculateCurvatureSimple(fsgrid::FsGrid<std::array<Real, fsgrids::volfields
                               fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& bgbGrid,
                               fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
                               SysBoundary& sysBoundaries) {
-   // const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
-   const fsgrid::FsIndex_t* gridDims = &technicalGrid.getLocalSize()[0];
-   const size_t N_cells = gridDims[0] * gridDims[1] * gridDims[2];
+   const auto& localSize = technicalGrid.getLocalSize();
+   const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
    phiprof::Timer curvatureTimer{"Calculate curvature"};
    int computeTimerId{phiprof::initializeTimer("Calculate curvature compute cells")};
 
@@ -812,9 +809,9 @@ void calculateCurvatureSimple(fsgrid::FsGrid<std::array<Real, fsgrids::volfields
    {
       phiprof::Timer computeTimer{computeTimerId};
 #pragma omp for collapse(2)
-      for (fsgrid::FsIndex_t k = 0; k < gridDims[2]; k++) {
-         for (fsgrid::FsIndex_t j = 0; j < gridDims[1]; j++) {
-            for (fsgrid::FsIndex_t i = 0; i < gridDims[0]; i++) {
+      for (auto k = 0; k < localSize[2]; k++) {
+         for (auto j = 0; j < localSize[1]; j++) {
+            for (auto i = 0; i < localSize[0]; i++) {
                if (technicalGrid.get(i, j, k)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
                    technicalGrid.get(i, j, k)->sysBoundaryFlag == sysboundarytype::OUTER_BOUNDARY_PADDING) {
                   continue;
