@@ -666,45 +666,36 @@ namespace SBC {
    ) {
 
       int distance = numeric_limits<int>::max();
-      vector< array<int,3> > closestCells;
+      array<int, 3> closestCell = {};
 
-      for (int kk=-2; kk<3; kk++) {
-         for (int jj=-2; jj<3; jj++) {
-            for (int ii=-2; ii<3 ; ii++) {
-               if( technicalGrid.get(i+ii,j+jj,k+kk) // skip invalid cells returning NULL
-                   && (technicalGrid.get(i+ii,j+jj,k+kk)->SOLVE & mask) == mask // Did that guy solve this component?
-                   && technicalGrid.get(i+ii,j+jj,k+kk)->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE // Do not copy from there
-                   && technicalGrid.get(i+ii,j+jj,k+kk)->sysBoundaryFlag != sysboundarytype::OUTER_BOUNDARY_PADDING // Do not copy from there either
+      for (auto kk = -2; kk < 3; kk++) {
+         for (auto jj = -2; jj < 3; jj++) {
+            for (auto ii = -2; ii < 3; ii++) {
+               const auto* tech = technicalGrid.get(i + ii, j + jj, k + kk);
+               if (tech                                                        // skip invalid cells returning NULL
+                   && (tech->SOLVE & mask) == mask                             // Did that guy solve this component?
+                   && tech->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE // Do not copy from there
+                   && tech->sysBoundaryFlag != sysboundarytype::OUTER_BOUNDARY_PADDING // Do not copy from there either
                ) {
-                  distance = min(distance, ii*ii + jj*jj + kk*kk);
-               }
-            }
-         }
-      }
-
-      for (int kk=-2; kk<3; kk++) {
-         for (int jj=-2; jj<3; jj++) {
-            for (int ii=-2; ii<3 ; ii++) {
-               if( technicalGrid.get(i+ii,j+jj,k+kk) // skip invalid cells returning NULL
-                   && (technicalGrid.get(i+ii,j+jj,k+kk)->SOLVE & mask) == mask // Did that guy solve this component?
-                   && technicalGrid.get(i+ii,j+jj,k+kk)->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE // Do not copy from there
-                   && technicalGrid.get(i+ii,j+jj,k+kk)->sysBoundaryFlag != sysboundarytype::OUTER_BOUNDARY_PADDING // Do not copy from there either
-               ) {
-                  int d = ii*ii + jj*jj + kk*kk;
-                  if( d == distance ) {
-                     array<int, 3> cell = {i+ii, j+jj, k+kk};
-                     closestCells.push_back(cell);
+                  const int d = ii * ii + jj * jj + kk * kk;
+                  if (d < distance) {
+                     distance = d;
+                     closestCell = {
+                         i + ii,
+                         j + jj,
+                         k + kk,
+                     };
                   }
                }
             }
          }
       }
 
-      if (closestCells.size() == 0) {
+      if (distance == numeric_limits<int>::max()) {
          abort_mpi("No closest cell found!", 1);
       }
 
-      return bGrid.get(closestCells[0][0], closestCells[0][1], closestCells[0][2])->at(fsgrids::bfield::PERBX+component);
+      return (*bGrid.get(closestCell[0], closestCell[1], closestCell[2]))[fsgrids::bfield::PERBX + component];
    }
    
    /*! Function used in some cases to know which faces the system boundary condition is being applied to.
