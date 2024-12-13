@@ -2817,169 +2817,83 @@ namespace SBC {
       creal dt,
       cuint component
    ) {
-      if (technicalGrid.get(i,j,k)->sysBoundaryLayer == 1) {
-         switch(component) {
-            case 0:
-               if (  ((technicalGrid.get(i-1,j,k)->SOLVE & compute::BX) == compute::BX)
-                  && ((technicalGrid.get(i+1,j,k)->SOLVE & compute::BX) == compute::BX)
-               ) {
-                  return 0.5 * (bGrid.get(i-1,j,k)->at(fsgrids::bfield::PERBX) + bGrid.get(i+1,j,k)->at(fsgrids::bfield::PERBX));
-               } else if ((technicalGrid.get(i-1,j,k)->SOLVE & compute::BX) == compute::BX) {
-                  return bGrid.get(i-1,j,k)->at(fsgrids::bfield::PERBX);
-               } else if ((technicalGrid.get(i+1,j,k)->SOLVE & compute::BX) == compute::BX) {
-                  return bGrid.get(i+1,j,k)->at(fsgrids::bfield::PERBX);
-               } else {
-                  Real retval = 0.0;
-                  uint nCells = 0;
-                  if ((technicalGrid.get(i,j-1,k)->SOLVE & compute::BX) == compute::BX) {
-                     retval += bGrid.get(i,j-1,k)->at(fsgrids::bfield::PERBX);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i,j+1,k)->SOLVE & compute::BX) == compute::BX) {
-                     retval += bGrid.get(i,j+1,k)->at(fsgrids::bfield::PERBX);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i,j,k-1)->SOLVE & compute::BX) == compute::BX) {
-                     retval += bGrid.get(i,j,k-1)->at(fsgrids::bfield::PERBX);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i,j,k+1)->SOLVE & compute::BX) == compute::BX) {
-                     retval += bGrid.get(i,j,k+1)->at(fsgrids::bfield::PERBX);
-                     nCells++;
-                  }
-                  if (nCells == 0) {
-                     for (int a=i-1; a<i+2; a++) {
-                        for (int b=j-1; b<j+2; b++) {
-                           for (int c=k-1; c<k+2; c++) {
-                              if ((technicalGrid.get(a,b,c)->SOLVE & compute::BX) == compute::BX) {
-                                 retval += bGrid.get(a,b,c)->at(fsgrids::bfield::PERBX);
-                                 nCells++;
-                              }
-                           }
-                        }
-                     }
-                  }
-                  if (nCells == 0) {
-                     cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
-                     return 0.0;
-                  }
-                  return retval / nCells;
-               }
-            case 1:
-               if (  (technicalGrid.get(i,j-1,k)->SOLVE & compute::BY) == compute::BY
-                  && (technicalGrid.get(i,j+1,k)->SOLVE & compute::BY) == compute::BY
-               ) {
-                  return 0.5 * (bGrid.get(i,j-1,k)->at(fsgrids::bfield::PERBY) + bGrid.get(i,j+1,k)->at(fsgrids::bfield::PERBY));
-               } else if ((technicalGrid.get(i,j-1,k)->SOLVE & compute::BY) == compute::BY) {
-                  return bGrid.get(i,j-1,k)->at(fsgrids::bfield::PERBY);
-               } else if ((technicalGrid.get(i,j+1,k)->SOLVE & compute::BY) == compute::BY) {
-                  return bGrid.get(i,j+1,k)->at(fsgrids::bfield::PERBY);
-               } else {
-                  Real retval = 0.0;
-                  uint nCells = 0;
-                  if ((technicalGrid.get(i-1,j,k)->SOLVE & compute::BY) == compute::BY) {
-                     retval += bGrid.get(i-1,j,k)->at(fsgrids::bfield::PERBY);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i+1,j,k)->SOLVE & compute::BY) == compute::BY) {
-                     retval += bGrid.get(i+1,j,k)->at(fsgrids::bfield::PERBY);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i,j,k-1)->SOLVE & compute::BY) == compute::BY) {
-                     retval += bGrid.get(i,j,k-1)->at(fsgrids::bfield::PERBY);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i,j,k+1)->SOLVE & compute::BY) == compute::BY) {
-                     retval += bGrid.get(i,j,k+1)->at(fsgrids::bfield::PERBY);
-                     nCells++;
-                  }
-                  if (nCells == 0) {
-                     for (int a=i-1; a<i+2; a++) {
-                        for (int b=j-1; b<j+2; b++) {
-                           for (int c=k-1; c<k+2; c++) {
-                              if ((technicalGrid.get(a,b,c)->SOLVE & compute::BY) == compute::BY) {
-                                 retval += bGrid.get(a,b,c)->at(fsgrids::bfield::PERBY);
-                                 nCells++;
-                              }
-                           }
-                        }
-                     }
-                  }
-                  if (nCells == 0) {
-                     cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
-                     return 0.0;
-                  }
-                  return retval / nCells;
-               }
-            case 2:
-               if (  (technicalGrid.get(i,j,k-1)->SOLVE & compute::BZ) == compute::BZ
-                  && (technicalGrid.get(i,j,k+1)->SOLVE & compute::BZ) == compute::BZ
-               ) {
-                  return 0.5 * (bGrid.get(i,j,k-1)->at(fsgrids::bfield::PERBZ) + bGrid.get(i,j,k+1)->at(fsgrids::bfield::PERBZ));
-               } else if ((technicalGrid.get(i,j,k-1)->SOLVE & compute::BZ) == compute::BZ) {
-                  return bGrid.get(i,j,k-1)->at(fsgrids::bfield::PERBZ);
-               } else if ((technicalGrid.get(i,j,k+1)->SOLVE & compute::BZ) == compute::BZ) {
-                  return bGrid.get(i,j,k+1)->at(fsgrids::bfield::PERBZ);
-               } else {
-                  Real retval = 0.0;
-                  uint nCells = 0;
-                  if ((technicalGrid.get(i-1,j,k)->SOLVE & compute::BZ) == compute::BZ) {
-                     retval += bGrid.get(i-1,j,k)->at(fsgrids::bfield::PERBZ);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i+1,j,k)->SOLVE & compute::BZ) == compute::BZ) {
-                     retval += bGrid.get(i+1,j,k)->at(fsgrids::bfield::PERBZ);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i,j-1,k)->SOLVE & compute::BZ) == compute::BZ) {
-                     retval += bGrid.get(i,j-1,k)->at(fsgrids::bfield::PERBZ);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i,j+1,k)->SOLVE & compute::BZ) == compute::BZ) {
-                     retval += bGrid.get(i,j+1,k)->at(fsgrids::bfield::PERBZ);
-                     nCells++;
-                  }
-                  if (nCells == 0) {
-                     for (int a=i-1; a<i+2; a++) {
-                        for (int b=j-1; b<j+2; b++) {
-                           for (int c=k-1; c<k+2; c++) {
-                              if ((technicalGrid.get(a,b,c)->SOLVE & compute::BZ) == compute::BZ) {
-                                 retval += bGrid.get(a,b,c)->at(fsgrids::bfield::PERBZ);
-                                 nCells++;
-                              }
-                           }
-                        }
-                     }
-                  }
-                  if (nCells == 0) {
-                     cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
-                     return 0.0;
-                  }
-                  return retval / nCells;
-               }
-            default:
-               cerr << "ERROR: ionosphere boundary tried to copy nonsensical magnetic field component " << component << endl;
-               return 0.0;
-         }
-      } else { // L2 cells
-         Real retval = 0.0;
-         uint nCells = 0;
-         for (int a=i-1; a<i+2; a++) {
-            for (int b=j-1; b<j+2; b++) {
-               for (int c=k-1; c<k+2; c++) {
-                  if (technicalGrid.get(a,b,c)->sysBoundaryLayer == 1) {
-                     retval += bGrid.get(a,b,c)->at(fsgrids::bfield::PERBX + component);
-                     nCells++;
-                  }
-               }
+      const auto stencil = technicalGrid.makeStencil(i, j, k);
+      std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> b = bGrid.getData();
+      std::span<const fsgrids::technical> technical = technicalGrid.getData();
+
+      const uint32_t perbComponent = fsgrids::bfield::PERBX + component;
+      const uint32_t bitfield = 1 << component;
+
+      // clang-format off
+      // 0, 1, 2, 3, 4, 5 for component 0
+      // 2, 3, 4, 5, 0, 1 for component 1
+      // 4, 5, 0, 1, 2, 3 for component 2
+      const std::array permutation = {
+          (0 + 2 * component) % 6,
+          (1 + 2 * component) % 6,
+          (2 + 2 * component) % 6,
+          (3 + 2 * component) % 6,
+          (4 + 2 * component) % 6,
+          (5 + 2 * component) % 6,
+      };
+
+      const std::array<size_t, 6> inds = {
+          stencil.left(),
+          stencil.right(),
+          stencil.down(),
+          stencil.up(),
+          stencil.far(),
+          stencil.near(),
+      };
+      // clang-format on
+
+      auto bitFieldSet = [&bitfield](auto& tech) { return (tech.SOLVE & bitfield) == bitfield; };
+      auto sbLayerIsOne = [](auto& tech) { return tech.sysBoundaryLayer == 1; };
+      auto averageNeigbours = [&technical, &b, &inds, &permutation, &perbComponent,
+                               &bitFieldSet](auto begin, auto end, auto& sum, auto& nCells) {
+         for (size_t i = begin; i < end; i++) {
+            const auto j = inds[permutation[i]];
+            if (bitFieldSet(technical[j])) {
+               sum += b[j][perbComponent];
+               nCells++;
             }
          }
-         if (nCells == 0) {
-            cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
-            return 0.0;
+      };
+
+      auto averageAllNeighbours = [&stencil, &technical, &b, &perbComponent](auto predicateLambda, auto& sum,
+                                                                             auto& nCells) {
+         for (const auto& i : stencil.indices()) {
+            if (predicateLambda(technical[i])) {
+               sum += b[i][perbComponent];
+               nCells++;
+            }
          }
-         return retval / nCells;
+      };
+
+      Real sum = 0.0;
+      uint nCells = 0;
+      if (sbLayerIsOne(technical[stencil.center()])) {
+         averageNeigbours(0ul, 2ul, sum, nCells);
+
+         if (nCells == 0) {
+            averageNeigbours(2ul, 6ul, sum, nCells);
+         }
+
+         if (nCells == 0) {
+            averageAllNeighbours(bitFieldSet, sum, nCells);
+         }
+      } else {
+         // L2 cells
+         averageAllNeighbours(sbLayerIsOne, sum, nCells);
       }
+
+      if (nCells == 0) {
+         cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
+         sum = 0.0;
+         nCells = 1;
+      }
+
+      return sum / nCells;
    }
 
    void Ionosphere::fieldSolverBoundaryCondElectricField(std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
