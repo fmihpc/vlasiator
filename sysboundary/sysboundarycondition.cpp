@@ -29,6 +29,7 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <span>
 
 #include "../parameters.h"
 #include "../vlasovsolver/vlasovmover.h"
@@ -664,27 +665,26 @@ namespace SBC {
       cuint component,
       cuint mask
    ) {
+      const fsgrid::FsStencil stencil = technicalGrid.makeStencil(i, j, k);
+      std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> b = bGrid.getData();
+      std::span<const fsgrids::technical> technical = technicalGrid.getData();
 
       int distance = numeric_limits<int>::max();
-      array<int, 3> closestCell = {};
+      auto closestCellIndex = 0;
 
       for (auto kk = -2; kk < 3; kk++) {
          for (auto jj = -2; jj < 3; jj++) {
             for (auto ii = -2; ii < 3; ii++) {
-               const auto* tech = technicalGrid.get(i + ii, j + jj, k + kk);
-               if (tech                                                        // skip invalid cells returning NULL
-                   && (tech->SOLVE & mask) == mask                             // Did that guy solve this component?
-                   && tech->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE // Do not copy from there
-                   && tech->sysBoundaryFlag != sysboundarytype::OUTER_BOUNDARY_PADDING // Do not copy from there either
-               ) {
+               if (stencil.cellExists(ii, jj, kk)) {
+                  const auto index = stencil.indexFromOffset(ii, jj, kk);
+                  const auto& tech = technical[index];
+                  const bool copyable = (tech.SOLVE & mask) == mask &&
+                                        tech.sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE &&
+                                        tech.sysBoundaryFlag != sysboundarytype::OUTER_BOUNDARY_PADDING;
                   const int d = ii * ii + jj * jj + kk * kk;
-                  if (d < distance) {
+                  if (copyable && d < distance) {
                      distance = d;
-                     closestCell = {
-                         i + ii,
-                         j + jj,
-                         k + kk,
-                     };
+                     closestCellIndex = index;
                   }
                }
             }
@@ -695,7 +695,7 @@ namespace SBC {
          abort_mpi("No closest cell found!", 1);
       }
 
-      return (*bGrid.get(closestCell[0], closestCell[1], closestCell[2]))[fsgrids::bfield::PERBX + component];
+      return b[closestCellIndex][fsgrids::bfield::PERBX + component];
    }
    
    /*! Function used in some cases to know which faces the system boundary condition is being applied to.
