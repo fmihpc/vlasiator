@@ -504,39 +504,51 @@ Real Copysphere::fieldSolverBoundaryCondMagneticField(
    const auto stencil = technicalGrid.makeStencil(i, j, k);
    std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> b;
    std::span<const fsgrids::technical> technical;
-   auto solve = [](const auto& tech, auto bitfield) { return tech.SOLVE & bitfield == bitfield; };
+
+   auto solve = [](const auto& tech, uint32_t bitfield) { return (tech.SOLVE & bitfield) == bitfield; };
+
    const auto perbComponent = fsgrids::bfield::PERBX + component;
-   const auto bitfield = component == 0 ? compute::BX : (component == 1 ? compute::BY : compute::BZ);
+   const auto bitfield = 1 << component;
+
+   // clang-format off
+   const std::array solved = {
+        solve(*technicalGrid.get(i - 1, j, k), bitfield),
+        solve(*technicalGrid.get(i + 1, j, k), bitfield),
+        solve(*technicalGrid.get(i, j - 1, k), bitfield),
+        solve(*technicalGrid.get(i, j + 1, k), bitfield),
+        solve(*technicalGrid.get(i, j, k - 1), bitfield),
+        solve(*technicalGrid.get(i, j, k + 1), bitfield),
+   };
+   // clang-format on
 
    if (this->zeroPerB == true) {
       return bGrid.get(i, j, k)->at(perbComponent);
    } else {
       if (technicalGrid.get(i, j, k)->sysBoundaryLayer == 1) {
          switch (component) {
-         case 0:
-            if ((solve(*technicalGrid.get(i - 1, j, k), bitfield)) &&
-                (solve(*technicalGrid.get(i + 1, j, k), bitfield))) {
+         case 0: {
+            if ((solved[0]) && (solved[1])) {
                return 0.5 * (bGrid.get(i - 1, j, k)->at(perbComponent) + bGrid.get(i + 1, j, k)->at(perbComponent));
-            } else if (solve(*technicalGrid.get(i - 1, j, k), bitfield)) {
+            } else if (solved[0]) {
                return bGrid.get(i - 1, j, k)->at(perbComponent);
-            } else if (solve(*technicalGrid.get(i + 1, j, k), bitfield)) {
+            } else if (solved[1]) {
                return bGrid.get(i + 1, j, k)->at(perbComponent);
             } else {
                Real retval = 0.0;
                uint nCells = 0;
-               if (solve(*technicalGrid.get(i, j - 1, k), bitfield)) {
+               if (solved[2]) {
                   retval += bGrid.get(i, j - 1, k)->at(perbComponent);
                   nCells++;
                }
-               if (solve(*technicalGrid.get(i, j + 1, k), bitfield)) {
+               if (solved[3]) {
                   retval += bGrid.get(i, j + 1, k)->at(perbComponent);
                   nCells++;
                }
-               if (solve(*technicalGrid.get(i, j, k - 1), bitfield)) {
+               if (solved[4]) {
                   retval += bGrid.get(i, j, k - 1)->at(perbComponent);
                   nCells++;
                }
-               if (solve(*technicalGrid.get(i, j, k + 1), bitfield)) {
+               if (solved[5]) {
                   retval += bGrid.get(i, j, k + 1)->at(perbComponent);
                   nCells++;
                }
@@ -558,29 +570,30 @@ Real Copysphere::fieldSolverBoundaryCondMagneticField(
                }
                return retval / nCells;
             }
-         case 1:
-            if (solve(*technicalGrid.get(i, j - 1, k), bitfield) && solve(*technicalGrid.get(i, j + 1, k), bitfield)) {
+         }
+         case 1: {
+            if (solved[2] && solved[3]) {
                return 0.5 * (bGrid.get(i, j - 1, k)->at(perbComponent) + bGrid.get(i, j + 1, k)->at(perbComponent));
-            } else if (solve(*technicalGrid.get(i, j - 1, k), bitfield)) {
+            } else if (solved[2]) {
                return bGrid.get(i, j - 1, k)->at(perbComponent);
-            } else if (solve(*technicalGrid.get(i, j + 1, k), bitfield)) {
+            } else if (solved[3]) {
                return bGrid.get(i, j + 1, k)->at(perbComponent);
             } else {
                Real retval = 0.0;
                uint nCells = 0;
-               if (solve(*technicalGrid.get(i - 1, j, k), bitfield)) {
+               if (solved[0]) {
                   retval += bGrid.get(i - 1, j, k)->at(perbComponent);
                   nCells++;
                }
-               if (solve(*technicalGrid.get(i + 1, j, k), bitfield)) {
+               if (solved[1]) {
                   retval += bGrid.get(i + 1, j, k)->at(perbComponent);
                   nCells++;
                }
-               if (solve(*technicalGrid.get(i, j, k - 1), bitfield)) {
+               if (solved[4]) {
                   retval += bGrid.get(i, j, k - 1)->at(perbComponent);
                   nCells++;
                }
-               if (solve(*technicalGrid.get(i, j, k + 1), bitfield)) {
+               if (solved[5]) {
                   retval += bGrid.get(i, j, k + 1)->at(perbComponent);
                   nCells++;
                }
@@ -602,29 +615,30 @@ Real Copysphere::fieldSolverBoundaryCondMagneticField(
                }
                return retval / nCells;
             }
-         case 2:
-            if (solve(*technicalGrid.get(i, j, k - 1), bitfield) && solve(*technicalGrid.get(i, j, k + 1), bitfield)) {
+         }
+         case 2: {
+            if (solved[4] && solved[5]) {
                return 0.5 * (bGrid.get(i, j, k - 1)->at(perbComponent) + bGrid.get(i, j, k + 1)->at(perbComponent));
-            } else if (solve(*technicalGrid.get(i, j, k - 1), bitfield)) {
+            } else if (solved[4]) {
                return bGrid.get(i, j, k - 1)->at(perbComponent);
-            } else if (solve(*technicalGrid.get(i, j, k + 1), bitfield)) {
+            } else if (solved[5]) {
                return bGrid.get(i, j, k + 1)->at(perbComponent);
             } else {
                Real retval = 0.0;
                uint nCells = 0;
-               if (solve(*technicalGrid.get(i - 1, j, k), bitfield)) {
+               if (solved[0]) {
                   retval += bGrid.get(i - 1, j, k)->at(perbComponent);
                   nCells++;
                }
-               if (solve(*technicalGrid.get(i + 1, j, k), bitfield)) {
+               if (solved[1]) {
                   retval += bGrid.get(i + 1, j, k)->at(perbComponent);
                   nCells++;
                }
-               if (solve(*technicalGrid.get(i, j - 1, k), bitfield)) {
+               if (solved[2]) {
                   retval += bGrid.get(i, j - 1, k)->at(perbComponent);
                   nCells++;
                }
-               if (solve(*technicalGrid.get(i, j + 1, k), bitfield)) {
+               if (solved[3]) {
                   retval += bGrid.get(i, j + 1, k)->at(perbComponent);
                   nCells++;
                }
@@ -646,10 +660,12 @@ Real Copysphere::fieldSolverBoundaryCondMagneticField(
                }
                return retval / nCells;
             }
-         default:
+         }
+         default: {
             cerr << "ERROR: copysphere boundary tried to copy nonsensical magnetic field component " << component
                  << endl;
             return 0.0;
+         }
          }
       } else { // L2 cells
          Real retval = 0.0;
@@ -664,10 +680,12 @@ Real Copysphere::fieldSolverBoundaryCondMagneticField(
                }
             }
          }
+
          if (nCells == 0) {
             cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
             return 0.0;
          }
+
          return retval / nCells;
       }
    }
