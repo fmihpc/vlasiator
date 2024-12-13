@@ -505,19 +505,17 @@ Real Copysphere::fieldSolverBoundaryCondMagneticField(
    std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> b;
    std::span<const fsgrids::technical> technical;
 
-   auto solve = [](const auto& tech, uint32_t bitfield) { return (tech.SOLVE & bitfield) == bitfield; };
-
-   const auto perbComponent = fsgrids::bfield::PERBX + component;
-   const auto bitfield = 1 << component;
+   const uint32_t perbComponent = fsgrids::bfield::PERBX + component;
+   const uint32_t bitfield = 1 << component;
 
    // clang-format off
-   const std::array solved = {
-        solve(*technicalGrid.get(i - 1, j, k), bitfield),
-        solve(*technicalGrid.get(i + 1, j, k), bitfield),
-        solve(*technicalGrid.get(i, j - 1, k), bitfield),
-        solve(*technicalGrid.get(i, j + 1, k), bitfield),
-        solve(*technicalGrid.get(i, j, k - 1), bitfield),
-        solve(*technicalGrid.get(i, j, k + 1), bitfield),
+   const std::array solve = {
+        (technicalGrid.get(i - 1, j, k)->SOLVE & bitfield) == bitfield,
+        (technicalGrid.get(i + 1, j, k)->SOLVE & bitfield) == bitfield,
+        (technicalGrid.get(i, j - 1, k)->SOLVE & bitfield) == bitfield,
+        (technicalGrid.get(i, j + 1, k)->SOLVE & bitfield) == bitfield,
+        (technicalGrid.get(i, j, k - 1)->SOLVE & bitfield) == bitfield,
+        (technicalGrid.get(i, j, k + 1)->SOLVE & bitfield) == bitfield,
    };
 
    const std::array bvalues = {
@@ -528,6 +526,7 @@ Real Copysphere::fieldSolverBoundaryCondMagneticField(
         bGrid.get(i, j, k - 1),
         bGrid.get(i, j, k + 1),
    };
+
    // 0, 1, 2, 3, 4, 5 for component 0
    // 2, 3, 4, 5, 0, 1 for component 1
    // 4, 5, 0, 1, 2, 3 for component 2
@@ -541,51 +540,46 @@ Real Copysphere::fieldSolverBoundaryCondMagneticField(
    };
    // clang-format on
 
-   auto avgOverNeighbours = [&i, &j, &k, &technicalGrid, &bGrid, &solve, &bitfield, &perbComponent](auto nCells,
-                                                                                                    auto& retval) {
-      if (nCells == 0) {
-         for (int a = i - 1; a < i + 2; a++) {
-            for (int b = j - 1; b < j + 2; b++) {
-               for (int c = k - 1; c < k + 2; c++) {
-                  if (solve(*technicalGrid.get(a, b, c), bitfield)) {
-                     retval += bGrid.get(a, b, c)->at(perbComponent);
-                     nCells++;
-                  }
-               }
-            }
-         }
-      }
-
-      if (nCells == 0) {
-         cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
-         return 0.0;
-      }
-
-      return retval / nCells;
-   };
-
    if (this->zeroPerB == true) {
       return bGrid.get(i, j, k)->at(perbComponent);
    } else {
       if (technicalGrid.get(i, j, k)->sysBoundaryLayer == 1) {
-         if (solved[ind[0]] && solved[ind[1]]) {
+         if (solve[ind[0]] && solve[ind[1]]) {
             return 0.5 * ((*bvalues[ind[0]])[perbComponent] + (*bvalues[ind[1]])[perbComponent]);
-         } else if (solved[ind[0]]) {
+         } else if (solve[ind[0]]) {
             return (*bvalues[ind[0]])[perbComponent];
-         } else if (solved[ind[1]]) {
+         } else if (solve[ind[1]]) {
             return (*bvalues[ind[1]])[perbComponent];
          } else {
             Real retval = 0.0;
             uint nCells = 0;
 
             for (size_t i = 2; i < bvalues.size(); i++) {
-               if (solved[ind[i]]) {
+               if (solve[ind[i]]) {
                   retval += (*bvalues[ind[i]])[perbComponent];
                   nCells++;
                }
             }
 
-            return avgOverNeighbours(nCells, retval);
+            if (nCells == 0) {
+               for (int a = i - 1; a < i + 2; a++) {
+                  for (int b = j - 1; b < j + 2; b++) {
+                     for (int c = k - 1; c < k + 2; c++) {
+                        if ((technicalGrid.get(a, b, c)->SOLVE & bitfield) == bitfield) {
+                           retval += bGrid.get(a, b, c)->at(perbComponent);
+                           nCells++;
+                        }
+                     }
+                  }
+               }
+            }
+
+            if (nCells == 0) {
+               cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
+               return 0.0;
+            }
+
+            return retval / nCells;
          }
       } else { // L2 cells
          Real retval = 0.0;
