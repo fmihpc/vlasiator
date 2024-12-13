@@ -462,7 +462,7 @@ void calculateDerivativesSimple(
 
    phiprof::Timer mpiTimer{"FS derivatives ghost updates MPI", {"MPI"}};
    switch (RKCase) {
-   case RK_ORDER1:
+   case RK_ORDER1 | RK_ORDER2_STEP2: {
       // Means initialising the solver as well as RK_ORDER1
       // standard case Exchange PERB* with neighbours
       // The update of PERB[XYZ] is needed after the system
@@ -472,7 +472,8 @@ void calculateDerivativesSimple(
          momentsGrid.updateGhostCells();
       }
       break;
-   case RK_ORDER2_STEP1:
+   }
+   case RK_ORDER2_STEP1: {
       // Exchange PERB*_DT2,RHO_DT2,V*_DT2 with neighbours The
       // update of PERB[XYZ]_DT2 is needed after the system
       // boundary update of propagateMagneticFieldSimple.
@@ -481,15 +482,7 @@ void calculateDerivativesSimple(
          momentsDt2Grid.updateGhostCells();
       }
       break;
-   case RK_ORDER2_STEP2:
-      // Exchange PERB*,RHO,V* with neighbours The update of B
-      // is needed after the system boundary update of
-      // propagateMagneticFieldSimple.
-      perBGrid.updateGhostCells();
-      if (doMoments) {
-         momentsGrid.updateGhostCells();
-      }
-      break;
+   }
    default:
       cerr << __FILE__ << ":" << __LINE__ << " Went through switch, this should not happen." << endl;
       abort();
