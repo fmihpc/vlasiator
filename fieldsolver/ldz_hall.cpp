@@ -1091,8 +1091,11 @@ void calculateHallTermSimple(
     fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
     fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsDt2Grid,
     fsgrid::FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
+    fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
+    fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsDt2Grid,
     fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, SysBoundary& sysBoundaries, cint& RKCase) {
+    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, SysBoundary& sysBoundaries, int32_t RKCase,
+    const bool communicateMomentsDerivatives) {
 
    std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
    std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall = EHallGrid.getData();
@@ -1115,6 +1118,13 @@ void calculateHallTermSimple(
    phiprof::Timer mpiTimer{"EHall ghost updates MPI", {"MPI"}};
    int computeTimerId{phiprof::initializeTimer("EHall compute cells")};
    dPerBGrid.updateGhostCells();
+   if (P::ohmGradPeTerm == 0 && communicateMomentsDerivatives) {
+      if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+         dMomentsGrid.updateGhostCells();
+      } else {
+         dMomentsDt2Grid.updateGhostCells();
+      }
+   }
    mpiTimer.stop();
 
 #pragma omp parallel
