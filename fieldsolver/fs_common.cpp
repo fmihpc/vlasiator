@@ -224,15 +224,16 @@ std::array<Real, 3> interpolatePerturbedB(
     cint j, cint k, const std::array<Real, 3> x) {
    std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
    std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb = dPerBGrid.getData();
+   std::span<const fsgrids::technical> technical = technicalGrid.getData();
    const auto stencil = technicalGrid.makeStencil(i, j, k);
 
-   cuint cellSysBoundaryFlag = technicalGrid.get(i, j, k)->sysBoundaryFlag;
+   cuint cellSysBoundaryFlag = technical[stencil.center()].sysBoundaryFlag;
    if (cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
       return {0, 0, 0};
    }
 
    // Balsara reconstruction formulas: x,y,z are in [-1/2, 1/2] local coordinates
-   std::array<Real, 3> xLocal = getFractionalFsGridCellForCoord(technicalGrid, x);
+   std::array<Real, 3> xLocal = technicalGrid.physicalToFractionalGlobal(x[0], x[1], x[2]);
    xLocal[0] -= 0.5;
    xLocal[1] -= 0.5;
    xLocal[2] -= 0.5;
@@ -243,9 +244,8 @@ std::array<Real, 3> interpolatePerturbedB(
       abort();
    }
 
-   const std::array<Real, Rec::N_REC_COEFFICIENTS> rc = [&i, &j, &k, &stencil, &reconstructionCoefficientsCache, &perb,
-                                                         &dperb]() {
-      const std::array<int, 3> cellIds = {i, j, k};
+   const std::array<Real, Rec::N_REC_COEFFICIENTS> rc = [&stencil, &reconstructionCoefficientsCache, &perb, &dperb]() {
+      const std::array<int, 3> cellIds = {stencil.i, stencil.j, stencil.k};
       if (FieldTracing::fieldTracingParameters.useCache) {
 #pragma omp critical
          {
@@ -303,15 +303,16 @@ std::array<Real, 3> interpolateCurlB(
     cint j, cint k, const std::array<Real, 3> x) {
    std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
    std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb = dPerBGrid.getData();
+   std::span<const fsgrids::technical> technical = technicalGrid.getData();
    const auto stencil = technicalGrid.makeStencil(i, j, k);
 
-   cuint cellSysBoundaryFlag = technicalGrid.get(i, j, k)->sysBoundaryFlag;
+   cuint cellSysBoundaryFlag = technical[stencil.center()].sysBoundaryFlag;
    if (cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
       return {0, 0, 0};
    }
 
    // Balsara reconstruction formulas: x,y,z are in [-1/2, 1/2] local coordinates
-   std::array<Real, 3> xLocal = getFractionalFsGridCellForCoord(technicalGrid, x);
+   std::array<Real, 3> xLocal = technicalGrid.physicalToFractionalGlobal(x[0], x[1], x[2]);
    xLocal[0] -= 0.5;
    xLocal[1] -= 0.5;
    xLocal[2] -= 0.5;
@@ -322,9 +323,8 @@ std::array<Real, 3> interpolateCurlB(
       abort();
    }
 
-   const std::array<Real, Rec::N_REC_COEFFICIENTS> rc = [&i, &j, &k, &stencil, &reconstructionCoefficientsCache, &perb,
-                                                         &dperb]() {
-      std::array<int, 3> cellIds = {i, j, k};
+   const std::array<Real, Rec::N_REC_COEFFICIENTS> rc = [&stencil, &reconstructionCoefficientsCache, &perb, &dperb]() {
+      std::array<int, 3> cellIds = {stencil.i, stencil.j, stencil.k};
       // Actual use of the coefficient cache has proven not to be thread safe. But it appears to be reasonably fast even
       // without it.
       if (FieldTracing::fieldTracingParameters.useCache) {
