@@ -43,19 +43,11 @@ void setBackgroundFieldToZero(std::span<std::array<Real, fsgrids::bgbfield::N_BG
    object to zero (see setPerturbedField below).
 */
 template <long unsigned int numFields>
-void setPerturbedFieldToZero(fsgrid::FsGrid<std::array<Real, numFields>, FS_STENCIL_WIDTH>& BGrid,
-                             int offset = fsgrids::bfield::PERBX) {
-   const auto& localSize = BGrid.getLocalSize();
-
-#pragma omp parallel for collapse(2)
-   for (fsgrid::FsIndex_t z = 0; z < localSize[2]; ++z) {
-      for (fsgrid::FsIndex_t y = 0; y < localSize[1]; ++y) {
-         for (fsgrid::FsIndex_t x = 0; x < localSize[0]; ++x) {
-            // This is still N_BFIELD (==3) instead of numFields
-            for (int i = 0; i < fsgrids::bfield::N_BFIELD; ++i) {
-               BGrid.get(x, y, z)->at(offset + i) = 0;
-            }
-         }
+void setPerturbedFieldToZero(std::span<std::array<Real, numFields>> b, int offset = fsgrids::bfield::PERBX) {
+#pragma omp parallel for
+   for (size_t i = 0; i < b.size(); i++) {
+      for (size_t j = 0; j < fsgrids::bfield::N_BFIELD; ++j) {
+         b[i][offset + j] = 0.0;
       }
    }
 }
@@ -71,13 +63,13 @@ template <long unsigned int numFields>
 void setPerturbedField(const FieldFunction& bfFunction,
                        fsgrid::FsGrid<std::array<Real, numFields>, FS_STENCIL_WIDTH>& BGrid,
                        int offset = fsgrids::bfield::PERBX, bool append = false) {
-   const auto gridSpacing = BGrid.getGridSpacing();
-
    using namespace std::placeholders;
+   const auto gridSpacing = BGrid.getGridSpacing();
+   std::array<fsgrid::FsIndex_t, 3> localSize = BGrid.getLocalSize();
 
    /*if we do not add a new background to the existing one we first put everything to zero*/
    if (append == false) {
-      setPerturbedFieldToZero(BGrid, offset);
+      setPerturbedFieldToZero(std::span(BGrid.getData()), offset);
    }
 
    // these are doubles, as the averaging functions copied from Gumics
@@ -94,8 +86,6 @@ void setPerturbedField(const FieldFunction& bfFunction,
    faceCoord2[1] = 2;
    faceCoord1[2] = 0;
    faceCoord2[2] = 1;
-
-   std::array<fsgrid::FsIndex_t, 3> localSize = BGrid.getLocalSize();
 
 // These are threaded now that the stuff around here is threadsafe
 #pragma omp parallel for collapse(2)
