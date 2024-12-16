@@ -49,20 +49,12 @@
  *
  * \sa calculateDerivativesSimple calculateBVOLDerivativesSimple calculateBVOLDerivatives
  */
-void calculateDerivatives(
-    cint i, cint j, cint k, fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
-    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, const bool shouldCalculateMoments) {
-
-   std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
-   std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments = momentsGrid.getData();
-   std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb = dPerBGrid.getData();
-   std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments = dMomentsGrid.getData();
-   std::span<const fsgrids::technical> technical = technicalGrid.getData();
-   const auto stencil = technicalGrid.makeStencil(i, j, k);
-
+void calculateDerivatives(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                          std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                          std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                          std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+                          std::span<const fsgrids::technical> technical, const fsgrid::FsStencil& stencil,
+                          const bool shouldCalculateMoments) {
    std::array<Real, fsgrids::dperb::N_DPERB>& dPerB = dperb[stencil.center()];
    std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dMoments = dmoments[stencil.center()];
    const auto& tech = technical[stencil.center()];
@@ -360,14 +352,21 @@ void calculateDerivativesSimple(
     fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
     fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsDt2Grid,
     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, int32_t RKCase, const bool doMoments) {
+   const bool case0 = RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2;
    const auto& localSize = technicalGrid.getLocalSize();
    const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
+
+   std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
+   std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments = momentsGrid.getData();
+   std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb = dPerBGrid.getData();
+   std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments = dMomentsGrid.getData();
+   std::span<const fsgrids::technical> technical = technicalGrid.getData();
+
    phiprof::Timer derivativesTimer{"Calculate face derivatives"};
    int computeTimerId{phiprof::initializeTimer("FS derivatives compute cells")};
 
    phiprof::Timer mpiTimer{"FS derivatives ghost updates MPI", {"MPI"}};
-   switch (RKCase) {
-   case RK_ORDER1 | RK_ORDER2_STEP2: {
+   if (case0) {
       // Means initialising the solver as well as RK_ORDER1
       // standard case Exchange PERB* with neighbours
       // The update of PERB[XYZ] is needed after the system
@@ -376,9 +375,7 @@ void calculateDerivativesSimple(
       if (doMoments) {
          momentsGrid.updateGhostCells();
       }
-      break;
-   }
-   case RK_ORDER2_STEP1: {
+   } else {
       // Exchange PERB*_DT2,RHO_DT2,V*_DT2 with neighbours The
       // update of PERB[XYZ]_DT2 is needed after the system
       // boundary update of propagateMagneticFieldSimple.
@@ -386,11 +383,10 @@ void calculateDerivativesSimple(
       if (doMoments) {
          momentsDt2Grid.updateGhostCells();
       }
-      break;
-   }
-   default:
-      cerr << __FILE__ << ":" << __LINE__ << " Went through switch, this should not happen." << endl;
-      abort();
+
+      perb = perBDt2Grid.getData();
+      moments = momentsDt2Grid.getData();
+      dmoments = dMomentsDt2Grid.getData();
    }
    mpiTimer.stop();
 
@@ -402,13 +398,8 @@ void calculateDerivativesSimple(
       for (auto k = 0; k < localSize[2]; k++) {
          for (auto j = 0; j < localSize[1]; j++) {
             for (auto i = 0; i < localSize[0]; i++) {
-               if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-                  calculateDerivatives(i, j, k, perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, technicalGrid,
-                                       doMoments);
-               } else {
-                  calculateDerivatives(i, j, k, perBDt2Grid, momentsDt2Grid, dPerBGrid, dMomentsDt2Grid, technicalGrid,
-                                       doMoments);
-               }
+               const auto stencil = technicalGrid.makeStencil(i, j, k);
+               calculateDerivatives(perb, moments, dperb, dmoments, technical, stencil, doMoments);
             }
          }
       }
