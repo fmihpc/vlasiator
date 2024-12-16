@@ -93,13 +93,15 @@ bool propagateFields(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>,
       exit(1);
    }
 
-   const fsgrid::FsIndex_t* gridDims = &technicalGrid.getLocalSize()[0];
+   const auto& localSize = technicalGrid.getLocalSize();
+   std::span<fsgrids::technical> technical = technicalGrid.getData();
 
 #pragma omp parallel for collapse(2)
-   for (fsgrid::FsIndex_t k = 0; k < gridDims[2]; k++) {
-      for (fsgrid::FsIndex_t j = 0; j < gridDims[1]; j++) {
-         for (fsgrid::FsIndex_t i = 0; i < gridDims[0]; i++) {
-            technicalGrid.get(i, j, k)->maxFsDt = std::numeric_limits<Real>::max();
+   for (auto k = 0; k < localSize[2]; k++) {
+      for (auto j = 0; j < localSize[1]; j++) {
+         for (auto i = 0; i < localSize[0]; i++) {
+            const auto stencil = technicalGrid.makeStencil(i, j, k);
+            technical[stencil.center()].maxFsDt = std::numeric_limits<Real>::max();
          }
       }
    }
@@ -244,18 +246,17 @@ bool propagateFields(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>,
          }
 
          // Reassess subcycle dt
-         Real dtMaxLocal;
-         Real dtMaxGlobal;
-         dtMaxLocal = std::numeric_limits<Real>::max();
+         Real dtMaxGlobal = 0.0;
+         Real dtMaxLocal = std::numeric_limits<Real>::max();
 
-         const auto& localSize = technicalGrid.getLocalSize();
-         for (fsgrid::FsIndex_t z = 0; z < localSize[2]; z++) {
-            for (fsgrid::FsIndex_t y = 0; y < localSize[1]; y++) {
-               for (fsgrid::FsIndex_t x = 0; x < localSize[0]; x++) {
-                  fsgrids::technical* cell = technicalGrid.get(x, y, z);
-                  if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
-                      (cell->sysBoundaryLayer == 1 && cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY)) {
-                     dtMaxLocal = min(dtMaxLocal, cell->maxFsDt);
+         for (auto z = 0; z < localSize[2]; z++) {
+            for (auto y = 0; y < localSize[1]; y++) {
+               for (auto x = 0; x < localSize[0]; x++) {
+                  const auto stencil = technicalGrid.makeStencil(x, y, z);
+                  const fsgrids::technical& cell = technical[stencil.center()];
+                  if (cell.sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
+                      (cell.sysBoundaryLayer == 1 && cell.sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY)) {
+                     dtMaxLocal = min(dtMaxLocal, cell.maxFsDt);
                   }
                }
             }
