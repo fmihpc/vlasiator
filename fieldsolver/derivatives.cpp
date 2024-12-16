@@ -174,7 +174,7 @@ void calculateDerivatives(
       return notSysBoundary ? 0.5 * (right[i] - left[i]) : limiter(left[i], center[i], right[i]);
    };
 
-   auto computeMoments = [&shouldCalculateMoments, &dMoments, &notSysBoundary,
+   auto computeMoments = [&shouldCalculateMoments, &dMoments,
                           &computeDerivative](auto component, const auto& right, const auto& left, const auto& center) {
       if (shouldCalculateMoments) {
          for (size_t i = 0; i < momentsIndices.size(); i++) {
@@ -193,6 +193,12 @@ void calculateDerivatives(
                      pow(center[fsgrids::moments::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex),
                      pow(right[fsgrids::moments::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex));
       }
+   };
+
+   auto computePerB = [&dPerB, &computeDerivative](auto component, const auto& right, const auto& left,
+                                                   const auto& center) {
+      dPerB[dperBIndices[component][0]] = computeDerivative(perBIndices[component][0], right, left, center);
+      dPerB[dperBIndices[component][1]] = computeDerivative(perBIndices[component][1], right, left, center);
    };
 
    // Calculate x-derivatives (is not TVD for AMR mesh):
@@ -224,21 +230,7 @@ void calculateDerivatives(
 #endif
 
    computeMoments(0, *rghtMoments, *leftMoments, *centMoments);
-
-   if (notSysBoundary) {
-      dPerB[fsgrids::dperb::dPERBydx] =
-          (rghtPerB->at(fsgrids::bfield::PERBY) - leftPerB->at(fsgrids::bfield::PERBY)) / 2;
-      dPerB[fsgrids::dperb::dPERBzdx] =
-          (rghtPerB->at(fsgrids::bfield::PERBZ) - leftPerB->at(fsgrids::bfield::PERBZ)) / 2;
-   } else {
-      dPerB[fsgrids::dperb::dPERBydx] =
-          limiter(leftPerB->at(fsgrids::bfield::PERBY), centPerB->at(fsgrids::bfield::PERBY),
-                  rghtPerB->at(fsgrids::bfield::PERBY));
-      dPerB[fsgrids::dperb::dPERBzdx] =
-          limiter(leftPerB->at(fsgrids::bfield::PERBZ), centPerB->at(fsgrids::bfield::PERBZ),
-                  rghtPerB->at(fsgrids::bfield::PERBZ));
-   }
-
+   computePerB(0, *rghtPerB, *leftPerB, *centPerB);
    computePresE(fsgrids::dmoments::dPedx, *rghtMoments, *leftMoments, *centMoments);
 
    if (dontCompute2ndDerivatives) {
@@ -266,21 +258,7 @@ void calculateDerivatives(
    }
 
    computeMoments(1, *rghtMoments, *leftMoments, *centMoments);
-
-   if (notSysBoundary) {
-      dPerB[fsgrids::dperb::dPERBxdy] =
-          (rghtPerB->at(fsgrids::bfield::PERBX) - leftPerB->at(fsgrids::bfield::PERBX)) / 2;
-      dPerB[fsgrids::dperb::dPERBzdy] =
-          (rghtPerB->at(fsgrids::bfield::PERBZ) - leftPerB->at(fsgrids::bfield::PERBZ)) / 2;
-   } else {
-      dPerB[fsgrids::dperb::dPERBxdy] =
-          limiter(leftPerB->at(fsgrids::bfield::PERBX), centPerB->at(fsgrids::bfield::PERBX),
-                  rghtPerB->at(fsgrids::bfield::PERBX));
-      dPerB[fsgrids::dperb::dPERBzdy] =
-          limiter(leftPerB->at(fsgrids::bfield::PERBZ), centPerB->at(fsgrids::bfield::PERBZ),
-                  rghtPerB->at(fsgrids::bfield::PERBZ));
-   }
-
+   computePerB(1, *rghtPerB, *leftPerB, *centPerB);
    computePresE(fsgrids::dmoments::dPedy, *rghtMoments, *leftMoments, *centMoments);
 
    if (dontCompute2ndDerivatives) {
@@ -308,21 +286,7 @@ void calculateDerivatives(
    }
 
    computeMoments(2, *rghtMoments, *leftMoments, *centMoments);
-
-   if (notSysBoundary) {
-      dPerB[fsgrids::dperb::dPERBxdz] =
-          (rghtPerB->at(fsgrids::bfield::PERBX) - leftPerB->at(fsgrids::bfield::PERBX)) / 2;
-      dPerB[fsgrids::dperb::dPERBydz] =
-          (rghtPerB->at(fsgrids::bfield::PERBY) - leftPerB->at(fsgrids::bfield::PERBY)) / 2;
-   } else {
-      dPerB[fsgrids::dperb::dPERBxdz] =
-          limiter(leftPerB->at(fsgrids::bfield::PERBX), centPerB->at(fsgrids::bfield::PERBX),
-                  rghtPerB->at(fsgrids::bfield::PERBX));
-      dPerB[fsgrids::dperb::dPERBydz] =
-          limiter(leftPerB->at(fsgrids::bfield::PERBY), centPerB->at(fsgrids::bfield::PERBY),
-                  rghtPerB->at(fsgrids::bfield::PERBY));
-   }
-
+   computePerB(2, *rghtPerB, *leftPerB, *centPerB);
    computePresE(fsgrids::dmoments::dPedz, *rghtMoments, *leftMoments, *centMoments);
 
    if (dontCompute2ndDerivatives) {
