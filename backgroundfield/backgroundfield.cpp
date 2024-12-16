@@ -20,12 +20,14 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+// clang-format off
 #include "backgroundfield.h"
 #include "../common.h"
 #include "../definitions.h"
 #include "../parameters.h"
 #include "cmath"
 #include "phiprof.hpp"
+// clang-format on
 
 // FieldFunction should be initialized
 void setBackgroundField(const FieldFunction& bgFunction,
