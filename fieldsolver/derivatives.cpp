@@ -551,93 +551,42 @@ void calculateBVOLDerivativesSimple(
  * \sa calculateDerivatives calculateBVOLDerivativesSimple calculateDerivativesSimple
  */
 
-void calculateCurvature(fsgrid::FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid,
-                        fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& bgbGrid,
-                        fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k) {
-   if (technicalGrid.get(i, j, k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY &&
-       technicalGrid.get(i, j, k)->sysBoundaryLayer != 1 && technicalGrid.get(i, j, k)->sysBoundaryLayer != 2) {
-      std::array<Real, fsgrids::volfields::N_VOL>* vol = volGrid.get(i, j, k);
-      std::array<Real, fsgrids::bgbfield::N_BGB>* bg = bgbGrid.get(i, j, k);
+void calculateCurvature(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol,
+                        std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                        const fsgrid::FsStencil& stencil, const std::array<Real, 3>& gridSpacing) {
+   auto compute = [&vol, &bgb](auto i) -> std::array<Real, 3> {
+      const auto& b = bgb[i];
+      const auto& v = vol[i];
+      const Real bx = b[fsgrids::bgbfield::BGBXVOL] + v[fsgrids::volfields::PERBXVOL];
+      const Real by = b[fsgrids::bgbfield::BGBYVOL] + v[fsgrids::volfields::PERBYVOL];
+      const Real bz = b[fsgrids::bgbfield::BGBZVOL] + v[fsgrids::volfields::PERBZVOL];
+      const Real bnorm = sqrt(bx * bx + by * by + bz * bz);
 
-      std::array<Real, fsgrids::volfields::N_VOL>* vol_left_x = volGrid.get(i - 1, j, k);
-      std::array<Real, fsgrids::volfields::N_VOL>* vol_rght_x = volGrid.get(i + 1, j, k);
-      std::array<Real, fsgrids::volfields::N_VOL>* vol_left_y = volGrid.get(i, j - 1, k);
-      std::array<Real, fsgrids::volfields::N_VOL>* vol_rght_y = volGrid.get(i, j + 1, k);
-      std::array<Real, fsgrids::volfields::N_VOL>* vol_left_z = volGrid.get(i, j, k - 1);
-      std::array<Real, fsgrids::volfields::N_VOL>* vol_rght_z = volGrid.get(i, j, k + 1);
-      std::array<Real, fsgrids::bgbfield::N_BGB>* bg_left_x = bgbGrid.get(i - 1, j, k);
-      std::array<Real, fsgrids::bgbfield::N_BGB>* bg_rght_x = bgbGrid.get(i + 1, j, k);
-      std::array<Real, fsgrids::bgbfield::N_BGB>* bg_left_y = bgbGrid.get(i, j - 1, k);
-      std::array<Real, fsgrids::bgbfield::N_BGB>* bg_rght_y = bgbGrid.get(i, j + 1, k);
-      std::array<Real, fsgrids::bgbfield::N_BGB>* bg_left_z = bgbGrid.get(i, j, k - 1);
-      std::array<Real, fsgrids::bgbfield::N_BGB>* bg_rght_z = bgbGrid.get(i, j, k + 1);
+      return {
+          bx / bnorm,
+          by / bnorm,
+          bz / bnorm,
+      };
+   };
 
-      Real bx = bg->at(fsgrids::bgbfield::BGBXVOL) + vol->at(fsgrids::volfields::PERBXVOL);
-      Real by = bg->at(fsgrids::bgbfield::BGBYVOL) + vol->at(fsgrids::volfields::PERBYVOL);
-      Real bz = bg->at(fsgrids::bgbfield::BGBZVOL) + vol->at(fsgrids::volfields::PERBZVOL);
-      creal bnorm = sqrt(bx * bx + by * by + bz * bz);
-      bx /= bnorm;
-      by /= bnorm;
-      bz /= bnorm;
-      Real left_x_bx = bg_left_x->at(fsgrids::bgbfield::BGBXVOL) + vol_left_x->at(fsgrids::volfields::PERBXVOL);
-      Real left_x_by = bg_left_x->at(fsgrids::bgbfield::BGBYVOL) + vol_left_x->at(fsgrids::volfields::PERBYVOL);
-      Real left_x_bz = bg_left_x->at(fsgrids::bgbfield::BGBZVOL) + vol_left_x->at(fsgrids::volfields::PERBZVOL);
-      creal left_x_bnorm = sqrt(left_x_bx * left_x_bx + left_x_by * left_x_by + left_x_bz * left_x_bz);
-      left_x_bx /= left_x_bnorm;
-      left_x_by /= left_x_bnorm;
-      left_x_bz /= left_x_bnorm;
+   const auto [bx, by, bz] = compute(stencil.center());
+   const auto [left_x_bx, left_x_by, left_x_bz] = compute(stencil.left());
+   const auto [rght_x_bx, rght_x_by, rght_x_bz] = compute(stencil.right());
+   const auto [left_y_bx, left_y_by, left_y_bz] = compute(stencil.down());
+   const auto [rght_y_bx, rght_y_by, rght_y_bz] = compute(stencil.up());
+   const auto [left_z_bx, left_z_by, left_z_bz] = compute(stencil.far());
+   const auto [rght_z_bx, rght_z_by, rght_z_bz] = compute(stencil.near());
 
-      Real rght_x_bx = bg_rght_x->at(fsgrids::bgbfield::BGBXVOL) + vol_rght_x->at(fsgrids::volfields::PERBXVOL);
-      Real rght_x_by = bg_rght_x->at(fsgrids::bgbfield::BGBYVOL) + vol_rght_x->at(fsgrids::volfields::PERBYVOL);
-      Real rght_x_bz = bg_rght_x->at(fsgrids::bgbfield::BGBZVOL) + vol_rght_x->at(fsgrids::volfields::PERBZVOL);
-      creal rght_x_bnorm = sqrt(rght_x_bx * rght_x_bx + rght_x_by * rght_x_by + rght_x_bz * rght_x_bz);
-      rght_x_bx /= rght_x_bnorm;
-      rght_x_by /= rght_x_bnorm;
-      rght_x_bz /= rght_x_bnorm;
-
-      Real left_y_bx = bg_left_y->at(fsgrids::bgbfield::BGBXVOL) + vol_left_y->at(fsgrids::volfields::PERBXVOL);
-      Real left_y_by = bg_left_y->at(fsgrids::bgbfield::BGBYVOL) + vol_left_y->at(fsgrids::volfields::PERBYVOL);
-      Real left_y_bz = bg_left_y->at(fsgrids::bgbfield::BGBZVOL) + vol_left_y->at(fsgrids::volfields::PERBZVOL);
-      creal left_y_bnorm = sqrt(left_y_bx * left_y_bx + left_y_by * left_y_by + left_y_bz * left_y_bz);
-      left_y_bx /= left_y_bnorm;
-      left_y_by /= left_y_bnorm;
-      left_y_bz /= left_y_bnorm;
-
-      Real rght_y_bx = bg_rght_y->at(fsgrids::bgbfield::BGBXVOL) + vol_rght_y->at(fsgrids::volfields::PERBXVOL);
-      Real rght_y_by = bg_rght_y->at(fsgrids::bgbfield::BGBYVOL) + vol_rght_y->at(fsgrids::volfields::PERBYVOL);
-      Real rght_y_bz = bg_rght_y->at(fsgrids::bgbfield::BGBZVOL) + vol_rght_y->at(fsgrids::volfields::PERBZVOL);
-      creal rght_y_bnorm = sqrt(rght_y_bx * rght_y_bx + rght_y_by * rght_y_by + rght_y_bz * rght_y_bz);
-      rght_y_bx /= rght_y_bnorm;
-      rght_y_by /= rght_y_bnorm;
-      rght_y_bz /= rght_y_bnorm;
-
-      Real left_z_bx = bg_left_z->at(fsgrids::bgbfield::BGBXVOL) + vol_left_z->at(fsgrids::volfields::PERBXVOL);
-      Real left_z_by = bg_left_z->at(fsgrids::bgbfield::BGBYVOL) + vol_left_z->at(fsgrids::volfields::PERBYVOL);
-      Real left_z_bz = bg_left_z->at(fsgrids::bgbfield::BGBZVOL) + vol_left_z->at(fsgrids::volfields::PERBZVOL);
-      creal left_z_bnorm = sqrt(left_z_bx * left_z_bx + left_z_by * left_z_by + left_z_bz * left_z_bz);
-      left_z_bx /= left_z_bnorm;
-      left_z_by /= left_z_bnorm;
-      left_z_bz /= left_z_bnorm;
-
-      Real rght_z_bx = bg_rght_z->at(fsgrids::bgbfield::BGBXVOL) + vol_rght_z->at(fsgrids::volfields::PERBXVOL);
-      Real rght_z_by = bg_rght_z->at(fsgrids::bgbfield::BGBYVOL) + vol_rght_z->at(fsgrids::volfields::PERBYVOL);
-      Real rght_z_bz = bg_rght_z->at(fsgrids::bgbfield::BGBZVOL) + vol_rght_z->at(fsgrids::volfields::PERBZVOL);
-      creal rght_z_bnorm = sqrt(rght_z_bx * rght_z_bx + rght_z_by * rght_z_by + rght_z_bz * rght_z_bz);
-      rght_z_bx /= rght_z_bnorm;
-      rght_z_by /= rght_z_bnorm;
-      rght_z_bz /= rght_z_bnorm;
-
-      const auto& gridSpacing = technicalGrid.getGridSpacing();
-      vol->at(fsgrids::volfields::CURVATUREX) = bx * 0.5 * (rght_x_bx - left_x_bx) / gridSpacing[0] +
-                                                by * 0.5 * (rght_y_bx - left_y_bx) / gridSpacing[1] +
-                                                bz * 0.5 * (rght_z_bx - left_z_bx) / gridSpacing[2];
-      vol->at(fsgrids::volfields::CURVATUREY) = bx * 0.5 * (rght_x_by - left_x_by) / gridSpacing[0] +
-                                                by * 0.5 * (rght_y_by - left_y_by) / gridSpacing[1] +
-                                                bz * 0.5 * (rght_z_by - left_z_by) / gridSpacing[2];
-      vol->at(fsgrids::volfields::CURVATUREZ) = bx * 0.5 * (rght_x_bz - left_x_bz) / gridSpacing[0] +
-                                                by * 0.5 * (rght_y_bz - left_y_bz) / gridSpacing[1] +
-                                                bz * 0.5 * (rght_z_bz - left_z_bz) / gridSpacing[2];
-   }
+   auto& volCenter = vol[stencil.center()];
+   volCenter[fsgrids::volfields::CURVATUREX] = bx * 0.5 * (rght_x_bx - left_x_bx) / gridSpacing[0] +
+                                               by * 0.5 * (rght_y_bx - left_y_bx) / gridSpacing[1] +
+                                               bz * 0.5 * (rght_z_bx - left_z_bx) / gridSpacing[2];
+   volCenter[fsgrids::volfields::CURVATUREY] = bx * 0.5 * (rght_x_by - left_x_by) / gridSpacing[0] +
+                                               by * 0.5 * (rght_y_by - left_y_by) / gridSpacing[1] +
+                                               bz * 0.5 * (rght_z_by - left_z_by) / gridSpacing[2];
+   volCenter[fsgrids::volfields::CURVATUREZ] = bx * 0.5 * (rght_x_bz - left_x_bz) / gridSpacing[0] +
+                                               by * 0.5 * (rght_y_bz - left_y_bz) / gridSpacing[1] +
+                                               bz * 0.5 * (rght_z_bz - left_z_bz) / gridSpacing[2];
 }
 
 /*! \brief High-level curvature calculation wrapper function.
@@ -652,8 +601,14 @@ void calculateCurvature(fsgrid::FsGrid<std::array<Real, fsgrids::volfields::N_VO
 void calculateCurvatureSimple(fsgrid::FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid,
                               fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& bgbGrid,
                               fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
+   const auto& gridSpacing = technicalGrid.getGridSpacing();
    const auto& localSize = technicalGrid.getLocalSize();
    const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
+
+   std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol = volGrid.getData();
+   std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb = bgbGrid.getData();
+   std::span<const fsgrids::technical> technical = technicalGrid.getData();
+
    phiprof::Timer curvatureTimer{"Calculate curvature"};
    int computeTimerId{phiprof::initializeTimer("Calculate curvature compute cells")};
 
@@ -668,11 +623,14 @@ void calculateCurvatureSimple(fsgrid::FsGrid<std::array<Real, fsgrids::volfields
       for (auto k = 0; k < localSize[2]; k++) {
          for (auto j = 0; j < localSize[1]; j++) {
             for (auto i = 0; i < localSize[0]; i++) {
-               if (technicalGrid.get(i, j, k)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
-                   technicalGrid.get(i, j, k)->sysBoundaryFlag == sysboundarytype::OUTER_BOUNDARY_PADDING) {
-                  continue;
+               const auto stencil = technicalGrid.makeStencil(i, j, k);
+               const auto& tech = technical[stencil.center()];
+
+               const bool compute = (tech.sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY &&
+                                     tech.sysBoundaryLayer != 1 && tech.sysBoundaryLayer != 2);
+               if (compute) {
+                  calculateCurvature(vol, bgb, stencil, gridSpacing);
                }
-               calculateCurvature(volGrid, bgbGrid, technicalGrid, i, j, k);
             }
          }
       }
