@@ -217,13 +217,14 @@ namespace projects {
       fsgrid::FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
       fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
    ) {
+      std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb = BgBGrid.getData();
       ConstantField bgField;
       bgField.initialize(this->B0 * cos(this->angleXY) * cos(this->angleXZ),
                          this->B0 * sin(this->angleXY) * cos(this->angleXZ),
                          this->B0 * sin(this->angleXZ));
-                         
-      setBackgroundField(bgField, BgBGrid);
-      
+
+      setBackgroundField(bgField, bgb, technicalGrid);
+
       if(!P::isRestart) {
          const auto localSize = BgBGrid.getLocalSize().data();
          

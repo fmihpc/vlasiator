@@ -30,13 +30,11 @@
 // clang-format on
 
 // FieldFunction should be initialized
-void setBackgroundField(const FieldFunction& bgFunction,
-                        fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-                        bool append) {
+void setBackgroundField(const FieldFunction& bgFunction, std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                        fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, bool append) {
    using namespace std::placeholders;
-   std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb = BgBGrid.getData();
-   const auto& localSize = BgBGrid.getLocalSize();
-   const auto& gridSpacing = BgBGrid.getGridSpacing();
+   const auto& localSize = technicalGrid.getLocalSize();
+   const auto& gridSpacing = technicalGrid.getGridSpacing();
 
    /*if we do not add a new background to the existing one we first put everything to zero*/
    if (append == false) {
@@ -70,9 +68,9 @@ void setBackgroundField(const FieldFunction& bgFunction,
       for (auto z = 0; z < localSize[2]; ++z) {
          for (auto y = 0; y < localSize[1]; ++y) {
             for (auto x = 0; x < localSize[0]; ++x) {
-
                phiprof::Timer loopTopTimer{loopTopId};
-               const auto start = BgBGrid.getPhysicalCoords(x, y, z);
+               const auto stencil = technicalGrid.makeStencil(x, y, z);
+               const auto start = technicalGrid.getPhysicalCoords(x, y, z);
                const std::array end = {
                    start[0] + gridSpacing[0],
                    start[1] + gridSpacing[1],
@@ -81,7 +79,7 @@ void setBackgroundField(const FieldFunction& bgFunction,
                loopTopTimer.stop();
 
                phiprof::Timer loopFaceTimer{loopFaceId};
-               auto& field = *BgBGrid.get(x, y, z);
+               auto& field = bgb[stencil.center()];
                // Face averages
                for (uint fComponent = 0; fComponent < 3; fComponent++) {
                   T3DFunction valueFunction =
