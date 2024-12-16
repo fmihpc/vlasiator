@@ -63,6 +63,7 @@ void calculateDerivatives(
    cuint sysBoundaryLayer = tech.sysBoundaryLayer;
    const bool notSysBoundary =
        sysBoundaryLayer == 1 || (sysBoundaryLayer == 2 && sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY);
+   const bool dontCompute2ndDerivatives = Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1;
 
    // Constants for electron pressure derivatives
    // Upstream pressure
@@ -131,15 +132,53 @@ void calculateDerivatives(
        fsgrids::moments::VY,
        fsgrids::moments::VZ,
    };
+
+   static constexpr std::array perBIndices = {
+       std::array {
+           fsgrids::bfield::PERBY,
+           fsgrids::bfield::PERBZ,
+       },
+       std::array {
+           fsgrids::bfield::PERBX,
+           fsgrids::bfield::PERBZ,
+       },
+       std::array {
+           fsgrids::bfield::PERBX,
+           fsgrids::bfield::PERBY,
+       },
+   };
+
+   static constexpr std::array dperBIndices = {
+       std::array {
+          fsgrids::dperb::dPERBydx,
+          fsgrids::dperb::dPERBzdx,
+          fsgrids::dperb::dPERBydxx,
+          fsgrids::dperb::dPERBzdxx,
+       },
+       std::array {
+          fsgrids::dperb::dPERBxdy,
+          fsgrids::dperb::dPERBzdy,
+          fsgrids::dperb::dPERBxdyy,
+          fsgrids::dperb::dPERBzdyy,
+       },
+       std::array {
+          fsgrids::dperb::dPERBxdz,
+          fsgrids::dperb::dPERBydz,
+          fsgrids::dperb::dPERBxdzz,
+          fsgrids::dperb::dPERBydzz,
+       },
+   };
    // clang-format on
 
-   auto computeMoments = [&shouldCalculateMoments, &dMoments, &notSysBoundary](auto component, const auto& right,
-                                                                               const auto& left, const auto& center) {
+   auto computeDerivative = [&notSysBoundary](const auto& i, const auto& right, const auto& left, const auto& center) {
+      return notSysBoundary ? 0.5 * (right[i] - left[i]) : limiter(left[i], center[i], right[i]);
+   };
+
+   auto computeMoments = [&shouldCalculateMoments, &dMoments, &notSysBoundary,
+                          &computeDerivative](auto component, const auto& right, const auto& left, const auto& center) {
       if (shouldCalculateMoments) {
          for (size_t i = 0; i < momentsIndices.size(); i++) {
-            dMoments[dmomentsIndices[component][i]] =
-                notSysBoundary ? 0.5 * (right[momentsIndices[i]] - left[momentsIndices[i]])
-                               : limiter(left[momentsIndices[i]], center[momentsIndices[i]], right[momentsIndices[i]]);
+            dMoments[dmomentsIndices[component][i]] = computeDerivative(momentsIndices[i], right, left, center);
          }
       }
    };
@@ -202,7 +241,7 @@ void calculateDerivatives(
 
    computePresE(fsgrids::dmoments::dPedx, *rghtMoments, *leftMoments, *centMoments);
 
-   if (Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1) {
+   if (dontCompute2ndDerivatives) {
       dPerB[fsgrids::dperb::dPERBydxx] = 0.0;
       dPerB[fsgrids::dperb::dPERBzdxx] = 0.0;
    } else {
@@ -244,7 +283,7 @@ void calculateDerivatives(
 
    computePresE(fsgrids::dmoments::dPedy, *rghtMoments, *leftMoments, *centMoments);
 
-   if (Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1) {
+   if (dontCompute2ndDerivatives) {
       dPerB[fsgrids::dperb::dPERBxdyy] = 0.0;
       dPerB[fsgrids::dperb::dPERBzdyy] = 0.0;
    } else {
@@ -286,7 +325,7 @@ void calculateDerivatives(
 
    computePresE(fsgrids::dmoments::dPedz, *rghtMoments, *leftMoments, *centMoments);
 
-   if (Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1) {
+   if (dontCompute2ndDerivatives) {
       dPerB[fsgrids::dperb::dPERBxdzz] = 0.0;
       dPerB[fsgrids::dperb::dPERBydzz] = 0.0;
    } else {
@@ -296,7 +335,7 @@ void calculateDerivatives(
                                          2.0 * centPerB->at(fsgrids::bfield::PERBY);
    }
 
-   if (Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1) {
+   if (dontCompute2ndDerivatives) {
       dPerB[fsgrids::dperb::dPERBxdyz] = 0.0;
       dPerB[fsgrids::dperb::dPERBydxz] = 0.0;
       dPerB[fsgrids::dperb::dPERBzdxy] = 0.0;
