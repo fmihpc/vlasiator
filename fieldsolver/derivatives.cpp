@@ -26,6 +26,7 @@
 #include "fs_common.h"
 #include "fs_limiters.h"
 #include <Eigen/Geometry>
+#include <span>
 
 /*! \brief Low-level spatial derivatives calculation.
  *
@@ -54,9 +55,17 @@ void calculateDerivatives(
     fsgrid::FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
     fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, const bool shouldCalculateMoments) {
-   std::array<Real, fsgrids::dperb::N_DPERB>& dPerB = *dPerBGrid.get(i, j, k);
-   std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dMoments = *dMomentsGrid.get(i, j, k);
-   const auto& tech = *technicalGrid.get(i, j, k);
+
+   std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb;
+   std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments;
+   std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb;
+   std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments;
+   std::span<const fsgrids::technical> technical;
+   const auto stencil = technicalGrid.makeStencil(i, j, k);
+
+   std::array<Real, fsgrids::dperb::N_DPERB>& dPerB = dperb[stencil.center()];
+   std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dMoments = dmoments[stencil.center()];
+   const auto& tech = technical[stencil.center()];
 
    // Get boundary flag for the cell:
    cuint sysBoundaryFlag = tech.sysBoundaryFlag;
@@ -159,16 +168,16 @@ void calculateDerivatives(
 
    const std::array cellIndices = {
        std::array {
-           std::array {i - 1, j, k},
-           std::array {i + 1, j, k},
+           stencil.left(),
+           stencil.right(),
        },
        std::array {
-           std::array {i, j - 1, k},
-           std::array {i, j + 1, k},
+           stencil.down(),
+           stencil.up(),
        },
        std::array {
-           std::array {i, j, k - 1},
-           std::array {i, j, k + 1},
+           stencil.far(),
+           stencil.near(),
        },
    };
    // clang-format on
@@ -215,7 +224,7 @@ void calculateDerivatives(
    };
 
    // Compute moments
-   const std::array<Real, fsgrids::moments::N_MOMENTS>& centerMoments = *momentsGrid.get(i, j, k);
+   const std::array<Real, fsgrids::moments::N_MOMENTS>& centerMoments = moments[stencil.center()];
 #ifdef DEBUG_SOLVERS
    {
       const auto& cv = centerMoments[fsgrids::moments::RHOM];
@@ -228,16 +237,9 @@ void calculateDerivatives(
 #endif
 
    for (auto component = 0; component < 3; component++) {
-      const auto& inds = cellIndices[component];
-
-      const auto& li = inds[0];
-      auto ptr = momentsGrid.get(li[0], li[1], li[2]);
-      const auto& left = ptr ? *ptr : centerMoments;
-
-      const auto& ri = inds[1];
-      ptr = momentsGrid.get(ri[0], ri[1], ri[2]);
-      const auto& right = ptr ? *ptr : centerMoments;
-
+      const auto& ci = cellIndices[component];
+      const auto& left = moments[ci[0]];
+      const auto& right = moments[ci[1]];
 #ifdef DEBUG_SOLVERS
       {
          const auto& lv = left[fsgrids::moments::RHOM];
@@ -261,18 +263,11 @@ void calculateDerivatives(
    }
 
    // Compute perb
-   const std::array<Real, fsgrids::bfield::N_BFIELD>& centerPerB = *perBGrid.get(i, j, k);
+   const std::array<Real, fsgrids::bfield::N_BFIELD>& centerPerB = perb[stencil.center()];
    for (auto component = 0; component < 3; component++) {
-      const auto& inds = cellIndices[component];
-
-      const auto& li = inds[0];
-      auto ptr = perBGrid.get(li[0], li[1], li[2]);
-      const auto& left = ptr ? *ptr : centerPerB;
-
-      const auto& ri = inds[1];
-      ptr = perBGrid.get(ri[0], ri[1], ri[2]);
-      const auto& right = ptr ? *ptr : centerPerB;
-
+      const auto& ci = cellIndices[component];
+      const auto& left = perb[ci[0]];
+      const auto& right = perb[ci[1]];
       computePerB(component, right, left, centerPerB);
    }
 
@@ -284,22 +279,22 @@ void calculateDerivatives(
       // clang-format off
       const std::array cellIndices = {
           std::array {
-              std::array { i - 1, j - 1, k },
-              std::array { i + 1, j - 1, k },
-              std::array { i - 1, j + 1, k },
-              std::array { i + 1, j + 1, k },
+              stencil.leftdown(),
+              stencil.rightdown(),
+              stencil.leftup(),
+              stencil.rightup(),
           },
           std::array {
-              std::array { i - 1, j, k - 1 },
-              std::array { i + 1, j, k - 1 },
-              std::array { i - 1, j, k + 1 },
-              std::array { i + 1, j, k + 1 },
+              stencil.leftfar(),
+              stencil.rightfar(),
+              stencil.leftnear(),
+              stencil.rightnear(),
           },
           std::array {
-              std::array { i, j - 1, k - 1 },
-              std::array { i, j + 1, k - 1 },
-              std::array { i, j - 1, k + 1 },
-              std::array { i, j + 1, k + 1 },
+              stencil.downfar(),
+              stencil.upfar(),
+              stencil.downnear(),
+              stencil.upnear(),
           },
       };
       // clang-format on
@@ -318,10 +313,10 @@ void calculateDerivatives(
 
       for (size_t component = 0; component < dPerBIndices.size(); component++) {
          const auto& ci = cellIndices[component];
-         const auto& botLeft = *perBGrid.get(ci[0][0], ci[0][1], ci[0][2]);
-         const auto& botRght = *perBGrid.get(ci[1][0], ci[1][1], ci[1][2]);
-         const auto& topLeft = *perBGrid.get(ci[2][0], ci[2][1], ci[2][2]);
-         const auto& topRght = *perBGrid.get(ci[3][0], ci[3][1], ci[3][2]);
+         const auto& botLeft = perb[ci[0]];
+         const auto& botRght = perb[ci[1]];
+         const auto& topLeft = perb[ci[2]];
+         const auto& topRght = perb[ci[3]];
 
          const auto& i = dPerBIndices[component];
          const auto& j = perBIndices[component];
