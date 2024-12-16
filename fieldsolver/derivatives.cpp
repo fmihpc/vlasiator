@@ -70,14 +70,6 @@ void calculateDerivatives(
    const Real Peupstream = Parameters::electronTemperature * Parameters::electronDensity * physicalconstants::K_B;
    const Real Peconst = Peupstream * pow(Parameters::electronDensity, -Parameters::electronPTindex);
 
-   std::array<Real, fsgrids::bfield::N_BFIELD>* leftPerB = NULL;
-   std::array<Real, fsgrids::bfield::N_BFIELD>* centPerB = perBGrid.get(i, j, k);
-   std::array<Real, fsgrids::bfield::N_BFIELD>* rghtPerB = NULL;
-   std::array<Real, fsgrids::bfield::N_BFIELD>* botLeft = NULL;
-   std::array<Real, fsgrids::bfield::N_BFIELD>* botRght = NULL;
-   std::array<Real, fsgrids::bfield::N_BFIELD>* topLeft = NULL;
-   std::array<Real, fsgrids::bfield::N_BFIELD>* topRght = NULL;
-
    // clang-format off
    static constexpr std::array<std::array<fsgrids::dmoments, 8>, 3> dmomentsIndices = {
        std::array {
@@ -223,12 +215,15 @@ void calculateDerivatives(
    };
 
    // Compute moments
-   const std::array<Real, fsgrids::moments::N_MOMENTS>& center = *momentsGrid.get(i, j, k);
+   const std::array<Real, fsgrids::moments::N_MOMENTS>& centerMoments = *momentsGrid.get(i, j, k);
 #ifdef DEBUG_SOLVERS
-   if (centMoments->at(fsgrids::moments::RHOM) <= 0) {
-      std::cerr << __FILE__ << ":" << __LINE__ << (centMoments->at(fsgrids::moments::RHOM) < 0 ? " Negative" : " Zero")
-                << " density in spatial cell at (" << i << " " << j << " " << k << ")" << std::endl;
-      abort();
+   {
+      const auto& cv = centerMoments[fsgrids::moments::RHOM];
+      if (cv <= 0) {
+         std::cerr << __FILE__ << ":" << __LINE__ << (cv < 0 ? " Negative" : " Zero") << " density in spatial cell at ("
+                   << i << " " << j << " " << k << ")" << std::endl;
+         abort();
+      }
    }
 #endif
    for (auto component = 0; component < 3; component++) {
@@ -236,71 +231,60 @@ void calculateDerivatives(
 
       const auto& li = inds[0];
       auto ptr = momentsGrid.get(li[0], li[1], li[2]);
-      const auto& left = ptr ? *ptr : center;
+      const auto& left = ptr ? *ptr : centerMoments;
 
       const auto& ri = inds[1];
       ptr = momentsGrid.get(ri[0], ri[1], ri[2]);
-      const auto& right = ptr ? *ptr : center;
+      const auto& right = ptr ? *ptr : centerMoments;
 
-      computeMoments(component, right, left, center);
-      computePresE(component, right, left, center);
-   }
-
-   // Calculate x-derivatives (is not TVD for AMR mesh):
-   leftPerB = perBGrid.get(i - 1, j, k);
-   rghtPerB = perBGrid.get(i + 1, j, k);
-   if (leftPerB == NULL) {
-      leftPerB = centPerB;
-   }
-   if (rghtPerB == NULL) {
-      rghtPerB = centPerB;
-   }
 #ifdef DEBUG_SOLVERS
-   if (leftMoments->at(fsgrids::moments::RHOM) <= 0) {
-      std::cerr << __FILE__ << ":" << __LINE__ << (leftMoments->at(fsgrids::moments::RHOM) < 0 ? " Negative" : " Zero")
-                << " density in spatial cell " //<< leftNbrID
-                << std::endl;
-      abort();
-   }
-   if (rghtMoments->at(fsgrids::moments::RHOM) <= 0) {
-      std::cerr << __FILE__ << ":" << __LINE__ << (rghtMoments->at(fsgrids::moments::RHOM) < 0 ? " Negative" : " Zero")
-                << " density in spatial cell " //<< rightNbrID
-                << std::endl;
-      abort();
-   }
+      {
+         const auto& lv = left[fsgrids::moments::RHOM];
+         if (lv <= 0) {
+            std::cerr << __FILE__ << ":" << __LINE__ << (lv < 0 ? " Negative" : " Zero") << " density in spatial cell"
+                      << std::endl;
+            abort();
+         }
+
+         const auto& rv = right[fsgrids::moments::RHOM];
+         if (rv <= 0) {
+            std::cerr << __FILE__ << ":" << __LINE__ << (rv < 0 ? " Negative" : " Zero") << " density in spatial cell"
+                      << std::endl;
+            abort();
+         }
+      }
 #endif
 
-   computePerB(0, *rghtPerB, *leftPerB, *centPerB);
-
-   // Calculate y-derivatives (is not TVD for AMR mesh):
-   leftPerB = perBGrid.get(i, j - 1, k);
-   rghtPerB = perBGrid.get(i, j + 1, k);
-   if (leftPerB == NULL) {
-      leftPerB = centPerB;
-   }
-   if (rghtPerB == NULL) {
-      rghtPerB = centPerB;
+      computeMoments(component, right, left, centerMoments);
+      computePresE(component, right, left, centerMoments);
    }
 
-   computePerB(1, *rghtPerB, *leftPerB, *centPerB);
+   // Compute perb
+   const std::array<Real, fsgrids::bfield::N_BFIELD>& centerPerB = *perBGrid.get(i, j, k);
+   for (auto component = 0; component < 3; component++) {
+      const auto& inds = cellIndices[component];
 
-   // Calculate z-derivatives (is not TVD for AMR mesh):
-   leftPerB = perBGrid.get(i, j, k - 1);
-   rghtPerB = perBGrid.get(i, j, k + 1);
-   if (leftPerB == NULL) {
-      leftPerB = centPerB;
-   }
-   if (rghtPerB == NULL) {
-      rghtPerB = centPerB;
-   }
+      const auto& li = inds[0];
+      auto ptr = perBGrid.get(li[0], li[1], li[2]);
+      const auto& left = ptr ? *ptr : centerPerB;
 
-   computePerB(2, *rghtPerB, *leftPerB, *centPerB);
+      const auto& ri = inds[1];
+      ptr = perBGrid.get(ri[0], ri[1], ri[2]);
+      const auto& right = ptr ? *ptr : centerPerB;
+
+      computePerB(component, right, left, centerPerB);
+   }
 
    if (dontCompute2ndDerivatives) {
       dPerB[fsgrids::dperb::dPERBxdyz] = 0.0;
       dPerB[fsgrids::dperb::dPERBydxz] = 0.0;
       dPerB[fsgrids::dperb::dPERBzdxy] = 0.0;
    } else if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+      std::array<Real, fsgrids::bfield::N_BFIELD>* botLeft = NULL;
+      std::array<Real, fsgrids::bfield::N_BFIELD>* botRght = NULL;
+      std::array<Real, fsgrids::bfield::N_BFIELD>* topLeft = NULL;
+      std::array<Real, fsgrids::bfield::N_BFIELD>* topRght = NULL;
+
       // Calculate xy mixed derivatives:
       botLeft = perBGrid.get(i - 1, j - 1, k);
       botRght = perBGrid.get(i + 1, j - 1, k);
