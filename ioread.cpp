@@ -861,8 +861,9 @@ bool readCellParamsVariable(vlsv::ParallelReader& file, const vector<CellID>& fi
  */
 template <unsigned long int N>
 bool readFsGridVariable(vlsv::ParallelReader& file, const string& variableName, int numWritingRanks,
+                        fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
                         fsgrid::FsGrid<std::array<Real, N>, FS_STENCIL_WIDTH>& targetGrid) {
-
+   std::span<std::array<Real, N>> targetData = targetGrid.getData();
    phiprof::Timer preparations{"preparations"};
 
    uint64_t arraySize;
@@ -895,9 +896,9 @@ bool readFsGridVariable(vlsv::ParallelReader& file, const string& variableName, 
    MPI_Comm_size(MPI_COMM_WORLD, &size);
    MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
 
-   const auto& localSize = targetGrid.getLocalSize();
-   const auto& localStart = targetGrid.getLocalStart();
-   const auto& globalSize = targetGrid.getGlobalSize();
+   const auto& localSize = technicalGrid.getLocalSize();
+   const auto& localStart = technicalGrid.getLocalStart();
+   const auto& globalSize = technicalGrid.getGlobalSize();
 
    // Determine our tasks storage size
    size_t storageSize = localSize[0] * localSize[1] * localSize[2];
@@ -928,8 +929,7 @@ bool readFsGridVariable(vlsv::ParallelReader& file, const string& variableName, 
       }
    }
 
-   const auto& decomposition = targetGrid.getDecomposition();
-   // targetGrid.computeDomainDecomposition(globalSize, size, decomposition);
+   const auto& decomposition = technicalGrid.getDecomposition();
 
    if (decomposition == fileDecomposition) {
       // Easy case: same decomposition => slurp it in.
@@ -957,10 +957,11 @@ bool readFsGridVariable(vlsv::ParallelReader& file, const string& variableName, 
 
       // Assign buffer into fsgrid
       int index = 0;
-      for (fsgrid::FsIndex_t z = 0; z < localSize[2]; z++) {
-         for (fsgrid::FsIndex_t y = 0; y < localSize[1]; y++) {
-            for (fsgrid::FsIndex_t x = 0; x < localSize[0]; x++) {
-               memcpy(targetGrid.get(x, y, z), &buffer[index], N * sizeof(Real));
+      for (auto z = 0; z < localSize[2]; z++) {
+         for (auto y = 0; y < localSize[1]; y++) {
+            for (auto x = 0; x < localSize[0]; x++) {
+               const auto stencil = technicalGrid.makeStencil(x, y, z);
+               memcpy(targetData[stencil.center()].data(), &buffer[index], N * sizeof(Real));
                index += N;
             }
          }
@@ -1053,14 +1054,16 @@ bool readFsGridVariable(vlsv::ParallelReader& file, const string& variableName, 
             }
 
             // Copy continuous stripes in x direction.
-            for (fsgrid::FsIndex_t z = overlapStart[2]; z < overlapEnd[2]; z++) {
-               for (fsgrid::FsIndex_t y = overlapStart[1]; y < overlapEnd[1]; y++) {
-                  for (fsgrid::FsIndex_t x = overlapStart[0]; x < overlapEnd[0]; x++) {
-                     fsgrid::FsIndex_t index = (z - thatTasksStart[2]) * thatTasksSize[0] * thatTasksSize[1] +
-                                               (y - thatTasksStart[1]) * thatTasksSize[0] + (x - thatTasksStart[0]);
+            for (auto z = overlapStart[2]; z < overlapEnd[2]; z++) {
+               for (auto y = overlapStart[1]; y < overlapEnd[1]; y++) {
+                  for (auto x = overlapStart[0]; x < overlapEnd[0]; x++) {
+                     const auto stencil = technicalGrid.makeStencil(x, y, z);
+                     const fsgrid::FsIndex_t index = (z - thatTasksStart[2]) * thatTasksSize[0] * thatTasksSize[1] +
+                                                     (y - thatTasksStart[1]) * thatTasksSize[0] +
+                                                     (x - thatTasksStart[0]);
 
-                     memcpy(targetGrid.get(x - localStart[0], y - localStart[1], z - localStart[2]), &buffer[index * N],
-                            N * sizeof(Real));
+                     memcpy(targetData[stencil.indexFromOffset(-localStart[0], -localStart[1], -localStart[2])].data(),
+                            &buffer[index * N], N * sizeof(Real));
                   }
                }
             }
@@ -1420,10 +1423,10 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid
    tReadScalarParameter.stop();
 
    if (success) {
-      success = readFsGridVariable(file, "fg_PERB", fsgridInputRanks, perBGrid);
+      success = readFsGridVariable(file, "fg_PERB", fsgridInputRanks, technicalGrid, perBGrid);
    }
    if (success) {
-      success = readFsGridVariable(file, "fg_E", fsgridInputRanks, EGrid);
+      success = readFsGridVariable(file, "fg_E", fsgridInputRanks, technicalGrid, EGrid);
    }
    exitOnError(success, "(RESTART) Failure reading fsgrid restart variables", MPI_COMM_WORLD);
    readfsTimer.stop();
