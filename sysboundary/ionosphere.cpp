@@ -1123,6 +1123,8 @@ void SphericalTriGrid::mapDownBoundaryData(
     fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
     fsgrid::FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid,
     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
+   std::span<fsgrids::technical> technical = technicalGrid.getData();
+   std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments = momentsGrid.getData();
 
    if (!isCouplingInwards && !isCouplingOutwards) {
       return;
@@ -1150,7 +1152,7 @@ void SphericalTriGrid::mapDownBoundaryData(
          }
 
          // Local cell
-         std::array<fsgrid::FsIndex_t, 3> lfsc = getLocalFsGridCellIndexForCoord(technicalGrid, nodes[n].xMapped);
+         auto lfsc = getLocalFsGridCellIndexForCoord(technicalGrid, nodes[n].xMapped);
          if (lfsc[0] == -1 || lfsc[1] == -1 || lfsc[2] == -1) {
             continue;
          }
@@ -1211,10 +1213,12 @@ void SphericalTriGrid::mapDownBoundaryData(
          }
 
          // Linearly interpolate neighbourhood
+         const auto stencil = technicalGrid.makeStencil(lfsc[0], lfsc[1], lfsc[2]);
          Real couplingSum = 0;
          for (int xoffset : {0, 1}) {
             for (int yoffset : {0, 1}) {
                for (int zoffset : {0, 1}) {
+                  const auto index = stencil.indexFromOffset(xoffset, yoffset, zoffset);
 
                   Real coupling =
                       (1. - abs(xoffset - frac[0])) * (1. - abs(yoffset - frac[1])) * (1. - abs(zoffset - frac[2]));
@@ -1224,23 +1228,18 @@ void SphericalTriGrid::mapDownBoundaryData(
                   }
 
                   // Only couple to actual simulation cells
-                  if (technicalGrid.get(lfsc[0] + xoffset, lfsc[1] + yoffset, lfsc[2] + zoffset)->sysBoundaryFlag ==
-                      sysboundarytype::NOT_SYSBOUNDARY) {
+                  if (technical[index].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
                      couplingSum += coupling;
                   } else {
                      continue;
                   }
 
                   // Map density, temperature down
-                  Real thisCellRho =
-                      momentsGrid.get(lfsc[0] + xoffset, lfsc[1] + yoffset, lfsc[2] + zoffset)->at(fsgrids::RHOQ) /
-                      physicalconstants::CHARGE;
+                  Real thisCellRho = moments[index].at(fsgrids::RHOQ) / physicalconstants::CHARGE;
                   rhoInput[n] += coupling * thisCellRho;
                   temperatureInput[n] +=
                       coupling * 1. / 3. *
-                      (momentsGrid.get(lfsc[0] + xoffset, lfsc[1] + yoffset, lfsc[2] + zoffset)->at(fsgrids::P_11) +
-                       momentsGrid.get(lfsc[0] + xoffset, lfsc[1] + yoffset, lfsc[2] + zoffset)->at(fsgrids::P_22) +
-                       momentsGrid.get(lfsc[0] + xoffset, lfsc[1] + yoffset, lfsc[2] + zoffset)->at(fsgrids::P_33)) /
+                      (moments[index][fsgrids::P_11] + moments[index][fsgrids::P_22] + moments[index][fsgrids::P_33]) /
                       (thisCellRho * physicalconstants::K_B * ion_electron_T_ratio);
                }
             }
