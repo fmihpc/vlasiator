@@ -73,9 +73,9 @@ template<typename T> inline T superbee(const T& left,const T& cent,const T& righ
 }
 
 template<typename T> inline T vanLeer(const T& left,const T& cent,const T& right) {
-   constexpr T EPSILON = std::numeric_limits<T>::min();
-   constexpr T ZERO = 0.0;
-   constexpr T TWO = 2.0;
+   static constexpr T EPSILON = std::numeric_limits<T>::min();
+   static constexpr T ZERO = 0.0;
+   static constexpr T TWO = 2.0;
 
    const T numerator = std::max((right - cent) * (cent - left), ZERO);
    const T denumerator = right - left;
