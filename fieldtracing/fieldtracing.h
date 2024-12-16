@@ -158,6 +158,7 @@ bool traceFullFieldFunction(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_B
                             fsgrid::FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
                             fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, std::array<REAL, 3>& r,
                             const bool alongB, std::array<REAL, 3>& b) {
+   std::span<fsgrids::technical> technical = technicalGrid.getData();
    if (r[0] > P::xmax - 2 * P::dx_ini || r[0] < P::xmin + 2 * P::dx_ini || r[1] > P::ymax - 2 * P::dy_ini ||
        r[1] < P::ymin + 2 * P::dy_ini || r[2] > P::zmax - 2 * P::dz_ini || r[2] < P::zmin + 2 * P::dz_ini) {
       cerr << (string)("(fieldtracing) Error: fsgrid coupling trying to step outside of the global domain?\n");
@@ -190,8 +191,8 @@ bool traceFullFieldFunction(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_B
       abort();
       return false;
    } else {
-      if (technicalGrid.get(fsgridCell[0], fsgridCell[1], fsgridCell[2])->sysBoundaryFlag ==
-          sysboundarytype::NOT_SYSBOUNDARY) {
+      const auto stencil = technicalGrid.makeStencil(fsgridCell[0], fsgridCell[1], fsgridCell[2]);
+      if (technical[stencil.center()].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
          const std::array<Real, 3> perB = interpolatePerturbedB(
              perBGrid, dPerBGrid, technicalGrid, fieldTracingParameters.reconstructionCoefficientsCache, fsgridCell[0],
              fsgridCell[1], fsgridCell[2], {(Real)r[0], (Real)r[1], (Real)r[2]});
