@@ -195,10 +195,20 @@ void calculateDerivatives(
       }
    };
 
-   auto computePerB = [&dPerB, &computeDerivative](auto component, const auto& right, const auto& left,
-                                                   const auto& center) {
-      dPerB[dperBIndices[component][0]] = computeDerivative(perBIndices[component][0], right, left, center);
-      dPerB[dperBIndices[component][1]] = computeDerivative(perBIndices[component][1], right, left, center);
+   auto computePerB = [&dPerB, &computeDerivative, &dontCompute2ndDerivatives](auto component, const auto& right,
+                                                                               const auto& left, const auto& center) {
+      for (auto i = 0; i < 2; i++) {
+         const auto j = dperBIndices[component][i];
+         const auto k = perBIndices[component][i];
+         dPerB[j] = computeDerivative(k, right, left, center);
+      }
+
+      for (auto i = 0; i < 2; i++) {
+         const auto j = dperBIndices[component][i + 2];
+         const auto k = perBIndices[component][i];
+
+         dPerB[j] = dontCompute2ndDerivatives ? 0.0 : left[k] + right[k] - 2.0 * center[k];
+      }
    };
 
    // Calculate x-derivatives (is not TVD for AMR mesh):
@@ -233,16 +243,6 @@ void calculateDerivatives(
    computePerB(0, *rghtPerB, *leftPerB, *centPerB);
    computePresE(fsgrids::dmoments::dPedx, *rghtMoments, *leftMoments, *centMoments);
 
-   if (dontCompute2ndDerivatives) {
-      dPerB[fsgrids::dperb::dPERBydxx] = 0.0;
-      dPerB[fsgrids::dperb::dPERBzdxx] = 0.0;
-   } else {
-      dPerB[fsgrids::dperb::dPERBydxx] = leftPerB->at(fsgrids::bfield::PERBY) + rghtPerB->at(fsgrids::bfield::PERBY) -
-                                         2.0 * centPerB->at(fsgrids::bfield::PERBY);
-      dPerB[fsgrids::dperb::dPERBzdxx] = leftPerB->at(fsgrids::bfield::PERBZ) + rghtPerB->at(fsgrids::bfield::PERBZ) -
-                                         2.0 * centPerB->at(fsgrids::bfield::PERBZ);
-   }
-
    // Calculate y-derivatives (is not TVD for AMR mesh):
    leftPerB = perBGrid.get(i, j - 1, k);
    rghtPerB = perBGrid.get(i, j + 1, k);
@@ -261,16 +261,6 @@ void calculateDerivatives(
    computePerB(1, *rghtPerB, *leftPerB, *centPerB);
    computePresE(fsgrids::dmoments::dPedy, *rghtMoments, *leftMoments, *centMoments);
 
-   if (dontCompute2ndDerivatives) {
-      dPerB[fsgrids::dperb::dPERBxdyy] = 0.0;
-      dPerB[fsgrids::dperb::dPERBzdyy] = 0.0;
-   } else {
-      dPerB[fsgrids::dperb::dPERBxdyy] = leftPerB->at(fsgrids::bfield::PERBX) + rghtPerB->at(fsgrids::bfield::PERBX) -
-                                         2.0 * centPerB->at(fsgrids::bfield::PERBX);
-      dPerB[fsgrids::dperb::dPERBzdyy] = leftPerB->at(fsgrids::bfield::PERBZ) + rghtPerB->at(fsgrids::bfield::PERBZ) -
-                                         2.0 * centPerB->at(fsgrids::bfield::PERBZ);
-   }
-
    // Calculate z-derivatives (is not TVD for AMR mesh):
    leftPerB = perBGrid.get(i, j, k - 1);
    rghtPerB = perBGrid.get(i, j, k + 1);
@@ -288,16 +278,6 @@ void calculateDerivatives(
    computeMoments(2, *rghtMoments, *leftMoments, *centMoments);
    computePerB(2, *rghtPerB, *leftPerB, *centPerB);
    computePresE(fsgrids::dmoments::dPedz, *rghtMoments, *leftMoments, *centMoments);
-
-   if (dontCompute2ndDerivatives) {
-      dPerB[fsgrids::dperb::dPERBxdzz] = 0.0;
-      dPerB[fsgrids::dperb::dPERBydzz] = 0.0;
-   } else {
-      dPerB[fsgrids::dperb::dPERBxdzz] = leftPerB->at(fsgrids::bfield::PERBX) + rghtPerB->at(fsgrids::bfield::PERBX) -
-                                         2.0 * centPerB->at(fsgrids::bfield::PERBX);
-      dPerB[fsgrids::dperb::dPERBydzz] = leftPerB->at(fsgrids::bfield::PERBY) + rghtPerB->at(fsgrids::bfield::PERBY) -
-                                         2.0 * centPerB->at(fsgrids::bfield::PERBY);
-   }
 
    if (dontCompute2ndDerivatives) {
       dPerB[fsgrids::dperb::dPERBxdyz] = 0.0;
