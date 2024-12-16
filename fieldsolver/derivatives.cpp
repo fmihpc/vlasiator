@@ -113,25 +113,43 @@ void calculateDerivatives(
    }
 #endif
 
-   if (sysBoundaryLayer == 1 || (sysBoundaryLayer == 2 && sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)) {
+   // clang-format off
+   static constexpr std::array<std::array<fsgrids::dmoments, 8>, 1> dmomentsIndices = {
+       std::array{
+           fsgrids::dmoments::drhomdx,
+           fsgrids::dmoments::drhoqdx,
+           fsgrids::dmoments::dp11dx,
+           fsgrids::dmoments::dp22dx,
+           fsgrids::dmoments::dp33dx,
+           fsgrids::dmoments::dVxdx,
+           fsgrids::dmoments::dVydx,
+           fsgrids::dmoments::dVzdx
+       },
+   };
+
+   static constexpr std::array momentsIndices = {
+       fsgrids::moments::RHOM,
+       fsgrids::moments::RHOQ,
+       fsgrids::moments::P_11,
+       fsgrids::moments::P_22,
+       fsgrids::moments::P_33,
+       fsgrids::moments::VX,
+       fsgrids::moments::VY,
+       fsgrids::moments::VZ,
+   };
+   // clang-format on
+
+   auto fooMoments = [&calculateMoments, &dMoments](auto component, const auto& right, const auto& left) {
       if (calculateMoments) {
-         dMoments[fsgrids::dmoments::drhomdx] =
-             (rghtMoments->at(fsgrids::moments::RHOM) - leftMoments->at(fsgrids::moments::RHOM)) / 2;
-         dMoments[fsgrids::dmoments::drhoqdx] =
-             (rghtMoments->at(fsgrids::moments::RHOQ) - leftMoments->at(fsgrids::moments::RHOQ)) / 2;
-         dMoments[fsgrids::dmoments::dp11dx] =
-             (rghtMoments->at(fsgrids::moments::P_11) - leftMoments->at(fsgrids::moments::P_11)) / 2;
-         dMoments[fsgrids::dmoments::dp22dx] =
-             (rghtMoments->at(fsgrids::moments::P_22) - leftMoments->at(fsgrids::moments::P_22)) / 2;
-         dMoments[fsgrids::dmoments::dp33dx] =
-             (rghtMoments->at(fsgrids::moments::P_33) - leftMoments->at(fsgrids::moments::P_33)) / 2;
-         dMoments[fsgrids::dmoments::dVxdx] =
-             (rghtMoments->at(fsgrids::moments::VX) - leftMoments->at(fsgrids::moments::VX)) / 2;
-         dMoments[fsgrids::dmoments::dVydx] =
-             (rghtMoments->at(fsgrids::moments::VY) - leftMoments->at(fsgrids::moments::VY)) / 2;
-         dMoments[fsgrids::dmoments::dVzdx] =
-             (rghtMoments->at(fsgrids::moments::VZ) - leftMoments->at(fsgrids::moments::VZ)) / 2;
+         for (size_t i = 0; i < momentsIndices.size(); i++) {
+            dMoments[dmomentsIndices[component][i]] = 0.5 * (right[momentsIndices[i]] - left[momentsIndices[i]]);
+         }
       }
+   };
+
+   if (sysBoundaryLayer == 1 || (sysBoundaryLayer == 2 && sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)) {
+      fooMoments(0, *rghtMoments, *leftMoments);
+
       dPerB[fsgrids::dperb::dPERBydx] =
           (rghtPerB->at(fsgrids::bfield::PERBY) - leftPerB->at(fsgrids::bfield::PERBY)) / 2;
       dPerB[fsgrids::dperb::dPERBzdx] =
