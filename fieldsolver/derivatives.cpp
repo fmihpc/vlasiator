@@ -28,6 +28,10 @@
 #include <Eigen/Geometry>
 #include <span>
 
+auto computeDerivative(bool notSysBoundary, const auto& i, const auto& right, const auto& left, const auto& center) {
+   return notSysBoundary ? 0.5 * (right[i] - left[i]) : limiter(left[i], center[i], right[i]);
+};
+
 /*! \brief Low-level spatial derivatives calculation.
  *
  * For the cell with ID cellID calculate the spatial derivatives or apply the derivative boundary conditions defined in
@@ -174,15 +178,12 @@ void calculateDerivatives(std::span<const std::array<Real, fsgrids::bfield::N_BF
    };
    // clang-format on
 
-   auto computeDerivative = [&notSysBoundary](const auto& i, const auto& right, const auto& left, const auto& center) {
-      return notSysBoundary ? 0.5 * (right[i] - left[i]) : limiter(left[i], center[i], right[i]);
-   };
-
-   auto computeMoments = [&shouldCalculateMoments, &dMoments,
-                          &computeDerivative](auto component, const auto& right, const auto& left, const auto& center) {
+   auto computeMoments = [&shouldCalculateMoments, &dMoments, &notSysBoundary](auto component, const auto& right,
+                                                                               const auto& left, const auto& center) {
       if (shouldCalculateMoments) {
          for (size_t i = 0; i < momentsIndices.size(); i++) {
-            dMoments[dmomentsIndices[component][i]] = computeDerivative(momentsIndices[i], right, left, center);
+            dMoments[dmomentsIndices[component][i]] =
+                computeDerivative(notSysBoundary, momentsIndices[i], right, left, center);
          }
       }
    };
@@ -199,12 +200,12 @@ void calculateDerivatives(std::span<const std::array<Real, fsgrids::bfield::N_BF
       }
    };
 
-   auto computePerB = [&dPerB, &computeDerivative, &dontCompute2ndDerivatives](auto component, const auto& right,
-                                                                               const auto& left, const auto& center) {
+   auto computePerB = [&dPerB, &notSysBoundary, &dontCompute2ndDerivatives](auto component, const auto& right,
+                                                                            const auto& left, const auto& center) {
       for (auto i = 0; i < 2; i++) {
          const auto j = dPerBIndices[component][i];
          const auto k = perBIndices[component][i];
-         dPerB[j] = computeDerivative(k, right, left, center);
+         dPerB[j] = computeDerivative(notSysBoundary, k, right, left, center);
       }
 
       for (auto i = 0; i < 2; i++) {
@@ -425,107 +426,68 @@ void calculateDerivativesSimple(
  * \sa calculateDerivatives calculateBVOLDerivativesSimple calculateDerivativesSimple
  */
 
-void calculateBVOLDerivatives(fsgrid::FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid,
-                              fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j,
-                              cint k) {
-   std::array<Real, fsgrids::volfields::N_VOL>* array = volGrid.get(i, j, k);
+void calculateBVOLDerivatives(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol,
+                              std::span<const fsgrids::technical> technical, const fsgrid::FsStencil& stencil) {
+   auto& center = vol[stencil.center()];
+   const auto& tech = technical[stencil.center()];
 
-   std::array<Real, fsgrids::volfields::N_VOL>* left = NULL;
-   std::array<Real, fsgrids::volfields::N_VOL>* rght = NULL;
-
-   cuint sysBoundaryFlag = technicalGrid.get(i, j, k)->sysBoundaryFlag;
-   cuint sysBoundaryLayer = technicalGrid.get(i, j, k)->sysBoundaryLayer;
+   cuint sysBoundaryFlag = tech.sysBoundaryFlag;
+   cuint sysBoundaryLayer = tech.sysBoundaryLayer;
    const bool notSysBoundary =
        sysBoundaryLayer == 1 || (sysBoundaryLayer == 2 && sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY);
 
-   // Calculate x-derivatives (is not TVD for AMR mesh):
-   left = volGrid.get(i - 1, j, k);
-   rght = volGrid.get(i + 1, j, k);
+   // clang-format off
+   static constexpr std::array<std::array<fsgrids::volfields, 3>, 3> dvolIndices = {
+       std::array {
+           fsgrids::volfields::dPERBXVOLdx,
+           fsgrids::volfields::dPERBYVOLdx,
+           fsgrids::volfields::dPERBZVOLdx,
+       },
+       std::array {
+           fsgrids::volfields::dPERBXVOLdy,
+           fsgrids::volfields::dPERBYVOLdy,
+           fsgrids::volfields::dPERBZVOLdy,
+       },
+       std::array {
+           fsgrids::volfields::dPERBXVOLdz,
+           fsgrids::volfields::dPERBYVOLdz,
+           fsgrids::volfields::dPERBZVOLdz,
+       },
+   };
 
-   if (left == NULL) {
-      left = array;
-   }
-   if (rght == NULL) {
-      rght = array;
-   }
+   static constexpr std::array volIndices = {
+       fsgrids::volfields::PERBXVOL,
+       fsgrids::volfields::PERBYVOL,
+       fsgrids::volfields::PERBZVOL,
+   };
 
-   if (notSysBoundary) {
-      array->at(fsgrids::volfields::dPERBXVOLdx) =
-          (rght->at(fsgrids::volfields::PERBXVOL) - left->at(fsgrids::volfields::PERBXVOL)) / 2;
-      array->at(fsgrids::volfields::dPERBYVOLdx) =
-          (rght->at(fsgrids::volfields::PERBYVOL) - left->at(fsgrids::volfields::PERBYVOL)) / 2;
-      array->at(fsgrids::volfields::dPERBZVOLdx) =
-          (rght->at(fsgrids::volfields::PERBZVOL) - left->at(fsgrids::volfields::PERBZVOL)) / 2;
-   } else {
-      array->at(fsgrids::volfields::dPERBXVOLdx) =
-          limiter(left->at(fsgrids::volfields::PERBXVOL), array->at(fsgrids::volfields::PERBXVOL),
-                  rght->at(fsgrids::volfields::PERBXVOL));
-      array->at(fsgrids::volfields::dPERBYVOLdx) =
-          limiter(left->at(fsgrids::volfields::PERBYVOL), array->at(fsgrids::volfields::PERBYVOL),
-                  rght->at(fsgrids::volfields::PERBYVOL));
-      array->at(fsgrids::volfields::dPERBZVOLdx) =
-          limiter(left->at(fsgrids::volfields::PERBZVOL), array->at(fsgrids::volfields::PERBZVOL),
-                  rght->at(fsgrids::volfields::PERBZVOL));
-   }
+   const std::array cellIndices = {
+       std::array {
+           stencil.left(),
+           stencil.right(),
+       },
+       std::array {
+           stencil.down(),
+           stencil.up(),
+       },
+       std::array {
+           stencil.far(),
+           stencil.near(),
+       },
+   };
+   // clang-format on
 
-   // Calculate y-derivatives (is not TVD for AMR mesh):
-   left = volGrid.get(i, j - 1, k);
-   rght = volGrid.get(i, j + 1, k);
+   auto computeVols = [&notSysBoundary](auto component, const auto& right, const auto& left, auto& center) {
+      for (size_t i = 0; i < volIndices.size(); i++) {
+         center[dvolIndices[component][i]] = computeDerivative(notSysBoundary, volIndices[i], right, left, center);
+      }
+   };
 
-   if (left == NULL) {
-      left = array;
-   }
-   if (rght == NULL) {
-      rght = array;
-   }
-
-   if (notSysBoundary) {
-      array->at(fsgrids::volfields::dPERBXVOLdy) =
-          (rght->at(fsgrids::volfields::PERBXVOL) - left->at(fsgrids::volfields::PERBXVOL)) / 2;
-      array->at(fsgrids::volfields::dPERBYVOLdy) =
-          (rght->at(fsgrids::volfields::PERBYVOL) - left->at(fsgrids::volfields::PERBYVOL)) / 2;
-      array->at(fsgrids::volfields::dPERBZVOLdy) =
-          (rght->at(fsgrids::volfields::PERBZVOL) - left->at(fsgrids::volfields::PERBZVOL)) / 2;
-   } else {
-      array->at(fsgrids::volfields::dPERBXVOLdy) =
-          limiter(left->at(fsgrids::volfields::PERBXVOL), array->at(fsgrids::volfields::PERBXVOL),
-                  rght->at(fsgrids::volfields::PERBXVOL));
-      array->at(fsgrids::volfields::dPERBYVOLdy) =
-          limiter(left->at(fsgrids::volfields::PERBYVOL), array->at(fsgrids::volfields::PERBYVOL),
-                  rght->at(fsgrids::volfields::PERBYVOL));
-      array->at(fsgrids::volfields::dPERBZVOLdy) =
-          limiter(left->at(fsgrids::volfields::PERBZVOL), array->at(fsgrids::volfields::PERBZVOL),
-                  rght->at(fsgrids::volfields::PERBZVOL));
-   }
-
-   // Calculate z-derivatives (is not TVD for AMR mesh):
-   left = volGrid.get(i, j, k - 1);
-   rght = volGrid.get(i, j, k + 1);
-
-   if (left == NULL) {
-      left = array;
-   }
-   if (rght == NULL) {
-      rght = array;
-   }
-
-   if (notSysBoundary) {
-      array->at(fsgrids::volfields::dPERBXVOLdz) =
-          (rght->at(fsgrids::volfields::PERBXVOL) - left->at(fsgrids::volfields::PERBXVOL)) / 2;
-      array->at(fsgrids::volfields::dPERBYVOLdz) =
-          (rght->at(fsgrids::volfields::PERBYVOL) - left->at(fsgrids::volfields::PERBYVOL)) / 2;
-      array->at(fsgrids::volfields::dPERBZVOLdz) =
-          (rght->at(fsgrids::volfields::PERBZVOL) - left->at(fsgrids::volfields::PERBZVOL)) / 2;
-   } else {
-      array->at(fsgrids::volfields::dPERBXVOLdz) =
-          limiter(left->at(fsgrids::volfields::PERBXVOL), array->at(fsgrids::volfields::PERBXVOL),
-                  rght->at(fsgrids::volfields::PERBXVOL));
-      array->at(fsgrids::volfields::dPERBYVOLdz) =
-          limiter(left->at(fsgrids::volfields::PERBYVOL), array->at(fsgrids::volfields::PERBYVOL),
-                  rght->at(fsgrids::volfields::PERBYVOL));
-      array->at(fsgrids::volfields::dPERBZVOLdz) =
-          limiter(left->at(fsgrids::volfields::PERBZVOL), array->at(fsgrids::volfields::PERBZVOL),
-                  rght->at(fsgrids::volfields::PERBZVOL));
+   for (auto component = 0; component < 3; component++) {
+      const auto& ci = cellIndices[component];
+      const auto& left = vol[ci[0]];
+      const auto& right = vol[ci[1]];
+      computeVols(component, right, left, center);
    }
 }
 
@@ -545,6 +507,10 @@ void calculateBVOLDerivativesSimple(
     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
    const auto& localSize = technicalGrid.getLocalSize();
    const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
+
+   std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol = volGrid.getData();
+   std::span<const fsgrids::technical> technical = technicalGrid.getData();
+
    phiprof::Timer derivsTimer{"Calculate volume derivatives"};
    int computeTimerId{phiprof::initializeTimer("FS derivatives BVOL compute cells")};
 
@@ -560,7 +526,8 @@ void calculateBVOLDerivativesSimple(
       for (auto k = 0; k < localSize[2]; k++) {
          for (auto j = 0; j < localSize[1]; j++) {
             for (auto i = 0; i < localSize[0]; i++) {
-               calculateBVOLDerivatives(volGrid, technicalGrid, i, j, k);
+               const auto stencil = technicalGrid.makeStencil(i, j, k);
+               calculateBVOLDerivatives(vol, technical, stencil);
             }
          }
       }
