@@ -56,10 +56,11 @@ void calculateDerivatives(
     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, const bool calculateMoments) {
    std::array<Real, fsgrids::dperb::N_DPERB>& dPerB = *dPerBGrid.get(i, j, k);
    std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dMoments = *dMomentsGrid.get(i, j, k);
+   const auto& tech = *technicalGrid.get(i, j, k);
 
    // Get boundary flag for the cell:
-   cuint sysBoundaryFlag = technicalGrid.get(i, j, k)->sysBoundaryFlag;
-   cuint sysBoundaryLayer = technicalGrid.get(i, j, k)->sysBoundaryLayer;
+   cuint sysBoundaryFlag = tech.sysBoundaryFlag;
+   cuint sysBoundaryLayer = tech.sysBoundaryLayer;
 
    // Constants for electron pressure derivatives
    // Upstream pressure
