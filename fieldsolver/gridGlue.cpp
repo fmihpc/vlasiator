@@ -132,6 +132,7 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>&
                            const std::vector<CellID>& cells,
                            fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
                            fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, bool dt2 /*=false*/) {
+   std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments = momentsGrid.getData();
 
    int ii;
    // sorted list of dccrg cells. cells is typicall already sorted, but just to make sure....
@@ -201,9 +202,9 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>&
       for (auto const& cell : receives.second) {          // loop over cellids (dccrg) for receive
          // this part heavily relies on both sender and receiver having cellids sorted!
          for (auto lid : onFsgridMapCellsGlobal[cell]) {
-            std::array<Real, fsgrids::moments::N_MOMENTS>* fsgridData = momentsGrid.get(lid);
+            auto& moment = moments[static_cast<size_t>(lid)];
             for (int l = 0; l < fsgrids::moments::N_MOMENTS; l++) {
-               fsgridData->at(l) = receiveBuffer[l];
+               moment[l] = receiveBuffer[l];
             }
          }
 
