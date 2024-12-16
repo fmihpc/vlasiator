@@ -5,6 +5,7 @@
 #include "../spatial_cells/spatial_cell_wrapper.hpp"
 #include <dccrg.hpp>
 #include <dccrg_cartesian_geometry.hpp>
+#include <span>
 
 // Datastructure for coupling
 std::map<int, std::set<CellID>> onDccrgMapRemoteProcessGlobal;
@@ -230,6 +231,13 @@ void getFieldsFromFsGrid(
     dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const std::vector<CellID>& cells) {
    // TODO: solver only needs bgb + PERB, we could combine them
 
+   std::span<const std::array<Real, fsgrids::volfields::N_VOL>> volumefields = volumeFieldsGrid.getData();
+   std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb = BgBGrid.getData();
+   std::span<const std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe = EGradPeGrid.getData();
+   std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments = dMomentsGrid.getData();
+   std::span<const fsgrids::technical> technical = technicalGrid.getData();
+   const auto& gridSpacing = technicalGrid.getGridSpacing();
+
    struct Average {
       Real sums[N_FIELDSTOCOMMUNICATE];
       int cells;
@@ -292,7 +300,7 @@ void getFieldsFromFsGrid(
          auto const& fsgridCells = onFsgridMapCellsGlobal[dccrgCell];
          for (auto const fsgridCell : fsgridCells) {
             // loop over fsgrid cells for which we compute the average that is sent to dccrgCell on rank remoteRank
-            if (technicalGrid.get(fsgridCell)->sysBoundaryFlag == sysboundarytype::OUTER_BOUNDARY_PADDING) {
+            if (technical[fsgridCell].sysBoundaryFlag == sysboundarytype::OUTER_BOUNDARY_PADDING) {
                // We skip boundary padding cells on the outer boundaries here,
                // because their fields anyway don't contribute anything
                // meaningful (as there are never properly updated).
@@ -302,64 +310,54 @@ void getFieldsFromFsGrid(
                // cell's DCCRG volume averages.
                continue;
             }
-            std::array<Real, fsgrids::volfields::N_VOL>* volcell = volumeFieldsGrid.get(fsgridCell);
-            std::array<Real, fsgrids::bgbfield::N_BGB>* bgcell = BgBGrid.get(fsgridCell);
-            std::array<Real, fsgrids::egradpe::N_EGRADPE>* egradpecell = EGradPeGrid.get(fsgridCell);
-            std::array<Real, fsgrids::dmoments::N_DMOMENTS>* dMomentscell = dMomentsGrid.get(fsgridCell);
-            const auto& gridSpacing = technicalGrid.getGridSpacing();
+            const std::array<Real, fsgrids::volfields::N_VOL>& volcell = volumefields[fsgridCell];
+            const std::array<Real, fsgrids::bgbfield::N_BGB>& bgcell = bgb[fsgridCell];
+            const std::array<Real, fsgrids::egradpe::N_EGRADPE>& egradpecell = egradpe[fsgridCell];
+            const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dMomentscell = dmoments[fsgridCell];
 
             // TODO consider pruning these and communicating only when required
-            sendBuffer[ii].sums[FieldsToCommunicate::PERBXVOL] += volcell->at(fsgrids::volfields::PERBXVOL);
-            sendBuffer[ii].sums[FieldsToCommunicate::PERBYVOL] += volcell->at(fsgrids::volfields::PERBYVOL);
-            sendBuffer[ii].sums[FieldsToCommunicate::PERBZVOL] += volcell->at(fsgrids::volfields::PERBZVOL);
+            sendBuffer[ii].sums[FieldsToCommunicate::PERBXVOL] += volcell[fsgrids::volfields::PERBXVOL];
+            sendBuffer[ii].sums[FieldsToCommunicate::PERBYVOL] += volcell[fsgrids::volfields::PERBYVOL];
+            sendBuffer[ii].sums[FieldsToCommunicate::PERBZVOL] += volcell[fsgrids::volfields::PERBZVOL];
             sendBuffer[ii].sums[FieldsToCommunicate::dPERBXVOLdx] +=
-                volcell->at(fsgrids::volfields::dPERBXVOLdx) / gridSpacing[0];
+                volcell[fsgrids::volfields::dPERBXVOLdx] / gridSpacing[0];
             sendBuffer[ii].sums[FieldsToCommunicate::dPERBXVOLdy] +=
-                volcell->at(fsgrids::volfields::dPERBXVOLdy) / gridSpacing[1];
+                volcell[fsgrids::volfields::dPERBXVOLdy] / gridSpacing[1];
             sendBuffer[ii].sums[FieldsToCommunicate::dPERBXVOLdz] +=
-                volcell->at(fsgrids::volfields::dPERBXVOLdz) / gridSpacing[2];
+                volcell[fsgrids::volfields::dPERBXVOLdz] / gridSpacing[2];
             sendBuffer[ii].sums[FieldsToCommunicate::dPERBYVOLdx] +=
-                volcell->at(fsgrids::volfields::dPERBYVOLdx) / gridSpacing[0];
+                volcell[fsgrids::volfields::dPERBYVOLdx] / gridSpacing[0];
             sendBuffer[ii].sums[FieldsToCommunicate::dPERBYVOLdy] +=
-                volcell->at(fsgrids::volfields::dPERBYVOLdy) / gridSpacing[1];
+                volcell[fsgrids::volfields::dPERBYVOLdy] / gridSpacing[1];
             sendBuffer[ii].sums[FieldsToCommunicate::dPERBYVOLdz] +=
-                volcell->at(fsgrids::volfields::dPERBYVOLdz) / gridSpacing[2];
+                volcell[fsgrids::volfields::dPERBYVOLdz] / gridSpacing[2];
             sendBuffer[ii].sums[FieldsToCommunicate::dPERBZVOLdx] +=
-                volcell->at(fsgrids::volfields::dPERBZVOLdx) / gridSpacing[0];
+                volcell[fsgrids::volfields::dPERBZVOLdx] / gridSpacing[0];
             sendBuffer[ii].sums[FieldsToCommunicate::dPERBZVOLdy] +=
-                volcell->at(fsgrids::volfields::dPERBZVOLdy) / gridSpacing[1];
+                volcell[fsgrids::volfields::dPERBZVOLdy] / gridSpacing[1];
             sendBuffer[ii].sums[FieldsToCommunicate::dPERBZVOLdz] +=
-                volcell->at(fsgrids::volfields::dPERBZVOLdz) / gridSpacing[2];
-            sendBuffer[ii].sums[FieldsToCommunicate::dVxdx] +=
-                dMomentscell->at(fsgrids::dmoments::dVxdx) / gridSpacing[0];
-            sendBuffer[ii].sums[FieldsToCommunicate::dVxdy] +=
-                dMomentscell->at(fsgrids::dmoments::dVxdy) / gridSpacing[1];
-            sendBuffer[ii].sums[FieldsToCommunicate::dVxdz] +=
-                dMomentscell->at(fsgrids::dmoments::dVxdz) / gridSpacing[2];
-            sendBuffer[ii].sums[FieldsToCommunicate::dVydx] +=
-                dMomentscell->at(fsgrids::dmoments::dVydx) / gridSpacing[0];
-            sendBuffer[ii].sums[FieldsToCommunicate::dVydy] +=
-                dMomentscell->at(fsgrids::dmoments::dVydy) / gridSpacing[1];
-            sendBuffer[ii].sums[FieldsToCommunicate::dVydz] +=
-                dMomentscell->at(fsgrids::dmoments::dVydz) / gridSpacing[2];
-            sendBuffer[ii].sums[FieldsToCommunicate::dVzdx] +=
-                dMomentscell->at(fsgrids::dmoments::dVzdx) / gridSpacing[0];
-            sendBuffer[ii].sums[FieldsToCommunicate::dVzdy] +=
-                dMomentscell->at(fsgrids::dmoments::dVzdy) / gridSpacing[1];
-            sendBuffer[ii].sums[FieldsToCommunicate::dVzdz] +=
-                dMomentscell->at(fsgrids::dmoments::dVzdz) / gridSpacing[2];
-            sendBuffer[ii].sums[FieldsToCommunicate::BGBXVOL] += bgcell->at(fsgrids::bgbfield::BGBXVOL);
-            sendBuffer[ii].sums[FieldsToCommunicate::BGBYVOL] += bgcell->at(fsgrids::bgbfield::BGBYVOL);
-            sendBuffer[ii].sums[FieldsToCommunicate::BGBZVOL] += bgcell->at(fsgrids::bgbfield::BGBZVOL);
-            sendBuffer[ii].sums[FieldsToCommunicate::EXGRADPE] += egradpecell->at(fsgrids::egradpe::EXGRADPE);
-            sendBuffer[ii].sums[FieldsToCommunicate::EYGRADPE] += egradpecell->at(fsgrids::egradpe::EYGRADPE);
-            sendBuffer[ii].sums[FieldsToCommunicate::EZGRADPE] += egradpecell->at(fsgrids::egradpe::EZGRADPE);
-            sendBuffer[ii].sums[FieldsToCommunicate::EXVOL] += volcell->at(fsgrids::volfields::EXVOL);
-            sendBuffer[ii].sums[FieldsToCommunicate::EYVOL] += volcell->at(fsgrids::volfields::EYVOL);
-            sendBuffer[ii].sums[FieldsToCommunicate::EZVOL] += volcell->at(fsgrids::volfields::EZVOL);
-            sendBuffer[ii].sums[FieldsToCommunicate::CURVATUREX] += volcell->at(fsgrids::volfields::CURVATUREX);
-            sendBuffer[ii].sums[FieldsToCommunicate::CURVATUREY] += volcell->at(fsgrids::volfields::CURVATUREY);
-            sendBuffer[ii].sums[FieldsToCommunicate::CURVATUREZ] += volcell->at(fsgrids::volfields::CURVATUREZ);
+                volcell[fsgrids::volfields::dPERBZVOLdz] / gridSpacing[2];
+            sendBuffer[ii].sums[FieldsToCommunicate::dVxdx] += dMomentscell[fsgrids::dmoments::dVxdx] / gridSpacing[0];
+            sendBuffer[ii].sums[FieldsToCommunicate::dVxdy] += dMomentscell[fsgrids::dmoments::dVxdy] / gridSpacing[1];
+            sendBuffer[ii].sums[FieldsToCommunicate::dVxdz] += dMomentscell[fsgrids::dmoments::dVxdz] / gridSpacing[2];
+            sendBuffer[ii].sums[FieldsToCommunicate::dVydx] += dMomentscell[fsgrids::dmoments::dVydx] / gridSpacing[0];
+            sendBuffer[ii].sums[FieldsToCommunicate::dVydy] += dMomentscell[fsgrids::dmoments::dVydy] / gridSpacing[1];
+            sendBuffer[ii].sums[FieldsToCommunicate::dVydz] += dMomentscell[fsgrids::dmoments::dVydz] / gridSpacing[2];
+            sendBuffer[ii].sums[FieldsToCommunicate::dVzdx] += dMomentscell[fsgrids::dmoments::dVzdx] / gridSpacing[0];
+            sendBuffer[ii].sums[FieldsToCommunicate::dVzdy] += dMomentscell[fsgrids::dmoments::dVzdy] / gridSpacing[1];
+            sendBuffer[ii].sums[FieldsToCommunicate::dVzdz] += dMomentscell[fsgrids::dmoments::dVzdz] / gridSpacing[2];
+            sendBuffer[ii].sums[FieldsToCommunicate::BGBXVOL] += bgcell[fsgrids::bgbfield::BGBXVOL];
+            sendBuffer[ii].sums[FieldsToCommunicate::BGBYVOL] += bgcell[fsgrids::bgbfield::BGBYVOL];
+            sendBuffer[ii].sums[FieldsToCommunicate::BGBZVOL] += bgcell[fsgrids::bgbfield::BGBZVOL];
+            sendBuffer[ii].sums[FieldsToCommunicate::EXGRADPE] += egradpecell[fsgrids::egradpe::EXGRADPE];
+            sendBuffer[ii].sums[FieldsToCommunicate::EYGRADPE] += egradpecell[fsgrids::egradpe::EYGRADPE];
+            sendBuffer[ii].sums[FieldsToCommunicate::EZGRADPE] += egradpecell[fsgrids::egradpe::EZGRADPE];
+            sendBuffer[ii].sums[FieldsToCommunicate::EXVOL] += volcell[fsgrids::volfields::EXVOL];
+            sendBuffer[ii].sums[FieldsToCommunicate::EYVOL] += volcell[fsgrids::volfields::EYVOL];
+            sendBuffer[ii].sums[FieldsToCommunicate::EZVOL] += volcell[fsgrids::volfields::EZVOL];
+            sendBuffer[ii].sums[FieldsToCommunicate::CURVATUREX] += volcell[fsgrids::volfields::CURVATUREX];
+            sendBuffer[ii].sums[FieldsToCommunicate::CURVATUREY] += volcell[fsgrids::volfields::CURVATUREY];
+            sendBuffer[ii].sums[FieldsToCommunicate::CURVATUREZ] += volcell[fsgrids::volfields::CURVATUREZ];
             sendBuffer[ii].cells++;
          }
          ii++;
@@ -534,7 +532,7 @@ std::vector<CellID> mapDccrgIdToFsGridGlobalID(dccrg::Dccrg<SpatialCell, dccrg::
 void feedBoundaryIntoFsGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                             const std::vector<CellID>& cells,
                             fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
-
+   std::span<const fsgrids::technical> technical = technicalGrid.getData();
    int ii;
    // sorted list of dccrg cells. cells is typicall already sorted, but just to make sure....
    std::vector<CellID> dccrgCells = cells;
@@ -585,7 +583,7 @@ void feedBoundaryIntoFsGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>
          // this part heavily relies on both sender and receiver having cellids sorted!
          for (auto lid : onFsgridMapCellsGlobal[cell]) {
             // Now save the values to face-averages
-            technicalGrid.get(lid)->sysBoundaryFlag = receiveBuffer[0];
+            technical[lid].sysBoundaryFlag = receiveBuffer[0];
          }
 
          receiveBuffer++;
