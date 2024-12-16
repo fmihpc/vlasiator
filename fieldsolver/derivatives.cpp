@@ -66,8 +66,8 @@ void calculateDerivatives(
 
    // Constants for electron pressure derivatives
    // Upstream pressure
-   Real Peupstream = Parameters::electronTemperature * Parameters::electronDensity * physicalconstants::K_B;
-   Real Peconst = Peupstream * pow(Parameters::electronDensity, -Parameters::electronPTindex);
+   const Real Peupstream = Parameters::electronTemperature * Parameters::electronDensity * physicalconstants::K_B;
+   const Real Peconst = Peupstream * pow(Parameters::electronDensity, -Parameters::electronPTindex);
 
    std::array<Real, fsgrids::moments::N_MOMENTS>* leftMoments = NULL;
    std::array<Real, fsgrids::bfield::N_BFIELD>* leftPerB = NULL;
@@ -86,34 +86,6 @@ void calculateDerivatives(
    std::array<Real, fsgrids::bfield::N_BFIELD>* botRght = NULL;
    std::array<Real, fsgrids::bfield::N_BFIELD>* topLeft = NULL;
    std::array<Real, fsgrids::bfield::N_BFIELD>* topRght = NULL;
-
-   // Calculate x-derivatives (is not TVD for AMR mesh):
-   leftPerB = perBGrid.get(i - 1, j, k);
-   rghtPerB = perBGrid.get(i + 1, j, k);
-   leftMoments = momentsGrid.get(i - 1, j, k);
-   rghtMoments = momentsGrid.get(i + 1, j, k);
-   if (leftPerB == NULL) {
-      leftPerB = centPerB;
-      leftMoments = centMoments;
-   }
-   if (rghtPerB == NULL) {
-      rghtPerB = centPerB;
-      rghtMoments = centMoments;
-   }
-#ifdef DEBUG_SOLVERS
-   if (leftMoments->at(fsgrids::moments::RHOM) <= 0) {
-      std::cerr << __FILE__ << ":" << __LINE__ << (leftMoments->at(fsgrids::moments::RHOM) < 0 ? " Negative" : " Zero")
-                << " density in spatial cell " //<< leftNbrID
-                << std::endl;
-      abort();
-   }
-   if (rghtMoments->at(fsgrids::moments::RHOM) <= 0) {
-      std::cerr << __FILE__ << ":" << __LINE__ << (rghtMoments->at(fsgrids::moments::RHOM) < 0 ? " Negative" : " Zero")
-                << " density in spatial cell " //<< rightNbrID
-                << std::endl;
-      abort();
-   }
-#endif
 
    // clang-format off
    static constexpr std::array<std::array<fsgrids::dmoments, 8>, 3> dmomentsIndices = {
@@ -172,6 +144,46 @@ void calculateDerivatives(
       }
    };
 
+   auto computePresE = [&shouldCalculateMoments, &dMoments, &Peconst](auto component, const auto& right,
+                                                                      const auto& left, const auto& center) {
+      if (shouldCalculateMoments) {
+         // pres_e = const * np.power(rho_e, index)
+         dMoments[component] =
+             Peconst *
+             limiter(pow(left[fsgrids::moments::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex),
+                     pow(center[fsgrids::moments::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex),
+                     pow(right[fsgrids::moments::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex));
+      }
+   };
+
+   // Calculate x-derivatives (is not TVD for AMR mesh):
+   leftPerB = perBGrid.get(i - 1, j, k);
+   rghtPerB = perBGrid.get(i + 1, j, k);
+   leftMoments = momentsGrid.get(i - 1, j, k);
+   rghtMoments = momentsGrid.get(i + 1, j, k);
+   if (leftPerB == NULL) {
+      leftPerB = centPerB;
+      leftMoments = centMoments;
+   }
+   if (rghtPerB == NULL) {
+      rghtPerB = centPerB;
+      rghtMoments = centMoments;
+   }
+#ifdef DEBUG_SOLVERS
+   if (leftMoments->at(fsgrids::moments::RHOM) <= 0) {
+      std::cerr << __FILE__ << ":" << __LINE__ << (leftMoments->at(fsgrids::moments::RHOM) < 0 ? " Negative" : " Zero")
+                << " density in spatial cell " //<< leftNbrID
+                << std::endl;
+      abort();
+   }
+   if (rghtMoments->at(fsgrids::moments::RHOM) <= 0) {
+      std::cerr << __FILE__ << ":" << __LINE__ << (rghtMoments->at(fsgrids::moments::RHOM) < 0 ? " Negative" : " Zero")
+                << " density in spatial cell " //<< rightNbrID
+                << std::endl;
+      abort();
+   }
+#endif
+
    computeMoments(0, *rghtMoments, *leftMoments, *centMoments);
 
    if (notSysBoundary) {
@@ -188,15 +200,7 @@ void calculateDerivatives(
                   rghtPerB->at(fsgrids::bfield::PERBZ));
    }
 
-   if (shouldCalculateMoments) {
-      // pres_e = const * np.power(rho_e, index)
-      dMoments[fsgrids::dmoments::dPedx] =
-          Peconst *
-          limiter(
-              pow(leftMoments->at(fsgrids::moments::RHOQ) / physicalconstants::CHARGE, Parameters::electronPTindex),
-              pow(centMoments->at(fsgrids::moments::RHOQ) / physicalconstants::CHARGE, Parameters::electronPTindex),
-              pow(rghtMoments->at(fsgrids::moments::RHOQ) / physicalconstants::CHARGE, Parameters::electronPTindex));
-   }
+   computePresE(fsgrids::dmoments::dPedx, *rghtMoments, *leftMoments, *centMoments);
 
    if (Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1) {
       dPerB[fsgrids::dperb::dPERBydxx] = 0.0;
@@ -238,15 +242,7 @@ void calculateDerivatives(
                   rghtPerB->at(fsgrids::bfield::PERBZ));
    }
 
-   if (shouldCalculateMoments) {
-      // pres_e = const * np.power(rho_e, index)
-      dMoments[fsgrids::dmoments::dPedy] =
-          Peconst *
-          limiter(
-              pow(leftMoments->at(fsgrids::moments::RHOQ) / physicalconstants::CHARGE, Parameters::electronPTindex),
-              pow(centMoments->at(fsgrids::moments::RHOQ) / physicalconstants::CHARGE, Parameters::electronPTindex),
-              pow(rghtMoments->at(fsgrids::moments::RHOQ) / physicalconstants::CHARGE, Parameters::electronPTindex));
-   }
+   computePresE(fsgrids::dmoments::dPedy, *rghtMoments, *leftMoments, *centMoments);
 
    if (Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1) {
       dPerB[fsgrids::dperb::dPERBxdyy] = 0.0;
@@ -288,15 +284,7 @@ void calculateDerivatives(
                   rghtPerB->at(fsgrids::bfield::PERBY));
    }
 
-   if (shouldCalculateMoments) {
-      // pres_e = const * np.power(rho_e, index)
-      dMoments[fsgrids::dmoments::dPedz] =
-          Peconst *
-          limiter(
-              pow(leftMoments->at(fsgrids::moments::RHOQ) / physicalconstants::CHARGE, Parameters::electronPTindex),
-              pow(centMoments->at(fsgrids::moments::RHOQ) / physicalconstants::CHARGE, Parameters::electronPTindex),
-              pow(rghtMoments->at(fsgrids::moments::RHOQ) / physicalconstants::CHARGE, Parameters::electronPTindex));
-   }
+   computePresE(fsgrids::dmoments::dPedz, *rghtMoments, *leftMoments, *centMoments);
 
    if (Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1) {
       dPerB[fsgrids::dperb::dPERBxdzz] = 0.0;
