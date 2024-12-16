@@ -372,13 +372,12 @@ namespace SBC {
          const uint popID,
          const bool calculate_V_moments
       );
-      virtual void updateState(
-         dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-         fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-         fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-         creal t
-      );
-      
+      virtual void updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                               fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+                               fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+                               fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+                               creal t);
+
       virtual void getFaces(bool *faces);
       virtual std::string getName() const;
       virtual uint getIndex() const;

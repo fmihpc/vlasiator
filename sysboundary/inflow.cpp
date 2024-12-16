@@ -80,6 +80,8 @@ void Inflow::initSysBoundary(creal& t, Project& project) {
 
 void Inflow::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
+   const auto& gridSpacing = technicalGrid.getGridSpacing();
+   std::span<fsgrids::technical> technical = technicalGrid.getData();
    bool doAssign;
    std::array<bool, 6> isThisCellOnAFace;
 
@@ -110,12 +112,12 @@ void Inflow::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geomet
    }
 
    // Assign boundary flags to local fsgrid cells
-   const std::array<fsgrid::FsIndex_t, 3> gridDims(technicalGrid.getLocalSize());
-   for (fsgrid::FsIndex_t k = 0; k < gridDims[2]; k++) {
-      for (fsgrid::FsIndex_t j = 0; j < gridDims[1]; j++) {
-         for (fsgrid::FsIndex_t i = 0; i < gridDims[0]; i++) {
+   const auto& localSize = technicalGrid.getLocalSize();
+   for (auto k = 0; k < localSize[2]; k++) {
+      for (auto j = 0; j < localSize[1]; j++) {
+         for (auto i = 0; i < localSize[0]; i++) {
             const auto coords = technicalGrid.getPhysicalCoords(i, j, k);
-            const auto& gridSpacing = technicalGrid.getGridSpacing();
+            const auto stencil = technicalGrid.makeStencil(i, j, k);
 
             // Shift to the center of the fsgrid cell
             auto cellCenterCoords = coords;
@@ -141,7 +143,7 @@ void Inflow::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geomet
                doAssign = doAssign || (facesToProcess[iface] && isThisCellOnAFace[iface]);
             }
             if (doAssign) {
-               technicalGrid.get(i, j, k)->sysBoundaryFlag = this->getIndex();
+               technical[stencil.center()].sysBoundaryFlag = this->getIndex();
             }
          }
       }
@@ -156,10 +158,11 @@ void Inflow::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geomet
    for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
       setCellsFromTemplate(mpiGrid, popID);
    }
-   setBFromTemplate(mpiGrid, perBGrid, BgBGrid);
+   setBFromTemplate(mpiGrid, perBGrid, BgBGrid, technicalGrid);
 }
 
 void Inflow::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                         fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
                          fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
                          fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
                          creal t) {
@@ -177,7 +180,7 @@ void Inflow::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& m
       setCellsFromTemplate(mpiGrid, popID);
    }
 
-   setBFromTemplate(mpiGrid, perBGrid, BgBGrid);
+   setBFromTemplate(mpiGrid, perBGrid, BgBGrid, technicalGrid);
 
    // Ensure up-to-date velocity block counts for all neighbours
    phiprof::Timer ghostTimer{"transfer-ghost-blocks", {"MPI"}};
@@ -276,20 +279,24 @@ void Inflow::vlasovBoundaryCondition(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_
 
 void Inflow::setBFromTemplate(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                               fsgrid::FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-                              fsgrid::FsGrid<array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid) {
+                              fsgrid::FsGrid<array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+                              fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
    std::array<bool, 6> isThisCellOnAFace;
+   const auto& gridSpacing = perBGrid.getGridSpacing();
+   std::span<array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
+   std::span<const array<Real, fsgrids::bgbfield::N_BGB>> bgb = BgBGrid.getData();
 
-   const std::array<fsgrid::FsIndex_t, 3> gridDims(perBGrid.getLocalSize());
-   for (fsgrid::FsIndex_t k = 0; k < gridDims[2]; k++) {
-      for (fsgrid::FsIndex_t j = 0; j < gridDims[1]; j++) {
-         for (fsgrid::FsIndex_t i = 0; i < gridDims[0]; i++) {
-            const auto coords = perBGrid.getPhysicalCoords(i, j, k);
+   const auto& localSize = technicalGrid.getLocalSize();
+   for (fsgrid::FsIndex_t k = 0; k < localSize[2]; k++) {
+      for (fsgrid::FsIndex_t j = 0; j < localSize[1]; j++) {
+         for (fsgrid::FsIndex_t i = 0; i < localSize[0]; i++) {
+            const auto stencil = technicalGrid.makeStencil(i, j, k);
+            const auto coords = technicalGrid.getPhysicalCoords(i, j, k);
 
             // TODO: This code up to determineFace() should be in a separate
             // function, it gets called in a lot of places.
             // Shift to the center of the fsgrid cell
             auto cellCenterCoords = coords;
-            const auto& gridSpacing = perBGrid.getGridSpacing();
             cellCenterCoords[0] += 0.5 * gridSpacing[0];
             cellCenterCoords[1] += 0.5 * gridSpacing[1];
             cellCenterCoords[2] += 0.5 * gridSpacing[2];
@@ -309,12 +316,12 @@ void Inflow::setBFromTemplate(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometr
 
             for (uint iface = 0; iface < 6; iface++) {
                if (facesToProcess[iface] && isThisCellOnAFace[iface]) {
-                  perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBX) =
-                      templateB[iface][0] + BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBXVDCORR);
-                  perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBY) =
-                      templateB[iface][1] + BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBYVDCORR);
-                  perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBZ) =
-                      templateB[iface][2] + BgBGrid.get(i, j, k)->at(fsgrids::bgbfield::BGBZVDCORR);
+                  perb[stencil.center()][fsgrids::bfield::PERBX] =
+                      templateB[iface][0] + bgb[stencil.center()][fsgrids::bgbfield::BGBXVDCORR];
+                  perb[stencil.center()][fsgrids::bfield::PERBY] =
+                      templateB[iface][1] + bgb[stencil.center()][fsgrids::bgbfield::BGBYVDCORR];
+                  perb[stencil.center()][fsgrids::bfield::PERBZ] =
+                      templateB[iface][2] + bgb[stencil.center()][fsgrids::bgbfield::BGBZVDCORR];
                   break;
                }
             }
