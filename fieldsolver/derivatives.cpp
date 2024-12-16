@@ -130,7 +130,7 @@ void calculateDerivatives(
        },
    };
 
-   static constexpr std::array dperBIndices = {
+   static constexpr std::array dPerBIndices = {
        std::array {
           fsgrids::dperb::dPERBydx,
           fsgrids::dperb::dPERBzdx,
@@ -201,13 +201,13 @@ void calculateDerivatives(
    auto computePerB = [&dPerB, &computeDerivative, &dontCompute2ndDerivatives](auto component, const auto& right,
                                                                                const auto& left, const auto& center) {
       for (auto i = 0; i < 2; i++) {
-         const auto j = dperBIndices[component][i];
+         const auto j = dPerBIndices[component][i];
          const auto k = perBIndices[component][i];
          dPerB[j] = computeDerivative(k, right, left, center);
       }
 
       for (auto i = 0; i < 2; i++) {
-         const auto j = dperBIndices[component][i + 2];
+         const auto j = dPerBIndices[component][i + 2];
          const auto k = perBIndices[component][i];
 
          dPerB[j] = dontCompute2ndDerivatives ? 0.0 : left[k] + right[k] - 2.0 * center[k];
@@ -226,6 +226,7 @@ void calculateDerivatives(
       }
    }
 #endif
+
    for (auto component = 0; component < 3; component++) {
       const auto& inds = cellIndices[component];
 
@@ -280,38 +281,52 @@ void calculateDerivatives(
       dPerB[fsgrids::dperb::dPERBydxz] = 0.0;
       dPerB[fsgrids::dperb::dPERBzdxy] = 0.0;
    } else if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-      std::array<Real, fsgrids::bfield::N_BFIELD>* botLeft = NULL;
-      std::array<Real, fsgrids::bfield::N_BFIELD>* botRght = NULL;
-      std::array<Real, fsgrids::bfield::N_BFIELD>* topLeft = NULL;
-      std::array<Real, fsgrids::bfield::N_BFIELD>* topRght = NULL;
+      // clang-format off
+      const std::array cellIndices = {
+          std::array {
+              std::array { i - 1, j - 1, k },
+              std::array { i + 1, j - 1, k },
+              std::array { i - 1, j + 1, k },
+              std::array { i + 1, j + 1, k },
+          },
+          std::array {
+              std::array { i - 1, j, k - 1 },
+              std::array { i + 1, j, k - 1 },
+              std::array { i - 1, j, k + 1 },
+              std::array { i + 1, j, k + 1 },
+          },
+          std::array {
+              std::array { i, j - 1, k - 1 },
+              std::array { i, j + 1, k - 1 },
+              std::array { i, j - 1, k + 1 },
+              std::array { i, j + 1, k + 1 },
+          },
+      };
+      // clang-format on
 
-      // Calculate xy mixed derivatives:
-      botLeft = perBGrid.get(i - 1, j - 1, k);
-      botRght = perBGrid.get(i + 1, j - 1, k);
-      topLeft = perBGrid.get(i - 1, j + 1, k);
-      topRght = perBGrid.get(i + 1, j + 1, k);
-      dPerB[fsgrids::dperb::dPERBzdxy] =
-          FOURTH * (botLeft->at(fsgrids::bfield::PERBZ) + topRght->at(fsgrids::bfield::PERBZ) -
-                    botRght->at(fsgrids::bfield::PERBZ) - topLeft->at(fsgrids::bfield::PERBZ));
+      static constexpr std::array dPerBIndices = {
+          fsgrids::dperb::dPERBzdxy,
+          fsgrids::dperb::dPERBydxz,
+          fsgrids::dperb::dPERBxdyz,
+      };
 
-      // Calculate xz mixed derivatives:
-      botLeft = perBGrid.get(i - 1, j, k - 1);
-      botRght = perBGrid.get(i + 1, j, k - 1);
-      topLeft = perBGrid.get(i - 1, j, k + 1);
-      topRght = perBGrid.get(i + 1, j, k + 1);
-      dPerB[fsgrids::dperb::dPERBydxz] =
-          FOURTH * (botLeft->at(fsgrids::bfield::PERBY) + topRght->at(fsgrids::bfield::PERBY) -
-                    botRght->at(fsgrids::bfield::PERBY) - topLeft->at(fsgrids::bfield::PERBY));
+      static constexpr std::array perBIndices = {
+          fsgrids::bfield::PERBZ,
+          fsgrids::bfield::PERBY,
+          fsgrids::bfield::PERBX,
+      };
 
-      // Calculate yz mixed derivatives:
-      botLeft = perBGrid.get(i, j - 1, k - 1);
-      botRght = perBGrid.get(i, j + 1, k - 1);
-      topLeft = perBGrid.get(i, j - 1, k + 1);
-      topRght = perBGrid.get(i, j + 1, k + 1);
-      dPerB[fsgrids::dperb::dPERBxdyz] =
-          FOURTH * (botLeft->at(fsgrids::bfield::PERBX) + topRght->at(fsgrids::bfield::PERBX) -
-                    botRght->at(fsgrids::bfield::PERBX) - topLeft->at(fsgrids::bfield::PERBX));
+      for (size_t component = 0; component < dPerBIndices.size(); component++) {
+         const auto& ci = cellIndices[component];
+         const auto& botLeft = *perBGrid.get(ci[0][0], ci[0][1], ci[0][2]);
+         const auto& botRght = *perBGrid.get(ci[1][0], ci[1][1], ci[1][2]);
+         const auto& topLeft = *perBGrid.get(ci[2][0], ci[2][1], ci[2][2]);
+         const auto& topRght = *perBGrid.get(ci[3][0], ci[3][1], ci[3][2]);
 
+         const auto& i = dPerBIndices[component];
+         const auto& j = perBIndices[component];
+         dPerB[i] = FOURTH * (botLeft[j] + topRght[j] - botRght[j] - topLeft[j]);
+      }
    } else {
       SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 3);
       SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 4);
