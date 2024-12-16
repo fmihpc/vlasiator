@@ -73,35 +73,17 @@ template<typename T> inline T superbee(const T& left,const T& cent,const T& righ
 }
 
 template<typename T> inline T vanLeer(const T& left,const T& cent,const T& right) {
-   const T EPSILON = std::numeric_limits<T>::min();
-   const T ZERO    = 0.0;
-   const T TWO     = 2.0;
+   constexpr T EPSILON = std::numeric_limits<T>::min();
+   constexpr T ZERO = 0.0;
+   constexpr T TWO = 2.0;
 
-   const T numerator = std::max((right-cent)*(cent-left),ZERO);
-   const T denumerator = right-left ;
-   if(fabs(denumerator) < EPSILON)
-      return ZERO;
-   else
-     return TWO * numerator / denumerator;
-   
-   //return TWO*std::max((right-cent)*(cent-left),ZERO)/(right-left+EPSILON);
-
-   //const T denumerator = (right-left) + EPSILON;
-   //const T rvalue = TWO*std::max((right-cent)*(cent-left),ZERO) / denumerator;
-   /*
-   if (rvalue > 1e10) {
-      std::cerr << "ERROR vanLeer rvalue too large " << std::max((right-cent)*(cent-left),ZERO) << '\t' << denumerator << std::endl;
-      std::cerr << "\t input values are " << left << '\t' << cent << '\t' << right << std::endl;
-      std::cerr << "\t numerator   " << TWO*std::max((right-cent)*(cent-left),ZERO) << std::endl;
-      std::cerr << "\t denumerator " << denumerator << std::endl;
-   }
-   //return TWO*std::max((right-cent)*(cent-left),ZERO) / denumerator;
-    */
+   const T numerator = std::max((right - cent) * (cent - left), ZERO);
+   const T denumerator = right - left;
+   return fabs(denumerator) < EPSILON ? ZERO : TWO * numerator / denumerator;
 }
 
-
 template<typename T> inline T limiter(const T& left,const T& cent,const T& rght) {
-   return vanLeer(left,cent,rght);
+   return vanLeer(left, cent, rght);
 }
 
 /*! Select the limiter to be used in the field solver. */
