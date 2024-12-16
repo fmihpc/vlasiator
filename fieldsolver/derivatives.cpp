@@ -44,7 +44,7 @@
  * \param dMomentsGrid fsGrid holding the derviatives of moments
  * \param technicalGrid fsGrid holding technical information (such as boundary types)
  * \param sysBoundaries System boundary conditions existing
- * \param calculateMoments Bool telling whether the derivatives for moments need updating too.
+ * \param shouldCalculateMoments Bool telling whether the derivatives for moments need updating too.
  *
  * \sa calculateDerivativesSimple calculateBVOLDerivativesSimple calculateBVOLDerivatives
  */
@@ -53,7 +53,7 @@ void calculateDerivatives(
     fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
     fsgrid::FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
     fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
-    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, const bool calculateMoments) {
+    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, const bool shouldCalculateMoments) {
    std::array<Real, fsgrids::dperb::N_DPERB>& dPerB = *dPerBGrid.get(i, j, k);
    std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dMoments = *dMomentsGrid.get(i, j, k);
    const auto& tech = *technicalGrid.get(i, j, k);
@@ -61,6 +61,8 @@ void calculateDerivatives(
    // Get boundary flag for the cell:
    cuint sysBoundaryFlag = tech.sysBoundaryFlag;
    cuint sysBoundaryLayer = tech.sysBoundaryLayer;
+   const bool notSysBoundary =
+       sysBoundaryLayer == 1 || (sysBoundaryLayer == 2 && sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY);
 
    // Constants for electron pressure derivatives
    // Upstream pressure
@@ -139,48 +141,25 @@ void calculateDerivatives(
    };
    // clang-format on
 
-   auto fooMoments = [&calculateMoments, &dMoments](auto component, const auto& right, const auto& left) {
-      if (calculateMoments) {
+   auto computeMoments = [&shouldCalculateMoments, &dMoments, &notSysBoundary](auto component, const auto& right,
+                                                                               const auto& left, const auto& center) {
+      if (shouldCalculateMoments) {
          for (size_t i = 0; i < momentsIndices.size(); i++) {
-            dMoments[dmomentsIndices[component][i]] = 0.5 * (right[momentsIndices[i]] - left[momentsIndices[i]]);
+            dMoments[dmomentsIndices[component][i]] =
+                notSysBoundary ? 0.5 * (right[momentsIndices[i]] - left[momentsIndices[i]])
+                               : limiter(left[momentsIndices[i]], center[momentsIndices[i]], right[momentsIndices[i]]);
          }
       }
    };
 
-   if (sysBoundaryLayer == 1 || (sysBoundaryLayer == 2 && sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)) {
-      fooMoments(0, *rghtMoments, *leftMoments);
+   computeMoments(0, *rghtMoments, *leftMoments, *centMoments);
 
+   if (notSysBoundary) {
       dPerB[fsgrids::dperb::dPERBydx] =
           (rghtPerB->at(fsgrids::bfield::PERBY) - leftPerB->at(fsgrids::bfield::PERBY)) / 2;
       dPerB[fsgrids::dperb::dPERBzdx] =
           (rghtPerB->at(fsgrids::bfield::PERBZ) - leftPerB->at(fsgrids::bfield::PERBZ)) / 2;
    } else {
-      if (calculateMoments) {
-         dMoments[fsgrids::dmoments::drhomdx] =
-             limiter(leftMoments->at(fsgrids::moments::RHOM), centMoments->at(fsgrids::moments::RHOM),
-                     rghtMoments->at(fsgrids::moments::RHOM));
-         dMoments[fsgrids::dmoments::drhoqdx] =
-             limiter(leftMoments->at(fsgrids::moments::RHOQ), centMoments->at(fsgrids::moments::RHOQ),
-                     rghtMoments->at(fsgrids::moments::RHOQ));
-         dMoments[fsgrids::dmoments::dp11dx] =
-             limiter(leftMoments->at(fsgrids::moments::P_11), centMoments->at(fsgrids::moments::P_11),
-                     rghtMoments->at(fsgrids::moments::P_11));
-         dMoments[fsgrids::dmoments::dp22dx] =
-             limiter(leftMoments->at(fsgrids::moments::P_22), centMoments->at(fsgrids::moments::P_22),
-                     rghtMoments->at(fsgrids::moments::P_22));
-         dMoments[fsgrids::dmoments::dp33dx] =
-             limiter(leftMoments->at(fsgrids::moments::P_33), centMoments->at(fsgrids::moments::P_33),
-                     rghtMoments->at(fsgrids::moments::P_33));
-         dMoments[fsgrids::dmoments::dVxdx] =
-             limiter(leftMoments->at(fsgrids::moments::VX), centMoments->at(fsgrids::moments::VX),
-                     rghtMoments->at(fsgrids::moments::VX));
-         dMoments[fsgrids::dmoments::dVydx] =
-             limiter(leftMoments->at(fsgrids::moments::VY), centMoments->at(fsgrids::moments::VY),
-                     rghtMoments->at(fsgrids::moments::VY));
-         dMoments[fsgrids::dmoments::dVzdx] =
-             limiter(leftMoments->at(fsgrids::moments::VZ), centMoments->at(fsgrids::moments::VZ),
-                     rghtMoments->at(fsgrids::moments::VZ));
-      }
       dPerB[fsgrids::dperb::dPERBydx] =
           limiter(leftPerB->at(fsgrids::bfield::PERBY), centPerB->at(fsgrids::bfield::PERBY),
                   rghtPerB->at(fsgrids::bfield::PERBY));
@@ -189,7 +168,7 @@ void calculateDerivatives(
                   rghtPerB->at(fsgrids::bfield::PERBZ));
    }
 
-   if (calculateMoments) {
+   if (shouldCalculateMoments) {
       // pres_e = const * np.power(rho_e, index)
       dMoments[fsgrids::dmoments::dPedx] =
           Peconst *
@@ -223,8 +202,8 @@ void calculateDerivatives(
       rghtMoments = centMoments;
    }
 
-   if (sysBoundaryLayer == 1 || (sysBoundaryLayer == 2 && sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)) {
-      if (calculateMoments) {
+   if (notSysBoundary) {
+      if (shouldCalculateMoments) {
          dMoments[fsgrids::dmoments::drhomdy] =
              (rghtMoments->at(fsgrids::moments::RHOM) - leftMoments->at(fsgrids::moments::RHOM)) / 2;
          dMoments[fsgrids::dmoments::drhoqdy] =
@@ -247,7 +226,7 @@ void calculateDerivatives(
       dPerB[fsgrids::dperb::dPERBzdy] =
           (rghtPerB->at(fsgrids::bfield::PERBZ) - leftPerB->at(fsgrids::bfield::PERBZ)) / 2;
    } else {
-      if (calculateMoments) {
+      if (shouldCalculateMoments) {
          dMoments[fsgrids::dmoments::drhomdy] =
              limiter(leftMoments->at(fsgrids::moments::RHOM), centMoments->at(fsgrids::moments::RHOM),
                      rghtMoments->at(fsgrids::moments::RHOM));
@@ -311,8 +290,8 @@ void calculateDerivatives(
       rghtMoments = centMoments;
    }
 
-   if (sysBoundaryLayer == 1 || (sysBoundaryLayer == 2 && sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)) {
-      if (calculateMoments) {
+   if (notSysBoundary) {
+      if (shouldCalculateMoments) {
          dMoments[fsgrids::dmoments::drhomdz] =
              (rghtMoments->at(fsgrids::moments::RHOM) - leftMoments->at(fsgrids::moments::RHOM)) / 2;
          dMoments[fsgrids::dmoments::drhoqdz] =
@@ -335,7 +314,7 @@ void calculateDerivatives(
       dPerB[fsgrids::dperb::dPERBydz] =
           (rghtPerB->at(fsgrids::bfield::PERBY) - leftPerB->at(fsgrids::bfield::PERBY)) / 2;
    } else {
-      if (calculateMoments) {
+      if (shouldCalculateMoments) {
          dMoments[fsgrids::dmoments::drhomdz] =
              limiter(leftMoments->at(fsgrids::moments::RHOM), centMoments->at(fsgrids::moments::RHOM),
                      rghtMoments->at(fsgrids::moments::RHOM));
@@ -369,7 +348,7 @@ void calculateDerivatives(
                   rghtPerB->at(fsgrids::bfield::PERBY));
    }
 
-   if (calculateMoments) {
+   if (shouldCalculateMoments) {
       // pres_e = const * np.power(rho_e, index)
       dMoments[fsgrids::dmoments::dPedz] =
           Peconst *
@@ -543,6 +522,8 @@ void calculateBVOLDerivatives(fsgrid::FsGrid<std::array<Real, fsgrids::volfields
 
    cuint sysBoundaryFlag = technicalGrid.get(i, j, k)->sysBoundaryFlag;
    cuint sysBoundaryLayer = technicalGrid.get(i, j, k)->sysBoundaryLayer;
+   const bool notSysBoundary =
+       sysBoundaryLayer == 1 || (sysBoundaryLayer == 2 && sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY);
 
    // Calculate x-derivatives (is not TVD for AMR mesh):
    left = volGrid.get(i - 1, j, k);
@@ -555,7 +536,7 @@ void calculateBVOLDerivatives(fsgrid::FsGrid<std::array<Real, fsgrids::volfields
       rght = array;
    }
 
-   if (sysBoundaryLayer == 1 || (sysBoundaryLayer == 2 && sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)) {
+   if (notSysBoundary) {
       array->at(fsgrids::volfields::dPERBXVOLdx) =
           (rght->at(fsgrids::volfields::PERBXVOL) - left->at(fsgrids::volfields::PERBXVOL)) / 2;
       array->at(fsgrids::volfields::dPERBYVOLdx) =
@@ -585,7 +566,7 @@ void calculateBVOLDerivatives(fsgrid::FsGrid<std::array<Real, fsgrids::volfields
       rght = array;
    }
 
-   if (sysBoundaryLayer == 1 || (sysBoundaryLayer == 2 && sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)) {
+   if (notSysBoundary) {
       array->at(fsgrids::volfields::dPERBXVOLdy) =
           (rght->at(fsgrids::volfields::PERBXVOL) - left->at(fsgrids::volfields::PERBXVOL)) / 2;
       array->at(fsgrids::volfields::dPERBYVOLdy) =
@@ -615,7 +596,7 @@ void calculateBVOLDerivatives(fsgrid::FsGrid<std::array<Real, fsgrids::volfields
       rght = array;
    }
 
-   if (sysBoundaryLayer == 1 || (sysBoundaryLayer == 2 && sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)) {
+   if (notSysBoundary) {
       array->at(fsgrids::volfields::dPERBXVOLdz) =
           (rght->at(fsgrids::volfields::PERBXVOL) - left->at(fsgrids::volfields::PERBXVOL)) / 2;
       array->at(fsgrids::volfields::dPERBYVOLdz) =
