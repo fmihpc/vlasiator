@@ -256,11 +256,10 @@ void Inflow::fieldSolverBoundaryCondGradPeElectricField(
    EGradPe[stencil.center()][fsgrids::egradpe::EXGRADPE + component] = 0.0;
 }
 
-void Inflow::fieldSolverBoundaryCondDerivatives(
-   fsgrid::FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
-   fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid, cint i, cint j, cint k,
-   cuint RKCase, cuint component) {
-   this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, component);
+void Inflow::fieldSolverBoundaryCondDerivatives(std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                                                std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+                                                const fsgrid::FsStencil& stencil, cuint RKCase, cuint component) {
+   this->setCellDerivativesToZero(dperb, dmoments, stencil, component);
 }
 
 void Inflow::fieldSolverBoundaryCondBVOLDerivatives(

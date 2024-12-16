@@ -84,10 +84,9 @@ public:
    virtual void
    fieldSolverBoundaryCondGradPeElectricField(std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> EGradPe,
                                               const fsgrid::FsStencil& stencil, cuint component);
-   virtual void fieldSolverBoundaryCondDerivatives(
-       fsgrid::FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
-       fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid, cint i, cint j, cint k,
-       cuint RKCase, cuint component);
+   virtual void fieldSolverBoundaryCondDerivatives(std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                                                   std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+                                                   const fsgrid::FsStencil& stencil, cuint RKCase, cuint component);
    virtual void
    fieldSolverBoundaryCondBVOLDerivatives(fsgrid::FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid,
                                           cint i, cint j, cint k, cuint component);

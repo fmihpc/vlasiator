@@ -89,15 +89,11 @@ namespace SBC {
                                                       const fsgrid::FsStencil& stencil, cuint component) {
          std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondGradPeElectricField called!" << std::endl;
       }
-      void fieldSolverBoundaryCondDerivatives(
-         fsgrid::FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-         fsgrid::FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-         cint i,
-         cint j,
-         cint k,
-         cuint RKCase,
-         cuint component
-      ){ std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondDerivatives called!" << std::endl;}
+      void fieldSolverBoundaryCondDerivatives(std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                                              std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+                                              const fsgrid::FsStencil& stencil, cuint RKCase, cuint component) {
+         std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondDerivatives called!" << std::endl;
+      }
       void fieldSolverBoundaryCondBVOLDerivatives(
          fsgrid::FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
          cint i,

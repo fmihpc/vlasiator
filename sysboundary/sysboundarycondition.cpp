@@ -188,74 +188,73 @@ namespace SBC {
     * \param cellID The cell's ID.
     * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives, 3: xy-derivatives, 4: xz-derivatives, 5: yz-derivatives.
     */
-   void SysBoundaryCondition::setCellDerivativesToZero(
-      fsgrid::FsGrid< array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-      fsgrid::FsGrid< array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint component
-   ) {
-      array<Real, fsgrids::dperb::N_DPERB> * dPerBGrid0 = dPerBGrid.get(i,j,k);
-      array<Real, fsgrids::dmoments::N_DMOMENTS> * dMomentsGrid0 = dMomentsGrid.get(i,j,k);
+   void
+   SysBoundaryCondition::setCellDerivativesToZero(std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                                                  std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+                                                  const fsgrid::FsStencil& stencil, cuint component) {
+      auto& dPerBGrid0 = dperb[stencil.center()];
+      auto& dMomentsGrid0 = dmoments[stencil.center()];
       switch(component) {
          case 0: // x, xx
-            dMomentsGrid0->at(fsgrids::dmoments::drhomdx) = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::drhoqdx) = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dp11dx) = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dp22dx) = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dp33dx) = 0.0;
-            dPerBGrid0->at(fsgrids::dperb::dPERBydx)  = 0.0;
-            dPerBGrid0->at(fsgrids::dperb::dPERBzdx)  = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dVxdx)  = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dVydx)  = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dVzdx)  = 0.0;
-            dPerBGrid0->at(fsgrids::dperb::dPERBydxx) = 0.0;
-            dPerBGrid0->at(fsgrids::dperb::dPERBzdxx) = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::drhomdx] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::drhoqdx] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dp11dx] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dp22dx] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dp33dx] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dVxdx] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dVydx] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dVzdx] = 0.0;
+
+            dPerBGrid0[fsgrids::dperb::dPERBydx] = 0.0;
+            dPerBGrid0[fsgrids::dperb::dPERBzdx] = 0.0;
+            dPerBGrid0[fsgrids::dperb::dPERBydxx] = 0.0;
+            dPerBGrid0[fsgrids::dperb::dPERBzdxx] = 0.0;
             break;
          case 1: // y, yy
-            dMomentsGrid0->at(fsgrids::dmoments::drhomdy) = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::drhoqdy) = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dp11dy) = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dp22dy) = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dp33dy) = 0.0;
-            dPerBGrid0->at(fsgrids::dperb::dPERBxdy)  = 0.0;
-            dPerBGrid0->at(fsgrids::dperb::dPERBzdy)  = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dVxdy)  = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dVydy)  = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dVzdy)  = 0.0;
-            dPerBGrid0->at(fsgrids::dperb::dPERBxdyy) = 0.0;
-            dPerBGrid0->at(fsgrids::dperb::dPERBzdyy) = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::drhomdy] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::drhoqdy] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dp11dy] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dp22dy] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dp33dy] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dVxdy] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dVydy] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dVzdy] = 0.0;
+
+            dPerBGrid0[fsgrids::dperb::dPERBxdy] = 0.0;
+            dPerBGrid0[fsgrids::dperb::dPERBzdy] = 0.0;
+            dPerBGrid0[fsgrids::dperb::dPERBxdyy] = 0.0;
+            dPerBGrid0[fsgrids::dperb::dPERBzdyy] = 0.0;
             break;
          case 2: // z, zz
-            dMomentsGrid0->at(fsgrids::dmoments::drhomdz) = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::drhoqdz) = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dp11dz) = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dp22dz) = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dp33dz) = 0.0;
-            dPerBGrid0->at(fsgrids::dperb::dPERBxdz)  = 0.0;
-            dPerBGrid0->at(fsgrids::dperb::dPERBydz)  = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dVxdz)  = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dVydz)  = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dVzdz)  = 0.0;
-            dPerBGrid0->at(fsgrids::dperb::dPERBxdzz) = 0.0;
-            dPerBGrid0->at(fsgrids::dperb::dPERBydzz) = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::drhomdz] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::drhoqdz] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dp11dz] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dp22dz] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dp33dz] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dVxdz] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dVydz] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dVzdz] = 0.0;
+
+            dPerBGrid0[fsgrids::dperb::dPERBxdz] = 0.0;
+            dPerBGrid0[fsgrids::dperb::dPERBydz] = 0.0;
+            dPerBGrid0[fsgrids::dperb::dPERBxdzz] = 0.0;
+            dPerBGrid0[fsgrids::dperb::dPERBydzz] = 0.0;
             break;
          case 3: // xy
-            dPerBGrid0->at(fsgrids::dperb::dPERBzdxy) = 0.0;
+            dPerBGrid0[fsgrids::dperb::dPERBzdxy] = 0.0;
             break;
          case 4: // xz
-            dPerBGrid0->at(fsgrids::dperb::dPERBydxz) = 0.0;
+            dPerBGrid0[fsgrids::dperb::dPERBydxz] = 0.0;
             break;
          case 5: // yz
-            dPerBGrid0->at(fsgrids::dperb::dPERBxdyz) = 0.0;
+            dPerBGrid0[fsgrids::dperb::dPERBxdyz] = 0.0;
             break;
          default:
             cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
             abort_mpi("Invalid component", 1);
       }
    }
-   
+
    /*! Function used to set the system boundary condition cell's BVOL derivatives to 0.
     * \param mpiGrid Grid
     * \param cellID The cell's ID.
