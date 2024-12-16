@@ -23,11 +23,12 @@
 #ifndef BACKGROUNDFIELD_H
 #define BACKGROUNDFIELD_H
 
-#include "fieldfunction.hpp"
-#include "integratefunction.hpp"
-#include "../definitions.h"
 #include "../common.h"
+#include "../definitions.h"
+#include "fieldfunction.hpp"
 #include "fsgrid.hpp"
+#include "integratefunction.hpp"
+#include <span>
 
 void setBackgroundField(
    const FieldFunction& bgFunction,
@@ -35,9 +36,7 @@ void setBackgroundField(
    bool append=false
 );
 
-void setBackgroundFieldToZero(
-   fsgrid::FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid
-);
+void setBackgroundFieldToZero(std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb);
 
 /**
    Templated function for setting the perturbed B field to zero.

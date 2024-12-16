@@ -34,10 +34,11 @@ void setBackgroundField(const FieldFunction& bgFunction,
                         fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
                         bool append) {
    using namespace std::placeholders;
+   std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb = BgBGrid.getData();
 
    /*if we do not add a new background to the existing one we first put everything to zero*/
    if (append == false) {
-      setBackgroundFieldToZero(BgBGrid);
+      setBackgroundFieldToZero(bgb);
    }
    const fsgrid::FsIndex_t* gridDims = &BgBGrid.getLocalSize()[0];
    const size_t N_cells = gridDims[0] * gridDims[1] * gridDims[2];
@@ -138,17 +139,9 @@ void setBackgroundField(const FieldFunction& bgFunction,
    // Compute divergence and curl of volume averaged field and check that both are zero.
 }
 
-void setBackgroundFieldToZero(fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid) {
-   auto localSize = BgBGrid.getLocalSize().data();
-
-#pragma omp parallel for collapse(2)
-   for (fsgrid::FsIndex_t z = 0; z < localSize[2]; ++z) {
-      for (fsgrid::FsIndex_t y = 0; y < localSize[1]; ++y) {
-         for (fsgrid::FsIndex_t x = 0; x < localSize[0]; ++x) {
-            for (fsgrid::FsIndex_t i = 0; i < fsgrids::bgbfield::N_BGB; ++i) {
-               BgBGrid.get(x, y, z)->at(i) = 0;
-            }
-         }
-      }
+void setBackgroundFieldToZero(std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb) {
+#pragma omp parallel for
+   for (size_t i = 0; i < bgb.size(); i++) {
+      bgb[i].fill(0.0);
    }
 }

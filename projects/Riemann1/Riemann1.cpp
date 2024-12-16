@@ -147,8 +147,8 @@ namespace projects {
       fsgrid::FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
       fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
    ) {
-      setBackgroundFieldToZero(BgBGrid);
-      
+      setBackgroundFieldToZero(BgBGrid.getData());
+
       if(!P::isRestart) {
          auto localSize = perBGrid.getLocalSize().data();
          

@@ -88,96 +88,29 @@ namespace projects {
       else return value / abs(value);
    }
 
-   Realf test_fp::fillPhaseSpace(spatial_cell::SpatialCell *cell,
-                                       const uint popID,
-                                       const uint nRequested
-      ) const {
-      //const speciesParameters& sP = this->speciesParams[popID];
-      // Fetch spatial cell center coordinates
-      const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
-      const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
-      const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
-
-      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
-      Real initRho = this->DENSITY;
-      Real initT = this->TEMPERATURE;
-
-      std::array<Real, 3> initV0 = this->getV0(x, y, z, popID)[0];
-      const Real initV0X = initV0[0];
-      const Real initV0Y = initV0[1];
-      const Real initV0Z = initV0[2];
-
-      #ifdef USE_GPU
-      vmesh::VelocityMesh *vmesh = cell->dev_get_velocity_mesh(popID);
-      vmesh::VelocityBlockContainer* VBC = cell->dev_get_velocity_blocks(popID);
-      #else
-      vmesh::VelocityMesh *vmesh = cell->get_velocity_mesh(popID);
-      vmesh::VelocityBlockContainer* VBC = cell->get_velocity_blocks(popID);
-      #endif
-      // Loop over blocks
-      Realf rhosum = 0;
-      arch::parallel_reduce<arch::null>(
-         {WID, WID, WID, nRequested},
-         ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint initIndex, Realf *lsum ) {
-            vmesh::GlobalID *GIDlist = vmesh->getGrid()->data();
-            Realf* bufferData = VBC->getData();
-            const vmesh::GlobalID blockGID = GIDlist[initIndex];
-            // Calculate parameters for new block
-            Real blockCoords[6];
-            vmesh->getBlockInfo(blockGID,&blockCoords[0]);
-            creal vxBlock = blockCoords[0];
-            creal vyBlock = blockCoords[1];
-            creal vzBlock = blockCoords[2];
-            creal dvxCell = blockCoords[3];
-            creal dvyCell = blockCoords[4];
-            creal dvzCell = blockCoords[5];
-            ARCH_INNER_BODY(i, j, k, initIndex, lsum) {
-               creal vx = vxBlock + (i+0.5)*dvxCell - initV0X;
-               creal vy = vyBlock + (j+0.5)*dvyCell - initV0Y;
-               creal vz = vzBlock + (k+0.5)*dvzCell - initV0Z;
-               const Realf value = MaxwellianPhaseSpaceDensity(vx,vy,vz,initT,initRho,mass);
-               bufferData[initIndex*WID3 + k*WID2 + j*WID + i] = value;
-               //lsum[0] += value;
-            };
-         }, rhosum);
-      return rhosum;
+   Real test_fp::calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,
+                                       creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz,
+                                       const uint popID) const {      
+      vector<std::array<Real, 3> > V = this->getV0(x,y,z,dx,dy,dz, popID);
+      
+      creal VX2 = (vx+0.5*dvx-V[0][0])*(vx+0.5*dvx-V[0][0]);
+      creal VY2 = (vy+0.5*dvy-V[0][1])*(vy+0.5*dvy-V[0][1]);
+      creal VZ2 = (vz+0.5*dvz-V[0][2])*(vz+0.5*dvz-V[0][2]);
+      
+      creal CONST = physicalconstants::MASS_PROTON / 2.0 / physicalconstants::K_B / this->TEMPERATURE;
+      Real NORM = (physicalconstants::MASS_PROTON / 2.0 / M_PI / physicalconstants::K_B / this->TEMPERATURE);
+      NORM = this->DENSITY * pow(NORM,1.5);
+      
+      creal result = NORM*exp(-CONST*(VX2+VY2+VZ2));
+      return result;
    }
-
-   /* Evaluates local SpatialCell properties for the project and population,
-      then evaluates the phase-space density at the given coordinates.
-      Used as a probe for projectTriAxisSearch.
-   */
-   Realf test_fp::probePhaseSpace(spatial_cell::SpatialCell *cell,
-                                        const uint popID,
-                                        Real vx_in, Real vy_in, Real vz_in
-      ) const {
-      // Fetch spatial cell center coordinates
-      const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
-      const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
-      const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
-
-      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
-      Real initRho = this->DENSITY;
-      Real initT = this->TEMPERATURE;
-
-      std::array<Real, 3> initV0 = this->getV0(x, y, z, popID)[0];
-      const Real initV0X = initV0[0];
-      const Real initV0Y = initV0[1];
-      const Real initV0Z = initV0[2];
-
-      creal vx = vx_in - initV0X;
-      creal vy = vy_in - initV0Y;
-      creal vz = vz_in - initV0Z;
-      const Realf value = MaxwellianPhaseSpaceDensity(vx,vy,vz,initT,initRho,mass);
-      return value;
-   }
-
+   
    void test_fp::setProjectBField(
       fsgrid::FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
       fsgrid::FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
       fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
    ) {
-      setBackgroundFieldToZero(BgBGrid);
+      setBackgroundFieldToZero(BgBGrid.getData());
 
       if(!P::isRestart) {
          auto localSize = perBGrid.getLocalSize().data();
@@ -188,7 +121,7 @@ namespace projects {
          creal dz = gridSpacing[2] * 3.5;
 
          Real areaFactor = 1.0;
-
+         
          #pragma omp parallel for collapse(3)
          for (fsgrid::FsIndex_t i = 0; i < localSize[0]; ++i) {
             for (fsgrid::FsIndex_t j = 0; j < localSize[1]; ++j) {
@@ -202,7 +135,7 @@ namespace projects {
                   creal z = xyz[2] + 0.5 * gridSpacing[2];
 
                   switch (this->CASE) {
-                     case BXCASE:
+                     case BXCASE:         
                         cell->at(fsgrids::bfield::PERBX) = 0.1 * this->B0 * areaFactor;
                         //areaFactor = (CellParams::DY * CellParams::DZ) / (dy * dz);
                         if (y >= -dy && y <= dy)
@@ -227,9 +160,9 @@ namespace projects {
                         cell->at(fsgrids::bfield::PERBX) = 0.1 * this->B0 * areaFactor;
                         cell->at(fsgrids::bfield::PERBY) = 0.1 * this->B0 * areaFactor;
                         cell->at(fsgrids::bfield::PERBZ) = 0.1 * this->B0 * areaFactor;
-
+                        
                         //areaFactor = (CellParams::DX * CellParams::DY) / (dx * dy);
-
+                        
                         if (y >= -dy && y <= dy)
                            if (z >= -dz && z <= dz)
                               cell->at(fsgrids::bfield::PERBX) = this->B0 * areaFactor;
@@ -246,11 +179,11 @@ namespace projects {
          }
       }
    }
-
+   
    void test_fp::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
-
+      
    }
-
+   
    vector<std::array<Real, 3>> test_fp::getV0(
       creal x,
       creal y,
@@ -261,7 +194,7 @@ namespace projects {
       const uint popID
    ) const {
       vector<std::array<Real, 3>> centerPoints;
-
+      
       Real VX=0.0,VY=0.0,VZ=0.0;
       if (this->shear == true)
       {
@@ -299,7 +232,7 @@ namespace projects {
           case BXCASE:
             VX = 0.0;
             VY = cos(this->ALPHA) * 0.5;
-            VZ = sin(this->ALPHA) * 0.5;
+            VZ = sin(this->ALPHA) * 0.5; 
             break;
           case BYCASE:
             VX = sin(this->ALPHA) * 0.5;
@@ -318,16 +251,16 @@ namespace projects {
             break;
          }
       }
-
+      
       VX *= this->V0 * 2.0;
       VY *= this->V0 * 2.0;
       VZ *= this->V0 * 2.0;
-
+      
       std::array<Real, 3> point {{VX, VY, VZ}};
       centerPoints.push_back(point);
       return centerPoints;
    }
-
+   
    vector<std::array<Real, 3>> test_fp::getV0(
       creal x,
       creal y,
@@ -335,11 +268,11 @@ namespace projects {
       const uint popID
    ) const {
       vector<std::array<Real, 3>> centerPoints;
-
+      
       creal dx = 0.0;
       creal dy = 0.0;
       creal dz = 0.0;
-
+      
       return this->getV0(x,y,z,dx,dy,dz,popID);
    }
 

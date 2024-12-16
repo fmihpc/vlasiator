@@ -359,7 +359,7 @@ namespace projects {
                }
                break;
             default:
-               setBackgroundFieldToZero(BgBGrid);
+               setBackgroundFieldToZero(BgBGrid.getData());
       }
       switchDipoleTypeTimer.stop();
 
