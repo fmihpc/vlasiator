@@ -1231,19 +1231,20 @@ void initializeStencils(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mp
 void mapRefinement(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
    phiprof::Timer timer{"Map Refinement Level to FsGrid"};
-   const fsgrid::FsIndex_t* localDims = &technicalGrid.getLocalSize()[0];
+   const auto& localSize = technicalGrid.getLocalSize();
+   std::span<fsgrids::technical> technical = technicalGrid.getData();
 
-   // #pragma omp parallel for collapse(3)
-   for (fsgrid::FsIndex_t k = 0; k < localDims[2]; k++) {
-      for (fsgrid::FsIndex_t j = 0; j < localDims[1]; j++) {
-         for (fsgrid::FsIndex_t i = 0; i < localDims[0]; i++) {
-
+   for (auto k = 0; k < localSize[2]; k++) {
+      for (auto j = 0; j < localSize[1]; j++) {
+         for (auto i = 0; i < localSize[0]; i++) {
+            const auto stencil = technicalGrid.makeStencil(i, j, k);
             const std::array<fsgrid::FsSize_t, 3> mapIndices = technicalGrid.localToGlobal(i, j, k);
             const dccrg::Types<3>::indices_t indices = {
                 {(uint64_t)mapIndices[0], (uint64_t)mapIndices[1], (uint64_t)mapIndices[2]}}; // cast to avoid warnings
-            CellID dccrgCellID2 = mpiGrid.get_existing_cell(indices, 0, mpiGrid.mapping.get_maximum_refinement_level());
-            int amrLevel = mpiGrid.get_refinement_level(dccrgCellID2);
-            technicalGrid.get(i, j, k)->refLevel = amrLevel;
+            const CellID dccrgCellID2 =
+                mpiGrid.get_existing_cell(indices, 0, mpiGrid.mapping.get_maximum_refinement_level());
+            const int amrLevel = mpiGrid.get_refinement_level(dccrgCellID2);
+            technical[stencil.center()].refLevel = amrLevel;
          }
       }
    }
