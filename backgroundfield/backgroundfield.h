@@ -60,16 +60,16 @@ void setPerturbedFieldToZero(std::span<std::array<Real, numFields>> b, int offse
     the backgroundfield FSgrid object at offset fsgrids::bgbfield::BGBXVDCORR
 */
 template <long unsigned int numFields>
-void setPerturbedField(const FieldFunction& bfFunction,
-                       fsgrid::FsGrid<std::array<Real, numFields>, FS_STENCIL_WIDTH>& BGrid,
+void setPerturbedField(const FieldFunction& bfFunction, std::span<std::array<Real, numFields>> b,
+                       fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
                        int offset = fsgrids::bfield::PERBX, bool append = false) {
    using namespace std::placeholders;
-   const auto gridSpacing = BGrid.getGridSpacing();
-   std::array<fsgrid::FsIndex_t, 3> localSize = BGrid.getLocalSize();
+   const auto gridSpacing = technicalGrid.getGridSpacing();
+   std::array<fsgrid::FsIndex_t, 3> localSize = technicalGrid.getLocalSize();
 
    /*if we do not add a new background to the existing one we first put everything to zero*/
    if (append == false) {
-      setPerturbedFieldToZero(std::span(BGrid.getData()), offset);
+      setPerturbedFieldToZero(b, offset);
    }
 
    // these are doubles, as the averaging functions copied from Gumics
@@ -92,8 +92,9 @@ void setPerturbedField(const FieldFunction& bfFunction,
    for (fsgrid::FsIndex_t z = 0; z < localSize[2]; ++z) {
       for (fsgrid::FsIndex_t y = 0; y < localSize[1]; ++y) {
          for (fsgrid::FsIndex_t x = 0; x < localSize[0]; ++x) {
-            const auto start = BGrid.getPhysicalCoords(x, y, z);
-            auto& field = *BGrid.get(x, y, z);
+            const auto stencil = technicalGrid.makeStencil(x, y, z);
+            const auto start = technicalGrid.getPhysicalCoords(x, y, z);
+            auto& field = b[stencil.center()];
 
             // Face averages
             for (uint fComponent = 0; fComponent < 3; fComponent++) {

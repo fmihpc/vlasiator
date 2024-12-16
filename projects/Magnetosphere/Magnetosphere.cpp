@@ -296,6 +296,7 @@ namespace projects {
       Dipole bgFieldDipole;
       LineDipole bgFieldLineDipole;
       VectorDipole bgVectorDipole;
+      std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb = BgBGrid.getData();
 
       phiprof::Timer switchDipoleTypeTimer {"switch-dipoleType"};
       // The hardcoded constants of dipole and line dipole moments are obtained
@@ -338,9 +339,9 @@ namespace projects {
                // Now we calculate the difference required to scale the dipole to zero as we approach the inflow,
                // and store it inside the BgBGrid object for use by e.g. boundary conditions.
                bgFieldDipole.initialize(-8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );
-               setPerturbedField(bgFieldDipole, BgBGrid, fsgrids::bgbfield::BGBXVDCORR);
+               setPerturbedField(bgFieldDipole, bgb, technicalGrid, fsgrids::bgbfield::BGBXVDCORR);
                bgVectorDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, this->dipoleTiltPhi*M_PI/180., this->dipoleTiltTheta*M_PI/180., this->dipoleXFull, this->dipoleXZero, this->dipoleInflowB[0], this->dipoleInflowB[1], this->dipoleInflowB[2]);
-               setPerturbedField(bgVectorDipole, BgBGrid, fsgrids::bgbfield::BGBXVDCORR, true);
+               setPerturbedField(bgVectorDipole, bgb, technicalGrid, fsgrids::bgbfield::BGBXVDCORR, true);
                if (P::isRestart == false) {
                   // If we are starting a new simulation, we also copy this data into perB.
                   const auto localSize = BgBGrid.getLocalSize().data();
@@ -359,7 +360,7 @@ namespace projects {
                }
                break;
             default:
-               setBackgroundFieldToZero(BgBGrid.getData());
+               setBackgroundFieldToZero(bgb);
       }
       switchDipoleTypeTimer.stop();
 
