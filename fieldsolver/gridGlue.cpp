@@ -1,11 +1,15 @@
-#include "gridGlue.hpp"
-#include "../common.h"
-#include "../definitions.h"
-#include "../grid.h"
-#include "../spatial_cells/spatial_cell_wrapper.hpp"
+// clang-format off
+
 #include <dccrg.hpp>
 #include <dccrg_cartesian_geometry.hpp>
+#include "../grid.h"
+#include "../spatial_cells/spatial_cell_wrapper.hpp"
+#include "../definitions.h"
+#include "../common.h"
+#include "gridGlue.hpp"
 #include <span>
+
+// clang-format on
 
 // Datastructure for coupling
 std::map<int, std::set<CellID>> onDccrgMapRemoteProcessGlobal;
@@ -532,7 +536,7 @@ std::vector<CellID> mapDccrgIdToFsGridGlobalID(dccrg::Dccrg<SpatialCell, dccrg::
 void feedBoundaryIntoFsGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                             const std::vector<CellID>& cells,
                             fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
-   std::span<const fsgrids::technical> technical = technicalGrid.getData();
+   std::span<fsgrids::technical> technical = technicalGrid.getData();
    int ii;
    // sorted list of dccrg cells. cells is typicall already sorted, but just to make sure....
    std::vector<CellID> dccrgCells = cells;
