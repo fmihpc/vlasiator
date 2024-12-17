@@ -69,21 +69,7 @@
  * 
  */
 bool propagateFields(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBDt2Grid,
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EDt2Grid,
-   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
-   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeDt2Grid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsDt2Grid,
-   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsDt2Grid,
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+   FsGridWrapper& fsgrids,
    SysBoundary& sysBoundaries,
    creal& dt,
    cuint subcycles
@@ -94,13 +80,13 @@ bool propagateFields(
       exit(1);
    }
    
-   const FsGridTools::FsIndex_t* gridDims = &technicalGrid.getLocalSize()[0];
+   const FsGridTools::FsIndex_t* gridDims = &fsgrids.technicalGrid.getLocalSize()[0];
    
    #pragma omp parallel for collapse(2)
    for (FsGridTools::FsIndex_t k=0; k<gridDims[2]; k++) {
       for (FsGridTools::FsIndex_t j=0; j<gridDims[1]; j++) {
          for (FsGridTools::FsIndex_t i=0; i<gridDims[0]; i++) {
-            technicalGrid.get(i,j,k)->maxFsDt=std::numeric_limits<Real>::max();
+            fsgrids.technicalGrid.get(i,j,k)->maxFsDt=std::numeric_limits<Real>::max();
          }
       }
    }
@@ -108,127 +94,61 @@ bool propagateFields(
    
    if (subcycles == 1) {
       #ifdef FS_1ST_ORDER_TIME
-      propagateMagneticFieldSimple(perBGrid, perBDt2Grid, BgBGrid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, dt, RK_ORDER1);
-      calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, dMomentsDt2Grid, technicalGrid, sysBoundaries, RK_ORDER1, true/*doMoments*/);
+      propagateMagneticFieldSimple(fsgrids, sysBoundaries, dt, RK_ORDER1);
+      calculateDerivativesSimple(fsgrids, sysBoundaries, RK_ORDER1, true/*doMoments*/);
       if(P::ohmGradPeTerm > 0){
-         calculateGradPeTermSimple(EGradPeGrid, EGradPeDt2Grid, momentsGrid, momentsDt2Grid, dMomentsGrid, dMomentsDt2Grid, technicalGrid, sysBoundaries, RK_ORDER1);
+         calculateGradPeTermSimple(fsgrids, sysBoundaries, RK_ORDER1);
       }
       if(P::ohmHallTerm > 0) {
          calculateHallTermSimple(
-            perBGrid,
-            perBDt2Grid,
-            EHallGrid,
-            momentsGrid,
-            momentsDt2Grid,
-            dPerBGrid,
-            dMomentsGrid,
-            dMomentsDt2Grid,
-            BgBGrid,
-            technicalGrid,
+            fsgrids
             sysBoundaries,
             RK_ORDER1,
             true // communicateMomentsDerivatives
          );
       }
       calculateUpwindedElectricFieldSimple(
-         perBGrid,
-         perBDt2Grid,
-         EGrid,
-         EDt2Grid,
-         EHallGrid,
-         EGradPeGrid,
-         EGradPeDt2Grid,
-         momentsGrid,
-         momentsDt2Grid,
-         dPerBGrid,
-         dMomentsGrid,
-         dMomentsDt2Grid,
-         BgBGrid,
-         technicalGrid,
+         fsgrids,
          sysBoundaries,
          RK_ORDER1,
          true // communicateEGradPeOrMomentsDerivatives
       );
       #else
-      propagateMagneticFieldSimple(perBGrid, perBDt2Grid, BgBGrid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, dt, RK_ORDER2_STEP1);
-      calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, dMomentsDt2Grid, technicalGrid, sysBoundaries, RK_ORDER2_STEP1, true/*doMoments*/);
+      propagateMagneticFieldSimple(fsgrids, sysBoundaries, dt, RK_ORDER2_STEP1);
+      calculateDerivativesSimple(fsgrids, sysBoundaries, RK_ORDER2_STEP1, true/*doMoments*/);
       if(P::ohmGradPeTerm > 0) {
-         calculateGradPeTermSimple(EGradPeGrid, EGradPeDt2Grid, momentsGrid, momentsDt2Grid, dMomentsGrid, dMomentsDt2Grid, technicalGrid, sysBoundaries, RK_ORDER2_STEP1);
+         calculateGradPeTermSimple(fsgrids, sysBoundaries, RK_ORDER2_STEP1);
       }
       if(P::ohmHallTerm > 0) {
          calculateHallTermSimple(
-            perBGrid,
-            perBDt2Grid,
-            EHallGrid,
-            momentsGrid,
-            momentsDt2Grid,
-            dPerBGrid,
-            dMomentsGrid,
-            dMomentsDt2Grid,
-            BgBGrid,
-            technicalGrid,
+            fsgrids,
             sysBoundaries,
             RK_ORDER2_STEP1,
             true // communicateMomentsDerivatives
          );
       }
       calculateUpwindedElectricFieldSimple(
-         perBGrid,
-         perBDt2Grid,
-         EGrid,
-         EDt2Grid,
-         EHallGrid,
-         EGradPeGrid,
-         EGradPeDt2Grid,
-         momentsGrid,
-         momentsDt2Grid,
-         dPerBGrid,
-         dMomentsGrid,
-         dMomentsDt2Grid,
-         BgBGrid,
-         technicalGrid,
+         fsgrids,
          sysBoundaries,
          RK_ORDER2_STEP1,
          true // communicateEGradPeOrMomentsDerivatives
       );
       
-      propagateMagneticFieldSimple(perBGrid, perBDt2Grid, BgBGrid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, dt, RK_ORDER2_STEP2);
-      calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, dMomentsDt2Grid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2, true/*doMoments*/);
+      propagateMagneticFieldSimple(fsgrids, sysBoundaries, dt, RK_ORDER2_STEP2);
+      calculateDerivativesSimple(fsgrids, sysBoundaries, RK_ORDER2_STEP2, true/*doMoments*/);
       if(P::ohmGradPeTerm > 0) {
-         calculateGradPeTermSimple(EGradPeGrid, EGradPeDt2Grid, momentsGrid, momentsDt2Grid, dMomentsGrid, dMomentsDt2Grid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2);
+         calculateGradPeTermSimple(fsgrids, sysBoundaries, RK_ORDER2_STEP2);
       }
       if(P::ohmHallTerm > 0) {
          calculateHallTermSimple(
-            perBGrid,
-            perBDt2Grid,
-            EHallGrid,
-            momentsGrid,
-            momentsDt2Grid,
-            dPerBGrid,
-            dMomentsGrid,
-            dMomentsDt2Grid,
-            BgBGrid,
-            technicalGrid,
+            fsgrids,
             sysBoundaries,
             RK_ORDER2_STEP2,
             true // communicateMomentsDerivatives
          );
       }
       calculateUpwindedElectricFieldSimple(
-         perBGrid,
-         perBDt2Grid,
-         EGrid,
-         EDt2Grid,
-         EHallGrid,
-         EGradPeGrid,
-         EGradPeDt2Grid,
-         momentsGrid,
-         momentsDt2Grid,
-         dPerBGrid,
-         dMomentsGrid,
-         dMomentsDt2Grid,
-         BgBGrid,
-         technicalGrid,
+         fsgrids,
          sysBoundaries,
          RK_ORDER2_STEP2,
          true // communicateEGradPeOrMomentsDerivatives
@@ -240,96 +160,52 @@ bool propagateFields(
       creal targetT = P::t + dt;
       uint subcycleCount = 0;
       uint maxSubcycleCount = std::numeric_limits<uint>::max();
-      int myRank = perBGrid.getRank();
+      int myRank = fsgrids.perBGrid.getRank();
 
       while (subcycleCount < maxSubcycleCount ) {
          // In case of subcycling, we decided to go for a blunt Runge-Kutta subcycling even though e.g. moments are not going along.
          // Result of the Summer of Debugging 2016, the behaviour in wave dispersion was much improved with this.
-         propagateMagneticFieldSimple(perBGrid, perBDt2Grid, BgBGrid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, subcycleDt, RK_ORDER2_STEP1);
+         propagateMagneticFieldSimple(fsgrids, sysBoundaries, subcycleDt, RK_ORDER2_STEP1);
 
          // We need to calculate derivatives of the moments at every substep, but the moments only
          // need to be communicated in the first one.
-         calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, dMomentsDt2Grid, technicalGrid, sysBoundaries, RK_ORDER2_STEP1, (subcycleCount==0)/*doMoments*/);
+         calculateDerivativesSimple(fsgrids, sysBoundaries, RK_ORDER2_STEP1, (subcycleCount==0)/*doMoments*/);
          if(P::ohmGradPeTerm > 0 && subcycleCount==0) {
-            calculateGradPeTermSimple(EGradPeGrid, EGradPeDt2Grid, momentsGrid, momentsDt2Grid, dMomentsGrid, dMomentsDt2Grid, technicalGrid, sysBoundaries, RK_ORDER2_STEP1);
+            calculateGradPeTermSimple(fsgrids, sysBoundaries, RK_ORDER2_STEP1);
          }
          if(P::ohmHallTerm > 0) {
             calculateHallTermSimple(
-               perBGrid,
-               perBDt2Grid,
-               EHallGrid,
-               momentsGrid,
-               momentsDt2Grid,
-               dPerBGrid,
-               dMomentsGrid,
-               dMomentsDt2Grid,
-               BgBGrid,
-               technicalGrid,
+               fsgrids,
                sysBoundaries,
                RK_ORDER2_STEP1,
                subcycleCount==0 // communicateMomentsDerivatives
             );
          }
          calculateUpwindedElectricFieldSimple(
-            perBGrid,
-            perBDt2Grid,
-            EGrid,
-            EDt2Grid,
-            EHallGrid,
-            EGradPeGrid,
-            EGradPeDt2Grid,
-            momentsGrid,
-            momentsDt2Grid,
-            dPerBGrid,
-            dMomentsGrid,
-            dMomentsDt2Grid,
-            BgBGrid,
-            technicalGrid,
+            fsgrids,
             sysBoundaries,
             RK_ORDER2_STEP1,
             subcycleCount==0 // communicateEGradPeOrMomentsDerivatives
          );
          
-         propagateMagneticFieldSimple(perBGrid, perBDt2Grid, BgBGrid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, subcycleDt, RK_ORDER2_STEP2);
+         propagateMagneticFieldSimple(fsgrids, sysBoundaries, subcycleDt, RK_ORDER2_STEP2);
          
          // We need to calculate derivatives of the moments at every substep, but the moments only
          // need to be communicated in the first one.
-         calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, dMomentsDt2Grid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2, (subcycleCount==0)/*doMoments*/);
+         calculateDerivativesSimple(fsgrids, sysBoundaries, RK_ORDER2_STEP2, (subcycleCount==0)/*doMoments*/);
          if(P::ohmGradPeTerm > 0 && subcycleCount==0) {
-            calculateGradPeTermSimple(EGradPeGrid, EGradPeDt2Grid, momentsGrid, momentsDt2Grid, dMomentsGrid, dMomentsDt2Grid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2);
+            calculateGradPeTermSimple(fsgrids, sysBoundaries, RK_ORDER2_STEP2);
          }
          if(P::ohmHallTerm > 0) {
             calculateHallTermSimple(
-               perBGrid,
-               perBDt2Grid,
-               EHallGrid,
-               momentsGrid,
-               momentsDt2Grid,
-               dPerBGrid,
-               dMomentsGrid,
-               dMomentsDt2Grid,
-               BgBGrid,
-               technicalGrid,
+               fsgrids,
                sysBoundaries,
                RK_ORDER2_STEP2,
                subcycleCount==0 // communicateMomentsDerivatives
             );
          }
          calculateUpwindedElectricFieldSimple(
-            perBGrid,
-            perBDt2Grid,
-            EGrid,
-            EDt2Grid,
-            EHallGrid,
-            EGradPeGrid,
-            EGradPeDt2Grid,
-            momentsGrid,
-            momentsDt2Grid,
-            dPerBGrid,
-            dMomentsGrid,
-            dMomentsDt2Grid,
-            BgBGrid,
-            technicalGrid,
+            fsgrids,
             sysBoundaries,
             RK_ORDER2_STEP2,
             subcycleCount==0 // communicateEGradPeOrMomentsDerivatives
@@ -355,11 +231,11 @@ bool propagateFields(
          Real dtMaxGlobal;
          dtMaxLocal=std::numeric_limits<Real>::max();
 
-         std::array<FsGridTools::FsIndex_t, 3>& localSize = technicalGrid.getLocalSize();
+         std::array<FsGridTools::FsIndex_t, 3>& localSize = fsgrids.technicalGrid.getLocalSize();
          for(FsGridTools::FsIndex_t z=0; z<localSize[2]; z++) {
             for(FsGridTools::FsIndex_t y=0; y<localSize[1]; y++) {
                for(FsGridTools::FsIndex_t x=0; x<localSize[0]; x++) {
-                  fsgrids::technical* cell = technicalGrid.get(x,y,z);
+                  fsgrids::technical* cell = fsgrids.technicalGrid.get(x,y,z);
                   if ( cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
                         (cell->sysBoundaryLayer == 1 && cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY )) {
                      dtMaxLocal=min(dtMaxLocal, cell->maxFsDt);
@@ -369,7 +245,7 @@ bool propagateFields(
          }
 
          phiprof::Timer allreduceTimer {"MPI_Allreduce"};
-         technicalGrid.Allreduce(&(dtMaxLocal), &(dtMaxGlobal), 1, MPI_Type<Real>(), MPI_MIN);
+         fsgrids.technicalGrid.Allreduce(&(dtMaxLocal), &(dtMaxGlobal), 1, MPI_Type<Real>(), MPI_MIN);
          allreduceTimer.stop();
          
          //reduce dt if it is too high
@@ -402,11 +278,11 @@ bool propagateFields(
       }
    }
    
-   calculateVolumeAveragedFields(perBGrid,EGrid,dPerBGrid,volGrid,technicalGrid);
-   calculateBVOLDerivativesSimple(volGrid, technicalGrid, sysBoundaries);
+   calculateVolumeAveragedFields(fsgrids);
+   calculateBVOLDerivativesSimple(fsgrids, sysBoundaries);
    if(FieldTracing::fieldTracingParameters.doTraceFullBox || Parameters::computeCurvature) {
-      volGrid.updateGhostCells();
-      calculateCurvatureSimple(volGrid, BgBGrid, technicalGrid, sysBoundaries);
+      fsgrids.volGrid.updateGhostCells();
+      calculateCurvatureSimple(fsgrids, sysBoundaries);
    }
    return true;
 }

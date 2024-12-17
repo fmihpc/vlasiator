@@ -22,6 +22,7 @@
 
 #include "fs_common.h"
 #include "ldz_gradpe.hpp"
+#include "../object_wrapper.h"
 
 #ifndef NDEBUG
    #define DEBUG_FSOLVER
@@ -151,27 +152,21 @@ void calculateGradPeTerm(
 }
 
 void calculateGradPeTermSimple(
-   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeDt2Grid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsDt2Grid,
-   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsDt2Grid,
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+   FsGridWrapper& fsgrids,
    SysBoundary& sysBoundaries,
    cint& RKCase
 ) {
    //const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
-   const FsGridTools::FsIndex_t* gridDims = &technicalGrid.getLocalSize()[0];
+   const FsGridTools::FsIndex_t* gridDims = &fsgrids.technicalGrid.getLocalSize()[0];
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
    phiprof::Timer gradPeTimer {"Calculate GradPe term"};
    int computeTimerId {phiprof::initializeTimer("EgradPe compute cells")};
 
    phiprof::Timer mpiTimer {"EgradPe field update ghosts MPI", {"MPI"}};
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      dMomentsGrid.updateGhostCells();
+      fsgrids.dMomentsGrid.updateGhostCells();
    } else {
-      dMomentsDt2Grid.updateGhostCells();
+      fsgrids.dMomentsDt2Grid.updateGhostCells();
    }
    mpiTimer.stop();
 
@@ -184,9 +179,9 @@ void calculateGradPeTermSimple(
          for (FsGridTools::FsIndex_t j=0; j<gridDims[1]; j++) {
             for (FsGridTools::FsIndex_t i=0; i<gridDims[0]; i++) {
                if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-                  calculateGradPeTerm(EGradPeGrid, momentsGrid, dMomentsGrid, technicalGrid, i, j, k, sysBoundaries);
+                  calculateGradPeTerm(fsgrids.EGradPeGrid, fsgrids.momentsGrid, fsgrids.dMomentsGrid, fsgrids.technicalGrid, i, j, k, sysBoundaries);
                } else {
-                  calculateGradPeTerm(EGradPeDt2Grid, momentsDt2Grid, dMomentsDt2Grid, technicalGrid, i, j, k, sysBoundaries);
+                  calculateGradPeTerm(fsgrids.EGradPeDt2Grid, fsgrids.momentsDt2Grid, fsgrids.dMomentsDt2Grid, fsgrids.technicalGrid, i, j, k, sysBoundaries);
                }
             }
          }

@@ -22,13 +22,14 @@
 #ifndef GRID_H
 #define GRID_H
 
-#include "definitions.h"
-#include "spatial_cell_wrapper.hpp"
 #include <dccrg.hpp>
 #include <dccrg_cartesian_geometry.hpp>
+#include "definitions.h"
+#include "spatial_cell_wrapper.hpp"
 #include "sysboundary/sysboundary.h"
 #include "projects/project.h"
 #include <string>
+#include "object_wrapper.h"
 
 /*!
   \brief Initialize DCCRG and fsgrids
@@ -37,15 +38,7 @@ void initializeGrids(
    int argn,
    char **argc,
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsDt2Grid,
-   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+   FsGridWrapper& fsgrids,
    SysBoundary& sysBoundaries,
    Project& project
 );

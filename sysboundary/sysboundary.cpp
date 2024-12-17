@@ -610,9 +610,7 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
  * \retval success If true, the application of all system boundary states succeeded.
  */
 void SysBoundary::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                    FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>&technicalGrid,
-                                    FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-                                    FsGrid<array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+                                    FsGridWrapper& fsgrids,
                                     Project& project) {
 
    list<SBC::SysBoundaryCondition*>::iterator it;
@@ -623,18 +621,17 @@ void SysBoundary::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_G
       ) {
          continue;
       }
-      (*it)->applyInitialState(mpiGrid, technicalGrid, perBGrid, BgBGrid, project);
+      (*it)->applyInitialState(mpiGrid, fsgrids, project);
    }
 }
 
 void SysBoundary::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                              FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-                              FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+                              FsGridWrapper& fsgrids,
                               creal t) {
    if (isAnyDynamic()) {
       for(auto& b : sysBoundaries) {
          if (b->isDynamic()) {
-            b->updateState(mpiGrid, perBGrid, BgBGrid, t);
+            b->updateState(mpiGrid, fsgrids, t);
          }
       }
    }

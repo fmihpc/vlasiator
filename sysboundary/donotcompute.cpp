@@ -54,9 +54,7 @@ namespace SBC {
    
    void DoNotCompute::applyInitialState(
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      FsGrid< array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+      FsGridWrapper& fsgrids,
       Project&
    ) {
      const vector<CellID>& cells = getLocalCells();
@@ -80,8 +78,7 @@ namespace SBC {
    }
    
    void DoNotCompute::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                                  FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid,
-                                  FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+                                  FsGridWrapper& fsgrids,
                                   creal t) {}
 
    void DoNotCompute::getFaces(bool *faces) {}

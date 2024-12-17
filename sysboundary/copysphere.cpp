@@ -185,9 +185,7 @@ namespace SBC {
 
    void Copysphere::applyInitialState(
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+      FsGridWrapper& fsgrids,
       Project &project
    ) {
       const vector<CellID>& cells = getLocalCells();
@@ -476,9 +474,7 @@ namespace SBC {
     * -- Retain only the normal components of perturbed face B
     */
    Real Copysphere::fieldSolverBoundaryCondMagneticField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & bgbGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+      FsGridWrapper& fsgrids,
       cint i,
       cint j,
       cint k,
@@ -486,44 +482,44 @@ namespace SBC {
       cuint component
    ) {
       if(this->zeroPerB == true){
-         return bGrid.get(i,j,k)->at(fsgrids::bfield::PERBX+component);
+         return fsgrids.perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBX+component);
       } else {
-         if (technicalGrid.get(i,j,k)->sysBoundaryLayer == 1) {
+         if (fsgrids.technicalGrid.get(i,j,k)->sysBoundaryLayer == 1) {
             switch(component) {
                case 0:
-                  if (  ((technicalGrid.get(i-1,j,k)->SOLVE & compute::BX) == compute::BX)
-                     && ((technicalGrid.get(i+1,j,k)->SOLVE & compute::BX) == compute::BX)
+                  if (  ((fsgrids.technicalGrid.get(i-1,j,k)->SOLVE & compute::BX) == compute::BX)
+                     && ((fsgrids.technicalGrid.get(i+1,j,k)->SOLVE & compute::BX) == compute::BX)
                   ) {
-                     return 0.5 * (bGrid.get(i-1,j,k)->at(fsgrids::bfield::PERBX) + bGrid.get(i+1,j,k)->at(fsgrids::bfield::PERBX));
-                  } else if ((technicalGrid.get(i-1,j,k)->SOLVE & compute::BX) == compute::BX) {
-                     return bGrid.get(i-1,j,k)->at(fsgrids::bfield::PERBX);
-                  } else if ((technicalGrid.get(i+1,j,k)->SOLVE & compute::BX) == compute::BX) {
-                     return bGrid.get(i+1,j,k)->at(fsgrids::bfield::PERBX);
+                     return 0.5 * (fsgrids.perBGrid.get(i-1,j,k)->at(fsgrids::bfield::PERBX) + fsgrids.perBGrid.get(i+1,j,k)->at(fsgrids::bfield::PERBX));
+                  } else if ((fsgrids.technicalGrid.get(i-1,j,k)->SOLVE & compute::BX) == compute::BX) {
+                     return fsgrids.perBGrid.get(i-1,j,k)->at(fsgrids::bfield::PERBX);
+                  } else if ((fsgrids.technicalGrid.get(i+1,j,k)->SOLVE & compute::BX) == compute::BX) {
+                     return fsgrids.perBGrid.get(i+1,j,k)->at(fsgrids::bfield::PERBX);
                   } else {
                      Real retval = 0.0;
                      uint nCells = 0;
-                     if ((technicalGrid.get(i,j-1,k)->SOLVE & compute::BX) == compute::BX) {
-                        retval += bGrid.get(i,j-1,k)->at(fsgrids::bfield::PERBX);
+                     if ((fsgrids.technicalGrid.get(i,j-1,k)->SOLVE & compute::BX) == compute::BX) {
+                        retval += fsgrids.perBGrid.get(i,j-1,k)->at(fsgrids::bfield::PERBX);
                         nCells++;
                      }
-                     if ((technicalGrid.get(i,j+1,k)->SOLVE & compute::BX) == compute::BX) {
-                        retval += bGrid.get(i,j+1,k)->at(fsgrids::bfield::PERBX);
+                     if ((fsgrids.technicalGrid.get(i,j+1,k)->SOLVE & compute::BX) == compute::BX) {
+                        retval += fsgrids.perBGrid.get(i,j+1,k)->at(fsgrids::bfield::PERBX);
                         nCells++;
                      }
-                     if ((technicalGrid.get(i,j,k-1)->SOLVE & compute::BX) == compute::BX) {
-                        retval += bGrid.get(i,j,k-1)->at(fsgrids::bfield::PERBX);
+                     if ((fsgrids.technicalGrid.get(i,j,k-1)->SOLVE & compute::BX) == compute::BX) {
+                        retval += fsgrids.perBGrid.get(i,j,k-1)->at(fsgrids::bfield::PERBX);
                         nCells++;
                      }
-                     if ((technicalGrid.get(i,j,k+1)->SOLVE & compute::BX) == compute::BX) {
-                        retval += bGrid.get(i,j,k+1)->at(fsgrids::bfield::PERBX);
+                     if ((fsgrids.technicalGrid.get(i,j,k+1)->SOLVE & compute::BX) == compute::BX) {
+                        retval += fsgrids.perBGrid.get(i,j,k+1)->at(fsgrids::bfield::PERBX);
                         nCells++;
                      }
                      if (nCells == 0) {
                         for (int a=i-1; a<i+2; a++) {
                            for (int b=j-1; b<j+2; b++) {
                               for (int c=k-1; c<k+2; c++) {
-                                 if ((technicalGrid.get(a,b,c)->SOLVE & compute::BX) == compute::BX) {
-                                    retval += bGrid.get(a,b,c)->at(fsgrids::bfield::PERBX);
+                                 if ((fsgrids.technicalGrid.get(a,b,c)->SOLVE & compute::BX) == compute::BX) {
+                                    retval += fsgrids.perBGrid.get(a,b,c)->at(fsgrids::bfield::PERBX);
                                     nCells++;
                                  }
                               }
@@ -537,39 +533,39 @@ namespace SBC {
                      return retval / nCells;
                   }
                case 1:
-                  if (  (technicalGrid.get(i,j-1,k)->SOLVE & compute::BY) == compute::BY
-                     && (technicalGrid.get(i,j+1,k)->SOLVE & compute::BY) == compute::BY
+                  if (  (fsgrids.technicalGrid.get(i,j-1,k)->SOLVE & compute::BY) == compute::BY
+                     && (fsgrids.technicalGrid.get(i,j+1,k)->SOLVE & compute::BY) == compute::BY
                   ) {
-                     return 0.5 * (bGrid.get(i,j-1,k)->at(fsgrids::bfield::PERBY) + bGrid.get(i,j+1,k)->at(fsgrids::bfield::PERBY));
-                  } else if ((technicalGrid.get(i,j-1,k)->SOLVE & compute::BY) == compute::BY) {
-                     return bGrid.get(i,j-1,k)->at(fsgrids::bfield::PERBY);
-                  } else if ((technicalGrid.get(i,j+1,k)->SOLVE & compute::BY) == compute::BY) {
-                     return bGrid.get(i,j+1,k)->at(fsgrids::bfield::PERBY);
+                     return 0.5 * (fsgrids.perBGrid.get(i,j-1,k)->at(fsgrids::bfield::PERBY) + fsgrids.perBGrid.get(i,j+1,k)->at(fsgrids::bfield::PERBY));
+                  } else if ((fsgrids.technicalGrid.get(i,j-1,k)->SOLVE & compute::BY) == compute::BY) {
+                     return fsgrids.perBGrid.get(i,j-1,k)->at(fsgrids::bfield::PERBY);
+                  } else if ((fsgrids.technicalGrid.get(i,j+1,k)->SOLVE & compute::BY) == compute::BY) {
+                     return fsgrids.perBGrid.get(i,j+1,k)->at(fsgrids::bfield::PERBY);
                   } else {
                      Real retval = 0.0;
                      uint nCells = 0;
-                     if ((technicalGrid.get(i-1,j,k)->SOLVE & compute::BY) == compute::BY) {
-                        retval += bGrid.get(i-1,j,k)->at(fsgrids::bfield::PERBY);
+                     if ((fsgrids.technicalGrid.get(i-1,j,k)->SOLVE & compute::BY) == compute::BY) {
+                        retval += fsgrids.perBGrid.get(i-1,j,k)->at(fsgrids::bfield::PERBY);
                         nCells++;
                      }
-                     if ((technicalGrid.get(i+1,j,k)->SOLVE & compute::BY) == compute::BY) {
-                        retval += bGrid.get(i+1,j,k)->at(fsgrids::bfield::PERBY);
+                     if ((fsgrids.technicalGrid.get(i+1,j,k)->SOLVE & compute::BY) == compute::BY) {
+                        retval += fsgrids.perBGrid.get(i+1,j,k)->at(fsgrids::bfield::PERBY);
                         nCells++;
                      }
-                     if ((technicalGrid.get(i,j,k-1)->SOLVE & compute::BY) == compute::BY) {
-                        retval += bGrid.get(i,j,k-1)->at(fsgrids::bfield::PERBY);
+                     if ((fsgrids.technicalGrid.get(i,j,k-1)->SOLVE & compute::BY) == compute::BY) {
+                        retval += fsgrids.perBGrid.get(i,j,k-1)->at(fsgrids::bfield::PERBY);
                         nCells++;
                      }
-                     if ((technicalGrid.get(i,j,k+1)->SOLVE & compute::BY) == compute::BY) {
-                        retval += bGrid.get(i,j,k+1)->at(fsgrids::bfield::PERBY);
+                     if ((fsgrids.technicalGrid.get(i,j,k+1)->SOLVE & compute::BY) == compute::BY) {
+                        retval += fsgrids.perBGrid.get(i,j,k+1)->at(fsgrids::bfield::PERBY);
                         nCells++;
                      }
                      if (nCells == 0) {
                         for (int a=i-1; a<i+2; a++) {
                            for (int b=j-1; b<j+2; b++) {
                               for (int c=k-1; c<k+2; c++) {
-                                 if ((technicalGrid.get(a,b,c)->SOLVE & compute::BY) == compute::BY) {
-                                    retval += bGrid.get(a,b,c)->at(fsgrids::bfield::PERBY);
+                                 if ((fsgrids.technicalGrid.get(a,b,c)->SOLVE & compute::BY) == compute::BY) {
+                                    retval += fsgrids.perBGrid.get(a,b,c)->at(fsgrids::bfield::PERBY);
                                     nCells++;
                                  }
                               }
@@ -583,39 +579,39 @@ namespace SBC {
                      return retval / nCells;
                   }
                case 2:
-                  if (  (technicalGrid.get(i,j,k-1)->SOLVE & compute::BZ) == compute::BZ
-                     && (technicalGrid.get(i,j,k+1)->SOLVE & compute::BZ) == compute::BZ
+                  if (  (fsgrids.technicalGrid.get(i,j,k-1)->SOLVE & compute::BZ) == compute::BZ
+                     && (fsgrids.technicalGrid.get(i,j,k+1)->SOLVE & compute::BZ) == compute::BZ
                   ) {
-                     return 0.5 * (bGrid.get(i,j,k-1)->at(fsgrids::bfield::PERBZ) + bGrid.get(i,j,k+1)->at(fsgrids::bfield::PERBZ));
-                  } else if ((technicalGrid.get(i,j,k-1)->SOLVE & compute::BZ) == compute::BZ) {
-                     return bGrid.get(i,j,k-1)->at(fsgrids::bfield::PERBZ);
-                  } else if ((technicalGrid.get(i,j,k+1)->SOLVE & compute::BZ) == compute::BZ) {
-                     return bGrid.get(i,j,k+1)->at(fsgrids::bfield::PERBZ);
+                     return 0.5 * (fsgrids.perBGrid.get(i,j,k-1)->at(fsgrids::bfield::PERBZ) + fsgrids.perBGrid.get(i,j,k+1)->at(fsgrids::bfield::PERBZ));
+                  } else if ((fsgrids.technicalGrid.get(i,j,k-1)->SOLVE & compute::BZ) == compute::BZ) {
+                     return fsgrids.perBGrid.get(i,j,k-1)->at(fsgrids::bfield::PERBZ);
+                  } else if ((fsgrids.technicalGrid.get(i,j,k+1)->SOLVE & compute::BZ) == compute::BZ) {
+                     return fsgrids.perBGrid.get(i,j,k+1)->at(fsgrids::bfield::PERBZ);
                   } else {
                      Real retval = 0.0;
                      uint nCells = 0;
-                     if ((technicalGrid.get(i-1,j,k)->SOLVE & compute::BZ) == compute::BZ) {
-                        retval += bGrid.get(i-1,j,k)->at(fsgrids::bfield::PERBZ);
+                     if ((fsgrids.technicalGrid.get(i-1,j,k)->SOLVE & compute::BZ) == compute::BZ) {
+                        retval += fsgrids.perBGrid.get(i-1,j,k)->at(fsgrids::bfield::PERBZ);
                         nCells++;
                      }
-                     if ((technicalGrid.get(i+1,j,k)->SOLVE & compute::BZ) == compute::BZ) {
-                        retval += bGrid.get(i+1,j,k)->at(fsgrids::bfield::PERBZ);
+                     if ((fsgrids.technicalGrid.get(i+1,j,k)->SOLVE & compute::BZ) == compute::BZ) {
+                        retval += fsgrids.perBGrid.get(i+1,j,k)->at(fsgrids::bfield::PERBZ);
                         nCells++;
                      }
-                     if ((technicalGrid.get(i,j-1,k)->SOLVE & compute::BZ) == compute::BZ) {
-                        retval += bGrid.get(i,j-1,k)->at(fsgrids::bfield::PERBZ);
+                     if ((fsgrids.technicalGrid.get(i,j-1,k)->SOLVE & compute::BZ) == compute::BZ) {
+                        retval += fsgrids.perBGrid.get(i,j-1,k)->at(fsgrids::bfield::PERBZ);
                         nCells++;
                      }
-                     if ((technicalGrid.get(i,j+1,k)->SOLVE & compute::BZ) == compute::BZ) {
-                        retval += bGrid.get(i,j+1,k)->at(fsgrids::bfield::PERBZ);
+                     if ((fsgrids.technicalGrid.get(i,j+1,k)->SOLVE & compute::BZ) == compute::BZ) {
+                        retval += fsgrids.perBGrid.get(i,j+1,k)->at(fsgrids::bfield::PERBZ);
                         nCells++;
                      }
                      if (nCells == 0) {
                         for (int a=i-1; a<i+2; a++) {
                            for (int b=j-1; b<j+2; b++) {
                               for (int c=k-1; c<k+2; c++) {
-                                 if ((technicalGrid.get(a,b,c)->SOLVE & compute::BZ) == compute::BZ) {
-                                    retval += bGrid.get(a,b,c)->at(fsgrids::bfield::PERBZ);
+                                 if ((fsgrids.technicalGrid.get(a,b,c)->SOLVE & compute::BZ) == compute::BZ) {
+                                    retval += fsgrids.perBGrid.get(a,b,c)->at(fsgrids::bfield::PERBZ);
                                     nCells++;
                                  }
                               }
@@ -638,8 +634,8 @@ namespace SBC {
             for (int a=i-1; a<i+2; a++) {
                for (int b=j-1; b<j+2; b++) {
                   for (int c=k-1; c<k+2; c++) {
-                     if (technicalGrid.get(a,b,c)->sysBoundaryLayer == 1) {
-                        retval += bGrid.get(a,b,c)->at(fsgrids::bfield::PERBX + component);
+                     if (fsgrids.technicalGrid.get(a,b,c)->sysBoundaryLayer == 1) {
+                        retval += fsgrids.perBGrid.get(a,b,c)->at(fsgrids::bfield::PERBX + component);
                         nCells++;
                      }
                   }
@@ -893,8 +889,7 @@ namespace SBC {
    void Copysphere::getFaces(bool *faces) {}
    
    void Copysphere::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-                                FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+                                FsGridWrapper& fsgrids,
                                 creal t) {}
 
    uint Copysphere::getIndex() const {return sysboundarytype::COPYSPHERE;}

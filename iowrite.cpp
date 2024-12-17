@@ -307,16 +307,7 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
  */
 bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                       const std::vector<CellID>& cells,
-                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
-                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+                      FsGridWrapper& fsgrids,
                       const bool writeAsFloat,
                       const bool writeFsGrid,
                       DataReducer& dataReducer,
@@ -384,7 +375,7 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
   if( dataReducer.getName(dataReducerIndex).find("fg_", 0) == 0 ) {
       // Write fsgrid data
       phiprof::Timer writeFsTimer {"writeFsGrid"};
-      success = dataReducer.writeFsGridData(perBGrid,EGrid,EHallGrid,EGradPeGrid,momentsGrid,dPerBGrid,dMomentsGrid,BgBGrid,volGrid, technicalGrid, "fsgrid", dataReducerIndex, vlsvWriter, writeAsFloat);
+      success = dataReducer.writeFsGridData(fsgrids, "fsgrid", dataReducerIndex, vlsvWriter, writeAsFloat);
       writeFsTimer.stop();
 
    } else if( dataReducer.getName(dataReducerIndex).find("ig_", 0) == 0 ) {
@@ -1297,16 +1288,7 @@ bool checkForSameMembers(const vector<uint64_t>& local_cells, const vector<uint6
 */
 bool writeGrid(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
-   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+   FsGridWrapper& fsgrids,
    const std::string& versionInfo,
    const std::string& configInfo,
    DataReducer* dataReducer,
@@ -1431,7 +1413,7 @@ bool writeGrid(
    }
 
    //Write FSGrid metadata
-   if( writeFsGridMetadata( technicalGrid, vlsvWriter, P::systemWriteFsGrid.at(outputFileTypeIndex) ) == false ) {
+   if( writeFsGridMetadata( fsgrids.technicalGrid, vlsvWriter, P::systemWriteFsGrid.at(outputFileTypeIndex) ) == false ) {
       return false;
    }
    
@@ -1462,9 +1444,7 @@ bool writeGrid(
    //Determines whether we write in floats or doubles
    phiprof::Timer writeDataTimer {"writeDataReducer"};
    if (dataReducer != NULL) for( uint i = 0; i < dataReducer->size(); ++i ) {
-      if( writeDataReducer( mpiGrid, local_cells,
-            perBGrid, EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid,
-            BgBGrid, volGrid, technicalGrid,
+      if( writeDataReducer( mpiGrid, local_cells, fsgrids,
             (P::writeAsFloat==1), P::systemWriteFsGrid.at(outputFileTypeIndex), *dataReducer, i, vlsvWriter ) == false
       ) {
          return false;
@@ -1513,16 +1493,7 @@ bool writeGrid(
 */
 bool writeRestart(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
-   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+   FsGridWrapper& fsgrids, 
    const std::string& versionInfo,
    const std::string& configInfo,
    DataReducer& dataReducer,
@@ -1632,7 +1603,7 @@ bool writeRestart(
    if( writeDomainSizes( vlsvWriter, meshName, local_cells.size(), ghost_cells.size() ) == false ) return false;
 
    //Write FSGrid metadata
-   if( writeFsGridMetadata( technicalGrid, vlsvWriter, true ) == false ) return false;
+   if( writeFsGridMetadata( fsgrids.technicalGrid, vlsvWriter, true ) == false ) return false;
    
    //Write Version Info 
    if( writeVersionInfo(versionInfo,vlsvWriter,MPI_COMM_WORLD) == false ) return false;
@@ -1671,23 +1642,14 @@ bool writeRestart(
 
    // Fsgrid Reducers
    restartReducer.addOperator(new DRO::DataReductionOperatorFsGrid("fg_E",[](
-                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
-                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<Real> {
-            std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
+                      FsGridWrapper& fsgrids)->std::vector<Real> {
+            std::array<FsGridTools::FsIndex_t,3>& gridSize = fsgrids.technicalGrid.getLocalSize();
             std::vector<Real> retval(gridSize[0]*gridSize[1]*gridSize[2]*fsgrids::efield::N_EFIELD);
             int index=0;
             for(FsGridTools::FsIndex_t z=0; z<gridSize[2]; z++) {
                for(FsGridTools::FsIndex_t y=0; y<gridSize[1]; y++) {
                   for(FsGridTools::FsIndex_t x=0; x<gridSize[0]; x++) {
-                     std::memcpy(&retval[index], EGrid.get(x,y,z), sizeof(Real)*fsgrids::efield::N_EFIELD);
+                     std::memcpy(&retval[index], fsgrids.EGrid.get(x,y,z), sizeof(Real)*fsgrids::efield::N_EFIELD);
                      index += fsgrids::efield::N_EFIELD;
                   }
                }
@@ -1697,23 +1659,14 @@ bool writeRestart(
    ));
    
    restartReducer.addOperator(new DRO::DataReductionOperatorFsGrid("fg_PERB",[](
-                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
-                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<Real> {
-            std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
+                      FsGridWrapper& fsgrids)->std::vector<Real> {
+            std::array<FsGridTools::FsIndex_t,3>& gridSize = fsgrids.technicalGrid.getLocalSize();
             std::vector<Real> retval(gridSize[0]*gridSize[1]*gridSize[2]*fsgrids::bfield::N_BFIELD);
             int index=0;
             for(FsGridTools::FsIndex_t z=0; z<gridSize[2]; z++) {
                for(FsGridTools::FsIndex_t y=0; y<gridSize[1]; y++) {
                   for(FsGridTools::FsIndex_t x=0; x<gridSize[0]; x++) {
-                     std::memcpy(&retval[index], perBGrid.get(x,y,z), sizeof(Real)*fsgrids::bfield::N_BFIELD);
+                     std::memcpy(&retval[index], fsgrids.perBGrid.get(x,y,z), sizeof(Real)*fsgrids::bfield::N_BFIELD);
                      index += fsgrids::bfield::N_BFIELD;
                   }
                }
@@ -1815,9 +1768,7 @@ bool writeRestart(
    //Write necessary variables:
    const bool writeAsFloat = P::writeRestartAsFloat;
    for (uint i=0; i<restartReducer.size(); ++i) {
-      writeDataReducer(mpiGrid, local_cells,
-            perBGrid, EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid,
-            BgBGrid, volGrid, technicalGrid,
+      writeDataReducer(mpiGrid, local_cells, fsgrids,
             writeAsFloat, true, restartReducer, i, vlsvWriter);
    }
    reducedTimer.stop();

@@ -24,6 +24,7 @@
 
 #include "fs_common.h"
 #include "ldz_volume.hpp"
+#include "../object_wrapper.h"
 
 #ifndef NDEBUG
    #define DEBUG_FSOLVER
@@ -32,14 +33,10 @@
 using namespace std;
 
 void calculateVolumeAveragedFields(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
+   FsGridWrapper& fsgrids
 ) {
    //const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
-   const FsGridTools::FsIndex_t* gridDims = &technicalGrid.getLocalSize()[0];
+   const FsGridTools::FsIndex_t* gridDims = &fsgrids.technicalGrid.getLocalSize()[0];
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
 
    phiprof::Timer timer {"Calculate volume averaged fields"};
@@ -52,13 +49,13 @@ void calculateVolumeAveragedFields(
          for (FsGridTools::FsIndex_t j=0; j<gridDims[1]; j++) {
             for (FsGridTools::FsIndex_t i=0; i<gridDims[0]; i++) {
                std::array<Real, Rec::N_REC_COEFFICIENTS> perturbedCoefficients;
-               std::array<Real, fsgrids::volfields::N_VOL> * volGrid0 = volGrid.get(i,j,k);
+               std::array<Real, fsgrids::volfields::N_VOL> * volGrid0 = fsgrids.volGrid.get(i,j,k);
 
                // Calculate reconstruction coefficients for this cell:
                // This handles domain edges so no need to skip DO_NOT_COMPUTE or OUTER_BOUNDARY_PADDING cells.
                reconstructionCoefficients(
-                  perBGrid,
-                  dPerBGrid,
+                  fsgrids.perBGrid,
+                  fsgrids.dPerBGrid,
                   perturbedCoefficients,
                   i,
                   j,
@@ -72,17 +69,17 @@ void calculateVolumeAveragedFields(
                volGrid0->at(fsgrids::volfields::PERBZVOL) = perturbedCoefficients[Rec::c_0];
 
                // This avoids out of domain accesses below.
-               if(technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE || technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::OUTER_BOUNDARY_PADDING) continue;
+               if(fsgrids.technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE || fsgrids.technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::OUTER_BOUNDARY_PADDING) continue;
                // Calculate volume average of E (FIXME NEEDS IMPROVEMENT):
-               std::array<Real, fsgrids::efield::N_EFIELD> * EGrid_i1j1k1 = EGrid.get(i,j,k);
-               if ( technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
-                    (technicalGrid.get(i,j,k)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY && technicalGrid.get(i,j,k)->sysBoundaryLayer == 1)
+               std::array<Real, fsgrids::efield::N_EFIELD> * EGrid_i1j1k1 = fsgrids.EGrid.get(i,j,k);
+               if ( fsgrids.technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
+                    (fsgrids.technicalGrid.get(i,j,k)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY && fsgrids.technicalGrid.get(i,j,k)->sysBoundaryLayer == 1)
                   ) {
                   #ifdef DEBUG_FSOLVER
                   bool ok = true;
-                  if (technicalGrid.get(i  ,j+1,k  ) == NULL) ok = false;
-                  if (technicalGrid.get(i  ,j  ,k+1) == NULL) ok = false;
-                  if (technicalGrid.get(i  ,j+1,k+1) == NULL) ok = false;
+                  if (fsgrids.technicalGrid.get(i  ,j+1,k  ) == NULL) ok = false;
+                  if (fsgrids.technicalGrid.get(i  ,j  ,k+1) == NULL) ok = false;
+                  if (fsgrids.technicalGrid.get(i  ,j+1,k+1) == NULL) ok = false;
                   if (ok == false) {
                      stringstream ss;
                      ss << "ERROR, got NULL neighbor in " << __FILE__ << ":" << __LINE__ << endl;
@@ -90,9 +87,9 @@ void calculateVolumeAveragedFields(
                   }
                   #endif
 
-                  std::array<Real, fsgrids::efield::N_EFIELD> * EGrid_i1j2k1 = EGrid.get(i  ,j+1,k  );
-                  std::array<Real, fsgrids::efield::N_EFIELD> * EGrid_i1j1k2 = EGrid.get(i  ,j  ,k+1);
-                  std::array<Real, fsgrids::efield::N_EFIELD> * EGrid_i1j2k2 = EGrid.get(i  ,j+1,k+1);
+                  std::array<Real, fsgrids::efield::N_EFIELD> * EGrid_i1j2k1 = fsgrids.EGrid.get(i  ,j+1,k  );
+                  std::array<Real, fsgrids::efield::N_EFIELD> * EGrid_i1j1k2 = fsgrids.EGrid.get(i  ,j  ,k+1);
+                  std::array<Real, fsgrids::efield::N_EFIELD> * EGrid_i1j2k2 = fsgrids.EGrid.get(i  ,j+1,k+1);
 
                   CHECK_FLOAT(EGrid_i1j1k1->at(fsgrids::efield::EX));
                   CHECK_FLOAT(EGrid_i1j2k1->at(fsgrids::efield::EX));
@@ -104,14 +101,14 @@ void calculateVolumeAveragedFields(
                   volGrid0->at(fsgrids::volfields::EXVOL) = 0.0;
                }
 
-               if ( technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
-                    (technicalGrid.get(i,j,k)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY && technicalGrid.get(i,j,k)->sysBoundaryLayer == 1)
+               if ( fsgrids.technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
+                    (fsgrids.technicalGrid.get(i,j,k)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY && fsgrids.technicalGrid.get(i,j,k)->sysBoundaryLayer == 1)
                   ) {
                   #ifdef DEBUG_FSOLVER
                   bool ok = true;
-                  if (technicalGrid.get(i+1,j  ,k  ) == NULL) ok = false;
-                  if (technicalGrid.get(i  ,j  ,k+1) == NULL) ok = false;
-                  if (technicalGrid.get(i+1,j  ,k+1) == NULL) ok = false;
+                  if (fsgrids.technicalGrid.get(i+1,j  ,k  ) == NULL) ok = false;
+                  if (fsgrids.technicalGrid.get(i  ,j  ,k+1) == NULL) ok = false;
+                  if (fsgrids.technicalGrid.get(i+1,j  ,k+1) == NULL) ok = false;
                   if (ok == false) {
                      stringstream ss;
                      ss << "ERROR, got NULL neighbor in " << __FILE__ << ":" << __LINE__ << endl;
@@ -119,9 +116,9 @@ void calculateVolumeAveragedFields(
                   }
                   #endif
 
-                  std::array<Real, fsgrids::efield::N_EFIELD> * EGrid_i2j1k1 = EGrid.get(i+1,j  ,k  );
-                  std::array<Real, fsgrids::efield::N_EFIELD> * EGrid_i1j1k2 = EGrid.get(i  ,j  ,k+1);
-                  std::array<Real, fsgrids::efield::N_EFIELD> * EGrid_i2j1k2 = EGrid.get(i+1,j  ,k+1);
+                  std::array<Real, fsgrids::efield::N_EFIELD> * EGrid_i2j1k1 = fsgrids.EGrid.get(i+1,j  ,k  );
+                  std::array<Real, fsgrids::efield::N_EFIELD> * EGrid_i1j1k2 = fsgrids.EGrid.get(i  ,j  ,k+1);
+                  std::array<Real, fsgrids::efield::N_EFIELD> * EGrid_i2j1k2 = fsgrids.EGrid.get(i+1,j  ,k+1);
 
                   CHECK_FLOAT(EGrid_i1j1k1->at(fsgrids::efield::EY));
                   CHECK_FLOAT(EGrid_i2j1k1->at(fsgrids::efield::EY));
@@ -133,14 +130,14 @@ void calculateVolumeAveragedFields(
                   volGrid0->at(fsgrids::volfields::EYVOL) = 0.0;
                }
 
-               if ( technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
-                    (technicalGrid.get(i,j,k)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY && technicalGrid.get(i,j,k)->sysBoundaryLayer == 1)
+               if ( fsgrids.technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
+                    (fsgrids.technicalGrid.get(i,j,k)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY && fsgrids.technicalGrid.get(i,j,k)->sysBoundaryLayer == 1)
                   ) {
                   #ifdef DEBUG_FSOLVER
                   bool ok = true;
-                  if (technicalGrid.get(i+1,j  ,k  ) == NULL) ok = false;
-                  if (technicalGrid.get(i  ,j+1,k  ) == NULL) ok = false;
-                  if (technicalGrid.get(i+1,j+1,k  ) == NULL) ok = false;
+                  if (fsgrids.technicalGrid.get(i+1,j  ,k  ) == NULL) ok = false;
+                  if (fsgrids.technicalGrid.get(i  ,j+1,k  ) == NULL) ok = false;
+                  if (fsgrids.technicalGrid.get(i+1,j+1,k  ) == NULL) ok = false;
                   if (ok == false) {
                      stringstream ss;
                      ss << "ERROR, got NULL neighbor in " << __FILE__ << ":" << __LINE__ << endl;
@@ -148,9 +145,9 @@ void calculateVolumeAveragedFields(
                   }
                   #endif
 
-                  std::array<Real, fsgrids::efield::N_EFIELD> * EGrid_i2j1k1 = EGrid.get(i+1,j  ,k  );
-                  std::array<Real, fsgrids::efield::N_EFIELD> * EGrid_i1j2k1 = EGrid.get(i  ,j+1,k  );
-                  std::array<Real, fsgrids::efield::N_EFIELD> * EGrid_i2j2k1 = EGrid.get(i+1,j+1,k  );
+                  std::array<Real, fsgrids::efield::N_EFIELD> * EGrid_i2j1k1 = fsgrids.EGrid.get(i+1,j  ,k  );
+                  std::array<Real, fsgrids::efield::N_EFIELD> * EGrid_i1j2k1 = fsgrids.EGrid.get(i  ,j+1,k  );
+                  std::array<Real, fsgrids::efield::N_EFIELD> * EGrid_i2j2k1 = fsgrids.EGrid.get(i+1,j+1,k  );
 
                   CHECK_FLOAT(EGrid_i1j1k1->at(fsgrids::efield::EZ));
                   CHECK_FLOAT(EGrid_i2j1k1->at(fsgrids::efield::EZ));

@@ -24,10 +24,13 @@
 #define PROJECT_H
 
 #include <random>
-#include "../spatial_cell_wrapper.hpp"
 #include <dccrg.hpp>
 #include <dccrg_cartesian_geometry.hpp>
+#include "../spatial_cell_wrapper.hpp"
 #include "fsgrid.hpp"
+
+// Forward definition
+struct FsGridWrapper;
 
 namespace projects {
    class Project {
@@ -50,7 +53,7 @@ namespace projects {
       virtual void hook(
          cuint& stage,
          const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid
+         FsGridWrapper& fsgrids
       ) const;
       
       bool initialized();
@@ -63,9 +66,7 @@ namespace projects {
        * \sa setBackgroundField, setBackgroundFieldToZero
        */
       virtual void setProjectBField(
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
+         FsGridWrapper& fsgrids
       );
       
       /*! Setup data structures for subsequent setCell calls.

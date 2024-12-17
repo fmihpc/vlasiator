@@ -148,19 +148,16 @@ void Inflow::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geomet
 }
 
 void Inflow::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                               FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-                               FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-                               FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+                               FsGridWrapper& fsgrids,
                                Project& project) {
    for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
       setCellsFromTemplate(mpiGrid, popID);
    }
-   setBFromTemplate(mpiGrid, perBGrid, BgBGrid);
+   setBFromTemplate(mpiGrid, fsgrids.perBGrid, fsgrids.BgBGrid);
 }
 
 void Inflow::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                         FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-                         FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+                         FsGridWrapper& fsgrids,
                          creal t) {
    if (t - tLastApply < tInterval) {
       return;
@@ -176,7 +173,7 @@ void Inflow::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& m
       setCellsFromTemplate(mpiGrid, popID);
    }
 
-   setBFromTemplate(mpiGrid, perBGrid, BgBGrid);
+   setBFromTemplate(mpiGrid, fsgrids.perBGrid, fsgrids.BgBGrid);
 
    // Ensure up-to-date velocity block counts for all neighbours
    phiprof::Timer ghostTimer {"transfer-ghost-blocks", {"MPI"}};
@@ -187,17 +184,15 @@ void Inflow::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& m
 }
 
 Real Inflow::fieldSolverBoundaryCondMagneticField(
-   FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& bGrid,
-   FsGrid<array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& bgbGrid,
-   FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k, creal dt, cuint component) {
+   FsGridWrapper& fsgrids, cint i, cint j, cint k, creal dt, cuint component) {
    Real result = 0.0;
    creal dx = Parameters::dx_ini;
    creal dy = Parameters::dy_ini;
    creal dz = Parameters::dz_ini;
-   const array<FsGridTools::FsIndex_t, 3> globalIndices = technicalGrid.getGlobalIndices(i, j, k);
-   creal x = (convert<Real>(globalIndices[0]) + 0.5) * technicalGrid.DX + Parameters::xmin;
-   creal y = (convert<Real>(globalIndices[1]) + 0.5) * technicalGrid.DY + Parameters::ymin;
-   creal z = (convert<Real>(globalIndices[2]) + 0.5) * technicalGrid.DZ + Parameters::zmin;
+   const array<FsGridTools::FsIndex_t, 3> globalIndices = fsgrids.technicalGrid.getGlobalIndices(i, j, k);
+   creal x = (convert<Real>(globalIndices[0]) + 0.5) * fsgrids.technicalGrid.DX + Parameters::xmin;
+   creal y = (convert<Real>(globalIndices[1]) + 0.5) * fsgrids.technicalGrid.DY + Parameters::ymin;
+   creal z = (convert<Real>(globalIndices[2]) + 0.5) * fsgrids.technicalGrid.DZ + Parameters::zmin;
 
    bool isThisCellOnAFace[6];
    determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, true);
@@ -212,7 +207,7 @@ Real Inflow::fieldSolverBoundaryCondMagneticField(
    // There are projects that have non-uniform and non-zero perturbed B, e.g. Magnetosphere with dipole type 4.
    // We cannot jsut take the value from the templateCell, we also need a copy of the value from initialization.
    // This value is stored in the BgBGrid at fsgrids::bgbfield::BGBXVDCORR,BGBYVDCORR,BGBZVDCORR
-   result += bgbGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBXVDCORR + component);
+   result += fsgrids.BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBXVDCORR + component);
    return result;
 }
 

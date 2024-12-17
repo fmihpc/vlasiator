@@ -30,6 +30,7 @@
 #include "../fieldsolver/fs_common.h"
 #include "../fieldsolver/derivatives.hpp"
 #include "../sysboundary/ionosphere.h"
+#include "../object_wrapper.h"
 
 // Used in full box + flux rope tracing, the others used in coupling should use Real as double probably.
 typedef float TReal;
@@ -154,9 +155,7 @@ namespace FieldTracing {
    template<typename REAL> using TracingFieldFunction = std::function<bool(std::array<REAL,3>&, const bool, std::array<REAL, 3>&)>;
    
    template<typename REAL> bool traceFullFieldFunction(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+      FsGridWrapper& fsgrids,
       std::array<REAL,3>& r,
       const bool alongB,
       std::array<REAL,3>& b
@@ -177,10 +176,10 @@ namespace FieldTracing {
       b[1] = SBC::ionosphereGrid.dipoleField(r[0],r[1],r[2],Y,0,Y) + SBC::ionosphereGrid.BGB[1];
       b[2] = SBC::ionosphereGrid.dipoleField(r[0],r[1],r[2],Z,0,Z) + SBC::ionosphereGrid.BGB[2];
       
-      std::array<FsGridTools::FsSize_t, 3> fsgridCellu = getGlobalFsGridCellIndexForCoord(technicalGrid,{(TReal)r[0], (TReal)r[1], (TReal)r[2]});
+      std::array<FsGridTools::FsSize_t, 3> fsgridCellu = getGlobalFsGridCellIndexForCoord(fsgrids.technicalGrid,{(TReal)r[0], (TReal)r[1], (TReal)r[2]});
       std::array<FsGridTools::FsIndex_t,3> fsgridCell = {(FsGridTools::FsIndex_t)fsgridCellu[0],(FsGridTools::FsIndex_t)fsgridCellu[1],(FsGridTools::FsIndex_t)fsgridCellu[2]};
-      const std::array<FsGridTools::FsIndex_t, 3> localStart = technicalGrid.getLocalStart();
-      const std::array<FsGridTools::FsIndex_t, 3> localSize = technicalGrid.getLocalSize();
+      const std::array<FsGridTools::FsIndex_t, 3> localStart = fsgrids.technicalGrid.getLocalStart();
+      const std::array<FsGridTools::FsIndex_t, 3> localSize = fsgrids.technicalGrid.getLocalSize();
       // Make the global index a local one, bypass the fsgrid function that yields (-1,-1,-1) also for ghost cells.
       fsgridCell[0] -= localStart[0];
       fsgridCell[1] -= localStart[1];
@@ -195,11 +194,9 @@ namespace FieldTracing {
          abort();
          return false;
       } else {
-         if(technicalGrid.get(fsgridCell[0],fsgridCell[1],fsgridCell[2])->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+         if(fsgrids.technicalGrid.get(fsgridCell[0],fsgridCell[1],fsgridCell[2])->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
             const std::array<Real, 3> perB = interpolatePerturbedB(
-               perBGrid,
-               dPerBGrid,
-               technicalGrid,
+               fsgrids,
                fieldTracingParameters.reconstructionCoefficientsCache,
                fsgridCell[0],fsgridCell[1],fsgridCell[2],
                {(Real)r[0], (Real)r[1], (Real)r[2]}
@@ -626,9 +623,7 @@ namespace FieldTracing {
    
    /*! Link each ionospheric node to fsgrid cells for coupling */
    void calculateIonosphereFsgridCoupling(
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+      FsGridWrapper& fsgrids,
       std::vector<SBC::SphericalTriGrid::Node> & nodes,
       creal radius
    );
@@ -642,24 +637,18 @@ namespace FieldTracing {
 
    /*! Compute whether a node is connected to the ionosphere or the IMF. */
    void traceOpenClosedConnection(
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+      FsGridWrapper& fsgrids,
       std::vector<SBC::SphericalTriGrid::Node> & nodes
    );
 
    /*! Trace magnetic field lines forward and backward from each DCCRG cell to record the connectivity and detect flux ropes. */
    void traceFullBoxConnectionAndFluxRopes(
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+      FsGridWrapper& fsgrids,
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
    );
 
    void reduceData(
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+      FsGridWrapper& fsgrids,
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> & mpiGrid,
       std::vector<SBC::SphericalTriGrid::Node> & nodes
    );

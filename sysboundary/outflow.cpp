@@ -243,9 +243,7 @@ namespace SBC {
    
    void Outflow::applyInitialState(
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      FsGrid< array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+      FsGridWrapper& fsgrids,
       Project &project
    ) {
       const vector<CellID>& cells = getLocalCells();
@@ -285,14 +283,11 @@ namespace SBC {
    }
 
    void Outflow::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                             FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-                             FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+                             FsGridWrapper& fsgrids,
                              creal t) {}
 
    Real Outflow::fieldSolverBoundaryCondMagneticField(
-      FsGrid< array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & bgbGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+      FsGridWrapper& fsgrids,
       cint i,
       cint j,
       cint k,
@@ -301,13 +296,13 @@ namespace SBC {
    ) {
       switch(component) {
       case 0:
-         return fieldBoundaryCopyFromSolvingNbrMagneticField(bGrid, technicalGrid, i, j, k, component, compute::BX);
+         return fieldBoundaryCopyFromSolvingNbrMagneticField(fsgrids.perBGrid, fsgrids.technicalGrid, i, j, k, component, compute::BX);
          break;
       case 1:
-         return fieldBoundaryCopyFromSolvingNbrMagneticField(bGrid, technicalGrid, i, j, k, component, compute::BY);
+         return fieldBoundaryCopyFromSolvingNbrMagneticField(fsgrids.perBGrid, fsgrids.technicalGrid, i, j, k, component, compute::BY);
          break;
       case 2:
-         return fieldBoundaryCopyFromSolvingNbrMagneticField(bGrid, technicalGrid, i, j, k, component, compute::BZ);
+         return fieldBoundaryCopyFromSolvingNbrMagneticField(fsgrids.perBGrid, fsgrids.technicalGrid, i, j, k, component, compute::BZ);
          break;
       default:
          return 0.0;

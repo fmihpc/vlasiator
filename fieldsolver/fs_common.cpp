@@ -22,6 +22,7 @@
 
 #include "fs_common.h"
 #include "../fieldtracing/fieldtracing.h"
+#include "../object_wrapper.h"
 
 /*! \brief Helper function
  * 
@@ -205,32 +206,28 @@ void reconstructionCoefficients(
  *  D.S. Balsara, J. Comp. Phys., 228, 2009
  *  doi:10.1016/j.jcp.2009.03.038
  *
- * \param perBGrid perturbed B fsGrid
- * \param dPerBGrid perturbed B derivatives fsGrid
- * \param technicalGrid technical fsGrid
+ * \param fsgrids The wrapper containing all fieldsolver grids.
  * \param i local fsGrid x-index
  * \param j local fsGrid y-index
  * \param k local fsGrid z-index
  * \param x 3D global simulation x,y,z coordinates of point to interpolate to
  */
 std::array<Real, 3> interpolatePerturbedB(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+   FsGridWrapper& fsgrids,
    std::map< std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS> > & reconstructionCoefficientsCache,
    cint i,
    cint j,
    cint k,
    const std::array<Real, 3> x
 ) {
-   cuint cellSysBoundaryFlag = technicalGrid.get(i,j,k)->sysBoundaryFlag;
+   cuint cellSysBoundaryFlag = fsgrids.technicalGrid.get(i,j,k)->sysBoundaryFlag;
    if (cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
       std::array<Real, 3> zero = {0,0,0};
       return zero;
    }
 
    // Balsara reconstruction formulas: x,y,z are in [-1/2, 1/2] local coordinates
-   std::array<Real, 3> xLocal = getFractionalFsGridCellForCoord(technicalGrid, x);
+   std::array<Real, 3> xLocal = getFractionalFsGridCellForCoord(fsgrids.technicalGrid, x);
    xLocal[0] -= 0.5;
    xLocal[1] -= 0.5;
    xLocal[2] -= 0.5;
@@ -248,8 +245,8 @@ std::array<Real, 3> interpolatePerturbedB(
       {
          if (reconstructionCoefficientsCache.find(cellIds) == reconstructionCoefficientsCache.end()) {
             reconstructionCoefficients(
-               perBGrid,
-               dPerBGrid,
+               fsgrids.perBGrid,
+               fsgrids.dPerBGrid,
                rc,
                i,
                j,
@@ -263,8 +260,8 @@ std::array<Real, 3> interpolatePerturbedB(
       }
    } else {
       reconstructionCoefficients(
-         perBGrid,
-         dPerBGrid,
+         fsgrids.perBGrid,
+         fsgrids.dPerBGrid,
          rc,
          i,
          j,
@@ -294,25 +291,21 @@ std::array<Real, 3> interpolatePerturbedB(
  *  and the wxMaxima file at
  *  doc/fieldsolver/Balsara_curlB_at_arbitrary_xyz.wxmx
  *
- * \param perBGrid perturbed B fsGrid
- * \param dPerBGrid perturbed B derivatives fsGrid
- * \param technicalGrid technical fsGrid
+ * \param fsgrids The wrapper containing all fieldsolver grids.
  * \param i local fsGrid x-index
  * \param j local fsGrid y-index
  * \param k local fsGrid z-index
  * \param x 3D global simulation x,y,z coordinates of point to interpolate to
  */
 std::array<Real, 3> interpolateCurlB(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+   FsGridWrapper& fsgrids,
    std::map< std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS> > & reconstructionCoefficientsCache,
    cint i,
    cint j,
    cint k,
    const std::array<Real, 3> x
 ) {
-   cuint cellSysBoundaryFlag = technicalGrid.get(i,j,k)->sysBoundaryFlag;
+   cuint cellSysBoundaryFlag = fsgrids.technicalGrid.get(i,j,k)->sysBoundaryFlag;
    if (cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
       std::array<Real, 3> zero = {0,0,0};
       return zero;
@@ -321,7 +314,7 @@ std::array<Real, 3> interpolateCurlB(
 #define BALSARA_CURLB_IMPLEMENTATION
 #ifdef BALSARA_CURLB_IMPLEMENTATION
    // Balsara reconstruction formulas: x,y,z are in [-1/2, 1/2] local coordinates
-   std::array<Real, 3> xLocal = getFractionalFsGridCellForCoord(technicalGrid, x);
+   std::array<Real, 3> xLocal = getFractionalFsGridCellForCoord(fsgrids.technicalGrid, x);
    xLocal[0] -= 0.5;
    xLocal[1] -= 0.5;
    xLocal[2] -= 0.5;
@@ -340,8 +333,8 @@ std::array<Real, 3> interpolateCurlB(
       {
          if (reconstructionCoefficientsCache.find(cellIds) == reconstructionCoefficientsCache.end()) {
             reconstructionCoefficients(
-               perBGrid,
-               dPerBGrid,
+               fsgrids.perBGrid,
+               fsgrids.dPerBGrid,
                rc,
                i,
                j,
@@ -355,8 +348,8 @@ std::array<Real, 3> interpolateCurlB(
       }
    } else {
       reconstructionCoefficients(
-         perBGrid,
-         dPerBGrid,
+         fsgrids.perBGrid,
+         fsgrids.dPerBGrid,
          rc,
          i,
          j,
@@ -428,14 +421,14 @@ std::array<Real, 3> interpolateCurlB(
    std::array<Real,3> cell;
    std::array<int,3> fsc,lfsc;
    // Convert physical coordinate to cell index
-   cell[0] =  (x[0] - P::xmin) / technicalGrid.DX;
-   cell[1] =  (x[1] - P::ymin) / technicalGrid.DY;
-   cell[2] =  (x[2] - P::zmin) / technicalGrid.DZ;
+   cell[0] =  (x[0] - P::xmin) / fsgrids.technicalGrid.DX;
+   cell[1] =  (x[1] - P::ymin) / fsgrids.technicalGrid.DY;
+   cell[2] =  (x[2] - P::zmin) / fsgrids.technicalGrid.DZ;
    for(int c=0; c<3; c++) {
       fsc[c] = floor(cell[c]);
    }
    // Local cell
-   lfsc = technicalGrid.globalToLocal(fsc[0],fsc[1],fsc[2]);
+   lfsc = fsgrids.technicalGrid.globalToLocal(fsc[0],fsc[1],fsc[2]);
    if(lfsc[0] == -1 || lfsc[1] == -1 || lfsc[2] == -1) {
       cerr << "interpolateCurlB: Trying to access nonlocal cell at " << x[0] << ", " << x[1] << ", " << x[2] << ", which would be local coordinate "
          << lfsc[0] << ", " << lfsc[1] << ", " << lfsc[2] << endl;
@@ -461,7 +454,7 @@ std::array<Real, 3> interpolateCurlB(
             Real coupling = abs(xoffset - (cell[0]-fsc[0])) * abs(yoffset - (cell[1]-fsc[1])) * abs(zoffset - (cell[2]-fsc[2]));
 
             // Only couple to actual simulation cells
-            if(technicalGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+            if(fsgrids.technicalGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
                couplingSum += coupling;
             } else {
                continue;
