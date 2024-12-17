@@ -1662,7 +1662,8 @@ bool writeRestart(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
       for (fsgrid::FsIndex_t z = 0; z < gridSize[2]; z++) {
          for (fsgrid::FsIndex_t y = 0; y < gridSize[1]; y++) {
             for (fsgrid::FsIndex_t x = 0; x < gridSize[0]; x++) {
-               const auto lid = fsgrids.technicalGrid.localIDFromCellCoordinates(x, y, z);
+               const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+               const auto lid = stencil.center();
                std::memcpy(&retval[index], fsgrids.E[lid].data(), sizeof(Real) * fsgrids::efield::N_EFIELD);
                index += fsgrids::efield::N_EFIELD;
             }
@@ -1679,7 +1680,8 @@ bool writeRestart(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
           for (fsgrid::FsIndex_t z = 0; z < gridSize[2]; z++) {
              for (fsgrid::FsIndex_t y = 0; y < gridSize[1]; y++) {
                 for (fsgrid::FsIndex_t x = 0; x < gridSize[0]; x++) {
-                   const auto lid = fsgrids.technicalGrid.localIDFromCellCoordinates(x, y, z);
+                   const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                   const auto lid = stencil.center();
                    std::memcpy(&retval[index], fsgrids.perB[lid].data(), sizeof(Real) * fsgrids::bfield::N_BFIELD);
                    index += fsgrids::bfield::N_BFIELD;
                 }
