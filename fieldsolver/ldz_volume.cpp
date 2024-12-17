@@ -33,10 +33,10 @@ void calculateVolumeAveragedFields(std::span<const std::array<Real, fsgrids::bfi
                                    std::span<const std::array<Real, fsgrids::efield::N_EFIELD>> e,
                                    std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                                    std::span<std::array<Real, fsgrids::volfields::N_VOL>> vols,
-                                   std::span<const fsgrids::technical> technical, const fsgrid::FsStencil& stencil) {
+                                   const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
    const auto center = stencil.center();
    std::array<Real, fsgrids::volfields::N_VOL>& vol = vols[center];
-   const auto sbflag = technical[center].sysBoundaryFlag;
+   const auto sbflag = sysBoundaryFlag;
 
 #ifdef DEBUG_FSOLVER
    const bool ok = stencil.cellExists(0, 1, 0) && stencil.cellExists(0, 0, 1) && stencil.cellExists(0, 1, 1) &&
@@ -107,30 +107,17 @@ void calculateVolumeAveragedFieldsSimple(
     fsgrid::FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
     fsgrid::FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid,
     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
-   const auto& localSize = technicalGrid.getLocalSize();
-   const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
 
    std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
    std::span<const std::array<Real, fsgrids::efield::N_EFIELD>> e = EGrid.getData();
    std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb = dPerBGrid.getData();
    std::span<std::array<Real, fsgrids::volfields::N_VOL>> vols = volGrid.getData();
-   std::span<const fsgrids::technical> technical = technicalGrid.getData();
 
    phiprof::Timer timer{"Calculate volume averaged fields"};
-   int parallelTimerId{phiprof::initializeTimer("volume averaged fields compute cells")};
-#pragma omp parallel
-   {
-      phiprof::Timer parallelTimer{parallelTimerId};
-#pragma omp for collapse(2)
-      for (auto k = 0; k < localSize[2]; k++) {
-         for (auto j = 0; j < localSize[1]; j++) {
-            for (auto i = 0; i < localSize[0]; i++) {
-               const auto stencil = technicalGrid.makeStencil(i, j, k);
-               calculateVolumeAveragedFields(perb, e, dperb, vols, technical, stencil);
-            }
-         }
-      }
-   }
 
-   timer.stop(N_cells, "Spatial Cells");
+   technicalGrid.parallel_for([=](const fsgrid::FsStencil stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+      calculateVolumeAveragedFields(perb, e, dperb, vols, stencil, sysBoundaryFlag, sysBoundaryLayer);
+   });
+
+   timer.stop();
 }
