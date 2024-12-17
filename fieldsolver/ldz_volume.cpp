@@ -34,8 +34,9 @@ void calculateVolumeAveragedFields(std::span<const std::array<Real, fsgrids::bfi
                                    std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                                    std::span<std::array<Real, fsgrids::volfields::N_VOL>> vols,
                                    std::span<const fsgrids::technical> technical, const fsgrid::FsStencil& stencil) {
-   std::array<Real, fsgrids::volfields::N_VOL>& vol = vols[stencil.center()];
-   const auto sbflag = technical[stencil.center()].sysBoundaryFlag;
+   const auto center = stencil.center();
+   std::array<Real, fsgrids::volfields::N_VOL>& vol = vols[center];
+   const auto sbflag = technical[center].sysBoundaryFlag;
 
 #ifdef DEBUG_FSOLVER
    const bool ok = stencil.cellExists(0, 1, 0) && stencil.cellExists(0, 0, 1) && stencil.cellExists(0, 1, 1) &&
@@ -62,7 +63,7 @@ void calculateVolumeAveragedFields(std::span<const std::array<Real, fsgrids::bfi
    }
 
    if (sbflag == sysboundarytype::NOT_SYSBOUNDARY || sbflag == 1) {
-      const std::array<Real, fsgrids::efield::N_EFIELD>& E_i1j1k1 = e[stencil.center()];
+      const std::array<Real, fsgrids::efield::N_EFIELD>& E_i1j1k1 = e[center];
       const std::array<Real, fsgrids::efield::N_EFIELD>& E_i1j2k1 = e[stencil.up()];
       const std::array<Real, fsgrids::efield::N_EFIELD>& E_i1j1k2 = e[stencil.near()];
       const std::array<Real, fsgrids::efield::N_EFIELD>& E_i1j2k2 = e[stencil.upnear()];
@@ -121,9 +122,9 @@ void calculateVolumeAveragedFieldsSimple(
    {
       phiprof::Timer parallelTimer{parallelTimerId};
 #pragma omp for collapse(2)
-      for (fsgrid::FsIndex_t k = 0; k < localSize[2]; k++) {
-         for (fsgrid::FsIndex_t j = 0; j < localSize[1]; j++) {
-            for (fsgrid::FsIndex_t i = 0; i < localSize[0]; i++) {
+      for (auto k = 0; k < localSize[2]; k++) {
+         for (auto j = 0; j < localSize[1]; j++) {
+            for (auto i = 0; i < localSize[0]; i++) {
                const auto stencil = technicalGrid.makeStencil(i, j, k);
                calculateVolumeAveragedFields(perb, e, dperb, vols, technical, stencil);
             }
