@@ -388,10 +388,9 @@ void Outflow::fieldSolverBoundaryCondDerivatives(std::span<std::array<Real, fsgr
    this->setCellDerivativesToZero(dperb, dmoments, stencil, component);
 }
 
-void Outflow::fieldSolverBoundaryCondBVOLDerivatives(
-    fsgrid::FsGrid<array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid, cint i, cint j, cint k,
-    cuint component) {
-   this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
+void Outflow::fieldSolverBoundaryCondBVOLDerivatives(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vols,
+                                                     const fsgrid::FsStencil& stencil, cuint component) {
+   this->setCellBVOLDerivativesToZero(vols, stencil, component);
 }
 
 /**

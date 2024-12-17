@@ -260,35 +260,30 @@ namespace SBC {
     * \param cellID The cell's ID.
     * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives.
     */
-   void SysBoundaryCondition::setCellBVOLDerivativesToZero(
-      fsgrid::FsGrid< array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint component
-   ) {
-      array<Real, fsgrids::volfields::N_VOL> * volGrid0 = volGrid.get(i,j,k);
+   void SysBoundaryCondition::setCellBVOLDerivativesToZero(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vols,
+                                                           const fsgrid::FsStencil& stencil, cuint component) {
+      auto& vol = vols[stencil.center()];
       switch(component) {
          case 0:
-            volGrid0->at(fsgrids::volfields::dPERBXVOLdx) = 0.0;
-            volGrid0->at(fsgrids::volfields::dPERBYVOLdx) = 0.0;
-            volGrid0->at(fsgrids::volfields::dPERBZVOLdx) = 0.0;
+            vol[fsgrids::volfields::dPERBXVOLdx] = 0.0;
+            vol[fsgrids::volfields::dPERBYVOLdx] = 0.0;
+            vol[fsgrids::volfields::dPERBZVOLdx] = 0.0;
             break;
          case 1:
-            volGrid0->at(fsgrids::volfields::dPERBXVOLdy) = 0.0;
-            volGrid0->at(fsgrids::volfields::dPERBYVOLdy) = 0.0;
-            volGrid0->at(fsgrids::volfields::dPERBZVOLdy) = 0.0;
+            vol[fsgrids::volfields::dPERBXVOLdy] = 0.0;
+            vol[fsgrids::volfields::dPERBYVOLdy] = 0.0;
+            vol[fsgrids::volfields::dPERBZVOLdy] = 0.0;
             break;
          case 2:
-            volGrid0->at(fsgrids::volfields::dPERBXVOLdz) = 0.0;
-            volGrid0->at(fsgrids::volfields::dPERBYVOLdz) = 0.0;
-            volGrid0->at(fsgrids::volfields::dPERBZVOLdz) = 0.0;
+            vol[fsgrids::volfields::dPERBXVOLdz] = 0.0;
+            vol[fsgrids::volfields::dPERBYVOLdz] = 0.0;
+            vol[fsgrids::volfields::dPERBZVOLdz] = 0.0;
             break;
          default:
          abort_mpi("Invalid component", 1);
       }
    }
-   
+
    /*! Function used to copy the distribution and moments from (one of) the closest sysboundarytype::NOT_SYSBOUNDARY cell.
     * \param mpiGrid Grid
     * \param cellID The cell's ID.
@@ -557,38 +552,44 @@ namespace SBC {
       cint j,
       cint k
    ) {
+      const auto stencil = technicalGrid.makeStencil(i, j, k);
+      std::span<const fsgrids::technical> technical = technicalGrid.getData();
       int distance = numeric_limits<int>::max();
-      vector< array<int,3> > closestCells;
-      
+      vector<array<int, 3>> closestCells;
+
       for (int kk=-2; kk<3; kk++) {
          for (int jj=-2; jj<3; jj++) {
             for (int ii=-2; ii<3 ; ii++) {
-               if( technicalGrid.get(i+ii,j+jj,k+kk) && technicalGrid.get(i+ii,j+jj,k+kk)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-                  distance = min(distance, ii*ii + jj*jj + kk*kk);
-               }
-            }
-         }
-      }
-      
-      for (int kk=-2; kk<3; kk++) {
-         for (int jj=-2; jj<3; jj++) {
-            for (int ii=-2; ii<3 ; ii++) {
-               if( technicalGrid.get(i+ii,j+jj,k+kk) && technicalGrid.get(i+ii,j+jj,k+kk)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-                  int d = ii*ii + jj*jj + kk*kk;
-                  if( d == distance ) {
-                     array<int, 3> cell = {i+ii, j+jj, k+kk};
-                     closestCells.push_back(cell);
+               if (stencil.cellExists(ii, jj, kk)) {
+                  if (technical[stencil.indexFromOffset(ii, jj, kk)].sysBoundaryFlag ==
+                      sysboundarytype::NOT_SYSBOUNDARY) {
+                     distance = min(distance, ii * ii + jj * jj + kk * kk);
                   }
                }
             }
          }
       }
       
-      if(closestCells.size() == 0) {
-         array<int, 3> dummy  = {numeric_limits<int>::min()};
-         closestCells.push_back(dummy);
+      for (int kk=-2; kk<3; kk++) {
+         for (int jj=-2; jj<3; jj++) {
+            for (int ii=-2; ii<3 ; ii++) {
+               if (stencil.cellExists(ii, jj, kk)) {
+                  if (technical[stencil.indexFromOffset(ii, jj, kk)].sysBoundaryFlag ==
+                      sysboundarytype::NOT_SYSBOUNDARY) {
+                     const int d = ii * ii + jj * jj + kk * kk;
+                     if (d == distance) {
+                        closestCells.push_back({i + ii, j + jj, k + kk});
+                     }
+                  }
+               }
+            }
+         }
       }
-      
+
+      if (closestCells.empty()) {
+         closestCells.push_back({numeric_limits<int>::min()});
+      }
+
       return closestCells;
    }
    

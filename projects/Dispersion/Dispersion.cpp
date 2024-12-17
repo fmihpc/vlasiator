@@ -95,12 +95,11 @@ namespace projects {
          speciesParams.push_back(sP);
       }
    }
-   
-   void Dispersion::hook(
-      cuint& stage,
-      const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      fsgrid::FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid
-   ) const {
+
+   void Dispersion::hook(cuint& stage,
+                         const dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                         std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                         fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) const {
       if(hook::END_OF_TIME_STEP == stage) {
          int myRank;
          MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
@@ -123,15 +122,16 @@ namespace projects {
          vector<Real> outputPerBx(P::xcells_ini, 0.0);
          vector<Real> outputPerBy(P::xcells_ini, 0.0);
          vector<Real> outputPerBz(P::xcells_ini, 0.0);
-         
-         const std::array<fsgrid::FsIndex_t, 3> localSize = perBGrid.getLocalSize();
-         const std::array<fsgrid::FsIndex_t, 3> localStart = perBGrid.getLocalStart();
-         for (fsgrid::FsIndex_t x = 0; x < localSize[0]; ++x) {
-            localPerBx[x + localStart[0]] = perBGrid.get(x, 0, 0)->at(fsgrids::bfield::PERBX);
-            localPerBy[x + localStart[0]] = perBGrid.get(x, 0, 0)->at(fsgrids::bfield::PERBY);
-            localPerBz[x + localStart[0]] = perBGrid.get(x, 0, 0)->at(fsgrids::bfield::PERBZ);
+
+         const auto& localSize = technicalGrid.getLocalSize();
+         const auto& localStart = technicalGrid.getLocalStart();
+         for (auto x = 0; x < localSize[0]; ++x) {
+            const auto stencil = technicalGrid.makeStencil(x, 0, 0);
+            localPerBx[x + localStart[0]] = perb[stencil.center()][fsgrids::bfield::PERBX];
+            localPerBy[x + localStart[0]] = perb[stencil.center()][fsgrids::bfield::PERBY];
+            localPerBz[x + localStart[0]] = perb[stencil.center()][fsgrids::bfield::PERBZ];
          }
-         
+
          MPI_Reduce(&(localPerBx[0]), &(outputPerBx[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
          MPI_Reduce(&(localPerBy[0]), &(outputPerBy[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
          MPI_Reduce(&(localPerBz[0]), &(outputPerBz[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
@@ -211,13 +211,10 @@ namespace projects {
       this->rndVel[1]=getRandomNumber(rndState);
       this->rndVel[2]=getRandomNumber(rndState);
    }
-   
-   void Dispersion::setProjectBField(
-      fsgrid::FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      fsgrid::FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-   ) {
-      std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb = BgBGrid.getData();
+
+   void Dispersion::setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                     std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                                     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
       ConstantField bgField;
       bgField.initialize(this->B0 * cos(this->angleXY) * cos(this->angleXZ),
                          this->B0 * sin(this->angleXY) * cos(this->angleXZ),
@@ -226,14 +223,15 @@ namespace projects {
       setBackgroundField(bgField, bgb, technicalGrid);
 
       if(!P::isRestart) {
-         const auto localSize = BgBGrid.getLocalSize().data();
-         
+         const auto& localSize = technicalGrid.getLocalSize();
+
 #pragma omp parallel for collapse(3)
-         for (fsgrid::FsIndex_t x = 0; x < localSize[0]; ++x) {
-            for (fsgrid::FsIndex_t y = 0; y < localSize[1]; ++y) {
-               for (fsgrid::FsIndex_t z = 0; z < localSize[2]; ++z) {
-                  std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
-                  const int64_t cellid = perBGrid.globalIDFromLocalCoordinates(x, y, z);
+         for (auto x = 0; x < localSize[0]; ++x) {
+            for (auto y = 0; y < localSize[1]; ++y) {
+               for (auto z = 0; z < localSize[2]; ++z) {
+                  const auto stencil = technicalGrid.makeStencil(x, y, z);
+                  auto& cell = perb[stencil.center()];
+                  const int64_t cellid = technicalGrid.globalIDFromLocalCoordinates(x, y, z);
 
                   std::default_random_engine rndState;
                   setRandomSeed(cellid,rndState);
@@ -242,10 +240,10 @@ namespace projects {
                   rndBuffer[0]=getRandomNumber(rndState);
                   rndBuffer[1]=getRandomNumber(rndState);
                   rndBuffer[2]=getRandomNumber(rndState);
-                  
-                  cell->at(fsgrids::bfield::PERBX) = this->magXPertAbsAmp * (0.5 - rndBuffer[0]);
-                  cell->at(fsgrids::bfield::PERBY) = this->magYPertAbsAmp * (0.5 - rndBuffer[1]);
-                  cell->at(fsgrids::bfield::PERBZ) = this->magZPertAbsAmp * (0.5 - rndBuffer[2]);
+
+                  cell[fsgrids::bfield::PERBX] = this->magXPertAbsAmp * (0.5 - rndBuffer[0]);
+                  cell[fsgrids::bfield::PERBY] = this->magYPertAbsAmp * (0.5 - rndBuffer[1]);
+                  cell[fsgrids::bfield::PERBZ] = this->magZPertAbsAmp * (0.5 - rndBuffer[2]);
                }
             }
          }

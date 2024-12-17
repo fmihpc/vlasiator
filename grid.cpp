@@ -26,6 +26,7 @@
 #include <ctime>
 #include <iomanip> // for setprecision()
 #include <iostream>
+#include <span>
 #include <sstream>
 #include <vector>
 #ifdef _OPENMP
@@ -100,6 +101,9 @@ void initializeGrids(int argn, char** argc, dccrg::Dccrg<SpatialCell, dccrg::Car
                      fsgrid::FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid,
                      fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, SysBoundary& sysBoundaries,
                      Project& project) {
+
+   std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
+   std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb = BgBGrid.getData();
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
 
@@ -331,7 +335,7 @@ void initializeGrids(int argn, char** argc, dccrg::Dccrg<SpatialCell, dccrg::Car
    fetchNeighbourTimer.stop();
 
    phiprof::Timer setBTimer{"project.setProjectBField"};
-   project.setProjectBField(perBGrid, BgBGrid, technicalGrid);
+   project.setProjectBField(perb, bgb, technicalGrid);
    setBTimer.stop();
    phiprof::Timer fsGridGhostTimer{"fsgrid-ghost-updates"};
    perBGrid.updateGhostCells();

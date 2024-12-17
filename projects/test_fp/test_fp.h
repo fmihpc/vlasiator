@@ -23,6 +23,7 @@
 #ifndef TEST_FP_H
 #define TEST_FP_H
 
+#include <span>
 #include <stdlib.h>
 
 #include "../../definitions.h"
@@ -37,12 +38,10 @@ namespace projects {
       virtual bool initialize(void);
       static void addParameters(void);
       virtual void getParameters(void);
-      virtual void setProjectBField(
-         fsgrid::FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-         fsgrid::FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-         fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-      );
-      
+      virtual void setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                    std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                                    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid);
+
       Real sign(creal value) const;
       virtual Realf fillPhaseSpace(spatial_cell::SpatialCell *cell,
                                   const uint popID,

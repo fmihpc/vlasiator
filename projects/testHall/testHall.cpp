@@ -93,67 +93,36 @@ namespace projects {
    }
    
    void TestHall::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
-      
-//       creal r = sqrt((x+Dx)*(x+Dx) + (y+Dy)*(y+Dy));
-//       creal theta = atan2(y+Dy, x+Dx);
-      
-//       creal I = 1.0e6; // current
-//       creal B = physicalconstants::MU_0 * I / (2.0 * 3.1415927);
-      
-//       cellParams[CellParams::PERBX] = this->BX0;
-//       cellParams[CellParams::PERBY] = this->BY0;
-//       cellParams[CellParams::PERBZ] = this->BZ0;
-      
-//       cellParams[CellParams::PERBX] = this->BX0 * y;
-//       cellParams[CellParams::PERBY] = this->BY0 * z;
-//       cellParams[CellParams::PERBZ] = this->BZ0 * x;
-      
-//       cellParams[CellParams::PERBX] = this->BX0 * cos(2.0*M_PI * 1.0 * x / (P::xmax - P::xmin)) * cos(2.0*M_PI * 1.0 * y / (P::ymax - P::ymin)) * cos(2.0*M_PI * 1.0 * z / (P::zmax - P::zmin));
-//       cellParams[CellParams::PERBY] = this->BY0 * cos(2.0*M_PI * 1.0 * x / (P::xmax - P::xmin)) * cos(2.0*M_PI * 1.0 * y / (P::ymax - P::ymin)) * cos(2.0*M_PI * 1.0 * z / (P::zmax - P::zmin));
-//       cellParams[CellParams::PERBZ] = this->BZ0 * cos(2.0*M_PI * 1.0 * x / (P::xmax - P::xmin)) * cos(2.0*M_PI * 1.0 * y / (P::ymax - P::ymin)) * cos(2.0*M_PI * 1.0 * z / (P::zmax - P::zmin));
-      
-//       cellParams[CellParams::PERBX] = -1.0*(y+Dy) / ((x+Dx)*(x+Dx) + (y+Dy)*(y+Dy));
-//       cellParams[CellParams::PERBY] = (x+Dx) / ((x+Dx)*(x+Dx) + (y+Dy)*(y+Dy));
-//       cellParams[CellParams::PERBZ] = 0.0;
-      
-//       cellParams[CellParams::PERBX] = this->BX0 * tanh((y + 0.5 * dy) / (15.0 * dy));
-//       cellParams[CellParams::PERBY] = this->BY0 * tanh((z + 0.5 * dz) / (15.0 * dz));
-//       cellParams[CellParams::PERBZ] = this->BZ0 * tanh((x + 0.5 * dx) / (15.0 * dx));
-      
-//       cellParams[CellParams::PERBX   ] = this->BX0 * (x+0.5*Dx + y+0.5*Dy + (z+0.5*Dz));
-//       cellParams[CellParams::PERBY   ] = this->BY0 * ((x+0.5*Dx)*(x+0.5*Dx) + (y+0.5*Dy)*(y+0.5*Dy) + (z+0.5*Dz)*(z+0.5*Dz));
-//       cellParams[CellParams::PERBX   ] = this->BX0 * ((x+0.5*Dx)*(x+0.5*Dx)*(x+0.5*Dx)/ pow(Parameters::xmax - Parameters::xmin, 3.0) + (y+0.5*Dy)*(y+0.5*Dy)*(y+0.5*Dy)/ pow(Parameters::ymax - Parameters::ymin, 3.0) + (z+0.5*Dz)*(z+0.5*Dz)*(z+0.5*Dz)/ pow(Parameters::zmax - Parameters::zmin, 3.0))   ;
-//       cellParams[CellParams::PERBY   ] = this->BY0 * ((x+0.5*Dx)*(x+0.5*Dx)*(x+0.5*Dx)/ pow(Parameters::xmax - Parameters::xmin, 3.0) + (y+0.5*Dy)*(y+0.5*Dy)*(y+0.5*Dy)/ pow(Parameters::ymax - Parameters::ymin, 3.0) + (z+0.5*Dz)*(z+0.5*Dz)*(z+0.5*Dz)/ pow(Parameters::zmax - Parameters::zmin, 3.0));
-//       cellParams[CellParams::PERBZ   ] = this->BZ0 * ((x+0.5*Dx)*(x+0.5*Dx)*(x+0.5*Dx)/ pow(Parameters::xmax - Parameters::xmin, 3.0) + (y+0.5*Dy)*(y+0.5*Dy)*(y+0.5*Dy)/ pow(Parameters::ymax - Parameters::ymin, 3.0) + (z+0.5*Dz)*(z+0.5*Dz)*(z+0.5*Dz)/ pow(Parameters::zmax - Parameters::zmin, 3.0));
-      
-//       cellParams[CellParams::PERBX   ] = this->BX0 * (x+0.5*Dx)*(y+0.5*Dy)*(z+0.5*Dz);
-//       cellParams[CellParams::PERBY   ] = this->BY0 * (x+0.5*Dx)*(y+0.5*Dy)*(z+0.5*Dz)*(x+0.5*Dx)*(y+0.5*Dy)*(z+0.5*Dz);
-//       cellParams[CellParams::PERBZ   ] = this->BZ0 * (x+0.5*Dx)*(y+0.5*Dy)*(z+0.5*Dz)*(x+0.5*Dx)*(y+0.5*Dy)*(z+0.5*Dz)*(x+0.5*Dx)*(y+0.5*Dy)*(z+0.5*Dz);
-   
-   void TestHall::setProjectBField(
-      fsgrid::FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      fsgrid::FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-   ) {
-      setBackgroundFieldToZero(BgBGrid.getData());
+
+   void TestHall::setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                   std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                                   fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
+      setBackgroundFieldToZero(bgb);
 
       if(!P::isRestart) {
-         auto localSize = perBGrid.getLocalSize().data();
-         
+         const auto& localSize = technicalGrid.getLocalSize();
+
 #pragma omp parallel for collapse(3)
-         for (fsgrid::FsIndex_t x = 0; x < localSize[0]; ++x) {
-            for (fsgrid::FsIndex_t y = 0; y < localSize[1]; ++y) {
-               for (fsgrid::FsIndex_t z = 0; z < localSize[2]; ++z) {
-                  const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
-                  std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
-                  
-                  cell->at(fsgrids::bfield::PERBX) = this->BX0 * cos(2.0*M_PI * 1.0 * xyz[0] / (P::xmax - P::xmin)) * cos(2.0*M_PI * 1.0 * xyz[1] / (P::ymax - P::ymin)) * cos(2.0*M_PI * 1.0 * xyz[2] / (P::zmax - P::zmin));
-                  cell->at(fsgrids::bfield::PERBY) = this->BY0 * cos(2.0*M_PI * 1.0 * xyz[0] / (P::xmax - P::xmin)) * cos(2.0*M_PI * 1.0 * xyz[1] / (P::ymax - P::ymin)) * cos(2.0*M_PI * 1.0 * xyz[2] / (P::zmax - P::zmin));
-                  cell->at(fsgrids::bfield::PERBZ) = this->BZ0 * cos(2.0*M_PI * 1.0 * xyz[0] / (P::xmax - P::xmin)) * cos(2.0*M_PI * 1.0 * xyz[1] / (P::ymax - P::ymin)) * cos(2.0*M_PI * 1.0 * xyz[2] / (P::zmax - P::zmin));
+         for (auto x = 0; x < localSize[0]; ++x) {
+            for (auto y = 0; y < localSize[1]; ++y) {
+               for (auto z = 0; z < localSize[2]; ++z) {
+                  const auto xyz = technicalGrid.getPhysicalCoords(x, y, z);
+                  const auto stencil = technicalGrid.makeStencil(x, y, z);
+                  auto& cell = perb[stencil.center()];
+
+                  cell[fsgrids::bfield::PERBX] = this->BX0 * cos(2.0 * M_PI * 1.0 * xyz[0] / (P::xmax - P::xmin)) *
+                                                 cos(2.0 * M_PI * 1.0 * xyz[1] / (P::ymax - P::ymin)) *
+                                                 cos(2.0 * M_PI * 1.0 * xyz[2] / (P::zmax - P::zmin));
+                  cell[fsgrids::bfield::PERBY] = this->BY0 * cos(2.0 * M_PI * 1.0 * xyz[0] / (P::xmax - P::xmin)) *
+                                                 cos(2.0 * M_PI * 1.0 * xyz[1] / (P::ymax - P::ymin)) *
+                                                 cos(2.0 * M_PI * 1.0 * xyz[2] / (P::zmax - P::zmin));
+                  cell[fsgrids::bfield::PERBZ] = this->BZ0 * cos(2.0 * M_PI * 1.0 * xyz[0] / (P::xmax - P::xmin)) *
+                                                 cos(2.0 * M_PI * 1.0 * xyz[1] / (P::ymax - P::ymin)) *
+                                                 cos(2.0 * M_PI * 1.0 * xyz[2] / (P::zmax - P::zmin));
                }
             }
          }
       }
    }
-   
+
 } // namespace projects

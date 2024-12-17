@@ -129,39 +129,41 @@ namespace projects {
       //Real dByavg = sin(2.0 * M_PI * ksi);
       //Real dBzavg = cos(2.0 * M_PI * ksi);
    }
-   
-   void Alfven::setProjectBField(
-      fsgrid::FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      fsgrid::FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-   ) {
-      setBackgroundFieldToZero(BgBGrid.getData());
+
+   void Alfven::setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                 std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                                 fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
+      const auto& gridSpacing = technicalGrid.getGridSpacing();
+      setBackgroundFieldToZero(bgb);
 
       if (!P::isRestart) {
-         auto localSize = perBGrid.getLocalSize().data();
-         
+         const auto& localSize = technicalGrid.getLocalSize();
+
 #pragma omp parallel for collapse(3)
-         for (fsgrid::FsIndex_t x = 0; x < localSize[0]; ++x) {
-            for (fsgrid::FsIndex_t y = 0; y < localSize[1]; ++y) {
-               for (fsgrid::FsIndex_t z = 0; z < localSize[2]; ++z) {
-                  const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
-                  std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
+         for (auto x = 0; x < localSize[0]; ++x) {
+            for (auto y = 0; y < localSize[1]; ++y) {
+               for (auto z = 0; z < localSize[2]; ++z) {
+                  const auto xyz = technicalGrid.getPhysicalCoords(x, y, z);
+                  const auto stencil = technicalGrid.makeStencil(x, y, z);
+                  auto& cell = perb[stencil.center()];
 
-                  Real dx = perBGrid.getGridSpacing()[0];
-                  Real dy = perBGrid.getGridSpacing()[1];
-                  Real ksi = ((xyz[0] + 0.5 * dx)  * cos(this->ALPHA) + (xyz[1] + 0.5 * dy) * sin(this->ALPHA)) / this->WAVELENGTH;
-                  Real dBxavg = sin(2.0 * M_PI * ksi);
-                  Real dByavg = sin(2.0 * M_PI * ksi);
-                  Real dBzavg = cos(2.0 * M_PI * ksi);
+                  const Real dx = gridSpacing[0];
+                  const Real dy = gridSpacing[1];
+                  const Real ksi = ((xyz[0] + 0.5 * dx) * cos(this->ALPHA) + (xyz[1] + 0.5 * dy) * sin(this->ALPHA)) /
+                                   this->WAVELENGTH;
+                  const Real dBxavg = sin(2.0 * M_PI * ksi);
+                  const Real dByavg = sin(2.0 * M_PI * ksi);
+                  const Real dBzavg = cos(2.0 * M_PI * ksi);
 
-                  cell->at(fsgrids::bfield::PERBX) = this->B0 * cos(this->ALPHA) - this->A_MAG * this->B0 * sin(this->ALPHA) * dBxavg;
-                  cell->at(fsgrids::bfield::PERBY) = this->B0 * sin(this->ALPHA) + this->A_MAG * this->B0 * cos(this->ALPHA) * dByavg;
-                  cell->at(fsgrids::bfield::PERBZ) = this->B0 * this->A_MAG * dBzavg;
-                  
+                  cell[fsgrids::bfield::PERBX] =
+                      this->B0 * cos(this->ALPHA) - this->A_MAG * this->B0 * sin(this->ALPHA) * dBxavg;
+                  cell[fsgrids::bfield::PERBY] =
+                      this->B0 * sin(this->ALPHA) + this->A_MAG * this->B0 * cos(this->ALPHA) * dByavg;
+                  cell[fsgrids::bfield::PERBZ] = this->B0 * this->A_MAG * dBzavg;
                }
             }
          }
       }
    }
-   
+
 } // namespace projects

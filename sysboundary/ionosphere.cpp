@@ -2978,12 +2978,11 @@ void Ionosphere::fieldSolverBoundaryCondDerivatives(std::span<std::array<Real, f
    this->setCellDerivativesToZero(dperb, dmoments, stencil, component);
 }
 
-void Ionosphere::fieldSolverBoundaryCondBVOLDerivatives(
-    fsgrid::FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid, cint i, cint j, cint k,
-    cuint component) {
+void Ionosphere::fieldSolverBoundaryCondBVOLDerivatives(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vols,
+                                                        const fsgrid::FsStencil& stencil, cuint component) {
    // FIXME This should be OK as the BVOL derivatives are only used for Lorentz force JXB, which is not applied on the
    // ionosphere cells.
-   this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
+   this->setCellBVOLDerivativesToZero(vols, stencil, component);
 }
 
 void Ionosphere::mapCellPotentialAndGetEXBDrift(std::array<Real, CellParams::N_SPATIAL_CELL_PARAMS>& cellParams) {

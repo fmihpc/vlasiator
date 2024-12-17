@@ -145,12 +145,9 @@ namespace projects {
       this->rndVel[2]=getRandomNumber(rndState);
    }
 
-   void Fluctuations::setProjectBField(
-      fsgrid::FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      fsgrid::FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-   ) {
-      std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb = BgBGrid.getData();
+   void Fluctuations::setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                       std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                                       fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
       ConstantField bgField;
       bgField.initialize(this->BX0,
                          this->BY0,
@@ -159,27 +156,28 @@ namespace projects {
       setBackgroundField(bgField, bgb, technicalGrid);
 
       if(!P::isRestart) {
-         const auto localSize = BgBGrid.getLocalSize().data();
-         
-         #pragma omp parallel for collapse(3)
-         for (fsgrid::FsIndex_t x = 0; x < localSize[0]; ++x) {
-            for (fsgrid::FsIndex_t y = 0; y < localSize[1]; ++y) {
-               for (fsgrid::FsIndex_t z = 0; z < localSize[2]; ++z) {
-                  std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
-                  const int64_t cellid = perBGrid.globalIDFromLocalCoordinates(x, y, z);
+         const auto& localSize = technicalGrid.getLocalSize();
+
+#pragma omp parallel for collapse(3)
+         for (auto x = 0; x < localSize[0]; ++x) {
+            for (auto y = 0; y < localSize[1]; ++y) {
+               for (auto z = 0; z < localSize[2]; ++z) {
+                  const auto stencil = technicalGrid.makeStencil(x, y, z);
+                  auto& cell = perb[stencil.center()];
+                  const int64_t cellid = technicalGrid.globalIDFromLocalCoordinates(x, y, z);
 
                   std::default_random_engine rndState;
                   setRandomSeed(cellid,rndState);
-                  
-                  cell->at(fsgrids::bfield::PERBX) = this->magXPertAbsAmp * (0.5 - getRandomNumber(rndState));
-                  cell->at(fsgrids::bfield::PERBY) = this->magYPertAbsAmp * (0.5 - getRandomNumber(rndState));
-                  cell->at(fsgrids::bfield::PERBZ) = this->magZPertAbsAmp * (0.5 - getRandomNumber(rndState));
+
+                  cell[fsgrids::bfield::PERBX] = this->magXPertAbsAmp * (0.5 - getRandomNumber(rndState));
+                  cell[fsgrids::bfield::PERBY] = this->magYPertAbsAmp * (0.5 - getRandomNumber(rndState));
+                  cell[fsgrids::bfield::PERBZ] = this->magZPertAbsAmp * (0.5 - getRandomNumber(rndState));
                }
             }
          }
       }
    }
-   
+
    std::vector<std::array<Real, 3> > Fluctuations::getV0(
       creal x,
       creal y,

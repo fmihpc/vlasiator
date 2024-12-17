@@ -20,51 +20,42 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef HARRIS_H
-#define HARRIS_H
+#ifndef TEST_TRANS_H
+#define TEST_TRANS_H
+
+#include <span>
+#include <stdlib.h>
 
 #include "../../definitions.h"
-#include "../projectTriAxisSearch.h"
-#include <span>
+#include "../project.h"
 
 namespace projects {
-
-   struct HarrisSpeciesParameters {
-      Real TEMPERATURE;
-      Real DENSITY;
-   };
-
-   class Harris: public TriAxisSearch {
-   public:
-      Harris();
-      virtual ~Harris();
+   class test_trans: public Project {
+    public:
+      test_trans();
+      virtual ~test_trans();
 
       virtual bool initialize(void);
       static void addParameters(void);
       virtual void getParameters(void);
-      virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
       virtual void setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                                     std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                                     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid);
 
-      virtual Realf fillPhaseSpace(spatial_cell::SpatialCell *cell,
-                                   const uint popID,
-                                   const uint nRequested) const;
-      virtual Realf probePhaseSpace(spatial_cell::SpatialCell *cell,
-                                    const uint popID,
-                                    Real vx_in, Real vy_in, Real vz_in) const;
-      virtual std::vector<std::array<Real, 3>> getV0(
-         creal x,
-         creal y,
-         creal z,
+   protected:
+      Real getDistribValue(creal& vx, creal& vy, creal& vz);
+      virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
+      virtual Real calcPhaseSpaceDensity(
+         creal& x, creal& y, creal& z,
+         creal& dx, creal& dy, creal& dz,
+         creal& vx, creal& vy, creal& vz,
+         creal& dvx, creal& dvy, creal& dvz,
          const uint popID
-         ) const;
-
-      Real SCA_LAMBDA;
-      Real BX0, BY0, BZ0;
-      std::vector<HarrisSpeciesParameters> speciesParams;
-
-   }; // class Harris
-} // namespace Harris
+      ) const;
+      Real cellPosition;
+      Real peakValue;
+   }; // class test_trans
+} // namespace projects
 
 #endif
+

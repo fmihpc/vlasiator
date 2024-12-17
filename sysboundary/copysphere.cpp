@@ -627,12 +627,11 @@ void Copysphere::fieldSolverBoundaryCondDerivatives(std::span<std::array<Real, f
    this->setCellDerivativesToZero(dperb, dmoments, stencil, component);
 }
 
-void Copysphere::fieldSolverBoundaryCondBVOLDerivatives(
-    fsgrid::FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid, cint i, cint j, cint k,
-    cuint component) {
+void Copysphere::fieldSolverBoundaryCondBVOLDerivatives(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vols,
+                                                        const fsgrid::FsStencil& stencil, cuint component) {
    // FIXME This should be OK as the BVOL derivatives are only used for Lorentz force JXB, which is not applied on the
    // copy sphere cells.
-   this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
+   this->setCellBVOLDerivativesToZero(vols, stencil, component);
 }
 
 void Copysphere::vlasovBoundaryCondition(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,

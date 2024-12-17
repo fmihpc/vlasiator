@@ -270,15 +270,12 @@ namespace projects {
    void Magnetosphere::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
 
    /* set 0-centered dipole */
-   void Magnetosphere::setProjectBField(
-      fsgrid::FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      fsgrid::FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-   ) {
+   void Magnetosphere::setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                        std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                                        fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
       Dipole bgFieldDipole;
       LineDipole bgFieldLineDipole;
       VectorDipole bgVectorDipole;
-      std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb = BgBGrid.getData();
 
       phiprof::Timer switchDipoleTypeTimer {"switch-dipoleType"};
       // The hardcoded constants of dipole and line dipole moments are obtained
@@ -326,16 +323,17 @@ namespace projects {
                setPerturbedField(bgVectorDipole, bgb, technicalGrid, fsgrids::bgbfield::BGBXVDCORR, true);
                if (P::isRestart == false) {
                   // If we are starting a new simulation, we also copy this data into perB.
-                  const auto localSize = BgBGrid.getLocalSize().data();
-                  #pragma omp parallel for collapse(2)
-                  for (int z = 0; z < localSize[2]; ++z) {
-                     for (int y = 0; y < localSize[1]; ++y) {
-                        for (int x = 0; x < localSize[0]; ++x) {
-                           std::array<Real, fsgrids::bgbfield::N_BGB>* BGBcell = BgBGrid.get(x, y, z);
-                           std::array<Real, fsgrids::bfield::N_BFIELD>* PERBcell = perBGrid.get(x, y, z);
-                           PERBcell->at(fsgrids::bfield::PERBX) = BGBcell->at(fsgrids::bgbfield::BGBXVDCORR);
-                           PERBcell->at(fsgrids::bfield::PERBY) = BGBcell->at(fsgrids::bgbfield::BGBYVDCORR);
-                           PERBcell->at(fsgrids::bfield::PERBZ) = BGBcell->at(fsgrids::bgbfield::BGBZVDCORR);
+                  const auto& localSize = technicalGrid.getLocalSize();
+#pragma omp parallel for collapse(2)
+                  for (auto z = 0; z < localSize[2]; ++z) {
+                     for (auto y = 0; y < localSize[1]; ++y) {
+                        for (auto x = 0; x < localSize[0]; ++x) {
+                           const auto stencil = technicalGrid.makeStencil(x, y, z);
+                           const auto& BGBcell = bgb[stencil.center()];
+                           auto& PERBcell = perb[stencil.center()];
+                           PERBcell[fsgrids::bfield::PERBX] = BGBcell[fsgrids::bgbfield::BGBXVDCORR];
+                           PERBcell[fsgrids::bfield::PERBY] = BGBcell[fsgrids::bgbfield::BGBYVDCORR];
+                           PERBcell[fsgrids::bfield::PERBZ] = BGBcell[fsgrids::bgbfield::BGBZVDCORR];
                         }
                      }
                   }
@@ -346,8 +344,8 @@ namespace projects {
       }
       switchDipoleTypeTimer.stop();
 
-      const auto localSize = BgBGrid.getLocalSize().data();
-      
+      const auto& localSize = technicalGrid.getLocalSize();
+
       phiprof::Timer zeroingTimer {"zeroing-out"};
 
 #pragma omp parallel
@@ -358,20 +356,21 @@ namespace projects {
       
          if(doZeroOut) {
 #pragma omp for collapse(2)
-            for (fsgrid::FsIndex_t z = 0; z < localSize[2]; ++z) {
-               for (fsgrid::FsIndex_t y = 0; y < localSize[1]; ++y) {
-                  for (fsgrid::FsIndex_t x = 0; x < localSize[0]; ++x) {
-                     std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
-                     cell->at(fsgrids::bgbfield::BGBX)=0;
-                     cell->at(fsgrids::bgbfield::BGBXVOL)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBydx)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBzdx)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBxdy)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBxdz)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBYVOLdx)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBZVOLdx)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBXVOLdy)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBXVOLdz)=0.0;
+            for (auto z = 0; z < localSize[2]; ++z) {
+               for (auto y = 0; y < localSize[1]; ++y) {
+                  for (auto x = 0; x < localSize[0]; ++x) {
+                     const auto stencil = technicalGrid.makeStencil(x, y, z);
+                     auto& cell = bgb[stencil.center()];
+                     cell[fsgrids::bgbfield::BGBX] = 0;
+                     cell[fsgrids::bgbfield::BGBXVOL] = 0.0;
+                     cell[fsgrids::bgbfield::dBGBydx] = 0.0;
+                     cell[fsgrids::bgbfield::dBGBzdx] = 0.0;
+                     cell[fsgrids::bgbfield::dBGBxdy] = 0.0;
+                     cell[fsgrids::bgbfield::dBGBxdz] = 0.0;
+                     cell[fsgrids::bgbfield::dBGBYVOLdx] = 0.0;
+                     cell[fsgrids::bgbfield::dBGBZVOLdx] = 0.0;
+                     cell[fsgrids::bgbfield::dBGBXVOLdy] = 0.0;
+                     cell[fsgrids::bgbfield::dBGBXVOLdz] = 0.0;
                   }
                }
             }
@@ -381,20 +380,21 @@ namespace projects {
           if(doZeroOut) {
              /*2D simulation in x and z. Set By and derivatives along Y, and derivatives of By to zero*/
 #pragma omp for collapse(2)
-             for (fsgrid::FsIndex_t z = 0; z < localSize[2]; ++z) {
-                for (fsgrid::FsIndex_t y = 0; y < localSize[1]; ++y) {
-                   for (fsgrid::FsIndex_t x = 0; x < localSize[0]; ++x) {
-                      std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
-                      cell->at(fsgrids::bgbfield::BGBY)=0.0;
-                      cell->at(fsgrids::bgbfield::BGBYVOL)=0.0;
-                      cell->at(fsgrids::bgbfield::dBGBxdy)=0.0;
-                      cell->at(fsgrids::bgbfield::dBGBzdy)=0.0;
-                      cell->at(fsgrids::bgbfield::dBGBydx)=0.0;
-                      cell->at(fsgrids::bgbfield::dBGBydz)=0.0;
-                      cell->at(fsgrids::bgbfield::dBGBXVOLdy)=0.0;
-                      cell->at(fsgrids::bgbfield::dBGBZVOLdy)=0.0;
-                      cell->at(fsgrids::bgbfield::dBGBYVOLdx)=0.0;
-                      cell->at(fsgrids::bgbfield::dBGBYVOLdz)=0.0;
+             for (auto z = 0; z < localSize[2]; ++z) {
+                for (auto y = 0; y < localSize[1]; ++y) {
+                   for (auto x = 0; x < localSize[0]; ++x) {
+                      const auto stencil = technicalGrid.makeStencil(x, y, z);
+                      auto& cell = bgb[stencil.center()];
+                      cell[fsgrids::bgbfield::BGBY] = 0.0;
+                      cell[fsgrids::bgbfield::BGBYVOL] = 0.0;
+                      cell[fsgrids::bgbfield::dBGBxdy] = 0.0;
+                      cell[fsgrids::bgbfield::dBGBzdy] = 0.0;
+                      cell[fsgrids::bgbfield::dBGBydx] = 0.0;
+                      cell[fsgrids::bgbfield::dBGBydz] = 0.0;
+                      cell[fsgrids::bgbfield::dBGBXVOLdy] = 0.0;
+                      cell[fsgrids::bgbfield::dBGBZVOLdy] = 0.0;
+                      cell[fsgrids::bgbfield::dBGBYVOLdx] = 0.0;
+                      cell[fsgrids::bgbfield::dBGBYVOLdz] = 0.0;
                    }
                 }
              }
@@ -403,42 +403,44 @@ namespace projects {
          doZeroOut = P::zcells_ini ==1 && this->zeroOutComponents[2]==1;
          if(doZeroOut) {
 #pragma omp for collapse(2)
-            for (fsgrid::FsIndex_t z = 0; z < localSize[2]; ++z) {
-               for (fsgrid::FsIndex_t y = 0; y < localSize[1]; ++y) {
-                  for (fsgrid::FsIndex_t x = 0; x < localSize[0]; ++x) {
-                     std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
-                     cell->at(fsgrids::bgbfield::BGBX)=0;
-                     cell->at(fsgrids::bgbfield::BGBY)=0;
-                     cell->at(fsgrids::bgbfield::BGBYVOL)=0.0;
-                     cell->at(fsgrids::bgbfield::BGBXVOL)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBxdy)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBxdz)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBydx)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBydz)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBXVOLdy)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBXVOLdz)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBYVOLdx)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBYVOLdz)=0.0;
+            for (auto z = 0; z < localSize[2]; ++z) {
+               for (auto y = 0; y < localSize[1]; ++y) {
+                  for (auto x = 0; x < localSize[0]; ++x) {
+                     const auto stencil = technicalGrid.makeStencil(x, y, z);
+                     auto& cell = bgb[stencil.center()];
+                     cell[fsgrids::bgbfield::BGBX] = 0;
+                     cell[fsgrids::bgbfield::BGBY] = 0;
+                     cell[fsgrids::bgbfield::BGBYVOL] = 0.0;
+                     cell[fsgrids::bgbfield::BGBXVOL] = 0.0;
+                     cell[fsgrids::bgbfield::dBGBxdy] = 0.0;
+                     cell[fsgrids::bgbfield::dBGBxdz] = 0.0;
+                     cell[fsgrids::bgbfield::dBGBydx] = 0.0;
+                     cell[fsgrids::bgbfield::dBGBydz] = 0.0;
+                     cell[fsgrids::bgbfield::dBGBXVOLdy] = 0.0;
+                     cell[fsgrids::bgbfield::dBGBXVOLdz] = 0.0;
+                     cell[fsgrids::bgbfield::dBGBYVOLdx] = 0.0;
+                     cell[fsgrids::bgbfield::dBGBYVOLdz] = 0.0;
                   }
                }
             }
          }
          
          // Remove dipole from inflow cells if this is requested
+         std::span<const fsgrids::technical> technical = technicalGrid.getData();
          if(this->noDipoleInSW) {
 #pragma omp for collapse(2)
             for (fsgrid::FsIndex_t z = 0; z < localSize[2]; ++z) {
                for (fsgrid::FsIndex_t y = 0; y < localSize[1]; ++y) {
                   for (fsgrid::FsIndex_t x = 0; x < localSize[0]; ++x) {
-                     if(technicalGrid.get(x, y, z)->sysBoundaryFlag == sysboundarytype::MAXWELLIAN ) {
-                        for (int i = 0; i < fsgrids::bgbfield::N_BGB; ++i) {
-                           BgBGrid.get(x,y,z)->at(i) = 0;
-                        }
+                     const auto stencil = technicalGrid.makeStencil(x, y, z);
+                     auto& cell = bgb[stencil.center()];
+                     const auto& tech = technical[stencil.center()];
+                     if (tech.sysBoundaryFlag == sysboundarytype::MAXWELLIAN) {
+                        cell.fill(0.0);
                         if ( (this->dipoleType==4) && (P::isRestart == false) ) {
                            // If we set BGB to zero here, then we should also set perB in new runs to zero.
-                           for (int i = 0; i < fsgrids::bfield::N_BFIELD; ++i) {
-                              perBGrid.get(x,y,z)->at(i) = 0;
-                           }
+                           auto& pb = perb[stencil.center()];
+                           pb.fill(0.0);
                         }
                      }
                   }
@@ -462,8 +464,7 @@ namespace projects {
       SBC::ionosphereGrid.storeNodeB();
       storeNodeTimer.stop();
    }
-   
-   
+
    Real Magnetosphere::getDistribValue(
            creal& x,creal& y,creal& z,
            creal& vx,creal& vy,creal& vz,

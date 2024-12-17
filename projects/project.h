@@ -23,11 +23,12 @@
 #ifndef PROJECT_H
 #define PROJECT_H
 
-#include <random>
 #include "../spatial_cells/spatial_cell_wrapper.hpp"
+#include "fsgrid.hpp"
 #include <dccrg.hpp>
 #include <dccrg_cartesian_geometry.hpp>
-#include "fsgrid.hpp"
+#include <random>
+#include <span>
 
 namespace projects {
 
@@ -89,12 +90,10 @@ namespace projects {
       virtual bool initialize();
       
       /*! Perform some operation at each time step in the main program loop. */
-      virtual void hook(
-         cuint& stage,
-         const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         fsgrid::FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid
-      ) const;
-      
+      virtual void hook(cuint& stage, const dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                        std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                        fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) const;
+
       bool initialized();
       
       /** Set the background and perturbed magnetic fields for this project.
@@ -104,12 +103,10 @@ namespace projects {
        * 
        * \sa setBackgroundField, setBackgroundFieldToZero
        */
-      virtual void setProjectBField(
-         fsgrid::FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-         fsgrid::FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-         fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-      );
-      
+      virtual void setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                    std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                                    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid);
+
       /*! Setup data structures for subsequent setCell calls.
        * This will most likely be empty for most projects, except for some advanced
        * data juggling ones (like restart from a subset of a larger run)

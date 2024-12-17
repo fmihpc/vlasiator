@@ -168,35 +168,34 @@ namespace projects {
    }   
 
    void KHB::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
-   
-   void KHB::setProjectBField(
-      fsgrid::FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      fsgrid::FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-   ) {
-      setBackgroundFieldToZero(BgBGrid.getData());
+
+   void KHB::setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                              std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                              fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
+      setBackgroundFieldToZero(bgb);
 
       if(!P::isRestart) {
-         auto localSize = perBGrid.getLocalSize().data();
-         const auto& gridSpacing = perBGrid.getGridSpacing();
+         const auto& localSize = technicalGrid.getLocalSize();
+         const auto& gridSpacing = technicalGrid.getGridSpacing();
 
 #pragma omp parallel for collapse(3)
-         for (fsgrid::FsIndex_t x = 0; x < localSize[0]; ++x) {
-            for (fsgrid::FsIndex_t y = 0; y < localSize[1]; ++y) {
-               for (fsgrid::FsIndex_t z = 0; z < localSize[2]; ++z) {
-                  const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
-                  std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
+         for (auto x = 0; x < localSize[0]; ++x) {
+            for (auto y = 0; y < localSize[1]; ++y) {
+               for (auto z = 0; z < localSize[2]; ++z) {
+                  const auto xyz = technicalGrid.getPhysicalCoords(x, y, z);
+                  const auto stencil = technicalGrid.makeStencil(x, y, z);
+                  auto& cell = perb[stencil.center()];
 
-                  cell->at(fsgrids::bfield::PERBX) =
+                  cell[fsgrids::bfield::PERBX] =
                       profile(this->Bx[this->BOTTOM], this->Bx[this->TOP], xyz[0] + 0.5 * gridSpacing[0]);
-                  cell->at(fsgrids::bfield::PERBY) =
+                  cell[fsgrids::bfield::PERBY] =
                       profile(this->By[this->BOTTOM], this->By[this->TOP], xyz[0] + 0.5 * gridSpacing[0]);
-                  cell->at(fsgrids::bfield::PERBZ) =
+                  cell[fsgrids::bfield::PERBZ] =
                       profile(this->Bz[this->BOTTOM], this->Bz[this->TOP], xyz[0] + 0.5 * gridSpacing[0]);
                }
             }
          }
       }
    }
-   
+
 } // namespace projects

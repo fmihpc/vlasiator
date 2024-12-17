@@ -265,10 +265,9 @@ void Inflow::fieldSolverBoundaryCondDerivatives(std::span<std::array<Real, fsgri
    this->setCellDerivativesToZero(dperb, dmoments, stencil, component);
 }
 
-void Inflow::fieldSolverBoundaryCondBVOLDerivatives(
-    fsgrid::FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid, cint i, cint j, cint k,
-    cuint component) {
-   this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
+void Inflow::fieldSolverBoundaryCondBVOLDerivatives(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vols,
+                                                    const fsgrid::FsStencil& stencil, cuint component) {
+   this->setCellBVOLDerivativesToZero(vols, stencil, component);
 }
 
 void Inflow::vlasovBoundaryCondition(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,

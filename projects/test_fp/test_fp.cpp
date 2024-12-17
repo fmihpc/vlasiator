@@ -104,74 +104,68 @@ namespace projects {
       creal result = NORM*exp(-CONST*(VX2+VY2+VZ2));
       return result;
    }
-   
-   void test_fp::setProjectBField(
-      fsgrid::FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      fsgrid::FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-   ) {
-      setBackgroundFieldToZero(BgBGrid.getData());
+
+   void test_fp::setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                  std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                                  fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
+      setBackgroundFieldToZero(bgb);
 
       if(!P::isRestart) {
-         auto localSize = perBGrid.getLocalSize().data();
-         const auto& gridSpacing = perBGrid.getGridSpacing();
+         const auto& localSize = technicalGrid.getLocalSize();
+         const auto& gridSpacing = technicalGrid.getGridSpacing();
 
          creal dx = gridSpacing[0] * 3.5;
          creal dy = gridSpacing[1] * 3.5;
          creal dz = gridSpacing[2] * 3.5;
 
-         Real areaFactor = 1.0;
-         
-         #pragma omp parallel for collapse(3)
-         for (fsgrid::FsIndex_t i = 0; i < localSize[0]; ++i) {
-            for (fsgrid::FsIndex_t j = 0; j < localSize[1]; ++j) {
-               for (fsgrid::FsIndex_t k = 0; k < localSize[2]; ++k) {
-                  const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(i, j, k);
-                  std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(i, j, k);
-                  const auto& gridSpacing = perBGrid.getGridSpacing();
+         const Real areaFactor = 1.0;
+
+#pragma omp parallel for collapse(3)
+         for (auto i = 0; i < localSize[0]; ++i) {
+            for (auto j = 0; j < localSize[1]; ++j) {
+               for (auto k = 0; k < localSize[2]; ++k) {
+                  const auto xyz = technicalGrid.getPhysicalCoords(i, j, k);
+                  const auto stencil = technicalGrid.makeStencil(i, j, k);
+                  auto& cell = perb[stencil.center()];
 
                   creal x = xyz[0] + 0.5 * gridSpacing[0];
                   creal y = xyz[1] + 0.5 * gridSpacing[1];
                   creal z = xyz[2] + 0.5 * gridSpacing[2];
 
                   switch (this->CASE) {
-                     case BXCASE:         
-                        cell->at(fsgrids::bfield::PERBX) = 0.1 * this->B0 * areaFactor;
-                        //areaFactor = (CellParams::DY * CellParams::DZ) / (dy * dz);
+                     case BXCASE:
+                        cell[fsgrids::bfield::PERBX] = 0.1 * this->B0 * areaFactor;
                         if (y >= -dy && y <= dy)
                            if (z >= -dz && z <= dz)
-                              cell->at(fsgrids::bfield::PERBX) = this->B0 * areaFactor;
+                              cell[fsgrids::bfield::PERBX] = this->B0 * areaFactor;
                         break;
                      case BYCASE:
-                        cell->at(fsgrids::bfield::PERBY) = 0.1 * this->B0 * areaFactor;
-                        //areaFactor = (CellParams::DX * CellParams::DZ) / (dx * dz);
+                        cell[fsgrids::bfield::PERBY] = 0.1 * this->B0 * areaFactor;
                         if (x >= -dx && x <= dx)
                            if (z >= -dz && z <= dz)
-                              cell->at(fsgrids::bfield::PERBY) = this->B0 * areaFactor;
+                              cell[fsgrids::bfield::PERBY] = this->B0 * areaFactor;
                         break;
                      case BZCASE:
-                        cell->at(fsgrids::bfield::PERBZ) = 0.1 * this->B0 * areaFactor;
-                        //areaFactor = (CellParams::DX * CellParams::DY) / (dx * dy);
+                        cell[fsgrids::bfield::PERBZ] = 0.1 * this->B0 * areaFactor;
                         if (x >= -dx && x <= dx)
                            if (y >= -dy && y <= dy)
-                              cell->at(fsgrids::bfield::PERBZ) = this->B0 * areaFactor;
+                              cell[fsgrids::bfield::PERBZ] = this->B0 * areaFactor;
                         break;
                      case BALLCASE:
-                        cell->at(fsgrids::bfield::PERBX) = 0.1 * this->B0 * areaFactor;
-                        cell->at(fsgrids::bfield::PERBY) = 0.1 * this->B0 * areaFactor;
-                        cell->at(fsgrids::bfield::PERBZ) = 0.1 * this->B0 * areaFactor;
-                        
-                        //areaFactor = (CellParams::DX * CellParams::DY) / (dx * dy);
+                        cell[fsgrids::bfield::PERBX] = 0.1 * this->B0 * areaFactor;
+                        cell[fsgrids::bfield::PERBY] = 0.1 * this->B0 * areaFactor;
+                        cell[fsgrids::bfield::PERBZ] = 0.1 * this->B0 * areaFactor;
+
                         
                         if (y >= -dy && y <= dy)
                            if (z >= -dz && z <= dz)
-                              cell->at(fsgrids::bfield::PERBX) = this->B0 * areaFactor;
+                              cell[fsgrids::bfield::PERBX] = this->B0 * areaFactor;
                         if (x >= -dx && x <= dx)
                            if (z >= -dz && z <= dz)
-                              cell->at(fsgrids::bfield::PERBY) = this->B0 * areaFactor;
+                              cell[fsgrids::bfield::PERBY] = this->B0 * areaFactor;
                         if (x >= -dx && x <= dx)
                            if (y >= -dy && y <= dy)
-                              cell->at(fsgrids::bfield::PERBZ) = this->B0 * areaFactor;
+                              cell[fsgrids::bfield::PERBZ] = this->B0 * areaFactor;
                         break;
                   }
                }
@@ -179,7 +173,7 @@ namespace projects {
          }
       }
    }
-   
+
    void test_fp::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
       
    }
