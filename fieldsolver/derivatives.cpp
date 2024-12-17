@@ -331,29 +331,20 @@ void calculateDerivatives(std::span<const std::array<Real, fsgrids::bfield::N_BF
  * Then the derivatives are calculated.
  *
  * \param perBGrid fsGrid holding the perturbed B quantities
- * \param perBDt2Grid fsGrid holding the perturbed B quantities at runge-kutta t=0.5
  * \param momentsGrid fsGrid holding the moment quantities
- * \param momentsDt2Grid fsGrid holding the moment quantities at runge-kutta t=0.5
  * \param dPerBGrid fsGrid holding the derivatives of perturbed B
  * \param dMomentsGrid fsGrid holding the derviatives of moments
- * \param dMomentsGridDt2 fsGrid holding the derviatives of moments at runge-kutta t=0.5
  * \param technicalGrid fsGrid holding technical information (such as boundary types)
- * \param sysBoundaries System boundary conditions existing
- * \param RKCase Element in the enum defining the Runge-Kutta method steps
  * \param communicateMoments If true, the derivatives of moments (rho, V, P) are communicated to neighbours.
 
  * \sa calculateDerivatives calculateBVOLDerivativesSimple calculateBVOLDerivatives
  */
 void calculateDerivativesSimple(
     fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBDt2Grid,
     fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsDt2Grid,
     fsgrid::FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
     fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsDt2Grid,
-    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, int32_t RKCase, const bool doMoments) {
-   const bool case0 = RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2;
+    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, const bool doMoments) {
    const auto& localSize = technicalGrid.getLocalSize();
    const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
 
@@ -367,28 +358,12 @@ void calculateDerivativesSimple(
    int computeTimerId{phiprof::initializeTimer("FS derivatives compute cells")};
 
    phiprof::Timer mpiTimer{"FS derivatives ghost updates MPI", {"MPI"}};
-   if (case0) {
-      // Means initialising the solver as well as RK_ORDER1
-      // standard case Exchange PERB* with neighbours
-      // The update of PERB[XYZ] is needed after the system
-      // boundary update of propagateMagneticFieldSimple.
-      perBGrid.updateGhostCells();
-      if (doMoments) {
-         momentsGrid.updateGhostCells();
-      }
-   } else {
-      // Exchange PERB*_DT2,RHO_DT2,V*_DT2 with neighbours The
-      // update of PERB[XYZ]_DT2 is needed after the system
-      // boundary update of propagateMagneticFieldSimple.
-      perBDt2Grid.updateGhostCells();
-      if (doMoments) {
-         momentsDt2Grid.updateGhostCells();
-      }
 
-      perb = perBDt2Grid.getData();
-      moments = momentsDt2Grid.getData();
-      dmoments = dMomentsDt2Grid.getData();
+   perBGrid.updateGhostCells();
+   if (doMoments) {
+      momentsGrid.updateGhostCells();
    }
+
    mpiTimer.stop();
 
 // Calculate derivatives

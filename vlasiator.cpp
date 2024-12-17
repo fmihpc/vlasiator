@@ -608,14 +608,10 @@ int simulate(int argn,char* args[]) {
    if(P::isRestart) {
       calculateDerivativesSimple(
          perBGrid,
-         perBDt2Grid,
          momentsGrid,
-         momentsDt2Grid,
          dPerBGrid,
          dMomentsGrid,
-         dMomentsDt2Grid,
          technicalGrid,
-         RK_ORDER1, // Update and compute on non-dt2 grids.
          false // Don't communicate moments, they are not needed here.
       );
       dPerBGrid.updateGhostCells();

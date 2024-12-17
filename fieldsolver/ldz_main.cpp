@@ -110,8 +110,7 @@ bool propagateFields(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>,
 #ifdef FS_1ST_ORDER_TIME
       propagateMagneticFieldSimple(perBGrid, perBDt2Grid, BgBGrid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, dt,
                                    RK_ORDER1);
-      calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid,
-                                 dMomentsDt2Grid, technicalGrid, RK_ORDER1, true /*doMoments*/);
+      calculateDerivativesSimple(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, technicalGrid, true /*doMoments*/);
       if (P::ohmGradPeTerm > 0) {
          calculateGradPeTermSimple(EGradPeGrid, EGradPeDt2Grid, momentsGrid, momentsDt2Grid, dMomentsGrid,
                                    dMomentsDt2Grid, technicalGrid, sysBoundaries, RK_ORDER1);
@@ -130,8 +129,7 @@ bool propagateFields(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>,
 #else
       propagateMagneticFieldSimple(perBGrid, perBDt2Grid, BgBGrid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, dt,
                                    RK_ORDER2_STEP1);
-      calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid,
-                                 dMomentsDt2Grid, technicalGrid, RK_ORDER2_STEP1, true /*doMoments*/);
+      calculateDerivativesSimple(perBDt2Grid, momentsDt2Grid, dPerBGrid, dMomentsDt2Grid, technicalGrid, true /*doMoments*/);
       if (P::ohmGradPeTerm > 0) {
          calculateGradPeTermSimple(EGradPeGrid, EGradPeDt2Grid, momentsGrid, momentsDt2Grid, dMomentsGrid,
                                    dMomentsDt2Grid, technicalGrid, sysBoundaries, RK_ORDER2_STEP1);
@@ -150,8 +148,7 @@ bool propagateFields(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>,
 
       propagateMagneticFieldSimple(perBGrid, perBDt2Grid, BgBGrid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, dt,
                                    RK_ORDER2_STEP2);
-      calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid,
-                                 dMomentsDt2Grid, technicalGrid, RK_ORDER2_STEP2, true /*doMoments*/);
+      calculateDerivativesSimple(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, technicalGrid, true /*doMoments*/);
       if (P::ohmGradPeTerm > 0) {
          calculateGradPeTermSimple(EGradPeGrid, EGradPeDt2Grid, momentsGrid, momentsDt2Grid, dMomentsGrid,
                                    dMomentsDt2Grid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2);
@@ -186,8 +183,7 @@ bool propagateFields(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>,
 
          // We need to calculate derivatives of the moments at every substep, but the moments only
          // need to be communicated in the first one.
-         calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid,
-                                    dMomentsDt2Grid, technicalGrid, RK_ORDER2_STEP1,
+         calculateDerivativesSimple(perBDt2Grid, momentsDt2Grid, dPerBGrid, dMomentsDt2Grid, technicalGrid,
                                     (subcycleCount == 0) /*doMoments*/);
          if (P::ohmGradPeTerm > 0 && subcycleCount == 0) {
             calculateGradPeTermSimple(EGradPeGrid, EGradPeDt2Grid, momentsGrid, momentsDt2Grid, dMomentsGrid,
@@ -211,8 +207,7 @@ bool propagateFields(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>,
 
          // We need to calculate derivatives of the moments at every substep, but the moments only
          // need to be communicated in the first one.
-         calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid,
-                                    dMomentsDt2Grid, technicalGrid, RK_ORDER2_STEP2,
+         calculateDerivativesSimple(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, technicalGrid,
                                     (subcycleCount == 0) /*doMoments*/);
          if (P::ohmGradPeTerm > 0 && subcycleCount == 0) {
             calculateGradPeTermSimple(EGradPeGrid, EGradPeDt2Grid, momentsGrid, momentsDt2Grid, dMomentsGrid,
