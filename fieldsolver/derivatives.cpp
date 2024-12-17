@@ -343,8 +343,8 @@ void calculateDerivativesSimple(
     fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, const bool doMoments) {
 
-   std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
-   std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments = momentsGrid.getData();
+   std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
+   std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments = momentsGrid.getData();
    std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb = dPerBGrid.getData();
    std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments = dMomentsGrid.getData();
 
@@ -352,9 +352,9 @@ void calculateDerivativesSimple(
 
    phiprof::Timer mpiTimer{"FS derivatives ghost updates MPI", {"MPI"}};
 
-   perBGrid.updateGhostCells();
+   technicalGrid.updateGhostCells(perb);
    if (doMoments) {
-      momentsGrid.updateGhostCells();
+      technicalGrid.updateGhostCells(moments);
    }
 
    mpiTimer.stop();
