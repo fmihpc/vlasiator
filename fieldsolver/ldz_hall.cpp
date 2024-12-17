@@ -850,11 +850,12 @@ void calculateEdgeHallTermComponents(std::span<const std::array<Real, fsgrids::b
                                      const std::array<Real, 3>& gridSpacing,
                                      const std::array<Real, Rec::N_REC_COEFFICIENTS>& perturbedCoefficients,
                                      const fsgrid::FsStencil& stencil) {
-   const auto& bgb = bgbs[stencil.center()];
-   const auto& perb = perbs[stencil.center()];
-   const auto& dperb = dperbs[stencil.center()];
-   const auto& moment = moments[stencil.center()];
-   auto& ehall = ehalls[stencil.center()];
+   const auto center = stencil.center();
+   const auto& bgb = bgbs[center];
+   const auto& perb = perbs[center];
+   const auto& dperb = dperbs[center];
+   const auto& moment = moments[center];
+   auto& ehall = ehalls[center];
 
    const Real bgbx = bgb[fsgrids::bgbfield::BGBX];
    const Real bgby = bgb[fsgrids::bgbfield::BGBY];
@@ -918,78 +919,84 @@ void calculateEdgeHallTermComponents(std::span<const std::array<Real, fsgrids::b
          return JXB(term, perturbedCoefficients, bgbx, bgby, bgbz, gridSpacing) / (physicalconstants::MU_0 * hallRhoq);
       };
 
+      const auto down = stencil.down();
+      const auto up = stencil.up();
+      const auto left = stencil.left();
+      const auto right = stencil.right();
+      const auto far = stencil.far();
+      const auto near = stencil.near();
       // clang-format off
       const std::array<std::array<size_t, 4>, 12> indices = {
           std::array{
-              stencil.center(),
-              stencil.down(),
-              stencil.far(),
+              center,
+              down,
+              far,
               stencil.downfar(),
           },
           std::array{
-              stencil.center(),
-              stencil.left(),
-              stencil.far(),
+              center,
+              left,
+              far,
               stencil.leftfar(),
           },
           std::array{
-              stencil.center(),
-              stencil.left(),
-              stencil.down(),
+              center,
+              left,
+              down,
               stencil.leftdown(),
           },
           std::array{
-              stencil.center(),
-              stencil.right(),
-              stencil.far(),
+              center,
+              right,
+              far,
               stencil.rightfar(),
           },
           std::array{
-              stencil.center(),
-              stencil.right(),
-              stencil.down(),
+              center,
+              right,
+              down,
               stencil.rightdown(),
           },
           std::array{
-              stencil.center(),
-              stencil.up(),
-              stencil.far(),
+              center,
+              up,
+              far,
               stencil.upfar(),
           },
           std::array{
-              stencil.center(),
-              stencil.left(),
-              stencil.up(),
+              center,
+              left,
+              up,
               stencil.leftup(),
           },
           std::array{
-              stencil.center(),
-              stencil.right(),
-              stencil.up(),
+              center,
+              right,
+              up,
               stencil.rightup(),
           },
           std::array{
-              stencil.center(),
-              stencil.down(),
-              stencil.near(),
+              center,
+              down,
+              near,
               stencil.downnear(),
           },
           std::array{
-              stencil.center(),
-              stencil.left(),
-              stencil.near(),
+              center,
+              left,
+              near,
               stencil.leftnear(),
           },
           std::array{
-              stencil.center(),
-              stencil.right(),
-              stencil.near(),
+              center,
+              right,
+              near,
               stencil.rightnear(),
           },
           std::array{
-              stencil.center(),
-              stencil.up(),
-              stencil.near(),
+              center,
+              up,
+              near,
               stencil.upnear(),
           },
       };

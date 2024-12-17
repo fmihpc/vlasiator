@@ -55,16 +55,19 @@ reconstructionCoefficients(std::span<const std::array<Real, fsgrids::bfield::N_B
                            std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                            const fsgrid::FsStencil& stencil, Real reconstructionOrder) {
    std::array<Real, Rec::N_REC_COEFFICIENTS> perturbedResult;
-
-   const std::array<Real, fsgrids::dperb::N_DPERB>& der_i1j1k1 = dperb[stencil.center()];
-   const std::array<Real, fsgrids::bfield::N_BFIELD>& cep_i1j1k1 = perb[stencil.center()];
+   const auto center = stencil.center();
+   const auto right = stencil.right();
+   const auto up = stencil.up();
+   const auto near = stencil.near();
+   const std::array<Real, fsgrids::dperb::N_DPERB>& der_i1j1k1 = dperb[center];
+   const std::array<Real, fsgrids::bfield::N_BFIELD>& cep_i1j1k1 = perb[center];
 
    const bool rightOk = stencil.cellExists(1, 0, 0);
    const bool upOk = stencil.cellExists(0, 1, 0);
    const bool nearOk = stencil.cellExists(0, 0, 1);
-   const std::array<Real, fsgrids::bfield::N_BFIELD>& cep_i2j1k1 = rightOk ? perb[stencil.right()] : cep_i1j1k1;
-   const std::array<Real, fsgrids::bfield::N_BFIELD>& cep_i1j2k1 = upOk ? perb[stencil.up()] : cep_i1j1k1;
-   const std::array<Real, fsgrids::bfield::N_BFIELD>& cep_i1j1k2 = nearOk ? perb[stencil.near()] : cep_i1j1k1;
+   const std::array<Real, fsgrids::bfield::N_BFIELD>& cep_i2j1k1 = rightOk ? perb[right] : cep_i1j1k1;
+   const std::array<Real, fsgrids::bfield::N_BFIELD>& cep_i1j2k1 = upOk ? perb[up] : cep_i1j1k1;
+   const std::array<Real, fsgrids::bfield::N_BFIELD>& cep_i1j1k2 = nearOk ? perb[near] : cep_i1j1k1;
 
 #ifndef FS_1ST_ORDER_SPACE
    // Create a dummy array for containing zero values for derivatives on non-existing cells:
@@ -73,9 +76,9 @@ reconstructionCoefficients(std::span<const std::array<Real, fsgrids::bfield::N_B
 
    // Fetch neighbour cell derivatives, or in case the neighbour does not
    // exist, use dummyDerivatives array:
-   const std::array<Real, fsgrids::dperb::N_DPERB>& der_i2j1k1 = rightOk ? dperb[stencil.right()] : dummyDerivatives;
-   const std::array<Real, fsgrids::dperb::N_DPERB>& der_i1j2k1 = upOk ? dperb[stencil.up()] : dummyDerivatives;
-   const std::array<Real, fsgrids::dperb::N_DPERB>& der_i1j1k2 = nearOk ? dperb[stencil.near()] : dummyDerivatives;
+   const std::array<Real, fsgrids::dperb::N_DPERB>& der_i2j1k1 = rightOk ? dperb[right] : dummyDerivatives;
+   const std::array<Real, fsgrids::dperb::N_DPERB>& der_i1j2k1 = upOk ? dperb[up] : dummyDerivatives;
+   const std::array<Real, fsgrids::dperb::N_DPERB>& der_i1j1k2 = nearOk ? dperb[near] : dummyDerivatives;
 
    // Calculate 3rd order reconstruction coefficients:
    if (reconstructionOrder == 2) {
