@@ -428,7 +428,6 @@ void calculateDerivativesSimple(
 
 void calculateBVOLDerivatives(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol,
                               std::span<const fsgrids::technical> technical, const fsgrid::FsStencil& stencil) {
-   auto& center = vol[stencil.center()];
    const auto& tech = technical[stencil.center()];
 
    cuint sysBoundaryFlag = tech.sysBoundaryFlag;
@@ -436,59 +435,24 @@ void calculateBVOLDerivatives(std::span<std::array<Real, fsgrids::volfields::N_V
    const bool notSysBoundary =
        sysBoundaryLayer == 1 || (sysBoundaryLayer == 2 && sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY);
 
-   // clang-format off
-   static constexpr std::array<std::array<fsgrids::volfields, 3>, 3> dvolIndices = {
-       std::array {
-           fsgrids::volfields::dPERBXVOLdx,
-           fsgrids::volfields::dPERBYVOLdx,
-           fsgrids::volfields::dPERBZVOLdx,
-       },
-       std::array {
-           fsgrids::volfields::dPERBXVOLdy,
-           fsgrids::volfields::dPERBYVOLdy,
-           fsgrids::volfields::dPERBZVOLdy,
-       },
-       std::array {
-           fsgrids::volfields::dPERBXVOLdz,
-           fsgrids::volfields::dPERBYVOLdz,
-           fsgrids::volfields::dPERBZVOLdz,
-       },
-   };
+   using vf = fsgrids::volfields;
+   const auto right = stencil.right();
+   const auto left = stencil.left();
+   const auto up = stencil.up();
+   const auto down = stencil.down();
+   const auto near = stencil.near();
+   const auto far = stencil.far();
 
-   static constexpr std::array volIndices = {
-       fsgrids::volfields::PERBXVOL,
-       fsgrids::volfields::PERBYVOL,
-       fsgrids::volfields::PERBZVOL,
-   };
-
-   const std::array cellIndices = {
-       std::array {
-           stencil.left(),
-           stencil.right(),
-       },
-       std::array {
-           stencil.down(),
-           stencil.up(),
-       },
-       std::array {
-           stencil.far(),
-           stencil.near(),
-       },
-   };
-   // clang-format on
-
-   auto computeVols = [&notSysBoundary](auto component, const auto& right, const auto& left, auto& center) {
-      for (size_t i = 0; i < volIndices.size(); i++) {
-         center[dvolIndices[component][i]] = computeDerivative(notSysBoundary, volIndices[i], right, left, center);
-      }
-   };
-
-   for (auto component = 0; component < 3; component++) {
-      const auto& ci = cellIndices[component];
-      const auto& left = vol[ci[0]];
-      const auto& right = vol[ci[1]];
-      computeVols(component, right, left, center);
-   }
+   auto& volCenter = vol[stencil.center()];
+   volCenter[vf::dPERBXVOLdx] = computeDerivative(notSysBoundary, vf::PERBXVOL, vol[right], vol[left], volCenter);
+   volCenter[vf::dPERBYVOLdx] = computeDerivative(notSysBoundary, vf::PERBYVOL, vol[right], vol[left], volCenter);
+   volCenter[vf::dPERBZVOLdx] = computeDerivative(notSysBoundary, vf::PERBZVOL, vol[right], vol[left], volCenter);
+   volCenter[vf::dPERBXVOLdy] = computeDerivative(notSysBoundary, vf::PERBXVOL, vol[up], vol[down], volCenter);
+   volCenter[vf::dPERBYVOLdy] = computeDerivative(notSysBoundary, vf::PERBYVOL, vol[up], vol[down], volCenter);
+   volCenter[vf::dPERBZVOLdy] = computeDerivative(notSysBoundary, vf::PERBZVOL, vol[up], vol[down], volCenter);
+   volCenter[vf::dPERBXVOLdz] = computeDerivative(notSysBoundary, vf::PERBXVOL, vol[near], vol[far], volCenter);
+   volCenter[vf::dPERBYVOLdz] = computeDerivative(notSysBoundary, vf::PERBYVOL, vol[near], vol[far], volCenter);
+   volCenter[vf::dPERBZVOLdz] = computeDerivative(notSysBoundary, vf::PERBZVOL, vol[near], vol[far], volCenter);
 }
 
 /*! \brief High-level derivative calculation wrapper function.
@@ -505,11 +469,10 @@ void calculateBVOLDerivatives(std::span<std::array<Real, fsgrids::volfields::N_V
 void calculateBVOLDerivativesSimple(
     fsgrid::FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid,
     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
-   const auto& localSize = technicalGrid.getLocalSize();
-   const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
-
    std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol = volGrid.getData();
    std::span<const fsgrids::technical> technical = technicalGrid.getData();
+   const auto& localSize = technicalGrid.getLocalSize();
+   const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
 
    phiprof::Timer derivsTimer{"Calculate volume derivatives"};
    int computeTimerId{phiprof::initializeTimer("FS derivatives BVOL compute cells")};
