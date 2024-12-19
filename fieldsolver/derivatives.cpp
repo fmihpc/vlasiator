@@ -158,25 +158,34 @@ void calculateDerivatives(std::span<const std::array<Real, fsgrids::bfield::N_BF
     fsgrids::dmoments::dPedy,
     fsgrids::dmoments::dPedz,
    };
-
-   const std::array cellIndices = {
-       std::array {
-           stencil.left(),
-           stencil.right(),
-       },
-       std::array {
-           stencil.down(),
-           stencil.up(),
-       },
-       std::array {
-           stencil.far(),
-           stencil.near(),
-       },
-   };
    // clang-format on
 
    auto computeMoments = [&dMoments, &notSysBoundary](auto component, const auto& right, const auto& left,
                                                       const auto& center) {
+      {
+#ifdef DEBUG_SOLVERS
+         const auto& cv = centerMoments[fsgrids::moments::RHOM];
+         if (cv <= 0) {
+            std::cerr << __FILE__ << ":" << __LINE__ << (cv < 0 ? " Negative" : " Zero")
+                      << " density in spatial cell at (" << i << " " << j << " " << k << ")" << std::endl;
+            abort();
+         }
+
+         const auto& lv = left[fsgrids::moments::RHOM];
+         if (lv <= 0) {
+            std::cerr << __FILE__ << ":" << __LINE__ << (lv < 0 ? " Negative" : " Zero") << " density in spatial cell"
+                      << std::endl;
+            abort();
+         }
+
+         const auto& rv = right[fsgrids::moments::RHOM];
+         if (rv <= 0) {
+            std::cerr << __FILE__ << ":" << __LINE__ << (rv < 0 ? " Negative" : " Zero") << " density in spatial cell"
+                      << std::endl;
+            abort();
+         }
+#endif
+      }
       for (size_t i = 0; i < momentsIndices.size(); i++) {
          dMoments[dmomentsIndices[component][i]] =
              computeDerivative(notSysBoundary, momentsIndices[i], right, left, center);
@@ -211,42 +220,12 @@ void calculateDerivatives(std::span<const std::array<Real, fsgrids::bfield::N_BF
    // Compute moments
    if (shouldCalculateMoments) {
       const std::array<Real, fsgrids::moments::N_MOMENTS>& centerMoments = moments[stencil.center()];
-      {
-#ifdef DEBUG_SOLVERS
-         const auto& cv = centerMoments[fsgrids::moments::RHOM];
-         if (cv <= 0) {
-            std::cerr << __FILE__ << ":" << __LINE__ << (cv < 0 ? " Negative" : " Zero")
-                      << " density in spatial cell at (" << i << " " << j << " " << k << ")" << std::endl;
-            abort();
-         }
-#endif
-      }
-
-      for (auto component = 0; component < 3; component++) {
-         const auto& ci = cellIndices[component];
-         const auto& left = moments[ci[0]];
-         const auto& right = moments[ci[1]];
-         {
-#ifdef DEBUG_SOLVERS
-            const auto& lv = left[fsgrids::moments::RHOM];
-            if (lv <= 0) {
-               std::cerr << __FILE__ << ":" << __LINE__ << (lv < 0 ? " Negative" : " Zero")
-                         << " density in spatial cell" << std::endl;
-               abort();
-            }
-
-            const auto& rv = right[fsgrids::moments::RHOM];
-            if (rv <= 0) {
-               std::cerr << __FILE__ << ":" << __LINE__ << (rv < 0 ? " Negative" : " Zero")
-                         << " density in spatial cell" << std::endl;
-               abort();
-            }
-#endif
-         }
-
-         computeMoments(component, right, left, centerMoments);
-         computePresE(component, right, left, centerMoments);
-      }
+      computeMoments(0, moments[stencil.right()], moments[stencil.left()], centerMoments);
+      computePresE(0, moments[stencil.right()], moments[stencil.left()], centerMoments);
+      computeMoments(1, moments[stencil.up()], moments[stencil.down()], centerMoments);
+      computePresE(1, moments[stencil.up()], moments[stencil.down()], centerMoments);
+      computeMoments(2, moments[stencil.near()], moments[stencil.far()], centerMoments);
+      computePresE(2, moments[stencil.near()], moments[stencil.far()], centerMoments);
    }
 
    // Compute perb
