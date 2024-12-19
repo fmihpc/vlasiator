@@ -80,24 +80,6 @@ void calculateDerivatives(std::span<const std::array<Real, fsgrids::bfield::N_BF
    // Get boundary flag for the cell:
    const bool notSysBoundary =
        sysBoundaryLayer == 1 || (sysBoundaryLayer == 2 && sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY);
-   const bool dontCompute2ndDerivatives = Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1;
-
-   // Constants for electron pressure derivatives
-   // Upstream pressure
-   const Real Peupstream = Parameters::electronTemperature * Parameters::electronDensity * physicalconstants::K_B;
-   const Real Peconst = Peupstream * pow(Parameters::electronDensity, -Parameters::electronPTindex);
-
-   auto computePresE = [&dMoments, &Peconst](const auto& right, const auto& left, const auto& center) {
-      // pres_e = const * np.power(rho_e, index)
-      return Peconst * limiter(pow(left[mom::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex),
-                               pow(center[mom::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex),
-                               pow(right[mom::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex));
-   };
-
-   auto compute2ndDerivative = [&dontCompute2ndDerivatives](auto i, const auto& right, const auto& left,
-                                                            const auto& center) {
-      return dontCompute2ndDerivatives ? 0.0 : left[i] + right[i] - 2.0 * center[i];
-   };
 
    // Compute moments
    if (shouldCalculateMoments) {
@@ -156,35 +138,49 @@ void calculateDerivatives(std::span<const std::array<Real, fsgrids::bfield::N_BF
          dMoments[dmiz[i]] = computeDerivative(notSysBoundary, mom[i], momData.near, momData.far, momData.center);
       }
 
-      // clang-format off
       // electron pressure
+      // Constants for electron pressure derivatives
+      // Upstream pressure
+      const Real Peupstream = Parameters::electronTemperature * Parameters::electronDensity * physicalconstants::K_B;
+      const Real Peconst = Peupstream * pow(Parameters::electronDensity, -Parameters::electronPTindex);
+      auto computePresE = [&dMoments, &Peconst](const auto& right, const auto& left, const auto& center) {
+         // pres_e = const * np.power(rho_e, index)
+         return Peconst * limiter(pow(left[mom::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex),
+                                  pow(center[mom::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex),
+                                  pow(right[mom::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex));
+      };
+
       dMoments[dmo::dPedx] = computePresE(momData.right, momData.left, momData.center);
-      dMoments[dmo::dPedy] = computePresE(momData.up,    momData.down, momData.center);
-      dMoments[dmo::dPedz] = computePresE(momData.near,  momData.far,  momData.center);
-      // clang-format on
+      dMoments[dmo::dPedy] = computePresE(momData.up, momData.down, momData.center);
+      dMoments[dmo::dPedz] = computePresE(momData.near, momData.far, momData.center);
    }
 
    // Compute perb
+   const bool dontCompute2ndDerivatives = Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1;
+   auto compute2ndDerivative = [&dontCompute2ndDerivatives](auto i, const auto& right, const auto& left,
+                                                            const auto& center) {
+      return dontCompute2ndDerivatives ? 0.0 : left[i] + right[i] - 2.0 * center[i];
+   };
+
    const DerivativesData perbData{
        perb[stencil.center()], perb[stencil.right()], perb[stencil.left()], perb[stencil.up()],
        perb[stencil.down()],   perb[stencil.near()],  perb[stencil.far()],
    };
-   // clang-format off
-   dPerB[dpb::dPERBydx ] = computeDerivative(notSysBoundary, bfi::PERBY, perbData.right, perbData.left, perbData.center);
-   dPerB[dpb::dPERBzdx ] = computeDerivative(notSysBoundary, bfi::PERBZ, perbData.right, perbData.left, perbData.center);
-   dPerB[dpb::dPERBydxx] = compute2ndDerivative(             bfi::PERBY, perbData.right, perbData.left, perbData.center);
-   dPerB[dpb::dPERBzdxx] = compute2ndDerivative(             bfi::PERBZ, perbData.right, perbData.left, perbData.center);
 
-   dPerB[dpb::dPERBxdy ] = computeDerivative(notSysBoundary, bfi::PERBX, perbData.up, perbData.down, perbData.center);
-   dPerB[dpb::dPERBzdy ] = computeDerivative(notSysBoundary, bfi::PERBZ, perbData.up, perbData.down, perbData.center);
-   dPerB[dpb::dPERBxdyy] = compute2ndDerivative(             bfi::PERBX, perbData.up, perbData.down, perbData.center);
-   dPerB[dpb::dPERBzdyy] = compute2ndDerivative(             bfi::PERBZ, perbData.up, perbData.down, perbData.center);
+   dPerB[dpb::dPERBydx] = computeDerivative(notSysBoundary, bfi::PERBY, perbData.right, perbData.left, perbData.center);
+   dPerB[dpb::dPERBzdx] = computeDerivative(notSysBoundary, bfi::PERBZ, perbData.right, perbData.left, perbData.center);
+   dPerB[dpb::dPERBydxx] = compute2ndDerivative(bfi::PERBY, perbData.right, perbData.left, perbData.center);
+   dPerB[dpb::dPERBzdxx] = compute2ndDerivative(bfi::PERBZ, perbData.right, perbData.left, perbData.center);
 
-   dPerB[dpb::dPERBxdz ] = computeDerivative(notSysBoundary, bfi::PERBX, perbData.near, perbData.far, perbData.center);
-   dPerB[dpb::dPERBydz ] = computeDerivative(notSysBoundary, bfi::PERBY, perbData.near, perbData.far, perbData.center);
-   dPerB[dpb::dPERBxdzz] = compute2ndDerivative(             bfi::PERBX, perbData.near, perbData.far, perbData.center);
-   dPerB[dpb::dPERBydzz] = compute2ndDerivative(             bfi::PERBY, perbData.near, perbData.far, perbData.center);
-   // clang-format off
+   dPerB[dpb::dPERBxdy] = computeDerivative(notSysBoundary, bfi::PERBX, perbData.up, perbData.down, perbData.center);
+   dPerB[dpb::dPERBzdy] = computeDerivative(notSysBoundary, bfi::PERBZ, perbData.up, perbData.down, perbData.center);
+   dPerB[dpb::dPERBxdyy] = compute2ndDerivative(bfi::PERBX, perbData.up, perbData.down, perbData.center);
+   dPerB[dpb::dPERBzdyy] = compute2ndDerivative(bfi::PERBZ, perbData.up, perbData.down, perbData.center);
+
+   dPerB[dpb::dPERBxdz] = computeDerivative(notSysBoundary, bfi::PERBX, perbData.near, perbData.far, perbData.center);
+   dPerB[dpb::dPERBydz] = computeDerivative(notSysBoundary, bfi::PERBY, perbData.near, perbData.far, perbData.center);
+   dPerB[dpb::dPERBxdzz] = compute2ndDerivative(bfi::PERBX, perbData.near, perbData.far, perbData.center);
+   dPerB[dpb::dPERBydzz] = compute2ndDerivative(bfi::PERBY, perbData.near, perbData.far, perbData.center);
 
    if (dontCompute2ndDerivatives) {
       dPerB[dpb::dPERBxdyz] = 0.0;
