@@ -63,7 +63,7 @@ export MALLOC_CONF="abort_conf:true"
 #command for running stuff
 export OMP_PLACES=cores
 export OMP_PROC_BIND=close
-run_command="mpirun --map-by ppr:$SLURM_NTASKS:node:PE=$OMP_NUM_THREADS --bind-to cores --report-bindings --mca btl self -mca pml ^vader,tcp,openib,uct,yalla -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_TLS=rc,sm -x UCX_IB_ADDR_TYPE=ib_global -np $tasks"
+run_command="mpirun --map-by ppr:$SLURM_NTASKS:node:PE=$OMP_NUM_THREADS --bind-to core --report-bindings --mca btl self -mca pml ^vader,tcp,openib,uct,yalla -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_TLS=rc,sm -x UCX_IB_ADDR_TYPE=ib_global -np $tasks"
 small_run_command="mpirun --mca btl self -mca pml ^vader,tcp,openib,uct,yalla -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_TLS=rc,sm -x UCX_IB_ADDR_TYPE=ib_global -n 1 -N 1"
 run_command_tools="mpirun -np 1 "
 
