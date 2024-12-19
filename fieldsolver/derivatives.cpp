@@ -88,83 +88,6 @@ void calculateDerivatives(std::span<const std::array<Real, fsgrids::bfield::N_BF
    const Real Peconst = Peupstream * pow(Parameters::electronDensity, -Parameters::electronPTindex);
 
    // clang-format off
-   static constexpr std::array<std::array<dmo, 8>, 3> dmomentsIndices = {
-       std::array {
-           dmo::drhomdx,
-           dmo::drhoqdx,
-           dmo::dp11dx,
-           dmo::dp22dx,
-           dmo::dp33dx,
-           dmo::dVxdx,
-           dmo::dVydx,
-           dmo::dVzdx
-       },
-       std::array {
-           dmo::drhomdy,
-           dmo::drhoqdy,
-           dmo::dp11dy,
-           dmo::dp22dy,
-           dmo::dp33dy,
-           dmo::dVxdy,
-           dmo::dVydy,
-           dmo::dVzdy,
-       },
-       std::array {
-         dmo::drhomdz,
-         dmo::drhoqdz,
-         dmo::dp11dz,
-         dmo::dp22dz,
-         dmo::dp33dz,
-         dmo::dVxdz,
-         dmo::dVydz,
-         dmo::dVzdz,
-       },
-   };
-
-   static constexpr std::array momentsIndices = {
-       mom::RHOM,
-       mom::RHOQ,
-       mom::P_11,
-       mom::P_22,
-       mom::P_33,
-       mom::VX,
-       mom::VY,
-       mom::VZ,
-   };
-   // clang-format on
-
-   auto computeMoments = [&dMoments, &notSysBoundary](auto component, const auto& right, const auto& left,
-                                                      const auto& center) {
-      {
-#ifdef DEBUG_SOLVERS
-         const auto& cv = centerMoments[mom::RHOM];
-         if (cv <= 0) {
-            std::cerr << __FILE__ << ":" << __LINE__ << (cv < 0 ? " Negative" : " Zero")
-                      << " density in spatial cell at (" << i << " " << j << " " << k << ")" << std::endl;
-            abort();
-         }
-
-         const auto& lv = left[mom::RHOM];
-         if (lv <= 0) {
-            std::cerr << __FILE__ << ":" << __LINE__ << (lv < 0 ? " Negative" : " Zero") << " density in spatial cell"
-                      << std::endl;
-            abort();
-         }
-
-         const auto& rv = right[mom::RHOM];
-         if (rv <= 0) {
-            std::cerr << __FILE__ << ":" << __LINE__ << (rv < 0 ? " Negative" : " Zero") << " density in spatial cell"
-                      << std::endl;
-            abort();
-         }
-#endif
-      }
-      for (size_t i = 0; i < momentsIndices.size(); i++) {
-         dMoments[dmomentsIndices[component][i]] =
-             computeDerivative(notSysBoundary, momentsIndices[i], right, left, center);
-      }
-   };
-
    auto computePresE = [&dMoments, &Peconst](const auto& right, const auto& left, const auto& center) {
       // pres_e = const * np.power(rho_e, index)
       return Peconst * limiter(pow(left[mom::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex),
@@ -183,11 +106,63 @@ void calculateDerivatives(std::span<const std::array<Real, fsgrids::bfield::N_BF
           moments[stencil.center()], moments[stencil.right()], moments[stencil.left()], moments[stencil.up()],
           moments[stencil.down()],   moments[stencil.near()],  moments[stencil.far()],
       };
-      computeMoments(0, momData.right, momData.left, momData.center);
-      computeMoments(1, momData.up, momData.down, momData.center);
-      computeMoments(2, momData.near, momData.far, momData.center);
+      {
+#ifdef DEBUG_SOLVERS
+         const auto& cv = momData.center[mom::RHOM];
+         if (cv <= 0) {
+            std::cerr << __FILE__ << ":" << __LINE__ << (cv < 0 ? " Negative" : " Zero")
+                      << " density in spatial cell at (" << i << " " << j << " " << k << ")" << std::endl;
+            abort();
+         }
+
+         const auto& lv = momData.left[mom::RHOM];
+         if (lv <= 0) {
+            std::cerr << __FILE__ << ":" << __LINE__ << (lv < 0 ? " Negative" : " Zero") << " density in spatial cell"
+                      << std::endl;
+            abort();
+         }
+
+         const auto& rv = momData.right[mom::RHOM];
+         if (rv <= 0) {
+            std::cerr << __FILE__ << ":" << __LINE__ << (rv < 0 ? " Negative" : " Zero") << " density in spatial cell"
+                      << std::endl;
+            abort();
+         }
+#endif
+      }
 
       // clang-format off
+      // x
+      dMoments[dmo::drhomdx] = computeDerivative(notSysBoundary, mom::RHOM, momData.right, momData.left, momData.center);
+      dMoments[dmo::drhoqdx] = computeDerivative(notSysBoundary, mom::RHOQ, momData.right, momData.left, momData.center);
+      dMoments[dmo::dp11dx ] = computeDerivative(notSysBoundary, mom::P_11, momData.right, momData.left, momData.center);
+      dMoments[dmo::dp22dx ] = computeDerivative(notSysBoundary, mom::P_22, momData.right, momData.left, momData.center);
+      dMoments[dmo::dp33dx ] = computeDerivative(notSysBoundary, mom::P_33, momData.right, momData.left, momData.center);
+      dMoments[dmo::dVxdx  ] = computeDerivative(notSysBoundary, mom::VX  , momData.right, momData.left, momData.center);
+      dMoments[dmo::dVydx  ] = computeDerivative(notSysBoundary, mom::VY  , momData.right, momData.left, momData.center);
+      dMoments[dmo::dVzdx  ] = computeDerivative(notSysBoundary, mom::VZ  , momData.right, momData.left, momData.center);
+
+      // y
+      dMoments[dmo::drhomdy] = computeDerivative(notSysBoundary, mom::RHOM, momData.up, momData.down, momData.center);
+      dMoments[dmo::drhoqdy] = computeDerivative(notSysBoundary, mom::RHOQ, momData.up, momData.down, momData.center);
+      dMoments[dmo::dp11dy ] = computeDerivative(notSysBoundary, mom::P_11, momData.up, momData.down, momData.center);
+      dMoments[dmo::dp22dy ] = computeDerivative(notSysBoundary, mom::P_22, momData.up, momData.down, momData.center);
+      dMoments[dmo::dp33dy ] = computeDerivative(notSysBoundary, mom::P_33, momData.up, momData.down, momData.center);
+      dMoments[dmo::dVxdy  ] = computeDerivative(notSysBoundary, mom::VX  , momData.up, momData.down, momData.center);
+      dMoments[dmo::dVydy  ] = computeDerivative(notSysBoundary, mom::VY  , momData.up, momData.down, momData.center);
+      dMoments[dmo::dVzdy  ] = computeDerivative(notSysBoundary, mom::VZ  , momData.up, momData.down, momData.center);
+
+      // z
+      dMoments[dmo::drhomdz] = computeDerivative(notSysBoundary, mom::RHOM, momData.near, momData.far, momData.center);
+      dMoments[dmo::drhoqdz] = computeDerivative(notSysBoundary, mom::RHOQ, momData.near, momData.far, momData.center);
+      dMoments[dmo::dp11dz ] = computeDerivative(notSysBoundary, mom::P_11, momData.near, momData.far, momData.center);
+      dMoments[dmo::dp22dz ] = computeDerivative(notSysBoundary, mom::P_22, momData.near, momData.far, momData.center);
+      dMoments[dmo::dp33dz ] = computeDerivative(notSysBoundary, mom::P_33, momData.near, momData.far, momData.center);
+      dMoments[dmo::dVxdz  ] = computeDerivative(notSysBoundary, mom::VX  , momData.near, momData.far, momData.center);
+      dMoments[dmo::dVydz  ] = computeDerivative(notSysBoundary, mom::VY  , momData.near, momData.far, momData.center);
+      dMoments[dmo::dVzdz  ] = computeDerivative(notSysBoundary, mom::VZ  , momData.near, momData.far, momData.center);
+
+      // electron pressure
       dMoments[dmo::dPedx] = computePresE(momData.right, momData.left, momData.center);
       dMoments[dmo::dPedy] = computePresE(momData.up,    momData.down, momData.center);
       dMoments[dmo::dPedz] = computePresE(momData.near,  momData.far,  momData.center);
