@@ -131,12 +131,6 @@ void calculateDerivatives(std::span<const std::array<Real, fsgrids::bfield::N_BF
        mom::VY,
        mom::VZ,
    };
-
-   static constexpr std::array presEIndices = {
-    dmo::dPedx,
-    dmo::dPedy,
-    dmo::dPedz,
-   };
    // clang-format on
 
    auto computeMoments = [&dMoments, &notSysBoundary](auto component, const auto& right, const auto& left,
@@ -171,12 +165,11 @@ void calculateDerivatives(std::span<const std::array<Real, fsgrids::bfield::N_BF
       }
    };
 
-   auto computePresE = [&dMoments, &Peconst](auto component, const auto& right, const auto& left, const auto& center) {
+   auto computePresE = [&dMoments, &Peconst](const auto& right, const auto& left, const auto& center) {
       // pres_e = const * np.power(rho_e, index)
-      dMoments[presEIndices[component]] =
-          Peconst * limiter(pow(left[mom::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex),
-                            pow(center[mom::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex),
-                            pow(right[mom::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex));
+      return Peconst * limiter(pow(left[mom::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex),
+                               pow(center[mom::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex),
+                               pow(right[mom::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex));
    };
 
    auto compute2ndDerivative = [&dontCompute2ndDerivatives](auto i, const auto& right, const auto& left,
@@ -186,13 +179,19 @@ void calculateDerivatives(std::span<const std::array<Real, fsgrids::bfield::N_BF
 
    // Compute moments
    if (shouldCalculateMoments) {
-      const std::array<Real, mom::N_MOMENTS>& centerMoments = moments[stencil.center()];
-      computeMoments(0, moments[stencil.right()], moments[stencil.left()], centerMoments);
-      computePresE(0, moments[stencil.right()], moments[stencil.left()], centerMoments);
-      computeMoments(1, moments[stencil.up()], moments[stencil.down()], centerMoments);
-      computePresE(1, moments[stencil.up()], moments[stencil.down()], centerMoments);
-      computeMoments(2, moments[stencil.near()], moments[stencil.far()], centerMoments);
-      computePresE(2, moments[stencil.near()], moments[stencil.far()], centerMoments);
+      const DerivativesData momData{
+          moments[stencil.center()], moments[stencil.right()], moments[stencil.left()], moments[stencil.up()],
+          moments[stencil.down()],   moments[stencil.near()],  moments[stencil.far()],
+      };
+      computeMoments(0, momData.right, momData.left, momData.center);
+      computeMoments(1, momData.up, momData.down, momData.center);
+      computeMoments(2, momData.near, momData.far, momData.center);
+
+      // clang-format off
+      dMoments[dmo::dPedx] = computePresE(momData.right, momData.left, momData.center);
+      dMoments[dmo::dPedy] = computePresE(momData.up,    momData.down, momData.center);
+      dMoments[dmo::dPedz] = computePresE(momData.near,  momData.far,  momData.center);
+      // clang-format on
    }
 
    // Compute perb
