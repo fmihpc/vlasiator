@@ -11,6 +11,7 @@
 #SBATCH -n 16                  # number of tasks
 #SBATCH --mem=0
 ##SBATCH -x carrington-[801-808]
+#SBATCH --hint=nomultithread
 
 #If 1, the reference vlsv files are generated
 # if 0 then we check the v1
@@ -45,7 +46,7 @@ nodes=$SLURM_NNODES
 #Carrington has 2 x 16 cores
 cores_per_node=32
 # Hyperthreading
-ht=2
+ht=1
 #Change PBS parameters above + the ones here
 total_units=$(echo $nodes $cores_per_node $ht | gawk '{print $1*$2*$3}')
 units_per_node=$(echo $cores_per_node $ht | gawk '{print $1*$2}')
@@ -60,9 +61,9 @@ export OMPI_MCA_io="^ompio"
 export MALLOC_CONF="abort_conf:true"
 
 #command for running stuff
-export OMP_PLACES=threads
+export OMP_PLACES=cores
 export OMP_PROC_BIND=close
-run_command="mpirun --map-by ppr:$SLURM_NTASKS:node:PE=$OMP_NUM_THREADS --bind-to thread --report-bindings --mca btl self -mca pml ^vader,tcp,openib,uct,yalla -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_TLS=rc,sm -x UCX_IB_ADDR_TYPE=ib_global -np $tasks"
+run_command="mpirun --map-by ppr:$SLURM_NTASKS:node:PE=$OMP_NUM_THREADS --bind-to cores --report-bindings --mca btl self -mca pml ^vader,tcp,openib,uct,yalla -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_TLS=rc,sm -x UCX_IB_ADDR_TYPE=ib_global -np $tasks"
 small_run_command="mpirun --mca btl self -mca pml ^vader,tcp,openib,uct,yalla -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_TLS=rc,sm -x UCX_IB_ADDR_TYPE=ib_global -n 1 -N 1"
 run_command_tools="mpirun -np 1 "
 
