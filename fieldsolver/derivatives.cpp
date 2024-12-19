@@ -42,121 +42,96 @@ template <typename T, size_t N> struct DerivativesData {
    const std::array<T, N>& far = {};
 };
 
-/*! \brief Low-level spatial derivatives calculation.
- *
- * For the cell with ID cellID calculate the spatial derivatives or apply the derivative boundary conditions defined in
- * project.h. Uses RHO, V[XYZ] and B[XYZ] in the first-order time accuracy method and in the second step of the
- * second-order method, and RHO_DT2, V[XYZ]1 and B[XYZ]1 in the first step of the second-order method.
- *
- * For sysBoundaryLayer 1 or 2, we are near a boundary, and we wish to use regular centered differences instead of slope
- * limiter-adjusted values. This is to minimize oscillations as a smooth behaviour is required near artificial
- * boundaries, unlike at boundaries and shocks inside the simulation domain.
- *
- * \param i,j,k fsGrid cell coordinates for the current cell
- * \param perBGrid fsGrid holding the perturbed B quantities
- * \param momentsGrid fsGrid holding the moment quantities
- * \param dPerBGrid fsGrid holding the derivatives of perturbed B
- * \param dMomentsGrid fsGrid holding the derviatives of moments
- * \param technicalGrid fsGrid holding technical information (such as boundary types)
- * \param sysBoundaries System boundary conditions existing
- * \param shouldCalculateMoments Bool telling whether the derivatives for moments need updating too.
- *
- * \sa calculateDerivativesSimple calculateBVOLDerivativesSimple calculateBVOLDerivatives
- */
-void calculateDerivatives(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                          std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
-                          std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
-                          std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
-                          const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer,
-                          const bool shouldCalculateMoments) {
-   using dpb = fsgrids::dperb;
-   using bfi = fsgrids::bfield;
+void computeMoments(std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                    std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+                    const fsgrid::FsStencil& stencil, const bool notSysBoundary) {
    using dmo = fsgrids::dmoments;
    using mom = fsgrids::moments;
 
-   std::array<Real, dpb::N_DPERB>& dPerB = dperb[stencil.center()];
    std::array<Real, dmo::N_DMOMENTS>& dMoments = dmoments[stencil.center()];
 
-   // Get boundary flag for the cell:
-   const bool notSysBoundary =
-       sysBoundaryLayer == 1 || (sysBoundaryLayer == 2 && sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY);
-
    // Compute moments
-   if (shouldCalculateMoments) {
-      const DerivativesData momData{
-          moments[stencil.center()], moments[stencil.right()], moments[stencil.left()], moments[stencil.up()],
-          moments[stencil.down()],   moments[stencil.near()],  moments[stencil.far()],
-      };
-      {
+
+   const DerivativesData momData{
+       moments[stencil.center()], moments[stencil.right()], moments[stencil.left()], moments[stencil.up()],
+       moments[stencil.down()],   moments[stencil.near()],  moments[stencil.far()],
+   };
+
+   {
 #ifdef DEBUG_SOLVERS
-         const auto& cv = momData.center[mom::RHOM];
-         if (cv <= 0) {
-            std::cerr << __FILE__ << ":" << __LINE__ << (cv < 0 ? " Negative" : " Zero")
-                      << " density in spatial cell at (" << i << " " << j << " " << k << ")" << std::endl;
-            abort();
-         }
+      const auto& cv = momData.center[mom::RHOM];
+      if (cv <= 0) {
+         std::cerr << __FILE__ << ":" << __LINE__ << (cv < 0 ? " Negative" : " Zero") << " density in spatial cell at ("
+                   << i << " " << j << " " << k << ")" << std::endl;
+         abort();
+      }
 
-         const auto& lv = momData.left[mom::RHOM];
-         if (lv <= 0) {
-            std::cerr << __FILE__ << ":" << __LINE__ << (lv < 0 ? " Negative" : " Zero") << " density in spatial cell"
-                      << std::endl;
-            abort();
-         }
+      const auto& lv = momData.left[mom::RHOM];
+      if (lv <= 0) {
+         std::cerr << __FILE__ << ":" << __LINE__ << (lv < 0 ? " Negative" : " Zero") << " density in spatial cell"
+                   << std::endl;
+         abort();
+      }
 
-         const auto& rv = momData.right[mom::RHOM];
-         if (rv <= 0) {
-            std::cerr << __FILE__ << ":" << __LINE__ << (rv < 0 ? " Negative" : " Zero") << " density in spatial cell"
-                      << std::endl;
-            abort();
-         }
+      const auto& rv = momData.right[mom::RHOM];
+      if (rv <= 0) {
+         std::cerr << __FILE__ << ":" << __LINE__ << (rv < 0 ? " Negative" : " Zero") << " density in spatial cell"
+                   << std::endl;
+         abort();
+      }
 #endif
-      }
-
-      static constexpr std::array mom{mom::RHOM, mom::RHOQ, mom::P_11, mom::P_22, mom::P_33, mom::VX, mom::VY, mom::VZ};
-
-      // x
-      static constexpr std::array dmix{
-          dmo::drhomdx, dmo::drhoqdx, dmo::dp11dx, dmo::dp22dx, dmo::dp33dx, dmo::dVxdx, dmo::dVydx, dmo::dVzdx,
-      };
-      for (size_t i = 0; i < mom.size(); i++) {
-         dMoments[dmix[i]] = computeDerivative(notSysBoundary, mom[i], momData.right, momData.left, momData.center);
-      }
-
-      // y
-      static constexpr std::array dmiy{
-          dmo::drhomdy, dmo::drhoqdy, dmo::dp11dy, dmo::dp22dy, dmo::dp33dy, dmo::dVxdy, dmo::dVydy, dmo::dVzdy,
-      };
-      for (size_t i = 0; i < mom.size(); i++) {
-         dMoments[dmiy[i]] = computeDerivative(notSysBoundary, mom[i], momData.up, momData.down, momData.center);
-      }
-
-      // z
-      static constexpr std::array dmiz{
-          dmo::drhomdz, dmo::drhoqdz, dmo::dp11dz, dmo::dp22dz, dmo::dp33dz, dmo::dVxdz, dmo::dVydz, dmo::dVzdz,
-      };
-      for (size_t i = 0; i < mom.size(); i++) {
-         dMoments[dmiz[i]] = computeDerivative(notSysBoundary, mom[i], momData.near, momData.far, momData.center);
-      }
-
-      // electron pressure
-      // Constants for electron pressure derivatives
-      // Upstream pressure
-      const Real Peupstream = Parameters::electronTemperature * Parameters::electronDensity * physicalconstants::K_B;
-      const Real Peconst = Peupstream * pow(Parameters::electronDensity, -Parameters::electronPTindex);
-      auto computePresE = [&dMoments, &Peconst](const auto& right, const auto& left, const auto& center) {
-         // pres_e = const * np.power(rho_e, index)
-         return Peconst * limiter(pow(left[mom::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex),
-                                  pow(center[mom::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex),
-                                  pow(right[mom::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex));
-      };
-
-      dMoments[dmo::dPedx] = computePresE(momData.right, momData.left, momData.center);
-      dMoments[dmo::dPedy] = computePresE(momData.up, momData.down, momData.center);
-      dMoments[dmo::dPedz] = computePresE(momData.near, momData.far, momData.center);
    }
 
-   // Compute perb
-   const bool dontCompute2ndDerivatives = Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1;
+   static constexpr std::array moms{mom::RHOM, mom::RHOQ, mom::P_11, mom::P_22, mom::P_33, mom::VX, mom::VY, mom::VZ};
+
+   // x
+   static constexpr std::array dmix{
+       dmo::drhomdx, dmo::drhoqdx, dmo::dp11dx, dmo::dp22dx, dmo::dp33dx, dmo::dVxdx, dmo::dVydx, dmo::dVzdx,
+   };
+   for (size_t i = 0; i < moms.size(); i++) {
+      dMoments[dmix[i]] = computeDerivative(notSysBoundary, moms[i], momData.right, momData.left, momData.center);
+   }
+
+   // y
+   static constexpr std::array dmiy{
+       dmo::drhomdy, dmo::drhoqdy, dmo::dp11dy, dmo::dp22dy, dmo::dp33dy, dmo::dVxdy, dmo::dVydy, dmo::dVzdy,
+   };
+   for (size_t i = 0; i < moms.size(); i++) {
+      dMoments[dmiy[i]] = computeDerivative(notSysBoundary, moms[i], momData.up, momData.down, momData.center);
+   }
+
+   // z
+   static constexpr std::array dmiz{
+       dmo::drhomdz, dmo::drhoqdz, dmo::dp11dz, dmo::dp22dz, dmo::dp33dz, dmo::dVxdz, dmo::dVydz, dmo::dVzdz,
+   };
+   for (size_t i = 0; i < moms.size(); i++) {
+      dMoments[dmiz[i]] = computeDerivative(notSysBoundary, moms[i], momData.near, momData.far, momData.center);
+   }
+
+   // electron pressure
+   // Constants for electron pressure derivatives
+   // Upstream pressure
+   const Real Peupstream = Parameters::electronTemperature * Parameters::electronDensity * physicalconstants::K_B;
+   const Real Peconst = Peupstream * pow(Parameters::electronDensity, -Parameters::electronPTindex);
+   auto computePresE = [&dMoments, &Peconst](const auto& right, const auto& left, const auto& center) {
+      // pres_e = const * np.power(rho_e, index)
+      return Peconst * limiter(pow(left[mom::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex),
+                               pow(center[mom::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex),
+                               pow(right[mom::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex));
+   };
+
+   dMoments[dmo::dPedx] = computePresE(momData.right, momData.left, momData.center);
+   dMoments[dmo::dPedy] = computePresE(momData.up, momData.down, momData.center);
+   dMoments[dmo::dPedz] = computePresE(momData.near, momData.far, momData.center);
+}
+
+void computePerb(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                 std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb, const fsgrid::FsStencil& stencil,
+                 bool dontCompute2ndDerivatives, bool notSysBoundary, cuint sysBoundaryFlag) {
+   using dpb = fsgrids::dperb;
+   using bfi = fsgrids::bfield;
+   std::array<Real, dpb::N_DPERB>& dPerB = dperb[stencil.center()];
+
    auto compute2ndDerivative = [&dontCompute2ndDerivatives](auto i, const auto& right, const auto& left,
                                                             const auto& center) {
       return dontCompute2ndDerivatives ? 0.0 : left[i] + right[i] - 2.0 * center[i];
@@ -182,17 +157,13 @@ void calculateDerivatives(std::span<const std::array<Real, fsgrids::bfield::N_BF
    dPerB[dpb::dPERBxdzz] = compute2ndDerivative(bfi::PERBX, perbData.near, perbData.far, perbData.center);
    dPerB[dpb::dPERBydzz] = compute2ndDerivative(bfi::PERBY, perbData.near, perbData.far, perbData.center);
 
-   if (dontCompute2ndDerivatives) {
-      dPerB[dpb::dPERBxdyz] = 0.0;
-      dPerB[dpb::dPERBydxz] = 0.0;
-      dPerB[dpb::dPERBzdxy] = 0.0;
-   } else if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-      auto compute = [&perb](auto bl, auto br, auto tl, auto tr, auto i) {
+   if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+      auto compute = [&perb, &dontCompute2ndDerivatives](auto bl, auto br, auto tl, auto tr, auto i) {
          const auto& botLeft = perb[bl];
          const auto& botRght = perb[br];
          const auto& topLeft = perb[tl];
          const auto& topRght = perb[tr];
-         return FOURTH * (botLeft[i] + topRght[i] - botRght[i] - topLeft[i]);
+         return dontCompute2ndDerivatives ? 0.0 : FOURTH * (botLeft[i] + topRght[i] - botRght[i] - topLeft[i]);
       };
 
       dPerB[dpb::dPERBxdyz] =
@@ -201,8 +172,47 @@ void calculateDerivatives(std::span<const std::array<Real, fsgrids::bfield::N_BF
           compute(stencil.leftfar(), stencil.rightfar(), stencil.leftnear(), stencil.rightnear(), bfi::PERBY);
       dPerB[dpb::dPERBzdxy] =
           compute(stencil.leftdown(), stencil.rightdown(), stencil.leftup(), stencil.rightup(), bfi::PERBZ);
+   }
+}
 
-   } else {
+/*! \brief Low-level spatial derivatives calculation.
+ *
+ * For the cell with ID cellID calculate the spatial derivatives or apply the derivative boundary conditions defined in
+ * project.h. Uses RHO, V[XYZ] and B[XYZ] in the first-order time accuracy method and in the second step of the
+ * second-order method, and RHO_DT2, V[XYZ]1 and B[XYZ]1 in the first step of the second-order method.
+ *
+ * \param perBGrid fsGrid holding the perturbed B quantities
+ * \param momentsGrid fsGrid holding the moment quantities
+ * \param dPerBGrid fsGrid holding the derivatives of perturbed B
+ * \param dMomentsGrid fsGrid holding the derviatives of moments
+ * \param technicalGrid fsGrid holding technical information (such as boundary types)
+ * \param sysBoundaries System boundary conditions existing
+ * \param doMoments Bool telling whether the derivatives for moments need updating too.
+ *
+ * \sa calculateDerivativesSimple calculateBVOLDerivativesSimple calculateBVOLDerivatives
+ */
+void calculateDerivatives(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                          std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                          std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                          std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+                          const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer,
+                          const bool doMoments) {
+   /*
+    * For sysBoundaryLayer 1 or 2, we are near a boundary, and we wish to use regular centered differences instead of
+    * slope limiter-adjusted values. This is to minimize oscillations as a smooth behaviour is required near artificial
+    * boundaries, unlike at boundaries and shocks inside the simulation domain.
+    */
+   const bool notSysBoundary =
+       sysBoundaryLayer == 1 || (sysBoundaryLayer == 2 && sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY);
+   const bool dontCompute2ndDerivatives = Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1;
+
+   if (doMoments) {
+      computeMoments(moments, dmoments, stencil, notSysBoundary);
+   }
+
+   computePerb(perb, dperb, stencil, dontCompute2ndDerivatives, notSysBoundary, sysBoundaryFlag);
+
+   if (sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
       SBC::SysBoundaryCondition::setCellDerivativesToZero(dperb, dmoments, stencil, 3);
       SBC::SysBoundaryCondition::setCellDerivativesToZero(dperb, dmoments, stencil, 4);
       SBC::SysBoundaryCondition::setCellDerivativesToZero(dperb, dmoments, stencil, 5);
@@ -250,7 +260,7 @@ void calculateDerivativesSimple(
    mpiTimer.stop();
 
    // Calculate derivatives
-   technicalGrid.parallel_for([=](const fsgrid::FsStencil stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+   technicalGrid.parallel_for([=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
       calculateDerivatives(perb, moments, dperb, dmoments, stencil, sysBoundaryFlag, sysBoundaryLayer, doMoments);
    });
 
