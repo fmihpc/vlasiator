@@ -175,26 +175,21 @@ void calculateDerivatives(std::span<const std::array<Real, fsgrids::bfield::N_BF
    };
    // clang-format on
 
-   auto computeMoments = [&shouldCalculateMoments, &dMoments, &notSysBoundary](auto component, const auto& right,
-                                                                               const auto& left, const auto& center) {
-      if (shouldCalculateMoments) {
-         for (size_t i = 0; i < momentsIndices.size(); i++) {
-            dMoments[dmomentsIndices[component][i]] =
-                computeDerivative(notSysBoundary, momentsIndices[i], right, left, center);
-         }
+   auto computeMoments = [&dMoments, &notSysBoundary](auto component, const auto& right, const auto& left,
+                                                      const auto& center) {
+      for (size_t i = 0; i < momentsIndices.size(); i++) {
+         dMoments[dmomentsIndices[component][i]] =
+             computeDerivative(notSysBoundary, momentsIndices[i], right, left, center);
       }
    };
 
-   auto computePresE = [&shouldCalculateMoments, &dMoments, &Peconst](auto component, const auto& right,
-                                                                      const auto& left, const auto& center) {
-      if (shouldCalculateMoments) {
-         // pres_e = const * np.power(rho_e, index)
-         dMoments[presEIndices[component]] =
-             Peconst *
-             limiter(pow(left[fsgrids::moments::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex),
-                     pow(center[fsgrids::moments::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex),
-                     pow(right[fsgrids::moments::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex));
-      }
+   auto computePresE = [&dMoments, &Peconst](auto component, const auto& right, const auto& left, const auto& center) {
+      // pres_e = const * np.power(rho_e, index)
+      dMoments[presEIndices[component]] =
+          Peconst *
+          limiter(pow(left[fsgrids::moments::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex),
+                  pow(center[fsgrids::moments::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex),
+                  pow(right[fsgrids::moments::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex));
    };
 
    auto computePerB = [&dPerB, &notSysBoundary, &dontCompute2ndDerivatives](auto component, const auto& right,
@@ -214,42 +209,44 @@ void calculateDerivatives(std::span<const std::array<Real, fsgrids::bfield::N_BF
    };
 
    // Compute moments
-   const std::array<Real, fsgrids::moments::N_MOMENTS>& centerMoments = moments[stencil.center()];
-#ifdef DEBUG_SOLVERS
-   {
-      const auto& cv = centerMoments[fsgrids::moments::RHOM];
-      if (cv <= 0) {
-         std::cerr << __FILE__ << ":" << __LINE__ << (cv < 0 ? " Negative" : " Zero") << " density in spatial cell at ("
-                   << i << " " << j << " " << k << ")" << std::endl;
-         abort();
-      }
-   }
-#endif
-
-   for (auto component = 0; component < 3; component++) {
-      const auto& ci = cellIndices[component];
-      const auto& left = moments[ci[0]];
-      const auto& right = moments[ci[1]];
-#ifdef DEBUG_SOLVERS
+   if (shouldCalculateMoments) {
+      const std::array<Real, fsgrids::moments::N_MOMENTS>& centerMoments = moments[stencil.center()];
       {
-         const auto& lv = left[fsgrids::moments::RHOM];
-         if (lv <= 0) {
-            std::cerr << __FILE__ << ":" << __LINE__ << (lv < 0 ? " Negative" : " Zero") << " density in spatial cell"
-                      << std::endl;
+#ifdef DEBUG_SOLVERS
+         const auto& cv = centerMoments[fsgrids::moments::RHOM];
+         if (cv <= 0) {
+            std::cerr << __FILE__ << ":" << __LINE__ << (cv < 0 ? " Negative" : " Zero")
+                      << " density in spatial cell at (" << i << " " << j << " " << k << ")" << std::endl;
             abort();
          }
-
-         const auto& rv = right[fsgrids::moments::RHOM];
-         if (rv <= 0) {
-            std::cerr << __FILE__ << ":" << __LINE__ << (rv < 0 ? " Negative" : " Zero") << " density in spatial cell"
-                      << std::endl;
-            abort();
-         }
-      }
 #endif
+      }
 
-      computeMoments(component, right, left, centerMoments);
-      computePresE(component, right, left, centerMoments);
+      for (auto component = 0; component < 3; component++) {
+         const auto& ci = cellIndices[component];
+         const auto& left = moments[ci[0]];
+         const auto& right = moments[ci[1]];
+         {
+#ifdef DEBUG_SOLVERS
+            const auto& lv = left[fsgrids::moments::RHOM];
+            if (lv <= 0) {
+               std::cerr << __FILE__ << ":" << __LINE__ << (lv < 0 ? " Negative" : " Zero")
+                         << " density in spatial cell" << std::endl;
+               abort();
+            }
+
+            const auto& rv = right[fsgrids::moments::RHOM];
+            if (rv <= 0) {
+               std::cerr << __FILE__ << ":" << __LINE__ << (rv < 0 ? " Negative" : " Zero")
+                         << " density in spatial cell" << std::endl;
+               abort();
+            }
+#endif
+         }
+
+         computeMoments(component, right, left, centerMoments);
+         computePresE(component, right, left, centerMoments);
+      }
    }
 
    // Compute perb
