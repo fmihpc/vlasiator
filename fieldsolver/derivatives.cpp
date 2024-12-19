@@ -32,6 +32,16 @@ auto computeDerivative(bool notSysBoundary, const auto& i, const auto& right, co
    return notSysBoundary ? 0.5 * (right[i] - left[i]) : limiter(left[i], center[i], right[i]);
 };
 
+template <typename T, size_t N> struct DerivativesData {
+   const std::array<T, N>& center = {};
+   const std::array<T, N>& right = {};
+   const std::array<T, N>& left = {};
+   const std::array<T, N>& up = {};
+   const std::array<T, N>& down = {};
+   const std::array<T, N>& near = {};
+   const std::array<T, N>& far = {};
+};
+
 /*! \brief Low-level spatial derivatives calculation.
  *
  * For the cell with ID cellID calculate the spatial derivatives or apply the derivative boundary conditions defined in
@@ -186,22 +196,25 @@ void calculateDerivatives(std::span<const std::array<Real, fsgrids::bfield::N_BF
    }
 
    // Compute perb
+   const DerivativesData perbData{
+       perb[stencil.center()], perb[stencil.right()], perb[stencil.left()], perb[stencil.up()],
+       perb[stencil.down()],   perb[stencil.near()],  perb[stencil.far()],
+   };
    // clang-format off
-   const auto& centerPerB = perb[stencil.center()];
-   dPerB[dpb::dPERBydx ] = computeDerivative(notSysBoundary, bfi::PERBY, perb[stencil.right()], perb[stencil.left()], centerPerB);
-   dPerB[dpb::dPERBzdx ] = computeDerivative(notSysBoundary, bfi::PERBZ, perb[stencil.right()], perb[stencil.left()], centerPerB);
-   dPerB[dpb::dPERBydxx] = compute2ndDerivative(             bfi::PERBY, perb[stencil.right()], perb[stencil.left()], centerPerB);
-   dPerB[dpb::dPERBzdxx] = compute2ndDerivative(             bfi::PERBZ, perb[stencil.right()], perb[stencil.left()], centerPerB);
+   dPerB[dpb::dPERBydx ] = computeDerivative(notSysBoundary, bfi::PERBY, perbData.right, perbData.left, perbData.center);
+   dPerB[dpb::dPERBzdx ] = computeDerivative(notSysBoundary, bfi::PERBZ, perbData.right, perbData.left, perbData.center);
+   dPerB[dpb::dPERBydxx] = compute2ndDerivative(             bfi::PERBY, perbData.right, perbData.left, perbData.center);
+   dPerB[dpb::dPERBzdxx] = compute2ndDerivative(             bfi::PERBZ, perbData.right, perbData.left, perbData.center);
 
-   dPerB[dpb::dPERBxdy ] = computeDerivative(notSysBoundary, bfi::PERBX, perb[stencil.up()], perb[stencil.down()], centerPerB);
-   dPerB[dpb::dPERBzdy ] = computeDerivative(notSysBoundary, bfi::PERBZ, perb[stencil.up()], perb[stencil.down()], centerPerB);
-   dPerB[dpb::dPERBxdyy] = compute2ndDerivative(             bfi::PERBX, perb[stencil.up()], perb[stencil.down()], centerPerB);
-   dPerB[dpb::dPERBzdyy] = compute2ndDerivative(             bfi::PERBZ, perb[stencil.up()], perb[stencil.down()], centerPerB);
+   dPerB[dpb::dPERBxdy ] = computeDerivative(notSysBoundary, bfi::PERBX, perbData.up, perbData.down, perbData.center);
+   dPerB[dpb::dPERBzdy ] = computeDerivative(notSysBoundary, bfi::PERBZ, perbData.up, perbData.down, perbData.center);
+   dPerB[dpb::dPERBxdyy] = compute2ndDerivative(             bfi::PERBX, perbData.up, perbData.down, perbData.center);
+   dPerB[dpb::dPERBzdyy] = compute2ndDerivative(             bfi::PERBZ, perbData.up, perbData.down, perbData.center);
 
-   dPerB[dpb::dPERBxdz ] = computeDerivative(notSysBoundary, bfi::PERBX, perb[stencil.near()], perb[stencil.far()], centerPerB);
-   dPerB[dpb::dPERBydz ] = computeDerivative(notSysBoundary, bfi::PERBY, perb[stencil.near()], perb[stencil.far()], centerPerB);
-   dPerB[dpb::dPERBxdzz] = compute2ndDerivative(             bfi::PERBX, perb[stencil.near()], perb[stencil.far()], centerPerB);
-   dPerB[dpb::dPERBydzz] = compute2ndDerivative(             bfi::PERBY, perb[stencil.near()], perb[stencil.far()], centerPerB);
+   dPerB[dpb::dPERBxdz ] = computeDerivative(notSysBoundary, bfi::PERBX, perbData.near, perbData.far, perbData.center);
+   dPerB[dpb::dPERBydz ] = computeDerivative(notSysBoundary, bfi::PERBY, perbData.near, perbData.far, perbData.center);
+   dPerB[dpb::dPERBxdzz] = compute2ndDerivative(             bfi::PERBX, perbData.near, perbData.far, perbData.center);
+   dPerB[dpb::dPERBydzz] = compute2ndDerivative(             bfi::PERBY, perbData.near, perbData.far, perbData.center);
    // clang-format off
 
    if (dontCompute2ndDerivatives) {
