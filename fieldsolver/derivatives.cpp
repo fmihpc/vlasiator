@@ -34,10 +34,6 @@ auto computeDerivative(const auto& i, const auto& right, const auto& left, const
 
 auto computeDerivative(const auto& i, const auto& right, const auto& left) { return 0.5 * (right[i] - left[i]); };
 
-auto computeDerivative(bool notSysBoundary, const auto& i, const auto& right, const auto& left, const auto& center) {
-   return notSysBoundary ? 0.5 * (right[i] - left[i]) : limiter(left[i], center[i], right[i]);
-};
-
 template <typename T, size_t N> struct DerivativesData {
    const std::array<T, N>& center = {};
    const std::array<T, N>& right = {};
@@ -137,46 +133,64 @@ void computePerb(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> pe
    using bfi = fsgrids::bfield;
    std::array<Real, dpb::N_DPERB>& dPerB = dperb[stencil.center()];
 
-   auto compute2ndDerivative = [&dontCompute2ndDerivatives](auto i, const auto& right, const auto& left,
-                                                            const auto& center) {
-      return dontCompute2ndDerivatives ? 0.0 : left[i] + right[i] - 2.0 * center[i];
-   };
-
    const DerivativesData perbData{
        perb[stencil.center()], perb[stencil.right()], perb[stencil.left()], perb[stencil.up()],
        perb[stencil.down()],   perb[stencil.near()],  perb[stencil.far()],
    };
 
-   dPerB[dpb::dPERBydx] = computeDerivative(notSysBoundary, bfi::PERBY, perbData.right, perbData.left, perbData.center);
-   dPerB[dpb::dPERBzdx] = computeDerivative(notSysBoundary, bfi::PERBZ, perbData.right, perbData.left, perbData.center);
-   dPerB[dpb::dPERBydxx] = compute2ndDerivative(bfi::PERBY, perbData.right, perbData.left, perbData.center);
-   dPerB[dpb::dPERBzdxx] = compute2ndDerivative(bfi::PERBZ, perbData.right, perbData.left, perbData.center);
+   if (notSysBoundary) {
+      dPerB[dpb::dPERBydx] = computeDerivative(bfi::PERBY, perbData.right, perbData.left);
+      dPerB[dpb::dPERBzdx] = computeDerivative(bfi::PERBZ, perbData.right, perbData.left);
+      dPerB[dpb::dPERBxdy] = computeDerivative(bfi::PERBX, perbData.up, perbData.down);
+      dPerB[dpb::dPERBzdy] = computeDerivative(bfi::PERBZ, perbData.up, perbData.down);
+      dPerB[dpb::dPERBxdz] = computeDerivative(bfi::PERBX, perbData.near, perbData.far);
+      dPerB[dpb::dPERBydz] = computeDerivative(bfi::PERBY, perbData.near, perbData.far);
+   } else {
+      dPerB[dpb::dPERBydx] = computeDerivative(bfi::PERBY, perbData.right, perbData.left, perbData.center);
+      dPerB[dpb::dPERBzdx] = computeDerivative(bfi::PERBZ, perbData.right, perbData.left, perbData.center);
+      dPerB[dpb::dPERBxdy] = computeDerivative(bfi::PERBX, perbData.up, perbData.down, perbData.center);
+      dPerB[dpb::dPERBzdy] = computeDerivative(bfi::PERBZ, perbData.up, perbData.down, perbData.center);
+      dPerB[dpb::dPERBxdz] = computeDerivative(bfi::PERBX, perbData.near, perbData.far, perbData.center);
+      dPerB[dpb::dPERBydz] = computeDerivative(bfi::PERBY, perbData.near, perbData.far, perbData.center);
+   }
 
-   dPerB[dpb::dPERBxdy] = computeDerivative(notSysBoundary, bfi::PERBX, perbData.up, perbData.down, perbData.center);
-   dPerB[dpb::dPERBzdy] = computeDerivative(notSysBoundary, bfi::PERBZ, perbData.up, perbData.down, perbData.center);
-   dPerB[dpb::dPERBxdyy] = compute2ndDerivative(bfi::PERBX, perbData.up, perbData.down, perbData.center);
-   dPerB[dpb::dPERBzdyy] = compute2ndDerivative(bfi::PERBZ, perbData.up, perbData.down, perbData.center);
-
-   dPerB[dpb::dPERBxdz] = computeDerivative(notSysBoundary, bfi::PERBX, perbData.near, perbData.far, perbData.center);
-   dPerB[dpb::dPERBydz] = computeDerivative(notSysBoundary, bfi::PERBY, perbData.near, perbData.far, perbData.center);
-   dPerB[dpb::dPERBxdzz] = compute2ndDerivative(bfi::PERBX, perbData.near, perbData.far, perbData.center);
-   dPerB[dpb::dPERBydzz] = compute2ndDerivative(bfi::PERBY, perbData.near, perbData.far, perbData.center);
-
-   if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-      auto compute = [&perb, &dontCompute2ndDerivatives](auto bl, auto br, auto tl, auto tr, auto i) {
-         const auto& botLeft = perb[bl];
-         const auto& botRght = perb[br];
-         const auto& topLeft = perb[tl];
-         const auto& topRght = perb[tr];
-         return dontCompute2ndDerivatives ? 0.0 : FOURTH * (botLeft[i] + topRght[i] - botRght[i] - topLeft[i]);
+   if (dontCompute2ndDerivatives) {
+      dPerB[dpb::dPERBydxx] = 0.0;
+      dPerB[dpb::dPERBzdxx] = 0.0;
+      dPerB[dpb::dPERBxdyy] = 0.0;
+      dPerB[dpb::dPERBzdyy] = 0.0;
+      dPerB[dpb::dPERBxdzz] = 0.0;
+      dPerB[dpb::dPERBydzz] = 0.0;
+      dPerB[dpb::dPERBxdyz] = 0.0;
+      dPerB[dpb::dPERBydxz] = 0.0;
+      dPerB[dpb::dPERBzdxy] = 0.0;
+   } else {
+      auto compute2ndDerivative = [](auto i, const auto& right, const auto& left, const auto& center) {
+         return left[i] + right[i] - 2.0 * center[i];
       };
+      dPerB[dpb::dPERBydxx] = compute2ndDerivative(bfi::PERBY, perbData.right, perbData.left, perbData.center);
+      dPerB[dpb::dPERBzdxx] = compute2ndDerivative(bfi::PERBZ, perbData.right, perbData.left, perbData.center);
+      dPerB[dpb::dPERBxdyy] = compute2ndDerivative(bfi::PERBX, perbData.up, perbData.down, perbData.center);
+      dPerB[dpb::dPERBzdyy] = compute2ndDerivative(bfi::PERBZ, perbData.up, perbData.down, perbData.center);
+      dPerB[dpb::dPERBxdzz] = compute2ndDerivative(bfi::PERBX, perbData.near, perbData.far, perbData.center);
+      dPerB[dpb::dPERBydzz] = compute2ndDerivative(bfi::PERBY, perbData.near, perbData.far, perbData.center);
 
-      dPerB[dpb::dPERBxdyz] =
-          compute(stencil.downfar(), stencil.upfar(), stencil.downnear(), stencil.upnear(), bfi::PERBX);
-      dPerB[dpb::dPERBydxz] =
-          compute(stencil.leftfar(), stencil.rightfar(), stencil.leftnear(), stencil.rightnear(), bfi::PERBY);
-      dPerB[dpb::dPERBzdxy] =
-          compute(stencil.leftdown(), stencil.rightdown(), stencil.leftup(), stencil.rightup(), bfi::PERBZ);
+      if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+         auto compute = [&perb](auto bl, auto br, auto tl, auto tr, auto i) {
+            const auto& botLeft = perb[bl];
+            const auto& botRght = perb[br];
+            const auto& topLeft = perb[tl];
+            const auto& topRght = perb[tr];
+            return FOURTH * (botLeft[i] + topRght[i] - botRght[i] - topLeft[i]);
+         };
+
+         dPerB[dpb::dPERBxdyz] =
+             compute(stencil.downfar(), stencil.upfar(), stencil.downnear(), stencil.upnear(), bfi::PERBX);
+         dPerB[dpb::dPERBydxz] =
+             compute(stencil.leftfar(), stencil.rightfar(), stencil.leftnear(), stencil.rightnear(), bfi::PERBY);
+         dPerB[dpb::dPERBzdxy] =
+             compute(stencil.leftdown(), stencil.rightdown(), stencil.leftup(), stencil.rightup(), bfi::PERBZ);
+      }
    }
 }
 
@@ -306,15 +320,27 @@ void calculateBVOLDerivatives(std::span<std::array<Real, fsgrids::volfields::N_V
    const auto far = stencil.far();
 
    auto& volCenter = vol[stencil.center()];
-   volCenter[vf::dPERBXVOLdx] = computeDerivative(notSysBoundary, vf::PERBXVOL, vol[right], vol[left], volCenter);
-   volCenter[vf::dPERBYVOLdx] = computeDerivative(notSysBoundary, vf::PERBYVOL, vol[right], vol[left], volCenter);
-   volCenter[vf::dPERBZVOLdx] = computeDerivative(notSysBoundary, vf::PERBZVOL, vol[right], vol[left], volCenter);
-   volCenter[vf::dPERBXVOLdy] = computeDerivative(notSysBoundary, vf::PERBXVOL, vol[up], vol[down], volCenter);
-   volCenter[vf::dPERBYVOLdy] = computeDerivative(notSysBoundary, vf::PERBYVOL, vol[up], vol[down], volCenter);
-   volCenter[vf::dPERBZVOLdy] = computeDerivative(notSysBoundary, vf::PERBZVOL, vol[up], vol[down], volCenter);
-   volCenter[vf::dPERBXVOLdz] = computeDerivative(notSysBoundary, vf::PERBXVOL, vol[near], vol[far], volCenter);
-   volCenter[vf::dPERBYVOLdz] = computeDerivative(notSysBoundary, vf::PERBYVOL, vol[near], vol[far], volCenter);
-   volCenter[vf::dPERBZVOLdz] = computeDerivative(notSysBoundary, vf::PERBZVOL, vol[near], vol[far], volCenter);
+   if (notSysBoundary) {
+      volCenter[vf::dPERBXVOLdx] = computeDerivative(vf::PERBXVOL, vol[right], vol[left]);
+      volCenter[vf::dPERBYVOLdx] = computeDerivative(vf::PERBYVOL, vol[right], vol[left]);
+      volCenter[vf::dPERBZVOLdx] = computeDerivative(vf::PERBZVOL, vol[right], vol[left]);
+      volCenter[vf::dPERBXVOLdy] = computeDerivative(vf::PERBXVOL, vol[up], vol[down]);
+      volCenter[vf::dPERBYVOLdy] = computeDerivative(vf::PERBYVOL, vol[up], vol[down]);
+      volCenter[vf::dPERBZVOLdy] = computeDerivative(vf::PERBZVOL, vol[up], vol[down]);
+      volCenter[vf::dPERBXVOLdz] = computeDerivative(vf::PERBXVOL, vol[near], vol[far]);
+      volCenter[vf::dPERBYVOLdz] = computeDerivative(vf::PERBYVOL, vol[near], vol[far]);
+      volCenter[vf::dPERBZVOLdz] = computeDerivative(vf::PERBZVOL, vol[near], vol[far]);
+   } else {
+      volCenter[vf::dPERBXVOLdx] = computeDerivative(vf::PERBXVOL, vol[right], vol[left], volCenter);
+      volCenter[vf::dPERBYVOLdx] = computeDerivative(vf::PERBYVOL, vol[right], vol[left], volCenter);
+      volCenter[vf::dPERBZVOLdx] = computeDerivative(vf::PERBZVOL, vol[right], vol[left], volCenter);
+      volCenter[vf::dPERBXVOLdy] = computeDerivative(vf::PERBXVOL, vol[up], vol[down], volCenter);
+      volCenter[vf::dPERBYVOLdy] = computeDerivative(vf::PERBYVOL, vol[up], vol[down], volCenter);
+      volCenter[vf::dPERBZVOLdy] = computeDerivative(vf::PERBZVOL, vol[up], vol[down], volCenter);
+      volCenter[vf::dPERBXVOLdz] = computeDerivative(vf::PERBXVOL, vol[near], vol[far], volCenter);
+      volCenter[vf::dPERBYVOLdz] = computeDerivative(vf::PERBYVOL, vol[near], vol[far], volCenter);
+      volCenter[vf::dPERBZVOLdz] = computeDerivative(vf::PERBZVOL, vol[near], vol[far], volCenter);
+   }
 }
 
 /*! \brief High-level derivative calculation wrapper function.
