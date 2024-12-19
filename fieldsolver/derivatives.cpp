@@ -251,12 +251,9 @@ void calculateDerivatives(std::span<const std::array<Real, fsgrids::bfield::N_BF
 
    // Compute perb
    const std::array<Real, fsgrids::bfield::N_BFIELD>& centerPerB = perb[stencil.center()];
-   for (auto component = 0; component < 3; component++) {
-      const auto& ci = cellIndices[component];
-      const auto& left = perb[ci[0]];
-      const auto& right = perb[ci[1]];
-      computePerB(component, right, left, centerPerB);
-   }
+   computePerB(0, perb[stencil.right()], perb[stencil.left()], centerPerB);
+   computePerB(1, perb[stencil.up()], perb[stencil.down()], centerPerB);
+   computePerB(2, perb[stencil.near()], perb[stencil.far()], centerPerB);
 
    if (dontCompute2ndDerivatives) {
       dPerB[fsgrids::dperb::dPERBxdyz] = 0.0;
