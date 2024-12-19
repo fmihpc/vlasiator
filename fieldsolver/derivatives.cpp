@@ -28,6 +28,12 @@
 #include <Eigen/Geometry>
 #include <span>
 
+auto computeDerivative(const auto& i, const auto& right, const auto& left, const auto& center) {
+   return limiter(left[i], center[i], right[i]);
+};
+
+auto computeDerivative(const auto& i, const auto& right, const auto& left) { return 0.5 * (right[i] - left[i]); };
+
 auto computeDerivative(bool notSysBoundary, const auto& i, const auto& right, const auto& left, const auto& center) {
    return notSysBoundary ? 0.5 * (right[i] - left[i]) : limiter(left[i], center[i], right[i]);
 };
@@ -83,29 +89,28 @@ void computeMoments(std::span<const std::array<Real, fsgrids::moments::N_MOMENTS
    }
 
    static constexpr std::array moms{mom::RHOM, mom::RHOQ, mom::P_11, mom::P_22, mom::P_33, mom::VX, mom::VY, mom::VZ};
-
-   // x
    static constexpr std::array dmix{
        dmo::drhomdx, dmo::drhoqdx, dmo::dp11dx, dmo::dp22dx, dmo::dp33dx, dmo::dVxdx, dmo::dVydx, dmo::dVzdx,
    };
-   for (size_t i = 0; i < moms.size(); i++) {
-      dMoments[dmix[i]] = computeDerivative(notSysBoundary, moms[i], momData.right, momData.left, momData.center);
-   }
-
-   // y
    static constexpr std::array dmiy{
        dmo::drhomdy, dmo::drhoqdy, dmo::dp11dy, dmo::dp22dy, dmo::dp33dy, dmo::dVxdy, dmo::dVydy, dmo::dVzdy,
    };
-   for (size_t i = 0; i < moms.size(); i++) {
-      dMoments[dmiy[i]] = computeDerivative(notSysBoundary, moms[i], momData.up, momData.down, momData.center);
-   }
-
-   // z
    static constexpr std::array dmiz{
        dmo::drhomdz, dmo::drhoqdz, dmo::dp11dz, dmo::dp22dz, dmo::dp33dz, dmo::dVxdz, dmo::dVydz, dmo::dVzdz,
    };
-   for (size_t i = 0; i < moms.size(); i++) {
-      dMoments[dmiz[i]] = computeDerivative(notSysBoundary, moms[i], momData.near, momData.far, momData.center);
+
+   if (notSysBoundary) {
+      for (size_t i = 0; i < moms.size(); i++) {
+         dMoments[dmix[i]] = computeDerivative(moms[i], momData.right, momData.left);
+         dMoments[dmiy[i]] = computeDerivative(moms[i], momData.up, momData.down);
+         dMoments[dmiz[i]] = computeDerivative(moms[i], momData.near, momData.far);
+      }
+   } else {
+      for (size_t i = 0; i < moms.size(); i++) {
+         dMoments[dmix[i]] = computeDerivative(moms[i], momData.right, momData.left, momData.center);
+         dMoments[dmiy[i]] = computeDerivative(moms[i], momData.up, momData.down, momData.center);
+         dMoments[dmiz[i]] = computeDerivative(moms[i], momData.near, momData.far, momData.center);
+      }
    }
 
    // electron pressure
