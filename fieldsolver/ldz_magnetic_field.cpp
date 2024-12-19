@@ -39,14 +39,11 @@ void propagateMagneticFieldComponent(std::span<std::array<Real, fsgrids::bfield:
    auto& pb = perb[stencil.center()][perbIdx];
    const Real v = dt0 * (e2[i] - e0[i]) + dt1 * (e0[j] - e1[j]);
 
-   switch (RKCase) {
-   case RK_ORDER1 | RK_ORDER2_STEP2:
+   if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       pb += v;
-      break;
-   case RK_ORDER2_STEP1:
+   } else if (RKCase == RK_ORDER2_STEP1) {
       perbdt2[stencil.center()][perbIdx] = pb + 0.5 * v;
-      break;
-   default:
+   } else {
       std::cerr << __FILE__ << ":" << __LINE__ << ":"
                 << "Invalid RK case." << std::endl;
       abort();
