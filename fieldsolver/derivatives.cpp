@@ -263,52 +263,24 @@ void calculateDerivatives(std::span<const std::array<Real, fsgrids::bfield::N_BF
       dPerB[fsgrids::dperb::dPERBydxz] = 0.0;
       dPerB[fsgrids::dperb::dPERBzdxy] = 0.0;
    } else if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-      // clang-format off
-      const std::array cellIndices = {
-          std::array {
-              stencil.leftdown(),
-              stencil.rightdown(),
-              stencil.leftup(),
-              stencil.rightup(),
-          },
-          std::array {
-              stencil.leftfar(),
-              stencil.rightfar(),
-              stencil.leftnear(),
-              stencil.rightnear(),
-          },
-          std::array {
-              stencil.downfar(),
-              stencil.upfar(),
-              stencil.downnear(),
-              stencil.upnear(),
-          },
-      };
-      // clang-format on
-
-      static constexpr std::array dPerBIndices = {
-          fsgrids::dperb::dPERBzdxy,
-          fsgrids::dperb::dPERBydxz,
-          fsgrids::dperb::dPERBxdyz,
+      auto compute = [&perb](auto bl, auto br, auto tl, auto tr, auto i) {
+         const auto& botLeft = perb[bl];
+         const auto& botRght = perb[br];
+         const auto& topLeft = perb[tl];
+         const auto& topRght = perb[tr];
+         return FOURTH * (botLeft[i] + topRght[i] - botRght[i] - topLeft[i]);
       };
 
-      static constexpr std::array perBIndices = {
-          fsgrids::bfield::PERBZ,
-          fsgrids::bfield::PERBY,
-          fsgrids::bfield::PERBX,
-      };
+      using dpb = fsgrids::dperb;
+      using bf = fsgrids::bfield;
 
-      for (size_t component = 0; component < dPerBIndices.size(); component++) {
-         const auto& ci = cellIndices[component];
-         const auto& botLeft = perb[ci[0]];
-         const auto& botRght = perb[ci[1]];
-         const auto& topLeft = perb[ci[2]];
-         const auto& topRght = perb[ci[3]];
+      dPerB[dpb::dPERBxdyz] =
+          compute(stencil.downfar(), stencil.upfar(), stencil.downnear(), stencil.upnear(), bf::PERBX);
+      dPerB[dpb::dPERBydxz] =
+          compute(stencil.leftfar(), stencil.rightfar(), stencil.leftnear(), stencil.rightnear(), bf::PERBY);
+      dPerB[dpb::dPERBzdxy] =
+          compute(stencil.leftdown(), stencil.rightdown(), stencil.leftup(), stencil.rightup(), bf::PERBZ);
 
-         const auto& i = dPerBIndices[component];
-         const auto& j = perBIndices[component];
-         dPerB[i] = FOURTH * (botLeft[j] + topRght[j] - botRght[j] - topLeft[j]);
-      }
    } else {
       SBC::SysBoundaryCondition::setCellDerivativesToZero(dperb, dmoments, stencil, 3);
       SBC::SysBoundaryCondition::setCellDerivativesToZero(dperb, dmoments, stencil, 4);
