@@ -84,7 +84,7 @@ void filterMoments(fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>,
    momentsGrid.updateGhostCells();
 
    // Get size of local domain
-   const auto& mntDims = momentsGrid.getLocalSize();
+   const auto& localSize = technicalGrid.getLocalSize();
    auto& moments = momentsGrid.getData();
    const auto& technical = technicalGrid.getData();
    // Create a copy of momentsGrid data for filtering
@@ -94,9 +94,9 @@ void filterMoments(fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>,
    for (auto blurPass = 0; blurPass < Parameters::maxFilteringPasses; blurPass++) {
 // Blurring Pass
 #pragma omp parallel for collapse(2)
-      for (auto k = 0; k < mntDims[2]; k++) {
-         for (auto j = 0; j < mntDims[1]; j++) {
-            for (auto i = 0; i < mntDims[0]; i++) {
+      for (auto k = 0; k < localSize[2]; k++) {
+         for (auto j = 0; j < localSize[1]; j++) {
+            for (auto i = 0; i < localSize[0]; i++) {
                const auto localId = technicalGrid.localIDFromLocalCoordinates(i, j, k);
                const auto refLevel = technical[localId].refLevel;
                const auto flag = technical[localId].sysBoundaryFlag;
