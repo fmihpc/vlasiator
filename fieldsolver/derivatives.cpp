@@ -259,6 +259,9 @@ void calculateDerivatives(std::span<const std::array<Real, fsgrids::bfield::N_BF
    // Upstream pressure
    Real Peupstream = Parameters::electronTemperature * Parameters::electronDensity * physicalconstants::K_B;
    Real Peconst = Peupstream * pow(Parameters::electronDensity, -Parameters::electronPTindex);
+   const bool notSysboundary =
+       sysBoundaryLayer == 1 || (sysBoundaryLayer == 2 && sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY);
+   const bool skip2ndDerivatives = Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1;
 
    const std::array<Real, fsgrids::moments::N_MOMENTS>& centMoments = moments[stencil.center()];
    const std::array<Real, fsgrids::bfield::N_BFIELD>& centPerB = perb[stencil.center()];
@@ -291,58 +294,40 @@ void calculateDerivatives(std::span<const std::array<Real, fsgrids::bfield::N_BF
       }
 #endif
 
-      if (sysBoundaryLayer == 1 || (sysBoundaryLayer == 2 && sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)) {
+      if (notSysboundary) {
          if (doMoments) {
-            dMoments[fsgrids::dmoments::drhomdx] =
-                (rghtMoments[fsgrids::moments::RHOM] - leftMoments[fsgrids::moments::RHOM]) / 2;
-            dMoments[fsgrids::dmoments::drhoqdx] =
-                (rghtMoments[fsgrids::moments::RHOQ] - leftMoments[fsgrids::moments::RHOQ]) / 2;
-            dMoments[fsgrids::dmoments::dp11dx] =
-                (rghtMoments[fsgrids::moments::P_11] - leftMoments[fsgrids::moments::P_11]) / 2;
-            dMoments[fsgrids::dmoments::dp22dx] =
-                (rghtMoments[fsgrids::moments::P_22] - leftMoments[fsgrids::moments::P_22]) / 2;
-            dMoments[fsgrids::dmoments::dp33dx] =
-                (rghtMoments[fsgrids::moments::P_33] - leftMoments[fsgrids::moments::P_33]) / 2;
-            dMoments[fsgrids::dmoments::dVxdx] =
-                (rghtMoments[fsgrids::moments::VX] - leftMoments[fsgrids::moments::VX]) / 2;
-            dMoments[fsgrids::dmoments::dVydx] =
-                (rghtMoments[fsgrids::moments::VY] - leftMoments[fsgrids::moments::VY]) / 2;
-            dMoments[fsgrids::dmoments::dVzdx] =
-                (rghtMoments[fsgrids::moments::VZ] - leftMoments[fsgrids::moments::VZ]) / 2;
+            dMoments[fsgrids::dmoments::drhomdx] = computeDerivative(fsgrids::moments::RHOM, rghtMoments, leftMoments);
+            dMoments[fsgrids::dmoments::drhoqdx] = computeDerivative(fsgrids::moments::RHOQ, rghtMoments, leftMoments);
+            dMoments[fsgrids::dmoments::dp11dx] = computeDerivative(fsgrids::moments::P_11, rghtMoments, leftMoments);
+            dMoments[fsgrids::dmoments::dp22dx] = computeDerivative(fsgrids::moments::P_22, rghtMoments, leftMoments);
+            dMoments[fsgrids::dmoments::dp33dx] = computeDerivative(fsgrids::moments::P_33, rghtMoments, leftMoments);
+            dMoments[fsgrids::dmoments::dVxdx] = computeDerivative(fsgrids::moments::VX, rghtMoments, leftMoments);
+            dMoments[fsgrids::dmoments::dVydx] = computeDerivative(fsgrids::moments::VY, rghtMoments, leftMoments);
+            dMoments[fsgrids::dmoments::dVzdx] = computeDerivative(fsgrids::moments::VZ, rghtMoments, leftMoments);
          }
-         dPerB[fsgrids::dperb::dPERBydx] = (rghtPerB[fsgrids::bfield::PERBY] - leftPerB[fsgrids::bfield::PERBY]) / 2;
-         dPerB[fsgrids::dperb::dPERBzdx] = (rghtPerB[fsgrids::bfield::PERBZ] - leftPerB[fsgrids::bfield::PERBZ]) / 2;
+         dPerB[fsgrids::dperb::dPERBydx] = computeDerivative(fsgrids::bfield::PERBY, rghtPerB, leftPerB);
+         dPerB[fsgrids::dperb::dPERBzdx] = computeDerivative(fsgrids::bfield::PERBZ, rghtPerB, leftPerB);
       } else {
          if (doMoments) {
             dMoments[fsgrids::dmoments::drhomdx] =
-                limiter(leftMoments[fsgrids::moments::RHOM], centMoments[fsgrids::moments::RHOM],
-                        rghtMoments[fsgrids::moments::RHOM]);
+                computeDerivative(fsgrids::moments::RHOM, rghtMoments, leftMoments, centMoments);
             dMoments[fsgrids::dmoments::drhoqdx] =
-                limiter(leftMoments[fsgrids::moments::RHOQ], centMoments[fsgrids::moments::RHOQ],
-                        rghtMoments[fsgrids::moments::RHOQ]);
+                computeDerivative(fsgrids::moments::RHOQ, rghtMoments, leftMoments, centMoments);
             dMoments[fsgrids::dmoments::dp11dx] =
-                limiter(leftMoments[fsgrids::moments::P_11], centMoments[fsgrids::moments::P_11],
-                        rghtMoments[fsgrids::moments::P_11]);
+                computeDerivative(fsgrids::moments::P_11, rghtMoments, leftMoments, centMoments);
             dMoments[fsgrids::dmoments::dp22dx] =
-                limiter(leftMoments[fsgrids::moments::P_22], centMoments[fsgrids::moments::P_22],
-                        rghtMoments[fsgrids::moments::P_22]);
+                computeDerivative(fsgrids::moments::P_22, rghtMoments, leftMoments, centMoments);
             dMoments[fsgrids::dmoments::dp33dx] =
-                limiter(leftMoments[fsgrids::moments::P_33], centMoments[fsgrids::moments::P_33],
-                        rghtMoments[fsgrids::moments::P_33]);
+                computeDerivative(fsgrids::moments::P_33, rghtMoments, leftMoments, centMoments);
             dMoments[fsgrids::dmoments::dVxdx] =
-                limiter(leftMoments[fsgrids::moments::VX], centMoments[fsgrids::moments::VX],
-                        rghtMoments[fsgrids::moments::VX]);
+                computeDerivative(fsgrids::moments::VX, rghtMoments, leftMoments, centMoments);
             dMoments[fsgrids::dmoments::dVydx] =
-                limiter(leftMoments[fsgrids::moments::VY], centMoments[fsgrids::moments::VY],
-                        rghtMoments[fsgrids::moments::VY]);
+                computeDerivative(fsgrids::moments::VY, rghtMoments, leftMoments, centMoments);
             dMoments[fsgrids::dmoments::dVzdx] =
-                limiter(leftMoments[fsgrids::moments::VZ], centMoments[fsgrids::moments::VZ],
-                        rghtMoments[fsgrids::moments::VZ]);
+                computeDerivative(fsgrids::moments::VZ, rghtMoments, leftMoments, centMoments);
          }
-         dPerB[fsgrids::dperb::dPERBydx] = limiter(leftPerB[fsgrids::bfield::PERBY], centPerB[fsgrids::bfield::PERBY],
-                                                   rghtPerB[fsgrids::bfield::PERBY]);
-         dPerB[fsgrids::dperb::dPERBzdx] = limiter(leftPerB[fsgrids::bfield::PERBZ], centPerB[fsgrids::bfield::PERBZ],
-                                                   rghtPerB[fsgrids::bfield::PERBZ]);
+         dPerB[fsgrids::dperb::dPERBydx] = computeDerivative(fsgrids::bfield::PERBY, rghtPerB, leftPerB, centPerB);
+         dPerB[fsgrids::dperb::dPERBzdx] = computeDerivative(fsgrids::bfield::PERBZ, rghtPerB, leftPerB, centPerB);
       }
 
       if (doMoments) {
@@ -354,7 +339,7 @@ void calculateDerivatives(std::span<const std::array<Real, fsgrids::bfield::N_BF
                      pow(rghtMoments[fsgrids::moments::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex));
       }
 
-      if (Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1) {
+      if (skip2ndDerivatives) {
          dPerB[fsgrids::dperb::dPERBydxx] = 0.0;
          dPerB[fsgrids::dperb::dPERBzdxx] = 0.0;
       } else {
@@ -371,58 +356,40 @@ void calculateDerivatives(std::span<const std::array<Real, fsgrids::bfield::N_BF
       const auto& rghtPerB = perb[stencil.up()];         //(i, j + 1, k);
       const auto& leftMoments = moments[stencil.down()]; //(i, j - 1, k);
       const auto& rghtMoments = moments[stencil.up()];   //(i, j + 1, k);
-      if (sysBoundaryLayer == 1 || (sysBoundaryLayer == 2 && sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)) {
+      if (notSysboundary) {
          if (doMoments) {
-            dMoments[fsgrids::dmoments::drhomdy] =
-                (rghtMoments[fsgrids::moments::RHOM] - leftMoments[fsgrids::moments::RHOM]) / 2;
-            dMoments[fsgrids::dmoments::drhoqdy] =
-                (rghtMoments[fsgrids::moments::RHOQ] - leftMoments[fsgrids::moments::RHOQ]) / 2;
-            dMoments[fsgrids::dmoments::dp11dy] =
-                (rghtMoments[fsgrids::moments::P_11] - leftMoments[fsgrids::moments::P_11]) / 2;
-            dMoments[fsgrids::dmoments::dp22dy] =
-                (rghtMoments[fsgrids::moments::P_22] - leftMoments[fsgrids::moments::P_22]) / 2;
-            dMoments[fsgrids::dmoments::dp33dy] =
-                (rghtMoments[fsgrids::moments::P_33] - leftMoments[fsgrids::moments::P_33]) / 2;
-            dMoments[fsgrids::dmoments::dVxdy] =
-                (rghtMoments[fsgrids::moments::VX] - leftMoments[fsgrids::moments::VX]) / 2;
-            dMoments[fsgrids::dmoments::dVydy] =
-                (rghtMoments[fsgrids::moments::VY] - leftMoments[fsgrids::moments::VY]) / 2;
-            dMoments[fsgrids::dmoments::dVzdy] =
-                (rghtMoments[fsgrids::moments::VZ] - leftMoments[fsgrids::moments::VZ]) / 2;
+            dMoments[fsgrids::dmoments::drhomdy] = computeDerivative(fsgrids::moments::RHOM, rghtMoments, leftMoments);
+            dMoments[fsgrids::dmoments::drhoqdy] = computeDerivative(fsgrids::moments::RHOQ, rghtMoments, leftMoments);
+            dMoments[fsgrids::dmoments::dp11dy] = computeDerivative(fsgrids::moments::P_11, rghtMoments, leftMoments);
+            dMoments[fsgrids::dmoments::dp22dy] = computeDerivative(fsgrids::moments::P_22, rghtMoments, leftMoments);
+            dMoments[fsgrids::dmoments::dp33dy] = computeDerivative(fsgrids::moments::P_33, rghtMoments, leftMoments);
+            dMoments[fsgrids::dmoments::dVxdy] = computeDerivative(fsgrids::moments::VX, rghtMoments, leftMoments);
+            dMoments[fsgrids::dmoments::dVydy] = computeDerivative(fsgrids::moments::VY, rghtMoments, leftMoments);
+            dMoments[fsgrids::dmoments::dVzdy] = computeDerivative(fsgrids::moments::VZ, rghtMoments, leftMoments);
          }
-         dPerB[fsgrids::dperb::dPERBxdy] = (rghtPerB[fsgrids::bfield::PERBX] - leftPerB[fsgrids::bfield::PERBX]) / 2;
-         dPerB[fsgrids::dperb::dPERBzdy] = (rghtPerB[fsgrids::bfield::PERBZ] - leftPerB[fsgrids::bfield::PERBZ]) / 2;
+         dPerB[fsgrids::dperb::dPERBxdy] = computeDerivative(fsgrids::bfield::PERBX, rghtPerB, leftPerB);
+         dPerB[fsgrids::dperb::dPERBzdy] = computeDerivative(fsgrids::bfield::PERBZ, rghtPerB, leftPerB);
       } else {
          if (doMoments) {
             dMoments[fsgrids::dmoments::drhomdy] =
-                limiter(leftMoments[fsgrids::moments::RHOM], centMoments[fsgrids::moments::RHOM],
-                        rghtMoments[fsgrids::moments::RHOM]);
+                computeDerivative(fsgrids::moments::RHOM, rghtMoments, leftMoments, centMoments);
             dMoments[fsgrids::dmoments::drhoqdy] =
-                limiter(leftMoments[fsgrids::moments::RHOQ], centMoments[fsgrids::moments::RHOQ],
-                        rghtMoments[fsgrids::moments::RHOQ]);
+                computeDerivative(fsgrids::moments::RHOQ, rghtMoments, leftMoments, centMoments);
             dMoments[fsgrids::dmoments::dp11dy] =
-                limiter(leftMoments[fsgrids::moments::P_11], centMoments[fsgrids::moments::P_11],
-                        rghtMoments[fsgrids::moments::P_11]);
+                computeDerivative(fsgrids::moments::P_11, rghtMoments, leftMoments, centMoments);
             dMoments[fsgrids::dmoments::dp22dy] =
-                limiter(leftMoments[fsgrids::moments::P_22], centMoments[fsgrids::moments::P_22],
-                        rghtMoments[fsgrids::moments::P_22]);
+                computeDerivative(fsgrids::moments::P_22, rghtMoments, leftMoments, centMoments);
             dMoments[fsgrids::dmoments::dp33dy] =
-                limiter(leftMoments[fsgrids::moments::P_33], centMoments[fsgrids::moments::P_33],
-                        rghtMoments[fsgrids::moments::P_33]);
+                computeDerivative(fsgrids::moments::P_33, rghtMoments, leftMoments, centMoments);
             dMoments[fsgrids::dmoments::dVxdy] =
-                limiter(leftMoments[fsgrids::moments::VX], centMoments[fsgrids::moments::VX],
-                        rghtMoments[fsgrids::moments::VX]);
+                computeDerivative(fsgrids::moments::VX, rghtMoments, leftMoments, centMoments);
             dMoments[fsgrids::dmoments::dVydy] =
-                limiter(leftMoments[fsgrids::moments::VY], centMoments[fsgrids::moments::VY],
-                        rghtMoments[fsgrids::moments::VY]);
+                computeDerivative(fsgrids::moments::VY, rghtMoments, leftMoments, centMoments);
             dMoments[fsgrids::dmoments::dVzdy] =
-                limiter(leftMoments[fsgrids::moments::VZ], centMoments[fsgrids::moments::VZ],
-                        rghtMoments[fsgrids::moments::VZ]);
+                computeDerivative(fsgrids::moments::VZ, rghtMoments, leftMoments, centMoments);
          }
-         dPerB[fsgrids::dperb::dPERBxdy] = limiter(leftPerB[fsgrids::bfield::PERBX], centPerB[fsgrids::bfield::PERBX],
-                                                   rghtPerB[fsgrids::bfield::PERBX]);
-         dPerB[fsgrids::dperb::dPERBzdy] = limiter(leftPerB[fsgrids::bfield::PERBZ], centPerB[fsgrids::bfield::PERBZ],
-                                                   rghtPerB[fsgrids::bfield::PERBZ]);
+         dPerB[fsgrids::dperb::dPERBxdy] = computeDerivative(fsgrids::bfield::PERBX, rghtPerB, leftPerB, centPerB);
+         dPerB[fsgrids::dperb::dPERBzdy] = computeDerivative(fsgrids::bfield::PERBZ, rghtPerB, leftPerB, centPerB);
       }
 
       if (doMoments) {
@@ -434,7 +401,7 @@ void calculateDerivatives(std::span<const std::array<Real, fsgrids::bfield::N_BF
                      pow(rghtMoments[fsgrids::moments::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex));
       }
 
-      if (Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1) {
+      if (skip2ndDerivatives) {
          dPerB[fsgrids::dperb::dPERBxdyy] = 0.0;
          dPerB[fsgrids::dperb::dPERBzdyy] = 0.0;
       } else {
@@ -452,58 +419,40 @@ void calculateDerivatives(std::span<const std::array<Real, fsgrids::bfield::N_BF
       const auto& leftMoments = moments[stencil.far()];  //(i, j, k - 1);
       const auto& rghtMoments = moments[stencil.near()]; //(i, j, k + 1);
 
-      if (sysBoundaryLayer == 1 || (sysBoundaryLayer == 2 && sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)) {
+      if (notSysboundary) {
          if (doMoments) {
-            dMoments[fsgrids::dmoments::drhomdz] =
-                (rghtMoments[fsgrids::moments::RHOM] - leftMoments[fsgrids::moments::RHOM]) / 2;
-            dMoments[fsgrids::dmoments::drhoqdz] =
-                (rghtMoments[fsgrids::moments::RHOQ] - leftMoments[fsgrids::moments::RHOQ]) / 2;
-            dMoments[fsgrids::dmoments::dp11dz] =
-                (rghtMoments[fsgrids::moments::P_11] - leftMoments[fsgrids::moments::P_11]) / 2;
-            dMoments[fsgrids::dmoments::dp22dz] =
-                (rghtMoments[fsgrids::moments::P_22] - leftMoments[fsgrids::moments::P_22]) / 2;
-            dMoments[fsgrids::dmoments::dp33dz] =
-                (rghtMoments[fsgrids::moments::P_33] - leftMoments[fsgrids::moments::P_33]) / 2;
-            dMoments[fsgrids::dmoments::dVxdz] =
-                (rghtMoments[fsgrids::moments::VX] - leftMoments[fsgrids::moments::VX]) / 2;
-            dMoments[fsgrids::dmoments::dVydz] =
-                (rghtMoments[fsgrids::moments::VY] - leftMoments[fsgrids::moments::VY]) / 2;
-            dMoments[fsgrids::dmoments::dVzdz] =
-                (rghtMoments[fsgrids::moments::VZ] - leftMoments[fsgrids::moments::VZ]) / 2;
+            dMoments[fsgrids::dmoments::drhomdz] = computeDerivative(fsgrids::moments::RHOM, rghtMoments, leftMoments);
+            dMoments[fsgrids::dmoments::drhoqdz] = computeDerivative(fsgrids::moments::RHOQ, rghtMoments, leftMoments);
+            dMoments[fsgrids::dmoments::dp11dz] = computeDerivative(fsgrids::moments::P_11, rghtMoments, leftMoments);
+            dMoments[fsgrids::dmoments::dp22dz] = computeDerivative(fsgrids::moments::P_22, rghtMoments, leftMoments);
+            dMoments[fsgrids::dmoments::dp33dz] = computeDerivative(fsgrids::moments::P_33, rghtMoments, leftMoments);
+            dMoments[fsgrids::dmoments::dVxdz] = computeDerivative(fsgrids::moments::VX, rghtMoments, leftMoments);
+            dMoments[fsgrids::dmoments::dVydz] = computeDerivative(fsgrids::moments::VY, rghtMoments, leftMoments);
+            dMoments[fsgrids::dmoments::dVzdz] = computeDerivative(fsgrids::moments::VZ, rghtMoments, leftMoments);
          }
-         dPerB[fsgrids::dperb::dPERBxdz] = (rghtPerB[fsgrids::bfield::PERBX] - leftPerB[fsgrids::bfield::PERBX]) / 2;
-         dPerB[fsgrids::dperb::dPERBydz] = (rghtPerB[fsgrids::bfield::PERBY] - leftPerB[fsgrids::bfield::PERBY]) / 2;
+         dPerB[fsgrids::dperb::dPERBxdz] = computeDerivative(fsgrids::bfield::PERBX, rghtPerB, leftPerB);
+         dPerB[fsgrids::dperb::dPERBydz] = computeDerivative(fsgrids::bfield::PERBY, rghtPerB, leftPerB);
       } else {
          if (doMoments) {
             dMoments[fsgrids::dmoments::drhomdz] =
-                limiter(leftMoments[fsgrids::moments::RHOM], centMoments[fsgrids::moments::RHOM],
-                        rghtMoments[fsgrids::moments::RHOM]);
+                computeDerivative(fsgrids::moments::RHOM, rghtMoments, leftMoments, centMoments);
             dMoments[fsgrids::dmoments::drhoqdz] =
-                limiter(leftMoments[fsgrids::moments::RHOQ], centMoments[fsgrids::moments::RHOQ],
-                        rghtMoments[fsgrids::moments::RHOQ]);
+                computeDerivative(fsgrids::moments::RHOQ, rghtMoments, leftMoments, centMoments);
             dMoments[fsgrids::dmoments::dp11dz] =
-                limiter(leftMoments[fsgrids::moments::P_11], centMoments[fsgrids::moments::P_11],
-                        rghtMoments[fsgrids::moments::P_11]);
+                computeDerivative(fsgrids::moments::P_11, rghtMoments, leftMoments, centMoments);
             dMoments[fsgrids::dmoments::dp22dz] =
-                limiter(leftMoments[fsgrids::moments::P_22], centMoments[fsgrids::moments::P_22],
-                        rghtMoments[fsgrids::moments::P_22]);
+                computeDerivative(fsgrids::moments::P_22, rghtMoments, leftMoments, centMoments);
             dMoments[fsgrids::dmoments::dp33dz] =
-                limiter(leftMoments[fsgrids::moments::P_33], centMoments[fsgrids::moments::P_33],
-                        rghtMoments[fsgrids::moments::P_33]);
+                computeDerivative(fsgrids::moments::P_33, rghtMoments, leftMoments, centMoments);
             dMoments[fsgrids::dmoments::dVxdz] =
-                limiter(leftMoments[fsgrids::moments::VX], centMoments[fsgrids::moments::VX],
-                        rghtMoments[fsgrids::moments::VX]);
+                computeDerivative(fsgrids::moments::VX, rghtMoments, leftMoments, centMoments);
             dMoments[fsgrids::dmoments::dVydz] =
-                limiter(leftMoments[fsgrids::moments::VY], centMoments[fsgrids::moments::VY],
-                        rghtMoments[fsgrids::moments::VY]);
+                computeDerivative(fsgrids::moments::VY, rghtMoments, leftMoments, centMoments);
             dMoments[fsgrids::dmoments::dVzdz] =
-                limiter(leftMoments[fsgrids::moments::VZ], centMoments[fsgrids::moments::VZ],
-                        rghtMoments[fsgrids::moments::VZ]);
+                computeDerivative(fsgrids::moments::VZ, rghtMoments, leftMoments, centMoments);
          }
-         dPerB[fsgrids::dperb::dPERBxdz] = limiter(leftPerB[fsgrids::bfield::PERBX], centPerB[fsgrids::bfield::PERBX],
-                                                   rghtPerB[fsgrids::bfield::PERBX]);
-         dPerB[fsgrids::dperb::dPERBydz] = limiter(leftPerB[fsgrids::bfield::PERBY], centPerB[fsgrids::bfield::PERBY],
-                                                   rghtPerB[fsgrids::bfield::PERBY]);
+         dPerB[fsgrids::dperb::dPERBxdz] = computeDerivative(fsgrids::bfield::PERBX, rghtPerB, leftPerB, centPerB);
+         dPerB[fsgrids::dperb::dPERBydz] = computeDerivative(fsgrids::bfield::PERBY, rghtPerB, leftPerB, centPerB);
       }
 
       if (doMoments) {
@@ -515,7 +464,7 @@ void calculateDerivatives(std::span<const std::array<Real, fsgrids::bfield::N_BF
                      pow(rghtMoments[fsgrids::moments::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex));
       }
 
-      if (Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1) {
+      if (skip2ndDerivatives) {
          dPerB[fsgrids::dperb::dPERBxdzz] = 0.0;
          dPerB[fsgrids::dperb::dPERBydzz] = 0.0;
       } else {
@@ -526,7 +475,7 @@ void calculateDerivatives(std::span<const std::array<Real, fsgrids::bfield::N_BF
       }
    }
 
-   if (Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1) {
+   if (skip2ndDerivatives) {
       dPerB[fsgrids::dperb::dPERBxdyz] = 0.0;
       dPerB[fsgrids::dperb::dPERBydxz] = 0.0;
       dPerB[fsgrids::dperb::dPERBzdxy] = 0.0;
