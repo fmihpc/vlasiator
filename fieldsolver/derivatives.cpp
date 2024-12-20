@@ -323,12 +323,6 @@ void calculateBVOLDerivatives(std::span<std::array<Real, fsgrids::volfields::N_V
        sysBoundaryLayer == 1 || (sysBoundaryLayer == 2 && sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY);
 
    using vf = fsgrids::volfields;
-   const auto right = stencil.right();
-   const auto left = stencil.left();
-   const auto up = stencil.up();
-   const auto down = stencil.down();
-   const auto near = stencil.near();
-   const auto far = stencil.far();
 
    auto computeDiff = [](const auto& i, const auto& right, const auto& left) { return 0.5 * (right[i] - left[i]); };
 
@@ -337,23 +331,37 @@ void calculateBVOLDerivatives(std::span<std::array<Real, fsgrids::volfields::N_V
    };
 
    auto& volCenter = vol[stencil.center()];
+   const auto right = stencil.right();
+   const auto left = stencil.left();
    if (notSysBoundary) {
       volCenter[vf::dPERBXVOLdx] = computeDiff(vf::PERBXVOL, vol[right], vol[left]);
       volCenter[vf::dPERBYVOLdx] = computeDiff(vf::PERBYVOL, vol[right], vol[left]);
       volCenter[vf::dPERBZVOLdx] = computeDiff(vf::PERBZVOL, vol[right], vol[left]);
-      volCenter[vf::dPERBXVOLdy] = computeDiff(vf::PERBXVOL, vol[up], vol[down]);
-      volCenter[vf::dPERBYVOLdy] = computeDiff(vf::PERBYVOL, vol[up], vol[down]);
-      volCenter[vf::dPERBZVOLdy] = computeDiff(vf::PERBZVOL, vol[up], vol[down]);
-      volCenter[vf::dPERBXVOLdz] = computeDiff(vf::PERBXVOL, vol[near], vol[far]);
-      volCenter[vf::dPERBYVOLdz] = computeDiff(vf::PERBYVOL, vol[near], vol[far]);
-      volCenter[vf::dPERBZVOLdz] = computeDiff(vf::PERBZVOL, vol[near], vol[far]);
    } else {
       volCenter[vf::dPERBXVOLdx] = computeLimiter(vf::PERBXVOL, vol[right], vol[left], volCenter);
       volCenter[vf::dPERBYVOLdx] = computeLimiter(vf::PERBYVOL, vol[right], vol[left], volCenter);
       volCenter[vf::dPERBZVOLdx] = computeLimiter(vf::PERBZVOL, vol[right], vol[left], volCenter);
+   }
+
+   const auto up = stencil.up();
+   const auto down = stencil.down();
+   if (notSysBoundary) {
+      volCenter[vf::dPERBXVOLdy] = computeDiff(vf::PERBXVOL, vol[up], vol[down]);
+      volCenter[vf::dPERBYVOLdy] = computeDiff(vf::PERBYVOL, vol[up], vol[down]);
+      volCenter[vf::dPERBZVOLdy] = computeDiff(vf::PERBZVOL, vol[up], vol[down]);
+   } else {
       volCenter[vf::dPERBXVOLdy] = computeLimiter(vf::PERBXVOL, vol[up], vol[down], volCenter);
       volCenter[vf::dPERBYVOLdy] = computeLimiter(vf::PERBYVOL, vol[up], vol[down], volCenter);
       volCenter[vf::dPERBZVOLdy] = computeLimiter(vf::PERBZVOL, vol[up], vol[down], volCenter);
+   }
+
+   const auto near = stencil.near();
+   const auto far = stencil.far();
+   if (notSysBoundary) {
+      volCenter[vf::dPERBXVOLdz] = computeDiff(vf::PERBXVOL, vol[near], vol[far]);
+      volCenter[vf::dPERBYVOLdz] = computeDiff(vf::PERBYVOL, vol[near], vol[far]);
+      volCenter[vf::dPERBZVOLdz] = computeDiff(vf::PERBZVOL, vol[near], vol[far]);
+   } else {
       volCenter[vf::dPERBXVOLdz] = computeLimiter(vf::PERBXVOL, vol[near], vol[far], volCenter);
       volCenter[vf::dPERBYVOLdz] = computeLimiter(vf::PERBYVOL, vol[near], vol[far], volCenter);
       volCenter[vf::dPERBZVOLdz] = computeLimiter(vf::PERBZVOL, vol[near], vol[far], volCenter);
