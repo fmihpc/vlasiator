@@ -250,7 +250,7 @@ void Outflow::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geome
    }
 
    // Assign boundary flags to local fsgrid cells
-   const auto& localSize = technicalGrid.getLocalSize();
+   const auto* localSize = &technicalGrid.getLocalSize()[0];
    for (auto k = 0; k < localSize[2]; k++) {
       for (auto j = 0; j < localSize[1]; j++) {
          for (auto i = 0; i < localSize[0]; i++) {

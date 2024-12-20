@@ -1213,7 +1213,7 @@ void calculateUpwindedElectricFieldSimple(
     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, SysBoundary& sysBoundaries, int32_t RKCase,
     const bool communicateEGradPeOrMomentsDerivatives) {
    const auto& gridSpacing = technicalGrid.getGridSpacing();
-   const auto& localSize = technicalGrid.getLocalSize();
+   const auto* localSize = &technicalGrid.getLocalSize()[0];
    const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
    const bool case0 = RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2;
 

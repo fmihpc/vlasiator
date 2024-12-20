@@ -1117,7 +1117,7 @@ void calculateHallTermSimple(
    }
 
    const auto& gridSpacing = technicalGrid.getGridSpacing();
-   const auto& localSize = technicalGrid.getLocalSize();
+   const auto* localSize = &technicalGrid.getLocalSize()[0];
    const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
 
    phiprof::Timer hallTimer{"Calculate Hall term"};

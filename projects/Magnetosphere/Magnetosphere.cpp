@@ -323,7 +323,7 @@ namespace projects {
                setPerturbedField(bgVectorDipole, bgb, technicalGrid, fsgrids::bgbfield::BGBXVDCORR, true);
                if (P::isRestart == false) {
                   // If we are starting a new simulation, we also copy this data into perB.
-                  const auto& localSize = technicalGrid.getLocalSize();
+                  const auto* localSize = &technicalGrid.getLocalSize()[0];
 #pragma omp parallel for collapse(2)
                   for (auto z = 0; z < localSize[2]; ++z) {
                      for (auto y = 0; y < localSize[1]; ++y) {
@@ -344,7 +344,7 @@ namespace projects {
       }
       switchDipoleTypeTimer.stop();
 
-      const auto& localSize = technicalGrid.getLocalSize();
+      const auto* localSize = &technicalGrid.getLocalSize()[0];
 
       phiprof::Timer zeroingTimer {"zeroing-out"};
 

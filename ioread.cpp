@@ -896,7 +896,7 @@ bool readFsGridVariable(vlsv::ParallelReader& file, const string& variableName, 
    MPI_Comm_size(MPI_COMM_WORLD, &size);
    MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
 
-   const auto& localSize = technicalGrid.getLocalSize();
+   const auto* localSize = &technicalGrid.getLocalSize()[0];
    const auto& localStart = technicalGrid.getLocalStart();
    const auto& globalSize = technicalGrid.getGlobalSize();
 

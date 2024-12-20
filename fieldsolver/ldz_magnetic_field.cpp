@@ -157,7 +157,7 @@ void propagateMagneticFieldSimple(
     fsgrid::FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EDt2Grid,
     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, SysBoundary& sysBoundaries, creal& dt,
     cint& RKCase) {
-   const auto& localSize = technicalGrid.getLocalSize();
+   const auto* localSize = &technicalGrid.getLocalSize()[0];
    const auto& gridSpacing = technicalGrid.getGridSpacing();
    const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
 

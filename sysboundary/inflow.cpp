@@ -112,7 +112,7 @@ void Inflow::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geomet
    }
 
    // Assign boundary flags to local fsgrid cells
-   const auto& localSize = technicalGrid.getLocalSize();
+   const auto* localSize = &technicalGrid.getLocalSize()[0];
    for (auto k = 0; k < localSize[2]; k++) {
       for (auto j = 0; j < localSize[1]; j++) {
          for (auto i = 0; i < localSize[0]; i++) {
@@ -285,7 +285,7 @@ void Inflow::setBFromTemplate(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometr
    std::span<array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
    std::span<const array<Real, fsgrids::bgbfield::N_BGB>> bgb = BgBGrid.getData();
 
-   const auto& localSize = technicalGrid.getLocalSize();
+   const auto* localSize = &technicalGrid.getLocalSize()[0];
    for (fsgrid::FsIndex_t k = 0; k < localSize[2]; k++) {
       for (fsgrid::FsIndex_t j = 0; j < localSize[1]; j++) {
          for (fsgrid::FsIndex_t i = 0; i < localSize[0]; i++) {

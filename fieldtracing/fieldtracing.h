@@ -175,7 +175,7 @@ bool traceFullFieldFunction(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_B
    std::array<fsgrid::FsIndex_t, 3> fsgridCell = {(fsgrid::FsIndex_t)fsgridCellu[0], (fsgrid::FsIndex_t)fsgridCellu[1],
                                                   (fsgrid::FsIndex_t)fsgridCellu[2]};
    const auto& localStart = technicalGrid.getLocalStart();
-   const auto& localSize = technicalGrid.getLocalSize();
+   const auto* localSize = &technicalGrid.getLocalSize()[0];
    // Make the global index a local one, bypass the fsgrid function that yields (-1,-1,-1) also for ghost cells.
    fsgridCell[0] -= localStart[0];
    fsgridCell[1] -= localStart[1];

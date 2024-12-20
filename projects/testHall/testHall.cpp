@@ -100,7 +100,7 @@ namespace projects {
       setBackgroundFieldToZero(bgb);
 
       if(!P::isRestart) {
-         const auto& localSize = technicalGrid.getLocalSize();
+         const auto* localSize = &technicalGrid.getLocalSize()[0];
 
 #pragma omp parallel for collapse(3)
          for (auto x = 0; x < localSize[0]; ++x) {

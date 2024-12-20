@@ -111,7 +111,7 @@ namespace projects {
       setBackgroundFieldToZero(bgb);
 
       if(!P::isRestart) {
-         const auto& localSize = technicalGrid.getLocalSize();
+         const auto* localSize = &technicalGrid.getLocalSize()[0];
          const auto& gridSpacing = technicalGrid.getGridSpacing();
 
          creal dx = gridSpacing[0] * 3.5;

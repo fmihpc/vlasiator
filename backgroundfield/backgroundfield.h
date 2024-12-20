@@ -64,7 +64,7 @@ void setPerturbedField(const FieldFunction& bfFunction, std::span<std::array<Rea
                        int offset = fsgrids::bfield::PERBX, bool append = false) {
    using namespace std::placeholders;
    const auto gridSpacing = technicalGrid.getGridSpacing();
-   const auto& localSize = technicalGrid.getLocalSize();
+   const auto* localSize = &technicalGrid.getLocalSize()[0];
 
    /*if we do not add a new background to the existing one we first put everything to zero*/
    if (append == false) {

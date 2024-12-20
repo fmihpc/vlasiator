@@ -361,7 +361,7 @@ bool belongsToLayer(const int layer, const int x, const int y, const int z,
 void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                 fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
    const vector<CellID>& cells = getLocalCells();
-   const auto& localSize = technicalGrid.getLocalSize();
+   const auto* localSize = &technicalGrid.getLocalSize()[0];
    std::span<fsgrids::technical> technical = technicalGrid.getData();
    const auto rank = technicalGrid.getRank();
 

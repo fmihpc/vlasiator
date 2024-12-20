@@ -123,7 +123,7 @@ namespace projects {
          vector<Real> outputPerBy(P::xcells_ini, 0.0);
          vector<Real> outputPerBz(P::xcells_ini, 0.0);
 
-         const auto& localSize = technicalGrid.getLocalSize();
+         const auto* localSize = &technicalGrid.getLocalSize()[0];
          const auto& localStart = technicalGrid.getLocalStart();
          for (auto x = 0; x < localSize[0]; ++x) {
             const auto stencil = technicalGrid.makeStencil(x, 0, 0);
@@ -223,7 +223,7 @@ namespace projects {
       setBackgroundField(bgField, bgb, technicalGrid);
 
       if(!P::isRestart) {
-         const auto& localSize = technicalGrid.getLocalSize();
+         const auto* localSize = &technicalGrid.getLocalSize()[0];
 
 #pragma omp parallel for collapse(3)
          for (auto x = 0; x < localSize[0]; ++x) {

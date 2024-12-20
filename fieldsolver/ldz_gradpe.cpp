@@ -98,7 +98,7 @@ void calculateGradPeTermSimple(
     fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsDt2Grid,
     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, SysBoundary& sysBoundaries, cint& RKCase) {
    const auto& gridSpacing = technicalGrid.getGridSpacing();
-   const auto& localSize = technicalGrid.getLocalSize();
+   const auto* localSize = &technicalGrid.getLocalSize()[0];
    const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
    const bool case0 = RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2;
 

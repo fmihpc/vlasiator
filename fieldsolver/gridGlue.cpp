@@ -84,7 +84,7 @@ void filterMoments(fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>,
    momentsGrid.updateGhostCells();
 
    // Get size of local domain
-   const auto& localSize = technicalGrid.getLocalSize();
+   const auto* localSize = &technicalGrid.getLocalSize()[0];
    auto& moments = momentsGrid.getData();
    const auto& technical = technicalGrid.getData();
    // Create a copy of momentsGrid data for filtering
