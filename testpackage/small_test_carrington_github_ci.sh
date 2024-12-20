@@ -69,8 +69,8 @@ export OMP_PROC_BIND=close
 #small_run_command="mpirun --mca btl self -mca pml ^vader,tcp,openib,uct,yalla -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_TLS=rc,sm -x UCX_IB_ADDR_TYPE=ib_global -n 1 -N 1"
 #run_command="mpirun --map-by ppr:$SLURM_NTASKS:node:PE=$OMP_NUM_THREADS --bind-to hwthread --report-bindings -np $tasks"
 #small_run_command="mpirun --map-by ppr:$SLURM_NTASKS:node:PE=$OMP_NUM_THREADS --bind-to hwthread --report-bindings -n 1 -N 1"
-run_command="mpirun --map-by ppr:$SLURM_NTASKS:node:PE=$OMP_NUM_THREADS --bind-to hwthread --report-bindings --mca btl self -mca pml ^vader,tcp,openib,uct,yalla -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_TLS=rc,sm -x UCX_IB_ADDR_TYPE=ib_global -np $tasks"
-small_run_command="mpirun --map-by ppr:$SLURM_NTASKS:node:PE=$OMP_NUM_THREADS --bind-to hwthread --report-bindings --mca btl self -mca pml ^vader,tcp,openib,uct,yalla -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_TLS=rc,sm -x UCX_IB_ADDR_TYPE=ib_global -n 1 -N 1"
+run_command="mpirun --map-by ppr:$SLURM_NTASKS:node:PE=$OMP_NUM_THREADS --bind-to hwthread --mca btl self -mca pml ^vader,tcp,openib,uct,yalla -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_TLS=rc,sm -x UCX_IB_ADDR_TYPE=ib_global -np $tasks"
+small_run_command="mpirun --map-by ppr:$SLURM_NTASKS:node:PE=$OMP_NUM_THREADS --bind-to hwthread --mca btl self -mca pml ^vader,tcp,openib,uct,yalla -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_TLS=rc,sm -x UCX_IB_ADDR_TYPE=ib_global -n 1 -N 1"
 
 run_command_tools="mpirun -np 1 "
 
