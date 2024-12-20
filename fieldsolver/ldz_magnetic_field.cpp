@@ -70,12 +70,12 @@ void propagateMagneticFieldComponent(std::span<std::array<Real, fsgrids::bfield:
  * \param doY If true, compute the y component (default true).
  * \param doZ If true, compute the z component (default true).
  */
-void propagateMagneticField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                            std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perbdt2,
-                            std::span<const std::array<Real, fsgrids::efield::N_EFIELD>> e,
-                            std::span<const std::array<Real, fsgrids::efield::N_EFIELD>> edt2,
-                            const fsgrid::FsStencil& stencil, Real dt, int32_t RKCase, bool doX, bool doY, bool doZ,
-                            const std::array<Real, 3>& gridSpacing) {
+void propagateMagneticFieldRefactored(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                      std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perbdt2,
+                                      std::span<const std::array<Real, fsgrids::efield::N_EFIELD>> e,
+                                      std::span<const std::array<Real, fsgrids::efield::N_EFIELD>> edt2,
+                                      const fsgrid::FsStencil& stencil, Real dt, int32_t RKCase, bool doX, bool doY,
+                                      bool doZ, const std::array<Real, 3>& gridSpacing) {
    creal dtdx = dt / gridSpacing[0];
    creal dtdy = dt / gridSpacing[1];
    creal dtdz = dt / gridSpacing[2];
@@ -96,6 +96,130 @@ void propagateMagneticField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD
       propagateMagneticFieldComponent(perb, perbdt2, e, edt2, stencil, dtdy, dtdx, RKCase, fsgrids::bfield::PERBZ,
                                       fsgrids::efield::EX, fsgrids::efield::EY,
                                       {stencil.center(), stencil.right(), stencil.up()});
+   }
+}
+
+void propagateMagneticField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                            std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perbdt2,
+                            std::span<const std::array<Real, fsgrids::efield::N_EFIELD>> e,
+                            std::span<const std::array<Real, fsgrids::efield::N_EFIELD>> edt2,
+                            const fsgrid::FsStencil& stencil, Real dt, int32_t RKCase, bool doX, bool doY, bool doZ,
+                            const std::array<Real, 3>& gridSpacing) {
+   creal dtdx = dt / gridSpacing[0];
+   creal dtdy = dt / gridSpacing[1];
+   creal dtdz = dt / gridSpacing[2];
+
+   std::array<Real, fsgrids::bfield::N_BFIELD>& perBGrid0 = perb[stencil.center()];
+
+   if (doX == true) {
+      switch (RKCase) {
+      case RK_ORDER1: {
+         const auto& EGrid0 = e[stencil.center()]; // i,j,k;
+         const auto& EGrid1 = e[stencil.up()];     // i,j+1,k;
+         const auto& EGrid2 = e[stencil.near()];   // i,j,k+1;
+         perBGrid0[fsgrids::bfield::PERBX] += dtdz * (EGrid2[fsgrids::efield::EY] - EGrid0[fsgrids::efield::EY]) +
+                                              dtdy * (EGrid0[fsgrids::efield::EZ] - EGrid1[fsgrids::efield::EZ]);
+         break;
+      }
+
+      case RK_ORDER2_STEP1: {
+         auto& perBDt2Grid0 = perbdt2[stencil.center()];       // i,j,k;
+         const auto& EGrid0 = e[stencil.center()];             // i,j,k;
+         const auto& EGrid1 = e[stencil.up()];                 // i,j+1,k;
+         const auto& EGrid2 = e[stencil.near()];               // i,j,k+1;
+         perBDt2Grid0[fsgrids::bfield::PERBX] =
+             perBGrid0[fsgrids::bfield::PERBX] +
+             0.5 * (dtdz * (EGrid2[fsgrids::efield::EY] - EGrid0[fsgrids::efield::EY]) +
+                    dtdy * (EGrid0[fsgrids::efield::EZ] - EGrid1[fsgrids::efield::EZ]));
+         break;
+      }
+
+      case RK_ORDER2_STEP2: {
+         const auto& EGrid0 = edt2[stencil.center()]; // i,j,k;
+         const auto& EGrid1 = edt2[stencil.up()];     // i,j+1,k;
+         const auto& EGrid2 = edt2[stencil.near()];   // i,j,k+1;
+         perBGrid0[fsgrids::bfield::PERBX] += (dtdz * (EGrid2[fsgrids::efield::EY] - EGrid0[fsgrids::efield::EY]) +
+                                               dtdy * (EGrid0[fsgrids::efield::EZ] - EGrid1[fsgrids::efield::EZ]));
+         break;
+      }
+
+      default:
+         std::cerr << __FILE__ << ":" << __LINE__ << ":"
+                   << "Invalid RK case." << std::endl;
+         abort();
+      }
+   }
+
+   if (doY == true) {
+      switch (RKCase) {
+      case RK_ORDER1: {
+         const auto& EGrid0 = e[stencil.center()]; // i,j,k;
+         const auto& EGrid1 = e[stencil.near()];   // i,j,k+1;
+         const auto& EGrid2 = e[stencil.right()];  // i+1,j,k;
+         perBGrid0[fsgrids::bfield::PERBY] += dtdx * (EGrid2[fsgrids::efield::EZ] - EGrid0[fsgrids::efield::EZ]) +
+                                              dtdz * (EGrid0[fsgrids::efield::EX] - EGrid1[fsgrids::efield::EX]);
+         break;
+      }
+      case RK_ORDER2_STEP1: {
+         auto& perBDt2Grid0 = perbdt2[stencil.center()];       // i,j,k;
+         const auto& EGrid0 = e[stencil.center()];             // i,j,k;
+         const auto& EGrid1 = e[stencil.near()];               // i,j,k+1;
+         const auto& EGrid2 = e[stencil.right()];              // i+1,j,k;
+         perBDt2Grid0[fsgrids::bfield::PERBY] =
+             perBGrid0[fsgrids::bfield::PERBY] +
+             0.5 * (dtdx * (EGrid2[fsgrids::efield::EZ] - EGrid0[fsgrids::efield::EZ]) +
+                    dtdz * (EGrid0[fsgrids::efield::EX] - EGrid1[fsgrids::efield::EX]));
+         break;
+      }
+      case RK_ORDER2_STEP2: {
+         const auto& EGrid0 = edt2[stencil.center()]; // i,j,k;
+         const auto& EGrid1 = edt2[stencil.near()];   // i,j,k+1;
+         const auto& EGrid2 = edt2[stencil.right()];  // i+1,j,k;
+         perBGrid0[fsgrids::bfield::PERBY] += (dtdx * (EGrid2[fsgrids::efield::EZ] - EGrid0[fsgrids::efield::EZ]) +
+                                               dtdz * (EGrid0[fsgrids::efield::EX] - EGrid1[fsgrids::efield::EX]));
+         break;
+      }
+      default:
+         std::cerr << __FILE__ << ":" << __LINE__ << ":"
+                   << "Invalid RK case." << std::endl;
+         abort();
+      }
+   }
+
+   if (doZ == true) {
+      switch (RKCase) {
+      case RK_ORDER1: {
+         const auto& EGrid0 = e[stencil.center()]; // i,j,k;
+         const auto& EGrid1 = e[stencil.right()];  // i+1,j,k;
+         const auto& EGrid2 = e[stencil.up()];     // i,j+1,k;
+         perBGrid0[fsgrids::bfield::PERBZ] += dtdy * (EGrid2[fsgrids::efield::EX] - EGrid0[fsgrids::efield::EX]) +
+                                              dtdx * (EGrid0[fsgrids::efield::EY] - EGrid1[fsgrids::efield::EY]);
+         break;
+      }
+      case RK_ORDER2_STEP1: {
+         auto& perBDt2Grid0 = perbdt2[stencil.center()];       // i,j,k;
+         const auto& EGrid0 = e[stencil.center()];             // i,j,k;
+         const auto& EGrid1 = e[stencil.right()];              // i+1,j,k;
+         const auto& EGrid2 = e[stencil.up()];                 // i,j+1,k;
+         perBDt2Grid0[fsgrids::bfield::PERBZ] =
+             perBGrid0[fsgrids::bfield::PERBZ] +
+             0.5 * (dtdy * (EGrid2[fsgrids::efield::EX] - EGrid0[fsgrids::efield::EX]) +
+                    dtdx * (EGrid0[fsgrids::efield::EY] - EGrid1[fsgrids::efield::EY]));
+         break;
+      }
+      case RK_ORDER2_STEP2: {
+         const auto& EGrid0 = edt2[stencil.center()]; // i,j,k;
+         const auto& EGrid1 = edt2[stencil.right()];  // i+1,j,k;
+         const auto& EGrid2 = edt2[stencil.up()];     // i,j+1,k;
+         perBGrid0[fsgrids::bfield::PERBZ] += (dtdy * (EGrid2[fsgrids::efield::EX] - EGrid0[fsgrids::efield::EX]) +
+                                               dtdx * (EGrid0[fsgrids::efield::EY] - EGrid1[fsgrids::efield::EY]));
+         break;
+      }
+      default:
+         std::cerr << __FILE__ << ":" << __LINE__ << ":"
+                   << "Invalid RK case." << std::endl;
+         abort();
+      }
    }
 }
 
