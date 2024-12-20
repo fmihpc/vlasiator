@@ -98,13 +98,21 @@ void computeMoments(std::span<const std::array<Real, fsgrids::moments::N_MOMENTS
    if (notSysBoundary) {
       for (size_t i = 0; i < moms.size(); i++) {
          dMoments[dmix[i]] = computeDerivative(moms[i], momData.right, momData.left);
+      }
+      for (size_t i = 0; i < moms.size(); i++) {
          dMoments[dmiy[i]] = computeDerivative(moms[i], momData.up, momData.down);
+      }
+      for (size_t i = 0; i < moms.size(); i++) {
          dMoments[dmiz[i]] = computeDerivative(moms[i], momData.near, momData.far);
       }
    } else {
       for (size_t i = 0; i < moms.size(); i++) {
          dMoments[dmix[i]] = computeDerivative(moms[i], momData.right, momData.left, momData.center);
+      }
+      for (size_t i = 0; i < moms.size(); i++) {
          dMoments[dmiy[i]] = computeDerivative(moms[i], momData.up, momData.down, momData.center);
+      }
+      for (size_t i = 0; i < moms.size(); i++) {
          dMoments[dmiz[i]] = computeDerivative(moms[i], momData.near, momData.far, momData.center);
       }
    }
