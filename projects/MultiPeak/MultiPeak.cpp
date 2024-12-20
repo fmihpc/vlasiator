@@ -281,7 +281,7 @@ namespace projects {
       setBackgroundField(bgField, bgb, technicalGrid);
 
       if(!P::isRestart) {
-         const auto localSize = technicalGrid.getLocalSize();
+         const auto& localSize = technicalGrid.getLocalSize();
 
 #pragma omp parallel for collapse(3)
          for (auto x = 0; x < localSize[0]; ++x) {
