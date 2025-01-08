@@ -100,13 +100,12 @@ void calculateGradPeTermSimple(
    const auto& gridSpacing = technicalGrid.getGridSpacing();
    const auto* localSize = &technicalGrid.getLocalSize()[0];
    const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
-   const bool case0 = RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2;
 
    std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpes = EGradPeGrid.getData();
    std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments = momentsGrid.getData();
-   std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments = dMomentsGrid.getData();
+   std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments = dMomentsGrid.getData();
    std::span<const fsgrids::technical> technical = technicalGrid.getData();
-   if (case0) {
+   if (not(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2)) {
       egradpes = EGradPeDt2Grid.getData();
       moments = momentsDt2Grid.getData();
       dmoments = dMomentsDt2Grid.getData();
@@ -116,11 +115,7 @@ void calculateGradPeTermSimple(
    int computeTimerId{phiprof::initializeTimer("EgradPe compute cells")};
 
    phiprof::Timer mpiTimer{"EgradPe field update ghosts MPI", {"MPI"}};
-   if (case0) {
-      dMomentsGrid.updateGhostCells();
-   } else {
-      dMomentsDt2Grid.updateGhostCells();
-   }
+   technicalGrid.updateGhostCells(dmoments);
    mpiTimer.stop();
 
 // Calculate GradPe term

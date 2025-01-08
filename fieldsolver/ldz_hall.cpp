@@ -1107,13 +1107,15 @@ void calculateHallTermSimple(
    std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
    std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall = EHallGrid.getData();
    std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments = momentsGrid.getData();
-   std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb = dPerBGrid.getData();
+   std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb = dPerBGrid.getData();
    std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb = BgBGrid.getData();
+   std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments = dMomentsGrid.getData();
    std::span<const fsgrids::technical> technical = technicalGrid.getData();
 
-   if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+   if (not(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2)) {
       perb = perBDt2Grid.getData();
       moments = momentsDt2Grid.getData();
+      dmoments = dMomentsDt2Grid.getData();
    }
 
    const auto& gridSpacing = technicalGrid.getGridSpacing();
@@ -1124,13 +1126,9 @@ void calculateHallTermSimple(
 
    phiprof::Timer mpiTimer{"EHall ghost updates MPI", {"MPI"}};
    int computeTimerId{phiprof::initializeTimer("EHall compute cells")};
-   dPerBGrid.updateGhostCells();
+   technicalGrid.updateGhostCells(dperb);
    if (P::ohmGradPeTerm == 0 && communicateMomentsDerivatives) {
-      if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-         dMomentsGrid.updateGhostCells();
-      } else {
-         dMomentsDt2Grid.updateGhostCells();
-      }
+      technicalGrid.updateGhostCells(dmoments);
    }
    mpiTimer.stop();
 
