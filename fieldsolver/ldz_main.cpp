@@ -95,7 +95,7 @@ bool propagateFields(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>,
 
    const auto* localSize = &technicalGrid.getLocalSize()[0];
    std::span<fsgrids::technical> technical = technicalGrid.getData();
-   std::span<const std::array<Real, fsgrids::volfields::N_VOL>> vol = volGrid.getData();
+   std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol = volGrid.getData();
 
 #pragma omp parallel for collapse(2)
    for (auto k = 0; k < localSize[2]; k++) {
