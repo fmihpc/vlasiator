@@ -80,15 +80,16 @@ void filterMoments(fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>,
         {1 * inverseKernelSum, 2 * inverseKernelSum, 3 * inverseKernelSum, 2 * inverseKernelSum,
          1 * inverseKernelSum}}};
 
-   // Update momentsGrid Ghost Cells
-   momentsGrid.updateGhostCells();
+   auto& moments = momentsGrid.getData();
 
    // Get size of local domain
    const auto* localSize = &technicalGrid.getLocalSize()[0];
-   auto& moments = momentsGrid.getData();
    const auto& technical = technicalGrid.getData();
    // Create a copy of momentsGrid data for filtering
    std::vector<std::array<Real, fsgrids::moments::N_MOMENTS>> blurred(moments.size());
+
+   // Update momentsGrid Ghost Cells
+   technicalGrid.updateGhostCells(std::span(moments));
 
    // Filtering Loop
    for (auto blurPass = 0; blurPass < Parameters::maxFilteringPasses; blurPass++) {
@@ -129,7 +130,7 @@ void filterMoments(fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>,
       } // spatial loops
 
       std::swap(moments, blurred);
-      momentsGrid.updateGhostCells();
+      technicalGrid.updateGhostCells(std::span(moments));
    }
 }
 

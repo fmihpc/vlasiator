@@ -1215,7 +1215,6 @@ void calculateUpwindedElectricFieldSimple(
    const auto& gridSpacing = technicalGrid.getGridSpacing();
    const auto* localSize = &technicalGrid.getLocalSize()[0];
    const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
-   const bool case0 = RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2;
 
    std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
    std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e = EGrid.getData();
@@ -1227,7 +1226,7 @@ void calculateUpwindedElectricFieldSimple(
    std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb = BgBGrid.getData();
    std::span<fsgrids::technical> technical = technicalGrid.getData();
 
-   if (!case0) {
+   if (not(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2)) {
       perb = perBDt2Grid.getData();
       e = EDt2Grid.getData();
       egradpe = EGradPeDt2Grid.getData();
@@ -1242,27 +1241,19 @@ void calculateUpwindedElectricFieldSimple(
 
    // Update ghosts if necessary, unless previous terms have already updated them
    if (P::ohmHallTerm > 0) {
-      EHallGrid.updateGhostCells();
+      technicalGrid.updateGhostCells(ehall);
    }
 
    if (P::ohmGradPeTerm > 0 && communicateEGradPeOrMomentsDerivatives) {
-      if (case0) {
-         EGradPeGrid.updateGhostCells();
-      } else {
-         EGradPeDt2Grid.updateGhostCells();
-      }
+      technicalGrid.updateGhostCells(egradpe);
    }
 
    if (P::ohmHallTerm == 0) {
-      dPerBGrid.updateGhostCells();
+      technicalGrid.updateGhostCells(dperb);
    }
 
    if (P::ohmHallTerm == 0 && P::ohmGradPeTerm == 0 && communicateEGradPeOrMomentsDerivatives) {
-      if (case0) {
-         dMomentsGrid.updateGhostCells();
-      } else {
-         dMomentsDt2Grid.updateGhostCells();
-      }
+      technicalGrid.updateGhostCells(dmoments);
    }
 
    mpiTimer.stop();
@@ -1286,11 +1277,7 @@ void calculateUpwindedElectricFieldSimple(
 
    mpiTimer.start();
    // Exchange electric field with neighbouring processes
-   if (case0) {
-      EGrid.updateGhostCells();
-   } else {
-      EDt2Grid.updateGhostCells();
-   }
+   technicalGrid.updateGhostCells(e);
    mpiTimer.stop();
 
    upwindedETimer.stop(N_cells, "Spatial Cells");

@@ -391,7 +391,7 @@ void calculateBVOLDerivativesSimple(
    int computeTimerId{phiprof::initializeTimer("FS derivatives BVOL compute cells")};
 
    phiprof::Timer commTimer{"BVOL derivatives ghost updates MPI", {"MPI"}};
-   volGrid.updateGhostCells();
+   technicalGrid.updateGhostCells(vol);
    commTimer.stop(N_cells, "Spatial Cells");
 
 // Calculate derivatives
@@ -489,7 +489,7 @@ void calculateCurvatureSimple(fsgrid::FsGrid<std::array<Real, fsgrids::volfields
    int computeTimerId{phiprof::initializeTimer("Calculate curvature compute cells")};
 
    phiprof::Timer commTimer{"Calculate curvature ghost updates MPI", {"MPI"}};
-   volGrid.updateGhostCells();
+   technicalGrid.updateGhostCells(vol);
    commTimer.stop(N_cells, "Spatial Cells");
 
 #pragma omp parallel

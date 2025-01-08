@@ -862,8 +862,7 @@ bool readCellParamsVariable(vlsv::ParallelReader& file, const vector<CellID>& fi
 template <unsigned long int N>
 bool readFsGridVariable(vlsv::ParallelReader& file, const string& variableName, int numWritingRanks,
                         fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-                        fsgrid::FsGrid<std::array<Real, N>, FS_STENCIL_WIDTH>& targetGrid) {
-   std::span<std::array<Real, N>> targetData = targetGrid.getData();
+                        std::span<std::array<Real, N>> targetData) {
    phiprof::Timer preparations{"preparations"};
 
    uint64_t arraySize;
@@ -1076,7 +1075,7 @@ bool readFsGridVariable(vlsv::ParallelReader& file, const string& variableName, 
       }
    }
    phiprof::Timer updateGhostsTimer{"updateGhostCells"};
-   targetGrid.updateGhostCells();
+   technicalGrid.updateGhostCells(targetData);
    updateGhostsTimer.stop();
    return true;
 }
@@ -1150,6 +1149,8 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid
                    fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
                    fsgrid::FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EGrid,
                    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, const std::string& name) {
+   std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
+   std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e = EGrid.getData();
    vector<CellID> fileCells; /*< CellIds for all cells in file*/
    vector<size_t> nBlocks;   /*< Number of blocks for all cells in file*/
    bool success = true;
@@ -1423,10 +1424,10 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid
    tReadScalarParameter.stop();
 
    if (success) {
-      success = readFsGridVariable(file, "fg_PERB", fsgridInputRanks, technicalGrid, perBGrid);
+      success = readFsGridVariable(file, "fg_PERB", fsgridInputRanks, technicalGrid, perb);
    }
    if (success) {
-      success = readFsGridVariable(file, "fg_E", fsgridInputRanks, technicalGrid, EGrid);
+      success = readFsGridVariable(file, "fg_E", fsgridInputRanks, technicalGrid, e);
    }
    exitOnError(success, "(RESTART) Failure reading fsgrid restart variables", MPI_COMM_WORLD);
    readfsTimer.stop();
