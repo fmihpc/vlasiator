@@ -201,23 +201,17 @@ void propagateSysBoundaryMagneticField(std::span<std::array<Real, fsgrids::bfiel
  *
  * \sa propagateMagneticField propagateSysBoundaryMagneticField
  */
-void propagateMagneticFieldSimple(
-    fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBDt2Grid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& bgbGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EDt2Grid,
-    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, SysBoundary& sysBoundaries, creal& dt,
-    cint& RKCase) {
+void propagateMagneticFieldSimple(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                  std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perbdt2,
+                                  std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                                  std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
+                                  std::span<std::array<Real, fsgrids::efield::N_EFIELD>> edt2,
+                                  fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+                                  SysBoundary& sysBoundaries, creal& dt, cint& RKCase) {
    const auto* localSize = &technicalGrid.getLocalSize()[0];
    const auto& gridSpacing = technicalGrid.getGridSpacing();
    const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
 
-   std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
-   std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perbdt2 = perBDt2Grid.getData();
-   std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb = bgbGrid.getData();
-   std::span<const std::array<Real, fsgrids::efield::N_EFIELD>> e = EGrid.getData();
-   std::span<const std::array<Real, fsgrids::efield::N_EFIELD>> edt2 = EDt2Grid.getData();
    std::span<const fsgrids::technical> technical = technicalGrid.getData();
 
    phiprof::Timer propagateBTimer{"Propagate magnetic field"};

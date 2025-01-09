@@ -123,8 +123,7 @@ bool propagateFields(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>,
 
    if (subcycles == 1) {
 #ifdef FS_1ST_ORDER_TIME
-      propagateMagneticFieldSimple(perBGrid, perBDt2Grid, BgBGrid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, dt,
-                                   RK_ORDER1);
+      propagateMagneticFieldSimple(perb, perbdt2, bgb, e, edt2, technicalGrid, sysBoundaries, dt, RK_ORDER1);
       calculateDerivativesSimple(perb, moments, dperb, dmoments, technicalGrid, true /*doMoments*/);
       if (P::ohmGradPeTerm > 0) {
          calculateGradPeTermSimple(EGradPeGrid, EGradPeDt2Grid, momentsGrid, momentsDt2Grid, dMomentsGrid,
@@ -141,8 +140,7 @@ bool propagateFields(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>,
                                            true // communicateEGradPeOrMomentsDerivatives
       );
 #else
-      propagateMagneticFieldSimple(perBGrid, perBDt2Grid, BgBGrid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, dt,
-                                   RK_ORDER2_STEP1);
+      propagateMagneticFieldSimple(perb, perbdt2, bgb, e, edt2, technicalGrid, sysBoundaries, dt, RK_ORDER2_STEP1);
       calculateDerivativesSimple(perbdt2, momentsdt2, dperb, dmomentsdt2, technicalGrid, true /*doMoments*/);
       if (P::ohmGradPeTerm > 0) {
          calculateGradPeTermSimple(egradpe, egradpedt2, moments, momentsdt2, dmoments, dmomentsdt2, technicalGrid,
@@ -160,8 +158,7 @@ bool propagateFields(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>,
                                            true // communicateEGradPeOrMomentsDerivatives
       );
 
-      propagateMagneticFieldSimple(perBGrid, perBDt2Grid, BgBGrid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, dt,
-                                   RK_ORDER2_STEP2);
+      propagateMagneticFieldSimple(perb, perbdt2, bgb, e, edt2, technicalGrid, sysBoundaries, dt, RK_ORDER2_STEP2);
       calculateDerivativesSimple(perb, moments, dperb, dmoments, technicalGrid, true /*doMoments*/);
       if (P::ohmGradPeTerm > 0) {
          calculateGradPeTermSimple(egradpe, egradpedt2, moments, momentsdt2, dmoments, dmomentsdt2, technicalGrid,
@@ -192,8 +189,8 @@ bool propagateFields(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>,
          // In case of subcycling, we decided to go for a blunt Runge-Kutta subcycling even though e.g. moments are not
          // going along. Result of the Summer of Debugging 2016, the behaviour in wave dispersion was much improved with
          // this.
-         propagateMagneticFieldSimple(perBGrid, perBDt2Grid, BgBGrid, EGrid, EDt2Grid, technicalGrid, sysBoundaries,
-                                      subcycleDt, RK_ORDER2_STEP1);
+         propagateMagneticFieldSimple(perb, perbdt2, bgb, e, edt2, technicalGrid, sysBoundaries, subcycleDt,
+                                      RK_ORDER2_STEP1);
 
          // We need to calculate derivatives of the moments at every substep, but the moments only
          // need to be communicated in the first one.
@@ -215,8 +212,8 @@ bool propagateFields(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>,
                                               subcycleCount == 0 // communicateEGradPeOrMomentsDerivatives
          );
 
-         propagateMagneticFieldSimple(perBGrid, perBDt2Grid, BgBGrid, EGrid, EDt2Grid, technicalGrid, sysBoundaries,
-                                      subcycleDt, RK_ORDER2_STEP2);
+         propagateMagneticFieldSimple(perb, perbdt2, bgb, e, edt2, technicalGrid, sysBoundaries, subcycleDt,
+                                      RK_ORDER2_STEP2);
 
          // We need to calculate derivatives of the moments at every substep, but the moments only
          // need to be communicated in the first one.
