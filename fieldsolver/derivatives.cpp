@@ -466,15 +466,13 @@ void calculateCurvature(std::span<std::array<Real, fsgrids::volfields::N_VOL>> v
  *
  * \sa calculateDerivatives calculateBVOLDerivatives calculateDerivativesSimple
  */
-void calculateCurvatureSimple(fsgrid::FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid,
-                              fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& bgbGrid,
+void calculateCurvatureSimple(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol,
+                              std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                               fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
    const auto& gridSpacing = technicalGrid.getGridSpacing();
    const auto* localSize = &technicalGrid.getLocalSize()[0];
    const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
 
-   std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol = volGrid.getData();
-   std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb = bgbGrid.getData();
    std::span<const fsgrids::technical> technical = technicalGrid.getData();
 
    phiprof::Timer curvatureTimer{"Calculate curvature"};

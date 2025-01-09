@@ -310,7 +310,7 @@ bool propagateFields(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>,
    calculateBVOLDerivativesSimple(vol, technicalGrid);
    if (FieldTracing::fieldTracingParameters.doTraceFullBox || Parameters::computeCurvature) {
       technicalGrid.updateGhostCells(vol);
-      calculateCurvatureSimple(volGrid, BgBGrid, technicalGrid);
+      calculateCurvatureSimple(vol, bgb, technicalGrid);
    }
    return true;
 }

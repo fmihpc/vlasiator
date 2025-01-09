@@ -39,8 +39,8 @@ void calculateDerivativesSimple(std::span<std::array<Real, fsgrids::bfield::N_BF
 void calculateBVOLDerivativesSimple(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol,
                                     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid);
 
-void calculateCurvatureSimple(fsgrid::FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid,
-                              fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& bgbGrid,
+void calculateCurvatureSimple(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol,
+                              std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                               fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid);
 
 void calculateScaledDeltasSimple(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
