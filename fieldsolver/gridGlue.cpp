@@ -37,6 +37,9 @@ int getNumberOfCellsOnMaxRefLvl(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geome
 Filter moments after feeding them to FsGrid to alleviate the staircase effect caused in AMR runs.
 This is using a 3D, 5-point stencil triangle kernel.
 */
+// TODO: Here we cannot just replace FsGrid with span, since swap is used with vectors
+// Need to think what to pass here: a vector, or some custom struct containing a reference to the actual pointer
+// unique_ptr?
 void filterMoments(fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
                    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
 
@@ -227,19 +230,14 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>&
    }
 }
 
-void getFieldsFromFsGrid(
-    fsgrid::FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volumeFieldsGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH>& EGradPeGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
-    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-    dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const std::vector<CellID>& cells) {
+void getFieldsFromFsGrid(std::span<const std::array<Real, fsgrids::volfields::N_VOL>> volumefields,
+                         std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                         std::span<const std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe,
+                         std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+                         fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+                         dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                         const std::vector<CellID>& cells) {
    // TODO: solver only needs bgb + PERB, we could combine them
-
-   std::span<const std::array<Real, fsgrids::volfields::N_VOL>> volumefields = volumeFieldsGrid.getData();
-   std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb = BgBGrid.getData();
-   std::span<const std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe = EGradPeGrid.getData();
-   std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments = dMomentsGrid.getData();
    std::span<const fsgrids::technical> technical = technicalGrid.getData();
    const auto& gridSpacing = technicalGrid.getGridSpacing();
 

@@ -352,7 +352,7 @@ void initializeGrids(int argn, char** argc, dccrg::Dccrg<SpatialCell, dccrg::Car
    technicalGrid.updateGhostCells(vol);
    fsGridGhostTimer.stop();
    phiprof::Timer getFieldsTimer{"getFieldsFromFsGrid"};
-   getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, dMomentsGrid, technicalGrid, mpiGrid, cells);
+   getFieldsFromFsGrid(vol, bgb, egradpe, dmoments, technicalGrid, mpiGrid, cells);
    getFieldsTimer.stop();
 
    setBTimer.stop();
