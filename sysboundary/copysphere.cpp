@@ -197,11 +197,10 @@ void Copysphere::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Ge
    }
 }
 
-void Copysphere::applyInitialState(
-    dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid, Project& project) {
+void Copysphere::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                                   fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+                                   std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                   std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, Project& project) {
    const vector<CellID>& cells = getLocalCells();
 #pragma omp parallel for
    for (uint i = 0; i < cells.size(); ++i) {
@@ -766,9 +765,8 @@ void Copysphere::getFaces(bool* faces) {}
 
 void Copysphere::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                              fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-                             fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-                             fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-                             creal t) {}
+                             std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                             std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, creal t) {}
 
 uint Copysphere::getIndex() const { return sysboundarytype::COPYSPHERE; }
 } // namespace SBC

@@ -481,22 +481,8 @@ int simulate(int argn,char* args[]) {
    phiprof::Timer initGridsTimer {"Init grids"};
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> mpiGrid;
 
-   initializeGrids(
-      argn,
-      args,
-      mpiGrid,
-      perBGrid,
-      BgBGrid,
-      momentsGrid,
-      momentsDt2Grid,
-      dMomentsGrid,
-      EGrid,
-      EGradPeGrid,
-      volGrid,
-      technicalGrid,
-      sysBoundaryContainer,
-      *project
-   );
+   initializeGrids(argn, args, mpiGrid, perb, bgb, momentsGrid, momentsDt2Grid, dmoments, e, egradpe, vol,
+                   technicalGrid, sysBoundaryContainer, *project);
    const std::vector<CellID>& cells = getLocalCells();
 
    phiprof::Timer reportMemoryTimer {"report-memory-consumption"};
@@ -1083,7 +1069,7 @@ int simulate(int argn,char* args[]) {
       // Update boundary condition states (time-varying)
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration) {
          phiprof::Timer timer {"Update system boundaries (Vlasov pre-translation)"};
-         sysBoundaryContainer.updateState(mpiGrid, technicalGrid, perBGrid, BgBGrid, P::t + 0.5 * P::dt);
+         sysBoundaryContainer.updateState(mpiGrid, technicalGrid, perb, bgb, P::t + 0.5 * P::dt);
          timer.stop();
          addTimedBarrier("barrier-boundary-conditions");
       }

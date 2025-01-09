@@ -626,9 +626,8 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
  */
 void SysBoundary::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-                                    fsgrid::FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-                                    fsgrid::FsGrid<array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-                                    Project& project) {
+                                    std::span<array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                    std::span<array<Real, fsgrids::bgbfield::N_BGB>> bgb, Project& project) {
 
    list<SBC::SysBoundaryCondition*>::iterator it;
    for (it = sysBoundaries.begin(); it != sysBoundaries.end(); it++) {
@@ -641,19 +640,18 @@ void SysBoundary::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_G
       stringstream timername;
       timername << "Apply system boundary condition " << (*it)->getName() << " initial state";
       phiprof::Timer timer{timername.str()};
-      (*it)->applyInitialState(mpiGrid, technicalGrid, perBGrid, BgBGrid, project);
+      (*it)->applyInitialState(mpiGrid, technicalGrid, perb, bgb, project);
    }
 }
 
 void SysBoundary::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                               fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-                              fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-                              fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-                              creal t) {
+                              std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                              std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, creal t) {
    if (isAnyDynamic()) {
       for (auto& b : sysBoundaries) {
          if (b->isDynamic()) {
-            b->updateState(mpiGrid, technicalGrid, perBGrid, BgBGrid, t);
+            b->updateState(mpiGrid, technicalGrid, perb, bgb, t);
          }
       }
    }

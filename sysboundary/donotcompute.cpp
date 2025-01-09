@@ -51,15 +51,12 @@ namespace SBC {
                                         fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
       // Does nothing.
    }
-   
-   void DoNotCompute::applyInitialState(
-      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      fsgrid::FsGrid< array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-      Project&
-   ) {
-     const vector<CellID>& cells = getLocalCells();
+
+   void DoNotCompute::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                                        fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+                                        std::span<array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                        std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, Project&) {
+      const vector<CellID>& cells = getLocalCells();
 #pragma omp parallel for
       for (size_t i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
@@ -79,12 +76,10 @@ namespace SBC {
       }
    }
 
-   void
-   DoNotCompute::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                             fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-                             fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-                             fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-                             creal t) {}
+   void DoNotCompute::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                                  fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+                                  std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                  std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, creal t) {}
 
    void DoNotCompute::getFaces(bool *faces) {}
 

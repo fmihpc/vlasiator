@@ -2542,11 +2542,10 @@ void Ionosphere::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Ge
    }
 }
 
-void Ionosphere::applyInitialState(
-    dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid, Project& project) {
+void Ionosphere::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                                   fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+                                   std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                   std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, Project& project) {
    const vector<CellID>& cells = getLocalCells();
    // #pragma omp parallel for
    for (uint i = 0; i < cells.size(); ++i) {
@@ -3445,9 +3444,8 @@ void Ionosphere::getFaces(bool* faces) {}
 
 void Ionosphere::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                              fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-                             fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-                             fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-                             creal t) {}
+                             std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                             std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, creal t) {}
 
 uint Ionosphere::getIndex() const { return sysboundarytype::IONOSPHERE; }
 } // namespace SBC

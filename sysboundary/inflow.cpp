@@ -152,20 +152,18 @@ void Inflow::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geomet
 
 void Inflow::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-                               fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-                               fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-                               Project& project) {
+                               std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                               std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, Project& project) {
    for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
       setCellsFromTemplate(mpiGrid, popID);
    }
-   setBFromTemplate(mpiGrid, perBGrid, BgBGrid, technicalGrid);
+   setBFromTemplate(mpiGrid, perb, bgb, technicalGrid);
 }
 
 void Inflow::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                          fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-                         fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-                         fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-                         creal t) {
+                         std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                         std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, creal t) {
    if (t - tLastApply < tInterval) {
       return;
    } else {
@@ -180,7 +178,7 @@ void Inflow::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& m
       setCellsFromTemplate(mpiGrid, popID);
    }
 
-   setBFromTemplate(mpiGrid, perBGrid, BgBGrid, technicalGrid);
+   setBFromTemplate(mpiGrid, perb, bgb, technicalGrid);
 
    // Ensure up-to-date velocity block counts for all neighbours
    phiprof::Timer ghostTimer{"transfer-ghost-blocks", {"MPI"}};
@@ -277,14 +275,11 @@ void Inflow::vlasovBoundaryCondition(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_
 }
 
 void Inflow::setBFromTemplate(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                              fsgrid::FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-                              fsgrid::FsGrid<array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+                              std::span<array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                              std::span<array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                               fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
    std::array<bool, 6> isThisCellOnAFace;
-   const auto& gridSpacing = perBGrid.getGridSpacing();
-   std::span<array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
-   std::span<const array<Real, fsgrids::bgbfield::N_BGB>> bgb = BgBGrid.getData();
-
+   const auto& gridSpacing = technicalGrid.getGridSpacing();
    const auto* localSize = &technicalGrid.getLocalSize()[0];
    for (fsgrid::FsIndex_t k = 0; k < localSize[2]; k++) {
       for (fsgrid::FsIndex_t j = 0; j < localSize[1]; j++) {

@@ -91,25 +91,19 @@ void writeVelMesh(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid)
 }
 
 void initializeGrids(int argn, char** argc, dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                     fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-                     fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+                     std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                     std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                      fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
                      fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsDt2Grid,
-                     fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
-                     fsgrid::FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EGrid,
-                     fsgrid::FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH>& EGradPeGrid,
-                     fsgrid::FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid,
+                     std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+                     std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
+                     std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe,
+                     std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol,
                      fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, SysBoundary& sysBoundaries,
                      Project& project) {
-
-   std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
-   std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb = BgBGrid.getData();
+   // TODO: until feedMomentsIntoFsGrid is reworked, this function must take in grids for moments
    std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments = momentsGrid.getData();
    std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> momentsdt2 = momentsDt2Grid.getData();
-   std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments = dMomentsGrid.getData();
-   std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e = EGrid.getData();
-   std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe = EGradPeGrid.getData();
-   std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol = volGrid.getData();
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
 
@@ -219,7 +213,7 @@ void initializeGrids(int argn, char** argc, dccrg::Dccrg<SpatialCell, dccrg::Car
    if (P::isRestart) {
       logFile << "Restart from " << P::restartFileName << std::endl << writeVerbose;
       phiprof::Timer restartReadTimer{"Read restart"};
-      if (readGrid(mpiGrid, perBGrid, EGrid, technicalGrid, P::restartFileName) == false) {
+      if (readGrid(mpiGrid, perb, e, technicalGrid, P::restartFileName) == false) {
          logFile << "(MAIN) ERROR: restarting failed" << endl;
          exit(1);
       }
@@ -253,7 +247,7 @@ void initializeGrids(int argn, char** argc, dccrg::Dccrg<SpatialCell, dccrg::Car
 
    if (P::isRestart) {
       // initial state for sys-boundary cells, will skip those not set to be reapplied at restart
-      sysBoundaries.applyInitialState(mpiGrid, technicalGrid, perBGrid, BgBGrid, project);
+      sysBoundaries.applyInitialState(mpiGrid, technicalGrid, perb, bgb, project);
    }
 
    // Update technicalGrid (e.g. sysboundary flags)
@@ -285,7 +279,7 @@ void initializeGrids(int argn, char** argc, dccrg::Dccrg<SpatialCell, dccrg::Car
       setCellTimer.stop();
 
       // Initial state for sys-boundary cells
-      sysBoundaries.applyInitialState(mpiGrid, technicalGrid, perBGrid, BgBGrid, project);
+      sysBoundaries.applyInitialState(mpiGrid, technicalGrid, perb, bgb, project);
 
 #pragma omp parallel for schedule(static)
       for (size_t i = 0; i < cells.size(); ++i) {
@@ -379,12 +373,7 @@ void initializeGrids(int argn, char** argc, dccrg::Dccrg<SpatialCell, dccrg::Car
 
    phiprof::Timer finishFSGridTimer{"Finish fsgrid setup"};
    feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid, technicalGrid, false);
-   if (!P::isRestart) {
-      // WARNING this means moments and dt2 moments are the same here at t=0, which is a feature so far.
-      feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid, technicalGrid, false);
-   } else {
-      feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid, technicalGrid, true);
-   }
+   feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid, technicalGrid, P::isRestart);
    technicalGrid.updateGhostCells(moments);
    technicalGrid.updateGhostCells(momentsdt2);
    finishFSGridTimer.stop();
