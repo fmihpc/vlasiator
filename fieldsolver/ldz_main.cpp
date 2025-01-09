@@ -307,7 +307,7 @@ bool propagateFields(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>,
    }
 
    calculateVolumeAveragedFieldsSimple(perBGrid, EGrid, dPerBGrid, volGrid, technicalGrid);
-   calculateBVOLDerivativesSimple(volGrid, technicalGrid);
+   calculateBVOLDerivativesSimple(vol, technicalGrid);
    if (FieldTracing::fieldTracingParameters.doTraceFullBox || Parameters::computeCurvature) {
       technicalGrid.updateGhostCells(vol);
       calculateCurvatureSimple(volGrid, BgBGrid, technicalGrid);

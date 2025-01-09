@@ -373,10 +373,8 @@ void calculateBVOLDerivatives(std::span<std::array<Real, fsgrids::volfields::N_V
  *
  * \sa calculateDerivatives calculateBVOLDerivatives calculateDerivativesSimple
  */
-void calculateBVOLDerivativesSimple(
-    fsgrid::FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid,
-    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
-   std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol = volGrid.getData();
+void calculateBVOLDerivativesSimple(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol,
+                                    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
    std::span<const fsgrids::technical> technical = technicalGrid.getData();
    const auto* localSize = &technicalGrid.getLocalSize()[0];
    const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
