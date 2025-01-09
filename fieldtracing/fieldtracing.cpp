@@ -42,15 +42,15 @@ FieldTracingParameters fieldTracingParameters;
 /* Call the heavier operations for DROs to be called only if needed, before an IO.
  */
 void reduceData(fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-                fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-                fsgrid::FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
+                std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                 dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                 std::vector<SBC::SphericalTriGrid::Node>& nodes) {
    if (fieldTracingParameters.doTraceOpenClosed) {
-      traceOpenClosedConnection(technicalGrid, perBGrid, dPerBGrid, nodes);
+      traceOpenClosedConnection(technicalGrid, perb, dperb, nodes);
    }
    if (fieldTracingParameters.doTraceFullBox) {
-      traceFullBoxConnectionAndFluxRopes(technicalGrid, perBGrid, dPerBGrid, mpiGrid);
+      traceFullBoxConnectionAndFluxRopes(technicalGrid, perb, dperb, mpiGrid);
    }
 }
 
@@ -59,11 +59,10 @@ void reduceData(fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalG
  * outwards until a non-boundary cell is encountered. Their proportional
  * coupling values are recorded in the grid nodes.
  */
-void calculateIonosphereFsgridCoupling(
-    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
-    std::vector<SBC::SphericalTriGrid::Node>& nodes, creal couplingRadius) {
+void calculateIonosphereFsgridCoupling(fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+                                       std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                       std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                                       std::vector<SBC::SphericalTriGrid::Node>& nodes, creal couplingRadius) {
 
    // we don't need to do anything if we have no nodes
    if (nodes.size() == 0) {
@@ -93,10 +92,9 @@ void calculateIonosphereFsgridCoupling(
    }
    bool anyNodeNeedsTracing;
 
-   TracingFieldFunction<Real> tracingFullField = [&perBGrid, &dPerBGrid,
-                                                  &technicalGrid](std::array<Real, 3>& r, const bool alongB,
-                                                                  std::array<Real, 3>& b) -> bool {
-      return traceFullFieldFunction(perBGrid, dPerBGrid, technicalGrid, r, alongB, b);
+   TracingFieldFunction<Real> tracingFullField =
+       [&perb, &dperb, &technicalGrid](std::array<Real, 3>& r, const bool alongB, std::array<Real, 3>& b) -> bool {
+      return traceFullFieldFunction(perb, dperb, technicalGrid, r, alongB, b);
    };
 
    int itCount = 0;
@@ -173,8 +171,8 @@ void calculateIonosphereFsgridCoupling(
 
                   // Interpolate and record upmapped B at final xMapped ccordinates
                   const std::array<Real, 3> perB = interpolatePerturbedB(
-                      perBGrid, dPerBGrid, technicalGrid, fieldTracingParameters.reconstructionCoefficientsCache,
-                      fsgridCell[0], fsgridCell[1], fsgridCell[2], no.xMapped);
+                      perb, dperb, technicalGrid, fieldTracingParameters.reconstructionCoefficientsCache, fsgridCell[0],
+                      fsgridCell[1], fsgridCell[2], no.xMapped);
                   no.parameters[ionosphereParameters::UPMAPPED_BX] =
                       SBC::ionosphereGrid.dipoleField(x[0], x[1], x[2], X, 0, X) + SBC::ionosphereGrid.BGB[0] + perB[0];
                   no.parameters[ionosphereParameters::UPMAPPED_BY] =
@@ -489,8 +487,8 @@ calculateIonosphereVlasovGridCoupling(std::array<Real, 3> x, std::vector<SBC::Sp
 /*! Trace magnetic field lines out from ionospheric nodes to record whether they are on an open or closed field line.
  */
 void traceOpenClosedConnection(fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-                               fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-                               fsgrid::FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
+                               std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                               std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                                std::vector<SBC::SphericalTriGrid::Node>& nodes) {
 
    // we don't need to do anything if we have no nodes
@@ -528,10 +526,9 @@ void traceOpenClosedConnection(fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WID
    }
    bool anyNodeNeedsTracing;
 
-   TracingFieldFunction<TReal> tracingFullField = [&perBGrid, &dPerBGrid,
-                                                   &technicalGrid](std::array<TReal, 3>& r, const bool alongB,
-                                                                   std::array<TReal, 3>& b) -> bool {
-      return traceFullFieldFunction(perBGrid, dPerBGrid, technicalGrid, r, alongB, b);
+   TracingFieldFunction<TReal> tracingFullField =
+       [&perb, &dperb, &technicalGrid](std::array<TReal, 3>& r, const bool alongB, std::array<TReal, 3>& b) -> bool {
+      return traceFullFieldFunction(perb, dperb, technicalGrid, r, alongB, b);
    };
 
    int itCount = 0;
@@ -847,11 +844,10 @@ void stepCellAcrossTaskDomain(cint n, fsgrid::FsGrid<fsgrids::technical, FS_STEN
  *
  * \sa stepCellAcrossTaskDomain
  */
-void traceFullBoxConnectionAndFluxRopes(
-    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
-    dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) {
+void traceFullBoxConnectionAndFluxRopes(fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+                                        std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                        std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                                        dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) {
    phiprof::Timer fluxTracingTimer{"fieldtracing-fullAndFluxTracing"};
 
    std::vector<CellID> localDccrgCells = getLocalCells();
@@ -982,10 +978,9 @@ void traceFullBoxConnectionAndFluxRopes(
    cellBWTracingStepSize.swap(reducedCellBWTracingStepSize);
    cellCurvatureRadius.swap(reducedCellCurvatureRadius);
 
-   TracingFieldFunction<TReal> tracingFullField = [&perBGrid, &dPerBGrid,
-                                                   &technicalGrid](std::array<TReal, 3>& r, const bool alongB,
-                                                                   std::array<TReal, 3>& b) -> bool {
-      return traceFullFieldFunction(perBGrid, dPerBGrid, technicalGrid, r, alongB, b);
+   TracingFieldFunction<TReal> tracingFullField =
+       [&perb, &dperb, &technicalGrid](std::array<TReal, 3>& r, const bool alongB, std::array<TReal, 3>& b) -> bool {
+      return traceFullFieldFunction(perb, dperb, technicalGrid, r, alongB, b);
    };
    int itCount = 0;
    bool warnMaxDistanceExceeded = false;

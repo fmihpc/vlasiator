@@ -220,13 +220,11 @@ reconstructionCoefficients(std::span<const std::array<Real, fsgrids::bfield::N_B
  * \param x 3D global simulation x,y,z coordinates of point to interpolate to
  */
 std::array<Real, 3> interpolatePerturbedB(
-    fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
+    std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+    std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
     std::map<std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS>>& reconstructionCoefficientsCache, cint i,
     cint j, cint k, const std::array<Real, 3> x) {
-   std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
-   std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb = dPerBGrid.getData();
    std::span<const fsgrids::technical> technical = technicalGrid.getData();
    const auto stencil = technicalGrid.makeStencil(i, j, k);
 
@@ -299,13 +297,11 @@ std::array<Real, 3> interpolatePerturbedB(
  * \param x 3D global simulation x,y,z coordinates of point to interpolate to
  */
 std::array<Real, 3> interpolateCurlB(
-    fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
+    std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+    std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
     std::map<std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS>>& reconstructionCoefficientsCache, cint i,
     cint j, cint k, const std::array<Real, 3> x) {
-   std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
-   std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb = dPerBGrid.getData();
    std::span<const fsgrids::technical> technical = technicalGrid.getData();
    const auto stencil = technicalGrid.makeStencil(i, j, k);
 

@@ -1117,14 +1117,11 @@ Real SphericalTriGrid::interpolateUpmappedPotential(const std::array<Real, 3>& x
 }
 
 // Transport field-aligned currents down from the simulation cells to the ionosphere
-void SphericalTriGrid::mapDownBoundaryData(
-    fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid,
-    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
+void SphericalTriGrid::mapDownBoundaryData(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                           std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                                           std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                                           fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
    std::span<fsgrids::technical> technical = technicalGrid.getData();
-   std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments = momentsGrid.getData();
 
    if (!isCouplingInwards && !isCouplingOutwards) {
       return;
@@ -1171,8 +1168,8 @@ void SphericalTriGrid::mapDownBoundaryData(
 
          // Calc curlB, note division by DX one line down
          const std::array<Real, 3> curlB = interpolateCurlB(
-             perBGrid, dPerBGrid, technicalGrid, FieldTracing::fieldTracingParameters.reconstructionCoefficientsCache,
-             lfsc[0], lfsc[1], lfsc[2], nodes[n].xMapped);
+             perb, dperb, technicalGrid, FieldTracing::fieldTracingParameters.reconstructionCoefficientsCache, lfsc[0],
+             lfsc[1], lfsc[2], nodes[n].xMapped);
 
          // Dot curl(B) with normalized B, scale by ratio of B(ionosphere)/B(upmapped), multiply by geometric area
          // around ionosphere node to obtain current from density

@@ -225,14 +225,11 @@ namespace SBC {
 
       // Map field-aligned currents, density and temperature
       // down from the simulation boundary onto this grid
-      void mapDownBoundaryData(
-         fsgrid::FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,                                                                                                                                                                                                                                
-         fsgrid::FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-         fsgrid::FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-         fsgrid::FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-         fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-      );
-      
+      void mapDownBoundaryData(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                               std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                               std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                               fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid);
+
       // Returns the surface area of one element on the sphere
       Real elementArea(uint32_t elementIndex) {
          const std::array<Real, 3>& a = nodes[elements[elementIndex].corners[0]].x;
