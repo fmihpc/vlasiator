@@ -1091,31 +1091,24 @@ void calculateHallTerm(std::span<const std::array<Real, fsgrids::bfield::N_BFIEL
  *
  * \sa calculateHallTerm
  */
-void calculateHallTermSimple(
-    fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBDt2Grid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH>& EHallGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsDt2Grid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsDt2Grid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, SysBoundary& sysBoundaries, int32_t RKCase,
-    const bool communicateMomentsDerivatives) {
+void calculateHallTermSimple(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                             std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perbdt2,
+                             std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
+                             std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                             std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> momentsdt2,
+                             std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                             std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+                             std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmomentsdt2,
+                             std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                             fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+                             SysBoundary& sysBoundaries, int32_t RKCase, const bool communicateMomentsDerivatives) {
 
-   std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
-   std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall = EHallGrid.getData();
-   std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments = momentsGrid.getData();
-   std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb = dPerBGrid.getData();
-   std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb = BgBGrid.getData();
-   std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments = dMomentsGrid.getData();
    std::span<const fsgrids::technical> technical = technicalGrid.getData();
 
    if (not(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2)) {
-      perb = perBDt2Grid.getData();
-      moments = momentsDt2Grid.getData();
-      dmoments = dMomentsDt2Grid.getData();
+      perb = perbdt2;
+      moments = momentsdt2;
+      dmoments = dmomentsdt2;
    }
 
    const auto& gridSpacing = technicalGrid.getGridSpacing();

@@ -22,17 +22,16 @@
 
 #include "../definitions.h"
 
-void calculateHallTermSimple(
-    fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBDt2Grid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH>& EHallGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsDt2Grid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsDt2Grid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, SysBoundary& sysBoundaries, int32_t RKCase,
-    const bool communicateMomentsDerivatives);
+void calculateHallTermSimple(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                             std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perbdt2,
+                             std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
+                             std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                             std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> momentsdt2,
+                             std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                             std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+                             std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmomentsdt2,
+                             std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                             fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+                             SysBoundary& sysBoundaries, int32_t RKCase, const bool communicateMomentsDerivatives);
 
 #endif

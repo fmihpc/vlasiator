@@ -131,8 +131,8 @@ bool propagateFields(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>,
                                    dMomentsDt2Grid, technicalGrid, sysBoundaries, RK_ORDER1);
       }
       if (P::ohmHallTerm > 0) {
-         calculateHallTermSimple(perBGrid, perBDt2Grid, EHallGrid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid,
-                                 dMomentsDt2Grid, BgBGrid, technicalGrid, sysBoundaries, RK_ORDER1,
+         calculateHallTermSimple(perb, perbdt2, ehall, moments, momentsdt2, dperb, dmoments, dmomentsdt2, bgb,
+                                 technicalGrid, sysBoundaries, RK_ORDER1,
                                  true // communicateMomentsDerivatives
          );
       }
@@ -149,8 +149,8 @@ bool propagateFields(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>,
                                    sysBoundaries, RK_ORDER2_STEP1);
       }
       if (P::ohmHallTerm > 0) {
-         calculateHallTermSimple(perBGrid, perBDt2Grid, EHallGrid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid,
-                                 dMomentsDt2Grid, BgBGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP1,
+         calculateHallTermSimple(perb, perbdt2, ehall, moments, momentsdt2, dperb, dmoments, dmomentsdt2, bgb,
+                                 technicalGrid, sysBoundaries, RK_ORDER2_STEP1,
                                  true // communicateMomentsDerivatives
          );
       }
@@ -168,8 +168,8 @@ bool propagateFields(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>,
                                    sysBoundaries, RK_ORDER2_STEP2);
       }
       if (P::ohmHallTerm > 0) {
-         calculateHallTermSimple(perBGrid, perBDt2Grid, EHallGrid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid,
-                                 dMomentsDt2Grid, BgBGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2,
+         calculateHallTermSimple(perb, perbdt2, ehall, moments, momentsdt2, dperb, dmoments, dmomentsdt2, bgb,
+                                 technicalGrid, sysBoundaries, RK_ORDER2_STEP2,
                                  true // communicateMomentsDerivatives
 
          );
@@ -204,9 +204,8 @@ bool propagateFields(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>,
                                       sysBoundaries, RK_ORDER2_STEP1);
          }
          if (P::ohmHallTerm > 0) {
-            calculateHallTermSimple(perBGrid, perBDt2Grid, EHallGrid, momentsGrid, momentsDt2Grid, dPerBGrid,
-                                    dMomentsGrid, dMomentsDt2Grid, BgBGrid, technicalGrid, sysBoundaries,
-                                    RK_ORDER2_STEP1,
+            calculateHallTermSimple(perb, perbdt2, ehall, moments, momentsdt2, dperb, dmoments, dmomentsdt2, bgb,
+                                    technicalGrid, sysBoundaries, RK_ORDER2_STEP1,
                                     subcycleCount == 0 // communicateMomentsDerivatives
             );
          }
@@ -227,9 +226,8 @@ bool propagateFields(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>,
                                       sysBoundaries, RK_ORDER2_STEP2);
          }
          if (P::ohmHallTerm > 0) {
-            calculateHallTermSimple(perBGrid, perBDt2Grid, EHallGrid, momentsGrid, momentsDt2Grid, dPerBGrid,
-                                    dMomentsGrid, dMomentsDt2Grid, BgBGrid, technicalGrid, sysBoundaries,
-                                    RK_ORDER2_STEP2,
+            calculateHallTermSimple(perb, perbdt2, ehall, moments, momentsdt2, dperb, dmoments, dmomentsdt2, bgb,
+                                    technicalGrid, sysBoundaries, RK_ORDER2_STEP2,
                                     subcycleCount == 0 // communicateMomentsDerivatives
             );
          }
