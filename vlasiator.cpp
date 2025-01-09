@@ -621,13 +621,8 @@ int simulate(int argn,char* args[]) {
    SBC::ionosphereGrid.updateIonosphereCommunicator(mpiGrid, technicalGrid);
    // If not a restart, perBGrid and dPerBGrid are up to date after propagateFields just above. Otherwise, we should compute them.
    if(P::isRestart) {
-      calculateDerivativesSimple(
-         perBGrid,
-         momentsGrid,
-         dPerBGrid,
-         dMomentsGrid,
-         technicalGrid,
-         false // Don't communicate moments, they are not needed here.
+      calculateDerivativesSimple(perb, moments, dperb, dmoments, technicalGrid,
+                                 false // Don't communicate moments, they are not needed here.
       );
       technicalGrid.updateGhostCells(dperb);
    }

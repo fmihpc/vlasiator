@@ -20,8 +20,8 @@
 #ifndef DERIVATIVES_HPP
 #define DERIVATIVES_HPP
 
-#include <vector>
 #include <array>
+#include <span>
 
 #include "../definitions.h"
 //#include "../spatial_cells/spatial_cell_wrapper.hpp"
@@ -29,12 +29,12 @@
 
 #include "fs_limiters.h"
 
-void calculateDerivativesSimple(
-    fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
-    fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
-    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, const bool communicateMoments);
+void calculateDerivativesSimple(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                                std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                                std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+                                fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+                                const bool doMoments);
 
 void calculateBVOLDerivativesSimple(
     fsgrid::FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid,

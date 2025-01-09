@@ -94,7 +94,21 @@ bool propagateFields(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>,
    }
 
    const auto* localSize = &technicalGrid.getLocalSize()[0];
+   // Remove these once this function takes in spans
    std::span<fsgrids::technical> technical = technicalGrid.getData();
+   std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
+   std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perbdt2 = perBDt2Grid.getData();
+   std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e = EGrid.getData();
+   std::span<std::array<Real, fsgrids::efield::N_EFIELD>> edt2 = EDt2Grid.getData();
+   std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall = EHallGrid.getData();
+   std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe = EGradPeGrid.getData();
+   std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpedt2 = EGradPeDt2Grid.getData();
+   std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments = momentsGrid.getData();
+   std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> momentsdt2 = momentsDt2Grid.getData();
+   std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb = dPerBGrid.getData();
+   std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments = dMomentsGrid.getData();
+   std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmomentsdt2 = dMomentsDt2Grid.getData();
+   std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb = BgBGrid.getData();
    std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol = volGrid.getData();
 
 #pragma omp parallel for collapse(2)
@@ -111,7 +125,7 @@ bool propagateFields(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>,
 #ifdef FS_1ST_ORDER_TIME
       propagateMagneticFieldSimple(perBGrid, perBDt2Grid, BgBGrid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, dt,
                                    RK_ORDER1);
-      calculateDerivativesSimple(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, technicalGrid, true /*doMoments*/);
+      calculateDerivativesSimple(perb, moments, dperb, dmoments, technicalGrid, true /*doMoments*/);
       if (P::ohmGradPeTerm > 0) {
          calculateGradPeTermSimple(EGradPeGrid, EGradPeDt2Grid, momentsGrid, momentsDt2Grid, dMomentsGrid,
                                    dMomentsDt2Grid, technicalGrid, sysBoundaries, RK_ORDER1);
@@ -130,7 +144,7 @@ bool propagateFields(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>,
 #else
       propagateMagneticFieldSimple(perBGrid, perBDt2Grid, BgBGrid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, dt,
                                    RK_ORDER2_STEP1);
-      calculateDerivativesSimple(perBDt2Grid, momentsDt2Grid, dPerBGrid, dMomentsDt2Grid, technicalGrid, true /*doMoments*/);
+      calculateDerivativesSimple(perbdt2, momentsdt2, dperb, dmomentsdt2, technicalGrid, true /*doMoments*/);
       if (P::ohmGradPeTerm > 0) {
          calculateGradPeTermSimple(EGradPeGrid, EGradPeDt2Grid, momentsGrid, momentsDt2Grid, dMomentsGrid,
                                    dMomentsDt2Grid, technicalGrid, sysBoundaries, RK_ORDER2_STEP1);
@@ -149,7 +163,7 @@ bool propagateFields(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>,
 
       propagateMagneticFieldSimple(perBGrid, perBDt2Grid, BgBGrid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, dt,
                                    RK_ORDER2_STEP2);
-      calculateDerivativesSimple(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, technicalGrid, true /*doMoments*/);
+      calculateDerivativesSimple(perb, moments, dperb, dmoments, technicalGrid, true /*doMoments*/);
       if (P::ohmGradPeTerm > 0) {
          calculateGradPeTermSimple(EGradPeGrid, EGradPeDt2Grid, momentsGrid, momentsDt2Grid, dMomentsGrid,
                                    dMomentsDt2Grid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2);
@@ -184,7 +198,7 @@ bool propagateFields(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>,
 
          // We need to calculate derivatives of the moments at every substep, but the moments only
          // need to be communicated in the first one.
-         calculateDerivativesSimple(perBDt2Grid, momentsDt2Grid, dPerBGrid, dMomentsDt2Grid, technicalGrid,
+         calculateDerivativesSimple(perbdt2, momentsdt2, dperb, dmomentsdt2, technicalGrid,
                                     (subcycleCount == 0) /*doMoments*/);
          if (P::ohmGradPeTerm > 0 && subcycleCount == 0) {
             calculateGradPeTermSimple(EGradPeGrid, EGradPeDt2Grid, momentsGrid, momentsDt2Grid, dMomentsGrid,
@@ -208,8 +222,7 @@ bool propagateFields(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>,
 
          // We need to calculate derivatives of the moments at every substep, but the moments only
          // need to be communicated in the first one.
-         calculateDerivativesSimple(perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, technicalGrid,
-                                    (subcycleCount == 0) /*doMoments*/);
+         calculateDerivativesSimple(perb, moments, dperb, dmoments, technicalGrid, (subcycleCount == 0) /*doMoments*/);
          if (P::ohmGradPeTerm > 0 && subcycleCount == 0) {
             calculateGradPeTermSimple(EGradPeGrid, EGradPeDt2Grid, momentsGrid, momentsDt2Grid, dMomentsGrid,
                                       dMomentsDt2Grid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2);
