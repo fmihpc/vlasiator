@@ -592,24 +592,8 @@ int simulate(int argn,char* args[]) {
    // Fieldsolver dt limits, and also calculate volumetric B-fields.
    // At restart, all we need at this stage has been read from the restart, the rest will be recomputed in due time.
    if(P::isRestart == false) {
-      propagateFields(
-         perBGrid,
-         perBDt2Grid,
-         EGrid,
-         EDt2Grid,
-         EHallGrid,
-         EGradPeGrid,
-         EGradPeDt2Grid,
-         momentsGrid,
-         momentsDt2Grid,
-         dPerBGrid,
-         dMomentsGrid,
-         dMomentsDt2Grid,
-         BgBGrid,
-         volGrid,
-         technicalGrid,
-         sysBoundaryContainer, 0.0, 1.0
-      );
+      propagateFields(perb, perbdt2, e, edt2, ehall, egradpe, egradpedt2, moments, momentsdt2, dperb, dmoments,
+                      dmomentsdt2, bgb, vol, technicalGrid, sysBoundaryContainer, 0.0, 1.0);
    }
 
    phiprof::Timer getFieldsTimer {"getFieldsFromFsGrid"};
@@ -1148,27 +1132,9 @@ int simulate(int argn,char* args[]) {
          feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid, technicalGrid, false);
          feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid, technicalGrid, true);
          couplingInTimer.stop();
-         
-         propagateFields(
-            perBGrid,
-            perBDt2Grid,
-            EGrid,
-            EDt2Grid,
-            EHallGrid,
-            EGradPeGrid,
-            EGradPeDt2Grid,
-            momentsGrid,
-            momentsDt2Grid,
-            dPerBGrid,
-            dMomentsGrid,
-            dMomentsDt2Grid,
-            BgBGrid,
-            volGrid,
-            technicalGrid,
-            sysBoundaryContainer,
-            P::dt,
-            P::fieldSolverSubcycles
-         );
+
+         propagateFields(perb, perbdt2, e, edt2, ehall, egradpe, egradpedt2, moments, momentsdt2, dperb, dmoments,
+                         dmomentsdt2, bgb, vol, technicalGrid, sysBoundaryContainer, P::dt, P::fieldSolverSubcycles);
 
          phiprof::Timer getFieldsTimer {"getFieldsFromFsGrid"};
          // Copy results back from fsgrid.

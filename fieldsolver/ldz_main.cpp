@@ -71,20 +71,20 @@ extern Logger logFile;
  * calculateVolumeAveragedFields calculateBVOLDerivativesSimple
  *
  */
-bool propagateFields(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-                     fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBDt2Grid,
-                     fsgrid::FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EGrid,
-                     fsgrid::FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EDt2Grid,
-                     fsgrid::FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH>& EHallGrid,
-                     fsgrid::FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH>& EGradPeGrid,
-                     fsgrid::FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH>& EGradPeDt2Grid,
-                     fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
-                     fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsDt2Grid,
-                     fsgrid::FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
-                     fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
-                     fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsDt2Grid,
-                     fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-                     fsgrid::FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid,
+bool propagateFields(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                     std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perbdt2,
+                     std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
+                     std::span<std::array<Real, fsgrids::efield::N_EFIELD>> edt2,
+                     std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
+                     std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe,
+                     std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpedt2,
+                     std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                     std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> momentsdt2,
+                     std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                     std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+                     std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmomentsdt2,
+                     std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                     std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol,
                      fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, SysBoundary& sysBoundaries,
                      creal& dt, cuint subcycles) {
 
@@ -94,22 +94,7 @@ bool propagateFields(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>,
    }
 
    const auto* localSize = &technicalGrid.getLocalSize()[0];
-   // Remove these once this function takes in spans
    std::span<fsgrids::technical> technical = technicalGrid.getData();
-   std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
-   std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perbdt2 = perBDt2Grid.getData();
-   std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e = EGrid.getData();
-   std::span<std::array<Real, fsgrids::efield::N_EFIELD>> edt2 = EDt2Grid.getData();
-   std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall = EHallGrid.getData();
-   std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe = EGradPeGrid.getData();
-   std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpedt2 = EGradPeDt2Grid.getData();
-   std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments = momentsGrid.getData();
-   std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> momentsdt2 = momentsDt2Grid.getData();
-   std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb = dPerBGrid.getData();
-   std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments = dMomentsGrid.getData();
-   std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmomentsdt2 = dMomentsDt2Grid.getData();
-   std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb = BgBGrid.getData();
-   std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol = volGrid.getData();
 
 #pragma omp parallel for collapse(2)
    for (auto k = 0; k < localSize[2]; k++) {
@@ -183,7 +168,7 @@ bool propagateFields(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>,
       creal targetT = P::t + dt;
       uint subcycleCount = 0;
       uint maxSubcycleCount = std::numeric_limits<uint>::max();
-      int myRank = perBGrid.getRank();
+      int myRank = technicalGrid.getRank();
 
       while (subcycleCount < maxSubcycleCount) {
          // In case of subcycling, we decided to go for a blunt Runge-Kutta subcycling even though e.g. moments are not
