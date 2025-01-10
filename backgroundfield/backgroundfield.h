@@ -30,10 +30,10 @@
 #include "integratefunction.hpp"
 #include <span>
 
-void setBackgroundField(const FieldFunction& bgFunction, std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+void setBackgroundField(const FieldFunction& bgFunction, fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
                         fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, bool append = false);
 
-void setBackgroundFieldToZero(std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb);
+void setBackgroundFieldToZero(fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb);
 
 /**
    Templated function for setting the perturbed B field to zero.
@@ -42,7 +42,7 @@ void setBackgroundFieldToZero(std::span<std::array<Real, fsgrids::bgbfield::N_BG
    object to zero (see setPerturbedField below).
 */
 template <long unsigned int numFields>
-void setPerturbedFieldToZero(std::span<std::array<Real, numFields>> b, int offset = fsgrids::bfield::PERBX) {
+void setPerturbedFieldToZero(fsgrid::FsData<std::array<Real, numFields>>& b, int offset = fsgrids::bfield::PERBX) {
 #pragma omp parallel for
    for (size_t i = 0; i < b.size(); i++) {
       for (size_t j = 0; j < fsgrids::bfield::N_BFIELD; ++j) {
@@ -59,7 +59,7 @@ void setPerturbedFieldToZero(std::span<std::array<Real, numFields>> b, int offse
     the backgroundfield FSgrid object at offset fsgrids::bgbfield::BGBXVDCORR
 */
 template <long unsigned int numFields>
-void setPerturbedField(const FieldFunction& bfFunction, std::span<std::array<Real, numFields>> b,
+void setPerturbedField(const FieldFunction& bfFunction, fsgrid::FsData<std::array<Real, numFields>>& b,
                        fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
                        int offset = fsgrids::bfield::PERBX, bool append = false) {
    using namespace std::placeholders;

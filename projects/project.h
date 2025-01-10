@@ -91,7 +91,7 @@ namespace projects {
       
       /*! Perform some operation at each time step in the main program loop. */
       virtual void hook(cuint& stage, const dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                        std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                        fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
                         fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) const;
 
       bool initialized();
@@ -103,8 +103,8 @@ namespace projects {
        * 
        * \sa setBackgroundField, setBackgroundFieldToZero
        */
-      virtual void setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                    std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+      virtual void setProjectBField(fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+                                    fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
                                     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid);
 
       /*! Setup data structures for subsequent setCell calls.

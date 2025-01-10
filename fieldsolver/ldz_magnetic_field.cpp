@@ -27,10 +27,10 @@
 
 #include "ldz_magnetic_field.hpp"
 
-void propagateMagneticField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                            std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perbdt2,
-                            std::span<const std::array<Real, fsgrids::efield::N_EFIELD>> e,
-                            std::span<const std::array<Real, fsgrids::efield::N_EFIELD>> edt2,
+void propagateMagneticField(fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+                            fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perbdt2,
+                            const fsgrid::FsData<std::array<Real, fsgrids::efield::N_EFIELD>>& e,
+                            const fsgrid::FsData<std::array<Real, fsgrids::efield::N_EFIELD>>& edt2,
                             const fsgrid::FsStencil& stencil, Real dt, int32_t RKCase, bool doX, bool doY, bool doZ,
                             const std::array<Real, 3>& gridSpacing) {
    creal dtdx = dt / gridSpacing[0];
@@ -168,10 +168,10 @@ void propagateMagneticField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD
  *
  * \sa propagateMagneticFieldSimple propagateMagneticField
  */
-void propagateSysBoundaryMagneticField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                       std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perbdt2,
-                                       std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
-                                       std::span<const fsgrids::technical> technical,
+void propagateSysBoundaryMagneticField(fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+                                       fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perbdt2,
+                                       const fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
+                                       const std::span<fsgrids::technical> technical,
                                        const std::array<Real, 3>& gridSpacing,
                                        const std::array<fsgrid::FsSize_t, 3>& globalCoordinates,
                                        const fsgrid::FsStencil& stencil, SysBoundary& sysBoundaries, int32_t RKCase,
@@ -201,18 +201,18 @@ void propagateSysBoundaryMagneticField(std::span<std::array<Real, fsgrids::bfiel
  *
  * \sa propagateMagneticField propagateSysBoundaryMagneticField
  */
-void propagateMagneticFieldSimple(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                  std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perbdt2,
-                                  std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
-                                  std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
-                                  std::span<std::array<Real, fsgrids::efield::N_EFIELD>> edt2,
+void propagateMagneticFieldSimple(fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+                                  fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perbdt2,
+                                  fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
+                                  fsgrid::FsData<std::array<Real, fsgrids::efield::N_EFIELD>>& e,
+                                  fsgrid::FsData<std::array<Real, fsgrids::efield::N_EFIELD>>& edt2,
                                   fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
                                   SysBoundary& sysBoundaries, creal& dt, cint& RKCase) {
    const auto* localSize = &technicalGrid.getLocalSize()[0];
    const auto& gridSpacing = technicalGrid.getGridSpacing();
    const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
 
-   std::span<const fsgrids::technical> technical = technicalGrid.getData();
+   const std::span<fsgrids::technical> technical = technicalGrid.getData();
 
    phiprof::Timer propagateBTimer{"Propagate magnetic field"};
    int computeTimerId{phiprof::initializeTimer("Magnetic Field compute cells")};

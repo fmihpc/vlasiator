@@ -117,8 +117,8 @@ namespace projects {
 
    void Larmor::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
 
-   void Larmor::setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                 std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+   void Larmor::setProjectBField(fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+                                 fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
                                  fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
       ConstantField bgField;
       bgField.initialize(this->BX0, this->BY0, this->BZ0);

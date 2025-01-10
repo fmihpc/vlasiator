@@ -64,29 +64,29 @@ public:
                                fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid);
    virtual void applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                   fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-                                  std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                  std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, Project& project);
+                                  fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+                                  fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb, Project& project);
    virtual void updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                             fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-                            std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                            std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, creal t);
-   virtual Real fieldSolverBoundaryCondMagneticField(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> b,
-                                                     std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
-                                                     std::span<const fsgrids::technical> technical,
+                            fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+                            fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb, creal t);
+   virtual Real fieldSolverBoundaryCondMagneticField(const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& b,
+                                                     const fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
+                                                     const std::span<fsgrids::technical> technical,
                                                      const std::array<Real, 3>& gridSpacing,
                                                      const std::array<fsgrid::FsSize_t, 3>& globalCoordinates,
                                                      const fsgrid::FsStencil& stencil, cuint component);
-   virtual void fieldSolverBoundaryCondElectricField(std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
+   virtual void fieldSolverBoundaryCondElectricField(fsgrid::FsData<std::array<Real, fsgrids::efield::N_EFIELD>>& e,
                                                      const fsgrid::FsStencil& stencil, cuint component);
-   virtual void fieldSolverBoundaryCondHallElectricField(std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
+   virtual void fieldSolverBoundaryCondHallElectricField(fsgrid::FsData<std::array<Real, fsgrids::ehall::N_EHALL>>& ehall,
                                                          const fsgrid::FsStencil& stencil, cuint component);
    virtual void
-   fieldSolverBoundaryCondGradPeElectricField(std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> EGradPe,
+   fieldSolverBoundaryCondGradPeElectricField(fsgrid::FsData<std::array<Real, fsgrids::egradpe::N_EGRADPE>>& EGradPe,
                                               const fsgrid::FsStencil& stencil, cuint component);
-   virtual void fieldSolverBoundaryCondDerivatives(std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
-                                                   std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+   virtual void fieldSolverBoundaryCondDerivatives(fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
+                                                   fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dmoments,
                                                    const fsgrid::FsStencil& stencil, cuint RKCase, cuint component);
-   virtual void fieldSolverBoundaryCondBVOLDerivatives(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vols,
+   virtual void fieldSolverBoundaryCondBVOLDerivatives(fsgrid::FsData<std::array<Real, fsgrids::volfields::N_VOL>>& vols,
                                                        const fsgrid::FsStencil& stencil, cuint component);
    virtual void vlasovBoundaryCondition(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                         const CellID& cellID, const uint popID, const bool doCalcMomentsV);
@@ -119,8 +119,8 @@ protected:
                                      creal t) = 0;
    void setCellsFromTemplate(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const uint popID);
    void setBFromTemplate(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                         std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                         std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                         fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+                         fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
                          fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid);
 };
 } // namespace SBC

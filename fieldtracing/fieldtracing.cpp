@@ -42,8 +42,8 @@ FieldTracingParameters fieldTracingParameters;
 /* Call the heavier operations for DROs to be called only if needed, before an IO.
  */
 void reduceData(fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-                std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+                const fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
                 dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                 std::vector<SBC::SphericalTriGrid::Node>& nodes) {
    if (fieldTracingParameters.doTraceOpenClosed) {
@@ -60,8 +60,8 @@ void reduceData(fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalG
  * coupling values are recorded in the grid nodes.
  */
 void calculateIonosphereFsgridCoupling(fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-                                       std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                       std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                                       const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+                                       const fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
                                        std::vector<SBC::SphericalTriGrid::Node>& nodes, creal couplingRadius) {
 
    // we don't need to do anything if we have no nodes
@@ -487,8 +487,8 @@ calculateIonosphereVlasovGridCoupling(std::array<Real, 3> x, std::vector<SBC::Sp
 /*! Trace magnetic field lines out from ionospheric nodes to record whether they are on an open or closed field line.
  */
 void traceOpenClosedConnection(fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-                               std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                               std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                               const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+                               const fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
                                std::vector<SBC::SphericalTriGrid::Node>& nodes) {
 
    // we don't need to do anything if we have no nodes
@@ -845,8 +845,8 @@ void stepCellAcrossTaskDomain(cint n, fsgrid::FsGrid<fsgrids::technical, FS_STEN
  * \sa stepCellAcrossTaskDomain
  */
 void traceFullBoxConnectionAndFluxRopes(fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-                                        std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                        std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                                        const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+                                        const fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
                                         dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) {
    phiprof::Timer fluxTracingTimer{"fieldtracing-fullAndFluxTracing"};
 

@@ -189,8 +189,8 @@ namespace SBC {
     * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives, 3: xy-derivatives, 4: xz-derivatives, 5: yz-derivatives.
     */
    void
-   SysBoundaryCondition::setCellDerivativesToZero(std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
-                                                  std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+   SysBoundaryCondition::setCellDerivativesToZero(fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
+                                                  fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dmoments,
                                                   const fsgrid::FsStencil& stencil, cuint component) {
       auto& dPerBGrid0 = dperb[stencil.center()];
       auto& dMomentsGrid0 = dmoments[stencil.center()];
@@ -260,7 +260,7 @@ namespace SBC {
     * \param cellID The cell's ID.
     * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives.
     */
-   void SysBoundaryCondition::setCellBVOLDerivativesToZero(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vols,
+   void SysBoundaryCondition::setCellBVOLDerivativesToZero(fsgrid::FsData<std::array<Real, fsgrids::volfields::N_VOL>>& vols,
                                                            const fsgrid::FsStencil& stencil, cuint component) {
       auto& vol = vols[stencil.center()];
       switch(component) {
@@ -553,7 +553,7 @@ namespace SBC {
       cint k
    ) {
       const auto stencil = technicalGrid.makeStencil(i, j, k);
-      std::span<const fsgrids::technical> technical = technicalGrid.getData();
+      const std::span<fsgrids::technical> technical = technicalGrid.getData();
       int distance = numeric_limits<int>::max();
       vector<array<int, 3>> closestCells;
 
@@ -657,7 +657,7 @@ namespace SBC {
    }
 
    Real SysBoundaryCondition::fieldBoundaryCopyFromSolvingNbrMagneticField(
-       std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> b, std::span<const fsgrids::technical> technical,
+       const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& b, const std::span<fsgrids::technical> technical,
        const fsgrid::FsStencil& stencil, cuint component, cuint mask) {
       int distance = numeric_limits<int>::max();
       auto closestCellIndex = 0;

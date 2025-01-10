@@ -22,15 +22,15 @@
 
 #include "../definitions.h"
 
-void calculateHallTermSimple(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                             std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perbdt2,
-                             std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
-                             std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
-                             std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> momentsdt2,
-                             std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
-                             std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
-                             std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmomentsdt2,
-                             std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+void calculateHallTermSimple(fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+                             fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perbdt2,
+                             fsgrid::FsData<std::array<Real, fsgrids::ehall::N_EHALL>>& ehall,
+                             fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments,
+                             fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& momentsdt2,
+                             fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
+                             fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dmoments,
+                             fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dmomentsdt2,
+                             fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
                              fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
                              SysBoundary& sysBoundaries, int32_t RKCase, const bool communicateMomentsDerivatives);
 

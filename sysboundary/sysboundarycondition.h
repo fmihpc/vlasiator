@@ -71,39 +71,39 @@ namespace SBC {
                                         fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)=0;
          virtual void applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                         fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-                                        std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                        std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                                        fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+                                        fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
                                         Project& project) = 0;
          virtual void updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                   fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-                                  std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                  std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, creal t) = 0;
+                                  fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+                                  fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb, creal t) = 0;
          virtual Real
-         fieldSolverBoundaryCondMagneticField(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> b,
-                                              std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
-                                              std::span<const fsgrids::technical> technical,
+         fieldSolverBoundaryCondMagneticField(const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& b,
+                                              const fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
+                                              const std::span<fsgrids::technical> technical,
                                               const std::array<Real, 3>& gridSpacing,
                                               const std::array<fsgrid::FsSize_t, 3>& globalCoordinates,
                                               const fsgrid::FsStencil& stencil, cuint component) = 0;
-         virtual void fieldSolverBoundaryCondElectricField(std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
+         virtual void fieldSolverBoundaryCondElectricField(fsgrid::FsData<std::array<Real, fsgrids::efield::N_EFIELD>>& e,
                                                            const fsgrid::FsStencil& stencil, cuint component) = 0;
          virtual void
-         fieldSolverBoundaryCondHallElectricField(std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
+         fieldSolverBoundaryCondHallElectricField(fsgrid::FsData<std::array<Real, fsgrids::ehall::N_EHALL>>& ehall,
                                                   const fsgrid::FsStencil& stencil, cuint component) = 0;
          virtual void
-         fieldSolverBoundaryCondGradPeElectricField(std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> EGradPe,
+         fieldSolverBoundaryCondGradPeElectricField(fsgrid::FsData<std::array<Real, fsgrids::egradpe::N_EGRADPE>>& EGradPe,
                                                     const fsgrid::FsStencil& stencil, cuint component) = 0;
          virtual void
-         fieldSolverBoundaryCondDerivatives(std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
-                                            std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+         fieldSolverBoundaryCondDerivatives(fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
+                                            fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dmoments,
                                             const fsgrid::FsStencil& stencil, cuint RKCase, cuint component) = 0;
          virtual void
-         fieldSolverBoundaryCondBVOLDerivatives(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vols,
+         fieldSolverBoundaryCondBVOLDerivatives(fsgrid::FsData<std::array<Real, fsgrids::volfields::N_VOL>>& vols,
                                                 const fsgrid::FsStencil& stencil, cuint component) = 0;
-         static void setCellDerivativesToZero(std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
-                                              std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+         static void setCellDerivativesToZero(fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
+                                              fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dmoments,
                                               const fsgrid::FsStencil& stencil, cuint component);
-         static void setCellBVOLDerivativesToZero(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vols,
+         static void setCellBVOLDerivativesToZero(fsgrid::FsData<std::array<Real, fsgrids::volfields::N_VOL>>& vols,
                                                   const fsgrid::FsStencil& stencil, cuint component);
 
          virtual void mapCellPotentialAndGetEXBDrift(
@@ -224,8 +224,8 @@ namespace SBC {
             const CellID& cellID
          );
          Real
-         fieldBoundaryCopyFromSolvingNbrMagneticField(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> b,
-                                                      std::span<const fsgrids::technical> technical,
+         fieldBoundaryCopyFromSolvingNbrMagneticField(const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& b,
+                                                      const std::span<fsgrids::technical> technical,
                                                       const fsgrid::FsStencil& stencil, cuint component, cuint mask);
 
          /*! Precedence value of the system boundary condition. */

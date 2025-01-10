@@ -63,20 +63,20 @@ static creal EPS = 1.0e-30;
 
 using namespace std;
 
-bool propagateFields(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                     std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perbdt2,
-                     std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
-                     std::span<std::array<Real, fsgrids::efield::N_EFIELD>> edt2,
-                     std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
-                     std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe,
-                     std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpedt2,
-                     std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
-                     std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> momentsdt2,
-                     std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
-                     std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
-                     std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmomentsdt2,
-                     std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
-                     std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol,
+bool propagateFields(fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+                     fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perbdt2,
+                     fsgrid::FsData<std::array<Real, fsgrids::efield::N_EFIELD>>& e,
+                     fsgrid::FsData<std::array<Real, fsgrids::efield::N_EFIELD>>& edt2,
+                     fsgrid::FsData<std::array<Real, fsgrids::ehall::N_EHALL>>& ehall,
+                     fsgrid::FsData<std::array<Real, fsgrids::egradpe::N_EGRADPE>>& egradpe,
+                     fsgrid::FsData<std::array<Real, fsgrids::egradpe::N_EGRADPE>>& egradpedt2,
+                     fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments,
+                     fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& momentsdt2,
+                     fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
+                     fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dmoments,
+                     fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dmomentsdt2,
+                     fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
+                     fsgrid::FsData<std::array<Real, fsgrids::volfields::N_VOL>>& vol,
                      fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, SysBoundary& sysBoundaries,
                      creal& dt, cuint subcycles);
 
@@ -94,20 +94,20 @@ namespace Rec {
 }
 
 std::array<Real, Rec::N_REC_COEFFICIENTS>
-reconstructionCoefficients(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                           std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+reconstructionCoefficients(const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+                           const fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
                            const fsgrid::FsStencil& stencil, Real reconstructionOrder);
 
 std::array<Real, 3> interpolatePerturbedB(
-    std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-    std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+    const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+    const fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
     std::map<std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS>>& reconstructionCoefficientsCache, cint i,
     cint j, cint k, const std::array<Real, 3> x);
 
 std::array<Real, 3> interpolateCurlB(
-    std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-    std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+    const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+    const fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
     std::map<std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS>>& reconstructionCoefficientsCache, cint i,
     cint j, cint k, const std::array<Real, 3> x);

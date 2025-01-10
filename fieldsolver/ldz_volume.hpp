@@ -29,10 +29,10 @@
  * 
  * \sa reconstructionCoefficients
  */
-void calculateVolumeAveragedFieldsSimple(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                         std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
-                                         std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
-                                         std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol,
+void calculateVolumeAveragedFieldsSimple(fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+                                         fsgrid::FsData<std::array<Real, fsgrids::efield::N_EFIELD>>& e,
+                                         fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
+                                         fsgrid::FsData<std::array<Real, fsgrids::volfields::N_VOL>>& vol,
                                          fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid);
 
 #endif

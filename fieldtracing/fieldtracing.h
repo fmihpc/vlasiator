@@ -155,8 +155,8 @@ template <typename REAL>
 using TracingFieldFunction = std::function<bool(std::array<REAL, 3>&, const bool, std::array<REAL, 3>&)>;
 
 template <typename REAL>
-bool traceFullFieldFunction(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                            std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+bool traceFullFieldFunction(const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+                            const fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
                             fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, std::array<REAL, 3>& r,
                             const bool alongB, std::array<REAL, 3>& b) {
    std::span<fsgrids::technical> technical = technicalGrid.getData();
@@ -588,8 +588,8 @@ inline void resetReconstructionCoefficientsCache() { fieldTracingParameters.reco
 
 /*! Link each ionospheric node to fsgrid cells for coupling */
 void calculateIonosphereFsgridCoupling(fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-                                       std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                       std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                                       const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+                                       const fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
                                        std::vector<SBC::SphericalTriGrid::Node>& nodes, creal radius);
 
 /*! Find coupled ionosphere mesh node for given location */
@@ -599,20 +599,20 @@ calculateIonosphereVlasovGridCoupling(std::array<Real, 3> x, std::vector<SBC::Sp
 
 /*! Compute whether a node is connected to the ionosphere or the IMF. */
 void traceOpenClosedConnection(fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-                               std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                               std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                               const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+                               const fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
                                std::vector<SBC::SphericalTriGrid::Node>& nodes);
 
 /*! Trace magnetic field lines forward and backward from each DCCRG cell to record the connectivity and detect flux
  * ropes. */
 void traceFullBoxConnectionAndFluxRopes(fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-                                        std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                        std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                                        const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+                                        const fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
                                         dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid);
 
 void reduceData(fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-                std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+                const fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
                 dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                 std::vector<SBC::SphericalTriGrid::Node>& nodes);
 

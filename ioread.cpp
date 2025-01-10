@@ -862,7 +862,7 @@ bool readCellParamsVariable(vlsv::ParallelReader& file, const vector<CellID>& fi
 template <unsigned long int N>
 bool readFsGridVariable(vlsv::ParallelReader& file, const string& variableName, int numWritingRanks,
                         fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-                        std::span<std::array<Real, N>> targetData) {
+                        fsgrid::FsData<std::array<Real, N>>& targetData) {
    phiprof::Timer preparations{"preparations"};
 
    uint64_t arraySize;
@@ -1146,8 +1146,8 @@ bool readIonosphereNodeVariable(vlsv::ParallelReader& file, const string& variab
  \sa readGrid
  */
 bool exec_readGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                   std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                   std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
+                   fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+                   fsgrid::FsData<std::array<Real, fsgrids::efield::N_EFIELD>>& e,
                    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, const std::string& name) {
    vector<CellID> fileCells; /*< CellIds for all cells in file*/
    vector<size_t> nBlocks;   /*< Number of blocks for all cells in file*/
@@ -1486,8 +1486,8 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid
 \param name Name of the restart file e.g. "restart.00052.vlsv"
 */
 bool readGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-              std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-              std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
+              fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+              fsgrid::FsData<std::array<Real, fsgrids::efield::N_EFIELD>>& e,
               fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, const std::string& name) {
    // Check the vlsv version from the file:
    return exec_readGrid(mpiGrid, perb, e, technicalGrid, name);

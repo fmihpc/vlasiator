@@ -122,8 +122,8 @@ namespace projects {
    bool Project::initialized() {return baseClassInitialized;}
 
    /*! Print a warning message to stderr and abort, one should not use the base class functions. */
-   void Project::setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                  std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+   void Project::setProjectBField(fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+                                  fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
                                   fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
       int rank;
       MPI_Comm_rank(MPI_COMM_WORLD,&rank);
@@ -134,7 +134,7 @@ namespace projects {
    }
 
    void Project::hook(cuint& stage, const dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                      std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                      fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
                       fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) const {}
 
    void Project::setupBeforeSetCell(const std::vector<CellID>& cells) {

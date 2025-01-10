@@ -105,8 +105,8 @@ namespace projects {
       return result;
    }
 
-   void test_fp::setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                  std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+   void test_fp::setProjectBField(fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+                                  fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
                                   fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
       setBackgroundFieldToZero(bgb);
 

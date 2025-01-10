@@ -30,7 +30,7 @@
 // clang-format on
 
 // FieldFunction should be initialized
-void setBackgroundField(const FieldFunction& bgFunction, std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+void setBackgroundField(const FieldFunction& bgFunction, fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
                         fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, bool append) {
    using namespace std::placeholders;
    const auto* localSize = &technicalGrid.getLocalSize()[0];
@@ -137,7 +137,7 @@ void setBackgroundField(const FieldFunction& bgFunction, std::span<std::array<Re
    // Compute divergence and curl of volume averaged field and check that both are zero.
 }
 
-void setBackgroundFieldToZero(std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb) {
+void setBackgroundFieldToZero(fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb) {
 #pragma omp parallel for
    for (size_t i = 0; i < bgb.size(); i++) {
       bgb[i].fill(0.0);

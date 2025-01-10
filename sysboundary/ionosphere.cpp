@@ -1117,9 +1117,9 @@ Real SphericalTriGrid::interpolateUpmappedPotential(const std::array<Real, 3>& x
 }
 
 // Transport field-aligned currents down from the simulation cells to the ionosphere
-void SphericalTriGrid::mapDownBoundaryData(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                           std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
-                                           std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+void SphericalTriGrid::mapDownBoundaryData(const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+                                           const fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
+                                           fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments,
                                            fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
    std::span<fsgrids::technical> technical = technicalGrid.getData();
 
@@ -2544,8 +2544,8 @@ void Ionosphere::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Ge
 
 void Ionosphere::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-                                   std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                   std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, Project& project) {
+                                   fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+                                   fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb, Project& project) {
    const vector<CellID>& cells = getLocalCells();
    // #pragma omp parallel for
    for (uint i = 0; i < cells.size(); ++i) {
@@ -2848,9 +2848,9 @@ Ionosphere::fieldSolverGetNormalDirection(fsgrid::FsGrid<fsgrids::technical, FS_
  *
  * -- Retain only the normal components of perturbed face B
  */
-Real Ionosphere::fieldSolverBoundaryCondMagneticField(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> b,
-                                                      std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
-                                                      std::span<const fsgrids::technical> technical,
+Real Ionosphere::fieldSolverBoundaryCondMagneticField(const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& b,
+                                                      const fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
+                                                      const std::span<fsgrids::technical> technical,
                                                       const std::array<Real, 3>& gridSpacing,
                                                       const std::array<fsgrid::FsSize_t, 3>& globalCoordinates,
                                                       const fsgrid::FsStencil& stencil, cuint component) {
@@ -2929,12 +2929,12 @@ Real Ionosphere::fieldSolverBoundaryCondMagneticField(std::span<const std::array
    return sum / nCells;
 }
 
-void Ionosphere::fieldSolverBoundaryCondElectricField(std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
+void Ionosphere::fieldSolverBoundaryCondElectricField(fsgrid::FsData<std::array<Real, fsgrids::efield::N_EFIELD>>& e,
                                                       const fsgrid::FsStencil& stencil, cuint component) {
    e[stencil.center()][fsgrids::efield::EX + component] = 0.0;
 }
 
-void Ionosphere::fieldSolverBoundaryCondHallElectricField(std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
+void Ionosphere::fieldSolverBoundaryCondHallElectricField(fsgrid::FsData<std::array<Real, fsgrids::ehall::N_EHALL>>& ehall,
                                                           const fsgrid::FsStencil& stencil, cuint component) {
    std::array<Real, fsgrids::ehall::N_EHALL>& cp = ehall[stencil.center()];
    switch (component) {
@@ -2963,18 +2963,18 @@ void Ionosphere::fieldSolverBoundaryCondHallElectricField(std::span<std::array<R
 }
 
 void Ionosphere::fieldSolverBoundaryCondGradPeElectricField(
-    std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> EGradPe, const fsgrid::FsStencil& stencil,
+    fsgrid::FsData<std::array<Real, fsgrids::egradpe::N_EGRADPE>>& EGradPe, const fsgrid::FsStencil& stencil,
     cuint component) {
    EGradPe[stencil.center()][fsgrids::egradpe::EXGRADPE + component] = 0.0;
 }
 
-void Ionosphere::fieldSolverBoundaryCondDerivatives(std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
-                                                    std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+void Ionosphere::fieldSolverBoundaryCondDerivatives(fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
+                                                    fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dmoments,
                                                     const fsgrid::FsStencil& stencil, cuint RKCase, cuint component) {
    this->setCellDerivativesToZero(dperb, dmoments, stencil, component);
 }
 
-void Ionosphere::fieldSolverBoundaryCondBVOLDerivatives(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vols,
+void Ionosphere::fieldSolverBoundaryCondBVOLDerivatives(fsgrid::FsData<std::array<Real, fsgrids::volfields::N_VOL>>& vols,
                                                         const fsgrid::FsStencil& stencil, cuint component) {
    // FIXME This should be OK as the BVOL derivatives are only used for Lorentz force JXB, which is not applied on the
    // ionosphere cells.
@@ -3444,8 +3444,8 @@ void Ionosphere::getFaces(bool* faces) {}
 
 void Ionosphere::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                              fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-                             std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                             std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, creal t) {}
+                             fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+                             fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb, creal t) {}
 
 uint Ionosphere::getIndex() const { return sysboundarytype::IONOSPHERE; }
 } // namespace SBC

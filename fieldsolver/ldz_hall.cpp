@@ -842,11 +842,11 @@ inline REAL JXB(fsgrids::ehall term, const std::array<REAL, Rec::N_REC_COEFFICIE
  * \sa calculateHallTerm JXBX_000_100 JXBX_001_101 JXBX_010_110 JXBX_011_111
  *
  */
-void calculateEdgeHallTermComponents(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perbs,
-                                     std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehalls,
-                                     std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
-                                     std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperbs,
-                                     std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgbs,
+void calculateEdgeHallTermComponents(const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perbs,
+                                     fsgrid::FsData<std::array<Real, fsgrids::ehall::N_EHALL>>& ehalls,
+                                     const fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments,
+                                     const fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperbs,
+                                     const fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgbs,
                                      const std::array<Real, 3>& gridSpacing,
                                      const std::array<Real, Rec::N_REC_COEFFICIENTS>& perturbedCoefficients,
                                      const fsgrid::FsStencil& stencil) {
@@ -1035,12 +1035,12 @@ void calculateEdgeHallTermComponents(std::span<const std::array<Real, fsgrids::b
  *
  * \sa calculateHallTermSimple calculateEdgeHallTermComponents
  */
-void calculateHallTerm(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                       std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
-                       std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
-                       std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
-                       std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
-                       std::span<const fsgrids::technical> technical, const fsgrid::FsStencil& stencil,
+void calculateHallTerm(const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+                       fsgrid::FsData<std::array<Real, fsgrids::ehall::N_EHALL>>& ehall,
+                       const fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments,
+                       const fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
+                       const fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
+                       const std::span<fsgrids::technical> technical, const fsgrid::FsStencil& stencil,
                        SysBoundary& sysBoundaries, const std::array<Real, 3>& gridSpacing) {
 #ifdef DEBUG_FSOLVER
    if (!stencil.cellExists(0, 0, 0)) {
@@ -1091,19 +1091,19 @@ void calculateHallTerm(std::span<const std::array<Real, fsgrids::bfield::N_BFIEL
  *
  * \sa calculateHallTerm
  */
-void calculateHallTermSimple(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                             std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perbdt2,
-                             std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
-                             std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
-                             std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> momentsdt2,
-                             std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
-                             std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
-                             std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmomentsdt2,
-                             std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+void calculateHallTermSimple(fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+                             fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perbdt2,
+                             fsgrid::FsData<std::array<Real, fsgrids::ehall::N_EHALL>>& ehall,
+                             fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments,
+                             fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& momentsdt2,
+                             fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
+                             fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dmoments,
+                             fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dmomentsdt2,
+                             fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
                              fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
                              SysBoundary& sysBoundaries, int32_t RKCase, const bool communicateMomentsDerivatives) {
 
-   std::span<const fsgrids::technical> technical = technicalGrid.getData();
+   const std::span<fsgrids::technical> technical = technicalGrid.getData();
 
    if (not(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2)) {
       perb = perbdt2;

@@ -130,8 +130,8 @@ namespace projects {
       //Real dBzavg = cos(2.0 * M_PI * ksi);
    }
 
-   void Alfven::setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                 std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+   void Alfven::setProjectBField(fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+                                 fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
                                  fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
       const auto& gridSpacing = technicalGrid.getGridSpacing();
       setBackgroundFieldToZero(bgb);

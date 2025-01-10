@@ -138,8 +138,8 @@ namespace projects {
 
    void Diffusion::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
 
-   void Diffusion::setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                    std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+   void Diffusion::setProjectBField(fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+                                    fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
                                     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
       ConstantField bgField;
       bgField.initialize(0,0,this->B0); //bg bx, by,bz

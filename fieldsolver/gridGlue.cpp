@@ -141,7 +141,7 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>&
                            const std::vector<CellID>& cells,
                            fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
                            fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, bool dt2 /*=false*/) {
-   std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments = momentsGrid.getData();
+   fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments = momentsGrid.getData();
 
    int ii;
    // sorted list of dccrg cells. cells is typicall already sorted, but just to make sure....
@@ -230,15 +230,15 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>&
    }
 }
 
-void getFieldsFromFsGrid(std::span<const std::array<Real, fsgrids::volfields::N_VOL>> volumefields,
-                         std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
-                         std::span<const std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe,
-                         std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+void getFieldsFromFsGrid(const fsgrid::FsData<std::array<Real, fsgrids::volfields::N_VOL>>& volumefields,
+                         const fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
+                         const fsgrid::FsData<std::array<Real, fsgrids::egradpe::N_EGRADPE>>& egradpe,
+                         const fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dmoments,
                          fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
                          dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                          const std::vector<CellID>& cells) {
    // TODO: solver only needs bgb + PERB, we could combine them
-   std::span<const fsgrids::technical> technical = technicalGrid.getData();
+   const std::span<fsgrids::technical> technical = technicalGrid.getData();
    const auto& gridSpacing = technicalGrid.getGridSpacing();
 
    struct Average {

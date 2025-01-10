@@ -91,19 +91,19 @@ void writeVelMesh(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid)
 }
 
 void initializeGrids(int argn, char** argc, dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                     std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                     std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                     fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+                     fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
                      fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
                      fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsDt2Grid,
-                     std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
-                     std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
-                     std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe,
-                     std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol,
+                     fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dmoments,
+                     fsgrid::FsData<std::array<Real, fsgrids::efield::N_EFIELD>>& e,
+                     fsgrid::FsData<std::array<Real, fsgrids::egradpe::N_EGRADPE>>& egradpe,
+                     fsgrid::FsData<std::array<Real, fsgrids::volfields::N_VOL>>& vol,
                      fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, SysBoundary& sysBoundaries,
                      Project& project) {
    // TODO: until feedMomentsIntoFsGrid is reworked, this function must take in grids for moments
-   std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments = momentsGrid.getData();
-   std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> momentsdt2 = momentsDt2Grid.getData();
+   fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments = momentsGrid.getData();
+   fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& momentsdt2 = momentsDt2Grid.getData();
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
 

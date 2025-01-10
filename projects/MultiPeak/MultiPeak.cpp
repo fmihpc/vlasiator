@@ -270,8 +270,8 @@ namespace projects {
       rhoRnd = 0.5 - getRandomNumber(rndState);
    }
 
-   void MultiPeak::setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                    std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+   void MultiPeak::setProjectBField(fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+                                    fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
                                     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
       ConstantField bgField;
       bgField.initialize(this->Bx,

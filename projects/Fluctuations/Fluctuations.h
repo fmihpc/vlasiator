@@ -47,8 +47,8 @@ namespace projects {
       virtual bool initialize(void);
       static void addParameters(void);
       virtual void getParameters(void);
-      virtual void setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                    std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+      virtual void setProjectBField(fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+                                    fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
                                     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid);
       virtual std::vector<std::array<Real, 3> > getV0(
          creal x,

@@ -35,10 +35,10 @@ using namespace std;
 /** Calculate the electron pressure gradient term on all given cells.
  * @param sysBoundaries System boundary condition functions.
  */
-void calculateGradPeTerm(std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpes,
-                         std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
-                         std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
-                         std::span<const fsgrids::technical> technical, const fsgrid::FsStencil& stencil,
+void calculateGradPeTerm(fsgrid::FsData<std::array<Real, fsgrids::egradpe::N_EGRADPE>>& egradpes,
+                         const fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments,
+                         const fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dmoments,
+                         const std::span<fsgrids::technical> technical, const fsgrid::FsStencil& stencil,
                          const auto& gridSpacing, SysBoundary& sysBoundaries) {
 #ifdef DEBUG_FSOLVER
    if (stencil.center() >= moments.size()) {
@@ -89,19 +89,19 @@ void calculateGradPeTerm(std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>
    }
 }
 
-void calculateGradPeTermSimple(std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe,
-                               std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpedt2,
-                               std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
-                               std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> momentsdt2,
-                               std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
-                               std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmomentsdt2,
+void calculateGradPeTermSimple(fsgrid::FsData<std::array<Real, fsgrids::egradpe::N_EGRADPE>>& egradpe,
+                               fsgrid::FsData<std::array<Real, fsgrids::egradpe::N_EGRADPE>>& egradpedt2,
+                               fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments,
+                               fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& momentsdt2,
+                               fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dmoments,
+                               fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dmomentsdt2,
                                fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
                                SysBoundary& sysBoundaries, cint& RKCase) {
    const auto& gridSpacing = technicalGrid.getGridSpacing();
    const auto* localSize = &technicalGrid.getLocalSize()[0];
    const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
 
-   std::span<const fsgrids::technical> technical = technicalGrid.getData();
+   const std::span<fsgrids::technical> technical = technicalGrid.getData();
    if (not(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2)) {
       egradpe = egradpedt2;
       moments = momentsdt2;

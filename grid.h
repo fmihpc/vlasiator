@@ -37,20 +37,20 @@ struct FsGrids {
    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid;
 
    // Data of the grids above
-   std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perB;
-   std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perBDt2;
-   std::span<std::array<Real, fsgrids::efield::N_EFIELD>> E;
-   std::span<std::array<Real, fsgrids::efield::N_EFIELD>> EDt2;
-   std::span<std::array<Real, fsgrids::ehall::N_EHALL>> EHall;
-   std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> EGradPe;
-   std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> EGradPeDt2;
-   std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments;
-   std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> momentsDt2;
-   std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dPerB;
-   std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dMoments;
-   std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dMomentsDt2;
-   std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> BgB;
-   std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol;
+   fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perB;
+   fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perBDt2;
+   fsgrid::FsData<std::array<Real, fsgrids::efield::N_EFIELD>>& E;
+   fsgrid::FsData<std::array<Real, fsgrids::efield::N_EFIELD>>& EDt2;
+   fsgrid::FsData<std::array<Real, fsgrids::ehall::N_EHALL>>& EHall;
+   fsgrid::FsData<std::array<Real, fsgrids::egradpe::N_EGRADPE>>& EGradPe;
+   fsgrid::FsData<std::array<Real, fsgrids::egradpe::N_EGRADPE>>& EGradPeDt2;
+   fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments;
+   fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& momentsDt2;
+   fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dPerB;
+   fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dMoments;
+   fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dMomentsDt2;
+   fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& BgB;
+   fsgrid::FsData<std::array<Real, fsgrids::volfields::N_VOL>>& vol;
    std::span<fsgrids::technical> technical;
 
    FsGrids(fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
@@ -79,14 +79,14 @@ struct FsGrids {
   \brief Initialize DCCRG and fsgrids
 */
 void initializeGrids(int argn, char** argc, dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                     std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                     std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                     fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+                     fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
                      fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
                      fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsDt2Grid,
-                     std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
-                     std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
-                     std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe,
-                     std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol,
+                     fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dmoments,
+                     fsgrid::FsData<std::array<Real, fsgrids::efield::N_EFIELD>>& e,
+                     fsgrid::FsData<std::array<Real, fsgrids::egradpe::N_EGRADPE>>& egradpe,
+                     fsgrid::FsData<std::array<Real, fsgrids::volfields::N_VOL>>& vol,
                      fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, SysBoundary& sysBoundaries,
                      Project& project);
 

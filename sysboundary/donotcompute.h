@@ -52,44 +52,45 @@ namespace SBC {
                              fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid);
       void applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                              fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-                             std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                             std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, Project& project);
+                             fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+                             fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb, Project& project);
       void updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                        fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-                       std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                       std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, creal t);
+                       fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+                       fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb, creal t);
       void getFaces(bool *faces);
       std::string getName() const;
       uint getIndex() const;
 
       // Explicit warning functions to inform the user if a doNotCompute cell gets computed
-      Real fieldSolverBoundaryCondMagneticField(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> b,
-                                                std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
-                                                std::span<const fsgrids::technical> technical,
+      Real fieldSolverBoundaryCondMagneticField(const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& b,
+                                                const fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
+                                                const std::span<fsgrids::technical> technical,
                                                 const std::array<Real, 3>& gridSpacing,
                                                 const std::array<fsgrid::FsSize_t, 3>& globalCoordinates,
                                                 const fsgrid::FsStencil& stencil, cuint component) {
          std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondMagneticField called!" << std::endl;
          return 0.;
       }
-      void fieldSolverBoundaryCondElectricField(std::span<std::array<Real, fsgrids::efield::N_EFIELD>>,
+      void fieldSolverBoundaryCondElectricField(fsgrid::FsData<std::array<Real, fsgrids::efield::N_EFIELD>>&,
                                                 const fsgrid::FsStencil&, cuint) {
          std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondElectricField called!" << std::endl;
       }
-      void fieldSolverBoundaryCondHallElectricField(std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
+      void fieldSolverBoundaryCondHallElectricField(fsgrid::FsData<std::array<Real, fsgrids::ehall::N_EHALL>>& ehall,
                                                     const fsgrid::FsStencil& stencil, cuint component) {
          std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondHallElectricField called!" << std::endl;
       }
-      void fieldSolverBoundaryCondGradPeElectricField(std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> EGradPe,
-                                                      const fsgrid::FsStencil& stencil, cuint component) {
+      void
+      fieldSolverBoundaryCondGradPeElectricField(fsgrid::FsData<std::array<Real, fsgrids::egradpe::N_EGRADPE>>& EGradPe,
+                                                 const fsgrid::FsStencil& stencil, cuint component) {
          std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondGradPeElectricField called!" << std::endl;
       }
-      void fieldSolverBoundaryCondDerivatives(std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
-                                              std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+      void fieldSolverBoundaryCondDerivatives(fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
+                                              fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dmoments,
                                               const fsgrid::FsStencil& stencil, cuint RKCase, cuint component) {
          std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondDerivatives called!" << std::endl;
       }
-      void fieldSolverBoundaryCondBVOLDerivatives(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vols,
+      void fieldSolverBoundaryCondBVOLDerivatives(fsgrid::FsData<std::array<Real, fsgrids::volfields::N_VOL>>& vols,
                                                   const fsgrid::FsStencil& stencil, cuint component) {
          std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondBVOLDerivatives called!" << std::endl;
       }

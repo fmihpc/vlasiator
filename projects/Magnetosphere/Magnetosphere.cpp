@@ -270,8 +270,8 @@ namespace projects {
    void Magnetosphere::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
 
    /* set 0-centered dipole */
-   void Magnetosphere::setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                        std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+   void Magnetosphere::setProjectBField(fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+                                        fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
                                         fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
       Dipole bgFieldDipole;
       LineDipole bgFieldLineDipole;
@@ -426,7 +426,7 @@ namespace projects {
          }
          
          // Remove dipole from inflow cells if this is requested
-         std::span<const fsgrids::technical> technical = technicalGrid.getData();
+         const std::span<fsgrids::technical> technical = technicalGrid.getData();
          if(this->noDipoleInSW) {
 #pragma omp for collapse(2)
             for (fsgrid::FsIndex_t z = 0; z < localSize[2]; ++z) {
