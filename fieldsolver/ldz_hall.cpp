@@ -1102,14 +1102,12 @@ void calculateHallTermSimple(fsgrid::FsData<std::array<Real, fsgrids::bfield::N_
                              fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
                              fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
                              SysBoundary& sysBoundaries, int32_t RKCase, const bool communicateMomentsDerivatives) {
-
    const std::span<fsgrids::technical> technical = technicalGrid.getData();
+   const bool predicate = not(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2);
 
-   if (not(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2)) {
-      perb = perbdt2;
-      moments = momentsdt2;
-      dmoments = dmomentsdt2;
-   }
+   auto& perbd = predicate ? perbdt2 : perb;
+   auto& momentsd = predicate ? momentsdt2 : moments;
+   auto& dmomentsd = predicate ? dmomentsdt2 : dmoments;
 
    const auto& gridSpacing = technicalGrid.getGridSpacing();
    const auto* localSize = &technicalGrid.getLocalSize()[0];
@@ -1121,7 +1119,7 @@ void calculateHallTermSimple(fsgrid::FsData<std::array<Real, fsgrids::bfield::N_
    int computeTimerId{phiprof::initializeTimer("EHall compute cells")};
    technicalGrid.updateGhostCells(dperb);
    if (P::ohmGradPeTerm == 0 && communicateMomentsDerivatives) {
-      technicalGrid.updateGhostCells(dmoments);
+      technicalGrid.updateGhostCells(dmomentsd);
    }
    mpiTimer.stop();
 
@@ -1133,7 +1131,7 @@ void calculateHallTermSimple(fsgrid::FsData<std::array<Real, fsgrids::bfield::N_
          for (auto j = 0; j < localSize[1]; j++) {
             for (auto i = 0; i < localSize[0]; i++) {
                const auto stencil = technicalGrid.makeStencil(i, j, k);
-               calculateHallTerm(perb, ehall, moments, dperb, bgb, technical, stencil, sysBoundaries, gridSpacing);
+               calculateHallTerm(perbd, ehall, momentsd, dperb, bgb, technical, stencil, sysBoundaries, gridSpacing);
             }
          }
       }

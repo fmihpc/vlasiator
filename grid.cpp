@@ -93,17 +93,14 @@ void writeVelMesh(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid)
 void initializeGrids(int argn, char** argc, dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                      fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
                      fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
-                     fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
-                     fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsDt2Grid,
+                     fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments,
+                     fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& momentsdt2,
                      fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dmoments,
                      fsgrid::FsData<std::array<Real, fsgrids::efield::N_EFIELD>>& e,
                      fsgrid::FsData<std::array<Real, fsgrids::egradpe::N_EGRADPE>>& egradpe,
                      fsgrid::FsData<std::array<Real, fsgrids::volfields::N_VOL>>& vol,
                      fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, SysBoundary& sysBoundaries,
                      Project& project) {
-   // TODO: until feedMomentsIntoFsGrid is reworked, this function must take in grids for moments
-   fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments = momentsGrid.getData();
-   fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& momentsdt2 = momentsDt2Grid.getData();
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
 
@@ -372,8 +369,8 @@ void initializeGrids(int argn, char** argc, dccrg::Dccrg<SpatialCell, dccrg::Car
    }
 
    phiprof::Timer finishFSGridTimer{"Finish fsgrid setup"};
-   feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid, technicalGrid, false);
-   feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid, technicalGrid, P::isRestart);
+   feedMomentsIntoFsGrid(mpiGrid, cells, moments, technicalGrid, false);
+   feedMomentsIntoFsGrid(mpiGrid, cells, momentsdt2, technicalGrid, P::isRestart);
    technicalGrid.updateGhostCells(moments);
    technicalGrid.updateGhostCells(momentsdt2);
    finishFSGridTimer.stop();

@@ -37,10 +37,7 @@ int getNumberOfCellsOnMaxRefLvl(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geome
 Filter moments after feeding them to FsGrid to alleviate the staircase effect caused in AMR runs.
 This is using a 3D, 5-point stencil triangle kernel.
 */
-// TODO: Here we cannot just replace FsGrid with span, since swap is used with vectors
-// Need to think what to pass here: a vector, or some custom struct containing a reference to the actual pointer
-// unique_ptr?
-void filterMoments(fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
+void filterMoments(fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments,
                    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
 
    // Kernel Characteristics
@@ -83,16 +80,14 @@ void filterMoments(fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>,
         {1 * inverseKernelSum, 2 * inverseKernelSum, 3 * inverseKernelSum, 2 * inverseKernelSum,
          1 * inverseKernelSum}}};
 
-   auto& moments = momentsGrid.getData();
-
    // Get size of local domain
    const auto* localSize = &technicalGrid.getLocalSize()[0];
    const auto& technical = technicalGrid.getData();
-   // Create a copy of momentsGrid data for filtering
-   std::vector<std::array<Real, fsgrids::moments::N_MOMENTS>> blurred(moments.size());
+   // Create a copy of moments data for filtering
+   fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>> blurred(moments.size());
 
    // Update momentsGrid Ghost Cells
-   technicalGrid.updateGhostCells(std::span(moments));
+   technicalGrid.updateGhostCells(moments);
 
    // Filtering Loop
    for (auto blurPass = 0; blurPass < Parameters::maxFilteringPasses; blurPass++) {
@@ -132,16 +127,16 @@ void filterMoments(fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>,
          }
       } // spatial loops
 
-      std::swap(moments, blurred);
-      technicalGrid.updateGhostCells(std::span(moments));
+      using std::swap;
+      swap(moments, blurred);
+      technicalGrid.updateGhostCells(moments);
    }
 }
 
 void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                            const std::vector<CellID>& cells,
-                           fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
+                           fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments,
                            fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, bool dt2 /*=false*/) {
-   fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments = momentsGrid.getData();
 
    int ii;
    // sorted list of dccrg cells. cells is typicall already sorted, but just to make sure....
@@ -226,7 +221,7 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>&
    // Filter Moments if this is a 3D AMR run.
    if (P::amrMaxSpatialRefLevel > 0) {
       phiprof::Timer filteringTimer{"AMR Filtering-Triangle-3D"};
-      filterMoments(momentsGrid, technicalGrid);
+      filterMoments(moments, technicalGrid);
    }
 }
 

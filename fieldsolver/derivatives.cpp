@@ -284,9 +284,15 @@ void calculateDerivativesSimple(fsgrid::FsData<std::array<Real, fsgrids::bfield:
    mpiTimer.stop();
 
    // Calculate derivatives
-   technicalGrid.parallel_for([=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
-      calculateDerivatives(perb, moments, dperb, dmoments, stencil, sysBoundaryFlag, sysBoundaryLayer, doMoments);
-   });
+   technicalGrid.parallel_for(
+       [](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer,
+          fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+          fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments,
+          fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
+          fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dmoments, const bool doMoments) {
+          calculateDerivatives(perb, moments, dperb, dmoments, stencil, sysBoundaryFlag, sysBoundaryLayer, doMoments);
+       },
+       perb, moments, dperb, dmoments, doMoments);
 
    derivativesTimer.stop();
 }

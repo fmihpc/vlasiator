@@ -100,19 +100,17 @@ void calculateGradPeTermSimple(fsgrid::FsData<std::array<Real, fsgrids::egradpe:
    const auto& gridSpacing = technicalGrid.getGridSpacing();
    const auto* localSize = &technicalGrid.getLocalSize()[0];
    const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
-
    const std::span<fsgrids::technical> technical = technicalGrid.getData();
-   if (not(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2)) {
-      egradpe = egradpedt2;
-      moments = momentsdt2;
-      dmoments = dmomentsdt2;
-   }
+   const bool predicate = not(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2);
+   auto& egradped = predicate ? egradpedt2 : egradpe;
+   auto& momentsd = predicate ? momentsdt2 : moments;
+   auto& dmomentsd = predicate ? dmomentsdt2 : dmoments;
 
    phiprof::Timer gradPeTimer{"Calculate GradPe term"};
    int computeTimerId{phiprof::initializeTimer("EgradPe compute cells")};
 
    phiprof::Timer mpiTimer{"EgradPe field update ghosts MPI", {"MPI"}};
-   technicalGrid.updateGhostCells(dmoments);
+   technicalGrid.updateGhostCells(dmomentsd);
    mpiTimer.stop();
 
 // Calculate GradPe term
@@ -124,7 +122,7 @@ void calculateGradPeTermSimple(fsgrid::FsData<std::array<Real, fsgrids::egradpe:
          for (auto j = 0; j < localSize[1]; j++) {
             for (auto i = 0; i < localSize[0]; i++) {
                const auto& stencil = technicalGrid.makeStencil(i, j, k);
-               calculateGradPeTerm(egradpe, moments, dmoments, technical, stencil, gridSpacing, sysBoundaries);
+               calculateGradPeTerm(egradped, momentsd, dmomentsd, technical, stencil, gridSpacing, sysBoundaries);
             }
          }
       }

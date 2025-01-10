@@ -60,11 +60,10 @@ std::vector<CellID> mapDccrgIdToFsGridGlobalID(dccrg::Dccrg<SpatialCell,dccrg::C
  *
  * This function assumes that proper grid coupling has been set up.
  */
-void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                            const std::vector<CellID>& cells,
-                           fsgrid::FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-                           fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-                           bool dt2=false);
+                           fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments,
+                           fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, bool dt2 = false);
 
 /*! Copy field solver result (VOLB, VOLE, VOLPERB derivatives, gradpe) and store them back into DCCRG
  * \param mpiGrid The DCCRG grid carrying fields.
