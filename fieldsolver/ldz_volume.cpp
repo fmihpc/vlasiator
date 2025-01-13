@@ -112,7 +112,7 @@ void calculateVolumeAveragedFieldsSimple(std::span<std::array<Real, fsgrids::bfi
        [=](const fsgrid::FsStencil stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
           calculateVolumeAveragedFields(perb, e, dperb, vol, stencil, sysBoundaryFlag, sysBoundaryLayer);
        },
-       [](int timerId) { return phiprof::Timer{timerId}; },
+       [](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
        phiprof::initializeTimer("volume averaged fields compute cells"));
    timer.stop(numCells, "Spatial Cells");
 }

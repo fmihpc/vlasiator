@@ -287,7 +287,8 @@ void calculateDerivativesSimple(std::span<std::array<Real, fsgrids::bfield::N_BF
        [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
           calculateDerivatives(perb, moments, dperb, dmoments, stencil, sysBoundaryFlag, sysBoundaryLayer, doMoments);
        },
-       [](int timerId) { return phiprof::Timer{timerId}; }, phiprof::initializeTimer("FS derivatives compute cells"));
+       [](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+       phiprof::initializeTimer("FS derivatives compute cells"));
 
    derivativesTimer.stop(numCells, "Spatial Cells");
 }
