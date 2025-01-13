@@ -536,8 +536,9 @@ int simulate(int argn,char* args[]) {
    // Fieldsolver dt limits, and also calculate volumetric B-fields.
    // At restart, all we need at this stage has been read from the restart, the rest will be recomputed in due time.
    if(P::isRestart == false) {
-      propagateFields(perb, perbdt2, e, edt2, ehall, egradpe, egradpedt2, moments, momentsdt2, dperb, dmoments,
-                      dmomentsdt2, bgb, vol, technicalGrid, sysBoundaryContainer, 0.0, 1.0);
+      propagateFields(perb.view(), perbdt2.view(), e.view(), edt2.view(), ehall.view(), egradpe.view(),
+                      egradpedt2.view(), moments.view(), momentsdt2.view(), dperb.view(), dmoments.view(),
+                      dmomentsdt2.view(), bgb.view(), vol.view(), technicalGrid, sysBoundaryContainer, 0.0, 1.0);
    }
 
    phiprof::Timer getFieldsTimer {"getFieldsFromFsGrid"};
@@ -549,12 +550,12 @@ int simulate(int argn,char* args[]) {
    SBC::ionosphereGrid.updateIonosphereCommunicator(mpiGrid, technicalGrid);
    // If not a restart, perBGrid and dPerBGrid are up to date after propagateFields just above. Otherwise, we should compute them.
    if(P::isRestart) {
-      calculateDerivativesSimple(perb, moments, dperb, dmoments, technicalGrid,
+      calculateDerivativesSimple(perb.view(), moments.view(), dperb.view(), dmoments.view(), technicalGrid,
                                  false // Don't communicate moments, they are not needed here.
       );
       technicalGrid.updateGhostCells(dperb);
    }
-   FieldTracing::calculateIonosphereFsgridCoupling(technicalGrid, perb, dperb, SBC::ionosphereGrid.nodes,
+   FieldTracing::calculateIonosphereFsgridCoupling(technicalGrid, perb.view(), dperb.view(), SBC::ionosphereGrid.nodes,
                                                    SBC::Ionosphere::radius);
    SBC::ionosphereGrid.initSolver(!P::isRestart); // If it is a restart we do not want to zero out everything
    if(SBC::Ionosphere::couplingInterval > 0 && P::isRestart) {
@@ -581,7 +582,7 @@ int simulate(int argn,char* args[]) {
       // Calculate these so refinement parameters can be tuned based on the vlsv
       calculateScaledDeltasSimple(mpiGrid);
 
-      FieldTracing::reduceData(technicalGrid, perb, dperb, mpiGrid,
+      FieldTracing::reduceData(technicalGrid, perb.view(), dperb.view(), mpiGrid,
                                SBC::ionosphereGrid.nodes); /*!< Call the reductions (e.g. field tracing) */
 
       phiprof::Timer timer {"write-initial-state"};
@@ -808,7 +809,7 @@ int simulate(int argn,char* args[]) {
             // Calculate these so refinement parameters can be tuned based on the vlsv
             calculateScaledDeltasSimple(mpiGrid);
 
-            FieldTracing::reduceData(technicalGrid, perb, dperb, mpiGrid,
+            FieldTracing::reduceData(technicalGrid, perb.view(), dperb.view(), mpiGrid,
                                      SBC::ionosphereGrid.nodes); /*!< Call the reductions (e.g. field tracing) */
 
             phiprof::Timer writeSysTimer {"write-system"};
@@ -1025,7 +1026,7 @@ int simulate(int argn,char* args[]) {
       // Update boundary condition states (time-varying)
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration) {
          phiprof::Timer timer {"Update system boundaries (Vlasov pre-translation)"};
-         sysBoundaryContainer.updateState(mpiGrid, technicalGrid, perb, bgb, P::t + 0.5 * P::dt);
+         sysBoundaryContainer.updateState(mpiGrid, technicalGrid, perb.view(), bgb.view(), P::t + 0.5 * P::dt);
          timer.stop();
          addTimedBarrier("barrier-boundary-conditions");
       }
@@ -1075,8 +1076,10 @@ int simulate(int argn,char* args[]) {
          feedMomentsIntoFsGrid(mpiGrid, cells, momentsdt2, technicalGrid, true);
          couplingInTimer.stop();
 
-         propagateFields(perb, perbdt2, e, edt2, ehall, egradpe, egradpedt2, moments, momentsdt2, dperb, dmoments,
-                         dmomentsdt2, bgb, vol, technicalGrid, sysBoundaryContainer, P::dt, P::fieldSolverSubcycles);
+         propagateFields(perb.view(), perbdt2.view(), e.view(), edt2.view(), ehall.view(), egradpe.view(),
+                         egradpedt2.view(), moments.view(), momentsdt2.view(), dperb.view(), dmoments.view(),
+                         dmomentsdt2.view(), bgb.view(), vol.view(), technicalGrid, sysBoundaryContainer, P::dt,
+                         P::fieldSolverSubcycles);
 
          phiprof::Timer getFieldsTimer {"getFieldsFromFsGrid"};
          // Copy results back from fsgrid.
@@ -1097,9 +1100,9 @@ int simulate(int argn,char* args[]) {
       // perBGrid was ghost-updated before derivatives were computed in the field solver.
       // dPerBGrid was updated before the electric fields.
       if(SBC::ionosphereGrid.nodes.size() > 0 && ((P::t > SBC::Ionosphere::solveCount * SBC::Ionosphere::couplingInterval && SBC::Ionosphere::couplingInterval > 0) || SBC::Ionosphere::couplingInterval == 0)) {
-         FieldTracing::calculateIonosphereFsgridCoupling(technicalGrid, perb, dperb, SBC::ionosphereGrid.nodes,
-                                                         SBC::Ionosphere::radius);
-         SBC::ionosphereGrid.mapDownBoundaryData(perb, dperb, moments, technicalGrid);
+         FieldTracing::calculateIonosphereFsgridCoupling(technicalGrid, perb.view(), dperb.view(),
+                                                         SBC::ionosphereGrid.nodes, SBC::Ionosphere::radius);
+         SBC::ionosphereGrid.mapDownBoundaryData(perb.view(), dperb.view(), moments.view(), technicalGrid);
          SBC::ionosphereGrid.calculateConductivityTensor(SBC::Ionosphere::F10_7, SBC::Ionosphere::recombAlpha, SBC::Ionosphere::backgroundIonisation);
 
          // Solve ionosphere
@@ -1162,7 +1165,7 @@ int simulate(int argn,char* args[]) {
       propagateTimer.stop(computedCells,"Cells");
       
       phiprof::Timer endStepTimer {"Project endTimeStep"};
-      project->hook(hook::END_OF_TIME_STEP, mpiGrid, perb, technicalGrid);
+      project->hook(hook::END_OF_TIME_STEP, mpiGrid, perb.view(), technicalGrid);
       endStepTimer.stop();
 
       // Check timestep
