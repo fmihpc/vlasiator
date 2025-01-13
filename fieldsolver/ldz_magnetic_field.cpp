@@ -210,7 +210,7 @@ void propagateMagneticFieldSimple(std::span<std::array<Real, fsgrids::bfield::N_
                                   SysBoundary& sysBoundaries, creal& dt, cint& RKCase) {
    const auto* localSize = &technicalGrid.getLocalSize()[0];
    const auto& gridSpacing = technicalGrid.getGridSpacing();
-   const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
+   const size_t numCells = technicalGrid.getNumCells();
 
    std::span<const fsgrids::technical> technical = technicalGrid.getData();
 
@@ -232,6 +232,7 @@ void propagateMagneticFieldSimple(std::span<std::array<Real, fsgrids::bfield::N_
             }
          }
       }
+      computeTimer.stop(numCells, "Spatial Cells");
    }
 
    // This communication is needed for boundary conditions, in practice almost all
@@ -278,6 +279,7 @@ void propagateMagneticFieldSimple(std::span<std::array<Real, fsgrids::bfield::N_
             }
          }
       }
+      sysBoundaryTimer.stop(numCells, "Spatial Cells");
    }
 
    mpiTimer.start();
@@ -310,6 +312,7 @@ void propagateMagneticFieldSimple(std::span<std::array<Real, fsgrids::bfield::N_
             }
          }
       }
+      sysBoundaryTimer.stop(numCells, "Spatial Cells");
    }
-   propagateBTimer.stop(N_cells, "Spatial Cells");
+   propagateBTimer.stop(numCells, "Spatial Cells");
 }

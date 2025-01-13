@@ -273,22 +273,23 @@ void calculateDerivativesSimple(std::span<std::array<Real, fsgrids::bfield::N_BF
                                 fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
                                 const bool doMoments) {
    phiprof::Timer derivativesTimer{"Calculate face derivatives"};
+   const size_t numCells = technicalGrid.getNumCells();
 
    phiprof::Timer mpiTimer{"FS derivatives ghost updates MPI", {"MPI"}};
-
    technicalGrid.updateGhostCells(perb);
    if (doMoments) {
       technicalGrid.updateGhostCells(moments);
    }
-
    mpiTimer.stop();
 
    // Calculate derivatives
-   technicalGrid.parallel_for([=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
-      calculateDerivatives(perb, moments, dperb, dmoments, stencil, sysBoundaryFlag, sysBoundaryLayer, doMoments);
-   });
+   technicalGrid.parallel_for(
+       [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+          calculateDerivatives(perb, moments, dperb, dmoments, stencil, sysBoundaryFlag, sysBoundaryLayer, doMoments);
+       },
+       [](int timerId) { return phiprof::Timer{timerId}; }, phiprof::initializeTimer("FS derivatives compute cells"));
 
-   derivativesTimer.stop();
+   derivativesTimer.stop(numCells, "Spatial Cells");
 }
 
 /*! \brief Low-level spatial derivatives calculation.
