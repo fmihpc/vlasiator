@@ -505,6 +505,19 @@ Real Copysphere::fieldSolverBoundaryCondMagneticField(std::span<const std::array
    const uint32_t bitfield = 1 << component;
 
    // clang-format off
+   constexpr std::array permutations = {
+       std::array {
+           0, 1, 2, 3, 4, 5,
+       },
+       std::array {
+           2, 3, 0, 1, 4, 5,
+       },
+       std::array {
+           4, 5, 0, 1, 2, 3,
+       },
+   };
+
+   /*
    // 0, 1, 2, 3, 4, 5 for component 0
    // 2, 3, 4, 5, 0, 1 for component 1
    // 4, 5, 0, 1, 2, 3 for component 2
@@ -516,6 +529,8 @@ Real Copysphere::fieldSolverBoundaryCondMagneticField(std::span<const std::array
        (4 + 2 * component) % 6,
        (5 + 2 * component) % 6,
    };
+   */
+   const std::array permutation = permutations[component];
 
    const std::array<size_t, 6> inds = {
        stencil.left(),

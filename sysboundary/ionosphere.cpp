@@ -2858,26 +2858,41 @@ Real Ionosphere::fieldSolverBoundaryCondMagneticField(std::span<const std::array
    const uint32_t bitfield = 1 << component;
 
    // clang-format off
-      // 0, 1, 2, 3, 4, 5 for component 0
-      // 2, 3, 4, 5, 0, 1 for component 1
-      // 4, 5, 0, 1, 2, 3 for component 2
-      const std::array permutation = {
-          (0 + 2 * component) % 6,
-          (1 + 2 * component) % 6,
-          (2 + 2 * component) % 6,
-          (3 + 2 * component) % 6,
-          (4 + 2 * component) % 6,
-          (5 + 2 * component) % 6,
-      };
+   constexpr std::array permutations = {
+       std::array {
+           0, 1, 2, 3, 4, 5,
+       },
+       std::array {
+           2, 3, 0, 1, 4, 5,
+       },
+       std::array {
+           4, 5, 0, 1, 2, 3,
+       },
+   };
 
-      const std::array<size_t, 6> inds = {
-          stencil.left(),
-          stencil.right(),
-          stencil.down(),
-          stencil.up(),
-          stencil.far(),
-          stencil.near(),
-      };
+   /*
+   // 0, 1, 2, 3, 4, 5 for component 0
+   // 2, 3, 4, 5, 0, 1 for component 1
+   // 4, 5, 0, 1, 2, 3 for component 2
+   const std::array permutation = {
+       (0 + 2 * component) % 6,
+       (1 + 2 * component) % 6,
+       (2 + 2 * component) % 6,
+       (3 + 2 * component) % 6,
+       (4 + 2 * component) % 6,
+       (5 + 2 * component) % 6,
+   };
+   */
+   const std::array permutation = permutations[component];
+
+  const std::array<size_t, 6> inds = {
+      stencil.left(),
+      stencil.right(),
+      stencil.down(),
+      stencil.up(),
+      stencil.far(),
+      stencil.near(),
+  };
    // clang-format on
 
    auto bitFieldSet = [&bitfield](auto& tech) { return (tech.SOLVE & bitfield) == bitfield; };
