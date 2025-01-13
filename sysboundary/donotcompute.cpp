@@ -54,8 +54,8 @@ namespace SBC {
 
    void DoNotCompute::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                         fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-                                        fsgrid::FsData<array<Real, fsgrids::bfield::N_BFIELD>>& perb,
-                                        fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb, Project&) {
+                                        std::span<array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                        std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, Project&) {
       const vector<CellID>& cells = getLocalCells();
 #pragma omp parallel for
       for (size_t i=0; i<cells.size(); ++i) {
@@ -78,8 +78,8 @@ namespace SBC {
 
    void DoNotCompute::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                   fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-                                  fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
-                                  fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb, creal t) {}
+                                  std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                  std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, creal t) {}
 
    void DoNotCompute::getFaces(bool *faces) {}
 

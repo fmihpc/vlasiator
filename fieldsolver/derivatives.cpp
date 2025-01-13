@@ -38,8 +38,8 @@ template <typename T, size_t N> struct DerivativesData {
    const std::array<T, N>& far = {};
 };
 
-void computeMoments(const fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments,
-                    fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dmoments,
+void computeMoments(std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                    std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
                     const fsgrid::FsStencil& stencil, const bool notSysBoundary) {
    using dmo = fsgrids::dmoments;
    using mom = fsgrids::moments;
@@ -132,8 +132,8 @@ void computeMoments(const fsgrid::FsData<std::array<Real, fsgrids::moments::N_MO
    dMoments[dmo::dPedz] = computePresE(momData.near, momData.far, momData.center);
 }
 
-void computePerb(const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
-                 fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb, const fsgrid::FsStencil& stencil,
+void computePerb(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                 std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb, const fsgrid::FsStencil& stencil,
                  bool dontCompute2ndDerivatives, bool notSysBoundary, cuint sysBoundaryFlag) {
    using dpb = fsgrids::dperb;
    using bfi = fsgrids::bfield;
@@ -221,10 +221,10 @@ void computePerb(const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD
  *
  * \sa calculateDerivativesSimple calculateBVOLDerivativesSimple calculateBVOLDerivatives
  */
-void calculateDerivatives(const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
-                          const fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments,
-                          fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
-                          fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dmoments,
+void calculateDerivatives(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                          std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                          std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                          std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
                           const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer,
                           const bool doMoments) {
    /*
@@ -266,10 +266,10 @@ void calculateDerivatives(const fsgrid::FsData<std::array<Real, fsgrids::bfield:
 
  * \sa calculateDerivatives calculateBVOLDerivativesSimple calculateBVOLDerivatives
  */
-void calculateDerivativesSimple(fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
-                                fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments,
-                                fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
-                                fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dmoments,
+void calculateDerivativesSimple(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                                std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                                std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
                                 fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
                                 const bool doMoments) {
    phiprof::Timer derivativesTimer{"Calculate face derivatives"};
@@ -284,15 +284,9 @@ void calculateDerivativesSimple(fsgrid::FsData<std::array<Real, fsgrids::bfield:
    mpiTimer.stop();
 
    // Calculate derivatives
-   technicalGrid.parallel_for(
-       [](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer,
-          fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
-          fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments,
-          fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
-          fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dmoments, const bool doMoments) {
-          calculateDerivatives(perb, moments, dperb, dmoments, stencil, sysBoundaryFlag, sysBoundaryLayer, doMoments);
-       },
-       perb, moments, dperb, dmoments, doMoments);
+   technicalGrid.parallel_for([=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+      calculateDerivatives(perb, moments, dperb, dmoments, stencil, sysBoundaryFlag, sysBoundaryLayer, doMoments);
+   });
 
    derivativesTimer.stop();
 }
@@ -313,8 +307,8 @@ void calculateDerivativesSimple(fsgrid::FsData<std::array<Real, fsgrids::bfield:
  * \sa calculateDerivatives calculateBVOLDerivativesSimple calculateDerivativesSimple
  */
 
-void calculateBVOLDerivatives(fsgrid::FsData<std::array<Real, fsgrids::volfields::N_VOL>>& vol,
-                              const std::span<fsgrids::technical> technical, const fsgrid::FsStencil& stencil) {
+void calculateBVOLDerivatives(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol,
+                              std::span<const fsgrids::technical> technical, const fsgrid::FsStencil& stencil) {
    const auto& tech = technical[stencil.center()];
 
    cuint sysBoundaryFlag = tech.sysBoundaryFlag;
@@ -379,9 +373,9 @@ void calculateBVOLDerivatives(fsgrid::FsData<std::array<Real, fsgrids::volfields
  *
  * \sa calculateDerivatives calculateBVOLDerivatives calculateDerivativesSimple
  */
-void calculateBVOLDerivativesSimple(fsgrid::FsData<std::array<Real, fsgrids::volfields::N_VOL>>& vol,
+void calculateBVOLDerivativesSimple(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol,
                                     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
-   const std::span<fsgrids::technical> technical = technicalGrid.getData();
+   std::span<const fsgrids::technical> technical = technicalGrid.getData();
    const auto* localSize = &technicalGrid.getLocalSize()[0];
    const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
 
@@ -425,8 +419,8 @@ void calculateBVOLDerivativesSimple(fsgrid::FsData<std::array<Real, fsgrids::vol
  * \sa calculateDerivatives calculateBVOLDerivativesSimple calculateDerivativesSimple
  */
 
-void calculateCurvature(fsgrid::FsData<std::array<Real, fsgrids::volfields::N_VOL>>& vol,
-                        const fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
+void calculateCurvature(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol,
+                        std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                         const fsgrid::FsStencil& stencil, const std::array<Real, 3>& gridSpacing) {
    auto compute = [&vol, &bgb](auto i) -> std::array<Real, 3> {
       const auto& b = bgb[i];
@@ -472,14 +466,14 @@ void calculateCurvature(fsgrid::FsData<std::array<Real, fsgrids::volfields::N_VO
  *
  * \sa calculateDerivatives calculateBVOLDerivatives calculateDerivativesSimple
  */
-void calculateCurvatureSimple(fsgrid::FsData<std::array<Real, fsgrids::volfields::N_VOL>>& vol,
-                              const fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
+void calculateCurvatureSimple(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol,
+                              std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                               fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
    const auto& gridSpacing = technicalGrid.getGridSpacing();
    const auto* localSize = &technicalGrid.getLocalSize()[0];
    const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
 
-   const std::span<fsgrids::technical> technical = technicalGrid.getData();
+   std::span<const fsgrids::technical> technical = technicalGrid.getData();
 
    phiprof::Timer curvatureTimer{"Calculate curvature"};
    int computeTimerId{phiprof::initializeTimer("Calculate curvature compute cells")};

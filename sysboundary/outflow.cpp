@@ -289,8 +289,8 @@ void Outflow::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geome
 
 void Outflow::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                 fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-                                fsgrid::FsData<array<Real, fsgrids::bfield::N_BFIELD>>& perb,
-                                fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb, Project& project) {
+                                std::span<array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, Project& project) {
    const vector<CellID>& cells = getLocalCells();
 #pragma omp parallel for
    for (uint i = 0; i < cells.size(); ++i) {
@@ -329,24 +329,24 @@ void Outflow::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geome
 
 void Outflow::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                           fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-                          fsgrid::FsData<array<Real, fsgrids::bfield::N_BFIELD>>& perb,
-                          fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb, creal t) {}
+                          std::span<array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                          std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, creal t) {}
 
-Real Outflow::fieldSolverBoundaryCondMagneticField(const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& b,
-                                                   const fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
-                                                   const std::span<fsgrids::technical> technical,
+Real Outflow::fieldSolverBoundaryCondMagneticField(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> b,
+                                                   std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                                                   std::span<const fsgrids::technical> technical,
                                                    const std::array<Real, 3>& gridSpacing,
                                                    const std::array<fsgrid::FsSize_t, 3>& globalCoordinates,
                                                    const fsgrid::FsStencil& stencil, cuint component) {
    return fieldBoundaryCopyFromSolvingNbrMagneticField(b, technical, stencil, component, 1 << component);
 }
 
-void Outflow::fieldSolverBoundaryCondElectricField(fsgrid::FsData<std::array<Real, fsgrids::efield::N_EFIELD>>& e,
+void Outflow::fieldSolverBoundaryCondElectricField(std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
                                                    const fsgrid::FsStencil& stencil, cuint component) {
    e[stencil.center()][fsgrids::efield::EX + component] = 0.0;
 }
 
-void Outflow::fieldSolverBoundaryCondHallElectricField(fsgrid::FsData<std::array<Real, fsgrids::ehall::N_EHALL>>& ehall,
+void Outflow::fieldSolverBoundaryCondHallElectricField(std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
                                                        const fsgrid::FsStencil& stencil, cuint component) {
    array<Real, fsgrids::ehall::N_EHALL>& cp = ehall[stencil.center()];
    switch (component) {
@@ -375,18 +375,18 @@ void Outflow::fieldSolverBoundaryCondHallElectricField(fsgrid::FsData<std::array
 }
 
 void Outflow::fieldSolverBoundaryCondGradPeElectricField(
-    fsgrid::FsData<std::array<Real, fsgrids::egradpe::N_EGRADPE>>& EGradPe, const fsgrid::FsStencil& stencil,
+    std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> EGradPe, const fsgrid::FsStencil& stencil,
     cuint component) {
    EGradPe[stencil.center()][fsgrids::egradpe::EXGRADPE + component] = 0.0;
 }
 
-void Outflow::fieldSolverBoundaryCondDerivatives(fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
-                                                 fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dmoments,
+void Outflow::fieldSolverBoundaryCondDerivatives(std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                                                 std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
                                                  const fsgrid::FsStencil& stencil, cuint RKCase, cuint component) {
    this->setCellDerivativesToZero(dperb, dmoments, stencil, component);
 }
 
-void Outflow::fieldSolverBoundaryCondBVOLDerivatives(fsgrid::FsData<std::array<Real, fsgrids::volfields::N_VOL>>& vols,
+void Outflow::fieldSolverBoundaryCondBVOLDerivatives(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vols,
                                                      const fsgrid::FsStencil& stencil, cuint component) {
    this->setCellBVOLDerivativesToZero(vols, stencil, component);
 }

@@ -136,8 +136,8 @@ namespace projects {
       return value;
    }
 
-   void Template::setProjectBField(fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
-                                   fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
+   void Template::setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                   std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                                    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
       Dipole bgField;
       bgField.initialize(8e15, 0.0, 0.0, 0.0, 0.0); //set dipole moment and location

@@ -29,18 +29,18 @@
 
 #include "fs_limiters.h"
 
-void calculateDerivativesSimple(fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
-                                fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments,
-                                fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
-                                fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dmoments,
+void calculateDerivativesSimple(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                                std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                                std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
                                 fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
                                 const bool doMoments);
 
-void calculateBVOLDerivativesSimple(fsgrid::FsData<std::array<Real, fsgrids::volfields::N_VOL>>& vol,
+void calculateBVOLDerivativesSimple(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol,
                                     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid);
 
-void calculateCurvatureSimple(fsgrid::FsData<std::array<Real, fsgrids::volfields::N_VOL>>& vol,
-                              const fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
+void calculateCurvatureSimple(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol,
+                              std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                               fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid);
 
 void calculateScaledDeltasSimple(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);

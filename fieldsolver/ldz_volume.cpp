@@ -29,10 +29,10 @@
    #define DEBUG_FSOLVER
 #endif
 
-void calculateVolumeAveragedFields(const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
-                                   const fsgrid::FsData<std::array<Real, fsgrids::efield::N_EFIELD>>& e,
-                                   const fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
-                                   fsgrid::FsData<std::array<Real, fsgrids::volfields::N_VOL>>& vols,
+void calculateVolumeAveragedFields(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                   std::span<const std::array<Real, fsgrids::efield::N_EFIELD>> e,
+                                   std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                                   std::span<std::array<Real, fsgrids::volfields::N_VOL>> vols,
                                    const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
    const auto center = stencil.center();
    std::array<Real, fsgrids::volfields::N_VOL>& vol = vols[center];
@@ -101,20 +101,14 @@ void calculateVolumeAveragedFields(const fsgrid::FsData<std::array<Real, fsgrids
    CHECK_FLOAT(vol[fsgrids::volfields::EZVOL]);
 }
 
-void calculateVolumeAveragedFieldsSimple(fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
-                                         fsgrid::FsData<std::array<Real, fsgrids::efield::N_EFIELD>>& e,
-                                         fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
-                                         fsgrid::FsData<std::array<Real, fsgrids::volfields::N_VOL>>& vol,
+void calculateVolumeAveragedFieldsSimple(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                         std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
+                                         std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                                         std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol,
                                          fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
    phiprof::Timer timer{"Calculate volume averaged fields"};
-   technicalGrid.parallel_for(
-       [](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer,
-          fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
-          fsgrid::FsData<std::array<Real, fsgrids::efield::N_EFIELD>>& e,
-          fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
-          fsgrid::FsData<std::array<Real, fsgrids::volfields::N_VOL>>& vol) {
-          calculateVolumeAveragedFields(perb, e, dperb, vol, stencil, sysBoundaryFlag, sysBoundaryLayer);
-       },
-       perb, e, dperb, vol);
+   technicalGrid.parallel_for([=](const fsgrid::FsStencil stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+      calculateVolumeAveragedFields(perb, e, dperb, vol, stencil, sysBoundaryFlag, sysBoundaryLayer);
+   });
    timer.stop();
 }

@@ -321,7 +321,7 @@ bool belongsToLayer(const int layer, const int x, const int y, const int z,
 
    bool belongs = false;
    const auto stencil = technicalGrid.makeStencil(x, y, z);
-   const std::span<fsgrids::technical> technical = technicalGrid.getData();
+   std::span<const fsgrids::technical> technical = technicalGrid.getData();
 
    // loop through all neighbors (including diagonals)
    for (int iz = -1; iz <= 1; ++iz) {
@@ -626,8 +626,8 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
  */
 void SysBoundary::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-                                    fsgrid::FsData<array<Real, fsgrids::bfield::N_BFIELD>>& perb,
-                                    fsgrid::FsData<array<Real, fsgrids::bgbfield::N_BGB>>& bgb, Project& project) {
+                                    std::span<array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                    std::span<array<Real, fsgrids::bgbfield::N_BGB>> bgb, Project& project) {
 
    list<SBC::SysBoundaryCondition*>::iterator it;
    for (it = sysBoundaries.begin(); it != sysBoundaries.end(); it++) {
@@ -646,8 +646,8 @@ void SysBoundary::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_G
 
 void SysBoundary::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                               fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-                              fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
-                              fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb, creal t) {
+                              std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                              std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, creal t) {
    if (isAnyDynamic()) {
       for (auto& b : sysBoundaries) {
          if (b->isDynamic()) {

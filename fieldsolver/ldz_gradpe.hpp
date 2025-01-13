@@ -22,12 +22,12 @@
 
 #include "../definitions.h"
 
-void calculateGradPeTermSimple(fsgrid::FsData<std::array<Real, fsgrids::egradpe::N_EGRADPE>>& egradpe,
-                               fsgrid::FsData<std::array<Real, fsgrids::egradpe::N_EGRADPE>>& egradpedt2,
-                               fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments,
-                               fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& momentsdt2,
-                               fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dmoments,
-                               fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dmomentsdt2,
+void calculateGradPeTermSimple(std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe,
+                               std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpedt2,
+                               std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                               std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> momentsdt2,
+                               std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+                               std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmomentsdt2,
                                fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
                                SysBoundary& sysBoundaries, cint& RKCase);
 

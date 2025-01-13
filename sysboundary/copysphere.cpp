@@ -199,8 +199,8 @@ void Copysphere::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Ge
 
 void Copysphere::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-                                   fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
-                                   fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb, Project& project) {
+                                   std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                   std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, Project& project) {
    const vector<CellID>& cells = getLocalCells();
 #pragma omp parallel for
    for (uint i = 0; i < cells.size(); ++i) {
@@ -495,9 +495,9 @@ Copysphere::fieldSolverGetNormalDirection(fsgrid::FsGrid<fsgrids::technical, FS_
  *
  * -- Retain only the normal components of perturbed face B
  */
-Real Copysphere::fieldSolverBoundaryCondMagneticField(const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& b,
-                                                      const fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
-                                                      const std::span<fsgrids::technical> technical,
+Real Copysphere::fieldSolverBoundaryCondMagneticField(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> b,
+                                                      std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                                                      std::span<const fsgrids::technical> technical,
                                                       const std::array<Real, 3>& gridSpacing,
                                                       const std::array<fsgrid::FsSize_t, 3>& globalCoordinates,
                                                       const fsgrid::FsStencil& stencil, cuint component) {
@@ -581,12 +581,12 @@ Real Copysphere::fieldSolverBoundaryCondMagneticField(const fsgrid::FsData<std::
    return sum / nCells;
 }
 
-void Copysphere::fieldSolverBoundaryCondElectricField(fsgrid::FsData<std::array<Real, fsgrids::efield::N_EFIELD>>& e,
+void Copysphere::fieldSolverBoundaryCondElectricField(std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
                                                       const fsgrid::FsStencil& stencil, cuint component) {
    e[stencil.center()][fsgrids::efield::EX + component] = 0.0;
 }
 
-void Copysphere::fieldSolverBoundaryCondHallElectricField(fsgrid::FsData<std::array<Real, fsgrids::ehall::N_EHALL>>& ehall,
+void Copysphere::fieldSolverBoundaryCondHallElectricField(std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
                                                           const fsgrid::FsStencil& stencil, cuint component) {
    std::array<Real, fsgrids::ehall::N_EHALL>& cp = ehall[stencil.center()];
    switch (component) {
@@ -615,18 +615,18 @@ void Copysphere::fieldSolverBoundaryCondHallElectricField(fsgrid::FsData<std::ar
 }
 
 void Copysphere::fieldSolverBoundaryCondGradPeElectricField(
-    fsgrid::FsData<std::array<Real, fsgrids::egradpe::N_EGRADPE>>& EGradPe, const fsgrid::FsStencil& stencil,
+    std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> EGradPe, const fsgrid::FsStencil& stencil,
     cuint component) {
    EGradPe[stencil.center()][fsgrids::egradpe::EXGRADPE + component] = 0.0;
 }
 
-void Copysphere::fieldSolverBoundaryCondDerivatives(fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
-                                                    fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dmoments,
+void Copysphere::fieldSolverBoundaryCondDerivatives(std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                                                    std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
                                                     const fsgrid::FsStencil& stencil, cuint RKCase, cuint component) {
    this->setCellDerivativesToZero(dperb, dmoments, stencil, component);
 }
 
-void Copysphere::fieldSolverBoundaryCondBVOLDerivatives(fsgrid::FsData<std::array<Real, fsgrids::volfields::N_VOL>>& vols,
+void Copysphere::fieldSolverBoundaryCondBVOLDerivatives(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vols,
                                                         const fsgrid::FsStencil& stencil, cuint component) {
    // FIXME This should be OK as the BVOL derivatives are only used for Lorentz force JXB, which is not applied on the
    // copy sphere cells.
@@ -765,8 +765,8 @@ void Copysphere::getFaces(bool* faces) {}
 
 void Copysphere::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                              fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
-                             fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
-                             fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb, creal t) {}
+                             std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                             std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, creal t) {}
 
 uint Copysphere::getIndex() const { return sysboundarytype::COPYSPHERE; }
 } // namespace SBC

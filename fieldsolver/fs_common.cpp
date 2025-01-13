@@ -51,8 +51,8 @@ Real divideIfNonZero(creal numerator, creal denominator) {
  * 2nd-order Hall term calculations.
  */
 std::array<Real, Rec::N_REC_COEFFICIENTS>
-reconstructionCoefficients(const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
-                           const fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
+reconstructionCoefficients(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                           std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                            const fsgrid::FsStencil& stencil, Real reconstructionOrder) {
    std::array<Real, Rec::N_REC_COEFFICIENTS> perturbedResult;
    const auto center = stencil.center();
@@ -220,12 +220,12 @@ reconstructionCoefficients(const fsgrid::FsData<std::array<Real, fsgrids::bfield
  * \param x 3D global simulation x,y,z coordinates of point to interpolate to
  */
 std::array<Real, 3> interpolatePerturbedB(
-    const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
-    const fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
+    std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+    std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
     std::map<std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS>>& reconstructionCoefficientsCache, cint i,
     cint j, cint k, const std::array<Real, 3> x) {
-   const std::span<fsgrids::technical> technical = technicalGrid.getData();
+   std::span<const fsgrids::technical> technical = technicalGrid.getData();
    const auto stencil = technicalGrid.makeStencil(i, j, k);
 
    cuint cellSysBoundaryFlag = technical[stencil.center()].sysBoundaryFlag;
@@ -297,12 +297,12 @@ std::array<Real, 3> interpolatePerturbedB(
  * \param x 3D global simulation x,y,z coordinates of point to interpolate to
  */
 std::array<Real, 3> interpolateCurlB(
-    const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
-    const fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
+    std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+    std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
     std::map<std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS>>& reconstructionCoefficientsCache, cint i,
     cint j, cint k, const std::array<Real, 3> x) {
-   const std::span<fsgrids::technical> technical = technicalGrid.getData();
+   std::span<const fsgrids::technical> technical = technicalGrid.getData();
    const auto stencil = technicalGrid.makeStencil(i, j, k);
 
    cuint cellSysBoundaryFlag = technical[stencil.center()].sysBoundaryFlag;

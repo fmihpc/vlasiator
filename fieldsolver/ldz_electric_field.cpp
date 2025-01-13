@@ -122,11 +122,11 @@ private:
    }
 
 public:
-   FieldCoefficients(const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perB,
-                     const fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dPerB,
-                     const fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& BgB,
-                     const fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments,
-                     const fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dMoments, size_t self, size_t nbr,
+   FieldCoefficients(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perB,
+                     std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dPerB,
+                     std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> BgB,
+                     std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                     std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dMoments, size_t self, size_t nbr,
                      const Limits& rhomLimits)
        : perb(perB[self]), nbr_perb(perB[nbr]), dperb(dPerB[self]), nbr_dperb(dPerB[nbr]), bgb(BgB[self]),
          nbr_bgb(BgB[nbr]), moment(moments[self]), dmoment(dMoments[self]), rhomLimits(rhomLimits) {}
@@ -177,11 +177,11 @@ public:
  * \param ret_vS Sound speed returned
  * \param ret_vW Whistler speed returned
  */
-Wavespeeds calculateWaveSpeedYZ(const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perB,
-                                const fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments,
-                                const fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dPerB,
-                                const fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dMoments,
-                                const fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& BgB,
+Wavespeeds calculateWaveSpeedYZ(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perB,
+                                std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                                std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dPerB,
+                                std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dMoments,
+                                std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> BgB,
                                 const std::array<Real, 3>& gridSpacing, const Limits& rhomLimits, size_t self,
                                 size_t nbr, Real By, Real Bz, Real dBydx, Real dBydz, Real dBzdx, Real dBzdy, Real ydir,
                                 Real zdir) {
@@ -236,11 +236,11 @@ Wavespeeds calculateWaveSpeedYZ(const fsgrid::FsData<std::array<Real, fsgrids::b
  * \param ret_vS Sound speed returned
  * \param ret_vW Whistler speed returned
  */
-Wavespeeds calculateWaveSpeedXZ(const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perB,
-                                const fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments,
-                                const fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dPerB,
-                                const fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dMoments,
-                                const fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& BgB,
+Wavespeeds calculateWaveSpeedXZ(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perB,
+                                std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                                std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dPerB,
+                                std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dMoments,
+                                std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> BgB,
                                 const std::array<Real, 3>& gridSpacing, const Limits& rhomLimits, size_t self,
                                 size_t nbr, Real Bx, Real Bz, Real dBxdy, Real dBxdz, Real dBzdx, Real dBzdy, Real xdir,
                                 Real zdir) {
@@ -295,11 +295,11 @@ Wavespeeds calculateWaveSpeedXZ(const fsgrid::FsData<std::array<Real, fsgrids::b
  * \param ret_vS Sound speed returned
  * \param ret_vW Whistler speed returned
  */
-Wavespeeds calculateWaveSpeedXY(const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perB,
-                                const fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments,
-                                const fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dPerB,
-                                const fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dMoments,
-                                const fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& BgB,
+Wavespeeds calculateWaveSpeedXY(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perB,
+                                std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                                std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dPerB,
+                                std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dMoments,
+                                std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> BgB,
                                 const std::array<Real, 3>& gridSpacing, const Limits& rhomLimits, size_t self,
                                 size_t nbr, Real Bx, Real By, Real dBxdy, Real dBxdz, Real dBydx, Real dBydz, Real xdir,
                                 Real ydir) {
@@ -411,11 +411,11 @@ struct DataArrays {
    const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoments;
    const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb;
 
-   DataArrays(const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
-              const fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
-              const fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments,
-              const fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dmoments,
-              const fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb, size_t index)
+   DataArrays(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+              std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+              std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+              std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+              std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, size_t index)
        : perb(perb[index]), dperb(dperb[index]), moments(moments[index]), dmoments(dmoments[index]), bgb(bgb[index]) {}
 };
 
@@ -442,14 +442,14 @@ struct DataArrays {
  * \param i,j,k fsGrid cell coordinates for the current cell
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
-void calculateEdgeElectricFieldX(const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
-                                 const fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
-                                 fsgrid::FsData<std::array<Real, fsgrids::efield::N_EFIELD>>& e,
-                                 const fsgrid::FsData<std::array<Real, fsgrids::ehall::N_EHALL>>& ehall,
-                                 const fsgrid::FsData<std::array<Real, fsgrids::egradpe::N_EGRADPE>>& egradpe,
-                                 const fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments,
-                                 const fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dmoments,
-                                 const fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
+void calculateEdgeElectricFieldX(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                 std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                                 std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
+                                 std::span<const std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
+                                 std::span<const std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe,
+                                 std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                                 std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+                                 std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                                  std::span<fsgrids::technical> technical, const fsgrid::FsStencil& stencil,
                                  int32_t RKCase, const std::array<Real, 3>& gridSpacing) {
    fsdebugCheck(stencil, perb.size(), __FILE__, __LINE__);
@@ -669,14 +669,14 @@ void calculateEdgeElectricFieldX(const fsgrid::FsData<std::array<Real, fsgrids::
  *
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
-void calculateEdgeElectricFieldY(const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
-                                 const fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
-                                 fsgrid::FsData<std::array<Real, fsgrids::efield::N_EFIELD>>& e,
-                                 const fsgrid::FsData<std::array<Real, fsgrids::ehall::N_EHALL>>& ehall,
-                                 const fsgrid::FsData<std::array<Real, fsgrids::egradpe::N_EGRADPE>>& egradpe,
-                                 const fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments,
-                                 const fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dmoments,
-                                 const fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
+void calculateEdgeElectricFieldY(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                 std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                                 std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
+                                 std::span<const std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
+                                 std::span<const std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe,
+                                 std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                                 std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+                                 std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                                  std::span<fsgrids::technical> technical, const fsgrid::FsStencil& stencil,
                                  int32_t RKCase, const std::array<Real, 3>& gridSpacing) {
    fsdebugCheck(stencil, perb.size(), __FILE__, __LINE__);
@@ -897,14 +897,14 @@ void calculateEdgeElectricFieldY(const fsgrid::FsData<std::array<Real, fsgrids::
  *
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
-void calculateEdgeElectricFieldZ(const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
-                                 const fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
-                                 fsgrid::FsData<std::array<Real, fsgrids::efield::N_EFIELD>>& e,
-                                 const fsgrid::FsData<std::array<Real, fsgrids::ehall::N_EHALL>>& ehall,
-                                 const fsgrid::FsData<std::array<Real, fsgrids::egradpe::N_EGRADPE>>& egradpe,
-                                 const fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments,
-                                 const fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dmoments,
-                                 const fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
+void calculateEdgeElectricFieldZ(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                 std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                                 std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
+                                 std::span<const std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
+                                 std::span<const std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe,
+                                 std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                                 std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+                                 std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                                  std::span<fsgrids::technical> technical, const fsgrid::FsStencil& stencil,
                                  int32_t RKCase, const std::array<Real, 3>& gridSpacing) {
    fsdebugCheck(stencil, perb.size(), __FILE__, __LINE__);
@@ -1134,14 +1134,14 @@ void calculateEdgeElectricFieldZ(const fsgrid::FsData<std::array<Real, fsgrids::
  * calculateEdgeElectricFieldZ
  *
  */
-void calculateElectricField(const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
-                            const fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
-                            fsgrid::FsData<std::array<Real, fsgrids::efield::N_EFIELD>>& e,
-                            const fsgrid::FsData<std::array<Real, fsgrids::ehall::N_EHALL>>& ehall,
-                            const fsgrid::FsData<std::array<Real, fsgrids::egradpe::N_EGRADPE>>& egradpe,
-                            const fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments,
-                            const fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dmoments,
-                            const fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
+void calculateElectricField(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                            std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                            std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
+                            std::span<const std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
+                            std::span<const std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe,
+                            std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                            std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+                            std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                             std::span<fsgrids::technical> technical, const fsgrid::FsStencil& stencil,
                             const std::array<Real, 3>& gridSpacing, SysBoundary& sysBoundaries, int32_t RKCase) {
    cuint cellSysBoundaryFlag = technical[stencil.center()].sysBoundaryFlag;
@@ -1196,19 +1196,19 @@ void calculateElectricField(const fsgrid::FsData<std::array<Real, fsgrids::bfiel
  *
  * \sa calculateElectricField calculateEdgeElectricFieldX calculateEdgeElectricFieldY calculateEdgeElectricFieldZ
  */
-void calculateUpwindedElectricFieldSimple(fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
-                                          fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perbdt2,
-                                          fsgrid::FsData<std::array<Real, fsgrids::efield::N_EFIELD>>& e,
-                                          fsgrid::FsData<std::array<Real, fsgrids::efield::N_EFIELD>>& edt2,
-                                          fsgrid::FsData<std::array<Real, fsgrids::ehall::N_EHALL>>& ehall,
-                                          fsgrid::FsData<std::array<Real, fsgrids::egradpe::N_EGRADPE>>& egradpe,
-                                          fsgrid::FsData<std::array<Real, fsgrids::egradpe::N_EGRADPE>>& egradpedt2,
-                                          fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments,
-                                          fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& momentsdt2,
-                                          fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
-                                          fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dmoments,
-                                          fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dmomentsdt2,
-                                          fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
+void calculateUpwindedElectricFieldSimple(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                          std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perbdt2,
+                                          std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
+                                          std::span<std::array<Real, fsgrids::efield::N_EFIELD>> edt2,
+                                          std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
+                                          std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe,
+                                          std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpedt2,
+                                          std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                                          std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> momentsdt2,
+                                          std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                                          std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+                                          std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmomentsdt2,
+                                          std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                                           fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
                                           SysBoundary& sysBoundaries, int32_t RKCase,
                                           const bool communicateEGradPeOrMomentsDerivatives) {
@@ -1217,12 +1217,13 @@ void calculateUpwindedElectricFieldSimple(fsgrid::FsData<std::array<Real, fsgrid
    const auto* localSize = &technicalGrid.getLocalSize()[0];
    const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
 
-   const bool predicate = not(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2);
-   auto& perbd = predicate ? perbdt2 : perb;
-   auto& ed = predicate ? edt2 : e;
-   auto& egradped = predicate ? egradpedt2 : egradpe;
-   auto& momentsd = predicate ? momentsdt2 : moments;
-   auto& dmomentsd = predicate ? dmomentsdt2 : dmoments;
+   if (not(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2)) {
+      perb = perbdt2;
+      e = edt2;
+      egradpe = egradpedt2;
+      moments = momentsdt2;
+      dmoments = dmomentsdt2;
+   }
 
    phiprof::Timer upwindedETimer{"Calculate upwinded electric field"};
    int computeTimerID{phiprof::initializeTimer("Electric field compute cells")};
@@ -1235,7 +1236,7 @@ void calculateUpwindedElectricFieldSimple(fsgrid::FsData<std::array<Real, fsgrid
    }
 
    if (P::ohmGradPeTerm > 0 && communicateEGradPeOrMomentsDerivatives) {
-      technicalGrid.updateGhostCells(egradped);
+      technicalGrid.updateGhostCells(egradpe);
    }
 
    if (P::ohmHallTerm == 0) {
@@ -1243,7 +1244,7 @@ void calculateUpwindedElectricFieldSimple(fsgrid::FsData<std::array<Real, fsgrid
    }
 
    if (P::ohmHallTerm == 0 && P::ohmGradPeTerm == 0 && communicateEGradPeOrMomentsDerivatives) {
-      technicalGrid.updateGhostCells(dmomentsd);
+      technicalGrid.updateGhostCells(dmoments);
    }
 
    mpiTimer.stop();
@@ -1257,7 +1258,7 @@ void calculateUpwindedElectricFieldSimple(fsgrid::FsData<std::array<Real, fsgrid
          for (auto j = 0; j < localSize[1]; j++) {
             for (auto i = 0; i < localSize[0]; i++) {
                const auto& stencil = technicalGrid.makeStencil(i, j, k);
-               calculateElectricField(perbd, dperb, ed, ehall, egradped, momentsd, dmomentsd, bgb, technical, stencil,
+               calculateElectricField(perb, dperb, e, ehall, egradpe, moments, dmoments, bgb, technical, stencil,
                                       gridSpacing, sysBoundaries, RKCase);
             }
          }
@@ -1267,7 +1268,7 @@ void calculateUpwindedElectricFieldSimple(fsgrid::FsData<std::array<Real, fsgrid
 
    mpiTimer.start();
    // Exchange electric field with neighbouring processes
-   technicalGrid.updateGhostCells(ed);
+   technicalGrid.updateGhostCells(e);
    mpiTimer.stop();
 
    upwindedETimer.stop(N_cells, "Spatial Cells");

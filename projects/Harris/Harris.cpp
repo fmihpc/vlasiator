@@ -116,8 +116,8 @@ namespace projects {
       return V0;
    }
 
-   void Harris::setProjectBField(fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
-                                 fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
+   void Harris::setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                 std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                                  fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
       setBackgroundFieldToZero(bgb);
 
