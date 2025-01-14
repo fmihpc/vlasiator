@@ -2858,7 +2858,7 @@ Real Ionosphere::fieldSolverBoundaryCondMagneticField(std::span<const std::array
    const uint32_t bitfield = 1 << component;
 
    // clang-format off
-   constexpr std::array permutations = {
+   static constexpr std::array permutations = {
        std::array {
            0, 1, 2, 3, 4, 5,
        },
