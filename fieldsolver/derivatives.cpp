@@ -283,14 +283,12 @@ void calculateDerivativesSimple(std::span<std::array<Real, fsgrids::bfield::N_BF
    mpiTimer.stop();
 
    // Calculate derivatives
-   // TODO: Change order of parameters to parallel_for:
-   // - the lambda may be large, so have that last
-   technicalGrid.parallel_for(
-       [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
-          calculateDerivatives(perb, moments, dperb, dmoments, stencil, sysBoundaryFlag, sysBoundaryLayer, doMoments);
-       },
-       [](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
-       phiprof::initializeTimer("FS derivatives compute cells"));
+   technicalGrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                              phiprof::initializeTimer("FS derivatives compute cells"),
+                              [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+                                 calculateDerivatives(perb, moments, dperb, dmoments, stencil, sysBoundaryFlag,
+                                                      sysBoundaryLayer, doMoments);
+                              });
 
    derivativesTimer.stop(numCells, "Spatial Cells");
 }
