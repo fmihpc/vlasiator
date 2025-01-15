@@ -33,7 +33,7 @@
 #include <span>
 #include <string>
 
-struct FsGrids {
+struct FieldSolverData {
    FieldSolverGrid& fsgrid;
 
    std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perB;
@@ -52,7 +52,7 @@ struct FsGrids {
    std::span<const std::array<Real, fsgrids::volfields::N_VOL>> vol;
    std::span<const fsgrids::technical> technical;
 
-   FsGrids(const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+   FieldSolverData(const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
            const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perbdt2,
            const fsgrid::FsData<std::array<Real, fsgrids::efield::N_EFIELD>>& e,
            const fsgrid::FsData<std::array<Real, fsgrids::efield::N_EFIELD>>& edt2,

@@ -473,8 +473,8 @@ int simulate(int argn,char* args[]) {
    // of looping and detecting boundary types here.
    fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>> perbdt2(perb.view());
 
-   const FsGrids fsgrids(perb, perbdt2, e, edt2, ehall, egradpe, egradpedt2, moments, momentsdt2, dperb, dmoments,
-                         dmomentsdt2, bgb, vol, technical, fsgrid);
+   const FieldSolverData fieldSolverData(perb, perbdt2, e, edt2, ehall, egradpe, egradpedt2, moments, momentsdt2, dperb,
+                                         dmoments, dmomentsdt2, bgb, vol, technical, fsgrid);
    initFsTimer.stop();
 
    initGridsTimer.stop();
@@ -515,7 +515,7 @@ int simulate(int argn,char* args[]) {
       }
 
       const bool writeGhosts = true;
-      if (writeGrid(mpiGrid, fsgrids, version, config, &outputReducer, P::systemWriteName.size() - 1,
+      if (writeGrid(mpiGrid, fieldSolverData, version, config, &outputReducer, P::systemWriteName.size() - 1,
                     P::restartStripeFactor, writeGhosts) == false) {
          cerr << "FAILED TO WRITE GRID AT " << __FILE__ << " " << __LINE__ << endl;
       }
@@ -606,7 +606,7 @@ int simulate(int argn,char* args[]) {
       }
 
       const bool writeGhosts = true;
-      if (writeGrid(mpiGrid, fsgrids, version, config, &outputReducer, P::systemWriteName.size() - 1,
+      if (writeGrid(mpiGrid, fieldSolverData, version, config, &outputReducer, P::systemWriteName.size() - 1,
                     P::restartStripeFactor, writeGhosts) == false) {
          cerr << "FAILED TO WRITE GRID AT " << __FILE__ << " " << __LINE__ << endl;
       }
@@ -816,8 +816,8 @@ int simulate(int argn,char* args[]) {
             phiprof::Timer writeSysTimer {"write-system"};
             logFile << "(IO): Writing spatial cell and reduced system data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
             const bool writeGhosts = true;
-            if (writeGrid(mpiGrid, fsgrids, version, config, &outputReducer, i, P::systemStripeFactor, writeGhosts) ==
-                false) {
+            if (writeGrid(mpiGrid, fieldSolverData, version, config, &outputReducer, i, P::systemStripeFactor,
+                          writeGhosts) == false) {
                cerr << "FAILED TO WRITE GRID AT" << __FILE__ << " " << __LINE__ << endl;
             }
             P::systemWrites[i]++;
@@ -887,7 +887,7 @@ int simulate(int argn,char* args[]) {
          if (myRank == MASTER_RANK)
             logFile << "(IO): Writing restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
          //Write the restart:
-         if (writeRestart(mpiGrid, fsgrids, version, config, outputReducer, "restart", (uint)P::t,
+         if (writeRestart(mpiGrid, fieldSolverData, version, config, outputReducer, "restart", (uint)P::t,
                           P::restartStripeFactor) == false) {
             logFile << "(IO): ERROR Failed to write restart!" << endl << writeVerbose;
             cerr << "FAILED TO WRITE RESTART" << endl;

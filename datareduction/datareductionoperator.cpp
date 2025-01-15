@@ -127,8 +127,9 @@ namespace DRO {
       return true;
    }
 
-   bool DataReductionOperatorFsGrid::writeFsGridData(const FsGrids& fsgrids, const std::string& meshName,
-                                                     vlsv::Writer& vlsvWriter, const bool writeAsFloat) {
+   bool DataReductionOperatorFsGrid::writeFsGridData(const FieldSolverData& fieldSolverData,
+                                                     const std::string& meshName, vlsv::Writer& vlsvWriter,
+                                                     const bool writeAsFloat) {
       const std::map<std::string, std::string> attribs = {
           {"mesh", meshName},
           {"name", variableName},
@@ -139,8 +140,8 @@ namespace DRO {
       };
 
       std::vector<float> varBufferFloat;
-      const std::vector<double> varBuffer = lambda(fsgrids);
-      const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
+      const std::vector<double> varBuffer = lambda(fieldSolverData);
+      const auto* localSize = &fieldSolverData.fsgrid.getLocalSize()[0];
       const auto totalSize = localSize[0] * localSize[1] * localSize[2];
       const auto vectorSize = totalSize == 0 ? 0 : varBuffer.size() / totalSize;
 

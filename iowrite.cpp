@@ -330,7 +330,7 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
  \return Returns true if operation was successful
  */
 bool writeDataReducer(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                      const std::vector<CellID>& cells, const FsGrids& fsgrids, const bool writeAsFloat,
+                      const std::vector<CellID>& cells, const FieldSolverData& fieldSolverData, const bool writeAsFloat,
                       const bool writeFsGrid, DataReducer& dataReducer, cint dataReducerIndex, Writer& vlsvWriter) {
    map<string,string> attribs;
    string variableName,dataType,unitString,unitStringLaTeX, variableStringLaTeX, unitConversionFactor;
@@ -394,7 +394,7 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>
   if( dataReducer.getName(dataReducerIndex).find("fg_", 0) == 0 ) {
       // Write fsgrid data
       phiprof::Timer writeFsTimer {"writeFsGrid"};
-      success = dataReducer.writeFsGridData(fsgrids, "fsgrid", dataReducerIndex, vlsvWriter, writeAsFloat);
+      success = dataReducer.writeFsGridData(fieldSolverData, "fsgrid", dataReducerIndex, vlsvWriter, writeAsFloat);
       writeFsTimer.stop();
 
    } else if( dataReducer.getName(dataReducerIndex).find("ig_", 0) == 0 ) {
@@ -1306,7 +1306,7 @@ bool checkForSameMembers(const vector<uint64_t>& local_cells, const vector<uint6
 \param index       Index to call the correct member of the various parameter vectors
 \param writeGhosts If true, writes out ghost cells (cells that exist on the process boundary so other process' cells)
 */
-bool writeGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const FsGrids& fsgrids,
+bool writeGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const FieldSolverData& fieldSolverData,
                const std::string& versionInfo, const std::string& configInfo, DataReducer* dataReducer,
                const uint& outputFileTypeIndex, const int& stripe, const bool writeGhosts) {
    bool success = true;
@@ -1426,7 +1426,7 @@ bool writeGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, co
    }
 
    //Write FSGrid metadata
-   if (writeFsGridMetadata(fsgrids.fsgrid, vlsvWriter, P::systemWriteFsGrid.at(outputFileTypeIndex)) == false) {
+   if (writeFsGridMetadata(fieldSolverData.fsgrid, vlsvWriter, P::systemWriteFsGrid.at(outputFileTypeIndex)) == false) {
       return false;
    }
 
@@ -1458,7 +1458,7 @@ bool writeGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, co
    //Determines whether we write in floats or doubles
    phiprof::Timer writeDataTimer {"writeDataReducer"};
    if (dataReducer != NULL) for( uint i = 0; i < dataReducer->size(); ++i ) {
-         if (writeDataReducer(mpiGrid, local_cells, fsgrids, (P::writeAsFloat == 1),
+         if (writeDataReducer(mpiGrid, local_cells, fieldSolverData, (P::writeAsFloat == 1),
                               P::systemWriteFsGrid.at(outputFileTypeIndex), *dataReducer, i, vlsvWriter) == false) {
             return false;
          }
@@ -1511,7 +1511,7 @@ bool writeGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, co
 \param name       File name prefix, file will be called "name.index.vlsv"
 \param fileIndex  File index, file will be called "name.index.vlsv"
 */
-bool writeRestart(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const FsGrids& fsgrids,
+bool writeRestart(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const FieldSolverData& fieldSolverData,
                   const std::string& versionInfo, const std::string& configInfo, DataReducer& dataReducer,
                   const string& name, const uint& fileIndex, const int& stripe) {
    // Writes a restart
@@ -1616,7 +1616,7 @@ bool writeRestart(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
    if( writeDomainSizes( vlsvWriter, meshName, local_cells.size(), ghost_cells.size() ) == false ) return false;
 
    //Write FSGrid metadata
-   if (writeFsGridMetadata(fsgrids.fsgrid, vlsvWriter, true) == false)
+   if (writeFsGridMetadata(fieldSolverData.fsgrid, vlsvWriter, true) == false)
       return false;
 
    //Write Version Info 
@@ -1655,16 +1655,16 @@ bool writeRestart(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
 
    // Fsgrid Reducers
    restartReducer.addOperator(
-       new DRO::DataReductionOperatorFsGrid("fg_E", [](const FsGrids& fsgrids) -> std::vector<Real> {
-          const std::array<fsgrid::FsIndex_t, 3>& gridSize = fsgrids.fsgrid.getLocalSize();
+       new DRO::DataReductionOperatorFsGrid("fg_E", [](const FieldSolverData& fieldSolverData) -> std::vector<Real> {
+          const std::array<fsgrid::FsIndex_t, 3>& gridSize = fieldSolverData.fsgrid.getLocalSize();
           std::vector<Real> retval(gridSize[0] * gridSize[1] * gridSize[2] * fsgrids::efield::N_EFIELD);
           int index = 0;
           for (fsgrid::FsIndex_t z = 0; z < gridSize[2]; z++) {
              for (fsgrid::FsIndex_t y = 0; y < gridSize[1]; y++) {
                 for (fsgrid::FsIndex_t x = 0; x < gridSize[0]; x++) {
-                   const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
+                   const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
                    const auto lid = stencil.center();
-                   std::memcpy(&retval[index], fsgrids.E[lid].data(), sizeof(Real) * fsgrids::efield::N_EFIELD);
+                   std::memcpy(&retval[index], fieldSolverData.E[lid].data(), sizeof(Real) * fsgrids::efield::N_EFIELD);
                    index += fsgrids::efield::N_EFIELD;
                 }
              }
@@ -1673,16 +1673,17 @@ bool writeRestart(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
        }));
 
    restartReducer.addOperator(
-       new DRO::DataReductionOperatorFsGrid("fg_PERB", [](const FsGrids& fsgrids) -> std::vector<Real> {
-          const auto& gridSize = fsgrids.fsgrid.getLocalSize();
+       new DRO::DataReductionOperatorFsGrid("fg_PERB", [](const FieldSolverData& fieldSolverData) -> std::vector<Real> {
+          const auto& gridSize = fieldSolverData.fsgrid.getLocalSize();
           std::vector<Real> retval(gridSize[0] * gridSize[1] * gridSize[2] * fsgrids::bfield::N_BFIELD);
           int index = 0;
           for (fsgrid::FsIndex_t z = 0; z < gridSize[2]; z++) {
              for (fsgrid::FsIndex_t y = 0; y < gridSize[1]; y++) {
                 for (fsgrid::FsIndex_t x = 0; x < gridSize[0]; x++) {
-                   const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
+                   const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
                    const auto lid = stencil.center();
-                   std::memcpy(&retval[index], fsgrids.perB[lid].data(), sizeof(Real) * fsgrids::bfield::N_BFIELD);
+                   std::memcpy(&retval[index], fieldSolverData.perB[lid].data(),
+                               sizeof(Real) * fsgrids::bfield::N_BFIELD);
                    index += fsgrids::bfield::N_BFIELD;
                 }
              }
@@ -1783,7 +1784,7 @@ bool writeRestart(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
    //Write necessary variables:
    const bool writeAsFloat = P::writeRestartAsFloat;
    for (uint i=0; i<restartReducer.size(); ++i) {
-      writeDataReducer(mpiGrid, local_cells, fsgrids, writeAsFloat, true, restartReducer, i, vlsvWriter);
+      writeDataReducer(mpiGrid, local_cells, fieldSolverData, writeAsFloat, true, restartReducer, i, vlsvWriter);
    }
    reducedTimer.stop();
    //write the velocity distribution data -- note: it's expecting a vector of pointers:

@@ -92,7 +92,7 @@ void getBgFieldsAndDerivativesFromFsGrid(fsgrid::FsData<std::array<Real, fsgrids
                                          dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                          const std::vector<CellID>& cells);
 
-/*! Copy field derivatives from the appropriate FsGrids and store them back into DCCRG
+/*! Copy field derivatives from the appropriate FieldSolverData and store them back into DCCRG
  *
  * This should only be neccessary for debugging.
  */

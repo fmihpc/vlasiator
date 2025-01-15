@@ -94,7 +94,7 @@ namespace DRO {
    class DataReductionOperatorFsGrid : public DataReductionOperator {
 
       public:
-         typedef std::function<std::vector<double>(const FsGrids& fsgrids)> ReductionLambda;
+         typedef std::function<std::vector<double>(const FieldSolverData& fieldSolverData)> ReductionLambda;
 
       private:
          ReductionLambda lambda;
@@ -107,8 +107,8 @@ namespace DRO {
          virtual bool setSpatialCell(const SpatialCell* cell);
          virtual bool reduceData(const SpatialCell* cell,char* buffer);
          virtual bool reduceDiagnostic(const SpatialCell* cell,Real * result);
-         virtual bool writeFsGridData(const FsGrids& fsgrids, const std::string& meshName, vlsv::Writer& vlsvWriter,
-                                      const bool writeAsFloat = false);
+         virtual bool writeFsGridData(const FieldSolverData& fieldSolverData, const std::string& meshName,
+                                      vlsv::Writer& vlsvWriter, const bool writeAsFloat = false);
    };
 
    // Generic (lambda-based) datareducer for ionosphere grid element-centered data

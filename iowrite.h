@@ -42,7 +42,7 @@
 \param index       Index to call the correct member of the various parameter vectors
 \param writeGhosts Write ghost zones
 */
-bool writeGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const FsGrids& fsgrids,
+bool writeGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const FieldSolverData& fieldSolverData,
                const std::string& versionInfo, const std::string& configInfo, DataReducer* dataReducer,
                const uint& index, const int& stripe, const bool writeGhosts);
 
@@ -55,7 +55,7 @@ bool writeGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, co
 \param name       File name prefix, file will be called "name.index.vlsv"
 \param fileIndex  File index, file will be called "name.index.vlsv"
 */
-bool writeRestart(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const FsGrids& fsgrids,
+bool writeRestart(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const FieldSolverData& fieldSolverData,
                   const std::string& versionInfo, const std::string& configInfo, DataReducer& dataReducer,
                   const std::string& name, const uint& fileIndex, const int& stripe);
 

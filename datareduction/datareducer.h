@@ -56,8 +56,8 @@ class DataReducer {
    bool reduceDiagnostic(const SpatialCell* cell,const unsigned int& operatorID,Real * result);
    unsigned int size() const;
    bool writeParameters(const unsigned int& operatorID, vlsv::Writer& vlsvWriter);
-   bool writeFsGridData(const FsGrids& fsgrids, const std::string& meshName, const unsigned int operatorID,
-                        vlsv::Writer& vlsvWriter, const bool writeAsFloat = false);
+   bool writeFsGridData(const FieldSolverData& fieldSolverData, const std::string& meshName,
+                        const unsigned int operatorID, vlsv::Writer& vlsvWriter, const bool writeAsFloat = false);
    bool writeIonosphereGridData(SBC::SphericalTriGrid& grid, const std::string& meshName,
          const unsigned int operatorID, vlsv::Writer& vlsvWriter);
 
