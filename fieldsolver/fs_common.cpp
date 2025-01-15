@@ -225,7 +225,6 @@ std::array<Real, 3> interpolatePerturbedB(
     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
     std::map<std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS>>& reconstructionCoefficientsCache, cint i,
     cint j, cint k, const std::array<Real, 3> x) {
-   std::span<const fsgrids::technical> technical = technicalGrid.getData();
    const auto stencil = technicalGrid.makeStencil(i, j, k);
 
    cuint cellSysBoundaryFlag = technical[stencil.center()].sysBoundaryFlag;
@@ -302,7 +301,6 @@ std::array<Real, 3> interpolateCurlB(
     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
     std::map<std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS>>& reconstructionCoefficientsCache, cint i,
     cint j, cint k, const std::array<Real, 3> x) {
-   std::span<const fsgrids::technical> technical = technicalGrid.getData();
    const auto stencil = technicalGrid.makeStencil(i, j, k);
 
    cuint cellSysBoundaryFlag = technical[stencil.center()].sysBoundaryFlag;

@@ -159,7 +159,6 @@ bool traceFullFieldFunction(std::span<const std::array<Real, fsgrids::bfield::N_
                             std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                             fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, std::array<REAL, 3>& r,
                             const bool alongB, std::array<REAL, 3>& b) {
-   std::span<fsgrids::technical> technical = technicalGrid.getData();
 
    if (r[0] > P::xmax - 2 * P::dx_ini || r[0] < P::xmin + 2 * P::dx_ini || r[1] > P::ymax - 2 * P::dy_ini ||
        r[1] < P::ymin + 2 * P::dy_ini || r[2] > P::zmax - 2 * P::dz_ini || r[2] < P::zmin + 2 * P::dz_ini) {

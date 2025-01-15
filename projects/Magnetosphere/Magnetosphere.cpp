@@ -426,7 +426,6 @@ namespace projects {
          }
          
          // Remove dipole from inflow cells if this is requested
-         std::span<const fsgrids::technical> technical = technicalGrid.getData();
          if(this->noDipoleInSW) {
 #pragma omp for collapse(2)
             for (fsgrid::FsIndex_t z = 0; z < localSize[2]; ++z) {

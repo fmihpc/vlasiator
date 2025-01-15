@@ -82,7 +82,6 @@ void filterMoments(fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>
 
    // Get size of local domain
    const auto* localSize = &technicalGrid.getLocalSize()[0];
-   const auto& technical = technicalGrid.getData();
    // Create a copy of moments data for filtering
    fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>> blurred(moments.size());
 
@@ -233,7 +232,6 @@ void getFieldsFromFsGrid(const fsgrid::FsData<std::array<Real, fsgrids::volfield
                          dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                          const std::vector<CellID>& cells) {
    // TODO: solver only needs bgb + PERB, we could combine them
-   const std::span<fsgrids::technical> technical = technicalGrid.getData();
    const auto& gridSpacing = technicalGrid.getGridSpacing();
 
    struct Average {
@@ -530,7 +528,6 @@ std::vector<CellID> mapDccrgIdToFsGridGlobalID(dccrg::Dccrg<SpatialCell, dccrg::
 void feedBoundaryIntoFsGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                             const std::vector<CellID>& cells,
                             fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
-   std::span<fsgrids::technical> technical = technicalGrid.getData();
    int ii;
    // sorted list of dccrg cells. cells is typicall already sorted, but just to make sure....
    std::vector<CellID> dccrgCells = cells;

@@ -101,7 +101,6 @@ void calculateGradPeTermSimple(std::span<std::array<Real, fsgrids::egradpe::N_EG
    const auto* localSize = &technicalGrid.getLocalSize()[0];
    const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
 
-   std::span<const fsgrids::technical> technical = technicalGrid.getData();
    if (not(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2)) {
       egradpe = egradpedt2;
       moments = momentsdt2;

@@ -321,7 +321,6 @@ bool belongsToLayer(const int layer, const int x, const int y, const int z,
 
    bool belongs = false;
    const auto stencil = technicalGrid.makeStencil(x, y, z);
-   std::span<const fsgrids::technical> technical = technicalGrid.getData();
 
    // loop through all neighbors (including diagonals)
    for (int iz = -1; iz <= 1; ++iz) {
@@ -362,7 +361,6 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
                                 fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
    const vector<CellID>& cells = getLocalCells();
    const auto* localSize = &technicalGrid.getLocalSize()[0];
-   std::span<fsgrids::technical> technical = technicalGrid.getData();
    const auto rank = technicalGrid.getRank();
 
    /*set all cells to default value, not_sysboundary */

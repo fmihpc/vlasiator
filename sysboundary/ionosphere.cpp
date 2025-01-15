@@ -1121,7 +1121,6 @@ void SphericalTriGrid::mapDownBoundaryData(std::span<const std::array<Real, fsgr
                                            std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                                            std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
                                            fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
-   std::span<fsgrids::technical> technical = technicalGrid.getData();
 
    if (!isCouplingInwards && !isCouplingOutwards) {
       return;

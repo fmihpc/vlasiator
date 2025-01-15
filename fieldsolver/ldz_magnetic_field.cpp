@@ -212,7 +212,6 @@ void propagateMagneticFieldSimple(std::span<std::array<Real, fsgrids::bfield::N_
    const auto& gridSpacing = technicalGrid.getGridSpacing();
    const size_t numCells = technicalGrid.getNumCells();
 
-   std::span<const fsgrids::technical> technical = technicalGrid.getData();
 
    phiprof::Timer propagateBTimer{"Propagate magnetic field"};
    int computeTimerId{phiprof::initializeTimer("Magnetic Field compute cells")};

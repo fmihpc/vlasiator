@@ -553,7 +553,6 @@ namespace SBC {
       cint k
    ) {
       const auto stencil = technicalGrid.makeStencil(i, j, k);
-      std::span<const fsgrids::technical> technical = technicalGrid.getData();
       int distance = numeric_limits<int>::max();
       vector<array<int, 3>> closestCells;
 

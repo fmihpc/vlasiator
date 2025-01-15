@@ -220,7 +220,6 @@ void Outflow::initSysBoundary(creal& t, Project& project) {
 void Outflow::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                 fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
    const auto& gridSpacing = technicalGrid.getGridSpacing();
-   std::span<fsgrids::technical> technical = technicalGrid.getData();
    bool doAssign;
    array<bool, 6> isThisCellOnAFace;
 

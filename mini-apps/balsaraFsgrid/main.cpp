@@ -193,7 +193,6 @@ int main(int argc, char** argv) {
        fsGridDimensions, parentComm, numFsProcs, periodicity, gridSpacing, physicalGlobalStart, decomposition);
    fsgrid::FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> dPerBGrid(
        fsGridDimensions, parentComm, numFsProcs, periodicity, gridSpacing, physicalGlobalStart, decomposition);
-   std::span<fsgrids::technical> technical = technicalGrid.getData();
    std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb = perBGrid.getData();
    std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb = dPerBGrid.getData();
 
