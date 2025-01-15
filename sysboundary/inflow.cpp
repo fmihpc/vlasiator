@@ -79,8 +79,8 @@ void Inflow::initSysBoundary(creal& t, Project& project) {
 }
 
 void Inflow::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                               fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
-   const auto& gridSpacing = technicalGrid.getGridSpacing();
+                               std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid) {
+   const auto& gridSpacing = fsgrid.getGridSpacing();
    bool doAssign;
    std::array<bool, 6> isThisCellOnAFace;
 
@@ -111,12 +111,12 @@ void Inflow::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geomet
    }
 
    // Assign boundary flags to local fsgrid cells
-   const auto* localSize = &technicalGrid.getLocalSize()[0];
+   const auto* localSize = &fsgrid.getLocalSize()[0];
    for (auto k = 0; k < localSize[2]; k++) {
       for (auto j = 0; j < localSize[1]; j++) {
          for (auto i = 0; i < localSize[0]; i++) {
-            const auto coords = technicalGrid.getPhysicalCoords(i, j, k);
-            const auto stencil = technicalGrid.makeStencil(i, j, k);
+            const auto coords = fsgrid.getPhysicalCoords(i, j, k);
+            const auto stencil = fsgrid.makeStencil(i, j, k);
 
             // Shift to the center of the fsgrid cell
             auto cellCenterCoords = coords;
@@ -150,17 +150,17 @@ void Inflow::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geomet
 }
 
 void Inflow::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                               fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+                               std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
                                std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                                std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, Project& project) {
    for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
       setCellsFromTemplate(mpiGrid, popID);
    }
-   setBFromTemplate(mpiGrid, perb, bgb, technicalGrid);
+   setBFromTemplate(mpiGrid, perb, bgb, technical, fsgrid);
 }
 
 void Inflow::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                         fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+                         std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
                          std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                          std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, creal t) {
    if (t - tLastApply < tInterval) {
@@ -177,7 +177,7 @@ void Inflow::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& m
       setCellsFromTemplate(mpiGrid, popID);
    }
 
-   setBFromTemplate(mpiGrid, perb, bgb, technicalGrid);
+   setBFromTemplate(mpiGrid, perb, bgb, technical, fsgrid);
 
    // Ensure up-to-date velocity block counts for all neighbours
    phiprof::Timer ghostTimer{"transfer-ghost-blocks", {"MPI"}};
@@ -276,15 +276,15 @@ void Inflow::vlasovBoundaryCondition(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_
 void Inflow::setBFromTemplate(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                               std::span<array<Real, fsgrids::bfield::N_BFIELD>> perb,
                               std::span<array<Real, fsgrids::bgbfield::N_BGB>> bgb,
-                              fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
+                              std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid) {
    std::array<bool, 6> isThisCellOnAFace;
-   const auto& gridSpacing = technicalGrid.getGridSpacing();
-   const auto* localSize = &technicalGrid.getLocalSize()[0];
+   const auto& gridSpacing = fsgrid.getGridSpacing();
+   const auto* localSize = &fsgrid.getLocalSize()[0];
    for (fsgrid::FsIndex_t k = 0; k < localSize[2]; k++) {
       for (fsgrid::FsIndex_t j = 0; j < localSize[1]; j++) {
          for (fsgrid::FsIndex_t i = 0; i < localSize[0]; i++) {
-            const auto stencil = technicalGrid.makeStencil(i, j, k);
-            const auto coords = technicalGrid.getPhysicalCoords(i, j, k);
+            const auto stencil = fsgrid.makeStencil(i, j, k);
+            const auto coords = fsgrid.getPhysicalCoords(i, j, k);
 
             // TODO: This code up to determineFace() should be in a separate
             // function, it gets called in a lot of places.

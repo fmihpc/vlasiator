@@ -41,16 +41,16 @@ FieldTracingParameters fieldTracingParameters;
 
 /* Call the heavier operations for DROs to be called only if needed, before an IO.
  */
-void reduceData(fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+void reduceData(std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
                 std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                 std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                 dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                 std::vector<SBC::SphericalTriGrid::Node>& nodes) {
    if (fieldTracingParameters.doTraceOpenClosed) {
-      traceOpenClosedConnection(technicalGrid, perb, dperb, nodes);
+      traceOpenClosedConnection(technical, fsgrid, perb, dperb, nodes);
    }
    if (fieldTracingParameters.doTraceFullBox) {
-      traceFullBoxConnectionAndFluxRopes(technicalGrid, perb, dperb, mpiGrid);
+      traceFullBoxConnectionAndFluxRopes(technical, fsgrid, perb, dperb, mpiGrid);
    }
 }
 
@@ -59,7 +59,7 @@ void reduceData(fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalG
  * outwards until a non-boundary cell is encountered. Their proportional
  * coupling values are recorded in the grid nodes.
  */
-void calculateIonosphereFsgridCoupling(fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+void calculateIonosphereFsgridCoupling(std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
                                        std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                                        std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                                        std::vector<SBC::SphericalTriGrid::Node>& nodes, creal couplingRadius) {
@@ -71,7 +71,7 @@ void calculateIonosphereFsgridCoupling(fsgrid::FsGrid<fsgrids::technical, FS_STE
 
    phiprof::Timer timer{"fieldtracing-ionosphere-fsgridCoupling"};
    // Pick an initial stepsize
-   creal stepSize = min(100e3, technicalGrid.getGridSpacing()[0] / 2.);
+   creal stepSize = min(100e3, fsgrid.getGridSpacing()[0] / 2.);
    std::vector<Real> nodeTracingStepSize(
        nodes.size(), stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
    std::vector<Real> reducedNodeTracingStepSize(nodes.size());
@@ -93,8 +93,8 @@ void calculateIonosphereFsgridCoupling(fsgrid::FsGrid<fsgrids::technical, FS_STE
    bool anyNodeNeedsTracing;
 
    TracingFieldFunction<Real> tracingFullField =
-       [&perb, &dperb, &technicalGrid](std::array<Real, 3>& r, const bool alongB, std::array<Real, 3>& b) -> bool {
-      return traceFullFieldFunction(perb, dperb, technicalGrid, r, alongB, b);
+       [&perb, &dperb, &technical, &fsgrid](std::array<Real, 3>& r, const bool alongB, std::array<Real, 3>& b) -> bool {
+      return traceFullFieldFunction(perb, dperb, technical, fsgrid, r, alongB, b);
    };
 
    int itCount = 0;
@@ -120,7 +120,7 @@ void calculateIonosphereFsgridCoupling(fsgrid::FsGrid<fsgrids::technical, FS_STE
             while (true) {
 
                // Check if the current coordinates (pre-step) are in our own domain.
-               std::array<fsgrid::FsIndex_t, 3> fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid, x);
+               std::array<fsgrid::FsIndex_t, 3> fsgridCell = getLocalFsGridCellIndexForCoord(fsgrid, x);
                // If it is not in our domain, somebody else takes care of it.
                if (fsgridCell[0] == -1) {
                   nodeNeedsContinuedTracing[n] = 0;
@@ -131,7 +131,7 @@ void calculateIonosphereFsgridCoupling(fsgrid::FsGrid<fsgrids::technical, FS_STE
 
                // Make one step along the fieldline
                stepFieldLine(x, v, nodeTracingStepSize[n], fieldTracingParameters.min_tracer_dx_full_box,
-                             technicalGrid.getGridSpacing()[0] / 2, fieldTracingParameters.tracingMethod,
+                             fsgrid.getGridSpacing()[0] / 2, fieldTracingParameters.tracingMethod,
                              tracingFullField, (no.x[2] < 0));
 
                // If we map back into the ionosphere, we obviously don't couple out to SBC::Ionosphere::downmapRadius.
@@ -149,7 +149,7 @@ void calculateIonosphereFsgridCoupling(fsgrid::FsGrid<fsgrids::technical, FS_STE
 
                   // Take a step back and find the downmapRadius crossing point
                   stepFieldLine(x, v, nodeTracingStepSize[n], fieldTracingParameters.min_tracer_dx_full_box,
-                                technicalGrid.getGridSpacing()[0] / 2, fieldTracingParameters.tracingMethod,
+                                fsgrid.getGridSpacing()[0] / 2, fieldTracingParameters.tracingMethod,
                                 tracingFullField, !(no.x[2] < 0));
                   Real r_out = sqrt(x_out[0] * x_out[0] + x_out[1] * x_out[1] + x_out[2] * x_out[2]);
                   Real r_in = sqrt(x[0] * x[0] + x[1] * x[1] + x[2] * x[2]);
@@ -167,11 +167,11 @@ void calculateIonosphereFsgridCoupling(fsgrid::FsGrid<fsgrids::technical, FS_STE
 
                   // Look up the fsgrid cell belonging to these coordinates, including ghost IDs as we might have
                   // stepped back across the domain edge
-                  fsgridCell = getLocalFsGridCellIndexWithGhostsForCoord(technicalGrid, x);
+                  fsgridCell = getLocalFsGridCellIndexWithGhostsForCoord(fsgrid, x);
 
                   // Interpolate and record upmapped B at final xMapped ccordinates
                   const std::array<Real, 3> perB = interpolatePerturbedB(
-                      perb, dperb, technicalGrid, fieldTracingParameters.reconstructionCoefficientsCache, fsgridCell[0],
+                      perb, dperb, technical, fsgrid, fieldTracingParameters.reconstructionCoefficientsCache, fsgridCell[0],
                       fsgridCell[1], fsgridCell[2], no.xMapped);
                   no.parameters[ionosphereParameters::UPMAPPED_BX] =
                       SBC::ionosphereGrid.dipoleField(x[0], x[1], x[2], X, 0, X) + SBC::ionosphereGrid.BGB[0] + perB[0];
@@ -190,7 +190,7 @@ void calculateIonosphereFsgridCoupling(fsgrid::FsGrid<fsgrids::technical, FS_STE
                }
 
                // Look up the fsgrid cell belonging to these coordinates, again only local (no ghosts)
-               fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid, x);
+               fsgridCell = getLocalFsGridCellIndexForCoord(fsgrid, x);
                // Now, after stepping, if it is no longer in our domain, another MPI rank will pick up later.
                if (fsgridCell[0] == -1) {
                   nodeNeedsContinuedTracing[n] = 1;
@@ -486,7 +486,7 @@ calculateIonosphereVlasovGridCoupling(std::array<Real, 3> x, std::vector<SBC::Sp
 
 /*! Trace magnetic field lines out from ionospheric nodes to record whether they are on an open or closed field line.
  */
-void traceOpenClosedConnection(fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+void traceOpenClosedConnection(std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
                                std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                                std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                                std::vector<SBC::SphericalTriGrid::Node>& nodes) {
@@ -498,15 +498,15 @@ void traceOpenClosedConnection(fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WID
 
    phiprof::Timer tracingTimer{"fieldtracing-ionosphere-openclosedTracing"};
    // Pick an initial stepsize
-   const TReal stepSize = min(1000e3, technicalGrid.getGridSpacing()[0] / 2.);
+   const TReal stepSize = min(1000e3, fsgrid.getGridSpacing()[0] / 2.);
    std::vector<TReal> nodeTracingStepSize(
        nodes.size(), stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
    std::vector<TReal> reducedNodeTracingStepSize(nodes.size());
-   std::array<fsgrid::FsSize_t, 3> gridSize = technicalGrid.getGlobalSize();
+   std::array<fsgrid::FsSize_t, 3> gridSize = fsgrid.getGlobalSize();
    uint64_t maxTracingSteps =
        8 *
-       (gridSize[0] * technicalGrid.getGridSpacing()[0] + gridSize[1] * technicalGrid.getGridSpacing()[1] +
-        gridSize[2] * technicalGrid.getGridSpacing()[2]) /
+       (gridSize[0] * fsgrid.getGridSpacing()[0] + gridSize[1] * fsgrid.getGridSpacing()[1] +
+        gridSize[2] * fsgrid.getGridSpacing()[2]) /
        stepSize;
 
    std::vector<int> nodeMapping(nodes.size(), TracingLineEndType::UNPROCESSED); /*!< For reduction of node coupling */
@@ -526,9 +526,10 @@ void traceOpenClosedConnection(fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WID
    }
    bool anyNodeNeedsTracing;
 
-   TracingFieldFunction<TReal> tracingFullField =
-       [&perb, &dperb, &technicalGrid](std::array<TReal, 3>& r, const bool alongB, std::array<TReal, 3>& b) -> bool {
-      return traceFullFieldFunction(perb, dperb, technicalGrid, r, alongB, b);
+   TracingFieldFunction<TReal> tracingFullField = [&perb, &dperb, &technical,
+                                                   &fsgrid](std::array<TReal, 3>& r, const bool alongB,
+                                                            std::array<TReal, 3>& b) -> bool {
+      return traceFullFieldFunction(perb, dperb, technical, fsgrid, r, alongB, b);
    };
 
    int itCount = 0;
@@ -557,7 +558,7 @@ void traceOpenClosedConnection(fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WID
 
                // Check if the current coordinates (pre-step) are in our own domain.
                std::array<fsgrid::FsIndex_t, 3> fsgridCell =
-                   getLocalFsGridCellIndexForCoord(technicalGrid, {(TReal)x[0], (TReal)x[1], (TReal)x[2]});
+                   getLocalFsGridCellIndexForCoord(fsgrid, {(TReal)x[0], (TReal)x[1], (TReal)x[2]});
                // If it is not in our domain, somebody else takes care of it.
                if (fsgridCell[0] == -1) {
                   nodeNeedsContinuedTracing[n] = 0;
@@ -577,12 +578,12 @@ void traceOpenClosedConnection(fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WID
                // Make one step along the fieldline
                // If the node is in the North, trace along -B (false for last argument), in the South, trace along B
                stepFieldLine(x, v, nodeTracingStepSize[n], (TReal)fieldTracingParameters.min_tracer_dx_full_box,
-                             (TReal)technicalGrid.getGridSpacing()[0] / 2, fieldTracingParameters.tracingMethod,
+                             (TReal)fsgrid.getGridSpacing()[0] / 2, fieldTracingParameters.tracingMethod,
                              tracingFullField, (no.x[2] < 0));
                nodeTracingStepCount[n]++;
 
                // Look up the fsgrid cell belonging to these coordinates
-               fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid, {(TReal)x[0], (TReal)x[1], (TReal)x[2]});
+               fsgridCell = getLocalFsGridCellIndexForCoord(fsgrid, {(TReal)x[0], (TReal)x[1], (TReal)x[2]});
 
                // If we map into the ionosphere, this node is on a closed field line.
                if (x.at(0) * x.at(0) + x.at(1) * x.at(1) + x.at(2) * x.at(2) <
@@ -675,7 +676,7 @@ void traceOpenClosedConnection(fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WID
  * Beware this is inside a threaded region.
  * \sa traceFullBoxConnectionAndFluxRopes
  */
-void stepCellAcrossTaskDomain(cint n, fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+void stepCellAcrossTaskDomain(cint n, std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
                               TracingFieldFunction<TReal>& tracingFullField,
                               const std::vector<std::array<TReal, 3>>& cellInitialCoordinates,
                               const std::vector<TReal>& cellCurvatureRadius,
@@ -688,7 +689,7 @@ void stepCellAcrossTaskDomain(cint n, fsgrid::FsGrid<fsgrids::technical, FS_STEN
    while (true) {
       // Check if the current coordinates (pre-step) are in our own domain.
       std::array<fsgrid::FsIndex_t, 3> fsgridCell =
-          getLocalFsGridCellIndexForCoord(technicalGrid, {(Real)x[0], (Real)x[1], (Real)x[2]});
+          getLocalFsGridCellIndexForCoord(fsgrid, {(Real)x[0], (Real)x[1], (Real)x[2]});
       // If it is not in our domain, somebody else takes care of it.
       if (fsgridCell[0] == -1) {
          cellTracingCoordinates[n] = {0, 0, 0};
@@ -698,12 +699,12 @@ void stepCellAcrossTaskDomain(cint n, fsgrid::FsGrid<fsgrids::technical, FS_STEN
 
       // Make one step along the fieldline
       // Forward tracing means true for last argument
-      stepFieldLine(x, v, cellTracingStepSize[n], (TReal)100e3, (TReal)technicalGrid.getGridSpacing()[0] / 2,
+      stepFieldLine(x, v, cellTracingStepSize[n], (TReal)100e3, (TReal)fsgrid.getGridSpacing()[0] / 2,
                     fieldTracingParameters.tracingMethod, tracingFullField, (DIRECTION == Direction::FORWARD));
       cellRunningDistance[n] += cellTracingStepSize[n];
 
       // Look up the fsgrid cell belonging to these coordinates
-      fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid, {(Real)x[0], (Real)x[1], (Real)x[2]});
+      fsgridCell = getLocalFsGridCellIndexForCoord(fsgrid, {(Real)x[0], (Real)x[1], (Real)x[2]});
 
       // If we map into the ionosphere, discard this field line.
       if (x.at(0) * x.at(0) + x.at(1) * x.at(1) + x.at(2) * x.at(2) <
@@ -713,7 +714,7 @@ void stepCellAcrossTaskDomain(cint n, fsgrid::FsGrid<fsgrids::technical, FS_STEN
 
          // Take a step back and find the innerRadius crossing point
          stepFieldLine(x, v, cellTracingStepSize[n], (TReal)fieldTracingParameters.min_tracer_dx_full_box,
-                       (TReal)technicalGrid.getGridSpacing()[0] / 2, fieldTracingParameters.tracingMethod,
+                       (TReal)fsgrid.getGridSpacing()[0] / 2, fieldTracingParameters.tracingMethod,
                        tracingFullField, !(DIRECTION == Direction::FORWARD));
          Real r_in = sqrt(cellTracingCoordinates[n][0] * cellTracingCoordinates[n][0] +
                           cellTracingCoordinates[n][1] * cellTracingCoordinates[n][1] +
@@ -844,7 +845,7 @@ void stepCellAcrossTaskDomain(cint n, fsgrid::FsGrid<fsgrids::technical, FS_STEN
  *
  * \sa stepCellAcrossTaskDomain
  */
-void traceFullBoxConnectionAndFluxRopes(fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+void traceFullBoxConnectionAndFluxRopes(std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
                                         std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                                         std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                                         dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) {
@@ -867,20 +868,20 @@ void traceFullBoxConnectionAndFluxRopes(fsgrid::FsGrid<fsgrids::technical, FS_ST
                   displacements.data(), MPI_UINT64_T, MPI_COMM_WORLD);
 
    // Pick an initial stepsize
-   const TReal stepSize = min(1000e3, technicalGrid.getGridSpacing()[0] / 2.);
+   const TReal stepSize = min(1000e3, fsgrid.getGridSpacing()[0] / 2.);
    std::vector<TReal> cellFWTracingStepSize(
        globalDccrgSize, stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
    std::vector<TReal> cellBWTracingStepSize(
        globalDccrgSize, stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
 
-   std::array<fsgrid::FsSize_t, 3> gridSize = technicalGrid.getGlobalSize();
+   std::array<fsgrid::FsSize_t, 3> gridSize = fsgrid.getGlobalSize();
    // If fullbox_and_fluxrope_max_distance is unset, use this heuristic considering how far an IMF+dipole combo can
    // sensibly stretch in the box before we're safe to assume it's rolled up more or less pathologically.
    const TReal maxTracingDistance = fieldTracingParameters.fullbox_and_fluxrope_max_distance > 0
                                         ? fieldTracingParameters.fullbox_and_fluxrope_max_distance
-                                        : gridSize[0] * technicalGrid.getGridSpacing()[0] +
-                                              gridSize[1] * technicalGrid.getGridSpacing()[1] +
-                                              gridSize[2] * technicalGrid.getGridSpacing()[2];
+                                        : gridSize[0] * fsgrid.getGridSpacing()[0] +
+                                              gridSize[1] * fsgrid.getGridSpacing()[1] +
+                                              gridSize[2] * fsgrid.getGridSpacing()[2];
 
    std::vector<TReal> cellCurvatureRadius(globalDccrgSize);
    std::vector<TReal> reducedCellCurvatureRadius(globalDccrgSize);
@@ -978,9 +979,10 @@ void traceFullBoxConnectionAndFluxRopes(fsgrid::FsGrid<fsgrids::technical, FS_ST
    cellBWTracingStepSize.swap(reducedCellBWTracingStepSize);
    cellCurvatureRadius.swap(reducedCellCurvatureRadius);
 
-   TracingFieldFunction<TReal> tracingFullField =
-       [&perb, &dperb, &technicalGrid](std::array<TReal, 3>& r, const bool alongB, std::array<TReal, 3>& b) -> bool {
-      return traceFullFieldFunction(perb, dperb, technicalGrid, r, alongB, b);
+   TracingFieldFunction<TReal> tracingFullField = [&perb, &dperb, &technical,
+                                                   &fsgrid](std::array<TReal, 3>& r, const bool alongB,
+                                                            std::array<TReal, 3>& b) -> bool {
+      return traceFullFieldFunction(perb, dperb, technical, fsgrid, r, alongB, b);
    };
    int itCount = 0;
    bool warnMaxDistanceExceeded = false;
@@ -1010,13 +1012,13 @@ void traceFullBoxConnectionAndFluxRopes(fsgrid::FsGrid<fsgrids::technical, FS_ST
 #pragma omp for schedule(dynamic)
          for (int n = 0; n < globalDccrgSize; n++) {
             if (cellFWConnection[n] % TracingLineEndType::N_TYPES == TracingLineEndType::UNPROCESSED) {
-               stepCellAcrossTaskDomain(n, technicalGrid, tracingFullField, cellInitialCoordinates, cellCurvatureRadius,
+               stepCellAcrossTaskDomain(n, technical, fsgrid, tracingFullField, cellInitialCoordinates, cellCurvatureRadius,
                                         cellFWTracingCoordinates, cellFWTracingStepSize, cellFWRunningDistance,
                                         cellMaxExtension, cellFWConnection, warnMaxDistanceExceeded, maxTracingDistance,
                                         Direction::FORWARD);
             }
             if (cellBWConnection[n] % TracingLineEndType::N_TYPES == TracingLineEndType::UNPROCESSED) {
-               stepCellAcrossTaskDomain(n, technicalGrid, tracingFullField, cellInitialCoordinates, cellCurvatureRadius,
+               stepCellAcrossTaskDomain(n, technical, fsgrid, tracingFullField, cellInitialCoordinates, cellCurvatureRadius,
                                         cellBWTracingCoordinates, cellBWTracingStepSize, cellBWRunningDistance,
                                         cellMaxExtension, cellBWConnection, warnMaxDistanceExceeded, maxTracingDistance,
                                         Direction::BACKWARD);

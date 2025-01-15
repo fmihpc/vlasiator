@@ -31,7 +31,7 @@
 #include <span>
 
 void setBackgroundField(const FieldFunction& bgFunction, std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
-                        fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, bool append = false);
+                        std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid, bool append = false);
 
 void setBackgroundFieldToZero(std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb);
 
@@ -60,11 +60,11 @@ void setPerturbedFieldToZero(std::span<std::array<Real, numFields>> b, int offse
 */
 template <long unsigned int numFields>
 void setPerturbedField(const FieldFunction& bfFunction, std::span<std::array<Real, numFields>> b,
-                       fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+                       std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
                        int offset = fsgrids::bfield::PERBX, bool append = false) {
    using namespace std::placeholders;
-   const auto gridSpacing = technicalGrid.getGridSpacing();
-   const auto* localSize = &technicalGrid.getLocalSize()[0];
+   const auto gridSpacing = fsgrid.getGridSpacing();
+   const auto* localSize = &fsgrid.getLocalSize()[0];
 
    /*if we do not add a new background to the existing one we first put everything to zero*/
    if (append == false) {
@@ -91,8 +91,8 @@ void setPerturbedField(const FieldFunction& bfFunction, std::span<std::array<Rea
    for (fsgrid::FsIndex_t z = 0; z < localSize[2]; ++z) {
       for (fsgrid::FsIndex_t y = 0; y < localSize[1]; ++y) {
          for (fsgrid::FsIndex_t x = 0; x < localSize[0]; ++x) {
-            const auto stencil = technicalGrid.makeStencil(x, y, z);
-            const auto start = technicalGrid.getPhysicalCoords(x, y, z);
+            const auto stencil = fsgrid.makeStencil(x, y, z);
+            const auto start = fsgrid.getPhysicalCoords(x, y, z);
             auto& field = b[stencil.center()];
 
             // Face averages

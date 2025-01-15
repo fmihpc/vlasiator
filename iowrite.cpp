@@ -330,7 +330,7 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
  \return Returns true if operation was successful
  */
 bool writeDataReducer(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                      const std::vector<CellID>& cells, FsGrids& fsgrids, const bool writeAsFloat,
+                      const std::vector<CellID>& cells, const FsGrids& fsgrids, const bool writeAsFloat,
                       const bool writeFsGrid, DataReducer& dataReducer, cint dataReducerIndex, Writer& vlsvWriter) {
    map<string,string> attribs;
    string variableName,dataType,unitString,unitStringLaTeX, variableStringLaTeX, unitConversionFactor;
@@ -885,77 +885,76 @@ bool writeConfigInfo(std::string config,vlsv::Writer& vlsvWriter,MPI_Comm comm){
 }
 
 /** Writes the mesh metadata for Visit to read FSGrid variable data.
- * @param technicalGrid An fsgrid instance used to extract metadata info.
+ * @param fsgrid An fsgrid instance used to extract metadata info.
  * @param vlsvWriter file object to write into.
  */
-bool writeFsGridMetadata(fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, vlsv::Writer& vlsvWriter,
-   bool writeIDs=false) {
+bool writeFsGridMetadata(fsgrid::FsGrid<FS_STENCIL_WIDTH>& fsgrid, vlsv::Writer& vlsvWriter, bool writeIDs = false) {
 
-  std::map<std::string, std::string> xmlAttributes;
-  const std::string meshName="fsgrid";
-  xmlAttributes["mesh"] = meshName;
+   std::map<std::string, std::string> xmlAttributes;
+   const std::string meshName = "fsgrid";
+   xmlAttributes["mesh"] = meshName;
 
-  //The visit plugin expects MESH_BBOX as a keyword. We only write one
-  //from the first rank.
-  const std::array<fsgrid::FsSize_t, 3>& globalSize = technicalGrid.getGlobalSize();
-  std::array<fsgrid::FsSize_t, 6> boundaryBox({globalSize[0], globalSize[1], globalSize[2],
-      1,1,1});
+   // The visit plugin expects MESH_BBOX as a keyword. We only write one
+   // from the first rank.
+   const std::array<fsgrid::FsSize_t, 3>& globalSize = fsgrid.getGlobalSize();
+   std::array<fsgrid::FsSize_t, 6> boundaryBox({globalSize[0], globalSize[1], globalSize[2], 1, 1, 1});
 
-  if(technicalGrid.getRank() == 0) {
-    const unsigned int arraySize = 6;
-    const unsigned int vectorSize = 1;
-    vlsvWriter.writeArray("MESH_BBOX", xmlAttributes, arraySize, vectorSize, &boundaryBox[0]);
-  } else {
-    const unsigned int arraySize = 0;
-    const unsigned int vectorSize = 1;
-    vlsvWriter.writeArray("MESH_BBOX", xmlAttributes, arraySize, vectorSize, &boundaryBox);
-  }
+   if (fsgrid.getRank() == 0) {
+      const unsigned int arraySize = 6;
+      const unsigned int vectorSize = 1;
+      vlsvWriter.writeArray("MESH_BBOX", xmlAttributes, arraySize, vectorSize, &boundaryBox[0]);
+   } else {
+      const unsigned int arraySize = 0;
+      const unsigned int vectorSize = 1;
+      vlsvWriter.writeArray("MESH_BBOX", xmlAttributes, arraySize, vectorSize, &boundaryBox);
+   }
 
-  // Write three 1-dimensional arrays of node coordinates (x,y,z) for
-  // visit to create a cartesian grid out of.
-  std::vector<double> xNodeCoordinates(globalSize[0]+1);
-  for(int64_t i=0; i<globalSize[0]+1; i++) {
-    xNodeCoordinates[i] = technicalGrid.getPhysicalCoords(i,0,0)[0];
-  }
-  std::vector<double> yNodeCoordinates(globalSize[1]+1);
-  for(int64_t i=0; i<globalSize[1]+1; i++) {
-    yNodeCoordinates[i] = technicalGrid.getPhysicalCoords(0,i,0)[1];
-  }
-  std::vector<double> zNodeCoordinates(globalSize[2]+1);
-  for(int64_t i=0; i<globalSize[2]+1; i++) {
-    zNodeCoordinates[i] = technicalGrid.getPhysicalCoords(0,0,i)[2];
-  }
-  if(technicalGrid.getRank() == 0) {
-    // Write this data only on rank 0 
-    vlsvWriter.writeArray("MESH_NODE_CRDS_X", xmlAttributes, globalSize[0]+1, 1, xNodeCoordinates.data());
-    vlsvWriter.writeArray("MESH_NODE_CRDS_Y", xmlAttributes, globalSize[1]+1, 1, yNodeCoordinates.data());
-    vlsvWriter.writeArray("MESH_NODE_CRDS_Z", xmlAttributes, globalSize[2]+1, 1, zNodeCoordinates.data());
+   // Write three 1-dimensional arrays of node coordinates (x,y,z) for
+   // visit to create a cartesian grid out of.
+   std::vector<double> xNodeCoordinates(globalSize[0] + 1);
+   for (int64_t i = 0; i < globalSize[0] + 1; i++) {
+      xNodeCoordinates[i] = fsgrid.getPhysicalCoords(i, 0, 0)[0];
+   }
+   std::vector<double> yNodeCoordinates(globalSize[1] + 1);
+   for (int64_t i = 0; i < globalSize[1] + 1; i++) {
+      yNodeCoordinates[i] = fsgrid.getPhysicalCoords(0, i, 0)[1];
+   }
+   std::vector<double> zNodeCoordinates(globalSize[2] + 1);
+   for (int64_t i = 0; i < globalSize[2] + 1; i++) {
+      zNodeCoordinates[i] = fsgrid.getPhysicalCoords(0, 0, i)[2];
+   }
+   if (fsgrid.getRank() == 0) {
+      // Write this data only on rank 0
+      vlsvWriter.writeArray("MESH_NODE_CRDS_X", xmlAttributes, globalSize[0] + 1, 1, xNodeCoordinates.data());
+      vlsvWriter.writeArray("MESH_NODE_CRDS_Y", xmlAttributes, globalSize[1] + 1, 1, yNodeCoordinates.data());
+      vlsvWriter.writeArray("MESH_NODE_CRDS_Z", xmlAttributes, globalSize[2] + 1, 1, zNodeCoordinates.data());
 
-  } else {
+   } else {
 
-    // The others just write an empty dummy
-    vlsvWriter.writeArray("MESH_NODE_CRDS_X", xmlAttributes, 0, 1, xNodeCoordinates.data());
-    vlsvWriter.writeArray("MESH_NODE_CRDS_Y", xmlAttributes, 0, 1, yNodeCoordinates.data());
-    vlsvWriter.writeArray("MESH_NODE_CRDS_Z", xmlAttributes, 0, 1, zNodeCoordinates.data());
-  }
+      // The others just write an empty dummy
+      vlsvWriter.writeArray("MESH_NODE_CRDS_X", xmlAttributes, 0, 1, xNodeCoordinates.data());
+      vlsvWriter.writeArray("MESH_NODE_CRDS_Y", xmlAttributes, 0, 1, yNodeCoordinates.data());
+      vlsvWriter.writeArray("MESH_NODE_CRDS_Z", xmlAttributes, 0, 1, zNodeCoordinates.data());
+   }
 
-  // Dummy ghost info
-  int dummyghost=0;
-  vlsvWriter.writeArray("MESH_GHOST_DOMAINS", xmlAttributes, 0, 1, &dummyghost);
-  vlsvWriter.writeArray("MESH_GHOST_LOCALIDS", xmlAttributes, 0, 1, &dummyghost);
+   // Dummy ghost info
+   int dummyghost = 0;
+   vlsvWriter.writeArray("MESH_GHOST_DOMAINS", xmlAttributes, 0, 1, &dummyghost);
+   vlsvWriter.writeArray("MESH_GHOST_LOCALIDS", xmlAttributes, 0, 1, &dummyghost);
 
-  // writeDomainSizes
-  const std::array<fsgrid::FsIndex_t, 3>& localSize = technicalGrid.getLocalSize();
-  std::array<uint64_t,2> meshDomainSize({(uint64_t)localSize[0]*(uint64_t)localSize[1]*(uint64_t)localSize[2], 0});
-  vlsvWriter.writeArray("MESH_DOMAIN_SIZES", xmlAttributes, 1, 2, &meshDomainSize[0]);
+   // writeDomainSizes
+   const std::array<fsgrid::FsIndex_t, 3>& localSize = fsgrid.getLocalSize();
+   std::array<uint64_t, 2> meshDomainSize(
+       {(uint64_t)localSize[0] * (uint64_t)localSize[1] * (uint64_t)localSize[2], 0});
+   vlsvWriter.writeArray("MESH_DOMAIN_SIZES", xmlAttributes, 1, 2, &meshDomainSize[0]);
 
-  // how many MPI ranks we wrote from
-  int size = technicalGrid.getNumFsRanks();
-  vlsvWriter.writeParameter("numWritingRanks", &size);
+   // how many MPI ranks we wrote from
+   int size = fsgrid.getNumFsRanks();
+   vlsvWriter.writeParameter("numWritingRanks", &size);
 
-  // Save the FSgrid decomposition
-  std::array<fsgrid::Task_t, 3> decom = technicalGrid.getDecomposition();
-  if(technicalGrid.getRank() == 0) {
+   // Save the FSgrid decomposition
+   std::array<fsgrid::Task_t, 3> decom = fsgrid.getDecomposition();
+   if (fsgrid.getRank() == 0) {
       vlsvWriter.writeArray("MESH_DECOMPOSITION", xmlAttributes, 3u, 1u, &decom[0]);
   } else {
       vlsvWriter.writeArray("MESH_DECOMPOSITION", xmlAttributes, 0u, 3u, &decom[0]);
@@ -966,9 +965,9 @@ bool writeFsGridMetadata(fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> &
   xmlAttributes.clear();
   xmlAttributes["name"] = meshName;
   xmlAttributes["type"] = vlsv::mesh::STRING_UCD_MULTI;
-  xmlAttributes["xperiodic"]=technicalGrid.getPeriodic()[0]?"yes":"no";
-  xmlAttributes["yperiodic"]=technicalGrid.getPeriodic()[1]?"yes":"no";
-  xmlAttributes["zperiodic"]=technicalGrid.getPeriodic()[2]?"yes":"no";
+  xmlAttributes["xperiodic"]=fsgrid.getPeriodic()[0]?"yes":"no";
+  xmlAttributes["yperiodic"]=fsgrid.getPeriodic()[1]?"yes":"no";
+  xmlAttributes["zperiodic"]=fsgrid.getPeriodic()[2]?"yes":"no";
 
   if (writeIDs) {
      // Write cell "globalID" numbers, which are just the global array indices.
@@ -978,7 +977,7 @@ bool writeFsGridMetadata(fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> &
      for(int z=0; z<localSize[2]; z++) {
         for(int y=0; y<localSize[1]; y++) {
            for(int x=0; x<localSize[0]; x++) {
-              const std::array<fsgrid::FsSize_t, 3> globalIndex = technicalGrid.localToGlobal(x, y, z);
+              const std::array<fsgrid::FsSize_t, 3> globalIndex = fsgrid.localToGlobal(x, y, z);
               globalIds[i++] = globalIndex[2]*globalSize[0]*globalSize[1]+
                  globalIndex[1]*globalSize[0] +
                  globalIndex[0];
@@ -1307,7 +1306,7 @@ bool checkForSameMembers(const vector<uint64_t>& local_cells, const vector<uint6
 \param index       Index to call the correct member of the various parameter vectors
 \param writeGhosts If true, writes out ghost cells (cells that exist on the process boundary so other process' cells)
 */
-bool writeGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, FsGrids&& fsgrids,
+bool writeGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const FsGrids& fsgrids,
                const std::string& versionInfo, const std::string& configInfo, DataReducer* dataReducer,
                const uint& outputFileTypeIndex, const int& stripe, const bool writeGhosts) {
    bool success = true;
@@ -1427,7 +1426,7 @@ bool writeGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, Fs
    }
 
    //Write FSGrid metadata
-   if (writeFsGridMetadata(fsgrids.technicalGrid, vlsvWriter, P::systemWriteFsGrid.at(outputFileTypeIndex)) == false) {
+   if (writeFsGridMetadata(fsgrids.fsgrid, vlsvWriter, P::systemWriteFsGrid.at(outputFileTypeIndex)) == false) {
       return false;
    }
 
@@ -1512,7 +1511,7 @@ bool writeGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, Fs
 \param name       File name prefix, file will be called "name.index.vlsv"
 \param fileIndex  File index, file will be called "name.index.vlsv"
 */
-bool writeRestart(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, FsGrids&& fsgrids,
+bool writeRestart(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const FsGrids& fsgrids,
                   const std::string& versionInfo, const std::string& configInfo, DataReducer& dataReducer,
                   const string& name, const uint& fileIndex, const int& stripe) {
    // Writes a restart
@@ -1617,7 +1616,7 @@ bool writeRestart(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
    if( writeDomainSizes( vlsvWriter, meshName, local_cells.size(), ghost_cells.size() ) == false ) return false;
 
    //Write FSGrid metadata
-   if (writeFsGridMetadata(fsgrids.technicalGrid, vlsvWriter, true) == false)
+   if (writeFsGridMetadata(fsgrids.fsgrid, vlsvWriter, true) == false)
       return false;
 
    //Write Version Info 
@@ -1655,32 +1654,33 @@ bool writeRestart(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
    restartReducer.addOperator(new DRO::BoundaryLayer);
 
    // Fsgrid Reducers
-   restartReducer.addOperator(new DRO::DataReductionOperatorFsGrid("fg_E", [](FsGrids& fsgrids) -> std::vector<Real> {
-      const std::array<fsgrid::FsIndex_t, 3>& gridSize = fsgrids.technicalGrid.getLocalSize();
-      std::vector<Real> retval(gridSize[0] * gridSize[1] * gridSize[2] * fsgrids::efield::N_EFIELD);
-      int index = 0;
-      for (fsgrid::FsIndex_t z = 0; z < gridSize[2]; z++) {
-         for (fsgrid::FsIndex_t y = 0; y < gridSize[1]; y++) {
-            for (fsgrid::FsIndex_t x = 0; x < gridSize[0]; x++) {
-               const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
-               const auto lid = stencil.center();
-               std::memcpy(&retval[index], fsgrids.E[lid].data(), sizeof(Real) * fsgrids::efield::N_EFIELD);
-               index += fsgrids::efield::N_EFIELD;
-            }
-         }
-      }
-      return retval;
-   }));
+   restartReducer.addOperator(
+       new DRO::DataReductionOperatorFsGrid("fg_E", [](const FsGrids& fsgrids) -> std::vector<Real> {
+          const std::array<fsgrid::FsIndex_t, 3>& gridSize = fsgrids.fsgrid.getLocalSize();
+          std::vector<Real> retval(gridSize[0] * gridSize[1] * gridSize[2] * fsgrids::efield::N_EFIELD);
+          int index = 0;
+          for (fsgrid::FsIndex_t z = 0; z < gridSize[2]; z++) {
+             for (fsgrid::FsIndex_t y = 0; y < gridSize[1]; y++) {
+                for (fsgrid::FsIndex_t x = 0; x < gridSize[0]; x++) {
+                   const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
+                   const auto lid = stencil.center();
+                   std::memcpy(&retval[index], fsgrids.E[lid].data(), sizeof(Real) * fsgrids::efield::N_EFIELD);
+                   index += fsgrids::efield::N_EFIELD;
+                }
+             }
+          }
+          return retval;
+       }));
 
    restartReducer.addOperator(
-       new DRO::DataReductionOperatorFsGrid("fg_PERB", [](FsGrids& fsgrids) -> std::vector<Real> {
-          const auto& gridSize = fsgrids.technicalGrid.getLocalSize();
+       new DRO::DataReductionOperatorFsGrid("fg_PERB", [](const FsGrids& fsgrids) -> std::vector<Real> {
+          const auto& gridSize = fsgrids.fsgrid.getLocalSize();
           std::vector<Real> retval(gridSize[0] * gridSize[1] * gridSize[2] * fsgrids::bfield::N_BFIELD);
           int index = 0;
           for (fsgrid::FsIndex_t z = 0; z < gridSize[2]; z++) {
              for (fsgrid::FsIndex_t y = 0; y < gridSize[1]; y++) {
                 for (fsgrid::FsIndex_t x = 0; x < gridSize[0]; x++) {
-                   const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                   const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                    const auto lid = stencil.center();
                    std::memcpy(&retval[index], fsgrids.perB[lid].data(), sizeof(Real) * fsgrids::bfield::N_BFIELD);
                    index += fsgrids::bfield::N_BFIELD;

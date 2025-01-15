@@ -28,7 +28,7 @@ void calculateGradPeTermSimple(std::span<std::array<Real, fsgrids::egradpe::N_EG
                                std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> momentsdt2,
                                std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
                                std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmomentsdt2,
-                               fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+                               std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
                                SysBoundary& sysBoundaries, cint& RKCase);
 
 #endif

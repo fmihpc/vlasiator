@@ -111,8 +111,9 @@ void addTimedBarrier(string name){
    MPI_Barrier(MPI_COMM_WORLD);
 }
 
-void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-			fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, Real &newDt, bool &isChanged) {
+void computeNewTimeStep(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                        std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid, Real& newDt,
+                        bool& isChanged) {
    phiprof::Timer computeTimestepTimer {"compute-timestep"};
    // Compute maximum time step. This cannot be done at the first step as the solvers compute the limits for each cell.
 
@@ -135,11 +136,11 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    reduce_vlasov_dt(mpiGrid, cells, dtMaxLocal);
 
    // compute max dt for fieldsolver
-   const auto* localSize = &technicalGrid.getLocalSize()[0];
+   const auto* localSize = &fsgrid.getLocalSize()[0];
    for (auto k = 0; k < localSize[2]; k++) {
       for (auto j = 0; j < localSize[1]; j++) {
          for (auto i = 0; i < localSize[0]; i++) {
-            const auto stencil = technicalGrid.makeStencil(i, j, k);
+            const auto stencil = fsgrid.makeStencil(i, j, k);
             const auto& cell = technical[stencil.center()];
             if (cell.sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
                 (cell.sysBoundaryLayer == 1 && cell.sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY)) {
@@ -443,9 +444,6 @@ int simulate(int argn,char* args[]) {
    fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb(fsgridNumElements);
    fsgrid::FsData<std::array<Real, fsgrids::volfields::N_VOL>> vol(fsgridNumElements);
 
-   const FsGrids fsgrids(perb, perbdt2, e, edt2, ehall, egradpe, egradpedt2, moments, momentsdt2, dperb, dmoments,
-                         dmomentsdt2, bgb, vol, technical, fsgrid);
-   initFsTimer.stop();
 
    // Initialize grid.  After initializeGrid local cells have dist
    // functions, and B fields set. Cells have also been classified for
@@ -475,6 +473,10 @@ int simulate(int argn,char* args[]) {
    // of looping and detecting boundary types here.
    fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>> perbdt2(perb.view());
 
+   const FsGrids fsgrids(perb, perbdt2, e, edt2, ehall, egradpe, egradpedt2, moments, momentsdt2, dperb, dmoments,
+                         dmomentsdt2, bgb, vol, technical, fsgrid);
+   initFsTimer.stop();
+
    initGridsTimer.stop();
    
    // Initialize data reduction operators. This should be done elsewhere in order to initialize 
@@ -498,7 +500,7 @@ int simulate(int argn,char* args[]) {
       logFile << "Writing out full BGB components and derivatives and exiting." << endl << writeVerbose;
 
       // initialize the communicators so we can write out ionosphere grid metadata.
-      SBC::ionosphereGrid.updateIonosphereCommunicator(mpiGrid, technicalGrid);
+      SBC::ionosphereGrid.updateIonosphereCommunicator(mpiGrid, technical.view(), fsgrid);
 
       P::systemWriteDistributionWriteStride.push_back(0);
       P::systemWriteName.push_back("bgb");
@@ -526,7 +528,7 @@ int simulate(int argn,char* args[]) {
       logFile.close();
       if (P::diagnosticInterval != 0) diagnostic.close();
 
-      technicalGrid.finalize();
+      fsgrid.finalize();
 
       MPI_Finalize();
       return 0;
@@ -538,25 +540,27 @@ int simulate(int argn,char* args[]) {
    if(P::isRestart == false) {
       propagateFields(perb.view(), perbdt2.view(), e.view(), edt2.view(), ehall.view(), egradpe.view(),
                       egradpedt2.view(), moments.view(), momentsdt2.view(), dperb.view(), dmoments.view(),
-                      dmomentsdt2.view(), bgb.view(), vol.view(), technicalGrid, sysBoundaryContainer, 0.0, 1.0);
+                      dmomentsdt2.view(), bgb.view(), vol.view(), technical.view(), fsgrid, sysBoundaryContainer, 0.0,
+                      1.0);
    }
 
    phiprof::Timer getFieldsTimer {"getFieldsFromFsGrid"};
-   technicalGrid.updateGhostCells(vol);
-   getFieldsFromFsGrid(vol, bgb, egradpe, dmoments, technicalGrid, mpiGrid, cells);
+   fsgrid.updateGhostCells(vol.view());
+   getFieldsFromFsGrid(vol.view(), bgb.view(), egradpe.view(), dmoments.view(), technical.view(), fsgrid, mpiGrid,
+                       cells);
    getFieldsTimer.stop();
 
    // Build communicator for ionosphere solving
-   SBC::ionosphereGrid.updateIonosphereCommunicator(mpiGrid, technicalGrid);
+   SBC::ionosphereGrid.updateIonosphereCommunicator(mpiGrid, technical.view(), fsgrid);
    // If not a restart, perBGrid and dPerBGrid are up to date after propagateFields just above. Otherwise, we should compute them.
    if(P::isRestart) {
-      calculateDerivativesSimple(perb.view(), moments.view(), dperb.view(), dmoments.view(), technicalGrid,
+      calculateDerivativesSimple(perb.view(), moments.view(), dperb.view(), dmoments.view(), technical.view(), fsgrid,
                                  false // Don't communicate moments, they are not needed here.
       );
-      technicalGrid.updateGhostCells(dperb);
+      fsgrid.updateGhostCells(dperb.view());
    }
-   FieldTracing::calculateIonosphereFsgridCoupling(technicalGrid, perb.view(), dperb.view(), SBC::ionosphereGrid.nodes,
-                                                   SBC::Ionosphere::radius);
+   FieldTracing::calculateIonosphereFsgridCoupling(technical.view(), fsgrid, perb.view(), dperb.view(),
+                                                   SBC::ionosphereGrid.nodes, SBC::Ionosphere::radius);
    SBC::ionosphereGrid.initSolver(!P::isRestart); // If it is a restart we do not want to zero out everything
    if(SBC::Ionosphere::couplingInterval > 0 && P::isRestart) {
       SBC::Ionosphere::solveCount = floor(P::t / SBC::Ionosphere::couplingInterval)+1;
@@ -582,7 +586,7 @@ int simulate(int argn,char* args[]) {
       // Calculate these so refinement parameters can be tuned based on the vlsv
       calculateScaledDeltasSimple(mpiGrid);
 
-      FieldTracing::reduceData(technicalGrid, perb.view(), dperb.view(), mpiGrid,
+      FieldTracing::reduceData(technical.view(), fsgrid, perb.view(), dperb.view(), mpiGrid,
                                SBC::ionosphereGrid.nodes); /*!< Call the reductions (e.g. field tracing) */
 
       phiprof::Timer timer {"write-initial-state"};
@@ -619,7 +623,7 @@ int simulate(int argn,char* args[]) {
    if (P::isRestart == false) {
       //compute new dt
       phiprof::Timer computeDtTimer {"compute-dt"};
-      computeNewTimeStep(mpiGrid, technicalGrid, newDt, dtIsChanged);
+      computeNewTimeStep(mpiGrid, technical.view(), fsgrid, newDt, dtIsChanged);
       if (P::dynamicTimestep == true && dtIsChanged == true) {
          // Only actually update the timestep if dynamicTimestep is on
          P::dt=newDt;
@@ -806,7 +810,7 @@ int simulate(int argn,char* args[]) {
             // Calculate these so refinement parameters can be tuned based on the vlsv
             calculateScaledDeltasSimple(mpiGrid);
 
-            FieldTracing::reduceData(technicalGrid, perb.view(), dperb.view(), mpiGrid,
+            FieldTracing::reduceData(technical.view(), fsgrid, perb.view(), dperb.view(), mpiGrid,
                                      SBC::ionosphereGrid.nodes); /*!< Call the reductions (e.g. field tracing) */
 
             phiprof::Timer writeSysTimer {"write-system"};
@@ -918,14 +922,14 @@ int simulate(int argn,char* args[]) {
          if (refineNow || (!dtIsChanged && P::adaptRefinement && P::tstep % (P::rebalanceInterval * P::refineCadence) == 0 && P::t > P::refineAfter)) { 
             logFile << "(AMR): Adapting refinement!"  << endl << writeVerbose;
             refineNow = false;
-            if (!adaptRefinement(mpiGrid, technicalGrid, sysBoundaryContainer, *project)) {
+            if (!adaptRefinement(mpiGrid, technical.view(), fsgrid, sysBoundaryContainer, *project)) {
                // OOM, rebalance and try again
                logFile << "(LB) AMR rebalancing with heavier refinement weights." << endl;
                globalflags::bailingOut = false; // Reset this
                for (auto id : mpiGrid.get_local_cells_to_refine()) {
                   mpiGrid[id]->parameters[CellParams::LBWEIGHTCOUNTER] *= 8.0;
                }
-               balanceLoad(mpiGrid, sysBoundaryContainer, technicalGrid);
+               balanceLoad(mpiGrid, sysBoundaryContainer, technical.view(), fsgrid);
                // We can /= 8.0 now as cells have potentially migrated. Go back to block-based count for now.
                for (auto id : mpiGrid.get_local_cells_to_refine()) {
                   mpiGrid[id]->parameters[CellParams::LBWEIGHTCOUNTER] = 0;
@@ -935,7 +939,7 @@ int simulate(int argn,char* args[]) {
                }
 
                mpiGrid.cancel_refining();
-               if (!adaptRefinement(mpiGrid, technicalGrid, sysBoundaryContainer, *project)) {
+               if (!adaptRefinement(mpiGrid, technical.view(), fsgrid, sysBoundaryContainer, *project)) {
                   for (auto id : mpiGrid.get_local_cells_to_refine()) {
                      mpiGrid[id]->parameters[CellParams::LBWEIGHTCOUNTER] *= 8.0;
                   }
@@ -951,7 +955,7 @@ int simulate(int argn,char* args[]) {
             calculateAcceleration(mpiGrid,0.0);
          }
          // This now uses the block-based count just copied between the two refinement calls above.
-         balanceLoad(mpiGrid, sysBoundaryContainer, technicalGrid);
+         balanceLoad(mpiGrid, sysBoundaryContainer, technical.view(), fsgrid);
          addTimedBarrier("barrier-end-load-balance");
          logFile << "(LB): ... done!"  << endl << writeVerbose;
          P::prepareForRebalance = false;
@@ -960,7 +964,7 @@ int simulate(int argn,char* args[]) {
 
          // Make sure the ionosphere communicator is up-to-date, in case inner boundary cells
          // moved.
-         SBC::ionosphereGrid.updateIonosphereCommunicator(mpiGrid, technicalGrid);
+         SBC::ionosphereGrid.updateIonosphereCommunicator(mpiGrid, technical.view(), fsgrid);
       }
 
       //get local cells
@@ -978,7 +982,7 @@ int simulate(int argn,char* args[]) {
       //simulation loop
       // FIXME what if dt changes at a restart??
       if(P::dynamicTimestep  && P::tstep > P::tstep_min) {
-         computeNewTimeStep(mpiGrid, technicalGrid, newDt, dtIsChanged);
+         computeNewTimeStep(mpiGrid, technical.view(), fsgrid, newDt, dtIsChanged);
          addTimedBarrier("barrier-check-dt");
          if(dtIsChanged) {
             phiprof::Timer updateDtimer {"update-dt"};
@@ -1019,7 +1023,8 @@ int simulate(int argn,char* args[]) {
       // Update boundary condition states (time-varying)
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration) {
          phiprof::Timer timer {"Update system boundaries (Vlasov pre-translation)"};
-         sysBoundaryContainer.updateState(mpiGrid, technicalGrid, perb.view(), bgb.view(), P::t + 0.5 * P::dt);
+         sysBoundaryContainer.updateState(mpiGrid, technical.view(), fsgrid, perb.view(), bgb.view(),
+                                          P::t + 0.5 * P::dt);
          timer.stop();
          addTimedBarrier("barrier-boundary-conditions");
       }
@@ -1064,21 +1069,22 @@ int simulate(int argn,char* args[]) {
 
          phiprof::Timer couplingInTimer {"fsgrid-coupling-in"};
          // Copy moments over into the fsgrid.
-         //setupTechnicalFsGrid(mpiGrid, cells, technicalGrid);
-         feedMomentsIntoFsGrid(mpiGrid, cells, moments, technicalGrid, false);
-         feedMomentsIntoFsGrid(mpiGrid, cells, momentsdt2, technicalGrid, true);
+         //setupTechnicalFsGrid(mpiGrid, cells, technical, fsgrid);
+         feedMomentsIntoFsGrid(mpiGrid, cells, moments, technical.view(), fsgrid, false);
+         feedMomentsIntoFsGrid(mpiGrid, cells, momentsdt2, technical.view(), fsgrid, true);
          couplingInTimer.stop();
 
          propagateFields(perb.view(), perbdt2.view(), e.view(), edt2.view(), ehall.view(), egradpe.view(),
                          egradpedt2.view(), moments.view(), momentsdt2.view(), dperb.view(), dmoments.view(),
-                         dmomentsdt2.view(), bgb.view(), vol.view(), technicalGrid, sysBoundaryContainer, P::dt,
-                         P::fieldSolverSubcycles);
+                         dmomentsdt2.view(), bgb.view(), vol.view(), technical.view(), fsgrid, sysBoundaryContainer,
+                         P::dt, P::fieldSolverSubcycles);
 
          phiprof::Timer getFieldsTimer {"getFieldsFromFsGrid"};
          // Copy results back from fsgrid.
-         technicalGrid.updateGhostCells(vol);
-         technicalGrid.updateGhostCells();
-         getFieldsFromFsGrid(vol, bgb, egradpe, dmoments, technicalGrid, mpiGrid, cells);
+         fsgrid.updateGhostCells(vol.view());
+         fsgrid.updateGhostCells(technical.view());
+         getFieldsFromFsGrid(vol.view(), bgb.view(), egradpe.view(), dmoments.view(), technical.view(), fsgrid, mpiGrid,
+                             cells);
          getFieldsTimer.stop();
          propagateTimer.stop(cells.size(),"SpatialCells");
          addTimedBarrier("barrier-after-field-solver");
@@ -1093,9 +1099,9 @@ int simulate(int argn,char* args[]) {
       // perBGrid was ghost-updated before derivatives were computed in the field solver.
       // dPerBGrid was updated before the electric fields.
       if(SBC::ionosphereGrid.nodes.size() > 0 && ((P::t > SBC::Ionosphere::solveCount * SBC::Ionosphere::couplingInterval && SBC::Ionosphere::couplingInterval > 0) || SBC::Ionosphere::couplingInterval == 0)) {
-         FieldTracing::calculateIonosphereFsgridCoupling(technicalGrid, perb.view(), dperb.view(),
+         FieldTracing::calculateIonosphereFsgridCoupling(technical.view(), fsgrid, perb.view(), dperb.view(),
                                                          SBC::ionosphereGrid.nodes, SBC::Ionosphere::radius);
-         SBC::ionosphereGrid.mapDownBoundaryData(perb.view(), dperb.view(), moments.view(), technicalGrid);
+         SBC::ionosphereGrid.mapDownBoundaryData(perb.view(), dperb.view(), moments.view(), technical.view(), fsgrid);
          SBC::ionosphereGrid.calculateConductivityTensor(SBC::Ionosphere::F10_7, SBC::Ionosphere::recombAlpha, SBC::Ionosphere::backgroundIonisation);
 
          // Solve ionosphere
@@ -1158,7 +1164,7 @@ int simulate(int argn,char* args[]) {
       propagateTimer.stop(computedCells,"Cells");
       
       phiprof::Timer endStepTimer {"Project endTimeStep"};
-      project->hook(hook::END_OF_TIME_STEP, mpiGrid, perb.view(), technicalGrid);
+      project->hook(hook::END_OF_TIME_STEP, mpiGrid, perb.view(), technical.view(), fsgrid);
       endStepTimer.stop();
 
       // Check timestep

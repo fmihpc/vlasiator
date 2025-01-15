@@ -144,18 +144,18 @@ namespace projects {
 
    void Riemann1::setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                                    std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
-                                   fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
+                                   std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid) {
       setBackgroundFieldToZero(bgb);
 
       if(!P::isRestart) {
-         const auto* localSize = &technicalGrid.getLocalSize()[0];
+         const auto* localSize = &fsgrid.getLocalSize()[0];
 
 #pragma omp parallel for collapse(3)
          for (auto x = 0; x < localSize[0]; ++x) {
             for (auto y = 0; y < localSize[1]; ++y) {
                for (auto z = 0; z < localSize[2]; ++z) {
-                  const auto xyz = technicalGrid.getPhysicalCoords(x, y, z);
-                  const auto stencil = technicalGrid.makeStencil(x, y, z);
+                  const auto xyz = fsgrid.getPhysicalCoords(x, y, z);
+                  const auto stencil = fsgrid.makeStencil(x, y, z);
                   auto& cell = perb[stencil.center()];
 
                   //Real Bxavg, Byavg, Bzavg;

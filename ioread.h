@@ -41,7 +41,7 @@
 bool readGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
               std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
               std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
-              fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, const std::string& name);
+              std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid, const std::string& name);
 
 /*!
 

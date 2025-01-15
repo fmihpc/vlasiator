@@ -107,12 +107,12 @@ namespace projects {
 
    void test_fp::setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                                   std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
-                                  fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
+                                  std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid) {
       setBackgroundFieldToZero(bgb);
 
       if(!P::isRestart) {
-         const auto* localSize = &technicalGrid.getLocalSize()[0];
-         const auto& gridSpacing = technicalGrid.getGridSpacing();
+         const auto* localSize = &fsgrid.getLocalSize()[0];
+         const auto& gridSpacing = fsgrid.getGridSpacing();
 
          creal dx = gridSpacing[0] * 3.5;
          creal dy = gridSpacing[1] * 3.5;
@@ -124,8 +124,8 @@ namespace projects {
          for (auto i = 0; i < localSize[0]; ++i) {
             for (auto j = 0; j < localSize[1]; ++j) {
                for (auto k = 0; k < localSize[2]; ++k) {
-                  const auto xyz = technicalGrid.getPhysicalCoords(i, j, k);
-                  const auto stencil = technicalGrid.makeStencil(i, j, k);
+                  const auto xyz = fsgrid.getPhysicalCoords(i, j, k);
+                  const auto stencil = fsgrid.makeStencil(i, j, k);
                   auto& cell = perb[stencil.center()];
 
                   creal x = xyz[0] + 0.5 * gridSpacing[0];

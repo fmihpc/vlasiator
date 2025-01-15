@@ -160,7 +160,7 @@ void propagateMagneticField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD
  * \param bgbGrid fsGrid holding the background field B quantities
  * \param EGrid fsGrid holding the Electric field quantities at runge-kutta t=0
  * \param EDt2Grid fsGrid holding the Electric field quantities at runge-kutta t=0.5
- * \param technicalGrid fsGrid holding technical information (such as boundary types)
+ * \param fsgrid fsGrid holding technical information (such as boundary types)
  * \param i,j,k fsGrid cell coordinates for the current cell
  * \param sysBoundaries System boundary conditions existing
  * \param dt Length of the time step
@@ -194,7 +194,7 @@ void propagateSysBoundaryMagneticField(std::span<std::array<Real, fsgrids::bfiel
  * \param perBDt2Grid fsGrid holding the perturbed B quantities at runge-kutta t=0.5
  * \param EGrid fsGrid holding the Electric field quantities at runge-kutta t=0
  * \param EDt2Grid fsGrid holding the Electric field quantities at runge-kutta t=0.5
- * \param technicalGrid fsGrid holding technical information (such as boundary types)
+ * \param fsgrid fsGrid holding technical information (such as boundary types)
  * \param sysBoundaries System boundary conditions existing
  * \param dt Length of the time step
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
@@ -206,11 +206,11 @@ void propagateMagneticFieldSimple(std::span<std::array<Real, fsgrids::bfield::N_
                                   std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                                   std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
                                   std::span<std::array<Real, fsgrids::efield::N_EFIELD>> edt2,
-                                  fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+                                  std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
                                   SysBoundary& sysBoundaries, creal& dt, cint& RKCase) {
-   const auto* localSize = &technicalGrid.getLocalSize()[0];
-   const auto& gridSpacing = technicalGrid.getGridSpacing();
-   const size_t numCells = technicalGrid.getNumCells();
+   const auto* localSize = &fsgrid.getLocalSize()[0];
+   const auto& gridSpacing = fsgrid.getGridSpacing();
+   const size_t numCells = fsgrid.getNumCells();
 
 
    phiprof::Timer propagateBTimer{"Propagate magnetic field"};
@@ -223,7 +223,7 @@ void propagateMagneticFieldSimple(std::span<std::array<Real, fsgrids::bfield::N_
       for (auto k = 0; k < localSize[2]; k++) {
          for (auto j = 0; j < localSize[1]; j++) {
             for (auto i = 0; i < localSize[0]; i++) {
-               const fsgrid::FsStencil stencil = technicalGrid.makeStencil(i, j, k);
+               const fsgrid::FsStencil stencil = fsgrid.makeStencil(i, j, k);
                cuint bitfield = technical[stencil.center()].SOLVE;
                propagateMagneticField(
                    perb, perbdt2, e, edt2, stencil, dt, RKCase, ((bitfield & compute::BX) == compute::BX),
@@ -240,10 +240,10 @@ void propagateMagneticFieldSimple(std::span<std::array<Real, fsgrids::bfield::N_
    phiprof::Timer mpiTimer{"MPI", {"MPI"}};
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       // Exchange PERBX,PERBY,PERBZ with neighbours
-      technicalGrid.updateGhostCells(perb);
+      fsgrid.updateGhostCells(perb);
    } else { // RKCase == RK_ORDER2_STEP1
       // Exchange PERBX_DT2,PERBY_DT2,PERBZ_DT2 with neighbours
-      technicalGrid.updateGhostCells(perbdt2);
+      fsgrid.updateGhostCells(perbdt2);
    }
    mpiTimer.stop();
 
@@ -256,8 +256,8 @@ void propagateMagneticFieldSimple(std::span<std::array<Real, fsgrids::bfield::N_
       for (auto k = 0; k < localSize[2]; k++) {
          for (auto j = 0; j < localSize[1]; j++) {
             for (auto i = 0; i < localSize[0]; i++) {
-               const fsgrid::FsStencil stencil = technicalGrid.makeStencil(i, j, k);
-               const auto globalCoordinates = technicalGrid.localToGlobal(stencil.i, stencil.j, stencil.k);
+               const fsgrid::FsStencil stencil = fsgrid.makeStencil(i, j, k);
+               const auto globalCoordinates = fsgrid.localToGlobal(stencil.i, stencil.j, stencil.k);
                const auto tech = technical[stencil.center()];
                cuint bitfield = tech.SOLVE;
                // L1 pass
@@ -284,10 +284,10 @@ void propagateMagneticFieldSimple(std::span<std::array<Real, fsgrids::bfield::N_
    mpiTimer.start();
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       // Exchange PERBX,PERBY,PERBZ with neighbours
-      technicalGrid.updateGhostCells(perb);
+      fsgrid.updateGhostCells(perb);
    } else { // RKCase == RK_ORDER2_STEP1
       // Exchange PERBX_DT2,PERBY_DT2,PERBZ_DT2 with neighbours
-      technicalGrid.updateGhostCells(perbdt2);
+      fsgrid.updateGhostCells(perbdt2);
    }
    mpiTimer.stop();
 
@@ -299,8 +299,8 @@ void propagateMagneticFieldSimple(std::span<std::array<Real, fsgrids::bfield::N_
       for (auto k = 0; k < localSize[2]; k++) {
          for (auto j = 0; j < localSize[1]; j++) {
             for (auto i = 0; i < localSize[0]; i++) {
-               const fsgrid::FsStencil stencil = technicalGrid.makeStencil(i, j, k);
-               const auto globalCoordinates = technicalGrid.localToGlobal(stencil.i, stencil.j, stencil.k);
+               const fsgrid::FsStencil stencil = fsgrid.makeStencil(i, j, k);
+               const auto globalCoordinates = fsgrid.localToGlobal(stencil.i, stencil.j, stencil.k);
                const auto tech = technical[stencil.center()];
                if (tech.sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY && tech.sysBoundaryLayer == 2) {
                   for (uint component = 0; component < 3; component++) {

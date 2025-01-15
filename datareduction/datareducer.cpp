@@ -50,15 +50,15 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
       if (P::systemWriteAllDROs || lowercase == "fg_b" ||
           lowercase == "b") { // Bulk magnetic field at Yee-Lattice locations
          outputReducer->addOperator(
-             new DRO::DataReductionOperatorFsGrid("fg_b", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             new DRO::DataReductionOperatorFsGrid("fg_b", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2] * 3);
 
                 // Iterate through fsgrid cells and extract total magnetic field
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[3 * ri] = fsgrids.BgB[lid][fsgrids::BGBX] + fsgrids.perB[lid][fsgrids::PERBX];
@@ -77,15 +77,15 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
       if (P::systemWriteAllDROs || lowercase == "fg_backgroundb" || lowercase == "backgroundb" ||
           lowercase == "fg_b_background") { // Static (typically dipole) magnetic field part
          outputReducer->addOperator(
-             new DRO::DataReductionOperatorFsGrid("fg_b_background", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             new DRO::DataReductionOperatorFsGrid("fg_b_background", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2] * 3);
 
                 // Iterate through fsgrid cells and extract background B
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[3 * ri] = fsgrids.BgB[lid][fsgrids::BGBX];
@@ -103,16 +103,16 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
       }
       if (P::systemWriteAllDROs || lowercase == "fg_backgroundbvol" || lowercase == "backgroundbvol" ||
           lowercase == "fg_b_background_vol") { // Static (typically dipole) magnetic field part, volume-averaged
-         outputReducer->addOperator(
-             new DRO::DataReductionOperatorFsGrid("fg_b_background_vol", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
+             "fg_b_background_vol", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2] * 3);
 
                 // Iterate through fsgrid cells and extract total BVOL
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[3 * ri] = fsgrids.BgB[lid][fsgrids::BGBXVOL];
@@ -132,15 +132,15 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
       if (P::systemWriteAllDROs || lowercase == "fg_perturbedb" || lowercase == "perturbedb" ||
           lowercase == "fg_b_perturbed") { // Fluctuating magnetic field part
          outputReducer->addOperator(
-             new DRO::DataReductionOperatorFsGrid("fg_b_perturbed", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             new DRO::DataReductionOperatorFsGrid("fg_b_perturbed", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2] * 3);
 
                 // Iterate through fsgrid cells and extract values
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[3 * ri] = fsgrids.perB[lid][fsgrids::PERBX];
@@ -159,15 +159,15 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
       if (P::systemWriteAllDROs || lowercase == "fg_e" ||
           lowercase == "e") { // Bulk electric field at Yee-lattice locations
          outputReducer->addOperator(
-             new DRO::DataReductionOperatorFsGrid("fg_e", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             new DRO::DataReductionOperatorFsGrid("fg_e", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2] * 3);
 
                 // Iterate through fsgrid cells and extract E values
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[3 * ri] = fsgrids.E[lid][fsgrids::EX];
@@ -202,15 +202,15 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
       }
       if (P::systemWriteAllDROs || lowercase == "fg_rhom") { // Overall mass density (summed over all populations)
          outputReducer->addOperator(
-             new DRO::DataReductionOperatorFsGrid("fg_rhom", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             new DRO::DataReductionOperatorFsGrid("fg_rhom", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 // Iterate through fsgrid cells and extract rho valuesg
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.moments[lid][fsgrids::RHOM];
@@ -236,15 +236,15 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
       }
       if (P::systemWriteAllDROs || lowercase == "fg_rhoq") { // Overall charge density (summed over all populations)
          outputReducer->addOperator(
-             new DRO::DataReductionOperatorFsGrid("fg_rhoq", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             new DRO::DataReductionOperatorFsGrid("fg_rhoq", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 // Iterate through fsgrid cells and extract charge density
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.moments[lid][fsgrids::RHOQ];
@@ -287,15 +287,15 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
           lowercase ==
               "fg_v") { // Overall effective bulk density defining the center-of-mass frame from all populations
          outputReducer->addOperator(
-             new DRO::DataReductionOperatorFsGrid("fg_v", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             new DRO::DataReductionOperatorFsGrid("fg_v", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2] * 3);
 
                 // Iterate through fsgrid cells and extract bulk Velocity
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[3 * ri] = fsgrids.moments[lid][fsgrids::VX];
@@ -544,16 +544,16 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
       if (P::systemWriteAllDROs || lowercase == "maxfieldsdt" || lowercase == "fg_maxfieldsdt" ||
           lowercase == "fg_maxdt_fieldsolver") {
          // Maximum timestep constraint as calculated by the fieldsolver
-         outputReducer->addOperator(
-             new DRO::DataReductionOperatorFsGrid("fg_maxdt_fieldsolver", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
+             "fg_maxdt_fieldsolver", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 // Iterate through fsgrid cells and extract field solver timestep limit
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.technical[lid].maxFsDt;
@@ -579,9 +579,9 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
       if (P::systemWriteAllDROs || lowercase == "fsgridrank" || lowercase == "fg_rank") {
          // Map of spatial decomposition of the FsGrid into MPI ranks
          outputReducer->addOperator(
-             new DRO::DataReductionOperatorFsGrid("fg_rank", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
-                std::vector<double> retval(localSize[0] * localSize[1] * localSize[2], fsgrids.technicalGrid.getRank());
+             new DRO::DataReductionOperatorFsGrid("fg_rank", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
+                std::vector<double> retval(localSize[0] * localSize[1] * localSize[2], fsgrids.fsgrid.getRank());
                 return retval;
              }));
          outputReducer->addMetadata(outputReducer->size() - 1, "", "", "$\\mathrm{fGrid rank}$", "");
@@ -592,15 +592,15 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
       if (P::systemWriteAllDROs || lowercase == "fg_amr_level") {
          // Map of spatial decomposition of the FsGrid into MPI ranks
          outputReducer->addOperator(
-             new DRO::DataReductionOperatorFsGrid("fg_amr_level", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             new DRO::DataReductionOperatorFsGrid("fg_amr_level", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 // Iterate through fsgrid cells and extract corresponding AMR level
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.technical[lid].refLevel;
@@ -625,15 +625,15 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
       if (P::systemWriteAllDROs || lowercase == "fsgridboundarytype" || lowercase == "fg_boundarytype") {
          // Type of boundarycells as stored in FSGrid
          outputReducer->addOperator(
-             new DRO::DataReductionOperatorFsGrid("fg_boundarytype", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             new DRO::DataReductionOperatorFsGrid("fg_boundarytype", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 // Iterate through fsgrid cells and extract boundary flag
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.technical[lid].sysBoundaryFlag;
@@ -657,16 +657,16 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
       }
       if (P::systemWriteAllDROs || lowercase == "fsgridboundarylayer" || lowercase == "fg_boundarylayer") {
          // Type of boundarycells as stored in FSGrid
-         outputReducer->addOperator(
-             new DRO::DataReductionOperatorFsGrid("fg_boundarylayer", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
+             "fg_boundarylayer", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 // Iterate through fsgrid cells and extract boundary layer
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.technical[lid].sysBoundaryLayer;
@@ -727,15 +727,15 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
       }
       if (P::systemWriteAllDROs || lowercase == "fg_vole" || lowercase == "fg_e_vol" || lowercase == "fg_evol") {
          outputReducer->addOperator(
-             new DRO::DataReductionOperatorFsGrid("fg_e_vol", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             new DRO::DataReductionOperatorFsGrid("fg_e_vol", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2] * 3);
 
                 // Iterate through fsgrid cells and extract EVOL
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[3 * ri] = fsgrids.vol[lid][fsgrids::volfields::EXVOL];
@@ -755,16 +755,16 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
       if (P::systemWriteAllDROs || lowercase == "halle" || lowercase == "fg_halle" || lowercase == "fg_e_hall") {
          for (int index = 0; index < fsgrids::N_EHALL; index++) {
             std::string reducer_name = "fg_e_hall_" + std::to_string(index);
-            outputReducer->addOperator(
-                new DRO::DataReductionOperatorFsGrid(reducer_name, [index](FsGrids& fsgrids) -> std::vector<double> {
-                   const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+            outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
+                reducer_name, [index](const FsGrids& fsgrids) -> std::vector<double> {
+                   const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                    std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                    // Iterate through fsgrid cells and extract EHall
                    for (int z = 0; z < localSize[2]; z++) {
                       for (int y = 0; y < localSize[1]; y++) {
                          for (int x = 0; x < localSize[0]; x++) {
-                            const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                            const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                             const auto lid = stencil.center();
                             const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                             retval[ri] = fsgrids.EHall[lid][index];
@@ -801,15 +801,15 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
       if (P::systemWriteAllDROs || lowercase == "fg_volb" || lowercase == "fg_bvol" ||
           lowercase == "fg_b_vol") { // Static (typically dipole) magnetic field part
          outputReducer->addOperator(
-             new DRO::DataReductionOperatorFsGrid("fg_b_vol", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             new DRO::DataReductionOperatorFsGrid("fg_b_vol", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2] * 3);
 
                 // Iterate through fsgrid cells and extract total BVOL
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[3 * ri] = fsgrids.BgB[lid][fsgrids::BGBXVOL] + fsgrids.vol[lid][fsgrids::PERBXVOL];
@@ -852,15 +852,15 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
       if (P::systemWriteAllDROs || lowercase == "fg_pressure") {
          // Overall scalar pressure from all populations
          outputReducer->addOperator(
-             new DRO::DataReductionOperatorFsGrid("fg_pressure", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             new DRO::DataReductionOperatorFsGrid("fg_pressure", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 // Iterate through fsgrid cells and extract boundary flag
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          auto& moments = fsgrids.moments[lid];
@@ -945,18 +945,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
       // code where they are differences. Search for "fg_derivs" to find the end of this block.
       if (P::systemWriteAllDROs || lowercase == "fg_derivs") {
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dperbxdy", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dperbxdy", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] =
-                             fsgrids.dPerB[lid][fsgrids::dperb::dPERBxdy] / fsgrids.technicalGrid.getGridSpacing()[1];
+                             fsgrids.dPerB[lid][fsgrids::dperb::dPERBxdy] / fsgrids.fsgrid.getGridSpacing()[1];
                       }
                    }
                 }
@@ -965,18 +965,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
                                     "$\\Delta B_{X,\\mathrm{per,fg}} (\\Delta Y)^{-1}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dperbxdz", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dperbxdz", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] =
-                             fsgrids.dPerB[lid][fsgrids::dperb::dPERBxdz] / fsgrids.technicalGrid.getGridSpacing()[2];
+                             fsgrids.dPerB[lid][fsgrids::dperb::dPERBxdz] / fsgrids.fsgrid.getGridSpacing()[2];
                       }
                    }
                 }
@@ -985,18 +985,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
                                     "$\\Delta B_{X,\\mathrm{per,fg}} (\\Delta Z)^{-1}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dperbydx", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dperbydx", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] =
-                             fsgrids.dPerB[lid][fsgrids::dperb::dPERBydx] / fsgrids.technicalGrid.getGridSpacing()[0];
+                             fsgrids.dPerB[lid][fsgrids::dperb::dPERBydx] / fsgrids.fsgrid.getGridSpacing()[0];
                       }
                    }
                 }
@@ -1005,18 +1005,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
                                     "$\\Delta B_{Y,\\mathrm{per,fg}} (\\Delta X)^{-1}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dperbydz", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dperbydz", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] =
-                             fsgrids.dPerB[lid][fsgrids::dperb::dPERBydz] / fsgrids.technicalGrid.getGridSpacing()[2];
+                             fsgrids.dPerB[lid][fsgrids::dperb::dPERBydz] / fsgrids.fsgrid.getGridSpacing()[2];
                       }
                    }
                 }
@@ -1025,18 +1025,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
                                     "$\\Delta B_{Y,\\mathrm{per,fg}} (\\Delta Z)^{-1}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dperbzdx", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dperbzdx", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] =
-                             fsgrids.dPerB[lid][fsgrids::dperb::dPERBzdx] / fsgrids.technicalGrid.getGridSpacing()[0];
+                             fsgrids.dPerB[lid][fsgrids::dperb::dPERBzdx] / fsgrids.fsgrid.getGridSpacing()[0];
                       }
                    }
                 }
@@ -1045,18 +1045,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
                                     "$\\Delta B_{Z,\\mathrm{per,fg}} (\\Delta X)^{-1}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dperbzdy", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dperbzdy", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] =
-                             fsgrids.dPerB[lid][fsgrids::dperb::dPERBzdy] / fsgrids.technicalGrid.getGridSpacing()[1];
+                             fsgrids.dPerB[lid][fsgrids::dperb::dPERBzdy] / fsgrids.fsgrid.getGridSpacing()[1];
                       }
                    }
                 }
@@ -1065,19 +1065,19 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-1}$",
                                     "$\\Delta B_{Z,\\mathrm{per,fg}} (\\Delta Y)^{-1}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dperbxdyy", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dperbxdyy", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.dPerB[lid][fsgrids::dperb::dPERBxdyy] /
-                                      fsgrids.technicalGrid.getGridSpacing()[1] /
-                                      fsgrids.technicalGrid.getGridSpacing()[1];
+                                      fsgrids.fsgrid.getGridSpacing()[1] /
+                                      fsgrids.fsgrid.getGridSpacing()[1];
                       }
                    }
                 }
@@ -1086,19 +1086,19 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-2}$",
                                     "$\\Delta B_{X,\\mathrm{per,fg}} (\\Delta Y)^{-2}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dperbxdzz", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dperbxdzz", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.dPerB[lid][fsgrids::dperb::dPERBxdzz] /
-                                      fsgrids.technicalGrid.getGridSpacing()[2] /
-                                      fsgrids.technicalGrid.getGridSpacing()[2];
+                                      fsgrids.fsgrid.getGridSpacing()[2] /
+                                      fsgrids.fsgrid.getGridSpacing()[2];
                       }
                    }
                 }
@@ -1107,19 +1107,19 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-2}$",
                                     "$\\Delta B_{X,\\mathrm{per,fg}} (\\Delta Z)^{-2}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dperbxdyz", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dperbxdyz", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.dPerB[lid][fsgrids::dperb::dPERBxdyz] /
-                                      fsgrids.technicalGrid.getGridSpacing()[1] /
-                                      fsgrids.technicalGrid.getGridSpacing()[2];
+                                      fsgrids.fsgrid.getGridSpacing()[1] /
+                                      fsgrids.fsgrid.getGridSpacing()[2];
                       }
                    }
                 }
@@ -1128,19 +1128,19 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-2}$",
                                     "$\\Delta B_{X,\\mathrm{per,fg}} (\\Delta Y \\Delta Z)^{-1}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dperbydxx", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dperbydxx", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.dPerB[lid][fsgrids::dperb::dPERBydxx] /
-                                      fsgrids.technicalGrid.getGridSpacing()[0] /
-                                      fsgrids.technicalGrid.getGridSpacing()[0];
+                                      fsgrids.fsgrid.getGridSpacing()[0] /
+                                      fsgrids.fsgrid.getGridSpacing()[0];
                       }
                    }
                 }
@@ -1149,19 +1149,19 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-2}$",
                                     "$\\Delta B_{Y,\\mathrm{per,fg}} (\\Delta X)^{-2}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dperbydzz", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dperbydzz", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.dPerB[lid][fsgrids::dperb::dPERBydzz] /
-                                      fsgrids.technicalGrid.getGridSpacing()[2] /
-                                      fsgrids.technicalGrid.getGridSpacing()[2];
+                                      fsgrids.fsgrid.getGridSpacing()[2] /
+                                      fsgrids.fsgrid.getGridSpacing()[2];
                       }
                    }
                 }
@@ -1170,19 +1170,19 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-2}$",
                                     "$\\Delta B_{Y,\\mathrm{per,fg}} (\\Delta Z)^{-2}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dperbydxz", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dperbydxz", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.dPerB[lid][fsgrids::dperb::dPERBydxz] /
-                                      fsgrids.technicalGrid.getGridSpacing()[0] /
-                                      fsgrids.technicalGrid.getGridSpacing()[2];
+                                      fsgrids.fsgrid.getGridSpacing()[0] /
+                                      fsgrids.fsgrid.getGridSpacing()[2];
                       }
                    }
                 }
@@ -1191,19 +1191,19 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-2}$",
                                     "$\\Delta B_{Y,\\mathrm{per,fg}} (\\Delta X \\Delta Z)^{-1}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dperbzdxx", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dperbzdxx", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.dPerB[lid][fsgrids::dperb::dPERBzdxx] /
-                                      fsgrids.technicalGrid.getGridSpacing()[0] /
-                                      fsgrids.technicalGrid.getGridSpacing()[0];
+                                      fsgrids.fsgrid.getGridSpacing()[0] /
+                                      fsgrids.fsgrid.getGridSpacing()[0];
                       }
                    }
                 }
@@ -1212,19 +1212,19 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-2}$",
                                     "$\\Delta B_{Z,\\mathrm{per,fg}} (\\Delta Z)^{-2}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dperbzdyy", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dperbzdyy", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.dPerB[lid][fsgrids::dperb::dPERBzdyy] /
-                                      fsgrids.technicalGrid.getGridSpacing()[1] /
-                                      fsgrids.technicalGrid.getGridSpacing()[1];
+                                      fsgrids.fsgrid.getGridSpacing()[1] /
+                                      fsgrids.fsgrid.getGridSpacing()[1];
                       }
                    }
                 }
@@ -1233,19 +1233,19 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\,\\mathrm{m}^{-2}$",
                                     "$\\Delta B_{Z,\\mathrm{per,fg}} (\\Delta Y)^{-2}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dperbzdxy", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dperbzdxy", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.dPerB[lid][fsgrids::dperb::dPERBzdxy] /
-                                      fsgrids.technicalGrid.getGridSpacing()[0] /
-                                      fsgrids.technicalGrid.getGridSpacing()[1];
+                                      fsgrids.fsgrid.getGridSpacing()[0] /
+                                      fsgrids.fsgrid.getGridSpacing()[1];
                       }
                    }
                 }
@@ -1255,18 +1255,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                                     "$\\Delta B_{Z,\\mathrm{per,fg}} (\\Delta X \\Delta Y)^{-1}$", "1.0");
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_drhomdx", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_drhomdx", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.dMoments[lid][fsgrids::dmoments::drhomdx] /
-                                      fsgrids.technicalGrid.getGridSpacing()[0];
+                                      fsgrids.fsgrid.getGridSpacing()[0];
                       }
                    }
                 }
@@ -1275,18 +1275,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "kg/m^4", "$\\mathrm{kg}\\mathrm{m}^{-4}$",
                                     "$\\Delta \\rho_{m,\\mathrm{fg}} (\\Delta X)^{-1}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_drhomdy", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_drhomdy", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.dMoments[lid][fsgrids::dmoments::drhomdy] /
-                                      fsgrids.technicalGrid.getGridSpacing()[1];
+                                      fsgrids.fsgrid.getGridSpacing()[1];
                       }
                    }
                 }
@@ -1295,18 +1295,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "kg/m^4", "$\\mathrm{kg}\\mathrm{m}^{-4}$",
                                     "$\\Delta \\rho_{m,\\mathrm{fg}} (\\Delta Y)^{-1}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_drhomdz", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_drhomdz", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.dMoments[lid][fsgrids::dmoments::drhomdz] /
-                                      fsgrids.technicalGrid.getGridSpacing()[2];
+                                      fsgrids.fsgrid.getGridSpacing()[2];
                       }
                    }
                 }
@@ -1315,18 +1315,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "kg/m^4", "$\\mathrm{kg}\\mathrm{m}^{-4}$",
                                     "$\\Delta \\rho_{m,\\mathrm{fg}} (\\Delta Z)^{-1}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_drhoqdx", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_drhoqdx", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.dMoments[lid][fsgrids::dmoments::drhoqdx] /
-                                      fsgrids.technicalGrid.getGridSpacing()[0];
+                                      fsgrids.fsgrid.getGridSpacing()[0];
                       }
                    }
                 }
@@ -1335,18 +1335,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "C/m^4", "$\\mathrm{C}\\mathrm{m}^{-4}$",
                                     "$\\Delta \\rho_{q,\\mathrm{fg}} (\\Delta X)^{-1}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_drhoqdy", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_drhoqdy", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.dMoments[lid][fsgrids::dmoments::drhoqdy] /
-                                      fsgrids.technicalGrid.getGridSpacing()[1];
+                                      fsgrids.fsgrid.getGridSpacing()[1];
                       }
                    }
                 }
@@ -1355,18 +1355,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "C/m^4", "$\\mathrm{C}\\mathrm{m}^{-4}$",
                                     "$\\Delta \\rho_{q,\\mathrm{fg}} (\\Delta Y)^{-1}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_drhoqdz", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_drhoqdz", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.dMoments[lid][fsgrids::dmoments::drhoqdz] /
-                                      fsgrids.technicalGrid.getGridSpacing()[2];
+                                      fsgrids.fsgrid.getGridSpacing()[2];
                       }
                    }
                 }
@@ -1375,18 +1375,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "C/m^4", "$\\mathrm{C}\\mathrm{m}^{-4}$",
                                     "$\\Delta \\rho_{q,\\mathrm{fg}} (\\Delta Z)^{-1}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dp11dx", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dp11dx", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.dMoments[lid][fsgrids::dmoments::dp11dx] /
-                                      fsgrids.technicalGrid.getGridSpacing()[0];
+                                      fsgrids.fsgrid.getGridSpacing()[0];
                       }
                    }
                 }
@@ -1395,18 +1395,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "Pa/m", "$\\mathrm{Pa}\\mathrm{m}^{-1}$",
                                     "$\\Delta P_{11,\\mathrm{fg}} (\\Delta X)^{-1}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dp11dy", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dp11dy", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.dMoments[lid][fsgrids::dmoments::dp11dy] /
-                                      fsgrids.technicalGrid.getGridSpacing()[1];
+                                      fsgrids.fsgrid.getGridSpacing()[1];
                       }
                    }
                 }
@@ -1415,18 +1415,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "Pa/m", "$\\mathrm{Pa}\\mathrm{m}^{-1}$",
                                     "$\\Delta P_{11,\\mathrm{fg}} (\\Delta Y)^{-1}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dp11dz", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dp11dz", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.dMoments[lid][fsgrids::dmoments::dp11dz] /
-                                      fsgrids.technicalGrid.getGridSpacing()[2];
+                                      fsgrids.fsgrid.getGridSpacing()[2];
                       }
                    }
                 }
@@ -1435,18 +1435,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "Pa/m", "$\\mathrm{Pa}\\mathrm{m}^{-1}$",
                                     "$\\Delta P_{11,\\mathrm{fg}} (\\Delta Z)^{-1}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dp22dx", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dp22dx", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.dMoments[lid][fsgrids::dmoments::dp22dx] /
-                                      fsgrids.technicalGrid.getGridSpacing()[0];
+                                      fsgrids.fsgrid.getGridSpacing()[0];
                       }
                    }
                 }
@@ -1455,18 +1455,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "Pa/m", "$\\mathrm{Pa}\\mathrm{m}^{-1}$",
                                     "$\\Delta P_{22,\\mathrm{fg}} (\\Delta X)^{-1}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dp22dy", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dp22dy", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.dMoments[lid][fsgrids::dmoments::dp22dy] /
-                                      fsgrids.technicalGrid.getGridSpacing()[1];
+                                      fsgrids.fsgrid.getGridSpacing()[1];
                       }
                    }
                 }
@@ -1475,18 +1475,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "Pa/m", "$\\mathrm{Pa}\\mathrm{m}^{-1}$",
                                     "$\\Delta P_{22,\\mathrm{fg}} (\\Delta Y)^{-1}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dp22dz", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dp22dz", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.dMoments[lid][fsgrids::dmoments::dp22dz] /
-                                      fsgrids.technicalGrid.getGridSpacing()[2];
+                                      fsgrids.fsgrid.getGridSpacing()[2];
                       }
                    }
                 }
@@ -1495,18 +1495,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "Pa/m", "$\\mathrm{Pa}\\mathrm{m}^{-1}$",
                                     "$\\Delta P_{22,\\mathrm{fg}} (\\Delta Z)^{-1}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dp33dx", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dp33dx", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.dMoments[lid][fsgrids::dmoments::dp33dx] /
-                                      fsgrids.technicalGrid.getGridSpacing()[0];
+                                      fsgrids.fsgrid.getGridSpacing()[0];
                       }
                    }
                 }
@@ -1515,18 +1515,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "Pa/m", "$\\mathrm{Pa}\\mathrm{m}^{-1}$",
                                     "$\\Delta P_{33,\\mathrm{fg}} (\\Delta X)^{-1}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dp33dy", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dp33dy", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.dMoments[lid][fsgrids::dmoments::dp33dy] /
-                                      fsgrids.technicalGrid.getGridSpacing()[1];
+                                      fsgrids.fsgrid.getGridSpacing()[1];
                       }
                    }
                 }
@@ -1535,18 +1535,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "Pa/m", "$\\mathrm{Pa}\\mathrm{m}^{-1}$",
                                     "$\\Delta P_{33,\\mathrm{fg}} (\\Delta Y)^{-1}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dp33dz", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dp33dz", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.dMoments[lid][fsgrids::dmoments::dp33dz] /
-                                      fsgrids.technicalGrid.getGridSpacing()[2];
+                                      fsgrids.fsgrid.getGridSpacing()[2];
                       }
                    }
                 }
@@ -1555,18 +1555,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "Pa/m", "$\\mathrm{Pa}\\mathrm{m}^{-1}$",
                                     "$\\Delta P_{33,\\mathrm{fg}} (\\Delta Z)^{-1}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dvxdx", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dvxdx", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.dMoments[lid][fsgrids::dmoments::dVxdx] /
-                                      fsgrids.technicalGrid.getGridSpacing()[0];
+                                      fsgrids.fsgrid.getGridSpacing()[0];
                       }
                    }
                 }
@@ -1575,18 +1575,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "1/s", "$\\mathrm{s}^{-1}$",
                                     "$\\Delta V_{X,\\mathrm{fg}} (\\Delta X)^{-1}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dvxdy", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dvxdy", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.dMoments[lid][fsgrids::dmoments::dVxdy] /
-                                      fsgrids.technicalGrid.getGridSpacing()[1];
+                                      fsgrids.fsgrid.getGridSpacing()[1];
                       }
                    }
                 }
@@ -1595,18 +1595,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "1/s", "$\\mathrm{s}^{-1}$",
                                     "$\\Delta V_{X,\\mathrm{fg}} (\\Delta Y)^{-1}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dvxdz", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dvxdz", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.dMoments[lid][fsgrids::dmoments::dVxdz] /
-                                      fsgrids.technicalGrid.getGridSpacing()[2];
+                                      fsgrids.fsgrid.getGridSpacing()[2];
                       }
                    }
                 }
@@ -1615,18 +1615,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "1/s", "$\\mathrm{s}^{-1}$",
                                     "$\\Delta V_{X,\\mathrm{fg}} (\\Delta Z)^{-1}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dvydx", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dvydx", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.dMoments[lid][fsgrids::dmoments::dVydx] /
-                                      fsgrids.technicalGrid.getGridSpacing()[0];
+                                      fsgrids.fsgrid.getGridSpacing()[0];
                       }
                    }
                 }
@@ -1635,18 +1635,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "1/s", "$\\mathrm{s}^{-1}$",
                                     "$\\Delta V_{Y,\\mathrm{fg}} (\\Delta X)^{-1}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dvydy", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dvydy", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.dMoments[lid][fsgrids::dmoments::dVydy] /
-                                      fsgrids.technicalGrid.getGridSpacing()[1];
+                                      fsgrids.fsgrid.getGridSpacing()[1];
                       }
                    }
                 }
@@ -1655,18 +1655,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "1/s", "$\\mathrm{s}^{-1}$",
                                     "$\\Delta V_{Y,\\mathrm{fg}} (\\Delta Y)^{-1}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dvydz", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dvydz", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.dMoments[lid][fsgrids::dmoments::dVydz] /
-                                      fsgrids.technicalGrid.getGridSpacing()[2];
+                                      fsgrids.fsgrid.getGridSpacing()[2];
                       }
                    }
                 }
@@ -1675,18 +1675,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "1/s", "$\\mathrm{s}^{-1}$",
                                     "$\\Delta V_{Y,\\mathrm{fg}} (\\Delta Z)^{-1}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dvzdx", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dvzdx", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.dMoments[lid][fsgrids::dmoments::dVzdx] /
-                                      fsgrids.technicalGrid.getGridSpacing()[0];
+                                      fsgrids.fsgrid.getGridSpacing()[0];
                       }
                    }
                 }
@@ -1695,18 +1695,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "1/s", "$\\mathrm{s}^{-1}$",
                                     "$\\Delta V_{Z,\\mathrm{fg}} (\\Delta X)^{-1}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dvzdy", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dvzdy", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.dMoments[lid][fsgrids::dmoments::dVzdy] /
-                                      fsgrids.technicalGrid.getGridSpacing()[1];
+                                      fsgrids.fsgrid.getGridSpacing()[1];
                       }
                    }
                 }
@@ -1715,18 +1715,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "1/s", "$\\mathrm{s}^{-1}$",
                                     "$\\Delta V_{Z,\\mathrm{fg}} (\\Delta Y)^{-1}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dvzdz", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dvzdz", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.dMoments[lid][fsgrids::dmoments::dVzdz] /
-                                      fsgrids.technicalGrid.getGridSpacing()[2];
+                                      fsgrids.fsgrid.getGridSpacing()[2];
                       }
                    }
                 }
@@ -1735,18 +1735,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "1/s", "$\\mathrm{s}^{-1}$",
                                     "$\\Delta V_{Z,\\mathrm{fg}} (\\Delta Z)^{-1}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dpedx", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dpedx", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.dMoments[lid][fsgrids::dmoments::dPedx] /
-                                      fsgrids.technicalGrid.getGridSpacing()[0];
+                                      fsgrids.fsgrid.getGridSpacing()[0];
                       }
                    }
                 }
@@ -1755,18 +1755,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "Pa/m", "$\\mathrm{Pa}\\mathrm{m}^{-1}$",
                                     "$\\Delta P_\\mathrm{e,fg} (\\Delta X)^{-1}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dpedy", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dpedy", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.dMoments[lid][fsgrids::dmoments::dPedy] /
-                                      fsgrids.technicalGrid.getGridSpacing()[1];
+                                      fsgrids.fsgrid.getGridSpacing()[1];
                       }
                    }
                 }
@@ -1775,18 +1775,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "Pa/m", "$\\mathrm{Pa}\\mathrm{m}^{-1}$",
                                     "$\\Delta P_\\mathrm{e,fg} (\\Delta Y)^{-1}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dpedz", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dpedz", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.dMoments[lid][fsgrids::dmoments::dPedz] /
-                                      fsgrids.technicalGrid.getGridSpacing()[2];
+                                      fsgrids.fsgrid.getGridSpacing()[2];
                       }
                    }
                 }
@@ -1796,18 +1796,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                                     "$\\Delta P_\\mathrm{e,fg} (\\Delta Z)^{-1}$", "1.0");
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dperbxvoldx", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dperbxvoldx", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.vol[lid][fsgrids::volfields::dPERBXVOLdx] /
-                                      fsgrids.technicalGrid.getGridSpacing()[0];
+                                      fsgrids.fsgrid.getGridSpacing()[0];
                       }
                    }
                 }
@@ -1816,18 +1816,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\mathrm{m}^{-1}$",
                                     "$\\Delta B_{X,\\mathrm{per,vol,fg}} (\\Delta X)^{-1}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dperbxvoldy", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dperbxvoldy", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.vol[lid][fsgrids::volfields::dPERBXVOLdy] /
-                                      fsgrids.technicalGrid.getGridSpacing()[1];
+                                      fsgrids.fsgrid.getGridSpacing()[1];
                       }
                    }
                 }
@@ -1836,18 +1836,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\mathrm{m}^{-1}$",
                                     "$\\Delta B_{X,\\mathrm{per,vol,fg}} (\\Delta Y)^{-1}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dperbxvoldz", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dperbxvoldz", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.vol[lid][fsgrids::volfields::dPERBXVOLdz] /
-                                      fsgrids.technicalGrid.getGridSpacing()[2];
+                                      fsgrids.fsgrid.getGridSpacing()[2];
                       }
                    }
                 }
@@ -1856,18 +1856,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\mathrm{m}^{-1}$",
                                     "$\\Delta B_{X,\\mathrm{per,vol,fg}} (\\Delta Z)^{-1}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dperbyvoldx", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dperbyvoldx", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.vol[lid][fsgrids::volfields::dPERBYVOLdx] /
-                                      fsgrids.technicalGrid.getGridSpacing()[0];
+                                      fsgrids.fsgrid.getGridSpacing()[0];
                       }
                    }
                 }
@@ -1876,18 +1876,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\mathrm{m}^{-1}$",
                                     "$\\Delta B_{Y,\\mathrm{per,vol,fg}} (\\Delta X)^{-1}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dperbyvoldy", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dperbyvoldy", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.vol[lid][fsgrids::volfields::dPERBYVOLdy] /
-                                      fsgrids.technicalGrid.getGridSpacing()[1];
+                                      fsgrids.fsgrid.getGridSpacing()[1];
                       }
                    }
                 }
@@ -1897,18 +1897,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                                     "$\\Delta B_{Y,\\mathrm{per,vol,fg}} (\\Delta Y)^{-1}$", "1.0");
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dperbyvoldz", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dperbyvoldz", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.vol[lid][fsgrids::volfields::dPERBYVOLdz] /
-                                      fsgrids.technicalGrid.getGridSpacing()[2];
+                                      fsgrids.fsgrid.getGridSpacing()[2];
                       }
                    }
                 }
@@ -1917,18 +1917,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\mathrm{m}^{-1}$",
                                     "$\\Delta B_{Y,\\mathrm{per,vol,fg}} (\\Delta Z)^{-1}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dperbzvoldx", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dperbzvoldx", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.vol[lid][fsgrids::volfields::dPERBZVOLdx] /
-                                      fsgrids.technicalGrid.getGridSpacing()[0];
+                                      fsgrids.fsgrid.getGridSpacing()[0];
                       }
                    }
                 }
@@ -1937,18 +1937,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\mathrm{m}^{-1}$",
                                     "$\\Delta B_{Z,\\mathrm{per,vol,fg}} (\\Delta X)^{-1}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dperbzvoldy", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dperbzvoldy", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.vol[lid][fsgrids::volfields::dPERBZVOLdy] /
-                                      fsgrids.technicalGrid.getGridSpacing()[1];
+                                      fsgrids.fsgrid.getGridSpacing()[1];
                       }
                    }
                 }
@@ -1957,18 +1957,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
          outputReducer->addMetadata(outputReducer->size() - 1, "T/m", "$\\mathrm{T}\\mathrm{m}^{-1}$",
                                     "$\\Delta B_{Z,\\mathrm{per,vol,fg}} (\\Delta Y)^{-1}$", "1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dperbzvoldz", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dperbzvoldz", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.vol[lid][fsgrids::volfields::dPERBZVOLdz] /
-                                      fsgrids.technicalGrid.getGridSpacing()[2];
+                                      fsgrids.fsgrid.getGridSpacing()[2];
                       }
                    }
                 }
@@ -1991,18 +1991,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
       if (P::systemWriteAllDROs ||
           lowercase == "fg_derivs_b_background") { // includes all face and volume-averaged derivatives of BGB on fg
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dbgbxdy", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dbgbxdy", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] =
-                             fsgrids.BgB[lid][fsgrids::bgbfield::dBGBxdy] / fsgrids.technicalGrid.getGridSpacing()[1];
+                             fsgrids.BgB[lid][fsgrids::bgbfield::dBGBxdy] / fsgrids.fsgrid.getGridSpacing()[1];
                       }
                    }
                 }
@@ -2012,18 +2012,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                                     "$\\Delta B_{X,\\mathrm{bg,fg}} (\\Delta Y)^{-1}$", "1.0");
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dbgbxdz", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dbgbxdz", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] =
-                             fsgrids.BgB[lid][fsgrids::bgbfield::dBGBxdz] / fsgrids.technicalGrid.getGridSpacing()[2];
+                             fsgrids.BgB[lid][fsgrids::bgbfield::dBGBxdz] / fsgrids.fsgrid.getGridSpacing()[2];
                       }
                    }
                 }
@@ -2033,18 +2033,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                                     "$\\Delta B_{X,\\mathrm{bg,fg}} (\\Delta Z)^{-1}$", "1.0");
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dbgbydx", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dbgbydx", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] =
-                             fsgrids.BgB[lid][fsgrids::bgbfield::dBGBydx] / fsgrids.technicalGrid.getGridSpacing()[0];
+                             fsgrids.BgB[lid][fsgrids::bgbfield::dBGBydx] / fsgrids.fsgrid.getGridSpacing()[0];
                       }
                    }
                 }
@@ -2054,18 +2054,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                                     "$\\Delta B_{Y,\\mathrm{bg,fg}} (\\Delta X)^{-1}$", "1.0");
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dbgbydz", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dbgbydz", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] =
-                             fsgrids.BgB[lid][fsgrids::bgbfield::dBGBydz] / fsgrids.technicalGrid.getGridSpacing()[2];
+                             fsgrids.BgB[lid][fsgrids::bgbfield::dBGBydz] / fsgrids.fsgrid.getGridSpacing()[2];
                       }
                    }
                 }
@@ -2075,18 +2075,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                                     "$\\Delta B_{Y,\\mathrm{bg,fg}} (\\Delta Z)^{-1}$", "1.0");
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dbgbzdx", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dbgbzdx", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] =
-                             fsgrids.BgB[lid][fsgrids::bgbfield::dBGBzdx] / fsgrids.technicalGrid.getGridSpacing()[0];
+                             fsgrids.BgB[lid][fsgrids::bgbfield::dBGBzdx] / fsgrids.fsgrid.getGridSpacing()[0];
                       }
                    }
                 }
@@ -2096,18 +2096,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                                     "$\\Delta B_{Z,\\mathrm{bg,fg}} (\\Delta X)^{-1}$", "1.0");
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dbgbzdy", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dbgbzdy", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] =
-                             fsgrids.BgB[lid][fsgrids::bgbfield::dBGBzdy] / fsgrids.technicalGrid.getGridSpacing()[1];
+                             fsgrids.BgB[lid][fsgrids::bgbfield::dBGBzdy] / fsgrids.fsgrid.getGridSpacing()[1];
                       }
                    }
                 }
@@ -2117,18 +2117,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                                     "$\\Delta B_{Z,\\mathrm{bg,fg}} (\\Delta Y)^{-1}$", "1.0");
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dbgbxvoldx", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dbgbxvoldx", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.BgB[lid][fsgrids::bgbfield::dBGBXVOLdx] /
-                                      fsgrids.technicalGrid.getGridSpacing()[0];
+                                      fsgrids.fsgrid.getGridSpacing()[0];
                       }
                    }
                 }
@@ -2138,18 +2138,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                                     "$\\Delta B_{X,\\mathrm{bg,vol,fg}} (\\Delta X)^{-1}$", "1.0");
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dbgbxvoldy", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dbgbxvoldy", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.BgB[lid][fsgrids::bgbfield::dBGBXVOLdy] /
-                                      fsgrids.technicalGrid.getGridSpacing()[1];
+                                      fsgrids.fsgrid.getGridSpacing()[1];
                       }
                    }
                 }
@@ -2159,18 +2159,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                                     "$\\Delta B_{X,\\mathrm{bg,vol,fg}} (\\Delta Y)^{-1}$", "1.0");
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dbgbxvoldz", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dbgbxvoldz", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.BgB[lid][fsgrids::bgbfield::dBGBXVOLdz] /
-                                      fsgrids.technicalGrid.getGridSpacing()[2];
+                                      fsgrids.fsgrid.getGridSpacing()[2];
                       }
                    }
                 }
@@ -2180,18 +2180,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                                     "$\\Delta B_{X,\\mathrm{bg,vol,fg}} (\\Delta Z)^{-1}$", "1.0");
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dbgbyvoldx", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dbgbyvoldx", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.BgB[lid][fsgrids::bgbfield::dBGBYVOLdx] /
-                                      fsgrids.technicalGrid.getGridSpacing()[0];
+                                      fsgrids.fsgrid.getGridSpacing()[0];
                       }
                    }
                 }
@@ -2201,18 +2201,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                                     "$\\Delta B_{Y,\\mathrm{bg,vol,fg}} (\\Delta X)^{-1}$", "1.0");
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dbgbyvoldy", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dbgbyvoldy", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.BgB[lid][fsgrids::bgbfield::dBGBYVOLdy] /
-                                      fsgrids.technicalGrid.getGridSpacing()[1];
+                                      fsgrids.fsgrid.getGridSpacing()[1];
                       }
                    }
                 }
@@ -2222,18 +2222,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                                     "$\\Delta B_{Y,\\mathrm{bg,vol,fg}} (\\Delta Y)^{-1}$", "1.0");
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dbgbyvoldz", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dbgbyvoldz", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.BgB[lid][fsgrids::bgbfield::dBGBYVOLdz] /
-                                      fsgrids.technicalGrid.getGridSpacing()[2];
+                                      fsgrids.fsgrid.getGridSpacing()[2];
                       }
                    }
                 }
@@ -2243,18 +2243,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                                     "$\\Delta B_{Y,\\mathrm{bg,vol,fg}} (\\Delta Z)^{-1}$", "1.0");
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dbgbzvoldx", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dbgbzvoldx", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.BgB[lid][fsgrids::bgbfield::dBGBZVOLdx] /
-                                      fsgrids.technicalGrid.getGridSpacing()[0];
+                                      fsgrids.fsgrid.getGridSpacing()[0];
                       }
                    }
                 }
@@ -2264,18 +2264,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                                     "$\\Delta B_{Z,\\mathrm{bg,vol,fg}} (\\Delta X)^{-1}$", "1.0");
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dbgbzvoldy", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dbgbzvoldy", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.BgB[lid][fsgrids::bgbfield::dBGBZVOLdy] /
-                                      fsgrids.technicalGrid.getGridSpacing()[1];
+                                      fsgrids.fsgrid.getGridSpacing()[1];
                       }
                    }
                 }
@@ -2285,18 +2285,18 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                                     "$\\Delta B_{Z,\\mathrm{bg,vol,fg}} (\\Delta Y)^{-1}$", "1.0");
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
-             "fg_derivatives/fg_dbgbzvoldz", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             "fg_derivatives/fg_dbgbzvoldz", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fsgrids.BgB[lid][fsgrids::bgbfield::dBGBZVOLdz] /
-                                      fsgrids.technicalGrid.getGridSpacing()[2];
+                                      fsgrids.fsgrid.getGridSpacing()[2];
                       }
                    }
                 }
@@ -2331,8 +2331,8 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
       }
       if (P::systemWriteAllDROs || lowercase == "fg_gridcoordinates") {
          outputReducer->addOperator(
-             new DRO::DataReductionOperatorFsGrid("fg_x", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             new DRO::DataReductionOperatorFsGrid("fg_x", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 // Iterate through fsgrid cells and extract X coordinate
@@ -2340,7 +2340,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
-                         retval[ri] = fsgrids.technicalGrid.getPhysicalCoords(x, y, z)[0];
+                         retval[ri] = fsgrids.fsgrid.getPhysicalCoords(x, y, z)[0];
                       }
                    }
                 }
@@ -2348,8 +2348,8 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
              }));
          outputReducer->addMetadata(outputReducer->size() - 1, "m", "$\\mathrm{m}$", "$X_\\mathrm{fg}$", "1.0");
          outputReducer->addOperator(
-             new DRO::DataReductionOperatorFsGrid("fg_y", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             new DRO::DataReductionOperatorFsGrid("fg_y", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 // Iterate through fsgrid cells and extract Y coordinate
@@ -2357,7 +2357,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
-                         retval[ri] = fsgrids.technicalGrid.getPhysicalCoords(x, y, z)[1];
+                         retval[ri] = fsgrids.fsgrid.getPhysicalCoords(x, y, z)[1];
                       }
                    }
                 }
@@ -2365,8 +2365,8 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
              }));
          outputReducer->addMetadata(outputReducer->size() - 1, "m", "$\\mathrm{m}$", "$Y_\\mathrm{fg}$", "1.0");
          outputReducer->addOperator(
-             new DRO::DataReductionOperatorFsGrid("fg_z", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             new DRO::DataReductionOperatorFsGrid("fg_z", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2]);
 
                 // Iterate through fsgrid cells and extract Z coordinate
@@ -2374,7 +2374,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
-                         retval[ri] = fsgrids.technicalGrid.getPhysicalCoords(x, y, z)[2];
+                         retval[ri] = fsgrids.fsgrid.getPhysicalCoords(x, y, z)[2];
                       }
                    }
                 }
@@ -2382,26 +2382,26 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
              }));
          outputReducer->addMetadata(outputReducer->size() - 1, "m", "$\\mathrm{m}$", "$Z_\\mathrm{fg}$", "1.0");
          outputReducer->addOperator(
-             new DRO::DataReductionOperatorFsGrid("fg_dx", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             new DRO::DataReductionOperatorFsGrid("fg_dx", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2],
-                                           fsgrids.technicalGrid.getGridSpacing()[0]);
+                                           fsgrids.fsgrid.getGridSpacing()[0]);
                 return retval;
              }));
          outputReducer->addMetadata(outputReducer->size() - 1, "m", "$\\mathrm{m}$", "$\\delta X_\\mathrm{fg}$", "1.0");
          outputReducer->addOperator(
-             new DRO::DataReductionOperatorFsGrid("fg_dy", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             new DRO::DataReductionOperatorFsGrid("fg_dy", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2],
-                                           fsgrids.technicalGrid.getGridSpacing()[1]);
+                                           fsgrids.fsgrid.getGridSpacing()[1]);
                 return retval;
              }));
          outputReducer->addMetadata(outputReducer->size() - 1, "m", "$\\mathrm{m}$", "$\\delta Y_\\mathrm{fg}$", "1.0");
          outputReducer->addOperator(
-             new DRO::DataReductionOperatorFsGrid("fg_dz", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             new DRO::DataReductionOperatorFsGrid("fg_dz", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2],
-                                           fsgrids.technicalGrid.getGridSpacing()[2]);
+                                           fsgrids.fsgrid.getGridSpacing()[2]);
                 return retval;
              }));
          outputReducer->addMetadata(outputReducer->size() - 1, "m", "$\\mathrm{m}$", "$\\delta Z_\\mathrm{fg}$", "1.0");
@@ -3080,14 +3080,14 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
       if (P::systemWriteAllDROs || lowercase == "fg_curvature") {
          Parameters::computeCurvature = true;
          outputReducer->addOperator(
-             new DRO::DataReductionOperatorFsGrid("fg_curvature", [](FsGrids& fsgrids) -> std::vector<double> {
-                const auto* localSize = &fsgrids.technicalGrid.getLocalSize()[0];
+             new DRO::DataReductionOperatorFsGrid("fg_curvature", [](const FsGrids& fsgrids) -> std::vector<double> {
+                const auto* localSize = &fsgrids.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2] * 3);
 
                 for (int z = 0; z < localSize[2]; z++) {
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fsgrids.technicalGrid.makeStencil(x, y, z);
+                         const auto stencil = fsgrids.fsgrid.makeStencil(x, y, z);
                          const auto lid = stencil.center();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[3 * ri] = fsgrids.vol[lid][fsgrids::volfields::CURVATUREX];
@@ -3391,7 +3391,7 @@ bool DataReducer::writeParameters(const unsigned int& operatorID, vlsv::Writer& 
 }
 /** Write all data thet the given DataReductionOperator wants to obtain from fsgrid into the output file.
  */
-bool DataReducer::writeFsGridData(FsGrids& fsgrids, const std::string& meshName, const unsigned int operatorID,
+bool DataReducer::writeFsGridData(const FsGrids& fsgrids, const std::string& meshName, const unsigned int operatorID,
                                   vlsv::Writer& vlsvWriter, const bool writeAsFloat) {
    if (operatorID < operators.size()) {
       DRO::DataReductionOperatorFsGrid* DROf = dynamic_cast<DRO::DataReductionOperatorFsGrid*>(operators[operatorID]);

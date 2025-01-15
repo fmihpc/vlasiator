@@ -176,7 +176,7 @@ Real getR(creal x, creal y, creal z, uint geometry, Real center[3]) {
 }
 
 void Copysphere::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                   fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
+                                   std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid) {
    const vector<CellID>& cells = getLocalCells();
    for (uint i = 0; i < cells.size(); i++) {
       if (mpiGrid[cells[i]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
@@ -198,7 +198,7 @@ void Copysphere::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Ge
 }
 
 void Copysphere::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                   fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+                                   std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
                                    std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                                    std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, Project& project) {
    const vector<CellID>& cells = getLocalCells();
@@ -220,7 +220,7 @@ void Copysphere::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Ge
 }
 
 std::array<Real, 3>
-Copysphere::fieldSolverGetNormalDirection(fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i,
+Copysphere::fieldSolverGetNormalDirection(std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid, cint i,
                                           cint j, cint k) {
    phiprof::Timer timer{"Copysphere::fieldSolverGetNormalDirection"};
    std::array<Real, 3> normalDirection{{0.0, 0.0, 0.0}};
@@ -228,12 +228,12 @@ Copysphere::fieldSolverGetNormalDirection(fsgrid::FsGrid<fsgrids::technical, FS_
    static creal DIAG2 = 1.0 / sqrt(2.0);
    static creal DIAG3 = 1.0 / sqrt(3.0);
 
-   const auto& gridSpacing = technicalGrid.getGridSpacing();
+   const auto& gridSpacing = fsgrid.getGridSpacing();
 
    creal dx = gridSpacing[0];
    creal dy = gridSpacing[1];
    creal dz = gridSpacing[2];
-   const std::array<fsgrid::FsSize_t, 3> globalIndices = technicalGrid.localToGlobal(i, j, k);
+   const std::array<fsgrid::FsSize_t, 3> globalIndices = fsgrid.localToGlobal(i, j, k);
    creal x = P::xmin + (convert<Real>(globalIndices[0]) + 0.5) * dx;
    creal y = P::ymin + (convert<Real>(globalIndices[1]) + 0.5) * dy;
    creal z = P::zmin + (convert<Real>(globalIndices[2]) + 0.5) * dz;
@@ -766,7 +766,7 @@ std::string Copysphere::getName() const { return "Copysphere"; }
 void Copysphere::getFaces(bool* faces) {}
 
 void Copysphere::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                             fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+                             std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
                              std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                              std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, creal t) {}
 

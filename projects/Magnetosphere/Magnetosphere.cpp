@@ -272,7 +272,7 @@ namespace projects {
    /* set 0-centered dipole */
    void Magnetosphere::setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                                         std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
-                                        fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
+                                        std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid) {
       Dipole bgFieldDipole;
       LineDipole bgFieldLineDipole;
       VectorDipole bgVectorDipole;
@@ -285,50 +285,50 @@ namespace projects {
       switch(this->dipoleType) {
             case 0:
                bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
-               setBackgroundField(bgFieldDipole, bgb, technicalGrid);
+               setBackgroundField(bgFieldDipole, bgb, technical, fsgrid);
                SBC::ionosphereGrid.setDipoleField(bgFieldDipole);
                break;
             case 1:
                bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0 );//set dipole moment
-               setBackgroundField(bgFieldLineDipole, bgb, technicalGrid);
+               setBackgroundField(bgFieldLineDipole, bgb, technical, fsgrid);
                SBC::ionosphereGrid.setDipoleField(bgFieldLineDipole);
                break;
             case 2:
                bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0 );//set dipole moment
-               setBackgroundField(bgFieldLineDipole, bgb, technicalGrid);
+               setBackgroundField(bgFieldLineDipole, bgb, technical, fsgrid);
                //Append mirror dipole
                bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, this->dipoleMirrorLocationX, 0.0, 0.0 );
-               setBackgroundField(bgFieldLineDipole, bgb, technicalGrid, true);
+               setBackgroundField(bgFieldLineDipole, bgb, technical, fsgrid, true);
                SBC::ionosphereGrid.setDipoleField(bgFieldLineDipole);
                break;
             case 3:
                bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
-               setBackgroundField(bgFieldDipole, bgb, technicalGrid);
+               setBackgroundField(bgFieldDipole, bgb, technical, fsgrid);
                SBC::ionosphereGrid.setDipoleField(bgFieldDipole);
                //Append mirror dipole                
                bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, this->dipoleMirrorLocationX, 0.0, 0.0, 0.0 );//mirror
-               setBackgroundField(bgFieldDipole, bgb, technicalGrid, true);
+               setBackgroundField(bgFieldDipole, bgb, technical, fsgrid, true);
                break; 
             case 4:  // Vector potential dipole, vanishes or optionally scales to static inflow value after a given x-coordinate
                // What we in fact do is we place the regular dipole in the background field, and the
                // corrective terms in the perturbed field. This maintains the BGB as curl-free.
                bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 ); //set dipole moment
-               setBackgroundField(bgFieldDipole, bgb, technicalGrid);
+               setBackgroundField(bgFieldDipole, bgb, technical, fsgrid);
                SBC::ionosphereGrid.setDipoleField(bgFieldDipole);
                // Now we calculate the difference required to scale the dipole to zero as we approach the inflow,
                // and store it inside the BgBGrid object for use by e.g. boundary conditions.
                bgFieldDipole.initialize(-8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );
-               setPerturbedField(bgFieldDipole, bgb, technicalGrid, fsgrids::bgbfield::BGBXVDCORR);
+               setPerturbedField(bgFieldDipole, bgb, technical, fsgrid, fsgrids::bgbfield::BGBXVDCORR);
                bgVectorDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, this->dipoleTiltPhi*M_PI/180., this->dipoleTiltTheta*M_PI/180., this->dipoleXFull, this->dipoleXZero, this->dipoleInflowB[0], this->dipoleInflowB[1], this->dipoleInflowB[2]);
-               setPerturbedField(bgVectorDipole, bgb, technicalGrid, fsgrids::bgbfield::BGBXVDCORR, true);
+               setPerturbedField(bgVectorDipole, bgb, technical, fsgrid, fsgrids::bgbfield::BGBXVDCORR, true);
                if (P::isRestart == false) {
                   // If we are starting a new simulation, we also copy this data into perB.
-                  const auto* localSize = &technicalGrid.getLocalSize()[0];
+                  const auto* localSize = &fsgrid.getLocalSize()[0];
 #pragma omp parallel for collapse(2)
                   for (auto z = 0; z < localSize[2]; ++z) {
                      for (auto y = 0; y < localSize[1]; ++y) {
                         for (auto x = 0; x < localSize[0]; ++x) {
-                           const auto stencil = technicalGrid.makeStencil(x, y, z);
+                           const auto stencil = fsgrid.makeStencil(x, y, z);
                            const auto& BGBcell = bgb[stencil.center()];
                            auto& PERBcell = perb[stencil.center()];
                            PERBcell[fsgrids::bfield::PERBX] = BGBcell[fsgrids::bgbfield::BGBXVDCORR];
@@ -344,7 +344,7 @@ namespace projects {
       }
       switchDipoleTypeTimer.stop();
 
-      const auto* localSize = &technicalGrid.getLocalSize()[0];
+      const auto* localSize = &fsgrid.getLocalSize()[0];
 
       phiprof::Timer zeroingTimer {"zeroing-out"};
 
@@ -359,7 +359,7 @@ namespace projects {
             for (auto z = 0; z < localSize[2]; ++z) {
                for (auto y = 0; y < localSize[1]; ++y) {
                   for (auto x = 0; x < localSize[0]; ++x) {
-                     const auto stencil = technicalGrid.makeStencil(x, y, z);
+                     const auto stencil = fsgrid.makeStencil(x, y, z);
                      auto& cell = bgb[stencil.center()];
                      cell[fsgrids::bgbfield::BGBX] = 0;
                      cell[fsgrids::bgbfield::BGBXVOL] = 0.0;
@@ -383,7 +383,7 @@ namespace projects {
              for (auto z = 0; z < localSize[2]; ++z) {
                 for (auto y = 0; y < localSize[1]; ++y) {
                    for (auto x = 0; x < localSize[0]; ++x) {
-                      const auto stencil = technicalGrid.makeStencil(x, y, z);
+                      const auto stencil = fsgrid.makeStencil(x, y, z);
                       auto& cell = bgb[stencil.center()];
                       cell[fsgrids::bgbfield::BGBY] = 0.0;
                       cell[fsgrids::bgbfield::BGBYVOL] = 0.0;
@@ -406,7 +406,7 @@ namespace projects {
             for (auto z = 0; z < localSize[2]; ++z) {
                for (auto y = 0; y < localSize[1]; ++y) {
                   for (auto x = 0; x < localSize[0]; ++x) {
-                     const auto stencil = technicalGrid.makeStencil(x, y, z);
+                     const auto stencil = fsgrid.makeStencil(x, y, z);
                      auto& cell = bgb[stencil.center()];
                      cell[fsgrids::bgbfield::BGBX] = 0;
                      cell[fsgrids::bgbfield::BGBY] = 0;
@@ -431,7 +431,7 @@ namespace projects {
             for (fsgrid::FsIndex_t z = 0; z < localSize[2]; ++z) {
                for (fsgrid::FsIndex_t y = 0; y < localSize[1]; ++y) {
                   for (fsgrid::FsIndex_t x = 0; x < localSize[0]; ++x) {
-                     const auto stencil = technicalGrid.makeStencil(x, y, z);
+                     const auto stencil = fsgrid.makeStencil(x, y, z);
                      auto& cell = bgb[stencil.center()];
                      const auto& tech = technical[stencil.center()];
                      if (tech.sysBoundaryFlag == sysboundarytype::MAXWELLIAN) {
@@ -455,7 +455,7 @@ namespace projects {
       if(this->constBgB[0] != 0.0 || this->constBgB[1] != 0.0 || this->constBgB[2] != 0.0) {
          ConstantField bgConstantField;
          bgConstantField.initialize(this->constBgB[0], this->constBgB[1], this->constBgB[2]);
-         setBackgroundField(bgConstantField, bgb, technicalGrid, true);
+         setBackgroundField(bgConstantField, bgb, technical, fsgrid, true);
          SBC::ionosphereGrid.setConstantBackgroundField(this->constBgB);
       }
       addConstantTimer.stop();

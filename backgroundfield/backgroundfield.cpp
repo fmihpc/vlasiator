@@ -31,10 +31,10 @@
 
 // FieldFunction should be initialized
 void setBackgroundField(const FieldFunction& bgFunction, std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
-                        fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, bool append) {
+                        std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid, bool append) {
    using namespace std::placeholders;
-   const auto* localSize = &technicalGrid.getLocalSize()[0];
-   const auto& gridSpacing = technicalGrid.getGridSpacing();
+   const auto* localSize = &fsgrid.getLocalSize()[0];
+   const auto& gridSpacing = fsgrid.getGridSpacing();
 
    /*if we do not add a new background to the existing one we first put everything to zero*/
    if (append == false) {
@@ -69,8 +69,8 @@ void setBackgroundField(const FieldFunction& bgFunction, std::span<std::array<Re
          for (auto y = 0; y < localSize[1]; ++y) {
             for (auto x = 0; x < localSize[0]; ++x) {
                phiprof::Timer loopTopTimer{loopTopId};
-               const auto stencil = technicalGrid.makeStencil(x, y, z);
-               const auto start = technicalGrid.getPhysicalCoords(x, y, z);
+               const auto stencil = fsgrid.makeStencil(x, y, z);
+               const auto start = fsgrid.getPhysicalCoords(x, y, z);
                const std::array end = {
                    start[0] + gridSpacing[0],
                    start[1] + gridSpacing[1],

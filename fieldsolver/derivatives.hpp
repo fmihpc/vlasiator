@@ -33,15 +33,15 @@ void calculateDerivativesSimple(std::span<std::array<Real, fsgrids::bfield::N_BF
                                 std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
                                 std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                                 std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
-                                fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+                                std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
                                 const bool doMoments);
 
 void calculateBVOLDerivativesSimple(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol,
-                                    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid);
+                                    std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid);
 
 void calculateCurvatureSimple(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol,
                               std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
-                              fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid);
+                              std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid);
 
 void calculateScaledDeltasSimple(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 

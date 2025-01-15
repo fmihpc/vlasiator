@@ -99,7 +99,7 @@ namespace projects {
    void Dispersion::hook(cuint& stage,
                          const dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                          std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                         fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) const {
+                         std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid) const {
       if(hook::END_OF_TIME_STEP == stage) {
          int myRank;
          MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
@@ -123,10 +123,10 @@ namespace projects {
          vector<Real> outputPerBy(P::xcells_ini, 0.0);
          vector<Real> outputPerBz(P::xcells_ini, 0.0);
 
-         const auto* localSize = &technicalGrid.getLocalSize()[0];
-         const auto& localStart = technicalGrid.getLocalStart();
+         const auto* localSize = &fsgrid.getLocalSize()[0];
+         const auto& localStart = fsgrid.getLocalStart();
          for (auto x = 0; x < localSize[0]; ++x) {
-            const auto stencil = technicalGrid.makeStencil(x, 0, 0);
+            const auto stencil = fsgrid.makeStencil(x, 0, 0);
             localPerBx[x + localStart[0]] = perb[stencil.center()][fsgrids::bfield::PERBX];
             localPerBy[x + localStart[0]] = perb[stencil.center()][fsgrids::bfield::PERBY];
             localPerBz[x + localStart[0]] = perb[stencil.center()][fsgrids::bfield::PERBZ];
@@ -214,24 +214,24 @@ namespace projects {
 
    void Dispersion::setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                                      std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
-                                     fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
+                                     std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid) {
       ConstantField bgField;
       bgField.initialize(this->B0 * cos(this->angleXY) * cos(this->angleXZ),
                          this->B0 * sin(this->angleXY) * cos(this->angleXZ),
                          this->B0 * sin(this->angleXZ));
 
-      setBackgroundField(bgField, bgb, technicalGrid);
+      setBackgroundField(bgField, bgb, technical, fsgrid);
 
       if(!P::isRestart) {
-         const auto* localSize = &technicalGrid.getLocalSize()[0];
+         const auto* localSize = &fsgrid.getLocalSize()[0];
 
 #pragma omp parallel for collapse(3)
          for (auto x = 0; x < localSize[0]; ++x) {
             for (auto y = 0; y < localSize[1]; ++y) {
                for (auto z = 0; z < localSize[2]; ++z) {
-                  const auto stencil = technicalGrid.makeStencil(x, y, z);
+                  const auto stencil = fsgrid.makeStencil(x, y, z);
                   auto& cell = perb[stencil.center()];
-                  const int64_t cellid = technicalGrid.globalIDFromLocalCoordinates(x, y, z);
+                  const int64_t cellid = fsgrid.globalIDFromLocalCoordinates(x, y, z);
 
                   std::default_random_engine rndState;
                   setRandomSeed(cellid,rndState);

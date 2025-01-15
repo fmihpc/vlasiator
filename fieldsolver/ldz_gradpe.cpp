@@ -95,10 +95,10 @@ void calculateGradPeTermSimple(std::span<std::array<Real, fsgrids::egradpe::N_EG
                                std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> momentsdt2,
                                std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
                                std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmomentsdt2,
-                               fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+                               std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
                                SysBoundary& sysBoundaries, cint& RKCase) {
-   const auto& gridSpacing = technicalGrid.getGridSpacing();
-   const auto* localSize = &technicalGrid.getLocalSize()[0];
+   const auto& gridSpacing = fsgrid.getGridSpacing();
+   const auto* localSize = &fsgrid.getLocalSize()[0];
    const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
 
    if (not(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2)) {
@@ -111,7 +111,7 @@ void calculateGradPeTermSimple(std::span<std::array<Real, fsgrids::egradpe::N_EG
    int computeTimerId{phiprof::initializeTimer("EgradPe compute cells")};
 
    phiprof::Timer mpiTimer{"EgradPe field update ghosts MPI", {"MPI"}};
-   technicalGrid.updateGhostCells(dmoments);
+   fsgrid.updateGhostCells(dmoments);
    mpiTimer.stop();
 
 // Calculate GradPe term
@@ -122,7 +122,7 @@ void calculateGradPeTermSimple(std::span<std::array<Real, fsgrids::egradpe::N_EG
       for (auto k = 0; k < localSize[2]; k++) {
          for (auto j = 0; j < localSize[1]; j++) {
             for (auto i = 0; i < localSize[0]; i++) {
-               const auto& stencil = technicalGrid.makeStencil(i, j, k);
+               const auto& stencil = fsgrid.makeStencil(i, j, k);
                calculateGradPeTerm(egradpe, moments, dmoments, technical, stencil, gridSpacing, sysBoundaries);
             }
          }

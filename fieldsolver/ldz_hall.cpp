@@ -835,7 +835,7 @@ inline REAL JXB(fsgrids::ehall term, const std::array<REAL, Rec::N_REC_COEFFICIE
  * \param momentsGrid fsGrid holding the moment quantities
  * \param dPerBGrid fsGrid holding the derivatives of perturbed B
  * \param BgBGrid fsGrid holding the background B quantities
- * \param technicalGrid fsGrid holding technical information (such as boundary types)
+ * \param fsgrid fsGrid holding technical information (such as boundary types)
  * \param perturbedCoefficients Reconstruction coefficients
  * \param i,j,k fsGrid cell coordinates for the current cell
  *
@@ -1029,7 +1029,7 @@ void calculateEdgeHallTermComponents(std::span<const std::array<Real, fsgrids::b
  * \param momentsGrid fsGrid holding the moment quantities
  * \param dPerBGrid fsGrid holding the derivatives of perturbed B
  * \param BgBGrid fsGrid holding the background B quantities
- * \param technicalGrid fsGrid holding technical information (such as boundary types)
+ * \param fsgrid fsGrid holding technical information (such as boundary types)
  * \param sysBoundaries System boundary condition functions.
  * \param i,j,k fsGrid cell coordinates for the current cell
  *
@@ -1085,7 +1085,7 @@ void calculateHallTerm(std::span<const std::array<Real, fsgrids::bfield::N_BFIEL
  * \param momentsDt2Grid fsGrid holding the moment quantities at runge-kutta half step
  * \param dPerBGrid fsGrid holding the derivatives of perturbed B
  * \param BgBGrid fsGrid holding the background B quantities
- * \param technicalGrid fsGrid holding technical information (such as boundary types)
+ * \param fsgrid fsGrid holding technical information (such as boundary types)
  * \param sysBoundaries System boundary condition functions.
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  *
@@ -1100,7 +1100,7 @@ void calculateHallTermSimple(std::span<std::array<Real, fsgrids::bfield::N_BFIEL
                              std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
                              std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmomentsdt2,
                              std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
-                             fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+                             std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
                              SysBoundary& sysBoundaries, int32_t RKCase, const bool communicateMomentsDerivatives) {
 
 
@@ -1110,17 +1110,17 @@ void calculateHallTermSimple(std::span<std::array<Real, fsgrids::bfield::N_BFIEL
       dmoments = dmomentsdt2;
    }
 
-   const auto& gridSpacing = technicalGrid.getGridSpacing();
-   const auto* localSize = &technicalGrid.getLocalSize()[0];
+   const auto& gridSpacing = fsgrid.getGridSpacing();
+   const auto* localSize = &fsgrid.getLocalSize()[0];
    const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
 
    phiprof::Timer hallTimer{"Calculate Hall term"};
 
    phiprof::Timer mpiTimer{"EHall ghost updates MPI", {"MPI"}};
    int computeTimerId{phiprof::initializeTimer("EHall compute cells")};
-   technicalGrid.updateGhostCells(dperb);
+   fsgrid.updateGhostCells(dperb);
    if (P::ohmGradPeTerm == 0 && communicateMomentsDerivatives) {
-      technicalGrid.updateGhostCells(dmoments);
+      fsgrid.updateGhostCells(dmoments);
    }
    mpiTimer.stop();
 
@@ -1131,7 +1131,7 @@ void calculateHallTermSimple(std::span<std::array<Real, fsgrids::bfield::N_BFIEL
       for (auto k = 0; k < localSize[2]; k++) {
          for (auto j = 0; j < localSize[1]; j++) {
             for (auto i = 0; i < localSize[0]; i++) {
-               const auto stencil = technicalGrid.makeStencil(i, j, k);
+               const auto stencil = fsgrid.makeStencil(i, j, k);
                calculateHallTerm(perb, ehall, moments, dperb, bgb, technical, stencil, sysBoundaries, gridSpacing);
             }
          }

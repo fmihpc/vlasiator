@@ -213,7 +213,7 @@ reconstructionCoefficients(std::span<const std::array<Real, fsgrids::bfield::N_B
  *
  * \param perBGrid perturbed B fsGrid
  * \param dPerBGrid perturbed B derivatives fsGrid
- * \param technicalGrid technical fsGrid
+ * \param fsgrid technical fsGrid
  * \param i local fsGrid x-index
  * \param j local fsGrid y-index
  * \param k local fsGrid z-index
@@ -222,10 +222,10 @@ reconstructionCoefficients(std::span<const std::array<Real, fsgrids::bfield::N_B
 std::array<Real, 3> interpolatePerturbedB(
     std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
     std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
-    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+    std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
     std::map<std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS>>& reconstructionCoefficientsCache, cint i,
     cint j, cint k, const std::array<Real, 3> x) {
-   const auto stencil = technicalGrid.makeStencil(i, j, k);
+   const auto stencil = fsgrid.makeStencil(i, j, k);
 
    cuint cellSysBoundaryFlag = technical[stencil.center()].sysBoundaryFlag;
    if (cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
@@ -233,7 +233,7 @@ std::array<Real, 3> interpolatePerturbedB(
    }
 
    // Balsara reconstruction formulas: x,y,z are in [-1/2, 1/2] local coordinates
-   std::array<Real, 3> xLocal = technicalGrid.physicalToFractionalGlobal(x[0], x[1], x[2]);
+   std::array<Real, 3> xLocal = fsgrid.physicalToFractionalGlobal(x[0], x[1], x[2]);
    xLocal[0] -= 0.5;
    xLocal[1] -= 0.5;
    xLocal[2] -= 0.5;
@@ -289,7 +289,7 @@ std::array<Real, 3> interpolatePerturbedB(
  *
  * \param perBGrid perturbed B fsGrid
  * \param dPerBGrid perturbed B derivatives fsGrid
- * \param technicalGrid technical fsGrid
+ * \param fsgrid technical fsGrid
  * \param i local fsGrid x-index
  * \param j local fsGrid y-index
  * \param k local fsGrid z-index
@@ -298,10 +298,10 @@ std::array<Real, 3> interpolatePerturbedB(
 std::array<Real, 3> interpolateCurlB(
     std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
     std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
-    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+    std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
     std::map<std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS>>& reconstructionCoefficientsCache, cint i,
     cint j, cint k, const std::array<Real, 3> x) {
-   const auto stencil = technicalGrid.makeStencil(i, j, k);
+   const auto stencil = fsgrid.makeStencil(i, j, k);
 
    cuint cellSysBoundaryFlag = technical[stencil.center()].sysBoundaryFlag;
    if (cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
@@ -309,7 +309,7 @@ std::array<Real, 3> interpolateCurlB(
    }
 
    // Balsara reconstruction formulas: x,y,z are in [-1/2, 1/2] local coordinates
-   std::array<Real, 3> xLocal = technicalGrid.physicalToFractionalGlobal(x[0], x[1], x[2]);
+   std::array<Real, 3> xLocal = fsgrid.physicalToFractionalGlobal(x[0], x[1], x[2]);
    xLocal[0] -= 0.5;
    xLocal[1] -= 0.5;
    xLocal[2] -= 0.5;

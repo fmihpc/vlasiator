@@ -13,7 +13,7 @@ uint Parameters::ohmHallTerm = 0;
 // Very simplified version of CalculateDerivatives from fieldsolver/derivatives.cpp
 void calculateDerivatives(const fsgrid::FsStencil& stencil, std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                           std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
-                          fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
+                          std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid) {
    std::array<Real, fsgrids::dperb::N_DPERB>& dPerB = dperb[stencil.center()];
    std::array<Real, fsgrids::bfield::N_BFIELD>& centPerB = perb[stencil.center()];
 
@@ -187,7 +187,7 @@ int main(int argc, char** argv) {
       return parentCommSize > fsgridProcs && fsgridProcs > 0 ? fsgridProcs : parentCommSize;
    }();
 
-   fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> technicalGrid(
+   std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid(
        fsGridDimensions, parentComm, numFsProcs, periodicity, gridSpacing, physicalGlobalStart, decomposition);
    fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> perBGrid(
        fsGridDimensions, parentComm, numFsProcs, periodicity, gridSpacing, physicalGlobalStart, decomposition);
@@ -200,7 +200,7 @@ int main(int argc, char** argv) {
    for (int i = 0; i < 5; i++) {
       for (int j = 0; j < 5; j++) {
          for (int k = 0; k < 5; k++) {
-            const auto stencil = technicalGrid.makeStencil(i, j, k);
+            const auto stencil = fsgrid.makeStencil(i, j, k);
             perb[stencil.center()][PERBX] = sin(j / 5. * 2. * M_PI) * sin(k / 5. * 2. * M_PI);
             perb[stencil.center()][PERBY] = sin(i / 5. * 2. * M_PI) * sin(k / 5. * 2. * M_PI);
             perb[stencil.center()][PERBZ] = sin(i / 5. * 2. * M_PI) * sin(j / 5. * 2. * M_PI);
@@ -213,7 +213,7 @@ int main(int argc, char** argv) {
    ofstream fsGridFile("PERBX_fsgrid.dat");
    for (int j = 0; j < 5; j++) {
       for (int k = 0; k < 5; k++) {
-         const auto stencil = technicalGrid.makeStencil(2, j, k);
+         const auto stencil = fsgrid.makeStencil(2, j, k);
          fsGridFile << perb[stencil.center()][PERBX] << " ";
       }
       fsGridFile << endl;
@@ -225,8 +225,8 @@ int main(int argc, char** argv) {
    for (int i = 0; i < 5; i++) {
       for (int j = 0; j < 5; j++) {
          for (int k = 0; k < 5; k++) {
-            const auto stencil = technicalGrid.makeStencil(i, j, k);
-            calculateDerivatives(stencil, perb, dperb, technicalGrid);
+            const auto stencil = fsgrid.makeStencil(i, j, k);
+            calculateDerivatives(stencil, perb, dperb, technical, fsgrid);
          }
       }
    }
@@ -242,7 +242,7 @@ int main(int argc, char** argv) {
       for (int c = 0; c < 3; c++) {
          fsgridCell[c] = floor(randPos[c]); // Round-to-int, as DX = 1.
       }
-      std::array<Real, 3> B = interpolatePerturbedB(perBGrid, dPerBGrid, technicalGrid, cache, fsgridCell[0],
+      std::array<Real, 3> B = interpolatePerturbedB(perBGrid, dPerBGrid, technical, fsgrid, cache, fsgridCell[0],
                                                     fsgridCell[1], fsgridCell[2], randPos);
       sampleFile << randPos[0] << " " << randPos[1] << " " << randPos[2] << " " << B[0] << " " << B[1] << " " << B[2]
                  << endl;

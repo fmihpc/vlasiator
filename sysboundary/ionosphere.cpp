@@ -1049,7 +1049,7 @@ void SphericalTriGrid::calculateConductivityTensor(const Real F10_7, const Real 
 // ionosphere info is still communicated to the right ranks.
 void SphericalTriGrid::updateIonosphereCommunicator(
     dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
+    std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid) {
    phiprof::Timer timer{"ionosphere-updateIonosphereCommunicator"};
 
    // Check if the current rank contains ionosphere boundary cells.
@@ -1071,11 +1071,11 @@ void SphericalTriGrid::updateIonosphereCommunicator(
    int writingRankInput = 0;
    if (isCouplingInwards || isCouplingOutwards) {
       int size;
-      MPI_Comm_split(MPI_COMM_WORLD, 1, technicalGrid.getRank(), &communicator);
+      MPI_Comm_split(MPI_COMM_WORLD, 1, fsgrid.getRank(), &communicator);
       MPI_Comm_rank(communicator, &rank);
       MPI_Comm_size(communicator, &size);
       if (rank == 0) {
-         writingRankInput = technicalGrid.getRank();
+         writingRankInput = fsgrid.getRank();
       }
 
    } else {
@@ -1120,7 +1120,7 @@ Real SphericalTriGrid::interpolateUpmappedPotential(const std::array<Real, 3>& x
 void SphericalTriGrid::mapDownBoundaryData(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                                            std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                                            std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
-                                           fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
+                                           std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid) {
 
    if (!isCouplingInwards && !isCouplingOutwards) {
       return;
@@ -1148,7 +1148,7 @@ void SphericalTriGrid::mapDownBoundaryData(std::span<const std::array<Real, fsgr
          }
 
          // Local cell
-         auto lfsc = getLocalFsGridCellIndexForCoord(technicalGrid, nodes[n].xMapped);
+         auto lfsc = getLocalFsGridCellIndexForCoord(fsgrid, nodes[n].xMapped);
          if (lfsc[0] == -1 || lfsc[1] == -1 || lfsc[2] == -1) {
             continue;
          }
@@ -1167,7 +1167,7 @@ void SphericalTriGrid::mapDownBoundaryData(std::span<const std::array<Real, fsgr
 
          // Calc curlB, note division by DX one line down
          const std::array<Real, 3> curlB = interpolateCurlB(
-             perb, dperb, technicalGrid, FieldTracing::fieldTracingParameters.reconstructionCoefficientsCache, lfsc[0],
+             perb, dperb, technical, fsgrid, FieldTracing::fieldTracingParameters.reconstructionCoefficientsCache, lfsc[0],
              lfsc[1], lfsc[2], nodes[n].xMapped);
 
          // Dot curl(B) with normalized B, scale by ratio of B(ionosphere)/B(upmapped), multiply by geometric area
@@ -1188,7 +1188,7 @@ void SphericalTriGrid::mapDownBoundaryData(std::span<const std::array<Real, fsgr
                              nodes[n].parameters[ionosphereParameters::UPMAPPED_BY] +
                          nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ] *
                              nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ]) *
-                        physicalconstants::MU_0 * technicalGrid.getGridSpacing()[0]);
+                        physicalconstants::MU_0 * fsgrid.getGridSpacing()[0]);
 
          // By definition, a downwards current into the ionosphere has a positive FAC value,
          // as it corresponds to positive divergence of horizontal current in the ionospheric plane.
@@ -1197,7 +1197,7 @@ void SphericalTriGrid::mapDownBoundaryData(std::span<const std::array<Real, fsgr
             FACinput[n] *= -1;
          }
 
-         std::array<Real, 3> frac = getFractionalFsGridCellForCoord(technicalGrid, nodes[n].xMapped);
+         std::array<Real, 3> frac = getFractionalFsGridCellForCoord(fsgrid, nodes[n].xMapped);
          for (int c = 0; c < 3; c++) {
             // Shift by half a cell, as we are sampling volume quantities that are logically located at cell centres.
             if (frac[c] < 0.5) {
@@ -1209,7 +1209,7 @@ void SphericalTriGrid::mapDownBoundaryData(std::span<const std::array<Real, fsgr
          }
 
          // Linearly interpolate neighbourhood
-         const auto stencil = technicalGrid.makeStencil(lfsc[0], lfsc[1], lfsc[2]);
+         const auto stencil = fsgrid.makeStencil(lfsc[0], lfsc[1], lfsc[2]);
          Real couplingSum = 0;
          for (int xoffset : {0, 1}) {
             for (int yoffset : {0, 1}) {
@@ -2520,7 +2520,7 @@ static Real getR(creal x, creal y, creal z, uint geometry, Real center[3]) {
 }
 
 void Ionosphere::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                   fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
+                                   std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid) {
    const vector<CellID>& cells = getLocalCells();
    for (uint i = 0; i < cells.size(); i++) {
       if (mpiGrid[cells[i]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
@@ -2542,7 +2542,7 @@ void Ionosphere::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Ge
 }
 
 void Ionosphere::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                   fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+                                   std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
                                    std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                                    std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, Project& project) {
    const vector<CellID>& cells = getLocalCells();
@@ -2565,19 +2565,19 @@ void Ionosphere::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Ge
 }
 
 std::array<Real, 3>
-Ionosphere::fieldSolverGetNormalDirection(fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i,
+Ionosphere::fieldSolverGetNormalDirection(std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid, cint i,
                                           cint j, cint k) {
    phiprof::Timer timer{"Ionosphere::fieldSolverGetNormalDirection"};
    std::array<Real, 3> normalDirection{{0.0, 0.0, 0.0}};
 
    static creal DIAG2 = 1.0 / sqrt(2.0);
    static creal DIAG3 = 1.0 / sqrt(3.0);
-   const auto& gridSpacing = technicalGrid.getGridSpacing();
+   const auto& gridSpacing = fsgrid.getGridSpacing();
 
    creal dx = gridSpacing[0];
    creal dy = gridSpacing[1];
    creal dz = gridSpacing[2];
-   const std::array<fsgrid::FsSize_t, 3> globalIndices = technicalGrid.localToGlobal(i, j, k);
+   const std::array<fsgrid::FsSize_t, 3> globalIndices = fsgrid.localToGlobal(i, j, k);
    creal x = P::xmin + (convert<Real>(globalIndices[0]) + 0.5) * dx;
    creal y = P::ymin + (convert<Real>(globalIndices[1]) + 0.5) * dy;
    creal z = P::zmin + (convert<Real>(globalIndices[2]) + 0.5) * dz;
@@ -3444,7 +3444,7 @@ std::string Ionosphere::getName() const { return "Ionosphere"; }
 void Ionosphere::getFaces(bool* faces) {}
 
 void Ionosphere::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                             fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+                             std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
                              std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                              std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, creal t) {}
 
