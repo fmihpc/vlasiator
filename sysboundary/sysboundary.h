@@ -71,13 +71,13 @@ class SysBoundary {
    bool existSysBoundary(std::string name);
    void checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
    void classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                     std::span< fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid);
+                     std::span< fsgrids::technical> technical, FieldSolverGrid &fsgrid);
    void applyInitialState(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                          std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
+                          std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
                           std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                           std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, Project& project);
    void updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                    std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
+                    std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
                     std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                     std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, creal t);
    void applySysBoundaryVlasovConditions(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, creal& t, const bool calculate_V_moments);

@@ -33,6 +33,6 @@ void calculateVolumeAveragedFieldsSimple(std::span<std::array<Real, fsgrids::bfi
                                          std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
                                          std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                                          std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol,
-                                         std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid);
+                                         std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid);
 
 #endif

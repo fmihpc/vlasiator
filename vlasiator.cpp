@@ -112,7 +112,7 @@ void addTimedBarrier(string name){
 }
 
 void computeNewTimeStep(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                        std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid, Real& newDt,
+                        std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid, Real& newDt,
                         bool& isChanged) {
    phiprof::Timer computeTimestepTimer {"compute-timestep"};
    // Compute maximum time step. This cannot be done at the first step as the solvers compute the limits for each cell.
@@ -425,7 +425,7 @@ int simulate(int argn,char* args[]) {
       return parentCommSize > fsgridProcs && fsgridProcs > 0 ? fsgridProcs : parentCommSize;
    }();
 
-   fsgrid::FsGrid<FS_STENCIL_WIDTH> fsgrid(fsGridDimensions, parentComm, numFsProcs, periodicity, gridSpacing,
+   FieldSolverGrid fsgrid(fsGridDimensions, parentComm, numFsProcs, periodicity, gridSpacing,
                                            physicalGlobalStart, decomposition);
 
    const size_t fsgridNumElements = fsgrid.getNumStorageCells();

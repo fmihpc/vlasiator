@@ -270,7 +270,7 @@ void calculateDerivativesSimple(std::span<std::array<Real, fsgrids::bfield::N_BF
                                 std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
                                 std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                                 std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
-                                std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
+                                std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
                                 const bool doMoments) {
    phiprof::Timer derivativesTimer{"Calculate face derivatives"};
    const size_t numCells = fsgrid.getNumCells();
@@ -376,7 +376,7 @@ void calculateBVOLDerivatives(std::span<std::array<Real, fsgrids::volfields::N_V
  * \sa calculateDerivatives calculateBVOLDerivatives calculateDerivativesSimple
  */
 void calculateBVOLDerivativesSimple(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol,
-                                    std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid) {
+                                    std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
    const auto* localSize = &fsgrid.getLocalSize()[0];
    const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
 
@@ -469,7 +469,7 @@ void calculateCurvature(std::span<std::array<Real, fsgrids::volfields::N_VOL>> v
  */
 void calculateCurvatureSimple(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol,
                               std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
-                              std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid) {
+                              std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
    const auto& gridSpacing = fsgrid.getGridSpacing();
    const auto* localSize = &fsgrid.getLocalSize()[0];
    const size_t N_cells = localSize[0] * localSize[1] * localSize[2];

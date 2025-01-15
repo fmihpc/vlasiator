@@ -186,7 +186,7 @@ namespace SBC {
       void offset_FAC();                  /*!< Offset field aligned currents to get overall zero current */
       void normalizeRadius(Node& n, Real R); /*!< Scale all coordinates onto sphere with radius R */
       void updateConnectivity();          /*!< Re-link elements and nodes */
-      void updateIonosphereCommunicator(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, std::span< fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid); /*!< (Re-)create the subcommunicator for ionosphere-internal communication */
+      void updateIonosphereCommunicator(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, std::span< fsgrids::technical> technical, FieldSolverGrid &fsgrid); /*!< (Re-)create the subcommunicator for ionosphere-internal communication */
       void initializeTetrahedron();       /*!< Initialize grid as a base tetrahedron */
       void initializeIcosahedron();       /*!< Initialize grid as a base icosahedron */
       void initializeSphericalFibonacci(int n); /*!< Initialize grid as a spherical fibonacci lattice */
@@ -228,7 +228,7 @@ namespace SBC {
       void mapDownBoundaryData(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                                std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                                std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
-                               std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid);
+                               std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid);
 
       // Returns the surface area of one element on the sphere
       Real elementArea(uint32_t elementIndex) {
@@ -327,9 +327,9 @@ namespace SBC {
          Project &project
       );
       virtual void assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                     std::span< fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid);
+                                     std::span< fsgrids::technical> technical, FieldSolverGrid &fsgrid);
       virtual void applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                     std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
+                                     std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
                                      std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                                      std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, Project& project);
       virtual Real fieldSolverBoundaryCondMagneticField(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> b,
@@ -362,7 +362,7 @@ namespace SBC {
          const bool calculate_V_moments
       );
       virtual void updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                               std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
+                               std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
                                std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                                std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, creal t);
 
@@ -404,7 +404,7 @@ namespace SBC {
       void setCellFromTemplate(SpatialCell* cell,const uint popID);
       
       std::array<Real, 3> fieldSolverGetNormalDirection(
-         std::span< fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
+         std::span< fsgrids::technical> technical, FieldSolverGrid &fsgrid,
          cint i,
          cint j,
          cint k

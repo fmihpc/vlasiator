@@ -77,7 +77,7 @@ bool propagateFields(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb
                      std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmomentsdt2,
                      std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                      std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol,
-                     std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid, SysBoundary& sysBoundaries,
+                     std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid, SysBoundary& sysBoundaries,
                      creal& dt, cuint subcycles);
 
 Real divideIfNonZero(creal rhoV, creal rho);
@@ -101,14 +101,14 @@ reconstructionCoefficients(std::span<const std::array<Real, fsgrids::bfield::N_B
 std::array<Real, 3> interpolatePerturbedB(
     std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
     std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
-    std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
+    std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
     std::map<std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS>>& reconstructionCoefficientsCache, cint i,
     cint j, cint k, const std::array<Real, 3> x);
 
 std::array<Real, 3> interpolateCurlB(
     std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
     std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
-    std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
+    std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
     std::map<std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS>>& reconstructionCoefficientsCache, cint i,
     cint j, cint k, const std::array<Real, 3> x);
 

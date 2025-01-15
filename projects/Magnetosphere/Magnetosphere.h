@@ -51,7 +51,7 @@ namespace projects {
       virtual void getParameters(void);
       virtual void setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                                     std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
-                                    std::span<fsgrids::technical> technical, fsgrid::FsGrid<FS_STENCIL_WIDTH>& fsgrid);
+                                    std::span<fsgrids::technical> technical, FieldSolverGrid& fsgrid);
 
       virtual Realf fillPhaseSpace(spatial_cell::SpatialCell *cell,
                                   const uint popID,

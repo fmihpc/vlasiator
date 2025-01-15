@@ -888,7 +888,7 @@ bool writeConfigInfo(std::string config,vlsv::Writer& vlsvWriter,MPI_Comm comm){
  * @param fsgrid An fsgrid instance used to extract metadata info.
  * @param vlsvWriter file object to write into.
  */
-bool writeFsGridMetadata(fsgrid::FsGrid<FS_STENCIL_WIDTH>& fsgrid, vlsv::Writer& vlsvWriter, bool writeIDs = false) {
+bool writeFsGridMetadata(FieldSolverGrid& fsgrid, vlsv::Writer& vlsvWriter, bool writeIDs = false) {
 
    std::map<std::string, std::string> xmlAttributes;
    const std::string meshName = "fsgrid";

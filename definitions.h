@@ -23,8 +23,8 @@
 #ifndef DEFINITIONS_H
 #define DEFINITIONS_H
 
-#include <stdint.h>
 #include <limits>
+#include <stdint.h>
 
 //set floating point precision for storing the distribution function here. Default is single precision, use -DDPF to set double precision
 #ifdef DPF
@@ -71,6 +71,11 @@ namespace vmesh {
 
 //fieldsolver stencil.
 #define FS_STENCIL_WIDTH 2
+// Forward declare
+namespace fsgrid {
+template <int I> struct FsGrid;
+}
+using FieldSolverGrid = fsgrid::FsGrid<FS_STENCIL_WIDTH>;
 
 //Vlasov propagator stencils in ordinary space, velocity space may be
 //higher. Assume H4 (or H5) for PPM, H6 for PQM

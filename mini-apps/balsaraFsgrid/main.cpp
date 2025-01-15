@@ -13,7 +13,7 @@ uint Parameters::ohmHallTerm = 0;
 // Very simplified version of CalculateDerivatives from fieldsolver/derivatives.cpp
 void calculateDerivatives(const fsgrid::FsStencil& stencil, std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                           std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
-                          std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid) {
+                          std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
    std::array<Real, fsgrids::dperb::N_DPERB>& dPerB = dperb[stencil.center()];
    std::array<Real, fsgrids::bfield::N_BFIELD>& centPerB = perb[stencil.center()];
 
@@ -187,7 +187,7 @@ int main(int argc, char** argv) {
       return parentCommSize > fsgridProcs && fsgridProcs > 0 ? fsgridProcs : parentCommSize;
    }();
 
-   std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid(
+   std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid(
        fsGridDimensions, parentComm, numFsProcs, periodicity, gridSpacing, physicalGlobalStart, decomposition);
    fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> perBGrid(
        fsGridDimensions, parentComm, numFsProcs, periodicity, gridSpacing, physicalGlobalStart, decomposition);

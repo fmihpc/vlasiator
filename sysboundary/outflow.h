@@ -64,13 +64,13 @@ namespace SBC {
          Project &project
       );
       virtual void assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                     std::span< fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid);
+                                     std::span< fsgrids::technical> technical, FieldSolverGrid &fsgrid);
       virtual void applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                     std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
+                                     std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
                                      std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                                      std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, Project& project);
       virtual void updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                               std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
+                               std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
                                std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                                std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, creal t);
       virtual Real fieldSolverBoundaryCondMagneticField(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> b,

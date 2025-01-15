@@ -1100,7 +1100,7 @@ void calculateHallTermSimple(std::span<std::array<Real, fsgrids::bfield::N_BFIEL
                              std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
                              std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmomentsdt2,
                              std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
-                             std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
+                             std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
                              SysBoundary& sysBoundaries, int32_t RKCase, const bool communicateMomentsDerivatives) {
 
 

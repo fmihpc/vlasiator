@@ -31,7 +31,7 @@
 #include <span>
 
 void setBackgroundField(const FieldFunction& bgFunction, std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
-                        std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid, bool append = false);
+                        std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid, bool append = false);
 
 void setBackgroundFieldToZero(std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb);
 
@@ -60,7 +60,7 @@ void setPerturbedFieldToZero(std::span<std::array<Real, numFields>> b, int offse
 */
 template <long unsigned int numFields>
 void setPerturbedField(const FieldFunction& bfFunction, std::span<std::array<Real, numFields>> b,
-                       std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
+                       std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
                        int offset = fsgrids::bfield::PERBX, bool append = false) {
    using namespace std::placeholders;
    const auto gridSpacing = fsgrid.getGridSpacing();

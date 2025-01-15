@@ -38,7 +38,7 @@ Filter moments after feeding them to FsGrid to alleviate the staircase effect ca
 This is using a 3D, 5-point stencil triangle kernel.
 */
 void filterMoments(fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments,
-                   std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid) {
+                   std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
 
    // Kernel Characteristics
    constexpr int kernelOffset = 2;                // offset of 5 pointstencil 3D kernel => (floor(stencilWidth/2);)
@@ -135,7 +135,7 @@ void filterMoments(fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>
 void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                            const std::vector<CellID>& cells,
                            fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments,
-                           std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid, bool dt2 /*=false*/) {
+                           std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid, bool dt2 /*=false*/) {
 
    int ii;
    // sorted list of dccrg cells. cells is typicall already sorted, but just to make sure....
@@ -228,7 +228,7 @@ void getFieldsFromFsGrid(std::span<const std::array<Real, fsgrids::volfields::N_
                          std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                          std::span<const std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe,
                          std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
-                         std::span<const fsgrids::technical> technical, fsgrid::FsGrid<FS_STENCIL_WIDTH>& fsgrid,
+                         std::span<const fsgrids::technical> technical, FieldSolverGrid& fsgrid,
                          dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                          const std::vector<CellID>& cells) {
    // TODO: solver only needs bgb + PERB, we could combine them
@@ -527,7 +527,7 @@ std::vector<CellID> mapDccrgIdToFsGridGlobalID(dccrg::Dccrg<SpatialCell, dccrg::
 
 void feedBoundaryIntoFsGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                             const std::vector<CellID>& cells,
-                            std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid) {
+                            std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
    int ii;
    // sorted list of dccrg cells. cells is typicall already sorted, but just to make sure....
    std::vector<CellID> dccrgCells = cells;

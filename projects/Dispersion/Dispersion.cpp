@@ -99,7 +99,7 @@ namespace projects {
    void Dispersion::hook(cuint& stage,
                          const dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                          std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                         std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid) const {
+                         std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) const {
       if(hook::END_OF_TIME_STEP == stage) {
          int myRank;
          MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
@@ -214,7 +214,7 @@ namespace projects {
 
    void Dispersion::setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                                      std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
-                                     std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid) {
+                                     std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
       ConstantField bgField;
       bgField.initialize(this->B0 * cos(this->angleXY) * cos(this->angleXZ),
                          this->B0 * sin(this->angleXY) * cos(this->angleXZ),

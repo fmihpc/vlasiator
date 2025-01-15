@@ -176,7 +176,7 @@ Real getR(creal x, creal y, creal z, uint geometry, Real center[3]) {
 }
 
 void Copysphere::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                   std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid) {
+                                   std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
    const vector<CellID>& cells = getLocalCells();
    for (uint i = 0; i < cells.size(); i++) {
       if (mpiGrid[cells[i]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
@@ -198,7 +198,7 @@ void Copysphere::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Ge
 }
 
 void Copysphere::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                   std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
+                                   std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
                                    std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                                    std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, Project& project) {
    const vector<CellID>& cells = getLocalCells();
@@ -220,7 +220,7 @@ void Copysphere::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Ge
 }
 
 std::array<Real, 3>
-Copysphere::fieldSolverGetNormalDirection(std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid, cint i,
+Copysphere::fieldSolverGetNormalDirection(std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid, cint i,
                                           cint j, cint k) {
    phiprof::Timer timer{"Copysphere::fieldSolverGetNormalDirection"};
    std::array<Real, 3> normalDirection{{0.0, 0.0, 0.0}};
@@ -766,7 +766,7 @@ std::string Copysphere::getName() const { return "Copysphere"; }
 void Copysphere::getFaces(bool* faces) {}
 
 void Copysphere::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                             std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
+                             std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
                              std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                              std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, creal t) {}
 

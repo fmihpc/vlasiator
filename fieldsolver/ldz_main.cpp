@@ -85,7 +85,7 @@ bool propagateFields(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb
                      std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmomentsdt2,
                      std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                      std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol,
-                     std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid, SysBoundary& sysBoundaries,
+                     std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid, SysBoundary& sysBoundaries,
                      creal& dt, cuint subcycles) {
 
    if (subcycles == 0) {

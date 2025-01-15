@@ -41,7 +41,7 @@ FieldTracingParameters fieldTracingParameters;
 
 /* Call the heavier operations for DROs to be called only if needed, before an IO.
  */
-void reduceData(std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
+void reduceData(std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
                 std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                 std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                 dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
@@ -59,7 +59,7 @@ void reduceData(std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STEN
  * outwards until a non-boundary cell is encountered. Their proportional
  * coupling values are recorded in the grid nodes.
  */
-void calculateIonosphereFsgridCoupling(std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
+void calculateIonosphereFsgridCoupling(std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
                                        std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                                        std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                                        std::vector<SBC::SphericalTriGrid::Node>& nodes, creal couplingRadius) {
@@ -486,7 +486,7 @@ calculateIonosphereVlasovGridCoupling(std::array<Real, 3> x, std::vector<SBC::Sp
 
 /*! Trace magnetic field lines out from ionospheric nodes to record whether they are on an open or closed field line.
  */
-void traceOpenClosedConnection(std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
+void traceOpenClosedConnection(std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
                                std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                                std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                                std::vector<SBC::SphericalTriGrid::Node>& nodes) {
@@ -676,7 +676,7 @@ void traceOpenClosedConnection(std::span<fsgrids::technical> technical, fsgrid::
  * Beware this is inside a threaded region.
  * \sa traceFullBoxConnectionAndFluxRopes
  */
-void stepCellAcrossTaskDomain(cint n, std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
+void stepCellAcrossTaskDomain(cint n, std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
                               TracingFieldFunction<TReal>& tracingFullField,
                               const std::vector<std::array<TReal, 3>>& cellInitialCoordinates,
                               const std::vector<TReal>& cellCurvatureRadius,
@@ -845,7 +845,7 @@ void stepCellAcrossTaskDomain(cint n, std::span<fsgrids::technical> technical, f
  *
  * \sa stepCellAcrossTaskDomain
  */
-void traceFullBoxConnectionAndFluxRopes(std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
+void traceFullBoxConnectionAndFluxRopes(std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
                                         std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                                         std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                                         dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) {

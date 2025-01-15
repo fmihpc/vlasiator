@@ -68,14 +68,14 @@ namespace SBC {
          )=0;
          virtual void assignSysBoundary(dccrg::Dccrg<SpatialCell,
                                         dccrg::Cartesian_Geometry>& mpiGrid,
-                                        std::span< fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid)=0;
+                                        std::span< fsgrids::technical> technical, FieldSolverGrid &fsgrid)=0;
          virtual void applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                        std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
+                                        std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
                                         std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                                         std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                                         Project& project) = 0;
          virtual void updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                  std::span<fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
+                                  std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
                                   std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                                   std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, creal t) = 0;
          virtual Real
@@ -203,13 +203,13 @@ namespace SBC {
             creal fluffiness
          );
          std::array<int, 3> getTheClosestNonsysboundaryCell(
-            std::span< fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
+            std::span< fsgrids::technical> technical, FieldSolverGrid &fsgrid,
             cint i,
             cint j,
             cint k
          );
          std::vector< std::array<int, 3> > getAllClosestNonsysboundaryCells(
-            std::span< fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid,
+            std::span< fsgrids::technical> technical, FieldSolverGrid &fsgrid,
             cint i,
             cint j,
             cint k
@@ -247,7 +247,7 @@ namespace SBC {
 
    class OuterBoundaryCondition: public SysBoundaryCondition {
       public:
-         virtual void assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, std::span< fsgrids::technical> technical, fsgrid::FsGrid< FS_STENCIL_WIDTH> &fsgrid);
+         virtual void assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, std::span< fsgrids::technical> technical, FieldSolverGrid &fsgrid);
       protected:
          /*! Array of bool telling which faces are going to be processed by the system boundary condition.*/
          bool facesToProcess[6];
