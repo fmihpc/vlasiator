@@ -425,10 +425,11 @@ int simulate(int argn,char* args[]) {
       return parentCommSize > fsgridProcs && fsgridProcs > 0 ? fsgridProcs : parentCommSize;
    }();
 
-   fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> technicalGrid(fsGridDimensions, parentComm, numFsProcs, periodicity,
-                                                              gridSpacing, physicalGlobalStart, decomposition);
+   fsgrid::FsGrid<FS_STENCIL_WIDTH> fsgrid(fsGridDimensions, parentComm, numFsProcs, periodicity, gridSpacing,
+                                           physicalGlobalStart, decomposition);
 
-   const size_t fsgridNumElements = technicalGrid.size();
+   const size_t fsgridNumElements = fsgrid.getNumStorageCells();
+   fsgrid::FsData<fsgrids::technical> technical(fsgridNumElements);
    fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>> perb(fsgridNumElements);
    fsgrid::FsData<std::array<Real, fsgrids::efield::N_EFIELD>> e(fsgridNumElements);
    fsgrid::FsData<std::array<Real, fsgrids::efield::N_EFIELD>> edt2(fsgridNumElements);
@@ -442,6 +443,9 @@ int simulate(int argn,char* args[]) {
    fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmomentsdt2(fsgridNumElements);
    fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb(fsgridNumElements);
    fsgrid::FsData<std::array<Real, fsgrids::volfields::N_VOL>> vol(fsgridNumElements);
+
+   const FsGrids fsgrids(perb, perbdt2, e, edt2, ehall, egradpe, egradpedt2, moments, momentsdt2, dperb, dmoments,
+                         dmomentsdt2, bgb, vol, technical, fsgrid);
    initFsTimer.stop();
 
    // Initialize grid.  After initializeGrid local cells have dist
@@ -453,7 +457,7 @@ int simulate(int argn,char* args[]) {
    phiprof::Timer initGridsTimer {"Init grids"};
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> mpiGrid;
 
-   initializeGrids(argn, args, mpiGrid, perb, bgb, moments, momentsdt2, dmoments, e, egradpe, vol, technicalGrid,
+   initializeGrids(argn, args, mpiGrid, perb, bgb, moments, momentsdt2, dmoments, e, egradpe, vol, technical, fsgrid,
                    sysBoundaryContainer, *project);
    const std::vector<CellID>& cells = getLocalCells();
 
@@ -510,11 +514,8 @@ int simulate(int argn,char* args[]) {
       }
 
       const bool writeGhosts = true;
-      if (writeGrid(mpiGrid,
-                    FsGrids(perb, perbdt2, e, edt2, ehall, egradpe, egradpedt2, moments, momentsdt2, dperb, dmoments,
-                            dmomentsdt2, bgb, vol, technicalGrid),
-                    version, config, &outputReducer, P::systemWriteName.size() - 1, P::restartStripeFactor,
-                    writeGhosts) == false) {
+      if (writeGrid(mpiGrid, fsgrids, version, config, &outputReducer, P::systemWriteName.size() - 1,
+                    P::restartStripeFactor, writeGhosts) == false) {
          cerr << "FAILED TO WRITE GRID AT " << __FILE__ << " " << __LINE__ << endl;
       }
       initTimer.stop();
@@ -525,7 +526,7 @@ int simulate(int argn,char* args[]) {
       if (myRank == MASTER_RANK) logFile << "(MAIN): Exiting." << endl << writeVerbose;
       logFile.close();
       if (P::diagnosticInterval != 0) diagnostic.close();
-      
+
       technicalGrid.finalize();
 
       MPI_Finalize();
@@ -602,11 +603,8 @@ int simulate(int argn,char* args[]) {
       }
 
       const bool writeGhosts = true;
-      if (writeGrid(mpiGrid,
-                    FsGrids(perb, perbdt2, e, edt2, ehall, egradpe, egradpedt2, moments, momentsdt2, dperb, dmoments,
-                            dmomentsdt2, bgb, vol, technicalGrid),
-                    version, config, &outputReducer, P::systemWriteName.size() - 1, P::restartStripeFactor,
-                    writeGhosts) == false) {
+      if (writeGrid(mpiGrid, fsgrids, version, config, &outputReducer, P::systemWriteName.size() - 1,
+                    P::restartStripeFactor, writeGhosts) == false) {
          cerr << "FAILED TO WRITE GRID AT " << __FILE__ << " " << __LINE__ << endl;
       }
 
@@ -815,10 +813,8 @@ int simulate(int argn,char* args[]) {
             phiprof::Timer writeSysTimer {"write-system"};
             logFile << "(IO): Writing spatial cell and reduced system data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
             const bool writeGhosts = true;
-            if (writeGrid(mpiGrid,
-                          FsGrids(perb, perbdt2, e, edt2, ehall, egradpe, egradpedt2, moments, momentsdt2, dperb,
-                                  dmoments, dmomentsdt2, bgb, vol, technicalGrid),
-                          version, config, &outputReducer, i, P::systemStripeFactor, writeGhosts) == false) {
+            if (writeGrid(mpiGrid, fsgrids, version, config, &outputReducer, i, P::systemStripeFactor, writeGhosts) ==
+                false) {
                cerr << "FAILED TO WRITE GRID AT" << __FILE__ << " " << __LINE__ << endl;
             }
             P::systemWrites[i]++;
@@ -888,10 +884,8 @@ int simulate(int argn,char* args[]) {
          if (myRank == MASTER_RANK)
             logFile << "(IO): Writing restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
          //Write the restart:
-         if (writeRestart(mpiGrid,
-                          FsGrids(perb, perbdt2, e, edt2, ehall, egradpe, egradpedt2, moments, momentsdt2, dperb,
-                                  dmoments, dmomentsdt2, bgb, vol, technicalGrid),
-                          version, config, outputReducer, "restart", (uint)P::t, P::restartStripeFactor) == false) {
+         if (writeRestart(mpiGrid, fsgrids, version, config, outputReducer, "restart", (uint)P::t,
+                          P::restartStripeFactor) == false) {
             logFile << "(IO): ERROR Failed to write restart!" << endl << writeVerbose;
             cerr << "FAILED TO WRITE RESTART" << endl;
          }
