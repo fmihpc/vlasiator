@@ -182,6 +182,35 @@ jobs:
         path: vlasiator
         if-no-files-found: error
 
+  build_production_debug_flags:
+    # Build Vlasiator with production flags and all the debug flags enabled to check the debug code is still ok
+    runs-on: ubuntu-latest
+    container: ursg/vlasiator_ci:20241101_1
+    needs: build_libraries
+
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v4
+      with:
+        submodules: true
+    - name: Download libraries
+      uses: actions/download-artifact@v4
+      with:
+        name: libraries
+    - name: Unpack libraries
+      run: tar --zstd -xvf libraries.tar.zstd
+    - uses: ursg/gcc-problem-matcher@master
+    - name: Compile vlasiator (Release build)
+      run: |
+        VLASIATOR_ARCH=github_actions make clean
+        VLASIATOR_ARCH=github_actions COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEBUG_IONOSPHERE -DHASHINATOR_DEBUG -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC -DDEBUG_ACC " make -j 3
+    - name: Upload release binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: vlasiator-debug
+        path: vlasiator
+        if-no-files-found: error
+
   build_testpackage:
     # Build Vlasiator with testpackage flags, on the carrington cluster
     # (for subsequent running of the integration test package)
