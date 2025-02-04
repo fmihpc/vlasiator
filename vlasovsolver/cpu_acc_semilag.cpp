@@ -120,7 +120,7 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
                   std::cout << "16c Initial nudge" << "\n";
                }
             }
-            if (spatial_cell->get_timeclass_turn_v()) {
+            else if (spatial_cell->get_timeclass_turn_v()) {
                spatial_cell->set_velocity_mesh_ghost(popID, i);
                spatial_cell->set_velocity_blocks_ghost(popID, i); // this was 0.5x dt, but that was wrong; just copy
                cpu_accelerate_cell(spatial_cell, popID, map_order, dt/pow(2,tc_d)*2/4, tc_d);

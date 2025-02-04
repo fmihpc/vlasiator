@@ -75,6 +75,7 @@
       "typeinfo": "cpp",
       "variant": "cpp",
       "hash_map": "cpp",
-      "future": "cpp"
+      "future": "cpp",
+      "alignedvector3": "cpp"
    },
 }

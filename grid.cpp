@@ -741,6 +741,10 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    SpatialCell::setCommunicatedSpecies(popID);
    const vector<CellID>& cells = getLocalCells();
 
+   std::cerr << __FILE__<<":"<<__LINE__<< " calling adjustVelocityBlocks at t = " 
+         << P::t << "; len cells = " << cellsToAdjust.size() << "; prepare: " << doPrepareToReceiveBlocks <<
+         "\n";
+
    phiprof::Timer computeTimer {"Compute with_content_list"};
    #pragma omp parallel for
    for (uint i=0; i<cells.size(); ++i) {

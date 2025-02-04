@@ -552,7 +552,7 @@ namespace spatial_cell {
       const vmesh::LocalID blockLID = get_velocity_block_local_id(blockGID,popID);
       if (blockLID == invalid_local_id())
       {
-         std::cerr << "invalid lid\n";
+         // std::cerr << "invalid lid\n";
           return false;
       }
 

@@ -851,8 +851,8 @@ namespace spatial_cell {
          exit(1);
       }
       #endif
-      if (blockLID == vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) return null_block_data.data();
-      if(timeclass < 0){
+      if (blockLID == vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) return NULL;//null_block_data.data();
+      if(timeclass < 0 || timeclass == this->get_tc()){
          return populations[popID].blockContainer.getData(blockLID);
       }
       else{
