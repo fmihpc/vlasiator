@@ -206,6 +206,7 @@ namespace spatial_cell {
       const Real* get_cell_parameters() const;
 
       vmesh::LocalID get_number_of_velocity_blocks(const uint popID) const;
+      vmesh::LocalID get_number_of_velocity_blocks_ghost(const uint popID) const;
       vmesh::LocalID get_number_of_all_velocity_blocks() const;
       int get_number_of_populations() const;
       
@@ -936,6 +937,21 @@ namespace spatial_cell {
       }
       #endif
       return populations[popID].blockContainer.size();
+   }
+
+   inline vmesh::LocalID SpatialCell::get_number_of_velocity_blocks_ghost(const uint popID) const {
+      #ifdef DEBUG_SPATIAL_CELL
+      if (popID >= populations.size()) {
+         std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
+         std::cerr << __FILE__ << ":" << __LINE__ << std::endl;             
+         exit(1);
+      }
+      #endif
+      vmesh::LocalID sum = 0;
+      for (int tc : this->requested_timeclass_ghosts) {
+         sum += ghostPopulations.at({popID,tc}).blockContainer.size();
+      }
+      return sum;
    }
 
     /** Get the total number of velocity blocks in this cell, summed over 

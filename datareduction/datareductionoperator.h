@@ -292,6 +292,23 @@ namespace DRO {
       std::string popName;
    };
 
+   class BlocksTC: public DataReductionOperator {
+   public:
+      BlocksTC(cuint popID);
+      virtual ~BlocksTC();
+
+      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual std::string getName() const;
+      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool reduceDiagnostic(const SpatialCell* cell,Real* buffer);
+      virtual bool setSpatialCell(const SpatialCell* cell);
+
+   protected:
+      uint nBlocks;
+      uint popID;
+      std::string popName;
+   };
+
    class VariableBVol: public DataReductionOperator {
    public:
       VariableBVol();
