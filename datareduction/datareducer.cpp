@@ -860,6 +860,20 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             continue;
          }
       }
+
+      if (P::systemWriteAllDROs || lowercase == "populations_blocks_inc_ghost" || lowercase == "populations_vg_blocks_inc_ghost") {
+         // Per-population velocity space block counts including timeghost cells
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            species::Species& species=getObjectWrapper().particleSpecies[i];
+            const std::string& pop = species.name;
+            outputReducer->addOperator(new DRO::BlocksTC(i));
+            outputReducer->addMetadata(outputReducer->size()-1,"","","$\\mathrm{"+pop+" blocks_tc}$","");
+         }
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
+      }
+
       if(P::systemWriteAllDROs || lowercase == "fsaved" || lowercase == "vg_fsaved" || lowercase == "vg_f_saved") {
          // Boolean marker whether a velocity space is saved in a given spatial cell
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_f_saved",CellParams::ISCELLSAVINGF,1));

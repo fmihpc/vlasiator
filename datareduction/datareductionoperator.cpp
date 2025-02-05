@@ -553,6 +553,37 @@ namespace DRO {
       return true;
    }
 
+   // Blocks inc. timeclass ghosts
+   BlocksTC::BlocksTC(cuint _popID): DataReductionOperator(),popID(_popID) {
+      popName=getObjectWrapper().particleSpecies[popID].name;
+   }
+   BlocksTC::~BlocksTC() { }
+
+   bool BlocksTC::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "uint";
+      dataSize = sizeof(int);
+      vectorSize = 1;
+      return true;
+   }
+
+   std::string BlocksTC::getName() const {return popName + "/vg_blocks_tc";}
+
+   bool BlocksTC::reduceData(const SpatialCell* cell,char* buffer) {
+      const char* ptr = reinterpret_cast<const char*>(&nBlocks);
+      for (uint i = 0; i < sizeof(int); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+
+   bool BlocksTC::reduceDiagnostic(const SpatialCell* cell,Real* buffer) {
+      *buffer = 1.0 * nBlocks;
+      return true;
+   }
+
+   bool BlocksTC::setSpatialCell(const SpatialCell* cell) {
+      nBlocks = cell->get_number_of_velocity_blocks_ghost(popID);
+      return true;
+   }
+
    // Scalar pressure from the stored values which were calculated to be used by the solvers
    VariablePressureSolver::VariablePressureSolver(): DataReductionOperator() { }
    VariablePressureSolver::~VariablePressureSolver() { }
