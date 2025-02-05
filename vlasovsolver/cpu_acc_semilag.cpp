@@ -112,9 +112,9 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
          int tc_d = i-spatial_cell->get_tc(); 
          if(tc_d > 0) {
             
-            if ((P::tstep == 0 && P::fractionalTimestep == 0)) {
+            if (!P::tc_leapfrog_init) {
                spatial_cell->set_velocity_mesh_ghost(popID, i);
-               spatial_cell->set_velocity_blocks_ghost(popID, i); // this was 0.5x dt, but that was wrong; just copy
+               spatial_cell->set_velocity_blocks_ghost(popID, i); 
                cpu_accelerate_cell(spatial_cell, popID, map_order, dt/pow(2,tc_d), tc_d);
                if (spatial_cell->parameters[CellParams::CELLID]  == 16){
                   std::cout << "16c Initial nudge" << "\n";
@@ -122,8 +122,8 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
             }
             else if (spatial_cell->get_timeclass_turn_v()) {
                spatial_cell->set_velocity_mesh_ghost(popID, i);
-               spatial_cell->set_velocity_blocks_ghost(popID, i); // this was 0.5x dt, but that was wrong; just copy
-               cpu_accelerate_cell(spatial_cell, popID, map_order, dt/pow(2,tc_d)*2/4, tc_d);
+               spatial_cell->set_velocity_blocks_ghost(popID, i); 
+               cpu_accelerate_cell(spatial_cell, popID, map_order, dt/pow(2,tc_d)*1/2, tc_d);
                if (spatial_cell->parameters[CellParams::CELLID]  == 16){
                   std::cout << "16c tc-0 copy and nudge" << "\n";
                }

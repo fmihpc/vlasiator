@@ -321,11 +321,16 @@ void calculateMoments_V(
 
    phiprof::Timer momentsTimer {"Compute _V moments"};
 
+   std::vector<CellID> cells_on_turn;
+   for (size_t c=0; c<cells.size(); ++c) {
+         SpatialCell* cell = mpiGrid[cells[c]];
+         if (cell->get_timeclass_turn_v()) cells_on_turn.push_back(cells[c]);
+   } 
    // Loop over all particle species
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       #pragma omp parallel for
-      for (size_t c=0; c<cells.size(); ++c) {
-         SpatialCell* cell = mpiGrid[cells[c]];
+      for (size_t c=0; c<cells_on_turn.size(); ++c) {
+         SpatialCell* cell = mpiGrid[cells_on_turn[c]];
 
          if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
             continue;
@@ -384,8 +389,8 @@ void calculateMoments_V(
    } // for-loop over particle species
 
    #pragma omp parallel for
-   for (size_t c=0; c<cells.size(); ++c) {
-      SpatialCell* cell = mpiGrid[cells[c]];
+   for (size_t c=0; c<cells_on_turn.size(); ++c) {
+      SpatialCell* cell = mpiGrid[cells_on_turn[c]];
       if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
          continue;
       }

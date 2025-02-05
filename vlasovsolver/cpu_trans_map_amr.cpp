@@ -340,7 +340,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
       // Vector of pointers to cell block data, used for both reading and writing
       std::vector<Vec> blockDataBuffer(DimensionPencils[dimension].sumOfLengths*WID3/VECL);
       std::vector<Realf*> cellBlockData(DimensionPencils[dimension].sumOfLengths);
-      std::cout << "cellBlockData " << cellBlockData.size() << "\n";
+      // std::cout << "cellBlockData " << cellBlockData.size() << "\n";
       std::vector<uint> pencilBlocksCount(DimensionPencils[dimension].N);
 
       // Loop over velocity space blocks (threaded).
@@ -356,13 +356,13 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
          for (uint pencili = 0; pencili < DimensionPencils[dimension].N; ++pencili){
             int nonEmptyBlocks = 0;
             if (DimensionPencils[dimension].timeclasses[pencili] != timeclass) {
-               if (blocki == 0){
-               std::cout << "Skip pencili " << pencili << " "<< DimensionPencils[dimension].timeclasses[pencili] << " != " << timeclass << "\n"; }
+               // if (blocki == 0){
+               // std::cout << "Skip pencili " << pencili << " "<< DimensionPencils[dimension].timeclasses[pencili] << " != " << timeclass << "\n"; }
                continue;
             }
             else{
-               if (blocki == 0){
-               std::cout << "cntd pencili " << pencili << " "<< DimensionPencils[dimension].timeclasses[pencili] << " == " << timeclass << "\n"; }
+               // if (blocki == 0){
+               // std::cout << "cntd pencili " << pencili << " "<< DimensionPencils[dimension].timeclasses[pencili] << " == " << timeclass << "\n"; }
             }
             int L = DimensionPencils[dimension].lengthOfPencils[pencili];
             int start = DimensionPencils[dimension].idsStart[pencili];
@@ -416,13 +416,13 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                         std::cout<< __FILE__<<":"<<__LINE__<< "\t Loaded regular data in cell " << srcCell->parameters[CellParams::CELLID] << " for tc " << timeclass<< " at pencil "<<pencili <<" dimension "<<dimension<< "\n";
                      }
                      cellBlockData[start + b] = srcCell->get_data(blockLID,popID);
-                     if(blocki == 0) std::cout << "cellBlockData " << cellBlockData.size() << "\n";
+                     if(blocki == 0) {std::cout << "cellBlockData " << cellBlockData.size() << "\n";}
                   }
                   nonEmptyBlocks++;
                } else {
                   cellBlockData[start + b] = NULL;
                }
-               std::cerr << cellBlockData[start + b]<< "\n";
+               // std::cout << cellBlockData[start + b]<< "\n";
             }
             if(nonEmptyBlocks == 0) {
                if (blocki == 0){
@@ -452,11 +452,11 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                velblocks = &target_cell->get_velocity_blocks(popID, timeclass);
                vmesh::LocalID blockLID;
                if(target_cell->get_timeclass_turn_r()) {
-                  std::cout << target_cell_id << "is in turn \n";
+                  // std::cout << target_cell_id << "is in turn \n";
                   blockLID = target_cell->get_velocity_block_local_id(blockGID, popID);
                }
                else{ 
-                  std::cout << target_cell_id << "is not in turn \n";
+                  // std::cout << target_cell_id << "is not in turn \n";
                   // blockLID = target_cell->get_velocity_block_local_id(blockGID, popID, timeclass);
                   blockLID = vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID();
                }
@@ -499,10 +499,10 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
 
             // Skip pencils without blocks
             if (pencilBlocksCount.at(pencili) == 0 || DimensionPencils[dimension].timeclasses[pencili] != timeclass) {
-               std::cout << "Skipped pencili " << pencili << "\n";
+               // std::cout << "Skipped pencili " << pencili << "\n";
                continue;
             }
-            std::cout << "cellBlockData " << cellBlockData.size() << "\n";
+            // std::cout << "cellBlockData " << cellBlockData.size() << "\n";
             // sourceVecData => targetBlockData[this pencil])
             int L = DimensionPencils[dimension].lengthOfPencils[pencili];
             int start = DimensionPencils[dimension].idsStart[pencili];

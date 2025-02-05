@@ -820,6 +820,10 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
          updateRemoteVelocityBlockLists(mpiGrid,popID);
       }
    }
+   std::cerr << __FILE__<<":"<<__LINE__<< " called adjustVelocityBlocks at t = " 
+         << P::t << "; len cells = " << cellsToAdjust.size() << "; prepare: " << doPrepareToReceiveBlocks <<
+         "\n";
+
    return true;
 }
 
@@ -929,14 +933,19 @@ void report_grid_memory_consumption(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
 void deallocateRemoteCellBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
    const std::vector<uint64_t> remote_cells
       = mpiGrid.get_remote_cells_on_process_boundary(FULL_NEIGHBORHOOD_ID);
+   int cleared_count = 0;
    for (unsigned int i=0; i<remote_cells.size(); i++) {
       uint64_t cell_id = remote_cells[i];
       SpatialCell* cell = mpiGrid[cell_id];
       if (cell != NULL) {
-         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID){
             cell->clear(popID);
+            cleared_count++;
+            std::cout << "Cleared " <<cell_id <<" remote blocks\n"; 
+         }
       }
    }
+   std::cout << __FILE__ <<":"<<__LINE__<<" cleared " << "cells for remote blocks\n";
 }
 
 /*

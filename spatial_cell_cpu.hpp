@@ -1603,7 +1603,7 @@ namespace spatial_cell {
          exit(1);
       }
       #endif
-      std::cerr << "get_velocity_mesh_ghost with tc " << timeclass << " at " << &ghostPopulations[{popID,timeclass}].vmesh <<"\n";
+      // std::cerr << "get_velocity_mesh_ghost with tc " << timeclass << " at " << &ghostPopulations[{popID,timeclass}].vmesh <<"\n";
 
       return ghostPopulations[{popID,timeclass}].vmesh; // OBS try-emplace
    }
