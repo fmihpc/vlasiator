@@ -553,7 +553,7 @@ namespace DRO {
       return true;
    }
 
-   // Blocks inc. timeclass ghosts
+   // Blocks of timeclass ghosts
    BlocksTC::BlocksTC(cuint _popID): DataReductionOperator(),popID(_popID) {
       popName=getObjectWrapper().particleSpecies[popID].name;
    }

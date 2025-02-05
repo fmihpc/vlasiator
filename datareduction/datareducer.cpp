@@ -861,8 +861,8 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
       }
 
-      if (P::systemWriteAllDROs || lowercase == "populations_blocks_inc_ghost" || lowercase == "populations_vg_blocks_inc_ghost") {
-         // Per-population velocity space block counts including timeghost cells
+      if (P::systemWriteAllDROs || lowercase == "populations_blocks_ghost" || lowercase == "populations_vg_blocks_ghost") {
+         // Per-population velocity space block counts of timeghost cells
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
