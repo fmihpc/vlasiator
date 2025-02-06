@@ -48,13 +48,12 @@ CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 
-#======== Libraries ===========
-# INC_BOOST = -I/usr/include/boost/
-LIB_BOOST =  -lboost_program_options
-LIB_ZOLTAN +=-lzoltan
-LIB_VLSV +=-lvlsv
-LIB_PAPI +=-lpapi
-LIB_JEMALLOC +=-ljemalloc
-LIB_PROFILE += -lphiprof
+# #======== Libraries ===========
+LIB_BOOST=-lboost_program_options
+LIB_ZOLTAN+=-lzoltan
+LIB_VLSV+=-lvlsv
+LIB_PAPI+=-lpapi
+LIB_JEMALLOC+=-ljemalloc
+LIB_PROFILE+= -lphiprof
 INC_VECTORCLASS = -isystem ./submodules/vectorclass/ -isystem ./submodules/vectorclass-addon/vector3d/
 INC_EIGEN = -isystem ./submodules/eigen/
