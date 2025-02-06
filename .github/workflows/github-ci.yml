@@ -35,6 +35,20 @@ jobs:
           retention-days: 5
           if-no-files-found: error
 
+  build_nix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Install Nix
+        uses: cachix/install-nix-action@v22
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+      - name: BuildVlasiatorNix
+        run: nix develop --impure --command bash -c " make j 32 ;  ./vlasiator --help "
+
   build_libraries_appleM1:
     # Build libraries on macos with M1 hardware, to test both macOS and aarch64 compatibility
     runs-on: macos-14
