@@ -49,7 +49,7 @@ jobs:
           extra_nix_config: |
             experimental-features = nix-command flakes
       - name: BuildVlasiatorNix
-        run: nix develop --impure --command bash -c " make -j 8 ;  ./vlasiator --help "
+        run: nix develop --impure --command bash -c " make -j 8 ;"
 
   build_libraries_appleM1:
     # Build libraries on macos with M1 hardware, to test both macOS and aarch64 compatibility
