@@ -197,13 +197,14 @@ namespace SBC {
          if (cell->sysBoundaryFlag != this->getIndex()) continue;
          for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
             setCellFromTemplate(cell,popID);
+
+            #ifdef DEBUG_VLASIATOR
+            // Verify current mesh and blocks
+            if (!cell->checkMesh(popID)) {
+               printf("ERROR in vmesh check: %s at %d\n",__FILE__,__LINE__);
+            }
+            #endif
          }
-         #ifdef DEBUG_VLASIATOR
-         // Verify current mesh and blocks
-         if (!cell->checkMesh(popID)) {
-            printf("ERROR in vmesh check: %s at %d\n",__FILE__,__LINE__);
-         }
-         #endif
       }
    }
 
