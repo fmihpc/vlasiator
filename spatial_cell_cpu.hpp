@@ -220,6 +220,7 @@ namespace spatial_cell {
 
       const Real& get_tc_dt() const;
       const int get_tc() const;
+      const bool has_timeclass(int) const;
       const bool get_timeclass_turn_r() const;
       const bool get_timeclass_turn_v() const;
       const bool get_timeclass_turn_v(int tc) const;
@@ -1450,6 +1451,7 @@ namespace spatial_cell {
       const unsigned int cell = get_velocity_cell(popID,blockGID, vx, vy, vz);
       get_data(blockLID,popID)[cell] = value;
    }
+
 
 //TODO - thread safe set/increment functions which do not create blocks automatically
 

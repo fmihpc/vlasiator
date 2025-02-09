@@ -46,6 +46,7 @@
 #include "iowrite.h"
 #include "ioread.h"
 #include "object_wrapper.h"
+#include "vlasovsolver/cpu_trans_pencils.hpp"
 
 #ifdef PAPI_MEM
 #include "papi.h"
@@ -714,7 +715,9 @@ void prepareAMRLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
 
       phiprof::Timer ghostListsTimer {"update active cell lists for ghost translation"};
       const vector<CellID>& localCells = getLocalCells();
-      prepareGhostTranslationCellLists(mpiGrid,localCells);
+
+      prepareGhostTranslationCellLists(mpiGrid, localCells, ghostTranslate_source, ghostTranslate_active);
+
       ghostListsTimer.stop();
 
       phiprof::Timer barrierTimer {"MPI barrier"};
@@ -724,9 +727,58 @@ void prepareAMRLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
       ghostTimer.stop();
    }
 
+   if (P::currentMaxTimeclass > 0) {
+      const vector<CellID>& localCells = getLocalCells();
+
+      getGhostNeighborsforTC(mpiGrid, localCells);
+
+      for(int i = 0; i <= P::currentMaxTimeclass; ++i){
+         timeghost_source.clear();
+         timeghost_active.clear();
+         prepareGhostTranslationCellLists(mpiGrid, localCells, timeghost_source[i], timeghost_active[i], i);
+      }
+   }
+
    // Prepare cellIDs and pencils for AMR translation
    prepareSeedIdsAndPencils(mpiGrid);
 }
+
+void getGhostNeighborsforTC(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                              const std::vector<CellID>& cellsToCheckNeighbors) {
+   /*
+   1st version
+   every timestep, go through every cell c, and get its ghost neighbours. 
+   Then, for every ghost neighbour, send c's timeclass to its requested_timeclass_ghosts
+   */
+   /*
+   2nd version TODO:
+   every timestep, check if computeNewTimestep changes any cells' timeclass. Then go through v1 functionality.
+   */
+
+   for (size_t c=0; c<cellsToCheckNeighbors.size(); ++c) {
+      const CellID cell = cellsToCheckNeighbors[c];
+      auto neighbors = mpiGrid.get_neighbors_of(cell, VLASOV_SOLVER_GHOST_NEIGHBORHOOD_ID);
+      auto& neighborsRef = *neighbors;
+      auto neighborsRemote = mpiGrid.get_remote_neighbors_of(cell, VLASOV_SOLVER_GHOST_NEIGHBORHOOD_ID);
+
+      // get_neighbours_of returns a pointer to a vector of pairs, and each pairs' first element is the CellID
+      // get_remote_neighbors_of returns a vector of CellIDs
+
+      for (size_t i=0; i<neighborsRef.size(); ++i) {
+         if (mpiGrid[(neighborsRef)[i].first]->parameters[CellParams::TIMECLASS] != mpiGrid[cell]->parameters[CellParams::TIMECLASS]) {
+            mpiGrid[(neighborsRef)[i].first]->requested_timeclass_ghosts.insert(mpiGrid[cell]->parameters[CellParams::TIMECLASS]);
+         }
+      }
+      for (size_t i=0; i<neighborsRemote.size(); ++i) {
+         if (mpiGrid[(neighborsRemote)[i]]->parameters[CellParams::TIMECLASS] != mpiGrid[cell]->parameters[CellParams::TIMECLASS]) {
+            mpiGrid[neighborsRemote[i]]->requested_timeclass_ghosts.insert(mpiGrid[cell]->parameters[CellParams::TIMECLASS]);
+         }
+      }
+   }
+}
+
+
+
 
 /*
   Adjust sparse velocity space to make it consistent in all 6 dimensions.

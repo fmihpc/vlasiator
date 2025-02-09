@@ -644,6 +644,17 @@ namespace spatial_cell {
       */
    }
 
+   const bool SpatialCell::has_timeclass(int timeclass) const{
+      if ((int)this->parameters[CellParams::TIMECLASS] == timeclass ||
+               this->requested_timeclass_ghosts.count(timeclass) > 0
+         ){
+            return true;
+         } 
+         else{
+            return false;
+         }
+   }
+
    /** Get MPI datatype for sending the cell data.
     * @param cellID Spatial cell (dccrg) ID.
     * @param sender_rank Rank of the MPI process sending data from this cell.

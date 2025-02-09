@@ -219,8 +219,12 @@ extern std::array<setOfPencils,3> DimensionPencils;
 extern std::array<std::unordered_set<CellID>,3> DimensionTargetCells;
 
 // Ghost translation cell lists (no interim comms)
-void prepareGhostTranslationCellLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                      const std::vector<CellID>& localPropagatedCells);
+void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                      const std::vector<CellID>& localPropagatedCells, 
+                                       std::map<uint,std::unordered_set<CellID>>& ghostTranslate_source,
+                                      std::map<uint,std::unordered_set<CellID>>& ghostTranslate_active,
+                                      int tc = -1
+                                      );
 
 // defined in cpu_trans_map_amr.cpp
 extern std::unordered_set<CellID> ghostTranslate_sources_x;
@@ -230,6 +234,10 @@ extern std::unordered_set<CellID> ghostTranslate_active_x;
 extern std::unordered_set<CellID> ghostTranslate_active_y;
 extern std::unordered_set<CellID> ghostTranslate_active_z;
 
-void prepareLocalTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                      const std::vector<CellID>& localCells);
+typedef std::map<uint,std::unordered_set<CellID>> ghostmaptype;
+extern std::map<uint, std::map<uint,std::unordered_set<CellID>>> timeghost_source, timeghost_active;
+
+extern ghostmaptype ghostTranslate_source;
+extern ghostmaptype ghostTranslate_active;
+
 #endif
