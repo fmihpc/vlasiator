@@ -645,7 +645,8 @@ namespace spatial_cell {
    }
 
    const bool SpatialCell::has_timeclass(int timeclass) const{
-      if ((int)this->parameters[CellParams::TIMECLASS] == timeclass ||
+      if (timeclass < 0 || 
+         (int)this->parameters[CellParams::TIMECLASS] == timeclass ||
                this->requested_timeclass_ghosts.count(timeclass) > 0
          ){
             return true;
