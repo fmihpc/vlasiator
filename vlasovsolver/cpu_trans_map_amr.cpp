@@ -442,78 +442,99 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
          // std::cout << "cellBlockData " << cellBlockData.size() << "\n";
          phiprof::Timer memsetTimer {memsetTimerId};
          // reset blocks in all non-sysboundary neighbor spatial cells for this block id
-         for (CellID target_cell_id: DimensionTargetCells[dimension]) {
-            SpatialCell* target_cell = mpiGrid[target_cell_id];
-            if(blocki==0)
-            std::cout <<target_cell_id << " cellBlockData " << cellBlockData.size() << "\n";
-            if (target_cell){
-               vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>* velmesh;
-               vmesh::VelocityBlockContainer<vmesh::LocalID>* velblocks;
-               velmesh = &target_cell->get_velocity_mesh(popID, timeclass);
-               velblocks = &target_cell->get_velocity_blocks(popID, timeclass);
-               vmesh::LocalID blockLID;
-               if(target_cell->get_tc() == timeclass) {
-                  // std::cout << target_cell_id << "is in turn \n";
-                  blockLID = target_cell->get_velocity_block_local_id(blockGID, popID);
-                  if(blocki==0)
-                  std::cout << __FILE__ << ":" << __LINE__ << target_cell_id << " cellBlockData " << cellBlockData.size() << "\n";   
-               }
-               else if(target_cell->requested_timeclass_ghosts.count(timeclass) > 0){
-                  blockLID = target_cell->get_velocity_block_local_id(blockGID, popID,timeclass);
-                  if(blocki==0)
-                  std::cout << __FILE__ << ":" << __LINE__ << target_cell_id << " cellBlockData " << cellBlockData.size() << "\n";   
-
-               }
-               else{ 
-                  // std::cout << target_cell_id << "is not in turn \n";
-                  // blockLID = target_cell->get_velocity_block_local_id(blockGID, popID, timeclass);
-                  blockLID = vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID();
-                  if(blocki==0)
-                  std::cout << __FILE__ << ":" << __LINE__ << target_cell_id << " invalid " << cellBlockData.size() << "\n";
+         for (uint pencili = 0; pencili < DimensionPencils[dimension].N; ++pencili){
+            if (DimensionPencils[dimension].timeclasses[pencili] != timeclass) {
+               if (blocki == 0){
+               std::cout << "Skip pencili " << pencili << " "<< DimensionPencils[dimension].timeclasses[pencili] << " != " << timeclass << "\n"; }
+               continue;
+            }
+            else{
+               if (blocki == 0){
+               std::cout << "cntd pencili " << pencili << " "<< DimensionPencils[dimension].timeclasses[pencili] << " == " << timeclass << "\n"; }
+            }
+            for (int targeti = DimensionPencils[dimension].idsStart[pencili]; targeti < DimensionPencils[dimension].idsStart[pencili]+DimensionPencils[dimension].lengthOfPencils[pencili]; ++targeti){
+               // for (CellID target_cell_id: DimensionPencils[dimension].getIds(pencili)){//DimensionPencils[dimension].ids[pencili]) {
+               CellID target_cell_id = DimensionPencils[dimension].ids[targeti];
    
-               }
-   
-               if (blockLID != vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) {
-                  // Get a pointer to the block data
-                  
-                  Realf* blockData = NULL;
-                  if (blocki == 0){
-                     std::cout  << " target tc " << target_cell->get_tc() << " for " << target_cell_id <<"\n";
-                     }
-                  if (target_cell->get_tc() == timeclass){
-                     blockData = target_cell->get_data(blockLID, popID);
-                     if (blocki == 0){
-                     std::cout  << " translating to regular of " << target_cell_id << "\n";
-                     }
+               SpatialCell* target_cell = mpiGrid[target_cell_id];
+               if(blocki==0)
+               std::cout <<target_cell_id << " cellBlockData " << cellBlockData.size() << "\n";
+               if (target_cell){
+                  vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>* velmesh;
+                  vmesh::VelocityBlockContainer<vmesh::LocalID>* velblocks;
+                  velmesh = &target_cell->get_velocity_mesh(popID, timeclass);
+                  velblocks = &target_cell->get_velocity_blocks(popID, timeclass);
+                  vmesh::LocalID blockLID;
+                  if(target_cell->get_tc() == timeclass) {
+                     // std::cout << target_cell_id << "is in turn \n";
+                     blockLID = target_cell->get_velocity_block_local_id(blockGID, popID);
+                     if(blocki==0)
+                     std::cout << __FILE__ << ":" << __LINE__ << target_cell_id << " cellBlockData " << cellBlockData.size() << "\n";   
                   }
                   else if(target_cell->requested_timeclass_ghosts.count(timeclass) > 0){
-                     blockData = target_cell->get_data(blockLID, popID, timeclass);
+                     blockLID = target_cell->get_velocity_block_local_id(blockGID, popID,timeclass);
+                     if(blocki==0)
+                     std::cout << __FILE__ << ":" << __LINE__ << target_cell_id << " cellBlockData " << cellBlockData.size() << "\n";   
+
+                  }
+                  else{ 
+                     // std::cout << target_cell_id << "is not in turn \n";
+                     // blockLID = target_cell->get_velocity_block_local_id(blockGID, popID, timeclass);
+                     blockLID = vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID();
+                     if(blocki==0)
+                     std::cout << __FILE__ << ":" << __LINE__ << target_cell_id << " invalid " << cellBlockData.size() << "\n";
+      
+                  }
+      
+                  if (blockLID != vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) {
+                     bool donotZero = false;
+                     // Get a pointer to the block data
+                     
+                     Realf* blockData = NULL;
                      if (blocki == 0){
-                     std::cout  << "translating to timeghost of " << target_cell_id << "\n";
+                        std::cout  << " target tc " << target_cell->get_tc() << " for " << target_cell_id <<"\n";
+                        }
+                     if (target_cell->get_tc() == timeclass){
+                        blockData = target_cell->get_data(blockLID, popID);
+                        if (blocki == 0){
+                        std::cout  << " translating to regular of " << target_cell_id << "\n";
+                        }
+                     }
+                     else if(target_cell->requested_timeclass_ghosts.count(timeclass) > 0){
+                        blockData = target_cell->get_data(blockLID, popID, timeclass);
+                        if (blocki == 0){
+                        std::cout  << "translating to timeghost of " << target_cell_id << "\n";
+                        if (DimensionPencils[dimension].targetRatios[targeti] == 0){
+                           if(blocki == 0){
+                              std::cout << "donotZero "<< target_cell_id << " \n"; 
+                           }
+                           donotZero = true;   // This case has timeghost data remaining. Let's not delete that to keep the stencils a bit more full (until handled with neighborhoods somehow better)
+                        }
+                        }
+                     }
+                     if(blocki==0)
+                        std::cout << "tc matches "<< (target_cell->get_tc() == timeclass) <<"; ghost matches " << (target_cell->requested_timeclass_ghosts.count(timeclass) > 0) << "\n";
+                     // else if(target_cell->requested_timeclass_ghosts.count(timeclass) > 0){
+                     //    blockData = target_cell->get_
+                     // }
+                     if(blockData && !donotZero){
+                        // std::cout << blockData << " blockdata," << target_cell->null_block_data.data() <<" \n";
+                        // std::cout << target_cell_id << " zeroed blockdata\n";
+                        memset(blockData, 0, WID3*sizeof(Realf));
                      }
                   }
-                  if(blocki==0)
-                     std::cout << "tc matches "<< (target_cell->get_tc() == timeclass) <<"; ghost matches " << (target_cell->requested_timeclass_ghosts.count(timeclass) > 0) << "\n";
-                  // else if(target_cell->requested_timeclass_ghosts.count(timeclass) > 0){
-                  //    blockData = target_cell->get_
-                  // }
-                  if(blockData){
-                     // std::cout << blockData << " blockdata," << target_cell->null_block_data.data() <<" \n";
-                     // std::cout << target_cell_id << " zeroed blockdata\n";
-                     memset(blockData, 0, WID3*sizeof(Realf));
-                  }
                }
+               // if (target_cell && target_cell->get_tc() == timeclass) {
+               //    // Get local velocity block id
+               //    const vmesh::LocalID blockLID = target_cell->get_velocity_block_local_id(blockGID, popID);
+               //    // Check for invalid block id
+               //    if (blockLID != vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) {
+               //       // Get a pointer to the block data
+               //       Realf* blockData = target_cell->get_data(blockLID, popID);
+               //       memset(blockData, 0, WID3*sizeof(Realf));
+               //    }
+               // }
             }
-            // if (target_cell && target_cell->get_tc() == timeclass) {
-            //    // Get local velocity block id
-            //    const vmesh::LocalID blockLID = target_cell->get_velocity_block_local_id(blockGID, popID);
-            //    // Check for invalid block id
-            //    if (blockLID != vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) {
-            //       // Get a pointer to the block data
-            //       Realf* blockData = target_cell->get_data(blockLID, popID);
-            //       memset(blockData, 0, WID3*sizeof(Realf));
-            //    }
-            // }
          }
          memsetTimer.stop();
 
@@ -532,7 +553,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
             // Dz and sourceVecData are both padded by VLASOV_STENCIL_WIDTH
             // Dz has 1 value/cell, sourceVecData has WID3 values/cell
             // vmesh is required just for general indexes and accessors
-            Realv scalingthreshold = mpiGrid[DimensionPencils[dimension].ids[start + VLASOV_STENCIL_WIDTH]]->getVelocityBlockMinValue(popID);
+            Realv scalingthreshold = mpiGrid[DimensionPencils[dimension].ids[start + VLASOV_STENCIL_WIDTH+1]]->getVelocityBlockMinValue(popID);
             Realf* pencilDZ = DimensionPencils[dimension].sourceDZ.data() + start;
             Realf* pencilRatios = DimensionPencils[dimension].targetRatios.data() + start;
             Realf** pencilBlockData = cellBlockData.data() + start;
