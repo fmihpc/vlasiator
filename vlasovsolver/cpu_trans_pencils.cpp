@@ -9,9 +9,18 @@ using namespace spatial_cell;
 std::unordered_set<CellID> ghostTranslate_sources_x;
 std::unordered_set<CellID> ghostTranslate_sources_y;
 std::unordered_set<CellID> ghostTranslate_sources_z;
+
+
 std::unordered_set<CellID> ghostTranslate_active_x;
 std::unordered_set<CellID> ghostTranslate_active_y;
 std::unordered_set<CellID> ghostTranslate_active_z;
+
+// Map dimension to sources/active CellID sets
+ghostmaptype ghostTranslate_source = {{0,ghostTranslate_sources_x},{1,ghostTranslate_sources_y},{2,ghostTranslate_sources_z}};
+ghostmaptype ghostTranslate_active = {{0,ghostTranslate_active_x},{1,ghostTranslate_active_y},{2,ghostTranslate_active_z}};
+
+// Map timeclass and dimension to sources/active CellID sets
+std::map<uint, std::map<uint,std::unordered_set<CellID>>> timeghost_source, timeghost_active;
 
 std::array<setOfPencils,3> DimensionPencils;
 std::array<std::unordered_set<CellID>,3> DimensionTargetCells;
@@ -43,7 +52,9 @@ bool do_translate_cell(SpatialCell* SC, int tc){
 }
 
 
-bool check_is_written_to(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, CellID cid, int dimension) {
+bool check_is_written_to(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                         CellID cid, int dimension, const std::map<uint,std::unordered_set<CellID>>& sources, 
+                         const std::vector<CellID>& locals) {
    // Only called if doing ghost translation
    SpatialCell *SC = mpiGrid[cid];
    if (!SC) {
@@ -56,17 +67,18 @@ bool check_is_written_to(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometr
    switch (dimension) {
       // checks for (cell) && (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) are before call
       case 0: // Second direction (x): Write into all cells which are used in y-translation
-         if (ghostTranslate_sources_y.count(cid)) {
+         if (sources.at(dimension).count(cid)) {
             return true;
          }
          break;
       case 1: // Last direction (y): Write only into local cells
-         if (mpiGrid.is_local(cid)) {
+         // if (mpiGrid.is_local(cid)) {
+         if (std::count(locals.begin(), locals.end(), cid) > 0){
             return true;
          }
          break;
       case 2: // First direction (z): Write into all cells which are used in x-translation
-         if (ghostTranslate_sources_x.count(cid)) {
+         if (sources.at(dimension).count(cid)) {
             return true;
          }
          break;
@@ -77,21 +89,23 @@ bool check_is_written_to(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometr
    return false;
 }
 
-bool check_is_active(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, CellID cid, int dimension) {
+bool check_is_active(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                     CellID cid, int dimension, const std::map<uint,std::unordered_set<CellID>>& active,
+                     const std::vector<CellID>& locals) {
    if (P::vlasovSolverGhostTranslate) {
       switch (dimension) {
          case 0:
-            if (ghostTranslate_active_x.count(cid)) {
+            if (active.at(dimension).count(cid)) {
                return true;
             }
             break;
          case 1:
-            if (ghostTranslate_active_y.count(cid)) {
+            if (active.at(dimension).count(cid)) {
                return true;
             }
             break;
          case 2:
-            if (ghostTranslate_active_z.count(cid)) {
+            if (active.at(dimension).count(cid)) {
                return true;
             }
             break;
@@ -101,7 +115,8 @@ bool check_is_active(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
       }
       return false;
    } else {
-      if (mpiGrid.is_local(cid)) return true;
+      // if (mpiGrid.is_local(cid)?) return true;
+      if (std::count(locals.begin(), locals.end(), cid) > 0) return true;
       return false;
    }
 }
@@ -165,7 +180,8 @@ void findNeighborhoodCells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
                            const CellID startingCellID,
                            uint dimension,
                            uint searchLength,
-                           std::vector<CellID>& foundCells) {
+                           std::vector<CellID>& foundCells,
+                           int timeclass = -1) {
 
    int neighborhood = getNeighborhood(dimension,searchLength);
    foundCells.clear();
@@ -183,22 +199,33 @@ void findNeighborhoodCells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
          continue;
       }
       // Is the cell translated?
-      if (!do_translate_cell(ncell)) {
+      if (!do_translate_cell(ncell, timeclass) || !ncell->has_timeclass(timeclass)) {
          continue;
       }
       foundCells.push_back(nbrPair.first);
    }
 }
 
-void prepareGhostTranslationCellLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                      const vector<CellID>& localPropagatedCells) {
+void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                      const vector<CellID>& localPropagatedCells,
+                                      ghostmaptype& source,
+                                      ghostmaptype& active,
+                                      int tc
+                                      ) {
    // Clear existing lists
-   ghostTranslate_sources_x.clear();
-   ghostTranslate_sources_y.clear();
-   ghostTranslate_sources_z.clear();
-   ghostTranslate_active_x.clear();
-   ghostTranslate_active_y.clear();
-   ghostTranslate_active_z.clear();
+   std::unordered_set<CellID>& sourcex = source[0];
+   std::unordered_set<CellID>& sourcey = source[1];
+   std::unordered_set<CellID>& sourcez = source[2];
+   std::unordered_set<CellID>& activex = active[0];
+   std::unordered_set<CellID>& activey = active[1];
+   std::unordered_set<CellID>& activez = active[2];
+
+   sourcex.clear();
+   sourcey.clear();
+   sourcez.clear();
+   activex.clear();
+   activey.clear();
+   activez.clear();
 
    // return if there's no cells to start with
    if (localPropagatedCells.size() == 0) {
@@ -225,34 +252,36 @@ void prepareGhostTranslationCellLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
 
    phiprof::Timer ghostYTimer {"prepare ghost translation Y lists"};
    int dimension = 1;
+   
    for (CellID c : localPropagatedCells) {
+      
       SpatialCell *ccell = mpiGrid[c];
       if (!ccell) {
          continue;
       }
       // Is the cell translated?
-      if (!do_translate_cell(ccell)) {
+      if (!do_translate_cell(ccell) || !ccell->has_timeclass(tc)) {
          continue;
       }
-      ghostTranslate_active_y.insert(c);
+      activey.insert(c);
       // Update as sources only non-sysb cells
       // (note, source cells not part of these lists are still updated through MPI)
       if (mpiGrid[c]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-         ghostTranslate_sources_y.insert(c);
+         sourcey.insert(c);
       }
 
       // Sources to be updated
-      findNeighborhoodCells(mpiGrid, c, dimension, searchLength, foundCells);
+      findNeighborhoodCells(mpiGrid, c, dimension, searchLength, foundCells, tc);
       for (CellID cid: foundCells) {
          // Update as sources only non-sysb cells
          if (mpiGrid[cid]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-            ghostTranslate_sources_y.insert(cid);
+            sourcey.insert(cid);
          }
       }
       // Cells to be translated so local end result is good (find neighborhood contains do_translate check)
-      findNeighborhoodCells(mpiGrid, c, dimension, 1, foundCells);
+      findNeighborhoodCells(mpiGrid, c, dimension, 1, foundCells, tc);
       for (CellID cid: foundCells) {
-         ghostTranslate_active_y.insert(cid);
+         activey.insert(cid);
       }
    } // end loop over local propagated cells
    ghostYTimer.stop();
@@ -263,32 +292,36 @@ void prepareGhostTranslationCellLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
 
    phiprof::Timer ghostXTimer {"prepare ghost translation X lists"};
    dimension = 0;
-   for (CellID c : ghostTranslate_sources_y) {
+   for (CellID c : sourcey) {
       SpatialCell *ccell = mpiGrid[c];
       if (!ccell) {
          continue;
       }
       // Is the cell translated?
-      if (!do_translate_cell(ccell)) {
+      if (!do_translate_cell(ccell) || !ccell->has_timeclass(tc)) {
          continue;
       }
-      ghostTranslate_active_x.insert(c);
+      activex.insert(c);
+      std::cout << "timeclass " << tc << " has activex " << " " << c <<"\n";
       // Update as sources only non-sysb cells
       if (mpiGrid[c]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-         ghostTranslate_sources_x.insert(c);
+         sourcex.insert(c);
+         std::cout << "timeclass " << tc << " has sourcex " << " " << c <<"\n";
       }
       // Sources to be updated
-      findNeighborhoodCells(mpiGrid, c, dimension, searchLength, foundCells);
+      findNeighborhoodCells(mpiGrid, c, dimension, searchLength, foundCells, tc);
       for (CellID cid: foundCells) {
          // Update as sources only non-sysb cells
          if (mpiGrid[cid]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-            ghostTranslate_sources_x.insert(cid);
+            sourcex.insert(cid);
+            std::cout << "timeclass " << tc << " has sourcex " << " " << c <<"\n";
          }
       }
       // Cells to be translated so local end result is good
-      findNeighborhoodCells(mpiGrid, c, dimension, 1, foundCells);
+      findNeighborhoodCells(mpiGrid, c, dimension, 1, foundCells, tc);
       for (CellID cid: foundCells) {
-         ghostTranslate_active_x.insert(cid);
+         activex.insert(cid);
+         std::cout << "timeclass " << tc << " has sourcex " << " " << c <<"\n";
       }
    } // end loop over y-translation sources
    ghostXTimer.stop();
@@ -299,32 +332,32 @@ void prepareGhostTranslationCellLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
 
    phiprof::Timer ghostZTimer {"prepare ghost translation Z lists"};
    dimension = 2;
-   for (CellID c : ghostTranslate_sources_x) {
+   for (CellID c : sourcex) {
       SpatialCell *ccell = mpiGrid[c];
       if (!ccell) {
          continue;
       }
       // Is the cell translated?
-      if (!do_translate_cell(ccell)) {
+      if (!do_translate_cell(ccell) || !ccell->has_timeclass(tc)) {
          continue;
       }
-      ghostTranslate_active_z.insert(c);
+      activez.insert(c);
       // Update as sources only non-sysb cells
       if (mpiGrid[c]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-         ghostTranslate_sources_z.insert(c);
+         sourcez.insert(c);
       }
       // Sources to be updated
-      findNeighborhoodCells(mpiGrid, c, dimension, searchLength, foundCells);
+      findNeighborhoodCells(mpiGrid, c, dimension, searchLength, foundCells, tc);
       for (CellID cid: foundCells) {
          // Update as sources only non-sysb cells
          if (mpiGrid[cid]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-            ghostTranslate_sources_z.insert(cid);
+            sourcez.insert(cid);
          }
       }
       // Cells to be translated so local end result is good
-      findNeighborhoodCells(mpiGrid, c, dimension, 1, foundCells);
+      findNeighborhoodCells(mpiGrid, c, dimension, 1, foundCells, tc);
       for (CellID cid: foundCells) {
-         ghostTranslate_active_z.insert(cid);
+         activez.insert(cid);
       }
    } // end loop over y-translation sources
    ghostZTimer.stop();
@@ -332,12 +365,12 @@ void prepareGhostTranslationCellLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
 
    // Gather and report statistics
    std::vector<int64_t> localCounts;
-   localCounts.push_back(ghostTranslate_sources_x.size());
-   localCounts.push_back(ghostTranslate_sources_y.size());
-   localCounts.push_back(ghostTranslate_sources_z.size());
-   localCounts.push_back(ghostTranslate_active_x.size());
-   localCounts.push_back(ghostTranslate_active_y.size());
-   localCounts.push_back(ghostTranslate_active_z.size());
+   localCounts.push_back(sourcex.size());
+   localCounts.push_back(sourcey.size());
+   localCounts.push_back(sourcez.size());
+   localCounts.push_back(activex.size());
+   localCounts.push_back(activey.size());
+   localCounts.push_back(activez.size());
    localCounts.push_back(localPropagatedCells.size());
    int nc = localCounts.size();
    std::vector<int64_t> globalCounts(nc*4);
@@ -349,6 +382,7 @@ void prepareGhostTranslationCellLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
    for(int i = 0; i <nc; i++) { // calc avgs
       globalCounts.at(3*nc+i) = globalCounts.at(i) / world_size;
    }
+   logFile << "(CELLS) timeclass " << tc << "\n";
    logFile << "(CELLS) tstep = " << P::tstep << " time = " << P::t << " \n source cells (tot / avg / min / max) (x y z) [ ";
    for(int dim = 0; dim <3; dim++) { // tot
       logFile << globalCounts.at(dim) << " ";
@@ -466,7 +500,7 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
                                         ){
 
    // These neighborhoods now include the AMR addition beyond the regular vlasov stencil
-   int neighborhood = getNeighborhood(dimension,VLASOV_STENCIL_WIDTH);
+   int neighborhood = getNeighborhood(dimension,P::vlasovSolverGhostTranslateExtent);
    
    stringstream ss;
    for (uint j = 0; j < L; ++j) {
@@ -474,8 +508,8 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
    }
 
    // Insert pointers for neighbors of ids.front() and ids.back()
-   const auto* frontNbrPairs = mpiGrid.get_neighbors_of(ids[VLASOV_STENCIL_WIDTH], neighborhood);
-   const auto* backNbrPairs  = mpiGrid.get_neighbors_of(ids[L-VLASOV_STENCIL_WIDTH-1],  neighborhood);
+   const auto* frontNbrPairs = mpiGrid.get_neighbors_of(ids[P::vlasovSolverGhostTranslateExtent], neighborhood);
+   const auto* backNbrPairs  = mpiGrid.get_neighbors_of(ids[L-P::vlasovSolverGhostTranslateExtent-1],  neighborhood);
    // TODO cleanup
    // Create list of unique distances in the negative direction from the first cell in pencil
    std::set< int > distances;
@@ -485,7 +519,7 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
          distances.insert(-nbrPair.second[dimension]);
       }
    }
-   int iSrc = VLASOV_STENCIL_WIDTH - 1;
+   int iSrc = P::vlasovSolverGhostTranslateExtent - 1;
    // Iterate through distances for VLASOV_STENCIL_WIDTH elements starting from the smallest distance.
    for (auto it = distances.begin(); it != distances.end(); ++it) {
       if (iSrc < 0) break; // found enough elements
@@ -501,7 +535,7 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
       neighbors.erase(unique(neighbors.begin(), neighbors.end()), neighbors.end());
 
       // Find source cells (VLASOV_STENCIL_WIDTH at each end)
-      size_t refLvl = mpiGrid.get_refinement_level(ids[VLASOV_STENCIL_WIDTH]);
+      size_t refLvl = mpiGrid.get_refinement_level(ids[P::vlasovSolverGhostTranslateExtent]);
       size_t pathPos = 0;
       if (path.size() > refLvl) {
          pathPos = path[refLvl];
@@ -513,7 +547,7 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
          if (ids[iSrc+1] == neighbors.at(pathPos)) continue; // already found this cell for different distance (should not happen)
          ids[iSrc--] = neighbors.at(pathPos);
       } else {
-         ss<<"error too few front neighbors for path! cellid "<<ids[VLASOV_STENCIL_WIDTH]<<
+         ss<<"error too few front neighbors for path! cellid "<<ids[P::vlasovSolverGhostTranslateExtent]<<
             " Nsize "<<neighbors.size()<<" L "<<L<<" refLvl "<<refLvl<<" iSrc "<<iSrc<<
             " pathsize "<<path.size()<<" path "<<path[refLvl]<<std::endl;
          std::cerr<<ss.str();
@@ -530,7 +564,7 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
 
    // Iterate through distances for VLASOV_STENCIL_WIDTH elements starting from the smallest distance.
    // Distances are positive here so smallest distance has smallest value.
-   iSrc = L - VLASOV_STENCIL_WIDTH;
+   iSrc = L - P::vlasovSolverGhostTranslateExtent;
    for (auto it = distances.begin(); it != distances.end(); ++it) {
       if (iSrc >= (int)L) break; // Found enough cells
 
@@ -544,7 +578,7 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
       std::sort(neighbors.begin(), neighbors.end());
       neighbors.erase(unique(neighbors.begin(), neighbors.end()), neighbors.end());
 
-      size_t refLvl = mpiGrid.get_refinement_level(ids[L-VLASOV_STENCIL_WIDTH-1]);
+      size_t refLvl = mpiGrid.get_refinement_level(ids[L-P::vlasovSolverGhostTranslateExtent-1]);
       size_t pathPos = 0;
       if (path.size() > refLvl) {
          pathPos = path[refLvl];
@@ -556,7 +590,7 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
          if (ids[iSrc-1] == neighbors.at(pathPos)) continue; // already found this cell for different distance (should not happen)
          ids[iSrc++] = neighbors.at(pathPos);
       } else {
-         ss<<"error too few back neighbors for path! cellid "<<ids[L-VLASOV_STENCIL_WIDTH-1]<<
+         ss<<"error too few back neighbors for path! cellid "<<ids[L-P::vlasovSolverGhostTranslateExtent-1]<<
             " Nsize "<<neighbors.size()<<" L "<<L<<" refLvl "<<refLvl<<" iSrc "<<iSrc<<
             " pathsize "<<path.size()<<" path "<<path[refLvl]<<std::endl;
          std::cerr<<ss.str();
@@ -566,8 +600,8 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
    /*loop to negative side and replace all invalid cells with the closest good cell
    * Also tag requested timeclass ghosts on the same go if needed.
    */
-   CellID lastGoodCell = ids[VLASOV_STENCIL_WIDTH];
-   for(int i = VLASOV_STENCIL_WIDTH - 1; i >= 0 ;--i){
+   CellID lastGoodCell = ids[P::vlasovSolverGhostTranslateExtent];
+   for(int i = P::vlasovSolverGhostTranslateExtent - 1; i >= 0 ;--i){
       bool isGood = false;
       if ( (ids[i]!=0) && (mpiGrid[ids[i]] != NULL)) {
          if ( (mpiGrid[ids[i]]->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE)
@@ -588,8 +622,8 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
    /*loop to positive side and replace all invalid cells with the closest good cell
    * Also tag requested timeclass ghosts on the same go if needed.
    */
-   lastGoodCell = ids[L - VLASOV_STENCIL_WIDTH - 1];
-   for(int i = (int)L - VLASOV_STENCIL_WIDTH; i < (int)L; ++i){
+   lastGoodCell = ids[L - P::vlasovSolverGhostTranslateExtent - 1];
+   for(int i = (int)L - P::vlasovSolverGhostTranslateExtent; i < (int)L; ++i){
       bool isGood = false;
       if ( (ids[i]!=0) && (mpiGrid[ids[i]] != NULL)) {
          if ( (mpiGrid[ids[i]]->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE)
@@ -614,13 +648,13 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
 
    // Loop over all cells and store pencil-to-cell cross-sectional area for target cells
    for (int i = 0; i < (int)L; ++i) {
-      if ((i < VLASOV_STENCIL_WIDTH-1) || (i > (int)L-VLASOV_STENCIL_WIDTH)) {
+      if ((i < P::vlasovSolverGhostTranslateExtent-1) || (i > (int)L-P::vlasovSolverGhostTranslateExtent)) {
          // Source cell, not a target cell
          targetRatios[i]=0.0;
          continue;
       }
       if (P::vlasovSolverGhostTranslate) {
-         if (!check_is_written_to(mpiGrid, ids[i], dimension)) {
+         if (!check_is_written_to(mpiGrid, ids[i], dimension, ghostTranslate_source, getLocalCells())) {
             targetRatios[i]=0.0;
             continue;
          }
@@ -784,7 +818,7 @@ CellID selectPositiveNeighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
       neighborIndex = path;
    }
 
-   if (check_is_active(grid, myNeighbors[neighborIndex], dimension)) {
+   if (check_is_active(grid, myNeighbors[neighborIndex], dimension, ghostTranslate_active, getLocalCells())) {
      neighbor = myNeighbors[neighborIndex];
    }
 
@@ -1029,12 +1063,12 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
                 const uint dimension,
                 vector<CellID> &seedIds) {
 
-   const bool debug = false;
+   const bool debug = true;
    int myRank;
    if (debug) MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
    // These neighborhoods no longer include the AMR addition beyond the regular vlasov stencil
-   const int neighborhood = getNeighborhood(dimension,VLASOV_STENCIL_WIDTH);
+   const int neighborhood = getNeighborhood(dimension,P::vlasovSolverGhostTranslateExtent);
 
 #pragma omp parallel for
    for (uint i=0; i<propagatedCells.size(); i++) {
@@ -1060,6 +1094,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
          only if we aren't already at the maximum refinement level.
 
       */
+   // std::map<uint,std::unordered_set<CellID>> ghostTranslate_active(ghostTrans)
 
       // First check negative face neighbors (A)
       // Returns all neighbors as (id, direction-dimension) pair pointers.
@@ -1076,7 +1111,8 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
                !mpiGrid.is_local(neighbor) ||
                !do_translate_cell(mpiGrid[neighbor]) ||
                mpiGrid[celli]->parameters[CellParams::TIMECLASS] != mpiGrid[neighbor]->parameters[CellParams::TIMECLASS] ||
-               !check_is_active(mpiGrid, neighbor, dimension) )
+               // !mpiGrid[neighbor]->has_timeclass(mpiGrid[celli]->parameters[CellParams::TIMECLASS]) ||
+               !check_is_active(mpiGrid, neighbor, dimension, ghostTranslate_active, getLocalCells()) )
             {
                addToSeedIds = true;
                break;
@@ -1109,7 +1145,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
             distancesminus.insert(-nbrPair.second[dimension]);
          }
       }
-      int iSrc = VLASOV_STENCIL_WIDTH-1;
+      int iSrc = P::vlasovSolverGhostTranslateExtent-1;
       for (auto it = distancesplus.begin(); it != distancesplus.end(); ++it) {
          if (iSrc < 0) break; // found enough elements
          for (const auto& nbrPair : *nbrPairs) {
@@ -1138,7 +1174,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
       /* Proceed with C, checking if the next two negative neighbours have the same refinement level as ccell, but the
          third neighbour a higher one. Iterate through negative distances for VLASOV_STENCIL_WIDTH+1 elements
          starting from the smallest distance. */
-      iSrc = VLASOV_STENCIL_WIDTH;
+      iSrc = P::vlasovSolverGhostTranslateExtent;
       for (auto it = distancesminus.begin(); it != distancesminus.end(); ++it) {
          if (iSrc < 0) break; // found enough elements
          for (const auto& nbrPair : *nbrPairs) {
@@ -1185,8 +1221,8 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
                        setOfPencils& pencils,
                        uint dimension) {
 
-   const bool debug = false;
-   int neighborhood = getNeighborhood(dimension,VLASOV_STENCIL_WIDTH);
+   const bool debug = true;
+   int neighborhood = getNeighborhood(dimension,P::vlasovSolverGhostTranslateExtent);
 
    int myRank;
    if (debug) {
@@ -1242,7 +1278,7 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
                continue;
             }
          }
-         if (foundcells >= VLASOV_STENCIL_WIDTH) {
+         if (foundcells >= P::vlasovSolverGhostTranslateExtent) {
             break; // checked enough distances
          }
       }
@@ -1267,7 +1303,7 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
                continue;
             }
          }
-         if (foundcells >= VLASOV_STENCIL_WIDTH) {
+         if (foundcells >= P::vlasovSolverGhostTranslateExtent) {
             break; // checked enough distances
          }
       }
@@ -1445,6 +1481,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
          std::cerr<<"Error in dimension: __FILE__:__LINE__"<<std::endl;
          abort();
    }
+
    const vector<CellID>& localCells = getLocalCells();
    vector<CellID> propagatedCells;
    // Figure out which spatial cells are translated,
@@ -1453,13 +1490,13 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
       // Sets already include check for do_translate_cell
       switch (dimension) {
          case 0:
-            propagatedCells.assign(ghostTranslate_active_x.begin(),ghostTranslate_active_x.end());
+            propagatedCells.assign(ghostTranslate_active[0].begin(),ghostTranslate_active[0].end());
             break;
          case 1:
-            propagatedCells.assign(ghostTranslate_active_y.begin(),ghostTranslate_active_y.end());
+            propagatedCells.assign(ghostTranslate_active[1].begin(),ghostTranslate_active[1].end());
             break;
          case 2:
-            propagatedCells.assign(ghostTranslate_active_z.begin(),ghostTranslate_active_z.end());
+            propagatedCells.assign(ghostTranslate_active[2].begin(),ghostTranslate_active[2].end());
             break;
          default:
             std::cerr<<"Error in dimension: __FILE__:__LINE__"<<std::endl;
@@ -1545,6 +1582,8 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    // This function contains threading.
    check_ghost_cells(mpiGrid,DimensionPencils[dimension],dimension);
    checkGhostCellsTimer.stop();
+   std::cerr << __FILE__ <<":"<<__LINE__<<" returned from check_ghost_cells for dim "<<dimension <<"\n";
+
 
    phiprof::Timer findSourceRatiosTimer {"Find_source_cells_ratios_dz"};
    // Compute also the stencil around the pencil (source cells), and

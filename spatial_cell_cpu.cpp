@@ -552,7 +552,7 @@ namespace spatial_cell {
       const vmesh::LocalID blockLID = get_velocity_block_local_id(blockGID,popID);
       if (blockLID == invalid_local_id())
       {
-         std::cerr << "invalid lid\n";
+         // std::cerr << "invalid lid\n";
           return false;
       }
 
@@ -642,6 +642,18 @@ namespace spatial_cell {
          return ret;
       }
       */
+   }
+
+   const bool SpatialCell::has_timeclass(int timeclass) const{
+      if (timeclass < 0 || 
+         (int)this->parameters[CellParams::TIMECLASS] == timeclass ||
+               this->requested_timeclass_ghosts.count(timeclass) > 0
+         ){
+            return true;
+         } 
+         else{
+            return false;
+         }
    }
 
    /** Get MPI datatype for sending the cell data.

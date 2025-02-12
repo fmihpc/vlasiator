@@ -70,10 +70,10 @@ struct setOfPencils {
 
       // If necessary, add the zero cells to the beginning and end
       if (idsIn.front() != 0) {
-            idsIn.insert(idsIn.begin(),VLASOV_STENCIL_WIDTH,0);
+            idsIn.insert(idsIn.begin(),P::vlasovSolverGhostTranslateExtent,0);
       }
       if (idsIn.back() != 0) {
-         for (int i = 0; i < VLASOV_STENCIL_WIDTH; i++)
+         for (int i = 0; i < P::vlasovSolverGhostTranslateExtent; i++)
          {
             idsIn.push_back(0);
          }
@@ -103,9 +103,9 @@ struct setOfPencils {
       path.erase(path.begin() + pencilId);
 
       uint ibeg = idsStart[pencilId];
-      ids.erase(ids.begin() + ibeg, ids.begin() + ibeg + lengthOfPencils[pencilId] + 2*VLASOV_STENCIL_WIDTH);
-      targetRatios.erase(targetRatios.begin() + ibeg, targetRatios.begin() + ibeg + lengthOfPencils[pencilId] + 2*VLASOV_STENCIL_WIDTH);
-      sourceDZ.erase(sourceDZ.begin() + ibeg, sourceDZ.begin() + ibeg + lengthOfPencils[pencilId] + 2*VLASOV_STENCIL_WIDTH);
+      ids.erase(ids.begin() + ibeg, ids.begin() + ibeg + lengthOfPencils[pencilId] + 2*P::vlasovSolverGhostTranslateExtent);
+      targetRatios.erase(targetRatios.begin() + ibeg, targetRatios.begin() + ibeg + lengthOfPencils[pencilId] + 2*P::vlasovSolverGhostTranslateExtent);
+      sourceDZ.erase(sourceDZ.begin() + ibeg, sourceDZ.begin() + ibeg + lengthOfPencils[pencilId] + 2*P::vlasovSolverGhostTranslateExtent);
       idsStart.erase(idsStart.begin() + pencilId);
       timeclasses.erase(timeclasses.begin() + pencilId);
 
@@ -120,8 +120,8 @@ struct setOfPencils {
          return idsEmpty;
       }
       // Use vector range constructor. Only return actual pencil ids, not the stencils at the ends
-      std::vector<CellID>::const_iterator ibeg = ids.begin() + idsStart[pencilId] + VLASOV_STENCIL_WIDTH;
-      std::vector<CellID>::const_iterator iend = ibeg + lengthOfPencils[pencilId] - 2*VLASOV_STENCIL_WIDTH;
+      std::vector<CellID>::const_iterator ibeg = ids.begin() + idsStart[pencilId] + P::vlasovSolverGhostTranslateExtent;
+      std::vector<CellID>::const_iterator iend = ibeg + lengthOfPencils[pencilId] - 2*P::vlasovSolverGhostTranslateExtent;
       std::vector<CellID> idsOut(ibeg, iend);
       return idsOut;
    }
@@ -219,8 +219,12 @@ extern std::array<setOfPencils,3> DimensionPencils;
 extern std::array<std::unordered_set<CellID>,3> DimensionTargetCells;
 
 // Ghost translation cell lists (no interim comms)
-void prepareGhostTranslationCellLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                      const std::vector<CellID>& localPropagatedCells);
+void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                      const std::vector<CellID>& localPropagatedCells, 
+                                       std::map<uint,std::unordered_set<CellID>>& ghostTranslate_source,
+                                      std::map<uint,std::unordered_set<CellID>>& ghostTranslate_active,
+                                      int tc = -1
+                                      );
 
 // defined in cpu_trans_map_amr.cpp
 extern std::unordered_set<CellID> ghostTranslate_sources_x;
@@ -230,6 +234,10 @@ extern std::unordered_set<CellID> ghostTranslate_active_x;
 extern std::unordered_set<CellID> ghostTranslate_active_y;
 extern std::unordered_set<CellID> ghostTranslate_active_z;
 
-void prepareLocalTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                      const std::vector<CellID>& localCells);
+typedef std::map<uint,std::unordered_set<CellID>> ghostmaptype;
+extern std::map<uint, std::map<uint,std::unordered_set<CellID>>> timeghost_source, timeghost_active;
+
+extern ghostmaptype ghostTranslate_source;
+extern ghostmaptype ghostTranslate_active;
+
 #endif

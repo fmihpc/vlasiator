@@ -46,6 +46,7 @@
 #include "iowrite.h"
 #include "ioread.h"
 #include "object_wrapper.h"
+#include "vlasovsolver/cpu_trans_pencils.hpp"
 
 #ifdef PAPI_MEM
 #include "papi.h"
@@ -714,7 +715,9 @@ void prepareAMRLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
 
       phiprof::Timer ghostListsTimer {"update active cell lists for ghost translation"};
       const vector<CellID>& localCells = getLocalCells();
-      prepareGhostTranslationCellLists(mpiGrid,localCells);
+
+      prepareGhostTranslationCellLists(mpiGrid, localCells, ghostTranslate_source, ghostTranslate_active);
+
       ghostListsTimer.stop();
 
       phiprof::Timer barrierTimer {"MPI barrier"};
@@ -724,9 +727,58 @@ void prepareAMRLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
       ghostTimer.stop();
    }
 
+   if (P::currentMaxTimeclass > 0) {
+      const vector<CellID>& localCells = getLocalCells();
+
+      getGhostNeighborsforTC(mpiGrid, localCells);
+
+      for(int i = 0; i <= P::currentMaxTimeclass; ++i){
+         timeghost_source.clear();
+         timeghost_active.clear();
+         prepareGhostTranslationCellLists(mpiGrid, localCells, timeghost_source[i], timeghost_active[i], i);
+      }
+   }
+
    // Prepare cellIDs and pencils for AMR translation
    prepareSeedIdsAndPencils(mpiGrid);
 }
+
+void getGhostNeighborsforTC(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                              const std::vector<CellID>& cellsToCheckNeighbors) {
+   /*
+   1st version
+   every timestep, go through every cell c, and get its ghost neighbours. 
+   Then, for every ghost neighbour, send c's timeclass to its requested_timeclass_ghosts
+   */
+   /*
+   2nd version TODO:
+   every timestep, check if computeNewTimestep changes any cells' timeclass. Then go through v1 functionality.
+   */
+
+   for (size_t c=0; c<cellsToCheckNeighbors.size(); ++c) {
+      const CellID cell = cellsToCheckNeighbors[c];
+      auto neighbors = mpiGrid.get_neighbors_of(cell, VLASOV_SOLVER_GHOST_REQNEIGH_NEIGHBORHOOD_ID);
+      auto& neighborsRef = *neighbors;
+      auto neighborsRemote = mpiGrid.get_remote_neighbors_of(cell, VLASOV_SOLVER_GHOST_REQNEIGH_NEIGHBORHOOD_ID);
+
+      // get_neighbours_of returns a pointer to a vector of pairs, and each pairs' first element is the CellID
+      // get_remote_neighbors_of returns a vector of CellIDs
+
+      for (size_t i=0; i<neighborsRef.size(); ++i) {
+         if (mpiGrid[(neighborsRef)[i].first]->parameters[CellParams::TIMECLASS] != mpiGrid[cell]->parameters[CellParams::TIMECLASS]) {
+            mpiGrid[(neighborsRef)[i].first]->requested_timeclass_ghosts.insert(mpiGrid[cell]->parameters[CellParams::TIMECLASS]);
+         }
+      }
+      for (size_t i=0; i<neighborsRemote.size(); ++i) {
+         if (mpiGrid[(neighborsRemote)[i]]->parameters[CellParams::TIMECLASS] != mpiGrid[cell]->parameters[CellParams::TIMECLASS]) {
+            mpiGrid[neighborsRemote[i]]->requested_timeclass_ghosts.insert(mpiGrid[cell]->parameters[CellParams::TIMECLASS]);
+         }
+      }
+   }
+}
+
+
+
 
 /*
   Adjust sparse velocity space to make it consistent in all 6 dimensions.
@@ -740,6 +792,10 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    phiprof::Timer readjustBlocksTimer {"re-adjust blocks", {"Block adjustment"}};
    SpatialCell::setCommunicatedSpecies(popID);
    const vector<CellID>& cells = getLocalCells();
+
+   std::cerr << __FILE__<<":"<<__LINE__<< " calling adjustVelocityBlocks at t = " 
+         << P::t << "; len cells = " << cellsToAdjust.size() << "; prepare: " << doPrepareToReceiveBlocks <<
+         "\n";
 
    phiprof::Timer computeTimer {"Compute with_content_list"};
    #pragma omp parallel for
@@ -816,6 +872,10 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
          updateRemoteVelocityBlockLists(mpiGrid,popID);
       }
    }
+   std::cerr << __FILE__<<":"<<__LINE__<< " called adjustVelocityBlocks at t = " 
+         << P::t << "; len cells = " << cellsToAdjust.size() << "; prepare: " << doPrepareToReceiveBlocks <<
+         "\n";
+
    return true;
 }
 
@@ -925,14 +985,19 @@ void report_grid_memory_consumption(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
 void deallocateRemoteCellBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
    const std::vector<uint64_t> remote_cells
       = mpiGrid.get_remote_cells_on_process_boundary(FULL_NEIGHBORHOOD_ID);
+   int cleared_count = 0;
    for (unsigned int i=0; i<remote_cells.size(); i++) {
       uint64_t cell_id = remote_cells[i];
       SpatialCell* cell = mpiGrid[cell_id];
       if (cell != NULL) {
-         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID){
             cell->clear(popID);
+            cleared_count++;
+            std::cout << "Cleared " <<cell_id <<" remote blocks\n"; 
+         }
       }
    }
+   std::cout << __FILE__ <<":"<<__LINE__<<" cleared " << "cells for remote blocks\n";
 }
 
 /*

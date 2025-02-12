@@ -220,6 +220,7 @@ namespace spatial_cell {
 
       const Real& get_tc_dt() const;
       const int get_tc() const;
+      const bool has_timeclass(int) const;
       const bool get_timeclass_turn_r() const;
       const bool get_timeclass_turn_v() const;
       const bool get_timeclass_turn_v(int tc) const;
@@ -852,8 +853,8 @@ namespace spatial_cell {
          exit(1);
       }
       #endif
-      if (blockLID == vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) return null_block_data.data();
-      if(timeclass < 0){
+      if (blockLID == vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) return NULL;//null_block_data.data();
+      if(timeclass < 0 || timeclass == this->get_tc()){
          return populations[popID].blockContainer.getData(blockLID);
       }
       else{
@@ -1451,6 +1452,7 @@ namespace spatial_cell {
       get_data(blockLID,popID)[cell] = value;
    }
 
+
 //TODO - thread safe set/increment functions which do not create blocks automatically
 
    /*! Sets the value of a particular cell in a block. The block is
@@ -1619,7 +1621,7 @@ namespace spatial_cell {
          exit(1);
       }
       #endif
-      std::cerr << "get_velocity_mesh_ghost with tc " << timeclass << " at " << &ghostPopulations[{popID,timeclass}].vmesh <<"\n";
+      // std::cerr << "get_velocity_mesh_ghost with tc " << timeclass << " at " << &ghostPopulations[{popID,timeclass}].vmesh <<"\n";
 
       return ghostPopulations[{popID,timeclass}].vmesh; // OBS try-emplace
    }

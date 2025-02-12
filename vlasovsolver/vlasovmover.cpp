@@ -336,10 +336,10 @@ void calculateSpatialTranslation(
    for (int tc = 0; tc <= P::maxTimeclass; tc++)
    {
       // std::cout << "initing up tc " << tc << " vectors \n";
-      tc_propagated_cells.push_back(vector<CellID>());
-      tc_target_cells.push_back(vector<CellID>());
-      tc_propagated_cell_sets.push_back(set<CellID>());
-      tc_target_cell_sets.push_back(set<CellID>());
+      tc_propagated_cells.push_back(vector<CellID>(ghostTranslate_source[tc].begin(),ghostTranslate_source[tc].end()));
+      tc_target_cells.push_back(vector<CellID>(ghostTranslate_active[tc].begin(),ghostTranslate_active[tc].end()));
+      tc_propagated_cell_sets.push_back(set<CellID>(ghostTranslate_source[tc].begin(),ghostTranslate_source[tc].end()));
+      tc_target_cell_sets.push_back(set<CellID>(ghostTranslate_active[tc].begin(),ghostTranslate_active[tc].end()));
    }
    
    phiprof::Timer computeTimer {"compute_cell_lists"};
@@ -353,24 +353,24 @@ void calculateSpatialTranslation(
    // Figure out which spatial cells are translated,
    // result independent of particle species.
    // If performing ghost translation, this is used for LB.
-   for (size_t c=0; c<localCells.size(); ++c) {
-      int cellTC = (int)mpiGrid[localCells[c]]->parameters[CellParams::TIMECLASS];
+   // for (size_t c=0; c<localCells.size(); ++c) {
+   //    int cellTC = (int)mpiGrid[localCells[c]]->parameters[CellParams::TIMECLASS];
       
-      if (do_translate_cell(mpiGrid[localCells[c]],-1)) {
-         tc_propagated_cell_sets[cellTC].insert(localCells[c]);
-      }
-      for (auto i: mpiGrid[localCells[c]]->requested_timeclass_ghosts){
-         tc_propagated_cell_sets[i].insert(localCells[c]);
-      }
-      if (do_translate_cell(mpiGrid[localCells[c]],-1) &&
-          mpiGrid[localCells[c]]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-            tc_target_cell_sets[cellTC].insert(localCells[c]);
-      }
-      for (auto i: mpiGrid[localCells[c]]->requested_timeclass_ghosts){
-         if(mpiGrid[localCells[c]]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)
-            tc_propagated_cell_sets[i].insert(localCells[c]);
-      }
-   }
+   //    if (do_translate_cell(mpiGrid[localCells[c]],-1)) {
+   //       tc_propagated_cell_sets[cellTC].insert(localCells[c]);
+   //    }
+   //    for (auto i: mpiGrid[localCells[c]]->requested_timeclass_ghosts){
+   //       tc_propagated_cell_sets[i].insert(localCells[c]);
+   //    }
+   //    if (do_translate_cell(mpiGrid[localCells[c]],-1) &&
+   //        mpiGrid[localCells[c]]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+   //          tc_target_cell_sets[cellTC].insert(localCells[c]);
+   //    }
+   //    for (auto i: mpiGrid[localCells[c]]->requested_timeclass_ghosts){
+   //       if(mpiGrid[localCells[c]]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)
+   //          tc_propagated_cell_sets[i].insert(localCells[c]);
+   //    }
+   // }
 
 
    // TC propagation lists, TODO move out of here somewhere sensible and less often called
@@ -390,7 +390,7 @@ void calculateSpatialTranslation(
    // result independent of particle species.
    // If performing ghost translation, this is used for LB.
    for (size_t c=0; c<localCells.size(); ++c) {
-      if (do_translate_cell(mpiGrid[localCells[c]],1)) {
+      if (do_translate_cell(mpiGrid[localCells[c]],-1)) {
          local_propagated_cells.push_back(localCells[c]);
       }
    }
