@@ -71,6 +71,8 @@ struct Parameters {
    static int tc_test_type;
    static int tcMomentInterpolationType;
    static bool tcVMomentPropagation;
+   static int timeclassExactHaloExtent;
+   static int timeclassOuterHaloExtent;
 
    static bool tcDebugBox;          // Force timeclass 1 with the box
    static int tcOverrideTimeclass;  // Set fixed timeclass everywhere [debugging, default -1 i.e. off]
