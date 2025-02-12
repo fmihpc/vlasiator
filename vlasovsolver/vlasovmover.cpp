@@ -287,6 +287,13 @@ void calculateSpatialGhostTranslation(
    phiprof::Timer postBarrierTimer {"MPI barrier-post-trans"};
    MPI_Barrier(MPI_COMM_WORLD);
    postBarrierTimer.stop();
+   
+   for(CellID c : local_propagated_cells)
+   {
+      // if (c == 16) std::cout << c << " at TIME_R " << mpiGrid[c]->parameters[CellParams::TIME_R] << " + " << dt <<"\n";
+      mpiGrid[c]->parameters[CellParams::TIME_R] += dt;
+   }
+
    return;
 }
 
