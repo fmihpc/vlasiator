@@ -47,12 +47,12 @@ namespace SBC {
       virtual ~Maxwellian();
 
       static void addParameters();
-      virtual void getParameters() override;
+      virtual void getParameters();
 
-      virtual string getName() const override;
-      virtual uint getIndex() const override;
+      virtual string getName() const;
+      virtual uint getIndex() const;
 
-      void generateTemplateCell(spatial_cell::SpatialCell& templateCell, Real (&B)[3], int inputDataIndex, creal t) override;
+      void generateTemplateCell(spatial_cell::SpatialCell& templateCell, Real (&B)[3], int inputDataIndex, creal t);
 
    };
 }
