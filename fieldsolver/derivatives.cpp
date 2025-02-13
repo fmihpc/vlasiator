@@ -376,31 +376,31 @@ void calculateDerivatives(
       dPerB[fsgrids::dperb::dPERBzdxy] = 0.0;
    } else if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
       // Calculate xy mixed derivatives:
-         botLeft = perBGrid.get(i - 1, j - 1, k);
-         botRght = perBGrid.get(i + 1, j - 1, k);
-         topLeft = perBGrid.get(i - 1, j + 1, k);
-         topRght = perBGrid.get(i + 1, j + 1, k);
-         dPerB[fsgrids::dperb::dPERBzdxy] =
-             FOURTH * (botLeft->at(fsgrids::bfield::PERBZ) + topRght->at(fsgrids::bfield::PERBZ) -
-                       botRght->at(fsgrids::bfield::PERBZ) - topLeft->at(fsgrids::bfield::PERBZ));
+      botLeft = perBGrid.get(i - 1, j - 1, k);
+      botRght = perBGrid.get(i + 1, j - 1, k);
+      topLeft = perBGrid.get(i - 1, j + 1, k);
+      topRght = perBGrid.get(i + 1, j + 1, k);
+      dPerB[fsgrids::dperb::dPERBzdxy] =
+          FOURTH * (botLeft->at(fsgrids::bfield::PERBZ) + topRght->at(fsgrids::bfield::PERBZ) -
+                    botRght->at(fsgrids::bfield::PERBZ) - topLeft->at(fsgrids::bfield::PERBZ));
 
-         // Calculate xz mixed derivatives:
-         botLeft = perBGrid.get(i - 1, j, k - 1);
-         botRght = perBGrid.get(i + 1, j, k - 1);
-         topLeft = perBGrid.get(i - 1, j, k + 1);
-         topRght = perBGrid.get(i + 1, j, k + 1);
-         dPerB[fsgrids::dperb::dPERBydxz] =
-             FOURTH * (botLeft->at(fsgrids::bfield::PERBY) + topRght->at(fsgrids::bfield::PERBY) -
-                       botRght->at(fsgrids::bfield::PERBY) - topLeft->at(fsgrids::bfield::PERBY));
+      // Calculate xz mixed derivatives:
+      botLeft = perBGrid.get(i - 1, j, k - 1);
+      botRght = perBGrid.get(i + 1, j, k - 1);
+      topLeft = perBGrid.get(i - 1, j, k + 1);
+      topRght = perBGrid.get(i + 1, j, k + 1);
+      dPerB[fsgrids::dperb::dPERBydxz] =
+          FOURTH * (botLeft->at(fsgrids::bfield::PERBY) + topRght->at(fsgrids::bfield::PERBY) -
+                    botRght->at(fsgrids::bfield::PERBY) - topLeft->at(fsgrids::bfield::PERBY));
 
-         // Calculate yz mixed derivatives:
-         botLeft = perBGrid.get(i, j - 1, k - 1);
-         botRght = perBGrid.get(i, j + 1, k - 1);
-         topLeft = perBGrid.get(i, j - 1, k + 1);
-         topRght = perBGrid.get(i, j + 1, k + 1);
-         dPerB[fsgrids::dperb::dPERBxdyz] =
-             FOURTH * (botLeft->at(fsgrids::bfield::PERBX) + topRght->at(fsgrids::bfield::PERBX) -
-                       botRght->at(fsgrids::bfield::PERBX) - topLeft->at(fsgrids::bfield::PERBX));
+      // Calculate yz mixed derivatives:
+      botLeft = perBGrid.get(i, j - 1, k - 1);
+      botRght = perBGrid.get(i, j + 1, k - 1);
+      topLeft = perBGrid.get(i, j - 1, k + 1);
+      topRght = perBGrid.get(i, j + 1, k + 1);
+      dPerB[fsgrids::dperb::dPERBxdyz] =
+          FOURTH * (botLeft->at(fsgrids::bfield::PERBX) + topRght->at(fsgrids::bfield::PERBX) -
+                    botRght->at(fsgrids::bfield::PERBX) - topLeft->at(fsgrids::bfield::PERBX));
 
    } else {
       SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 3);
