@@ -316,7 +316,7 @@ void SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg:
 }
 
 bool belongsToLayer(const int layer, const int x, const int y, const int z,
-                    FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
+                    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
 
    bool belongs = false;
 
@@ -356,7 +356,7 @@ bool belongsToLayer(const int layer, const int x, const int y, const int z,
  * \param mpiGrid Grid
  */
 void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                 FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
+                                 fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
                                  const vector<CellID>& cells = getLocalCells();
                                  auto localSize = technicalGrid.getLocalSize().data();
 
@@ -366,9 +366,9 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
       mpiGrid[cells[i]]->sysBoundaryFlag = sysboundarytype::NOT_SYSBOUNDARY;
    }
 #pragma omp parallel for collapse(2)
-   for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
-      for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
-         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
+   for (fsgrid::FsIndex_t z = 0; z < localSize[2]; ++z) {
+      for (fsgrid::FsIndex_t y = 0; y < localSize[1]; ++y) {
+         for (fsgrid::FsIndex_t x = 0; x < localSize[0]; ++x) {
             //technicalGrid.get(x, y, z)->sysBoundaryFlag = sysboundarytype::NOT_SYSBOUNDARY;
             // Here for debugging since boundarytype should be fed from MPIGrid
             technicalGrid.get(x, y, z)->sysBoundaryFlag = sysboundarytype::N_SYSBOUNDARY_CONDITIONS;
@@ -503,9 +503,9 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
 
 // loop through all cells in grid
 #pragma omp parallel for collapse(2)
-      for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
-         for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
-            for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
+      for (fsgrid::FsIndex_t z = 0; z < localSize[2]; ++z) {
+         for (fsgrid::FsIndex_t y = 0; y < localSize[1]; ++y) {
+            for (fsgrid::FsIndex_t x = 0; x < localSize[0]; ++x) {
 
                // for the first layer, consider all cells that belong to a boundary, for other layers
                // consider all cells that have not yet been labeled.
@@ -535,9 +535,9 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
 // there is remaining cells of IONOSPHERE type inside the max layers gone through previously.
 // This last pass now gets rid of them.
 #pragma omp parallel for collapse(2)
-   for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
-      for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
-         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
+   for (fsgrid::FsIndex_t z = 0; z < localSize[2]; ++z) {
+      for (fsgrid::FsIndex_t y = 0; y < localSize[1]; ++y) {
+         for (fsgrid::FsIndex_t x = 0; x < localSize[0]; ++x) {
             if (technicalGrid.get(x,y,z)->sysBoundaryLayer == 0 && (
                 technicalGrid.get(x,y,z)->sysBoundaryFlag == sysboundarytype::IONOSPHERE ||
                 technicalGrid.get(x,y,z)->sysBoundaryFlag == sysboundarytype::COPYSPHERE)) {
@@ -549,23 +549,20 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
 
    technicalGrid.updateGhostCells();
 
-   const array<FsGridTools::FsSize_t,3> fsGridDimensions = technicalGrid.getGlobalSize();
+   const array<fsgrid::FsSize_t,3> fsGridDimensions = technicalGrid.getGlobalSize();
 
    // One pass to setup the bit field to know which components the field solver should propagate.
 #pragma omp parallel for collapse(2)
-   for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
-      for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
-         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
+   for (fsgrid::FsIndex_t z = 0; z < localSize[2]; ++z) {
+      for (fsgrid::FsIndex_t y = 0; y < localSize[1]; ++y) {
+         for (fsgrid::FsIndex_t x = 0; x < localSize[0]; ++x) {
             technicalGrid.get(x, y, z)->SOLVE = 0;
 
-            array<FsGridTools::FsIndex_t, 3> globalIndices = technicalGrid.getGlobalIndices(x, y, z);
+            const array<fsgrid::FsSize_t, 3> globalIndices = technicalGrid.localToGlobal(x, y, z);
 
-            if (((globalIndices[0] == 0 || globalIndices[0] == (FsGridTools::FsIndex_t)fsGridDimensions[0] - 1) &&
-                 !this->isPeriodic(0)) ||
-                ((globalIndices[1] == 0 || globalIndices[1] == (FsGridTools::FsIndex_t)fsGridDimensions[1] - 1) &&
-                 !this->isPeriodic(1)) ||
-                ((globalIndices[2] == 0 || globalIndices[2] == (FsGridTools::FsIndex_t)fsGridDimensions[2] - 1) &&
-                 !this->isPeriodic(2))) {
+            if (((globalIndices[0] == 0 || globalIndices[0] == fsGridDimensions[0] - 1) && !this->isPeriodic(0)) ||
+                ((globalIndices[1] == 0 || globalIndices[1] == fsGridDimensions[1] - 1) && !this->isPeriodic(1)) ||
+                ((globalIndices[2] == 0 || globalIndices[2] == fsGridDimensions[2] - 1) && !this->isPeriodic(2))) {
                continue;
             }
             if (technicalGrid.get(x, y, z)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
@@ -616,9 +613,9 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
  * \retval success If true, the application of all system boundary states succeeded.
  */
 void SysBoundary::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                    FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>&technicalGrid,
-                                    FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-                                    FsGrid<array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+                                    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>&technicalGrid,
+                                    fsgrid::FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+                                    fsgrid::FsGrid<array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
                                     Project& project) {
 
    list<SBC::SysBoundaryCondition*>::iterator it;
@@ -637,8 +634,8 @@ void SysBoundary::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_G
 }
 
 void SysBoundary::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                              FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-                              FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+                              fsgrid::FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+                              fsgrid::FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
                               creal t) {
    if (isAnyDynamic()) {
       for(auto& b : sysBoundaries) {

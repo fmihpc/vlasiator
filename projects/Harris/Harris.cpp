@@ -178,25 +178,29 @@ namespace projects {
    }
 
    void Harris::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
+      fsgrid::FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      fsgrid::FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+      fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
    ) {
       setBackgroundFieldToZero(BgBGrid);
 
       if(!P::isRestart) {
          auto localSize = perBGrid.getLocalSize().data();
+         const auto& gridSpacing = perBGrid.getGridSpacing();
 
-         #pragma omp parallel for collapse(3)
-         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
-            for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
-               for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
+#pragma omp parallel for collapse(3)
+         for (fsgrid::FsIndex_t x = 0; x < localSize[0]; ++x) {
+            for (fsgrid::FsIndex_t y = 0; y < localSize[1]; ++y) {
+               for (fsgrid::FsIndex_t z = 0; z < localSize[2]; ++z) {
                   const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
 
-                  cell->at(fsgrids::bfield::PERBX) = this->BX0 * tanh((xyz[1] + 0.5 * perBGrid.DY) / this->SCA_LAMBDA);
-                  cell->at(fsgrids::bfield::PERBY) = this->BY0 * tanh((xyz[2] + 0.5 * perBGrid.DZ) / this->SCA_LAMBDA);
-                  cell->at(fsgrids::bfield::PERBZ) = this->BZ0 * tanh((xyz[0] + 0.5 * perBGrid.DX) / this->SCA_LAMBDA);
+                  cell->at(fsgrids::bfield::PERBX) =
+                      this->BX0 * tanh((xyz[1] + 0.5 * gridSpacing[1]) / this->SCA_LAMBDA);
+                  cell->at(fsgrids::bfield::PERBY) =
+                      this->BY0 * tanh((xyz[2] + 0.5 * gridSpacing[2]) / this->SCA_LAMBDA);
+                  cell->at(fsgrids::bfield::PERBZ) =
+                      this->BZ0 * tanh((xyz[0] + 0.5 * gridSpacing[0]) / this->SCA_LAMBDA);
                }
             }
          }

@@ -39,37 +39,28 @@ typedef float TReal;
 
 // Get the (integer valued) global fsgrid cell index (i,j,k) for the magnetic-field traced mapping point that node n is
 // associated with
-template<class T> std::array<FsGridTools::FsSize_t, 3> getGlobalFsGridCellIndexForCoord(T& grid,const std::array<Real, 3>& x) {
-   std::array<FsGridTools::FsSize_t, 3> retval;
-   retval[0] = floor((x[0] - grid.physicalGlobalStart[0]) / grid.DX);
-   retval[1] = floor((x[1] - grid.physicalGlobalStart[1]) / grid.DY);
-   retval[2] = floor((x[2] - grid.physicalGlobalStart[2]) / grid.DZ);
-   return retval;
+template<class T> std::array<fsgrid::FsSize_t, 3> getGlobalFsGridCellIndexForCoord(T& grid,const std::array<Real, 3>& x) {
+   return grid.physicalToGlobal(x[0], x[1], x[2]);
 }
 // Get the (integer valued) local fsgrid cell index (i,j,k) for the magnetic-field traced mapping point that node n is
 // associated with If the cell is not in our local domain, will return {-1,-1,-1}
-template<class T> std::array<FsGridTools::FsIndex_t, 3> getLocalFsGridCellIndexForCoord(T& grid, const std::array<Real, 3>& x) {
-   std::array<FsGridTools::FsSize_t, 3> globalInd = getGlobalFsGridCellIndexForCoord(grid,x);
-   std::array<FsGridTools::FsIndex_t, 3> retval = grid.globalToLocal(globalInd[0], globalInd[1], globalInd[2]);
+template<class T> std::array<fsgrid::FsIndex_t, 3> getLocalFsGridCellIndexForCoord(T& grid, const std::array<Real, 3>& x) {
+   std::array<fsgrid::FsSize_t, 3> globalInd = getGlobalFsGridCellIndexForCoord(grid,x);
+   std::array<fsgrid::FsIndex_t, 3> retval = grid.globalToLocal(globalInd[0], globalInd[1], globalInd[2]);
    return retval;
 }
 // Get the (integer valued) local fsgrid cell index (i,j,k) for the magnetic-field traced mapping point that node n is associated with
 // This includes indices beyond local size (positive and negative) as we need to access ghost cells
-template<class T> std::array<FsGridTools::FsIndex_t, 3> getLocalFsGridCellIndexWithGhostsForCoord(T& grid, const std::array<Real, 3>& x) {
-   std::array<FsGridTools::FsSize_t, 3> globalInd = getGlobalFsGridCellIndexForCoord(grid,x);
-   const std::array<FsGridTools::FsIndex_t, 3> localStart = grid.getLocalStart();
-   std::array<FsGridTools::FsIndex_t,3> retval = {(FsGridTools::FsIndex_t)globalInd[0]-localStart[0], (FsGridTools::FsIndex_t)globalInd[1]-localStart[1], (FsGridTools::FsIndex_t)globalInd[2]-localStart[2]};
+template<class T> std::array<fsgrid::FsIndex_t, 3> getLocalFsGridCellIndexWithGhostsForCoord(T& grid, const std::array<Real, 3>& x) {
+   std::array<fsgrid::FsSize_t, 3> globalInd = getGlobalFsGridCellIndexForCoord(grid,x);
+   const std::array<fsgrid::FsIndex_t, 3> localStart = grid.getLocalStart();
+   std::array<fsgrid::FsIndex_t,3> retval = {(fsgrid::FsIndex_t)globalInd[0]-localStart[0], (fsgrid::FsIndex_t)globalInd[1]-localStart[1], (fsgrid::FsIndex_t)globalInd[2]-localStart[2]};
    return retval;
 }
 // Get the fraction fsgrid cell index for the magnetic-field traced mapping point that node n is associated with.
 // Note that these are floating point values between 0 and 1
 template<class T> std::array<Real, 3> getFractionalFsGridCellForCoord(T& grid, const std::array<Real, 3>& x) {
-   std::array<Real, 3> retval;
-   std::array<FsGridTools::FsSize_t, 3> fsgridCell = getGlobalFsGridCellIndexForCoord(grid,x);
-   retval[0] = (x[0] - grid.physicalGlobalStart[0]) / grid.DX - fsgridCell[0];
-   retval[1] = (x[1] - grid.physicalGlobalStart[1]) / grid.DY - fsgridCell[1];
-   retval[2] = (x[2] - grid.physicalGlobalStart[2]) / grid.DZ - fsgridCell[2];
-   return retval;
+   return grid.physicalToFractionalGlobal(x[0], x[1], x[2]);
 }
 
 namespace FieldTracing {
@@ -163,9 +154,9 @@ namespace FieldTracing {
    template<typename REAL> using TracingFieldFunction = std::function<bool(std::array<REAL,3>&, const bool, std::array<REAL, 3>&)>;
    
    template<typename REAL> bool traceFullFieldFunction(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+      fsgrid::FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      fsgrid::FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+      fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
       std::array<REAL,3>& r,
       const bool alongB,
       std::array<REAL,3>& b
@@ -186,10 +177,10 @@ namespace FieldTracing {
       b[1] = SBC::ionosphereGrid.dipoleField(r[0],r[1],r[2],Y,0,Y) + SBC::ionosphereGrid.BGB[1];
       b[2] = SBC::ionosphereGrid.dipoleField(r[0],r[1],r[2],Z,0,Z) + SBC::ionosphereGrid.BGB[2];
       
-      std::array<FsGridTools::FsSize_t, 3> fsgridCellu = getGlobalFsGridCellIndexForCoord(technicalGrid,{(TReal)r[0], (TReal)r[1], (TReal)r[2]});
-      std::array<FsGridTools::FsIndex_t,3> fsgridCell = {(FsGridTools::FsIndex_t)fsgridCellu[0],(FsGridTools::FsIndex_t)fsgridCellu[1],(FsGridTools::FsIndex_t)fsgridCellu[2]};
-      const std::array<FsGridTools::FsIndex_t, 3> localStart = technicalGrid.getLocalStart();
-      const std::array<FsGridTools::FsIndex_t, 3> localSize = technicalGrid.getLocalSize();
+      std::array<fsgrid::FsSize_t, 3> fsgridCellu = getGlobalFsGridCellIndexForCoord(technicalGrid,{(TReal)r[0], (TReal)r[1], (TReal)r[2]});
+      std::array<fsgrid::FsIndex_t,3> fsgridCell = {(fsgrid::FsIndex_t)fsgridCellu[0],(fsgrid::FsIndex_t)fsgridCellu[1],(fsgrid::FsIndex_t)fsgridCellu[2]};
+      const std::array<fsgrid::FsIndex_t, 3> localStart = technicalGrid.getLocalStart();
+      const std::array<fsgrid::FsIndex_t, 3> localSize = technicalGrid.getLocalSize();
       // Make the global index a local one, bypass the fsgrid function that yields (-1,-1,-1) also for ghost cells.
       fsgridCell[0] -= localStart[0];
       fsgridCell[1] -= localStart[1];
@@ -635,9 +626,9 @@ namespace FieldTracing {
    
    /*! Link each ionospheric node to fsgrid cells for coupling */
    void calculateIonosphereFsgridCoupling(
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+      fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+      fsgrid::FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      fsgrid::FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
       std::vector<SBC::SphericalTriGrid::Node> & nodes,
       creal radius
    );
@@ -651,24 +642,24 @@ namespace FieldTracing {
 
    /*! Compute whether a node is connected to the ionosphere or the IMF. */
    void traceOpenClosedConnection(
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+      fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+      fsgrid::FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      fsgrid::FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
       std::vector<SBC::SphericalTriGrid::Node> & nodes
    );
 
    /*! Trace magnetic field lines forward and backward from each DCCRG cell to record the connectivity and detect flux ropes. */
    void traceFullBoxConnectionAndFluxRopes(
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+      fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+      fsgrid::FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      fsgrid::FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
    );
 
    void reduceData(
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+      fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+      fsgrid::FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      fsgrid::FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> & mpiGrid,
       std::vector<SBC::SphericalTriGrid::Node> & nodes
    );

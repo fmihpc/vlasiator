@@ -99,7 +99,7 @@ namespace projects {
    void Dispersion::hook(
       cuint& stage,
       const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid
+      fsgrid::FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid
    ) const {
       if(hook::END_OF_TIME_STEP == stage) {
          int myRank;
@@ -124,9 +124,9 @@ namespace projects {
          vector<Real> outputPerBy(P::xcells_ini, 0.0);
          vector<Real> outputPerBz(P::xcells_ini, 0.0);
          
-         const std::array<FsGridTools::FsIndex_t, 3> localSize = perBGrid.getLocalSize();
-         const std::array<FsGridTools::FsIndex_t, 3> localStart = perBGrid.getLocalStart();
-         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
+         const std::array<fsgrid::FsIndex_t, 3> localSize = perBGrid.getLocalSize();
+         const std::array<fsgrid::FsIndex_t, 3> localStart = perBGrid.getLocalStart();
+         for (fsgrid::FsIndex_t x = 0; x < localSize[0]; ++x) {
             localPerBx[x + localStart[0]] = perBGrid.get(x, 0, 0)->at(fsgrids::bfield::PERBX);
             localPerBy[x + localStart[0]] = perBGrid.get(x, 0, 0)->at(fsgrids::bfield::PERBY);
             localPerBz[x + localStart[0]] = perBGrid.get(x, 0, 0)->at(fsgrids::bfield::PERBZ);
@@ -213,9 +213,9 @@ namespace projects {
    }
    
    void Dispersion::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
+      fsgrid::FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      fsgrid::FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+      fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
    ) {
       ConstantField bgField;
       bgField.initialize(this->B0 * cos(this->angleXY) * cos(this->angleXZ),
@@ -228,12 +228,12 @@ namespace projects {
          const auto localSize = BgBGrid.getLocalSize().data();
          
 #pragma omp parallel for collapse(3)
-         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
-            for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
-               for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
+         for (fsgrid::FsIndex_t x = 0; x < localSize[0]; ++x) {
+            for (fsgrid::FsIndex_t y = 0; y < localSize[1]; ++y) {
+               for (fsgrid::FsIndex_t z = 0; z < localSize[2]; ++z) {
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
-                  const int64_t cellid = perBGrid.GlobalIDForCoords(x, y, z);
-                  
+                  const int64_t cellid = perBGrid.globalIDFromLocalCoordinates(x, y, z);
+
                   std::default_random_engine rndState;
                   setRandomSeed(cellid,rndState);
                   

@@ -53,8 +53,8 @@ Real divideIfNonZero(
  * \param reconstructionOrder Reconstruction order of the fields after Balsara 2009, 2 used for BVOL, 3 used for 2nd-order Hall term calculations.
  */
 void reconstructionCoefficients(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+   fsgrid::FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+   fsgrid::FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
    std::array<Real, Rec::N_REC_COEFFICIENTS> & perturbedResult,
    cint i,
    cint j,
@@ -68,7 +68,7 @@ void reconstructionCoefficients(
    std::array<Real, fsgrids::bfield::N_BFIELD> * cep_i1j2k1 = NULL;
    std::array<Real, fsgrids::bfield::N_BFIELD> * cep_i1j1k2 = NULL;
    
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> * params = & perBGrid;
+   fsgrid::FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> * params = & perBGrid;
    
    cep_i1j1k1 = params->get(i,j,k);
    dummyCellParams = cep_i1j1k1;
@@ -214,9 +214,9 @@ void reconstructionCoefficients(
  * \param x 3D global simulation x,y,z coordinates of point to interpolate to
  */
 std::array<Real, 3> interpolatePerturbedB(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+   fsgrid::FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+   fsgrid::FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+   fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
    std::map< std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS> > & reconstructionCoefficientsCache,
    cint i,
    cint j,
@@ -303,9 +303,9 @@ std::array<Real, 3> interpolatePerturbedB(
  * \param x 3D global simulation x,y,z coordinates of point to interpolate to
  */
 std::array<Real, 3> interpolateCurlB(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+   fsgrid::FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+   fsgrid::FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+   fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
    std::map< std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS> > & reconstructionCoefficientsCache,
    cint i,
    cint j,
@@ -428,9 +428,10 @@ std::array<Real, 3> interpolateCurlB(
    std::array<Real,3> cell;
    std::array<int,3> fsc,lfsc;
    // Convert physical coordinate to cell index
-   cell[0] =  (x[0] - P::xmin) / technicalGrid.DX;
-   cell[1] =  (x[1] - P::ymin) / technicalGrid.DY;
-   cell[2] =  (x[2] - P::zmin) / technicalGrid.DZ;
+   const auto& gridSpacing = technicalGrid.getGridSpacing();
+   cell[0] = (x[0] - P::xmin) / gridSpacing[0];
+   cell[1] = (x[1] - P::ymin) / gridSpacing[1];
+   cell[2] = (x[2] - P::zmin) / gridSpacing[2];
    for(int c=0; c<3; c++) {
       fsc[c] = floor(cell[c]);
    }
@@ -469,13 +470,19 @@ std::array<Real, 3> interpolateCurlB(
 
             // Calc rotB
             std::array<Real, 3> rotB;
-            rotB[0] += (volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBZVOLdy)
-                  - volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBYVOLdz)) / volgrid.DX;
-            rotB[1] += (volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBXVOLdz)
-                  - volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBZVOLdx)) / volgrid.DX;
-            rotB[2] += (volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBYVOLdx)
-                  - volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBXVOLdy)) / volgrid.DX;
-
+            const auto& gridSpacing = volgrid.getGridSpacing();
+            rotB[0] +=
+                (volgrid.get(lfsc[0] + xoffset, lfsc[1] + yoffset, lfsc[2] + zoffset)->at(fsgrids::dPERBZVOLdy) -
+                 volgrid.get(lfsc[0] + xoffset, lfsc[1] + yoffset, lfsc[2] + zoffset)->at(fsgrids::dPERBYVOLdz)) /
+                gridSpacing[0];
+            rotB[1] +=
+                (volgrid.get(lfsc[0] + xoffset, lfsc[1] + yoffset, lfsc[2] + zoffset)->at(fsgrids::dPERBXVOLdz) -
+                 volgrid.get(lfsc[0] + xoffset, lfsc[1] + yoffset, lfsc[2] + zoffset)->at(fsgrids::dPERBZVOLdx)) /
+                gridSpacing[0];
+            rotB[2] +=
+                (volgrid.get(lfsc[0] + xoffset, lfsc[1] + yoffset, lfsc[2] + zoffset)->at(fsgrids::dPERBYVOLdx) -
+                 volgrid.get(lfsc[0] + xoffset, lfsc[1] + yoffset, lfsc[2] + zoffset)->at(fsgrids::dPERBXVOLdy)) /
+                gridSpacing[0];
          }
       }
    }

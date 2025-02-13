@@ -241,7 +241,7 @@ bool HandleFsGrid(const string& inputFileName,
    std::map<std::string, std::string> xmlAttributes;
    const std::string meshName="fsgrid";
    xmlAttributes["mesh"] = meshName;
-   std::array<FsGridTools::Task_t, 3> decom = {1,1,1};
+   std::array<fsgrid::Task_t, 3> decom = {1,1,1};
    output.writeArray("MESH_DECOMPOSITION", outputAttribs, 3u, 1u, &decom[0]);
    
    //Now for MESH_DOMAIN_SIZES
@@ -298,7 +298,7 @@ bool getFsgridDecomposition(vlsvinterface::Reader& file, std::array<int,3>& deco
    attribs.push_back(make_pair("mesh","fsgrid"));
 
 
-   std::array<FsGridTools::Task_t,3> fsGridDecomposition={0,0,0}; 
+   std::array<fsgrid::Task_t,3> fsGridDecomposition={0,0,0}; 
    int* ptr = &fsGridDecomposition[0];
 
    // Check if array exists:
@@ -313,8 +313,8 @@ bool getFsgridDecomposition(vlsvinterface::Reader& file, std::array<int,3>& deco
          std::cerr << "FSGrid writing rank number not found in restart file" << endl;
          exit(1);
       }
-      std::array<FsGridTools::FsSize_t,3> gridSize;
-      FsGridTools::FsSize_t* gridSizePtr = &gridSize[0];
+      std::array<fsgrid::FsSize_t,3> gridSize;
+      fsgrid::FsSize_t* gridSizePtr = &gridSize[0];
       success = file.read("MESH_BBOX",attribs, 0, 3, gridSizePtr, false);
       if(success == false){
          std::cerr << "Could not read MESH_BBOX from file" << endl;
@@ -332,10 +332,10 @@ bool getFsgridDecomposition(vlsvinterface::Reader& file, std::array<int,3>& deco
       }
       list<pair<string,string> > mesh_attribs;
       mesh_attribs.push_back(make_pair("name","fsgrid"));
-      std::vector<FsGridTools::FsSize_t> rank_first_ids(fsgridInputRanks);
-      FsGridTools::FsSize_t* ids_ptr = &rank_first_ids[0];
+      std::vector<fsgrid::FsSize_t> rank_first_ids(fsgridInputRanks);
+      fsgrid::FsSize_t* ids_ptr = &rank_first_ids[0];
 
-      std::set<FsGridTools::FsIndex_t> x_corners, y_corners, z_corners;
+      std::set<fsgrid::FsIndex_t> x_corners, y_corners, z_corners;
       
       int64_t begin_rank = 0;
       int i = 0;
@@ -344,7 +344,7 @@ bool getFsgridDecomposition(vlsvinterface::Reader& file, std::array<int,3>& deco
             std::cerr << "Reading MESH failed.\n";
             exit(1);
          }
-         std::array<FsGridTools::FsIndex_t,3> inds = FsGridTools::globalIDtoCellCoord(*ids_ptr, gridSize);
+         std::array<fsgrid::FsIndex_t,3> inds = fsgrid::globalIDtoCellCoord(*ids_ptr, gridSize);
          x_corners.insert(inds[0]);
          y_corners.insert(inds[1]);
          z_corners.insert(inds[2]);
@@ -560,7 +560,7 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
             std::array<int,3> thisDomainDecomp;
 
             //Compute Domain Decomposition Scheme for this vlsv file
-            //FsGridTools::computeDomainDecomposition(GlobalBox,numtasks,thisDomainDecomp);
+            //fsgrid::computeDomainDecomposition(GlobalBox,numtasks,thisDomainDecomp);
             getFsgridDecomposition(vlsvReader, thisDomainDecomp);
 
 
@@ -577,13 +577,13 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
                my_z=task%thisDomainDecomp[2];
 
 
-               taskStart[0] = FsGridTools::calcLocalStart(GlobalBox[0], thisDomainDecomp[0], my_x);
-               taskStart[1] = FsGridTools::calcLocalStart(GlobalBox[1], thisDomainDecomp[1], my_y);
-               taskStart[2] = FsGridTools::calcLocalStart(GlobalBox[2], thisDomainDecomp[2], my_z);
+               taskStart[0] = fsgrid::calcLocalStart(GlobalBox[0], thisDomainDecomp[0], my_x);
+               taskStart[1] = fsgrid::calcLocalStart(GlobalBox[1], thisDomainDecomp[1], my_y);
+               taskStart[2] = fsgrid::calcLocalStart(GlobalBox[2], thisDomainDecomp[2], my_z);
 
-               taskSize[0] = FsGridTools::calcLocalSize(GlobalBox[0], thisDomainDecomp[0], my_x);
-               taskSize[1] = FsGridTools::calcLocalSize(GlobalBox[1], thisDomainDecomp[1], my_y);
-               taskSize[2] = FsGridTools::calcLocalSize(GlobalBox[2], thisDomainDecomp[2], my_z);
+               taskSize[0] = fsgrid::calcLocalSize(GlobalBox[0], thisDomainDecomp[0], my_x);
+               taskSize[1] = fsgrid::calcLocalSize(GlobalBox[1], thisDomainDecomp[1], my_y);
+               taskSize[2] = fsgrid::calcLocalSize(GlobalBox[2], thisDomainDecomp[2], my_z);
 
                taskEnd[0]= taskStart[0]+taskSize[0];
                taskEnd[1]= taskStart[1]+taskSize[1];

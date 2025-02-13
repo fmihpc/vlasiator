@@ -30,7 +30,7 @@
 //FieldFunction should be initialized
 void setBackgroundField(
    const FieldFunction& bgFunction,
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+   fsgrid::FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
    bool append
    ) {
    using namespace std::placeholders;
@@ -39,7 +39,7 @@ void setBackgroundField(
    if(append==false) {
       setBackgroundFieldToZero(BgBGrid);
    }
-   const FsGridTools::FsIndex_t* gridDims = &BgBGrid.getLocalSize()[0];
+   const fsgrid::FsIndex_t* gridDims = &BgBGrid.getLocalSize()[0];
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
    phiprof::Timer bgTimer {"set Background field"};
    {
@@ -66,15 +66,12 @@ void setBackgroundField(
 
       // These are threaded now that the dipole field is threadsafe
       #pragma omp parallel for collapse(2)
-      for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
-         for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
-            for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
+      for (fsgrid::FsIndex_t z = 0; z < localSize[2]; ++z) {
+         for (fsgrid::FsIndex_t y = 0; y < localSize[1]; ++y) {
+            for (fsgrid::FsIndex_t x = 0; x < localSize[0]; ++x) {
                phiprof::Timer loopTopTimer {loopTopId};
                std::array<double, 3> start = BgBGrid.getPhysicalCoords(x, y, z);
-               double dx[3];
-               dx[0] = BgBGrid.DX;
-               dx[1] = BgBGrid.DY;
-               dx[2] = BgBGrid.DZ;
+               const auto& dx = BgBGrid.getGridSpacing();
                double end[3];
                end[0]=start[0]+dx[0];
                end[1]=start[1]+dx[1];
@@ -143,15 +140,15 @@ void setBackgroundField(
 }
 
 void setBackgroundFieldToZero(
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid
+   fsgrid::FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid
 ) {
    auto localSize = BgBGrid.getLocalSize().data();
 
    #pragma omp parallel for collapse(2)
-   for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
-      for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
-         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
-            for (FsGridTools::FsIndex_t i = 0; i < fsgrids::bgbfield::N_BGB; ++i) {
+   for (fsgrid::FsIndex_t z = 0; z < localSize[2]; ++z) {
+      for (fsgrid::FsIndex_t y = 0; y < localSize[1]; ++y) {
+         for (fsgrid::FsIndex_t x = 0; x < localSize[0]; ++x) {
+            for (fsgrid::FsIndex_t i = 0; i < fsgrids::bgbfield::N_BGB; ++i) {
                BgBGrid.get(x,y,z)->at(i) = 0;
             }
          }

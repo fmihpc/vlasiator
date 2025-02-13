@@ -201,8 +201,8 @@ std::vector<int> P::amrBoxMaxLevel;
 vector<string> P::blurPassString;
 std::vector<int> P::numPasses; //numpasses
 
-std::array<FsGridTools::Task_t,3> P::manualFsGridDecomposition = {0,0,0};
-std::array<FsGridTools::Task_t,3> P::overrideReadFsGridDecomposition = {0,0,0};
+std::array<fsgrid::Task_t,3> P::manualFsGridDecomposition = {0,0,0};
+std::array<fsgrid::Task_t,3> P::overrideReadFsGridDecomposition = {0,0,0};
 
 std::string tracerString; /*!< Fieldline tracer to use for coupling ionosphere and magnetosphere */
 bool P::computeCurvature;
@@ -742,7 +742,7 @@ void Parameters::getParameters() {
       cerr << "ERROR all of restart.overrideReadFsGridDecompositionX,Y,Z should be defined." << endl;
       MPI_Abort(MPI_COMM_WORLD, 1);
    }
-   FsGridTools::Task_t temp_task_t;
+   fsgrid::Task_t temp_task_t;
    RP::get("restart.overrideReadFsGridDecompositionX", temp_task_t);
    P::overrideReadFsGridDecomposition[0] = temp_task_t;
    RP::get("restart.overrideReadFsGridDecompositionY", temp_task_t);

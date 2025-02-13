@@ -228,8 +228,8 @@ struct Parameters {
    static std::vector<std::string> blurPassString;
    static std::vector<int> numPasses;
 
-   static std::array<FsGridTools::Task_t,3> manualFsGridDecomposition;
-   static std::array<FsGridTools::Task_t,3> overrideReadFsGridDecomposition;
+   static std::array<fsgrid::Task_t,3> manualFsGridDecomposition;
+   static std::array<fsgrid::Task_t,3> overrideReadFsGridDecomposition;
    
    static bool computeCurvature; /*<! Boolean flag, if true the curvature of magnetic field is computed. */
 

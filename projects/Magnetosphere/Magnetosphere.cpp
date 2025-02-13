@@ -289,9 +289,9 @@ namespace projects {
    
    /* set 0-centered dipole */
    void Magnetosphere::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
+      fsgrid::FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      fsgrid::FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+      fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
    ) {
       Dipole bgFieldDipole;
       LineDipole bgFieldLineDipole;
@@ -375,9 +375,9 @@ namespace projects {
 
          if(doZeroOut) {
 #pragma omp for collapse(2)
-            for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
-               for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
-                  for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
+            for (fsgrid::FsIndex_t z = 0; z < localSize[2]; ++z) {
+               for (fsgrid::FsIndex_t y = 0; y < localSize[1]; ++y) {
+                  for (fsgrid::FsIndex_t x = 0; x < localSize[0]; ++x) {
                      std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
                      cell->at(fsgrids::bgbfield::BGBX)=0;
                      cell->at(fsgrids::bgbfield::BGBXVOL)=0.0;
@@ -398,9 +398,9 @@ namespace projects {
           if(doZeroOut) {
              /*2D simulation in x and z. Set By and derivatives along Y, and derivatives of By to zero*/
 #pragma omp for collapse(2)
-             for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
-                for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
-                   for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
+             for (fsgrid::FsIndex_t z = 0; z < localSize[2]; ++z) {
+                for (fsgrid::FsIndex_t y = 0; y < localSize[1]; ++y) {
+                   for (fsgrid::FsIndex_t x = 0; x < localSize[0]; ++x) {
                       std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
                       cell->at(fsgrids::bgbfield::BGBY)=0.0;
                       cell->at(fsgrids::bgbfield::BGBYVOL)=0.0;
@@ -420,9 +420,9 @@ namespace projects {
          doZeroOut = P::zcells_ini ==1 && this->zeroOutComponents[2]==1;
          if(doZeroOut) {
 #pragma omp for collapse(2)
-            for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
-               for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
-                  for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
+            for (fsgrid::FsIndex_t z = 0; z < localSize[2]; ++z) {
+               for (fsgrid::FsIndex_t y = 0; y < localSize[1]; ++y) {
+                  for (fsgrid::FsIndex_t x = 0; x < localSize[0]; ++x) {
                      std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
                      cell->at(fsgrids::bgbfield::BGBX)=0;
                      cell->at(fsgrids::bgbfield::BGBY)=0;
@@ -444,9 +444,9 @@ namespace projects {
          // Remove dipole from inflow cells if this is requested
          if(this->noDipoleInSW) {
 #pragma omp for collapse(2)
-            for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
-               for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
-                  for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
+            for (fsgrid::FsIndex_t z = 0; z < localSize[2]; ++z) {
+               for (fsgrid::FsIndex_t y = 0; y < localSize[1]; ++y) {
+                  for (fsgrid::FsIndex_t x = 0; x < localSize[0]; ++x) {
                      if(technicalGrid.get(x, y, z)->sysBoundaryFlag == sysboundarytype::MAXWELLIAN ) {
                         for (int i = 0; i < fsgrids::bgbfield::N_BGB; ++i) {
                            BgBGrid.get(x,y,z)->at(i) = 0;

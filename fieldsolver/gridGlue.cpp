@@ -35,106 +35,106 @@ int getNumberOfCellsOnMaxRefLvl(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
 Filter moments after feeding them to FsGrid to alleviate the staircase effect caused in AMR runs.
 This is using a 3D, 5-point stencil triangle kernel.
 */
-void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                           FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-                           FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) 
-{
-
-
+void filterMoments(fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
+                   fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
 
    // Kernel Characteristics
-   constexpr int kernelOffset = 2;   // offset of 5 pointstencil 3D kernel => (floor(stencilWidth/2);)
-   constexpr Real inverseKernelSum = 1.0 / 729.0;   // the inverse of the total kernel's sum 
-   constexpr static Real kernel[5][5][5] ={
-                                 {{ 1 * inverseKernelSum,  2 * inverseKernelSum,  3 * inverseKernelSum,  2 * inverseKernelSum,  1 * inverseKernelSum},
-                                 { 2 * inverseKernelSum,  4 * inverseKernelSum,  6 * inverseKernelSum,  4 * inverseKernelSum,  2 * inverseKernelSum},
-                                 { 3 * inverseKernelSum,  6 * inverseKernelSum,  9 * inverseKernelSum,  6 * inverseKernelSum,  3 * inverseKernelSum},
-                                 { 2 * inverseKernelSum,  4 * inverseKernelSum,  6 * inverseKernelSum,  4 * inverseKernelSum,  2 * inverseKernelSum},
-                                 { 1 * inverseKernelSum,  2 * inverseKernelSum,  3 * inverseKernelSum,  2 * inverseKernelSum,  1 * inverseKernelSum}},
+   constexpr int kernelOffset = 2;                // offset of 5 pointstencil 3D kernel => (floor(stencilWidth/2);)
+   constexpr Real inverseKernelSum = 1.0 / 729.0; // the inverse of the total kernel's sum
+   constexpr Real kernel[5][5][5] = {
+       {{1 * inverseKernelSum, 2 * inverseKernelSum, 3 * inverseKernelSum, 2 * inverseKernelSum, 1 * inverseKernelSum},
+        {2 * inverseKernelSum, 4 * inverseKernelSum, 6 * inverseKernelSum, 4 * inverseKernelSum, 2 * inverseKernelSum},
+        {3 * inverseKernelSum, 6 * inverseKernelSum, 9 * inverseKernelSum, 6 * inverseKernelSum, 3 * inverseKernelSum},
+        {2 * inverseKernelSum, 4 * inverseKernelSum, 6 * inverseKernelSum, 4 * inverseKernelSum, 2 * inverseKernelSum},
+        {1 * inverseKernelSum, 2 * inverseKernelSum, 3 * inverseKernelSum, 2 * inverseKernelSum, 1 * inverseKernelSum}},
 
-                                 {{ 2 * inverseKernelSum,  4 * inverseKernelSum,  6 * inverseKernelSum,  4 * inverseKernelSum,  2 * inverseKernelSum},
-                                 { 4 * inverseKernelSum,  8 * inverseKernelSum, 12 * inverseKernelSum,  8 * inverseKernelSum,  4 * inverseKernelSum},
-                                 { 6 * inverseKernelSum, 12 * inverseKernelSum, 18 * inverseKernelSum, 12 * inverseKernelSum,  6 * inverseKernelSum},
-                                 { 4 * inverseKernelSum,  8 * inverseKernelSum, 12 * inverseKernelSum,  8 * inverseKernelSum,  4 * inverseKernelSum},
-                                 { 2 * inverseKernelSum,  4 * inverseKernelSum,  6 * inverseKernelSum,  4 * inverseKernelSum,  2 * inverseKernelSum}},
+       {{2 * inverseKernelSum, 4 * inverseKernelSum, 6 * inverseKernelSum, 4 * inverseKernelSum, 2 * inverseKernelSum},
+        {4 * inverseKernelSum, 8 * inverseKernelSum, 12 * inverseKernelSum, 8 * inverseKernelSum, 4 * inverseKernelSum},
+        {6 * inverseKernelSum, 12 * inverseKernelSum, 18 * inverseKernelSum, 12 * inverseKernelSum,
+         6 * inverseKernelSum},
+        {4 * inverseKernelSum, 8 * inverseKernelSum, 12 * inverseKernelSum, 8 * inverseKernelSum, 4 * inverseKernelSum},
+        {2 * inverseKernelSum, 4 * inverseKernelSum, 6 * inverseKernelSum, 4 * inverseKernelSum, 2 * inverseKernelSum}},
 
-                                 {{ 3 * inverseKernelSum,  6 * inverseKernelSum,  9 * inverseKernelSum,  6 * inverseKernelSum,  3 * inverseKernelSum},
-                                 { 6 * inverseKernelSum, 12 * inverseKernelSum, 18 * inverseKernelSum, 12 * inverseKernelSum,  6 * inverseKernelSum},
-                                 { 9 * inverseKernelSum, 18 * inverseKernelSum, 27 * inverseKernelSum, 18 * inverseKernelSum,  9 * inverseKernelSum},
-                                 { 6 * inverseKernelSum, 12 * inverseKernelSum, 18 * inverseKernelSum, 12 * inverseKernelSum,  6 * inverseKernelSum},
-                                 { 3 * inverseKernelSum,  6 * inverseKernelSum,  9 * inverseKernelSum,  6 * inverseKernelSum,  3 * inverseKernelSum}},
+       {{3 * inverseKernelSum, 6 * inverseKernelSum, 9 * inverseKernelSum, 6 * inverseKernelSum, 3 * inverseKernelSum},
+        {6 * inverseKernelSum, 12 * inverseKernelSum, 18 * inverseKernelSum, 12 * inverseKernelSum,
+         6 * inverseKernelSum},
+        {9 * inverseKernelSum, 18 * inverseKernelSum, 27 * inverseKernelSum, 18 * inverseKernelSum,
+         9 * inverseKernelSum},
+        {6 * inverseKernelSum, 12 * inverseKernelSum, 18 * inverseKernelSum, 12 * inverseKernelSum,
+         6 * inverseKernelSum},
+        {3 * inverseKernelSum, 6 * inverseKernelSum, 9 * inverseKernelSum, 6 * inverseKernelSum, 3 * inverseKernelSum}},
 
-                                 {{ 2 * inverseKernelSum,  4 * inverseKernelSum,  6 * inverseKernelSum,  4 * inverseKernelSum,  2 * inverseKernelSum},
-                                 { 4 * inverseKernelSum,  8 * inverseKernelSum, 12 * inverseKernelSum,  8 * inverseKernelSum,  4 * inverseKernelSum},
-                                 { 6 * inverseKernelSum, 12 * inverseKernelSum, 18 * inverseKernelSum, 12 * inverseKernelSum,  6 * inverseKernelSum},
-                                 { 4 * inverseKernelSum,  8 * inverseKernelSum, 12 * inverseKernelSum,  8 * inverseKernelSum,  4 * inverseKernelSum},
-                                 { 2 * inverseKernelSum,  4 * inverseKernelSum,  6 * inverseKernelSum,  4 * inverseKernelSum,  2 * inverseKernelSum}},
+       {{2 * inverseKernelSum, 4 * inverseKernelSum, 6 * inverseKernelSum, 4 * inverseKernelSum, 2 * inverseKernelSum},
+        {4 * inverseKernelSum, 8 * inverseKernelSum, 12 * inverseKernelSum, 8 * inverseKernelSum, 4 * inverseKernelSum},
+        {6 * inverseKernelSum, 12 * inverseKernelSum, 18 * inverseKernelSum, 12 * inverseKernelSum,
+         6 * inverseKernelSum},
+        {4 * inverseKernelSum, 8 * inverseKernelSum, 12 * inverseKernelSum, 8 * inverseKernelSum, 4 * inverseKernelSum},
+        {2 * inverseKernelSum, 4 * inverseKernelSum, 6 * inverseKernelSum, 4 * inverseKernelSum, 2 * inverseKernelSum}},
 
-                                 {{ 1 * inverseKernelSum,  2 * inverseKernelSum,  3 * inverseKernelSum,  2 * inverseKernelSum,  1 * inverseKernelSum},
-                                 { 2 * inverseKernelSum,  4 * inverseKernelSum,  6 * inverseKernelSum,  4 * inverseKernelSum,  2 * inverseKernelSum},
-                                 { 3 * inverseKernelSum,  6 * inverseKernelSum,  9 * inverseKernelSum,  6 * inverseKernelSum,  3 * inverseKernelSum},
-                                 { 2 * inverseKernelSum,  4 * inverseKernelSum,  6 * inverseKernelSum,  4 * inverseKernelSum,  2 * inverseKernelSum},
-                                 { 1 * inverseKernelSum,  2 * inverseKernelSum,  3 * inverseKernelSum,  2 * inverseKernelSum,  1 * inverseKernelSum}}
-                                 };
+       {{1 * inverseKernelSum, 2 * inverseKernelSum, 3 * inverseKernelSum, 2 * inverseKernelSum, 1 * inverseKernelSum},
+        {2 * inverseKernelSum, 4 * inverseKernelSum, 6 * inverseKernelSum, 4 * inverseKernelSum, 2 * inverseKernelSum},
+        {3 * inverseKernelSum, 6 * inverseKernelSum, 9 * inverseKernelSum, 6 * inverseKernelSum, 3 * inverseKernelSum},
+        {2 * inverseKernelSum, 4 * inverseKernelSum, 6 * inverseKernelSum, 4 * inverseKernelSum, 2 * inverseKernelSum},
+        {1 * inverseKernelSum, 2 * inverseKernelSum, 3 * inverseKernelSum, 2 * inverseKernelSum,
+         1 * inverseKernelSum}}};
 
    // Update momentsGrid Ghost Cells
-   momentsGrid.updateGhostCells(); 
+   momentsGrid.updateGhostCells();
 
-
-   // Get size of local domain and create swapGrid for filtering
-   const FsGridTools::FsIndex_t* mntDims = &momentsGrid.getLocalSize()[0];  
-   FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> swapGrid = momentsGrid;  //swap array 
+   // Get size of local domain
+   const auto& mntDims = momentsGrid.getLocalSize();
+   auto& moments = momentsGrid.getData();
+   const auto& technical = technicalGrid.getData();
+   // Create a copy of momentsGrid data for filtering
+   std::vector<std::array<Real, fsgrids::moments::N_MOMENTS>> blurred(moments.size());
 
    // Filtering Loop
-   for (int blurPass = 0; blurPass < Parameters::maxFilteringPasses; blurPass++){
-
+   for (auto blurPass = 0; blurPass < Parameters::maxFilteringPasses; blurPass++) {
       // Blurring Pass
       #pragma omp parallel for collapse(2)
-      for (FsGridTools::FsIndex_t k = 0; k < mntDims[2]; k++){
-         for (FsGridTools::FsIndex_t j = 0; j < mntDims[1]; j++){
-            for (FsGridTools::FsIndex_t i = 0; i < mntDims[0]; i++){
+      for (auto k = 0; k < mntDims[2]; k++) {
+         for (auto j = 0; j < mntDims[1]; j++) {
+            for (auto i = 0; i < mntDims[0]; i++) {
+               const auto localId = technicalGrid.localIDFromLocalCoordinates(i, j, k);
+               const auto refLevel = technical[localId].refLevel;
+               const auto flag = technical[localId].sysBoundaryFlag;
+               auto& blurCell = blurred[localId];
 
-               int refLevel = technicalGrid.get(i, j, k)->refLevel;
-               auto* swap {swapGrid.get(i, j, k)};
-
-               // Skip pass and copy value
-               if (blurPass >= P::numPasses.at(refLevel) || technicalGrid.get(i, j, k)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
-                  *swap = *momentsGrid.get(i, j, k);
+               // Skip pass, set blurCell value equal to original
+               if (blurPass >= P::numPasses.at(refLevel) || flag != sysboundarytype::NOT_SYSBOUNDARY) {
+                  blurCell = moments[localId];
                   continue;
-               }
-
-               // Set moments to zero before passing filter
-               for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
-                  swap->at(e) = 0.0;
+               } else {
+                  // Set Cell to zero before passing filter
+                  blurCell.fill(0.0);
                }
 
                // Perform the blur
-               for (int c=-kernelOffset; c<=kernelOffset; c++){
-                  for (int b=-kernelOffset; b<=kernelOffset; b++){
-                     for (int a=-kernelOffset; a<=kernelOffset; a++){
-                        const auto* cell {momentsGrid.get(i+a,j+b,k+c)};
+               for (int c = -kernelOffset; c <= kernelOffset; c++) {
+                  for (int b = -kernelOffset; b <= kernelOffset; b++) {
+                     for (int a = -kernelOffset; a <= kernelOffset; a++) {
+                        const auto localId = technicalGrid.localIDFromLocalCoordinates(i + a, j + b, k + c);
+                        const auto& cell = moments[localId];
+			#pragma omp simd
                         for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
-                           swap->at(e) += cell->at(e) * kernel[kernelOffset+a][kernelOffset+b][kernelOffset+c];
-                        } 
+                           blurCell[e] += cell[e] * kernel[kernelOffset + a][kernelOffset + b][kernelOffset + c];
+                        }
                      }
                   }
-               }//inner filtering loop
+               } // inner filtering loop
             }
          }
-      } //spatial loops
+      } // spatial loops
 
-      // Allows argument dependent lookup (ADL)
-      // i.e. use specialized swap if it exists, fall back on std
-      using std::swap;
-      swap(momentsGrid, swapGrid);
+      std::swap(moments, blurred);
       momentsGrid.updateGhostCells();
    }
 }
 
 void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                            const std::vector<CellID>& cells,
-                           FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-                           FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+                           fsgrid::FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                           fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
                            bool dt2 /*=false*/) {
 
   int ii;
@@ -221,16 +221,16 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    //Filter Moments if this is a 3D AMR run.
   if (P::amrMaxSpatialRefLevel>0) { 
       phiprof::Timer filteringTimer {"AMR Filtering-Triangle-3D"};
-      filterMoments(mpiGrid,momentsGrid,technicalGrid);
+      filterMoments(momentsGrid, technicalGrid);
    }   
 }
 
 void getFieldsFromFsGrid(
-   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volumeFieldsGrid,
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+   fsgrid::FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volumeFieldsGrid,
+   fsgrid::FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+   fsgrid::FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+   fsgrid::FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+   fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const std::vector<CellID>& cells
 ) {
@@ -312,30 +312,49 @@ void getFieldsFromFsGrid(
             std::array<Real, fsgrids::volfields::N_VOL> * volcell = volumeFieldsGrid.get(fsgridCell);
             std::array<Real, fsgrids::bgbfield::N_BGB> * bgcell = BgBGrid.get(fsgridCell);
             std::array<Real, fsgrids::egradpe::N_EGRADPE> * egradpecell = EGradPeGrid.get(fsgridCell);	
-            std::array<Real, fsgrids::dmoments::N_DMOMENTS> * dMomentscell = dMomentsGrid.get(fsgridCell);	
-            
+            std::array<Real, fsgrids::dmoments::N_DMOMENTS> * dMomentscell = dMomentsGrid.get(fsgridCell);
+            const auto& gridSpacing = technicalGrid.getGridSpacing();
+
             // TODO consider pruning these and communicating only when required
             sendBuffer[ii].sums[FieldsToCommunicate::PERBXVOL] += volcell->at(fsgrids::volfields::PERBXVOL);
             sendBuffer[ii].sums[FieldsToCommunicate::PERBYVOL] += volcell->at(fsgrids::volfields::PERBYVOL);
             sendBuffer[ii].sums[FieldsToCommunicate::PERBZVOL] += volcell->at(fsgrids::volfields::PERBZVOL);
-            sendBuffer[ii].sums[FieldsToCommunicate::dPERBXVOLdx] += volcell->at(fsgrids::volfields::dPERBXVOLdx) / technicalGrid.DX;
-            sendBuffer[ii].sums[FieldsToCommunicate::dPERBXVOLdy] += volcell->at(fsgrids::volfields::dPERBXVOLdy) / technicalGrid.DY;
-            sendBuffer[ii].sums[FieldsToCommunicate::dPERBXVOLdz] += volcell->at(fsgrids::volfields::dPERBXVOLdz) / technicalGrid.DZ;
-            sendBuffer[ii].sums[FieldsToCommunicate::dPERBYVOLdx] += volcell->at(fsgrids::volfields::dPERBYVOLdx) / technicalGrid.DX;
-            sendBuffer[ii].sums[FieldsToCommunicate::dPERBYVOLdy] += volcell->at(fsgrids::volfields::dPERBYVOLdy) / technicalGrid.DY;
-            sendBuffer[ii].sums[FieldsToCommunicate::dPERBYVOLdz] += volcell->at(fsgrids::volfields::dPERBYVOLdz) / technicalGrid.DZ;
-            sendBuffer[ii].sums[FieldsToCommunicate::dPERBZVOLdx] += volcell->at(fsgrids::volfields::dPERBZVOLdx) / technicalGrid.DX;
-            sendBuffer[ii].sums[FieldsToCommunicate::dPERBZVOLdy] += volcell->at(fsgrids::volfields::dPERBZVOLdy) / technicalGrid.DY;
-            sendBuffer[ii].sums[FieldsToCommunicate::dPERBZVOLdz] += volcell->at(fsgrids::volfields::dPERBZVOLdz) / technicalGrid.DZ;
-            sendBuffer[ii].sums[FieldsToCommunicate::dVxdx] += dMomentscell->at(fsgrids::dmoments::dVxdx) / technicalGrid.DX;
-            sendBuffer[ii].sums[FieldsToCommunicate::dVxdy] += dMomentscell->at(fsgrids::dmoments::dVxdy) / technicalGrid.DY;
-            sendBuffer[ii].sums[FieldsToCommunicate::dVxdz] += dMomentscell->at(fsgrids::dmoments::dVxdz) / technicalGrid.DZ;
-            sendBuffer[ii].sums[FieldsToCommunicate::dVydx] += dMomentscell->at(fsgrids::dmoments::dVydx) / technicalGrid.DX;
-            sendBuffer[ii].sums[FieldsToCommunicate::dVydy] += dMomentscell->at(fsgrids::dmoments::dVydy) / technicalGrid.DY;
-            sendBuffer[ii].sums[FieldsToCommunicate::dVydz] += dMomentscell->at(fsgrids::dmoments::dVydz) / technicalGrid.DZ;
-            sendBuffer[ii].sums[FieldsToCommunicate::dVzdx] += dMomentscell->at(fsgrids::dmoments::dVzdx) / technicalGrid.DX;
-            sendBuffer[ii].sums[FieldsToCommunicate::dVzdy] += dMomentscell->at(fsgrids::dmoments::dVzdy) / technicalGrid.DY;
-            sendBuffer[ii].sums[FieldsToCommunicate::dVzdz] += dMomentscell->at(fsgrids::dmoments::dVzdz) / technicalGrid.DZ;
+            sendBuffer[ii].sums[FieldsToCommunicate::dPERBXVOLdx] +=
+                volcell->at(fsgrids::volfields::dPERBXVOLdx) / gridSpacing[0];
+            sendBuffer[ii].sums[FieldsToCommunicate::dPERBXVOLdy] +=
+                volcell->at(fsgrids::volfields::dPERBXVOLdy) / gridSpacing[1];
+            sendBuffer[ii].sums[FieldsToCommunicate::dPERBXVOLdz] +=
+                volcell->at(fsgrids::volfields::dPERBXVOLdz) / gridSpacing[2];
+            sendBuffer[ii].sums[FieldsToCommunicate::dPERBYVOLdx] +=
+                volcell->at(fsgrids::volfields::dPERBYVOLdx) / gridSpacing[0];
+            sendBuffer[ii].sums[FieldsToCommunicate::dPERBYVOLdy] +=
+                volcell->at(fsgrids::volfields::dPERBYVOLdy) / gridSpacing[1];
+            sendBuffer[ii].sums[FieldsToCommunicate::dPERBYVOLdz] +=
+                volcell->at(fsgrids::volfields::dPERBYVOLdz) / gridSpacing[2];
+            sendBuffer[ii].sums[FieldsToCommunicate::dPERBZVOLdx] +=
+                volcell->at(fsgrids::volfields::dPERBZVOLdx) / gridSpacing[0];
+            sendBuffer[ii].sums[FieldsToCommunicate::dPERBZVOLdy] +=
+                volcell->at(fsgrids::volfields::dPERBZVOLdy) / gridSpacing[1];
+            sendBuffer[ii].sums[FieldsToCommunicate::dPERBZVOLdz] +=
+                volcell->at(fsgrids::volfields::dPERBZVOLdz) / gridSpacing[2];
+            sendBuffer[ii].sums[FieldsToCommunicate::dVxdx] +=
+                dMomentscell->at(fsgrids::dmoments::dVxdx) / gridSpacing[0];
+            sendBuffer[ii].sums[FieldsToCommunicate::dVxdy] +=
+                dMomentscell->at(fsgrids::dmoments::dVxdy) / gridSpacing[1];
+            sendBuffer[ii].sums[FieldsToCommunicate::dVxdz] +=
+                dMomentscell->at(fsgrids::dmoments::dVxdz) / gridSpacing[2];
+            sendBuffer[ii].sums[FieldsToCommunicate::dVydx] +=
+                dMomentscell->at(fsgrids::dmoments::dVydx) / gridSpacing[0];
+            sendBuffer[ii].sums[FieldsToCommunicate::dVydy] +=
+                dMomentscell->at(fsgrids::dmoments::dVydy) / gridSpacing[1];
+            sendBuffer[ii].sums[FieldsToCommunicate::dVydz] +=
+                dMomentscell->at(fsgrids::dmoments::dVydz) / gridSpacing[2];
+            sendBuffer[ii].sums[FieldsToCommunicate::dVzdx] +=
+                dMomentscell->at(fsgrids::dmoments::dVzdx) / gridSpacing[0];
+            sendBuffer[ii].sums[FieldsToCommunicate::dVzdy] +=
+                dMomentscell->at(fsgrids::dmoments::dVzdy) / gridSpacing[1];
+            sendBuffer[ii].sums[FieldsToCommunicate::dVzdz] +=
+                dMomentscell->at(fsgrids::dmoments::dVzdz) / gridSpacing[2];
             sendBuffer[ii].sums[FieldsToCommunicate::BGBXVOL] += bgcell->at(fsgrids::bgbfield::BGBXVOL);
             sendBuffer[ii].sums[FieldsToCommunicate::BGBYVOL] += bgcell->at(fsgrids::bgbfield::BGBYVOL);
             sendBuffer[ii].sums[FieldsToCommunicate::BGBZVOL] += bgcell->at(fsgrids::bgbfield::BGBZVOL);
@@ -488,7 +507,7 @@ std::vector<CellID> mapDccrgIdToFsGridGlobalID(dccrg::Dccrg<SpatialCell,dccrg::C
 
 void feedBoundaryIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 			const std::vector<CellID>& cells,
-			FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
+			fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
 
   int ii;
   //sorted list of dccrg cells. cells is typicall already sorted, but just to make sure....

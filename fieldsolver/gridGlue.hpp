@@ -62,8 +62,8 @@ std::vector<CellID> mapDccrgIdToFsGridGlobalID(dccrg::Dccrg<SpatialCell,dccrg::C
  */
 void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                            const std::vector<CellID>& cells,
-                           FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-                           FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+                           fsgrid::FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                           fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
                            bool dt2=false);
 
 /*! Copy field solver result (VOLB, VOLE, VOLPERB derivatives, gradpe) and store them back into DCCRG
@@ -74,11 +74,11 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
  * This function assumes that proper grid coupling has been set up.
  */
 void getFieldsFromFsGrid(
-   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volumeFieldsGrid,
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+   fsgrid::FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volumeFieldsGrid,
+   fsgrid::FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+   fsgrid::FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+   fsgrid::FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+   fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const std::vector<CellID>& cells
 );
@@ -91,8 +91,8 @@ void getFieldsFromFsGrid(
  * This function assumes that proper grid coupling has been set up.
  */
 void getBgFieldsAndDerivativesFromFsGrid(
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+   fsgrid::FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+   fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const std::vector<CellID>& cells
 );
@@ -102,9 +102,9 @@ void getBgFieldsAndDerivativesFromFsGrid(
  * This should only be neccessary for debugging.
  */
 void getDerivativesFromFsGrid(
-   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dperbGrid,
-   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dmomentsGrid,
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+   fsgrid::FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dperbGrid,
+   fsgrid::FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dmomentsGrid,
+   fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const std::vector<CellID>& cells
 );
@@ -115,7 +115,7 @@ int getNumberOfCellsOnMaxRefLvl(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
 
 void feedBoundaryIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 			const std::vector<CellID>& cells,
-			FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid);
+			fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid);
 
 /*Compute coupling DCCRG <=> FSGRID 
 
@@ -129,7 +129,7 @@ void feedBoundaryIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 
 template <typename T, int stencil> void computeCoupling(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                const std::vector<CellID>& cells,
-               FsGrid< T, stencil>& momentsGrid) {
+               fsgrid::FsGrid< T, stencil>& momentsGrid) {
     
    phiprof::Timer couplingTimerActual {"CouplingTimerActual"};
 
@@ -144,24 +144,24 @@ template <typename T, int stencil> void computeCoupling(dccrg::Dccrg<SpatialCell
   
   
    //size of fsgrid local part
-   const std::array<FsGridTools::FsIndex_t, 3> gridDims(momentsGrid.getLocalSize());
+   const std::array<fsgrid::FsIndex_t, 3> gridDims(momentsGrid.getLocalSize());
   
  
    //Compute what we will receive, and where it should be stored
-      for (FsGridTools::FsIndex_t k=0; k<gridDims[2]; k++) {
-         for (FsGridTools::FsIndex_t j=0; j<gridDims[1]; j++) {
-            for (FsGridTools::FsIndex_t i=0; i<gridDims[0]; i++) {
-               const std::array<FsGridTools::FsIndex_t, 3> globalIndices = momentsGrid.getGlobalIndices(i,j,k);
+      for (fsgrid::FsIndex_t k=0; k<gridDims[2]; k++) {
+         for (fsgrid::FsIndex_t j=0; j<gridDims[1]; j++) {
+            for (fsgrid::FsIndex_t i=0; i<gridDims[0]; i++) {
+               const std::array<fsgrid::FsSize_t, 3> globalIndices = momentsGrid.localToGlobal(i, j, k);
                const dccrg::Types<3>::indices_t  indices = {{(uint64_t)globalIndices[0],
                         (uint64_t)globalIndices[1],
                         (uint64_t)globalIndices[2]}}; //cast to avoid warnings
-         CellID dccrgCell = mpiGrid.get_existing_cell(indices, 0, mpiGrid.mapping.get_maximum_refinement_level());
-        
-         int process = mpiGrid.get_process(dccrgCell);
-         FsGridTools::LocalID fsgridLid = momentsGrid.LocalIDForCoords(i,j,k);
-         //int64_t  fsgridGid = momentsGrid.GlobalIDForCoords(i,j,k);
-         onFsgridMapRemoteProcessGlobal[process].insert(dccrgCell); //cells are ordered (sorted) in set
-         onFsgridMapCellsGlobal[dccrgCell].push_back(fsgridLid);
+               const CellID dccrgCell =
+                   mpiGrid.get_existing_cell(indices, 0, mpiGrid.mapping.get_maximum_refinement_level());
+
+               const int process = mpiGrid.get_process(dccrgCell);
+               const fsgrid::LocalID fsgridLid = momentsGrid.localIDFromLocalCoordinates(i, j, k);
+               onFsgridMapRemoteProcessGlobal[process].insert(dccrgCell); // cells are ordered (sorted) in set
+               onFsgridMapCellsGlobal[dccrgCell].push_back(fsgridLid);
          }
       }
    }
@@ -169,11 +169,11 @@ template <typename T, int stencil> void computeCoupling(dccrg::Dccrg<SpatialCell
    // Compute where to send data and what to send
    for(uint64_t i=0; i< dccrgCells.size(); i++) {
       //compute to which processes this cell maps
-      std::vector<CellID> fsCells = mapDccrgIdToFsGridGlobalID(mpiGrid, dccrgCells[i]);
+      const std::vector<CellID> fsCells = mapDccrgIdToFsGridGlobalID(mpiGrid, dccrgCells[i]);
 
       //loop over fsgrid cells which this dccrg cell maps to
       for (auto const &fsCellID : fsCells) {
-         int process = momentsGrid.getTaskForGlobalID(fsCellID).first; //process on fsgrid
+         const int process = momentsGrid.getTaskForGlobalID(fsCellID); // process on fsgrid
          onDccrgMapRemoteProcessGlobal[process].insert(dccrgCells[i]); //add to map
       }    
    }
