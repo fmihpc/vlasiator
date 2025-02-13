@@ -26,7 +26,7 @@
 // clang-format on
 
 #ifdef DEBUG_VLASIATOR
-   #define DEBUG_FSOLVER
+#define DEBUG_FSOLVER
 #endif
 
 using namespace std;
@@ -39,19 +39,21 @@ void calculateEdgeGradPeTermComponent(
    Real hallRhoq = 0.0;
    Real rhoq = 0.0;
    switch (Parameters::ohmGradPeTerm) {
-      case 0:
-         cerr << __FILE__ << __LINE__ << "You shouldn't be in a electron pressure gradient term function if Parameters::ohmGradPeTerm == 0." << endl;
-         break;
+   case 0:
+      cerr << __FILE__ << __LINE__
+           << "You shouldn't be in a electron pressure gradient term function if Parameters::ohmGradPeTerm == 0."
+           << endl;
+      break;
 
-      case 1:
-         rhoq = momentsGrid.get(i,j,k)->at(fsgrids::moments::RHOQ);
-         hallRhoq = (rhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : rhoq ;
-         EGradPeGrid.get(i, j, k)->at(index0) = -dMomentsGrid.get(i, j, k)->at(index1) / (hallRhoq * spacing);
-         break;
+   case 1:
+      rhoq = momentsGrid.get(i, j, k)->at(fsgrids::moments::RHOQ);
+      hallRhoq = (rhoq <= Parameters::hallMinimumRhoq) ? Parameters::hallMinimumRhoq : rhoq;
+      EGradPeGrid.get(i, j, k)->at(index0) = -dMomentsGrid.get(i, j, k)->at(index1) / (hallRhoq * spacing);
+      break;
 
-      default:
-         cerr << __FILE__ << ":" << __LINE__ << "You are welcome to code higher-order Hall term correction terms." << endl;
-         break;
+   default:
+      cerr << __FILE__ << ":" << __LINE__ << "You are welcome to code higher-order Hall term correction terms." << endl;
+      break;
    }
 }
 
@@ -59,33 +61,34 @@ void calculateEdgeGradPeTermComponent(
  * @param sysBoundaries System boundary condition functions.
  */
 void calculateGradPeTerm(
-   fsgrid::FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-   fsgrid::FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-   fsgrid::FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-   fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-   cint i,
-   cint j,
-   cint k,
-   SysBoundary& sysBoundaries
-) {
-   #ifdef DEBUG_FSOLVER
-   if (technicalGrid.get(i,j,k) == NULL) {
+    fsgrid::FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH>& EGradPeGrid,
+    fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
+    fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
+    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, cint i, cint j, cint k,
+    SysBoundary& sysBoundaries) {
+#ifdef DEBUG_FSOLVER
+   if (technicalGrid.get(i, j, k) == NULL) {
       cerr << "NULL pointer in " << __FILE__ << ":" << __LINE__ << endl;
       exit(1);
    }
-   #endif
+#endif
 
    const auto& gridSpacing = technicalGrid.getGridSpacing();
-   cuint cellSysBoundaryFlag = technicalGrid.get(i,j,k)->sysBoundaryFlag;
+   cuint cellSysBoundaryFlag = technicalGrid.get(i, j, k)->sysBoundaryFlag;
 
-   if (cellSysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE || cellSysBoundaryFlag == sysboundarytype::OUTER_BOUNDARY_PADDING) return;
+   if (cellSysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
+       cellSysBoundaryFlag == sysboundarytype::OUTER_BOUNDARY_PADDING)
+      return;
 
-   cuint cellSysBoundaryLayer = technicalGrid.get(i,j,k)->sysBoundaryLayer;
+   cuint cellSysBoundaryLayer = technicalGrid.get(i, j, k)->sysBoundaryLayer;
 
    if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) && (cellSysBoundaryLayer != 1)) {
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid,i,j,k,0);
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid,i,j,k,1);
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid,i,j,k,2);
+      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)
+          ->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid, i, j, k, 0);
+      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)
+          ->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid, i, j, k, 1);
+      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)
+          ->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid, i, j, k, 2);
    } else {
       calculateEdgeGradPeTermComponent(EGradPeGrid, momentsGrid, dMomentsGrid, i, j, k, fsgrids::egradpe::EXGRADPE,
                                        fsgrids::dmoments::dPedx, gridSpacing[0]);
@@ -97,23 +100,20 @@ void calculateGradPeTerm(
 }
 
 void calculateGradPeTermSimple(
-   fsgrid::FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-   fsgrid::FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeDt2Grid,
-   fsgrid::FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-   fsgrid::FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsDt2Grid,
-   fsgrid::FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-   fsgrid::FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsDt2Grid,
-   fsgrid::FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-   SysBoundary& sysBoundaries,
-   cint& RKCase
-) {
-   //const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
+    fsgrid::FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH>& EGradPeGrid,
+    fsgrid::FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH>& EGradPeDt2Grid,
+    fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
+    fsgrid::FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsDt2Grid,
+    fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
+    fsgrid::FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsDt2Grid,
+    fsgrid::FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, SysBoundary& sysBoundaries, cint& RKCase) {
+   // const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
    const fsgrid::FsIndex_t* gridDims = &technicalGrid.getLocalSize()[0];
-   const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
-   phiprof::Timer gradPeTimer {"Calculate GradPe term"};
-   int computeTimerId {phiprof::initializeTimer("EgradPe compute cells")};
+   const size_t N_cells = gridDims[0] * gridDims[1] * gridDims[2];
+   phiprof::Timer gradPeTimer{"Calculate GradPe term"};
+   int computeTimerId{phiprof::initializeTimer("EgradPe compute cells")};
 
-   phiprof::Timer mpiTimer {"EgradPe field update ghosts MPI", {"MPI"}};
+   phiprof::Timer mpiTimer{"EgradPe field update ghosts MPI", {"MPI"}};
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       dMomentsGrid.updateGhostCells();
    } else {
@@ -121,24 +121,25 @@ void calculateGradPeTermSimple(
    }
    mpiTimer.stop();
 
-   // Calculate GradPe term
-   #pragma omp parallel
+// Calculate GradPe term
+#pragma omp parallel
    {
-      phiprof::Timer computeTimer {computeTimerId};
-      #pragma omp for collapse(2)
-      for (fsgrid::FsIndex_t k=0; k<gridDims[2]; k++) {
-         for (fsgrid::FsIndex_t j=0; j<gridDims[1]; j++) {
-            for (fsgrid::FsIndex_t i=0; i<gridDims[0]; i++) {
+      phiprof::Timer computeTimer{computeTimerId};
+#pragma omp for collapse(2)
+      for (fsgrid::FsIndex_t k = 0; k < gridDims[2]; k++) {
+         for (fsgrid::FsIndex_t j = 0; j < gridDims[1]; j++) {
+            for (fsgrid::FsIndex_t i = 0; i < gridDims[0]; i++) {
                if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
                   calculateGradPeTerm(EGradPeGrid, momentsGrid, dMomentsGrid, technicalGrid, i, j, k, sysBoundaries);
                } else {
-                  calculateGradPeTerm(EGradPeDt2Grid, momentsDt2Grid, dMomentsDt2Grid, technicalGrid, i, j, k, sysBoundaries);
+                  calculateGradPeTerm(EGradPeDt2Grid, momentsDt2Grid, dMomentsDt2Grid, technicalGrid, i, j, k,
+                                      sysBoundaries);
                }
             }
          }
       }
-      computeTimer.stop(N_cells,"Spatial Cells");
+      computeTimer.stop(N_cells, "Spatial Cells");
    }
 
-   gradPeTimer.stop(N_cells,"Spatial Cells");
+   gradPeTimer.stop(N_cells, "Spatial Cells");
 }
