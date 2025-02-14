@@ -175,7 +175,7 @@ namespace projects {
       if (!P::isRestart) {
          const auto* localSize = &fsgrid.getLocalSize()[0];
 
-#pragma omp parallel for collapse(3)
+         #pragma omp parallel for collapse(3)
          for (auto x = 0; x < localSize[0]; ++x) {
             for (auto y = 0; y < localSize[1]; ++y) {
                for (auto z = 0; z < localSize[2]; ++z) {
