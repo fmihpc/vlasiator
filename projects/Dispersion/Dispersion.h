@@ -46,20 +46,19 @@ namespace projects {
     public:
       Dispersion();
       virtual ~Dispersion();
-      
-      virtual bool initialize(void);
+
+      virtual bool initialize(void) override;
       static void addParameters(void);
-      virtual void getParameters(void);
+      virtual void getParameters(void) override;
       virtual void setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                                     std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
-                                    std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid);
+                                    std::span<fsgrids::technical> technical, FieldSolverGrid& fsgrid) override;
       virtual void hook(cuint& stage, const dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                         std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                        std::span<fsgrids::technical> technical, FieldSolverGrid& fsgrid) const;
-      virtual Realf fillPhaseSpace(spatial_cell::SpatialCell *cell,
-                                  const uint popID,
-                                  const uint nRequested) const;
-      virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
+                        std::span<fsgrids::technical> technical, FieldSolverGrid& fsgrid) const override;
+      virtual Realf fillPhaseSpace(spatial_cell::SpatialCell* cell, const uint popID,
+                                   const uint nRequested) const override;
+      virtual void calcCellParameters(spatial_cell::SpatialCell* cell, creal& t) override;
 
       Real B0;
       Real magXPertAbsAmp;
