@@ -73,7 +73,7 @@ namespace vmesh {
 #define FS_STENCIL_WIDTH 2
 // Forward declare
 namespace fsgrid {
-template <int I> struct FsGrid;
+template <int I> class FsGrid;
 }
 using FieldSolverGrid = fsgrid::FsGrid<FS_STENCIL_WIDTH>;
 
