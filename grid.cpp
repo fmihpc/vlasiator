@@ -1240,7 +1240,7 @@ void mapRefinement(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid
             const CellID dccrgCellID2 =
                 mpiGrid.get_existing_cell(indices, 0, mpiGrid.mapping.get_maximum_refinement_level());
             const int amrLevel = mpiGrid.get_refinement_level(dccrgCellID2);
-            technical[stencil.center()].refLevel = amrLevel;
+            technical[stencil.ooo()].refLevel = amrLevel;
          }
       }
    }

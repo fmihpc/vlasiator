@@ -127,9 +127,9 @@ namespace projects {
          const auto& localStart = fsgrid.getLocalStart();
          for (auto x = 0; x < localSize[0]; ++x) {
             const auto stencil = fsgrid.makeStencil(x, 0, 0);
-            localPerBx[x + localStart[0]] = perb[stencil.center()][fsgrids::bfield::PERBX];
-            localPerBy[x + localStart[0]] = perb[stencil.center()][fsgrids::bfield::PERBY];
-            localPerBz[x + localStart[0]] = perb[stencil.center()][fsgrids::bfield::PERBZ];
+            localPerBx[x + localStart[0]] = perb[stencil.ooo()][fsgrids::bfield::PERBX];
+            localPerBy[x + localStart[0]] = perb[stencil.ooo()][fsgrids::bfield::PERBY];
+            localPerBz[x + localStart[0]] = perb[stencil.ooo()][fsgrids::bfield::PERBZ];
          }
 
          MPI_Reduce(&(localPerBx[0]), &(outputPerBx[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
@@ -230,7 +230,7 @@ namespace projects {
             for (auto y = 0; y < localSize[1]; ++y) {
                for (auto z = 0; z < localSize[2]; ++z) {
                   const auto stencil = fsgrid.makeStencil(x, y, z);
-                  auto& cell = perb[stencil.center()];
+                  auto& cell = perb[stencil.ooo()];
                   const int64_t cellid = fsgrid.globalIDFromLocalCoordinates(x, y, z);
 
                   std::default_random_engine rndState;

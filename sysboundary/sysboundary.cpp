@@ -374,7 +374,7 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
       for (auto y = 0; y < localSize[1]; ++y) {
          for (auto x = 0; x < localSize[0]; ++x) {
             const auto stencil = fsgrid.makeStencil(x, y, z);
-            auto& tech = technical[stencil.center()];
+            auto& tech = technical[stencil.ooo()];
             //  Here for debugging since boundarytype should be fed from MPIGrid
             tech.sysBoundaryFlag = sysboundarytype::N_SYSBOUNDARY_CONDITIONS;
             tech.sysBoundaryLayer = 0;
@@ -511,7 +511,7 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
          for (auto y = 0; y < localSize[1]; ++y) {
             for (auto x = 0; x < localSize[0]; ++x) {
                const auto stencil = fsgrid.makeStencil(x, y, z);
-               auto& tech = technical[stencil.center()];
+               auto& tech = technical[stencil.ooo()];
 
                // for the first layer, consider all cells that belong to a boundary, for other layers
                // consider all cells that have not yet been labeled.
@@ -545,7 +545,7 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
       for (auto y = 0; y < localSize[1]; ++y) {
          for (auto x = 0; x < localSize[0]; ++x) {
             const auto stencil = fsgrid.makeStencil(x, y, z);
-            auto& tech = technical[stencil.center()];
+            auto& tech = technical[stencil.ooo()];
             if (tech.sysBoundaryLayer == 0 && (tech.sysBoundaryFlag == sysboundarytype::IONOSPHERE ||
                                                tech.sysBoundaryFlag == sysboundarytype::COPYSPHERE)) {
                tech.sysBoundaryFlag = sysboundarytype::DO_NOT_COMPUTE;
@@ -564,7 +564,7 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
       for (auto y = 0; y < localSize[1]; ++y) {
          for (auto x = 0; x < localSize[0]; ++x) {
             const auto stencil = fsgrid.makeStencil(x, y, z);
-            auto& tech = technical[stencil.center()];
+            auto& tech = technical[stencil.ooo()];
             tech.SOLVE = 0;
 
             const auto globalIndices = fsgrid.localToGlobal(x, y, z);
@@ -583,28 +583,28 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
                tech.SOLVE = tech.SOLVE | compute::EY;
                tech.SOLVE = tech.SOLVE | compute::EZ;
             } else {
-               if (technical[stencil.left()].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+               if (technical[stencil.moo()].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
                   tech.SOLVE = tech.SOLVE | compute::BX;
                   tech.SOLVE = tech.SOLVE | compute::EY;
                   tech.SOLVE = tech.SOLVE | compute::EZ;
                }
-               if (technical[stencil.down()].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+               if (technical[stencil.omo()].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
                   tech.SOLVE = tech.SOLVE | compute::BY;
                   tech.SOLVE = tech.SOLVE | compute::EX;
                   tech.SOLVE = tech.SOLVE | compute::EZ;
                }
-               if (technical[stencil.far()].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+               if (technical[stencil.oom()].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
                   tech.SOLVE = tech.SOLVE | compute::BZ;
                   tech.SOLVE = tech.SOLVE | compute::EX;
                   tech.SOLVE = tech.SOLVE | compute::EY;
                }
-               if (technical[stencil.leftdown()].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+               if (technical[stencil.mmo()].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
                   tech.SOLVE = tech.SOLVE | compute::EZ;
                }
-               if (technical[stencil.leftfar()].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+               if (technical[stencil.mom()].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
                   tech.SOLVE = tech.SOLVE | compute::EY;
                }
-               if (technical[stencil.downfar()].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+               if (technical[stencil.omm()].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
                   tech.SOLVE = tech.SOLVE | compute::EX;
                }
             }

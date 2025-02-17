@@ -192,8 +192,8 @@ namespace SBC {
    SysBoundaryCondition::setCellDerivativesToZero(std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                                                   std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
                                                   const fsgrid::FsStencil& stencil, cuint component) {
-      auto& dPerBGrid0 = dperb[stencil.center()];
-      auto& dMomentsGrid0 = dmoments[stencil.center()];
+      auto& dPerBGrid0 = dperb[stencil.ooo()];
+      auto& dMomentsGrid0 = dmoments[stencil.ooo()];
       switch(component) {
          case 0: // x, xx
             dMomentsGrid0[fsgrids::dmoments::drhomdx] = 0.0;
@@ -262,7 +262,7 @@ namespace SBC {
     */
    void SysBoundaryCondition::setCellBVOLDerivativesToZero(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vols,
                                                            const fsgrid::FsStencil& stencil, cuint component) {
-      auto& vol = vols[stencil.center()];
+      auto& vol = vols[stencil.ooo()];
       switch(component) {
          case 0:
             vol[fsgrids::volfields::dPERBXVOLdx] = 0.0;

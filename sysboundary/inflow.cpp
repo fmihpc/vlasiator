@@ -142,7 +142,7 @@ void Inflow::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geomet
                doAssign = doAssign || (facesToProcess[iface] && isThisCellOnAFace[iface]);
             }
             if (doAssign) {
-               technical[stencil.center()].sysBoundaryFlag = this->getIndex();
+               technical[stencil.ooo()].sysBoundaryFlag = this->getIndex();
             }
          }
       }
@@ -214,18 +214,18 @@ Real Inflow::fieldSolverBoundaryCondMagneticField(std::span<const std::array<Rea
    // There are projects that have non-uniform and non-zero perturbed B, e.g. Magnetosphere with dipole type 4.
    // We cannot jsut take the value from the templateCell, we also need a copy of the value from initialization.
    // This value is stored in the BgBGrid at fsgrids::bgbfield::BGBXVDCORR,BGBYVDCORR,BGBZVDCORR
-   result += bgb[stencil.center()][fsgrids::bgbfield::BGBXVDCORR + component];
+   result += bgb[stencil.ooo()][fsgrids::bgbfield::BGBXVDCORR + component];
    return result;
 }
 
 void Inflow::fieldSolverBoundaryCondElectricField(std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
                                                   const fsgrid::FsStencil& stencil, cuint component) {
-   e[stencil.center()][fsgrids::efield::EX + component] = 0.0;
+   e[stencil.ooo()][fsgrids::efield::EX + component] = 0.0;
 }
 
 void Inflow::fieldSolverBoundaryCondHallElectricField(std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
                                                       const fsgrid::FsStencil& stencil, cuint component) {
-   std::array<Real, fsgrids::ehall::N_EHALL>& cp = ehall[stencil.center()];
+   std::array<Real, fsgrids::ehall::N_EHALL>& cp = ehall[stencil.ooo()];
    switch (component) {
    case 0:
       cp[fsgrids::ehall::EXHALL_000_100] = 0.0;
@@ -253,7 +253,7 @@ void Inflow::fieldSolverBoundaryCondHallElectricField(std::span<std::array<Real,
 void Inflow::fieldSolverBoundaryCondGradPeElectricField(
     std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> EGradPe, const fsgrid::FsStencil& stencil,
     cuint component) {
-   EGradPe[stencil.center()][fsgrids::egradpe::EXGRADPE + component] = 0.0;
+   EGradPe[stencil.ooo()][fsgrids::egradpe::EXGRADPE + component] = 0.0;
 }
 
 void Inflow::fieldSolverBoundaryCondDerivatives(std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
@@ -309,12 +309,12 @@ void Inflow::setBFromTemplate(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometr
 
             for (uint iface = 0; iface < 6; iface++) {
                if (facesToProcess[iface] && isThisCellOnAFace[iface]) {
-                  perb[stencil.center()][fsgrids::bfield::PERBX] =
-                      templateB[iface][0] + bgb[stencil.center()][fsgrids::bgbfield::BGBXVDCORR];
-                  perb[stencil.center()][fsgrids::bfield::PERBY] =
-                      templateB[iface][1] + bgb[stencil.center()][fsgrids::bgbfield::BGBYVDCORR];
-                  perb[stencil.center()][fsgrids::bfield::PERBZ] =
-                      templateB[iface][2] + bgb[stencil.center()][fsgrids::bgbfield::BGBZVDCORR];
+                  perb[stencil.ooo()][fsgrids::bfield::PERBX] =
+                      templateB[iface][0] + bgb[stencil.ooo()][fsgrids::bgbfield::BGBXVDCORR];
+                  perb[stencil.ooo()][fsgrids::bfield::PERBY] =
+                      templateB[iface][1] + bgb[stencil.ooo()][fsgrids::bgbfield::BGBYVDCORR];
+                  perb[stencil.ooo()][fsgrids::bfield::PERBZ] =
+                      templateB[iface][2] + bgb[stencil.ooo()][fsgrids::bgbfield::BGBZVDCORR];
                   break;
                }
             }

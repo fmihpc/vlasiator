@@ -433,7 +433,7 @@ namespace projects {
               for (auto z = 0; z < localSize[2]; ++z) {
                  const auto xyz = fsgrid.getPhysicalCoords(x, y, z);
                  const auto stencil = fsgrid.makeStencil(x, y, z);
-                 auto& cell = perb[stencil.center()];
+                 auto& cell = perb[stencil.ooo()];
 
                  /* Maintain all values in BPERT for simplicity */
                  Real mu0 = physicalconstants::MU_0;

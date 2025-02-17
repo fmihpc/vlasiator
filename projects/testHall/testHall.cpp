@@ -148,7 +148,7 @@ namespace projects {
                for (auto z = 0; z < localSize[2]; ++z) {
                   const auto xyz = fsgrid.getPhysicalCoords(x, y, z);
                   const auto stencil = fsgrid.makeStencil(x, y, z);
-                  auto& cell = perb[stencil.center()];
+                  auto& cell = perb[stencil.ooo()];
 
                   cell[fsgrids::bfield::PERBX] = this->BX0 * cos(2.0 * M_PI * 1.0 * xyz[0] / (P::xmax - P::xmin)) *
                                                  cos(2.0 * M_PI * 1.0 * xyz[1] / (P::ymax - P::ymin)) *

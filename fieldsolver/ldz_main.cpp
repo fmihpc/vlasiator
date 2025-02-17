@@ -100,7 +100,7 @@ bool propagateFields(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb
       for (auto j = 0; j < localSize[1]; j++) {
          for (auto i = 0; i < localSize[0]; i++) {
             const auto stencil = fsgrid.makeStencil(i, j, k);
-            technical[stencil.center()].maxFsDt = std::numeric_limits<Real>::max();
+            technical[stencil.ooo()].maxFsDt = std::numeric_limits<Real>::max();
          }
       }
    }
@@ -240,7 +240,7 @@ bool propagateFields(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb
             for (auto y = 0; y < localSize[1]; y++) {
                for (auto x = 0; x < localSize[0]; x++) {
                   const auto stencil = fsgrid.makeStencil(x, y, z);
-                  const fsgrids::technical& cell = technical[stencil.center()];
+                  const fsgrids::technical& cell = technical[stencil.ooo()];
                   if (cell.sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
                       (cell.sysBoundaryLayer == 1 && cell.sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY)) {
                      dtMaxLocal = min(dtMaxLocal, cell.maxFsDt);

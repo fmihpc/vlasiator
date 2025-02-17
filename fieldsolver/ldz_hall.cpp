@@ -850,7 +850,7 @@ void calculateEdgeHallTermComponents(std::span<const std::array<Real, fsgrids::b
                                      const std::array<Real, 3>& gridSpacing,
                                      const std::array<Real, Rec::N_REC_COEFFICIENTS>& perturbedCoefficients,
                                      const fsgrid::FsStencil& stencil) {
-   const auto center = stencil.center();
+   const auto center = stencil.ooo();
    const auto& bgb = bgbs[center];
    const auto& perb = perbs[center];
    const auto& dperb = dperbs[center];
@@ -919,85 +919,85 @@ void calculateEdgeHallTermComponents(std::span<const std::array<Real, fsgrids::b
          return JXB(term, perturbedCoefficients, bgbx, bgby, bgbz, gridSpacing) / (physicalconstants::MU_0 * hallRhoq);
       };
 
-      const auto down = stencil.down();
-      const auto up = stencil.up();
-      const auto left = stencil.left();
-      const auto right = stencil.right();
-      const auto far = stencil.far();
-      const auto near = stencil.near();
+      const auto down = stencil.omo();
+      const auto up = stencil.opo();
+      const auto left = stencil.moo();
+      const auto right = stencil.poo();
+      const auto far = stencil.oom();
+      const auto near = stencil.oop();
       // clang-format off
       const std::array<std::array<size_t, 4>, 12> indices = {
           std::array{
               center,
               down,
               far,
-              stencil.downfar(),
+              stencil.omm(),
           },
           std::array{
               center,
               left,
               far,
-              stencil.leftfar(),
+              stencil.mom(),
           },
           std::array{
               center,
               left,
               down,
-              stencil.leftdown(),
+              stencil.mmo(),
           },
           std::array{
               center,
               right,
               far,
-              stencil.rightfar(),
+              stencil.pom(),
           },
           std::array{
               center,
               right,
               down,
-              stencil.rightdown(),
+              stencil.pmo(),
           },
           std::array{
               center,
               up,
               far,
-              stencil.upfar(),
+              stencil.opm(),
           },
           std::array{
               center,
               left,
               up,
-              stencil.leftup(),
+              stencil.mpo(),
           },
           std::array{
               center,
               right,
               up,
-              stencil.rightup(),
+              stencil.ppo(),
           },
           std::array{
               center,
               down,
               near,
-              stencil.downnear(),
+              stencil.omp(),
           },
           std::array{
               center,
               left,
               near,
-              stencil.leftnear(),
+              stencil.mop(),
           },
           std::array{
               center,
               right,
               near,
-              stencil.rightnear(),
+              stencil.pop(),
           },
           std::array{
               center,
               up,
               near,
-              stencil.upnear(),
+              stencil.opp(),
           },
       };
       // clang-format on
@@ -1049,7 +1049,7 @@ void calculateHallTerm(std::span<const std::array<Real, fsgrids::bfield::N_BFIEL
    }
 #endif
 
-   const auto& tech = technical[stencil.center()];
+   const auto& tech = technical[stencil.ooo()];
    cuint cellSysBoundaryFlag = tech.sysBoundaryFlag;
    cuint cellSysBoundaryLayer = tech.sysBoundaryLayer;
 

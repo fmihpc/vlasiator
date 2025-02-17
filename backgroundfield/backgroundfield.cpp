@@ -79,7 +79,7 @@ void setBackgroundField(const FieldFunction& bgFunction, std::span<std::array<Re
                loopTopTimer.stop();
 
                phiprof::Timer loopFaceTimer{loopFaceId};
-               auto& field = bgb[stencil.center()];
+               auto& field = bgb[stencil.ooo()];
                // Face averages
                for (uint fComponent = 0; fComponent < 3; fComponent++) {
                   T3DFunction valueFunction =

@@ -14,14 +14,14 @@ uint Parameters::ohmHallTerm = 0;
 void calculateDerivatives(const fsgrid::FsStencil& stencil, std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                           std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                           std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
-   std::array<Real, fsgrids::dperb::N_DPERB>& dPerB = dperb[stencil.center()];
-   std::array<Real, fsgrids::bfield::N_BFIELD>& centPerB = perb[stencil.center()];
+   std::array<Real, fsgrids::dperb::N_DPERB>& dPerB = dperb[stencil.ooo()];
+   std::array<Real, fsgrids::bfield::N_BFIELD>& centPerB = perb[stencil.ooo()];
 
    // Calculate x-derivatives (is not TVD for AMR mesh):
 
    {
-      const auto& leftPerB = perb[stencil.left()];
-      const auto& rghtPerB = perb[stencil.right()];
+      const auto& leftPerB = perb[stencil.moo()];
+      const auto& rghtPerB = perb[stencil.poo()];
 
       dPerB->at(fsgrids::dperb::dPERBydx) =
           limiter(leftPerB->at(fsgrids::bfield::PERBY), centPerB->at(fsgrids::bfield::PERBY),
@@ -46,8 +46,8 @@ void calculateDerivatives(const fsgrid::FsStencil& stencil, std::span<std::array
    // Calculate y-derivatives (is not TVD for AMR mesh):
 
    {
-      const auto& leftPerB = perb[stencil.down()];
-      const auto& rghtPerB = perb[stencil.up()];
+      const auto& leftPerB = perb[stencil.omo()];
+      const auto& rghtPerB = perb[stencil.opo()];
 
       dPerB->at(fsgrids::dperb::dPERBxdy) =
           limiter(leftPerB->at(fsgrids::bfield::PERBX), centPerB->at(fsgrids::bfield::PERBX),
@@ -71,8 +71,8 @@ void calculateDerivatives(const fsgrid::FsStencil& stencil, std::span<std::array
 
    // Calculate z-derivatives (is not TVD for AMR mesh):
    {
-      const auto& leftPerB = perb[stencil.far()];
-      const auto& rghtPerB = perb[stencil.near()];
+      const auto& leftPerB = perb[stencil.oom()];
+      const auto& rghtPerB = perb[stencil.oop()];
 
       dPerB->at(fsgrids::dperb::dPERBxdz) =
           limiter(leftPerB->at(fsgrids::bfield::PERBX), centPerB->at(fsgrids::bfield::PERBX),
@@ -101,10 +101,10 @@ void calculateDerivatives(const fsgrid::FsStencil& stencil, std::span<std::array
    } else {
       // Calculate xy mixed derivatives:
       {
-         const auto& botLeft = perb[stencil.leftdown()];
-         const auto& botRght = perb[stencil.rightdown()];
-         const auto& topLeft = perb[stencil.leftup()];
-         const auto& topRght = perb[stencil.rightup()];
+         const auto& botLeft = perb[stencil.mmo()];
+         const auto& botRght = perb[stencil.pmo()];
+         const auto& topLeft = perb[stencil.mpo()];
+         const auto& topRght = perb[stencil.ppo()];
 
          dPerB->at(fsgrids::dperb::dPERBzdxy) =
              FOURTH * (botLeft->at(fsgrids::bfield::PERBZ) + topRght->at(fsgrids::bfield::PERBZ) -
@@ -113,10 +113,10 @@ void calculateDerivatives(const fsgrid::FsStencil& stencil, std::span<std::array
 
       // Calculate xz mixed derivatives:
       {
-         const auto& botLeft = perb[stencil.leftfar()];
-         const auto& botRght = perb[stencil.rightfar()];
-         const auto& topLeft = perb[stencil.leftnear()];
-         const auto& topRght = perb[stencil.rightnear()];
+         const auto& botLeft = perb[stencil.mom()];
+         const auto& botRght = perb[stencil.pom()];
+         const auto& topLeft = perb[stencil.mop()];
+         const auto& topRght = perb[stencil.pop()];
 
          dPerB->at(fsgrids::dperb::dPERBydxz) =
              FOURTH * (botLeft->at(fsgrids::bfield::PERBY) + topRght->at(fsgrids::bfield::PERBY) -
@@ -125,10 +125,10 @@ void calculateDerivatives(const fsgrid::FsStencil& stencil, std::span<std::array
 
       // Calculate yz mixed derivatives:
       {
-         const auto& botLeft = perb[stencil.downfar()];
-         const auto& botRght = perb[stencil.upfar()];
-         const auto& topLeft = perb[stencil.downnear()];
-         const auto& topRght = perb[stencil.upnear()];
+         const auto& botLeft = perb[stencil.omm()];
+         const auto& botRght = perb[stencil.opm()];
+         const auto& topLeft = perb[stencil.omp()];
+         const auto& topRght = perb[stencil.opp()];
 
          dPerB->at(fsgrids::dperb::dPERBxdyz) =
              FOURTH * (botLeft->at(fsgrids::bfield::PERBX) + topRght->at(fsgrids::bfield::PERBX) -
@@ -201,10 +201,10 @@ int main(int argc, char** argv) {
       for (int j = 0; j < 5; j++) {
          for (int k = 0; k < 5; k++) {
             const auto stencil = fsgrid.makeStencil(i, j, k);
-            perb[stencil.center()][PERBX] = sin(j / 5. * 2. * M_PI) * sin(k / 5. * 2. * M_PI);
-            perb[stencil.center()][PERBY] = sin(i / 5. * 2. * M_PI) * sin(k / 5. * 2. * M_PI);
-            perb[stencil.center()][PERBZ] = sin(i / 5. * 2. * M_PI) * sin(j / 5. * 2. * M_PI);
-            technical[stencil.center()].sysBoundaryFlag = sysboundarytype::NOT_SYSBOUNDARY;
+            perb[stencil.ooo()][PERBX] = sin(j / 5. * 2. * M_PI) * sin(k / 5. * 2. * M_PI);
+            perb[stencil.ooo()][PERBY] = sin(i / 5. * 2. * M_PI) * sin(k / 5. * 2. * M_PI);
+            perb[stencil.ooo()][PERBZ] = sin(i / 5. * 2. * M_PI) * sin(j / 5. * 2. * M_PI);
+            technical[stencil.ooo()].sysBoundaryFlag = sysboundarytype::NOT_SYSBOUNDARY;
          }
       }
    }
@@ -214,7 +214,7 @@ int main(int argc, char** argv) {
    for (int j = 0; j < 5; j++) {
       for (int k = 0; k < 5; k++) {
          const auto stencil = fsgrid.makeStencil(2, j, k);
-         fsGridFile << perb[stencil.center()][PERBX] << " ";
+         fsGridFile << perb[stencil.ooo()][PERBX] << " ";
       }
       fsGridFile << endl;
    }

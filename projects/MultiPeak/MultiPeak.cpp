@@ -289,7 +289,7 @@ namespace projects {
                for (auto z = 0; z < localSize[2]; ++z) {
                   const auto xyz = fsgrid.getPhysicalCoords(x, y, z);
                   const auto stencil = fsgrid.makeStencil(x, y, z);
-                  auto& cell = perb[stencil.center()];
+                  auto& cell = perb[stencil.ooo()];
                   const int64_t cellid = fsgrid.globalIDFromLocalCoordinates(x, y, z);
                   std::default_random_engine rndState;
                   setRandomSeed(cellid,rndState);

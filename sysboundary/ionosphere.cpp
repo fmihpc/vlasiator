@@ -2872,12 +2872,12 @@ Real Ionosphere::fieldSolverBoundaryCondMagneticField(std::span<const std::array
    const std::array permutation = permutations[component];
 
   const std::array<size_t, 6> inds = {
-      stencil.left(),
-      stencil.right(),
-      stencil.down(),
-      stencil.up(),
-      stencil.far(),
-      stencil.near(),
+      stencil.moo(),
+      stencil.poo(),
+      stencil.omo(),
+      stencil.opo(),
+      stencil.oom(),
+      stencil.oop(),
   };
    // clang-format on
 
@@ -2906,7 +2906,7 @@ Real Ionosphere::fieldSolverBoundaryCondMagneticField(std::span<const std::array
 
    Real sum = 0.0;
    uint nCells = 0;
-   if (sbLayerIsOne(technical[stencil.center()])) {
+   if (sbLayerIsOne(technical[stencil.ooo()])) {
       averageNeigbours(0ul, 2ul, sum, nCells);
 
       if (nCells == 0) {
@@ -2932,12 +2932,12 @@ Real Ionosphere::fieldSolverBoundaryCondMagneticField(std::span<const std::array
 
 void Ionosphere::fieldSolverBoundaryCondElectricField(std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
                                                       const fsgrid::FsStencil& stencil, cuint component) {
-   e[stencil.center()][fsgrids::efield::EX + component] = 0.0;
+   e[stencil.ooo()][fsgrids::efield::EX + component] = 0.0;
 }
 
 void Ionosphere::fieldSolverBoundaryCondHallElectricField(std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
                                                           const fsgrid::FsStencil& stencil, cuint component) {
-   std::array<Real, fsgrids::ehall::N_EHALL>& cp = ehall[stencil.center()];
+   std::array<Real, fsgrids::ehall::N_EHALL>& cp = ehall[stencil.ooo()];
    switch (component) {
    case 0:
       cp[fsgrids::ehall::EXHALL_000_100] = 0.0;
@@ -2966,7 +2966,7 @@ void Ionosphere::fieldSolverBoundaryCondHallElectricField(std::span<std::array<R
 void Ionosphere::fieldSolverBoundaryCondGradPeElectricField(
     std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> EGradPe, const fsgrid::FsStencil& stencil,
     cuint component) {
-   EGradPe[stencil.center()][fsgrids::egradpe::EXGRADPE + component] = 0.0;
+   EGradPe[stencil.ooo()][fsgrids::egradpe::EXGRADPE + component] = 0.0;
 }
 
 void Ionosphere::fieldSolverBoundaryCondDerivatives(std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,

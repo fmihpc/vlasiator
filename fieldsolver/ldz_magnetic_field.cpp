@@ -37,24 +37,24 @@ void propagateMagneticField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD
    creal dtdy = dt / gridSpacing[1];
    creal dtdz = dt / gridSpacing[2];
 
-   std::array<Real, fsgrids::bfield::N_BFIELD>& perBGrid0 = perb[stencil.center()];
+   std::array<Real, fsgrids::bfield::N_BFIELD>& perBGrid0 = perb[stencil.ooo()];
 
    if (doX == true) {
       switch (RKCase) {
       case RK_ORDER1: {
-         const auto& EGrid0 = e[stencil.center()]; // i,j,k;
-         const auto& EGrid1 = e[stencil.up()];     // i,j+1,k;
-         const auto& EGrid2 = e[stencil.near()];   // i,j,k+1;
+         const auto& EGrid0 = e[stencil.ooo()]; // i,j,k;
+         const auto& EGrid1 = e[stencil.opo()];     // i,j+1,k;
+         const auto& EGrid2 = e[stencil.oop()];   // i,j,k+1;
          perBGrid0[fsgrids::bfield::PERBX] += dtdz * (EGrid2[fsgrids::efield::EY] - EGrid0[fsgrids::efield::EY]) +
                                               dtdy * (EGrid0[fsgrids::efield::EZ] - EGrid1[fsgrids::efield::EZ]);
          break;
       }
 
       case RK_ORDER2_STEP1: {
-         auto& perBDt2Grid0 = perbdt2[stencil.center()];       // i,j,k;
-         const auto& EGrid0 = e[stencil.center()];             // i,j,k;
-         const auto& EGrid1 = e[stencil.up()];                 // i,j+1,k;
-         const auto& EGrid2 = e[stencil.near()];               // i,j,k+1;
+         auto& perBDt2Grid0 = perbdt2[stencil.ooo()];       // i,j,k;
+         const auto& EGrid0 = e[stencil.ooo()];             // i,j,k;
+         const auto& EGrid1 = e[stencil.opo()];                 // i,j+1,k;
+         const auto& EGrid2 = e[stencil.oop()];               // i,j,k+1;
          perBDt2Grid0[fsgrids::bfield::PERBX] =
              perBGrid0[fsgrids::bfield::PERBX] +
              0.5 * (dtdz * (EGrid2[fsgrids::efield::EY] - EGrid0[fsgrids::efield::EY]) +
@@ -63,9 +63,9 @@ void propagateMagneticField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD
       }
 
       case RK_ORDER2_STEP2: {
-         const auto& EGrid0 = edt2[stencil.center()]; // i,j,k;
-         const auto& EGrid1 = edt2[stencil.up()];     // i,j+1,k;
-         const auto& EGrid2 = edt2[stencil.near()];   // i,j,k+1;
+         const auto& EGrid0 = edt2[stencil.ooo()]; // i,j,k;
+         const auto& EGrid1 = edt2[stencil.opo()];     // i,j+1,k;
+         const auto& EGrid2 = edt2[stencil.oop()];   // i,j,k+1;
          perBGrid0[fsgrids::bfield::PERBX] += (dtdz * (EGrid2[fsgrids::efield::EY] - EGrid0[fsgrids::efield::EY]) +
                                                dtdy * (EGrid0[fsgrids::efield::EZ] - EGrid1[fsgrids::efield::EZ]));
          break;
@@ -81,18 +81,18 @@ void propagateMagneticField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD
    if (doY == true) {
       switch (RKCase) {
       case RK_ORDER1: {
-         const auto& EGrid0 = e[stencil.center()]; // i,j,k;
-         const auto& EGrid1 = e[stencil.near()];   // i,j,k+1;
-         const auto& EGrid2 = e[stencil.right()];  // i+1,j,k;
+         const auto& EGrid0 = e[stencil.ooo()]; // i,j,k;
+         const auto& EGrid1 = e[stencil.oop()];   // i,j,k+1;
+         const auto& EGrid2 = e[stencil.poo()];  // i+1,j,k;
          perBGrid0[fsgrids::bfield::PERBY] += dtdx * (EGrid2[fsgrids::efield::EZ] - EGrid0[fsgrids::efield::EZ]) +
                                               dtdz * (EGrid0[fsgrids::efield::EX] - EGrid1[fsgrids::efield::EX]);
          break;
       }
       case RK_ORDER2_STEP1: {
-         auto& perBDt2Grid0 = perbdt2[stencil.center()];       // i,j,k;
-         const auto& EGrid0 = e[stencil.center()];             // i,j,k;
-         const auto& EGrid1 = e[stencil.near()];               // i,j,k+1;
-         const auto& EGrid2 = e[stencil.right()];              // i+1,j,k;
+         auto& perBDt2Grid0 = perbdt2[stencil.ooo()];       // i,j,k;
+         const auto& EGrid0 = e[stencil.ooo()];             // i,j,k;
+         const auto& EGrid1 = e[stencil.oop()];               // i,j,k+1;
+         const auto& EGrid2 = e[stencil.poo()];              // i+1,j,k;
          perBDt2Grid0[fsgrids::bfield::PERBY] =
              perBGrid0[fsgrids::bfield::PERBY] +
              0.5 * (dtdx * (EGrid2[fsgrids::efield::EZ] - EGrid0[fsgrids::efield::EZ]) +
@@ -100,9 +100,9 @@ void propagateMagneticField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD
          break;
       }
       case RK_ORDER2_STEP2: {
-         const auto& EGrid0 = edt2[stencil.center()]; // i,j,k;
-         const auto& EGrid1 = edt2[stencil.near()];   // i,j,k+1;
-         const auto& EGrid2 = edt2[stencil.right()];  // i+1,j,k;
+         const auto& EGrid0 = edt2[stencil.ooo()]; // i,j,k;
+         const auto& EGrid1 = edt2[stencil.oop()];   // i,j,k+1;
+         const auto& EGrid2 = edt2[stencil.poo()];  // i+1,j,k;
          perBGrid0[fsgrids::bfield::PERBY] += (dtdx * (EGrid2[fsgrids::efield::EZ] - EGrid0[fsgrids::efield::EZ]) +
                                                dtdz * (EGrid0[fsgrids::efield::EX] - EGrid1[fsgrids::efield::EX]));
          break;
@@ -117,18 +117,18 @@ void propagateMagneticField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD
    if (doZ == true) {
       switch (RKCase) {
       case RK_ORDER1: {
-         const auto& EGrid0 = e[stencil.center()]; // i,j,k;
-         const auto& EGrid1 = e[stencil.right()];  // i+1,j,k;
-         const auto& EGrid2 = e[stencil.up()];     // i,j+1,k;
+         const auto& EGrid0 = e[stencil.ooo()]; // i,j,k;
+         const auto& EGrid1 = e[stencil.poo()];  // i+1,j,k;
+         const auto& EGrid2 = e[stencil.opo()];     // i,j+1,k;
          perBGrid0[fsgrids::bfield::PERBZ] += dtdy * (EGrid2[fsgrids::efield::EX] - EGrid0[fsgrids::efield::EX]) +
                                               dtdx * (EGrid0[fsgrids::efield::EY] - EGrid1[fsgrids::efield::EY]);
          break;
       }
       case RK_ORDER2_STEP1: {
-         auto& perBDt2Grid0 = perbdt2[stencil.center()];       // i,j,k;
-         const auto& EGrid0 = e[stencil.center()];             // i,j,k;
-         const auto& EGrid1 = e[stencil.right()];              // i+1,j,k;
-         const auto& EGrid2 = e[stencil.up()];                 // i,j+1,k;
+         auto& perBDt2Grid0 = perbdt2[stencil.ooo()];       // i,j,k;
+         const auto& EGrid0 = e[stencil.ooo()];             // i,j,k;
+         const auto& EGrid1 = e[stencil.poo()];              // i+1,j,k;
+         const auto& EGrid2 = e[stencil.opo()];                 // i,j+1,k;
          perBDt2Grid0[fsgrids::bfield::PERBZ] =
              perBGrid0[fsgrids::bfield::PERBZ] +
              0.5 * (dtdy * (EGrid2[fsgrids::efield::EX] - EGrid0[fsgrids::efield::EX]) +
@@ -136,9 +136,9 @@ void propagateMagneticField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD
          break;
       }
       case RK_ORDER2_STEP2: {
-         const auto& EGrid0 = edt2[stencil.center()]; // i,j,k;
-         const auto& EGrid1 = edt2[stencil.right()];  // i+1,j,k;
-         const auto& EGrid2 = edt2[stencil.up()];     // i,j+1,k;
+         const auto& EGrid0 = edt2[stencil.ooo()]; // i,j,k;
+         const auto& EGrid1 = edt2[stencil.poo()];  // i+1,j,k;
+         const auto& EGrid2 = edt2[stencil.opo()];     // i,j+1,k;
          perBGrid0[fsgrids::bfield::PERBZ] += (dtdy * (EGrid2[fsgrids::efield::EX] - EGrid0[fsgrids::efield::EX]) +
                                                dtdx * (EGrid0[fsgrids::efield::EY] - EGrid1[fsgrids::efield::EY]));
          break;
@@ -177,11 +177,11 @@ void propagateSysBoundaryMagneticField(std::span<std::array<Real, fsgrids::bfiel
                                        const fsgrid::FsStencil& stencil, SysBoundary& sysBoundaries, int32_t RKCase,
                                        uint32_t component) {
    const bool case0 = RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2;
-   auto& out = case0 ? perb[stencil.center()] : perbdt2[stencil.center()];
+   auto& out = case0 ? perb[stencil.ooo()] : perbdt2[stencil.ooo()];
    const auto& pb = case0 ? perb : perbdt2;
 
    out[fsgrids::bfield::PERBX + component] =
-       sysBoundaries.getSysBoundary(technical[stencil.center()].sysBoundaryFlag)
+       sysBoundaries.getSysBoundary(technical[stencil.ooo()].sysBoundaryFlag)
            ->fieldSolverBoundaryCondMagneticField(pb, bgb, technical, gridSpacing, globalCoordinates, stencil,
                                                   component);
 }
@@ -224,7 +224,7 @@ void propagateMagneticFieldSimple(std::span<std::array<Real, fsgrids::bfield::N_
          for (auto j = 0; j < localSize[1]; j++) {
             for (auto i = 0; i < localSize[0]; i++) {
                const fsgrid::FsStencil stencil = fsgrid.makeStencil(i, j, k);
-               cuint bitfield = technical[stencil.center()].SOLVE;
+               cuint bitfield = technical[stencil.ooo()].SOLVE;
                propagateMagneticField(
                    perb, perbdt2, e, edt2, stencil, dt, RKCase, ((bitfield & compute::BX) == compute::BX),
                    ((bitfield & compute::BY) == compute::BY), ((bitfield & compute::BZ) == compute::BZ), gridSpacing);
@@ -258,7 +258,7 @@ void propagateMagneticFieldSimple(std::span<std::array<Real, fsgrids::bfield::N_
             for (auto i = 0; i < localSize[0]; i++) {
                const fsgrid::FsStencil stencil = fsgrid.makeStencil(i, j, k);
                const auto globalCoordinates = fsgrid.localToGlobal(stencil.i, stencil.j, stencil.k);
-               const auto tech = technical[stencil.center()];
+               const auto tech = technical[stencil.ooo()];
                cuint bitfield = tech.SOLVE;
                // L1 pass
                if (tech.sysBoundaryLayer == 1) {
@@ -301,7 +301,7 @@ void propagateMagneticFieldSimple(std::span<std::array<Real, fsgrids::bfield::N_
             for (auto i = 0; i < localSize[0]; i++) {
                const fsgrid::FsStencil stencil = fsgrid.makeStencil(i, j, k);
                const auto globalCoordinates = fsgrid.localToGlobal(stencil.i, stencil.j, stencil.k);
-               const auto tech = technical[stencil.center()];
+               const auto tech = technical[stencil.ooo()];
                if (tech.sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY && tech.sysBoundaryLayer == 2) {
                   for (uint component = 0; component < 3; component++) {
                      propagateSysBoundaryMagneticField(perb, perbdt2, bgb, technical, gridSpacing, globalCoordinates,

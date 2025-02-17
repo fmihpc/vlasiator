@@ -41,15 +41,15 @@ void calculateGradPeTerm(std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>
                          std::span<const fsgrids::technical> technical, const fsgrid::FsStencil& stencil,
                          const auto& gridSpacing, SysBoundary& sysBoundaries) {
 #ifdef DEBUG_FSOLVER
-   if (stencil.center() >= moments.size()) {
+   if (stencil.ooo() >= moments.size()) {
       cerr << "Out-of-bounds access in " << __FILE__ << ":" << __LINE__ << endl;
       exit(1);
    }
 #endif
-   auto& egradpe = egradpes[stencil.center()];
-   const auto& moment = moments[stencil.center()];
-   const auto& dmoment = dmoments[stencil.center()];
-   const auto& tech = technical[stencil.center()];
+   auto& egradpe = egradpes[stencil.ooo()];
+   const auto& moment = moments[stencil.ooo()];
+   const auto& dmoment = dmoments[stencil.ooo()];
+   const auto& tech = technical[stencil.ooo()];
 
    cuint cellSysBoundaryFlag = tech.sysBoundaryFlag;
    cuint cellSysBoundaryLayer = tech.sysBoundaryLayer;

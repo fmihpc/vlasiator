@@ -44,7 +44,7 @@ void computeMoments(std::span<const std::array<Real, fsgrids::moments::N_MOMENTS
    using dmo = fsgrids::dmoments;
    using mom = fsgrids::moments;
 
-   std::array<Real, dmo::N_DMOMENTS>& dMoments = dmoments[stencil.center()];
+   std::array<Real, dmo::N_DMOMENTS>& dMoments = dmoments[stencil.ooo()];
 
    auto computeDiff = [](const auto& i, const auto& right, const auto& left) { return 0.5 * (right[i] - left[i]); };
 
@@ -53,8 +53,8 @@ void computeMoments(std::span<const std::array<Real, fsgrids::moments::N_MOMENTS
    };
 
    const DerivativesData momData{
-       moments[stencil.center()], moments[stencil.right()], moments[stencil.left()], moments[stencil.up()],
-       moments[stencil.down()],   moments[stencil.near()],  moments[stencil.far()],
+       moments[stencil.ooo()], moments[stencil.poo()], moments[stencil.moo()], moments[stencil.opo()],
+       moments[stencil.omo()],   moments[stencil.oop()],  moments[stencil.oom()],
    };
 
    {
@@ -137,7 +137,7 @@ void computePerb(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> pe
                  bool dontCompute2ndDerivatives, bool notSysBoundary, cuint sysBoundaryFlag) {
    using dpb = fsgrids::dperb;
    using bfi = fsgrids::bfield;
-   std::array<Real, dpb::N_DPERB>& dPerB = dperb[stencil.center()];
+   std::array<Real, dpb::N_DPERB>& dPerB = dperb[stencil.ooo()];
 
    auto computeDiff = [](const auto& i, const auto& right, const auto& left) { return 0.5 * (right[i] - left[i]); };
 
@@ -145,8 +145,8 @@ void computePerb(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> pe
       return limiter(left[i], center[i], right[i]);
    };
    const DerivativesData perbData{
-       perb[stencil.center()], perb[stencil.right()], perb[stencil.left()], perb[stencil.up()],
-       perb[stencil.down()],   perb[stencil.near()],  perb[stencil.far()],
+       perb[stencil.ooo()], perb[stencil.poo()], perb[stencil.moo()], perb[stencil.opo()],
+       perb[stencil.omo()],   perb[stencil.oop()],  perb[stencil.oom()],
    };
 
    if (notSysBoundary) {
@@ -196,11 +196,11 @@ void computePerb(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> pe
          };
 
          dPerB[dpb::dPERBxdyz] =
-             compute(stencil.downfar(), stencil.upfar(), stencil.downnear(), stencil.upnear(), bfi::PERBX);
+             compute(stencil.omm(), stencil.opm(), stencil.omp(), stencil.opp(), bfi::PERBX);
          dPerB[dpb::dPERBydxz] =
-             compute(stencil.leftfar(), stencil.rightfar(), stencil.leftnear(), stencil.rightnear(), bfi::PERBY);
+             compute(stencil.mom(), stencil.pom(), stencil.mop(), stencil.pop(), bfi::PERBY);
          dPerB[dpb::dPERBzdxy] =
-             compute(stencil.leftdown(), stencil.rightdown(), stencil.leftup(), stencil.rightup(), bfi::PERBZ);
+             compute(stencil.mmo(), stencil.pmo(), stencil.mpo(), stencil.ppo(), bfi::PERBZ);
       }
    }
 }
@@ -311,7 +311,7 @@ void calculateDerivativesSimple(std::span<std::array<Real, fsgrids::bfield::N_BF
 
 void calculateBVOLDerivatives(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol,
                               std::span<const fsgrids::technical> technical, const fsgrid::FsStencil& stencil) {
-   const auto& tech = technical[stencil.center()];
+   const auto& tech = technical[stencil.ooo()];
 
    cuint sysBoundaryFlag = tech.sysBoundaryFlag;
    cuint sysBoundaryLayer = tech.sysBoundaryLayer;
@@ -326,9 +326,9 @@ void calculateBVOLDerivatives(std::span<std::array<Real, fsgrids::volfields::N_V
       return limiter(left[i], center[i], right[i]);
    };
 
-   auto& volCenter = vol[stencil.center()];
-   const auto right = stencil.right();
-   const auto left = stencil.left();
+   auto& volCenter = vol[stencil.ooo()];
+   const auto right = stencil.poo();
+   const auto left = stencil.moo();
    if (notSysBoundary) {
       volCenter[vf::dPERBXVOLdx] = computeDiff(vf::PERBXVOL, vol[right], vol[left]);
       volCenter[vf::dPERBYVOLdx] = computeDiff(vf::PERBYVOL, vol[right], vol[left]);
@@ -339,8 +339,8 @@ void calculateBVOLDerivatives(std::span<std::array<Real, fsgrids::volfields::N_V
       volCenter[vf::dPERBZVOLdx] = computeLimiter(vf::PERBZVOL, vol[right], vol[left], volCenter);
    }
 
-   const auto up = stencil.up();
-   const auto down = stencil.down();
+   const auto up = stencil.opo();
+   const auto down = stencil.omo();
    if (notSysBoundary) {
       volCenter[vf::dPERBXVOLdy] = computeDiff(vf::PERBXVOL, vol[up], vol[down]);
       volCenter[vf::dPERBYVOLdy] = computeDiff(vf::PERBYVOL, vol[up], vol[down]);
@@ -351,8 +351,8 @@ void calculateBVOLDerivatives(std::span<std::array<Real, fsgrids::volfields::N_V
       volCenter[vf::dPERBZVOLdy] = computeLimiter(vf::PERBZVOL, vol[up], vol[down], volCenter);
    }
 
-   const auto near = stencil.near();
-   const auto far = stencil.far();
+   const auto near = stencil.oop();
+   const auto far = stencil.oom();
    if (notSysBoundary) {
       volCenter[vf::dPERBXVOLdz] = computeDiff(vf::PERBXVOL, vol[near], vol[far]);
       volCenter[vf::dPERBYVOLdz] = computeDiff(vf::PERBYVOL, vol[near], vol[far]);
@@ -438,15 +438,15 @@ void calculateCurvature(std::span<std::array<Real, fsgrids::volfields::N_VOL>> v
       };
    };
 
-   const auto [bx, by, bz] = compute(stencil.center());
-   const auto [left_x_bx, left_x_by, left_x_bz] = compute(stencil.left());
-   const auto [rght_x_bx, rght_x_by, rght_x_bz] = compute(stencil.right());
-   const auto [left_y_bx, left_y_by, left_y_bz] = compute(stencil.down());
-   const auto [rght_y_bx, rght_y_by, rght_y_bz] = compute(stencil.up());
-   const auto [left_z_bx, left_z_by, left_z_bz] = compute(stencil.far());
-   const auto [rght_z_bx, rght_z_by, rght_z_bz] = compute(stencil.near());
+   const auto [bx, by, bz] = compute(stencil.ooo());
+   const auto [left_x_bx, left_x_by, left_x_bz] = compute(stencil.moo());
+   const auto [rght_x_bx, rght_x_by, rght_x_bz] = compute(stencil.poo());
+   const auto [left_y_bx, left_y_by, left_y_bz] = compute(stencil.omo());
+   const auto [rght_y_bx, rght_y_by, rght_y_bz] = compute(stencil.opo());
+   const auto [left_z_bx, left_z_by, left_z_bz] = compute(stencil.oom());
+   const auto [rght_z_bx, rght_z_by, rght_z_bz] = compute(stencil.oop());
 
-   auto& volCenter = vol[stencil.center()];
+   auto& volCenter = vol[stencil.ooo()];
    volCenter[fsgrids::volfields::CURVATUREX] = bx * 0.5 * (rght_x_bx - left_x_bx) / gridSpacing[0] +
                                                by * 0.5 * (rght_y_bx - left_y_bx) / gridSpacing[1] +
                                                bz * 0.5 * (rght_z_bx - left_z_bx) / gridSpacing[2];
@@ -490,7 +490,7 @@ void calculateCurvatureSimple(std::span<std::array<Real, fsgrids::volfields::N_V
          for (auto j = 0; j < localSize[1]; j++) {
             for (auto i = 0; i < localSize[0]; i++) {
                const auto stencil = fsgrid.makeStencil(i, j, k);
-               const auto& tech = technical[stencil.center()];
+               const auto& tech = technical[stencil.ooo()];
 
                const bool compute = (tech.sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY &&
                                      tech.sysBoundaryLayer != 1 && tech.sysBoundaryLayer != 2);

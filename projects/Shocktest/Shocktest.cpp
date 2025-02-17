@@ -230,7 +230,7 @@ namespace projects {
                for (auto z = 0; z < localSize[2]; ++z) {
                   const auto stencil = fsgrid.makeStencil(x, y, z);
                   const auto xyz = fsgrid.getPhysicalCoords(x, y, z);
-                  auto& cell = perb[stencil.center()];
+                  auto& cell = perb[stencil.ooo()];
 
                   cell[fsgrids::bfield::PERBX] = (xyz[0] < 0.0) ? this->Bx[this->LEFT] : this->Bx[this->RIGHT];
                   cell[fsgrids::bfield::PERBY] = (xyz[0] < 0.0) ? this->By[this->LEFT] : this->By[this->RIGHT];

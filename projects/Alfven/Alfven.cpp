@@ -181,7 +181,7 @@ namespace projects {
                for (auto z = 0; z < localSize[2]; ++z) {
                   const auto xyz = fsgrid.getPhysicalCoords(x, y, z);
                   const auto stencil = fsgrid.makeStencil(x, y, z);
-                  auto& cell = perb[stencil.center()];
+                  auto& cell = perb[stencil.ooo()];
 
                   const Real dx = gridSpacing[0];
                   const Real dy = gridSpacing[1];

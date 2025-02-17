@@ -326,8 +326,8 @@ Wavespeeds calculateWaveSpeedXY(std::span<const std::array<Real, fsgrids::bfield
 void fsdebugCheck([[maybe_unused]] const fsgrid::FsStencil& stencil, [[maybe_unused]] size_t len,
                   [[maybe_unused]] const char* file, [[maybe_unused]] uint32_t line) {
 #ifdef DEBUG_FSOLVER
-   const bool ok = stencil.center() < len && stencil.far() < len && stencil.down() < len && stencil.downfar() < len &&
-                   stencil.left() < len && stencil.leftfar() < len && stencil.leftdown() < len;
+   const bool ok = stencil.ooo() < len && stencil.oom() < len && stencil.omo() < len && stencil.omm() < len &&
+                   stencil.moo() < len && stencil.mom() < len && stencil.mmo() < len;
 
    if (!ok) {
       cerr << "Out-of-bounds access in " << file << ":" << line << std::endl;
@@ -461,7 +461,7 @@ void calculateEdgeElectricFieldX(std::span<const std::array<Real, fsgrids::bfiel
    Real maxV = 0.0;     // Max velocity for CFL purposes
    Real c_y, c_z;       // Wave speeds to yz-directions
 
-   const CardinalIndices ci{stencil.center(), stencil.down(), stencil.far(), stencil.downfar()};
+   const CardinalIndices ci{stencil.ooo(), stencil.omo(), stencil.oom(), stencil.omm()};
    const DataArrays sw{perb, dperb, moments, dmoments, bgb, ci.sw};
    const DataArrays se{perb, dperb, moments, dmoments, bgb, ci.se};
    const DataArrays nw{perb, dperb, moments, dmoments, bgb, ci.nw};
@@ -511,8 +511,8 @@ void calculateEdgeElectricFieldX(std::span<const std::array<Real, fsgrids::bfiel
                          (-sw.dmoments[fsgrids::dmoments::dVydy] - sw.dmoments[fsgrids::dmoments::dVydz]) -
                      dBzdy_W * Vy0 + SIXTH * dBzdx_W * sw.dmoments[fsgrids::dmoments::dVydx]);
 #endif
-   size_t self = stencil.center();
-   size_t nbr = stencil.right();
+   size_t self = stencil.ooo();
+   size_t nbr = stencil.poo();
    auto wavespeeds = calculateWaveSpeedYZ(perb, moments, dperb, dmoments, bgb, gridSpacing, rhomLimits, self, nbr, By_S,
                                           Bz_W, dBydx_S, dBydz_S, dBzdx_W, dBzdy_W, MINUS, MINUS);
    c_y = wavespeeds.minVelocity();
@@ -540,8 +540,8 @@ void calculateEdgeElectricFieldX(std::span<const std::array<Real, fsgrids::bfiel
                      dBzdy_E * Vy0 + SIXTH * dBzdx_E * se.dmoments[fsgrids::dmoments::dVydx]);
 #endif
 
-   self = stencil.down();
-   nbr = stencil.rightdown();
+   self = stencil.omo();
+   nbr = stencil.pmo();
    wavespeeds = calculateWaveSpeedYZ(perb, moments, dperb, dmoments, bgb, gridSpacing, rhomLimits, self, nbr, By_S,
                                      Bz_E, dBydx_S, dBydz_S, dBzdx_E, dBzdy_E, PLUS, MINUS);
    c_y = wavespeeds.minVelocity();
@@ -569,8 +569,8 @@ void calculateEdgeElectricFieldX(std::span<const std::array<Real, fsgrids::bfiel
                      dBzdy_W * Vy0 + SIXTH * dBzdx_W * nw.dmoments[fsgrids::dmoments::dVydx]);
 #endif
 
-   self = stencil.far();
-   nbr = stencil.rightfar();
+   self = stencil.oom();
+   nbr = stencil.pom();
    wavespeeds = calculateWaveSpeedYZ(perb, moments, dperb, dmoments, bgb, gridSpacing, rhomLimits, self, nbr, By_N,
                                      Bz_W, dBydx_N, dBydz_N, dBzdx_W, dBzdy_W, MINUS, PLUS);
    c_y = wavespeeds.minVelocity();
@@ -598,8 +598,8 @@ void calculateEdgeElectricFieldX(std::span<const std::array<Real, fsgrids::bfiel
                      dBzdy_E * Vy0 + SIXTH * dBzdx_E * ne.dmoments[fsgrids::dmoments::dVydx]);
 #endif
 
-   self = stencil.downfar();
-   nbr = stencil.rightdownfar();
+   self = stencil.omm();
+   nbr = stencil.pmm();
    wavespeeds = calculateWaveSpeedYZ(perb, moments, dperb, dmoments, bgb, gridSpacing, rhomLimits, self, nbr, By_N,
                                      Bz_E, dBydx_N, dBydz_N, dBzdx_E, dBzdy_E, PLUS, PLUS);
    c_y = wavespeeds.minVelocity();
@@ -650,7 +650,7 @@ void calculateEdgeElectricFieldX(std::span<const std::array<Real, fsgrids::bfiel
       min_dx = min(min_dx, gridSpacing[2]);
       // update max allowed timestep for field propagation in this cell, which is the minimum of CFL=1 timesteps
       if (maxV != ZERO) {
-         auto& maxFsDt = technical[stencil.center()].maxFsDt;
+         auto& maxFsDt = technical[stencil.ooo()].maxFsDt;
          maxFsDt = min(maxFsDt, min_dx / maxV);
       }
    }
@@ -688,7 +688,7 @@ void calculateEdgeElectricFieldY(std::span<const std::array<Real, fsgrids::bfiel
    Real maxV = 0.0;     // Max velocity for CFL purposes
    Real c_x, c_z;       // Wave speeds to xz-directions
 
-   const CardinalIndices ci{stencil.center(), stencil.far(), stencil.left(), stencil.leftfar()};
+   const CardinalIndices ci{stencil.ooo(), stencil.oom(), stencil.moo(), stencil.mom()};
    const DataArrays sw{perb, dperb, moments, dmoments, bgb, ci.sw};
    const DataArrays se{perb, dperb, moments, dmoments, bgb, ci.se};
    const DataArrays nw{perb, dperb, moments, dmoments, bgb, ci.nw};
@@ -739,8 +739,8 @@ void calculateEdgeElectricFieldY(std::span<const std::array<Real, fsgrids::bfiel
                      dBxdz_W * Vz0 + SIXTH * dBxdy_W * sw.dmoments[fsgrids::dmoments::dVzdy]);
 #endif
 
-   size_t self = stencil.center();
-   size_t nbr = stencil.up();
+   size_t self = stencil.ooo();
+   size_t nbr = stencil.opo();
    auto wavespeeds = calculateWaveSpeedXZ(perb, moments, dperb, dmoments, bgb, gridSpacing, rhomLimits, self, nbr, Bx_W,
                                           Bz_S, dBxdy_W, dBxdz_W, dBzdx_S, dBzdy_S, MINUS, MINUS);
    c_z = wavespeeds.minVelocity();
@@ -768,8 +768,8 @@ void calculateEdgeElectricFieldY(std::span<const std::array<Real, fsgrids::bfiel
                      dBxdz_E * Vz0 + SIXTH * dBxdy_E * se.dmoments[fsgrids::dmoments::dVzdy]);
 #endif
 
-   self = stencil.far();
-   nbr = stencil.upfar();
+   self = stencil.oom();
+   nbr = stencil.opm();
    wavespeeds = calculateWaveSpeedXZ(perb, moments, dperb, dmoments, bgb, gridSpacing, rhomLimits, self, nbr, Bx_E,
                                      Bz_S, dBxdy_E, dBxdz_E, dBzdx_S, dBzdy_S, MINUS, PLUS);
    c_z = wavespeeds.minVelocity();
@@ -797,8 +797,8 @@ void calculateEdgeElectricFieldY(std::span<const std::array<Real, fsgrids::bfiel
                      dBxdz_W * Vz0 + SIXTH * dBxdy_W * nw.dmoments[fsgrids::dmoments::dVzdy]);
 #endif
 
-   self = stencil.left();
-   nbr = stencil.leftup();
+   self = stencil.moo();
+   nbr = stencil.mpo();
    wavespeeds = calculateWaveSpeedXZ(perb, moments, dperb, dmoments, bgb, gridSpacing, rhomLimits, self, nbr, Bx_W,
                                      Bz_N, dBxdy_W, dBxdz_W, dBzdx_N, dBzdy_N, PLUS, MINUS);
    c_z = wavespeeds.minVelocity();
@@ -826,8 +826,8 @@ void calculateEdgeElectricFieldY(std::span<const std::array<Real, fsgrids::bfiel
                      dBxdz_E * Vz0 + SIXTH * dBxdy_E * ne.dmoments[fsgrids::dmoments::dVzdy]);
 #endif
 
-   self = stencil.leftfar();
-   nbr = stencil.leftupfar();
+   self = stencil.mom();
+   nbr = stencil.mpm();
    wavespeeds = calculateWaveSpeedXZ(perb, moments, dperb, dmoments, bgb, gridSpacing, rhomLimits, self, nbr, Bx_E,
                                      Bz_N, dBxdy_E, dBxdz_E, dBzdx_N, dBzdy_N, PLUS, PLUS);
    c_z = wavespeeds.minVelocity();
@@ -878,7 +878,7 @@ void calculateEdgeElectricFieldY(std::span<const std::array<Real, fsgrids::bfiel
       min_dx = min(min_dx, gridSpacing[2]);
       // update max allowed timestep for field propagation in this cell, which is the minimum of CFL=1 timesteps
       if (maxV != ZERO) {
-         auto& maxFsDt = technical[stencil.center()].maxFsDt;
+         auto& maxFsDt = technical[stencil.ooo()].maxFsDt;
          maxFsDt = min(maxFsDt, min_dx / maxV);
       }
    }
@@ -916,7 +916,7 @@ void calculateEdgeElectricFieldZ(std::span<const std::array<Real, fsgrids::bfiel
    Real maxV = 0.0;     // Max velocity for CFL purposes
    Real c_x, c_y;       // Characteristic speeds to xy-directions
 
-   const CardinalIndices ci{stencil.center(), stencil.left(), stencil.down(), stencil.leftdown()};
+   const CardinalIndices ci{stencil.ooo(), stencil.moo(), stencil.omo(), stencil.mmo()};
    const DataArrays sw{perb, dperb, moments, dmoments, bgb, ci.sw};
    const DataArrays se{perb, dperb, moments, dmoments, bgb, ci.se};
    const DataArrays nw{perb, dperb, moments, dmoments, bgb, ci.nw};
@@ -968,8 +968,8 @@ void calculateEdgeElectricFieldZ(std::span<const std::array<Real, fsgrids::bfiel
                      dBydx_W * Vx0 + SIXTH * dBydz_W * sw.dmoments[fsgrids::dmoments::dVxdz]);
 #endif
 
-   size_t self = stencil.center();
-   size_t nbr = stencil.near();
+   size_t self = stencil.ooo();
+   size_t nbr = stencil.oop();
    auto wavespeeds = calculateWaveSpeedXY(perb, moments, dperb, dmoments, bgb, gridSpacing, rhomLimits, self, nbr, Bx_S,
                                           By_W, dBxdy_S, dBxdz_S, dBydx_W, dBydz_W, MINUS, MINUS);
    c_x = wavespeeds.minVelocity();
@@ -997,8 +997,8 @@ void calculateEdgeElectricFieldZ(std::span<const std::array<Real, fsgrids::bfiel
                      dBydx_E * Vx0 + SIXTH * dBydz_E * se.dmoments[fsgrids::dmoments::dVxdz]);
 #endif
 
-   self = stencil.left();
-   nbr = stencil.leftnear();
+   self = stencil.moo();
+   nbr = stencil.mop();
    wavespeeds = calculateWaveSpeedXY(perb, moments, dperb, dmoments, bgb, gridSpacing, rhomLimits, self, nbr, Bx_S,
                                      By_E, dBxdy_S, dBxdz_S, dBydx_E, dBydz_E, PLUS, MINUS);
    c_x = wavespeeds.minVelocity();
@@ -1026,8 +1026,8 @@ void calculateEdgeElectricFieldZ(std::span<const std::array<Real, fsgrids::bfiel
                      dBydx_W * Vx0 + SIXTH * dBydz_W * nw.dmoments[fsgrids::dmoments::dVxdz]);
 #endif
 
-   self = stencil.down();
-   nbr = stencil.downnear();
+   self = stencil.omo();
+   nbr = stencil.omp();
    wavespeeds = calculateWaveSpeedXY(perb, moments, dperb, dmoments, bgb, gridSpacing, rhomLimits, self, nbr, Bx_N,
                                      By_W, dBxdy_N, dBxdz_N, dBydx_W, dBydz_W, MINUS, PLUS);
    c_x = wavespeeds.minVelocity();
@@ -1055,8 +1055,8 @@ void calculateEdgeElectricFieldZ(std::span<const std::array<Real, fsgrids::bfiel
                      dBydx_E * Vx0 + SIXTH * dBydz_E * ne.dmoments[fsgrids::dmoments::dVxdz]);
 #endif
 
-   self = stencil.leftdown();
-   nbr = stencil.leftdownnear();
+   self = stencil.mmo();
+   nbr = stencil.mmp();
    wavespeeds = calculateWaveSpeedXY(perb, moments, dperb, dmoments, bgb, gridSpacing, rhomLimits, self, nbr, Bx_N,
                                      By_E, dBxdy_N, dBxdz_N, dBydx_E, dBydz_E, PLUS, PLUS);
    c_x = wavespeeds.minVelocity();
@@ -1107,7 +1107,7 @@ void calculateEdgeElectricFieldZ(std::span<const std::array<Real, fsgrids::bfiel
       min_dx = min(min_dx, gridSpacing[1]);
       // update max allowed timestep for field propagation in this cell, which is the minimum of CFL=1 timesteps
       if (maxV != ZERO) {
-         auto& maxFsDt = technical[stencil.center()].maxFsDt;
+         auto& maxFsDt = technical[stencil.ooo()].maxFsDt;
          maxFsDt = min(maxFsDt, min_dx / maxV);
       }
    }
@@ -1144,8 +1144,8 @@ void calculateElectricField(std::span<const std::array<Real, fsgrids::bfield::N_
                             std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                             std::span<fsgrids::technical> technical, const fsgrid::FsStencil& stencil,
                             const std::array<Real, 3>& gridSpacing, SysBoundary& sysBoundaries, int32_t RKCase) {
-   cuint cellSysBoundaryFlag = technical[stencil.center()].sysBoundaryFlag;
-   cuint bitfield = technical[stencil.center()].SOLVE;
+   cuint cellSysBoundaryFlag = technical[stencil.ooo()].sysBoundaryFlag;
+   cuint bitfield = technical[stencil.ooo()].SOLVE;
 
    if (cellSysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
        cellSysBoundaryFlag == sysboundarytype::OUTER_BOUNDARY_PADDING) {

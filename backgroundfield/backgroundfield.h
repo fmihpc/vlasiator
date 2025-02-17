@@ -93,7 +93,7 @@ void setPerturbedField(const FieldFunction& bfFunction, std::span<std::array<Rea
          for (fsgrid::FsIndex_t x = 0; x < localSize[0]; ++x) {
             const auto stencil = fsgrid.makeStencil(x, y, z);
             const auto start = fsgrid.getPhysicalCoords(x, y, z);
-            auto& field = b[stencil.center()];
+            auto& field = b[stencil.ooo()];
 
             // Face averages
             for (uint fComponent = 0; fComponent < 3; fComponent++) {

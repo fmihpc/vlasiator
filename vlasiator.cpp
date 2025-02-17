@@ -141,7 +141,7 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mp
       for (auto j = 0; j < localSize[1]; j++) {
          for (auto i = 0; i < localSize[0]; i++) {
             const auto stencil = fsgrid.makeStencil(i, j, k);
-            const auto& cell = technical[stencil.center()];
+            const auto& cell = technical[stencil.ooo()];
             if (cell.sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
                 (cell.sysBoundaryLayer == 1 && cell.sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY)) {
                dtMaxLocal[2] = min(dtMaxLocal[2], cell.maxFsDt);

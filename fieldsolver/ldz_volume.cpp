@@ -34,7 +34,7 @@ void calculateVolumeAveragedFields(std::span<const std::array<Real, fsgrids::bfi
                                    std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                                    std::span<std::array<Real, fsgrids::volfields::N_VOL>> vols,
                                    const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
-   const auto center = stencil.center();
+   const auto center = stencil.ooo();
    std::array<Real, fsgrids::volfields::N_VOL>& vol = vols[center];
    const auto sbflag = sysBoundaryFlag;
 
@@ -64,12 +64,12 @@ void calculateVolumeAveragedFields(std::span<const std::array<Real, fsgrids::bfi
 
    if (sbflag == sysboundarytype::NOT_SYSBOUNDARY || sbflag == 1) {
       const std::array<Real, fsgrids::efield::N_EFIELD>& E_i1j1k1 = e[center];
-      const std::array<Real, fsgrids::efield::N_EFIELD>& E_i1j2k1 = e[stencil.up()];
-      const std::array<Real, fsgrids::efield::N_EFIELD>& E_i1j1k2 = e[stencil.near()];
-      const std::array<Real, fsgrids::efield::N_EFIELD>& E_i1j2k2 = e[stencil.upnear()];
-      const std::array<Real, fsgrids::efield::N_EFIELD>& E_i2j1k1 = e[stencil.right()];
-      const std::array<Real, fsgrids::efield::N_EFIELD>& E_i2j1k2 = e[stencil.rightnear()];
-      const std::array<Real, fsgrids::efield::N_EFIELD>& E_i2j2k1 = e[stencil.rightup()];
+      const std::array<Real, fsgrids::efield::N_EFIELD>& E_i1j2k1 = e[stencil.opo()];
+      const std::array<Real, fsgrids::efield::N_EFIELD>& E_i1j1k2 = e[stencil.oop()];
+      const std::array<Real, fsgrids::efield::N_EFIELD>& E_i1j2k2 = e[stencil.opp()];
+      const std::array<Real, fsgrids::efield::N_EFIELD>& E_i2j1k1 = e[stencil.poo()];
+      const std::array<Real, fsgrids::efield::N_EFIELD>& E_i2j1k2 = e[stencil.pop()];
+      const std::array<Real, fsgrids::efield::N_EFIELD>& E_i2j2k1 = e[stencil.ppo()];
 
       CHECK_FLOAT(E_i1j1k1[fsgrids::efield::EX]);
       CHECK_FLOAT(E_i1j1k1[fsgrids::efield::EY]);

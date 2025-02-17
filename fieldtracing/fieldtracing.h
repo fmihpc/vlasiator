@@ -193,7 +193,7 @@ bool traceFullFieldFunction(std::span<const std::array<Real, fsgrids::bfield::N_
       return false;
    } else {
       const auto stencil = fsgrid.makeStencil(fsgridCell[0], fsgridCell[1], fsgridCell[2]);
-      if (technical[stencil.center()].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+      if (technical[stencil.ooo()].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
          const std::array<Real, 3> perB =
              interpolatePerturbedB(perb, dperb, technical, fsgrid, fieldTracingParameters.reconstructionCoefficientsCache,
                                    fsgridCell[0], fsgridCell[1], fsgridCell[2], {(Real)r[0], (Real)r[1], (Real)r[2]});

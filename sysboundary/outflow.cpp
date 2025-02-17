@@ -273,7 +273,7 @@ void Outflow::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geome
                doAssign = doAssign || (facesToProcess[iface] && isThisCellOnAFace[iface]);
             }
             if (doAssign) {
-               technical[stencil.center()].sysBoundaryFlag = this->getIndex();
+               technical[stencil.ooo()].sysBoundaryFlag = this->getIndex();
             }
          }
       }
@@ -336,12 +336,12 @@ Real Outflow::fieldSolverBoundaryCondMagneticField(std::span<const std::array<Re
 
 void Outflow::fieldSolverBoundaryCondElectricField(std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
                                                    const fsgrid::FsStencil& stencil, cuint component) {
-   e[stencil.center()][fsgrids::efield::EX + component] = 0.0;
+   e[stencil.ooo()][fsgrids::efield::EX + component] = 0.0;
 }
 
 void Outflow::fieldSolverBoundaryCondHallElectricField(std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
                                                        const fsgrid::FsStencil& stencil, cuint component) {
-   array<Real, fsgrids::ehall::N_EHALL>& cp = ehall[stencil.center()];
+   array<Real, fsgrids::ehall::N_EHALL>& cp = ehall[stencil.ooo()];
    switch (component) {
    case 0:
       cp[fsgrids::ehall::EXHALL_000_100] = 0.0;
@@ -370,7 +370,7 @@ void Outflow::fieldSolverBoundaryCondHallElectricField(std::span<std::array<Real
 void Outflow::fieldSolverBoundaryCondGradPeElectricField(
     std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> EGradPe, const fsgrid::FsStencil& stencil,
     cuint component) {
-   EGradPe[stencil.center()][fsgrids::egradpe::EXGRADPE + component] = 0.0;
+   EGradPe[stencil.ooo()][fsgrids::egradpe::EXGRADPE + component] = 0.0;
 }
 
 void Outflow::fieldSolverBoundaryCondDerivatives(std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,

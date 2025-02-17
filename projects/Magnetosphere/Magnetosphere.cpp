@@ -347,8 +347,8 @@ namespace projects {
                      for (auto y = 0; y < localSize[1]; ++y) {
                         for (auto x = 0; x < localSize[0]; ++x) {
                            const auto stencil = fsgrid.makeStencil(x, y, z);
-                           const auto& BGBcell = bgb[stencil.center()];
-                           auto& PERBcell = perb[stencil.center()];
+                           const auto& BGBcell = bgb[stencil.ooo()];
+                           auto& PERBcell = perb[stencil.ooo()];
                            PERBcell[fsgrids::bfield::PERBX] = BGBcell[fsgrids::bgbfield::BGBXVDCORR];
                            PERBcell[fsgrids::bfield::PERBY] = BGBcell[fsgrids::bgbfield::BGBYVDCORR];
                            PERBcell[fsgrids::bfield::PERBZ] = BGBcell[fsgrids::bgbfield::BGBZVDCORR];
@@ -378,7 +378,7 @@ namespace projects {
                for (auto y = 0; y < localSize[1]; ++y) {
                   for (auto x = 0; x < localSize[0]; ++x) {
                      const auto stencil = fsgrid.makeStencil(x, y, z);
-                     auto& cell = bgb[stencil.center()];
+                     auto& cell = bgb[stencil.ooo()];
                      cell[fsgrids::bgbfield::BGBX] = 0;
                      cell[fsgrids::bgbfield::BGBXVOL] = 0.0;
                      cell[fsgrids::bgbfield::dBGBydx] = 0.0;
@@ -402,7 +402,7 @@ namespace projects {
                 for (auto y = 0; y < localSize[1]; ++y) {
                    for (auto x = 0; x < localSize[0]; ++x) {
                       const auto stencil = fsgrid.makeStencil(x, y, z);
-                      auto& cell = bgb[stencil.center()];
+                      auto& cell = bgb[stencil.ooo()];
                       cell[fsgrids::bgbfield::BGBY] = 0.0;
                       cell[fsgrids::bgbfield::BGBYVOL] = 0.0;
                       cell[fsgrids::bgbfield::dBGBxdy] = 0.0;
@@ -425,7 +425,7 @@ namespace projects {
                for (auto y = 0; y < localSize[1]; ++y) {
                   for (auto x = 0; x < localSize[0]; ++x) {
                      const auto stencil = fsgrid.makeStencil(x, y, z);
-                     auto& cell = bgb[stencil.center()];
+                     auto& cell = bgb[stencil.ooo()];
                      cell[fsgrids::bgbfield::BGBX] = 0;
                      cell[fsgrids::bgbfield::BGBY] = 0;
                      cell[fsgrids::bgbfield::BGBYVOL] = 0.0;
@@ -450,13 +450,13 @@ namespace projects {
                for (fsgrid::FsIndex_t y = 0; y < localSize[1]; ++y) {
                   for (fsgrid::FsIndex_t x = 0; x < localSize[0]; ++x) {
                      const auto stencil = fsgrid.makeStencil(x, y, z);
-                     auto& cell = bgb[stencil.center()];
-                     const auto& tech = technical[stencil.center()];
+                     auto& cell = bgb[stencil.ooo()];
+                     const auto& tech = technical[stencil.ooo()];
                      if (tech.sysBoundaryFlag == sysboundarytype::MAXWELLIAN) {
                         cell.fill(0.0);
                         if ( (this->dipoleType==4) && (P::isRestart == false) ) {
                            // If we set BGB to zero here, then we should also set perB in new runs to zero.
-                           auto& pb = perb[stencil.center()];
+                           auto& pb = perb[stencil.ooo()];
                            pb.fill(0.0);
                         }
                      }

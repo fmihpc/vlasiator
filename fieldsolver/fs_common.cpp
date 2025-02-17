@@ -55,10 +55,10 @@ reconstructionCoefficients(std::span<const std::array<Real, fsgrids::bfield::N_B
                            std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                            const fsgrid::FsStencil& stencil, Real reconstructionOrder) {
    std::array<Real, Rec::N_REC_COEFFICIENTS> perturbedResult;
-   const auto center = stencil.center();
-   const auto right = stencil.right();
-   const auto up = stencil.up();
-   const auto near = stencil.near();
+   const auto center = stencil.ooo();
+   const auto right = stencil.poo();
+   const auto up = stencil.opo();
+   const auto near = stencil.oop();
    const std::array<Real, fsgrids::dperb::N_DPERB>& der_i1j1k1 = dperb[center];
    const std::array<Real, fsgrids::bfield::N_BFIELD>& cep_i1j1k1 = perb[center];
 
@@ -227,7 +227,7 @@ std::array<Real, 3> interpolatePerturbedB(
     cint j, cint k, const std::array<Real, 3> x) {
    const auto stencil = fsgrid.makeStencil(i, j, k);
 
-   cuint cellSysBoundaryFlag = technical[stencil.center()].sysBoundaryFlag;
+   cuint cellSysBoundaryFlag = technical[stencil.ooo()].sysBoundaryFlag;
    if (cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
       return {0, 0, 0};
    }
@@ -303,7 +303,7 @@ std::array<Real, 3> interpolateCurlB(
     cint j, cint k, const std::array<Real, 3> x) {
    const auto stencil = fsgrid.makeStencil(i, j, k);
 
-   cuint cellSysBoundaryFlag = technical[stencil.center()].sysBoundaryFlag;
+   cuint cellSysBoundaryFlag = technical[stencil.ooo()].sysBoundaryFlag;
    if (cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
       return {0, 0, 0};
    }

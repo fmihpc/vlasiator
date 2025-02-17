@@ -960,7 +960,7 @@ bool readFsGridVariable(vlsv::ParallelReader& file, const string& variableName, 
          for (auto y = 0; y < localSize[1]; y++) {
             for (auto x = 0; x < localSize[0]; x++) {
                const auto stencil = fsgrid.makeStencil(x, y, z);
-               memcpy(targetData[stencil.center()].data(), &buffer[index], N * sizeof(Real));
+               memcpy(targetData[stencil.ooo()].data(), &buffer[index], N * sizeof(Real));
                index += N;
             }
          }

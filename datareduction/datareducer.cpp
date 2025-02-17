@@ -59,7 +59,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[3 * ri] =
                              fieldSolverData.BgB[lid][fsgrids::BGBX] + fieldSolverData.perB[lid][fsgrids::PERBX];
@@ -89,7 +89,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[3 * ri] = fieldSolverData.BgB[lid][fsgrids::BGBX];
                          retval[3 * ri + 1] = fieldSolverData.BgB[lid][fsgrids::BGBY];
@@ -116,7 +116,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[3 * ri] = fieldSolverData.BgB[lid][fsgrids::BGBXVOL];
                          retval[3 * ri + 1] = fieldSolverData.BgB[lid][fsgrids::BGBYVOL];
@@ -144,7 +144,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[3 * ri] = fieldSolverData.perB[lid][fsgrids::PERBX];
                          retval[3 * ri + 1] = fieldSolverData.perB[lid][fsgrids::PERBY];
@@ -171,7 +171,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[3 * ri] = fieldSolverData.E[lid][fsgrids::EX];
                          retval[3 * ri + 1] = fieldSolverData.E[lid][fsgrids::EY];
@@ -214,7 +214,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.moments[lid][fsgrids::RHOM];
                       }
@@ -248,7 +248,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.moments[lid][fsgrids::RHOQ];
                       }
@@ -299,7 +299,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[3 * ri] = fieldSolverData.moments[lid][fsgrids::VX];
                          retval[3 * ri + 1] = fieldSolverData.moments[lid][fsgrids::VY];
@@ -557,7 +557,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.technical[lid].maxFsDt;
                       }
@@ -605,7 +605,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.technical[lid].refLevel;
                       }
@@ -638,7 +638,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.technical[lid].sysBoundaryFlag;
                       }
@@ -671,7 +671,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.technical[lid].sysBoundaryLayer;
                       }
@@ -740,7 +740,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[3 * ri] = fieldSolverData.vol[lid][fsgrids::volfields::EXVOL];
                          retval[3 * ri + 1] = fieldSolverData.vol[lid][fsgrids::volfields::EYVOL];
@@ -769,7 +769,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                       for (int y = 0; y < localSize[1]; y++) {
                          for (int x = 0; x < localSize[0]; x++) {
                             const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                            const auto lid = stencil.center();
+                            const auto lid = stencil.ooo();
                             const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                             retval[ri] = fieldSolverData.EHall[lid][index];
                          }
@@ -814,7 +814,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[3 * ri] =
                              fieldSolverData.BgB[lid][fsgrids::BGBXVOL] + fieldSolverData.vol[lid][fsgrids::PERBXVOL];
@@ -868,7 +868,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          auto& moments = fieldSolverData.moments[lid];
                          retval[ri] =
@@ -960,7 +960,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dPerB[lid][fsgrids::dperb::dPERBxdy] /
                                       fieldSolverData.fsgrid.getGridSpacing()[1];
@@ -980,7 +980,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dPerB[lid][fsgrids::dperb::dPERBxdz] /
                                       fieldSolverData.fsgrid.getGridSpacing()[2];
@@ -1000,7 +1000,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dPerB[lid][fsgrids::dperb::dPERBydx] /
                                       fieldSolverData.fsgrid.getGridSpacing()[0];
@@ -1020,7 +1020,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dPerB[lid][fsgrids::dperb::dPERBydz] /
                                       fieldSolverData.fsgrid.getGridSpacing()[2];
@@ -1040,7 +1040,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dPerB[lid][fsgrids::dperb::dPERBzdx] /
                                       fieldSolverData.fsgrid.getGridSpacing()[0];
@@ -1060,7 +1060,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dPerB[lid][fsgrids::dperb::dPERBzdy] /
                                       fieldSolverData.fsgrid.getGridSpacing()[1];
@@ -1080,7 +1080,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dPerB[lid][fsgrids::dperb::dPERBxdyy] /
                                       fieldSolverData.fsgrid.getGridSpacing()[1] /
@@ -1101,7 +1101,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dPerB[lid][fsgrids::dperb::dPERBxdzz] /
                                       fieldSolverData.fsgrid.getGridSpacing()[2] /
@@ -1122,7 +1122,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dPerB[lid][fsgrids::dperb::dPERBxdyz] /
                                       fieldSolverData.fsgrid.getGridSpacing()[1] /
@@ -1143,7 +1143,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dPerB[lid][fsgrids::dperb::dPERBydxx] /
                                       fieldSolverData.fsgrid.getGridSpacing()[0] /
@@ -1164,7 +1164,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dPerB[lid][fsgrids::dperb::dPERBydzz] /
                                       fieldSolverData.fsgrid.getGridSpacing()[2] /
@@ -1185,7 +1185,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dPerB[lid][fsgrids::dperb::dPERBydxz] /
                                       fieldSolverData.fsgrid.getGridSpacing()[0] /
@@ -1206,7 +1206,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dPerB[lid][fsgrids::dperb::dPERBzdxx] /
                                       fieldSolverData.fsgrid.getGridSpacing()[0] /
@@ -1227,7 +1227,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dPerB[lid][fsgrids::dperb::dPERBzdyy] /
                                       fieldSolverData.fsgrid.getGridSpacing()[1] /
@@ -1248,7 +1248,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dPerB[lid][fsgrids::dperb::dPERBzdxy] /
                                       fieldSolverData.fsgrid.getGridSpacing()[0] /
@@ -1270,7 +1270,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dMoments[lid][fsgrids::dmoments::drhomdx] /
                                       fieldSolverData.fsgrid.getGridSpacing()[0];
@@ -1290,7 +1290,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dMoments[lid][fsgrids::dmoments::drhomdy] /
                                       fieldSolverData.fsgrid.getGridSpacing()[1];
@@ -1310,7 +1310,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dMoments[lid][fsgrids::dmoments::drhomdz] /
                                       fieldSolverData.fsgrid.getGridSpacing()[2];
@@ -1330,7 +1330,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dMoments[lid][fsgrids::dmoments::drhoqdx] /
                                       fieldSolverData.fsgrid.getGridSpacing()[0];
@@ -1350,7 +1350,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dMoments[lid][fsgrids::dmoments::drhoqdy] /
                                       fieldSolverData.fsgrid.getGridSpacing()[1];
@@ -1370,7 +1370,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dMoments[lid][fsgrids::dmoments::drhoqdz] /
                                       fieldSolverData.fsgrid.getGridSpacing()[2];
@@ -1390,7 +1390,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dMoments[lid][fsgrids::dmoments::dp11dx] /
                                       fieldSolverData.fsgrid.getGridSpacing()[0];
@@ -1410,7 +1410,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dMoments[lid][fsgrids::dmoments::dp11dy] /
                                       fieldSolverData.fsgrid.getGridSpacing()[1];
@@ -1430,7 +1430,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dMoments[lid][fsgrids::dmoments::dp11dz] /
                                       fieldSolverData.fsgrid.getGridSpacing()[2];
@@ -1450,7 +1450,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dMoments[lid][fsgrids::dmoments::dp22dx] /
                                       fieldSolverData.fsgrid.getGridSpacing()[0];
@@ -1470,7 +1470,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dMoments[lid][fsgrids::dmoments::dp22dy] /
                                       fieldSolverData.fsgrid.getGridSpacing()[1];
@@ -1490,7 +1490,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dMoments[lid][fsgrids::dmoments::dp22dz] /
                                       fieldSolverData.fsgrid.getGridSpacing()[2];
@@ -1510,7 +1510,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dMoments[lid][fsgrids::dmoments::dp33dx] /
                                       fieldSolverData.fsgrid.getGridSpacing()[0];
@@ -1530,7 +1530,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dMoments[lid][fsgrids::dmoments::dp33dy] /
                                       fieldSolverData.fsgrid.getGridSpacing()[1];
@@ -1550,7 +1550,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dMoments[lid][fsgrids::dmoments::dp33dz] /
                                       fieldSolverData.fsgrid.getGridSpacing()[2];
@@ -1570,7 +1570,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dMoments[lid][fsgrids::dmoments::dVxdx] /
                                       fieldSolverData.fsgrid.getGridSpacing()[0];
@@ -1590,7 +1590,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dMoments[lid][fsgrids::dmoments::dVxdy] /
                                       fieldSolverData.fsgrid.getGridSpacing()[1];
@@ -1610,7 +1610,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dMoments[lid][fsgrids::dmoments::dVxdz] /
                                       fieldSolverData.fsgrid.getGridSpacing()[2];
@@ -1630,7 +1630,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dMoments[lid][fsgrids::dmoments::dVydx] /
                                       fieldSolverData.fsgrid.getGridSpacing()[0];
@@ -1650,7 +1650,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dMoments[lid][fsgrids::dmoments::dVydy] /
                                       fieldSolverData.fsgrid.getGridSpacing()[1];
@@ -1670,7 +1670,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dMoments[lid][fsgrids::dmoments::dVydz] /
                                       fieldSolverData.fsgrid.getGridSpacing()[2];
@@ -1690,7 +1690,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dMoments[lid][fsgrids::dmoments::dVzdx] /
                                       fieldSolverData.fsgrid.getGridSpacing()[0];
@@ -1710,7 +1710,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dMoments[lid][fsgrids::dmoments::dVzdy] /
                                       fieldSolverData.fsgrid.getGridSpacing()[1];
@@ -1730,7 +1730,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dMoments[lid][fsgrids::dmoments::dVzdz] /
                                       fieldSolverData.fsgrid.getGridSpacing()[2];
@@ -1750,7 +1750,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dMoments[lid][fsgrids::dmoments::dPedx] /
                                       fieldSolverData.fsgrid.getGridSpacing()[0];
@@ -1770,7 +1770,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dMoments[lid][fsgrids::dmoments::dPedy] /
                                       fieldSolverData.fsgrid.getGridSpacing()[1];
@@ -1790,7 +1790,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.dMoments[lid][fsgrids::dmoments::dPedz] /
                                       fieldSolverData.fsgrid.getGridSpacing()[2];
@@ -1811,7 +1811,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.vol[lid][fsgrids::volfields::dPERBXVOLdx] /
                                       fieldSolverData.fsgrid.getGridSpacing()[0];
@@ -1831,7 +1831,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.vol[lid][fsgrids::volfields::dPERBXVOLdy] /
                                       fieldSolverData.fsgrid.getGridSpacing()[1];
@@ -1851,7 +1851,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.vol[lid][fsgrids::volfields::dPERBXVOLdz] /
                                       fieldSolverData.fsgrid.getGridSpacing()[2];
@@ -1871,7 +1871,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.vol[lid][fsgrids::volfields::dPERBYVOLdx] /
                                       fieldSolverData.fsgrid.getGridSpacing()[0];
@@ -1891,7 +1891,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.vol[lid][fsgrids::volfields::dPERBYVOLdy] /
                                       fieldSolverData.fsgrid.getGridSpacing()[1];
@@ -1912,7 +1912,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.vol[lid][fsgrids::volfields::dPERBYVOLdz] /
                                       fieldSolverData.fsgrid.getGridSpacing()[2];
@@ -1932,7 +1932,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.vol[lid][fsgrids::volfields::dPERBZVOLdx] /
                                       fieldSolverData.fsgrid.getGridSpacing()[0];
@@ -1952,7 +1952,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.vol[lid][fsgrids::volfields::dPERBZVOLdy] /
                                       fieldSolverData.fsgrid.getGridSpacing()[1];
@@ -1972,7 +1972,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.vol[lid][fsgrids::volfields::dPERBZVOLdz] /
                                       fieldSolverData.fsgrid.getGridSpacing()[2];
@@ -2006,7 +2006,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.BgB[lid][fsgrids::bgbfield::dBGBxdy] /
                                       fieldSolverData.fsgrid.getGridSpacing()[1];
@@ -2027,7 +2027,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.BgB[lid][fsgrids::bgbfield::dBGBxdz] /
                                       fieldSolverData.fsgrid.getGridSpacing()[2];
@@ -2048,7 +2048,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.BgB[lid][fsgrids::bgbfield::dBGBydx] /
                                       fieldSolverData.fsgrid.getGridSpacing()[0];
@@ -2069,7 +2069,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.BgB[lid][fsgrids::bgbfield::dBGBydz] /
                                       fieldSolverData.fsgrid.getGridSpacing()[2];
@@ -2090,7 +2090,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.BgB[lid][fsgrids::bgbfield::dBGBzdx] /
                                       fieldSolverData.fsgrid.getGridSpacing()[0];
@@ -2111,7 +2111,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.BgB[lid][fsgrids::bgbfield::dBGBzdy] /
                                       fieldSolverData.fsgrid.getGridSpacing()[1];
@@ -2132,7 +2132,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.BgB[lid][fsgrids::bgbfield::dBGBXVOLdx] /
                                       fieldSolverData.fsgrid.getGridSpacing()[0];
@@ -2153,7 +2153,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.BgB[lid][fsgrids::bgbfield::dBGBXVOLdy] /
                                       fieldSolverData.fsgrid.getGridSpacing()[1];
@@ -2174,7 +2174,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.BgB[lid][fsgrids::bgbfield::dBGBXVOLdz] /
                                       fieldSolverData.fsgrid.getGridSpacing()[2];
@@ -2195,7 +2195,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.BgB[lid][fsgrids::bgbfield::dBGBYVOLdx] /
                                       fieldSolverData.fsgrid.getGridSpacing()[0];
@@ -2216,7 +2216,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.BgB[lid][fsgrids::bgbfield::dBGBYVOLdy] /
                                       fieldSolverData.fsgrid.getGridSpacing()[1];
@@ -2237,7 +2237,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.BgB[lid][fsgrids::bgbfield::dBGBYVOLdz] /
                                       fieldSolverData.fsgrid.getGridSpacing()[2];
@@ -2258,7 +2258,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.BgB[lid][fsgrids::bgbfield::dBGBZVOLdx] /
                                       fieldSolverData.fsgrid.getGridSpacing()[0];
@@ -2279,7 +2279,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.BgB[lid][fsgrids::bgbfield::dBGBZVOLdy] /
                                       fieldSolverData.fsgrid.getGridSpacing()[1];
@@ -2300,7 +2300,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[ri] = fieldSolverData.BgB[lid][fsgrids::bgbfield::dBGBZVOLdz] /
                                       fieldSolverData.fsgrid.getGridSpacing()[2];
@@ -3095,7 +3095,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                    for (int y = 0; y < localSize[1]; y++) {
                       for (int x = 0; x < localSize[0]; x++) {
                          const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.center();
+                         const auto lid = stencil.ooo();
                          const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
                          retval[3 * ri] = fieldSolverData.vol[lid][fsgrids::volfields::CURVATUREX];
                          retval[3 * ri + 1] = fieldSolverData.vol[lid][fsgrids::volfields::CURVATUREY];
