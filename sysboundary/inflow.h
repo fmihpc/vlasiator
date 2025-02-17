@@ -59,41 +59,42 @@ public:
 
    //virtual void getParameters() = 0;
 
-   virtual void initSysBoundary(creal& t, Project& project);
+   virtual void initSysBoundary(creal& t, Project& project) override;
    virtual void assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                               std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid);
+                                  std::span<fsgrids::technical> technical, FieldSolverGrid& fsgrid) override;
    virtual void applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                  std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
+                                  std::span<fsgrids::technical> technical, FieldSolverGrid& fsgrid,
                                   std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                  std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, Project& project);
+                                  std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, Project& project) override;
    virtual void updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                            std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
+                            std::span<fsgrids::technical> technical, FieldSolverGrid& fsgrid,
                             std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                            std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, creal t);
+                            std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, creal t) override;
    virtual Real fieldSolverBoundaryCondMagneticField(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> b,
                                                      std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                                                      std::span<const fsgrids::technical> technical,
                                                      const std::array<Real, 3>& gridSpacing,
                                                      const std::array<fsgrid::FsSize_t, 3>& globalCoordinates,
-                                                     const fsgrid::FsStencil& stencil, cuint component);
+                                                     const fsgrid::FsStencil& stencil, cuint component) override;
    virtual void fieldSolverBoundaryCondElectricField(std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
-                                                     const fsgrid::FsStencil& stencil, cuint component);
+                                                     const fsgrid::FsStencil& stencil, cuint component) override;
    virtual void fieldSolverBoundaryCondHallElectricField(std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
-                                                         const fsgrid::FsStencil& stencil, cuint component);
+                                                         const fsgrid::FsStencil& stencil, cuint component) override;
    virtual void
    fieldSolverBoundaryCondGradPeElectricField(std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> EGradPe,
-                                              const fsgrid::FsStencil& stencil, cuint component);
+                                              const fsgrid::FsStencil& stencil, cuint component) override;
    virtual void fieldSolverBoundaryCondDerivatives(std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                                                    std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
-                                                   const fsgrid::FsStencil& stencil, cuint RKCase, cuint component);
+                                                   const fsgrid::FsStencil& stencil, cuint RKCase,
+                                                   cuint component) override;
    virtual void fieldSolverBoundaryCondBVOLDerivatives(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vols,
-                                                       const fsgrid::FsStencil& stencil, cuint component);
+                                                       const fsgrid::FsStencil& stencil, cuint component) override;
    virtual void vlasovBoundaryCondition(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                        const CellID& cellID, const uint popID, const bool doCalcMomentsV);
+                                        const CellID& cellID, const uint popID, const bool doCalcMomentsV) override;
 
-   virtual void getFaces(bool* faces);
-   virtual std::string getName() const = 0;
-   virtual uint getIndex() const = 0;
+   virtual void getFaces(bool* faces) override;
+   virtual std::string getName() const override = 0;
+   virtual uint getIndex() const override = 0;
 
 protected:
    /*! Array of bool telling which faces are going to be processed by the boundary condition.*/
