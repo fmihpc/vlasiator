@@ -110,8 +110,8 @@ bool propagateFields(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb
       propagateMagneticFieldSimple(perb, perbdt2, bgb, e, edt2, technical, fsgrid, sysBoundaries, dt, RK_ORDER1);
       calculateDerivativesSimple(perb, moments, dperb, dmoments, technical, fsgrid, true /*doMoments*/);
       if (P::ohmGradPeTerm > 0) {
-         calculateGradPeTermSimple(EGradPeGrid, EGradPeDt2Grid, momentsGrid, momentsDt2Grid, dMomentsGrid,
-                                   dMomentsDt2Grid, technical, fsgrid, sysBoundaries, RK_ORDER1);
+         calculateGradPeTermSimple(egradpe, egradpedt2, moments, momentsdt2, dmoments, dmomentsdt2, technical, fsgrid,
+                                   sysBoundaries, RK_ORDER1);
       }
       if (P::ohmHallTerm > 0) {
          calculateHallTermSimple(perb, perbdt2, ehall, moments, momentsdt2, dperb, dmoments, dmomentsdt2, bgb,
