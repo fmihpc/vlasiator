@@ -34,31 +34,24 @@ namespace projects {
    public:
       test_fp();
       virtual ~test_fp();
-      
-      virtual bool initialize(void);
+
+      virtual bool initialize(void) override;
       static void addParameters(void);
-      virtual void getParameters(void);
+      virtual void getParameters(void) override;
       virtual void setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                                     std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
-                                    std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid);
+                                    std::span<fsgrids::technical> technical, FieldSolverGrid& fsgrid) override;
 
       Real sign(creal value) const;
-      virtual Realf fillPhaseSpace(spatial_cell::SpatialCell *cell,
-                                  const uint popID,
-                                  const uint nRequested) const;
-      virtual Realf probePhaseSpace(spatial_cell::SpatialCell *cell,
-                                    const uint popID,
-                                    Real vx_in, Real vy_in, Real vz_in) const;
+      virtual Realf fillPhaseSpace(spatial_cell::SpatialCell* cell, const uint popID,
+                                   const uint nRequested) const override;
+      virtual Realf probePhaseSpace(spatial_cell::SpatialCell* cell, const uint popID, Real vx_in, Real vy_in,
+                                    Real vz_in) const override;
 
-      virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
-      
-      virtual std::vector<std::array<Real, 3> > getV0(
-         creal x,
-         creal y,
-         creal z,
-         const uint popID
-      ) const; 
-      
+      virtual void calcCellParameters(spatial_cell::SpatialCell* cell, creal& t) override;
+
+      virtual std::vector<std::array<Real, 3>> getV0(creal x, creal y, creal z, const uint popID) const override;
+
       virtual std::vector<std::array<Real, 3> > getV0(
          creal x,
          creal y,
