@@ -29,13 +29,13 @@
 #include <span>
 
 template <typename T, size_t N> struct DerivativesData {
-   const std::array<T, N>& center = {};
-   const std::array<T, N>& right = {};
-   const std::array<T, N>& left = {};
-   const std::array<T, N>& up = {};
-   const std::array<T, N>& down = {};
-   const std::array<T, N>& near = {};
-   const std::array<T, N>& far = {};
+   const std::array<T, N>& ooo = {};
+   const std::array<T, N>& poo = {};
+   const std::array<T, N>& moo = {};
+   const std::array<T, N>& opo = {};
+   const std::array<T, N>& omo = {};
+   const std::array<T, N>& oop = {};
+   const std::array<T, N>& oom = {};
 };
 
 void computeMoments(std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
@@ -66,14 +66,14 @@ void computeMoments(std::span<const std::array<Real, fsgrids::moments::N_MOMENTS
          abort();
       }
 
-      const auto& lv = momData.left[mom::RHOM];
+      const auto& lv = momData.moo[mom::RHOM];
       if (lv <= 0) {
          std::cerr << __FILE__ << ":" << __LINE__ << (lv < 0 ? " Negative" : " Zero") << " density in spatial cell"
                    << std::endl;
          abort();
       }
 
-      const auto& rv = momData.right[mom::RHOM];
+      const auto& rv = momData.poo[mom::RHOM];
       if (rv <= 0) {
          std::cerr << __FILE__ << ":" << __LINE__ << (rv < 0 ? " Negative" : " Zero") << " density in spatial cell"
                    << std::endl;
@@ -95,23 +95,23 @@ void computeMoments(std::span<const std::array<Real, fsgrids::moments::N_MOMENTS
 
    if (notSysBoundary) {
       for (size_t i = 0; i < moms.size(); i++) {
-         dMoments[dmix[i]] = computeDiff(moms[i], momData.right, momData.left);
+         dMoments[dmix[i]] = computeDiff(moms[i], momData.poo, momData.moo);
       }
       for (size_t i = 0; i < moms.size(); i++) {
-         dMoments[dmiy[i]] = computeDiff(moms[i], momData.up, momData.down);
+         dMoments[dmiy[i]] = computeDiff(moms[i], momData.opo, momData.omo);
       }
       for (size_t i = 0; i < moms.size(); i++) {
-         dMoments[dmiz[i]] = computeDiff(moms[i], momData.near, momData.far);
+         dMoments[dmiz[i]] = computeDiff(moms[i], momData.oop, momData.oom);
       }
    } else {
       for (size_t i = 0; i < moms.size(); i++) {
-         dMoments[dmix[i]] = computeLimiter(moms[i], momData.right, momData.left, momData.center);
+         dMoments[dmix[i]] = computeLimiter(moms[i], momData.poo, momData.moo, momData.ooo);
       }
       for (size_t i = 0; i < moms.size(); i++) {
-         dMoments[dmiy[i]] = computeLimiter(moms[i], momData.up, momData.down, momData.center);
+         dMoments[dmiy[i]] = computeLimiter(moms[i], momData.opo, momData.omo, momData.ooo);
       }
       for (size_t i = 0; i < moms.size(); i++) {
-         dMoments[dmiz[i]] = computeLimiter(moms[i], momData.near, momData.far, momData.center);
+         dMoments[dmiz[i]] = computeLimiter(moms[i], momData.oop, momData.oom, momData.ooo);
       }
    }
 
@@ -127,9 +127,9 @@ void computeMoments(std::span<const std::array<Real, fsgrids::moments::N_MOMENTS
                                pow(right[mom::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex));
    };
 
-   dMoments[dmo::dPedx] = computePresE(momData.right, momData.left, momData.center);
-   dMoments[dmo::dPedy] = computePresE(momData.up, momData.down, momData.center);
-   dMoments[dmo::dPedz] = computePresE(momData.near, momData.far, momData.center);
+   dMoments[dmo::dPedx] = computePresE(momData.poo, momData.moo, momData.ooo);
+   dMoments[dmo::dPedy] = computePresE(momData.opo, momData.omo, momData.ooo);
+   dMoments[dmo::dPedz] = computePresE(momData.oop, momData.oom, momData.ooo);
 }
 
 void computePerb(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
@@ -150,19 +150,19 @@ void computePerb(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> pe
    };
 
    if (notSysBoundary) {
-      dPerB[dpb::dPERBydx] = computeDiff(bfi::PERBY, perbData.right, perbData.left);
-      dPerB[dpb::dPERBzdx] = computeDiff(bfi::PERBZ, perbData.right, perbData.left);
-      dPerB[dpb::dPERBxdy] = computeDiff(bfi::PERBX, perbData.up, perbData.down);
-      dPerB[dpb::dPERBzdy] = computeDiff(bfi::PERBZ, perbData.up, perbData.down);
-      dPerB[dpb::dPERBxdz] = computeDiff(bfi::PERBX, perbData.near, perbData.far);
-      dPerB[dpb::dPERBydz] = computeDiff(bfi::PERBY, perbData.near, perbData.far);
+      dPerB[dpb::dPERBydx] = computeDiff(bfi::PERBY, perbData.poo, perbData.moo);
+      dPerB[dpb::dPERBzdx] = computeDiff(bfi::PERBZ, perbData.poo, perbData.moo);
+      dPerB[dpb::dPERBxdy] = computeDiff(bfi::PERBX, perbData.opo, perbData.omo);
+      dPerB[dpb::dPERBzdy] = computeDiff(bfi::PERBZ, perbData.opo, perbData.omo);
+      dPerB[dpb::dPERBxdz] = computeDiff(bfi::PERBX, perbData.oop, perbData.oom);
+      dPerB[dpb::dPERBydz] = computeDiff(bfi::PERBY, perbData.oop, perbData.oom);
    } else {
-      dPerB[dpb::dPERBydx] = computeLimiter(bfi::PERBY, perbData.right, perbData.left, perbData.center);
-      dPerB[dpb::dPERBzdx] = computeLimiter(bfi::PERBZ, perbData.right, perbData.left, perbData.center);
-      dPerB[dpb::dPERBxdy] = computeLimiter(bfi::PERBX, perbData.up, perbData.down, perbData.center);
-      dPerB[dpb::dPERBzdy] = computeLimiter(bfi::PERBZ, perbData.up, perbData.down, perbData.center);
-      dPerB[dpb::dPERBxdz] = computeLimiter(bfi::PERBX, perbData.near, perbData.far, perbData.center);
-      dPerB[dpb::dPERBydz] = computeLimiter(bfi::PERBY, perbData.near, perbData.far, perbData.center);
+      dPerB[dpb::dPERBydx] = computeLimiter(bfi::PERBY, perbData.poo, perbData.moo, perbData.ooo);
+      dPerB[dpb::dPERBzdx] = computeLimiter(bfi::PERBZ, perbData.poo, perbData.moo, perbData.ooo);
+      dPerB[dpb::dPERBxdy] = computeLimiter(bfi::PERBX, perbData.opo, perbData.omo, perbData.ooo);
+      dPerB[dpb::dPERBzdy] = computeLimiter(bfi::PERBZ, perbData.opo, perbData.omo, perbData.ooo);
+      dPerB[dpb::dPERBxdz] = computeLimiter(bfi::PERBX, perbData.oop, perbData.oom, perbData.ooo);
+      dPerB[dpb::dPERBydz] = computeLimiter(bfi::PERBY, perbData.oop, perbData.oom, perbData.ooo);
    }
 
    if (dontCompute2ndDerivatives) {
@@ -179,12 +179,12 @@ void computePerb(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> pe
       auto compute2ndDerivative = [](auto i, const auto& right, const auto& left, const auto& center) {
          return left[i] + right[i] - 2.0 * center[i];
       };
-      dPerB[dpb::dPERBydxx] = compute2ndDerivative(bfi::PERBY, perbData.right, perbData.left, perbData.center);
-      dPerB[dpb::dPERBzdxx] = compute2ndDerivative(bfi::PERBZ, perbData.right, perbData.left, perbData.center);
-      dPerB[dpb::dPERBxdyy] = compute2ndDerivative(bfi::PERBX, perbData.up, perbData.down, perbData.center);
-      dPerB[dpb::dPERBzdyy] = compute2ndDerivative(bfi::PERBZ, perbData.up, perbData.down, perbData.center);
-      dPerB[dpb::dPERBxdzz] = compute2ndDerivative(bfi::PERBX, perbData.near, perbData.far, perbData.center);
-      dPerB[dpb::dPERBydzz] = compute2ndDerivative(bfi::PERBY, perbData.near, perbData.far, perbData.center);
+      dPerB[dpb::dPERBydxx] = compute2ndDerivative(bfi::PERBY, perbData.poo, perbData.moo, perbData.ooo);
+      dPerB[dpb::dPERBzdxx] = compute2ndDerivative(bfi::PERBZ, perbData.poo, perbData.moo, perbData.ooo);
+      dPerB[dpb::dPERBxdyy] = compute2ndDerivative(bfi::PERBX, perbData.opo, perbData.omo, perbData.ooo);
+      dPerB[dpb::dPERBzdyy] = compute2ndDerivative(bfi::PERBZ, perbData.opo, perbData.omo, perbData.ooo);
+      dPerB[dpb::dPERBxdzz] = compute2ndDerivative(bfi::PERBX, perbData.oop, perbData.oom, perbData.ooo);
+      dPerB[dpb::dPERBydzz] = compute2ndDerivative(bfi::PERBY, perbData.oop, perbData.oom, perbData.ooo);
 
       if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
          auto compute = [&perb](auto bl, auto br, auto tl, auto tr, auto i) {
@@ -327,40 +327,40 @@ void calculateBVOLDerivatives(std::span<std::array<Real, fsgrids::volfields::N_V
    };
 
    auto& volCenter = vol[stencil.ooo()];
-   const auto right = stencil.poo();
-   const auto left = stencil.moo();
+   const auto poo = stencil.poo();
+   const auto moo = stencil.moo();
    if (notSysBoundary) {
-      volCenter[vf::dPERBXVOLdx] = computeDiff(vf::PERBXVOL, vol[right], vol[left]);
-      volCenter[vf::dPERBYVOLdx] = computeDiff(vf::PERBYVOL, vol[right], vol[left]);
-      volCenter[vf::dPERBZVOLdx] = computeDiff(vf::PERBZVOL, vol[right], vol[left]);
+      volCenter[vf::dPERBXVOLdx] = computeDiff(vf::PERBXVOL, vol[poo], vol[moo]);
+      volCenter[vf::dPERBYVOLdx] = computeDiff(vf::PERBYVOL, vol[poo], vol[moo]);
+      volCenter[vf::dPERBZVOLdx] = computeDiff(vf::PERBZVOL, vol[poo], vol[moo]);
    } else {
-      volCenter[vf::dPERBXVOLdx] = computeLimiter(vf::PERBXVOL, vol[right], vol[left], volCenter);
-      volCenter[vf::dPERBYVOLdx] = computeLimiter(vf::PERBYVOL, vol[right], vol[left], volCenter);
-      volCenter[vf::dPERBZVOLdx] = computeLimiter(vf::PERBZVOL, vol[right], vol[left], volCenter);
+      volCenter[vf::dPERBXVOLdx] = computeLimiter(vf::PERBXVOL, vol[poo], vol[moo], volCenter);
+      volCenter[vf::dPERBYVOLdx] = computeLimiter(vf::PERBYVOL, vol[poo], vol[moo], volCenter);
+      volCenter[vf::dPERBZVOLdx] = computeLimiter(vf::PERBZVOL, vol[poo], vol[moo], volCenter);
    }
 
-   const auto up = stencil.opo();
-   const auto down = stencil.omo();
+   const auto opo = stencil.opo();
+   const auto omo = stencil.omo();
    if (notSysBoundary) {
-      volCenter[vf::dPERBXVOLdy] = computeDiff(vf::PERBXVOL, vol[up], vol[down]);
-      volCenter[vf::dPERBYVOLdy] = computeDiff(vf::PERBYVOL, vol[up], vol[down]);
-      volCenter[vf::dPERBZVOLdy] = computeDiff(vf::PERBZVOL, vol[up], vol[down]);
+      volCenter[vf::dPERBXVOLdy] = computeDiff(vf::PERBXVOL, vol[opo], vol[omo]);
+      volCenter[vf::dPERBYVOLdy] = computeDiff(vf::PERBYVOL, vol[opo], vol[omo]);
+      volCenter[vf::dPERBZVOLdy] = computeDiff(vf::PERBZVOL, vol[opo], vol[omo]);
    } else {
-      volCenter[vf::dPERBXVOLdy] = computeLimiter(vf::PERBXVOL, vol[up], vol[down], volCenter);
-      volCenter[vf::dPERBYVOLdy] = computeLimiter(vf::PERBYVOL, vol[up], vol[down], volCenter);
-      volCenter[vf::dPERBZVOLdy] = computeLimiter(vf::PERBZVOL, vol[up], vol[down], volCenter);
+      volCenter[vf::dPERBXVOLdy] = computeLimiter(vf::PERBXVOL, vol[opo], vol[omo], volCenter);
+      volCenter[vf::dPERBYVOLdy] = computeLimiter(vf::PERBYVOL, vol[opo], vol[omo], volCenter);
+      volCenter[vf::dPERBZVOLdy] = computeLimiter(vf::PERBZVOL, vol[opo], vol[omo], volCenter);
    }
 
-   const auto near = stencil.oop();
-   const auto far = stencil.oom();
+   const auto oop = stencil.oop();
+   const auto oom = stencil.oom();
    if (notSysBoundary) {
-      volCenter[vf::dPERBXVOLdz] = computeDiff(vf::PERBXVOL, vol[near], vol[far]);
-      volCenter[vf::dPERBYVOLdz] = computeDiff(vf::PERBYVOL, vol[near], vol[far]);
-      volCenter[vf::dPERBZVOLdz] = computeDiff(vf::PERBZVOL, vol[near], vol[far]);
+      volCenter[vf::dPERBXVOLdz] = computeDiff(vf::PERBXVOL, vol[oop], vol[oom]);
+      volCenter[vf::dPERBYVOLdz] = computeDiff(vf::PERBYVOL, vol[oop], vol[oom]);
+      volCenter[vf::dPERBZVOLdz] = computeDiff(vf::PERBZVOL, vol[oop], vol[oom]);
    } else {
-      volCenter[vf::dPERBXVOLdz] = computeLimiter(vf::PERBXVOL, vol[near], vol[far], volCenter);
-      volCenter[vf::dPERBYVOLdz] = computeLimiter(vf::PERBYVOL, vol[near], vol[far], volCenter);
-      volCenter[vf::dPERBZVOLdz] = computeLimiter(vf::PERBZVOL, vol[near], vol[far], volCenter);
+      volCenter[vf::dPERBXVOLdz] = computeLimiter(vf::PERBXVOL, vol[oop], vol[oom], volCenter);
+      volCenter[vf::dPERBYVOLdz] = computeLimiter(vf::PERBYVOL, vol[oop], vol[oom], volCenter);
+      volCenter[vf::dPERBZVOLdz] = computeLimiter(vf::PERBZVOL, vol[oop], vol[oom], volCenter);
    }
 }
 

@@ -850,12 +850,12 @@ void calculateEdgeHallTermComponents(std::span<const std::array<Real, fsgrids::b
                                      const std::array<Real, 3>& gridSpacing,
                                      const std::array<Real, Rec::N_REC_COEFFICIENTS>& perturbedCoefficients,
                                      const fsgrid::FsStencil& stencil) {
-   const auto center = stencil.ooo();
-   const auto& bgb = bgbs[center];
-   const auto& perb = perbs[center];
-   const auto& dperb = dperbs[center];
-   const auto& moment = moments[center];
-   auto& ehall = ehalls[center];
+   const auto ooo = stencil.ooo();
+   const auto& bgb = bgbs[ooo];
+   const auto& perb = perbs[ooo];
+   const auto& dperb = dperbs[ooo];
+   const auto& moment = moments[ooo];
+   auto& ehall = ehalls[ooo];
 
    const Real bgbx = bgb[fsgrids::bgbfield::BGBX];
    const Real bgby = bgb[fsgrids::bgbfield::BGBY];
@@ -919,84 +919,84 @@ void calculateEdgeHallTermComponents(std::span<const std::array<Real, fsgrids::b
          return JXB(term, perturbedCoefficients, bgbx, bgby, bgbz, gridSpacing) / (physicalconstants::MU_0 * hallRhoq);
       };
 
-      const auto down = stencil.omo();
-      const auto up = stencil.opo();
-      const auto left = stencil.moo();
-      const auto right = stencil.poo();
-      const auto far = stencil.oom();
-      const auto near = stencil.oop();
+      const auto omo = stencil.omo();
+      const auto opo = stencil.opo();
+      const auto moo = stencil.moo();
+      const auto poo = stencil.poo();
+      const auto oom = stencil.oom();
+      const auto oop = stencil.oop();
       // clang-format off
       const std::array<std::array<size_t, 4>, 12> indices = {
           std::array{
-              center,
-              down,
-              far,
+              ooo,
+              omo,
+              oom,
               stencil.omm(),
           },
           std::array{
-              center,
-              left,
-              far,
+              ooo,
+              moo,
+              oom,
               stencil.mom(),
           },
           std::array{
-              center,
-              left,
-              down,
+              ooo,
+              moo,
+              omo,
               stencil.mmo(),
           },
           std::array{
-              center,
-              right,
-              far,
+              ooo,
+              poo,
+              oom,
               stencil.pom(),
           },
           std::array{
-              center,
-              right,
-              down,
+              ooo,
+              poo,
+              omo,
               stencil.pmo(),
           },
           std::array{
-              center,
-              up,
-              far,
+              ooo,
+              opo,
+              oom,
               stencil.opm(),
           },
           std::array{
-              center,
-              left,
-              up,
+              ooo,
+              moo,
+              opo,
               stencil.mpo(),
           },
           std::array{
-              center,
-              right,
-              up,
+              ooo,
+              poo,
+              opo,
               stencil.ppo(),
           },
           std::array{
-              center,
-              down,
-              near,
+              ooo,
+              omo,
+              oop,
               stencil.omp(),
           },
           std::array{
-              center,
-              left,
-              near,
+              ooo,
+              moo,
+              oop,
               stencil.mop(),
           },
           std::array{
-              center,
-              right,
-              near,
+              ooo,
+              poo,
+              oop,
               stencil.pop(),
           },
           std::array{
-              center,
-              up,
-              near,
+              ooo,
+              opo,
+              oop,
               stencil.opp(),
           },
       };
