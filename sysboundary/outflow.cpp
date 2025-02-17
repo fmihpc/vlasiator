@@ -32,10 +32,10 @@
 #include "../fieldsolver/ldz_magnetic_field.hpp"
 #include "../object_wrapper.h"
 #include "../projects/projects_common.h"
-#include "../vlasovmover.h"
+#include "../vlasovsolver/vlasovmover.h"
 #include "outflow.h"
 
-#ifndef NDEBUG
+#ifdef DEBUG_VLASIATOR
 #define DEBUG_OUTFLOW
 #endif
 #ifdef DEBUG_SYSBOUNDARY
@@ -70,18 +70,12 @@ void Outflow::addParameters() {
           "List of faces on which outflow boundary conditions are to be reapplied upon restart ([xyz][+-]).");
       Readparameters::addComposing(pop + "_outflow.face",
                                    "List of faces on which outflow boundary conditions are to be applied ([xyz][+-]).");
-      Readparameters::add(pop + "_outflow.vlasovScheme_face_x+", "Scheme to use on the face x+ (Copy, Limit, None)",
-                          defStr);
-      Readparameters::add(pop + "_outflow.vlasovScheme_face_x-", "Scheme to use on the face x- (Copy, Limit, None)",
-                          defStr);
-      Readparameters::add(pop + "_outflow.vlasovScheme_face_y+", "Scheme to use on the face y+ (Copy, Limit, None)",
-                          defStr);
-      Readparameters::add(pop + "_outflow.vlasovScheme_face_y-", "Scheme to use on the face y- (Copy, Limit, None)",
-                          defStr);
-      Readparameters::add(pop + "_outflow.vlasovScheme_face_z+", "Scheme to use on the face z+ (Copy, Limit, None)",
-                          defStr);
-      Readparameters::add(pop + "_outflow.vlasovScheme_face_z-", "Scheme to use on the face z- (Copy, Limit, None)",
-                          defStr);
+      Readparameters::add(pop + "_outflow.vlasovScheme_face_x+", "Scheme to use on the face x+ (Copy, None)", defStr);
+      Readparameters::add(pop + "_outflow.vlasovScheme_face_x-", "Scheme to use on the face x- (Copy, None)", defStr);
+      Readparameters::add(pop + "_outflow.vlasovScheme_face_y+", "Scheme to use on the face y+ (Copy, None)", defStr);
+      Readparameters::add(pop + "_outflow.vlasovScheme_face_y-", "Scheme to use on the face y- (Copy, None)", defStr);
+      Readparameters::add(pop + "_outflow.vlasovScheme_face_z+", "Scheme to use on the face z+ (Copy, None)", defStr);
+      Readparameters::add(pop + "_outflow.vlasovScheme_face_z-", "Scheme to use on the face z- (Copy, None)", defStr);
 
       Readparameters::add(pop + "_outflow.quench",
                           "Factor by which to quench the inflowing parts of the velocity distribution function.", 1.0);
@@ -154,8 +148,6 @@ void Outflow::getParameters() {
             sP.faceVlasovScheme[j] = vlasovscheme::NONE;
          } else if (vlasovSysBoundarySchemeName[j] == "Copy") {
             sP.faceVlasovScheme[j] = vlasovscheme::COPY;
-         } else if (vlasovSysBoundarySchemeName[j] == "Limit") {
-            sP.faceVlasovScheme[j] = vlasovscheme::LIMIT;
          } else {
             abort_mpi("ERROR: " + vlasovSysBoundarySchemeName[j] + " is an invalid Outflow Vlasov scheme!");
          }
@@ -291,7 +283,7 @@ void Outflow::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geome
                                 std::span<array<Real, fsgrids::bfield::N_BFIELD>> perb,
                                 std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, Project& project) {
    const vector<CellID>& cells = getLocalCells();
-#pragma omp parallel for
+#pragma omp parallel for schedule(static)
    for (uint i = 0; i < cells.size(); ++i) {
       CellID id = cells[i];
       SpatialCell* cell = mpiGrid[id];
@@ -414,9 +406,6 @@ void Outflow::vlasovBoundaryCondition(dccrg::Dccrg<SpatialCell, dccrg::Cartesian
          case vlasovscheme::COPY:
             vlasovBoundaryCopyFromTheClosestNbr(mpiGrid, cellID, false, popID, calculate_V_moments);
             break;
-         case vlasovscheme::LIMIT:
-            vlasovBoundaryCopyFromTheClosestNbrAndLimit(mpiGrid, cellID, popID);
-            break;
          default:
             abort_mpi("ERROR: invalid Outflow Vlasov scheme", 1);
          }
@@ -425,8 +414,9 @@ void Outflow::vlasovBoundaryCondition(dccrg::Dccrg<SpatialCell, dccrg::Cartesian
 }
 
 void Outflow::getFaces(bool* faces) {
-   for (uint i = 0; i < 6; i++)
+   for (uint i = 0; i < 6; i++) {
       faces[i] = facesToProcess[i];
+   }
 }
 
 string Outflow::getName() const { return "Outflow"; }
