@@ -3191,24 +3191,6 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
             continue;
          }
       }
-      if (P::diagnosticWriteAllDROs || lowercase == "populations_maxdistributionfunction" ||
-          lowercase == "populations_vg_maxdistributionfunction") {
-         for (unsigned int i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
-            diagnosticReducer->addOperator(new DRO::MaxDistributionFunction(i));
-         }
-         if (!P::diagnosticWriteAllDROs) {
-            continue;
-         }
-      }
-      if (P::diagnosticWriteAllDROs || lowercase == "populations_mindistributionfunction" ||
-          lowercase == "populations_vg_mindistributionfunction") {
-         for (unsigned int i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
-            diagnosticReducer->addOperator(new DRO::MinDistributionFunction(i));
-         }
-         if (!P::diagnosticWriteAllDROs) {
-            continue;
-         }
-      }
       if (P::diagnosticWriteAllDROs || lowercase == "populations_maxrdt" ||
           lowercase == "populations_maxdt_translation" || lowercase == "populations_vg_maxdt_translation") {
          for (unsigned int i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
