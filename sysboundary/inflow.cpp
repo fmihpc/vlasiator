@@ -32,10 +32,10 @@
 #include "../fieldsolver/fs_common.h"
 #include "../grid.h"
 #include "../object_wrapper.h"
-#include "../vlasovmover.h"
+#include "../vlasovsolver/vlasovmover.h"
 #include "inflow.h"
 
-#ifndef NDEBUG
+#ifdef DEBUG_VLASIATOR
 #define DEBUG_INFLOW
 #endif
 #ifdef DEBUG_SYSBOUNDARY
@@ -346,10 +346,17 @@ void Inflow::setCellsFromTemplate(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geo
          if (facesToProcess[i] && isThisCellOnAFace[i]) {
             copyCellData(&templateCells[i], cell, false, popID, true); // copy also vdf, _V
             copyCellData(&templateCells[i], cell, true, popID, false); // don't copy vdf again but copy _R now
+#ifdef USE_GPU
+            cell->setReservation(popID, templateCells[i].getReservation(popID));
+#endif
             break; // Effectively sets the precedence of faces through the order of faces.
          }
       }
    }
+   // Verify current mesh and blocks
+   // if (!cell->checkMesh(popID)) {
+   //    printf("ERROR in vmesh check: %s at %d\n",__FILE__,__LINE__);
+   // }
 }
 
 void Inflow::getFaces(bool* faces) {
