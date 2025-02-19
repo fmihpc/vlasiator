@@ -1448,6 +1448,48 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       }
    }
 
+   if (P::maxTimeclass > 0) {
+      // stencils for timeghost haloes
+      // first one using timeclassexacthaloextent
+      neighborhood.clear();
+      for (int dy = -(int)P::timeclassExactHaloExtent; dy <= (int)P::timeclassExactHaloExtent; dy++){
+         for (int dx = -(int)P::timeclassExactHaloExtent; dx <= (int)P::timeclassExactHaloExtent; dx++){
+            for (int dz = -(int)P::timeclassExactHaloExtent; dz <= (int)P::timeclassExactHaloExtent; dz++){
+               if ((dz==0) && (dy==0) && (dx==0)) {
+                  continue;
+               }
+               neighborhood.push_back({{dx, dy, dz}});
+            }
+         }
+      }
+
+      if (!mpiGrid.add_neighborhood(VLASOV_SOLVER_TIMEGHOST_EXACT_HALO_NEIGHBORHOOD_ID, neighborhood)){
+         std::cerr << "Failed to add neighborhood VLASOV_SOLVER_TIMEGHOST_EXACT_HALO_NEIGHBORHOOD_ID \n";
+         abort();
+      }
+
+      // second one using timeclassouterhaloextent
+      neighborhood.clear();
+      for (int dy = -(int)P::timeclassOuterHaloExtent; dy <= (int)P::timeclassOuterHaloExtent; dy++){
+         for (int dx = -(int)P::timeclassOuterHaloExtent; dx <= (int)P::timeclassOuterHaloExtent; dx++){
+            for (int dz = -(int)P::timeclassOuterHaloExtent; dz <= (int)P::timeclassOuterHaloExtent; dz++){
+               if ((dz==0) && (dy==0) && (dx==0)) {
+                  continue;
+               }
+               neighborhood.push_back({{dx, dy, dz}});
+            }
+         }
+      }
+      
+      if (!mpiGrid.add_neighborhood(VLASOV_SOLVER_TIMEGHOST_OUTER_HALO_NEIGHBORHOOD_ID, neighborhood)){
+         std::cerr << "Failed to add neighborhood VLASOV_SOLVER_TIMEGHOST_OUTER_HALO_NEIGHBORHOOD_ID \n";
+         abort();
+      }
+
+   }
+
+
+
    neighborhood.clear();
    for (int d = -1; d <= 1; d++) {
       if (d != 0) {
