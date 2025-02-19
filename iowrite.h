@@ -85,7 +85,7 @@ bool writeRestart(
    const std::string& versionInfo,
    const std::string& configInfo,
    DataReducer& dataReducer,
-   const std::string& name,
+   std::string& name,
    const uint& fileIndex,
    const int& stripe
 );
