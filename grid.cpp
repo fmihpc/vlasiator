@@ -1486,6 +1486,27 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          abort();
       }
 
+      // third one using the other two's difference
+      neighborhood.clear();
+      for (int dy = -(int)P::timeclassOuterHaloExtent; dy <= (int)P::timeclassOuterHaloExtent; dy++){
+         for (int dx = -(int)P::timeclassOuterHaloExtent; dx <= (int)P::timeclassOuterHaloExtent; dx++){
+            for (int dz = -(int)P::timeclassOuterHaloExtent; dz <= (int)P::timeclassOuterHaloExtent; dz++){
+               if ((dz==0) && (dy==0) && (dx==0)) {
+                  continue;
+               }
+               if ((dy > P::timeclassExactHaloExtent || dy < -P::timeclassExactHaloExtent) ||
+                   (dx > P::timeclassExactHaloExtent || dx < -P::timeclassExactHaloExtent) ||
+                   (dz > P::timeclassExactHaloExtent || dz < -P::timeclassExactHaloExtent)) {
+                  neighborhood.push_back({{dx, dy, dz}});
+               }
+            }
+         }
+      }
+      
+      if (!mpiGrid.add_neighborhood(VLASOV_SOLVER_TIMEGHOST_HALODIFF_NEIGHBORHOOD_ID, neighborhood)){
+         std::cerr << "Failed to add neighborhood VLASOV_SOLVER_TIMEGHOST_HALODIFF_NEIGHBORHOOD_ID \n";
+         abort();
+      }
    }
 
 

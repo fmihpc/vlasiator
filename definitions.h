@@ -119,6 +119,7 @@ typedef Realf (*VAmrVelRefinement)(const Realf* velBlock);
 #define VLASOV_SOLVER_GHOST_REQNEIGH_NEIGHBORHOOD_ID 24 //all ghost translation neighbors which require own neighbor information
 #define VLASOV_SOLVER_TIMEGHOST_EXACT_HALO_NEIGHBORHOOD_ID 25 //timeghost haloes with exact extent
 #define VLASOV_SOLVER_TIMEGHOST_OUTER_HALO_NEIGHBORHOOD_ID 26 //timeghost halos with outer extent
+#define VLASOV_SOLVER_TIMEGHOST_HALODIFF_NEIGHBORHOOD_ID 27 //difference between exact and outer halo
 
 //fieldsolver stencil.
 #define FS_STENCIL_WIDTH 2
