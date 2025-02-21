@@ -149,15 +149,13 @@
         '';
       };
 
-
-
       boostPkg = pkgs.stdenv.mkDerivation {
         pname = "boost";
-        version = "1.72.0";
+        version = "1.86.0";
 
         src = pkgs.fetchurl {
-          url = "http://freefr.dl.sourceforge.net/project/boost/boost/1.72.0/boost_1_72_0.tar.bz2";
-          sha256 = "sha256-WcmydLxFHPkam6HdLH/cr11gsbOqg/LJ+hQ0F8xmByI="; # Update this hash if necessary
+          url = "https://archives.boost.io/release/1.86.0/source/boost_1_86_0.tar.gz";
+          sha256 = "sha256-JXXnT/w+8c0Lq6wsHui9tXgqDuZysZEtpA5bS1kcoB8="; # Update this hash to the version you want
         };
 
         nativeBuildInputs = [ pkgs.gnumake pkgs.perl pkgs.bash ];
@@ -165,7 +163,7 @@
 
         configurePhase = ''
           tar xf $src
-          cd boost_1_72_0
+          cd boost_1_86_0
           ./bootstrap.sh --with-libraries=program_options
           echo "using mpi ;" >> ./tools/build/src/user-config.jam
         '';

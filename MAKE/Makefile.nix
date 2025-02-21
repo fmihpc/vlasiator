@@ -28,7 +28,7 @@ PAPI_FLAG =
 FLAGS =
 #CXXFLAGS = -I $(HOME)/include  -L $(HOME)/lib -g  -funroll-loops -std=c++20 -fopenmp -W -Wall -pedantic -Wno-unused -fabi-version=0 -mavx
 CXXFLAGS += -g3 -ggdb -O3  -funroll-loops -std=c++20 -fopenmp -W -Wall -Wno-unused -fabi-version=0 -mfma -mavx2 -Wno-unknown-pragmas -Wno-sign-compare
-testpackage: CXXFLAGS = -g -ggdb -O2 -fopenmp -funroll-loops -std=c++20 -fabi-version=0 -mno-avx -mno-fma -fno-unsafe-math-optimizations
+testpackage: CXXFLAGS = -g -ggdb -O2 -fopenmp -funroll-loops -std=c++20 -fabi-version=0 -mno-avx -mno-fma
 
 MATHFLAGS = -ffast-math -fno-finite-math-only
 testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
