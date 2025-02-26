@@ -182,6 +182,35 @@ jobs:
         path: vlasiator
         if-no-files-found: error
 
+  build_production_debug_flags:
+    # Build Vlasiator with production flags and all the debug flags enabled to check the debug code is still ok
+    runs-on: ubuntu-latest
+    container: ursg/vlasiator_ci:20241101_1
+    needs: build_libraries
+
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v4
+      with:
+        submodules: true
+    - name: Download libraries
+      uses: actions/download-artifact@v4
+      with:
+        name: libraries
+    - name: Unpack libraries
+      run: tar --zstd -xvf libraries.tar.zstd
+    - uses: ursg/gcc-problem-matcher@master
+    - name: Compile vlasiator (Release build)
+      run: |
+        VLASIATOR_ARCH=github_actions make clean
+        VLASIATOR_ARCH=github_actions COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEBUG_IONOSPHERE -DHASHINATOR_DEBUG -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC -DDEBUG_ACC " make -j 3
+    - name: Upload release binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: vlasiator-debug
+        path: vlasiator
+        if-no-files-found: error
+
   build_testpackage:
     # Build Vlasiator with testpackage flags, on the carrington cluster
     # (for subsequent running of the integration test package)
@@ -264,6 +293,46 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: vlasiator-testpackage-ukkoGPU
+          path: vlasiator
+          if-no-files-found: error
+
+  build_testpackage_debug_flags_ukkoGPU:
+    # Build Vlasiator with testpackage and debug flags, on the ukko cluster using
+    # its nvidia gpus
+    runs-on: carrington
+
+    steps:
+      - name: Clean workspace
+        run: |
+          RUN_STRING=$( cat << MORO
+          rm -rf libraries library-build testpackage
+          rm -f libraries.tar.zst testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+          rm -f *.xml
+          MORO
+          )
+          srun -M ukko bash -c "$RUN_STRING"
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Make clean
+        run: VLASIATOR_ARCH=ukko_cuda make clean
+      - uses: ursg/gcc-problem-matcher@master
+      - name: Compile vlasiator (Testpackage build w/ CUDA)
+        run: |
+          export VLASIATOR_ARCH=ukko_cuda
+          srun -Mukko -pgpu-oversub --job-name CI_tp_compile --interactive --nodes=1 -n 1 -c 8 --mem-per-cpu=2G -t 0:20:0 bash -c 'module purge; ml GCC/11.2.0; ml OpenMPI/4.1.1-GCC-11.2.0; ml PMIx/4.1.0-GCCcore-11.2.0; ml PAPI/6.0.0.1-GCCcore-11.2.0; ml CUDA; ml Boost/1.55.0-GCC-11.2.0; export VLASIATOR_ARCH=ukko_cuda; COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEBUG_IONOSPHERE -DHASHINATOR_DEBUG -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC -DDEBUG_ACC " make -j 9 testpackage ; sleep 10s'
+      - name: Make sure the output binary is visible in lustre
+        uses: nick-fields/retry@v3
+        with:
+          timeout_seconds: 15
+          max_attempts: 3
+          retry_on: error
+          command: ls vlasiator
+      - name: Upload testpackage binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: vlasiator-testpackage-debug-ukkoGPU
           path: vlasiator
           if-no-files-found: error
 
