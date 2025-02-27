@@ -469,12 +469,12 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                      // std::cout << target_cell_id << "is in turn \n";
                      blockLID = target_cell->get_velocity_block_local_id(blockGID, popID);
                      if(blocki==0)
-                     std::cout << __FILE__ << ":" << __LINE__ << target_cell_id << " cellBlockData " << cellBlockData.size() << "\n";   
+                     std::cout << __FILE__ << ":" << __LINE__ <<" " << target_cell_id << " cellBlockData " << cellBlockData.size() << "\n";   
                   }
                   else if(target_cell->requested_timeclass_ghosts.count(timeclass) > 0){
                      blockLID = target_cell->get_velocity_block_local_id(blockGID, popID,timeclass);
                      if(blocki==0)
-                     std::cout << __FILE__ << ":" << __LINE__ << target_cell_id << " cellBlockData " << cellBlockData.size() << "\n";   
+                     std::cout << __FILE__ << ":" << __LINE__ << " " <<target_cell_id << " cellBlockData " << cellBlockData.size() << "\n";   
 
                   }
                   else{ 
@@ -482,7 +482,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                      // blockLID = target_cell->get_velocity_block_local_id(blockGID, popID, timeclass);
                      blockLID = vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID();
                      if(blocki==0)
-                     std::cout << __FILE__ << ":" << __LINE__ << target_cell_id << " invalid " << cellBlockData.size() << "\n";
+                     std::cout << __FILE__ << ":" << __LINE__ << " " <<target_cell_id << " invalid " << cellBlockData.size() << "\n";
       
                   }
       
@@ -518,6 +518,10 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                      //    blockData = target_cell->get_
                      // }
                      if(blockData && !donotZero){
+                        if(blocki == 0)
+                        {
+                           std::cout << "zeroing " << target_cell_id << "\n";
+                        }
                         // std::cout << blockData << " blockdata," << target_cell->null_block_data.data() <<" \n";
                         // std::cout << target_cell_id << " zeroed blockdata\n";
                         memset(blockData, 0, WID3*sizeof(Realf));
@@ -553,11 +557,18 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
             // Dz and sourceVecData are both padded by VLASOV_STENCIL_WIDTH
             // Dz has 1 value/cell, sourceVecData has WID3 values/cell
             // vmesh is required just for general indexes and accessors
-            Realv scalingthreshold = mpiGrid[DimensionPencils[dimension].ids[start + VLASOV_STENCIL_WIDTH+1]]->getVelocityBlockMinValue(popID);
+            Realv scalingthreshold = mpiGrid[DimensionPencils[dimension].ids[start + VLASOV_STENCIL_WIDTH+1]]->getVelocityBlockMinValue(popID); // technically should include timeclass
             Realf* pencilDZ = DimensionPencils[dimension].sourceDZ.data() + start;
             Realf* pencilRatios = DimensionPencils[dimension].targetRatios.data() + start;
             Realf** pencilBlockData = cellBlockData.data() + start;
             Vec* blockDataSource = blockDataBuffer.data() + start*WID3/VECL;
+            if (blocki == 0){
+               std::cout << "Sanity-checking targetratios\n";
+               for (int i = 0; i < L; ++i){
+                  std::cout << pencilRatios[i] << " ";
+               }
+            }
+            std::cout << "\n";
             propagatePencil(pencilDZ,
                             blockDataSource,
                             dimension,
