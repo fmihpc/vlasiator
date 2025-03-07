@@ -304,20 +304,20 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
 #pragma omp for
       for(unsigned int i=0; i<allCells.size(); i++) {
          CellID cellid = allCells[i];
-         const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& cvmesh = mpiGrid[cellid]->get_velocity_mesh(popID);
+         const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& cvmesh = mpiGrid[cellid]->get_velocity_mesh(popID, timeclass);
          for (vmesh::LocalID block_i=0; block_i< cvmesh.size(); ++block_i) {
             thread_unionOfBlocksSet.insert(cvmesh.getGlobalID(block_i));
          }
          
          // for (auto tc : (*cell)->requested_timeclass_ghosts){
-         if ((mpiGrid[cellid])->requested_timeclass_ghosts.count(timeclass) > 0){// && (*cell)->get_tc() > timeclass){
-            std::cout << "\tChecked ghost data in cell " << (mpiGrid[cellid])->parameters[CellParams::CELLID] << "\n";
+         // if ((mpiGrid[cellid])->requested_timeclass_ghosts.count(timeclass) > 0){// && (*cell)->get_tc() > timeclass){
+         //    std::cout << "\tChecked ghost data in cell " << (mpiGrid[cellid])->parameters[CellParams::CELLID] << "\n";
 
-            const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& cvmeshg = (mpiGrid[cellid])->get_velocity_mesh_ghost(popID, timeclass);
-            for (vmesh::LocalID block_i=0; block_i< cvmeshg.size(); ++block_i) {
-               thread_unionOfBlocksSet.insert(cvmeshg.getGlobalID(block_i));
-            }
-         }
+         //    const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& cvmeshg = (mpiGrid[cellid])->get_velocity_mesh_ghost(popID, timeclass);
+         //    for (vmesh::LocalID block_i=0; block_i< cvmeshg.size(); ++block_i) {
+         //       thread_unionOfBlocksSet.insert(cvmeshg.getGlobalID(block_i));
+         //    }
+         // }
       }
 #pragma omp critical
       {
@@ -374,50 +374,52 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                // Need to sort timeclasses etc before the following call! (also get rid of ghost vmesh there?)
                vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>* velmesh;
                vmesh::VelocityBlockContainer<vmesh::LocalID>* velblocks;
-
-               if (srcCell->get_tc() != timeclass){// && (*cell)->get_tc() > timeclass){
-                  velmesh = &srcCell->get_velocity_mesh(popID, timeclass);
-                  velblocks = &srcCell->get_velocity_blocks(popID, timeclass);
-               }
-               else{
-                  velmesh = &srcCell->get_velocity_mesh(popID);
-                  velblocks = &srcCell->get_velocity_blocks(popID);
-               }
+               velmesh = &srcCell->get_velocity_mesh(popID, timeclass);
+               velblocks = &srcCell->get_velocity_blocks(popID, timeclass);
+               // if (srcCell->get_tc() != timeclass){// && (*cell)->get_tc() > timeclass){
+               //    velmesh = &srcCell->get_velocity_mesh(popID, timeclass);
+               //    velblocks = &srcCell->get_velocity_blocks(popID, timeclass);
+               // }
+               // else{
+               //    velmesh = &srcCell->get_velocity_mesh(popID);
+               //    velblocks = &srcCell->get_velocity_blocks(popID);
+               // }
                // const vmesh::LocalID blockLID = srcCell->get_velocity_block_local_id(blockGID,popID, timeclass);
                const vmesh::LocalID blockLID = velmesh->getLocalID(blockGID);
                // Store block data pointer for both loading of data and writing back to the cell
                   if (blocki == 0){
                      std::cout << "Loading cell " << (int)srcCell->parameters[CellParams::CELLID]<<"\n";
                      std::cout << "velmesh size = " << velmesh->size() <<"\n"; 
-                     std::cout << "cell tc " << srcCell->get_tc() << ", pencil tc " <<  DimensionPencils[dimension].timeclasses[pencili] << ", tc req count " << srcCell->requested_timeclass_ghosts.count(timeclass)<<"\n";
+                     std::cout << "cell tc " << srcCell->get_tc() << ", pencil tc " <<  DimensionPencils[dimension].timeclasses[pencili] << ", tc req count " << srcCell->get_all_ghosts().count(timeclass)<<"\n";
                      std::cout << "cellBlockData " << cellBlockData.size() << "\n";
                   }
                if (blockLID != srcCell->invalid_local_id()) {
                // if (blockLID != velmesh->invalidLocalID()){
                   // Get data pointer
+                  cellBlockData[start + b] = srcCell->get_data(blockLID,popID, timeclass);
 
-                  // cellBlockData[start + b] = velblocks->getData(blockLID); // This breaks for now
-                  if (srcCell->get_tc() != DimensionPencils[dimension].timeclasses[pencili] && srcCell->requested_timeclass_ghosts.count(timeclass) > 0){
-                     if (blocki == 0) {
-                        std::cout <<__FILE__<<":"<<__LINE__<< "\tLoaded ghost data in cell " << (int)srcCell->parameters[CellParams::CELLID] << " for tc " << timeclass << " at pencil "<<pencili <<" dimension "<<dimension<<"\n";
-                        std::cout << "cellBlockData " << cellBlockData.size() << "\n";
-                     }
-                     cellBlockData[start + b] = srcCell->get_data(blockLID,popID, timeclass);
-                     // if ((int)srcCell->parameters[CellParams::CELLID] == 16){
-                     //    float bmax = 0;
-                     //    for (int i = 0; i < 64; i++){
-                     //       bmax = max(bmax,cellBlockData[start + b][i]);
-                     //    }
-                     //    std::cout <<"block max "<< bmax << "\n";
-                     // }
-                  }
-                  else {
-                     if (blocki == 0) {
-                        std::cout<< __FILE__<<":"<<__LINE__<< "\t Loaded regular data in cell " << srcCell->parameters[CellParams::CELLID] << " for tc " << timeclass<< " at pencil "<<pencili <<" dimension "<<dimension<< "\n";
-                     }
-                     cellBlockData[start + b] = srcCell->get_data(blockLID,popID);
-                     if(blocki == 0) {std::cout << "cellBlockData " << cellBlockData.size() << "\n";}
-                  }
+                  // // cellBlockData[start + b] = velblocks->getData(blockLID); // This breaks for now
+                  // if (srcCell->get_tc() != DimensionPencils[dimension].timeclasses[pencili] && srcCell->requested_timeclass_ghosts.count(timeclass) > 0){
+                  //    if (blocki == 0) {
+                  //       std::cout <<__FILE__<<":"<<__LINE__<< "\tLoaded ghost data in cell " << (int)srcCell->parameters[CellParams::CELLID] << " for tc " << timeclass << " at pencil "<<pencili <<" dimension "<<dimension<<"\n";
+                  //       std::cout << "cellBlockData " << cellBlockData.size() << "\n";
+                  //    }
+                  //    cellBlockData[start + b] = srcCell->get_data(blockLID,popID, timeclass);
+                  //    // if ((int)srcCell->parameters[CellParams::CELLID] == 16){
+                  //    //    float bmax = 0;
+                  //    //    for (int i = 0; i < 64; i++){
+                  //    //       bmax = max(bmax,cellBlockData[start + b][i]);
+                  //    //    }
+                  //    //    std::cout <<"block max "<< bmax << "\n";
+                  //    // }
+                  // }
+                  // else {
+                  //    if (blocki == 0) {
+                  //       std::cout<< __FILE__<<":"<<__LINE__<< "\t Loaded regular data in cell " << srcCell->parameters[CellParams::CELLID] << " for tc " << timeclass<< " at pencil "<<pencili <<" dimension "<<dimension<< "\n";
+                  //    }
+                  //    cellBlockData[start + b] = srcCell->get_data(blockLID,popID);
+                  //    if(blocki == 0) {std::cout << "cellBlockData " << cellBlockData.size() << "\n";}
+                  // }
                   nonEmptyBlocks++;
                } else {
                   cellBlockData[start + b] = NULL;
@@ -465,26 +467,27 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                   velmesh = &target_cell->get_velocity_mesh(popID, timeclass);
                   velblocks = &target_cell->get_velocity_blocks(popID, timeclass);
                   vmesh::LocalID blockLID;
-                  if(target_cell->get_tc() == timeclass) {
-                     // std::cout << target_cell_id << "is in turn \n";
-                     blockLID = target_cell->get_velocity_block_local_id(blockGID, popID);
-                     if(blocki==0)
-                     std::cout << __FILE__ << ":" << __LINE__ <<" " << target_cell_id << " cellBlockData " << cellBlockData.size() << "\n";   
-                  }
-                  else if(target_cell->requested_timeclass_ghosts.count(timeclass) > 0){
-                     blockLID = target_cell->get_velocity_block_local_id(blockGID, popID,timeclass);
-                     if(blocki==0)
-                     std::cout << __FILE__ << ":" << __LINE__ << " " <<target_cell_id << " cellBlockData " << cellBlockData.size() << "\n";   
+                  blockLID = target_cell->get_velocity_block_local_id(blockGID, popID,timeclass);
+                  // if(target_cell->get_tc() == timeclass) {
+                  //    // std::cout << target_cell_id << "is in turn \n";
+                  //    blockLID = target_cell->get_velocity_block_local_id(blockGID, popID);
+                  //    if(blocki==0)
+                  //    std::cout << __FILE__ << ":" << __LINE__ <<" " << target_cell_id << " cellBlockData " << cellBlockData.size() << "\n";   
+                  // }
+                  // else if(target_cell->requested_timeclass_ghosts.count(timeclass) > 0){
+                  //    blockLID = target_cell->get_velocity_block_local_id(blockGID, popID,timeclass);
+                  //    if(blocki==0)
+                  //    std::cout << __FILE__ << ":" << __LINE__ << " " <<target_cell_id << " cellBlockData " << cellBlockData.size() << "\n";   
 
-                  }
-                  else{ 
-                     // std::cout << target_cell_id << "is not in turn \n";
-                     // blockLID = target_cell->get_velocity_block_local_id(blockGID, popID, timeclass);
-                     blockLID = vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID();
-                     if(blocki==0)
-                     std::cout << __FILE__ << ":" << __LINE__ << " " <<target_cell_id << " invalid " << cellBlockData.size() << "\n";
+                  // }
+                  // else{ 
+                  //    // std::cout << target_cell_id << "is not in turn \n";
+                  //    // blockLID = target_cell->get_velocity_block_local_id(blockGID, popID, timeclass);
+                  //    blockLID = vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID();
+                  //    if(blocki==0)
+                  //    std::cout << __FILE__ << ":" << __LINE__ << " " <<target_cell_id << " invalid " << cellBlockData.size() << "\n";
       
-                  }
+                  // }
       
                   if (blockLID != vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) {
                      bool donotZero = false;
@@ -495,23 +498,23 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                         std::cout  << " target tc " << target_cell->get_tc() << " for " << target_cell_id <<"\n";
                         }
                      if (target_cell->get_tc() == timeclass){
-                        blockData = target_cell->get_data(blockLID, popID);
+                        blockData = target_cell->get_data(blockLID, popID, timeclass);
                         if (blocki == 0){
                         std::cout  << " translating to regular of " << target_cell_id << "\n";
                         }
                      }
-                     else if(target_cell->requested_timeclass_ghosts.count(timeclass) > 0){
-                        blockData = target_cell->get_data(blockLID, popID, timeclass);
-                        if (blocki == 0){
-                        std::cout  << "translating to timeghost of " << target_cell_id << "\n";
-                        if (DimensionPencils[dimension].targetRatios[targeti] == 0){
-                           if(blocki == 0){
-                              std::cout << "donotZero "<< target_cell_id << " \n"; 
-                           }
-                           donotZero = true;   // This case has timeghost data remaining. Let's not delete that to keep the stencils a bit more full (until handled with neighborhoods somehow better)
-                        }
-                        }
-                     }
+                     // else if(target_cell->requested_timeclass_ghosts.count(timeclass) > 0){
+                     //    blockData = target_cell->get_data(blockLID, popID, timeclass);
+                     //    if (blocki == 0){
+                     //    std::cout  << "translating to timeghost of " << target_cell_id << "\n";
+                     //    if (DimensionPencils[dimension].targetRatios[targeti] == 0){
+                     //       if(blocki == 0){
+                     //          std::cout << "donotZero "<< target_cell_id << " \n"; 
+                     //       }
+                     //       donotZero = true;   // This case has timeghost data remaining. Let's not delete that to keep the stencils a bit more full (until handled with neighborhoods somehow better)
+                     //    }
+                     //    }
+                     // }
                      if(blocki==0)
                         std::cout << "tc matches "<< (target_cell->get_tc() == timeclass) <<"; ghost matches " << (target_cell->requested_timeclass_ghosts.count(timeclass) > 0) << "\n";
                      // else if(target_cell->requested_timeclass_ghosts.count(timeclass) > 0){
@@ -560,15 +563,21 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
             Realv scalingthreshold = mpiGrid[DimensionPencils[dimension].ids[start + VLASOV_STENCIL_WIDTH+1]]->getVelocityBlockMinValue(popID); // technically should include timeclass
             Realf* pencilDZ = DimensionPencils[dimension].sourceDZ.data() + start;
             Realf* pencilRatios = DimensionPencils[dimension].targetRatios.data() + start;
+            CellID* penciltargets = DimensionPencils[dimension].ids.data() + start;
             Realf** pencilBlockData = cellBlockData.data() + start;
             Vec* blockDataSource = blockDataBuffer.data() + start*WID3/VECL;
             if (blocki == 0){
                std::cout << "Sanity-checking targetratios\n";
                for (int i = 0; i < L; ++i){
+                  std::cout << penciltargets[i] << " ";
+               }
+               std::cout << "\n";
+               for (int i = 0; i < L; ++i){
                   std::cout << pencilRatios[i] << " ";
                }
+               std::cout << "\n";
             }
-            std::cout << "\n";
+            
             propagatePencil(pencilDZ,
                             blockDataSource,
                             dimension,

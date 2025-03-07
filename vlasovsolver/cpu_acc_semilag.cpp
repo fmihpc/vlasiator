@@ -98,7 +98,7 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
 
    if(tc_delta == 0) // Handles the default case (called from vlasovmover)
    {
-      for(auto i : spatial_cell->requested_timeclass_ghosts) {
+      for(auto i : spatial_cell->get_all_ghosts()) {
             // Example: On tc-0 cell, tc-1 ghosts requested ghosts of tc-0
             /*               |0--1/4-2/4-3/4-4/4-5/4-6/4--|
             tc-1 after-acc   |----x-------x-------x-------|
@@ -132,6 +132,14 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
                cpu_accelerate_cell(spatial_cell, popID, map_order, dt/pow(2,tc_d), tc_d);
                if (spatial_cell->parameters[CellParams::CELLID]  == 16){
                   std::cout << "16c tc-1 nudge" << "\n";
+               }
+            }
+            else if (spatial_cell->requested_timeclass_copy_ghosts.count(i) && spatial_cell->get_timeclass_turn_v(i)){
+               spatial_cell->set_velocity_mesh_ghost(popID, i);
+               spatial_cell->set_velocity_blocks_ghost(popID, i); 
+               cpu_accelerate_cell(spatial_cell, popID, map_order, dt/pow(2,tc_d)*3/2, tc_d);
+               if (spatial_cell->parameters[CellParams::CELLID]  == 15){
+                  std::cout << "15c tc-1 copy and nudge again" << "\n";
                }
             }
             else{
@@ -169,7 +177,6 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
                   std::cout << __FILE__<<":"<<__LINE__<< "\t Copying and propagating ghost at tc " << spatial_cell->get_tc() + tc_delta << " by dt = " << dtt << " being run at cell " << "\n";
                }
                
-
                cpu_accelerate_cell(spatial_cell, popID, map_order, dtt, tc_d);
             
             }

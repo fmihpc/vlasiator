@@ -730,12 +730,14 @@ void prepareAMRLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    if (P::currentMaxTimeclass > 0) {
       const vector<CellID>& localCells = getLocalCells();
 
-      getGhostNeighborsforTC(mpiGrid, localCells);
-
       for(int i = 0; i <= P::currentMaxTimeclass; ++i){
-         timeghost_source.clear();
-         timeghost_active.clear();
-         prepareGhostTranslationCellLists(mpiGrid, localCells, timeghost_source[i], timeghost_active[i], i);
+         set<CellID> tc_active_cells_set;
+         getGhostNeighborsforTC(mpiGrid, localCells, tc_active_cells_set, i);
+
+         timeghost_source[i].clear();
+         timeghost_active[i].clear();
+         std::vector<CellID> tc_act_cells = std::vector<CellID>(tc_active_cells_set.begin(),tc_active_cells_set.end());
+         prepareGhostTranslationCellLists(mpiGrid, tc_act_cells, timeghost_source[i], timeghost_active[i], i);
       }
    }
 
@@ -744,7 +746,7 @@ void prepareAMRLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
 }
 
 void getGhostNeighborsforTC(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                              const std::vector<CellID>& cellsToCheckNeighbors) {
+                              const std::vector<CellID>& cellsToCheckNeighbors, std::set<CellID>& active_cells, int timeclass) {
    /*
    1st version
    every timestep, go through every cell c, and get its ghost neighbours. 
@@ -754,25 +756,77 @@ void getGhostNeighborsforTC(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    2nd version TODO:
    every timestep, check if computeNewTimestep changes any cells' timeclass. Then go through v1 functionality.
    */
-
-   for (size_t c=0; c<cellsToCheckNeighbors.size(); ++c) {
-      const CellID cell = cellsToCheckNeighbors[c];
-      auto neighbors = mpiGrid.get_neighbors_of(cell, VLASOV_SOLVER_GHOST_REQNEIGH_NEIGHBORHOOD_ID);
+   std::vector<CellID> tc_cells;
+   //std::copy_if(cellsToCheckNeighbors.begin(),cellsToCheckNeighbors.end(), std::back_inserter(tc_cells), [](CellID c){return (mpiGrid[c]->parameters[CellParams::TIMECLASS])==timeclass;});
+   for(const CellID c : cellsToCheckNeighbors){
+      if(mpiGrid[c]->parameters[CellParams::TIMECLASS] == timeclass){
+         tc_cells.push_back(c);
+      }
+   }
+   set<CellID> exactHaloCells = {};
+   for (const CellID cell : tc_cells) {
+      auto neighbors = mpiGrid.get_neighbors_of(cell, VLASOV_SOLVER_TIMEGHOST_EXACT_HALO_NEIGHBORHOOD_ID);
       auto& neighborsRef = *neighbors;
-      auto neighborsRemote = mpiGrid.get_remote_neighbors_of(cell, VLASOV_SOLVER_GHOST_REQNEIGH_NEIGHBORHOOD_ID);
+      auto neighborsRemote = mpiGrid.get_remote_neighbors_of(cell, VLASOV_SOLVER_TIMEGHOST_EXACT_HALO_NEIGHBORHOOD_ID);
 
       // get_neighbours_of returns a pointer to a vector of pairs, and each pairs' first element is the CellID
       // get_remote_neighbors_of returns a vector of CellIDs
 
       for (size_t i=0; i<neighborsRef.size(); ++i) {
-         if (mpiGrid[(neighborsRef)[i].first]->parameters[CellParams::TIMECLASS] != mpiGrid[cell]->parameters[CellParams::TIMECLASS]) {
-            mpiGrid[(neighborsRef)[i].first]->requested_timeclass_ghosts.insert(mpiGrid[cell]->parameters[CellParams::TIMECLASS]);
+         if (mpiGrid[(neighborsRef)[i].first]->parameters[CellParams::TIMECLASS] != timeclass) {
+            mpiGrid[(neighborsRef)[i].first]->requested_timeclass_ghosts.insert(timeclass);
+            exactHaloCells.insert((neighborsRef)[i].first);
          }
       }
       for (size_t i=0; i<neighborsRemote.size(); ++i) {
-         if (mpiGrid[(neighborsRemote)[i]]->parameters[CellParams::TIMECLASS] != mpiGrid[cell]->parameters[CellParams::TIMECLASS]) {
-            mpiGrid[neighborsRemote[i]]->requested_timeclass_ghosts.insert(mpiGrid[cell]->parameters[CellParams::TIMECLASS]);
+         if (mpiGrid[(neighborsRemote)[i]]->parameters[CellParams::TIMECLASS] != timeclass) {
+            mpiGrid[neighborsRemote[i]]->requested_timeclass_ghosts.insert(timeclass);
+            exactHaloCells.insert((neighborsRemote)[i]);
          }
+      }
+   }
+
+   active_cells = set(tc_cells.begin(),tc_cells.end());
+   active_cells.insert(exactHaloCells.begin(),exactHaloCells.end());
+
+   for (const CellID cell : active_cells) {
+      // std::cout << "copy checking from " << cell << "\n";
+      auto neighbors = mpiGrid.get_neighbors_of(cell, VLASOV_SOLVER_GHOST_NEIGHBORHOOD_ID);
+      auto& neighborsRef = *neighbors;
+      auto neighborsRemote = mpiGrid.get_remote_neighbors_of(cell, VLASOV_SOLVER_GHOST_NEIGHBORHOOD_ID);
+
+      // get_neighbours_of returns a pointer to a vector of pairs, and each pairs' first element is the CellID
+      // get_remote_neighbors_of returns a vector of CellIDs
+
+      for (size_t i=0; i<neighborsRef.size(); ++i) {
+         const CellID ncid = (neighborsRef)[i].first;
+         // std::cout << "Checking " << ncid << ": in active_cells " <<  active_cells.count(ncid) << " ghosty: " << (mpiGrid[ncid]->parameters[CellParams::TIMECLASS] != timeclass) << "\n";
+         if (active_cells.count(ncid) == 0 && mpiGrid[ncid]->parameters[CellParams::TIMECLASS] != timeclass) {
+            mpiGrid[ncid]->requested_timeclass_copy_ghosts.insert(timeclass);
+            // std::cout << ncid << " copy_ghost reqs " << timeclass << "\n";
+         }
+      }
+      for (size_t i=0; i<neighborsRemote.size(); ++i) {
+         const CellID ncid = neighborsRemote[i];
+         if (active_cells.count(ncid) == 0 && mpiGrid[ncid]->parameters[CellParams::TIMECLASS] != timeclass) {
+            mpiGrid[ncid]->requested_timeclass_copy_ghosts.insert(timeclass);
+            // std::cout << ncid << " copy_ghost reqs " << timeclass << "\n";
+         }
+      }
+   }
+
+   if (timeclass == P::currentMaxTimeclass){
+      for(auto c : getLocalCells()){
+         if(mpiGrid[c]->get_all_ghosts().size()==0) continue;
+         std::cout << c << ": requests ghosts ";
+         for(auto g :mpiGrid[c]->requested_timeclass_ghosts){
+            std::cout << g << " ";
+         }
+         std::cout << "; ";
+         for(auto g :mpiGrid[c]->requested_timeclass_copy_ghosts){
+            std::cout << g << " ";
+         }
+         std::cout << "\n";
       }
    }
 }

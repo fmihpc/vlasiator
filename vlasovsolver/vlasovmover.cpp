@@ -342,11 +342,29 @@ void calculateSpatialTranslation(
    // TC propagation lists, TODO move out of here somewhere sensible and less often called
    for (int tc = 0; tc <= P::maxTimeclass; tc++)
    {
+      tc_propagated_cell_sets.push_back(set<CellID>());
+      for (auto c : localCells){
+         if(mpiGrid[c]->parameters[CellParams::TIMECLASS] == tc){
+            tc_propagated_cell_sets[tc].insert(c);
+         }
+      }
+      set<CellID> exact_halo_cells;
+      for (auto c : tc_propagated_cell_sets[tc]){
+         auto neighbors = mpiGrid.get_neighbors_of(c, VLASOV_SOLVER_TIMEGHOST_EXACT_HALO_NEIGHBORHOOD_ID);
+         for (auto n : *neighbors){
+            exact_halo_cells.insert(n.first); // NB insert_range in C++23
+         }
+      }
+      for(auto c : exact_halo_cells) {
+      //   tc_propagated_cell_sets[tc].insert(c);
+      }
+
+      tc_propagated_cells.push_back(vector<CellID>(tc_propagated_cell_sets[tc].begin(),tc_propagated_cell_sets[tc].end()));
       // std::cout << "initing up tc " << tc << " vectors \n";
-      tc_propagated_cells.push_back(vector<CellID>(ghostTranslate_source[tc].begin(),ghostTranslate_source[tc].end()));
-      tc_target_cells.push_back(vector<CellID>(ghostTranslate_active[tc].begin(),ghostTranslate_active[tc].end()));
-      tc_propagated_cell_sets.push_back(set<CellID>(ghostTranslate_source[tc].begin(),ghostTranslate_source[tc].end()));
-      tc_target_cell_sets.push_back(set<CellID>(ghostTranslate_active[tc].begin(),ghostTranslate_active[tc].end()));
+      // tc_propagated_cells.push_back(vector<CellID>(ghostTranslate_source[tc].begin(),ghostTranslate_source[tc].end()));
+      // tc_target_cells.push_back(vector<CellID>(ghostTranslate_active[tc].begin(),ghostTranslate_active[tc].end()));
+      // tc_propagated_cell_sets.push_back(set<CellID>(tc_propagated_cells_set));
+      // tc_target_cell_sets.push_back(set<CellID>(ghostTranslate_active[tc].begin(),ghostTranslate_active[tc].end()));
    }
    
    phiprof::Timer computeTimer {"compute_cell_lists"};
@@ -385,7 +403,7 @@ void calculateSpatialTranslation(
    {
       // std::cout << "initing up tc " << tc << " vectors \n";
       tc_propagated_cells[tc] = vector<CellID>(tc_propagated_cell_sets[tc].begin(),tc_propagated_cell_sets[tc].end());
-      tc_target_cells[tc] = vector<CellID>(tc_target_cell_sets[tc].begin(),tc_target_cell_sets[tc].end());
+      // tc_target_cells[tc] = vector<CellID>(tc_target_cell_sets[tc].begin(),tc_target_cell_sets[tc].end());
    }
 
    // for (int tc = 0; tc <= P::maxTimeclass; tc++)
@@ -579,11 +597,13 @@ void calculateSpatialTranslation(
  * @param step The current subcycle step.
  * @param mpiGrid Parallel grid library.
  * @param propagatedCells List of cells in which the population is accelerated.
- * @param dt Timestep factor.*/
+ * @param dt Timestep factor.
+ * @param tc Timeclass */
+ 
 void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const uint step,
                            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                            const std::vector<CellID>& propagatedCells,
-                           const Real& dt) {
+                           const Real& dt, const int tc = -1) {
    // Set active population
    SpatialCell::setCommunicatedSpecies(popID);
 
@@ -721,9 +741,9 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
                   // Include inflow-Maxwellian
                   (P::vlasovAccelerateMaxwellianBoundaries && (SC->sysBoundaryFlag == sysboundarytype::MAXWELLIAN)) ) {
                      if (vmesh.size() != 0){   //do not propagate spatial cells with no blocks
-                           if(SC->requested_timeclass_ghosts.size() > 0) {
+                           if(SC->get_all_ghosts().size() > 0) {
                               std::cerr << myRank <<": CellID " << cells[c] << " requested timeghosts: ";
-                              for (auto i : SC->requested_timeclass_ghosts){
+                              for (auto i : SC->get_all_ghosts()){
                                  std::cerr << i << " ";
                                  if (SC->get_timeclass_turn_v(i)){
                                     propagatedCells.push_back(cells[c]);

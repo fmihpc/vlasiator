@@ -100,8 +100,8 @@ int P::tcOverrideTimeclass = -1;
 int P::tc_test_type = 0;
 int P::tcMomentInterpolationType = 1;
 bool P::tcVMomentPropagation = true;
-int P::timeclassExactHaloExtent = 1;
-int P::timeclassOuterHaloExtent = 1;
+int P::timeclassExactHaloExtent = 2;
+int P::timeclassOuterHaloExtent = 3;
 
 Realf P::tcBoxHalfWidthX = 2e7;
 Realf P::tcBoxHalfWidthY = 2e7;

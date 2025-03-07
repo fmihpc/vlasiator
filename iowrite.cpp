@@ -298,6 +298,7 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
 
 
 
+   vmesh::VelocityBlockContainer<vmesh::LocalID> emptyvmesh = vmesh::VelocityBlockContainer<vmesh::LocalID>();
    // Write velocity block IDs for all timeghosts
    for(uint timeclass = 0; timeclass <= P::currentMaxTimeclass; timeclass++){
 
@@ -307,10 +308,17 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
       for (size_t cell=0; cell<cells.size(); ++cell){
          SpatialCell* SC = mpiGrid[cells[cell]];
          // vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>* velmeshghost = &SC->get_velocity_mesh(popID, timeclass);
-         vmesh::VelocityBlockContainer<vmesh::LocalID>* velblocksghost = &SC->get_velocity_blocks(popID, timeclass);
+         if(SC->parameters[CellParams::TIMECLASS] != timeclass){
+            vmesh::VelocityBlockContainer<vmesh::LocalID>* velblocksghost = &SC->get_velocity_blocks(popID, timeclass);
 
-         totalBlocks+=velblocksghost->size();
-         blocksPerCell.push_back(velblocksghost->size());
+            totalBlocks+=velblocksghost->size();
+            blocksPerCell.push_back(velblocksghost->size());
+         }
+         else{
+            vmesh::VelocityBlockContainer<vmesh::LocalID>* velblocksghost = &emptyvmesh;
+            totalBlocks+=0;
+            blocksPerCell.push_back(0);
+         }
       }
 
 
