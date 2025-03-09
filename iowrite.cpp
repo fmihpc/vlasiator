@@ -298,7 +298,7 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
 
 
 
-   vmesh::VelocityBlockContainer<vmesh::LocalID> emptyvmesh = vmesh::VelocityBlockContainer<vmesh::LocalID>();
+   // vmesh::VelocityBlockContainer<vmesh::LocalID> emptyvmesh& = vmesh::VelocityBlockContainer<vmesh::LocalID>();
    // Write velocity block IDs for all timeghosts
    for(uint timeclass = 0; timeclass <= P::currentMaxTimeclass; timeclass++){
 
@@ -308,17 +308,18 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
       for (size_t cell=0; cell<cells.size(); ++cell){
          SpatialCell* SC = mpiGrid[cells[cell]];
          // vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>* velmeshghost = &SC->get_velocity_mesh(popID, timeclass);
-         if(SC->parameters[CellParams::TIMECLASS] != timeclass){
-            vmesh::VelocityBlockContainer<vmesh::LocalID>* velblocksghost = &SC->get_velocity_blocks(popID, timeclass);
+         // if(SC->parameters[CellParams::TIMECLASS] != timeclass){
+            vmesh::VelocityBlockContainer<vmesh::LocalID>& velblocksghost = SC->get_velocity_blocks_ghost(popID, timeclass);
+            // std::cerr << timeclass << " preparing to write at c="<< cells[cell] << " with " << velblocksghost.size() << "blocks\n";
 
-            totalBlocks+=velblocksghost->size();
-            blocksPerCell.push_back(velblocksghost->size());
-         }
-         else{
-            vmesh::VelocityBlockContainer<vmesh::LocalID>* velblocksghost = &emptyvmesh;
-            totalBlocks+=0;
-            blocksPerCell.push_back(0);
-         }
+            totalBlocks+=velblocksghost.size();
+            blocksPerCell.push_back(velblocksghost.size());
+         // }
+         // else{
+            // vmesh::VelocityBlockContainer<vmesh::LocalID>* velblocksghost = &emptyvmesh;
+            // totalBlocks+=0;
+            // blocksPerCell.push_back(0);
+         // }
       }
 
 
@@ -382,11 +383,11 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
          // gather data for writing
          for (size_t cell=0; cell<cells.size(); ++cell) {
             SpatialCell* SC = mpiGrid[cells[cell]];
-            vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>* velmeshghost = &SC->get_velocity_mesh(popID, timeclass);
-            vmesh::VelocityBlockContainer<vmesh::LocalID>* velblocksghost = &SC->get_velocity_blocks(popID, timeclass);
+            vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> &velmeshghost = SC->get_velocity_mesh_ghost(popID, timeclass);
+            vmesh::VelocityBlockContainer<vmesh::LocalID> &velblocksghost = SC->get_velocity_blocks_ghost(popID, timeclass);
             // for (vmesh::LocalID block_i=0; block_i<SC->get_number_of_velocity_blocks(popID); ++block_i) {
-            for (vmesh::LocalID block_i=0; block_i<velblocksghost->size(); ++block_i) {
-               vmesh::GlobalID block = velmeshghost->getGlobalID(block_i);
+            for (vmesh::LocalID block_i=0; block_i<velblocksghost.size(); ++block_i) {
+               vmesh::GlobalID block = velmeshghost.getGlobalID(block_i);
                velocityBlockIds.push_back( block );
             }
          }
@@ -433,11 +434,19 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
          // Get the spatial cell
          SpatialCell* SC = mpiGrid[cells[cell]];
          // vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>* velmeshghost = &SC->get_velocity_mesh(popID, timeclass);
-         vmesh::VelocityBlockContainer<vmesh::LocalID>* velblocksghost = &SC->get_velocity_blocks(popID, timeclass);
+         // if
+         vmesh::VelocityBlockContainer<vmesh::LocalID> &velblocksghost = SC->get_velocity_blocks_ghost(popID, timeclass);
+
+
+         double sum = 0;
+         for (auto bd: velblocksghost.block_data){
+            sum+=bd;
+         }
+         // std::cerr << timeclass << " writing at c="<< cells[cell] << " sum " << sum << " with " << velblocksghost.size() << "blocks\n";
 
          // Get the number of blocks in this cell
-         const uint64_t arrayElements = velblocksghost->size();
-         char* arrayToWrite = reinterpret_cast<char*>(velblocksghost->getData());
+         const uint64_t arrayElements = velblocksghost.size();
+         char* arrayToWrite = reinterpret_cast<char*>(velblocksghost.getData());
 
          // Add a subarray to write
          vlsvWriter.addMultiwriteUnit(arrayToWrite, arrayElements); // Note: We told beforehands that the vectorsize = WID3 = 64

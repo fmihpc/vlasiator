@@ -217,7 +217,8 @@ void calculateSpatialTranslation(
    for(CellID c : local_propagated_cells)
    {
       // if (c == 16) std::cout << c << " at TIME_R " << mpiGrid[c]->parameters[CellParams::TIME_R] << " + " << dt <<"\n";
-      mpiGrid[c]->parameters[CellParams::TIME_R] += dt;
+      if(mpiGrid[c]->get_timeclass_turn_r())
+         mpiGrid[c]->parameters[CellParams::TIME_R] += dt;
    }
    phiprof::Timer btpostimer {"barrier-trans-post-trans",{"Barriers","MPI"}};
    MPI_Barrier(MPI_COMM_WORLD);
@@ -291,7 +292,8 @@ void calculateSpatialGhostTranslation(
    for(CellID c : local_propagated_cells)
    {
       // if (c == 16) std::cout << c << " at TIME_R " << mpiGrid[c]->parameters[CellParams::TIME_R] << " + " << dt <<"\n";
-      mpiGrid[c]->parameters[CellParams::TIME_R] += dt;
+      if (mpiGrid[c]->get_timeclass_turn_r())
+         mpiGrid[c]->parameters[CellParams::TIME_R] += dt;
    }
 
    return;
@@ -663,7 +665,9 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
       //       std::cout<< "Cellid " << cellID << " at t=" << mpiGrid[cellID]->parameters[CellParams::TIME_V] <<": subcycledt " << subcycleDt << " maxvdt "<< maxVdt << " step " << step << " globalmax " <<  globalMaxSubcycles << " step: " << step << "\n";
       //    }
 
-      mpiGrid[cellID]->parameters[CellParams::TIME_V] += subcycleDt;
+      if(mpiGrid[cellID]->get_timeclass_turn_v()){
+         mpiGrid[cellID]->parameters[CellParams::TIME_V] += subcycleDt;
+      }
 
       semilagAccTimer.stop();
    }

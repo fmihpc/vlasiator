@@ -38,7 +38,7 @@ bool do_translate_cell(SpatialCell* SC, int tc){
    }
    else if(tc > -1) {// Check if it is our timeclasses turn to translate
                 // TODO This is also handled when constructing cells to translate per timeclass. Superfluous?
-      if(SC->get_timeclass_turn_r() == true){
+      if(SC->get_timeclass_turn_r() == true || SC->requested_timeclass_ghosts.count(tc)){
          return true;
       }
       else{
@@ -851,7 +851,7 @@ void buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
 					vector<CellID> ids, const uint dimension,
 					vector<uint> path, const vector<pair<int,CellID>> &endIds) {
 
-   const bool debug = false;
+   const bool debug = true;
    CellID nextNeighbor;
    CellID id = seedId.second;
    int timeclass = seedId.first;
@@ -929,8 +929,11 @@ void buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
       for (int tmpPath = 0; tmpPath < 4; ++tmpPath) {
          nextNeighbor = selectPositiveNeighbor(grid,id,dimension,tmpPath,timeclass);
          if(nextNeighbor != INVALID_CELLID) {
-            std::cout << "building from " << id << " to " << nextNeighbor << " notc: " << (grid[nextNeighbor]->parameters[CellParams::TIMECLASS] != timeclass) << " noghost: "<< (grid[nextNeighbor]->requested_timeclass_ghosts.count(timeclass) != 0) <<"\n";
-               if(grid[nextNeighbor]->parameters[CellParams::TIMECLASS] != timeclass && grid[nextNeighbor]->requested_timeclass_ghosts.count(timeclass) == 0){
+            std::cout << "building from " << id << " to " << nextNeighbor << " ntc: " << grid[nextNeighbor]->parameters[CellParams::TIMECLASS] << ", querytc " << timeclass << " ghosthits: "<< (grid[nextNeighbor]->requested_timeclass_ghosts.count(timeclass)) <<"\n";
+               if(!(
+                  grid[nextNeighbor]->parameters[CellParams::TIMECLASS] == timeclass || 
+                  grid[nextNeighbor]->requested_timeclass_ghosts.count(timeclass) > 0)
+               ){
                   neighborExists = false;
                   break;
                }
@@ -940,6 +943,8 @@ void buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
       }
 
       // If there are no local acceptable neighbors, we can stop. This is not an error.
+      std::cout << __FILE__<<":"<<__LINE__<<" building from " << id << " to " << nextNeighbor << " break " << !neighborExists <<"\n";
+
       if (!neighborExists) {
          break;
       }
@@ -952,7 +957,7 @@ void buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
          if ( static_cast<int>(path.size()) >= refLvl ) {
 
             if (debug) {
-               std::cout << "I am cell " << id << ". ";
+               std::cout << __FILE__<<":"<<__LINE__<< " I am cell " << id << ". ";
                std::cout << "I have seen refinement level " << refLvl << " before. Path is ";
                for (auto k = path.begin(); k != path.end(); ++k)
                   std::cout << *k << " ";
@@ -966,7 +971,7 @@ void buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
          } else {
             // We encounter a new refinement level.
             if (debug) {
-               std::cout << "I am cell " << id << ". ";
+               std::cout<< __FILE__<<":"<<__LINE__ << " I am cell " << id << ". ";
                std::cout << "I have NOT seen refinement level " << refLvl << " before. Path is ";
                for (auto k = path.begin(); k != path.end(); ++k)
                   std::cout << *k << ' ';
@@ -997,7 +1002,7 @@ void buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
       // If we found a neighbor, let's verify if it should be translated
       if (nextNeighbor != INVALID_CELLID) {
          if (debug) {
-            std::cout << " Next neighbor is " << nextNeighbor << "." << std::endl;
+            std::cout << __FILE__<<":"<<__LINE__ << " Next neighbor is " << nextNeighbor << "." << std::endl;
          }
          // Non-local, non-translated, and ids belonging to other pencils are not included
          if ( std::any_of(endIds.begin(), endIds.end(), [nextNeighbor](pair<int, CellID> i){return i.second == nextNeighbor;}) ||
@@ -1006,10 +1011,9 @@ void buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
          } else {
             // Yep, this goes in this pencil.
             ids.push_back(nextNeighbor);
+            std::cout << nextNeighbor << " pushed to pencil\n";
          }
       }
-
-      timeclass = grid[id]->parameters[CellParams::TIMECLASS];
 
       id = nextNeighbor;
    } // Closes while loop - end of pencil reached.
@@ -1582,7 +1586,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
 
    phiprof::Timer buildPencilsTimer {"buildPencils"};
 
-#pragma omp parallel
+// #pragma omp parallel
    {
       // Empty vectors for internal use of buildPencilsWithNeighbors. Could be default values but
       // default vectors are complicated. Should overload buildPencilsWithNeighbors like suggested here
@@ -1593,13 +1597,17 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
       setOfPencils thread_pencils;
       // iterators used in the accumulation
       std::vector<CellID>::iterator ibeg, iend;
+      bool exit = false;
 
 #pragma omp for schedule(guided,8)
       for (uint i=0; i<seedIds.size(); i++) {
          cuint seedId = seedIds[i].second;
+         if (seedIds[i].first == 1) exit = true;
          // Construct pencils from the seedIds into a set of pencils.
          buildPencilsWithNeighbors(mpiGrid, thread_pencils, seedIds[i], ids, dimension, path, seedIds);
       }
+      // if(exit) throw 123;
+
 
       // accumulate thread results in global set of pencils
 #pragma omp critical

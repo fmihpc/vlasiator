@@ -115,18 +115,32 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
             if (!P::tc_leapfrog_init) {
                spatial_cell->set_velocity_mesh_ghost(popID, i);
                spatial_cell->set_velocity_blocks_ghost(popID, i); 
+               std::cerr << "c"<< spatial_cell->parameters[CellParams::CELLID]<<" with " << spatial_cell->get_velocity_blocks(popID).size() <<" blocks\n";
+
                cpu_accelerate_cell(spatial_cell, popID, map_order, dt/pow(2,tc_d), tc_d);
                if (spatial_cell->parameters[CellParams::CELLID]  == 16){
                   std::cout << "16c Initial nudge" << "\n";
                }
+               double sum = 0;
+               for (auto bd: spatial_cell->get_velocity_blocks(popID).block_data){
+                  sum+=bd;
+               }
+               std::cerr << "c"<< spatial_cell->parameters[CellParams::CELLID]<< " post-acc sum " << sum << " with " << spatial_cell->get_velocity_blocks(popID).size() <<" blocks\n";
             }
             else if (spatial_cell->get_timeclass_turn_v()) {
                spatial_cell->set_velocity_mesh_ghost(popID, i);
                spatial_cell->set_velocity_blocks_ghost(popID, i); 
+               std::cerr << "c"<< spatial_cell->parameters[CellParams::CELLID]<<" with " << spatial_cell->get_velocity_blocks(popID).size() <<" blocks\n";
+
                cpu_accelerate_cell(spatial_cell, popID, map_order, dt/pow(2,tc_d)*1/2, tc_d);
                if (spatial_cell->parameters[CellParams::CELLID]  == 16){
                   std::cout << "16c tc-0 copy and nudge" << "\n";
                }
+               double sum = 0;
+               for (auto bd: spatial_cell->get_velocity_blocks(popID).block_data){
+                  sum+=bd;
+               }
+               std::cerr << "c"<< spatial_cell->parameters[CellParams::CELLID]<< " post-acc sum " << sum << " with " << spatial_cell->get_velocity_blocks(popID).size() <<" blocks\n";
             }
             else if (spatial_cell->get_timeclass_turn_v(i)) {
                cpu_accelerate_cell(spatial_cell, popID, map_order, dt/pow(2,tc_d), tc_d);
@@ -137,10 +151,17 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
             else if (spatial_cell->requested_timeclass_copy_ghosts.count(i) && spatial_cell->get_timeclass_turn_v(i)){
                spatial_cell->set_velocity_mesh_ghost(popID, i);
                spatial_cell->set_velocity_blocks_ghost(popID, i); 
+               std::cerr << "c"<< spatial_cell->parameters[CellParams::CELLID]<<" with " << spatial_cell->get_velocity_blocks(popID).size() <<" blocks\n";
                cpu_accelerate_cell(spatial_cell, popID, map_order, dt/pow(2,tc_d)*3/2, tc_d);
                if (spatial_cell->parameters[CellParams::CELLID]  == 15){
                   std::cout << "15c tc-1 copy and nudge again" << "\n";
                }
+               double sum = 0;
+
+               for (auto bd: spatial_cell->get_velocity_blocks(popID).block_data){
+                  sum+=bd;
+               }
+               std::cerr << "c " << spatial_cell->parameters[CellParams::CELLID]<< " post-acc sum " << sum << " with " << spatial_cell->get_velocity_blocks(popID).size() <<" blocks\n";
             }
             else{
                //do nothing
@@ -165,6 +186,7 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
                               
                // if it is slower-tc's turn, we are synced at after-trans state
                // -> Copy state, but needs to acc by half-tc-0-dt ("always init")
+               std::cerr << "c"<< spatial_cell->parameters[CellParams::CELLID]<<"\n";
                spatial_cell->set_velocity_mesh_ghost(popID, i);
                spatial_cell->set_velocity_blocks_ghost(popID, i);
                // cpu_accelerate_cell(spatial_cell, popID, map_order, P::timeclassDt[i], tc_d);
@@ -184,6 +206,7 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
                
                // if it is slower-tc's turn, we are synced at after-trans state
                // -> Copy state, but needs to acc by half-tc-0-dt ("always init")
+               std::cerr << "c"<< spatial_cell->parameters[CellParams::CELLID]<<"\n";
                spatial_cell->set_velocity_mesh_ghost(popID, i);
                spatial_cell->set_velocity_blocks_ghost(popID, i);
                // cpu_accelerate_cell(spatial_cell, popID, map_order, P::timeclassDt[i], tc_d);
