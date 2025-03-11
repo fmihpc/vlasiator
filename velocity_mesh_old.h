@@ -131,7 +131,7 @@ namespace vmesh {
 
    template<typename GID,typename LID> inline VelocityMesh<GID,LID>::VelocityMesh(const VelocityMesh& other) {
       meshID = other.meshID;
-      std::cerr << "Vmesh copy construction\n";
+      // std::cerr << "Vmesh copy construction\n";
       globalToLocalMap = OpenBucketHashtable<vmesh::GlobalID,vmesh::LocalID>(other.globalToLocalMap);
       if (other.localToGlobalMap.size() > 0) {
          localToGlobalMap = std::vector<vmesh::GlobalID>(other.localToGlobalMap);

@@ -1001,17 +1001,25 @@ void buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
 
       // If we found a neighbor, let's verify if it should be translated
       if (nextNeighbor != INVALID_CELLID) {
+         bool inseeds = false;
+         for (auto& i : endIds){
+            if (nextNeighbor == i.second && i.first == timeclass){
+               inseeds = true;
+            }
+         }
          if (debug) {
-            std::cout << __FILE__<<":"<<__LINE__ << " Next neighbor is " << nextNeighbor << "." << std::endl;
+            std::cout << __FILE__<<":"<<__LINE__ << " Next neighbor is " << nextNeighbor << ". Inseeds: "<< inseeds << ", do_translate: " << do_translate_cell(grid[nextNeighbor],timeclass) << std::endl;
          }
          // Non-local, non-translated, and ids belonging to other pencils are not included
-         if ( std::any_of(endIds.begin(), endIds.end(), [nextNeighbor](pair<int, CellID> i){return i.second == nextNeighbor;}) ||
-              !do_translate_cell(grid[nextNeighbor])) {
+         if ( inseeds ||
+              !do_translate_cell(grid[nextNeighbor],timeclass)) {
             nextNeighbor = INVALID_CELLID;
          } else {
             // Yep, this goes in this pencil.
             ids.push_back(nextNeighbor);
-            std::cout << nextNeighbor << " pushed to pencil\n";
+            if(debug){
+               std::cout << nextNeighbor << " pushed to pencil\n";
+            }
          }
       }
 

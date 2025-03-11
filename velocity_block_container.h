@@ -90,12 +90,12 @@ namespace vmesh {
    //https://github.com/markusbattarbee/vlasiator-public/blob/1908784e0a1319ce74a044970de43f64be4cc69d/velocity_block_container.h#L136
    template<typename LID> inline VelocityBlockContainer<LID>::VelocityBlockContainer(const VelocityBlockContainer& other) {
       block_data = std::vector<Realf,aligned_allocator<Realf,WID3>>(other.block_data);
-      double sum = 0;
-      for (auto bd:block_data){
-         sum += bd;
-      }
+      // double sum = 0;
+      // for (auto bd:block_data){
+      //    sum += bd;
+      // }
       parameters = std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS>>(other.parameters);
-      std::cerr << "Vblockcontainer copy construction, sum "<< sum <<"\n";
+      // std::cerr << "Vblockcontainer copy construction, sum "<< sum <<"\n";
       currentCapacity = other.currentCapacity;
       numberOfBlocks = other.numberOfBlocks;
    }

@@ -706,13 +706,13 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
 /* Get structs (timeclass, SpatialCell*, dt, subcycle step) for acceleration
 */
 vector<AccelerationPayload>& setAccelerationTimeGhosts(vector<AccelerationPayload>& outvec, SpatialCell* spatial_cell, const uint popID, const Real& dt){
-
    int tcToPropagate = spatial_cell->get_tc();
    // vector<AccelerationPayload> outvec = vector<AccelerationPayload>();
    if(spatial_cell->get_timeclass_turn_v()){
       AccelerationPayload payload = {spatial_cell->get_tc(),spatial_cell,dt,0};
       outvec.push_back(payload);
    }
+
    bool addPayload = false;
    for(auto i : spatial_cell->get_all_ghosts()) {
       AccelerationPayload payload = {tcToPropagate, spatial_cell, dt, 0};

@@ -260,6 +260,14 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
    vector<CellID> allCells(localPropagatedCells);
    allCells.insert(allCells.end(), remoteTargetCells.begin(), remoteTargetCells.end());
 
+
+   double sum = 0;
+   for (auto bd: mpiGrid[16]->get_velocity_blocks(popID,timeclass).block_data){
+      sum+=bd;
+   }
+   std::cerr << dimension <<" cell 16 tc "<< timeclass<< " pre-trans sum " << sum << " with " << mpiGrid[16]->get_velocity_blocks(popID).size() <<" blocks\n";
+
+
    // init cellid_transpose (moved here to take advantage of the omp parallel region)
    #pragma omp parallel for collapse(2) schedule(static)
    for (uint k=0; k<WID; ++k) {
@@ -459,8 +467,8 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                CellID target_cell_id = DimensionPencils[dimension].ids[targeti];
    
                SpatialCell* target_cell = mpiGrid[target_cell_id];
-               if(blocki==0)
-               std::cout <<target_cell_id << " cellBlockData " << cellBlockData.size() << "\n";
+               // if(blocki==0)
+               // std::cout <<target_cell_id << " cellBlockData " << cellBlockData.size() << "\n";
                if (target_cell){
                   vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>* velmesh;
                   vmesh::VelocityBlockContainer<vmesh::LocalID>* velblocks;
@@ -494,15 +502,15 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                      // Get a pointer to the block data
                      
                      Realf* blockData = NULL;
-                     if (blocki == 0){
-                        std::cout  << " target tc " << target_cell->get_tc() << " for " << target_cell_id <<"\n";
-                        }
-                     if (target_cell->get_tc() == timeclass){
+                     // if (blocki == 0){
+                     //    std::cout  << " target tc " << target_cell->get_tc() << " for " << target_cell_id <<"\n";
+                     //    }
+                     // if (target_cell->get_tc() == timeclass){
                         blockData = target_cell->get_data(blockLID, popID, timeclass);
-                        if (blocki == 0){
-                        std::cout  << " translating to regular of " << target_cell_id << "\n";
-                        }
-                     }
+                        // if (blocki == 0){
+                        // std::cout  << " translating to regular of " << target_cell_id << "\n";
+                        // }
+                     // }
                      // else if(target_cell->requested_timeclass_ghosts.count(timeclass) > 0){
                      //    blockData = target_cell->get_data(blockLID, popID, timeclass);
                      //    if (blocki == 0){
@@ -515,15 +523,18 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                      //    }
                      //    }
                      // }
-                     if(blocki==0)
-                        std::cout << "tc matches "<< (target_cell->get_tc() == timeclass) <<"; ghost matches " << (target_cell->requested_timeclass_ghosts.count(timeclass) > 0) << "\n";
-                     // else if(target_cell->requested_timeclass_ghosts.count(timeclass) > 0){
-                     //    blockData = target_cell->get_
+                     // if(blocki==0){
+                     //    std::cout << "tc matches "<< (target_cell->get_tc() == timeclass) <<"; ghost matches " << (target_cell->requested_timeclass_ghosts.count(timeclass) > 0) << "\n";
                      // }
+                     // if(target_cell->requested_timeclass_ghosts.count(timeclass) > 0){
+                     //    donotZero = true;
+                     // }
+
+
                      if(blockData && !donotZero){
                         if(blocki == 0)
                         {
-                           std::cout << "zeroing " << target_cell_id << "\n";
+                           std::cout << "pencil at tc " <<timeclass << " zeroing " << target_cell_id << ", " << ((target_cell->get_tc() != timeclass) ? "ghost" : "base") << "\n";
                         }
                         // std::cout << blockData << " blockdata," << target_cell->null_block_data.data() <<" \n";
                         // std::cout << target_cell_id << " zeroed blockdata\n";
@@ -560,14 +571,14 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
             // Dz and sourceVecData are both padded by VLASOV_STENCIL_WIDTH
             // Dz has 1 value/cell, sourceVecData has WID3 values/cell
             // vmesh is required just for general indexes and accessors
-            Realv scalingthreshold = mpiGrid[DimensionPencils[dimension].ids[start + VLASOV_STENCIL_WIDTH+1]]->getVelocityBlockMinValue(popID); // technically should include timeclass
+            Realv scalingthreshold = mpiGrid[DimensionPencils[dimension].ids[start + VLASOV_STENCIL_WIDTH]]->getVelocityBlockMinValue(popID);
             Realf* pencilDZ = DimensionPencils[dimension].sourceDZ.data() + start;
             Realf* pencilRatios = DimensionPencils[dimension].targetRatios.data() + start;
             CellID* penciltargets = DimensionPencils[dimension].ids.data() + start;
             Realf** pencilBlockData = cellBlockData.data() + start;
             Vec* blockDataSource = blockDataBuffer.data() + start*WID3/VECL;
             if (blocki == 0){
-               std::cout << "Sanity-checking targetratios\n";
+               std::cout << "Sanity-checking targetratios at tc " << DimensionPencils[dimension].timeclasses[pencili] << "\n";
                for (int i = 0; i < L; ++i){
                   std::cout << penciltargets[i] << " ";
                }
@@ -590,13 +601,17 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                             pencilRatios,
                             cellid_transpose
                );
-         }
+         } // propage loop over pencils end
          propagateTimer.stop();
 
          mappingTimer.stop(); // mapping (top-level)
       } // Closes loop over blocks
    } // closes pragma omp parallel
-
+   sum = 0;
+   for (auto bd: mpiGrid[16]->get_velocity_blocks(popID, timeclass).block_data){
+      sum+=bd;
+   }
+   std::cerr << "cell 16 tc "<< timeclass <<" post-trans sum " << sum << " with " << mpiGrid[16]->get_velocity_blocks(popID).size() <<" blocks\n";
    return true;
 }
 
