@@ -210,8 +210,8 @@ namespace spatial_cell {
       vmesh::LocalID get_number_of_all_velocity_blocks() const;
       int get_number_of_populations() const;
       
-      Population & get_population(const uint popID);
-      const Population & get_population(const uint popID) const;
+      Population & get_population(const uint popID, int timeclass=-1);
+      const Population & get_population(const uint popID, int timeclass=-1) const;
       void set_population(const Population& pop, cuint popID);
 
       uint8_t get_maximum_refinement_level(const uint popID);
@@ -347,6 +347,7 @@ namespace spatial_cell {
       //Realf null_block_data[WID3];
       std::array<Realf, WID3> null_block_data;
 
+      CellID get_cellid(){return parameters[CellParams::CELLID];};
       uint64_t ioLocalCellId;                                                 /**< Local cell ID used for IO, not needed elsewhere 
                                                                                * and thus not being kept up-to-date.*/
       //vmesh::LocalID mpi_number_of_blocks;                                    /**< Number of blocks in mpi_velocity_block_list.*/
@@ -380,6 +381,7 @@ namespace spatial_cell {
 
       inline std::set<int> get_all_ghosts();
       //SpatialCell& operator=(const SpatialCell& other);
+
     private:
       //SpatialCell& operator=(const SpatialCell&);
       
@@ -973,12 +975,27 @@ namespace spatial_cell {
       return populations.size();
    }
    
-   inline Population & SpatialCell::get_population(const uint popID) {
-      return populations[popID];
+   // inline Population & SpatialCell::get_population(const uint popID) {
+   //    return populations[popID];
+   // }
+
+   inline Population & SpatialCell::get_population(const uint popID, const int timeclass){
+      if (timeclass < 0 || this->parameters[CellParams::TIMECLASS] == timeclass){
+         return populations[popID];
+      }
+      else{
+         return ghostPopulations.at({popID, timeclass});
+      }
+      
    }
    
-   inline const Population & SpatialCell::get_population(const uint popID) const {
-      return populations[popID];
+   inline const Population & SpatialCell::get_population(const uint popID, const int timeclass) const {
+      if (timeclass < 0 || this->parameters[CellParams::TIMECLASS] == timeclass){
+         return populations[popID];
+      }
+      else{
+         return ghostPopulations.at({popID, timeclass});
+      }
    }
    
    inline void SpatialCell::set_population(const Population& pop, cuint popID) {
@@ -2027,6 +2044,15 @@ namespace spatial_cell {
       return allghosts;
    }
 
+   // Used inside a population loop -> no pop information
+   typedef struct {
+      int timeclass;
+      SpatialCell* cellptr;
+      Real dt;
+      int step;
+   } AccelerationPayload;
 } // namespaces
+
+
 
 #endif

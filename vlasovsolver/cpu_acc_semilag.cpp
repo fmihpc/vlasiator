@@ -66,6 +66,19 @@ uint getAccelerationSubcycles(SpatialCell* spatial_cell, Real dt, const uint pop
 }
 
 /*!
+  Compute the number of subcycles needed from maxVdt and target dt.
+
+ * @param spatial_cell Spatial cell containing the accelerated population.
+ * @param popID ID of the accelerated particle species.
+*/
+
+uint getAccelerationSubcycles(Real maxVdt, Real dt)
+{
+   //return max( convert<uint>(ceil(dt*spatial_cell->CellParams[CELLPARAMS::TIMECLASSDT] / spatial_cell->get_max_v_dt(popID))), 1u);
+   return max( convert<uint>(ceil(dt / maxVdt)), 1u);
+}
+
+/*!
   Propagates the distribution function in velocity space of given real
   space cell.
 
@@ -86,7 +99,7 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
                          const uint popID,     
                          const uint map_order,
                          const Real& dt,
-                         int tc_delta) {
+                         int timeclass) {
    //double t1 = MPI_Wtime();
    vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>* vmeshPtr = NULL; 
    vmesh::VelocityBlockContainer<vmesh::LocalID>* blockContainerPtr = NULL;
@@ -94,9 +107,9 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
    // .... of course this is now substepping unnecessarily...
    // std::cout << spatial_cell->parameters[CellParams::CELLID] << "c Accelerate, initial refs" << " vmesh " << &vmesh << " blockContainer " << &blockContainer << "\n";
 
+   int tc_delta = -999;
 
-
-   if(tc_delta == 0) // Handles the default case (called from vlasovmover)
+   if(false && tc_delta == 0) // Handles the default case (called from vlasovmover)
    {
       for(auto i : spatial_cell->get_all_ghosts()) {
             // Example: On tc-0 cell, tc-1 ghosts requested ghosts of tc-0
@@ -250,9 +263,10 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
    // Ghost branch: select the ghost vmesh defined by tc_delta instead for acc
    // dt we already have adjusted as needed
    else{
-      std::cout << __FILE__<<":"<<__LINE__<<"\t"<< spatial_cell->parameters[CellParams::CELLID] << "c\tRequest-accelerate at tc " << spatial_cell->get_tc() + tc_delta << " at dt = " << dt << "\n";
-      vmeshPtr = &spatial_cell->get_velocity_mesh_ghost(popID,spatial_cell->get_tc() + tc_delta);
-      blockContainerPtr = &spatial_cell->get_velocity_blocks_ghost(popID,spatial_cell->get_tc() + tc_delta);
+
+      // std::cout << __FILE__<<":"<<__LINE__<<"\t"<< spatial_cell->parameters[CellParams::CELLID] << "c\tRequest-accelerate at tc " << spatial_cell->get_tc() + tc_delta << " at dt = " << dt << "\n";
+      vmeshPtr = &spatial_cell->get_velocity_mesh(popID,timeclass);
+      blockContainerPtr = &spatial_cell->get_velocity_blocks(popID,timeclass);
     }
     
    vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = *vmeshPtr;
