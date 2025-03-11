@@ -614,10 +614,9 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
    // Calculate velocity moments, these are needed to
    // calculate the transforms used in the accelerations.
    // Calculated moments are stored in the "_V" variables.
-   std::set<CellID> propagatedSet = {};
+   std::set<CellID> propagatedSet = {}; // Find the unique cells from the payload vector
    for(auto& payload:propagatedCells){
-      propagatedSet.insert(payload.cellptr->parameters[CellParams::CELLID]);
-      
+      propagatedSet.insert(payload.cellptr->get_cellid());
    }
 
    calculateMoments_V(mpiGrid, std::vector<CellID>(propagatedSet.begin(),propagatedSet.end()), false);
@@ -977,6 +976,9 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
             // Accelerate population over one subcycle step
             std::cout << "--------------------- an ACC subcycle ------------------\n";
             calculateAcceleration(popID,(uint)globalMaxSubcycles,step,mpiGrid,propagatePayloads,dt);
+            for(auto& payload:propagatePayloads){
+               cellsToPropagateSet.insert(payload.cellptr->get_cellid());
+            }
          } // for-loop over acceleration substeps
          
          // final adjust for all cells, also fixing remote cells.
@@ -993,6 +995,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
    std::cout << "---------------------------- ACC finished --------------------\n";
 
+   
    //converting cellsToPropagateSet to vector
    for (auto cell : cellsToPropagateSet) {
       cellsToPropagateVector.push_back(cell);
