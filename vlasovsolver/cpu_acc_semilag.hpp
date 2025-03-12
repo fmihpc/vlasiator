@@ -28,7 +28,7 @@
 
 void prepareAccelerateCell(spatial_cell::SpatialCell* spatial_cell, const uint popID);
 uint getAccelerationSubcycles(spatial_cell::SpatialCell* spatial_cell, Real dt, const uint popID);
-
+uint getAccelerationSubcycles(Real maxVdt, Real dt);
 
 
 void cpu_accelerate_cell(

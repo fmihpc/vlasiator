@@ -130,7 +130,7 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       // first add bulk velocity (using the total transform computed this far.
       Eigen::Matrix<Real,3,1> rotation_pivot;
       if (Parameters::forcedConvection) {
-         Eigen::Matrix<Real,3,1> ConvectiveV(4e5/2, 0, 0); // Let's make the VDFs do an pickup ion gyration for proper agyrotropy
+         Eigen::Matrix<Real,3,1> ConvectiveV(0, 0, 0); // Let's make the VDFs do an pickup ion gyration for proper agyrotropy
          rotation_pivot = total_transform*ConvectiveV;
       }
       else {

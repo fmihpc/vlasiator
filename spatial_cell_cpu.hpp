@@ -210,8 +210,8 @@ namespace spatial_cell {
       vmesh::LocalID get_number_of_all_velocity_blocks() const;
       int get_number_of_populations() const;
       
-      Population & get_population(const uint popID);
-      const Population & get_population(const uint popID) const;
+      Population & get_population(const uint popID, int timeclass=-1);
+      const Population & get_population(const uint popID, int timeclass=-1) const;
       void set_population(const Population& pop, cuint popID);
 
       uint8_t get_maximum_refinement_level(const uint popID);
@@ -347,6 +347,7 @@ namespace spatial_cell {
       //Realf null_block_data[WID3];
       std::array<Realf, WID3> null_block_data;
 
+      CellID get_cellid(){return parameters[CellParams::CELLID];};
       uint64_t ioLocalCellId;                                                 /**< Local cell ID used for IO, not needed elsewhere 
                                                                                * and thus not being kept up-to-date.*/
       //vmesh::LocalID mpi_number_of_blocks;                                    /**< Number of blocks in mpi_velocity_block_list.*/
@@ -374,8 +375,13 @@ namespace spatial_cell {
       std::set<int> requested_timeclass_ghosts = {};                       /**< See Pencil construction. Translation stencil neighbours may want v-space values at
                                                                                *   varying timeclass synchronizations. This keeps track which levels are requested of this
                                                                                *   cell. Populations struct contains mappings of these timeclasses to ghost vmeshes. */
+      std::set<int> requested_timeclass_copy_ghosts = {};                       /**< See Pencil construction. Translation stencil neighbours may want v-space values at
+                                                                              *   varying timeclass synchronizations. This keeps track which levels are requested of this
+                                                                              *   cell. Populations struct contains mappings of these timeclasses to ghost vmeshes. */
 
+      inline std::set<int> get_all_ghosts();
       //SpatialCell& operator=(const SpatialCell& other);
+
     private:
       //SpatialCell& operator=(const SpatialCell&);
       
@@ -832,7 +838,7 @@ namespace spatial_cell {
       }
       #endif
       if (blockLID == vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) return null_block_data.data();
-      if(timeclass < 0){
+      if(timeclass < 0 || this->parameters[CellParams::TIMECLASS] == timeclass){
          return populations[popID].blockContainer.getData(blockLID);
       }
       else{
@@ -969,12 +975,27 @@ namespace spatial_cell {
       return populations.size();
    }
    
-   inline Population & SpatialCell::get_population(const uint popID) {
-      return populations[popID];
+   // inline Population & SpatialCell::get_population(const uint popID) {
+   //    return populations[popID];
+   // }
+
+   inline Population & SpatialCell::get_population(const uint popID, const int timeclass){
+      if (timeclass < 0 || this->parameters[CellParams::TIMECLASS] == timeclass){
+         return populations[popID];
+      }
+      else{
+         return ghostPopulations.at({popID, timeclass});
+      }
+      
    }
    
-   inline const Population & SpatialCell::get_population(const uint popID) const {
-      return populations[popID];
+   inline const Population & SpatialCell::get_population(const uint popID, const int timeclass) const {
+      if (timeclass < 0 || this->parameters[CellParams::TIMECLASS] == timeclass){
+         return populations[popID];
+      }
+      else{
+         return ghostPopulations.at({popID, timeclass});
+      }
    }
    
    inline void SpatialCell::set_population(const Population& pop, cuint popID) {
@@ -1099,7 +1120,7 @@ namespace spatial_cell {
       }
       #endif
       
-      if (timeclass < 0){
+      if (timeclass < 0  || this->parameters[CellParams::TIMECLASS] == timeclass){
          return populations[popID].vmesh.getLocalID(blockGID);
       }
       else{
@@ -1560,11 +1581,11 @@ namespace spatial_cell {
          exit(1);
       }
       #endif
-      if (timeclass < 0) {
-         return populations[popID].vmesh;
+      if (timeclass < 0 || this->parameters[CellParams::TIMECLASS] == timeclass) {
+         return this->populations[popID].vmesh;
       }
       else {
-         return ghostPopulations[{popID,timeclass}].vmesh;
+         return this->ghostPopulations[{popID,timeclass}].vmesh;
       }
    }
 
@@ -1576,11 +1597,11 @@ namespace spatial_cell {
          exit(1);
       }
       #endif
-      if (timeclass < 0) {
-         return populations[popID].blockContainer;
+      if (timeclass < 0 || this->parameters[CellParams::TIMECLASS] == timeclass) {
+         return this->populations[popID].blockContainer;
       }
       else {
-         return ghostPopulations[{popID,timeclass}].blockContainer;
+         return this->ghostPopulations[{popID,timeclass}].blockContainer;
       }   
       
    }
@@ -1594,10 +1615,12 @@ namespace spatial_cell {
          exit(1);
       }
       #endif
-      vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> foo(populations[popID].vmesh);
-      ghostPopulations[{popID,timeclass}].vmesh = foo;
-      std::cout << "Copy-constructed ghostPopulations[{"<<popID<<","<<timeclass<<"}].vmesh to " << &ghostPopulations[{popID,timeclass}].vmesh<< " from initial at " << &populations[popID].vmesh <<"\n";
+      // vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> foo(this->populations[popID].vmesh);
+      this->ghostPopulations[{popID,timeclass}].vmesh = vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>(this->populations[popID].vmesh);
 
+      #ifdef DEBUG_SPATIAL_CELL
+      std::cout << "Copy-constructed ghostPopulations[{"<<popID<<","<<timeclass<<"}].vmesh to " << &this->ghostPopulations[{popID,timeclass}].vmesh<< " from initial at " << &this->populations[popID].vmesh <<"\n";
+      #endif
    }
 
    inline void SpatialCell::set_velocity_blocks_ghost(const size_t& popID, const int timeclass) {
@@ -1609,8 +1632,13 @@ namespace spatial_cell {
       }
       #endif
       
-      ghostPopulations[{popID,timeclass}].blockContainer = vmesh::VelocityBlockContainer<vmesh::LocalID>(populations[popID].blockContainer); 
-      std::cout << "Copy-constructed ghostPopulations[{"<<popID<<","<<timeclass<<"}].blockContainer to " << &ghostPopulations[{popID,timeclass}].blockContainer<< " from initial at " << &populations[popID].blockContainer <<"\n";
+      this->ghostPopulations[{popID,timeclass}].blockContainer = vmesh::VelocityBlockContainer<vmesh::LocalID>(this->populations[popID].blockContainer); 
+      #ifdef DEBUG_SPATIAL_CELL
+      std::cout << "Copy-constructed ghostPopulations[{"<<popID<<","<<timeclass<<"}].blockContainer to " << &this->ghostPopulations[{popID,timeclass}].blockContainer<< " from initial at " << &this->populations[popID].blockContainer <<"\n";
+      #endif
+      // if(this->parameters[CellParams::CELLID] == 15){
+      //    std::cout <<"cell 15 ghost copy constr\n";
+      // }
    }
 
    inline vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& SpatialCell::get_velocity_mesh_ghost(const size_t& popID, const int timeclass) {
@@ -1623,7 +1651,7 @@ namespace spatial_cell {
       #endif
       // std::cerr << "get_velocity_mesh_ghost with tc " << timeclass << " at " << &ghostPopulations[{popID,timeclass}].vmesh <<"\n";
 
-      return ghostPopulations[{popID,timeclass}].vmesh; // OBS try-emplace
+      return this->ghostPopulations[{popID,timeclass}].vmesh; // OBS try-emplace
    }
 
    inline vmesh::VelocityBlockContainer<vmesh::LocalID>& SpatialCell::get_velocity_blocks_ghost(const size_t& popID, const int timeclass) {
@@ -1635,7 +1663,7 @@ namespace spatial_cell {
       }
       #endif
       
-      return ghostPopulations[{popID,timeclass}].blockContainer; // OBS try-emplace
+      return this->ghostPopulations[{popID,timeclass}].blockContainer; // OBS try-emplace
    }
 
 
@@ -2013,7 +2041,21 @@ namespace spatial_cell {
       return populations[popID].vmesh.hasGrandParent(blockGID);
    }
 
+   inline std::set<int> SpatialCell::get_all_ghosts(){
+      std::set<int> allghosts = this->requested_timeclass_ghosts;
+      allghosts.insert(this->requested_timeclass_copy_ghosts.begin(),this->requested_timeclass_copy_ghosts.end());
+      return allghosts;
+   }
 
+   // Used inside a population loop -> no pop information
+   typedef struct {
+      int timeclass;
+      SpatialCell* cellptr;
+      Real dt;
+      int step;
+   } AccelerationPayload;
 } // namespaces
+
+
 
 #endif

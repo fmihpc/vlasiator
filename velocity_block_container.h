@@ -71,12 +71,13 @@ namespace vmesh {
       const Real& getParameters(const LID& blockLID,const unsigned int& i) const;
       void setData(const LID& blockLID,const unsigned int& cell,const Realf& value);
       #endif
-
+      
+      std::vector<Realf,aligned_allocator<Realf,WID3> > block_data;
     private:
       void exitInvalidLocalID(const LID& localID,const std::string& funcName) const;
       void resize();
       
-      std::vector<Realf,aligned_allocator<Realf,WID3> > block_data;
+      
       Realf null_block_data[WID3];
       LID currentCapacity;
       LID numberOfBlocks;
@@ -89,8 +90,12 @@ namespace vmesh {
    //https://github.com/markusbattarbee/vlasiator-public/blob/1908784e0a1319ce74a044970de43f64be4cc69d/velocity_block_container.h#L136
    template<typename LID> inline VelocityBlockContainer<LID>::VelocityBlockContainer(const VelocityBlockContainer& other) {
       block_data = std::vector<Realf,aligned_allocator<Realf,WID3>>(other.block_data);
+      // double sum = 0;
+      // for (auto bd:block_data){
+      //    sum += bd;
+      // }
       parameters = std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS>>(other.parameters);
-      std::cerr << "Vblockcontainer copy construction\n";
+      // std::cerr << "Vblockcontainer copy construction, sum "<< sum <<"\n";
       currentCapacity = other.currentCapacity;
       numberOfBlocks = other.numberOfBlocks;
    }

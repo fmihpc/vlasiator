@@ -163,11 +163,16 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
  * @param computeSecond If true, second velocity moments are calculated.*/
 void calculateMoments_R(
         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-        const std::vector<CellID>& cells,
+        const std::vector<CellID>& allcells,
         const bool& computeSecond) {
 
     phiprof::Timer momentsTimer {"compute-moments-n"};
 
+    std::vector<CellID> cells;
+    for (size_t c=0; c<allcells.size(); ++c) {
+          SpatialCell* cell = mpiGrid[allcells[c]];
+          if (cell->get_timeclass_turn_v()) cells.push_back(allcells[c]);
+    } 
     for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
        #pragma omp parallel for
        for (size_t c=0; c<cells.size(); ++c) {
