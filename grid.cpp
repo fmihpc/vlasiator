@@ -805,6 +805,10 @@ void shrink_to_fit_grid_data(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
          }
       }
    }
+   // #ifdef USE_GPU
+   // // Synchronize all streams, if shrink_to_fit was called and updated populations have been uploaded
+   // CHK_ERR( gpuDeviceSynchronize() );
+   // #endif
    memory_purge(); // Purge jemalloc allocator to actually release memory
 }
 

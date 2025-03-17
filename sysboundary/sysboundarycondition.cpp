@@ -308,9 +308,7 @@ namespace SBC {
       if(closestCell == INVALID_CELLID) {
          abort_mpi("No closest cell found!", 1);
       }
-      phiprof::Timer boundaryTimer {"vlasovBoundaryCopyFromTheClosestNbr"};
       copyCellData(mpiGrid[closestCell],mpiGrid[cellID], copyMomentsOnly, popID, copy_V_moments);
-      boundaryTimer.stop();
    }
    
    /*! Function used to average and copy the distribution and moments from all the closest sysboundarytype::NOT_SYSBOUNDARY cells.
@@ -328,9 +326,7 @@ namespace SBC {
       if(closestCells[0] == INVALID_CELLID) {
          abort_mpi("No closest cell found!", 1);
       }
-      phiprof::Timer boundaryTimer {"vlasovBoundaryCopyFromAllClosestNbrs"};
       averageCellData(mpiGrid, closestCells, mpiGrid[cellID], popID);
-      boundaryTimer.stop();
    }
    
    /*! Function used to average and copy the distribution and moments from all the close sysboundarytype::NOT_SYSBOUNDARY cells.
@@ -349,9 +345,7 @@ namespace SBC {
       if(closeCells[0] == INVALID_CELLID) {
          abort_mpi("No close cell found!", 1);
       }
-      phiprof::Timer boundaryTimer {"vlasovBoundaryFluffyCopyFromAllCloseNbrs"};
       averageCellData(mpiGrid, closeCells, mpiGrid[cellID], popID, fluffiness);
-      boundaryTimer.stop();
    }
    
    /*! Function used to copy the distribution and moments from one cell to another.
@@ -634,7 +628,6 @@ namespace SBC {
    array<SpatialCell*,27> & SysBoundaryCondition::getFlowtoCells(
       const CellID& cellID
    ) {
-      phiprof::Timer timer {"getFlowtoCells"};
       array<SpatialCell*,27> & flowtoCells = allFlowtoCells.at(cellID);
       return flowtoCells;
    }
@@ -644,7 +637,6 @@ namespace SBC {
       const vmesh::GlobalID blockGID,
       const uint popID
    ) {
-      phiprof::Timer timer {"getFlowtoCellsBlock"};
       array<Realf*,27> flowtoCellsBlock;
       flowtoCellsBlock.fill(NULL);
       for (uint i=0; i<27; i++) {

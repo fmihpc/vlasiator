@@ -85,14 +85,14 @@ void update_velocity_block_content_lists(
          host_vbwcl_vec[i] = SC->dev_velocity_block_with_content_list;
 
          // Gather largest values
-         threadLargestVelMesh = threadLargestVelMesh > mySize ? threadLargestVelMesh : mySize;
-         threadLargestSizePower = threadLargestSizePower > SC->vbwcl_sizePower ? threadLargestSizePower : SC->vbwcl_sizePower;
-         threadLargestSizePower = threadLargestSizePower > SC->vbwncl_sizePower ? threadLargestSizePower : SC->vbwncl_sizePower;
+         threadLargestVelMesh = std::max(threadLargestVelMesh, mySize);
+         threadLargestSizePower = std::max(threadLargestSizePower, (size_t)SC->vbwcl_sizePower);
+         threadLargestSizePower = std::max(threadLargestSizePower, (size_t)SC->vbwncl_sizePower);
       }
 #pragma omp critical
       {
-         largestVelMesh = threadLargestVelMesh > largestVelMesh ? threadLargestVelMesh : largestVelMesh;
-         largestSizePower = threadLargestSizePower > largestSizePower ? threadLargestSizePower : largestSizePower;
+         largestVelMesh = std::max(threadLargestVelMesh, largestVelMesh);
+         largestSizePower = std::max(threadLargestSizePower, largestSizePower);
       }
    }
    sparsityTimer.stop();
@@ -116,7 +116,7 @@ void update_velocity_block_content_lists(
    // fast ceil for positive ints
    //const size_t blocksNeeded = 1 + ((largestMapSize - 1) / Hashinator::defaults::MAX_BLOCKSIZE);
    size_t blocksNeeded = 1 + floor(sqrt(largestMapSize / Hashinator::defaults::MAX_BLOCKSIZE)-1);
-   blocksNeeded = blocksNeeded < 1 ? 1 : blocksNeeded;
+   blocksNeeded = std::max((size_t)1, blocksNeeded);
    dim3 grid1(blocksNeeded,2*nCells,1);
    batch_reset_all_to_empty<<<grid1, Hashinator::defaults::MAX_BLOCKSIZE, 0, baseStream>>>(
       dev_allMaps
@@ -127,11 +127,8 @@ void update_velocity_block_content_lists(
 
    // Batch gather GID-LID-pairs into two maps (one with content, one without)
    phiprof::Timer blockKernelTimer {"update content lists kernel"};
-   const uint vlasiBlocksPerWorkUnit = 1;
-   // ceil int division
-   const uint launchBlocks = 1 + ((largestVelMesh - 1) / vlasiBlocksPerWorkUnit);
-   dim3 grid2(launchBlocks,nCells,1);
-   batch_update_velocity_block_content_lists_kernel<<<grid2, (2 * vlasiBlocksPerWorkUnit * WID3), 0, baseStream>>> (
+   const dim3 grid2(largestVelMesh,nCells,1);
+   batch_update_velocity_block_content_lists_kernel<<<grid2, WID3, 0, baseStream>>> (
       dev_vmeshes,
       dev_VBCs,
       dev_allMaps,
@@ -220,35 +217,32 @@ void adjust_velocity_blocks_in_cells(
          if (SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
             continue;
          }
-         threadLargestContentList = threadLargestContentList > SC->velocity_block_with_content_list_size
-            ? threadLargestContentList : SC->velocity_block_with_content_list_size ;
+         threadLargestContentList = std::max(threadLargestContentList, (size_t)SC->velocity_block_with_content_list_size);
          size_t cellLargestContentListNeighbors = 0;
          std::unordered_set<CellID> uniqueNeighbors;
          if (includeNeighbors) {
             const auto* neighbors = mpiGrid.get_neighbors_of(cell_id, Neighborhoods::NEAREST);
             // find only unique neighbor cells
             for ( const auto& [neighbor_id, dir] : *neighbors) {
-               cellLargestContentListNeighbors = cellLargestContentListNeighbors > mpiGrid[neighbor_id]->velocity_block_with_content_list_size
-                  ? cellLargestContentListNeighbors : mpiGrid[neighbor_id]->velocity_block_with_content_list_size;
+               cellLargestContentListNeighbors = std::max(cellLargestContentListNeighbors, (size_t)(mpiGrid[neighbor_id]->velocity_block_with_content_list_size));
                if (neighbor_id != cell_id) {
                   uniqueNeighbors.insert(neighbor_id);
                }
             }
          }
-         uint reservationSize = SC->getReservation(popID);
-         reservationSize = cellLargestContentListNeighbors > reservationSize ? cellLargestContentListNeighbors : reservationSize;
+         size_t reservationSize = SC->getReservation(popID);
+         reservationSize = std::max(cellLargestContentListNeighbors, reservationSize);
          SC->setReservation(popID,reservationSize);
          SC->applyReservation(popID);
-         uint nNeighbors = uniqueNeighbors.size();
-         threadMaxNeighbors = threadMaxNeighbors > nNeighbors ? threadMaxNeighbors : nNeighbors;
-         threadLargestContentListNeighbors = threadLargestContentListNeighbors > cellLargestContentListNeighbors
-            ? threadLargestContentListNeighbors : cellLargestContentListNeighbors;
+         size_t nNeighbors = uniqueNeighbors.size();
+         threadMaxNeighbors = std::max(threadMaxNeighbors, nNeighbors);
+         threadLargestContentListNeighbors = std::max(threadLargestContentListNeighbors, cellLargestContentListNeighbors);
       }
 #pragma omp critical
       {
-         maxNeighbors = maxNeighbors > threadMaxNeighbors ? maxNeighbors : threadMaxNeighbors;
-         largestContentList = threadLargestContentList > largestContentList ? threadLargestContentList : largestContentList;
-         largestContentListNeighbors = threadLargestContentListNeighbors > largestContentListNeighbors ? threadLargestContentListNeighbors : largestContentListNeighbors;
+         maxNeighbors = std::max(maxNeighbors, threadMaxNeighbors);
+         largestContentList = std::max(threadLargestContentList, largestContentList);
+         largestContentListNeighbors = std::max(threadLargestContentListNeighbors, largestContentListNeighbors);
       }
    } // end parallel region
 
@@ -280,7 +274,7 @@ void adjust_velocity_blocks_in_cells(
 
          // Gather largest mesh size for launch parameters
          vmesh::VelocityMesh* vmesh = SC->get_velocity_mesh(popID);
-         threadLargestVelMesh = threadLargestVelMesh > vmesh->size() ? threadLargestVelMesh : vmesh->size();
+         threadLargestVelMesh = std::max(threadLargestVelMesh, vmesh->size());
 
          if (includeNeighbors) {
             // gather vector with pointers to spatial neighbor lists
@@ -330,7 +324,7 @@ void adjust_velocity_blocks_in_cells(
       timer.stop();
 #pragma omp critical
       {
-         largestVelMesh = threadLargestVelMesh > largestVelMesh ? threadLargestVelMesh : largestVelMesh;
+         largestVelMesh = std::max(threadLargestVelMesh, largestVelMesh);
       }
    } // end parallel region
 
@@ -364,29 +358,41 @@ void adjust_velocity_blocks_in_cells(
    phiprof::Timer blockHaloTimer {"Block halo batch kernels"};
    const int addWidthV = getObjectWrapper().particleSpecies[popID].sparseBlockAddWidthV;
    if (addWidthV!=1) {
-      std::cerr<<"Warning! "<<__FILE__<<":"<<__LINE__<<" Halo extent is not 1, unsupported size."<<std::endl;
+      std::cerr<<"Error! "<<__FILE__<<":"<<__LINE__<<" Halo extent is not 1, unsupported size."<<std::endl;
+      abort();
    }
    // Halo of 1 in each direction adds up to 26 velocity neighbors.
+
+   #ifdef USE_BATCH_WARPACCESSORS
    // For NVIDIA/CUDA, we can do 26 neighbors and 32 threads per warp in a single block.
    // For AMD/HIP, we can do 13 neighbors and 64 threads per warp in a single block, meaning two loops per cell.
    // In either case, we launch blocks equal to largest found velocity_block_with_content_list_size, which was stored
    // into largestContentList
-   //const size_t blocksNeeded_velhalo = 1+floor(sqrt(largestContentList)-1);
-   const size_t blocksNeeded_velhalo = largestContentList;
-   dim3 grid_vel_halo(blocksNeeded_velhalo,nCells,1);
+   dim3 grid_vel_halo(largestContentList,nCells,1);
    batch_update_velocity_halo_kernel<<<grid_vel_halo, 26*32, 0, priorityStream>>> (
       dev_vmeshes,
       dev_vbwcl_vec,
       dev_allMaps // Needs both content and no content maps
       );
    CHK_ERR( gpuPeekAtLastError() );
+   #else
+   dim3 grid_vel_halo(largestContentList,nCells,1);
+   // We do 26 (launch with GPUTHREADS) neighbors in a single block at a time.
+   batch_update_velocity_halo_kernel<<<grid_vel_halo, GPUTHREADS, 0, priorityStream>>> (
+      dev_vmeshes,
+      dev_vbwcl_vec,
+      dev_allMaps // Needs both content and no content maps
+      );
+   CHK_ERR( gpuPeekAtLastError() );
+   #endif
    // CHK_ERR( gpuStreamSynchronize(priorityStream) );
-   if (includeNeighbors && maxNeighbors>1) {
-      // ceil int division
+
+   if (includeNeighbors && maxNeighbors>0 && largestContentListNeighbors>0) {
       // largestContentListNeighbors accounts for remote (ghost neighbor) content list sizes as well
-      //const size_t NeighLaunchBlocks = 1 + floor(sqrt(largestContentListNeighbors / WARPSPERBLOCK)-1);
-      const size_t NeighLaunchBlocks = 1 + ((largestContentListNeighbors - 1) / WARPSPERBLOCK);
-      dim3 grid_neigh_halo(NeighLaunchBlocks,nCells,maxNeighbors);
+      #ifdef USE_BATCH_WARPACCESSORS
+      // ceil int division
+      const size_t blocksNeeded_neigh = 1 + ((largestContentListNeighbors - 1) / (WARPSPERBLOCK));
+      dim3 grid_neigh_halo(blocksNeeded_neigh,nCells,maxNeighbors);
       // For NVIDIA/CUDA, we can do 32 neighbor GIDs and 32 threads per warp in a single block.
       // For AMD/HIP, we can do 16 neighbor GIDs and 64 threads per warp in a single block
       // This is handled in-kernel.
@@ -396,6 +402,18 @@ void adjust_velocity_blocks_in_cells(
          dev_vbwcl_neigh
          );
       CHK_ERR( gpuPeekAtLastError() );
+      #else
+      // Try smaller launch for more spatial cell -parallelism
+      const size_t blocksNeeded_neigh = 1 + ((largestContentListNeighbors - 1) / (WARPSPERBLOCK*GPUTHREADS));
+      dim3 grid_neigh_halo(blocksNeeded_neigh,nCells,maxNeighbors);
+      // Each threads manages a single GID from the neighbour at hand
+      batch_update_neighbour_halo_kernel<<<grid_neigh_halo, WARPSPERBLOCK*GPUTHREADS, 0, baseStream>>> (
+         dev_vmeshes,
+         dev_allMaps, // Needs both has_content and has_no_content maps
+         dev_vbwcl_neigh
+         );
+      CHK_ERR( gpuPeekAtLastError() );
+      #endif
    }
    // Sync both streams
    CHK_ERR( gpuDeviceSynchronize() );
@@ -547,11 +565,11 @@ void adjust_velocity_blocks_in_cells(
          const vmesh::LocalID nBlocksAfterAdjust  = host_contentSizes[i*4 + 1];
          const vmesh::LocalID nBlocksToChange     = host_contentSizes[i*4 + 2];
          const vmesh::LocalID resizeDevSuccess    = host_contentSizes[i*4 + 3];
-         thread_largestBlocksToChange = thread_largestBlocksToChange > nBlocksToChange ? thread_largestBlocksToChange : nBlocksToChange;
+         thread_largestBlocksToChange = std::max(thread_largestBlocksToChange, nBlocksToChange);
          // This is gathered for mass loss correction: for each cell, we want the smaller of either blocks before or after. Then,
          // we want to gather the largest of those values.
-         const vmesh::LocalID lowBlocks = nBlocksBeforeAdjust < nBlocksAfterAdjust ? nBlocksBeforeAdjust : nBlocksAfterAdjust;
-         thread_largestBlocksBeforeOrAfter = thread_largestBlocksBeforeOrAfter > lowBlocks ? thread_largestBlocksBeforeOrAfter : lowBlocks;
+         const vmesh::LocalID lowBlocks = std::min(nBlocksBeforeAdjust, nBlocksAfterAdjust);
+         thread_largestBlocksBeforeOrAfter = std::max(thread_largestBlocksBeforeOrAfter, lowBlocks);
          if ( (nBlocksAfterAdjust > nBlocksBeforeAdjust) && (resizeDevSuccess == 0)) {
             //GPUTODO is _FACTOR enough instead of _PADDING?
             SC->get_velocity_mesh(popID)->setNewCapacity(nBlocksAfterAdjust*BLOCK_ALLOCATION_PADDING);
@@ -563,8 +581,8 @@ void adjust_velocity_blocks_in_cells(
       } // end cell loop
 #pragma omp critical
       {
-         largestBlocksToChange = thread_largestBlocksToChange > largestBlocksToChange ? thread_largestBlocksToChange : largestBlocksToChange;
-         largestBlocksBeforeOrAfter = largestBlocksBeforeOrAfter > thread_largestBlocksBeforeOrAfter ? largestBlocksBeforeOrAfter : thread_largestBlocksBeforeOrAfter;
+         largestBlocksToChange = std::max(thread_largestBlocksToChange, largestBlocksToChange);
+         largestBlocksBeforeOrAfter = std::max(largestBlocksBeforeOrAfter, thread_largestBlocksBeforeOrAfter);
       }
    } // end parallel region
    CHK_ERR( gpuDeviceSynchronize() );
@@ -573,16 +591,10 @@ void adjust_velocity_blocks_in_cells(
    // Do we actually have any changes to perform?
    if (largestBlocksToChange > 0) {
       phiprof::Timer addRemoveKernelTimer {"GPU batch add and remove blocks kernel"};
-      // Each GPU block / workunit could manage several Vlasiator velocity blocks at once.
-      // However, thread syncs inside the kernel prevent this.
-      // const uint vlasiBlocksPerWorkUnit = WARPSPERBLOCK * GPUTHREADS / WID3;
-      const uint vlasiBlocksPerWorkUnit = 1;
-      // ceil int division
-      const uint blocksNeeded = 1 + ((largestBlocksToChange - 1) / vlasiBlocksPerWorkUnit);
       // Third argument specifies the number of bytes in *shared memory* that is
       // dynamically allocated per block for this call in addition to the statically allocated memory.
-      dim3 grid_addremove(blocksNeeded,nCells,1);
-      batch_update_velocity_blocks_kernel<<<grid_addremove, vlasiBlocksPerWorkUnit * WID3, 0, baseStream>>> (
+      dim3 grid_addremove(largestBlocksToChange,nCells,1);
+      batch_update_velocity_blocks_kernel<<<grid_addremove, WID3, 0, baseStream>>> (
          dev_vmeshes,
          dev_VBCs,
          dev_lists_with_replace_new,
@@ -660,11 +672,11 @@ void adjust_velocity_blocks_in_cells(
       uint thread_largestOverflow = 0;
 #pragma omp for
       for (size_t i=0; i<nCells; ++i) {
-         thread_largestOverflow = thread_largestOverflow > host_contentSizes[4*nCells+i] ? thread_largestOverflow : host_contentSizes[4*nCells+i];
+         thread_largestOverflow = std::max(thread_largestOverflow, host_contentSizes[4*nCells+i]);
       }
 #pragma omp critical
       {
-         largestOverflow = thread_largestOverflow > largestOverflow ? thread_largestOverflow : largestOverflow;
+         largestOverflow = std::max(thread_largestOverflow, largestOverflow);
       }
    } // end parallel region
    if (largestOverflow > 0) {
@@ -731,19 +743,15 @@ void adjust_velocity_blocks_in_cells(
         && (largestBlocksToChange > 0) ) {
       phiprof::Timer massConservationTimer {"GPU batch conserve mass"};
       CHK_ERR( gpuMemcpyAsync(dev_massLoss, host_massLoss, nCells*sizeof(Real), gpuMemcpyHostToDevice, baseStream) );
-      // Each GPU block / workunit could manage several Vlasiator velocity blocks at once.
-      // const uint vlasiBlocksPerWorkUnit = WARPSPERBLOCK * GPUTHREADS / WID3;
-      const uint vlasiBlocksPerWorkUnit = 1;
       // Launch parameters: Although post-adjustment, some VBCs can have more blocks than when entering
       // block adjustment, any new blocks will be empty and thus do not need to be scaled. Thus, we can use
       // The count which is the gathered max value over all cells of a counter which is either blocksBeforeAdjust
       // or BlocksAfterAdjust, whichever is smaller.
-      // ceil int division
-      const uint blocksNeeded = 1 + ((largestBlocksBeforeOrAfter - 1) / vlasiBlocksPerWorkUnit);
+
       // Third argument specifies the number of bytes in *shared memory* that is
       // dynamically allocated per block for this call in addition to the statically allocated memory.
-      dim3 grid_mass_conservation(blocksNeeded,nCells,1);
-      batch_population_scale_kernel<<<grid_mass_conservation, 0, 0, baseStream>>> (
+      dim3 grid_mass_conservation(largestBlocksBeforeOrAfter,nCells,1);
+      batch_population_scale_kernel<<<grid_mass_conservation, WID3, 0, baseStream>>> (
          dev_VBCs,
          dev_massLoss // used now for scaling parameter
          );

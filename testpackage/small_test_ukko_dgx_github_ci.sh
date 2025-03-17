@@ -1,18 +1,15 @@
 #!/bin/bash
-#SBATCH -t 01:30:00        # Run time (hh:mm:ss)
-#SBATCH --job-name=CI_ukko_gpu
+#SBATCH -t 02:00:00        # Run time (hh:mm:ss)
+#SBATCH --job-name=CI_ukko_dgx
 #SBATCH -M ukko
 #SBATCH -p gpu
-#SBATCH --constraint=a100
-#SBATCH --gres=gpu:1
-#SBATCH --cpus-per-gpu=32
+#SBATCH --constraint=v100
+#SBATCH -G 1
+#SBATCH --cpus-per-task 10                 # CPU cores per task
 #SBATCH --hint=nomultithread
-##SBATCH --exclusive
 #SBATCH --nodes=1
-#SBATCH -c 32                 # CPU cores per task
 #SBATCH -n 1                  # number of tasks
-##SBATCH --mem=0 # do not request all node memory or it's equal to exclusive
-#SBATCH --mem=60G
+#SBATCH --mem=40G
 
 #If 1, the reference vlsv files are generated
 # if 0 then we check the v1
@@ -22,43 +19,29 @@ create_verification_files=0
 reference_dir="/proj/group/spacephysics/vlasiator_testpackage/"
 cd $SLURM_SUBMIT_DIR
 #cd $reference_dir # don't run on /proj
+#compare agains which revision
+reference_revision="CI_reference"
+#reference_revision="current"
 
 bin="$GITHUB_WORKSPACE/vlasiator"
 diffbin="$GITHUB_WORKSPACE/vlsvdiff_DP"
 
-#compare agains which revision
-reference_revision="CI_reference"
+export UCX_NET_DEVICES=eth0
+ulimit -c unlimited
+module purge; ml OpenMPI/4.1.6.withucx-GCC-13.2.0 PAPI/7.1.0-GCCcore-13.2.0 CUDA/12.6.0
 
-module purge
-ml GCC/11.2.0
-ml OpenMPI/4.1.1-GCC-11.2.0
-ml PMIx/4.1.0-GCCcore-11.2.0
-ml PAPI/6.0.0.1-GCCcore-11.2.0
-ml CUDA
-ml Boost/1.55.0-GCC-11.2.0
-
-# send JOB ID to output usable by CI eg to scancel this job
-echo "SLURM_JOB_ID=$SLURM_JOB_ID" >> $GITHUB_OUTPUT
-
-#--------------------------------------------------------------------
-#---------------------DO NOT TOUCH-----------------------------------
 nodes=$SLURM_NNODES
-cores_per_node=128
-# Hyperthreading
-# ht=1
-#Change PBS parameters above + the ones here
-# total_units=$(echo $nodes $cores_per_node $ht | gawk '{print $1*$2*$3}')
-# units_per_node=$(echo $cores_per_node $ht | gawk '{print $1*$2}')
-# tasks=$(echo $total_units $t  | gawk '{print $1/$2}')
-# tasks_per_node=$(echo $units_per_node $t  | gawk '{print $1/$2}')
-export t=$SLURM_CPUS_PER_TASK # used by TP script
+t=$SLURM_CPUS_PER_TASK # used by TP script
 export OMP_NUM_THREADS=$t
 export tasks=$SLURM_NTASKS
 
 #command for running stuff
-run_command="mpirun --mca btl self -mca pml ^vader,tcp,openib,uct,yalla -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_TLS=rc,sm -x UCX_IB_ADDR_TYPE=ib_global -np $tasks"
-small_run_command="mpirun --mca btl self -mca pml ^vader,tcp,openib,uct,yalla -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_TLS=rc,sm -x UCX_IB_ADDR_TYPE=ib_global -n 1 -N 1"
-run_command_tools="mpirun --mca btl self -mca pml ^vader,tcp,openib,uct,yalla -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_TLS=rc,sm -x UCX_IB_ADDR_TYPE=ib_global -n 1 -N 1"
+run_command="srun --mpi=pmix -c $t -n $tasks"
+small_run_command="srun --mpi=pmix -c $t -n 1"
+run_command_tools="mpirun -n 1 -N 1"
+
+# send JOB ID to output usable by CI eg to scancel this job
+echo "SLURM_JOB_ID=$SLURM_JOB_ID" >> $GITHUB_OUTPUT
 
 # With this the code won't print the warning, so we have a shorter report
 export OMPI_MCA_io="^ompio"
@@ -136,6 +119,9 @@ for run in ${run_tests[*]}; do
    # Run prerequisite script, if it exists
    test -e test_prelude.sh && ./test_prelude.sh
 
+   echo -e "\n\n"
+   echo "running ${test_name[$run]} "
+
    # Run the actual simulation
    if [[ ${single_cell[$run]} ]]; then
       { $small_run_command $bin --run_config=${test_name[$run]}.cfg 2>&1 1>&3 3>&- | tee $GITHUB_WORKSPACE/stderr.txt; exit ${PIPESTATUS[0]}; } 3>&1 1>&2 | tee $GITHUB_WORKSPACE/stdout.txt
@@ -162,17 +148,13 @@ for run in ${run_tests[*]}; do
     # Run postprocessing script, if it exists
    test -e test_postproc.sh && ./test_postproc.sh
 
-   ##Compare test case with right solutions
+   # Print stored stdout and stderr of simulation
    { {
-   echo -e "\n"
-   echo "----------"
-   echo "running ${test_name[$run]} "
-   echo "----------"
+   echo "-----------"
    } 2>&1 1>&3 3>&- | tee -a $GITHUB_WORKSPACE/stderr.txt;} 3>&1 1>&2 | tee -a $GITHUB_WORKSPACE/stdout.txt
    reference_result_dir=${reference_dir}/${reference_revision}/${test_name[$run]}
 
    { {
-   echo "--------------------------------"
    echo " ref-time | new-time | speedup |"
    echo "--------------------------------"
    } 2>&1 1>&3 3>&- | tee -a $GITHUB_WORKSPACE/stderr.txt;} 3>&1 1>&2 | tee -a $GITHUB_WORKSPACE/stdout.txt
@@ -192,10 +174,10 @@ for run in ${run_tests[*]}; do
    { {
    tabs 1,12,23 &> /dev/null # match next line
    echo  -e " $refPerf\t$newPerf\t$speedup" | expand -t 1,12,23 # match previous line
-   echo "-------------------------------------------"
+   echo "----------"
    tabs $tabseq &> /dev/null # reset for other printouts
    echo -e " variable\t| absolute diff\t| relative diff |" | expand -t $tabseq # list matches tabs above
-   echo "-------------------------------------------"
+   echo "----------"
    } 2>&1 1>&3 3>&- | tee -a $GITHUB_WORKSPACE/stderr.txt;} 3>&1 1>&2 | tee -a $GITHUB_WORKSPACE/stdout.txt
 
    {
@@ -212,6 +194,7 @@ for run in ${run_tests[*]}; do
    variables=(${variable_names[$run]// / })
    indices=(${variable_components[$run]// / })
 
+   # Compare test case with right solutions
    for vlsv in ${comparison_vlsv[$run]}
    do
        TOCOMPAREFILES=$((TOCOMPAREFILES+1))
@@ -257,9 +240,9 @@ for run in ${run_tests[*]}; do
 
            elif [[ "${variables[$i]}" == "ig_"* ]]
            then
-               A=$( $run_command_tools $diffbin --meshname=ionosphere  ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} ${variables[$i]} ${indices[$i]} )
-               relativeValue=$(grep "The relative 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
-               absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
+               B=$( $run_command_tools $diffbin --meshname=ionosphere  ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} ${variables[$i]} ${indices[$i]} )
+               relativeValue=$(grep "The relative 0-distance between both datasets" <<< $B |gawk '{print $8}'  )
+               absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $B |gawk '{print $8}'  )
                # print the results
                echo -e " ${variables[$i]}_${indices[$i]}\t  ${absoluteValue}\t  ${relativeValue}" | expand -t $tabseq # list matches tabs above
 
@@ -280,9 +263,9 @@ for run in ${run_tests[*]}; do
 
            elif [ ! "${variables[$i]}" == "proton" ]
            then # Regular vg_ variable
-               A=$( $run_command_tools $diffbin ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} ${variables[$i]} ${indices[$i]} )
-               relativeValue=$(grep "The relative 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
-               absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
+               C=$( $run_command_tools $diffbin ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} ${variables[$i]} ${indices[$i]} )
+               relativeValue=$(grep "The relative 0-distance between both datasets" <<< $C |gawk '{print $8}'  )
+               absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $C |gawk '{print $8}'  )
                #print the results
                echo -e " ${variables[$i]}_${indices[$i]}\t  ${absoluteValue}\t  ${relativeValue}" | expand -t $tabseq # list matches tabs above
 
@@ -305,14 +288,15 @@ for run in ${run_tests[*]}; do
            then
                echo "----------"
                echo "Distribution function diff"
-               echo "----------"
-               $run_command_tools $diffbin ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} proton 0
+               # Exclude file names from output to keep report size down
+               D=$( $run_command_tools $diffbin ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} proton 0 | grep -v -e "File" -e "INFO" )
+               echo -e "$D"
            fi
 
        done # loop over variables
 
        # Check if dt is nonzero
-       timeDiff=$(grep "delta t" <<< $A |gawk '{print $8}'  )
+       timeDiff=$(grep "delta t" <<< $C |gawk '{print $8}'  )
        if (( $(awk 'BEGIN{print ('$timeDiff'!= 0.0)?1:0}') )); then
            if (( $( echo "${timeDiff#-} $MAXDT" | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
                MAXDT=$timeDiff

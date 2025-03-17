@@ -835,14 +835,12 @@ __global__ static void resize_and_empty_kernel (
       // (this->populations[popID].blockContainer)->gpu_prefetchDevice();
       // (pop.vmesh)->gpu_prefetchDevice();
       // (pop.blockContainer)->gpu_prefetchDevice();
-      //phiprof::Timer setpopTimer {"set population"};
       this->populations[popID] = pop;
       // Copy assign includes dev_vmesh upload
    }
    inline void SpatialCell::scale_population(creal factor, cuint popID) {
       // (this->populations[popID].vmesh)->gpu_prefetchDevice();
       // (this->populations[popID].blockContainer)->gpu_prefetchDevice();
-      //phiprof::Timer scalepopTimer {"scale population"};
       (this->populations[popID]).Scale(factor);
    }
    inline void SpatialCell::increment_population(const Population& pop, creal factor, cuint popID) {
@@ -850,7 +848,6 @@ __global__ static void resize_and_empty_kernel (
       // (this->populations[popID].blockContainer)->gpu_prefetchDevice();
       // (pop.vmesh)->gpu_prefetchDevice();
       // (pop.blockContainer)->gpu_prefetchDevice();
-      //phiprof::Timer incpopTimer {"increment population"};
       (this->populations[popID]).Increment(pop, factor);
    }
    inline void SpatialCell::increment_mass_loss(cuint popID, const Real increment) {
@@ -1199,7 +1196,6 @@ __global__ static void resize_and_empty_kernel (
    */
    template <typename fileReal> void SpatialCell::add_velocity_blocks(const uint popID,const std::vector<vmesh::GlobalID>& blocks,fileReal* initBuffer) {
       debug_population_check(popID);
-      phiprof::Timer addFromBufferTimer {"GPU add blocks from buffer"};
       // Add blocks to velocity mesh
       gpuStream_t stream = gpu_getStream();
 

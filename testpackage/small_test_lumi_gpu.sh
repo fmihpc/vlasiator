@@ -18,7 +18,7 @@
 
 # If 1, the reference vlsv files are generated
 # If 0 then we check the v1
-create_verification_files=1
+create_verification_files=0
 
 # Folder for all reference data 
 reference_dir="/scratch/project_462000358/testpackage_2025/"

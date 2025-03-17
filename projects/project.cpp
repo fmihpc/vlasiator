@@ -456,13 +456,21 @@ namespace projects {
          )
       };
 
-      if(
-         // If this cell is planned to be refined, but is outside the allowed refinement region, cancel that refinement.
-         // Induced refinement still possible just beyond that limit.
-         (xyz[0] < P::refinementMinX) || (xyz[0] > P::refinementMaxX)
-         || (xyz[1] < P::refinementMinY) || (xyz[1] > P::refinementMaxY)
-         || (xyz[2] < P::refinementMinZ) || (xyz[2] > P::refinementMaxZ)) {
-         shouldRefine = false;
+      if (P::refineBoxNumber > 0) {
+         bool outsideAllRefineBoxes = true;
+         for (int i = 0; i < P::refineBoxNumber; i++) {
+            if (
+               // If this cell is planned to be refined and is inside any of the refinement boxes, then go ahead with refinement.
+               // Induced refinement still possible just beyond that limit.
+               (xyz[0] >= P::refinementMinX.at(i)) && (xyz[0] <= P::refinementMaxX.at(i))
+               && (xyz[1] >= P::refinementMinY.at(i)) && (xyz[1] <= P::refinementMaxY.at(i))
+               && (xyz[2] >= P::refinementMinZ.at(i)) && (xyz[2] <= P::refinementMaxZ.at(i))) {
+               outsideAllRefineBoxes = false;
+               break;
+            }
+         }
+
+         shouldRefine = shouldRefine && !outsideAllRefineBoxes;
       }
 
       return shouldRefine;
@@ -493,14 +501,22 @@ namespace projects {
          )
       };
 
-      if(
-         // If this cell is planned to remain at the current refinement level, but is outside the allowed refinement region,
-         // attempt to unrefine it instead. (If it is already at the lowest refinement level, DCCRG should not go belly-up.)
-         // Induced refinement still possible just beyond that limit.
-         (xyz[0] < P::refinementMinX) || (xyz[0] > P::refinementMaxX)
-         || (xyz[1] < P::refinementMinY) || (xyz[1] > P::refinementMaxY)
-         || (xyz[2] < P::refinementMinZ) || (xyz[2] > P::refinementMaxZ)) {
-         shouldUnrefine = true;
+      if (P::refineBoxNumber > 0) {
+         bool outsideAllRefineBoxes = true;
+         for (int i = 0; i < P::refineBoxNumber; i++) {
+            if (
+               // If this cell is planned to remain at the current refinement level, but is outside all the allowed refinement regions,
+               // attempt to unrefine it instead. (If it is already at the lowest refinement level, DCCRG should not go belly-up.)
+               // Induced refinement still possible just beyond that limit.
+               (xyz[0] >= P::refinementMinX.at(i)) && (xyz[0] <= P::refinementMaxX.at(i))
+               && (xyz[1] >= P::refinementMinY.at(i)) && (xyz[1] <= P::refinementMaxY.at(i))
+               && (xyz[2] >= P::refinementMinZ.at(i)) && (xyz[2] <= P::refinementMaxZ.at(i))) {
+               outsideAllRefineBoxes = false;
+               break;
+            }
+         }
+
+         shouldUnrefine = shouldUnrefine || outsideAllRefineBoxes;
       }
 
       return shouldUnrefine;

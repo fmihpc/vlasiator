@@ -82,7 +82,7 @@ void checkExternalCommands() {
       return;
    }
    if(stat("SAVE", &tempStat) == 0) {
-      cerr << "Received an external SAVE command. Writing a restart file." << endl;
+      logFile << "Received an external SAVE command. Writing a restart file." << endl;
       globalflags::writeRestart = true;
       char newName[80];
       // Get the current time.
@@ -92,8 +92,19 @@ void checkExternalCommands() {
       rename("SAVE", newName);
       return;
    }
+   if(stat("DORC", &tempStat) == 0) {
+      logFile << "Received an external DORC command. Writing a recover file." << endl;
+      globalflags::writeRecover = true;
+      char newName[80];
+      // Get the current time.
+      const time_t rawTime = time(NULL);
+      const struct tm * timeInfo = localtime(&rawTime);
+      strftime(newName, 80, "DORC_%F_%H-%M-%S", timeInfo);
+      rename("DORC", newName);
+      return;
+   }
    if(stat("DOLB", &tempStat) == 0) {
-      cerr << "Received an external DOLB command. Balancing load." << endl;
+      logFile << "Received an external DOLB command. Balancing load." << endl;
       globalflags::balanceLoad = true;
       char newName[80];
       // Get the current time.
@@ -104,7 +115,7 @@ void checkExternalCommands() {
       return;
    }
    if(stat("DOMR", &tempStat) == 0) {
-      cerr << "Received an external DOMR command. Refining grid." << endl;
+      logFile << "Received an external DOMR command. Refining grid." << endl;
       globalflags::doRefine = true;
       char newName[80];
       // Get the current time.

@@ -105,13 +105,14 @@ vector<pair<string, string>> P::restartWriteHints;
 vector<pair<string, string>> P::restartReadHints;
 
 Real P::saveRestartWalltimeInterval = -1.0;
+uint P::saveRecoverTstepInterval = 0;
 uint P::exitAfterRestarts = numeric_limits<uint>::max();
+uint P::recoverMaxFiles = 0;
 uint64_t P::vlsvBufferSize = 0;
 int P::restartStripeFactor = 0;
 int P::systemStripeFactor = 0;
 string P::restartWritePath = string("");
-
-uint P::transmit = 0;
+string P::recoverWritePath = string("");
 
 bool P::recalculateStencils = true;
 bool P::propagateVlasovAcceleration = true;
@@ -183,12 +184,13 @@ Real P::alphaDBWeight = 1.0;
 uint P::refineCadence = 5;
 Real P::refineAfter = 0.0;
 Real P::refineRadius = LARGE_REAL;
-Real P::refinementMinX = -LARGE_REAL;
-Real P::refinementMinY = -LARGE_REAL;
-Real P::refinementMinZ = -LARGE_REAL;
-Real P::refinementMaxX = LARGE_REAL;
-Real P::refinementMaxY = LARGE_REAL;
-Real P::refinementMaxZ = LARGE_REAL;
+int P::refineBoxNumber = 0;
+std::vector<Real> P::refinementMinX;
+std::vector<Real> P::refinementMinY;
+std::vector<Real> P::refinementMinZ;
+std::vector<Real> P::refinementMaxX;
+std::vector<Real> P::refinementMaxY;
+std::vector<Real> P::refinementMaxZ;
 int P::maxFilteringPasses = 0;
 int P::amrBoxNumber = 0;
 std::vector<uint> P::amrBoxHalfWidthX;
@@ -264,6 +266,9 @@ bool P::addParameters() {
            "Save the complete simulation in given walltime intervals. Negative values disable writes.", -1.0);
    RP::add("io.number_of_restarts", "Exit the simulation after certain number of walltime-based restarts.",
            numeric_limits<uint>::max());
+   RP::add("io.recover_tstep_interval",
+           "Save the complete simulation in given tstep intervals. 0 disables writes.", 0);
+   RP::add("io.number_of_recovers", "Overwrite recovers cyclically after this number of recovers written.", 2);
    RP::add("io.vlsv_buffer_size",
            "Buffer size passed to VLSV writer (bytes, up to uint64_t), default 0 as this is sensible on sisu", 0);
    RP::add("io.write_restart_stripe_factor", "Stripe factor for restart and initial grid writing. Default 0 to inherit.", 0);
@@ -271,6 +276,10 @@ bool P::addParameters() {
    RP::add("io.write_as_float", "If true, write in floats instead of doubles", false);
    RP::add("io.restart_write_path",
            "Path to the location where restart files should be written. Defaults to the local directory, also if the "
+           "specified destination is not writeable.",
+           string("./"));
+   RP::add("io.recover_write_path",
+           "Path to the location where recover files should be written. Defaults to the local directory, also if the "
            "specified destination is not writeable.",
            string("./"));
 
@@ -492,12 +501,13 @@ bool P::addParameters() {
    RP::add("AMR.refine_cadence","Refine every nth load balance", 5);
    RP::add("AMR.refine_after","Start refinement after this many simulation seconds", 0.0);
    RP::add("AMR.refine_radius","Maximum distance from origin to allow refinement within. Only induced refinement allowed outside this radius.", LARGE_REAL);
-   RP::add("AMR.refinement_min_x", "Refinement minimum X coordinate, no refinement at x < this value (m) except induced refinement.", -LARGE_REAL);
-   RP::add("AMR.refinement_min_y", "Refinement minimum Y coordinate, no refinement at y < this value (m) except induced refinement.", -LARGE_REAL);
-   RP::add("AMR.refinement_min_z", "Refinement minimum Z coordinate, no refinement at z < this value (m) except induced refinement.", -LARGE_REAL);
-   RP::add("AMR.refinement_max_x", "Refinement maximum X coordinate, no refinement at x > this value (m) except induced refinement.", LARGE_REAL);
-   RP::add("AMR.refinement_max_y", "Refinement maximum Y coordinate, no refinement at y > this value (m) except induced refinement.", LARGE_REAL);
-   RP::add("AMR.refinement_max_z", "Refinement maximum Z coordinate, no refinement at z > this value (m) except induced refinement.", LARGE_REAL);
+   RP::add("AMR.number_of_refine_boxes", "How many boxes outside which to suppress refinement, that number of box edges have to then be defined as well. If more than 1 box is defined, refinement is suppressed outside the union of the volumes of all boxes.", 0);
+   RP::addComposing("AMR.refinement_min_x", "Refinement minimum X coordinate, no refinement at x < this value (m) except induced refinement.");
+   RP::addComposing("AMR.refinement_min_y", "Refinement minimum Y coordinate, no refinement at y < this value (m) except induced refinement.");
+   RP::addComposing("AMR.refinement_min_z", "Refinement minimum Z coordinate, no refinement at z < this value (m) except induced refinement.");
+   RP::addComposing("AMR.refinement_max_x", "Refinement maximum X coordinate, no refinement at x > this value (m) except induced refinement.");
+   RP::addComposing("AMR.refinement_max_y", "Refinement maximum Y coordinate, no refinement at y > this value (m) except induced refinement.");
+   RP::addComposing("AMR.refinement_max_z", "Refinement maximum Z coordinate, no refinement at z > this value (m) except induced refinement.");
    RP::add("AMR.alpha1_drho_weight","Multiplier for delta rho (plasma density) in alpha calculation", 1.0);
    RP::add("AMR.alpha1_du_weight","Multiplier for delta U (total kinetic + field energy density) in alpha calculation", 1.0);
    RP::add("AMR.alpha1_dpsq_weight","Multiplier for delta p squared (kinetic energy) in alpha calculation", 1.0);
@@ -555,11 +565,14 @@ void Parameters::getParameters() {
    RP::get("io.write_initial_state", P::writeInitialState);
    RP::get("io.write_full_bgb_data", P::writeFullBGB);
    RP::get("io.restart_walltime_interval", P::saveRestartWalltimeInterval);
+   RP::get("io.recover_tstep_interval", P::saveRecoverTstepInterval);
    RP::get("io.number_of_restarts", P::exitAfterRestarts);
+   RP::get("io.number_of_recovers", P::recoverMaxFiles);
    RP::get("io.vlsv_buffer_size", P::vlsvBufferSize);
    RP::get("io.write_restart_stripe_factor", P::restartStripeFactor);
    RP::get("io.write_system_stripe_factor", P::systemStripeFactor);
    RP::get("io.restart_write_path", P::restartWritePath);
+   RP::get("io.recover_write_path", P::recoverWritePath);
    RP::get("io.write_as_float", P::writeAsFloat);
 
    // Checks for validity of io and restart parameters
@@ -572,6 +585,16 @@ void Parameters::getParameters() {
               << endl;
       }
       P::restartWritePath = prefix;
+   }
+   if (access(&(P::recoverWritePath[0]), W_OK) != 0) {
+      if (myRank == MASTER_RANK) {
+         cerr << "ERROR recover write path " << P::recoverWritePath << " not writeable, defaulting to local directory."
+              << endl;
+      }
+      P::recoverWritePath = prefix;
+   }
+   if (P::recoverMaxFiles == 0) {
+      P::recoverMaxFiles = 1; // If we leave it at zero a manual DORC will divide by zero when computing the index.
    }
    size_t maxSize = 0;
    maxSize = max(maxSize, P::systemWriteTimeInterval.size());
@@ -839,6 +862,7 @@ void Parameters::getParameters() {
    RP::get("AMR.refine_cadence",P::refineCadence);
    RP::get("AMR.refine_after",P::refineAfter);
    RP::get("AMR.refine_radius",P::refineRadius);
+   RP::get("AMR.number_of_refine_boxes", P::refineBoxNumber);
    RP::get("AMR.refinement_min_x", P::refinementMinX);
    RP::get("AMR.refinement_min_y", P::refinementMinY);
    RP::get("AMR.refinement_min_z", P::refinementMinZ);
@@ -872,6 +896,18 @@ void Parameters::getParameters() {
       || P::amrBoxNumber != (int)P::amrBoxMaxLevel.size()
    ) {
       cerr << "AMR.number_of_boxes is set to " << P::amrBoxNumber << " so the same number of values is required for AMR.box_half_width_[xyz] and AMR.box_center_[xyz]." << endl;
+      MPI_Abort(MPI_COMM_WORLD, 1);
+   }
+
+   // We need the correct number of parameters for the allowed refinement boxes
+   if(   P::refineBoxNumber != (int)P::refinementMinX.size()
+      || P::refineBoxNumber != (int)P::refinementMinY.size()
+      || P::refineBoxNumber != (int)P::refinementMinZ.size()
+      || P::refineBoxNumber != (int)P::refinementMaxX.size()
+      || P::refineBoxNumber != (int)P::refinementMaxY.size()
+      || P::refineBoxNumber != (int)P::refinementMaxZ.size()
+   ) {
+      cerr << "AMR.number_of_refine_boxes is set to " << P::refineBoxNumber << " so the same number of values is required for AMR.refinementMin[XYZ] and AMR.refinementMax[XYZ]." << endl;
       MPI_Abort(MPI_COMM_WORLD, 1);
    }
 

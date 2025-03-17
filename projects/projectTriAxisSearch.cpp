@@ -49,7 +49,11 @@ namespace projects {
 
       creal minValue = cell->getVelocityBlockMinValue(popID);
       // And how big a buffer do we add to the edges?
-      const uint buffer = 2;
+      uint buffer = 2;
+      if (WID > 4) {
+         // With WID8 a two-block buffer increases memory requirements too much.
+         buffer = 1;
+      }
       // How much below the sparsity can a cell be to still be included?
       creal tolerance = 0.1;
 

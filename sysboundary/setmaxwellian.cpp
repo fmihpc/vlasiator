@@ -144,7 +144,6 @@ namespace SBC {
          Bz = buffer[7];
          const Real mass = getObjectWrapper().particleSpecies[popID].mass;
 
-         phiprof::Timer setVSpacetimer {"Set Velocity Space"};
          // Find list of blocks to initialize.
          const uint nRequested = SBC::findMaxwellianBlocksToInitialize(popID,templateCell, initRho, initT, initV0X, initV0Y, initV0Z);
          // stores in vmesh->getGrid() (localToGlobalMap)
@@ -157,7 +156,6 @@ namespace SBC {
          const Realf minValue = templateCell.getVelocityBlockMinValue(popID);
 
          // fills v-space into target
-         phiprof::Timer fillTimer {"fill phasespace"};
 
          #ifdef USE_GPU
          vmesh::VelocityMesh *vmesh = templateCell.dev_get_velocity_mesh(popID);
@@ -192,14 +190,11 @@ namespace SBC {
                   //lsum[0] += value;
                };
             }, rhosum);
-         fillTimer.stop();
 
          #ifdef USE_GPU
          // Set and apply the reservation value
-         phiprof::Timer reservationTimer {"set apply reservation"};
          templateCell.setReservation(popID,nRequested,true); // Force to this value
          templateCell.applyReservation(popID);
-         reservationTimer.stop();
          #endif
 
          //let's get rid of blocks not fulfilling the criteria here to save memory.

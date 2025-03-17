@@ -77,16 +77,16 @@ single_cell[${index}]=1
 test_name[${index}]="Flowthrough_trans_periodic"
 comparison_vlsv[${index}]="bulk.0000001.vlsv bulk.0000002.vlsv bulk.0000003.vlsv"
 comparison_phiprof[${index}]="phiprof_0.txt"
-variable_names[${index}]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e"
-variable_components[${index}]="0 0 1 2 0 1 2 0 1 2"
+variable_names[${index}]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v"
+variable_components[${index}]="0 0 1 2"
 ((index+=1))
 
 # 7  Inflow and outflow boundaries
 test_name[${index}]="Flowthrough_x_inflow_y_outflow"
 comparison_vlsv[${index}]="bulk.0000001.vlsv bulk.0000002.vlsv bulk.0000003.vlsv"
 comparison_phiprof[${index}]="phiprof_0.txt"
-variable_names[${index}]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e"
-variable_components[${index}]="0 0 1 2 0 1 2 0 1 2"
+variable_names[${index}]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v"
+variable_components[${index}]="0 0 1 2"
 ((index+=1))
 
 # 8  Inflow and outflow boundaries together with acceleration

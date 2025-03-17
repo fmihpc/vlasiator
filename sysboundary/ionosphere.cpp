@@ -3187,7 +3187,6 @@ namespace SBC {
                   creal initV0Z = vDrift[2];
                   creal mass = getObjectWrapper().particleSpecies[popID].mass;
 
-                  phiprof::Timer setVSpacetimer {"Set Velocity Space"};
                   // Find list of blocks to initialize.
                   const uint nRequested = SBC::findMaxwellianBlocksToInitialize(popID,cell, initRho, initT, initV0X, initV0Y, initV0Z);
                   // stores in vmesh->getGrid() (localToGlobalMap)
@@ -3200,7 +3199,6 @@ namespace SBC {
                   const Realf minValue = cell.getVelocityBlockMinValue(popID);
 
                   // fills v-space into target
-                  phiprof::Timer fillTimer {"fill phasespace"};
 
                   #ifdef USE_GPU
                   vmesh::VelocityMesh *vmesh = cell.dev_get_velocity_mesh(popID);
@@ -3235,14 +3233,11 @@ namespace SBC {
                            //lsum[0] += value;
                         };
                      }, rhosum);
-                  fillTimer.stop();
 
                   #ifdef USE_GPU
                   // Set and apply the reservation value
-                  phiprof::Timer reservationTimer {"set apply reservation"};
                   cell.setReservation(popID,nRequested,true); // Force to this value
                   cell.applyReservation(popID);
-                  reservationTimer.stop();
                   #endif
                } // end case several
                break;
@@ -3289,7 +3284,6 @@ namespace SBC {
                   creal initV0Z = vDrift[2];
                   creal mass = getObjectWrapper().particleSpecies[popID].mass;
 
-                  phiprof::Timer setVSpacetimer {"Set Velocity Space"};
                   // Find list of blocks to initialize.
                   // WARNING: This now only finds blocks based on the outflow population, not including the copied losscone.
                   const uint nRequested = SBC::findMaxwellianBlocksToInitialize(popID,cell, initRho, initT, initV0X, initV0Y, initV0Z);
@@ -3303,7 +3297,6 @@ namespace SBC {
                   const Realf minValue = cell.getVelocityBlockMinValue(popID);
 
                   // fills v-space into target
-                  phiprof::Timer fillTimer {"fill phasespace"};
 
                   #ifdef USE_GPU
                   vmesh::VelocityMesh *vmesh = cell.dev_get_velocity_mesh(popID);
@@ -3376,14 +3369,11 @@ namespace SBC {
                            //lsum[0] += value;
                         };
                      }, rhosum);
-                  fillTimer.stop();
 
                   #ifdef USE_GPU
                   // Set and apply the reservation value
-                  phiprof::Timer reservationTimer {"set apply reservation"};
                   cell.setReservation(popID,nRequested,true); // Force to this value
                   cell.applyReservation(popID);
-                  reservationTimer.stop();
                   #endif
                } // end case CopyAndLosscone
                break;
@@ -3425,7 +3415,6 @@ namespace SBC {
          initV0Y = 0;
          initV0Z = 0;
 
-         phiprof::Timer setVSpacetimer {"Set Velocity Space"};
          // Find list of blocks to initialize.
          const uint nRequested = SBC::findMaxwellianBlocksToInitialize(popID,templateCell, initRho, initT, initV0X, initV0Y, initV0Z);
          // stores in vmesh->getGrid() (localToGlobalMap)
@@ -3438,7 +3427,6 @@ namespace SBC {
          const Realf minValue = templateCell.getVelocityBlockMinValue(popID);
 
          // fills v-space into target
-         phiprof::Timer fillTimer {"fill phasespace"};
 
          #ifdef USE_GPU
          vmesh::VelocityMesh *vmesh = templateCell.dev_get_velocity_mesh(popID);
@@ -3473,14 +3461,11 @@ namespace SBC {
                   //lsum[0] += value;
                };
             }, rhosum);
-         fillTimer.stop();
 
          #ifdef USE_GPU
          // Set and apply the reservation value
-         phiprof::Timer reservationTimer {"set apply reservation"};
          templateCell.setReservation(popID,nRequested,true); // Force to this value
          templateCell.applyReservation(popID);
-         reservationTimer.stop();
          #endif
 
          //let's get rid of blocks not fulfilling the criteria here to save memory.

@@ -86,7 +86,7 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
                          const uint map_order,
                          const Real& dt) {
    //double t1 = MPI_Wtime();
-
+   // TODO: Fix timers in both semilag functions to play nice with threading.
    vmesh::VelocityMesh* vmesh    = spatial_cell->get_velocity_mesh(popID);
 
    // compute transform, forward in time and backward in time, performed in this acceleration

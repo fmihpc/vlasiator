@@ -78,7 +78,7 @@ __host__ __device__ inline bool check_skip_remapping(const Vec* __restrict__ val
 // const_cast in some loops resulted in data corruption.
 
 //__launch_bounds__(maxThreadsPerBlock, minBlocksPerMultiprocessor, maxBlocksPerCluster)
-__global__ void __launch_bounds__(WID3, 4) translation_kernel(
+__global__ void __launch_bounds__(WID3) translation_kernel(
    const uint dimension,
    const Realf dt,
    const uint* __restrict__ pencilLengths,
@@ -334,7 +334,7 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
  * @param nAllCells count of cells to read from allVmeshPointer
  */
 #ifdef USE_WARPACCESSORS
-__global__ void  gather_union_of_blocks_kernel_WA(
+__global__ void __launch_bounds__(GPUTHREADS*WARPSPERBLOCK) gather_union_of_blocks_kernel_WA(
    Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *unionOfBlocksSet,
    const split::SplitVector<vmesh::VelocityMesh*>* __restrict__ allVmeshPointer,
    const uint nAllCells)
@@ -358,7 +358,7 @@ __global__ void  gather_union_of_blocks_kernel_WA(
    }
 }
 #else
-__global__ void  gather_union_of_blocks_kernel(
+__global__ void __launch_bounds__(GPUTHREADS*WARPSPERBLOCK) gather_union_of_blocks_kernel(
    Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *unionOfBlocksSet,
    const split::SplitVector<vmesh::VelocityMesh*>* __restrict__ allVmeshPointer,
    const uint nAllCells)

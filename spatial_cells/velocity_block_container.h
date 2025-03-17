@@ -84,6 +84,7 @@ namespace vmesh {
       ARCH_HOSTDEV vmesh::LocalID push_back_and_zero(const uint32_t N_blocks);
       ARCH_HOSTDEV void resize(const vmesh::LocalID newSize);
       ARCH_HOSTDEV bool setNewSize(const vmesh::LocalID newSize);
+      bool setNewCapacityShrink(const vmesh::LocalID reqCapacity);
       ARCH_HOSTDEV vmesh::LocalID size() const;
       ARCH_HOSTDEV size_t sizeInBytes() const;
       //void swap(VelocityBlockContainer& vbc);
@@ -666,7 +667,7 @@ namespace vmesh {
 #endif
       // Note: No longer ever recapacitates down in size.
 
-      // Reallocate so that free space is current * block_allocation_padding blocks,
+      // Reallocate so that free space is current * block_allocation_factor blocks,
       // and at least two in case of having zero blocks.
       vmesh::LocalID newCapacity = (reqCapacity > 2) ? reqCapacity : 2;
       if (currentCapacity >= newCapacity) {
@@ -676,7 +677,7 @@ namespace vmesh {
          std::cerr<<" ERROR! Trying to recapacitate to "<<newCapacity<<" when VBC already contains "<<numberOfBlocks<<" blocks!"<<std::endl;
          return false;
       }
-      newCapacity *= BLOCK_ALLOCATION_FACTOR;
+      newCapacity = (vmesh::LocalID)( (double)newCapacity * BLOCK_ALLOCATION_FACTOR);
       #ifdef USE_GPU
       // Passing eco flag = true to reserve tells splitvector we manage padding manually.
       block_data.reserve(newCapacity*WID3, true, stream);
@@ -689,10 +690,40 @@ namespace vmesh {
 #ifdef USE_GPU
       cachedCapacity = newCapacity;
 #endif
-      // #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-      // block_data.optimizeGPU(stream);
-      // parameters.optimizeGPU(stream);
-      // #endif
+      return true;
+   }
+
+   inline bool VelocityBlockContainer::setNewCapacityShrink(const vmesh::LocalID reqCapacity) {
+      // Reallocate so that capacity matches requested value.
+      vmesh::LocalID numberOfBlocks = block_data.size()/WID3;
+      if (reqCapacity < numberOfBlocks) {
+         std::cerr<<" ERROR! Trying to recapacitate to "<<reqCapacity<<" when VBC already contains "<<numberOfBlocks<<" blocks!"<<std::endl;
+         // Could enforce a minimum value here, but better to catch errors in call logic.
+         return false;
+      }
+      vmesh::LocalID newCapacity = std::max(reqCapacity, (vmesh::LocalID)2); // At least 2 blocks
+#ifdef USE_GPU
+      gpuStream_t stream = gpu_getStream();
+      // Overwrite/swap causing data corruption on LUMI-G, use reallocate method instead.
+      block_data.reallocate(newCapacity*WID3, stream);
+      parameters.reallocate(newCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS, stream);
+      CHK_ERR( gpuStreamSynchronize(stream) );
+      cachedCapacity = newCapacity;
+#else
+      // Create with larger size (capacity), then resize down to actual size
+      std::vector<Realf,aligned_allocator<Realf,WID3>> block_data_new(newCapacity*WID3);
+      std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS>> parameters_new(newCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS);
+      block_data_new.resize(numberOfBlocks*WID3);
+      parameters_new.resize(numberOfBlocks*BlockParams::N_VELOCITY_BLOCK_PARAMS);
+      for (size_t i=0; i<numberOfBlocks*WID3; ++i) {
+         block_data_new[i] = block_data[i];
+      }
+      for (size_t i=0; i<numberOfBlocks*BlockParams::N_VELOCITY_BLOCK_PARAMS; ++i) {
+         parameters_new[i] = parameters[i];
+      }
+      block_data_new.swap(block_data);
+      parameters_new.swap(parameters);
+#endif
       return true;
    }
 
@@ -749,7 +780,7 @@ namespace vmesh {
    inline ARCH_HOSTDEV size_t VelocityBlockContainer::sizeInBytes() const {
 #ifdef USE_GPU
       #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-      return block_data.size()*WID3*sizeof(Realf) + parameters.size()*sizeof(Real);
+      return block_data.size()*sizeof(Realf) + parameters.size()*sizeof(Real);
       #else
       #ifdef DEBUG_VBC
       const size_t currentSize = block_data.size() / WID3;
@@ -760,7 +791,7 @@ namespace vmesh {
       return cachedSize*WID3*sizeof(Realf) + cachedSize*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real);
       #endif
 #else
-      return block_data.size()*WID3*sizeof(Realf) + parameters.size()*sizeof(Real);
+      return block_data.size()*sizeof(Realf) + parameters.size()*sizeof(Real);
 #endif
    }
 

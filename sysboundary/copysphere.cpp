@@ -197,13 +197,13 @@ namespace SBC {
          if (cell->sysBoundaryFlag != this->getIndex()) continue;
          for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
             setCellFromTemplate(cell,popID);
+            #ifdef DEBUG_VLASIATOR
+            // Verify current mesh and blocks
+            if (!cell->checkMesh(popID)) {
+               printf("ERROR in vmesh check: %s at %d\n",__FILE__,__LINE__);
+            }
+            #endif
          }
-         #ifdef DEBUG_VLASIATOR
-         // Verify current mesh and blocks
-         if (!cell->checkMesh(popID)) {
-            printf("ERROR in vmesh check: %s at %d\n",__FILE__,__LINE__);
-         }
-         #endif
       }
    }
 
@@ -213,7 +213,6 @@ namespace SBC {
       cint j,
       cint k
    ) {
-      phiprof::Timer timer {"Copysphere::fieldSolverGetNormalDirection"};
       std::array<Real, 3> normalDirection{{ 0.0, 0.0, 0.0 }};
 
       static creal DIAG2 = 1.0 / sqrt(2.0);
@@ -773,7 +772,6 @@ namespace SBC {
          initV0Y = sP.V0[1];
          initV0Z = sP.V0[2];
 
-         phiprof::Timer setVSpacetimer {"Set Velocity Space"};
          // Find list of blocks to initialize.
          const uint nRequested = SBC::findMaxwellianBlocksToInitialize(popID,templateCell, initRho, initT, initV0X, initV0Y, initV0Z);
          // stores in vmesh->getGrid() (localToGlobalMap)
@@ -786,7 +784,6 @@ namespace SBC {
          const Realf minValue = templateCell.getVelocityBlockMinValue(popID);
 
          // fills v-space into target
-         phiprof::Timer fillTimer {"fill phasespace"};
 
          #ifdef USE_GPU
          vmesh::VelocityMesh *vmesh = templateCell.dev_get_velocity_mesh(popID);
@@ -821,14 +818,11 @@ namespace SBC {
                   //lsum[0] += value;
                };
             }, rhosum);
-         fillTimer.stop();
 
          #ifdef USE_GPU
          // Set and apply the reservation value
-         phiprof::Timer reservationTimer {"set apply reservation"};
          templateCell.setReservation(popID,nRequested,true); // Force to this value
          templateCell.applyReservation(popID);
-         reservationTimer.stop();
          #endif
 
          //let's get rid of blocks not fulfilling the criteria here to save memory.
