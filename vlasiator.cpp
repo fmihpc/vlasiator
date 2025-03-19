@@ -1060,6 +1060,8 @@ int main(int argn,char* args[]) {
          CellParams::P_22,
          CellParams::P_33
          );
+
+      updateParticlePopulations(mpiGrid);
    }
 
    initTimer.stop();
@@ -1523,7 +1525,7 @@ int main(int argn,char* args[]) {
       updateParticlePopulations(mpiGrid);
 
       momentsTimer.stop();
-             
+      
       // Propagate fields forward in time by dt. This needs to be done before the
       // moments for t + dt are computed (field uses t and t+0.5dt)
       if (P::propagateField) {
