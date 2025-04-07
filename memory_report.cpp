@@ -24,9 +24,6 @@
 #include <cstdlib>
 #include <iostream>
 #include <sstream>
-#if __GNUC__ >= 13
-   #include <format>
-#endif
 
 #ifdef _OPENMP
   #include <omp.h>
@@ -143,25 +140,19 @@ void report_memory_consumption(
    MPI_Comm_rank(interComm, &interRank);
    MPI_Comm_size(interComm, &nNodes);
 
-#if __GNUC__ >= 13
-   // string formatting
-   constexpr std::string_view formatString = "(MEM) tstep {} t {:.3g} {:<21} (GiB/node; avg, min, max, sum): {:<8.3g} {:<8.3g} {:<8.3g} {:<8.3g} on {} nodes\n";
-#endif
-
    // Report /proc/meminfo memory consumption first so we then get resident and HWM from Papi below, easier to compare by eye in logfile in this order.
    double mem_proc_free = (double)get_node_free_memory();
    double total_mem_proc = 0;
    double min_free,max_free;
    const int numberOfParameters = 1;
-   MPI_Reduce( &mem_proc_free, &total_mem_proc, numberOfParameters, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD );
+   MPI_Reduce( &mem_proc_free, &total_mem_proc, numberOfParameters, MPI_DOUBLE, MPI_SUM, 0, interComm );
    MPI_Reduce( &mem_proc_free, &min_free, numberOfParameters, MPI_DOUBLE, MPI_MIN, MASTER_RANK, MPI_COMM_WORLD );
    MPI_Reduce( &mem_proc_free, &max_free, numberOfParameters, MPI_DOUBLE, MPI_MAX, MASTER_RANK, MPI_COMM_WORLD );
-#if __GNUC__ >= 13
-   logFile << std::format(formatString, P::tstep, P::t, "Free", total_mem_proc/nProcs/GiB, min_free/GiB, max_free/GiB, total_mem_proc/GiB, nNodes);
-#else
-   logFile << "(MEM) tstep " << P::tstep << " t " << P::t << " Free             (GiB/node; avg, min, max): " << total_mem_proc/nProcs / GiB << " " << min_free / GiB << " " << max_free / GiB <<
-      " sum (GiB): " << total_mem_proc/GiB << " on "<< nNodes << " nodes" << std::endl;
-#endif
+
+   char reportstring[512];
+   snprintf(reportstring,512, "(MEM) tstep %i t %.3g %-21s (GiB/node; avg, min, max, sum): %-8.3g %-8.3g %-8.3g %-8.3g on %i nodes\n",
+         P::tstep, P::t, "Free", total_mem_proc/nNodes/GiB, min_free/GiB, max_free/GiB, total_mem_proc/GiB, nNodes);
+   logFile << reportstring;
 
 #ifdef PAPI_MEM
    /*If we have PAPI, we can report the resident usage of the process*/
@@ -189,22 +180,17 @@ void report_memory_consumption(
          if (max_mem_papi[3] != 0.0) {
             logFile << "(MEM) Estimating increased high water mark from refinement" << std::endl;
          }
-#if __GNUC__ >= 13
-         logFile << std::format(formatString, P::tstep, P::t, "Resident",            sum_mem_papi[2]/nNodes/GiB, min_mem_papi[2]/GiB, max_mem_papi[2]/GiB, sum_mem_papi[2]/GiB, nNodes);
-         logFile << std::format(formatString, P::tstep, P::t, "High water mark \U0001F30A   ",     sum_mem_papi[0]/nNodes/GiB, min_mem_papi[0]/GiB, max_mem_papi[0]/GiB, sum_mem_papi[0]/GiB, nNodes);
-         if(max_mem_papi[3] != 0.0) {
-            logFile << std::format(formatString, P::tstep, P::t, "HWM with refines", sum_mem_papi[1]/nNodes/GiB, min_mem_papi[1]/GiB, max_mem_papi[1]/GiB, sum_mem_papi[1]/GiB, nNodes);
+         snprintf(reportstring,512, "(MEM) tstep %i t %.3g %-21s (GiB/node; avg, min, max, sum): %-8.3g %-8.3g %-8.3g %-8.3g on %i nodes\n",
+                P::tstep, P::t, "Resident",            sum_mem_papi[2]/nNodes/GiB, min_mem_papi[2]/GiB, max_mem_papi[2]/GiB, sum_mem_papi[2]/GiB, nNodes);
+         logFile << reportstring;
+         snprintf(reportstring,512, "(MEM) tstep %i t %.3g %-21s (GiB/node; avg, min, max, sum): %-8.3g %-8.3g %-8.3g %-8.3g on %i nodes\n",
+               P::tstep, P::t, "High water mark \U0001F30A   ",     sum_mem_papi[0]/nNodes/GiB, min_mem_papi[0]/GiB, max_mem_papi[0]/GiB, sum_mem_papi[0]/GiB, nNodes);
+         logFile << reportstring;
+         if (max_mem_papi[3] != 0.0) {
+            snprintf(reportstring,512, "(MEM) tstep %i t %.3g %-21s (GiB/node; avg, min, max, sum): %-8.3g %-8.3g %-8.3g %-8.3g on %i nodes\n",
+               P::tstep, P::t, "HWM with refines", sum_mem_papi[1]/nNodes/GiB, min_mem_papi[1]/GiB, max_mem_papi[1]/GiB, sum_mem_papi[1]/GiB, nNodes);
+            logFile << reportstring;
          }
-#else
-         logFile << "(MEM) tstep " << P::tstep << " t " << P::t << " Resident         (GiB/node; avg, min, max): " << sum_mem_papi[2]/nNodes/GiB << " " << min_mem_papi[2]/GiB << " "  << max_mem_papi[2]/GiB <<
-            " sum (GiB): " << sum_mem_papi[2]/GiB << " on "<< nNodes << " nodes" << std::endl;
-         logFile << "(MEM) tstep " << P::tstep << " t " << P::t << " High water mark  (GiB/node; avg, min, max): " << sum_mem_papi[0]/nNodes/GiB << " " << min_mem_papi[0]/GiB << " "  << max_mem_papi[0]/GiB <<
-            " sum (GiB): " << sum_mem_papi[0]/GiB << " on "<< nNodes << " nodes" << std::endl;
-         if(max_mem_papi[3] != 0.0) {
-            logFile << "(MEM) tstep " << P::tstep << " t " << P::t << " HWM with refines (GiB/node; avg, min, max): " << sum_mem_papi[1]/nNodes/GiB << " " << min_mem_papi[1]/GiB << " "  << max_mem_papi[1]/GiB <<
-               " sum (GiB): " << sum_mem_papi[1]/GiB << " on "<< nNodes << " nodes" << std::endl;
-         }
-#endif
       }
       if(rank == MASTER_RANK) {
          bailout(max_mem_papi[1]/GiB > P::bailout_max_memory, "Memory high water mark per node exceeds bailout threshold", __FILE__, __LINE__);
@@ -262,22 +248,20 @@ void report_memory_consumption(
    MPI_Reduce(mem_usage_loc, max_mem, 3, MPI_DOUBLE_INT, MPI_MAXLOC, 0, MPI_COMM_WORLD);
    MPI_Reduce(mem_usage_loc, min_mem, 3, MPI_DOUBLE_INT, MPI_MINLOC, 0, MPI_COMM_WORLD);
 
-#if __GNUC__ >= 13
-   // string formatting
-   constexpr std::string_view formatString2 = "(MEM) tstep {} t {:.3g} {:<21} (GiB/rank; avg, min, max, sum): {:<8.3g} {:<8.3g} {:<8.3g} {:<8.3g} min rank {} max rank {}\n";
 
-   logFile << std::format(formatString2, P::tstep, P::t, "Local cells capacity",  sum_mem[3]/nProcs/GiB, min_mem[0].val/GiB, max_mem[0].val/GiB, sum_mem[3]/GiB, min_mem[0].rank, max_mem[0].rank);
-   logFile << std::format(formatString2, P::tstep, P::t, "Remote cells capacity", sum_mem[4]/nProcs/GiB, min_mem[1].val/GiB, max_mem[1].val/GiB, sum_mem[4]/GiB, min_mem[1].rank, max_mem[1].rank);
-   logFile << std::format(formatString2, P::tstep, P::t, "Total cells capacity",  sum_mem[5]/nProcs/GiB, min_mem[2].val/GiB, max_mem[2].val/GiB, sum_mem[5]/GiB, min_mem[2].rank, max_mem[2].rank);
+   snprintf(reportstring,512, "(MEM) tstep %i t %.3g %-21s (GiB/rank; avg, min, max, sum): %-8.3g %-8.3g %-8.3g %-8.3g min rank %i max rank %i\n",
+         P::tstep, P::t, "Local cells capacity",  sum_mem[3]/nProcs/GiB, min_mem[0].val/GiB, max_mem[0].val/GiB, sum_mem[3]/GiB, min_mem[0].rank, max_mem[0].rank);
+   logFile << reportstring;
+   snprintf(reportstring,512, "(MEM) tstep %i t %.3g %-21s (GiB/rank; avg, min, max, sum): %-8.3g %-8.3g %-8.3g %-8.3g min rank %i max rank %i\n",
+         P::tstep, P::t, "Remote cells capacity", sum_mem[4]/nProcs/GiB, min_mem[1].val/GiB, max_mem[1].val/GiB, sum_mem[4]/GiB, min_mem[1].rank, max_mem[1].rank);
+   logFile << reportstring;
+   snprintf(reportstring,512, "(MEM) tstep %i t %.3g %-21s (GiB/rank; avg, min, max, sum): %-8.3g %-8.3g %-8.3g %-8.3g min rank %i max rank %i\n",
+         P::tstep, P::t, "Total cells capacity",  sum_mem[5]/nProcs/GiB, min_mem[2].val/GiB, max_mem[2].val/GiB, sum_mem[5]/GiB, min_mem[2].rank, max_mem[2].rank);
+   logFile << reportstring;
 
-   constexpr std::string_view formatString3 = "(MEM) tstep {} t {:.3g} Total size and capacity of SpatialCells        (GiB): {:<8.3g} {:<8.3g}\n";
-   logFile << std::format(formatString3, P::tstep, P::t, sum_mem[2]/GiB, sum_mem[5]/GiB);
-#else
-   
-   logFile << "(MEM) tstep " << P::tstep << " t " << P::t << " Average capacity (GiB/rank) " << sum_mem[5]/nProcs / GiB << " local cells " << sum_mem[3]/nProcs / GiB << " remote cells " << sum_mem[4]/nProcs / GiB << std::endl;
-   logFile << "(MEM) tstep " << P::tstep << " t " << P::t << " Max capacity (GiB/rank)     " << max_mem[2].val / GiB  << " on rank " << max_mem[2].rank << " min capacity (GiB/rank) " << min_mem[2].val / GiB  << " on rank " << min_mem[2].rank << std::endl;
-   logFile << "(MEM) tstep " << P::tstep << " t " << P::t << " Total size and capacity of SpatialCells (GiB) " << sum_mem[2] / GiB << " " << sum_mem[5] / GiB << std::endl;
-#endif
+   snprintf(reportstring,512, "(MEM) tstep %i t %.3g Total size and capacity of SpatialCells        (GiB): %-8.3g %-8.3g\n",
+         P::tstep, P::t, sum_mem[2]/GiB, sum_mem[5]/GiB);
+   logFile << reportstring;
 
    logFile << writeVerbose;
 

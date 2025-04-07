@@ -486,7 +486,7 @@ jobs:
     - name: Compile tools
       run: |
         export VLASIATOR_ARCH=carrington_gcc_openmpi
-        srun -M carrington --job-name CI_tools_compile --interactive --nodes=1 -n 1 -c 1 --mem=4G -p short -t 0:10:0 bash -c 'module purge; module load GCC/13.2.0; module load OpenMPI/4.1.6-GCC-13.2.0 ; module load PMIx/4.2.6-GCCcore-13.2.0; module load PAPI/7.1.0-GCCcore-13.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make vlsvextract vlsvdiff'
+        srun -M carrington --job-name CI_tools_compile --interactive --nodes=1 -n 1 -c 1 --mem=4G -p short -t 0:10:0 bash -c 'module purge; module load GCC/13.2.0; module load OpenMPI/4.1.6-GCC-13.2.0 ; module load PMIx/4.2.6-GCCcore-13.2.0; module load PAPI/7.1.0-GCCcore-13.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make vlsvextract vlsvdiff fluxfunction'
     - name: Upload tools binaries
       uses: actions/upload-artifact@v4
       with:
@@ -494,6 +494,7 @@ jobs:
         path: |
           vlsvextract_DP
           vlsvdiff_DP
+          fluxfunction
         if-no-files-found: error
 
   build_tools_ukkoGPU:
@@ -555,6 +556,8 @@ jobs:
         chmod +x $GITHUB_WORKSPACE/vlasiator
         chmod +x $GITHUB_WORKSPACE/vlsv*_DP
         cd testpackage
+        # Delete any old run directories
+        rm -rf run_20*
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries/lib
         sbatch -W -o testpackage_run_output.txt ./small_test_carrington_github_ci.sh
         PARSE_OUTPUT_CMD=$( cat << MORO
@@ -591,6 +594,13 @@ jobs:
         path: testpackage-output.tar.gz
       # Note: Testpackage output is further processed in the pr_report.yml workflow
       # (to produce Checks against pull requests)
+    - name: Run fluxfunction test
+      run: |
+        chmod +x $GITHUB_WORKSPACE/fluxfunction
+        srun --job-name fluxtest -M carrington -N 1 -c 1 --mem=1G bash -c "module purge; module load GCC/13.2.0; module load OpenMPI/4.1.6-GCC-13.2.0 ; module load PMIx/4.2.6-GCCcore-13.2.0; module load PAPI/7.1.0-GCCcore-13.2.0; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_small/bulk.0000001.vlsv equatorial.bin"
+        srun --job-name fluxtest -M carrington -N 1 -c 1 --mem=1G bash -c "module purge; module load GCC/13.2.0; module load OpenMPI/4.1.6-GCC-13.2.0 ; module load PMIx/4.2.6-GCCcore-13.2.0; module load PAPI/7.1.0-GCCcore-13.2.0; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_polar_small/bulk.0000001.vlsv polar.bin"
+        diff -q equatorial.bin /proj/group/spacephysics/vlasiator_testpackage/CI_reference/equatorial.bin
+        diff -q polar.bin /proj/group/spacephysics/vlasiator_testpackage/CI_reference/polar.bin
 
   # run_TP_ukkoGPU:
   #   # Run the testpackage on the Ukko GPU cluster (via Carrington frontend)

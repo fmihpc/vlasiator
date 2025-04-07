@@ -37,12 +37,17 @@
 #include "scenario.h"
 #include "boundaries.h"
 
+#define cross_product(av,bv) (av).cross(bv)
+#define dot_product(av,bv) (av).dot(bv)
+#define vector_length(v) (v).norm()
+#define normalize_vector(v) (v).normalized()
+
 int main(int argc, char** argv) {
 
    MPI_Init(&argc, &argv);
 
    /* Parse commandline and config*/
-   Readparameters parameters(argc, argv, MPI_COMM_WORLD);
+   Readparameters parameters(argc, argv);
    ParticleParameters::addParameters();
    parameters.parse(false);  // Parse parameters and don't require run_config
    if(!ParticleParameters::getParameters()) {

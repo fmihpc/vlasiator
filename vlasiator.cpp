@@ -62,9 +62,10 @@
 #include "fieldsolver/gridGlue.hpp"
 #include "fieldsolver/derivatives.hpp"
 
+#include <signal.h>
+
 #ifdef CATCH_FPE
 #include <fenv.h>
-#include <signal.h>
 /*! Function used to abort the program upon detecting a floating point exception. Which exceptions are caught is defined using the function feenableexcept.
  */
 void fpehandler(int sig_num)
@@ -87,6 +88,17 @@ bool globalflags::writeRecover = false;
 bool globalflags::balanceLoad = false;
 bool globalflags::doRefine = false;
 bool globalflags::ionosphereJustSolved = false;
+
+#ifdef CATCH_SIGTERM
+// The normal behaviour on SIGTERM is to simply abort the simulation in place.
+// This implementation instead attempts to write a restart file and then quit,
+// to work nicely with slurm's job preemption mechanism.
+void termhandler(int sig_num) {
+   logFile << "Caught SIGTERM. Writing recover and initiating bailout." << endl << flush;
+   globalflags::bailingOut = 1;
+   globalflags::writeRecover = 1;
+}
+#endif
 
 ObjectWrapper objectWrapper;
 
@@ -226,6 +238,10 @@ int simulate(int argn,char* args[]) {
    feenableexcept(FE_DIVBYZERO|FE_INVALID|FE_OVERFLOW);
    //feenableexcept(FE_DIVBYZERO|FE_INVALID);
    signal(SIGFPE, fpehandler);
+   #endif
+
+   #ifdef CATCH_SIGTERM
+   signal(SIGTERM, termhandler);
    #endif
 
    // Initialize memory allocator configuration.

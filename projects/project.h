@@ -135,7 +135,7 @@ namespace projects {
        * \param mpiGrid grid to refine
        * @return The amount of cells set to refine
        */
-      virtual int adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const;
+      virtual uint64_t adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const;
 
 
       /*!\brief Refine/unrefine spatial cells one level to the static criteria in the config

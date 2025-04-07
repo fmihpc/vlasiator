@@ -350,11 +350,11 @@ bool P::addParameters() {
        "Enable/choose spatial order of the electron pressure gradient term in Ohm's law. 0: off, 1: 1st spatial order.",
        0);
    RP::add("fieldsolver.electronTemperature",
-           "Upstream electron temperature to be used for the electron pressure gradient term (K).", 0.0);
+           "Upstream (anchor point) electron temperature to be used for the electron pressure gradient term (K).", 0.0);
    RP::add("fieldsolver.electronDensity",
-           "Upstream electron density to be used for the electron pressure gradient term (m^-3).", 0.0);
+           "Upstream (anchor point) electron density to be used for the electron pressure gradient term (m^-3).", 0.0);
    RP::add("fieldsolver.electronPTindex",
-           "Polytropic index for electron pressure gradient term. 0 is isobaric, 1 is isothermal, 1.667 is adiabatic "
+           "Polytropic index for the equation of state to solve the electron pressure gradient term. 0 is isobaric, 1 is isothermal, 1.667 is adiabatic "
            "electrons, ",
            0.0);
    RP::add("fieldsolver.maxCFL",
@@ -980,10 +980,10 @@ void Parameters::getParameters() {
    RP::get("fieldsolver.resistivity", P::resistivity);
    RP::get("fieldsolver.diffusiveEterms", P::fieldSolverDiffusiveEterms);
    RP::get("fieldsolver.ohmHallTerm", P::ohmHallTerm);
-   RP::get("fieldsolver.ohmGradPeTerm", P::ohmGradPeTerm);
-   RP::get("fieldsolver.electronTemperature", P::electronTemperature);
-   RP::get("fieldsolver.electronDensity", P::electronDensity);
-   RP::get("fieldsolver.electronPTindex", P::electronPTindex);
+   RP::get("fieldsolver.ohmGradPeTerm", P::ohmGradPeTerm); // Which order solver to use for fieldsolver eGradPe term (supported: 0 for off, 1 for first-order)
+   RP::get("fieldsolver.electronTemperature", P::electronTemperature); // Electron temperature associated with anchor point, e.g. incoming solar wind
+   RP::get("fieldsolver.electronDensity", P::electronDensity); // Electron density associated with anchor point, e.g. incoming solar wind
+   RP::get("fieldsolver.electronPTindex", P::electronPTindex); // Polytropic index for solving electron equation of state to use in eGradPe term
    RP::get("fieldsolver.maxCFL", P::fieldSolverMaxCFL);
    RP::get("fieldsolver.minCFL", P::fieldSolverMinCFL);
 

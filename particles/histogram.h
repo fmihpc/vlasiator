@@ -24,8 +24,10 @@
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
-#include "vectorclass.h"
-#include "vector3d.h"
+#include <Eigen/Dense>
+#define Vec3d Eigen::Vector3d
+#define Vec2d Eigen::Vector2d
+
 
 #define ERROR(format, ...) fprintf (stderr, "E: " format, ##__VA_ARGS__)
 
@@ -185,7 +187,7 @@ class LinearHistogram2D : public Histogram2D
 
       virtual void addValue(Vec2d value, double weight=1.) {
          value -= low;
-         value /= high - low;
+         value = value.cwiseQuotient(high - low);
 
          int histogram_bin[2];
          histogram_bin[0] = value[0] * num_bins[0];
@@ -204,7 +206,7 @@ class LinearHistogram2D : public Histogram2D
       void addValueLinearInterpolate(Vec2d value, double weight=1.) {
 
          value -= low;
-         value /= high - low;
+         value = value.cwiseQuotient(high - low);
 
          double v[2];
          v[0] = value[0] * num_bins[0];
@@ -350,7 +352,7 @@ class LogHistogram2D : public Histogram2D
          low(_low), high(_high) {};
 
       virtual void addValue(Vec2d value, double weight=1.) {
-         value /= low;
+         value = value.cwiseQuotient(low);
 
          double v[2];
          v[0] = log(value[0]) / log(high[0] / low[0]);
@@ -429,7 +431,7 @@ class LinearHistogram3D : public Histogram3D
 
       virtual void addValue(Vec3d value) {
          value -= low;
-         value /= high - low;
+         value = value.cwiseQuotient(high - low);
 
          int histogram_bin[3];
          histogram_bin[0] = value[0] * num_bins[0];
@@ -448,7 +450,7 @@ class LinearHistogram3D : public Histogram3D
 
       Vec3d coords_for_cell(Vec3d cell) {
          Vec3d nx(num_bins[0], num_bins[1], num_bins[2]);
-         return low + cell / nx * (high - low);
+         return low + cell.cwiseQuotient(nx).cwiseProduct(high - low);
       }
 
       // Bin-wise arithmetic on histograms

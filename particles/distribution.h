@@ -75,7 +75,7 @@ class Monoenergetic : public Distribution
          Vec3d dir(sqrt(1-u*u) * cos(v),
                sqrt(1-u*u) * sin(v),
                u);
-         return Particle(mass, charge, Vec3d(0.), vel*dir);
+         return Particle(mass, charge, Vec3d(0.,0.,0.), vel*dir);
       }
    private:
 
@@ -107,7 +107,7 @@ class Kappa : public Distribution
          Vec3d dir(sqrt(1-u*u) * cos(v),
                sqrt(1-u*u) * sin(v),
                u);
-         return Particle(mass, charge, Vec3d(0.), vel*dir);
+         return Particle(mass, charge, Vec3d(0.,0.,0.), vel*dir);
       }
 
    protected:
