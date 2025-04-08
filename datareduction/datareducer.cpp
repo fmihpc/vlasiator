@@ -3641,7 +3641,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if (myRank == MASTER_RANK) {
          if (const auto best_match = spell_check(*it)) {
             std::cerr << __FILE__ << ":" << __LINE__ << ": The output variable " << *it
-                      << " is not defined. Did you mean " << *best_match << std::endl;
+                      << " is not defined. Did you mean " << *best_match <<"?"<< std::endl;
 
          } else { // old way
             std::cerr << __FILE__ << ":" << __LINE__ << ": The output variable " << *it << " is not defined."
@@ -3740,7 +3740,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if (myRank == MASTER_RANK) {
          if (const auto best_match = spell_check(*it)) {
             std::cerr << __FILE__ << ":" << __LINE__ << ": The diagnostic  variable " << *it
-                      << " is not defined. Did you mean " << *best_match << std::endl;
+                      << " is not defined. Did you mean " << *best_match<<"?" << std::endl;
 
          } else { // old way
             std::cerr << __FILE__ << ":" << __LINE__ << ": The diagnostic  variable " << *it << " is not defined."
