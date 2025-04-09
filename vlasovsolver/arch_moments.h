@@ -53,7 +53,7 @@ void blockVelocitySecondMoments(vmesh::VelocityBlockContainer *blockContainer,
                                 uint nBlocks);
 
 void calculateMoments_R(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                              const std::vector<CellID>& cells,
+                              const std::vector<CellID>& allcells,
                               const bool& computeSecond);
 
 void calculateMoments_V(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,

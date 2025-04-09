@@ -72,6 +72,12 @@ namespace spatial_cell {
          populations[popID].vmesh->initialize(spec.velocityMesh);
          populations[popID].velocityBlockMinValue = spec.sparseMinValue;
          populations[popID].N_blocks = 0;
+
+         for (int tc = 0; tc <= P::maxTimeclass; tc++){
+            ghostPopulations[{popID,tc}].vmesh.initialize(spec.velocityMesh);
+            ghostPopulations[{popID,tc}].velocityBlockMinValue = spec.sparseMinValue;
+            ghostPopulations[{popID,tc}].N_blocks = 0;
+         }
       }
 
       // new pointers for vectors
@@ -221,6 +227,35 @@ namespace spatial_cell {
          }
       }
 
+
+      /* 
+      to make this work with timeclasses, we must add the following loops:
+
+      1. adding velocity blocks to places where matter might flow to from neighbours,
+      taking into consideration the neighbours' every timeclass mesh
+
+      2. ?
+
+      */
+      
+      // timeclass addition loop:
+
+      for (std::vector<SpatialCell*>::const_iterator neighbor=spatial_neighbors.begin();
+           neighbor != spatial_neighbors.end(); ++neighbor) { // go through neighbors
+         for (int tc : (*neighbor)->requested_timeclass_ghosts) { // go through neighbors' vmesh tc:s
+
+            auto& ghostPopVmesh = (*neighbor)->get_velocity_mesh_ghost(popID, tc); // get the ghost population
+            for (vmesh::LocalID block_index = 0; block_index<ghostPopVmesh.size(); ++block_index) { //go through the vmesh of the ghost population
+               const vmesh::GlobalID globalID = ghostPopVmesh.getGlobalID(block_index);
+
+               if (compute_block_has_content(globalID, popID)) {
+                  neighbors_have_content.insert(globalID);
+               }
+            }
+         }
+      }
+
+
       // REMOVE all blocks in this cell without content + without neighbors with content
       // better to do it in the reverse order, as then blocks at the
       // end are removed first, and we may avoid copying extra data.
@@ -261,7 +296,7 @@ namespace spatial_cell {
                this->populations[popID].RHOLOSSADJUST += DV3*sum;
 
                // and finally remove block
-               this->remove_velocity_block(blockGID,popID);
+               this->remove_velocity_block(blockGID,popID, populations[popID].vmesh, populations[popID].blockContainer);
             }
          }
       }
@@ -329,6 +364,61 @@ namespace spatial_cell {
    const Real& SpatialCell::get_max_v_dt(const uint popID) const {
       debug_population_check(popID);
       return populations[popID].max_dt[species::MAXVDT];
+   }
+
+   /** Get the current timeclass dt of this cell
+    * @return local dt
+   */
+   const Real& SpatialCell::get_tc_dt() const {
+      return P::timeclassDt[this->parameters[CellParams::TIMECLASS]];
+   }
+
+   const int SpatialCell::get_tc() const {      
+      return (int)this->parameters[CellParams::TIMECLASS];
+   }
+
+   const bool SpatialCell::get_timeclass_turn_v() const {
+      // If on max timeclass, we propagate on each loop.
+      int mod = 1 << (P::currentMaxTimeclass - (int)this->parameters[CellParams::TIMECLASS]);
+      bool ret = ((P::fractionalTimestep % mod) == 0);
+      return ret;
+   }
+
+   const bool SpatialCell::get_timeclass_turn_v(int tc) const {
+      // If on max timeclass, we propagate on each loop.
+      int mod = 1 << (P::currentMaxTimeclass - (int)tc);
+      bool ret = ((P::fractionalTimestep % mod) == 0);
+      return ret;
+   }
+
+   const bool SpatialCell::get_timeclass_turn_r() const {
+      return this->get_timeclass_turn_v();
+      /* // Obsolete tries for fancy and incorrect stepping
+      if (this->parameters[CellParams::TIMECLASS] == P::currentMaxTimeclass) {
+         return true;
+      }
+      else {
+         int mod = 1 << (P::currentMaxTimeclass - (int)this->parameters[CellParams::TIMECLASS]);
+         int mod2 = 1 << (P::currentMaxTimeclass - (int)this->parameters[CellParams::TIMECLASS] - 1);
+         mod2 = max(0,mod2);
+         bool ret = ((P::fractionalTimestep % mod) == mod2);
+         if (ret && (this->parameters[CellParams::CELLID] == 11 || this->parameters[CellParams::CELLID] == 12)){}
+            // std::cout << "R on tc  " << this->parameters[CellParams::TIMECLASS] << " ftstep " << P::fractionalTimestep <<", t " << P::tstep <<"\n";
+         return ret;
+      }
+      */
+   }
+
+   const bool SpatialCell::has_timeclass(int timeclass) const{
+      if (timeclass < 0 || 
+         (int)this->parameters[CellParams::TIMECLASS] == timeclass ||
+               this->requested_timeclass_ghosts.count(timeclass) > 0
+         ){
+            return true;
+         } 
+         else{
+            return false;
+         }
    }
 
    /** Get MPI datatype for sending the cell data.
