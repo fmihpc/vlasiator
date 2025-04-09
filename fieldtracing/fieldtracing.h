@@ -30,6 +30,9 @@
 #include "../fieldsolver/fs_common.h"
 #include "../fieldsolver/derivatives.hpp"
 #include "../sysboundary/ionosphere.h"
+#include "../logger.h"
+extern Logger logFile;
+
 
 // Used in full box + flux rope tracing, the others used in coupling should use Real as double probably.
 typedef float TReal;
@@ -101,6 +104,12 @@ namespace FieldTracing {
       Real fluxrope_max_curvature_radii_to_trace;
       Real fluxrope_max_curvature_radii_extent;
       Real innerBoundaryRadius=0; /*!< If non-zero this will be used to determine CLOSED field lines. */
+      Real x_min; /*!< No tracing for x < this value. */
+      Real y_min; /*!< No tracing for y < this value. */
+      Real z_min; /*!< No tracing for z < this value. */
+      Real x_max; /*!< No tracing for x > this value. */
+      Real y_max; /*!< No tracing for y > this value. */
+      Real z_max; /*!< No tracing for z > this value. */
    };
    
    extern FieldTracingParameters fieldTracingParameters;

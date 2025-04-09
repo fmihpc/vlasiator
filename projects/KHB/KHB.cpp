@@ -35,9 +35,9 @@ namespace projects {
    using namespace std;
    KHB::KHB(): TriAxisSearch() { }
    KHB::~KHB() { }
-   
+
    bool KHB::initialize(void) {return Project::initialize();}
-   
+
    void KHB::addParameters() {
       typedef Readparameters RP;
       RP::add("KHB.P", "Constant total pressure (thermal+magnetic), used to determine the temperature profile (Pa)", 0.0);
@@ -94,8 +94,8 @@ namespace projects {
       RP::get("KHB.harmonics", this->harmonics);
       RP::get("KHB.randomPhase", this->randomPhase);
    }
-   
-   
+
+
    Real KHB::profile(creal top, creal bottom, creal x) const {
       if(top == bottom) {
          return top;
@@ -108,7 +108,7 @@ namespace projects {
          return 0.5 * ((top-bottom) * tanh(x/this->transitionWidth) + top+bottom);
       }
    }
-   
+
    inline vector<std::array<Real, 3> > KHB::getV0(
       creal x,
       creal y,
@@ -128,7 +128,7 @@ namespace projects {
       // add each mode to the initial perturbation
       for (int i=0; i<=this->harmonics; i++) {
 	 if (this->randomPhase) {
-            phase = 2.0 * M_PI * getRandomNumber(rndState); 
+            phase = 2.0 * M_PI * getRandomNumber(rndState);
          }
 
          if (this->offset != 0.0) {
@@ -144,48 +144,119 @@ namespace projects {
       return centerPoints;
    }
 
-   inline Real KHB::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, const uint popID) const {
-      creal mass = getObjectWrapper().particleSpecies[popID].mass;
-      Real rho = profile(this->rho[this->BOTTOM], this->rho[this->TOP], x);
+   Realf KHB::fillPhaseSpace(spatial_cell::SpatialCell *cell,
+                                       const uint popID,
+                                       const uint nRequested
+      ) const {
+      //const speciesParameters& sP = this->speciesParams[popID];
+      // Fetch spatial cell center coordinates
+      const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
+      const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
+      const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
+
+      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+      Real initRho = profile(this->rho[this->BOTTOM], this->rho[this->TOP], x);
       std::array<Real, 3> initV0 = this->getV0(x, y, z, popID)[0];
-      Real Vx = initV0[0];
-      Real Vy = initV0[1];
-      Real Vz = initV0[2];
+      const Real initV0X = initV0[0];
+      const Real initV0Y = initV0[1];
+      const Real initV0Z = initV0[2];
 
       // calculate the temperature such that the total pressure is constant across the domain
-      Real mu0 = physicalconstants::MU_0;
-      Real Bx = profile(this->Bx[this->BOTTOM], this->Bx[this->TOP], x);
-      Real By = profile(this->By[this->BOTTOM], this->By[this->TOP], x);
-      Real Bz = profile(this->Bz[this->BOTTOM], this->Bz[this->TOP], x);
-      Real kbT = (this->P - 0.5 * (Bx * Bx + By * By + Bz * Bz) / mu0) / rho;     
- 
-      return rho * pow(mass / (2.0 * M_PI * kbT), 1.5) *
-      exp(- mass * (pow(vx - Vx, 2.0) + pow(vy - Vy, 2.0) + pow(vz - Vz, 2.0)) / (2.0 * kbT));
+      creal mu0 = physicalconstants::MU_0;
+      creal Bx = profile(this->Bx[this->BOTTOM], this->Bx[this->TOP], x);
+      creal By = profile(this->By[this->BOTTOM], this->By[this->TOP], x);
+      creal Bz = profile(this->Bz[this->BOTTOM], this->Bz[this->TOP], x);
+      creal initT = (this->P - 0.5 * (Bx * Bx + By * By + Bz * Bz) / mu0) / initRho / physicalconstants::K_B;
+
+      #ifdef USE_GPU
+      vmesh::VelocityMesh *vmesh = cell->dev_get_velocity_mesh(popID);
+      vmesh::VelocityBlockContainer* VBC = cell->dev_get_velocity_blocks(popID);
+      #else
+      vmesh::VelocityMesh *vmesh = cell->get_velocity_mesh(popID);
+      vmesh::VelocityBlockContainer* VBC = cell->get_velocity_blocks(popID);
+      #endif
+      // Loop over blocks
+      Realf rhosum = 0;
+      arch::parallel_reduce<arch::null>(
+         {WID, WID, WID, nRequested},
+         ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint initIndex, Realf *lsum ) {
+            vmesh::GlobalID *GIDlist = vmesh->getGrid()->data();
+            Realf* bufferData = VBC->getData();
+            const vmesh::GlobalID blockGID = GIDlist[initIndex];
+            // Calculate parameters for new block
+            Real blockCoords[6];
+            vmesh->getBlockInfo(blockGID,&blockCoords[0]);
+            creal vxBlock = blockCoords[0];
+            creal vyBlock = blockCoords[1];
+            creal vzBlock = blockCoords[2];
+            creal dvxCell = blockCoords[3];
+            creal dvyCell = blockCoords[4];
+            creal dvzCell = blockCoords[5];
+            ARCH_INNER_BODY(i, j, k, initIndex, lsum) {
+               creal vx = vxBlock + (i+0.5)*dvxCell - initV0X;
+               creal vy = vyBlock + (j+0.5)*dvyCell - initV0Y;
+               creal vz = vzBlock + (k+0.5)*dvzCell - initV0Z;
+               const Realf value = MaxwellianPhaseSpaceDensity(vx,vy,vz,initT,initRho,mass);
+               bufferData[initIndex*WID3 + k*WID2 + j*WID + i] = value;
+               //lsum[0] += value;
+            };
+         }, rhosum);
+      return rhosum;
    }
 
-   Real KHB::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {   
-      return getDistribValue(x+0.5*dx, y+0.5*dy, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, popID);
-   }   
+   /* Evaluates local SpatialCell properties for the project and population,
+      then evaluates the phase-space density at the given coordinates.
+      Used as a probe for projectTriAxisSearch.
+   */
+   Realf KHB::probePhaseSpace(spatial_cell::SpatialCell *cell,
+                                        const uint popID,
+                                        Real vx_in, Real vy_in, Real vz_in
+      ) const {
+      // Fetch spatial cell center coordinates
+      const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
+      const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
+      const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
+
+      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+      Real initRho = profile(this->rho[this->BOTTOM], this->rho[this->TOP], x);
+      std::array<Real, 3> initV0 = this->getV0(x, y, z, popID)[0];
+      const Real initV0X = initV0[0];
+      const Real initV0Y = initV0[1];
+      const Real initV0Z = initV0[2];
+
+      // calculate the temperature such that the total pressure is constant across the domain
+      creal mu0 = physicalconstants::MU_0;
+      creal Bx = profile(this->Bx[this->BOTTOM], this->Bx[this->TOP], x);
+      creal By = profile(this->By[this->BOTTOM], this->By[this->TOP], x);
+      creal Bz = profile(this->Bz[this->BOTTOM], this->Bz[this->TOP], x);
+      creal initT = (this->P - 0.5 * (Bx * Bx + By * By + Bz * Bz) / mu0) / initRho / physicalconstants::K_B;
+
+      creal vx = vx_in - initV0X;
+      creal vy = vy_in - initV0Y;
+      creal vz = vz_in - initV0Z;
+      const Realf value = MaxwellianPhaseSpaceDensity(vx,vy,vz,initT,initRho,mass);
+      return value;
+   }
 
    void KHB::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
-   
+
    void KHB::setProjectBField(
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
    ) {
       setBackgroundFieldToZero(BgBGrid);
-      
+
       if(!P::isRestart) {
          auto localSize = perBGrid.getLocalSize().data();
-         
+
          #pragma omp parallel for collapse(3)
          for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
             for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
                for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
                   const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
-                  
+
                   cell->at(fsgrids::bfield::PERBX) = profile(this->Bx[this->BOTTOM], this->Bx[this->TOP], xyz[0]+0.5*perBGrid.DX);
                   cell->at(fsgrids::bfield::PERBY) = profile(this->By[this->BOTTOM], this->By[this->TOP], xyz[0]+0.5*perBGrid.DX);
                   cell->at(fsgrids::bfield::PERBZ) = profile(this->Bz[this->BOTTOM], this->Bz[this->TOP], xyz[0]+0.5*perBGrid.DX);
@@ -194,5 +265,5 @@ namespace projects {
          }
       }
    }
-   
+
 } // namespace projects

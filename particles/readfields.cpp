@@ -25,8 +25,6 @@
 #include <stdint.h>
 #include "field.h"
 #include "readfields.h"
-#include "vectorclass.h"
-#include "vector3d.h"
 #include "particleparameters.h"
 #include "../definitions.h"
 
@@ -70,7 +68,7 @@ std::vector<uint64_t> readCellIds(vlsvinterface::Reader& r) {
 /* For debugging purposes - dump a field into a png file
  * We're hardcodedly writing the z=0 plane here. */
 void debug_output(Field& F, const char* filename) {
-   
+
    /* Find min and max value */
    Real min[3], max[3];
 
@@ -89,11 +87,6 @@ void debug_output(Field& F, const char* filename) {
       }
    }
 
-   Vec3d vmin,vmax;
-
-   vmin.load(min);
-   vmax.load(max);
-
    /* Allocate a rgb-pixel array */
    std::vector<uint8_t> pixels(4*F.dimension[0]->cells*F.dimension[1]->cells);
 
@@ -103,9 +96,11 @@ void debug_output(Field& F, const char* filename) {
 
          /* Rescale the field values to lie between 0..255 */
          Vec3d scaled_val = F.getCell(x,y,0);
-         scaled_val -= vmin;
-         scaled_val /= (vmax-vmin);
-         scaled_val *= 255.;
+         for(int i=0; i<3; i++) {
+            scaled_val[i] -= min[i];
+            scaled_val[i] /= (max[i]-min[i]);
+            scaled_val[i] *= 255.;
+         }
 
          pixels[4*(y*F.dimension[0]->cells + x)] = (uint8_t) scaled_val[0];
          pixels[4*(y*F.dimension[0]->cells + x)+1] = (uint8_t) scaled_val[1];

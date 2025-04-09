@@ -48,7 +48,7 @@ static bool isInside(Field& B, double R, int x, int y, int z) {
 std::vector<double> computeFluxUp(Field& B, int outerBoundary, double innerBoundary) {
    // Create fluxfunction-field to be the same shape as B
    std::vector<double> flux(B.dimension[0]->cells * B.dimension[1]->cells * B.dimension[2]->cells);
-   for (int i = 0; i < flux.size(); ++i) {
+   for (unsigned int i = 0; i < flux.size(); ++i) {
       flux[i] = NAN;
    }
 
@@ -96,7 +96,7 @@ std::vector<double> computeFluxUp(Field& B, int outerBoundary, double innerBound
 std::vector<double> computeFluxDown(Field& B, int outerBoundary, double innerBoundary) {
    // Create fluxfunction-field to be the same shape as B
    std::vector<double> flux(B.dimension[0]->cells * B.dimension[1]->cells * B.dimension[2]->cells);
-   for (int i = 0; i < flux.size(); ++i) {
+   for (unsigned int i = 0; i < flux.size(); ++i) {
       flux[i] = NAN;
    }
 
@@ -159,7 +159,7 @@ std::vector<double> computeFluxDown(Field& B, int outerBoundary, double innerBou
 std::vector<double> computeFluxLeft(Field& B, int outerBoundary, double innerBoundary) {
    // Create fluxfunction-field to be the same shape as B
    std::vector<double> flux(B.dimension[0]->cells * B.dimension[1]->cells * B.dimension[2]->cells);
-   for (int i = 0; i < flux.size(); ++i) {
+   for (unsigned int i = 0; i < flux.size(); ++i) {
       flux[i] = NAN;
    }
 
@@ -206,7 +206,7 @@ std::vector<double> computeFluxLeft(Field& B, int outerBoundary, double innerBou
 std::vector<double> computeFluxUpRight(Field& B, int outerBoundary, double innerBoundary) {
    // Create fluxfunction-field to be the same shape as B
    std::vector<double> flux(B.dimension[0]->cells * B.dimension[1]->cells * B.dimension[2]->cells);
-   for (int i = 0; i < flux.size(); ++i) {
+   for (unsigned int i = 0; i < flux.size(); ++i) {
       flux[i] = NAN;
    }
 
@@ -268,7 +268,7 @@ std::vector<double> computeFluxUpRight(Field& B, int outerBoundary, double inner
 std::vector<double> computeFluxDownRight(Field& B, int outerBoundary, double innerBoundary) {
    // Create fluxfunction-field to be the same shape as B
    std::vector<double> flux(B.dimension[0]->cells * B.dimension[1]->cells * B.dimension[2]->cells);
-   for (int i = 0; i < flux.size(); ++i) {
+   for (unsigned int i = 0; i < flux.size(); ++i) {
       flux[i] = NAN;
    }
 

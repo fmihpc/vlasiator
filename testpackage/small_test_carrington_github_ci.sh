@@ -1,19 +1,17 @@
 #!/bin/bash
 #SBATCH -t 01:30:00        # Run time (hh:mm:ss)
 #SBATCH --job-name=CI_testpackage
-##SBATCH -A spacephysics
 #SBATCH -M carrington
-# test short medium 20min1d 3d
 #SBATCH -p short
 #SBATCH --exclusive
 #SBATCH --nodes=1
 #SBATCH -c 4                 # CPU cores per task
 #SBATCH -n 16                  # number of tasks
-#SBATCH --mem=0
+#SBATCH --mem-per-cpu=5G
 ##SBATCH -x carrington-[801-808]
 
-#If 1, the reference vlsv files are generated
-# if 0 then we check the v1
+# If 1, the reference vlsv files are generated
+# if 0 then we check the v1 against reference files
 create_verification_files=0
 
 # folder for all reference data
@@ -27,50 +25,44 @@ diffbin="$GITHUB_WORKSPACE/vlsvdiff_DP"
 #compare agains which revision
 reference_revision="CI_reference"
 
-# threads per job (equal to -c )
-t=4
 module purge
-#module load gnu9/9.3.0
-#module load openmpi4/4.0.5
-#module load pmix/3.1.4
-
-module purge
-module load GCC/11.2.0
-module load OpenMPI/4.1.1-GCC-11.2.0
-module load PMIx/4.1.0-GCCcore-11.2.0
-module load PAPI/6.0.0.1-GCCcore-11.2.0
+module load GCC/13.2.0
+module load OpenMPI/4.1.6-GCC-13.2.0
+module load PMIx/4.2.6-GCCcore-13.2.0
+module load PAPI/7.1.0-GCCcore-13.2.0
+#module load xthi
+export UCX_NET_DEVICES=eth0 # This is important for multi-node performance!
 
 # send JOB ID to output usable by CI eg to scancel this job
 echo "SLURM_JOB_ID=$SLURM_JOB_ID" >> $GITHUB_OUTPUT
 
-#--------------------------------------------------------------------
-#---------------------DO NOT TOUCH-----------------------------------
-nodes=$SLURM_NNODES
-#Carrington has 2 x 16 cores
-cores_per_node=32
-# Hyperthreading
+#Carrington has 2 x 16 cores per node, plus hyperthreading
 ht=2
-#Change PBS parameters above + the ones here
-total_units=$(echo $nodes $cores_per_node $ht | gawk '{print $1*$2*$3}')
-units_per_node=$(echo $cores_per_node $ht | gawk '{print $1*$2}')
-tasks=$(echo $total_units $t  | gawk '{print $1/$2}')
-tasks_per_node=$(echo $units_per_node $t  | gawk '{print $1/$2}')
+t=$SLURM_CPUS_PER_TASK
 export OMP_NUM_THREADS=$t
 
 # With this the code won't print the warning, so we have a shorter report
 export OMPI_MCA_io="^ompio"
 
+# Abort on invalid jemalloc configuration parameters
+export MALLOC_CONF="abort_conf:true"
+
 #command for running stuff
-run_command="mpirun --mca btl self -mca pml ^vader,tcp,openib,uct,yalla -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_TLS=rc,sm -x UCX_IB_ADDR_TYPE=ib_global -np $tasks"
-small_run_command="mpirun --mca btl self -mca pml ^vader,tcp,openib,uct,yalla -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_TLS=rc,sm -x UCX_IB_ADDR_TYPE=ib_global -n 1 -N 1"
+run_command="srun --mpi=pmix_v3 -n $SLURM_NTASKS "
+small_run_command="srun --mpi=pmix_v3 -n 1"
 run_command_tools="mpirun -np 1 "
 
 umask 007
 # Launch the OpenMP job to the allocated compute node
-echo "Running $exec on $tasks mpi tasks, with $t threads per task on $nodes nodes ($ht threads per physical core)"
+echo "Running $exec on $SLURM_NTASKS mpi tasks, with $t threads per task on $SLURM_NNODES nodes ($ht threads per physical core)"
 
 # Print the used node
 hostname
+
+# Optional debug printouts
+# srun -np 1 /appl/bin/hostinfo
+# srun --cpu-bind=cores bash -c 'echo -n "task $SLURM_PROCID (node $SLURM_NODEID): "; taskset -cp $$' | sort
+# srun --mpi=pmix --cpu-bind=cores xthi
 
 # Define test
 source test_definitions_small.sh
@@ -135,6 +127,9 @@ for run in ${run_tests[*]}; do
    # Run prerequisite script, if it exists
    test -e test_prelude.sh && ./test_prelude.sh
 
+   echo -e "\n\n"
+   echo "running ${test_name[$run]} "
+
    # Run the actual simulation
    if [[ ${single_cell[$run]} ]]; then
       { $small_run_command $bin --run_config=${test_name[$run]}.cfg 2>&1 1>&3 3>&- | tee $GITHUB_WORKSPACE/stderr.txt; exit ${PIPESTATUS[0]}; } 3>&1 1>&2 | tee $GITHUB_WORKSPACE/stdout.txt
@@ -161,17 +156,13 @@ for run in ${run_tests[*]}; do
     # Run postprocessing script, if it exists
    test -e test_postproc.sh && ./test_postproc.sh
 
-   ##Compare test case with right solutions
+   # Print stored stdout and stderr of simulation
    { {
-   echo -e "\n"
-   echo "----------"
-   echo "running ${test_name[$run]} "
-   echo "----------"
+   echo "-----------"
    } 2>&1 1>&3 3>&- | tee -a $GITHUB_WORKSPACE/stderr.txt;} 3>&1 1>&2 | tee -a $GITHUB_WORKSPACE/stdout.txt
    reference_result_dir=${reference_dir}/${reference_revision}/${test_name[$run]}
 
    { {
-   echo "--------------------------------"
    echo " ref-time | new-time | speedup |"
    echo "--------------------------------"
    } 2>&1 1>&3 3>&- | tee -a $GITHUB_WORKSPACE/stderr.txt;} 3>&1 1>&2 | tee -a $GITHUB_WORKSPACE/stdout.txt
@@ -191,10 +182,10 @@ for run in ${run_tests[*]}; do
    { {
    tabs 1,12,23 &> /dev/null # match next line
    echo  -e " $refPerf\t$newPerf\t$speedup" | expand -t 1,12,23 # match previous line
-   echo "-------------------------------------------"
+   echo "----------"
    tabs $tabseq &> /dev/null # reset for other printouts
    echo -e " variable\t| absolute diff\t| relative diff |" | expand -t $tabseq # list matches tabs above
-   echo "-------------------------------------------"
+   echo "----------"
    } 2>&1 1>&3 3>&- | tee -a $GITHUB_WORKSPACE/stderr.txt;} 3>&1 1>&2 | tee -a $GITHUB_WORKSPACE/stdout.txt
 
    {
@@ -211,6 +202,7 @@ for run in ${run_tests[*]}; do
    variables=(${variable_names[$run]// / })
    indices=(${variable_components[$run]// / })
 
+   # Compare test case with right solutions
    for vlsv in ${comparison_vlsv[$run]}
    do
        TOCOMPAREFILES=$((TOCOMPAREFILES+1))
@@ -256,9 +248,9 @@ for run in ${run_tests[*]}; do
 
            elif [[ "${variables[$i]}" == "ig_"* ]]
            then
-               A=$( $run_command_tools $diffbin --meshname=ionosphere  ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} ${variables[$i]} ${indices[$i]} )
-               relativeValue=$(grep "The relative 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
-               absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
+               B=$( $run_command_tools $diffbin --meshname=ionosphere  ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} ${variables[$i]} ${indices[$i]} )
+               relativeValue=$(grep "The relative 0-distance between both datasets" <<< $B |gawk '{print $8}'  )
+               absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $B |gawk '{print $8}'  )
                # print the results
                echo -e " ${variables[$i]}_${indices[$i]}\t  ${absoluteValue}\t  ${relativeValue}" | expand -t $tabseq # list matches tabs above
 
@@ -279,9 +271,9 @@ for run in ${run_tests[*]}; do
 
            elif [ ! "${variables[$i]}" == "proton" ]
            then # Regular vg_ variable
-               A=$( $run_command_tools $diffbin ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} ${variables[$i]} ${indices[$i]} )
-               relativeValue=$(grep "The relative 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
-               absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
+               C=$( $run_command_tools $diffbin ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} ${variables[$i]} ${indices[$i]} )
+               relativeValue=$(grep "The relative 0-distance between both datasets" <<< $C |gawk '{print $8}'  )
+               absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $C |gawk '{print $8}'  )
                #print the results
                echo -e " ${variables[$i]}_${indices[$i]}\t  ${absoluteValue}\t  ${relativeValue}" | expand -t $tabseq # list matches tabs above
 
@@ -304,14 +296,15 @@ for run in ${run_tests[*]}; do
            then
                echo "----------"
                echo "Distribution function diff"
-               echo "----------"
-               $run_command_tools $diffbin ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} proton 0
+               # Exclude file names from output to keep report size down
+               D=$( $run_command_tools $diffbin ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} proton 0 | grep -v -e "File" -e "INFO" )
+               echo -e "$D"
            fi
 
        done # loop over variables
 
        # Check if dt is nonzero
-       timeDiff=$(grep "delta t" <<< $A |gawk '{print $8}'  )
+       timeDiff=$(grep "delta t" <<< $C |gawk '{print $8}'  )
        if (( $(awk 'BEGIN{print ('$timeDiff'!= 0.0)?1:0}') )); then
            if (( $( echo "${timeDiff#-} $MAXDT" | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
                MAXDT=$timeDiff

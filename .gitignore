@@ -5,6 +5,10 @@ diagnostic.txt
 *.vlsv
 *.silo
 *.o
+*.ll
+*.gpu
+*.ptx
+*.s
 *.d
 vscode/
 .vscode/

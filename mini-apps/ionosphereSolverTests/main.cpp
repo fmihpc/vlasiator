@@ -6,6 +6,8 @@
 #include "../../datareduction/datareductionoperator.h"
 #include "../../iowrite.h"
 #include "../../ioread.h"
+#include "../../velocity_mesh_parameters.h"
+#include "../../logger.h"
 
 using namespace std;
 using namespace SBC;
@@ -13,9 +15,10 @@ using namespace vlsv;
 
 Logger logFile,diagnostic;
 int globalflags::bailingOut=0;
-bool globalflags::writeRestart=0;
-bool globalflags::balanceLoad=0;
-bool globalflags::doRefine=0;
+bool globalflags::writeRestart=false;
+bool globalflags::writeRecover=false;
+bool globalflags::balanceLoad=false;
+bool globalflags::doRefine=false;
 bool globalflags::ionosphereJustSolved = false;
 ObjectWrapper objectWrapper;
 ObjectWrapper& getObjectWrapper() {
@@ -26,9 +29,8 @@ ObjectWrapper& getObjectWrapper() {
 std::vector<CellID> localCellDummy;
 const std::vector<CellID>& getLocalCells() { return localCellDummy; }
 void deallocateRemoteCellBlocks(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry, std::tuple<>, std::tuple<> >&) {};
-void updateRemoteVelocityBlockLists(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry, std::tuple<>, std::tuple<> >&, unsigned int, unsigned int) {
-};
-void recalculateLocalCellsCache() {}
+void updateRemoteVelocityBlockLists(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry, std::tuple<>, std::tuple<> >&, unsigned int, unsigned int) {};
+void recalculateLocalCellsCache(const dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry, std::tuple<>, std::tuple<> >&) {};
 SysBoundary::SysBoundary() {}
 SysBoundary::~SysBoundary() {}
 

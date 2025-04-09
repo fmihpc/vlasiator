@@ -2,7 +2,7 @@ CMP = CC
 LNK = CC
 
 # Modules loaded
-# module load LUMI/22.08 ; module load cpeGNU ; module load papi; module load Eigen; module load Boost/1.79.0-cpeGNU-22.08; module load partition/C
+# module load LUMI/24.03 ; module load Boost/1.83.0-cpeGNU-24.03 ; module load partition/C
 
 #======== Vectorization ==========
 #Set vector backend type for vlasov solvers, sets precision and length. 
@@ -22,7 +22,6 @@ endif
 FLAGS = 
 
 #GNU flags:
-CC_BRAND = gcc
 CC_BRAND_VERSION = 9.3.0
 CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++20 -W -Wall -Wno-unused -mfma -mavx2
 testpackage: CXXFLAGS = -g -O2 -fopenmp -funroll-loops -std=c++20 -mno-fma -mno-avx2 -mno-avx
@@ -30,7 +29,7 @@ testpackage: CXXFLAGS = -g -O2 -fopenmp -funroll-loops -std=c++20 -mno-fma -mno-
 MATHFLAGS = -ffast-math -fno-finite-math-only
 testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
 
-LDFLAGS = -lrt -fopenmp
+LDFLAGS = -lrt -fopenmp -lpapi
 LIB_MPI = -fopenmp
 
 #======== PAPI ==========
@@ -53,16 +52,11 @@ testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 #-DNO_WRITE_AT_ALL:  Define to disable write at all to 
 #                    avoid memleak (much slower IO)
 
-# BOOST_VERSION = current trilinos version
-# ZOLTAN_VERSION = current trilinos verson
-#
 #======== Libraries ===========
-
-LIBRARY_PREFIX = /projappl/project_462000358/cpu-libraries/LUMI_gnu
-LIBRARY_PREFIX_HEADERS = /projappl/project_462000358/header_libraries
+LIB_BOOST = -lboost_program_options
 
 #compiled libraries
-LIB_BOOST = -lboost_program_options
+LIBRARY_PREFIX = /projappl/project_462000358/cpu-libraries/2403
 
 INC_ZOLTAN = -isystem$(LIBRARY_PREFIX)/zoltan/include
 LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/zoltan/lib -lzoltan -Wl,-rpath=$(LIBRARY_PREFIX)/zoltan/lib
@@ -70,7 +64,8 @@ LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/zoltan/lib -lzoltan -Wl,-rpath=$(LIBRARY_PREFIX
 INC_JEMALLOC = -isystem$(LIBRARY_PREFIX)/jemalloc/include
 LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/jemalloc/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX)/jemalloc/lib
 
-LIB_PAPI = -lpapi
+INC_PAPI = -I$(LIBRARY_PREFIX)/papi/include -lpapi
+LIB_PAPI = -L$(LIBRARY_PREFIX)/papi/lib -Wl,-rpath=$(LIBRARY_PREFIX)/papi/lib
 
 INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv
 LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX)/vlsv

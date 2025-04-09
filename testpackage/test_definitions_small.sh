@@ -77,16 +77,16 @@ single_cell[${index}]=1
 test_name[${index}]="Flowthrough_trans_periodic"
 comparison_vlsv[${index}]="bulk.0000001.vlsv bulk.0000002.vlsv bulk.0000003.vlsv"
 comparison_phiprof[${index}]="phiprof_0.txt"
-variable_names[${index}]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e"
-variable_components[${index}]="0 0 1 2 0 1 2 0 1 2"
+variable_names[${index}]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v"
+variable_components[${index}]="0 0 1 2"
 ((index+=1))
 
 # 7  Inflow and outflow boundaries
 test_name[${index}]="Flowthrough_x_inflow_y_outflow"
 comparison_vlsv[${index}]="bulk.0000001.vlsv bulk.0000002.vlsv bulk.0000003.vlsv"
 comparison_phiprof[${index}]="phiprof_0.txt"
-variable_names[${index}]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e"
-variable_components[${index}]="0 0 1 2 0 1 2 0 1 2"
+variable_names[${index}]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v"
+variable_components[${index}]="0 0 1 2"
 ((index+=1))
 
 # 8  Inflow and outflow boundaries together with acceleration
@@ -107,7 +107,7 @@ single_cell[${index}]=1
 ((index+=1))
 
 #######
-# 3D AMR TRANSLATION TESTS (10..13)
+# 3D AMR TRANSLATION TESTS (10..14)
 #######
 
 # 10 AMR translation, single v-cell, triangle signal
@@ -150,14 +150,12 @@ variable_names[${index}]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v vg_a
 variable_components[${index}]="0 0 1 2 0 0 0 1 2 0 1 2"
 ((index+=1))
 
-# TBA: Large flowthrough test with dAMR
-
 #######
 # RESTARTING TESTS (15..18)
 #######
 
 # Restart tests. Writing and reading
-# 14 Restart write with translation only
+# 15 Restart write with translation only
 test_name[${index}]="restart_write"
 comparison_vlsv[${index}]="bulk.0000001.vlsv"
 comparison_phiprof[${index}]="phiprof_0.txt"
@@ -165,7 +163,7 @@ variable_names[${index}]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b
 variable_components[${index}]="0 0 1 2 0 1 2 0 1 2"
 ((index+=1))
 
-# 15 Restart read and propagate with translation only
+# 16 Restart read and propagate with translation only
 test_name[${index}]="restart_read"
 comparison_vlsv[${index}]="initial-grid.0000000.vlsv bulk.0000002.vlsv"
 comparison_phiprof[${index}]="phiprof_0.txt"
@@ -173,7 +171,7 @@ variable_names[${index}]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b
 variable_components[${index}]="0 0 1 2 0 1 2 0 1 2"
 ((index+=1))
 
-# 16 Restart write with translation, acceleration, and fieldsolver
+# 17 Restart write with translation, acceleration, and fieldsolver
 test_name[${index}]="restart_write_acc"
 comparison_vlsv[${index}]="bulk.0000001.vlsv"
 comparison_phiprof[${index}]="phiprof_0.txt"
@@ -181,7 +179,7 @@ variable_names[${index}]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b
 variable_components[${index}]="0 0 1 2 0 1 2 0 1 2"
 ((index+=1))
 
-# 17 Restart read and propagate with translation, acceleration, and fieldsolver
+# 18 Restart read and propagate with translation, acceleration, and fieldsolver
 test_name[${index}]="restart_read_acc"
 comparison_vlsv[${index}]="initial-grid.0000000.vlsv bulk.0000002.vlsv"
 comparison_phiprof[${index}]="phiprof_0.txt"
@@ -193,7 +191,7 @@ variable_components[${index}]="0 0 1 2 0 1 2 0 1 2"
 # FIELDSOLVER TESTS (19..20)
 #######
 
-# 18 3D Field solver test
+# 19 3D Field solver test
 test_name[${index}]="test_fp_fsolver_only_3D"
 comparison_vlsv[${index}]="fullf.0000001.vlsv"
 comparison_phiprof[${index}]="phiprof_0.txt"
@@ -201,7 +199,7 @@ variable_names[${index}]="fg_b fg_b fg_b fg_e fg_e fg_e"
 variable_components[${index}]="0 1 2 0 1 2"
 ((index+=1))
 
-# 19 3D Field solver test w/ subcycles
+# 20 3D Field solver test w/ subcycles
 test_name[${index}]="test_fp_substeps"
 comparison_vlsv[${index}]="fullf.0000001.vlsv"
 comparison_phiprof[${index}]="phiprof_0.txt"
@@ -213,7 +211,7 @@ variable_components[${index}]="0 1 2 0 1 2"
 # GLOBAL 2D TESTS (21..22)
 #######
 
-# 20 Very small ecliptic magnetosphere, no subcycling in ACC or FS
+# 21 Very small ecliptic magnetosphere, no subcycling in ACC or FS
 test_name[${index}]="Magnetosphere_small"
 comparison_vlsv[${index}]="bulk.0000001.vlsv bulk.0000002.vlsv"
 comparison_phiprof[${index}]="phiprof_0.txt"
@@ -221,7 +219,7 @@ variable_names[${index}]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b
 variable_components[${index}]="0 0 1 2 0 1 2 0 1 2"
 ((index+=1))
 
-# 21 Very small polar magnetosphere, with subcycling in ACC or FS
+# 22 Very small polar magnetosphere, with subcycling in ACC or FS
 test_name[${index}]="Magnetosphere_polar_small"
 comparison_vlsv[${index}]="bulk.0000001.vlsv bulk.0000002.vlsv"
 comparison_phiprof[${index}]="phiprof_0.txt"
@@ -233,7 +231,7 @@ variable_components[${index}]="0 0 1 2 0 1 2 0 1 2 0 1 2 0 1 2"
 # GLOBAL 3D TESTS (23..24)
 #######
 
-# 22 Magnetosphere 3D, very small, 40 timesteps
+# 23 Magnetosphere 3D, very small, 40 timesteps
 test_name[${index}]="Magnetosphere_3D_small"
 comparison_vlsv[${index}]="bulk.0000001.vlsv bulk.0000002.vlsv"
 comparison_phiprof[${index}]="phiprof_0.txt"
@@ -241,7 +239,7 @@ variable_names[${index}]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b
 variable_components[${index}]="0 0 1 2 0 1 2 0 1 2"
 ((index+=1))
 
-# 23 Ionosphere 3D (not a very physical or successful test at the moment but verifies some things about IG grid and outputs all datareducers)
+# 24 Ionosphere 3D (not a very physical or successful test at the moment but verifies some things about IG grid and outputs all datareducers)
 test_name[${index}]="Ionosphere_small"
 comparison_vlsv[${index}]="bulk.0000001.vlsv bulk.0000002.vlsv"
 comparison_phiprof[${index}]="phiprof_0.txt"

@@ -1,0 +1,123 @@
+# Module environment
+# module load gcc/9.1.0
+# module load cuda/11.1.0
+# module load openmpi/4.0.5-cuda
+# module load papi/5.7.0
+# module load boost/1.68.0
+#
+# oneliner:
+# module load gcc/9.1.0 cuda/11.1.0 openmpi/4.0.5-cuda papi/5.7.0 boost/1.68.0 
+
+#======== Vectorization ==========
+#Set vector backend type for vlasov solvers, sets precision and length.
+#Options:
+# AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX512:   VEC8D_AGNER, VEC16F_AGNER
+# Fallback: VECTORCLASS = VEC_FALLBACK_GENERIC
+
+ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
+#Single-precision
+        VECTORCLASS = VEC_FALLBACK_GENERIC
+else
+#Double-precision
+        VECTORCLASS = VEC_FALLBACK_GENERIC
+endif
+#===== Vector Lenghts ====
+# Default for VEC_FALLBACK_GENERIC is WID=4, VECL=8 
+WID=8
+VECL=64 
+#VECL=32
+#WID=4
+#VECL=16
+
+#======= Compiler and compilation flags =========
+# NOTES on compiler flags:
+# CXXFLAGS is for compiler flags, they are always used
+# NVCCFLAGS is for CUDA compiler flags.
+# MATHFLAGS are for special math etc. flags, these are only applied on solver functions
+# LDFLAGS flags for linker
+# Important note: Do not edit CUDAFLAGS or COMPFLAGS in this file!
+
+#-DNO_WRITE_AT_ALL:  Define to disable write at all to
+#                    avoid memleak (much slower IO)
+#-DMPICH_IGNORE_CXX_SEEK: Ignores some multiple definition
+#                         errors that come up when using
+#                         mpi.h in c++ on Cray
+
+USE_CUDA=1
+CMP = mpic++
+LNK = mpic++
+NVCC = nvcc
+CC = mpicc
+CXX = mpic++
+
+#CC_BRAND = nvhpc
+#CC_BRAND_VERSION = 21.2
+CC_BRAND = gcc
+CC_BRAND_VERSION = 9.1.0
+
+#CXXFLAGS += -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -gpu=cc80 -Minfo=accel -acc -fopenmp -std=c++11
+CXXFLAGS += -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -fopenmp -std=c++11
+NVCCFLAGS += -gencode arch=compute_80,code=sm_80 -std=c++11
+
+testpackage: CXXFLAGS = -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -gpu=cc80 -Minfo=accel -acc -fopenmp -std=c++11
+#testpackage: CXXFLAGS = -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -fopenmp -std=c++11
+testpackage: NVCCFLAGS = -gencode arch=compute_80,code=sm_80 -std=c++11 --prec-sqrt=true --prec-div=true --ftz=false --fmad=false
+
+MATHFLAGS =
+LDFLAGS = -O2 -g
+#  -ta=tesla:lineinfo,keepbin,keepgpu,keepptx 
+#-L/appl/spack/v016/install-tree/gcc-4.8.5/nvhpc-21.2-l6xyb4/Linux_x86_64/21.2/cuda/11.2/lib64
+LIB_MPI = -lgomp
+
+#======== PAPI ==========
+#Add PAPI_MEM define to use papi to report memory consumption?
+#CXXFLAGS += -DPAPI_MEM
+#testpackage: CXXFLAGS += -DPAPI_MEM
+
+#======== Allocator =========
+#Use jemalloc instead of system malloc to reduce memory fragmentation https://github.com/jemalloc/jemalloc
+#Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
+CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+
+#======== Libraries ===========
+
+MPT_BRAND = openmpi
+MPT_VERSION = 4.0.5-cuda
+JEMALLOC_VERSION = 5.2.1
+LIBRARY_PREFIX = /projappl/project_2000203/libraries
+
+
+#compiled libraries
+#INC_BOOST = -I$(LIBRARY_PREFIX)/$(MPT_BRAND)/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/1.61.0/include/
+#LIB_BOOST = -L$(LIBRARY_PREFIX)/$(MPT_BRAND)/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/1.61.0/lib -lboost_program_options
+LIB_BOOST = -lboost_program_options
+
+INC_ZOLTAN = -I$(LIBRARY_PREFIX)/$(MPT_BRAND)/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/include
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/$(MPT_BRAND)/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/lib -lzoltan
+
+# jemalloc directory not included in path on purpose
+INC_JEMALLOC = -I$(LIBRARY_PREFIX)/$(MPT_BRAND)/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/include
+LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/$(MPT_BRAND)/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX)/$(MPT_BRAND)/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/lib
+
+INC_VLSV = -I$(LIBRARY_PREFIX)/$(MPT_BRAND)/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/vlsv
+LIB_VLSV = -L$(LIBRARY_PREFIX)/$(MPT_BRAND)/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/vlsv -lvlsv
+
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/$(MPT_BRAND)/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/lib -lphiprof -lgfortran -Wl,-rpath=$(LIBRARY_PREFIX)/$(MPT_BRAND)/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/lib
+INC_PROFILE = -I$(LIBRARY_PREFIX)/$(MPT_BRAND)/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/include 
+
+#LIB_PAPI = -L$(LIBRARY_PREFIX)/$(MPT_BRAND)/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/papi/lib -lpapi -Wl,-rpath=$(LIBRARY_PREFIX)/$(MPT_BRAND)/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/papi/lib
+#INC_PAPI = -I$(LIBRARY_PREFIX)/$(MPT_BRAND)/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/papi/include
+
+
+#header libraries
+
+INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid
+INC_EIGEN = -I$(LIBRARY_PREFIX)/eigen/3.3.7
+INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg
+INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass
+
+
+
+

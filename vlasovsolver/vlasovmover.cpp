@@ -29,18 +29,27 @@
 #ifdef _OPENMP
    #include <omp.h>
 #endif
+
 #include <zoltan.h>
 #include <dccrg.hpp>
 #include <phiprof.hpp>
 
-#include "../spatial_cell_wrapper.hpp"
-#include "../vlasovmover.h"
+#include "vlasovmover.h"
 #include "../grid.h"
 #include "../definitions.h"
 #include "../object_wrapper.h"
 #include "../mpiconversion.h"
 
-#include "cpu_moments.h"
+#include "arch_moments.h"
+
+#include "cpu_trans_pencils.hpp"
+
+#ifdef USE_GPU
+#include "gpu_moments.h"
+#include "gpu_acc_map.hpp"
+#include "gpu_acc_semilag.hpp"
+#include "gpu_trans_map_amr.hpp"
+#else
 #include "cpu_acc_semilag.hpp"
 #include "cpu_trans_map.hpp"
 #include "cpu_trans_pencils.hpp"
@@ -48,17 +57,10 @@
 #include "cpu_acc_transform.hpp"
 
 #include "spline.h"
+#endif
 
 using namespace std;
 using namespace spatial_cell;
-
-creal ZERO    = 0.0;
-creal HALF    = 0.5;
-creal FOURTH  = 1.0/4.0;
-creal SIXTH   = 1.0/6.0;
-creal ONE     = 1.0;
-creal TWO     = 2.0;
-creal EPSILON = 1.0e-25;
 
 /** Propagates the distribution function in spatial space.
 
@@ -75,7 +77,7 @@ void calculateSpatialTranslation(
         const vector<CellID>& remoteTargetCellsy,
         const vector<CellID>& remoteTargetCellsz,
         vector<uint>& nPencils,
-        creal dt,
+        const Realf dt,
         const uint popID,
         Real &time
 ) {
@@ -93,9 +95,9 @@ void calculateSpatialTranslation(
    if(P::zcells_ini > 1){
 
       phiprof::Timer transTimer {"transfer-stencil-data-z", {"MPI"}};
-      //updateRemoteVelocityBlockLists(mpiGrid,popID,VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
+      //updateRemoteVelocityBlockLists(mpiGrid,popID,VLASOV_SOLVER_Z);
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false);
-      mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
+      mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::VLASOV_SOLVER_Z);
       transTimer.stop();
 
       // bt=phiprof::initializeTimer("barrier-trans-pre-trans_map_1d-z","Barriers","MPI");
@@ -105,11 +107,7 @@ void calculateSpatialTranslation(
 
       t1 = MPI_Wtime();
       phiprof::Timer computeTimer {"compute-mapping-z"};
-      if(P::amrMaxSpatialRefLevel == 0) {
-         trans_map_1d(mpiGrid,local_propagated_cells, remoteTargetCellsz, 2, dt,popID); // map along z//
-      } else {
-         trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsz, nPencils, 2, dt, 0, popID); // map along z//
-      }
+      trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsz, nPencils, 2, dt, 0, popID); // map along z//
       computeTimer.stop();
       time += MPI_Wtime() - t1;
 
@@ -118,13 +116,8 @@ void calculateSpatialTranslation(
       btTimer.stop();
 
       phiprof::Timer updateRemoteTimer {"update_remote-z", {"MPI"}};
-      if(P::amrMaxSpatialRefLevel == 0) {
-         update_remote_mapping_contribution(mpiGrid, 2,+1,popID);
-         update_remote_mapping_contribution(mpiGrid, 2,-1,popID);
-      } else {
-         update_remote_mapping_contribution_amr(mpiGrid, 2,+1,popID);
-         update_remote_mapping_contribution_amr(mpiGrid, 2,-1,popID);
-      }
+      update_remote_mapping_contribution_amr(mpiGrid, 2,+1,popID);
+      update_remote_mapping_contribution_amr(mpiGrid, 2,-1,popID);
       updateRemoteTimer.stop();
 
    }
@@ -137,9 +130,9 @@ void calculateSpatialTranslation(
    if(P::xcells_ini > 1){
       
       phiprof::Timer transTimer {"transfer-stencil-data-x", {"MPI"}};
-      //updateRemoteVelocityBlockLists(mpiGrid,popID,VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
+      //updateRemoteVelocityBlockLists(mpiGrid,popID,VLASOV_SOLVER_X);
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false);
-      mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
+      mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::VLASOV_SOLVER_X);
       transTimer.stop();
       
       // bt=phiprof::initializeTimer("barrier-trans-pre-trans_map_1d-x","Barriers","MPI");
@@ -149,11 +142,7 @@ void calculateSpatialTranslation(
 
       t1 = MPI_Wtime();
       phiprof::Timer computeTimer {"compute-mapping-x"};
-      if(P::amrMaxSpatialRefLevel == 0) {
-         trans_map_1d(mpiGrid,local_propagated_cells, remoteTargetCellsx, 0,dt,popID); // map along x//
-      } else {
-         trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsx, nPencils, 0, dt, 0, popID); // map along x//
-      }
+      trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsx, nPencils, 0, dt, 0, popID); // map along x//
       computeTimer.stop();
       time += MPI_Wtime() - t1;
 
@@ -162,14 +151,10 @@ void calculateSpatialTranslation(
       btTimer.stop();
 
       phiprof::Timer updateRemoteTimer {"update_remote-x", {"MPI"}};
-      if(P::amrMaxSpatialRefLevel == 0) {
-         update_remote_mapping_contribution(mpiGrid, 0,+1,popID);
-         update_remote_mapping_contribution(mpiGrid, 0,-1,popID);
-      } else {
-         update_remote_mapping_contribution_amr(mpiGrid, 0,+1,popID);
-         update_remote_mapping_contribution_amr(mpiGrid, 0,-1,popID);
-      }
+      update_remote_mapping_contribution_amr(mpiGrid, 0,+1,popID);
+      update_remote_mapping_contribution_amr(mpiGrid, 0,-1,popID);
       updateRemoteTimer.stop();
+
    }
 
    phiprof::Timer btyTimer {"barrier-trans-pre-y", {"Barriers","MPI"}};
@@ -180,9 +165,9 @@ void calculateSpatialTranslation(
    if(P::ycells_ini > 1) {
       
       phiprof::Timer transTimer {"transfer-stencil-data-y", {"MPI"}};
-      //updateRemoteVelocityBlockLists(mpiGrid,popID,VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
+      //updateRemoteVelocityBlockLists(mpiGrid,popID,VLASOV_SOLVER_Y);
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false);
-      mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
+      mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::VLASOV_SOLVER_Y);
       transTimer.stop();
       
       // bt=phiprof::initializeTimer("barrier-trans-pre-trans_map_1d-y","Barriers","MPI");
@@ -192,27 +177,19 @@ void calculateSpatialTranslation(
 
       t1 = MPI_Wtime();
       phiprof::Timer computeTimer {"compute-mapping-y"};
-      if(P::amrMaxSpatialRefLevel == 0) {
-         trans_map_1d(mpiGrid,local_propagated_cells, remoteTargetCellsy, 1,dt,popID); // map along y//
-      } else {
-         trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsy, nPencils, 1, dt, 0, popID); // map along y//
-      }
+      trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsy, nPencils, 1, dt, 0, popID); // map along y//
       computeTimer.stop();
       time += MPI_Wtime() - t1;
-      
+
       phiprof::Timer btTimer {"barrier-trans-pre-update_remote-y", {"Barriers","MPI"}};
       MPI_Barrier(MPI_COMM_WORLD);
       btTimer.stop();
 
       phiprof::Timer updateRemoteTimer {"update_remote-y", {"MPI"}};
-      if(P::amrMaxSpatialRefLevel == 0) {
-         update_remote_mapping_contribution(mpiGrid, 1,+1,popID);
-         update_remote_mapping_contribution(mpiGrid, 1,-1,popID);
-      } else {
-         update_remote_mapping_contribution_amr(mpiGrid, 1,+1,popID);
-         update_remote_mapping_contribution_amr(mpiGrid, 1,-1,popID);
-      }
+      update_remote_mapping_contribution_amr(mpiGrid, 1,+1,popID);
+      update_remote_mapping_contribution_amr(mpiGrid, 1,-1,popID);
       updateRemoteTimer.stop();
+
    }
 
    for(CellID c : local_propagated_cells)
@@ -253,7 +230,7 @@ void calculateSpatialGhostTranslation(
    // No need for remote target cells; pass a dummy list.
    const vector<CellID> dummy_cells;
 
-   updateRemoteVelocityBlockLists(mpiGrid,popID,VLASOV_SOLVER_GHOST_NEIGHBORHOOD_ID);
+   updateRemoteVelocityBlockLists(mpiGrid,popID,Neighborhoods::VLASOV_SOLVER_GHOST);
    // Need to re-do in case block lists of boundary cells change after
    // the block adjustment just after ACC.
 
@@ -263,7 +240,7 @@ void calculateSpatialGhostTranslation(
 
    phiprof::Timer transferTimer {"transfer-stencil-data-all",{"MPI"}};
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false);
-   mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_GHOST_NEIGHBORHOOD_ID);
+   mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::VLASOV_SOLVER_GHOST);
    transferTimer.stop();
 
    phiprof::Timer preBarrierTimer {"MPI barrier-pre-trans"};
@@ -372,9 +349,9 @@ void calculateSpatialTranslation(
    
    phiprof::Timer computeTimer {"compute_cell_lists"};
    if (!P::vlasovSolverGhostTranslate) {
-      remoteTargetCellsx = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID);
-      remoteTargetCellsy = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID);
-      remoteTargetCellsz = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID);
+      remoteTargetCellsx = mpiGrid.get_remote_cells_on_process_boundary(Neighborhoods::VLASOV_SOLVER_TARGET_X);
+      remoteTargetCellsy = mpiGrid.get_remote_cells_on_process_boundary(Neighborhoods::VLASOV_SOLVER_TARGET_Y);
+      remoteTargetCellsz = mpiGrid.get_remote_cells_on_process_boundary(Neighborhoods::VLASOV_SOLVER_TARGET_Z);
    }
 
    // std::cout << "setting up tc cell vectors \n";
@@ -423,7 +400,7 @@ void calculateSpatialTranslation(
       }
    }
 
-   if (P::prepareForRebalance == true && P::amrMaxSpatialRefLevel != 0) {
+   if (P::prepareForRebalance == true) {
       // One more element to count the sums
       nPencils.resize(local_propagated_cells.size()+1, 0);
    }
@@ -529,7 +506,9 @@ void calculateSpatialTranslation(
          }
 
          // int accelerationsteps = 0; // Account for time spent in acceleration as well
-         // if (mpiGrid[local_propagated_cells[c]]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) accelerationsteps = 3;
+         // if (mpiGrid[local_propagated_cells[c]]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+         //    accelerationsteps = 3;
+         // }
          if (SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
             // Set sysb cells to a small weight
             SC->parameters[CellParams::LBWEIGHTCOUNTER] = counter * 0.5;
@@ -621,6 +600,8 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
 
    calculateMoments_V(mpiGrid, std::vector<CellID>(propagatedSet.begin(),propagatedSet.end()), false);
 
+   // Semi-Lagrangian acceleration for those cells which are subcycled,
+   // dimension-by-dimension
    int timerId {phiprof::initializeTimer("cell-semilag-acc")};
 
    // Semi-Lagrangian acceleration for those cells which are subcycled
@@ -659,8 +640,10 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
       } else{
          subcycleDt = maxVdt;
       }
-      if (dt<0) subcycleDt = -subcycleDt;
-
+      if (dt<0) {
+         subcycleDt = -subcycleDt;
+      }
+      
       //generate pseudo-random order which is always the same irrespective of parallelization, restarts, etc.
       std::default_random_engine rndState;
       // set seed, initialise generator and get value. The order is the same
@@ -674,7 +657,11 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
       #endif
       map_order=1;
       phiprof::Timer semilagAccTimer {"cell-semilag-acc"};
+#ifdef USE_GPU
+      gpu_accelerate_cell(mpiGrid[cellID],popID,map_order,subcycleDt);
+#else
       cpu_accelerate_cell(payload.cellptr, popID, map_order, subcycleDt, payload.timeclass);
+#endif
       // if (cellID == 16)
       //    #pragma omp critical(output)
       //    {
@@ -861,7 +848,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
       }
    } else {
       // Fairly ugly but no goto
-      phiprof::Timer timer {"semilag-acc"};
+      phiprof::Timer accTimer {"semilag-acc"};
       
       /* merged down
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
@@ -880,6 +867,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
       
       // Accelerate all particle species
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         uint gpuMaxBlockCount = 0; // would be better to be over all populations
          int maxSubcycles=0;
          int globalMaxSubcycles;
 
@@ -889,7 +877,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
          vector<AccelerationPayload> propagatePayloads; // <timeclass, SpatialCell*, dt, subcycle step>
 
          // Iterate through all local cells and collect cells to propagate.
-         // Ghost cells (spatial cells at the boundary of the simulation 
+         // Ghost cells (spatial cells at the boundary of the simulation
          // volume) do not need to be propagated:
          // vector<CellID> propagatedCells;
          for (size_t c=0; c<cells.size(); ++c) {
@@ -950,6 +938,25 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
             maxSubcycles = max((int)getAccelerationSubcycles(payload.cellptr->get_max_v_dt(popID), payload.dt), maxSubcycles);
             spatial_cell::Population& pop = payload.cellptr->get_population(popID,payload.timeclass);
             pop.ACCSUBCYCLES = getAccelerationSubcycles(payload.cellptr->get_max_v_dt(popID), payload.dt);
+#ifdef USE_GPU
+               #pragma omp critical
+               {
+                  if (blockCount > gpuMaxBlockCount) {
+                     gpuMaxBlockCount = blockCount;
+                  }
+               }
+#endif
+            }
+         }
+         gatherTimer.stop();
+
+#ifdef USE_GPU
+         // Ensure accelerator has enough temporary memory allocated
+         phiprof::Timer verificationTimer {"gpu allocation verifications"};
+         gpu_vlasov_allocate(gpuMaxBlockCount);
+         gpu_acc_allocate(gpuMaxBlockCount);
+         verificationTimer.stop();
+#endif
          }
          
 
@@ -980,7 +987,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
                cellsToPropagateSet.insert(payload.cellptr->get_cellid());
             }
          } // for-loop over acceleration substeps
-         
+
          // final adjust for all cells, also fixing remote cells.
 // std::cerr << __FILE__<<":"<<__LINE__<< " calling adjustVelocityBlocks at t = " 
 //          << P::t << ", preparing to receive; len cells = " << cells.size() <<
@@ -1011,7 +1018,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
       cell->parameters[CellParams::MAXVDT] = numeric_limits<Real>::max();
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          cell->parameters[CellParams::MAXVDT]
-           = min(cell->get_max_v_dt(popID), cell->parameters[CellParams::MAXVDT]);
+            = min(cell->get_max_v_dt(popID), cell->parameters[CellParams::MAXVDT]);
       }
       if(abs(cell->parameters[CellParams::XCRD]+cell->parameters[CellParams::DX]/2) < 6*P::dx_ini) {
             //cell->parameters[CellParams::MAXVDT] /= 2;
@@ -1038,7 +1045,10 @@ void calculateInterpolatedVelocityMoments(
    const int cp_rhoq,
    const int cp_p11,
    const int cp_p22,
-   const int cp_p33
+   const int cp_p33,
+   const int cp_p23,
+   const int cp_p13,
+   const int cp_p12
 ) {
    const vector<CellID>& cells = getLocalCells();
 
@@ -1057,6 +1067,9 @@ void calculateInterpolatedVelocityMoments(
       SC->parameters[cp_p11]   = 0.5* ( SC->parameters[CellParams::P_11_R] + SC->parameters[CellParams::P_11_V] );
       SC->parameters[cp_p22]   = 0.5* ( SC->parameters[CellParams::P_22_R] + SC->parameters[CellParams::P_22_V] );
       SC->parameters[cp_p33]   = 0.5* ( SC->parameters[CellParams::P_33_R] + SC->parameters[CellParams::P_33_V] );
+      SC->parameters[cp_p23]   = 0.5* ( SC->parameters[CellParams::P_23_R] + SC->parameters[CellParams::P_23_V] );
+      SC->parameters[cp_p13]   = 0.5* ( SC->parameters[CellParams::P_13_R] + SC->parameters[CellParams::P_13_V] );
+      SC->parameters[cp_p12]   = 0.5* ( SC->parameters[CellParams::P_12_R] + SC->parameters[CellParams::P_12_V] );
 
       // for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       //    spatial_cell::Population& pop = SC->get_population(popID);
@@ -1116,12 +1129,17 @@ void interpolateMomentsForTimeclasses(
    const int cp_p11,
    const int cp_p22,
    const int cp_p33,
+   const int cp_p23,
+   const int cp_p13,
+   const int cp_p12,
    const int fracTimeStep, // goes from 0 to 2^maxtimeclass-1
    const int maxTC,
    const bool dt2 // true if second moment / dt2
 ) {
 
    const vector<CellID>& cells = getLocalCells();
+
+   // TODO Add new moments P_23, P_13, P_12
 
    #pragma omp parallel for
    for (size_t c=0; c<cells.size(); ++c) {
@@ -1299,6 +1317,8 @@ void updateParticlePopulations(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometr
             pop.RHO = 0.5 * ( pop.RHO_R + pop.RHO_V );
             for(int i=0; i<3; i++) {
                pop.V[i] = 0.5 * ( pop.V_R[i] + pop.V_V[i] );
+            }
+            for(int i=0; i<6; i++) {
                pop.P[i] = 0.5 * ( pop.P_R[i] + pop.P_V[i] );
             }
          }
@@ -1306,18 +1326,18 @@ void updateParticlePopulations(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometr
    }
 }
 
-
 void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
    const vector<CellID>& cells = getLocalCells();
    phiprof::Timer timer {"Calculate moments"};
 
    // Iterate through all local cells (incl. system boundary cells):
+   // Setting the GPU device inside the moment call itself, because
+   // it's being called from so many different projects etc
    #pragma omp parallel for
    for (size_t c=0; c<cells.size(); ++c) {
       const CellID cellID = cells[c];
       SpatialCell* SC = mpiGrid[cellID];
       calculateCellMoments(SC,true,false);
-
       // WARNING the following is sane as this function is only called by initializeGrid.
       // We need initialized _DT2 values for the dt=0 field propagation done in the beginning.
       // Later these will be set properly.

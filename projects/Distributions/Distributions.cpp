@@ -123,30 +123,122 @@ namespace projects {
       RP::get("Distributions.lambda", this->lambda);
    }
 
-   Real Distributions::getDistribValue(
-      creal& x, creal& y, creal& z,
-      creal& vx, creal& vy, creal& vz,
-      const uint popID
-   ) const {
-      Real value = 0.0;
+   Realf Distributions::fillPhaseSpace(spatial_cell::SpatialCell *cell,
+                                       const uint popID,
+                                       const uint nRequested
+      ) const {
+      // Fetch spatial cell center coordinates
+      const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
+      const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
+      const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
       creal relx = x/(Parameters::xmax - Parameters::xmin);
       creal rely = y/(Parameters::ymax - Parameters::ymin);
       creal relz = z/(Parameters::zmax - Parameters::zmin);
       creal scaledVx1 = this->Vx[1] * relx;
       creal scaledVy1 = this->Vy[1] * rely;
       creal scaledVz1 = this->Vz[1] * relz;
-      
-      value += this->rhoRnd[0] * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B ), 1.5) * 1.0 / sqrt(this->Tx[0]*this->Ty[0]*this->Tz[0]) *
-      exp(-physicalconstants::MASS_PROTON * (pow(vx - this->Vx[0], 2.0) / (2.0 * physicalconstants::K_B * this->Tx[0]) + pow(vy - this->Vy[0], 2.0) / (2.0 * physicalconstants::K_B * this->Ty[0]) + pow(vz - this->Vz[0], 2.0) / (2.0 * physicalconstants::K_B * this->Tz[0])));
-      
-      value += this->rhoRnd[1] * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B ), 1.5) * 1.0 / sqrt(this->Tx[1]*this->Ty[1]*this->Tz[1]) *
-      exp(-physicalconstants::MASS_PROTON * (pow(vx - scaledVx1, 2.0) / (2.0 * physicalconstants::K_B * this->Tx[1]) + pow(vy - scaledVy1, 2.0) / (2.0 * physicalconstants::K_B * this->Ty[1]) + pow(vz - scaledVz1, 2.0) / (2.0 * physicalconstants::K_B * this->Tz[1])));
-      
-      return value;
+
+      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+      const Real initRho0 = this->rhoRnd[0];
+      const Real initRho1 = this->rhoRnd[1];
+      const Real initT0x = this->Tx[0];
+      const Real initT0y = this->Ty[0];
+      const Real initT0z = this->Tz[0];
+      const Real initT1x = this->Tx[1];
+      const Real initT1y = this->Ty[1];
+      const Real initT1z = this->Tz[1];
+      const Real initV0X = this->Vx[0];
+      const Real initV0Y = this->Vy[0];
+      const Real initV0Z = this->Vz[0];
+      const Real initV1X = this->Vx[1];
+      const Real initV1Y = this->Vy[1];
+      const Real initV1Z = this->Vz[1];
+
+      #ifdef USE_GPU
+      vmesh::VelocityMesh *vmesh = cell->dev_get_velocity_mesh(popID);
+      vmesh::VelocityBlockContainer* VBC = cell->dev_get_velocity_blocks(popID);
+      #else
+      vmesh::VelocityMesh *vmesh = cell->get_velocity_mesh(popID);
+      vmesh::VelocityBlockContainer* VBC = cell->get_velocity_blocks(popID);
+      #endif
+      // Loop over blocks
+      Realf rhosum = 0;
+      arch::parallel_reduce<arch::null>(
+         {WID, WID, WID, nRequested},
+         ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint initIndex, Realf *lsum ) {
+            vmesh::GlobalID *GIDlist = vmesh->getGrid()->data();
+            Realf* bufferData = VBC->getData();
+            const vmesh::GlobalID blockGID = GIDlist[initIndex];
+            // Calculate parameters for new block
+            Real blockCoords[6];
+            vmesh->getBlockInfo(blockGID,&blockCoords[0]);
+            creal vxBlock = blockCoords[0];
+            creal vyBlock = blockCoords[1];
+            creal vzBlock = blockCoords[2];
+            creal dvxCell = blockCoords[3];
+            creal dvyCell = blockCoords[4];
+            creal dvzCell = blockCoords[5];
+            ARCH_INNER_BODY(i, j, k, initIndex, lsum) {
+               Real vx = vxBlock + (i+0.5)*dvxCell - initV0X;
+               Real vy = vyBlock + (j+0.5)*dvyCell - initV0Y;
+               Real vz = vzBlock + (k+0.5)*dvzCell - initV0Z;
+               Realf value = TriMaxwellianPhaseSpaceDensity(vx,vy,vz,initT0x,initT0y,initT0z,initRho0,mass);
+               vx = vxBlock + (i+0.5)*dvxCell - initV1X;
+               vy = vyBlock + (j+0.5)*dvyCell - initV1Y;
+               vz = vzBlock + (k+0.5)*dvzCell - initV1Z;
+               value += TriMaxwellianPhaseSpaceDensity(vx,vy,vz,initT1x,initT1y,initT1z,initRho1,mass);
+               bufferData[initIndex*WID3 + k*WID2 + j*WID + i] = value;
+               //lsum[0] += value;
+            };
+         }, rhosum);
+      return rhosum;
    }
 
-   Real Distributions::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {   
-      return getDistribValue(x+0.5*dx, y+0.5*dy,z+0.5*dz,vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, popID);
+   /* Evaluates local SpatialCell properties for the project and population,
+      then evaluates the phase-space density at the given coordinates.
+      Used as a probe for projectTriAxisSearch.
+   */
+   Realf Distributions::probePhaseSpace(spatial_cell::SpatialCell *cell,
+                                        const uint popID,
+                                        Real vx_in, Real vy_in, Real vz_in
+      ) const {
+      // Fetch spatial cell center coordinates
+      const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
+      const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
+      const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
+      creal relx = x/(Parameters::xmax - Parameters::xmin);
+      creal rely = y/(Parameters::ymax - Parameters::ymin);
+      creal relz = z/(Parameters::zmax - Parameters::zmin);
+      creal scaledVx1 = this->Vx[1] * relx;
+      creal scaledVy1 = this->Vy[1] * rely;
+      creal scaledVz1 = this->Vz[1] * relz;
+
+      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+      const Real initRho0 = this->rhoRnd[0];
+      const Real initRho1 = this->rhoRnd[1];
+      const Real initT0x = this->Tx[0];
+      const Real initT0y = this->Ty[0];
+      const Real initT0z = this->Tz[0];
+      const Real initT1x = this->Tx[1];
+      const Real initT1y = this->Ty[1];
+      const Real initT1z = this->Tz[1];
+      const Real initV0X = this->Vx[0];
+      const Real initV0Y = this->Vy[0];
+      const Real initV0Z = this->Vz[0];
+      const Real initV1X = this->Vx[1];
+      const Real initV1Y = this->Vy[1];
+      const Real initV1Z = this->Vz[1];
+
+      Realf value = 0;
+      Real vx = vx_in - initV0X;
+      Real vy = vy_in - initV0Y;
+      Real vz = vz_in - initV0Z;
+      value = TriMaxwellianPhaseSpaceDensity(vx,vy,vz,initT0x,initT0y,initT0z,initRho0,mass);
+      vx = vx_in - initV1X;
+      vy = vy_in - initV1Y;
+      vz = vz_in - initV1Z;
+      value += TriMaxwellianPhaseSpaceDensity(vx,vy,vz,initT1x,initT1y,initT1z,initRho1,mass);
+      return value;
    }
 
    void Distributions::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
@@ -166,12 +258,12 @@ namespace projects {
       bgField.initialize(this->Bx,
                          this->By,
                          this->Bz);
-      
+
       setBackgroundField(bgField, BgBGrid);
-      
+
       if(!P::isRestart) {
          const auto localSize = BgBGrid.getLocalSize().data();
-         
+
 #pragma omp parallel for collapse(3)
          for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
             for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
@@ -179,10 +271,10 @@ namespace projects {
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
                   const int64_t cellid = perBGrid.GlobalIDForCoords(x, y, z);
                   const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
-                  
+
                   std::default_random_engine rndState;
                   setRandomSeed(cellid,rndState);
-                  
+
                   if (this->lambda != 0.0) {
                      cell->at(fsgrids::bfield::PERBX) = this->dBx*cos(2.0 * M_PI * xyz[0] / this->lambda);
                      cell->at(fsgrids::bfield::PERBY) = this->dBy*sin(2.0 * M_PI * xyz[0] / this->lambda);
@@ -197,7 +289,7 @@ namespace projects {
          }
       }
    }
-   
+
    vector<std::array<Real, 3>> Distributions::getV0(
       creal x,
       creal y,
@@ -217,5 +309,5 @@ namespace projects {
       centerPoints.push_back(point1);
       return centerPoints;
    }
-   
+
 }// namespace projects

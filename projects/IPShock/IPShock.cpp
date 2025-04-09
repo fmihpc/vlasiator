@@ -43,324 +43,387 @@ using namespace std;
 using namespace spatial_cell;
 
 namespace projects {
-  IPShock::IPShock(): TriAxisSearch() { }
-  IPShock::~IPShock() { }
+   IPShock::IPShock(): TriAxisSearch() { }
+   IPShock::~IPShock() { }
   
-  bool IPShock::initialize() {
-    return Project::initialize();
-  }
+   bool IPShock::initialize() {
+      return Project::initialize();
+   }
   
-  void IPShock::addParameters() {
-    typedef Readparameters RP;
-    // Common (field / etc.) parameters
-    RP::add("IPShock.BX0u", "Upstream mag. field value (T)", 1.0e-9);
-    RP::add("IPShock.BY0u", "Upstream mag. field value (T)", 2.0e-9);
-    RP::add("IPShock.BZ0u", "Upstream mag. field value (T)", 3.0e-9);
-    RP::add("IPShock.BX0d", "Downstream mag. field value (T)", 1.0e-9);
-    RP::add("IPShock.BY0d", "Downstream mag. field value (T)", 2.0e-9);
-    RP::add("IPShock.BZ0d", "Downstream mag. field value (T)", 3.0e-9);
-    RP::add("IPShock.Width", "Shock Width (m)", 50000);
+   void IPShock::addParameters() {
+      typedef Readparameters RP;
+      // Common (field / etc.) parameters
+      RP::add("IPShock.BX0u", "Upstream mag. field value (T)", 1.0e-9);
+      RP::add("IPShock.BY0u", "Upstream mag. field value (T)", 2.0e-9);
+      RP::add("IPShock.BZ0u", "Upstream mag. field value (T)", 3.0e-9);
+      RP::add("IPShock.BX0d", "Downstream mag. field value (T)", 1.0e-9);
+      RP::add("IPShock.BY0d", "Downstream mag. field value (T)", 2.0e-9);
+      RP::add("IPShock.BZ0d", "Downstream mag. field value (T)", 3.0e-9);
+      RP::add("IPShock.Width", "Shock Width (m)", 50000);
 
-    RP::add("IPShock.AMR_L1width", "L1 AMR region width (m)", 0);
-    RP::add("IPShock.AMR_L2width", "L2 AMR region width (m)", 0);
-    RP::add("IPShock.AMR_L3width", "L3 AMR region width (m)", 0);
-    RP::add("IPShock.AMR_L4width", "L4 AMR region width (m)", 0);
+      RP::add("IPShock.AMR_L1width", "L1 AMR region width (m)", 0);
+      RP::add("IPShock.AMR_L2width", "L2 AMR region width (m)", 0);
+      RP::add("IPShock.AMR_L3width", "L3 AMR region width (m)", 0);
+      RP::add("IPShock.AMR_L4width", "L4 AMR region width (m)", 0);
 
-    // Per-population parameters
-    for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-       const std::string& pop = getObjectWrapper().particleSpecies[i].name;
-       RP::add(pop + "_IPShock.VX0u", "Upstream Bulk velocity in x", 0.0);
-       RP::add(pop + "_IPShock.VY0u", "Upstream Bulk velocity in y", 0.0);
-       RP::add(pop + "_IPShock.VZ0u", "Upstream Bulk velocuty in z", 0.0);
-       RP::add(pop + "_IPShock.rhou", "Upstream Number density (m^-3)", 1.0e7);
-       RP::add(pop + "_IPShock.Temperatureu", "Upstream Temperature (K)", 2.0e6);
+      // Per-population parameters
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+         RP::add(pop + "_IPShock.VX0u", "Upstream Bulk velocity in x", 0.0);
+         RP::add(pop + "_IPShock.VY0u", "Upstream Bulk velocity in y", 0.0);
+         RP::add(pop + "_IPShock.VZ0u", "Upstream Bulk velocuty in z", 0.0);
+         RP::add(pop + "_IPShock.rhou", "Upstream Number density (m^-3)", 1.0e7);
+         RP::add(pop + "_IPShock.Temperatureu", "Upstream Temperature (K)", 2.0e6);
 
-       RP::add(pop + "_IPShock.VX0d", "Downstream Bulk velocity in x", 0.0);
-       RP::add(pop + "_IPShock.VY0d", "Downstream Bulk velocity in y", 0.0);
-       RP::add(pop + "_IPShock.VZ0d", "Downstream Bulk velocuty in z", 0.0);
-       RP::add(pop + "_IPShock.rhod", "Downstream Number density (m^-3)", 1.0e7);
-       RP::add(pop + "_IPShock.Temperatured", "Downstream Temperature (K)", 2.0e6);
+         RP::add(pop + "_IPShock.VX0d", "Downstream Bulk velocity in x", 0.0);
+         RP::add(pop + "_IPShock.VY0d", "Downstream Bulk velocity in y", 0.0);
+         RP::add(pop + "_IPShock.VZ0d", "Downstream Bulk velocuty in z", 0.0);
+         RP::add(pop + "_IPShock.rhod", "Downstream Number density (m^-3)", 1.0e7);
+         RP::add(pop + "_IPShock.Temperatured", "Downstream Temperature (K)", 2.0e6);
 
-       RP::add(pop + "_IPShock.maxwCutoff", "Cutoff for the maxwellian distribution", 1e-12);
-    }
+         RP::add(pop + "_IPShock.maxwCutoff", "Cutoff for the maxwellian distribution", 1e-12);
+      }
 
-  }
+   }
 
-  void IPShock::getParameters() {
-    Project::getParameters();
+   void IPShock::getParameters() {
+      Project::getParameters();
 
-    typedef Readparameters RP;
-    RP::get("IPShock.BX0u", this->B0u[0]);
-    RP::get("IPShock.BY0u", this->B0u[1]);
-    RP::get("IPShock.BZ0u", this->B0u[2]);
-    RP::get("IPShock.BX0d", this->B0d[0]);
-    RP::get("IPShock.BY0d", this->B0d[1]);
-    RP::get("IPShock.BZ0d", this->B0d[2]);
-    RP::get("IPShock.Width", this->Shockwidth);
+      typedef Readparameters RP;
+      RP::get("IPShock.BX0u", this->B0u[0]);
+      RP::get("IPShock.BY0u", this->B0u[1]);
+      RP::get("IPShock.BZ0u", this->B0u[2]);
+      RP::get("IPShock.BX0d", this->B0d[0]);
+      RP::get("IPShock.BY0d", this->B0d[1]);
+      RP::get("IPShock.BZ0d", this->B0d[2]);
+      RP::get("IPShock.Width", this->Shockwidth);
 
-    RP::get("IPShock.AMR_L1width", this->AMR_L1width);
-    RP::get("IPShock.AMR_L2width", this->AMR_L2width);
-    RP::get("IPShock.AMR_L3width", this->AMR_L3width);
-    RP::get("IPShock.AMR_L4width", this->AMR_L4width);
+      RP::get("IPShock.AMR_L1width", this->AMR_L1width);
+      RP::get("IPShock.AMR_L2width", this->AMR_L2width);
+      RP::get("IPShock.AMR_L3width", this->AMR_L3width);
+      RP::get("IPShock.AMR_L4width", this->AMR_L4width);
 
-    // Per-population parameters
-    for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-       const std::string& pop = getObjectWrapper().particleSpecies[i].name;
-       IPShockSpeciesParameters sP;
+      // Per-population parameters
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+         IPShockSpeciesParameters sP;
 
-       RP::get(pop + "_IPShock.VX0u", sP.V0u[0]);
-       RP::get(pop + "_IPShock.VY0u", sP.V0u[1]);
-       RP::get(pop + "_IPShock.VZ0u", sP.V0u[2]);
-       RP::get(pop + "_IPShock.rhou", sP.DENSITYu);
-       RP::get(pop + "_IPShock.Temperatureu", sP.TEMPERATUREu);
+         RP::get(pop + "_IPShock.VX0u", sP.V0u[0]);
+         RP::get(pop + "_IPShock.VY0u", sP.V0u[1]);
+         RP::get(pop + "_IPShock.VZ0u", sP.V0u[2]);
+         RP::get(pop + "_IPShock.rhou", sP.DENSITYu);
+         RP::get(pop + "_IPShock.Temperatureu", sP.TEMPERATUREu);
 
-       RP::get(pop + "_IPShock.VX0d", sP.V0d[0]);
-       RP::get(pop + "_IPShock.VY0d", sP.V0d[1]);
-       RP::get(pop + "_IPShock.VZ0d", sP.V0d[2]);
-       RP::get(pop + "_IPShock.rhod", sP.DENSITYd);
-       RP::get(pop + "_IPShock.Temperatured", sP.TEMPERATUREd);
+         RP::get(pop + "_IPShock.VX0d", sP.V0d[0]);
+         RP::get(pop + "_IPShock.VY0d", sP.V0d[1]);
+         RP::get(pop + "_IPShock.VZ0d", sP.V0d[2]);
+         RP::get(pop + "_IPShock.rhod", sP.DENSITYd);
+         RP::get(pop + "_IPShock.Temperatured", sP.TEMPERATUREd);
 
-       RP::get(pop + "_IPShock.maxwCutoff", sP.maxwCutoff);
+         RP::get(pop + "_IPShock.maxwCutoff", sP.maxwCutoff);
 
-       speciesParams.push_back(sP);
-    }
+         speciesParams.push_back(sP);
+      }
 
-    int myRank;
+      int myRank;
 
-    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
-    if(myRank == MASTER_RANK) {
-      std::cerr << "B0x u = " << this->B0u[0] << std::endl;
-      std::cerr << "B0y u = " << this->B0u[1] << std::endl;
-      std::cerr << "B0z u = " << this->B0u[2] << std::endl;
-      std::cerr << "B0x d = " << this->B0d[0] << std::endl;
-      std::cerr << "B0y d = " << this->B0d[1] << std::endl;
-      std::cerr << "B0z d = " << this->B0d[2] << std::endl;
-      //std::cerr << "V0x u = " << this->V0u[0] << std::endl;
-      //std::cerr << "V0y u = " << this->V0u[1] << std::endl;
-      //std::cerr << "V0z u = " << this->V0u[2] << std::endl;
-      //std::cerr << "V0x d = " << this->V0d[0] << std::endl;
-      //std::cerr << "V0y d = " << this->V0d[1] << std::endl;
-      //std::cerr << "V0z d = " << this->V0d[2] << std::endl;
+      /*
+      if(myRank == MASTER_RANK) {
+         std::cerr << "B0x u = " << this->B0u[0] << std::endl;
+         std::cerr << "B0y u = " << this->B0u[1] << std::endl;
+         std::cerr << "B0z u = " << this->B0u[2] << std::endl;
+         std::cerr << "B0x d = " << this->B0d[0] << std::endl;
+         std::cerr << "B0y d = " << this->B0d[1] << std::endl;
+         std::cerr << "B0z d = " << this->B0d[2] << std::endl;
+         //std::cerr << "V0x u = " << this->V0u[0] << std::endl;
+         //std::cerr << "V0y u = " << this->V0u[1] << std::endl;
+         //std::cerr << "V0z u = " << this->V0u[2] << std::endl;
+         //std::cerr << "V0x d = " << this->V0d[0] << std::endl;
+         //std::cerr << "V0y d = " << this->V0d[1] << std::endl;
+         //std::cerr << "V0z d = " << this->V0d[2] << std::endl;
 
-      //std::cerr << "rhou = " << this->DENSITYu << std::endl;
-      //std::cerr << "rhod = " << this->DENSITYd << std::endl;
-      //std::cerr << "tempu = " << this->TEMPERATUREu << std::endl;
-      //std::cerr << "tempd = " << this->TEMPERATUREd << std::endl;
+         //std::cerr << "rhou = " << this->DENSITYu << std::endl;
+         //std::cerr << "rhod = " << this->DENSITYd << std::endl;
+         //std::cerr << "tempu = " << this->TEMPERATUREu << std::endl;
+         //std::cerr << "tempd = " << this->TEMPERATUREd << std::endl;
 
-      //std::cerr << "maxwCutoff = " << this->maxwCutoff << std::endl;
-      //std::cerr << "Width = " << this->Shockwidth << std::endl;
-    }
+         //std::cerr << "maxwCutoff = " << this->maxwCutoff << std::endl;
+         //std::cerr << "Width = " << this->Shockwidth << std::endl;
+      }
+      */
 
-    /* 
-       Now allows flow and field both in z and y -directions. As assuming we're
-       in the dHT frame, all flow and magnetic field should be in a single plane.
-    */
+      /* 
+         Now allows flow and field both in z and y -directions. As assuming we're
+         in the dHT frame, all flow and magnetic field should be in a single plane.
+      */
 
-    /* Magnitude of tangential B-field and flow components */
-    this->B0utangential = sqrt(this->B0u[1]*this->B0u[1] + this->B0u[2]*this->B0u[2]);
-    this->B0dtangential = sqrt(this->B0d[1]*this->B0d[1] + this->B0d[2]*this->B0d[2]);
-    for(auto& sP : speciesParams) {
-       sP.V0utangential = sqrt(sP.V0u[1]*sP.V0u[1] + sP.V0u[2]*sP.V0u[2]);
-       sP.V0dtangential = sqrt(sP.V0d[1]*sP.V0d[1] + sP.V0d[2]*sP.V0d[2]);
-    }
+      /* Magnitude of tangential B-field and flow components */
+      this->B0utangential = sqrt(this->B0u[1]*this->B0u[1] + this->B0u[2]*this->B0u[2]);
+      this->B0dtangential = sqrt(this->B0d[1]*this->B0d[1] + this->B0d[2]*this->B0d[2]);
+      for(auto& sP : speciesParams) {
+         sP.V0utangential = sqrt(sP.V0u[1]*sP.V0u[1] + sP.V0u[2]*sP.V0u[2]);
+         sP.V0dtangential = sqrt(sP.V0d[1]*sP.V0d[1] + sP.V0d[2]*sP.V0d[2]);
+      }
 
-    /* Check direction of upstream and downstream flows and fields 
-       Define y-z-directional angle phi so that 
-       By = cos(phi_B)*B_tang
-       Bz = sin(phi_B)*B_tang
-       Vy = cos(phi_V)*V_tang
-       Vz = sin(phi_V)*V_tang
-       If we're in the dHT frame, phi_B and phi_V should be the same, and also the same
-       both in the upstream and in the downstream.
-    */
-    this->Bucosphi = abs(this->B0u[1])/this->B0utangential;   
-    this->Bdcosphi = abs(this->B0d[1])/this->B0dtangential;   
-    for(auto& sP : speciesParams) {
-       sP.Vucosphi = abs(sP.V0u[1])/sP.V0utangential;
-       sP.Vdcosphi = abs(sP.V0d[1])/sP.V0dtangential;
-    }
+      /* Check direction of upstream and downstream flows and fields 
+         Define y-z-directional angle phi so that 
+         By = cos(phi_B)*B_tang
+         Bz = sin(phi_B)*B_tang
+         Vy = cos(phi_V)*V_tang
+         Vz = sin(phi_V)*V_tang
+         If we're in the dHT frame, phi_B and phi_V should be the same, and also the same
+         both in the upstream and in the downstream.
+      */
+      this->Bucosphi = abs(this->B0u[1])/this->B0utangential;   
+      this->Bdcosphi = abs(this->B0d[1])/this->B0dtangential;   
+      for(auto& sP : speciesParams) {
+         sP.Vucosphi = abs(sP.V0u[1])/sP.V0utangential;
+         sP.Vdcosphi = abs(sP.V0d[1])/sP.V0dtangential;
+      }
 
-    /* Save signs as well for reconstruction during interpolation.
-       For both components of B and V, upstream and downstream signs should be the same. */
-    this->Byusign=0;
-    if (this->B0u[1] < 0) this->Byusign=-1;
-    if (this->B0u[1] > 0) this->Byusign=+1;
-    this->Bzusign=0;
-    if (this->B0u[2] < 0) this->Bzusign=-1;
-    if (this->B0u[2] > 0) this->Bzusign=+1;
-    this->Bydsign=0;
-    if (this->B0d[1] < 0) this->Bydsign=-1;
-    if (this->B0d[1] > 0) this->Bydsign=+1;
-    this->Bzdsign=0;
-    if (this->B0d[2] < 0) this->Bzdsign=-1;
-    if (this->B0d[2] > 0) this->Bzdsign=+1;
+      /* Save signs as well for reconstruction during interpolation.
+         For both components of B and V, upstream and downstream signs should be the same. */
+      this->Byusign=0;
+      if (this->B0u[1] < 0) this->Byusign=-1;
+      if (this->B0u[1] > 0) this->Byusign=+1;
+      this->Bzusign=0;
+      if (this->B0u[2] < 0) this->Bzusign=-1;
+      if (this->B0u[2] > 0) this->Bzusign=+1;
+      this->Bydsign=0;
+      if (this->B0d[1] < 0) this->Bydsign=-1;
+      if (this->B0d[1] > 0) this->Bydsign=+1;
+      this->Bzdsign=0;
+      if (this->B0d[2] < 0) this->Bzdsign=-1;
+      if (this->B0d[2] > 0) this->Bzdsign=+1;
 
-    for(auto& sP : speciesParams) {
-       sP.Vyusign=0;
-       if (sP.V0u[1] < 0) sP.Vyusign=-1;
-       if (sP.V0u[1] > 0) sP.Vyusign=+1;
-       sP.Vzusign=0;
-       if (sP.V0u[2] < 0) sP.Vzusign=-1;
-       if (sP.V0u[2] > 0) sP.Vzusign=+1;
-       sP.Vydsign=0;
-       if (sP.V0d[1] < 0) sP.Vydsign=-1;
-       if (sP.V0d[1] > 0) sP.Vydsign=+1;
-       sP.Vzdsign=0;
-       if (sP.V0d[2] < 0) sP.Vzdsign=-1;
-       if (sP.V0d[2] > 0) sP.Vzdsign=+1;
+      for(auto& sP : speciesParams) {
+         sP.Vyusign=0;
+         if (sP.V0u[1] < 0) sP.Vyusign=-1;
+         if (sP.V0u[1] > 0) sP.Vyusign=+1;
+         sP.Vzusign=0;
+         if (sP.V0u[2] < 0) sP.Vzusign=-1;
+         if (sP.V0u[2] > 0) sP.Vzusign=+1;
+         sP.Vydsign=0;
+         if (sP.V0d[1] < 0) sP.Vydsign=-1;
+         if (sP.V0d[1] > 0) sP.Vydsign=+1;
+         sP.Vzdsign=0;
+         if (sP.V0d[2] < 0) sP.Vzdsign=-1;
+         if (sP.V0d[2] > 0) sP.Vzdsign=+1;
 
-       /* Check that upstream and downstream values both are separately parallel */
-       if ( (abs(this->Bucosphi)-abs(sP.Vucosphi) > 1e-10) || (this->Byusign*this->Bzusign != sP.Vyusign*sP.Vzusign) )
-       {
-          if(myRank == MASTER_RANK) {
-             std::cout<<" Warning: Upstream B and V not parallel"<<std::endl;
-             std::cout<<" Bucosphi "<<Bucosphi<<" Vucosphi "<<sP.Vucosphi<<" Byusign "<<Byusign<<" Bzusign "<<Bzusign<<" Vyusign "<<sP.Vyusign<<" Vzusign "<<sP.Vzusign<<std::endl;
-          }
-       }
-       if ( (abs(this->Bdcosphi)-abs(sP.Vdcosphi) > 1e-10) || (this->Bydsign*this->Bzdsign != sP.Vydsign*sP.Vzdsign) )
-       {
-          if(myRank == MASTER_RANK) {
-             std::cout<<" Warning: Downstream B and V not parallel"<<std::endl;
-             std::cout<<" Bdcosphi "<<Bdcosphi<<" Vdcosphi "<<sP.Vdcosphi<<" Bydsign "<<Bydsign<<" Bzdsign "<<Bzdsign<<" Vydsign "<<sP.Vydsign<<" Vzdsign "<<sP.Vzdsign<<std::endl;
-          }
-       }
-       /* Verify that upstream and downstream flows are in a plane */
-       if ( (abs(this->Bdcosphi)-abs(this->Bucosphi) > 1e-10) && (this->Bydsign*this->Bzdsign != this->Byusign*this->Bzusign) )
-       {
-          if(myRank == MASTER_RANK) {
-             std::cout<<" Warning: Upstream and downstream B_tangentials not in same plane"<<std::endl;
-             std::cout<<" Bdcosphi "<<Bdcosphi<<" Bucosphi "<<Bucosphi<<" Bydsign "<<Bydsign<<" Bzdsign "<<Bzdsign<<" Byusign "<<Byusign<<" Bzusign "<<Bzusign<<std::endl;
-          }
-       }
-       if ( (abs(sP.Vdcosphi)-abs(sP.Vucosphi) > 1e-10) && (sP.Vydsign*sP.Vzdsign != sP.Vyusign*sP.Vzusign) )
-       {
-          if(myRank == MASTER_RANK) {
-             std::cout<<" Warning: Upstream and downstream V_tangentials not in same plane"<<std::endl;
-             std::cout<<" Vdcosphi "<<sP.Vdcosphi<<" Vucosphi "<<sP.Vucosphi<<" Vydsign "<<sP.Vydsign<<" Vzdsign "<<sP.Vzdsign<<" Vyusign "<<sP.Vyusign<<" Vzusign "<<sP.Vzusign<<std::endl;
-          }
-       }
-    }
+         /* Check that upstream and downstream values both are separately parallel */
+         if ( (abs(this->Bucosphi)-abs(sP.Vucosphi) > 1e-10) || (this->Byusign*this->Bzusign != sP.Vyusign*sP.Vzusign) )
+         {
+            if(myRank == MASTER_RANK) {
+               std::cout<<" Warning: Upstream B and V not parallel"<<std::endl;
+               std::cout<<" Bucosphi "<<Bucosphi<<" Vucosphi "<<sP.Vucosphi<<" Byusign "<<Byusign<<" Bzusign "<<Bzusign<<" Vyusign "<<sP.Vyusign<<" Vzusign "<<sP.Vzusign<<std::endl;
+            }
+         }
+         if ( (abs(this->Bdcosphi)-abs(sP.Vdcosphi) > 1e-10) || (this->Bydsign*this->Bzdsign != sP.Vydsign*sP.Vzdsign) )
+         {
+            if(myRank == MASTER_RANK) {
+               std::cout<<" Warning: Downstream B and V not parallel"<<std::endl;
+               std::cout<<" Bdcosphi "<<Bdcosphi<<" Vdcosphi "<<sP.Vdcosphi<<" Bydsign "<<Bydsign<<" Bzdsign "<<Bzdsign<<" Vydsign "<<sP.Vydsign<<" Vzdsign "<<sP.Vzdsign<<std::endl;
+            }
+         }
+         /* Verify that upstream and downstream flows are in a plane */
+         if ( (abs(this->Bdcosphi)-abs(this->Bucosphi) > 1e-10) && (this->Bydsign*this->Bzdsign != this->Byusign*this->Bzusign) )
+         {
+            if(myRank == MASTER_RANK) {
+               std::cout<<" Warning: Upstream and downstream B_tangentials not in same plane"<<std::endl;
+               std::cout<<" Bdcosphi "<<Bdcosphi<<" Bucosphi "<<Bucosphi<<" Bydsign "<<Bydsign<<" Bzdsign "<<Bzdsign<<" Byusign "<<Byusign<<" Bzusign "<<Bzusign<<std::endl;
+            }
+         }
+         if ( (abs(sP.Vdcosphi)-abs(sP.Vucosphi) > 1e-10) && (sP.Vydsign*sP.Vzdsign != sP.Vyusign*sP.Vzusign) )
+         {
+            if(myRank == MASTER_RANK) {
+               std::cout<<" Warning: Upstream and downstream V_tangentials not in same plane"<<std::endl;
+               std::cout<<" Vdcosphi "<<sP.Vdcosphi<<" Vucosphi "<<sP.Vucosphi<<" Vydsign "<<sP.Vydsign<<" Vzdsign "<<sP.Vzdsign<<" Vyusign "<<sP.Vyusign<<" Vzusign "<<sP.Vzusign<<std::endl;
+            }
+         }
+      }
     
-  }
+   }
+   
+   Realf IPShock::fillPhaseSpace(spatial_cell::SpatialCell *cell,
+                                 const uint popID,
+                                 const uint nRequested
+      ) const {
+      const IPShockSpeciesParameters& sP = this->speciesParams[popID];
+      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+      const Real mu0 = physicalconstants::MU_0;
+      // Fetch spatial cell center coordinates
+      const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
+      const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
+      const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
 
-
-  std::vector<std::array<Real, 3>> IPShock::getV0(creal x, creal y, creal z, const uint popID) const {
-    Real mass = getObjectWrapper().particleSpecies[popID].mass;
-    Real mu0 = physicalconstants::MU_0;
-    const IPShockSpeciesParameters& sP = this->speciesParams[popID];
-
-    // Interpolate density between upstream and downstream
-    // All other values are calculated from jump conditions
-    Real DENSITY = interpolate(sP.DENSITYu,sP.DENSITYd, x);
-    if (DENSITY < 1e-20) {
-      std::cout<<"density too low! "<<DENSITY<<" x "<<x<<" y "<<y<<" z "<<z<<std::endl;
-    }
+      // Interpolate density between upstream and downstream
+      // All other values are calculated from jump conditions
+      Real DENSITY = interpolate(sP.DENSITYu,sP.DENSITYd, x);
+      if (DENSITY < 1e-20) {
+         std::cout<<"density too low! "<<DENSITY<<" x "<<x<<" y "<<y<<" z "<<z<<std::endl;
+      }
     
-    // Solve tangential components for B and V
-    Real VX = sP.DENSITYu * sP.V0u[0] / DENSITY;
-    Real BX = this->B0u[0];
-    Real MAsq = std::pow((sP.V0u[0]/this->B0u[0]), 2) * sP.DENSITYu * mass * mu0;
-    Real Btang = this->B0utangential * (MAsq - 1.0)/(MAsq*VX/sP.V0u[0] -1.0);
-    Real Vtang = VX * Btang / BX;
+      // Solve tangential components for B and V
+      Real hereVX = sP.DENSITYu * sP.V0u[0] / DENSITY;
+      Real hereBX = this->B0u[0];
+      Real MAsq = std::pow((sP.V0u[0]/this->B0u[0]), 2) * sP.DENSITYu * mass * mu0;
+      Real hereBtang = this->B0u[2] * (MAsq - 1.0)/(MAsq*hereVX/sP.V0u[0] -1.0);
+      Real hereVtang = hereVX * hereBtang / hereBX;
 
-    /* Reconstruct Y and Z components using cos(phi) values and signs. Tangential variables are always positive. */
-    //Real BY = Btang * this->Bucosphi * this->Byusign;
-    //Real BZ = Btang * sqrt(1. - this->Bucosphi * this->Bucosphi) * this->Bzusign;
-    Real VY = abs(Vtang) * sP.Vucosphi * sP.Vyusign;
-    Real VZ = abs(Vtang) * sqrt(1. - sP.Vucosphi * sP.Vucosphi) * sP.Vzusign;
+      /* Reconstruct Y and Z components using cos(phi) values and signs. Tangential variables are always positive. */
+      //Real hereBY = hereBtang * this->Bucosphi * this->Byusign;
+      //Real hereBZ = hereBtang * sqrt(1. - this->Bucosphi * this->Bucosphi) * this->Bzusign;
+      Real hereVY = abs(hereVtang) * sP.Vucosphi * sP.Vyusign;
+      Real hereVZ = abs(hereVtang) * sqrt(1. - sP.Vucosphi * sP.Vucosphi) * sP.Vzusign;
 
-    // Disable compiler warnings: (unused variables but the function is inherited)
-    (void)y;
-    (void)z;
+      // Old incorrect temperature - just interpolate for now
+      //Real adiab = 5./3.;
+      //Real TEMPERATURE = this->TEMPERATUREu + (mass*(adiab-1.0)/(2.0*KB*adiab)) * 
+      //  ( std::pow(this->V0u[0],2) + std::pow(this->V0u[2],2) - std::pow(hereVX,2) - std::pow(hereVZ,2) );
+      Real TEMPERATURE = interpolate(sP.TEMPERATUREu,sP.TEMPERATUREd, x);
+
+      Real initRho = DENSITY;
+      Real initT = TEMPERATURE;
+      const Real initV0X = hereVX;
+      const Real initV0Y = hereVY;
+      const Real initV0Z = hereVZ;
+
+      #ifdef USE_GPU
+      vmesh::VelocityMesh *vmesh = cell->dev_get_velocity_mesh(popID);
+      vmesh::VelocityBlockContainer* VBC = cell->dev_get_velocity_blocks(popID);
+      #else
+      vmesh::VelocityMesh *vmesh = cell->get_velocity_mesh(popID);
+      vmesh::VelocityBlockContainer* VBC = cell->get_velocity_blocks(popID);
+      #endif
+      // Loop over blocks
+      Realf rhosum = 0;
+      arch::parallel_reduce<arch::null>(
+         {WID, WID, WID, nRequested},
+         ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint initIndex, Realf *lsum ) {
+            vmesh::GlobalID *GIDlist = vmesh->getGrid()->data();
+            Realf* bufferData = VBC->getData();
+            const vmesh::GlobalID blockGID = GIDlist[initIndex];
+            // Calculate parameters for new block
+            Real blockCoords[6];
+            vmesh->getBlockInfo(blockGID,&blockCoords[0]);
+            creal vxBlock = blockCoords[0];
+            creal vyBlock = blockCoords[1];
+            creal vzBlock = blockCoords[2];
+            creal dvxCell = blockCoords[3];
+            creal dvyCell = blockCoords[4];
+            creal dvzCell = blockCoords[5];
+            ARCH_INNER_BODY(i, j, k, initIndex, lsum) {
+               creal vx = vxBlock + (i+0.5)*dvxCell - initV0X;
+               creal vy = vyBlock + (j+0.5)*dvyCell - initV0Y;
+               creal vz = vzBlock + (k+0.5)*dvzCell - initV0Z;
+               const Realf value = MaxwellianPhaseSpaceDensity(vx,vy,vz,initT,initRho,mass);
+               bufferData[initIndex*WID3 + k*WID2 + j*WID + i] = value;
+               //lsum[0] += value;
+            };
+         }, rhosum);
+      return rhosum;
+   }
+
+   /* Evaluates local SpatialCell properties for the project and population,
+      then evaluates the phase-space density at the given coordinates.
+      Used as a probe for projectTriAxisSearch.
+   */
+   Realf IPShock::probePhaseSpace(spatial_cell::SpatialCell *cell,
+                                        const uint popID,
+                                        Real vx_in, Real vy_in, Real vz_in
+      ) const {
+      const IPShockSpeciesParameters& sP = this->speciesParams[popID];
+      // Fetch spatial cell center coordinates
+      const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
+      const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
+      const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
+
+      const Real mu0 = physicalconstants::MU_0;
+      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+      Real DENSITY = interpolate(sP.DENSITYu,sP.DENSITYd, x);
+      if (DENSITY < 1e-20) {
+         std::cout<<"density too low! "<<DENSITY<<" x "<<x<<" y "<<y<<" z "<<z<<std::endl;
+      }
+      Real hereVX = sP.DENSITYu * sP.V0u[0] / DENSITY;
+      Real hereBX = this->B0u[0];
+      Real MAsq = std::pow((sP.V0u[0]/this->B0u[0]), 2) * sP.DENSITYu * mass * mu0;
+      Real hereBtang = this->B0u[2] * (MAsq - 1.0)/(MAsq*hereVX/sP.V0u[0] -1.0);
+      Real hereVtang = hereVX * hereBtang / hereBX;
+      Real hereVY = abs(hereVtang) * sP.Vucosphi * sP.Vyusign;
+      Real hereVZ = abs(hereVtang) * sqrt(1. - sP.Vucosphi * sP.Vucosphi) * sP.Vzusign;
+      Real TEMPERATURE = interpolate(sP.TEMPERATUREu,sP.TEMPERATUREd, x);
+      Real initRho = DENSITY;
+      Real initT = TEMPERATURE;
+      const Real initV0X = hereVX;
+      const Real initV0Y = hereVY;
+      const Real initV0Z = hereVZ;
+
+      creal vx = vx_in - initV0X;
+      creal vy = vy_in - initV0Y;
+      creal vz = vz_in - initV0Z;
+      const Realf value = MaxwellianPhaseSpaceDensity(vx,vy,vz,initT,initRho,mass);
+      return value;
+   }
+   
+   std::vector<std::array<Real, 3>> IPShock::getV0(creal x, creal y, creal z, const uint popID) const {
+      Real mass = getObjectWrapper().particleSpecies[popID].mass;
+      Real mu0 = physicalconstants::MU_0;
+      const IPShockSpeciesParameters& sP = this->speciesParams[popID];
+
+      // Interpolate density between upstream and downstream
+      // All other values are calculated from jump conditions
+      Real DENSITY = interpolate(sP.DENSITYu,sP.DENSITYd, x);
+      if (DENSITY < 1e-20) {
+         std::cout<<"density too low! "<<DENSITY<<" x "<<x<<" y "<<y<<" z "<<z<<std::endl;
+      }
     
-    std::array<Real, 3> V0 {{VX, VY, VZ}};
-    std::vector<std::array<Real, 3>> retval;
-    retval.push_back(V0);
+      // Solve tangential components for B and V
+      Real VX = sP.DENSITYu * sP.V0u[0] / DENSITY;
+      Real BX = this->B0u[0];
+      Real MAsq = std::pow((sP.V0u[0]/this->B0u[0]), 2) * sP.DENSITYu * mass * mu0;
+      Real Btang = this->B0utangential * (MAsq - 1.0)/(MAsq*VX/sP.V0u[0] -1.0);
+      Real Vtang = VX * Btang / BX;
 
-    return retval;
-  }
+      /* Reconstruct Y and Z components using cos(phi) values and signs. Tangential variables are always positive. */
+      //Real BY = Btang * this->Bucosphi * this->Byusign;
+      //Real BZ = Btang * sqrt(1. - this->Bucosphi * this->Bucosphi) * this->Bzusign;
+      Real VY = abs(Vtang) * sP.Vucosphi * sP.Vyusign;
+      Real VZ = abs(Vtang) * sqrt(1. - sP.Vucosphi * sP.Vucosphi) * sP.Vzusign;
 
-  Real IPShock::getDistribValue(creal& x, creal& y, creal& z, 
-				creal& vx, creal& vy, creal& vz, 
-				creal& dvx, creal& dvy, creal& dvz,
-        const uint popID) const {
-
-    Real mass = getObjectWrapper().particleSpecies[popID].mass;
-    Real KB = physicalconstants::K_B;
-    Real mu0 = physicalconstants::MU_0;
-    const IPShockSpeciesParameters& sP = this->speciesParams[popID];
-
-    // Interpolate density between upstream and downstream
-    // All other values are calculated from jump conditions
-    Real DENSITY = interpolate(sP.DENSITYu,sP.DENSITYd, x);
-    if (DENSITY < 1e-20) {
-      std::cout<<"density too low! "<<DENSITY<<" x "<<x<<" y "<<y<<" z "<<z<<std::endl;
-    }
+      // Disable compiler warnings: (unused variables but the function is inherited)
+      (void)y;
+      (void)z;
     
-    // Solve tangential components for B and V
-    Real hereVX = sP.DENSITYu * sP.V0u[0] / DENSITY;
-    Real hereBX = this->B0u[0];
-    Real MAsq = std::pow((sP.V0u[0]/this->B0u[0]), 2) * sP.DENSITYu * mass * mu0;
-    Real hereBtang = this->B0u[2] * (MAsq - 1.0)/(MAsq*hereVX/sP.V0u[0] -1.0);
-    Real hereVtang = hereVX * hereBtang / hereBX;
+      std::array<Real, 3> V0 {{VX, VY, VZ}};
+      std::vector<std::array<Real, 3>> retval;
+      retval.push_back(V0);
 
-    /* Reconstruct Y and Z components using cos(phi) values and signs. Tangential variables are always positive. */
-    //Real hereBY = hereBtang * this->Bucosphi * this->Byusign;
-    //Real hereBZ = hereBtang * sqrt(1. - this->Bucosphi * this->Bucosphi) * this->Bzusign;
-    Real hereVY = abs(hereVtang) * sP.Vucosphi * sP.Vyusign;
-    Real hereVZ = abs(hereVtang) * sqrt(1. - sP.Vucosphi * sP.Vucosphi) * sP.Vzusign;
+      return retval;
+   }
 
-    // Old incorrect temperature - just interpolate for now
-    //Real adiab = 5./3.;
-    //Real TEMPERATURE = this->TEMPERATUREu + (mass*(adiab-1.0)/(2.0*KB*adiab)) * 
-    //  ( std::pow(this->V0u[0],2) + std::pow(this->V0u[2],2) - std::pow(hereVX,2) - std::pow(hereVZ,2) );
-    Real TEMPERATURE = interpolate(sP.TEMPERATUREu,sP.TEMPERATUREd, x);
+   void IPShock::calcCellParameters(spatial_cell::SpatialCell* cell, creal& t) { }
 
-    std::array<Real, 3> pertV0 {{hereVX, hereVY, hereVZ}};
+   Real IPShock::interpolate(Real upstream, Real downstream, Real x) const {
+      Real coord = 0.5 + x/this->Shockwidth; //Now shock will be from 0 to 1
+      //x /= 0.5 * this->Shockwidth;
+      Real a = 0.0;
+      if (coord <= 0.0) a = downstream;
+      if (coord >= 1.0) a = upstream;
+      if ((coord > 0.0) && (coord < 1.0)) {
+         // Ken Perlin Smootherstep
+         Real interpolation = ( 6.0 * coord * coord - 15.0 * coord +10. ) * coord * coord * coord;
+         a = upstream * interpolation + downstream * (1. - interpolation);
+      }
+      return a;
+   }
 
-    Real result = 0.0;
-
-    result = DENSITY * std::pow(mass / (2.0 * M_PI * KB * TEMPERATURE), 1.5) *
-      exp(- mass * ((vx-pertV0[0])*(vx-pertV0[0]) + (vy-pertV0[1])*(vy-pertV0[1]) + (vz-pertV0[2])*(vz-pertV0[2])) / (2.0 * KB * TEMPERATURE));
-
-    return result;
-  }
-
-  Real IPShock::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
-
-    const IPShockSpeciesParameters& sP = this->speciesParams[popID];
-    Real result = 0.0;
-    result = getDistribValue(x+0.5*dx, y+0.5*dy, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, dvx, dvy, dvz, popID);
-
-    if(result < sP.maxwCutoff) {
-      return 0.0;
-    } else {
-      return result;
-    }
-  }
-  
-  void IPShock::calcCellParameters(spatial_cell::SpatialCell* cell, creal& t) { }
-
-  Real IPShock::interpolate(Real upstream, Real downstream, Real x) const {
-    Real coord = 0.5 + x/this->Shockwidth; //Now shock will be from 0 to 1
-    //x /= 0.5 * this->Shockwidth;
-    Real a = 0.0;
-    if (coord <= 0.0) a = downstream;
-    if (coord >= 1.0) a = upstream;
-    if ((coord > 0.0) && (coord < 1.0)) {
-      // Ken Perlin Smootherstep
-      Real interpolation = ( 6.0 * coord * coord - 15.0 * coord +10. ) * coord * coord * coord;
-      a = upstream * interpolation + downstream * (1. - interpolation);
-    }
-    return a;
-  }
-
-  void IPShock::setProjectBField(
-     FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-     FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-     FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-  ) {
+   void IPShock::setProjectBField(
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
+      ) {
       setBackgroundFieldToZero(BgBGrid);
       
       if(!P::isRestart) {
@@ -416,120 +479,120 @@ namespace projects {
 
    bool IPShock::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
  
-     int myRank;       
-     MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+      int myRank;       
+      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
-     std::vector<CellID> refinedCells;
+      std::vector<CellID> refinedCells;
 
-     if(myRank == MASTER_RANK) std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
+      if(myRank == MASTER_RANK) std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
       
-     // Leave boundary cells and a bit of safety margin
+      // Leave boundary cells and a bit of safety margin
 //      const int bw = 2* VLASOV_STENCIL_WIDTH;
 //      const int bw2 = 2*(bw + VLASOV_STENCIL_WIDTH);
 //      const int bw3 = 2*(bw2 + VLASOV_STENCIL_WIDTH);
 
-     // Calculate regions for refinement
-     if (P::amrMaxSpatialRefLevel > 0 && P::amrMaxAllowedSpatialRefLevel > 0) {
-	// L1 refinement.
-	for (uint i = 0; i < P::xcells_ini; ++i) {
-	   for (uint j = 0; j < P::ycells_ini; ++j) {
-	      for (uint k = 0; k < P::zcells_ini; ++k) {
+      // Calculate regions for refinement
+      if (P::amrMaxSpatialRefLevel > 0 && P::amrMaxAllowedSpatialRefLevel > 0) {
+         // L1 refinement.
+         for (uint i = 0; i < P::xcells_ini; ++i) {
+            for (uint j = 0; j < P::ycells_ini; ++j) {
+               for (uint k = 0; k < P::zcells_ini; ++k) {
 
-		 std::array<double,3> xyz;
-		 xyz[0] = P::xmin + (i+0.5)*P::dx_ini;
-		 xyz[1] = P::ymin + (j+0.5)*P::dy_ini;
-		 xyz[2] = P::zmin + (k+0.5)*P::dz_ini;
+                  std::array<double,3> xyz;
+                  xyz[0] = P::xmin + (i+0.5)*P::dx_ini;
+                  xyz[1] = P::ymin + (j+0.5)*P::dy_ini;
+                  xyz[2] = P::zmin + (k+0.5)*P::dz_ini;
 
-		 if (abs(xyz[0]) < AMR_L1width)
-		    {
-		       CellID myCell = mpiGrid.get_existing_cell(xyz);
-		       mpiGrid.refine_completely(myCell);
-		    }
-	      }
-	   }
-	}
-	refinedCells = mpiGrid.stop_refining();
-	if(myRank == MASTER_RANK) std::cout << "Finished first level of refinement" << endl;
-	// Don't do LB, as this function is called only before v-spaces have been created
-	//mpiGrid.balance_load();
-     }
+                  if (abs(xyz[0]) < AMR_L1width)
+                  {
+                     CellID myCell = mpiGrid.get_existing_cell(xyz);
+                     mpiGrid.refine_completely(myCell);
+                  }
+               }
+            }
+         }
+         refinedCells = mpiGrid.stop_refining();
+         if(myRank == MASTER_RANK) std::cout << "Finished first level of refinement" << endl;
+         // Don't do LB, as this function is called only before v-spaces have been created
+         //mpiGrid.balance_load();
+      }
 
-     if (P::amrMaxSpatialRefLevel > 1 && P::amrMaxAllowedSpatialRefLevel > 1) {
-	// L2 refinement.
-	for (uint i = 0; i < 2*P::xcells_ini; ++i) {
-	   for (uint j = 0; j < 2*P::ycells_ini; ++j) {
-	      for (uint k = 0; k < 2*P::zcells_ini; ++k) {
+      if (P::amrMaxSpatialRefLevel > 1 && P::amrMaxAllowedSpatialRefLevel > 1) {
+         // L2 refinement.
+         for (uint i = 0; i < 2*P::xcells_ini; ++i) {
+            for (uint j = 0; j < 2*P::ycells_ini; ++j) {
+               for (uint k = 0; k < 2*P::zcells_ini; ++k) {
 
-		 std::array<double,3> xyz;
-		 xyz[0] = P::xmin + (i+0.5)*0.5*P::dx_ini;
-		 xyz[1] = P::ymin + (j+0.5)*0.5*P::dy_ini;
-		 xyz[2] = P::zmin + (k+0.5)*0.5*P::dz_ini;
+                  std::array<double,3> xyz;
+                  xyz[0] = P::xmin + (i+0.5)*0.5*P::dx_ini;
+                  xyz[1] = P::ymin + (j+0.5)*0.5*P::dy_ini;
+                  xyz[2] = P::zmin + (k+0.5)*0.5*P::dz_ini;
 
-		 if (abs(xyz[0]) < AMR_L2width)
-		    {
-		       CellID myCell = mpiGrid.get_existing_cell(xyz);
-		       mpiGrid.refine_completely(myCell);
-		    }
-	      }
-	   }
-	}
-	refinedCells = mpiGrid.stop_refining();
-	if(myRank == MASTER_RANK) std::cout << "Finished second level of refinement" << endl;
-	// Don't do LB, as this function is called only before v-spaces have been created
-	//mpiGrid.balance_load();
-     }
+                  if (abs(xyz[0]) < AMR_L2width)
+                  {
+                     CellID myCell = mpiGrid.get_existing_cell(xyz);
+                     mpiGrid.refine_completely(myCell);
+                  }
+               }
+            }
+         }
+         refinedCells = mpiGrid.stop_refining();
+         if(myRank == MASTER_RANK) std::cout << "Finished second level of refinement" << endl;
+         // Don't do LB, as this function is called only before v-spaces have been created
+         //mpiGrid.balance_load();
+      }
 
-     if (P::amrMaxSpatialRefLevel > 2 && P::amrMaxAllowedSpatialRefLevel > 2) {
-	// L3 refinement.
-	for (uint i = 0; i < 4*P::xcells_ini; ++i) {
-	   for (uint j = 0; j < 4*P::ycells_ini; ++j) {
-	      for (uint k = 0; k < 4*P::zcells_ini; ++k) {
+      if (P::amrMaxSpatialRefLevel > 2 && P::amrMaxAllowedSpatialRefLevel > 2) {
+         // L3 refinement.
+         for (uint i = 0; i < 4*P::xcells_ini; ++i) {
+            for (uint j = 0; j < 4*P::ycells_ini; ++j) {
+               for (uint k = 0; k < 4*P::zcells_ini; ++k) {
 
-		 std::array<double,3> xyz;
-		 xyz[0] = P::xmin + (i+0.5)*0.25*P::dx_ini;
-		 xyz[1] = P::ymin + (j+0.5)*0.25*P::dy_ini;
-		 xyz[2] = P::zmin + (k+0.5)*0.25*P::dz_ini;
+                  std::array<double,3> xyz;
+                  xyz[0] = P::xmin + (i+0.5)*0.25*P::dx_ini;
+                  xyz[1] = P::ymin + (j+0.5)*0.25*P::dy_ini;
+                  xyz[2] = P::zmin + (k+0.5)*0.25*P::dz_ini;
 
-		 if (abs(xyz[0]) < AMR_L3width)
-		    {
-		       CellID myCell = mpiGrid.get_existing_cell(xyz);
-		       mpiGrid.refine_completely(myCell);
-		    }
-	      }
-	   }
-	}
-	refinedCells = mpiGrid.stop_refining();
-	if(myRank == MASTER_RANK) std::cout << "Finished third level of refinement" << endl;
-	// Don't do LB, as this function is called only before v-spaces have been created
-	//mpiGrid.balance_load();
-     }
+                  if (abs(xyz[0]) < AMR_L3width)
+                  {
+                     CellID myCell = mpiGrid.get_existing_cell(xyz);
+                     mpiGrid.refine_completely(myCell);
+                  }
+               }
+            }
+         }
+         refinedCells = mpiGrid.stop_refining();
+         if(myRank == MASTER_RANK) std::cout << "Finished third level of refinement" << endl;
+         // Don't do LB, as this function is called only before v-spaces have been created
+         //mpiGrid.balance_load();
+      }
 
-     if (P::amrMaxSpatialRefLevel > 3 && P::amrMaxAllowedSpatialRefLevel > 3) {
-	// L4 refinement.
-	for (uint i = 0; i < 8*P::xcells_ini; ++i) {
-	   for (uint j = 0; j < 8*P::ycells_ini; ++j) {
-	      for (uint k = 0; k < 8*P::zcells_ini; ++k) {
+      if (P::amrMaxSpatialRefLevel > 3 && P::amrMaxAllowedSpatialRefLevel > 3) {
+         // L4 refinement.
+         for (uint i = 0; i < 8*P::xcells_ini; ++i) {
+            for (uint j = 0; j < 8*P::ycells_ini; ++j) {
+               for (uint k = 0; k < 8*P::zcells_ini; ++k) {
 
-		 std::array<double,3> xyz;
-		 xyz[0] = P::xmin + (i+0.5)*0.125*P::dx_ini;
-		 xyz[1] = P::ymin + (j+0.5)*0.125*P::dy_ini;
-		 xyz[2] = P::zmin + (k+0.5)*0.125*P::dz_ini;
+                  std::array<double,3> xyz;
+                  xyz[0] = P::xmin + (i+0.5)*0.125*P::dx_ini;
+                  xyz[1] = P::ymin + (j+0.5)*0.125*P::dy_ini;
+                  xyz[2] = P::zmin + (k+0.5)*0.125*P::dz_ini;
 
-		 if (abs(xyz[0]) < AMR_L4width)
-		    {
-		       CellID myCell = mpiGrid.get_existing_cell(xyz);
-		       mpiGrid.refine_completely(myCell);
-		    }
-	      }
-	   }
-	}
-	refinedCells = mpiGrid.stop_refining();
-	if(myRank == MASTER_RANK) std::cout << "Finished fourth level of refinement" << endl;
-	// Don't do LB, as this function is called only before v-spaces have been created
-	//mpiGrid.balance_load();
-     }
+                  if (abs(xyz[0]) < AMR_L4width)
+                  {
+                     CellID myCell = mpiGrid.get_existing_cell(xyz);
+                     mpiGrid.refine_completely(myCell);
+                  }
+               }
+            }
+         }
+         refinedCells = mpiGrid.stop_refining();
+         if(myRank == MASTER_RANK) std::cout << "Finished fourth level of refinement" << endl;
+         // Don't do LB, as this function is called only before v-spaces have been created
+         //mpiGrid.balance_load();
+      }
      
-     return true;
+      return true;
    }
 
 }//namespace projects

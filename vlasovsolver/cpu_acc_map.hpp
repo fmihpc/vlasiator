@@ -19,18 +19,15 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-
 #ifndef CPU_ACC_MAP_H
 #define CPU_ACC_MAP_H
-
 #include "../common.h"
-#include "../spatial_cell_wrapper.hpp"
+#include "../spatial_cells/spatial_cell_wrapper.hpp"
 #include "vec.h"
 
 using namespace spatial_cell;
 
-bool map_1d(SpatialCell* spatial_cell, const uint popID,     
-            Realv intersection, Realv intersection_di, Realv intersection_dj,Realv intersection_dk,
-            const uint dimension, vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh, vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer) ;
-
+bool map_1d(SpatialCell* spatial_cell, const uint popID,
+            Real intersection, Real intersection_di, Real intersection_dj, Real intersection_dk,
+            const uint dimension);
 #endif

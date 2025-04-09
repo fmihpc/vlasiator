@@ -57,7 +57,9 @@ class ObjectFactory {
 template<typename PRODUCT> inline
 PRODUCT* ObjectFactory<PRODUCT>::create(const std::string& name) const {
    typename std::map<std::string,PRODUCT* (*)()>::const_iterator it = manufacturers.find(name);
-   if (it == manufacturers.end()) return NULL;
+   if (it == manufacturers.end()) {
+      return NULL;
+   }
    return (*it->second)();
 }
 

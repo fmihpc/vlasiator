@@ -21,8 +21,10 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include <vector>
-#include "vectorclass.h"
-#include "vector3d.h"
+#include <Eigen/Dense>
+
+#define Vec3d Eigen::Vector3d
+
 #include "boundaries.h"
 #include "particleparameters.h"
 
@@ -68,25 +70,22 @@ struct Field
       z = dimension[2]->cellCoordinate(z);
 
       double* cell = getCellRef(x,y,z);
-      Vec3d retval;
-      retval.load_partial(3,cell);
-      return retval;
+      return {cell[0],cell[1],cell[2]};
    }
 
    // Round-Brace indexing: indexing by physical location, with interpolation
    virtual Vec3d operator()(Vec3d v) {
-      Vec3d vmin,vdx;
-      double min[3] = { min[0] = dimension[0]->min, dimension[1]->min, dimension[2]->min};
-      vmin.load(min);
-      vdx.load(dx);
+      Vec3d min(dimension[0]->min, dimension[1]->min, dimension[2]->min);
 
-      v -= vmin;
-      v /= vdx;
+      int32_t index[3];
+      Vec3d fract;
 
-      int index[3];
-      double fract[3];
-      truncate_to_int(v).store(index);
-      (v-Vec3d(truncate(v))).store(fract);
+      for(int i=0; i<3; i++) {
+         v[i] -= min[i];
+         v[i] /= dx[i];
+         index[i] = (int32_t)std::trunc(v[i]);
+         fract[i] = v[i] - (double)std::trunc(v[i]);
+      }
 
       if(dimension[2]->cells <= 1) {
          // Equatorial plane
@@ -112,7 +111,6 @@ struct Field
       } else {
          // Proper 3D
          Vec3d interp[8];
-
          interp[0] = getCell(index[0],index[1],index[2]);
          interp[1] = getCell(index[0]+1,index[1],index[2]);
          interp[2] = getCell(index[0],index[1]+1,index[2]);
@@ -121,7 +119,6 @@ struct Field
          interp[5] = getCell(index[0]+1,index[1],index[2]+1);
          interp[6] = getCell(index[0],index[1]+1,index[2]+1);
          interp[7] = getCell(index[0]+1,index[1]+1,index[2]+1);
-
          return fract[2] * (
                fract[0]*(fract[1]*interp[3]+(1.-fract[1])*interp[1])
                + (1.-fract[0])*(fract[1]*interp[2]+(1.-fract[1])*interp[0]))

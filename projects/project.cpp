@@ -25,9 +25,10 @@
 #include "../common.h"
 #include "../parameters.h"
 #include "../readparameters.h"
-#include "../vlasovmover.h"
+#include "../vlasovsolver/vlasovmover.h"
 #include "../logger.h"
 #include "../object_wrapper.h"
+#include "../velocity_mesh_parameters.h"
 
 #include "Alfven/Alfven.h"
 #include "CircularAlfven/CircularAlfven.h"
@@ -48,12 +49,15 @@
 #include "Template/Template.h"
 #include "test_fp/test_fp.h"
 #include "testHall/testHall.h"
-#include "test_trans/test_trans.h"
 #include "verificationLarmor/verificationLarmor.h"
 #include "../backgroundfield/backgroundfield.h"
 #include "../backgroundfield/constantfield.hpp"
 #include "Shocktest/Shocktest.h"
 #include "../sysboundary/sysboundarycondition.h"
+
+#ifdef DEBUG_VLASIATOR
+   #define DEBUG_REFINE
+#endif
 
 using namespace std;
 
@@ -61,46 +65,13 @@ extern Logger logFile;
 
 char projects::Project::rngStateBuffer[256];
 
-/** Struct for creating a new velocity mesh.
- * The values are read from the configuration file and 
- * copied to ObjectWrapper::velocityMeshes.*/
-struct VelocityMeshParams {
-   vector<string> name;
-   vector<double> vx_min;
-   vector<double> vy_min;
-   vector<double> vz_min;
-   vector<double> vx_max;
-   vector<double> vy_max;
-   vector<double> vz_max;
-   vector<vmesh::LocalID> vx_length;
-   vector<vmesh::LocalID> vy_length;
-   vector<vmesh::LocalID> vz_length;
-   vector<unsigned int> maxRefLevels;
-   
-   void resize(const size_t& size) {
-      name.resize(1);
-      vx_min.resize(1);
-      vy_min.resize(1);
-      vz_min.resize(1);
-      vx_max.resize(1);
-      vy_max.resize(1);
-      vz_max.resize(1);
-      vx_length.resize(1);
-      vy_length.resize(1);
-      vz_length.resize(1);
-      maxRefLevels.resize(1);
-   }
-};
-
-//static VelocityMeshParams* velMeshParams = NULL;
-
 namespace projects {
-   Project::Project() { 
+   Project::Project() {
       baseClassInitialized = false;
    }
-   
+
    Project::~Project() { }
-   
+
    void Project::addParameters() {
       typedef Readparameters RP;
       // TODO add all projects' static addParameters() functions here.
@@ -123,54 +94,31 @@ namespace projects {
       projects::Template::addParameters();
       projects::test_fp::addParameters();
       projects::TestHall::addParameters();
-      projects::test_trans::addParameters();
       projects::verificationLarmor::addParameters();
       projects::Shocktest::addParameters();
       RP::add("Project_common.seed", "Seed for the RNG", 42);
-      
+
    }
 
    void Project::getParameters() {
       typedef Readparameters RP;
       RP::get("Project_common.seed", this->seed);
-
-
-      // Note that configuration files need to be re-parsed after this.
-
-      //RP::get("ParticlePopulation.charge",popCharges);
-      //RP::get("ParticlePopulation.mass_units",popMassUnits);
-      //RP::get("ParticlePopulation.mass",popMasses);
-      //RP::get("ParticlePopulation.sparse_min_value",popSparseMinValue);
-      //RP::get("ParticlePopulation.mesh",popMeshNames);
-
-      //if (velMeshParams == NULL) velMeshParams = new VelocityMeshParams();
-      //RP::get("velocitymesh.name",velMeshParams->name);
-      //RP::get("velocitymesh.vx_min",velMeshParams->vx_min);
-      //RP::get("velocitymesh.vy_min",velMeshParams->vy_min);
-      //RP::get("velocitymesh.vz_min",velMeshParams->vz_min);
-      //RP::get("velocitymesh.vx_max",velMeshParams->vx_max);
-      //RP::get("velocitymesh.vy_max",velMeshParams->vy_max);
-      //RP::get("velocitymesh.vz_max",velMeshParams->vz_max);
-      //RP::get("velocitymesh.vx_length",velMeshParams->vx_length);
-      //RP::get("velocitymesh.vy_length",velMeshParams->vy_length);
-      //RP::get("velocitymesh.vz_length",velMeshParams->vz_length);
-      //RP::get("velocitymesh.max_refinement_level",velMeshParams->maxRefLevels);
    }
 
-   /** Initialize the Project. Velocity mesh and particle population 
-    * parameters are read from the configuration file, and corresponding internal 
+   /** Initialize the Project. Velocity mesh and particle population
+    * parameters are read from the configuration file, and corresponding internal
     * variables are created here.
     * NOTE: Each project must call this function!
     * @return If true, particle species and velocity meshes were created successfully.*/
    bool Project::initialize() {
-      
+
       // Basic error checking
       bool success = true;
 
       baseClassInitialized = success;
       return success;
    }
-   
+
    /** Check if base class has been initialized.
     * @return If true, base class was successfully initialized.*/
    bool Project::initialized() {return baseClassInitialized;}
@@ -188,7 +136,7 @@ namespace projects {
       }
       exit(1);
    }
-   
+
    void Project::hook(
       cuint& stage,
       const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -200,213 +148,125 @@ namespace projects {
       return;
    }
 
+   /* Setting up the v-space for the cell
+      this is called within a threaded region, so we can use non-threadsafe methods
+   */
    void Project::setCell(SpatialCell* cell) {
       // Set up cell parameters:
       calcCellParameters(cell,0.0);
-      
-      for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
-         this->setVelocitySpace(p,cell);
+      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         this->setVelocitySpace(popID,cell);
+         // Verify current mesh and blocks
+         #ifdef DEBUG_VLASIATOR
+         cuint vmeshSize = cell->get_velocity_mesh(popID)->size();
+         cuint vbcSize = cell->get_velocity_blocks(popID)->size();
+         if (vmeshSize != vbcSize) {
+            printf("ERROR: population vmesh %ul and blockcontainer %ul sizes do not match!\n",vmeshSize,vbcSize);
+         }
+         cell->get_velocity_mesh(popID)->check();
+         #endif
       }
 
-      //let's get rid of blocks not fulfilling the criteria here to save memory.
-      //cell->adjustSingleCellVelocityBlocks();
-
-      // Passing true for the doNotSkip argument as we want to calculate 
+      // Passing true for the doNotSkip argument as we want to calculate
       // the moment no matter what when this function is called.
       calculateCellMoments(cell,true,false,true);
    }
 
-   std::vector<vmesh::GlobalID> Project::findBlocksToInitialize(spatial_cell::SpatialCell* cell,const uint popID) const {
-      vector<vmesh::GlobalID> blocksToInitialize;
-      const uint8_t refLevel = 0;
+   /*
+      Brute force function, returns all possible velocity blocks. Much preferred to use
+      projectTriAxisSearch
+   */
+   uint Project::findBlocksToInitialize(spatial_cell::SpatialCell* cell,const uint popID) const {
+      const vmesh::LocalID* vblocks_ini = cell->get_velocity_grid_length(popID);
+      vmesh::VelocityMesh *vmesh = cell->get_velocity_mesh(popID);
 
-      const vmesh::LocalID* vblocks_ini = cell->get_velocity_grid_length(popID,refLevel);
-      
-      for (uint kv=0; kv<vblocks_ini[2]; ++kv) 
-         for (uint jv=0; jv<vblocks_ini[1]; ++jv)
+      const uint blocksCount = vblocks_ini[0]*vblocks_ini[1]*vblocks_ini[2];
+
+      #ifdef USE_GPU
+      // Host-pinned memory buffer
+      vmesh::GlobalID *GIDbuffer;
+      CHK_ERR( gpuMallocHost((void**)&GIDbuffer,blocksCount*sizeof(vmesh::GlobalID)) );
+      cell->dev_resize_vmesh(popID,blocksCount);
+      #else
+      vmesh->setNewSize(blocksCount);
+      vmesh::GlobalID *GIDbuffer = vmesh->getGrid()->data();
+      #endif
+
+      vmesh::LocalID LID = 0;
+      for (uint kv=0; kv<vblocks_ini[2]; ++kv) {
+         for (uint jv=0; jv<vblocks_ini[1]; ++jv) {
             for (uint iv=0; iv<vblocks_ini[0]; ++iv) {
                vmesh::LocalID blockIndices[3];
                blockIndices[0] = iv;
                blockIndices[1] = jv;
                blockIndices[2] = kv;
-               const vmesh::GlobalID blockGID = cell->get_velocity_block(popID,blockIndices,refLevel);
-
-               cell->add_velocity_block(blockGID,popID);
-               blocksToInitialize.push_back(blockGID);
+               const vmesh::GlobalID GID = cell->get_velocity_block(popID,blockIndices);
+               GIDbuffer[LID] = GID;
+               LID++;
+            }
+         }
       }
+      cell->get_population(popID).N_blocks = LID;
 
-      return blocksToInitialize;
+      #ifdef USE_GPU
+      vmesh::GlobalID *GIDtarget = vmesh->getGrid()->data();
+      gpuStream_t stream = gpu_getStream();
+      CHK_ERR( gpuMemcpyAsync(GIDtarget, GIDbuffer, blocksCount*sizeof(vmesh::GlobalID), gpuMemcpyHostToDevice, stream));
+      CHK_ERR( gpuStreamSynchronize(stream) );
+      CHK_ERR( gpuFreeHost(GIDbuffer));
+      #endif
+
+      return LID;
    }
-   
+
    /** Write simulated particle populations to logfile.*/
    void Project::printPopulations() {
       logFile << "(PROJECT): Loaded particle populations are:" << endl;
-      
-      for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
-         const species::Species& spec = getObjectWrapper().particleSpecies[p];
-         logFile << "Population #" << p << endl;
+
+      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         const species::Species& spec = getObjectWrapper().particleSpecies[popID];
+         logFile << "Population #" << popID << endl;
          logFile << "\t name             : '" << spec.name << "'" << endl;
          logFile << "\t charge           : '" << spec.charge << "'" << endl;
          logFile << "\t mass             : '" << spec.mass << "'" << endl;
          logFile << "\t sparse threshold : '" << spec.sparseMinValue << "'" << endl;
-         logFile << "\t velocity mesh    : '" << getObjectWrapper().velocityMeshes[spec.velocityMesh].name << "'" << endl;
+         logFile << "\t velocity mesh    : '" << vmesh::getMeshWrapper()->velocityMeshesCreation->at(spec.velocityMesh).name << "'" << endl;
          logFile << endl;
       }
       logFile << write;
    }
-   
-   /** Calculate the volume averages of distribution function for the 
-    * given particle population in the given spatial cell. The velocity block 
-    * is defined by its local ID. The function returns the maximum value of the 
-    * distribution function within the velocity block. If it is below the sparse 
-    * min value for the population, this block should be removed or marked 
-    * as a no-content block.
-    * @param cell Spatial cell.
-    * @param blockLID Velocity block local ID within the spatial cell.
-    * @param popID Population ID.
-    * @return Maximum value of the calculated distribution function.*/
-   Real Project::setVelocityBlock(spatial_cell::SpatialCell* cell,const vmesh::LocalID& blockLID,const uint popID) const {
-      // If simulation doesn't use one or more velocity coordinates, 
-      // only calculate the distribution function for one layer of cells.
-      uint WID_VX = WID;
-      uint WID_VY = WID;
-      uint WID_VZ = WID;
-      switch (Parameters::geometry) {         
-         case geometry::XY4D:
-            WID_VZ=1;
-            break;
-         case geometry::XZ4D:
-            WID_VY=1;
-            break;
-         default:
-            break;
-      }
 
-      // Fetch spatial cell coordinates and size
-      creal x  = cell->parameters[CellParams::XCRD];
-      creal y  = cell->parameters[CellParams::YCRD];
-      creal z  = cell->parameters[CellParams::ZCRD];
-      creal dx = cell->parameters[CellParams::DX];
-      creal dy = cell->parameters[CellParams::DY];
-      creal dz = cell->parameters[CellParams::DZ];
-
-      const Real* parameters = cell->get_block_parameters(popID);
-      Realf* data = cell->get_data(popID);
-      
-      creal vxBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD];
-      creal vyBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD];
-      creal vzBlock = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD];
-      creal dvxCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
-      creal dvyCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
-      creal dvzCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-      
-      // Calculate volume average of distribution function for each phase-space cell in the block.
-      Real maxValue = 0.0;
-      for (uint kc=0; kc<WID_VZ; ++kc) for (uint jc=0; jc<WID_VY; ++jc) for (uint ic=0; ic<WID_VX; ++ic) {
-         creal vxCell = vxBlock + ic*dvxCell;
-         creal vyCell = vyBlock + jc*dvyCell;
-         creal vzCell = vzBlock + kc*dvzCell;
-         creal average =
-            calcPhaseSpaceDensity(
-               x, y, z, dx, dy, dz,
-               vxCell,vyCell,vzCell,
-               dvxCell,dvyCell,dvzCell,popID);
-         if (average != 0.0) {
-            data[blockLID*SIZE_VELBLOCK+cellIndex(ic,jc,kc)] = average;
-            maxValue = max(maxValue,average);
-         }
-      }
-      
-      return maxValue;
-   }
-   
    void Project::setVelocitySpace(const uint popID,SpatialCell* cell) const {
-      vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = cell->get_velocity_mesh(popID);
-      vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
+      phiprof::Timer setVSpacetimer {"Set Velocity Space"};
+      // Find list of blocks to initialize. The project.cpp version returns
+      // all possible blocks, projectTriAxisSearch provides a more educated guess.
 
-      vector<vmesh::GlobalID> blocksToInitialize = this->findBlocksToInitialize(cell,popID);
-      vector<vmesh::GlobalID> removeList;
-      for (uint i=0; i<blocksToInitialize.size(); ++i) {
-         const vmesh::GlobalID blockGID = blocksToInitialize[i];
-         const vmesh::LocalID blockLID = vmesh.getLocalID(blockGID);
-         if (blockLID == vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) {
-            cerr << "ERROR, invalid local ID in " << __FILE__ << ":" << __LINE__ << endl;
-            exit(1);
-         }
+      //phiprof::Timer findblocksTimer {"find blocks to init"};
+      const uint nRequested = this->findBlocksToInitialize(cell,popID);
+      // stores in vmesh->getGrid() (localToGlobalMap)
+      // with count in cell->get_population(popID).N_blocks
+      //findblocksTimer.stop();
 
-         const Real maxValue = setVelocityBlock(cell,blockLID,popID);
-         if (maxValue < cell->getVelocityBlockMinValue(popID)) {
-            removeList.push_back(blockGID);
-         }
+      // Resize and populate mesh
+      cell->prepare_to_receive_blocks(popID);
+
+      // Call project-specific fill function, which loops over all requested blocks,
+      // fills v-space into target
+      phiprof::Timer fillTimer {"fill phasespace"};
+      const Realf nullsum = fillPhaseSpace(cell, popID, nRequested);
+      fillTimer.stop();
+      if (rescalesDensity(popID) == true) {
+         rescaleDensity(cell,popID);
       }
 
-      // Get VAMR refinement criterion and use it to test which blocks should be refined
-      vamr_ref_criteria::Base* refCriterion = getObjectWrapper().vamrVelRefCriteria.create(Parameters::vamrVelRefCriterion);
-      if (refCriterion == NULL) {
-         if (rescalesDensity(popID) == true) rescaleDensity(cell,popID);
-         return;
-      }
-      refCriterion->initialize("");
-
-      // Remove blocks with f below sparse min value
-      for (size_t b=0; b<removeList.size(); ++b) cell->remove_velocity_block(removeList[b],popID, vmesh, blockContainer);
-
-      // Loop over blocks in the spatial cell until we reach the maximum
-      // refinement level, or until there are no more blocks left to refine
-      bool refine = true;
-      uint currentLevel = 0;
-      if (currentLevel == Parameters::vamrMaxVelocityRefLevel) refine = false;
-      while (refine == true) {
-         removeList.clear();
-         
-         // Loop over blocks and add blocks to be refined to vector refineList
-         vector<vmesh::GlobalID> refineList;
-         const vmesh::LocalID startIndex = 0;
-         const vmesh::LocalID endIndex   = cell->get_number_of_velocity_blocks(popID);
-         for (vmesh::LocalID blockLID=startIndex; blockLID<endIndex; ++blockLID) {
-            vector<vmesh::GlobalID> nbrs;
-            const vmesh::GlobalID blockGID = vmesh.getGlobalID(blockLID);
-
-            // Fetch block data and nearest neighbors
-            Realf array[(WID+2)*(WID+2)*(WID+2)];
-            cell->fetch_data<1>(blockGID,vmesh,cell->get_data(0,popID),array);
-
-            // If block should be refined, add it to refine list
-            if (refCriterion->evaluate(array,popID) > Parameters::vamrRefineLimit) {
-               refineList.push_back(blockGID);
-            }
-         }
-
-         // Refine blocks in vector refineList. All blocks that were created 
-         // as a result of the refine, including blocks created because of induced 
-         // refinement, are added to map insertedBlocks
-         map<vmesh::GlobalID,vmesh::LocalID> insertedBlocks;
-         for (size_t b=0; b<refineList.size(); ++b) {
-            cell->refine_block(refineList[b],insertedBlocks,popID);
-         }
-
-         // Loop over blocks in map insertedBlocks and recalculate 
-         // values of distribution functions
-         for (map<vmesh::GlobalID,vmesh::LocalID>::const_iterator it=insertedBlocks.begin(); it!=insertedBlocks.end(); ++it) {
-            const vmesh::GlobalID blockGID = it->first;
-            const vmesh::LocalID blockLID = it->second;
-            const Real maxValue = setVelocityBlock(cell,blockLID,popID);
-            if (maxValue <= cell->getVelocityBlockMinValue(popID)) {
-               removeList.push_back(blockGID);
-            }
-         }
-
-         // Remove blocks with f below sparse min value
-         for (size_t b=0; b<removeList.size(); ++b) cell->remove_velocity_block(removeList[b],popID, vmesh, blockContainer);
-
-         if (refineList.size() == 0) refine = false;
-         ++currentLevel;
-         if (currentLevel == Parameters::vamrMaxVelocityRefLevel) refine = false;
-      }
-
-      delete refCriterion;
-
-      if (rescalesDensity(popID) == true) rescaleDensity(cell,popID);
+      // Set and apply the reservation value
+      #ifdef USE_GPU
+      phiprof::Timer reservationTimer {"set apply reservation"};
+      cell->setReservation(popID,nRequested,true); // Force to this value
+      cell->applyReservation(popID);
+      reservationTimer.stop();
+      #endif
+      return;
    }
 
    /** Check if the project wants to rescale densities.
@@ -416,7 +276,7 @@ namespace projects {
       return false;
    }
 
-   /** Rescale the distribution function of the given particle species so that 
+   /** Rescale the distribution function of the given particle species so that
     * the number density corresponds to the value returned by getCorrectNumberDensity.
     * @param cell Spatial cell.
     * @param popID ID of the particle species.*/
@@ -427,15 +287,17 @@ namespace projects {
       const Real* blockParams = cell->get_block_parameters(popID);
       for (vmesh::LocalID blockLID=0; blockLID<cell->get_number_of_velocity_blocks(popID); ++blockLID) {
          Real tmp = 0.0;
-         for (unsigned int i=0; i<WID3; ++i) tmp += data[blockLID*WID3+i];
+         for (unsigned int i=0; i<WID3; ++i) {
+            tmp += data[blockLID*WID3+i];
+         }
          const Real DV3 = blockParams[BlockParams::DVX]*blockParams[BlockParams::DVY]*blockParams[BlockParams::DVZ];
          sum += tmp*DV3;
          blockParams += BlockParams::N_VELOCITY_BLOCK_PARAMS;
       }
-      
+
       const Real correctSum = getCorrectNumberDensity(cell,popID);
       const Real ratio = correctSum / sum;
-      
+
       for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
          data[i] *= ratio;
       }
@@ -450,9 +312,9 @@ namespace projects {
       }
       exit(1);
    }
-   
+
    /*!
-     Get random number between 0 and 1.0. One should always first initialize the rng.
+     Get correct number density base class function?
    */
    Real Project::getCorrectNumberDensity(spatial_cell::SpatialCell* cell,const uint popID) const {
       cerr << "ERROR: Project::getCorrectNumberDensity called instead of derived class function!" << endl;
@@ -461,27 +323,26 @@ namespace projects {
    }
 
    /** Get random number between 0 and 1.0. One should always first initialize the rng.
-    * @param cell Spatial cell.
+    * @param rngDataBuffer struct of type random_data
     * @return Uniformly distributed random number between 0 and 1.*/
    Real Project::getRandomNumber(std::default_random_engine& randGen) const {
       return std::uniform_real_distribution<>(0,1)(randGen);
    }
 
-   /*!  Set random seed (thread-safe). Seed is based on the seed read
-     in from cfg + the seedModifier parameter
-
-     \param seedModifier d. Seed is based on the seed read in from cfg + the seedModifier parameter
+   /** Set random seed (thread-safe). Seed is based on the seed read
+    *  in from cfg + the seedModifier parameter
+    * @param seedModifier value (e.g. CellID) to use as seed modifier
+    # @param randGen std::default_random_engine& to use
    */
    void Project::setRandomSeed(CellID seedModifier, std::default_random_engine& randGen) const {
       randGen.seed(this->seed+seedModifier);
    }
 
-   /*!
-     Set random seed (thread-safe) that is always the same for
-     this particular cellID. Can be used to make reproducible
-     simulations that do not depend on number of processes or threads.
-
-     \param  cellParams The cell parameters list in each spatial cell
+   /** Set random seed (thread-safe) that is always the same for
+    * this particular cellID. Can be used to make reproducible
+    * simulations that do not depend on number of processes or threads.
+    * @param cell SpatialCell used to infer CellID value to use as seed modifier
+    # @param randGen std::default_random_engine& to use
    */
    void Project::setRandomCellSeed(spatial_cell::SpatialCell* cell, std::default_random_engine& randGen) const {
       const creal x = cell->parameters[CellParams::XCRD];
@@ -490,7 +351,7 @@ namespace projects {
       const creal dx = cell->parameters[CellParams::DX];
       const creal dy = cell->parameters[CellParams::DY];
       const creal dz = cell->parameters[CellParams::DZ];
-      
+
       const CellID cellID = (int) ((x - Parameters::xmin) / dx) +
          (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
          (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
@@ -498,20 +359,20 @@ namespace projects {
    }
 
    /*
-     Refine cells of mpiGrid. Each project that wants refinement should implement this function. 
+     Refine cells of mpiGrid. Each project that wants refinement should implement this function.
      Base class function uses AMR box half width parameters
     */
    bool Project::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
       phiprof::Timer refineSCTimer {"Project: refine spatial cells"};
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-      
+
       if(myRank == MASTER_RANK) {
          std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
       }
 
       std::vector<bool> refineSuccess;
-      
+
       for (int level = 0; level < mpiGrid.mapping.get_maximum_refinement_level(); level++) {
          int refineCount = 0;
          for (int n = 0; n < P::amrBoxNumber; n++) {
@@ -521,7 +382,7 @@ namespace projects {
                for (int i = 0; i < maxloop * (int)P::amrBoxHalfWidthX[n]; ++i) {
                   for (int j = 0; j < maxloop * (int)P::amrBoxHalfWidthY[n]; ++j) {
                      for (int k = 0; k < maxloop * (int)P::amrBoxHalfWidthZ[n]; ++k) {
-                     
+
                         std::array<double,3> xyz;
                         xyz[0] = P::amrBoxCenterX[n] + (0.5 + i - pow(2, level)*P::amrBoxHalfWidthX[n]) * P::dx_ini / pow(2, level);
                         xyz[1] = P::amrBoxCenterY[n] + (0.5 + j - pow(2, level)*P::amrBoxHalfWidthY[n]) * P::dy_ini / pow(2, level);
@@ -531,7 +392,7 @@ namespace projects {
                         {
                            if (mpiGrid.refine_completely_at(xyz)) {
                               refineCount++;
-                              #ifndef NDEBUG
+                              #ifdef DEBUG_REFINE
                               CellID myCell = mpiGrid.get_existing_cell(xyz);
                               std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;
                               #endif
@@ -546,8 +407,7 @@ namespace projects {
          MPI_Allreduce(&refineCount, &totalRefineCount, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
          if(totalRefineCount > 0) {
             std::vector<CellID> refinedCells = mpiGrid.stop_refining();
-            
-            #ifndef NDEBUG
+            #ifdef DEBUG_REFINE
             if(refinedCells.size() > 0) {
                std::cerr << "Refined cells produced by rank " << myRank << " for level " << level << " are: ";
                for (auto cellid : refinedCells) {
@@ -556,14 +416,14 @@ namespace projects {
                std::cout << endl;
             }
             #endif
-            
+
             // Don't do LB, as this function is called only before v-spaces have been created
             // mpiGrid.balance_load();
          }
          if(myRank == MASTER_RANK) {
             std::cout << "Finished level of refinement " << level+1 << endl;
          }
-         
+
       } // refinement levels
       return true;
    }
@@ -573,13 +433,104 @@ namespace projects {
       return cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY && (cell->sysBoundaryLayer == 0 || cell->sysBoundaryLayer > 2);
    }
 
-   int Project::adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
+   bool Project::shouldRefineCell(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, CellID id, Real r_max2) const {
+      // Evaluate possible refinement for this cell
+
+      // Cells too far from the ionosphere should not be refined but
+      // induced refinement still possible just beyond this r_max2 limit.
+
+      std::array<double,3> xyz {mpiGrid.get_center(id)};
+      SpatialCell* cell {mpiGrid[id]};
+      int refLevel {mpiGrid.get_refinement_level(id)};
+      Real r2 {pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2)};
+
+      bool alpha1ShouldRefine = (P::useAlpha1 && cell->parameters[CellParams::AMR_ALPHA1] > P::alpha1RefineThreshold);
+      bool alpha2ShouldRefine = (P::useAlpha2 && cell->parameters[CellParams::AMR_ALPHA2] > P::alpha2RefineThreshold);
+      bool vorticityShouldRefine = (P::useVorticity && cell->parameters[CellParams::AMR_VORTICITY] > P::vorticityRefineThreshold);
+      bool anisotropyShouldRefine = (P::useAnisotropy && cell->parameters[CellParams::P_ANISOTROPY] >= 0 && cell->parameters[CellParams::P_ANISOTROPY] < P::anisotropyRefineThreshold && refLevel < P::anisotropyMaxReflevel);
+
+      bool shouldRefine {
+         (r2 < r_max2) && (
+            alpha1ShouldRefine || 
+            alpha2ShouldRefine ||
+            vorticityShouldRefine ||
+            anisotropyShouldRefine
+         )
+      };
+
+      if (P::refineBoxNumber > 0) {
+         bool outsideAllRefineBoxes = true;
+         for (int i = 0; i < P::refineBoxNumber; i++) {
+            if (
+               // If this cell is planned to be refined and is inside any of the refinement boxes, then go ahead with refinement.
+               // Induced refinement still possible just beyond that limit.
+               (xyz[0] >= P::refinementMinX.at(i)) && (xyz[0] <= P::refinementMaxX.at(i))
+               && (xyz[1] >= P::refinementMinY.at(i)) && (xyz[1] <= P::refinementMaxY.at(i))
+               && (xyz[2] >= P::refinementMinZ.at(i)) && (xyz[2] <= P::refinementMaxZ.at(i))) {
+               outsideAllRefineBoxes = false;
+               break;
+            }
+         }
+
+         shouldRefine = shouldRefine && !outsideAllRefineBoxes;
+      }
+
+      return shouldRefine;
+   }
+
+   bool Project::shouldUnrefineCell(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, CellID id, Real r_max2) const {
+      // Evaluate possible unrefinement for this cell
+
+      // Cells too far from the ionosphere should be unrefined but
+      // induced refinement still possible just beyond this r_max2 limit.
+
+      std::array<double,3> xyz {mpiGrid.get_center(id)};
+      SpatialCell* cell {mpiGrid[id]};
+      int refLevel {mpiGrid.get_refinement_level(id)};
+      Real r2 {pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2)};
+
+      bool alpha1ShouldUnrefine = (!P::useAlpha1 || cell->parameters[CellParams::AMR_ALPHA1] < P::alpha1CoarsenThreshold);
+      bool alpha2ShouldUnrefine = (!P::useAlpha2 || cell->parameters[CellParams::AMR_ALPHA2] < P::alpha2CoarsenThreshold);
+      bool vorticityShouldUnrefine = (!P::useVorticity || cell->parameters[CellParams::AMR_VORTICITY] < P::vorticityCoarsenThreshold);
+      bool anisotropyShouldUnrefine = (!(P::useAnisotropy && cell->parameters[CellParams::P_ANISOTROPY] >= 0) || cell->parameters[CellParams::P_ANISOTROPY] > P::anisotropyCoarsenThreshold || refLevel > P::anisotropyMaxReflevel);
+
+      bool shouldUnrefine {
+         (r2 > r_max2) || (
+            alpha1ShouldUnrefine && 
+            alpha2ShouldUnrefine &&
+            vorticityShouldUnrefine &&
+            anisotropyShouldUnrefine
+         )
+      };
+
+      if (P::refineBoxNumber > 0) {
+         bool outsideAllRefineBoxes = true;
+         for (int i = 0; i < P::refineBoxNumber; i++) {
+            if (
+               // If this cell is planned to remain at the current refinement level, but is outside all the allowed refinement regions,
+               // attempt to unrefine it instead. (If it is already at the lowest refinement level, DCCRG should not go belly-up.)
+               // Induced refinement still possible just beyond that limit.
+               (xyz[0] >= P::refinementMinX.at(i)) && (xyz[0] <= P::refinementMaxX.at(i))
+               && (xyz[1] >= P::refinementMinY.at(i)) && (xyz[1] <= P::refinementMaxY.at(i))
+               && (xyz[2] >= P::refinementMinZ.at(i)) && (xyz[2] <= P::refinementMaxZ.at(i))) {
+               outsideAllRefineBoxes = false;
+               break;
+            }
+         }
+
+         shouldUnrefine = shouldUnrefine || outsideAllRefineBoxes;
+      }
+
+      return shouldUnrefine;
+   }
+
+   uint64_t Project::adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
       phiprof::Timer refinesTimer {"Set refines"};
-      int myRank;       
+      int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
-      int refines {0};
-      if (!P::useAlpha1 && !P::useAlpha2) {
+      uint64_t refines {0};
+      if (!P::useAlpha1 && !P::useAlpha2 && !P::useAnisotropy && !P::useVorticity) {
          if (myRank == MASTER_RANK) {
             std::cout << "WARNING All refinement indices disabled" << std::endl;
          }
@@ -591,10 +542,7 @@ namespace projects {
       #pragma omp parallel for
       for (uint cid = 0; cid < cells.size(); ++cid) {
          CellID id = cells[cid];
-         std::array<double,3> xyz {mpiGrid.get_center(id)};
-         SpatialCell* cell {mpiGrid[id]};
          int refLevel {mpiGrid.get_refinement_level(id)};
-         Real r2 {pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2)};
 
          if (!canRefine(mpiGrid[id])) {
             // Skip refining, touching boundaries during runtime breaks everything
@@ -605,59 +553,18 @@ namespace projects {
             }
          } else {
             // Evaluate possible refinement or unrefinement for this cell
-
-            // Cells too far from the ionosphere should be unrefined but
-            // induced refinement still possible just beyond this r_max2 limit.
-            bool shouldRefine {(r2 < r_max2) && ((P::useAlpha1 ? cell->parameters[CellParams::AMR_ALPHA1] > P::alpha1RefineThreshold : false) || (P::useAlpha2 ? cell->parameters[CellParams::AMR_ALPHA2] > P::alpha2RefineThreshold : false))};
-            bool shouldUnrefine {(r2 > r_max2) || ((P::useAlpha1 ? cell->parameters[CellParams::AMR_ALPHA1] < P::alpha1CoarsenThreshold : true) && (P::useAlpha2 ? cell->parameters[CellParams::AMR_ALPHA2] < P::alpha2CoarsenThreshold : true))};
-
-            if(shouldRefine
-               // If this cell is planned to be refined, but is outside the allowed refinement region, cancel that refinement.
-               // Induced refinement still possible just beyond that limit.
-              && ((xyz[0] < P::refinementMinX) || (xyz[0] > P::refinementMaxX)
-               || (xyz[1] < P::refinementMinY) || (xyz[1] > P::refinementMaxY)
-               || (xyz[2] < P::refinementMinZ) || (xyz[2] > P::refinementMaxZ))) {
-               shouldRefine = false;
-            }
-            if(!shouldUnrefine
-               // If this cell is planned to remain at the current refinement level, but is outside the allowed refinement region,
-               // attempt to unrefine it instead. (If it is already at the lowest refinement level, DCCRG should not go belly-up.)
-               // Induced refinement still possible just beyond that limit.
-              && ((xyz[0] < P::refinementMinX) || (xyz[0] > P::refinementMaxX)
-               || (xyz[1] < P::refinementMinY) || (xyz[1] > P::refinementMaxY)
-               || (xyz[2] < P::refinementMinZ) || (xyz[2] > P::refinementMaxZ))) {
-               shouldUnrefine = true;
-            }
+            bool shouldRefine = shouldRefineCell(mpiGrid, id, r_max2);
+            bool shouldUnrefine = shouldUnrefineCell(mpiGrid, id, r_max2);
 
             // Finally, check neighbors
             int refined_neighbors {0};
             int coarser_neighbors {0};
             for (const auto& [neighbor, dir] : mpiGrid.get_face_neighbors_of(id)) {
                // Evaluate all face neighbors of the current cell
-               std::array<double,3> neighborXyz {mpiGrid.get_center(neighbor)};
-               Real neighborR2 {pow(neighborXyz[0], 2) + pow(neighborXyz[1], 2) + pow(neighborXyz[2], 2)};
-               const int neighborRef = mpiGrid.get_refinement_level(neighbor);
-               // Induced refinement still possible just beyond the r_max2 limit.
-               bool shouldRefineNeighbor {(neighborR2 < r_max2) && ((P::useAlpha1 ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA1] > P::alpha1RefineThreshold : false) || (P::useAlpha2 ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA2] > P::alpha2RefineThreshold : false))};
-               if(shouldRefineNeighbor &&
-                  // If the neighbor is planned to be refined, but is outside the allowed refinement region, cancel that refinement.
-                  // Induced refinement still possible just beyond that limit.
-                    ((neighborXyz[0] < P::refinementMinX) || (neighborXyz[0] > P::refinementMaxX)
-                  || (neighborXyz[1] < P::refinementMinY) || (neighborXyz[1] > P::refinementMaxY)
-                  || (neighborXyz[2] < P::refinementMinZ) || (neighborXyz[2] > P::refinementMaxZ))) {
-                  shouldRefineNeighbor = false;
-               }
-               // Induced refinement still possible just beyond the r_max2 limit.
-               bool shouldUnrefineNeighbor {(neighborR2 > r_max2) || ((P::useAlpha1 ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA1] < P::alpha1CoarsenThreshold : true) && (P::useAlpha2 ? mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA2] < P::alpha2CoarsenThreshold : true))};
-               if(!shouldUnrefineNeighbor &&
-                  // If the neighbor is planned to remain at the current refinement level, but is outside the allowed refinement region, 
-                  // consider it as unrefining instead for purposes of evaluating the neighbors of this cell.
-                  // Induced refinement still possible just beyond that limit.
-                    ((neighborXyz[0] < P::refinementMinX) || (neighborXyz[0] > P::refinementMaxX)
-                  || (neighborXyz[1] < P::refinementMinY) || (neighborXyz[1] > P::refinementMaxY)
-                  || (neighborXyz[2] < P::refinementMinZ) || (neighborXyz[2] > P::refinementMaxZ))) {
-                  shouldUnrefineNeighbor = true;
-               }
+               bool shouldRefineNeighbor = shouldRefineCell(mpiGrid, neighbor, r_max2);
+               bool shouldUnrefineNeighbor = shouldUnrefineCell(mpiGrid, neighbor, r_max2);
+               int neighborRef {mpiGrid.get_refinement_level(neighbor)};
+
                if (neighborRef > refLevel && !shouldUnrefineNeighbor) {
                   ++refined_neighbors;
                } else if (neighborRef < refLevel && !shouldRefineNeighbor) {
@@ -669,7 +576,7 @@ namespace projects {
                   ++coarser_neighbors;
                }
             }
-
+            ; // CUDA compilation does not like the start of a new region with nothing, so a null semicolon is here.
             #pragma omp critical
             {
                if ((shouldRefine || refined_neighbors > 12) && refLevel < P::amrMaxAllowedSpatialRefLevel) {
@@ -702,7 +609,7 @@ namespace projects {
    }
 
    bool Project::filterRefined( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
-      int myRank;       
+      int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
       const vector<CellID>& cells = getLocalCells();
@@ -718,7 +625,7 @@ namespace projects {
          // To preserve the mean, we must only consider refined cells
          int refLevel = mpiGrid.get_refinement_level(id);
          std::vector<CellID> refinedNeighbors;
-         for (auto& neighbor : *mpiGrid.get_neighbors_of(id, NEAREST_NEIGHBORHOOD_ID)) {
+         for (auto& neighbor : *mpiGrid.get_neighbors_of(id, Neighborhoods::NEAREST)) {
             if (mpiGrid[neighbor.first]->parameters[CellParams::RECENTLY_REFINED] && mpiGrid.get_refinement_level(neighbor.first) == refLevel) {
                refinedNeighbors.push_back(neighbor.first);
             }
@@ -748,7 +655,7 @@ namespace projects {
 
       return true;
    }
-   
+
 Project* createProject() {
    Project* rvalue = NULL;
    if(Parameters::projectName == "") {
@@ -811,9 +718,6 @@ Project* createProject() {
    }
    if(Parameters::projectName == "testHall") {
       rvalue = new projects::TestHall;
-   }
-   if(Parameters::projectName == "test_trans") {
-      rvalue = new projects::test_trans;
    }
    if(Parameters::projectName == "verificationLarmor") {
       rvalue = new projects::verificationLarmor;

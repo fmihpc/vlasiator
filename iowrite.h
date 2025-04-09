@@ -29,7 +29,7 @@
 #include <vlsv_writer.h>
 
 #include "definitions.h"
-#include "spatial_cell_wrapper.hpp"
+#include "spatial_cells/spatial_cell_wrapper.hpp"
 #include "datareduction/datareducer.h"
 
 /*!
@@ -65,10 +65,24 @@ bool writeGrid(
 
 \brief Write out a restart of the simulation into a vlsv file. All block data in remote cells will be reset.
 
-\param mpiGrid   The DCCRG grid with spatial cells
-\param dataReducer Contains datareductionoperators that are used to compute data that is added into file
-\param name       File name prefix, file will be called "name.index.vlsv"
-\param fileIndex  File index, file will be called "name.index.vlsv"
+\param mpiGrid        The DCCRG grid with spatial cells
+\param perBGrid       fsgrid with perturbed B
+\param EGrid          fsgrid with E
+\param EHallGrid      fsgrid with Hall term
+\param EGradPeGrid    fsgrid with E grad(Pe) term
+\param momentsGrid    fsgrid with moments
+\param dPerBGrid      fsgrid with derivatives of perturbed B
+\param dMomentsGrid   fsgrid with derivatives of moments
+\param BgBGrid        fsgrid with background B
+\param volGrid        fsgrid with volume fields
+\param technicalGrid  fsgrid with technical info
+\param versionInfo    version info string
+\param configInfo     cfg file string
+\param dataReducer    Contains datareductionoperators that are used to compute data that is added into file
+\param name           File name prefix, file will be called "name.index.vlsv"
+\param fileIndex      File index, file will be called "name.index.vlsv"
+\param dateInFileName Write the date (restarts) or not (recovers)
+\param stripe         lustre stripe count
 */
 bool writeRestart(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -87,6 +101,7 @@ bool writeRestart(
    DataReducer& dataReducer,
    const std::string& name,
    const uint& fileIndex,
+   const bool dateInFileName,
    const int& stripe
 );
 

@@ -23,7 +23,6 @@
 #include "../object_wrapper.h"
 #include "../sysboundary/ionosphere.h"
 
-#include "cpu_moments.h"
 #include "cpu_acc_transform.hpp"
 
 using namespace std;
@@ -116,7 +115,9 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
 
    unsigned int bulk_velocity_substeps; // in this many substeps we iterate forward bulk velocity when the complete transformation is computed (0.1 deg per substep).
    bulk_velocity_substeps = fabs(dt) / fabs(gyro_period*(0.1/360.0));
-   if (bulk_velocity_substeps < 1) bulk_velocity_substeps=1;
+   if (bulk_velocity_substeps < 1) {
+      bulk_velocity_substeps=1;
+   }
 
    const Real substeps_radians = -(2.0*M_PI*dt/gyro_period)/bulk_velocity_substeps; // how many radians each substep is.
    const Real substeps_dt=dt/bulk_velocity_substeps; /*!< how many s each substep is*/
@@ -153,23 +154,6 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       if(Parameters::ohmGradPeTerm > 0) {
          total_transform=Translation<Real,3>( (fabs(getObjectWrapper().particleSpecies[popID].charge)/getObjectWrapper().particleSpecies[popID].mass) * EgradPe * substeps_dt) * total_transform;
       }
-   }
-
-   // If a bulk velocity is being forced here, perform that last, after things were gyrated in the Hall frame
-   // If a cell is a remote L2 and was not caught in the loop over neighbours of L1 cells, compute its forcing here
-   if(globalflags::ionosphereJustSolved
-      && spatial_cell->parameters[CellParams::FORCING_CELL_NUM] == 0
-      && SBC::boundaryVDFmode == SBC::ForceL2EXB
-   ) {
-      getObjectWrapper().sysBoundaryContainer.getSysBoundary(sysboundarytype::IONOSPHERE)->mapCellPotentialAndGetEXBDrift(spatial_cell->parameters); // This sets the FORCING_CELL_NUM to 1
-   }
-   if(spatial_cell->parameters[CellParams::FORCING_CELL_NUM] > 0) {
-      Eigen::Matrix<Real,3,1> forced_bulkv(spatial_cell->parameters[CellParams::BULKV_FORCING_X],
-                                           spatial_cell->parameters[CellParams::BULKV_FORCING_Y],
-                                           spatial_cell->parameters[CellParams::BULKV_FORCING_Z]);
-
-      Eigen::Matrix<Real,3,1> bulkDeltaV = forced_bulkv - bulk_velocity;
-      total_transform=Translation<Real,3>(bulkDeltaV) * total_transform;
    }
 
    return total_transform;

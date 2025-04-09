@@ -44,7 +44,7 @@ using namespace spatial_cell;
 namespace projects {
    Magnetosphere::Magnetosphere(): TriAxisSearch() { }
    Magnetosphere::~Magnetosphere() { }
-   
+
    void Magnetosphere::addParameters() {
       typedef Readparameters RP;
       // Common (field / etc.) parameters
@@ -65,7 +65,7 @@ namespace projects {
       RP::add("Magnetosphere.refine_L3tailwidth","Width in +-y of tail L3-refined box", 5.0e7); // 10 RE
       RP::add("Magnetosphere.refine_L3tailxmin","Low x-value of tail L3-refined box", -20.0e7); // 10 RE
       RP::add("Magnetosphere.refine_L3tailxmax","High x-value of tail L3-refined box", -5.0e7); // 10 RE
-      
+
       RP::add("Magnetosphere.refine_L2radius","Radius of L2-refined sphere", 9.5565e7); // 15 RE
       RP::add("Magnetosphere.refine_L2tailthick","Thickness of L2-refined tail region", 3.1855e7); // 5 RE
       RP::add("Magnetosphere.refine_L1radius","Radius of L1-refined sphere", 1.59275e8); // 25 RE
@@ -96,7 +96,7 @@ namespace projects {
          RP::add(pop + "_Magnetosphere.taperOuterRadius", "Outer radius of the zone with a density tapering from the ionospheric value to the background (m)", 0.0);
       }
    }
-   
+
    void Magnetosphere::getParameters(){
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
@@ -254,21 +254,39 @@ namespace projects {
       }
 
    }
-   
+
    bool Magnetosphere::initialize() {
       return Project::initialize();
    }
 
-   Real Magnetosphere::calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,
-                                             creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,
-                                             creal& dvz,const uint popID) const {
-
-      return getDistribValue(x+0.5*dx,y+0.5*dy,z+0.5*dz,vx+0.5*dvx,vy+0.5*dvy,vz+0.5*dvz,dvx,dvy,dvz,popID);
-   }
-   
-   /*! Magnetosphere does not set any extra perturbed B. */
    void Magnetosphere::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
 
+   Real Magnetosphere::geometryRadius(Real x, Real y, Real z) const {
+      Real radius;
+      switch(this->ionosphereGeometry) {
+         case 0:
+            // infinity-norm, result is a diamond/square with diagonals aligned on the axes in 2D
+            radius = fabs(x-center[0]) + fabs(y-center[1]) + fabs(z-center[2]);
+            break;
+         case 1:
+            // 1-norm, result is is a grid-aligned square in 2D
+            radius = max(max(fabs(x-center[0]), fabs(y-center[1])), fabs(z-center[2]));
+            break;
+         case 2:
+            // 2-norm (Cartesian), result is a circle in 2D
+            radius = sqrt((x-center[0])*(x-center[0]) + (y-center[1])*(y-center[1]) + (z-center[2])*(z-center[2]));
+            break;
+         case 3:
+            // cylinder aligned with y-axis, use with polar plane/line dipole
+            radius = sqrt((x-center[0])*(x-center[0]) + (z-center[2])*(z-center[2]));
+            break;
+         default:
+            std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1, 2 or 3." << std::endl;
+            abort();
+      }
+      return radius;
+   }
+   
    /* set 0-centered dipole */
    void Magnetosphere::setProjectBField(
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
@@ -291,12 +309,12 @@ namespace projects {
                SBC::ionosphereGrid.setDipoleField(bgFieldDipole);
                break;
             case 1:
-               bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0 );//set dipole moment     
+               bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0 );//set dipole moment
                setBackgroundField(bgFieldLineDipole, BgBGrid);
                SBC::ionosphereGrid.setDipoleField(bgFieldLineDipole);
                break;
             case 2:
-               bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0 );//set dipole moment     
+               bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0 );//set dipole moment
                setBackgroundField(bgFieldLineDipole, BgBGrid);
                //Append mirror dipole
                bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, this->dipoleMirrorLocationX, 0.0, 0.0 );
@@ -307,10 +325,10 @@ namespace projects {
                bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
                setBackgroundField(bgFieldDipole, BgBGrid);
                SBC::ionosphereGrid.setDipoleField(bgFieldDipole);
-               //Append mirror dipole                
+               //Append mirror dipole
                bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, this->dipoleMirrorLocationX, 0.0, 0.0, 0.0 );//mirror
                setBackgroundField(bgFieldDipole, BgBGrid, true);
-               break; 
+               break;
             case 4:  // Vector potential dipole, vanishes or optionally scales to static inflow value after a given x-coordinate
                // What we in fact do is we place the regular dipole in the background field, and the
                // corrective terms in the perturbed field. This maintains the BGB as curl-free.
@@ -346,7 +364,7 @@ namespace projects {
       switchDipoleTypeTimer.stop();
 
       const auto localSize = BgBGrid.getLocalSize().data();
-      
+
       phiprof::Timer zeroingTimer {"zeroing-out"};
 
 #pragma omp parallel
@@ -354,7 +372,7 @@ namespace projects {
          bool doZeroOut;
          //Force field to zero in the perpendicular direction for 2D (1D) simulations. Otherwise we have unphysical components.
          doZeroOut = P::xcells_ini ==1 && this->zeroOutComponents[0]==1;
-      
+
          if(doZeroOut) {
 #pragma omp for collapse(2)
             for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
@@ -422,7 +440,7 @@ namespace projects {
                }
             }
          }
-         
+
          // Remove dipole from inflow cells if this is requested
          if(this->noDipoleInSW) {
 #pragma omp for collapse(2)
@@ -461,43 +479,32 @@ namespace projects {
       SBC::ionosphereGrid.storeNodeB();
       storeNodeTimer.stop();
    }
-   
-   
-   Real Magnetosphere::getDistribValue(
-           creal& x,creal& y,creal& z,
-           creal& vx,creal& vy,creal& vz,
-           creal& dvx,creal& dvy,creal& dvz,
-           const uint popID) const
-   {
+
+   /* Evaluates local SpatialCell properties for the project and population,
+      then loops over the requested velocity blocks
+      and populates them
+   */
+   Realf Magnetosphere::fillPhaseSpace(spatial_cell::SpatialCell *cell,
+                                       const uint popID,
+                                       const uint nRequested
+      ) const {
       const MagnetosphereSpeciesParameters& sP = this->speciesParams[popID];
+
+      // Fetch spatial cell center coordinates
+      const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
+      const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
+      const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
+
+      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
       Real initRho = sP.rho;
       Real initT = sP.T;
+      // getV0() includes tapering
       std::array<Real, 3> initV0 = this->getV0(x, y, z, popID)[0];
-      
-      Real radius;
-      
-      switch(this->ionosphereGeometry) {
-         case 0:
-            // infinity-norm, result is a diamond/square with diagonals aligned on the axes in 2D
-            radius = fabs(x-center[0]) + fabs(y-center[1]) + fabs(z-center[2]);
-            break;
-         case 1:
-            // 1-norm, result is is a grid-aligned square in 2D
-            radius = max(max(fabs(x-center[0]), fabs(y-center[1])), fabs(z-center[2]));
-            break;
-         case 2:
-            // 2-norm (Cartesian), result is a circle in 2D
-            radius = sqrt((x-center[0])*(x-center[0]) + (y-center[1])*(y-center[1]) + (z-center[2])*(z-center[2]));
-            break;
-         case 3:
-            // cylinder aligned with y-axis, use with polar plane/line dipole
-            radius = sqrt((x-center[0])*(x-center[0]) + (z-center[2])*(z-center[2]));
-            break;
-         default:
-            std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1, 2 or 3." << std::endl;
-            abort();
-      }
-      
+      const Real initV0X = initV0[0];
+      const Real initV0Y = initV0[1];
+      const Real initV0Z = initV0[2];
+
+      Real radius = this->geometryRadius(x,y,z);
       if(radius < sP.taperOuterRadius) {
          // sine tapering
          initRho = sP.rho - (sP.rho-sP.ionosphereRho)*0.5*(1.0+sin(M_PI*(radius-sP.taperInnerRadius)/(sP.taperOuterRadius-sP.taperInnerRadius)+0.5*M_PI));
@@ -508,12 +515,84 @@ namespace projects {
          }
       }
 
-      Real mass = getObjectWrapper().particleSpecies[popID].mass;
-
-      return initRho * pow(mass / (2.0 * M_PI * physicalconstants::K_B * initT), 1.5) *
-      exp(- mass * ((vx-initV0[0])*(vx-initV0[0]) + (vy-initV0[1])*(vy-initV0[1]) + (vz-initV0[2])*(vz-initV0[2])) / (2.0 * physicalconstants::K_B * initT));
+      #ifdef USE_GPU
+      vmesh::VelocityMesh *vmesh = cell->dev_get_velocity_mesh(popID);
+      vmesh::VelocityBlockContainer* VBC = cell->dev_get_velocity_blocks(popID);
+      #else
+      vmesh::VelocityMesh *vmesh = cell->get_velocity_mesh(popID);
+      vmesh::VelocityBlockContainer* VBC = cell->get_velocity_blocks(popID);
+      #endif
+      // Loop over blocks
+      Realf rhosum = 0;
+      arch::parallel_reduce<arch::null>(
+         {WID, WID, WID, nRequested},
+         ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint initIndex, Realf *lsum ) {
+            vmesh::GlobalID *GIDlist = vmesh->getGrid()->data();
+            Realf* bufferData = VBC->getData();
+            const vmesh::GlobalID blockGID = GIDlist[initIndex];
+            // Calculate parameters for new block
+            Real blockCoords[6];
+            vmesh->getBlockInfo(blockGID,&blockCoords[0]);
+            creal vxBlock = blockCoords[0];
+            creal vyBlock = blockCoords[1];
+            creal vzBlock = blockCoords[2];
+            creal dvxCell = blockCoords[3];
+            creal dvyCell = blockCoords[4];
+            creal dvzCell = blockCoords[5];
+            ARCH_INNER_BODY(i, j, k, initIndex, lsum) {
+               creal vx = vxBlock + (i+0.5)*dvxCell - initV0X;
+               creal vy = vyBlock + (j+0.5)*dvyCell - initV0Y;
+               creal vz = vzBlock + (k+0.5)*dvzCell - initV0Z;
+               const Realf value = MaxwellianPhaseSpaceDensity(vx,vy,vz,initT,initRho,mass);
+               bufferData[initIndex*WID3 + k*WID2 + j*WID + i] = value;
+               //lsum[0] += value;
+            };
+         }, rhosum);
+      return rhosum;
    }
 
+   /* Evaluates local SpatialCell properties for the project and population,
+      then evaluates the phase-space density at the given coordinates.
+      Used as a probe for projectTriAxisSearch.
+   */
+   Realf Magnetosphere::probePhaseSpace(spatial_cell::SpatialCell *cell,
+                                        const uint popID,
+                                        Real vx_in, Real vy_in, Real vz_in
+      ) const {
+      const MagnetosphereSpeciesParameters& sP = this->speciesParams[popID];
+
+      // Fetch spatial cell center coordinates
+      const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
+      const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
+      const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
+
+      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+      Real initRho = sP.rho;
+      Real initT = sP.T;
+      // getV0() includes tapering
+      std::array<Real, 3> initV0 = this->getV0(x, y, z, popID)[0];
+      const Real initV0X = initV0[0];
+      const Real initV0Y = initV0[1];
+      const Real initV0Z = initV0[2];
+
+      Real radius = this->geometryRadius(x,y,z);
+      if(radius < sP.taperOuterRadius) {
+         // sine tapering
+         initRho = sP.rho - (sP.rho-sP.ionosphereRho)*0.5*(1.0+sin(M_PI*(radius-sP.taperInnerRadius)/(sP.taperOuterRadius-sP.taperInnerRadius)+0.5*M_PI));
+         initT = sP.T - (sP.T-sP.ionosphereT)*0.5*(1.0+sin(M_PI*(radius-sP.taperInnerRadius)/(sP.taperOuterRadius-sP.taperInnerRadius)+0.5*M_PI));
+         if(radius <= sP.taperInnerRadius) {
+            initRho = sP.ionosphereRho;
+            initT = sP.ionosphereT;
+         }
+      }
+
+      creal vx = vx_in - initV0X;
+      creal vy = vy_in - initV0Y;
+      creal vz = vz_in - initV0Z;
+      const Realf value = MaxwellianPhaseSpaceDensity(vx,vy,vz,initT,initRho,mass);
+      return value;
+   }
+   
    vector<std::array<Real, 3> > Magnetosphere::getV0(
       creal x,
       creal y,
@@ -525,35 +604,12 @@ namespace projects {
       vector<std::array<Real, 3> > centerPoints;
       std::array<Real, 3> V0 {{sP.V0[0], sP.V0[1], sP.V0[2]}};
       std::array<Real, 3> ionosphereV0 = {{sP.ionosphereV0[0], sP.ionosphereV0[1], sP.ionosphereV0[2]}};
-      
-      Real radius;
-      
-      switch(this->ionosphereGeometry) {
-         case 0:
-            // infinity-norm, result is a diamond/square with diagonals aligned on the axes in 2D
-            radius = fabs(x-center[0]) + fabs(y-center[1]) + fabs(z-center[2]);
-            break;
-         case 1:
-            // 1-norm, result is is a grid-aligned square in 2D
-            radius = max(max(fabs(x-center[0]), fabs(y-center[1])), fabs(z-center[2]));
-            break;
-         case 2:
-            // 2-norm (Cartesian), result is a circle in 2D
-            radius = sqrt((x-center[0])*(x-center[0]) + (y-center[1])*(y-center[1]) + (z-center[2])*(z-center[2]));
-            break;
-         case 3:
-            // cylinder aligned with y-axis, use with polar plane/line dipole
-            radius = sqrt((x-center[0])*(x-center[0]) + (z-center[2])*(z-center[2]));
-            break;
-         default:
-            std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1, 2 or 3." << std::endl;
-            abort();
-      }
-      
+
+      Real radius = this->geometryRadius(x,y,z);
       if(radius < sP.taperOuterRadius) {
          // sine tapering
          Real q=0.5*(1.0-sin(M_PI*(radius-sP.taperInnerRadius)/(sP.taperOuterRadius-sP.taperInnerRadius)+0.5*M_PI));
-         
+
          for(uint i=0; i<3; i++) {
             V0[i]=q*(V0[i]-ionosphereV0[i])+ionosphereV0[i];
             if(radius <= sP.taperInnerRadius) {
@@ -561,7 +617,7 @@ namespace projects {
             }
          }
       }
-      
+
       centerPoints.push_back(V0);
       return centerPoints;
    }
@@ -584,7 +640,7 @@ namespace projects {
          for (uint i = 0; i < cells.size(); ++i) {
             CellID id = cells[i];
             std::array<double,3> xyz = mpiGrid.get_center(id);
-                     
+
             Real radius2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
             bool inSphere = radius2 < refine_L1radius*refine_L1radius;
             bool inTail = xyz[0] < 0 && fabs(xyz[1]) < refine_L1radius && fabs(xyz[2]) < refine_L1tailthick;
@@ -594,24 +650,24 @@ namespace projects {
             }
          }
 
-         cells = mpiGrid.stop_refining();      
+         cells = mpiGrid.stop_refining();
          if (myRank == MASTER_RANK) {
             std::cout << "Finished first level of refinement" << endl;
          }
-         #ifndef NDEBUG
+         #ifdef DEBUG_VLASIATOR
          if (cells.size() > 0) {
             std::cout << "Rank " << myRank << " refined " << cells.size() << " cells to level 1" << std::endl;
          }
-         #endif //NDEBUG
+         #endif //DEBUG_VLASIATOR
       }
-      
+
       // L2 refinement.
       if (P::amrMaxSpatialRefLevel > 1 && P::amrMaxAllowedSpatialRefLevel > 1) {
          //#pragma omp parallel for
          for (uint i = 0; i < cells.size(); ++i) {
             CellID id = cells[i];
             std::array<double,3> xyz = mpiGrid.get_center(id);
-                     
+
             Real radius2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
             bool inSphere = radius2 < pow(refine_L2radius, 2);
             bool inTail = xyz[0] < 0 && fabs(xyz[1]) < refine_L2radius && fabs(xyz[2])<refine_L2tailthick;
@@ -624,38 +680,38 @@ namespace projects {
          if(myRank == MASTER_RANK) {
             std::cout << "Finished second level of refinement" << endl;
          }
-         #ifndef NDEBUG
+         #ifdef DEBUG_VLASIATOR
          if (cells.size() > 0) {
             std::cout << "Rank " << myRank << " refined " << cells.size() << " cells to level 2" << std::endl;
          }
-         #endif //NDEBUG
+         #endif //DEBUG_VLASIATOR
 
       }
-      
+
       // L3 refinement.
       if (P::amrMaxSpatialRefLevel > 2 && P::amrMaxAllowedSpatialRefLevel > 2) {
          //#pragma omp parallel for
          for (uint i = 0; i < cells.size(); ++i) {
             CellID id = cells[i];
             std::array<double,3> xyz = mpiGrid.get_center(id);
-                     
+
             Real radius2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
             bool inNoseCap = (xyz[0]>refine_L3nosexmin) && (radius2<refine_L3radius*refine_L3radius);
             bool inTail = (xyz[0]>refine_L3tailxmin) && (xyz[0]<refine_L3tailxmax) && (fabs(xyz[1])<refine_L3tailwidth) && (fabs(xyz[2])<refine_L3tailheight);
             if ((inNoseCap || inTail) && radius2 < P::refineRadius * P::refineRadius) {
                //#pragma omp critical
-               mpiGrid.refine_completely(id);			  
+               mpiGrid.refine_completely(id);
             }
          }
          cells = mpiGrid.stop_refining();
          if (myRank == MASTER_RANK) {
             std::cout << "Finished third level of refinement" << endl;
          }
-         #ifndef NDEBUG
+         #ifdef DEBUG_VLASIATOR
          if (cells.size() > 0) {
             std::cout << "Rank " << myRank << " refined " << cells.size() << " cells to level 3" << std::endl;
          }
-         #endif //NDEBUG
+         #endif //DEBUG_VLASIATOR
       }
 
       // L4 refinement.
@@ -664,14 +720,14 @@ namespace projects {
          for (uint i = 0; i < cells.size(); ++i) {
             CellID id = cells[i];
             std::array<double,3> xyz = mpiGrid.get_center(id);
-                     
+
             Real radius2 = (xyz[0]*xyz[0]+xyz[1]*xyz[1]+xyz[2]*xyz[2]);
 
             // Check if cell is within the nose cap
             bool inNose = refine_L4nosexmin && radius2<refine_L4radius*refine_L4radius;
             if (inNose && radius2 < P::refineRadius * P::refineRadius) {
                //#pragma omp critical
-               mpiGrid.refine_completely(id);			  
+               mpiGrid.refine_completely(id);
             }
          }
 
@@ -679,19 +735,19 @@ namespace projects {
          if (myRank == MASTER_RANK) {
             std::cout << "Finished fourth level of refinement" << endl;
          }
-         #ifndef NDEBUG
+         #ifdef DEBUG_VLASIATOR
          if (cells.size() > 0) {
             std::cout << "Rank " << myRank << " refined " << cells.size() << " cells to level 4" << std::endl;
          }
-         #endif //NDEBUG
+         #endif //DEBUG_VLASIATOR
       }
 
       return true;
    }
 
    bool Magnetosphere::forceRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, int n ) const {
-   
-      int myRank;       
+
+      int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
       if(myRank == MASTER_RANK) {
@@ -742,6 +798,5 @@ namespace projects {
 
       return true;
    }
-   
-} // namespace projects
 
+} // namespace projects

@@ -11,21 +11,21 @@ LNK = CC
 # module load perftools
 
 #======== Vectorization ==========
-#Set vector backend type for vlasov solvers, sets precision and length. 
-#Options: 
+#Set vector backend type for vlasov solvers, sets precision and length.
+#Options:
 # AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
 # AVX512:   VEC8D_AGNER, VEC16F_AGNER
 # Fallback: VEC4D_FALLBACK, VEC4F_FALLBACK, VEC8F_FALLBACK
 
 ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
-#Single-precision        
+#Single-precision
 	VECTORCLASS = VEC8F_AGNER
 else
 #Double-precision
 	VECTORCLASS = VEC4D_AGNER
 endif
 
-FLAGS = 
+FLAGS =
 
 #GNU flags:
 CXXFLAGS += -g -ggdb -O3 -fopenmp -funroll-loops -std=c++20 -W -Wall -Wno-unused -mfma -mavx2 -Wno-unused-parameter
@@ -54,7 +54,7 @@ testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 # MATHFLAGS are for special math etc. flags, these are only applied on solver functions
 # LDFLAGS flags for linker
 
-#-DNO_WRITE_AT_ALL:  Define to disable write at all to 
+#-DNO_WRITE_AT_ALL:  Define to disable write at all to
 #                    avoid memleak (much slower IO)
 
 # BOOST_VERSION = current trilinos version

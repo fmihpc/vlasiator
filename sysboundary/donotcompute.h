@@ -26,7 +26,7 @@
 #include <vector>
 #include "../definitions.h"
 #include "../readparameters.h"
-#include "../spatial_cell_wrapper.hpp"
+#include "../spatial_cells/spatial_cell_wrapper.hpp"
 #include "sysboundarycondition.h"
 
 using namespace projects;
@@ -42,33 +42,33 @@ namespace SBC {
       virtual ~DoNotCompute();
       
       static void addParameters();
-      virtual void getParameters();
+      virtual void getParameters() override;
       
-      virtual void initSysBoundary(
+      void initSysBoundary(
          creal& t,
          Project &project
-      );
-      virtual void assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                     FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid);
-      virtual void applyInitialState(
+      ) override ;
+      void assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                     FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) override;
+      void applyInitialState(
          dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
          FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
          Project &project
-      );
-      virtual void updateState(
+      ) override;
+      void updateState(
          dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
          FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid,
          FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
          creal t
-      );
+      ) override;
       void getFaces(bool *faces) override;
-      virtual std::string getName() const;
-      virtual uint getIndex() const;
+      std::string getName() const override;
+      uint getIndex() const override;
 
       // Explicit warning functions to inform the user if a doNotCompute cell gets computed
-      virtual Real fieldSolverBoundaryCondMagneticField(
+      Real fieldSolverBoundaryCondMagneticField(
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
          FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & bgbGrid,
          FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
@@ -77,29 +77,29 @@ namespace SBC {
          cint k,
          creal dt,
          cuint component
-      ) { std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondMagneticField called!" << std::endl; return 0.;}
-      virtual void fieldSolverBoundaryCondElectricField(
+      ) override { std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondMagneticField called!" << std::endl; return 0.;}
+      void fieldSolverBoundaryCondElectricField(
          FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
          cint i,
          cint j,
          cint k,
          cuint component
-      ) { std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondElectricField called!" << std::endl;}
-      virtual void fieldSolverBoundaryCondHallElectricField(
+      ) override { std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondElectricField called!" << std::endl;}
+      void fieldSolverBoundaryCondHallElectricField(
          FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
          cint i,
          cint j,
          cint k,
          cuint component
-      ) { std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondHallElectricField called!" << std::endl;}
-      virtual void fieldSolverBoundaryCondGradPeElectricField(
+      ) override { std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondHallElectricField called!" << std::endl;}
+      void fieldSolverBoundaryCondGradPeElectricField(
          FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
          cint i,
          cint j,
          cint k,
          cuint component
-      ) { std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondGradPeElectricField called!" << std::endl;}
-      virtual void fieldSolverBoundaryCondDerivatives(
+      ) override { std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondGradPeElectricField called!" << std::endl;}
+      void fieldSolverBoundaryCondDerivatives(
          FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
          FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
          cint i,
@@ -107,20 +107,20 @@ namespace SBC {
          cint k,
          cuint RKCase,
          cuint component
-      ) { std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondDerivatives called!" << std::endl;}
-      virtual void fieldSolverBoundaryCondBVOLDerivatives(
+      ) override{ std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondDerivatives called!" << std::endl;}
+      void fieldSolverBoundaryCondBVOLDerivatives(
          FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
          cint i,
          cint j,
          cint k,
          cuint component
-      ) { std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondBVOLDerivatives called!" << std::endl;}
-      virtual void vlasovBoundaryCondition(
+      ) override { std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondBVOLDerivatives called!" << std::endl;}
+      void vlasovBoundaryCondition(
           dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
           const CellID& cellID,
           const uint popID,
           const bool calculate_V_moments
-      ) { std::cerr << "ERROR: DoNotCompute::vlasovBoundaryCondition called!" << std::endl;}
+      ) override { std::cerr << "ERROR: DoNotCompute::vlasovBoundaryCondition called!" << std::endl;}
    };
 }
 

@@ -29,135 +29,163 @@ using namespace std;
 
 namespace projects {
    /*!
-    * WARNING This assumes that the velocity space is isotropic (same resolution in vx, vy, vz).
+    * This assumes that the velocity space is isotropic (same resolution in vx, vy, vz).
     */
-   std::vector<vmesh::GlobalID> TriAxisSearch::findBlocksToInitialize(SpatialCell* cell,const uint popID) const {
-      set<vmesh::GlobalID> blocksToInitialize;
+   uint TriAxisSearch::findBlocksToInitialize(SpatialCell* cell,const uint popID) const {
+      vmesh::VelocityMesh *vmesh = cell->get_velocity_mesh(popID);
+
+      vmesh::GlobalID *GIDbuffer;
+      #ifdef USE_GPU
+      // Host-pinned memory buffer, max possible size
+      const vmesh::LocalID* vblocks_ini = cell->get_velocity_grid_length(popID);
+      const uint blocksCount = vblocks_ini[0]*vblocks_ini[1]*vblocks_ini[2];
+      CHK_ERR( gpuMallocHost((void**)&GIDbuffer,blocksCount*sizeof(vmesh::GlobalID)) );
+      #endif
+      // Non-GPU: insert directly into vmesh
+
+      std::set<vmesh::GlobalID> singleSet;
       bool search;
-      unsigned int counter;
-      
+      unsigned int counterX, counterY, counterZ;
+
+      creal minValue = cell->getVelocityBlockMinValue(popID);
+      // And how big a buffer do we add to the edges?
+      uint buffer = 2;
+      if (WID > 4) {
+         // With WID8 a two-block buffer increases memory requirements too much.
+         buffer = 1;
+      }
+      // How much below the sparsity can a cell be to still be included?
+      creal tolerance = 0.1;
+
       creal x = cell->parameters[CellParams::XCRD];
       creal y = cell->parameters[CellParams::YCRD];
       creal z = cell->parameters[CellParams::ZCRD];
       creal dx = cell->parameters[CellParams::DX];
       creal dy = cell->parameters[CellParams::DY];
       creal dz = cell->parameters[CellParams::DZ];
-      
-      const uint8_t refLevel = 0;
-      creal dvxCell = cell->get_velocity_grid_cell_size(popID,refLevel)[0];
-      creal dvyCell = cell->get_velocity_grid_cell_size(popID,refLevel)[1];
-      creal dvzCell = cell->get_velocity_grid_cell_size(popID,refLevel)[2];
-      creal dvxBlock = cell->get_velocity_grid_block_size(popID,refLevel)[0];
-      creal dvyBlock = cell->get_velocity_grid_block_size(popID,refLevel)[1];
-      creal dvzBlock = cell->get_velocity_grid_block_size(popID,refLevel)[2];
-      
-      const size_t vxblocks_ini = cell->get_velocity_grid_length(popID,refLevel)[0];
-      const size_t vyblocks_ini = cell->get_velocity_grid_length(popID,refLevel)[1];
-      const size_t vzblocks_ini = cell->get_velocity_grid_length(popID,refLevel)[2];
+      creal dvxBlock = cell->get_velocity_grid_block_size(popID)[0];
+      creal dvyBlock = cell->get_velocity_grid_block_size(popID)[1];
+      creal dvzBlock = cell->get_velocity_grid_block_size(popID)[2];
+      // creal dvxCell = cell->get_velocity_grid_cell_size(popID)[0];
+      // creal dvyCell = cell->get_velocity_grid_cell_size(popID)[1];
+      // creal dvzCell = cell->get_velocity_grid_cell_size(popID)[2];
 
+      const size_t vxblocks_ini = cell->get_velocity_grid_length(popID)[0];
+      const size_t vyblocks_ini = cell->get_velocity_grid_length(popID)[1];
+      const size_t vzblocks_ini = cell->get_velocity_grid_length(popID)[2];
+
+      vmesh::LocalID LID = 0;
       const vector<std::array<Real, 3>> V0 = this->getV0(x+0.5*dx, y+0.5*dy, z+0.5*dz, popID);
+      const bool singlePeak = ( V0.size() == 1 );
+      // Loop over possible V peaks
       for (vector<std::array<Real, 3>>::const_iterator it = V0.begin(); it != V0.end(); it++) {
          // VX search
          search = true;
-         counter = 0;
+         counterX = 0;
          while (search) {
-            if (0.1 * cell->getVelocityBlockMinValue(popID) > calcPhaseSpaceDensity(x, y, z, dx, dy, dz, it->at(0) + counter*dvxBlock, it->at(1), it->at(2), dvxCell, dvyCell, dvzCell, popID)) {
+            if ( (tolerance * minValue >
+                  probePhaseSpace(cell, popID, it->at(0) + counterX*dvxBlock, it->at(1), it->at(2))
+                  || counterX > vxblocks_ini ) ) {
                search = false;
             }
-            ++counter;
-            if (counter >= cell->get_velocity_grid_length(popID,refLevel)[0]) {
-               search = false;
-            }
+            counterX++;
          }
-         counter+=2;
-         Real vRadiusSquared = (Real)counter*(Real)counter*dvxBlock*dvxBlock;
+         counterX+=buffer;
+         Real vRadiusSquared = (Real)counterX*(Real)counterX*dvxBlock*dvxBlock;
 
          // VY search
          search = true;
-         counter = 0;
+         counterY = 0;
          while(search) {
-            if (0.1 * getObjectWrapper().particleSpecies[popID].sparseMinValue >
-               calcPhaseSpaceDensity(
-                                     x,
-                                     y,
-                                     z,
-                                     dx,
-                                     dy,
-                                     dz,
-                                     it->at(0), it->at(1) + counter*dvyBlock, it->at(2),
-                                     dvxCell, dvyCell, dvzCell, popID
-                                    )
-               ||
-               counter > vxblocks_ini
-              ) {
+            if ( (tolerance * minValue >
+                  probePhaseSpace(cell, popID, it->at(0), it->at(1) + counterY*dvyBlock, it->at(2))
+                  || counterY > vyblocks_ini ) ) {
                search = false;
             }
-            ++counter;
-            if (counter >= cell->get_velocity_grid_length(popID,refLevel)[1]) search = false;
+            counterY++;
          }
-         counter+=2;
-         vRadiusSquared = max(vRadiusSquared, (Real)counter*(Real)counter*dvyBlock*dvyBlock);
+         counterY+=buffer;
+         vRadiusSquared = max(vRadiusSquared, (Real)counterY*(Real)counterY*dvyBlock*dvyBlock);
 
          // VZ search
          search = true;
-         counter = 0;
+         counterZ = 0;
          while(search) {
-            if (0.1 * getObjectWrapper().particleSpecies[popID].sparseMinValue >
-               calcPhaseSpaceDensity(
-                                     x,
-                                     y,
-                                     z,
-                                     dx,
-                                     dy,
-                                     dz,
-                                     it->at(0), it->at(1), it->at(2) + counter*dvzBlock,
-                                     dvxCell, dvyCell, dvzCell, popID
-                                    )
-               ||
-               counter > vxblocks_ini
-              ) {
+            if ( (tolerance * minValue >
+                  probePhaseSpace(cell, popID, it->at(0), it->at(1), it->at(2) + counterZ*dvzBlock)
+                  || counterZ > vzblocks_ini ) ) {
                search = false;
             }
-            ++counter;
-            if (counter >= cell->get_velocity_grid_length(popID,refLevel)[2]) search = false;
+            counterZ++;
          }
-         counter+=2;
-         vRadiusSquared = max(vRadiusSquared, (Real)counter*(Real)counter*dvzBlock*dvzBlock);
+         counterZ+=buffer;
+         vRadiusSquared = max(vRadiusSquared, (Real)counterZ*(Real)counterZ*dvzBlock*dvzBlock);
+
+         #ifndef USE_GPU
+         // sphere volume is 4/3 pi r^3, approximate that 5*counterX*counterY*counterZ is enough.
+         vmesh::LocalID currentMaxSize = LID + 5*counterX*counterY*counterZ;
+         vmesh->setNewSize(currentMaxSize);
+         GIDbuffer = vmesh->getGrid()->data();
+         #endif
 
          // Block listing
-         for (uint kv=0; kv<vzblocks_ini; ++kv) 
-            for (uint jv=0; jv<vyblocks_ini; ++jv)
+         Real V_crds[3];
+         for (uint kv=0; kv<vzblocks_ini; ++kv) {
+            for (uint jv=0; jv<vyblocks_ini; ++jv) {
                for (uint iv=0; iv<vxblocks_ini; ++iv) {
-                  vmesh::GlobalID blockIndices[3];
-                  blockIndices[0] = iv;
-                  blockIndices[1] = jv;
-                  blockIndices[2] = kv;
-                  const vmesh::GlobalID blockGID = cell->get_velocity_block(popID,blockIndices,refLevel);
-                  
-                  Real V_crds[3];
-                  cell->get_velocity_block_coordinates(popID,blockGID,V_crds);
-                  Real dV[3];
-                  cell->get_velocity_block_size(popID,blockGID,dV);
-                  V_crds[0] += 0.5*dV[0];
-                  V_crds[1] += 0.5*dV[1];
-                  V_crds[2] += 0.5*dV[2];
-                  Real R2 = ((V_crds[0]-it->at(0))*(V_crds[0]-it->at(0))
-                          + (V_crds[1]-it->at(1))*(V_crds[1]-it->at(1))
-                          + (V_crds[2]-it->at(2))*(V_crds[2]-it->at(2)));
-                  
-                  if (R2 < vRadiusSquared) {
-                     cell->add_velocity_block(blockGID,popID);
-                     blocksToInitialize.insert(blockGID);
+                  const vmesh::GlobalID GID = vmesh->getGlobalID(iv,jv,kv);
+                  vmesh->getBlockCoordinates(GID,V_crds);
+
+                  // Check block center point
+                  V_crds[0] += (2*dvxBlock - it->at(0) );
+                  V_crds[1] += (2*dvyBlock - it->at(1) );
+                  V_crds[2] += (2*dvzBlock - it->at(2) );
+                  Real R2 = ((V_crds[0])*(V_crds[0])
+                             + (V_crds[1])*(V_crds[1])
+                             + (V_crds[2])*(V_crds[2]));
+
+                  #ifndef USE_GPU
+                  if (LID >= currentMaxSize) {
+                     currentMaxSize = LID + counterX*counterY*counterZ;
+                     vmesh->setNewSize(currentMaxSize);
+                     GIDbuffer = vmesh->getGrid()->data();
                   }
-               }
-      }
+                  #endif
+                  if (singlePeak) {
+                     // Add this block
+                     if (R2 < vRadiusSquared) {
+                        GIDbuffer[LID] = GID;
+                        LID++;
+                     }
+                  } else {
+                     // Add this block only if it doesn't exist yet
+                     if (R2 < vRadiusSquared && singleSet.count(GID)==0) {
+                        singleSet.insert(GID);
+                        GIDbuffer[LID] = GID;
+                        LID++;
+                     }
+                  }
+               } // vxblocks_ini
+            } // vyblocks_ini
+         } // vzblocks_ini
+      } // iteration over V0's
 
-      vector<vmesh::GlobalID> returnVector;
-      for (set<vmesh::GlobalID>::const_iterator it=blocksToInitialize.begin(); it!=blocksToInitialize.end(); ++it) {
-         returnVector.push_back(*it);
-      }
+      // Set final size of vmesh
+      cell->get_population(popID).N_blocks = LID;
 
-      return returnVector;
+      #ifdef USE_GPU
+      // Copy data into place
+      cell->dev_resize_vmesh(popID,LID);
+      vmesh::GlobalID *GIDtarget = vmesh->getGrid()->data();
+      gpuStream_t stream = gpu_getStream();
+      CHK_ERR( gpuMemcpyAsync(GIDtarget, GIDbuffer, LID*sizeof(vmesh::GlobalID), gpuMemcpyHostToDevice, stream));
+      CHK_ERR( gpuStreamSynchronize(stream) );
+      CHK_ERR( gpuFreeHost(GIDbuffer));
+      #else
+      vmesh->setNewSize(LID);
+      #endif
+
+      return LID;
    }
-   
+
 } // namespace projects

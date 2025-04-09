@@ -52,10 +52,10 @@ inline void filter_boundedness(Real *values, uint n_cblocks, Real *fv_l, Real *f
          slope_limiter(values[k -1 + WID], values[k + WID], values[k + 1 + WID], slope_abs, slope_sign);
          //detect and  fix boundedness, as in WHITE 2008
          fv_l[k] = (values[k -1 + WID] - fv_l[k]) * (fv_l[k] - values[k + WID]) < 0 ?
-            values[k + WID] - slope_sign * min( 0.5 * slope_abs, abs(fv_l[k] - values[k + WID])) :
+            values[k + WID] - slope_sign * min( (Real)0.5 * slope_abs, abs(fv_l[k] - values[k + WID])) :
             fv_l[k];
          fv_r[k] = (values[k + 1 + WID] - fv_r[k]) * (fv_r[k] - values[k + WID]) < 0 ?
-            values[k + WID] + slope_sign * min( 0.5 * slope_abs, abs(fv_r[k] - values[k + WID])) :
+            values[k + WID] + slope_sign * min( (Real)0.5 * slope_abs, abs(fv_r[k] - values[k + WID])) :
             fv_r[k];
       }
    }

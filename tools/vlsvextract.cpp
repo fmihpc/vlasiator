@@ -1305,7 +1305,7 @@ bool setVelocityMeshVariables(vlsv::Reader& vlsvReader,CellStructure& cellStruct
                               const std::string& popName) {
    bool success = true;
 
-   Real vx_min,vx_max,vy_min,vy_max,vz_min,vz_max;
+   Real vx_min=0,vx_max=0,vy_min=0,vy_max=0,vz_min=0,vz_max=0;
 
    // Read node coordinate arrays to figure out mesh extents
    for (int crd=0; crd<3; ++crd) {

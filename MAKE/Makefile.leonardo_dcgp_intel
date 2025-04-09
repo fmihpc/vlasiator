@@ -1,0 +1,74 @@
+# Suggested modules
+#
+# module load intel-oneapi-compilers
+# module load intel-oneapi-mpi
+# module load boost/1.83.0--intel-oneapi-mpi--2021.10.0--oneapi--2023.2.0-atomic
+#
+# Build libraries with ./build_libraries.sh leonardo_dcgp_intel
+
+#======== Vectorization ==========
+#Set vector backend type for vlasov solvers, sets precision and length.
+#Options:
+# AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX512:   VEC8D_AGNER, VEC16F_AGNER
+# Fallback: VECTORCLASS = VEC_FALLBACK_GENERIC (Defaults to VECL8)
+
+ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
+#Single-precision
+        VECTORCLASS = VEC8F_AGNER
+else
+#Double-precision
+        VECTORCLASS = VEC4D_AGNER
+endif
+
+#======== Libraries ===========
+LIBRARY_PREFIX = libraries-leonardo_dcgp_intel
+
+#======= Compiler and compilation flags =========
+# NOTES on compiler flags:
+# CXXFLAGS is for compiler flags, they are always used
+# MATHFLAGS are for special math etc. flags, these are only applied on solver functions
+# LDFLAGS flags for linker (enforced via LNK command in CUDA compilation)
+# Important note: Do not edit COMPFLAGS in this file!
+
+CMP = mpiicpc -cxx=icpx
+LNK = mpiicpc -cxx=icpx -v
+
+CXXFLAGS += -traceback -g -O3 -std=c++17 -W -Wall -Wno-unused -xHost -qopt-zmm-usage=high -Wunused-parameter
+testpackage: CXXFLAGS = -g -traceback -O2 -std=c++17 -W -Wno-unused -xHost -Wunused-parameter
+# -qopenmp  # broken in 2024
+# -ipo -flto # also broken
+
+MATHFLAGS = -ffast-math -fno-finite-math-only
+testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
+LDFLAGS = -Wl,-rpath=$(CURDIR)/$(LIBRARY_PREFIX)/lib
+
+#LDFLAGS = -qopenmp -lifcore -ipo -lrt -Wl,-rpath=$(CURDIR)/$(LIBRARY_PREFIX)/lib
+#LDFLAGS = -qopenmp -ipo -Wl,-rpath=$(CURDIR)/$(LIBRARY_PREFIX)/lib
+
+#======== PAPI ==========
+#Add PAPI_MEM define to use papi to report memory consumption?
+CXXFLAGS += -DPAPI_MEM
+testpackage: CXXFLAGS += -DPAPI_MEM
+
+#======== Allocator =========
+#NOTE: jemalloc not supported with GPUs
+
+#======== Compiled Libraries ===========
+INC_BOOST = -isystem $(BOOST_ROOT)/include
+LIB_BOOST = -L$(BOOST_ROOT)/lib -lboost_program_options
+
+INC_PAPI = -isystem $(LIBRARY_PREFIX)/include
+LIB_PAPI = -L$(LIBRARY_PREFIX)/lib -lpapi
+
+INC_ZOLTAN = -isystem /$(LIBRARY_PREFIX)/include
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/lib -lzoltan
+
+INC_VLSV = -I$(LIBRARY_PREFIX)/include
+LIB_VLSV = -L$(LIBRARY_PREFIX)/lib -lvlsv
+
+INC_PROFILE = -I$(LIBRARY_PREFIX)/include
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/lib -lphiprof
+
+#======== Header-only Libraries ===========
+# included as submodules

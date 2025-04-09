@@ -42,8 +42,9 @@
 #include "phiprof.hpp"
 #include "parameters.h"
 #include "logger.h"
-#include "vlasovmover.h"
+#include "vlasovsolver/vlasovmover.h"
 #include "object_wrapper.h"
+#include "velocity_mesh_parameters.h"
 #include "sysboundary/ionosphere.h"
 #include "fieldtracing/fieldtracing.h"
 
@@ -52,6 +53,7 @@ using namespace vlsv;
 
 extern Logger logFile, diagnostic;
 
+char* IObuffer = 0; // For GPU VDF output
 typedef Parameters P;
 
 bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
@@ -84,7 +86,7 @@ bool updateLocalIds(  dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
    }
    //Update the local ids (let the other processes know they've been updated)
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_IOLOCALCELLID);
-   mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
+   mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::FULL);
 
    return true;
 }
@@ -124,8 +126,8 @@ bool writeVelocityDistributionData(Writer& vlsvWriter,
                                    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                    const vector<CellID>& cells,MPI_Comm comm) {
    bool success = true;
-   for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
-      if (writeVelocityDistributionData(p,vlsvWriter,mpiGrid,cells,comm) == false) success = false;
+   for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      if (writeVelocityDistributionData(popID,vlsvWriter,mpiGrid,cells,comm) == false) success = false;
    }
    return success;
 }
@@ -151,9 +153,9 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
    // Compute totalBlocks
    uint64_t totalBlocks = 0;
    vector<vmesh::LocalID> blocksPerCell;
-   for (size_t cell=0; cell<cells.size(); ++cell){
-      totalBlocks+=mpiGrid[cells[cell]]->get_number_of_velocity_blocks(popID);
-      blocksPerCell.push_back(mpiGrid[cells[cell]]->get_number_of_velocity_blocks(popID));
+   for (size_t i=0; i<cells.size(); ++i){
+      totalBlocks+=mpiGrid[cells[i]]->get_number_of_velocity_blocks(popID);
+      blocksPerCell.push_back(mpiGrid[cells[i]]->get_number_of_velocity_blocks(popID));
    }
 
    // The name of the mesh is "SpatialGrid"
@@ -173,20 +175,21 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
    // space, but a purely numerical bounding box.
    uint64_t bbox[6];
    const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
-   bbox[0] = getObjectWrapper().velocityMeshes[meshID].gridLength[0];
-   bbox[1] = getObjectWrapper().velocityMeshes[meshID].gridLength[1];
-   bbox[2] = getObjectWrapper().velocityMeshes[meshID].gridLength[2];
-   bbox[3] = getObjectWrapper().velocityMeshes[meshID].blockLength[0];
-   bbox[4] = getObjectWrapper().velocityMeshes[meshID].blockLength[1];
-   bbox[5] = getObjectWrapper().velocityMeshes[meshID].blockLength[2];
+   bbox[0] = vmesh::getMeshWrapper()->velocityMeshes->at(meshID).gridLength[0];
+   bbox[1] = vmesh::getMeshWrapper()->velocityMeshes->at(meshID).gridLength[1];
+   bbox[2] = vmesh::getMeshWrapper()->velocityMeshes->at(meshID).gridLength[2];
+   bbox[3] = vmesh::getMeshWrapper()->velocityMeshes->at(meshID).blockLength[0];
+   bbox[4] = vmesh::getMeshWrapper()->velocityMeshes->at(meshID).blockLength[1];
+   bbox[5] = vmesh::getMeshWrapper()->velocityMeshes->at(meshID).blockLength[2];
 
    attribs.clear();
    attribs["mesh"] = getObjectWrapper().particleSpecies[popID].name;
    attribs["type"] = vlsv::mesh::STRING_UCD_AMR;
 
-   // stringstream is necessary here to correctly convert refLevelMaxAllowed into a string 
+   // stringstream is necessary here to correctly convert refLevelMaxAllowed (hardcoded to zero now) into a string 
    stringstream ss;
-   ss << static_cast<unsigned int>(getObjectWrapper().velocityMeshes[meshID].refLevelMaxAllowed);
+   //ss << static_cast<unsigned int>(vmesh::getMeshWrapper()->velocityMeshes->at(meshID).refLevelMaxAllowed);
+   ss << static_cast<unsigned int>(0);
    attribs["max_velocity_ref_level"] = ss.str();
    
    if (mpiGrid.get_rank() == MASTER_RANK) {
@@ -195,10 +198,10 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
       for (int crd=0; crd<3; ++crd) {
          const size_t N_nodes = bbox[crd]*bbox[crd+3]+1;
          Real* crds = new Real[N_nodes];
-         const Real dV = getObjectWrapper().velocityMeshes[meshID].cellSize[crd];
+         const Real dV = vmesh::getMeshWrapper()->velocityMeshes->at(meshID).cellSize[crd];
 
          for (size_t i=0; i<N_nodes; ++i) {
-            crds[i] = getObjectWrapper().velocityMeshes[meshID].meshMinLimits[crd] + i*dV;
+            crds[i] = vmesh::getMeshWrapper()->velocityMeshes->at(meshID).meshMinLimits[crd] + i*dV;
          }
 
          if (crd == 0) {
@@ -221,16 +224,23 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
    }
 
    // Write velocity block IDs
-   vector<vmesh::GlobalID> velocityBlockIds;
+   vector<vmesh::GlobalID> velocityBlockIds(totalBlocks);
+   uint blockIndex = 0;
    try {
-      velocityBlockIds.reserve( totalBlocks );
       // gather data for writing
-      for (size_t cell=0; cell<cells.size(); ++cell) {
-         SpatialCell* SC = mpiGrid[cells[cell]];
-         for (vmesh::LocalID block_i=0; block_i<SC->get_number_of_velocity_blocks(popID); ++block_i) {
-            vmesh::GlobalID block = SC->get_velocity_block_global_id(block_i,popID);
-            velocityBlockIds.push_back( block );
+      for (size_t i=0; i<cells.size(); ++i) {
+         SpatialCell* SC = mpiGrid[cells[i]];
+         const vmesh::LocalID nBlocks = SC->get_number_of_velocity_blocks(popID);
+         #ifdef USE_GPU
+         const vmesh::GlobalID *GIDlist = SC->get_velocity_grid(popID);
+         CHK_ERR( gpuMemcpy(&velocityBlockIds[blockIndex], GIDlist, nBlocks*sizeof(vmesh::GlobalID), gpuMemcpyDeviceToHost));
+         #else
+         for (vmesh::LocalID block_i=0; block_i<nBlocks; ++block_i) {
+            const vmesh::GlobalID block = SC->get_velocity_block_global_id(block_i,popID);
+            velocityBlockIds[blockIndex + block_i] = block;
          }
+         #endif
+         blockIndex += nBlocks;
       }
    } catch (...) {
       cerr << "FAILED TO WRITE VELOCITY BLOCK IDS AT: " << __FILE__ << " " << __LINE__ << endl;
@@ -258,7 +268,7 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
    attribs["name"] = popName;      // Name of the velocity space distribution is written avgs
    const string datatype_avgs = "float";
    const uint64_t arraySize_avgs = totalBlocks;
-   const uint64_t vectorSize_avgs = WID3; // There are 64 elements in every velocity block
+   const uint64_t vectorSize_avgs = WID3; // There are 64 (WID=4) or 512 (WID=8) elements in every velocity block
 
    // Get the data size needed for writing in data
    uint64_t dataSize_avgs = sizeof(Realf);
@@ -266,17 +276,30 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
    // Start multi write
    vlsvWriter.startMultiwrite(datatype_avgs,arraySize_avgs,vectorSize_avgs,dataSize_avgs);
 
+   #ifdef USE_GPU
+   // single pinned host buffer for facilitating IO from GPU memory
+   uint64_t bufferOffset = 0;
+   CHK_ERR( gpuMallocHost((void**)&IObuffer,totalBlocks*WID3*sizeof(Realf)) );
+   #endif
    // Loop over cells
-   for (size_t cell = 0; cell<cells.size(); ++cell) {
+   for (size_t i = 0; i<cells.size(); ++i) {
       // Get the spatial cell
-      SpatialCell* SC = mpiGrid[cells[cell]];
+      SpatialCell* SC = mpiGrid[cells[i]];
       
       // Get the number of blocks in this cell
       const uint64_t arrayElements = SC->get_number_of_velocity_blocks(popID);
+      // Add a subarray to write. Note: We told beforehands that the vectorsize = WID3
+      #ifdef USE_GPU
+      char* arrayToWrite = IObuffer+bufferOffset;
+      if (arrayElements > 0) {
+         CHK_ERR( gpuMemcpy(arrayToWrite, SC->get_data(popID), arrayElements*WID3*sizeof(Realf), gpuMemcpyDeviceToHost));
+         bufferOffset += arrayElements*WID3*sizeof(Realf);
+      }
+      #else
       char* arrayToWrite = reinterpret_cast<char*>(SC->get_data(popID));
+      #endif
+      vlsvWriter.addMultiwriteUnit(arrayToWrite, arrayElements);
 
-      // Add a subarray to write
-      vlsvWriter.addMultiwriteUnit(arrayToWrite, arrayElements); // Note: We told beforehands that the vectorsize = WID3 = 64
    }
    if (cells.size() == 0) {
       vlsvWriter.addMultiwriteUnit(NULL, 0); //Dummy write to avoid hang in end multiwrite
@@ -671,6 +694,10 @@ bool writeCommonGridData(
    if( vlsvWriter.writeParameter("xcells_ini", &P::xcells_ini) == false ) { return false; }
    if( vlsvWriter.writeParameter("ycells_ini", &P::ycells_ini) == false ) { return false; }
    if( vlsvWriter.writeParameter("zcells_ini", &P::zcells_ini) == false ) { return false; }
+   // Although the stored velocity meshes already include block size information, the parameter WID
+   // is also stored for ease of reading in post-processing.
+   const int writewid = WID;
+   if( vlsvWriter.writeParameter("velocity_block_width", &writewid) == false ) { return false; }
    if( FieldTracing::fieldTracingParameters.doTraceFullBox ) {
       if( vlsvWriter.writeParameter("fieldTracingFluxRopeMaxDistance", &FieldTracing::fieldTracingParameters.fluxrope_max_curvature_radii_to_trace ) == false ) {
          return false;
@@ -1557,7 +1584,7 @@ bool writeGrid(
    if( writeGhosts ) {
       // Writing ghost cells:
       // Get all ghost cell Ids (NOTE: this works slightly differently depending on whether the grid is periodic or not)
-      ghost_cells = mpiGrid.get_remote_cells_on_process_boundary( NEAREST_NEIGHBORHOOD_ID );
+      ghost_cells = mpiGrid.get_remote_cells_on_process_boundary( Neighborhoods::NEAREST );
    }
 
    //Make sure the local cells and ghost cells are fetched properly
@@ -1611,7 +1638,7 @@ bool writeGrid(
    if( writeFsGridMetadata( technicalGrid, vlsvWriter, P::systemWriteFsGrid.at(outputFileTypeIndex) ) == false ) {
       return false;
    }
-   
+
    //Write Ionosphere Grid
    if( writeIonosphereGridMetadata( vlsvWriter ) == false ) {
       return false;
@@ -1628,6 +1655,7 @@ bool writeGrid(
    }
    
    metadataTimer.stop();
+   // Write Velocity Space contents i.e. VDFs
    phiprof::Timer vspaceTimer {"velocityspaceIO"};
    if(writeVelocitySpace( mpiGrid, vlsvWriter, outputFileTypeIndex, local_cells ) == false)  {
       return false;
@@ -1676,6 +1704,13 @@ bool writeGrid(
    vlsvWriter.close();
    closeTimer.stop();
    writeReducedTimer.stop(bytesWritten * 1e-9, "GB");
+
+   #ifdef USE_GPU
+   if (IObuffer) {
+      CHK_ERR( gpuFreeHost(IObuffer) );
+      IObuffer = 0;
+   }
+   #endif
    return success;
 }
 
@@ -1705,6 +1740,7 @@ bool writeRestart(
    DataReducer& dataReducer,
    const string& name,
    const uint& fileIndex,
+   const bool dateInFileName,
    const int& stripe) 
 {
    // Writes a restart
@@ -1725,19 +1761,30 @@ bool writeRestart(
    // Get the current time.
    // Avoid different times on different processes!
    char currentDate[80];
-   if(myRank == MASTER_RANK) {
-      const time_t rawTime = time(NULL);
-      const struct tm * timeInfo = localtime(&rawTime);
-      strftime(currentDate, 80, "%F_%H-%M-%S", timeInfo);
+   if(dateInFileName) {
+      if(myRank == MASTER_RANK) {
+         const time_t rawTime = time(NULL);
+         const struct tm * timeInfo = localtime(&rawTime);
+         strftime(currentDate, 80, ".%F_%H-%M-%S", timeInfo); // note the dot prefixed
+      }
+      MPI_Bcast(&currentDate,80,MPI_CHAR,MASTER_RANK,MPI_COMM_WORLD);
+   } else {
+      currentDate[0] = '\0';
    }
-   MPI_Bcast(&currentDate,80,MPI_CHAR,MASTER_RANK,MPI_COMM_WORLD);
-   
+
    // Create a name for the output file and open it with VLSVWriter:
    stringstream fname;
-   fname << P::restartWritePath << "/" << name << ".";
-   fname.width(7);
-   fname.fill('0');
-   fname << fileIndex << "." << currentDate << ".vlsv";
+   if(dateInFileName) {
+      fname << P::restartWritePath;
+   } else {
+      fname << P::recoverWritePath;
+   }
+   fname << "/" << name << ".";
+   if(dateInFileName) {
+      fname.width(7);
+      fname.fill('0');
+   }
+   fname << fileIndex << currentDate << ".vlsv";
 
    phiprof::Timer openTimer {"open"};
    //Open the file with vlsvWriter:
@@ -1817,7 +1864,6 @@ bool writeRestart(
    //Write Config Info 
    if( writeConfigInfo(configInfo,vlsvWriter,MPI_COMM_WORLD) == false ) return false;
    
-
    //Write Ionosphere Grid
    if( writeIonosphereGridMetadata( vlsvWriter ) == false ) return false;
 
@@ -1838,7 +1884,6 @@ bool writeRestart(
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("max_r_dt",CellParams::MAXRDT,1));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("max_fields_dt",CellParams::MAXFDT,1));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_drift",CellParams::BULKV_FORCING_X,3));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_bulk_forcing_flag",CellParams::FORCING_CELL_NUM,1));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_alpha1",CellParams::AMR_ALPHA1,1));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_alpha2",CellParams::AMR_ALPHA2,1));
    restartReducer.addOperator(new DRO::VariableBVol);
@@ -2009,6 +2054,13 @@ bool writeRestart(
    phiprof::Timer closeTimer {"close"};
    vlsvWriter.close();
    closeTimer.stop();
+
+   #ifdef USE_GPU
+   if (IObuffer) {
+      CHK_ERR( gpuFreeHost(IObuffer) );
+      IObuffer = 0;
+   }
+   #endif
 
    phiprof::Timer updateRemoteTimer {"updateRemoteBlocks"};
    //Updated newly adjusted velocity block lists on remote cells, and

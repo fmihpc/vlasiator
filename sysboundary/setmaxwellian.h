@@ -26,7 +26,7 @@
 #include <vector>
 #include "../definitions.h"
 #include "../readparameters.h"
-#include "../spatial_cell_wrapper.hpp"
+#include "../spatial_cells/spatial_cell_wrapper.hpp"
 #include "inflow.h"
 #include "sysboundarycondition.h"
 
@@ -47,27 +47,13 @@ namespace SBC {
       virtual ~Maxwellian();
 
       static void addParameters();
-      virtual void getParameters();
-      
-      virtual string getName() const;
-      virtual uint getIndex() const;
-      
-   protected:
-      void generateTemplateCell(spatial_cell::SpatialCell& templateCell, Real (&B)[3], int inputDataIndex, creal t);
-      
-      Real maxwellianDistribution(const uint popID,
-         creal& rho, creal& T, creal& vx, creal& vy, creal& vz
-      );
-      
-      vector<vmesh::GlobalID> findBlocksToInitialize(
-         const uint popID,
-         SpatialCell& cell,
-         creal& rho,
-         creal& T,
-         creal& VX,
-         creal& VY,
-         creal& VZ
-      );
+      virtual void getParameters() override;
+
+      virtual string getName() const override;
+      virtual uint getIndex() const override;
+
+      void generateTemplateCell(spatial_cell::SpatialCell& templateCell, Real (&B)[3], int inputDataIndex, creal t) override;
+
    };
 }
 

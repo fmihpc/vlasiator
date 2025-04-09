@@ -1,0 +1,82 @@
+# Suggested modules
+#
+# ml gcc/12.2.0 openmpi/4.1.6--gcc--12.2.0 nvhpc/23.11 cuda/12.1  
+#
+# Build libraries with ./build_libraries.sh leonardo_booster
+
+#======== Vectorization ==========
+#Set vector backend type for vlasov solvers, sets precision and length.
+#Options:
+# AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX512:   VEC8D_AGNER, VEC16F_AGNER
+# Fallback: VECTORCLASS = VEC_FALLBACK_GENERIC
+VECTORCLASS = VEC_FALLBACK_GENERIC
+
+#===== Vector Lengths ====
+# Default for VEC_FALLBACK_GENERIC is WID=4, VECL=8
+# NOTE: A bug currently results in garbage data already on cell init if VECL is not equal to WID2
+WID=8
+VECL=64
+#WID=4
+#VECL=16
+
+#======== Libraries ===========
+LIBRARY_PREFIX = libraries-leonardo_booster
+
+#======= Compiler and compilation flags =========
+# NOTES on compiler flags:
+# CXXFLAGS is for compiler flags, they are always used
+# MATHFLAGS are for special math etc. flags, these are only applied on solver functions
+# LDFLAGS flags for linker (enforced via LNK command in CUDA compilation)
+# Important note: Do not edit COMPFLAGS in this file!
+
+USE_CUDA=1
+
+# -ggdb not available on nvcc
+# -G (device debug) overrides --generate-line-info -line-info but also requires more device-side resources to run
+# use "-Xptxas -v" for verbose output of ptx compilation
+# --cudart shared used for Kostis' mempool_ts
+
+CXXFLAGS = -g -O3 -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 --cudart shared --generate-line-info -line-info -Xcompiler="-fopenmp" -Xcompiler="-fpermissive" -maxrregcount 24 -Wno-deprecated-declarations
+
+testpackage: CXXFLAGS = -g -O2 -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 --cudart shared --generate-line-info -line-info -Xcompiler="-fopenmp" -Xcompiler="-fpermissive" -maxrregcount 24 -Wno-deprecated-declarations
+
+# Tell mpic++ to use nvcc for all compiling
+CMP = OMPI_CXX='nvcc' OMPI_CXXFLAGS='' mpic++
+
+# Now tell also the linker to use nvcc. Contents of these were retrieved with "mpic++ --showme:link". Replace -Wl,rpath= with -Xlinker=-rpath=
+#### Use this same linker command also for building and linking phiprof.
+# The line below indeed uses OMPI_CXX, not OMPI_LD
+
+LNK = OMPI_CXX='nvcc' OMPI_CXXFLAGS='-arch=sm_80' OMPI_LIBS='-Xlinker=-L/leonardo/prod/opt/libraries/openmpi/4.1.6/gcc--12.2.0/lib -Xlinker=-rpath=/leonardo/prod/opt/libraries/openmpi/4.1.6/gcc--12.2.0/lib -Xlinker=--enable-new-dtags -lmpi -Xlinker=-rpath=$(CURDIR)/$(LIBRARY_PREFIX)/lib' OMPI_LDFLAGS='-O2 -g -G -lnvToolsExt -lgomp' mpic++
+
+MATHFLAGS = --use_fast_math
+# nvcc fast_math does not assume only finite math
+testpackage: MATHFLAGS = --prec-sqrt=true --prec-div=true --ftz=false --fmad=false
+
+#======== PAPI ==========
+#Add PAPI_MEM define to use papi to report memory consumption?
+CXXFLAGS += -DPAPI_MEM
+testpackage: CXXFLAGS += -DPAPI_MEM
+
+#======== Allocator =========
+#NOTE: jemalloc not supported with GPUs
+
+#======== Compiled Libraries ===========
+INC_BOOST = -isystem $(LIBRARY_PREFIX)/include
+LIB_BOOST = -L$(LIBRARY_PREFIX)/lib -lboost_program_options -Xlinker=-rpath=$(LIBRARY_PREFIX)/lib
+
+INC_PAPI = -isystem $(LIBRARY_PREFIX)/include
+LIB_PAPI = -L$(LIBRARY_PREFIX)/lib -lpapi
+
+INC_ZOLTAN = -isystem /$(LIBRARY_PREFIX)/include
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/lib -lzoltan
+
+INC_VLSV = -I$(LIBRARY_PREFIX)/include
+LIB_VLSV = -L$(LIBRARY_PREFIX)/lib -lvlsv
+
+INC_PROFILE = -I$(LIBRARY_PREFIX)/include
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/lib -lphiprof
+
+#======== Header-only Libraries ===========
+# included as submodules

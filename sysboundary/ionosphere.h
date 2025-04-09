@@ -28,7 +28,7 @@
 #include <functional>
 #include "../definitions.h"
 #include "../readparameters.h"
-#include "../spatial_cell_wrapper.hpp"
+#include "../spatial_cells/spatial_cell_wrapper.hpp"
 #include "sysboundarycondition.h"
 #include "../backgroundfield/fieldfunction.hpp"
 #include "../fieldsolver/fs_common.h"
@@ -58,11 +58,10 @@ namespace SBC {
    };
 
    enum IonosphereBoundaryVDFmode { // How are inner boundary VDFs constructed from the ionosphere
-      FixedMoments,      // Predefine temperature, density and V = 0 on the inner boundary.
-      AverageMoments,    // Copy averaged density and temperature from nearest cells, V = 0
-      AverageAllMoments, // Same as above, but also copy V
-      CopyAndLosscone,
-      ForceL2EXB
+      FixedMoments,      // Predefine temperature, density and V = EXB drift on the inner boundary.
+      AverageMoments,    // Copy averaged density and temperature from nearest cells, V = EXB drift
+      AverageAllMoments, // Same as above, but also copy V + add EXB drift to it
+      CopyAndLosscone
    };
    extern IonosphereBoundaryVDFmode boundaryVDFmode;
 
@@ -272,15 +271,17 @@ namespace SBC {
          std::array<Real, 3> e1{b[0]-c[0], b[1]-c[1],b[2]-c[2]};
          std::array<Real, 3> e2{c[0]-a[0], c[1]-a[1],c[2]-a[2]};
          // Area vector A = cross(e1 e2)
-         std::array<Real, 3> area{ 0.5 * (e1[1]*e2[2] - e1[2]*e2[1]),
-                                   0.5 * (e1[2]*e2[0] - e1[0]*e2[2]),
-                                   0.5 * (e1[0]*e2[1] - e1[1]*e2[0])};
-
+         const Real HALF = 0.5;
+         const Real THIRD = 1./3.;
+         std::array<Real, 3> area{ HALF * (e1[1]*e2[2] - e1[2]*e2[1]),
+                                   HALF * (e1[2]*e2[0] - e1[0]*e2[2]),
+                                   HALF * (e1[0]*e2[1] - e1[1]*e2[0])};
+        
          // By definition, the area is oriented outwards, so if dot(r,A) < 0, flip it.
          std::array<Real, 3> r{
-            (a[0]+b[0]+c[0])/3.,
-            (a[1]+b[1]+c[1])/3.,
-            (a[2]+b[2]+c[2])/3.};
+            (a[0]+b[0]+c[0]) * THIRD,
+            (a[1]+b[1]+c[1]) * THIRD,
+            (a[2]+b[2]+c[2]) * THIRD};
          if(area[0]*r[0] + area[1]*r[1] + area[2] *r[2] < 0) {
             area[0]*=-1.;
             area[1]*=-1.;
@@ -323,21 +324,21 @@ namespace SBC {
       virtual ~Ionosphere();
 
       static void addParameters();
-      virtual void getParameters();
-
+      virtual void getParameters() override;
+      
       virtual void initSysBoundary(
          creal& t,
          Project &project
-      );
+      ) override;
       virtual void assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                     FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid);
+                                     FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) override;
       virtual void applyInitialState(
          dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
          FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
          Project &project
-      );
+      ) override;
       virtual Real fieldSolverBoundaryCondMagneticField(
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
          FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & bgbGrid,
@@ -347,28 +348,28 @@ namespace SBC {
          cint k,
          creal dt,
          cuint component
-      );
+      ) override;
       virtual void fieldSolverBoundaryCondElectricField(
          FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
          cint i,
          cint j,
          cint k,
          cuint component
-      );
+      ) override;
       virtual void fieldSolverBoundaryCondHallElectricField(
          FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
          cint i,
          cint j,
          cint k,
          cuint component
-      );
+      ) override;
       virtual void fieldSolverBoundaryCondGradPeElectricField(
          FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
          cint i,
          cint j,
          cint k,
          cuint component
-      );
+      ) override;
       virtual void fieldSolverBoundaryCondDerivatives(
          FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
          FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
@@ -377,34 +378,34 @@ namespace SBC {
          cint k,
          cuint RKCase,
          cuint component
-      );
+      ) override;
       virtual void fieldSolverBoundaryCondBVOLDerivatives(
          FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
          cint i,
          cint j,
          cint k,
          cuint component
-      );
-      // Compute and store the EXB drift into the cell's BULKV_FORCING_X/Y/Z fields and set counter to 1
+      ) override;
+      // Compute and store the EXB drift into the cell's BULKV_FORCING_X/Y/Z fields
       virtual void mapCellPotentialAndGetEXBDrift(
          std::array<Real, CellParams::N_SPATIAL_CELL_PARAMS>& cellParams
-      );
+      ) override;
       virtual void vlasovBoundaryCondition(
          dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,
          const uint popID,
          const bool calculate_V_moments
-      );
+      ) override;
       virtual void updateState(
          dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
          FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
          FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
          creal t
-      );
-
-      virtual void getFaces(bool *faces);
-      virtual std::string getName() const;
-      virtual uint getIndex() const;
+      ) override;
+      
+      virtual void getFaces(bool *faces) override;
+      virtual std::string getName() const override;
+      virtual uint getIndex() const override;
       static Real radius; /*!< Radius of the inner simulation boundary */
       static std::vector<IonosphereSpeciesParameters> speciesParams;
 
@@ -436,7 +437,6 @@ namespace SBC {
          Koskinen  // Like Koskinen's 2001 "Physics of Space Storms" book suggests
       } conductivityModel;
 
-   protected:
       void generateTemplateCell(Project &project);
       void setCellFromTemplate(SpatialCell* cell,const uint popID);
 

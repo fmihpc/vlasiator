@@ -1,0 +1,75 @@
+# Suggested modules
+#
+# ml gcc/12.2.0 openmpi/4.1.6--gcc--12.2.0
+#
+# Build libraries with ./build_libraries.sh leonardo_dcgp
+
+#======== Vectorization ==========
+#Set vector backend type for vlasov solvers, sets precision and length.
+#Options:
+# AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX512:   VEC8D_AGNER, VEC16F_AGNER
+# Fallback: VECTORCLASS = VEC_FALLBACK_GENERIC (Defaults to VECL8)
+
+ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
+#Single-precision
+        VECTORCLASS = VEC8F_AGNER
+else
+#Double-precision
+        VECTORCLASS = VEC4D_AGNER
+endif
+
+#======== Libraries ===========
+LIBRARY_PREFIX = libraries-leonardo_dcgp
+
+#======= Compiler and compilation flags =========
+# NOTES on compiler flags:
+# CXXFLAGS is for compiler flags, they are always used
+# MATHFLAGS are for special math etc. flags, these are only applied on solver functions
+# LDFLAGS flags for linker (enforced via LNK command in CUDA compilation)
+# Important note: Do not edit COMPFLAGS in this file!
+
+CMP = mpic++
+LNK = mpic++
+
+CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -fabi-version=0 -march=native -mfma -mavx2 -fpermissive
+testpackage: CXXFLAGS = -g -ggdb -O2 -fopenmp -funroll-loops -std=c++17 -fabi-version=0 -mfma -fpermissive
+
+MATHFLAGS = -ffast-math -fno-finite-math-only
+testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
+
+LDFLAGS = -lrt -Wl,-rpath=$(CURDIR)/$(LIBRARY_PREFIX)/lib
+LIB_MPI = -lgomp -fopenmp
+
+#======== PAPI ==========
+#Add PAPI_MEM define to use papi to report memory consumption?
+CXXFLAGS += -DPAPI_MEM
+testpackage: CXXFLAGS += -DPAPI_MEM
+
+#======== Allocator =========
+#Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
+#Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
+CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+
+#======== Compiled Libraries ===========
+INC_BOOST = -isystem $(LIBRARY_PREFIX)/include
+LIB_BOOST = -L$(LIBRARY_PREFIX)/lib -lboost_program_options
+
+INC_JEMALLOC = -isystem $(LIBRARY_PREFIX)/include
+LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/lib -ljemalloc
+
+INC_PAPI = -isystem $(LIBRARY_PREFIX)/include
+LIB_PAPI = -L$(LIBRARY_PREFIX)/lib -lpapi
+
+INC_ZOLTAN = -isystem /$(LIBRARY_PREFIX)/include
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/lib -lzoltan
+
+INC_VLSV = -I$(LIBRARY_PREFIX)/include
+LIB_VLSV = -L$(LIBRARY_PREFIX)/lib -lvlsv
+
+INC_PROFILE = -I$(LIBRARY_PREFIX)/include
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/lib -lphiprof
+
+#======== Header-only Libraries ===========
+# included as submodules

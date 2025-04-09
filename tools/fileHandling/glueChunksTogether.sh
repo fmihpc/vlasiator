@@ -9,8 +9,8 @@ chunkDataToTape.sh file destination start end
     source         Path to the chunks to read.
     destination    Path to which the glued chunks have to be written.
     file           File name
-    start          Index of first chunk to transfer
-    end            Index of last chunk to transfer
+    start          Index of first chunk to process
+    end            Index of last chunk to process
     chunkNumber    Maximum index
 EOF
     exit
@@ -25,7 +25,7 @@ chunkNumber=$6
 
 chunkSize=$((5 * 1024*1024*1024))
 
-echo $(date) "Transferring ${file}, with a total of $chunkNumber chunks of $chunkSize bytes. Now handling chunks $start to $end."
+echo $(date) "Processing ${file}, with a total of $chunkNumber chunks of $chunkSize bytes. Now handling chunks $start to $end."
 
 if [ $start -gt $end ]
 then
@@ -51,4 +51,5 @@ do
    dd iflag=fullblock bs=${chunkSize} seek=$chunk count=1 if=${source}/${file}.${chunkNumber}_${chunk} of=${destination}/${file} 2>> dd_chunk.err
 done
 
-echo $(date) "Transferring ${file}, with a total of $chunkNumber chunks of $chunkSize bytes. Done handling chunks $start to $end."
+echo $(date) "Processing ${file}, with a total of $chunkNumber chunks of $chunkSize bytes. Done handling chunks $start to $end."
+echo $(date) "REMEMBER TO CHECK dd_chunk.err for errors!!!"

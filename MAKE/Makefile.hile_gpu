@@ -1,0 +1,84 @@
+# Makefile for the Hile Cluster at UH (GPU nodes).
+# compile on compute node
+#
+# ssh hile01.it.helsinki.fi
+# ./fetch_libraries.sh hile_gpu
+# srun -C g -c 16 --mem=20G --pty bash
+# module load papi
+# module load rocm/6.2.0
+# module load cray-pmi
+# module load craype-accel-amd-gfx90a
+# module load libfabric/1.22.0
+# export MPICH_GPU_SUPPORT_ENABLED=1
+# export VLASIATOR_ARCH=hile_gpu
+# ./build_fetched_libraries.sh hile_gpu
+
+# #SBATCH -C g # for GPU nodes (flavor)
+# Use of #SBATCH --distribution=block:block may improve performance
+# As of March 2025, use srun --mpi=pmi2 to launch
+# export MPICH_GPU_SUPPORT_ENABLED=1
+
+CMP = OMPI_CXX='hipcc' CC
+LNK = OMPI_CXX='hipcc' CC
+ 
+#======== Vectorization ==========
+#Set vector backend type for vlasov solvers, sets precision and length. 
+#Options: 
+# AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX512:   VEC8D_AGNER, VEC16F_AGNER
+# Fallback: VECTORCLASS = VEC_FALLBACK_GENERIC (Defaults to VECL8)
+VECTORCLASS = VEC_FALLBACK_GENERIC
+
+#===== Vector Lengths ====
+# Default for VEC_FALLBACK_GENERIC is WID=4, VECL=8 
+#WID=8
+#VECL=64
+WID=4
+VECL=16
+
+# Compile with GPU support (USE_HIP or USE_CUDA)
+USE_HIP=1
+
+#======= Compiler and compilation flags =========
+# NOTES on compiler flags:
+# CXXFLAGS is for compiler flags, they are always used
+# MATHFLAGS are for special math etc. flags, these are only applied on solver functions
+# LDFLAGS flags for linker
+# Important note: Do not edit COMPFLAGS in this file!
+
+CXXFLAGS += -g -ggdb -O3 -x hip --offload-arch=gfx90a:xnack- -march=znver3 -std=c++20 -funroll-loops -fopenmp -I. -Ihip -Iomp -I${CRAY_MPICH_DIR}/include -W -Wall -Wno-unused-parameter -Wno-unused-result -Wno-unused-function -Wno-unused-variable -Wno-unknown-pragmas -Wno-deprecated-register -Wno-unused-but-set-variable -Wno-ignored-attributes -Wno-unused-lambda-capture
+
+testpackage: CXXFLAGS = -g -ggdb -O2 -x hip --offload-arch=gfx90a:xnack- -march=znver3 -std=c++20 -fopenmp -I. -Ihip -Iomp -I${CRAY_MPICH_DIR}/include -W -Wall -Wno-unused-parameter -Wno-unused-result -Wno-unused-function -Wno-unused-variable -Wno-unknown-pragmas -Wno-deprecated-register -Wno-unused-but-set-variable -Wno-ignored-attributes -Wno-unused-lambda-capture
+
+LDFLAGS = -fopenmp -lrt -lpthread -L${CRAY_MPICH_DIR}/lib ${PE_MPICH_GTL_DIR_amd_gfx90a} -L${ROCM_PATH}/lib -L/usr/lib -lamdhip64
+LIB_MPI = -lmpi ${PE_MPICH_GTL_LIBS_amd_gfx90a}
+
+# -fgpu-rdc # relocatable device code, needed for the velocity mesh
+# -fgpu-sanitize -fno-omit-frame-pointer # memory debugging
+
+#======== PAPI ==========
+#Add PAPI_MEM define to use papi to report memory consumption?
+CXXFLAGS +=  -DPAPI_MEM
+testpackage: CXXFLAGS +=  -DPAPI_MEM
+
+#======== Allocator =========
+#Note: jemalloc not supported with GPUs
+
+#======== Libraries ===========
+# Select the base directory based on which project you are using:
+LIBRARY_PREFIX = /wrk-kappa/group/spacephysics/vlasiator/libraries/libraries-hile_gpu
+
+# System boost
+LIB_BOOST = -lboost_program_options -L/usr/lib64 -Wl,-rpath=/usr/lib64
+
+# Compiled libraries
+INC_ZOLTAN = -isystem $(LIBRARY_PREFIX)/include
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/lib64 -lzoltan -Wl,-rpath=$(LIBRARY_PREFIX)/lib64
+
+LIB_PAPI = -lpapi
+
+INC_VLSV = -isystem $(LIBRARY_PREFIX)/include
+LIB_VLSV = -L$(LIBRARY_PREFIX)/lib -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX)/lib
+
+INC_PROFILE = -isystem $(LIBRARY_PREFIX)/include -D_ROCTX -I${ROCM_PATH}/include
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX)/lib -Wl,-rpath=${ROCM_PATH}/lib -lroctx64 -lroctracer64

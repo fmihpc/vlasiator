@@ -20,6 +20,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include "common.h"
 #include <cstdlib>
 #include <iostream>
 #include <iomanip> // for setprecision()
@@ -31,7 +32,7 @@
   #include <omp.h>
 #endif
 #include "grid.h"
-#include "vlasovmover.h"
+#include "vlasovsolver/vlasovmover.h"
 #include "definitions.h"
 #include "mpiconversion.h"
 #include "logger.h"
@@ -47,20 +48,24 @@
 #include "ioread.h"
 #include "object_wrapper.h"
 #include "vlasovsolver/cpu_trans_pencils.hpp"
+#include "memory_report.h"
 
 #ifdef PAPI_MEM
 #include "papi.h"
 #endif
 
-#ifndef NDEBUG
-   #ifdef VAMR
-      #define DEBUG_VAMR_VALIDATE
-   #endif
+#include "vlasovsolver/cpu_trans_pencils.hpp"
+#ifdef USE_GPU
+#include "arch/gpu_base.hpp"
+#endif
+
+#ifdef DEBUG_VLASIATOR
+#define DEBUG_GRID
 #endif
 
 using namespace std;
 
-extern Logger logFile, diagnostic;
+extern Logger logFile;
 
 void initVelocityGridGeometry(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
@@ -93,6 +98,7 @@ void initializeGrids(
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsDt2Grid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
    FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
    FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
    FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
@@ -128,6 +134,7 @@ void initializeGrids(
    geom_params.level_0_cell_length[1] = P::dy_ini;
    geom_params.level_0_cell_length[2] = P::dz_ini;
 
+   phiprof::Timer dccrgTimer {"Initialize DCCRG grid"};
    mpiGrid.set_initial_length(grid_length)
       .set_load_balancing_method(&P::loadBalanceAlgorithm[0])
       .set_neighborhood_length(neighborhood_size+4)
@@ -137,15 +144,16 @@ void initializeGrids(
                     sysBoundaries.isPeriodic(2))
       .initialize(comm)
       .set_geometry(geom_params);
+   dccrgTimer.stop();
 
    phiprof::Timer refineTimer {"Refine spatial cells"};
    // We need this first as well
-   recalculateLocalCellsCache();
+   recalculateLocalCellsCache(mpiGrid);
    if (!P::isRestart) {
       // Note call to project.refineSpatialCells below
       if (P::amrMaxSpatialRefLevel > 0 && project.refineSpatialCells(mpiGrid)) {
          mpiGrid.balance_load();
-         recalculateLocalCellsCache();
+         recalculateLocalCellsCache(mpiGrid);
          mapRefinement(mpiGrid, technicalGrid);
       }
    } else {
@@ -154,14 +162,11 @@ void initializeGrids(
       if (myRank == MASTER_RANK) logFile << "        ...done." << endl << writeVerbose;
       if (restartSuccess) {
          mpiGrid.balance_load();
-         recalculateLocalCellsCache();
+         recalculateLocalCellsCache(mpiGrid);
          mapRefinement(mpiGrid, technicalGrid);
       }
    }
    refineTimer.stop();
-
-   // Init velocity mesh on all cells
-   initVelocityGridGeometry(mpiGrid);
    initializeStencils(mpiGrid);
 
    for (const auto& [key, value] : P::loadBalanceOptions) {
@@ -170,12 +175,12 @@ void initializeGrids(
    phiprof::Timer initialLBTimer {"Initial load-balancing"};
    if (myRank == MASTER_RANK) logFile << "(INIT): Starting initial load balance." << endl << writeVerbose;
    mpiGrid.balance_load(); // Direct DCCRG call, recalculate cache afterwards
-   recalculateLocalCellsCache();
+   recalculateLocalCellsCache(mpiGrid);
 
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
-   mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
+   mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::NEAREST);
 
-   if((P::amrMaxSpatialRefLevel > 0) && (!P::vlasovSolverGhostTranslate)) {
+   if (!P::vlasovSolverGhostTranslate) {
       setFaceNeighborRanks( mpiGrid ); // Only needed for remote contribution in translation
    }
    const vector<CellID>& cells = getLocalCells();
@@ -196,7 +201,9 @@ void initializeGrids(
    initBoundaryTimer.stop();
 
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_DIMENSIONS);
-   mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
+   mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::SYSBOUNDARIES);
+
+   computeCoupling(mpiGrid, cells, technicalGrid);
 
    // We want this before restart refinement
    phiprof::Timer classifyTimer {"Classify cells (sys boundary conditions)"};
@@ -221,15 +228,15 @@ void initializeGrids(
                cerr << "(MAIN) ERROR: Forcing refinement takes too much memory" << endl;
                exit(1);
             }
-            balanceLoad(mpiGrid, sysBoundaries);
+            balanceLoad(mpiGrid, sysBoundaries, technicalGrid);
          }
       } else if (P::refineOnRestart) {
          // Considered deprecated
          phiprof::Timer timer {"Restart refinement"};
          // Get good load balancing for refinement
-         balanceLoad(mpiGrid, sysBoundaries);
+         balanceLoad(mpiGrid, sysBoundaries, technicalGrid);
          adaptRefinement(mpiGrid, technicalGrid, sysBoundaries, project);
-         balanceLoad(mpiGrid, sysBoundaries);
+         balanceLoad(mpiGrid, sysBoundaries, technicalGrid);
       }
    }
 
@@ -240,7 +247,6 @@ void initializeGrids(
 
    if (P::isRestart) {
       //initial state for sys-boundary cells, will skip those not set to be reapplied at restart
-      phiprof::Timer timer {"Apply system boundary conditions state"};
       sysBoundaries.applyInitialState(mpiGrid, technicalGrid, perBGrid, BgBGrid, project);
    }
 
@@ -273,10 +279,7 @@ void initializeGrids(
       setCellTimer.stop();
 
       // Initial state for sys-boundary cells
-      applyInitialTimer.stop();
-      phiprof::Timer applyBCTimer {"Apply system boundary conditions state"};
       sysBoundaries.applyInitialState(mpiGrid, technicalGrid, perBGrid, BgBGrid, project);
-      applyBCTimer.stop();
 
       #pragma omp parallel for schedule(static)
       for (size_t i=0; i<cells.size(); ++i) {
@@ -295,11 +298,6 @@ void initializeGrids(
          << P::t << ", preparing to receive; len cells = " << cells.size() <<
          "\n";
          adjustVelocityBlocks(mpiGrid,cells,true,popID);
-         #ifdef DEBUG_VAMR_VALIDATE
-            writeVelMesh(mpiGrid);
-            validateMesh(mpiGrid,popID);
-         #endif
-
          // set initial LB metric based on number of blocks
          #pragma omp parallel for schedule(static)
          for (size_t i=0; i<cells.size(); ++i) {
@@ -335,7 +333,7 @@ void initializeGrids(
 
 
    // Balance load before we transfer all data below
-   balanceLoad(mpiGrid, sysBoundaries, false);
+   balanceLoad(mpiGrid, sysBoundaries, technicalGrid, false);
    // Function includes re-calculation of local cells cache, but
    // setting third parameter to false skips preparation of
    // translation cell lists and building of pencils.
@@ -343,7 +341,7 @@ void initializeGrids(
    phiprof::Timer fetchNeighbourTimer {"Fetch Neighbour data", {"MPI"}};
    // update complete cell spatial data for full stencil
    SpatialCell::set_mpi_transfer_type(Transfer::ALL_SPATIAL_DATA);
-   mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
+   mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::FULL);
    fetchNeighbourTimer.stop();
 
    phiprof::Timer setBTimer {"project.setProjectBField"};
@@ -358,7 +356,7 @@ void initializeGrids(
    volGrid.updateGhostCells();
    fsGridGhostTimer.stop();
    phiprof::Timer getFieldsTimer {"getFieldsFromFsGrid"};
-   getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, technicalGrid, mpiGrid, cells);
+   getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, dMomentsGrid, technicalGrid, mpiGrid, cells);
    getFieldsTimer.stop();
 
    setBTimer.stop();
@@ -382,8 +380,9 @@ void initializeGrids(
       }
    }
 
+
    phiprof::Timer finishFSGridTimer {"Finish fsgrid setup"};
-   feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid,technicalGrid, false);
+   feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid, technicalGrid, false);
    if(!P::isRestart) {
       // WARNING this means moments and dt2 moments are the same here at t=0, which is a feature so far.
       feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid, technicalGrid, false);
@@ -409,14 +408,6 @@ void initializeGrids(
    // With all cell data in place, make preparations for translation
    prepareAMRLists(mpiGrid);
    initialStateTimer.stop();
-}
-
-// initialize velocity grid of spatial cells before creating cells in dccrg.initialize
-void initVelocityGridGeometry(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid){
-   // Velocity mesh(es) are created in parameters.cpp, here we just
-   // trigger the initialization of static variables in vmesh::VelocityMesh class.
-   SpatialCell dummy;
-   dummy.initialize_mesh();
 }
 
 void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
@@ -463,22 +454,22 @@ void setFaceNeighborRanks( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
          switch (dir) {
          case -3:
-            neighborhood = SHIFT_M_Z_NEIGHBORHOOD_ID;
+            neighborhood = Neighborhoods::SHIFT_M_Z;
             break;
          case -2:
-            neighborhood = SHIFT_M_Y_NEIGHBORHOOD_ID;
+            neighborhood = Neighborhoods::SHIFT_M_Y;
             break;
-         case -1:
-            neighborhood = SHIFT_M_X_NEIGHBORHOOD_ID;
+         case -1: 
+            neighborhood = Neighborhoods::SHIFT_M_X;
             break;
-         case +1:
-            neighborhood = SHIFT_P_X_NEIGHBORHOOD_ID;
+         case +1: 
+            neighborhood = Neighborhoods::SHIFT_P_X;
             break;
          case +2:
-            neighborhood = SHIFT_P_Y_NEIGHBORHOOD_ID;
+            neighborhood = Neighborhoods::SHIFT_P_Y;
             break;
          case +3:
-            neighborhood = SHIFT_P_Z_NEIGHBORHOOD_ID;
+            neighborhood = Neighborhoods::SHIFT_P_Z;
             break;
          default:
             cerr << "Invalid face neighbor dimension: " << dir << " in " << __FILE__ << ":" << __LINE__ << std::endl;
@@ -491,7 +482,7 @@ void setFaceNeighborRanks( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    }
 }
 
-void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, SysBoundary& sysBoundaries, bool doTranslationLists){
+void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, SysBoundary& sysBoundaries, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, bool doTranslationLists){
    // Invalidate cached cell lists
    Parameters::meshRepartitioned = true;
    std::cerr << "balanceLoad called \n";
@@ -502,8 +493,8 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    phiprof::Timer deallocTimer {"deallocate boundary data"};
    //deallocate blocks in remote cells to decrease memory load
    deallocateRemoteCellBlocks(mpiGrid);
-
    deallocTimer.stop();
+
    //set weights based on each cells LB weight counter
    const vector<CellID>& cells = getLocalCells();
    for (size_t i=0; i<cells.size(); ++i){
@@ -600,9 +591,9 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
          }
       }
 
-      for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
+      for (size_t popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          // Set active population
-         SpatialCell::setCommunicatedSpecies(p);
+         SpatialCell::setCommunicatedSpecies(popID);
 
          //Transfer velocity block list
          SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE1);
@@ -612,6 +603,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
 
          int prepareReceives {phiprof::initializeTimer("Preparing receives")};
          int receives = 0;
+         #pragma omp parallel for schedule(guided)
          for (unsigned int i=0; i<incoming_cells_list.size(); i++) {
             CellID cell_id=incoming_cells_list[i];
             SpatialCell* cell = mpiGrid[cell_id];
@@ -619,7 +611,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
                receives++;
                // reserve space for velocity block data in arriving remote cells
                phiprof::Timer timer {prepareReceives};
-               cell->prepare_to_receive_blocks(p);
+               cell->prepare_to_receive_blocks(popID);
                timer.stop(1, "Spatial cells");
             }
          }
@@ -644,8 +636,10 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
             // Free memory of this cell as it has already been transferred,
             // it will not be used anymore. NOTE: Only clears memory allocated
             // to the active population.
-            if (cell_id % num_part_transfers == transfer_part) cell->clear(p);
+            if (cell_id % num_part_transfers == transfer_part) cell->clear(popID,true);
          }
+
+         memory_purge(); // Purge jemalloc allocator to actually release memory
       } // for-loop over populations
    } // for-loop over transfer parts
    transfersTimer.stop();
@@ -656,23 +650,25 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    finishLBTimer.stop();
 
    //Make sure transfers are enabled for all cells
-   recalculateLocalCellsCache();
+   recalculateLocalCellsCache(mpiGrid);
    #pragma omp parallel for
    for (uint i=0; i<cells.size(); ++i) {
       mpiGrid[cells[i]]->set_mpi_transfer_enabled(true);
    }
 
+   // recompute coupling of grids after load balance
+   computeCoupling(mpiGrid, cells, technicalGrid);
 
    // Communicate all spatial data for FULL neighborhood, which
    // includes all data with the exception of dist function data
    SpatialCell::set_mpi_transfer_type(Transfer::ALL_SPATIAL_DATA);
-   mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
+   mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::FULL);
 
    phiprof::Timer updateBlocksTimer {"update block lists"};
    //new partition, re/initialize blocklists of remote cells.
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       if (P::vlasovSolverGhostTranslate) {
-         updateRemoteVelocityBlockLists(mpiGrid,popID,VLASOV_SOLVER_GHOST_NEIGHBORHOOD_ID);
+         updateRemoteVelocityBlockLists(mpiGrid,popID,Neighborhoods::VLASOV_SOLVER_GHOST);
       } else {
          updateRemoteVelocityBlockLists(mpiGrid,popID);
       }
@@ -688,28 +684,61 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
       prepareAMRLists(mpiGrid);
    }
 
-   // Record ranks of face neighbors
-   if((P::amrMaxSpatialRefLevel > 0) && (!P::vlasovSolverGhostTranslate)) {
+   // Record ranks of face neighbors for translation remote neighbor contribution
+   if (!P::vlasovSolverGhostTranslate) {
       phiprof::Timer timer {"set face neighbor ranks"};
       setFaceNeighborRanks( mpiGrid );
    }
+
+#ifdef USE_GPU
+   phiprof::Timer gpuMallocTimer("GPU_malloc");
+   uint gpuMaxBlockCount = 0;
+   vmesh::LocalID gpuBlockCount = 0;
+   // Not parallelized
+   const vector<CellID>& newCells = getLocalCells();
+   const std::vector<CellID>& remote_cells = mpiGrid.get_remote_cells_on_process_boundary(Neighborhoods::FULL);
+   for (uint i=0; i<newCells.size()+remote_cells.size(); ++i) {
+      SpatialCell* SC;
+      if (i < newCells.size()) {
+         SC = mpiGrid[newCells[i]];
+      } else {
+         SC = mpiGrid[remote_cells[i - newCells.size()]];
+      }
+      for (size_t popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         const vmesh::VelocityMesh* vmesh = SC->get_velocity_mesh(popID);
+         vmesh::VelocityBlockContainer* blockContainer = SC->get_velocity_blocks(popID);
+         gpuBlockCount = vmesh->size();
+         if (gpuBlockCount > gpuMaxBlockCount) {
+            gpuMaxBlockCount = gpuBlockCount;
+         }
+         // Ensure cell has sufficient reservation, then apply it
+         SC->setReservation(popID,gpuBlockCount);
+         SC->applyReservation(popID);
+         SC->dev_upload_population(popID);
+      }
+   }
+   // Call GPU routines for per-thread memory allocation for Vlasov solvers
+   // deallocates first if necessary
+   //GPUTODO: Also count how many pencils exist
+   gpu_vlasov_allocate(gpuMaxBlockCount);
+   gpu_acc_allocate(gpuMaxBlockCount);
+   gpuMallocTimer.stop();
+#endif // end USE_GPU
+
 }
 
 /* helper for calculating AMR cell lists and building pencils
  */
 void prepareAMRLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid)
 {
-   if (P::amrMaxSpatialRefLevel == 0) {
-      return;
-   }
-
+   // AMR translation lists are used also for non-AMR simulations in GPU mode
    if (P::vlasovSolverGhostTranslate) {
       phiprof::Timer ghostTimer {"prepare_ghost_translation_lists"};
 
       // Update (face and other) neighbor information for remote cells on boundary
       phiprof::Timer updateRemoteNeighborsTimer {"update neighbor lists of remote cells"};
-      const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_GHOST_REQNEIGH_NEIGHBORHOOD_ID);
-      //const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_GHOST_NEIGHBORHOOD_ID);
+      const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(Neighborhoods::VLASOV_SOLVER_GHOST_REQNEIGH);
+      //const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(Neighborhoods::VLASOV_SOLVER_GHOST);
       mpiGrid.force_update_cell_neighborhoods(remote_cells);
       updateRemoteNeighborsTimer.stop();
 
@@ -845,83 +874,28 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
                           const uint popID) {
    phiprof::Timer readjustBlocksTimer {"re-adjust blocks", {"Block adjustment"}};
    SpatialCell::setCommunicatedSpecies(popID);
+
    const vector<CellID>& cells = getLocalCells();
+   // Batch call
+   update_velocity_block_content_lists(mpiGrid,cells,popID);
 
-   std::cerr << __FILE__<<":"<<__LINE__<< " calling adjustVelocityBlocks at t = " 
-         << P::t << "; len cells = " << cellsToAdjust.size() << "; prepare: " << doPrepareToReceiveBlocks <<
-         "\n";
-
-   phiprof::Timer computeTimer {"Compute with_content_list"};
-   #pragma omp parallel for
-   for (uint i=0; i<cells.size(); ++i) {
-      mpiGrid[cells[i]]->updateSparseMinValue(popID);
-      mpiGrid[cells[i]]->update_velocity_block_content_lists(popID);
-   }
-   computeTimer.stop();
    if (doPrepareToReceiveBlocks) {
       // We are in the last substep of acceleration, so need to account for neighbours
       phiprof::Timer transferTimer {"Transfer with_content_list", {"MPI"}};
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_WITH_CONTENT_STAGE1 );
-      mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
+      mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::NEAREST);
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_WITH_CONTENT_STAGE2 );
-      mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
+      mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::NEAREST);
       transferTimer.stop();
    }
-   //Adjusts velocity blocks in local spatial cells, doesn't adjust velocity blocks in remote cells.
-   phiprof::Timer adjustimer {"Adjusting blocks"};
-   #pragma omp parallel for schedule(dynamic)
-   for (size_t i=0; i<cellsToAdjust.size(); ++i) {
-      Real density_pre_adjust=0.0;
-      Real density_post_adjust=0.0;
-      CellID cell_id=cellsToAdjust[i];
-      SpatialCell* cell = mpiGrid[cell_id];
 
-      vector<SpatialCell*> neighbor_ptrs;
-      if (doPrepareToReceiveBlocks) {
-         // gather spatial neighbor list and gather vector with pointers to cells
-         // If we are within an acceleration substep prior to the last one,
-         // it's enough to adjust blocks based on local data only, and in
-         // that case we simply pass an empty list of pointers.
-         const auto* neighbors = mpiGrid.get_neighbors_of(cell_id, NEAREST_NEIGHBORHOOD_ID);
-         // Note: at AMR refinement boundaries this can cause blocks to propagate further
-         // than absolutely required. Face neighbours, however, are not enough as we must
-         // account for diagonal propagation.
-         neighbor_ptrs.reserve(neighbors->size());
-         for ( const auto& [neighbor_id, dir] : *neighbors) {
-            if (neighbor_id != 0 && neighbor_id != cell_id) {
-               neighbor_ptrs.push_back(mpiGrid[neighbor_id]);
-            }
-         }
-      }
-      if (getObjectWrapper().particleSpecies[popID].sparse_conserve_mass) {
-         for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
-            density_pre_adjust += cell->get_data(popID)[i];
-         }
-      }
-      cell->adjust_velocity_blocks(neighbor_ptrs,popID);
+   // Batch adjusts velocity blocks in local spatial cells, doesn't adjust velocity blocks in remote cells.
+   adjust_velocity_blocks_in_cells(mpiGrid, cellsToAdjust, popID, doPrepareToReceiveBlocks);
 
-      if (getObjectWrapper().particleSpecies[popID].sparse_conserve_mass) {
-         for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
-            density_post_adjust += cell->get_data(popID)[i];
-         }
-         if (density_post_adjust != 0.0) {
-            for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
-               cell->get_data(popID)[i] *= density_pre_adjust/density_post_adjust;
-            }
-         }
-      }
-
-      // if(cell_id == 16){
-      //    std::cerr << __FILE__<<":"<<__LINE__<<" number of blocks =" <<cell->get_number_of_velocity_blocks(popID) << "\n";
-      // }
-   }
-   adjustimer.stop();
-
-   //Updated newly adjusted velocity block lists on remote cells, and
-   //prepare to receive block data
+   // prepare to receive block data
    if (doPrepareToReceiveBlocks) {
       if (P::vlasovSolverGhostTranslate) {
-         updateRemoteVelocityBlockLists(mpiGrid,popID,VLASOV_SOLVER_GHOST_NEIGHBORHOOD_ID);
+         updateRemoteVelocityBlockLists(mpiGrid,popID,Neighborhoods::VLASOV_SOLVER_GHOST);
       } else {
          updateRemoteVelocityBlockLists(mpiGrid,popID);
       }
@@ -938,98 +912,26 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
  */
 void shrink_to_fit_grid_data(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
    const std::vector<CellID>& cells = getLocalCells();
-   if (P::vlasovSolverGhostTranslate) {
-      const std::vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_GHOST_NEIGHBORHOOD_ID);
-      #pragma omp parallel for
-      for(size_t i=0; i<cells.size() + remote_cells.size(); ++i) {
-         if (i < cells.size()) {
-            SpatialCell* target= mpiGrid[cells[i]];
-            if (target!=nullptr){
-               target->shrink_to_fit();
-            }
-         } else {
-            CellID c = remote_cells[i - cells.size()];
-            if ( (mpiGrid[c] == nullptr) || (c != mpiGrid[c]->parameters[CellParams::CELLID]) ) {
-               continue;
-            }
-            mpiGrid[c]->shrink_to_fit();
+   const std::vector<CellID>& remote_cells = mpiGrid.get_remote_cells_on_process_boundary();
+   #pragma omp parallel for
+   for (size_t i=0; i<cells.size() + remote_cells.size(); ++i) {
+      if (i < cells.size()) {
+         SpatialCell* target = mpiGrid[cells[i]];
+         if (target != nullptr){
+            target->shrink_to_fit();
          }
-      }
-   } else {
-      const std::vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(FULL_NEIGHBORHOOD_ID);
-#pragma omp parallel for
-      for(size_t i=0; i<cells.size() + remote_cells.size(); ++i) {
-         if (i < cells.size()) {
-            SpatialCell* target= mpiGrid[cells[i]];
-            if (target!=nullptr){
-               target->shrink_to_fit();
-            }
-         } else {
-            CellID c = remote_cells[i - cells.size()];
-            if ( (mpiGrid[c] == nullptr) || (c != mpiGrid[c]->parameters[CellParams::CELLID]) ) {
-               continue;
-            }
-            mpiGrid[c]->shrink_to_fit();
+      } else {
+         SpatialCell* target= mpiGrid[remote_cells[i - cells.size()]];
+         if (target != nullptr) {
+            target->shrink_to_fit();
          }
       }
    }
-}
-
-/*! Estimates memory consumption and writes it into logfile. Collective operation on MPI_COMM_WORLD
- * \param mpiGrid Spatial grid
- */
-void report_grid_memory_consumption(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
-   /*now report memory consumption into logfile*/
-   const vector<CellID>& cells = getLocalCells();
-   const std::vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary();
-   int rank,n_procs;
-   MPI_Comm_size(MPI_COMM_WORLD, &n_procs);
-   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-   /* Compute memory statistics of the memory consumption of the spatial cells.
-    * Internally we use double as MPI does
-    * not define proper uint64_t datatypes for MAXLOCNot Real, as we
-    * want double here not to loose accuracy.
-    */
-
-   /*report data for memory needed by blocks*/
-   double mem[6] = {0};
-   double sum_mem[6];
-
-   for(unsigned int i=0;i<cells.size();i++){
-      mem[0] += mpiGrid[cells[i]]->get_cell_memory_size();
-      mem[3] += mpiGrid[cells[i]]->get_cell_memory_capacity();
-   }
-
-   for(unsigned int i=0;i<remote_cells.size();i++){
-      mem[1] += mpiGrid[remote_cells[i]]->get_cell_memory_size();
-      mem[4] += mpiGrid[remote_cells[i]]->get_cell_memory_capacity();
-   }
-   
-   mem[2] = mem[0] + mem[1]; //total memory according to size()
-   mem[5] = mem[3] + mem[4]; //total memory according to capacity()
-
-
-   MPI_Reduce(mem, sum_mem, 6, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-
-   logFile << "(MEM) Total size: " << sum_mem[2] << endl;
-   logFile << "(MEM) Total capacity " << sum_mem[5] << endl;
-
-   struct {
-      double val;
-      int   rank;
-   } max_mem[3],mem_usage_loc[3],min_mem[3];
-   for(uint i = 0; i<3; i++){
-      mem_usage_loc[i].val = mem[i + 3]; //report on capacity numbers (6: local cells, 7: remote cells, 8: all cells)
-      mem_usage_loc[i].rank = rank;
-   }
-
-   MPI_Reduce(mem_usage_loc, max_mem, 3, MPI_DOUBLE_INT, MPI_MAXLOC, 0, MPI_COMM_WORLD);
-   MPI_Reduce(mem_usage_loc, min_mem, 3, MPI_DOUBLE_INT, MPI_MINLOC, 0, MPI_COMM_WORLD);
-
-   logFile << "(MEM)   Average capacity: " << sum_mem[5]/n_procs << " local cells " << sum_mem[3]/n_procs << " remote cells " << sum_mem[4]/n_procs << endl;
-   logFile << "(MEM)   Max capacity:     " << max_mem[2].val   << " on  process " << max_mem[2].rank << endl;
-   logFile << "(MEM)   Min capacity:     " << min_mem[2].val   << " on  process " << min_mem[2].rank << endl;
-   logFile << writeVerbose;
+   // #ifdef USE_GPU
+   // // Synchronize all streams, if shrink_to_fit was called and updated populations have been uploaded
+   // CHK_ERR( gpuDeviceSynchronize() );
+   // #endif
+   memory_purge(); // Purge jemalloc allocator to actually release memory
 }
 
 /*! Deallocates all block data in remote cells in order to save
@@ -1037,21 +939,17 @@ void report_grid_memory_consumption(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
  * \param mpiGrid Spatial grid
  */
 void deallocateRemoteCellBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
-   const std::vector<uint64_t> remote_cells
-      = mpiGrid.get_remote_cells_on_process_boundary(FULL_NEIGHBORHOOD_ID);
-   int cleared_count = 0;
-   for (unsigned int i=0; i<remote_cells.size(); i++) {
-      uint64_t cell_id = remote_cells[i];
+   const std::vector<uint64_t> incoming_cells
+      = mpiGrid.get_remote_cells_on_process_boundary();
+   for(unsigned int i=0;i<incoming_cells.size();i++){
+      uint64_t cell_id=incoming_cells[i];
       SpatialCell* cell = mpiGrid[cell_id];
       if (cell != NULL) {
-         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID){
-            cell->clear(popID);
-            cleared_count++;
-            std::cout << "Cleared " <<cell_id <<" remote blocks\n"; 
-         }
+         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+            cell->clear(popID,true); // flag true shrinks allocation
       }
    }
-   std::cout << __FILE__ <<":"<<__LINE__<<" cleared " << "cells for remote blocks\n";
+   memory_purge(); // Purge jemalloc allocator to actually release memory
 }
 
 /*
@@ -1061,7 +959,7 @@ copies of remote neighbors for receiving velocity block data.
 void updateRemoteVelocityBlockLists(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const uint popID,
-   const uint neighborhood/*=DIST_FUNC_NEIGHBORHOOD_ID default*/
+   const uint neighborhood/*=Neighborhoods::DIST_FUNC default*/
 )
 {
    SpatialCell::setCommunicatedSpecies(popID);
@@ -1085,20 +983,21 @@ void updateRemoteVelocityBlockLists(
      uint64_t cell_id = incoming_cells[i];
      SpatialCell* cell = mpiGrid[cell_id];
      if (cell == NULL) {
-        //for (const auto& cell: mpiGrid.local_cells()) {
+        #ifdef DEBUG_VLASIATOR
         for (const auto& cell: mpiGrid.local_cells) {
-	 if (cell.id == cell_id) {
-	   cerr << __FILE__ << ":" << __LINE__ << std::endl;
-	   abort();
-	 }
-	 for (const auto& neighbor: cell.neighbors_of) {
-	   if (neighbor.id == cell_id) {
-	     cerr << __FILE__ << ":" << __LINE__ << std::endl;
-	     abort();
-	   }
-	 }
-       }
-       continue;
+           if (cell.id == cell_id) {
+              cerr << __FILE__ << ":" << __LINE__ << std::endl;
+              abort();
+           }
+           for (const auto& neighbor: cell.neighbors_of) {
+              if (neighbor.id == cell_id) {
+                 cerr << __FILE__ << ":" << __LINE__ << std::endl;
+                 abort();
+              }
+           }
+        }
+        #endif
+        continue;
      }
      cell->prepare_to_receive_blocks(popID);
    }
@@ -1188,12 +1087,12 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          }
       }
    }
-   if (!mpiGrid.add_neighborhood(NEAREST_NEIGHBORHOOD_ID, neighborhood)){
-      std::cerr << "Failed to add neighborhood NEAREST_NEIGHBORHOOD_ID \n";
+   if (!mpiGrid.add_neighborhood(Neighborhoods::NEAREST, neighborhood)){
+      std::cerr << "Failed to add neighborhood Neighborhoods::NEAREST \n";
       abort();
    }
-   if (!mpiGrid.add_neighborhood(SYSBOUNDARIES_NEIGHBORHOOD_ID, neighborhood)){
-      std::cerr << "Failed to add neighborhood SYSBOUNDARIES_NEIGHBORHOOD_ID \n";
+   if (!mpiGrid.add_neighborhood(Neighborhoods::SYSBOUNDARIES, neighborhood)){
+      std::cerr << "Failed to add neighborhood Neighborhoods::SYSBOUNDARIES \n";
       abort();
    }
 
@@ -1209,8 +1108,8 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          }
       }
    }
-   if (!mpiGrid.add_neighborhood(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID, neighborhood)){
-      std::cerr << "Failed to add neighborhood SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID \n";
+   if (!mpiGrid.add_neighborhood(Neighborhoods::SYSBOUNDARIES_EXTENDED, neighborhood)){
+      std::cerr << "Failed to add neighborhood Neighborhoods::SYSBOUNDARIES_EXTENDED \n";
       abort();
    }
 
@@ -1232,8 +1131,8 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       }
    }
    /*all possible communication pairs*/
-   if( !mpiGrid.add_neighborhood(FULL_NEIGHBORHOOD_ID, neighborhood)){
-      std::cerr << "Failed to add neighborhood FULL_NEIGHBORHOOD_ID \n";
+   if( !mpiGrid.add_neighborhood(Neighborhoods::FULL, neighborhood)){
+      std::cerr << "Failed to add neighborhood Neighborhoods::FULL \n";
       abort();
    }
 
@@ -1246,8 +1145,8 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
         neighborhood.push_back({{0, 0, d}});
      }
    }
-   if( !mpiGrid.add_neighborhood(VLASOV_SOLVER_NEIGHBORHOOD_ID, neighborhood)){
-      std::cerr << "Failed to add neighborhood VLASOV_SOLVER_NEIGHBORHOOD_ID \n";
+   if( !mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER, neighborhood)){
+      std::cerr << "Failed to add neighborhood Neighborhoods::VLASOV_SOLVER \n";
       abort();
    }
 
@@ -1264,8 +1163,8 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          }
       }
    }
-   if( !mpiGrid.add_neighborhood(DIST_FUNC_NEIGHBORHOOD_ID, neighborhood)){
-      std::cerr << "Failed to add neighborhood DIST_FUNC_NEIGHBORHOOD_ID \n";
+   if( !mpiGrid.add_neighborhood(Neighborhoods::DIST_FUNC, neighborhood)){
+      std::cerr << "Failed to add neighborhood Neighborhoods::DIST_FUNC \n";
       abort();
    }
    neighborhood.clear();
@@ -1274,8 +1173,8 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
         neighborhood.push_back({{d, 0, 0}});
      }
    }
-   if( !mpiGrid.add_neighborhood(VLASOV_SOLVER_X_NEIGHBORHOOD_ID, neighborhood)){
-      std::cerr << "Failed to add neighborhood VLASOV_SOLVER_X_NEIGHBORHOOD_ID \n";
+   if( !mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_X, neighborhood)){
+      std::cerr << "Failed to add neighborhood Neighborhoods::VLASOV_SOLVER_X \n";
       abort();
    }
 
@@ -1285,8 +1184,8 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
         neighborhood.push_back({{0, d, 0}});
      }
    }
-   if (!mpiGrid.add_neighborhood(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID, neighborhood)){
-      std::cerr << "Failed to add neighborhood VLASOV_SOLVER_Y_NEIGHBORHOOD_ID \n";
+   if( !mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_Y, neighborhood)){
+      std::cerr << "Failed to add neighborhood Neighborhoods::VLASOV_SOLVER_Y \n";
       abort();
    }
 
@@ -1296,8 +1195,8 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
         neighborhood.push_back({{0, 0, d}});
      }
    }
-   if (!mpiGrid.add_neighborhood(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID, neighborhood)){
-      std::cerr << "Failed to add neighborhood VLASOV_SOLVER_Z_NEIGHBORHOOD_ID \n";
+   if (!mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_Z, neighborhood)){
+      std::cerr << "Failed to add neighborhood Neighborhoods::VLASOV_SOLVER_Z \n";
       abort();
    }
    neighborhood.clear();
@@ -1426,8 +1325,8 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             neighborhood.push_back({{d, 0, 0}});
          }
       }
-      if (!mpiGrid.add_neighborhood(VLASOV_SOLVER_X_GHOST_NEIGHBORHOOD_ID, neighborhood)){
-         std::cerr << "Failed to add neighborhood VLASOV_SOLVER_X_GHOST_NEIGHBORHOOD_ID \n";
+      if (!mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_X_GHOST, neighborhood)){
+         std::cerr << "Failed to add neighborhood Neighborhoods::VLASOV_SOLVER_X_GHOST \n";
          abort();
       }
 
@@ -1437,8 +1336,8 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             neighborhood.push_back({{0, d, 0}});
          }
       }
-      if (!mpiGrid.add_neighborhood(VLASOV_SOLVER_Y_GHOST_NEIGHBORHOOD_ID, neighborhood)){
-         std::cerr << "Failed to add neighborhood VLASOV_SOLVER_Y_GHOST_NEIGHBORHOOD_ID \n";
+      if (!mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_Y_GHOST, neighborhood)){
+         std::cerr << "Failed to add neighborhood Neighborhoods::VLASOV_SOLVER_Y_GHOST \n";
          abort();
       }
 
@@ -1448,8 +1347,8 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             neighborhood.push_back({{0, 0, d}});
          }
       }
-      if (!mpiGrid.add_neighborhood(VLASOV_SOLVER_Z_GHOST_NEIGHBORHOOD_ID, neighborhood)){
-         std::cerr << "Failed to add neighborhood VLASOV_SOLVER_Z_GHOST_NEIGHBORHOOD_ID \n";
+      if (!mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_Z_GHOST, neighborhood)){
+         std::cerr << "Failed to add neighborhood Neighborhoods::VLASOV_SOLVER_Z_GHOST \n";
          abort();
       }
 
@@ -1479,8 +1378,8 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             }
          }
       }
-      if (!mpiGrid.add_neighborhood(VLASOV_SOLVER_GHOST_NEIGHBORHOOD_ID, neighborhood)){
-         std::cerr << "Failed to add neighborhood VLASOV_SOLVER_GHOST_NEIGHBORHOOD_ID \n";
+      if (!mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_GHOST, neighborhood)){
+         std::cerr << "Failed to add neighborhood Neighborhoods::VLASOV_SOLVER_GHOST \n";
          abort();
       }
 
@@ -1496,8 +1395,8 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             }
          }
       }
-      if (!mpiGrid.add_neighborhood(VLASOV_SOLVER_GHOST_REQNEIGH_NEIGHBORHOOD_ID, neighborhood)){
-         std::cerr << "Failed to add neighborhood VLASOV_SOLVER_GHOST_REQNEIGH_NEIGHBORHOOD_ID \n";
+      if (!mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_GHOST_REQNEIGH, neighborhood)){
+         std::cerr << "Failed to add neighborhood Neighborhoods::VLASOV_SOLVER_GHOST_REQNEIGH \n";
          abort();
       }
    }
@@ -1571,8 +1470,8 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          neighborhood.push_back({{d, 0, 0}});
       }
    }
-   if (!mpiGrid.add_neighborhood(VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID, neighborhood)) {
-      std::cerr << "Failed to add neighborhood VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID \n";
+   if (!mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_TARGET_X, neighborhood)){
+      std::cerr << "Failed to add neighborhood Neighborhoods::VLASOV_SOLVER_TARGET_X \n";
       abort();
    }
 
@@ -1582,8 +1481,8 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          neighborhood.push_back({{0, d, 0}});
       }
    }
-   if (!mpiGrid.add_neighborhood(VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID, neighborhood)){
-      std::cerr << "Failed to add neighborhood VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID \n";
+   if (!mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_TARGET_Y, neighborhood)){
+      std::cerr << "Failed to add neighborhood Neighborhoods::VLASOV_SOLVER_TARGET_Y \n";
       abort();
    }
 
@@ -1593,45 +1492,45 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          neighborhood.push_back({{0, 0, d}});
       }
    }
-   if (!mpiGrid.add_neighborhood(VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID, neighborhood)){
-      std::cerr << "Failed to add neighborhood VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID \n";
+   if (!mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_TARGET_Z, neighborhood)){
+      std::cerr << "Failed to add neighborhood Neighborhoods::VLASOV_SOLVER_TARGET_Z \n";
       abort();
    }
 
    neighborhood.clear();
    neighborhood.push_back({{1, 0, 0}});
-   if (!mpiGrid.add_neighborhood(SHIFT_M_X_NEIGHBORHOOD_ID, neighborhood)){
-      std::cerr << "Failed to add neighborhood SHIFT_M_X_NEIGHBORHOOD_ID \n";
+   if (!mpiGrid.add_neighborhood(Neighborhoods::SHIFT_M_X, neighborhood)){
+      std::cerr << "Failed to add neighborhood Neighborhoods::SHIFT_M_X \n";
       abort();
    }
    neighborhood.clear();
    neighborhood.push_back({{0, 1, 0}});
-   if (!mpiGrid.add_neighborhood(SHIFT_M_Y_NEIGHBORHOOD_ID, neighborhood)){
-      std::cerr << "Failed to add neighborhood SHIFT_M_Y_NEIGHBORHOOD_ID \n";
+   if (!mpiGrid.add_neighborhood(Neighborhoods::SHIFT_M_Y, neighborhood)){
+      std::cerr << "Failed to add neighborhood Neighborhoods::SHIFT_M_Y \n";
       abort();
    }
    neighborhood.clear();
    neighborhood.push_back({{0, 0, 1}});
-   if (!mpiGrid.add_neighborhood(SHIFT_M_Z_NEIGHBORHOOD_ID, neighborhood)){
-      std::cerr << "Failed to add neighborhood SHIFT_M_Z_NEIGHBORHOOD_ID \n";
+   if (!mpiGrid.add_neighborhood(Neighborhoods::SHIFT_M_Z, neighborhood)){
+      std::cerr << "Failed to add neighborhood Neighborhoods::SHIFT_M_Z \n";
       abort();
    }
    neighborhood.clear();
    neighborhood.push_back({{-1, 0, 0}});
-   if (!mpiGrid.add_neighborhood(SHIFT_P_X_NEIGHBORHOOD_ID, neighborhood)){
-      std::cerr << "Failed to add neighborhood SHIFT_P_X_NEIGHBORHOOD_ID \n";
+   if (!mpiGrid.add_neighborhood(Neighborhoods::SHIFT_P_X, neighborhood)){
+      std::cerr << "Failed to add neighborhood Neighborhoods::SHIFT_P_X \n";
       abort();
    }
    neighborhood.clear();
    neighborhood.push_back({{0, -1, 0}});
-   if (!mpiGrid.add_neighborhood(SHIFT_P_Y_NEIGHBORHOOD_ID, neighborhood)){
-      std::cerr << "Failed to add neighborhood SHIFT_P_Y_NEIGHBORHOOD_ID \n";
+   if (!mpiGrid.add_neighborhood(Neighborhoods::SHIFT_P_Y, neighborhood)){
+      std::cerr << "Failed to add neighborhood Neighborhoods::SHIFT_P_Y \n";
       abort();
    }
    neighborhood.clear();
    neighborhood.push_back({{0, 0, -1}});
-   if (!mpiGrid.add_neighborhood(SHIFT_P_Z_NEIGHBORHOOD_ID, neighborhood)){
-      std::cerr << "Failed to add neighborhood SHIFT_P_Z_NEIGHBORHOOD_ID \n";
+   if (!mpiGrid.add_neighborhood(Neighborhoods::SHIFT_P_Z, neighborhood)){
+      std::cerr << "Failed to add neighborhood Neighborhoods::SHIFT_P_Z \n";
       abort();
    }
 
@@ -1665,194 +1564,6 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    return;
 }
 
-bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID) {
-   bool rvalue = true;
-   #ifndef VAMR
-      return rvalue;
-   #else
-
-   phiprof::Timer meshValidationTimer {"mesh validation (init)"};
-
-   bool internallyValid = false;
-
-   // First make sure that all cells local to this process have a valid mesh.
-   // After the mesh is internally valid, we will update mesh structures
-   // with remote neighbors for as many times as needed.
-   //
-   // Note that we still assume that each spatial cell has a valid mesh
-   // with respect to velocity neighbors, i.e., we only validate the mesh
-   // with respect to spatial neighbors here.
-   const vector<CellID>& cells = getLocalCells();
-   int iter=0;
-
-   do {
-      #ifdef DEBUG_VAMR_VALIDATE
-      if (iter == 0) {
-         writeVelMesh(mpiGrid);
-      }
-      #endif
-
-      // Update velocity mesh in remote cells
-      phiprof::Timer mpiTimer {"MPI"};
-      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE1);
-      mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
-      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE2);
-      mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
-      mpiTimer.stop();
-
-      // Iterate over all local spatial cells and calculate
-      // the necessary velocity block refinements
-      phiprof::Timer calcTimer {"calc refinements"};
-      vector<set<vmesh::GlobalID> > refinements(cells.size());
-
-      #pragma omp parallel for
-      for (size_t c=0; c<cells.size(); ++c) {
-         SpatialCell* cell = mpiGrid[cells[c]];
-
-         // Get all spatial neighbors
-         //const vector<CellID>* neighbors = mpiGrid.get_neighbors_of(cells[c],NEAREST_NEIGHBORHOOD_ID);
-         const auto* neighbors = mpiGrid.get_neighbors_of(cells[c], NEAREST_NEIGHBORHOOD_ID);
-         //#warning TODO should VAMR grandparents be checked only for face neighbors instead of NEAREST_NEIGHBORHOOD_ID?
-
-         // Iterate over all spatial neighbors
-         // for (size_t n=0; n<neighbors->size(); ++n) {
-
-         for (const auto& nbrPair : *neighbors) {
-
-            // CellID nbrCellID = (*neighbors)[n];
-            CellID nbrCellID = nbrPair.first;
-            const SpatialCell* nbr = mpiGrid[nbrCellID];
-
-            // Iterate over all blocks in the spatial neighbor,
-            // and check that the neighbor block does not have
-            // existing grandparent in this cell
-            for (vmesh::LocalID b=0; b<nbr->get_number_of_velocity_blocks(popID); ++b) {
-               vmesh::GlobalID blockGID = nbr->get_velocity_block_global_id(b,popID);
-               vmesh::GlobalID grandParentGID = cell->velocity_block_has_grandparent(blockGID,popID);
-               if (grandParentGID != cell->invalid_global_id()) {
-                  //cerr << "spatial nbr block " << blockGID << " has gparent " << grandParentGID << endl;
-
-                  refinements[c].insert(cell->get_velocity_block_parent(popID,blockGID));
-               }
-            }
-         }
-      }
-      calcTimer.stop();
-
-      // Apply refinements
-      phiprof::Timer refineTimer {"refine mesh"};
-      bool needAnotherPass=false;
-      vector<vector<pair<vmesh::GlobalID,vmesh::LocalID> > > newBlocks(cells.size());
-
-      #pragma omp parallel for
-      for (size_t c=0; c<cells.size(); ++c) {
-         // Refine blocks (touches mesh structure, cannot be threaded)
-         if (refinements[c].size() > 0) needAnotherPass = true;
-         SpatialCell* cell = mpiGrid[cells[c]];
-         map<vmesh::GlobalID,vmesh::LocalID> insertedBlocks;
-         for (set<vmesh::GlobalID>::const_iterator b=refinements[c].begin(); b!=refinements[c].end(); ++b) {
-            cell->refine_block(*b,insertedBlocks,popID);
-         }
-
-         // Store all new block local IDs
-         for (map<vmesh::GlobalID,vmesh::LocalID>::const_iterator it=insertedBlocks.begin(); it!=insertedBlocks.end(); ++it) {
-            vmesh::LocalID newLocalID = cell->get_velocity_block_local_id(it->first,popID);
-            if (newLocalID != cell->invalid_local_id()) {
-               newBlocks[c].push_back(make_pair(it->first,newLocalID));
-            }
-         }
-      }
-      refineTimer.stop();
-
-      // Recalculate distribution function values on all blocks that were refined
-      phiprof::Timer recalcTimer {"recalculate distrib. functions"};
-      vector<vector<vmesh::GlobalID> > removedBlocks(cells.size());
-
-#ifdef _OPENMP
-      #warning Chance for false sharing, counters may be on same cache line
-      int counter[omp_get_max_threads()];
-      vector<vector<vmesh::GlobalID> > threadRemBlocks(omp_get_max_threads());
-
-      #pragma omp parallel
-      {
-         const int tid = omp_get_thread_num();
-         for (size_t c=0; c<newBlocks.size(); ++c) {
-            SpatialCell* cell = mpiGrid[cells[c]];
-            counter[tid] = 0;
-
-            // Recalculate distribution function and if f is below the sparse
-            // min value, add the block to remove list
-            #pragma omp for
-            for (size_t b=0; b<newBlocks[c].size(); ++b) {
-               if (getObjectWrapper().project->setVelocityBlock(cell,newBlocks[c][b].second,popID) <= cell->getVelocityBlockMinValue(popID)) {
-                  threadRemBlocks[tid].push_back(newBlocks[c][b].first);
-                  ++counter[tid];
-               }
-            }
-
-            // Sum up the number of removed blocks to master thread
-            // and resize the per-cell vector to correct size
-            if (tid == 0) {
-               size_t sum = 0;
-               for (int t=0; t<omp_get_max_threads(); ++t) sum += counter[t];
-               removedBlocks[c].resize(sum);
-            }
-            #pragma omp barrier
-
-            // Copy global IDs of removed blocks to the per-cell vector
-            size_t myOffset = 0;
-            for (int t=0; t<tid; ++t) myOffset += counter[t];
-
-            for (int b=0; b<counter[tid]; ++b) {
-               removedBlocks[c][b+myOffset] = threadRemBlocks[tid][b];
-            }
-         }
-      }
-#else // No openmp version
-      int counter[1];
-      std::vector<vmesh::GlobalID> remBlocks;
-      for (size_t c=0; c<newBlocks.size(); ++c) {
-         SpatialCell* cell = mpiGrid[cells[c]];
-
-         // Recalculate distribution function and if f is below the sparse
-         // min value, add the block to remove list
-         for (size_t b=0; b<newBlocks[c].size(); ++b) {
-            if (getObjectWrapper().project->setVelocityBlock(cell,newBlocks[c][b].second,popID) <= cell->getVelocityBlockMinValue(popID)) {
-               removedBlocks[c].push_back(newBlocks[c][b].first);
-            }
-         }
-      }
-#endif
-
-
-      // Remove blocks with f below sparse min value
-      #pragma omp parallel for
-      for (size_t c=0; c<removedBlocks.size(); ++c) {
-         SpatialCell* cell = mpiGrid[cells[c]];
-         // We touch mesh structure here, cannot be threaded
-         for (size_t b=0; b<removedBlocks[c].size(); ++b) {
-            cell->remove_velocity_block(removedBlocks[c][b],popID);
-         }
-      }
-      recalcTimer.stop()
-
-      #ifdef DEBUG_VAMR_VALIDATE
-         writeVelMesh(mpiGrid);
-      #endif
-      ++iter;
-
-      // Exit if all processes are done with mesh refinements
-      int16_t globalSuccess = 0;
-      int16_t localSuccess = 0;
-      if (needAnotherPass == true) localSuccess=1;
-      MPI_Allreduce(&localSuccess,&globalSuccess,1,MPI_Type<int16_t>(),MPI_MAX,MPI_COMM_WORLD);
-      if (globalSuccess == 0) break;
-   } while (true);
-
-   return rvalue;
-   #endif
-}
-
 void mapRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
    phiprof::Timer timer {"Map Refinement Level to FsGrid"};
    const FsGridTools::FsIndex_t *localDims = &technicalGrid.getLocalSize()[0];
@@ -1875,7 +1586,7 @@ void mapRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
 bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, SysBoundary& sysBoundaries, Project& project, int useStatic) {
    phiprof::Timer amrTimer {"Re-refine spatial cells"};
-   int refines {0};
+   uint64_t refines {0};
    if (useStatic > -1) {
       project.forceRefinement(mpiGrid, useStatic);
    } else {
@@ -1884,14 +1595,14 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
          calculateScaledDeltasSimple(mpiGrid);
       }
       SpatialCell::set_mpi_transfer_type(Transfer::REFINEMENT_PARAMETERS);
-      mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
+      mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::NEAREST);
 
       refines = project.adaptRefinement(mpiGrid);
    }
 
-   int cells = getLocalCells().size();
-   MPI_Allreduce(MPI_IN_PLACE, &refines, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-   MPI_Allreduce(MPI_IN_PLACE, &cells, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+   uint64_t cells {getLocalCells().size()};
+   MPI_Allreduce(MPI_IN_PLACE, &refines, 1, MPI_UINT64_T, MPI_SUM, MPI_COMM_WORLD);
+   MPI_Allreduce(MPI_IN_PLACE, &cells, 1, MPI_UINT64_T, MPI_SUM, MPI_COMM_WORLD);
    double ratio_refines = static_cast<double>(refines) / static_cast<double>(cells);
    logFile << "(AMR) Refining " << refines << " cells, " << 100.0 * ratio_refines << "% of grid" << std::endl;
 
@@ -1901,10 +1612,8 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    mpiGrid.initialize_refines();
    initTimer.stop();
 
-   refines = mpiGrid.get_local_cells_to_refine().size();
-   double coarsens = mpiGrid.get_local_cells_to_unrefine().size();
-   MPI_Allreduce(MPI_IN_PLACE, &refines, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-   MPI_Allreduce(MPI_IN_PLACE, &coarsens, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+   refines = mpiGrid.get_cells_to_refine_count();
+   uint64_t coarsens {mpiGrid.get_cells_to_unrefine_count()};
    ratio_refines = static_cast<double>(refines) / static_cast<double>(cells);
    double ratio_coarsens = static_cast<double>(coarsens) / static_cast<double>(cells);
    logFile << "(AMR) Refining " << refines << " cells after induces, " << 100.0 * ratio_refines << "% of grid" << std::endl;
@@ -1922,7 +1631,7 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
       newBytes += mpiGrid[id]->get_cell_memory_capacity();
    }
 
-   report_process_memory_consumption(newBytes);
+   report_memory_consumption(mpiGrid, newBytes);
    estimateMemoryTimer.stop();
 
    logFile.flush(false);
@@ -1951,9 +1660,9 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    }
 
    phiprof::Timer transfersTimer {"transfers"};
-   for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
+   for (size_t popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       // Set active population
-      SpatialCell::setCommunicatedSpecies(p);
+      SpatialCell::setCommunicatedSpecies(popID);
 
       //Transfer velocity block list
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE1);
@@ -1965,7 +1674,7 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
       for (CellID id : receives) {
          // reserve space for velocity block data in arriving remote cells
          phiprof::Timer timer {prepareReceives};
-         mpiGrid[id]->prepare_to_receive_blocks(p);
+         mpiGrid[id]->prepare_to_receive_blocks(popID);
          timer.stop(1, "Spatial cells");
       }
 
@@ -1981,6 +1690,8 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
       SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
       mpiGrid.continue_refining();
       transferTimer.stop();
+   
+      memory_purge(); // Purge jemalloc allocator to actually release memory
    }
    transfersTimer.stop();
 
@@ -2021,32 +1732,39 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    finishTimer.stop();
    dccrgTimer.stop();
 
-   recalculateLocalCellsCache();
+   memory_purge(); // Purge jemalloc allocator to actually release memory
+
+   recalculateLocalCellsCache(mpiGrid);
    initSpatialCellCoordinates(mpiGrid);
 
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_DIMENSIONS);
-   mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
+   mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::SYSBOUNDARIES);
 
    mapRefinement(mpiGrid, technicalGrid);
+
+   const vector<CellID>& cellsVec = getLocalCells();
+
+   computeCoupling(mpiGrid, cellsVec, technicalGrid);
 
    // Initialise system boundary conditions (they need the initialised positions!!)
    // This needs to be done before LB
    sysBoundaries.classifyCells(mpiGrid,technicalGrid);
 
+
    if (P::vlasovSolverGhostTranslate) {
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_PARAMETERS);
-      mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_GHOST_NEIGHBORHOOD_ID);
+      mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::VLASOV_SOLVER_GHOST);
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
-      mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_GHOST_NEIGHBORHOOD_ID);
+      mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::VLASOV_SOLVER_GHOST);
    } else {
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_PARAMETERS);
-      mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
+      mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::NEAREST);
    }
 
    // Update as ghost cell refLevels may have changed
    technicalGrid.updateGhostCells();
-   for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
-      updateRemoteVelocityBlockLists(mpiGrid, p, NEAREST_NEIGHBORHOOD_ID);
+   for (size_t popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      updateRemoteVelocityBlockLists(mpiGrid, popID, Neighborhoods::NEAREST);
    }
 
    if (P::shouldFilter) {
@@ -2056,4 +1774,11 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    // ghost translation cell lists, build pencils
    prepareAMRLists(mpiGrid);
    return true;
+}
+
+void recalculateLocalCellsCache(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+   // Clear-and-minimize idiom for minimizing capacity
+   // TODO: consider shrink_to_fit() or alternatively benchmark just copy assigning
+   std::vector<CellID>().swap(Parameters::localCells);
+   Parameters::localCells = mpiGrid.get_cells();
 }

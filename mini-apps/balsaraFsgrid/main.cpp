@@ -141,10 +141,9 @@ int main(int argc, char** argv) {
    // Set up fsgrids
    const std::array<int,3> fsGridDimensions = {5,5,5};
    std::array<bool,3> periodicity{true,true,true};
-   FsGridCouplingInformation gridCoupling;
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> technicalGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> perBGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
-   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> dPerBGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity,gridCoupling);
+   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> technicalGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity);
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> perBGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity);
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> dPerBGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity);
    perBGrid.DX = dPerBGrid.DX = technicalGrid.DX = 1.;
    perBGrid.DY = dPerBGrid.DY = technicalGrid.DY = 1.;
    perBGrid.DZ = dPerBGrid.DZ = technicalGrid.DZ = 1.;

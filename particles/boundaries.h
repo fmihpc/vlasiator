@@ -108,7 +108,7 @@ struct ReflectBoundary : public Boundary
    virtual bool handleParticle(Particle& p) {
       // Particles outside of bounds get their velocities flipped
       if(p.x[dimension] <= min || p.x[dimension] >= max) {
-         p.v *= flip_v;
+         p.v = p.v.cwiseProduct(flip_v);
       }
       return true;
    }
@@ -127,9 +127,9 @@ struct ReflectBoundary : public Boundary
 
    // Constructor
    ReflectBoundary(int _dimension) : Boundary(_dimension) {
-      double flip[3] = {1.,1.,1.};
+      Vec3d flip = {1.,1.,1.};
       flip[dimension] = -1.;
-      flip_v.load(flip);
+      flip_v=flip;
    }
    virtual void setExtent(double _min, double _max, int _cells) {
       double dx = (_max-_min)/((double)_cells);
@@ -167,9 +167,9 @@ struct PeriodicBoundary : public Boundary
       max=_max;
       cells=_cells;
 
-      double offset[3] = {0.,0.,0.};
+      Vec3d offset = {0.,0.,0.};
       offset[dimension] = max-min;
-      offset_p.load(offset);
+      offset_p = offset;
    }
 
    // Vector to offset particle positions that leave through

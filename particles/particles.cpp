@@ -23,8 +23,6 @@
 #include "particles.h"
 #include "physconst.h"
 #include "relativistic_math.h"
-#include "vectorclass.h"
-#include "vector3d.h"
 #include "vlsv_writer.h"
 
 
@@ -56,7 +54,9 @@ void writeParticles(ParticleContainer& p,const char* filename) {
         continue;
       }
 
-      p[i].x.store(&(writebuf[3*writable_particles]));
+      for(int j=0; j<3; j++) {
+         writebuf[3*writable_particles+j] = p[i].x[j];
+      }
       writable_particles++;
    }
 
@@ -73,7 +73,9 @@ void writeParticles(ParticleContainer& p,const char* filename) {
       if(vector_length(p[i].x) == 0) {
         continue;
       }
-      p[i].v.store(&(writebuf[3*writable_particles]));
+      for(int j=0; j<3; j++) {
+         writebuf[3*writable_particles+j] = p[i].v[j];
+      }
       writable_particles++;
    }
 

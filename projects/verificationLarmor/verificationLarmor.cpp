@@ -28,6 +28,7 @@
 #include "../../common.h"
 #include "../../readparameters.h"
 #include "../../object_wrapper.h"
+#include "../../velocity_mesh_parameters.h"
 #include "../../backgroundfield/backgroundfield.h"
 #include "../../backgroundfield/constantfield.hpp"
 #include "verificationLarmor.h"
@@ -74,41 +75,75 @@ namespace projects {
       RP::get("VerificationLarmor.rho", this->DENSITY);
    }
 
-   Real verificationLarmor::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz,
-           creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
+   Realf verificationLarmor::fillPhaseSpace(spatial_cell::SpatialCell *cell,
+                                       const uint popID,
+                                       const uint nRequested
+      ) const {
+      // Fetch spatial cell low corner coordinates
+      const Real x  = cell->parameters[CellParams::XCRD];
+      const Real dx = cell->parameters[CellParams::DX];
+      const Real y  = cell->parameters[CellParams::YCRD];
+      const Real dy = cell->parameters[CellParams::DY];
+      const Real z  = cell->parameters[CellParams::ZCRD];
+      const Real dz = cell->parameters[CellParams::DZ];
+      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+      Real initRho = this->DENSITY;
+
+      // NOTE: This fill function does not have a GPU-supported version.
+      vmesh::VelocityMesh *vmesh = cell->get_velocity_mesh(popID);
+      vmesh::VelocityBlockContainer* VBC = cell->get_velocity_blocks(popID);
+      vmesh::GlobalID *GIDlist = vmesh->getGrid()->data();
+      Realf* bufferData = VBC->getData();
+
+      // Values are only set in cell at X0,Y0,Z0. Otherwise return empty.
+      if (fabs(x-this->X0)>=dx ||
+          fabs(y-this->Y0)>=dy ||
+          fabs(z-this->Z0)>=dz) {
+         std::memset(bufferData, 0, nRequested*WID3*sizeof(Realf));
+         return 0;
+      }
 
       static bool isSet=false;
       //static variables should be threadprivate
-   #pragma omp threadprivate(isSet)
+      #pragma omp threadprivate(isSet)
 
-      const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
-      const vmesh::MeshParameters& meshParams = getObjectWrapper().velocityMeshes[meshID];
-      if (vx < meshParams.meshMinLimits[0] + 0.5*dvx ||
-          vy < meshParams.meshMinLimits[1] + 0.5*dvy ||
-          vz < meshParams.meshMinLimits[2] + 0.5*dvz ||
-          vx > meshParams.meshMaxLimits[0] - 1.5*dvx ||
-          vy > meshParams.meshMaxLimits[1] - 1.5*dvy ||
-          vz > meshParams.meshMaxLimits[2] - 1.5*dvz) {
-         return 0.0;
-      }
-
-      if(isSet)
-         return 0.0; //exactly one value to be set
-
-      if( fabs(vx-this->VX0)<dvx &&
-         fabs(vy-this->VY0)<dvy &&
-         fabs(vz-this->VZ0)<dvz &&
-         fabs(x-this->X0)<dx &&
-         fabs(y-this->Y0)<dy &&
-         fabs(z-this->Z0)<dz){
-         isSet=true;
-         return this->DENSITY/(dvx*dvy*dvz);
-      }
-
-      return 0.0;
-      
+      // Loop over blocks
+      Realf rhosum = 0;
+      for (uint blockLID=0; blockLID<nRequested; ++blockLID) {
+         vmesh::GlobalID blockGID = GIDlist[blockLID];
+         // Calculate parameters for block
+         Real blockCoords[6];
+         vmesh->getBlockInfo(blockGID,&blockCoords[0]);
+         creal vxBlock = blockCoords[0];
+         creal vyBlock = blockCoords[1];
+         creal vzBlock = blockCoords[2];
+         creal dvxCell = blockCoords[3];
+         creal dvyCell = blockCoords[4];
+         creal dvzCell = blockCoords[5];
+         for (uint kc=0; kc<WID; ++kc) {
+            for (uint jc=0; jc<WID; ++jc) {
+               for (uint ic=0; ic<WID; ++ic) {
+                  creal vx = vxBlock + (ic+0.5)*dvxCell - this->VX0;
+                  creal vy = vyBlock + (jc+0.5)*dvyCell - this->VY0;
+                  creal vz = vzBlock + (kc+0.5)*dvzCell - this->VZ0;
+                  Realf value=0;
+                  if (isSet) {
+                     continue;
+                  }
+                  if (fabs(vx)<dvxCell &&
+                      fabs(vy)<dvyCell &&
+                      fabs(vz)<dvzCell) {
+                      isSet = true;
+                      value = initRho/(dvxCell*dvyCell*dvzCell);
+                  }
+                  bufferData[blockLID*WID3 + kc*WID2 + jc*WID + ic] = value;
+                  rhosum += value;
+               }
+            }
+         }
+      } // End loop over blocks
+      return rhosum;
    }
-
 
    void verificationLarmor::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
 
@@ -121,7 +156,7 @@ namespace projects {
       bgField.initialize(this->BX0,
                          this->BY0,
                          this->BZ0);
-      
+
       setBackgroundField(bgField, BgBGrid);
    }
 

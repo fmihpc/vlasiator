@@ -304,7 +304,6 @@ namespace FieldTracing {
       
       Real stepSize = 100e3;
       std::array<Real,3> v;
-      phiprof::Timer timer {"fieldtracing-ionosphere-VlasovGridCoupling"};
       
       // For tracing towards the vlasov boundary, we only require the dipole field.
       TracingFieldFunction<Real> dipoleFieldOnly = [](std::array<Real,3>& r, const bool outwards, std::array<Real,3>& b)->bool {
@@ -356,7 +355,7 @@ namespace FieldTracing {
       const std::array<Real,3> x_in = x;
       Real r_in = sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]);
       // Take a step back and find the innerRadius crossing point
-      stepFieldLine(x,v, stepSize,fieldTracingParameters.min_tracer_dx_ionospere_coupling,fieldTracingParameters.max_tracer_dx_ionospere_coupling,fieldTracingParameters.tracingMethod,dipoleFieldOnly,false);
+      stepFieldLine(x,v, stepSize,fieldTracingParameters.min_tracer_dx_ionospere_coupling,fieldTracingParameters.max_tracer_dx_ionospere_coupling,fieldTracingParameters.tracingMethod,dipoleFieldOnly,true);
       Real r_out = sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]);
       Real alpha = (SBC::Ionosphere::innerRadius - r_in)/(r_out - r_in);
       alpha = std::fmax(std::fmin(alpha,1.0),0.0);
@@ -572,12 +571,12 @@ namespace FieldTracing {
                   }
                   
                   // If we map out of the box, this node is on an open field line.
-                  if(   x[0] > P::xmax - 4*P::dx_ini
-                     || x[0] < P::xmin + 4*P::dx_ini
-                     || x[1] > P::ymax - 4*P::dy_ini
-                     || x[1] < P::ymin + 4*P::dy_ini
-                     || x[2] > P::zmax - 4*P::dz_ini
-                     || x[2] < P::zmin + 4*P::dz_ini
+                  if(   x[0] > fieldTracingParameters.x_max
+                     || x[0] < fieldTracingParameters.x_min
+                     || x[1] > fieldTracingParameters.y_max
+                     || x[1] < fieldTracingParameters.y_min
+                     || x[2] > fieldTracingParameters.z_max
+                     || x[2] < fieldTracingParameters.z_min
                   ) {
                      nodeNeedsContinuedTracing[n] = 0;
                      nodeTracingCoordinates[n] = {0,0,0};
@@ -710,12 +709,12 @@ namespace FieldTracing {
          
          // If we map out of the box, discard this field line.
          if(
-               x[0] > P::xmax - 4*P::dx_ini
-            || x[0] < P::xmin + 4*P::dx_ini
-            || x[1] > P::ymax - 4*P::dy_ini
-            || x[1] < P::ymin + 4*P::dy_ini
-            || x[2] > P::zmax - 4*P::dz_ini
-            || x[2] < P::zmin + 4*P::dz_ini
+               x[0] > fieldTracingParameters.x_max
+            || x[0] < fieldTracingParameters.x_min
+            || x[1] > fieldTracingParameters.y_max
+            || x[1] < fieldTracingParameters.y_min
+            || x[2] > fieldTracingParameters.z_max
+            || x[2] < fieldTracingParameters.z_min
          ) {
             cellTracingCoordinates[n] = x;
             cellConnection[n] += TracingLineEndType::OPEN;
@@ -894,12 +893,12 @@ namespace FieldTracing {
          cellBWTracingCoordinates.at(n) = cellFWTracingCoordinates.at(n);
          if(mpiGrid.is_local(id)) {
             if((mpiGrid[id]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY)
-               || cellFWTracingCoordinates[n][0] > P::xmax - 4*P::dx_ini
-               || cellFWTracingCoordinates[n][0] < P::xmin + 4*P::dx_ini
-               || cellFWTracingCoordinates[n][1] > P::ymax - 4*P::dy_ini
-               || cellFWTracingCoordinates[n][1] < P::ymin + 4*P::dy_ini
-               || cellFWTracingCoordinates[n][2] > P::zmax - 4*P::dz_ini
-               || cellFWTracingCoordinates[n][2] < P::zmin + 4*P::dz_ini
+               || cellFWTracingCoordinates[n][0] > fieldTracingParameters.x_max
+               || cellFWTracingCoordinates[n][0] < fieldTracingParameters.x_min
+               || cellFWTracingCoordinates[n][1] > fieldTracingParameters.y_max
+               || cellFWTracingCoordinates[n][1] < fieldTracingParameters.y_min
+               || cellFWTracingCoordinates[n][2] > fieldTracingParameters.z_max
+               || cellFWTracingCoordinates[n][2] < fieldTracingParameters.z_min
             ) {
                cellFWConnection[n] = TracingLineEndType::OUTSIDE;
                cellBWConnection[n] = TracingLineEndType::OUTSIDE;

@@ -1,0 +1,87 @@
+# KAROLINA_GCC
+# Suggested modules
+#
+# module load GCC/13.3.0
+# module load PAPI/7.1.0-GCCcore-13.3.0
+# module load OpenMPI/5.0.3-GCC-13.3.0
+# ./build_libraries.sh karolina_gcc
+
+# Karolina CPU has 2 x 64 cores
+# For good core placement, run with:
+#  export OMP_PLACES=cores
+#  export OMP_PROC_BIND=close
+#  export SRUN_CPUS_PER_TASK=$SLURM_CPUS_PER_TASK
+# and
+#  mpirun -n $SLURM_NTASKS --map-by ppr:$SLURM_NTASKS_PER_NODE:node:PE=$OMP_NUM_THREADS --bind-to core --report-bindings $EXE $CFG
+# or (less options might do)
+#  srun --cpu-bind=cores --cpus-per-task=$OMP_NUM_THREADS
+
+CMP = mpic++
+LNK = mpic++
+
+#======== Vectorization ==========
+#Set vector backend type for vlasov solvers, sets precision and length.
+#Options:
+# AVX:      VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX512:   VEC8D_AGNER, VEC16F_AGNER
+# Fallback: VEC4D_FALLBACK, VEC4F_FALLBACK, VEC8F_FALLBACK
+
+ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
+#Single-precision
+        VECTORCLASS = VEC8F_AGNER
+else
+#Double-precision
+        VECTORCLASS = VEC4D_AGNER
+endif
+
+#======== Libraries ===========
+LIBRARY_PREFIX = libraries-karolina_gcc
+
+#======= Compiler and compilation flags =========
+# NOTES on compiler flags:
+# CXXFLAGS is for compiler flags, they are always used
+# MATHFLAGS are for special math etc. flags, these are only applied on solver functions
+# LDFLAGS flags for linker
+# Important note: Do not edit COMPFLAGS in this file!
+
+CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -fabi-version=0 -march=native -mfma -mavx2 -fpermissive
+testpackage: CXXFLAGS = -g -ggdb -O2 -fopenmp -funroll-loops -std=c++17 -fabi-version=0 -mfma -fpermissive
+
+MATHFLAGS = -ffast-math -fno-finite-math-only
+testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
+
+LDFLAGS = -lrt -Wl,-rpath=$(CURDIR)/$(LIBRARY_PREFIX)/lib
+LIB_MPI = -lgomp
+
+#======== PAPI ==========
+#Add PAPI_MEM define to use papi to report memory consumption?
+CXXFLAGS += -DPAPI_MEM
+testpackage: CXXFLAGS += -DPAPI_MEM
+
+#======== Allocator =========
+#Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
+#Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
+CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+
+#======== Compiled Libraries ===========
+INC_BOOST = -isystem $(LIBRARY_PREFIX)/include
+LIB_BOOST = -L$(LIBRARY_PREFIX)/lib -lboost_program_options
+
+INC_PAPI = -isystem $(LIBRARY_PREFIX)/include
+LIB_PAPI = -L$(LIBRARY_PREFIX)/lib -lpapi
+
+INC_JEMALLOC = -isystem $(LIBRARY_PREFIX)/include
+LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/lib -ljemalloc
+
+INC_ZOLTAN = -isystem /$(LIBRARY_PREFIX)/include
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/lib -lzoltan
+
+INC_VLSV = -I$(LIBRARY_PREFIX)/include
+LIB_VLSV = -L$(LIBRARY_PREFIX)/lib -lvlsv
+
+INC_PROFILE = -I$(LIBRARY_PREFIX)/include
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/lib -lphiprof
+
+#======== Header-only Libraries ===========
+# included as submodules

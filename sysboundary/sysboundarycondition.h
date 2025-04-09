@@ -30,7 +30,7 @@
 #include <vector>
 #include "../common.h"
 #include "../definitions.h"
-#include "../spatial_cell_wrapper.hpp"
+#include "../spatial_cells/spatial_cell_wrapper.hpp"
 #include "../projects/project.h"
 
 using namespace spatial_cell;
@@ -197,7 +197,7 @@ namespace SBC {
             SpatialCell *to,
             const bool copyMomentsOnly,
             const uint popID,
-            const bool calculate_V_moments
+            const bool copy_V_moments
          );
          std::array<SpatialCell*,27> & getFlowtoCells(
                const CellID& cellID
@@ -227,11 +227,6 @@ namespace SBC {
             const uint popID,
             const bool calculate_V_moments
          );
-         void vlasovBoundaryCopyFromTheClosestNbrAndLimit(
-               dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-               const CellID& cellID,
-               const uint popID
-         );
          void vlasovBoundaryCopyFromAllClosestNbrs(
             dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID,
@@ -244,23 +239,6 @@ namespace SBC {
             const uint popID,
             const bool calculate_V_moments,
             creal fluffiness
-         );
-         void vlasovBoundaryReflect(
-            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-            const CellID& cellID,
-            creal& nx,
-            creal& ny,
-            creal& nz,
-            const uint popID
-         );
-         void vlasovBoundaryAbsorb(
-            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-            const CellID& cellID,
-            creal& nx,
-            creal& ny,
-            creal& nz,
-            creal& quenchingFactor,
-            const uint popID
          );
          std::array<int, 3> getTheClosestNonsysboundaryCell(
             FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
@@ -326,6 +304,24 @@ namespace SBC {
       const uint popID,
       creal fluffiness = 0
    );
+
+   /*!\brief SBC::findMaxwellianBlocksToInitialize returns a list of blocks to construct the VDF with.
+    * 
+    *  Here the while loop iterates  from the centre of the maxwellian in blocksize (4*dvx) increments,
+    *  and looks at the centre of the first velocity cell in the block (+0.5dvx), checking if the
+    *  phase-space density there is large enough to be included due to sparsity threshold.
+    *  That results in a "blocks radius"  vRadiusSquared from the centre of the Maxwellian distribution.
+    *  Then we iterate through the actual blocks and calculate their radius R2 based on their velocity coordinates
+    *  and the plasma bulk velocity. Blocks that fullfil R2<vRadiusSquared are included to blocksToInitialize.
+    */
+   vmesh::LocalID findMaxwellianBlocksToInitialize(
+      const uint popID,
+      spatial_cell::SpatialCell& cell,
+      creal& rho,
+      creal& T,
+      creal& VX0,
+      creal& VY0,
+      creal& VZ0);
 
 } // namespace SBC
 

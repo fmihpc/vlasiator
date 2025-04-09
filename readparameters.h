@@ -67,7 +67,8 @@ public:
       if (rank == MASTER_RANK) {
          std::stringstream ss;
 
-         if constexpr (std::is_floating_point_v<T>) {
+         static constexpr bool n = (std::is_floating_point<T>::value);
+         if (n) {
             ss << std::setprecision(std::numeric_limits<double>::digits10 + 1) << defValue;
          } else {
             ss << defValue;

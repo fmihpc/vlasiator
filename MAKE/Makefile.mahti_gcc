@@ -2,7 +2,6 @@ CMP = mpic++
 LNK = mpic++
 
 # Modules loaded
-# module load gcc openmpi jemalloc papi boost
 # module load gcc/13 openmpi jemalloc papi
 # also load cuda/11.5.0 for nvtx support
 #======== Vectorization ==========
@@ -33,7 +32,6 @@ CC_BRAND_VERSION = 9.3.0
 CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++20 -W -Wall -Wno-unused -fabi-version=0 -march=native -mfma -mavx2 -fpermissive
 testpackage: CXXFLAGS = -g -ggdb -O2 -fopenmp -funroll-loops -std=c++20 -fabi-version=0 -mfma -fpermissive
 
-
 MATHFLAGS = -ffast-math -fno-finite-math-only
 testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
 
@@ -61,9 +59,6 @@ testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 #-DNO_WRITE_AT_ALL:  Define to disable write at all to
 #                    avoid memleak (much slower IO)
 
-# BOOST_VERSION = current trilinos version
-# ZOLTAN_VERSION = current trilinos verson
-#
 #======== Libraries ===========
 
 MPT_VERSION = 4.0.3
@@ -71,7 +66,8 @@ JEMALLOC_VERSION = 5.2.1
 LIBRARY_PREFIX =  /projappl/project_2000203/libraries_rhel8_openmpi/
 
 # module libraries
-LIB_BOOST = -lboost_program_options
+INC_BOOST = -I$(LIBRARY_PREFIX)/boost/include
+LIB_BOOST = -L$(LIBRARY_PREFIX)/boost/lib -lboost_program_options -Wl,-rpath=$(LIBRARY_PREFIX)/boost/lib
 LIB_JEMALLOC = -ljemalloc
 LIB_PAPI = -lpapi
 

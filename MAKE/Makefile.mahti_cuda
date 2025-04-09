@@ -1,0 +1,94 @@
+# Suggested modules
+#
+# module purge
+# ml gcc/10.4.0 openmpi/4.1.5-cuda cuda/12.1.1 boost/1.82.0-mpi papi/7.1.0
+
+#======== Vectorization ==========
+#Set vector backend type for vlasov solvers, sets precision and length.
+#Options:
+# AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX512:   VEC8D_AGNER, VEC16F_AGNER
+# Fallback: VECTORCLASS = VEC_FALLBACK_GENERIC
+VECTORCLASS = VEC_FALLBACK_GENERIC
+
+#===== Vector Lengths ====
+# Default for VEC_FALLBACK_GENERIC is WID=4, VECL=8
+# NOTE: A bug currently results in garbage data already on cell init if VECL is not equal to WID2
+#WID=8
+#VECL=64
+WID=4
+VECL=16
+
+#======= Compiler and compilation flags =========
+# NOTES on compiler flags:
+# CXXFLAGS is for compiler flags, they are always used
+# MATHFLAGS are for special math etc. flags, these are only applied on solver functions
+# LDFLAGS flags for linker
+# Important note: Do not edit COMPFLAGS in this file!
+
+#-DNO_WRITE_AT_ALL:  Define to disable write at all to
+#                    avoid memleak (much slower IO)
+#-DMPICH_IGNORE_CXX_SEEK: Ignores some multiple definition
+#                         errors that come up when using
+#                         mpi.h in c++ on Cray
+
+USE_CUDA=1
+
+#-ggdb not available on nvcc
+#-G (device debug) overrides --generate-line-info -line-info but also requires more device-side resources to run
+# use "-Xptxas -v" for verbose output of ptx compilation
+# --cudart shared used for Kostis' mempool_ts
+CXXFLAGS = -g -O3 -x cu -std=c++20 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 --cudart shared --generate-line-info -line-info -Xcompiler="-fopenmp" -Xcompiler="-fpermissive" -maxrregcount 24 -Wno-deprecated-declarations
+testpackage: CXXFLAGS = -g -O2 -x cu -std=c++20 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 --cudart shared --generate-line-info -line-info -Xcompiler="-fopenmp" -Xcompiler="-fpermissive" -maxrregcount 24 -Wno-deprecated-declarations
+
+# Tell mpic++ to use nvcc for all compiling
+CMP = OMPI_CXX='nvcc' OMPI_CXXFLAGS='' mpic++
+
+# Now tell also the linker to use nvcc. Contents of these were retrieved with "mpic++ --showme:link".
+# Use this same linker command also for building and linking phiprof.
+## The line below indeed uses OMPI_CXX, not OMPI_LD
+LNK = OMPI_CXX='nvcc' OMPI_CXXFLAGS='-arch=sm_80' OMPI_LIBS='-L/appl/spack/v020/install-tree/gcc-10.4.0/openmpi-4.1.5-xykxbk/lib -L/appl/spack/syslibs/lib' OMPI_LDFLAGS=' -Xlinker=-rpath=/appl/spack/v020/install-tree/gcc-8.5.0/gcc-10.4.0-2oazqj/lib/gcc/x86_64-pc-linux-gnu/10.4.0 -Xlinker=-rpath=/appl/spack/v020/install-tree/gcc-8.5.0/gcc-10.4.0-2oazqj/lib64 -Xlinker=-rpath=/appl/spack/v020/install-tree/gcc-10.4.0/openmpi-4.1.5-xykxbk/lib -Xlinker=-rpath=/lib/appl/spack/syslibs/lib -Xlinker=-rpath=/appl/spack/v020/install-tree/gcc-10.4.0/cuda-12.1.1-2ppwzf/lib64 -lmpi ' mpic++
+
+MATHFLAGS = --use_fast_math
+# nvcc fast_math does not assume only finite math
+testpackage: MATHFLAGS = --prec-sqrt=true --prec-div=true --ftz=false --fmad=false
+
+LDFLAGS = -O2 -g -G -L/appl/spack/v020/install-tree/gcc-10.4.0/cuda-12.1.1-2ppwzf/lib64 -lnvToolsExt --cudart shared
+LIB_MPI = -lgomp
+INC_MPI = -I/appl/spack/v020/install-tree/gcc-10.4.0/openmpi-4.1.5-xykxbk/include -I/appl/spack/v020/install-tree/gcc-10.4.0/openmpi-4.1.5-xykxbk/include/openmpi -I/appl/spack/syslibs/include
+
+LIB_CUDA = -L/appl/spack/v020/install-tree/gcc-10.4.0/cuda-12.1.1-2ppwzf/lib64 
+INC_CUDA = -isystem /appl/spack/v020/install-tree/gcc-10.4.0/cuda-12.1.1-2ppwzf/include
+
+#======== PAPI ==========
+#Add PAPI_MEM define to use papi to report memory consumption?
+CXXFLAGS += -DPAPI_MEM
+testpackage: CXXFLAGS += -DPAPI_MEM
+
+#======== Allocator =========
+#Use jemalloc instead of system malloc to reduce memory fragmentation https://github.com/jemalloc/jemalloc
+#Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
+#NOTE: jemalloc not supported with GPUs
+#CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+#testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+
+#======== Libraries ===========
+
+LIBRARY_PREFIX = /projappl/project_2004522/libraries/gcc-10.4.0/openmpi-4.1.5-cuda/cuda-12.1.1/
+
+#======== Compiled Libraries ===========
+LIB_BOOST = -lboost_program_options -Xlinker=-rpath=/appl/spack/v020/install-tree/gcc-10.4.0/boost-1.82.0-ystwi2/lib/
+
+LIB_PAPI = -lpapi -Xlinker=-rpath=/appl/spack/v020/install-tree/gcc-10.4.0/papi-7.1.0-pl56uv/lib
+
+INC_ZOLTAN = -isystem /$(LIBRARY_PREFIX)/zoltan/include
+LIB_ZOLTAN = -L/$(LIBRARY_PREFIX)/zoltan/lib -lzoltan
+
+INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv
+LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv -Xlinker=-rpath=$(LIBRARY_PREFIX)/vlsv/lib
+
+INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -Xlinker=-rpath=$(LIBRARY_PREFIX)/phiprof/lib
+
+#======== Header-only Libraries ===========
+# included as submodules

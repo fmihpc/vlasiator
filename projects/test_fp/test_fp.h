@@ -34,32 +34,31 @@ namespace projects {
       test_fp();
       virtual ~test_fp();
       
-      virtual bool initialize(void);
+      virtual bool initialize(void) override;
       static void addParameters(void);
-      virtual void getParameters(void);
+      virtual void getParameters(void) override;
       virtual void setProjectBField(
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
          FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
          FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-      );
+      ) override;
       
-   protected:
       Real sign(creal value) const;
-      Real getDistribValue(creal& vx, creal& vy, creal& vz);
-      virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
-      virtual Real calcPhaseSpaceDensity(
-         creal& x, creal& y, creal& z,
-         creal& dx, creal& dy, creal& dz,
-         creal& vx, creal& vy, creal& vz,
-         creal& dvx, creal& dvy, creal& dvz,const uint popID
-      ) const;
+      virtual Realf fillPhaseSpace(spatial_cell::SpatialCell *cell,
+                                  const uint popID,
+                                  const uint nRequested) const override;
+      virtual Realf probePhaseSpace(spatial_cell::SpatialCell *cell,
+                                    const uint popID,
+                                    Real vx_in, Real vy_in, Real vz_in) const override;
+
+      virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) override;
       
       virtual std::vector<std::array<Real, 3> > getV0(
          creal x,
          creal y,
          creal z,
          const uint popID
-      ) const; 
+      ) const override; 
       
       virtual std::vector<std::array<Real, 3> > getV0(
          creal x,

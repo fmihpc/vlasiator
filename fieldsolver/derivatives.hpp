@@ -24,7 +24,7 @@
 #include <array>
 
 #include "../definitions.h"
-#include "../spatial_cell_wrapper.hpp"
+//#include "../spatial_cells/spatial_cell_wrapper.hpp"
 #include "../sysboundary/sysboundary.h"
 
 #include "fs_limiters.h"
@@ -36,6 +36,7 @@ void calculateDerivativesSimple(
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsDt2Grid,
    FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsDt2Grid,
    FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
    SysBoundary& sysBoundaries,
    cint& RKCase,

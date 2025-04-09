@@ -25,7 +25,7 @@
 #include <Eigen/Core>
 
 #include "../definitions.h"
-#include "../spatial_cell_wrapper.hpp"
+#include "../spatial_cells/spatial_cell_wrapper.hpp"
 
 Eigen::Matrix<Real,3,1> line_plane_intersection(const Eigen::Matrix<Real,3,1>& l_point,
                                                 const Eigen::Matrix<Real,3,1>& l_direction,
@@ -33,26 +33,26 @@ Eigen::Matrix<Real,3,1> line_plane_intersection(const Eigen::Matrix<Real,3,1>& l
                                                 const Eigen::Matrix<Real,3,1>& p_normal);
 
 void compute_intersections_1st(
-        const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
+        const vmesh::VelocityMesh* vmesh,
         const Eigen::Transform<Real,3,Eigen::Affine>& bwd_transform,
         const Eigen::Transform<Real,3,Eigen::Affine>& fwd_transform,
-        uint dimension,const uint8_t& refLevel,
+        uint dimension,
         Real& intersection,Real& intersection_di,
         Real& intersection_dj,Real& intersection_dk);
 
 void compute_intersections_2nd(
-        const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
+        const vmesh::VelocityMesh* vmesh,
         const Eigen::Transform<Real,3,Eigen::Affine>& bwd_transform,
         const Eigen::Transform<Real,3,Eigen::Affine>& fwd_transform,
-        uint dimension,const uint8_t& refLevel,
+        uint dimension,
         Real& intersection,Real& intersection_di,
         Real& intersection_dj,Real& intersection_dk);
 
 void compute_intersections_3rd(
-        const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
+        const vmesh::VelocityMesh* vmesh,
         const Eigen::Transform<Real,3,Eigen::Affine>& bwd_transform,
         const Eigen::Transform<Real,3,Eigen::Affine>& fwd_transform,
-        uint dimension,const uint8_t& refLevel,
+        uint dimension,
         Real& intersection,Real& intersection_di,
         Real& intersection_dj,Real& intersection_dk);
 

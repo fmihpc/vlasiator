@@ -1,0 +1,101 @@
+# Markus' desktop computer, CUDA
+# Can be used as a sample on how to generate local CUDA makefiles
+#
+# Note: CUDA versions before 11.6 will complain when compiling backgroundfields
+#  (error: parameter packs not expanded with ‘...’:)
+# this is fixed by installing at least version 11.6
+
+#======== Vectorization ==========
+#Set vector backend type for vlasov solvers, sets precision and length.
+#Options:
+# AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX512:   VEC8D_AGNER, VEC16F_AGNER
+# Fallback: VECTORCLASS = VEC_FALLBACK_GENERIC (Defaults to VECL8)
+
+ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
+#Single-precision        
+        VECTORCLASS = VEC_FALLBACK_GENERIC
+else
+#Double-precision
+        VECTORCLASS = VEC_FALLBACK_GENERIC
+endif
+
+#===== Vector Lengths ====
+# Default for VEC_FALLBACK_GENERIC is WID=4, VECL=8
+# NOTE: A bug currently results in garbage data already on cell init if VECL is not equal to WID2
+#WID=8
+#VECL=64
+WID=4
+VECL=16
+
+#======= Compiler and compilation flags =========
+# NOTES on compiler flags:
+# CXXFLAGS is for compiler flags, they are always used
+# MATHFLAGS are for special math etc. flags, these are only applied on solver functions
+# LDFLAGS flags for linker
+
+USE_CUDA=1
+
+# Tell mpic++ to use nvcc for all compiling
+CMP = OMPI_CXX='nvcc' OMPI_CXXFLAGS='' mpic++
+
+# Now tell also the linker to use nvcc
+# These are found with  mpic++ --showme:link
+# The line below indeed uses OMPI_CXX, not OMPI_LD
+LNK = OMPI_CXX='nvcc' OMPI_CXXFLAGS='-arch=sm_60' OMPI_LIBS='-L/usr/lib/x86_64-linux-gnu/openmpi/lib' OMPI_LDFLAGS='-lmpi_cxx -lmpi' mpic++
+
+#-G (device debug) overrides --generate-line-info -line-info
+# but also requires more device-side resources to run
+# use "-Xptxas -v" for verbose output of ptx compilation
+
+# Geforce GTX 1060 6GB is compute version 61
+# https://arnon.dk/matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/
+
+CXXFLAGS = -g -O3 -x cu -std=c++17 -Xcompiler -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_60,code=sm_60 -Xcompiler -fopenmp --generate-line-info -line-info -Xcompiler="-fpermissive"  --extra-device-vectorization
+testpackage: CXXFLAGS = -g -O2 -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_60,code=sm_60 -Xcompiler -fopenmp --generate-line-info -line-info -Xcompiler="-fpermissive"
+
+
+MATHFLAGS = --use_fast_math
+# nvcc fast_math does not assume only finite math
+testpackage: MATHFLAGS = --prec-sqrt=true --prec-div=true --ftz=false --fmad=false
+
+LDFLAGS = -O2 -g -lnvToolsExt
+LIB_MPI = -lgomp
+
+LIB_CUDA = -L/usr/local/cuda/lib64
+INC_CUDA = -isystem /usr/local/cuda/include
+
+#======== PAPI ==========
+#Add PAPI_MEM define to use papi to report memory consumption?
+#CXXFLAGS += -DPAPI_MEM
+#testpackage: CXXFLAGS += -DPAPI_MEM
+
+#======== Allocator =========
+#jemalloc is CPU only
+
+#======== Libraries ===========
+LIBRARY_PREFIX = /home/markusb/git/vlasiator-lib
+
+INC_BOOST = -isystem /usr/include/boost
+LIB_BOOST = -L/usr/include/boost -lboost_program_options
+
+INC_ZOLTAN = -isystem /usr/include/trilinos
+LIB_ZOLTAN = -I/usr/lib/x86_64-linux-gnu -ltrilinos_zoltan
+
+# INC_PAPI = -I$(LIBRARY_PREFIX)/papi/include
+# LIB_PAPI = -I$(LIBRARY_PREFIX)/papi/lib -Wl,-rpath=$(LIBRARY_PREFIX)/papi/lib
+
+INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv
+LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv -Xlinker=-rpath=$(LIBRARY_PREFIX)/vlsv/lib
+
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -Xlinker=-rpath=$(LIBRARY_PREFIX)/phiprof/lib
+INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
+
+#======== Header-only Libraries ===========
+
+INC_EIGEN = -isystem ./submodules/eigen
+INC_DCCRG = -I./submodules/dccrg
+INC_FSGRID = -I./submodules/fsgrid
+INC_HASHINATOR = -isystem ./submodules/hashinator/
+# Vectorclass only for CPU mode
+# INC_VECTORCLASS = -I ./submodules/vectorclass/ -I ./submodules/vectorclass-addon/vector3d/

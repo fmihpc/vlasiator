@@ -60,7 +60,7 @@ void propagate(Vec dr[], Vec values[], Real z_translation, uint blocks_per_dim )
          // integrate to put mass in the target  neighboring cell.
          // Normalize the coordinates to the origin cell. Then we scale with the difference
          // in volume between target and origin later when adding the integrated value.
-         Realv z_1,z_2;
+         Realf z_1,z_2;
          if ( z_translation < 0 ) {
             z_1 = 0;
             z_2 = -z_translation / dr[gid][0]; 

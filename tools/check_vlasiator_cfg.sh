@@ -42,21 +42,35 @@ fi
 # Extract the project name to filter out these options below.
 project=$( cat $cfg | grep "^project" | cut --delimiter="=" -f 2 | tr -d " " )
 
+# Check valid boundary names
+if [[ $( grep "^boundary" $cfg | grep -iv Ionosphere | grep -iv Maxwellian | grep -iv Outflow | grep -iv Copysphere | wc -l ) -gt 0 ]]
+then
+   echo "Invalid below boundary type(s) listed below, not checking further until these are fixed"
+   grep "^boundary" $cfg | grep -iv Ionosphere | grep -iv Maxwellian | grep -iv Outflow | grep -iv copysphere
+   retval=1
+   exit $retval
+fi
+
 # Extract the loaded system boundaries to filter out these options below.
 boundaries=""
-if [[ $( grep "^boundary" $cfg | grep Ionosphere | wc -l ) -eq 1 ]]
+if [[ $( grep "^boundary" $cfg | grep -i Ionosphere | wc -l ) -eq 1 ]]
 then
    boundaries=ionosphere
 fi
 
-if [[ $( grep "^boundary" $cfg | grep Maxwellian | wc -l ) -eq 1 ]]
+if [[ $( grep "^boundary" $cfg | grep -i Maxwellian | wc -l ) -eq 1 ]]
 then
    boundaries=$boundaries" maxwellian"
 fi
 
-if [[ $( grep "^boundary" $cfg | grep Outflow | wc -l ) -eq 1 ]]
+if [[ $( grep "^boundary" $cfg | grep -i Outflow | wc -l ) -eq 1 ]]
 then
    boundaries=$boundaries" outflow"
+fi
+
+if [[ $( grep "^boundary" $cfg | grep -i Copysphere | wc -l ) -eq 1 ]]
+then
+   boundaries=$boundaries" copysphere"
 fi
 
 # Extract the populations to filter out these options below.

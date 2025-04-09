@@ -20,7 +20,6 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include <random>
-#include "vector3d.h"
 #include "distribution.h"
 #include "particles.h"
 
@@ -82,5 +81,5 @@ Kappa2::Kappa2(std::default_random_engine& _rand) : Kappa(_rand) {
 Particle Maxwell_Boltzmann::next_particle() {
    Vec3d v(velocity_distribution(rand), velocity_distribution(rand), velocity_distribution(rand));
 
-   return Particle(mass, charge, Vec3d(0.), v);
+   return Particle(mass, charge, Vec3d(0.,0.,0.), v);
 }

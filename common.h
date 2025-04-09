@@ -28,6 +28,9 @@
 #include <vector>
 #include "definitions.h"
 
+// Include architecture specific definitions
+#include "arch/arch_device_api.h"
+
 #ifdef DEBUG_SOLVERS
 #define CHECK_FLOAT(x) \
    if ((x) != (x)) {\
@@ -68,35 +71,32 @@ void bailout(
 */
 #define MAX_BLOCKS_PER_DIM 256
 
-
-/*! A namespace for storing indices into an array which contains
- * neighbour list for each spatial cell. These indices refer to
- * the CPU memory, i.e. the device does not use these.
- */
-namespace NbrsSpa {
-   const uint INNER = 0;      /*!< The cell is an inner cell, i.e. all its neighbours are located on the same computation node.*/
-   const uint X_NEG_BND = (1 << 0);  /*!< The cell is a boundary cell in -x direction.*/
-   const uint X_POS_BND = (1 << 1);  /*!< The cell is a boundary cell in +x direction.*/
-   const uint Y_NEG_BND = (1 << 2);  /*!< The cell is a boundary cell in -y direction.*/
-   const uint Y_POS_BND = (1 << 3);  /*!< The cell is a boundary cell in +y direction.*/
-   const uint Z_NEG_BND = (1 << 4); /*!< The cell is a boundary cell in -z direction.*/
-   const uint Z_POS_BND = (1 << 5); /*!< The cell is a boundary cell in +z direction.*/
-
+namespace Neighborhoods {
    enum {
-      STATE, /*!< Contains the neighbour information of this cell, i.e. whether it is an inner cell or a boundary cell in one or more coordinate directions.*/
-      MYIND, /*!< The index of this cell.*/
-      X1NEG,  /*!< The index of the -x neighbouring block, distance 1.*/
-      Y1NEG,  /*!< The index of the -y neighbouring block, distance 1.*/
-      Z1NEG,  /*!< The index of the -z neighbouring block, distance 1.*/
-      X1POS,  /*!< The index of the +x neighbouring block, distance 1.*/
-      Y1POS,  /*!< The index of the +y neighbouring block, distance 1.*/
-      Z1POS,  /*!< The index of the +z neighbouring block, distance 1.*/
-      X2NEG,  /*!< The index of the -x neighbouring block, distance 1.*/
-      Y2NEG,  /*!< The index of the -y neighbouring block, distance 1.*/
-      Z2NEG,  /*!< The index of the -z neighbouring block, distance 1.*/
-      X2POS,  /*!< The index of the +x neighbouring block, distance 1.*/
-      Y2POS,  /*!< The index of the +y neighbouring block, distance 1.*/
-      Z2POS   /*!< The index of the +z neighbouring block, distance 1.*/
+      VLASOV_SOLVER,   /*!< up to third(PPM) neighbor in each face direction */
+      VLASOV_SOLVER_X, /*!< up to third(PPM) neighbor in x face directions */
+      VLASOV_SOLVER_Y, /*!< up to third(PPM) neighbor in y face directions */
+      VLASOV_SOLVER_Z, /*!< up to third(PPM) neighbor in z face directions */
+      VLASOV_SOLVER_TARGET_X, /*!< nearest neighbor in X face direction, f() can propagate to local cells in X dir, and are target for local cells */
+      VLASOV_SOLVER_TARGET_Y, /*!< nearest neighbor in Y face direction, f() can propagate to local cells in Y dir, and are target for local cells */
+      VLASOV_SOLVER_TARGET_Z, /*!< nearest neighbor in Z face direction, f() can propagate to local cells in Z dir, and are target for local cells */
+      SYSBOUNDARIES, /*!<  When classifying sysboundaries, all 26 nearest neighbors are included */
+      SYSBOUNDARIES_EXTENDED, /*!< Up to second nearest neighbors in all directions (also diagonals) */
+      NEAREST,  /*!< nearest neighbors */
+      FULL,      /*!< Up to second nearest neighbors in all directions (also diagonals) + vlasov solver neighborhood */
+      DIST_FUNC, /*!< nearest neighbors in all directions (also diagonals) + vlasov solver neighborhood */
+      SHIFT_P_X, /*!< Shift in +x direction */
+      SHIFT_P_Y, /*!< Shift in +y direction */
+      SHIFT_P_Z, /*!< Shift in +z direction */
+      SHIFT_M_X, /*!< Shift in -x direction */
+      SHIFT_M_Y, /*!< Shift in -y direction */
+      SHIFT_M_Z, /*!< Shift in -z direction */
+      VLASOV_SOLVER_X_GHOST, /*!< up to third(PPM+ghost) neighbor in x face directions */
+      VLASOV_SOLVER_Y_GHOST,  /*!< up to third(PPM+ghost) neighbor in y face directions */
+      VLASOV_SOLVER_Z_GHOST, /*!< up to third(PPM+ghost) neighbor in z face directions */
+      VLASOV_SOLVER_GHOST, /*!< all required neighbors for ghost translation */
+      VLASOV_SOLVER_GHOST_REQNEIGH, /*!< all ghost translation neighbors which require own neighbor information */
+      N_NEIGHBORHOODS
    };
 }
 
@@ -217,6 +217,27 @@ namespace CellParams {
       VY_V_PREV_PREV, /* !< Value of VY_V from two updates back*/
       VZ_V_PREV_PREV, /* !< Value of VZ_V from two updates back*/
       
+      P_23,     /*!< Pressure P_yz component, computed by Vlasov propagator. */
+      P_13,     /*!< Pressure P_xz component, computed by Vlasov propagator. */
+      P_12,     /*!< Pressure P_xy component, computed by Vlasov propagator. */
+      // P_11_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_11_R and P_11_V. */
+      // P_22_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_22_R and P_22_V. */
+      // P_33_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_33_R and P_33_V. */
+      P_23_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_23_R and P_23_V. */
+      P_13_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_13_R and P_13_V. */
+      P_12_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_12_R and P_12_V. */
+      // P_11_R,   /*!< P_xx component after propagation in ordinary space */
+      // P_22_R,   /*!< P_yy component after propagation in ordinary space */
+      // P_33_R,   /*!< P_zz component after propagation in ordinary space */
+      P_23_R,   /*!< P_yz component after propagation in ordinary space */
+      P_13_R,   /*!< P_xz component after propagation in ordinary space */
+      P_12_R,   /*!< P_xy component after propagation in ordinary space */
+      // P_11_V,   /*!< P_xx component after propagation in velocity space */
+      // P_22_V,   /*!< P_yy component after propagation in velocity space */
+      // P_33_V,   /*!< P_zz component after propagation in velocity space */
+      P_23_V,   /*!< P_yz component after propagation in velocity space */
+      P_12_V,   /*!< P_xy component after propagation in velocity space */
+      P_13_V,   /*!< P_xz component after propagation in velocity space */
       EXVOL,    /*!< Volume electric field averaged over spatial cell, x-component.*/
       EYVOL,    /*!< Volume electric field averaged over spatial cell, y-component.*/
       EZVOL,    /*!< Volume electric field averaged over spatial cell, z-component.*/
@@ -263,11 +284,12 @@ namespace CellParams {
       AMR_DB,
       AMR_ALPHA1,
       AMR_ALPHA2,
+      P_ANISOTROPY,
+      AMR_VORTICITY,
       RECENTLY_REFINED,
       BULKV_FORCING_X, /*! Externally forced drift velocity (ex. from the ionosphere) */
       BULKV_FORCING_Y, /*! Externally forced drift velocity (ex. from the ionosphere) */
       BULKV_FORCING_Z, /*! Externally forced drift velocity (ex. from the ionosphere) */
-      FORCING_CELL_NUM, /*! Number of boundary cells that have forced a bulkv here */
       N_SPATIAL_CELL_PARAMS
    };
 }
@@ -287,6 +309,22 @@ namespace bvolderivatives {
       dPERBZVOLdy, /*!< Derivative of perturbed volume-averaged Bz in y-direction. */
       dPERBZVOLdz, /*!< Derivative of perturbed volume-averaged Bz in z-direction. */
       N_BVOL_DERIVATIVES
+   };
+}
+
+namespace vderivatives {
+   // Essentially a copy from dmoments
+   enum {
+      dVxdx,     /*!< Derivative of volume-averaged Vx to x-direction. */
+      dVxdy,     /*!< Derivative of volume-averaged Vx to y-direction. */
+      dVxdz,     /*!< Derivative of volume-averaged Vx to z-direction. */
+      dVydx,     /*!< Derivative of volume-averaged Vy to x-direction. */
+      dVydy,     /*!< Derivative of volume-averaged Vy to y-direction. */
+      dVydz,     /*!< Derivative of volume-averaged Vy to z-direction. */
+      dVzdx,     /*!< Derivative of volume-averaged Vz to x-direction. */
+      dVzdy,     /*!< Derivative of volume-averaged Vz to y-direction. */
+      dVzdz,     /*!< Derivative of volume-averaged Vz to z-direction. */
+      N_V_DERIVATIVES
    };
 }
 
@@ -529,14 +567,16 @@ RK_ORDER2_STEP1,   /*!< Two-step second order method, first step */
 RK_ORDER2_STEP2    /*!< Two-step second order method, second step */
 };
 
-const int WID = 4;         /*!< Number of cells per coordinate in a velocity block. Only a value of 4 supported by vectorized Leveque solver */
+#ifndef WID
+#define WID (4)              /*!< Number of cells per coordinate in a velocity block. Defaults to the historical 4. */
+#endif
 const int WID2 = WID*WID;  /*!< Number of cells per 2D slab in a velocity block. */
 const int WID3 = WID2*WID; /*!< Number of cells in a velocity block. */
 
 /*!
 Get the cellindex in the velocity space block
 */
-template<typename INT> inline INT cellIndex(const INT& i,const INT& j,const INT& k) {
+template<typename INT> ARCH_HOSTDEV inline INT cellIndex(const INT& i,const INT& j,const INT& k) {
    return k*WID2 + j*WID + i;
 }
 
@@ -553,11 +593,23 @@ template<typename T> inline int sign(const T& value) {
  */
 struct globalflags {
    static int bailingOut; /*!< Global flag raised to true if a run bailout (write restart if requested/set and stop the simulation peacefully) is needed. */
-   static bool writeRestart; /*!< Global flag raised to true if a restart writing is needed (without bailout). NOTE: used only by MASTER_RANK in vlasiator.cpp. */
+   static bool writeRestart; /*!< Global flag raised to true if a restart writing is needed. NOTE: used only by MASTER_RANK in vlasiator.cpp. */
+   static bool writeRecover; /*!< Global flag raised to true if a recover writing is needed. NOTE: used only by MASTER_RANK in vlasiator.cpp. */
    static bool balanceLoad; /*!< Global flag raised to true if a load balancing is needed. NOTE: used only by MASTER_RANK in vlasiator.cpp. */
    static bool doRefine; /*!< Global flag raised to true if a re-refine is needed. NOTE: used only by MASTER_RANK in vlasiator.cpp. */
    static bool ionosphereJustSolved; /*!< Flag used to notify that the ionosphere has been freshly solved, used to check whether the Vlasov boundary/bulk forcing need updating. */
 };
+
+namespace donow {
+   enum {
+      SAVE,
+      DORC,
+      DOLB,
+      DOMR,
+      N_DONOW
+   };
+}
+
 
 /*!
  * Name space for flags going into the project hook function.
@@ -581,6 +633,5 @@ namespace physicalconstants {
 }
 
 const std::vector<CellID>& getLocalCells();
-void recalculateLocalCellsCache();
 
 #endif

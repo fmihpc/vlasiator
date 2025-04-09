@@ -28,12 +28,11 @@
 #include "../../object_wrapper.h"
 
 #include "Shocktest.h"
-#include "../../spatial_cell_wrapper.hpp"
 #include "../../common.h"
 #include "../project.h"
 #include "../../parameters.h"
 #include "../../readparameters.h"
-#include "../../vlasovmover.h"
+#include "../../vlasovsolver/vlasovmover.h"
 
 using namespace std;
 using namespace spatial_cell;
@@ -109,26 +108,94 @@ namespace projects {
       RP::get("Shocktest.Bz2", this->Bz[this->RIGHT]);
    }
    
-   Real Shocktest::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
-      creal mass = physicalconstants::MASS_PROTON;
-      creal kb = physicalconstants::K_B;
-      
-      cint side = (x < 0.0) ? this->LEFT : this->RIGHT;
+   Realf Shocktest::fillPhaseSpace(spatial_cell::SpatialCell *cell,
+                                       const uint popID,
+                                       const uint nRequested
+      ) const {
+      //const speciesParameters& sP = this->speciesParams[popID];
+      // Fetch spatial cell center coordinates
+      const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
+      // const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
+      // const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
 
-      // Disable compiler warnings: (unused variables but the function is inherited)
-      (void)y; (void)z; (void)dvx; (void)dvy; (void)dvz;
-      
-      return this->rho[side] * pow(mass / (2.0 * M_PI * kb * this->T[side]), 1.5) *
-      exp(- mass * (pow(vx - this->Vx[side], 2.0) + pow(vy - this->Vy[side], 2.0) + pow(vz - this->Vz[side], 2.0)) / (2.0 * kb * this->T[side]));
+      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+      cint side = (x < 0.0) ? this->LEFT : this->RIGHT;
+      Real initRho = this->rho[side];
+      Real initT = this->T[side];
+      const Real initV0X = this->Vx[side];
+      const Real initV0Y = this->Vy[side];
+      const Real initV0Z = this->Vz[side];
+
+      #ifdef USE_GPU
+      vmesh::VelocityMesh *vmesh = cell->dev_get_velocity_mesh(popID);
+      vmesh::VelocityBlockContainer* VBC = cell->dev_get_velocity_blocks(popID);
+      #else
+      vmesh::VelocityMesh *vmesh = cell->get_velocity_mesh(popID);
+      vmesh::VelocityBlockContainer* VBC = cell->get_velocity_blocks(popID);
+      #endif
+      // Loop over blocks
+      Realf rhosum = 0;
+      arch::parallel_reduce<arch::null>(
+         {WID, WID, WID, nRequested},
+         ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint initIndex, Realf *lsum ) {
+            vmesh::GlobalID *GIDlist = vmesh->getGrid()->data();
+            Realf* bufferData = VBC->getData();
+            const vmesh::GlobalID blockGID = GIDlist[initIndex];
+            // Calculate parameters for new block
+            Real blockCoords[6];
+            vmesh->getBlockInfo(blockGID,&blockCoords[0]);
+            creal vxBlock = blockCoords[0];
+            creal vyBlock = blockCoords[1];
+            creal vzBlock = blockCoords[2];
+            creal dvxCell = blockCoords[3];
+            creal dvyCell = blockCoords[4];
+            creal dvzCell = blockCoords[5];
+            ARCH_INNER_BODY(i, j, k, initIndex, lsum) {
+               creal vx = vxBlock + (i+0.5)*dvxCell - initV0X;
+               creal vy = vyBlock + (j+0.5)*dvyCell - initV0Y;
+               creal vz = vzBlock + (k+0.5)*dvzCell - initV0Z;
+               const Realf value = MaxwellianPhaseSpaceDensity(vx,vy,vz,initT,initRho,mass);
+               bufferData[initIndex*WID3 + k*WID2 + j*WID + i] = value;
+               //lsum[0] += value;
+            };
+         }, rhosum);
+      return rhosum;
    }
 
+   /* Evaluates local SpatialCell properties for the project and population,
+      then evaluates the phase-space density at the given coordinates.
+      Used as a probe for projectTriAxisSearch.
+   */
+   Realf Shocktest::probePhaseSpace(spatial_cell::SpatialCell *cell,
+                                        const uint popID,
+                                        Real vx_in, Real vy_in, Real vz_in
+      ) const {
+      //const speciesParameters& sP = this->speciesParams[popID];
+      // Fetch spatial cell center coordinates
+      const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
+      // const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
+      // const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
+
+      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+      cint side = (x < 0.0) ? this->LEFT : this->RIGHT;
+      Real initRho = this->rho[side];
+      Real initT = this->T[side];
+      const Real initV0X = this->Vx[side];
+      const Real initV0Y = this->Vy[side];
+      const Real initV0Z = this->Vz[side];
+
+      creal vx = vx_in - initV0X;
+      creal vy = vy_in - initV0Y;
+      creal vz = vz_in - initV0Z;
+      const Realf value = MaxwellianPhaseSpaceDensity(vx,vy,vz,initT,initRho,mass);
+      return value;
+   }
 
    /** Returns the center coordinates of the maxwellian distribution
    @ param x The x coordinate of the given spatial cell
    @ param y The x coordinate of the given spatial cell
    @ param z The x coordinate of the given spatial cell
    */
-
    vector<std::array<Real, 3>> Shocktest::getV0(
       creal x,
       creal y,
@@ -140,26 +207,6 @@ namespace projects {
       std::array<Real, 3> V0 {{this->Vx[side], this->Vy[side], this->Vz[side]}};
       centerPoints.push_back(V0);
       return centerPoints;
-   }
-
-   /** Integrate the distribution function over the given six-dimensional phase-space cell.
-    * @param x Starting value of the x-coordinate of the cell.
-    * @param y Starting value of the y-coordinate of the cell.
-    * @param z Starting value of the z-coordinate of the cell.
-    * @param dx The size of the cell in x-direction.
-    * @param dy The size of the cell in y-direction.
-    * @param dz The size of the cell in z-direction.
-    * @param vx Starting value of the vx-coordinate of the cell.
-    * @param vy Starting value of the vy-coordinate of the cell.
-    * @param vz Starting value of the vz-coordinate of the cell.
-    * @param dvx The size of the cell in vx-direction.
-    * @param dvy The size of the cell in vy-direction.
-    * @param dvz The size of the cell in vz-direction.
-    * @return The volume average of the distribution function in the given phase space cell.
-    * The physical unit of this quantity is 1 / (m^3 (m/s)^3).
-    */
-   Real Shocktest::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {   
-      return getDistribValue(x+0.5*dx, y+0.5*dy, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, dvx, dvy, dvz, popID);
    }
    
    /** Calculate parameters for the given spatial cell at the given time.

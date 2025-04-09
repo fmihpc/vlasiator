@@ -26,18 +26,26 @@
 
 namespace projects {
    class TriAxisSearch: public Project {
-    public:
+   public:
          
-    protected:
-        /*! \brief Find blocks above the threshold centred isotropically around a bulk velocity.
-         * 
-         * Instead of looping through the whole velocity space this function starts from the project's bulk velocity V0[3].
-         * It then proceeds along V[XYZ] successively to determine at what maximum radius a block falls below (0.1 times) the threshold.
-         * 
-         * This radius is used to determine all blocks within that radius of V0, create them and return their list for initialisation.
-         */
-        virtual std::vector<vmesh::GlobalID> findBlocksToInitialize(spatial_cell::SpatialCell* cell,const uint popID) const;
-      
+   protected:
+      /*! \brief Find blocks above the threshold centred isotropically around a bulk velocity.
+       * 
+       * Instead of looping through the whole velocity space this function starts from the project's bulk velocity V0[3].
+       * It then proceeds along V[XYZ] successively to determine at what maximum radius a block falls below (0.1 times) the threshold.
+       * 
+       * This radius is used to determine all blocks within that radius of V0 for creating V-spaces.
+       * The function stores the prepared blocks into cell->velocity_block_with_content_list and returns the count.
+       */
+      virtual uint findBlocksToInitialize(spatial_cell::SpatialCell* cell,const uint popID) const;
+
+      /* Evaluates local SpatialCell properties for the project and population,
+         then evaluates the phase-space density at the given coordinates.
+      */
+      virtual Realf probePhaseSpace(spatial_cell::SpatialCell *cell,
+                                    const uint popID,
+                                    Real vx_in, Real vy_in, Real vz_in) const = 0;
+
       /*! \brief Return a vector containing the velocity coordinate of the centre of each ion population in the distribution.
        * 
        * This function is used by findBlocksToInitialize() to start the search of the extent of the distribution along each axis.
@@ -46,13 +54,13 @@ namespace projects {
        * \sa findBlocksToInitialize
        */
       virtual std::vector<std::array<Real, 3>> getV0(
-                                                     creal x,
-                                                     creal y,
-                                                     creal z,
-                                                     const uint popID
-                                                    ) const = 0;
+         creal x,
+         creal y,
+         creal z,
+         const uint popID
+         ) const = 0;
    }; // class TriAxisSearch
 } // namespace
 
-
+ 
 #endif

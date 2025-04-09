@@ -37,9 +37,9 @@ using namespace spatial_cell;
 namespace projects {
    Harris::Harris(): TriAxisSearch() { }
    Harris::~Harris() { }
-   
+
    bool Harris::initialize(void) {return Project::initialize();}
-   
+
    void Harris::addParameters(){
       typedef Readparameters RP;
       RP::add("Harris.Scale_size", "Harris sheet scale size (m)", 150000.0);
@@ -55,7 +55,7 @@ namespace projects {
          RP::add(pop + "_Harris.rho", "Number density at infinity (m^-3)", 1.0e7);
       }
    }
-   
+
    void Harris::getParameters(){
       Project::getParameters();
       typedef Readparameters RP;
@@ -76,34 +76,95 @@ namespace projects {
          speciesParams.push_back(sP);
       }
    }
-   
-   Real Harris::getDistribValue(
-      creal& x,creal& y, creal& z,
-      creal& vx, creal& vy, creal& vz,
-      creal& dvx, creal& dvy, creal& dvz,
-      const uint popID
-   ) const {
 
+   Realf Harris::fillPhaseSpace(spatial_cell::SpatialCell *cell,
+                                       const uint popID,
+                                       const uint nRequested
+      ) const {
       const HarrisSpeciesParameters& sP = speciesParams[popID];
-      Real mass = getObjectWrapper().particleSpecies[popID].mass;
+      // Fetch spatial cell center coordinates
+      const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
+      // const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
+      // const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
 
-      return sP.DENSITY * pow(mass / (2.0 * M_PI * physicalconstants::K_B * sP.TEMPERATURE), 1.5) * (
-         5.0 / pow(cosh(x / (this->SCA_LAMBDA)), 2.0) * exp(- mass * (pow(vx, 2.0) + pow(vy, 2.0) + pow(vz, 2.0)) / (2.0 * physicalconstants::K_B * sP.TEMPERATURE))
-         +
-         exp(- mass * (pow(vx, 2.0) + pow(vy, 2.0) + pow(vz, 2.0)) / (2.0 * physicalconstants::K_B * sP.TEMPERATURE)));
+      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+      Real initRho = sP.DENSITY;
+      Real initT = sP.TEMPERATURE;
+      // Note: bulk V is zero, according to this and getV0().
+      const Real initV0X = 0;
+      const Real initV0Y = 0;
+      const Real initV0Z = 0;
+
+      initRho *= (1.0 + 5.0 / pow(cosh(x / (this->SCA_LAMBDA)), 2.0));
+
+      #ifdef USE_GPU
+      vmesh::VelocityMesh *vmesh = cell->dev_get_velocity_mesh(popID);
+      vmesh::VelocityBlockContainer* VBC = cell->dev_get_velocity_blocks(popID);
+      #else
+      vmesh::VelocityMesh *vmesh = cell->get_velocity_mesh(popID);
+      vmesh::VelocityBlockContainer* VBC = cell->get_velocity_blocks(popID);
+      #endif
+      // Loop over blocks
+      Realf rhosum = 0;
+      arch::parallel_reduce<arch::null>(
+         {WID, WID, WID, nRequested},
+         ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint initIndex, Realf *lsum ) {
+            vmesh::GlobalID *GIDlist = vmesh->getGrid()->data();
+            Realf* bufferData = VBC->getData();
+            const vmesh::GlobalID blockGID = GIDlist[initIndex];
+            // Calculate parameters for new block
+            Real blockCoords[6];
+            vmesh->getBlockInfo(blockGID,&blockCoords[0]);
+            creal vxBlock = blockCoords[0];
+            creal vyBlock = blockCoords[1];
+            creal vzBlock = blockCoords[2];
+            creal dvxCell = blockCoords[3];
+            creal dvyCell = blockCoords[4];
+            creal dvzCell = blockCoords[5];
+            ARCH_INNER_BODY(i, j, k, initIndex, lsum) {
+               creal vx = vxBlock + (i+0.5)*dvxCell - initV0X;
+               creal vy = vyBlock + (j+0.5)*dvyCell - initV0Y;
+               creal vz = vzBlock + (k+0.5)*dvzCell - initV0Z;
+               const Realf value = MaxwellianPhaseSpaceDensity(vx,vy,vz,initT,initRho,mass);
+               bufferData[initIndex*WID3 + k*WID2 + j*WID + i] = value;
+               //lsum[0] += value;
+            };
+         }, rhosum);
+      return rhosum;
    }
-   
-   Real Harris::calcPhaseSpaceDensity(
-      creal& x,creal& y,creal& z,
-      creal& dx,creal& dy,creal& dz,
-      creal& vx,creal& vy,creal& vz,
-      creal& dvx,creal& dvy,creal& dvz,const uint popID
-   ) const {
-      return getDistribValue(x+0.5*dx, y+0.5*dy, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, dvx, dvy, dvz, popID);      
+
+   /* Evaluates local SpatialCell properties for the project and population,
+      then evaluates the phase-space density at the given coordinates.
+      Used as a probe for projectTriAxisSearch.
+   */
+   Realf Harris::probePhaseSpace(spatial_cell::SpatialCell *cell,
+                                        const uint popID,
+                                        Real vx_in, Real vy_in, Real vz_in
+      ) const {
+      const HarrisSpeciesParameters& sP = speciesParams[popID];
+      // Fetch spatial cell center coordinates
+      const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
+      // const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
+      // const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
+
+      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+      Real initRho = sP.DENSITY;
+      Real initT = sP.TEMPERATURE;
+      // Note: bulk V is zero, according to this and getV0().
+      const Real initV0X = 0;
+      const Real initV0Y = 0;
+      const Real initV0Z = 0;
+
+      initRho *= (1.0 + 5.0 / pow(cosh(x / (this->SCA_LAMBDA)), 2.0));
+      creal vx = vx_in - initV0X;
+      creal vy = vy_in - initV0Y;
+      creal vz = vz_in - initV0Z;
+      const Realf value = MaxwellianPhaseSpaceDensity(vx,vy,vz,initT,initRho,mass);
+      return value;
    }
-   
+
    void Harris::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
-   
+
    vector<std::array<Real, 3>> Harris::getV0(
       creal x,
       creal y,
@@ -122,17 +183,17 @@ namespace projects {
       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
    ) {
       setBackgroundFieldToZero(BgBGrid);
-      
+
       if(!P::isRestart) {
          auto localSize = perBGrid.getLocalSize().data();
-         
+
          #pragma omp parallel for collapse(3)
          for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
             for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
                for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
                   const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
-                  
+
                   cell->at(fsgrids::bfield::PERBX) = this->BX0 * tanh((xyz[1] + 0.5 * perBGrid.DY) / this->SCA_LAMBDA);
                   cell->at(fsgrids::bfield::PERBY) = this->BY0 * tanh((xyz[2] + 0.5 * perBGrid.DZ) / this->SCA_LAMBDA);
                   cell->at(fsgrids::bfield::PERBZ) = this->BZ0 * tanh((xyz[0] + 0.5 * perBGrid.DX) / this->SCA_LAMBDA);

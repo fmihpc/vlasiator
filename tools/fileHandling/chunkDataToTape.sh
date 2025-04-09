@@ -8,8 +8,8 @@ chunkDataToTape.sh file destination start end
     
     file           Path to/file name of the file to chunk up and write elsewhere.
     destination    Path to which the chunks have to be written
-    start          Index of first chunk to transfer
-    end            Index of last chunk to transfer
+    start          Index of first chunk to process
+    end            Index of last chunk to process
 EOF
     exit
 fi
@@ -19,11 +19,11 @@ path=$2
 start=$3
 end=$4
 
-chunkSize=$((50 * 1024*1024*1024))
+chunkSize=$((5 * 1024*1024*1024))
 fileSize=$( /bin/ls -la ${file} | gawk '{ print $5 }' )
 chunkNumber=$(( fileSize / chunkSize ))
 
-echo $(date) "Transferring ${file} of size $fileSize, with a total of $chunkNumber chunks of $chunkSize bytes. Now handling chunks $start to $end."
+echo $(date) "Processing ${file} of size $fileSize, with a total of $chunkNumber chunks of $chunkSize bytes. Now handling chunks $start to $end."
 
 if [ $start -gt $end ]
 then
@@ -53,4 +53,5 @@ done
 
 
 
-echo $(date) "Transferring ${file} of size $fileSize, with a total of $chunkNumber chunks of $chunkSize bytes. Done handling chunks $start to $end."
+echo $(date) "Processing ${file} of size $fileSize, with a total of $chunkNumber chunks of $chunkSize bytes. Done handling chunks $start to $end."
+echo $(date) "REMEMBER TO CHECK dd_chunk.err for errors!!!"

@@ -23,7 +23,7 @@
 #include "fs_common.h"
 #include "ldz_hall.hpp"
 
-#ifndef NDEBUG
+#ifdef DEBUG_VLASIATOR
    #define DEBUG_FSOLVER
 #endif
 
@@ -423,7 +423,7 @@ REAL JXBZ_110_111(
  * \param EHallGrid fsGrid holding the Hall contributions to the electric field
  * \param momentsGrid fsGrid holding the moment quantities
  * \param dPerBGrid fsGrid holding the derivatives of perturbed B
- * \param dMomentsGrid fsGrid holding the derviatives of moments
+ * \param dMomentsGrid fsGrid holding the derivatives of moments
  * \param BgBGrid fsGrid holding the background B quantities
  * \param technicalGrid fsGrid holding technical information (such as boundary types)
  * \param perturbedCoefficients Reconstruction coefficients
@@ -521,7 +521,7 @@ void calculateEdgeHallTermXComponents(
  * \param EHallGrid fsGrid holding the Hall contributions to the electric field
  * \param momentsGrid fsGrid holding the moment quantities
  * \param dPerBGrid fsGrid holding the derivatives of perturbed B
- * \param dMomentsGrid fsGrid holding the derviatives of moments
+ * \param dMomentsGrid fsGrid holding the derivatives of moments
  * \param BgBGrid fsGrid holding the background B quantities
  * \param technicalGrid fsGrid holding technical information (such as boundary types)
  * \param perturbedCoefficients Reconstruction coefficients
@@ -619,7 +619,7 @@ void calculateEdgeHallTermYComponents(
  * \param EHallGrid fsGrid holding the Hall contributions to the electric field
  * \param momentsGrid fsGrid holding the moment quantities
  * \param dPerBGrid fsGrid holding the derivatives of perturbed B
- * \param dMomentsGrid fsGrid holding the derviatives of moments
+ * \param dMomentsGrid fsGrid holding the derivatives of moments
  * \param BgBGrid fsGrid holding the background B quantities
  * \param technicalGrid fsGrid holding technical information (such as boundary types)
  * \param perturbedCoefficients Reconstruction coefficients
@@ -715,7 +715,7 @@ void calculateEdgeHallTermZComponents(
  * \param EHallGrid fsGrid holding the Hall contributions to the electric field
  * \param momentsGrid fsGrid holding the moment quantities
  * \param dPerBGrid fsGrid holding the derivatives of perturbed B
- * \param dMomentsGrid fsGrid holding the derviatives of moments
+ * \param dMomentsGrid fsGrid holding the derivatives of moments
  * \param BgBGrid fsGrid holding the background B quantities
  * \param technicalGrid fsGrid holding technical information (such as boundary types)
  * \param sysBoundaries System boundary condition functions.
@@ -784,12 +784,13 @@ void calculateHallTerm(
  * \param momentsGrid fsGrid holding the moment quantities
  * \param momentsDt2Grid fsGrid holding the moment quantities at runge-kutta half step
  * \param dPerBGrid fsGrid holding the derivatives of perturbed B
- * \param dMomentsGrid fsGrid holding the derviatives of moments
+ * \param dMomentsGrid fsGrid holding the derivatives of moments
+ * \param dMomentsDt2Grid fsGrid holding the derivatives of moments at runge-kutta half step
  * \param BgBGrid fsGrid holding the background B quantities
  * \param technicalGrid fsGrid holding technical information (such as boundary types)
  * \param sysBoundaries System boundary condition functions.
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
- * \param communicateMomentsDerivatives whether to communicate derivatves with the neighbour CPUs
+ * \param communicateMomentsDerivatives whether to communicate derivatives with the neighbour CPUs
  *
  * \sa calculateHallTerm
  */
@@ -801,10 +802,12 @@ void calculateHallTermSimple(
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsDt2Grid,
    FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsDt2Grid,
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
    FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
    SysBoundary& sysBoundaries,
-   cint& RKCase
+   cint& RKCase,
+   const bool communicateMomentsDerivatives
 ) {
    //const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
    const FsGridTools::FsIndex_t* gridDims = &technicalGrid.getLocalSize()[0];
@@ -814,8 +817,12 @@ void calculateHallTermSimple(
    phiprof::Timer mpiTimer {"EHall ghost updates MPI", {"MPI"}};
    int computeTimerId {phiprof::initializeTimer("EHall compute cells")};
    dPerBGrid.updateGhostCells();
-   if(P::ohmGradPeTerm == 0) {
-      dMomentsGrid.updateGhostCells();
+   if(P::ohmGradPeTerm == 0 && communicateMomentsDerivatives) {
+      if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+         dMomentsGrid.updateGhostCells();
+      } else {
+         dMomentsDt2Grid.updateGhostCells();
+      }
    }
    mpiTimer.stop();
 
@@ -829,7 +836,7 @@ void calculateHallTermSimple(
                if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
                   calculateHallTerm(perBGrid, EHallGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid,sysBoundaries, i, j, k);
                } else {
-                  calculateHallTerm(perBDt2Grid, EHallGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid,sysBoundaries, i, j, k);
+                  calculateHallTerm(perBDt2Grid, EHallGrid, momentsDt2Grid, dPerBGrid, dMomentsDt2Grid, BgBGrid, technicalGrid,sysBoundaries, i, j, k);
                }
             }
          }
