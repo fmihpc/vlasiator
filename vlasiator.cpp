@@ -1015,11 +1015,9 @@ int simulate(int argn,char* args[]) {
          }
          std::cout << endl;
       }
-      balanceLoad(mpiGrid, sysBoundaryContainer);
+      balanceLoad(mpiGrid, sysBoundaryContainer, technicalGrid);
 
       computeDtimer.stop();
-
-
       
       //go forward by dt/2 in V, initializes leapfrog split. In restarts the
       //the distribution function is already propagated forward in time by dt/2
@@ -1501,7 +1499,7 @@ int simulate(int argn,char* args[]) {
             continue; //
             //addTimedBarrier("barrier-new-dt-set");
          }
-         balanceLoad(mpiGrid, sysBoundaryContainer);
+         balanceLoad(mpiGrid, sysBoundaryContainer, technicalGrid);
 
       }
       
@@ -1557,13 +1555,14 @@ int simulate(int argn,char* args[]) {
          CellParams::P_11,
          CellParams::P_22,
          CellParams::P_33,
-         CellParams::P_23_DT2,
-         CellParams::P_13_DT2,
-         CellParams::P_12_DT2,
+         CellParams::P_23,
+         CellParams::P_13,
+         CellParams::P_12,
          P::fractionalTimestep,
          P::currentMaxTimeclass,
          false
       );
+
       interpolateMomentsForTimeclasses(
          mpiGrid,
          CellParams::RHOM_DT2,

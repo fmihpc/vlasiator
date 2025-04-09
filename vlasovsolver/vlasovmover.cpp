@@ -51,7 +51,6 @@
 #include "gpu_trans_map_amr.hpp"
 #else
 #include "cpu_acc_semilag.hpp"
-#include "cpu_trans_map.hpp"
 #include "cpu_trans_pencils.hpp"
 #include "cpu_trans_map_amr.hpp"
 #include "cpu_acc_transform.hpp"
@@ -892,7 +891,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
             // if ( (SC->parameters[CellParams::CELLID] == 9 || SC->parameters[CellParams::CELLID] == 11 || SC->parameters[CellParams::CELLID] == 12))
                // std::cout << "vdt on tc  " << SC->parameters[CellParams::TIMECLASS] << " on ftstep " << P::fractionalTimestep << ", dt " << dt_cell <<"\n";
 
-            const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = SC->get_velocity_mesh(popID);
+            const vmesh::VelocityMesh& vmesh = SC->get_velocity_mesh(popID);
             // disregard boundary cells, in preparation for acceleration
             if (  (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) ||
                   // Include inflow-Maxwellian
@@ -948,7 +947,6 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 #endif
             }
          }
-         gatherTimer.stop();
 
 #ifdef USE_GPU
          // Ensure accelerator has enough temporary memory allocated

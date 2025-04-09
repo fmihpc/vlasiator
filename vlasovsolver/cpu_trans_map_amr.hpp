@@ -32,7 +32,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                   const std::vector<CellID>& remoteTargetCells,
                   std::vector<uint>& nPencils,
                   const uint dimension,
-                  const Realv dt, const int timeclass,
+                  const Real dt, const int timeclass,
                   const uint popID);
 
 void update_remote_mapping_contribution_amr(dccrg::Dccrg<spatial_cell::SpatialCell,

@@ -74,7 +74,7 @@ namespace spatial_cell {
          populations[popID].N_blocks = 0;
 
          for (int tc = 0; tc <= P::maxTimeclass; tc++){
-            ghostPopulations[{popID,tc}].vmesh.initialize(spec.velocityMesh);
+            ghostPopulations[{popID,tc}].vmesh->initialize(spec.velocityMesh);
             ghostPopulations[{popID,tc}].velocityBlockMinValue = spec.sparseMinValue;
             ghostPopulations[{popID,tc}].N_blocks = 0;
          }
@@ -244,9 +244,9 @@ namespace spatial_cell {
            neighbor != spatial_neighbors.end(); ++neighbor) { // go through neighbors
          for (int tc : (*neighbor)->requested_timeclass_ghosts) { // go through neighbors' vmesh tc:s
 
-            auto& ghostPopVmesh = (*neighbor)->get_velocity_mesh_ghost(popID, tc); // get the ghost population
-            for (vmesh::LocalID block_index = 0; block_index<ghostPopVmesh.size(); ++block_index) { //go through the vmesh of the ghost population
-               const vmesh::GlobalID globalID = ghostPopVmesh.getGlobalID(block_index);
+            auto* ghostPopVmesh = (*neighbor)->get_velocity_mesh_ghost(popID, tc); // get the ghost population
+            for (vmesh::LocalID block_index = 0; block_index<ghostPopVmesh->size(); ++block_index) { //go through the vmesh of the ghost population
+               const vmesh::GlobalID globalID = ghostPopVmesh->getGlobalID(block_index);
 
                if (compute_block_has_content(globalID, popID)) {
                   neighbors_have_content.insert(globalID);
@@ -296,7 +296,7 @@ namespace spatial_cell {
                this->populations[popID].RHOLOSSADJUST += DV3*sum;
 
                // and finally remove block
-               this->remove_velocity_block(blockGID,popID, populations[popID].vmesh, populations[popID].blockContainer);
+               this->remove_velocity_block(blockGID,popID);
             }
          }
       }

@@ -184,10 +184,10 @@ Real P::bailout_min_dt = NAN;
 Real P::bailout_max_memory = 1073741824.;
 uint P::bailout_velocity_space_wall_margin = 0;
 
-uint P::vamrMaxVelocityRefLevel = 0;
-Realf P::vamrRefineLimit = 1.0;
-Realf P::vamrCoarsenLimit = 0.5;
-string P::vamrVelRefCriterion = string("");
+// uint P::vamrMaxVelocityRefLevel = 0;
+// Realf P::vamrRefineLimit = 1.0;
+// Realf P::vamrCoarsenLimit = 0.5;
+// string P::vamrVelRefCriterion = string("");
 
 int P::amrMaxSpatialRefLevel = 0;
 int P::amrMaxAllowedSpatialRefLevel = -1;

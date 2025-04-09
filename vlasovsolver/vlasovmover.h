@@ -101,6 +101,9 @@ void interpolateMomentsForTimeclasses(
    const int cp_p11,
    const int cp_p22,
    const int cp_p33,
+   const int cp_p23,
+   const int cp_p13,
+   const int cp_p12,
    const int fracTimeStep,
    const int maxTC,
    const bool dt2
