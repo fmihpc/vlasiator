@@ -881,7 +881,7 @@ namespace SBC {
     * If refillTensorAtRestart is true, we don't recompute precipitation and integration, we just refill the tensor from the sigmas as read from restart.
     * That is necessary so ig_inplanecurrent has non-zero data if an output file is written after restart and before the next ionosphere solution step.
     */
-   void SphericalTriGrid::calculateConductivityTensor(
+    void SphericalTriGrid::calculateConductivityTensor(
       const Real F10_7,
       const Real recombAlpha,
       const Real backgroundIonisation,
@@ -922,21 +922,20 @@ namespace SBC {
                      << "   `-> ne           = " << ne << " m^-3" << endl
                      << "   `-> electronTemp = " << electronTemp << " K" << endl;
                }
-               area /= 3.; // As every element has 3 corners, don't double-count areas
+               Real qref = ne * lookupProductionValue(h, energy_keV, temperature_keV);
 
-               // The Robinson model wants FACS in microAmperes / m^2
-               Real FAC = 1e6*nodes[n].parameters[ionosphereParameters::SOURCE]/area;
+               // Get equilibrium electron density
+               electronDensity[h] = sqrt(qref/recombAlpha);
 
-               // Get A, B and C factor by interpolation
-               // Note: Positive FAC value -> downwards FACs.
-               Real SigmaH0 = smoothstep(interpolate_robinson(SigmaH0u_coefficients, MLT), interpolate_robinson(SigmaH0d_coefficients, MLT), FAC/0.1);
-               Real SigmaH1 = smoothstep(interpolate_robinson(SigmaH1u_coefficients, MLT), interpolate_robinson(SigmaH1d_coefficients, MLT), FAC/0.1);
-               Real SigmaP0 = smoothstep(interpolate_robinson(SigmaP0u_coefficients, MLT), interpolate_robinson(SigmaP0d_coefficients, MLT), FAC/0.1);
-               Real SigmaP1 = smoothstep(interpolate_robinson(SigmaP1u_coefficients, MLT), interpolate_robinson(SigmaP1d_coefficients, MLT), FAC/0.1);
+               // Calculate conductivities
+               Real halfdx = 1000 * 0.5 * (atmosphere[h].altitude -  atmosphere[h-1].altitude);
+               Real halfCH = halfdx * 0.5 * (atmosphere[h-1].hallcoeff + atmosphere[h].hallcoeff);
+               Real halfCP = halfdx * 0.5 * (atmosphere[h-1].pedersencoeff + atmosphere[h].pedersencoeff);
+               Real halfCpara = halfdx * 0.5 * (atmosphere[h-1].parallelcoeff + atmosphere[h].parallelcoeff);
 
-               nodes[n].parameters[ionosphereParameters::SIGMAP] = SigmaP0 + SigmaP1 * FAC;
-               nodes[n].parameters[ionosphereParameters::SIGMAH] = SigmaH0 + SigmaH1 * FAC;
-               // TODO: What do we do about SIGMAPARALLEL?
+               nodes[n].parameters[ionosphereParameters::SIGMAP] += (electronDensity[h]+electronDensity[h-1]) * halfCP;
+               nodes[n].parameters[ionosphereParameters::SIGMAH] += (electronDensity[h]+electronDensity[h-1]) * halfCH;
+               nodes[n].parameters[ionosphereParameters::SIGMAPARALLEL] += (electronDensity[h]+electronDensity[h-1]) * halfCpara;
             }
          }
       }
@@ -3530,11 +3529,11 @@ namespace SBC {
       uint counter = 0;
       const uint8_t refLevel = 0;
 
-      const vmesh::LocalID* vblocks_ini = cell.get_velocity_grid_length(popID,refLevel);
+      const vmesh::LocalID* vblocks_ini = cell.get_velocity_grid_length(popID);
 
       while (search) {
          if (0.1 * cell.getVelocityBlockMinValue(popID) >
-            shiftedMaxwellianDistribution(popID,density,temperature,counter*cell.get_velocity_grid_block_size(popID,refLevel)[0] - vDrift[0], 0.0 - vDrift[1], 0.0 - vDrift[2])
+            shiftedMaxwellianDistribution(popID,density,temperature,counter*cell.get_velocity_grid_block_size(popID)[0] - vDrift[0], 0.0 - vDrift[1], 0.0 - vDrift[2])
             || counter > vblocks_ini[0])
          {
             search = false;
@@ -3544,8 +3543,8 @@ namespace SBC {
       counter+=2;
       Real vRadiusSquared
               = (Real)counter*(Real)counter
-              * cell.get_velocity_grid_block_size(popID,refLevel)[0]
-              * cell.get_velocity_grid_block_size(popID,refLevel)[0];
+              * cell.get_velocity_grid_block_size(popID)[0]
+              * cell.get_velocity_grid_block_size(popID)[0];
 
       for (uint kv=0; kv<vblocks_ini[2]; ++kv)
          for (uint jv=0; jv<vblocks_ini[1]; ++jv)
@@ -3554,7 +3553,7 @@ namespace SBC {
                blockIndices[0] = iv;
                blockIndices[1] = jv;
                blockIndices[2] = kv;
-               const vmesh::GlobalID blockGID = cell.get_velocity_block(popID,blockIndices,refLevel);
+               const vmesh::GlobalID blockGID = cell.get_velocity_block(popID,blockIndices);
                Real blockCoords[3];
                cell.get_velocity_block_coordinates(popID,blockGID,blockCoords);
                Real blockSize[3];
