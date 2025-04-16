@@ -425,6 +425,9 @@ void calculateSpatialTranslation(
                SC->parameters[CellParams::P_11_R_PREV_PREV] = SC->parameters[CellParams::P_11_R_PREV];
                SC->parameters[CellParams::P_22_R_PREV_PREV] = SC->parameters[CellParams::P_22_R_PREV];
                SC->parameters[CellParams::P_33_R_PREV_PREV] = SC->parameters[CellParams::P_33_R_PREV];
+               SC->parameters[CellParams::P_23_R_PREV_PREV] = SC->parameters[CellParams::P_23_R_PREV];
+               SC->parameters[CellParams::P_13_R_PREV_PREV] = SC->parameters[CellParams::P_13_R_PREV];
+               SC->parameters[CellParams::P_12_R_PREV_PREV] = SC->parameters[CellParams::P_12_R_PREV];
 
                SC->parameters[CellParams::RHOM_R_PREV] = SC->parameters[CellParams::RHOM_R];
                SC->parameters[CellParams::VX_R_PREV] = SC->parameters[CellParams::VX_R];
@@ -434,6 +437,9 @@ void calculateSpatialTranslation(
                SC->parameters[CellParams::P_11_R_PREV] = SC->parameters[CellParams::P_11_R];
                SC->parameters[CellParams::P_22_R_PREV] = SC->parameters[CellParams::P_22_R];
                SC->parameters[CellParams::P_33_R_PREV] = SC->parameters[CellParams::P_33_R];
+               SC->parameters[CellParams::P_23_R_PREV] = SC->parameters[CellParams::P_23_R];
+               SC->parameters[CellParams::P_13_R_PREV] = SC->parameters[CellParams::P_13_R];
+               SC->parameters[CellParams::P_12_R_PREV] = SC->parameters[CellParams::P_12_R];
             }
          }
       }
@@ -542,6 +548,9 @@ void calculateSpatialTranslation(
             SC->parameters[CellParams::P_11_R_PREV_PREV] = SC->parameters[CellParams::P_11_R_PREV];
             SC->parameters[CellParams::P_22_R_PREV_PREV] = SC->parameters[CellParams::P_22_R_PREV];
             SC->parameters[CellParams::P_33_R_PREV_PREV] = SC->parameters[CellParams::P_33_R_PREV];
+            SC->parameters[CellParams::P_23_R_PREV_PREV] = SC->parameters[CellParams::P_23_R_PREV];
+            SC->parameters[CellParams::P_13_R_PREV_PREV] = SC->parameters[CellParams::P_13_R_PREV];
+            SC->parameters[CellParams::P_12_R_PREV_PREV] = SC->parameters[CellParams::P_12_R_PREV];
 
             SC->parameters[CellParams::RHOM_R_PREV] = SC->parameters[CellParams::RHOM_R];
             SC->parameters[CellParams::VX_R_PREV] = SC->parameters[CellParams::VX_R];
@@ -551,6 +560,9 @@ void calculateSpatialTranslation(
             SC->parameters[CellParams::P_11_R_PREV] = SC->parameters[CellParams::P_11_R];
             SC->parameters[CellParams::P_22_R_PREV] = SC->parameters[CellParams::P_22_R];
             SC->parameters[CellParams::P_33_R_PREV] = SC->parameters[CellParams::P_33_R];
+            SC->parameters[CellParams::P_23_R_PREV] = SC->parameters[CellParams::P_23_R];
+            SC->parameters[CellParams::P_13_R_PREV] = SC->parameters[CellParams::P_13_R];
+            SC->parameters[CellParams::P_12_R_PREV] = SC->parameters[CellParams::P_12_R];
          }
       }
    }
@@ -1004,6 +1016,8 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    // Recalculate "_V" velocity moments
    calculateMoments_V(mpiGrid,cellsToPropagateVector,true);
 
+   std::cout << "calculated V moments";
+
    // Set CellParams::MAXVDT to be the minimum dt of all per-species values
    #pragma omp parallel for
    for (size_t c=0; c<cells.size(); ++c) {
@@ -1022,6 +1036,8 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
             // cout << "maxvdt \n";
          }
    }
+   std::cout << "reaches end of accel top level";
+
 }
 
 
@@ -1153,6 +1169,9 @@ void interpolateMomentsForTimeclasses(
             SC->parameters[cp_p11]   = 0.5* ( SC->parameters[CellParams::P_11_R_PREV] + SC->parameters[CellParams::P_11_V] );
             SC->parameters[cp_p22]   = 0.5* ( SC->parameters[CellParams::P_22_R_PREV] + SC->parameters[CellParams::P_22_V] );
             SC->parameters[cp_p33]   = 0.5* ( SC->parameters[CellParams::P_33_R_PREV] + SC->parameters[CellParams::P_33_V] );
+            SC->parameters[cp_p23]   = 0.5* ( SC->parameters[CellParams::P_23_R_PREV] + SC->parameters[CellParams::P_23_V] );
+            SC->parameters[cp_p13]   = 0.5* ( SC->parameters[CellParams::P_13_R_PREV] + SC->parameters[CellParams::P_13_V] );
+            SC->parameters[cp_p12]   = 0.5* ( SC->parameters[CellParams::P_12_R_PREV] + SC->parameters[CellParams::P_12_V] );
 
             // for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
             //    spatial_cell::Population& pop = SC->get_population(popID);
@@ -1172,6 +1191,9 @@ void interpolateMomentsForTimeclasses(
             SC->parameters[cp_p11]   = 0.5* ( SC->parameters[CellParams::P_11_R] + SC->parameters[CellParams::P_11_V] );
             SC->parameters[cp_p22]   = 0.5* ( SC->parameters[CellParams::P_22_R] + SC->parameters[CellParams::P_22_V] );
             SC->parameters[cp_p33]   = 0.5* ( SC->parameters[CellParams::P_33_R] + SC->parameters[CellParams::P_33_V] );
+            SC->parameters[cp_p23]   = 0.5* ( SC->parameters[CellParams::P_23_R] + SC->parameters[CellParams::P_23_V] );
+            SC->parameters[cp_p13]   = 0.5* ( SC->parameters[CellParams::P_13_R] + SC->parameters[CellParams::P_13_V] );
+            SC->parameters[cp_p12]   = 0.5* ( SC->parameters[CellParams::P_12_R] + SC->parameters[CellParams::P_12_V] );
 
          //    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          //       spatial_cell::Population& pop = SC->get_population(popID);
@@ -1215,7 +1237,7 @@ void interpolateMomentsForTimeclasses(
          }
 
          // temporary arrays for true moments.
-         int nMomentsToInterp = (P::tcVMomentPropagation) ? 5 : 8;
+         int nMomentsToInterp = (P::tcVMomentPropagation) ? 8 : 11;
 
          double avgMoments1[nMomentsToInterp];
          double avgMoments2[nMomentsToInterp];
@@ -1342,6 +1364,9 @@ void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_G
       SC->parameters[CellParams::P_11_DT2] = SC->parameters[CellParams::P_11];
       SC->parameters[CellParams::P_22_DT2] = SC->parameters[CellParams::P_22];
       SC->parameters[CellParams::P_33_DT2] = SC->parameters[CellParams::P_33];
+      SC->parameters[CellParams::P_23_DT2] = SC->parameters[CellParams::P_23];
+      SC->parameters[CellParams::P_13_DT2] = SC->parameters[CellParams::P_13];
+      SC->parameters[CellParams::P_12_DT2] = SC->parameters[CellParams::P_12];
    } // for-loop over spatial cells
 }
 
@@ -1361,24 +1386,37 @@ void updatePreviousVMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
          SC->parameters[CellParams::P_11_V_PREV_PREV] = SC->parameters[CellParams::P_11_V];
          SC->parameters[CellParams::P_22_V_PREV_PREV] = SC->parameters[CellParams::P_22_V];
          SC->parameters[CellParams::P_33_V_PREV_PREV] = SC->parameters[CellParams::P_33_V];
+         SC->parameters[CellParams::P_23_V_PREV_PREV] = SC->parameters[CellParams::P_23_V];
+         SC->parameters[CellParams::P_13_V_PREV_PREV] = SC->parameters[CellParams::P_13_V];
+         SC->parameters[CellParams::P_12_V_PREV_PREV] = SC->parameters[CellParams::P_12_V];
+         
 
          SC->parameters[CellParams::RHOM_V_PREV] = SC->parameters[CellParams::RHOM_V];
          SC->parameters[CellParams::RHOQ_V_PREV] = SC->parameters[CellParams::RHOQ_V];
          SC->parameters[CellParams::P_11_V_PREV] = SC->parameters[CellParams::P_11_V];
          SC->parameters[CellParams::P_22_V_PREV] = SC->parameters[CellParams::P_22_V];
          SC->parameters[CellParams::P_33_V_PREV] = SC->parameters[CellParams::P_33_V];
+         SC->parameters[CellParams::P_23_V_PREV] = SC->parameters[CellParams::P_23_V];
+         SC->parameters[CellParams::P_13_V_PREV] = SC->parameters[CellParams::P_13_V];
+         SC->parameters[CellParams::P_12_V_PREV] = SC->parameters[CellParams::P_12_V];
 
          SC->parameters[CellParams::RHOM_R_PREV_PREV] = SC->parameters[CellParams::RHOM_R];
          SC->parameters[CellParams::RHOQ_R_PREV_PREV] = SC->parameters[CellParams::RHOQ_R];
          SC->parameters[CellParams::P_11_R_PREV_PREV] = SC->parameters[CellParams::P_11_R];
          SC->parameters[CellParams::P_22_R_PREV_PREV] = SC->parameters[CellParams::P_22_R];
          SC->parameters[CellParams::P_33_R_PREV_PREV] = SC->parameters[CellParams::P_33_R];
+         SC->parameters[CellParams::P_23_R_PREV_PREV] = SC->parameters[CellParams::P_23_R];
+         SC->parameters[CellParams::P_13_R_PREV_PREV] = SC->parameters[CellParams::P_13_R];
+         SC->parameters[CellParams::P_12_R_PREV_PREV] = SC->parameters[CellParams::P_12_R];
 
          SC->parameters[CellParams::RHOM_R_PREV] = SC->parameters[CellParams::RHOM_R];
          SC->parameters[CellParams::RHOQ_R_PREV] = SC->parameters[CellParams::RHOQ_R];
          SC->parameters[CellParams::P_11_R_PREV] = SC->parameters[CellParams::P_11_R];
          SC->parameters[CellParams::P_22_R_PREV] = SC->parameters[CellParams::P_22_R];
          SC->parameters[CellParams::P_33_R_PREV] = SC->parameters[CellParams::P_33_R];
+         SC->parameters[CellParams::P_23_R_PREV] = SC->parameters[CellParams::P_23_R];
+         SC->parameters[CellParams::P_13_R_PREV] = SC->parameters[CellParams::P_13_R];
+         SC->parameters[CellParams::P_12_R_PREV] = SC->parameters[CellParams::P_12_R];
 
          if (false) {
                   
@@ -1448,6 +1486,9 @@ void updatePreviousVMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
             SC->parameters[CellParams::P_11_V_PREV_PREV] = SC->parameters[CellParams::P_11_V_PREV];
             SC->parameters[CellParams::P_22_V_PREV_PREV] = SC->parameters[CellParams::P_22_V_PREV];
             SC->parameters[CellParams::P_33_V_PREV_PREV] = SC->parameters[CellParams::P_33_V_PREV];
+            SC->parameters[CellParams::P_23_V_PREV_PREV] = SC->parameters[CellParams::P_23_V_PREV];
+            SC->parameters[CellParams::P_13_V_PREV_PREV] = SC->parameters[CellParams::P_13_V_PREV];
+            SC->parameters[CellParams::P_12_V_PREV_PREV] = SC->parameters[CellParams::P_12_V_PREV];
 
             // updating _PREV moments
             SC->parameters[CellParams::RHOM_V_PREV] = SC->parameters[CellParams::RHOM_V];
@@ -1457,7 +1498,10 @@ void updatePreviousVMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
             SC->parameters[CellParams::RHOQ_V_PREV] = SC->parameters[CellParams::RHOQ_V];
             SC->parameters[CellParams::P_11_V_PREV] = SC->parameters[CellParams::P_11_V];
             SC->parameters[CellParams::P_22_V_PREV] = SC->parameters[CellParams::P_22_V];
-            SC->parameters[CellParams::P_33_V_PREV] = SC->parameters[CellParams::P_33_V];   
+            SC->parameters[CellParams::P_33_V_PREV] = SC->parameters[CellParams::P_33_V];
+            SC->parameters[CellParams::P_23_V_PREV] = SC->parameters[CellParams::P_23_V];
+            SC->parameters[CellParams::P_13_V_PREV] = SC->parameters[CellParams::P_13_V];
+            SC->parameters[CellParams::P_12_V_PREV] = SC->parameters[CellParams::P_12_V];
          }
       }
    }  

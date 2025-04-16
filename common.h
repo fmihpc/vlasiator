@@ -143,13 +143,16 @@ namespace CellParams {
       EYGRADPE,         /*!< Electron pressure gradient term y.*/
       EZGRADPE,         /*!< Electron pressure gradient term z.*/
 
-      // !! All these following moment blocks must be in the order: RHOM, RHOQ, P_11, P_22, P_33, VX, VY, VZ.
+      // !! All these following moment blocks must be in the order: RHOM, RHOQ, P_11, P_22, P_33, P_23, P_13, P_12, VX, VY, VZ.
 
       RHOM,    /*!< Total mass density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       RHOQ,    /*!< Total charge density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       P_11,     /*!< Pressure P_xx component, computed by Vlasov propagator. */
       P_22,     /*!< Pressure P_yy component, computed by Vlasov propagator. */
       P_33,     /*!< Pressure P_zz component, computed by Vlasov propagator. */
+      P_23,     /*!< Pressure P_yz component, computed by Vlasov propagator. */
+      P_13,     /*!< Pressure P_xz component, computed by Vlasov propagator. */
+      P_12,     /*!< Pressure P_xy component, computed by Vlasov propagator. */
       VX,  /*!< Vx. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       VY,  /*!< Vy. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       VZ,  /*!< Vz. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
@@ -159,6 +162,9 @@ namespace CellParams {
       P_11_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_11_R and P_11_V. */
       P_22_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_22_R and P_22_V. */
       P_33_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_33_R and P_33_V. */
+      P_23_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_23_R and P_23_V. */
+      P_13_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_13_R and P_13_V. */
+      P_12_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_12_R and P_12_V. */
       VX_DT2,  /*!< Vx. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       VY_DT2,  /*!< Vy. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       VZ_DT2,  /*!< Vz. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
@@ -168,6 +174,9 @@ namespace CellParams {
       P_11_R,   /*!< P_xx component after propagation in ordinary space */
       P_22_R,   /*!< P_yy component after propagation in ordinary space */
       P_33_R,   /*!< P_zz component after propagation in ordinary space */
+      P_23_R,   /*!< P_yz component after propagation in ordinary space */
+      P_13_R,   /*!< P_xz component after propagation in ordinary space */
+      P_12_R,   /*!< P_xy component after propagation in ordinary space */
       VX_R,   /*!< VX after propagation in ordinary space*/
       VY_R,   /*!< VY after propagation in ordinary space*/
       VZ_R,   /*!< VZ after propagation in ordinary space*/
@@ -177,6 +186,9 @@ namespace CellParams {
       P_11_R_PREV, /* !< Previous value of P_11_R, used for timeclass interpolation */
       P_22_R_PREV, /* !< Previous value of P_22_R, used for timeclass interpolation */
       P_33_R_PREV, /* !< Previous value of P_33_R, used for timeclass interpolation */
+      P_23_R_PREV, /* !< Previous value of P_23_R, used for timeclass interpolation */
+      P_13_R_PREV, /* !< Previous value of P_13_R, used for timeclass interpolation */
+      P_12_R_PREV, /* !< Previous value of P_12_R, used for timeclass interpolation */
       VX_R_PREV, /* !< Previous value of VX_R, used for timeclass interpolation */
       VY_R_PREV, /* !< Previous value of VY_R, used for timeclass interpolation */
       VZ_R_PREV, /* !< Previous value of VZ_R, used for timeclass interpolation */
@@ -186,6 +198,9 @@ namespace CellParams {
       P_11_R_PREV_PREV, /* !< Value of P_11_R from two updates back*/
       P_22_R_PREV_PREV, /* !< Value of P_22_R from two updates back*/
       P_33_R_PREV_PREV, /* !< Value of P_33_R from two updates back*/
+      P_23_R_PREV_PREV, /* !< Value of P_23_R from two updates back*/
+      P_13_R_PREV_PREV, /* !< Value of P_13_R from two updates back*/
+      P_12_R_PREV_PREV, /* !< Value of P_12_R from two updates back*/
       VX_R_PREV_PREV, /* !< Value of VX_R from two updates back*/
       VY_R_PREV_PREV, /* !< Value of VY_R from two updates back*/
       VZ_R_PREV_PREV, /* !< Value of VZ_R from two updates back*/
@@ -195,6 +210,9 @@ namespace CellParams {
       P_11_V,   /*!< P_xx component after propagation in velocity space */
       P_22_V,   /*!< P_yy component after propagation in velocity space */
       P_33_V,   /*!< P_zz component after propagation in velocity space */
+      P_23_V,   /*!< P_yz component after propagation in velocity space */
+      P_12_V,   /*!< P_xy component after propagation in velocity space */
+      P_13_V,   /*!< P_xz component after propagation in velocity space */
       VX_V,   /*!< VX after propagation in velocity space*/
       VY_V,   /*!< VY after propagation in velocity space*/
       VZ_V,   /*!< VZ after propagation in velocity space*/
@@ -204,6 +222,9 @@ namespace CellParams {
       P_11_V_PREV, /* !< Previous value of P_11_V, used for timeclass interpolation */
       P_22_V_PREV, /* !< Previous value of P_22_V, used for timeclass interpolation */
       P_33_V_PREV, /* !< Previous value of P_33_V, used for timeclass interpolation */
+      P_23_V_PREV, /* !< Previous value of P_23_V, used for timeclass interpolation */
+      P_13_V_PREV, /* !< Previous value of P_13_V, used for timeclass interpolation */
+      P_12_V_PREV, /* !< Previous value of P_12_V, used for timeclass interpolation */
       VX_V_PREV, /* !< Previous value of VX_V, used for timeclass interpolation */
       VY_V_PREV, /* !< Previous value of VY_V, used for timeclass interpolation */
       VZ_V_PREV, /* !< Previous value of VZ_V, used for timeclass interpolation */
@@ -213,31 +234,35 @@ namespace CellParams {
       P_11_V_PREV_PREV, /* !< Value of P_11_V from two updates back*/
       P_22_V_PREV_PREV, /* !< Value of P_22_V from two updates back*/
       P_33_V_PREV_PREV, /* !< Value of P_33_V from two updates back*/
+      P_23_V_PREV_PREV, /* !< Value of P_23_V from two updates back*/
+      P_13_V_PREV_PREV, /* !< Value of P_13_V from two updates back*/
+      P_12_V_PREV_PREV, /* !< Value of P_12_V from two updates back*/
       VX_V_PREV_PREV, /* !< Value of VX_V from two updates back*/
       VY_V_PREV_PREV, /* !< Value of VY_V from two updates back*/
       VZ_V_PREV_PREV, /* !< Value of VZ_V from two updates back*/
       
-      P_23,     /*!< Pressure P_yz component, computed by Vlasov propagator. */
-      P_13,     /*!< Pressure P_xz component, computed by Vlasov propagator. */
-      P_12,     /*!< Pressure P_xy component, computed by Vlasov propagator. */
+      // P_23,     /*!< Pressure P_yz component, computed by Vlasov propagator. */
+      // P_13,     /*!< Pressure P_xz component, computed by Vlasov propagator. */
+      // P_12,     /*!< Pressure P_xy component, computed by Vlasov propagator. */
+
       // P_11_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_11_R and P_11_V. */
       // P_22_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_22_R and P_22_V. */
       // P_33_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_33_R and P_33_V. */
-      P_23_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_23_R and P_23_V. */
-      P_13_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_13_R and P_13_V. */
-      P_12_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_12_R and P_12_V. */
+      //P_23_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_23_R and P_23_V. */
+      //P_13_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_13_R and P_13_V. */
+      //P_12_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_12_R and P_12_V. */
       // P_11_R,   /*!< P_xx component after propagation in ordinary space */
       // P_22_R,   /*!< P_yy component after propagation in ordinary space */
       // P_33_R,   /*!< P_zz component after propagation in ordinary space */
-      P_23_R,   /*!< P_yz component after propagation in ordinary space */
-      P_13_R,   /*!< P_xz component after propagation in ordinary space */
-      P_12_R,   /*!< P_xy component after propagation in ordinary space */
+      // P_23_R,   /*!< P_yz component after propagation in ordinary space */
+      // P_13_R,   /*!< P_xz component after propagation in ordinary space */
+      // P_12_R,   /*!< P_xy component after propagation in ordinary space */
       // P_11_V,   /*!< P_xx component after propagation in velocity space */
       // P_22_V,   /*!< P_yy component after propagation in velocity space */
       // P_33_V,   /*!< P_zz component after propagation in velocity space */
-      P_23_V,   /*!< P_yz component after propagation in velocity space */
-      P_12_V,   /*!< P_xy component after propagation in velocity space */
-      P_13_V,   /*!< P_xz component after propagation in velocity space */
+      // P_23_V,   /*!< P_yz component after propagation in velocity space */
+      // P_12_V,   /*!< P_xy component after propagation in velocity space */
+      // P_13_V,   /*!< P_xz component after propagation in velocity space */
       EXVOL,    /*!< Volume electric field averaged over spatial cell, x-component.*/
       EYVOL,    /*!< Volume electric field averaged over spatial cell, y-component.*/
       EZVOL,    /*!< Volume electric field averaged over spatial cell, z-component.*/

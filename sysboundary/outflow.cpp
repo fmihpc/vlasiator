@@ -280,6 +280,9 @@ namespace SBC {
             cell->parameters[CellParams::P_11_DT2] = cell->parameters[CellParams::P_11];
             cell->parameters[CellParams::P_22_DT2] = cell->parameters[CellParams::P_22];
             cell->parameters[CellParams::P_33_DT2] = cell->parameters[CellParams::P_33];
+            cell->parameters[CellParams::P_23_DT2] = cell->parameters[CellParams::P_23];
+            cell->parameters[CellParams::P_13_DT2] = cell->parameters[CellParams::P_13];
+            cell->parameters[CellParams::P_12_DT2] = cell->parameters[CellParams::P_12];
 
             cell->parameters[CellParams::RHOM_R] = cell->parameters[CellParams::RHOM];
             cell->parameters[CellParams::VX_R] = cell->parameters[CellParams::VX];
@@ -289,6 +292,9 @@ namespace SBC {
             cell->parameters[CellParams::P_11_R] = cell->parameters[CellParams::P_11];
             cell->parameters[CellParams::P_22_R] = cell->parameters[CellParams::P_22];
             cell->parameters[CellParams::P_33_R] = cell->parameters[CellParams::P_33];
+            cell->parameters[CellParams::P_23_R] = cell->parameters[CellParams::P_23];
+            cell->parameters[CellParams::P_13_R] = cell->parameters[CellParams::P_13];
+            cell->parameters[CellParams::P_12_R] = cell->parameters[CellParams::P_12];
 
             cell->parameters[CellParams::RHOM_V] = cell->parameters[CellParams::RHOM];
             cell->parameters[CellParams::VX_V] = cell->parameters[CellParams::VX];
@@ -298,6 +304,9 @@ namespace SBC {
             cell->parameters[CellParams::P_11_V] = cell->parameters[CellParams::P_11];
             cell->parameters[CellParams::P_22_V] = cell->parameters[CellParams::P_22];
             cell->parameters[CellParams::P_33_V] = cell->parameters[CellParams::P_33];
+            cell->parameters[CellParams::P_23_V] = cell->parameters[CellParams::P_23];
+            cell->parameters[CellParams::P_13_V] = cell->parameters[CellParams::P_13];
+            cell->parameters[CellParams::P_12_V] = cell->parameters[CellParams::P_12];
 
             cell->parameters[CellParams::RHOM_R_PREV] = cell->parameters[CellParams::RHOM];
             cell->parameters[CellParams::VX_R_PREV] = cell->parameters[CellParams::VX];
@@ -307,6 +316,9 @@ namespace SBC {
             cell->parameters[CellParams::P_11_R_PREV] = cell->parameters[CellParams::P_11];
             cell->parameters[CellParams::P_22_R_PREV] = cell->parameters[CellParams::P_22];
             cell->parameters[CellParams::P_33_R_PREV] = cell->parameters[CellParams::P_33];
+            cell->parameters[CellParams::P_23_R_PREV] = cell->parameters[CellParams::P_23];
+            cell->parameters[CellParams::P_13_R_PREV] = cell->parameters[CellParams::P_13];
+            cell->parameters[CellParams::P_12_R_PREV] = cell->parameters[CellParams::P_12];
 
             cell->parameters[CellParams::RHOM_V_PREV] = cell->parameters[CellParams::RHOM];
             cell->parameters[CellParams::VX_V_PREV] = cell->parameters[CellParams::VX];
@@ -316,6 +328,9 @@ namespace SBC {
             cell->parameters[CellParams::P_11_V_PREV] = cell->parameters[CellParams::P_11];
             cell->parameters[CellParams::P_22_V_PREV] = cell->parameters[CellParams::P_22];
             cell->parameters[CellParams::P_33_V_PREV] = cell->parameters[CellParams::P_33];
+            cell->parameters[CellParams::P_23_V_PREV] = cell->parameters[CellParams::P_23];
+            cell->parameters[CellParams::P_13_V_PREV] = cell->parameters[CellParams::P_13];
+            cell->parameters[CellParams::P_12_V_PREV] = cell->parameters[CellParams::P_12];
 
             cell->parameters[CellParams::RHOM_R_PREV_PREV] = cell->parameters[CellParams::RHOM];
             cell->parameters[CellParams::VX_R_PREV_PREV] = cell->parameters[CellParams::VX];
@@ -325,6 +340,9 @@ namespace SBC {
             cell->parameters[CellParams::P_11_R_PREV_PREV] = cell->parameters[CellParams::P_11];
             cell->parameters[CellParams::P_22_R_PREV_PREV] = cell->parameters[CellParams::P_22];
             cell->parameters[CellParams::P_33_R_PREV_PREV] = cell->parameters[CellParams::P_33];
+            cell->parameters[CellParams::P_23_R_PREV_PREV] = cell->parameters[CellParams::P_23];
+            cell->parameters[CellParams::P_13_R_PREV_PREV] = cell->parameters[CellParams::P_13];
+            cell->parameters[CellParams::P_12_R_PREV_PREV] = cell->parameters[CellParams::P_12];
 
             cell->parameters[CellParams::RHOM_V_PREV_PREV] = cell->parameters[CellParams::RHOM];
             cell->parameters[CellParams::VX_V_PREV_PREV] = cell->parameters[CellParams::VX];
@@ -334,6 +352,9 @@ namespace SBC {
             cell->parameters[CellParams::P_11_V_PREV_PREV] = cell->parameters[CellParams::P_11];
             cell->parameters[CellParams::P_22_V_PREV_PREV] = cell->parameters[CellParams::P_22];
             cell->parameters[CellParams::P_33_V_PREV_PREV] = cell->parameters[CellParams::P_33];
+            cell->parameters[CellParams::P_23_V_PREV_PREV] = cell->parameters[CellParams::P_23];
+            cell->parameters[CellParams::P_13_V_PREV_PREV] = cell->parameters[CellParams::P_13];
+            cell->parameters[CellParams::P_12_V_PREV_PREV] = cell->parameters[CellParams::P_12];
          }
       }
    }
