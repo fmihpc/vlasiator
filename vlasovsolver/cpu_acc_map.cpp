@@ -372,7 +372,7 @@ bool map_1d(SpatialCell* spatial_cell,
                setFirstBlockIndices[1] * block_indices_to_id[1] +
                blockK                  * block_indices_to_id[2];
 
-            spatial_cell->remove_velocity_block(targetBlock, popID, vmesh, blockContainer);
+            spatial_cell->remove_velocity_block(targetBlock, popID);
          }
       }
 

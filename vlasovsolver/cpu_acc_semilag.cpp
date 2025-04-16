@@ -101,8 +101,8 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
                          const Real& dt,
                          int timeclass) {
    //double t1 = MPI_Wtime();
-   vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>* vmeshPtr = NULL; 
-   vmesh::VelocityBlockContainer<vmesh::LocalID>* blockContainerPtr = NULL;
+   vmesh::VelocityMesh* vmeshPtr = NULL; 
+   vmesh::VelocityBlockContainer* blockContainerPtr = NULL;
    // Main branch: check if time-ghost data required, handle that and recurse as needed
    // .... of course this is now substepping unnecessarily...
    // std::cout << spatial_cell->parameters[CellParams::CELLID] << "c Accelerate, initial refs" << " vmesh " << &vmesh << " blockContainer " << &blockContainer << "\n";
@@ -128,32 +128,32 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
             if (!P::tc_leapfrog_init) {
                spatial_cell->set_velocity_mesh_ghost(popID, i);
                spatial_cell->set_velocity_blocks_ghost(popID, i); 
-               std::cerr << "c"<< spatial_cell->parameters[CellParams::CELLID]<<" with " << spatial_cell->get_velocity_blocks(popID).size() <<" blocks\n";
+               std::cerr << "c"<< spatial_cell->parameters[CellParams::CELLID]<<" with " << spatial_cell->get_velocity_blocks(popID)->size() <<" blocks\n";
 
                cpu_accelerate_cell(spatial_cell, popID, map_order, dt/pow(2,tc_d), tc_d);
                if (spatial_cell->parameters[CellParams::CELLID]  == 16){
                   std::cout << "16c Initial nudge" << "\n";
                }
                double sum = 0;
-               for (auto bd: spatial_cell->get_velocity_blocks(popID).block_data){
+               for (auto bd: spatial_cell->get_velocity_blocks(popID)->getDataVector_raw()){
                   sum+=bd;
                }
-               std::cerr << "c"<< spatial_cell->parameters[CellParams::CELLID]<< " post-acc sum " << sum << " with " << spatial_cell->get_velocity_blocks(popID).size() <<" blocks\n";
+               std::cerr << "c"<< spatial_cell->parameters[CellParams::CELLID]<< " post-acc sum " << sum << " with " << spatial_cell->get_velocity_blocks(popID)->size() <<" blocks\n";
             }
             else if (spatial_cell->get_timeclass_turn_v()) {
                spatial_cell->set_velocity_mesh_ghost(popID, i);
                spatial_cell->set_velocity_blocks_ghost(popID, i); 
-               std::cerr << "c"<< spatial_cell->parameters[CellParams::CELLID]<<" with " << spatial_cell->get_velocity_blocks(popID).size() <<" blocks\n";
+               std::cerr << "c"<< spatial_cell->parameters[CellParams::CELLID]<<" with " << spatial_cell->get_velocity_blocks(popID)->size() <<" blocks\n";
 
                cpu_accelerate_cell(spatial_cell, popID, map_order, dt/pow(2,tc_d)*1/2, tc_d);
                if (spatial_cell->parameters[CellParams::CELLID]  == 16){
                   std::cout << "16c tc-0 copy and nudge" << "\n";
                }
                double sum = 0;
-               for (auto bd: spatial_cell->get_velocity_blocks(popID).block_data){
+               for (auto bd: spatial_cell->get_velocity_blocks(popID)->getDataVector_raw()){
                   sum+=bd;
                }
-               std::cerr << "c"<< spatial_cell->parameters[CellParams::CELLID]<< " post-acc sum " << sum << " with " << spatial_cell->get_velocity_blocks(popID).size() <<" blocks\n";
+               std::cerr << "c"<< spatial_cell->parameters[CellParams::CELLID]<< " post-acc sum " << sum << " with " << spatial_cell->get_velocity_blocks(popID)->size() <<" blocks\n";
             }
             else if (spatial_cell->get_timeclass_turn_v(i)) {
                cpu_accelerate_cell(spatial_cell, popID, map_order, dt/pow(2,tc_d), tc_d);
@@ -164,17 +164,17 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
             else if (spatial_cell->requested_timeclass_copy_ghosts.count(i) && spatial_cell->get_timeclass_turn_v(i)){
                spatial_cell->set_velocity_mesh_ghost(popID, i);
                spatial_cell->set_velocity_blocks_ghost(popID, i); 
-               std::cerr << "c"<< spatial_cell->parameters[CellParams::CELLID]<<" with " << spatial_cell->get_velocity_blocks(popID).size() <<" blocks\n";
+               std::cerr << "c"<< spatial_cell->parameters[CellParams::CELLID]<<" with " << spatial_cell->get_velocity_blocks(popID)->size() <<" blocks\n";
                cpu_accelerate_cell(spatial_cell, popID, map_order, dt/pow(2,tc_d)*3/2, tc_d);
                if (spatial_cell->parameters[CellParams::CELLID]  == 15){
                   std::cout << "15c tc-1 copy and nudge again" << "\n";
                }
                double sum = 0;
 
-               for (auto bd: spatial_cell->get_velocity_blocks(popID).block_data){
+               for (auto bd: spatial_cell->get_velocity_blocks(popID)->getDataVector_raw()){
                   sum+=bd;
                }
-               std::cerr << "c " << spatial_cell->parameters[CellParams::CELLID]<< " post-acc sum " << sum << " with " << spatial_cell->get_velocity_blocks(popID).size() <<" blocks\n";
+               std::cerr << "c " << spatial_cell->parameters[CellParams::CELLID]<< " post-acc sum " << sum << " with " << spatial_cell->get_velocity_blocks(popID)->size() <<" blocks\n";
             }
             else{
                //do nothing
@@ -252,8 +252,8 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
          return;
       }
 
-      vmeshPtr = &spatial_cell->get_velocity_mesh(popID);
-      blockContainerPtr = &spatial_cell->get_velocity_blocks(popID);
+      vmeshPtr = spatial_cell->get_velocity_mesh(popID);
+      blockContainerPtr = spatial_cell->get_velocity_blocks(popID);
 
 
       std::cout << __FILE__<<":"<<__LINE__ << "\t"<<spatial_cell->parameters[CellParams::CELLID] << "c Accelerate tc " << spatial_cell->get_tc() << " with tcdelta " 
@@ -265,12 +265,12 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
    else{
 
       // std::cout << __FILE__<<":"<<__LINE__<<"\t"<< spatial_cell->parameters[CellParams::CELLID] << "c\tRequest-accelerate at tc " << spatial_cell->get_tc() + tc_delta << " at dt = " << dt << "\n";
-      vmeshPtr = &spatial_cell->get_velocity_mesh(popID,timeclass);
-      blockContainerPtr = &spatial_cell->get_velocity_blocks(popID,timeclass);
+      vmeshPtr = spatial_cell->get_velocity_mesh(popID,timeclass);
+      blockContainerPtr = spatial_cell->get_velocity_blocks(popID,timeclass);
     }
     
-   vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = *vmeshPtr;
-   vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = *blockContainerPtr;
+   vmesh::VelocityMesh& vmesh = *vmeshPtr;
+   vmesh::VelocityBlockContainer& blockContainer = *blockContainerPtr;
 
 
    // vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks(popID);
@@ -306,17 +306,17 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
       case 0: {
          //Map order XYZ
          phiprof::Timer intersectionsTimer {"compute-intersections"};
-         compute_intersections_1st(vmesh,bwd_transform, fwd_transform, 0,
+         compute_intersections_1st(&vmesh,bwd_transform, fwd_transform, 0,
                                    intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk);
-         compute_intersections_2nd(vmesh,bwd_transform, fwd_transform, 1,
+         compute_intersections_2nd(&vmesh,bwd_transform, fwd_transform, 1,
                                    intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk);
-         compute_intersections_3rd(vmesh,bwd_transform, fwd_transform, 2,
+         compute_intersections_3rd(&vmesh,bwd_transform, fwd_transform, 2,
                                    intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk);
          intersectionsTimer.stop();
          phiprof::Timer mappingTimer {mapping_id};
-         map_1d(spatial_cell, popID, intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,0,vmesh,blockContainer); // map along x
-         map_1d(spatial_cell, popID, intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,1,vmesh,blockContainer); // map along y
-         map_1d(spatial_cell, popID, intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,2,vmesh,blockContainer); // map along z
+         map_1d(spatial_cell, popID, intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,0); // map along x
+         map_1d(spatial_cell, popID, intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,1); // map along y
+         map_1d(spatial_cell, popID, intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,2); // map along z
          mappingTimer.stop();
          break;
       }
@@ -324,18 +324,18 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
       case 1: {
          //Map order YZX
          phiprof::Timer intersectionsTimer {"compute-intersections"};
-         compute_intersections_1st(vmesh, bwd_transform, fwd_transform, 1,
+         compute_intersections_1st(&vmesh, bwd_transform, fwd_transform, 1,
                                    intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk);
-         compute_intersections_2nd(vmesh, bwd_transform, fwd_transform, 2,
+         compute_intersections_2nd(&vmesh, bwd_transform, fwd_transform, 2,
                                    intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk);
-         compute_intersections_3rd(vmesh, bwd_transform, fwd_transform, 0,
+         compute_intersections_3rd(&vmesh, bwd_transform, fwd_transform, 0,
                                    intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk);
       
          intersectionsTimer.stop();
          phiprof::Timer mappingTimer {mapping_id};
-         map_1d(spatial_cell, popID, intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,1,vmesh,blockContainer); // map along y
-         map_1d(spatial_cell, popID, intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,2,vmesh,blockContainer); // map along z
-         map_1d(spatial_cell, popID, intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,0,vmesh,blockContainer); // map along x
+         map_1d(spatial_cell, popID, intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,1); // map along y
+         map_1d(spatial_cell, popID, intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,2); // map along z
+         map_1d(spatial_cell, popID, intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,0); // map along x
          mappingTimer.stop();
          break;
       }
@@ -343,17 +343,17 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
       case 2: {
          phiprof::Timer intersectionsTimer {"compute-intersections"};
          //Map order Z X Y
-         compute_intersections_1st(vmesh, bwd_transform, fwd_transform, 2,
+         compute_intersections_1st(&vmesh, bwd_transform, fwd_transform, 2,
                                    intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk);
-         compute_intersections_2nd(vmesh, bwd_transform, fwd_transform, 0,
+         compute_intersections_2nd(&vmesh, bwd_transform, fwd_transform, 0,
                                    intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk);
-         compute_intersections_3rd(vmesh, bwd_transform, fwd_transform, 1,
+         compute_intersections_3rd(&vmesh, bwd_transform, fwd_transform, 1,
                                    intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk);
          intersectionsTimer.stop();
          phiprof::Timer mappingTimer {"compute-mapping"};
-         map_1d(spatial_cell, popID, intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,2,vmesh,blockContainer); // map along z
-         map_1d(spatial_cell, popID, intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,0,vmesh,blockContainer); // map along x
-         map_1d(spatial_cell, popID, intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,1,vmesh,blockContainer); // map along y
+         map_1d(spatial_cell, popID, intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,2); // map along z
+         map_1d(spatial_cell, popID, intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,0); // map along x
+         map_1d(spatial_cell, popID, intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,1); // map along y
          mappingTimer.stop();
          break;
       }

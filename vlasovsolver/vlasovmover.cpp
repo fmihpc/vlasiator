@@ -891,12 +891,12 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
             // if ( (SC->parameters[CellParams::CELLID] == 9 || SC->parameters[CellParams::CELLID] == 11 || SC->parameters[CellParams::CELLID] == 12))
                // std::cout << "vdt on tc  " << SC->parameters[CellParams::TIMECLASS] << " on ftstep " << P::fractionalTimestep << ", dt " << dt_cell <<"\n";
 
-            const vmesh::VelocityMesh& vmesh = SC->get_velocity_mesh(popID);
+            const vmesh::VelocityMesh* vmesh = SC->get_velocity_mesh(popID);
             // disregard boundary cells, in preparation for acceleration
             if (  (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) ||
                   // Include inflow-Maxwellian
                   (P::vlasovAccelerateMaxwellianBoundaries && (SC->sysBoundaryFlag == sysboundarytype::MAXWELLIAN)) ) {
-                     if (vmesh.size() != 0){   //do not propagate spatial cells with no blocks
+                     if (vmesh->size() != 0){   //do not propagate spatial cells with no blocks
                            // if(SC->get_all_ghosts().size() > 0) {
                            //    std::cerr << myRank <<": CellID " << cells[c] << " requested timeghosts: ";
                            //    for (auto i : SC->get_all_ghosts()){
@@ -923,12 +923,19 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
                      //they are not propagated
                      prepareAccelerateCell(SC, popID);
 
-               //update max subcycles for all cells in this process - population-specific
-               // maxSubcycles = max((int)getAccelerationSubcycles(SC->get_max_v_dt(popID), dt_cell), maxSubcycles);
-               // spatial_cell::Population& pop = SC->get_population(popID);
-               // pop.ACCSUBCYCLES = getAccelerationSubcycles(SC->get_max_v_dt(popID), dt_cell);
+                  //update max subcycles for all cells in this process - population-specific
+                  // maxSubcycles = max((int)getAccelerationSubcycles(SC->get_max_v_dt(popID), dt_cell), maxSubcycles);
+                  // spatial_cell::Population& pop = SC->get_population(popID);
+                  // pop.ACCSUBCYCLES = getAccelerationSubcycles(SC->get_max_v_dt(popID), dt_cell);
+#ifdef USE_GPU
+                  #pragma omp critical
+                  {
+                     if (blockCount > gpuMaxBlockCount) {
+                        gpuMaxBlockCount = blockCount;
+                     }
+                  }
+#endif                  
             } // if propagate loop
-            
          } // for loop over cells
 
          // This can possibly have funky dts, lets check those 
@@ -937,15 +944,6 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
             maxSubcycles = max((int)getAccelerationSubcycles(payload.cellptr->get_max_v_dt(popID), payload.dt), maxSubcycles);
             spatial_cell::Population& pop = payload.cellptr->get_population(popID,payload.timeclass);
             pop.ACCSUBCYCLES = getAccelerationSubcycles(payload.cellptr->get_max_v_dt(popID), payload.dt);
-#ifdef USE_GPU
-               #pragma omp critical
-               {
-                  if (blockCount > gpuMaxBlockCount) {
-                     gpuMaxBlockCount = blockCount;
-                  }
-               }
-#endif
-            }
          }
 
 #ifdef USE_GPU
@@ -954,9 +952,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
          gpu_vlasov_allocate(gpuMaxBlockCount);
          gpu_acc_allocate(gpuMaxBlockCount);
          verificationTimer.stop();
-#endif
-         }
-         
+#endif         
 
          // Compute global maximum for number of subcycles
          MPI_Allreduce(&maxSubcycles, &globalMaxSubcycles, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
@@ -992,7 +988,6 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 //          "\n";        
          adjustVelocityBlocks(mpiGrid, cells, true, popID);
       } // for-loop over particle species
-      timer.stop();
 
       //now cellsToPropagateSet contains all cells which have been propagated and whose moments need updating
 

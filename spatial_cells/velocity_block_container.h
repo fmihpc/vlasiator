@@ -71,6 +71,7 @@ namespace vmesh {
       ARCH_HOSTDEV static double getBlockAllocationFactor();
       ARCH_HOSTDEV Realf* getData();
       ARCH_HOSTDEV const Realf* getData() const;
+      ARCH_HOSTDEV std::vector<Realf,aligned_allocator<Realf,WID3> > getDataVector_raw(); // temporary addition for timeclass testing
       ARCH_HOSTDEV Realf* getData(const vmesh::LocalID blockLID);
       ARCH_HOSTDEV const Realf* getData(const vmesh::LocalID blockLID) const;
       ARCH_HOSTDEV Real* getParameters();
@@ -329,6 +330,10 @@ namespace vmesh {
 
    inline ARCH_HOSTDEV Realf* VelocityBlockContainer::getData() {
       return block_data.data();
+   }
+
+   inline ARCH_HOSTDEV std::vector<Realf,aligned_allocator<Realf,WID3> > VelocityBlockContainer::getDataVector_raw() { // temporary addition for timeclass testing
+      return block_data;
    }
 
    inline ARCH_HOSTDEV const Realf* VelocityBlockContainer::getData() const {

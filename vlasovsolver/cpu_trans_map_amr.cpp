@@ -267,10 +267,10 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
 
 
    double sum = 0;
-   for (auto bd: mpiGrid[16]->get_velocity_blocks(popID,timeclass).block_data){
+   for (auto bd: mpiGrid[16]->get_velocity_blocks(popID,timeclass)->getDataVector_raw()){
       sum+=bd;
    }
-   std::cerr << dimension <<" cell 16 tc "<< timeclass<< " pre-trans sum " << sum << " with " << mpiGrid[16]->get_velocity_blocks(popID).size() <<" blocks\n";
+   std::cerr << dimension <<" cell 16 tc "<< timeclass<< " pre-trans sum " << sum << " with " << mpiGrid[16]->get_velocity_blocks(popID)->size() <<" blocks\n";
 
 
    // init cellid_transpose (moved here to take advantage of the omp parallel region)
@@ -391,10 +391,10 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                SpatialCell* srcCell = mpiGrid[DimensionPencils[dimension].ids[start + b]];
                
                // Need to sort timeclasses etc before the following call! (also get rid of ghost vmesh there?)
-               vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>* velmesh;
-               vmesh::VelocityBlockContainer<vmesh::LocalID>* velblocks;
-               velmesh = &srcCell->get_velocity_mesh(popID, timeclass);
-               velblocks = &srcCell->get_velocity_blocks(popID, timeclass);
+               vmesh::VelocityMesh* velmesh;
+               vmesh::VelocityBlockContainer* velblocks;
+               velmesh = srcCell->get_velocity_mesh(popID, timeclass);
+               velblocks = srcCell->get_velocity_blocks(popID, timeclass);
                // if (srcCell->get_tc() != timeclass){// && (*cell)->get_tc() > timeclass){
                //    velmesh = &srcCell->get_velocity_mesh(popID, timeclass);
                //    velblocks = &srcCell->get_velocity_blocks(popID, timeclass);
@@ -481,10 +481,10 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                // if(blocki==0)
                // std::cout <<target_cell_id << " cellBlockData " << cellBlockData.size() << "\n";
                if (target_cell){
-                  vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>* velmesh;
-                  vmesh::VelocityBlockContainer<vmesh::LocalID>* velblocks;
-                  velmesh = &target_cell->get_velocity_mesh(popID, timeclass);
-                  velblocks = &target_cell->get_velocity_blocks(popID, timeclass);
+                  vmesh::VelocityMesh* velmesh;
+                  vmesh::VelocityBlockContainer* velblocks;
+                  velmesh = target_cell->get_velocity_mesh(popID, timeclass);
+                  velblocks = target_cell->get_velocity_blocks(popID, timeclass);
                   vmesh::LocalID blockLID;
                   blockLID = target_cell->get_velocity_block_local_id(blockGID, popID,timeclass);
                   // if(target_cell->get_tc() == timeclass) {
@@ -508,7 +508,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
       
                   // }
       
-                  if (blockLID != vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) {
+                  if (blockLID != vmesh::VelocityMesh::invalidLocalID()) {
                      bool donotZero = false;
                      // Get a pointer to the block data
                      
@@ -618,10 +618,10 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
       } // Closes loop over blocks
    } // closes pragma omp parallel
    sum = 0;
-   for (auto bd: mpiGrid[16]->get_velocity_blocks(popID, timeclass).block_data){
+   for (auto bd: mpiGrid[16]->get_velocity_blocks(popID, timeclass)->getDataVector_raw()){
       sum+=bd;
    }
-   std::cerr << "cell 16 tc "<< timeclass <<" post-trans sum " << sum << " with " << mpiGrid[16]->get_velocity_blocks(popID).size() <<" blocks\n";
+   std::cerr << "cell 16 tc "<< timeclass <<" post-trans sum " << sum << " with " << mpiGrid[16]->get_velocity_blocks(popID)->size() <<" blocks\n";
    return true;
 }
 

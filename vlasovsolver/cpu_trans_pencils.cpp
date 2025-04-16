@@ -51,6 +51,8 @@ bool do_translate_cell(SpatialCell* SC, int tc){
       else{
          return false;
       }
+   } else {
+      return true;
    }
 }
 
