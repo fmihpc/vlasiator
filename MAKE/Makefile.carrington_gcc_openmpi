@@ -95,8 +95,8 @@ LIBRARY_PREFIX = /proj/group/spacephysics/libraries
 LIB_PROFILE = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/phiprof/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/phiprof/lib -lgfortran
 INC_PROFILE = -I $(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/phiprof/include
 
-LIB_VLSV = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/vlsv
-INC_VLSV = -I$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/vlsv
+LIB_VLSV = -L/wrk-vakka/group/spacephysics/vlasiator/temp/vlsv-footer-check -lvlsv -Wl,-rpath=/wrk-vakka/group/spacephysics/vlasiator/temp/vlsv-footer-check
+INC_VLSV = -I/wrk-vakka/group/spacephysics/vlasiator/temp/vlsv-footer-check
 
 LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/jemalloc/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/jemalloc/lib
 INC_JEMALLOC = -isystem $(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/jemalloc/include
