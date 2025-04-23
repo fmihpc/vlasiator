@@ -234,7 +234,7 @@ namespace spatial_cell {
       1. adding velocity blocks to places where matter might flow to from neighbours,
       taking into consideration the neighbours' every timeclass mesh
 
-      2. ?
+      2. Make this such that we don't unnecessarily do cross-timeclass neighbours
 
       */
       
@@ -247,8 +247,9 @@ namespace spatial_cell {
             auto* ghostPopVmesh = (*neighbor)->get_velocity_mesh_ghost(popID, tc); // get the ghost population
             for (vmesh::LocalID block_index = 0; block_index<ghostPopVmesh->size(); ++block_index) { //go through the vmesh of the ghost population
                const vmesh::GlobalID globalID = ghostPopVmesh->getGlobalID(block_index);
+               std::cout << __FILE__<<":"<<__LINE__<< "globalID " << globalID <<"\n"; 
 
-               if (compute_block_has_content(globalID, popID)) {
+               if (compute_block_has_content(globalID, popID, tc)) {
                   neighbors_have_content.insert(globalID);
                }
             }
@@ -307,7 +308,7 @@ namespace spatial_cell {
       }
    }
 
-   void SpatialCell::adjustSingleCellVelocityBlocks(const uint popID, bool doDeleteEmpty) {
+   void SpatialCell::adjustSingleCellVelocityBlocks(const uint popID, bool doDeleteEmpty, const int timeclass) {
       debug_population_check(popID);
 
       //neighbor_ptrs is empty, so we adjust only based on local velocity space.
@@ -322,10 +323,10 @@ namespace spatial_cell {
     sense in given block.
     Also returns false if given block doesn't exist or is an error block.
     */
-   bool SpatialCell::compute_block_has_content(const vmesh::LocalID& blockLID,const uint popID) const {
+   bool SpatialCell::compute_block_has_content(const vmesh::GlobalID& blockLID,const uint popID, const int timeclass) const {
       debug_population_check(popID);
       #ifdef DEBUG_SPATIAL_CELL
-      const vmesh::GlobalID blockGID = populations[popID].vmesh->getGlobalID(blockLID);
+      const vmesh::GlobalID blockGID = get_population(popId, timeclass).vmesh->getGlobalID(blockLID);
       if (blockGID == invalid_global_id()) {
          std::cerr << "ERROR, popID " << popID << " found invalid GID " << blockGID << " for LID  "<< blockLID;
          std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
@@ -339,7 +340,9 @@ namespace spatial_cell {
 
       bool has_content = false;
       const Real velocity_block_min_value = getVelocityBlockMinValue(popID);
-      const Realf* block_data = populations[popID].blockContainer->getData(blockLID);
+      vmesh::VelocityBlockContainer* blockCont = get_population(popID, timeclass).blockContainer;
+
+      const Realf* block_data = blockCont->getData(blockLID);
       for (unsigned int i=0; i<WID3; ++i) {
          if (block_data[i] >= velocity_block_min_value) {
             has_content = true;

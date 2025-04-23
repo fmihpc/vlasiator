@@ -314,7 +314,7 @@ namespace spatial_cell {
 
       // Following functions adjust velocity blocks stored on the cell //
       bool add_velocity_block(const vmesh::GlobalID& block,const uint popID);
-      void adjustSingleCellVelocityBlocks(const uint popID, bool doDeleteEmpty=false);
+      void adjustSingleCellVelocityBlocks(const uint popID, bool doDeleteEmpty=false, const int timeclass =-1);
       void adjust_velocity_blocks(const std::vector<SpatialCell*>& spatial_neighbors,
                                   const uint popID,
                                   bool doDeleteEmptyBlocks=true);
@@ -406,7 +406,7 @@ namespace spatial_cell {
     private:
       //SpatialCell& operator=(const SpatialCell&);
 
-      bool compute_block_has_content(const vmesh::GlobalID& block,const uint popID) const;
+      bool compute_block_has_content(const vmesh::GlobalID& block,const uint popID, const int timeclass=-1) const;
 
       static int activePopID;
       bool initialized;
