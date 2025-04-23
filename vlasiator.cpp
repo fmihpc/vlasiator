@@ -165,7 +165,7 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    dtMinMaxLocal[2] = numeric_limits<Real>::min();
 
    // Compute max dt for Vlasov solver
-   reduce_vlasov_dt(mpiGrid, cells, dtMaxLocal);
+   reduce_vlasov_dt(mpiGrid, cells, dtMaxLocal, dtMinMaxLocal);
 
    // compute max dt for fieldsolver
    const std::array<FsGridTools::FsIndex_t, 3> gridDims(technicalGrid.getLocalSize());
@@ -210,7 +210,6 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    newDt = min(newDt,meanVlasovCFL * dtMaxGlobal[1] * P::maxSlAccelerationSubcycles);
    newDt = min(newDt,meanFieldsCFL * dtMaxGlobal[2] * P::maxFieldSolverSubcycles);
    if (myRank == MASTER_RANK) cout << "newDt " << newDt <<"\n";
-
    // baseDt: longest max dt of any rank
    baseDt = meanVlasovCFL * dtMinMaxGlobal[0];
    baseDt = min(baseDt,meanVlasovCFL * dtMinMaxGlobal[1] * P::maxSlAccelerationSubcycles);
@@ -237,7 +236,6 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    }
    // This is the full range of timeclasses that could be used based on the physical environment
    int timeclassRange = int(log2(baseDt/fsdt));
-   
    // ... and we need to clamp that with the parameter for number of MaxTimeclasses
    P::currentMaxTimeclass = min(P::maxTimeclass, timeclassRange);
    if(P::tcOverrideTimeclass > -1){
@@ -1329,7 +1327,6 @@ int simulate(int argn,char* args[]) {
          }
          timer.stop();
       }
-      
       if (doNow[donow::DORC] == 1){ // write recover
          phiprof::Timer timer {"write-recover"};
 
@@ -1380,6 +1377,8 @@ int simulate(int argn,char* args[]) {
          doBailout > 0) {
          break;
       }
+
+      std::cout << "main loop at" << __FILE__ << " " << __LINE__ << " " << P::tstep << " " << P::fractionalTimestep << std::endl;
 
       //Re-loadbalance if needed
       //TODO - add LB measure and do LB if it exceeds threshold

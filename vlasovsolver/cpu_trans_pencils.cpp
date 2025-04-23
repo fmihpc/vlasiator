@@ -1592,22 +1592,24 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
             std::cerr<<"Error in dimension: __FILE__:__LINE__"<<std::endl;
             abort();
       }
-      for (uint i = 0; i <= P::currentMaxTimeclass; ++i){
-         tc_propagatedCells.push_back(vector<CellID>());
-         switch (dimension) {
-            case 0:
-               tc_propagatedCells[i].assign(timeghost_active[i][0].begin(),timeghost_active[i][0].end());
-               break;
-            case 1:
-               tc_propagatedCells[i].assign(timeghost_active[i][1].begin(),timeghost_active[i][1].end());
-               break;
-            case 2:
-               tc_propagatedCells[i].assign(timeghost_active[i][2].begin(),timeghost_active[i][2].end());
-               break;
-            default:
-               std::cerr<<"Error in dimension: __FILE__:__LINE__"<<std::endl;
-               abort();
-         }  
+      if (P::currentMaxTimeclass > 0) {
+         for (int i = 0; i <= P::currentMaxTimeclass; ++i){
+            tc_propagatedCells.push_back(vector<CellID>());
+            switch (dimension) {
+               case 0:
+                  tc_propagatedCells[i].assign(timeghost_active[i][0].begin(),timeghost_active[i][0].end());
+                  break;
+               case 1:
+                  tc_propagatedCells[i].assign(timeghost_active[i][1].begin(),timeghost_active[i][1].end());
+                  break;
+               case 2:
+                  tc_propagatedCells[i].assign(timeghost_active[i][2].begin(),timeghost_active[i][2].end());
+                  break;
+               default:
+                  std::cerr<<"Error in dimension: __FILE__:__LINE__"<<std::endl;
+                  abort();
+            }  
+         }
       }
    } else {
       for (size_t c=0; c<localCells.size(); ++c) {
@@ -1615,7 +1617,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
             propagatedCells.push_back(localCells[c]);
          }
       }
-      for (uint i = 0; i <= P::currentMaxTimeclass; ++i){
+      for (int i = 0; i <= P::currentMaxTimeclass; ++i){
          tc_propagatedCells.push_back(vector<CellID>());
          for (size_t c=0; c<localCells.size(); ++c) {
             if (do_translate_cell(mpiGrid[localCells[c]]) && mpiGrid[localCells[c]]->parameters[CellParams::TIMECLASS]==i) {
@@ -1629,14 +1631,16 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
 
    phiprof::Timer getSeedIdsTimer {"getSeedIds"};
    vector<std::pair<int,CellID>> seedIds;
-   int maxt = 0;
-   for (int timeclass = 0; timeclass <= P::currentMaxTimeclass; ++timeclass){
-      std::cout << "getting seedids for timeclass " << timeclass <<", cells prop:\n";
-      for(auto c : tc_propagatedCells[timeclass]) std::cout << c << " ";
-      std::cout << "\n";
-      getSeedIds(mpiGrid, tc_propagatedCells[timeclass], dimension, seedIds, timeclass);
-      getSeedIdsTimer.stop();
-      maxt = timeclass;
+   if (P::currentMaxTimeclass > 0) {
+      int maxt = 0;
+      for (int timeclass = 0; timeclass <= P::currentMaxTimeclass; ++timeclass){
+         std::cout << "getting seedids for timeclass " << timeclass <<", cells prop:\n";
+         for(auto c : tc_propagatedCells[timeclass]) std::cout << c << " ";
+         std::cout << "\n";
+         getSeedIds(mpiGrid, tc_propagatedCells[timeclass], dimension, seedIds, timeclass);
+         getSeedIdsTimer.stop();
+         maxt = timeclass;
+      }
    }
    if (printSeeds) {
       for (int rank=0; rank<mpi_size; ++rank) {

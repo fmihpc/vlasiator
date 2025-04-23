@@ -323,7 +323,7 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
 
    // vmesh::VelocityBlockContainer<vmesh::LocalID> emptyvmesh& = vmesh::VelocityBlockContainer<vmesh::LocalID>();
    // Write velocity block IDs for all timeghosts
-   for(uint timeclass = 0; timeclass <= P::currentMaxTimeclass; timeclass++){
+   for(int timeclass = 0; timeclass <= P::currentMaxTimeclass; timeclass++){
 
       // Compute totalBlocks for ghosts
       totalBlocks = 0;
@@ -368,7 +368,6 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
       //ss << static_cast<unsigned int>(vmesh::getMeshWrapper()->velocityMeshes->at(meshID).refLevelMaxAllowed);
       ss << static_cast<unsigned int>(0);
       attribs["max_velocity_ref_level"] = ss.str();
-      
       if (mpiGrid.get_rank() == MASTER_RANK) {
          if (vlsvWriter.writeArray("MESH_BBOX",attribs,6,1,bbox) == false) success = false;
 
