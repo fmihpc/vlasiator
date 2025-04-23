@@ -402,22 +402,21 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
 
       // Write velocity block IDs
       vector<vmesh::GlobalID> velocityBlockIds(totalBlocks);
-      uint blockIndex = 0;
       try {
          // gather data for writing
          for (size_t i=0; i<cells.size(); ++i) {
             SpatialCell* SC = mpiGrid[cells[i]];
-            const vmesh::LocalID nBlocks = SC->get_number_of_velocity_blocks(popID);
+            vmesh::VelocityMesh* velmeshghost = SC->get_velocity_mesh_ghost(popID, timeclass);
+            vmesh::VelocityBlockContainer* velblocksghost = SC->get_velocity_blocks_ghost(popID, timeclass);
             #ifdef USE_GPU
             const vmesh::GlobalID *GIDlist = SC->get_velocity_grid(popID);
             CHK_ERR( gpuMemcpy(&velocityBlockIds[blockIndex], GIDlist, nBlocks*sizeof(vmesh::GlobalID), gpuMemcpyDeviceToHost));
             #else
-            for (vmesh::LocalID block_i=0; block_i<nBlocks; ++block_i) {
-               const vmesh::GlobalID block = SC->get_velocity_block_global_id(block_i,popID);
-               velocityBlockIds[blockIndex + block_i] = block;
+            for (vmesh::LocalID block_i=0; block_i<velblocksghost->size(); ++block_i) {
+               const vmesh::GlobalID block = velmeshghost->getGlobalID(block_i);
+               velocityBlockIds.push_back(block);
             }
             #endif
-            blockIndex += nBlocks;
          }
       } catch (...) {
          cerr << "FAILED TO WRITE VELOCITY BLOCK IDS AT: " << __FILE__ << " " << __LINE__ << endl;
