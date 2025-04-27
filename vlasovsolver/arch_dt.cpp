@@ -33,7 +33,8 @@ using namespace spatial_cell;
 
 void reduce_vlasov_dt(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                       const vector<CellID>& cells,
-                      Real (&dtMaxLocal)[3]) {
+                      Real (&dtMaxLocal)[3],
+                      Real (&dtMinMaxLocal)[3]) {
 
    phiprof::Timer computeTimestepTimer {"compute-vlasov-timestep"};
    const Real HALF = 0.5;
@@ -85,6 +86,7 @@ void reduce_vlasov_dt(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
           (cell->sysBoundaryLayer == 1 && cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY)) {
          // spatial fluxes computed also for boundary cells
          dtMaxLocal[0] = min(dtMaxLocal[0], cell->parameters[CellParams::MAXRDT]);
+         dtMinMaxLocal[0] = max(dtMinMaxLocal[0], cell->parameters[CellParams::MAXRDT]);
       }
 
       if (cell->parameters[CellParams::MAXVDT] != 0 &&
@@ -92,6 +94,7 @@ void reduce_vlasov_dt(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
            (P::vlasovAccelerateMaxwellianBoundaries && cell->sysBoundaryFlag == sysboundarytype::MAXWELLIAN))) {
          // acceleration only done on non-boundary cells
          dtMaxLocal[1] = min(dtMaxLocal[1], cell->parameters[CellParams::MAXVDT]);
+         dtMinMaxLocal[1] = max(dtMinMaxLocal[1], cell->parameters[CellParams::MAXRDT]);
       }
    }
 }
