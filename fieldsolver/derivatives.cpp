@@ -59,23 +59,22 @@ void computeMoments(std::span<const std::array<Real, fsgrids::moments::N_MOMENTS
 
    {
 #ifdef DEBUG_SOLVERS
-      const auto& cv = momData.center[mom::RHOM];
+      const auto& cv = momData.ooo[mom::RHOM];
       if (cv <= 0) {
-         std::cerr << __FILE__ << ":" << __LINE__ << (cv < 0 ? " Negative" : " Zero") << " density in spatial cell at ("
-                   << i << " " << j << " " << k << ")" << std::endl;
+         std::cerr << __FILE__ << ":" << __LINE__ << (cv < 0 ? " Negative" : " Zero") << " density in fsgrid cell id " << stencil.indexFromOffset(0,0,0) << std::endl;
          abort();
       }
 
       const auto& lv = momData.moo[mom::RHOM];
       if (lv <= 0) {
-         std::cerr << __FILE__ << ":" << __LINE__ << (lv < 0 ? " Negative" : " Zero") << " density in spatial cell"
+         std::cerr << __FILE__ << ":" << __LINE__ << (lv < 0 ? " Negative" : " Zero") << " density in fsgrid cell " << stencil.indexFromOffset(-1,0,0)
                    << std::endl;
          abort();
       }
 
       const auto& rv = momData.poo[mom::RHOM];
       if (rv <= 0) {
-         std::cerr << __FILE__ << ":" << __LINE__ << (rv < 0 ? " Negative" : " Zero") << " density in spatial cell"
+         std::cerr << __FILE__ << ":" << __LINE__ << (rv < 0 ? " Negative" : " Zero") << " density in fsgrid cell " << stencil.indexFromOffset(1,0,0)
                    << std::endl;
          abort();
       }
