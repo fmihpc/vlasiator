@@ -369,33 +369,21 @@ void calculateBVOLDerivatives(std::span<std::array<Real, fsgrids::volfields::N_V
  */
 void calculateBVOLDerivativesSimple(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol,
                                     std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
-   const auto* localSize = &fsgrid.getLocalSize()[0];
-   const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
-
    phiprof::Timer derivsTimer{"Calculate volume derivatives"};
-   int computeTimerId{phiprof::initializeTimer("FS derivatives BVOL compute cells")};
+   const size_t numCells = fsgrid.getNumCells();
 
    phiprof::Timer commTimer{"BVOL derivatives ghost updates MPI", {"MPI"}};
    fsgrid.updateGhostCells(vol);
-   commTimer.stop(N_cells, "Spatial Cells");
+   commTimer.stop(numCells, "Spatial Cells");
 
-// Calculate derivatives
-#pragma omp parallel
-   {
-      phiprof::Timer computeTimer{computeTimerId};
-#pragma omp for collapse(2)
-      for (auto k = 0; k < localSize[2]; k++) {
-         for (auto j = 0; j < localSize[1]; j++) {
-            for (auto i = 0; i < localSize[0]; i++) {
-               const auto stencil = fsgrid.makeStencil(i, j, k);
-               calculateBVOLDerivatives(vol, technical, stencil);
-            }
-         }
-      }
-      computeTimer.stop(N_cells, "Spatial Cells");
-   }
+   // Calculate derivatives
+   fsgrid.parallel_for([](int timerId) ->  phiprof::Timer { return phiprof::Timer{timerId}; },
+                       phiprof::initializeTimer("FS derivatives BVOL compute cells"), technical,
+                       [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+                          calculateBVOLDerivatives(vol, technical, stencil);
+                      });
 
-   derivsTimer.stop(N_cells, "Spatial Cells");
+   derivsTimer.stop(numCells, "Spatial Cells");
 }
 
 /*! \brief Low-level curvature calculation.
@@ -462,40 +450,25 @@ void calculateCurvature(std::span<std::array<Real, fsgrids::volfields::N_VOL>> v
 void calculateCurvatureSimple(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol,
                               std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                               std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
-   const auto& gridSpacing = fsgrid.getGridSpacing();
-   const auto* localSize = &fsgrid.getLocalSize()[0];
-   const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
-
-
    phiprof::Timer curvatureTimer{"Calculate curvature"};
-   int computeTimerId{phiprof::initializeTimer("Calculate curvature compute cells")};
+   const auto& gridSpacing = fsgrid.getGridSpacing();
+   const size_t numCells = fsgrid.getNumCells();
 
    phiprof::Timer commTimer{"Calculate curvature ghost updates MPI", {"MPI"}};
    fsgrid.updateGhostCells(vol);
-   commTimer.stop(N_cells, "Spatial Cells");
+   commTimer.stop(numCells, "Spatial Cells");
 
-#pragma omp parallel
-   {
-      phiprof::Timer computeTimer{computeTimerId};
-#pragma omp for collapse(2)
-      for (auto k = 0; k < localSize[2]; k++) {
-         for (auto j = 0; j < localSize[1]; j++) {
-            for (auto i = 0; i < localSize[0]; i++) {
-               const auto stencil = fsgrid.makeStencil(i, j, k);
-               const auto& tech = technical[stencil.ooo()];
-
-               const bool compute = (tech.sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY &&
-                                     tech.sysBoundaryLayer != 1 && tech.sysBoundaryLayer != 2);
-               if (compute) {
-                  calculateCurvature(vol, bgb, stencil, gridSpacing);
-               }
-            }
-         }
-      }
-      computeTimer.stop(N_cells, "Spatial Cells");
-   }
-
-   curvatureTimer.stop(N_cells, "Spatial Cells");
+   fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                       phiprof::initializeTimer("Calculate curvature compute cells"), technical,
+                       [=](const fsgrid::FsStencil stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+                          const auto& tech = technical[stencil.ooo()];
+                          const bool compute = (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY &&
+                                     sysBoundaryLayer != 1 && sysBoundaryLayer != 2);
+                          if (compute) {
+                             calculateCurvature(vol, bgb, stencil, gridSpacing);
+                          }
+                       });
+   curvatureTimer.stop(numCells, "Spatial Cells");
 }
 
 /*! \brief Returns perturbed volumetric B of cell
