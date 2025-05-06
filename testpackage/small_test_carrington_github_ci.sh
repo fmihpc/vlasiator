@@ -127,6 +127,9 @@ for run in ${run_tests[*]}; do
    # Run prerequisite script, if it exists
    test -e test_prelude.sh && ./test_prelude.sh
 
+   echo -e "\n\n"
+   echo "running ${test_name[$run]} "
+
    # Run the actual simulation
    if [[ ${single_cell[$run]} ]]; then
       { $small_run_command $bin --run_config=${test_name[$run]}.cfg 2>&1 1>&3 3>&- | tee $GITHUB_WORKSPACE/stderr.txt; exit ${PIPESTATUS[0]}; } 3>&1 1>&2 | tee $GITHUB_WORKSPACE/stdout.txt
@@ -153,17 +156,13 @@ for run in ${run_tests[*]}; do
     # Run postprocessing script, if it exists
    test -e test_postproc.sh && ./test_postproc.sh
 
-   ##Compare test case with right solutions
+   # Print stored stdout and stderr of simulation
    { {
-   echo -e "\n"
-   echo "----------"
-   echo "running ${test_name[$run]} "
-   echo "----------"
+   echo "-----------"
    } 2>&1 1>&3 3>&- | tee -a $GITHUB_WORKSPACE/stderr.txt;} 3>&1 1>&2 | tee -a $GITHUB_WORKSPACE/stdout.txt
    reference_result_dir=${reference_dir}/${reference_revision}/${test_name[$run]}
 
    { {
-   echo "--------------------------------"
    echo " ref-time | new-time | speedup |"
    echo "--------------------------------"
    } 2>&1 1>&3 3>&- | tee -a $GITHUB_WORKSPACE/stderr.txt;} 3>&1 1>&2 | tee -a $GITHUB_WORKSPACE/stdout.txt
@@ -183,10 +182,10 @@ for run in ${run_tests[*]}; do
    { {
    tabs 1,12,23 &> /dev/null # match next line
    echo  -e " $refPerf\t$newPerf\t$speedup" | expand -t 1,12,23 # match previous line
-   echo "-------------------------------------------"
+   echo "----------"
    tabs $tabseq &> /dev/null # reset for other printouts
    echo -e " variable\t| absolute diff\t| relative diff |" | expand -t $tabseq # list matches tabs above
-   echo "-------------------------------------------"
+   echo "----------"
    } 2>&1 1>&3 3>&- | tee -a $GITHUB_WORKSPACE/stderr.txt;} 3>&1 1>&2 | tee -a $GITHUB_WORKSPACE/stdout.txt
 
    {
@@ -203,6 +202,7 @@ for run in ${run_tests[*]}; do
    variables=(${variable_names[$run]// / })
    indices=(${variable_components[$run]// / })
 
+   # Compare test case with right solutions
    for vlsv in ${comparison_vlsv[$run]}
    do
        TOCOMPAREFILES=$((TOCOMPAREFILES+1))
@@ -248,9 +248,9 @@ for run in ${run_tests[*]}; do
 
            elif [[ "${variables[$i]}" == "ig_"* ]]
            then
-               A=$( $run_command_tools $diffbin --meshname=ionosphere  ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} ${variables[$i]} ${indices[$i]} )
-               relativeValue=$(grep "The relative 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
-               absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
+               B=$( $run_command_tools $diffbin --meshname=ionosphere  ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} ${variables[$i]} ${indices[$i]} )
+               relativeValue=$(grep "The relative 0-distance between both datasets" <<< $B |gawk '{print $8}'  )
+               absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $B |gawk '{print $8}'  )
                # print the results
                echo -e " ${variables[$i]}_${indices[$i]}\t  ${absoluteValue}\t  ${relativeValue}" | expand -t $tabseq # list matches tabs above
 
@@ -271,9 +271,9 @@ for run in ${run_tests[*]}; do
 
            elif [ ! "${variables[$i]}" == "proton" ]
            then # Regular vg_ variable
-               A=$( $run_command_tools $diffbin ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} ${variables[$i]} ${indices[$i]} )
-               relativeValue=$(grep "The relative 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
-               absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
+               C=$( $run_command_tools $diffbin ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} ${variables[$i]} ${indices[$i]} )
+               relativeValue=$(grep "The relative 0-distance between both datasets" <<< $C |gawk '{print $8}'  )
+               absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $C |gawk '{print $8}'  )
                #print the results
                echo -e " ${variables[$i]}_${indices[$i]}\t  ${absoluteValue}\t  ${relativeValue}" | expand -t $tabseq # list matches tabs above
 
@@ -296,14 +296,15 @@ for run in ${run_tests[*]}; do
            then
                echo "----------"
                echo "Distribution function diff"
-               echo "----------"
-               $run_command_tools $diffbin ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} proton 0
+               # Exclude file names from output to keep report size down
+               D=$( $run_command_tools $diffbin ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} proton 0 | grep -v -e "File" -e "INFO" )
+               echo -e "$D"
            fi
 
        done # loop over variables
 
        # Check if dt is nonzero
-       timeDiff=$(grep "delta t" <<< $A |gawk '{print $8}'  )
+       timeDiff=$(grep "delta t" <<< $C |gawk '{print $8}'  )
        if (( $(awk 'BEGIN{print ('$timeDiff'!= 0.0)?1:0}') )); then
            if (( $( echo "${timeDiff#-} $MAXDT" | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
                MAXDT=$timeDiff

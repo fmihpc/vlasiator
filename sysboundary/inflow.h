@@ -91,7 +91,6 @@ public:
                                                        const fsgrid::FsStencil& stencil, cuint component) override;
    virtual void vlasovBoundaryCondition(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                         const CellID& cellID, const uint popID, const bool doCalcMomentsV) override;
-
    virtual void getFaces(bool* faces) override;
    virtual std::string getName() const override = 0;
    virtual uint getIndex() const override = 0;

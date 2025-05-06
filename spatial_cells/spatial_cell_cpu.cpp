@@ -655,13 +655,13 @@ namespace spatial_cell {
       bool success = true;
 
       for (size_t p=0; p<populations.size(); ++p) {
-         const uint64_t amount
+         const vmesh::LocalID amount
             = 2 + populations[p].blockContainer->size()
             * populations[p].blockContainer->getBlockAllocationFactor();
 
-         // Allow capacity to be a bit large than needed by number of blocks, shrink otherwise
+         // Allow capacity to be a bit larger than needed by number of blocks, shrink otherwise
          if (populations[p].blockContainer->capacity() > amount ) {
-            if (populations[p].blockContainer->setNewCapacity(amount) == false) {
+            if (populations[p].blockContainer->setNewCapacityShrink(amount) == false) {
                success = false;
             }
          }

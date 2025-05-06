@@ -180,11 +180,9 @@ namespace SBC {
       setBFromTemplate(mpiGrid, perb, bgb, technical, fsgrid);
    
       // Ensure up-to-date velocity block counts for all neighbours
-      phiprof::Timer ghostTimer{"transfer-ghost-blocks", {"MPI"}};
-      for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
-         updateRemoteVelocityBlockLists(mpiGrid, popID, Neighborhoods::FULL);
+      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         updateRemoteVelocityBlockLists(mpiGrid,popID,Neighborhoods::FULL);
       }
-      ghostTimer.stop();
    }
    
    Real Inflow::fieldSolverBoundaryCondMagneticField(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> b,

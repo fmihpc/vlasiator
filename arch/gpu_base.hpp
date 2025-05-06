@@ -41,24 +41,15 @@
 #include "../velocity_mesh_parameters.h"
 #include <phiprof.hpp>
 
-// #define INIT_VMESH_SIZE 256
-// #define INIT_MAP_SIZE 9 // 2^9 = 512
-// #define INIT_VMESH_SIZE 1024
-// #define INIT_MAP_SIZE 11 // 2^11 = 2048
+//Scale sizes based on WID value
+#define INIT_VMESH_SIZE (32768/WID3)
+#define INIT_MAP_SIZE (16 - WID)
 
-#define INIT_VMESH_SIZE 1024
-#define INIT_MAP_SIZE 12 // 2^12 = 4096
-// #define INIT_VMESH_SIZE 2048
-// #define INIT_MAP_SIZE 13 // 2^13 = 8192
-// #define INIT_VMESH_SIZE 4096
-// #define INIT_MAP_SIZE 14 // 2^14 = 16384
-
-static const uint VLASOV_BUFFER_MINBLOCKS = 2500;
-static const uint VLASOV_BUFFER_MINCOLUMNS = 500;
+static const uint VLASOV_BUFFER_MINBLOCKS = 32768/WID3;
+static const uint VLASOV_BUFFER_MINCOLUMNS = 2000/WID;
 static const double BLOCK_ALLOCATION_PADDING = 1.2;
 static const double BLOCK_ALLOCATION_FACTOR = 1.1;
-// static const double BLOCK_ALLOCATION_PADDING = 1.5;
-// static const double BLOCK_ALLOCATION_FACTOR = 1.2;
+
 // buffers need to be larger for translation to allow proper parallelism
 static const int TRANSLATION_BUFFER_ALLOCATION_FACTOR = 5;
 

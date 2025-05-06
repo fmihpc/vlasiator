@@ -58,7 +58,9 @@ namespace projects {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
 
          RP::add(pop + "_Fluctuations.rho", "Number density (m^-3)", 1.0e7);
-         RP::add(pop + "_Fluctuations.Temperature", "Temperature (K)", 2.0e6);
+         RP::add(pop + "_Fluctuations.TemperatureX", "Temperature (K)", 2.0e6);
+         RP::add(pop + "_Fluctuations.TemperatureY", "Temperature (K)", 2.0e6);
+         RP::add(pop + "_Fluctuations.TemperatureZ", "Temperature (K)", 2.0e6);
          RP::add(pop + "_Fluctuations.densityPertRelAmp", "Amplitude factor of the density perturbation", 0.1);
          RP::add(pop + "_Fluctuations.velocityPertAbsAmp", "Amplitude of the velocity perturbation", 1.0e6);
          RP::add(pop + "_Fluctuations.maxwCutoff", "Cutoff for the maxwellian distribution", 1e-12);
@@ -81,7 +83,9 @@ namespace projects {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
          FluctuationsSpeciesParameters sP;
          RP::get(pop + "_Fluctuations.rho", sP.DENSITY);
-         RP::get(pop + "_Fluctuations.Temperature", sP.TEMPERATURE);
+         RP::get(pop + "_Fluctuations.TemperatureX", sP.TEMPERATUREX);
+         RP::get(pop + "_Fluctuations.TemperatureY", sP.TEMPERATUREY);
+         RP::get(pop + "_Fluctuations.TemperatureZ", sP.TEMPERATUREZ);
          RP::get(pop + "_Fluctuations.densityPertRelAmp", sP.densityPertRelAmp);
          RP::get(pop + "_Fluctuations.velocityPertAbsAmp", sP.velocityPertAbsAmp);
          RP::get(pop + "_Fluctuations.maxwCutoff", sP.maxwCutoff);
@@ -102,7 +106,9 @@ namespace projects {
 
       const Real mass = getObjectWrapper().particleSpecies[popID].mass;
       Real initRho = sP.DENSITY * (1.0 + sP.densityPertRelAmp * (0.5 - rndRho));
-      Real initT = sP.TEMPERATURE;
+      Real initTx = sP.TEMPERATUREX;
+      Real initTy = sP.TEMPERATUREY;
+      Real initTz = sP.TEMPERATUREZ;
       const Real initV0X = sP.velocityPertAbsAmp * (0.5 - rndVel[0] );
       const Real initV0Y = sP.velocityPertAbsAmp * (0.5 - rndVel[1] );
       const Real initV0Z = sP.velocityPertAbsAmp * (0.5 - rndVel[2] );
@@ -135,7 +141,7 @@ namespace projects {
                creal vx = vxBlock + (i+0.5)*dvxCell - initV0X;
                creal vy = vyBlock + (j+0.5)*dvyCell - initV0Y;
                creal vz = vzBlock + (k+0.5)*dvzCell - initV0Z;
-               const Realf value = MaxwellianPhaseSpaceDensity(vx,vy,vz,initT,initRho,mass);
+               const Realf value = TriMaxwellianPhaseSpaceDensity(vx,vy,vz,initTx,initTy,initTz,initRho,mass);
                bufferData[initIndex*WID3 + k*WID2 + j*WID + i] = value;
                //lsum[0] += value;
             };
@@ -159,14 +165,16 @@ namespace projects {
 
       const Real mass = getObjectWrapper().particleSpecies[popID].mass;
       Real initRho = sP.DENSITY * (1.0 + sP.densityPertRelAmp * (0.5 - rndRho));
-      Real initT = sP.TEMPERATURE;
+      Real initTx = sP.TEMPERATUREX;
+      Real initTy = sP.TEMPERATUREY;
+      Real initTz = sP.TEMPERATUREZ;
       const Real initV0X = sP.velocityPertAbsAmp * (0.5 - rndVel[0] );
       const Real initV0Y = sP.velocityPertAbsAmp * (0.5 - rndVel[1] );
       const Real initV0Z = sP.velocityPertAbsAmp * (0.5 - rndVel[2] );
       creal vx = vx_in - initV0X;
       creal vy = vy_in - initV0Y;
       creal vz = vz_in - initV0Z;
-      const Realf value = MaxwellianPhaseSpaceDensity(vx,vy,vz,initT,initRho,mass);
+      const Realf value = TriMaxwellianPhaseSpaceDensity(vx,vy,vz,initTx,initTy,initTz,initRho,mass);
       return value;
    }
 

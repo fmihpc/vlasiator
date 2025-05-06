@@ -77,16 +77,16 @@ single_cell[${index}]=1
 test_name[${index}]="Flowthrough_trans_periodic"
 comparison_vlsv[${index}]="bulk.0000001.vlsv bulk.0000002.vlsv bulk.0000003.vlsv"
 comparison_phiprof[${index}]="phiprof_0.txt"
-variable_names[${index}]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e"
-variable_components[${index}]="0 0 1 2 0 1 2 0 1 2"
+variable_names[${index}]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v"
+variable_components[${index}]="0 0 1 2"
 ((index+=1))
 
 # 7  Inflow and outflow boundaries
 test_name[${index}]="Flowthrough_x_inflow_y_outflow"
 comparison_vlsv[${index}]="bulk.0000001.vlsv bulk.0000002.vlsv bulk.0000003.vlsv"
 comparison_phiprof[${index}]="phiprof_0.txt"
-variable_names[${index}]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e"
-variable_components[${index}]="0 0 1 2 0 1 2 0 1 2"
+variable_names[${index}]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v"
+variable_components[${index}]="0 0 1 2"
 ((index+=1))
 
 # 8  Inflow and outflow boundaries together with acceleration
@@ -247,6 +247,18 @@ variable_names[${index}]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b
 variable_components[${index}]="0 0 1 2 0 1 2 0 1 2 0 0 0 0"
 ((index+=1))
 
+#######
+# SUBGRID TESTS (25)
+#######
+
+# 25  Pitch-angle diffusion test
+test_name[${index}]="subgrid_1_diffusion"
+comparison_vlsv[${index}]="bulk.0000001.vlsv"
+comparison_phiprof[${index}]="phiprof_0.txt"
+variable_names[${index}]="proton/vg_rho populations_vg_ptensor_diagonal populations_vg_ptensor_diagonal populations_vg_ptensor_diagonal populations_vg_ptensor_offdiagonal populations_vg_ptensor_offdiagonal populations_vg_ptensor_offdiagonal proton"
+variable_components[${index}]="0 0 1 2 0 1 2"
+single_cell[${index}]=1
+((index+=1))
 
 # choose tests to run (default: all tests)
 run_tests=( )

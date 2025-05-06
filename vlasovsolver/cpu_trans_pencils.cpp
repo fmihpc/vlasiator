@@ -571,10 +571,13 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
    CellID lastGoodCell = ids[VLASOV_STENCIL_WIDTH];
    for(int i = VLASOV_STENCIL_WIDTH - 1; i >= 0 ;--i){
       bool isGood = false;
-      if ( (ids[i]!=0) && (mpiGrid[ids[i]] != NULL)) {
-         if ( (mpiGrid[ids[i]]->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE)
-              && (ids[i] == mpiGrid[ids[i]]->parameters[CellParams::CELLID]) ) {
-            isGood = true;
+      if (ids[i]!=0) {
+         if (mpiGrid[ids[i]] != NULL) {
+            if (mpiGrid[ids[i]]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
+               (mpiGrid[ids[i]]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY && mpiGrid[ids[i]]->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE && mpiGrid[ids[i]]->sysBoundaryLayer == 1)
+            ) {
+               isGood = true;
+            }
          }
       }
       if (!isGood) {
@@ -588,10 +591,13 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
    lastGoodCell = ids[L - VLASOV_STENCIL_WIDTH - 1];
    for(int i = (int)L - VLASOV_STENCIL_WIDTH; i < (int)L; ++i){
       bool isGood = false;
-      if ( (ids[i]!=0) && (mpiGrid[ids[i]] != NULL)) {
-         if ( (mpiGrid[ids[i]]->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE)
-              && (ids[i] == mpiGrid[ids[i]]->parameters[CellParams::CELLID]) ) {
-            isGood = true;
+      if (ids[i]!=0) {
+         if (mpiGrid[ids[i]] != NULL) {
+            if (mpiGrid[ids[i]]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
+               (mpiGrid[ids[i]]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY && mpiGrid[ids[i]]->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE && mpiGrid[ids[i]]->sysBoundaryLayer == 1)
+            ) {
+               isGood = true;
+            }
          }
       }
       if (!isGood) {

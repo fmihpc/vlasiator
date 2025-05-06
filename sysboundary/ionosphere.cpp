@@ -3095,227 +3095,217 @@ namespace SBC {
    #pragma GCC diagnostic pop
    
          // Fill velocity space
-         switch (boundaryVDFmode) {
-         case FixedMoments:
-         case AverageAllMoments:
-         case AverageMoments: {
-            // Fill velocity space with new maxwellian data
-            SpatialCell& cell = *mpiGrid[cellID];
-            cell.clear(popID, false); // Clear previous velocity space completely, do not de-allocate memory
-            creal initRho = density;
-            creal initT = temperature;
-            creal initV0X = vDrift[0];
-            creal initV0Y = vDrift[1];
-            creal initV0Z = vDrift[2];
-            creal mass = getObjectWrapper().particleSpecies[popID].mass;
-   
-            phiprof::Timer setVSpacetimer{"Set Velocity Space"};
-            // Find list of blocks to initialize.
-            const uint nRequested =
-                SBC::findMaxwellianBlocksToInitialize(popID, cell, initRho, initT, initV0X, initV0Y, initV0Z);
-            // stores in vmesh->getGrid() (localToGlobalMap)
-            // with count in cell.get_population(popID).N_blocks
-   
-            // Resize and populate mesh
-            cell.prepare_to_receive_blocks(popID);
-   
-            // Set the reservation value (capacity is increased in add_velocity_blocks
-            const Realf minValue = cell.getVelocityBlockMinValue(popID);
-   
-            // fills v-space into target
-            phiprof::Timer fillTimer{"fill phasespace"};
-   
-   #ifdef USE_GPU
-            vmesh::VelocityMesh* vmesh = cell.dev_get_velocity_mesh(popID);
-            vmesh::VelocityBlockContainer* VBC = cell.dev_get_velocity_blocks(popID);
-   #else
-            vmesh::VelocityMesh* vmesh = cell.get_velocity_mesh(popID);
-            vmesh::VelocityBlockContainer* VBC = cell.get_velocity_blocks(popID);
-   #endif
-            // Loop over blocks
-            Realf rhosum = 0;
-            arch::parallel_reduce<arch::null>(
-                {WID, WID, WID, nRequested},
-                ARCH_LOOP_LAMBDA(const uint i, const uint j, const uint k, const uint initIndex, Realf* lsum) {
-                   vmesh::GlobalID* GIDlist = vmesh->getGrid()->data();
-                   Realf* bufferData = VBC->getData();
-                   const vmesh::GlobalID blockGID = GIDlist[initIndex];
-                   // Calculate parameters for new block
-                   Real blockCoords[6];
-                   vmesh->getBlockInfo(blockGID, &blockCoords[0]);
-                   creal vxBlock = blockCoords[0];
-                   creal vyBlock = blockCoords[1];
-                   creal vzBlock = blockCoords[2];
-                   creal dvxCell = blockCoords[3];
-                   creal dvyCell = blockCoords[4];
-                   creal dvzCell = blockCoords[5];
-                   ARCH_INNER_BODY(i, j, k, initIndex, lsum) {
-                      creal vx = vxBlock + (i + 0.5) * dvxCell - initV0X;
-                      creal vy = vyBlock + (j + 0.5) * dvyCell - initV0Y;
-                      creal vz = vzBlock + (k + 0.5) * dvzCell - initV0Z;
-                      const Realf value = projects::MaxwellianPhaseSpaceDensity(vx, vy, vz, initT, initRho, mass);
-                      bufferData[initIndex * WID3 + k * WID2 + j * WID + i] = value;
-                      // lsum[0] += value;
-                   };
-                },
-                rhosum);
-            fillTimer.stop();
-   
-   #ifdef USE_GPU
-            // Set and apply the reservation value
-            phiprof::Timer reservationTimer{"set apply reservation"};
-            cell.setReservation(popID, nRequested, true); // Force to this value
-            cell.applyReservation(popID);
-            reservationTimer.stop();
-   #endif
-         } // end case several
-         break;
-         case CopyAndLosscone: {
-            // GPUTODO: Untested after porting to new initialization
-            Real vNeighboursX = 0;
-            Real vNeighboursY = 0;
-            Real vNeighboursZ = 0;
-            Real pressure = 0;
-            // Get moments from the nearest cells
-            const vector<CellID>& closestCells = getAllClosestNonsysboundaryCells(cellID);
-            for (CellID celli : closestCells) {
-               density += mpiGrid[celli]->parameters[CellParams::RHOM];
-               pressure += mpiGrid[celli]->parameters[CellParams::P_11] + mpiGrid[celli]->parameters[CellParams::P_22] +
-                           mpiGrid[celli]->parameters[CellParams::P_33];
-               vNeighboursX += mpiGrid[celli]->parameters[CellParams::VX];
-               vNeighboursY += mpiGrid[celli]->parameters[CellParams::VY];
-               vNeighboursZ += mpiGrid[celli]->parameters[CellParams::VZ];
-            }
-            density /= closestCells.size() * physicalconstants::MASS_PROTON;
-            pressure /= 3.0 * closestCells.size();
-            vNeighboursX /= closestCells.size();
-            vNeighboursY /= closestCells.size();
-            vNeighboursZ /= closestCells.size();
-            creal temperature = pressure / (density * physicalconstants::K_B);
-            // Fill velocity space with new VDF data. This consists of three parts:
-            // 1. For the downwards-moving part of the VDF (dot(v,r) < 0), simply fill a maxwellian with the averaged
-            // density and pressure.
-            // 2. For upwards-moving velocity cells outside the loss cone, take the reflected value from point 1.
-            // 3. Add an ionospheric outflow maxwellian.
-            SpatialCell& cell = *mpiGrid[cellID];
-            creal BX = cell.parameters[CellParams::BGBXVOL] + cell.parameters[CellParams::PERBXVOL];
-            creal BY = cell.parameters[CellParams::BGBYVOL] + cell.parameters[CellParams::PERBYVOL];
-            creal BZ = cell.parameters[CellParams::BGBZVOL] + cell.parameters[CellParams::PERBZVOL];
-            const Real Bsqr = BX * BX + BY * BY + BZ * BZ;
-            creal RX = cell.parameters[CellParams::XCRD] + 0.5 * cell.parameters[CellParams::DX];
-            creal RY = cell.parameters[CellParams::YCRD] + 0.5 * cell.parameters[CellParams::DY];
-            creal RZ = cell.parameters[CellParams::ZCRD] + 0.5 * cell.parameters[CellParams::DZ];
-   
-            cell.clear(popID, false); // Clear previous velocity space completely, do not de-allocate memory
-            creal initRho = speciesParams[popID].rho;
-            creal initT = speciesParams[popID].T;
-            creal initV0X = vDrift[0];
-            creal initV0Y = vDrift[1];
-            creal initV0Z = vDrift[2];
-            creal mass = getObjectWrapper().particleSpecies[popID].mass;
-   
-            phiprof::Timer setVSpacetimer{"Set Velocity Space"};
-            // Find list of blocks to initialize.
-            // WARNING: This now only finds blocks based on the outflow population, not including the copied losscone.
-            const uint nRequested =
-                SBC::findMaxwellianBlocksToInitialize(popID, cell, initRho, initT, initV0X, initV0Y, initV0Z);
-            // stores in vmesh->getGrid() (localToGlobalMap)
-            // with count in cell.get_population(popID).N_blocks
-   
-            // Resize and populate mesh
-            cell.prepare_to_receive_blocks(popID);
-   
-            // Set the reservation value (capacity is increased in add_velocity_blocks
-            const Realf minValue = cell.getVelocityBlockMinValue(popID);
-   
-            // fills v-space into target
-            phiprof::Timer fillTimer{"fill phasespace"};
-   
-   #ifdef USE_GPU
-            vmesh::VelocityMesh* vmesh = cell.dev_get_velocity_mesh(popID);
-            vmesh::VelocityBlockContainer* VBC = cell.dev_get_velocity_blocks(popID);
-   #else
-            vmesh::VelocityMesh* vmesh = cell.get_velocity_mesh(popID);
-            vmesh::VelocityBlockContainer* VBC = cell.get_velocity_blocks(popID);
-   #endif
-            // Loop over blocks
-            Realf rhosum = 0;
-            arch::parallel_reduce<arch::null>(
-                {WID, WID, WID, nRequested},
-                ARCH_LOOP_LAMBDA(const uint i, const uint j, const uint k, const uint initIndex, Realf* lsum) {
-                   vmesh::GlobalID* GIDlist = vmesh->getGrid()->data();
-                   Realf* bufferData = VBC->getData();
-                   const vmesh::GlobalID blockGID = GIDlist[initIndex];
-                   // Calculate parameters for new block
-                   Real blockCoords[6];
-                   vmesh->getBlockInfo(blockGID, &blockCoords[0]);
-                   creal vxBlock = blockCoords[0];
-                   creal vyBlock = blockCoords[1];
-                   creal vzBlock = blockCoords[2];
-                   creal dvxCell = blockCoords[3];
-                   creal dvyCell = blockCoords[4];
-                   creal dvzCell = blockCoords[5];
-                   ARCH_INNER_BODY(i, j, k, initIndex, lsum) {
-                      creal vx = vxBlock + (i + 0.5) * dvxCell;
-                      creal vy = vyBlock + (j + 0.5) * dvyCell;
-                      creal vz = vzBlock + (k + 0.5) * dvzCell;
-   
-                      // Calculate pitchangle cosine
-                      creal mu = (vx * BX + vy * BY + vz * BZ) / sqrt(Bsqr) / sqrt(vx * vx + vy * vy + vz * vz);
-                      // Radial velocity component
-                      creal rlength = sqrt(RX * RX + RY * RY + RZ * RZ);
-                      creal RnormX = RX / rlength;
-                      creal RnormY = RY / rlength;
-                      creal RnormZ = RZ / rlength;
-                      creal vdotr = (vx * RnormX + vy * RnormY * vz * RnormZ);
-   
-                      // v_r = -v_r = -r <v, r> (where r is normalized)
-                      // => v = v - 2*r <r,v>
-                      creal vNeighboursdotr = (vNeighboursX * RnormX + vNeighboursY * RnormY + vNeighboursZ * RnormZ);
-                      creal vNeighboursMirroredX = vNeighboursX - 2 * RnormX * vNeighboursdotr;
-                      creal vNeighboursMirroredY = vNeighboursY - 2 * RnormY * vNeighboursdotr;
-                      creal vNeighboursMirroredZ = vNeighboursZ - 2 * RnormZ * vNeighboursdotr;
-                      Realf value = 0;
-                      if (vdotr < 0) {
-                         value = projects::MaxwellianPhaseSpaceDensity(vx - vNeighboursX, vy - vNeighboursY,
-                                                                       vz - vNeighboursZ, temperature, density, mass);
-                      } else {
-                         if (1 - mu * mu < sqrt(Bsqr) / 5e-5) {
-                            // outside the loss cone
-                            value = projects::MaxwellianPhaseSpaceDensity(vx - 2 * RnormX * vdotr - vNeighboursMirroredX,
-                                                                          vy - 2 * RnormY * vdotr - vNeighboursMirroredY,
-                                                                          vz - 2 * RnormZ * vdotr - vNeighboursMirroredZ,
-                                                                          temperature, density, mass);
-                         } else {
-                            // Inside the loss cone
-                            value = 0;
-                         }
-                      }
-                      // Add ionospheric outflow maxwellian on top.
-                      value += projects::MaxwellianPhaseSpaceDensity(vx - initV0X, vy - initV0Y, vz - initV0Z, initT,
-                                                                     initRho, mass);
-                      bufferData[initIndex * WID3 + k * WID2 + j * WID + i] = value;
-                      // lsum[0] += value;
-                   };
-                },
-                rhosum);
-            fillTimer.stop();
-   
-   #ifdef USE_GPU
-            // Set and apply the reservation value
-            phiprof::Timer reservationTimer{"set apply reservation"};
-            cell.setReservation(popID, nRequested, true); // Force to this value
-            cell.applyReservation(popID);
-            reservationTimer.stop();
-   #endif
-         } // end case CopyAndLosscone
-         break;
+         switch(boundaryVDFmode) {
+            case FixedMoments:
+            case AverageAllMoments:
+            case AverageMoments:
+               {
+                  // Fill velocity space with new maxwellian data
+                  SpatialCell& cell = *mpiGrid[cellID];
+                  cell.clear(popID,false); // Clear previous velocity space completely, do not de-allocate memory
+                  creal initRho = density;
+                  creal initT = temperature;
+                  creal initV0X = vDrift[0];
+                  creal initV0Y = vDrift[1];
+                  creal initV0Z = vDrift[2];
+                  creal mass = getObjectWrapper().particleSpecies[popID].mass;
+
+                  // Find list of blocks to initialize.
+                  const uint nRequested = SBC::findMaxwellianBlocksToInitialize(popID,cell, initRho, initT, initV0X, initV0Y, initV0Z);
+                  // stores in vmesh->getGrid() (localToGlobalMap)
+                  // with count in cell.get_population(popID).N_blocks
+
+                  // Resize and populate mesh
+                  cell.prepare_to_receive_blocks(popID);
+
+                  // Set the reservation value (capacity is increased in add_velocity_blocks
+                  const Realf minValue = cell.getVelocityBlockMinValue(popID);
+
+                  // fills v-space into target
+
+                  #ifdef USE_GPU
+                  vmesh::VelocityMesh *vmesh = cell.dev_get_velocity_mesh(popID);
+                  vmesh::VelocityBlockContainer* VBC = cell.dev_get_velocity_blocks(popID);
+                  #else
+                  vmesh::VelocityMesh *vmesh = cell.get_velocity_mesh(popID);
+                  vmesh::VelocityBlockContainer* VBC = cell.get_velocity_blocks(popID);
+                  #endif
+                  // Loop over blocks
+                  Realf rhosum = 0;
+                  arch::parallel_reduce<arch::null>(
+                     {WID, WID, WID, nRequested},
+                     ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint initIndex, Realf *lsum ) {
+                        vmesh::GlobalID *GIDlist = vmesh->getGrid()->data();
+                        Realf* bufferData = VBC->getData();
+                        const vmesh::GlobalID blockGID = GIDlist[initIndex];
+                        // Calculate parameters for new block
+                        Real blockCoords[6];
+                        vmesh->getBlockInfo(blockGID,&blockCoords[0]);
+                        creal vxBlock = blockCoords[0];
+                        creal vyBlock = blockCoords[1];
+                        creal vzBlock = blockCoords[2];
+                        creal dvxCell = blockCoords[3];
+                        creal dvyCell = blockCoords[4];
+                        creal dvzCell = blockCoords[5];
+                        ARCH_INNER_BODY(i, j, k, initIndex, lsum) {
+                           creal vx = vxBlock + (i+0.5)*dvxCell - initV0X;
+                           creal vy = vyBlock + (j+0.5)*dvyCell - initV0Y;
+                           creal vz = vzBlock + (k+0.5)*dvzCell - initV0Z;
+                           const Realf value = projects::MaxwellianPhaseSpaceDensity(vx,vy,vz,initT,initRho,mass);
+                           bufferData[initIndex*WID3 + k*WID2 + j*WID + i] = value;
+                           //lsum[0] += value;
+                        };
+                     }, rhosum);
+
+                  #ifdef USE_GPU
+                  // Set and apply the reservation value
+                  cell.setReservation(popID,nRequested,true); // Force to this value
+                  cell.applyReservation(popID);
+                  #endif
+               } // end case several
+               break;
+            case CopyAndLosscone:
+               {
+                  // GPUTODO: Untested after porting to new initialization
+                  Real vNeighboursX = 0;
+                  Real vNeighboursY = 0;
+                  Real vNeighboursZ = 0;
+                  Real pressure = 0;
+                  // Get moments from the nearest cells
+                  const vector<CellID>& closestCells = getAllClosestNonsysboundaryCells(cellID);
+                  for (CellID celli : closestCells) {
+                     density += mpiGrid[celli]->parameters[CellParams::RHOM];
+                     pressure += mpiGrid[celli]->parameters[CellParams::P_11] + mpiGrid[celli]->parameters[CellParams::P_22] + mpiGrid[celli]->parameters[CellParams::P_33];
+                     vNeighboursX += mpiGrid[celli]->parameters[CellParams::VX];
+                     vNeighboursY += mpiGrid[celli]->parameters[CellParams::VY];
+                     vNeighboursZ += mpiGrid[celli]->parameters[CellParams::VZ];
+                  }
+                  density /= closestCells.size()*physicalconstants::MASS_PROTON;
+                  pressure /= 3.0*closestCells.size();
+                  vNeighboursX /= closestCells.size();
+                  vNeighboursY /= closestCells.size();
+                  vNeighboursZ /= closestCells.size();
+                  creal temperature = pressure / (density * physicalconstants::K_B);
+                  // Fill velocity space with new VDF data. This consists of three parts:
+                  // 1. For the downwards-moving part of the VDF (dot(v,r) < 0), simply fill a maxwellian with the averaged density and pressure.
+                  // 2. For upwards-moving velocity cells outside the loss cone, take the reflected value from point 1.
+                  // 3. Add an ionospheric outflow maxwellian.
+                  SpatialCell& cell = *mpiGrid[cellID];
+                  creal BX = cell.parameters[CellParams::BGBXVOL] + cell.parameters[CellParams::PERBXVOL];
+                  creal BY = cell.parameters[CellParams::BGBYVOL] + cell.parameters[CellParams::PERBYVOL];
+                  creal BZ = cell.parameters[CellParams::BGBZVOL] + cell.parameters[CellParams::PERBZVOL];
+                  const Real Bsqr = BX*BX + BY*BY + BZ*BZ;
+                  creal RX = cell.parameters[CellParams::XCRD] + 0.5*cell.parameters[CellParams::DX];
+                  creal RY = cell.parameters[CellParams::YCRD] + 0.5*cell.parameters[CellParams::DY];
+                  creal RZ = cell.parameters[CellParams::ZCRD] + 0.5*cell.parameters[CellParams::DZ];
+
+                  cell.clear(popID,false); // Clear previous velocity space completely, do not de-allocate memory
+                  creal initRho = speciesParams[popID].rho;
+                  creal initT = speciesParams[popID].T;
+                  creal initV0X = vDrift[0];
+                  creal initV0Y = vDrift[1];
+                  creal initV0Z = vDrift[2];
+                  creal mass = getObjectWrapper().particleSpecies[popID].mass;
+
+                  // Find list of blocks to initialize.
+                  // WARNING: This now only finds blocks based on the outflow population, not including the copied losscone.
+                  const uint nRequested = SBC::findMaxwellianBlocksToInitialize(popID,cell, initRho, initT, initV0X, initV0Y, initV0Z);
+                  // stores in vmesh->getGrid() (localToGlobalMap)
+                  // with count in cell.get_population(popID).N_blocks
+
+                  // Resize and populate mesh
+                  cell.prepare_to_receive_blocks(popID);
+
+                  // Set the reservation value (capacity is increased in add_velocity_blocks
+                  const Realf minValue = cell.getVelocityBlockMinValue(popID);
+
+                  // fills v-space into target
+
+                  #ifdef USE_GPU
+                  vmesh::VelocityMesh *vmesh = cell.dev_get_velocity_mesh(popID);
+                  vmesh::VelocityBlockContainer* VBC = cell.dev_get_velocity_blocks(popID);
+                  #else
+                  vmesh::VelocityMesh *vmesh = cell.get_velocity_mesh(popID);
+                  vmesh::VelocityBlockContainer* VBC = cell.get_velocity_blocks(popID);
+                  #endif
+                  // Loop over blocks
+                  Realf rhosum = 0;
+                  arch::parallel_reduce<arch::null>(
+                     {WID, WID, WID, nRequested},
+                     ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint initIndex, Realf *lsum ) {
+                        vmesh::GlobalID *GIDlist = vmesh->getGrid()->data();
+                        Realf* bufferData = VBC->getData();
+                        const vmesh::GlobalID blockGID = GIDlist[initIndex];
+                        // Calculate parameters for new block
+                        Real blockCoords[6];
+                        vmesh->getBlockInfo(blockGID,&blockCoords[0]);
+                        creal vxBlock = blockCoords[0];
+                        creal vyBlock = blockCoords[1];
+                        creal vzBlock = blockCoords[2];
+                        creal dvxCell = blockCoords[3];
+                        creal dvyCell = blockCoords[4];
+                        creal dvzCell = blockCoords[5];
+                        ARCH_INNER_BODY(i, j, k, initIndex, lsum) {
+                           creal vx = vxBlock + (i+0.5)*dvxCell;
+                           creal vy = vyBlock + (j+0.5)*dvyCell;
+                           creal vz = vzBlock + (k+0.5)*dvzCell;
+
+                           // Calculate pitchangle cosine
+                           creal mu = (vx*BX + vy*BY + vz*BZ)/sqrt(Bsqr)/sqrt(vx*vx+vy*vy+vz*vz);
+                           // Radial velocity component
+                           creal rlength = sqrt(RX*RX + RY*RY + RZ*RZ);
+                           creal RnormX = RX / rlength;
+                           creal RnormY = RY / rlength;
+                           creal RnormZ = RZ / rlength;
+                           creal vdotr = (vx*RnormX + vy*RnormY * vz*RnormZ);
+
+                           // v_r = -v_r = -r <v, r> (where r is normalized)
+                           // => v = v - 2*r <r,v>
+                           creal vNeighboursdotr = (vNeighboursX * RnormX + vNeighboursY * RnormY + vNeighboursZ * RnormZ);
+                           creal vNeighboursMirroredX = vNeighboursX - 2*RnormX*vNeighboursdotr;
+                           creal vNeighboursMirroredY = vNeighboursY - 2*RnormY*vNeighboursdotr;
+                           creal vNeighboursMirroredZ = vNeighboursZ - 2*RnormZ*vNeighboursdotr;
+                           Realf value = 0;
+                           if (vdotr < 0) {
+                              value = projects::MaxwellianPhaseSpaceDensity(vx - vNeighboursX,
+                                                                            vy - vNeighboursY,
+                                                                            vz - vNeighboursZ,
+                                                                            temperature,density,mass);
+                           } else {
+                              if (1-mu*mu < sqrt(Bsqr)/5e-5) {
+                                 // outside the loss cone
+                                 value = projects::MaxwellianPhaseSpaceDensity(vx - 2*RnormX*vdotr - vNeighboursMirroredX,
+                                                                               vy - 2*RnormY*vdotr - vNeighboursMirroredY,
+                                                                               vz - 2*RnormZ*vdotr - vNeighboursMirroredZ,
+                                                                               temperature,density,mass);
+                              } else {
+                                 // Inside the loss cone
+                                 value = 0;
+                              }
+                           }
+                           // Add ionospheric outflow maxwellian on top.
+                           value += projects::MaxwellianPhaseSpaceDensity(vx - initV0X,
+                                                                          vy - initV0Y,
+                                                                          vz - initV0Z,
+                                                                          initT,initRho,mass);
+                           bufferData[initIndex*WID3 + k*WID2 + j*WID + i] = value;
+                           //lsum[0] += value;
+                        };
+                     }, rhosum);
+
+                  #ifdef USE_GPU
+                  // Set and apply the reservation value
+                  cell.setReservation(popID,nRequested,true); // Force to this value
+                  cell.applyReservation(popID);
+                  #endif
+               } // end case CopyAndLosscone
+               break;
          } // end switch VDF method
          // let's get rid of blocks not fulfilling the criteria here to save memory.
-         mpiGrid[cellID]->adjustSingleCellVelocityBlocks(popID, true);
-   
-         // TODO: The moments can also be analytically calculated from ionosphere parameters.
-         // Maybe that's faster?
+         mpiGrid[cellID]->adjustSingleCellVelocityBlocks(popID,true);
+
+         // In principle this could call _R or _V instead according to calculate_V_moments (unused at the moment)
+         // But the relevant moments will get recomputed in other spots when needed.
          calculateCellMoments(mpiGrid[cellID], true, false, true);
       } // End of if for coupling interval, we skip this altogether
    }
@@ -3346,8 +3336,7 @@ namespace SBC {
          initV0X = 0;
          initV0Y = 0;
          initV0Z = 0;
-   
-         phiprof::Timer setVSpacetimer{"Set Velocity Space"};
+
          // Find list of blocks to initialize.
          const uint nRequested =
              SBC::findMaxwellianBlocksToInitialize(popID, templateCell, initRho, initT, initV0X, initV0Y, initV0Z);
@@ -3361,10 +3350,9 @@ namespace SBC {
          const Realf minValue = templateCell.getVelocityBlockMinValue(popID);
    
          // fills v-space into target
-         phiprof::Timer fillTimer{"fill phasespace"};
-   
-   #ifdef USE_GPU
-         vmesh::VelocityMesh* vmesh = templateCell.dev_get_velocity_mesh(popID);
+
+         #ifdef USE_GPU
+         vmesh::VelocityMesh *vmesh = templateCell.dev_get_velocity_mesh(popID);
          vmesh::VelocityBlockContainer* VBC = templateCell.dev_get_velocity_blocks(popID);
    #else
          vmesh::VelocityMesh* vmesh = templateCell.get_velocity_mesh(popID);
@@ -3373,42 +3361,38 @@ namespace SBC {
          // Loop over blocks
          Realf rhosum = 0;
          arch::parallel_reduce<arch::null>(
-             {WID, WID, WID, nRequested},
-             ARCH_LOOP_LAMBDA(const uint i, const uint j, const uint k, const uint initIndex, Realf* lsum) {
-                vmesh::GlobalID* GIDlist = vmesh->getGrid()->data();
-                Realf* bufferData = VBC->getData();
-                const vmesh::GlobalID blockGID = GIDlist[initIndex];
-                // Calculate parameters for new block
-                Real blockCoords[6];
-                vmesh->getBlockInfo(blockGID, &blockCoords[0]);
-                creal vxBlock = blockCoords[0];
-                creal vyBlock = blockCoords[1];
-                creal vzBlock = blockCoords[2];
-                creal dvxCell = blockCoords[3];
-                creal dvyCell = blockCoords[4];
-                creal dvzCell = blockCoords[5];
-                ARCH_INNER_BODY(i, j, k, initIndex, lsum) {
-                   creal vx = vxBlock + (i + 0.5) * dvxCell - initV0X;
-                   creal vy = vyBlock + (j + 0.5) * dvyCell - initV0Y;
-                   creal vz = vzBlock + (k + 0.5) * dvzCell - initV0Z;
-                   const Realf value = projects::MaxwellianPhaseSpaceDensity(vx, vy, vz, initT, initRho, mass);
-                   bufferData[initIndex * WID3 + k * WID2 + j * WID + i] = value;
-                   // lsum[0] += value;
-                };
-             },
-             rhosum);
-         fillTimer.stop();
-   
-   #ifdef USE_GPU
+            {WID, WID, WID, nRequested},
+            ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint initIndex, Realf *lsum ) {
+               vmesh::GlobalID *GIDlist = vmesh->getGrid()->data();
+               Realf* bufferData = VBC->getData();
+               const vmesh::GlobalID blockGID = GIDlist[initIndex];
+               // Calculate parameters for new block
+               Real blockCoords[6];
+               vmesh->getBlockInfo(blockGID,&blockCoords[0]);
+               creal vxBlock = blockCoords[0];
+               creal vyBlock = blockCoords[1];
+               creal vzBlock = blockCoords[2];
+               creal dvxCell = blockCoords[3];
+               creal dvyCell = blockCoords[4];
+               creal dvzCell = blockCoords[5];
+               ARCH_INNER_BODY(i, j, k, initIndex, lsum) {
+                  creal vx = vxBlock + (i+0.5)*dvxCell - initV0X;
+                  creal vy = vyBlock + (j+0.5)*dvyCell - initV0Y;
+                  creal vz = vzBlock + (k+0.5)*dvzCell - initV0Z;
+                  const Realf value = projects::MaxwellianPhaseSpaceDensity(vx,vy,vz,initT,initRho,mass);
+                  bufferData[initIndex*WID3 + k*WID2 + j*WID + i] = value;
+                  //lsum[0] += value;
+               };
+            }, rhosum);
+
+         #ifdef USE_GPU
          // Set and apply the reservation value
-         phiprof::Timer reservationTimer{"set apply reservation"};
-         templateCell.setReservation(popID, nRequested, true); // Force to this value
+         templateCell.setReservation(popID,nRequested,true); // Force to this value
          templateCell.applyReservation(popID);
-         reservationTimer.stop();
-   #endif
-   
-         // let's get rid of blocks not fulfilling the criteria here to save memory.
-         templateCell.adjustSingleCellVelocityBlocks(popID, true);
+         #endif
+
+         //let's get rid of blocks not fulfilling the criteria here to save memory.
+         templateCell.adjustSingleCellVelocityBlocks(popID,true);
       } // for-loop over particle species
    
       calculateCellMoments(&templateCell, true, false, true);

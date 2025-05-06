@@ -107,14 +107,13 @@ void computeMoments(std::span<const std::array<Real, fsgrids::moments::N_MOMENTS
       }
    }
 
-   // electron pressure
-   // Constants for electron pressure derivatives
-   // Upstream pressure
-   const Real Peupstream = Parameters::electronTemperature * Parameters::electronDensity * physicalconstants::K_B;
-   const Real Peconst = Peupstream * pow(Parameters::electronDensity, -Parameters::electronPTindex);
-   auto computePresE = [&dMoments, &Peconst](const auto& right, const auto& left, const auto& center) {
+   // Constants for electron pressure derivatives, see also ldz_gradpe.cpp
+   // Calculate anchor point constants: First the pressure, then a derived constant.
+   const Real Pe_anchor = Parameters::electronTemperature * Parameters::electronDensity * physicalconstants::K_B;
+   const Real Pe_const = Pe_anchor * pow(Parameters::electronDensity, -Parameters::electronPTindex);
+   auto computePresE = [&dMoments, &Pe_const](const auto& right, const auto& left, const auto& center) {
       // pres_e = const * np.power(rho_e, index)
-      return Peconst * limiter(pow(left[mom::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex),
+      return Pe_const * limiter(pow(left[mom::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex),
                                pow(center[mom::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex),
                                pow(right[mom::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex));
    };

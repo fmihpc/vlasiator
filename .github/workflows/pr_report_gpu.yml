@@ -1,4 +1,4 @@
-name: Report
+name: ReportGPU
 on:
   workflow_run:
     workflows: [Github-CI]

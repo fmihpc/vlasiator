@@ -85,6 +85,12 @@ namespace spatial_cell {
                                    * global IDs.*/
       vmesh::VelocityBlockContainer *blockContainer;  /**< Velocity block data.*/
 
+      /**< Temporary storage of acceleration transform intersections and sybcycling dt.*/
+      Real intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk;
+      Real intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk;
+      Real intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk;
+      Real subcycleDt;
+
       // Constructor, destructor
       Population() {
          vmesh = new vmesh::VelocityMesh();
@@ -95,7 +101,10 @@ namespace spatial_cell {
             max_dt[i] = 0;
          }
          for (uint i=0; i<3; ++i) {
-            V[i] = V_R[i] = V_V[i] = P[i] = P_R[i] = P_V[i] = 0;
+            V[i] = V_R[i] = V_V[i] = 0;
+         }
+         for (uint i=0; i<6; i++) {
+            P[i] = P_R[i] = P_V[i] = 0;
          }
       }
       ~Population() {
@@ -120,6 +129,8 @@ namespace spatial_cell {
             V[i] = other.V[i];
             V_R[i] = other.V_R[i];
             V_V[i] = other.V_V[i];
+         }
+         for (uint i=0; i<6; i++) {
             P[i] = other.P[i];
             P_R[i] = other.P_R[i];
             P_V[i] = other.P_V[i];
@@ -145,6 +156,8 @@ namespace spatial_cell {
             V[i] = other.V[i];
             V_R[i] = other.V_R[i];
             V_V[i] = other.V_V[i];
+         }
+         for (uint i=0; i<6; i++) {
             P[i] = other.P[i];
             P_R[i] = other.P_R[i];
             P_V[i] = other.P_V[i];
@@ -338,26 +351,16 @@ namespace spatial_cell {
       void updateSparseMinValue(const uint popID);
       Real getVelocityBlockMinValue(const uint popID) const;
 
-      // Random number generator functions
-      //char* get_rng_state_buffer();
-      //random_data* get_rng_data_buffer();
-
       // Member variables //
-      std::array<Real, vderivatives::N_V_DERIVATIVES> derivativesV;  // Derivatives of V for AMR
-      std::array<Real, bvolderivatives::N_BVOL_DERIVATIVES> derivativesBVOL;    /**< Derivatives of BVOL needed by the acceleration.
-                                                                                 * Separate array because it does not need to be communicated.*/
-      //Real parameters[CellParams::N_SPATIAL_CELL_PARAMS];                     /**< Bulk variables in this spatial cell.*/
-      std::array<Real, CellParams::N_SPATIAL_CELL_PARAMS> parameters;
-      //Realf null_block_data[WID3];
+      std::array<Real, vderivatives::N_V_DERIVATIVES> derivativesV;           /**< Derivatives of V for vorticity AMR.*/
+      std::array<Real, bvolderivatives::N_BVOL_DERIVATIVES> derivativesBVOL;  /**< Derivatives of BVOL needed by the acceleration.
+                                                                               * Separate array because it does not need to be communicated.*/
+      std::array<Real, CellParams::N_SPATIAL_CELL_PARAMS> parameters;         /**< Bulk variables in this spatial cell.*/
       std::array<Realf, WID3> null_block_data;
 
       uint64_t ioLocalCellId;                                                 /**< Local cell ID used for IO, not needed elsewhere
                                                                                * and thus not being kept up-to-date.*/
-      //vmesh::LocalID mpi_number_of_blocks;                                    /**< Number of blocks in mpi_velocity_block_list.*/
-      //Realf* neighbor_block_data;                                             /**< Pointers for translation operator. We can point to neighbor
-      //                                                                         * cell block data. We do not allocate memory for the pointer.*/
-      //vmesh::LocalID neighbor_number_of_blocks;
-      std::array<Realf*,MAX_NEIGHBORS_PER_DIM> neighbor_block_data;       /**< Pointers for translation operator. We can point to neighbor
+      std::array<Realf*,MAX_NEIGHBORS_PER_DIM> neighbor_block_data;           /**< Pointers for translation operator. We can point to neighbor
                                                                                * cell block data. We do not allocate memory for the pointer.*/
       std::array<vmesh::LocalID,MAX_NEIGHBORS_PER_DIM> neighbor_number_of_blocks;
       std::map<int,std::set<int>> face_neighbor_ranks;
@@ -366,10 +369,10 @@ namespace spatial_cell {
       uint sysBoundaryLayer;                                                  /**< Layers counted from closest systemBoundary. If 0 then it has not
                                                                                * been computed. First sysboundary layer is layer 1.*/
       int sysBoundaryLayerNew;                                                /** needed (by DCCRG?), do not remove. */
-      std::vector<vmesh::GlobalID> *velocity_block_with_content_list;          /**< List of existing cells with content, only up-to-date after
+      std::vector<vmesh::GlobalID> *velocity_block_with_content_list;         /**< List of existing cells with content, only up-to-date after
                                                                                * call to update_has_content().*/
       vmesh::LocalID velocity_block_with_content_list_size;                   /**< Size of vector. Needed for MPI communication of size before actual list transfer.*/
-      std::vector<vmesh::GlobalID> *velocity_block_with_no_content_list;       /**< List of existing cells with no content, only up-to-date after
+      std::vector<vmesh::GlobalID> *velocity_block_with_no_content_list;      /**< List of existing cells with no content, only up-to-date after
                                                                                * call to update_has_content. This is also never transferred
                                                                                * over MPI, so is invalid on remote cells.*/
       static uint64_t mpi_transfer_type;                                      /**< Which data is transferred by the mpi datatype given by spatial cells.*/

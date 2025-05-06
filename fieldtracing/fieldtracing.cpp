@@ -315,9 +315,7 @@ namespace FieldTracing {
       std::array<std::pair<int, Real>, 3> coupling;
    
       Real stepSize = 100e3;
-      std::array<Real, 3> v;
-      phiprof::Timer timer{"fieldtracing-ionosphere-VlasovGridCoupling"};
-   
+      std::array<Real,3> v;
       // For tracing towards the vlasov boundary, we only require the dipole field.
       TracingFieldFunction<Real> dipoleFieldOnly = [](std::array<Real, 3>& r, const bool outwards,
                                                       std::array<Real, 3>& b) -> bool {

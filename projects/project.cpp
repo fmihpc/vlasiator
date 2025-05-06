@@ -52,6 +52,7 @@
 #include "../backgroundfield/backgroundfield.h"
 #include "../backgroundfield/constantfield.hpp"
 #include "Shocktest/Shocktest.h"
+#include "LossCone/LossCone.h"
 #include "../sysboundary/sysboundarycondition.h"
 
 #ifdef DEBUG_VLASIATOR
@@ -94,6 +95,7 @@ namespace projects {
       projects::TestHall::addParameters();
       projects::verificationLarmor::addParameters();
       projects::Shocktest::addParameters();
+      projects::LossCone::addParameters();
       RP::add("Project_common.seed", "Seed for the RNG", 42);
 
    }
@@ -452,13 +454,21 @@ namespace projects {
          )
       };
 
-      if(
-         // If this cell is planned to be refined, but is outside the allowed refinement region, cancel that refinement.
-         // Induced refinement still possible just beyond that limit.
-         (xyz[0] < P::refinementMinX) || (xyz[0] > P::refinementMaxX)
-         || (xyz[1] < P::refinementMinY) || (xyz[1] > P::refinementMaxY)
-         || (xyz[2] < P::refinementMinZ) || (xyz[2] > P::refinementMaxZ)) {
-         shouldRefine = false;
+      if (P::refineBoxNumber > 0) {
+         bool outsideAllRefineBoxes = true;
+         for (int i = 0; i < P::refineBoxNumber; i++) {
+            if (
+               // If this cell is planned to be refined and is inside any of the refinement boxes, then go ahead with refinement.
+               // Induced refinement still possible just beyond that limit.
+               (xyz[0] >= P::refinementMinX.at(i)) && (xyz[0] <= P::refinementMaxX.at(i))
+               && (xyz[1] >= P::refinementMinY.at(i)) && (xyz[1] <= P::refinementMaxY.at(i))
+               && (xyz[2] >= P::refinementMinZ.at(i)) && (xyz[2] <= P::refinementMaxZ.at(i))) {
+               outsideAllRefineBoxes = false;
+               break;
+            }
+         }
+
+         shouldRefine = shouldRefine && !outsideAllRefineBoxes;
       }
 
       return shouldRefine;
@@ -489,25 +499,33 @@ namespace projects {
          )
       };
 
-      if(
-         // If this cell is planned to remain at the current refinement level, but is outside the allowed refinement region,
-         // attempt to unrefine it instead. (If it is already at the lowest refinement level, DCCRG should not go belly-up.)
-         // Induced refinement still possible just beyond that limit.
-         (xyz[0] < P::refinementMinX) || (xyz[0] > P::refinementMaxX)
-         || (xyz[1] < P::refinementMinY) || (xyz[1] > P::refinementMaxY)
-         || (xyz[2] < P::refinementMinZ) || (xyz[2] > P::refinementMaxZ)) {
-         shouldUnrefine = true;
+      if (P::refineBoxNumber > 0) {
+         bool outsideAllRefineBoxes = true;
+         for (int i = 0; i < P::refineBoxNumber; i++) {
+            if (
+               // If this cell is planned to remain at the current refinement level, but is outside all the allowed refinement regions,
+               // attempt to unrefine it instead. (If it is already at the lowest refinement level, DCCRG should not go belly-up.)
+               // Induced refinement still possible just beyond that limit.
+               (xyz[0] >= P::refinementMinX.at(i)) && (xyz[0] <= P::refinementMaxX.at(i))
+               && (xyz[1] >= P::refinementMinY.at(i)) && (xyz[1] <= P::refinementMaxY.at(i))
+               && (xyz[2] >= P::refinementMinZ.at(i)) && (xyz[2] <= P::refinementMaxZ.at(i))) {
+               outsideAllRefineBoxes = false;
+               break;
+            }
+         }
+
+         shouldUnrefine = shouldUnrefine || outsideAllRefineBoxes;
       }
 
       return shouldUnrefine;
    }
 
-   int Project::adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
+   uint64_t Project::adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
       phiprof::Timer refinesTimer {"Set refines"};
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
-      int refines {0};
+      uint64_t refines {0};
       if (!P::useAlpha1 && !P::useAlpha2 && !P::useAnisotropy && !P::useVorticity) {
          if (myRank == MASTER_RANK) {
             std::cout << "WARNING All refinement indices disabled" << std::endl;
@@ -701,6 +719,11 @@ Project* createProject() {
    if(Parameters::projectName == "Shocktest") {
       rvalue = new projects::Shocktest;
    }
+   if(Parameters::projectName == "LossCone") {
+      rvalue = new projects::LossCone;
+   }
+   
+
    if (rvalue == NULL) {
       cerr << "Unknown project name!" << endl;
       abort();

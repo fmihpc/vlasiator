@@ -22,6 +22,12 @@
 #include <random>
 #include <iostream>
 #include "scenario.h"
+#include "field.h"
+
+#define cross_product(av,bv) (av).cross(bv)
+#define dot_product(av,bv) (av).dot(bv)
+#define vector_length(v) (v).norm()
+#define normalize_vector(v) (v).normalized()
 
 ParticleContainer singleParticleScenario::initialParticles(Field& E, Field& B, Field& V) {
 

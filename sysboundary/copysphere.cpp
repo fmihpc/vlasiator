@@ -205,26 +205,28 @@ namespace SBC {
    #pragma omp parallel for
       for (uint i = 0; i < cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
-         if (cell->sysBoundaryFlag != this->getIndex())
-            continue;
-         for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
-            setCellFromTemplate(cell, popID);
+         if (cell->sysBoundaryFlag != this->getIndex()) continue;
+         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+            setCellFromTemplate(cell,popID);
+            #ifdef DEBUG_VLASIATOR
+            // Verify current mesh and blocks
+            if (!cell->checkMesh(popID)) {
+               printf("ERROR in vmesh check: %s at %d\n",__FILE__,__LINE__);
+            }
+            #endif
          }
-   #ifdef DEBUG_VLASIATOR
-         // Verify current mesh and blocks
-         if (!cell->checkMesh(popID)) {
-            printf("ERROR in vmesh check: %s at %d\n", __FILE__, __LINE__);
-         }
-   #endif
       }
    }
-   
-   std::array<Real, 3>
-   Copysphere::fieldSolverGetNormalDirection(std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid, cint i,
-                                             cint j, cint k) {
-      phiprof::Timer timer{"Copysphere::fieldSolverGetNormalDirection"};
-      std::array<Real, 3> normalDirection{{0.0, 0.0, 0.0}};
-   
+
+   std::array<Real, 3> Copysphere::fieldSolverGetNormalDirection(
+      std::span<fsgrids::technical> technical,
+      FieldSolverGrid &fsgrid,
+      cint i,
+      cint j,
+      cint k
+   ) {
+      std::array<Real, 3> normalDirection{{ 0.0, 0.0, 0.0 }};
+
       static creal DIAG2 = 1.0 / sqrt(2.0);
       static creal DIAG3 = 1.0 / sqrt(3.0);
    
@@ -667,8 +669,7 @@ namespace SBC {
          initV0X = sP.V0[0];
          initV0Y = sP.V0[1];
          initV0Z = sP.V0[2];
-   
-         phiprof::Timer setVSpacetimer{"Set Velocity Space"};
+
          // Find list of blocks to initialize.
          const uint nRequested =
              SBC::findMaxwellianBlocksToInitialize(popID, templateCell, initRho, initT, initV0X, initV0Y, initV0Z);
@@ -682,10 +683,9 @@ namespace SBC {
          const Realf minValue = templateCell.getVelocityBlockMinValue(popID);
    
          // fills v-space into target
-         phiprof::Timer fillTimer{"fill phasespace"};
-   
-   #ifdef USE_GPU
-         vmesh::VelocityMesh* vmesh = templateCell.dev_get_velocity_mesh(popID);
+
+         #ifdef USE_GPU
+         vmesh::VelocityMesh *vmesh = templateCell.dev_get_velocity_mesh(popID);
          vmesh::VelocityBlockContainer* VBC = templateCell.dev_get_velocity_blocks(popID);
    #else
          vmesh::VelocityMesh* vmesh = templateCell.get_velocity_mesh(popID);
@@ -694,43 +694,39 @@ namespace SBC {
          // Loop over blocks
          Realf rhosum = 0;
          arch::parallel_reduce<arch::null>(
-             {WID, WID, WID, nRequested},
-             ARCH_LOOP_LAMBDA(const uint i, const uint j, const uint k, const uint initIndex, Realf* lsum) {
-                vmesh::GlobalID* GIDlist = vmesh->getGrid()->data();
-                Realf* bufferData = VBC->getData();
-                const vmesh::GlobalID blockGID = GIDlist[initIndex];
-                // Calculate parameters for new block
-                Real blockCoords[6];
-                vmesh->getBlockInfo(blockGID, &blockCoords[0]);
-                creal vxBlock = blockCoords[0];
-                creal vyBlock = blockCoords[1];
-                creal vzBlock = blockCoords[2];
-                creal dvxCell = blockCoords[3];
-                creal dvyCell = blockCoords[4];
-                creal dvzCell = blockCoords[5];
-                ARCH_INNER_BODY(i, j, k, initIndex, lsum) {
-                   creal vx = vxBlock + (i + 0.5) * dvxCell - initV0X;
-                   creal vy = vyBlock + (j + 0.5) * dvyCell - initV0Y;
-                   creal vz = vzBlock + (k + 0.5) * dvzCell - initV0Z;
-                   const Realf value = projects::MaxwellianPhaseSpaceDensity(vx, vy, vz, initT, initRho, mass);
-                   bufferData[initIndex * WID3 + k * WID2 + j * WID + i] = value;
-                   // lsum[0] += value;
-                };
-             },
-             rhosum);
-         fillTimer.stop();
-   
-   #ifdef USE_GPU
+            {WID, WID, WID, nRequested},
+            ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint initIndex, Realf *lsum ) {
+               vmesh::GlobalID *GIDlist = vmesh->getGrid()->data();
+               Realf* bufferData = VBC->getData();
+               const vmesh::GlobalID blockGID = GIDlist[initIndex];
+               // Calculate parameters for new block
+               Real blockCoords[6];
+               vmesh->getBlockInfo(blockGID,&blockCoords[0]);
+               creal vxBlock = blockCoords[0];
+               creal vyBlock = blockCoords[1];
+               creal vzBlock = blockCoords[2];
+               creal dvxCell = blockCoords[3];
+               creal dvyCell = blockCoords[4];
+               creal dvzCell = blockCoords[5];
+               ARCH_INNER_BODY(i, j, k, initIndex, lsum) {
+                  creal vx = vxBlock + (i+0.5)*dvxCell - initV0X;
+                  creal vy = vyBlock + (j+0.5)*dvyCell - initV0Y;
+                  creal vz = vzBlock + (k+0.5)*dvzCell - initV0Z;
+                  const Realf value = projects::MaxwellianPhaseSpaceDensity(vx,vy,vz,initT,initRho,mass);
+                  bufferData[initIndex*WID3 + k*WID2 + j*WID + i] = value;
+                  //lsum[0] += value;
+               };
+            }, rhosum);
+
+         #ifdef USE_GPU
          // Set and apply the reservation value
-         phiprof::Timer reservationTimer{"set apply reservation"};
-         templateCell.setReservation(popID, nRequested, true); // Force to this value
+         templateCell.setReservation(popID,nRequested,true); // Force to this value
          templateCell.applyReservation(popID);
-         reservationTimer.stop();
-   #endif
-   
-         // let's get rid of blocks not fulfilling the criteria here to save memory.
-         templateCell.adjustSingleCellVelocityBlocks(popID, true);
-   
+         #endif
+
+         //let's get rid of blocks not fulfilling the criteria here to save memory.
+         templateCell.adjustSingleCellVelocityBlocks(popID,true);
+
       } // for-loop over particle species
    
       calculateCellMoments(&templateCell, true, false, true);

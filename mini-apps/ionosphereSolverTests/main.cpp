@@ -15,9 +15,10 @@ using namespace vlsv;
 
 Logger logFile,diagnostic;
 int globalflags::bailingOut=0;
-bool globalflags::writeRestart=0;
-bool globalflags::balanceLoad=0;
-bool globalflags::doRefine=0;
+bool globalflags::writeRestart=false;
+bool globalflags::writeRecover=false;
+bool globalflags::balanceLoad=false;
+bool globalflags::doRefine=false;
 bool globalflags::ionosphereJustSolved = false;
 ObjectWrapper objectWrapper;
 ObjectWrapper& getObjectWrapper() {

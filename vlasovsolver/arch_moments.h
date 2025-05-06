@@ -52,13 +52,19 @@ void blockVelocitySecondMoments(vmesh::VelocityBlockContainer *blockContainer,
                                 REAL (&array)[SIZE],
                                 uint nBlocks);
 
-void calculateMoments_R(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                              const std::vector<CellID>& cells,
-                              const bool& computeSecond);
+void calculateMoments_R(
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const std::vector<CellID>& cells,
+   const bool& computeSecond,
+   const bool initialCompute=false
+);
 
-void calculateMoments_V(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                        const std::vector<CellID>& cells,
-                        const bool& computeSecond);
+void calculateMoments_V(
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const std::vector<CellID>& cells,
+   const bool& computeSecond,
+   const bool initialCompute=false
+);
 
 
 // ***** TEMPLATE FUNCTION DEFINITIONS ***** //

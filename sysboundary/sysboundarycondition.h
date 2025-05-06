@@ -123,6 +123,14 @@ namespace SBC {
             const bool calculate_V_moments
         )=0;
 
+        virtual void setupL2OutflowAtRestart(
+            dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid
+        ) {
+            std::cerr << "ERROR: base class SysBoundaryCondition::setupL2OutflowAtRestart called!" << std::endl;
+        }
+
+
+
          /*! Function used to know which faces the boundary condition is applied to.
           * @param faces Pointer to array of 6 bool in which the values are returned whether the corresponding face is of that
           * type. Order: 0 x+; 1 x-; 2 y+; 3 y-; 4 z+; 5 z-
@@ -189,6 +197,13 @@ namespace SBC {
             const uint popID,
             const bool calculate_V_moments
          );
+         void vlasovBoundaryCopyFromTheClosestL1OutflowNbr(
+            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+            const CellID& cellID,
+            const bool& copyMomentsOnly,
+            const uint popID,
+            const bool calculate_V_moments
+         );
          void vlasovBoundaryCopyFromAllClosestNbrs(
             dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID,
@@ -228,6 +243,13 @@ namespace SBC {
                                                       std::span<const fsgrids::technical> technical,
                                                       const fsgrid::FsStencil& stencil, cuint component, cuint mask);
 
+         CellID & getTheClosestL1OutflowCell(
+            const CellID& cellID
+         );
+         std::vector<CellID> & getAllClosestL1OutflowCells(
+            const CellID& cellID
+         );
+
          /*! Precedence value of the system boundary condition. */
          uint precedence;
          /*! Is the boundary condition dynamic in time or not. */
@@ -238,9 +260,11 @@ namespace SBC {
          std::unordered_map<CellID, std::vector<CellID>> allClosestNonsysboundaryCells;
          /*! Map of close nonsysboundarycells. Used in getAllCloseNonsysboundaryCells. */
          std::unordered_map<CellID, std::vector<CellID>> allCloseNonsysboundaryCells;
+         /*! Map of closest Outflow L1 cells. Used in getAllClosestL1OutflowCells. */
+         std::unordered_map<CellID, std::vector<CellID>> allClosestL1OutflowCells;
+         /*! Map of close Outflow L1 cells. Used in getAllCloseL1OutflowCells. */
+         std::unordered_map<CellID, std::vector<CellID>> allCloseL1OutflowCells;
       
-         /*! Array of cells into which the distribution function can flow. Used in getAllFlowtoCells. Cells into which one cannot flow are set to INVALID_CELLID. */
-         std::unordered_map<CellID, std::array<SpatialCell*, 27>> allFlowtoCells;
          /*! bool telling whether to call again applyInitialState upon restarting the simulation. */
          bool applyUponRestart;
    };

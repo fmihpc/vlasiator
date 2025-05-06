@@ -1247,9 +1247,8 @@ void calculateUpwindedElectricFieldSimple(std::span<std::array<Real, fsgrids::bf
    }
 
    mpiTimer.stop();
-
-// Calculate upwinded electric field on inner cells
-#pragma omp parallel
+   // Calculate upwinded electric field
+   #pragma omp parallel
    {
       phiprof::Timer computeTimer{computeTimerID};
 #pragma omp for collapse(2)

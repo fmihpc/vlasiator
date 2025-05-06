@@ -1,0 +1,85 @@
+# Makefile for the ukko Cluster at UH, using nvidia V100 (DGX) GPUs
+#
+# Recommended setup:
+# * Compile on an interactive node with the below modules;
+#   See the It4Science wiki or the Vorna guide
+#   https://github.com/fmihpc/analysator/wiki/Vorna-guide
+#   for the current best practice.
+#
+# Oneliner for command line:
+# module purge; ml OpenMPI/4.1.6.withucx-GCC-13.2.0 PAPI/7.1.0-GCCcore-13.2.0 CUDA/12.6.0
+
+#======== Vectorization ==========
+#Set vector backend type for vlasov solvers, sets precision and length.
+#Options:
+VECTORCLASS = VEC_FALLBACK_GENERIC
+
+#===== Vector Lengths ====
+# Default for VEC_FALLBACK_GENERIC is WID=4, VECL=8
+# NOTE: A bug currently results in garbage data already on cell init if VECL is not equal to WID2
+#WID=8
+#VECL=64
+WID=4
+VECL=16
+
+#======= Compiler and compilation flags =========
+# NOTES on compiler flags:
+# CXXFLAGS is for compiler flags, they are always used
+# MATHFLAGS are for special math etc. flags, these are only applied on solver functions
+# LDFLAGS flags for linker
+
+USE_CUDA=1
+
+#-ggdb not available on nvcc
+#-G (device debug) overrides --generate-line-info -line-info but also requires more device-side resources to run
+# use "-Xptxas -v" for verbose output of ptx compilation
+# --cudart shared used for Kostis' mempool_ts
+CXXFLAGS = -g -O3 -x cu -std=c++20 --extended-lambda --expt-relaxed-constexpr -arch=sm_70 -gencode arch=compute_70,code=sm_70 --cudart shared --generate-line-info -line-info -Xcompiler="-fopenmp" -Xcompiler="-fpermissive" -maxrregcount 24 -Wno-deprecated-declarations -Xcudafe "--diag_suppress=20012"
+testpackage: CXXFLAGS = -g -O2 -x cu -std=c++20 --extended-lambda --expt-relaxed-constexpr -arch=sm_70 -gencode arch=compute_70,code=sm_70 --cudart shared --generate-line-info -line-info -Xcompiler="-fopenmp" -Xcompiler="-fpermissive" -maxrregcount 24 -Wno-deprecated-declarations -Xcudafe "--diag_suppress=20012"
+
+# Tell mpic++ to use nvcc for all compiling
+CMP = OMPI_CXX='nvcc' OMPI_CXXFLAGS='' mpic++
+
+# Now tell also the linker to use nvcc. Contents of these were retrieved with "mpic++ --showme:link".
+# Use this same linker command also for building and linking phiprof.  ## The line below indeed uses OMPI_CXX, not OMPI_LD
+LNK = OMPI_CXX='nvcc' OMPI_CXXFLAGS='-arch=sm_70' OMPI_LIBS='-L/appl/easybuild/opt/hwloc/2.5.0-GCCcore-11.2.0/lib -L/appl/easybuild/opt/libevent/2.1.12-GCCcore-11.2.0/lib64' OMPI_LDFLAGS=' -Xlinker=-rpath=/appl/easybuild/opt/hwloc/2.5.0-GCCcore-11.2.0/lib -Xlinker=-rpath=/appl/easybuild/opt/libevent/2.1.12-GCCcore-11.2.0/lib64 -Xlinker=-rpath=/appl/easybuild/opt/OpenMPI/4.1.1-GCC-11.2.0/lib -Xlinker=--enable-new-dtags -L/appl/easybuild/opt/OpenMPI/4.1.1-GCC-11.2.0/lib -lmpi ' mpic++
+
+MATHFLAGS = --use_fast_math
+# nvcc fast_math does not assume only finite math
+testpackage: MATHFLAGS = --prec-sqrt=true --prec-div=true --ftz=false --fmad=false
+
+LDFLAGS = -lrt -lgfortran -std=c++20 -lgomp
+LIB_MPI = -lgomp -lmpi
+
+#======== PAPI ==========
+#Add PAPI_MEM define to use papi to report memory consumption?
+CXXFLAGS += -DPAPI_MEM
+testpackage: CXXFLAGS += -DPAPI_MEM
+
+#======== Allocator =========
+# No allocator for GPU versions now
+
+#======== Libraries ===========
+
+CC_BRAND = nvcc
+CC_BRAND_VERSION = 12.6-GCC-13.2.0
+MPT_BRAND = OpenMPI
+MPT_VERSION = 4.1.6
+
+VLASIATOR_LIBRARY_PREFIX = /proj/group/spacephysics/libraries
+VLASIATOR_LIBRARY_PATH = $(VLASIATOR_LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/libraries-ukkogpu
+# Both ukko-dgx and ukko-a100 use the same modules and libraries
+
+LIB_PROFILE = -L$(VLASIATOR_LIBRARY_PATH)/lib -Xlinker=-rpath=$(VLASIATOR_LIBRARY_PATH)/lib -lphiprof
+INC_PROFILE = -I$(VLASIATOR_LIBRARY_PATH)/include
+
+LIB_VLSV = -L$(VLASIATOR_LIBRARY_PATH)/lib -Xlinker=-rpath=$(VLASIATOR_LIBRARY_PATH)/lib -lvlsv
+INC_VLSV = -I$(VLASIATOR_LIBRARY_PATH)/include
+
+LIB_BOOST = -L$(VLASIATOR_LIBRARY_PATH)/lib -Xlinker=-rpath=$(VLASIATOR_LIBRARY_PATH)/lib -lboost_program_options
+INC_BOOST = -isystem $(VLASIATOR_LIBRARY_PATH)/include
+
+LIB_ZOLTAN = -L$(VLASIATOR_LIBRARY_PATH)/lib -Xlinker=-rpath=$(VLASIATOR_LIBRARY_PATH)/lib -lzoltan
+INC_ZOLTAN = -isystem $(VLASIATOR_LIBRARY_PATH)/include
+
+LIB_PAPI = -lpapi

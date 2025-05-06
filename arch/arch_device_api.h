@@ -1,4 +1,4 @@
-
+#include <stdint.h>
 #ifndef ARCH_DEVICE_API_H
 #define ARCH_DEVICE_API_H
 

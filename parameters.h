@@ -54,6 +54,8 @@ struct Parameters {
    static Real t_max; /*!< Maximum simulation time. */
    static Real dt;    /*!< The value of the timestep to use in propagation. If CflLimit defined then it is dynamically
                          updated during simulation*/
+   static Real dt_ceil; /*!< The maximum value of the timestep to use in propagation. */
+
    static Real vlasovSolverMaxCFL;   /*!< The maximum CFL limit for propagation of distribution function. Used to set
                                         timestep if useCFLlimit is true. */
    static Real vlasovSolverMinCFL;   /*!< The minimum CFL limit for propagation of distribution function. Used to set
@@ -111,17 +113,16 @@ struct Parameters {
                                      are always written out after propagation of 0.5dt in real space.*/
    static bool writeFullBGB; /*!< If true, write full BGB components and derivatives in a dedicated file, then exit.*/
    static Real saveRestartWalltimeInterval; /*!< Interval in walltime seconds for restart data*/
+   static uint saveRecoverTstepInterval;    /*!< Interval in timesteps for recover data*/
    static uint exitAfterRestarts;           /*!< Exit after this many restarts*/
+   static uint recoverMaxFiles;             /*<! Write cyclically this many recover files before overwriting older ones.*/
    static uint64_t vlsvBufferSize;          /*!< Buffer size in bytes passed to VLSV writer. */
    static int restartStripeFactor;          /*!< stripe_factor for restart writing*/
    static int systemStripeFactor;             /*!< stripe_factor for bulk and initial grid writing*/
    static std::string restartWritePath; /*!< Path to the location where restart files should be written. Defaults to the
                                            local directory, also if the specified destination is not writeable. */
-
-   static uint transmit;
-   /*!< Indicates the data that needs to be transmitted to remote nodes.
-    * This is created with bitwise or from the values defined in
-    * namespace Transmit.*/
+   static std::string recoverWritePath; /*!< Path to the location where recover files should be written. Defaults to the
+                                           local directory, also if the specified destination is not writeable. */
 
    static bool recalculateStencils; /*!< If true, MPI stencils should be recalculated because of load balancing.*/
 
@@ -209,12 +210,13 @@ struct Parameters {
    static Real alphaDPSqWeight;
    static Real alphaDBSqWeight;
    static Real alphaDBWeight;
-   static Real refinementMinX; /*!< Do not refine at x coordinates below this value. */
-   static Real refinementMinY; /*!< Do not refine at y coordinates below this value. */
-   static Real refinementMinZ; /*!< Do not refine at z coordinates below this value. */
-   static Real refinementMaxX; /*!< Do not refine at x coordinates above this value. */
-   static Real refinementMaxY; /*!< Do not refine at y coordinates above this value. */
-   static Real refinementMaxZ; /*!< Do not refine at z coordinates above this value. */
+   static int refineBoxNumber;
+   static std::vector<Real> refinementMinX; /*!< Do not refine at x coordinates below this value. */
+   static std::vector<Real> refinementMinY; /*!< Do not refine at y coordinates below this value. */
+   static std::vector<Real> refinementMinZ; /*!< Do not refine at z coordinates below this value. */
+   static std::vector<Real> refinementMaxX; /*!< Do not refine at x coordinates above this value. */
+   static std::vector<Real> refinementMaxY; /*!< Do not refine at y coordinates above this value. */
+   static std::vector<Real> refinementMaxZ; /*!< Do not refine at z coordinates above this value. */
    static int maxFilteringPasses;
    static int amrBoxNumber;
    static std::vector<uint> amrBoxHalfWidthX;
@@ -227,6 +229,13 @@ struct Parameters {
    static bool amrTransShortPencils;        /*!< Use short or long pencils in AMR translation.*/
    static std::vector<std::string> blurPassString;
    static std::vector<int> numPasses;
+   static bool artificialPADiff; // Artificial velocity space Diffusion
+   static Realf PADcoefficient; // Artificial pitch-angle diffusion coefficient
+   static Realf PADCFL; // Artificial pitch-angle diffusion CFL
+   static int PADvbins; // Number of bins in velocity for pitch-angle diffusion
+   static int PADmubins; // Number of bins in mu for pitch-angle diffusion
+   static std::string PADnu0; // Path to txt file for nu0
+   static Realf PADfudge; // Fudge factore for diffusion   
 
    static std::array<fsgrid::Task_t,3> manualFsGridDecomposition;
    static std::array<fsgrid::Task_t,3> overrideReadFsGridDecomposition;

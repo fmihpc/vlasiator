@@ -20,9 +20,14 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include <Eigen/Dense>
+#define Vec3d Eigen::Vector3d
+#define cross_product(av,bv) (av).cross(bv)
+#define dot_product(av,bv) (av).dot(bv)
+#define vector_length(v) (v).norm()
+#define normalize_vector(v) (v).normalized()
+
 #include "physconst.h"
-#include "vectorclass.h"
-#include "vector3d.h"
 
 static double gamma(Vec3d v) {
    double uq = dot_product(v,v);

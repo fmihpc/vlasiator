@@ -364,7 +364,6 @@ void sortBlocklistByDimension( vmesh::VelocityMesh* vmesh, //on-device vmesh
    CHK_ERR( gpuMemsetAsync(blocksLID, 0, nBlocks*sizeof(vmesh::LocalID), stream) );
    #endif
 
-   //phiprof::Timer calcTimer {"calc new dimension id"};
    // Map blocks to new dimensionality
    switch( dimension ) {
       case 0: {
@@ -400,9 +399,7 @@ void sortBlocklistByDimension( vmesh::VelocityMesh* vmesh, //on-device vmesh
    CHK_ERR( gpuPeekAtLastError() );
    CHK_ERR( gpuStreamSynchronize(stream) );
    //SSYNC;
-   //calcTimer.stop();
 
-   phiprof::Timer sortTimer {"CUB sort"};
    // Determine temporary device storage requirements
    void     *temp_storage_null = NULL;
    size_t   temp_storage_bytes = 0;
@@ -421,9 +418,7 @@ void sortBlocklistByDimension( vmesh::VelocityMesh* vmesh, //on-device vmesh
    #endif
    CHK_ERR( gpuPeekAtLastError() );
 
-   //phiprof::Timer cubAllocTimer {"cub alloc"};
    gpu_acc_allocate_radix_sort(temp_storage_bytes,cpuThreadID,stream);
-   //cubAllocTimer.stop();
 
    // Now sort
    #ifdef __CUDACC__
@@ -440,10 +435,8 @@ void sortBlocklistByDimension( vmesh::VelocityMesh* vmesh, //on-device vmesh
    #endif
    CHK_ERR( gpuPeekAtLastError() );
    CHK_ERR( gpuStreamSynchronize(stream) );
-   sortTimer.stop();
 
    // Gather GIDs in order
-   //phiprof::Timer reorderTimer {"reorder GIDs"}; // and scan for column block counts
    order_GIDs_kernel<<<launchBlocks, maxThreads, 0, stream>>> (
       vmesh,
       blocksLID,
@@ -455,9 +448,7 @@ void sortBlocklistByDimension( vmesh::VelocityMesh* vmesh, //on-device vmesh
       columnData // Pass this just to clear it on device
       );
    CHK_ERR( gpuPeekAtLastError() );
-   //reorderTimer.stop();
 
-   //phiprof::Timer constructTimer {"construct columns"};
    // Construct columns. To ensure order,
    // these are done serially, but still form within a kernel.
    // Optimizing launch threads for this kernel as well needs a bit more checking
@@ -471,6 +462,5 @@ void sortBlocklistByDimension( vmesh::VelocityMesh* vmesh, //on-device vmesh
       );
    CHK_ERR( gpuPeekAtLastError() );
    //SSYNC;
-   //constructTimer.stop();
 
 }

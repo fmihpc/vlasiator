@@ -2,6 +2,7 @@
 #include "velocity_mesh_parameters.h"
 #include "readparameters.h"
 #include <iostream>
+#include <string>
 
 bool ObjectWrapper::addParameters() {
    typedef Readparameters RP;

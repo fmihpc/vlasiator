@@ -1513,7 +1513,7 @@ bool writeGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, co
 */
 bool writeRestart(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const FieldSolverData& fieldSolverData,
                   const std::string& versionInfo, const std::string& configInfo, DataReducer& dataReducer,
-                  const string& name, const uint& fileIndex, const int& stripe) {
+                  const string& name, const uint& fileIndex, const bool dateInFileName, const int& stripe) {
    // Writes a restart
    bool success = true;
    int myRank;
@@ -1532,19 +1532,30 @@ bool writeRestart(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
    // Get the current time.
    // Avoid different times on different processes!
    char currentDate[80];
-   if(myRank == MASTER_RANK) {
-      const time_t rawTime = time(NULL);
-      const struct tm * timeInfo = localtime(&rawTime);
-      strftime(currentDate, 80, "%F_%H-%M-%S", timeInfo);
+   if(dateInFileName) {
+      if(myRank == MASTER_RANK) {
+         const time_t rawTime = time(NULL);
+         const struct tm * timeInfo = localtime(&rawTime);
+         strftime(currentDate, 80, ".%F_%H-%M-%S", timeInfo); // note the dot prefixed
+      }
+      MPI_Bcast(&currentDate,80,MPI_CHAR,MASTER_RANK,MPI_COMM_WORLD);
+   } else {
+      currentDate[0] = '\0';
    }
-   MPI_Bcast(&currentDate,80,MPI_CHAR,MASTER_RANK,MPI_COMM_WORLD);
-   
+
    // Create a name for the output file and open it with VLSVWriter:
    stringstream fname;
-   fname << P::restartWritePath << "/" << name << ".";
-   fname.width(7);
-   fname.fill('0');
-   fname << fileIndex << "." << currentDate << ".vlsv";
+   if(dateInFileName) {
+      fname << P::restartWritePath;
+   } else {
+      fname << P::recoverWritePath;
+   }
+   fname << "/" << name << ".";
+   if(dateInFileName) {
+      fname.width(7);
+      fname.fill('0');
+   }
+   fname << fileIndex << currentDate << ".vlsv";
 
    phiprof::Timer openTimer {"open"};
    //Open the file with vlsvWriter:

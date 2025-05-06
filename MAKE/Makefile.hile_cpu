@@ -1,0 +1,93 @@
+# Makefile for the Hile Cluster at UH (CPU nodes).
+# compile on compute node
+#
+# ssh hile01.it.helsinki.fi
+# ./fetch_libraries.sh hile_cpu
+# srun -C c -c 16 --mem=20G --pty bash
+# module load papi
+# module load cray-pmi
+# module load libfabric/1.22.0
+# export VLASIATOR_ARCH=hile_cpu
+# ./build_fetched_libraries.sh hile_cpu
+
+# #SBATCH -C c # for CPU nodes (flavor)
+# Use of #SBATCH --distribution=block:block may improve performance
+# As of March 2025, use srun --mpi=pmi2 to launch
+
+CMP = CC
+LNK = CC
+
+#======== Vectorization ==========
+#Set vector backend type for vlasov solvers, sets precision and length.
+#Options:
+# AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX512:   VEC8D_AGNER, VEC16F_AGNER
+# Fallback: VEC_FALLBACK_GENERIC
+
+ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
+#Single-precision
+	VECTORCLASS = VEC8F_AGNER
+else
+#Double-precision
+	VECTORCLASS = VEC4D_AGNER
+endif
+
+#======= Compiler and compilation flags =========
+# NOTES on compiler flags:
+# CXXFLAGS is for compiler flags, they are always used
+# MATHFLAGS are for special math etc. flags, these are only applied on solver functions
+# LDFLAGS flags for linker
+
+#-DNO_WRITE_AT_ALL:  Define to disable write at all to
+#                    avoid memleak (much slower IO)
+#-DMPICH_IGNORE_CXX_SEEK: Ignores some multiple definition
+#                         errors that come up when using
+#                         mpi.h in c++ on Cray
+#
+# CXXFLAGS = -DMPICH_IGNORE_CXX_SEEK
+
+FLAGS =
+
+CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++20 -mavx -march=znver2 #-flto
+testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++20 -mavx -march=znver2 -DIONOSPHERE_SORTED_SUMS
+CXXFLAGS += -Wall -Wextra -Wno-unused -Wno-unused-parameter
+
+MATHFLAGS = -ffast-math -fno-finite-math-only
+testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
+
+LDFLAGS = -std=c++20 -fopenmp
+LIB_MPI =
+
+#======== PAPI ==========
+#Add PAPI_MEM define to use papi to report memory consumption?
+CXXFLAGS += -DPAPI_MEM
+testpackage: CXXFLAGS += -DPAPI_MEM
+
+#======== Allocator =========
+#Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
+#Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
+CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+
+
+#======== Libraries ===========
+LIBRARY_PREFIX = /wrk-kappa/group/spacephysics/vlasiator/libraries/libraries-hile_cpu
+
+# System boost
+LIB_BOOST = -lboost_program_options -L/usr/lib64 -Wl,-rpath=/usr/lib64
+
+#System module papi
+LIB_PAPI = -lpapi
+
+# Compiled libraries
+INC_ZOLTAN = -isystem $(LIBRARY_PREFIX)/include
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/lib64 -lzoltan -Wl,-rpath=$(LIBRARY_PREFIX)/lib64
+
+LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/lib64 -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX)/lib64
+INC_JEMALLOC = -isystem $(LIBRARY_PREFIX)/include
+
+INC_VLSV = -isystem $(LIBRARY_PREFIX)/include
+LIB_VLSV = -L$(LIBRARY_PREFIX)/lib -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX)/lib
+
+INC_PROFILE = -isystem $(LIBRARY_PREFIX)/include -D_ROCTX -I${ROCM_PATH}/include
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX)/lib

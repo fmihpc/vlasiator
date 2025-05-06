@@ -42,7 +42,7 @@
 #include "arch_moments.h"
 
 #include "cpu_trans_pencils.hpp"
-
+#include "cpu_acc_transform.hpp" // for updateAccelerationMaxdt
 #ifdef USE_GPU
 #include "gpu_moments.h"
 #include "gpu_acc_map.hpp"
@@ -80,11 +80,11 @@ void calculateSpatialTranslation(
 
     int myRank;
     MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-   
+
    phiprof::Timer btzTimer {"barrier-trans-pre-z", {"Barriers","MPI"}};
    MPI_Barrier(MPI_COMM_WORLD);
    btzTimer.stop();
- 
+
     // ------------- SLICE - map dist function in Z --------------- //
    if(P::zcells_ini > 1){
 
@@ -119,16 +119,16 @@ void calculateSpatialTranslation(
    phiprof::Timer btxTimer {"barrier-trans-pre-x", {"Barriers","MPI"}};
    MPI_Barrier(MPI_COMM_WORLD);
    btxTimer.stop();
-   
+
    // ------------- SLICE - map dist function in X --------------- //
    if(P::xcells_ini > 1){
-      
+
       phiprof::Timer transTimer {"transfer-stencil-data-x", {"MPI"}};
       //updateRemoteVelocityBlockLists(mpiGrid,popID,VLASOV_SOLVER_X);
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false);
       mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::VLASOV_SOLVER_X);
       transTimer.stop();
-      
+
       // bt=phiprof::initializeTimer("barrier-trans-pre-trans_map_1d-x","Barriers","MPI");
       // phiprof::start(bt);
       // MPI_Barrier(MPI_COMM_WORLD);
@@ -157,13 +157,13 @@ void calculateSpatialTranslation(
 
    // ------------- SLICE - map dist function in Y --------------- //
    if(P::ycells_ini > 1) {
-      
+
       phiprof::Timer transTimer {"transfer-stencil-data-y", {"MPI"}};
       //updateRemoteVelocityBlockLists(mpiGrid,popID,VLASOV_SOLVER_Y);
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false);
       mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::VLASOV_SOLVER_Y);
       transTimer.stop();
-      
+
       // bt=phiprof::initializeTimer("barrier-trans-pre-trans_map_1d-y","Barriers","MPI");
       // phiprof::start(bt);
       // MPI_Barrier(MPI_COMM_WORLD);
@@ -270,9 +270,9 @@ void calculateSpatialTranslation(
         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
         const Real dt) {
    typedef Parameters P;
-   
+
    phiprof::Timer semilagTimer {"semilag-trans"};
-   
+
    //double t1 = MPI_Wtime();
 
    const vector<CellID>& localCells = getLocalCells();
@@ -286,10 +286,10 @@ void calculateSpatialTranslation(
    // If dt=0 we are either initializing or distribution functions are not translated.
    // In both cases go to the end of this function and calculate the moments.
    if (dt == 0.0) {
-      calculateMoments_R(mpiGrid,localCells,true);
+      calculateMoments_R(mpiGrid,localCells,true,true);
       return;
    }
-   
+
    phiprof::Timer computeTimer {"compute_cell_lists"};
    if (!P::vlasovSolverGhostTranslate) {
       remoteTargetCellsx = mpiGrid.get_remote_cells_on_process_boundary(Neighborhoods::VLASOV_SOLVER_TARGET_X);
@@ -388,17 +388,30 @@ void calculateSpatialTranslation(
   --------------------------------------------------
 */
 
+/**
+ * Compute the number of subcycles needed for the acceleration of the particle
+ * species in the spatial cell. Note that one should first prepare to
+ * accelerate the cell with updateAccelerationMaxdt.
+ *
+ * @param spatial_cell Spatial cell containing the accelerated population.
+ * @param popID ID of the accelerated particle species.
+*/
+
+uint getAccelerationSubcycles(SpatialCell* spatial_cell, Real dt, const uint popID)
+{
+   return max( convert<uint>(ceil(dt / spatial_cell->get_max_v_dt(popID))), 1u);
+}
+
 /** Accelerate the given population to new time t+dt.
- * This function is AMR safe.
  * @param popID Particle population ID.
  * @param globalMaxSubcycles Number of times acceleration is subcycled.
  * @param step The current subcycle step.
  * @param mpiGrid Parallel grid library.
- * @param propagatedCells List of cells in which the population is accelerated.
+ * @param acceleratedCells List of cells in which the population is accelerated.
  * @param dt Timestep.*/
 void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const uint step,
                            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                           const std::vector<CellID>& propagatedCells,
+                           const std::vector<CellID>& acceleratedCells,
                            const Real dt) {
    // Set active population
    SpatialCell::setCommunicatedSpecies(popID);
@@ -406,59 +419,60 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
    // Calculate velocity moments, these are needed to
    // calculate the transforms used in the accelerations.
    // Calculated moments are stored in the "_V" variables.
-   calculateMoments_V(mpiGrid, propagatedCells, false);
+   calculateMoments_V(mpiGrid, acceleratedCells, false);
 
-   // Semi-Lagrangian acceleration for those cells which are subcycled,
-   // dimension-by-dimension
-   int timerId {phiprof::initializeTimer("cell-semilag-acc")};
+   // set seed, initialise generator and get value. The order is the same
+   // for all cells, but varies with timestep.
+   std::default_random_engine rndState;
+   rndState.seed(P::tstep);
+   uint map_order = std::uniform_int_distribution<>(0,2)(rndState);
 
-   #pragma omp parallel for schedule(dynamic,1)
-   for (size_t c=0; c<propagatedCells.size(); ++c) {
-      const CellID cellID = propagatedCells[c];
+   // Calculate length of step for each cell
+   #pragma omp parallel for
+   for (size_t c=0; c<acceleratedCells.size(); ++c) {
+      const CellID cellID = acceleratedCells[c];
       const Real maxVdt = mpiGrid[cellID]->get_max_v_dt(popID);
 
-      //compute subcycle dt. The length is maxVdt on all steps
-      //except the last one. This is to keep the neighboring
-      //spatial cells in sync, so that two neighboring cells with
-      //different number of subcycles have similar timesteps,
-      //except that one takes an additional short step. This keeps
-      //spatial block neighbors as much in sync as possible for
-      //adjust blocks.
-      Real subcycleDt;
+      /**
+         Compute subcycle dt. The length is maxVdt on all steps
+         except the (possible) last one. This was to keep neighboring
+         spatial cells in sync (with respect to gyration), so that
+         two neighboring cells with different number of subcycles 
+         have similar gyration angles, but adjusting the length of the
+         last step so all are accelerated for the same amount of time.
+         This keeps spatial block neighbors as much in sync as possible
+         for block adjustment.
+      **/
+
+      Real thisSubcycleDt;
       if( (step + 1) * maxVdt > fabs(dt)) {
-         subcycleDt = max(fabs(dt) - step * maxVdt, 0.0);
+         thisSubcycleDt = max(fabs(dt) - step * maxVdt, 0.0);
       } else{
-         subcycleDt = maxVdt;
+         thisSubcycleDt = maxVdt;
       }
       if (dt<0) {
-         subcycleDt = -subcycleDt;
+         thisSubcycleDt = -thisSubcycleDt;
       }
-      
-      //generate pseudo-random order which is always the same irrespective of parallelization, restarts, etc.
-      std::default_random_engine rndState;
-      // set seed, initialise generator and get value. The order is the same
-      // for all cells, but varies with timestep.
-      rndState.seed(P::tstep);
-      uint map_order=std::uniform_int_distribution<>(0,2)(rndState);
-
-      phiprof::Timer semilagAccTimer {timerId};
-#ifdef USE_GPU
-      gpu_accelerate_cell(mpiGrid[cellID],popID,map_order,subcycleDt);
-#else
-      cpu_accelerate_cell(mpiGrid[cellID],popID,map_order,subcycleDt);
-#endif
-      semilagAccTimer.stop();
+      spatial_cell::Population& pop = mpiGrid[cellID]->get_population(popID);
+      pop.subcycleDt = thisSubcycleDt;
    }
-   //global adjust after each subcycle to keep number of blocks managable. Even the ones not
-   //accelerating anyore participate. It is important to keep
-   //the spatial dimension to make sure that we do not loose
-   //stuff streaming in from other cells, perhaps not connected
-   //to the existing distribution function in the cell.
-   //- All cells update and communicate their lists of content blocks
-   //- Only cells which were accerelated on this step need to be adjusted (blocks removed or added).
-   //- Not done here on last step (done after loop)
+
+   // Semi-Lagrangian acceleration for all cells
+#ifdef USE_GPU
+   gpu_accelerate_cells(mpiGrid,acceleratedCells,popID,map_order);
+#else
+   cpu_accelerate_cells(mpiGrid,acceleratedCells,popID,map_order);
+#endif
+
+   /**
+      Adjust velocity blocks after each subcycle to keep number of blocks managable. This
+      call does not perform a full neighbour block list update (third argument) but
+      still needs to consider has_content lists for spatial neighbours.
+      The last subcycle adjustment is performed in a higher level function, and it
+      performs a full neighbour block list update, and is called for all accelerated cells.
+   **/
    if (step < (globalMaxSubcycles - 1)) {
-      adjustVelocityBlocks(mpiGrid, propagatedCells, false, popID);
+      adjustVelocityBlocks(mpiGrid, acceleratedCells, false, popID);
    }
 }
 
@@ -489,7 +503,6 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
       // Accelerate all particle species
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         uint gpuMaxBlockCount = 0; // would be better to be over all populations
          int maxSubcycles=0;
          int globalMaxSubcycles;
 
@@ -500,7 +513,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
          // Ghost cells (spatial cells at the boundary of the simulation
          // volume) do not need to be propagated:
          phiprof::Timer gatherTimer {"Gather subcycles and propagated cells"};
-         vector<CellID> propagatedCells;
+         vector<CellID> acceleratedCells;
          #pragma omp parallel for
          for (size_t c=0; c<cells.size(); ++c) {
             SpatialCell* SC = mpiGrid[cells[c]];
@@ -513,65 +526,49 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
                if (blockCount != 0){
                   //do not propagate spatial cells with no blocks
                   #pragma omp critical
-                  propagatedCells.push_back(cells[c]);
+                  {
+                     acceleratedCells.push_back(cells[c]);
+                  }
                }
                //prepare for acceleration, updates max dt for each cell, it
                //needs to be set to somthing sensible for _all_ cells, even if
                //they are not propagated
-               prepareAccelerateCell(SC, popID);
+               updateAccelerationMaxdt(SC, popID);
                //update max subcycles for all cells in this process
                maxSubcycles = max((int)getAccelerationSubcycles(SC, dt, popID), maxSubcycles);
                spatial_cell::Population& pop = SC->get_population(popID);
                pop.ACCSUBCYCLES = getAccelerationSubcycles(SC, dt, popID);
-#ifdef USE_GPU
-               #pragma omp critical
-               {
-                  if (blockCount > gpuMaxBlockCount) {
-                     gpuMaxBlockCount = blockCount;
-                  }
-               }
-#endif
             }
          }
          gatherTimer.stop();
-
-#ifdef USE_GPU
-         // Ensure accelerator has enough temporary memory allocated
-         phiprof::Timer verificationTimer {"gpu allocation verifications"};
-         gpu_vlasov_allocate(gpuMaxBlockCount);
-         gpu_acc_allocate(gpuMaxBlockCount);
-         verificationTimer.stop();
-#endif
 
          // Compute global maximum for number of subcycles
          MPI_Allreduce(&maxSubcycles, &globalMaxSubcycles, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
 
          // TODO: move subcycling to lower level call in order to optimize GPU memory calls
-
          // substep global max times
          for(uint step=0; step<(uint)globalMaxSubcycles; ++step) {
             if(step > 0) {
                // prune list of cells to propagate to only contained those which are now subcycled
                vector<CellID> temp;
-               for (const auto& cell: propagatedCells) {
+               for (const auto& cell: acceleratedCells) {
                   if (step < getAccelerationSubcycles(mpiGrid[cell], dt, popID) ) {
                      temp.push_back(cell);
                   }
                }
-
-               propagatedCells.swap(temp);
+               acceleratedCells.swap(temp);
             }
             // Accelerate population over one subcycle step
-            calculateAcceleration(popID,(uint)globalMaxSubcycles,step,mpiGrid,propagatedCells,dt);
+            calculateAcceleration(popID,(uint)globalMaxSubcycles,step,mpiGrid,acceleratedCells,dt);
          } // for-loop over acceleration substeps
 
-         // final adjust for all cells, also fixing remote cells.
+         // final adjust for all cells, also updating full remote block lists
          adjustVelocityBlocks(mpiGrid, cells, true, popID);
       } // for-loop over particle species
    }
 
    // Recalculate "_V" velocity moments
-   calculateMoments_V(mpiGrid, cells, true);
+   calculateMoments_V(mpiGrid,cells,true,(dt==0));
 
    // Set CellParams::MAXVDT to be the minimum dt of all per-species values
    #pragma omp parallel for
@@ -658,5 +655,8 @@ void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_G
       SC->parameters[CellParams::P_11_DT2] = SC->parameters[CellParams::P_11];
       SC->parameters[CellParams::P_22_DT2] = SC->parameters[CellParams::P_22];
       SC->parameters[CellParams::P_33_DT2] = SC->parameters[CellParams::P_33];
+      SC->parameters[CellParams::P_12_DT2] = SC->parameters[CellParams::P_12];
+      SC->parameters[CellParams::P_13_DT2] = SC->parameters[CellParams::P_13];
+      SC->parameters[CellParams::P_23_DT2] = SC->parameters[CellParams::P_23];
    } // for-loop over spatial cells
 }

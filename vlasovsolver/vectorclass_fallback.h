@@ -57,19 +57,21 @@ class VecSimple
     ARCH_HOSTDEV VecSimple<T> operator++ (int);
     ARCH_HOSTDEV VecSimple<T> operator-- (int);
     // Pass vector values as an initializer list instead of a bunch of arguments.
-    // || this here puts the initializer list to val!
-
-    ARCH_HOSTDEV VecSimple<T>(std::initializer_list<T> list)
+    ARCH_HOSTDEV VecSimple(std::initializer_list<T> list)
     {
-      if(list.size() != VECL) {
-        printf("Constructing a vector with a number of elements not equal to VECL = %d \nInitializer_list size = %lu\n", VECL, list.size());
-      } else {
-        unsigned int i = 0;
-        for(auto it = list.begin(); it != list.end(); ++it) {
-          val[i] = *it;
-          ++i;
-        }
-      }
+       if (list.size() == 1) {
+          for(int i=0; i<VECL; ++i) {
+             val[i] = *(list.begin());
+          }
+       } else if (list.size() == VECL) {
+          unsigned int i = 0;
+          for(auto it = list.begin(); it != list.end(); ++it) {
+             val[i] = *it;
+             ++i;
+          }
+       } else {
+          printf("Constructing a vector with a number of elements not equal to 1 or VECL = %d \nInitializer_list size = %lu\n", VECL, list.size());
+       }
     }
 
 };
@@ -232,6 +234,18 @@ static ARCH_HOSTDEV inline  VecSimple<T> & operator += (VecSimple<T> &l, const V
 template <class T, class S>
 static ARCH_HOSTDEV inline  VecSimple<T> & operator += (VecSimple<T> &l, const S r){
   l = l+r;
+  return l;
+}
+
+template <class T>
+static ARCH_HOSTDEV inline  VecSimple<T> & operator *= (VecSimple<T> &l, const VecSimple<T> &r){
+  l=l*r;
+  return l;
+}
+
+template <class T, class S>
+static ARCH_HOSTDEV inline  VecSimple<T> & operator *= (VecSimple<T> &l, const S r){
+  l = l*r;
   return l;
 }
 
@@ -552,10 +566,39 @@ static ARCH_HOSTDEV inline bool horizontal_and(VecSimple<T> const & a){
 }
 
 template <class T>
+static ARCH_HOSTDEV inline T horizontal_add(VecSimple<T> const & a){
+  T temp = a.val[0];
+  for(unsigned int i=1;i<VECL;i++) {
+     temp += a.val[i];
+  }
+  return temp;
+}
+
+template <class T>
 static ARCH_HOSTDEV inline VecSimple<int> truncate_to_int(VecSimple<T> const & a){
   VecSimple<int> temp;
   for(unsigned int i=0;i<VECL;i++) {
      temp.insert(i, (int)a.val[i]);
+  }
+  return temp;
+}
+
+template <class T>
+static ARCH_HOSTDEV inline VecSimple<int> roundi(VecSimple<T> const & a){
+   // function roundi: round to nearest integer or even.
+   //std::fesetround(FE_TONEAREST);
+   VecSimple<int> temp;
+  for(unsigned int i=0;i<VECL;i++) {
+     temp.insert(i, std::nearbyint(a.val[i]));
+  }
+  return temp;
+}
+
+template <class T>
+static ARCH_HOSTDEV inline VecSimple<T> floor(VecSimple<T> const & a){
+  VecSimple<T> temp;
+  for(unsigned int i=0;i<VECL;i++) {
+     temp.insert(i, floor(a.val[i]));
   }
   return temp;
 }

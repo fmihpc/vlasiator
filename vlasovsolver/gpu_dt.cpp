@@ -46,7 +46,7 @@ using namespace spatial_cell;
  * @param dev_dxdydz Buffer of cell spatial extents (size of 3*nAllCells)
  * @param nAllCells count of cells to read from allVmeshPointer
  */
-__global__ void reduce_v_dt_kernel(
+__global__ void __launch_bounds__(GPUTHREADS*WARPSPERBLOCK) reduce_v_dt_kernel(
    const split::SplitVector<vmesh::VelocityMesh*>* __restrict__ allVmeshPointer,
    Real* dev_max_dt,
    const Real* dev_dxdydz,

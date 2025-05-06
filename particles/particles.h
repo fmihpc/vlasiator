@@ -21,8 +21,9 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include <vector>
-#include "vectorclass.h"
-#include "vector3d.h"
+#include <Eigen/Dense>
+
+#define Vec3d Eigen::Vector3d
 #include "../definitions.h"
 #include "../memoryallocation.h"
 

@@ -219,7 +219,7 @@ void propagateMagneticFieldSimple(std::span<std::array<Real, fsgrids::bfield::N_
 #pragma omp parallel
    {
       phiprof::Timer computeTimer{computeTimerId};
-#pragma omp for collapse(2)
+#pragma omp for collapse(2) // Here a collapse(2) should be beneficial in most cases
       for (auto k = 0; k < localSize[2]; k++) {
          for (auto j = 0; j < localSize[1]; j++) {
             for (auto i = 0; i < localSize[0]; i++) {
@@ -247,39 +247,53 @@ void propagateMagneticFieldSimple(std::span<std::array<Real, fsgrids::bfield::N_
    }
    mpiTimer.stop();
 
-// Propagate B on system boundary/process inner cells
+   // Propagate B on system boundary/process inner cells
+   phiprof::Timer sysBoundaryTimer {sysBoundaryTimerId};
+   // L1 pass, gather which faces to solve
+   std::vector<std::array<int,4>> L1Solve;
 #pragma omp parallel
    {
       phiprof::Timer sysBoundaryTimer{sysBoundaryTimerId};
+      std::vector<std::array<int,4>> threadL1Solve;
 // L1 pass
 #pragma omp for collapse(2)
       for (auto k = 0; k < localSize[2]; k++) {
          for (auto j = 0; j < localSize[1]; j++) {
             for (auto i = 0; i < localSize[0]; i++) {
                const fsgrid::FsStencil stencil = fsgrid.makeStencil(i, j, k);
-               const auto globalCoordinates = fsgrid.localToGlobal(stencil.i, stencil.j, stencil.k);
                const auto tech = technical[stencil.ooo()];
                cuint bitfield = tech.SOLVE;
                // L1 pass
                if (tech.sysBoundaryLayer == 1) {
                   if ((bitfield & compute::BX) != compute::BX) {
-                     propagateSysBoundaryMagneticField(perb, perbdt2, bgb, technical, gridSpacing, globalCoordinates,
-                                                       stencil, sysBoundaries, RKCase, 0);
+                     threadL1Solve.push_back({i,j,k,0});
                   }
                   if ((bitfield & compute::BY) != compute::BY) {
-                     propagateSysBoundaryMagneticField(perb, perbdt2, bgb, technical, gridSpacing, globalCoordinates,
-                                                       stencil, sysBoundaries, RKCase, 1);
+                     threadL1Solve.push_back({i,j,k,1});
                   }
                   if ((bitfield & compute::BZ) != compute::BZ) {
-                     propagateSysBoundaryMagneticField(perb, perbdt2, bgb, technical, gridSpacing, globalCoordinates,
-                                                       stencil, sysBoundaries, RKCase, 2);
+                     threadL1Solve.push_back({i,j,k,2});
                   }
                }
             }
          }
       }
-      sysBoundaryTimer.stop(numCells, "Spatial Cells");
+      #pragma omp critical
+      {
+         L1Solve.insert(L1Solve.end(), threadL1Solve.begin(), threadL1Solve.end());
+      }
+      #pragma omp barrier
+      //for (auto [i,j,k,dir] : L1Solve) { // not supported with OpenMP on old CLANG
+      #pragma omp for // default i.e. schedule(static,1)
+      for (uint entry=0; entry<L1Solve.size(); ++entry) {
+         const fsgrid::FsStencil stencil = fsgrid.makeStencil(L1Solve.at(entry)[0], L1Solve.at(entry)[1], L1Solve.at(entry)[2]);
+         cint component = L1Solve.at(entry)[3];
+         const auto globalCoordinates = fsgrid.localToGlobal(stencil.i, stencil.j, stencil.k);
+         const auto tech = technical[stencil.ooo()];
+         propagateSysBoundaryMagneticField(perb, perbdt2, bgb, technical, gridSpacing, globalCoordinates, stencil, sysBoundaries, RKCase, component);
+      }
    }
+   sysBoundaryTimer.stop();
 
    mpiTimer.start();
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -291,27 +305,42 @@ void propagateMagneticFieldSimple(std::span<std::array<Real, fsgrids::bfield::N_
    }
    mpiTimer.stop();
 
-#pragma omp parallel
+   sysBoundaryTimer.start();
+   // L2 pass, gather which faces to solve
+   std::vector<std::array<int,4>> L2Solve;
+   #pragma omp parallel
    {
-      phiprof::Timer sysBoundaryTimer{sysBoundaryTimerId};
-// L2 pass
-#pragma omp for collapse(2)
+      std::vector<std::array<int,4>> threadL2Solve;
+      #pragma omp for collapse(2)
       for (auto k = 0; k < localSize[2]; k++) {
          for (auto j = 0; j < localSize[1]; j++) {
             for (auto i = 0; i < localSize[0]; i++) {
                const fsgrid::FsStencil stencil = fsgrid.makeStencil(i, j, k);
-               const auto globalCoordinates = fsgrid.localToGlobal(stencil.i, stencil.j, stencil.k);
                const auto tech = technical[stencil.ooo()];
-               if (tech.sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY && tech.sysBoundaryLayer == 2) {
-                  for (uint component = 0; component < 3; component++) {
-                     propagateSysBoundaryMagneticField(perb, perbdt2, bgb, technical, gridSpacing, globalCoordinates,
-                                                       stencil, sysBoundaries, RKCase, component);
+               if(tech.sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
+                  tech.sysBoundaryLayer == 2
+                  ) {
+                  for (int component = 0; component < 3; component++) {
+                     threadL2Solve.push_back({i,j,k,component});
                   }
                }
             }
          }
       }
-      sysBoundaryTimer.stop(numCells, "Spatial Cells");
+      #pragma omp critical
+      {
+         L2Solve.insert(L2Solve.end(), threadL2Solve.begin(), threadL2Solve.end());
+      }
+      #pragma omp barrier
+      //for (auto [i,j,k,dir] : L2Solve) { // not supported with OpenMP on old CLANG
+      #pragma omp for // default i.e. schedule(static,1)
+      for (uint entry=0; entry<L2Solve.size(); ++entry) {
+         const fsgrid::FsStencil stencil = fsgrid.makeStencil(L2Solve.at(entry)[0], L2Solve.at(entry)[1], L2Solve.at(entry)[2]);
+         cint component = L2Solve.at(entry)[3];
+         const auto globalCoordinates = fsgrid.localToGlobal(stencil.i, stencil.j, stencil.k);
+         const auto tech = technical[stencil.ooo()];
+         propagateSysBoundaryMagneticField(perb, perbdt2, bgb, technical, gridSpacing, globalCoordinates, stencil, sysBoundaries, RKCase, component);
+      }
    }
    propagateBTimer.stop(numCells, "Spatial Cells");
 }
