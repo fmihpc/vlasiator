@@ -96,21 +96,13 @@ void computeMoments(std::span<const std::array<Real, fsgrids::moments::N_MOMENTS
    if (notSysBoundary) {
       for (size_t i = 0; i < moms.size(); i++) {
          dMoments[dmix[i]] = computeDiff(moms[i], momData.poo, momData.moo);
-      }
-      for (size_t i = 0; i < moms.size(); i++) {
          dMoments[dmiy[i]] = computeDiff(moms[i], momData.opo, momData.omo);
-      }
-      for (size_t i = 0; i < moms.size(); i++) {
          dMoments[dmiz[i]] = computeDiff(moms[i], momData.oop, momData.oom);
       }
    } else {
       for (size_t i = 0; i < moms.size(); i++) {
          dMoments[dmix[i]] = computeLimiter(moms[i], momData.poo, momData.moo, momData.ooo);
-      }
-      for (size_t i = 0; i < moms.size(); i++) {
          dMoments[dmiy[i]] = computeLimiter(moms[i], momData.opo, momData.omo, momData.ooo);
-      }
-      for (size_t i = 0; i < moms.size(); i++) {
          dMoments[dmiz[i]] = computeLimiter(moms[i], momData.oop, momData.oom, momData.ooo);
       }
    }
