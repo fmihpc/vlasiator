@@ -379,8 +379,8 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       for (vector<CellID>::const_iterator cell_id=cells.begin(); cell_id!=cells.end(); ++cell_id) {
          SpatialCell* cell = mpiGrid[*cell_id];
 
-         if (cell->parameters[CellParams::XCRD] > (sidelen/4)*cell->parameters[CellParams::DX] && cell->parameters[CellParams::XCRD] < (3*sidelen/4)*cell->parameters[CellParams::DX] &&
-         cell->parameters[CellParams::YCRD] > (sidelen/4)*cell->parameters[CellParams::DX] && cell->parameters[CellParams::YCRD] < (3*sidelen/4)*cell->parameters[CellParams::DX]) {
+         if (cell->parameters[CellParams::XCRD] > (sidelen/4.0)*cell->parameters[CellParams::DX] && cell->parameters[CellParams::XCRD] < (3.0*sidelen/4.0)*cell->parameters[CellParams::DX] &&
+         cell->parameters[CellParams::YCRD] > (sidelen/4.0)*cell->parameters[CellParams::DX] && cell->parameters[CellParams::YCRD] < (3.0*sidelen/4.0)*cell->parameters[CellParams::DX]) {
             cell->parameters[CellParams::TIMECLASS] = 1;   
          } else {
             cell->parameters[CellParams::TIMECLASS] = 0;

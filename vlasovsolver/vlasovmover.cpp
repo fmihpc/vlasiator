@@ -319,32 +319,35 @@ void calculateSpatialTranslation(
    }
 
    // TC propagation lists, TODO move out of here somewhere sensible and less often called
-   for (int tc = 0; tc <= P::maxTimeclass; tc++)
-   {
-      tc_propagated_cell_sets.push_back(set<CellID>());
-      for (auto c : localCells){
-         if(mpiGrid[c]->parameters[CellParams::TIMECLASS] == tc){
-            tc_propagated_cell_sets[tc].insert(c);
+   if (P::maxTimeclass > 0) {
+      for (int tc = 0; tc <= P::maxTimeclass; tc++)
+      {
+         tc_propagated_cell_sets.push_back(set<CellID>());
+         for (auto c : localCells){
+            if(mpiGrid[c]->parameters[CellParams::TIMECLASS] == tc){
+               tc_propagated_cell_sets[tc].insert(c);
+            }
          }
-      }
-      set<CellID> exact_halo_cells;
-      for (auto c : tc_propagated_cell_sets[tc]){
-         auto neighbors = mpiGrid.get_neighbors_of(c, VLASOV_SOLVER_TIMEGHOST_EXACT_HALO_NEIGHBORHOOD_ID);
-         for (auto n : *neighbors){
-            exact_halo_cells.insert(n.first); // NB insert_range in C++23
+         set<CellID> exact_halo_cells;
+         for (auto c : tc_propagated_cell_sets[tc]){
+            auto neighbors = mpiGrid.get_neighbors_of(c, VLASOV_SOLVER_TIMEGHOST_EXACT_HALO_NEIGHBORHOOD_ID);
+            for (auto n : *neighbors){
+               exact_halo_cells.insert(n.first); // NB insert_range in C++23
+            }
          }
-      }
-      for(auto c : exact_halo_cells) {
-      //   tc_propagated_cell_sets[tc].insert(c);
-      }
+         for(auto c : exact_halo_cells) {
+         //   tc_propagated_cell_sets[tc].insert(c);
+         }
 
-      tc_propagated_cells.push_back(vector<CellID>(tc_propagated_cell_sets[tc].begin(),tc_propagated_cell_sets[tc].end()));
-      // std::cout << "initing up tc " << tc << " vectors \n";
-      // tc_propagated_cells.push_back(vector<CellID>(ghostTranslate_source[tc].begin(),ghostTranslate_source[tc].end()));
-      // tc_target_cells.push_back(vector<CellID>(ghostTranslate_active[tc].begin(),ghostTranslate_active[tc].end()));
-      // tc_propagated_cell_sets.push_back(set<CellID>(tc_propagated_cells_set));
-      // tc_target_cell_sets.push_back(set<CellID>(ghostTranslate_active[tc].begin(),ghostTranslate_active[tc].end()));
+         tc_propagated_cells.push_back(vector<CellID>(tc_propagated_cell_sets[tc].begin(),tc_propagated_cell_sets[tc].end()));
+         // std::cout << "initing up tc " << tc << " vectors \n";
+         // tc_propagated_cells.push_back(vector<CellID>(ghostTranslate_source[tc].begin(),ghostTranslate_source[tc].end()));
+         // tc_target_cells.push_back(vector<CellID>(ghostTranslate_active[tc].begin(),ghostTranslate_active[tc].end()));
+         // tc_propagated_cell_sets.push_back(set<CellID>(tc_propagated_cells_set));
+         // tc_target_cell_sets.push_back(set<CellID>(ghostTranslate_active[tc].begin(),ghostTranslate_active[tc].end()));
+      }
    }
+
    
    phiprof::Timer computeTimer {"compute_cell_lists"};
    if (!P::vlasovSolverGhostTranslate) {
@@ -378,13 +381,14 @@ void calculateSpatialTranslation(
 
 
    // TC propagation lists, TODO move out of here somewhere sensible and less often called
-   for (int tc = 0; tc <= P::maxTimeclass; tc++)
-   {
-      // std::cout << "initing up tc " << tc << " vectors \n";
-      tc_propagated_cells[tc] = vector<CellID>(tc_propagated_cell_sets[tc].begin(),tc_propagated_cell_sets[tc].end());
-      // tc_target_cells[tc] = vector<CellID>(tc_target_cell_sets[tc].begin(),tc_target_cell_sets[tc].end());
+   if (P::maxTimeclass > 0) {
+      for (int tc = 0; tc <= P::maxTimeclass; tc++)
+      {
+         // std::cout << "initing up tc " << tc << " vectors \n";
+         tc_propagated_cells[tc] = vector<CellID>(tc_propagated_cell_sets[tc].begin(),tc_propagated_cell_sets[tc].end());
+         // tc_target_cells[tc] = vector<CellID>(tc_target_cell_sets[tc].begin(),tc_target_cell_sets[tc].end());
+      }
    }
-
    // for (int tc = 0; tc <= P::maxTimeclass; tc++)
    // {
    //    std::cout << "" << tc << " cellvector size "<< tc_propagated_cells[tc].size()<<" \n";
@@ -404,6 +408,13 @@ void calculateSpatialTranslation(
       nPencils.resize(local_propagated_cells.size()+1, 0);
    }
    computeTimer.stop();
+
+   if (P::maxTimeclass <= 0) {
+      // If we are not using timeclasses, we can just use the local_propagated_cells vector
+      // for all the calculations.
+      
+      tc_propagated_cells.push_back(local_propagated_cells);
+   }
 
    //
    if (dt == 0.0 && initializationOrLB == false) {
