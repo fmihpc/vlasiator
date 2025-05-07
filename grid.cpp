@@ -821,6 +821,7 @@ void getGhostNeighborsforTC(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    for (const CellID cell : active_cells) {
       // std::cout << "copy checking from " << cell << "\n";
       auto neighbors = mpiGrid.get_neighbors_of(cell, VLASOV_SOLVER_GHOST_NEIGHBORHOOD_ID);
+      if (neighbors == NULL){std::cout << "Null neighbors\n";continue;}
       auto& neighborsRef = *neighbors;
       auto neighborsRemote = mpiGrid.get_remote_neighbors_of(cell, VLASOV_SOLVER_GHOST_NEIGHBORHOOD_ID);
 
