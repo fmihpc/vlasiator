@@ -1213,7 +1213,6 @@ void calculateUpwindedElectricFieldSimple(std::span<std::array<Real, fsgrids::bf
                                           SysBoundary& sysBoundaries, int32_t RKCase,
                                           const bool communicateEGradPeOrMomentsDerivatives) {
    const auto& gridSpacing = fsgrid.getGridSpacing();
-   const auto* localSize = &fsgrid.getLocalSize()[0];
    const size_t numCells = fsgrid.getNumCells();
 
    if (not(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2)) {
