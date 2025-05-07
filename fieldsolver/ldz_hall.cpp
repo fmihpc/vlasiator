@@ -1109,35 +1109,23 @@ void calculateHallTermSimple(std::span<std::array<Real, fsgrids::bfield::N_BFIEL
       moments = momentsdt2;
       dmoments = dmomentsdt2;
    }
-
-   const auto& gridSpacing = fsgrid.getGridSpacing();
-   const auto* localSize = &fsgrid.getLocalSize()[0];
-   const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
-
    phiprof::Timer hallTimer{"Calculate Hall term"};
 
+   const auto& gridSpacing = fsgrid.getGridSpacing();
+   const size_t numCells = fsgrid.getNumCells();
+
    phiprof::Timer mpiTimer{"EHall ghost updates MPI", {"MPI"}};
-   int computeTimerId{phiprof::initializeTimer("EHall compute cells")};
    fsgrid.updateGhostCells(dperb);
    if (P::ohmGradPeTerm == 0 && communicateMomentsDerivatives) {
       fsgrid.updateGhostCells(dmoments);
    }
    mpiTimer.stop();
 
-#pragma omp parallel
-   {
-      phiprof::Timer computeTimer{computeTimerId};
-#pragma omp for collapse(2)
-      for (auto k = 0; k < localSize[2]; k++) {
-         for (auto j = 0; j < localSize[1]; j++) {
-            for (auto i = 0; i < localSize[0]; i++) {
-               const auto stencil = fsgrid.makeStencil(i, j, k);
-               calculateHallTerm(perb, ehall, moments, dperb, bgb, technical, stencil, sysBoundaries, gridSpacing);
-            }
-         }
-      }
-      computeTimer.stop(N_cells, "Spatial Cells");
-   }
+   fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                       phiprof::initializeTimer("EHall compute cells"), technical,
+                       [&](const fsgrid::FsStencil stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+                          calculateHallTerm(perb, ehall, moments, dperb, bgb, technical, stencil, sysBoundaries, gridSpacing);
+                       });
 
-   hallTimer.stop(N_cells, "Spatial Cells");
+   hallTimer.stop(numCells, "Spatial Cells");
 }
