@@ -163,8 +163,7 @@ void calculateGradPeTermSimple(std::span<std::array<Real, fsgrids::egradpe::N_EG
                                std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
                                SysBoundary& sysBoundaries, cint& RKCase) {
    const auto& gridSpacing = fsgrid.getGridSpacing();
-   const auto* localSize = &fsgrid.getLocalSize()[0];
-   const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
+   const size_t numCells = fsgrid.getNumCells();
 
    if (not(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2)) {
       egradpe = egradpedt2;
@@ -173,27 +172,17 @@ void calculateGradPeTermSimple(std::span<std::array<Real, fsgrids::egradpe::N_EG
    }
 
    phiprof::Timer gradPeTimer{"Calculate GradPe term"};
-   int computeTimerId{phiprof::initializeTimer("EgradPe compute cells")};
 
    phiprof::Timer mpiTimer{"EgradPe field update ghosts MPI", {"MPI"}};
    fsgrid.updateGhostCells(dmoments);
    mpiTimer.stop();
 
-// Calculate GradPe term
-#pragma omp parallel
-   {
-      phiprof::Timer computeTimer{computeTimerId};
-#pragma omp for collapse(2)
-      for (auto k = 0; k < localSize[2]; k++) {
-         for (auto j = 0; j < localSize[1]; j++) {
-            for (auto i = 0; i < localSize[0]; i++) {
-               const auto& stencil = fsgrid.makeStencil(i, j, k);
-               calculateGradPeTerm(egradpe, moments, dmoments, technical, stencil, gridSpacing, sysBoundaries);
-            }
-         }
-      }
-      computeTimer.stop(N_cells, "Spatial Cells");
-   }
+   // Calculate GradPe term
+   fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                       phiprof::initializeTimer("EgradPe compute cells"), technical,
+                       [&](const fsgrid::FsStencil stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+                          calculateGradPeTerm(egradpe, moments, dmoments, technical, stencil, gridSpacing, sysBoundaries);
+                       });
 
-   gradPeTimer.stop(N_cells, "Spatial Cells");
+   gradPeTimer.stop(numCells, "Spatial Cells");
 }
