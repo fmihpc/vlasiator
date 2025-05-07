@@ -162,6 +162,8 @@ void calculateGradPeTermSimple(std::span<std::array<Real, fsgrids::egradpe::N_EG
                                std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmomentsdt2,
                                std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
                                SysBoundary& sysBoundaries, cint& RKCase) {
+   phiprof::Timer gradPeTimer{"Calculate GradPe term"};
+
    const auto& gridSpacing = fsgrid.getGridSpacing();
    const size_t numCells = fsgrid.getNumCells();
 
@@ -170,8 +172,6 @@ void calculateGradPeTermSimple(std::span<std::array<Real, fsgrids::egradpe::N_EG
       moments = momentsdt2;
       dmoments = dmomentsdt2;
    }
-
-   phiprof::Timer gradPeTimer{"Calculate GradPe term"};
 
    phiprof::Timer mpiTimer{"EgradPe field update ghosts MPI", {"MPI"}};
    fsgrid.updateGhostCells(dmoments);
