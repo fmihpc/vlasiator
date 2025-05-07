@@ -1225,7 +1225,6 @@ void calculateUpwindedElectricFieldSimple(std::span<std::array<Real, fsgrids::bf
    }
 
    phiprof::Timer upwindedETimer{"Calculate upwinded electric field"};
-   int computeTimerID{phiprof::initializeTimer("Electric field compute cells")};
 
    phiprof::Timer mpiTimer{"Electric field ghost updates MPI", {"MPI"}};
 
@@ -1248,21 +1247,12 @@ void calculateUpwindedElectricFieldSimple(std::span<std::array<Real, fsgrids::bf
 
    mpiTimer.stop();
    // Calculate upwinded electric field
-   #pragma omp parallel
-   {
-      phiprof::Timer computeTimer{computeTimerID};
-#pragma omp for collapse(2)
-      for (auto k = 0; k < localSize[2]; k++) {
-         for (auto j = 0; j < localSize[1]; j++) {
-            for (auto i = 0; i < localSize[0]; i++) {
-               const auto& stencil = fsgrid.makeStencil(i, j, k);
-               calculateElectricField(perb, dperb, e, ehall, egradpe, moments, dmoments, bgb, technical, stencil,
-                                      gridSpacing, sysBoundaries, RKCase);
-            }
-         }
-      }
-      computeTimer.stop(numCells, "Spatial Cells");
-   }
+   fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                       phiprof::initializeTimer("Electric field compute cells"), technical,
+                       [&](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+                          calculateElectricField(perb, dperb, e, ehall, egradpe, moments, dmoments, bgb, technical, stencil,
+                                                 gridSpacing, sysBoundaries, RKCase);
+                       });
 
    mpiTimer.start();
    // Exchange electric field with neighbouring processes
