@@ -208,31 +208,20 @@ void propagateMagneticFieldSimple(std::span<std::array<Real, fsgrids::bfield::N_
                                   std::span<std::array<Real, fsgrids::efield::N_EFIELD>> edt2,
                                   std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
                                   SysBoundary& sysBoundaries, creal& dt, cint& RKCase) {
+   phiprof::Timer propagateBTimer{"Propagate magnetic field"};
    const auto* localSize = &fsgrid.getLocalSize()[0];
    const auto& gridSpacing = fsgrid.getGridSpacing();
    const size_t numCells = fsgrid.getNumCells();
 
-
-   phiprof::Timer propagateBTimer{"Propagate magnetic field"};
-   int computeTimerId{phiprof::initializeTimer("Magnetic Field compute cells")};
    int sysBoundaryTimerId{phiprof::initializeTimer("Magnetic Field compute sysboundary cells")};
-#pragma omp parallel
-   {
-      phiprof::Timer computeTimer{computeTimerId};
-#pragma omp for collapse(2) // Here a collapse(2) should be beneficial in most cases
-      for (auto k = 0; k < localSize[2]; k++) {
-         for (auto j = 0; j < localSize[1]; j++) {
-            for (auto i = 0; i < localSize[0]; i++) {
-               const fsgrid::FsStencil stencil = fsgrid.makeStencil(i, j, k);
-               cuint bitfield = technical[stencil.ooo()].SOLVE;
-               propagateMagneticField(
-                   perb, perbdt2, e, edt2, stencil, dt, RKCase, ((bitfield & compute::BX) == compute::BX),
-                   ((bitfield & compute::BY) == compute::BY), ((bitfield & compute::BZ) == compute::BZ), gridSpacing);
-            }
-         }
-      }
-      computeTimer.stop(numCells, "Spatial Cells");
-   }
+   fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                       phiprof::initializeTimer("Magnetic Field compute cells"), technical,
+                       [=](const fsgrid::FsStencil stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+                          cuint bitfield = technical[stencil.ooo()].SOLVE;
+                          propagateMagneticField(
+                             perb, perbdt2, e, edt2, stencil, dt, RKCase, ((bitfield & compute::BX) == compute::BX),
+                             ((bitfield & compute::BY) == compute::BY), ((bitfield & compute::BZ) == compute::BZ), gridSpacing);
+                       });
 
    // This communication is needed for boundary conditions, in practice almost all
    // of the communication is going to be redone in calculateDerivativesSimple
@@ -253,7 +242,6 @@ void propagateMagneticFieldSimple(std::span<std::array<Real, fsgrids::bfield::N_
    std::vector<std::array<int,4>> L1Solve;
 #pragma omp parallel
    {
-      phiprof::Timer sysBoundaryTimer{sysBoundaryTimerId};
       std::vector<std::array<int,4>> threadL1Solve;
 // L1 pass
 #pragma omp for collapse(2)
