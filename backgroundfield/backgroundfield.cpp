@@ -61,7 +61,7 @@ void setBackgroundField(const FieldFunction& bgFunction, std::span<std::array<Re
       fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
                           phiprof::initializeTimer("loop"), technical,
                           [=](const fsgrid::FsStencil stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
-                             const auto start = fsgrid.getPhysicalCoordsFromLocalID(stencil.ooo());
+                             const auto start = fsgrid.getPhysicalCoordsFromGlobalID(stencil.ooo());
                              const std::array end = {
                                 start[0] + gridSpacing[0],
                                 start[1] + gridSpacing[1],

@@ -93,7 +93,7 @@ void setPerturbedField(const FieldFunction& bfFunction, std::span<std::array<Rea
    fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
                        phiprof::initializeTimer("perB face averaging"), technical,
                        [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
-                          const auto start = fsgrid.getPhysicalCoordsFromLocalID(stencil.ooo());
+                          const auto start = fsgrid.getPhysicalCoordsFromGlobalID(stencil.ooo());
                           auto& field = b[stencil.ooo()];
 
                           // Face averages
