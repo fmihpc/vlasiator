@@ -26,21 +26,19 @@
 #include "../definitions.h"
 #include "../parameters.h"
 #include "cmath"
-#include "phiprof.hpp"
 // clang-format on
 
 // FieldFunction should be initialized
 void setBackgroundField(const FieldFunction& bgFunction, std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                         std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid, bool append) {
    using namespace std::placeholders;
-   const auto* localSize = &fsgrid.getLocalSize()[0];
+   cuint numCells = fsgrid.getNumCells();
    const auto& gridSpacing = fsgrid.getGridSpacing();
 
    /*if we do not add a new background to the existing one we first put everything to zero*/
    if (append == false) {
       setBackgroundFieldToZero(bgb);
    }
-   const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
    phiprof::Timer bgTimer{"set Background field"};
    {
       // these are doubles, as the averaging functions copied from Gumics
@@ -59,80 +57,66 @@ void setBackgroundField(const FieldFunction& bgFunction, std::span<std::array<Re
       faceCoord1[2] = 0;
       faceCoord2[2] = 1;
 
-      int loopTopId{phiprof::initializeTimer("loop-top")};
-      int loopFaceId{phiprof::initializeTimer("loop-face-averages")};
-      int loopVolumeId{phiprof::initializeTimer("loop-volume-averages")};
-
 // These are threaded now that the dipole field is threadsafe
-#pragma omp parallel for collapse(2)
-      for (auto z = 0; z < localSize[2]; ++z) {
-         for (auto y = 0; y < localSize[1]; ++y) {
-            for (auto x = 0; x < localSize[0]; ++x) {
-               phiprof::Timer loopTopTimer{loopTopId};
-               const auto stencil = fsgrid.makeStencil(x, y, z);
-               const auto start = fsgrid.getPhysicalCoords(x, y, z);
-               const std::array end = {
-                   start[0] + gridSpacing[0],
-                   start[1] + gridSpacing[1],
-                   start[2] + gridSpacing[2],
-               };
-               loopTopTimer.stop();
+      fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                          phiprof::initializeTimer("loop"), technical,
+                          [=](const fsgrid::FsStencil stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+                             const auto start = fsgrid.getPhysicalCoordsFromLocalID(stencil.ooo());
+                             const std::array end = {
+                                start[0] + gridSpacing[0],
+                                start[1] + gridSpacing[1],
+                                start[2] + gridSpacing[2],
+                             };
 
-               phiprof::Timer loopFaceTimer{loopFaceId};
-               auto& field = bgb[stencil.ooo()];
-               // Face averages
-               for (uint fComponent = 0; fComponent < 3; fComponent++) {
-                  T3DFunction valueFunction =
-                      std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
-                                (coordinate)fComponent, 0, (coordinate)0);
-                  field[fsgrids::bgbfield::BGBX + fComponent] +=
-                      surfaceAverage(valueFunction, (coordinate)fComponent, accuracy, start,
-                                     gridSpacing[faceCoord1[fComponent]], gridSpacing[faceCoord2[fComponent]]);
+                             auto& field = bgb[stencil.ooo()];
+                             // Face averages
+                             for (uint fComponent = 0; fComponent < 3; fComponent++) {
+                                T3DFunction valueFunction =
+                                    std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
+                                              (coordinate)fComponent, 0, (coordinate)0);
+                                field[fsgrids::bgbfield::BGBX + fComponent] +=
+                                   surfaceAverage(valueFunction, (coordinate)fComponent, accuracy, start,
+                                                  gridSpacing[faceCoord1[fComponent]], gridSpacing[faceCoord2[fComponent]]);
 
-                  // Compute derivatives. Note that we scale by gridSpacing[] as the arrays are assumed to contain
-                  // differences, not true derivatives!
-                  T3DFunction derivFunction1 =
-                      std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
-                                (coordinate)fComponent, 1, (coordinate)faceCoord1[fComponent]);
-                  field[fsgrids::bgbfield::dBGBxdy + 2 * fComponent] +=
-                      gridSpacing[faceCoord1[fComponent]] *
-                      surfaceAverage(derivFunction1, (coordinate)fComponent, accuracy, start,
-                                     gridSpacing[faceCoord1[fComponent]], gridSpacing[faceCoord2[fComponent]]);
+                                // Compute derivatives. Note that we scale by gridSpacing[] as the arrays are assumed to contain
+                                // differences, not true derivatives!
+                                T3DFunction derivFunction1 =
+                                   std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
+                                             (coordinate)fComponent, 1, (coordinate)faceCoord1[fComponent]);
+                                field[fsgrids::bgbfield::dBGBxdy + 2 * fComponent] +=
+                                   gridSpacing[faceCoord1[fComponent]] *
+                                   surfaceAverage(derivFunction1, (coordinate)fComponent, accuracy, start,
+                                                  gridSpacing[faceCoord1[fComponent]], gridSpacing[faceCoord2[fComponent]]);
 
-                  T3DFunction derivFunction2 =
-                      std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
-                                (coordinate)fComponent, 1, (coordinate)faceCoord2[fComponent]);
-                  field[fsgrids::bgbfield::dBGBxdy + 1 + 2 * fComponent] +=
-                      gridSpacing[faceCoord2[fComponent]] *
-                      surfaceAverage(derivFunction2, (coordinate)fComponent, accuracy, start,
-                                     gridSpacing[faceCoord1[fComponent]], gridSpacing[faceCoord2[fComponent]]);
-               }
-               loopFaceTimer.stop();
+                                T3DFunction derivFunction2 =
+                                   std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
+                                             (coordinate)fComponent, 1, (coordinate)faceCoord2[fComponent]);
+                                field[fsgrids::bgbfield::dBGBxdy + 1 + 2 * fComponent] +=
+                                   gridSpacing[faceCoord2[fComponent]] *
+                                   surfaceAverage(derivFunction2, (coordinate)fComponent, accuracy, start,
+                                                  gridSpacing[faceCoord1[fComponent]], gridSpacing[faceCoord2[fComponent]]);
+                             }
 
-               phiprof::Timer loopVolumeTimer{loopVolumeId};
-               // Volume averages
-               for (uint fComponent = 0; fComponent < 3; fComponent++) {
-                  T3DFunction valueFunction =
-                      std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
-                                (coordinate)fComponent, 0, (coordinate)0);
-                  field[fsgrids::bgbfield::BGBXVOL + fComponent] += volumeAverage(valueFunction, accuracy, start, end);
+                             // Volume averages
+                             for (uint fComponent = 0; fComponent < 3; fComponent++) {
+                                T3DFunction valueFunction =
+                                   std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
+                                             (coordinate)fComponent, 0, (coordinate)0);
+                                field[fsgrids::bgbfield::BGBXVOL + fComponent] += volumeAverage(valueFunction, accuracy, start, end);
 
-                  // Compute derivatives. Note that we scale by gridSpacing[] as the arrays are assumed to contain
-                  // differences, not true derivatives!
-                  for (uint dComponent = 0; dComponent < 3; dComponent++) {
-                     T3DFunction derivFunction =
-                         std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
-                                   (coordinate)fComponent, 1, (coordinate)dComponent);
-                     field[fsgrids::bgbfield::dBGBXVOLdx + 3 * fComponent + dComponent] +=
-                         gridSpacing[dComponent] * volumeAverage(derivFunction, accuracy, start, end);
-                  }
-               }
-               loopVolumeTimer.stop();
-            }
-         }
-      }
+                                // Compute derivatives. Note that we scale by gridSpacing[] as the arrays are assumed to contain
+                                // differences, not true derivatives!
+                                for (uint dComponent = 0; dComponent < 3; dComponent++) {
+                                   T3DFunction derivFunction =
+                                      std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
+                                                (coordinate)fComponent, 1, (coordinate)dComponent);
+                                   field[fsgrids::bgbfield::dBGBXVOLdx + 3 * fComponent + dComponent] +=
+                                      gridSpacing[dComponent] * volumeAverage(derivFunction, accuracy, start, end);
+                                }
+                             }
+                          });
    }
-   bgTimer.stop(N_cells, "Spatial Cells");
+   bgTimer.stop(numCells, "Spatial Cells");
    // TODO
    // Compute divergence and curl of volume averaged field and check that both are zero.
 }
