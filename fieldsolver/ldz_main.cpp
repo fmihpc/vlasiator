@@ -95,15 +95,11 @@ bool propagateFields(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb
 
    const auto* localSize = &fsgrid.getLocalSize()[0];
 
-#pragma omp parallel for collapse(2)
-   for (auto k = 0; k < localSize[2]; k++) {
-      for (auto j = 0; j < localSize[1]; j++) {
-         for (auto i = 0; i < localSize[0]; i++) {
-            const auto stencil = fsgrid.makeStencil(i, j, k);
-            technical[stencil.ooo()].maxFsDt = std::numeric_limits<Real>::max();
-         }
-      }
-   }
+   fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                       phiprof::initializeTimer("Initialize technical.maxFsDt"), technical,
+                       [=](const fsgrid::FsStencil stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+                          technical[stencil.ooo()].maxFsDt = std::numeric_limits<Real>::max();
+                       });
 
    if (subcycles == 1) {
 #ifdef FS_1ST_ORDER_TIME
