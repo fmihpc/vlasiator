@@ -28,6 +28,7 @@
 #include "fieldfunction.hpp"
 #include "fsgrid.hpp"
 #include "integratefunction.hpp"
+#include "phiprof.hpp"
 #include <span>
 
 void setBackgroundField(const FieldFunction& bgFunction, std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
@@ -86,27 +87,25 @@ void setPerturbedField(const FieldFunction& bfFunction, std::span<std::array<Rea
    faceCoord1[2] = 0;
    faceCoord2[2] = 1;
 
-// These are threaded now that the stuff around here is threadsafe
-#pragma omp parallel for collapse(2)
-   for (fsgrid::FsIndex_t z = 0; z < localSize[2]; ++z) {
-      for (fsgrid::FsIndex_t y = 0; y < localSize[1]; ++y) {
-         for (fsgrid::FsIndex_t x = 0; x < localSize[0]; ++x) {
-            const auto stencil = fsgrid.makeStencil(x, y, z);
-            const auto start = fsgrid.getPhysicalCoords(x, y, z);
-            auto& field = b[stencil.ooo()];
 
-            // Face averages
-            for (uint fComponent = 0; fComponent < 3; fComponent++) {
-               T3DFunction valueFunction = std::bind(bfFunction, std::placeholders::_1, std::placeholders::_2,
-                                                     std::placeholders::_3, (coordinate)fComponent, 0, (coordinate)0);
-               field[offset + fComponent] += // offset defaults to fsgrids::bfield::PERBX
-                   surfaceAverage(valueFunction, (coordinate)fComponent, accuracy, start,
-                                  gridSpacing[faceCoord1[fComponent]], gridSpacing[faceCoord2[fComponent]]);
-            }
-            // Derivatives or volume averages are not calculated for the perBField
-         }
-      }
-   }
+   // These are threaded now that the stuff around here is threadsafe
+   fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                       phiprof::initializeTimer("setPerturbedField-loop"), technical,
+                       [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+
+                          const auto start = fsgrid.getPhysicalCoordsFromGlobalID(stencil.ooo());
+                          auto& field = b[stencil.ooo()];
+
+                          // Face averages
+                          for (uint fComponent = 0; fComponent < 3; fComponent++) {
+                             T3DFunction valueFunction = std::bind(bfFunction, std::placeholders::_1, std::placeholders::_2,
+                                                                   std::placeholders::_3, (coordinate)fComponent, 0, (coordinate)0);
+                             field[offset + fComponent] += // offset defaults to fsgrids::bfield::PERBX
+                                surfaceAverage(valueFunction, (coordinate)fComponent, accuracy, start,
+                                               gridSpacing[faceCoord1[fComponent]], gridSpacing[faceCoord2[fComponent]]);
+                          }
+                          // Derivatives or volume averages are not calculated for the perBField
+                       });
 }
 
 #endif
