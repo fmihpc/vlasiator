@@ -1248,7 +1248,7 @@ void calculateUpwindedElectricFieldSimple(std::span<std::array<Real, fsgrids::bf
    // Calculate upwinded electric field
    fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
                        phiprof::initializeTimer("Electric field compute cells"), technical,
-                       [&](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+                       [=, &sysBoundaries](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
                           calculateElectricField(perb, dperb, e, ehall, egradpe, moments, dmoments, bgb, technical, stencil,
                                                  gridSpacing, sysBoundaries, RKCase);
                        });
