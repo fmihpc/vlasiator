@@ -65,9 +65,9 @@ void setBackgroundField(const FieldFunction& bgFunction, std::span<std::array<Re
 // These are threaded now that the dipole field is threadsafe
    fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
                        phiprof::initializeTimer("setBackgroundField-loop"), technical,
-                       [=,&fsgrid](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+                       [& /*=,&fsgrid,&bgFunction*/](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
 
-               const auto start = fsgrid.getPhysicalCoordsFromGlobalID(stencil.ooo());
+               const auto start = fsgrid.getPhysicalCoords(fsgrid.localCoordsFromStencilID(stencil.ooo()));
                const std::array end = {
                    start[0] + gridSpacing[0],
                    start[1] + gridSpacing[1],

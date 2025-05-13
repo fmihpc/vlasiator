@@ -63,7 +63,6 @@ template <long unsigned int numFields>
 void setPerturbedField(const FieldFunction& bfFunction, std::span<std::array<Real, numFields>> b,
                        std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
                        int offset = fsgrids::bfield::PERBX, bool append = false) {
-   using namespace std::placeholders;
    const auto gridSpacing = fsgrid.getGridSpacing();
    const auto* localSize = &fsgrid.getLocalSize()[0];
 
@@ -91,9 +90,9 @@ void setPerturbedField(const FieldFunction& bfFunction, std::span<std::array<Rea
    // These are threaded now that the stuff around here is threadsafe
    fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
                        phiprof::initializeTimer("setPerturbedField-loop"), technical,
-                       [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+                       [& /*=, &bfFunction*/](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
 
-                          const auto start = fsgrid.getPhysicalCoordsFromGlobalID(stencil.ooo());
+                          const auto start = fsgrid.getPhysicalCoords(fsgrid.localCoordsFromStencilID(stencil.ooo()));
                           auto& field = b[stencil.ooo()];
 
                           // Face averages
