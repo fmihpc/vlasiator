@@ -32,7 +32,6 @@
 // FieldFunction should be initialized
 void setBackgroundField(const FieldFunction& bgFunction, std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                         std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid, bool append) {
-   using namespace std::placeholders;
    const auto* localSize = &fsgrid.getLocalSize()[0];
    const auto& gridSpacing = fsgrid.getGridSpacing();
 
@@ -40,7 +39,7 @@ void setBackgroundField(const FieldFunction& bgFunction, std::span<std::array<Re
    if (append == false) {
       setBackgroundFieldToZero(bgb);
    }
-   const size_t N_cells = localSize[0] * localSize[1] * localSize[2];
+   const size_t numCells = fsgrid.getNumCells();
    phiprof::Timer bgTimer{"set Background field"};
    {
       // these are doubles, as the averaging functions copied from Gumics
@@ -64,21 +63,17 @@ void setBackgroundField(const FieldFunction& bgFunction, std::span<std::array<Re
       int loopVolumeId{phiprof::initializeTimer("loop-volume-averages")};
 
 // These are threaded now that the dipole field is threadsafe
-#pragma omp parallel for collapse(2)
-      for (auto z = 0; z < localSize[2]; ++z) {
-         for (auto y = 0; y < localSize[1]; ++y) {
-            for (auto x = 0; x < localSize[0]; ++x) {
-               phiprof::Timer loopTopTimer{loopTopId};
-               const auto stencil = fsgrid.makeStencil(x, y, z);
-               const auto start = fsgrid.getPhysicalCoords(x, y, z);
+   fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                       phiprof::initializeTimer("setBackgroundField-loop"), technical,
+                       [=,&fsgrid](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+
+               const auto start = fsgrid.getPhysicalCoordsFromGlobalID(stencil.ooo());
                const std::array end = {
                    start[0] + gridSpacing[0],
                    start[1] + gridSpacing[1],
                    start[2] + gridSpacing[2],
                };
-               loopTopTimer.stop();
 
-               phiprof::Timer loopFaceTimer{loopFaceId};
                auto& field = bgb[stencil.ooo()];
                // Face averages
                for (uint fComponent = 0; fComponent < 3; fComponent++) {
@@ -107,9 +102,7 @@ void setBackgroundField(const FieldFunction& bgFunction, std::span<std::array<Re
                       surfaceAverage(derivFunction2, (coordinate)fComponent, accuracy, start,
                                      gridSpacing[faceCoord1[fComponent]], gridSpacing[faceCoord2[fComponent]]);
                }
-               loopFaceTimer.stop();
 
-               phiprof::Timer loopVolumeTimer{loopVolumeId};
                // Volume averages
                for (uint fComponent = 0; fComponent < 3; fComponent++) {
                   T3DFunction valueFunction =
@@ -127,12 +120,9 @@ void setBackgroundField(const FieldFunction& bgFunction, std::span<std::array<Re
                          gridSpacing[dComponent] * volumeAverage(derivFunction, accuracy, start, end);
                   }
                }
-               loopVolumeTimer.stop();
-            }
-         }
-      }
+            });
    }
-   bgTimer.stop(N_cells, "Spatial Cells");
+   bgTimer.stop(numCells, "Spatial Cells");
    // TODO
    // Compute divergence and curl of volume averaged field and check that both are zero.
 }
