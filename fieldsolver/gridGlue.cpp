@@ -91,40 +91,34 @@ void filterMoments(fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>
    // Filtering Loop
    for (auto blurPass = 0; blurPass < Parameters::maxFilteringPasses; blurPass++) {
 // Blurring Pass
-#pragma omp parallel for collapse(2)
-      for (auto k = 0; k < localSize[2]; k++) {
-         for (auto j = 0; j < localSize[1]; j++) {
-            for (auto i = 0; i < localSize[0]; i++) {
-               const auto localId = fsgrid.localIDFromLocalCoordinates(i, j, k);
-               const auto refLevel = technical[localId].refLevel;
-               const auto flag = technical[localId].sysBoundaryFlag;
-               auto& blurCell = blurred[localId];
+      fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                          phiprof::initializeTimer("Filtering loop"), technical,
+                          [&](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+                             const auto refLevel = technical[stencil.ooo()].refLevel;
+                             auto& blurCell = blurred[stencil.ooo()];
 
-               // Skip pass, set blurCell value equal to original
-               if (blurPass >= P::numPasses.at(refLevel) || flag != sysboundarytype::NOT_SYSBOUNDARY) {
-                  blurCell = moments[localId];
-                  continue;
-               } else {
-                  // Set Cell to zero before passing filter
-                  blurCell.fill(0.0);
-               }
+                             // Skip pass, set blurCell value equal to original
+                             if (blurPass >= P::numPasses.at(refLevel) || sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+                                blurCell = moments[stencil.ooo()];
+                                // this was a continue before moving to parallel_for, now the rest of the body of the loop is in the else below.
+                             } else {
+                                // Set Cell to zero before passing filter
+                                blurCell.fill(0.0);
 
-               // Perform the blur
-               for (int c = -kernelOffset; c <= kernelOffset; c++) {
-                  for (int b = -kernelOffset; b <= kernelOffset; b++) {
-                     for (int a = -kernelOffset; a <= kernelOffset; a++) {
-                        const auto localId = fsgrid.localIDFromLocalCoordinates(i + a, j + b, k + c);
-                        const auto& cell = moments[localId];
+                                // Perform the blur
+                                for (int c = -kernelOffset; c <= kernelOffset; c++) {
+                                   for (int b = -kernelOffset; b <= kernelOffset; b++) {
+                                      for (int a = -kernelOffset; a <= kernelOffset; a++) {
+                                         const auto& cell = moments[stencil.indexFromOffset(a,b,c)];
 #pragma omp simd
-                        for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
-                           blurCell[e] += cell[e] * kernel[kernelOffset + a][kernelOffset + b][kernelOffset + c];
-                        }
-                     }
-                  }
-               } // inner filtering loop
-            }
-         }
-      } // spatial loops
+                                         for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
+                                            blurCell[e] += cell[e] * kernel[kernelOffset + a][kernelOffset + b][kernelOffset + c];
+                                         }
+                                      }
+                                   }
+                                } // inner filtering loop
+           		  } // else
+               });
 
       using std::swap;
       swap(moments, blurred);
