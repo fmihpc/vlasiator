@@ -459,7 +459,6 @@ void calculateCurvatureSimple(std::span<std::array<Real, fsgrids::volfields::N_V
    fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
                        phiprof::initializeTimer("Calculate curvature compute cells"), technical,
                        [=](const fsgrid::FsStencil stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
-                          const auto& tech = technical[stencil.ooo()];
                           const bool compute = (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY &&
                                      sysBoundaryLayer != 1 && sysBoundaryLayer != 2);
                           if (compute) {
