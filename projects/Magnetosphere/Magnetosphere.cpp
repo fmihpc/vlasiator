@@ -357,12 +357,15 @@ namespace projects {
       }
       switchDipoleTypeTimer.stop();
 
+      const auto zeroOutComponents_l = this->zeroOutComponents; // local copies for lambda capture
+      const auto dipoleType_l = this->dipoleType;
+      const auto noDipoleInSW_l = this->noDipoleInSW;
       fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
                           phiprof::initializeTimer("zeroing-out"), technical,
                           [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
          bool doZeroOut;
          //Force field to zero in the perpendicular direction for 2D (1D) simulations. Otherwise we have unphysical components.
-         doZeroOut = P::xcells_ini ==1 && this->zeroOutComponents[0]==1;
+         doZeroOut = P::xcells_ini ==1 && zeroOutComponents_l[0]==1;
       
          if(doZeroOut) {
             auto& cell = bgb[stencil.ooo()];
@@ -378,7 +381,7 @@ namespace projects {
             cell[fsgrids::bgbfield::dBGBXVOLdz] = 0.0;
          }
 
-         doZeroOut = P::ycells_ini ==1 && this->zeroOutComponents[1]==1;
+         doZeroOut = P::ycells_ini ==1 && zeroOutComponents_l[1]==1;
          if(doZeroOut) {
             /*2D simulation in x and z. Set By and derivatives along Y, and derivatives of By to zero*/
             auto& cell = bgb[stencil.ooo()];
@@ -394,7 +397,7 @@ namespace projects {
             cell[fsgrids::bgbfield::dBGBYVOLdz] = 0.0;
          }
 
-         doZeroOut = P::zcells_ini ==1 && this->zeroOutComponents[2]==1;
+         doZeroOut = P::zcells_ini ==1 && zeroOutComponents_l[2]==1;
          if(doZeroOut) {
             auto& cell = bgb[stencil.ooo()];
             cell[fsgrids::bgbfield::BGBX] = 0;
@@ -412,11 +415,11 @@ namespace projects {
          }
          
          // Remove dipole from inflow cells if this is requested
-         if(this->noDipoleInSW) {
+         if(noDipoleInSW_l) {
             auto& cell = bgb[stencil.ooo()];
             if (sysBoundaryFlag == sysboundarytype::MAXWELLIAN) {
                cell.fill(0.0);
-               if ( (this->dipoleType==4) && (P::isRestart == false) ) {
+               if ( (dipoleType_l==4) && (P::isRestart == false) ) {
                   // If we set BGB to zero here, then we should also set perB in new runs to zero.
                   auto& pb = perb[stencil.ooo()];
                   pb.fill(0.0);

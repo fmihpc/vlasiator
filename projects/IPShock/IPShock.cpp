@@ -425,6 +425,12 @@ namespace projects {
      setBackgroundFieldToZero(bgb);
 
      if (!P::isRestart) {
+         const auto B0u_l = this->B0u; // copies for lambda capture
+         const auto B0utangential_l = this->B0utangential;
+         const auto Bucosphi_l = this->Bucosphi;
+         const auto Byusign_l = this->Byusign;
+         const auto Bzusign_l = this->Bzusign;
+         const auto speciesParams_l = speciesParams;
          fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
                              phiprof::initializeTimer("setProjectBField-loop"), technical,
                              [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
@@ -440,7 +446,7 @@ namespace projects {
            Real MassDensityU = 0.;
            Real EffectiveVu0 = 0.;
            for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
-              const IPShockSpeciesParameters& sP = speciesParams[i];
+              const IPShockSpeciesParameters& sP = speciesParams_l[i];
               Real mass = getObjectWrapper().particleSpecies[i].mass;
 
               MassDensity += mass * interpolate(sP.DENSITYu, sP.DENSITYd, xyz[0]);
@@ -451,14 +457,14 @@ namespace projects {
 
            // Solve tangential components for B and V
            Real VX = MassDensityU * EffectiveVu0 / MassDensity;
-           Real BX = this->B0u[0];
-           Real MAsq = std::pow((EffectiveVu0 / this->B0u[0]), 2) * MassDensityU * mu0;
-           Real Btang = this->B0utangential * (MAsq - 1.0) / (MAsq * VX / EffectiveVu0 - 1.0);
+           Real BX = B0u_l[0];
+           Real MAsq = std::pow((EffectiveVu0 / B0u_l[0]), 2) * MassDensityU * mu0;
+           Real Btang = B0utangential_l * (MAsq - 1.0) / (MAsq * VX / EffectiveVu0 - 1.0);
 
            /* Reconstruct Y and Z components using cos(phi) values and signs. Tangential variables are always
             * positive. */
-           Real BY = abs(Btang) * this->Bucosphi * this->Byusign;
-           Real BZ = abs(Btang) * sqrt(1. - this->Bucosphi * this->Bucosphi) * this->Bzusign;
+           Real BY = abs(Btang) * Bucosphi_l * Byusign_l;
+           Real BZ = abs(Btang) * sqrt(1. - Bucosphi_l * Bucosphi_l) * Bzusign_l;
            // Real Vtang = VX * Btang / BX;
            // Real VY = Vtang * this->Vucosphi * this->Vyusign;
            // Real VZ = Vtang * sqrt(1. - this->Vucosphi * this->Vucosphi) * this->Vzusign;

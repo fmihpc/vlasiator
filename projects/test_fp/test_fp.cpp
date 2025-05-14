@@ -186,9 +186,12 @@ namespace projects {
 
          const Real areaFactor = 1.0;
 
+         const auto B0_l = this->B0; // local copies for lambda capture
+         const auto CASE_l = this->CASE;
+
          fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
                              phiprof::initializeTimer("setProjectBField-loop"), technical,
-                             [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+                             [&](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
             const auto xyz = fsgrid.getPhysicalCoords(fsgrid.localCoordsFromStencilID(stencil.ooo()));
             auto& cell = perb[stencil.ooo()];
 
@@ -196,40 +199,40 @@ namespace projects {
             creal y = xyz[1] + 0.5 * gridSpacing[1];
             creal z = xyz[2] + 0.5 * gridSpacing[2];
 
-            switch (this->CASE) {
+            switch (CASE_l) {
                case BXCASE:
-                  cell[fsgrids::bfield::PERBX] = 0.1 * this->B0 * areaFactor;
+                  cell[fsgrids::bfield::PERBX] = 0.1 * B0_l * areaFactor;
                   if (y >= -dy && y <= dy)
                      if (z >= -dz && z <= dz)
-                        cell[fsgrids::bfield::PERBX] = this->B0 * areaFactor;
+                        cell[fsgrids::bfield::PERBX] = B0_l * areaFactor;
                   break;
                case BYCASE:
-                  cell[fsgrids::bfield::PERBY] = 0.1 * this->B0 * areaFactor;
+                  cell[fsgrids::bfield::PERBY] = 0.1 * B0_l * areaFactor;
                   if (x >= -dx && x <= dx)
                      if (z >= -dz && z <= dz)
-                        cell[fsgrids::bfield::PERBY] = this->B0 * areaFactor;
+                        cell[fsgrids::bfield::PERBY] = B0_l * areaFactor;
                   break;
                case BZCASE:
-                  cell[fsgrids::bfield::PERBZ] = 0.1 * this->B0 * areaFactor;
+                  cell[fsgrids::bfield::PERBZ] = 0.1 * B0_l * areaFactor;
                   if (x >= -dx && x <= dx)
                      if (y >= -dy && y <= dy)
-                        cell[fsgrids::bfield::PERBZ] = this->B0 * areaFactor;
+                        cell[fsgrids::bfield::PERBZ] = B0_l * areaFactor;
                   break;
                case BALLCASE:
-                  cell[fsgrids::bfield::PERBX] = 0.1 * this->B0 * areaFactor;
-                  cell[fsgrids::bfield::PERBY] = 0.1 * this->B0 * areaFactor;
-                  cell[fsgrids::bfield::PERBZ] = 0.1 * this->B0 * areaFactor;
+                  cell[fsgrids::bfield::PERBX] = 0.1 * B0_l * areaFactor;
+                  cell[fsgrids::bfield::PERBY] = 0.1 * B0_l * areaFactor;
+                  cell[fsgrids::bfield::PERBZ] = 0.1 * B0_l * areaFactor;
 
                         
                   if (y >= -dy && y <= dy)
                      if (z >= -dz && z <= dz)
-                        cell[fsgrids::bfield::PERBX] = this->B0 * areaFactor;
+                        cell[fsgrids::bfield::PERBX] = B0_l * areaFactor;
                   if (x >= -dx && x <= dx)
                      if (z >= -dz && z <= dz)
-                        cell[fsgrids::bfield::PERBY] = this->B0 * areaFactor;
+                        cell[fsgrids::bfield::PERBY] = B0_l * areaFactor;
                   if (x >= -dx && x <= dx)
                      if (y >= -dy && y <= dy)
-                        cell[fsgrids::bfield::PERBZ] = this->B0 * areaFactor;
+                        cell[fsgrids::bfield::PERBZ] = B0_l * areaFactor;
                   break;
             }
          });
