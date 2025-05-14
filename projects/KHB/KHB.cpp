@@ -246,26 +246,20 @@ namespace projects {
       setBackgroundFieldToZero(bgb);
 
       if(!P::isRestart) {
-         const auto* localSize = &fsgrid.getLocalSize()[0];
          const auto& gridSpacing = fsgrid.getGridSpacing();
+         fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                             phiprof::initializeTimer("setProjectBField-loop"), technical,
+                             [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+            const auto xyz = fsgrid.getPhysicalCoords(fsgrid.localCoordsFromStencilID(stencil.ooo()));
+            auto& cell = perb[stencil.ooo()];
 
-#pragma omp parallel for collapse(3)
-         for (auto x = 0; x < localSize[0]; ++x) {
-            for (auto y = 0; y < localSize[1]; ++y) {
-               for (auto z = 0; z < localSize[2]; ++z) {
-                  const auto xyz = fsgrid.getPhysicalCoords(x, y, z);
-                  const auto stencil = fsgrid.makeStencil(x, y, z);
-                  auto& cell = perb[stencil.ooo()];
-
-                  cell[fsgrids::bfield::PERBX] =
-                      profile(this->Bx[this->BOTTOM], this->Bx[this->TOP], xyz[0] + 0.5 * gridSpacing[0]);
-                  cell[fsgrids::bfield::PERBY] =
-                      profile(this->By[this->BOTTOM], this->By[this->TOP], xyz[0] + 0.5 * gridSpacing[0]);
-                  cell[fsgrids::bfield::PERBZ] =
-                      profile(this->Bz[this->BOTTOM], this->Bz[this->TOP], xyz[0] + 0.5 * gridSpacing[0]);
-               }
-            }
-         }
+            cell[fsgrids::bfield::PERBX] =
+                profile(this->Bx[this->BOTTOM], this->Bx[this->TOP], xyz[0] + 0.5 * gridSpacing[0]);
+            cell[fsgrids::bfield::PERBY] =
+                profile(this->By[this->BOTTOM], this->By[this->TOP], xyz[0] + 0.5 * gridSpacing[0]);
+            cell[fsgrids::bfield::PERBZ] =
+                profile(this->Bz[this->BOTTOM], this->Bz[this->TOP], xyz[0] + 0.5 * gridSpacing[0]);
+         });
       }
    }
 

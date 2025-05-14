@@ -175,30 +175,23 @@ namespace projects {
       if (!P::isRestart) {
          const auto* localSize = &fsgrid.getLocalSize()[0];
 
-         #pragma omp parallel for collapse(3)
-         for (auto x = 0; x < localSize[0]; ++x) {
-            for (auto y = 0; y < localSize[1]; ++y) {
-               for (auto z = 0; z < localSize[2]; ++z) {
-                  const auto xyz = fsgrid.getPhysicalCoords(x, y, z);
-                  const auto stencil = fsgrid.makeStencil(x, y, z);
-                  auto& cell = perb[stencil.ooo()];
+         fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                             phiprof::initializeTimer("setProjectBField"), technical,
+                             [&](const fsgrid::FsStencil stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+            const auto xyz = fsgrid.getPhysicalCoords(fsgrid.localCoordsFromStencilID(stencil.ooo()));
+            auto& cell = perb[stencil.ooo()];
 
-                  const Real dx = gridSpacing[0];
-                  const Real dy = gridSpacing[1];
-                  const Real ksi = ((xyz[0] + 0.5 * dx) * cos(this->ALPHA) + (xyz[1] + 0.5 * dy) * sin(this->ALPHA)) /
-                                   this->WAVELENGTH;
-                  const Real dBxavg = sin(2.0 * M_PI * ksi);
-                  const Real dByavg = sin(2.0 * M_PI * ksi);
-                  const Real dBzavg = cos(2.0 * M_PI * ksi);
+            const Real dx = gridSpacing[0];
+            const Real dy = gridSpacing[1];
+            const Real ksi = ((xyz[0] + 0.5 * dx) * cos(this->ALPHA) + (xyz[1] + 0.5 * dy) * sin(this->ALPHA)) / this->WAVELENGTH;
+            const Real dBxavg = sin(2.0 * M_PI * ksi);
+            const Real dByavg = sin(2.0 * M_PI * ksi);
+            const Real dBzavg = cos(2.0 * M_PI * ksi);
 
-                  cell[fsgrids::bfield::PERBX] =
-                      this->B0 * cos(this->ALPHA) - this->A_MAG * this->B0 * sin(this->ALPHA) * dBxavg;
-                  cell[fsgrids::bfield::PERBY] =
-                      this->B0 * sin(this->ALPHA) + this->A_MAG * this->B0 * cos(this->ALPHA) * dByavg;
-                  cell[fsgrids::bfield::PERBZ] = this->B0 * this->A_MAG * dBzavg;
-               }
-            }
-         }
+            cell[fsgrids::bfield::PERBX] = this->B0 * cos(this->ALPHA) - this->A_MAG * this->B0 * sin(this->ALPHA) * dBxavg;
+            cell[fsgrids::bfield::PERBY] = this->B0 * sin(this->ALPHA) + this->A_MAG * this->B0 * cos(this->ALPHA) * dByavg;
+            cell[fsgrids::bfield::PERBZ] = this->B0 * this->A_MAG * dBzavg;
+         });
       }
    }
 

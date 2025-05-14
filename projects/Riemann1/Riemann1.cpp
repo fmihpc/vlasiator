@@ -148,24 +148,18 @@ namespace projects {
       setBackgroundFieldToZero(bgb);
 
       if(!P::isRestart) {
-         const auto* localSize = &fsgrid.getLocalSize()[0];
+         fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                             phiprof::initializeTimer("setProjectBField-loop"), technical,
+                             [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+            const auto xyz = fsgrid.getPhysicalCoords(fsgrid.localCoordsFromStencilID(stencil.ooo()));
+            auto& cell = perb[stencil.ooo()];
 
-#pragma omp parallel for collapse(3)
-         for (auto x = 0; x < localSize[0]; ++x) {
-            for (auto y = 0; y < localSize[1]; ++y) {
-               for (auto z = 0; z < localSize[2]; ++z) {
-                  const auto xyz = fsgrid.getPhysicalCoords(x, y, z);
-                  const auto stencil = fsgrid.makeStencil(x, y, z);
-                  auto& cell = perb[stencil.ooo()];
-
-                  //Real Bxavg, Byavg, Bzavg;
-                  //Bxavg = Byavg = Bzavg = 0.0;
-                  cell[fsgrids::bfield::PERBX] = (xyz[0] < 0.0) ? this->Bx[this->LEFT] : this->Bx[this->RIGHT];
-                  cell[fsgrids::bfield::PERBY] = (xyz[0] < 0.0) ? this->By[this->LEFT] : this->By[this->RIGHT];
-                  cell[fsgrids::bfield::PERBZ] = (xyz[0] < 0.0) ? this->Bz[this->LEFT] : this->Bz[this->RIGHT];
-               }
-            }
-         }
+            //Real Bxavg, Byavg, Bzavg;
+            //Bxavg = Byavg = Bzavg = 0.0;
+            cell[fsgrids::bfield::PERBX] = (xyz[0] < 0.0) ? this->Bx[this->LEFT] : this->Bx[this->RIGHT];
+            cell[fsgrids::bfield::PERBY] = (xyz[0] < 0.0) ? this->By[this->LEFT] : this->By[this->RIGHT];
+            cell[fsgrids::bfield::PERBZ] = (xyz[0] < 0.0) ? this->Bz[this->LEFT] : this->Bz[this->RIGHT];
+         });
       }
    }
 }

@@ -142,24 +142,18 @@ namespace projects {
       setBackgroundFieldToZero(bgb);
 
       if(!P::isRestart) {
-         const auto* localSize = &fsgrid.getLocalSize()[0];
+         fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                             phiprof::initializeTimer("setProjectBField-loop"), technical,
+                             [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+            const auto xyz = fsgrid.getPhysicalCoords(fsgrid.localCoordsFromStencilID(stencil.ooo()));
+            auto& cell = perb[stencil.ooo()];
 
-#pragma omp parallel for collapse(3)
-         for (auto x = 0; x < localSize[0]; ++x) {
-            for (auto y = 0; y < localSize[1]; ++y) {
-               for (auto z = 0; z < localSize[2]; ++z) {
-                  const auto xyz = fsgrid.getPhysicalCoords(x, y, z);
-                  const auto stencil = fsgrid.makeStencil(x, y, z);
-                  auto& cell = perb[stencil.ooo()];
-
-                  cell[fsgrids::bfield::PERBX] = 0.0;
-                  cell[fsgrids::bfield::PERBY] = 0.0;
-                  cell[fsgrids::bfield::PERBZ] =
-                      this->BZ0 *
-                      (3.0 + 2.0 * tanh((xyz[1] - Parameters::ymax / 2.0) / (this->Sharp_Y * Parameters::ymax)));
-               }
-            }
-         }
+            cell[fsgrids::bfield::PERBX] = 0.0;
+            cell[fsgrids::bfield::PERBY] = 0.0;
+            cell[fsgrids::bfield::PERBZ] =
+                this->BZ0 *
+                (3.0 + 2.0 * tanh((xyz[1] - Parameters::ymax / 2.0) / (this->Sharp_Y * Parameters::ymax)));
+         });
       }
    }
 }//namespace projects

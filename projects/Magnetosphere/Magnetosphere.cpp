@@ -341,20 +341,15 @@ namespace projects {
                setPerturbedField(bgVectorDipole, bgb, technical, fsgrid, fsgrids::bgbfield::BGBXVDCORR, true);
                if (P::isRestart == false) {
                   // If we are starting a new simulation, we also copy this data into perB.
-                  const auto* localSize = &fsgrid.getLocalSize()[0];
-#pragma omp parallel for collapse(2)
-                  for (auto z = 0; z < localSize[2]; ++z) {
-                     for (auto y = 0; y < localSize[1]; ++y) {
-                        for (auto x = 0; x < localSize[0]; ++x) {
-                           const auto stencil = fsgrid.makeStencil(x, y, z);
-                           const auto& BGBcell = bgb[stencil.ooo()];
-                           auto& PERBcell = perb[stencil.ooo()];
-                           PERBcell[fsgrids::bfield::PERBX] = BGBcell[fsgrids::bgbfield::BGBXVDCORR];
-                           PERBcell[fsgrids::bfield::PERBY] = BGBcell[fsgrids::bgbfield::BGBYVDCORR];
-                           PERBcell[fsgrids::bfield::PERBZ] = BGBcell[fsgrids::bgbfield::BGBZVDCORR];
-                        }
-                     }
-                  }
+                  fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                                      phiprof::initializeTimer("setProjectBField-loop"), technical,
+                                      [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+                     const auto& BGBcell = bgb[stencil.ooo()];
+                     auto& PERBcell = perb[stencil.ooo()];
+                     PERBcell[fsgrids::bfield::PERBX] = BGBcell[fsgrids::bgbfield::BGBXVDCORR];
+                     PERBcell[fsgrids::bfield::PERBY] = BGBcell[fsgrids::bgbfield::BGBYVDCORR];
+                     PERBcell[fsgrids::bfield::PERBZ] = BGBcell[fsgrids::bgbfield::BGBZVDCORR];
+                  });
                }
                break;
             default:
@@ -362,111 +357,73 @@ namespace projects {
       }
       switchDipoleTypeTimer.stop();
 
-      const auto* localSize = &fsgrid.getLocalSize()[0];
-
-      phiprof::Timer zeroingTimer {"zeroing-out"};
-
-#pragma omp parallel
-      {
+      fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                          phiprof::initializeTimer("zeroing-out"), technical,
+                          [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
          bool doZeroOut;
          //Force field to zero in the perpendicular direction for 2D (1D) simulations. Otherwise we have unphysical components.
          doZeroOut = P::xcells_ini ==1 && this->zeroOutComponents[0]==1;
       
          if(doZeroOut) {
-#pragma omp for collapse(2)
-            for (auto z = 0; z < localSize[2]; ++z) {
-               for (auto y = 0; y < localSize[1]; ++y) {
-                  for (auto x = 0; x < localSize[0]; ++x) {
-                     const auto stencil = fsgrid.makeStencil(x, y, z);
-                     auto& cell = bgb[stencil.ooo()];
-                     cell[fsgrids::bgbfield::BGBX] = 0;
-                     cell[fsgrids::bgbfield::BGBXVOL] = 0.0;
-                     cell[fsgrids::bgbfield::dBGBydx] = 0.0;
-                     cell[fsgrids::bgbfield::dBGBzdx] = 0.0;
-                     cell[fsgrids::bgbfield::dBGBxdy] = 0.0;
-                     cell[fsgrids::bgbfield::dBGBxdz] = 0.0;
-                     cell[fsgrids::bgbfield::dBGBYVOLdx] = 0.0;
-                     cell[fsgrids::bgbfield::dBGBZVOLdx] = 0.0;
-                     cell[fsgrids::bgbfield::dBGBXVOLdy] = 0.0;
-                     cell[fsgrids::bgbfield::dBGBXVOLdz] = 0.0;
-                  }
-               }
-            }
+            auto& cell = bgb[stencil.ooo()];
+            cell[fsgrids::bgbfield::BGBX] = 0;
+            cell[fsgrids::bgbfield::BGBXVOL] = 0.0;
+            cell[fsgrids::bgbfield::dBGBydx] = 0.0;
+            cell[fsgrids::bgbfield::dBGBzdx] = 0.0;
+            cell[fsgrids::bgbfield::dBGBxdy] = 0.0;
+            cell[fsgrids::bgbfield::dBGBxdz] = 0.0;
+            cell[fsgrids::bgbfield::dBGBYVOLdx] = 0.0;
+            cell[fsgrids::bgbfield::dBGBZVOLdx] = 0.0;
+            cell[fsgrids::bgbfield::dBGBXVOLdy] = 0.0;
+            cell[fsgrids::bgbfield::dBGBXVOLdz] = 0.0;
          }
 
-          doZeroOut = P::ycells_ini ==1 && this->zeroOutComponents[1]==1;
-          if(doZeroOut) {
-             /*2D simulation in x and z. Set By and derivatives along Y, and derivatives of By to zero*/
-#pragma omp for collapse(2)
-             for (auto z = 0; z < localSize[2]; ++z) {
-                for (auto y = 0; y < localSize[1]; ++y) {
-                   for (auto x = 0; x < localSize[0]; ++x) {
-                      const auto stencil = fsgrid.makeStencil(x, y, z);
-                      auto& cell = bgb[stencil.ooo()];
-                      cell[fsgrids::bgbfield::BGBY] = 0.0;
-                      cell[fsgrids::bgbfield::BGBYVOL] = 0.0;
-                      cell[fsgrids::bgbfield::dBGBxdy] = 0.0;
-                      cell[fsgrids::bgbfield::dBGBzdy] = 0.0;
-                      cell[fsgrids::bgbfield::dBGBydx] = 0.0;
-                      cell[fsgrids::bgbfield::dBGBydz] = 0.0;
-                      cell[fsgrids::bgbfield::dBGBXVOLdy] = 0.0;
-                      cell[fsgrids::bgbfield::dBGBZVOLdy] = 0.0;
-                      cell[fsgrids::bgbfield::dBGBYVOLdx] = 0.0;
-                      cell[fsgrids::bgbfield::dBGBYVOLdz] = 0.0;
-                   }
-                }
-             }
-          }
+         doZeroOut = P::ycells_ini ==1 && this->zeroOutComponents[1]==1;
+         if(doZeroOut) {
+            /*2D simulation in x and z. Set By and derivatives along Y, and derivatives of By to zero*/
+            auto& cell = bgb[stencil.ooo()];
+            cell[fsgrids::bgbfield::BGBY] = 0.0;
+            cell[fsgrids::bgbfield::BGBYVOL] = 0.0;
+            cell[fsgrids::bgbfield::dBGBxdy] = 0.0;
+            cell[fsgrids::bgbfield::dBGBzdy] = 0.0;
+            cell[fsgrids::bgbfield::dBGBydx] = 0.0;
+            cell[fsgrids::bgbfield::dBGBydz] = 0.0;
+            cell[fsgrids::bgbfield::dBGBXVOLdy] = 0.0;
+            cell[fsgrids::bgbfield::dBGBZVOLdy] = 0.0;
+            cell[fsgrids::bgbfield::dBGBYVOLdx] = 0.0;
+            cell[fsgrids::bgbfield::dBGBYVOLdz] = 0.0;
+         }
 
          doZeroOut = P::zcells_ini ==1 && this->zeroOutComponents[2]==1;
          if(doZeroOut) {
-#pragma omp for collapse(2)
-            for (auto z = 0; z < localSize[2]; ++z) {
-               for (auto y = 0; y < localSize[1]; ++y) {
-                  for (auto x = 0; x < localSize[0]; ++x) {
-                     const auto stencil = fsgrid.makeStencil(x, y, z);
-                     auto& cell = bgb[stencil.ooo()];
-                     cell[fsgrids::bgbfield::BGBX] = 0;
-                     cell[fsgrids::bgbfield::BGBY] = 0;
-                     cell[fsgrids::bgbfield::BGBYVOL] = 0.0;
-                     cell[fsgrids::bgbfield::BGBXVOL] = 0.0;
-                     cell[fsgrids::bgbfield::dBGBxdy] = 0.0;
-                     cell[fsgrids::bgbfield::dBGBxdz] = 0.0;
-                     cell[fsgrids::bgbfield::dBGBydx] = 0.0;
-                     cell[fsgrids::bgbfield::dBGBydz] = 0.0;
-                     cell[fsgrids::bgbfield::dBGBXVOLdy] = 0.0;
-                     cell[fsgrids::bgbfield::dBGBXVOLdz] = 0.0;
-                     cell[fsgrids::bgbfield::dBGBYVOLdx] = 0.0;
-                     cell[fsgrids::bgbfield::dBGBYVOLdz] = 0.0;
-                  }
-               }
-            }
+            auto& cell = bgb[stencil.ooo()];
+            cell[fsgrids::bgbfield::BGBX] = 0;
+            cell[fsgrids::bgbfield::BGBY] = 0;
+            cell[fsgrids::bgbfield::BGBYVOL] = 0.0;
+            cell[fsgrids::bgbfield::BGBXVOL] = 0.0;
+            cell[fsgrids::bgbfield::dBGBxdy] = 0.0;
+            cell[fsgrids::bgbfield::dBGBxdz] = 0.0;
+            cell[fsgrids::bgbfield::dBGBydx] = 0.0;
+            cell[fsgrids::bgbfield::dBGBydz] = 0.0;
+            cell[fsgrids::bgbfield::dBGBXVOLdy] = 0.0;
+            cell[fsgrids::bgbfield::dBGBXVOLdz] = 0.0;
+            cell[fsgrids::bgbfield::dBGBYVOLdx] = 0.0;
+            cell[fsgrids::bgbfield::dBGBYVOLdz] = 0.0;
          }
          
          // Remove dipole from inflow cells if this is requested
          if(this->noDipoleInSW) {
-#pragma omp for collapse(2)
-            for (fsgrid::FsIndex_t z = 0; z < localSize[2]; ++z) {
-               for (fsgrid::FsIndex_t y = 0; y < localSize[1]; ++y) {
-                  for (fsgrid::FsIndex_t x = 0; x < localSize[0]; ++x) {
-                     const auto stencil = fsgrid.makeStencil(x, y, z);
-                     auto& cell = bgb[stencil.ooo()];
-                     const auto& tech = technical[stencil.ooo()];
-                     if (tech.sysBoundaryFlag == sysboundarytype::MAXWELLIAN) {
-                        cell.fill(0.0);
-                        if ( (this->dipoleType==4) && (P::isRestart == false) ) {
-                           // If we set BGB to zero here, then we should also set perB in new runs to zero.
-                           auto& pb = perb[stencil.ooo()];
-                           pb.fill(0.0);
-                        }
-                     }
-                  }
+            auto& cell = bgb[stencil.ooo()];
+            if (sysBoundaryFlag == sysboundarytype::MAXWELLIAN) {
+               cell.fill(0.0);
+               if ( (this->dipoleType==4) && (P::isRestart == false) ) {
+                  // If we set BGB to zero here, then we should also set perB in new runs to zero.
+                  auto& pb = perb[stencil.ooo()];
+                  pb.fill(0.0);
                }
             }
          }
-      } // end of omp parallel region
-
-      zeroingTimer.stop();
+      });
 
       phiprof::Timer addConstantTimer {"add-constant-field"};
       // Superimpose constant background field if needed

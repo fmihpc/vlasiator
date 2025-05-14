@@ -425,55 +425,49 @@ namespace projects {
      setBackgroundFieldToZero(bgb);
 
      if (!P::isRestart) {
-        const auto* localSize = &fsgrid.getLocalSize()[0];
+         fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                             phiprof::initializeTimer("setProjectBField-loop"), technical,
+                             [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+           const auto xyz = fsgrid.getPhysicalCoords(fsgrid.localCoordsFromStencilID(stencil.ooo()));
+           auto& cell = perb[stencil.ooo()];
 
-#pragma omp parallel for collapse(3)
-        for (auto x = 0; x < localSize[0]; ++x) {
-           for (auto y = 0; y < localSize[1]; ++y) {
-              for (auto z = 0; z < localSize[2]; ++z) {
-                 const auto xyz = fsgrid.getPhysicalCoords(x, y, z);
-                 const auto stencil = fsgrid.makeStencil(x, y, z);
-                 auto& cell = perb[stencil.ooo()];
+           /* Maintain all values in BPERT for simplicity */
+           Real mu0 = physicalconstants::MU_0;
 
-                 /* Maintain all values in BPERT for simplicity */
-                 Real mu0 = physicalconstants::MU_0;
+           // Interpolate density between upstream and downstream
+           // All other values are calculated from jump conditions
+           Real MassDensity = 0.;
+           Real MassDensityU = 0.;
+           Real EffectiveVu0 = 0.;
+           for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
+              const IPShockSpeciesParameters& sP = speciesParams[i];
+              Real mass = getObjectWrapper().particleSpecies[i].mass;
 
-                 // Interpolate density between upstream and downstream
-                 // All other values are calculated from jump conditions
-                 Real MassDensity = 0.;
-                 Real MassDensityU = 0.;
-                 Real EffectiveVu0 = 0.;
-                 for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
-                    const IPShockSpeciesParameters& sP = speciesParams[i];
-                    Real mass = getObjectWrapper().particleSpecies[i].mass;
-
-                    MassDensity += mass * interpolate(sP.DENSITYu, sP.DENSITYd, xyz[0]);
-                    MassDensityU += mass * sP.DENSITYu;
-                    EffectiveVu0 += sP.V0u[0] * mass * sP.DENSITYu;
-                 }
-                 EffectiveVu0 /= MassDensityU;
-
-                 // Solve tangential components for B and V
-                 Real VX = MassDensityU * EffectiveVu0 / MassDensity;
-                 Real BX = this->B0u[0];
-                 Real MAsq = std::pow((EffectiveVu0 / this->B0u[0]), 2) * MassDensityU * mu0;
-                 Real Btang = this->B0utangential * (MAsq - 1.0) / (MAsq * VX / EffectiveVu0 - 1.0);
-
-                 /* Reconstruct Y and Z components using cos(phi) values and signs. Tangential variables are always
-                  * positive. */
-                 Real BY = abs(Btang) * this->Bucosphi * this->Byusign;
-                 Real BZ = abs(Btang) * sqrt(1. - this->Bucosphi * this->Bucosphi) * this->Bzusign;
-                 // Real Vtang = VX * Btang / BX;
-                 // Real VY = Vtang * this->Vucosphi * this->Vyusign;
-                 // Real VZ = Vtang * sqrt(1. - this->Vucosphi * this->Vucosphi) * this->Vzusign;
-
-                 cell[fsgrids::bfield::PERBX] = BX;
-                 cell[fsgrids::bfield::PERBY] = BY;
-                 cell[fsgrids::bfield::PERBZ] = BZ;
-              }
+              MassDensity += mass * interpolate(sP.DENSITYu, sP.DENSITYd, xyz[0]);
+              MassDensityU += mass * sP.DENSITYu;
+              EffectiveVu0 += sP.V0u[0] * mass * sP.DENSITYu;
            }
-        }
-      }
+           EffectiveVu0 /= MassDensityU;
+
+           // Solve tangential components for B and V
+           Real VX = MassDensityU * EffectiveVu0 / MassDensity;
+           Real BX = this->B0u[0];
+           Real MAsq = std::pow((EffectiveVu0 / this->B0u[0]), 2) * MassDensityU * mu0;
+           Real Btang = this->B0utangential * (MAsq - 1.0) / (MAsq * VX / EffectiveVu0 - 1.0);
+
+           /* Reconstruct Y and Z components using cos(phi) values and signs. Tangential variables are always
+            * positive. */
+           Real BY = abs(Btang) * this->Bucosphi * this->Byusign;
+           Real BZ = abs(Btang) * sqrt(1. - this->Bucosphi * this->Bucosphi) * this->Bzusign;
+           // Real Vtang = VX * Btang / BX;
+           // Real VY = Vtang * this->Vucosphi * this->Vyusign;
+           // Real VZ = Vtang * sqrt(1. - this->Vucosphi * this->Vucosphi) * this->Vzusign;
+
+           cell[fsgrids::bfield::PERBX] = BX;
+           cell[fsgrids::bfield::PERBY] = BY;
+           cell[fsgrids::bfield::PERBZ] = BZ;
+        });
+     }
   }
 
    bool IPShock::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
