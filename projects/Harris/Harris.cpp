@@ -183,16 +183,22 @@ namespace projects {
       setBackgroundFieldToZero(bgb);
 
       if(!P::isRestart) {
+         // local copies fro lambda capture
+         const auto BX0_l = this->BX0;
+         const auto BY0_l = this->BY0;
+         const auto BZ0_l = this->BZ0;
+         const auto SCA_LAMBDA_l = this->SCA_LAMBDA;
+
          const auto& gridSpacing = fsgrid.getGridSpacing();
          fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
                              phiprof::initializeTimer("setProjectBField-loop"), technical,
-                             [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+                             [=, *this](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
             const auto xyz = fsgrid.getPhysicalCoords(fsgrid.localCoordsFromStencilID(stencil.ooo()));
             auto& cell = perb[stencil.ooo()];
 
-            cell[fsgrids::bfield::PERBX] = this->BX0 * tanh((xyz[1] + 0.5 * gridSpacing[1]) / this->SCA_LAMBDA);
-            cell[fsgrids::bfield::PERBY] = this->BY0 * tanh((xyz[2] + 0.5 * gridSpacing[2]) / this->SCA_LAMBDA);
-            cell[fsgrids::bfield::PERBZ] = this->BZ0 * tanh((xyz[0] + 0.5 * gridSpacing[0]) / this->SCA_LAMBDA);
+            cell[fsgrids::bfield::PERBX] = BX0_l * tanh((xyz[1] + 0.5 * gridSpacing[1]) / SCA_LAMBDA_l);
+            cell[fsgrids::bfield::PERBY] = BY0_l * tanh((xyz[2] + 0.5 * gridSpacing[2]) / SCA_LAMBDA_l);
+            cell[fsgrids::bfield::PERBZ] = BZ0_l * tanh((xyz[0] + 0.5 * gridSpacing[0]) / SCA_LAMBDA_l);
          });
       }
    }

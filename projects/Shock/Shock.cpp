@@ -142,17 +142,20 @@ namespace projects {
       setBackgroundFieldToZero(bgb);
 
       if(!P::isRestart) {
+         // local copies for lambda capture
+         const auto BZ0_l = this->BZ0;
+         const auto Sharp_Y_l = this->Sharp_Y;
          fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
                              phiprof::initializeTimer("setProjectBField-loop"), technical,
-                             [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+                             [=, *this](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
             const auto xyz = fsgrid.getPhysicalCoords(fsgrid.localCoordsFromStencilID(stencil.ooo()));
             auto& cell = perb[stencil.ooo()];
 
             cell[fsgrids::bfield::PERBX] = 0.0;
             cell[fsgrids::bfield::PERBY] = 0.0;
             cell[fsgrids::bfield::PERBZ] =
-                this->BZ0 *
-                (3.0 + 2.0 * tanh((xyz[1] - Parameters::ymax / 2.0) / (this->Sharp_Y * Parameters::ymax)));
+                BZ0_l *
+                (3.0 + 2.0 * tanh((xyz[1] - Parameters::ymax / 2.0) / (Sharp_Y_l * Parameters::ymax)));
          });
       }
    }

@@ -362,7 +362,7 @@ namespace projects {
       const auto noDipoleInSW_l = this->noDipoleInSW;
       fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
                           phiprof::initializeTimer("zeroing-out"), technical,
-                          [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+                          [=, *this](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
          bool doZeroOut;
          //Force field to zero in the perpendicular direction for 2D (1D) simulations. Otherwise we have unphysical components.
          doZeroOut = P::xcells_ini ==1 && zeroOutComponents_l[0]==1;

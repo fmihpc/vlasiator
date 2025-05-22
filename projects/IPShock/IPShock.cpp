@@ -433,48 +433,48 @@ namespace projects {
          const auto speciesParams_l = speciesParams;
          fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
                              phiprof::initializeTimer("setProjectBField-loop"), technical,
-                             [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
-           const auto xyz = fsgrid.getPhysicalCoords(fsgrid.localCoordsFromStencilID(stencil.ooo()));
-           auto& cell = perb[stencil.ooo()];
+                             [=, *this](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+            const auto xyz = fsgrid.getPhysicalCoords(fsgrid.localCoordsFromStencilID(stencil.ooo()));
+            auto& cell = perb[stencil.ooo()];
 
-           /* Maintain all values in BPERT for simplicity */
-           Real mu0 = physicalconstants::MU_0;
+            /* Maintain all values in BPERT for simplicity */
+            Real mu0 = physicalconstants::MU_0;
 
-           // Interpolate density between upstream and downstream
-           // All other values are calculated from jump conditions
-           Real MassDensity = 0.;
-           Real MassDensityU = 0.;
-           Real EffectiveVu0 = 0.;
-           for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
-              const IPShockSpeciesParameters& sP = speciesParams_l[i];
-              Real mass = getObjectWrapper().particleSpecies[i].mass;
+            // Interpolate density between upstream and downstream
+            // All other values are calculated from jump conditions
+            Real MassDensity = 0.;
+            Real MassDensityU = 0.;
+            Real EffectiveVu0 = 0.;
+            for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
+               const IPShockSpeciesParameters& sP = speciesParams_l[i];
+               Real mass = getObjectWrapper().particleSpecies[i].mass;
 
-              MassDensity += mass * interpolate(sP.DENSITYu, sP.DENSITYd, xyz[0]);
-              MassDensityU += mass * sP.DENSITYu;
-              EffectiveVu0 += sP.V0u[0] * mass * sP.DENSITYu;
-           }
-           EffectiveVu0 /= MassDensityU;
+               MassDensity += mass * interpolate(sP.DENSITYu, sP.DENSITYd, xyz[0]);
+               MassDensityU += mass * sP.DENSITYu;
+               EffectiveVu0 += sP.V0u[0] * mass * sP.DENSITYu;
+            }
+            EffectiveVu0 /= MassDensityU;
 
-           // Solve tangential components for B and V
-           Real VX = MassDensityU * EffectiveVu0 / MassDensity;
-           Real BX = B0u_l[0];
-           Real MAsq = std::pow((EffectiveVu0 / B0u_l[0]), 2) * MassDensityU * mu0;
-           Real Btang = B0utangential_l * (MAsq - 1.0) / (MAsq * VX / EffectiveVu0 - 1.0);
+            // Solve tangential components for B and V
+            Real VX = MassDensityU * EffectiveVu0 / MassDensity;
+            Real BX = B0u_l[0];
+            Real MAsq = std::pow((EffectiveVu0 / B0u_l[0]), 2) * MassDensityU * mu0;
+            Real Btang = B0utangential_l * (MAsq - 1.0) / (MAsq * VX / EffectiveVu0 - 1.0);
 
-           /* Reconstruct Y and Z components using cos(phi) values and signs. Tangential variables are always
-            * positive. */
-           Real BY = abs(Btang) * Bucosphi_l * Byusign_l;
-           Real BZ = abs(Btang) * sqrt(1. - Bucosphi_l * Bucosphi_l) * Bzusign_l;
-           // Real Vtang = VX * Btang / BX;
-           // Real VY = Vtang * this->Vucosphi * this->Vyusign;
-           // Real VZ = Vtang * sqrt(1. - this->Vucosphi * this->Vucosphi) * this->Vzusign;
+            /* Reconstruct Y and Z components using cos(phi) values and signs. Tangential variables are always
+             * positive. */
+            Real BY = abs(Btang) * Bucosphi_l * Byusign_l;
+            Real BZ = abs(Btang) * sqrt(1. - Bucosphi_l * Bucosphi_l) * Bzusign_l;
+            // Real Vtang = VX * Btang / BX;
+            // Real VY = Vtang * this->Vucosphi * this->Vyusign;
+            // Real VZ = Vtang * sqrt(1. - this->Vucosphi * this->Vucosphi) * this->Vzusign;
 
-           cell[fsgrids::bfield::PERBX] = BX;
-           cell[fsgrids::bfield::PERBY] = BY;
-           cell[fsgrids::bfield::PERBZ] = BZ;
-        });
-     }
-  }
+            cell[fsgrids::bfield::PERBX] = BX;
+            cell[fsgrids::bfield::PERBY] = BY;
+            cell[fsgrids::bfield::PERBZ] = BZ;
+         });
+      }
+   }
 
    bool IPShock::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
  

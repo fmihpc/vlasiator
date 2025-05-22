@@ -140,19 +140,23 @@ namespace projects {
       setBackgroundFieldToZero(bgb);
 
       if(!P::isRestart) {
+         // local copies for lambda capture
+         const auto BX0_l = this->BX0;
+         const auto BY0_l = this->BY0;
+         const auto BZ0_l = this->BZ0;
          fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
                              phiprof::initializeTimer("setProjectBField-loop"), technical,
-                             [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+                             [=, *this](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
             const auto xyz = fsgrid.getPhysicalCoords(fsgrid.localCoordsFromStencilID(stencil.ooo()));
             auto& cell = perb[stencil.ooo()];
 
-            cell[fsgrids::bfield::PERBX] = this->BX0 * cos(2.0 * M_PI * 1.0 * xyz[0] / (P::xmax - P::xmin)) *
+            cell[fsgrids::bfield::PERBX] = BX0_l * cos(2.0 * M_PI * 1.0 * xyz[0] / (P::xmax - P::xmin)) *
                                            cos(2.0 * M_PI * 1.0 * xyz[1] / (P::ymax - P::ymin)) *
                                            cos(2.0 * M_PI * 1.0 * xyz[2] / (P::zmax - P::zmin));
-            cell[fsgrids::bfield::PERBY] = this->BY0 * cos(2.0 * M_PI * 1.0 * xyz[0] / (P::xmax - P::xmin)) *
+            cell[fsgrids::bfield::PERBY] = BY0_l * cos(2.0 * M_PI * 1.0 * xyz[0] / (P::xmax - P::xmin)) *
                                            cos(2.0 * M_PI * 1.0 * xyz[1] / (P::ymax - P::ymin)) *
                                            cos(2.0 * M_PI * 1.0 * xyz[2] / (P::zmax - P::zmin));
-            cell[fsgrids::bfield::PERBZ] = this->BZ0 * cos(2.0 * M_PI * 1.0 * xyz[0] / (P::xmax - P::xmin)) *
+            cell[fsgrids::bfield::PERBZ] = BZ0_l * cos(2.0 * M_PI * 1.0 * xyz[0] / (P::xmax - P::xmin)) *
                                            cos(2.0 * M_PI * 1.0 * xyz[1] / (P::ymax - P::ymin)) *
                                            cos(2.0 * M_PI * 1.0 * xyz[2] / (P::zmax - P::zmin));
          });

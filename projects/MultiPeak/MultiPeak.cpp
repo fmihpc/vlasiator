@@ -281,24 +281,32 @@ namespace projects {
       setBackgroundField(bgField, bgb, technical, fsgrid);
 
       if(!P::isRestart) {
+         // local copies for lambda capture
+         const auto dBx_l = this->dBx;
+         const auto dBy_l = this->dBy;
+         const auto dBz_l = this->dBz;
+         const auto lambda_l = this->lambda;
+         const auto magXPertAbsAmp_l = this->magXPertAbsAmp;
+         const auto magYPertAbsAmp_l = this->magYPertAbsAmp;
+         const auto magZPertAbsAmp_l = this->magZPertAbsAmp;
          fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
                              phiprof::initializeTimer("setProjectBField-loop"), technical,
-                             [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+                             [=, *this](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
             const auto xyz = fsgrid.getPhysicalCoords(fsgrid.localCoordsFromStencilID(stencil.ooo()));
             auto& cell = perb[stencil.ooo()];
             const int64_t cellid = fsgrid.globalIDFromLocalCoordinates(fsgrid.localCoordsFromStencilID(stencil.ooo()));
             std::default_random_engine rndState;
             setRandomSeed(cellid,rndState);
 
-            if (this->lambda != 0.0) {
-               cell[fsgrids::bfield::PERBX] = this->dBx * cos(2.0 * M_PI * xyz[0] / this->lambda);
-               cell[fsgrids::bfield::PERBY] = this->dBy * sin(2.0 * M_PI * xyz[0] / this->lambda);
-               cell[fsgrids::bfield::PERBZ] = this->dBz * cos(2.0 * M_PI * xyz[0] / this->lambda);
+            if (lambda_l != 0.0) {
+               cell[fsgrids::bfield::PERBX] = dBx_l * cos(2.0 * M_PI * xyz[0] / lambda_l);
+               cell[fsgrids::bfield::PERBY] = dBy_l * sin(2.0 * M_PI * xyz[0] / lambda_l);
+               cell[fsgrids::bfield::PERBZ] = dBz_l * cos(2.0 * M_PI * xyz[0] / lambda_l);
             }
 
-            cell[fsgrids::bfield::PERBX] += this->magXPertAbsAmp * (0.5 - getRandomNumber(rndState));
-            cell[fsgrids::bfield::PERBY] += this->magYPertAbsAmp * (0.5 - getRandomNumber(rndState));
-            cell[fsgrids::bfield::PERBZ] += this->magZPertAbsAmp * (0.5 - getRandomNumber(rndState));
+            cell[fsgrids::bfield::PERBX] += magXPertAbsAmp_l * (0.5 - getRandomNumber(rndState));
+            cell[fsgrids::bfield::PERBY] += magYPertAbsAmp_l * (0.5 - getRandomNumber(rndState));
+            cell[fsgrids::bfield::PERBZ] += magZPertAbsAmp_l * (0.5 - getRandomNumber(rndState));
          });
       }
    }

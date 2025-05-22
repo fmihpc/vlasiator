@@ -175,22 +175,28 @@ namespace projects {
       if (!P::isRestart) {
          const auto* localSize = &fsgrid.getLocalSize()[0];
 
+         // local copies for lambda capture
+         const auto ALPHA_l = this->ALPHA;
+         const auto WAVELENGTH_l = this->WAVELENGTH;
+         const auto B0_l = this->B0;
+         const auto A_MAG_l = this->A_MAG;
+
          fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
                              phiprof::initializeTimer("setProjectBField"), technical,
-                             [&](const fsgrid::FsStencil stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+                             [=, *this](const fsgrid::FsStencil stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
             const auto xyz = fsgrid.getPhysicalCoords(fsgrid.localCoordsFromStencilID(stencil.ooo()));
             auto& cell = perb[stencil.ooo()];
 
             const Real dx = gridSpacing[0];
             const Real dy = gridSpacing[1];
-            const Real ksi = ((xyz[0] + 0.5 * dx) * cos(this->ALPHA) + (xyz[1] + 0.5 * dy) * sin(this->ALPHA)) / this->WAVELENGTH;
+            const Real ksi = ((xyz[0] + 0.5 * dx) * cos(ALPHA_l) + (xyz[1] + 0.5 * dy) * sin(ALPHA_l)) / WAVELENGTH_l;
             const Real dBxavg = sin(2.0 * M_PI * ksi);
             const Real dByavg = sin(2.0 * M_PI * ksi);
             const Real dBzavg = cos(2.0 * M_PI * ksi);
 
-            cell[fsgrids::bfield::PERBX] = this->B0 * cos(this->ALPHA) - this->A_MAG * this->B0 * sin(this->ALPHA) * dBxavg;
-            cell[fsgrids::bfield::PERBY] = this->B0 * sin(this->ALPHA) + this->A_MAG * this->B0 * cos(this->ALPHA) * dByavg;
-            cell[fsgrids::bfield::PERBZ] = this->B0 * this->A_MAG * dBzavg;
+            cell[fsgrids::bfield::PERBX] = B0_l * cos(ALPHA_l) - A_MAG_l * B0_l * sin(ALPHA_l) * dBxavg;
+            cell[fsgrids::bfield::PERBY] = B0_l * sin(ALPHA_l) + A_MAG_l * B0_l * cos(ALPHA_l) * dByavg;
+            cell[fsgrids::bfield::PERBZ] = B0_l * A_MAG_l * dBzavg;
          });
       }
    }

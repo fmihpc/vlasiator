@@ -200,18 +200,22 @@ namespace projects {
       setBackgroundField(bgField, bgb, technical, fsgrid);
 
       if(!P::isRestart) {
+         // local copies for lambda capture
+         const auto magXPertAbsAmp_l = this->magXPertAbsAmp;
+         const auto magYPertAbsAmp_l = this->magYPertAbsAmp;
+         const auto magZPertAbsAmp_l = this->magZPertAbsAmp;
          fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
                              phiprof::initializeTimer("setProjectBField-loop"), technical,
-                             [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+                             [=, *this](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
             auto& cell = perb[stencil.ooo()];
             const int64_t cellid = fsgrid.globalIDFromLocalCoordinates(fsgrid.localCoordsFromStencilID(stencil.ooo()));
 
             std::default_random_engine rndState;
             setRandomSeed(cellid,rndState);
 
-            cell[fsgrids::bfield::PERBX] = this->magXPertAbsAmp * (0.5 - getRandomNumber(rndState));
-            cell[fsgrids::bfield::PERBY] = this->magYPertAbsAmp * (0.5 - getRandomNumber(rndState));
-            cell[fsgrids::bfield::PERBZ] = this->magZPertAbsAmp * (0.5 - getRandomNumber(rndState));
+            cell[fsgrids::bfield::PERBX] = magXPertAbsAmp_l * (0.5 - getRandomNumber(rndState));
+            cell[fsgrids::bfield::PERBY] = magYPertAbsAmp_l * (0.5 - getRandomNumber(rndState));
+            cell[fsgrids::bfield::PERBZ] = magZPertAbsAmp_l * (0.5 - getRandomNumber(rndState));
          });
       }
    }
