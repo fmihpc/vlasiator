@@ -85,23 +85,23 @@ void cpu_accelerate_cells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
  * @param popID ID of the accelerated particle species.
 */
 
-uint getAccelerationSubcycles(SpatialCell* spatial_cell, Real dt, const uint popID)
-{
-   //return max( convert<uint>(ceil(dt*spatial_cell->CellParams[CELLPARAMS::TIMECLASSDT] / spatial_cell->get_max_v_dt(popID))), 1u);
-   return max( convert<uint>(ceil(dt / spatial_cell->get_max_v_dt(popID))), 1u);
-}
-/*!
-  Compute the number of subcycles needed from maxVdt and target dt.
+// uint getAccelerationSubcycles(SpatialCell* spatial_cell, Real dt, const uint popID)
+// {
+//    //return max( convert<uint>(ceil(dt*spatial_cell->CellParams[CELLPARAMS::TIMECLASSDT] / spatial_cell->get_max_v_dt(popID))), 1u);
+//    return max( convert<uint>(ceil(dt / spatial_cell->get_max_v_dt(popID))), 1u);
+// }
+// /*!
+//   Compute the number of subcycles needed from maxVdt and target dt.
 
- * @param spatial_cell Spatial cell containing the accelerated population.
- * @param popID ID of the accelerated particle species.
-*/
+//  * @param spatial_cell Spatial cell containing the accelerated population.
+//  * @param popID ID of the accelerated particle species.
+// */
 
-uint getAccelerationSubcycles(Real maxVdt, Real dt)
-{
-   //return max( convert<uint>(ceil(dt*spatial_cell->CellParams[CELLPARAMS::TIMECLASSDT] / spatial_cell->get_max_v_dt(popID))), 1u);
-   return max( convert<uint>(ceil(dt / maxVdt)), 1u);
-}
+// uint getAccelerationSubcycles(Real maxVdt, Real dt)
+// {
+//    //return max( convert<uint>(ceil(dt*spatial_cell->CellParams[CELLPARAMS::TIMECLASSDT] / spatial_cell->get_max_v_dt(popID))), 1u);
+//    return max( convert<uint>(ceil(dt / maxVdt)), 1u);
+// }
 
 /*!
   Propagates the distribution function in velocity space of given real
