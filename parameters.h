@@ -83,6 +83,7 @@ struct Parameters {
    static Realf tcBoxCenterX;
    static Realf tcBoxCenterY;
    static Realf tcBoxCenterZ;
+   static Real dt_ceil; /*!< The maximum value of the timestep to use in propagation. */
 
    static Real vlasovSolverMaxCFL;   /*!< The maximum CFL limit for propagation of distribution function. Used to set
                                         timestep if useCFLlimit is true. */
@@ -257,6 +258,13 @@ struct Parameters {
    static bool amrTransShortPencils;        /*!< Use short or long pencils in AMR translation.*/
    static std::vector<std::string> blurPassString;
    static std::vector<int> numPasses;
+   static bool artificialPADiff; // Artificial velocity space Diffusion
+   static Realf PADcoefficient; // Artificial pitch-angle diffusion coefficient
+   static Realf PADCFL; // Artificial pitch-angle diffusion CFL
+   static int PADvbins; // Number of bins in velocity for pitch-angle diffusion
+   static int PADmubins; // Number of bins in mu for pitch-angle diffusion
+   static std::string PADnu0; // Path to txt file for nu0
+   static Realf PADfudge; // Fudge factore for diffusion   
 
    static std::array<FsGridTools::Task_t,3> manualFsGridDecomposition;
    static std::array<FsGridTools::Task_t,3> overrideReadFsGridDecomposition;

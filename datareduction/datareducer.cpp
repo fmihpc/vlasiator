@@ -433,6 +433,13 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             continue;
          }
       }
+      if(P::systemWriteAllDROs || lowercase == "vg_nu0" || lowercase == "nu0") { // nu0 for sub-grid diffusion
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_nu0",CellParams::NU0,1));
+         outputReducer->addMetadata(outputReducer->size()-1,"1/s","$\\mathrm{s}^{-1}$","$\\nu_0$","1.0");
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
+      }
       if(P::systemWriteAllDROs || lowercase == "populations_v" || lowercase == "populations_vg_v") { // Per population bulk velocities
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
@@ -623,6 +630,18 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             std::stringstream conversion;
             conversion << (1.0e-4)*physicalconstants::CHARGE;
             outputReducer->addMetadata(outputReducer->size()-1,"1/(cm^2 sr s eV)","$\\mathrm{cm}^{-2}\\,\\mathrm{sr}^{-1}\\,\\mathrm{s}^{-1}\\,\\mathrm{eV}^{-1}$","$\\mathcal{F}_\\mathrm{"+pop+"}$",conversion.str());
+         }
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
+      }
+      if(P::systemWriteAllDROs || lowercase == "populations_1dmuspace" || lowercase == "populations_vg_1dmuspace") {
+         // Per-population 1d muspace
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            species::Species& species=getObjectWrapper().particleSpecies[i];
+            const std::string& pop = species.name;
+            outputReducer->addOperator(new DRO::VariableMuSpace(i));
+            outputReducer->addMetadata(outputReducer->size()-1,"1/m^3","$\\mathrm{m}^{-3}$","$f(\\mu)_\\mathrm{"+pop+"}$","1.0");
          }
          if(!P::systemWriteAllDROs) {
             continue;

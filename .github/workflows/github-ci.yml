@@ -447,7 +447,7 @@ jobs:
         VLASIATOR_ARCH=appleM1 make -j 3
 
   build_tools:
-    # Build vlsvdiff and vlsvextract for testpackage use
+    # Build vlsvdiff, vlsvextract, and fluxfunction for testpackage use
     runs-on: carrington
 
     steps:

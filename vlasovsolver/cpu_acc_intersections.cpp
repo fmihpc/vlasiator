@@ -24,27 +24,91 @@
 #include <cmath>
 #include <utility>
 
-/*TODO - replace with standard library c++11 functions as soon as possible*/
-//#include <boost/array.hpp>
-//#include <boost/unordered_map.hpp>
-//#include <boost/unordered_set.hpp>
-
 #include <Eigen/Geometry>
-
 #include "../common.h"
 #include "cpu_acc_intersections.hpp"
+#include "cpu_acc_transform.hpp"
 
 using namespace std;
 using namespace Eigen;
 
 /**
-  Computes the intersection point of a plane and a line
+ * Wrapper for computing all rotation intersections for a single cycle of acceleration for a given spatial cell
+ *
+ * @param spatial_cell Spatial cell to compute
+ * @param popID Active population
+ * @param map_order order in which to perform Cartesian shears, randomized from time step
+ * @param dt Length of current time step or substep
+ * @param intersections_id Phiprof identifier for timer inside parallel region
+*/
+void compute_cell_intersections(
+        spatial_cell::SpatialCell* spatial_cell,
+        const uint popID,
+        const uint map_order,
+        const Real& dt,
+        int intersections_id
+   ) {
+   vmesh::VelocityMesh* vmesh    = spatial_cell->get_velocity_mesh(popID);
+   spatial_cell::Population& pop = spatial_cell->get_population(popID);
 
-  \param l_point Point on the line
-  \param l_direction Vector in the direction of the line
-  \param p_point Point on plane
-  \param p_normal Normal vector to plane
-  \param intersection The function will set this to the intersection point.*/
+   // compute transform, forward in time and backward in time, performed in this acceleration
+   Transform<Real,3,Affine> fwd_transform= compute_acceleration_transformation(spatial_cell,popID,dt);
+   Transform<Real,3,Affine> bwd_transform= fwd_transform.inverse();
+
+   phiprof::Timer intersectionsTimer {intersections_id};
+   switch(map_order){
+      case 0: {
+         //Map order XYZ
+         compute_intersections_1st(vmesh,bwd_transform, fwd_transform, 0,
+                                   pop.intersection_x,pop.intersection_x_di,
+                                   pop.intersection_x_dj,pop.intersection_x_dk);
+         compute_intersections_2nd(vmesh,bwd_transform, fwd_transform, 1,
+                                   pop.intersection_y,pop.intersection_y_di,
+                                   pop.intersection_y_dj,pop.intersection_y_dk);
+         compute_intersections_3rd(vmesh,bwd_transform, fwd_transform, 2,
+                                   pop.intersection_z,pop.intersection_z_di,
+                                   pop.intersection_z_dj,pop.intersection_z_dk);
+         break;
+      }
+      case 1: {
+         //Map order YZX
+         compute_intersections_1st(vmesh, bwd_transform, fwd_transform, 1,
+                                   pop.intersection_y,pop.intersection_y_di,
+                                   pop.intersection_y_dj,pop.intersection_y_dk);
+         compute_intersections_2nd(vmesh, bwd_transform, fwd_transform, 2,
+                                   pop.intersection_z,pop.intersection_z_di,
+                                   pop.intersection_z_dj,pop.intersection_z_dk);
+         compute_intersections_3rd(vmesh, bwd_transform, fwd_transform, 0,
+                                   pop.intersection_x,pop.intersection_x_di,
+                                   pop.intersection_x_dj,pop.intersection_x_dk);
+         break;
+      }
+      case 2: {
+         //Map order Z X Y
+         compute_intersections_1st(vmesh, bwd_transform, fwd_transform, 2,
+                                   pop.intersection_z,pop.intersection_z_di,
+                                   pop.intersection_z_dj,pop.intersection_z_dk);
+         compute_intersections_2nd(vmesh, bwd_transform, fwd_transform, 0,
+                                   pop.intersection_x,pop.intersection_x_di,
+                                   pop.intersection_x_dj,pop.intersection_x_dk);
+         compute_intersections_3rd(vmesh, bwd_transform, fwd_transform, 1,
+                                   pop.intersection_y,pop.intersection_y_di,
+                                   pop.intersection_y_dj,pop.intersection_y_dk);
+         break;
+      }
+   }
+   intersectionsTimer.stop();
+}
+
+/**
+ * Computes the intersection point of a plane and a line
+ *
+ * @param l_point Point on the line
+ * @param l_direction Vector in the direction of the line
+ * @param p_point Point on plane
+ * @param p_normal Normal vector to plane
+ * @param intersection The function will set this to the intersection point.
+*/
 Eigen::Matrix<Real,3,1> line_plane_intersection(const Eigen::Matrix<Real,3,1>& l_point,const Eigen::Matrix<Real,3,1>& l_direction,
                                                 const Eigen::Matrix<Real,3,1>& p_point,const Eigen::Matrix<Real,3,1>& p_normal){
   const Real nom=p_normal.dot(p_point-l_point);
@@ -52,17 +116,19 @@ Eigen::Matrix<Real,3,1> line_plane_intersection(const Eigen::Matrix<Real,3,1>& l
   return l_point+(nom/dem)*l_direction;
 }
 
-/*!
-Computes the first intersection data; this is z~ in section 2.4 in Zerroukat et al (2012). We assume all velocity cells have the same dimensions. 
-Intersection z coordinate for (i,j,k) is: intersection + i * intersection_di + j * intersection_dj + k * intersection_dk 
-\param spatial_cell spatial cell that is accelerated
-\param fwd_transform Transform that describes acceleration forward in time
-\param bwd_transform Transform that describes acceleration backward in time, used to compute the lagrangian departure gri
-\param dimension Along which dimension is this intersection/mapping computation done. It is assumed the three mappings are in order 012, 120 or 201 
-\param intersection Intersection z coordinate at i,j,k=0
-\param intersection_di Change in z-coordinate for a change in i index of 1
-\param intersection_dj Change in z-coordinate for a change in j index of 1
-\param intersection_dk Change in z-coordinate for a change in k index of 1 */
+/**
+ * Computes the first intersection data; this is z~ in section 2.4 in Zerroukat et al (2012). We assume all velocity cells have the same dimensions. 
+ * Intersection z coordinate for (i,j,k) is: intersection + i * intersection_di + j * intersection_dj + k * intersection_dk 
+ *
+ * @param spatial_cell spatial cell that is accelerated
+ * @param fwd_transform Transform that describes acceleration forward in time
+ * @param bwd_transform Transform that describes acceleration backward in time, used to compute the lagrangian departure gri
+ * @param dimension Along which dimension is this intersection/mapping computation done. It is assumed the three mappings are in order 012, 120 or 201 
+ * @param intersection Intersection z coordinate at i,j,k=0
+ * @param intersection_di Change in z-coordinate for a change in i index of 1
+ * @param intersection_dj Change in z-coordinate for a change in j index of 1
+ * @param intersection_dk Change in z-coordinate for a change in k index of 1
+ */
 void compute_intersections_1st(
         const vmesh::VelocityMesh* vmesh,
         const Transform<Real,3,Affine>& bwd_transform,const Transform<Real,3,Affine>& fwd_transform,
@@ -164,17 +230,19 @@ void compute_intersections_1st(
    }
 }
 
-/*!
-  Computes the second intersection data; this is x~ in section 2.4 in Zerroukat et al (2012). We assume all velocity cells have the same dimensions.
-  Intersection x coordinate for (i,j,k) is: intersection + i * intersection_di + j * intersection_dj + k * intersection_dk 
-  \param spatial_cell spatial cell that is accelerated
-  \param fwd_transform Transform that describes acceleration forward in time
-  \param bwd_transform Transform that describes acceleration backward in time, used to compute the lagrangian departure grid
-  \param dimension Along which dimension is this intersection/mapping computation done. It is assumed the three mappings are in order 012, 120 or 201 
-  \param intersection Intersection x-coordinate at i,j,k=0
-  \param intersection_di Change in x-coordinate for a change in i index of 1
-  \param intersection_dj Change in x-coordinate for a change in j index of 1
-  \param intersection_dk Change in x-coordinate for a change in k index of 1*/
+/**
+ * Computes the second intersection data; this is x~ in section 2.4 in Zerroukat et al (2012). We assume all velocity cells have the same dimensions.
+ * Intersection x coordinate for (i,j,k) is: intersection + i * intersection_di + j * intersection_dj + k * intersection_dk 
+ *
+ * @param spatial_cell spatial cell that is accelerated
+ * @param fwd_transform Transform that describes acceleration forward in time
+ * @param bwd_transform Transform that describes acceleration backward in time, used to compute the lagrangian departure grid
+ * @param dimension Along which dimension is this intersection/mapping computation done. It is assumed the three mappings are in order 012, 120 or 201 
+ * @param intersection Intersection x-coordinate at i,j,k=0
+ * @param intersection_di Change in x-coordinate for a change in i index of 1
+ * @param intersection_dj Change in x-coordinate for a change in j index of 1
+ * @param intersection_dk Change in x-coordinate for a change in k index of 1
+*/
 void compute_intersections_2nd(
         const vmesh::VelocityMesh* vmesh,
         const Transform<Real,3,Affine>& bwd_transform,const Transform<Real,3,Affine>& fwd_transform,
@@ -289,20 +357,22 @@ void compute_intersections_2nd(
     }
 }
 
-/*!
-  Computes the third intersection data; this is y intersections in Zerroukat et al (2012). We assume all velocity cells have the same dimensions.
-  Intersection y-coordinate for (i,j,k) is: intersection + i * intersection_di + j * intersection_dj + k * intersection_dk 
-  \param spatial_cell spatial cell that is accelerated
-  \param fwd_transform Transform that describes acceleration forward in time
-  \param bwd_transform Transform that describes acceleration backward in time, used to compute the lagrangian departure grid
-  \param dimension Along which dimension is this intersection/mapping computation done. It is assumed the three mappings are in order 012, 120 or 201 
-  \param intersection Intersection y-coordinate at i,j,k=0
-  \param intersection_di Change in y-coordinate for a change in i index of 1
-  \param intersection_dj Change in y-coordinate for a change in j index of 1
-  \param intersection_dk Change in y-coordinate for a change in k index of 1
-
-
-  euclidian y goes from vy_min to vy_max, this is mapped to wherever y plane is in lagrangian.*/
+/**
+ * Computes the third intersection data; this is y intersections in Zerroukat et al (2012). We assume all velocity cells have the same dimensions.
+ * Intersection y-coordinate for (i,j,k) is: intersection + i * intersection_di + j * intersection_dj + k * intersection_dk 
+ *
+ * @param spatial_cell spatial cell that is accelerated
+ * @param fwd_transform Transform that describes acceleration forward in time
+ * @param bwd_transform Transform that describes acceleration backward in time, used to compute the lagrangian departure grid
+ * @param dimension Along which dimension is this intersection/mapping computation done. It is assumed the three mappings are in order 012, 120 or 201 
+ * @param intersection Intersection y-coordinate at i,j,k=0
+ * @param intersection_di Change in y-coordinate for a change in i index of 1
+ * @param intersection_dj Change in y-coordinate for a change in j index of 1
+ * @param intersection_dk Change in y-coordinate for a change in k index of 1
+ *
+ *
+ * euclidian y goes from vy_min to vy_max, this is mapped to wherever y plane is in lagrangian.
+*/
 void compute_intersections_3rd(
     const vmesh::VelocityMesh* vmesh,
     const Transform<Real,3,Affine>& bwd_transform,const Transform<Real,3,Affine>& fwd_transform,

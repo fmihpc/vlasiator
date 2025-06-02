@@ -55,8 +55,7 @@ namespace spatial_cell {
    void adjust_velocity_blocks_in_cells(
       dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const vector<CellID>& cellsToAdjust,
-      const uint popID,
-      bool includeNeighbours
+      const uint popID
       ) {
 
       const size_t n_cells = cellsToAdjust.size();
@@ -75,23 +74,23 @@ namespace spatial_cell {
             CellID cell_id=cellsToAdjust[i];
             SpatialCell* cell = mpiGrid[cell_id];
             vector<SpatialCell*> neighbor_ptrs;
-            if (includeNeighbours) {
-               // gather spatial neighbor list and gather vector with pointers to cells
-               // If we are within an acceleration substep prior to the last one,
-               // it's enough to adjust blocks based on local data only, and in
-               // that case we simply pass an empty list of pointers.
-               const auto* neighbors = mpiGrid.get_neighbors_of(cell_id, Neighborhoods::NEAREST);
-               // Note: at AMR refinement boundaries this can cause blocks to propagate further
-               // than absolutely required. Face neighbours, however, are not enough as we must
-               // account for diagonal propagation.
-               neighbor_ptrs.reserve(neighbors->size());
-               for ( const auto& [neighbor_id, dir] : *neighbors) {
-                  if ((neighbor_id != 0) && (neighbor_id != cell_id)) {
-                     if (mpiGrid[neighbor_id]) {
-                        neighbor_ptrs.push_back(mpiGrid[neighbor_id]);
-                     }
-                  }
+            // gather spatial neighbor list and gather vector with pointers to cells
+            const auto* neighbors = mpiGrid.get_neighbors_of(cell_id, Neighborhoods::NEAREST);
+            // Note: at AMR refinement boundaries this can cause blocks to propagate further
+            // than absolutely required. Face neighbours, however, are not enough as we must
+            // account for diagonal propagation.
+
+            std::unordered_set<CellID> uniqueNeighbors;
+            uniqueNeighbors.reserve(neighbors->size());
+            // find only unique neighbor cells
+            for ( const auto& [neighbor_id, dir] : *neighbors) {
+               if ((neighbor_id != 0) && (neighbor_id != cell_id)) {
+                  uniqueNeighbors.insert(neighbor_id);
                }
+            }
+            neighbor_ptrs.reserve(uniqueNeighbors.size());
+            for ( const CellID neighbor_id : uniqueNeighbors) {
+               neighbor_ptrs.push_back(mpiGrid[neighbor_id]);
             }
 
             if (getObjectWrapper().particleSpecies[popID].sparse_conserve_mass) {

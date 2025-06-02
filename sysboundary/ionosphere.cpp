@@ -3389,8 +3389,8 @@ namespace SBC {
          // let's get rid of blocks not fulfilling the criteria here to save memory.
          mpiGrid[cellID]->adjustSingleCellVelocityBlocks(popID,true);
 
-         // TODO: The moments can also be analytically calculated from ionosphere parameters.
-         // Maybe that's faster?
+         // In principle this could call _R or _V instead according to calculate_V_moments (unused at the moment)
+         // But the relevant moments will get recomputed in other spots when needed.
          calculateCellMoments(mpiGrid[cellID], true, false, true);
       } // End of if for coupling interval, we skip this altogether
 

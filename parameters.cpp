@@ -64,6 +64,7 @@ uint P::zcells_ini = numeric_limits<uint>::max();
 Real P::t = 0;
 Real P::t_min = 0;
 Real P::t_max = LARGE_REAL;
+Real P::dt_ceil = -1.0; 
 Real P::dt = NAN;
 Real P::dt0 = NAN;
 int P::maxTimeclass = 0;
@@ -234,7 +235,15 @@ std::vector<Realf> P::amrBoxCenterY;
 std::vector<Realf> P::amrBoxCenterZ;
 std::vector<int> P::amrBoxMaxLevel;
 vector<string> P::blurPassString;
-std::vector<int> P::numPasses; //numpasses
+vector<int> P::numPasses;
+
+bool P::artificialPADiff;
+Realf P::PADcoefficient;
+Realf P::PADCFL;
+int P::PADvbins;
+int P::PADmubins;
+string P::PADnu0 = string("");
+Realf P::PADfudge;
 
 std::array<FsGridTools::Task_t,3> P::manualFsGridDecomposition = {0,0,0};
 std::array<FsGridTools::Task_t,3> P::overrideReadFsGridDecomposition = {0,0,0};
@@ -387,6 +396,9 @@ bool P::addParameters() {
    RP::add("gridbuilder.timestep_max",
            "Max. value for timesteps. If t_max limit is hit first, this step will never be reached",
            numeric_limits<uint>::max());
+   RP::add("gridbuilder.dt_ceil",
+           "Maximum simulation dt in seconds.",
+           -1.0);
 
    // Field solver parameters
    RP::add("fieldsolver.maxWaveVelocity",
@@ -460,12 +472,12 @@ bool P::addParameters() {
                     string() +
                         "List of data reduction operators (DROs) to add to the grid file output.  Each variable to be "
                         "added has to be on a new line output = XXX. Names are case insensitive.  " +
-                        "Available (20250130): " + "fg_b fg_b_background fg_b_perturbed fg_b_background_vol fg_derivs_b_background fg_e " +
+                        "Available (20250413): " + "fg_b fg_b_background fg_b_perturbed fg_b_background_vol fg_derivs_b_background fg_e " +
                         "vg_rhom vg_rhoq populations_vg_rho " + "fg_rhom fg_rhoq " + "vg_v fg_v populations_vg_v " +
                         "populations_vg_moments_thermal populations_vg_moments_nonthermal " +
                         "populations_vg_effectivesparsitythreshold populations_vg_rho_loss_adjust " +
                         "populations_vg_energydensity populations_vg_precipitationdifferentialflux " +
-                        "populations_vg_heatflux " +
+                        "populations_vg_heatflux " + "populations_vg_1dmuspace " +
                         "populations_vg_nonmaxwellianity " +
                         "vg_maxdt_acceleration vg_maxdt_translation populations_vg_maxdt_acceleration " +
                         "populations_vg_maxdt_translation " +
@@ -485,12 +497,12 @@ bool P::addParameters() {
    RP::addComposing(
        "variables_deprecated.output",
        string() + "List of deprecated names for data reduction operators (DROs). Names are case insensitive. " +
-           "Available (20250130): " + "B BackgroundB fg_BackgroundB PerturbedB fg_PerturbedB " + "E " +
+           "Available (20250413): " + "B BackgroundB fg_BackgroundB PerturbedB fg_PerturbedB " + "E " +
            "Rhom Rhoq populations_Rho " + "V populations_V " +
            "populations_moments_Backstream populations_moments_NonBackstream " +
            "populations_moments_thermal populations_moments_nonthermal " +
            "populations_minvalue populations_EffectiveSparsityThreshold populations_RhoLossAdjust "
-           "populations_rho_loss_adjust" +
+           "populations_rho_loss_adjust populations_1dmuspace " +
            "populations_EnergyDensity populations_PrecipitationFlux populations_precipitationdifferentialflux" +
            "LBweight vg_lbweight vg_loadbalanceweight MaxVdt MaxRdt populations_MaxVdt populations_MaxRdt " +
            "populations_maxdt_acceleration populations_maxdt_translation MaxFieldsdt fg_maxfieldsdt" +
@@ -577,9 +589,18 @@ bool P::addParameters() {
    RP::addComposing("AMR.box_max_level", "max refinement level of the box that is refined");
    RP::add("AMR.transShortPencils", "if true, use one-cell pencils", false);
    RP::addComposing("AMR.filterpasses", string("AMR filter passes for each individual refinement level"));
-
    RP::add("adaptGPUWID", "if true, will halve velocity block counts if GPU is in use and WID==8", true);
 
+   // Diffusion parameters
+   RP::add("PAD.enable","Enable Artificial pitch-angle diffusion",0);
+   RP::add("PAD.coefficient","Set artificial pitch-angle diffusion coefficient (overriding .DAT file)",-1);
+   RP::add("PAD.CFL","Set CFL condition",0.1);
+   RP::add("PAD.vbins","number of bins for velocity",200);
+   RP::add("PAD.mubins","number of bins for mu",30);
+   RP::add("PAD.file","Path of txt file for nu0", string("NU0BOX.DAT"));
+   RP::add("PAD.fudge","Divide diffusion coefficient nu0 (read from file) by a fudge factor (see Dubart et al 2023)",4);
+   
+   // Fieldtracing
    RP::add("fieldtracing.fieldLineTracer", "Field line tracing method to use for coupling ionosphere and magnetosphere (options are: Euler, BS)", std::string("Euler"));
    RP::add("fieldtracing.tracer_max_allowed_error", "Maximum allowed error for the adaptive field line tracers ", 1000);
    RP::add("fieldtracing.tracer_max_attempts", "Maximum allowed attempts for the adaptive field line tracers", 100);
@@ -1053,6 +1074,8 @@ void Parameters::getParameters() {
    RP::get("gridbuilder.t_max", P::t_max);
    RP::get("gridbuilder.timestep_max", P::tstep_max);
 
+   RP::get("gridbuilder.dt_ceil", P::dt_ceil);
+
    if (P::dynamicTimestep)
       P::dt = 0.0; // if dynamic timestep then first dt is always 0
 
@@ -1177,6 +1200,14 @@ void Parameters::getParameters() {
       P::systemWrites.push_back(0);
    }
 
+   RP::get("PAD.enable", P::artificialPADiff);   
+   RP::get("PAD.coefficient", P::PADcoefficient);
+   RP::get("PAD.CFL",P::PADCFL);
+   RP::get("PAD.vbins",P::PADvbins);
+   RP::get("PAD.mubins",P::PADmubins);
+   RP::get("PAD.file",P::PADnu0);
+   RP::get("PAD.fudge",P::PADfudge);
+
    RP::get("fieldtracing.fieldLineTracer", tracerString);
    RP::get("fieldtracing.tracer_max_allowed_error", FieldTracing::fieldTracingParameters.max_allowed_error);
    RP::get("fieldtracing.tracer_max_attempts", FieldTracing::fieldTracingParameters.max_field_tracer_attempts);
@@ -1213,3 +1244,5 @@ void Parameters::getParameters() {
       abort();
    }
 }
+
+

@@ -56,8 +56,8 @@ namespace projects {
       RP::add("Magnetosphere.dipoleType","0: Normal 3D dipole, 1: line-dipole for 2D polar simulations, 2: line-dipole with mirror, 3: 3D dipole with mirror", 0);
       RP::add("Magnetosphere.dipoleMirrorLocationX","x-coordinate of dipole Mirror", -1.0);
 
-      RP::add("Magnetosphere.refine_L4radius","Radius of L3-refined sphere or cap", 6.0e7);
-      RP::add("Magnetosphere.refine_L4nosexmin","Low x-value of nose L3-refined box", 5.5e7);
+      RP::add("Magnetosphere.refine_L4radius","Radius of L4-refined sphere or cap", 6.0e7);
+      RP::add("Magnetosphere.refine_L4nosexmin","Low x-value of nose L4-refined box", 5.5e7);
 
       RP::add("Magnetosphere.refine_L3radius","Radius of L3-refined sphere or cap", 6.371e7); // 10 RE
       RP::add("Magnetosphere.refine_L3nosexmin","Low x-value of nose L3-refined box", 5.0e7); //

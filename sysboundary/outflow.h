@@ -131,7 +131,8 @@ namespace SBC {
          const uint popID,
          const bool calculate_V_moments
       );
-      
+      virtual void setupL2OutflowAtRestart(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) override;
+
       virtual void getFaces(bool* faces);
       virtual std::string getName() const;
       virtual uint getIndex() const;

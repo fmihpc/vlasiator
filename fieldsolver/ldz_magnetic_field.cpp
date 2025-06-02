@@ -230,7 +230,7 @@ void propagateMagneticFieldSimple(
    #pragma omp parallel
    {
       phiprof::Timer computeTimer {computeTimerId};
-      #pragma omp for collapse(2)
+      #pragma omp for collapse(2) // Here a collapse(2) should be beneficial in most cases
       for (FsGridTools::FsIndex_t k=0; k<gridDims[2]; k++) {
          for (FsGridTools::FsIndex_t j=0; j<gridDims[1]; j++) {
             for (FsGridTools::FsIndex_t i=0; i<gridDims[0]; i++) {
@@ -255,10 +255,12 @@ void propagateMagneticFieldSimple(
    mpiTimer.stop();
 
    // Propagate B on system boundary/process inner cells
+   phiprof::Timer sysBoundaryTimer {sysBoundaryTimerId};
+   // L1 pass, gather which faces to solve
+   std::vector<std::array<int,4>> L1Solve;
    #pragma omp parallel
    {
-      phiprof::Timer sysBoundaryTimer {sysBoundaryTimerId};
-      // L1 pass
+      std::vector<std::array<int,4>> threadL1Solve;
       #pragma omp for collapse(2)
       for (int k=0; k<gridDims[2]; k++) {
          for (int j=0; j<gridDims[1]; j++) {
@@ -267,19 +269,34 @@ void propagateMagneticFieldSimple(
                // L1 pass
                if (technicalGrid.get(i,j,k)->sysBoundaryLayer == 1) {
                   if ((bitfield & compute::BX) != compute::BX) {
-                     propagateSysBoundaryMagneticField(perBGrid, perBDt2Grid, bgbGrid, EGrid, EDt2Grid, technicalGrid, i, j, k, sysBoundaries, dt, RKCase, 0);
+                     threadL1Solve.push_back({i,j,k,0});
                   }
                   if ((bitfield & compute::BY) != compute::BY) {
-                     propagateSysBoundaryMagneticField(perBGrid, perBDt2Grid, bgbGrid, EGrid, EDt2Grid, technicalGrid, i, j, k, sysBoundaries, dt, RKCase, 1);
+                     threadL1Solve.push_back({i,j,k,1});
                   }
                   if ((bitfield & compute::BZ) != compute::BZ) {
-                     propagateSysBoundaryMagneticField(perBGrid, perBDt2Grid, bgbGrid, EGrid, EDt2Grid, technicalGrid, i, j, k, sysBoundaries, dt, RKCase, 2);
+                     threadL1Solve.push_back({i,j,k,2});
                   }
                }
             }
          }
       }
+      #pragma omp critical
+      {
+         L1Solve.insert(L1Solve.end(), threadL1Solve.begin(), threadL1Solve.end());
+      }
+      #pragma omp barrier
+      //for (auto [i,j,k,dir] : L1Solve) { // not supported with OpenMP on old CLANG
+      #pragma omp for // default i.e. schedule(static,1)
+      for (uint entry=0; entry<L1Solve.size(); ++entry) {
+         const int i = L1Solve.at(entry)[0];
+         const int j = L1Solve.at(entry)[1];
+         const int k = L1Solve.at(entry)[2];
+         const int dir = L1Solve.at(entry)[3];
+         propagateSysBoundaryMagneticField(perBGrid, perBDt2Grid, bgbGrid, EGrid, EDt2Grid, technicalGrid, i, j, k, sysBoundaries, dt, RKCase, dir);
+      }
    }
+   sysBoundaryTimer.stop();
 
    mpiTimer.start();
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
@@ -291,10 +308,12 @@ void propagateMagneticFieldSimple(
    }
    mpiTimer.stop();
 
+   sysBoundaryTimer.start();
+   // L2 pass, gather which faces to solve
+   std::vector<std::array<int,4>> L2Solve;
    #pragma omp parallel
    {
-      phiprof::Timer sysBoundaryTimer {sysBoundaryTimerId};
-      // L2 pass
+      std::vector<std::array<int,4>> threadL2Solve;
       #pragma omp for collapse(2)
       for (int k=0; k<gridDims[2]; k++) {
          for (int j=0; j<gridDims[1]; j++) {
@@ -302,12 +321,26 @@ void propagateMagneticFieldSimple(
                if(technicalGrid.get(i,j,k)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
                   technicalGrid.get(i,j,k)->sysBoundaryLayer == 2
                   ) {
-                  for (uint component = 0; component < 3; component++) {
-                     propagateSysBoundaryMagneticField(perBGrid, perBDt2Grid, bgbGrid, EGrid, EDt2Grid, technicalGrid, i, j, k, sysBoundaries, dt, RKCase, component);
+                  for (int component = 0; component < 3; component++) {
+                     threadL2Solve.push_back({i,j,k,component});
                   }
                }
             }
          }
+      }
+      #pragma omp critical
+      {
+         L2Solve.insert(L2Solve.end(), threadL2Solve.begin(), threadL2Solve.end());
+      }
+      #pragma omp barrier
+      //for (auto [i,j,k,dir] : L2Solve) { // not supported with OpenMP on old CLANG
+      #pragma omp for // default i.e. schedule(static,1)
+      for (uint entry=0; entry<L2Solve.size(); ++entry) {
+         const int i = L2Solve.at(entry)[0];
+         const int j = L2Solve.at(entry)[1];
+         const int k = L2Solve.at(entry)[2];
+         const int dir = L2Solve.at(entry)[3];
+         propagateSysBoundaryMagneticField(perBGrid, perBDt2Grid, bgbGrid, EGrid, EDt2Grid, technicalGrid, i, j, k, sysBoundaries, dt, RKCase, dir);
       }
    }
    propagateBTimer.stop(N_cells,"Spatial Cells");

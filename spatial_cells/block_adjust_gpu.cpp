@@ -181,8 +181,7 @@ void update_velocity_block_content_lists(
 void adjust_velocity_blocks_in_cells(
    dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const vector<CellID>& cellsToAdjust,
-   const uint popID,
-   bool includeNeighbors
+   const uint popID
    ) {
 
    int adjustPreId {phiprof::initializeTimer("Adjusting blocks Pre")};
@@ -220,14 +219,12 @@ void adjust_velocity_blocks_in_cells(
          threadLargestContentList = std::max(threadLargestContentList, (size_t)SC->velocity_block_with_content_list_size);
          size_t cellLargestContentListNeighbors = 0;
          std::unordered_set<CellID> uniqueNeighbors;
-         if (includeNeighbors) {
-            const auto* neighbors = mpiGrid.get_neighbors_of(cell_id, Neighborhoods::NEAREST);
-            // find only unique neighbor cells
-            for ( const auto& [neighbor_id, dir] : *neighbors) {
-               cellLargestContentListNeighbors = std::max(cellLargestContentListNeighbors, (size_t)(mpiGrid[neighbor_id]->velocity_block_with_content_list_size));
-               if (neighbor_id != cell_id) {
-                  uniqueNeighbors.insert(neighbor_id);
-               }
+         const auto* neighbors = mpiGrid.get_neighbors_of(cell_id, Neighborhoods::NEAREST);
+         // find only unique neighbor cells
+         for ( const auto& [neighbor_id, dir] : *neighbors) {
+            cellLargestContentListNeighbors = std::max(cellLargestContentListNeighbors, (size_t)(mpiGrid[neighbor_id]->velocity_block_with_content_list_size));
+            if (neighbor_id != cell_id) {
+               uniqueNeighbors.insert(neighbor_id);
             }
          }
          size_t reservationSize = SC->getReservation(popID);
@@ -276,37 +273,34 @@ void adjust_velocity_blocks_in_cells(
          vmesh::VelocityMesh* vmesh = SC->get_velocity_mesh(popID);
          threadLargestVelMesh = std::max(threadLargestVelMesh, vmesh->size());
 
-         if (includeNeighbors) {
-            // gather vector with pointers to spatial neighbor lists
-            const auto* neighbors = mpiGrid.get_neighbors_of(cell_id, Neighborhoods::NEAREST);
-            // Note: at AMR refinement boundaries this can cause blocks to propagate further
-            // than absolutely required. Face neighbors, however, are not enough as we must
-            // account for diagonal propagation.
-            // This will be fixed with DCCRG new neighborhoods
+         // gather vector with pointers to spatial neighbor lists
+         const auto* neighbors = mpiGrid.get_neighbors_of(cell_id, Neighborhoods::NEAREST);
+         // Note: at AMR refinement boundaries this can cause blocks to propagate further
+         // than absolutely required. Face neighbors, however, are not enough as we must
+         // account for diagonal propagation.
 
-            // find only unique neighbor cells
-            std::unordered_set<CellID> uniqueNeighbors;
-            for ( const auto& [neighbor_id, dir] : *neighbors) {
-               if (neighbor_id != cell_id) {
-                  uniqueNeighbors.insert(neighbor_id);
-               }
+         // find only unique neighbor cells
+         std::unordered_set<CellID> uniqueNeighbors;
+         for ( const auto& [neighbor_id, dir] : *neighbors) {
+            if (neighbor_id != cell_id) {
+               uniqueNeighbors.insert(neighbor_id);
             }
-            std::vector<CellID> reducedNeighbors;
-            reducedNeighbors.insert(reducedNeighbors.end(), uniqueNeighbors.begin(), uniqueNeighbors.end());
-            const uint nNeighbors = reducedNeighbors.size();
-            for (uint iN = 0; iN < maxNeighbors; ++iN) {
-               if (iN >= nNeighbors) {
-                  host_vbwcl_neigh[i*maxNeighbors + iN] = 0; // no neighbor at this index
-                  continue;
-               }
-               CellID neighbor_id = reducedNeighbors.at(iN);
-               // store pointer to neighbor content list
-               SpatialCell* NC = mpiGrid[neighbor_id];
-               if (NC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
-                  host_vbwcl_neigh[i*maxNeighbors + iN] = 0;
-               } else {
-                  host_vbwcl_neigh[i*maxNeighbors + iN] = mpiGrid[neighbor_id]->dev_velocity_block_with_content_list;
-               }
+         }
+         std::vector<CellID> reducedNeighbors;
+         reducedNeighbors.insert(reducedNeighbors.end(), uniqueNeighbors.begin(), uniqueNeighbors.end());
+         const uint nNeighbors = reducedNeighbors.size();
+         for (uint iN = 0; iN < maxNeighbors; ++iN) {
+            if (iN >= nNeighbors) {
+               host_vbwcl_neigh[i*maxNeighbors + iN] = 0; // no neighbor at this index
+               continue;
+            }
+            CellID neighbor_id = reducedNeighbors.at(iN);
+            // store pointer to neighbor content list
+            SpatialCell* NC = mpiGrid[neighbor_id];
+            if (NC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+               host_vbwcl_neigh[i*maxNeighbors + iN] = 0;
+            } else {
+               host_vbwcl_neigh[i*maxNeighbors + iN] = mpiGrid[neighbor_id]->dev_velocity_block_with_content_list;
             }
          }
 
@@ -336,7 +330,7 @@ void adjust_velocity_blocks_in_cells(
    CHK_ERR( gpuMemcpyAsync(dev_allMaps, host_allMaps, 2*nCells*sizeof(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>*), gpuMemcpyHostToDevice, baseStream) );
    CHK_ERR( gpuMemcpyAsync(dev_vbwcl_vec, host_vbwcl_vec, nCells*sizeof(split::SplitVector<vmesh::GlobalID>*), gpuMemcpyHostToDevice, baseStream) );
    CHK_ERR( gpuMemcpyAsync(dev_vmeshes, host_vmeshes, nCells*sizeof(vmesh::VelocityMesh*), gpuMemcpyHostToDevice, baseStream) );
-   if (includeNeighbors && maxNeighbors>0) {
+   if (maxNeighbors>0) {
       CHK_ERR( gpuMemcpyAsync(dev_vbwcl_neigh, host_vbwcl_neigh, nCells*maxNeighbors*sizeof(split::SplitVector<vmesh::GlobalID>*), gpuMemcpyHostToDevice, baseStream) );
    }
    CHK_ERR( gpuMemsetAsync(dev_contentSizes, 0, 5*nCells*sizeof(vmesh::LocalID), baseStream) );
@@ -387,7 +381,7 @@ void adjust_velocity_blocks_in_cells(
    #endif
    // CHK_ERR( gpuStreamSynchronize(priorityStream) );
 
-   if (includeNeighbors && maxNeighbors>0 && largestContentListNeighbors>0) {
+   if (maxNeighbors>0 && largestContentListNeighbors>0) {
       // largestContentListNeighbors accounts for remote (ghost neighbor) content list sizes as well
       #ifdef USE_BATCH_WARPACCESSORS
       // ceil int division

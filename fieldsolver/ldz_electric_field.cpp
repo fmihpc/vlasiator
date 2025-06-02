@@ -1693,7 +1693,7 @@ void calculateUpwindedElectricFieldSimple(
    
    mpiTimer.stop();
    
-   // Calculate upwinded electric field on inner cells
+   // Calculate upwinded electric field
    #pragma omp parallel
    {
       phiprof::Timer computeTimer {computeTimerID};

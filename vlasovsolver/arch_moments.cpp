@@ -79,7 +79,7 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
          for (int i=0; i<3; ++i) {
             pop.V[i]=0;
          }
-         for (int i=0; i<6; ++i) {
+         for (int i=0; i<nMom2; ++i) {
             pop.P[i]=0;
          }
          continue;
@@ -179,7 +179,8 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
 void calculateMoments_R(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const std::vector<CellID>& allcells,
-   const bool& computeSecond) {
+   const bool& computeSecond,
+   const bool initialCompute) {
 
    // override with optimized GPU version to launch
    // single kernel accessing all cells at once (10x faster)
@@ -203,7 +204,9 @@ void calculateMoments_R(
          if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
             continue;
          }
-
+         if (cell->sysBoundaryFlag == sysboundarytype::OUTFLOW && cell->sysBoundaryLayer != 1 && !initialCompute) { // these should have been handled by the boundary code
+            continue;
+         }
          // Clear old moments to zero value
          if (popID == 0) {
             cell->parameters[CellParams::RHOM_R  ] = 0.0;
@@ -233,7 +236,7 @@ void calculateMoments_R(
             for (int i=0; i<3; ++i) {
                pop.V_R[i]=0;
             }
-            for (int i=0; i<6; ++i) {
+            for (int i=0; i<nMom2; ++i) {
                pop.P_R[i]=0;
             }
             continue;
@@ -271,6 +274,9 @@ void calculateMoments_R(
       if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
          continue;
       }
+      if (cell->sysBoundaryFlag == sysboundarytype::OUTFLOW && cell->sysBoundaryLayer != 1 && !initialCompute) { // these should have been handled by the boundary code
+         continue;
+      }
       cell->parameters[CellParams::VX_R] = divideIfNonZero(cell->parameters[CellParams::VX_R], cell->parameters[CellParams::RHOM_R]);
       cell->parameters[CellParams::VY_R] = divideIfNonZero(cell->parameters[CellParams::VY_R], cell->parameters[CellParams::RHOM_R]);
       cell->parameters[CellParams::VZ_R] = divideIfNonZero(cell->parameters[CellParams::VZ_R], cell->parameters[CellParams::RHOM_R]);
@@ -288,6 +294,9 @@ void calculateMoments_R(
          SpatialCell* cell = mpiGrid[cells[c]];
 
          if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+            continue;
+         }
+         if (cell->sysBoundaryFlag == sysboundarytype::OUTFLOW && cell->sysBoundaryLayer != 1 && !initialCompute) { // these should have been handled by the boundary code
             continue;
          }
 
@@ -343,7 +352,8 @@ void calculateMoments_R(
 void calculateMoments_V(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const std::vector<CellID>& cells,
-   const bool& computeSecond) {
+   const bool& computeSecond,
+   const bool initialCompute) {
 
    // override with optimized GPU version to launch
    // single kernel accessing all cells at once (10x faster)
@@ -368,6 +378,10 @@ void calculateMoments_V(
          if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
             continue;
          }
+         if (cell->sysBoundaryFlag == sysboundarytype::OUTFLOW && cell->sysBoundaryLayer != 1 && !initialCompute) { // these should have been handled by the boundary code
+            continue;
+         }
+
          // Clear old moments to zero value
          if (popID == 0) {
             cell->parameters[CellParams::RHOM_V  ] = 0.0;
@@ -397,7 +411,7 @@ void calculateMoments_V(
             for (int i=0; i<3; ++i) {
                pop.V_V[i]=0;
             }
-            for (int i=0; i<6; ++i) {
+            for (int i=0; i<nMom2; ++i) {
                pop.P_V[i]=0;
             }
             continue;
@@ -436,6 +450,9 @@ void calculateMoments_V(
       if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
          continue;
       }
+      if (cell->sysBoundaryFlag == sysboundarytype::OUTFLOW && cell->sysBoundaryLayer != 1 && !initialCompute) { // these should have been handled by the boundary code
+         continue;
+      }
       cell->parameters[CellParams::VX_V] = divideIfNonZero(cell->parameters[CellParams::VX_V], cell->parameters[CellParams::RHOM_V]);
       cell->parameters[CellParams::VY_V] = divideIfNonZero(cell->parameters[CellParams::VY_V], cell->parameters[CellParams::RHOM_V]);
       cell->parameters[CellParams::VZ_V] = divideIfNonZero(cell->parameters[CellParams::VZ_V], cell->parameters[CellParams::RHOM_V]);
@@ -455,6 +472,9 @@ void calculateMoments_V(
          if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
             continue;
          }
+         if (cell->sysBoundaryFlag == sysboundarytype::OUTFLOW && cell->sysBoundaryLayer != 1 && !initialCompute) { // these should have been handled by the boundary code
+            continue;
+         }
 
          #ifdef USE_GPU
          vmesh::VelocityMesh* vmesh    = cell->dev_get_velocity_mesh(popID);
@@ -472,7 +492,7 @@ void calculateMoments_V(
          const Real charge = getObjectWrapper().particleSpecies[popID].charge;
 
          // Temporary array where moments are stored
-         Real array[6] = {0};
+         Real array[nMom2] = {0};
 
          // Calculate species' contribution to second velocity moments
          phiprof::Timer secondMomentsTimer {"calcSecondMoments_V"};

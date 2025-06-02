@@ -315,6 +315,7 @@ namespace CellParams {
       BULKV_FORCING_X, /*! Externally forced drift velocity (ex. from the ionosphere) */
       BULKV_FORCING_Y, /*! Externally forced drift velocity (ex. from the ionosphere) */
       BULKV_FORCING_Z, /*! Externally forced drift velocity (ex. from the ionosphere) */
+      NU0, /*!< nu0 value for subgrid diffusion */
       N_SPATIAL_CELL_PARAMS
    };
 }

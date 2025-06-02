@@ -56,4 +56,11 @@ void compute_intersections_3rd(
         Real& intersection,Real& intersection_di,
         Real& intersection_dj,Real& intersection_dk);
 
+void compute_cell_intersections(
+        spatial_cell::SpatialCell* spatial_cell,
+        const uint popID,
+        const uint map_order,
+        const Real& dt,
+        int intersections_id);
+
 #endif

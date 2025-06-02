@@ -275,6 +275,12 @@ __global__ static void resize_and_empty_kernel (
       vmesh::VelocityMesh *dev_vmesh;
       vmesh::VelocityBlockContainer *dev_blockContainer;
 
+      /**< Temporary storage of acceleration transform intersections and sybcycling dt.*/
+      Real intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk;
+      Real intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk;
+      Real intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk;
+      Real subcycleDt;
+
       // Constructor, destructor
       Population() {
          vmesh = new vmesh::VelocityMesh();
@@ -297,7 +303,10 @@ __global__ static void resize_and_empty_kernel (
             max_dt[i] = 0;
          }
          for (uint i=0; i<3; ++i) {
-            V[i] = V_R[i] = V_V[i] = P[i] = P_R[i] = P_V[i] = 0;
+            V[i] = V_R[i] = V_V[i] = 0;
+         }
+         for (uint i=0; i<6; i++) {
+            P[i] = P_R[i] = P_V[i] = 0;
          }
       }
       ~Population() {
@@ -343,6 +352,8 @@ __global__ static void resize_and_empty_kernel (
             V[i] = other.V[i];
             V_R[i] = other.V_R[i];
             V_V[i] = other.V_V[i];
+         }
+         for (uint i=0; i<6; i++) {
             P[i] = other.P[i];
             P_R[i] = other.P_R[i];
             P_V[i] = other.P_V[i];
@@ -388,6 +399,8 @@ __global__ static void resize_and_empty_kernel (
             V[i] = other.V[i];
             V_R[i] = other.V_R[i];
             V_V[i] = other.V_V[i];
+         }
+         for (uint i=0; i<6; i++) {
             P[i] = other.P[i];
             P_R[i] = other.P_R[i];
             P_V[i] = other.P_V[i];
@@ -657,15 +670,15 @@ __global__ static void resize_and_empty_kernel (
       Real getVelocityBlockMinValue(const uint popID) const;
 
       // Member variables //
-      std::array<Real, vderivatives::N_V_DERIVATIVES> derivativesV;  // Derivatives of V for AMR
-      std::array<Real, bvolderivatives::N_BVOL_DERIVATIVES> derivativesBVOL;    /**< Derivatives of BVOL needed by the acceleration.
-                                                                                 * Separate array because it does not need to be communicated.*/
-      std::array<Real, CellParams::N_SPATIAL_CELL_PARAMS> parameters;
+      std::array<Real, vderivatives::N_V_DERIVATIVES> derivativesV;           /**< Derivatives of V for vorticity AMR.*/
+      std::array<Real, bvolderivatives::N_BVOL_DERIVATIVES> derivativesBVOL;  /**< Derivatives of BVOL needed by the acceleration.
+                                                                               * Separate array because it does not need to be communicated.*/
+      std::array<Real, CellParams::N_SPATIAL_CELL_PARAMS> parameters;         /**< Bulk variables in this spatial cell.*/
       std::array<Realf, WID3> null_block_data;
 
       uint64_t ioLocalCellId;                                                 /**< Local cell ID used for IO, not needed elsewhere
                                                                                * and thus not being kept up-to-date.*/
-      std::array<Realf*,MAX_NEIGHBORS_PER_DIM> neighbor_block_data;       /**< Pointers for translation operator. We can point to neighbor
+      std::array<Realf*,MAX_NEIGHBORS_PER_DIM> neighbor_block_data;           /**< Pointers for translation operator. We can point to neighbor
                                                                                * cell block data. We do not allocate memory for the pointer.*/
       std::array<vmesh::LocalID,MAX_NEIGHBORS_PER_DIM> neighbor_number_of_blocks;
       std::map<int,std::set<int>> face_neighbor_ranks;
@@ -674,10 +687,10 @@ __global__ static void resize_and_empty_kernel (
       uint sysBoundaryLayer;                                                  /**< Layers counted from closest systemBoundary. If 0 then it has not
                                                                                * been computed. First sysboundary layer is layer 1.*/
       int sysBoundaryLayerNew;                                                /** needed (by DCCRG?), do not remove. */
-      split::SplitVector<vmesh::GlobalID> *velocity_block_with_content_list=0;  /**< List of existing cells with content (updated by update_has_content()).*/
+      split::SplitVector<vmesh::GlobalID> *velocity_block_with_content_list=0;      /**< List of existing cells with content (updated by update_has_content()).*/
       split::SplitVector<vmesh::GlobalID> *dev_velocity_block_with_content_list=0;  /**< Device pointer to list of existing cells with content.*/
-      vmesh::LocalID velocity_block_with_content_list_size=0;                   /**< Size of vector. Needed for MPI communication of size before actual list transfer.*/
-      vmesh::LocalID velocity_block_with_content_list_capacity=0;               /**< Capacity of vector. Cached value.*/
+      vmesh::LocalID velocity_block_with_content_list_size=0;                       /**< Size of vector. Needed for MPI communication of size before actual list transfer.*/
+      vmesh::LocalID velocity_block_with_content_list_capacity=0;                   /**< Capacity of vector. Cached value.*/
       Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *velocity_block_with_content_map=0, *velocity_block_with_no_content_map=0;
       Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *dev_velocity_block_with_content_map=0, *dev_velocity_block_with_no_content_map=0;
       vmesh::LocalID vbwcl_sizePower, vbwncl_sizePower;

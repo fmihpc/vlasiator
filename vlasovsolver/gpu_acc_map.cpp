@@ -565,11 +565,11 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
                               Real in_intersection_di,
                               Real in_intersection_dj,
                               Real in_intersection_dk,
-                              const uint dimension,
-                              gpuStream_t stream
+                              const uint dimension
    ) {
    // Ensure previous actions have completed?
    //CHK_ERR( gpuStreamSynchronize(stream) );
+   gpuStream_t stream = gpu_getStream();
 
    // Conversion here:
    Realf intersection = (Realf)in_intersection;

@@ -1,6 +1,7 @@
 /*
  * This file is part of Vlasiator.
  * Copyright 2010-2016 Finnish Meteorological Institute
+ * 2017-2025 University of Helsinki
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
  * at http://www.physics.helsinki.fi/vlasiator/
@@ -20,8 +21,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef FLUCTUATIONS_H
-#define FLUCTUATIONS_H
+#ifndef LOSSCONE_H
+#define LOSSCONE_H
 
 #include <stdlib.h>
 
@@ -30,28 +31,29 @@
 
 namespace projects {
 
-   struct FluctuationsSpeciesParameters {
+   struct LossConeSpeciesParameters {
       Real DENSITY;
       Real TEMPERATUREX;
       Real TEMPERATUREY;
       Real TEMPERATUREZ;
       Real densityPertRelAmp;
       Real velocityPertAbsAmp;
-      Real maxwCutoff;
+      Real V0[3];
+      Real muLimit;
    };
 
-   class Fluctuations: public TriAxisSearch {
+   class LossCone: public TriAxisSearch {
    public:
-      Fluctuations();
-      virtual ~Fluctuations();
+      LossCone();
+      virtual ~LossCone();
       
       virtual bool initialize(void) override;
       static void addParameters(void);
       virtual void getParameters(void) override;
       virtual void setProjectBField(
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
+         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+         FsGrid< fsgrids::technical, 2>& technicalGrid
       ) override;
       virtual std::vector<std::array<Real, 3> > getV0(
          creal x,
@@ -66,7 +68,6 @@ namespace projects {
       virtual Realf probePhaseSpace(spatial_cell::SpatialCell *cell,
                                     const uint popID,
                                     Real vx_in, Real vy_in, Real vz_in) const override;
-
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) override;
       
       Real BX0;
@@ -76,10 +77,10 @@ namespace projects {
       Real magYPertAbsAmp;
       Real magZPertAbsAmp;
       uint seed;
-      std::vector<FluctuationsSpeciesParameters> speciesParams;
+      std::vector<LossConeSpeciesParameters> speciesParams;
 
       static Real rndRho, rndVel[3];
       #pragma omp threadprivate(rndRho,rndVel)
-   } ; // class Fluctuations
+   } ; // class LossCone
 } // namespace projects
 #endif

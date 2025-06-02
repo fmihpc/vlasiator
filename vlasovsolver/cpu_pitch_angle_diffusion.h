@@ -1,6 +1,8 @@
+#pragma once
+
 /*
  * This file is part of Vlasiator.
- * Copyright 2010-2016 Finnish Meteorological Institute
+ * Copyright 2010-2020 University of Helsinki
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
  * at http://www.physics.helsinki.fi/vlasiator/
@@ -20,27 +22,15 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef CPU_ACC_SEMILAG_H
-#define CPU_ACC_SEMILAG_H
-
+#include <zoltan.h>
+#include <dccrg.hpp>
 #include "../common.h"
 #include "../spatial_cells/spatial_cell_wrapper.hpp"
-#include <dccrg.hpp>
 #include <dccrg_cartesian_geometry.hpp>
 
-using namespace spatial_cell;
 
-void cpu_accelerate_cells(
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   const std::vector<CellID>& acceleratedCells,
-   const uint popID,
-   const uint map_order,
-   const int tc);
+void pitchAngleDiffusion(
+        dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID);
 
-void cpu_accelerate_cell(SpatialCell* spatial_cell,
-                         const uint popID,
-                         const uint map_order,
-                         const Real& dt,
-                         int tc);
-
-#endif
+Realf interpolateNuFromArray(
+   const Real Taniso, const Real betaParallel);

@@ -207,6 +207,7 @@ namespace SBC {
       B[2] = Bz;
 
       calculateCellMoments(&templateCell,true,false,true);
+
       templateCell.parameters[CellParams::RHOM_R] = templateCell.parameters[CellParams::RHOM];
       templateCell.parameters[CellParams::VX_R] = templateCell.parameters[CellParams::VX];
       templateCell.parameters[CellParams::VY_R] = templateCell.parameters[CellParams::VY];

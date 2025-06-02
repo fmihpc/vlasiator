@@ -50,8 +50,7 @@ namespace spatial_cell {
    void adjust_velocity_blocks_in_cells(
       dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const vector<CellID>& cells,
-      const uint popID=0,
-      bool includeNeighbours=true);
+      const uint popID=0);
 
 } // namespaces
 

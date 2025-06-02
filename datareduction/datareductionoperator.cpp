@@ -28,6 +28,7 @@
 #include "datareductionoperator.h"
 #include "../object_wrapper.h"
 
+
 using namespace std;
 
 typedef Parameters P;
@@ -1482,6 +1483,88 @@ namespace DRO {
       }
       if( vlsvWriter.writeParameter(popName+"_LossConeAngle", &lossConeAngle) == false ) { return false; }
       return true;
+   }
+
+   /*! \brief V-space flatten into 1D mu distribution
+    */
+   VariableMuSpace::VariableMuSpace(cuint _popID): DataReductionOperatorHasParameters(),popID(_popID) {
+      popName = getObjectWrapper().particleSpecies[popID].name;
+      nBins = Parameters::PADmubins; //Number of bins to build muSpace
+   }
+   VariableMuSpace::~VariableMuSpace() { }
+
+   std::string VariableMuSpace::getName() const {return popName + "/vg_1dmuspace";}
+
+   bool VariableMuSpace::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      vectorSize = nBins;
+      return true;
+   }
+
+   bool VariableMuSpace::reduceData(const SpatialCell* cell,char* buffer) {
+
+      const Realf dmubins = 2.0 / nBins;
+      std::vector<Real> fmu(nBins,0.0);
+
+      #ifdef USE_GPU
+      const vmesh::VelocityBlockContainer* VBC = cell->dev_get_velocity_blocks(popID);
+      #else
+      const vmesh::VelocityBlockContainer* VBC = cell->get_velocity_blocks(popID);
+      #endif
+
+      // ARCH interface includes OpenMP looping including critical regions for thread summation
+      {
+         const Real bulkVX = cell->parameters[CellParams::VX];
+         const Real bulkVY = cell->parameters[CellParams::VY];
+         const Real bulkVZ = cell->parameters[CellParams::VZ];
+
+         const Real B0 = cell->parameters[CellParams::PERBXVOL] +  cell->parameters[CellParams::BGBXVOL];
+         const Real B1 = cell->parameters[CellParams::PERBYVOL] +  cell->parameters[CellParams::BGBYVOL];
+         const Real B2 = cell->parameters[CellParams::PERBZVOL] +  cell->parameters[CellParams::BGBZVOL];
+         const Real Bnorm = sqrt(B0*B0 + B1*B1 + B2*B2);
+         const Real b0 = B0/Bnorm;
+         const Real b1 = B1/Bnorm;
+         const Real b2 = B2/Bnorm;
+         const int nBins_lambda = nBins; // so lambda does not need to capture *this
+
+         if (cell->get_number_of_velocity_blocks(popID) != 0)
+         arch::parallel_reduce<arch::sum>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)},
+                                          ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint n, Real *lsum )-> void {
+
+                                             const Realf *block_data = VBC->getData(n);
+                                             const Real *block_parameters = VBC->getParameters(n);
+                                             const Real VX = block_parameters[BlockParams::VXCRD] + (i + HALF)*block_parameters[BlockParams::DVX];
+                                             const Real VY = block_parameters[BlockParams::VYCRD] + (j + HALF)*block_parameters[BlockParams::DVY];
+                                             const Real VZ = block_parameters[BlockParams::VZCRD] + (k + HALF)*block_parameters[BlockParams::DVZ];
+                                             const Real DV3 = block_parameters[BlockParams::DVX]
+                                                * block_parameters[BlockParams::DVY] * block_parameters[BlockParams::DVZ];
+
+                                             const Real VplasmaX = VX - bulkVX;
+                                             const Real VplasmaY = VY - bulkVY;
+                                             const Real VplasmaZ = VZ - bulkVZ;
+                                             const Real normV = sqrt(VplasmaX*VplasmaX + VplasmaY*VplasmaY + VplasmaZ*VplasmaZ);
+
+                                             const Real Vpara = VplasmaX*b0 + VplasmaY*b1 + VplasmaZ*b2;
+                                             const Real mu = Vpara/(normV+std::numeric_limits<Realf>::min()); // + min value to avoid division by 0
+                                             int muindex = floor((mu+1.0) / dmubins);
+                                             muindex = std::max(0,std::min(muindex,nBins_lambda-1));
+
+                                             lsum[muindex] += block_data[cellIndex(i,j,k)] * DV3 / dmubins;
+                                          }, fmu);
+      }
+
+      const char* ptr = reinterpret_cast<const char*>(fmu.data());
+      for (uint i = 0; i < nBins*sizeof(Real); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+
+   bool VariableMuSpace::setSpatialCell(const SpatialCell* cell) {
+      return true;
+   }
+
+   bool VariableMuSpace::writeParameters(vlsv::Writer& vlsvWriter) {
+       return true;
    }
 
    /*! \brief Precipitation directional differential number flux (along line)
