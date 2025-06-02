@@ -46,8 +46,7 @@
 void cpu_accelerate_cells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                           const std::vector<CellID>& acceleratedCells,
                           const uint popID,
-                          const uint map_order,
-                          const int tc
+                          const uint map_order
    ) {
    int timerId {phiprof::initializeTimer("cell-semilag-acc")};
    int intersections_id {phiprof::initializeTimer("cell-compute-intersections")};
@@ -70,7 +69,7 @@ void cpu_accelerate_cells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
          const CellID cellID = acceleratedCells[c];
          SpatialCell* SC = mpiGrid[cellID];
          phiprof::Timer semilagAccTimer {timerId};
-         cpu_accelerate_cell(SC,popID,map_order,SC->get_tc_dt(),tc);
+         cpu_accelerate_cell(SC,popID,map_order,SC->get_tc_dt(),SC->get_tc());
          semilagAccTimer.stop();
       }
    }
