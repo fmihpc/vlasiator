@@ -1571,8 +1571,6 @@ int simulate(int argn,char* args[]) {
          CellParams::P_23,
          CellParams::P_13,
          CellParams::P_12,
-         P::fractionalTimestep,
-         P::currentMaxTimeclass,
          false
       );
 
@@ -1589,8 +1587,6 @@ int simulate(int argn,char* args[]) {
          CellParams::P_23_DT2,
          CellParams::P_13_DT2,
          CellParams::P_12_DT2,
-         P::fractionalTimestep,
-         P::currentMaxTimeclass,
          true
       );
 
