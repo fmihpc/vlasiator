@@ -1109,8 +1109,8 @@ void calculateInterpolatedVelocityMoments(
    for (size_t c=0; c<cells.size(); ++c) {
       const CellID cellID = cells[c];
       SpatialCell* SC = mpiGrid[cellID];
-      const double tr = SC->parameters[CellParams::TIME_R];
-      const double tv = SC->parameters[CellParams::TIME_V];
+      const Real tr = SC->parameters[CellParams::TIME_R];
+      const Real tv = SC->parameters[CellParams::TIME_V];
       SC->parameters[cp_rhom  ] = 0.5* ( SC->parameters[CellParams::RHOM_R] + SC->parameters[CellParams::RHOM_V] );
       SC->parameters[cp_vx]   = 0.5* ( SC->parameters[CellParams::VX_R] + SC->parameters[CellParams::VX_V] );
       SC->parameters[cp_vy] = 0.5* ( SC->parameters[CellParams::VY_R] + SC->parameters[CellParams::VY_V] );
@@ -1134,37 +1134,37 @@ void calculateInterpolatedVelocityMoments(
    }
 }
 
-double linearInterpolation(double x0, double y0, double x1, double y1, double x) {
-    // https://en.wikipedia.org/wiki/Linear_interpolation
-    // this is used in the function below.
-    return (y0 * (x1 - x) + y1 * (x - x0))/(x1 - x0);
+Real linearInterpolation(Real x0, Real y0, Real x1, Real y1, Real x) {
+   // https://en.wikipedia.org/wiki/Linear_interpolation
+   // this is used in the function below.
+   return (y0 * (x1 - x) + y1 * (x - x0))/(x1 - x0);
 }
 
-double lagrangeInterpolation2order(double x0, double y0, double x1, double y1, double x2, double y2, double x) {
-    // https://mathworld.wolfram.com/LagrangeInterpolatingPolynomial.html
-    // Lagrange polynomial for interpolation between three points.
+Real lagrangeInterpolation2order(Real x0, Real y0, Real x1, Real y1, Real x2, Real y2, Real x) {
+   // https://mathworld.wolfram.com/LagrangeInterpolatingPolynomial.html
+   // Lagrange polynomial for interpolation between three points.
 
-    return (y0 * (x - x1) * (x - x2) / ((x0 - x1) * (x0 - x2)) +
-            y1 * (x - x0) * (x - x2) / ((x1 - x0) * (x1 - x2)) +
-            y2 * (x - x0) * (x - x1) / ((x2 - x0) * (x2 - x1)));
+   return (y0 * (x - x1) * (x - x2) / ((x0 - x1) * (x0 - x2)) +
+         y1 * (x - x0) * (x - x2) / ((x1 - x0) * (x1 - x2)) +
+         y2 * (x - x0) * (x - x1) / ((x2 - x0) * (x2 - x1)));
 }
 
-double lagrangeInterpolation3order(double x0, double y0, double x1, double y1, double x2, double y2, double x3, double y3, double x) {
-    // https://mathworld.wolfram.com/LagrangeInterpolatingPolynomial.html
-    // Lagrange polynomial for interpolation between four points.
+Real lagrangeInterpolation3order(Real x0, Real y0, Real x1, Real y1, Real x2, Real y2, Real x3, Real y3, Real x) {
+   // https://mathworld.wolfram.com/LagrangeInterpolatingPolynomial.html
+   // Lagrange polynomial for interpolation between four points.
 
-    return (y0 * (x - x1) * (x - x2) * (x - x3) / ((x0 - x1) * (x0 - x2) * (x0 - x3)) +
-            y1 * (x - x0) * (x - x2) * (x - x3) / ((x1 - x0) * (x1 - x2) * (x1 - x3)) +
-            y2 * (x - x0) * (x - x1) * (x - x3) / ((x2 - x0) * (x2 - x1) * (x2 - x3)) +
-            y3 * (x - x0) * (x - x1) * (x - x2) / ((x3 - x0) * (x3 - x1) * (x3 - x2)));
+   return (y0 * (x - x1) * (x - x2) * (x - x3) / ((x0 - x1) * (x0 - x2) * (x0 - x3)) +
+         y1 * (x - x0) * (x - x2) * (x - x3) / ((x1 - x0) * (x1 - x2) * (x1 - x3)) +
+         y2 * (x - x0) * (x - x1) * (x - x3) / ((x2 - x0) * (x2 - x1) * (x2 - x3)) +
+         y3 * (x - x0) * (x - x1) * (x - x2) / ((x3 - x0) * (x3 - x1) * (x3 - x2)));
 }
 
-double cubicHermiteSplineInterpolation(double x0, double y0, double x1, double y1, double x2, double y2, double x3, double y3, double x) {
+Real cubicHermiteSplineInterpolation(Real x0, Real y0, Real x1, Real y1, Real x2, Real y2, Real x3, Real y3, Real x) {
    // https://kluge.in-chemnitz.de/opensource/spline/
    // Cubic Hermite spline interpolation between four points.
 
-   vector<double> xvals = {x0, x1, x2, x3};
-   vector<double> yvals = {y0, y1, y2, y3};
+   vector<Real> xvals = {x0, x1, x2, x3};
+   vector<Real> yvals = {y0, y1, y2, y3};
    tk::spline s(xvals,yvals,tk::spline::cspline_hermite);
 
    return s(x);
@@ -1196,8 +1196,8 @@ void interpolateMomentsForTimeclasses(
       const CellID cellID = cells[c];
       SpatialCell* SC = mpiGrid[cellID];
       const int timeclass = SC->parameters[CellParams::TIMECLASS];
-      // const double tr = SC->parameters[CellParams::TIME_R];
-      // const double tv = SC->parameters[CellParams::TIME_V];
+      // const Real tr = SC->parameters[CellParams::TIME_R];
+      // const Real tv = SC->parameters[CellParams::TIME_V];
 
       // this function is called in the main loop after translation, but before acceleration.
       // therefore, if SC->get_timeclass_turn_v() is true, it means that the
@@ -1258,9 +1258,9 @@ void interpolateMomentsForTimeclasses(
 
      } else { // this block if timeclass != maxTC
 
-         double RTCpow = pow(2, P::currentMaxTimeclass - timeclass);
-         double modul = P::fractionalTimestep % (int)RTCpow;
-         double normModul = modul/RTCpow;
+         Real RTCpow = pow(2, P::currentMaxTimeclass - timeclass);
+         Real modul = P::fractionalTimestep % (int)RTCpow;
+         Real normModul = modul/RTCpow;
          if (dt2) {
             normModul += 0.5/RTCpow; // for dt2, we need to shift the interpolation by 0.5
          }
@@ -1276,13 +1276,13 @@ void interpolateMomentsForTimeclasses(
                // SC->parameters[cp_vy] = lagrangeInterpolation2order(-0.25, 0.5*(SC->parameters[CellParams::VY_V_PREV]+SC->parameters[CellParams::VY_R_PREV]), 0.25, 0.5*(SC->parameters[CellParams::VY_V]+SC->parameters[CellParams::VY_R_PREV]), 0.75, 0.5*(SC->parameters[CellParams::VY_V]+SC->parameters[CellParams::VY_R]), normModul);
                // SC->parameters[cp_vz] = lagrangeInterpolation2order(-0.25, 0.5*(SC->parameters[CellParams::VZ_V_PREV]+SC->parameters[CellParams::VZ_R_PREV]), 0.25, 0.5*(SC->parameters[CellParams::VZ_V]+SC->parameters[CellParams::VZ_R_PREV]), 0.75, 0.5*(SC->parameters[CellParams::VZ_V]+SC->parameters[CellParams::VZ_R]), normModul);
                
-               double true_vx_0 = 0.5*(SC->parameters[CellParams::VX_R_PREV] + SC->parameters[CellParams::VX_V]); // true moment at 0.0
-               double true_vy_0 = 0.5*(SC->parameters[CellParams::VY_R_PREV] + SC->parameters[CellParams::VY_V]); // true moment at 0.0
-               double true_vz_0 = 0.5*(SC->parameters[CellParams::VZ_R_PREV] + SC->parameters[CellParams::VZ_V]); // true moment at 0.0
+               Real true_vx_0 = 0.5*(SC->parameters[CellParams::VX_R_PREV] + SC->parameters[CellParams::VX_V]); // true moment at 0.0
+               Real true_vy_0 = 0.5*(SC->parameters[CellParams::VY_R_PREV] + SC->parameters[CellParams::VY_V]); // true moment at 0.0
+               Real true_vz_0 = 0.5*(SC->parameters[CellParams::VZ_R_PREV] + SC->parameters[CellParams::VZ_V]); // true moment at 0.0
 
-               double true_vx_1 = 0.5*(SC->parameters[CellParams::VX_R] + SC->parameters[CellParams::VX_V]); // true moment at 0.5
-               double true_vy_1 = 0.5*(SC->parameters[CellParams::VY_R] + SC->parameters[CellParams::VY_V]); // true moment at 0.5
-               double true_vz_1 = 0.5*(SC->parameters[CellParams::VZ_R] + SC->parameters[CellParams::VZ_V]); // true moment at 0.5
+               Real true_vx_1 = 0.5*(SC->parameters[CellParams::VX_R] + SC->parameters[CellParams::VX_V]); // true moment at 0.5
+               Real true_vy_1 = 0.5*(SC->parameters[CellParams::VY_R] + SC->parameters[CellParams::VY_V]); // true moment at 0.5
+               Real true_vz_1 = 0.5*(SC->parameters[CellParams::VZ_R] + SC->parameters[CellParams::VZ_V]); // true moment at 0.5
 
                SC->parameters[cp_vx] = linearInterpolation(0.0, true_vx_0, 0.5, true_vx_1, normModul);
                SC->parameters[cp_vy] = linearInterpolation(0.0, true_vy_0, 0.5, true_vy_1, normModul);
@@ -1302,11 +1302,11 @@ void interpolateMomentsForTimeclasses(
          // temporary arrays for true moments.
          const int nMomentsToInterp = (P::tcVMomentPropagation) ? 8 : 11;
 
-         double avgMoments1[nMomentsToInterp];
-         double avgMoments2[nMomentsToInterp];
-         double avgMoments3[nMomentsToInterp];
-         double avgMoments4[nMomentsToInterp];
-         double avgMoments5[nMomentsToInterp];
+         std::vector<Real> avgMoments1(nMomentsToInterp);
+         std::vector<Real> avgMoments2(nMomentsToInterp);
+         std::vector<Real> avgMoments3(nMomentsToInterp);
+         std::vector<Real> avgMoments4(nMomentsToInterp);
+         std::vector<Real> avgMoments5(nMomentsToInterp);
 
          // for type of interpolation (P::tcMomentInterpolationType) -1 is cubic C^1 Hermite spline, 1 is linear, 2 is lagrange 2nd order, 3 is lagrange 3rd order.
 
@@ -1431,7 +1431,7 @@ void updatePreviousVMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    for (size_t c=0; c<cells.size(); c++) {
       const CellID cellID = cells[c];
       SpatialCell* SC = mpiGrid[cellID];
-      double tdiff = SC->parameters[CellParams::TIMECLASSDT];
+      Real tdiff = SC->parameters[CellParams::TIMECLASSDT];
 
       if (isInitialization == true) {
          // initializiing all _PREV and _PREV_PREV moments to same values as _V moments
