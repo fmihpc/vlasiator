@@ -1324,7 +1324,7 @@ void interpolateMomentsForTimeclasses(
 
                switch(P::tcMomentInterpolationType) {
                   case 1:
-                     SC->parameters[cp_rhom+i] = linearInterpolation(0.0, avgMoments3[i], 0.5, avgMoments2[i], normModul);
+                     SC->parameters[cp_rhom+i] = linearInterpolation(0.0, avgMoments2[i], 0.5, avgMoments1[i], normModul);
                      break;
                   case 2:
                      SC->parameters[cp_rhom+i] = lagrangeInterpolation2order(-0.5, avgMoments3[i], 0.0, avgMoments2[i], 0.5, avgMoments1[i], normModul);
