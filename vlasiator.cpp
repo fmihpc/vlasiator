@@ -1561,9 +1561,6 @@ int simulate(int argn,char* args[]) {
       interpolateMomentsForTimeclasses(
          mpiGrid,
          CellParams::RHOM,
-         CellParams::VX,
-         CellParams::VY,
-         CellParams::VZ,
          CellParams::RHOQ,
          CellParams::P_11,
          CellParams::P_22,
@@ -1571,15 +1568,15 @@ int simulate(int argn,char* args[]) {
          CellParams::P_23,
          CellParams::P_13,
          CellParams::P_12,
+         CellParams::VX,
+         CellParams::VY,
+         CellParams::VZ,
          false
       );
 
       interpolateMomentsForTimeclasses(
          mpiGrid,
          CellParams::RHOM_DT2,
-         CellParams::VX_DT2,
-         CellParams::VY_DT2,
-         CellParams::VZ_DT2,
          CellParams::RHOQ_DT2,
          CellParams::P_11_DT2,
          CellParams::P_22_DT2,
@@ -1587,6 +1584,9 @@ int simulate(int argn,char* args[]) {
          CellParams::P_23_DT2,
          CellParams::P_13_DT2,
          CellParams::P_12_DT2,
+         CellParams::VX_DT2,
+         CellParams::VY_DT2,
+         CellParams::VZ_DT2,
          true
       );
 

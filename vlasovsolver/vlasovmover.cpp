@@ -1174,9 +1174,6 @@ Real cubicHermiteSplineInterpolation(Real x0, Real y0, Real x1, Real y1, Real x2
 void interpolateMomentsForTimeclasses(
   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const int cp_rhom,
-   const int cp_vx,
-   const int cp_vy,
-   const int cp_vz,
    const int cp_rhoq,
    const int cp_p11,
    const int cp_p22,
@@ -1184,6 +1181,9 @@ void interpolateMomentsForTimeclasses(
    const int cp_p23,
    const int cp_p13,
    const int cp_p12,
+   const int cp_vx,
+   const int cp_vy,
+   const int cp_vz,
    const bool dt2 // true if second moment / dt2
 ) {
 
@@ -1213,9 +1213,6 @@ void interpolateMomentsForTimeclasses(
          if (dt2) {
 
             SC->parameters[cp_rhom  ] = 0.5* ( SC->parameters[CellParams::RHOM_R] + SC->parameters[CellParams::RHOM_V] );
-            SC->parameters[cp_vx]   = 0.5* ( SC->parameters[CellParams::VX_R] + SC->parameters[CellParams::VX_V] );
-            SC->parameters[cp_vy] = 0.5* ( SC->parameters[CellParams::VY_R] + SC->parameters[CellParams::VY_V] );
-            SC->parameters[cp_vz] = 0.5* ( SC->parameters[CellParams::VZ_R] + SC->parameters[CellParams::VZ_V] );
             SC->parameters[cp_rhoq  ] = 0.5* ( SC->parameters[CellParams::RHOQ_R] + SC->parameters[CellParams::RHOQ_V] );
             SC->parameters[cp_p11]   = 0.5* ( SC->parameters[CellParams::P_11_R] + SC->parameters[CellParams::P_11_V] );
             SC->parameters[cp_p22]   = 0.5* ( SC->parameters[CellParams::P_22_R] + SC->parameters[CellParams::P_22_V] );
@@ -1223,6 +1220,9 @@ void interpolateMomentsForTimeclasses(
             SC->parameters[cp_p23]   = 0.5* ( SC->parameters[CellParams::P_23_R] + SC->parameters[CellParams::P_23_V] );
             SC->parameters[cp_p13]   = 0.5* ( SC->parameters[CellParams::P_13_R] + SC->parameters[CellParams::P_13_V] );
             SC->parameters[cp_p12]   = 0.5* ( SC->parameters[CellParams::P_12_R] + SC->parameters[CellParams::P_12_V] );
+            SC->parameters[cp_vx]   = 0.5* ( SC->parameters[CellParams::VX_R] + SC->parameters[CellParams::VX_V] );
+            SC->parameters[cp_vy] = 0.5* ( SC->parameters[CellParams::VY_R] + SC->parameters[CellParams::VY_V] );
+            SC->parameters[cp_vz] = 0.5* ( SC->parameters[CellParams::VZ_R] + SC->parameters[CellParams::VZ_V] );
             // for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
             //    spatial_cell::Population& pop = SC->get_population(popID);
             //    pop.RHO = 0.5 * ( pop.RHO_R_PREV + pop.RHO_V );
@@ -1235,9 +1235,6 @@ void interpolateMomentsForTimeclasses(
          } else {
 
             SC->parameters[cp_rhom] = 0.5* ( SC->parameters[CellParams::RHOM_R_PREV] + SC->parameters[CellParams::RHOM_V] );
-            SC->parameters[cp_vx]   = 0.5* ( SC->parameters[CellParams::VX_R_PREV] + SC->parameters[CellParams::VX_V] );
-            SC->parameters[cp_vy] = 0.5* ( SC->parameters[CellParams::VY_R_PREV] + SC->parameters[CellParams::VY_V] );
-            SC->parameters[cp_vz] = 0.5* ( SC->parameters[CellParams::VZ_R_PREV] + SC->parameters[CellParams::VZ_V] );
             SC->parameters[cp_rhoq] = 0.5* ( SC->parameters[CellParams::RHOQ_R_PREV] + SC->parameters[CellParams::RHOQ_V] );
             SC->parameters[cp_p11]   = 0.5* ( SC->parameters[CellParams::P_11_R_PREV] + SC->parameters[CellParams::P_11_V] );
             SC->parameters[cp_p22]   = 0.5* ( SC->parameters[CellParams::P_22_R_PREV] + SC->parameters[CellParams::P_22_V] );
@@ -1245,6 +1242,9 @@ void interpolateMomentsForTimeclasses(
             SC->parameters[cp_p23]   = 0.5* ( SC->parameters[CellParams::P_23_R_PREV] + SC->parameters[CellParams::P_23_V] );
             SC->parameters[cp_p13]   = 0.5* ( SC->parameters[CellParams::P_13_R_PREV] + SC->parameters[CellParams::P_13_V] );
             SC->parameters[cp_p12]   = 0.5* ( SC->parameters[CellParams::P_12_R_PREV] + SC->parameters[CellParams::P_12_V] );
+            SC->parameters[cp_vx]   = 0.5* ( SC->parameters[CellParams::VX_R_PREV] + SC->parameters[CellParams::VX_V] );
+            SC->parameters[cp_vy] = 0.5* ( SC->parameters[CellParams::VY_R_PREV] + SC->parameters[CellParams::VY_V] );
+            SC->parameters[cp_vz] = 0.5* ( SC->parameters[CellParams::VZ_R_PREV] + SC->parameters[CellParams::VZ_V] );
 
          //    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          //       spatial_cell::Population& pop = SC->get_population(popID);
@@ -1297,6 +1297,13 @@ void interpolateMomentsForTimeclasses(
             SC->parameters[cp_vy] = V_updated(1);
             SC->parameters[cp_vz] = V_updated(2);
             }
+         }
+
+
+         if ((P::tcMomentInterpolationType != -1 && P::tcMomentInterpolationType != 1 &&
+             P::tcMomentInterpolationType != 2 && P::tcMomentInterpolationType != 3)) {
+            std::cerr << "ERROR: Invalid value for P::tcMomentInterpolationType: " << P::tcMomentInterpolationType << "\n";
+            exit(1);
          }
 
          // temporary arrays for true moments.
