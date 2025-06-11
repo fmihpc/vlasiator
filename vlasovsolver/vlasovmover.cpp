@@ -1267,6 +1267,7 @@ void interpolateMomentsForTimeclasses(
 
          // in this function the moments are calculated to an interval [0, 1] that matches a single timestep in real space, or [t, t + dt].
          // for example, the moment "at 0.5" means the moment at t+dt/2.
+         // normModul is the point in the interval [0, 1] where the moment is calculated.
 
          // !! if translation and acceleration are changed to not update both on fractimestep 0, this will break
 

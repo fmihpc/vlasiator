@@ -1592,6 +1592,17 @@ int simulate(int argn,char* args[]) {
 
       updateParticlePopulations(mpiGrid);
 
+      // auto cell1 = mpiGrid[cells[5]];
+      // auto cell2 = mpiGrid[cells[20]];
+
+      // std::cout << "maxtc: " << P::maxTimeclass << std::endl;
+
+      // std::cout << "cell 1 tc "<< cell1->parameters[CellParams::TIMECLASS] << " VX " << cell1->parameters[CellParams::VX] << " VY " << cell1->parameters[CellParams::VY] << " VZ " << cell1->parameters[CellParams::VZ] << std::endl;
+      // std::cout << "cell 2 tc "<< cell2->parameters[CellParams::TIMECLASS] << " VX " << cell2->parameters[CellParams::VX] << " VY " << cell2->parameters[CellParams::VY] << " VZ " << cell2->parameters[CellParams::VZ] << std::endl;
+
+      // std::cout << "cell1 vx_v " << cell1->parameters[CellParams::VX_V] << " vx_r " << cell1->parameters[CellParams::VX_R] << std::endl;
+      // std::cout << "cell2 vx_v " << cell2->parameters[CellParams::VX_V] << " vx_r " << cell2->parameters[CellParams::VX_R] << std::endl;
+
       momentsTimer.stop();
       
       // Propagate fields forward in time by dt. This needs to be done before the
@@ -1701,27 +1712,27 @@ int simulate(int argn,char* args[]) {
          addTimedBarrier("barrier-boundary-conditions");
       }
       
-      momentsTimer.start();
+      // momentsTimer.start();
       // *here we compute rho and rho_v for timestep t + dt, so next
       // timestep * //
-      calculateInterpolatedVelocityMoments(
-         mpiGrid,
-         CellParams::RHOM,
-         CellParams::VX,
-         CellParams::VY,
-         CellParams::VZ,
-         CellParams::RHOQ,
-         CellParams::P_11,
-         CellParams::P_22,
-         CellParams::P_33,
-         CellParams::P_23,
-         CellParams::P_13,
-         CellParams::P_12
-      );
+      // calculateInterpolatedVelocityMoments(
+      //    mpiGrid,
+      //    CellParams::RHOM,
+      //    CellParams::VX,
+      //    CellParams::VY,
+      //    CellParams::VZ,
+      //    CellParams::RHOQ,
+      //    CellParams::P_11,
+      //    CellParams::P_22,
+      //    CellParams::P_33,
+      //    CellParams::P_23,
+      //    CellParams::P_13,
+      //    CellParams::P_12
+      // );
       
-      updateParticlePopulations(mpiGrid);
+      // updateParticlePopulations(mpiGrid);
 
-      momentsTimer.stop();
+      // momentsTimer.stop();
 
       propagateTimer.stop(computedCells,"Cells");
       
