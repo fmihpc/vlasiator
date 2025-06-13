@@ -1307,6 +1307,11 @@ void interpolateMomentsForTimeclasses(
             exit(1);
          }
 
+         // std::cout << "Interpolating moments for timeclass " << timeclass << " with normModul = " << normModul << " , cellID " << cellID << "\n";
+         // std::cout << "Interpolation type: " << P::tcMomentInterpolationType << "\n";
+         // std::cout << "Timeclass turn v: " << SC->get_timeclass_turn_v() << "\n";
+         // std::cout << "Timeclass: " << timeclass << ", max timeclass: " << P::currentMaxTimeclass << "\n";
+
          // temporary arrays for true moments.
          const int nMomentsToInterp = (P::tcVMomentPropagation) ? 8 : 11;
 
