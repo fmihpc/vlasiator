@@ -35,6 +35,7 @@
 #include "Dispersion/Dispersion.h"
 #include "Distributions/Distributions.h"
 #include "Firehose/Firehose.h"
+#include "FastWave/FastWave.h"
 #include "Flowthrough/Flowthrough.h"
 #include "Fluctuations/Fluctuations.h"
 #include "Harris/Harris.h"
@@ -80,6 +81,7 @@ namespace projects {
       projects::Dispersion::addParameters();
       projects::Distributions::addParameters();
       projects::Firehose::addParameters();
+      projects::FastWave::addParameters();
       projects::Flowthrough::addParameters();
       projects::Fluctuations::addParameters();
       projects::Harris::addParameters();
@@ -676,6 +678,9 @@ Project* createProject() {
    }
    if(Parameters::projectName == "Firehose") {
       rvalue = new projects::Firehose;
+   }
+   if(Parameters::projectName == "FastWave") {
+      rvalue = new projects::FastWave;
    }
    if(Parameters::projectName == "Flowthrough") {
       rvalue = new projects::Flowthrough;
