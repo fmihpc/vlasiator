@@ -1598,7 +1598,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
             std::cerr<<"Error in dimension: __FILE__:__LINE__"<<std::endl;
             abort();
       }
-      if (P::currentMaxTimeclass > 0) {
+      if (P::currentMaxTimeclass >= 0) {
          for (int i = 0; i <= P::currentMaxTimeclass; ++i){
             tc_propagatedCells.push_back(vector<CellID>());
             switch (dimension) {
@@ -1637,7 +1637,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
 
    phiprof::Timer getSeedIdsTimer {"getSeedIds"};
    vector<std::pair<int,CellID>> seedIds;
-   if (P::currentMaxTimeclass > 0) {
+   if (P::currentMaxTimeclass >= 0) {
       int maxt = 0;
       for (int timeclass = 0; timeclass <= P::currentMaxTimeclass; ++timeclass){
          std::cout << "getting seedids for timeclass " << timeclass <<", cells prop:\n";

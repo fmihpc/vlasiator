@@ -761,16 +761,21 @@ void prepareAMRLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
       ghostTimer.stop();
    }
 
-   if (P::currentMaxTimeclass > 0) {
+   if (P::currentMaxTimeclass >= 0) {
       const vector<CellID>& localCells = getLocalCells();
 
       for(int i = 0; i <= P::currentMaxTimeclass; ++i){
+         std::cout << "prepareAMRLists called for timeclass " << i << "\n";
          set<CellID> tc_active_cells_set;
-         getGhostNeighborsforTC(mpiGrid, localCells, tc_active_cells_set, i);
-
+         std::vector<CellID> tc_act_cells;
+         if (P::currentMaxTimeclass > 0) {
+            getGhostNeighborsforTC(mpiGrid, localCells, tc_active_cells_set, i);
+            tc_act_cells = std::vector<CellID>(tc_active_cells_set.begin(),tc_active_cells_set.end());
+         } else {
+            tc_act_cells = std::vector<CellID>(localCells.begin(),localCells.end());
+         }
          timeghost_source[i].clear();
          timeghost_active[i].clear();
-         std::vector<CellID> tc_act_cells = std::vector<CellID>(tc_active_cells_set.begin(),tc_active_cells_set.end());
          prepareGhostTranslationCellLists(mpiGrid, tc_act_cells, timeghost_source[i], timeghost_active[i], i);
       }
    }
