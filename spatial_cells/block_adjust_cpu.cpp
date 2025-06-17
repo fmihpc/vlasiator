@@ -33,7 +33,8 @@ namespace spatial_cell {
    void update_velocity_block_content_lists(
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const vector<CellID>& cells,
-      const uint popID) {
+      const uint popID,
+      const int timeclass) {
 
       if (cells.size()==0) {
          return;
@@ -55,7 +56,8 @@ namespace spatial_cell {
    void adjust_velocity_blocks_in_cells(
       dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const vector<CellID>& cellsToAdjust,
-      const uint popID
+      const uint popID,
+      const int timeclass
       ) {
 
       const size_t n_cells = cellsToAdjust.size();

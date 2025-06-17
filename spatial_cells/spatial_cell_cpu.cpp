@@ -183,7 +183,7 @@ namespace spatial_cell {
     * modify local cell.
     **/
    void SpatialCell::adjust_velocity_blocks(const std::vector<SpatialCell*>& spatial_neighbors,
-                                            const uint popID,bool doDeleteEmptyBlocks) {
+                                            const uint popID,bool doDeleteEmptyBlocks, const int timeclass) {
       debug_population_check(popID);
 
       //  This set contains all those cellids which have neighbors in any
@@ -765,7 +765,7 @@ namespace spatial_cell {
 
    /** Update the two lists containing blocks with content, and blocks without content.
     * @see adjustVelocityBlocks */
-   void SpatialCell::update_velocity_block_content_lists(const uint popID) {
+   void SpatialCell::update_velocity_block_content_lists(const uint popID, const int timeclass) {
       debug_population_check(popID);
       velocity_block_with_content_list->clear();
       velocity_block_with_no_content_list->clear();
@@ -789,7 +789,7 @@ namespace spatial_cell {
 
    /** Updates minValue based on algorithm value from parameters (see parameters.cpp).
     * @param popID ID of the particle species.*/
-   void SpatialCell::updateSparseMinValue(const uint popID) {
+   void SpatialCell::updateSparseMinValue(const uint popID, const int timeclass) {
 
       species::Species& population = getObjectWrapper().particleSpecies[popID];
 
