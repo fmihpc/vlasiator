@@ -898,7 +898,9 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 // std::cerr << __FILE__<<":"<<__LINE__<< " calling adjustVelocityBlocks at t = " 
 //          << P::t << ", preparing to receive; len cells = " << cells.size() <<
 //          "\n";
-         adjustVelocityBlocks(mpiGrid, cells, true, popID);
+         for (int tc = 0; tc <= P::currentMaxTimeclass; tc++){ // Filter to necessary tcs
+            adjustVelocityBlocks(mpiGrid, cells, true, popID, tc);
+         }
       }
    } else {
       // Fairly ugly but no goto
@@ -918,7 +920,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
             propagatePayloads.insert(propagatePayloads.end(), outvec.begin(),outvec.end());
          }
       }*/
-      
+      std::set<int> timeclasses_handled;
       // Accelerate all particle species
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          int maxSubcycles=0;
@@ -999,6 +1001,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
             maxSubcycles = max((int)getAccelerationSubcycles(payload.cellptr->get_max_v_dt(popID), payload.dt), maxSubcycles);
             spatial_cell::Population& pop = payload.cellptr->get_population(popID,payload.timeclass);
             pop.ACCSUBCYCLES = getAccelerationSubcycles(payload.cellptr->get_max_v_dt(popID), payload.dt);
+            timeclasses_handled.insert(payload.timeclass);
          }
 
 #ifdef USE_GPU
@@ -1041,7 +1044,9 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 // std::cerr << __FILE__<<":"<<__LINE__<< " calling adjustVelocityBlocks at t = " 
 //          << P::t << ", preparing to receive; len cells = " << cells.size() <<
 //          "\n";        
-         adjustVelocityBlocks(mpiGrid, cells, true, popID);
+         for(auto tc:timeclasses_handled){
+            adjustVelocityBlocks(mpiGrid, cells, true, popID, tc);
+         }
       } // for-loop over particle species
 
       //now cellsToPropagateSet contains all cells which have been propagated and whose moments need updating
