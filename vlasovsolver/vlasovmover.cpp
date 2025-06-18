@@ -697,7 +697,7 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
       if (dt<0) {
          thisSubcycleDt = -thisSubcycleDt;
       }
-      spatial_cell::Population& pop = mpiGrid[cellID]->get_population(popID);
+      spatial_cell::Population& pop = mpiGrid[cellID]->get_population(popID, payload.timeclass);
       pop.subcycleDt = thisSubcycleDt;
    }
 
@@ -713,7 +713,7 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
 #ifdef USE_GPU
    gpu_accelerate_cells(mpiGrid[cellID],popID,map_order,subcycleDt);
 #else
-   cpu_accelerate_cells(mpiGrid, std::vector<CellID>(propagatedSet.begin(),propagatedSet.end()), popID, map_order);
+   cpu_accelerate_cells(mpiGrid, acceleratedCells, popID, map_order);
 #endif
       // if (cellID == 16)
       //    #pragma omp critical(output)
@@ -723,7 +723,7 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
 
    for (auto& payload:acceleratedCells){
       if(payload.cellptr->get_tc() == payload.timeclass){ //only increase base cell time - should move to population struct
-         spatial_cell::Population& pop = payload.cellptr->get_population(popID);
+         spatial_cell::Population& pop = payload.cellptr->get_population(popID, payload.timeclass);
          payload.cellptr->parameters[CellParams::TIME_V] += pop.subcycleDt;
       }
    }
@@ -737,9 +737,15 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
    //- All cells update and communicate their lists of content blocks
    //- Only cells which were accerelated on this step need to be adjusted (blocks removed or added).
    //- Not done here on last step (done after loop)
+   std::set<int> timeclasses_handled;
+   for (auto payload : acceleratedCells){
+      timeclasses_handled.insert(payload.timeclass);
+   }
+   for (auto timeclass : timeclasses_handled){
    if(step < (globalMaxSubcycles - 1))
-   {
-      adjustVelocityBlocks(mpiGrid, std::vector<CellID>(propagatedSet.begin(),propagatedSet.end()), false, popID);
+      {
+         adjustVelocityBlocks(mpiGrid, std::vector<CellID>(propagatedSet.begin(),propagatedSet.end()), false, popID, timeclass);
+      }
    }
 }
 

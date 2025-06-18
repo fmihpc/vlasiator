@@ -73,11 +73,11 @@ namespace spatial_cell {
          populations[popID].velocityBlockMinValue = spec.sparseMinValue;
          populations[popID].N_blocks = 0;
 
-         for (int tc = 0; tc <= P::maxTimeclass; tc++){
-            ghostPopulations[{popID,tc}].vmesh->initialize(spec.velocityMesh);
-            ghostPopulations[{popID,tc}].velocityBlockMinValue = spec.sparseMinValue;
-            ghostPopulations[{popID,tc}].N_blocks = 0;
-         }
+         // for (int tc = 0; tc <= P::maxTimeclass; tc++){
+         //    ghostPopulations[{popID,tc}].vmesh->initialize(spec.velocityMesh);
+         //    ghostPopulations[{popID,tc}].velocityBlockMinValue = spec.sparseMinValue;
+         //    ghostPopulations[{popID,tc}].N_blocks = 0;
+         // }
       }
 
       // new pointers for vectors
@@ -200,7 +200,7 @@ namespace spatial_cell {
       for (vmesh::LocalID block_index=0; block_index<local_content_list_size; ++block_index) {
          vmesh::GlobalID block = velocity_block_with_content_list->at(block_index);
 
-         const velocity_block_indices_t indices = SpatialCell::get_velocity_block_indices(popID,block);
+         const velocity_block_indices_t indices = SpatialCell::get_velocity_block_indices(popID,block,timeclass);
          neighbors_have_content.insert(block); //also add the cell itself
 
          int addWidthV = getObjectWrapper().particleSpecies[popID].sparseBlockAddWidthV;
@@ -208,7 +208,7 @@ namespace spatial_cell {
             for (int offset_vy=-addWidthV;offset_vy<=addWidthV;offset_vy++) {
                for (int offset_vz=-addWidthV;offset_vz<=addWidthV;offset_vz++) {
                   const vmesh::GlobalID neighbor_block
-                     = get_velocity_block(popID,{{indices[0]+offset_vx,indices[1]+offset_vy,indices[2]+offset_vz}});
+                     = get_velocity_block(popID,{{indices[0]+offset_vx,indices[1]+offset_vy,indices[2]+offset_vz}},timeclass);
                   neighbors_have_content.insert(neighbor_block); //add all potential ngbrs of this block with content
                }
             }
@@ -234,12 +234,12 @@ namespace spatial_cell {
       1. adding velocity blocks to places where matter might flow to from neighbours,
       taking into consideration the neighbours' every timeclass mesh
 
-      2. Make this such that we don't unnecessarily do cross-timeclass neighbours
+      2. Make this such that we don't unnecessarily do cross-timeclass neighbours - this is handled at top level now! Also makes this loop obsolete
 
       */
       
       // timeclass addition loop:
-
+      /*
       for (std::vector<SpatialCell*>::const_iterator neighbor=spatial_neighbors.begin();
            neighbor != spatial_neighbors.end(); ++neighbor) { // go through neighbors
          for (int tc : (*neighbor)->requested_timeclass_ghosts) { // go through neighbors' vmesh tc:s
@@ -254,7 +254,7 @@ namespace spatial_cell {
                }
             }
          }
-      }
+      }*/
 
 
       // REMOVE all blocks in this cell without content + without neighbors with content
@@ -269,7 +269,7 @@ namespace spatial_cell {
                exit(1);
             }
             #endif
-            const vmesh::LocalID blockLID = get_velocity_block_local_id(blockGID,popID);
+            const vmesh::LocalID blockLID = get_velocity_block_local_id(blockGID,popID,timeclass);
             #ifdef DEBUG_SPATIAL_CELL
             if (blockLID == invalid_local_id()) {
                cerr << "Could not find block in " << __FILE__ << ' ' << __LINE__ << endl;
@@ -286,18 +286,18 @@ namespace spatial_cell {
             if (removeBlock == true) {
                //No content, and also no neighbor have content -> remove
                //and increment rho loss counters
-               const Real* block_parameters = get_block_parameters(popID)+blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
+               const Real* block_parameters = get_block_parameters(popID,timeclass)+blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
                const Real DV3 = block_parameters[BlockParams::DVX]
                  * block_parameters[BlockParams::DVY]
                  * block_parameters[BlockParams::DVZ];
                Real sum=0;
                for (unsigned int i=0; i<WID3; ++i) {
-                  sum += get_data(popID)[blockLID*SIZE_VELBLOCK+i];
+                  sum += get_data(popID,timeclass)[blockLID*SIZE_VELBLOCK+i];
                }
                this->populations[popID].RHOLOSSADJUST += DV3*sum;
 
                // and finally remove block
-               this->remove_velocity_block(blockGID,popID);
+               this->remove_velocity_block(blockGID,popID,timeclass);
             }
          }
       }
@@ -314,7 +314,7 @@ namespace spatial_cell {
       //neighbor_ptrs is empty, so we adjust only based on local velocity space.
       std::vector<SpatialCell*> neighbor_ptrs;
       update_velocity_block_content_lists(popID);
-      adjust_velocity_blocks(neighbor_ptrs,popID,doDeleteEmpty);
+      adjust_velocity_blocks(neighbor_ptrs,popID,doDeleteEmpty,timeclass);
    }
 
    /*!
@@ -340,9 +340,8 @@ namespace spatial_cell {
 
       bool has_content = false;
       const Real velocity_block_min_value = getVelocityBlockMinValue(popID);
-      vmesh::VelocityBlockContainer* blockCont = get_population(popID, timeclass).blockContainer;
 
-      const Realf* block_data = blockCont->getData(blockLID);
+      const Realf* block_data = get_data(blockLID, popID, timeclass);
       for (unsigned int i=0; i<WID3; ++i) {
          if (block_data[i] >= velocity_block_min_value) {
             has_content = true;
@@ -749,16 +748,32 @@ namespace spatial_cell {
 
       for (size_t p=0; p<populations.size(); ++p) {
          const vmesh::LocalID amount
-            = 2 + populations[p].blockContainer->size()
-            * populations[p].blockContainer->getBlockAllocationFactor();
+            = 2 + get_velocity_blocks(p)->size()
+            * get_velocity_blocks(p)->getBlockAllocationFactor();
 
          // Allow capacity to be a bit larger than needed by number of blocks, shrink otherwise
-         if (populations[p].blockContainer->capacity() > amount ) {
-            if (populations[p].blockContainer->setNewCapacityShrink(amount) == false) {
+         if (get_velocity_blocks(p)->capacity() > amount ) {
+            if (get_velocity_blocks(p)->setNewCapacityShrink(amount) == false) {
                success = false;
             }
          }
 
+      }
+
+      for (auto tc: requested_timeclass_ghosts){
+         for (size_t p=0; p<populations.size(); ++p) {
+            const vmesh::LocalID amount
+               = 2 + get_velocity_blocks(p, tc)->size()
+               * get_velocity_blocks(p, tc)->getBlockAllocationFactor();
+
+            // Allow capacity to be a bit larger than needed by number of blocks, shrink otherwise
+            if (get_velocity_blocks(p, tc)->capacity() > amount ) {
+               if (get_velocity_blocks(p, tc)->setNewCapacityShrink(amount) == false) {
+                  success = false;
+               }
+            }
+
+         }
       }
       return success;
    }
@@ -770,9 +785,9 @@ namespace spatial_cell {
       velocity_block_with_content_list->clear();
       velocity_block_with_no_content_list->clear();
 
-      for (vmesh::LocalID block_index=0; block_index<populations[popID].vmesh->size(); ++block_index) {
-         const vmesh::GlobalID globalID = populations[popID].vmesh->getGlobalID(block_index);
-         if (compute_block_has_content(block_index,popID)){
+      for (vmesh::LocalID block_index=0; block_index<get_velocity_mesh(popID,timeclass)->size(); ++block_index) {
+         const vmesh::GlobalID globalID = get_velocity_mesh(popID,timeclass)->getGlobalID(block_index);
+         if (compute_block_has_content(block_index,popID,timeclass)){
             velocity_block_with_content_list->push_back(globalID);
          } else {
             velocity_block_with_no_content_list->push_back(globalID);

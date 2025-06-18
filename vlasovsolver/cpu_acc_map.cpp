@@ -120,8 +120,10 @@ void inline swapBlockIndices(velocity_block_indices_t &blockIndices, const uint 
 */
 bool map_1d(SpatialCell* spatial_cell,
             const uint popID,
+            vmesh::VelocityMesh* vmesh,
+            vmesh::VelocityBlockContainer* blockContainer,
             Real in_intersection, Real in_intersection_di, Real in_intersection_dj, Real in_intersection_dk,
-            const uint dimension) {
+            const uint dimension, int timeclass) {
    no_subnormals(); // Needed by Agner's vectorclass
 
    // Conversion here:
@@ -136,8 +138,8 @@ bool map_1d(SpatialCell* spatial_cell,
    uint block_indices_to_id[3] = {0, 0, 0}; /*< used when computing id of target block, 0 for compiler */
    uint cell_indices_to_id[3] = {0, 0, 0}; /*< used when computing id of target cell in block, 0 for compiler */
 
-   vmesh::VelocityMesh* vmesh    = spatial_cell->get_velocity_mesh(popID);
-   vmesh::VelocityBlockContainer* blockContainer = spatial_cell->get_velocity_blocks(popID);
+   // vmesh::VelocityMesh* vmesh    = spatial_cell->get_velocity_mesh(popID);
+   // vmesh::VelocityBlockContainer* blockContainer = spatial_cell->get_velocity_blocks(popID);
 
    //nothing to do if no blocks
    if(vmesh->size() == 0) {
@@ -372,7 +374,7 @@ bool map_1d(SpatialCell* spatial_cell,
                setFirstBlockIndices[1] * block_indices_to_id[1] +
                blockK                  * block_indices_to_id[2];
 
-            spatial_cell->remove_velocity_block(targetBlock, popID);
+            spatial_cell->remove_velocity_block(targetBlock, popID, timeclass);
          }
       }
 
