@@ -430,6 +430,9 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
       attribs.clear();
       attribs["mesh"] = spatMeshName;
       attribs["name"] = popName;
+      attribs["name"] += '_';
+      attribs["name"] += std::to_string(timeclass);
+
       if (vlsvWriter.writeArray("BLOCKIDS", attribs, totalBlocks, vectorSize, velocityBlockIds.data()) == false) success = false;
       if (success == false) logFile << "(MAIN) writeGrid: ERROR failed to write BLOCKIDS to file!" << endl << writeVerbose;
       {
@@ -441,6 +444,9 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
       attribs.clear();
       attribs["mesh"] = spatMeshName; // Name of the spatial mesh
       attribs["name"] = popName;      // Name of the velocity space distribution is written avgs
+      attribs["name"] += '_';
+      attribs["name"] += std::to_string(timeclass);
+
       const string datatype_avgs = "float";
       const uint64_t arraySize_avgs = totalBlocks;
       const uint64_t vectorSize_avgs = WID3; // There are 64 (WID=4) or 512 (WID=8) elements in every velocity block
@@ -491,9 +497,9 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
       if (success ==false) {
          logFile << "(MAIN) writeGrid: ERROR occurred when writing BLOCKVARIABLE f" << endl << writeVerbose;
       }
-
-      return success;
    }
+   
+   return success;
 }
 
 /*! Writes info received from data reducer. This function writes out the variable arrays into the file
