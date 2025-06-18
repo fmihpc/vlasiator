@@ -340,9 +340,8 @@ namespace spatial_cell {
 
       bool has_content = false;
       const Real velocity_block_min_value = getVelocityBlockMinValue(popID);
-      vmesh::VelocityBlockContainer* blockCont = get_population(popID, timeclass).blockContainer;
 
-      const Realf* block_data = blockCont->getData(blockLID);
+      const Realf* block_data = get_data(blockLID, popID, timeclass);
       for (unsigned int i=0; i<WID3; ++i) {
          if (block_data[i] >= velocity_block_min_value) {
             has_content = true;
@@ -749,16 +748,32 @@ namespace spatial_cell {
 
       for (size_t p=0; p<populations.size(); ++p) {
          const vmesh::LocalID amount
-            = 2 + populations[p].blockContainer->size()
-            * populations[p].blockContainer->getBlockAllocationFactor();
+            = 2 + get_velocity_blocks(p)->size()
+            * get_velocity_blocks(p)->getBlockAllocationFactor();
 
          // Allow capacity to be a bit larger than needed by number of blocks, shrink otherwise
-         if (populations[p].blockContainer->capacity() > amount ) {
-            if (populations[p].blockContainer->setNewCapacityShrink(amount) == false) {
+         if (get_velocity_blocks(p)->capacity() > amount ) {
+            if (get_velocity_blocks(p)->setNewCapacityShrink(amount) == false) {
                success = false;
             }
          }
 
+      }
+
+      for (auto tc: requested_timeclass_ghosts){
+         for (size_t p=0; p<populations.size(); ++p) {
+            const vmesh::LocalID amount
+               = 2 + get_velocity_blocks(p, tc)->size()
+               * get_velocity_blocks(p, tc)->getBlockAllocationFactor();
+
+            // Allow capacity to be a bit larger than needed by number of blocks, shrink otherwise
+            if (get_velocity_blocks(p, tc)->capacity() > amount ) {
+               if (get_velocity_blocks(p, tc)->setNewCapacityShrink(amount) == false) {
+                  success = false;
+               }
+            }
+
+         }
       }
       return success;
    }
