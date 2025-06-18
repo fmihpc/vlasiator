@@ -882,16 +882,17 @@ void getGhostNeighborsforTC(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                           const vector<CellID>& cellsToAdjust,
                           bool doPrepareToReceiveBlocks,
-                          const uint popID) {
+                          const uint popID,
+                          const int timeclass) {
    phiprof::Timer readjustBlocksTimer {"re-adjust blocks", {"Block adjustment"}};
    SpatialCell::setCommunicatedSpecies(popID);
 
    const vector<CellID>& cells = getLocalCells();
    // Batch call
-   update_velocity_block_content_lists(mpiGrid,cells,popID);
+   update_velocity_block_content_lists(mpiGrid,cells,popID,timeclass);
 
    // Get updated lists for blocks with content in spatial neighbours
-   phiprof::Timer transferTimer {"Transfer with_content_list", {"MPI"}};
+   phiprof::Timer transferTimer {"Transfer with_content_list", {"MPI"}}; // TODO add neighborhood declarations per TC?
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_WITH_CONTENT_STAGE1 );
    mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::NEAREST);
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_WITH_CONTENT_STAGE2 );
@@ -899,11 +900,11 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    transferTimer.stop();
 
    // Batch adjusts velocity blocks in local spatial cells, doesn't adjust velocity blocks in remote cells.
-   adjust_velocity_blocks_in_cells(mpiGrid, cellsToAdjust, popID);
+   adjust_velocity_blocks_in_cells(mpiGrid, cellsToAdjust, popID, timeclass);
 
    // prepare to receive full block data for all cells (irrespective of list of cells to adjust)
    if (doPrepareToReceiveBlocks) {
-      if (P::vlasovSolverGhostTranslate) {
+      if (P::vlasovSolverGhostTranslate) { // TODO add timeclasses for remote
          updateRemoteVelocityBlockLists(mpiGrid,popID,Neighborhoods::VLASOV_SOLVER_GHOST);
       } else {
          updateRemoteVelocityBlockLists(mpiGrid,popID);

@@ -78,6 +78,11 @@
       "future": "cpp",
       "alignedvector3": "cpp",
       "adolcforward": "cpp",
-      "mprealsupport": "cpp"
+      "mprealsupport": "cpp",
+      "charconv": "cpp",
+      "source_location": "cpp",
+      "format": "cpp",
+      "span": "cpp",
+      "stdfloat": "cpp"
    },
 }
