@@ -468,7 +468,7 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
          SpatialCell* SC = mpiGrid[cells[i]];
          
          // Get the number of blocks in this cell
-         const uint64_t arrayElements = SC->get_number_of_velocity_blocks(popID);
+         const uint64_t arrayElements = SC->get_number_of_velocity_blocks(popID, timeclass);
          // Add a subarray to write. Note: We told beforehands that the vectorsize = WID3
          #ifdef USE_GPU
          char* arrayToWrite = IObuffer+bufferOffset;
@@ -498,7 +498,7 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
          logFile << "(MAIN) writeGrid: ERROR occurred when writing BLOCKVARIABLE f" << endl << writeVerbose;
       }
    }
-   
+
    return success;
 }
 
