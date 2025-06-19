@@ -349,8 +349,8 @@ namespace spatial_cell {
       void remove_velocity_block(const vmesh::GlobalID& block,const uint popID, const int timeclass);      
       vmesh::VelocityMesh* get_velocity_mesh(const size_t& popID, const int timeclass);
       const vmesh::VelocityMesh* get_velocity_mesh(const size_t& popID, const int timeclass) const;
-      vmesh::VelocityBlockContainer* get_velocity_blocks(const size_t& popID, const int timeclass);
-      const vmesh::VelocityBlockContainer* get_velocity_blocks(const size_t& popID, const int timeclass) const;
+      vmesh::VelocityBlockContainer* get_velocity_blocks(const size_t& popID, const int timeclass = -1);
+      const vmesh::VelocityBlockContainer* get_velocity_blocks(const size_t& popID, const int timeclass = -1) const;
 
       void set_velocity_mesh_ghost(const size_t& popID, const int timeclass, const int src_timeclass);
       void set_velocity_blocks_ghost(const size_t& popID, const int timeclass, const int src_timeclass);
@@ -516,12 +516,12 @@ namespace spatial_cell {
     /** Get the total number of velocity blocks in this cell, summed over
      * all existing particle populations.
      * @return Total number of velocity blocks in the cell.*/
-    inline vmesh::LocalID SpatialCell::get_number_of_all_velocity_blocks() const {
-        vmesh::LocalID N_blocks = 0;
-        for (size_t p=0; p<populations.size(); ++p)
-            N_blocks += populations[p].blockContainer->size();
-        return N_blocks;
-    }
+   inline vmesh::LocalID SpatialCell::get_number_of_all_velocity_blocks() const {
+      vmesh::LocalID N_blocks = 0;
+      for (size_t p=0; p<populations.size(); ++p)
+         N_blocks += get_velocity_blocks(p)->size();
+      return N_blocks;
+   }
 
    inline int SpatialCell::get_number_of_populations() const {
       return populations.size();
@@ -738,7 +738,7 @@ namespace spatial_cell {
       }
    }   
 
-   inline vmesh::VelocityBlockContainer* SpatialCell::get_velocity_blocks(const size_t& popID, const int timeclass = -1) {
+   inline vmesh::VelocityBlockContainer* SpatialCell::get_velocity_blocks(const size_t& popID, const int timeclass) {
       debug_population_check(popID);
       if (timeclass < 0 || this->parameters[CellParams::TIMECLASS] == timeclass) {
          return this->populations[popID].blockContainer;
@@ -747,7 +747,7 @@ namespace spatial_cell {
       }   
    }
 
-   inline const vmesh::VelocityBlockContainer* SpatialCell::get_velocity_blocks(const size_t& popID, const int timeclass = -1) const {
+   inline const vmesh::VelocityBlockContainer* SpatialCell::get_velocity_blocks(const size_t& popID, const int timeclass) const {
       debug_population_check(popID);
       if (timeclass < 0 || this->parameters[CellParams::TIMECLASS] == timeclass) {
          return this->populations[popID].blockContainer;
@@ -832,8 +832,15 @@ namespace spatial_cell {
       size += bvolderivatives::N_BVOL_DERIVATIVES * sizeof(Real);
 
       for (size_t p=0; p<populations.size(); ++p) {
-          size += populations[p].vmesh->sizeInBytes();
-          size += populations[p].blockContainer->sizeInBytes();
+          size += get_velocity_mesh(p)->sizeInBytes();
+          size += get_velocity_blocks(p)->sizeInBytes();
+      }
+
+      for (size_t p=0; p<populations.size(); ++p) {
+         for (int tc : this->requested_timeclass_ghosts) {
+            size += get_velocity_mesh(p, tc)->sizeInBytes();
+            size += get_velocity_blocks(p, tc)->sizeInBytes();
+         }
       }
 
       return size;
@@ -854,8 +861,15 @@ namespace spatial_cell {
       capacity += bvolderivatives::N_BVOL_DERIVATIVES * sizeof(Real);
 
       for (size_t p=0; p<populations.size(); ++p) {
-        capacity += populations[p].vmesh->capacityInBytes();
-        capacity += populations[p].blockContainer->capacityInBytes();
+        capacity += get_velocity_mesh(p)->capacityInBytes();
+        capacity += get_velocity_blocks(p)->capacityInBytes();
+      }
+
+      for (size_t p=0; p<populations.size(); ++p) {
+         for (int tc : this->requested_timeclass_ghosts) {
+            capacity += get_velocity_mesh(p, tc)->capacityInBytes();
+            capacity += get_velocity_blocks(p, tc)->capacityInBytes();
+         }
       }
 
       return capacity;

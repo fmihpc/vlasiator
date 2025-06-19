@@ -69,7 +69,7 @@ namespace spatial_cell {
       // Set velocity meshes
       for (uint popID=0; popID<populations.size(); ++popID) {
          const species::Species& spec = getObjectWrapper().particleSpecies[popID];
-         populations[popID].vmesh->initialize(spec.velocityMesh);
+         get_velocity_mesh(popID)->initialize(spec.velocityMesh);
          populations[popID].velocityBlockMinValue = spec.sparseMinValue;
          populations[popID].N_blocks = 0;
 
@@ -449,7 +449,7 @@ namespace spatial_cell {
          //add data to send/recv to displacement and block length lists
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_LIST_STAGE1) != 0) {
             //first copy values in case this is the send operation
-            populations[activePopID].N_blocks = populations[activePopID].blockContainer->size();
+            populations[activePopID].N_blocks = get_velocity_blocks(activePopID)->size();
 
             // send velocity block list size
             displacements.push_back((uint8_t*) &(populations[activePopID].N_blocks) - (uint8_t*) this);
@@ -460,16 +460,18 @@ namespace spatial_cell {
             // STAGE1 should have been done, otherwise we have problems...
             if (receiving) {
                //mpi_number_of_blocks transferred earlier
-               populations[activePopID].vmesh->setNewSize(populations[activePopID].N_blocks);
+               get_velocity_mesh(activePopID)->setNewSize(populations[activePopID].N_blocks);
             } else {
                 //resize to correct size (it will avoid reallocation if it is big enough, I assume)
-                populations[activePopID].N_blocks = populations[activePopID].blockContainer->size();
+                populations[activePopID].N_blocks = get_velocity_blocks(activePopID)->size();
             }
 
             // send velocity block list
-            if(populations[activePopID].vmesh->size() > 0) {
-               displacements.push_back((uint8_t*) populations[activePopID].vmesh->getGrid()->data() - (uint8_t*) this);
-               block_lengths.push_back(sizeof(vmesh::GlobalID) * populations[activePopID].vmesh->size());
+            //if(populations[activePopID].vmesh->size() > 0) {
+            if(get_velocity_mesh(activePopID)->size() > 0) {
+
+               displacements.push_back((uint8_t*) get_velocity_mesh(activePopID)->getGrid()->data() - (uint8_t*) this);
+               block_lengths.push_back(sizeof(vmesh::GlobalID) * get_velocity_mesh(activePopID)->size());
             } else {
                displacements.push_back(0);
                block_lengths.push_back(0);
@@ -501,7 +503,7 @@ namespace spatial_cell {
 
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_DATA) !=0) {
             displacements.push_back((uint8_t*) get_data(activePopID) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(Realf) * WID3 * populations[activePopID].blockContainer->size());
+            block_lengths.push_back(sizeof(Realf) * WID3 * get_velocity_blocks(activePopID)->size());
          }
 
          if ((SpatialCell::mpi_transfer_type & Transfer::NEIGHBOR_VEL_BLOCK_DATA) != 0) {
@@ -691,15 +693,15 @@ namespace spatial_cell {
     * have not been adapted to this new list. Here we re-initialize
     * the cell with empty blocks based on the new list.*/
    void SpatialCell::prepare_to_receive_blocks(const uint popID) {
-      populations[popID].vmesh->setGrid();
-      populations[popID].blockContainer->setNewSize(populations[popID].vmesh->size());
+      get_velocity_mesh(popID)->setGrid();
+      get_velocity_blocks(popID)->setNewSize(get_velocity_mesh(popID)->size());
 
       Real* parameters = get_block_parameters(popID);
 
       // Set velocity block parameters:
       for (vmesh::LocalID blockLID=0; blockLID<size(popID); ++blockLID) {
          const vmesh::GlobalID blockGID = get_velocity_block_global_id(blockLID,popID);
-         populations[popID].vmesh->getBlockInfo(blockGID, parameters+BlockParams::VXCRD);
+         get_velocity_mesh(popID)->getBlockInfo(blockGID, parameters+BlockParams::VXCRD);
          parameters += BlockParams::N_VELOCITY_BLOCK_PARAMS;
       }
    }
@@ -798,7 +800,13 @@ namespace spatial_cell {
    void SpatialCell::printMeshSizes() {
       cerr << "SC::printMeshSizes:" << endl;
       for (size_t p=0; p<populations.size(); ++p) {
-         cerr << "\t pop " << p << " " << populations[p].vmesh->size() << ' ' << populations[p].blockContainer->size() << endl;
+         cerr << "\t pop " << p << " " << get_velocity_mesh(p)->size() << ' ' << get_velocity_blocks(p)->size() << endl;
+      }
+      for (auto tc: requested_timeclass_ghosts) {
+         cerr << "\t timeclass " << tc << endl;
+         for (size_t p=0; p<populations.size(); ++p) {
+            cerr << "\t\t pop " << p << " " << get_velocity_mesh(p, tc)->size() << ' ' << get_velocity_blocks(p, tc)->size() << endl;
+         }
       }
    }
 
