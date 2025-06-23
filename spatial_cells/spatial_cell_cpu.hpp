@@ -337,8 +337,8 @@ namespace spatial_cell {
       void update_velocity_block_content_lists(const uint popID, const int timeclass=-1);
       bool checkMesh(const uint popID, const int timeclass);
       void clear(const uint popID, bool shrink=false, const int timeclass=-1);
-      void setNewSizeClear(const uint popID, const vmesh::LocalID& newSize);
-      void setNewSizeClear(const uint popID);
+      void setNewSizeClear(const uint popID, const vmesh::LocalID& newSize, const int timeclass=-1);
+      void setNewSizeClear(const uint popID, const int timeclass=-1);
 
       uint64_t get_cell_memory_capacity();
       uint64_t get_cell_memory_size();
@@ -758,8 +758,10 @@ namespace spatial_cell {
 
    inline void SpatialCell::set_velocity_mesh_ghost(const size_t& popID, const int timeclass, const int src_timeclass = -1) {
       debug_population_check(popID);
-      // vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> foo(this->populations[popID].vmesh);
-      this->ghostPopulations[{popID,timeclass}].vmesh = this->get_velocity_mesh(popID, src_timeclass);
+      delete this->ghostPopulations[{popID,timeclass}].vmesh;
+      vmesh::VelocityMesh newVmesh(*this->get_velocity_mesh(popID, src_timeclass));
+      this->ghostPopulations[{popID,timeclass}].vmesh = &newVmesh;
+      // this->ghostPopulations[{popID,timeclass}].vmesh = vmesh::VelocityMesh(*this->populations[popID].vmesh);
 
       #ifdef DEBUG_SPATIAL_CELL
       std::cout << "Copy-constructed ghostPopulations[{"<<popID<<","<<timeclass<<"}].vmesh to " << &this->ghostPopulations[{popID,timeclass}].vmesh<< " from initial at " << &this->populations[popID].vmesh <<"\n";
@@ -768,8 +770,10 @@ namespace spatial_cell {
 
    inline void SpatialCell::set_velocity_blocks_ghost(const size_t& popID, const int timeclass, const int src_timeclass = -1) {
       debug_population_check(popID);
-      
-      this->ghostPopulations[{popID,timeclass}].blockContainer = this->get_velocity_blocks(popID, src_timeclass);
+      delete this->ghostPopulations[{popID,timeclass}].blockContainer;
+      vmesh::VelocityBlockContainer newBlockContainer(*this->get_velocity_blocks(popID, src_timeclass));
+      // this->ghostPopulations[{popID,timeclass}].blockContainer = this->get_velocity_blocks(popID, src_timeclass);
+      this->ghostPopulations[{popID,timeclass}].blockContainer = &newBlockContainer;
       #ifdef DEBUG_SPATIAL_CELL
       std::cout << "Copy-constructed ghostPopulations[{"<<popID<<","<<timeclass<<"}].blockContainer to " << &this->ghostPopulations[{popID,timeclass}].blockContainer<< " from initial at " << &this->populations[popID].blockContainer <<"\n";
       #endif
@@ -811,11 +815,11 @@ namespace spatial_cell {
      Ensures the selected population VBC has sufficient capacity and is of correct size.
    */
   //!TODO timeclasses
-   inline void SpatialCell::setNewSizeClear(const uint popID, const vmesh::LocalID& newSize) {
-      populations[popID].ResizeClear(newSize);
+   inline void SpatialCell::setNewSizeClear(const uint popID, const vmesh::LocalID& newSize, const int timeclass) {
+      get_population(popID, timeclass).ResizeClear(newSize);
    }
-   inline void SpatialCell::setNewSizeClear(const uint popID) {
-      populations[popID].ResizeClear(populations[popID].N_blocks);
+   inline void SpatialCell::setNewSizeClear(const uint popID, const int timeclass) {
+      get_population(popID, timeclass).ResizeClear(get_population(popID, timeclass).N_blocks);
    }
 
    /*!

@@ -73,11 +73,11 @@ namespace spatial_cell {
          populations[popID].velocityBlockMinValue = spec.sparseMinValue;
          populations[popID].N_blocks = 0;
 
-         // for (int tc = 0; tc <= P::maxTimeclass; tc++){
-         //    ghostPopulations[{popID,tc}].vmesh->initialize(spec.velocityMesh);
-         //    ghostPopulations[{popID,tc}].velocityBlockMinValue = spec.sparseMinValue;
-         //    ghostPopulations[{popID,tc}].N_blocks = 0;
-         // }
+         for (int tc = 0; tc <= P::maxTimeclass; tc++){
+            ghostPopulations[{popID,tc}].vmesh->initialize(spec.velocityMesh);
+            ghostPopulations[{popID,tc}].velocityBlockMinValue = spec.sparseMinValue;
+            ghostPopulations[{popID,tc}].N_blocks = 0;
+         }
       }
 
       // new pointers for vectors
@@ -228,13 +228,13 @@ namespace spatial_cell {
       }
 
 
-      /* 
+      /*  this is handled at top level now! Also makes this loop obsolete
       to make this work with timeclasses, we must add the following loops:
 
       1. adding velocity blocks to places where matter might flow to from neighbours,
       taking into consideration the neighbours' every timeclass mesh
 
-      2. Make this such that we don't unnecessarily do cross-timeclass neighbours - this is handled at top level now! Also makes this loop obsolete
+      2. Make this such that we don't unnecessarily do cross-timeclass neighbours
 
       */
       
