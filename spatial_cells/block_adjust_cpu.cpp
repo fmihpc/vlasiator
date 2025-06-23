@@ -46,7 +46,7 @@ namespace spatial_cell {
          // phiprof::Timer timer {computeId};
 #pragma omp for schedule(dynamic)
          for (uint i=0; i<cells.size(); ++i) {
-            mpiGrid[cells[i]]->updateSparseMinValue(popID);
+            mpiGrid[cells[i]]->updateSparseMinValue(popID, timeclass);
             mpiGrid[cells[i]]->update_velocity_block_content_lists(popID, timeclass);
          }
          //  timer.stop();

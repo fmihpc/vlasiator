@@ -822,21 +822,21 @@ namespace spatial_cell {
          const Real b = population.sparseDynamicMinValue1 - k * population.sparseDynamicBulkValue1;
          Real x;
          if ( population.sparseDynamicAlgorithm == 1 ) {
-            x = this->populations[popID].RHO;
+            x = this->get_population(popID,timeclass).RHO;
          } else {
-            x = this->get_number_of_velocity_blocks(popID);
+            x = this->get_number_of_velocity_blocks(popID, timeclass);
          }
          const Real newMinValue = k*x+b;
          if( newMinValue < population.sparseDynamicMinValue1 ) { // Compare against the min minValue
-            populations[popID].velocityBlockMinValue = population.sparseDynamicMinValue1;
+            get_population(popID,timeclass).velocityBlockMinValue = population.sparseDynamicMinValue1;
          } else if( newMinValue > population.sparseDynamicMinValue2 ) { // Compare against the max minValue
-            populations[popID].velocityBlockMinValue = population.sparseDynamicMinValue2;
+            get_population(popID,timeclass).velocityBlockMinValue = population.sparseDynamicMinValue2;
          } else {
-            populations[popID].velocityBlockMinValue = newMinValue;
+            get_population(popID,timeclass).velocityBlockMinValue = newMinValue;
          }
          return;
       } else {
-         populations[popID].velocityBlockMinValue = getObjectWrapper().particleSpecies[popID].sparseMinValue;
+         get_population(popID,timeclass).velocityBlockMinValue = getObjectWrapper().particleSpecies[popID].sparseMinValue;
          return;
       }
       return;
