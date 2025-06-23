@@ -101,7 +101,7 @@ namespace spatial_cell {
                }
             }
 
-            cell->adjust_velocity_blocks(neighbor_ptrs,popID, timeclass);
+            cell->adjust_velocity_blocks(neighbor_ptrs,popID, true, timeclass);
 
             if (getObjectWrapper().particleSpecies[popID].sparse_conserve_mass) {
                for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID, timeclass)*WID3; ++i) {

@@ -297,7 +297,9 @@ void initializeGrids(
          std::cerr << __FILE__<<":"<<__LINE__<< " calling adjustVelocityBlocks at t = " 
          << P::t << ", preparing to receive; len cells = " << cells.size() <<
          "\n";
-         adjustVelocityBlocks(mpiGrid,cells,true,popID);
+         for (int timeclass = 0; timeclass <= P::currentMaxTimeclass; timeclass++){
+            adjustVelocityBlocks(mpiGrid,cells,true,popID,timeclass);
+         }
          // set initial LB metric based on number of blocks
          #pragma omp parallel for schedule(static)
          for (size_t i=0; i<cells.size(); ++i) {
