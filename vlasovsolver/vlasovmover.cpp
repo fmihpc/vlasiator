@@ -754,7 +754,7 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
 */
 vector<AccelerationPayload>& setAccelerationTimeGhosts(vector<AccelerationPayload>& outvec, SpatialCell* spatial_cell, const uint popID, const Real& dt){
    int tcToPropagate = spatial_cell->get_tc();
-   // vector<AccelerationPayload> outvec = vector<AccelerationPayload>();
+
    if(spatial_cell->get_timeclass_turn_v()){
       AccelerationPayload payload = {spatial_cell->get_tc(),spatial_cell,dt,0};
       outvec.push_back(payload);
@@ -780,6 +780,7 @@ vector<AccelerationPayload>& setAccelerationTimeGhosts(vector<AccelerationPayloa
          if (!P::tc_leapfrog_init) {
             spatial_cell->set_velocity_mesh_ghost(popID, i);
             spatial_cell->set_velocity_blocks_ghost(popID, i); 
+            spatial_cell->get_population(popID,i).N_blocks = spatial_cell->get_number_of_velocity_blocks(popID, i);
             // std::cerr << "c"<< spatial_cell->parameters[CellParams::CELLID]<<" with " << spatial_cell->get_velocity_blocks(popID).size() <<" blocks\n";
             payload.dt = dt/pow(2,tc_d);
             outvec.push_back(payload);
@@ -790,6 +791,7 @@ vector<AccelerationPayload>& setAccelerationTimeGhosts(vector<AccelerationPayloa
          else if (spatial_cell->get_timeclass_turn_v()) {
             spatial_cell->set_velocity_mesh_ghost(popID, i);
             spatial_cell->set_velocity_blocks_ghost(popID, i); 
+            spatial_cell->get_population(popID,i).N_blocks = spatial_cell->get_number_of_velocity_blocks(popID, i);
             // std::cerr << "c"<< spatial_cell->parameters[CellParams::CELLID]<<" with " << spatial_cell->get_velocity_blocks(popID).size() <<" blocks\n";
             payload.dt = dt/pow(2,tc_d)*1/2;
             outvec.push_back(payload);
@@ -806,6 +808,7 @@ vector<AccelerationPayload>& setAccelerationTimeGhosts(vector<AccelerationPayloa
          else if (spatial_cell->requested_timeclass_copy_ghosts.count(i) && spatial_cell->get_timeclass_turn_v(i)){
             spatial_cell->set_velocity_mesh_ghost(popID, i);
             spatial_cell->set_velocity_blocks_ghost(popID, i); 
+            spatial_cell->get_population(popID,i).N_blocks = spatial_cell->get_number_of_velocity_blocks(popID, i);
             // std::cerr << "c"<< spatial_cell->parameters[CellParams::CELLID]<<" with " << spatial_cell->get_velocity_blocks(popID).size() <<" blocks\n";
             payload.dt = dt/pow(2,tc_d)*3/2;
             outvec.push_back(payload);
@@ -838,6 +841,7 @@ vector<AccelerationPayload>& setAccelerationTimeGhosts(vector<AccelerationPayloa
             std::cerr << "c"<< spatial_cell->parameters[CellParams::CELLID]<<"\n";
             spatial_cell->set_velocity_mesh_ghost(popID, i);
             spatial_cell->set_velocity_blocks_ghost(popID, i);
+            spatial_cell->get_population(popID,i).N_blocks = spatial_cell->get_number_of_velocity_blocks(popID, i);
             // cpu_accelerate_cell(spatial_cell, popID, map_order, P::timeclassDt[i], tc_d);
             payload.dt = dt/pow(2,tc_d);
             outvec.push_back(payload);
@@ -851,6 +855,7 @@ vector<AccelerationPayload>& setAccelerationTimeGhosts(vector<AccelerationPayloa
             std::cerr << "c"<< spatial_cell->parameters[CellParams::CELLID]<<"\n";
             spatial_cell->set_velocity_mesh_ghost(popID, i);
             spatial_cell->set_velocity_blocks_ghost(popID, i);
+            spatial_cell->get_population(popID,i).N_blocks = spatial_cell->get_number_of_velocity_blocks(popID, i);
             // cpu_accelerate_cell(spatial_cell, popID, map_order, P::timeclassDt[i], tc_d);
             double dtt = 5./4.*dt/pow(2,tc_d);
             payload.dt = dtt;
