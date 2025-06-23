@@ -107,6 +107,7 @@ namespace vmesh {
 
    inline VelocityMesh::VelocityMesh() {
       meshID = std::numeric_limits<size_t>::max();
+      std::cout << "Constructed meshID to " << meshID << "\n";
       globalToLocalMap = OpenBucketHashtable<vmesh::GlobalID,vmesh::LocalID>();
       localToGlobalMap = std::vector<vmesh::GlobalID>(1);
       localToGlobalMap.clear();
@@ -393,6 +394,7 @@ namespace vmesh {
    }
 
    inline bool VelocityMesh::initialize(const size_t& meshID) {
+      std::cout << "initialized meshID to " << meshID << "\n";
       this->meshID = meshID;
       return true;
    }
@@ -481,6 +483,7 @@ namespace vmesh {
       if (meshID >= vmesh::getMeshWrapper()->velocityMeshes->size()) {
          return false;
       }
+      std::cout << "setMeshed meshID to " << meshID << "\n";
       this->meshID = meshID;
       return true;
    }
