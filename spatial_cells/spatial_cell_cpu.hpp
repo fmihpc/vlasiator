@@ -723,9 +723,11 @@ namespace spatial_cell {
    inline vmesh::VelocityMesh* SpatialCell::get_velocity_mesh(const size_t& popID, const int timeclass = -1) {
       debug_population_check(popID);
       if (timeclass < 0 || this->parameters[CellParams::TIMECLASS] == timeclass) {
+         // std::cout << "regular vmesh\n";
          return this->populations[popID].vmesh;
       } else {
-         return this->ghostPopulations[{popID,timeclass}].vmesh;
+         // std::cout << "ghost vmesh\n";
+         return this->ghostPopulations.at({popID,timeclass}).vmesh;
       }
    }
 
@@ -760,6 +762,7 @@ namespace spatial_cell {
       debug_population_check(popID);
       delete this->ghostPopulations[{popID,timeclass}].vmesh;
       vmesh::VelocityMesh newVmesh(*this->get_velocity_mesh(popID, src_timeclass));
+      std::cout <<"A new vmesh appeared, with meshID " << newVmesh.getMesh() << " at "<< this->get_cellid() << "\n";
       this->ghostPopulations[{popID,timeclass}].vmesh = &newVmesh;
       // this->ghostPopulations[{popID,timeclass}].vmesh = vmesh::VelocityMesh(*this->populations[popID].vmesh);
 
@@ -786,7 +789,7 @@ namespace spatial_cell {
       debug_population_check(popID);
       // std::cerr << "get_velocity_mesh_ghost with tc " << timeclass << " at " << &ghostPopulations[{popID,timeclass}].vmesh <<"\n";
 
-      return this->ghostPopulations[{popID,timeclass}].vmesh; // OBS try-emplace
+      return this->ghostPopulations.at({popID,timeclass}).vmesh; // OBS try-emplace
    }
 
    inline vmesh::VelocityBlockContainer* SpatialCell::get_velocity_blocks_ghost(const size_t& popID, const int timeclass) {

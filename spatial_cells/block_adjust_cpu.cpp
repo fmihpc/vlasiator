@@ -46,7 +46,7 @@ namespace spatial_cell {
          // phiprof::Timer timer {computeId};
 #pragma omp for schedule(dynamic)
          for (uint i=0; i<cells.size(); ++i) {
-            mpiGrid[cells[i]]->updateSparseMinValue(popID);
+            mpiGrid[cells[i]]->updateSparseMinValue(popID, timeclass);
             mpiGrid[cells[i]]->update_velocity_block_content_lists(popID, timeclass);
          }
          //  timer.stop();
@@ -101,7 +101,7 @@ namespace spatial_cell {
                }
             }
 
-            cell->adjust_velocity_blocks(neighbor_ptrs,popID, timeclass);
+            cell->adjust_velocity_blocks(neighbor_ptrs,popID, true, timeclass);
 
             if (getObjectWrapper().particleSpecies[popID].sparse_conserve_mass) {
                for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID, timeclass)*WID3; ++i) {
