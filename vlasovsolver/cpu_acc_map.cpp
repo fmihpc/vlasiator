@@ -141,8 +141,10 @@ bool map_1d(SpatialCell* spatial_cell,
    // vmesh::VelocityMesh* vmesh    = spatial_cell->get_velocity_mesh(popID);
    // vmesh::VelocityBlockContainer* blockContainer = spatial_cell->get_velocity_blocks(popID);
 
+   uint vMeshSize = vmesh->size();
+
    //nothing to do if no blocks
-   if(vmesh->size() == 0) {
+   if(vMeshSize == 0) {
       return true;
    }
 
