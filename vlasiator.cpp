@@ -358,7 +358,7 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    } else if (P::tc_test_type ==4) {
       //for 2d testing with tc box in the middle
 
-      int sidelen = 100;
+      int sidelen = P::xcells_ini;
 
       if(P::maxTimeclass > 0) {
          P::currentMaxTimeclass = P::maxTimeclass;
