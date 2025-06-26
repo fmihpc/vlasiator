@@ -390,6 +390,42 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       }
 
 
+   } else if (P::tc_test_type == 5) {
+      //for 2d testing with tc box in the middle, only with one side longer than the other
+
+      int sidelenX = P::xcells_ini;
+      int sidelenY = P::ycells_ini;
+
+      if(P::maxTimeclass > 0) {
+         P::currentMaxTimeclass = P::maxTimeclass;
+      }
+      else{
+         P::currentMaxTimeclass = 0;
+      }
+      for(int i = 0; i <= P::maxTimeclass; ++i){
+         newTimeclassDts[i] = fsdt*pow(2,P::currentMaxTimeclass - min(i,P::currentMaxTimeclass));
+      }
+      P::timeclassDt = newTimeclassDts;
+      // if(P::tcOverrideTimeclass > -1){
+      //    localTimeClass = P::tcOverrideTimeclass;
+      // }
+      // else {
+      //    localTimeClass = myRank % 2;
+      // }
+      
+      for (vector<CellID>::const_iterator cell_id=cells.begin(); cell_id!=cells.end(); ++cell_id) {
+         SpatialCell* cell = mpiGrid[*cell_id];
+
+         if (cell->parameters[CellParams::XCRD] > (sidelenX/4.0)*cell->parameters[CellParams::DX] && cell->parameters[CellParams::XCRD] < (3.0*sidelenX/4.0)*cell->parameters[CellParams::DX] &&
+         cell->parameters[CellParams::YCRD] > (sidelenY/4.0)*cell->parameters[CellParams::DX] && cell->parameters[CellParams::YCRD] < (3.0*sidelenY/4.0)*cell->parameters[CellParams::DX]) {
+            cell->parameters[CellParams::TIMECLASS] = 1;   
+         } else {
+            cell->parameters[CellParams::TIMECLASS] = 0;
+         }
+         cell->parameters[CellParams::TIMECLASSDT] = cell->get_tc_dt();
+      }
+
+   
    } else {
       for (vector<CellID>::const_iterator cell_id=cells.begin(); cell_id!=cells.end(); ++cell_id) {
          SpatialCell* cell = mpiGrid[*cell_id];
