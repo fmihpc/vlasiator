@@ -189,6 +189,7 @@ void initializeGrids(
    if (myRank == MASTER_RANK) {
       logFile << "(INIT): Set initial state." << endl << writeVerbose;
    }
+   std::cout << __FILE__<<":" << __LINE__ <<"\n";
 
    phiprof::Timer initialStateTimer {"Set initial state"};
 
@@ -199,10 +200,11 @@ void initializeGrids(
    phiprof::Timer initBoundaryTimer {"Initialize system boundary conditions"};
    sysBoundaries.initSysBoundaries(project, P::t_min);
    initBoundaryTimer.stop();
+   std::cout << __FILE__<<":" << __LINE__ <<"\n";
 
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_DIMENSIONS);
    mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::SYSBOUNDARIES);
-
+std::cout << __FILE__<<":" << __LINE__ <<"\n";
    computeCoupling(mpiGrid, cells, technicalGrid);
 
    // We want this before restart refinement
@@ -299,6 +301,7 @@ void initializeGrids(
          "\n";
          for (int timeclass = 0; timeclass <= P::currentMaxTimeclass; timeclass++){
             adjustVelocityBlocks(mpiGrid,cells,true,popID,timeclass);
+            std::cout << __FILE__<<":" << __LINE__ <<" adjusted velocityblocs "<< timeclass<<"\n";
          }
          // set initial LB metric based on number of blocks
          #pragma omp parallel for schedule(static)
@@ -333,7 +336,7 @@ void initializeGrids(
       }
    }
 
-
+   std::cout << __FILE__<<":" << __LINE__ <<" about to call balanceLoad\n";
    // Balance load before we transfer all data below
    balanceLoad(mpiGrid, sysBoundaries, technicalGrid, false);
    // Function includes re-calculation of local cells cache, but
@@ -342,7 +345,9 @@ void initializeGrids(
 
    phiprof::Timer fetchNeighbourTimer {"Fetch Neighbour data", {"MPI"}};
    // update complete cell spatial data for full stencil
+   std::cout << __FILE__<<":" << __LINE__ <<" to set spatial data\n";
    SpatialCell::set_mpi_transfer_type(Transfer::ALL_SPATIAL_DATA);
+   std::cout << __FILE__<<":" << __LINE__ <<" to update remote copies\n";
    mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::FULL);
    fetchNeighbourTimer.stop();
 
@@ -599,54 +604,58 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
       }
 
       for (size_t popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         // Set active population
-         SpatialCell::setCommunicatedSpecies(popID);
+         for (int timeclass = 0; timeclass <= P::currentMaxTimeclass; ++timeclass) {
+            // Set active population
+            SpatialCell::setCommunicatedSpecies(popID, timeclass);
+            adjustVelocityBlocks(mpiGrid, cells,false, popID,timeclass); // TODO block lists maybe should be timeclass-specific after all?
 
-         //Transfer velocity block list
-         SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE1);
-         mpiGrid.continue_balance_load();
-         SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE2);
-         mpiGrid.continue_balance_load();
 
-         int prepareReceives {phiprof::initializeTimer("Preparing receives")};
-         int receives = 0;
-         #pragma omp parallel for schedule(guided)
-         for (unsigned int i=0; i<incoming_cells_list.size(); i++) {
-            CellID cell_id=incoming_cells_list[i];
-            SpatialCell* cell = mpiGrid[cell_id];
-            if (cell_id % num_part_transfers == transfer_part) {
-               receives++;
-               // reserve space for velocity block data in arriving remote cells
-               phiprof::Timer timer {prepareReceives};
-               cell->prepare_to_receive_blocks(popID);
-               timer.stop(1, "Spatial cells");
+            //Transfer velocity block list
+            SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE1);
+            mpiGrid.continue_balance_load();
+            SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE2);
+            mpiGrid.continue_balance_load();
+
+            int prepareReceives {phiprof::initializeTimer("Preparing receives")};
+            int receives = 0;
+            #pragma omp parallel for schedule(guided)
+            for (unsigned int i=0; i<incoming_cells_list.size(); i++) {
+               CellID cell_id=incoming_cells_list[i];
+               SpatialCell* cell = mpiGrid[cell_id];
+               if (cell_id % num_part_transfers == transfer_part) {
+                  receives++;
+                  // reserve space for velocity block data in arriving remote cells
+                  phiprof::Timer timer {prepareReceives};
+                  cell->prepare_to_receive_blocks(popID, timeclass);
+                  timer.stop(1, "Spatial cells");
+               }
             }
-         }
-         if(receives == 0) {
-            //empty phiprof timer, to avoid unneccessary divergence in unique
-            //profiles (keep order same)
-            phiprof::Timer timer {prepareReceives};
-            timer.stop(0, "Spatial cells");
-         }
+            if(receives == 0) {
+               //empty phiprof timer, to avoid unneccessary divergence in unique
+               //profiles (keep order same)
+               phiprof::Timer timer {prepareReceives};
+               timer.stop(0, "Spatial cells");
+            }
 
-         //do the actual transfer of data for the set of cells to be transferred
-         phiprof::Timer transferTimer {"transfer_all_data"};
-         SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
-         mpiGrid.continue_balance_load();
-         transferTimer.stop();
+            //do the actual transfer of data for the set of cells to be transferred
+            phiprof::Timer transferTimer {"transfer_all_data"};
+            SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
+            mpiGrid.continue_balance_load();
+            transferTimer.stop();
 
-         // Free memory for cells that have been sent (the block data)
-         for (unsigned int i=0;i<outgoing_cells_list.size();i++){
-            CellID cell_id=outgoing_cells_list[i];
-            SpatialCell* cell = mpiGrid[cell_id];
+            // Free memory for cells that have been sent (the block data)
+            for (unsigned int i=0;i<outgoing_cells_list.size();i++){
+               CellID cell_id=outgoing_cells_list[i];
+               SpatialCell* cell = mpiGrid[cell_id];
 
-            // Free memory of this cell as it has already been transferred,
-            // it will not be used anymore. NOTE: Only clears memory allocated
-            // to the active population.
-            if (cell_id % num_part_transfers == transfer_part) cell->clear(popID,true);
-         }
+               // Free memory of this cell as it has already been transferred,
+               // it will not be used anymore. NOTE: Only clears memory allocated
+               // to the active population.
+               if (cell_id % num_part_transfers == transfer_part) cell->clear(popID,true, timeclass);
+            }
 
-         memory_purge(); // Purge jemalloc allocator to actually release memory
+            memory_purge(); // Purge jemalloc allocator to actually release memory
+         } // for-loop over timeclasses
       } // for-loop over populations
    } // for-loop over transfer parts
    transfersTimer.stop();
@@ -888,26 +897,40 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
                           const int timeclass) {
    phiprof::Timer readjustBlocksTimer {"re-adjust blocks", {"Block adjustment"}};
    SpatialCell::setCommunicatedSpecies(popID);
+   std::cout << __FILE__<<":" << __LINE__ <<"\n";
+
 
    const vector<CellID>& cells = getLocalCells();
+   std::cout << __FILE__<<":" << __LINE__ <<"\n";
    // Batch call
    update_velocity_block_content_lists(mpiGrid,cells,popID,timeclass);
+   std::cout << __FILE__<<":" << __LINE__ <<"\n";
 
    // Get updated lists for blocks with content in spatial neighbours
    phiprof::Timer transferTimer {"Transfer with_content_list", {"MPI"}}; // TODO add neighborhood declarations per TC?
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_WITH_CONTENT_STAGE1 );
+   std::cout << __FILE__<<":" << __LINE__ <<"\n";
    mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::NEAREST);
+   std::cout << __FILE__<<":" << __LINE__ <<"\n";
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_WITH_CONTENT_STAGE2 );
+   std::cout << __FILE__<<":" << __LINE__ <<"\n";
    mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::NEAREST);
+   std::cout << __FILE__<<":" << __LINE__ <<"\n";
    transferTimer.stop();
 
    // Batch adjusts velocity blocks in local spatial cells, doesn't adjust velocity blocks in remote cells.
    adjust_velocity_blocks_in_cells(mpiGrid, cellsToAdjust, popID, timeclass);
+   std::cout << __FILE__<<":" << __LINE__ <<"\n";
 
    // prepare to receive full block data for all cells (irrespective of list of cells to adjust)
    if (doPrepareToReceiveBlocks) {
       if (P::vlasovSolverGhostTranslate) { // TODO add timeclasses for remote
-         updateRemoteVelocityBlockLists(mpiGrid,popID,Neighborhoods::VLASOV_SOLVER_GHOST);
+         if(P::maxTimeclass > 0){
+            updateRemoteVelocityBlockLists(mpiGrid,popID,Neighborhoods::VLASOV_SOLVER_GHOST, timeclass);
+         }
+         else{
+            updateRemoteVelocityBlockLists(mpiGrid,popID,Neighborhoods::VLASOV_SOLVER_GHOST);
+         }
       } else {
          updateRemoteVelocityBlockLists(mpiGrid,popID);
       }
@@ -971,10 +994,12 @@ copies of remote neighbors for receiving velocity block data.
 void updateRemoteVelocityBlockLists(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const uint popID,
-   const uint neighborhood/*=Neighborhoods::DIST_FUNC default*/
+   const uint neighborhood,/*=Neighborhoods::DIST_FUNC default*/
+   const int timeclass
 )
 {
-   SpatialCell::setCommunicatedSpecies(popID);
+   SpatialCell::setCommunicatedSpecies(popID, timeclass);
+std::cerr << __FILE__<<":" << __LINE__ <<"\n";
 
    // update velocity block lists For small velocity spaces it is
    // faster to do it in one operation, and not by first sending size,
@@ -982,14 +1007,18 @@ void updateRemoteVelocityBlockLists(
    phiprof::Timer updateTimer {"Velocity block list update", {"MPI"}};
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE1);
    mpiGrid.update_copies_of_remote_neighbors(neighborhood);
+std::cerr << __FILE__<<":" << __LINE__ << " timeclass " << timeclass <<"\n";
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE2);
+   std::cerr << __FILE__<<":" << __LINE__ <<"\n";
+
    mpiGrid.update_copies_of_remote_neighbors(neighborhood);
+std::cerr << __FILE__<<":" << __LINE__ <<"\n";
    updateTimer.stop();
 
    // Prepare spatial cells for receiving velocity block data
    phiprof::Timer receivesTimer {"Preparing receives"};
    const std::vector<uint64_t> incoming_cells = mpiGrid.get_remote_cells_on_process_boundary(neighborhood);
-
+std::cerr << __FILE__<<":" << __LINE__ <<"\n";
    #pragma omp parallel for
    for (unsigned int i=0; i<incoming_cells.size(); ++i) {
      uint64_t cell_id = incoming_cells[i];
@@ -1011,8 +1040,10 @@ void updateRemoteVelocityBlockLists(
         #endif
         continue;
      }
-     cell->prepare_to_receive_blocks(popID);
+     cell->prepare_to_receive_blocks(popID, timeclass);
    }
+      std::cerr << __FILE__<<":" << __LINE__ <<"\n";
+
 
    receivesTimer.stop(incoming_cells.size(), "SpatialCells");
 }

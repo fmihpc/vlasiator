@@ -61,7 +61,7 @@ struct setOfPencils {
    }
 
    void removeAllPencils() {
-      std::cerr << __FILE__ <<":"<<__LINE__<<" removeAllPencils called \n";
+      // std::cerr << __FILE__ <<":"<<__LINE__<<" removeAllPencils called \n";
 
       N = 0;
       sumOfLengths = 0;

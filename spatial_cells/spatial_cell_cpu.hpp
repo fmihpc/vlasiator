@@ -80,6 +80,9 @@ namespace spatial_cell {
       Real max_dt[2];                                                /**< Element[0] is max_r_dt, element[1] max_v_dt.*/
       Real velocityBlockMinValue;
 
+      // enum PropagationState = {UNINITIALIZED, TRANSLATED, ACCELERATED};
+      Real T, T_R, T_V;
+
       uint ACCSUBCYCLES;          /*!< number of subcyles for each cell*/
       vmesh::LocalID N_blocks;    /**< Number of velocity blocks, used when receiving velocity
                                    * mesh from remote neighbors using MPI.*/
@@ -281,11 +284,11 @@ namespace spatial_cell {
       const Real& get_max_v_dt(const uint popID) const;
 
       const Real& get_tc_dt() const;
-      const int get_tc() const;
-      const bool has_timeclass(int) const;
-      const bool get_timeclass_turn_r() const;
-      const bool get_timeclass_turn_v() const;
-      const bool get_timeclass_turn_v(int tc) const;
+      int get_tc() const;
+      bool has_timeclass(int) const;
+      bool get_timeclass_turn_r() const;
+      bool get_timeclass_turn_v() const;
+      bool get_timeclass_turn_v(int tc) const;
 
       const vmesh::LocalID* get_velocity_grid_length(const uint popID, const int timeclass);
       const Real* get_velocity_grid_block_size(const uint popID, const int timeclass);
@@ -297,11 +300,11 @@ namespace spatial_cell {
       vmesh::GlobalID get_velocity_block(const uint popID,const Real* coords, const int timeclass) const;
       vmesh::GlobalID get_velocity_block(const uint popID,const Real vx,const Real vy,const Real vz, const int timeclass) const;
       vmesh::GlobalID get_velocity_block_child(const uint popID,const vmesh::GlobalID& blockGID,
-                                               const int& i_cell,const int& j_cell,const int& k_cell); //TODO timeclasses
+                                               const int& i_cell,const int& j_cell,const int& k_cell, const int timeclass =-1);
       void get_velocity_block_children_local_ids(const vmesh::GlobalID& blockGID,
                                                  std::vector<vmesh::LocalID>& childrenLIDs,
-                                                 const uint popID); //TODO timeclasses
-      vmesh::GlobalID get_velocity_block_parent(const uint popID,const vmesh::GlobalID& blockGID); //TODO timeclasses
+                                                 const uint popID, const int timeclass = -1);
+      vmesh::GlobalID get_velocity_block_parent(const uint popID,const vmesh::GlobalID& blockGID, const int timeclass = -1); 
       vmesh::GlobalID get_velocity_block_global_id(const vmesh::LocalID& blockLID,const uint popID, const int timeclass) const;
       vmesh::LocalID get_velocity_block_local_id(const vmesh::GlobalID& blockGID,const uint popID, const int timeclass) const;
       void get_velocity_block_size(const uint popID,const vmesh::GlobalID block,Real size[3], const int timeclass);
@@ -323,7 +326,7 @@ namespace spatial_cell {
                       const uint popID);
 
       void printMeshSizes();
-      static bool setCommunicatedSpecies(const uint popID);
+      static bool setCommunicatedSpecies(const uint popID, const int timeclass = -1);
 
       // Following functions adjust velocity blocks stored on the cell //
       bool add_velocity_block(const vmesh::GlobalID& block,const uint popID, const int timeclass);
@@ -342,8 +345,8 @@ namespace spatial_cell {
 
       uint64_t get_cell_memory_capacity();
       uint64_t get_cell_memory_size();
-      void merge_values(const uint popID);
-      void prepare_to_receive_blocks(const uint popID);
+      void merge_values(const uint popID, const int timeclass=-1);
+      void prepare_to_receive_blocks(const uint popID, const int timeclass=-1);
       bool shrink_to_fit();
       size_t size(const uint popID, const int timeclass) const;
       void remove_velocity_block(const vmesh::GlobalID& block,const uint popID, const int timeclass);      
@@ -413,6 +416,7 @@ namespace spatial_cell {
       bool compute_block_has_content(const vmesh::GlobalID& block,const uint popID, const int timeclass=-1) const;
 
       static int activePopID;
+      static int activeTimeclass;
       bool initialized;
       bool mpiTransferEnabled;
 

@@ -310,7 +310,7 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          cell->parameters[CellParams::TIMECLASSDT] = cell->get_tc_dt();
       }
    }
-   else if(P::tc_test_type == 2 || P::tc_test_type == 3){ 
+   else if(P::tc_test_type == 2 || P::tc_test_type == 3 || P::tc_test_type == 4){ 
       std::cerr << "TC test 2\n";
       if(P::maxTimeclass > 2){
          std::cerr << "This test works best with timeclass 1 or 2\n";
@@ -339,7 +339,7 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
          // first block: one half timeclass0 and other timeclassmax
          // second block: three parts: timeclassmax-2, timeclassmax-1, timeclassmax
-         if (P::maxTimeclass == 1) {
+         if (P::maxTimeclass == 1 && P::tc_test_type != 4) {
             cell->parameters[CellParams::TIMECLASS] = min(int(cell->parameters[CellParams::XCRD] > -100/*epsilon*/)*P::maxTimeclass, P::maxTimeclass);
          } else if (P::maxTimeclass == 2) {
             if (cell->parameters[CellParams::XCRD] < -15*(cell->parameters[CellParams::DX])) {
@@ -349,9 +349,17 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             } else {
                cell->parameters[CellParams::TIMECLASS] = 1;
             }
-         } else if (P::maxTimeclass == 3) {
+         } else if (P::maxTimeclass == 3 && P::tc_test_type == 3) {
             cell->parameters[CellParams::TIMECLASS] = min(int(cell->parameters[CellParams::XCRD] > -100/*epsilon*/)*P::maxTimeclass, P::maxTimeclass);
          }
+	 else if(P::tc_test_type == 4){
+		 if (P::maxTimeclass != 1){
+			 abort();
+		 }
+             if (abs(cell->parameters[CellParams::XCRD]) < 8*cell->parameters[CellParams::DX] && abs(cell->parameters[CellParams::YCRD]) < 4*cell->parameters[CellParams::DX]){
+		 cell->parameters[CellParams::TIMECLASS] = 1;
+	     }
+	 }
          cell->parameters[CellParams::TIMECLASSDT] = cell->get_tc_dt();
       }
       
