@@ -31,6 +31,7 @@
 #include "../velocity_mesh_parameters.h"
 
 #include "Alfven/Alfven.h"
+#include "AlfvenCascade/AlfvenCascade.h"
 #include "Diffusion/Diffusion.h"
 #include "Dispersion/Dispersion.h"
 #include "Distributions/Distributions.h"
@@ -81,6 +82,7 @@ namespace projects {
       projects::Dispersion::addParameters();
       projects::Distributions::addParameters();
       projects::Firehose::addParameters();
+      projects::AlfvenCascade::addParameters();
       projects::FastWave::addParameters();
       projects::Flowthrough::addParameters();
       projects::Fluctuations::addParameters();
@@ -678,6 +680,9 @@ Project* createProject() {
    }
    if(Parameters::projectName == "Firehose") {
       rvalue = new projects::Firehose;
+   }
+   if(Parameters::projectName == "AlfvenCascade") {
+      rvalue = new projects::AlfvenCascade;
    }
    if(Parameters::projectName == "FastWave") {
       rvalue = new projects::FastWave;
