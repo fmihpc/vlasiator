@@ -63,7 +63,7 @@ testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 MPT_VERSION = 4.0.3
 JEMALLOC_VERSION = 5.2.1
-LIBRARY_PREFIX =  /projappl/project_2004873/libraries_rhel8_openmpi/
+LIBRARY_PREFIX =  /projappl/project_2004873/libraries_rhel8_openmpi_gcc13/
 
 # module libraries
 INC_BOOST = -I$(LIBRARY_PREFIX)/boost/include
