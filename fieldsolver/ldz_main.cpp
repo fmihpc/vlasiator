@@ -232,6 +232,7 @@ bool propagateFields(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb
          Real dtMaxGlobal = 0.0;
          Real dtMaxLocal = std::numeric_limits<Real>::max();
 
+         // No urgent need to parallelise, see below.
          for (auto z = 0; z < localSize[2]; z++) {
             for (auto y = 0; y < localSize[1]; y++) {
                for (auto x = 0; x < localSize[0]; x++) {
@@ -244,7 +245,8 @@ bool propagateFields(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb
                }
             }
          }
-
+         
+         // In FIE and FIJ this timer takes >99% so no acute need to e.g. parallelise the previous loop. 
          phiprof::Timer allreduceTimer{"MPI_Allreduce"};
          fsgrid.Allreduce(&(dtMaxLocal), &(dtMaxGlobal), 1, MPI_Type<Real>(), MPI_MIN);
          allreduceTimer.stop();
