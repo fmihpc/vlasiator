@@ -4,7 +4,12 @@ run_command="mpirun -n 1"
 small_run_command="mpirun -n 1"
 run_command_tools="mpirun -n 1"
 
-cd ..
+t=8
+export OMP_NUM_THREADS=$t
+
+bin="../vlsasiator"
+diffbin="../vlsvdiff_DP"
+
 
 #If 1, the reference vlsv files are generated
 # if 0 then we check the v1
@@ -20,7 +25,7 @@ reference_revision="current"
 
 
 # Define test
-source small_test_definitions.sh
+source test_definitions_small.sh
 wait
 # Run tests
 source run_tests.sh

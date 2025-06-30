@@ -25,14 +25,14 @@ else
 fi
 
 # PAPI
-if [[ $PLATFORM != "-arriesgado" && $PLATFORM != "-appleM1" && $PLATFORM != "-ukkogpu" && $PLATFORM != "-hile_cpu" && $PLATFORM != "-hile_gpu" ]]; then
+if [[ $PLATFORM != "-arriesgado" && $PLATFORM != "-appleM1" && $PLATFORM != "-ukkogpu" && $PLATFORM != "-hile_cpu" && $PLATFORM != "-hile_gpu" && $PLATFORM != "-lumi_hipcc"  && $PLATFORM != "-lumi_2403" ]]; then
     # This fails on RISCV and MacOS
-    # UkkoGPU and HILE use system module
+    # LUMI, UkkoGPU and HILE use system module
     git clone https://github.com/icl-utk-edu/papi
 fi
 
 # jemalloc (not for GPU versions)
-if [[ $PLATFORM != "-leonardo_booster" && $PLATFORM != "-karolina_cuda" && $PLATFORM != "-ukkogpu" && $PLATFORM != "-hile_gpu" ]]; then    
+if [[ $PLATFORM != "-leonardo_booster" && $PLATFORM != "-karolina_cuda" && $PLATFORM != "-ukkogpu" && $PLATFORM != "-hile_gpu" && $PLATFORM != "-lumi_hipcc" ]]; then
     curl -O -L https://github.com/jemalloc/jemalloc/releases/download/5.3.0/jemalloc-5.3.0.tar.bz2
     tar xjf jemalloc-5.3.0.tar.bz2
 fi
@@ -40,7 +40,7 @@ fi
 # Zoltan
 git clone https://github.com/sandialabs/Zoltan.git
 
-# Boost
+# Boost (only if system module not available)
 if [[ $PLATFORM == "-leonardo_booster" || $PLATFORM == "-leonardo_dcgp" || $PLATFORM == "-karolina_cuda" || $PLATFORM == "-karolina_gcc" || $PLATFORM == "-ukkogpu" ]]; then
     echo "### Downloading boost. ###"
     wget -q https://archives.boost.io/release/1.86.0/source/boost_1_86_0.tar.gz

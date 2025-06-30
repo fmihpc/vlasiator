@@ -20,11 +20,11 @@ reference_dir="/proj/group/spacephysics/vlasiator_testpackage/"
 cd $SLURM_SUBMIT_DIR
 
 #compare agains which revision
-reference_revision="CI_reference"
-#reference_revision="current"
+#reference_revision="CI_reference"
+reference_revision="current"
 
-bin="$SLURM_SUBMIT_DIR/vlasiator"
-diffbin="$SLURM_SUBMIT_DIR/vlsvdiff_DP"
+bin="/proj/USERNAME/BINARYNAME"
+diffbin="/proj/group/spacephysics/vlasiator_testpackage/vlsvdiff_DP_ukkogpu"
 
 export UCX_NET_DEVICES=eth0
 ulimit -c unlimited

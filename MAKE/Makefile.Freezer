@@ -20,6 +20,11 @@ else
 #	VECTORCLASS = VEC_FALLBACK_GENERIC
 endif
 
+#WID=8
+#VECL=64
+#WID=4
+#VECL=16
+
 #======= Compiler and compilation flags =========
 # NOTES on compiler flags:
 # CXXFLAGS is for compiler flags, they are always used

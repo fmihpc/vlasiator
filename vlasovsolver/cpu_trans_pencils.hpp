@@ -43,6 +43,11 @@ struct setOfPencils {
    std::vector< bool > periodic;
    std::vector< std::vector<uint> > path; // Path taken through refinement levels
 
+   std::vector<uint> binOfPencil; //!< Bin of each pencil
+   std::map<uint, std::vector<uint>> pencilsInBin; //!< Vector of pencils in each bin
+   std::map<uint, std::set<CellID>> targetCellsInBin; //!< Set of source and target cells in each bin which are a target cell of any pencil
+   std::vector<uint> activeBins; //!< set of keys in the above two maps
+
    //GPUTODO: move gpu buffers and their upload to separate gpu_trans_pencils .hpp and .cpp files
 #ifdef USE_GPU
    uint gpu_allocated_N = 0;
@@ -71,6 +76,10 @@ struct setOfPencils {
       y.clear();
       periodic.clear();
       path.clear();
+      binOfPencil.clear();
+      targetCellsInBin.clear();
+      pencilsInBin.clear();
+      activeBins.clear();
    }
 
    void addPencil(std::vector<CellID> idsIn, Real xIn, Real yIn, bool periodicIn, std::vector<uint> pathIn) {
@@ -97,6 +106,84 @@ struct setOfPencils {
       path.push_back(pathIn);
    }
 
+   void binPencils() {
+      binOfPencil.resize(N);
+
+      // Consider only cells which _any_ pencil writes into for binning,
+      // since read-only cells aren't affected by race conditions
+      std::unordered_set<CellID> allTargetCells = {};
+      #pragma omp parallel for
+      for (uint i = 0; i < sumOfLengths; ++i) {
+         const CellID targ = ids[i];
+         const Realf ratio = targetRatios[i];
+         if (targ && (ratio > 0.0)) {
+            #pragma omp critical
+            allTargetCells.insert(targ);
+         }
+      }
+
+      // Loop over pencils to create initial bins containing all cells in the pencil that are a target cell for any pencil
+      // TODO could be paralellized as well
+      for (uint i = 0; i < N; ++i) {
+         binOfPencil[i] = i;
+         targetCellsInBin[i] = {};
+
+         for (auto id = ids.begin() + idsStart[i]; id < ids.begin() + idsStart[i] + lengthOfPencils[i]; ++id) {
+            // We don't need to consider source and target cells of the pencil separately
+            // as all pencils with source/target cell C must be in the same bin as all pencils with target C
+            if (*id && allTargetCells.contains(*id)) {
+               targetCellsInBin[i].insert(*id);
+            }
+         }
+      }
+
+      // Super ugly!
+      // TODO If anyone knows how to do this more efficiently feel free to fix it
+      std::set<uint> binsToDelete;
+      do {
+         binsToDelete.clear();
+         for (auto& [binIndex1, cellsInBin1] : targetCellsInBin) {
+            if (binsToDelete.contains(binIndex1)) {
+               continue;
+            }
+
+            for (auto& [binIndex2, cellsInBin2] : targetCellsInBin) {
+               if (binIndex1 == binIndex2 || binsToDelete.contains(binIndex2)) {
+                  continue;
+               }
+
+               // Check for overlapping cells
+               for (auto cell : cellsInBin2) {
+                  if (cellsInBin1.contains(cell)) {
+                     binsToDelete.insert(binIndex2);
+
+                     // Insert all cells from bin2 to bin1
+                     cellsInBin1.insert(cellsInBin2.begin(), cellsInBin2.end());
+
+                     // Replace bin2 with bin1 in bins
+                     std::replace(binOfPencil.begin(), binOfPencil.end(), binIndex2, binIndex1);
+                     break;
+                  }
+               }
+            }
+         }
+
+         for (auto bin : binsToDelete) {
+            targetCellsInBin.erase(bin);
+         }
+      } while (!binsToDelete.empty());
+
+      // TODO do this "online" and make variable bins redundant
+      for (uint i = 0; i < N; ++i) {
+         pencilsInBin[binOfPencil[i]].push_back(i);
+      }
+
+      for (auto [bin, pencils] : pencilsInBin) {
+         activeBins.push_back(bin);
+      }
+   }
+
+   // Never called?
    void removePencil(const uint pencilId) {
       x.erase(x.begin() + pencilId);
       y.erase(y.begin() + pencilId);
@@ -218,7 +305,6 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
 
 // pencils used for AMR translation
 extern std::array<setOfPencils,3> DimensionPencils;
-extern std::array<std::unordered_set<CellID>,3> DimensionTargetCells;
 
 // Ghost translation cell lists (no interim comms)
 void prepareGhostTranslationCellLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,

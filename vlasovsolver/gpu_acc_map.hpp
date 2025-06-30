@@ -22,20 +22,34 @@
 #ifndef GPU_ACC_MAP_H
 #define GPU_ACC_MAP_H
 
-#include "../spatial_cells/spatial_cell_wrapper.hpp"
-#include "vec.h"
+#ifdef DEBUG_VLASIATOR
+   #ifndef DEBUG_ACC
+   #define DEBUG_ACC
+   #endif
+#endif
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "../common.h"
-
-#include "gpu_acc_sort_blocks.hpp"
+#include "../definitions.h"
+#include "../object_wrapper.h"
 #include "../arch/gpu_base.hpp"
+#include "../spatial_cells/spatial_cell_gpu.hpp"
+#include "gpu_1d_pqm.hpp"
+#include "gpu_1d_ppm.hpp"
+#include "gpu_1d_plm.hpp"
 
-bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
-                     const uint popID,
-                     Real intersection,
-                     Real intersection_di,
-                     Real intersection_dj,
-                     Real intersection_dk,
-                     const uint dimension
+using namespace spatial_cell;
+
+bool gpu_acc_map_1d(
+   dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   vector<CellID> &launchCells,
+   const uint popID,
+   const uint dimension,
+   const int Dacc,
+   const int Dother,
+   const size_t cumulativeOffset
    );
 
 #endif

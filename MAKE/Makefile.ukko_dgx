@@ -10,17 +10,16 @@
 # module purge; ml OpenMPI/4.1.6.withucx-GCC-13.2.0 PAPI/7.1.0-GCCcore-13.2.0 CUDA/12.6.0
 
 #======== Vectorization ==========
-#Set vector backend type for vlasov solvers, sets precision and length.
+#GPU Vlasov solvers no longer use any vectorclass.
 #Options:
+# AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX512:   VEC8D_AGNER, VEC16F_AGNER
+# Fallback: VECTORCLASS = VEC_FALLBACK_GENERIC
 VECTORCLASS = VEC_FALLBACK_GENERIC
 
-#===== Vector Lengths ====
-# Default for VEC_FALLBACK_GENERIC is WID=4, VECL=8
-# NOTE: A bug currently results in garbage data already on cell init if VECL is not equal to WID2
+# VMesh Block size: (historical value 4, also 8 supported)
 #WID=8
-#VECL=64
 WID=4
-VECL=16
 
 #======= Compiler and compilation flags =========
 # NOTES on compiler flags:
@@ -34,8 +33,8 @@ USE_CUDA=1
 #-G (device debug) overrides --generate-line-info -line-info but also requires more device-side resources to run
 # use "-Xptxas -v" for verbose output of ptx compilation
 # --cudart shared used for Kostis' mempool_ts
-CXXFLAGS = -g -O3 -x cu -std=c++20 --extended-lambda --expt-relaxed-constexpr -arch=sm_70 -gencode arch=compute_70,code=sm_70 --cudart shared --generate-line-info -line-info -Xcompiler="-fopenmp" -Xcompiler="-fpermissive" -maxrregcount 24 -Wno-deprecated-declarations -Xcudafe "--diag_suppress=20012"
-testpackage: CXXFLAGS = -g -O2 -x cu -std=c++20 --extended-lambda --expt-relaxed-constexpr -arch=sm_70 -gencode arch=compute_70,code=sm_70 --cudart shared --generate-line-info -line-info -Xcompiler="-fopenmp" -Xcompiler="-fpermissive" -maxrregcount 24 -Wno-deprecated-declarations -Xcudafe "--diag_suppress=20012"
+CXXFLAGS = -g -O3 -x cu -std=c++20 --extended-lambda --expt-relaxed-constexpr -arch=sm_70 -gencode arch=compute_70,code=sm_70 --cudart shared --generate-line-info -line-info -Xcompiler="-fopenmp" -Xcompiler="-fpermissive" -maxrregcount 24 -Wno-deprecated-declarations -Xcudafe "--diag_suppress=20012" -Xptxas='-w'
+testpackage: CXXFLAGS = -g -O2 -x cu -std=c++20 --extended-lambda --expt-relaxed-constexpr -arch=sm_70 -gencode arch=compute_70,code=sm_70 --cudart shared --generate-line-info -line-info -Xcompiler="-fopenmp" -Xcompiler="-fpermissive" -maxrregcount 24 -Wno-deprecated-declarations -Xcudafe "--diag_suppress=20012" -Xptxas='-w'
 
 # Tell mpic++ to use nvcc for all compiling
 CMP = OMPI_CXX='nvcc' OMPI_CXXFLAGS='' mpic++

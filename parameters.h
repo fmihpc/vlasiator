@@ -76,6 +76,7 @@ struct Parameters {
    static std::vector<CellID> localCells; /*!< Cached copy of spatial cell IDs on this process.*/
 
    static bool adaptGPUWID;         /*!< If true, GPU runs with WID=8 use halved velocity block counts.*/
+   static uint GPUallocations;         /*!< How many parallel GPU vlasov allocations to make?*/
 
    static uint diagnosticInterval;
    static std::vector<std::string> systemWriteName;  /*!< Names for the different classes of grid output*/

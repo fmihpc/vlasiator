@@ -155,8 +155,7 @@ bool ObjectWrapper::getPopulationParameters() {
          std::cerr << errormsg;
       }
 
-      /* Special handling of GPU version with WID=8; halve the number of blocks */
-      #ifdef USE_GPU
+      /* Special handling of WID=8; halve the number of blocks */
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       if ((WID==8 && P::adaptGPUWID)) {
@@ -166,15 +165,14 @@ bool ObjectWrapper::getPopulationParameters() {
             vMesh.gridLength[1] /= 2;
             vMesh.gridLength[2] /= 2;
             if(myRank==MASTER_RANK) {
-               std::cerr<<" Note: Using GPU mode with WID=8; Halving velocity block counts per dimension. Deactivate with parameter adaptGPUWID=false."<<std::endl;
+               std::cerr<<" Note: Using WID=8; Halving velocity block counts per dimension. Deactivate with parameter adaptGPUWID=false."<<std::endl;
             }
          } else {
             if(myRank==MASTER_RANK) {
-               std::cerr<<" Warning: Using GPU mode with WID=8 but odd number of velocity blocks! Cannot halve the blocks count."<<std::endl;
+               std::cerr<<" Warning: Using WID=8 but odd number of velocity blocks! Cannot halve the blocks count."<<std::endl;
             }
          }
       }
-      #endif
 
       vMesh.blockLength[0] = vMesh.blockLength[1] = vMesh.blockLength[2] = WID;
 

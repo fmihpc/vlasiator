@@ -2,7 +2,7 @@
 
 /*
  * This file is part of Vlasiator.
- * Copyright 2010-2020 University of Helsinki
+ * Copyright 2010-2025 Finnish Meteorological Institute and University of Helsinki
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
  * at http://www.physics.helsinki.fi/vlasiator/
@@ -31,6 +31,3 @@
 
 void pitchAngleDiffusion(
         dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID);
-
-Realf interpolateNuFromArray(
-   const Real Taniso, const Real betaParallel);

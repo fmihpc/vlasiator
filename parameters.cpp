@@ -87,6 +87,7 @@ bool P::prepareForRebalance = false;
 vector<CellID> P::localCells;
 
 bool P::adaptGPUWID = true;
+uint P::GPUallocations = 64;
 
 vector<string> P::systemWriteName;
 vector<string> P::systemWritePath;
@@ -536,6 +537,7 @@ bool P::addParameters() {
    RP::add("AMR.transShortPencils", "if true, use one-cell pencils", false);
    RP::addComposing("AMR.filterpasses", string("AMR filter passes for each individual refinement level"));
    RP::add("adaptGPUWID", "if true, will halve velocity block counts if GPU is in use and WID==8", true);
+   RP::add("GPUallocations", "How many parallel GPU vlasov allocations to make? (default 64)", 64);
 
    // Diffusion parameters
    RP::add("PAD.enable","Enable Artificial pitch-angle diffusion",0);
@@ -906,6 +908,7 @@ void Parameters::getParameters() {
    RP::get("AMR.transShortPencils", P::amrTransShortPencils);
    RP::get("AMR.filterpasses", P::blurPassString);
    RP::get("adaptGPUWID", P::adaptGPUWID);
+   RP::get("GPUallocations", P::GPUallocations);
 
    // We need the correct number of parameters for the AMR boxes
    if(   P::amrBoxNumber != (int)P::amrBoxHalfWidthX.size()
@@ -975,6 +978,11 @@ void Parameters::getParameters() {
       cerr << "Box domain error!" << endl;
       MPI_Abort(MPI_COMM_WORLD, 1);
    }
+
+   #ifdef USE_GPU
+   // Ensure GPU allocation count figure is at least equal to max threads
+   P::GPUallocations = std::max(P::GPUallocations,gpu_getMaxThreads());
+   #endif
 
    // Set some parameter values.
    P::dx_ini = (P::xmax - P::xmin) / P::xcells_ini;

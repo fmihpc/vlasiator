@@ -8,27 +8,19 @@
 # oneliner:
 # module load gcc/9.1.0 cuda/11.1.0 openmpi/4.0.5-cuda papi/5.7.0 boost/1.68.0 
 
+# WARNING! Untested since long ago!
+
 #======== Vectorization ==========
-#Set vector backend type for vlasov solvers, sets precision and length.
+#GPU Vlasov solvers no longer use any vectorclass.
 #Options:
 # AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
 # AVX512:   VEC8D_AGNER, VEC16F_AGNER
 # Fallback: VECTORCLASS = VEC_FALLBACK_GENERIC
+VECTORCLASS = VEC_FALLBACK_GENERIC
 
-ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
-#Single-precision
-        VECTORCLASS = VEC_FALLBACK_GENERIC
-else
-#Double-precision
-        VECTORCLASS = VEC_FALLBACK_GENERIC
-endif
-#===== Vector Lenghts ====
-# Default for VEC_FALLBACK_GENERIC is WID=4, VECL=8 
-WID=8
-VECL=64 
-#VECL=32
-#WID=4
-#VECL=16
+# VMesh Block size: (historical value 4, also 8 supported)
+#WID=8
+WID=4
 
 #======= Compiler and compilation flags =========
 # NOTES on compiler flags:

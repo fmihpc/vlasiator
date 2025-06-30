@@ -1,8 +1,8 @@
-CMP = CC
-LNK = CC
+# Suggested modules (after clean shell, no module purging)
 
-# Modules loaded
-# module load LUMI/24.03 ; module load Boost/1.83.0-cpeGNU-24.03 ; module load partition/C
+# module load LUMI/24.03 ; module load Boost/1.83.0-cpeGNU-24.03 ; module load partition/C; module load papi/7.1.0.1
+
+# Build libraries with ./build_libraries.sh lumi_2403
 
 #======== Vectorization ==========
 #Set vector backend type for vlasov solvers, sets precision and length. 
@@ -19,16 +19,26 @@ else
 	VECTORCLASS = VEC4D_AGNER
 endif
 
-FLAGS = 
+#======== Library directory ===========
+LIBRARY_PREFIX = $(CURDIR)/libraries-lumi_2403
 
-#GNU flags:
+CMP = CC
+LNK = CC
+
+#======= Compiler and compilation flags =========
+# NOTES on compiler flags:
+# CXXFLAGS is for compiler flags, they are always used
+# MATHFLAGS are for special math etc. flags, these are only applied on solver functions
+# LDFLAGS flags for linker
+# Important note: Do not edit COMPFLAGS in this file!
+
 CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++20 -W -Wall -Wno-unused -mfma -mavx2
 testpackage: CXXFLAGS = -g -O2 -fopenmp -funroll-loops -std=c++20 -mno-fma -mno-avx2 -mno-avx
 
 MATHFLAGS = -ffast-math -fno-finite-math-only
 testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
 
-LDFLAGS = -lrt -fopenmp -lpapi
+LDFLAGS = -lrt -fopenmp -L$(LIBRARY_PREFIX)/lib  -Wl,-rpath=$(LIBRARY_PREFIX)/lib
 LIB_MPI = -fopenmp
 
 #======== PAPI ==========
@@ -42,32 +52,22 @@ testpackage: CXXFLAGS +=  -DPAPI_MEM
 CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
-#======= Compiler and compilation flags =========
-# NOTES on compiler flags:
-# CXXFLAGS is for compiler flags, they are always used
-# MATHFLAGS are for special math etc. flags, these are only applied on solver functions
-# LDFLAGS flags for linker
-
-#-DNO_WRITE_AT_ALL:  Define to disable write at all to 
-#                    avoid memleak (much slower IO)
-
 #======== Libraries ===========
 LIB_BOOST = -lboost_program_options
 
-#compiled libraries
-LIBRARY_PREFIX = /projappl/project_462000358/cpu-libraries/2403
+INC_PAPI = -isystem /opt/cray/pe/papi/7.1.0.1/include/
+LIB_PAPI = -lpapi -L/opt/cray/pe/papi/7.1.0.1/lib -Wl,-rpath=/opt/cray/pe/papi/7.1.0.1/lib
 
-INC_ZOLTAN = -isystem$(LIBRARY_PREFIX)/zoltan/include
-LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/zoltan/lib -lzoltan -Wl,-rpath=$(LIBRARY_PREFIX)/zoltan/lib
+#======== Compiled libraries ========
+INC_ZOLTAN = -isystem$(LIBRARY_PREFIX)/include
+LIB_ZOLTAN = -lzoltan
 
-INC_JEMALLOC = -isystem$(LIBRARY_PREFIX)/jemalloc/include
-LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/jemalloc/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX)/jemalloc/lib
+INC_JEMALLOC = -isystem$(LIBRARY_PREFIX)/include
+LIB_JEMALLOC = -ljemalloc
 
-INC_PAPI = -I$(LIBRARY_PREFIX)/papi/include -lpapi
-LIB_PAPI = -L$(LIBRARY_PREFIX)/papi/lib -Wl,-rpath=$(LIBRARY_PREFIX)/papi/lib
+INC_VLSV = -I$(LIBRARY_PREFIX)/include
+LIB_VLSV = -lvlsv
 
-INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv
-LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX)/vlsv
-
-LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -lgfortran -Wl,-rpath=$(LIBRARY_PREFIX)/phiprof/lib
-INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include 
+INC_PROFILE = -I$(LIBRARY_PREFIX)/include 
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX)/lib
+#LIB_PROFILE = -lphiprof -lgfortran

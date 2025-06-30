@@ -694,6 +694,9 @@ namespace vmesh {
    }
 
    inline bool VelocityBlockContainer::setNewCapacityShrink(const vmesh::LocalID reqCapacity) {
+      #ifdef USE_HIP
+      return setNewCapacity(reqCapacity);
+      #endif
       // Reallocate so that capacity matches requested value.
       vmesh::LocalID numberOfBlocks = block_data.size()/WID3;
       if (reqCapacity < numberOfBlocks) {

@@ -34,8 +34,4 @@ void gpu_accelerate_cells(
    const uint popID,
    const uint map_order);
 
-void gpu_accelerate_cell(SpatialCell* spatial_cell,
-                         const uint popID,
-                         const uint map_order);
-
 #endif

@@ -682,7 +682,7 @@ namespace vmesh {
          gtl_sizepower = globalToLocalMap.getSizePower();
          return blocksSize;
       } else {
-         // GPUTODO: do inside kernel? If ever used.
+         // GPUTODO: do inside kernel? This function is used by SpatialCell::add_velocity_blocks.
          if (ltg_size+blocksSize > ltg_capacity) {
             ltg_capacity = (ltg_size+blocksSize)*BLOCK_ALLOCATION_FACTOR;
             localToGlobalMap.reserve(ltg_capacity,true,stream);

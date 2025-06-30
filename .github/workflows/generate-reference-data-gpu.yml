@@ -1,0 +1,84 @@
+name: Generate testpackage reference data on Carrington
+
+on:
+  # Only run when triggered manually
+  workflow_dispatch:
+
+jobs:
+  # This should be kept ~identical to the build_TP_ukkoGPU job in github-ci.yml
+  build_TP_ukkoGPU:
+    # Build Vlasiator with testpackage flags, on the ukko cluster using
+    # its nvidia gpus
+    # also builds the fluxfunction tool
+    runs-on: carrington
+
+    steps:
+    - name: Clean workspace
+      run: |
+        RUN_STRING=$( cat << MORO
+        rm -rf libraries library-build testpackage
+        rm -f libraries.tar.zst testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+        rm -f *.xml
+        MORO
+        )
+        srun -M carrington bash -c "$RUN_STRING"
+    - name: Checkout source
+      uses: actions/checkout@v4
+      with:
+        submodules: true
+    - name: Make clean
+      run: VLASIATOR_ARCH=ukko_dgx make clean
+    - uses: ursg/gcc-problem-matcher@master
+    - name: Compile vlasiator (Testpackage build w/ CUDA) and fluxfunction
+      run: |
+        srun -Mukko -pgpu-oversub --job-name CI_tp_compile --interactive --nodes=1 -n 1 -c 8 --mem-per-cpu=2G -t 0:20:0 bash -c 'module purge; ml OpenMPI/4.1.6.withucx-GCC-13.2.0 PAPI/7.1.0-GCCcore-13.2.0 CUDA/12.6.0; export VLASIATOR_ARCH=ukko_dgx; make -j 9 testpackage fluxfunction; sleep 10s'
+    - name: Make sure the output binary is visible in lustre
+      uses: nick-fields/retry@v3
+      with:
+        timeout_seconds: 15
+        max_attempts: 3
+        retry_on: error
+        command: ls vlasiator
+    - name: Upload testpackage binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: vlasiator-testpackage-ukkoGPU
+        path: |
+          vlasiator
+          fluxfunction
+        if-no-files-found: error
+
+  run_TP_ukkoGPU:
+    # Run the testpackage on the Ukko GPU cluster (via Carrington frontend)
+    runs-on: carrington
+    needs: [build_TP_ukkoGPU]
+
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v4
+      with:
+        submodules: false
+    - name: Download testpackage binary
+      uses: actions/download-artifact@v4
+      with:
+        name: vlasiator-testpackage-ukkoGPU
+    - name: Run GPU testpackage
+      id: run
+      run: |
+        chmod +x $GITHUB_WORKSPACE/vlasiator
+        cd testpackage
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries/lib
+        # Fudge the run script
+        sed -i 's/\/proj\/USERNAME\/BINARYNAME/$GITHUB_WORKSPACE\/vlasiator/' ./small_test_ukko_dgx.sh
+        sed -i 's/create_verification_files=0/create_verification_files=1/' ./small_test_ukko_dgx.sh
+        sbatch -W -o testpackage_run_output.txt --job-name CI_GPU_ref_generate ./small_test_ukko_dgx.sh
+        cat testpackage_run_output.txt
+    - name: Generate reference fluxfunction files
+      run: |
+        chmod +x $GITHUB_WORKSPACE/fluxfunction
+        srun --job-name fluxtest_gpu -M ukko -pgpu-oversub -N 1 -c 1 --mem=1G bash -c "module purge; ml OpenMPI/4.1.6.withucx-GCC-13.2.0 PAPI/7.1.0-GCCcore-13.2.0 CUDA/12.6.0; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_small/bulk.0000001.vlsv equatorial.bin"
+        srun --job-name fluxtest_gpu -M ukko -pgpu-oversub -N 1 -c 1 --mem=1G bash -c "module purge; ml OpenMPI/4.1.6.withucx-GCC-13.2.0 PAPI/7.1.0-GCCcore-13.2.0 CUDA/12.6.0; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_polar_small/bulk.0000001.vlsv polar.bin"
+        chmod 775 polar.bin equatorial.bin
+        cp equatorial.bin polar.bin $REFERENCE_REVISION
+        # No longer overwrites files in /proj/group/spacephysics/vlasiator_testpackage/CI_reference/ but places in proper folder
+    # We don't bother to create artefacts or anything here.

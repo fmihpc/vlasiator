@@ -30,6 +30,7 @@ t=16
 module load LUMI/24.03
 module load Boost/1.83.0-cpeGNU-24.03
 module load partition/C
+module load papi/7.1.0.1
 
 #--------------------------------------------------------------------
 #---------------------DO NOT TOUCH-----------------------------------
@@ -56,7 +57,7 @@ umask 007
 echo "Running $exec on $tasks mpi tasks, with $t threads per task on $nodes nodes ($ht threads per physical core)"
 
 # Define test
-source small_test_definitions.sh
+source test_definitions_small.sh
 wait
 # Run tests
 source run_tests.sh

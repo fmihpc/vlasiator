@@ -27,7 +27,7 @@
 #include "../object_wrapper.h"
 #include "../velocity_mesh_parameters.h"
 
-#include "spatial_cell_kernels.hpp"
+#include "spatial_cell_gpu_kernels.hpp"
 
 // INIT_VMESH_SIZE and INIT_MAP_SIZE defined in arch/gpu_base.hpp
 
@@ -332,8 +332,8 @@ namespace spatial_cell {
    /** Recapacitates local temporary vectors based on guidance counter
     */
    void SpatialCell::applyReservation(const uint popID) {
-      const size_t reserveSize = populations[popID].reservation;// * BLOCK_ALLOCATION_FACTOR;
-      size_t newReserve = populations[popID].reservation * BLOCK_ALLOCATION_FACTOR;//BLOCK_ALLOCATION_PADDING;
+      const size_t reserveSize = populations[popID].reservation;
+      size_t newReserve = populations[popID].reservation * BLOCK_ALLOCATION_PADDING;
       const vmesh::LocalID HashmapReqSize = ceil(log2(reserveSize))+1;
       gpuStream_t stream = gpu_getStream();
       // Now uses host-cached values
@@ -344,13 +344,15 @@ namespace spatial_cell {
          velocity_block_with_content_list_capacity = newReserve;
          dev_velocity_block_with_content_list = velocity_block_with_content_list->upload<true>(stream);
       }
-      if (vbwcl_sizePower < HashmapReqSize) {
-         vbwcl_sizePower = HashmapReqSize;
+      // This one is also used in acceleration for adding new blocks to the mesh, so should have more room. 
+      if (vbwcl_sizePower < HashmapReqSize+1) {
+         vbwcl_sizePower = HashmapReqSize+1;
          ::delete velocity_block_with_content_map;
          void *buf = malloc(sizeof(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>));
          velocity_block_with_content_map = ::new (buf) Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(vbwcl_sizePower);
          dev_velocity_block_with_content_map = velocity_block_with_content_map->upload<true>(stream);
       }
+      // Here the regular size estimate should be enough.
       if (vbwncl_sizePower < HashmapReqSize) {
          vbwncl_sizePower = HashmapReqSize;
          ::delete velocity_block_with_no_content_map;
@@ -359,8 +361,9 @@ namespace spatial_cell {
          dev_velocity_block_with_no_content_map = velocity_block_with_no_content_map->upload<true>(stream);
       }
       // These lists are also used in acceleration, where sometimes, very many blocks may be added.
+      // (Maximum possible is all existing blocks moved to a new location + 2 per column)
       // Thus, this one list needs to have larger capacity than the others..
-      if (list_with_replace_new_capacity < reserveSize * acc_reserve_multiplier) {
+      if (list_with_replace_new_capacity < reserveSize * acc_reserve_multiplier + 2*gpu_largest_columnCount) {
          list_with_replace_new->reserve(newReserve * acc_reserve_multiplier,true);
          list_with_replace_new_capacity = newReserve * acc_reserve_multiplier;
          dev_list_with_replace_new = list_with_replace_new->upload<true>(stream);
@@ -799,7 +802,8 @@ namespace spatial_cell {
             if (receiving) {
                // Set population size based on mpi_number_of_blocks transferred earlier.
                // Does not need to be cleared. Vmesh map and VBC will be prepared in prepare_to_receive_blocks.
-               populations[activePopID].vmesh->setNewSize(populations[activePopID].N_blocks);
+               // populations[activePopID].vmesh->setNewSize(populations[activePopID].N_blocks);
+               this->dev_resize_vmesh(activePopID,populations[activePopID].N_blocks);
                //populations[activePopID].vmesh->setNewSizeClear(populations[activePopID].N_blocks);
                //setNewSizeClear(activePopID,populations[activePopID].N_blocks);
             } else {

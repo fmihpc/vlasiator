@@ -202,15 +202,16 @@ OBJS = 	version.o memoryallocation.o memory_report.o backgroundfield.o quadr.o d
 
 # Add Vlasov solver objects
 OBJS += cpu_acc_intersections.o cpu_acc_transform.o \
-	cpu_trans_pencils.o cpu_pitch_angle_diffusion.o 
+	cpu_trans_pencils.o common_pitch_angle_diffusion.o 
 
 # Only build GPU version object files if active
 ifeq ($(USE_GPU),1)
-	OBJS += gpu_acc_map.o gpu_acc_semilag.o gpu_acc_sort_blocks.o \
-		gpu_base.o gpu_trans_map_amr.o gpu_dt.o gpu_moments.o
+	OBJS += gpu_acc_map.o gpu_acc_semilag.o gpu_base.o gpu_dt.o \
+		gpu_trans_map_amr.o gpu_moments.o gpu_pitch_angle_diffusion.o
 else
 # if *not* building GPU version, build regular CPU/ARCH version
-	OBJS += cpu_acc_map.o cpu_acc_sort_blocks.o cpu_acc_load_blocks.o cpu_acc_semilag.o  cpu_trans_map_amr.o arch_dt.o
+	OBJS += cpu_acc_map.o cpu_acc_sort_blocks.o cpu_acc_load_blocks.o cpu_acc_semilag.o \
+		cpu_trans_map_amr.o arch_dt.o cpu_pitch_angle_diffusion.o 
 endif
 
 # Add field solver objects
@@ -260,10 +261,10 @@ version.cpp: FORCE
 #Special handling for GPU files
 ifeq ($(USE_GPU),1)
 # Turn on compilation for of GPU-version of spatial_cell and block_adjust
-spatial_cell.o: spatial_cells/spatial_cell_gpu.cpp
+spatial_cell.o: spatial_cells/spatial_cell_gpu.cpp spatial_cells/spatial_cell_gpu.hpp spatial_cells/spatial_cell_gpu_kernels.hpp
 	@echo [CC] $<
 	$(SILENT)$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c spatial_cells/spatial_cell_gpu.cpp -o spatial_cell.o $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID}
-block_adjust.o: spatial_cells/block_adjust_gpu.cpp
+block_adjust.o: spatial_cells/block_adjust_gpu.cpp spatial_cells/block_adjust_gpu.hpp spatial_cells/block_adjust_gpu_kernels.hpp
 	@echo [CC] $<
 	$(SILENT)$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c spatial_cells/block_adjust_gpu.cpp -o block_adjust.o $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID}
 else
@@ -273,10 +274,10 @@ else
 arch/gpu_base.o:
 	@: #do nothing
 # Turn on compilation for of old cpu-version of spatial_cell
-spatial_cell.o: spatial_cells/spatial_cell_cpu.cpp
+spatial_cell.o: spatial_cells/spatial_cell_cpu.cpp spatial_cells/spatial_cell_cpu.hpp
 	@echo [CC] $<
 	$(SILENT)$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c spatial_cells/spatial_cell_cpu.cpp -o spatial_cell.o $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID}
-block_adjust.o: spatial_cells/block_adjust_cpu.cpp
+block_adjust.o: spatial_cells/block_adjust_cpu.cpp spatial_cells/block_adjust_cpu.hpp
 	@echo [CC] $<
 	$(SILENT)$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c spatial_cells/block_adjust_cpu.cpp -o block_adjust.o $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID}
 endif
