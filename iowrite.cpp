@@ -974,6 +974,7 @@ bool writeFsGridMetadata(FieldSolverGrid& fsgrid, vlsv::Writer& vlsvWriter, bool
      std::vector<fsgrid::FsSize_t> globalIds(
          static_cast<fsgrid::FsSize_t>(localSize[0] * localSize[1] * localSize[2]));
      int i=0;
+     // Could be parallelised (parallel_for) but not critical.
      for(int z=0; z<localSize[2]; z++) {
         for(int y=0; y<localSize[1]; y++) {
            for(int x=0; x<localSize[0]; x++) {

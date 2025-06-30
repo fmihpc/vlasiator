@@ -966,6 +966,7 @@ bool readFsGridVariable(vlsv::ParallelReader& file, const string& variableName, 
       }
 
       // Assign buffer into fsgrid
+      // Could be parallelised (parallel_for) but this is done once at restart so not critical
       int index = 0;
       for (auto z = 0; z < localSize[2]; z++) {
          for (auto y = 0; y < localSize[1]; y++) {
