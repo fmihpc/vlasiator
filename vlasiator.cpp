@@ -1644,15 +1644,12 @@ int simulate(int argn,char* args[]) {
 
       auto cell1 = mpiGrid[cells[5]];
       auto cell2 = mpiGrid[cells[20]];
-
-      std::cout << "maxtc: " << P::maxTimeclass << std::endl;
-
-      std::cout << "cell 1 tc "<< cell1->parameters[CellParams::TIMECLASS] << " VX " << cell1->parameters[CellParams::VX] << " VY " << cell1->parameters[CellParams::VY] << " VZ " << cell1->parameters[CellParams::VZ] << std::endl;
-      std::cout << "cell 2 tc "<< cell2->parameters[CellParams::TIMECLASS] << " VX " << cell2->parameters[CellParams::VX] << " VY " << cell2->parameters[CellParams::VY] << " VZ " << cell2->parameters[CellParams::VZ] << std::endl;
-
-      std::cout << "cell1 vx_v " << cell1->parameters[CellParams::VX_V] << " vx_r " << cell1->parameters[CellParams::VX_R] << std::endl;
-      std::cout << "cell2 vx_v " << cell2->parameters[CellParams::VX_V] << " vx_r " << cell2->parameters[CellParams::VX_R] << std::endl;
-
+      if (true) {
+         std::cout << "cell1VXdata: " << P::t << " " << cell1->parameters[CellParams::XCRD] << " " << cell1->parameters[CellParams::YCRD] << " " << cell1->parameters[CellParams::ZCRD] << " " << cell1->parameters[CellParams::VX] << " " << cell1->parameters[CellParams::VX_DT2] << " " << cell1->parameters[CellParams::VX_R] << " " << cell1->parameters[CellParams::VX_V] << " " << cell1->parameters[CellParams::VX_R_PREV] << " " << cell1->parameters[CellParams::VX_V_PREV] << std::endl;
+         std::cout << "cell1VYdata: " << P::t << " " << cell1->parameters[CellParams::XCRD] << " " << cell1->parameters[CellParams::YCRD] << " " << cell1->parameters[CellParams::ZCRD] << " " << cell1->parameters[CellParams::VY] << " " << cell1->parameters[CellParams::VY_DT2] << " " << cell1->parameters[CellParams::VY_R] << " " << cell1->parameters[CellParams::VY_V] << " " << cell1->parameters[CellParams::VY_R_PREV] << " " << cell1->parameters[CellParams::VY_V_PREV] << std::endl;
+         std::cout << "cell1VZdata: " << P::t << " " << cell1->parameters[CellParams::XCRD] << " " << cell1->parameters[CellParams::YCRD] << " " << cell1->parameters[CellParams::ZCRD] << " " << cell1->parameters[CellParams::VZ] << " " << cell1->parameters[CellParams::VZ_DT2] << " " << cell1->parameters[CellParams::VZ_R] << " " << cell1->parameters[CellParams::VZ_V] << " " << cell1->parameters[CellParams::VZ_R_PREV] << " " << cell1->parameters[CellParams::VZ_V_PREV] << std::endl;
+         std::cout << "cell1rhomdata: " << P::t << " " << cell1->parameters[CellParams::XCRD] << " " << cell1->parameters[CellParams::YCRD] << " " << cell1->parameters[CellParams::ZCRD] << " " << cell1->parameters[CellParams::RHOM] << " " << cell1->parameters[CellParams::RHOM_DT2] << " " << cell1->parameters[CellParams::RHOM_R] << " " << cell1->parameters[CellParams::RHOM_V] << " " << cell1->parameters[CellParams::RHOM_R_PREV] << " " << cell1->parameters[CellParams::RHOM_V_PREV] << std::endl;
+      }
       momentsTimer.stop();
       
       // Propagate fields forward in time by dt. This needs to be done before the
