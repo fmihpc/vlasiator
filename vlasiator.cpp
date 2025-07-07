@@ -1645,10 +1645,12 @@ int simulate(int argn,char* args[]) {
       auto cell1 = mpiGrid[cells[5]];
       auto cell2 = mpiGrid[cells[20]];
       if (true) {
-         std::cout << "cell1VXdata: " << P::t << " " << cell1->parameters[CellParams::XCRD] << " " << cell1->parameters[CellParams::YCRD] << " " << cell1->parameters[CellParams::ZCRD] << " " << cell1->parameters[CellParams::VX] << " " << cell1->parameters[CellParams::VX_DT2] << " " << cell1->parameters[CellParams::VX_R] << " " << cell1->parameters[CellParams::VX_V] << " " << cell1->parameters[CellParams::VX_R_PREV] << " " << cell1->parameters[CellParams::VX_V_PREV] << std::endl;
-         std::cout << "cell1VYdata: " << P::t << " " << cell1->parameters[CellParams::XCRD] << " " << cell1->parameters[CellParams::YCRD] << " " << cell1->parameters[CellParams::ZCRD] << " " << cell1->parameters[CellParams::VY] << " " << cell1->parameters[CellParams::VY_DT2] << " " << cell1->parameters[CellParams::VY_R] << " " << cell1->parameters[CellParams::VY_V] << " " << cell1->parameters[CellParams::VY_R_PREV] << " " << cell1->parameters[CellParams::VY_V_PREV] << std::endl;
-         std::cout << "cell1VZdata: " << P::t << " " << cell1->parameters[CellParams::XCRD] << " " << cell1->parameters[CellParams::YCRD] << " " << cell1->parameters[CellParams::ZCRD] << " " << cell1->parameters[CellParams::VZ] << " " << cell1->parameters[CellParams::VZ_DT2] << " " << cell1->parameters[CellParams::VZ_R] << " " << cell1->parameters[CellParams::VZ_V] << " " << cell1->parameters[CellParams::VZ_R_PREV] << " " << cell1->parameters[CellParams::VZ_V_PREV] << std::endl;
-         std::cout << "cell1rhomdata: " << P::t << " " << cell1->parameters[CellParams::XCRD] << " " << cell1->parameters[CellParams::YCRD] << " " << cell1->parameters[CellParams::ZCRD] << " " << cell1->parameters[CellParams::RHOM] << " " << cell1->parameters[CellParams::RHOM_DT2] << " " << cell1->parameters[CellParams::RHOM_R] << " " << cell1->parameters[CellParams::RHOM_V] << " " << cell1->parameters[CellParams::RHOM_R_PREV] << " " << cell1->parameters[CellParams::RHOM_V_PREV] << std::endl;
+         for (uint i = 0; i < 11; ++i) {
+            std::cout << "cell1moment" << i << ": " << P::t << " " << cell1->parameters[CellParams::XCRD] << " " << cell1->parameters[CellParams::YCRD] << " " << cell1->parameters[CellParams::ZCRD] << " " << cell1->parameters[CellParams::RHOM+i] << std::endl;
+            std::cout << "cell1moment" << i << ": " << P::t + P::dt/2.0 << " " << cell1->parameters[CellParams::XCRD] << " " << cell1->parameters[CellParams::YCRD] << " " << cell1->parameters[CellParams::ZCRD] << " " << cell1->parameters[CellParams::RHOM_DT2+i] << std::endl;
+            std::cout << "cell2moment" << i << ": " << P::t << " " << cell2->parameters[CellParams::XCRD] << " " << cell2->parameters[CellParams::YCRD] << " " << cell2->parameters[CellParams::ZCRD] << " " << cell2->parameters[CellParams::RHOM+i] << std::endl;
+            std::cout << "cell2moment" << i << ": " << P::t + P::dt/2.0 << " " << cell2->parameters[CellParams::XCRD] << " " << cell2->parameters[CellParams::YCRD] << " " << cell2->parameters[CellParams::ZCRD] << " " << cell2->parameters[CellParams::RHOM_DT2+i] << std::endl;
+         }
       }
       momentsTimer.stop();
       

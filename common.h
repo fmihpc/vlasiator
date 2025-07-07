@@ -211,8 +211,8 @@ namespace CellParams {
       P_22_V,   /*!< P_yy component after propagation in velocity space */
       P_33_V,   /*!< P_zz component after propagation in velocity space */
       P_23_V,   /*!< P_yz component after propagation in velocity space */
-      P_12_V,   /*!< P_xy component after propagation in velocity space */
-      P_13_V,   /*!< P_xz component after propagation in velocity space */
+      P_13_V,   /*!< P_xy component after propagation in velocity space */
+      P_12_V,   /*!< P_xz component after propagation in velocity space */
       VX_V,   /*!< VX after propagation in velocity space*/
       VY_V,   /*!< VY after propagation in velocity space*/
       VZ_V,   /*!< VZ after propagation in velocity space*/
