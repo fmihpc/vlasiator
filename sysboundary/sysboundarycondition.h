@@ -60,8 +60,13 @@ namespace SBC {
          virtual ~SysBoundaryCondition();
          
          static void addParameters();
-         virtual void getParameters()=0;
-         
+         virtual void getParameters() {
+            std::cerr << "ERROR: base class SysBoundaryCondition::getParameters called!" << std::endl;
+         }
+         virtual void generateTemplateCell() {
+            std::cerr << "ERROR: base class SysBoundaryCondition::generateTemplateCells called!" << std::endl;
+         }
+
          virtual void initSysBoundary(
             creal& t,
             Project &project
@@ -136,8 +141,14 @@ namespace SBC {
           * type. Order: 0 x+; 1 x-; 2 y+; 3 y-; 4 z+; 5 z-
           */
          virtual void getFaces(bool *faces) = 0;
-         virtual std::string getName() const=0;
-         virtual uint getIndex() const=0;
+         virtual std::string getName() const {
+            std::cerr << "ERROR: base class SysBoundaryCondition::getName called!" << std::endl;
+            return "ERROR";
+         }
+         virtual uint getIndex() const {
+            std::cerr << "ERROR: base class SysBoundaryCondition::getIndex called!" << std::endl;
+            return sysboundarytype::N_SYSBOUNDARY_CONDITIONS;
+         }
          uint getPrecedence() const;
          bool isDynamic() const;
       
@@ -155,7 +166,7 @@ namespace SBC {
             creal x, creal y, creal z,
             creal dx, creal dy, creal dz,
             const bool excludeSlicesAndPeriodicDimensions = false
-         );
+         ) const;
          void determineFace(
             std::array<bool, 6> &isThisCellOnAFace,
             const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,

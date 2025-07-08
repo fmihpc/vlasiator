@@ -64,7 +64,7 @@ namespace SBC {
       creal x, creal y, creal z,
       creal dx, creal dy, creal dz,
       const bool excludeSlicesAndPeriodicDimensions //=false (default)
-   ) {
+   ) const {
       for(uint i=0; i<6; i++) {
          isThisCellOnAFace[i] = false;
       }

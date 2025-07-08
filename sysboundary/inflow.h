@@ -92,8 +92,14 @@ public:
    virtual void vlasovBoundaryCondition(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                         const CellID& cellID, const uint popID, const bool doCalcMomentsV) override;
    virtual void getFaces(bool* faces) override;
-   virtual std::string getName() const override = 0;
-   virtual uint getIndex() const override = 0;
+   virtual std::string getName() const override {
+      std::cerr << "ERROR: base class Inflow::getParameters called!" << std::endl;
+      return "ERROR";
+   }
+   virtual uint getIndex() const override {
+      std::cerr << "ERROR: base class Inflow::getIndex called!" << std::endl;
+      return sysboundarytype::N_SYSBOUNDARY_CONDITIONS;
+   }
 
 protected:
    /*! Array of bool telling which faces are going to be processed by the boundary condition.*/
@@ -116,7 +122,9 @@ protected:
    void interpolate(const int inputDataIndex, const uint popID, creal t, Real* outputData);
    void generateTemplateCells(creal t);
    virtual void generateTemplateCell(spatial_cell::SpatialCell& templateCell, Real (&B)[3], int inputDataIndex,
-                                     creal t) = 0;
+                                     creal t) {
+      std::cerr << "ERROR: base class Inflow::generateTemplateCell called!" << std::endl;
+   }
    void setCellsFromTemplate(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const uint popID);
    void setBFromTemplate(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                          std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
