@@ -243,42 +243,38 @@ namespace SBC {
       }
    
       // Assign boundary flags to local fsgrid cells
-      const auto* localSize = &fsgrid.getLocalSize()[0];
-      for (auto k = 0; k < localSize[2]; k++) {
-         for (auto j = 0; j < localSize[1]; j++) {
-            for (auto i = 0; i < localSize[0]; i++) {
-               const auto stencil = fsgrid.makeStencil(i, j, k);
-               const auto& coords = fsgrid.getPhysicalCoords(i, j, k);
+      const size_t numCells = fsgrid.getNumCells();
+      fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                          phiprof::initializeTimer("Assign sysboundary flags to fsgrid cells"), technical,
+                          [&](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+         const auto coords = fsgrid.getPhysicalCoords(fsgrid.localCoordsFromStencilID(stencil.ooo()));
+
+         // Shift to the center of the fsgrid cell
+         auto cellCenterCoords = coords;
+         cellCenterCoords[0] += 0.5 * gridSpacing[0];
+         cellCenterCoords[1] += 0.5 * gridSpacing[1];
+         cellCenterCoords[2] += 0.5 * gridSpacing[2];
+         const auto refLvl = mpiGrid.get_refinement_level(mpiGrid.get_existing_cell(cellCenterCoords));
    
-               // Shift to the center of the fsgrid cell
-               auto cellCenterCoords = coords;
-               cellCenterCoords[0] += 0.5 * gridSpacing[0];
-               cellCenterCoords[1] += 0.5 * gridSpacing[1];
-               cellCenterCoords[2] += 0.5 * gridSpacing[2];
-               const auto refLvl = mpiGrid.get_refinement_level(mpiGrid.get_existing_cell(cellCenterCoords));
-   
-               if (refLvl == -1) {
-                  abort_mpi("ERROR: Could not get refinement level of remote DCCRG cell!", 1);
-               }
-   
-               creal dx = P::dx_ini / pow(2, refLvl);
-               creal dy = P::dy_ini / pow(2, refLvl);
-               creal dz = P::dz_ini / pow(2, refLvl);
-   
-               isThisCellOnAFace.fill(false);
-               doAssign = false;
-   
-               determineFace(isThisCellOnAFace.data(), cellCenterCoords[0], cellCenterCoords[1], cellCenterCoords[2], dx,
-                             dy, dz);
-               for (int iface = 0; iface < 6; iface++) {
-                  doAssign = doAssign || (facesToProcess[iface] && isThisCellOnAFace[iface]);
-               }
-               if (doAssign) {
-                  technical[stencil.ooo()].sysBoundaryFlag = this->getIndex();
-               }
-            }
+         if (refLvl == -1) {
+            abort_mpi("ERROR: Could not get refinement level of remote DCCRG cell!", 1);
          }
-      }
+   
+         creal dx = P::dx_ini / pow(2, refLvl);
+         creal dy = P::dy_ini / pow(2, refLvl);
+         creal dz = P::dz_ini / pow(2, refLvl);
+   
+         isThisCellOnAFace.fill(false);
+         doAssign = false;
+   
+         determineFace(isThisCellOnAFace.data(), cellCenterCoords[0], cellCenterCoords[1], cellCenterCoords[2], dx, dy, dz);
+         for (int iface = 0; iface < 6; iface++) {
+            doAssign = doAssign || (facesToProcess[iface] && isThisCellOnAFace[iface]);
+         }
+         if (doAssign) {
+            technical[stencil.ooo()].sysBoundaryFlag = this->getIndex();
+         }
+      });
    }
    
    void Outflow::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
