@@ -114,7 +114,7 @@ namespace SBC {
       const size_t numCells = fsgrid.getNumCells();
       fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
                           phiprof::initializeTimer("Assign sysboundary flags to fsgrid cells"), technical,
-                          [=, *this](const fsgrid::FsStencil stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+                          [=, this](const fsgrid::FsStencil stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
          const auto coords = fsgrid.getPhysicalCoords(fsgrid.localCoordsFromStencilID(stencil.ooo()));
    
          // Shift to the center of the fsgrid cell

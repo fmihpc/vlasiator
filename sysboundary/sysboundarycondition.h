@@ -145,10 +145,10 @@ namespace SBC {
             std::cerr << "ERROR: base class SysBoundaryCondition::getName called!" << std::endl;
             return "ERROR";
          }
-         virtual uint getIndex() const {
-            std::cerr << "ERROR: base class SysBoundaryCondition::getIndex called!" << std::endl;
-            return sysboundarytype::N_SYSBOUNDARY_CONDITIONS;
-         }
+         virtual uint getIndex() const = 0; // {
+//            std::cerr << "ERROR: base class SysBoundaryCondition::getIndex called!" << std::endl;
+//            return sysboundarytype::N_SYSBOUNDARY_CONDITIONS;
+//         }
          uint getPrecedence() const;
          bool isDynamic() const;
       
