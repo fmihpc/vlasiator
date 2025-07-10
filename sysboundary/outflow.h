@@ -63,8 +63,6 @@ namespace SBC {
          creal& t,
          Project &project
       ) override;
-      virtual void assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                     std::span< fsgrids::technical> technical, FieldSolverGrid &fsgrid) override;
       virtual void applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                      std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
                                      std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,

@@ -733,23 +733,6 @@ namespace SBC {
    /*! Get a bool telling whether to call again applyInitialState upon restarting the simulation. */
    bool SysBoundaryCondition::doApplyUponRestart() const {return this->applyUponRestart;}
    
-   void OuterBoundaryCondition::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, std::span< fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
-      array<bool,6> isThisCellOnAFace;
-      
-      // Assign boundary flags to local DCCRG cells
-      for(const auto& id : getLocalCells()) {
-         if (mpiGrid[id]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) 
-            continue;
-   
-         determineFace(isThisCellOnAFace, mpiGrid, id);
-         for (int i = 0; i < 6; ++i) {
-            if(facesToProcess[i] && isThisCellOnAFace[i]) {
-               mpiGrid[id]->sysBoundaryFlag = this->getIndex();
-            }
-         }
-      }
-   }
-   
    void SysBoundaryCondition::mapCellPotentialAndGetEXBDrift(
       std::array<Real, CellParams::N_SPATIAL_CELL_PARAMS>& cellParams
    ) {
@@ -852,6 +835,133 @@ namespace SBC {
       #endif
    
       return LID;
+   }
+
+/*   void determineFaceNoClassMembers(
+      bool* isThisCellOnAFace,
+      creal x, creal y, creal z,
+      creal dx, creal dy, creal dz,
+      const std::array<bool, 3> periodicity,
+      const bool excludeSlicesAndPeriodicDimensions=false // (default)
+   ) {
+      for(uint i=0; i<6; i++) {
+         isThisCellOnAFace[i] = false;
+      }
+      if(x > Parameters::xmax - dx * 2) {
+         isThisCellOnAFace[0] = true;
+      }
+      if(x < Parameters::xmin + dx * 2) {
+         isThisCellOnAFace[1] = true;
+      }
+      if(y > Parameters::ymax - dy * 2) {
+         isThisCellOnAFace[2] = true;
+      }
+      if(y < Parameters::ymin + dy * 2) {
+         isThisCellOnAFace[3] = true;
+      }
+      if(z > Parameters::zmax - dz * 2) {
+         isThisCellOnAFace[4] = true;
+      }
+      if(z < Parameters::zmin + dz * 2) {
+         isThisCellOnAFace[5] = true;
+      }
+      if(excludeSlicesAndPeriodicDimensions == true) {
+         if (Parameters::xcells_ini == 1 || periodicity[0]) {
+            isThisCellOnAFace[0] = false;
+            isThisCellOnAFace[1] = false;
+         }
+         if (Parameters::ycells_ini == 1 || periodicity[1]) {
+            isThisCellOnAFace[2] = false;
+            isThisCellOnAFace[3] = false;
+         }
+         if (Parameters::zcells_ini == 1 || periodicity[2]) {
+            isThisCellOnAFace[4] = false;
+            isThisCellOnAFace[5] = false;
+         }
+      }
+   }*/
+
+   // The function above and the commented parts below make an implementation with lambda
+   // but it breaks some communicator and YPK did not manage to get a working version out of this.
+   // Left in the copies of variable so the [=] compiles without complaining.
+
+   void OuterBoundaryCondition::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                                  std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
+      const auto& gridSpacing = fsgrid.getGridSpacing();
+      bool doAssign;
+      std::array<bool, 6> isThisCellOnAFace;
+
+      // Assign boundary flags to local DCCRG cells
+      const vector<CellID>& cells = getLocalCells();
+      for (auto& id : cells) {
+         if (mpiGrid[id]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+            continue;
+         }
+         creal* const cellParams = &(mpiGrid[id]->parameters[0]);
+         creal dx = cellParams[CellParams::DX];
+         creal dy = cellParams[CellParams::DY];
+         creal dz = cellParams[CellParams::DZ];
+         creal x = cellParams[CellParams::XCRD] + 0.5 * dx;
+         creal y = cellParams[CellParams::YCRD] + 0.5 * dy;
+         creal z = cellParams[CellParams::ZCRD] + 0.5 * dz;
+
+         for(uint i=0; i<6; i++) {
+            isThisCellOnAFace[i] = false;
+         }
+         determineFace(isThisCellOnAFace.data(), x, y, z, dx, dy, dz);
+         // Comparison of the array defining which faces to use and the array telling on which faces this cell is
+         doAssign = false;
+         for (int j = 0; j < 6; j++) {
+            doAssign = doAssign || (facesToProcess[j] && isThisCellOnAFace[j]);
+         }
+         if (doAssign) {
+            mpiGrid[id]->sysBoundaryFlag = this->getIndex();
+         }
+      }
+      const auto index_local = this->getIndex();
+      const std::array<bool, 6> facesToProcess_local = facesToProcess;
+      const std::array<bool, 3> periodic_local = this->periodic;
+      // Assign boundary flags to local fsgrid cells
+//      fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+//                          phiprof::initializeTimer("Assign sysboundary flags to fsgrid cells"), technical,
+//                          [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+      const auto gridDims = fsgrid.getLocalSize();
+      for (auto k=0; k<gridDims[2]; k++) {
+         for (auto j=0; j<gridDims[1]; j++) {
+            for (auto i=0; i<gridDims[0]; i++) {
+               const auto stencil = fsgrid.makeStencil(i, j, k);
+               const auto coords = fsgrid.getPhysicalCoords(fsgrid.localCoordsFromStencilID(stencil.ooo()));
+
+               // Shift to the center of the fsgrid cell
+               auto cellCenterCoords = coords;
+               cellCenterCoords[0] += 0.5 * gridSpacing[0];
+               cellCenterCoords[1] += 0.5 * gridSpacing[1];
+               cellCenterCoords[2] += 0.5 * gridSpacing[2];
+               const auto refLvl = mpiGrid.get_refinement_level(mpiGrid.get_existing_cell(cellCenterCoords));
+
+               if (refLvl == -1) {
+                  abort_mpi("Error, could not get refinement level of remote DCCRG cell!", 1);
+               }
+
+               creal dx = P::dx_ini * pow(2, -refLvl);
+               creal dy = P::dy_ini * pow(2, -refLvl);
+               creal dz = P::dz_ini * pow(2, -refLvl);
+
+               std::array<bool, 6> isThisCellOnAFace_local = {{false}};
+               bool doAssign_local = false;
+
+//         determineFaceNoClassMembers(isThisCellOnAFace_local.data(), cellCenterCoords[0], cellCenterCoords[1], cellCenterCoords[2], dx, dy, dz, periodic_local);
+               determineFace(isThisCellOnAFace_local.data(), cellCenterCoords[0], cellCenterCoords[1], cellCenterCoords[2], dx, dy, dz);
+               for (int iface = 0; iface < 6; iface++) {
+                  doAssign_local = doAssign_local || (facesToProcess_local[iface] && isThisCellOnAFace_local[iface]);
+               }
+               if (doAssign_local) {
+                  technical[stencil.ooo()].sysBoundaryFlag = index_local;
+               }
+//      });
+            }
+         }
+      }
    }
    
 } // namespace SBC

@@ -266,7 +266,7 @@ namespace SBC {
          /*! Is the boundary condition dynamic in time or not. */
          bool dynamic;
          /*! Array of bool telling whether the system is periodic in any direction. */
-         bool periodic[3];
+         std::array<bool, 3> periodic;
          /*! Map of closest nonsysboundarycells. Used in getAllClosestNonsysboundaryCells. */
          std::unordered_map<CellID, std::vector<CellID>> allClosestNonsysboundaryCells;
          /*! Map of close nonsysboundarycells. Used in getAllCloseNonsysboundaryCells. */
@@ -285,7 +285,7 @@ namespace SBC {
          virtual void assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, std::span< fsgrids::technical> technical, FieldSolverGrid &fsgrid);
       protected:
          /*! Array of bool telling which faces are going to be processed by the system boundary condition.*/
-         bool facesToProcess[6];
+         std::array<bool, 6> facesToProcess;
    };
    
    // Moved outside the class since it's a helper function that doesn't require member access

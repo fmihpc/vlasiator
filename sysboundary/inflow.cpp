@@ -50,7 +50,9 @@ namespace SBC {
    void Inflow::initSysBoundary(creal& t, Project& project) {
       // The array of bool describes which of the faces are to have inflow boundary
       // conditions, in the order of x+, x-, y+, y-, z+, z-.
-      std::fill_n(facesToProcess, 6, false);
+      for(uint i=0; i<6; i++) {
+         facesToProcess[i] = false;
+      }
    
       this->getParameters();
    
@@ -76,73 +78,6 @@ namespace SBC {
    
       generateTemplateCells(t);
       tLastApply = t;
-   }
-   
-   void Inflow::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                  std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
-      const auto& gridSpacing = fsgrid.getGridSpacing();
-      bool doAssign;
-      std::array<bool, 6> isThisCellOnAFace;
-   
-      // Assign boundary flags to local DCCRG cells
-      const vector<CellID>& cells = getLocalCells();
-      for (auto& id : cells) {
-         if (mpiGrid[id]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
-            continue;
-         }
-         creal* const cellParams = &(mpiGrid[id]->parameters[0]);
-         creal dx = cellParams[CellParams::DX];
-         creal dy = cellParams[CellParams::DY];
-         creal dz = cellParams[CellParams::DZ];
-         creal x = cellParams[CellParams::XCRD] + 0.5 * dx;
-         creal y = cellParams[CellParams::YCRD] + 0.5 * dy;
-         creal z = cellParams[CellParams::ZCRD] + 0.5 * dz;
-   
-         isThisCellOnAFace.fill(false);
-         determineFace(isThisCellOnAFace.data(), x, y, z, dx, dy, dz);
-         // Comparison of the array defining which faces to use and the array telling on which faces this cell is
-         doAssign = false;
-         for (int j = 0; j < 6; j++) {
-            doAssign = doAssign || (facesToProcess[j] && isThisCellOnAFace[j]);
-         }
-         if (doAssign) {
-            mpiGrid[id]->sysBoundaryFlag = this->getIndex();
-         }
-      }
-   
-      // Assign boundary flags to local fsgrid cells
-      const size_t numCells = fsgrid.getNumCells();
-      fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
-                          phiprof::initializeTimer("Assign sysboundary flags to fsgrid cells"), technical,
-                          [&](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
-         const auto coords = fsgrid.getPhysicalCoords(fsgrid.localCoordsFromStencilID(stencil.ooo()));
-   
-         // Shift to the center of the fsgrid cell
-         auto cellCenterCoords = coords;
-         cellCenterCoords[0] += 0.5 * gridSpacing[0];
-         cellCenterCoords[1] += 0.5 * gridSpacing[1];
-         cellCenterCoords[2] += 0.5 * gridSpacing[2];
-         const auto refLvl = mpiGrid.get_refinement_level(mpiGrid.get_existing_cell(cellCenterCoords));
-   
-         if (refLvl == -1) {
-            abort_mpi("Error, could not get refinement level of remote DCCRG cell!", 1);
-         }
-   
-         creal dx = P::dx_ini * pow(2, -refLvl);
-         creal dy = P::dy_ini * pow(2, -refLvl);
-         creal dz = P::dz_ini * pow(2, -refLvl);
-         
-         std::array<bool, 6> isThisCellOnAFace_local = {{false}};
-         bool doAssign_local = false;
-   
-         determineFace(isThisCellOnAFace_local.data(), cellCenterCoords[0], cellCenterCoords[1], cellCenterCoords[2], dx, dy, dz);
-         for (int iface = 0; iface < 6; iface++) {
-            doAssign_local = doAssign_local || (facesToProcess[iface] && isThisCellOnAFace_local[iface]);
-         }
-         if (doAssign_local) {
-            technical[stencil.ooo()].sysBoundaryFlag = this->getIndex();
-         }
-      });
    }
    
    void Inflow::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,

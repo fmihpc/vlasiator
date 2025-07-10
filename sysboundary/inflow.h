@@ -60,8 +60,6 @@ public:
    //virtual void getParameters() = 0;
 
    virtual void initSysBoundary(creal& t, Project& project) override;
-   virtual void assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                  std::span<fsgrids::technical> technical, FieldSolverGrid& fsgrid) override;
    virtual void applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                   std::span<fsgrids::technical> technical, FieldSolverGrid& fsgrid,
                                   std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
@@ -102,8 +100,6 @@ public:
 //   }
 
 protected:
-   /*! Array of bool telling which faces are going to be processed by the boundary condition.*/
-   bool facesToProcess[6];
    /*! Array of template spatial cells replicated over the corresponding
     * simulation volume face. Only the template for an active face is actually
     * being touched at all by the code. */
