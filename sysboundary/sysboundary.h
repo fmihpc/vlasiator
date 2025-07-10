@@ -107,7 +107,7 @@ class SysBoundary {
       bool anyDynamic;
 
       /*! Array of bool telling whether the system is periodic in any direction. */
-      bool periodic[3];
+      std::array<bool, 3> periodic;
 };
 
 bool precedenceSort(const SBC::SysBoundaryCondition* first,

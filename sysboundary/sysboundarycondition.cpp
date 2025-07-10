@@ -723,11 +723,9 @@ namespace SBC {
    bool SysBoundaryCondition::isDynamic() const { return dynamic; }
    
    void SysBoundaryCondition::setPeriodicity(
-      bool isFacePeriodic[3]
+      std::array<bool, 3> isFacePeriodic
    ) {
-      for (uint i=0; i<3; i++) {
-         this->periodic[i] = isFacePeriodic[i];
-      }
+      this->periodic = isFacePeriodic;
    }
    
    /*! Get a bool telling whether to call again applyInitialState upon restarting the simulation. */

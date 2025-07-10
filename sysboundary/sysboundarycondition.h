@@ -158,7 +158,7 @@ namespace SBC {
          );
          bool doApplyUponRestart() const;
          void setPeriodicity(
-            bool isFacePeriodic[3]
+            std::array<bool, 3> isFacePeriodic
          );
       protected:
          void determineFace(

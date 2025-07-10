@@ -317,10 +317,9 @@ void SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg:
 }
 
 bool belongsToLayer(const int layer, const int x, const int y, const int z,
-                    std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
+                    std::span<fsgrids::technical> technical, const fsgrid::FsStencil& stencil) {
 
    bool belongs = false;
-   const auto stencil = fsgrid.makeStencil(x, y, z);
 
    // loop through all neighbors (including diagonals)
    for (int iz = -1; iz <= 1; ++iz) {
@@ -369,24 +368,21 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
       mpiGrid[cells[i]]->sysBoundaryFlag = sysboundarytype::NOT_SYSBOUNDARY;
    }
 
-#pragma omp parallel for collapse(2)
-   for (auto z = 0; z < localSize[2]; ++z) {
-      for (auto y = 0; y < localSize[1]; ++y) {
-         for (auto x = 0; x < localSize[0]; ++x) {
-            const auto stencil = fsgrid.makeStencil(x, y, z);
-            auto& tech = technical[stencil.ooo()];
-            //  Here for debugging since boundarytype should be fed from MPIGrid
-            tech.sysBoundaryFlag = sysboundarytype::N_SYSBOUNDARY_CONDITIONS;
-            tech.sysBoundaryLayer = 0;
-            // Function called on every refinement, we only want to reset dt on simulation start
-            if (P::tstep == P::tstep_min) {
-               tech.maxFsDt = numeric_limits<Real>::max();
-            }
-            // Set the fsgrid rank in the technical grid
-            tech.fsGridRank = rank;
-         }
+   fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                       phiprof::initializeTimer("classifyCells-init"), technical,
+                       [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+      auto& tech = technical[stencil.ooo()];
+      //  Here for debugging since boundarytype should be fed from MPIGrid
+      tech.sysBoundaryFlag = sysboundarytype::N_SYSBOUNDARY_CONDITIONS;
+      tech.sysBoundaryLayer = 0;
+      // Function called on every refinement, we only want to reset dt on simulation start
+      if (P::tstep == P::tstep_min) {
+         tech.maxFsDt = numeric_limits<Real>::max();
       }
-   }
+      // Set the fsgrid rank in the technical grid
+      tech.fsGridRank = rank;
+   });
+
 
    /*
      loop through sysboundaries and let all sysboundaries set in local
@@ -505,112 +501,99 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
    // loop through max number of layers
    for (uint layer = 1; layer <= MAX_NUMBER_OF_BOUNDARY_LAYERS; ++layer) {
 
-// loop through all cells in grid
-#pragma omp parallel for collapse(2)
-      for (auto z = 0; z < localSize[2]; ++z) {
-         for (auto y = 0; y < localSize[1]; ++y) {
-            for (auto x = 0; x < localSize[0]; ++x) {
-               const auto stencil = fsgrid.makeStencil(x, y, z);
-               auto& tech = technical[stencil.ooo()];
+      // loop through all cells in grid
+      fsgrid.parallel_for_ijk([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                              phiprof::initializeTimer("classifyCells-pass-1"), technical,
+                              [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer, const fsgrid::FsIndex_t i, const fsgrid::FsIndex_t j, const fsgrid::FsIndex_t k) {
+         auto& tech = technical[stencil.ooo()];
 
-               // for the first layer, consider all cells that belong to a boundary, for other layers
-               // consider all cells that have not yet been labeled.
-               if ((layer == 1 && tech.sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) ||
-                   (layer > 1 && tech.sysBoundaryLayer == 0)) {
+         // for the first layer, consider all cells that belong to a boundary, for other layers
+         // consider all cells that have not yet been labeled.
+         if ((layer == 1 && tech.sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) ||
+             (layer > 1 && tech.sysBoundaryLayer == 0)) {
 
-                  if (belongsToLayer(layer, x, y, z, technical, fsgrid)) {
+            if (belongsToLayer(layer, i, j, k, technical, stencil)) {
 
-                     tech.sysBoundaryLayer = layer;
+               tech.sysBoundaryLayer = layer;
 
-                     if (layer > 2 && (tech.sysBoundaryFlag == sysboundarytype::IONOSPHERE ||
-                                       tech.sysBoundaryFlag == sysboundarytype::COPYSPHERE)) {
-                        tech.sysBoundaryFlag = sysboundarytype::DO_NOT_COMPUTE;
-                     } else if (layer > 2 && tech.sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
-                        tech.sysBoundaryFlag = sysboundarytype::OUTER_BOUNDARY_PADDING;
-                     }
-                  }
+               if (layer > 2 && (tech.sysBoundaryFlag == sysboundarytype::IONOSPHERE ||
+                                 tech.sysBoundaryFlag == sysboundarytype::COPYSPHERE)) {
+                  tech.sysBoundaryFlag = sysboundarytype::DO_NOT_COMPUTE;
+               } else if (layer > 2 && tech.sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+                  tech.sysBoundaryFlag = sysboundarytype::OUTER_BOUNDARY_PADDING;
                }
             }
          }
-      }
+      });
       // This needs an update every iteration as belongsToLayer() needs up to date data.
       fsgrid.updateGhostCells(technical);
    }
 
-// One more pass to make sure, in particular if the ionosphere is wide enough
-// there is remaining cells of IONOSPHERE type inside the max layers gone through previously.
-// This last pass now gets rid of them.
-#pragma omp parallel for collapse(2)
-   for (auto z = 0; z < localSize[2]; ++z) {
-      for (auto y = 0; y < localSize[1]; ++y) {
-         for (auto x = 0; x < localSize[0]; ++x) {
-            const auto stencil = fsgrid.makeStencil(x, y, z);
-            auto& tech = technical[stencil.ooo()];
-            if (tech.sysBoundaryLayer == 0 && (tech.sysBoundaryFlag == sysboundarytype::IONOSPHERE ||
-                                               tech.sysBoundaryFlag == sysboundarytype::COPYSPHERE)) {
-               tech.sysBoundaryFlag = sysboundarytype::DO_NOT_COMPUTE;
-            }
-         }
+   // One more pass to make sure, in particular if the ionosphere is wide enough
+   // there is remaining cells of IONOSPHERE type inside the max layers gone through previously.
+   // This last pass now gets rid of them.
+   fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                       phiprof::initializeTimer("classifyCells-pass-2"), technical,
+                       [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+      auto& tech = technical[stencil.ooo()];
+      if (tech.sysBoundaryLayer == 0 && (tech.sysBoundaryFlag == sysboundarytype::IONOSPHERE ||
+                                         tech.sysBoundaryFlag == sysboundarytype::COPYSPHERE)) {
+         tech.sysBoundaryFlag = sysboundarytype::DO_NOT_COMPUTE;
       }
-   }
+   });
 
    fsgrid.updateGhostCells(technical);
 
    const array<fsgrid::FsSize_t, 3> fsGridDimensions = fsgrid.getGlobalSize();
+   const std::array<bool, 3> periodic_l = this->periodic;
 
    // One pass to setup the bit field to know which components the field solver should propagate.
-#pragma omp parallel for collapse(2)
-   for (auto z = 0; z < localSize[2]; ++z) {
-      for (auto y = 0; y < localSize[1]; ++y) {
-         for (auto x = 0; x < localSize[0]; ++x) {
-            const auto stencil = fsgrid.makeStencil(x, y, z);
-            auto& tech = technical[stencil.ooo()];
-            tech.SOLVE = 0;
+   fsgrid.parallel_for_global_ijk([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                           phiprof::initializeTimer("classifyCells-pass-3"), technical,
+                           [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer, const fsgrid::FsIndex_t gi, const fsgrid::FsIndex_t gj, const fsgrid::FsIndex_t gk) {
+      auto& tech = technical[stencil.ooo()];
+      tech.SOLVE = 0;
 
-            const auto globalIndices = fsgrid.localToGlobal(x, y, z);
+      if (((gi == 0 || gi == fsGridDimensions[0] - 1) && !periodic_l[0]) ||
+          ((gj == 0 || gj == fsGridDimensions[1] - 1) && !periodic_l[1]) ||
+          ((gk == 0 || gk == fsGridDimensions[2] - 1) && !periodic_l[2])) {
+         return; // was continue in non-lambda version
+      }
 
-            if (((globalIndices[0] == 0 || globalIndices[0] == fsGridDimensions[0] - 1) && !this->isPeriodic(0)) ||
-                ((globalIndices[1] == 0 || globalIndices[1] == fsGridDimensions[1] - 1) && !this->isPeriodic(1)) ||
-                ((globalIndices[2] == 0 || globalIndices[2] == fsGridDimensions[2] - 1) && !this->isPeriodic(2))) {
-               continue;
-            }
-
-            if (tech.sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-               tech.SOLVE = tech.SOLVE | compute::BX;
-               tech.SOLVE = tech.SOLVE | compute::BY;
-               tech.SOLVE = tech.SOLVE | compute::BZ;
-               tech.SOLVE = tech.SOLVE | compute::EX;
-               tech.SOLVE = tech.SOLVE | compute::EY;
-               tech.SOLVE = tech.SOLVE | compute::EZ;
-            } else {
-               if (technical[stencil.moo()].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-                  tech.SOLVE = tech.SOLVE | compute::BX;
-                  tech.SOLVE = tech.SOLVE | compute::EY;
-                  tech.SOLVE = tech.SOLVE | compute::EZ;
-               }
-               if (technical[stencil.omo()].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-                  tech.SOLVE = tech.SOLVE | compute::BY;
-                  tech.SOLVE = tech.SOLVE | compute::EX;
-                  tech.SOLVE = tech.SOLVE | compute::EZ;
-               }
-               if (technical[stencil.oom()].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-                  tech.SOLVE = tech.SOLVE | compute::BZ;
-                  tech.SOLVE = tech.SOLVE | compute::EX;
-                  tech.SOLVE = tech.SOLVE | compute::EY;
-               }
-               if (technical[stencil.mmo()].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-                  tech.SOLVE = tech.SOLVE | compute::EZ;
-               }
-               if (technical[stencil.mom()].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-                  tech.SOLVE = tech.SOLVE | compute::EY;
-               }
-               if (technical[stencil.omm()].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-                  tech.SOLVE = tech.SOLVE | compute::EX;
-               }
-            }
+      if (tech.sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+         tech.SOLVE = tech.SOLVE | compute::BX;
+         tech.SOLVE = tech.SOLVE | compute::BY;
+         tech.SOLVE = tech.SOLVE | compute::BZ;
+         tech.SOLVE = tech.SOLVE | compute::EX;
+         tech.SOLVE = tech.SOLVE | compute::EY;
+         tech.SOLVE = tech.SOLVE | compute::EZ;
+      } else {
+         if (technical[stencil.moo()].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+            tech.SOLVE = tech.SOLVE | compute::BX;
+            tech.SOLVE = tech.SOLVE | compute::EY;
+            tech.SOLVE = tech.SOLVE | compute::EZ;
+         }
+         if (technical[stencil.omo()].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+            tech.SOLVE = tech.SOLVE | compute::BY;
+            tech.SOLVE = tech.SOLVE | compute::EX;
+            tech.SOLVE = tech.SOLVE | compute::EZ;
+         }
+         if (technical[stencil.oom()].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+            tech.SOLVE = tech.SOLVE | compute::BZ;
+            tech.SOLVE = tech.SOLVE | compute::EX;
+            tech.SOLVE = tech.SOLVE | compute::EY;
+         }
+         if (technical[stencil.mmo()].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+            tech.SOLVE = tech.SOLVE | compute::EZ;
+         }
+         if (technical[stencil.mom()].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+            tech.SOLVE = tech.SOLVE | compute::EY;
+         }
+         if (technical[stencil.omm()].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+            tech.SOLVE = tech.SOLVE | compute::EX;
          }
       }
-   }
+   });
 
    fsgrid.updateGhostCells(technical);
 }
