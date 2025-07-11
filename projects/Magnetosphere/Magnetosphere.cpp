@@ -360,9 +360,10 @@ namespace projects {
       const auto zeroOutComponents_l = this->zeroOutComponents; // local copies for lambda capture
       const auto dipoleType_l = this->dipoleType;
       const auto noDipoleInSW_l = this->noDipoleInSW;
+      const auto constBgB_l = this->constBgB;
       fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
                           phiprof::initializeTimer("zeroing-out"), technical,
-                          [=, *this](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+                          [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
          bool doZeroOut;
          //Force field to zero in the perpendicular direction for 2D (1D) simulations. Otherwise we have unphysical components.
          doZeroOut = P::xcells_ini ==1 && zeroOutComponents_l[0]==1;
@@ -430,11 +431,11 @@ namespace projects {
 
       phiprof::Timer addConstantTimer {"add-constant-field"};
       // Superimpose constant background field if needed
-      if(this->constBgB[0] != 0.0 || this->constBgB[1] != 0.0 || this->constBgB[2] != 0.0) {
+      if(constBgB_l[0] != 0.0 || constBgB_l[1] != 0.0 || constBgB_l[2] != 0.0) {
          ConstantField bgConstantField;
-         bgConstantField.initialize(this->constBgB[0], this->constBgB[1], this->constBgB[2]);
+         bgConstantField.initialize(constBgB_l[0], constBgB_l[1], constBgB_l[2]);
          setBackgroundField(bgConstantField, bgb, technical, fsgrid, true);
-         SBC::ionosphereGrid.setConstantBackgroundField(this->constBgB);
+         SBC::ionosphereGrid.setConstantBackgroundField(constBgB_l);
       }
       addConstantTimer.stop();
       phiprof::Timer storeNodeTimer {"ionosphereGrid.storeNodeB"};

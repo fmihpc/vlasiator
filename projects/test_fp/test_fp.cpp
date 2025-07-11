@@ -189,10 +189,9 @@ namespace projects {
          const auto B0_l = this->B0; // local copies for lambda capture
          const auto CASE_l = this->CASE;
 
-         fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
-                             phiprof::initializeTimer("setProjectBField-loop"), technical,
-                             [&, *this](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
-            const auto xyz = fsgrid.getPhysicalCoords(fsgrid.localCoordsFromStencilID(stencil.ooo()));
+         fsgrid.parallel_for_coords([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                                    phiprof::initializeTimer("setProjectBField-loop"), technical,
+                                    [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer, const std::array<Real, 3> xyz) {
             auto& cell = perb[stencil.ooo()];
 
             creal x = xyz[0] + 0.5 * gridSpacing[0];

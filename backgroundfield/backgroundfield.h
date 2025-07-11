@@ -88,11 +88,9 @@ void setPerturbedField(const FieldFunction& bfFunction, std::span<std::array<Rea
 
 
    // These are threaded now that the stuff around here is threadsafe
-   fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
-                       phiprof::initializeTimer("setPerturbedField-loop"), technical,
-                       [& /*=, &bfFunction*/](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
-
-                          const auto start = fsgrid.getPhysicalCoords(fsgrid.localCoordsFromStencilID(stencil.ooo()));
+   fsgrid.parallel_for_coords([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                              phiprof::initializeTimer("setPerturbedField-loop"), technical,
+                              [& /*=, &bfFunction*/](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer, std::array<Real, 3> start) {
                           auto& field = b[stencil.ooo()];
 
                           // Face averages

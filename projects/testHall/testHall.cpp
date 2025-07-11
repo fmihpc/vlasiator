@@ -144,10 +144,9 @@ namespace projects {
          const auto BX0_l = this->BX0;
          const auto BY0_l = this->BY0;
          const auto BZ0_l = this->BZ0;
-         fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
-                             phiprof::initializeTimer("setProjectBField-loop"), technical,
-                             [=, *this](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
-            const auto xyz = fsgrid.getPhysicalCoords(fsgrid.localCoordsFromStencilID(stencil.ooo()));
+         fsgrid.parallel_for_coords([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                                    phiprof::initializeTimer("setProjectBField-loop"), technical,
+                                    [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer, const std::array<Real, 3> xyz) {
             auto& cell = perb[stencil.ooo()];
 
             cell[fsgrids::bfield::PERBX] = BX0_l * cos(2.0 * M_PI * 1.0 * xyz[0] / (P::xmax - P::xmin)) *

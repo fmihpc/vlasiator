@@ -550,7 +550,7 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
    // One pass to setup the bit field to know which components the field solver should propagate.
    fsgrid.parallel_for_global_ijk([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
                            phiprof::initializeTimer("classifyCells-pass-3"), technical,
-                           [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer, const fsgrid::FsIndex_t gi, const fsgrid::FsIndex_t gj, const fsgrid::FsIndex_t gk) {
+                           [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer, const fsgrid::FsSize_t gi, const fsgrid::FsSize_t gj, const fsgrid::FsSize_t gk) {
       auto& tech = technical[stencil.ooo()];
       tech.SOLVE = 0;
 

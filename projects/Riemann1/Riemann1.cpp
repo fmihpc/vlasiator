@@ -155,17 +155,16 @@ namespace projects {
          const auto LEFT_l = this->LEFT;
          const auto RIGHT_l = this->RIGHT;
          
-         fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
-                             phiprof::initializeTimer("setProjectBField-loop"), technical,
-                             [=, *this](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
-            const auto xyz = fsgrid.getPhysicalCoords(fsgrid.localCoordsFromStencilID(stencil.ooo()));
+         fsgrid.parallel_for_coords([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                                    phiprof::initializeTimer("setProjectBField-loop"), technical,
+                                    [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer, const std::array<Real, 3> xyz) {
             auto& cell = perb[stencil.ooo()];
 
             //Real Bxavg, Byavg, Bzavg;
             //Bxavg = Byavg = Bzavg = 0.0;
-            cell[fsgrids::bfield::PERBX] = (xyz[0] < 0.0) ? Bx_l[LEFT_l] : Bx[RIGHT_l];
-            cell[fsgrids::bfield::PERBY] = (xyz[0] < 0.0) ? By_l[LEFT_l] : By[RIGHT_l];
-            cell[fsgrids::bfield::PERBZ] = (xyz[0] < 0.0) ? Bz_l[LEFT_l] : Bz[RIGHT_l];
+            cell[fsgrids::bfield::PERBX] = (xyz[0] < 0.0) ? Bx_l[LEFT_l] : Bx_l[RIGHT_l];
+            cell[fsgrids::bfield::PERBY] = (xyz[0] < 0.0) ? By_l[LEFT_l] : By_l[RIGHT_l];
+            cell[fsgrids::bfield::PERBZ] = (xyz[0] < 0.0) ? Bz_l[LEFT_l] : Bz_l[RIGHT_l];
          });
       }
    }

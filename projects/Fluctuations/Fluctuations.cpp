@@ -204,11 +204,12 @@ namespace projects {
          const auto magXPertAbsAmp_l = this->magXPertAbsAmp;
          const auto magYPertAbsAmp_l = this->magYPertAbsAmp;
          const auto magZPertAbsAmp_l = this->magZPertAbsAmp;
-         fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
-                             phiprof::initializeTimer("setProjectBField-loop"), technical,
-                             [=, *this](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+
+         // *this passed due to setRandomSeed() and getRandomNumber().
+         fsgrid.parallel_for_cellid([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                                    phiprof::initializeTimer("setProjectBField-loop"), technical,
+                                    [=, *this](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer, const uint64_t cellid) {
             auto& cell = perb[stencil.ooo()];
-            const int64_t cellid = fsgrid.globalIDFromLocalCoordinates(fsgrid.localCoordsFromStencilID(stencil.ooo()));
 
             std::default_random_engine rndState;
             setRandomSeed(cellid,rndState);
