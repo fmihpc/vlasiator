@@ -110,10 +110,10 @@ void calculateEdgeHyperTermXComponents(
    Real EHyperX = 0.0;
    if (Parameters::ohmHyperTerm == 0) {
          cerr << __FILE__ << __LINE__ << "You shouldn't be in a hyperresistivity term function if Parameters::ohmGradPeTerm == 0." << endl;
-         break;
+         exit(1);
    }
    std::array<Real, fsgrids::dperb::N_DPERB> * centdPerB = dPerBGrid.get(i,j,k);
-   std::array<Real, fsgrids::bfield::N_BFIELD> * centPerB = PerBGrid.get(i,j,k);
+   std::array<Real, fsgrids::bfield::N_BFIELD> * centPerB = perBGrid.get(i,j,k);
    std::array<Real, fsgrids::bgbfield::N_BGB> * centBgB = BgBGrid.get(i,j,k);
    std::array<Real, fsgrids::moments::N_MOMENTS> * centMom = momentsGrid.get(i,j,k);
 
@@ -166,7 +166,7 @@ void calculateEdgeHyperTermXComponents(
       rightdPerB = centdPerB;
    }
    EHyperX += hyperres_coeff*(leftdPerB->at(fsgrids::dperb::dPERBzdy) + rightdPerB->at(fsgrids::dperb::dPERBzdy) - 2*middPerB->at(fsgrids::dperb::dPERBzdy))/(technicalGrid.DX * technicalGrid.DX) - 
-   hyperres_coeff*(leftdPerB->at(fsgrids::dperb::dPERBydz) + rightdPerB->at(fsgrids::dperb::dPERBydz) - 2*middPerB->at(fsgrids::dperb::dPERBydz))/(technicalGrid.DX * technicalGrid.DX)
+   hyperres_coeff*(leftdPerB->at(fsgrids::dperb::dPERBydz) + rightdPerB->at(fsgrids::dperb::dPERBydz) - 2*middPerB->at(fsgrids::dperb::dPERBydz))/(technicalGrid.DX * technicalGrid.DX);
 
    // yy-derivative
    middPerB = NULL;
@@ -196,7 +196,7 @@ void calculateEdgeHyperTermXComponents(
       rightdPerB = centdPerB;
    }
    EHyperX += hyperres_coeff*(leftdPerB->at(fsgrids::dperb::dPERBzdy) + rightdPerB->at(fsgrids::dperb::dPERBzdy) - 2*middPerB->at(fsgrids::dperb::dPERBzdy))/(technicalGrid.DX * technicalGrid.DX) - 
-   hyperres_coeff*(leftdPerB->at(fsgrids::dperb::dPERBydz) + rightdPerB->at(fsgrids::dperb::dPERBydz) - 2*middPerB->at(fsgrids::dperb::dPERBydz))/(technicalGrid.DX * technicalGrid.DX)
+   hyperres_coeff*(leftdPerB->at(fsgrids::dperb::dPERBydz) + rightdPerB->at(fsgrids::dperb::dPERBydz) - 2*middPerB->at(fsgrids::dperb::dPERBydz))/(technicalGrid.DX * technicalGrid.DX);
 
    // zz-derivative
    middPerB = NULL;
@@ -226,7 +226,7 @@ void calculateEdgeHyperTermXComponents(
       rightdPerB = centdPerB;
    }
    EHyperX += hyperres_coeff*(leftdPerB->at(fsgrids::dperb::dPERBzdy) + rightdPerB->at(fsgrids::dperb::dPERBzdy) - 2*middPerB->at(fsgrids::dperb::dPERBzdy))/(technicalGrid.DX * technicalGrid.DX) - 
-   hyperres_coeff*(leftdPerB->at(fsgrids::dperb::dPERBydz) + rightdPerB->at(fsgrids::dperb::dPERBydz) - 2*middPerB->at(fsgrids::dperb::dPERBydz))/(technicalGrid.DX * technicalGrid.DX)
+   hyperres_coeff*(leftdPerB->at(fsgrids::dperb::dPERBydz) + rightdPerB->at(fsgrids::dperb::dPERBydz) - 2*middPerB->at(fsgrids::dperb::dPERBydz))/(technicalGrid.DX * technicalGrid.DX);
 
 
    EHyperGrid.get(i,j,k)->at(fsgrids::ehyper::EXHYPER) = EHyperX;
@@ -249,10 +249,10 @@ void calculateEdgeHyperTermYComponents(
    Real EHyperY = 0.0;
    if (Parameters::ohmHyperTerm == 0) {
          cerr << __FILE__ << __LINE__ << "You shouldn't be in a hyperresistivity term function if Parameters::ohmGradPeTerm == 0." << endl;
-         break;
+         exit(1);
    }
    std::array<Real, fsgrids::dperb::N_DPERB> * centdPerB = dPerBGrid.get(i,j,k);
-   std::array<Real, fsgrids::bfield::N_BFIELD> * centPerB = PerBGrid.get(i,j,k);
+   std::array<Real, fsgrids::bfield::N_BFIELD> * centPerB = perBGrid.get(i,j,k);
    std::array<Real, fsgrids::bgbfield::N_BGB> * centBgB = BgBGrid.get(i,j,k);
    std::array<Real, fsgrids::moments::N_MOMENTS> * centMom = momentsGrid.get(i,j,k);
 
@@ -305,7 +305,7 @@ void calculateEdgeHyperTermYComponents(
       rightdPerB = centdPerB;
    }
    EHyperY += hyperres_coeff*(leftdPerB->at(fsgrids::dperb::dPERBxdz) + rightdPerB->at(fsgrids::dperb::dPERBxdz) - 2*middPerB->at(fsgrids::dperb::dPERBxdz))/(technicalGrid.DX * technicalGrid.DX) - 
-   hyperres_coeff*(leftdPerB->at(fsgrids::dperb::dPERBzdx) + rightdPerB->at(fsgrids::dperb::dPERBzdx) - 2*middPerB->at(fsgrids::dperb::dPERBzdx))/(technicalGrid.DX * technicalGrid.DX)
+   hyperres_coeff*(leftdPerB->at(fsgrids::dperb::dPERBzdx) + rightdPerB->at(fsgrids::dperb::dPERBzdx) - 2*middPerB->at(fsgrids::dperb::dPERBzdx))/(technicalGrid.DX * technicalGrid.DX);
 
    // yy-derivative
    middPerB = NULL;
@@ -335,7 +335,7 @@ void calculateEdgeHyperTermYComponents(
       rightdPerB = centdPerB;
    }
    EHyperY += hyperres_coeff*(leftdPerB->at(fsgrids::dperb::dPERBxdz) + rightdPerB->at(fsgrids::dperb::dPERBxdz) - 2*middPerB->at(fsgrids::dperb::dPERBxdz))/(technicalGrid.DX * technicalGrid.DX) - 
-   hyperres_coeff*(leftdPerB->at(fsgrids::dperb::dPERBzdx) + rightdPerB->at(fsgrids::dperb::dPERBzdx) - 2*middPerB->at(fsgrids::dperb::dPERBzdx))/(technicalGrid.DX * technicalGrid.DX)
+   hyperres_coeff*(leftdPerB->at(fsgrids::dperb::dPERBzdx) + rightdPerB->at(fsgrids::dperb::dPERBzdx) - 2*middPerB->at(fsgrids::dperb::dPERBzdx))/(technicalGrid.DX * technicalGrid.DX);
 
    // zz-derivative
    middPerB = NULL;
@@ -365,7 +365,7 @@ void calculateEdgeHyperTermYComponents(
       rightdPerB = centdPerB;
    }
    EHyperY += hyperres_coeff*(leftdPerB->at(fsgrids::dperb::dPERBxdz) + rightdPerB->at(fsgrids::dperb::dPERBxdz) - 2*middPerB->at(fsgrids::dperb::dPERBxdz))/(technicalGrid.DX * technicalGrid.DX) - 
-   hyperres_coeff*(leftdPerB->at(fsgrids::dperb::dPERBzdx) + rightdPerB->at(fsgrids::dperb::dPERBzdx) - 2*middPerB->at(fsgrids::dperb::dPERBzdx))/(technicalGrid.DX * technicalGrid.DX)
+   hyperres_coeff*(leftdPerB->at(fsgrids::dperb::dPERBzdx) + rightdPerB->at(fsgrids::dperb::dPERBzdx) - 2*middPerB->at(fsgrids::dperb::dPERBzdx))/(technicalGrid.DX * technicalGrid.DX);
 
 
    EHyperGrid.get(i,j,k)->at(fsgrids::ehyper::EYHYPER) = EHyperY;
@@ -387,10 +387,10 @@ void calculateEdgeHyperTermZComponents(
    Real EHyperZ = 0.0;
    if (Parameters::ohmHyperTerm == 0) {
          cerr << __FILE__ << __LINE__ << "You shouldn't be in a hyperresistivity term function if Parameters::ohmGradPeTerm == 0." << endl;
-         break;
+         exit(1);
    }
    std::array<Real, fsgrids::dperb::N_DPERB> * centdPerB = dPerBGrid.get(i,j,k);
-   std::array<Real, fsgrids::bfield::N_BFIELD> * centPerB = PerBGrid.get(i,j,k);
+   std::array<Real, fsgrids::bfield::N_BFIELD> * centPerB = perBGrid.get(i,j,k);
    std::array<Real, fsgrids::bgbfield::N_BGB> * centBgB = BgBGrid.get(i,j,k);
    std::array<Real, fsgrids::moments::N_MOMENTS> * centMom = momentsGrid.get(i,j,k);
 
@@ -443,7 +443,7 @@ void calculateEdgeHyperTermZComponents(
       rightdPerB = centdPerB;
    }
    EHyperZ += hyperres_coeff*(leftdPerB->at(fsgrids::dperb::dPERBydx) + rightdPerB->at(fsgrids::dperb::dPERBydx) - 2*middPerB->at(fsgrids::dperb::dPERBydx))/(technicalGrid.DX * technicalGrid.DX) - 
-   hyperres_coeff*(leftdPerB->at(fsgrids::dperb::dPERBxdy) + rightdPerB->at(fsgrids::dperb::dPERBxdy) - 2*middPerB->at(fsgrids::dperb::dPERBxdy))/(technicalGrid.DX * technicalGrid.DX)
+   hyperres_coeff*(leftdPerB->at(fsgrids::dperb::dPERBxdy) + rightdPerB->at(fsgrids::dperb::dPERBxdy) - 2*middPerB->at(fsgrids::dperb::dPERBxdy))/(technicalGrid.DX * technicalGrid.DX);
 
    // yy-derivative
    middPerB = NULL;
@@ -473,7 +473,7 @@ void calculateEdgeHyperTermZComponents(
       rightdPerB = centdPerB;
    }
    EHyperZ += hyperres_coeff*(leftdPerB->at(fsgrids::dperb::dPERBydx) + rightdPerB->at(fsgrids::dperb::dPERBydx) - 2*middPerB->at(fsgrids::dperb::dPERBydx))/(technicalGrid.DX * technicalGrid.DX) - 
-   hyperres_coeff*(leftdPerB->at(fsgrids::dperb::dPERBxdy) + rightdPerB->at(fsgrids::dperb::dPERBxdy) - 2*middPerB->at(fsgrids::dperb::dPERBxdy))/(technicalGrid.DX * technicalGrid.DX)
+   hyperres_coeff*(leftdPerB->at(fsgrids::dperb::dPERBxdy) + rightdPerB->at(fsgrids::dperb::dPERBxdy) - 2*middPerB->at(fsgrids::dperb::dPERBxdy))/(technicalGrid.DX * technicalGrid.DX);
 
    // zz-derivative
    middPerB = NULL;
@@ -503,7 +503,7 @@ void calculateEdgeHyperTermZComponents(
       rightdPerB = centdPerB;
    }
    EHyperZ += hyperres_coeff*(leftdPerB->at(fsgrids::dperb::dPERBydx) + rightdPerB->at(fsgrids::dperb::dPERBydx) - 2*middPerB->at(fsgrids::dperb::dPERBydx))/(technicalGrid.DX * technicalGrid.DX) - 
-   hyperres_coeff*(leftdPerB->at(fsgrids::dperb::dPERBxdy) + rightdPerB->at(fsgrids::dperb::dPERBxdy) - 2*middPerB->at(fsgrids::dperb::dPERBxdy))/(technicalGrid.DX * technicalGrid.DX)
+   hyperres_coeff*(leftdPerB->at(fsgrids::dperb::dPERBxdy) + rightdPerB->at(fsgrids::dperb::dPERBxdy) - 2*middPerB->at(fsgrids::dperb::dPERBxdy))/(technicalGrid.DX * technicalGrid.DX);
 
 
    EHyperGrid.get(i,j,k)->at(fsgrids::ehyper::EZHYPER) = EHyperZ;
