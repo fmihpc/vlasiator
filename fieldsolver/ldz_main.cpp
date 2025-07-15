@@ -148,7 +148,7 @@ bool propagateFields(
                technicalGrid,
                sysBoundaries,
                RK_ORDER1
-            )
+            );
          }
       calculateUpwindedElectricFieldSimple(
          perBGrid,
@@ -207,7 +207,7 @@ bool propagateFields(
                technicalGrid,
                sysBoundaries,
                RK_ORDER2_STEP1
-            )
+            );
          }
       calculateUpwindedElectricFieldSimple(
          perBGrid,
@@ -266,7 +266,7 @@ bool propagateFields(
                technicalGrid,
                sysBoundaries,
                RK_ORDER2_STEP2
-            )
+            );
          }
       calculateUpwindedElectricFieldSimple(
          perBGrid,
@@ -339,7 +339,7 @@ bool propagateFields(
                technicalGrid,
                sysBoundaries,
                RK_ORDER2_STEP1
-            )
+            );
          }
          calculateUpwindedElectricFieldSimple(
             perBGrid,
@@ -401,7 +401,7 @@ bool propagateFields(
                technicalGrid,
                sysBoundaries,
                RK_ORDER2_STEP2
-            )
+            );
          }
          calculateUpwindedElectricFieldSimple(
             perBGrid,

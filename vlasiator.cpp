@@ -454,7 +454,7 @@ int simulate(int argn,char* args[]) {
    perBGrid.DY = perBDt2Grid.DY = EGrid.DY = EDt2Grid.DY = EHallGrid.DY = EGradPeGrid.DY = EGradPeDt2Grid.DY = EHyperGrid.DY = EHyperDt2Grid.DY = momentsGrid.DY
       = momentsDt2Grid.DY = dPerBGrid.DY = dMomentsGrid.DY = dMomentsDt2Grid.DY = BgBGrid.DY = volGrid.DY = technicalGrid.DY
       = P::dy_ini / pow(2, P::amrMaxSpatialRefLevel);
-   perBGrid.DZ = perBDt2Grid.DZ = EGrid.DZ = EDt2Grid.DZ = EHallGrid.DZ = EGradPeGrid.DZ = EGradPeDt2Grid.DZ = EHyperGrid.D> = EHyperDt2Grid.D> = momentsGrid.DZ
+   perBGrid.DZ = perBDt2Grid.DZ = EGrid.DZ = EDt2Grid.DZ = EHallGrid.DZ = EGradPeGrid.DZ = EGradPeDt2Grid.DZ = EHyperGrid.DZ = EHyperDt2Grid.DZ = momentsGrid.DZ
       = momentsDt2Grid.DZ = dPerBGrid.DZ = dMomentsGrid.DZ = dMomentsDt2Grid.DZ = BgBGrid.DZ = volGrid.DZ = technicalGrid.DZ
       = P::dz_ini / pow(2, P::amrMaxSpatialRefLevel);
    // Set the physical start (lower left corner) X, Y, Z
