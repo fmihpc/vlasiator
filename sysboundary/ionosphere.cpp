@@ -3026,6 +3026,16 @@ namespace SBC {
       EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE+component) = 0.0;
    }
 
+   void Ionosphere::fieldSolverBoundaryCondHyperElectricField(
+      FsGrid< std::array<Real, fsgrids::ehyper::N_EHYPER>, FS_STENCIL_WIDTH> & EHyperGrid,
+      cint i,
+      cint j,
+      cint k,
+      cuint component
+   ) {
+      EHyperGrid.get(i,j,k)->at(fsgrids::ehyper::EXHYPER+component) = 0.0;
+   }
+
    void Ionosphere::fieldSolverBoundaryCondDerivatives(
       FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
       FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,

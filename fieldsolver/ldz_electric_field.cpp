@@ -456,6 +456,7 @@ void calculateEdgeElectricFieldX(
    FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
    FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
    FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+   FsGrid< std::array<Real, fsgrids::ehyper::N_EHYPER>, FS_STENCIL_WIDTH> & EHyperGrid,
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
    FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
@@ -584,6 +585,11 @@ void calculateEdgeElectricFieldX(
       Ex_SW += EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE);
    }
 
+   // Hyperresistivity term
+   if(Parameters::ohmHyperTerm > 0) {
+      Ex_SW += EHyperGrid.get(i,j,k)->at(fsgrids::ehyper::EXHYPER);
+   }
+
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
       Ex_SW += +HALF*((By_S - HALF*dBydz_S)*(-dmoments_SW->at(fsgrids::dmoments::dVzdy) - dmoments_SW->at(fsgrids::dmoments::dVzdz)) - dBydz_S*Vz0 + SIXTH*dBydx_S*dmoments_SW->at(fsgrids::dmoments::dVzdx));
@@ -637,6 +643,11 @@ void calculateEdgeElectricFieldX(
    // Electron pressure gradient term
    if(Parameters::ohmGradPeTerm > 0) {
       Ex_SE += EGradPeGrid.get(i,j-1,k)->at(fsgrids::egradpe::EXGRADPE);
+   }
+
+   // Hyperresistivity term
+   if(Parameters::ohmHyperTerm > 0) {
+      Ex_SE += EHyperGrid.get(i,j-1,k)->at(fsgrids::ehyper::EXHYPER);
    }
    
    #ifndef FS_1ST_ORDER_SPACE
@@ -694,6 +705,11 @@ void calculateEdgeElectricFieldX(
    if(Parameters::ohmGradPeTerm > 0) {
       Ex_NW += EGradPeGrid.get(i,j,k-1)->at(fsgrids::egradpe::EXGRADPE);
    }
+
+   // Hyperresistivity term
+   if(Parameters::ohmHyperTerm > 0) {
+      Ex_NW += EHyperGrid.get(i,j,k-1)->at(fsgrids::ehyper::EXHYPER);
+   }
    
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
@@ -749,6 +765,11 @@ void calculateEdgeElectricFieldX(
    // Electron pressure gradient term
    if(Parameters::ohmGradPeTerm > 0) {
       Ex_NE += EGradPeGrid.get(i,j-1,k-1)->at(fsgrids::egradpe::EXGRADPE);
+   }
+
+   // Hyperresistivity term
+   if(Parameters::ohmHyperTerm > 0) {
+      Ex_NE += EHyperGrid.get(i,j-1,k-1)->at(fsgrids::ehyper::EXHYPER);
    }
    
    #ifndef FS_1ST_ORDER_SPACE
@@ -814,6 +835,7 @@ void calculateEdgeElectricFieldY(
    FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
    FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
    FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+   FsGrid< std::array<Real, fsgrids::ehyper::N_EHYPER>, FS_STENCIL_WIDTH> & EHyperGrid,
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
    FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
@@ -940,6 +962,11 @@ void calculateEdgeElectricFieldY(
    if(Parameters::ohmGradPeTerm > 0) {
       Ey_SW += EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EYGRADPE);
    }
+
+   // Hyperresistivity term
+   if(Parameters::ohmHyperTerm > 0) {
+      Ey_SW += EHyperGrid.get(i,j,k)->at(fsgrids::ehyper::EYHYPER);
+   }
    
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms
@@ -995,6 +1022,11 @@ void calculateEdgeElectricFieldY(
    // Electron pressure gradient term
    if(Parameters::ohmGradPeTerm > 0) {
       Ey_SE += EGradPeGrid.get(i,j,k-1)->at(fsgrids::egradpe::EYGRADPE);
+   }
+
+   // Hyperresistivity term
+   if(Parameters::ohmHyperTerm > 0) {
+      Ey_SE += EHyperGrid.get(i,j,k-1)->at(fsgrids::ehyper::EYHYPER);
    }
    
    #ifndef FS_1ST_ORDER_SPACE
@@ -1052,6 +1084,11 @@ void calculateEdgeElectricFieldY(
    if(Parameters::ohmGradPeTerm > 0) {
       Ey_NW += EGradPeGrid.get(i-1,j,k)->at(fsgrids::egradpe::EYGRADPE);
    }
+
+   // Hyperresistivity term
+   if(Parameters::ohmHyperTerm > 0) {
+      Ey_NW += EHyperGrid.get(i-1,j,k)->at(fsgrids::ehyper::EYHYPER);
+   }
    
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
@@ -1107,6 +1144,11 @@ void calculateEdgeElectricFieldY(
    // Electron pressure gradient term
    if(Parameters::ohmGradPeTerm > 0) {
       Ey_NE += EGradPeGrid.get(i-1,j,k-1)->at(fsgrids::egradpe::EYGRADPE);
+   }
+
+   // Hyperresistivity term
+   if(Parameters::ohmHyperTerm > 0) {
+      Ey_NE += EHyperGrid.get(i-1,j,k-1)->at(fsgrids::ehyper::EYHYPER);
    }
    
    #ifndef FS_1ST_ORDER_SPACE
@@ -1171,6 +1213,7 @@ void calculateEdgeElectricFieldZ(
    FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
    FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
    FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+   FsGrid< std::array<Real, fsgrids::ehyper::N_EHYPER>, FS_STENCIL_WIDTH> & EHyperGrid,
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
    FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
@@ -1299,6 +1342,11 @@ void calculateEdgeElectricFieldZ(
    if(Parameters::ohmGradPeTerm > 0) {
       Ez_SW += EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EZGRADPE);
    }
+
+   // Hyperresistivity term
+   if(Parameters::ohmHyperTerm > 0) {
+      Ez_SW += EHyperGrid.get(i,j,k)->at(fsgrids::ehyper::EZHYPER);
+   }
    
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
@@ -1357,6 +1405,11 @@ void calculateEdgeElectricFieldZ(
    if(Parameters::ohmGradPeTerm > 0) {
       Ez_SE += EGradPeGrid.get(i-1,j,k)->at(fsgrids::egradpe::EZGRADPE);
    }
+
+   // Hyperresistivity term
+   if(Parameters::ohmHyperTerm > 0) {
+      Ez_SW += EHyperGrid.get(i-1,j,k)->at(fsgrids::ehyper::EZHYPER);
+   }
    
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
@@ -1413,6 +1466,11 @@ void calculateEdgeElectricFieldZ(
    if(Parameters::ohmGradPeTerm > 0) {
       Ez_NW += EGradPeGrid.get(i,j-1,k)->at(fsgrids::egradpe::EZGRADPE);
    }
+
+   // Hyperresistivity term
+   if(Parameters::ohmHyperTerm > 0) {
+      Ez_NW += EHyperGrid.get(i,j-1,k)->at(fsgrids::ehyper::EZHYPER);
+   }
    
    #ifndef FS_1ST_ORDER_SPACE
       // 2nd order terms:
@@ -1468,6 +1526,11 @@ void calculateEdgeElectricFieldZ(
    // Electron pressure gradient term
    if(Parameters::ohmGradPeTerm > 0) {
       Ez_NE += EGradPeGrid.get(i-1,j-1,k)->at(fsgrids::egradpe::EZGRADPE);
+   }
+
+   // Hyperresistivity term
+   if(Parameters::ohmHyperTerm > 0) {
+      Ez_NE += EHyperGrid.get(i-1,j-1,k)->at(fsgrids::ehyper::EZHYPER);
    }
    
    #ifndef FS_1ST_ORDER_SPACE
@@ -1543,6 +1606,7 @@ void calculateElectricField(
    FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
    FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
    FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+   FsGrid< std::array<Real, fsgrids::ehyper::N_EHYPER>, FS_STENCIL_WIDTH> & EHyperGrid,
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
    FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
@@ -1566,6 +1630,7 @@ void calculateElectricField(
          EGrid,
          EHallGrid,
          EGradPeGrid,
+         EHyperGrid,
          momentsGrid,
          dPerBGrid,
          dMomentsGrid,
@@ -1586,6 +1651,7 @@ void calculateElectricField(
          EGrid,
          EHallGrid,
          EGradPeGrid,
+         EHyperGrid,
          momentsGrid,
          dPerBGrid,
          dMomentsGrid,
@@ -1606,6 +1672,7 @@ void calculateElectricField(
          EGrid,
          EHallGrid,
          EGradPeGrid,
+         EHyperGrid,
          momentsGrid,
          dPerBGrid,
          dMomentsGrid,
@@ -1651,6 +1718,8 @@ void calculateUpwindedElectricFieldSimple(
    FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
    FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
    FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeDt2Grid,
+   FsGrid< std::array<Real, fsgrids::ehyper::N_EHYPER>, FS_STENCIL_WIDTH> & EHyperGrid,
+   FsGrid< std::array<Real, fsgrids::ehyper::N_EHYPER>, FS_STENCIL_WIDTH> & EHyperDt2Grid,
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsDt2Grid,
    FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
@@ -1680,7 +1749,14 @@ void calculateUpwindedElectricFieldSimple(
          EGradPeDt2Grid.updateGhostCells();
       }
    }
-   if(P::ohmHallTerm == 0) {
+   if(P::ohmHyperTerm > 0) {
+      if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+         EHyperGrid.updateGhostCells();
+      } else {
+         EHyperDt2Grid.updateGhostCells();
+      }
+   }
+   if(P::ohmHallTerm == 0 && P::ohmHyperTerm == 0) {
       dPerBGrid.updateGhostCells();
    }
    if(P::ohmHallTerm == 0 && P::ohmGradPeTerm == 0 && communicateEGradPeOrMomentsDerivatives) {
@@ -1707,6 +1783,7 @@ void calculateUpwindedElectricFieldSimple(
                      EGrid,
                      EHallGrid,
                      EGradPeGrid,
+                     EHyperGrid,
                      momentsGrid,
                      dPerBGrid,
                      dMomentsGrid,
@@ -1724,6 +1801,7 @@ void calculateUpwindedElectricFieldSimple(
                      EDt2Grid,
                      EHallGrid,
                      EGradPeDt2Grid,
+                     EHyperDt2Grid,
                      momentsDt2Grid,
                      dPerBGrid,
                      dMomentsDt2Grid,

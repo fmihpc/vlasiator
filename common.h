@@ -321,6 +321,13 @@ namespace fsgrids {
       N_EGRADPE
    };
 
+   enum ehyper {
+      EXHYPER,         /*!< Hyperresistivity term x.*/
+      EYHYPER,         /*!< Hyperresistivity term y.*/
+      EZHYPER,         /*!< Hyperresistivity term z.*/
+      N_EHYPER
+   };
+
    enum moments {
       RHOM, /*!< Overall mass density. Calculated by Vlasov propagator, used to propagate fields.*/
       RHOQ, /*!< Overall charge density. Calculated by Vlasov propagator, used to propagate fields.*/

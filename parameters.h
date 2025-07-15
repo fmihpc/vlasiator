@@ -140,6 +140,7 @@ struct Parameters {
                                order, 2: 2nd spatial order. */
    static uint ohmGradPeTerm; /*!< Enable/choose spatial order of the electron pressure gradient term in Ohm's law. 0:
                                  off, 1: 1st spatial order. */
+   static uint ohmHyperTerm; /*!< Enable/choose spatial order of the hyperresistivity term in Ohm's law. 0: off, 1: 1st spatial order*/
    static Real electronTemperature; /*!< Upstream electron temperature to be used for the electron pressure gradient
                                        term (K). */
    static Real
