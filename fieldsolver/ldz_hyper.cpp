@@ -109,7 +109,7 @@ void calculateEdgeHyperTermXComponents(
    Real rhoq = 0.0;
    Real EHyperX = 0.0;
    if (Parameters::ohmHyperTerm == 0) {
-         cerr << __FILE__ << __LINE__ << "You shouldn't be in a hyperresistivity term function if Parameters::ohmGradPeTerm == 0." << endl;
+         cerr << __FILE__ << __LINE__ << "You shouldn't be in a hyperresistivity term function if Parameters::ohmHyperTerm == 0." << endl;
          exit(1);
    }
    std::array<Real, fsgrids::dperb::N_DPERB> * centdPerB = dPerBGrid.get(i,j,k);
@@ -248,7 +248,7 @@ void calculateEdgeHyperTermYComponents(
    Real rhoq = 0.0;
    Real EHyperY = 0.0;
    if (Parameters::ohmHyperTerm == 0) {
-         cerr << __FILE__ << __LINE__ << "You shouldn't be in a hyperresistivity term function if Parameters::ohmGradPeTerm == 0." << endl;
+         cerr << __FILE__ << __LINE__ << "You shouldn't be in a hyperresistivity term function if Parameters::ohmHyperTerm == 0." << endl;
          exit(1);
    }
    std::array<Real, fsgrids::dperb::N_DPERB> * centdPerB = dPerBGrid.get(i,j,k);
@@ -386,7 +386,7 @@ void calculateEdgeHyperTermZComponents(
    Real rhoq = 0.0;
    Real EHyperZ = 0.0;
    if (Parameters::ohmHyperTerm == 0) {
-         cerr << __FILE__ << __LINE__ << "You shouldn't be in a hyperresistivity term function if Parameters::ohmGradPeTerm == 0." << endl;
+         cerr << __FILE__ << __LINE__ << "You shouldn't be in a hyperresistivity term function if Parameters::ohmHyperTerm == 0." << endl;
          exit(1);
    }
    std::array<Real, fsgrids::dperb::N_DPERB> * centdPerB = dPerBGrid.get(i,j,k);
@@ -437,7 +437,7 @@ void calculateEdgeHyperTermZComponents(
       leftdPerB = leftleftdPerB;
       middPerB = leftdPerB;
       rightdPerB = centdPerB;
-   } else {
+   } else { // Result in the contribution going to 0
       leftdPerB =
       middPerB =
       rightdPerB = centdPerB;
@@ -565,13 +565,13 @@ void calculateHyperTermSimple(
    const FsGridTools::FsIndex_t* gridDims = &technicalGrid.getLocalSize()[0];
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
    phiprof::Timer hyperTimer {"Calculate Hyper term"};
-   int computeTimerId {phiprof::initializeTimer("EgradPe compute cells")};
+   int computeTimerId {phiprof::initializeTimer("Ehyper compute cells")};
 
    phiprof::Timer mpiTimer {"Hyper field update ghosts MPI", {"MPI"}};
    dPerBGrid.updateGhostCells();
    mpiTimer.stop();
 
-   // Calculate GradPe term
+   // Calculate Hyper term
    #pragma omp parallel
    {
       phiprof::Timer computeTimer {computeTimerId};
