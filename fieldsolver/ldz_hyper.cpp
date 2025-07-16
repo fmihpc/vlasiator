@@ -105,56 +105,62 @@ Real calculateSecondDerivativeOfCurl(
    std::array<Real, fsgrids::dperb::N_DPERB> * centdPerB = dPerBGrid.get(i,j,k);
    std::array<Real, fsgrids::dperb::N_DPERB> * middPerB = NULL;
    std::array<Real, fsgrids::dperb::N_DPERB> * leftdPerB = NULL;
-   std::array<Real, fsgrids::dperb::N_DPERB> * leftleftdPerB = NULL;
+   // std::array<Real, fsgrids::dperb::N_DPERB> * leftleftdPerB = NULL;
    std::array<Real, fsgrids::dperb::N_DPERB> * rightdPerB = NULL;
-   std::array<Real, fsgrids::dperb::N_DPERB> * rightrightdPerB = NULL;
+   // std::array<Real, fsgrids::dperb::N_DPERB> * rightrightdPerB = NULL;
    Real SecondDerOfCurl = 0.0;
-
-   return 0.0;
 
    switch (derComp) {
 
       case 0:
          leftdPerB = dPerBGrid.get(i-1,j,k);
-         leftleftdPerB = dPerBGrid.get(i-2,j,k);
+         // leftleftdPerB = dPerBGrid.get(i-2,j,k);
          rightdPerB = dPerBGrid.get(i+1,j,k);
-         rightrightdPerB = dPerBGrid.get(i+2,j,k);
+         // rightrightdPerB = dPerBGrid.get(i+2,j,k);
          break;
 
       case 1:
          leftdPerB = dPerBGrid.get(i,j-1,k);
-         leftleftdPerB = dPerBGrid.get(i,j-2,k);
+         // leftleftdPerB = dPerBGrid.get(i,j-2,k);
          rightdPerB = dPerBGrid.get(i,j+1,k);
-         rightrightdPerB = dPerBGrid.get(i,j+2,k);
+         // rightrightdPerB = dPerBGrid.get(i,j+2,k);
          break;
 
       case 2:
          leftdPerB = dPerBGrid.get(i,j,k-1);
-         leftleftdPerB = dPerBGrid.get(i,j,k-2);
+         // leftleftdPerB = dPerBGrid.get(i,j,k-2);
          rightdPerB = dPerBGrid.get(i,j,k+1);
-         rightrightdPerB = dPerBGrid.get(i,j,k+2);
+         // rightrightdPerB = dPerBGrid.get(i,j,k+2);
          break;
 
       default:
-         cerr << __FILE__ << ":" << __LINE__ << "Derivative component should be 0 (x), 1 (y), or 2 (z)." << endl;
+         cerr << __FILE__ << ":" << __LINE__ << "Derivative component should be 0 (xx), 1 (yy), or 2 (zz)." << endl;
          break;
    }
 
-   if (!(leftdPerB == NULL || rightdPerB == NULL)) {
-      middPerB = centdPerB;
-   } else if (leftdPerB == NULL && !(rightdPerB == NULL || rightrightdPerB == NULL) ) {
+   if (leftdPerB == NULL || rightdPerB == NULL) {
       leftdPerB = centdPerB;
-      middPerB = rightdPerB;
-      rightdPerB = rightrightdPerB;
-   } else if (rightdPerB == NULL && !(leftdPerB == NULL || leftleftdPerB == NULL) ) {
-      leftdPerB = leftleftdPerB;
-      middPerB = leftdPerB;
       rightdPerB = centdPerB;
+      middPerB = centdPerB;
    } else {
-      leftdPerB =
-      middPerB =
-      rightdPerB = centdPerB;
+      middPerB = centdPerB;
    }
+
+   // if (!(leftdPerB == NULL || rightdPerB == NULL)) {
+   //    middPerB = centdPerB;
+   // } else if (leftdPerB == NULL && !(rightdPerB == NULL || rightrightdPerB == NULL) ) {
+   //    leftdPerB = centdPerB;
+   //    middPerB = rightdPerB;
+   //    rightdPerB = rightrightdPerB;
+   // } else if (rightdPerB == NULL && !(leftdPerB == NULL || leftleftdPerB == NULL) ) {
+   //    leftdPerB = leftleftdPerB;
+   //    middPerB = leftdPerB;
+   //    rightdPerB = centdPerB;
+   // } else {
+   //    leftdPerB =
+   //    middPerB =
+   //    rightdPerB = centdPerB;
+   // }
 
    switch (curlComp) {
       case 0:
@@ -214,7 +220,7 @@ void calculateEdgeHyperTermXComponents(
 
    // -eta_H/mu_0 calculated with center values
    Real hyperres_coeff = -1.0 * 4.0 * M_PI * M_PI *
-           technicalGrid.DX * technicalGrid.DX *
+           dPerBGrid.DX * dPerBGrid.DX *
            Bmag / limitedRhoq / physicalconstants::MU_0;
 
    // xx-derivative
@@ -263,7 +269,7 @@ void calculateEdgeHyperTermYComponents(
 
    // -eta_H/mu_0 calculated with center values
    Real hyperres_coeff = -1.0 * 4.0 * M_PI * M_PI *
-           technicalGrid.DX * technicalGrid.DX *
+           dPerBGrid.DY * dPerBGrid.DY *
            Bmag / limitedRhoq / physicalconstants::MU_0;
 
    // xx-derivative
@@ -311,7 +317,7 @@ void calculateEdgeHyperTermZComponents(
 
    // -eta_H/mu_0 calculated with center values
    Real hyperres_coeff = -1.0 * 4.0 * M_PI * M_PI *
-           technicalGrid.DX * technicalGrid.DX *
+           dPerBGrid.DZ * dPerBGrid.DZ *
            Bmag / limitedRhoq / physicalconstants::MU_0;
 
    // xx-derivative
