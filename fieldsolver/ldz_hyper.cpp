@@ -133,8 +133,8 @@ void calculateEdgeHyperTermXComponents(
    rhoq = centMom->at(fsgrids::moments::RHOQ);
    limitedRhoq = (rhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : rhoq ;
 
-   // eta_H/mu_0 calculated with center values
-   Real hyperres_coeff = 4 * M_PI * M_PI *
+   // -eta_H/mu_0 calculated with center values
+   Real hyperres_coeff = -1 * 4 * M_PI * M_PI *
            technicalGrid.DX * technicalGrid.DX *
            Bmag / limitedRhoq / physicalconstants::MU_0;
 
@@ -272,8 +272,8 @@ void calculateEdgeHyperTermYComponents(
    rhoq = centMom->at(fsgrids::moments::RHOQ);
    limitedRhoq = (rhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : rhoq ;
 
-   // eta_H/mu_0 calculated with center values
-   Real hyperres_coeff = 4 * M_PI * M_PI *
+   // -eta_H/mu_0 calculated with center values
+   Real hyperres_coeff = -1 * 4 * M_PI * M_PI *
            technicalGrid.DX * technicalGrid.DX *
            Bmag / limitedRhoq / physicalconstants::MU_0;
 
@@ -410,8 +410,8 @@ void calculateEdgeHyperTermZComponents(
    rhoq = centMom->at(fsgrids::moments::RHOQ);
    limitedRhoq = (rhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : rhoq ;
 
-   // eta_H/mu_0 calculated with center values
-   Real hyperres_coeff = 4 * M_PI * M_PI *
+   // -eta_H/mu_0 calculated with center values
+   Real hyperres_coeff = -1 * 4 * M_PI * M_PI *
            technicalGrid.DX * technicalGrid.DX *
            Bmag / limitedRhoq / physicalconstants::MU_0;
 
