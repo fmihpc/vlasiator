@@ -77,8 +77,8 @@ data. This is needed if one has locally adjusted velocity blocks
 void updateRemoteVelocityBlockLists(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const uint popID,
-   const uint neighborhood=Neighborhoods::DIST_FUNC,
-   const int timeclass = -1
+   const uint neighborhood,//=Neighborhoods::DIST_FUNC,
+   const int timeclass
 );
 
 /*! Deallocates all blocks in remote cells in order to save

@@ -524,6 +524,9 @@ namespace spatial_cell {
       vmesh::LocalID N_blocks = 0;
       for (size_t p=0; p<populations.size(); ++p)
          N_blocks += get_velocity_blocks(p)->size();
+      for(auto& pop:this->ghostPopulations){
+         N_blocks += pop.second.blockContainer->size();
+      }
       return N_blocks;
    }
 

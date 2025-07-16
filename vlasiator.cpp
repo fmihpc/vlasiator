@@ -1013,7 +1013,7 @@ int simulate(int argn,char* args[]) {
       P::systemWritePath.pop_back();
       P::systemWriteFsGrid.pop_back();
    }
-
+   cerr<< __FILE__<<":"<<__LINE__<<"\n";
    // For the MPI-rank based timeclasses. Implement to CellParams if cell-based.
    // Move to params.
 
@@ -1022,6 +1022,7 @@ int simulate(int argn,char* args[]) {
       //compute new dt
       phiprof::Timer computeDtimer {"compute-dt"};
       computeNewTimeStep(mpiGrid, technicalGrid, newDt, dtIsChanged, P::timeclassDt);
+      cerr<< __FILE__<<":"<<__LINE__<<"\n";
       if (P::dynamicTimestep == true && dtIsChanged == true) {
          // Only actually update the timestep if dynamicTimestep is on
          P::dt=newDt;
@@ -1035,8 +1036,9 @@ int simulate(int argn,char* args[]) {
          }
          std::cout << endl;
       }
+      std::cerr <<__FILE__<<":"<<__LINE__<<" Calling balanceLoad\n";
       balanceLoad(mpiGrid, sysBoundaryContainer, technicalGrid);
-
+      
       computeDtimer.stop();
       
       //go forward by dt/2 in V, initializes leapfrog split. In restarts the
@@ -1053,6 +1055,7 @@ int simulate(int argn,char* args[]) {
       propagateHalfTimer.stop();
 
       updatePreviousVMoments(mpiGrid, true);
+      std::cerr <<__FILE__<<":"<<__LINE__<<" ("<<myRank <<") Calling balanceLoad\n";
 
       // Apply boundary conditions
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
@@ -1061,6 +1064,7 @@ int simulate(int argn,char* args[]) {
          updateBoundariesTimer.stop();
          addTimedBarrier("barrier-boundary-conditions");
       }
+      std::cerr <<__FILE__<<":"<<__LINE__<<" ("<<myRank <<")\n";
       // Also update all moments. They won't be transmitted to FSgrid until the field solver is called, though.
       phiprof::Timer computeMomentsTimer {"Compute interp moments"};
       std::cout << "for initial interpolated moments\n";
@@ -1083,7 +1087,7 @@ int simulate(int argn,char* args[]) {
 
       computeMomentsTimer.stop();
    }
-
+std::cerr <<__FILE__<<":"<<__LINE__<<" ("<<myRank <<")\n";
    initTimer.stop();
 
    // ***********************************
@@ -1600,16 +1604,16 @@ int simulate(int argn,char* args[]) {
 
       updateParticlePopulations(mpiGrid);
 
-      auto cell1 = mpiGrid[cells[5]];
-      auto cell2 = mpiGrid[cells[20]];
+      // auto cell1 = mpiGrid[cells[5]];
+      // auto cell2 = mpiGrid[cells[20]];
 
-      std::cout << "maxtc: " << P::maxTimeclass << std::endl;
+      // std::cout << "maxtc: " << P::maxTimeclass << std::endl;
 
-      std::cout << "cell 1 tc "<< cell1->parameters[CellParams::TIMECLASS] << " VX " << cell1->parameters[CellParams::VX] << " VY " << cell1->parameters[CellParams::VY] << " VZ " << cell1->parameters[CellParams::VZ] << std::endl;
-      std::cout << "cell 2 tc "<< cell2->parameters[CellParams::TIMECLASS] << " VX " << cell2->parameters[CellParams::VX] << " VY " << cell2->parameters[CellParams::VY] << " VZ " << cell2->parameters[CellParams::VZ] << std::endl;
+      // std::cout << "cell 1 tc "<< cell1->parameters[CellParams::TIMECLASS] << " VX " << cell1->parameters[CellParams::VX] << " VY " << cell1->parameters[CellParams::VY] << " VZ " << cell1->parameters[CellParams::VZ] << std::endl;
+      // std::cout << "cell 2 tc "<< cell2->parameters[CellParams::TIMECLASS] << " VX " << cell2->parameters[CellParams::VX] << " VY " << cell2->parameters[CellParams::VY] << " VZ " << cell2->parameters[CellParams::VZ] << std::endl;
 
-      std::cout << "cell1 vx_v " << cell1->parameters[CellParams::VX_V] << " vx_r " << cell1->parameters[CellParams::VX_R] << std::endl;
-      std::cout << "cell2 vx_v " << cell2->parameters[CellParams::VX_V] << " vx_r " << cell2->parameters[CellParams::VX_R] << std::endl;
+      // std::cout << "cell1 vx_v " << cell1->parameters[CellParams::VX_V] << " vx_r " << cell1->parameters[CellParams::VX_R] << std::endl;
+      // std::cout << "cell2 vx_v " << cell2->parameters[CellParams::VX_V] << " vx_r " << cell2->parameters[CellParams::VX_R] << std::endl;
 
       momentsTimer.stop();
       

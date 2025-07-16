@@ -229,7 +229,7 @@ void calculateSpatialGhostTranslation(
    // No need for remote target cells; pass a dummy list.
    const vector<CellID> dummy_cells;
 
-   updateRemoteVelocityBlockLists(mpiGrid,popID,Neighborhoods::VLASOV_SOLVER_GHOST);
+   updateRemoteVelocityBlockLists(mpiGrid,popID,Neighborhoods::VLASOV_SOLVER_GHOST, tc);
    // Need to re-do in case block lists of boundary cells change after
    // the block adjustment just after ACC.
 
@@ -642,8 +642,13 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
    // calculate the transforms used in the accelerations.
    // Calculated moments are stored in the "_V" variables.
    std::set<CellID> propagatedSet = {}; // Find the unique cells from the payload vector
+   std::map<int,set<CellID>> tcPropagatedSets;
+   for (int timeclass = 0; timeclass <= P::maxTimeclass; ++timeclass){
+      tcPropagatedSets[timeclass] = {};
+   }
    for(auto& payload:acceleratedCells){
       propagatedSet.insert(payload.cellptr->get_cellid());
+      tcPropagatedSets[payload.timeclass].insert(payload.cellptr->get_cellid());
    }
 
    calculateMoments_V(mpiGrid, std::vector<CellID>(propagatedSet.begin(),propagatedSet.end()), false);
@@ -741,10 +746,11 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
    for (auto payload : acceleratedCells){
       timeclasses_handled.insert(payload.timeclass);
    }
-   for (auto timeclass : timeclasses_handled){
+   // for (auto timeclass : timeclasses_handled){
+   for (int timeclass = 0; timeclass <= P::maxTimeclass; timeclass++){ // Filter to necessary tcs - adjustVelocityBlocks comms need COMM-WORLD yet
    if(step < (globalMaxSubcycles - 1))
       {
-         adjustVelocityBlocks(mpiGrid, std::vector<CellID>(propagatedSet.begin(),propagatedSet.end()), false, popID, timeclass);
+         adjustVelocityBlocks(mpiGrid, std::vector<CellID>(tcPropagatedSets[timeclass].begin(),tcPropagatedSets[timeclass].end()), false, popID, timeclass);
       }
    }
 }
@@ -897,7 +903,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 // std::cerr << __FILE__<<":"<<__LINE__<< " calling adjustVelocityBlocks at t = " 
 //          << P::t << ", preparing to receive; len cells = " << cells.size() <<
 //          "\n";
-         for (int tc = 0; tc <= P::currentMaxTimeclass; tc++){ // Filter to necessary tcs
+         for (int tc = 0; tc <= P::maxTimeclass; tc++){ // Filter to necessary tcs
             adjustVelocityBlocks(mpiGrid, cells, true, popID, tc);
          }
       }
@@ -1043,7 +1049,8 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 // std::cerr << __FILE__<<":"<<__LINE__<< " calling adjustVelocityBlocks at t = " 
 //          << P::t << ", preparing to receive; len cells = " << cells.size() <<
 //          "\n";        
-         for(auto tc:timeclasses_handled){
+         // for(auto tc:timeclasses_handled){
+         for (int tc = 0; tc <= P::maxTimeclass; tc++){ // Filter to necessary tcs - adjustVelocityBlocks comms need COMM-WORLD yet
             adjustVelocityBlocks(mpiGrid, cells, true, popID, tc);
          }
       } // for-loop over particle species
@@ -1063,7 +1070,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    // Recalculate "_V" velocity moments
    calculateMoments_V(mpiGrid,cellsToPropagateVector,true,(dt==0));
 
-   std::cout << "calculated V moments";
+   std::cerr << "calculated V moments...\n";
 
    // Set CellParams::MAXVDT to be the minimum dt of all per-species values
    #pragma omp parallel for
@@ -1083,7 +1090,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
             // cout << "maxvdt \n";
          }
    }
-   std::cout << "reaches end of accel top level";
+   std::cerr << "reaches end of accel top level\n";
 
 }
 
