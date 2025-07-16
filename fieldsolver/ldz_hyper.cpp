@@ -216,8 +216,7 @@ void calculateEdgeHyperTermXComponents(
            Bmag / limitedRhoq / physicalconstants::MU_0;
 
    // xx-derivative
-   // EHyperX += hyperres_coeff * calculateSecondDerivativeOfCurl(dPerBGrid,i,j,k,0,0);
-   EHyperX += hyperres_coeff * garbage;
+   EHyperX += hyperres_coeff * calculateSecondDerivativeOfCurl(dPerBGrid,i,j,k,0,0);
 
    // yy-derivative
    EHyperX += hyperres_coeff * calculateSecondDerivativeOfCurl(dPerBGrid,i,j,k,0,1);
