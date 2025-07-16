@@ -569,14 +569,6 @@ void calculateHyperTermSimple(
 
    phiprof::Timer mpiTimer {"Hyper field update ghosts MPI", {"MPI"}};
    dPerBGrid.updateGhostCells();
-   BgBGrid.updateGhostCells();
-   if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      momentsGrid.updateGhostCells();
-      perBGrid.updateGhostCells();
-   } else {
-      momentsDt2Grid.updateGhostCells();
-      perBDt2Grid.updateGhostCells();
-   }
    mpiTimer.stop();
 
    // Calculate GradPe term
