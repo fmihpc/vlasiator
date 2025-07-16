@@ -21,7 +21,7 @@
  */
 
 #include "fs_common.h"
-#include "ldz_gradpe.hpp"
+#include "ldz_hyper.hpp"
 
 #ifdef DEBUG_VLASIATOR
    #define DEBUG_FSOLVER
