@@ -330,7 +330,7 @@ void calculateSpatialTranslation(
          }
          set<CellID> exact_halo_cells;
          for (auto c : tc_propagated_cell_sets[tc]){
-            auto neighbors = mpiGrid.get_neighbors_of(c, VLASOV_SOLVER_TIMEGHOST_EXACT_HALO_NEIGHBORHOOD_ID);
+            auto neighbors = mpiGrid.get_neighbors_of(c, Neighborhoods::VLASOV_SOLVER_TIMEGHOST_EXACT_HALO);
             for (auto n : *neighbors){
                exact_halo_cells.insert(n.first); // NB insert_range in C++23
             }
