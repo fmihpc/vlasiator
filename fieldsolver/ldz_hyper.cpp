@@ -110,6 +110,8 @@ Real calculateSecondDerivativeOfCurl(
    std::array<Real, fsgrids::dperb::N_DPERB> * rightrightdPerB = NULL;
    Real SecondDerOfCurl = 0.0;
 
+   return 0.0;
+
    switch (derComp) {
 
       case 0:
