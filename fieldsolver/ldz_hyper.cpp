@@ -23,6 +23,8 @@
 #include "fs_common.h"
 #include "ldz_hyper.hpp"
 
+# define M_PI		3.14159265358979323846	/* pi */
+
 #ifdef DEBUG_VLASIATOR
    #define DEBUG_FSOLVER
 #endif
