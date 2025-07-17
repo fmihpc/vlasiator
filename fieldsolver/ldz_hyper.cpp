@@ -161,18 +161,18 @@ Real calculateSecondDerivativeOfCurl(
 
    switch (curlComp) {
       case 0:
-         SecondDerOfCurl = (leftdPerB->at(fsgrids::dperb::dPERBzdy) + rightdPerB->at(fsgrids::dperb::dPERBzdy) - 2 * middPerB->at(fsgrids::dperb::dPERBzdy)) / (dPerBGrid.DX * dPerBGrid.DX) - 
-         (leftdPerB->at(fsgrids::dperb::dPERBydz) + rightdPerB->at(fsgrids::dperb::dPERBydz) - 2 * middPerB->at(fsgrids::dperb::dPERBydz)) / (dPerBGrid.DX * dPerBGrid.DX);
+         SecondDerOfCurl = (leftdPerB->at(fsgrids::dperb::dPERBzdy) + rightdPerB->at(fsgrids::dperb::dPERBzdy) - 2 * middPerB->at(fsgrids::dperb::dPERBzdy)) / (dPerBGrid.DX * dPerBGrid.DX * dPerBGrid.DX) - 
+         (leftdPerB->at(fsgrids::dperb::dPERBydz) + rightdPerB->at(fsgrids::dperb::dPERBydz) - 2 * middPerB->at(fsgrids::dperb::dPERBydz)) / (dPerBGrid.DX * dPerBGrid.DX * dPerBGrid.DX);
          break;
 
       case 1:
-         SecondDerOfCurl = (leftdPerB->at(fsgrids::dperb::dPERBxdz) + rightdPerB->at(fsgrids::dperb::dPERBxdz) - 2 * middPerB->at(fsgrids::dperb::dPERBxdz)) / (dPerBGrid.DX * dPerBGrid.DX) - 
-         (leftdPerB->at(fsgrids::dperb::dPERBzdx) + rightdPerB->at(fsgrids::dperb::dPERBzdx) - 2 * middPerB->at(fsgrids::dperb::dPERBzdx)) / (dPerBGrid.DX * dPerBGrid.DX);
+         SecondDerOfCurl = (leftdPerB->at(fsgrids::dperb::dPERBxdz) + rightdPerB->at(fsgrids::dperb::dPERBxdz) - 2 * middPerB->at(fsgrids::dperb::dPERBxdz)) / (dPerBGrid.DX * dPerBGrid.DX * dPerBGrid.DX) - 
+         (leftdPerB->at(fsgrids::dperb::dPERBzdx) + rightdPerB->at(fsgrids::dperb::dPERBzdx) - 2 * middPerB->at(fsgrids::dperb::dPERBzdx)) / (dPerBGrid.DX * dPerBGrid.DX * dPerBGrid.DX);
          break;
 
       case 2:
-         SecondDerOfCurl = (leftdPerB->at(fsgrids::dperb::dPERBydx) + rightdPerB->at(fsgrids::dperb::dPERBydx) - 2 * middPerB->at(fsgrids::dperb::dPERBydx)) / (dPerBGrid.DX * dPerBGrid.DX) - 
-         (leftdPerB->at(fsgrids::dperb::dPERBxdy) + rightdPerB->at(fsgrids::dperb::dPERBxdy) - 2 * middPerB->at(fsgrids::dperb::dPERBxdy)) / (dPerBGrid.DX * dPerBGrid.DX);
+         SecondDerOfCurl = (leftdPerB->at(fsgrids::dperb::dPERBydx) + rightdPerB->at(fsgrids::dperb::dPERBydx) - 2 * middPerB->at(fsgrids::dperb::dPERBydx)) / (dPerBGrid.DX * dPerBGrid.DX * dPerBGrid.DX) - 
+         (leftdPerB->at(fsgrids::dperb::dPERBxdy) + rightdPerB->at(fsgrids::dperb::dPERBxdy) - 2 * middPerB->at(fsgrids::dperb::dPERBxdy)) / (dPerBGrid.DX * dPerBGrid.DX * dPerBGrid.DX);
          break;
       
       default:
