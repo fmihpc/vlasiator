@@ -105,32 +105,32 @@ Real calculateSecondDerivativeOfCurl(
    std::array<Real, fsgrids::dperb::N_DPERB> * centdPerB = dPerBGrid.get(i,j,k);
    std::array<Real, fsgrids::dperb::N_DPERB> * middPerB = NULL;
    std::array<Real, fsgrids::dperb::N_DPERB> * leftdPerB = NULL;
-   // std::array<Real, fsgrids::dperb::N_DPERB> * leftleftdPerB = NULL;
+   std::array<Real, fsgrids::dperb::N_DPERB> * leftleftdPerB = NULL;
    std::array<Real, fsgrids::dperb::N_DPERB> * rightdPerB = NULL;
-   // std::array<Real, fsgrids::dperb::N_DPERB> * rightrightdPerB = NULL;
+   std::array<Real, fsgrids::dperb::N_DPERB> * rightrightdPerB = NULL;
    Real SecondDerOfCurl = 0.0;
 
    switch (derComp) {
 
       case 0:
          leftdPerB = dPerBGrid.get(i-1,j,k);
-         // leftleftdPerB = dPerBGrid.get(i-2,j,k);
+         leftleftdPerB = dPerBGrid.get(i-2,j,k);
          rightdPerB = dPerBGrid.get(i+1,j,k);
-         // rightrightdPerB = dPerBGrid.get(i+2,j,k);
+         rightrightdPerB = dPerBGrid.get(i+2,j,k);
          break;
 
       case 1:
          leftdPerB = dPerBGrid.get(i,j-1,k);
-         // leftleftdPerB = dPerBGrid.get(i,j-2,k);
+         leftleftdPerB = dPerBGrid.get(i,j-2,k);
          rightdPerB = dPerBGrid.get(i,j+1,k);
-         // rightrightdPerB = dPerBGrid.get(i,j+2,k);
+         rightrightdPerB = dPerBGrid.get(i,j+2,k);
          break;
 
       case 2:
          leftdPerB = dPerBGrid.get(i,j,k-1);
-         // leftleftdPerB = dPerBGrid.get(i,j,k-2);
+         leftleftdPerB = dPerBGrid.get(i,j,k-2);
          rightdPerB = dPerBGrid.get(i,j,k+1);
-         // rightrightdPerB = dPerBGrid.get(i,j,k+2);
+         rightrightdPerB = dPerBGrid.get(i,j,k+2);
          break;
 
       default:
@@ -138,26 +138,24 @@ Real calculateSecondDerivativeOfCurl(
          break;
    }
 
-   middPerB = centdPerB;
-   if (leftdPerB == NULL || rightdPerB == NULL) {
+   // middPerB = centdPerB;
+   // if (leftdPerB == NULL || rightdPerB == NULL) {
+   //    return 0.0;
+   // }
+
+   if (!(leftdPerB == NULL || rightdPerB == NULL)) {
+      middPerB = centdPerB;
+   } else if (leftdPerB == NULL && !(rightdPerB == NULL || rightrightdPerB == NULL) ) {
+      leftdPerB = centdPerB;
+      middPerB = rightdPerB;
+      rightdPerB = rightrightdPerB;
+   } else if (rightdPerB == NULL && !(leftdPerB == NULL || leftleftdPerB == NULL) ) {
+      leftdPerB = leftleftdPerB;
+      middPerB = leftdPerB;
+      rightdPerB = centdPerB;
+   } else {
       return 0.0;
    }
-
-   // if (!(leftdPerB == NULL || rightdPerB == NULL)) {
-   //    middPerB = centdPerB;
-   // } else if (leftdPerB == NULL && !(rightdPerB == NULL || rightrightdPerB == NULL) ) {
-   //    leftdPerB = centdPerB;
-   //    middPerB = rightdPerB;
-   //    rightdPerB = rightrightdPerB;
-   // } else if (rightdPerB == NULL && !(leftdPerB == NULL || leftleftdPerB == NULL) ) {
-   //    leftdPerB = leftleftdPerB;
-   //    middPerB = leftdPerB;
-   //    rightdPerB = centdPerB;
-   // } else {
-   //    leftdPerB =
-   //    middPerB =
-   //    rightdPerB = centdPerB;
-   // }
 
    switch (curlComp) {
       case 0:
