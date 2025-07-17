@@ -390,9 +390,11 @@ void calculateHyperTermSimple(
    phiprof::Timer hyperTimer {"Calculate Hyper term"};
    int computeTimerId {phiprof::initializeTimer("Ehyper compute cells")};
 
-   phiprof::Timer mpiTimer {"Hyper field update ghosts MPI", {"MPI"}};
-   dPerBGrid.updateGhostCells();
-   mpiTimer.stop();
+   if (P::ohmHallTerm > 0) {
+      phiprof::Timer mpiTimer {"Hyper field update ghosts MPI", {"MPI"}};
+      dPerBGrid.updateGhostCells();
+      mpiTimer.stop();
+   }
 
    // Calculate Hyper term
    #pragma omp parallel
