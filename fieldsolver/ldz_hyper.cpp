@@ -387,7 +387,7 @@ void calculateHyperTermSimple(
    phiprof::Timer hyperTimer {"Calculate Hyper term"};
    int computeTimerId {phiprof::initializeTimer("Ehyper compute cells")};
 
-   if (P::ohmHallTerm > 0) {
+   if (P::ohmHallTerm == 0) {
       phiprof::Timer mpiTimer {"Hyper field update ghosts MPI", {"MPI"}};
       dPerBGrid.updateGhostCells();
       mpiTimer.stop();
