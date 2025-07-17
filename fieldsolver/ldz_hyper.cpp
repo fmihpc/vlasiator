@@ -138,12 +138,9 @@ Real calculateSecondDerivativeOfCurl(
          break;
    }
 
+   middPerB = centdPerB;
    if (leftdPerB == NULL || rightdPerB == NULL) {
-      leftdPerB = centdPerB;
-      rightdPerB = centdPerB;
-      middPerB = centdPerB;
-   } else {
-      middPerB = centdPerB;
+      return 0.0;
    }
 
    // if (!(leftdPerB == NULL || rightdPerB == NULL)) {
