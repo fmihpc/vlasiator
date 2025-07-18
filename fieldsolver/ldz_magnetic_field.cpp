@@ -86,7 +86,7 @@ void propagateMagneticField(
                EHyperGrid0 = EHyperGrid.get(i,j,k);
                EHyperGrid1 = EHyperGrid.get(i,j+1,k);
                EHyperGrid2 = EHyperGrid.get(i,j,k+1);
-               perBGrid0->at(fsgrids::bfield::PERBX) += dt/dz*(EHyperGrid2->at(fsgrids::ehyper::EYHYPER) - EHyperGrid0->at(fsgrids::ehyper::EYHYPER)) + dt/dy*(EHyperGrid0->at(fsgrids::ehyper::EZHYPER - EHyperGrid1->at(fsgrids::ehyper::EZHYPER));
+               perBGrid0->at(fsgrids::bfield::PERBX) += dt/dz*(EHyperGrid2->at(fsgrids::ehyper::EYHYPER) - EHyperGrid0->at(fsgrids::ehyper::EYHYPER)) + dt/dy*(EHyperGrid0->at(fsgrids::ehyper::EZHYPER) - EHyperGrid1->at(fsgrids::ehyper::EZHYPER));
             }
             break;
 
