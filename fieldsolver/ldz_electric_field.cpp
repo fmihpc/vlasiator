@@ -586,7 +586,7 @@ void calculateEdgeElectricFieldX(
    }
 
    // Hyperresistivity term
-   if(Parameters::ohmHyperTerm > 0) {
+   if(Parameters::ohmHyperTerm > 0 && Parameters::ohmHyperAccelerate > 0) {
       Ex_SW += EHyperGrid.get(i,j,k)->at(fsgrids::ehyper::EXHYPER);
    }
 
@@ -646,7 +646,7 @@ void calculateEdgeElectricFieldX(
    }
 
    // Hyperresistivity term
-   if(Parameters::ohmHyperTerm > 0) {
+   if(Parameters::ohmHyperTerm > 0 && Parameters::ohmHyperAccelerate > 0) {
       Ex_SE += EHyperGrid.get(i,j-1,k)->at(fsgrids::ehyper::EXHYPER);
    }
    
@@ -707,7 +707,7 @@ void calculateEdgeElectricFieldX(
    }
 
    // Hyperresistivity term
-   if(Parameters::ohmHyperTerm > 0) {
+   if(Parameters::ohmHyperTerm > 0 && Parameters::ohmHyperAccelerate > 0) {
       Ex_NW += EHyperGrid.get(i,j,k-1)->at(fsgrids::ehyper::EXHYPER);
    }
    
@@ -768,7 +768,7 @@ void calculateEdgeElectricFieldX(
    }
 
    // Hyperresistivity term
-   if(Parameters::ohmHyperTerm > 0) {
+   if(Parameters::ohmHyperTerm > 0 && Parameters::ohmHyperAccelerate > 0) {
       Ex_NE += EHyperGrid.get(i,j-1,k-1)->at(fsgrids::ehyper::EXHYPER);
    }
    
@@ -964,7 +964,7 @@ void calculateEdgeElectricFieldY(
    }
 
    // Hyperresistivity term
-   if(Parameters::ohmHyperTerm > 0) {
+   if(Parameters::ohmHyperTerm > 0 && Parameters::ohmHyperAccelerate > 0) {
       Ey_SW += EHyperGrid.get(i,j,k)->at(fsgrids::ehyper::EYHYPER);
    }
    
@@ -1025,7 +1025,7 @@ void calculateEdgeElectricFieldY(
    }
 
    // Hyperresistivity term
-   if(Parameters::ohmHyperTerm > 0) {
+   if(Parameters::ohmHyperTerm > 0 && Parameters::ohmHyperAccelerate > 0) {
       Ey_SE += EHyperGrid.get(i,j,k-1)->at(fsgrids::ehyper::EYHYPER);
    }
    
@@ -1086,7 +1086,7 @@ void calculateEdgeElectricFieldY(
    }
 
    // Hyperresistivity term
-   if(Parameters::ohmHyperTerm > 0) {
+   if(Parameters::ohmHyperTerm > 0 && Parameters::ohmHyperAccelerate > 0) {
       Ey_NW += EHyperGrid.get(i-1,j,k)->at(fsgrids::ehyper::EYHYPER);
    }
    
@@ -1147,7 +1147,7 @@ void calculateEdgeElectricFieldY(
    }
 
    // Hyperresistivity term
-   if(Parameters::ohmHyperTerm > 0) {
+   if(Parameters::ohmHyperTerm > 0 && Parameters::ohmHyperAccelerate > 0) {
       Ey_NE += EHyperGrid.get(i-1,j,k-1)->at(fsgrids::ehyper::EYHYPER);
    }
    
@@ -1344,7 +1344,7 @@ void calculateEdgeElectricFieldZ(
    }
 
    // Hyperresistivity term
-   if(Parameters::ohmHyperTerm > 0) {
+   if(Parameters::ohmHyperTerm > 0 && Parameters::ohmHyperAccelerate > 0) {
       Ez_SW += EHyperGrid.get(i,j,k)->at(fsgrids::ehyper::EZHYPER);
    }
    
@@ -1407,7 +1407,7 @@ void calculateEdgeElectricFieldZ(
    }
 
    // Hyperresistivity term
-   if(Parameters::ohmHyperTerm > 0) {
+   if(Parameters::ohmHyperTerm > 0 && Parameters::ohmHyperAccelerate > 0) {
       Ez_SW += EHyperGrid.get(i-1,j,k)->at(fsgrids::ehyper::EZHYPER);
    }
    
@@ -1468,7 +1468,7 @@ void calculateEdgeElectricFieldZ(
    }
 
    // Hyperresistivity term
-   if(Parameters::ohmHyperTerm > 0) {
+   if(Parameters::ohmHyperTerm > 0 && Parameters::ohmHyperAccelerate > 0) {
       Ez_NW += EHyperGrid.get(i,j-1,k)->at(fsgrids::ehyper::EZHYPER);
    }
    
@@ -1529,7 +1529,7 @@ void calculateEdgeElectricFieldZ(
    }
 
    // Hyperresistivity term
-   if(Parameters::ohmHyperTerm > 0) {
+   if(Parameters::ohmHyperTerm > 0 && Parameters::ohmHyperAccelerate > 0) {
       Ez_NE += EHyperGrid.get(i-1,j-1,k)->at(fsgrids::ehyper::EZHYPER);
    }
    
@@ -1749,7 +1749,7 @@ void calculateUpwindedElectricFieldSimple(
          EGradPeDt2Grid.updateGhostCells();
       }
    }
-   if(P::ohmHyperTerm > 0) {
+   if(P::ohmHyperTerm > 0 && P::ohmHyperAccelerate > 0) {
       if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
          EHyperGrid.updateGhostCells();
       } else {

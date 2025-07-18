@@ -105,32 +105,24 @@ Real calculateSecondDerivativeOfCurl(
    std::array<Real, fsgrids::dperb::N_DPERB> * centdPerB = dPerBGrid.get(i,j,k);
    std::array<Real, fsgrids::dperb::N_DPERB> * middPerB = NULL;
    std::array<Real, fsgrids::dperb::N_DPERB> * leftdPerB = NULL;
-   std::array<Real, fsgrids::dperb::N_DPERB> * leftleftdPerB = NULL;
    std::array<Real, fsgrids::dperb::N_DPERB> * rightdPerB = NULL;
-   std::array<Real, fsgrids::dperb::N_DPERB> * rightrightdPerB = NULL;
    Real SecondDerOfCurl = 0.0;
 
    switch (derComp) {
 
       case 0:
          leftdPerB = dPerBGrid.get(i-1,j,k);
-         leftleftdPerB = dPerBGrid.get(i-2,j,k);
          rightdPerB = dPerBGrid.get(i+1,j,k);
-         rightrightdPerB = dPerBGrid.get(i+2,j,k);
          break;
 
       case 1:
          leftdPerB = dPerBGrid.get(i,j-1,k);
-         leftleftdPerB = dPerBGrid.get(i,j-2,k);
          rightdPerB = dPerBGrid.get(i,j+1,k);
-         rightrightdPerB = dPerBGrid.get(i,j+2,k);
          break;
 
       case 2:
          leftdPerB = dPerBGrid.get(i,j,k-1);
-         leftleftdPerB = dPerBGrid.get(i,j,k-2);
          rightdPerB = dPerBGrid.get(i,j,k+1);
-         rightrightdPerB = dPerBGrid.get(i,j,k+2);
          break;
 
       default:
@@ -138,22 +130,8 @@ Real calculateSecondDerivativeOfCurl(
          break;
    }
 
-   // middPerB = centdPerB;
-   // if (leftdPerB == NULL || rightdPerB == NULL) {
-   //    return 0.0;
-   // }
-
-   if (!(leftdPerB == NULL || rightdPerB == NULL)) {
-      middPerB = centdPerB;
-   } else if (leftdPerB == NULL && !(rightdPerB == NULL || rightrightdPerB == NULL) ) {
-      leftdPerB = centdPerB;
-      middPerB = rightdPerB;
-      rightdPerB = rightrightdPerB;
-   } else if (rightdPerB == NULL && !(leftdPerB == NULL || leftleftdPerB == NULL) ) {
-      leftdPerB = leftleftdPerB;
-      middPerB = leftdPerB;
-      rightdPerB = centdPerB;
-   } else {
+   middPerB = centdPerB;
+   if (leftdPerB == NULL || rightdPerB == NULL) {
       return 0.0;
    }
 
@@ -219,13 +197,13 @@ void calculateEdgeHyperTermXComponents(
            Bmag / limitedRhoq / physicalconstants::MU_0;
 
    // xx-derivative
-   EHyperX += hyperres_coeff * calculateSecondDerivativeOfCurl(dPerBGrid,i,j,k,0,0);
+   EHyperX += P::ohmHyperFactor * hyperres_coeff * calculateSecondDerivativeOfCurl(dPerBGrid,i,j,k,0,0);
 
    // yy-derivative
-   EHyperX += hyperres_coeff * calculateSecondDerivativeOfCurl(dPerBGrid,i,j,k,0,1);
+   EHyperX += P::ohmHyperFactor * hyperres_coeff * calculateSecondDerivativeOfCurl(dPerBGrid,i,j,k,0,1);
 
    // zz-derivative
-   EHyperX += hyperres_coeff * calculateSecondDerivativeOfCurl(dPerBGrid,i,j,k,0,2);
+   EHyperX += P::ohmHyperFactor * hyperres_coeff * calculateSecondDerivativeOfCurl(dPerBGrid,i,j,k,0,2);
 
    EHyperGrid.get(i,j,k)->at(fsgrids::ehyper::EXHYPER) = EHyperX;
 }
@@ -268,13 +246,13 @@ void calculateEdgeHyperTermYComponents(
            Bmag / limitedRhoq / physicalconstants::MU_0;
 
    // xx-derivative
-   EHyperY += hyperres_coeff * calculateSecondDerivativeOfCurl(dPerBGrid,i,j,k,1,0);
+   EHyperY += P::ohmHyperFactor * hyperres_coeff * calculateSecondDerivativeOfCurl(dPerBGrid,i,j,k,1,0);
 
    // yy-derivative
-   EHyperY += hyperres_coeff * calculateSecondDerivativeOfCurl(dPerBGrid,i,j,k,1,1);
+   EHyperY += P::ohmHyperFactor * hyperres_coeff * calculateSecondDerivativeOfCurl(dPerBGrid,i,j,k,1,1);
 
    // zz-derivative
-   EHyperY += hyperres_coeff * calculateSecondDerivativeOfCurl(dPerBGrid,i,j,k,1,2);
+   EHyperY += P::ohmHyperFactor * hyperres_coeff * calculateSecondDerivativeOfCurl(dPerBGrid,i,j,k,1,2);
 
    EHyperGrid.get(i,j,k)->at(fsgrids::ehyper::EYHYPER) = EHyperY;
 }
@@ -316,13 +294,13 @@ void calculateEdgeHyperTermZComponents(
            Bmag / limitedRhoq / physicalconstants::MU_0;
 
    // xx-derivative
-   EHyperZ += hyperres_coeff * calculateSecondDerivativeOfCurl(dPerBGrid,i,j,k,2,0);
+   EHyperZ += P::ohmHyperFactor * hyperres_coeff * calculateSecondDerivativeOfCurl(dPerBGrid,i,j,k,2,0);
 
    // yy-derivative
-   EHyperZ += hyperres_coeff * calculateSecondDerivativeOfCurl(dPerBGrid,i,j,k,2,1);
+   EHyperZ += P::ohmHyperFactor * hyperres_coeff * calculateSecondDerivativeOfCurl(dPerBGrid,i,j,k,2,1);
 
    // zz-derivative
-   EHyperZ += hyperres_coeff * calculateSecondDerivativeOfCurl(dPerBGrid,i,j,k,2,2);
+   EHyperZ += P::ohmHyperFactor * hyperres_coeff * calculateSecondDerivativeOfCurl(dPerBGrid,i,j,k,2,2);
 
    EHyperGrid.get(i,j,k)->at(fsgrids::ehyper::EZHYPER) = EHyperZ;
 }
@@ -385,11 +363,9 @@ void calculateHyperTermSimple(
    phiprof::Timer hyperTimer {"Calculate Hyper term"};
    int computeTimerId {phiprof::initializeTimer("Ehyper compute cells")};
 
-   if (P::ohmHallTerm == 0) {
-      phiprof::Timer mpiTimer {"Hyper field update ghosts MPI", {"MPI"}};
-      dPerBGrid.updateGhostCells();
-      mpiTimer.stop();
-   }
+   phiprof::Timer mpiTimer {"Hyper field update ghosts MPI", {"MPI"}};
+   dPerBGrid.updateGhostCells();
+   mpiTimer.stop();
 
    // Calculate Hyper term
    #pragma omp parallel

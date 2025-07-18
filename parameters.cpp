@@ -134,6 +134,8 @@ uint P::ohmHyperTerm = 0;
 Real P::electronTemperature = 0.0;
 Real P::electronDensity = 0.0;
 Real P::electronPTindex = 1.0;
+Real P::ohmHyperFactor = 1.0;
+bool P::ohmHyperAccelerate = true;
 
 string P::restartFileName = string("");
 bool P::isRestart = false;
@@ -379,6 +381,14 @@ bool P::addParameters() {
            "The maximum CFL limit for field propagation. Used to set timestep if dynamic_timestep is true.", 0.5);
    RP::add("fieldsolver.minCFL",
            "The minimum CFL limit for field propagation. Used to set timestep if dynamic_timestep is true.", 0.4);
+   RP::add(
+       "fieldsolver.ohmHyperFactor",
+       "Factor to multiply hyperresistivity term by. Default: 1 (theoretical solution)",
+       1.0);
+   RP::add(
+       "fieldsolver.ohmHyperAccelerate",
+       "Accelerate with hyperresistivity term included? Default: true",
+       true);
 
    RP::add(
        "fieldsolver.manualFsGridDecompositionX",
@@ -1023,6 +1033,8 @@ void Parameters::getParameters() {
    RP::get("fieldsolver.electronPTindex", P::electronPTindex); // Polytropic index for solving electron equation of state to use in eGradPe term
    RP::get("fieldsolver.maxCFL", P::fieldSolverMaxCFL);
    RP::get("fieldsolver.minCFL", P::fieldSolverMinCFL);
+   RP::get("fieldsolver.ohmHyperFactor", P::ohmHyperFactor); // Which order solver to use for fieldsolver hyperresistivity term (supported: 0 for off, 1 for first-order)
+   RP::get("fieldsolver.ohmHyperAccelerate", P::ohmHyperAccelerate); // Which order solver to use for fieldsolver hyperresistivity term (supported: 0 for off, 1 for first-order)
 
    // manual FsGrid decomposition should be complete with three values. If at least one is set but all are not set, abort
    if ((RP::isSet("fieldsolver.manualFsGridDecompositionX")||RP::isSet("fieldsolver.manualFsGridDecompositionY")||RP::isSet("fieldsolver.manualFsGridDecompositionZ")) &&
