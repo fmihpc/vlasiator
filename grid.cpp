@@ -786,8 +786,8 @@ std::cerr << __FILE__<<":" << __LINE__ <<"\n";
    if (P::maxTimeclass >= 0) {
       const vector<CellID>& localCells = getLocalCells();
       std::cerr << __FILE__<<":" << __LINE__ <<"\n";
-      const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(Neighborhoods::VLASOV_SOLVER_TIMEGHOST_OUTER_HALO);
-      mpiGrid.force_update_cell_neighborhoods(remote_cells);
+      const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(Neighborhoods::FULL);
+      mpiGrid.really_force_update_cell_neighborhoods(remote_cells);
 
       for(int i = 0; i <= P::maxTimeclass; ++i){
          std::cerr << myRank << ": prepareAMRLists called for timeclass " << i << "\n";
@@ -868,13 +868,13 @@ void getGhostNeighborsforTC(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
             // std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<< ": cid " << cell << " looking for " << (outerNeighborsRef)[i].first <<"\n";
 
          if (mpiGrid[(outerNeighborsRef)[i].first]->parameters[CellParams::TIMECLASS] != timeclass) {
-            mpiGrid[(outerNeighborsRef)[i].first]->requested_timeclass_ghosts.insert(timeclass);
+            mpiGrid[(outerNeighborsRef)[i].first]->requested_timeclass_copy_ghosts.insert(timeclass);
             // exactHaloCells.insert((outerNeighborsRef)[i].first);
          }
       }
       for (size_t i=0; i<outerNeighborsRemote.size(); ++i) {
          if (mpiGrid[(outerNeighborsRemote)[i]]->parameters[CellParams::TIMECLASS] != timeclass) {
-            mpiGrid[outerNeighborsRemote[i]]->requested_timeclass_ghosts.insert(timeclass);
+            mpiGrid[outerNeighborsRemote[i]]->requested_timeclass_copy_ghosts.insert(timeclass);
             // exactHaloCells.insert((outerNeighborsRemote)[i]);
          }
       }
@@ -1732,7 +1732,7 @@ for (auto it : neighborhood){
       // One extra layer for translation of ghost cells
       full_neighborhood_size++;
       if (P::currentMaxTimeclass > 0){
-         full_neighborhood_size = max(full_neighborhood_size, P::timeclassOuterHaloExtent+P::timeclassExactHaloExtent);
+         full_neighborhood_size = max(full_neighborhood_size, 3+P::timeclassOuterHaloExtent+P::timeclassExactHaloExtent);
       }
    }
    neighborhood.clear();
