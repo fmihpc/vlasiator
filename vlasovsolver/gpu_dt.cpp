@@ -25,7 +25,7 @@
 #include "../spatial_cells/spatial_cell_wrapper.hpp"
 #include "../object_wrapper.h"
 #include "../arch/gpu_base.hpp"
-#include "gpu_trans_map_amr.hpp" // for loaning of allVmeshPointer
+#include "../spatial_cells/block_adjust_gpu.hpp"
 //#include <stdint.h>
 #include <dccrg.hpp>
 #include <dccrg_cartesian_geometry.hpp>
@@ -41,13 +41,13 @@ using namespace spatial_cell;
  * comparing with the spatial cell size
  * and storing the largest allowed spatial dt for each cell
  *
- * @param allVmeshPointer Vector of pointers to velocitymeshes, used for gathering active blocks
+ * @param dev_vmeshes buffer of pointers to velocitymeshes, used for gathering active blocks
  * @param dev_max_dt Buffer to store max allowed dt into (siz of nAllCells)
  * @param dev_dxdydz Buffer of cell spatial extents (size of 3*nAllCells)
- * @param nAllCells count of cells to read from allVmeshPointer
+ * @param nAllCells count of cells to process
  */
 __global__ void __launch_bounds__(GPUTHREADS*WARPSPERBLOCK) reduce_v_dt_kernel(
-   const split::SplitVector<vmesh::VelocityMesh*>* __restrict__ allVmeshPointer,
+   const vmesh::VelocityMesh* __restrict__ const *dev_vmeshes,
    Real* dev_max_dt,
    const Real* dev_dxdydz,
    const uint nAllCells)
@@ -59,7 +59,7 @@ __global__ void __launch_bounds__(GPUTHREADS*WARPSPERBLOCK) reduce_v_dt_kernel(
    __shared__ Real smallest[GPUTHREADS*WARPSPERBLOCK]; //==blockSize
    smallest[ti] = numeric_limits<Real>::max();
 
-   const vmesh::VelocityMesh* __restrict__ thisVmesh = allVmeshPointer->at(cellIndex);
+   const vmesh::VelocityMesh* __restrict__ thisVmesh = dev_vmeshes[cellIndex];
    const uint thisVmeshSize = thisVmesh->size();
    Real blockInfo[6];
    const Real dx = dev_dxdydz[3*cellIndex + 0];
@@ -97,7 +97,7 @@ __global__ void __launch_bounds__(GPUTHREADS*WARPSPERBLOCK) reduce_v_dt_kernel(
    // __syncthreads();
    if (ti==0) {
       dev_max_dt[cellIndex] = smallest[0];
-   }   
+   }
 }
 
 
@@ -110,7 +110,7 @@ void reduce_vlasov_dt(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
    const uint nAllCells = cells.size();
    const uint nPOP = getObjectWrapper().particleSpecies.size();
 
-   // Resize allVmeshPointer, one for each cell and each pop
+   // Resize dev_vmeshes, one for each cell and each pop
    gpu_trans_allocate(nAllCells*nPOP,0,0,0);
 
    Real* host_max_dt;
@@ -123,7 +123,6 @@ void reduce_vlasov_dt(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
    CHK_ERR( gpuMallocHost((void**)&host_dxdydz, nAllCells*nPOP*3*sizeof(Real)) );
    CHK_ERR( gpuMalloc((void**)&dev_max_dt, nAllCells*nPOP*sizeof(Real)) );
    CHK_ERR( gpuMalloc((void**)&dev_dxdydz, nAllCells*nPOP*3*sizeof(Real)) );
-   allVmeshPointer->optimizeCPU();
 
    // Gather vmeshes
    #pragma omp parallel for schedule(static)
@@ -135,15 +134,15 @@ void reduce_vlasov_dt(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
          host_dxdydz[3*celli*nPOP + 3*popID + 0] = cell->parameters[CellParams::DX];
          host_dxdydz[3*celli*nPOP + 3*popID + 1] = cell->parameters[CellParams::DY];
          host_dxdydz[3*celli*nPOP + 3*popID + 2] = cell->parameters[CellParams::DZ];
-         allVmeshPointer->at(celli*nPOP + popID) = cell->dev_get_velocity_mesh(popID); // GPU-side vmesh
+         host_vmeshes[celli*nPOP + popID] = cell->dev_get_velocity_mesh(popID); // GPU-side vmesh
       }
    }
    CHK_ERR( gpuMemcpy(dev_dxdydz, host_dxdydz, nAllCells*nPOP*3*sizeof(Real), gpuMemcpyHostToDevice) );
-   allVmeshPointer->optimizeGPU(); // no stream given so blocking
+   CHK_ERR( gpuMemcpy(dev_vmeshes, host_vmeshes, nAllCells*nPOP*sizeof(vmesh::VelocityMesh*), gpuMemcpyHostToDevice) );
 
    // Launch kernel gathering largest allowed dt for velocity
    reduce_v_dt_kernel<<<nAllCells, GPUTHREADS*WARPSPERBLOCK, 0, 0>>> (
-      dev_allVmeshPointer,
+      dev_vmeshes,
       dev_max_dt,
       dev_dxdydz,
       nAllCells*nPOP

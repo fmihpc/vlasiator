@@ -32,8 +32,11 @@ elif [[ $PLATFORM == "-appleM1" ]]; then
    make -j 4 CCC=mpic++ CC=appleLLVM CCFLAGS="-fpic -O2 -std=c++17 -DCLOCK_ID=CLOCK_MONOTONIC -fopenmp" LDFLAGS="-fopenmp"
 elif [[ $PLATFORM == "-leonardo_dcgp_intel" ]]; then
    make -j 4 CCC="mpiicpc -cxx=icpx" CC="mpiicc -cc=icx" CCFLAGS="-fpic -O2 -std=c++17 -DCLOCK_ID=CLOCK_MONOTONIC -qopenmp" LDFLAGS="-qopenmp"
-elif [[ $PLATFORM == "-hile_cpu" || $PLATFORM == "-hile_gpu" ]]; then
+elif [[ $PLATFORM == "-hile_cpu" || $PLATFORM == "-hile_gpu" || $PLATFORM == "-lumi_2403" ]]; then
    make -j 4 CCC=CC CC=cc CCFLAGS="-fpic -O2 -std=c++17 -DCLOCK_ID=CLOCK_MONOTONIC -fopenmp" LDFLAGS="-fopenmp"
+elif [[ $PLATFORM == "-lumi_hipcc" ]]; then
+    make -j 4 CC=hipcc
+    CCFLAGS="-fpic -O2 -std=c++17 -DCLOCK_ID=CLOCK_MONOTONIC -fopenmp" LDFLAGS="-lstdc++ -fopenmp -lgomp -lroctx64 -lroctracer64"
 else
    make -j 4 CCC=mpic++
 fi
@@ -51,7 +54,7 @@ cd vlsv
 make clean ARCH=arch
 if [[ $PLATFORM == "-leonardo_dcgp_intel" ]]; then
    make ARCH=arch CMP="mpiicpc -cxx=icpx"
-elif [[ $PLATFORM == "-hile_cpu" || $PLATFORM == "-hile_gpu" ]]; then
+elif [[ $PLATFORM == "-hile_cpu" || $PLATFORM == "-hile_gpu" || $PLATFORM == "-lumi_hipcc" || $PLATFORM == "-lumi_2403" ]]; then
    make ARCH=arch CMP=CC
 else
    make ARCH=arch
@@ -61,9 +64,9 @@ cp *.h $WORKSPACE/libraries${PLATFORM}/include
 cd ..
 
 # Build papi
-if [[ $PLATFORM != "-arriesgado" && $PLATFORM != "-appleM1" && $PLATFORM != "-ukkogpu" && $PLATFORM != "-hile_cpu" && $PLATFORM != "-hile_gpu" ]]; then
+if [[ $PLATFORM != "-arriesgado" && $PLATFORM != "-appleM1" && $PLATFORM != "-ukkogpu" && $PLATFORM != "-hile_cpu" && $PLATFORM != "-hile_gpu" && $PLATFORM != "-lumi_hipcc" && $PLATFORM != "-lumi_2403" ]]; then
     # This fails on RISCV and MacOS
-    # UkkoGPU and HILE use system module
+    # LUMI, UkkoGPU and HILE use system module
     # git clone https://github.com/icl-utk-edu/papi
     cd papi/src
     if [[ $PLATFORM == "-leonardo_dcgp_intel" ]]; then
@@ -80,7 +83,7 @@ if [[ $PLATFORM != "-arriesgado" && $PLATFORM != "-appleM1" && $PLATFORM != "-uk
 fi
 
 # Build jemalloc (not for GPU versions)
-if [[ $PLATFORM != "-leonardo_booster" && $PLATFORM != "-karolina_cuda" && $PLATFORM != "-ukkogpu" && $PLATFORM != "-hile_gpu" ]]; then    
+if [[ $PLATFORM != "-leonardo_booster" && $PLATFORM != "-karolina_cuda" && $PLATFORM != "-ukkogpu" && $PLATFORM != "-hile_gpu" && $PLATFORM != "-lumi_hipcc" ]]; then
     # curl -O -L https://github.com/jemalloc/jemalloc/releases/download/5.3.0/jemalloc-5.3.0.tar.bz2
     # tar xjf jemalloc-5.3.0.tar.bz2
     cd jemalloc-5.3.0
@@ -88,7 +91,7 @@ if [[ $PLATFORM != "-leonardo_booster" && $PLATFORM != "-karolina_cuda" && $PLAT
         ./configure --prefix=$WORKSPACE/libraries${PLATFORM} --with-jemalloc-prefix=je_
     elif [[ $PLATFORM == "-leonardo_dcgp_intel" ]]; then
         ./configure --prefix=$WORKSPACE/libraries${PLATFORM} --with-jemalloc-prefix=je_ CC="mpiicc -cc=icx" CXX="mpiicpc -cxx=icpx"
-    elif [[ $PLATFORM == "-hile_cpu" ]]; then
+    elif [[ $PLATFORM == "-hile_cpu" || $PLATFORM == "-lumi_2403" ]]; then
         ./configure --prefix=$WORKSPACE/libraries${PLATFORM} --with-jemalloc-prefix=je_ CC="cc" CXX="CC"
     else
         ./configure --prefix=$WORKSPACE/libraries${PLATFORM} --with-jemalloc-prefix=je_ CC=mpicc CXX=mpic++
@@ -116,7 +119,7 @@ elif [[ $PLATFORM == "-leonardo_dcgp_intel" ]]; then
     sed -i 's/mpiicpc/mpiicpc -cxx=icpx/g' Makefile
     sed -i 's/mpiicpc/mpiicpc -cxx=icpx/g' src/Makefile
     sed -i 's/mpiicpc/mpiicpc -cxx=icpx/g' src/driver/Makefile
-elif [[ $PLATFORM == "-hile_cpu" ||  $PLATFORM == "-hile_gpu" ]]; then
+elif [[ $PLATFORM == "-hile_cpu" ||  $PLATFORM == "-hile_gpu" || $PLATFORM == "-lumi_2403" ]]; then
    ../Zoltan/configure --prefix=$WORKSPACE/libraries${PLATFORM} --enable-mpi --with-mpi-compilers --with-gnumake --with-id-type=ullong CC=cc CXX=CC
 else
     ../Zoltan/configure --prefix=$WORKSPACE/libraries${PLATFORM} --enable-mpi --with-mpi-compilers --with-gnumake --with-id-type=ullong CC=mpicc CXX=mpic++
@@ -125,7 +128,7 @@ make clean
 make -j 4 && make install
 cd ..
 
-# Build boost
+# Build boost (only if system module is not available)
 if [[ $PLATFORM == "-leonardo_booster" || $PLATFORM == "-leonardo_dcgp" || $PLATFORM == "-karolina_cuda" || $PLATFORM == "-karolina_gcc" || $PLATFORM == "-ukkogpu" ]]; then
     # echo "### Downloading boost. ###"
     # wget -q https://archives.boost.io/release/1.86.0/source/boost_1_86_0.tar.gz

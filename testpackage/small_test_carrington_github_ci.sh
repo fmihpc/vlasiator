@@ -83,7 +83,7 @@ tabs $tabseq &> /dev/null # suppress special character output, list matches expa
 
 # Get absolute paths
 reference_dir=$( readlink -f $reference_dir )
-reference_revision_full=$( readlink $reference_dir/$reference_revision )
+reference_revision_parsed=$( readlink -f $reference_dir/$reference_revision )
 run_dir=$( readlink -f $run_dir )_$( date +%Y.%m.%d_%H.%M.%S )
 bin=$( readlink -f $bin )
 diffbin=$( readlink -f $diffbin )
@@ -91,16 +91,16 @@ test_dir=$( readlink -f $test_dir)
 
 flags=$(  $run_command $bin  --version |grep CXXFLAGS)
 solveropts=$(echo $flags|sed 's/[-+]//g' | gawk '{for(i = 1;i<=NF;i++) { if( $i=="DDP" || $i=="DFP" || index($i,"PF")|| index($i,"DVEC") || index($i,"SEMILAG") ) printf "__%s", $(i) }}')
-revision=$( $run_command $bin --version |gawk '{if(flag==1) {print $1;flag=0}if ($3=="log") flag=1;}' )
+revision=$( $small_run_command $bin --version |gawk '{if(flag==1) {print $1;flag=0}if ($3=="log") flag=1;}' )
 
 echo "----------"
-echo "This will be verifying ${revision}_$solveropts against $reference_revision"
+echo "This will be verifying ${run_dir}/${revision}_${solveropts} against ${reference_revision_parsed}"
 echo "----------"
 
 #$small_run_command $bin --version > VERSION.txt 2> $GITHUB_WORKSPACE/stderr.txt
 
 echo -e "### Testpackage output:\n" >> $GITHUB_STEP_SUMMARY
-echo "CI_reference pointed to $reference_revision_full" >> $GITHUB_STEP_SUMMARY
+echo "CI_reference pointed to $reference_revision_parsed" >> $GITHUB_STEP_SUMMARY
 
 NONZEROTESTS=0
 ZEROTESTS=0
@@ -110,6 +110,7 @@ FAILEDTESTS=0
 for run in ${run_tests[*]}; do
    # directory for test results
    vlsv_dir=${run_dir}/${test_name[$run]}
+   vlsv_dir_short=${test_name[$run]}
    cfg_dir=${test_dir}/${test_name[$run]}
 
    # Check if folder for new run exists, if not create them, otherwise delete old results
@@ -217,7 +218,7 @@ for run in ${run_tests[*]}; do
            echo "----------"
            continue
        fi
-       echo "Comparing file ${vlsv_dir}/${vlsv} against reference"
+       echo "Comparing file ${vlsv_dir_short}/${vlsv} against reference"
        COMPAREDFILES=$((COMPAREDFILES+1))
        echo $COMPAREDFILES > $RUNNER_TEMP/COMPAREDFILES.txt
        

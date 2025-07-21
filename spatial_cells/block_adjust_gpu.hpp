@@ -52,8 +52,58 @@ namespace spatial_cell {
       const vector<CellID>& cells,
       const uint popID=0);
 
+   void clear_maps_caller(
+      const uint nCells,
+      const size_t largestSizePower,
+      gpuStream_t stream=0,
+      const size_t offset=0);
+
+   void batch_adjust_blocks_caller(
+      dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      const vector<CellID>& cellsToAdjust,
+      const uint cellOffset,
+      uint &largestBlocksToChange,
+      uint &largestBlocksBeforeOrAfter,
+      const uint popID=0
+      );
+
+   // Non-templated caller functions due to dual use from both block adjustment and acceleration
+   void extract_to_replace_caller(
+      Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>** input_maps,
+      split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>> **output_vecs,
+      vmesh::LocalID* output_sizes,
+      vmesh::VelocityMesh** rule_meshes,
+      Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>** rule_maps,
+      split::SplitVector<vmesh::GlobalID>** rule_vectors,
+      const uint nCells,
+      gpuStream_t stream
+      );
+
+   void extract_to_delete_or_move_caller(
+      Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>** input_maps,
+      split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>> **output_vecs,
+      vmesh::LocalID* output_sizes,
+      vmesh::VelocityMesh** rule_meshes,
+      Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>** rule_maps,
+      split::SplitVector<vmesh::GlobalID>** rule_vectors,
+      const uint nCells,
+      gpuStream_t stream
+      );
+
+   void extract_to_add_caller(
+      Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>** input_maps,
+      split::SplitVector<vmesh::GlobalID> **output_vecs,
+      vmesh::LocalID* output_sizes,
+      vmesh::VelocityMesh** rule_meshes,
+      Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>** rule_maps,
+      split::SplitVector<vmesh::GlobalID>** rule_vectors,
+      const uint nCells,
+      gpuStream_t stream
+      );
+
 } // namespaces
 
+// Host-device buffers, allocated in arch/gpu_base.cpp
 extern vmesh::VelocityMesh** host_vmeshes, **dev_vmeshes;
 extern vmesh::VelocityBlockContainer** host_VBCs, **dev_VBCs;
 extern Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>** host_allMaps, **dev_allMaps;
@@ -63,9 +113,19 @@ extern split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>
 extern split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>> **host_lists_to_replace, **dev_lists_to_replace;
 extern split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>> **host_lists_with_replace_old, **dev_lists_with_replace_old;
 extern split::SplitVector<vmesh::GlobalID> ** host_vbwcl_neigh, **dev_vbwcl_neigh;
-extern vmesh::LocalID* host_contentSizes, *dev_contentSizes;
+extern vmesh::LocalID* host_nWithContent, *dev_nWithContent;
+extern vmesh::LocalID* host_nBefore, *dev_nBefore;
+extern vmesh::LocalID* host_nAfter, *dev_nAfter;
+extern vmesh::LocalID* host_nBlocksToChange, *dev_nBlocksToChange;
+extern vmesh::LocalID* host_resizeSuccess, *dev_resizeSuccess;
+extern vmesh::LocalID* host_overflownElements, *dev_overflownElements;
 extern Real* host_minValues, *dev_minValues;
 extern Real* host_massLoss, *dev_massLoss;
 extern Real* host_mass, *dev_mass;
+
+// Only used for acceleration
+extern vmesh::LocalID* host_nColumns, *dev_nColumns;
+extern vmesh::LocalID* host_nColumnSets, *dev_nColumnSets;
+extern Realf* host_intersections, *dev_intersections;
 
 #endif

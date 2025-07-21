@@ -28,8 +28,8 @@ reference_revision="current"
 
 export MPICH_GPU_SUPPORT_ENABLED=1
 export MPICH_OFI_NIC_POLICY=GPU
-# Turn off forced managed memory paging
-export HSA_XNACK=0
+# Turn on managed memory paging (otherwise all comm goes through DMA transfers)
+export HSA_XNACK=1
 # use extra threads for MPI in background
 #export MPICH_ASYNC_PROGRESS=1
 # allow more in-parallel queues (should be 2x threads)

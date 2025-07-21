@@ -22,3 +22,7 @@ vlasiator+pat
 nbproject
 vlsvdiff_DP
 vlsvextract_DP
+libraries*/
+library-build/
+run_*/
+!run_tests.sh

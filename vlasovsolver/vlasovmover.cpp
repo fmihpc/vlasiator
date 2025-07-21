@@ -46,7 +46,6 @@
 #include "cpu_acc_transform.hpp" // for updateAccelerationMaxdt
 #ifdef USE_GPU
 #include "gpu_moments.h"
-#include "gpu_acc_map.hpp"
 #include "gpu_acc_semilag.hpp"
 #include "gpu_trans_map_amr.hpp"
 #else
@@ -58,7 +57,6 @@
 #include "spline.h"
 #endif
 
-using namespace std;
 using namespace spatial_cell;
 
 /** Propagates the distribution function in spatial space.
@@ -90,7 +88,7 @@ void calculateSpatialTranslation(
    MPI_Barrier(MPI_COMM_WORLD);
    btzTimer.stop();
 
-    // ------------- SLICE - map dist function in Z --------------- //
+   // ------------- SLICE - map dist function in Z --------------- //
    if(P::zcells_ini > 1){
 
       phiprof::Timer transTimer {"transfer-stencil-data-z", {"MPI"}};

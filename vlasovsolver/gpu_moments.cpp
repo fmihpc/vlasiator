@@ -182,19 +182,11 @@ __global__ void second_moments_kernel (
    }
 }
 
-/** Calculate zeroth, first, and (possibly) second bulk velocity moments for the
- * given spatial cell. The calculated moments include contributions from
- * all existing particle populations. This function is AMR safe.
- * @param cell Spatial cell.
- * @param computeSecond If true, second velocity moments are calculated.
- * @param doNotSkip If false, DO_NOT_COMPUTE cells are skipped.*/
-// void calculateCellMoments(spatial_cell::SpatialCell* cell,
-//                           const bool& computeSecond,
-//                           const bool& computePopulationMomentsOnly,
-//                           const bool& doNotSkip) {
-// GPUTODO? For a single cell, might as well use ARCH.
-
-
+/**
+    Note: there is no single-cell GPU-only version of moments calculations,
+    (calculateCellMoments) as that task is achieved through the
+    ARCH-interface with no performance loss.
+*/
 
 /** Calculate zeroth, first, and (possibly) second bulk velocity moments for the
  * given spatial cell. The calculated moments include
@@ -202,11 +194,15 @@ __global__ void second_moments_kernel (
  * are stored to SpatialCell::parameters in _R variables.
  * @param mpiGrid Parallel grid library.
  * @param cells Vector containing the spatial cells to be calculated.
- * @param computeSecond If true, second velocity moments are calculated.*/
+ * @param computeSecond If true, second velocity moments are calculated.
+ * @param initialCompute If true, force re-calculation of outflow L1 sysboundary cell moments.
+  (otherwise skipped as their VDF contents are not kept up to date)
+*/
 void gpu_calculateMoments_R(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const std::vector<CellID>& cells_in,
-   const bool& computeSecond) {
+   const bool computeSecond,
+   const bool initialCompute) {
 
    phiprof::Timer computeMomentsTimer {"Compute _R moments"};
 
@@ -235,10 +231,15 @@ void gpu_calculateMoments_R(
                host_VBC[celli] = 0;
                continue;
             }
+            if (cell->sysBoundaryFlag == sysboundarytype::OUTFLOW && cell->sysBoundaryLayer != 1 && !initialCompute) {
+               // these should have been handled by the boundary code
+               host_VBC[celli] = 0;
+               continue;
+            }
             host_VBC[celli] = cell->dev_get_velocity_blocks(popID); // GPU-side VBC
             // Evaluate cached vmesh size
             const vmesh::LocalID meshSize = cell->get_velocity_mesh(popID)->size();
-            threadMaxVmeshSize = meshSize > threadMaxVmeshSize ? meshSize : threadMaxVmeshSize; 
+            threadMaxVmeshSize = meshSize > threadMaxVmeshSize ? meshSize : threadMaxVmeshSize;
 
             // Clear old moments to zero value
             if (popID == 0) {
@@ -257,7 +258,7 @@ void gpu_calculateMoments_R(
          }
          #pragma omp critical
          {
-            maxVmeshSizes.at(popID) = maxVmeshSizes.at(popID) > threadMaxVmeshSize ? maxVmeshSizes.at(popID) : threadMaxVmeshSize; 
+            maxVmeshSizes.at(popID) = maxVmeshSizes.at(popID) > threadMaxVmeshSize ? maxVmeshSizes.at(popID) : threadMaxVmeshSize;
          }
       }
       if (maxVmeshSizes.at(popID) == 0) {
@@ -288,6 +289,10 @@ void gpu_calculateMoments_R(
          if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
             continue;
          }
+         if (cell->sysBoundaryFlag == sysboundarytype::OUTFLOW && cell->sysBoundaryLayer != 1 && !initialCompute) {
+            // these should have been handled by the boundary code
+            continue;
+         }
 
          // Store species' contribution to bulk velocity moments
          Population &pop = cell->get_population(popID);
@@ -304,11 +309,14 @@ void gpu_calculateMoments_R(
       } // for-loop over spatial cells
    } // for-loop over particle species
 
-   phiprof::Timer computeMomentsVTimer {"compute-moments-R-cell-bulkV"};
    #pragma omp parallel for schedule(static)
    for (size_t celli=0; celli<nAllCells; ++celli) {
       SpatialCell* cell = mpiGrid[cells[celli]];
       if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+         continue;
+      }
+      if (cell->sysBoundaryFlag == sysboundarytype::OUTFLOW && cell->sysBoundaryLayer != 1 && !initialCompute) {
+         // these should have been handled by the boundary code
          continue;
       }
       cell->parameters[CellParams::VX_R] = divideIfNonZero(cell->parameters[CellParams::VX_R], cell->parameters[CellParams::RHOM_R]);
@@ -321,7 +329,6 @@ void gpu_calculateMoments_R(
       host_moments1[nMom1*celli + 2] = cell->parameters[CellParams::VY_R];
       host_moments1[nMom1*celli + 3] = cell->parameters[CellParams::VZ_R];
    }
-   computeMomentsVTimer.stop();
 
    // Compute second moments only if requested.
    if (computeSecond == false) {
@@ -356,6 +363,10 @@ void gpu_calculateMoments_R(
          if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
             continue;
          }
+         if (cell->sysBoundaryFlag == sysboundarytype::OUTFLOW && cell->sysBoundaryLayer != 1 && !initialCompute) {
+            // these should have been handled by the boundary code
+            continue;
+         }
 
          // Store species' contribution to bulk velocity moments
          Population &pop = cell->get_population(popID);
@@ -380,11 +391,15 @@ void gpu_calculateMoments_R(
  * are stored to SpatialCell::parameters in _V variables.
  * @param mpiGrid Parallel grid library.
  * @param cells Vector containing the spatial cells to be calculated.
- * @param computeSecond If true, second velocity moments are calculated.*/
+ * @param computeSecond If true, second velocity moments are calculated.
+ * @param initialCompute If true, force re-calculation of outflow L1 sysboundary cell moments.
+  (otherwise skipped as their VDF contents are not kept up to date)
+ */
 void gpu_calculateMoments_V(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const std::vector<CellID>& cells_in,
-   const bool& computeSecond) {
+   const bool computeSecond,
+   const bool initialCompute) {
 
    phiprof::Timer computeMomentsTimer {"Compute _V moments"};
 
@@ -413,10 +428,15 @@ void gpu_calculateMoments_V(
                host_VBC[celli] = 0;
                continue;
             }
+            if (cell->sysBoundaryFlag == sysboundarytype::OUTFLOW && cell->sysBoundaryLayer != 1 && !initialCompute) {
+               // these should have been handled by the boundary code
+               host_VBC[celli] = 0;
+               continue;
+            }
             host_VBC[celli] = cell->dev_get_velocity_blocks(popID); // GPU-side VBC
             // Evaluate cached vmesh size
             const vmesh::LocalID meshSize = cell->get_velocity_mesh(popID)->size();
-            threadMaxVmeshSize = meshSize > threadMaxVmeshSize ? meshSize : threadMaxVmeshSize; 
+            threadMaxVmeshSize = meshSize > threadMaxVmeshSize ? meshSize : threadMaxVmeshSize;
 
             // Clear old moments to zero value
             if (popID == 0) {
@@ -435,7 +455,7 @@ void gpu_calculateMoments_V(
          }
 #pragma omp critical
          {
-            maxVmeshSizes.at(popID) = maxVmeshSizes.at(popID) > threadMaxVmeshSize ? maxVmeshSizes.at(popID) : threadMaxVmeshSize; 
+            maxVmeshSizes.at(popID) = maxVmeshSizes.at(popID) > threadMaxVmeshSize ? maxVmeshSizes.at(popID) : threadMaxVmeshSize;
          }
       }
       if (maxVmeshSizes.at(popID) == 0) {
@@ -466,6 +486,10 @@ void gpu_calculateMoments_V(
          if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
             continue;
          }
+         if (cell->sysBoundaryFlag == sysboundarytype::OUTFLOW && cell->sysBoundaryLayer != 1 && !initialCompute) {
+            // these should have been handled by the boundary code
+            continue;
+         }
 
          // Store species' contribution to bulk velocity moments
          Population &pop = cell->get_population(popID);
@@ -484,9 +508,12 @@ void gpu_calculateMoments_V(
 
    #pragma omp parallel for schedule(static)
    for (size_t celli=0; celli<nAllCells; ++celli) {
-      phiprof::Timer computeMomentsCellTimer {"compute-moments-R-cell-bulkV"};
       SpatialCell* cell = mpiGrid[cells[celli]];
       if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+         continue;
+      }
+      if (cell->sysBoundaryFlag == sysboundarytype::OUTFLOW && cell->sysBoundaryLayer != 1 && !initialCompute) {
+         // these should have been handled by the boundary code
          continue;
       }
       cell->parameters[CellParams::VX_V] = divideIfNonZero(cell->parameters[CellParams::VX_V], cell->parameters[CellParams::RHOM_V]);
@@ -531,6 +558,10 @@ void gpu_calculateMoments_V(
       for (uint celli = 0; celli < nAllCells; celli++){
          SpatialCell* cell = mpiGrid[cells[celli]];
          if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+            continue;
+         }
+         if (cell->sysBoundaryFlag == sysboundarytype::OUTFLOW && cell->sysBoundaryLayer != 1 && !initialCompute) {
+            // these should have been handled by the boundary code
             continue;
          }
 

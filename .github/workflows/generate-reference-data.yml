@@ -5,8 +5,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  # This should be kept ~identical to the build_testpackage job in github-ci.yml
-  build_testpackage:
+  # This should be kept ~identical to the build_TP job in github-ci.yml
+  build_TP:
     # Build Vlasiator with testpackage flags, on the carrington cluster
     # (for subsequent running of the integration test package)
     # also builds the fluxfunction tool
@@ -56,7 +56,7 @@ jobs:
   run_testpackage:
     # Run the testpackage on the carrington cluster
     runs-on: carrington
-    needs: [build_testpackage]
+    needs: [build_TP]
 
     steps:
     - name: Checkout source
@@ -71,7 +71,6 @@ jobs:
       id: run
       run: |
         chmod +x $GITHUB_WORKSPACE/vlasiator
-        chmod +x $GITHUB_WORKSPACE/fluxfunction
         cd testpackage
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries/lib
         # Fudge the run script
@@ -84,6 +83,7 @@ jobs:
         chmod +x $GITHUB_WORKSPACE/fluxfunction
         srun --job-name fluxtest -M carrington -N 1 -c 1 --mem=1G bash -c "module purge; module load GCC/13.2.0; module load OpenMPI/4.1.6-GCC-13.2.0 ; module load PMIx/4.2.6-GCCcore-13.2.0; module load PAPI/7.1.0-GCCcore-13.2.0; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_small/bulk.0000001.vlsv equatorial.bin"
         srun --job-name fluxtest -M carrington -N 1 -c 1 --mem=1G bash -c "module purge; module load GCC/13.2.0; module load OpenMPI/4.1.6-GCC-13.2.0 ; module load PMIx/4.2.6-GCCcore-13.2.0; module load PAPI/7.1.0-GCCcore-13.2.0; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_polar_small/bulk.0000001.vlsv polar.bin"
+        chmod 775 polar.bin equatorial.bin
         cp equatorial.bin polar.bin $REFERENCE_REVISION
         # No longer overwrites files in /proj/group/spacephysics/vlasiator_testpackage/CI_reference/ but places in proper folder
     # We don't bother to create artefacts or anything here.

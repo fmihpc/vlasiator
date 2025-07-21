@@ -1,0 +1,102 @@
+# This is meant for building local copy of Vlasiator.
+# It is tested with cubbli 20 but it should work on other systems as well
+
+# This is a modified version of Makefile.yann
+
+# There is script called configure_cubbli20.sh that will install the dependencies automatically.
+# Script will create a folder called external_libs to root folder.
+# The dependencies will be installed to this folder
+
+# configure_cubbli20.sh will install follwing libs:
+# 	Zoltan
+# 	VLSV 
+# 	DCCRG
+# 	FSGRID
+# 	PHIPROF
+# 	Eigen
+#   Vectorclass/version1
+
+# configure_cubbli20.sh is assumed to be located at MAKE/configure_cubbli20.sh
+# and you probably need to give execution permissions to it:
+
+# sudo chmod u+x configure_cubbli20.sh
+
+# There might be some libefa errors but they are benign.
+# (Benign = pleasant and kind; not harmful or severe. dictionary.cambridge.org)
+
+# Boost is assumend to be installed by the system package manager (e.g. apt)
+# Usually following is correct but this can be modified:
+
+INC_BOOST = -I/usr/include/boost/
+LIB_BOOST = -L/usr/lib/x86_64-linux-gnu/ -lboost_program_options
+
+
+# In case of there is need for optional Jmalloc
+# you can install it manually and add paths here 
+
+# Optional
+INC_JEMALLOC = #-I$(LIBRARY_PREFIX)/include/jemalloc
+LIB_JEMALLOC = #-L$(LIBRARY_PREFIX)/lib -ljemalloc
+
+
+
+
+
+
+#======== Vectorization ==========
+#Set vector backend type for vlasov solvers, sets precision and length. 
+#NOTE this has to have the same precision as the distribution function define (DISTRIBUTION_FP_PRECISION)
+#Options: 
+# AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX512:   VEC8D_AGNER, VEC16F_AGNER
+# Fallback: VEC_FALLBACK_GENERIC
+
+ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
+#Single-precision        
+	VECTORCLASS = VEC8F_AGNER
+else
+#Double-precision
+	VECTORCLASS = VEC4D_AGNER
+endif
+
+
+#======== Allocator =========
+#Use TBB malloc
+
+CMP = mpic++
+LNK = mpic++
+
+PAPI_FLAG =
+
+FLAGS =
+# Debug flags:
+#CXXFLAGS = -g  -funroll-loops -std=c++20 -fopenmp -W -Wall -pedantic -Wno-unused -fabi-version=0 -mavx
+CXXFLAGS = -O3  -funroll-loops -std=c++20 -fopenmp -W -Wall -Wno-unused -fabi-version=0 -mavx
+
+MATHFLAGS = -ffast-math -fno-finite-math-only
+testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
+
+LDFLAGS = -L $(HOME)/lib
+LIB_MPI = -lgomp 
+
+
+#======== Libraries ===========
+
+
+# This is folder of the "main" Makefile ie. the root directory of vlasiator
+ROOT_FOLDER = $(dir $(abspath $(firstword $(MAKEFILE_LIST))))
+
+# The external libraries are located here
+LIBRARY_PREFIX = $(ROOT_FOLDER)libraries-libraries
+
+INC_ZOLTAN = -I$(LIBRARY_PREFIX)/Zoltan/include
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/Zoltan/lib -lzoltan
+
+INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv
+LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv
+
+INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX)/phiprof/lib
+
+
+INC_EIGEN = -isystem ./submodules/eigen/

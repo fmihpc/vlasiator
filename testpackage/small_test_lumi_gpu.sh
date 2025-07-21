@@ -58,8 +58,8 @@ export OMP_PLACES=cores
 export OMP_PROC_BIND=close
 export MPICH_OFI_NIC_POLICY=GPU
 export MPICH_GPU_SUPPORT_ENABLED=1
-# Turn off forced managed memory paging
-export HSA_XNACK=0
+# Turn on managed memory paging (otherwise all comm goes through DMA transfers)
+export HSA_XNACK=1
 # use extra threads for MPI in background
 export MPICH_ASYNC_PROGRESS=1
 # allow 16 in-parallel queues

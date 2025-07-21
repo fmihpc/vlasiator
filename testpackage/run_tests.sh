@@ -11,7 +11,7 @@ tabs $tabseq &> /dev/null # suppress special character output, list matches expa
 ## add absolute paths to folder names, filenames
 reference_dir=$( readlink -f $reference_dir )
 run_dir=$( readlink -f $run_dir )_$( date +%Y.%m.%d_%H.%M.%S)
-
+reference_revision_parsed=$( readlink -f $reference_dir/$reference_revision )
 bin=$( readlink -f $bin )
 diffbin=$( readlink -f $diffbin )
 test_dir=$( readlink -f $test_dir)
@@ -34,12 +34,18 @@ revision=$( $run_command $bin --version |gawk '{if(flag==1) {print $1;flag=0}if 
 if [ $create_verification_files == 1 ]
 then
     #if we create the references, then lets simply run in the reference dir and turn off tests below. Revision is
-    #automatically obtained from the --version output
+    #automatically obtained from the --version output (this overwrites the reverence_revision variable from a launch script)
     reference_revision=${revision}${solveropts}
     echo "Computing reference results into ${reference_dir}/${reference_revision}"
-    echo "REFERENCE_REVISION=${reference_dir}/${reference_revision}" >> "$GITHUB_ENV"
+    if [[ -v GITHUB_ENV && -z $GITHUB_ENV ]]
+    then
+       echo "REFERENCE_REVISION=${reference_dir}/${reference_revision}" >> "$GITHUB_ENV"
+    fi
+else
+    echo "----------"
+    echo "This will be verifying ${revision}_$solveropts against $reference_revision_parsed"
+    echo "----------"
 fi
-
 
 if [ -d $run_dir ]
 then
