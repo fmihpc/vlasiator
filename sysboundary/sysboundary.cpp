@@ -481,16 +481,6 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
    if(ionosphereDownmapRadius < 1000) {
       ionosphereDownmapRadius *= physicalconstants::R_E;
    }
-   if (ionosphereDownmapRadius > 0) {
-      #pragma omp parallel for
-      for (uint i = 0; i < cells.size(); i++) {
-         creal x = mpiGrid[cells[i]]->parameters[CellParams::XCRD]+ mpiGrid[cells[i]]->parameters[CellParams::DX];
-         creal y = mpiGrid[cells[i]]->parameters[CellParams::YCRD]+ mpiGrid[cells[i]]->parameters[CellParams::DY];
-         creal z = mpiGrid[cells[i]]->parameters[CellParams::ZCRD]+ mpiGrid[cells[i]]->parameters[CellParams::DZ];
-         creal radius2 = x*x + y*y + z*z;
-      }
-   }
-
 
    // Now the layers need to be set on fsgrid too
    // In dccrg initialization the max number of boundary layers is set to 3.

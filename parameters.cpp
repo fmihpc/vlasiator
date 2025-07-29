@@ -330,11 +330,11 @@ bool P::addParameters() {
        "Manual FsGridDecomposition for field solver grid stored in a restart file.", 0);
 
    RP::add("gridbuilder.x_min", "Minimum value of the x-coordinate.", NAN);
-   RP::add("gridbuilder.x_max", "Minimum value of the x-coordinate.", NAN);
+   RP::add("gridbuilder.x_max", "Maximum value of the x-coordinate.", NAN);
    RP::add("gridbuilder.y_min", "Minimum value of the y-coordinate.", NAN);
-   RP::add("gridbuilder.y_max", "Minimum value of the y-coordinate.", NAN);
+   RP::add("gridbuilder.y_max", "Maximum value of the y-coordinate.", NAN);
    RP::add("gridbuilder.z_min", "Minimum value of the z-coordinate.", NAN);
-   RP::add("gridbuilder.z_max", "Minimum value of the z-coordinate.", NAN);
+   RP::add("gridbuilder.z_max", "Maximum value of the z-coordinate.", NAN);
    RP::add("gridbuilder.x_length", "Number of cells in x-direction in initial grid.", 0);
    RP::add("gridbuilder.y_length", "Number of cells in y-direction in initial grid.", 0);
    RP::add("gridbuilder.z_length", "Number of cells in z-direction in initial grid.", 0);
