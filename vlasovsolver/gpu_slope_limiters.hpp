@@ -34,12 +34,12 @@
 static ARCH_DEV inline Realf minmod(const Realf slope1, const Realf slope2)
 {
    const Realf slope = (abs(slope1) < abs(slope2)) ? slope1 : slope2;
-   return (slope1 * slope2 <= 0) ? 0 : slope;
+   return (slope1 * slope2 <= (Realf)(0.0)) ? (Realf)(0.0) : slope;
 }
 static ARCH_DEV inline Realf maxmod(const Realf slope1, const Realf slope2)
 {
    const Realf slope = (abs(slope1) > abs(slope2)) ? slope1 : slope2;
-   return (slope1 * slope2 <= 0) ? 0 : slope;
+   return (slope1 * slope2 <= (Realf)(0.0)) ? (Realf)(0.0) : slope;
 }
 
 /*!
@@ -50,8 +50,8 @@ static ARCH_DEV inline Realf slope_limiter_sb(const Realf l, const Realf m, cons
 {
    const Realf a = r-m;
    const Realf b = m-l;
-   const Realf slope1 = minmod(a, 2*b);
-   const Realf slope2 = minmod(2*a, b);
+   const Realf slope1 = minmod(a, (Realf)(2.0)*b);
+   const Realf slope2 = minmod((Realf)(2.0)*a, b);
    return maxmod(slope1, slope2);
 }
 
@@ -74,21 +74,21 @@ static ARCH_DEV inline Realf slope_limiter_mc(const Realf l, const Realf m, cons
 {
    const Realf a=r-m;
    const Realf b=m-l;
-   Realf minval=min(2*abs(a),2*abs(b));
-   minval=min(minval,(Realf)0.5*abs(a+b));
+   Realf minval=min((Realf)(2.0)*abs(a),(Realf)(2.0)*abs(b));
+   minval=min(minval,(Realf)(0.5)*abs(a+b));
 
    //check for extrema
-   const Realf output = (a*b < 0) ? 0 : minval;
+   const Realf output = (a*b < (Realf)(0.0)) ? (Realf)(0.0) : minval;
    //set sign
-   return (a + b < 0) ? -output : output;
+   return (a + b < (Realf)(0.0)) ? -output : output;
 }
 
 static ARCH_DEV inline Realf slope_limiter_minmod_amr(const Realf l,const Realf m, const Realf r,const Realf a,const Realf b)
 {
    const Realf J = r-l;
    Realf f = (m-l)/J;
-   f = min((Realf)1.0,f);
-   return min((Realf)f/(1+a),(Realf)(1.-f)/(1+b))*2*J;
+   f = min((Realf)(1.0),f);
+   return min((Realf)(f)/(1+a),(Realf)(1.-f)/((Realf)(1.0)+b))*(Realf)(2.0)*J;
 }
 
 static ARCH_DEV inline Realf slope_limiter(const Realf l, const Realf m, const Realf r)
@@ -111,7 +111,7 @@ static ARCH_DEV inline void slope_limiter(const Realf l,const Realf m, const Rea
 {
    const Realf slope = slope_limiter(l,m,r);
    slope_abs = abs(slope);
-   slope_sign = (slope > 0) ? 1 : -1.0;
+   slope_sign = (slope > (Realf)(0.0)) ? (Realf)(1.0) : (Realf)(-1.0);
 }
 
 
