@@ -38,9 +38,9 @@ template <typename T, size_t N> struct DerivativesData {
    const std::array<T, N>& oom = {};
 };
 
-void computeMoments(std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+void computeMomentsDerivatives(std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
                     std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
-                    const fsgrid::FsStencil& stencil, const bool notSysBoundary) {
+                    const fsgrid::FsStencil& stencil, const bool atSysBoundary) {
    using dmo = fsgrids::dmoments;
    using mom = fsgrids::moments;
 
@@ -107,7 +107,7 @@ void computeMoments(std::span<const std::array<Real, fsgrids::moments::N_MOMENTS
        dmo::drhomdz, dmo::drhoqdz, dmo::dp11dz, dmo::dp22dz, dmo::dp33dz, dmo::dVxdz, dmo::dVydz, dmo::dVzdz,
    };
 
-   if (notSysBoundary) {
+   if (atSysBoundary) {
       for (size_t i = 0; i < moms.size(); i++) {
          dMoments[dmix[i]] = computeDiff(moms[i], momData.poo, momData.moo);
          dMoments[dmiy[i]] = computeDiff(moms[i], momData.opo, momData.omo);
@@ -130,9 +130,9 @@ void computeMoments(std::span<const std::array<Real, fsgrids::moments::N_MOMENTS
 
 }
 
-void computePerb(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+void computePerbDerivatives(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                  std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb, const fsgrid::FsStencil& stencil,
-                 bool dontCompute2ndDerivatives, bool notSysBoundary, cuint sysBoundaryFlag) {
+                 bool dontCompute2ndDerivatives, bool atSysBoundary, cuint sysBoundaryFlag) {
    using dpb = fsgrids::dperb;
    using bfi = fsgrids::bfield;
    std::array<Real, dpb::N_DPERB>& dPerB = dperb[stencil.ooo()];
@@ -147,7 +147,7 @@ void computePerb(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> pe
        perb[stencil.omo()],   perb[stencil.oop()],  perb[stencil.oom()],
    };
 
-   if (notSysBoundary) {
+   if (atSysBoundary) {
       dPerB[dpb::dPERBydx] = computeDiff(bfi::PERBY, perbData.poo, perbData.moo);
       dPerB[dpb::dPERBzdx] = computeDiff(bfi::PERBZ, perbData.poo, perbData.moo);
       dPerB[dpb::dPERBxdy] = computeDiff(bfi::PERBX, perbData.opo, perbData.omo);
@@ -230,15 +230,15 @@ void calculateDerivatives(std::span<const std::array<Real, fsgrids::bfield::N_BF
     * slope limiter-adjusted values. This is to minimize oscillations as a smooth behaviour is required near artificial
     * boundaries, unlike at boundaries and shocks inside the simulation domain.
     */
-   const bool notSysBoundary =
+   const bool atSysBoundary =
        sysBoundaryLayer == 1 || (sysBoundaryLayer == 2 && sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY);
    const bool dontCompute2ndDerivatives = Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1;
 
    if (doMoments) {
-      computeMoments(moments, dmoments, stencil, notSysBoundary);
+      computeMomentsDerivatives(moments, dmoments, stencil, atSysBoundary);
    }
 
-   computePerb(perb, dperb, stencil, dontCompute2ndDerivatives, notSysBoundary, sysBoundaryFlag);
+   computePerbDerivatives(perb, dperb, stencil, dontCompute2ndDerivatives, atSysBoundary, sysBoundaryFlag);
 
    if (sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
       SBC::SysBoundaryCondition::setCellDerivativesToZero(dperb, dmoments, stencil, 3);
