@@ -52,6 +52,21 @@ void computeMoments(std::span<const std::array<Real, fsgrids::moments::N_MOMENTS
       return limiter(left[i], center[i], right[i]);
    };
 
+   // Constants for electron pressure derivatives, see also ldz_gradpe.cpp
+   // Calculate anchor point constants: First the pressure, then a derived constant.
+   const Real Pe_anchor = Parameters::electronTemperature * Parameters::electronDensity * physicalconstants::K_B;
+   const Real Pe_const = Pe_anchor * pow(Parameters::electronDensity, -Parameters::electronPTindex);
+   auto computeGradPeLimiter = [=](const auto& right, const auto& left, const auto& center) {
+      // pres_e = const * np.power(rho_e, index)
+      return Pe_const * limiter(pow(left[mom::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex),
+                               pow(center[mom::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex),
+                               pow(right[mom::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex));
+   };
+
+   auto computeGradPeDiff = [=](const auto& right, const auto& left) {
+      return Pe_const * 0.5 * (pow(right[mom::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex) - pow(left[mom::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex));
+   };
+
    const DerivativesData momData{
        moments[stencil.ooo()], moments[stencil.poo()], moments[stencil.moo()], moments[stencil.opo()],
        moments[stencil.omo()],   moments[stencil.oop()],  moments[stencil.oom()],
@@ -98,28 +113,21 @@ void computeMoments(std::span<const std::array<Real, fsgrids::moments::N_MOMENTS
          dMoments[dmiy[i]] = computeDiff(moms[i], momData.opo, momData.omo);
          dMoments[dmiz[i]] = computeDiff(moms[i], momData.oop, momData.oom);
       }
+      dMoments[dmo::dPedx] = computeGradPeDiff(momData.poo, momData.moo);
+      dMoments[dmo::dPedy] = computeGradPeDiff(momData.opo, momData.omo);
+      dMoments[dmo::dPedz] = computeGradPeDiff(momData.oop, momData.oom);
    } else {
       for (size_t i = 0; i < moms.size(); i++) {
          dMoments[dmix[i]] = computeLimiter(moms[i], momData.poo, momData.moo, momData.ooo);
          dMoments[dmiy[i]] = computeLimiter(moms[i], momData.opo, momData.omo, momData.ooo);
          dMoments[dmiz[i]] = computeLimiter(moms[i], momData.oop, momData.oom, momData.ooo);
       }
+      dMoments[dmo::dPedx] = computeGradPeLimiter(momData.poo, momData.moo, momData.ooo);
+      dMoments[dmo::dPedy] = computeGradPeLimiter(momData.opo, momData.omo, momData.ooo);
+      dMoments[dmo::dPedz] = computeGradPeLimiter(momData.oop, momData.oom, momData.ooo);
    }
 
-   // Constants for electron pressure derivatives, see also ldz_gradpe.cpp
-   // Calculate anchor point constants: First the pressure, then a derived constant.
-   const Real Pe_anchor = Parameters::electronTemperature * Parameters::electronDensity * physicalconstants::K_B;
-   const Real Pe_const = Pe_anchor * pow(Parameters::electronDensity, -Parameters::electronPTindex);
-   auto computePresE = [&dMoments, &Pe_const](const auto& right, const auto& left, const auto& center) {
-      // pres_e = const * np.power(rho_e, index)
-      return Pe_const * limiter(pow(left[mom::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex),
-                               pow(center[mom::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex),
-                               pow(right[mom::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex));
-   };
 
-   dMoments[dmo::dPedx] = computePresE(momData.poo, momData.moo, momData.ooo);
-   dMoments[dmo::dPedy] = computePresE(momData.opo, momData.omo, momData.ooo);
-   dMoments[dmo::dPedz] = computePresE(momData.oop, momData.oom, momData.ooo);
 }
 
 void computePerb(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
