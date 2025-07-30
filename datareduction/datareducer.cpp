@@ -44,8 +44,9 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
 
       // Sidestep mixed case errors
       std::string lowercase = *it;
-      for (auto& c : lowercase)
+      for (auto& c : lowercase) {
          c = tolower(c);
+      }
 
       if (P::systemWriteAllDROs || lowercase == "fg_b" ||
           lowercase == "b") { // Bulk magnetic field at Yee-Lattice locations
@@ -53,23 +54,19 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
              "fg_b", [](const FieldSolverData& fieldSolverData) -> std::vector<double> {
                 const auto* localSize = &fieldSolverData.fsgrid.getLocalSize()[0];
                 std::vector<double> retval(localSize[0] * localSize[1] * localSize[2] * 3);
-
                 // Iterate through fsgrid cells and extract total magnetic field
-                for (int z = 0; z < localSize[2]; z++) {
-                   for (int y = 0; y < localSize[1]; y++) {
-                      for (int x = 0; x < localSize[0]; x++) {
-                         const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                         const auto lid = stencil.ooo();
-                         const auto ri = localSize[1] * localSize[0] * z + localSize[0] * y + x;
-                         retval[3 * ri] =
-                             fieldSolverData.BgB[lid][fsgrids::BGBX] + fieldSolverData.perB[lid][fsgrids::PERBX];
-                         retval[3 * ri + 1] =
-                             fieldSolverData.BgB[lid][fsgrids::BGBY] + fieldSolverData.perB[lid][fsgrids::PERBY];
-                         retval[3 * ri + 2] =
-                             fieldSolverData.BgB[lid][fsgrids::BGBZ] + fieldSolverData.perB[lid][fsgrids::PERBZ];
-                      }
-                   }
-                }
+                fieldSolverData.fsgrid.parallel_for_ijk([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                                    phiprof::initializeTimer("DRO_fg_b"), fieldSolverData.technical,
+                                    [=, &retval](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer, const fsgrid::FsIndex_t i, const fsgrid::FsIndex_t j, const fsgrid::FsIndex_t k) {
+                                       const auto lid = stencil.ooo();
+                                       const auto ri = localSize[1] * localSize[0] * k + localSize[0] * j + i;
+                                       retval[3 * ri] =
+                                          fieldSolverData.BgB[lid][fsgrids::BGBX] + fieldSolverData.perB[lid][fsgrids::PERBX];
+                                       retval[3 * ri + 1] =
+                                          fieldSolverData.BgB[lid][fsgrids::BGBY] + fieldSolverData.perB[lid][fsgrids::PERBY];
+                                       retval[3 * ri + 2] =
+                                          fieldSolverData.BgB[lid][fsgrids::BGBZ] + fieldSolverData.perB[lid][fsgrids::PERBZ];
+                                    });
                 return retval;
              }));
          outputReducer->addMetadata(outputReducer->size() - 1, "T", "$\\mathrm{T}$", "$B_\\mathrm{fg}$", "1.0");
