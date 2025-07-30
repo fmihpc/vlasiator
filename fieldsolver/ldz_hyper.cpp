@@ -192,7 +192,7 @@ void calculateEdgeHyperTermXComponents(
    limitedRhoq = (rhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : rhoq ;
 
    // -eta_H/mu_0 calculated with center values
-   Real hyperres_coeff = -1.0 * 4.0 * M_PI * M_PI *
+   Real hyperres_coeff = -1.0 / 4.0 / M_PI / M_PI *
            dPerBGrid.DX * dPerBGrid.DX *
            Bmag / limitedRhoq / physicalconstants::MU_0;
 
@@ -241,7 +241,7 @@ void calculateEdgeHyperTermYComponents(
    limitedRhoq = (rhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : rhoq ;
 
    // -eta_H/mu_0 calculated with center values
-   Real hyperres_coeff = -1.0 * 4.0 * M_PI * M_PI *
+   Real hyperres_coeff = -1.0 / 4.0 / M_PI / M_PI *
            dPerBGrid.DY * dPerBGrid.DY *
            Bmag / limitedRhoq / physicalconstants::MU_0;
 
@@ -289,7 +289,7 @@ void calculateEdgeHyperTermZComponents(
    limitedRhoq = (rhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : rhoq ;
 
    // -eta_H/mu_0 calculated with center values
-   Real hyperres_coeff = -1.0 * 4.0 * M_PI * M_PI *
+   Real hyperres_coeff = -1.0 / 4.0 / M_PI / M_PI *
            dPerBGrid.DZ * dPerBGrid.DZ *
            Bmag / limitedRhoq / physicalconstants::MU_0;
 
