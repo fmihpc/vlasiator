@@ -2975,7 +2975,7 @@ namespace SBC {
       this->setCellDerivativesToZero(dperb, dmoments, stencil, component);
    }
    
-   void Ionosphere::fieldSolverBoundaryCondBVOLDerivatives(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vols,
+   void Ionosphere::fieldSolverBoundaryCondBVOLDerivatives(fsgrids::volspan vols,
                                                            const fsgrid::FsStencil& stencil, cuint component) {
       // FIXME This should be OK as the BVOL derivatives are only used for Lorentz force JXB, which is not applied on the
       // ionosphere cells.

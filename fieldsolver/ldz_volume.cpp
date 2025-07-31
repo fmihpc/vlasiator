@@ -32,7 +32,7 @@
 void calculateVolumeAveragedFields(fsgrids::perbspan perb,
                                    std::span<const std::array<Real, fsgrids::efield::N_EFIELD>> e,
                                    std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
-                                   std::span<std::array<Real, fsgrids::volfields::N_VOL>> vols,
+                                   fsgrids::volspan vols,
                                    const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
    const auto center = stencil.ooo();
    std::array<Real, fsgrids::volfields::N_VOL>& vol = vols[center];
@@ -104,7 +104,7 @@ void calculateVolumeAveragedFields(fsgrids::perbspan perb,
 void calculateVolumeAveragedFieldsSimple(fsgrids::perbspan perb,
                                          std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
                                          fsgrids::dperbspan dperb,
-                                         std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol,
+                                         fsgrids::volspan vol,
                                          std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
    phiprof::Timer timer{"Calculate volume averaged fields"};
    const size_t numCells = fsgrid.getNumCells();

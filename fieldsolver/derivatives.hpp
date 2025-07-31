@@ -36,10 +36,10 @@ void calculateDerivativesSimple(fsgrids::perbspan perb,
                                 std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
                                 const bool doMoments);
 
-void calculateBVOLDerivativesSimple(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol,
+void calculateBVOLDerivativesSimple(fsgrids::volspan vol,
                                     std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid);
 
-void calculateCurvatureSimple(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol,
+void calculateCurvatureSimple(fsgrids::volspan vol,
                               std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                               std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid);
 

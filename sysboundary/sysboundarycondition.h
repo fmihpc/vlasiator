@@ -103,12 +103,12 @@ namespace SBC {
                                             fsgrids::dmomentsspan dmoments,
                                             const fsgrid::FsStencil& stencil, cuint RKCase, cuint component) = 0;
          virtual void
-         fieldSolverBoundaryCondBVOLDerivatives(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vols,
+         fieldSolverBoundaryCondBVOLDerivatives(fsgrids::volspan vols,
                                                 const fsgrid::FsStencil& stencil, cuint component) = 0;
          static void setCellDerivativesToZero(fsgrids::dperbspan dperb,
                                               fsgrids::dmomentsspan dmoments,
                                               const fsgrid::FsStencil& stencil, cuint component);
-         static void setCellBVOLDerivativesToZero(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vols,
+         static void setCellBVOLDerivativesToZero(fsgrids::volspan vols,
                                                   const fsgrid::FsStencil& stencil, cuint component);
 
          virtual void mapCellPotentialAndGetEXBDrift(

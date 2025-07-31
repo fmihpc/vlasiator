@@ -85,7 +85,7 @@ public:
                                                    fsgrids::dmomentsspan dmoments,
                                                    const fsgrid::FsStencil& stencil, cuint RKCase,
                                                    cuint component) override;
-   virtual void fieldSolverBoundaryCondBVOLDerivatives(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vols,
+   virtual void fieldSolverBoundaryCondBVOLDerivatives(fsgrids::volspan vols,
                                                        const fsgrid::FsStencil& stencil, cuint component) override;
    virtual void vlasovBoundaryCondition(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                         const CellID& cellID, const uint popID, const bool doCalcMomentsV) override;

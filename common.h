@@ -429,6 +429,7 @@ namespace fsgrids {
    typedef std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> momentsspan;
    typedef std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> constmomentsspan;
    typedef std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmomentsspan;
+   typedef std::span<std::array<Real, fsgrids::volfields::N_VOL>> volspan;
 
    struct technical {
       uint sysBoundaryFlag;  /*!< System boundary flags. */

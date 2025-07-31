@@ -307,7 +307,7 @@ void calculateDerivativesSimple(fsgrids::perbspan perb,
  * \sa calculateDerivatives calculateBVOLDerivativesSimple calculateDerivativesSimple
  */
 
-void calculateBVOLDerivatives(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol,
+void calculateBVOLDerivatives(fsgrids::volspan vol,
                               std::span<const fsgrids::technical> technical, const fsgrid::FsStencil& stencil) {
    const auto& tech = technical[stencil.ooo()];
 
@@ -373,7 +373,7 @@ void calculateBVOLDerivatives(std::span<std::array<Real, fsgrids::volfields::N_V
  *
  * \sa calculateDerivatives calculateBVOLDerivatives calculateDerivativesSimple
  */
-void calculateBVOLDerivativesSimple(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol,
+void calculateBVOLDerivativesSimple(fsgrids::volspan vol,
                                     std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
    phiprof::Timer derivsTimer{"Calculate volume derivatives"};
    const size_t numCells = fsgrid.getNumCells();
@@ -406,7 +406,7 @@ void calculateBVOLDerivativesSimple(std::span<std::array<Real, fsgrids::volfield
  * \sa calculateDerivatives calculateBVOLDerivativesSimple calculateDerivativesSimple
  */
 
-void calculateCurvature(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol,
+void calculateCurvature(fsgrids::volspan vol,
                         std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                         const fsgrid::FsStencil& stencil, const std::array<Real, 3>& gridSpacing) {
    auto compute = [&vol, &bgb](auto i) -> std::array<Real, 3> {
@@ -453,7 +453,7 @@ void calculateCurvature(std::span<std::array<Real, fsgrids::volfields::N_VOL>> v
  *
  * \sa calculateDerivatives calculateBVOLDerivatives calculateDerivativesSimple
  */
-void calculateCurvatureSimple(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol,
+void calculateCurvatureSimple(fsgrids::volspan vol,
                               std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                               std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
    phiprof::Timer curvatureTimer{"Calculate curvature"};

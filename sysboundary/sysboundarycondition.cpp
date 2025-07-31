@@ -260,7 +260,7 @@ namespace SBC {
     * \param cellID The cell's ID.
     * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives.
     */
-   void SysBoundaryCondition::setCellBVOLDerivativesToZero(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vols,
+   void SysBoundaryCondition::setCellBVOLDerivativesToZero(fsgrids::volspan vols,
                                                            const fsgrid::FsStencil& stencil, cuint component) {
       auto& vol = vols[stencil.ooo()];
       switch(component) {

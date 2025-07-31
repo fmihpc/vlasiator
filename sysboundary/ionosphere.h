@@ -346,7 +346,7 @@ namespace SBC {
       fieldSolverBoundaryCondDerivatives(fsgrids::dperbspan dperb,
                                          fsgrids::dmomentsspan dmoments,
                                          const fsgrid::FsStencil& stencil, cuint RKCase, cuint component) override;
-      virtual void fieldSolverBoundaryCondBVOLDerivatives(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vols,
+      virtual void fieldSolverBoundaryCondBVOLDerivatives(fsgrids::volspan vols,
                                                           const fsgrid::FsStencil& stencil, cuint component) override;
       // Compute and store the EXB drift into the cell's BULKV_FORCING_X/Y/Z fields
       virtual void

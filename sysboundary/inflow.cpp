@@ -191,7 +191,7 @@ namespace SBC {
       this->setCellDerivativesToZero(dperb, dmoments, stencil, component);
    }
    
-   void Inflow::fieldSolverBoundaryCondBVOLDerivatives(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vols,
+   void Inflow::fieldSolverBoundaryCondBVOLDerivatives(fsgrids::volspan vols,
                                                        const fsgrid::FsStencil& stencil, cuint component) {
       this->setCellBVOLDerivativesToZero(vols, stencil, component);
    }
