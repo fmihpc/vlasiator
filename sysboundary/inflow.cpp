@@ -186,7 +186,7 @@ namespace SBC {
    }
    
    void Inflow::fieldSolverBoundaryCondDerivatives(std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
-                                                   std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+                                                   fsgrids::dmomentsspan dmoments,
                                                    const fsgrid::FsStencil& stencil, cuint RKCase, cuint component) {
       this->setCellDerivativesToZero(dperb, dmoments, stencil, component);
    }

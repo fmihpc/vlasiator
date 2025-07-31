@@ -190,7 +190,7 @@ namespace SBC {
     */
    void
    SysBoundaryCondition::setCellDerivativesToZero(std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
-                                                  std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+                                                  fsgrids::dmomentsspan dmoments,
                                                   const fsgrid::FsStencil& stencil, cuint component) {
       auto& dPerBGrid0 = dperb[stencil.ooo()];
       auto& dMomentsGrid0 = dmoments[stencil.ooo()];

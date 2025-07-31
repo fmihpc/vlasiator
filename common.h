@@ -424,6 +424,7 @@ namespace fsgrids {
 
    typedef std::span<std::array<Real, bgbfield::N_BGB>> bgbspan;
    typedef std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> momentsspan;
+   typedef std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmomentsspan;
 
    struct technical {
       uint sysBoundaryFlag;  /*!< System boundary flags. */

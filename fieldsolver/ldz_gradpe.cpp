@@ -158,8 +158,8 @@ void calculateGradPeTermSimple(std::span<std::array<Real, fsgrids::egradpe::N_EG
                                std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpedt2,
                                std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
                                std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> momentsdt2,
-                               std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
-                               std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmomentsdt2,
+                               fsgrids::dmomentsspan dmoments,
+                               fsgrids::dmomentsspan dmomentsdt2,
                                std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
                                SysBoundary& sysBoundaries, cint& RKCase) {
    phiprof::Timer gradPeTimer{"Calculate GradPe term"};

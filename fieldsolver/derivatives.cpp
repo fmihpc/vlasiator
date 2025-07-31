@@ -39,7 +39,7 @@ template <typename T, size_t N> struct DerivativesData {
 };
 
 void computeMomentsDerivatives(fsgrids::momentsspan moments,
-                    std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+                    fsgrids::dmomentsspan dmoments,
                     const fsgrid::FsStencil& stencil, const bool atSysBoundary) {
    using dmo = fsgrids::dmoments;
    using mom = fsgrids::moments;
@@ -222,7 +222,7 @@ void computePerbDerivatives(std::span<const std::array<Real, fsgrids::bfield::N_
 void calculateDerivatives(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                           fsgrids::momentsspan moments,
                           std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
-                          std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+                          fsgrids::dmomentsspan dmoments,
                           const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer,
                           const bool doMoments) {
    /*
@@ -267,7 +267,7 @@ void calculateDerivatives(std::span<const std::array<Real, fsgrids::bfield::N_BF
 void calculateDerivativesSimple(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                                 std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
                                 std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
-                                std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+                                fsgrids::dmomentsspan dmoments,
                                 std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
                                 const bool doMoments) {
    phiprof::Timer derivativesTimer{"Calculate face derivatives"};
