@@ -843,7 +843,7 @@ inline REAL JXB(fsgrids::ehall term, const std::array<REAL, Rec::N_REC_COEFFICIE
  *
  */
 void calculateEdgeHallTermComponents(fsgrids::perbspan perbs,
-                                     std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehalls,
+                                     fsgrids::ehallspan ehalls,
                                      fsgrids::constmomentsspan moments,
                                      fsgrids::constdperbspan dperbs,
                                      fsgrids::constbgbspan bgbs,
@@ -1036,7 +1036,7 @@ void calculateEdgeHallTermComponents(fsgrids::perbspan perbs,
  * \sa calculateHallTermSimple calculateEdgeHallTermComponents
  */
 void calculateHallTerm(fsgrids::perbspan perb,
-                       std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
+                       fsgrids::ehallspan ehall,
                        fsgrids::constmomentsspan moments,
                        fsgrids::constdperbspan dperb,
                        fsgrids::constbgbspan bgb,
@@ -1093,7 +1093,7 @@ void calculateHallTerm(fsgrids::perbspan perb,
  */
 void calculateHallTermSimple(fsgrids::perbspan perb,
                              fsgrids::perbspan perbdt2,
-                             std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
+                             fsgrids::ehallspan ehall,
                              fsgrids::momentsspan moments,
                              fsgrids::momentsspan momentsdt2,
                              fsgrids::dperbspan dperb,

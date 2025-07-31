@@ -590,7 +590,7 @@ namespace SBC {
       e[stencil.ooo()][fsgrids::efield::EX + component] = 0.0;
    }
    
-   void Copysphere::fieldSolverBoundaryCondHallElectricField(std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
+   void Copysphere::fieldSolverBoundaryCondHallElectricField(fsgrids::ehallspan ehall,
                                                              const fsgrid::FsStencil& stencil, cuint component) {
       std::array<Real, fsgrids::ehall::N_EHALL>& cp = ehall[stencil.ooo()];
       switch (component) {

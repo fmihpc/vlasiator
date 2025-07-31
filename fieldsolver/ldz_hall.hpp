@@ -24,7 +24,7 @@
 
 void calculateHallTermSimple(fsgrids::perbspan perb,
                              fsgrids::perbspan perbdt2,
-                             std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
+                             fsgrids::ehallspan ehall,
                              fsgrids::momentsspan moments,
                              fsgrids::momentsspan momentsdt2,
                              fsgrids::dperbspan dperb,

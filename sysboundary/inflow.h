@@ -76,7 +76,7 @@ public:
                                                      const fsgrid::FsStencil& stencil, cuint component) override;
    virtual void fieldSolverBoundaryCondElectricField(fsgrids::efieldspan e,
                                                      const fsgrid::FsStencil& stencil, cuint component) override;
-   virtual void fieldSolverBoundaryCondHallElectricField(std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
+   virtual void fieldSolverBoundaryCondHallElectricField(fsgrids::ehallspan ehall,
                                                          const fsgrid::FsStencil& stencil, cuint component) override;
    virtual void
    fieldSolverBoundaryCondGradPeElectricField(std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> EGradPe,
