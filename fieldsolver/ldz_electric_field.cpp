@@ -125,7 +125,7 @@ public:
    FieldCoefficients(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perB,
                      std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dPerB,
                      std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> BgB,
-                     std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                     fsgrids::momentsspan moments,
                      std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dMoments, size_t self, size_t nbr,
                      const Limits& rhomLimits)
        : perb(perB[self]), nbr_perb(perB[nbr]), dperb(dPerB[self]), nbr_dperb(dPerB[nbr]), bgb(BgB[self]),
@@ -178,7 +178,7 @@ public:
  * \param ret_vW Whistler speed returned
  */
 Wavespeeds calculateWaveSpeedYZ(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perB,
-                                std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                                fsgrids::momentsspan moments,
                                 std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dPerB,
                                 std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dMoments,
                                 std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> BgB,
@@ -237,7 +237,7 @@ Wavespeeds calculateWaveSpeedYZ(std::span<const std::array<Real, fsgrids::bfield
  * \param ret_vW Whistler speed returned
  */
 Wavespeeds calculateWaveSpeedXZ(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perB,
-                                std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                                fsgrids::momentsspan moments,
                                 std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dPerB,
                                 std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dMoments,
                                 std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> BgB,
@@ -296,7 +296,7 @@ Wavespeeds calculateWaveSpeedXZ(std::span<const std::array<Real, fsgrids::bfield
  * \param ret_vW Whistler speed returned
  */
 Wavespeeds calculateWaveSpeedXY(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perB,
-                                std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                                fsgrids::momentsspan moments,
                                 std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dPerB,
                                 std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dMoments,
                                 std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> BgB,
@@ -413,7 +413,7 @@ struct DataArrays {
 
    DataArrays(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
               std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
-              std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+              fsgrids::momentsspan moments,
               std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
               std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, size_t index)
        : perb(perb[index]), dperb(dperb[index]), moments(moments[index]), dmoments(dmoments[index]), bgb(bgb[index]) {}
@@ -447,7 +447,7 @@ void calculateEdgeElectricFieldX(std::span<const std::array<Real, fsgrids::bfiel
                                  std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
                                  std::span<const std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
                                  std::span<const std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe,
-                                 std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                                 fsgrids::momentsspan moments,
                                  std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
                                  std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                                  std::span<fsgrids::technical> technical, const fsgrid::FsStencil& stencil,
@@ -674,7 +674,7 @@ void calculateEdgeElectricFieldY(std::span<const std::array<Real, fsgrids::bfiel
                                  std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
                                  std::span<const std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
                                  std::span<const std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe,
-                                 std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                                 fsgrids::momentsspan moments,
                                  std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
                                  std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                                  std::span<fsgrids::technical> technical, const fsgrid::FsStencil& stencil,
@@ -902,7 +902,7 @@ void calculateEdgeElectricFieldZ(std::span<const std::array<Real, fsgrids::bfiel
                                  std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
                                  std::span<const std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
                                  std::span<const std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe,
-                                 std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                                 fsgrids::momentsspan moments,
                                  std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
                                  std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                                  std::span<fsgrids::technical> technical, const fsgrid::FsStencil& stencil,
@@ -1139,7 +1139,7 @@ void calculateElectricField(std::span<const std::array<Real, fsgrids::bfield::N_
                             std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
                             std::span<const std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
                             std::span<const std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe,
-                            std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                            fsgrids::momentsspan moments,
                             std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
                             std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                             std::span<fsgrids::technical> technical, const fsgrid::FsStencil& stencil,

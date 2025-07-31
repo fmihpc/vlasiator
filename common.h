@@ -399,8 +399,6 @@ namespace fsgrids {
       N_BGB
    };
 
-   typedef std::span<std::array<Real, bgbfield::N_BGB>> bgbspan;
-
    // NOTE This contains the PERBVOL derivatives
    enum volfields {
       PERBXVOL,  /*!< perturbed magnetic field  PERBX averaged over spatial cell.*/
@@ -423,6 +421,9 @@ namespace fsgrids {
       CURVATUREZ, /*!< Magnetic field curvature vector z component, grid-glued to DCCRG */
       N_VOL
    };
+
+   typedef std::span<std::array<Real, bgbfield::N_BGB>> bgbspan;
+   typedef std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> momentsspan;
 
    struct technical {
       uint sysBoundaryFlag;  /*!< System boundary flags. */

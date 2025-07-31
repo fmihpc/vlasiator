@@ -101,7 +101,7 @@ using namespace std;
  * @param sysBoundaries System boundary condition functions.
  */
 void calculateGradPeTerm(std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpes,
-                         std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                         fsgrids::momentsspan moments,
                          std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
                          std::span<const fsgrids::technical> technical, const fsgrid::FsStencil& stencil,
                          const auto& gridSpacing, SysBoundary& sysBoundaries) {

@@ -844,7 +844,7 @@ inline REAL JXB(fsgrids::ehall term, const std::array<REAL, Rec::N_REC_COEFFICIE
  */
 void calculateEdgeHallTermComponents(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perbs,
                                      std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehalls,
-                                     std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                                     fsgrids::momentsspan moments,
                                      std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperbs,
                                      std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgbs,
                                      const std::array<Real, 3>& gridSpacing,
@@ -1037,7 +1037,7 @@ void calculateEdgeHallTermComponents(std::span<const std::array<Real, fsgrids::b
  */
 void calculateHallTerm(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                        std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
-                       std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                       fsgrids::momentsspan moments,
                        std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                        std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                        std::span<const fsgrids::technical> technical, const fsgrid::FsStencil& stencil,
