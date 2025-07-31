@@ -1096,7 +1096,7 @@ void calculateHallTermSimple(std::span<std::array<Real, fsgrids::bfield::N_BFIEL
                              std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
                              std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
                              std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> momentsdt2,
-                             std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                             fsgrids::dperbspan dperb,
                              fsgrids::dmomentsspan dmoments,
                              fsgrids::dmomentsspan dmomentsdt2,
                              fsgrids::bgbspan bgb,

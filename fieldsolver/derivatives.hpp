@@ -31,7 +31,7 @@
 
 void calculateDerivativesSimple(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                                 std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
-                                std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                                fsgrids::dperbspan dperb,
                                 fsgrids::dmomentsspan dmoments,
                                 std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
                                 const bool doMoments);

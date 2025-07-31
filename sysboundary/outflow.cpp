@@ -303,7 +303,7 @@ namespace SBC {
       EGradPe[stencil.ooo()][fsgrids::egradpe::EXGRADPE + component] = 0.0;
    }
    
-   void Outflow::fieldSolverBoundaryCondDerivatives(std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+   void Outflow::fieldSolverBoundaryCondDerivatives(fsgrids::dperbspan dperb,
                                                     fsgrids::dmomentsspan dmoments,
                                                     const fsgrid::FsStencil& stencil, cuint RKCase, cuint component) {
       this->setCellDerivativesToZero(dperb, dmoments, stencil, component);

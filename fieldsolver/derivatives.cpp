@@ -131,7 +131,7 @@ void computeMomentsDerivatives(fsgrids::momentsspan moments,
 }
 
 void computePerbDerivatives(fsgrids::perbspan perb,
-                            std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb, const fsgrid::FsStencil& stencil,
+                            fsgrids::dperbspan dperb, const fsgrid::FsStencil& stencil,
                             bool dontCompute2ndDerivatives, bool atSysBoundary, cuint sysBoundaryFlag) {
    using dpb = fsgrids::dperb;
    using bfi = fsgrids::bfield;
@@ -221,7 +221,7 @@ void computePerbDerivatives(fsgrids::perbspan perb,
  */
 void calculateDerivatives(fsgrids::perbspan perb,
                           fsgrids::momentsspan moments,
-                          std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                          fsgrids::dperbspan dperb,
                           fsgrids::dmomentsspan dmoments,
                           const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer,
                           const bool doMoments) {
@@ -266,7 +266,7 @@ void calculateDerivatives(fsgrids::perbspan perb,
  */
 void calculateDerivativesSimple(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                                 std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
-                                std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                                fsgrids::dperbspan dperb,
                                 fsgrids::dmomentsspan dmoments,
                                 std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
                                 const bool doMoments) {

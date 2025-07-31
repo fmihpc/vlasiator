@@ -189,7 +189,7 @@ namespace SBC {
     * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives, 3: xy-derivatives, 4: xz-derivatives, 5: yz-derivatives.
     */
    void
-   SysBoundaryCondition::setCellDerivativesToZero(std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+   SysBoundaryCondition::setCellDerivativesToZero(fsgrids::dperbspan dperb,
                                                   fsgrids::dmomentsspan dmoments,
                                                   const fsgrid::FsStencil& stencil, cuint component) {
       auto& dPerBGrid0 = dperb[stencil.ooo()];

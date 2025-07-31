@@ -99,13 +99,13 @@ namespace SBC {
          fieldSolverBoundaryCondGradPeElectricField(std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> EGradPe,
                                                     const fsgrid::FsStencil& stencil, cuint component) = 0;
          virtual void
-         fieldSolverBoundaryCondDerivatives(std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+         fieldSolverBoundaryCondDerivatives(fsgrids::dperbspan dperb,
                                             fsgrids::dmomentsspan dmoments,
                                             const fsgrid::FsStencil& stencil, cuint RKCase, cuint component) = 0;
          virtual void
          fieldSolverBoundaryCondBVOLDerivatives(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vols,
                                                 const fsgrid::FsStencil& stencil, cuint component) = 0;
-         static void setCellDerivativesToZero(std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+         static void setCellDerivativesToZero(fsgrids::dperbspan dperb,
                                               fsgrids::dmomentsspan dmoments,
                                               const fsgrid::FsStencil& stencil, cuint component);
          static void setCellBVOLDerivativesToZero(std::span<std::array<Real, fsgrids::volfields::N_VOL>> vols,

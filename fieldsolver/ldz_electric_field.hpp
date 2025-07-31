@@ -31,7 +31,7 @@ void calculateUpwindedElectricFieldSimple(std::span<std::array<Real, fsgrids::bf
                                           std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpedt2,
                                           std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
                                           std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> momentsdt2,
-                                          std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                                          fsgrids::dperbspan dperb,
                                           fsgrids::dmomentsspan dmoments,
                                           fsgrids::dmomentsspan dmomentsdt2,
                                           fsgrids::bgbspan bgb,

@@ -103,7 +103,7 @@ void calculateVolumeAveragedFields(fsgrids::perbspan perb,
 
 void calculateVolumeAveragedFieldsSimple(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                                          std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
-                                         std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                                         fsgrids::dperbspan dperb,
                                          std::span<std::array<Real, fsgrids::volfields::N_VOL>> vol,
                                          std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
    phiprof::Timer timer{"Calculate volume averaged fields"};

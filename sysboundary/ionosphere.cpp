@@ -2969,7 +2969,7 @@ namespace SBC {
       EGradPe[stencil.ooo()][fsgrids::egradpe::EXGRADPE + component] = 0.0;
    }
    
-   void Ionosphere::fieldSolverBoundaryCondDerivatives(std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+   void Ionosphere::fieldSolverBoundaryCondDerivatives(fsgrids::dperbspan dperb,
                                                        fsgrids::dmomentsspan dmoments,
                                                        const fsgrid::FsStencil& stencil, cuint RKCase, cuint component) {
       this->setCellDerivativesToZero(dperb, dmoments, stencil, component);
