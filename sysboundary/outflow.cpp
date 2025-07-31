@@ -264,7 +264,7 @@ namespace SBC {
       return fieldBoundaryCopyFromSolvingNbrMagneticField(b, technical, stencil, component, 1 << component);
    }
    
-   void Outflow::fieldSolverBoundaryCondElectricField(std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
+   void Outflow::fieldSolverBoundaryCondElectricField(fsgrids::efieldspan e,
                                                       const fsgrid::FsStencil& stencil, cuint component) {
       e[stencil.ooo()][fsgrids::efield::EX + component] = 0.0;
    }

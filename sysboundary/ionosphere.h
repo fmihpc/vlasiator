@@ -335,7 +335,7 @@ namespace SBC {
                                                         const std::array<Real, 3>& gridSpacing,
                                                         const std::array<fsgrid::FsSize_t, 3>& globalCoordinates,
                                                         const fsgrid::FsStencil& stencil, cuint component) override;
-      virtual void fieldSolverBoundaryCondElectricField(std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
+      virtual void fieldSolverBoundaryCondElectricField(fsgrids::efieldspan e,
                                                         const fsgrid::FsStencil& stencil, cuint component) override;
       virtual void fieldSolverBoundaryCondHallElectricField(std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
                                                             const fsgrid::FsStencil& stencil, cuint component) override;

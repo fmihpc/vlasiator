@@ -68,7 +68,7 @@ namespace SBC {
          std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondMagneticField called!" << std::endl;
          return 0.;
       }
-      void fieldSolverBoundaryCondElectricField(std::span<std::array<Real, fsgrids::efield::N_EFIELD>>,
+      void fieldSolverBoundaryCondElectricField(fsgrids::efieldspan,
                                                 const fsgrid::FsStencil&, cuint) override {
          std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondElectricField called!" << std::endl;
       }

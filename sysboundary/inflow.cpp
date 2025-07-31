@@ -147,7 +147,7 @@ namespace SBC {
       return result;
    }
    
-   void Inflow::fieldSolverBoundaryCondElectricField(std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
+   void Inflow::fieldSolverBoundaryCondElectricField(fsgrids::efieldspan e,
                                                      const fsgrid::FsStencil& stencil, cuint component) {
       e[stencil.ooo()][fsgrids::efield::EX + component] = 0.0;
    }

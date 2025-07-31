@@ -585,7 +585,7 @@ namespace SBC {
       return sum / nCells;
    }
    
-   void Copysphere::fieldSolverBoundaryCondElectricField(std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
+   void Copysphere::fieldSolverBoundaryCondElectricField(fsgrids::efieldspan e,
                                                          const fsgrid::FsStencil& stencil, cuint component) {
       e[stencil.ooo()][fsgrids::efield::EX + component] = 0.0;
    }

@@ -1159,7 +1159,7 @@ bool readIonosphereNodeVariable(vlsv::ParallelReader& file, const string& variab
  */
 bool exec_readGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                    fsgrids::perbspan perb,
-                   std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
+                   fsgrids::efieldspan e,
                    fsgrids::technicalspan technical, FieldSolverGrid &fsgrid, const std::string& name) {
    vector<CellID> fileCells; /*< CellIds for all cells in file*/
    vector<size_t> nBlocks;   /*< Number of blocks for all cells in file*/
@@ -1499,7 +1499,7 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid
 */
 bool readGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
               fsgrids::perbspan perb,
-              std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
+              fsgrids::efieldspan e,
               fsgrids::technicalspan technical, FieldSolverGrid &fsgrid, const std::string& name) {
    // Check the vlsv version from the file:
    return exec_readGrid(mpiGrid, perb, e, technical, fsgrid, name);

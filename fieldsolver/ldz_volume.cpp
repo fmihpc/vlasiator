@@ -30,7 +30,7 @@
 #endif
 
 void calculateVolumeAveragedFields(fsgrids::perbspan perb,
-                                   std::span<const std::array<Real, fsgrids::efield::N_EFIELD>> e,
+                                   fsgrids::constefieldspan e,
                                    fsgrids::constdperbspan dperb,
                                    fsgrids::volspan vols,
                                    const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
@@ -102,7 +102,7 @@ void calculateVolumeAveragedFields(fsgrids::perbspan perb,
 }
 
 void calculateVolumeAveragedFieldsSimple(fsgrids::perbspan perb,
-                                         std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
+                                         fsgrids::efieldspan e,
                                          fsgrids::dperbspan dperb,
                                          fsgrids::volspan vol,
                                          fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {

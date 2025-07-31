@@ -29,8 +29,8 @@
 
 void propagateMagneticField(fsgrids::perbspan perb,
                             fsgrids::perbspan perbdt2,
-                            std::span<const std::array<Real, fsgrids::efield::N_EFIELD>> e,
-                            std::span<const std::array<Real, fsgrids::efield::N_EFIELD>> edt2,
+                            fsgrids::constefieldspan e,
+                            fsgrids::constefieldspan edt2,
                             const fsgrid::FsStencil& stencil, Real dt, int32_t RKCase, bool doX, bool doY, bool doZ,
                             const std::array<Real, 3>& gridSpacing) {
    creal dtdx = dt / gridSpacing[0];
@@ -204,8 +204,8 @@ void propagateSysBoundaryMagneticField(fsgrids::perbspan perb,
 void propagateMagneticFieldSimple(fsgrids::perbspan perb,
                                   fsgrids::perbspan perbdt2,
                                   fsgrids::bgbspan bgb,
-                                  std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
-                                  std::span<std::array<Real, fsgrids::efield::N_EFIELD>> edt2,
+                                  fsgrids::efieldspan e,
+                                  fsgrids::efieldspan edt2,
                                   fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                                   SysBoundary& sysBoundaries, creal& dt, cint& RKCase) {
    phiprof::Timer propagateBTimer{"Propagate magnetic field"};
