@@ -446,7 +446,9 @@ namespace fsgrids {
    typedef std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> momentsspan;
    typedef std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> constmomentsspan;
    typedef std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmomentsspan;
+   typedef std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> constdmomentsspan;
    typedef std::span<std::array<Real, fsgrids::volfields::N_VOL>> volspan;
+   typedef std::span<const std::array<Real, fsgrids::volfields::N_VOL>> constvolspan;
    typedef std::span<technical> technicalspan;
    typedef std::span<const technical> consttechnicalspan;
 

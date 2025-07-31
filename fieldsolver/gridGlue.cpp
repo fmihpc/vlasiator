@@ -218,10 +218,10 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>&
    }
 }
 
-void getFieldsFromFsGrid(std::span<const std::array<Real, fsgrids::volfields::N_VOL>> volumefields,
+void getFieldsFromFsGrid(fsgrids::constvolspan volumefields,
                          fsgrids::constbgbspan bgb,
                          fsgrids::constegradpespan egradpe,
-                         std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+                         fsgrids::constdmomentsspan dmoments,
                          fsgrids::consttechnicalspan technical, FieldSolverGrid& fsgrid,
                          dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                          const std::vector<CellID>& cells) {

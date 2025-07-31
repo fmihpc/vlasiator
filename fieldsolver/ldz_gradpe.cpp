@@ -102,7 +102,7 @@ using namespace std;
  */
 void calculateGradPeTerm(fsgrids::egradpespan egradpes,
                          fsgrids::constmomentsspan moments,
-                         std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
+                         fsgrids::constdmomentsspan dmoments,
                          fsgrids::consttechnicalspan technical, const fsgrid::FsStencil& stencil,
                          const auto& gridSpacing, SysBoundary& sysBoundaries) {
 #ifdef DEBUG_FSOLVER
