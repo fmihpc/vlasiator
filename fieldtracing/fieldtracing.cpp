@@ -41,7 +41,7 @@ namespace FieldTracing {
    
    /* Call the heavier operations for DROs to be called only if needed, before an IO.
     */
-   void reduceData(std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
+   void reduceData(fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                    fsgrids::perbspan perb,
                    std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                    dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
@@ -59,7 +59,7 @@ namespace FieldTracing {
     * outwards until a non-boundary cell is encountered. Their proportional
     * coupling values are recorded in the grid nodes.
     */
-   void calculateIonosphereFsgridCoupling(std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
+   void calculateIonosphereFsgridCoupling(fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                                           fsgrids::perbspan perb,
                                           std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                                           std::vector<SBC::SphericalTriGrid::Node>& nodes, creal couplingRadius) {
@@ -484,7 +484,7 @@ namespace FieldTracing {
    
    /*! Trace magnetic field lines out from ionospheric nodes to record whether they are on an open or closed field line.
     */
-   void traceOpenClosedConnection(std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
+   void traceOpenClosedConnection(fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                                   fsgrids::perbspan perb,
                                   std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                                   std::vector<SBC::SphericalTriGrid::Node>& nodes) {
@@ -674,7 +674,7 @@ namespace FieldTracing {
     * Beware this is inside a threaded region.
     * \sa traceFullBoxConnectionAndFluxRopes
     */
-   void stepCellAcrossTaskDomain(cint n, std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
+   void stepCellAcrossTaskDomain(cint n, fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                                  TracingFieldFunction<TReal>& tracingFullField,
                                  const std::vector<std::array<TReal, 3>>& cellInitialCoordinates,
                                  const std::vector<TReal>& cellCurvatureRadius,
@@ -843,7 +843,7 @@ namespace FieldTracing {
     *
     * \sa stepCellAcrossTaskDomain
     */
-   void traceFullBoxConnectionAndFluxRopes(std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
+   void traceFullBoxConnectionAndFluxRopes(fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                                            fsgrids::perbspan perb,
                                            std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                                            dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) {

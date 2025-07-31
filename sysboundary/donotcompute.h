@@ -46,13 +46,13 @@ namespace SBC {
 
       void initSysBoundary(creal& t, Project& project) override;
       void assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                             std::span<fsgrids::technical> technical, FieldSolverGrid& fsgrid) override;
+                             fsgrids::technicalspan technical, FieldSolverGrid& fsgrid) override;
       void applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                             std::span<fsgrids::technical> technical, FieldSolverGrid& fsgrid,
+                             fsgrids::technicalspan technical, FieldSolverGrid& fsgrid,
                              fsgrids::perbspan perb,
                              fsgrids::bgbspan bgb, Project& project) override;
       void updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                       std::span<fsgrids::technical> technical, FieldSolverGrid& fsgrid,
+                       fsgrids::technicalspan technical, FieldSolverGrid& fsgrid,
                        fsgrids::perbspan perb,
                        fsgrids::bgbspan bgb, creal t) override;
       void getFaces(bool* faces) override;
@@ -62,7 +62,7 @@ namespace SBC {
       // Explicit warning functions to inform the user if a doNotCompute cell gets computed
       Real fieldSolverBoundaryCondMagneticField(fsgrids::perbspan,
                                                 fsgrids::constbgbspan,
-                                                std::span<const fsgrids::technical>, const std::array<Real, 3>&,
+                                                fsgrids::consttechnicalspan, const std::array<Real, 3>&,
                                                 const std::array<fsgrid::FsSize_t, 3>&, const fsgrid::FsStencil&,
                                                 cuint) override {
          std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondMagneticField called!" << std::endl;

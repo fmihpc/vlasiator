@@ -49,7 +49,7 @@ namespace projects {
       virtual void getParameters(void) override;
       virtual void setProjectBField(fsgrids::perbspan perb,
                                     fsgrids::bgbspan bgb,
-                                    std::span<fsgrids::technical> technical, FieldSolverGrid& fsgrid) override;
+                                    fsgrids::technicalspan technical, FieldSolverGrid& fsgrid) override;
 
       virtual bool rescalesDensity(const uint popID) const override { return this->rescaleDensityFlag; };
       virtual Real getCorrectNumberDensity(spatial_cell::SpatialCell* cell, const uint popID) const override;

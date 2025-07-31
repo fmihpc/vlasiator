@@ -33,15 +33,15 @@ void calculateDerivativesSimple(fsgrids::perbspan perb,
                                 fsgrids::momentsspan moments,
                                 fsgrids::dperbspan dperb,
                                 fsgrids::dmomentsspan dmoments,
-                                std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
+                                fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                                 const bool doMoments);
 
 void calculateBVOLDerivativesSimple(fsgrids::volspan vol,
-                                    std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid);
+                                    fsgrids::technicalspan technical, FieldSolverGrid &fsgrid);
 
 void calculateCurvatureSimple(fsgrids::volspan vol,
                               fsgrids::constbgbspan bgb,
-                              std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid);
+                              fsgrids::technicalspan technical, FieldSolverGrid &fsgrid);
 
 void calculateScaledDeltasSimple(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 

@@ -85,7 +85,7 @@ bool propagateFields(fsgrids::perbspan perb,
                      fsgrids::dmomentsspan dmomentsdt2,
                      fsgrids::bgbspan bgb,
                      fsgrids::volspan vol,
-                     std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid, SysBoundary& sysBoundaries,
+                     fsgrids::technicalspan technical, FieldSolverGrid &fsgrid, SysBoundary& sysBoundaries,
                      creal& dt, cuint subcycles) {
 
    if (subcycles == 0) {

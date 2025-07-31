@@ -81,7 +81,7 @@ namespace SBC {
    }
    
    void Inflow::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                  std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
+                                  fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                                   fsgrids::perbspan perb,
                                   fsgrids::bgbspan bgb, Project& project) {
       for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
@@ -91,7 +91,7 @@ namespace SBC {
    }
    
    void Inflow::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                            std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
+                            fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                             fsgrids::perbspan perb,
                             fsgrids::bgbspan bgb, creal t) {
       if (t - tLastApply < tInterval) {
@@ -118,7 +118,7 @@ namespace SBC {
    
    Real Inflow::fieldSolverBoundaryCondMagneticField(fsgrids::perbspan b,
                                                      fsgrids::constbgbspan bgb,
-                                                     std::span<const fsgrids::technical> technical,
+                                                     fsgrids::consttechnicalspan technical,
                                                      const std::array<Real, 3>& gridSpacing,
                                                      const std::array<fsgrid::FsSize_t, 3>& globalCoordinates,
                                                      const fsgrid::FsStencil& stencil, cuint component) {
@@ -205,7 +205,7 @@ namespace SBC {
    void Inflow::setBFromTemplate(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                  std::span<array<Real, fsgrids::bfield::N_BFIELD>> perb,
                                  std::span<array<Real, fsgrids::bgbfield::N_BGB>> bgb,
-                                 std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
+                                 fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
       std::array<bool, 6> isThisCellOnAFace;
       const auto& gridSpacing = fsgrid.getGridSpacing();
       const auto* localSize = &fsgrid.getLocalSize()[0];

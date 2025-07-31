@@ -103,7 +103,7 @@ using namespace std;
 void calculateGradPeTerm(std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpes,
                          fsgrids::constmomentsspan moments,
                          std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
-                         std::span<const fsgrids::technical> technical, const fsgrid::FsStencil& stencil,
+                         fsgrids::consttechnicalspan technical, const fsgrid::FsStencil& stencil,
                          const auto& gridSpacing, SysBoundary& sysBoundaries) {
 #ifdef DEBUG_FSOLVER
    if (stencil.ooo() >= moments.size()) {
@@ -160,7 +160,7 @@ void calculateGradPeTermSimple(std::span<std::array<Real, fsgrids::egradpe::N_EG
                                fsgrids::momentsspan momentsdt2,
                                fsgrids::dmomentsspan dmoments,
                                fsgrids::dmomentsspan dmomentsdt2,
-                               std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
+                               fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                                SysBoundary& sysBoundaries, cint& RKCase) {
    phiprof::Timer gradPeTimer{"Calculate GradPe term"};
 

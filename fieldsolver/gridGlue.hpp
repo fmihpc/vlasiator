@@ -63,7 +63,7 @@ std::vector<CellID> mapDccrgIdToFsGridGlobalID(dccrg::Dccrg<SpatialCell,dccrg::C
 void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                            const std::vector<CellID>& cells,
                            fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments,
-                           std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid, bool dt2 = false);
+                           fsgrids::technicalspan technical, FieldSolverGrid &fsgrid, bool dt2 = false);
 
 /*! Copy field solver result (VOLB, VOLE, VOLPERB derivatives, gradpe) and store them back into DCCRG
  * \param mpiGrid The DCCRG grid carrying fields.
@@ -76,7 +76,7 @@ void getFieldsFromFsGrid(std::span<const std::array<Real, fsgrids::volfields::N_
                          fsgrids::constbgbspan bgb,
                          std::span<const std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe,
                          std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
-                         std::span<const fsgrids::technical> technical, FieldSolverGrid& fsgrid,
+                         fsgrids::consttechnicalspan technical, FieldSolverGrid& fsgrid,
                          dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                          const std::vector<CellID>& cells);
 
@@ -88,7 +88,7 @@ void getFieldsFromFsGrid(std::span<const std::array<Real, fsgrids::volfields::N_
  * This function assumes that proper grid coupling has been set up.
  */
 void getBgFieldsAndDerivativesFromFsGrid(fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
-                                         std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
+                                         fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                                          dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                          const std::vector<CellID>& cells);
 
@@ -98,7 +98,7 @@ void getBgFieldsAndDerivativesFromFsGrid(fsgrid::FsData<std::array<Real, fsgrids
  */
 void getDerivativesFromFsGrid(fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
                               fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dmoments,
-                              std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
+                              fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                               dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                               const std::vector<CellID>& cells);
 
@@ -107,7 +107,7 @@ int getNumberOfCellsOnMaxRefLvl(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
 
 void feedBoundaryIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 			const std::vector<CellID>& cells,
-			std::span< fsgrids::technical> technical, FieldSolverGrid &fsgrid);
+			fsgrids::technicalspan technical, FieldSolverGrid &fsgrid);
 
 /*Compute coupling DCCRG <=> FSGRID 
 

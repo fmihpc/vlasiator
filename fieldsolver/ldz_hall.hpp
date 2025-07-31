@@ -31,7 +31,7 @@ void calculateHallTermSimple(fsgrids::perbspan perb,
                              fsgrids::dmomentsspan dmoments,
                              fsgrids::dmomentsspan dmomentsdt2,
                              fsgrids::bgbspan bgb,
-                             std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
+                             fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                              SysBoundary& sysBoundaries, int32_t RKCase, const bool communicateMomentsDerivatives);
 
 #endif

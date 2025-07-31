@@ -255,7 +255,7 @@ namespace projects {
 
    void Flowthrough::setProjectBField(fsgrids::perbspan perb,
                                       fsgrids::bgbspan bgb,
-                                      std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
+                                      fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
       ConstantField bgField;
       bgField.initialize(Bx,By,Bz); //bg bx, by,bz
       setBackgroundField(bgField, bgb, technical, fsgrid);

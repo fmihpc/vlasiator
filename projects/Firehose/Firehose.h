@@ -51,7 +51,7 @@ namespace projects {
       virtual void setProjectBField(
          fsgrids::perbspan perb,
          fsgrids::bgbspan bgb,
-         std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid
+         fsgrids::technicalspan technical, FieldSolverGrid &fsgrid
       ) override;
 
       virtual Realf fillPhaseSpace(spatial_cell::SpatialCell *cell,

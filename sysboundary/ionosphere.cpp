@@ -1049,7 +1049,7 @@ namespace SBC {
    // ionosphere info is still communicated to the right ranks.
    void SphericalTriGrid::updateIonosphereCommunicator(
        dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-       std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
+       fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
       phiprof::Timer timer{"ionosphere-updateIonosphereCommunicator"};
    
       // Check if the current rank contains ionosphere boundary cells.
@@ -1120,7 +1120,7 @@ namespace SBC {
    void SphericalTriGrid::mapDownBoundaryData(fsgrids::perbspan perb,
                                               std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                                               fsgrids::momentsspan moments,
-                                              std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
+                                              fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
    
       if (!isCouplingInwards && !isCouplingOutwards) {
          return;
@@ -2520,7 +2520,7 @@ namespace SBC {
    }
    
    void Ionosphere::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                      std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
+                                      fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
       const vector<CellID>& cells = getLocalCells();
       for (uint i = 0; i < cells.size(); i++) {
          if (mpiGrid[cells[i]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
@@ -2542,7 +2542,7 @@ namespace SBC {
    }
    
    void Ionosphere::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                      std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
+                                      fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                                       fsgrids::perbspan perb,
                                       fsgrids::bgbspan bgb, Project& project) {
       const vector<CellID>& cells = getLocalCells();
@@ -2565,7 +2565,7 @@ namespace SBC {
    }
    
    std::array<Real, 3>
-   Ionosphere::fieldSolverGetNormalDirection(std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid, cint i,
+   Ionosphere::fieldSolverGetNormalDirection(fsgrids::technicalspan technical, FieldSolverGrid &fsgrid, cint i,
                                              cint j, cint k) {
       phiprof::Timer timer{"Ionosphere::fieldSolverGetNormalDirection"};
       std::array<Real, 3> normalDirection{{0.0, 0.0, 0.0}};
@@ -2849,7 +2849,7 @@ namespace SBC {
     */
    Real Ionosphere::fieldSolverBoundaryCondMagneticField(fsgrids::perbspan b,
                                                          fsgrids::constbgbspan bgb,
-                                                         std::span<const fsgrids::technical> technical,
+                                                         fsgrids::consttechnicalspan technical,
                                                          const std::array<Real, 3>& gridSpacing,
                                                          const std::array<fsgrid::FsSize_t, 3>& globalCoordinates,
                                                          const fsgrid::FsStencil& stencil, cuint component) {
@@ -3428,7 +3428,7 @@ namespace SBC {
    void Ionosphere::getFaces(bool* faces) {}
    
    void Ionosphere::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
+                                fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                                 fsgrids::perbspan perb,
                                 fsgrids::bgbspan bgb, creal t) {}
    

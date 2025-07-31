@@ -138,7 +138,7 @@ namespace projects {
 
    void Template::setProjectBField(fsgrids::perbspan perb,
                                    fsgrids::bgbspan bgb,
-                                   std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
+                                   fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
       Dipole bgField;
       bgField.initialize(8e15, 0.0, 0.0, 0.0, 0.0); //set dipole moment and location
       setBackgroundField(bgField, bgb, technical, fsgrid);

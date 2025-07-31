@@ -185,7 +185,7 @@ namespace SBC {
       void offset_FAC();                  /*!< Offset field aligned currents to get overall zero current */
       void normalizeRadius(Node& n, Real R); /*!< Scale all coordinates onto sphere with radius R */
       void updateConnectivity();          /*!< Re-link elements and nodes */
-      void updateIonosphereCommunicator(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, std::span< fsgrids::technical> technical, FieldSolverGrid &fsgrid); /*!< (Re-)create the subcommunicator for ionosphere-internal communication */
+      void updateIonosphereCommunicator(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, fsgrids::technicalspan technical, FieldSolverGrid &fsgrid); /*!< (Re-)create the subcommunicator for ionosphere-internal communication */
       void initializeTetrahedron();       /*!< Initialize grid as a base tetrahedron */
       void initializeIcosahedron();       /*!< Initialize grid as a base icosahedron */
       void initializeSphericalFibonacci(int n); /*!< Initialize grid as a spherical fibonacci lattice */
@@ -227,7 +227,7 @@ namespace SBC {
       void mapDownBoundaryData(fsgrids::perbspan perb,
                                std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                                fsgrids::momentsspan moments,
-                               std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid);
+                               fsgrids::technicalspan technical, FieldSolverGrid &fsgrid);
 
       // Returns the surface area of one element on the sphere
       Real elementArea(uint32_t elementIndex) {
@@ -323,15 +323,15 @@ namespace SBC {
 
       virtual void initSysBoundary(creal& t, Project& project) override;
       virtual void assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                     std::span<fsgrids::technical> technical, FieldSolverGrid& fsgrid) override;
+                                     fsgrids::technicalspan technical, FieldSolverGrid& fsgrid) override;
       virtual void applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                     std::span<fsgrids::technical> technical, FieldSolverGrid& fsgrid,
+                                     fsgrids::technicalspan technical, FieldSolverGrid& fsgrid,
                                      fsgrids::perbspan perb,
                                      fsgrids::bgbspan bgb,
                                      Project& project) override;
       virtual Real fieldSolverBoundaryCondMagneticField(fsgrids::perbspan b,
                                                         fsgrids::constbgbspan bgb,
-                                                        std::span<const fsgrids::technical> technical,
+                                                        fsgrids::consttechnicalspan technical,
                                                         const std::array<Real, 3>& gridSpacing,
                                                         const std::array<fsgrid::FsSize_t, 3>& globalCoordinates,
                                                         const fsgrid::FsStencil& stencil, cuint component) override;
@@ -355,7 +355,7 @@ namespace SBC {
                                            const CellID& cellID, const uint popID,
                                            const bool calculate_V_moments) override;
       virtual void updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                               std::span<fsgrids::technical> technical, FieldSolverGrid& fsgrid,
+                               fsgrids::technicalspan technical, FieldSolverGrid& fsgrid,
                                fsgrids::perbspan perb,
                                fsgrids::bgbspan bgb, creal t) override;
 
@@ -397,7 +397,7 @@ namespace SBC {
       void setCellFromTemplate(SpatialCell* cell,const uint popID);
       
       std::array<Real, 3> fieldSolverGetNormalDirection(
-         std::span< fsgrids::technical> technical, FieldSolverGrid &fsgrid,
+         fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
          cint i,
          cint j,
          cint k

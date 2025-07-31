@@ -211,7 +211,7 @@ namespace SBC {
    }
    
    void Outflow::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                   std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
+                                   fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                                    std::span<array<Real, fsgrids::bfield::N_BFIELD>> perb,
                                    fsgrids::bgbspan bgb, Project& project) {
       const vector<CellID>& cells = getLocalCells();
@@ -251,13 +251,13 @@ namespace SBC {
    }
    
    void Outflow::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                             std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
+                             fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                              std::span<array<Real, fsgrids::bfield::N_BFIELD>> perb,
                              fsgrids::bgbspan bgb, creal t) {}
    
    Real Outflow::fieldSolverBoundaryCondMagneticField(fsgrids::perbspan b,
                                                       fsgrids::constbgbspan bgb,
-                                                      std::span<const fsgrids::technical> technical,
+                                                      fsgrids::consttechnicalspan technical,
                                                       const std::array<Real, 3>& gridSpacing,
                                                       const std::array<fsgrid::FsSize_t, 3>& globalCoordinates,
                                                       const fsgrid::FsStencil& stencil, cuint component) {

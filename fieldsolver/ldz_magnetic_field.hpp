@@ -33,7 +33,7 @@ void propagateMagneticFieldSimple(fsgrids::perbspan perb,
                                   fsgrids::bgbspan bgb,
                                   std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
                                   std::span<std::array<Real, fsgrids::efield::N_EFIELD>> edt2,
-                                  std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
+                                  fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                                   SysBoundary& sysBoundaries, creal& dt, cint& RKCase);
 
 #endif

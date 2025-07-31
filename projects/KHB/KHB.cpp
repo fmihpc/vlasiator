@@ -242,7 +242,7 @@ namespace projects {
 
    void KHB::setProjectBField(fsgrids::perbspan perb,
                               fsgrids::bgbspan bgb,
-                              std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
+                              fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
       setBackgroundFieldToZero(fsgrid, technical, bgb);
 
       if(!P::isRestart) {

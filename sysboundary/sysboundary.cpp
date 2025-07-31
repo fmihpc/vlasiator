@@ -317,7 +317,7 @@ void SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg:
 }
 
 bool belongsToLayer(const int layer, const int x, const int y, const int z,
-                    std::span<fsgrids::technical> technical, const fsgrid::FsStencil& stencil) {
+                    fsgrids::technicalspan technical, const fsgrid::FsStencil& stencil) {
 
    bool belongs = false;
 
@@ -357,7 +357,7 @@ bool belongsToLayer(const int layer, const int x, const int y, const int z,
  * \param mpiGrid Grid
  */
 void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
+                                fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
    const vector<CellID>& cells = getLocalCells();
    const auto* localSize = &fsgrid.getLocalSize()[0];
    const auto rank = fsgrid.getRank();
@@ -597,7 +597,7 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
  * \retval success If true, the application of all system boundary states succeeded.
  */
 void SysBoundary::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                    std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
+                                    fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                                     std::span<array<Real, fsgrids::bfield::N_BFIELD>> perb,
                                     std::span<array<Real, fsgrids::bgbfield::N_BGB>> bgb, Project& project) {
 
@@ -617,7 +617,7 @@ void SysBoundary::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_G
 }
 
 void SysBoundary::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                              std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
+                              fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                               fsgrids::perbspan perb,
                               fsgrids::bgbspan bgb, creal t) {
    if (isAnyDynamic()) {

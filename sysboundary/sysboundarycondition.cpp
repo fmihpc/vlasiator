@@ -563,7 +563,7 @@ namespace SBC {
     * \sa getAllClosestNonsysboundaryCells
     */
    array<int, 3> SysBoundaryCondition::getTheClosestNonsysboundaryCell(
-      std::span< fsgrids::technical> technical, FieldSolverGrid &fsgrid,
+      fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
       cint i,
       cint j,
       cint k
@@ -578,7 +578,7 @@ namespace SBC {
     * \sa getTheClosestNonsysboundaryCell
     */
    vector< array<int, 3> > SysBoundaryCondition::getAllClosestNonsysboundaryCells(
-      std::span< fsgrids::technical> technical, FieldSolverGrid &fsgrid,
+      fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
       cint i,
       cint j,
       cint k
@@ -671,7 +671,7 @@ namespace SBC {
    }
    
    Real SysBoundaryCondition::fieldBoundaryCopyFromSolvingNbrMagneticField(
-       fsgrids::perbspan b, std::span<const fsgrids::technical> technical,
+       fsgrids::perbspan b, fsgrids::consttechnicalspan technical,
        const fsgrid::FsStencil& stencil, cuint component, cuint mask) {
       int distance = numeric_limits<int>::max();
       auto closestCellIndex = 0;
@@ -884,7 +884,7 @@ namespace SBC {
    // Left in the copies of variable so the [=] compiles without complaining.
 
    void OuterBoundaryCondition::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                  std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
+                                  fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
       const auto& gridSpacing = fsgrid.getGridSpacing();
       bool doAssign;
       std::array<bool, 6> isThisCellOnAFace;

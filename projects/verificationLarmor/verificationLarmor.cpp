@@ -149,7 +149,7 @@ namespace projects {
 
    void verificationLarmor::setProjectBField(fsgrids::perbspan perb,
                                              fsgrids::bgbspan bgb,
-                                             std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
+                                             fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
       ConstantField bgField;
       bgField.initialize(this->BX0,
                          this->BY0,

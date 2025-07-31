@@ -268,7 +268,7 @@ void calculateDerivativesSimple(fsgrids::perbspan perb,
                                 fsgrids::momentsspan moments,
                                 fsgrids::dperbspan dperb,
                                 fsgrids::dmomentsspan dmoments,
-                                std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
+                                fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                                 const bool doMoments) {
    phiprof::Timer derivativesTimer{"Calculate face derivatives"};
    const size_t numCells = fsgrid.getNumCells();
@@ -308,7 +308,7 @@ void calculateDerivativesSimple(fsgrids::perbspan perb,
  */
 
 void calculateBVOLDerivatives(fsgrids::volspan vol,
-                              std::span<const fsgrids::technical> technical, const fsgrid::FsStencil& stencil) {
+                              fsgrids::consttechnicalspan technical, const fsgrid::FsStencil& stencil) {
    const auto& tech = technical[stencil.ooo()];
 
    cuint sysBoundaryFlag = tech.sysBoundaryFlag;
@@ -374,7 +374,7 @@ void calculateBVOLDerivatives(fsgrids::volspan vol,
  * \sa calculateDerivatives calculateBVOLDerivatives calculateDerivativesSimple
  */
 void calculateBVOLDerivativesSimple(fsgrids::volspan vol,
-                                    std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
+                                    fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
    phiprof::Timer derivsTimer{"Calculate volume derivatives"};
    const size_t numCells = fsgrid.getNumCells();
 
@@ -455,7 +455,7 @@ void calculateCurvature(fsgrids::volspan vol,
  */
 void calculateCurvatureSimple(fsgrids::volspan vol,
                               fsgrids::constbgbspan bgb,
-                              std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
+                              fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
    phiprof::Timer curvatureTimer{"Calculate curvature"};
    const auto& gridSpacing = fsgrid.getGridSpacing();
    const size_t numCells = fsgrid.getNumCells();

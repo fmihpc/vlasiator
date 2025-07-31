@@ -176,7 +176,7 @@ namespace SBC {
    }
    
    void Copysphere::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                      std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
+                                      fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
       const vector<CellID>& cells = getLocalCells();
       for (uint i = 0; i < cells.size(); i++) {
          if (mpiGrid[cells[i]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
@@ -198,7 +198,7 @@ namespace SBC {
    }
    
    void Copysphere::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                      std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
+                                      fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                                       fsgrids::perbspan perb,
                                       fsgrids::bgbspan bgb, Project& project) {
       const vector<CellID>& cells = getLocalCells();
@@ -219,7 +219,7 @@ namespace SBC {
    }
 
    std::array<Real, 3> Copysphere::fieldSolverGetNormalDirection(
-      std::span<fsgrids::technical> technical,
+      fsgrids::technicalspan technical,
       FieldSolverGrid &fsgrid,
       cint i,
       cint j,
@@ -499,7 +499,7 @@ namespace SBC {
     */
    Real Copysphere::fieldSolverBoundaryCondMagneticField(fsgrids::perbspan b,
                                                          fsgrids::constbgbspan bgb,
-                                                         std::span<const fsgrids::technical> technical,
+                                                         fsgrids::consttechnicalspan technical,
                                                          const std::array<Real, 3>& gridSpacing,
                                                          const std::array<fsgrid::FsSize_t, 3>& globalCoordinates,
                                                          const fsgrid::FsStencil& stencil, cuint component) {
@@ -762,7 +762,7 @@ namespace SBC {
    void Copysphere::getFaces(bool* faces) {}
    
    void Copysphere::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
+                                fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                                 fsgrids::perbspan perb,
                                 fsgrids::bgbspan bgb, creal t) {}
    

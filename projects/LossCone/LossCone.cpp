@@ -223,7 +223,7 @@ namespace projects {
    void LossCone::setProjectBField(
       fsgrids::perbspan perb,
       fsgrids::bgbspan bgb,
-      std::span<fsgrids::technical> technical,
+      fsgrids::technicalspan technical,
       FieldSolverGrid& fsgrid
    ) {
       ConstantField bgField;

@@ -168,7 +168,7 @@ namespace projects {
 
    void Alfven::setProjectBField(fsgrids::perbspan perb,
                                  fsgrids::bgbspan bgb,
-                                 std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
+                                 fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
       const auto& gridSpacing = fsgrid.getGridSpacing();
       setBackgroundFieldToZero(fsgrid, technical, bgb);
 

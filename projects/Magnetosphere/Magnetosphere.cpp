@@ -290,7 +290,7 @@ namespace projects {
    /* set 0-centered dipole */
    void Magnetosphere::setProjectBField(fsgrids::perbspan perb,
                                         fsgrids::bgbspan bgb,
-                                        std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
+                                        fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
       Dipole bgFieldDipole;
       LineDipole bgFieldLineDipole;
       VectorDipole bgVectorDipole;

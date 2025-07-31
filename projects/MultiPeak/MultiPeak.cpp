@@ -272,7 +272,7 @@ namespace projects {
 
    void MultiPeak::setProjectBField(fsgrids::perbspan perb,
                                     fsgrids::bgbspan bgb,
-                                    std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
+                                    fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
       ConstantField bgField;
       bgField.initialize(this->Bx,
                          this->By,

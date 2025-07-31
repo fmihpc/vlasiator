@@ -126,7 +126,7 @@ namespace projects {
    /*! Print a warning message to stderr and abort, one should not use the base class functions. */
    void Project::setProjectBField(fsgrids::perbspan perb,
                                   fsgrids::bgbspan bgb,
-                                  std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
+                                  fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
       int rank;
       MPI_Comm_rank(MPI_COMM_WORLD,&rank);
       if (rank == MASTER_RANK) {
@@ -137,7 +137,7 @@ namespace projects {
 
    void Project::hook(cuint& stage, const dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                       fsgrids::perbspan perb,
-                      std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) const {}
+                      fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) const {}
 
    void Project::setupBeforeSetCell(const std::vector<CellID>& cells) {
       // Dummy implementation.

@@ -47,7 +47,7 @@ namespace projects {
       /*! set background field, should set it for all cells */
       virtual void setProjectBField(fsgrids::perbspan perb,
                                     fsgrids::bgbspan bgb,
-                                    std::span<fsgrids::technical> technical, FieldSolverGrid& fsgrid) override;
+                                    fsgrids::technicalspan technical, FieldSolverGrid& fsgrid) override;
 
       virtual Realf fillPhaseSpace(spatial_cell::SpatialCell* cell, const uint popID,
                                    const uint nRequested) const override;

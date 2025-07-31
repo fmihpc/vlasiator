@@ -450,7 +450,7 @@ void calculateEdgeElectricFieldX(fsgrids::perbspan perb,
                                  fsgrids::constmomentsspan moments,
                                  std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
                                  fsgrids::constbgbspan bgb,
-                                 std::span<fsgrids::technical> technical, const fsgrid::FsStencil& stencil,
+                                 fsgrids::technicalspan technical, const fsgrid::FsStencil& stencil,
                                  int32_t RKCase, const std::array<Real, 3>& gridSpacing) {
    fsdebugCheck(stencil, perb.size(), __FILE__, __LINE__);
 
@@ -677,7 +677,7 @@ void calculateEdgeElectricFieldY(fsgrids::perbspan perb,
                                  fsgrids::constmomentsspan moments,
                                  std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
                                  fsgrids::constbgbspan bgb,
-                                 std::span<fsgrids::technical> technical, const fsgrid::FsStencil& stencil,
+                                 fsgrids::technicalspan technical, const fsgrid::FsStencil& stencil,
                                  int32_t RKCase, const std::array<Real, 3>& gridSpacing) {
    fsdebugCheck(stencil, perb.size(), __FILE__, __LINE__);
 
@@ -905,7 +905,7 @@ void calculateEdgeElectricFieldZ(fsgrids::perbspan perb,
                                  fsgrids::constmomentsspan moments,
                                  std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
                                  fsgrids::constbgbspan bgb,
-                                 std::span<fsgrids::technical> technical, const fsgrid::FsStencil& stencil,
+                                 fsgrids::technicalspan technical, const fsgrid::FsStencil& stencil,
                                  int32_t RKCase, const std::array<Real, 3>& gridSpacing) {
    fsdebugCheck(stencil, perb.size(), __FILE__, __LINE__);
 
@@ -1142,7 +1142,7 @@ void calculateElectricField(fsgrids::perbspan perb,
                             fsgrids::constmomentsspan moments,
                             std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
                             fsgrids::constbgbspan bgb,
-                            std::span<fsgrids::technical> technical, const fsgrid::FsStencil& stencil,
+                            fsgrids::technicalspan technical, const fsgrid::FsStencil& stencil,
                             const std::array<Real, 3>& gridSpacing, SysBoundary& sysBoundaries, int32_t RKCase) {
    cuint cellSysBoundaryFlag = technical[stencil.ooo()].sysBoundaryFlag;
    cuint bitfield = technical[stencil.ooo()].SOLVE;
@@ -1209,7 +1209,7 @@ void calculateUpwindedElectricFieldSimple(fsgrids::perbspan perb,
                                           fsgrids::dmomentsspan dmoments,
                                           fsgrids::dmomentsspan dmomentsdt2,
                                           fsgrids::bgbspan bgb,
-                                          std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
+                                          fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                                           SysBoundary& sysBoundaries, int32_t RKCase,
                                           const bool communicateEGradPeOrMomentsDerivatives) {
    const auto& gridSpacing = fsgrid.getGridSpacing();

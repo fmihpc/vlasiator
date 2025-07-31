@@ -140,7 +140,7 @@ namespace projects {
 
    void Diffusion::setProjectBField(fsgrids::perbspan perb,
                                     fsgrids::bgbspan bgb,
-                                    std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
+                                    fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
       ConstantField bgField;
       bgField.initialize(0,0,this->B0); //bg bx, by,bz
       setBackgroundField(bgField, bgb, technical, fsgrid);

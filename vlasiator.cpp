@@ -129,7 +129,7 @@ void addTimedBarrier(string name){
 }
 
 void computeNewTimeStep(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                        std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid, Real& newDt,
+                        fsgrids::technicalspan technical, FieldSolverGrid &fsgrid, Real& newDt,
                         bool& isChanged) {
    phiprof::Timer computeTimestepTimer {"compute-timestep"};
    // Compute maximum time step. This cannot be done at the first step as the solvers compute the limits for each cell.

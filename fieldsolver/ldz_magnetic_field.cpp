@@ -171,7 +171,7 @@ void propagateMagneticField(fsgrids::perbspan perb,
 void propagateSysBoundaryMagneticField(fsgrids::perbspan perb,
                                        fsgrids::perbspan perbdt2,
                                        fsgrids::constbgbspan bgb,
-                                       std::span<const fsgrids::technical> technical,
+                                       fsgrids::consttechnicalspan technical,
                                        const std::array<Real, 3>& gridSpacing,
                                        const std::array<fsgrid::FsSize_t, 3>& globalCoordinates,
                                        const fsgrid::FsStencil& stencil, SysBoundary& sysBoundaries, int32_t RKCase,
@@ -206,7 +206,7 @@ void propagateMagneticFieldSimple(fsgrids::perbspan perb,
                                   fsgrids::bgbspan bgb,
                                   std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
                                   std::span<std::array<Real, fsgrids::efield::N_EFIELD>> edt2,
-                                  std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
+                                  fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                                   SysBoundary& sysBoundaries, creal& dt, cint& RKCase) {
    phiprof::Timer propagateBTimer{"Propagate magnetic field"};
    const auto* localSize = &fsgrid.getLocalSize()[0];

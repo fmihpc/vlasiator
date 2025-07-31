@@ -73,20 +73,20 @@ namespace SBC {
          )=0;
          virtual void assignSysBoundary(dccrg::Dccrg<SpatialCell,
                                         dccrg::Cartesian_Geometry>& mpiGrid,
-                                        std::span< fsgrids::technical> technical, FieldSolverGrid &fsgrid)=0;
+                                        fsgrids::technicalspan technical, FieldSolverGrid &fsgrid)=0;
          virtual void applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                        std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
+                                        fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                                         fsgrids::perbspan perb,
                                         fsgrids::bgbspan bgb,
                                         Project& project) = 0;
          virtual void updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                  std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
+                                  fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                                   fsgrids::perbspan perb,
                                   fsgrids::bgbspan bgb, creal t) = 0;
          virtual Real
          fieldSolverBoundaryCondMagneticField(fsgrids::perbspan b,
                                               fsgrids::constbgbspan bgb,
-                                              std::span<const fsgrids::technical> technical,
+                                              fsgrids::consttechnicalspan technical,
                                               const std::array<Real, 3>& gridSpacing,
                                               const std::array<fsgrid::FsSize_t, 3>& globalCoordinates,
                                               const fsgrid::FsStencil& stencil, cuint component) = 0;
@@ -229,13 +229,13 @@ namespace SBC {
             creal fluffiness
          );
          std::array<int, 3> getTheClosestNonsysboundaryCell(
-            std::span< fsgrids::technical> technical, FieldSolverGrid &fsgrid,
+            fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
             cint i,
             cint j,
             cint k
          );
          std::vector< std::array<int, 3> > getAllClosestNonsysboundaryCells(
-            std::span< fsgrids::technical> technical, FieldSolverGrid &fsgrid,
+            fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
             cint i,
             cint j,
             cint k
@@ -251,7 +251,7 @@ namespace SBC {
          );
          Real
          fieldBoundaryCopyFromSolvingNbrMagneticField(fsgrids::perbspan b,
-                                                      std::span<const fsgrids::technical> technical,
+                                                      fsgrids::consttechnicalspan technical,
                                                       const fsgrid::FsStencil& stencil, cuint component, cuint mask);
 
          CellID & getTheClosestL1OutflowCell(
@@ -282,7 +282,7 @@ namespace SBC {
 
    class OuterBoundaryCondition: public SysBoundaryCondition {
       public:
-         virtual void assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, std::span< fsgrids::technical> technical, FieldSolverGrid &fsgrid);
+         virtual void assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, fsgrids::technicalspan technical, FieldSolverGrid &fsgrid);
       protected:
          /*! Array of bool telling which faces are going to be processed by the system boundary condition.*/
          std::array<bool, 6> facesToProcess;

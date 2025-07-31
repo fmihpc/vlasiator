@@ -1040,7 +1040,7 @@ void calculateHallTerm(fsgrids::perbspan perb,
                        fsgrids::constmomentsspan moments,
                        std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                        fsgrids::constbgbspan bgb,
-                       std::span<const fsgrids::technical> technical, const fsgrid::FsStencil& stencil,
+                       fsgrids::consttechnicalspan technical, const fsgrid::FsStencil& stencil,
                        SysBoundary& sysBoundaries, const std::array<Real, 3>& gridSpacing) {
 #ifdef DEBUG_FSOLVER
    if (!stencil.cellExists(0, 0, 0)) {
@@ -1100,7 +1100,7 @@ void calculateHallTermSimple(fsgrids::perbspan perb,
                              fsgrids::dmomentsspan dmoments,
                              fsgrids::dmomentsspan dmomentsdt2,
                              fsgrids::bgbspan bgb,
-                             std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
+                             fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                              SysBoundary& sysBoundaries, int32_t RKCase, const bool communicateMomentsDerivatives) {
 
 

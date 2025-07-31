@@ -422,6 +422,15 @@ namespace fsgrids {
       N_VOL
    };
 
+   struct technical {
+      uint sysBoundaryFlag;  /*!< System boundary flags. */
+      int sysBoundaryLayer; /*!< System boundary layer index. */
+      Real maxFsDt;         /*!< maximum timestep allowed in ordinary space by fieldsolver for this cell**/
+      int fsGridRank;       /*!< Rank in the fsGrids cartesian coordinator */
+      uint SOLVE;           /*!< Bit mask to determine whether a given cell should solve E or B components. */
+      int refLevel;         /*!<AMR Refinement Level*/
+   };
+
    typedef std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perbspan;
    typedef std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> constperbspan;
    typedef std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperbspan;
@@ -431,15 +440,8 @@ namespace fsgrids {
    typedef std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> constmomentsspan;
    typedef std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmomentsspan;
    typedef std::span<std::array<Real, fsgrids::volfields::N_VOL>> volspan;
-
-   struct technical {
-      uint sysBoundaryFlag;  /*!< System boundary flags. */
-      int sysBoundaryLayer; /*!< System boundary layer index. */
-      Real maxFsDt;         /*!< maximum timestep allowed in ordinary space by fieldsolver for this cell**/
-      int fsGridRank;       /*!< Rank in the fsGrids cartesian coordinator */
-      uint SOLVE;           /*!< Bit mask to determine whether a given cell should solve E or B components. */
-      int refLevel;         /*!<AMR Refinement Level*/
-   };
+   typedef std::span<technical> technicalspan;
+   typedef std::span<const technical> consttechnicalspan;
 
 }
 

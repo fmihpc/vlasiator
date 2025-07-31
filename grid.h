@@ -50,7 +50,7 @@ struct FieldSolverData {
    std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dMomentsDt2;
    fsgrids::constbgbspan BgB;
    std::span<const std::array<Real, fsgrids::volfields::N_VOL>> vol;
-   std::span<const fsgrids::technical> technical;
+   fsgrids::consttechnicalspan technical;
 
    FieldSolverData(const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
            const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perbdt2,
@@ -93,7 +93,7 @@ void initializeGrids(int argn, char** argc, dccrg::Dccrg<SpatialCell, dccrg::Car
 
     \param[in,out] mpiGrid The DCCRG grid with spatial cells
 */
-void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, SysBoundary& sysBoundaries, std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
+void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, SysBoundary& sysBoundaries, fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
    bool doTranslationLists = true);
 
 /* helper for calculating AMR flags and cell lists and building pencils
@@ -149,7 +149,7 @@ void setFaceNeighborRanks( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
 /*! Map grid refinement to FsGrid
  */
-void mapRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid);
+void mapRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, fsgrids::technicalspan technical, FieldSolverGrid &fsgrid);
 
 /*! Refine spatial cells and update necessary information
  * \param mpiGrid Spatial grid
@@ -158,7 +158,7 @@ void mapRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
  * \param project Project used
  * \param useStatic Used for forcing static refinement on restart. Negative values use adaptive refinement, non-negative values correspond to static refinement pass in Project::forceRefinement
  */
-bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid, SysBoundary& sysBoundaries, Project& project, int useStatic = -1);
+bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, fsgrids::technicalspan technical, FieldSolverGrid &fsgrid, SysBoundary& sysBoundaries, Project& project, int useStatic = -1);
 
 void recalculateLocalCellsCache(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 

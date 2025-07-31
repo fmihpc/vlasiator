@@ -62,19 +62,19 @@ namespace SBC {
 
       virtual void initSysBoundary(creal& t, Project& project) override;
       virtual void assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                     std::span<fsgrids::technical> technical, FieldSolverGrid& fsgrid) override;
+                                     fsgrids::technicalspan technical, FieldSolverGrid& fsgrid) override;
       virtual void applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                     std::span<fsgrids::technical> technical, FieldSolverGrid& fsgrid,
+                                     fsgrids::technicalspan technical, FieldSolverGrid& fsgrid,
                                      fsgrids::perbspan perb,
                                      fsgrids::bgbspan bgb,
                                      Project& project) override;
       virtual void updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                               std::span<fsgrids::technical> technical, FieldSolverGrid& fsgrid,
+                               fsgrids::technicalspan technical, FieldSolverGrid& fsgrid,
                                fsgrids::perbspan perb,
                                fsgrids::bgbspan bgb, creal t) override;
       virtual Real fieldSolverBoundaryCondMagneticField(fsgrids::perbspan b,
                                                         fsgrids::constbgbspan bgb,
-                                                        std::span<const fsgrids::technical> technical,
+                                                        fsgrids::consttechnicalspan technical,
                                                         const std::array<Real, 3>& gridSpacing,
                                                         const std::array<fsgrid::FsSize_t, 3>& globalCoordinates,
                                                         const fsgrid::FsStencil& stencil, cuint component) override;
@@ -103,7 +103,7 @@ namespace SBC {
       void setCellFromTemplate(SpatialCell* cell,const uint popID);
       
       std::array<Real, 3> fieldSolverGetNormalDirection(
-         std::span< fsgrids::technical> technical, FieldSolverGrid &fsgrid,
+         fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
          cint i,
          cint j,
          cint k

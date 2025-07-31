@@ -64,7 +64,7 @@ namespace projects {
       virtual void getParameters(void) override;
       virtual void setProjectBField(fsgrids::perbspan perb,
                                     fsgrids::bgbspan bgb,
-                                    std::span<fsgrids::technical> technical, FieldSolverGrid& fsgrid) override;
+                                    fsgrids::technicalspan technical, FieldSolverGrid& fsgrid) override;
 
       std::vector<MultiPeakSpeciesParameters> speciesParams;
 
