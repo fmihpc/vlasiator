@@ -38,6 +38,11 @@
 
 // #define MAXCPUTHREADS 64 now in gpu_base.hpp
 
+// Device properties
+int gpuMultiProcessorCount = 0;
+int blocksPerMP = 0;
+int threadsPerMP = 0;
+
 extern Logger logFile;
 int myDevice;
 int myRank;
@@ -121,9 +126,9 @@ Realf *host_sparsity = nullptr, *dev_densityPreAdjust = nullptr, *dev_densityPos
 size_t *host_cellIdxStartCutoff = nullptr, *host_smallCellIdxArray = nullptr, *host_remappedCellIdxArray = nullptr; // remappedCellIdxArray tells the position of the cell index in the sequence instead of the actual index
 // Device pointers
 Real *dev_bValues = nullptr, *dev_nu0Values = nullptr, *dev_bulkVX = nullptr, *dev_bulkVY = nullptr, *dev_bulkVZ = nullptr,
-   *dev_Ddt = nullptr, *dev_potentialDdtValues = nullptr, *dev_out_values = nullptr;
+   *dev_Ddt = nullptr, *dev_potentialDdtValues = nullptr;
 Realf *dev_fmu = nullptr, *dev_dfdt_mu = nullptr, *dev_sparsity = nullptr;
-int *dev_fcount = nullptr, *dev_cellIdxKeys = nullptr, *dev_out_keys = nullptr;
+int *dev_fcount = nullptr, *dev_cellIdxKeys = nullptr;
 size_t *dev_smallCellIdxArray = nullptr, *dev_remappedCellIdxArray = nullptr, *dev_cellIdxStartCutoff = nullptr, *dev_cellIdxArray = nullptr, *dev_velocityIdxArray = nullptr;
 // Counters
 size_t latestNumberOfLocalCellsPitchAngle = 0;
@@ -143,6 +148,17 @@ __host__ uint gpu_getMaxThreads() {
 #else
    return 1;
 #endif
+}
+
+unsigned int nextPowerOfTwo(unsigned int n) {
+   if (n == 0) return 1;
+   n--; // Handle exact powers of two
+   n |= n >> 1;
+   n |= n >> 2;
+   n |= n >> 4;
+   n |= n >> 8;
+   n |= n >> 16;
+   return n + 1;
 }
 
 __host__ void gpu_init_device() {
@@ -210,6 +226,20 @@ __host__ void gpu_init_device() {
    }
    CHK_ERR( gpuDeviceSynchronize() );
    CHK_ERR( gpuGetDevice(&myDevice) );
+
+   // Get device properties
+   gpuDeviceProp prop;
+   CHK_ERR( gpuGetDeviceProperties(&prop, myDevice) );
+
+   gpuMultiProcessorCount = prop.multiProcessorCount;
+   threadsPerMP = prop.maxThreadsPerMultiProcessor;
+   #if defined(USE_GPU) && defined(__CUDACC__)
+   CHK_ERR( gpuDeviceGetAttribute(&blocksPerMP, gpuDevAttrMaxBlocksPerMultiprocessor, myDevice) );
+   #endif
+   #if defined(USE_GPU) && defined(__HIP_PLATFORM_HCC___)
+   blocksPerMP = threadsPerMP/GPUTHREADS; // This should be the maximum number of wavefronts per CU
+   #endif
+
 
    // Query device capabilities (only for CUDA, not needed for HIP)
    #if defined(USE_GPU) && defined(__CUDACC__)
@@ -891,8 +921,6 @@ void gpu_pitch_angle_diffusion_allocate(size_t numberOfLocalCells, int nbins_v, 
    CHK_ERR( gpuMalloc((void**)&dev_Ddt, numberOfLocalCells*sizeof(Real)) );
    CHK_ERR( gpuMalloc((void**)&dev_potentialDdtValues, numberOfLocalCells*blocksPerSpatialCell*sizeof(Real)) );
    CHK_ERR( gpuMalloc((void**)&dev_cellIdxKeys, numberOfLocalCells*blocksPerSpatialCell*sizeof(int)) );
-   CHK_ERR( gpuMalloc((void**)&dev_out_keys, numberOfLocalCells * sizeof(int)) );
-   CHK_ERR( gpuMalloc((void**)&dev_out_values, numberOfLocalCells * sizeof(Real)) );
 
    memoryHasBeenAllocatedPitchAngle = true;
 }
@@ -949,12 +977,6 @@ void gpu_pitch_angle_diffusion_deallocate() {
    }
    if (dev_cellIdxKeys) {
       CHK_ERR( gpuFree(dev_cellIdxKeys) );
-   }
-   if (dev_out_keys) {
-      CHK_ERR( gpuFree(dev_out_keys) );
-   }
-   if (dev_out_values) {
-      CHK_ERR( gpuFree(dev_out_values) );
    }
    if (host_bValues) {
       CHK_ERR( gpuFreeHost(host_bValues) );

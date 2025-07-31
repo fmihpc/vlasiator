@@ -35,6 +35,8 @@ VECL=16
 # LDFLAGS flags for linker
 
 USE_CUDA=1
+THREADS_PER_MP=1536
+REGISTERS_PER_MP=65536
 
 # Tell mpic++ to use nvcc for all compiling
 CMP = OMPI_CXX='nvcc' OMPI_CXXFLAGS='' mpic++

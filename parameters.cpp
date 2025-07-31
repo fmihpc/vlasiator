@@ -87,7 +87,7 @@ bool P::prepareForRebalance = false;
 vector<CellID> P::localCells;
 
 bool P::adaptGPUWID = true;
-uint P::GPUallocations = 64;
+uint P::GPUallocations = 128;
 
 vector<string> P::systemWriteName;
 vector<string> P::systemWritePath;
@@ -327,11 +327,11 @@ bool P::addParameters() {
        "Manual FsGridDecomposition for field solver grid stored in a restart file.", 0);
 
    RP::add("gridbuilder.x_min", "Minimum value of the x-coordinate.", NAN);
-   RP::add("gridbuilder.x_max", "Minimum value of the x-coordinate.", NAN);
+   RP::add("gridbuilder.x_max", "Maximum value of the x-coordinate.", NAN);
    RP::add("gridbuilder.y_min", "Minimum value of the y-coordinate.", NAN);
-   RP::add("gridbuilder.y_max", "Minimum value of the y-coordinate.", NAN);
+   RP::add("gridbuilder.y_max", "Maximum value of the y-coordinate.", NAN);
    RP::add("gridbuilder.z_min", "Minimum value of the z-coordinate.", NAN);
-   RP::add("gridbuilder.z_max", "Minimum value of the z-coordinate.", NAN);
+   RP::add("gridbuilder.z_max", "Maximum value of the z-coordinate.", NAN);
    RP::add("gridbuilder.x_length", "Number of cells in x-direction in initial grid.", 0);
    RP::add("gridbuilder.y_length", "Number of cells in y-direction in initial grid.", 0);
    RP::add("gridbuilder.z_length", "Number of cells in z-direction in initial grid.", 0);
@@ -537,7 +537,7 @@ bool P::addParameters() {
    RP::add("AMR.transShortPencils", "if true, use one-cell pencils", false);
    RP::addComposing("AMR.filterpasses", string("AMR filter passes for each individual refinement level"));
    RP::add("adaptGPUWID", "if true, will halve velocity block counts if GPU is in use and WID==8", true);
-   RP::add("GPUallocations", "How many parallel GPU vlasov allocations to make? (default 64)", 64);
+   RP::add("GPUallocations", "How many parallel GPU vlasov allocations to make? (default 128)", 128);
 
    // Diffusion parameters
    RP::add("PAD.enable","Enable Artificial pitch-angle diffusion",0);

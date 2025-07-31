@@ -98,7 +98,7 @@ __global__ void __launch_bounds__(WID3) translation_kernel(
    Realf* pencilOrderedSource = dev_blockDataOrdered[blockIdx.y];
 
    // This is launched with block size (WID,WID,WID)
-   const vmesh::LocalID ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
+   const vmesh::LocalID ti = (threadIdx.z)*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
 
    // Translation direction
    uint vz_index;
@@ -127,9 +127,7 @@ __global__ void __launch_bounds__(WID3) translation_kernel(
 
    // Acting on velocity block blockGID, now found from array
    for (uint thisBlockIndex = startingBlockIndex + blockIdx.x; thisBlockIndex < nAllBlocks; thisBlockIndex += blockIndexIncrement) {
-      if (thisBlockIndex >= nAllBlocks) {
-         break;
-      }
+      
       const uint blockGID = allBlocks[thisBlockIndex];
       // First read data in
       for (uint pencili=0; pencili<nPencils; pencili++) {
@@ -163,18 +161,17 @@ __global__ void __launch_bounds__(WID3) translation_kernel(
                   pencilBlockData[pencilBlockDataOffset + start + celli] = cellContainer->getData(blockLID);
                   nonEmptyBlocks++;
                }
-               __syncthreads();
                // Valid block, store values in contiguous data
                thisPencilOrderedSource[celli * WID3 + ti]
-                  = (pencilBlockData[pencilBlockDataOffset + start + celli])[ti];
+                  = (cellContainer->getData(blockLID))[ti];
             } else {
                if (ti==0) {
                   pencilBlockData[pencilBlockDataOffset + start + celli] = NULL;
                }
-               __syncthreads();
                // Non-existing block, push in zeroes
-               thisPencilOrderedSource[celli * WID3 + ti] = 0.0;
+               thisPencilOrderedSource[celli * WID3 + ti] = (Realf)(0.0);
             }
+            __syncthreads();
          } // End loop over this pencil
          if (ti==0) {
             pencilBlocksCount[pencilBlocksCountOffset + pencili] = nonEmptyBlocks;
@@ -188,14 +185,16 @@ __global__ void __launch_bounds__(WID3) translation_kernel(
          if (pencilRatios[celli] != 0) {
             // Is a target cell, needs to be reset
             if (pencilBlockData[pencilBlockDataOffset + celli]) {
-               (pencilBlockData[pencilBlockDataOffset + celli])[ti] = 0.0;
+               (pencilBlockData[pencilBlockDataOffset + celli])[ti] = (Realf)(0.0);
             }
          }
       } // end loop over all cells
 
+      __syncthreads();
+
       // Now we propagate the pencils and write data back to the block data containers
       // Get velocity data from vmesh that we need later to calculate the translation
-      __syncthreads();
+   
       vmesh::LocalID blockIndicesD = 0;
       if (dimension==0) {
          randovmesh->getIndicesX(blockGID, blockIndicesD);
@@ -231,12 +230,12 @@ __global__ void __launch_bounds__(WID3) translation_kernel(
             const Realf areaRatio_p1 = pencilRatios[start + i + 1];
 
             // (no longer loop over) planes (threadIdx.z) and vectors within planes (just 1 by construction)
-            const Realf cell_vz = (blockIndicesD * WID + vz_index + 0.5) * dvz + vz_min; //cell centered velocity
+            const Realf cell_vz = (blockIndicesD * WID + vz_index + (Realf)(0.5)) * dvz + vz_min; //cell centered velocity
             const Realf z_translation = cell_vz * dt / pencilDZ[start + i]; // how much it moved in time dt (reduced units)
 
             // Determine direction of translation
             // part of density goes here (cell index change along spatial direcion)
-            const bool positiveTranslationDirection = (z_translation > 0.0);
+            const bool positiveTranslationDirection = (z_translation > (Realf)(0.0));
 
             // Calculate normalized coordinates in current cell.
             // The coordinates (scaled units from 0 to 1) between which we will
@@ -244,11 +243,11 @@ __global__ void __launch_bounds__(WID3) translation_kernel(
             // Normalize the coordinates to the origin cell. Then we scale with the difference
             // in volume between target and origin later when adding the integrated value.
             Realf z_1,z_2;
-            z_1 = positiveTranslationDirection ? 1.0 - z_translation : 0.0;
-            z_2 = positiveTranslationDirection ? 1.0 : - z_translation;
+            z_1 = positiveTranslationDirection ? (Realf)(1.0) - z_translation : (Realf)(0.0);
+            z_2 = positiveTranslationDirection ? (Realf)(1.0) : - z_translation;
 
             #ifdef DEBUG_VLASIATOR
-            if ( abs(z_1) > 1.0 || abs(z_2) > 1.0 ) {
+            if ( abs(z_1) > (Realf)(1.0) || abs(z_2) > (Realf)(1.0) ) {
                assert( 0 && "Error in translation, CFL condition violated.");
             }
             #endif
@@ -279,13 +278,13 @@ __global__ void __launch_bounds__(WID3) translation_kernel(
                }
                if (areaRatio_p1 && block_data_p1) {
                   const Realf p1Contribution = (positiveTranslationDirection ? ngbr_target_density
-                                                * pencilDZ[start + i] / pencilDZ[start + i + 1] : 0.0) * areaRatio_p1;
+                                                * pencilDZ[start + i] / pencilDZ[start + i + 1] : (Realf)(0.0)) * areaRatio_p1;
                   //atomicAdd(&block_data_p1[ti],p1Contribution);
                   block_data_p1[ti] += p1Contribution;
                }
                if (areaRatio_m1 && block_data_m1) {
                   const Realf m1Contribution = (!positiveTranslationDirection ? ngbr_target_density
-                                                * pencilDZ[start + i] / pencilDZ[start + i - 1] : 0.0) * areaRatio_m1;
+                                                * pencilDZ[start + i] / pencilDZ[start + i - 1] : (Realf)(0.0)) * areaRatio_m1;
                   //atomicAdd(&block_data_m1[ti],m1Contribution);
                   block_data_m1[ti] += m1Contribution;
                }

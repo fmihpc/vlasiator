@@ -55,8 +55,8 @@ ARCH_DEV inline void compute_ppm_coeff_nonuniform(const Realf* __restrict__ cons
    //2008 (PQM article) (note additional integration factors built in,
    //contrary to White (2008) eq. 4
    a[0] = m_face;
-   a[1] = 3.0 * values[k*stride+index] - 2.0 * m_face - p_face;
-   a[2] = (m_face + p_face - 2.0 * values[k*stride+index]);
+   a[1] = (Realf)(3.0) * values[k*stride+index] - (Realf)(2.0) * m_face - p_face;
+   a[2] = (m_face + p_face - (Realf)(2.0) * values[k*stride+index]);
 }
 
 #endif
