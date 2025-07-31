@@ -180,7 +180,7 @@ namespace projects {
    void Harris::setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                                  std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                                  std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
-      setBackgroundFieldToZero(bgb);
+      setBackgroundFieldToZero(fsgrid, technical, bgb);
 
       if(!P::isRestart) {
          // local copies fro lambda capture

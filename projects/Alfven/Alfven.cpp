@@ -170,7 +170,7 @@ namespace projects {
                                  std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                                  std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
       const auto& gridSpacing = fsgrid.getGridSpacing();
-      setBackgroundFieldToZero(bgb);
+      setBackgroundFieldToZero(fsgrid, technical, bgb);
 
       if (!P::isRestart) {
          const auto* localSize = &fsgrid.getLocalSize()[0];

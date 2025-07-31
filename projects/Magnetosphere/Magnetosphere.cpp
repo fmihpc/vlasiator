@@ -353,7 +353,7 @@ namespace projects {
                }
                break;
             default:
-               setBackgroundFieldToZero(bgb);
+               setBackgroundFieldToZero(fsgrid, technical, bgb);
       }
       switchDipoleTypeTimer.stop();
 

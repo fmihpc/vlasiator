@@ -422,7 +422,7 @@ namespace projects {
   void IPShock::setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                                  std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                                  std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
-     setBackgroundFieldToZero(bgb);
+     setBackgroundFieldToZero(fsgrid, technical, bgb);
 
      if (!P::isRestart) {
          const auto B0u_l = this->B0u; // copies for lambda capture
