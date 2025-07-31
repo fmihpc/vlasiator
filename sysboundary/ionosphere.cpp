@@ -1117,7 +1117,7 @@ namespace SBC {
    }
    
    // Transport field-aligned currents down from the simulation cells to the ionosphere
-   void SphericalTriGrid::mapDownBoundaryData(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+   void SphericalTriGrid::mapDownBoundaryData(fsgrids::perbspan perb,
                                               std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                                               std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
                                               std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
@@ -2847,7 +2847,7 @@ namespace SBC {
     *
     * -- Retain only the normal components of perturbed face B
     */
-   Real Ionosphere::fieldSolverBoundaryCondMagneticField(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> b,
+   Real Ionosphere::fieldSolverBoundaryCondMagneticField(fsgrids::perbspan b,
                                                          std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                                                          std::span<const fsgrids::technical> technical,
                                                          const std::array<Real, 3>& gridSpacing,

@@ -422,6 +422,7 @@ namespace fsgrids {
       N_VOL
    };
 
+   typedef std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perbspan;
    typedef std::span<std::array<Real, bgbfield::N_BGB>> bgbspan;
    typedef std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> momentsspan;
    typedef std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmomentsspan;

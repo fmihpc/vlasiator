@@ -116,7 +116,7 @@ namespace SBC {
       }
    }
    
-   Real Inflow::fieldSolverBoundaryCondMagneticField(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> b,
+   Real Inflow::fieldSolverBoundaryCondMagneticField(fsgrids::perbspan b,
                                                      std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                                                      std::span<const fsgrids::technical> technical,
                                                      const std::array<Real, 3>& gridSpacing,

@@ -29,7 +29,7 @@
    #define DEBUG_FSOLVER
 #endif
 
-void calculateVolumeAveragedFields(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+void calculateVolumeAveragedFields(fsgrids::perbspan perb,
                                    std::span<const std::array<Real, fsgrids::efield::N_EFIELD>> e,
                                    std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                                    std::span<std::array<Real, fsgrids::volfields::N_VOL>> vols,

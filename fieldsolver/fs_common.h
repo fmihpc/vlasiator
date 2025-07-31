@@ -94,19 +94,19 @@ namespace Rec {
 }
 
 std::array<Real, Rec::N_REC_COEFFICIENTS>
-reconstructionCoefficients(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+reconstructionCoefficients(fsgrids::perbspan perb,
                            std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                            const fsgrid::FsStencil& stencil, Real reconstructionOrder);
 
 std::array<Real, 3> interpolatePerturbedB(
-    std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+    fsgrids::perbspan perb,
     std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
     std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
     std::map<std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS>>& reconstructionCoefficientsCache, cint i,
     cint j, cint k, const std::array<Real, 3> x);
 
 std::array<Real, 3> interpolateCurlB(
-    std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+    fsgrids::perbspan perb,
     std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
     std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
     std::map<std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS>>& reconstructionCoefficientsCache, cint i,

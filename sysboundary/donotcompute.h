@@ -60,7 +60,7 @@ namespace SBC {
       uint getIndex() const override;
 
       // Explicit warning functions to inform the user if a doNotCompute cell gets computed
-      Real fieldSolverBoundaryCondMagneticField(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>>,
+      Real fieldSolverBoundaryCondMagneticField(fsgrids::perbspan,
                                                 std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>>,
                                                 std::span<const fsgrids::technical>, const std::array<Real, 3>&,
                                                 const std::array<fsgrid::FsSize_t, 3>&, const fsgrid::FsStencil&,

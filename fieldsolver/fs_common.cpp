@@ -51,7 +51,7 @@ Real divideIfNonZero(creal numerator, creal denominator) {
  * 2nd-order Hall term calculations.
  */
 std::array<Real, Rec::N_REC_COEFFICIENTS>
-reconstructionCoefficients(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+reconstructionCoefficients(fsgrids::perbspan perb,
                            std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                            const fsgrid::FsStencil& stencil, Real reconstructionOrder) {
    std::array<Real, Rec::N_REC_COEFFICIENTS> perturbedResult;
@@ -220,7 +220,7 @@ reconstructionCoefficients(std::span<const std::array<Real, fsgrids::bfield::N_B
  * \param x 3D global simulation x,y,z coordinates of point to interpolate to
  */
 std::array<Real, 3> interpolatePerturbedB(
-    std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+    fsgrids::perbspan perb,
     std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
     std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
     std::map<std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS>>& reconstructionCoefficientsCache, cint i,
@@ -296,7 +296,7 @@ std::array<Real, 3> interpolatePerturbedB(
  * \param x 3D global simulation x,y,z coordinates of point to interpolate to
  */
 std::array<Real, 3> interpolateCurlB(
-    std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+    fsgrids::perbspan perb,
     std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
     std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
     std::map<std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS>>& reconstructionCoefficientsCache, cint i,

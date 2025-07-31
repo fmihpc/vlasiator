@@ -42,7 +42,7 @@ namespace FieldTracing {
    /* Call the heavier operations for DROs to be called only if needed, before an IO.
     */
    void reduceData(std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
-                   std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                   fsgrids::perbspan perb,
                    std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                    dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                    std::vector<SBC::SphericalTriGrid::Node>& nodes) {
@@ -60,7 +60,7 @@ namespace FieldTracing {
     * coupling values are recorded in the grid nodes.
     */
    void calculateIonosphereFsgridCoupling(std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
-                                          std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                          fsgrids::perbspan perb,
                                           std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                                           std::vector<SBC::SphericalTriGrid::Node>& nodes, creal couplingRadius) {
    
@@ -485,7 +485,7 @@ namespace FieldTracing {
    /*! Trace magnetic field lines out from ionospheric nodes to record whether they are on an open or closed field line.
     */
    void traceOpenClosedConnection(std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
-                                  std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                  fsgrids::perbspan perb,
                                   std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                                   std::vector<SBC::SphericalTriGrid::Node>& nodes) {
    
@@ -844,7 +844,7 @@ namespace FieldTracing {
     * \sa stepCellAcrossTaskDomain
     */
    void traceFullBoxConnectionAndFluxRopes(std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
-                                           std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                           fsgrids::perbspan perb,
                                            std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                                            dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) {
       phiprof::Timer fluxTracingTimer{"fieldtracing-fullAndFluxTracing"};

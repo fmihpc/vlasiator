@@ -39,8 +39,8 @@ template <typename T, size_t N> struct DerivativesData {
 };
 
 void computeMomentsDerivatives(fsgrids::momentsspan moments,
-                    fsgrids::dmomentsspan dmoments,
-                    const fsgrid::FsStencil& stencil, const bool atSysBoundary) {
+                               fsgrids::dmomentsspan dmoments,
+                               const fsgrid::FsStencil& stencil, const bool atSysBoundary) {
    using dmo = fsgrids::dmoments;
    using mom = fsgrids::moments;
 
@@ -130,9 +130,9 @@ void computeMomentsDerivatives(fsgrids::momentsspan moments,
 
 }
 
-void computePerbDerivatives(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                 std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb, const fsgrid::FsStencil& stencil,
-                 bool dontCompute2ndDerivatives, bool atSysBoundary, cuint sysBoundaryFlag) {
+void computePerbDerivatives(fsgrids::perbspan perb,
+                            std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb, const fsgrid::FsStencil& stencil,
+                            bool dontCompute2ndDerivatives, bool atSysBoundary, cuint sysBoundaryFlag) {
    using dpb = fsgrids::dperb;
    using bfi = fsgrids::bfield;
    std::array<Real, dpb::N_DPERB>& dPerB = dperb[stencil.ooo()];
@@ -219,7 +219,7 @@ void computePerbDerivatives(std::span<const std::array<Real, fsgrids::bfield::N_
  *
  * \sa calculateDerivativesSimple calculateBVOLDerivativesSimple calculateBVOLDerivatives
  */
-void calculateDerivatives(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+void calculateDerivatives(fsgrids::perbspan perb,
                           fsgrids::momentsspan moments,
                           std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                           fsgrids::dmomentsspan dmoments,

@@ -122,7 +122,7 @@ private:
    }
 
 public:
-   FieldCoefficients(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perB,
+   FieldCoefficients(fsgrids::perbspan perB,
                      std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dPerB,
                      std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> BgB,
                      fsgrids::momentsspan moments,
@@ -177,7 +177,7 @@ public:
  * \param ret_vS Sound speed returned
  * \param ret_vW Whistler speed returned
  */
-Wavespeeds calculateWaveSpeedYZ(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perB,
+Wavespeeds calculateWaveSpeedYZ(fsgrids::perbspan perB,
                                 fsgrids::momentsspan moments,
                                 std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dPerB,
                                 std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dMoments,
@@ -236,7 +236,7 @@ Wavespeeds calculateWaveSpeedYZ(std::span<const std::array<Real, fsgrids::bfield
  * \param ret_vS Sound speed returned
  * \param ret_vW Whistler speed returned
  */
-Wavespeeds calculateWaveSpeedXZ(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perB,
+Wavespeeds calculateWaveSpeedXZ(fsgrids::perbspan perB,
                                 fsgrids::momentsspan moments,
                                 std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dPerB,
                                 std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dMoments,
@@ -295,7 +295,7 @@ Wavespeeds calculateWaveSpeedXZ(std::span<const std::array<Real, fsgrids::bfield
  * \param ret_vS Sound speed returned
  * \param ret_vW Whistler speed returned
  */
-Wavespeeds calculateWaveSpeedXY(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perB,
+Wavespeeds calculateWaveSpeedXY(fsgrids::perbspan perB,
                                 fsgrids::momentsspan moments,
                                 std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dPerB,
                                 std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dMoments,
@@ -411,7 +411,7 @@ struct DataArrays {
    const std::array<Real, fsgrids::dmoments::N_DMOMENTS>& dmoments;
    const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb;
 
-   DataArrays(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+   DataArrays(fsgrids::perbspan perb,
               std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
               fsgrids::momentsspan moments,
               std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
@@ -442,7 +442,7 @@ struct DataArrays {
  * \param i,j,k fsGrid cell coordinates for the current cell
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
-void calculateEdgeElectricFieldX(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+void calculateEdgeElectricFieldX(fsgrids::perbspan perb,
                                  std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                                  std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
                                  std::span<const std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
@@ -669,7 +669,7 @@ void calculateEdgeElectricFieldX(std::span<const std::array<Real, fsgrids::bfiel
  *
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
-void calculateEdgeElectricFieldY(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+void calculateEdgeElectricFieldY(fsgrids::perbspan perb,
                                  std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                                  std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
                                  std::span<const std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
@@ -897,7 +897,7 @@ void calculateEdgeElectricFieldY(std::span<const std::array<Real, fsgrids::bfiel
  *
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
-void calculateEdgeElectricFieldZ(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+void calculateEdgeElectricFieldZ(fsgrids::perbspan perb,
                                  std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                                  std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
                                  std::span<const std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
@@ -1134,7 +1134,7 @@ void calculateEdgeElectricFieldZ(std::span<const std::array<Real, fsgrids::bfiel
  * calculateEdgeElectricFieldZ
  *
  */
-void calculateElectricField(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+void calculateElectricField(fsgrids::perbspan perb,
                             std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                             std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
                             std::span<const std::array<Real, fsgrids::ehall::N_EHALL>> ehall,

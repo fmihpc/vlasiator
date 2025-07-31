@@ -671,7 +671,7 @@ namespace SBC {
    }
    
    Real SysBoundaryCondition::fieldBoundaryCopyFromSolvingNbrMagneticField(
-       std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> b, std::span<const fsgrids::technical> technical,
+       fsgrids::perbspan b, std::span<const fsgrids::technical> technical,
        const fsgrid::FsStencil& stencil, cuint component, cuint mask) {
       int distance = numeric_limits<int>::max();
       auto closestCellIndex = 0;

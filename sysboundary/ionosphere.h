@@ -224,7 +224,7 @@ namespace SBC {
 
       // Map field-aligned currents, density and temperature
       // down from the simulation boundary onto this grid
-      void mapDownBoundaryData(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+      void mapDownBoundaryData(fsgrids::perbspan perb,
                                std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                                std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
                                std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid);
@@ -329,7 +329,7 @@ namespace SBC {
                                      std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                                      fsgrids::bgbspan bgb,
                                      Project& project) override;
-      virtual Real fieldSolverBoundaryCondMagneticField(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> b,
+      virtual Real fieldSolverBoundaryCondMagneticField(fsgrids::perbspan b,
                                                         std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                                                         std::span<const fsgrids::technical> technical,
                                                         const std::array<Real, 3>& gridSpacing,
