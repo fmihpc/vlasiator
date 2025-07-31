@@ -298,7 +298,7 @@ namespace SBC {
    }
    
    void Outflow::fieldSolverBoundaryCondGradPeElectricField(
-       std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> EGradPe, const fsgrid::FsStencil& stencil,
+       fsgrids::egradpespan EGradPe, const fsgrid::FsStencil& stencil,
        cuint component) {
       EGradPe[stencil.ooo()][fsgrids::egradpe::EXGRADPE + component] = 0.0;
    }

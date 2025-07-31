@@ -41,8 +41,8 @@ struct FieldSolverData {
    fsgrids::constefieldspan E;
    fsgrids::constefieldspan EDt2;
    fsgrids::constehallspan EHall;
-   std::span<const std::array<Real, fsgrids::egradpe::N_EGRADPE>> EGradPe;
-   std::span<const std::array<Real, fsgrids::egradpe::N_EGRADPE>> EGradPeDt2;
+   fsgrids::constegradpespan EGradPe;
+   fsgrids::constegradpespan EGradPeDt2;
    fsgrids::constmomentsspan moments;
    fsgrids::constmomentsspan momentsDt2;
    fsgrids::constdperbspan dPerB;

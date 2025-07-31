@@ -100,7 +100,7 @@ using namespace std;
 /** Calculate the electron pressure gradient term on all given cells.
  * @param sysBoundaries System boundary condition functions.
  */
-void calculateGradPeTerm(std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpes,
+void calculateGradPeTerm(fsgrids::egradpespan egradpes,
                          fsgrids::constmomentsspan moments,
                          std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
                          fsgrids::consttechnicalspan technical, const fsgrid::FsStencil& stencil,
@@ -154,8 +154,8 @@ void calculateGradPeTerm(std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>
    }
 }
 
-void calculateGradPeTermSimple(std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe,
-                               std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpedt2,
+void calculateGradPeTermSimple(fsgrids::egradpespan egradpe,
+                               fsgrids::egradpespan egradpedt2,
                                fsgrids::momentsspan moments,
                                fsgrids::momentsspan momentsdt2,
                                fsgrids::dmomentsspan dmoments,

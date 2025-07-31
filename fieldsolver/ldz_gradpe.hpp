@@ -22,8 +22,8 @@
 
 #include "../definitions.h"
 
-void calculateGradPeTermSimple(std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe,
-                               std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpedt2,
+void calculateGradPeTermSimple(fsgrids::egradpespan egradpe,
+                               fsgrids::egradpespan egradpedt2,
                                fsgrids::momentsspan moments,
                                fsgrids::momentsspan momentsdt2,
                                fsgrids::dmomentsspan dmoments,

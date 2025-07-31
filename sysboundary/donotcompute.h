@@ -76,7 +76,7 @@ namespace SBC {
                                                     const fsgrid::FsStencil&, cuint) override {
          std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondHallElectricField called!" << std::endl;
       }
-      void fieldSolverBoundaryCondGradPeElectricField(std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>>,
+      void fieldSolverBoundaryCondGradPeElectricField(fsgrids::egradpespan,
                                                       const fsgrid::FsStencil&, cuint) override {
          std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondGradPeElectricField called!" << std::endl;
       }

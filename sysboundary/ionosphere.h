@@ -340,7 +340,7 @@ namespace SBC {
       virtual void fieldSolverBoundaryCondHallElectricField(fsgrids::ehallspan ehall,
                                                             const fsgrid::FsStencil& stencil, cuint component) override;
       virtual void
-      fieldSolverBoundaryCondGradPeElectricField(std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> EGradPe,
+      fieldSolverBoundaryCondGradPeElectricField(fsgrids::egradpespan EGradPe,
                                                  const fsgrid::FsStencil& stencil, cuint component) override;
       virtual void
       fieldSolverBoundaryCondDerivatives(fsgrids::dperbspan dperb,
