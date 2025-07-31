@@ -407,7 +407,7 @@ void calculateBVOLDerivativesSimple(fsgrids::volspan vol,
  */
 
 void calculateCurvature(fsgrids::volspan vol,
-                        std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                        fsgrids::constbgbspan bgb,
                         const fsgrid::FsStencil& stencil, const std::array<Real, 3>& gridSpacing) {
    auto compute = [&vol, &bgb](auto i) -> std::array<Real, 3> {
       const auto& b = bgb[i];
@@ -454,7 +454,7 @@ void calculateCurvature(fsgrids::volspan vol,
  * \sa calculateDerivatives calculateBVOLDerivatives calculateDerivativesSimple
  */
 void calculateCurvatureSimple(fsgrids::volspan vol,
-                              std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                              fsgrids::constbgbspan bgb,
                               std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
    phiprof::Timer curvatureTimer{"Calculate curvature"};
    const auto& gridSpacing = fsgrid.getGridSpacing();

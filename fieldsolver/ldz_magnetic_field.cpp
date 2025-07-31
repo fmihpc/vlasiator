@@ -170,7 +170,7 @@ void propagateMagneticField(fsgrids::perbspan perb,
  */
 void propagateSysBoundaryMagneticField(fsgrids::perbspan perb,
                                        fsgrids::perbspan perbdt2,
-                                       std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                                       fsgrids::constbgbspan bgb,
                                        std::span<const fsgrids::technical> technical,
                                        const std::array<Real, 3>& gridSpacing,
                                        const std::array<fsgrid::FsSize_t, 3>& globalCoordinates,

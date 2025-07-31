@@ -846,7 +846,7 @@ void calculateEdgeHallTermComponents(fsgrids::perbspan perbs,
                                      std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehalls,
                                      fsgrids::constmomentsspan moments,
                                      std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperbs,
-                                     std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgbs,
+                                     fsgrids::constbgbspan bgbs,
                                      const std::array<Real, 3>& gridSpacing,
                                      const std::array<Real, Rec::N_REC_COEFFICIENTS>& perturbedCoefficients,
                                      const fsgrid::FsStencil& stencil) {
@@ -1039,7 +1039,7 @@ void calculateHallTerm(fsgrids::perbspan perb,
                        std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
                        fsgrids::constmomentsspan moments,
                        std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
-                       std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                       fsgrids::constbgbspan bgb,
                        std::span<const fsgrids::technical> technical, const fsgrid::FsStencil& stencil,
                        SysBoundary& sysBoundaries, const std::array<Real, 3>& gridSpacing) {
 #ifdef DEBUG_FSOLVER

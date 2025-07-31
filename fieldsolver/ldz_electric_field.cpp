@@ -124,7 +124,7 @@ private:
 public:
    FieldCoefficients(fsgrids::perbspan perB,
                      std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dPerB,
-                     std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> BgB,
+                     fsgrids::constbgbspan BgB,
                      fsgrids::constmomentsspan moments,
                      std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dMoments, size_t self, size_t nbr,
                      const Limits& rhomLimits)
@@ -181,7 +181,7 @@ Wavespeeds calculateWaveSpeedYZ(fsgrids::perbspan perB,
                                 fsgrids::constmomentsspan moments,
                                 std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dPerB,
                                 std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dMoments,
-                                std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> BgB,
+                                fsgrids::constbgbspan BgB,
                                 const std::array<Real, 3>& gridSpacing, const Limits& rhomLimits, size_t self,
                                 size_t nbr, Real By, Real Bz, Real dBydx, Real dBydz, Real dBzdx, Real dBzdy, Real ydir,
                                 Real zdir) {
@@ -240,7 +240,7 @@ Wavespeeds calculateWaveSpeedXZ(fsgrids::perbspan perB,
                                 fsgrids::constmomentsspan moments,
                                 std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dPerB,
                                 std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dMoments,
-                                std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> BgB,
+                                fsgrids::constbgbspan BgB,
                                 const std::array<Real, 3>& gridSpacing, const Limits& rhomLimits, size_t self,
                                 size_t nbr, Real Bx, Real Bz, Real dBxdy, Real dBxdz, Real dBzdx, Real dBzdy, Real xdir,
                                 Real zdir) {
@@ -299,7 +299,7 @@ Wavespeeds calculateWaveSpeedXY(fsgrids::perbspan perB,
                                 fsgrids::constmomentsspan moments,
                                 std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dPerB,
                                 std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dMoments,
-                                std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> BgB,
+                                fsgrids::constbgbspan BgB,
                                 const std::array<Real, 3>& gridSpacing, const Limits& rhomLimits, size_t self,
                                 size_t nbr, Real Bx, Real By, Real dBxdy, Real dBxdz, Real dBydx, Real dBydz, Real xdir,
                                 Real ydir) {
@@ -415,7 +415,7 @@ struct DataArrays {
               std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
               fsgrids::constmomentsspan moments,
               std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
-              std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, size_t index)
+              fsgrids::constbgbspan bgb, size_t index)
        : perb(perb[index]), dperb(dperb[index]), moments(moments[index]), dmoments(dmoments[index]), bgb(bgb[index]) {}
 };
 
@@ -449,7 +449,7 @@ void calculateEdgeElectricFieldX(fsgrids::perbspan perb,
                                  std::span<const std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe,
                                  fsgrids::constmomentsspan moments,
                                  std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
-                                 std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                                 fsgrids::constbgbspan bgb,
                                  std::span<fsgrids::technical> technical, const fsgrid::FsStencil& stencil,
                                  int32_t RKCase, const std::array<Real, 3>& gridSpacing) {
    fsdebugCheck(stencil, perb.size(), __FILE__, __LINE__);
@@ -676,7 +676,7 @@ void calculateEdgeElectricFieldY(fsgrids::perbspan perb,
                                  std::span<const std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe,
                                  fsgrids::constmomentsspan moments,
                                  std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
-                                 std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                                 fsgrids::constbgbspan bgb,
                                  std::span<fsgrids::technical> technical, const fsgrid::FsStencil& stencil,
                                  int32_t RKCase, const std::array<Real, 3>& gridSpacing) {
    fsdebugCheck(stencil, perb.size(), __FILE__, __LINE__);
@@ -904,7 +904,7 @@ void calculateEdgeElectricFieldZ(fsgrids::perbspan perb,
                                  std::span<const std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe,
                                  fsgrids::constmomentsspan moments,
                                  std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
-                                 std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                                 fsgrids::constbgbspan bgb,
                                  std::span<fsgrids::technical> technical, const fsgrid::FsStencil& stencil,
                                  int32_t RKCase, const std::array<Real, 3>& gridSpacing) {
    fsdebugCheck(stencil, perb.size(), __FILE__, __LINE__);
@@ -1141,7 +1141,7 @@ void calculateElectricField(fsgrids::perbspan perb,
                             std::span<const std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe,
                             fsgrids::constmomentsspan moments,
                             std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
-                            std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                            fsgrids::constbgbspan bgb,
                             std::span<fsgrids::technical> technical, const fsgrid::FsStencil& stencil,
                             const std::array<Real, 3>& gridSpacing, SysBoundary& sysBoundaries, int32_t RKCase) {
    cuint cellSysBoundaryFlag = technical[stencil.ooo()].sysBoundaryFlag;

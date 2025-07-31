@@ -40,7 +40,7 @@ void calculateBVOLDerivativesSimple(fsgrids::volspan vol,
                                     std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid);
 
 void calculateCurvatureSimple(fsgrids::volspan vol,
-                              std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                              fsgrids::constbgbspan bgb,
                               std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid);
 
 void calculateScaledDeltasSimple(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);

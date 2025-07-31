@@ -61,7 +61,7 @@ namespace SBC {
 
       // Explicit warning functions to inform the user if a doNotCompute cell gets computed
       Real fieldSolverBoundaryCondMagneticField(fsgrids::perbspan,
-                                                std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>>,
+                                                fsgrids::constbgbspan,
                                                 std::span<const fsgrids::technical>, const std::array<Real, 3>&,
                                                 const std::array<fsgrid::FsSize_t, 3>&, const fsgrid::FsStencil&,
                                                 cuint) override {
