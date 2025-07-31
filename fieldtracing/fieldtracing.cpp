@@ -43,7 +43,7 @@ namespace FieldTracing {
     */
    void reduceData(fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                    fsgrids::perbspan perb,
-                   std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                   fsgrids::constdperbspan dperb,
                    dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                    std::vector<SBC::SphericalTriGrid::Node>& nodes) {
       if (fieldTracingParameters.doTraceOpenClosed) {
@@ -61,7 +61,7 @@ namespace FieldTracing {
     */
    void calculateIonosphereFsgridCoupling(fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                                           fsgrids::perbspan perb,
-                                          std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                                          fsgrids::constdperbspan dperb,
                                           std::vector<SBC::SphericalTriGrid::Node>& nodes, creal couplingRadius) {
    
       // we don't need to do anything if we have no nodes
@@ -486,7 +486,7 @@ namespace FieldTracing {
     */
    void traceOpenClosedConnection(fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                                   fsgrids::perbspan perb,
-                                  std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                                  fsgrids::constdperbspan dperb,
                                   std::vector<SBC::SphericalTriGrid::Node>& nodes) {
    
       // we don't need to do anything if we have no nodes
@@ -845,7 +845,7 @@ namespace FieldTracing {
     */
    void traceFullBoxConnectionAndFluxRopes(fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                                            fsgrids::perbspan perb,
-                                           std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                                           fsgrids::constdperbspan dperb,
                                            dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) {
       phiprof::Timer fluxTracingTimer{"fieldtracing-fullAndFluxTracing"};
    

@@ -123,7 +123,7 @@ private:
 
 public:
    FieldCoefficients(fsgrids::perbspan perB,
-                     std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dPerB,
+                     fsgrids::constdperbspan dPerB,
                      fsgrids::constbgbspan BgB,
                      fsgrids::constmomentsspan moments,
                      std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dMoments, size_t self, size_t nbr,
@@ -179,7 +179,7 @@ public:
  */
 Wavespeeds calculateWaveSpeedYZ(fsgrids::perbspan perB,
                                 fsgrids::constmomentsspan moments,
-                                std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dPerB,
+                                fsgrids::constdperbspan dPerB,
                                 std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dMoments,
                                 fsgrids::constbgbspan BgB,
                                 const std::array<Real, 3>& gridSpacing, const Limits& rhomLimits, size_t self,
@@ -238,7 +238,7 @@ Wavespeeds calculateWaveSpeedYZ(fsgrids::perbspan perB,
  */
 Wavespeeds calculateWaveSpeedXZ(fsgrids::perbspan perB,
                                 fsgrids::constmomentsspan moments,
-                                std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dPerB,
+                                fsgrids::constdperbspan dPerB,
                                 std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dMoments,
                                 fsgrids::constbgbspan BgB,
                                 const std::array<Real, 3>& gridSpacing, const Limits& rhomLimits, size_t self,
@@ -297,7 +297,7 @@ Wavespeeds calculateWaveSpeedXZ(fsgrids::perbspan perB,
  */
 Wavespeeds calculateWaveSpeedXY(fsgrids::perbspan perB,
                                 fsgrids::constmomentsspan moments,
-                                std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dPerB,
+                                fsgrids::constdperbspan dPerB,
                                 std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dMoments,
                                 fsgrids::constbgbspan BgB,
                                 const std::array<Real, 3>& gridSpacing, const Limits& rhomLimits, size_t self,
@@ -412,7 +412,7 @@ struct DataArrays {
    const std::array<Real, fsgrids::bgbfield::N_BGB>& bgb;
 
    DataArrays(fsgrids::perbspan perb,
-              std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+              fsgrids::constdperbspan dperb,
               fsgrids::constmomentsspan moments,
               std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
               fsgrids::constbgbspan bgb, size_t index)
@@ -443,7 +443,7 @@ struct DataArrays {
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
 void calculateEdgeElectricFieldX(fsgrids::perbspan perb,
-                                 std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                                 fsgrids::constdperbspan dperb,
                                  std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
                                  std::span<const std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
                                  std::span<const std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe,
@@ -670,7 +670,7 @@ void calculateEdgeElectricFieldX(fsgrids::perbspan perb,
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
 void calculateEdgeElectricFieldY(fsgrids::perbspan perb,
-                                 std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                                 fsgrids::constdperbspan dperb,
                                  std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
                                  std::span<const std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
                                  std::span<const std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe,
@@ -898,7 +898,7 @@ void calculateEdgeElectricFieldY(fsgrids::perbspan perb,
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
 void calculateEdgeElectricFieldZ(fsgrids::perbspan perb,
-                                 std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                                 fsgrids::constdperbspan dperb,
                                  std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
                                  std::span<const std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
                                  std::span<const std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe,
@@ -1135,7 +1135,7 @@ void calculateEdgeElectricFieldZ(fsgrids::perbspan perb,
  *
  */
 void calculateElectricField(fsgrids::perbspan perb,
-                            std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                            fsgrids::constdperbspan dperb,
                             std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
                             std::span<const std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
                             std::span<const std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe,

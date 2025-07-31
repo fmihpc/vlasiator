@@ -31,7 +31,7 @@
 
 void calculateVolumeAveragedFields(fsgrids::perbspan perb,
                                    std::span<const std::array<Real, fsgrids::efield::N_EFIELD>> e,
-                                   std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                                   fsgrids::constdperbspan dperb,
                                    fsgrids::volspan vols,
                                    const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
    const auto center = stencil.ooo();

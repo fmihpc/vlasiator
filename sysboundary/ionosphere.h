@@ -225,7 +225,7 @@ namespace SBC {
       // Map field-aligned currents, density and temperature
       // down from the simulation boundary onto this grid
       void mapDownBoundaryData(fsgrids::perbspan perb,
-                               std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                               fsgrids::constdperbspan dperb,
                                fsgrids::momentsspan moments,
                                fsgrids::technicalspan technical, FieldSolverGrid &fsgrid);
 

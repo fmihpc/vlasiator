@@ -1118,7 +1118,7 @@ namespace SBC {
    
    // Transport field-aligned currents down from the simulation cells to the ionosphere
    void SphericalTriGrid::mapDownBoundaryData(fsgrids::perbspan perb,
-                                              std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
+                                              fsgrids::constdperbspan dperb,
                                               fsgrids::momentsspan moments,
                                               fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
    
