@@ -55,7 +55,7 @@ namespace SBC {
    void DoNotCompute::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                         std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
                                         std::span<array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                        std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, Project&) {
+                                        fsgrids::bgbspan bgb, Project&) {
       const vector<CellID>& cells = getLocalCells();
 #pragma omp parallel for
       for (size_t i=0; i<cells.size(); ++i) {
@@ -79,7 +79,7 @@ namespace SBC {
    void DoNotCompute::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                   std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
                                   std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                  std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, creal t) {}
+                                  fsgrids::bgbspan bgb, creal t) {}
 
    void DoNotCompute::getFaces(bool *faces) {}
 

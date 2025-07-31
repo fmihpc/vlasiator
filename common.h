@@ -26,6 +26,7 @@
 #include <limits>
 #include <string>
 #include <vector>
+#include <span>
 #include "definitions.h"
 
 // Include architecture specific definitions
@@ -397,6 +398,8 @@ namespace fsgrids {
       dBGBZVOLdz,  /*!< Derivative of background volume-averaged Bz in z-direction. */
       N_BGB
    };
+
+   typedef std::span<std::array<Real, bgbfield::N_BGB>> bgbspan;
 
    // NOTE This contains the PERBVOL derivatives
    enum volfields {

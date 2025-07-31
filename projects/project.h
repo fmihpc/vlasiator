@@ -104,7 +104,7 @@ namespace projects {
        * \sa setBackgroundField, setBackgroundFieldToZero
        */
       virtual void setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                    std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                                    fsgrids::bgbspan bgb,
                                     std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid);
 
       /*! Setup data structures for subsequent setCell calls.

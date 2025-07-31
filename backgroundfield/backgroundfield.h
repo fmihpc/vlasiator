@@ -31,13 +31,13 @@
 #include "phiprof.hpp"
 #include <span>
 
-void setBackgroundField(const FieldFunction& bgFunction, std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+void setBackgroundField(const FieldFunction& bgFunction, fsgrids::bgbspan bgb,
                         std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid, bool append = false);
 
 void setBackgroundFieldToZero(
    FieldSolverGrid &fsgrid,
    std::span<fsgrids::technical> technical,
-   std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb
+   fsgrids::bgbspan bgb
 );
 
 /**

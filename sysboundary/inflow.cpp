@@ -83,7 +83,7 @@ namespace SBC {
    void Inflow::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                   std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
                                   std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                  std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, Project& project) {
+                                  fsgrids::bgbspan bgb, Project& project) {
       for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
          setCellsFromTemplate(mpiGrid, popID);
       }
@@ -93,7 +93,7 @@ namespace SBC {
    void Inflow::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                             std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
                             std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                            std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, creal t) {
+                            fsgrids::bgbspan bgb, creal t) {
       if (t - tLastApply < tInterval) {
          return;
       } else {

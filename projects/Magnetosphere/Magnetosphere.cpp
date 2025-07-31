@@ -289,7 +289,7 @@ namespace projects {
    
    /* set 0-centered dipole */
    void Magnetosphere::setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                        std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                                        fsgrids::bgbspan bgb,
                                         std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
       Dipole bgFieldDipole;
       LineDipole bgFieldLineDipole;

@@ -200,7 +200,7 @@ namespace SBC {
    void Copysphere::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                       std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
                                       std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                      std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, Project& project) {
+                                      fsgrids::bgbspan bgb, Project& project) {
       const vector<CellID>& cells = getLocalCells();
    #pragma omp parallel for
       for (uint i = 0; i < cells.size(); ++i) {
@@ -764,7 +764,7 @@ namespace SBC {
    void Copysphere::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                 std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
                                 std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, creal t) {}
+                                fsgrids::bgbspan bgb, creal t) {}
    
    uint Copysphere::getIndex() const { return sysboundarytype::COPYSPHERE; }
 } // namespace SBC

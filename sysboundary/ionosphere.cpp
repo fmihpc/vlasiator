@@ -2544,7 +2544,7 @@ namespace SBC {
    void Ionosphere::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                       std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
                                       std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                      std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, Project& project) {
+                                      fsgrids::bgbspan bgb, Project& project) {
       const vector<CellID>& cells = getLocalCells();
       // #pragma omp parallel for
       for (uint i = 0; i < cells.size(); ++i) {
@@ -3430,7 +3430,7 @@ namespace SBC {
    void Ionosphere::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                 std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
                                 std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, creal t) {}
+                                fsgrids::bgbspan bgb, creal t) {}
    
    uint Ionosphere::getIndex() const { return sysboundarytype::IONOSPHERE; }
 } // namespace SBC

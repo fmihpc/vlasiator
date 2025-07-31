@@ -420,7 +420,7 @@ namespace projects {
    }
 
   void IPShock::setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                 std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                                 fsgrids::bgbspan bgb,
                                  std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
      setBackgroundFieldToZero(fsgrid, technical, bgb);
 

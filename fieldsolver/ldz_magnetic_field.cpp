@@ -203,7 +203,7 @@ void propagateSysBoundaryMagneticField(std::span<std::array<Real, fsgrids::bfiel
  */
 void propagateMagneticFieldSimple(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
                                   std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perbdt2,
-                                  std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                                  fsgrids::bgbspan bgb,
                                   std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
                                   std::span<std::array<Real, fsgrids::efield::N_EFIELD>> edt2,
                                   std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,

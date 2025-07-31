@@ -77,12 +77,12 @@ namespace SBC {
          virtual void applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                         std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
                                         std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                        std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                                        fsgrids::bgbspan bgb,
                                         Project& project) = 0;
          virtual void updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                   std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
                                   std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                  std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, creal t) = 0;
+                                  fsgrids::bgbspan bgb, creal t) = 0;
          virtual Real
          fieldSolverBoundaryCondMagneticField(std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> b,
                                               std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,

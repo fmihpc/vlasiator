@@ -148,7 +148,7 @@ namespace projects {
    void verificationLarmor::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
 
    void verificationLarmor::setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                             std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                                             fsgrids::bgbspan bgb,
                                              std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
       ConstantField bgField;
       bgField.initialize(this->BX0,

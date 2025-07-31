@@ -30,7 +30,7 @@
 // clang-format on
 
 // FieldFunction should be initialized
-void setBackgroundField(const FieldFunction& bgFunction, std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+void setBackgroundField(const FieldFunction& bgFunction, fsgrids::bgbspan bgb,
                         std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid, bool append) {
    const auto* localSize = &fsgrid.getLocalSize()[0];
    const auto& gridSpacing = fsgrid.getGridSpacing();
@@ -128,7 +128,7 @@ void setBackgroundField(const FieldFunction& bgFunction, std::span<std::array<Re
 void setBackgroundFieldToZero(
    FieldSolverGrid &fsgrid,
    std::span<fsgrids::technical> technical,
-   std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb
+   fsgrids::bgbspan bgb
 ) {
    fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
    phiprof::initializeTimer("setBackgroundFieldToZero"), technical,

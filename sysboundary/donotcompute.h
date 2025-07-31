@@ -50,11 +50,11 @@ namespace SBC {
       void applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                              std::span<fsgrids::technical> technical, FieldSolverGrid& fsgrid,
                              std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                             std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, Project& project) override;
+                             fsgrids::bgbspan bgb, Project& project) override;
       void updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                        std::span<fsgrids::technical> technical, FieldSolverGrid& fsgrid,
                        std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                       std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb, creal t) override;
+                       fsgrids::bgbspan bgb, creal t) override;
       void getFaces(bool* faces) override;
       std::string getName() const override;
       uint getIndex() const override;

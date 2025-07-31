@@ -125,7 +125,7 @@ namespace projects {
 
    /*! Print a warning message to stderr and abort, one should not use the base class functions. */
    void Project::setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                  std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                                  fsgrids::bgbspan bgb,
                                   std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
       int rank;
       MPI_Comm_rank(MPI_COMM_WORLD,&rank);

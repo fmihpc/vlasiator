@@ -34,7 +34,7 @@ void calculateUpwindedElectricFieldSimple(std::span<std::array<Real, fsgrids::bf
                                           std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                                           std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmoments,
                                           std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmomentsdt2,
-                                          std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                                          fsgrids::bgbspan bgb,
                                           std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
                                           SysBoundary& sysBoundaries, int32_t RKCase,
                                           const bool communicateEGradPeOrMomentsDerivatives);
