@@ -28,6 +28,26 @@
 #include "../spatial_cells/spatial_cell_wrapper.hpp"
 #include <dccrg_cartesian_geometry.hpp>
 
+#ifdef USE_GPU
+#include "gpu_pitch_angle_diffusion.hpp"
+#else
+#include "cpu_pitch_angle_diffusion.h"
+#endif
 
-void pitchAngleDiffusion(
-        dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID);
+extern std::vector<Real> betaParaArray;
+extern std::vector<Real> TanisoArray;
+extern std::vector<Real> nu0Array;
+extern size_t n_betaPara;
+extern size_t n_Taniso;
+extern bool nuArrayRead;
+
+void readNuArrayFromFile();
+
+Realf interpolateNuFromArray(
+   const Real Taniso, const Real betaParallel);
+
+void computePitchAngleDiffusionParameters(
+   SpatialCell& cell,
+   const uint popID, size_t CellIdx, bool& currentSpatialLoopComplete,
+   Realf& sparsity, std::array<Real,3>& b, Real& nu0
+   );

@@ -34,7 +34,7 @@ using namespace std;
 
 /** Calculate zeroth, first, and (possibly) second bulk velocity moments for the
  * given spatial cell. The calculated moments include contributions from
- * all existing particle populations. This function is AMR safe.
+ * all existing particle populations.
  * @param cell Spatial cell.
  * @param computeSecond If true, second velocity moments are calculated.
  * @param doNotSkip If false, DO_NOT_COMPUTE cells are skipped.*/
@@ -168,10 +168,13 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
 /** Calculate zeroth, first, and (possibly) second bulk velocity moments for the
  * given spatial cell. The calculated moments include
  * contributions from all existing particle populations. The calculated moments
- * are stored to SpatialCell::parameters in _R variables. This function is AMR safe.
+ * are stored to SpatialCell::parameters in _R variables.
  * @param mpiGrid Parallel grid library.
  * @param cells Vector containing the spatial cells to be calculated.
- * @param computeSecond If true, second velocity moments are calculated.*/
+ * @param computeSecond If true, second velocity moments are calculated.
+ * @param initialCompute If true, force re-calculation of outflow L1 sysboundary cell moments.
+  (otherwise skipped as their VDF contents are not kept up to date)
+*/
 void calculateMoments_R(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const std::vector<CellID>& cells,
@@ -329,10 +332,13 @@ void calculateMoments_R(
  * given spatial cell. Additionally, for each species, calculate the maximum
  * spatial time step so that CFL(spatial)=1. The calculated moments include
  * contributions from all existing particle populations. The calculated moments
- * are stored to SpatialCell::parameters in _V variables. This function is AMR safe.
+ * are stored to SpatialCell::parameters in _V variables.
  * @param mpiGrid Parallel grid library.
  * @param cells Vector containing the spatial cells to be calculated.
- * @param computeSecond If true, second velocity moments are calculated.*/
+ * @param computeSecond If true, second velocity moments are calculated.
+ * @param initialCompute If true, force re-calculation of outflow L1 sysboundary cell moments.
+  (otherwise skipped as their VDF contents are not kept up to date)
+*/
 void calculateMoments_V(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const std::vector<CellID>& cells,

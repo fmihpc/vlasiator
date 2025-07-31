@@ -21,10 +21,13 @@
 #define gpuGetDevice                     cudaGetDevice
 #define gpuGetDeviceCount                cudaGetDeviceCount
 #define gpuGetDeviceProperties           cudaGetDeviceProperties
+#define gpuDeviceGetAttribute            cudaDeviceGetAttribute
 #define gpuDeviceSynchronize             cudaDeviceSynchronize
 #define gpuDeviceReset                   cudaDeviceReset
 #define gpuCpuDeviceId                   cudaCpuDeviceId
 #define gpuMemGetInfo                    cudaMemGetInfo
+
+#define gpuDevAttrMaxBlocksPerMultiprocessor    cudaDevAttrMaxBlocksPerMultiprocessor
 
 #define gpuFree                          cudaFree
 #define gpuFreeHost                      cudaFreeHost
@@ -88,6 +91,8 @@
 #define gpuKernelBallot(mask, input)     __ballot_sync(mask, input)
 #define gpuKernelAny(mask, input)        __any_sync(mask, input)
 #define gpuKernelShfl(input, source, mask)  __shfl_sync(mask, input, source)
+#define gpuKernelShflDown(val, offset) __shfl_down_sync(0xffffffff, val, offset) //0xffffffff is a mask that tells cuda to include all threads in the warp
+#define gpuWarpSync() __syncwarp()
 
 /* Define architecture-specific macros */
 #define ARCH_LOOP_LAMBDA [=] __host__ __device__
@@ -476,6 +481,7 @@ namespace arch{
          CHK_ERR(cudaPeekAtLastError());
          /* Synchronize after kernel call */
          CHK_ERR(cudaStreamSynchronize(gpuStreamList[thread_id]));
+         CHK_ERR(cudaFreeAsync(d_limits, gpuStreamList[thread_id]));
          return;
       }
 

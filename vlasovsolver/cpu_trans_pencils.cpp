@@ -21,7 +21,6 @@ std::unordered_set<CellID> ghostTranslate_active_y;
 std::unordered_set<CellID> ghostTranslate_active_z;
 
 std::array<setOfPencils,3> DimensionPencils;
-std::array<std::unordered_set<CellID>,3> DimensionTargetCells;
 
 //Is cell translated? It is not translated if DO_NO_COMPUTE or if it is sysboundary cell and not in first sysboundarylayer
 bool do_translate_cell(SpatialCell* SC){
@@ -1279,8 +1278,51 @@ void printPencilsFunc(const setOfPencils& pencils, const uint dimension, const i
       }
 
       ibeg  = iend;
+      ss << "\n";
+   }
+
+   for (const auto& [bin, pencilsInBin] : pencils.pencilsInBin) {
+      const auto& cells = pencils.targetCellsInBin.at(bin);
+      std::set<uint64_t> collisions;
+
+      ss << "Bin " << bin << " pencils: ";
+      if (pencilsInBin.empty()) {
+         ss << "EMPTY ";
+      }
+
+      for (auto pencil : pencilsInBin) {
+         ss << pencil << " ";
+      }
+
+      ss << "\n";
+
+      ss << "Bin " << bin << " cells: ";
+      if (cells.empty()) {
+         ss << "EMPTY ";
+      }
+
+      for (auto id : cells) {
+         ss << id << " ";
+         for (auto [bin2, cells2] : pencils.targetCellsInBin) {
+            if (bin != bin2 && cells2.contains(id)) {
+               collisions.insert(bin2);
+            }
+         }
+      }
+
+      ss << "\n";
+
+      if (collisions.empty()) {
+         ss << "No collisions";
+      } else {
+         ss << "COLLISIONS WITH: ";
+         for (auto j : collisions) {
+            ss << j << " ";
+         }
+      }
       ss << std::endl;
    }
+
    std::cout<<std::flush;
    MPI_Barrier(MPI_COMM_WORLD);
    std::cout<<ss.str();
@@ -1457,19 +1499,9 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
 
    // ****************************************************************************
 
-   // Now gather unordered_set of target cells (used for resetting block data)
-   DimensionTargetCells[dimension].clear();
-#pragma omp parallel for
-   for (uint i=0; i<DimensionPencils[dimension].ids.size(); ++i) {
-      const CellID targ = DimensionPencils[dimension].ids[i];
-      const Realf ratio = DimensionPencils[dimension].targetRatios[i];
-      if ((targ!=0)&&(ratio>0.0)) {
-#pragma omp critical
-         {
-            DimensionTargetCells[dimension].insert(targ);
-         }
-      }
-   }
+   phiprof::Timer binPencilsTimer {"bin_pencils"};
+   DimensionPencils[dimension].binPencils();
+   binPencilsTimer.stop();
 
    if (printPencils) {
       for (int rank=0; rank<mpi_size; ++rank) {

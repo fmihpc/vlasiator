@@ -346,29 +346,34 @@ void adjust_velocity_blocks_in_cells(
    }
    // Halo of 1 in each direction adds up to 26 velocity neighbors.
 
-   #ifdef USE_BATCH_WARPACCESSORS
-   // For NVIDIA/CUDA, we can do 26 neighbors and 32 threads per warp in a single block.
-   // For AMD/HIP, we can do 13 neighbors and 64 threads per warp in a single block, meaning two loops per cell.
-   // In either case, we launch blocks equal to largest found velocity_block_with_content_list_size, which was stored
-   // into largestContentList
-   dim3 grid_vel_halo(largestContentList,nCells,1);
-   batch_update_velocity_halo_kernel<<<grid_vel_halo, 26*32, 0, priorityStream>>> (
-      dev_vmeshes,
-      dev_vbwcl_vec,
-      dev_allMaps // Needs both content and no content maps
-      );
-   CHK_ERR( gpuPeekAtLastError() );
-   #else
-   dim3 grid_vel_halo(largestContentList,nCells,1);
-   // We do 26 (launch with GPUTHREADS) neighbors in a single block at a time.
-   batch_update_velocity_halo_kernel<<<grid_vel_halo, GPUTHREADS, 0, priorityStream>>> (
-      dev_vmeshes,
-      dev_vbwcl_vec,
-      dev_allMaps // Needs both content and no content maps
-      );
-   CHK_ERR( gpuPeekAtLastError() );
-   #endif
-   // CHK_ERR( gpuStreamSynchronize(priorityStream) );
+   if (largestContentList > 0) {
+      #ifdef USE_BATCH_WARPACCESSORS
+      // For NVIDIA/CUDA, we can do 26 neighbors and 32 threads per warp in a single block.
+      // For AMD/HIP, we can do 13 neighbors and 64 threads per warp in a single block, meaning two loops per cell.
+      // In either case, we launch blocks equal to largest found velocity_block_with_content_list_size, which was stored
+      // into largestContentList
+      dim3 grid_vel_halo(largestContentList,nCells,1);
+      batch_update_velocity_halo_kernel<<<grid_vel_halo, 26*32, 0, priorityStream>>> (
+         dev_vmeshes,
+         dev_vbwcl_vec,
+         dev_allMaps // Needs both content and no content maps
+         );
+      CHK_ERR( gpuPeekAtLastError() );
+      #else
+      const uint warpsPerBlockBatchHalo = (threadsPerMP/GPUTHREADS + blocksPerMP - 1)/blocksPerMP;
+      dim3 grid_vel_halo((largestContentList + warpsPerBlockBatchHalo - 1)/warpsPerBlockBatchHalo,nCells,1);
+      dim3 block_vel_halo(GPUTHREADS, warpsPerBlockBatchHalo, 1);
+      // We do 26 (launch with GPUTHREADS) neighbors in a single block at a time.
+      batch_update_velocity_halo_kernel<<<grid_vel_halo, block_vel_halo, 0, priorityStream>>> (
+         dev_vmeshes,
+         dev_vbwcl_vec,
+         dev_allMaps, // Needs both content and no content maps
+         warpsPerBlockBatchHalo
+         );
+      CHK_ERR( gpuPeekAtLastError() );
+      #endif
+      // CHK_ERR( gpuStreamSynchronize(priorityStream) );
+   }
 
    if (maxNeighbors>0 && largestContentListNeighbors>0) {
       // largestContentListNeighbors accounts for remote (ghost neighbor) content list sizes as well
@@ -712,6 +717,7 @@ void batch_adjust_blocks_caller(
          largestBlocksBeforeOrAfter = std::max(largestBlocksBeforeOrAfter, thread_largestBlocksBeforeOrAfter);
       }
    } // end parallel region
+   CHK_ERR( gpuDeviceSynchronize() );
    hostResizeTimer.stop();
    // Writing directly into pass-by-reference variables from within OMP parallel region caused issues
    out_largestBlocksToChange = largestBlocksToChange;

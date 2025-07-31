@@ -802,7 +802,8 @@ namespace spatial_cell {
             if (receiving) {
                // Set population size based on mpi_number_of_blocks transferred earlier.
                // Does not need to be cleared. Vmesh map and VBC will be prepared in prepare_to_receive_blocks.
-               populations[activePopID].vmesh->setNewSize(populations[activePopID].N_blocks);
+               // populations[activePopID].vmesh->setNewSize(populations[activePopID].N_blocks);
+               this->dev_resize_vmesh(activePopID,populations[activePopID].N_blocks);
                //populations[activePopID].vmesh->setNewSizeClear(populations[activePopID].N_blocks);
                //setNewSizeClear(activePopID,populations[activePopID].N_blocks);
             } else {

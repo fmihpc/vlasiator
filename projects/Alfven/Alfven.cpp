@@ -43,7 +43,7 @@ namespace projects {
       Real norm = sqrt(this->Bx_guiding*this->Bx_guiding + this->By_guiding*this->By_guiding + this->Bz_guiding*this->Bz_guiding);
       this->Bx_guiding /= norm;
       this->By_guiding /= norm;
-      this->By_guiding /= norm;
+      this->Bz_guiding /= norm;
       this->ALPHA = atan(this->By_guiding/this->Bx_guiding);
 
       return success;

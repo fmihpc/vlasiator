@@ -23,19 +23,16 @@ CMP = OMPI_CXX='hipcc' CC
 LNK = OMPI_CXX='hipcc' CC
  
 #======== Vectorization ==========
-#Set vector backend type for vlasov solvers, sets precision and length. 
-#Options: 
+#GPU Vlasov solvers no longer use any vectorclass.
+#Options:
 # AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
 # AVX512:   VEC8D_AGNER, VEC16F_AGNER
-# Fallback: VECTORCLASS = VEC_FALLBACK_GENERIC (Defaults to VECL8)
+# Fallback: VECTORCLASS = VEC_FALLBACK_GENERIC
 VECTORCLASS = VEC_FALLBACK_GENERIC
 
-#===== Vector Lengths ====
-# Default for VEC_FALLBACK_GENERIC is WID=4, VECL=8 
+# VMesh Block size: (historical value 4, also 8 supported)
 #WID=8
-#VECL=64
 WID=4
-VECL=16
 
 # Compile with GPU support (USE_HIP or USE_CUDA)
 USE_HIP=1
@@ -47,9 +44,9 @@ USE_HIP=1
 # LDFLAGS flags for linker
 # Important note: Do not edit COMPFLAGS in this file!
 
-CXXFLAGS += -g -ggdb -O3 -x hip --offload-arch=gfx90a:xnack+ -march=znver3 -std=c++20 -funroll-loops -fopenmp -I. -Ihip -Iomp -I${CRAY_MPICH_DIR}/include -W -Wall -Wno-unused-parameter -Wno-unused-result -Wno-unused-function -Wno-unused-variable -Wno-unknown-pragmas -Wno-deprecated-register -Wno-unused-but-set-variable -Wno-ignored-attributes -Wno-unused-lambda-capture
+CXXFLAGS += -g -ggdb -O3 -x hip --offload-arch=gfx90a:xnack+ -march=znver3 -std=c++20 -funroll-loops -fopenmp -I. -Ihip -Iomp -I${CRAY_MPICH_DIR}/include -W -Wall -Wno-unused-parameter -Wno-unused-result -Wno-unused-function -Wno-unused-variable -Wno-unknown-pragmas -Wno-deprecated-register -Wno-unused-but-set-variable -Wno-ignored-attributes -Wno-unused-lambda-capture -munsafe-fp-atomics
 
-testpackage: CXXFLAGS = -g -ggdb -O2 -x hip --offload-arch=gfx90a:xnack+ -march=znver3 -std=c++20 -fopenmp -I. -Ihip -Iomp -I${CRAY_MPICH_DIR}/include -W -Wall -Wno-unused-parameter -Wno-unused-result -Wno-unused-function -Wno-unused-variable -Wno-unknown-pragmas -Wno-deprecated-register -Wno-unused-but-set-variable -Wno-ignored-attributes -Wno-unused-lambda-capture
+testpackage: CXXFLAGS = -g -ggdb -O2 -x hip --offload-arch=gfx90a:xnack+ -march=znver3 -std=c++20 -fopenmp -I. -Ihip -Iomp -I${CRAY_MPICH_DIR}/include -W -Wall -Wno-unused-parameter -Wno-unused-result -Wno-unused-function -Wno-unused-variable -Wno-unknown-pragmas -Wno-deprecated-register -Wno-unused-but-set-variable -Wno-ignored-attributes -Wno-unused-lambda-capture -munsafe-fp-atomics
 
 LDFLAGS = -fopenmp -lrt -lpthread -L${CRAY_MPICH_DIR}/lib ${PE_MPICH_GTL_DIR_amd_gfx90a} -L${ROCM_PATH}/lib -L/usr/lib -lamdhip64
 LIB_MPI = -lmpi ${PE_MPICH_GTL_LIBS_amd_gfx90a}

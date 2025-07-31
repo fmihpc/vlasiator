@@ -683,7 +683,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    }
 
 #ifdef USE_GPU
-   phiprof::Timer gpuMallocTimer("GPU_malloc");
+   phiprof::Timer gpuReservationsTimer("GPU LB set cell reservations");
    uint gpuMaxBlockCount = 0;
    vmesh::LocalID gpuBlockCount = 0;
    // Not parallelized
@@ -710,12 +710,13 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
          SC->dev_upload_population(popID);
       }
    }
-   // Call GPU routines for per-thread memory allocation for Vlasov solvers
+   gpuReservationsTimer.stop();
+   // Call GPU routines for memory allocation for Vlasov solvers
    // deallocates first if necessary
-   //GPUTODO: Also count how many pencils exist
+   phiprof::Timer gpuAllocationsTimer("GPU LB set buffer allocations");
    gpu_vlasov_allocate(gpuMaxBlockCount,newCellsSize);
    gpu_acc_allocate(gpuMaxBlockCount,newCellsSize);
-   gpuMallocTimer.stop();
+   gpuAllocationsTimer.stop();
 #endif // end USE_GPU
 
 }

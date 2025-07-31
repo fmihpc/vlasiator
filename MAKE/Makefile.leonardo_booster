@@ -5,20 +5,16 @@
 # Build libraries with ./build_libraries.sh leonardo_booster
 
 #======== Vectorization ==========
-#Set vector backend type for vlasov solvers, sets precision and length.
+#GPU Vlasov solvers no longer use any vectorclass.
 #Options:
 # AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
 # AVX512:   VEC8D_AGNER, VEC16F_AGNER
 # Fallback: VECTORCLASS = VEC_FALLBACK_GENERIC
 VECTORCLASS = VEC_FALLBACK_GENERIC
 
-#===== Vector Lengths ====
-# Default for VEC_FALLBACK_GENERIC is WID=4, VECL=8
-# NOTE: A bug currently results in garbage data already on cell init if VECL is not equal to WID2
-WID=8
-VECL=64
-#WID=4
-#VECL=16
+# VMesh Block size: (historical value 4, also 8 supported)
+#WID=8
+WID=4
 
 #======== Libraries ===========
 LIBRARY_PREFIX = libraries-leonardo_booster

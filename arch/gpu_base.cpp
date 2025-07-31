@@ -38,6 +38,11 @@
 
 // #define MAXCPUTHREADS 64 now in gpu_base.hpp
 
+// Device properties
+int gpuMultiProcessorCount = 0;
+int blocksPerMP = 0;
+int threadsPerMP = 0;
+
 extern Logger logFile;
 int myDevice;
 int myRank;
@@ -96,6 +101,7 @@ Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *unionOfBlocksSet=NULL, *dev
 // pointers for translation
 Realf** dev_pencilBlockData; // Array of pointers into actual block data
 uint* dev_pencilBlocksCount; // Array of counters if pencil needs to be propagated for this block or not
+GPUMemoryManager gpuMemoryManager;
 
 // Counter for how many parallel vlasov buffers are allocated
 uint allocationCount = 0;
@@ -114,6 +120,22 @@ uint gpu_largest_columnCount = 0;
 uint gpu_allocated_batch_nCells = 0;
 uint gpu_allocated_batch_maxNeighbours = 0;
 
+// Pointers used in pitch angle diffusion
+// Host pointers
+Real *host_bValues = nullptr, *host_nu0Values = nullptr, *host_bulkVX = nullptr, *host_bulkVY = nullptr, *host_bulkVZ = nullptr, *host_Ddt = nullptr;
+Realf *host_sparsity = nullptr, *dev_densityPreAdjust = nullptr, *dev_densityPostAdjust = nullptr;
+size_t *host_cellIdxStartCutoff = nullptr, *host_smallCellIdxArray = nullptr, *host_remappedCellIdxArray = nullptr; // remappedCellIdxArray tells the position of the cell index in the sequence instead of the actual index
+// Device pointers
+Real *dev_bValues = nullptr, *dev_nu0Values = nullptr, *dev_bulkVX = nullptr, *dev_bulkVY = nullptr, *dev_bulkVZ = nullptr,
+   *dev_Ddt = nullptr, *dev_potentialDdtValues = nullptr;
+Realf *dev_fmu = nullptr, *dev_dfdt_mu = nullptr, *dev_sparsity = nullptr;
+int *dev_fcount = nullptr, *dev_cellIdxKeys = nullptr;
+size_t *dev_smallCellIdxArray = nullptr, *dev_remappedCellIdxArray = nullptr, *dev_cellIdxStartCutoff = nullptr, *dev_cellIdxArray = nullptr, *dev_velocityIdxArray = nullptr;
+// Counters
+size_t latestNumberOfLocalCellsPitchAngle = 0;
+int latestNumberOfVelocityCellsPitchAngle = 0;
+bool memoryHasBeenAllocatedPitchAngle = false;
+
 __host__ uint gpu_getThread() {
 #ifdef _OPENMP
     return omp_get_thread_num();
@@ -129,12 +151,23 @@ __host__ uint gpu_getMaxThreads() {
 #endif
 }
 
+unsigned int nextPowerOfTwo(unsigned int n) {
+   if (n == 0) return 1;
+   n--; // Handle exact powers of two
+   n |= n >> 1;
+   n |= n >> 2;
+   n |= n >> 4;
+   n |= n >> 8;
+   n |= n >> 16;
+   return n + 1;
+}
+
 __host__ void gpu_init_device() {
    const uint maxNThreads = gpu_getMaxThreads();
-   // int deviceCount;
+   int deviceCount;
    // CHK_ERR( gpuFree(0));
-   // CHK_ERR( gpuGetDeviceCount(&deviceCount) );
-   // printf("GPU device count %d with %d threads/streams\n",deviceCount,maxThreads);
+   CHK_ERR( gpuGetDeviceCount(&deviceCount) );
+   //printf("GPU device count %d with %d threads/streams\n",deviceCount,maxNThreads);
 
    /* Create communicator with one rank per compute node to identify which GPU to use */
    int amps_size;
@@ -164,23 +197,50 @@ __host__ void gpu_init_device() {
    checkSum &= INT_MAX;
    MPI_Comm_split(amps_CommWorld, checkSum, amps_rank, &amps_CommNode);
 #endif
-
    MPI_Comm_rank(amps_CommNode, &amps_node_rank);
    MPI_Comm_size(amps_CommNode, &amps_node_size);
-   //std::cerr << "(Grid) rank " << amps_rank << " is noderank "<< amps_node_rank << " of "<< amps_node_size << std::endl;
    myRank = amps_rank;
 
-   // if (amps_node_rank >= deviceCount) {
-   //    std::cerr<<"Error, attempting to use GPU device beyond available count!"<<std::endl;
-   //    abort();
-   // }
-   // if (amps_node_size > deviceCount) {
-   //    std::cerr<<"Error, MPI tasks per node exceeds available GPU device count!"<<std::endl;
-   //    abort();
-   // }
-   // CHK_ERR( gpuSetDevice(amps_node_rank) );
-   // CHK_ERR( gpuDeviceSynchronize() );
+   // if only one visible device, assume MPI system handles device visibility and just use the only visible one.
+   if (deviceCount > 1) {
+      // Otherwise, try selecting the correct one.
+      if (amps_node_rank >= deviceCount) {
+         std::cerr<<"Error, attempting to use GPU device beyond available count!"<<std::endl;
+         abort();
+      }
+      if (amps_node_size > deviceCount) {
+         std::cerr<<"Error, MPI tasks per node exceeds available GPU device count!"<<std::endl;
+         abort();
+      }
+      CHK_ERR( gpuSetDevice(amps_node_rank) );
+      // Only printout for first node:
+      if (amps_rank < amps_node_size) {
+         stringstream printout;
+         printout << "(Node 0) rank " << amps_rank << " is noderank "<< amps_node_rank << " of ";
+         printout << amps_node_size << " with " << deviceCount << " visible GPU devices." << std::endl;
+         std::cout << printout.str();
+      }
+   } else {
+      if (amps_rank == MASTER_RANK) {
+         std::cout << "(Node 0) MPI ranks see single GPU device each." << std::endl;
+      }
+   }
+   CHK_ERR( gpuDeviceSynchronize() );
    CHK_ERR( gpuGetDevice(&myDevice) );
+
+   // Get device properties
+   gpuDeviceProp prop;
+   CHK_ERR( gpuGetDeviceProperties(&prop, myDevice) );
+
+   gpuMultiProcessorCount = prop.multiProcessorCount;
+   threadsPerMP = prop.maxThreadsPerMultiProcessor;
+   #if defined(USE_GPU) && defined(__CUDACC__)
+   CHK_ERR( gpuDeviceGetAttribute(&blocksPerMP, gpuDevAttrMaxBlocksPerMultiprocessor, myDevice) );
+   #endif
+   #if defined(USE_GPU) && defined(__HIP_PLATFORM_HCC___)
+   blocksPerMP = threadsPerMP/GPUTHREADS; // This should be the maximum number of wavefronts per CU
+   #endif
+
 
    // Query device capabilities (only for CUDA, not needed for HIP)
    #if defined(USE_GPU) && defined(__CUDACC__)
@@ -226,6 +286,7 @@ __host__ void gpu_clear_device() {
    gpu_trans_deallocate();
    gpu_moments_deallocate();
    gpu_batch_deallocate();
+   gpu_pitch_angle_diffusion_deallocate();
    // Destroy streams
    const uint maxNThreads = gpu_getMaxThreads();
    for (uint i=0; i<maxNThreads; ++i) {
@@ -242,6 +303,7 @@ __host__ void gpu_clear_device() {
    CHK_ERR( gpuFree(gpu_block_indices_to_id) );
    CHK_ERR( gpuFree(gpu_block_indices_to_probe) );
    CHK_ERR( gpuDeviceSynchronize() );
+   gpuMemoryManager.freeAll();
 }
 
 __host__ gpuStream_t gpu_getStream() {
@@ -284,7 +346,7 @@ int gpu_reportMemory(const size_t local_cells_capacity, const size_t ghost_cells
       + gpu_allocated_moments*sizeof(vmesh::VelocityBlockContainer*) // gpu_moments dev_VBC
       + gpu_allocated_moments*4*sizeof(Real)  // gpu_moments dev_moments1
       + gpu_allocated_moments*3*sizeof(Real); // gpu_moments dev_moments2
-   // DT reduction buffers are deallocated every step (GPUTODO)
+   // DT reduction buffers are deallocated every step (GPUTODO, make persistent)
 
    size_t vlasovBuffers = 0;
    for (uint i=0; i<allocationCount; ++i) {
@@ -418,7 +480,7 @@ __host__ void gpu_vlasov_allocate_perthread(
    if (gpu_vlasov_allocatedSize[allocID] > blockAllocationCount * BLOCK_ALLOCATION_FACTOR) {
       return;
    }
-   // Potential new allocation with extra padding (including translation multiplier)
+   // Potential new allocation with extra padding (including translation multiplier - GPUTODO get rid of this)
    uint newSize = blockAllocationCount * BLOCK_ALLOCATION_PADDING * TRANSLATION_BUFFER_ALLOCATION_FACTOR;
    // Deallocate before new allocation
    gpu_vlasov_deallocate_perthread(allocID);
@@ -451,10 +513,11 @@ __host__ void gpu_vlasov_allocate_perthread(
 
      Thus, our mallocs should be in increments of 256 bytes. WID3 is at least 64, and len(Realf) is at least 4, so this is true in all
      cases. Still, let us ensure (just to be sure) that probe cube addressing does not break alignment.
+     And in fact let's use the block memory size as the stride.
    */
-   blockDataAllocation = (1 + ((blockDataAllocation - 1) / 256)) * 256;
+   blockDataAllocation = (1 + ((blockDataAllocation - 1) / (WID3 * sizeof(Realf)))) * (WID3 * sizeof(Realf));
    CHK_ERR( gpuMallocAsync((void**)&host_blockDataOrdered[allocID], blockDataAllocation, stream) );
-   // Store size of new allocation
+   // Store size of new allocation (in units blocks)
    gpu_vlasov_allocatedSize[allocID] = blockDataAllocation / (WID3 * sizeof(Realf));
 }
 
@@ -806,5 +869,151 @@ __host__ void gpu_trans_deallocate() {
          CHK_ERR( gpuFree(DimensionPencils[dimension].gpu_targetRatios) );
          DimensionPencils[dimension].gpu_allocated_sumOfLengths = 0;
       }
+   }
+}
+
+void gpu_pitch_angle_diffusion_allocate(size_t numberOfLocalCells, int nbins_v, int nbins_mu, int blocksPerSpatialCell, int totalNumberOfVelocityBlocks) {
+   if (numberOfLocalCells <= latestNumberOfLocalCellsPitchAngle && totalNumberOfVelocityBlocks <= latestNumberOfVelocityCellsPitchAngle) {
+      return;
+   }
+
+   latestNumberOfVelocityCellsPitchAngle = totalNumberOfVelocityBlocks;
+
+   // Allocate device memory
+   CHK_ERR( gpuMalloc((void**)&dev_cellIdxArray, totalNumberOfVelocityBlocks*sizeof(size_t)) );
+   CHK_ERR( gpuMalloc((void**)&dev_velocityIdxArray, totalNumberOfVelocityBlocks*sizeof(size_t)) );
+
+   if (numberOfLocalCells <= latestNumberOfLocalCellsPitchAngle) {
+      return;
+   }
+
+   latestNumberOfLocalCellsPitchAngle = numberOfLocalCells;
+
+   if(memoryHasBeenAllocatedPitchAngle){
+      gpu_pitch_angle_diffusion_deallocate();
+   }
+
+   // Allocate host memory
+   CHK_ERR( gpuHostAlloc(&host_bValues, 3*numberOfLocalCells*sizeof(Real)) );
+   CHK_ERR( gpuHostAlloc(&host_nu0Values, numberOfLocalCells*sizeof(Real)) );
+   CHK_ERR( gpuHostAlloc(&host_sparsity, numberOfLocalCells*sizeof(Realf)) );
+   CHK_ERR( gpuHostAlloc(&host_bulkVX, numberOfLocalCells*sizeof(Real)) );
+   CHK_ERR( gpuHostAlloc(&host_bulkVY, numberOfLocalCells*sizeof(Real)) );
+   CHK_ERR( gpuHostAlloc(&host_bulkVZ, numberOfLocalCells*sizeof(Real)) );
+   CHK_ERR( gpuHostAlloc(&host_cellIdxStartCutoff, numberOfLocalCells*sizeof(size_t)) );
+   CHK_ERR( gpuHostAlloc(&host_smallCellIdxArray, numberOfLocalCells*sizeof(size_t)) );
+   CHK_ERR( gpuHostAlloc(&host_remappedCellIdxArray, numberOfLocalCells*sizeof(size_t)) );
+   CHK_ERR( gpuHostAlloc(&host_Ddt, numberOfLocalCells*sizeof(Real)) );
+
+   // Allocate device memory
+   CHK_ERR( gpuMalloc((void**)&dev_bValues, 3*numberOfLocalCells*sizeof(Real)) );
+   CHK_ERR( gpuMalloc((void**)&dev_nu0Values, numberOfLocalCells*sizeof(Real)) );
+   CHK_ERR( gpuMalloc((void**)&dev_sparsity, numberOfLocalCells*sizeof(Realf)) );
+   CHK_ERR( gpuMalloc((void**)&dev_dfdt_mu, numberOfLocalCells*nbins_v*nbins_mu*sizeof(Realf)) );
+   CHK_ERR( gpuMalloc((void**)&dev_fcount, numberOfLocalCells*nbins_v*nbins_mu*sizeof(int)) );
+   CHK_ERR( gpuMalloc((void**)&dev_fmu, numberOfLocalCells*nbins_v*nbins_mu*sizeof(Realf)) );
+   CHK_ERR( gpuMalloc((void**)&dev_bulkVX, numberOfLocalCells*sizeof(Real)) );
+   CHK_ERR( gpuMalloc((void**)&dev_bulkVY, numberOfLocalCells*sizeof(Real)) );
+   CHK_ERR( gpuMalloc((void**)&dev_bulkVZ, numberOfLocalCells*sizeof(Real)) );
+   CHK_ERR( gpuMalloc((void**)&dev_densityPreAdjust, numberOfLocalCells*sizeof(Realf)) );
+   CHK_ERR( gpuMalloc((void**)&dev_densityPostAdjust, numberOfLocalCells*sizeof(Realf)) );
+   CHK_ERR( gpuMalloc((void**)&dev_cellIdxStartCutoff, numberOfLocalCells*sizeof(size_t)) );
+   CHK_ERR( gpuMalloc((void**)&dev_smallCellIdxArray, numberOfLocalCells*sizeof(size_t)) );
+   CHK_ERR( gpuMalloc((void**)&dev_remappedCellIdxArray, numberOfLocalCells*sizeof(size_t)) );
+   CHK_ERR( gpuMalloc((void**)&dev_Ddt, numberOfLocalCells*sizeof(Real)) );
+   CHK_ERR( gpuMalloc((void**)&dev_potentialDdtValues, numberOfLocalCells*blocksPerSpatialCell*sizeof(Real)) );
+   CHK_ERR( gpuMalloc((void**)&dev_cellIdxKeys, numberOfLocalCells*blocksPerSpatialCell*sizeof(int)) );
+
+   memoryHasBeenAllocatedPitchAngle = true;
+}
+
+void gpu_pitch_angle_diffusion_deallocate() {
+   // Free memory
+   if (dev_bValues) {
+      CHK_ERR( gpuFree(dev_bValues) );
+   }
+   if (dev_nu0Values) {
+      CHK_ERR( gpuFree(dev_nu0Values) );
+   }
+   if (dev_sparsity) {
+      CHK_ERR( gpuFree(dev_sparsity) );
+   }
+   if (dev_dfdt_mu) {
+      CHK_ERR( gpuFree(dev_dfdt_mu) );
+   }
+   if (dev_fcount) {
+      CHK_ERR( gpuFree(dev_fcount) );
+   }
+   if (dev_fmu) {
+      CHK_ERR( gpuFree(dev_fmu) );
+   }
+   if (dev_bulkVX) {
+      CHK_ERR( gpuFree(dev_bulkVX) );
+   }
+   if (dev_bulkVY) {
+      CHK_ERR( gpuFree(dev_bulkVY) );
+   }
+   if (dev_bulkVZ) {
+      CHK_ERR( gpuFree(dev_bulkVZ) );
+   }
+   if (dev_densityPreAdjust) {
+      CHK_ERR( gpuFree(dev_densityPreAdjust) );
+   }
+   if (dev_densityPostAdjust) {
+      CHK_ERR( gpuFree(dev_densityPostAdjust) );
+   }
+   if (dev_cellIdxStartCutoff) {
+      CHK_ERR( gpuFree(dev_cellIdxStartCutoff) );
+   }
+   if (dev_smallCellIdxArray) {
+      CHK_ERR( gpuFree(dev_smallCellIdxArray) );
+   }
+   if (dev_remappedCellIdxArray) {
+      CHK_ERR( gpuFree(dev_remappedCellIdxArray) );
+   }
+   if (dev_Ddt) {
+      CHK_ERR( gpuFree(dev_Ddt) );
+   }
+   if (dev_potentialDdtValues) {
+      CHK_ERR( gpuFree(dev_potentialDdtValues) );
+   }
+   if (dev_cellIdxKeys) {
+      CHK_ERR( gpuFree(dev_cellIdxKeys) );
+   }
+   if (host_bValues) {
+      CHK_ERR( gpuFreeHost(host_bValues) );
+   }
+   if (host_nu0Values) {
+      CHK_ERR( gpuFreeHost(host_nu0Values) );
+   }
+   if (host_sparsity) {
+      CHK_ERR( gpuFreeHost(host_sparsity) );
+   }
+   if (host_bulkVX) {
+      CHK_ERR( gpuFreeHost(host_bulkVX) );
+   }
+   if (host_bulkVY) {
+      CHK_ERR( gpuFreeHost(host_bulkVY) );
+   }
+   if (host_bulkVZ) {
+      CHK_ERR( gpuFreeHost(host_bulkVZ) );
+   }
+   if (dev_velocityIdxArray) {
+      CHK_ERR( gpuFree(dev_velocityIdxArray) );
+   }
+   if (dev_cellIdxArray) {
+      CHK_ERR( gpuFree(dev_cellIdxArray) );
+   }
+   if (host_cellIdxStartCutoff) {
+      CHK_ERR( gpuFreeHost(host_cellIdxStartCutoff) );
+   }
+   if (host_smallCellIdxArray) {
+      CHK_ERR( gpuFreeHost(host_smallCellIdxArray) );
+   }
+   if (host_remappedCellIdxArray) {
+      CHK_ERR( gpuFreeHost(host_remappedCellIdxArray) );
+   }
+   if (host_Ddt) {
+      CHK_ERR( gpuFreeHost(host_Ddt) );
    }
 }

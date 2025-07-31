@@ -237,35 +237,28 @@ namespace projects {
    }
 
    void Project::setVelocitySpace(const uint popID,SpatialCell* cell) const {
-      phiprof::Timer setVSpacetimer {"Set Velocity Space"};
       // Find list of blocks to initialize. The project.cpp version returns
       // all possible blocks, projectTriAxisSearch provides a more educated guess.
 
-      //phiprof::Timer findblocksTimer {"find blocks to init"};
       const uint nRequested = this->findBlocksToInitialize(cell,popID);
       // stores in vmesh->getGrid() (localToGlobalMap)
       // with count in cell->get_population(popID).N_blocks
-      //findblocksTimer.stop();
+
+      // Set and apply the reservation value
+      #ifdef USE_GPU
+      cell->setReservation(popID,nRequested,true); // Force to this value
+      cell->applyReservation(popID);
+      #endif
 
       // Resize and populate mesh
       cell->prepare_to_receive_blocks(popID);
 
       // Call project-specific fill function, which loops over all requested blocks,
       // fills v-space into target
-      phiprof::Timer fillTimer {"fill phasespace"};
       const Realf nullsum = fillPhaseSpace(cell, popID, nRequested);
-      fillTimer.stop();
       if (rescalesDensity(popID) == true) {
          rescaleDensity(cell,popID);
       }
-
-      // Set and apply the reservation value
-      #ifdef USE_GPU
-      phiprof::Timer reservationTimer {"set apply reservation"};
-      cell->setReservation(popID,nRequested,true); // Force to this value
-      cell->applyReservation(popID);
-      reservationTimer.stop();
-      #endif
       return;
    }
 
@@ -451,7 +444,7 @@ namespace projects {
 
       bool shouldRefine {
          (r2 < r_max2) && (
-            alpha1ShouldRefine || 
+            alpha1ShouldRefine ||
             alpha2ShouldRefine ||
             vorticityShouldRefine ||
             anisotropyShouldRefine
@@ -496,7 +489,7 @@ namespace projects {
 
       bool shouldUnrefine {
          (r2 > r_max2) || (
-            alpha1ShouldUnrefine && 
+            alpha1ShouldUnrefine &&
             alpha2ShouldUnrefine &&
             vorticityShouldUnrefine &&
             anisotropyShouldUnrefine
@@ -726,7 +719,7 @@ Project* createProject() {
    if(Parameters::projectName == "LossCone") {
       rvalue = new projects::LossCone;
    }
-   
+
 
    if (rvalue == NULL) {
       cerr << "Unknown project name!" << endl;

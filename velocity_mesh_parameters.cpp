@@ -91,7 +91,11 @@ void vmesh::MeshWrapper::uploadMeshWrapper() {
          break;
       }
    }
-   printf("Done setting all %d instances of device mesh wrapper handler!\n",count);
+   int myRank;
+   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+   if(myRank == MASTER_RANK) {
+      printf("Done setting all %d instances of device mesh wrapper handler!\n",count);
+   }
 
    // Copy host-side address back
    meshWrapper->velocityMeshes = temp;
@@ -110,8 +114,9 @@ void vmesh::deallocateMeshWrapper() {
 void vmesh::MeshWrapper::initVelocityMeshes(const uint nMeshes) {
    // Verify lengths match?
    if (meshWrapper->velocityMeshesCreation->size() != nMeshes) {
-      printf("Warning! Initializing only %d velocity meshes out of %d created ones.\n",nMeshes,
+      printf("Error! Initialized only %d velocity meshes out of %d created ones.\n",nMeshes,
              (int)meshWrapper->velocityMeshesCreation->size());
+      abort();
    }
    // Create pointer to array of sufficient length
    meshWrapper->velocityMeshes = new std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT>;
