@@ -23,7 +23,6 @@
 #ifndef FLUCTUATIONS_H
 #define FLUCTUATIONS_H
 
-#include <span>
 #include <stdlib.h>
 
 #include "../../definitions.h"

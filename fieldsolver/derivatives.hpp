@@ -21,7 +21,6 @@
 #define DERIVATIVES_HPP
 
 #include <array>
-#include <span>
 
 #include "../definitions.h"
 //#include "../spatial_cells/spatial_cell_wrapper.hpp"

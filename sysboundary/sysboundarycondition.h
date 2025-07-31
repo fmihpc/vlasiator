@@ -31,7 +31,6 @@
 #include "../definitions.h"
 #include "../projects/project.h"
 #include "../spatial_cells/spatial_cell_wrapper.hpp"
-#include <span>
 #include <vector>
 
 using namespace spatial_cell;

@@ -23,7 +23,6 @@
 #ifndef MULTIPEAK_H
 #define MULTIPEAK_H
 
-#include <span>
 #include <vector>
 
 #include "../../definitions.h"

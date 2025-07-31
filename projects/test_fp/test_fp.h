@@ -23,7 +23,6 @@
 #ifndef TEST_FP_H
 #define TEST_FP_H
 
-#include <span>
 #include <stdlib.h>
 
 #include "../../definitions.h"

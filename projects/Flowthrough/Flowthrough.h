@@ -24,7 +24,6 @@
 #define FLOWTHROUGH_H
 
 #include <array>
-#include <span>
 #include <vector>
 
 #include "../../definitions.h"

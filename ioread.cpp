@@ -26,6 +26,7 @@
 #include <ctime>
 #include <iomanip> // for setprecision()
 #include <iostream>
+#include <span>
 #include <sstream>
 #include <sys/stat.h>
 #include <sys/types.h>

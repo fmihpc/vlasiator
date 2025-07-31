@@ -30,7 +30,6 @@
 #include "sysboundary/sysboundary.h"
 #include <dccrg.hpp>
 #include <dccrg_cartesian_geometry.hpp>
-#include <span>
 #include <string>
 
 struct FieldSolverData {

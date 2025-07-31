@@ -29,7 +29,6 @@
 
 #include <cstdlib>
 #include <iostream>
-#include <span>
 
 #include "../parameters.h"
 #include "../vlasovsolver/vlasovmover.h"

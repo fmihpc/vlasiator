@@ -598,8 +598,8 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
  */
 void SysBoundary::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                     fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
-                                    std::span<array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                    std::span<array<Real, fsgrids::bgbfield::N_BGB>> bgb, Project& project) {
+                                    fsgrids::perbspan perb,
+                                    fsgrids::bgbspan bgb, Project& project) {
 
    list<SBC::SysBoundaryCondition*>::iterator it;
    for (it = sysBoundaries.begin(); it != sysBoundaries.end(); it++) {

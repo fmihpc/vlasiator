@@ -23,7 +23,6 @@
 #ifndef LARMOR_H
 #define LARMOR_H
 
-#include <span>
 #include <stdlib.h>
 
 #include "../../definitions.h"

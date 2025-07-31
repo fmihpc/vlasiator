@@ -23,7 +23,6 @@
 #ifndef VERIFICATIONLARMOR_H
 #define VERIFICATIONLARMOR_H
 
-#include <span>
 #include <stdlib.h>
 
 #include "../../definitions.h"

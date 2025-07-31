@@ -25,7 +25,6 @@
 #include "ldz_hall.hpp"
 // clang-format on
 #include <limits>
-#include <span>
 
 #ifdef DEBUG_VLASIATOR
 #define DEBUG_FSOLVER

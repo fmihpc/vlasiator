@@ -23,7 +23,6 @@
 #ifndef SHOCKTEST_H
 #define SHOCKTEST_H
 
-#include <span>
 #include <vector>
 
 #include "../../definitions.h"

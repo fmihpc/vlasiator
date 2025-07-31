@@ -212,7 +212,7 @@ namespace SBC {
    
    void Outflow::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                    fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
-                                   std::span<array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                   fsgrids::perbspan perb,
                                    fsgrids::bgbspan bgb, Project& project) {
       const vector<CellID>& cells = getLocalCells();
    #pragma omp parallel for schedule(static)
@@ -252,7 +252,7 @@ namespace SBC {
    
    void Outflow::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                              fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
-                             std::span<array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                             fsgrids::perbspan perb,
                              fsgrids::bgbspan bgb, creal t) {}
    
    Real Outflow::fieldSolverBoundaryCondMagneticField(fsgrids::perbspan b,

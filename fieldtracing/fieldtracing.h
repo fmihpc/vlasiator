@@ -31,7 +31,6 @@
 #include <array>
 #include <cstdlib>
 extern Logger logFile;
-#include <span>
 
 // Used in full box + flux rope tracing, the others used in coupling should use Real as double probably.
 typedef float TReal;

@@ -26,7 +26,6 @@
 #include "../../definitions.h"
 #include "../../sysboundary/sysboundary.h"
 #include "../projectTriAxisSearch.h"
-#include <span>
 
 namespace projects {
 

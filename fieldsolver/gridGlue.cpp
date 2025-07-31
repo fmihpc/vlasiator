@@ -7,7 +7,6 @@
 #include "../definitions.h"
 #include "../common.h"
 #include "gridGlue.hpp"
-#include <span>
 
 // clang-format on
 

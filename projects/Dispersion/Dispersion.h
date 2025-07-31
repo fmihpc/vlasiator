@@ -27,7 +27,6 @@
 
 #include "../../definitions.h"
 #include "../project.h"
-#include <span>
 
 namespace projects {
 

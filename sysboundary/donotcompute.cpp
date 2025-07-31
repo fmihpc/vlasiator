@@ -54,7 +54,7 @@ namespace SBC {
 
    void DoNotCompute::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                         fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
-                                        std::span<array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                        fsgrids::perbspan perb,
                                         fsgrids::bgbspan bgb, Project&) {
       const vector<CellID>& cells = getLocalCells();
 #pragma omp parallel for

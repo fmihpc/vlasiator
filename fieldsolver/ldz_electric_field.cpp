@@ -22,7 +22,6 @@
 
 #include <algorithm>
 #include <cstdlib>
-#include <span>
 
 #include "fs_common.h"
 #include "ldz_electric_field.hpp"

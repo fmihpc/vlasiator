@@ -26,7 +26,6 @@
 #include <ctime>
 #include <iomanip> // for setprecision()
 #include <iostream>
-#include <span>
 #include <sstream>
 #include <vector>
 #ifdef _OPENMP

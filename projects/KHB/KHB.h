@@ -23,7 +23,6 @@
 #ifndef KHB_H
 #define KHB_H
 
-#include <span>
 #include <stdlib.h>
 
 #include "../../definitions.h"

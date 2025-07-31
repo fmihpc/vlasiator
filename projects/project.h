@@ -28,7 +28,6 @@
 #include <dccrg.hpp>
 #include <dccrg_cartesian_geometry.hpp>
 #include <random>
-#include <span>
 
 namespace projects {
 

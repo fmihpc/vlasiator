@@ -203,8 +203,8 @@ namespace SBC {
    }
    
    void Inflow::setBFromTemplate(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                 std::span<array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                 std::span<array<Real, fsgrids::bgbfield::N_BGB>> bgb,
+                                 fsgrids::perbspan perb,
+                                 fsgrids::bgbspan bgb,
                                  fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
       std::array<bool, 6> isThisCellOnAFace;
       const auto& gridSpacing = fsgrid.getGridSpacing();

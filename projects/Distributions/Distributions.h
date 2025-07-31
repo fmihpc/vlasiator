@@ -26,7 +26,6 @@
 
 #include "../../definitions.h"
 #include "../projectTriAxisSearch.h"
-#include <span>
 
 namespace projects {
    class Distributions: public TriAxisSearch {

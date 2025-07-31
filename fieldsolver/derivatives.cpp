@@ -26,7 +26,6 @@
 #include "fs_common.h"
 #include "fs_limiters.h"
 #include <Eigen/Geometry>
-#include <span>
 
 template <typename T, size_t N> struct DerivativesData {
    const std::array<T, N>& ooo = {};
