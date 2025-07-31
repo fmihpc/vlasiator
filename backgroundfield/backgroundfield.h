@@ -34,7 +34,11 @@
 void setBackgroundField(const FieldFunction& bgFunction, std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                         std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid, bool append = false);
 
-void setBackgroundFieldToZero(std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb);
+void setBackgroundFieldToZero(
+   FieldSolverGrid &fsgrid,
+   std::span<fsgrids::technical> technical,
+   std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb
+);
 
 /**
    Templated function for setting the perturbed B field to zero.
@@ -43,13 +47,19 @@ void setBackgroundFieldToZero(std::span<std::array<Real, fsgrids::bgbfield::N_BG
    object to zero (see setPerturbedField below).
 */
 template <long unsigned int numFields>
-void setPerturbedFieldToZero(std::span<std::array<Real, numFields>> b, int offset = fsgrids::bfield::PERBX) {
-#pragma omp parallel for
-   for (size_t i = 0; i < b.size(); i++) {
+void setPerturbedFieldToZero(
+   FieldSolverGrid &fsgrid,
+   std::span<fsgrids::technical> technical,
+   std::span<std::array<Real, numFields>> b,
+   int offset = fsgrids::bfield::PERBX
+) {
+   fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                       phiprof::initializeTimer("setPerturbedFieldToZero"), technical,
+                       [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
       for (size_t j = 0; j < fsgrids::bfield::N_BFIELD; ++j) {
-         b[i][offset + j] = 0.0;
+         b[stencil.ooo()][offset + j] = 0.0;
       }
-   }
+   });
 }
 
 /**
@@ -68,7 +78,7 @@ void setPerturbedField(const FieldFunction& bfFunction, std::span<std::array<Rea
 
    /*if we do not add a new background to the existing one we first put everything to zero*/
    if (append == false) {
-      setPerturbedFieldToZero(b, offset);
+      setPerturbedFieldToZero(fsgrid, technical, b, offset);
    }
 
    // these are doubles, as the averaging functions copied from Gumics

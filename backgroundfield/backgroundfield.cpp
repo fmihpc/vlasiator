@@ -37,7 +37,7 @@ void setBackgroundField(const FieldFunction& bgFunction, std::span<std::array<Re
 
    /*if we do not add a new background to the existing one we first put everything to zero*/
    if (append == false) {
-      setBackgroundFieldToZero(bgb);
+      setBackgroundFieldToZero(fsgrid, technical, bgb);
    }
    const size_t numCells = fsgrid.getNumCells();
    phiprof::Timer bgTimer{"set Background field"};
@@ -125,9 +125,16 @@ void setBackgroundField(const FieldFunction& bgFunction, std::span<std::array<Re
    // Compute divergence and curl of volume averaged field and check that both are zero.
 }
 
-void setBackgroundFieldToZero(std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb) {
-#pragma omp parallel for
-   for (size_t i = 0; i < bgb.size(); i++) {
-      bgb[i].fill(0.0);
-   }
+void setBackgroundFieldToZero(
+   FieldSolverGrid &fsgrid,
+   std::span<fsgrids::technical> technical,
+   std::span<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb
+) {
+   fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+   phiprof::initializeTimer("setBackgroundFieldToZero"), technical,
+   [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+      for (size_t i = 0; i < bgb[stencil.ooo()].size(); i++) {
+         bgb[stencil.ooo()][i] == 0.0;
+      }
+   });
 }
