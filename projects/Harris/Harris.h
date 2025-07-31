@@ -43,7 +43,7 @@ namespace projects {
       static void addParameters(void);
       virtual void getParameters(void) override;
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell, creal& t) override;
-      virtual void setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+      virtual void setProjectBField(fsgrids::perbspan perb,
                                     fsgrids::bgbspan bgb,
                                     std::span<fsgrids::technical> technical, FieldSolverGrid& fsgrid) override;
 

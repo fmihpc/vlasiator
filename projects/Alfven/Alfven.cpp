@@ -166,7 +166,7 @@ namespace projects {
       //Real dBzavg = cos(2.0 * M_PI * ksi);
    }
 
-   void Alfven::setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+   void Alfven::setProjectBField(fsgrids::perbspan perb,
                                  fsgrids::bgbspan bgb,
                                  std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
       const auto& gridSpacing = fsgrid.getGridSpacing();

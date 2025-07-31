@@ -177,7 +177,7 @@ namespace projects {
       return V0;
    }
 
-   void Harris::setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+   void Harris::setProjectBField(fsgrids::perbspan perb,
                                  fsgrids::bgbspan bgb,
                                  std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
       setBackgroundFieldToZero(fsgrid, technical, bgb);

@@ -28,8 +28,8 @@
 
 #include "fs_common.h"
 
-void propagateMagneticFieldSimple(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                  std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perbdt2,
+void propagateMagneticFieldSimple(fsgrids::perbspan perb,
+                                  fsgrids::perbspan perbdt2,
                                   fsgrids::bgbspan bgb,
                                   std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
                                   std::span<std::array<Real, fsgrids::efield::N_EFIELD>> edt2,

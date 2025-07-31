@@ -189,7 +189,7 @@ namespace projects {
       this->rndVel[2]=getRandomNumber(rndState);
    }
 
-   void Fluctuations::setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+   void Fluctuations::setProjectBField(fsgrids::perbspan perb,
                                        fsgrids::bgbspan bgb,
                                        std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
       ConstantField bgField;

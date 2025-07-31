@@ -78,7 +78,7 @@ namespace SBC {
 
    void DoNotCompute::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                   std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
-                                  std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                  fsgrids::perbspan perb,
                                   fsgrids::bgbspan bgb, creal t) {}
 
    void DoNotCompute::getFaces(bool *faces) {}

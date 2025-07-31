@@ -1158,7 +1158,7 @@ bool readIonosphereNodeVariable(vlsv::ParallelReader& file, const string& variab
  \sa readGrid
  */
 bool exec_readGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                   std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                   fsgrids::perbspan perb,
                    std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
                    std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid, const std::string& name) {
    vector<CellID> fileCells; /*< CellIds for all cells in file*/
@@ -1498,7 +1498,7 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid
 \param name Name of the restart file e.g. "restart.00052.vlsv"
 */
 bool readGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-              std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+              fsgrids::perbspan perb,
               std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
               std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid, const std::string& name) {
    // Check the vlsv version from the file:

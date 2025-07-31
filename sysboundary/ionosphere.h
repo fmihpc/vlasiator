@@ -226,7 +226,7 @@ namespace SBC {
       // down from the simulation boundary onto this grid
       void mapDownBoundaryData(fsgrids::perbspan perb,
                                std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
-                               std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                               fsgrids::momentsspan moments,
                                std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid);
 
       // Returns the surface area of one element on the sphere
@@ -326,7 +326,7 @@ namespace SBC {
                                      std::span<fsgrids::technical> technical, FieldSolverGrid& fsgrid) override;
       virtual void applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                      std::span<fsgrids::technical> technical, FieldSolverGrid& fsgrid,
-                                     std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                     fsgrids::perbspan perb,
                                      fsgrids::bgbspan bgb,
                                      Project& project) override;
       virtual Real fieldSolverBoundaryCondMagneticField(fsgrids::perbspan b,
@@ -356,7 +356,7 @@ namespace SBC {
                                            const bool calculate_V_moments) override;
       virtual void updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                std::span<fsgrids::technical> technical, FieldSolverGrid& fsgrid,
-                               std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                               fsgrids::perbspan perb,
                                fsgrids::bgbspan bgb, creal t) override;
 
       virtual void getFaces(bool* faces) override;

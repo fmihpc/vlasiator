@@ -74,11 +74,11 @@ class SysBoundary {
                      std::span< fsgrids::technical> technical, FieldSolverGrid &fsgrid);
    void applyInitialState(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                           std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
-                          std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                          fsgrids::perbspan perb,
                           fsgrids::bgbspan bgb, Project& project);
    void updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                     std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
-                    std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                    fsgrids::perbspan perb,
                     fsgrids::bgbspan bgb, creal t);
    void applySysBoundaryVlasovConditions(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, creal& t, const bool calculate_V_moments);
    void setupL2OutflowAtRestart(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid);

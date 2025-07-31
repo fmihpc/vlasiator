@@ -29,8 +29,8 @@
 
 #include "fs_limiters.h"
 
-void calculateDerivativesSimple(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+void calculateDerivativesSimple(fsgrids::perbspan perb,
+                                fsgrids::momentsspan moments,
                                 fsgrids::dperbspan dperb,
                                 fsgrids::dmomentsspan dmoments,
                                 std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,

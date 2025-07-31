@@ -22,15 +22,15 @@
 
 #include "fs_common.h"
 
-void calculateUpwindedElectricFieldSimple(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                          std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perbdt2,
+void calculateUpwindedElectricFieldSimple(fsgrids::perbspan perb,
+                                          fsgrids::perbspan perbdt2,
                                           std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
                                           std::span<std::array<Real, fsgrids::efield::N_EFIELD>> edt2,
                                           std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
                                           std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe,
                                           std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpedt2,
-                                          std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
-                                          std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> momentsdt2,
+                                          fsgrids::momentsspan moments,
+                                          fsgrids::momentsspan momentsdt2,
                                           fsgrids::dperbspan dperb,
                                           fsgrids::dmomentsspan dmoments,
                                           fsgrids::dmomentsspan dmomentsdt2,

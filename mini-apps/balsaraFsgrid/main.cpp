@@ -11,7 +11,7 @@ using namespace fsgrids;
 uint Parameters::ohmHallTerm = 0;
 
 // Very simplified version of CalculateDerivatives from fieldsolver/derivatives.cpp
-void calculateDerivatives(const fsgrid::FsStencil& stencil, std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+void calculateDerivatives(const fsgrid::FsStencil& stencil, fsgrids::perbspan perb,
                           fsgrids::dperbspan dperb,
                           std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
    std::array<Real, fsgrids::dperb::N_DPERB>& dPerB = dperb[stencil.ooo()];

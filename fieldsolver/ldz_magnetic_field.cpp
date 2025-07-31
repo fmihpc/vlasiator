@@ -27,8 +27,8 @@
 
 #include "ldz_magnetic_field.hpp"
 
-void propagateMagneticField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                            std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perbdt2,
+void propagateMagneticField(fsgrids::perbspan perb,
+                            fsgrids::perbspan perbdt2,
                             std::span<const std::array<Real, fsgrids::efield::N_EFIELD>> e,
                             std::span<const std::array<Real, fsgrids::efield::N_EFIELD>> edt2,
                             const fsgrid::FsStencil& stencil, Real dt, int32_t RKCase, bool doX, bool doY, bool doZ,
@@ -168,8 +168,8 @@ void propagateMagneticField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD
  *
  * \sa propagateMagneticFieldSimple propagateMagneticField
  */
-void propagateSysBoundaryMagneticField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                       std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perbdt2,
+void propagateSysBoundaryMagneticField(fsgrids::perbspan perb,
+                                       fsgrids::perbspan perbdt2,
                                        std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                                        std::span<const fsgrids::technical> technical,
                                        const std::array<Real, 3>& gridSpacing,
@@ -201,8 +201,8 @@ void propagateSysBoundaryMagneticField(std::span<std::array<Real, fsgrids::bfiel
  *
  * \sa propagateMagneticField propagateSysBoundaryMagneticField
  */
-void propagateMagneticFieldSimple(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                  std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perbdt2,
+void propagateMagneticFieldSimple(fsgrids::perbspan perb,
+                                  fsgrids::perbspan perbdt2,
                                   fsgrids::bgbspan bgb,
                                   std::span<std::array<Real, fsgrids::efield::N_EFIELD>> e,
                                   std::span<std::array<Real, fsgrids::efield::N_EFIELD>> edt2,

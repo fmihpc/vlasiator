@@ -59,7 +59,7 @@ namespace projects {
       virtual Realf probePhaseSpace(spatial_cell::SpatialCell* cell, const uint popID, Real vx_in, Real vy_in,
                                     Real vz_in) const override;
 
-      virtual void setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+      virtual void setProjectBField(fsgrids::perbspan perb,
                                     fsgrids::bgbspan bgb,
                                     std::span<fsgrids::technical> technical, FieldSolverGrid& fsgrid) override;
 

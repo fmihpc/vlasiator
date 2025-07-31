@@ -98,7 +98,7 @@ namespace projects {
 
    void Dispersion::hook(cuint& stage,
                          const dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                         std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                         fsgrids::perbspan perb,
                          std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) const {
       if(hook::END_OF_TIME_STEP == stage) {
          int myRank;
@@ -212,7 +212,7 @@ namespace projects {
       this->rndVel[2]=getRandomNumber(rndState);
    }
 
-   void Dispersion::setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+   void Dispersion::setProjectBField(fsgrids::perbspan perb,
                                      fsgrids::bgbspan bgb,
                                      std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
       ConstantField bgField;

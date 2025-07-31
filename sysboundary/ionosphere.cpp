@@ -1119,7 +1119,7 @@ namespace SBC {
    // Transport field-aligned currents down from the simulation cells to the ionosphere
    void SphericalTriGrid::mapDownBoundaryData(fsgrids::perbspan perb,
                                               std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
-                                              std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+                                              fsgrids::momentsspan moments,
                                               std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
    
       if (!isCouplingInwards && !isCouplingOutwards) {
@@ -2543,7 +2543,7 @@ namespace SBC {
    
    void Ionosphere::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                       std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
-                                      std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                      fsgrids::perbspan perb,
                                       fsgrids::bgbspan bgb, Project& project) {
       const vector<CellID>& cells = getLocalCells();
       // #pragma omp parallel for
@@ -3429,7 +3429,7 @@ namespace SBC {
    
    void Ionosphere::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                 std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
-                                std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                fsgrids::perbspan perb,
                                 fsgrids::bgbspan bgb, creal t) {}
    
    uint Ionosphere::getIndex() const { return sysboundarytype::IONOSPHERE; }

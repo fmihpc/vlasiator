@@ -24,8 +24,8 @@
 
 void calculateGradPeTermSimple(std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpe,
                                std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpedt2,
-                               std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
-                               std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> momentsdt2,
+                               fsgrids::momentsspan moments,
+                               fsgrids::momentsspan momentsdt2,
                                fsgrids::dmomentsspan dmoments,
                                fsgrids::dmomentsspan dmomentsdt2,
                                std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,

@@ -221,7 +221,7 @@ namespace projects {
    }
 
    void LossCone::setProjectBField(
-      std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+      fsgrids::perbspan perb,
       fsgrids::bgbspan bgb,
       std::span<fsgrids::technical> technical,
       FieldSolverGrid& fsgrid

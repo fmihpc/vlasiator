@@ -134,7 +134,7 @@ namespace projects {
 
    void TestHall::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
 
-   void TestHall::setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+   void TestHall::setProjectBField(fsgrids::perbspan perb,
                                    fsgrids::bgbspan bgb,
                                    std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
       setBackgroundFieldToZero(fsgrid, technical, bgb);

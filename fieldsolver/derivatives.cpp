@@ -38,7 +38,7 @@ template <typename T, size_t N> struct DerivativesData {
    const std::array<T, N>& oom = {};
 };
 
-void computeMomentsDerivatives(fsgrids::momentsspan moments,
+void computeMomentsDerivatives(fsgrids::constmomentsspan moments,
                                fsgrids::dmomentsspan dmoments,
                                const fsgrid::FsStencil& stencil, const bool atSysBoundary) {
    using dmo = fsgrids::dmoments;
@@ -220,7 +220,7 @@ void computePerbDerivatives(fsgrids::perbspan perb,
  * \sa calculateDerivativesSimple calculateBVOLDerivativesSimple calculateBVOLDerivatives
  */
 void calculateDerivatives(fsgrids::perbspan perb,
-                          fsgrids::momentsspan moments,
+                          fsgrids::constmomentsspan moments,
                           fsgrids::dperbspan dperb,
                           fsgrids::dmomentsspan dmoments,
                           const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer,
@@ -264,8 +264,8 @@ void calculateDerivatives(fsgrids::perbspan perb,
 
  * \sa calculateDerivatives calculateBVOLDerivativesSimple calculateBVOLDerivatives
  */
-void calculateDerivativesSimple(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                                std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
+void calculateDerivativesSimple(fsgrids::perbspan perb,
+                                fsgrids::momentsspan moments,
                                 fsgrids::dperbspan dperb,
                                 fsgrids::dmomentsspan dmoments,
                                 std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,

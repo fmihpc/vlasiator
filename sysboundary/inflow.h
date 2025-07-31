@@ -62,11 +62,11 @@ public:
    virtual void initSysBoundary(creal& t, Project& project) override;
    virtual void applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                   std::span<fsgrids::technical> technical, FieldSolverGrid& fsgrid,
-                                  std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                                  fsgrids::perbspan perb,
                                   fsgrids::bgbspan bgb, Project& project) override;
    virtual void updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                             std::span<fsgrids::technical> technical, FieldSolverGrid& fsgrid,
-                            std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                            fsgrids::perbspan perb,
                             fsgrids::bgbspan bgb, creal t) override;
    virtual Real fieldSolverBoundaryCondMagneticField(fsgrids::perbspan b,
                                                      std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
@@ -123,7 +123,7 @@ protected:
    }
    void setCellsFromTemplate(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const uint popID);
    void setBFromTemplate(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                         std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                         fsgrids::perbspan perb,
                          fsgrids::bgbspan bgb,
                          std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid);
 };

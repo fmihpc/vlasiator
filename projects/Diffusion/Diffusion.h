@@ -45,7 +45,7 @@ namespace projects {
       static void addParameters(void);
       virtual void getParameters(void) override;
       /*! set background field, should set it for all cells */
-      virtual void setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+      virtual void setProjectBField(fsgrids::perbspan perb,
                                     fsgrids::bgbspan bgb,
                                     std::span<fsgrids::technical> technical, FieldSolverGrid& fsgrid) override;
 

@@ -138,7 +138,7 @@ namespace projects {
 
    void Diffusion::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
 
-   void Diffusion::setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+   void Diffusion::setProjectBField(fsgrids::perbspan perb,
                                     fsgrids::bgbspan bgb,
                                     std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
       ConstantField bgField;

@@ -618,7 +618,7 @@ void SysBoundary::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_G
 
 void SysBoundary::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                               std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid,
-                              std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+                              fsgrids::perbspan perb,
                               fsgrids::bgbspan bgb, creal t) {
    if (isAnyDynamic()) {
       for (auto& b : sysBoundaries) {

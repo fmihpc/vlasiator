@@ -38,7 +38,7 @@ namespace projects {
       static void addParameters(void);
       virtual void getParameters(void) override;
       virtual void setProjectBField(
-         std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+         fsgrids::perbspan perb,
          fsgrids::bgbspan bgb,
          std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid
       ) override;

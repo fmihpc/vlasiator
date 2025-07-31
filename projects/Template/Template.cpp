@@ -136,7 +136,7 @@ namespace projects {
       return value;
    }
 
-   void Template::setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+   void Template::setProjectBField(fsgrids::perbspan perb,
                                    fsgrids::bgbspan bgb,
                                    std::span<fsgrids::technical> technical, FieldSolverGrid &fsgrid) {
       Dipole bgField;

@@ -49,7 +49,7 @@ namespace projects {
       virtual bool initialize(void) override;
       static void addParameters(void);
       virtual void getParameters(void) override;
-      virtual void setProjectBField(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
+      virtual void setProjectBField(fsgrids::perbspan perb,
                                     fsgrids::bgbspan bgb,
                                     std::span<fsgrids::technical> technical, FieldSolverGrid& fsgrid) override;
       virtual std::vector<std::array<Real, 3>> getV0(creal x, creal y, creal z, const uint popID) const override;

@@ -844,7 +844,7 @@ inline REAL JXB(fsgrids::ehall term, const std::array<REAL, Rec::N_REC_COEFFICIE
  */
 void calculateEdgeHallTermComponents(fsgrids::perbspan perbs,
                                      std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehalls,
-                                     fsgrids::momentsspan moments,
+                                     fsgrids::constmomentsspan moments,
                                      std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperbs,
                                      std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgbs,
                                      const std::array<Real, 3>& gridSpacing,
@@ -1037,7 +1037,7 @@ void calculateEdgeHallTermComponents(fsgrids::perbspan perbs,
  */
 void calculateHallTerm(fsgrids::perbspan perb,
                        std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
-                       fsgrids::momentsspan moments,
+                       fsgrids::constmomentsspan moments,
                        std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> dperb,
                        std::span<const std::array<Real, fsgrids::bgbfield::N_BGB>> bgb,
                        std::span<const fsgrids::technical> technical, const fsgrid::FsStencil& stencil,
@@ -1091,11 +1091,11 @@ void calculateHallTerm(fsgrids::perbspan perb,
  *
  * \sa calculateHallTerm
  */
-void calculateHallTermSimple(std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perb,
-                             std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perbdt2,
+void calculateHallTermSimple(fsgrids::perbspan perb,
+                             fsgrids::perbspan perbdt2,
                              std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehall,
-                             std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> moments,
-                             std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> momentsdt2,
+                             fsgrids::momentsspan moments,
+                             fsgrids::momentsspan momentsdt2,
                              fsgrids::dperbspan dperb,
                              fsgrids::dmomentsspan dmoments,
                              fsgrids::dmomentsspan dmomentsdt2,
