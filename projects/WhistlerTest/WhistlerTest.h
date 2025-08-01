@@ -56,10 +56,10 @@ namespace projects {
 
       // Whistler parameters
       Real amplitude;   // Initial magnetic field perturbation amplitude
-      creal kx;
-      creal ky;
-      creal kz;
-      creal Rinv[3][3];
+      Real kx;
+      Real ky;
+      Real kz;
+      Real Rinv[3][3];
 
       bool verbose;
    }; // class WhistlerTest
