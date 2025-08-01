@@ -7,26 +7,12 @@
 
 #======== Vectorization ==========
 #Set vector backend type for vlasov solvers, sets precision and length.
-#Options:
-# AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
-# AVX512:   VEC8D_AGNER, VEC16F_AGNER
-# Fallback: VECTORCLASS = VEC_FALLBACK_GENERIC (Defaults to VECL8)
+# For GPU use, only for identification
+VECTORCLASS = VEC_CUDA_COOLER
 
-ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
-#Single-precision        
-        VECTORCLASS = VEC_FALLBACK_GENERIC
-else
-#Double-precision
-        VECTORCLASS = VEC_FALLBACK_GENERIC
-endif
-
-#===== Vector Lengths ====
-# Default for VEC_FALLBACK_GENERIC is WID=4, VECL=8
-# NOTE: A bug currently results in garbage data already on cell init if VECL is not equal to WID2
+#===== Block size ====
 #WID=8
-#VECL=64
 WID=4
-VECL=16
 
 #======= Compiler and compilation flags =========
 # NOTES on compiler flags:

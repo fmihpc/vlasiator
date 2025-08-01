@@ -10,14 +10,11 @@
 # module purge; ml OpenMPI/4.1.6.withucx-GCC-13.2.0 PAPI/7.1.0-GCCcore-13.2.0 CUDA/12.6.0
 
 #======== Vectorization ==========
-#GPU Vlasov solvers no longer use any vectorclass.
-#Options:
-# AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
-# AVX512:   VEC8D_AGNER, VEC16F_AGNER
-# Fallback: VECTORCLASS = VEC_FALLBACK_GENERIC
-VECTORCLASS = VEC_FALLBACK_GENERIC
+#Set vector backend type for vlasov solvers, sets precision and length.
+# For GPU use, only for identification
+VECTORCLASS = VEC_CUDA_UKKODGX
 
-# VMesh Block size: (historical value 4, also 8 supported)
+#===== Block size ====
 #WID=8
 WID=4
 

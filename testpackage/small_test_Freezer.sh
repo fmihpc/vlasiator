@@ -9,6 +9,7 @@ export OMP_NUM_THREADS=$t
 
 bin="../vlsasiator"
 diffbin="../vlsvdiff_DP"
+vlasiargs="--GPUallocations=64"
 
 
 #If 1, the reference vlsv files are generated
