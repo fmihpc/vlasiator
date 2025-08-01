@@ -52,9 +52,14 @@ namespace projects {
       Real n0;       // Background number density
       Real VA;      // Alfvén speed
       Real angle;   // Angle between wave vector and B0
+      Real angle_rad;
 
-      // Turbulence parameters
+      // Whistler parameters
       Real amplitude;   // Initial magnetic field perturbation amplitude
+      creal kx;
+      creal ky;
+      creal kz;
+      creal Rinv[3][3];
 
       bool verbose;
    }; // class WhistlerTest

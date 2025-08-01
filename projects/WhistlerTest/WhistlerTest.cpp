@@ -49,13 +49,11 @@ bool WhistlerTest::initialize(void) {
    creal gamma = 5.0 / 3.0;
    creal mu0 = physicalconstants::MU_0;
 
-   creal kx = 2 * M_PI / (Parameters::xmax-Parameters::xmin);
-   creal ky = 2 * M_PI / (Parameters::ymax-Parameters::ymin);
-   creal kz = 2 * M_PI / (Parameters::zmax-Parameters::zmin);
+   kx = 2 * M_PI / (Parameters::xmax-Parameters::xmin);
+   ky = 2 * M_PI / (Parameters::ymax-Parameters::ymin);
+   kz = 2 * M_PI / (Parameters::zmax-Parameters::zmin);
 
-   creal ksi[3] = {1.0/3, 2.0/3, 2.0/3};
-
-   creal Rinv[3][3] = {
+   Rinv[3][3] = {
       {1.0/3, 2.0/3, 2.0/3},
       {-0.89442719, 0.4472136, 0},
       {-0.298142397, -0.59628479, 0.74535599}
@@ -66,14 +64,13 @@ bool WhistlerTest::initialize(void) {
    // Calculate Alfvén speed
    VA = B0 / sqrt(mu0 * rho0);
 
-   Real angle_rad = angle * M_PI / 180.0;
+   angle_rad = angle * M_PI / 180.0;
 
    if (verbose) {
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
       if (myRank == MASTER_RANK) {
          std::cout << "Initialized multi-wave turbulence simulation\n";
-         std::cout << "Number of waves: " << nWaves << "\n";
          std::cout << "Background field strength: " << B0 << " T\n";
          std::cout << "Alfvén speed: " << VA << " m/s\n";
          std::cout << "Angle: " << angle << " degrees\n";
