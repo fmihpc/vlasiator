@@ -185,7 +185,7 @@ void WhistlerTest::setProjectBField(FsGrid<std::array<Real, fsgrids::bfield::N_B
    // Set background field
    ConstantField bgField;
 
-   Real Bx0 = 0.0; By0 = 0.0, Bz0 = 0.0;
+   Real Bx0 = 0.0, By0 = 0.0, Bz0 = 0.0;
    Real Bksi0 = B0 * cos(angle_rad);
    Real Beta0 = B0 * sin(angle_rad);
    Bx0 = Bksi0 * Rinv[0][0] + Beta0 * Rinv[0][1];
