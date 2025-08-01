@@ -59,7 +59,6 @@ namespace projects {
       Real kx;
       Real ky;
       Real kz;
-      Real Rinv[3][3];
 
       bool verbose;
    }; // class WhistlerTest

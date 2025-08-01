@@ -53,12 +53,6 @@ bool WhistlerTest::initialize(void) {
    ky = 2 * M_PI / (Parameters::ymax-Parameters::ymin);
    kz = 2 * M_PI / (Parameters::zmax-Parameters::zmin);
 
-   Rinv[3][3] = {
-      {1.0/3, 2.0/3, 2.0/3},
-      {-0.89442719, 0.4472136, 0},
-      {-0.298142397, -0.59628479, 0.74535599}
-   };
-
    rho0 = m * n0; // Mass density
 
    // Calculate Alfvén speed
@@ -184,6 +178,12 @@ void WhistlerTest::setProjectBField(FsGrid<std::array<Real, fsgrids::bfield::N_B
                                     FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
    // Set background field
    ConstantField bgField;
+
+   creal Rinv[3][3] = {
+      {1.0/3, 2.0/3, 2.0/3},
+      {-0.89442719, 0.4472136, 0},
+      {-0.298142397, -0.59628479, 0.74535599}
+   };
 
    Real Bx0 = 0.0, By0 = 0.0, Bz0 = 0.0;
    Real Bksi0 = B0 * cos(angle_rad);
