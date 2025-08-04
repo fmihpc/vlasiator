@@ -512,11 +512,13 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 }
 
 void increaseTimeclass(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                              const std::vector<CellID>& cellsToIncreaseTimeclass) {
-                              
+                              const std::vector<CellID>& cellsToIncreaseTimeclass,
+                              bool& additionalTimeclassCreated) {
    phiprof::Timer increaseTimeclassTimer {"increase-timeclass"};
 
-   // Increase timeclass for cells that exceed dt limit
+   additionalTimeclassCreated = false;
+
+   // Increase timeclass for given cells
 
    for (size_t c=0; c<cellsToIncreaseTimeclass.size(); ++c) {
       const CellID cell = cellsToIncreaseTimeclass[c];
@@ -527,12 +529,12 @@ void increaseTimeclass(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiG
          std::cerr << "current max timeclass is " << P::currentMaxTimeclass << "\n";
          spatialCell->parameters[CellParams::TIMECLASS] += 1;
          spatialCell->parameters[CellParams::TIMECLASSDT] = spatialCell->get_tc_dt();
-
       } else {
          // If the cell is already at the maximum timeclass, we must create a new timeclass one higher
          std::cerr << "Cell " << cell << " is already at the maximum timeclass, creating a new one" << "\n";
          std::cerr << "current max timeclass is " << P::currentMaxTimeclass << "\n";
 
+         additionalTimeclassCreated = true;
          P::currentMaxTimeclass += 1;
          spatialCell->parameters[CellParams::TIMECLASS] = P::currentMaxTimeclass;
       
@@ -590,6 +592,7 @@ int simulate(int argn,char* args[]) {
    typedef Parameters P;
    Real newDt;
    bool dtIsChanged {false};
+   bool additionalTimeclassCreated {false};
    
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
@@ -1570,11 +1573,19 @@ int simulate(int argn,char* args[]) {
       //      ... but updated V moments needed?
       //   -> do the acc shuffle for all cells to begin with
 
-      std::vector<CellID> mpiGridCellstotestincrease = {10};
+      std::vector<CellID> cellsToTestIncrease = {10};
 
       if (P::tstep == 20 && P::fractionalTimestep == 0) {
          std::cout << "TESTING INCREASE TIMECLASS" << std::endl;
-         increaseTimeclass(mpiGrid, mpiGridCellstotestincrease);
+         // we must roll back all cells that get dropped a timeclass.
+
+         std::cout << "rolling back all cells that get dropped a timeclass" << std::endl;
+         calculateAcceleration(mpiGrid, -0.5, cellsToTestIncrease); // This sets cells back to previous TIME_R
+
+         increaseTimeclass(mpiGrid, cellsToTestIncrease, additionalTimeclassCreated);
+
+         calculateAcceleration(mpiGrid, 0.5, cellsToTestIncrease); // This propagates by 0.5
+
       }
 
       std::vector<Real> newTimeclassDts = std::vector<Real>(P::maxTimeclass+1);

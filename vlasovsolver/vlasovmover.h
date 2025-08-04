@@ -35,7 +35,8 @@ using namespace spatial_cell;
 
 void calculateAcceleration(
                            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                           Real dt
+                           Real dt,
+                           const vector<CellID>& cells=getLocalCells()
 );
 
 void calculateSpatialTranslation(

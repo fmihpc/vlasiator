@@ -20,6 +20,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include "common.h"
 #include <cstdlib>
 #include <iostream>
 #include <vector>
@@ -877,10 +878,11 @@ vector<AccelerationPayload>& setAccelerationTimeGhosts(vector<AccelerationPayloa
  * @param mpiGrid Parallel grid library.
  * @param dt Time step factor: cells will propagated by dt*CellParams[CellParams::CELLDT] if needed.*/
 void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                           Real dt
+                           Real dt,
+                           const vector<CellID>& cells
                           ) {
    typedef Parameters P;
-   const vector<CellID>& cells = getLocalCells();   
+   //const vector<CellID>& cells = getLocalCells();   
    set<CellID> cellsToPropagateSet;
    vector<CellID> cellsToPropagateVector;
    int myRank;
