@@ -513,12 +513,42 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
 void increaseTimeclass(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                               const std::vector<CellID>& cellsToIncreaseTimeclass) {
+                              
+   phiprof::Timer increaseTimeclassTimer {"increase-timeclass"};
 
+   // Increase timeclass for cells that exceed dt limit
 
-                                 
+   for (size_t c=0; c<cellsToIncreaseTimeclass.size(); ++c) {
+      const CellID cell = cellsToIncreaseTimeclass[c];
+      SpatialCell* spatialCell = mpiGrid[cell];
+      if (spatialCell->parameters[CellParams::TIMECLASS] != P::currentMaxTimeclass) {
+         // If the cell is not at the maximum timeclass, we can increase it
+         std::cerr << "Increasing timeclass for cell " << cell << " with tc " << spatialCell->parameters[CellParams::TIMECLASS] << " by one"<< "\n";
+         std::cerr << "current max timeclass is " << P::currentMaxTimeclass << "\n";
+         spatialCell->parameters[CellParams::TIMECLASS] += 1;
+         spatialCell->parameters[CellParams::TIMECLASSDT] = spatialCell->get_tc_dt();
+
+      } else {
+         // If the cell is already at the maximum timeclass, we must create a new timeclass one higher
+         std::cerr << "Cell " << cell << " is already at the maximum timeclass, creating a new one" << "\n";
+         std::cerr << "current max timeclass is " << P::currentMaxTimeclass << "\n";
+
+         P::currentMaxTimeclass += 1;
+         spatialCell->parameters[CellParams::TIMECLASS] = P::currentMaxTimeclass;
+      
+         P::timeclassDt.resize(P::currentMaxTimeclass + 1);
+         P::timeclassDt.end()[-1] = P::timeclassDt.end()[-2]/2.0;
+
+         spatialCell->parameters[CellParams::TIMECLASSDT] = spatialCell->get_tc_dt();
+      }
+   }
+
+   std::cerr << "calling prepareAMRLists after increasing timeclass\n";
+   std::cerr << "current max timeclass is " << P::currentMaxTimeclass << "\n";
+   // this might be overkill, but for initial testing
+   prepareAMRLists(mpiGrid);
 
 }
-   /*
 
 // void getGhostNeighborsforTC(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 //                               const std::vector<CellID>& cellsToCheckNeighbors) {
@@ -1264,8 +1294,10 @@ int simulate(int argn,char* args[]) {
 
       // write system, loop through write classes
       for (uint i = 0; i < P::systemWriteTimeInterval.size(); i++) {
-         if (P::systemWriteTimeInterval[i] >= 0.0 &&
-             P::t >= P::systemWrites[i] * P::systemWriteTimeInterval[i] - DT_EPSILON) {
+         // if (true || (P::systemWriteTimeInterval[i] >= 0.0 &&
+         //     P::t >= P::systemWrites[i] * P::systemWriteTimeInterval[i] - DT_EPSILON)) {
+            if (P::systemWriteTimeInterval[i] >= 0.0 &&
+                P::t >= P::systemWrites[i] * P::systemWriteTimeInterval[i] - DT_EPSILON) {
             // If we have only just restarted, the bulk file should already exist from the previous slot.
             if ((P::tstep == P::tstep_min) && (P::tstep>0)) {
                P::systemWrites[i]++;
@@ -1537,6 +1569,14 @@ int simulate(int argn,char* args[]) {
       //   -> no need to redo acceleration each time fastest class changes dt?
       //      ... but updated V moments needed?
       //   -> do the acc shuffle for all cells to begin with
+
+      std::vector<CellID> mpiGridCellstotestincrease = {10};
+
+      if (P::tstep == 20 && P::fractionalTimestep == 0) {
+         std::cout << "TESTING INCREASE TIMECLASS" << std::endl;
+         increaseTimeclass(mpiGrid, mpiGridCellstotestincrease);
+      }
+
       std::vector<Real> newTimeclassDts = std::vector<Real>(P::maxTimeclass+1);
       if(P::dynamicTimestep  && P::tstep > P::tstep_min && P::fractionalTimestep == 0) {
          std::cout << "Computing new dts\n";
