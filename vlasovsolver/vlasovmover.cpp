@@ -879,10 +879,11 @@ vector<AccelerationPayload>& setAccelerationTimeGhosts(vector<AccelerationPayloa
  * @param dt Time step factor: cells will propagated by dt*CellParams[CellParams::CELLDT] if needed.*/
 void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                            Real dt,
-                           const vector<CellID>& cells
+                           bool accelerateSpecificCells,
+                           const vector<CellID>& cellsToAccelerate
                           ) {
    typedef Parameters P;
-   //const vector<CellID>& cells = getLocalCells();   
+   const vector<CellID>& cells = getLocalCells();   
    set<CellID> cellsToPropagateSet;
    vector<CellID> cellsToPropagateVector;
    int myRank;
