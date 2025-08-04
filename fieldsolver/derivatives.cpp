@@ -312,7 +312,7 @@ void calculateBVOLDerivatives(fsgrids::volspan vol,
 
    cuint sysBoundaryFlag = tech.sysBoundaryFlag;
    cuint sysBoundaryLayer = tech.sysBoundaryLayer;
-   const bool notSysBoundary =
+   const bool atSysBoundary =
        sysBoundaryLayer == 1 || (sysBoundaryLayer == 2 && sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY);
 
    using vf = fsgrids::volfields;
@@ -326,7 +326,7 @@ void calculateBVOLDerivatives(fsgrids::volspan vol,
    auto& volCenter = vol[stencil.ooo()];
    const auto poo = stencil.poo();
    const auto moo = stencil.moo();
-   if (notSysBoundary) {
+   if (atSysBoundary) {
       volCenter[vf::dPERBXVOLdx] = computeDiff(vf::PERBXVOL, vol[poo], vol[moo]);
       volCenter[vf::dPERBYVOLdx] = computeDiff(vf::PERBYVOL, vol[poo], vol[moo]);
       volCenter[vf::dPERBZVOLdx] = computeDiff(vf::PERBZVOL, vol[poo], vol[moo]);
@@ -338,7 +338,7 @@ void calculateBVOLDerivatives(fsgrids::volspan vol,
 
    const auto opo = stencil.opo();
    const auto omo = stencil.omo();
-   if (notSysBoundary) {
+   if (atSysBoundary) {
       volCenter[vf::dPERBXVOLdy] = computeDiff(vf::PERBXVOL, vol[opo], vol[omo]);
       volCenter[vf::dPERBYVOLdy] = computeDiff(vf::PERBYVOL, vol[opo], vol[omo]);
       volCenter[vf::dPERBZVOLdy] = computeDiff(vf::PERBZVOL, vol[opo], vol[omo]);
@@ -350,7 +350,7 @@ void calculateBVOLDerivatives(fsgrids::volspan vol,
 
    const auto oop = stencil.oop();
    const auto oom = stencil.oom();
-   if (notSysBoundary) {
+   if (atSysBoundary) {
       volCenter[vf::dPERBXVOLdz] = computeDiff(vf::PERBXVOL, vol[oop], vol[oom]);
       volCenter[vf::dPERBYVOLdz] = computeDiff(vf::PERBYVOL, vol[oop], vol[oom]);
       volCenter[vf::dPERBZVOLdz] = computeDiff(vf::PERBZVOL, vol[oop], vol[oom]);
