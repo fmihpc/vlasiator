@@ -309,7 +309,7 @@ std::array<Real, 3> interpolateCurlB(
    }
 
    // Balsara reconstruction formulas: x,y,z are in [-1/2, 1/2] local coordinates
-   std::array<Real, 3> xLocal = fsgrid.physicalToCellGlobal(x[0], x[1], x[2]);
+   std::array<Real, 3> xLocal = fsgrid.physicalToCellFractional(x[0], x[1], x[2]);
    xLocal[0] -= 0.5;
    xLocal[1] -= 0.5;
    xLocal[2] -= 0.5;
