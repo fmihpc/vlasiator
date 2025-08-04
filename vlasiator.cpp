@@ -1141,7 +1141,6 @@ int simulate(int argn,char* args[]) {
 
          phiprof::Timer couplingInTimer {"fsgrid-coupling-in"};
          // Copy moments over into the fsgrid.
-         //setupTechnicalFsGrid(mpiGrid, cells, technical, fsgrid);
          feedMomentsIntoFsGrid(mpiGrid, cells, moments, technical.view(), fsgrid, false);
          feedMomentsIntoFsGrid(mpiGrid, cells, momentsdt2, technical.view(), fsgrid, true);
          couplingInTimer.stop();
