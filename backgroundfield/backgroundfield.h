@@ -56,6 +56,7 @@ void setPerturbedFieldToZero(
    fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
                        phiprof::initializeTimer("setPerturbedFieldToZero"), technical,
                        [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+      // This is still N_BFIELD (==3) instead of numFields
       for (size_t j = 0; j < fsgrids::bfield::N_BFIELD; ++j) {
          b[stencil.ooo()][offset + j] = 0.0;
       }
