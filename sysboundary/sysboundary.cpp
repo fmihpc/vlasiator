@@ -359,7 +359,6 @@ bool belongsToLayer(const int layer, const int x, const int y, const int z,
 void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                 fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
    const vector<CellID>& cells = getLocalCells();
-   const auto* localSize = &fsgrid.getLocalSize()[0];
    const auto rank = fsgrid.getRank();
 
    /*set all cells to default value, not_sysboundary */

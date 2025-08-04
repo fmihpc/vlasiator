@@ -223,8 +223,6 @@ namespace projects {
       setBackgroundField(bgField, bgb, technical, fsgrid);
 
       if(!P::isRestart) {
-         const auto* localSize = &fsgrid.getLocalSize()[0];
-
          // local copies for lambda capture
          const auto magXPertAbsAmp_l = this->magXPertAbsAmp;
          const auto magYPertAbsAmp_l = this->magYPertAbsAmp;

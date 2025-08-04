@@ -153,6 +153,7 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mp
    reduce_vlasov_dt(mpiGrid, cells, dtMaxLocal);
 
    // compute max dt for fieldsolver
+   // not performance-critical so no acute need to parallelise (parallel_for)
    const auto* localSize = &fsgrid.getLocalSize()[0];
    for (auto k = 0; k < localSize[2]; k++) {
       for (auto j = 0; j < localSize[1]; j++) {

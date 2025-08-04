@@ -173,8 +173,6 @@ namespace projects {
       setBackgroundFieldToZero(fsgrid, technical, bgb);
 
       if (!P::isRestart) {
-         const auto* localSize = &fsgrid.getLocalSize()[0];
-
          // local copies for lambda capture
          const auto ALPHA_l = this->ALPHA;
          const auto WAVELENGTH_l = this->WAVELENGTH;

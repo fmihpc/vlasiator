@@ -32,7 +32,6 @@
 // FieldFunction should be initialized
 void setBackgroundField(const FieldFunction& bgFunction, fsgrids::bgbspan bgb,
                         fsgrids::technicalspan technical, FieldSolverGrid &fsgrid, bool append) {
-   const auto* localSize = &fsgrid.getLocalSize()[0];
    const auto& gridSpacing = fsgrid.getGridSpacing();
 
    /*if we do not add a new background to the existing one we first put everything to zero*/

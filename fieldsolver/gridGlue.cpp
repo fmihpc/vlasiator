@@ -79,8 +79,6 @@ void filterMoments(fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>
         {1 * inverseKernelSum, 2 * inverseKernelSum, 3 * inverseKernelSum, 2 * inverseKernelSum,
          1 * inverseKernelSum}}};
 
-   // Get size of local domain
-   const auto* localSize = &fsgrid.getLocalSize()[0];
    // Create a copy of moments data for filtering
    fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>> blurred(moments.size());
 
