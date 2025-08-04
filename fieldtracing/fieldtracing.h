@@ -63,7 +63,7 @@ std::array<fsgrid::FsIndex_t, 3> getLocalFsGridCellIndexWithGhostsForCoord(T& gr
 // Get the fraction fsgrid cell index for the magnetic-field traced mapping point that node n is associated with.
 // Note that these are floating point values between 0 and 1
 template <class T> std::array<Real, 3> getFractionalFsGridCellForCoord(T& grid, const std::array<Real, 3>& x) {
-   return grid.physicalToFractionalGlobal(x[0], x[1], x[2]);
+   return grid.physicalToCellFractional(x[0], x[1], x[2]);
 }
 
 namespace FieldTracing {
