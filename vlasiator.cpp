@@ -511,6 +511,15 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    }
 }
 
+void increaseTimeclass(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                              const std::vector<CellID>& cellsToIncreaseTimeclass) {
+
+
+                                 
+
+}
+   /*
+
 // void getGhostNeighborsforTC(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 //                               const std::vector<CellID>& cellsToCheckNeighbors) {
 //    /*
