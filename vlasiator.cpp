@@ -1579,7 +1579,7 @@ int simulate(int argn,char* args[]) {
          std::cout << "TESTING INCREASE TIMECLASS" << std::endl;
          // we must roll back all cells that get dropped a timeclass.
 
-         std::cout << "rolling back all cells that get dropped a timeclass" << std::endl;
+         std::cout << "rolling back all cells that get raised a timeclass" << std::endl;
          calculateAcceleration(mpiGrid, -0.5, true, cellsToTestIncrease); // This sets cells back to previous TIME_R
 
          increaseTimeclass(mpiGrid, cellsToTestIncrease, additionalTimeclassCreated);

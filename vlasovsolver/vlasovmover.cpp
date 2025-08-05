@@ -751,10 +751,10 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
 
 /* Get structs (timeclass, SpatialCell*, dt, subcycle step) for acceleration
 */
-vector<AccelerationPayload>& setAccelerationTimeGhosts(vector<AccelerationPayload>& outvec, SpatialCell* spatial_cell, const uint popID, const Real& dt){
+vector<AccelerationPayload>& setAccelerationTimeGhosts(vector<AccelerationPayload>& outvec, SpatialCell* spatial_cell, const uint popID, const Real& dt, const bool accelerateSpecificCells = false, const vector<CellID>& cellsToAccelerate = {}) {
    int tcToPropagate = spatial_cell->get_tc();
 
-   if(spatial_cell->get_timeclass_turn_v()){
+   if(spatial_cell->get_timeclass_turn_v() || (accelerateSpecificCells && std::find(cellsToAccelerate.begin(), cellsToAccelerate.end(), spatial_cell->get_cellid()) != cellsToAccelerate.end())){
       AccelerationPayload payload = {spatial_cell->get_tc(),spatial_cell,dt,0};
       outvec.push_back(payload);
    }
@@ -970,7 +970,8 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
                            //    cellsToPropagateSet.insert(cells[c]);
                            // }
                            // vector<AccelerationPayload> harvest;
-                           setAccelerationTimeGhosts(propagatePayloads, mpiGrid[cells[c]], 0, dt_cell);
+                           setAccelerationTimeGhosts(propagatePayloads, mpiGrid[cells[c]], 0, dt_cell, 
+                                                      accelerateSpecificCells, cellsToAccelerate);
                            // propagatePayloads.insert(propagatePayloads.end(), outvec.begin(),outvec.end());
                
                      }
