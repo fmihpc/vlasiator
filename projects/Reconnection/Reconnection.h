@@ -63,8 +63,7 @@ namespace projects {
 
       Real SCA_LAMBDA;
       Real BX0, BY0, BZ0;
-      Real PertAmplitude;
-      Real kscale;
+      Real VX0;
       std::vector<ReconnectionSpeciesParameters> speciesParams;
 
    }; // class Reconnection
