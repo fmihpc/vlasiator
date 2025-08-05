@@ -95,7 +95,19 @@ struct Limits {
    Real max = 0.0;
 };
 
-struct FieldCoefficients {
+/*!< Provide linearly-interpolated moments (limited to min/max of neighborign values for rhom)
+ *   as well as Balsara-reconstructed magnetic field components used in the determination of
+ *   characteristic wave speeds, used in turn in the upwind constrained transport Londrillo &
+ *   del Zanna algorithm.
+ *   
+ *   Balsara DS (2009) Divergence-free reconstruction of magnetic fields and WENO schemes for
+ *   magnetohydrodynamics. J Comput Phys 228:5040–5056. https://doi.org/10.1016/j.jcp.2009.03.038
+ *   
+ *   Londrillo P, Del Zanna L (2004) On the divergence-free condition in Godunov-type schemes for
+ *   ideal magnetohydrodynamics: the upwind constrained transport method. J Comput Phys 195:17–48.
+ *   https://doi.org/10.1016/j.jcp.2003.09.016
+ */
+struct Reconstructions {
 private:
    const std::array<Real, fsgrids::bfield::N_BFIELD>& perb;
    const std::array<Real, fsgrids::bfield::N_BFIELD>& nbr_perb;
@@ -109,19 +121,29 @@ private:
 
    template <size_t N>
    std::tuple<Real, Real> compute(const std::array<Real, N>& nbr_arr, const std::array<Real, N>& arr, size_t i,
-                                  size_t j, Real mul0 = 1.0, Real mul1 = 1.0) const {
+                                  size_t j, Real mul0, Real mul1) const {
       const Real a = nbr_arr[i] + nbr_bgb[j];
       const Real b = arr[i] + bgb[j];
 
       return {mul0 * (a + b), mul1 * (a - b)};
    }
 
-   Real momentsCoeff(Real dir0, Real dir1, size_t i, size_t j, size_t k, Real min, Real max) const {
+   /*!<
+    * Interpolate the volume-averaged, i.e. cell-centred moment value by HALF a cell to the given cell edge.
+    * \param dir0 +/-1 in the first direction
+    * \param dir1 +/-1 in the second direction
+    * \param i index into moment array
+    * \param j index into dmoment array for derivative of moment i in dir0
+    * \param k index into dmoment array for derivative of moment i in dir1
+    * \param min limit inteprolated result to no smaller than this
+    * \param max limit interpolated result to no larger than this
+    */
+   Real interpolateAndLimitMoments(Real dir0, Real dir1, size_t i, size_t j, size_t k, Real min, Real max) const {
       return std::clamp(moment[i] + HALF * (dir0 * dmoment[j] + dir1 * dmoment[k]), min, max);
    }
 
 public:
-   FieldCoefficients(fsgrids::perbspan perB,
+   Reconstructions(fsgrids::perbspan perB,
                      fsgrids::constdperbspan dPerB,
                      fsgrids::constbgbspan BgB,
                      fsgrids::constmomentsspan moments,
@@ -135,11 +157,11 @@ public:
    std::tuple<Real, Real> dPerBCoeffs(size_t i, size_t j) const { return compute(nbr_dperb, dperb, i, j, 1.0, 1.0); }
 
    Real rhom(Real dir0, Real dir1, size_t i, size_t j, size_t k) const {
-      return momentsCoeff(dir0, dir1, i, j, k, rhomLimits.min, rhomLimits.max);
+      return interpolateAndLimitMoments(dir0, dir1, i, j, k, rhomLimits.min, rhomLimits.max);
    }
 
    Real p(Real dir0, Real dir1, size_t i, size_t j, size_t k) const {
-      return momentsCoeff(dir0, dir1, i, j, k, 0.0, std::numeric_limits<Real>::max());
+      return interpolateAndLimitMoments(dir0, dir1, i, j, k, 0.0, std::numeric_limits<Real>::max());
    }
 
    static Real squared(Real a, Real b) { return a * a + TWELWTH * b * b; }
@@ -184,22 +206,22 @@ Wavespeeds calculateWaveSpeedYZ(fsgrids::perbspan perB,
                                 const std::array<Real, 3>& gridSpacing, const Limits& rhomLimits, size_t self,
                                 size_t nbr, Real By, Real Bz, Real dBydx, Real dBydz, Real dBzdx, Real dBzdy, Real ydir,
                                 Real zdir) {
-   const FieldCoefficients fc(perB, dPerB, BgB, moments, dMoments, self, nbr, rhomLimits);
+   const Reconstructions rec(perB, dPerB, BgB, moments, dMoments, self, nbr, rhomLimits);
 
    const Real rhom =
-       fc.rhom(ydir, zdir, fsgrids::moments::RHOM, fsgrids::dmoments::drhomdy, fsgrids::dmoments::drhomdz);
-   const Real p11 = fc.p(ydir, zdir, fsgrids::moments::P_11, fsgrids::dmoments::dp11dy, fsgrids::dmoments::dp11dz);
-   const Real p22 = fc.p(ydir, zdir, fsgrids::moments::P_22, fsgrids::dmoments::dp22dy, fsgrids::dmoments::dp22dz);
-   const Real p33 = fc.p(ydir, zdir, fsgrids::moments::P_33, fsgrids::dmoments::dp33dy, fsgrids::dmoments::dp33dz);
+       rec.rhom(ydir, zdir, fsgrids::moments::RHOM, fsgrids::dmoments::drhomdy, fsgrids::dmoments::drhomdz);
+   const Real p11 = rec.p(ydir, zdir, fsgrids::moments::P_11, fsgrids::dmoments::dp11dy, fsgrids::dmoments::dp11dz);
+   const Real p22 = rec.p(ydir, zdir, fsgrids::moments::P_22, fsgrids::dmoments::dp22dy, fsgrids::dmoments::dp22dz);
+   const Real p33 = rec.p(ydir, zdir, fsgrids::moments::P_33, fsgrids::dmoments::dp33dy, fsgrids::dmoments::dp33dz);
 
-   const auto [A_0, A_X] = fc.perBCoeffs(fsgrids::bfield::PERBX, fsgrids::bgbfield::BGBX);
-   const auto [A_Y, A_XY] = fc.dPerBCoeffs(fsgrids::dperb::dPERBxdy, fsgrids::bgbfield::dBGBxdy);
-   const auto [A_Z, A_XZ] = fc.dPerBCoeffs(fsgrids::dperb::dPERBxdz, fsgrids::bgbfield::dBGBxdz);
+   const auto [A_0, A_X] = rec.perBCoeffs(fsgrids::bfield::PERBX, fsgrids::bgbfield::BGBX);
+   const auto [A_Y, A_XY] = rec.dPerBCoeffs(fsgrids::dperb::dPERBxdy, fsgrids::bgbfield::dBGBxdy);
+   const auto [A_Z, A_XZ] = rec.dPerBCoeffs(fsgrids::dperb::dPERBxdz, fsgrids::bgbfield::dBGBxdz);
 
    const Real bx2 =
-       FieldCoefficients::squared(A_0 + HALF * (ydir * A_Y + zdir * A_Z), A_X + HALF * (ydir * A_XY + zdir * A_XZ));
-   const Real by2 = FieldCoefficients::squared(By + zdir * HALF * dBydz, dBydx);
-   const Real bz2 = FieldCoefficients::squared(Bz + ydir * HALF * dBzdy, dBzdx);
+       Reconstructions::squared(A_0 + HALF * (ydir * A_Y + zdir * A_Z), A_X + HALF * (ydir * A_XY + zdir * A_XZ));
+   const Real by2 = Reconstructions::squared(By + zdir * HALF * dBydz, dBydx);
+   const Real bz2 = Reconstructions::squared(Bz + ydir * HALF * dBzdy, dBzdx);
 
    return Wavespeeds(bx2 + by2 + bz2, rhom, p11, p22, p33, gridSpacing);
 }
@@ -243,22 +265,22 @@ Wavespeeds calculateWaveSpeedXZ(fsgrids::perbspan perB,
                                 const std::array<Real, 3>& gridSpacing, const Limits& rhomLimits, size_t self,
                                 size_t nbr, Real Bx, Real Bz, Real dBxdy, Real dBxdz, Real dBzdx, Real dBzdy, Real xdir,
                                 Real zdir) {
-   const FieldCoefficients fc(perB, dPerB, BgB, moments, dMoments, self, nbr, rhomLimits);
+   const Reconstructions rec(perB, dPerB, BgB, moments, dMoments, self, nbr, rhomLimits);
 
    const Real rhom =
-       fc.rhom(xdir, zdir, fsgrids::moments::RHOM, fsgrids::dmoments::drhomdx, fsgrids::dmoments::drhomdz);
-   const Real p11 = fc.p(xdir, zdir, fsgrids::moments::P_11, fsgrids::dmoments::dp11dx, fsgrids::dmoments::dp11dz);
-   const Real p22 = fc.p(xdir, zdir, fsgrids::moments::P_22, fsgrids::dmoments::dp22dx, fsgrids::dmoments::dp22dz);
-   const Real p33 = fc.p(xdir, zdir, fsgrids::moments::P_33, fsgrids::dmoments::dp33dx, fsgrids::dmoments::dp33dz);
+       rec.rhom(xdir, zdir, fsgrids::moments::RHOM, fsgrids::dmoments::drhomdx, fsgrids::dmoments::drhomdz);
+   const Real p11 = rec.p(xdir, zdir, fsgrids::moments::P_11, fsgrids::dmoments::dp11dx, fsgrids::dmoments::dp11dz);
+   const Real p22 = rec.p(xdir, zdir, fsgrids::moments::P_22, fsgrids::dmoments::dp22dx, fsgrids::dmoments::dp22dz);
+   const Real p33 = rec.p(xdir, zdir, fsgrids::moments::P_33, fsgrids::dmoments::dp33dx, fsgrids::dmoments::dp33dz);
 
-   const auto [B_0, B_Y] = fc.perBCoeffs(fsgrids::bfield::PERBY, fsgrids::bgbfield::BGBY);
-   const auto [B_X, B_XY] = fc.dPerBCoeffs(fsgrids::dperb::dPERBydx, fsgrids::bgbfield::dBGBydx);
-   const auto [B_Z, B_YZ] = fc.dPerBCoeffs(fsgrids::dperb::dPERBydz, fsgrids::bgbfield::dBGBydz);
+   const auto [B_0, B_Y] = rec.perBCoeffs(fsgrids::bfield::PERBY, fsgrids::bgbfield::BGBY);
+   const auto [B_X, B_XY] = rec.dPerBCoeffs(fsgrids::dperb::dPERBydx, fsgrids::bgbfield::dBGBydx);
+   const auto [B_Z, B_YZ] = rec.dPerBCoeffs(fsgrids::dperb::dPERBydz, fsgrids::bgbfield::dBGBydz);
 
    const Real by2 =
-       FieldCoefficients::squared(B_0 + HALF * (xdir * B_X + zdir * B_Z), B_Y + HALF * (xdir * B_XY + zdir * B_YZ));
-   const Real bx2 = FieldCoefficients::squared(Bx + zdir * HALF * dBxdz, dBxdy);
-   const Real bz2 = FieldCoefficients::squared(Bz + xdir * HALF * dBzdx, dBzdy);
+       Reconstructions::squared(B_0 + HALF * (xdir * B_X + zdir * B_Z), B_Y + HALF * (xdir * B_XY + zdir * B_YZ));
+   const Real bx2 = Reconstructions::squared(Bx + zdir * HALF * dBxdz, dBxdy);
+   const Real bz2 = Reconstructions::squared(Bz + xdir * HALF * dBzdx, dBzdy);
 
    return Wavespeeds(bx2 + by2 + bz2, rhom, p11, p22, p33, gridSpacing);
 }
@@ -302,22 +324,22 @@ Wavespeeds calculateWaveSpeedXY(fsgrids::perbspan perB,
                                 const std::array<Real, 3>& gridSpacing, const Limits& rhomLimits, size_t self,
                                 size_t nbr, Real Bx, Real By, Real dBxdy, Real dBxdz, Real dBydx, Real dBydz, Real xdir,
                                 Real ydir) {
-   const FieldCoefficients fc(perB, dPerB, BgB, moments, dMoments, self, nbr, rhomLimits);
+   const Reconstructions rec(perB, dPerB, BgB, moments, dMoments, self, nbr, rhomLimits);
 
    const Real rhom =
-       fc.rhom(xdir, ydir, fsgrids::moments::RHOM, fsgrids::dmoments::drhomdx, fsgrids::dmoments::drhomdy);
-   const Real p11 = fc.p(xdir, ydir, fsgrids::moments::P_11, fsgrids::dmoments::dp11dx, fsgrids::dmoments::dp11dy);
-   const Real p22 = fc.p(xdir, ydir, fsgrids::moments::P_22, fsgrids::dmoments::dp22dx, fsgrids::dmoments::dp22dy);
-   const Real p33 = fc.p(xdir, ydir, fsgrids::moments::P_33, fsgrids::dmoments::dp33dx, fsgrids::dmoments::dp33dy);
+       rec.rhom(xdir, ydir, fsgrids::moments::RHOM, fsgrids::dmoments::drhomdx, fsgrids::dmoments::drhomdy);
+   const Real p11 = rec.p(xdir, ydir, fsgrids::moments::P_11, fsgrids::dmoments::dp11dx, fsgrids::dmoments::dp11dy);
+   const Real p22 = rec.p(xdir, ydir, fsgrids::moments::P_22, fsgrids::dmoments::dp22dx, fsgrids::dmoments::dp22dy);
+   const Real p33 = rec.p(xdir, ydir, fsgrids::moments::P_33, fsgrids::dmoments::dp33dx, fsgrids::dmoments::dp33dy);
 
-   const auto [C_0, C_Z] = fc.perBCoeffs(fsgrids::bfield::PERBZ, fsgrids::bgbfield::BGBZ);
-   const auto [C_X, C_XZ] = fc.dPerBCoeffs(fsgrids::dperb::dPERBzdx, fsgrids::bgbfield::dBGBzdx);
-   const auto [C_Y, C_YZ] = fc.dPerBCoeffs(fsgrids::dperb::dPERBzdy, fsgrids::bgbfield::dBGBzdy);
+   const auto [C_0, C_Z] = rec.perBCoeffs(fsgrids::bfield::PERBZ, fsgrids::bgbfield::BGBZ);
+   const auto [C_X, C_XZ] = rec.dPerBCoeffs(fsgrids::dperb::dPERBzdx, fsgrids::bgbfield::dBGBzdx);
+   const auto [C_Y, C_YZ] = rec.dPerBCoeffs(fsgrids::dperb::dPERBzdy, fsgrids::bgbfield::dBGBzdy);
 
    const Real bz2 =
-       FieldCoefficients::squared(C_0 + HALF * (xdir * C_X + ydir * C_Y), C_Z + HALF * (xdir * C_XZ + ydir * C_YZ));
-   const Real bx2 = FieldCoefficients::squared(Bx + ydir * HALF * dBxdy, dBxdz);
-   const Real by2 = FieldCoefficients::squared(By + xdir * HALF * dBydx, dBydz);
+       Reconstructions::squared(C_0 + HALF * (xdir * C_X + ydir * C_Y), C_Z + HALF * (xdir * C_XZ + ydir * C_YZ));
+   const Real bx2 = Reconstructions::squared(Bx + ydir * HALF * dBxdy, dBxdz);
+   const Real by2 = Reconstructions::squared(By + xdir * HALF * dBydx, dBydz);
 
    return Wavespeeds(bx2 + by2 + bz2, rhom, p11, p22, p33, gridSpacing);
 }
@@ -335,6 +357,7 @@ void fsdebugCheck([[maybe_unused]] const fsgrid::FsStencil& stencil, [[maybe_unu
 #endif
 }
 
+/*!< Get min and max density of the four neighbors, used for limiting/clamping the results of interpolation. */
 Limits getRhomLimits(const std::array<std::array<Real, fsgrids::moments::N_MOMENTS>, 4>& moments) {
    Real minRhom = std::numeric_limits<Real>::max();
    Real maxRhom = std::numeric_limits<Real>::min();
@@ -359,7 +382,7 @@ Real resistiveTerm(const auto& bgb, const auto& perb, const auto& dperb, Real rh
           (dperb[indices[0]] / spacing[0] - dperb[indices[1]] / spacing[1]);
 }
 
-struct FieldValues {
+struct UpwindField {
    Real E_NE = 0.0;
    Real E_SE = 0.0;
    Real E_NW = 0.0;
@@ -638,7 +661,7 @@ void calculateEdgeElectricFieldX(fsgrids::perbspan perb,
    }
 
    // Calculate properly upwinded edge-averaged Ex:
-   const FieldValues f(Ex_NE, Ex_SE, Ex_NW, Ex_SW, ay_pos, ay_neg, az_pos, az_neg, perBy_S, perBy_N, perBz_W, perBz_E,
+   const UpwindField f(Ex_NE, Ex_SE, Ex_NW, Ex_SW, ay_pos, ay_neg, az_pos, az_neg, perBy_S, perBy_N, perBz_W, perBz_E,
                        dperBydz_S, dperBydz_N, dperBzdy_W, dperBzdy_E);
    e[ci.sw][fsgrids::efield::EX] = f();
 
@@ -866,7 +889,7 @@ void calculateEdgeElectricFieldY(fsgrids::perbspan perb,
    }
 
    // Calculate properly upwinded edge-averaged Ey:
-   const FieldValues f(Ey_NE, Ey_SE, Ey_NW, Ey_SW, az_pos, az_neg, ax_pos, ax_neg, perBz_S, perBz_N, perBx_W, perBx_E,
+   const UpwindField f(Ey_NE, Ey_SE, Ey_NW, Ey_SW, az_pos, az_neg, ax_pos, ax_neg, perBz_S, perBz_N, perBx_W, perBx_E,
                        dperBzdx_S, dperBzdx_N, dperBxdz_W, dperBxdz_E);
    e[ci.sw][fsgrids::efield::EY] = f();
 
@@ -1095,7 +1118,7 @@ void calculateEdgeElectricFieldZ(fsgrids::perbspan perb,
    }
 
    // Calculate properly upwinded edge-averaged Ez:
-   const FieldValues f(Ez_NE, Ez_SE, Ez_NW, Ez_SW, ax_pos, ax_neg, ay_pos, ay_neg, perBx_S, perBx_N, perBy_W, perBy_E,
+   const UpwindField f(Ez_NE, Ez_SE, Ez_NW, Ez_SW, ax_pos, ax_neg, ay_pos, ay_neg, perBx_S, perBx_N, perBy_W, perBy_E,
                        dperBxdy_S, dperBxdy_N, dperBydx_W, dperBydx_E);
    e[ci.sw][fsgrids::efield::EZ] = f();
 
