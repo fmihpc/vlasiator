@@ -3025,8 +3025,9 @@ bool DataReducer::addOperator(DRO::DataReductionOperator* op) {
  * @return Name of the operator.
  */
 std::string DataReducer::getName(const unsigned int& operatorID) const {
-   if (operatorID >= operators.size())
+   if (operatorID >= operators.size()) {
       return "";
+   }
    return operators[operatorID]->getName();
 }
 
@@ -3042,8 +3043,9 @@ std::string DataReducer::getName(const unsigned int& operatorID) const {
  */
 bool DataReducer::getDataVectorInfo(const unsigned int& operatorID, std::string& dataType, unsigned int& dataSize,
                                     unsigned int& vectorSize) const {
-   if (operatorID >= operators.size())
+   if (operatorID >= operators.size()) {
       return false;
+   }
    return operators[operatorID]->getDataVectorInfo(dataType, dataSize, vectorSize);
 }
 
@@ -3057,8 +3059,9 @@ bool DataReducer::getDataVectorInfo(const unsigned int& operatorID, std::string&
  */
 bool DataReducer::addMetadata(const unsigned int operatorID, std::string unit, std::string unitLaTeX,
                               std::string variableLaTeX, std::string unitConversion) {
-   if (operatorID >= operators.size())
+   if (operatorID >= operators.size()) {
       return false;
+   }
    return operators[operatorID]->setUnitMetadata(unit, unitLaTeX, variableLaTeX, unitConversion);
 }
 
@@ -3071,8 +3074,9 @@ bool DataReducer::addMetadata(const unsigned int operatorID, std::string unit, s
  */
 bool DataReducer::getMetadata(const unsigned int& operatorID, std::string& unit, std::string& unitLaTeX,
                               std::string& variableLaTeX, std::string& unitConversion) const {
-   if (operatorID >= operators.size())
+   if (operatorID >= operators.size()) {
       return false;
+   }
    return operators[operatorID]->getUnitMetadata(unit, unitLaTeX, variableLaTeX, unitConversion);
 }
 
@@ -3080,8 +3084,9 @@ bool DataReducer::getMetadata(const unsigned int& operatorID, std::string& unit,
  * @param operatorID ID number of the DataReductionOperator.
  * @return If true, then VLSVWriter should be passed to the DataReductionOperator.*/
 bool DataReducer::hasParameters(const unsigned int& operatorID) const {
-   if (operatorID >= operators.size())
+   if (operatorID >= operators.size()) {
       return false;
+   }
    return dynamic_cast<DRO::DataReductionOperatorHasParameters*>(operators[operatorID]) != nullptr;
 }
 
@@ -3093,13 +3098,16 @@ bool DataReducer::hasParameters(const unsigned int& operatorID) const {
  */
 bool DataReducer::reduceData(const SpatialCell* cell, const unsigned int& operatorID, char* buffer) {
    // Tell the chosen operator which spatial cell we are counting:
-   if (operatorID >= operators.size())
+   if (operatorID >= operators.size()) {
       return false;
-   if (operators[operatorID]->setSpatialCell(cell) == false)
+   }
+   if (operators[operatorID]->setSpatialCell(cell) == false) {
       return false;
+   }
 
-   if (operators[operatorID]->reduceData(cell, buffer) == false)
+   if (operators[operatorID]->reduceData(cell, buffer) == false) {
       return false;
+   }
    return true;
 }
 
@@ -3111,13 +3119,15 @@ bool DataReducer::reduceData(const SpatialCell* cell, const unsigned int& operat
  */
 bool DataReducer::reduceDiagnostic(const SpatialCell* cell, const unsigned int& operatorID, Real* result) {
    // Tell the chosen operator which spatial cell we are counting:
-   if (operatorID >= operators.size())
+   if (operatorID >= operators.size()) {
       return false;
-   if (operators[operatorID]->setSpatialCell(cell) == false)
+   }
+   if (operators[operatorID]->setSpatialCell(cell) == false) {
       return false;
-
-   if (operators[operatorID]->reduceDiagnostic(cell, result) == false)
+   }
+   if (operators[operatorID]->reduceDiagnostic(cell, result) == false) {
       return false;
+   }
    return true;
 }
 
@@ -3131,8 +3141,9 @@ unsigned int DataReducer::size() const { return operators.size(); }
  * @param vlsvWriter VLSV file writer that has output file open.
  * @return If true, DataReductionOperator wrote its parameters successfully.*/
 bool DataReducer::writeParameters(const unsigned int& operatorID, vlsv::Writer& vlsvWriter) {
-   if (operatorID >= operators.size())
+   if (operatorID >= operators.size()) {
       return false;
+   }
    DRO::DataReductionOperatorHasParameters* parameterOperator =
        dynamic_cast<DRO::DataReductionOperatorHasParameters*>(operators[operatorID]);
    if (parameterOperator == nullptr) {
@@ -3156,8 +3167,9 @@ bool DataReducer::writeFsGridData(const FieldSolverData& fieldSolverData, const 
 bool DataReducer::writeIonosphereGridData(SBC::SphericalTriGrid& grid, const std::string& meshName,
                                           const unsigned int operatorID, vlsv::Writer& vlsvWriter) {
 
-   if (operatorID >= operators.size())
+   if (operatorID >= operators.size()) {
       return false;
+   }
    DRO::DataReductionOperatorIonosphereElement* DROe =
        dynamic_cast<DRO::DataReductionOperatorIonosphereElement*>(operators[operatorID]);
    DRO::DataReductionOperatorIonosphereNode* DROn =
