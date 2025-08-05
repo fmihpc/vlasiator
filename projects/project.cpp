@@ -38,6 +38,7 @@
 #include "Flowthrough/Flowthrough.h"
 #include "Fluctuations/Fluctuations.h"
 #include "Harris/Harris.h"
+#include "Reconnection/Reconnection.h"
 #include "KHB/KHB.h"
 #include "Larmor/Larmor.h"
 #include "Magnetosphere/Magnetosphere.h"
@@ -84,6 +85,7 @@ namespace projects {
       projects::Flowthrough::addParameters();
       projects::Fluctuations::addParameters();
       projects::Harris::addParameters();
+      projects::Reconnection::addParameters();
       projects::KHB::addParameters();
       projects::Larmor::addParameters();
       projects::Magnetosphere::addParameters();
@@ -681,6 +683,9 @@ Project* createProject() {
    }
    if(Parameters::projectName == "Harris") {
       rvalue = new projects::Harris;
+   }
+   if(Parameters::projectName == "Reconnection") {
+      rvalue = new projects::Reconnection;
    }
    if(Parameters::projectName == "KHB") {
       rvalue = new projects::KHB;
