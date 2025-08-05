@@ -184,7 +184,7 @@ void computePerbDerivatives(fsgrids::perbspan perb,
       dPerB[dpb::dPERBydzz] = compute2ndDerivative(bfi::PERBY, perbData.oop, perbData.oom, perbData.ooo);
 
       if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-         auto compute = [&perb](auto bl, auto br, auto tl, auto tr, auto i) {
+         auto crossDerivative = [&perb](auto bl, auto br, auto tl, auto tr, auto i) {
             const auto& botLeft = perb[bl];
             const auto& botRght = perb[br];
             const auto& topLeft = perb[tl];
@@ -193,27 +193,26 @@ void computePerbDerivatives(fsgrids::perbspan perb,
          };
 
          dPerB[dpb::dPERBxdyz] =
-             compute(stencil.omm(), stencil.opm(), stencil.omp(), stencil.opp(), bfi::PERBX);
+             crossDerivative(stencil.omm(), stencil.opm(), stencil.omp(), stencil.opp(), bfi::PERBX);
          dPerB[dpb::dPERBydxz] =
-             compute(stencil.mom(), stencil.pom(), stencil.mop(), stencil.pop(), bfi::PERBY);
+             crossDerivative(stencil.mom(), stencil.pom(), stencil.mop(), stencil.pop(), bfi::PERBY);
          dPerB[dpb::dPERBzdxy] =
-             compute(stencil.mmo(), stencil.pmo(), stencil.mpo(), stencil.ppo(), bfi::PERBZ);
+             crossDerivative(stencil.mmo(), stencil.pmo(), stencil.mpo(), stencil.ppo(), bfi::PERBZ);
       }
    }
 }
 
 /*! \brief Low-level spatial derivatives calculation.
  *
- * For the cell with ID cellID calculate the spatial derivatives or apply the derivative boundary conditions defined in
- * project.h. Uses RHO, V[XYZ] and B[XYZ] in the first-order time accuracy method and in the second step of the
- * second-order method, and RHO_DT2, V[XYZ]1 and B[XYZ]1 in the first step of the second-order method.
+ * Calculate the spatial derivatives or apply the derivative boundary conditions.
  *
- * \param perBGrid fsGrid holding the perturbed B quantities
- * \param momentsGrid fsGrid holding the moment quantities
- * \param dPerBGrid fsGrid holding the derivatives of perturbed B
- * \param dMomentsGrid fsGrid holding the derviatives of moments
- * \param fsgrid fsGrid holding technical information (such as boundary types)
- * \param sysBoundaries System boundary conditions existing
+ * \param perb fsGrid holding the perturbed B quantities
+ * \param moments fsGrid holding the moment quantities
+ * \param dperb fsGrid holding the derivatives of perturbed B
+ * \param dmoments fsGrid holding the derviatives of moments
+ * \param stencil fsgrid stencil for the cell
+ * \param sysBoundaryFlag system boundary flag for the cell
+ * \param sysBoundaryLayer system boundary layer for the cell
  * \param doMoments Bool telling whether the derivatives for moments need updating too.
  *
  * \sa calculateDerivativesSimple calculateBVOLDerivativesSimple calculateBVOLDerivatives
@@ -408,7 +407,7 @@ void calculateBVOLDerivativesSimple(fsgrids::volspan vol,
 void calculateCurvature(fsgrids::volspan vol,
                         fsgrids::constbgbspan bgb,
                         const fsgrid::FsStencil& stencil, const std::array<Real, 3>& gridSpacing) {
-   auto compute = [&vol, &bgb](auto i) -> std::array<Real, 3> {
+   auto normalize = [&vol, &bgb](auto i) -> std::array<Real, 3> {
       const auto& b = bgb[i];
       const auto& v = vol[i];
       const Real bx = b[fsgrids::bgbfield::BGBXVOL] + v[fsgrids::volfields::PERBXVOL];
@@ -423,13 +422,13 @@ void calculateCurvature(fsgrids::volspan vol,
       };
    };
 
-   const auto [bx, by, bz] = compute(stencil.ooo());
-   const auto [left_x_bx, left_x_by, left_x_bz] = compute(stencil.moo());
-   const auto [rght_x_bx, rght_x_by, rght_x_bz] = compute(stencil.poo());
-   const auto [left_y_bx, left_y_by, left_y_bz] = compute(stencil.omo());
-   const auto [rght_y_bx, rght_y_by, rght_y_bz] = compute(stencil.opo());
-   const auto [left_z_bx, left_z_by, left_z_bz] = compute(stencil.oom());
-   const auto [rght_z_bx, rght_z_by, rght_z_bz] = compute(stencil.oop());
+   const auto [bx, by, bz] = normalize(stencil.ooo());
+   const auto [left_x_bx, left_x_by, left_x_bz] = normalize(stencil.moo());
+   const auto [rght_x_bx, rght_x_by, rght_x_bz] = normalize(stencil.poo());
+   const auto [left_y_bx, left_y_by, left_y_bz] = normalize(stencil.omo());
+   const auto [rght_y_bx, rght_y_by, rght_y_bz] = normalize(stencil.opo());
+   const auto [left_z_bx, left_z_by, left_z_bz] = normalize(stencil.oom());
+   const auto [rght_z_bx, rght_z_by, rght_z_bz] = normalize(stencil.oop());
 
    auto& volCenter = vol[stencil.ooo()];
    volCenter[fsgrids::volfields::CURVATUREX] = bx * 0.5 * (rght_x_bx - left_x_bx) / gridSpacing[0] +
