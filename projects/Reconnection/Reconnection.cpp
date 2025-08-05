@@ -43,8 +43,7 @@ namespace projects {
    void Reconnection::addParameters(){
       typedef Readparameters RP;
       RP::add("Reconnection.Scale_size", "Reconnection sheet scale size (m)", 150000.0);
-      RP::add("Reconnection.PertA", "Velocity fluctuations amplitude", 0);
-      RP::add("Reconnection.kscale", "Density fluctuation k scaling", 1);
+      RP::add("Reconnection.VX0", "Initial Velocity in x-direction", 1e4);
       RP::add("Reconnection.BX0", "Magnetic field at infinity (T)", 8.33061003094e-8);
       RP::add("Reconnection.BY0", "Magnetic field at infinity (T)", 8.33061003094e-8);
       RP::add("Reconnection.BZ0", "Magnetic field at infinity (T)", 8.33061003094e-8);
@@ -62,8 +61,7 @@ namespace projects {
       Project::getParameters();
       typedef Readparameters RP;
       RP::get("Reconnection.Scale_size", this->SCA_LAMBDA);
-      RP::get("Reconnection.PertA", this->PertAmplitude);
-      RP::get("Reconnection.kscale", this->kscale);
+      RP::get("Reconnection.VX0", this->VX0);
       RP::get("Reconnection.BX0", this->BX0);
       RP::get("Reconnection.BY0", this->BY0);
       RP::get("Reconnection.BZ0", this->BZ0);
@@ -97,7 +95,7 @@ namespace projects {
       Real initRho = sP.DENSITY;
       Real initT = sP.TEMPERATURE;
       // Note: bulk V is zero, according to this and getV0().
-      const Real initV0X = -1.0 * this->PertAmplitude * tanh(x / this->SCA_LAMBDA) / pow(cosh(sqrt(x*x + z*z) / (this->SCA_LAMBDA)), 2.0);
+      const Real initV0X = -1.0 * this->VX0 * tanh(x / this->SCA_LAMBDA) * (1.0 + 1.0/ pow(cosh(sqrt(x*x + z*z) / (this->SCA_LAMBDA)), 2.0));
       const Real initV0Y = 0;
       const Real initV0Z = 0;
 
