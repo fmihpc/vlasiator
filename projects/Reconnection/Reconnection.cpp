@@ -101,7 +101,7 @@ namespace projects {
 
       creal kz = 8 * M_PI / (Parameters::zmax - Parameters::zmin);
 
-      initRho *= (1.0 + 5.0 / pow(cosh(x / (this->SCA_LAMBDA)), 2.0));
+      initRho *= (1.0 + (5.0 / pow(cosh(x / (this->SCA_LAMBDA)), 2.0) * (1.0 + this->PertAmplitude * cos(kz * (z - Parameters::zmin)))));
       initRho *= (1.0 + this->PertAmplitude * cos(kz * (z - Parameters::zmin)));
 
       #ifdef USE_GPU
