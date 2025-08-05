@@ -99,7 +99,7 @@ namespace projects {
       const Real initV0Y = 0;
       const Real initV0Z = 0;
 
-      creal rhofac = sqrt(this->BX0*this->BX0 + this->BY0*this->BY0 + this->BZ0*this->BZ0) / 2.0 / physicalconstants::MU_0;
+      creal rhofac = (this->BX0*this->BX0 + this->BY0*this->BY0 + this->BZ0*this->BZ0) / 2.0 / physicalconstants::MU_0;
 
       initRho *= (1.0 + (1.0 - 1.0 / pow(cosh(z / (this->SCA_LAMBDA)), 2.0)) * rhofac / pow(cosh(x / (this->SCA_LAMBDA)), 2.0));
 
