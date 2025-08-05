@@ -99,7 +99,7 @@ namespace projects {
       const Real initV0Y = 0;
       const Real initV0Z = 0;
 
-      kz = 8 * M_PI / (Parameters::zmax - Paramters::zmin);
+      kz = 8 * M_PI / (Parameters::zmax - Parameters::zmin);
 
       initRho *= (1.0 + 5.0 / pow(cosh(x / (this->SCA_LAMBDA)), 2.0));
       initRho *= (1.0 + this->PertAmplitude * cos(kz * (z - Parameters::zmin)));
