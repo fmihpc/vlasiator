@@ -154,16 +154,16 @@ void propagateMagneticField(fsgrids::perbspan perb,
  *
  * Propagates the magnetic field according to the system boundary conditions.
  *
- * \param perBGrid fsGrid holding the perturbed B quantities at runge-kutta t=0
- * \param perBDt2Grid fsGrid holding the perturbed B quantities at runge-kutta t=0.5
- * \param bgbGrid fsGrid holding the background field B quantities
- * \param EGrid fsGrid holding the Electric field quantities at runge-kutta t=0
- * \param EDt2Grid fsGrid holding the Electric field quantities at runge-kutta t=0.5
- * \param fsgrid fsGrid holding technical information (such as boundary types)
- * \param i,j,k fsGrid cell coordinates for the current cell
+ * \param perb fsGrid holding the perturbed B quantities at runge-kutta t=0
+ * \param perbdt2 fsGrid holding the perturbed B quantities at runge-kutta t=0.5
+ * \param bgb fsGrid holding the background field B quantities
+ * \param technical fsgrid holding the technical parameters
+ * \param gridSpacing cell size in x,y,z
+ * \param globalCoordinates cell global grid coordinate indices
+ * \param stencil fsgrid stencil for cell
  * \param sysBoundaries System boundary conditions existing
- * \param dt Length of the time step
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
+ * \param component component to compute
  *
  * \sa propagateMagneticFieldSimple propagateMagneticField
  */
@@ -189,11 +189,13 @@ void propagateSysBoundaryMagneticField(fsgrids::perbspan perb,
  *
  * Propagates the magnetic field and applies the field boundary conditions defined in project.h where needed.
  *
- * \param perBGrid fsGrid holding the perturbed B quantities at runge-kutta t=0
- * \param perBDt2Grid fsGrid holding the perturbed B quantities at runge-kutta t=0.5
- * \param EGrid fsGrid holding the Electric field quantities at runge-kutta t=0
- * \param EDt2Grid fsGrid holding the Electric field quantities at runge-kutta t=0.5
- * \param fsgrid fsGrid holding technical information (such as boundary types)
+ * \param perb fsGrid holding the perturbed B quantities at runge-kutta t=0
+ * \param perbdt2 fsGrid holding the perturbed B quantities at runge-kutta t=0.5
+ * \param bgb fsGrid holding the background B quantities
+ * \param e fsGrid holding the Electric field quantities at runge-kutta t=0
+ * \param edt2 fsGrid holding the Electric field quantities at runge-kutta t=0.5
+ * \param technical fsGrid holding technical information (such as boundary types)
+ * \param fsgrid container of all fsgrids
  * \param sysBoundaries System boundary conditions existing
  * \param dt Length of the time step
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
