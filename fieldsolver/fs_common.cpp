@@ -43,10 +43,9 @@ Real divideIfNonZero(creal numerator, creal denominator) {
  * Computes the reconstruction coefficients used for field component reconstruction.
  * Only implemented for 2nd and 3rd order.
  *
- * \param perBGrid fsGrid holding the perturbed B quantities
- * \param dPerBGrid fsGrid holding the derivatives of perturbed B
- * \param perturbedResult Array in which to store the coefficients.
- * \param i,j,k fsGrid cell coordinates for the current cell
+ * \param perb fsGrid holding the perturbed B quantities
+ * \param dperb fsGrid holding the derivatives of perturbed B
+ * \param stencil fsgrid stencil for the cuurent cell
  * \param reconstructionOrder Reconstruction order of the fields after Balsara 2009, 2 used for BVOL, 3 used for
  * 2nd-order Hall term calculations.
  */
@@ -211,9 +210,10 @@ reconstructionCoefficients(fsgrids::perbspan perb,
  *  D.S. Balsara, J. Comp. Phys., 228, 2009
  *  doi:10.1016/j.jcp.2009.03.038
  *
- * \param perBGrid perturbed B fsGrid
- * \param dPerBGrid perturbed B derivatives fsGrid
- * \param fsgrid technical fsGrid
+ * \param perb perturbed B fsGrid
+ * \param dperb perturbed B derivatives fsGrid
+ * \param technical technical fsGrid
+ * \param reconstructionCoefficientsCache map for cached values
  * \param i local fsGrid x-index
  * \param j local fsGrid y-index
  * \param k local fsGrid z-index
@@ -287,9 +287,10 @@ std::array<Real, 3> interpolatePerturbedB(
  *  and the wxMaxima file at
  *  doc/fieldsolver/Balsara_curlB_at_arbitrary_xyz.wxmx
  *
- * \param perBGrid perturbed B fsGrid
- * \param dPerBGrid perturbed B derivatives fsGrid
- * \param fsgrid technical fsGrid
+ * \param perb perturbed B fsGrid
+ * \param dperb perturbed B derivatives fsGrid
+ * \param technical technical fsGrid
+ * \param fsgrid fsgfrid container
  * \param i local fsGrid x-index
  * \param j local fsGrid y-index
  * \param k local fsGrid z-index

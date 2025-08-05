@@ -98,6 +98,12 @@ using namespace std;
 
 
 /** Calculate the electron pressure gradient term on all given cells.
+ * @param egradpes fsgrid of Hall term electric fields
+ * @param moments fsgrid of moments
+ * @param dmoments fsgrid of moments derivatives
+ * @param technical fsgrid with technical parameters
+ * @param stencil fsgrid stencil of current cell
+ * @param gridSpacing fsgrid cell size in x,y,z
  * @param sysBoundaries System boundary condition functions.
  */
 void calculateGradPeTerm(fsgrids::egradpespan egradpes,

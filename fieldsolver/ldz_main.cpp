@@ -64,6 +64,23 @@ extern Logger logFile;
  * an argument the element from the enum defining the current stage and handle
  * their job correspondingly.
  *
+ * \param perb fsgrid holding perturbed magnetic field
+ * \param perbdt2 fsgrid holding perturbed magnetic field at Runge-Kutta half-step
+ * \param e fsgrid holding electric field
+ * \param edt2 fsgrid holding electric field 
+ * \param ehall fsgrid holding Hall term electric field
+ * \param egradpe fsgrid holding gradient of electron pressure electric field
+ * \param egradpedt2 fsgrid holding gradient of electron pressure electric field at Runge-Kutta half-step
+ * \param moments fsgrid holding moments
+ * \param momentsdt2 fsgrid holding moments at Runge-Kutta half-step
+ * \param dperb fsgrid holding perturbed magnetic field derivatives
+ * \param dmoments fsgrid holding moments derivatives
+ * \param dmomentsdt2 fsgrid holding moments derivatives at Runge-Kutta half-step
+ * \param bgb fsgrid holding background magnetic field
+ * \param vol fsgrid holding volume magnetic field
+ * \param technical fsgrid holding technical parameters
+ * \param fsgrid fsgrids container
+ * \param sysBoundaries Container of existing system boundaries
  * \param dt Length of the time step
  * \param subcycles Number of subcycles to compute.
  *

@@ -39,9 +39,7 @@ using namespace std;
  * \param pC Reconstruction coefficients
  * \param BGBY Background By
  * \param BGBZ Background Bz
- * \param dx Cell dx
- * \param dy Cell dy
- * \param dz Cell dz
+ * \param gridSpacing fsgrid cell size in x,y,z
  *
  * \sa calculateEdgeHallTermComponents
  *
@@ -101,9 +99,7 @@ inline REAL JXBX_000_100(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, cr
  * \param pC Reconstruction coefficients
  * \param BGBY Background By
  * \param BGBZ Background Bz
- * \param dx Cell dx
- * \param dy Cell dy
- * \param dz Cell dz
+ * \param gridSpacing fsgrid cell size in x,y,z
  *
  * \sa calculateEdgeHallTermComponents
  *
@@ -163,9 +159,7 @@ inline REAL JXBX_010_110(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, cr
  * \param pC Reconstruction coefficients
  * \param BGBY Background By
  * \param BGBZ Background Bz
- * \param dx Cell dx
- * \param dy Cell dy
- * \param dz Cell dz
+ * \param gridSpacing fsgrid cell size in x,y,z
  *
  * \sa calculateEdgeHallTermComponents
  *
@@ -225,9 +219,7 @@ inline REAL JXBX_001_101(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, cr
  * \param pC Reconstruction coefficients
  * \param BGBY Background By
  * \param BGBZ Background Bz
- * \param dx Cell dx
- * \param dy Cell dy
- * \param dz Cell dz
+ * \param gridSpacing fsgrid cell size in x,y,z
  *
  * \sa calculateEdgeHallTermComponents
  *
@@ -288,9 +280,7 @@ inline REAL JXBX_011_111(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, cr
  * \param pC Reconstruction coefficients
  * \param BGBX Background Bx
  * \param BGBZ Background Bz
- * \param dx Cell dx
- * \param dy Cell dy
- * \param dz Cell dz
+ * \param gridSpacing fsgrid cell size in x,y,z
  *
  * \sa calculateEdgeHallTermYComponents
  *
@@ -350,9 +340,7 @@ inline REAL JXBY_000_010(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, cr
  * \param pC Reconstruction coefficients
  * \param BGBX Background Bx
  * \param BGBZ Background Bz
- * \param dx Cell dx
- * \param dy Cell dy
- * \param dz Cell dz
+ * \param gridSpacing fsgrid cell size in x,y,z
  *
  * \sa calculateEdgeHallTermYComponents
  *
@@ -412,9 +400,7 @@ inline REAL JXBY_100_110(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, cr
  * \param pC Reconstruction coefficients
  * \param BGBX Background Bx
  * \param BGBZ Background Bz
- * \param dx Cell dx
- * \param dy Cell dy
- * \param dz Cell dz
+ * \param gridSpacing fsgrid cell size in x,y,z
  *
  * \sa calculateEdgeHallTermYComponents
  *
@@ -474,9 +460,7 @@ inline REAL JXBY_001_011(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, cr
  * \param pC Reconstruction coefficients
  * \param BGBX Background Bx
  * \param BGBZ Background Bz
- * \param dx Cell dx
- * \param dy Cell dy
- * \param dz Cell dz
+ * \param gridSpacing fsgrid cell size in x,y,z
  *
  * \sa calculateEdgeHallTermYComponents
  *
@@ -537,9 +521,7 @@ inline REAL JXBY_101_111(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, cr
  * \param pC Reconstruction coefficients
  * \param BGBX Background Bx
  * \param BGBY Background By
- * \param dx Cell dx
- * \param dy Cell dy
- * \param dz Cell dz
+ * \param gridSpacing fsgrid cell size in x,y,z
  *
  * \sa calculateEdgeHallTermZComponents
  *
@@ -599,9 +581,7 @@ inline REAL JXBZ_000_001(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, cr
  * \param pC Reconstruction coefficients
  * \param BGBX Background Bx
  * \param BGBY Background By
- * \param dx Cell dx
- * \param dy Cell dy
- * \param dz Cell dz
+ * \param gridSpacing fsgrid cell size in x,y,z
  *
  * \sa calculateEdgeHallTermZComponents
  *
@@ -661,9 +641,7 @@ inline REAL JXBZ_100_101(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, cr
  * \param pC Reconstruction coefficients
  * \param BGBX Background Bx
  * \param BGBY Background By
- * \param dx Cell dx
- * \param dy Cell dy
- * \param dz Cell dz
+ * \param gridSpacing fsgrid cell size in x,y,z
  *
  * \sa calculateEdgeHallTermZComponents
  *
@@ -723,9 +701,7 @@ inline REAL JXBZ_010_011(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, cr
  * \param pC Reconstruction coefficients
  * \param BGBX Background Bx
  * \param BGBY Background By
- * \param dx Cell dx
- * \param dy Cell dy
- * \param dz Cell dz
+ * \param gridSpacing fsgrid cell size in x,y,z
  *
  * \sa calculateEdgeHallTermZComponents
  *
@@ -829,14 +805,14 @@ inline REAL JXB(fsgrids::ehall term, const std::array<REAL, Rec::N_REC_COEFFICIE
  *
  * Calls the lower-level inline templates and scales the components properly.
  *
- * \param perBGrid fsGrid holding the perturbed B quantities
- * \param EHallGrid fsGrid holding the Hall contributions to the electric field
- * \param momentsGrid fsGrid holding the moment quantities
- * \param dPerBGrid fsGrid holding the derivatives of perturbed B
- * \param BgBGrid fsGrid holding the background B quantities
- * \param fsgrid fsGrid holding technical information (such as boundary types)
+ * \param perbs fsGrid holding the perturbed B quantities
+ * \param ehalls fsGrid holding the Hall contributions to the electric field
+ * \param moments fsGrid holding the moment quantities
+ * \param dperbs fsGrid holding the derivatives of perturbed B
+ * \param bgbs fsGrid holding the background B quantities
+ * \param gridSpacing fsgrid cell size in x,y,z
  * \param perturbedCoefficients Reconstruction coefficients
- * \param i,j,k fsGrid cell coordinates for the current cell
+ * \param stencil fsGrid stencil for current cell
  *
  * \sa calculateHallTerm JXBX_000_100 JXBX_001_101 JXBX_010_110 JXBX_011_111
  *
@@ -1023,14 +999,15 @@ void calculateEdgeHallTermComponents(fsgrids::perbspan perbs,
 
 /** \brief Calculate the numerator of the Hall term on all given cells.
  *
- * \param perBGrid fsGrid holding the perturbed B quantities
- * \param EHallGrid fsGrid holding the Hall contributions to the electric field
- * \param momentsGrid fsGrid holding the moment quantities
- * \param dPerBGrid fsGrid holding the derivatives of perturbed B
- * \param BgBGrid fsGrid holding the background B quantities
- * \param fsgrid fsGrid holding technical information (such as boundary types)
+ * \param perb fsGrid holding the perturbed B quantities
+ * \param ehall fsGrid holding the Hall contributions to the electric field
+ * \param moments fsGrid holding the moment quantities
+ * \param dperb fsGrid holding the derivatives of perturbed B
+ * \param bgb fsGrid holding the background B quantities
+ * \param technical fsGrid holding technical information (such as boundary types)
+ * \param stencil fsgrid stencil of current cell
  * \param sysBoundaries System boundary condition functions.
- * \param i,j,k fsGrid cell coordinates for the current cell
+ * \param gridSpacing fsgrid cell size in x,y,z
  *
  * \sa calculateHallTermSimple calculateEdgeHallTermComponents
  */
@@ -1077,16 +1054,20 @@ void calculateHallTerm(fsgrids::perbspan perb,
  * Performs the communication before and after the computation as well as the computation of all Hall term numerator
  * components.
  *
- * \param perBGrid fsGrid holding the perturbed B quantities
- * \param perBDt2Grid fsGrid holding the perturbed B quantities at runge-kutta half step
- * \param EHallGrid fsGrid holding the Hall contributions to the electric field
- * \param momentsGrid fsGrid holding the moment quantities
- * \param momentsDt2Grid fsGrid holding the moment quantities at runge-kutta half step
- * \param dPerBGrid fsGrid holding the derivatives of perturbed B
- * \param BgBGrid fsGrid holding the background B quantities
- * \param fsgrid fsGrid holding technical information (such as boundary types)
+ * \param perb fsGrid holding the perturbed B quantities
+ * \param perbdt2 fsGrid holding the perturbed B quantities at runge-kutta half step
+ * \param ehall fsGrid holding the Hall contributions to the electric field
+ * \param moments fsGrid holding the moment quantities
+ * \param momentsdt2 fsGrid holding the moment quantities at runge-kutta half step
+ * \param dperb fsGrid holding the derivatives of perturbed B
+ * \param dmoments fsGrid holding the derivatives of moments
+ * \param dmomentsdt2 fsGrid holding the derivatives of moments at Runge-Kutta half step
+ * \param bgb fsGrid holding the background B quantities
+ * \param technical fsGrid holding technical information (such as boundary types)
+ * \param fsgrid fsgrids container
  * \param sysBoundaries System boundary condition functions.
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
+ * \param communicateMomentsDerivatives Boolean flag whether to ghost update moments derivatives
  *
  * \sa calculateHallTerm
  */

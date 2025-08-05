@@ -170,20 +170,22 @@ public:
 /*! \brief Low-level helper function.
  *
  * Computes the magnetosonic speed in the YZ plane. Used in upwinding the electric field X component,
- * at the interface between cell (i,j,k) and (nbi,nbj,nbk).
+ * at the interface between cells self and nbr.
  *
  * Expects that the correct RHO and B fields are being passed, depending on the
  * stage of the Runge-Kutta time stepping method.
  *
  * If fields are not propagated, returns 0.0 as there is no information propagating.
  *
- * \param perBGrid fsGrid holding the perturbed B quantities
- * \param momentsGrid fsGrid holding the moment quantities
- * \param dPerBGrid fsGrid holding the derivatives of perturbed B
- * \param dMomentsGrid fsGrid holding the derviatives of moments
- * \param BgBGrid fsGrid holding the background B quantities
- * \param i,j,k fsGrid cell coordinates for the current cell
- * \param nbi,nbj,nbk fsGrid cell coordinates for the adjacent cell
+ * \param perB fsGrid holding the perturbed B quantities
+ * \param moments fsGrid holding the moment quantities
+ * \param dPerB fsGrid holding the derivatives of perturbed B
+ * \param dMoments fsGrid holding the derviatives of moments
+ * \param BgB fsGrid holding the background B quantities
+ * \param gridSpacing grid cell size in x,y,z
+ * \param rhomLimits allowed min and max density when interpolating
+ * \param self Current cell index
+ * \param nbr Neighbor cell index
  * \param By Current cell's By
  * \param Bz Current cell's Bz
  * \param dBydx dBydx derivative
@@ -192,11 +194,6 @@ public:
  * \param dBzdy dBzdy derivative
  * \param ydir +1 or -1 depending on the interpolation direction in y
  * \param zdir +1 or -1 depending on the interpolation direction in z
- * \param minRhom Minimum mass density allowed from the neighborhood
- * \param maxRhom Maximum mass density allowed from the neighborhood
- * \param ret_vA Alfven speed returned
- * \param ret_vS Sound speed returned
- * \param ret_vW Whistler speed returned
  */
 Wavespeeds calculateWaveSpeedYZ(fsgrids::perbspan perB,
                                 fsgrids::constmomentsspan moments,
@@ -229,20 +226,22 @@ Wavespeeds calculateWaveSpeedYZ(fsgrids::perbspan perB,
 /*! \brief Low-level helper function.
  *
  * Computes the magnetosonic speed in the XZ plane. Used in upwinding the electric field Y component,
- * at the interface between cell (i,j,k) and (nbi,nbj,nbk).
+ * at the interface between cells self and nbr.
  *
  * Expects that the correct RHO and B fields are being passed, depending on the stage of the Runge-Kutta time stepping
  * method.
  *
  * If fields are not propagated, returns 0.0 as there is no information propagating.
  *
- * \param perBGrid fsGrid holding the perturbed B quantities
- * \param momentsGrid fsGrid holding the moment quantities
- * \param dPerBGrid fsGrid holding the derivatives of perturbed B
- * \param dMomentsGrid fsGrid holding the derviatives of moments
- * \param BgBGrid fsGrid holding the background B quantities
- * \param i,j,k fsGrid cell coordinates for the current cell
- * \param nbi,nbj,nbk fsGrid cell coordinates for the adjacent cell
+ * \param perB fsGrid holding the perturbed B quantities
+ * \param moments fsGrid holding the moment quantities
+ * \param dPerB fsGrid holding the derivatives of perturbed B
+ * \param dMoments fsGrid holding the derviatives of moments
+ * \param BgB fsGrid holding the background B quantities
+ * \param gridSpacing grid cell size in x,y,z
+ * \param rhomLimits allowed min and max density when interpolating
+ * \param self Current cell index
+ * \param nbr Neighbor cell index
  * \param Bx Current cell's Bx
  * \param Bz Current cell's Bz
  * \param dBxdy dBxdy derivative
@@ -251,11 +250,6 @@ Wavespeeds calculateWaveSpeedYZ(fsgrids::perbspan perB,
  * \param dBzdy dBzdy derivative
  * \param xdir +1 or -1 depending on the interpolation direction in x
  * \param zdir +1 or -1 depending on the interpolation direction in z
- * \param minRhom Minimum mass density allowed from the neighborhood
- * \param maxRhom Maximum mass density allowed from the neighborhood
- * \param ret_vA Alfven speed returned
- * \param ret_vS Sound speed returned
- * \param ret_vW Whistler speed returned
  */
 Wavespeeds calculateWaveSpeedXZ(fsgrids::perbspan perB,
                                 fsgrids::constmomentsspan moments,
@@ -288,20 +282,22 @@ Wavespeeds calculateWaveSpeedXZ(fsgrids::perbspan perB,
 /*! \brief Low-level helper function.
  *
  * Computes the magnetosonic speed in the XY plane. Used in upwinding the electric field Z component,
- * at the interface between cell (i,j,k) and (nbi,nbj,nbk).
+ * at the interface between cells self and nbr.
  *
  * Expects that the correct RHO and B fields are being passed, depending on the stage of the Runge-Kutta time stepping
  * method.
  *
  * If fields are not propagated, returns 0.0 as there is no information propagating.
  *
- * \param perBGrid fsGrid holding the perturbed B quantities
- * \param momentsGrid fsGrid holding the moment quantities
- * \param dPerBGrid fsGrid holding the derivatives of perturbed B
- * \param dMomentsGrid fsGrid holding the derviatives of moments
- * \param BgBGrid fsGrid holding the background B quantities
- * \param i,j,k fsGrid cell coordinates for the current cell
- * \param nbi,nbj,nbk fsGrid cell coordinates for the adjacent cell
+ * \param perB fsGrid holding the perturbed B quantities
+ * \param moments fsGrid holding the moment quantities
+ * \param dPerB fsGrid holding the derivatives of perturbed B
+ * \param dMoments fsGrid holding the derviatives of moments
+ * \param BgB fsGrid holding the background B quantities
+ * \param gridSpacing grid cell size in x,y,z
+ * \param rhomLimits allowed min and max density when interpolating
+ * \param self Current cell index
+ * \param nbr Neighbor cell index
  * \param Bx Current cell's Bx
  * \param By Current cell's By
  * \param dBxdy dBxdy derivative
@@ -310,11 +306,6 @@ Wavespeeds calculateWaveSpeedXZ(fsgrids::perbspan perB,
  * \param dBydz dBydz derivative
  * \param xdir +1 or -1 depending on the interpolation direction in x
  * \param ydir +1 or -1 depending on the interpolation direction in y
- * \param minRhom Minimum mass density allowed from the neighborhood
- * \param maxRhom Maximum mass density allowed from the neighborhood
- * \param ret_vA Alfven speed returned
- * \param ret_vS Sound speed returned
- * \param ret_vW Whistler speed returned
  */
 Wavespeeds calculateWaveSpeedXY(fsgrids::perbspan perB,
                                 fsgrids::constmomentsspan moments,
@@ -452,17 +443,18 @@ struct DataArrays {
  * Note that the background B field is excluded from the diffusive term calculations because they are equivalent to a
  * current term and the background field is curl-free.
  *
- * \param perBGrid fsGrid holding the perturbed B quantities
- * \param EGrid fsGrid holding the electric field
- * \param EHallGrid fsGrid holding the Hall contributions to the electric field
- * \param EGradPeGrid fsGrid holding the electron pressure gradient E field
- * \param momentsGrid fsGrid holding the moment quantities
- * \param dPerBGrid fsGrid holding the derivatives of perturbed B
- * \param dMomentsGrid fsGrid holding the derviatives of moments
- * \param BgBGrid fsGrid holding the background B quantities
- * \param fsgrid fsGrid holding technical information (such as boundary types)
- * \param i,j,k fsGrid cell coordinates for the current cell
+ * \param perb fsGrid holding the perturbed B quantities
+ * \param dperb fsGrid holding the derivatives of perturbed B
+ * \param e fsGrid holding the electric field
+ * \param ehall fsGrid holding the Hall contributions to the electric field
+ * \param egradpe fsGrid holding the electron pressure gradient E field
+ * \param moments fsGrid holding the moment quantities
+ * \param dmoments fsGrid holding the derviatives of moments
+ * \param bgb fsGrid holding the background B quantities
+ * \param technical fsGrid holding technical information (such as boundary types)
+ * \param stencil current cell's fsgrid stencil
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
+ * \param gridSpacing fsgrid cell size in x,y,z
  */
 void calculateEdgeElectricFieldX(fsgrids::perbspan perb,
                                  fsgrids::constdperbspan dperb,
@@ -689,7 +681,18 @@ void calculateEdgeElectricFieldX(fsgrids::perbspan perb,
  * Note that the background B field is excluded from the diffusive term calculations because they are equivalent to a
  * current term and the background field is curl-free.
  *
+ * \param perb fsGrid holding the perturbed B quantities
+ * \param dperb fsGrid holding the derivatives of perturbed B
+ * \param e fsGrid holding the electric field
+ * \param ehall fsGrid holding the Hall contributions to the electric field
+ * \param egradpe fsGrid holding the electron pressure gradient E field
+ * \param moments fsGrid holding the moment quantities
+ * \param dmoments fsGrid holding the derviatives of moments
+ * \param bgb fsGrid holding the background B quantities
+ * \param technical fsGrid holding technical information (such as boundary types)
+ * \param stencil current cell's fsgrid stencil
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
+ * \param gridSpacing fsgrid cell size in x,y,z
  */
 void calculateEdgeElectricFieldY(fsgrids::perbspan perb,
                                  fsgrids::constdperbspan dperb,
@@ -917,7 +920,18 @@ void calculateEdgeElectricFieldY(fsgrids::perbspan perb,
  * Note that the background B field is excluded from the diffusive term calculations because they are equivalent to a
  * current term and the background field is curl-free.
  *
+ * \param perb fsGrid holding the perturbed B quantities
+ * \param dperb fsGrid holding the derivatives of perturbed B
+ * \param e fsGrid holding the electric field
+ * \param ehall fsGrid holding the Hall contributions to the electric field
+ * \param egradpe fsGrid holding the electron pressure gradient E field
+ * \param moments fsGrid holding the moment quantities
+ * \param dmoments fsGrid holding the derviatives of moments
+ * \param bgb fsGrid holding the background B quantities
+ * \param technical fsGrid holding technical information (such as boundary types)
+ * \param stencil current cell's fsgrid stencil
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
+ * \param gridSpacing fsgrid cell size in x,y,z
  */
 void calculateEdgeElectricFieldZ(fsgrids::perbspan perb,
                                  fsgrids::constdperbspan dperb,
@@ -1139,16 +1153,17 @@ void calculateEdgeElectricFieldZ(fsgrids::perbspan perb,
  *
  * Calls the general or the system boundary electric field propagation functions.
  *
- * \param perBGrid fsGrid holding the perturbed B quantities
- * \param EGrid fsGrid holding the electric field
- * \param EHallGrid fsGrid holding the Hall contributions to the electric field
- * \param EGradPeGrid fsGrid holding the electron pressure gradient E field
- * \param momentsGrid fsGrid holding the moment quantities
- * \param dPerBGrid fsGrid holding the derivatives of perturbed B
- * \param dMomentsGrid fsGrid holding the derviatives of moments
- * \param BgBGrid fsGrid holding the background B quantities
- * \param fsgrid fsGrid holding technical information (such as boundary types)
- * \param i,j,k fsGrid cell coordinates for the current cell
+ * \param perb fsGrid holding the perturbed B quantities
+ * \param dperb fsGrid holding the derivatives of perturbed B
+ * \param e fsGrid holding the electric field
+ * \param ehall fsGrid holding the Hall contributions to the electric field
+ * \param egradpe fsGrid holding the electron pressure gradient E field
+ * \param moments fsGrid holding the moment quantities
+ * \param dmoments fsGrid holding the derviatives of moments
+ * \param bgb fsGrid holding the background B quantities
+ * \param technical fsGrid holding technical information (such as boundary types)
+ * \param stencil current cell's fsgrid stencil
+ * \param gridSpacing fsgrid cell size in x,y,z
  * \param sysBoundaries System boundary conditions existing
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  *
@@ -1200,21 +1215,24 @@ void calculateElectricField(fsgrids::perbspan perb,
  *
  * Transfers the derivatives, calculates the edge electric fields and transfers the new electric fields.
  *
- * \param perBGrid fsGrid holding the perturbed B quantities at runge-kutta t=0
- * \param perBDt2Grid fsGrid holding the perturbed B quantities at runge-kutta t=0.5
- * \param EGrid fsGrid holding the Electric field quantities at runge-kutta t=0
- * \param EDt2Grid fsGrid holding the Electric field quantities at runge-kutta t=0.5
- * \param EHallGrid fsGrid holding the Hall contributions to the electric field
- * \param EGradPeGrid fsGrid holding the electron pressure gradient E field
- * \param momentsGrid fsGrid holding the moment quantities at runge-kutta t=0
- * \param momentsDt2Grid fsGrid holding the moment quantities at runge-kutta t=0.5
- * \param dPerBGrid fsGrid holding the derivatives of perturbed B
- * \param dMomentsGrid fsGrid holding the derivatives of moments
- * \param dMomentsDt2Grid fsGrid holding the derivatives of moments at runge-kutta t=0.5
- * \param BgBGrid fsGrid holding the background B quantities
- * \param fsgrid fsGrid holding technical information (such as boundary types)
+ * \param perb fsGrid holding the perturbed B quantities at runge-kutta t=0
+ * \param perbdt2 fsGrid holding the perturbed B quantities at runge-kutta t=0.5
+ * \param e fsGrid holding the Electric field quantities at runge-kutta t=0
+ * \param edt2 fsGrid holding the Electric field quantities at runge-kutta t=0.5
+ * \param ehall fsGrid holding the Hall contributions to the electric field
+ * \param egradpe fsGrid holding the electron pressure gradient E field
+ * \param egradpedt2 fsGrid holding the electron pressure gradient E field
+ * \param moments fsGrid holding the moment quantities at runge-kutta t=0
+ * \param momentsdt2 fsGrid holding the moment quantities at runge-kutta t=0.5
+ * \param dperb fsGrid holding the derivatives of perturbed B
+ * \param dmoments fsGrid holding the derivatives of moments
+ * \param dmomentsdt2 fsGrid holding the derivatives of moments at runge-kutta t=0.5
+ * \param bgb fsGrid holding the background B quantities
+ * \param technical fsGrid holding technical information (such as boundary types)
+ * \param fsgrid fsgrids container
  * \param sysBoundaries System boundary conditions existing
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
+ * \param communicateEGradPeOrMomentsDerivatives Boolean flag whether grad(Pe) electric field or moments need a ghost update
  *
  * \sa calculateElectricField calculateEdgeElectricFieldX calculateEdgeElectricFieldY calculateEdgeElectricFieldZ
  */

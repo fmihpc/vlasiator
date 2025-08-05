@@ -55,7 +55,9 @@ std::vector<CellID> mapDccrgIdToFsGridGlobalID(dccrg::Dccrg<SpatialCell,dccrg::C
 /*! Take input moments from DCCRG grid and put them into the Fieldsolver grid
  * \param mpiGrid The DCCRG grid carrying rho, rhoV and P
  * \param cells List of local cells
- * \param momentsGrid Fieldsolver grid for these quantities
+ * \param moments fsgrid for moments quantities
+ * \param technical fsgrid with technical parameters
+ * \param fsgrid fsgrid container
  * \param dt2 Whether to copy base moments, or _DT2 moments
  *
  * This function assumes that proper grid coupling has been set up.
@@ -66,9 +68,14 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>&
                            fsgrids::technicalspan technical, FieldSolverGrid &fsgrid, bool dt2 = false);
 
 /*! Copy field solver result (VOLB, VOLE, VOLPERB derivatives, gradpe) and store them back into DCCRG
- * \param mpiGrid The DCCRG grid carrying fields.
- * \param cells List of local cells
- * \param volumeFieldsGrid Fieldsolver grid for these quantities
+ * \param volumefields fsgrid for volume-averaged fields
+ * \param bgb fsgrid for background magnetic field
+ * \param egradpe fsgrid for grad(Pe) component of electric field
+ * \param dmoments fsgrid for moments derivatives
+ * \param technical fsgrid with technical parameters
+ * \param fsgrid fsgrids container
+ * \param mpiGrid The DCCRG grid
+ * \param cells List of local DCCRG cells
  *
  * This function assumes that proper grid coupling has been set up.
  */
@@ -81,9 +88,11 @@ void getFieldsFromFsGrid(fsgrids::constvolspan volumefields,
                          const std::vector<CellID>& cells);
 
 /*! Copy background B fields and store them into DCCRG
- * \param mpiGrid The DCCRG grid carrying fields.
- * \param cells List of local cells
- * \param BgBGrid Background field fsgrid
+ * \param bgb fsgrid for background magnetic field
+ * \param technical fsgrid with technical parameters
+ * \param fsgrid fsgrids container 
+ * \param mpiGrid The DCCRG grid
+ * \param cells List of local DCCRG cells
  *
  * This function assumes that proper grid coupling has been set up.
  */
@@ -91,16 +100,6 @@ void getBgFieldsAndDerivativesFromFsGrid(fsgrid::FsData<std::array<Real, fsgrids
                                          fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                                          dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                          const std::vector<CellID>& cells);
-
-/*! Copy field derivatives from the appropriate FieldSolverData and store them back into DCCRG
- *
- * This should only be neccessary for debugging.
- */
-void getDerivativesFromFsGrid(fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
-                              fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dmoments,
-                              fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
-                              dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                              const std::vector<CellID>& cells);
 
 int getNumberOfCellsOnMaxRefLvl(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                 const std::vector<CellID>& cells);

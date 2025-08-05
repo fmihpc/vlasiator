@@ -253,12 +253,13 @@ void calculateDerivatives(fsgrids::perbspan perb,
  *
  * Then the derivatives are calculated.
  *
- * \param perBGrid fsGrid holding the perturbed B quantities
- * \param momentsGrid fsGrid holding the moment quantities
- * \param dPerBGrid fsGrid holding the derivatives of perturbed B
- * \param dMomentsGrid fsGrid holding the derviatives of moments
- * \param fsgrid fsGrid holding technical information (such as boundary types)
- * \param communicateMoments If true, the derivatives of moments (rho, V, P) are communicated to neighbours.
+ * \param perb fsGrid holding the perturbed B quantities
+ * \param moments fsGrid holding the moment quantities
+ * \param dperb fsGrid holding the derivatives of perturbed B
+ * \param dmoments fsGrid holding the derviatives of moments
+ * \param technical fsGrid holding technical information (such as boundary types)
+ * \param fsgrid fsgrid container
+ * \param doMoments If true, the derivatives of moments (rho, V, P) are communicated to neighbours and their derivatives updated.
 
  * \sa calculateDerivatives calculateBVOLDerivativesSimple calculateBVOLDerivatives
  */
@@ -297,10 +298,9 @@ void calculateDerivativesSimple(fsgrids::perbspan perb,
  * limiter-adjusted values. This is to minimize oscillations as a smooth behaviour is required near artificial
  * boundaries, unlike at boundaries and shocks inside the simulation domain.
  *
- * \param volGrid fsGrid holding the volume averaged fields
- * \param fsgrid fsGrid holding technical information (such as boundary types)
- * \param i,j,k fsGrid cell coordinates for the current cell
- * \param sysBoundaries System boundary conditions existing
+ * \param vol fsGrid holding the volume averaged fields
+ * \param technical fsGrid holding technical information (such as boundary types)
+ * \param stencil fsgrid stencil of current cell
  *
  * \sa calculateDerivatives calculateBVOLDerivativesSimple calculateDerivativesSimple
  */
@@ -365,9 +365,9 @@ void calculateBVOLDerivatives(fsgrids::volspan vol,
  * BVOL has been calculated locally by calculateVolumeAveragedFields but not communicated.
  * For the acceleration step one needs the cross-derivatives of BVOL
  *
- * \param volGrid fsGrid holding the volume averaged fields
- * \param fsgrid fsGrid holding technical information (such as boundary types)
- * \param sysBoundaries System boundary conditions existing
+ * \param vol fsGrid holding the volume averaged fields
+ * \param technical fsGrid holding technical information (such as boundary types)
+ * \param fsgrid fsgrid container
  *
  * \sa calculateDerivatives calculateBVOLDerivatives calculateDerivativesSimple
  */
@@ -393,11 +393,10 @@ void calculateBVOLDerivativesSimple(fsgrids::volspan vol,
 /*! \brief Low-level curvature calculation.
  *
  *
- * \param volGrid fsGrid holding the volume averaged fields
- * \param bgbGrid fsGrid holding the background fields
- * \param fsgrid fsGrid holding technical information (such as boundary types)
- * \param i,j,k fsGrid cell coordinates for the current cell
- * \param sysBoundaries System boundary conditions existing
+ * \param vol fsGrid holding the volume averaged fields
+ * \param bgb fsGrid holding the background fields
+ * \param stencil fsgrid stencil
+ * \param gridSpacing cell sizes in x,y,z
  *
  * http://fusionwiki.ciemat.es/wiki/Magnetic_curvature
  *
@@ -444,10 +443,10 @@ void calculateCurvature(fsgrids::volspan vol,
 
 /*! \brief High-level curvature calculation wrapper function.
  *
- * \param volGrid fsGrid holding the volume averaged fields
- * \param bgbGrid fsGrid holding the background fields
- * \param fsgrid fsGrid holding technical information (such as boundary types)
- * \param sysBoundaries System boundary conditions existing
+ * \param vol fsGrid holding the volume averaged fields
+ * \param bgb fsGrid holding the background fields
+ * \param technical fsGrid holding technical information (such as boundary types)
+ * \param fsgrid fsgrid container
  *
  * \sa calculateDerivatives calculateBVOLDerivatives calculateDerivativesSimple
  */
@@ -512,7 +511,8 @@ static Real calculateU(SpatialCell* cell) {
                      : 0.0); // Kinetic energy
 }
 
-/*! \brief Calculates pressure anistotropy from B and P
+/*! \brief Calculates pressure anistotropy from B and Pi
+ *  \param rot Eigen rotatino matrix for parallel/perpendicular pressure
  *  \param P elements of pressure order in order: P_11, P_22, P_33, P_23, P_13, P_12
  */
 static Real calculateAnisotropy(const Eigen::Matrix3d& rot, const std::array<Real, 6>& P) {
