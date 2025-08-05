@@ -97,7 +97,7 @@ namespace projects {
       Real initRho = sP.DENSITY;
       Real initT = sP.TEMPERATURE;
       // Note: bulk V is zero, according to this and getV0().
-      const Real initV0X = -1.0 * this->PertAmplitude * tanh(z / this->SCA_LAMBDA) / pow(cosh(sqrt(x*x + z*z) / (this->SCA_LAMBDA)), 2.0);
+      const Real initV0X = -1.0 * this->PertAmplitude * tanh(x / this->SCA_LAMBDA) / pow(cosh(sqrt(x*x + z*z) / (this->SCA_LAMBDA)), 2.0);
       const Real initV0Y = 0;
       const Real initV0Z = 0;
 
