@@ -43,7 +43,7 @@ namespace projects {
    void Reconnection::addParameters(){
       typedef Readparameters RP;
       RP::add("Reconnection.Scale_size", "Reconnection sheet scale size (m)", 150000.0);
-      RP::add("Reconnection.PertA", "Density fluctuations amplitude", 0.01);
+      RP::add("Reconnection.PertA", "Velocity fluctuations amplitude", 0);
       RP::add("Reconnection.kscale", "Density fluctuation k scaling", 1);
       RP::add("Reconnection.BX0", "Magnetic field at infinity (T)", 8.33061003094e-8);
       RP::add("Reconnection.BY0", "Magnetic field at infinity (T)", 8.33061003094e-8);
@@ -90,19 +90,20 @@ namespace projects {
       const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
       const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
       const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
+      
+      creal kz = 8 * M_PI / (Parameters::zmax - Parameters::zmin);
 
       const Real mass = getObjectWrapper().particleSpecies[popID].mass;
       Real initRho = sP.DENSITY;
       Real initT = sP.TEMPERATURE;
       // Note: bulk V is zero, according to this and getV0().
-      const Real initV0X = 0;
+      const Real initV0X = this->PertAmplitude * cos(kz * (z - Parameters::zmin)) / pow(cosh(x / (this->SCA_LAMBDA)), 2.0);
       const Real initV0Y = 0;
       const Real initV0Z = 0;
 
-      creal kz = 8 * M_PI / (Parameters::zmax - Parameters::zmin);
+      creal rhofac = sqrt(this->BX0*this->BX0 + this->BY0*this->BY0 + this->BZ0*this->BZ0) / 2.0 / physicalconstants::MU_0;
 
-      initRho *= (1.0 + (5.0 / pow(cosh(x / (this->SCA_LAMBDA)), 2.0) * (1.0 + this->PertAmplitude * cos(kz * (z - Parameters::zmin)))));
-      // initRho *= (1.0 + this->PertAmplitude * cos(kz * (z - Parameters::zmin)));
+      initRho *= (1.0 + rhofac / pow(cosh(x / (this->SCA_LAMBDA)), 2.0));
 
       #ifdef USE_GPU
       vmesh::VelocityMesh *vmesh = cell->dev_get_velocity_mesh(popID);
