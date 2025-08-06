@@ -424,13 +424,15 @@ void setFaceNeighborRanks(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& 
    // TODO: Try a #pragma omp parallel for
    for (const auto& cellid : cells) {
 
-      if (cellid == INVALID_CELLID)
+      if (cellid == INVALID_CELLID) {
          continue;
+      }
 
       SpatialCell* cell = mpiGrid[cellid];
 
-      if (!cell)
+      if (!cell) {
          continue;
+      }
 
       cell->face_neighbor_ranks.clear();
 
@@ -622,8 +624,9 @@ void balanceLoad(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, 
             // Free memory of this cell as it has already been transferred,
             // it will not be used anymore. NOTE: Only clears memory allocated
             // to the active population.
-            if (cell_id % num_part_transfers == transfer_part)
+            if (cell_id % num_part_transfers == transfer_part) {
                cell->clear(popID, true);
+            }
          }
 
          memory_purge(); // Purge jemalloc allocator to actually release memory
@@ -1028,12 +1031,15 @@ void initializeStencils(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mp
       for (int y = -1; y <= 1; y++) {
          for (int x = -1; x <= 1; x++) {
             // do not add cells already in neighborhood (vlasov solver)
-            if (x == 0 && y == 0)
+            if (x == 0 && y == 0) {
                continue;
-            if (x == 0 && z == 0)
+            }
+            if (x == 0 && z == 0) {
                continue;
-            if (y == 0 && z == 0)
+            }
+            if (y == 0 && z == 0) {
                continue;
+            }
             neigh_t offsets = {{x, y, z}};
             neighborhood.push_back(offsets);
          }
