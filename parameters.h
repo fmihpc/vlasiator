@@ -64,6 +64,7 @@ struct Parameters {
    static int myTimeclass; // hrm. The timeclass of this rank - not a great place for this.
    static int currentMaxTimeclass;
    static int maxTimeclass;
+   static int timeclassBuffer;
    static int timeclassLBmantissa;
    static bool tc_leapfrog_init;
    static int tc_test_type;

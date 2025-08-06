@@ -68,6 +68,7 @@ Real P::dt_ceil = -1.0;
 Real P::dt = NAN;
 Real P::dt0 = NAN;
 int P::maxTimeclass = 0;
+int P::timeclassBuffer = 0;
 int P::currentMaxTimeclass = 0;
 bool P::tcRankwise = false;
 bool P::forcedConvection = false;
@@ -1047,6 +1048,7 @@ void Parameters::getParameters() {
    RP::get("gridbuilder.dt", P::dt0);
 
    RP::get("gridbuilder.timeclass_max", P::maxTimeclass);
+   RP::get("gridbuilder.timeclass_buffer", P::timeclassBuffer);
    RP::get("gridbuilder.tcRankwise", P::tcRankwise);
    RP::get("gridbuilder.forcedConvection", P::forcedConvection);
 
@@ -1055,6 +1057,11 @@ void Parameters::getParameters() {
    if (P::tcOverrideTimeclass > -1 && P::maxTimeclass < P::tcOverrideTimeclass) {
       std::cout << "Adjusting P::maxTimeclass ("<< P::maxTimeclass << ") to include tcOverrideTimeclass (" << P::tcOverrideTimeclass << ")" << std::endl;
       P::maxTimeclass = P::tcOverrideTimeclass;
+   }
+
+   if (P::timeclassBuffer < 0) {
+      std::cout << "adding buffer to maxTimeclass: " << P::maxTimeclass << " + " << P::timeclassBuffer << std::endl;
+      P::maxTimeclass += P::timeclassBuffer; // Add buffer to maxTimeclass
    }
 
    RP::get("gridbuilder.tcBoxHalfWidthX", P::tcBoxHalfWidthX);
