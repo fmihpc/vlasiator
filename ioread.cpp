@@ -555,14 +555,14 @@ bool readBlockData(vlsv::ParallelReader& file, const string& meshName, const vec
          tempPointer = fileVelCoordsY.data();
          if (file.read("MESH_NODE_CRDS_Y", attribs, 0, fileMeshBBox[1] * fileMeshBBox[4] + 1, tempPointer, false) ==
              false) {
-            logFile << "(RESTART) ERROR: Failed to read MESH_NODE_CRDS_X at " << __FILE__ << ":" << __LINE__ << endl
+            logFile << "(RESTART) ERROR: Failed to read MESH_NODE_CRDS_Y at " << __FILE__ << ":" << __LINE__ << endl
                     << write;
             success = false;
          }
          tempPointer = fileVelCoordsZ.data();
          if (file.read("MESH_NODE_CRDS_Z", attribs, 0, fileMeshBBox[2] * fileMeshBBox[5] + 1, tempPointer, false) ==
              false) {
-            logFile << "(RESTART) ERROR: Failed to read MESH_NODE_CRDS_X at " << __FILE__ << ":" << __LINE__ << endl
+            logFile << "(RESTART) ERROR: Failed to read MESH_NODE_CRDS_Z at " << __FILE__ << ":" << __LINE__ << endl
                     << write;
             success = false;
          }
@@ -677,8 +677,9 @@ bool readBlockData(vlsv::ParallelReader& file, const string& meshName, const vec
 
       // Calculate the offset from which this process starts reading block data
       uint64_t myOffset = 0;
-      for (int64_t i = 0; i < mpiGrid.get_rank(); ++i)
+      for (int64_t i = 0; i < mpiGrid.get_rank(); ++i) {
          myOffset += offsetArray[i];
+      }
 
       if (file.getArrayInfo("BLOCKVARIABLE", attribs, arraySize, vectorSize, dataType, byteSize) == false) {
          logFile << "(RESTART)  ERROR: Failed to read BLOCKVARIABLE INFO" << endl << write;
@@ -690,39 +691,45 @@ bool readBlockData(vlsv::ParallelReader& file, const string& meshName, const vec
          switch (byteSize) {
          case sizeof(double):
             if (_readBlockData<double>(file, meshName, fileCells, localCellStartOffset, localCells, blocksPerCell,
-                                       blockSumOffsets, myOffset, blockSum, mpiGrid, blockIDremapper, popID) == false)
+                                       blockSumOffsets, myOffset, blockSum, mpiGrid, blockIDremapper, popID) == false) {
                success = false;
+            }
             break;
          case sizeof(float):
             if (_readBlockData<float>(file, meshName, fileCells, localCellStartOffset, localCells, blocksPerCell,
-                                      blockSumOffsets, myOffset, blockSum, mpiGrid, blockIDremapper, popID) == false)
+                                      blockSumOffsets, myOffset, blockSum, mpiGrid, blockIDremapper, popID) == false) {
                success = false;
+            }
             break;
          }
       } else if (dataType == vlsv::datatype::type::UINT) {
          switch (byteSize) {
          case sizeof(uint32_t):
             if (_readBlockData<uint32_t>(file, meshName, fileCells, localCellStartOffset, localCells, blocksPerCell,
-                                         blockSumOffsets, myOffset, blockSum, mpiGrid, blockIDremapper, popID) == false)
+                                         blockSumOffsets, myOffset, blockSum, mpiGrid, blockIDremapper, popID) == false) {
                success = false;
+            }
             break;
          case sizeof(uint64_t):
             if (_readBlockData<uint64_t>(file, meshName, fileCells, localCellStartOffset, localCells, blocksPerCell,
-                                         blockSumOffsets, myOffset, blockSum, mpiGrid, blockIDremapper, popID) == false)
+                                         blockSumOffsets, myOffset, blockSum, mpiGrid, blockIDremapper, popID) == false) {
                success = false;
+            }
             break;
          }
       } else if (dataType == vlsv::datatype::type::INT) {
          switch (byteSize) {
          case sizeof(int32_t):
             if (_readBlockData<int32_t>(file, meshName, fileCells, localCellStartOffset, localCells, blocksPerCell,
-                                        blockSumOffsets, myOffset, blockSum, mpiGrid, blockIDremapper, popID) == false)
+                                        blockSumOffsets, myOffset, blockSum, mpiGrid, blockIDremapper, popID) == false) {
                success = false;
+            }
             break;
          case sizeof(int64_t):
             if (_readBlockData<int64_t>(file, meshName, fileCells, localCellStartOffset, localCells, blocksPerCell,
-                                        blockSumOffsets, myOffset, blockSum, mpiGrid, blockIDremapper, popID) == false)
+                                        blockSumOffsets, myOffset, blockSum, mpiGrid, blockIDremapper, popID) == false) {
                success = false;
+            }
             break;
          }
       } else {
@@ -1200,20 +1207,25 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid
 
    // Around May 2015 time was renamed from "t" to "time", we try to read both,
    // new way is read first
-   if (readScalarParameter(file, "time", P::t, MASTER_RANK, MPI_COMM_WORLD) == false)
-      if (readScalarParameter(file, "t", P::t, MASTER_RANK, MPI_COMM_WORLD) == false)
+   if (readScalarParameter(file, "time", P::t, MASTER_RANK, MPI_COMM_WORLD) == false) {
+      if (readScalarParameter(file, "t", P::t, MASTER_RANK, MPI_COMM_WORLD) == false) {
          success = false;
+      }
+   }
    P::t_min = P::t;
 
    // Around May 2015 timestep was renamed from "tstep" to "timestep", we to read
    // both, new way is read first
-   if (readScalarParameter(file, "timestep", P::tstep, MASTER_RANK, MPI_COMM_WORLD) == false)
-      if (readScalarParameter(file, "tstep", P::tstep, MASTER_RANK, MPI_COMM_WORLD) == false)
+   if (readScalarParameter(file, "timestep", P::tstep, MASTER_RANK, MPI_COMM_WORLD) == false) {
+      if (readScalarParameter(file, "tstep", P::tstep, MASTER_RANK, MPI_COMM_WORLD) == false) {
          success = false;
+      }
+   }
    P::tstep_min = P::tstep;
 
-   if (readScalarParameter(file, "dt", P::dt, MASTER_RANK, MPI_COMM_WORLD) == false)
+   if (readScalarParameter(file, "dt", P::dt, MASTER_RANK, MPI_COMM_WORLD) == false) {
       success = false;
+   }
 
    if (readScalarParameter(file, "fieldSolverSubcycles", P::fieldSolverSubcycles, MASTER_RANK, MPI_COMM_WORLD) ==
        false) {

@@ -1613,33 +1613,41 @@ bool writeRestart(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
    
    //Write mesh boundaries: NOTE: master process only
    //Visit plugin needs to know the boundaries of the mesh so the number of cells in x, y, z direction
-   if( writeMeshBoundingBox( vlsvWriter, meshName, masterProcessId, MPI_COMM_WORLD ) == false ) return false;
-   
-   //Write the node coordinates: NOTE: master process only
-   if( writeBoundingBoxNodeCoordinates( vlsvWriter, meshName, masterProcessId, MPI_COMM_WORLD ) == false ) return false;
-   
-   //Write basic grid parameters: NOTE: master process only ( I think )
-   if( writeCommonGridData(vlsvWriter, mpiGrid, local_cells, fileIndex, MPI_COMM_WORLD) == false ) return false;
-   
-   //Write zone global id numbers:
-   if( writeZoneGlobalIdNumbers( mpiGrid, vlsvWriter, meshName, local_cells, ghost_cells ) == false ) return false;
-
-   //Write domain sizes:
-   if( writeDomainSizes( vlsvWriter, meshName, local_cells.size(), ghost_cells.size() ) == false ) return false;
-
-   //Write FSGrid metadata
-   if (writeFsGridMetadata(fieldSolverData.fsgrid, vlsvWriter, true) == false)
+   if( writeMeshBoundingBox( vlsvWriter, meshName, masterProcessId, MPI_COMM_WORLD ) == false ) {
       return false;
-
+   }
+   //Write the node coordinates: NOTE: master process only
+   if( writeBoundingBoxNodeCoordinates( vlsvWriter, meshName, masterProcessId, MPI_COMM_WORLD ) == false ) {
+      return false;
+   }
+   //Write basic grid parameters: NOTE: master process only ( I think )
+   if( writeCommonGridData(vlsvWriter, mpiGrid, local_cells, fileIndex, MPI_COMM_WORLD) == false ) {
+      return false;
+   }
+   //Write zone global id numbers:
+   if( writeZoneGlobalIdNumbers( mpiGrid, vlsvWriter, meshName, local_cells, ghost_cells ) == false ) {
+      return false;
+   }
+   //Write domain sizes:
+   if( writeDomainSizes( vlsvWriter, meshName, local_cells.size(), ghost_cells.size() ) == false ) {
+      return false;
+   }
+   //Write FSGrid metadata
+   if (writeFsGridMetadata(fieldSolverData.fsgrid, vlsvWriter, true) == false) {
+      return false;
+   }
    //Write Version Info 
-   if( writeVersionInfo(versionInfo,vlsvWriter,MPI_COMM_WORLD) == false ) return false;
-   
+   if( writeVersionInfo(versionInfo,vlsvWriter,MPI_COMM_WORLD) == false ) {
+      return false;
+   }
    //Write Config Info 
-   if( writeConfigInfo(configInfo,vlsvWriter,MPI_COMM_WORLD) == false ) return false;
-   
+   if( writeConfigInfo(configInfo,vlsvWriter,MPI_COMM_WORLD) == false ) {
+      return false;
+   }
    //Write Ionosphere Grid
-   if( writeIonosphereGridMetadata( vlsvWriter ) == false ) return false;
-
+   if( writeIonosphereGridMetadata( vlsvWriter ) == false ) {
+      return false;
+   }
    metadataTimer.stop();
    phiprof::Timer reducedTimer {"reduceddataIO"};
    //write out DROs we need for restarts
