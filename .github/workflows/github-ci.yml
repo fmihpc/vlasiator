@@ -653,6 +653,8 @@ jobs:
         cd testpackage
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries/lib
         sbatch -W -o testpackage_run_output.txt ./small_test_ukko_dgx_github_ci.sh
+        # Clean mca_base_component warning crud from output file
+        sed -i '/mca_base_component_repository_open/d' testpackage_run_output.txt
         PARSE_OUTPUT_CMD=$( cat << MORO
         echo "Job finished, checking output."
         cat testpackage_run_output.txt
