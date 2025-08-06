@@ -834,7 +834,7 @@ namespace SBC {
       return LID;
    }
 
-/*   void determineFaceNoClassMembers(
+   void determineFaceNoClassMembers(
       bool* isThisCellOnAFace,
       creal x, creal y, creal z,
       creal dx, creal dy, creal dz,
@@ -876,7 +876,7 @@ namespace SBC {
             isThisCellOnAFace[5] = false;
          }
       }
-   }*/
+   }
 
    // The function above and the commented parts below make an implementation with lambda
    // but it breaks some communicator and YPK did not manage to get a working version out of this.
@@ -919,46 +919,24 @@ namespace SBC {
       const std::array<bool, 6> facesToProcess_local = facesToProcess;
       const std::array<bool, 3> periodic_local = this->periodic;
       // Assign boundary flags to local fsgrid cells
-//      fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
-//                          phiprof::initializeTimer("Assign sysboundary flags to fsgrid cells"), technical,
-//                          [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
-      const auto gridDims = fsgrid.getLocalSize();
-      for (auto k=0; k<gridDims[2]; k++) {
-         for (auto j=0; j<gridDims[1]; j++) {
-            for (auto i=0; i<gridDims[0]; i++) {
-               const auto stencil = fsgrid.makeStencil(i, j, k);
-               const auto coords = fsgrid.getPhysicalCoords(fsgrid.localCoordsFromStencilID(stencil.ooo()));
+      fsgrid.serial_for_coords([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                               phiprof::initializeTimer("Assign sysboundary flags to fsgrid cells"), technical,
+                               [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer, std::array<Real, 3> coords) {
+         creal dx = P::dx_ini * pow(2, -technical[stencil.ooo()].refLevel);
+         creal dy = P::dy_ini * pow(2, -technical[stencil.ooo()].refLevel);
+         creal dz = P::dz_ini * pow(2, -technical[stencil.ooo()].refLevel);
 
-               // Shift to the center of the fsgrid cell
-               auto cellCenterCoords = coords;
-               cellCenterCoords[0] += 0.5 * gridSpacing[0];
-               cellCenterCoords[1] += 0.5 * gridSpacing[1];
-               cellCenterCoords[2] += 0.5 * gridSpacing[2];
-               const auto refLvl = mpiGrid.get_refinement_level(mpiGrid.get_existing_cell(cellCenterCoords));
+         std::array<bool, 6> isThisCellOnAFace = {{false}};
+         bool doAssign = false;
 
-               if (refLvl == -1) {
-                  abort_mpi("Error, could not get refinement level of remote DCCRG cell!", 1);
-               }
-
-               creal dx = P::dx_ini * pow(2, -refLvl);
-               creal dy = P::dy_ini * pow(2, -refLvl);
-               creal dz = P::dz_ini * pow(2, -refLvl);
-
-               std::array<bool, 6> isThisCellOnAFace_local = {{false}};
-               bool doAssign_local = false;
-
-//         determineFaceNoClassMembers(isThisCellOnAFace_local.data(), cellCenterCoords[0], cellCenterCoords[1], cellCenterCoords[2], dx, dy, dz, periodic_local);
-               determineFace(isThisCellOnAFace_local.data(), cellCenterCoords[0], cellCenterCoords[1], cellCenterCoords[2], dx, dy, dz);
-               for (int iface = 0; iface < 6; iface++) {
-                  doAssign_local = doAssign_local || (facesToProcess_local[iface] && isThisCellOnAFace_local[iface]);
-               }
-               if (doAssign_local) {
-                  technical[stencil.ooo()].sysBoundaryFlag = index_local;
-               }
-//      });
-            }
+         determineFaceNoClassMembers(isThisCellOnAFace.data(), coords[0] + 0.5 * gridSpacing[0], coords[1] + 0.5 * gridSpacing[1], coords[2] + 0.5 * gridSpacing[2], dx, dy, dz, periodic_local);
+         for (int iface = 0; iface < 6; iface++) {
+            doAssign = doAssign || (facesToProcess_local[iface] && isThisCellOnAFace[iface]);
          }
-      }
+         if (doAssign) {
+            technical[stencil.ooo()].sysBoundaryFlag = index_local;
+         }
+      });
    }
    
 } // namespace SBC

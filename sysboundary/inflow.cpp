@@ -180,8 +180,8 @@ namespace SBC {
    }
    
    void Inflow::fieldSolverBoundaryCondGradPeElectricField(
-       fsgrids::egradpespan EGradPe, const fsgrid::FsStencil& stencil,
-       cuint component) {
+      fsgrids::egradpespan EGradPe, const fsgrid::FsStencil& stencil,
+      cuint component) {
       EGradPe[stencil.ooo()][fsgrids::egradpe::EXGRADPE + component] = 0.0;
    }
    
@@ -202,60 +202,84 @@ namespace SBC {
       // updateState() (at pre-set intervals only)
    }
    
+   void determineFaceNoClassMembersInflow(
+      bool* isThisCellOnAFace,
+      creal x, creal y, creal z,
+      creal dx, creal dy, creal dz,
+      const std::array<bool, 3> periodicity,
+      const bool excludeSlicesAndPeriodicDimensions=false // (default)
+   ) {   
+      for(uint i=0; i<6; i++) {
+         isThisCellOnAFace[i] = false;
+      }     
+      if(x > Parameters::xmax - dx * 2) {
+         isThisCellOnAFace[0] = true;
+      }  
+      if(x < Parameters::xmin + dx * 2) {
+         isThisCellOnAFace[1] = true;
+      }     
+      if(y > Parameters::ymax - dy * 2) {
+         isThisCellOnAFace[2] = true;
+      }     
+      if(y < Parameters::ymin + dy * 2) {
+         isThisCellOnAFace[3] = true;
+      }
+      if(z > Parameters::zmax - dz * 2) {
+         isThisCellOnAFace[4] = true;
+      }
+      if(z < Parameters::zmin + dz * 2) {
+         isThisCellOnAFace[5] = true;
+      }
+      if(excludeSlicesAndPeriodicDimensions == true) {
+         if (Parameters::xcells_ini == 1 || periodicity[0]) {
+            isThisCellOnAFace[0] = false;
+            isThisCellOnAFace[1] = false; 
+         }     
+         if (Parameters::ycells_ini == 1 || periodicity[1]) {
+            isThisCellOnAFace[2] = false;
+            isThisCellOnAFace[3] = false;
+         }     
+         if (Parameters::zcells_ini == 1 || periodicity[2]) {
+            isThisCellOnAFace[4] = false; 
+            isThisCellOnAFace[5] = false; 
+         }     
+      }
+   }
+
    void Inflow::setBFromTemplate(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                  fsgrids::perbspan perb,
                                  fsgrids::bgbspan bgb,
                                  fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
-      std::array<bool, 6> isThisCellOnAFace;
       const auto& gridSpacing = fsgrid.getGridSpacing();
-      const auto* localSize = &fsgrid.getLocalSize()[0];
-      for (fsgrid::FsIndex_t k = 0; k < localSize[2]; k++) {
-         for (fsgrid::FsIndex_t j = 0; j < localSize[1]; j++) {
-            for (fsgrid::FsIndex_t i = 0; i < localSize[0]; i++) {
-               const auto stencil = fsgrid.makeStencil(i, j, k);
-               const auto coords = fsgrid.getPhysicalCoords(i, j, k);
+      const auto facesToProcess_local = this->facesToProcess;
+      std::array<bool, 3> periodic_local = this->periodic;
+      const auto templateB_local = this->templateB;
+      fsgrid.parallel_for_coords([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                                 phiprof::initializeTimer("setBFromTemplate"), technical,
+                                 [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer, std::array<Real, 3> coords) {
+         creal dx = P::dx_ini * pow(2, -technical[stencil.ooo()].refLevel);
+         creal dy = P::dy_ini * pow(2, -technical[stencil.ooo()].refLevel);
+         creal dz = P::dz_ini * pow(2, -technical[stencil.ooo()].refLevel);
+
+         std::array<bool, 6> isThisCellOnAFace = {{false}};
+ 
+         determineFaceNoClassMembersInflow(isThisCellOnAFace.data(), coords[0] + 0.5 * gridSpacing[0], coords[1] + 0.5 * gridSpacing[1], coords[2] + 0.5 * gridSpacing[2], dx, dy, dz, periodic_local);
    
-               // TODO: This code up to determineFace() should be in a separate
-               // function, it gets called in a lot of places.
-               // Shift to the center of the fsgrid cell
-               auto cellCenterCoords = coords;
-               cellCenterCoords[0] += 0.5 * gridSpacing[0];
-               cellCenterCoords[1] += 0.5 * gridSpacing[1];
-               cellCenterCoords[2] += 0.5 * gridSpacing[2];
-   
-               const auto refLvl = mpiGrid.get_refinement_level(mpiGrid.get_existing_cell(cellCenterCoords));
-   
-               if (refLvl == -1) {
-                  abort_mpi("Error, could not get refinement level of remote DCCRG cell!", 1);
-               }
-   
-               creal dx = P::dx_ini * pow(2, -refLvl);
-               creal dy = P::dy_ini * pow(2, -refLvl);
-               creal dz = P::dz_ini * pow(2, -refLvl);
-   
-               determineFace(isThisCellOnAFace.data(), cellCenterCoords[0], cellCenterCoords[1], cellCenterCoords[2], dx,
-                             dy, dz);
-   
-               for (uint iface = 0; iface < 6; iface++) {
-                  if (facesToProcess[iface] && isThisCellOnAFace[iface]) {
-                     perb[stencil.ooo()][fsgrids::bfield::PERBX] =
-                         templateB[iface][0] + bgb[stencil.ooo()][fsgrids::bgbfield::BGBXVDCORR];
-                     perb[stencil.ooo()][fsgrids::bfield::PERBY] =
-                         templateB[iface][1] + bgb[stencil.ooo()][fsgrids::bgbfield::BGBYVDCORR];
-                     perb[stencil.ooo()][fsgrids::bfield::PERBZ] =
-                         templateB[iface][2] + bgb[stencil.ooo()][fsgrids::bgbfield::BGBZVDCORR];
-                     break;
-                  }
-               }
+         for (uint iface = 0; iface < 6; iface++) {
+            if (facesToProcess_local[iface] && isThisCellOnAFace[iface]) {
+               perb[stencil.ooo()][fsgrids::bfield::PERBX] = templateB_local[iface][0] + bgb[stencil.ooo()][fsgrids::bgbfield::BGBXVDCORR];
+               perb[stencil.ooo()][fsgrids::bfield::PERBY] = templateB_local[iface][1] + bgb[stencil.ooo()][fsgrids::bgbfield::BGBYVDCORR];
+               perb[stencil.ooo()][fsgrids::bfield::PERBZ] = templateB_local[iface][2] + bgb[stencil.ooo()][fsgrids::bgbfield::BGBZVDCORR];
+               break;
             }
          }
-      }
+      });
    }
    
    void Inflow::setCellsFromTemplate(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const uint popID) {
       // Assign boundary flags to local DCCRG cells
       const std::vector<CellID>& cells = getLocalCells();
-   #pragma omp parallel for schedule(dynamic, 1)
+      #pragma omp parallel for schedule(dynamic, 1)
       for (size_t c = 0; c < cells.size(); c++) {
          SpatialCell* cell = mpiGrid[cells[c]];
          if (cell->sysBoundaryFlag != this->getIndex()) {
