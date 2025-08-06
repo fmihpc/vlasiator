@@ -1192,11 +1192,16 @@ uint32_t getBlockId(const double vx, const double vy, const double vz, const dou
 // [1] cellId -- The spatial cell's ID
 // Output:
 // [2] avgs -- Saves the output into an unordered map with block id as the key and an array of avgs as the value
+// [3] vectorSize -- cells per block
 // return false or true depending on whether the operation was successful
 template <class T>
-bool readAvgs(T& vlsvReader, string name,
-              const unordered_map<uint64_t, pair<uint64_t, uint32_t>>& cellsWithBlocksLocations, const uint64_t& cellId,
-              unordered_map<uint32_t, array<double, 64>>& avgs) {
+bool readAvgs( T & vlsvReader,
+               string name,
+               const unordered_map<uint64_t, pair<uint64_t, uint32_t>> & cellsWithBlocksLocations,
+               const uint64_t & cellId,
+               unordered_map<uint32_t, vector<double> > & avgs, 
+               uint64_t& vectorSize
+) {
    // Get the block ids:
    vector<uint32_t> blockIds;
    if (getBlockIds(vlsvReader, cellsWithBlocksLocations, cellId, blockIds) == false) {
@@ -1208,7 +1213,7 @@ bool readAvgs(T& vlsvReader, string name,
    attribs.push_back(make_pair("mesh", attributes["--meshname"]));
 
    datatype::type dataType;
-   uint64_t arraySize, vectorSize, dataSize;
+   uint64_t arraySize, dataSize;
    if (vlsvReader.getArrayInfo("BLOCKVARIABLE", attribs, arraySize, vectorSize, dataType, dataSize) == false) {
       // no
       //      cerr << "ERROR READING BLOCKVARIABLE AT " << __FILE__ << " " << __LINE__ << endl;
@@ -1216,12 +1221,8 @@ bool readAvgs(T& vlsvReader, string name,
    }
 
    // Make a routine error checks:
-   if (vectorSize != 64) {
-      cerr << "ERROR, BAD AVGS VECTOR SIZE AT " << __FILE__ << " " << __LINE__ << endl;
-      return false;
-   }
-   unordered_map<uint64_t, pair<uint64_t, uint32_t>>::const_iterator it = cellsWithBlocksLocations.find(cellId);
-   if (it == cellsWithBlocksLocations.end()) {
+   unordered_map<uint64_t, pair<uint64_t, uint32_t>>::const_iterator it = cellsWithBlocksLocations.find( cellId );
+   if( it == cellsWithBlocksLocations.end() ) {
       cerr << "COULDNT FIND CELL ID " << cellId << " AT " << __FILE__ << " " << __LINE__ << endl;
       return false;
    }
@@ -1244,15 +1245,15 @@ bool readAvgs(T& vlsvReader, string name,
       return false;
    }
    // Input avgs values:
-   array<double, 64> avgs_temp;
-   if (dataSize == 4) {
-      float* buffer_float = reinterpret_cast<float*>(buffer);
-      for (uint b = 0; b < blockIds.size(); ++b) {
-         const uint32_t& blockId = blockIds[b];
-         for (uint i = 0; i < vectorSize; ++i) {
+   vector<double> avgs_temp (vectorSize);
+   if( dataSize == 4 ) {
+      float * buffer_float = reinterpret_cast<float*>( buffer );
+      for( uint b = 0; b < blockIds.size(); ++b ) {
+         const uint32_t & blockId = blockIds[b];
+         for( uint i = 0; i < vectorSize; ++i ) {
             avgs_temp[i] = buffer_float[vectorSize * b + i];
          }
-         avgs.insert(make_pair(blockId, avgs_temp));
+         avgs[blockId] = avgs_temp;
       }
    } else if (dataSize == 8) {
       double* buffer_double = reinterpret_cast<double*>(buffer);
@@ -1261,7 +1262,7 @@ bool readAvgs(T& vlsvReader, string name,
          for (uint i = 0; i < vectorSize; ++i) {
             avgs_temp[i] = buffer_double[vectorSize * b + i];
          }
-         avgs.insert(make_pair(blockId, avgs_temp));
+         avgs[blockId] = avgs_temp;
       }
    } else {
       cerr << "ERROR, BAD AVGS DATASIZE AT " << __FILE__ << " " << __LINE__ << endl;
@@ -1423,26 +1424,32 @@ bool compareAvgs(const string fileName1, const string fileName2, const bool verb
       const uint64_t& cellId1 = cellIds1[cellIndex];
       const uint64_t& cellId2 = cellIds2[cellIndex];
       // Get the avgs in a hash map (The velocity block id is the key and avgs is the value):
-      const uint velocityCellsPerBlock = 64;
-      unordered_map<uint32_t, array<double, velocityCellsPerBlock>> avgs1;
-      unordered_map<uint32_t, array<double, velocityCellsPerBlock>> avgs2;
+      uint64_t vectorSize1 = 0, vectorSize2;
+      unordered_map<uint32_t, vector<double> > avgs1;
+      unordered_map<uint32_t, vector<double> > avgs2;
       // Store the avgs in avgs1 and 2:
-      if (readAvgs(vlsvReader1, "proton", cellsWithBlocksLocations1, cellId1, avgs1) == false) {
-         if (readAvgs(vlsvReader1, "avgs", cellsWithBlocksLocations1, cellId1, avgs1) == false) {
+      if( readAvgs( vlsvReader1, "proton", cellsWithBlocksLocations1, cellId1, avgs1, vectorSize1 ) == false ) {
+         if( readAvgs( vlsvReader1, "avgs", cellsWithBlocksLocations1, cellId1, avgs1, vectorSize1 ) == false ) {
+            cerr << "ERROR, FAILED TO READ AVGS AT " << __FILE__ << " " << __LINE__ << endl;
+            return false;
+         }
+      }
+      
+      if( readAvgs( vlsvReader2, "proton", cellsWithBlocksLocations2, cellId2, avgs2, vectorSize2 ) == false ) {
+         if( readAvgs( vlsvReader2, "avgs", cellsWithBlocksLocations2, cellId2, avgs2, vectorSize2 ) == false ) {
             cerr << "ERROR, FAILED TO READ AVGS AT " << __FILE__ << " " << __LINE__ << endl;
             return false;
          }
       }
 
-      if (readAvgs(vlsvReader2, "proton", cellsWithBlocksLocations2, cellId2, avgs2) == false) {
-         if (readAvgs(vlsvReader2, "avgs", cellsWithBlocksLocations2, cellId2, avgs2) == false) {
-            cerr << "ERROR, FAILED TO READ AVGS AT " << __FILE__ << " " << __LINE__ << endl;
-            return false;
-         }
+      if (vectorSize1 != vectorSize2) {
+         cerr << "ERROR, VECTORSIZES DON'T MATCH " << vectorSize1 << " VS " << vectorSize2 << " AT " << __FILE__ << " " << __LINE__ << endl;
+         return false;
       }
-
-      // Compare the avgs values:
-      //  First make a check on how many of the block ids are identical:
+      const uint64_t velocityCellsPerBlock = vectorSize1;
+   
+      //Compare the avgs values:
+      // First make a check on how many of the block ids are identical:
       const size_t sizeOfAvgs1 = avgs1.size();
       const size_t sizeOfAvgs2 = avgs2.size();
       // Vector of block ids that are the same
@@ -1451,12 +1458,10 @@ bool compareAvgs(const string fileName1, const string fileName2, const bool verb
       blockIds1.reserve(sizeOfAvgs1);
       blockIds2.reserve(sizeOfAvgs2);
       // Input block ids:
-      for (unordered_map<uint32_t, array<double, velocityCellsPerBlock>>::const_iterator it = avgs1.begin();
-           it != avgs1.end(); ++it) {
+      for( unordered_map<uint32_t, vector<double> >::const_iterator it = avgs1.begin(); it != avgs1.end(); ++it ) {
          blockIds1.push_back(it->first);
       }
-      for (unordered_map<uint32_t, array<double, velocityCellsPerBlock>>::const_iterator it = avgs2.begin();
-           it != avgs2.end(); ++it) {
+      for( unordered_map<uint32_t, vector<double> >::const_iterator it = avgs2.begin(); it != avgs2.end(); ++it ) {
          blockIds2.push_back(it->first);
       }
       // Compare block ids:
@@ -1510,8 +1515,8 @@ bool compareAvgs(const string fileName1, const string fileName2, const bool verb
          // Get the block id
          const uint32_t blockId = *it;
          // Get avgs values:
-         const array<double, velocityCellsPerBlock>& avgsValues1 = avgs1.at(blockId);
-         const array<double, velocityCellsPerBlock>& avgsValues2 = avgs2.at(blockId);
+         const vector<double> & avgsValues1 = avgs1.at(blockId);
+         const vector<double> & avgsValues2 = avgs2.at(blockId);
          // Get the diff:
          for (uint i = 0; i < velocityCellsPerBlock; ++i) {
             double val1 = avgsValues1[i] > threshold ? avgsValues1[i] : threshold;
@@ -1526,20 +1531,17 @@ bool compareAvgs(const string fileName1, const string fileName2, const bool verb
          }
       }
       // Compare the avgs values of nonidentical blocks:
-      array<double, velocityCellsPerBlock> zeroAvgs;
-      for (uint i = 0; i < velocityCellsPerBlock; ++i) {
-         zeroAvgs[i] = 0;
-      }
-      for (vector<uint32_t>::const_iterator it = nonIdenticalBlockIds.begin(); it != nonIdenticalBlockIds.end(); ++it) {
+      vector<double> zeroAvgs(velocityCellsPerBlock, 0);
+      for( vector<uint32_t>::const_iterator it = nonIdenticalBlockIds.begin(); it != nonIdenticalBlockIds.end(); ++it ) {
          // Get the block id
          const uint32_t blockId = *it;
          // Get avgs values:
 
-         const array<double, velocityCellsPerBlock>* avgsValues1;
-         const array<double, velocityCellsPerBlock>* avgsValues2;
+         const vector<double>* avgsValues1;
+         const vector<double>* avgsValues2;
 
-         unordered_map<uint32_t, array<double, velocityCellsPerBlock>>::const_iterator it2 = avgs1.find(blockId);
-         if (it2 == avgs1.end()) {
+         unordered_map<uint32_t, vector<double> >::const_iterator it2 = avgs1.find( blockId );
+         if( it2 == avgs1.end() ) {
             avgsValues1 = &zeroAvgs;
          } else {
             avgsValues1 = &(it2->second);

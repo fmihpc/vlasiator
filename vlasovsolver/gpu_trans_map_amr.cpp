@@ -88,7 +88,11 @@ __global__ void __launch_bounds__(WID3) translation_kernel(
    Realf** dev_blockDataOrdered, // buffer of pointers to mapping input data
    const Realf* __restrict__ pencilDZ,
    const Realf* __restrict__ pencilRatios, // buffer holding target ratios
-   uint* pencilBlocksCount // store how many non-empty blocks each pencil has for this GID
+   uint* pencilBlocksCount, // store how many non-empty blocks each pencil has for this GID
+   uint *dev_pencilsInBin,
+   uint *dev_binStart,
+   uint *dev_binSize,
+   const uint numberOfBins
    ) {
    // This is launched with grid size (nGpuBlocks,nAllocations,1)
    // where nGpuBlocks is the count of blocks which fit in the smallest temp buffer at once
@@ -130,7 +134,10 @@ __global__ void __launch_bounds__(WID3) translation_kernel(
       
       const uint blockGID = allBlocks[thisBlockIndex];
       // First read data in
-      for (uint pencili=0; pencili<nPencils; pencili++) {
+      uint nBin = blockIdx.z;
+
+      for (uint pencilIndex = 0; pencilIndex < dev_binSize[nBin]; pencilIndex++) {
+         const uint pencili = dev_pencilsInBin[dev_binStart[nBin]+pencilIndex];
          const uint lengthOfPencil = pencilLengths[pencili];
          const uint start = pencilStarts[pencili];
          // Get pointer to temprary buffer of VEC-ordered data for this kernel
@@ -177,18 +184,23 @@ __global__ void __launch_bounds__(WID3) translation_kernel(
             pencilBlocksCount[pencilBlocksCountOffset + pencili] = nonEmptyBlocks;
          }
          __syncthreads();
-      } // end loop over all pencils
+      } // end loop over pencils in this bin
 
       __syncthreads();
       // Now we reset target blocks
-      for (uint celli=0; celli<sumOfLengths; celli++) {
-         if (pencilRatios[celli] != 0) {
-            // Is a target cell, needs to be reset
-            if (pencilBlockData[pencilBlockDataOffset + celli]) {
-               (pencilBlockData[pencilBlockDataOffset + celli])[ti] = (Realf)(0.0);
+      for (uint pencilIndex = 0; pencilIndex < dev_binSize[nBin]; pencilIndex++) {
+         const uint pencili = dev_pencilsInBin[dev_binStart[nBin]+pencilIndex];
+         const uint lengthOfPencil = pencilLengths[pencili];
+         const uint start = pencilStarts[pencili];
+         for (uint celli = 0; celli < lengthOfPencil; celli++) {
+            if (pencilRatios[start + celli] != 0) {
+               // Is a target cell, needs to be reset
+               if (pencilBlockData[pencilBlockDataOffset + start + celli]) {
+                  (pencilBlockData[pencilBlockDataOffset + start + celli])[ti] = (Realf)(0.0);
+               }
             }
-         }
-      } // end loop over all cells
+         } // end loop over this pencil
+      } // end loop over pencils in this bin
 
       __syncthreads();
 
@@ -208,7 +220,8 @@ __global__ void __launch_bounds__(WID3) translation_kernel(
       // In fact propagating to > 1 neighbor will give an error
       // Also defined in the calling function for the allocation of targetValues
       // const uint nTargetNeighborsPerPencil = 1;
-      for (uint pencili=0; pencili<nPencils; pencili++) {
+      for (uint pencilIndex = 0; pencilIndex < dev_binSize[nBin]; pencilIndex++) {
+         const uint pencili = dev_pencilsInBin[dev_binStart[nBin]+pencilIndex];
          if (pencilBlocksCount[pencilBlocksCountOffset + pencili] == 0) {
             continue;
          }
@@ -259,8 +272,8 @@ __global__ void __launch_bounds__(WID3) translation_kernel(
                // Silly indexing into coefficient calculation necessary due to
                // built-in assumptions of unsigned indexing.
                compute_ppm_coeff_nonuniform(pencilDZ + start + i - VLASOV_STENCIL_WIDTH,
-                                            thisPencilOrderedSource + (i - VLASOV_STENCIL_WIDTH) * WID3,
-                                            h4, VLASOV_STENCIL_WIDTH, a, threshold, ti, WID3);
+                                          thisPencilOrderedSource + (i - VLASOV_STENCIL_WIDTH) * WID3,
+                                          h4, VLASOV_STENCIL_WIDTH, a, threshold, ti, WID3);
                // Compute integral
                const Realf ngbr_target_density =
                   z_2 * ( a[0] + z_2 * ( a[1] + z_2 * a[2] ) ) -
@@ -291,7 +304,7 @@ __global__ void __launch_bounds__(WID3) translation_kernel(
             } // Did not skip remapping
             __syncthreads();
          } // end loop over this pencil
-      } // end loop over all pencils
+      } // end loop over pencils in this bin
       __syncthreads();
    } // end loop over blocks
 }
@@ -501,6 +514,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    unionOfBlocks->copyMetadata(&unionInfo, bgStream);
    CHK_ERR( gpuStreamSynchronize(bgStream) );
    const uint nAllBlocks = unionInfo.size;
+   const uint numberOfBins = DimensionPencils[dimension].activeBins.size();
    vmesh::GlobalID *allBlocks = unionOfBlocks->data();
    // This threshold value is used by slope limiters.
    Realf threshold = mpiGrid[DimensionPencils[dimension].ids[VLASOV_STENCIL_WIDTH]]->getVelocityBlockMinValue(popID);
@@ -539,7 +553,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    phiprof::Timer mappingTimer {"trans-amr-mapping"};
    // Launch 2D grid: First dimension is how many blocks fit in one temp buffer, second one
    // is which temp buffer allocation index to use. (GPUTODO: simplify together with buffer consolidation)
-   dim3 grid(nGpuBlocks,numAllocations,1);
+   dim3 grid(nGpuBlocks,numAllocations,numberOfBins);
    dim3 block(WID,WID,WID);
    translation_kernel<<<grid, block, 0, bgStream>>> (
       dimension,
@@ -557,7 +571,11 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       dev_blockDataOrdered, // buffer of pointers to ordered buffer data
       pencilDZ,
       pencilRatios, // buffer tor holding target ratios
-      dev_pencilBlocksCount // store how many non-empty blocks each pencil has for this GID
+      dev_pencilBlocksCount, // store how many non-empty blocks each pencil has for this GID
+      gpuMemoryManager.getPointer<uint>(DimensionPencils[dimension].dev_pencilsInBin),
+      gpuMemoryManager.getPointer<uint>(DimensionPencils[dimension].dev_binStart),
+      gpuMemoryManager.getPointer<uint>(DimensionPencils[dimension].dev_binSize),
+      numberOfBins
       );
    CHK_ERR( gpuPeekAtLastError() );
    CHK_ERR( gpuStreamSynchronize(bgStream) );

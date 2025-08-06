@@ -101,6 +101,7 @@ Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *unionOfBlocksSet=NULL, *dev
 // pointers for translation
 Realf** dev_pencilBlockData; // Array of pointers into actual block data
 uint* dev_pencilBlocksCount; // Array of counters if pencil needs to be propagated for this block or not
+GPUMemoryManager gpuMemoryManager;
 
 // Counter for how many parallel vlasov buffers are allocated
 uint allocationCount = 0;
@@ -302,6 +303,7 @@ __host__ void gpu_clear_device() {
    CHK_ERR( gpuFree(gpu_block_indices_to_id) );
    CHK_ERR( gpuFree(gpu_block_indices_to_probe) );
    CHK_ERR( gpuDeviceSynchronize() );
+   gpuMemoryManager.freeAll();
 }
 
 __host__ gpuStream_t gpu_getStream() {
