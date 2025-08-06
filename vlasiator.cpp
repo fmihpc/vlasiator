@@ -21,6 +21,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include "common.h"
+#include "spatial_cells/spatial_cell_cpu.hpp"
+#include "vlasovsolver/cpu_acc_transform.hpp"
 #include <cstdlib>
 #include <iostream>
 #include <cmath>
@@ -530,9 +532,13 @@ void increaseTimeclass(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiG
          spatialCell->parameters[CellParams::TIMECLASS] += 1;
          spatialCell->parameters[CellParams::TIMECLASSDT] = spatialCell->get_tc_dt();
       } else {
+
          // If the cell is already at the maximum timeclass, we must create a new timeclass one higher
          std::cerr << "Cell " << cell << " is already at the maximum timeclass, creating a new one" << "\n";
          std::cerr << "current max timeclass is " << P::currentMaxTimeclass << "\n";
+
+         std::cerr << "this is not supported yet, aborting" << "\n";
+         abort();
 
          additionalTimeclassCreated = true;
          P::currentMaxTimeclass += 1;
@@ -549,6 +555,20 @@ void increaseTimeclass(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiG
    std::cerr << "current max timeclass is " << P::currentMaxTimeclass << "\n";
    // this might be overkill, but for initial testing
    prepareAMRLists(mpiGrid);
+   calculateAcceleration(mpiGrid, 0.0);
+
+
+   auto lCells = getLocalCells();
+   std::cerr << "timeclass increase done, now cells have following ghost distributions:\n";
+   for (size_t c=0; c<lCells.size(); ++c) {
+      const CellID cell = lCells[c];
+      SpatialCell* spatialCell = mpiGrid[cell];
+      std::cerr << "cell " << cell << " has timeclass " << spatialCell->parameters[CellParams::TIMECLASS] << " and ghost distribution: ";
+      for (auto& ghost : spatialCell->requested_timeclass_ghosts) {
+         std::cerr << ghost << " ";
+      }
+      std::cerr << "\n";
+   }
 
 }
 
@@ -1573,7 +1593,7 @@ int simulate(int argn,char* args[]) {
       //      ... but updated V moments needed?
       //   -> do the acc shuffle for all cells to begin with
 
-      std::vector<CellID> cellsToTestIncrease = {10};
+      std::vector<CellID> cellsToTestIncrease = {25};
 
       if (P::tstep == 20 && P::fractionalTimestep == 0) {
          std::cout << "TESTING INCREASE TIMECLASS" << std::endl;
@@ -1589,44 +1609,121 @@ int simulate(int argn,char* args[]) {
       }
 
       std::vector<Real> newTimeclassDts = std::vector<Real>(P::maxTimeclass+1);
-      if(P::dynamicTimestep  && P::tstep > P::tstep_min && P::fractionalTimestep == 0) {
-         std::cout << "Computing new dts\n";
-         computeNewTimeStep(mpiGrid, technicalGrid, newDt, dtIsChanged, newTimeclassDts);
-         // if (P::vlasovSolverGhostTranslate) {
-         //    getGhostNeighborsforTC(mpiGrid, cells);
-         // }
-         if(myRank == MASTER_RANK){
-            std::cout << "timeclass dts = ";
-            for(int i = 0; i <= P::maxTimeclass; ++i){
-               std::cout << i <<": " << newTimeclassDts[i] << "s, ";
+
+      if (P::dynamicTimestep) {
+         
+         //check if any cell is has maximum dt lower than its timeclass dt
+
+         Real tempArr1[3];
+         Real tempArr2[3];
+
+         //updating dt_r maximums
+         reduce_vlasov_dt(mpiGrid, cells, tempArr1, tempArr2);
+
+         for (auto cID: cells) {
+            SpatialCell* cell = mpiGrid[cID];
+
+            for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+               //updating dt_v maximums
+               updateAccelerationMaxdt(cell, popID);
+
+               // If the cell's max r_dt is lower than the timeclass dt, we need to adjust the timeclass
+               if (cell->get_max_r_dt(popID) < cell->get_tc_dt() || 
+                   cell->get_max_v_dt(popID) < cell->get_tc_dt()) {
+                  if (myRank == MASTER_RANK) {
+                     std::cout << "Cell " << cID << " has max r_dt/v_dt lower than timeclass dt!" << std::endl;
+                  }
+
+                  if (P::fractionalTimestep == 0) {
+                     // compute new timesteps and assign all cells to timeclasses freshly
+                     computeNewTimeStep(mpiGrid, technicalGrid, newDt, dtIsChanged, newTimeclassDts);
+                     
+                     if (P::propagateVlasovAcceleration) {
+                        // Back half dt to real time, forward by new half dt
+                        calculateAcceleration(mpiGrid,-0.5); //This sets cells back to previous TIME_R
+                        calculateAcceleration(mpiGrid, 0.5); //This propagates by 0.5 
+                     } else {
+                        //zero step to set up moments _v
+                        calculateAcceleration(mpiGrid, 0.0);
+                     }
+
+                  P::dt=newDt;
+                  P::timeclassDt = newTimeclassDts;
+                  
+                  logFile <<" dt changed to "<<P::dt <<"s, distribution function was half-stepped to real-time and back"<<endl<<writeVerbose;
+                  goto endOfDynDTCheck; // All dt's and timeclasses have been recomputed, so we can continue with the next step.
+
+                  } else {
+                     // if in the middle of a timestep, we need to roll back the offending cells and increase their timeclass
+                     calculateAcceleration(mpiGrid, -0.5, true, {cID}); // This sets cells back to previous TIME_R
+                     increaseTimeclass(mpiGrid, {cID}, additionalTimeclassCreated);
+                     calculateAcceleration(mpiGrid, 0.5, true, {cID}); // This propagates by 0.5
+
+                  }
+               }
             }
-            std::cout << endl;
          }
-         addTimedBarrier("barrier-check-dt");
-         if(dtIsChanged) {
-            phiprof::Timer updateDtimer {"update-dt"};
-            //propagate velocity space back to real-time
-            if( P::propagateVlasovAcceleration) {
-               // Back half dt to real time, forward by new half dt
-               calculateAcceleration(mpiGrid,-0.5); //This sets cells back to previous TIME_R
-               calculateAcceleration(mpiGrid, 0.5); //This propagates by 0.5 
-            }
-            else {
-               //zero step to set up moments _v
-               calculateAcceleration(mpiGrid, 0.0);
-            }
+
+         if (additionalTimeclassCreated && P::fractionalTimestep == 0) {
+            // If we created a new timeclass this step, we need to recompute the timeclasses and their dt
+            // we also decrease the amount of timeclasses by one, since we just created a new one
+
+            P::currentMaxTimeclass -= 1;
+            
+            computeNewTimeStep(mpiGrid, technicalGrid, newDt, dtIsChanged, newTimeclassDts);
+            balanceLoad(mpiGrid, sysBoundaryContainer, technicalGrid);
+
+            P::timeclassDt.resize(P::currentMaxTimeclass+1);
+            P::timeclassDt = newTimeclassDts;
 
             P::dt=newDt;
             P::timeclassDt = newTimeclassDts;
-            
-            logFile <<" dt changed to "<<P::dt <<"s, distribution function was half-stepped to real-time and back"<<endl<<writeVerbose;
-            updateDtimer.stop();
-            continue; //
-            //addTimedBarrier("barrier-new-dt-set");
+
+            additionalTimeclassCreated = false;
          }
-         balanceLoad(mpiGrid, sysBoundaryContainer, technicalGrid);
 
       }
+
+      endOfDynDTCheck:
+
+      // if(P::dynamicTimestep  && P::tstep > P::tstep_min && P::fractionalTimestep == 0) {
+      //    std::cout << "Computing new dts\n";
+      //    computeNewTimeStep(mpiGrid, technicalGrid, newDt, dtIsChanged, newTimeclassDts);
+      //    // if (P::vlasovSolverGhostTranslate) {
+      //    //    getGhostNeighborsforTC(mpiGrid, cells);
+      //    // }
+      //    if(myRank == MASTER_RANK){
+      //       std::cout << "timeclass dts = ";
+      //       for(int i = 0; i <= P::maxTimeclass; ++i){
+      //          std::cout << i <<": " << newTimeclassDts[i] << "s, ";
+      //       }
+      //       std::cout << endl;
+      //    }
+      //    addTimedBarrier("barrier-check-dt");
+      //    if(dtIsChanged) {
+      //       phiprof::Timer updateDtimer {"update-dt"};
+      //       //propagate velocity space back to real-time
+      //       if( P::propagateVlasovAcceleration) {
+      //          // Back half dt to real time, forward by new half dt
+      //          calculateAcceleration(mpiGrid,-0.5); //This sets cells back to previous TIME_R
+      //          calculateAcceleration(mpiGrid, 0.5); //This propagates by 0.5 
+      //       }
+      //       else {
+      //          //zero step to set up moments _v
+      //          calculateAcceleration(mpiGrid, 0.0);
+      //       }
+
+      //       P::dt=newDt;
+      //       P::timeclassDt = newTimeclassDts;
+            
+      //       logFile <<" dt changed to "<<P::dt <<"s, distribution function was half-stepped to real-time and back"<<endl<<writeVerbose;
+      //       updateDtimer.stop();
+      //       continue; //
+      //       //addTimedBarrier("barrier-new-dt-set");
+      //    }
+      //    balanceLoad(mpiGrid, sysBoundaryContainer, technicalGrid);
+
+      // }
       
       if (((P::tstep % P::rebalanceInterval == P::rebalanceInterval-1) && (P::fractionalTimestep == 0)) || P::prepareForRebalance == true) {
          if(P::prepareForRebalance == true) {

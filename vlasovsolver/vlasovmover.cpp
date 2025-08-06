@@ -23,6 +23,7 @@
 #include "common.h"
 #include <cstdlib>
 #include <iostream>
+#include <string>
 #include <vector>
 #include <tuple>
 #include <stdint.h>
@@ -759,6 +760,12 @@ vector<AccelerationPayload>& setAccelerationTimeGhosts(vector<AccelerationPayloa
       outvec.push_back(payload);
    }
 
+   // see if we're accelerating a cell whose TC turn it is not, which should not happen
+   if (!(spatial_cell->get_timeclass_turn_v()) && (accelerateSpecificCells && std::find(cellsToAccelerate.begin(), cellsToAccelerate.end(), spatial_cell->get_cellid()) != cellsToAccelerate.end())) {
+      std::cerr << "WARNING: Cell " << spatial_cell->get_cellid() << " is not on its timeclass turn, but requested specific acceleration. Aborting..." << std::endl;
+      abort();
+   }
+
    bool addPayload = false;
    for(auto i : spatial_cell->get_all_ghosts()) {
       AccelerationPayload payload = {tcToPropagate, spatial_cell, dt, 0};
@@ -776,6 +783,10 @@ vector<AccelerationPayload>& setAccelerationTimeGhosts(vector<AccelerationPayloa
       payload.timeclass = i;
       if(tc_d > 0) {
          
+         if (accelerateSpecificCells) {
+            std::cout << "ghost "<<i<<" requested from "<<spatial_cell->get_cellid()<<" for popID "<<popID<<" with dt "<<dt<<" with tc_d "<<tc_d<<"\n";
+         }
+
          if (!P::tc_leapfrog_init) {
             spatial_cell->get_population(popID,i) = spatial_cell->get_population(popID,spatial_cell->get_tc());
             // spatial_cell->set_velocity_mesh_ghost(popID, i);
