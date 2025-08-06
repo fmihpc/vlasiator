@@ -69,7 +69,6 @@ namespace projects {
       virtual Realf probePhaseSpace(spatial_cell::SpatialCell* cell, const uint popID, Real vx_in, Real vy_in,
                                     Real vz_in) const override;
       virtual std::vector<std::array<Real, 3>> getV0(creal x, creal y, creal z, const uint popID) const override;
-      // virtual void calcCellParameters(Real* cellParams,creal& t) override;
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell, creal& t) override;
       bool
       refineSpatialCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) const override;

@@ -183,7 +183,7 @@ namespace projects {
       setBackgroundFieldToZero(fsgrid, technical, bgb);
 
       if(!P::isRestart) {
-         // local copies fro lambda capture
+         // local copies for lambda capture
          const auto BX0_l = this->BX0;
          const auto BY0_l = this->BY0;
          const auto BZ0_l = this->BZ0;
