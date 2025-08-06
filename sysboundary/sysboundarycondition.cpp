@@ -839,7 +839,7 @@ namespace SBC {
       creal x, creal y, creal z,
       creal dx, creal dy, creal dz,
       const std::array<bool, 3> periodicity,
-      const bool excludeSlicesAndPeriodicDimensions=false // (default)
+      const bool excludeSlicesAndPeriodicDimensions//=false // (default)
    ) {
       for(uint i=0; i<6; i++) {
          isThisCellOnAFace[i] = false;

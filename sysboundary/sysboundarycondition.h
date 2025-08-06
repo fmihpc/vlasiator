@@ -314,6 +314,14 @@ namespace SBC {
       creal& VY0,
       creal& VZ0);
 
+   void determineFaceNoClassMembers(
+      bool* isThisCellOnAFace,
+      creal x, creal y, creal z,
+      creal dx, creal dy, creal dz,
+      const std::array<bool, 3> periodicity,
+      const bool excludeSlicesAndPeriodicDimensions=false // (default)
+   );
+
 } // namespace SBC
 
 #endif

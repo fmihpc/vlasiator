@@ -202,50 +202,6 @@ namespace SBC {
       // updateState() (at pre-set intervals only)
    }
    
-   void determineFaceNoClassMembersInflow(
-      bool* isThisCellOnAFace,
-      creal x, creal y, creal z,
-      creal dx, creal dy, creal dz,
-      const std::array<bool, 3> periodicity,
-      const bool excludeSlicesAndPeriodicDimensions=false // (default)
-   ) {   
-      for(uint i=0; i<6; i++) {
-         isThisCellOnAFace[i] = false;
-      }     
-      if(x > Parameters::xmax - dx * 2) {
-         isThisCellOnAFace[0] = true;
-      }  
-      if(x < Parameters::xmin + dx * 2) {
-         isThisCellOnAFace[1] = true;
-      }     
-      if(y > Parameters::ymax - dy * 2) {
-         isThisCellOnAFace[2] = true;
-      }     
-      if(y < Parameters::ymin + dy * 2) {
-         isThisCellOnAFace[3] = true;
-      }
-      if(z > Parameters::zmax - dz * 2) {
-         isThisCellOnAFace[4] = true;
-      }
-      if(z < Parameters::zmin + dz * 2) {
-         isThisCellOnAFace[5] = true;
-      }
-      if(excludeSlicesAndPeriodicDimensions == true) {
-         if (Parameters::xcells_ini == 1 || periodicity[0]) {
-            isThisCellOnAFace[0] = false;
-            isThisCellOnAFace[1] = false; 
-         }     
-         if (Parameters::ycells_ini == 1 || periodicity[1]) {
-            isThisCellOnAFace[2] = false;
-            isThisCellOnAFace[3] = false;
-         }     
-         if (Parameters::zcells_ini == 1 || periodicity[2]) {
-            isThisCellOnAFace[4] = false; 
-            isThisCellOnAFace[5] = false; 
-         }     
-      }
-   }
-
    void Inflow::setBFromTemplate(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                  fsgrids::perbspan perb,
                                  fsgrids::bgbspan bgb,
@@ -263,7 +219,7 @@ namespace SBC {
 
          std::array<bool, 6> isThisCellOnAFace = {{false}};
  
-         determineFaceNoClassMembersInflow(isThisCellOnAFace.data(), coords[0] + 0.5 * gridSpacing[0], coords[1] + 0.5 * gridSpacing[1], coords[2] + 0.5 * gridSpacing[2], dx, dy, dz, periodic_local);
+         determineFaceNoClassMembers(isThisCellOnAFace.data(), coords[0] + 0.5 * gridSpacing[0], coords[1] + 0.5 * gridSpacing[1], coords[2] + 0.5 * gridSpacing[2], dx, dy, dz, periodic_local);
    
          for (uint iface = 0; iface < 6; iface++) {
             if (facesToProcess_local[iface] && isThisCellOnAFace[iface]) {
