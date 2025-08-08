@@ -427,7 +427,34 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          cell->parameters[CellParams::TIMECLASSDT] = cell->get_tc_dt();
       }
 
-   
+
+   } else if (P::tc_test_type == 6) {
+      // for multiple levels of timeclasses, 1D, with each timeclass being inside the previous one, like a pyramid
+      int sidelenX = P::xcells_ini;
+
+      if(P::maxTimeclass > 0) {
+         P::currentMaxTimeclass = P::maxTimeclass;
+      }
+      else{
+         P::currentMaxTimeclass = 0;
+      }
+      for(int i = 0; i <= P::maxTimeclass; ++i){
+         newTimeclassDts[i] = fsdt*pow(2,P::currentMaxTimeclass - min(i,P::currentMaxTimeclass));
+      }
+      P::timeclassDt = newTimeclassDts;
+      
+      for (vector<CellID>::const_iterator cell_id=cells.begin(); cell_id!=cells.end(); ++cell_id) {
+         SpatialCell* cell = mpiGrid[*cell_id];
+
+         double normalizedTemp = (sidelenX * cell->parameters[CellParams::DX]/2.0);
+         cell->parameters[CellParams::TIMECLASS] = abs(round((double)P::currentMaxTimeclass* (cell->parameters[CellParams::XCRD])/normalizedTemp)); // this is to make the timeclasses go from 0 to max, not max to 0
+         cell->parameters[CellParams::TIMECLASS] = abs(cell->parameters[CellParams::TIMECLASS] - P::currentMaxTimeclass); // this is to make the timeclasses go from 0 to max, not max to 0
+         std::cout << "setting cell " << *cell_id << " to timeclass " << cell->parameters[CellParams::TIMECLASS] << "\n";
+
+         cell->parameters[CellParams::TIMECLASSDT] = cell->get_tc_dt();
+      }
+      
+
    } else {
       for (vector<CellID>::const_iterator cell_id=cells.begin(); cell_id!=cells.end(); ++cell_id) {
          SpatialCell* cell = mpiGrid[*cell_id];
