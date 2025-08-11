@@ -454,7 +454,6 @@ void calculateCurvatureSimple(fsgrids::volspan vol,
                               fsgrids::constbgbspan bgb,
                               fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
    phiprof::Timer curvatureTimer{"Calculate curvature"};
-   const auto& gridSpacing = fsgrid.getGridSpacing();
    const size_t numCells = fsgrid.getNumCells();
 
    phiprof::Timer commTimer{"Calculate curvature ghost updates MPI", {"MPI"}};
@@ -467,7 +466,7 @@ void calculateCurvatureSimple(fsgrids::volspan vol,
                           const bool compute = (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY &&
                                      sysBoundaryLayer != 1 && sysBoundaryLayer != 2);
                           if (compute) {
-                             calculateCurvature(vol, bgb, stencil, gridSpacing);
+                             calculateCurvature(vol, bgb, stencil, coordinates.physicalGridSpacing);
                           }
                        });
    curvatureTimer.stop(numCells, "Spatial Cells");

@@ -221,7 +221,7 @@ void propagateMagneticFieldSimple(fsgrids::perbspan perb,
                           cuint bitfield = technical[stencil.ooo()].SOLVE;
                           propagateMagneticField(
                              perb, perbdt2, e, edt2, stencil, dt, RKCase, ((bitfield & compute::BX) == compute::BX),
-                             ((bitfield & compute::BY) == compute::BY), ((bitfield & compute::BZ) == compute::BZ), gridSpacing);
+                             ((bitfield & compute::BY) == compute::BY), ((bitfield & compute::BZ) == compute::BZ), coordinates.physicalGridSpacing);
                        });
 
    // This communication is needed for boundary conditions, in practice almost all

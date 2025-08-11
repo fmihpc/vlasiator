@@ -884,7 +884,6 @@ namespace SBC {
 
    void OuterBoundaryCondition::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                   fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
-      const auto& gridSpacing = fsgrid.getGridSpacing();
       bool doAssign;
       std::array<bool, 6> isThisCellOnAFace;
 
@@ -929,6 +928,7 @@ namespace SBC {
          std::array<bool, 6> isThisCellOnAFace = {{false}};
          bool doAssign = false;
          const std::array<Real, 3> coords = coordinates.getPhysicalCoords(stencil.i, stencil.j, stencil.k);
+         const std::array<Real, 3> gridSpacing = coordinates.physicalGridSpacing;
 
          determineFaceNoClassMembers(isThisCellOnAFace.data(), coords[0] + 0.5 * gridSpacing[0], coords[1] + 0.5 * gridSpacing[1], coords[2] + 0.5 * gridSpacing[2], dx, dy, dz, periodic_local);
          for (int iface = 0; iface < 6; iface++) {

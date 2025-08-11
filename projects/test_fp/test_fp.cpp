@@ -178,12 +178,6 @@ namespace projects {
       setBackgroundFieldToZero(fsgrid, technical, bgb);
 
       if(!P::isRestart) {
-         const auto& gridSpacing = fsgrid.getGridSpacing();
-
-         creal dx = gridSpacing[0] * 3.5;
-         creal dy = gridSpacing[1] * 3.5;
-         creal dz = gridSpacing[2] * 3.5;
-
          const Real areaFactor = 1.0;
 
          const auto B0_l = this->B0; // local copies for lambda capture
@@ -193,8 +187,12 @@ namespace projects {
                              phiprof::initializeTimer("setProjectBField-loop"), technical,
                              [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
             const std::array<Real, 3> xyz = coordinates.getPhysicalCoords(stencil.i, stencil.j, stencil.k);
+            const std::array<Real, 3> gridSpacing = coordinates.physicalGridSpacing;
             auto& cell = perb[stencil.ooo()];
 
+            creal dx = gridSpacing[0] * 3.5;
+            creal dy = gridSpacing[1] * 3.5;
+            creal dz = gridSpacing[2] * 3.5;
             creal x = xyz[0] + 0.5 * gridSpacing[0];
             creal y = xyz[1] + 0.5 * gridSpacing[1];
             creal z = xyz[2] + 0.5 * gridSpacing[2];

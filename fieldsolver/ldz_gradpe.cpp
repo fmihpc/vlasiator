@@ -170,7 +170,6 @@ void calculateGradPeTermSimple(fsgrids::egradpespan egradpe,
                                SysBoundary& sysBoundaries, cint& RKCase) {
    phiprof::Timer gradPeTimer{"Calculate GradPe term"};
 
-   const auto& gridSpacing = fsgrid.getGridSpacing();
    const size_t numCells = fsgrid.getNumCells();
 
    if (not(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2)) {
@@ -187,7 +186,7 @@ void calculateGradPeTermSimple(fsgrids::egradpespan egradpe,
    fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
                        phiprof::initializeTimer("EgradPe compute cells"), technical,
                        [=, &sysBoundaries](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
-                          calculateGradPeTerm(egradpe, moments, dmoments, technical, stencil, gridSpacing, sysBoundaries);
+                          calculateGradPeTerm(egradpe, moments, dmoments, technical, stencil, coordinates.physicalGridSpacing, sysBoundaries);
                        });
 
    gradPeTimer.stop(numCells, "Spatial Cells");

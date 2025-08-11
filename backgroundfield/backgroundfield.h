@@ -74,8 +74,6 @@ template <long unsigned int numFields>
 void setPerturbedField(const FieldFunction& bfFunction, std::span<std::array<Real, numFields>> b,
                        fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                        int offset = fsgrids::bfield::PERBX, bool append = false) {
-   const auto gridSpacing = fsgrid.getGridSpacing();
-
    /*if we do not add a new background to the existing one we first put everything to zero*/
    if (append == false) {
       setPerturbedFieldToZero(fsgrid, technical, b, offset);
@@ -102,6 +100,7 @@ void setPerturbedField(const FieldFunction& bfFunction, std::span<std::array<Rea
                         phiprof::initializeTimer("setPerturbedField-loop"), technical,
                         [& /*=, &bfFunction*/](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
       const std::array<Real, 3> start = coordinates.getPhysicalCoords(stencil.i, stencil.j, stencil.k);
+      const std::array<Real, 3> gridSpacing = coordinates.physicalGridSpacing;
       auto& field = b[stencil.ooo()];
 
       // Face averages

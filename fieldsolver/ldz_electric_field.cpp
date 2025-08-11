@@ -1252,7 +1252,6 @@ void calculateUpwindedElectricFieldSimple(fsgrids::perbspan perb,
                                           fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                                           SysBoundary& sysBoundaries, int32_t RKCase,
                                           const bool communicateEGradPeOrMomentsDerivatives) {
-   const auto& gridSpacing = fsgrid.getGridSpacing();
    const size_t numCells = fsgrid.getNumCells();
 
    if (not(RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2)) {
@@ -1290,7 +1289,7 @@ void calculateUpwindedElectricFieldSimple(fsgrids::perbspan perb,
                        phiprof::initializeTimer("Electric field compute cells"), technical,
                        [=, &sysBoundaries](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
                           calculateElectricField(perb, dperb, e, ehall, egradpe, moments, dmoments, bgb, technical, stencil,
-                                                 gridSpacing, sysBoundaries, RKCase);
+                                                 coordinates.physicalGridSpacing, sysBoundaries, RKCase);
                        });
 
    mpiTimer.start();

@@ -169,7 +169,6 @@ namespace projects {
    void Alfven::setProjectBField(fsgrids::perbspan perb,
                                  fsgrids::bgbspan bgb,
                                  fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
-      const auto& gridSpacing = fsgrid.getGridSpacing();
       setBackgroundFieldToZero(fsgrid, technical, bgb);
 
       if (!P::isRestart) {
@@ -183,6 +182,7 @@ namespace projects {
                              phiprof::initializeTimer("setProjectBField"), technical,
                              [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
             const std::array<Real, 3> xyz = coordinates.getPhysicalCoords(stencil.i, stencil.j, stencil.k);
+            const std::array<Real, 3> gridSpacing = coordinates.physicalGridSpacing;
             auto& cell = perb[stencil.ooo()];
 
             const Real dx = gridSpacing[0];

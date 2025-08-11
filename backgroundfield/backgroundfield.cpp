@@ -32,8 +32,6 @@
 // FieldFunction should be initialized
 void setBackgroundField(const FieldFunction& bgFunction, fsgrids::bgbspan bgb,
                         fsgrids::technicalspan technical, FieldSolverGrid &fsgrid, bool append) {
-   const auto& gridSpacing = fsgrid.getGridSpacing();
-
    /*if we do not add a new background to the existing one we first put everything to zero*/
    if (append == false) {
       setBackgroundFieldToZero(fsgrid, technical, bgb);
@@ -66,6 +64,7 @@ void setBackgroundField(const FieldFunction& bgFunction, fsgrids::bgbspan bgb,
                           phiprof::initializeTimer("setBackgroundField-loop"), technical,
                           [& /*=,&fsgrid,&bgFunction*/](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
          const std::array<Real, 3> start = coordinates.getPhysicalCoords(stencil.i, stencil.j, stencil.k);
+         const std::array<Real, 3> gridSpacing = coordinates.physicalGridSpacing;
          const std::array end = {
             start[0] + gridSpacing[0],
             start[1] + gridSpacing[1],
