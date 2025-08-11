@@ -158,8 +158,7 @@ struct Parameters {
    static Real hallMinimumRhoq; /*!< Minimum charge density value used for the Hall and electron pressure gradient terms
                                    in the Lorentz force and in the field solver.*/
 
-   static Real ohmHyperFactor; /*!< Factor to multiply hyperresistivity term by. 1 corresponds to theoretical solution*/
-   static bool ohmHyperAccelerate; /*!< Include hyperresistivity term in acceleration?*/
+   static Real ohmHyperFactor; /*!< Factor to multiply hyperresistivity term by. 1 corresponds to the wavelength where damping becomes strong matching the grid scale*/
 
    static std::string loadBalanceAlgorithm; /*!< Algorithm to be used for load balance.*/
    static std::map<std::string, std::string> loadBalanceOptions;  // Other Load balancing options

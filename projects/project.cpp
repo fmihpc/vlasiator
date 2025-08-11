@@ -38,7 +38,6 @@
 #include "Flowthrough/Flowthrough.h"
 #include "Fluctuations/Fluctuations.h"
 #include "Harris/Harris.h"
-#include "Reconnection/Reconnection.h"
 #include "KHB/KHB.h"
 #include "Larmor/Larmor.h"
 #include "Magnetosphere/Magnetosphere.h"
@@ -54,7 +53,6 @@
 #include "../backgroundfield/constantfield.hpp"
 #include "Shocktest/Shocktest.h"
 #include "LossCone/LossCone.h"
-#include "WhistlerTest/WhistlerTest.h"
 #include "../sysboundary/sysboundarycondition.h"
 
 #ifdef DEBUG_VLASIATOR
@@ -85,7 +83,6 @@ namespace projects {
       projects::Flowthrough::addParameters();
       projects::Fluctuations::addParameters();
       projects::Harris::addParameters();
-      projects::Reconnection::addParameters();
       projects::KHB::addParameters();
       projects::Larmor::addParameters();
       projects::Magnetosphere::addParameters();
@@ -99,7 +96,6 @@ namespace projects {
       projects::verificationLarmor::addParameters();
       projects::Shocktest::addParameters();
       projects::LossCone::addParameters();
-      projects::WhistlerTest::addParameters();
       RP::add("Project_common.seed", "Seed for the RNG", 42);
 
    }
@@ -684,9 +680,6 @@ Project* createProject() {
    if(Parameters::projectName == "Harris") {
       rvalue = new projects::Harris;
    }
-   if(Parameters::projectName == "Reconnection") {
-      rvalue = new projects::Reconnection;
-   }
    if(Parameters::projectName == "KHB") {
       rvalue = new projects::KHB;
    }
@@ -725,9 +718,6 @@ Project* createProject() {
    }
    if(Parameters::projectName == "LossCone") {
       rvalue = new projects::LossCone;
-   }
-   if(Parameters::projectName == "WhistlerTest") {
-      rvalue = new projects::WhistlerTest;
    }
 
 
