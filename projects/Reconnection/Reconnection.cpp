@@ -207,8 +207,8 @@ namespace projects {
                   const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
 
-                  Bx_island = -2.0 * M_PI * this->BZ0 * 0.1 / Lz * cos(M_PI * (xyz[0] + 0.5 * perBGrid.DX) / Lx) * sin(2.0 * M_PI * (xyz[2] + 0.5 * perBGrid.DZ) / Lz);
-                  Bz_island = M_PI * this->BZ0 * 0.1 / Lx * sin(M_PI * (xyz[0] + 0.5 * perBGrid.DX) / Lx) * cos(2.0 * M_PI * (xyz[2] + 0.5 * perBGrid.DZ) / Lz);
+                  Bx_island = -2.0 * M_PI * this->BZ0 * 0.1 * Lx / Lz * cos(M_PI * (xyz[0] + 0.5 * perBGrid.DX) / Lx) * sin(2.0 * M_PI * (xyz[2] + 0.5 * perBGrid.DZ) / Lz);
+                  Bz_island = M_PI * this->BZ0 * 0.1 * sin(M_PI * (xyz[0] + 0.5 * perBGrid.DX) / Lx) * cos(2.0 * M_PI * (xyz[2] + 0.5 * perBGrid.DZ) / Lz);
 
                   cell->at(fsgrids::bfield::PERBX) = this->BX0 * tanh((xyz[1] + 0.5 * perBGrid.DY) / this->SCA_LAMBDA) + Bx_island;
                   cell->at(fsgrids::bfield::PERBY) = this->BY0 * tanh((xyz[2] + 0.5 * perBGrid.DZ) / this->SCA_LAMBDA);
