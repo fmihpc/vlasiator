@@ -30,12 +30,25 @@
 #include "arch_device_api.h"
 
 #include <stdio.h>
+#include <mutex>
 #include "include/splitvector/splitvec.h"
 #include "include/hashinator/hashinator.h"
 #include "../definitions.h"
 #include "../vlasovsolver/vec.h"
 #include "../velocity_mesh_parameters.h"
 #include <phiprof.hpp>
+
+#ifndef THREADS_PER_MP
+#define THREADS_PER_MP 2048
+#endif
+#ifndef REGISTERS_PER_MP
+#define REGISTERS_PER_MP 65536
+#endif
+
+// Device properties
+extern int gpuMultiProcessorCount;
+extern int blocksPerMP;
+extern int threadsPerMP;
 
 // Magic multipliers used to make educated guesses for initial allocations
 // and for managing dynamic increases in allocation sizes. Some of these are
@@ -68,6 +81,8 @@ uint gpu_getMaxThreads();
 int gpu_getDevice();
 uint gpu_getAllocationCount();
 int gpu_reportMemory(const size_t local_cap=0, const size_t ghost_cap=0, const size_t local_size=0, const size_t ghost_size=0);
+
+unsigned int nextPowerOfTwo(unsigned int n);
 
 void gpu_vlasov_allocate(uint maxBlockCount, uint nCells);
 void gpu_vlasov_deallocate();
@@ -228,6 +243,112 @@ struct ColumnOffsets {
    }
 };
 
+struct GPUMemoryManager {
+   // Store pointers and their allocation sizes
+   std::unordered_map<std::string, void*> gpuMemoryPointers;
+   std::unordered_map<std::string, size_t> allocationSizes;
+   std::unordered_map<std::string, int> nameCounters;
+   std::unordered_map<std::string, std::string> pointerDevice;
+   std::mutex memoryMutex;
+
+   // Create a new pointer with a base name, ensure unique name
+   bool createPointer(const std::string& baseName, std::string &uniqueName) {
+      if (uniqueName != "null"){
+         return false;
+      }
+
+      std::lock_guard<std::mutex> lock(memoryMutex);
+
+      if (gpuMemoryPointers.count(baseName)) {
+         int& counter = nameCounters[baseName];
+         uniqueName = baseName + "_" + std::to_string(++counter);
+      } else {
+         nameCounters[baseName] = 0;
+         uniqueName = baseName;
+      }
+
+      gpuMemoryPointers[uniqueName] = nullptr;
+      allocationSizes[uniqueName] = (size_t)(0);
+      pointerDevice[uniqueName] = "None";
+      return true;
+   }
+
+   // Allocate memory to a pointer by name
+   bool allocate(const std::string& name, size_t bytes) {
+      //TODO: only allocate if needs to increase in size
+      std::lock_guard<std::mutex> lock(memoryMutex);
+      if (gpuMemoryPointers.count(name) == 0) {
+         std::cerr << "Error: Pointer name '" << name << "' not found.\n";
+         return false;
+      }
+      
+      if (gpuMemoryPointers[name] != nullptr) {
+         CHK_ERR( gpuFree(gpuMemoryPointers[name]) );
+      }
+
+      CHK_ERR( gpuMalloc(&gpuMemoryPointers[name], bytes) );
+      allocationSizes[name] = bytes;
+      pointerDevice[name] = "dev";
+      return true;
+   }
+
+   // Allocate pinned host memory to a pointer by name
+   bool hostAllocate(const std::string& name, size_t bytes) {
+      //TODO: only allocate if needs to increase in size
+      std::lock_guard<std::mutex> lock(memoryMutex);
+      if (gpuMemoryPointers.count(name) == 0) {
+         std::cerr << "Error: Pointer name '" << name << "' not found.\n";
+         return false;
+      }
+
+      if (gpuMemoryPointers[name] != nullptr) {
+         CHK_ERR( gpuFreeHost(gpuMemoryPointers[name]) );
+      }
+
+      CHK_ERR( gpuMallocHost(&gpuMemoryPointers[name], bytes) );
+      allocationSizes[name] = bytes;
+      pointerDevice[name] = "host";
+      return true;
+   }
+
+   // Get allocated size for a pointer
+   size_t getSize(const std::string& name) const {
+      if (allocationSizes.count(name)) return allocationSizes.at(name);
+      return 0;
+   }
+
+   // Free all allocated GPU memory
+   void freeAll() {
+      for (auto& pair : gpuMemoryPointers) {
+         if (pair.second != nullptr) {
+            std::string name = pair.first;
+            if (allocationSizes[name] > 0){
+               if (pointerDevice[name] == "dev"){
+                  CHK_ERR( gpuFree(pair.second) );
+               }else if (pointerDevice[name] == "host"){
+                  CHK_ERR( gpuFreeHost(pair.second) );
+               }
+            }
+            pair.second = nullptr;
+         }
+      }
+
+      gpuMemoryPointers.clear();
+      allocationSizes.clear();
+      nameCounters.clear();
+      pointerDevice.clear();
+   }
+
+   // Get typed pointer
+   template <typename T>
+   T* getPointer(const std::string& name) const {
+      if (!gpuMemoryPointers.count(name)) throw std::runtime_error("Unknown pointer name");
+      return static_cast<T*>(gpuMemoryPointers.at(name));
+   }
+};
+
+extern GPUMemoryManager gpuMemoryManager;
+
 // Device data variables, to be allocated in good time. Made into an array so that each thread has their own pointer.
 extern Realf **host_blockDataOrdered;
 extern Realf **dev_blockDataOrdered;
@@ -263,9 +384,9 @@ extern Real *host_bValues, *host_nu0Values, *host_bulkVX, *host_bulkVY, *host_bu
 extern Realf *host_sparsity, *dev_densityPreAdjust, *dev_densityPostAdjust;
 extern size_t *host_cellIdxStartCutoff, *host_smallCellIdxArray, *host_remappedCellIdxArray; // remappedCellIdxArray tells the position of the cell index in the sequence instead of the actual index
 // Device pointers
-extern Real *dev_bValues, *dev_nu0Values, *dev_bulkVX, *dev_bulkVY, *dev_bulkVZ, *dev_Ddt, *dev_potentialDdtValues, *dev_out_values;
+extern Real *dev_bValues, *dev_nu0Values, *dev_bulkVX, *dev_bulkVY, *dev_bulkVZ, *dev_Ddt, *dev_potentialDdtValues;
 extern Realf *dev_fmu, *dev_dfdt_mu, *dev_sparsity;
-extern int *dev_fcount, *dev_cellIdxKeys, *dev_out_keys;
+extern int *dev_fcount, *dev_cellIdxKeys;
 extern size_t *dev_smallCellIdxArray, *dev_remappedCellIdxArray, *dev_cellIdxStartCutoff, *dev_cellIdxArray, *dev_velocityIdxArray;
 // Counters
 extern size_t latestNumberOfLocalCellsPitchAngle;

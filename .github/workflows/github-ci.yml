@@ -296,6 +296,166 @@ jobs:
           path: vlasiator
           if-no-files-found: error
 
+  build_TP_HILE-G:
+    # Build Vlasiator with testpackage flags, on the HILE cluster using
+    # its AMD gpus
+    runs-on: hile
+
+    steps:
+      - name: Clean workspace
+        run: |
+          RUN_STRING=$( cat << MORO
+          rm -rf libraries library-build testpackage
+          rm -f libraries.tar.zst testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+          rm -f *.xml
+          MORO
+          )
+          srun -C g bash -c "$RUN_STRING"
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Make clean
+        run: VLASIATOR_ARCH=hile_gpu make clean
+      - uses: ursg/gcc-problem-matcher@master
+      - name: Compile vlasiator (Testpackage build w/ HIP)
+        run: |
+          srun -C g --job-name CI_tp_G_compile --interactive --nodes=1 -n 1 -c 16 --mem-per-cpu=2G -t 0:20:0 bash -c 'module load papi; module load rocm/6.2.0; module load cray-pmi; module load craype-accel-amd-gfx90a; module load libfabric/1.22.0; export MPICH_GPU_SUPPORT_ENABLED=1; export VLASIATOR_ARCH=hile_gpu; make -j 16 testpackage; sleep 10s'
+      - name: Make sure the output binary is visible in lustre
+        uses: nick-fields/retry@v3
+        with:
+          timeout_seconds: 15
+          max_attempts: 3
+          retry_on: error
+          command: ls vlasiator
+      - name: Upload testpackage binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: vlasiator-testpackage-HILE-G
+          path: vlasiator
+          if-no-files-found: error
+
+  # build_prod_debug_HILE-G: # TODO: activate debug flags once that's supported on hile, still doing regular production compilation.
+  build_prod_HILE-G:
+    # Build Vlasiator with production flags and all the debug flags enabled, on the HILE cluster using
+    # its AMD gpus
+    runs-on: hile
+
+    steps:
+      - name: Clean workspace
+        run: |
+          RUN_STRING=$( cat << MORO
+          rm -rf libraries library-build testpackage
+          rm -f libraries.tar.zst testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+          rm -f *.xml
+          MORO
+          )
+          srun -C g bash -c "$RUN_STRING"
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Make clean
+        run: VLASIATOR_ARCH=hile_gpu make clean
+      - uses: ursg/gcc-problem-matcher@master
+      - name: Compile vlasiator (Release, debug build w/ HIP)
+        run: |
+          # srun -C g --job-name CI_debug_G_compile --interactive --nodes=1 -n 1 -c 16 --mem-per-cpu=2G -t 0:20:0 bash -c 'module load papi; module load rocm/6.2.0; module load cray-pmi; module load craype-accel-amd-gfx90a; module load libfabric/1.22.0; export MPICH_GPU_SUPPORT_ENABLED=1; export VLASIATOR_ARCH=hile_gpu; make COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEBUG_IONOSPHERE -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC -DDEBUG_ACC " -j 16; sleep 10s'
+          srun -C g --job-name CI_debug_G_compile --interactive --nodes=1 -n 1 -c 16 --mem-per-cpu=2G -t 0:20:0 bash -c 'module load papi; module load rocm/6.2.0; module load cray-pmi; module load craype-accel-amd-gfx90a; module load libfabric/1.22.0; export MPICH_GPU_SUPPORT_ENABLED=1; export VLASIATOR_ARCH=hile_gpu; make -j 16; sleep 10s'
+      - name: Make sure the output binary is visible in lustre
+        uses: nick-fields/retry@v3
+        with:
+          timeout_seconds: 15
+          max_attempts: 3
+          retry_on: error
+          command: ls vlasiator
+      - name: Upload testpackage binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: vlasiator-debug-HILE-G
+          path: vlasiator
+          if-no-files-found: error
+
+  build_TP_HILE-C:
+    # Build Vlasiator with testpackage flags, on the HILE cluster using
+    # its CPUs
+    runs-on: hile
+
+    steps:
+      - name: Clean workspace
+        run: |
+          RUN_STRING=$( cat << MORO
+          rm -rf libraries library-build testpackage
+          rm -f libraries.tar.zst testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+          rm -f *.xml
+          MORO
+          )
+          srun -C c bash -c "$RUN_STRING"
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Make clean
+        run: VLASIATOR_ARCH=hile_gpu make clean
+      - uses: ursg/gcc-problem-matcher@master
+      - name: Compile vlasiator (Testpackage build w/ HIP)
+        run: |
+          srun -C c --job-name CI_tp_C_compile --interactive --nodes=1 -n 1 -c 16 --mem-per-cpu=2G -t 0:20:0 bash -c 'module load papi; module load cray-pmi; module load libfabric/1.22.0; export VLASIATOR_ARCH=hile_cpu; make -j 16 testpackage; sleep 10s'
+      - name: Make sure the output binary is visible in lustre
+        uses: nick-fields/retry@v3
+        with:
+          timeout_seconds: 15
+          max_attempts: 3
+          retry_on: error
+          command: ls vlasiator
+      - name: Upload testpackage binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: vlasiator-testpackage-HILE-C
+          path: vlasiator
+          if-no-files-found: error
+
+  # build_prod_debug_HILE-C: # TODO: activate debug flags once that's supported on hile, still doing regular production compilation.
+  build_prod_HILE-C:
+    # Build Vlasiator with production flags and all the debug flags enabled, on the HILE cluster using
+    # its CPUs
+    runs-on: hile
+
+    steps:
+      - name: Clean workspace
+        run: |
+          RUN_STRING=$( cat << MORO
+          rm -rf libraries library-build testpackage
+          rm -f libraries.tar.zst testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+          rm -f *.xml
+          MORO
+          )
+          srun -C c bash -c "$RUN_STRING"
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Make clean
+        run: VLASIATOR_ARCH=hile_cpu make clean
+      - uses: ursg/gcc-problem-matcher@master
+      - name: Compile vlasiator (Release, debug build w/ HIP)
+        run: |
+          # srun -C c --job-name CI_debug_C_compile --interactive --nodes=1 -n 1 -c 16 --mem-per-cpu=2G -t 0:20:0 bash -c 'module load papi; module load cray-pmi; module load libfabric/1.22.0; export VLASIATOR_ARCH=hile_cpu; make COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEBUG_IONOSPHERE -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC -DDEBUG_ACC " -j 16; sleep 10s'
+          srun -C c --job-name CI_debug_C_compile --interactive --nodes=1 -n 1 -c 16 --mem-per-cpu=2G -t 0:20:0 bash -c 'module load papi; module load cray-pmi; module load libfabric/1.22.0; export VLASIATOR_ARCH=hile_cpu; make -j 16; sleep 10s'
+      - name: Make sure the output binary is visible in lustre
+        uses: nick-fields/retry@v3
+        with:
+          timeout_seconds: 15
+          max_attempts: 3
+          retry_on: error
+          command: ls vlasiator
+      - name: Upload testpackage binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: vlasiator-debug-HILE-C
+          path: vlasiator
+          if-no-files-found: error
+
   build_TP_debug_ukkoGPU:
     # Build Vlasiator with testpackage and debug flags, on the ukko cluster using
     # its nvidia gpus

@@ -87,7 +87,7 @@ bool P::prepareForRebalance = false;
 vector<CellID> P::localCells;
 
 bool P::adaptGPUWID = true;
-uint P::GPUallocations = 64;
+uint P::GPUallocations = 128;
 
 vector<string> P::systemWriteName;
 vector<string> P::systemWritePath;
@@ -552,7 +552,7 @@ bool P::addParameters() {
    RP::add("AMR.transShortPencils", "if true, use one-cell pencils", false);
    RP::addComposing("AMR.filterpasses", string("AMR filter passes for each individual refinement level"));
    RP::add("adaptGPUWID", "if true, will halve velocity block counts if GPU is in use and WID==8", true);
-   RP::add("GPUallocations", "How many parallel GPU vlasov allocations to make? (default 64)", 64);
+   RP::add("GPUallocations", "How many parallel GPU vlasov allocations to make? (default 128)", 128);
 
    // Diffusion parameters
    RP::add("PAD.enable","Enable Artificial pitch-angle diffusion",0);

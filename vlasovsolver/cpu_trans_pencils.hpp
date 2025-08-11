@@ -27,6 +27,7 @@
 #include <unordered_set>
 #include <dccrg.hpp>
 #include <dccrg_cartesian_geometry.hpp>
+#include <string>
 #include "../common.h"
 #include "../spatial_cells/spatial_cell_wrapper.hpp"
 
@@ -57,6 +58,12 @@ struct setOfPencils {
    uint *gpu_idsStart;
    Realf *gpu_sourceDZ;
    Realf *gpu_targetRatios;
+   std::string dev_pencilsInBin = "null";
+   std::string host_binStart = "null";
+   std::string host_binSize = "null";
+   std::string dev_binStart = "null";
+   std::string dev_binSize = "null";
+
 #endif
 
    setOfPencils() {
@@ -181,7 +188,49 @@ struct setOfPencils {
       for (auto [bin, pencils] : pencilsInBin) {
          activeBins.push_back(bin);
       }
+
+      #ifdef USE_GPU
+      gpuBins();
+      #endif
    }
+
+   #ifdef USE_GPU
+   void gpuBins(){
+      gpuMemoryManager.createPointer("dev_pencilsInBin", dev_pencilsInBin);
+      gpuMemoryManager.createPointer("host_binStart", host_binStart);
+      gpuMemoryManager.createPointer("host_binSize", host_binSize);
+      gpuMemoryManager.createPointer("dev_binStart", dev_binStart);
+      gpuMemoryManager.createPointer("dev_binSize", dev_binSize);
+      
+      gpuMemoryManager.allocate(dev_pencilsInBin, sumOfLengths*sizeof(uint));
+      gpuMemoryManager.hostAllocate(host_binStart, activeBins.size()*sizeof(uint));
+      gpuMemoryManager.hostAllocate(host_binSize, activeBins.size()*sizeof(uint));
+      gpuMemoryManager.allocate(dev_binStart, activeBins.size()*sizeof(uint));
+      gpuMemoryManager.allocate(dev_binSize, activeBins.size()*sizeof(uint));
+
+      uint *dev_pencilsInBinPointer = gpuMemoryManager.getPointer<uint>(dev_pencilsInBin);
+      uint *host_binStartPointer = gpuMemoryManager.getPointer<uint>(host_binStart);
+      uint *host_binSizePointer = gpuMemoryManager.getPointer<uint>(host_binSize);
+      uint *dev_binStartPointer = gpuMemoryManager.getPointer<uint>(dev_binStart);
+      uint *dev_binSizePointer = gpuMemoryManager.getPointer<uint>(dev_binSize);
+
+      int offset = 0;
+      for(size_t bin = 0; bin < activeBins.size(); bin++){
+         uint thisBin = activeBins[bin];
+         host_binStartPointer[bin] = offset;
+
+         uint binSize = pencilsInBin[thisBin].size();
+         host_binSizePointer[bin] = binSize;
+
+         CHK_ERR( gpuMemcpy(dev_pencilsInBinPointer + offset, pencilsInBin[thisBin].data(), binSize * sizeof(uint), gpuMemcpyHostToDevice) );
+
+         offset += binSize;
+      }
+
+      CHK_ERR( gpuMemcpy(dev_binStartPointer, host_binStartPointer, activeBins.size() * sizeof(uint), gpuMemcpyHostToDevice) );
+      CHK_ERR( gpuMemcpy(dev_binSizePointer, host_binSizePointer, activeBins.size() * sizeof(uint), gpuMemcpyHostToDevice) );
+   }
+   #endif
 
    // Never called?
    void removePencil(const uint pencilId) {
