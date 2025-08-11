@@ -161,6 +161,8 @@ namespace projects {
       const Real initV0Y = 0;
       const Real initV0Z = 0;
 
+      creal rhofac = (this->BX0*this->BX0 + this->BY0*this->BY0 + this->BZ0*this->BZ0) / 2.0 / physicalconstants::MU_0  / physicalconstants::K_B / initT;
+
       initRho += rhofac / pow(cosh(x / (this->SCA_LAMBDA)), 2.0);
       creal vx = vx_in - initV0X;
       creal vy = vy_in - initV0Y;
