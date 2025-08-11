@@ -95,7 +95,7 @@ namespace projects {
       Real initRho = sP.DENSITY;
       Real initT = sP.TEMPERATURE;
       // Note: bulk V is zero, according to this and getV0().
-      const Real initV0X = -1.0 * this->VX0 * tanh(x / this->SCA_LAMBDA) * (1.0 + 1.0/ pow(cosh(sqrt(x*x + z*z) / (this->SCA_LAMBDA)), 2.0));
+      const Real initV0X = -1.0 * this->VX0 * tanh(x / this->SCA_LAMBDA);
       const Real initV0Y = 0;
       const Real initV0Z = 0;
 
@@ -157,11 +157,11 @@ namespace projects {
       Real initRho = sP.DENSITY;
       Real initT = sP.TEMPERATURE;
       // Note: bulk V is zero, according to this and getV0().
-      const Real initV0X = 0;
+      const Real initV0X = -1.0 * this->VX0 * tanh(x / this->SCA_LAMBDA);
       const Real initV0Y = 0;
       const Real initV0Z = 0;
 
-      initRho *= (1.0 + 5.0 / pow(cosh(x / (this->SCA_LAMBDA)), 2.0));
+      initRho += rhofac / pow(cosh(x / (this->SCA_LAMBDA)), 2.0);
       creal vx = vx_in - initV0X;
       creal vy = vy_in - initV0Y;
       creal vz = vz_in - initV0Z;
@@ -190,6 +190,11 @@ namespace projects {
    ) {
       setBackgroundFieldToZero(BgBGrid);
 
+      Real Bx_island, By_island, Bz_island;
+      creal Lx = Parameters::xmax - Parameters::xmin;
+      creal Ly = Parameters::ymax - Parameters::ymin;
+      creal Lz = Parameters::zmax - Parameters::zmin;
+
       if(!P::isRestart) {
          auto localSize = perBGrid.getLocalSize().data();
 
@@ -200,9 +205,12 @@ namespace projects {
                   const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
 
-                  cell->at(fsgrids::bfield::PERBX) = this->BX0 * tanh((xyz[1] + 0.5 * perBGrid.DY) / this->SCA_LAMBDA);
+                  Bx_island = -2.0 * M_PI * BZ0 * 0.1 / Lz * cos(M_PI * xyz[0] / Lx) * sin(2.0 * M_PI * xyz[2] / Lz);
+                  Bz_island = M_PI * BZ0 * 0.1 / Lx * sin(M_PI * xyz[0] / Lx) * cos(2.0 * M_PI * xyz[2] / Lz);
+
+                  cell->at(fsgrids::bfield::PERBX) = this->BX0 * tanh((xyz[1] + 0.5 * perBGrid.DY) / this->SCA_LAMBDA) + Bx_island;
                   cell->at(fsgrids::bfield::PERBY) = this->BY0 * tanh((xyz[2] + 0.5 * perBGrid.DZ) / this->SCA_LAMBDA);
-                  cell->at(fsgrids::bfield::PERBZ) = this->BZ0 * tanh((xyz[0] + 0.5 * perBGrid.DX) / this->SCA_LAMBDA);
+                  cell->at(fsgrids::bfield::PERBZ) = this->BZ0 * tanh((xyz[0] + 0.5 * perBGrid.DX) / this->SCA_LAMBDA) + Bz_island;
                }
             }
          }
