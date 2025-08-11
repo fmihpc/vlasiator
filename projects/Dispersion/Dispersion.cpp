@@ -48,9 +48,6 @@ namespace projects {
    void Dispersion::addParameters() {
       typedef Readparameters RP;
       RP::add("Dispersion.B0", "Guide magnetic field strength (T)", 1.0e-9);
-      RP::add("Dispersion.magXPertAbsAmp", "Absolute amplitude of the magnetic perturbation along x (T)", 1.0e-9);
-      RP::add("Dispersion.magYPertAbsAmp", "Absolute amplitude of the magnetic perturbation along y (T)", 1.0e-9);
-      RP::add("Dispersion.magZPertAbsAmp", "Absolute amplitude of the magnetic perturbation along z (T)", 1.0e-9);
       RP::add("Dispersion.maxwCutoff", "Cutoff for the maxwellian distribution", 1e-12);
       RP::add("Dispersion.angleXY", "Orientation of the guide magnetic field with respect to the x-axis in x-y plane (rad)", 0.001);
       RP::add("Dispersion.angleXZ", "Orientation of the guide magnetic field with respect to the x-axis in x-z plane (rad)", 0.001);
@@ -73,9 +70,6 @@ namespace projects {
       typedef Readparameters RP;
       Project::getParameters();
       RP::get("Dispersion.B0", this->B0);
-      RP::get("Dispersion.magXPertAbsAmp", this->magXPertAbsAmp);
-      RP::get("Dispersion.magYPertAbsAmp", this->magYPertAbsAmp);
-      RP::get("Dispersion.magZPertAbsAmp", this->magZPertAbsAmp);
       RP::get("Dispersion.maxwCutoff", this->maxwCutoff);
       RP::get("Dispersion.angleXY", this->angleXY);
       RP::get("Dispersion.angleXZ", this->angleXZ);
@@ -221,32 +215,5 @@ namespace projects {
                          this->B0 * sin(this->angleXZ));
 
       setBackgroundField(bgField, bgb, technical, fsgrid);
-
-      if(!P::isRestart) {
-         // local copies for lambda capture
-         const auto magXPertAbsAmp_l = this->magXPertAbsAmp;
-         const auto magYPertAbsAmp_l = this->magYPertAbsAmp;
-         const auto magZPertAbsAmp_l = this->magZPertAbsAmp;
-
-         // *this passed due to setRandomSeed() and getRandomNumber().
-         fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
-                             phiprof::initializeTimer("setProjectBField-loop"), technical,
-                             [=, *this](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
-
-            auto& cell = perb[stencil.ooo()];
-
-            std::default_random_engine rndState;
-            setRandomSeed(42,rndState);
-            
-            Real rndBuffer[3];
-            rndBuffer[0]=getRandomNumber(rndState);
-            rndBuffer[1]=getRandomNumber(rndState);
-            rndBuffer[2]=getRandomNumber(rndState);
-
-            cell[fsgrids::bfield::PERBX] = magXPertAbsAmp_l * (0.5 - rndBuffer[0]);
-            cell[fsgrids::bfield::PERBY] = magYPertAbsAmp_l * (0.5 - rndBuffer[1]);
-            cell[fsgrids::bfield::PERBZ] = magZPertAbsAmp_l * (0.5 - rndBuffer[2]);
-         });
-      }
    }
 } // namespace projects

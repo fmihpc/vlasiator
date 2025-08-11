@@ -49,9 +49,6 @@ namespace projects {
       RP::add("Fluctuations.BX0", "Background field value (T)", 1.0e-9);
       RP::add("Fluctuations.BY0", "Background field value (T)", 2.0e-9);
       RP::add("Fluctuations.BZ0", "Background field value (T)", 3.0e-9);
-      RP::add("Fluctuations.magXPertAbsAmp", "Amplitude of the magnetic perturbation along x", 1.0e-9);
-      RP::add("Fluctuations.magYPertAbsAmp", "Amplitude of the magnetic perturbation along y", 1.0e-9);
-      RP::add("Fluctuations.magZPertAbsAmp", "Amplitude of the magnetic perturbation along z", 1.0e-9);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
@@ -74,9 +71,6 @@ namespace projects {
       RP::get("Fluctuations.BX0", this->BX0);
       RP::get("Fluctuations.BY0", this->BY0);
       RP::get("Fluctuations.BZ0", this->BZ0);
-      RP::get("Fluctuations.magXPertAbsAmp", this->magXPertAbsAmp);
-      RP::get("Fluctuations.magYPertAbsAmp", this->magYPertAbsAmp);
-      RP::get("Fluctuations.magZPertAbsAmp", this->magZPertAbsAmp);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
@@ -198,28 +192,6 @@ namespace projects {
                          this->BZ0);
 
       setBackgroundField(bgField, bgb, technical, fsgrid);
-
-      if(!P::isRestart) {
-         // local copies for lambda capture
-         const auto magXPertAbsAmp_l = this->magXPertAbsAmp;
-         const auto magYPertAbsAmp_l = this->magYPertAbsAmp;
-         const auto magZPertAbsAmp_l = this->magZPertAbsAmp;
-
-         // *this passed due to setRandomSeed() and getRandomNumber().
-         fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
-                             phiprof::initializeTimer("setProjectBField-loop"), technical,
-                             [=, *this](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
-            const std::array<Real, 3> xyz = coordinates.getPhysicalCoords(stencil.i, stencil.j, stencil.k);
-            auto& cell = perb[stencil.ooo()];
-
-            std::default_random_engine rndState;
-            setRandomSeed(42,rndState);
-
-            cell[fsgrids::bfield::PERBX] = magXPertAbsAmp_l * (0.5 - getRandomNumber(rndState));
-            cell[fsgrids::bfield::PERBY] = magYPertAbsAmp_l * (0.5 - getRandomNumber(rndState));
-            cell[fsgrids::bfield::PERBZ] = magZPertAbsAmp_l * (0.5 - getRandomNumber(rndState));
-         });
-      }
    }
 
    std::vector<std::array<Real, 3> > Fluctuations::getV0(

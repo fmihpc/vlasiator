@@ -24,11 +24,11 @@
 \end{abstract}
 
 \section{Purpose}
-Produce random perturbations in density, velocity or magnetic field and let it relax in periodic boundary conditions. Available in one, two and three dimensions. General-purpose, low physical relevance test. Used for dispersion plots and conservation of $\nabla\cdot\mathbf{B}$ in my MSc thesis.
+Produce random perturbations in density and velocity and let it relax in periodic boundary conditions. Available in one, two and three dimensions. General-purpose, low physical relevance test. Used for dispersion plots and conservation of $\nabla\cdot\mathbf{B}$ in my MSc thesis.
 
 
 \section{Implementation}
-Sets a background magnetic field and density and adds random perturbations in magnetic field, density or velocity (which has zero mean). Features an option to choose the cutoff level of the Maxwellian distribution to be able to compare with the dense code version. Sets the outer layer of velocity cells to 0 regardless of sparsity. The RNG seed is the CellID.
+Sets a background magnetic field and density and adds random perturbations in density or velocity (which has zero mean). Features an option to choose the cutoff level of the Maxwellian distribution to be able to compare with the dense code version. Sets the outer layer of velocity cells to 0 regardless of sparsity. The RNG seed is the CellID.
 
 \section{Options}
 The options available in the \verb=cfg= file are:
@@ -37,7 +37,6 @@ The options available in the \verb=cfg= file are:
    \verb=B[XYZ]0= & Background magnetic field (T) \\
    \verb=rho= & Number density (m\textsuperscript{-3}) \\
    \verb=Temperature= & Temperature (K) \\
-   \verb=mag[XYZ]PertAmp= & Absolute amplitude of the magnetic field perturbations in each direction (T) \\
    \verb=densityPertAmp= & Relative amplitude of the density perturbations \\
    \verb=velocityPertAmp= & Absolute amplitude of the velocity perturbations (m/s) \\
    \verb=nSpaceSamples= & Number of sampling points along spatial dimensions within a spatial cell, includes the corners (minimum 2) \\

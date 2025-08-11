@@ -82,9 +82,6 @@ namespace projects {
       Real dBx;
       Real dBy;
       Real dBz;
-      Real magXPertAbsAmp;
-      Real magYPertAbsAmp;
-      Real magZPertAbsAmp;
       Real lambda;
 
       enum densitymodel {

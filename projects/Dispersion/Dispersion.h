@@ -60,9 +60,6 @@ namespace projects {
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell, creal& t) override;
 
       Real B0;
-      Real magXPertAbsAmp;
-      Real magYPertAbsAmp;
-      Real magZPertAbsAmp;
       Real angleXY;
       Real angleXZ;
       Real maxwCutoff;

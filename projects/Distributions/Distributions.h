@@ -70,9 +70,6 @@ namespace projects {
       Real dBx;
       Real dBy;
       Real dBz;
-      Real magXPertAbsAmp;
-      Real magYPertAbsAmp;
-      Real magZPertAbsAmp;
       Real rhoPertAbsAmp[2];
       //          Real Vx1PertAbsAmp;
       //          Real Vy1PertAbsAmp;

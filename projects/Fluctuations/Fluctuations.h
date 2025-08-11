@@ -63,9 +63,6 @@ namespace projects {
       Real BX0;
       Real BY0;
       Real BZ0;
-      Real magXPertAbsAmp;
-      Real magYPertAbsAmp;
-      Real magZPertAbsAmp;
       uint seed;
       std::vector<FluctuationsSpeciesParameters> speciesParams;
 

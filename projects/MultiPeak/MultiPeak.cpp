@@ -58,9 +58,6 @@ namespace projects {
       RP::add("MultiPeak.dBx", "Magnetic field x component cosine perturbation amplitude (T)", 0.0);
       RP::add("MultiPeak.dBy", "Magnetic field y component cosine perturbation amplitude (T)", 0.0);
       RP::add("MultiPeak.dBz", "Magnetic field z component cosine perturbation amplitude (T)", 0.0);
-      RP::add("MultiPeak.magXPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along x (T)", 1.0e-9);
-      RP::add("MultiPeak.magYPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along y (T)", 1.0e-9);
-      RP::add("MultiPeak.magZPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along z (T)", 1.0e-9);
       RP::add("MultiPeak.lambda", "B cosine perturbation wavelength (m)", 1.0);
       RP::add("MultiPeak.densityModel","Which spatial density model is used?",string("uniform"));
 
@@ -86,9 +83,6 @@ namespace projects {
       RP::get("MultiPeak.Bx", this->Bx);
       RP::get("MultiPeak.By", this->By);
       RP::get("MultiPeak.Bz", this->Bz);
-      RP::get("MultiPeak.magXPertAbsAmp", this->magXPertAbsAmp);
-      RP::get("MultiPeak.magYPertAbsAmp", this->magYPertAbsAmp);
-      RP::get("MultiPeak.magZPertAbsAmp", this->magZPertAbsAmp);
       RP::get("MultiPeak.dBx", this->dBx);
       RP::get("MultiPeak.dBy", this->dBy);
       RP::get("MultiPeak.dBz", this->dBz);
@@ -280,34 +274,22 @@ namespace projects {
 
       setBackgroundField(bgField, bgb, technical, fsgrid);
 
-      if(!P::isRestart) {
+      if(!P::isRestart && this->lambda != 0.0) {
          // local copies for lambda capture
          const auto dBx_l = this->dBx;
          const auto dBy_l = this->dBy;
          const auto dBz_l = this->dBz;
          const auto lambda_l = this->lambda;
-         const auto magXPertAbsAmp_l = this->magXPertAbsAmp;
-         const auto magYPertAbsAmp_l = this->magYPertAbsAmp;
-         const auto magZPertAbsAmp_l = this->magZPertAbsAmp;
 
-         // *this passed due to setRandomSeed() and getRandomNumber().
          fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
                              phiprof::initializeTimer("setProjectBField-loop"), technical,
-                             [=, *this](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+                             [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
             const std::array<Real, 3> xyz = coordinates.getPhysicalCoords(stencil.i, stencil.j, stencil.k);
             auto& cell = perb[stencil.ooo()];
-            std::default_random_engine rndState;
-            setRandomSeed(42,rndState);
 
-            if (lambda_l != 0.0) {
-               cell[fsgrids::bfield::PERBX] = dBx_l * cos(2.0 * M_PI * xyz[0] / lambda_l);
-               cell[fsgrids::bfield::PERBY] = dBy_l * sin(2.0 * M_PI * xyz[0] / lambda_l);
-               cell[fsgrids::bfield::PERBZ] = dBz_l * cos(2.0 * M_PI * xyz[0] / lambda_l);
-            }
-
-            cell[fsgrids::bfield::PERBX] += magXPertAbsAmp_l * (0.5 - getRandomNumber(rndState));
-            cell[fsgrids::bfield::PERBY] += magYPertAbsAmp_l * (0.5 - getRandomNumber(rndState));
-            cell[fsgrids::bfield::PERBZ] += magZPertAbsAmp_l * (0.5 - getRandomNumber(rndState));
+            cell[fsgrids::bfield::PERBX] = dBx_l * cos(2.0 * M_PI * xyz[0] / lambda_l);
+            cell[fsgrids::bfield::PERBY] = dBy_l * sin(2.0 * M_PI * xyz[0] / lambda_l);
+            cell[fsgrids::bfield::PERBZ] = dBz_l * cos(2.0 * M_PI * xyz[0] / lambda_l);
          });
       }
    }
