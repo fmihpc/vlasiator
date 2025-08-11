@@ -382,7 +382,7 @@ bool P::addParameters() {
            "The minimum CFL limit for field propagation. Used to set timestep if dynamic_timestep is true.", 0.4);
    RP::add(
        "fieldsolver.ohmHyperFactor",
-       "Factor to multiply hyperresistivity term by. Default: 1 (damping becomes strong at grid scale)",
+       "Factor to multiply hyperresistivity term by, with larger values meaning damping becomes strong at larger scales. Default: 1 (grid scale)",
        1.0);
 
    RP::add(
@@ -1028,7 +1028,7 @@ void Parameters::getParameters() {
    RP::get("fieldsolver.electronPTindex", P::electronPTindex); // Polytropic index for solving electron equation of state to use in eGradPe term
    RP::get("fieldsolver.maxCFL", P::fieldSolverMaxCFL);
    RP::get("fieldsolver.minCFL", P::fieldSolverMinCFL);
-   RP::get("fieldsolver.ohmHyperFactor", P::ohmHyperFactor);
+   RP::get("fieldsolver.ohmHyperFactor", P::ohmHyperFactor); // Multiplier for hyperresistivity electric field. Larger values mean damping becomes strong at larger scales. Default: 1 (grid scale)
 
    // manual FsGrid decomposition should be complete with three values. If at least one is set but all are not set, abort
    if ((RP::isSet("fieldsolver.manualFsGridDecompositionX")||RP::isSet("fieldsolver.manualFsGridDecompositionY")||RP::isSet("fieldsolver.manualFsGridDecompositionZ")) &&

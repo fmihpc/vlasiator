@@ -32,6 +32,8 @@ using namespace std;
 /*
    Functions for calculating the contribution of hyperresistivity to the electric field:
    E_hyper = -eta_H nabla^2 (curl(B)) / mu_0
+
+   Currently, the calculations are done fully on the Yee lattice, without any Balsara interpolation or volume averaging.
  */
 Real calculateSecondDerivativeOfCurl(
    FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
