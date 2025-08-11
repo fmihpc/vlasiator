@@ -282,7 +282,7 @@ void calculateDerivativesSimple(fsgrids::perbspan perb,
    // Calculate derivatives
    fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
                        phiprof::initializeTimer("FS derivatives compute cells"), technical,
-                       [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+                       [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
                           calculateDerivatives(perb, moments, dperb, dmoments, stencil, sysBoundaryFlag,
                                                sysBoundaryLayer, doMoments);
                        });
@@ -383,7 +383,7 @@ void calculateBVOLDerivativesSimple(fsgrids::volspan vol,
    // Calculate derivatives
    fsgrid.parallel_for([](int timerId) ->  phiprof::Timer { return phiprof::Timer{timerId}; },
                        phiprof::initializeTimer("FS derivatives BVOL compute cells"), technical,
-                       [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+                       [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
                           calculateBVOLDerivatives(vol, technical, stencil);
                       });
 
@@ -463,7 +463,7 @@ void calculateCurvatureSimple(fsgrids::volspan vol,
 
    fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
                        phiprof::initializeTimer("Calculate curvature compute cells"), technical,
-                       [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+                       [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
                           const bool compute = (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY &&
                                      sysBoundaryLayer != 1 && sysBoundaryLayer != 2);
                           if (compute) {

@@ -62,62 +62,63 @@ void setBackgroundField(const FieldFunction& bgFunction, fsgrids::bgbspan bgb,
       int loopVolumeId{phiprof::initializeTimer("loop-volume-averages")};
 
 // These are threaded now that the dipole field is threadsafe
-   fsgrid.parallel_for_coords([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
-                              phiprof::initializeTimer("setBackgroundField-loop"), technical,
-                              [& /*=,&fsgrid,&bgFunction*/](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer, std::array<Real, 3> start) {
-               const std::array end = {
-                   start[0] + gridSpacing[0],
-                   start[1] + gridSpacing[1],
-                   start[2] + gridSpacing[2],
-               };
+      fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                          phiprof::initializeTimer("setBackgroundField-loop"), technical,
+                          [& /*=,&fsgrid,&bgFunction*/](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+         const std::array<Real, 3> start = coordinates.getPhysicalCoords(stencil.i, stencil.j, stencil.k);
+         const std::array end = {
+            start[0] + gridSpacing[0],
+            start[1] + gridSpacing[1],
+            start[2] + gridSpacing[2],
+         };
 
-               auto& field = bgb[stencil.ooo()];
-               // Face averages
-               for (uint fComponent = 0; fComponent < 3; fComponent++) {
-                  T3DFunction valueFunction =
-                      std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
-                                (coordinate)fComponent, 0, (coordinate)0);
-                  field[fsgrids::bgbfield::BGBX + fComponent] +=
-                      surfaceAverage(valueFunction, (coordinate)fComponent, accuracy, start,
-                                     gridSpacing[faceCoord1[fComponent]], gridSpacing[faceCoord2[fComponent]]);
+         auto& field = bgb[stencil.ooo()];
+         // Face averages
+         for (uint fComponent = 0; fComponent < 3; fComponent++) {
+            T3DFunction valueFunction =
+               std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
+                  (coordinate)fComponent, 0, (coordinate)0);
+            field[fsgrids::bgbfield::BGBX + fComponent] +=
+               surfaceAverage(valueFunction, (coordinate)fComponent, accuracy, start,
+                  gridSpacing[faceCoord1[fComponent]], gridSpacing[faceCoord2[fComponent]]);
 
-                  // Compute derivatives. Note that we scale by gridSpacing[] as the arrays are assumed to contain
-                  // differences, not true derivatives!
-                  T3DFunction derivFunction1 =
-                      std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
-                                (coordinate)fComponent, 1, (coordinate)faceCoord1[fComponent]);
-                  field[fsgrids::bgbfield::dBGBxdy + 2 * fComponent] +=
-                      gridSpacing[faceCoord1[fComponent]] *
-                      surfaceAverage(derivFunction1, (coordinate)fComponent, accuracy, start,
-                                     gridSpacing[faceCoord1[fComponent]], gridSpacing[faceCoord2[fComponent]]);
+           // Compute derivatives. Note that we scale by gridSpacing[] as the arrays are assumed to contain
+           // differences, not true derivatives!
+           T3DFunction derivFunction1 =
+              std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
+                 (coordinate)fComponent, 1, (coordinate)faceCoord1[fComponent]);
+           field[fsgrids::bgbfield::dBGBxdy + 2 * fComponent] +=
+              gridSpacing[faceCoord1[fComponent]] *
+                 surfaceAverage(derivFunction1, (coordinate)fComponent, accuracy, start,
+                    gridSpacing[faceCoord1[fComponent]], gridSpacing[faceCoord2[fComponent]]);
 
-                  T3DFunction derivFunction2 =
-                      std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
-                                (coordinate)fComponent, 1, (coordinate)faceCoord2[fComponent]);
-                  field[fsgrids::bgbfield::dBGBxdy + 1 + 2 * fComponent] +=
-                      gridSpacing[faceCoord2[fComponent]] *
-                      surfaceAverage(derivFunction2, (coordinate)fComponent, accuracy, start,
-                                     gridSpacing[faceCoord1[fComponent]], gridSpacing[faceCoord2[fComponent]]);
-               }
+           T3DFunction derivFunction2 =
+              std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
+                 (coordinate)fComponent, 1, (coordinate)faceCoord2[fComponent]);
+           field[fsgrids::bgbfield::dBGBxdy + 1 + 2 * fComponent] +=
+              gridSpacing[faceCoord2[fComponent]] *
+                 surfaceAverage(derivFunction2, (coordinate)fComponent, accuracy, start,
+                    gridSpacing[faceCoord1[fComponent]], gridSpacing[faceCoord2[fComponent]]);
+         }
 
-               // Volume averages
-               for (uint fComponent = 0; fComponent < 3; fComponent++) {
-                  T3DFunction valueFunction =
-                      std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
-                                (coordinate)fComponent, 0, (coordinate)0);
-                  field[fsgrids::bgbfield::BGBXVOL + fComponent] += volumeAverage(valueFunction, accuracy, start, end);
+         // Volume averages
+         for (uint fComponent = 0; fComponent < 3; fComponent++) {
+            T3DFunction valueFunction =
+               std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
+                  (coordinate)fComponent, 0, (coordinate)0);
+            field[fsgrids::bgbfield::BGBXVOL + fComponent] += volumeAverage(valueFunction, accuracy, start, end);
 
-                  // Compute derivatives. Note that we scale by gridSpacing[] as the arrays are assumed to contain
-                  // differences, not true derivatives!
-                  for (uint dComponent = 0; dComponent < 3; dComponent++) {
-                     T3DFunction derivFunction =
-                         std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
-                                   (coordinate)fComponent, 1, (coordinate)dComponent);
-                     field[fsgrids::bgbfield::dBGBXVOLdx + 3 * fComponent + dComponent] +=
-                         gridSpacing[dComponent] * volumeAverage(derivFunction, accuracy, start, end);
-                  }
-               }
-            });
+            // Compute derivatives. Note that we scale by gridSpacing[] as the arrays are assumed to contain
+            // differences, not true derivatives!
+            for (uint dComponent = 0; dComponent < 3; dComponent++) {
+               T3DFunction derivFunction =
+                  std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
+                     (coordinate)fComponent, 1, (coordinate)dComponent);
+               field[fsgrids::bgbfield::dBGBXVOLdx + 3 * fComponent + dComponent] +=
+                  gridSpacing[dComponent] * volumeAverage(derivFunction, accuracy, start, end);
+            }
+         }
+      });
    }
    bgTimer.stop(numCells, "Spatial Cells");
    // TODO
@@ -131,7 +132,7 @@ void setBackgroundFieldToZero(
 ) {
    fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
    phiprof::initializeTimer("setBackgroundFieldToZero"), technical,
-   [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+   [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
       for (size_t i = 0; i < bgb[stencil.ooo()].size(); i++) {
          bgb[stencil.ooo()][i] == 0.0;
       }

@@ -55,7 +55,7 @@ void setPerturbedFieldToZero(
 ) {
    fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
                        phiprof::initializeTimer("setPerturbedFieldToZero"), technical,
-                       [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+                       [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
       // This is still N_BFIELD (==3) instead of numFields
       for (size_t j = 0; j < fsgrids::bfield::N_BFIELD; ++j) {
          b[stencil.ooo()][offset + j] = 0.0;
@@ -98,21 +98,22 @@ void setPerturbedField(const FieldFunction& bfFunction, std::span<std::array<Rea
 
 
    // These are threaded now that the stuff around here is threadsafe
-   fsgrid.parallel_for_coords([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
-                              phiprof::initializeTimer("setPerturbedField-loop"), technical,
-                              [& /*=, &bfFunction*/](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer, std::array<Real, 3> start) {
-                          auto& field = b[stencil.ooo()];
+   fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                        phiprof::initializeTimer("setPerturbedField-loop"), technical,
+                        [& /*=, &bfFunction*/](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+      const std::array<Real, 3> start = coordinates.getPhysicalCoords(stencil.i, stencil.j, stencil.k);
+      auto& field = b[stencil.ooo()];
 
-                          // Face averages
-                          for (uint fComponent = 0; fComponent < 3; fComponent++) {
-                             T3DFunction valueFunction = std::bind(bfFunction, std::placeholders::_1, std::placeholders::_2,
-                                                                   std::placeholders::_3, (coordinate)fComponent, 0, (coordinate)0);
-                             field[offset + fComponent] += // offset defaults to fsgrids::bfield::PERBX
-                                surfaceAverage(valueFunction, (coordinate)fComponent, accuracy, start,
-                                               gridSpacing[faceCoord1[fComponent]], gridSpacing[faceCoord2[fComponent]]);
-                          }
-                          // Derivatives or volume averages are not calculated for the perBField
-                       });
+      // Face averages
+      for (uint fComponent = 0; fComponent < 3; fComponent++) {
+         T3DFunction valueFunction = std::bind(bfFunction, std::placeholders::_1, std::placeholders::_2,
+            std::placeholders::_3, (coordinate)fComponent, 0, (coordinate)0);
+         field[offset + fComponent] += // offset defaults to fsgrids::bfield::PERBX
+            surfaceAverage(valueFunction, (coordinate)fComponent, accuracy, start,
+               gridSpacing[faceCoord1[fComponent]], gridSpacing[faceCoord2[fComponent]]);
+      }
+      // Derivatives or volume averages are not calculated for the perBField
+   });
 }
 
 #endif

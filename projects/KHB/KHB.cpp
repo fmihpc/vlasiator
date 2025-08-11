@@ -254,9 +254,10 @@ namespace projects {
          const auto TOP_l = this->TOP;
          const auto& gridSpacing = fsgrid.getGridSpacing();
          // needs *this because of profile() at the moment.
-         fsgrid.parallel_for_coords([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
-                                    phiprof::initializeTimer("setProjectBField-loop"), technical,
-                                    [=, *this](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer, const std::array<Real, 3> xyz) {
+         fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                             phiprof::initializeTimer("setProjectBField-loop"), technical,
+                             [=, *this](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+            const std::array<Real, 3> xyz = coordinates.getPhysicalCoords(stencil.i, stencil.j, stencil.k);
             auto& cell = perb[stencil.ooo()];
 
             cell[fsgrids::bfield::PERBX] =

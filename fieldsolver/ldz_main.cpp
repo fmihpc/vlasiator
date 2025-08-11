@@ -114,7 +114,7 @@ bool propagateFields(fsgrids::perbspan perb,
 
    fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
                        phiprof::initializeTimer("Initialize technical.maxFsDt"), technical,
-                       [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+                       [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
                           technical[stencil.ooo()].maxFsDt = std::numeric_limits<Real>::max();
                        });
 

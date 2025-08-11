@@ -210,14 +210,15 @@ namespace SBC {
       const auto facesToProcess_local = this->facesToProcess;
       std::array<bool, 3> periodic_local = this->periodic;
       const auto templateB_local = this->templateB;
-      fsgrid.parallel_for_coords([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
-                                 phiprof::initializeTimer("setBFromTemplate"), technical,
-                                 [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer, std::array<Real, 3> coords) {
+      fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                          phiprof::initializeTimer("setBFromTemplate"), technical,
+                          [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
          creal dx = P::dx_ini * pow(2, -technical[stencil.ooo()].refLevel);
          creal dy = P::dy_ini * pow(2, -technical[stencil.ooo()].refLevel);
          creal dz = P::dz_ini * pow(2, -technical[stencil.ooo()].refLevel);
 
          std::array<bool, 6> isThisCellOnAFace = {{false}};
+         const std::array<Real, 3> coords = coordinates.getPhysicalCoords(stencil.i, stencil.j, stencil.k);
  
          determineFaceNoClassMembers(isThisCellOnAFace.data(), coords[0] + 0.5 * gridSpacing[0], coords[1] + 0.5 * gridSpacing[1], coords[2] + 0.5 * gridSpacing[2], dx, dy, dz, periodic_local);
    

@@ -186,7 +186,7 @@ void calculateGradPeTermSimple(fsgrids::egradpespan egradpe,
    // Calculate GradPe term
    fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
                        phiprof::initializeTimer("EgradPe compute cells"), technical,
-                       [=, &sysBoundaries](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+                       [=, &sysBoundaries](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
                           calculateGradPeTerm(egradpe, moments, dmoments, technical, stencil, gridSpacing, sysBoundaries);
                        });
 

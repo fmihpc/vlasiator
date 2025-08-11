@@ -229,14 +229,14 @@ namespace projects {
          const auto magZPertAbsAmp_l = this->magZPertAbsAmp;
 
          // *this passed due to setRandomSeed() and getRandomNumber().
-         fsgrid.parallel_for_cellid([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
-                                    phiprof::initializeTimer("setProjectBField-loop"), technical,
-                                    [=, *this](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer, const uint64_t cellid) {
+         fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                             phiprof::initializeTimer("setProjectBField-loop"), technical,
+                             [=, *this](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
 
             auto& cell = perb[stencil.ooo()];
 
             std::default_random_engine rndState;
-            setRandomSeed(cellid,rndState);
+            setRandomSeed(42,rndState);
             
             Real rndBuffer[3];
             rndBuffer[0]=getRandomNumber(rndState);

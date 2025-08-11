@@ -369,7 +369,7 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
 
    fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
                        phiprof::initializeTimer("classifyCells-init"), technical,
-                       [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+                       [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
       auto& tech = technical[stencil.ooo()];
       //  Here for debugging since boundarytype should be fed from MPIGrid
       tech.sysBoundaryFlag = sysboundarytype::N_SYSBOUNDARY_CONDITIONS;
@@ -492,9 +492,9 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
    for (uint layer = 1; layer <= MAX_NUMBER_OF_BOUNDARY_LAYERS; ++layer) {
 
       // loop through all cells in grid
-      fsgrid.parallel_for_ijk([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
-                              phiprof::initializeTimer("classifyCells-pass-1"), technical,
-                              [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer, const fsgrid::FsIndex_t i, const fsgrid::FsIndex_t j, const fsgrid::FsIndex_t k) {
+      fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                          phiprof::initializeTimer("classifyCells-pass-1"), technical,
+                          [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
          auto& tech = technical[stencil.ooo()];
 
          // for the first layer, consider all cells that belong to a boundary, for other layers
@@ -502,7 +502,7 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
          if ((layer == 1 && tech.sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) ||
              (layer > 1 && tech.sysBoundaryLayer == 0)) {
 
-            if (belongsToLayer(layer, i, j, k, technical, stencil)) {
+            if (belongsToLayer(layer, stencil.i, stencil.j, stencil.k, technical, stencil)) {
 
                tech.sysBoundaryLayer = layer;
 
@@ -524,7 +524,7 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
    // This last pass now gets rid of them.
    fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
                        phiprof::initializeTimer("classifyCells-pass-2"), technical,
-                       [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+                       [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
       auto& tech = technical[stencil.ooo()];
       if (tech.sysBoundaryLayer == 0 && (tech.sysBoundaryFlag == sysboundarytype::IONOSPHERE ||
                                          tech.sysBoundaryFlag == sysboundarytype::COPYSPHERE)) {
@@ -538,15 +538,16 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
    const std::array<bool, 3> periodic_l = this->periodic;
 
    // One pass to setup the bit field to know which components the field solver should propagate.
-   fsgrid.parallel_for_global_ijk([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
-                           phiprof::initializeTimer("classifyCells-pass-3"), technical,
-                           [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer, const fsgrid::FsSize_t gi, const fsgrid::FsSize_t gj, const fsgrid::FsSize_t gk) {
+   fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                      phiprof::initializeTimer("classifyCells-pass-3"), technical,
+                      [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+      const auto gid = coordinates.localToGlobal(stencil.i, stencil.j, stencil.k);
       auto& tech = technical[stencil.ooo()];
       tech.SOLVE = 0;
-
-      if (((gi == 0 || gi == fsGridDimensions[0] - 1) && !periodic_l[0]) ||
-          ((gj == 0 || gj == fsGridDimensions[1] - 1) && !periodic_l[1]) ||
-          ((gk == 0 || gk == fsGridDimensions[2] - 1) && !periodic_l[2])) {
+      
+      if (((gid[0] == 0 || gid[0] == fsGridDimensions[0] - 1) && !periodic_l[0]) ||
+          ((gid[1] == 0 || gid[1] == fsGridDimensions[1] - 1) && !periodic_l[1]) ||
+          ((gid[2] == 0 || gid[2] == fsGridDimensions[2] - 1) && !periodic_l[2])) {
          return; // was continue in non-lambda version
       }
 

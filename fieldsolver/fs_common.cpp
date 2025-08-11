@@ -45,7 +45,7 @@ Real divideIfNonZero(creal numerator, creal denominator) {
  *
  * \param perb fsGrid holding the perturbed B quantities
  * \param dperb fsGrid holding the derivatives of perturbed B
- * \param stencil fsgrid stencil for the cuurent cell
+ * \param stencil fsgrid stencil for the current cell
  * \param reconstructionOrder Reconstruction order of the fields after Balsara 2009, 2 used for BVOL, 3 used for
  * 2nd-order Hall term calculations.
  */

@@ -190,9 +190,10 @@ namespace projects {
          const auto SCA_LAMBDA_l = this->SCA_LAMBDA;
 
          const auto& gridSpacing = fsgrid.getGridSpacing();
-         fsgrid.parallel_for_coords([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
-                                    phiprof::initializeTimer("setProjectBField-loop"), technical,
-                                    [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer, const std::array<Real, 3> xyz) {
+         fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                             phiprof::initializeTimer("setProjectBField-loop"), technical,
+                             [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+            const std::array<Real, 3> xyz = coordinates.getPhysicalCoords(stencil.i, stencil.j, stencil.k);
             auto& cell = perb[stencil.ooo()];
 
             cell[fsgrids::bfield::PERBX] = BX0_l * tanh((xyz[1] + 0.5 * gridSpacing[1]) / SCA_LAMBDA_l);

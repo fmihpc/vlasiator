@@ -240,14 +240,15 @@ namespace projects {
          const auto magZPertAbsAmp_l = this->magZPertAbsAmp;
 
          // *this passed due to setRandomSeed() and getRandomNumber().
-         fsgrid.parallel_for_cellid([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
-                                    phiprof::initializeTimer("setProjectBField-loop"), technical,
-                                    [=, *this](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer, const uint64_t cellid) {
+         fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                             phiprof::initializeTimer("setProjectBField-loop"), technical,
+                             [=, *this](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+            const std::array<Real, 3> xyz = coordinates.getPhysicalCoords(stencil.i, stencil.j, stencil.k);
             const auto& BGBcell = bgb[stencil.ooo()];
             auto& PERBcell = perb[stencil.ooo()];
 
             std::default_random_engine rndState;
-            setRandomSeed(cellid,rndState);
+            setRandomSeed(42,rndState);
 
             PERBcell[fsgrids::bfield::PERBX] = magXPertAbsAmp_l * (0.5 - getRandomNumber(rndState));
             PERBcell[fsgrids::bfield::PERBY] = magYPertAbsAmp_l * (0.5 - getRandomNumber(rndState));

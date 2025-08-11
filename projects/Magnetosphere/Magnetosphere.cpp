@@ -343,7 +343,7 @@ namespace projects {
                   // If we are starting a new simulation, we also copy this data into perB.
                   fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
                                       phiprof::initializeTimer("setProjectBField-loop"), technical,
-                                      [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+                                      [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
                      const auto& BGBcell = bgb[stencil.ooo()];
                      auto& PERBcell = perb[stencil.ooo()];
                      PERBcell[fsgrids::bfield::PERBX] = BGBcell[fsgrids::bgbfield::BGBXVDCORR];
@@ -363,7 +363,7 @@ namespace projects {
       const auto constBgB_l = this->constBgB;
       fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
                           phiprof::initializeTimer("zeroing-out"), technical,
-                          [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+                          [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
          bool doZeroOut;
          //Force field to zero in the perpendicular direction for 2D (1D) simulations. Otherwise we have unphysical components.
          doZeroOut = P::xcells_ini ==1 && zeroOutComponents_l[0]==1;

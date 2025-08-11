@@ -217,7 +217,7 @@ void propagateMagneticFieldSimple(fsgrids::perbspan perb,
    int sysBoundaryTimerId{phiprof::initializeTimer("Magnetic Field compute sysboundary cells")};
    fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
                        phiprof::initializeTimer("Magnetic Field compute cells"), technical,
-                       [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+                       [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
                           cuint bitfield = technical[stencil.ooo()].SOLVE;
                           propagateMagneticField(
                              perb, perbdt2, e, edt2, stencil, dt, RKCase, ((bitfield & compute::BX) == compute::BX),

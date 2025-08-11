@@ -919,15 +919,16 @@ namespace SBC {
       const std::array<bool, 6> facesToProcess_local = facesToProcess;
       const std::array<bool, 3> periodic_local = this->periodic;
       // Assign boundary flags to local fsgrid cells
-      fsgrid.serial_for_coords([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
-                               phiprof::initializeTimer("Assign sysboundary flags to fsgrid cells"), technical,
-                               [=](const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer, std::array<Real, 3> coords) {
+      fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                        phiprof::initializeTimer("Assign sysboundary flags to fsgrid cells"), technical,
+                        [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
          creal dx = P::dx_ini * pow(2, -technical[stencil.ooo()].refLevel);
          creal dy = P::dy_ini * pow(2, -technical[stencil.ooo()].refLevel);
          creal dz = P::dz_ini * pow(2, -technical[stencil.ooo()].refLevel);
 
          std::array<bool, 6> isThisCellOnAFace = {{false}};
          bool doAssign = false;
+         const std::array<Real, 3> coords = coordinates.getPhysicalCoords(stencil.i, stencil.j, stencil.k);
 
          determineFaceNoClassMembers(isThisCellOnAFace.data(), coords[0] + 0.5 * gridSpacing[0], coords[1] + 0.5 * gridSpacing[1], coords[2] + 0.5 * gridSpacing[2], dx, dy, dz, periodic_local);
          for (int iface = 0; iface < 6; iface++) {
