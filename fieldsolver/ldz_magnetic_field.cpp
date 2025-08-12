@@ -41,19 +41,19 @@ void propagateMagneticField(fsgrids::perbspan perb,
    if (doX == true) {
       switch (RKCase) {
       case RK_ORDER1: {
-         const auto& EGrid0 = e[stencil.ooo()]; // i,j,k;
-         const auto& EGrid1 = e[stencil.opo()];     // i,j+1,k;
-         const auto& EGrid2 = e[stencil.oop()];   // i,j,k+1;
+         const auto& EGrid0 = e[stencil.ooo()];
+         const auto& EGrid1 = e[stencil.opo()];
+         const auto& EGrid2 = e[stencil.oop()];
          perBGrid0[fsgrids::bfield::PERBX] += dtdz * (EGrid2[fsgrids::efield::EY] - EGrid0[fsgrids::efield::EY]) +
                                               dtdy * (EGrid0[fsgrids::efield::EZ] - EGrid1[fsgrids::efield::EZ]);
          break;
       }
 
       case RK_ORDER2_STEP1: {
-         auto& perBDt2Grid0 = perbdt2[stencil.ooo()];       // i,j,k;
-         const auto& EGrid0 = e[stencil.ooo()];             // i,j,k;
-         const auto& EGrid1 = e[stencil.opo()];                 // i,j+1,k;
-         const auto& EGrid2 = e[stencil.oop()];               // i,j,k+1;
+         auto& perBDt2Grid0 = perbdt2[stencil.ooo()];
+         const auto& EGrid0 = e[stencil.ooo()];
+         const auto& EGrid1 = e[stencil.opo()];
+         const auto& EGrid2 = e[stencil.oop()];
          perBDt2Grid0[fsgrids::bfield::PERBX] =
              perBGrid0[fsgrids::bfield::PERBX] +
              0.5 * (dtdz * (EGrid2[fsgrids::efield::EY] - EGrid0[fsgrids::efield::EY]) +
@@ -62,9 +62,9 @@ void propagateMagneticField(fsgrids::perbspan perb,
       }
 
       case RK_ORDER2_STEP2: {
-         const auto& EGrid0 = edt2[stencil.ooo()]; // i,j,k;
-         const auto& EGrid1 = edt2[stencil.opo()];     // i,j+1,k;
-         const auto& EGrid2 = edt2[stencil.oop()];   // i,j,k+1;
+         const auto& EGrid0 = edt2[stencil.ooo()];
+         const auto& EGrid1 = edt2[stencil.opo()];
+         const auto& EGrid2 = edt2[stencil.oop()];
          perBGrid0[fsgrids::bfield::PERBX] += (dtdz * (EGrid2[fsgrids::efield::EY] - EGrid0[fsgrids::efield::EY]) +
                                                dtdy * (EGrid0[fsgrids::efield::EZ] - EGrid1[fsgrids::efield::EZ]));
          break;
@@ -80,18 +80,18 @@ void propagateMagneticField(fsgrids::perbspan perb,
    if (doY == true) {
       switch (RKCase) {
       case RK_ORDER1: {
-         const auto& EGrid0 = e[stencil.ooo()]; // i,j,k;
-         const auto& EGrid1 = e[stencil.oop()];   // i,j,k+1;
-         const auto& EGrid2 = e[stencil.poo()];  // i+1,j,k;
+         const auto& EGrid0 = e[stencil.ooo()];
+         const auto& EGrid1 = e[stencil.oop()];
+         const auto& EGrid2 = e[stencil.poo()];
          perBGrid0[fsgrids::bfield::PERBY] += dtdx * (EGrid2[fsgrids::efield::EZ] - EGrid0[fsgrids::efield::EZ]) +
                                               dtdz * (EGrid0[fsgrids::efield::EX] - EGrid1[fsgrids::efield::EX]);
          break;
       }
       case RK_ORDER2_STEP1: {
-         auto& perBDt2Grid0 = perbdt2[stencil.ooo()];       // i,j,k;
-         const auto& EGrid0 = e[stencil.ooo()];             // i,j,k;
-         const auto& EGrid1 = e[stencil.oop()];               // i,j,k+1;
-         const auto& EGrid2 = e[stencil.poo()];              // i+1,j,k;
+         auto& perBDt2Grid0 = perbdt2[stencil.ooo()];
+         const auto& EGrid0 = e[stencil.ooo()];
+         const auto& EGrid1 = e[stencil.oop()];
+         const auto& EGrid2 = e[stencil.poo()];
          perBDt2Grid0[fsgrids::bfield::PERBY] =
              perBGrid0[fsgrids::bfield::PERBY] +
              0.5 * (dtdx * (EGrid2[fsgrids::efield::EZ] - EGrid0[fsgrids::efield::EZ]) +
@@ -99,9 +99,9 @@ void propagateMagneticField(fsgrids::perbspan perb,
          break;
       }
       case RK_ORDER2_STEP2: {
-         const auto& EGrid0 = edt2[stencil.ooo()]; // i,j,k;
-         const auto& EGrid1 = edt2[stencil.oop()];   // i,j,k+1;
-         const auto& EGrid2 = edt2[stencil.poo()];  // i+1,j,k;
+         const auto& EGrid0 = edt2[stencil.ooo()];
+         const auto& EGrid1 = edt2[stencil.oop()];
+         const auto& EGrid2 = edt2[stencil.poo()];
          perBGrid0[fsgrids::bfield::PERBY] += (dtdx * (EGrid2[fsgrids::efield::EZ] - EGrid0[fsgrids::efield::EZ]) +
                                                dtdz * (EGrid0[fsgrids::efield::EX] - EGrid1[fsgrids::efield::EX]));
          break;
@@ -116,18 +116,18 @@ void propagateMagneticField(fsgrids::perbspan perb,
    if (doZ == true) {
       switch (RKCase) {
       case RK_ORDER1: {
-         const auto& EGrid0 = e[stencil.ooo()]; // i,j,k;
-         const auto& EGrid1 = e[stencil.poo()];  // i+1,j,k;
-         const auto& EGrid2 = e[stencil.opo()];     // i,j+1,k;
+         const auto& EGrid0 = e[stencil.ooo()];
+         const auto& EGrid1 = e[stencil.poo()];
+         const auto& EGrid2 = e[stencil.opo()];
          perBGrid0[fsgrids::bfield::PERBZ] += dtdy * (EGrid2[fsgrids::efield::EX] - EGrid0[fsgrids::efield::EX]) +
                                               dtdx * (EGrid0[fsgrids::efield::EY] - EGrid1[fsgrids::efield::EY]);
          break;
       }
       case RK_ORDER2_STEP1: {
-         auto& perBDt2Grid0 = perbdt2[stencil.ooo()];       // i,j,k;
-         const auto& EGrid0 = e[stencil.ooo()];             // i,j,k;
-         const auto& EGrid1 = e[stencil.poo()];              // i+1,j,k;
-         const auto& EGrid2 = e[stencil.opo()];                 // i,j+1,k;
+         auto& perBDt2Grid0 = perbdt2[stencil.ooo()];
+         const auto& EGrid0 = e[stencil.ooo()];
+         const auto& EGrid1 = e[stencil.poo()];
+         const auto& EGrid2 = e[stencil.opo()];
          perBDt2Grid0[fsgrids::bfield::PERBZ] =
              perBGrid0[fsgrids::bfield::PERBZ] +
              0.5 * (dtdy * (EGrid2[fsgrids::efield::EX] - EGrid0[fsgrids::efield::EX]) +
@@ -135,9 +135,9 @@ void propagateMagneticField(fsgrids::perbspan perb,
          break;
       }
       case RK_ORDER2_STEP2: {
-         const auto& EGrid0 = edt2[stencil.ooo()]; // i,j,k;
-         const auto& EGrid1 = edt2[stencil.poo()];  // i+1,j,k;
-         const auto& EGrid2 = edt2[stencil.opo()];     // i,j+1,k;
+         const auto& EGrid0 = edt2[stencil.ooo()];
+         const auto& EGrid1 = edt2[stencil.poo()];
+         const auto& EGrid2 = edt2[stencil.opo()];
          perBGrid0[fsgrids::bfield::PERBZ] += (dtdy * (EGrid2[fsgrids::efield::EX] - EGrid0[fsgrids::efield::EX]) +
                                                dtdx * (EGrid0[fsgrids::efield::EY] - EGrid1[fsgrids::efield::EY]));
          break;
