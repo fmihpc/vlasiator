@@ -373,6 +373,7 @@ bool P::addParameters() {
    RP::add("gridbuilder.dt", "Initial timestep in seconds.", 0.0);
    RP::add("gridbuilder.timeclass_max", "Maximum number of timeclasses.", 0);
    RP::add("gridbuilder.tcRankwise", "Use timeclasses at MPI rank level insted of cell-wise timeclasses.", false);
+   RP::add("gridbuilder.timeclass_buffer", "Number of buffer timeclasses.", 0);
    RP::add("gridbuilder.forcedConvection", "Force a convection velocity of 200 km/s along +x [false]", false);
 
    RP::add("gridbuilder.tc_test_type", "Enumerated tc test", 0);
