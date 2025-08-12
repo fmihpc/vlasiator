@@ -94,7 +94,10 @@ public:
       std::cerr << "ERROR: base class Inflow::getParameters called!" << std::endl;
       return "ERROR";
    }
-   virtual uint getIndex() const override;
+   virtual uint getIndex() const = 0; // {
+   //   std::cerr << "ERROR: base class Inflow::getIndex called!" << std::endl;
+   //   return sysboundarytype::N_SYSBOUNDARY_CONDITIONS;
+//   }
 
 protected:
    /*! Array of template spatial cells replicated over the corresponding
