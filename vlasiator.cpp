@@ -1613,6 +1613,8 @@ int simulate(int argn,char* args[]) {
       std::vector<Real> newTimeclassDts = std::vector<Real>(P::maxTimeclass+1);
 
       if (P::dynamicTimestep) {
+
+         phiprof::Timer dyndt_check {"check-and-update-dynamic-dt"};
          
          //check if any cell is has maximum dt lower than its timeclass dt
 
@@ -1625,13 +1627,20 @@ int simulate(int argn,char* args[]) {
          for (auto cID: cells) {
             SpatialCell* cell = mpiGrid[cID];
 
+            //only check cells whose timeclass turn it is
+            if (!(cell->get_timeclass_turn_v())) {
+               continue;
+            }
+
             for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
                //updating dt_v maximums
                updateAccelerationMaxdt(cell, popID);
 
                // If the cell's max r_dt is lower than the timeclass dt, we need to adjust the timeclass
-               if (cell->get_max_r_dt(popID) < cell->get_tc_dt() || 
-                   cell->get_max_v_dt(popID) < cell->get_tc_dt()) {
+               if (cell->parameters[CellParams::MAXRDT] < cell->get_tc_dt() || 
+                   cell->parameters[CellParams::MAXVDT]* P::maxSlAccelerationSubcycles < cell->get_tc_dt()) {
+                  logFile << "(DT): Cell " << cID << " has max r_dt/v_dt lower than timeclass dt!" << endl << writeVerbose;
+                  logFile << "(DT): Cell " << cID << " has max r_dt: " << cell->parameters[CellParams::MAXRDT] << ", max v_dt times maxsubcycles: " << cell->parameters[CellParams::MAXVDT] << " * " << P::maxSlAccelerationSubcycles << " = " << cell->parameters[CellParams::MAXVDT]* P::maxSlAccelerationSubcycles << ", timeclass dt: " << cell->get_tc_dt() << endl << writeVerbose;
                   if (myRank == MASTER_RANK) {
                      std::cout << "Cell " << cID << " has max r_dt/v_dt lower than timeclass dt!" << std::endl;
                      std::cout << "fractimestep: " << P::fractionalTimestep << ", timeclass of cell: " << cell->parameters[CellParams::TIMECLASS] << " get_timeclass_turn: " << cell->get_timeclass_turn_v() <<  std::endl;
@@ -1639,6 +1648,7 @@ int simulate(int argn,char* args[]) {
 
                   if (P::fractionalTimestep == 0) {
                      // compute new timesteps and assign all cells to timeclasses freshly
+                     logFile << "fractimestep is 0, recomputing timeclasses and dts" << endl << writeVerbose;
                      computeNewTimeStep(mpiGrid, technicalGrid, newDt, dtIsChanged, newTimeclassDts);
                      
                      if (P::propagateVlasovAcceleration) {
@@ -1657,6 +1667,7 @@ int simulate(int argn,char* args[]) {
                   goto endOfDynDTCheck; // All dt's and timeclasses have been recomputed, so we can continue with the next step.
 
                   } else {
+                     logFile << "fractimestep is not 0, rolling back cell " << cID << " and increasing timeclass" << endl << writeVerbose;
                      // if in the middle of a timestep, we need to roll back the offending cells and increase their timeclass
                      calculateAcceleration(mpiGrid, -0.5, true, {cID}); // This sets cells back to previous TIME_R
                      increaseTimeclass(mpiGrid, {cID}, additionalTimeclassCreated);
