@@ -1060,7 +1060,7 @@ void Parameters::getParameters() {
       P::maxTimeclass = P::tcOverrideTimeclass;
    }
 
-   if (P::timeclassBuffer < 0) {
+   if (P::timeclassBuffer > 0) {
       std::cout << "adding buffer to maxTimeclass: " << P::maxTimeclass << " + " << P::timeclassBuffer << std::endl;
       P::maxTimeclass += P::timeclassBuffer; // Add buffer to maxTimeclass
    }

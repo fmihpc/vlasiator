@@ -1634,6 +1634,7 @@ int simulate(int argn,char* args[]) {
                    cell->get_max_v_dt(popID) < cell->get_tc_dt()) {
                   if (myRank == MASTER_RANK) {
                      std::cout << "Cell " << cID << " has max r_dt/v_dt lower than timeclass dt!" << std::endl;
+                     std::cout << "fractimestep: " << P::fractionalTimestep << ", timeclass of cell: " << cell->parameters[CellParams::TIMECLASS] << " get_timeclass_turn: " << cell->get_timeclass_turn_v() <<  std::endl;
                   }
 
                   if (P::fractionalTimestep == 0) {
