@@ -133,7 +133,7 @@ void setBackgroundFieldToZero(
    phiprof::initializeTimer("setBackgroundFieldToZero"), technical,
    [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
       for (size_t i = 0; i < bgb[stencil.ooo()].size(); i++) {
-         bgb[stencil.ooo()][i] == 0.0;
+         bgb[stencil.ooo()][i] = 0.0;
       }
    });
 }
