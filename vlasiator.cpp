@@ -239,6 +239,10 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    }else{
       fsdt = P::dt;
    }
+
+   //setting fsdt smaller by the buffer amount
+   fsdt = fsdt / pow(2, P::timeclassBuffer);
+
    // This is the full range of timeclasses that could be used based on the physical environment
    int timeclassRange = int(log2(baseDt/fsdt));
    // ... and we need to clamp that with the parameter for number of MaxTimeclasses
@@ -432,11 +436,10 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    
    } else {
       // For normal operation, set the timeclass and timeclassdt for each cell
-      P::currentMaxTimeclass -= P::timeclassBuffer; // to set timeclasses under the buffer
       for (vector<CellID>::const_iterator cell_id=cells.begin(); cell_id!=cells.end(); ++cell_id) {
          SpatialCell* cell = mpiGrid[*cell_id];
          cell->parameters[CellParams::TIMECLASS_RANK] = localTimeClass;
-         cell->parameters[CellParams::TIMECLASSDT_RANK] = fsdt*pow(2,P::currentMaxTimeclass - localTimeClass);
+         cell->parameters[CellParams::TIMECLASSDT_RANK] = fsdt*pow(2,(P::currentMaxTimeclass - P::timeclassBuffer) - localTimeClass);
 
          Real cellDt;
          if( cell->parameters[CellParams::MAXVDT] > 0) {
@@ -447,7 +450,7 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          }
          
          dtdiff = int(log2(cellDt/newDt));
-         int cellTimeClass = max(0,P::currentMaxTimeclass - max(0, dtdiff));
+         int cellTimeClass = max(0,(P::currentMaxTimeclass - P::timeclassBuffer) - max(0, dtdiff));
          if(P::tcOverrideTimeclass > -1){
             cell->parameters[CellParams::TIMECLASS] = P::tcOverrideTimeclass;
          } else {
@@ -459,7 +462,6 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          }
          cell->parameters[CellParams::TIMECLASSDT] = cell->get_tc_dt(); //This is only for debugging
       }
-      P::currentMaxTimeclass += P::timeclassBuffer; // to set timeclasses back to the original value
    }
    //this yoinked from within the below loop to set the timeclassDts anyway
    for(int i = 0; i <= P::maxTimeclass; ++i){
