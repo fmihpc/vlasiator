@@ -247,23 +247,19 @@ bool propagateFields(fsgrids::perbspan perb,
 
          // Reassess subcycle dt
          Real dtMaxGlobal = 0.0;
-         Real dtMaxLocal = std::numeric_limits<Real>::max();
-
-         // No urgent need to parallelise, see below.
-         for (auto z = 0; z < localSize[2]; z++) {
-            for (auto y = 0; y < localSize[1]; y++) {
-               for (auto x = 0; x < localSize[0]; x++) {
-                  const auto stencil = fsgrid.makeStencil(x, y, z);
-                  const fsgrids::technical& cell = technical[stencil.ooo()];
-                  if (cell.sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
-                      (cell.sysBoundaryLayer == 1 && cell.sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY)) {
-                     dtMaxLocal = min(dtMaxLocal, cell.maxFsDt);
-                  }
-               }
+         Real dtMaxLocal = fsgrid.parallel_reduction([](int timerId) ->  phiprof::Timer { return phiprof::Timer{timerId}; },
+                                                   phiprof::initializeTimer("compute-subcycle-dt-reduction-loop"), technical,
+                                                   [](Real a, Real b) { return std::min<Real>(a, b); },
+                                                   std::numeric_limits<Real>::max(),
+                                                   [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer, creal maximum) {
+            if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
+               (sysBoundaryLayer == 1 && sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY)) {
+               return technical[stencil.ooo()].maxFsDt;
+            } else {
+               return maximum;
             }
-         }
+         });
          
-         // In FIE and FIJ this timer takes >99% so no acute need to e.g. parallelise the previous loop. 
          phiprof::Timer allreduceTimer{"MPI_Allreduce"};
          fsgrid.Allreduce(&(dtMaxLocal), &(dtMaxGlobal), 1, MPI_Type<Real>(), MPI_MIN);
          allreduceTimer.stop();

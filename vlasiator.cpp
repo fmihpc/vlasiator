@@ -153,20 +153,18 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mp
    reduce_vlasov_dt(mpiGrid, cells, dtMaxLocal);
 
    // compute max dt for fieldsolver
-   // not performance-critical so no acute need to parallelise (parallel_for)
-   const auto* localSize = &fsgrid.getLocalSize()[0];
-   for (auto k = 0; k < localSize[2]; k++) {
-      for (auto j = 0; j < localSize[1]; j++) {
-         for (auto i = 0; i < localSize[0]; i++) {
-            const auto stencil = fsgrid.makeStencil(i, j, k);
-            const auto& cell = technical[stencil.ooo()];
-            if (cell.sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
-                (cell.sysBoundaryLayer == 1 && cell.sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY)) {
-               dtMaxLocal[2] = min(dtMaxLocal[2], cell.maxFsDt);
-            }
-         }
+   dtMaxLocal[2] = fsgrid.parallel_reduction([](int timerId) ->  phiprof::Timer { return phiprof::Timer{timerId}; },
+                                           phiprof::initializeTimer("compute-dt-reduction-loop"), technical,
+                                           [](Real a, Real b) { return std::min<Real>(a, b); },
+                                           std::numeric_limits<Real>::max(),
+                                           [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer, creal maximum) {
+      if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
+         (sysBoundaryLayer == 1 && sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY)) {
+         return technical[stencil.ooo()].maxFsDt;
+      } else {
+         return maximum;
       }
-   }
+   });
 
    MPI_Allreduce(&(dtMaxLocal[0]), &(dtMaxGlobal[0]), 3, MPI_Type<Real>(), MPI_MIN, MPI_COMM_WORLD);
 
