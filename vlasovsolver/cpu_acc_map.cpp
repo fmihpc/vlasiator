@@ -340,6 +340,8 @@ bool map_1d(SpatialCell* spatial_cell,
             message += getObjectWrapper().particleSpecies[popID].name;
             message += " at CellID ";
             message += std::to_string(static_cast<int>(spatial_cell->parameters[CellParams::CELLID]));
+            message += ", timeclass ";
+            message += std::to_string(static_cast<int>(spatial_cell->parameters[CellParams::TIMECLASS]));
             message += ". Consider expanding velocity space for that population.";
             bailout(true, message, __FILE__, __LINE__);
          }

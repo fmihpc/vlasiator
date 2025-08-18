@@ -1612,7 +1612,42 @@ int simulate(int argn,char* args[]) {
 
       }
 
+      // for (auto c: cells) {
+      //    SpatialCell* cell = mpiGrid[c];
+      //    std::cout << "cell " << c << " timeclass: " << cell->parameters[CellParams::TIMECLASS] << "has blocks: ";
+      //    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      //       std::cout << cell->get_number_of_velocity_blocks(popID) << " ";
+      //    }
+      // std::cout << "and ghost blocks ";
+      //    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      //       std::cout << cell->get_number_of_velocity_blocks_ghost(popID) << " ";
+      //    }
+      //    std::cout << std::endl;
+      // }
+
       std::vector<Real> newTimeclassDts = std::vector<Real>(P::maxTimeclass+1);
+
+      if (P::maxTimeclass >= 4 && P::fractionalTimestep == 0 && P::tstep != 0 && P::dynamicTimestep) {
+         logFile << "(DT): Checking dynamic timestep on fractimestep0, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
+         logFile << "fractimestep is 0, recomputing timeclasses and dts" << endl << writeVerbose;
+         computeNewTimeStep(mpiGrid, technicalGrid, newDt, dtIsChanged, newTimeclassDts);
+         
+         if (P::propagateVlasovAcceleration) {
+            // Back half dt to real time, forward by new half dt
+            calculateAcceleration(mpiGrid,-0.5); //This sets cells back to previous TIME_R
+            calculateAcceleration(mpiGrid, 0.5); //This propagates by 0.5 
+         } else {
+            //zero step to set up moments _v
+            calculateAcceleration(mpiGrid, 0.0);
+         }
+
+      P::dt=newDt;
+      P::timeclassDt = newTimeclassDts;
+      
+      logFile <<" dt changed to "<<P::dt <<"s, distribution function was half-stepped to real-time and back"<<endl<<writeVerbose;
+      goto endOfDynDTCheck; // All dt's and timeclasses have been recomputed, so we can continue with the next step.
+
+      }
 
       if (P::dynamicTimestep) {
 
@@ -1819,7 +1854,7 @@ int simulate(int argn,char* args[]) {
 
       auto cell1 = mpiGrid[cells[5]];
       auto cell2 = mpiGrid[cells[20]];
-      if (true) {
+      if (false) {
          for (uint i = 0; i < 11; ++i) {
             std::cout << "cell1moment" << i << ": " << P::t << " " << cell1->parameters[CellParams::XCRD] << " " << cell1->parameters[CellParams::YCRD] << " " << cell1->parameters[CellParams::ZCRD] << " " << cell1->parameters[CellParams::RHOM+i] << std::endl;
             std::cout << "cell1moment" << i << ": " << P::t + P::dt/2.0 << " " << cell1->parameters[CellParams::XCRD] << " " << cell1->parameters[CellParams::YCRD] << " " << cell1->parameters[CellParams::ZCRD] << " " << cell1->parameters[CellParams::RHOM_DT2+i] << std::endl;
