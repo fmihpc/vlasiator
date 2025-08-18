@@ -415,8 +415,12 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                      if (blocki == 0){
                         std::cout << "Loading cell " << (int)srcCell->parameters[CellParams::CELLID]<<"\n";
                         std::cout << "velmesh size = " << velmesh->size() <<"\n"; 
+                        std::cout << "velmesh is of timeclass " << timeclass << " and cell has timeclass " << srcCell->get_tc() << "\n";
                         std::cout << "cell tc " << srcCell->get_tc() << ", pencil tc " <<  DimensionPencils[dimension].timeclasses[pencili] << ", tc req count " << srcCell->get_all_ghosts().count(timeclass)<<"\n";
                         std::cout << "cellBlockData " << cellBlockData.size() << "\n";
+                        if (velmesh->size() == 0) {
+                           std::cout << "!! Empty velmesh in cell " << (int)srcCell->parameters[CellParams::CELLID] << "\n";
+                        }
                      }
                   if (blockLID != srcCell->invalid_local_id()) {
                   // if (blockLID != velmesh->invalidLocalID()){

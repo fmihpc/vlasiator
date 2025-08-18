@@ -1612,18 +1612,25 @@ int simulate(int argn,char* args[]) {
 
       }
 
-      // for (auto c: cells) {
-      //    SpatialCell* cell = mpiGrid[c];
-      //    std::cout << "cell " << c << " timeclass: " << cell->parameters[CellParams::TIMECLASS] << "has blocks: ";
-      //    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-      //       std::cout << cell->get_number_of_velocity_blocks(popID) << " ";
-      //    }
-      // std::cout << "and ghost blocks ";
-      //    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-      //       std::cout << cell->get_number_of_velocity_blocks_ghost(popID) << " ";
-      //    }
-      //    std::cout << std::endl;
-      // }
+      for (auto c: cells) {
+
+         std::cout << "Cell " << c << " has timeclass " << mpiGrid[c]->parameters[CellParams::TIMECLASS] << std::endl;
+         std::cout << "sysboundaryflag: " << mpiGrid[c]->sysBoundaryFlag << std::endl;
+         std::cout << "its requested timeclass ghosts: ";
+         for (int req: mpiGrid[c]->requested_timeclass_ghosts) {
+            std::cout << req << " ";
+            std::cout << "vspace size: " << mpiGrid[c]->get_velocity_mesh(0, req)->size() << " ";
+         }
+         std::cout << "\n";
+
+         std::cout << "its requested timeclass copy ghosts: ";
+         for (int req: mpiGrid[c]->requested_timeclass_copy_ghosts) {
+            std::cout << req << " ";
+         }
+         std::cout << "\n";
+
+
+      }
 
       std::vector<Real> newTimeclassDts = std::vector<Real>(P::maxTimeclass+1);
 
