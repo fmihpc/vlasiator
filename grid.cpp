@@ -1241,24 +1241,18 @@ void initializeStencils(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mp
 
 void mapRefinement(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                    fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
-   phiprof::Timer timer{"Map Refinement Level to FsGrid"};
-   const auto* localSize = &fsgrid.getLocalSize()[0];
-
-   for (auto k = 0; k < localSize[2]; k++) {
-      for (auto j = 0; j < localSize[1]; j++) {
-         for (auto i = 0; i < localSize[0]; i++) {
-            const auto stencil = fsgrid.makeStencil(i, j, k);
-            const std::array<fsgrid::FsSize_t, 3> mapIndices = fsgrid.localToGlobal(i, j, k);
-            const dccrg::Types<3>::indices_t indices = {
-                {(uint64_t)mapIndices[0], (uint64_t)mapIndices[1], (uint64_t)mapIndices[2]}}; // cast to avoid warnings
-            const CellID dccrgCellID2 =
-                mpiGrid.get_existing_cell(indices, 0, mpiGrid.mapping.get_maximum_refinement_level());
-            const int amrLevel = mpiGrid.get_refinement_level(dccrgCellID2);
-            technical[stencil.ooo()].refLevel = amrLevel;
-         }
-      }
-   }
-   timer.stop();
+   const auto maxRefLevel = mpiGrid.mapping.get_maximum_refinement_level();
+   fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                       phiprof::initializeTimer("Map Refinement Level to FsGrid"), technical,
+                       [=, &mpiGrid](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+      const std::array<fsgrid::FsSize_t, 3> mapIndices = coordinates.localToGlobal(stencil.i, stencil.j, stencil.k);
+      const dccrg::Types<3>::indices_t indices = {
+         {(uint64_t)mapIndices[0], (uint64_t)mapIndices[1], (uint64_t)mapIndices[2]}}; // cast to avoid warnings
+      const CellID dccrgCellID2 =
+         mpiGrid.get_existing_cell(indices, 0, maxRefLevel);
+      const int amrLevel = mpiGrid.get_refinement_level(dccrgCellID2);
+      technical[stencil.ooo()].refLevel = amrLevel;
+   });
 }
 
 bool adaptRefinement(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
