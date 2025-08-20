@@ -118,9 +118,9 @@ void feedBoundaryIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 
 // this function is declared here as it is a template function
 
-template <int stencil>
+template <int STENCIL>
 void computeCoupling(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const std::vector<CellID>& cells,
-                     fsgrid::FsGrid<stencil>& fsgrid) {
+                     fsgrid::FsGrid<STENCIL>& fsgrid, fsgrids::technicalspan technical) {
 
    phiprof::Timer couplingTimerActual {"CouplingTimerActual"};
 
@@ -133,28 +133,24 @@ void computeCoupling(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGr
    onFsgridMapRemoteProcessGlobal.clear();
    onFsgridMapCellsGlobal.clear();
   
-  
-   //size of fsgrid local part
-   const std::array<fsgrid::FsIndex_t, 3> gridDims(fsgrid.getLocalSize());
+   const auto maxRefLevel = mpiGrid.mapping.get_maximum_refinement_level();
 
    //Compute what we will receive, and where it should be stored
-      for (fsgrid::FsIndex_t k=0; k<gridDims[2]; k++) {
-         for (fsgrid::FsIndex_t j=0; j<gridDims[1]; j++) {
-            for (fsgrid::FsIndex_t i=0; i<gridDims[0]; i++) {
-               const std::array<fsgrid::FsSize_t, 3> globalIndices = fsgrid.localToGlobal(i, j, k);
-               const dccrg::Types<3>::indices_t  indices = {{(uint64_t)globalIndices[0],
-                        (uint64_t)globalIndices[1],
-                        (uint64_t)globalIndices[2]}}; //cast to avoid warnings
-               const CellID dccrgCell =
-                   mpiGrid.get_existing_cell(indices, 0, mpiGrid.mapping.get_maximum_refinement_level());
+   //Probably shouldn't be parallelised unless doing the inserts atomically
+   fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                     phiprof::initializeTimer("Coupling loop"), technical,
+                     [=, &mpiGrid](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+      const std::array<fsgrid::FsSize_t, 3> globalIndices = coordinates.localToGlobal(stencil.i, stencil.j, stencil.k);
+      const dccrg::Types<3>::indices_t  indices = {
+         {(uint64_t)globalIndices[0], (uint64_t)globalIndices[1], (uint64_t)globalIndices[2]}}; //cast to avoid warnings
+      const CellID dccrgCell =
+         mpiGrid.get_existing_cell(indices, 0, maxRefLevel);
 
-               const int process = mpiGrid.get_process(dccrgCell);
-               const fsgrid::LocalID fsgridLid = fsgrid.localIDFromLocalCoordinates(i, j, k);
-               onFsgridMapRemoteProcessGlobal[process].insert(dccrgCell); // cells are ordered (sorted) in set
-               onFsgridMapCellsGlobal[dccrgCell].push_back(fsgridLid);
-         }
-      }
-   }
+      const int process = mpiGrid.get_process(dccrgCell);
+      const fsgrid::LocalID fsgridLid = coordinates.localIDFromLocalCoordinates(stencil.i, stencil.j, stencil.k);
+      onFsgridMapRemoteProcessGlobal[process].insert(dccrgCell); // cells are ordered (sorted) in set
+      onFsgridMapCellsGlobal[dccrgCell].push_back(fsgridLid);
+   });
 
    // Compute where to send data and what to send
    for(uint64_t i=0; i< dccrgCells.size(); i++) {

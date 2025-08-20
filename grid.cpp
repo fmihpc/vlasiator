@@ -199,7 +199,7 @@ void initializeGrids(int argn, char** argc, dccrg::Dccrg<SpatialCell, dccrg::Car
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_DIMENSIONS);
    mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::SYSBOUNDARIES);
 
-   computeCoupling(mpiGrid, cells, fsgrid);
+   computeCoupling(mpiGrid, cells, fsgrid, technical.view());
 
    // We want this before restart refinement
    phiprof::Timer classifyTimer{"Classify cells (sys boundary conditions)"};
@@ -647,7 +647,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, 
    }
 
    // recompute coupling of grids after load balance
-   computeCoupling(mpiGrid, cells, fsgrid);
+   computeCoupling(mpiGrid, cells, fsgrid, technical);
 
    // Communicate all spatial data for FULL neighborhood, which
    // includes all data with the exception of dist function data
@@ -1419,7 +1419,7 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGr
 
    const vector<CellID>& cellsVec = getLocalCells();
 
-   computeCoupling(mpiGrid, cellsVec, fsgrid);
+   computeCoupling(mpiGrid, cellsVec, fsgrid, technical);
 
    // Initialise system boundary conditions (they need the initialised positions!!)
    // This needs to be done before LB
