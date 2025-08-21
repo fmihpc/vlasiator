@@ -974,17 +974,13 @@ bool readFsGridVariable(vlsv::ParallelReader& file, const string& variableName, 
       }
 
       // Assign buffer into fsgrid
-      // Could be parallelised (parallel_for) but this is done once at restart so not critical
-      int index = 0;
-      for (auto z = 0; z < localSize[2]; z++) {
-         for (auto y = 0; y < localSize[1]; y++) {
-            for (auto x = 0; x < localSize[0]; x++) {
-               const auto stencil = fsgrid.makeStencil(x, y, z);
-               memcpy(targetData[stencil.ooo()].data(), &buffer[index], N * sizeof(Real));
-               index += N;
-            }
-         }
-      }
+      // Should work in parallel too.
+      fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                          phiprof::initializeTimer("Map Refinement Level to FsGrid"), technical,
+                          [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+         cint index = N * (stencil.k * coordinates.localSize[1] * coordinates.localSize[0] + stencil.j * coordinates.localSize[0] + stencil.i);
+         memcpy(targetData[stencil.ooo()].data(), &buffer[index], N * sizeof(Real));
+      });
 
    } else {
 

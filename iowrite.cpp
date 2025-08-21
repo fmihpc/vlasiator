@@ -888,7 +888,7 @@ bool writeConfigInfo(std::string config,vlsv::Writer& vlsvWriter,MPI_Comm comm){
  * @param fsgrid An fsgrid instance used to extract metadata info.
  * @param vlsvWriter file object to write into.
  */
-bool writeFsGridMetadata(FieldSolverGrid& fsgrid, vlsv::Writer& vlsvWriter, bool writeIDs = false) {
+bool writeFsGridMetadata(FieldSolverGrid& fsgrid, fsgrids::consttechnicalspan technical, vlsv::Writer& vlsvWriter, bool writeIDs = false) {
 
    std::map<std::string, std::string> xmlAttributes;
    const std::string meshName = "fsgrid";
@@ -969,22 +969,20 @@ bool writeFsGridMetadata(FieldSolverGrid& fsgrid, vlsv::Writer& vlsvWriter, bool
   xmlAttributes["yperiodic"]=fsgrid.getPeriodic()[1]?"yes":"no";
   xmlAttributes["zperiodic"]=fsgrid.getPeriodic()[2]?"yes":"no";
 
-  if (writeIDs) {
-     // Write cell "globalID" numbers, which are just the global array indices.
-     std::vector<fsgrid::FsSize_t> globalIds(
+   if (writeIDs) {
+      // Write cell "globalID" numbers, which are just the global array indices.
+      std::vector<fsgrid::FsSize_t> globalIds(
          static_cast<fsgrid::FsSize_t>(localSize[0] * localSize[1] * localSize[2]));
-     int i=0;
-     // Could be parallelised (parallel_for) but not critical.
-     for(int z=0; z<localSize[2]; z++) {
-        for(int y=0; y<localSize[1]; y++) {
-           for(int x=0; x<localSize[0]; x++) {
-              const std::array<fsgrid::FsSize_t, 3> globalIndex = fsgrid.localToGlobal(x, y, z);
-              globalIds[i++] = globalIndex[2]*globalSize[0]*globalSize[1]+
-                 globalIndex[1]*globalSize[0] +
-                 globalIndex[0];
-           }
-        }
-     }
+      // Should work in parallel too
+      fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                          phiprof::initializeTimer("Map Refinement Level to FsGrid"), technical,
+                          [=, &globalIds](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+         cint index = stencil.k * coordinates.localSize[1] * coordinates.localSize[0] + stencil.j * coordinates.localSize[0] + stencil.i;
+         const std::array<fsgrid::FsSize_t, 3> globalIndex = coordinates.localToGlobal(stencil.i, stencil.j, stencil.k);
+         globalIds[index] = globalIndex[2]*globalSize[0]*globalSize[1]+
+            globalIndex[1]*globalSize[0] +
+            globalIndex[0];
+     });
      vlsvWriter.writeArray("MESH", xmlAttributes, globalIds.size(), 1, globalIds.data());
   }
   return true;
@@ -1307,7 +1305,7 @@ bool checkForSameMembers(const vector<uint64_t>& local_cells, const vector<uint6
 \param index       Index to call the correct member of the various parameter vectors
 \param writeGhosts If true, writes out ghost cells (cells that exist on the process boundary so other process' cells)
 */
-bool writeGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const FieldSolverData& fieldSolverData,
+bool writeGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const FieldSolverData& fieldSolverData, fsgrids::consttechnicalspan technical,
                const std::string& versionInfo, const std::string& configInfo, DataReducer* dataReducer,
                const uint& outputFileTypeIndex, const int& stripe, const bool writeGhosts) {
    bool success = true;
@@ -1427,7 +1425,7 @@ bool writeGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, co
    }
 
    //Write FSGrid metadata
-   if (writeFsGridMetadata(fieldSolverData.fsgrid, vlsvWriter, P::systemWriteFsGrid.at(outputFileTypeIndex)) == false) {
+   if (writeFsGridMetadata(fieldSolverData.fsgrid, technical, vlsvWriter, P::systemWriteFsGrid.at(outputFileTypeIndex)) == false) {
       return false;
    }
 
@@ -1512,7 +1510,7 @@ bool writeGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, co
 \param name       File name prefix, file will be called "name.index.vlsv"
 \param fileIndex  File index, file will be called "name.index.vlsv"
 */
-bool writeRestart(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const FieldSolverData& fieldSolverData,
+bool writeRestart(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const FieldSolverData& fieldSolverData, fsgrids::consttechnicalspan technical,
                   const std::string& versionInfo, const std::string& configInfo, DataReducer& dataReducer,
                   const string& name, const uint& fileIndex, const bool dateInFileName, const int& stripe) {
    // Writes a restart
@@ -1633,7 +1631,7 @@ bool writeRestart(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
       return false;
    }
    //Write FSGrid metadata
-   if (writeFsGridMetadata(fieldSolverData.fsgrid, vlsvWriter, true) == false) {
+   if (writeFsGridMetadata(fieldSolverData.fsgrid, technical, vlsvWriter, true) == false) {
       return false;
    }
    //Write Version Info 

@@ -546,7 +546,7 @@ int simulate(int argn,char* args[]) {
       }
 
       const bool writeGhosts = true;
-      if (writeGrid(mpiGrid, fieldSolverData, version, config, &outputReducer, P::systemWriteName.size() - 1,
+      if (writeGrid(mpiGrid, fieldSolverData, technical.view(), version, config, &outputReducer, P::systemWriteName.size() - 1,
                     P::restartStripeFactor, writeGhosts) == false) {
          cerr << "FAILED TO WRITE GRID AT " << __FILE__ << " " << __LINE__ << endl;
       }
@@ -639,7 +639,7 @@ int simulate(int argn,char* args[]) {
       }
 
       const bool writeGhosts = true;
-      if (writeGrid(mpiGrid, fieldSolverData, version, config, &outputReducer, P::systemWriteName.size() - 1,
+      if (writeGrid(mpiGrid, fieldSolverData, technical.view(), version, config, &outputReducer, P::systemWriteName.size() - 1,
                     P::restartStripeFactor, writeGhosts) == false) {
          cerr << "FAILED TO WRITE GRID AT " << __FILE__ << " " << __LINE__ << endl;
       }
@@ -849,7 +849,7 @@ int simulate(int argn,char* args[]) {
             phiprof::Timer writeSysTimer {"write-system"};
             logFile << "(IO): Writing spatial cell and reduced system data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
             const bool writeGhosts = true;
-            if (writeGrid(mpiGrid, fieldSolverData, version, config, &outputReducer, i, P::systemStripeFactor,
+            if (writeGrid(mpiGrid, fieldSolverData, technical.view(), version, config, &outputReducer, i, P::systemStripeFactor,
                           writeGhosts) == false) {
                cerr << "FAILED TO WRITE GRID AT" << __FILE__ << " " << __LINE__ << endl;
             }
@@ -925,7 +925,7 @@ int simulate(int argn,char* args[]) {
          if (myRank == MASTER_RANK)
             logFile << "(IO): Writing restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
          //Write the restart:
-         if (writeRestart(mpiGrid, fieldSolverData, version, config, outputReducer, "restart", (uint)P::t,
+         if (writeRestart(mpiGrid, fieldSolverData, technical.view(), version, config, outputReducer, "restart", (uint)P::t,
                           true, // add the date of the file to the name
                           P::restartStripeFactor) == false) {
             logFile << "(IO): ERROR Failed to write restart!" << endl << writeVerbose;
@@ -948,6 +948,7 @@ int simulate(int argn,char* args[]) {
          //Write the recover:
          if( writeRestart(mpiGrid,
                   fieldSolverData,
+                  technical.view(),
                   version,
                   config,
                   outputReducer,

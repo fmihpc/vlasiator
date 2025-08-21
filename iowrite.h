@@ -42,7 +42,7 @@
 \param index       Index to call the correct member of the various parameter vectors
 \param writeGhosts Write ghost zones
 */
-bool writeGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const FieldSolverData& fieldSolverData,
+bool writeGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const FieldSolverData& fieldSolverData, fsgrids::consttechnicalspan technical,
                const std::string& versionInfo, const std::string& configInfo, DataReducer* dataReducer,
                const uint& index, const int& stripe, const bool writeGhosts);
 
@@ -70,7 +70,7 @@ bool writeGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, co
 \param stripe         lustre stripe count
 */
 
-bool writeRestart(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const FieldSolverData& fieldSolverData,
+bool writeRestart(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const FieldSolverData& fieldSolverData, fsgrids::consttechnicalspan technical,
                   const std::string& versionInfo, const std::string& configInfo, DataReducer& dataReducer,
                   const std::string& name, const uint& fileIndex, const bool dateInFileName, const int& stripe);
 
