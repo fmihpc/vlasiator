@@ -1436,7 +1436,7 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             neighborhood.push_back({{d, 0, 0}});
          }
       }
-      ss << "VLASOV_SOLVER_Z_GHOST ";
+      ss << "VLASOV_SOLVER_X_GHOST ";
       for (auto it : neighborhood){
          all_neighborhoods.emplace(it);
          ss << "("<<it[0]<<","<<it[1]<<","<<it[2]<<")";
@@ -1532,35 +1532,77 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
    if (P::maxTimeclass > 0) {
       // stencils for timeghost haloes
-      // first one using timeclassexacthaloextent
-      neighborhood.clear();
-      for (int dy = -(int)P::timeclassExactHaloExtent; dy <= (int)P::timeclassExactHaloExtent; dy++){
-         for (int dx = -(int)P::timeclassExactHaloExtent; dx <= (int)P::timeclassExactHaloExtent; dx++){
-            for (int dz = -(int)P::timeclassExactHaloExtent; dz <= (int)P::timeclassExactHaloExtent; dz++){
-               if ((dz==0) && (dy==0) && (dx==0)) {
-                  continue;
-               }
-               neighborhood.push_back({{dx, dy, dz}});
+      // first one using timeclassexacthaloextent = vlasovSolverGhostTranslateExtent
+      // First: full +GT stencil in Y (last direction to be translated)
+      for (int dy = -VLASOV_STENCIL_WIDTH-1; dy <= VLASOV_STENCIL_WIDTH+1; dy++){
+         if (dy != 0) {
+            neighborhood.push_back({{0, dy, 0}});
+         }
+      }
+      
+      // Then: full + GT extensions in X from Y-translated cells
+      for (int dy = -P::timeclassExactHaloExtent; dy <= (int)P::timeclassExactHaloExtent; dy++){
+         for (int dx = -VLASOV_STENCIL_WIDTH-1; dx <= VLASOV_STENCIL_WIDTH+1; dx++){
+            if (dx != 0) {
+               neighborhood.push_back({{dx, dy, 0}});
             }
          }
       }
-for (auto it : neighborhood){
+      // Then: full + GT extensions in Z from Y->X translated cells
+      for (int dy = -P::timeclassExactHaloExtent; dy <= (int)P::timeclassExactHaloExtent; dy++){
+         for (int dx = -P::timeclassExactHaloExtent; dx <= (int)P::timeclassExactHaloExtent; dx++){
+            for (int dz = -VLASOV_STENCIL_WIDTH-1; dz <= VLASOV_STENCIL_WIDTH+1; dz++){
+               if (dz != 0) {
+                  neighborhood.push_back({{dx, dy, dz}});
+               }
+            }
+         }
+      }
+      for (auto it : neighborhood){
          all_neighborhoods.emplace(it);
       }
       if (!mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_TIMEGHOST_EXACT_HALO, neighborhood)){
-         std::cerr << "Failed to add neighborhood VLASOV_SOLVER_TIMEGHOST_EXACT_HALO_NEIGHBORHOOD_ID \n";
+         std::cerr << "Failed to add neighborhood Neighborhoods::VLASOV_SOLVER_GHOST \n";
          abort();
       }
+//       neighborhood.clear();
+//       for (int dy = -(int)P::timeclassExactHaloExtent; dy <= (int)P::timeclassExactHaloExtent; dy++){
+//          for (int dx = -(int)P::timeclassExactHaloExtent; dx <= (int)P::timeclassExactHaloExtent; dx++){
+//             for (int dz = -(int)P::timeclassExactHaloExtent; dz <= (int)P::timeclassExactHaloExtent; dz++){
+//                if ((dz==0) && (dy==0) && (dx==0)) {
+//                   continue;
+//                }
+//                neighborhood.push_back({{dx, dy, dz}});
+//             }
+//          }
+//       }
+// for (auto it : neighborhood){
+//          all_neighborhoods.emplace(it);
+//       }
+//       if (!mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_TIMEGHOST_EXACT_HALO, neighborhood)){
+//          std::cerr << "Failed to add neighborhood VLASOV_SOLVER_TIMEGHOST_EXACT_HALO_NEIGHBORHOOD_ID \n";
+//          abort();
+//       }
 
       // second one using timeclassouterhaloextent
-      neighborhood.clear();
-      for (int dy = -(int)P::timeclassOuterHaloExtent; dy <= (int)P::timeclassOuterHaloExtent; dy++){
-         for (int dx = -(int)P::timeclassOuterHaloExtent; dx <= (int)P::timeclassOuterHaloExtent; dx++){
-            for (int dz = -(int)P::timeclassOuterHaloExtent; dz <= (int)P::timeclassOuterHaloExtent; dz++){
-               if ((dz==0) && (dy==0) && (dx==0)) {
-                  continue;
+      // neighborhood.clear();
+      std::vector<neigh_t> neighborhood_outer;
+
+      for(auto n : neighborhood){
+         
+
+         for (int dy = -(int)P::timeclassOuterHaloExtent; dy <= (int)P::timeclassOuterHaloExtent; dy++){
+            for (int dx = -(int)P::timeclassOuterHaloExtent; dx <= (int)P::timeclassOuterHaloExtent; dx++){
+               for (int dz = -(int)P::timeclassOuterHaloExtent; dz <= (int)P::timeclassOuterHaloExtent; dz++){
+                  neigh_t offsets = {{n[0]+dx, n[1]+dy, n[2]+dz}};
+                  if ((dz+n[2]==0) && (dy+n[1]==0) && (dx+n[0]==0)) {
+                     continue;
+                  }
+                  if (std::count(neighborhood_outer.begin(), neighborhood_outer.end(), offsets) > 0){
+                     continue;
+                  }
+                  neighborhood_outer.push_back({{dx, dy, dz}});
                }
-               neighborhood.push_back({{dx, dy, dz}});
             }
          }
       }
