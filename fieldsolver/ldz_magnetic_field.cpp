@@ -237,51 +237,33 @@ void propagateMagneticFieldSimple(fsgrids::perbspan perb,
    }
    mpiTimer.stop();
 
+   // The looping below was modified in https://github.com/fmihpc/vlasiator/pull/1110/files
+   // with a reported performance gain of 10% of field solver performance in production-like
+   // conditions. Unfortunately as of https://github.com/fmihpc/vlasiator/pull/1099 (fsgrid
+   // parallel_for mechanism) this split would become very cumbersome and is therefore
+   // reversed until more optimisation is needed on CPU or GPU.
+
    // Propagate B on system boundary/process inner cells
    phiprof::Timer sysBoundaryTimer {sysBoundaryTimerId};
-   // L1 pass, gather which faces to solve
-   std::vector<std::array<int,4>> L1Solve;
-#pragma omp parallel
-   {
-      std::vector<std::array<int,4>> threadL1Solve;
-// L1 pass
-#pragma omp for collapse(2)
-      for (auto k = 0; k < localSize[2]; k++) {
-         for (auto j = 0; j < localSize[1]; j++) {
-            for (auto i = 0; i < localSize[0]; i++) {
-               const fsgrid::FsStencil stencil = fsgrid.makeStencil(i, j, k);
-               const auto tech = technical[stencil.ooo()];
-               cuint bitfield = tech.SOLVE;
-               // L1 pass
-               if (tech.sysBoundaryLayer == 1) {
-                  if ((bitfield & compute::BX) != compute::BX) {
-                     threadL1Solve.push_back({i,j,k,0});
-                  }
-                  if ((bitfield & compute::BY) != compute::BY) {
-                     threadL1Solve.push_back({i,j,k,1});
-                  }
-                  if ((bitfield & compute::BZ) != compute::BZ) {
-                     threadL1Solve.push_back({i,j,k,2});
-                  }
-               }
-            }
+
+   // L1 pass
+   fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                       phiprof::initializeTimer("Magnetic field L1 pass"), technical,
+                       [=, &sysBoundaries](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+      if (sysBoundaryLayer == 1) {
+         cuint bitfield = technical[stencil.ooo()].SOLVE;
+         const auto globalCoordinates = coordinates.localToGlobal(stencil.i, stencil.j, stencil.k);
+         if ((bitfield & compute::BX) != compute::BX) {
+            propagateSysBoundaryMagneticField(perb, perbdt2, bgb, technical, gridSpacing, globalCoordinates, stencil, sysBoundaries, RKCase, 0);
+         }
+         if ((bitfield & compute::BY) != compute::BY) {
+            propagateSysBoundaryMagneticField(perb, perbdt2, bgb, technical, gridSpacing, globalCoordinates, stencil, sysBoundaries, RKCase, 1);
+         }
+         if ((bitfield & compute::BZ) != compute::BZ) {
+            propagateSysBoundaryMagneticField(perb, perbdt2, bgb, technical, gridSpacing, globalCoordinates, stencil, sysBoundaries, RKCase, 2);
          }
       }
-      #pragma omp critical
-      {
-         L1Solve.insert(L1Solve.end(), threadL1Solve.begin(), threadL1Solve.end());
-      }
-      #pragma omp barrier
-      //for (auto [i,j,k,dir] : L1Solve) { // not supported with OpenMP on old CLANG
-      #pragma omp for // default i.e. schedule(static,1)
-      for (uint entry=0; entry<L1Solve.size(); ++entry) {
-         const fsgrid::FsStencil stencil = fsgrid.makeStencil(L1Solve.at(entry)[0], L1Solve.at(entry)[1], L1Solve.at(entry)[2]);
-         cint component = L1Solve.at(entry)[3];
-         const auto globalCoordinates = fsgrid.localToGlobal(stencil.i, stencil.j, stencil.k);
-         const auto tech = technical[stencil.ooo()];
-         propagateSysBoundaryMagneticField(perb, perbdt2, bgb, technical, gridSpacing, globalCoordinates, stencil, sysBoundaries, RKCase, component);
-      }
-   }
+   });
    sysBoundaryTimer.stop();
 
    mpiTimer.start();
@@ -295,41 +277,26 @@ void propagateMagneticFieldSimple(fsgrids::perbspan perb,
    mpiTimer.stop();
 
    sysBoundaryTimer.start();
-   // L2 pass, gather which faces to solve
-   std::vector<std::array<int,4>> L2Solve;
-   #pragma omp parallel
-   {
-      std::vector<std::array<int,4>> threadL2Solve;
-      #pragma omp for collapse(2)
-      for (auto k = 0; k < localSize[2]; k++) {
-         for (auto j = 0; j < localSize[1]; j++) {
-            for (auto i = 0; i < localSize[0]; i++) {
-               const fsgrid::FsStencil stencil = fsgrid.makeStencil(i, j, k);
-               const auto tech = technical[stencil.ooo()];
-               if(tech.sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
-                  tech.sysBoundaryLayer == 2
-                  ) {
-                  for (int component = 0; component < 3; component++) {
-                     threadL2Solve.push_back({i,j,k,component});
-                  }
-               }
-            }
+   // L2 pass
+   fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                       phiprof::initializeTimer("Magnetic field L2 pass"), technical,
+                       [=, &sysBoundaries](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+      if(sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
+         sysBoundaryLayer == 2
+      ) {
+         cuint bitfield = technical[stencil.ooo()].SOLVE;
+         const auto globalCoordinates = coordinates.localToGlobal(stencil.i, stencil.j, stencil.k);
+         if ((bitfield & compute::BX) != compute::BX) {
+            propagateSysBoundaryMagneticField(perb, perbdt2, bgb, technical, gridSpacing, globalCoordinates, stencil, sysBoundaries, RKCase, 0);
+         }
+         if ((bitfield & compute::BY) != compute::BY) {
+            propagateSysBoundaryMagneticField(perb, perbdt2, bgb, technical, gridSpacing, globalCoordinates, stencil, sysBoundaries, RKCase, 1);
+         }
+         if ((bitfield & compute::BZ) != compute::BZ) {
+            propagateSysBoundaryMagneticField(perb, perbdt2, bgb, technical, gridSpacing, globalCoordinates, stencil, sysBoundaries, RKCase, 2);
          }
       }
-      #pragma omp critical
-      {
-         L2Solve.insert(L2Solve.end(), threadL2Solve.begin(), threadL2Solve.end());
-      }
-      #pragma omp barrier
-      //for (auto [i,j,k,dir] : L2Solve) { // not supported with OpenMP on old CLANG
-      #pragma omp for // default i.e. schedule(static,1)
-      for (uint entry=0; entry<L2Solve.size(); ++entry) {
-         const fsgrid::FsStencil stencil = fsgrid.makeStencil(L2Solve.at(entry)[0], L2Solve.at(entry)[1], L2Solve.at(entry)[2]);
-         cint component = L2Solve.at(entry)[3];
-         const auto globalCoordinates = fsgrid.localToGlobal(stencil.i, stencil.j, stencil.k);
-         const auto tech = technical[stencil.ooo()];
-         propagateSysBoundaryMagneticField(perb, perbdt2, bgb, technical, gridSpacing, globalCoordinates, stencil, sysBoundaries, RKCase, component);
-      }
-   }
+   });
+   sysBoundaryTimer.stop();
    propagateBTimer.stop(numCells, "Spatial Cells");
 }
