@@ -176,8 +176,7 @@ inline void compute_h4_left_face_value(const Vec * const values, uint k, Vec &fv
   \param fv_l Face value on left face of cell i
   \param h Array with cell widths. Can be in abritrary units since they always cancel. Maybe 1/refinement ratio?
 */
-inline void compute_h4_left_face_value_nonuniform(const Realf * const h, const Vec * const u, uint k, Vec &fv_l) {
-
+ARCH_HOSTDEV inline void compute_h4_left_face_value_nonuniform(const Realf * const h, const Vec * const u, uint k, Vec &fv_l) {
    fv_l = (
       1.0 / ( h[k - 2] + h[k - 1] + h[k] + h[k + 1] )
       * ( ( h[k - 2] + h[k - 1] ) * ( h[k] + h[k + 1] ) / ( h[k - 1] + h[k] )
@@ -188,6 +187,10 @@ inline void compute_h4_left_face_value_nonuniform(const Realf * const h, const V
           + h[k - 1] * ( h[k - 2] + h[k - 1] ) / ( ( h[k - 1] + h[k] + h[k + 1] ) * ( h[k] + h[k + 1] ) )
           * ( u[k] * ( 2.0 * h[k] + h[k + 1] ) - u[k + 1] * h[k] ) )
       );
+}
+
+ARCH_HOSTDEV inline void compute_h4_right_face_value_nonuniform(const Realf * const h, const Vec * const u, uint k, Vec &fv_r) {
+   compute_h4_left_face_value_nonuniform(h, u, k + 1, fv_r);
 }
 
 

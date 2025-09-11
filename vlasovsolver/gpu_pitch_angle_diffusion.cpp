@@ -522,7 +522,7 @@ void pitchAngleDiffusion(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian
 
    // Load CPU data
    const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
-   const vmesh::MeshParameters& vMeshParams = vmesh::getMeshWrapper()->velocityMeshes->at(meshID);
+   const vmesh::MeshParameters& vMeshParams = vmesh::getMeshWrapper()->at(meshID);
 
    const Real Vmax   = 2*sqrt(3)*vMeshParams.meshLimits[1];
    Real dVbins = Vmax/nbins_v;

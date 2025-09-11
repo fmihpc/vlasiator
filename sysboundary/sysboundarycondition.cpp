@@ -787,53 +787,61 @@ namespace SBC {
 
       bool search = true;
       uint counter = 0;
-      const vmesh::LocalID* vblocks_ini = cell.get_velocity_grid_length(popID);
+      auto vblocks_ini = cell.get_velocity_grid_length(popID);
       vmesh::VelocityMesh *vmesh = cell.get_velocity_mesh(popID);
       const Real mass = getObjectWrapper().particleSpecies[popID].mass;
 
       vmesh::GlobalID *GIDbuffer;
       #ifdef USE_GPU
       // Host-pinned memory buffer, max possible size
-      const uint blocksCount = vblocks_ini[0]*vblocks_ini[1]*vblocks_ini[2];
+      const uint32_t blocksCount = vblocks_ini[0]*vblocks_ini[1]*vblocks_ini[2];
       CHK_ERR( gpuMallocHost((void**)&GIDbuffer,blocksCount*sizeof(vmesh::GlobalID)) );
       #endif
       // Non-GPU: insert directly into vmesh
 
       Real V_crds[3];
       Real dV[3];
-      dV[0] = cell.get_velocity_grid_block_size(popID)[0];
-      dV[1] = cell.get_velocity_grid_block_size(popID)[1];
-      dV[2] = cell.get_velocity_grid_block_size(popID)[2];
+      Real V0[3] = {VX0, VY0, VZ0};
       creal minValue = cell.getVelocityBlockMinValue(popID);
-      // Single cell, not block
-      const Real dvx=cell.get_velocity_grid_cell_size(popID)[0];
-      const Real dvy=cell.get_velocity_grid_cell_size(popID)[1];
-      const Real dvz=cell.get_velocity_grid_cell_size(popID)[2];
 
-      while (search) {
-         if (0.1 * minValue > projects::MaxwellianPhaseSpaceDensity(counter*dV[0]+0.5*dvx, 0.5*dvy, 0.5*dvz, T, rho, mass) || counter > vblocks_ini[0]) {
-            search = false;
-         }
-         counter++;
-      }
-      counter+=2;
+      // while (search) {
+      //    if (0.1 * minValue > projects::MaxwellianPhaseSpaceDensity(counter*dV[0]+0.5*dvx, 0.5*dvy, 0.5*dvz, T, rho, mass) || counter > vblocks_ini[0]) {
+      //       search = false;
+      //    }
+      //    counter++;
+      // }
+      // counter+=2;
 
-      Real vRadiusSquared = (Real)counter * (Real)counter * dV[0] * dV[0];
+      //Real vRadiusSquared = (Real)counter * (Real)counter * dV[0] * dV[0];
+
+      //return rho * pow(mass / (2.0 * M_PI * physicalconstants::K_B * T), 1.5) *
+      //   exp(- mass * (vx*vx + vy*vy + vz*vz) / (2.0 * physicalconstants::K_B * T));
+
+      Real vRadiusSquared {log(0.1 * minValue / (rho * pow(mass / (2.0 * M_PI * physicalconstants::K_B * T), 1.5))) / (-mass / (2.0 * physicalconstants::K_B * T))};
+      Real vRadius {sqrt(vRadiusSquared)};
+
+      // Assuming here blocks are the smallest around V0
+      vmesh::GlobalID block0 {vmesh->getGlobalID(V0)};
+      vmesh->getBlockSize(block0, dV);
+      Real counterX = (vRadius / dV[0]);
+      Real counterY = (vRadius / dV[1]);
+      Real counterZ = (vRadius / dV[2]);
 
       #ifndef USE_GPU
       // sphere volume is 4/3 pi r^3, approximate that 5*counterX*counterY*counterZ is enough.
-      vmesh::LocalID currentMaxSize = 5*counter*counter*counter;
+      vmesh::LocalID currentMaxSize = 5 * counterX * counterY * counterZ;
       vmesh->setNewSize(currentMaxSize);
       GIDbuffer = vmesh->getGrid()->data();
       #endif
 
       vmesh::LocalID LID = 0;
-      for (uint kv=0; kv<vblocks_ini[2]; ++kv) {
-         for (uint jv=0; jv<vblocks_ini[1]; ++jv) {
-            for (uint iv=0; iv<vblocks_ini[0]; ++iv) {
+      for (uint32_t kv=0; kv<vblocks_ini[2]; ++kv) {
+         for (uint32_t jv=0; jv<vblocks_ini[1]; ++jv) {
+            for (uint32_t iv=0; iv<vblocks_ini[0]; ++iv) {
                const vmesh::GlobalID GID = vmesh->getGlobalID(iv,jv,kv);
 
                cell.get_velocity_block_coordinates(popID,GID,V_crds);
+               vmesh->getBlockSize(GID, dV);
                V_crds[0] += 0.5*dV[0] - VX0;
                V_crds[1] += 0.5*dV[1] - VY0;
                V_crds[2] += 0.5*dV[2] - VZ0;
@@ -843,7 +851,7 @@ namespace SBC {
 
                #ifndef USE_GPU
                if (LID >= currentMaxSize) {
-                  currentMaxSize = LID + counter*counter*counter;
+                  currentMaxSize = LID + counterX * counterY * counterZ;
                   vmesh->setNewSize(currentMaxSize);
                   GIDbuffer = vmesh->getGrid()->data();
                }

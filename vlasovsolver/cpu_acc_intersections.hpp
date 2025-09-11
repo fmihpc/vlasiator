@@ -34,6 +34,7 @@ Eigen::Matrix<Real,3,1> line_plane_intersection(const Eigen::Matrix<Real,3,1>& l
 
 void compute_intersections_1st(
         const vmesh::VelocityMesh* vmesh,
+        vmesh::GlobalID block,
         const Eigen::Transform<Real,3,Eigen::Affine>& bwd_transform,
         const Eigen::Transform<Real,3,Eigen::Affine>& fwd_transform,
         uint dimension,
@@ -42,6 +43,7 @@ void compute_intersections_1st(
 
 void compute_intersections_2nd(
         const vmesh::VelocityMesh* vmesh,
+        vmesh::GlobalID block,
         const Eigen::Transform<Real,3,Eigen::Affine>& bwd_transform,
         const Eigen::Transform<Real,3,Eigen::Affine>& fwd_transform,
         uint dimension,
@@ -50,6 +52,7 @@ void compute_intersections_2nd(
 
 void compute_intersections_3rd(
         const vmesh::VelocityMesh* vmesh,
+        vmesh::GlobalID block,
         const Eigen::Transform<Real,3,Eigen::Affine>& bwd_transform,
         const Eigen::Transform<Real,3,Eigen::Affine>& fwd_transform,
         uint dimension,
@@ -58,6 +61,7 @@ void compute_intersections_3rd(
 
 void compute_cell_intersections(
         spatial_cell::SpatialCell* spatial_cell,
+        vmesh::GlobalID block,
         const uint popID,
         const uint map_order,
         const Real& dt,

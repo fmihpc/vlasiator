@@ -29,5 +29,6 @@ using namespace spatial_cell;
 
 bool map_1d(SpatialCell* spatial_cell, const uint popID,
             Real intersection, Real intersection_di, Real intersection_dj, Real intersection_dk,
+            const uint map_order,
             const uint dimension);
 #endif

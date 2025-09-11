@@ -31,15 +31,13 @@ bool ObjectWrapper::addPopulationParameters() {
   // Create appropriate subparameters for each population
   for(auto& pop : popNames) {
      species::Species newSpecies;
-     vmesh::MeshParameters newVMesh;
 
      // Originally, there was support for species and velocity meshes to be separate.
      // This was abandoned, since there wasn't really any use for it.
-     newSpecies.name = newVMesh.name = pop;
-     newSpecies.velocityMesh = vmesh::getMeshWrapper()->velocityMeshesCreation->size();
+     newSpecies.name = pop;
+     newSpecies.velocityMesh = getObjectWrapper().particleSpecies.size();
 
      getObjectWrapper().particleSpecies.push_back(newSpecies);
-     vmesh::getMeshWrapper()->velocityMeshesCreation->push_back(newVMesh);
 
      RP::add(pop + "_properties.charge", "Particle charge, in units of elementary charges (int)", 1);
      RP::add(pop + "_properties.mass_units", "Units in which particle mass is given, either 'PROTON' or 'ELECTRON' (string)", std::string("PROTON"));
@@ -97,15 +95,8 @@ bool ObjectWrapper::getPopulationParameters() {
    for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
 
       species::Species& species=getObjectWrapper().particleSpecies[i];
-      vmesh::MeshParameters& vMesh=vmesh::getMeshWrapper()->velocityMeshesCreation->at(i);
 
       const std::string& pop = species.name;
-
-      // Sanity check name
-      if(species.name != vMesh.name) {
-         std::cerr << "ParticlePopulation parse error: Name " << species.name << " != " << vMesh.name << std::endl;
-         return false;
-      }
 
       // Elementary particle parameters
       RP::get(pop + "_properties.charge", species.charge);
@@ -135,18 +126,20 @@ bool ObjectWrapper::getPopulationParameters() {
 
 
       // Particle velocity space properties
-      RP::get(pop + "_vspace.vx_min",vMesh.meshLimits[0]);
-      RP::get(pop + "_vspace.vx_max",vMesh.meshLimits[1]);
-      RP::get(pop + "_vspace.vy_min",vMesh.meshLimits[2]);
-      RP::get(pop + "_vspace.vy_max",vMesh.meshLimits[3]);
-      RP::get(pop + "_vspace.vz_min",vMesh.meshLimits[4]);
-      RP::get(pop + "_vspace.vz_max",vMesh.meshLimits[5]);
-      RP::get(pop + "_vspace.vx_length",vMesh.gridLength[0]);
-      RP::get(pop + "_vspace.vy_length",vMesh.gridLength[1]);
-      RP::get(pop + "_vspace.vz_length",vMesh.gridLength[2]);
-      if(vMesh.gridLength[0] > MAX_BLOCKS_PER_DIM  ||
-            vMesh.gridLength[1] > MAX_BLOCKS_PER_DIM  ||
-            vMesh.gridLength[2] > MAX_BLOCKS_PER_DIM ) {
+      std::array<Real, 6> meshLimits;
+      std::array<uint32_t, 3> gridLength;
+      RP::get(pop + "_vspace.vx_min",meshLimits[0]);
+      RP::get(pop + "_vspace.vx_max",meshLimits[1]);
+      RP::get(pop + "_vspace.vy_min",meshLimits[2]);
+      RP::get(pop + "_vspace.vy_max",meshLimits[3]);
+      RP::get(pop + "_vspace.vz_min",meshLimits[4]);
+      RP::get(pop + "_vspace.vz_max",meshLimits[5]);
+      RP::get(pop + "_vspace.vx_length",gridLength[0]);
+      RP::get(pop + "_vspace.vy_length",gridLength[1]);
+      RP::get(pop + "_vspace.vz_length",gridLength[2]);
+      if(gridLength[0] > MAX_BLOCKS_PER_DIM  ||
+            gridLength[1] > MAX_BLOCKS_PER_DIM  ||
+            gridLength[2] > MAX_BLOCKS_PER_DIM ) {
 
          // Build error message as a string first, so that the cerr output hapens atomically and we don't spam
          // thousands of unreadable lines through each other
@@ -160,10 +153,10 @@ bool ObjectWrapper::getPopulationParameters() {
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       if ((WID==8 && P::adaptGPUWID)) {
          // First verify that we can halve the value2
-         if ( (vMesh.gridLength[0]%2==0) && (vMesh.gridLength[1]%2==0) && (vMesh.gridLength[2]%2==0)) {
-            vMesh.gridLength[0] /= 2;
-            vMesh.gridLength[1] /= 2;
-            vMesh.gridLength[2] /= 2;
+         if ( (gridLength[0]%2==0) && (gridLength[1]%2==0) && (gridLength[2]%2==0)) {
+            gridLength[0] /= 2;
+            gridLength[1] /= 2;
+            gridLength[2] /= 2;
             if(myRank==MASTER_RANK) {
                std::cerr<<" Note: Using WID=8; Halving velocity block counts per dimension. Deactivate with parameter adaptGPUWID=false."<<std::endl;
             }
@@ -174,7 +167,14 @@ bool ObjectWrapper::getPopulationParameters() {
          }
       }
 
-      vMesh.blockLength[0] = vMesh.blockLength[1] = vMesh.blockLength[2] = WID;
+      std::array<uint32_t, 3> blockLength {WID, WID, WID};
+      std::array<uint32_t, 6> hiResRange {
+         0, 0,
+         0, 0,
+         0, 0
+      };
+
+      vmesh::getMeshWrapper()->velocityMeshesCreation->push_back({pop, meshLimits, hiResRange, gridLength, blockLength});
 
       //Get thermal / suprathermal moments parameters
       Readparameters::get(pop + "_thermal.radius", species.thermalRadius);

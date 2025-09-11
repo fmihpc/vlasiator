@@ -29,6 +29,8 @@
 #include "cpu_acc_intersections.hpp"
 #include "cpu_acc_map.hpp"
 
+#include "cpu_acc_transform.hpp"
+
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -58,7 +60,11 @@ void cpu_accelerate_cells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
          const CellID cellID = acceleratedCells[c];
          SpatialCell* SC = mpiGrid[cellID];
          Population& pop = SC->get_population(popID);
-         compute_cell_intersections(SC, popID, map_order, pop.subcycleDt, intersections_id);
+
+         // compute transform, forward in time and backward in time, performed in this acceleration
+         pop.fwd_transform = compute_acceleration_transformation(SC, popID, pop.subcycleDt);
+         pop.bwd_transform = pop.fwd_transform.inverse();
+         // compute_cell_intersections(SC, popID, map_order, pop.subcycleDt, intersections_id);
       }
       #pragma omp barrier
       // Semi-Lagrangian acceleration for all cells active in this subcycle,
@@ -98,32 +104,23 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
    switch(map_order){
       case 0: {
          //Map order XYZ
-         map_1d(spatial_cell, popID, pop.intersection_x,
-                pop.intersection_x_di,pop.intersection_x_dj,pop.intersection_x_dk,0); // map along x
-         map_1d(spatial_cell, popID, pop.intersection_y,
-                pop.intersection_y_di,pop.intersection_y_dj,pop.intersection_y_dk,1); // map along y
-         map_1d(spatial_cell, popID, pop.intersection_z,
-                pop.intersection_z_di,pop.intersection_z_dj,pop.intersection_z_dk,2); // map along z
+         map_1d(spatial_cell, popID, pop.intersection_x, pop.intersection_x_di,pop.intersection_x_dj,pop.intersection_x_dk, map_order, 0); // map along x
+         map_1d(spatial_cell, popID, pop.intersection_y, pop.intersection_y_di,pop.intersection_y_dj,pop.intersection_y_dk, map_order, 1); // map along y
+         map_1d(spatial_cell, popID, pop.intersection_z, pop.intersection_z_di,pop.intersection_z_dj,pop.intersection_z_dk, map_order, 2); // map along z
          break;
       }
       case 1: {
          //Map order YZX
-         map_1d(spatial_cell, popID, pop.intersection_y,
-                pop.intersection_y_di,pop.intersection_y_dj,pop.intersection_y_dk,1); // map along y
-         map_1d(spatial_cell, popID, pop.intersection_z,
-                pop.intersection_z_di,pop.intersection_z_dj,pop.intersection_z_dk,2); // map along z
-         map_1d(spatial_cell, popID, pop.intersection_x,
-                pop.intersection_x_di,pop.intersection_x_dj,pop.intersection_x_dk,0); // map along x
+         map_1d(spatial_cell, popID, pop.intersection_y, pop.intersection_y_di,pop.intersection_y_dj,pop.intersection_y_dk, map_order, 1); // map along y
+         map_1d(spatial_cell, popID, pop.intersection_z, pop.intersection_z_di,pop.intersection_z_dj,pop.intersection_z_dk, map_order, 2); // map along z
+         map_1d(spatial_cell, popID, pop.intersection_x, pop.intersection_x_di,pop.intersection_x_dj,pop.intersection_x_dk, map_order, 0); // map along x
          break;
       }
       case 2: {
          //Map order Z X Y
-         map_1d(spatial_cell, popID, pop.intersection_z,
-                pop.intersection_z_di,pop.intersection_z_dj,pop.intersection_z_dk,2); // map along z
-         map_1d(spatial_cell, popID, pop.intersection_x,
-                pop.intersection_x_di,pop.intersection_x_dj,pop.intersection_x_dk,0); // map along x
-         map_1d(spatial_cell, popID, pop.intersection_y,
-                pop.intersection_y_di,pop.intersection_y_dj,pop.intersection_y_dk,1); // map along y
+         map_1d(spatial_cell, popID, pop.intersection_z, pop.intersection_z_di,pop.intersection_z_dj,pop.intersection_z_dk, map_order, 2); // map along z
+         map_1d(spatial_cell, popID, pop.intersection_x, pop.intersection_x_di,pop.intersection_x_dj,pop.intersection_x_dk, map_order, 0); // map along x
+         map_1d(spatial_cell, popID, pop.intersection_y, pop.intersection_y_di,pop.intersection_y_dj,pop.intersection_y_dk, map_order, 1); // map along y
          break;
       }
    }

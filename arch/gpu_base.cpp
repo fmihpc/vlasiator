@@ -491,9 +491,9 @@ __host__ void gpu_vlasov_allocate_perthread(
    size_t blockDataAllocation = newSize * WID3 * sizeof(Realf);
    // minimum allocation size:
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-      const uint c0 = (*vmesh::getMeshWrapper()->velocityMeshes)[popID].gridLength[0];
-      const uint c1 = (*vmesh::getMeshWrapper()->velocityMeshes)[popID].gridLength[1];
-      const uint c2 = (*vmesh::getMeshWrapper()->velocityMeshes)[popID].gridLength[2];
+      const uint c0 = vmesh::getMeshWrapper()->at(popID).gridLength[0];
+      const uint c1 = vmesh::getMeshWrapper()->at(popID).gridLength[1];
+      const uint c2 = vmesh::getMeshWrapper()->at(popID).gridLength[2];
       std::array<uint, 3> s = {c0,c1,c2};
       std::sort(s.begin(), s.end());
       const size_t probeCubeExtentsFull = s[0]*s[1]*s[2];

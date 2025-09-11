@@ -597,8 +597,6 @@ __global__ static void resize_and_empty_kernel (
 
       const vmesh::LocalID* get_velocity_grid_length(const uint popID);
       const vmesh::GlobalID* get_velocity_grid(const uint popID);
-      const Real* get_velocity_grid_block_size(const uint popID);
-      const Real* get_velocity_grid_cell_size(const uint popID);
       void get_velocity_block_coordinates(const uint popID,const vmesh::GlobalID& globalID,Real* coords);
       velocity_block_indices_t get_velocity_block_indices(const uint popID,const vmesh::GlobalID globalID);
       vmesh::GlobalID get_velocity_block(const uint popID,vmesh::GlobalID blockIndices[3]) const;
@@ -880,14 +878,6 @@ __global__ static void resize_and_empty_kernel (
 
    inline const vmesh::GlobalID* SpatialCell::get_velocity_grid(const uint popID) {
       return (populations[popID].vmesh->getGrid())->data();
-   }
-
-   inline const Real* SpatialCell::get_velocity_grid_block_size(const uint popID) {
-      return populations[popID].vmesh->getBlockSize();
-   }
-
-   inline const Real* SpatialCell::get_velocity_grid_cell_size(const uint popID) {
-      return populations[popID].vmesh->getCellSize();
    }
 
    inline void SpatialCell::get_velocity_block_coordinates(const uint popID,const vmesh::GlobalID& globalID,Real* coords) {

@@ -212,7 +212,10 @@ bool convertSlicedVelocityMesh(vlsvinterface::Reader& vlsvReader,const string& f
          }
          varInfo.push_back(vinfo);
       }
-      if (varInfo.size() > variables.size()) variables.resize(varInfo.size());
+
+      if (varInfo.size() > variables.size()) {
+         variables.resize(varInfo.size());
+      }
 
       std::vector<uint64_t> blockIDs;
       if (vlsvReader.getBlockIds(cellIDs[cell],blockIDs,popName) == false) {
@@ -860,12 +863,23 @@ bool convertVelocityBlocks2(
       coords.clear();
 
       // Generate node coordinates
-      for (size_t i=0; i<bbox[crd]; ++i) {
-         for (size_t j=0; j<bbox[crd+3]; ++j) {
-            coords.push_back( cellStruct.min_vcoordinates[crd] + i*cellStruct.vblock_length[crd] + j*cellStruct.vblock_length[crd]/bbox[crd+3] );
-         }
+      switch (crd) {
+         case 0:
+            for (auto& i : cellStruct.xCoords) {
+               coords.push_back(i);
+            }
+            break;
+         case 1:
+            for (auto& i : cellStruct.yCoords) {
+               coords.push_back(i);
+            }
+            break;
+         case 2:
+            for (auto& i : cellStruct.zCoords) {
+               coords.push_back(i);
+            }
+            break;
       }
-      coords.push_back( cellStruct.min_vcoordinates[crd] + bbox[crd]*cellStruct.vblock_length[crd] );
 
       // Write them to output file
       string arrayName;
@@ -889,10 +903,23 @@ bool convertVelocityBlocks2(
    
    for (int crd=0; crd<3; ++crd) {
       coords.clear();
-      for (size_t i=0; i<bbox[crd]; ++i) {
-         coords.push_back( cellStruct.min_vcoordinates[crd] + i*cellStruct.vblock_length[crd] );
+      switch (crd) {
+         case 0:
+            for (size_t i=0; i<bbox[crd]; ++i) {
+               coords.push_back(cellStruct.xCoords[i * bbox[crd+3]]);
+            }
+            break;
+         case 1:
+            for (size_t i=0; i<bbox[crd]; ++i) {
+               coords.push_back(cellStruct.yCoords[i * bbox[crd+3]]);
+            }
+            break;
+         case 2:
+            for (size_t i=0; i<bbox[crd]; ++i) {
+               coords.push_back(cellStruct.zCoords[i * bbox[crd+3]]);
+            }
+            break;
       }
-      coords.push_back( cellStruct.min_vcoordinates[crd] + bbox[crd]*cellStruct.vblock_length[crd] );
       
       string arrayName;
       if (crd == 0) arrayName = "MESH_NODE_CRDS_X";
@@ -1329,13 +1356,29 @@ bool setVelocityMeshVariables(vlsv::Reader& vlsvReader,CellStructure& cellStruct
       if (it != attribsOut.end()) N_nodes = atol(it->second.c_str());      
       
       // Read node coordinates
-      Real* crds = NULL;
-      if (vlsvReader.read(tagName,attribsIn,0,N_nodes,crds,true) == false) success = false;
-      
-      if (crd == 0) { vx_min = crds[0]; vx_max = crds[N_nodes-1]; }
-      if (crd == 1) { vy_min = crds[0]; vy_max = crds[N_nodes-1]; }
-      if (crd == 2) { vz_min = crds[0]; vz_max = crds[N_nodes-1]; }
-      delete [] crds; crds = NULL;
+      Real* crds = nullptr;
+      if (vlsvReader.read(tagName, attribsIn, 0, N_nodes, crds, true) == false) {
+         success = false;
+      }
+
+      // This sucks but whatever
+      switch (crd) {
+         case 0:
+            vx_min = crds[0]; 
+            vx_max = crds[N_nodes-1];
+            cellStruct.xCoords.assign(crds, crds + N_nodes);
+            break;
+         case 1:
+            vy_min = crds[0]; 
+            vy_max = crds[N_nodes-1];
+            cellStruct.yCoords.assign(crds, crds + N_nodes);
+            break;
+         case 2:
+            vz_min = crds[0]; 
+            vz_max = crds[N_nodes-1];
+            cellStruct.zCoords.assign(crds, crds + N_nodes);
+            break;
+      }
    }
 
    // Read the velocity mesh bounding box

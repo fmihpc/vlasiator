@@ -50,6 +50,8 @@ Spatial cell class for Vlasiator that supports a variable number of velocity blo
 #include "velocity_mesh_cpu.h"
 #include "velocity_block_container.h"
 
+#include <Eigen/Geometry>
+
 #ifdef DEBUG_VLASIATOR
    #ifndef DEBUG_SPATIAL_CELL
    #define DEBUG_SPATIAL_CELL
@@ -90,6 +92,9 @@ namespace spatial_cell {
       Real intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk;
       Real intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk;
       Real subcycleDt;
+
+      Eigen::Transform<Real,3, Eigen::Affine> fwd_transform;
+      Eigen::Transform<Real,3, Eigen::Affine> bwd_transform;
 
       // Constructor, destructor
       Population() {
@@ -274,9 +279,7 @@ namespace spatial_cell {
       const Real& get_max_r_dt(const uint popID) const;
       const Real& get_max_v_dt(const uint popID) const;
 
-      const vmesh::LocalID* get_velocity_grid_length(const uint popID);
-      const Real* get_velocity_grid_block_size(const uint popID);
-      const Real* get_velocity_grid_cell_size(const uint popID);
+      const std::array<uint32_t, 3>& get_velocity_grid_length(const uint popID);
       void get_velocity_block_coordinates(const uint popID,const vmesh::GlobalID& globalID,Real* coords);
       velocity_block_indices_t get_velocity_block_indices(const uint popID,const vmesh::GlobalID globalID);
       vmesh::GlobalID get_velocity_block(const uint popID,vmesh::GlobalID blockIndices[3]) const;
@@ -513,16 +516,8 @@ namespace spatial_cell {
       return populations;
    }
 
-   inline const vmesh::LocalID* SpatialCell::get_velocity_grid_length(const uint popID) {
+   inline const std::array<uint32_t, 3>& SpatialCell::get_velocity_grid_length(const uint popID) {
       return populations[popID].vmesh->getGridLength();
-   }
-
-   inline const Real* SpatialCell::get_velocity_grid_block_size(const uint popID) {
-      return populations[popID].vmesh->getBlockSize();
-   }
-
-   inline const Real* SpatialCell::get_velocity_grid_cell_size(const uint popID) {
-      return populations[popID].vmesh->getCellSize();
    }
 
    inline void SpatialCell::get_velocity_block_coordinates(const uint popID,const vmesh::GlobalID& globalID,Real* coords) {

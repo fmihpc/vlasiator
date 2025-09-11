@@ -34,7 +34,7 @@ static vmesh::MeshWrapper *meshWrapper;
 
 #ifdef USE_GPU
 vmesh::MeshWrapper* MWdev;
-std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT> *velocityMeshes_upload;
+vmesh::MeshParameters* velocityMeshes_upload;
 
 __global__ void debug_kernel(const uint popID) {
    vmesh::printVelocityMesh(0);
@@ -70,10 +70,10 @@ vmesh::meshWrapperDevRegistor::meshWrapperDevRegistor(vmesh::MeshWrapper*& v) {
 
 void vmesh::MeshWrapper::uploadMeshWrapper() {
    // Store address to velocityMeshes array
-   std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT> * temp = meshWrapper->velocityMeshes;
+   vmesh::MeshParameters* temp = meshWrapper->velocityMeshes;
    // gpu-Malloc space on device, copy array contents
-   CHK_ERR( gpuMalloc((void **)&velocityMeshes_upload, sizeof(std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT>)) );
-   CHK_ERR( gpuMemcpy(velocityMeshes_upload, meshWrapper->velocityMeshes, sizeof(std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT>),gpuMemcpyHostToDevice) );
+   CHK_ERR( gpuMalloc((void **)&velocityMeshes_upload, sizeof(vmesh::MeshParameters) * meshWrapper->velocityMeshesCreation->size()) );
+   CHK_ERR( gpuMemcpy(velocityMeshes_upload, meshWrapper->velocityMeshes, sizeof(vmesh::MeshParameters) * meshWrapper->velocityMeshesCreation->size(), gpuMemcpyHostToDevice) );
    // Make wrapper point to device-side array
    meshWrapper->velocityMeshes = velocityMeshes_upload;
    // Allocate and copy meshwrapper on device
@@ -118,56 +118,10 @@ void vmesh::MeshWrapper::initVelocityMeshes(const uint nMeshes) {
              (int)meshWrapper->velocityMeshesCreation->size());
       abort();
    }
-   // Create pointer to array of sufficient length
-   meshWrapper->velocityMeshes = new std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT>;
 
-   // Copy data in, also set auxiliary values
-   for (uint i=0; i<nMeshes; ++i) {
-      vmesh::MeshParameters* vMesh = &(meshWrapper->velocityMeshes->at(i));
-      vmesh::MeshParameters* vMeshIn = &(meshWrapper->velocityMeshesCreation->at(i));
+   // velocityMeshes on host is just an alias for the vector data
+   meshWrapper->velocityMeshes = velocityMeshesCreation->data();
 
-      // Limits
-      vMesh->meshLimits[0] = vMeshIn->meshLimits[0];
-      vMesh->meshLimits[1] = vMeshIn->meshLimits[1];
-      vMesh->meshLimits[2] = vMeshIn->meshLimits[2];
-      vMesh->meshLimits[3] = vMeshIn->meshLimits[3];
-      vMesh->meshLimits[4] = vMeshIn->meshLimits[4];
-      vMesh->meshLimits[5] = vMeshIn->meshLimits[5];
-      // Grid length
-      vMesh->gridLength[0] = vMeshIn->gridLength[0];
-      vMesh->gridLength[1] = vMeshIn->gridLength[1];
-      vMesh->gridLength[2] = vMeshIn->gridLength[2];
-      // Block length
-      vMesh->blockLength[0] = vMeshIn->blockLength[0];
-      vMesh->blockLength[1] = vMeshIn->blockLength[1];
-      vMesh->blockLength[2] = vMeshIn->blockLength[2];
-
-      // Calculate derived mesh parameters:
-      vMesh->meshMinLimits[0] = vMesh->meshLimits[0];
-      vMesh->meshMinLimits[1] = vMesh->meshLimits[2];
-      vMesh->meshMinLimits[2] = vMesh->meshLimits[4];
-      vMesh->meshMaxLimits[0] = vMesh->meshLimits[1];
-      vMesh->meshMaxLimits[1] = vMesh->meshLimits[3];
-      vMesh->meshMaxLimits[2] = vMesh->meshLimits[5];
-
-      vMesh->gridSize[0] = vMesh->meshMaxLimits[0] - vMesh->meshMinLimits[0];
-      vMesh->gridSize[1] = vMesh->meshMaxLimits[1] - vMesh->meshMinLimits[1];
-      vMesh->gridSize[2] = vMesh->meshMaxLimits[2] - vMesh->meshMinLimits[2];
-
-      vMesh->blockSize[0] = vMesh->gridSize[0] / vMesh->gridLength[0];
-      vMesh->blockSize[1] = vMesh->gridSize[1] / vMesh->gridLength[1];
-      vMesh->blockSize[2] = vMesh->gridSize[2] / vMesh->gridLength[2];
-
-      vMesh->cellSize[0] = vMesh->blockSize[0] / vMesh->blockLength[0];
-      vMesh->cellSize[1] = vMesh->blockSize[1] / vMesh->blockLength[1];
-      vMesh->cellSize[2] = vMesh->blockSize[2] / vMesh->blockLength[2];
-
-      vMesh->max_velocity_blocks
-         = vMeshIn->gridLength[0]
-         * vMeshIn->gridLength[1]
-         * vMeshIn->gridLength[2];
-      vMesh->initialized = true;
-   }
 #ifdef USE_GPU
    // Now all velocity meshes have been initialized on host, into
    // the array. Now we need to upload a copy onto GPU.
@@ -181,3 +135,20 @@ void vmesh::MeshWrapper::initVelocityMeshes(const uint nMeshes) {
 
    return;
 }
+
+vmesh::MeshParameters::MeshParameters(std::string_view name, std::array<Real, 6> meshLimits, std::array<uint32_t, 6> hiResRange, std::array<uint32_t, 3> gridLengthIn, std::array<uint32_t, 3> blockLength) :
+   name {name}, 
+   meshLimits {meshLimits}, 
+   hiResRange {hiResRange},
+   gridLength {
+      gridLengthIn[0] + hiResRange[1] - hiResRange[0], 
+      gridLengthIn[1] + hiResRange[3] - hiResRange[2], 
+      gridLengthIn[2] + hiResRange[5] - hiResRange[4]
+   }, 
+   blockLength {blockLength},
+   max_velocity_blocks {gridLength[0] * gridLength[1] * gridLength[2]},
+   meshMinLimits {meshLimits[0], meshLimits[2], meshLimits[4]},
+   meshMaxLimits {meshLimits[1], meshLimits[3], meshLimits[5]},
+   gridSize {meshMaxLimits[0] - meshMinLimits[0], meshMaxLimits[1] - meshMinLimits[1], meshMaxLimits[2] - meshMinLimits[2]},
+   blockSize {gridSize[0] / gridLengthIn[0], gridSize[1] / gridLengthIn[1], gridSize[2] / gridLengthIn[2]}
+{ }

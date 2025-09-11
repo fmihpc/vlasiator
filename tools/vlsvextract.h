@@ -46,6 +46,10 @@ struct CellStructure {
    Real min_vcoordinates[3];    /**< vx_min, vy_min, vz_min are stored here.*/
    uint32_t maxVelRefLevel;     /**< Maximum refinement level of velocity meshes.*/
 
+   std::vector<Real> xCoords;
+   std::vector<Real> yCoords;
+   std::vector<Real> zCoords;
+
    int slicedCoords[3];
    Real slicedCoordValues[3];
 };

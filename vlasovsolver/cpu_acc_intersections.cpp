@@ -43,61 +43,41 @@ using namespace Eigen;
 */
 void compute_cell_intersections(
         spatial_cell::SpatialCell* spatial_cell,
+        vmesh::GlobalID block,
         const uint popID,
         const uint map_order,
         const Real& dt,
         int intersections_id
-   ) {
+) {
    vmesh::VelocityMesh* vmesh    = spatial_cell->get_velocity_mesh(popID);
    spatial_cell::Population& pop = spatial_cell->get_population(popID);
 
-   // compute transform, forward in time and backward in time, performed in this acceleration
-   Transform<Real,3,Affine> fwd_transform= compute_acceleration_transformation(spatial_cell,popID,dt);
-   Transform<Real,3,Affine> bwd_transform= fwd_transform.inverse();
+   //phiprof::Timer intersectionsTimer {intersections_id};
 
-   phiprof::Timer intersectionsTimer {intersections_id};
    switch(map_order){
       case 0: {
          //Map order XYZ
-         compute_intersections_1st(vmesh,bwd_transform, fwd_transform, 0,
-                                   pop.intersection_x,pop.intersection_x_di,
-                                   pop.intersection_x_dj,pop.intersection_x_dk);
-         compute_intersections_2nd(vmesh,bwd_transform, fwd_transform, 1,
-                                   pop.intersection_y,pop.intersection_y_di,
-                                   pop.intersection_y_dj,pop.intersection_y_dk);
-         compute_intersections_3rd(vmesh,bwd_transform, fwd_transform, 2,
-                                   pop.intersection_z,pop.intersection_z_di,
-                                   pop.intersection_z_dj,pop.intersection_z_dk);
+         compute_intersections_1st(vmesh, block, pop.bwd_transform, pop.fwd_transform, 0, pop.intersection_x,pop.intersection_x_di, pop.intersection_x_dj,pop.intersection_x_dk);
+         compute_intersections_2nd(vmesh, block, pop.bwd_transform, pop.fwd_transform, 1, pop.intersection_y,pop.intersection_y_di, pop.intersection_y_dj,pop.intersection_y_dk);
+         compute_intersections_3rd(vmesh, block, pop.bwd_transform, pop.fwd_transform, 2, pop.intersection_z,pop.intersection_z_di, pop.intersection_z_dj,pop.intersection_z_dk);
          break;
       }
       case 1: {
          //Map order YZX
-         compute_intersections_1st(vmesh, bwd_transform, fwd_transform, 1,
-                                   pop.intersection_y,pop.intersection_y_di,
-                                   pop.intersection_y_dj,pop.intersection_y_dk);
-         compute_intersections_2nd(vmesh, bwd_transform, fwd_transform, 2,
-                                   pop.intersection_z,pop.intersection_z_di,
-                                   pop.intersection_z_dj,pop.intersection_z_dk);
-         compute_intersections_3rd(vmesh, bwd_transform, fwd_transform, 0,
-                                   pop.intersection_x,pop.intersection_x_di,
-                                   pop.intersection_x_dj,pop.intersection_x_dk);
+         compute_intersections_1st(vmesh, block, pop.bwd_transform, pop.fwd_transform, 1, pop.intersection_y,pop.intersection_y_di, pop.intersection_y_dj,pop.intersection_y_dk);
+         compute_intersections_2nd(vmesh, block, pop.bwd_transform, pop.fwd_transform, 2, pop.intersection_z,pop.intersection_z_di, pop.intersection_z_dj,pop.intersection_z_dk);
+         compute_intersections_3rd(vmesh, block, pop.bwd_transform, pop.fwd_transform, 0, pop.intersection_x,pop.intersection_x_di, pop.intersection_x_dj,pop.intersection_x_dk);
          break;
       }
       case 2: {
          //Map order Z X Y
-         compute_intersections_1st(vmesh, bwd_transform, fwd_transform, 2,
-                                   pop.intersection_z,pop.intersection_z_di,
-                                   pop.intersection_z_dj,pop.intersection_z_dk);
-         compute_intersections_2nd(vmesh, bwd_transform, fwd_transform, 0,
-                                   pop.intersection_x,pop.intersection_x_di,
-                                   pop.intersection_x_dj,pop.intersection_x_dk);
-         compute_intersections_3rd(vmesh, bwd_transform, fwd_transform, 1,
-                                   pop.intersection_y,pop.intersection_y_di,
-                                   pop.intersection_y_dj,pop.intersection_y_dk);
+         compute_intersections_1st(vmesh, block, pop.bwd_transform, pop.fwd_transform, 2, pop.intersection_z,pop.intersection_z_di, pop.intersection_z_dj,pop.intersection_z_dk);
+         compute_intersections_2nd(vmesh, block, pop.bwd_transform, pop.fwd_transform, 0, pop.intersection_x,pop.intersection_x_di, pop.intersection_x_dj,pop.intersection_x_dk);
+         compute_intersections_3rd(vmesh, block, pop.bwd_transform, pop.fwd_transform, 1, pop.intersection_y,pop.intersection_y_di, pop.intersection_y_dj,pop.intersection_y_dk);
          break;
       }
    }
-   intersectionsTimer.stop();
+   //intersectionsTimer.stop();
 }
 
 /**
@@ -131,10 +111,11 @@ Eigen::Matrix<Real,3,1> line_plane_intersection(const Eigen::Matrix<Real,3,1>& l
  */
 void compute_intersections_1st(
         const vmesh::VelocityMesh* vmesh,
+        vmesh::GlobalID block,
         const Transform<Real,3,Affine>& bwd_transform,const Transform<Real,3,Affine>& fwd_transform,
         uint dimension,
-        Real& intersection,Real& intersection_di,Real& intersection_dj,Real& intersection_dk) {
-    
+        Real& intersection,Real& intersection_di,Real& intersection_dj,Real& intersection_dk
+) {
     if (dimension == 0) { //Prepare intersections for mapping along X first (mapping order X-Y-Z)
         // Normal of Lagrangian planes
         const Eigen::Matrix<Real,3,1> plane_normal = bwd_transform.linear()*Eigen::Matrix<Real,3,1>(1.0, 0.0, 0.0);
@@ -145,12 +126,12 @@ void compute_intersections_1st(
         const Eigen::Matrix<Real,3,1> line_direction = Eigen::Matrix<Real,3,1>(1.0, 0.0, 0.0);
         const Eigen::Matrix<Real,3,1> line_point(
             0.0,
-            0.5*vmesh->getCellSize()[1]+vmesh->getMeshMinLimits()[1],
-            0.5*vmesh->getCellSize()[2]+vmesh->getMeshMinLimits()[2]);
+            0.5*vmesh->getCellDx(block, 1)+vmesh->getMeshMinLimits()[1],
+            0.5*vmesh->getCellDx(block, 2)+vmesh->getMeshMinLimits()[2]);
         const Eigen::Matrix<Real,3,1> lagrangian_di = bwd_transform.linear()
-            * Eigen::Matrix<Real,3,1>(vmesh->getCellSize()[0],0,0.0);
-        const Eigen::Matrix<Real,3,1> euclidian_dj = Eigen::Matrix<Real,3,1>(0,vmesh->getCellSize()[1],0.0);
-        const Eigen::Matrix<Real,3,1> euclidian_dk = Eigen::Matrix<Real,3,1>(0.0,0.0,vmesh->getCellSize()[2]);
+            * Eigen::Matrix<Real,3,1>(vmesh->getCellDx(block, 0),0,0.0);
+        const Eigen::Matrix<Real,3,1> euclidian_dj = Eigen::Matrix<Real,3,1>(0,vmesh->getCellDx(block, 1),0.0);
+        const Eigen::Matrix<Real,3,1> euclidian_dk = Eigen::Matrix<Real,3,1>(0.0,0.0,vmesh->getCellDx(block, 2));
           
         // compute intersections, varying lines and plane in i,j,k
         const Eigen::Matrix<Real,3,1> intersection_0_0_0 = line_plane_intersection(line_point, line_direction, plane_point, plane_normal);
@@ -171,15 +152,15 @@ void compute_intersections_1st(
         // line along Euclidian y direction, unit vector
         const Eigen::Matrix<Real,3,1> line_direction = Eigen::Matrix<Real,3,1>(0.0, 1.0, 0.0);
         const Eigen::Matrix<Real,3,1> line_point(
-            0.5*vmesh->getCellSize()[0]+vmesh->getMeshMinLimits()[0],
+            0.5*vmesh->getCellDx(block, 0)+vmesh->getMeshMinLimits()[0],
             0.0,
-            0.5*vmesh->getCellSize()[2]+vmesh->getMeshMinLimits()[2]);  
+            0.5*vmesh->getCellDx(block, 2)+vmesh->getMeshMinLimits()[2]);  
         const Eigen::Matrix<Real,3,1> euclidian_di
-            = Eigen::Matrix<Real,3,1>(vmesh->getCellSize()[0], 0.0, 0.0); 
+            = Eigen::Matrix<Real,3,1>(vmesh->getCellDx(block, 0), 0.0, 0.0); 
         const Eigen::Matrix<Real,3,1> lagrangian_dj 
-            = bwd_transform.linear()*Eigen::Matrix<Real,3,1>(0.0 ,vmesh->getCellSize()[1], 0.0); 
+            = bwd_transform.linear()*Eigen::Matrix<Real,3,1>(0.0 ,vmesh->getCellDx(block, 1), 0.0); 
         const Eigen::Matrix<Real,3,1> euclidian_dk
-            = Eigen::Matrix<Real,3,1>(0.0 , 0.0 ,vmesh->getCellSize()[2]); 
+            = Eigen::Matrix<Real,3,1>(0.0 , 0.0 ,vmesh->getCellDx(block, 2)); 
         
         // compute intersections, varying lines and plane in i,j,k
         const Eigen::Matrix<Real,3,1> intersection_0_0_0 = line_plane_intersection(line_point,line_direction,plane_point,plane_normal);
@@ -208,15 +189,15 @@ void compute_intersections_1st(
         // line along Euclidian z direction, unit vector
         const Eigen::Matrix<Real,3,1> line_direction = Eigen::Matrix<Real,3,1>(0,0,1.0); 
         const Eigen::Matrix<Real,3,1> line_point(
-            0.5*vmesh->getCellSize()[0]+vmesh->getMeshMinLimits()[0],
-            0.5*vmesh->getCellSize()[1]+vmesh->getMeshMinLimits()[1],
+            0.5*vmesh->getCellDx(block, 0)+vmesh->getMeshMinLimits()[0],
+            0.5*vmesh->getCellDx(block, 1)+vmesh->getMeshMinLimits()[1],
             0.0);
         const Eigen::Matrix<Real,3,1> euclidian_di
-            = Eigen::Matrix<Real,3,1>(vmesh->getCellSize()[0],0,0.0);
+            = Eigen::Matrix<Real,3,1>(vmesh->getCellDx(block, 0),0,0.0);
         const Eigen::Matrix<Real,3,1> euclidian_dj
-            = Eigen::Matrix<Real,3,1>(0,vmesh->getCellSize()[1],0.0); 
+            = Eigen::Matrix<Real,3,1>(0,vmesh->getCellDx(block, 1),0.0); 
         const Eigen::Matrix<Real,3,1> lagrangian_dk
-            = bwd_transform.linear()*Eigen::Matrix<Real,3,1>(0.0,0.0,vmesh->getCellSize()[2]);
+            = bwd_transform.linear()*Eigen::Matrix<Real,3,1>(0.0,0.0,vmesh->getCellDx(block, 2));
 
       // compute intersections, varying lines and plane in i,j,k
       const Eigen::Matrix<Real,3,1> intersection_0_0_0 = line_plane_intersection(line_point,line_direction,plane_point,plane_normal);
@@ -245,6 +226,7 @@ void compute_intersections_1st(
 */
 void compute_intersections_2nd(
         const vmesh::VelocityMesh* vmesh,
+        vmesh::GlobalID block,
         const Transform<Real,3,Affine>& bwd_transform,const Transform<Real,3,Affine>& fwd_transform,
         uint dimension,
         Real& intersection,Real& intersection_di,Real& intersection_dj,Real& intersection_dk){
@@ -258,22 +240,22 @@ void compute_intersections_2nd(
         
         //Point on lowest Euclidian y-plane through middle of cells
         Eigen::Matrix<Real,3,1> plane_point
-            = Eigen::Matrix<Real,3,1>(0,vmesh->getMeshMinLimits()[1]+vmesh->getCellSize()[1]*0.5,0); 
+            = Eigen::Matrix<Real,3,1>(0,vmesh->getMeshMinLimits()[1]+vmesh->getCellDx(block, 1)*0.5,0); 
         const Eigen::Matrix<Real,3,1> lagrangian_di
-            = bwd_transform.linear()*Eigen::Matrix<Real,3,1>(vmesh->getCellSize()[0],0,0.0);
+            = bwd_transform.linear()*Eigen::Matrix<Real,3,1>(vmesh->getCellDx(block, 0),0,0.0);
         
         // Distance between Euclidian planes
         const Eigen::Matrix<Real,3,1> euclidian_dj
-            = Eigen::Matrix<Real,3,1>(0,vmesh->getCellSize()[1],0.0);
+            = Eigen::Matrix<Real,3,1>(0,vmesh->getCellDx(block, 1),0.0);
         const Eigen::Matrix<Real,3,1> lagrangian_dk
-            = bwd_transform.linear()*Eigen::Matrix<Real,3,1>(0.0,0.0,vmesh->getCellSize()[2]);
+            = bwd_transform.linear()*Eigen::Matrix<Real,3,1>(0.0,0.0,vmesh->getCellDx(block, 2));
       
         // line along Lagrangian y line, unit vector. Only rotation here, not translation
         const Eigen::Matrix<Real,3,1> line_direction = bwd_transform.linear() * Eigen::Matrix<Real,3,1>(0,1.0,0.0); 
         const Eigen::Matrix<Real,3,1> line_point = bwd_transform * Eigen::Matrix<Real,3,1>(
             vmesh->getMeshMinLimits()[0],
-            0.5*vmesh->getCellSize()[1]+vmesh->getMeshMinLimits()[1],
-            0.5*vmesh->getCellSize()[2]+vmesh->getMeshMinLimits()[2]);
+            0.5*vmesh->getCellDx(block, 1)+vmesh->getMeshMinLimits()[1],
+            0.5*vmesh->getCellDx(block, 2)+vmesh->getMeshMinLimits()[2]);
 
         // Compute two intersections between Lagrangian line (absolute position 
         // does not matter so set to 0,0,0, and two Euclidian planes.
@@ -293,23 +275,23 @@ void compute_intersections_2nd(
         
         // Point on lowest Euclidian z-plane through middle of cells
         Eigen::Matrix<Real,3,1> plane_point
-            = Eigen::Matrix<Real,3,1>(0.0, 0.0,vmesh->getMeshMinLimits()[2]+vmesh->getCellSize()[2] * 0.5);
+            = Eigen::Matrix<Real,3,1>(0.0, 0.0,vmesh->getMeshMinLimits()[2]+vmesh->getCellDx(block, 2) * 0.5);
 
         const Eigen::Matrix<Real,3,1> lagrangian_di
-            = bwd_transform.linear() * Eigen::Matrix<Real,3,1>(vmesh->getCellSize()[0], 0.0,  0.0); 
+            = bwd_transform.linear() * Eigen::Matrix<Real,3,1>(vmesh->getCellDx(block, 0), 0.0,  0.0); 
         const Eigen::Matrix<Real,3,1> lagrangian_dj
-            = bwd_transform.linear() * Eigen::Matrix<Real,3,1>(0.0, vmesh->getCellSize()[1], 0.0);
+            = bwd_transform.linear() * Eigen::Matrix<Real,3,1>(0.0, vmesh->getCellDx(block, 1), 0.0);
         // Distance between Euclidian planes
         const Eigen::Matrix<Real,3,1> euclidian_dk
-            = Eigen::Matrix<Real,3,1>(0.0, 0.0, vmesh->getCellSize()[2]); 
+            = Eigen::Matrix<Real,3,1>(0.0, 0.0, vmesh->getCellDx(block, 2)); 
   
         // line along Lagrangian z line, unit vector. Only rotation here, not translation
         const Eigen::Matrix<Real,3,1> line_direction 
             = bwd_transform.linear() * Eigen::Matrix<Real,3,1>(0.0, 0.0, 1.0); 
         const Eigen::Matrix<Real,3,1> line_point = bwd_transform * Eigen::Matrix<Real,3,1>(
-            0.5*vmesh->getCellSize()[0] + vmesh->getMeshMinLimits()[0],
+            0.5*vmesh->getCellDx(block, 0) + vmesh->getMeshMinLimits()[0],
             vmesh->getMeshMinLimits()[1],
-            0.5*vmesh->getCellSize()[2] + vmesh->getMeshMinLimits()[2]);
+            0.5*vmesh->getCellDx(block, 2) + vmesh->getMeshMinLimits()[2]);
         
         // Compute two intersections between Lagrangian line (absolute position 
         // does not matter so set to 0,0,0, and two Euclidian planes.
@@ -329,18 +311,17 @@ void compute_intersections_2nd(
         const Eigen::Matrix<Real,3,1> plane_normal = Eigen::Matrix<Real,3,1>(1.0, 0.0, 0.0);
         //Point on lowest Euclidian x-plane through middle of cells
         Eigen::Matrix<Real,3,1> plane_point 
-            = Eigen::Matrix<Real,3,1>(vmesh->getMeshMinLimits()[0]+vmesh->getCellSize()[0]*0.5, 0.0, 0.0);
+            = Eigen::Matrix<Real,3,1>(vmesh->getMeshMinLimits()[0]+vmesh->getCellDx(block, 0)*0.5, 0.0, 0.0);
         // Distance between Euclidian planes
-        const Eigen::Matrix<Real,3,1> euclidian_di = Eigen::Matrix<Real,3,1>(vmesh->getCellSize()[0], 0.0, 0.0);
-        const Eigen::Matrix<Real,3,1> lagrangian_dj 
-            = bwd_transform.linear() * Eigen::Matrix<Real,3,1>(0.0, vmesh->getCellSize()[1], 0.0); 
-        const Eigen::Matrix<Real,3,1> lagrangian_dk = bwd_transform.linear() * Eigen::Matrix<Real,3,1>(0.0, 0.0, vmesh->getCellSize()[2]); 
+        const Eigen::Matrix<Real,3,1> euclidian_di = Eigen::Matrix<Real,3,1>(vmesh->getCellDx(block, 0), 0.0, 0.0);
+        const Eigen::Matrix<Real,3,1> lagrangian_dj = bwd_transform.linear() * Eigen::Matrix<Real,3,1>(0.0, vmesh->getCellDx(block, 1), 0.0); 
+        const Eigen::Matrix<Real,3,1> lagrangian_dk = bwd_transform.linear() * Eigen::Matrix<Real,3,1>(0.0, 0.0, vmesh->getCellDx(block, 2)); 
   
         // line along Lagrangian x line, unit vector. Only rotation here, not translation
         const Eigen::Matrix<Real,3,1> line_direction = bwd_transform.linear() * Eigen::Matrix<Real,3,1>(1.0, 0.0, 0.0);
         const Eigen::Matrix<Real,3,1> line_point = bwd_transform * Eigen::Matrix<Real,3,1>(
-            0.5 * vmesh->getCellSize()[0] + vmesh->getMeshMinLimits()[0],
-            0.5 * vmesh->getCellSize()[1] + vmesh->getMeshMinLimits()[1],
+            0.5 * vmesh->getCellDx(block, 0) + vmesh->getMeshMinLimits()[0],
+            0.5 * vmesh->getCellDx(block, 1) + vmesh->getMeshMinLimits()[1],
             vmesh->getMeshMinLimits()[2]);  
         
         // Compute two intersections between Lagrangian line (absolute position 
@@ -375,27 +356,28 @@ void compute_intersections_2nd(
 */
 void compute_intersections_3rd(
     const vmesh::VelocityMesh* vmesh,
+    vmesh::GlobalID block,
     const Transform<Real,3,Affine>& bwd_transform,const Transform<Real,3,Affine>& fwd_transform,
     uint dimension,
     Real& intersection,Real& intersection_di,Real& intersection_dj,Real& intersection_dk) {
     
     if (dimension == 0) { //Prepare intersections for mapping along X third (mapping order Y-Z-X)
         const Eigen::Matrix<Real,3,1> point_0_0_0 = bwd_transform
-            * Eigen::Matrix<Real,3,1>(0.0 * vmesh->getCellSize()[0] + vmesh->getMeshMinLimits()[0],
-                                      0.5 * vmesh->getCellSize()[1] + vmesh->getMeshMinLimits()[1],
-                                      0.5 * vmesh->getCellSize()[2] + vmesh->getMeshMinLimits()[2]);
+            * Eigen::Matrix<Real,3,1>(0.0 * vmesh->getCellDx(block, 0) + vmesh->getMeshMinLimits()[0],
+                                      0.5 * vmesh->getCellDx(block, 1) + vmesh->getMeshMinLimits()[1],
+                                      0.5 * vmesh->getCellDx(block, 2) + vmesh->getMeshMinLimits()[2]);
         const Eigen::Matrix<Real,3,1> point_1_0_0 = bwd_transform
-            * Eigen::Matrix<Real,3,1>(1.0 * vmesh->getCellSize()[0] + vmesh->getMeshMinLimits()[0],
-                                      0.5 * vmesh->getCellSize()[1] + vmesh->getMeshMinLimits()[1],
-                                      0.5 * vmesh->getCellSize()[2] + vmesh->getMeshMinLimits()[2]);
+            * Eigen::Matrix<Real,3,1>(1.0 * vmesh->getCellDx(block, 0) + vmesh->getMeshMinLimits()[0],
+                                      0.5 * vmesh->getCellDx(block, 1) + vmesh->getMeshMinLimits()[1],
+                                      0.5 * vmesh->getCellDx(block, 2) + vmesh->getMeshMinLimits()[2]);
         const Eigen::Matrix<Real,3,1> point_0_1_0 = bwd_transform
-            * Eigen::Matrix<Real,3,1>(0.0 * vmesh->getCellSize()[0] + vmesh->getMeshMinLimits()[0],
-                                      1.5 * vmesh->getCellSize()[1] + vmesh->getMeshMinLimits()[1],
-                                      0.5 * vmesh->getCellSize()[2] + vmesh->getMeshMinLimits()[2]);
+            * Eigen::Matrix<Real,3,1>(0.0 * vmesh->getCellDx(block, 0) + vmesh->getMeshMinLimits()[0],
+                                      1.5 * vmesh->getCellDx(block, 1) + vmesh->getMeshMinLimits()[1],
+                                      0.5 * vmesh->getCellDx(block, 2) + vmesh->getMeshMinLimits()[2]);
         const Eigen::Matrix<Real,3,1> point_0_0_1 = bwd_transform
-            * Eigen::Matrix<Real,3,1>(0.0 * vmesh->getCellSize()[0] + vmesh->getMeshMinLimits()[0],
-                                      0.5 * vmesh->getCellSize()[1] + vmesh->getMeshMinLimits()[1],
-                                      1.5 * vmesh->getCellSize()[2] + vmesh->getMeshMinLimits()[2]);
+            * Eigen::Matrix<Real,3,1>(0.0 * vmesh->getCellDx(block, 0) + vmesh->getMeshMinLimits()[0],
+                                      0.5 * vmesh->getCellDx(block, 1) + vmesh->getMeshMinLimits()[1],
+                                      1.5 * vmesh->getCellDx(block, 2) + vmesh->getMeshMinLimits()[2]);
         intersection = point_0_0_0[dimension];
         intersection_di = point_1_0_0[dimension]-point_0_0_0[dimension];
         intersection_dj = point_0_1_0[dimension]-point_0_0_0[dimension];
@@ -405,21 +387,21 @@ void compute_intersections_3rd(
         // This is the case presented in the Slice 3D article, 
         // data along z has been moved to Lagrangian coordinates
         const Eigen::Matrix<Real,3,1> point_0_0_0 = bwd_transform
-            * Eigen::Matrix<Real,3,1>(0.5 * vmesh->getCellSize()[0] + vmesh->getMeshMinLimits()[0],
+            * Eigen::Matrix<Real,3,1>(0.5 * vmesh->getCellDx(block, 0) + vmesh->getMeshMinLimits()[0],
                                       vmesh->getMeshMinLimits()[1],
-                                      0.5 * vmesh->getCellSize()[2] + vmesh->getMeshMinLimits()[2]);
+                                      0.5 * vmesh->getCellDx(block, 2) + vmesh->getMeshMinLimits()[2]);
         const Eigen::Matrix<Real,3,1> point_1_0_0 = bwd_transform
-            * Eigen::Matrix<Real,3,1>(1.5 * vmesh->getCellSize()[0] + vmesh->getMeshMinLimits()[0],
+            * Eigen::Matrix<Real,3,1>(1.5 * vmesh->getCellDx(block, 0) + vmesh->getMeshMinLimits()[0], 
                                       vmesh->getMeshMinLimits()[1],
-                                      0.5 * vmesh->getCellSize()[2] + vmesh->getMeshMinLimits()[2]);
+                                      0.5 * vmesh->getCellDx(block, 2) + vmesh->getMeshMinLimits()[2]);
         const Eigen::Matrix<Real,3,1> point_0_1_0 = bwd_transform
-            * Eigen::Matrix<Real,3,1>(0.5 * vmesh->getCellSize()[0] + vmesh->getMeshMinLimits()[0],
-                                      1.0 * vmesh->getCellSize()[1] + vmesh->getMeshMinLimits()[1],
-                                      0.5 * vmesh->getCellSize()[2] + vmesh->getMeshMinLimits()[2]);
+            * Eigen::Matrix<Real,3,1>(0.5 * vmesh->getCellDx(block, 0) + vmesh->getMeshMinLimits()[0],
+                                      1.0 * vmesh->getCellDx(block, 1) + vmesh->getMeshMinLimits()[1],
+                                      0.5 * vmesh->getCellDx(block, 2) + vmesh->getMeshMinLimits()[2]);
         const Eigen::Matrix<Real,3,1> point_0_0_1 = bwd_transform
-            * Eigen::Matrix<Real,3,1>(0.5 * vmesh->getCellSize()[0] + vmesh->getMeshMinLimits()[0],
+            * Eigen::Matrix<Real,3,1>(0.5 * vmesh->getCellDx(block, 0) + vmesh->getMeshMinLimits()[0], 
                                       vmesh->getMeshMinLimits()[1],
-                                      1.5 * vmesh->getCellSize()[2] + vmesh->getMeshMinLimits()[2]);
+                                      1.5 * vmesh->getCellDx(block, 2) + vmesh->getMeshMinLimits()[2]);
         intersection = point_0_0_0[dimension];
         intersection_di = point_1_0_0[dimension]-point_0_0_0[dimension];
         intersection_dj = point_0_1_0[dimension]-point_0_0_0[dimension];
@@ -427,21 +409,21 @@ void compute_intersections_3rd(
     }
     if (dimension == 2) { //Prepare intersections for mapping along Z third (mapping order X-Y-Z)
         const Eigen::Matrix<Real,3,1> point_0_0_0 = bwd_transform
-            * Eigen::Matrix<Real,3,1>(0.5 * vmesh->getCellSize()[0] + vmesh->getMeshMinLimits()[0],
-                                      0.5 * vmesh->getCellSize()[1] + vmesh->getMeshMinLimits()[1],
-                                      0.0 * vmesh->getCellSize()[2] + vmesh->getMeshMinLimits()[2]);
+            * Eigen::Matrix<Real,3,1>(0.5 * vmesh->getCellDx(block, 0) + vmesh->getMeshMinLimits()[0],
+                                      0.5 * vmesh->getCellDx(block, 1) + vmesh->getMeshMinLimits()[1],
+                                      0.0 * vmesh->getCellDx(block, 2) + vmesh->getMeshMinLimits()[2]);
         const Eigen::Matrix<Real,3,1> point_1_0_0 = bwd_transform
-            * Eigen::Matrix<Real,3,1>(1.5 * vmesh->getCellSize()[0] + vmesh->getMeshMinLimits()[0],
-                                      0.5 * vmesh->getCellSize()[1] + vmesh->getMeshMinLimits()[1],
-                                      0.0 * vmesh->getCellSize()[2] + vmesh->getMeshMinLimits()[2]);
+            * Eigen::Matrix<Real,3,1>(1.5 * vmesh->getCellDx(block, 0) + vmesh->getMeshMinLimits()[0],
+                                      0.5 * vmesh->getCellDx(block, 1) + vmesh->getMeshMinLimits()[1],
+                                      0.0 * vmesh->getCellDx(block, 2) + vmesh->getMeshMinLimits()[2]);
         const Eigen::Matrix<Real,3,1> point_0_1_0 = bwd_transform
-            * Eigen::Matrix<Real,3,1>(0.5 * vmesh->getCellSize()[0] + vmesh->getMeshMinLimits()[0],
-                                      1.5 * vmesh->getCellSize()[1] + vmesh->getMeshMinLimits()[1],
-                                      0.0 * vmesh->getCellSize()[2] + vmesh->getMeshMinLimits()[2]);
+            * Eigen::Matrix<Real,3,1>(0.5 * vmesh->getCellDx(block, 0) + vmesh->getMeshMinLimits()[0],
+                                      1.5 * vmesh->getCellDx(block, 1) + vmesh->getMeshMinLimits()[1],
+                                      0.0 * vmesh->getCellDx(block, 2) + vmesh->getMeshMinLimits()[2]);
         const Eigen::Matrix<Real,3,1> point_0_0_1 = bwd_transform
-            * Eigen::Matrix<Real,3,1>(0.5 * vmesh->getCellSize()[0] + vmesh->getMeshMinLimits()[0],
-                                      0.5 * vmesh->getCellSize()[1] + vmesh->getMeshMinLimits()[1],
-                                      1.0 * vmesh->getCellSize()[2] + vmesh->getMeshMinLimits()[2]);
+            * Eigen::Matrix<Real,3,1>(0.5 * vmesh->getCellDx(block, 0) + vmesh->getMeshMinLimits()[0],
+                                      0.5 * vmesh->getCellDx(block, 1) + vmesh->getMeshMinLimits()[1],
+                                      1.0 * vmesh->getCellDx(block, 2) + vmesh->getMeshMinLimits()[2]);
         intersection = point_0_0_0[dimension];
         intersection_di = point_1_0_0[dimension]-point_0_0_0[dimension];
         intersection_dj = point_0_1_0[dimension]-point_0_0_0[dimension];

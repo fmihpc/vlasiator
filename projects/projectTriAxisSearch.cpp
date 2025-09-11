@@ -63,9 +63,9 @@ namespace projects {
       creal dx = cell->parameters[CellParams::DX];
       creal dy = cell->parameters[CellParams::DY];
       creal dz = cell->parameters[CellParams::DZ];
-      creal dvxBlock = cell->get_velocity_grid_block_size(popID)[0];
-      creal dvyBlock = cell->get_velocity_grid_block_size(popID)[1];
-      creal dvzBlock = cell->get_velocity_grid_block_size(popID)[2];
+      creal dvxBlock = vmesh::getMeshWrapper()->at(popID).getBlockDx(0);
+      creal dvyBlock = vmesh::getMeshWrapper()->at(popID).getBlockDx(1);
+      creal dvzBlock = vmesh::getMeshWrapper()->at(popID).getBlockDx(2);
       // creal dvxCell = cell->get_velocity_grid_cell_size(popID)[0];
       // creal dvyCell = cell->get_velocity_grid_cell_size(popID)[1];
       // creal dvzCell = cell->get_velocity_grid_cell_size(popID)[2];

@@ -122,9 +122,9 @@ void gpu_accelerate_cells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    copyTimer.stop();
 
    // Do some overall preparation regarding dimensions and acceleration order
-   const uint D0 = (*vmesh::getMeshWrapper()->velocityMeshes)[popID].gridLength[0];
-   const uint D1 = (*vmesh::getMeshWrapper()->velocityMeshes)[popID].gridLength[1];
-   const uint D2 = (*vmesh::getMeshWrapper()->velocityMeshes)[popID].gridLength[2];
+   const uint D0 = vmesh::getMeshWrapper()->at(popID).gridLength[0];
+   const uint D1 = vmesh::getMeshWrapper()->at(popID).gridLength[1];
+   const uint D2 = vmesh::getMeshWrapper()->at(popID).gridLength[2];
 
    std::vector<int> dimOrder(3);
    switch(map_order) {
