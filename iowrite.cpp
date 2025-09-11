@@ -1673,41 +1673,40 @@ bool writeRestart(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
 
    // Fsgrid Reducers
    restartReducer.addOperator(
-       new DRO::DataReductionOperatorFsGrid("fg_E", [](const FieldSolverData& fieldSolverData) -> std::vector<Real> {
-          const std::array<fsgrid::FsIndex_t, 3>& gridSize = fieldSolverData.fsgrid.getLocalSize();
-          std::vector<Real> retval(gridSize[0] * gridSize[1] * gridSize[2] * fsgrids::efield::N_EFIELD);
-          int index = 0;
-          for (fsgrid::FsIndex_t z = 0; z < gridSize[2]; z++) {
-             for (fsgrid::FsIndex_t y = 0; y < gridSize[1]; y++) {
-                for (fsgrid::FsIndex_t x = 0; x < gridSize[0]; x++) {
-                   const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                   const auto lid = stencil.ooo();
-                   std::memcpy(&retval[index], fieldSolverData.E[lid].data(), sizeof(Real) * fsgrids::efield::N_EFIELD);
-                   index += fsgrids::efield::N_EFIELD;
-                }
-             }
-          }
-          return retval;
-       }));
+      new DRO::DataReductionOperatorFsGrid("fg_E", [](const FieldSolverData& fieldSolverData) -> std::vector<Real> {
+         const auto* localSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+         std::vector<Real> retval(localSize[0] * localSize[1] * localSize[2] * 3);
+
+         fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                                           phiprof::initializeTimer("DRO_fg_E"), fieldSolverData.technical,
+                                           [=, &retval](const fsgrid::Coordinates coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+            const auto lid = stencil.ooo();
+            const auto ri = localSize[1] * localSize[0] * stencil.k + localSize[0] * stencil.j + stencil.i;
+            retval[3 * ri] = fieldSolverData.E[lid][fsgrids::EX];
+            retval[3 * ri + 1] = fieldSolverData.E[lid][fsgrids::EY];
+            retval[3 * ri + 2] = fieldSolverData.E[lid][fsgrids::EZ];
+         });
+         return retval;
+      })
+   );
 
    restartReducer.addOperator(
-       new DRO::DataReductionOperatorFsGrid("fg_PERB", [](const FieldSolverData& fieldSolverData) -> std::vector<Real> {
-          const auto& gridSize = fieldSolverData.fsgrid.getLocalSize();
-          std::vector<Real> retval(gridSize[0] * gridSize[1] * gridSize[2] * fsgrids::bfield::N_BFIELD);
-          int index = 0;
-          for (fsgrid::FsIndex_t z = 0; z < gridSize[2]; z++) {
-             for (fsgrid::FsIndex_t y = 0; y < gridSize[1]; y++) {
-                for (fsgrid::FsIndex_t x = 0; x < gridSize[0]; x++) {
-                   const auto stencil = fieldSolverData.fsgrid.makeStencil(x, y, z);
-                   const auto lid = stencil.ooo();
-                   std::memcpy(&retval[index], fieldSolverData.perB[lid].data(),
-                               sizeof(Real) * fsgrids::bfield::N_BFIELD);
-                   index += fsgrids::bfield::N_BFIELD;
-                }
-             }
-          }
-          return retval;
-       }));
+      new DRO::DataReductionOperatorFsGrid("fg_PERB", [](const FieldSolverData& fieldSolverData) -> std::vector<Real> {
+         const auto* localSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+         std::vector<Real> retval(localSize[0] * localSize[1] * localSize[2] * 3);
+
+         fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                                           phiprof::initializeTimer("DRO_fg_PERB"), fieldSolverData.technical,
+                                           [=, &retval](const fsgrid::Coordinates coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+            const auto lid = stencil.ooo();
+            const auto ri = localSize[1] * localSize[0] * stencil.k + localSize[0] * stencil.j + stencil.i;
+            retval[3 * ri] = fieldSolverData.perB[lid][fsgrids::PERBX];
+            retval[3 * ri + 1] = fieldSolverData.perB[lid][fsgrids::PERBY];
+            retval[3 * ri + 2] = fieldSolverData.perB[lid][fsgrids::PERBZ];
+         });
+         return retval;
+      })
+   );
 
    // Add ionosphere restart variables
    // (To reconstruct state, we need the time-smoothed downmapped quantities: FACs, rhon and pressure.
