@@ -244,16 +244,16 @@ struct Parameters {
    //Asterix  VDF Compression
    enum ASTERIX_COMPRESSION_METHODS{
        #ifdef ASTERIX_MLP
-       MLP,
-       MLP_MULTI,
+           MLP,
+           MLP_MULTI,
        #endif
        #ifdef ASTERIX_ZFP
-       ZFP,
+           ZFP,
        #endif
        #ifdef ASTERIX_OCTREE
-       OCTREE,
+           OCTREE,
        #endif
-       NONE
+           NONE
    };
    static std::string mlpLayer;
    static std::vector<std::size_t> mlp_arch; /* Hidden Layers in fMLP*/
