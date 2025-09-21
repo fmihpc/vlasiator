@@ -1138,7 +1138,7 @@ void Parameters::getParameters() {
    RP::get("vlasovsolver.maxSlAccelerationSubcycles", P::maxSlAccelerationSubcycles);
    RP::get("vlasovsolver.maxCFL", P::vlasovSolverMaxCFL);
    RP::get("vlasovsolver.minCFL", P::vlasovSolverMinCFL);
-   RP::get("vlasovsolver.GhostTraslate",P::vlasovSolverGhostTranslate);
+   RP::get("vlasovsolver.GhostTranslate",P::vlasovSolverGhostTranslate);
    RP::get("vlasovsolver.GhostTranslateExtent",P::vlasovSolverGhostTranslateExtent);
    RP::get("vlasovsolver.accelerateMaxwellianBoundaries",  P::vlasovAccelerateMaxwellianBoundaries);
    if (P::vlasovSolverGhostTranslate==true) {
