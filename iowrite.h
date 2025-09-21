@@ -103,7 +103,8 @@ bool writeRestart(
    const std::string& name,
    const uint& fileIndex,
    const bool dateInFileName,
-   const int& stripe
+   const int& stripe,
+   bool compress_vdfs
 );
 
 /*!

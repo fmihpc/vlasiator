@@ -21,6 +21,8 @@
  */
 
 #include "parameters.h"
+#include "common.h"
+#include "mpi.h"
 #include "object_wrapper.h"
 #include "particle_species.h"
 #include "readparameters.h"
@@ -95,6 +97,8 @@ vector<string> P::systemWritePath;
 vector<Real> P::systemWriteTimeInterval;
 vector<int> P::systemWriteDistributionWriteStride;
 bool P::systemWriteDistributionCompressed;
+bool P::systemWriteRestartCompressed;
+bool P::systemWriteRecoveryCompressed;      
 vector<int> P::systemWriteDistributionWriteXlineStride;
 vector<int> P::systemWriteDistributionWriteYlineStride;
 vector<int> P::systemWriteDistributionWriteZlineStride;
@@ -431,6 +435,8 @@ bool P::addParameters() {
    // Output variable parameters
    RP::add("io.system_write_all_data_reducers", "If 0 don't write all DROs, if 1 do write them.", false);
    RP::add("io.system_write_distribution_compressed", string("Apply ASTERIX compressiont to VDFs in bulk files."), false);
+   RP::add("io.system_write_restart_compressed", string("Apply ASTERIX compressiont to VDFs in restart files."), false);
+   RP::add("io.system_write_recovery_compressed", string("Apply ASTERIX compressiont to VDFs in recovery files."), false);
    // NOTE Do not remove the : before the list of variable names as this is parsed by tools/check_vlasiator_cfg.sh
    RP::addComposing("variables.output",
                     string() +
@@ -613,6 +619,8 @@ void Parameters::getParameters() {
    RP::get("io.system_write_fsgrid_variables", P::systemWriteFsGrid);
    RP::get("io.system_write_all_data_reducers", P::systemWriteAllDROs);
    RP::get("io.system_write_distribution_compressed", P::systemWriteDistributionCompressed);
+   RP::get("io.system_write_restart_compressed", P::systemWriteRestartCompressed);
+   RP::get("io.system_write_recovery_compressed", P::systemWriteRecoveryCompressed);
    RP::get("io.write_initial_state", P::writeInitialState);
    RP::get("io.write_full_bgb_data", P::writeFullBGB);
    RP::get("io.restart_walltime_interval", P::saveRestartWalltimeInterval);
@@ -972,15 +980,24 @@ void Parameters::getParameters() {
          P::doCompress=true;
       }
       #endif
-      if (!P::doCompress){
-         P::vdf_compression_method=ASTERIX_COMPRESSION_METHODS::NONE;
-         P::doCompress=false;
-      }
    }else{
       P::vdf_compression_method=ASTERIX_COMPRESSION_METHODS::NONE;
       P::doCompress=false;
    }
-   
+
+   if ((P::systemWriteDistributionCompressed || P::systemWriteRecoveryCompressed || P::systemWriteRestartCompressed )&&
+           (P::vdf_compression_method == ASTERIX_COMPRESSION_METHODS::NONE || doCompress == false)) {
+      if (myRank==MASTER_RANK){
+         std::cout<<"do compress "<<doCompress<<std::endl;
+         std::cout<<"method "<<P::vdf_compression_method<<std::endl;
+         std::cerr << "Your ASTERIX setting do not make sense! You need to either disable compression or select an "
+                      "appropriate comrpession method!"
+                   << std::endl;
+      }
+      MPI_Barrier(MPI_COMM_WORLD);
+      MPI_Abort(MPI_COMM_WORLD,-1);
+   }
+
    //Parse MLP Layer string
    auto parseToSize_T = [](const std::string& str) -> std::vector<size_t> {
       std::vector<std::size_t> result;
@@ -1121,7 +1138,7 @@ void Parameters::getParameters() {
    RP::get("vlasovsolver.maxSlAccelerationSubcycles", P::maxSlAccelerationSubcycles);
    RP::get("vlasovsolver.maxCFL", P::vlasovSolverMaxCFL);
    RP::get("vlasovsolver.minCFL", P::vlasovSolverMinCFL);
-   RP::get("vlasovsolver.GhostTranslate",P::vlasovSolverGhostTranslate);
+   RP::get("vlasovsolver.GhostTraslate",P::vlasovSolverGhostTranslate);
    RP::get("vlasovsolver.GhostTranslateExtent",P::vlasovSolverGhostTranslateExtent);
    RP::get("vlasovsolver.accelerateMaxwellianBoundaries",  P::vlasovAccelerateMaxwellianBoundaries);
    if (P::vlasovSolverGhostTranslate==true) {

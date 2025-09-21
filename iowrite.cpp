@@ -1731,17 +1731,26 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    localNumVelSpaceCells=velSpaceCells.size();
    MPI_Allreduce(&localNumVelSpaceCells,&numVelSpaceCells,1,MPI_UINT64_T,MPI_SUM,MPI_COMM_WORLD);
 
-   //Compress 
-   std::vector<std::vector<char>> mlp_clustered_bytes;
-   phiprof::Timer compression_interface{"asterix-compression"};
-   const auto& local_cells_to_compress = getLocalCells();
-   ASTERIX::compress_vdfs(mpiGrid, velSpaceCells, P::vdf_compression_method, false, mlp_clustered_bytes, 1);
-   compression_interface.stop();
-   //write out velocity space data NOTE: There is mpi communication in writeVelocityDistributionData
-   if (writeVelocityDistributionDataAsterix(vlsvWriter, mpiGrid, velSpaceCells, mlp_clustered_bytes, MPI_COMM_WORLD) ==
-       false) {
+   bool ok = false;
+   // Compress
+   if (P::systemWriteDistributionCompressed) {
+      std::vector<std::vector<char>> mlp_clustered_bytes;
+      phiprof::Timer compression_interface{"asterix-compression"};
+      const auto& local_cells_to_compress = getLocalCells();
+      ASTERIX::compress_vdfs(mpiGrid, velSpaceCells, P::vdf_compression_method, false, mlp_clustered_bytes, 1);
+      compression_interface.stop();
+      ok =
+          writeVelocityDistributionDataAsterix(vlsvWriter, mpiGrid, velSpaceCells, mlp_clustered_bytes, MPI_COMM_WORLD);
+   } else {
+      // write out velocity space data NOTE: There is mpi communication in writeVelocityDistributionData
+      ok = writeVelocityDistributionData(vlsvWriter, mpiGrid, velSpaceCells, MPI_COMM_WORLD);
+   }
+   if (!ok) {
       cerr << "ERROR, FAILED TO WRITE VELOCITY DISTRIBUTION DATA AT " << __FILE__ << " " << __LINE__ << endl;
-      logFile << "(MAIN) writeGrid: ERROR FAILED TO WRITE VELOCITY DISTRIBUTION DATA AT: " << __FILE__ << " " << __LINE__ << endl << writeVerbose;
+      logFile << "(MAIN) writeGrid: ERROR FAILED TO WRITE VELOCITY DISTRIBUTION DATA AT: " << __FILE__ << " "
+              << __LINE__ << endl
+              << writeVerbose;
+      return false;
    }
    return true;
 }
@@ -2027,7 +2036,8 @@ bool writeRestart(
    const string& name,
    const uint& fileIndex,
    const bool dateInFileName,
-   const int& stripe) 
+   const int& stripe,
+   bool compress_vdfs) 
 {
    // Writes a restart
    bool success = true;
@@ -2157,14 +2167,28 @@ bool writeRestart(
    //write the velocity distribution data -- note: it's expecting a vector of pointers:
    // Note: restart should always write double values to ensure the accuracy of the restart runs. 
    // In case of distribution data it is not as important as they are mainly used for visualization purpose
-   std::vector<std::vector<char>> mlp_clustered_bytes;
-   phiprof::Timer compression_interface {"asterix-compression"};
-   const auto& local_cells_to_compress=getLocalCells();
-   ASTERIX::compress_vdfs(mpiGrid,local_cells,P::vdf_compression_method,false,mlp_clustered_bytes,1);
-   compression_interface.stop();
-   phiprof::Timer vspaceTimer {"velocityspaceIO"};
-   writeVelocityDistributionDataAsterix(vlsvWriter, mpiGrid, local_cells,mlp_clustered_bytes ,MPI_COMM_WORLD);
-   vspaceTimer.stop();
+   bool ok = false;
+   if (compress_vdfs) {
+      std::vector<std::vector<char>> mlp_clustered_bytes;
+      phiprof::Timer compression_interface{"asterix-compression"};
+      const auto& local_cells_to_compress = getLocalCells();
+      ASTERIX::compress_vdfs(mpiGrid, local_cells, P::vdf_compression_method, false, mlp_clustered_bytes, 1);
+      compression_interface.stop();
+      phiprof::Timer vspaceTimer{"velocityspaceIO"};
+      ok = writeVelocityDistributionDataAsterix(vlsvWriter, mpiGrid, local_cells, mlp_clustered_bytes, MPI_COMM_WORLD);
+      vspaceTimer.stop();
+   } else {
+      phiprof::Timer vspaceTimer{"velocityspaceIO"};
+      ok = writeVelocityDistributionData(vlsvWriter, mpiGrid, local_cells, MPI_COMM_WORLD);
+      vspaceTimer.stop();
+   }
+   if (!ok) {
+      cerr << "ERROR, FAILED TO WRITE VELOCITY DISTRIBUTION DATA AT " << __FILE__ << " " << __LINE__ << endl;
+      logFile << "(MAIN) writeGrid: ERROR FAILED TO WRITE VELOCITY DISTRIBUTION DATA AT: " << __FILE__ << " "
+              << __LINE__ << endl
+              << writeVerbose;
+      return false;
+   }
 
    metadataTimer.stop();
    phiprof::Timer reducedTimer {"reduceddataIO"};
