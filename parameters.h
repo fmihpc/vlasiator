@@ -84,6 +84,7 @@ struct Parameters {
    static std::vector<Real> systemWriteTimeInterval; /*!< Interval in simusecond for output for each class*/
    static std::vector<int>
        systemWriteDistributionWriteStride; /*!< Every this many cells write out their velocity space in each class. */
+   static bool systemWriteDistributionCompressed; /*Will apply ASTERIX compression to VDFs in bulk files*/ 
    static std::vector<int>
        systemWriteDistributionWriteXlineStride; /*!< Every this many lines of cells along the x direction write out
                                                    their velocity space in each class. */
@@ -264,7 +265,6 @@ struct Parameters {
    static std::size_t max_vdfs_per_nn;
    static Real octree_tolerance;
    static bool doCompress;
-   static bool transferKnowledge;
    static std::string method_str;
    static ASTERIX_COMPRESSION_METHODS vdf_compression_method;
    

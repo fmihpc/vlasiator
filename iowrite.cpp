@@ -1730,8 +1730,16 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    uint64_t localNumVelSpaceCells;
    localNumVelSpaceCells=velSpaceCells.size();
    MPI_Allreduce(&localNumVelSpaceCells,&numVelSpaceCells,1,MPI_UINT64_T,MPI_SUM,MPI_COMM_WORLD);
+
+   //Compress 
+   std::vector<std::vector<char>> mlp_clustered_bytes;
+   phiprof::Timer compression_interface{"asterix-compression"};
+   const auto& local_cells_to_compress = getLocalCells();
+   ASTERIX::compress_vdfs(mpiGrid, velSpaceCells, P::vdf_compression_method, false, mlp_clustered_bytes, 1);
+   compression_interface.stop();
    //write out velocity space data NOTE: There is mpi communication in writeVelocityDistributionData
-   if (writeVelocityDistributionData(vlsvWriter, mpiGrid, velSpaceCells, MPI_COMM_WORLD ) == false ) {
+   if (writeVelocityDistributionDataAsterix(vlsvWriter, mpiGrid, velSpaceCells, mlp_clustered_bytes, MPI_COMM_WORLD) ==
+       false) {
       cerr << "ERROR, FAILED TO WRITE VELOCITY DISTRIBUTION DATA AT " << __FILE__ << " " << __LINE__ << endl;
       logFile << "(MAIN) writeGrid: ERROR FAILED TO WRITE VELOCITY DISTRIBUTION DATA AT: " << __FILE__ << " " << __LINE__ << endl << writeVerbose;
    }
@@ -1789,7 +1797,8 @@ bool writeGrid(
    DataReducer* dataReducer,
    const uint& outputFileTypeIndex,
    const int& stripe,
-   const bool writeGhosts
+   const bool writeGhosts,
+   bool compress_vdfs
 ) {
    bool success = true;
    int myRank;
@@ -1802,7 +1811,11 @@ bool writeGrid(
    phiprof::Timer writeReducedTimer {"writeGrid-reduced"};
    // Create a name for the output file and open it with VLSVWriter:
    stringstream fname;
-   fname << P::systemWritePath.at(outputFileTypeIndex) << "/" << P::systemWriteName.at(outputFileTypeIndex) << ".";
+   fname << P::systemWritePath.at(outputFileTypeIndex) << "/" << P::systemWriteName.at(outputFileTypeIndex);
+   if (compress_vdfs) {
+      fname << "_compressed";
+   }
+   fname<<".";
    fname.width(7);
    fname.fill('0');
    fname << P::systemWrites.at(outputFileTypeIndex) << ".vlsv";
@@ -2144,10 +2157,10 @@ bool writeRestart(
    //write the velocity distribution data -- note: it's expecting a vector of pointers:
    // Note: restart should always write double values to ensure the accuracy of the restart runs. 
    // In case of distribution data it is not as important as they are mainly used for visualization purpose
-   const std::size_t number_of_spatial_cells=P::xcells_ini*P::ycells_ini*P::zcells_ini; //will deal with AMR later
    std::vector<std::vector<char>> mlp_clustered_bytes;
    phiprof::Timer compression_interface {"asterix-compression"};
-   ASTERIX::compress_vdfs(mpiGrid,number_of_spatial_cells,P::vdf_compression_method,false,mlp_clustered_bytes,1);
+   const auto& local_cells_to_compress=getLocalCells();
+   ASTERIX::compress_vdfs(mpiGrid,local_cells,P::vdf_compression_method,false,mlp_clustered_bytes,1);
    compression_interface.stop();
    phiprof::Timer vspaceTimer {"velocityspaceIO"};
    writeVelocityDistributionDataAsterix(vlsvWriter, mpiGrid, local_cells,mlp_clustered_bytes ,MPI_COMM_WORLD);

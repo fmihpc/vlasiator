@@ -49,7 +49,7 @@ namespace ASTERIX {
   think this is what ML people call transfer learning (together with freezing
       and adding extra neuron which we do not do here).
 */
-void compress_vdfs(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, size_t number_of_spatial_cells,
+void compress_vdfs(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const std::vector<CellID>& local_cells,
                    P::ASTERIX_COMPRESSION_METHODS method, bool update_weights,std::vector<std::vector<char>>&mpl_bytes,uint32_t downsampling_factor=1);
 
 /*

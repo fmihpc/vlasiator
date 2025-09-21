@@ -945,7 +945,8 @@ int simulate(int argn,char* args[]) {
                &outputReducer,
                i,
                P::systemStripeFactor,
-               writeGhosts
+               writeGhosts,
+               P::systemWriteDistributionCompressed
                ) == false
             ) {
                cerr << "FAILED TO WRITE GRID AT" << __FILE__ << " " << __LINE__ << endl;

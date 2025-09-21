@@ -300,7 +300,7 @@ endif
 # for all files in the main source dir
 %.o: %.cpp
 	@echo [CC] $<
-	$(SILENT)$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c $< $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID} ${INC_PROFILE} ${INC_VLSV} ${INC_PAPI} ${INC_MPI}
+	$(SILENT)$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c $< $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID} ${INC_PROFILE} ${INC_VLSV} ${INC_PAPI} ${INC_MPI} ${INC_ZFP} ${INC_OCTREE_COMPRESSOR}
 
 # for all files in the arch/ dir
 %.o: arch/%.cpp
@@ -351,7 +351,7 @@ endif
 # for all files in the vdf_compression/ dir
 %.o: vdf_compression/%.cpp
 	@echo [CC] $<
-	$(SILENT)${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c $< ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_NN_COMPRESSOR} ${INC_ZOLTAN} ${INC_EIGEN} ${INC_ZFP}	
+	$(SILENT)${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c $< ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_NN_COMPRESSOR} ${INC_ZOLTAN} ${INC_EIGEN} ${INC_ZFP} ${INC_OCTREE_COMPRESSOR}	
 
 # Make executable
 vlasiator: $(OBJS) $(OBJS_FSOLVER)

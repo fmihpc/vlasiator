@@ -94,6 +94,7 @@ vector<string> P::systemWriteName;
 vector<string> P::systemWritePath;
 vector<Real> P::systemWriteTimeInterval;
 vector<int> P::systemWriteDistributionWriteStride;
+bool P::systemWriteDistributionCompressed;
 vector<int> P::systemWriteDistributionWriteXlineStride;
 vector<int> P::systemWriteDistributionWriteYlineStride;
 vector<int> P::systemWriteDistributionWriteZlineStride;
@@ -229,7 +230,6 @@ Real P::octree_tolerance;
 std::string P::mlpLayer; 
 Real P::compression_interval; 
 bool P::doCompress=false;
-bool P::transferKnowledge=false;
 std::string P::method_str;
 P::ASTERIX_COMPRESSION_METHODS P::vdf_compression_method;
 std::size_t P::max_vdfs_per_nn;
@@ -430,6 +430,7 @@ bool P::addParameters() {
 
    // Output variable parameters
    RP::add("io.system_write_all_data_reducers", "If 0 don't write all DROs, if 1 do write them.", false);
+   RP::add("io.system_write_distribution_compressed", string("Apply ASTERIX compressiont to VDFs in bulk files."), false);
    // NOTE Do not remove the : before the list of variable names as this is parsed by tools/check_vlasiator_cfg.sh
    RP::addComposing("variables.output",
                     string() +
@@ -585,13 +586,12 @@ bool P::addParameters() {
    //Asterix - VDF Compression
    RP::add("Asterix.mlp_layers", string("Hidden layer architecture for MLP"),"");
    RP::add("Asterix.tol", string("Compression reconstruction tolerance"),1e-5);
-   RP::add("Asterix.octree_tolerance", string("Compression reconstruction tolerance for octree"),1e-3);
+   RP::add("Asterix.octree_tolerance", string("Compression reconstruction tolerance for octree"),1e-4);
    RP::add("Asterix.max_epochs", string("Max epochs per VDF"),1);
    RP::add("Asterix.fourier_order", string("Fourier Order"),0);
    RP::add("Asterix.interval", string("Compression interval in seconds"),1.0);
    RP::add("Asterix.state", string("Compression toggle"),false);
    RP::add("Asterix.method", string("Compression toggle"),"");
-   RP::add("Asterix.transfer", string("Use transfer learning") ,false);
    RP::add("Asterix.max_vdfs_per_nn",string("Max vdfs in multi regression mode") ,1);
    return true;
 }
@@ -612,6 +612,7 @@ void Parameters::getParameters() {
    RP::get("io.system_write_distribution_shell_stride", P::systemWriteDistributionWriteShellStride);
    RP::get("io.system_write_fsgrid_variables", P::systemWriteFsGrid);
    RP::get("io.system_write_all_data_reducers", P::systemWriteAllDROs);
+   RP::get("io.system_write_distribution_compressed", P::systemWriteDistributionCompressed);
    RP::get("io.write_initial_state", P::writeInitialState);
    RP::get("io.write_full_bgb_data", P::writeFullBGB);
    RP::get("io.restart_walltime_interval", P::saveRestartWalltimeInterval);
@@ -946,7 +947,6 @@ void Parameters::getParameters() {
    RP::get("Asterix.interval",P::compression_interval);
    RP::get("Asterix.state",P::doCompress);
    RP::get("Asterix.method",P::method_str);
-   RP::get("Asterix.transfer",P::transferKnowledge);
    RP::get("Asterix.max_vdfs_per_nn",P::max_vdfs_per_nn);
    
    if (P::doCompress){
