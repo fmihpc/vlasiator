@@ -12,5 +12,5 @@ ColumnLimit: 200
 AccessModifierOffset: -3
 LambdaBodyIndentation: OuterScope
 NamespaceIndentation: All
-BinPackArguments: true
+BinPackArguments: false
 OneLineFormatOffRegex: pragma|#
