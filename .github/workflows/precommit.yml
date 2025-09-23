@@ -3,6 +3,8 @@ name: Run precommit to automatically format and fix PRs
 on:
   pull_request:
     branches: [ master, dev, precommitTest ]
+  push:
+    branches: [ master, dev, precommitTest, precommitTarget ]
 
 permissions:
   contents: write
