@@ -24,7 +24,7 @@ jobs:
         run: |
           echo "deb http://ftp.fi.debian.org/debian/ experimental main contrib non-free" >> /etc/apt/sources.list
           apt-get update
-          apt-get install -y clang-format-22 git
+          apt-get install -y clang-format-22 git npm nodejs
           ln -s /usr/bin/clang-format-22 /usr/bin/clang-format
       - name: Test whether git is present
         run: |
