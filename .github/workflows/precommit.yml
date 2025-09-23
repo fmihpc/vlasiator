@@ -26,13 +26,9 @@ jobs:
           apt-get update
           apt-get install -y clang-format-22 git npm nodejs
           ln -s /usr/bin/clang-format-22 /usr/bin/clang-format
-      - name: Test whether git is present
+      - name: Make sure git is happy with the working directory
         run: |
-          echo -n "Working directory is "
-          pwd
-          git config --global --add safe.directory /__w/vlasiator/vlasiator
-          git status
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
       - uses: pre-commit/action@v3.0.1
-      - name: Run precommit
-        uses: pre-commit-ci/lite-action@v1.1.0
+      - uses: pre-commit-ci/lite-action@v1.1.0
         if: always()
