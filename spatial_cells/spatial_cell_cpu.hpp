@@ -117,6 +117,7 @@ namespace spatial_cell {
          delete vmesh;
          delete blockContainer;
       }
+      // Copy constructor
       Population(const Population& other) {
          vmesh = new vmesh::VelocityMesh(*(other.vmesh));
          blockContainer = new vmesh::VelocityBlockContainer(*(other.blockContainer));
@@ -142,7 +143,10 @@ namespace spatial_cell {
             P_V[i] = other.P_V[i];
          }
       }
-      const Population& operator=(const Population& other) {
+
+      Population(Population&& other) = delete; // Move constructor not implemented
+
+      Population& operator=(const Population& other) { // Copy assignment
          delete vmesh;
          delete blockContainer;
          vmesh = new vmesh::VelocityMesh(*(other.vmesh));
@@ -170,6 +174,10 @@ namespace spatial_cell {
          }
          return *this;
       }
+
+      Population& operator=(const Population&& other) = delete; // Move assignment not implemented
+
+
       void ResizeClear(const uint newSize) {
          // Resizes the vmesh localToGlobalMap, clears the vmesh GlobalToLocalMap,
          // and resizes the velocity block container.

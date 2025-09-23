@@ -953,32 +953,32 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
                           const int timeclass) {
    phiprof::Timer readjustBlocksTimer {"re-adjust blocks", {"Block adjustment"}};
    SpatialCell::setCommunicatedSpecies(popID, timeclass);
-   std::cout << __FILE__<<":" << __LINE__ <<"\n";
+   // std::cout << __FILE__<<":" << __LINE__ <<"\n";
 
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
    const vector<CellID>& cells = getLocalCells();
-   std::cout << __FILE__<<":" << __LINE__ <<"\n";
+   // std::cout << __FILE__<<":" << __LINE__ <<"\n";
    // Batch call
    update_velocity_block_content_lists(mpiGrid,cells,popID,timeclass);
-   std::cout << __FILE__<<":" << __LINE__ <<"\n";
+   // std::cout << __FILE__<<":" << __LINE__ <<"\n";
 
    // Get updated lists for blocks with content in spatial neighbours
    phiprof::Timer transferTimer {"Transfer with_content_list", {"MPI"}}; // TODO add neighborhood declarations per TC?
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_WITH_CONTENT_STAGE1 );
-   std::cout << __FILE__<<":" << __LINE__ << " (" << myRank <<")\n";
+   // std::cout << __FILE__<<":" << __LINE__ << " (" << myRank <<")\n";
    mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::NEAREST);
-   std::cout << __FILE__<<":" << __LINE__ << " (" << myRank <<")\n";
+   // std::cout << __FILE__<<":" << __LINE__ << " (" << myRank <<")\n";
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_WITH_CONTENT_STAGE2 );
-   std::cout << __FILE__<<":" << __LINE__ << " (" << myRank <<")\n";
+   // std::cout << __FILE__<<":" << __LINE__ << " (" << myRank <<")\n";
    mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::NEAREST);
-   std::cout << __FILE__<<":" << __LINE__ << " (" << myRank <<")\n";
+   // std::cout << __FILE__<<":" << __LINE__ << " (" << myRank <<")\n";
    transferTimer.stop();
 
    // Batch adjusts velocity blocks in local spatial cells, doesn't adjust velocity blocks in remote cells.
    adjust_velocity_blocks_in_cells(mpiGrid, cellsToAdjust, popID, timeclass);
-   std::cout << __FILE__<<":" << __LINE__ <<"\n";
+   // std::cout << __FILE__<<":" << __LINE__ <<"\n";
 
    // prepare to receive full block data for all cells (irrespective of list of cells to adjust)
    if (doPrepareToReceiveBlocks) {
@@ -993,9 +993,9 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
          updateRemoteVelocityBlockLists(mpiGrid,popID,Neighborhoods::DIST_FUNC,-1);
       }
    }
-   std::cerr << __FILE__<<":"<<__LINE__<< "(" << myRank << ") done calling adjustVelocityBlocks at t = " 
-         << P::t << "; len cells = " << cellsToAdjust.size() << " timeclass: " << timeclass << "; prepare: " << doPrepareToReceiveBlocks <<
-         "\n";
+   // std::cerr << __FILE__<<":"<<__LINE__<< "(" << myRank << ") done calling adjustVelocityBlocks at t = " 
+   //       << P::t << "; len cells = " << cellsToAdjust.size() << " timeclass: " << timeclass << "; prepare: " << doPrepareToReceiveBlocks <<
+   //       "\n";
 
    return true;
 }

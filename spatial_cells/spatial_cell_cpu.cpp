@@ -75,7 +75,8 @@ namespace spatial_cell {
          populations[popID].N_blocks = 0;
 
          for (int tc = 0; tc <= P::maxTimeclass; tc++){
-            ghostPopulations[{popID,tc}] = Population(populations[popID]);
+            // ghostPopulations[{popID,tc}] = std::copy<Population>(Population{populations[popID]});
+            ghostPopulations.try_emplace({popID,tc}, populations[popID]);
          }
       }
 
@@ -668,7 +669,7 @@ namespace spatial_cell {
          }
 
          // Refinement parameters
-         if ((SpatialCell::mpi_transfer_type & Transfer::REFINEMENT_PARAMETERS)){
+         if ((SpatialCell::mpi_transfer_type & Transfer::REFINEMENT_PARAMETERS) != 0){
                         transfer << "REFINEMENT_PARAMETERS ";
 
             displacements.push_back(reinterpret_cast<uint8_t*>(this->parameters.data() + CellParams::AMR_ALPHA1) - reinterpret_cast<uint8_t*>(this));
@@ -679,12 +680,12 @@ namespace spatial_cell {
          MPI_Comm_rank(MPI_COMM_WORLD,&my_rank);
 
          std::stringstream ss;
-         ss << __FILE__ << ":" <<__LINE__ << " gathered datatype at " << my_rank << (receiving? ", receiving":", sending") <<". timeclass " << activeTimeclass << " cell " << cellID << " for Transfer of " << transfer.str() <<  ":\n";
+         ss << __FILE__ << ":" <<__LINE__ << " gathered datatype at " << my_rank << (receiving? ", receiving":", sending") <<". timeclass " << activeTimeclass << " cell " << cellID << " for Transfer of " << Transfer::REFINEMENT_PARAMETERS << " (" << transfer.str() <<  "):\n";
          for (size_t i = 0; i < displacements.size();++i){
             ss << "d " << displacements[i] << " bl " << block_lengths[i] << " ";
          }
          ss << "\n";
-         std::cerr << ss.str();
+         // std::cerr << ss.str();
 
       }
 

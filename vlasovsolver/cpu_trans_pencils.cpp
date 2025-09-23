@@ -389,12 +389,12 @@ void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
       phiprof::Timer ghostZTimer {"prepare ghost translation Z lists"};
       dimension = 2;
       for (CellID c : sourcex) {
-         std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<< " c"<<c <<"\n";
+         // std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<< " c"<<c <<"\n";
          SpatialCell *ccell = mpiGrid[c];
          if (!ccell) {
             continue;
          }
-         std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<< " c"<<c <<"\n";
+         // std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<< " c"<<c <<"\n";
 
          // Is the cell translated?
          if (!do_translate_cell(ccell) || !ccell->has_timeclass(tc)) {
@@ -406,27 +406,27 @@ void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
          if (mpiGrid[c]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
             sourcez.insert(c);
          }
-                  std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<< " c"<<c <<"\n";
+                  // std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<< " c"<<c <<"\n";
          // Sources to be updated
          findNeighborhoodCells(mpiGrid, c, dimension, searchLength, foundCells, tc);
-                  std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<< " c"<<c <<"\n";
+                  // std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<< " c"<<c <<"\n";
          for (CellID cid: foundCells) {
             // Update as sources only non-sysb cells
             if (mpiGrid[cid]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
                sourcez.insert(cid);
             }
          }
-                  std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<< " c"<<c <<"\n";
+                  // std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<< " c"<<c <<"\n";
          // Cells to be translated so local end result is good
          findNeighborhoodCells(mpiGrid, c, dimension, 1, foundCells, tc);
          for (CellID cid: foundCells) {
             activez.insert(cid);
          }
-                  std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<< " c"<<c <<"\n";
+                  // std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<< " c"<<c <<"\n";
       } // end loop over y-translation sources
       ghostZTimer.stop();
    }
-      std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<<"\n";
+      // std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<<"\n";
 
    // Gather and report statistics
    std::vector<int64_t> localCounts;

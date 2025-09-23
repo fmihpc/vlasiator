@@ -62,7 +62,7 @@ namespace vmesh {
       VelocityBlockContainer();
       ~VelocityBlockContainer();
       VelocityBlockContainer(const VelocityBlockContainer& other);
-      const VelocityBlockContainer& operator=(const VelocityBlockContainer& other);
+      VelocityBlockContainer& operator=(const VelocityBlockContainer& other);
 
       ARCH_HOSTDEV vmesh::LocalID capacity() const;
       ARCH_HOSTDEV size_t capacityInBytes() const;
@@ -160,7 +160,7 @@ namespace vmesh {
 #endif
    }
 
-   inline const VelocityBlockContainer& VelocityBlockContainer::operator=(const VelocityBlockContainer& other) {
+   inline VelocityBlockContainer& VelocityBlockContainer::operator=(const VelocityBlockContainer& other) {
 #ifdef USE_GPU
       gpuStream_t stream = gpu_getStream();
       block_data.reserve(other.cachedCapacity*WID3, true, stream);
