@@ -16,6 +16,11 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
+      - name: Install clang-format 22
+        run: |
+          sudo echo "deb http://ftp.fi.debian.org/debian/ experimental main contrib non-free" >> /etc/apt/sources.list
+          sudo apt-get update
+          sudo apt-get install -y clang-format-22
       - name: Run precommit
       - uses: pre-commit/action@v3.0.1
       - uses: pre-commit-ci/lite-action@v1.1.0
