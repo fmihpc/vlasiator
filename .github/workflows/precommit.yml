@@ -26,6 +26,12 @@ jobs:
           apt-get update
           apt-get install -y clang-format-22 git
           ln -s /usr/bin/clang-format-22 /usr/bin/clang-format
+      - name: Test whether git is present
+        run: |
+          echo -n "Working directory is "
+          pwd
+          git config --global --add safe.directory /__w/vlasiator/vlasiator
+          git status
       - uses: pre-commit/action@v3.0.1
       - name: Run precommit
         uses: pre-commit-ci/lite-action@v1.1.0
