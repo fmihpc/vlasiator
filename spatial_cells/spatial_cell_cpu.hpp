@@ -781,9 +781,9 @@ namespace spatial_cell {
       this->ghostPopulations[{popID,timeclass}].vmesh = &newVmesh;
       // this->ghostPopulations[{popID,timeclass}].vmesh = vmesh::VelocityMesh(*this->populations[popID].vmesh);
 
-      #ifdef DEBUG_SPATIAL_CELL
+      // #ifdef DEBUG_SPATIAL_CELL
       std::cout << "Copy-constructed ghostPopulations[{"<<popID<<","<<timeclass<<"}].vmesh to " << &this->ghostPopulations[{popID,timeclass}].vmesh<< " from initial at " << &this->populations[popID].vmesh <<"\n";
-      #endif
+      // #endif
    }
 
    inline void SpatialCell::set_velocity_blocks_ghost(const size_t& popID, const int timeclass, const int src_timeclass = -1) {
@@ -792,9 +792,9 @@ namespace spatial_cell {
       vmesh::VelocityBlockContainer newBlockContainer(*this->get_velocity_blocks(popID, src_timeclass));
       // this->ghostPopulations[{popID,timeclass}].blockContainer = this->get_velocity_blocks(popID, src_timeclass);
       this->ghostPopulations[{popID,timeclass}].blockContainer = &newBlockContainer;
-      #ifdef DEBUG_SPATIAL_CELL
-      std::cout << "Copy-constructed ghostPopulations[{"<<popID<<","<<timeclass<<"}].blockContainer to " << &this->ghostPopulations[{popID,timeclass}].blockContainer<< " from initial at " << &this->populations[popID].blockContainer <<"\n";
-      #endif
+      // #ifdef DEBUG_SPATIAL_CELL
+      std::cout << "Copy-constructed ghostPopulations[{"<<popID<<","<<timeclass<<"}].blockContainer to " << &this->ghostPopulations[{popID,timeclass}].blockContainer<< " from initial at " << &this->populations[popID].blockContainer << ", new size " << this->ghostPopulations[{popID,timeclass}].blockContainer->size() << "; old size:" << this->get_velocity_blocks(popID, src_timeclass)->size() << "\n";
+      // #endif
       // if(this->parameters[CellParams::CELLID] == 15){
       //    std::cout <<"cell 15 ghost copy constr\n";
       // }
