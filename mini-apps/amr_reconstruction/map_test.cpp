@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "common.h"
+#include "map_test.h"
 #include "vlasovsolver/vec.h"
 //#include "vlasovsolver/cpu_1d_ppm.hpp"
 //#include "vlasovsolver/cpu_1d_ppm_nonuniform.hpp"

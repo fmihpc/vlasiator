@@ -5,8 +5,8 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 
 */
 
-#ifndef COMMON_H
-#define COMMON_H
+#ifndef MAP_TEST__H
+#define MAP_TEST_H
 # include <stdint.h>
 
 typedef uint32_t uint;
