@@ -55,7 +55,7 @@ void gpu_accelerate_cells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
                           const uint map_order
    ) {
 
-
+   CHK_ERR( gpuDeviceSynchronize() );
    phiprof::Timer verificationTimer {"gpu ACC allocation verifications"};
    const uint nCells = (uint)acceleratedCells.size();
    gpu_batch_allocate(nCells,0);
@@ -78,48 +78,12 @@ void gpu_accelerate_cells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
          const vmesh::VelocityMesh* vmesh = SC->get_velocity_mesh(popID);
          const uint blockCount = vmesh->size();
          threadGpuMaxBlockCount = std::max(threadGpuMaxBlockCount,blockCount);
-
-         // Store pointers in batch buffers
-         host_vmeshes[cellIndex] = SC->dev_get_velocity_mesh(popID);
-         host_VBCs[cellIndex] = SC->dev_get_velocity_blocks(popID);
-         host_minValues[cellIndex] = SC->getVelocityBlockMinValue(popID);
-         host_vbwcl_vec[cellIndex] = SC->dev_velocity_block_with_content_list;
-         host_lists_with_replace_new[cellIndex] = SC->dev_list_with_replace_new;
-         host_lists_delete[cellIndex] = SC->dev_list_delete;
-         host_lists_to_replace[cellIndex] = SC->dev_list_to_replace;
-         host_lists_with_replace_old[cellIndex] = SC->dev_list_with_replace_old;
-         host_allMaps[2*cellIndex] = SC->dev_velocity_block_with_content_map;
-         host_allMaps[2*cellIndex+1] = SC->dev_velocity_block_with_no_content_map;
       }
       #pragma omp critical
       {
          gpuMaxBlockCount = std::max(gpuMaxBlockCount,threadGpuMaxBlockCount);
       }
    }
-
-   // Ensure accelerator has enough temporary memory allocated
-   verificationTimer.start();
-   gpu_vlasov_allocate(gpuMaxBlockCount,nCells);
-   gpu_acc_allocate(gpuMaxBlockCount,nCells);
-   verificationTimer.stop();
-
-   // Copy pointers and counters over to device
-   phiprof::Timer copyTimer {"copy pointer addresses to device"};
-   CHK_ERR( gpuMemset(dev_nBefore, 0, nCells*sizeof(vmesh::LocalID)) );
-   CHK_ERR( gpuMemset(dev_nAfter, 0, nCells*sizeof(vmesh::LocalID)) );
-   CHK_ERR( gpuMemset(dev_nBlocksToChange, 0, nCells*sizeof(vmesh::LocalID)) );
-   CHK_ERR( gpuMemset(dev_resizeSuccess, 0, nCells*sizeof(vmesh::LocalID)) );
-
-   CHK_ERR( gpuMemcpy(dev_allMaps, host_allMaps, 2*nCells*sizeof(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>*), gpuMemcpyHostToDevice) );
-   CHK_ERR( gpuMemcpy(dev_vmeshes, host_vmeshes, nCells*sizeof(vmesh::VelocityMesh*), gpuMemcpyHostToDevice) );
-   CHK_ERR( gpuMemcpy(dev_minValues, host_minValues, nCells*sizeof(Real), gpuMemcpyHostToDevice) );
-   CHK_ERR( gpuMemcpy(dev_vbwcl_vec, host_vbwcl_vec, nCells*sizeof(split::SplitVector<vmesh::GlobalID>*), gpuMemcpyHostToDevice) );
-   CHK_ERR( gpuMemcpy(dev_lists_with_replace_new, host_lists_with_replace_new, nCells*sizeof(split::SplitVector<vmesh::GlobalID>*), gpuMemcpyHostToDevice) );
-   CHK_ERR( gpuMemcpy(dev_lists_delete, host_lists_delete, nCells*sizeof(split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>*), gpuMemcpyHostToDevice) );
-   CHK_ERR( gpuMemcpy(dev_lists_to_replace, host_lists_to_replace, nCells*sizeof(split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>*), gpuMemcpyHostToDevice) );
-   CHK_ERR( gpuMemcpy(dev_lists_with_replace_old, host_lists_with_replace_old, nCells*sizeof(split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>*), gpuMemcpyHostToDevice) );
-   CHK_ERR( gpuMemcpy(dev_VBCs, host_VBCs, nCells*sizeof(vmesh::VelocityBlockContainer*), gpuMemcpyHostToDevice) );
-   copyTimer.stop();
 
    // Do some overall preparation regarding dimensions and acceleration order
    const uint D0 = (*vmesh::getMeshWrapper()->velocityMeshes)[popID].gridLength[0];
@@ -151,7 +115,63 @@ void gpu_accelerate_cells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    */
    for (int dimIndex = 0; dimIndex<3; ++dimIndex) {
       int dimension = dimOrder[dimIndex];
-      
+
+      // Gather up-to-date pointers for cell contents
+      uint gpuMaxBlockCount = 0;
+      #pragma omp parallel
+      {
+         uint threadGpuMaxBlockCount = 0;
+         #pragma omp for schedule(static)
+         for (size_t cellIndex=0; cellIndex<acceleratedCells.size(); ++cellIndex) {
+            const CellID cid = acceleratedCells[cellIndex];
+            SpatialCell* SC = mpiGrid[cid];
+            const uint blockCount = SC->get_velocity_mesh(popID)->size();
+            // Ensure per-cell allocations
+            SC->setReservation(popID,blockCount);
+            SC->applyReservation(popID);
+
+            threadGpuMaxBlockCount = std::max(threadGpuMaxBlockCount,blockCount);
+            // Store pointers in batch buffers
+            host_vmeshes[cellIndex] = SC->dev_get_velocity_mesh(popID);
+            host_VBCs[cellIndex] = SC->dev_get_velocity_blocks(popID);
+            host_minValues[cellIndex] = SC->getVelocityBlockMinValue(popID);
+            host_vbwcl_vec[cellIndex] = SC->dev_velocity_block_with_content_list;
+            host_lists_with_replace_new[cellIndex] = SC->dev_list_with_replace_new;
+            host_lists_delete[cellIndex] = SC->dev_list_delete;
+            host_lists_to_replace[cellIndex] = SC->dev_list_to_replace;
+            host_lists_with_replace_old[cellIndex] = SC->dev_list_with_replace_old;
+            host_allMaps[2*cellIndex] = SC->dev_velocity_block_with_content_map;
+            host_allMaps[2*cellIndex+1] = SC->dev_velocity_block_with_no_content_map;
+         }
+         #pragma omp critical
+         {
+            gpuMaxBlockCount = std::max(gpuMaxBlockCount,threadGpuMaxBlockCount);
+         }
+      }
+      // Ensure accelerator has enough temporary memory allocated
+      verificationTimer.start();
+      gpu_vlasov_allocate(gpuMaxBlockCount);
+      gpu_acc_allocate(gpuMaxBlockCount);
+      verificationTimer.stop();
+
+      // Copy pointers and counters over to device
+      phiprof::Timer copyTimer {"copy pointer addresses to device"};
+      CHK_ERR( gpuMemset(dev_nBefore, 0, nCells*sizeof(vmesh::LocalID)) );
+      CHK_ERR( gpuMemset(dev_nAfter, 0, nCells*sizeof(vmesh::LocalID)) );
+      CHK_ERR( gpuMemset(dev_nBlocksToChange, 0, nCells*sizeof(vmesh::LocalID)) );
+      CHK_ERR( gpuMemset(dev_resizeSuccess, 0, nCells*sizeof(vmesh::LocalID)) );
+
+      CHK_ERR( gpuMemcpy(dev_allMaps, host_allMaps, 2*nCells*sizeof(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>*), gpuMemcpyHostToDevice) );
+      CHK_ERR( gpuMemcpy(dev_vmeshes, host_vmeshes, nCells*sizeof(vmesh::VelocityMesh*), gpuMemcpyHostToDevice) );
+      CHK_ERR( gpuMemcpy(dev_minValues, host_minValues, nCells*sizeof(Real), gpuMemcpyHostToDevice) );
+      CHK_ERR( gpuMemcpy(dev_vbwcl_vec, host_vbwcl_vec, nCells*sizeof(split::SplitVector<vmesh::GlobalID>*), gpuMemcpyHostToDevice) );
+      CHK_ERR( gpuMemcpy(dev_lists_with_replace_new, host_lists_with_replace_new, nCells*sizeof(split::SplitVector<vmesh::GlobalID>*), gpuMemcpyHostToDevice) );
+      CHK_ERR( gpuMemcpy(dev_lists_delete, host_lists_delete, nCells*sizeof(split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>*), gpuMemcpyHostToDevice) );
+      CHK_ERR( gpuMemcpy(dev_lists_to_replace, host_lists_to_replace, nCells*sizeof(split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>*), gpuMemcpyHostToDevice) );
+      CHK_ERR( gpuMemcpy(dev_lists_with_replace_old, host_lists_with_replace_old, nCells*sizeof(split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>*), gpuMemcpyHostToDevice) );
+      CHK_ERR( gpuMemcpy(dev_VBCs, host_VBCs, nCells*sizeof(vmesh::VelocityBlockContainer*), gpuMemcpyHostToDevice) );
+      copyTimer.stop();
+
       string profName = "accelerate "+getObjectWrapper().particleSpecies[popID].name;
       phiprof::Timer accTimer {profName};
 
@@ -282,8 +302,6 @@ void gpu_accelerate_cells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
          CellID cid = acceleratedCells[cellIndex];
          SpatialCell* SC = mpiGrid[cid];
          const uint blockCount = SC->get_velocity_mesh(popID)->size();
-         SC->setReservation(popID, blockCount);
-         SC->applyReservation(popID);
 
          if (blockCount > 0) {
             // Only accelerate non-empty cells
@@ -293,15 +311,15 @@ void gpu_accelerate_cells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
          // Keep track of all checked cells for cumulative offset into pointer buffers
          checkedCells++;
 
-         // Phiprof timer
-         string timerName = "semilag-acc-dim"+std::to_string(dimension)+"-chunk";
-         //timerName += "-"+std::to_string(chunk); // Optional: phiprof label for chunk id
-         phiprof::Timer accChunkTimer {timerName};
-
          // Once enough cells have been gathered into the chunk, or we have evaluated
          // the last of potential cells, Launch the acceleration solver for this chunk.
          // Will not launch if no cells to be accelerated are left.
          if (queuedCells == maxChunkSize || ( (cellIndex==nCells-1) && (queuedCells > 0) )) {
+            // Phiprof timer
+            string timerName = "semilag-acc-dim"+std::to_string(dimension)+"-chunk";
+            //timerName += "-"+std::to_string(chunk); // Optional: phiprof label for chunk id
+            phiprof::Timer accChunkTimer {timerName};
+
             gpu_acc_map_1d(mpiGrid,
                            launchCells,
                            popID,

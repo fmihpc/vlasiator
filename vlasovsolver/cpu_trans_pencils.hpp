@@ -215,7 +215,7 @@ struct setOfPencils {
       uint *dev_binSizePointer = gpuMemoryManager.getPointer<uint>(dev_binSize);
 
       int offset = 0;
-      for(int bin = 0; bin < activeBins.size(); bin++){
+      for(size_t bin = 0; bin < activeBins.size(); bin++){
          uint thisBin = activeBins[bin];
          host_binStartPointer[bin] = offset;
 

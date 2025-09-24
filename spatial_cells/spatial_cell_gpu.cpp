@@ -347,18 +347,20 @@ namespace spatial_cell {
       // This one is also used in acceleration for adding new blocks to the mesh, so should have more room. 
       if (vbwcl_sizePower < HashmapReqSize+1) {
          vbwcl_sizePower = HashmapReqSize+1;
-         ::delete velocity_block_with_content_map;
-         void *buf = malloc(sizeof(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>));
-         velocity_block_with_content_map = ::new (buf) Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(vbwcl_sizePower);
-         dev_velocity_block_with_content_map = velocity_block_with_content_map->upload<true>(stream);
+         velocity_block_with_content_map->resize(vbwcl_sizePower, Hashinator::targets::device, stream);
+         // ::delete velocity_block_with_content_map;
+         // void *buf = malloc(sizeof(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>));
+         // velocity_block_with_content_map = ::new (buf) Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(vbwcl_sizePower);
+         // dev_velocity_block_with_content_map = velocity_block_with_content_map->upload<true>(stream);
       }
       // Here the regular size estimate should be enough.
       if (vbwncl_sizePower < HashmapReqSize) {
          vbwncl_sizePower = HashmapReqSize;
-         ::delete velocity_block_with_no_content_map;
-         void *buf = malloc(sizeof(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>));
-         velocity_block_with_no_content_map = ::new (buf) Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(vbwncl_sizePower);
-         dev_velocity_block_with_no_content_map = velocity_block_with_no_content_map->upload<true>(stream);
+         velocity_block_with_no_content_map->resize(vbwncl_sizePower, Hashinator::targets::device, stream);
+         // ::delete velocity_block_with_no_content_map;
+         // void *buf = malloc(sizeof(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>));
+         // velocity_block_with_no_content_map = ::new (buf) Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(vbwncl_sizePower);
+         // dev_velocity_block_with_no_content_map = velocity_block_with_no_content_map->upload<true>(stream);
       }
       // These lists are also used in acceleration, where sometimes, very many blocks may be added.
       // (Maximum possible is all existing blocks moved to a new location + 2 per column)
@@ -789,7 +791,7 @@ namespace spatial_cell {
 
          //add data to send/recv to displacement and block length lists
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_LIST_STAGE1) != 0) {
-            //first copy values in case this is the send operation
+            // first copy values in case this is the send operation
             populations[activePopID].N_blocks = populations[activePopID].vmesh->size();
 
             // send velocity block list size
@@ -802,19 +804,16 @@ namespace spatial_cell {
             if (receiving) {
                // Set population size based on mpi_number_of_blocks transferred earlier.
                // Does not need to be cleared. Vmesh map and VBC will be prepared in prepare_to_receive_blocks.
-               // populations[activePopID].vmesh->setNewSize(populations[activePopID].N_blocks);
                this->dev_resize_vmesh(activePopID,populations[activePopID].N_blocks);
-               //populations[activePopID].vmesh->setNewSizeClear(populations[activePopID].N_blocks);
-               //setNewSizeClear(activePopID,populations[activePopID].N_blocks);
             } else {
-               //Ensure N_blocks is still correct
+               // Ensure N_blocks is still correct
                populations[activePopID].N_blocks = populations[activePopID].vmesh->size();
             }
 
             // send velocity block list
-            if(populations[activePopID].vmesh->size() > 0) {
+            if (populations[activePopID].N_blocks > 0) {
                displacements.push_back((uint8_t*) populations[activePopID].vmesh->getGrid()->data() - (uint8_t*) this);
-               block_lengths.push_back(sizeof(vmesh::GlobalID) * populations[activePopID].vmesh->size());
+               block_lengths.push_back(sizeof(vmesh::GlobalID) * populations[activePopID].N_blocks);
             } else {
                displacements.push_back(0);
                block_lengths.push_back(0);

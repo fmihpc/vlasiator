@@ -979,11 +979,6 @@ void Parameters::getParameters() {
       MPI_Abort(MPI_COMM_WORLD, 1);
    }
 
-   #ifdef USE_GPU
-   // Ensure GPU allocation count figure is at least equal to max threads
-   P::GPUallocations = std::max(P::GPUallocations,gpu_getMaxThreads());
-   #endif
-
    // Set some parameter values.
    P::dx_ini = (P::xmax - P::xmin) / P::xcells_ini;
    P::dy_ini = (P::ymax - P::ymin) / P::ycells_ini;

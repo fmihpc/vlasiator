@@ -365,7 +365,6 @@ __global__ static void resize_and_empty_kernel (
       }
       const Population& operator=(const Population& other) {
          gpuStream_t stream = gpu_getStream();
-         const uint cpuThreadID = gpu_getThread();
          const vmesh::LocalID newSize = other.vmesh->size();
          ResizeClear(newSize); // Updates cached values too
 
@@ -419,12 +418,11 @@ __global__ static void resize_and_empty_kernel (
          // Clears the vmesh globalToLocalMap. Ensures the vmesh localToGlobalMap is of the requested size
          // and that the VBC has the correct size, but does not alter contents of these.
          gpuStream_t stream = gpu_getStream();
-         const uint cpuThreadID = gpu_getThread();
 
          const bool reallocated1 = blockContainer->setNewCapacity(newSize);
          const bool reallocated2 = vmesh->setNewCapacity(newSize);
          // vmesh->print_sizes();
-         if (reallocated1 || reallocated2) { // Beware short-circuit evaluation!
+         if (reallocated1 || reallocated2) { // Beware short-circuit evaluation, don't place the recapacitations inside this check!
             Upload();
          }
 
@@ -1048,6 +1046,8 @@ __global__ static void resize_and_empty_kernel (
          nBlocks
          );
       CHK_ERR( gpuPeekAtLastError() );
+      // leaving this sync out is a potential cause for issues during MPI communication, but a device-synchronize may do the trick.
+      // Hewever, inplementing some device synchronizes in grid.cpp balanceLoad() seems to do the trick.
       //CHK_ERR( gpuStreamSynchronize(stream) );
    }
 

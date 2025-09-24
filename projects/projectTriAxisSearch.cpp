@@ -35,10 +35,10 @@ namespace projects {
       vmesh::VelocityMesh *vmesh = cell->get_velocity_mesh(popID);
 
       vmesh::GlobalID *GIDbuffer;
-      #ifdef USE_GPU
-      // Host-pinned memory buffer, max possible size
       const vmesh::LocalID* vblocks_ini = cell->get_velocity_grid_length(popID);
       const uint blocksCount = vblocks_ini[0]*vblocks_ini[1]*vblocks_ini[2];
+      #ifdef USE_GPU
+      // Host-pinned memory buffer, max possible size
       CHK_ERR( gpuMallocHost((void**)&GIDbuffer,blocksCount*sizeof(vmesh::GlobalID)) );
       #endif
       // Non-GPU: insert directly into vmesh
@@ -50,8 +50,9 @@ namespace projects {
       creal minValue = cell->getVelocityBlockMinValue(popID);
       // And how big a buffer do we add to the edges?
       uint buffer = 2;
-      if (WID > 4) {
+      if (WID > 4 && blocksCount > 8) {
          // With WID8 a two-block buffer increases memory requirements too much.
+         // However, we allow extra buffer for very minimal v-spaces.
          buffer = 1;
       }
       // How much below the sparsity can a cell be to still be included?
