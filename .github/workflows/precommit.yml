@@ -1,7 +1,7 @@
 name: Run precommit to automatically format and fix PRs
 
 on:
-  pull_request:
+  pull_request_target:
   push:
 
 permissions:
@@ -22,23 +22,6 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: 3.x
-      - name: say something stupid
-        run: |
-          echo "Neutrinos, they are very small"
-          echo "They have no charge, they have no mass"
-          echo "They hardly interact at all"
-          echo "The Earth is just a silly ball"
-          echo "to them, through which they simply pass"
-          echo "like dustmaids through a drafty hall"
-          echo "or photons throguh a sheet of glass"
-          echo "They pierce the most inpreb'le wall"
-          echo "cold-shoulder steel and sounding brass"
-          echo "Like tiny guillotines they fall"
-          echo "right through our heads, into the grass"
-          echo "At night, they enter in Nepal"
-          echo "and pierce the lover and his lass"
-          echo "from underneath the bed, you call"
-          echo "it wonderfull, I call it crass!"
       - name: Install clang-format 22
         run: |
           echo "deb http://ftp.fi.debian.org/debian/ experimental main contrib non-free" >> /etc/apt/sources.list
