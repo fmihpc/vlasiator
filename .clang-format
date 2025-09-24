@@ -8,7 +8,9 @@ PointerAlignment: Left
 AlignAfterOpenBracket: true
 AllowShortIfStatementsOnASingleLine: false
 IndentCaseLabels: false
-ColumnLimit: 120
+ColumnLimit: 200
 AccessModifierOffset: -3
-...
-
+LambdaBodyIndentation: OuterScope
+NamespaceIndentation: All
+BinPackArguments: false
+OneLineFormatOffRegex: pragma|#
