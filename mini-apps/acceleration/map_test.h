@@ -5,8 +5,8 @@ Copyright 2010, 2011, 2012, 2013 Finnish Meteorological Institute
 
 */
 
-#ifndef COMMON_H
-#define COMMON_H
+#ifndef ACCELERATION_MAP_TEST_H
+#define ACCELERATION_MAP_TEST_H
 # include <stdint.h>
 
 typedef uint32_t uint;

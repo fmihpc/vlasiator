@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "common.h"
+#include "mpa_test.h"
 #include "cpu_1d_column_interpolations.hpp"
 
 /*print all values in the vector valued values array. In this array

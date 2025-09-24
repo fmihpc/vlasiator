@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "common.h"
+#include "map_test.h"
 #include "cpu_1d_column_interpolations.hpp"
 
 #define index(i,j,k)   ( k + WID + j * (blocks_per_dim_z + 2) * WID + i * (blocks_per_dim_z + 2) * blocks_per_dim_y * WID2 )
