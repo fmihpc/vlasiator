@@ -20,169 +20,128 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include <Eigen/Dense>
+#include <vector>
 
-#include <random>
-#include "particles.h"
+#define Vec3d Eigen::Vector3d
+
+#include "boundaries.h"
 #include "particleparameters.h"
-#include "physconst.h"
 
-/* virtual base of particle distributions */
-class Distribution
-{
-   public:
-      Distribution(std::default_random_engine& _rand, Real _mass, Real _charge)
-         : mass(_mass), charge(_charge),rand(_rand) {};
-      Distribution(std::default_random_engine& _rand);
-      virtual Particle next_particle() = 0;
-   protected:
-      Real mass,charge;
-      std::default_random_engine& rand;
+// A 3D cartesian vector field with suitable interpolation properties for
+// particle pushing
+struct Field {
+   // Time at which this field is "valid"
+   double time;
+
+   // Mesh spacing
+   double dx[3];
+
+   // Information about spatial dimensions (like extent, boundaries, etc)
+   Boundary* dimension[3];
+
+   // The actual field data
+   std::vector<double> data;
+
+   // Constructor (primarily here to make sure boundaries are properly initialized as zero)
+   Field() {
+      for (int i = 0; i < 3; i++) {
+         dimension[i] = nullptr;
+      }
+   }
+
+   double* getCellRef(int x, int y, int z) {
+
+      if (dimension[2]->cells == 1) {
+         // Equatorial plane
+         return &(data[4 * (y * dimension[0]->cells + x)]);
+      } else {
+         // General 3d case
+         return &(data[4 * (z * dimension[0]->cells * dimension[1]->cells + y * dimension[0]->cells + x)]);
+      }
+   }
+
+   Vec3d getCell(int x, int y, int z) {
+
+      // Map these cell coordinates using the boundaries
+      x = dimension[0]->cellCoordinate(x);
+      y = dimension[1]->cellCoordinate(y);
+      z = dimension[2]->cellCoordinate(z);
+
+      double* cell = getCellRef(x, y, z);
+      return {cell[0], cell[1], cell[2]};
+   }
+
+   // Round-Brace indexing: indexing by physical location, with interpolation
+   virtual Vec3d operator()(Vec3d v) {
+      Vec3d min(dimension[0]->min, dimension[1]->min, dimension[2]->min);
+
+      int32_t index[3];
+      Vec3d fract;
+
+      for (int i = 0; i < 3; i++) {
+         v[i] -= min[i];
+         v[i] /= dx[i];
+         index[i] = (int32_t)std::trunc(v[i]);
+         fract[i] = v[i] - (double)std::trunc(v[i]);
+      }
+
+      if (dimension[2]->cells <= 1) {
+         // Equatorial plane
+         Vec3d interp[4];
+         interp[0] = getCell(index[0], index[1], index[2]);
+         interp[1] = getCell(index[0] + 1, index[1], index[2]);
+         interp[2] = getCell(index[0], index[1] + 1, index[2]);
+         interp[3] = getCell(index[0] + 1, index[1] + 1, index[2]);
+
+         return fract[0] * (fract[1] * interp[3] + (1. - fract[1]) * interp[1]) + (1. - fract[0]) * (fract[1] * interp[2] + (1. - fract[1]) * interp[0]);
+      } else if (dimension[1]->cells <= 1) {
+         // Polar plane
+         Vec3d interp[4];
+
+         interp[0] = getCell(index[0], index[1], index[2]);
+         interp[1] = getCell(index[0] + 1, index[1], index[2]);
+         interp[2] = getCell(index[0], index[1], index[2] + 1);
+         interp[3] = getCell(index[0] + 1, index[1], index[2] + 1);
+
+         return fract[0] * (fract[2] * interp[3] + (1. - fract[2]) * interp[1]) + (1. - fract[0]) * (fract[2] * interp[2] + (1. - fract[2]) * interp[0]);
+      } else {
+         // Proper 3D
+         Vec3d interp[8];
+         interp[0] = getCell(index[0], index[1], index[2]);
+         interp[1] = getCell(index[0] + 1, index[1], index[2]);
+         interp[2] = getCell(index[0], index[1] + 1, index[2]);
+         interp[3] = getCell(index[0] + 1, index[1] + 1, index[2]);
+         interp[4] = getCell(index[0], index[1], index[2] + 1);
+         interp[5] = getCell(index[0] + 1, index[1], index[2] + 1);
+         interp[6] = getCell(index[0], index[1] + 1, index[2] + 1);
+         interp[7] = getCell(index[0] + 1, index[1] + 1, index[2] + 1);
+         return fract[2] * (fract[0] * (fract[1] * interp[3] + (1. - fract[1]) * interp[1]) + (1. - fract[0]) * (fract[1] * interp[2] + (1. - fract[1]) * interp[0])) +
+                (1. - fract[2]) * (fract[0] * (fract[1] * interp[7] + (1. - fract[1]) * interp[5]) + (1. - fract[0]) * (fract[1] * interp[6] + (1. - fract[1]) * interp[4]));
+      }
+   }
+   virtual Vec3d operator()(double x, double y, double z) {
+      Vec3d v(x, y, z);
+      return operator()(v);
+   }
 };
 
+// Linear Temporal interpolation between two input fields
+struct Interpolated_Field : Field {
+   Field &a, &b;
+   double t;
 
-/* Thermal maxwell-boltzmann distribution */
-class Maxwell_Boltzmann : public Distribution
-{
-   public:
-      /* Constructor where all parameters are explicitly given */
-      Maxwell_Boltzmann(std::default_random_engine& _rand,Real _mass, Real _charge, Real kT) :
-         Distribution(_rand,_mass,_charge),
-         velocity_distribution(0,sqrt(kT/mass)) {};
+   /* Constructor:
+    * Inputs are the two fields to interpolate between
+    * and the current time.
+    */
+   Interpolated_Field(Field& _a, Field& _b, float _t) : a(_a), b(_b), t(_t) {}
 
-      /* Constructor that fishes parameters from the parameter-class by itself */
-      Maxwell_Boltzmann(std::default_random_engine& _rand);
-      virtual Particle next_particle();
-   private:
-      std::normal_distribution<Real> velocity_distribution;
+   virtual Vec3d operator()(Vec3d v) {
+      Vec3d aval = a(v);
+      Vec3d bval = b(v);
+
+      double fract = (t - a.time) / (b.time - a.time);
+      return fract * bval + (1. - fract) * aval;
+   }
 };
-
-/* Monoenergetic isotropic particles */
-class Monoenergetic : public Distribution
-{
-   public:
-      Monoenergetic(std::default_random_engine& _rand,Real _mass, Real _charge, Real _vel) :
-         Distribution(_rand, _mass, _charge),
-         vel(_vel) {
-         }
-      Monoenergetic(std::default_random_engine& _rand);
-
-      virtual Particle next_particle() {
-         /* Sphere point-picking to get isotropic direction (from wolfram Mathworld) */
-         Real u,v;
-         u = 2.*direction_random(rand)-1.;
-         v = direction_random(rand) * 2. * M_PI;
-
-         Vec3d dir(sqrt(1-u*u) * cos(v),
-               sqrt(1-u*u) * sin(v),
-               u);
-         return Particle(mass, charge, Vec3d(0.,0.,0.), vel*dir);
-      }
-   private:
-
-      std::uniform_real_distribution<Real> direction_random;
-      Real vel;
-
-};
-
-/* Kappa distributions as taken from the CSA code */
-class Kappa : public Distribution
-{
-   public:
-      Kappa(std::default_random_engine& _rand, Real _mass, Real _charge, Real _w0, Real _maxw0)
-         : Distribution(_rand,_mass,_charge),w0(_w0),maxw0(_maxw0) {}
-
-      Kappa(std::default_random_engine& _rand) : Distribution(_rand) {
-         maxw0=50;
-      }
-
-      virtual Particle next_particle() {
-
-         Real vel = w0 * find_v_for_r(r(rand));
-
-         /* Sphere point-picking to get isotropic direction (from wolfram Mathworld) */
-         Real u,v;
-         u = 2.*r(rand)-1.;
-         v = r(rand) * 2. * M_PI;
-
-         Vec3d dir(sqrt(1-u*u) * cos(v),
-               sqrt(1-u*u) * sin(v),
-               u);
-         return Particle(mass, charge, Vec3d(0.,0.,0.), vel*dir);
-      }
-
-   protected:
-      std::uniform_real_distribution<Real> r;
-      std::vector<Real> lookup;
-      const static int lookup_size = 65536;
-      Real w0;
-      Real maxw0;
-
-      virtual void generate_lookup() = 0;
-
-      Real find_v_for_r(Real rand);
-
-};
-
-/* Kappa = 6 version */
-class Kappa6 : public Kappa
-{
-
-   public:
-      Kappa6(std::default_random_engine& _rand, double _mass, double _charge, double _w0, double _maxw0)
-         : Kappa(_rand,_mass,_charge,_w0,_maxw0){
-            generate_lookup();
-      }
-      Kappa6(std::default_random_engine& _rand);
-
-   private:
-      virtual void generate_lookup() {
-         double prefix = (512. * sqrt(2./3.))/(63.*M_PI);
-
-         for(int i=0; i<lookup_size; i++) {
-            double vkappa = (maxw0/lookup_size)*i;
-            double under = vkappa*vkappa + 6.;
-
-            lookup.push_back( prefix*(-23328.*vkappa/(pow(under,6.))
-                     + 1944. * vkappa/(5. *pow(under,5.))
-                     + 729.  * vkappa/(10.*pow(under,4.))
-                     + 567.  * vkappa/(40.*pow(under,3.))
-                     + 189.  * vkappa/(64.*under*under)
-                     + 189.  * vkappa/(256.*under)
-                     + (63. * sqrt(3./2.)) * atan2(vkappa,sqrt(6.))/256.));
-         }
-
-      }
-};
-
-/* Kappa = 2 version */
-class Kappa2 : public Kappa
-{
-   public:
-      Kappa2(std::default_random_engine& _rand, double _mass, double _charge, double _w0, double _maxw0)
-         : Kappa(_rand,_mass,_charge,_w0,_maxw0){
-            generate_lookup();
-      }
-      Kappa2(std::default_random_engine& _rand);
-
-   private:
-      virtual void generate_lookup() {
-         double prefix = 4./M_PI * sqrt(2.);
-
-         for(int i=0; i<lookup_size; i++) {
-            double vkappa = (maxw0/lookup_size)*i;
-            double under = vkappa*vkappa + 2.;
-
-            lookup.push_back( prefix*(
-                     - 2. * vkappa/(under*under)
-                     +      vkappa/(2.*under)
-                     + atan2(vkappa,sqrt(2.))/(2.*sqrt(2.))
-                     )
-                  );
-         }
-
-      }
-};
-
-template<typename T> Distribution* createDistribution(std::default_random_engine& rand) {
-   return new T(rand);
-}

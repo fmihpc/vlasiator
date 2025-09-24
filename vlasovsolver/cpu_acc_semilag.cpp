@@ -20,111 +20,16 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include <dccrg.hpp>
-#include <dccrg_cartesian_geometry.hpp>
-#include <phiprof.hpp>
-#include "../definitions.h"
+#ifndef CPU_ACC_SEMILAG_H
+#define CPU_ACC_SEMILAG_H
 
-#include "cpu_acc_semilag.hpp"
-#include "cpu_acc_intersections.hpp"
-#include "cpu_acc_map.hpp"
+#include "../common.h"
+#include "../spatial_cells/spatial_cell_wrapper.hpp"
 
-#ifdef _OPENMP
-#include <omp.h>
+using namespace spatial_cell;
+
+void cpu_accelerate_cells(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const std::vector<CellID>& acceleratedCells, const uint popID, const uint map_order);
+
+void cpu_accelerate_cell(SpatialCell* spatial_cell, const uint popID, const uint map_order);
+
 #endif
-
-/*!
-  Calls semi-lagrangian acceleration routines for the provided list of cells
-
- * @param mpiGrid DCCRG container of spatial cells
- * @param acceleratedCells vector of cells for which to perform acceleration
- * @param popID ID of the accelerated particle species.
- * @param map_order Order in which vx,vy,vz mappings are performed.
-*/
-
-void cpu_accelerate_cells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                          const std::vector<CellID>& acceleratedCells,
-                          const uint popID,
-                          const uint map_order
-   ) {
-   int timerId {phiprof::initializeTimer("cell-semilag-acc")};
-   int intersections_id {phiprof::initializeTimer("cell-compute-intersections")};
-
-   #pragma omp parallel // Launch workshare region
-   {
-      // Calculate intersections (should be constant cost per cell)
-      #pragma omp for schedule(static,1)
-      for (size_t c=0; c<acceleratedCells.size(); ++c) {
-         const CellID cellID = acceleratedCells[c];
-         SpatialCell* SC = mpiGrid[cellID];
-         Population& pop = SC->get_population(popID);
-         compute_cell_intersections(SC, popID, map_order, pop.subcycleDt, intersections_id);
-      }
-      #pragma omp barrier
-      // Semi-Lagrangian acceleration for all cells active in this subcycle,
-      // dimension-by-dimension. Dynamic cost due to varying block counts.
-      #pragma omp for schedule(dynamic,1)
-      for (size_t c=0; c<acceleratedCells.size(); ++c) {
-         const CellID cellID = acceleratedCells[c];
-         SpatialCell* SC = mpiGrid[cellID];
-
-         phiprof::Timer semilagAccTimer {timerId};
-         cpu_accelerate_cell(SC,popID,map_order);
-         semilagAccTimer.stop();
-      }
-   }
-}
-
-/*!
-  Propagates the distribution function in velocity space of given real
-  space cell.
-
-  Based on SLICE-3D algorithm: Zerroukat, M., and T. Allen. "A
-  three‐dimensional monotone and conservative semi‐Lagrangian scheme
-  (SLICE‐3D) for transport problems." Quarterly Journal of the Royal
-  Meteorological Society 138.667 (2012): 1640-1651.
-
- * @param spatial_cell Spatial cell containing the accelerated population.
- * @param popID ID of the accelerated particle species.
- * @param map_order Order in which vx,vy,vz mappings are performed.
-*/
-
-void cpu_accelerate_cell(SpatialCell* spatial_cell,
-                         const uint popID,
-                         const uint map_order
-   ) {
-
-   Population& pop = spatial_cell->get_population(popID);
-   switch(map_order){
-      case 0: {
-         //Map order XYZ
-         map_1d(spatial_cell, popID, pop.intersection_x,
-                pop.intersection_x_di,pop.intersection_x_dj,pop.intersection_x_dk,0); // map along x
-         map_1d(spatial_cell, popID, pop.intersection_y,
-                pop.intersection_y_di,pop.intersection_y_dj,pop.intersection_y_dk,1); // map along y
-         map_1d(spatial_cell, popID, pop.intersection_z,
-                pop.intersection_z_di,pop.intersection_z_dj,pop.intersection_z_dk,2); // map along z
-         break;
-      }
-      case 1: {
-         //Map order YZX
-         map_1d(spatial_cell, popID, pop.intersection_y,
-                pop.intersection_y_di,pop.intersection_y_dj,pop.intersection_y_dk,1); // map along y
-         map_1d(spatial_cell, popID, pop.intersection_z,
-                pop.intersection_z_di,pop.intersection_z_dj,pop.intersection_z_dk,2); // map along z
-         map_1d(spatial_cell, popID, pop.intersection_x,
-                pop.intersection_x_di,pop.intersection_x_dj,pop.intersection_x_dk,0); // map along x
-         break;
-      }
-      case 2: {
-         //Map order Z X Y
-         map_1d(spatial_cell, popID, pop.intersection_z,
-                pop.intersection_z_di,pop.intersection_z_dj,pop.intersection_z_dk,2); // map along z
-         map_1d(spatial_cell, popID, pop.intersection_x,
-                pop.intersection_x_di,pop.intersection_x_dj,pop.intersection_x_dk,0); // map along x
-         map_1d(spatial_cell, popID, pop.intersection_y,
-                pop.intersection_y_di,pop.intersection_y_dj,pop.intersection_y_dk,1); // map along y
-         break;
-      }
-   }
-}

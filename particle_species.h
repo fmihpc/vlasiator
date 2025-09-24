@@ -1,3 +1,4 @@
+#pragma once
 /*
  * This file is part of Vlasiator.
  * Copyright 2010-2016 Finnish Meteorological Institute
@@ -18,63 +19,153 @@
  * You should have received a copy of the GNU General Public License along
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
- *
- * File:   particle_species.h
- * Author: sandroos
- *
- * Created on January 27, 2015.
  */
 
-#ifndef PARTICLE_SPECIES_H
-#define	PARTICLE_SPECIES_H
+#include "particles.h"
 
-#include "definitions.h"
-#include <array>
-#include <string>
-namespace species {
-    
-   // Aliases for the maximum dt values stored in spatial_cell::Population::max_dt array.
-   enum Dt_Elements {
-      MAXRDT,                           /**< Maximum spatial translation dt.*/
-      MAXVDT,                           /**< Maximum acceleration dt.*/
-      SIZE_DT_ELEMENTS                  /**< Number of elements in array.*/
-   };
-   
-   /** Variables common to a particle species.*/
-   struct Species {
-      std::string name;               /**< Name of the species.*/
-      Real charge;                    /**< Particle species charge, in simulation units.*/
-      Real mass;                      /**< Particle species mass, in simulation units.*/
-      Real sparseMinValue;            /**< Sparse mesh threshold value for the population.*/
-      size_t velocityMesh;            /**< ID of the velocity mesh (parameters) this species uses.*/
+struct Boundary {
+   // Handle a particle's boundary behaviour.
+   // returns "true" if the particle is still part of the simulation
+   // afterwards, or "false" if it is to be removed.
+   virtual bool handleParticle(Particle& p) = 0;
 
-      int sparseBlockAddWidthV;        /*!< Number of layers of blocks that are kept in velocity space around the blocks with content */
-      bool sparse_conserve_mass;       /*!< If true, density is scaled to conserve mass when removing blocks*/
-      int  sparseDynamicAlgorithm;     /*!< Type of algorithm used for calculating the dynamic minValue; 0 = none, 1 = linear algorithm based on minValue and rho, 2 = linear algorithm based on minValue and Blocks, (Example linear algorithm: minValue = rho / sparse.dynamicValue * sparse.minValue)*/
-      Real sparseDynamicBulkValue1;    /*!< Minimum value for the dynamic algorithm range, so for example if dynamicAlgorithm=1 then for sparse.dynamicMinValue = 1e3, sparse.dynamicMaxValue=1e5, we apply the algorithm to cells for which 1e3<cell.rho<1e5*/
-      Real sparseDynamicBulkValue2;    /*!< Maximum value for the dynamic algorithm range, so for example if dynamicAlgorithm=1 then for sparse.dynamicMinValue = 1e3, sparse.dynamicMaxValue=1e5, we apply the algorithm to cells for which 1e3<cell.rho<1e5*/
-      Real sparseDynamicMinValue1;     /*!< The minimum value for the minValue*/
-      Real sparseDynamicMinValue2;     /*!< The maximum value for the minValue*/
+   // Handle cell coordinate in the spatial dimension this boundary
+   // object cares about (for example: wrap in a periodic direction)
+   virtual int cellCoordinate(int c) = 0;
 
-      Real thermalRadius;           /*!< Radius of sphere to split the distribution into thermal and suprathermal. 0 (default in cfg) disables the DRO. */
-      std::array<Real, 3> thermalV; /*!< Centre of sphere to split the distribution into thermal and suprathermal. 0 (default in cfg) disables the DRO. */
+   Boundary(int _dimension) : dimension(_dimension) {};
+   virtual void setExtent(double _min, double _max, int _cells) {
+      min = _min;
+      max = _max;
+      cells = _cells;
+   }
 
-      Real EnergyDensityLimit1;   /*!< Lower bound for second Energy density bin in units of solar wind ram energy. Default 5. */
-      Real EnergyDensityLimit2;   /*!< Lower bound forthird Energy density bin in units of solar wind ram energy. Default 10. */
-      Real SolarWindEnergy;       /*!< Solar wind ram energy, used for calculating energy density bins. Default value of 0 attempts to use SolarWindSpeed instead.  */
-      Real SolarWindSpeed;        /*!< Solar wind speed, used for calculating energy density bins if solar wind ram energy wasn't given. Default 0. */
+   virtual ~Boundary() {};
 
-      int precipitationNChannels;              /*!< Number of energy channels for precipitation differential flux evaluation. Default 16. */
-      Real precipitationEmin;                  /*!< Lowest energy channel (in keV) for precipitation differential flux evaluation. Default 0.1. */
-      Real precipitationEmax;                  /*!< Highest energy channel (in keV) for precipitation differential flux evaluation. Default 100. */
-      Real precipitationLossConeAngle;         /*!< Fixed loss cone opening angle (in deg) for precipitation differential flux evaluation. Default 10. */
+   // Which spatial dimension to handle
+   int dimension;
 
-      Species();
-      Species(const Species& other);
-      ~Species();
-    };
+   // Minimum and maximum spatial extents in this dimension
+   double min, max;
 
-} // namespace species
+   // Number of cells in this dimension
+   int cells;
+};
 
-#endif	// PARTICLE_SPECIES_H
+// Boundary for a spatial dimension that is only 1 cell thick (pseudo-periodic)
+struct CompactSpatialDimension : public Boundary {
+   virtual bool handleParticle(Particle& p) {
+      // This boundary does not affect particles
+      return true;
+   }
+   virtual int cellCoordinate(int c) {
+      // Actual cell coordinates in this direction are
+      // always mapped to 0.
+      return 0;
+   }
+   CompactSpatialDimension(int _dimension) : Boundary(_dimension) {};
+};
 
+// Open boundary, which removes particles if they fly out
+struct OpenBoundary : public Boundary {
+   virtual bool handleParticle(Particle& p) {
+
+      // Delete particles that are outside our boundaries.
+      if (p.x[dimension] <= min || p.x[dimension] >= max) {
+         return false;
+      } else {
+         // Leave all others be.
+         return true;
+      }
+   }
+
+   virtual int cellCoordinate(int c) {
+      // Cell coordinates are clamped
+      // TODO: Should this print warnings?
+      if (c < 0) {
+         return 0;
+      } else if (c >= cells) {
+         return cells - 1;
+      } else {
+         return c;
+      }
+   }
+
+   virtual void setExtent(double _min, double _max, int _cells) {
+      double dx = (_max - _min) / ((double)_cells);
+      min = _min + 2 * dx; // 2 Cells border.
+      max = _max - 2 * dx;
+      cells = _cells;
+   }
+   OpenBoundary(int _dimension) : Boundary(_dimension) {};
+};
+
+struct ReflectBoundary : public Boundary {
+   virtual bool handleParticle(Particle& p) {
+      // Particles outside of bounds get their velocities flipped
+      if (p.x[dimension] <= min || p.x[dimension] >= max) {
+         p.v = p.v.cwiseProduct(flip_v);
+      }
+      return true;
+   }
+
+   virtual int cellCoordinate(int c) {
+      // Cell coordinates are clamped
+      // TODO: Should this print warnings?
+      if (c < 0) {
+         return 0;
+      } else if (c >= cells) {
+         return cells - 1;
+      } else {
+         return c;
+      }
+   }
+
+   // Constructor
+   ReflectBoundary(int _dimension) : Boundary(_dimension) {
+      Vec3d flip = {1., 1., 1.};
+      flip[dimension] = -1.;
+      flip_v = flip;
+   }
+   virtual void setExtent(double _min, double _max, int _cells) {
+      double dx = (_max - _min) / ((double)_cells);
+      min = _min + 2 * dx; // 2 Cells border.
+      max = _max - 2 * dx;
+      cells = _cells;
+   }
+
+   // Vector to multiply with in order to flip velocity
+   // vectors for our dimension
+   Vec3d flip_v;
+};
+
+struct PeriodicBoundary : public Boundary {
+   virtual bool handleParticle(Particle& p) {
+      if (p.x[dimension] < min) {
+         p.x += offset_p;
+      } else if (p.x[dimension] >= max) {
+         p.x -= offset_p;
+      }
+      return true;
+   }
+
+   virtual int cellCoordinate(int c) { return c % cells; }
+
+   // Constructor
+   PeriodicBoundary(int _dimension) : Boundary(_dimension) {}
+   virtual void setExtent(double _min, double _max, int _cells) {
+      min = _min;
+      max = _max;
+      cells = _cells;
+
+      Vec3d offset = {0., 0., 0.};
+      offset[dimension] = max - min;
+      offset_p = offset;
+   }
+
+   // Vector to offset particle positions that leave through
+   // one boundary with, to come out the other end
+   Vec3d offset_p;
+};
+
+template <typename T> Boundary* createBoundary(int dimension) { return new T(dimension); }

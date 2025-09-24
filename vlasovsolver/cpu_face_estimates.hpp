@@ -1,6 +1,6 @@
 /*
  * This file is part of Vlasiator.
- * Copyright 2010-2021 Finnish Meteorological Institute
+ * Copyright 2010-2025 Finnish Meteorological Institute and University of Helsinki
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
  * at http://www.physics.helsinki.fi/vlasiator/
@@ -20,495 +20,354 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef CPU_FACE_ESTIMATES_H
-#define CPU_FACE_ESTIMATES_H
-
+#include "../object_wrapper.h"
+#include "../parameters.h"
+#include <math.h>
+// #include <cmath> // NaN Inf checks
+#include "common_pitch_angle_diffusion.hpp"
 #include "vec.h"
-#include "cpu_slope_limiters.hpp"
-#include "../definitions.h"
+#include <Eigen/Geometry>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <iterator>
 
-#include "../arch/arch_device_api.h"
+#define MUSPACE(var, v_ind, mu_ind) var.at((mu_ind) * nbins_v + (v_ind))
 
-/*enum for setting face value and derivative estimates. Implicit ones
-  not supported in the solver, so they are now not listed*/
-enum face_estimate_order {h4, h5, h6, h8};
+using namespace spatial_cell;
+using namespace Eigen;
 
-/*!
-  Compute left face value based on the explicit h8 estimate.
+template <typename Lambda> inline static void loop_over_block(Lambda loop_body) {
 
-  Right face value can be obtained as left face value of cell i + 1.
+   for (int k = 0; k < WID; ++k) {
+      for (int j = 0; j < WID; j += VECL / WID) { // Iterate through coordinates (z,y)
 
-  \param values Array with volume averages. It is assumed a large enough stencil is defined around i.
-  \param i Index of cell in values for which the left face is computed
-  \param fv_l Face value on left face of cell i
-*/
-inline void compute_h8_left_face_value(const Vec * const values, uint k, Vec &fv_l)
-{
-   fv_l = 1.0/840.0 * (
-      - 3.0 * values[k - 4]
-      + 29.0 * values[k - 3]
-      - 139.0 * values[k - 2]
-      + 533.0 * values[k - 1]
-      + 533.0 * values[k]
-      - 139.0 * values[k + 1]
-      + 29.0 * values[k + 2]
-      - 3.0 * values[k + 3]);
-}
-
-
-/*!
-  Compute left face derivative based on the explicit h7 estimate.
-
-  Right face derivative can be obtained as left face derivative of cell i + 1.
-
-  \param values Array with volume averages. It is assumed a large enough stencil is defined around i.
-  \param i Index of cell in values for which the left face derivativeis computed
-  \param fd_l Face derivative on left face of cell i
-*/
-inline void compute_h7_left_face_derivative(const Vec * const values, uint k, Vec &fd_l){
-   fd_l = 1.0/5040.0 * (
-      + 9.0 * values[k - 4]
-      - 119.0 * values[k - 3]
-      + 889.0 * values[k - 2]
-      - 7175.0 * values[k - 1]
-      + 7175.0 * values[k]
-      - 889.0 * values[k + 1]
-      + 119.0 * values[k + 2]
-      - 9.0 * values[k + 3]);
-}
-
-/*!
-  Compute left face value based on the explicit h6 estimate.
-
-  Right face value can be obtained as left face value of cell i + 1.
-
-  \param values Array with volume averages. It is assumed a large enough stencil is defined around i.
-  \param i Index of cell in values for which the left face is computed
-  \param fv_l Face value on left face of cell i
-*/
-inline void compute_h6_left_face_value(const Vec * const values, uint k, Vec &fv_l)
-{
-   //compute left value
-   fv_l = 1.0/60.0 * (values[k - 3]
-                      - 8.0 * values[k - 2]
-                      + 37.0 * values[k - 1]
-                      + 37.0 * values[k ]
-                      - 8.0 * values[k + 1]
-                      + values[k + 2]);
-}
-
-/*!
-  Compute left face derivative based on the explicit h5 estimate.
-
-  Right face derivative can be obtained as left face derivative of cell i + 1.
-
-  \param values Array with volume averages. It is assumed a large enough stencil is defined around i.
-  \param i Index of cell in values for which the left face derivativeis computed
-  \param fd_l Face derivative on left face of cell i
-*/
-inline void compute_h5_left_face_derivative(const Vec * const values, uint k, Vec &fd_l)
-{
-   fd_l = 1.0/180.0 * (245 * (values[k] - values[k - 1])
-                       - 25 * (values[k + 1] - values[k - 2])
-                       + 2 * (values[k + 2] - values[k - 3]));
-}
-
-/*!
-  Compute left and right face value based on the explicit h5 estimate.
-
-  \param values Array with volume averages. It is assumed a large enough stencil is defined around i.
-  \param i Index of cell in values for which the left face is computed
-  \param fv_l Face value on left face of cell i
-*/
-inline void compute_h5_face_values(const Vec * const values, uint k, Vec &fv_l, Vec &fv_r)
-{
-   //compute left values
-   fv_l = 1.0/60.0 * (- 3.0 * values[k - 2]
-                      + 27.0 * values[k - 1]
-                      + 47.0 * values[k ]
-                      - 13.0 * values[k + 1]
-                      + 2.0 * values[k + 2]);
-   fv_r = 1.0/60.0 * ( 2.0 * values[k - 2]
-                       - 13.0 * values[k - 1]
-                       + 47.0 * values[k]
-                       + 27.0 * values[k + 1]
-                       - 3.0 * values[k + 2]);
-}
-/*!
-  Compute left face derivative based on the explicit h4 estimate.
-
-  Right face derivative can be obtained as left face derivative of cell i + 1.
-
-  \param values Array with volume averages. It is assumed a large enough stencil is defined around i.
-  \param i Index of cell in values for which the left face derivativeis computed
-  \param fd_l Face derivative on left face of cell i
-*/
-inline void compute_h4_left_face_derivative(const Vec * const values, uint k, Vec &fd_l)
-{
-   fd_l = 1.0/12.0 * (15.0 * (values[k] - values[k - 1]) - (values[k + 1] - values[k - 2]));
-}
-
-/*!
-  Compute left face value based on the explicit h4 estimate.
-
-  Right face value can be obtained as left face value of cell i + 1.
-
-  \param values Array with volume averages. It is assumed a large enough stencil is defined around i.
-  \param i Index of cell in values for which the left face is computed
-  \param fv_l Face value on left face of cell i
-*/
-inline void compute_h4_left_face_value(const Vec * const values, uint k, Vec &fv_l)
-{
-   //compute left value
-   fv_l = 1.0/12.0 * ( - 1.0 * values[k - 2]
-                       + 7.0 * values[k - 1]
-                       + 7.0 * values[k]
-                       - 1.0 * values[k + 1]);
-}
-
-
-/*!
-  Compute left face value based on the explicit h4 estimate for nonuniform grid.
-  Eqn 45 in White et. al. 2008
-
-  \param u Array with volume averages. It is assumed a large enough stencil is defined around i.
-  \param i Index of cell in values for which the left face is computed
-  \param fv_l Face value on left face of cell i
-  \param h Array with cell widths. Can be in abritrary units since they always cancel. Maybe 1/refinement ratio?
-*/
-inline void compute_h4_left_face_value_nonuniform(const Realf * const h, const Vec * const u, uint k, Vec &fv_l) {
-
-   fv_l = (
-      1.0 / ( h[k - 2] + h[k - 1] + h[k] + h[k + 1] )
-      * ( ( h[k - 2] + h[k - 1] ) * ( h[k] + h[k + 1] ) / ( h[k - 1] + h[k] )
-          * ( u[k - 1] * h[k] + u[k] * h[k - 1] )
-          * (1.0 / ( h[k - 2] + h[k - 1] + h[k] ) + 1.0 / ( h[k - 1] + h[k] + h[k + 1] ) )
-          + ( h[k] * ( h[k] + h[k + 1] ) ) / ( ( h[k - 2] + h[k - 1] + h[k] ) * (h[k - 2] + h[k - 1] ) )
-          * ( u[k - 1] * (h[k - 2] + 2.0 * h[k - 1] ) - ( u[k - 2] * h[k - 1] ) )
-          + h[k - 1] * ( h[k - 2] + h[k - 1] ) / ( ( h[k - 1] + h[k] + h[k + 1] ) * ( h[k] + h[k + 1] ) )
-          * ( u[k] * ( 2.0 * h[k] + h[k + 1] ) - u[k + 1] * h[k] ) )
-      );
-}
-
-
-
-/*!
-  Compute left face value based on the explicit h4 estimate.
-
-  Right face value can be obtained as left face value of cell i + 1.
-
-  \param values Array with volume averages. It is assumed a large enough stencil is defined around i.
-  \param i Index of cell in values for which the left face is computed
-  \param fv_l Face value on left face of cell i
-*/
-inline void compute_h3_left_face_derivative(const Vec * const values, uint k, Vec &fv_l)
-{
-   /*compute left value*/
-   fv_l = 1.0/12.0 * (15 * (values[k] - values[k - 1]) - (values[k + 1] - values[k - 2]));
-}
-
-/*Filters in section 2.6.1 of white et al. to be used for PQM
-  1) Checks for extrema and flattens them
-  2) Makes face values bounded
-  3) Makes sure face slopes are consistent with PLM slope
-*/
-inline void compute_filtered_face_values_derivatives(const Vec * const values, uint k, face_estimate_order order, Vec &fv_l, Vec &fv_r, Vec &fd_l, Vec &fd_r, const Realf threshold)
-{
-   switch(order)
-   {
-      case h4:
-         compute_h4_left_face_value(values, k, fv_l);
-         compute_h4_left_face_value(values, k + 1, fv_r);
-         compute_h3_left_face_derivative(values, k, fd_l);
-         compute_h3_left_face_derivative(values, k + 1, fd_r);
-         break;
-      case h5:
-         compute_h5_face_values(values, k, fv_l, fv_r);
-         compute_h4_left_face_derivative(values, k, fd_l);
-         compute_h4_left_face_derivative(values, k + 1, fd_r);
-         break;
-      default:
-      case h6:
-         compute_h6_left_face_value(values, k, fv_l);
-         compute_h6_left_face_value(values, k + 1, fv_r);
-         compute_h5_left_face_derivative(values, k, fd_l);
-         compute_h5_left_face_derivative(values, k + 1, fd_r);
-         break;
-      case h8:
-         compute_h8_left_face_value(values, k, fv_l);
-         compute_h8_left_face_value(values, k + 1, fv_r);
-         compute_h7_left_face_derivative(values, k, fd_l);
-         compute_h7_left_face_derivative(values, k + 1, fd_r);
-         break;
-   }
-   Vec slope_abs,slope_sign;
-   // scale values closer to 1 for more accurate slope limiter calculation
-   const Realf scale = 1./threshold;
-   slope_limiter(values[k -1]*scale, values[k]*scale, values[k + 1]*scale, slope_abs, slope_sign);
-   slope_abs = slope_abs*threshold;
-   //check for extrema, flatten if it is
-   Vecb is_extrema = (slope_abs == Vec(0.0));
-   if (horizontal_or(is_extrema)) {
-      fv_r = select(is_extrema, values[k], fv_r);
-      fv_l = select(is_extrema, values[k], fv_l);
-      fd_l = select(is_extrema, 0.0 , fd_l);
-      fd_r = select(is_extrema, 0.0 , fd_r);
-   }
-   //Fix left face if needed; boundary value is not bounded or slope is not consistent
-   Vecb filter = (values[k -1] - fv_l) * (fv_l - values[k]) < 0 || slope_sign * fd_l < 0.0;
-   if (horizontal_or (filter)) {
-      //Go to linear (PLM) estimates if not ok (this is always ok!)
-      fv_l=select(filter, values[k ] - slope_sign * 0.5 * slope_abs, fv_l);
-      fd_l=select(filter, slope_sign * slope_abs, fd_l);
-   }
-   //Fix right face if needed; boundary value is not bounded or slope is not consistent
-   filter = (values[k + 1] - fv_r) * (fv_r - values[k]) < 0 || slope_sign * fd_r < 0.0;
-   if (horizontal_or (filter)) {
-      //Go to linear (PLM) estimates if not ok (this is always ok!)
-      fv_r=select(filter, values[k] + slope_sign * 0.5 * slope_abs, fv_r);
-      fd_r=select(filter, slope_sign * slope_abs, fd_r);
-   }
-}
-
-/*Filters in section 2.6.1 of white et al. to be used for PPM
-  1) Checks for extrema and flattens them
-  2) Makes face values bounded
-  3) Makes sure face slopes are consistent with PLM slope
-*/
-inline void compute_filtered_face_values(const Vec * const values, uint k, face_estimate_order order, Vec &fv_l, Vec &fv_r, const Realf threshold)
-{
-   switch(order)
-   {
-      case h4:
-         compute_h4_left_face_value(values, k, fv_l);
-         compute_h4_left_face_value(values, k + 1, fv_r);
-         break;
-      case h5:
-         compute_h5_face_values(values, k, fv_l, fv_r);
-         break;
-      default:
-      case h6:
-         compute_h6_left_face_value(values, k, fv_l);
-         compute_h6_left_face_value(values, k + 1, fv_r);
-         break;
-      case h8:
-         compute_h8_left_face_value(values, k, fv_l);
-         compute_h8_left_face_value(values, k + 1, fv_r);
-         break;
-   }
-   Vec slope_abs, slope_sign;
-   // scale values closer to 1 for more accurate slope limiter calculation
-   const Realf scale = 1./threshold;
-   slope_limiter(values[k -1]*scale, values[k]*scale, values[k + 1]*scale, slope_abs, slope_sign);
-   slope_abs = slope_abs*threshold;
-
-   //check for extrema, flatten if it is
-   Vecb is_extrema = (slope_abs == Vec(0.0));
-   if (horizontal_or(is_extrema)) {
-      fv_r = select(is_extrema, values[k], fv_r);
-      fv_l = select(is_extrema, values[k], fv_l);
-   }
-   //Fix left face if needed; boundary value is not bounded
-   Vecb filter = (values[k -1] - fv_l) * (fv_l - values[k]) < 0 ;
-   if (horizontal_or (filter)) {
-      //Go to linear (PLM) estimates if not ok (this is always ok!)
-      fv_l = select(filter, values[k ] - slope_sign * 0.5 * slope_abs, fv_l);
-   }
-   //Fix  face if needed; boundary value is not bounded
-   filter = (values[k + 1] - fv_r) * (fv_r - values[k]) < 0;
-   if (horizontal_or (filter)) {
-      //Go to linear (PLM) estimates if not ok (this is always ok!)
-      fv_r = select(filter, values[k] + slope_sign * 0.5 * slope_abs, fv_r);
-   }
-}
-
-
-
-inline void compute_filtered_face_values_nonuniform(const Realf * const dv, const Vec * const values, uint k, face_estimate_order order, Vec &fv_l, Vec &fv_r, const Realf threshold){
-   switch(order){
-      case h4:
-         compute_h4_left_face_value_nonuniform(dv, values, k, fv_l);
-         compute_h4_left_face_value_nonuniform(dv, values, k + 1, fv_r);
-         break;
-         // case h5:
-         //   compute_h5_face_values(dv, values, k, fv_l, fv_r);
-         //   break;
-         // case h6:
-         //   compute_h6_left_face_value(dv, values, k, fv_l);
-         //   compute_h6_left_face_value(dv, values, k + 1, fv_r);
-         //   break;
-         // case h8:
-         //   compute_h8_left_face_value(dv, values, k, fv_l);
-         //   compute_h8_left_face_value(dv, values, k + 1, fv_r);
-         //   break;
-      default:
-         printf("Order %d has not been implemented (yet)\n",order);
-         break;
-   }
-   Vec slope_abs,slope_sign;
-   if (threshold>0) {
-      // scale values closer to 1 for more accurate slope limiter calculation
-      const Realf scale = 1./threshold;
-      slope_limiter(values[k -1]*scale, values[k]*scale, values[k + 1]*scale, slope_abs, slope_sign);
-      slope_abs = slope_abs*threshold;
-   } else {
-      slope_limiter(values[k -1], values[k], values[k + 1], slope_abs, slope_sign);
-   }
-
-   //check for extrema, flatten if it is
-   Vecb is_extrema = (slope_abs == Vec(0.0));
-   if (horizontal_or(is_extrema)) {
-      fv_r = select(is_extrema, values[k], fv_r);
-      fv_l = select(is_extrema, values[k], fv_l);
-   }
-
-   //Fix left face if needed; boundary value is not bounded
-   Vecb filter = (values[k -1] - fv_l) * (fv_l - values[k]) < 0 ;
-   if (horizontal_or (filter)) {
-      //Go to linear (PLM) estimates if not ok (this is always ok!)
-      fv_l=select(filter, values[k ] - slope_sign * 0.5 * slope_abs, fv_l);
-   }
-
-   //Fix  face if needed; boundary value is not bounded
-   filter = (values[k + 1] - fv_r) * (fv_r - values[k]) < 0;
-   if (horizontal_or (filter)) {
-      //Go to linear (PLM) estimates if not ok (this is always ok!)
-      fv_r=select(filter, values[k] + slope_sign * 0.5 * slope_abs, fv_r);
-   }
-}
-
-inline Vec get_D2aLim(const Realf * h, const Vec * values, uint k, const Vec C, Vec & fv) {
-
-   // Colella & Sekora, eq. 18
-   Vec invh2 = 1.0 / (h[k] * h[k]);
-   Vec d2a =  invh2 * 3.0 * (values[k]     - 2.0 * fv            + values[k + 1]);
-   Vec d2aL = invh2       * (values[k - 1] - 2.0 * values[k]     + values[k + 1]);
-   Vec d2aR = invh2       * (values[k]     - 2.0 * values[k + 1] + values[k + 2]);
-   Vec d2aLim;
-   if ( (horizontal_or(d2a * d2aL >= 0)) && (horizontal_or(d2a * d2aR >= 0)) &&
-        horizontal_and(d2a != 0)) {
-      d2aLim = d2a / abs(d2a) * min(abs(d2a),min(C*abs(d2aL),C*abs(d2aR)));
-   } else {
-      d2aLim = 0.0;
-   }
-   return d2aLim;
-}
-
-inline void constrain_face_values(const Realf * h,const Vec * values,uint k,Vec & fv_l, Vec & fv_r) {
-
-   const Vec C = 1.25;
-   Vec invh2 = 1.0 / (h[k] * h[k]);
-
-   // Colella & Sekora, eq 19
-   Vec p_face = 0.5 * (values[k] + values[k + 1])
-      - h[k] * h[k] / 3.0 * get_D2aLim(h,values,k  ,C,fv_r);
-   Vec m_face = 0.5 * (values[k-1] + values[k])
-      - h[k-1] * h[k-1] / 3.0 * get_D2aLim(h,values,k-1,C,fv_l);
-
-   // Colella & Sekora, eq 21
-   Vec d2a = -2.0 * invh2 * 6.0 * (values[k] - 3.0 * (m_face + p_face)); // a6,j from eq. 7
-   Vec d2aC = invh2 * (values[k - 1] - 2.0 * values[k    ] + values[k + 1]);
-   // Note: Corrected the index of 2nd term in d2aL to k - 1.
-   //       In the paper it is k but that is almost certainly an error.
-   Vec d2aL = invh2 * (values[k - 2] - 2.0 * values[k - 1] + values[k    ]);
-   Vec d2aR = invh2 * (values[k    ] - 2.0 * values[k + 1] + values[k + 2]);
-   Vec d2aLim;
-
-   // Colella & Sekora, eq 22
-   if ( (horizontal_or(d2a * d2aL >= 0)) && (horizontal_or(d2a * d2aR >= 0)) &&
-        (horizontal_or(d2a * d2aC >= 0)) && horizontal_and(d2a != 0)) {
-
-      d2aLim = d2a / abs(d2a) * min(C * abs(d2aL), min(C * abs(d2aR), min(C * abs(d2aC), abs(d2a))));
-   } else {
-      d2aLim = 0.0;
-      if ( horizontal_or(d2a == 0.0)) {
-         // Set a non-zero value for the denominator in eq. 23.
-         // According to the paper the ratio d2aLim/d2a should be 0
-         d2a = 1.0;
-      }
-   }
-
-   // Colella & Sekora, eq 23
-   fv_r = values[k] + (p_face - values[k]) * d2aLim / d2a;
-   fv_l = values[k] + (m_face - values[k]) * d2aLim / d2a;
-
-}
-
-inline void compute_filtered_face_values_nonuniform_conserving(const Realf * const dv, const Vec * const values,uint k, face_estimate_order order, Vec &fv_l, Vec &fv_r, const Realf threshold){
-   switch(order){
-      case h4:
-         compute_h4_left_face_value_nonuniform(dv, values, k, fv_l);
-         compute_h4_left_face_value_nonuniform(dv, values, k + 1, fv_r);
-         break;
-         // case h5:
-         //   compute_h5_face_values(dv, values, k, fv_l, fv_r);
-         //   break;
-         // case h6:
-         //   compute_h6_left_face_value(dv, values, k, fv_l);
-         //   compute_h6_left_face_value(dv, values, k + 1, fv_r);
-         //   break;
-         // case h8:
-         //   compute_h8_left_face_value(dv, values, k, fv_l);
-         //   compute_h8_left_face_value(dv, values, k + 1, fv_r);
-         //   break;
-      default:
-         printf("Order %d has not been implemented (yet)\n",order);
-         break;
-   }
-
-   Vec slope_abs,slope_sign;
-   if (threshold>0) {
-      // scale values closer to 1 for more accurate slope limiter calculation
-      const Realf scale = 1./threshold;
-      slope_limiter(values[k -1]*scale, values[k]*scale, values[k + 1]*scale, slope_abs, slope_sign);
-      slope_abs = slope_abs*threshold;
-   } else {
-      slope_limiter(values[k -1], values[k], values[k + 1], slope_abs, slope_sign);
-   }
-
-   //check for extrema
-   //Vecb is_extrema = (slope_abs == Vec(0.0));
-   //Vecb filter_l = (values[k - 1] - fv_l) * (fv_l - values[k]) < 0 ;
-   //Vecb filter_r = (values[k + 1] - fv_r) * (fv_r - values[k]) < 0;
-   //  if(horizontal_or(is_extrema) || horizontal_or(filter_l) || horizontal_or(filter_r)) {
-   // Colella & Sekora, eq. 20
-   if (horizontal_or((fv_r - values[k]) * (values[k] - fv_l) <= Vec(0.0))
-      && horizontal_or((values[k - 1] - values[k]) * (values[k] - values[k + 1]) <= Vec(0.0))) {
-      constrain_face_values(dv, values, k, fv_l, fv_r);
-
-      //    fv_r = select(is_extrema, values[k], fv_r);
-      //    fv_l = select(is_extrema, values[k], fv_l);
-   } else {
-
-      //Fix left face if needed; boundary value is not bounded
-      Vecb filter = (values[k -1] - fv_l) * (fv_l - values[k]) < 0 ;
-      if (horizontal_or (filter)) {
-         //Go to linear (PLM) estimates if not ok (this is always ok!)
-         fv_l=select(filter, values[k ] - slope_sign * 0.5 * slope_abs, fv_l);
-      }
-
-      //Fix  face if needed; boundary value is not bounded
-      filter = (values[k + 1] - fv_r) * (fv_r - values[k]) < 0;
-      if (horizontal_or (filter)) {
-         //Go to linear (PLM) estimates if not ok (this is always ok!)
-         fv_r=select(filter, values[k] + slope_sign * 0.5 * slope_abs, fv_r);
-      }
-   }
-
-   // //Fix left face if needed; boundary value is not bounded
-   // Vecb filter = (values[k -1] - fv_l) * (fv_l - values[k]) < 0 ;
-   // if(horizontal_or (filter)) {
-   //   //Go to linear (PLM) estimates if not ok (this is always ok!)
-   //   fv_l=select(filter, values[k ] - slope_sign * 0.5 * slope_abs, fv_l);
-   // }
-
-   // //Fix  face if needed; boundary value is not bounded
-   // filter = (values[k + 1] - fv_r) * (fv_r - values[k]) < 0;
-   // if(horizontal_or (filter)) {
-   //   //Go to linear (PLM) estimates if not ok (this is always ok!)
-   //   fv_r=select(filter, values[k] + slope_sign * 0.5 * slope_abs, fv_r);
-   // }
-
-}
-
+         // create vectors with the i and j indices in the vector position on the plane.
+#if VECL == 4 && WID == 4
+         const Veci i_indices = Veci({0, 1, 2, 3});
+         const Veci j_indices = Veci({j, j, j, j});
+#elif VECL == 4 && WID == 8
+#error "__FILE__ : __LINE__ : VECL == 4 && WID == 8 cannot work!"
+#elif VECL == 8 && WID == 4
+         const Veci i_indices = Veci({0, 1, 2, 3, 0, 1, 2, 3});
+         const Veci j_indices = Veci({j, j, j, j, j + 1, j + 1, j + 1, j + 1});
+#elif VECL == 8 && WID == 8
+         const Veci i_indices = Veci({0, 1, 2, 3, 4, 5, 6, 7});
+         const Veci j_indices = Veci({j, j, j, j, j, j, j, j});
+#elif VECL == 16 && WID == 4
+         const Veci i_indices = Veci({0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3});
+         const Veci j_indices = Veci({j, j, j, j, j + 1, j + 1, j + 1, j + 1, j + 2, j + 2, j + 2, j + 2, j + 3, j + 3, j + 3, j + 3});
+#elif VECL == 16 && WID == 8
+         const Veci i_indices = Veci({0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7});
+         const Veci j_indices = Veci({j, j, j, j, j, j, j, j, j + 1, j + 1, j + 1, j + 1, j + 1, j + 1, j + 1, j + 1});
+#elif VECL == 16 && WID == 16
+         const Veci i_indices = Veci({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15});
+         const Veci j_indices = Veci({j, j, j, j, j, j, j, j, j, j, j, j, j, j, j, j});
+#elif VECL == 32 && WID == 4
+#error "__FILE__ : __LINE__ : VECL == 32 && WID == 4 cannot work, too long vector for one plane!"
+#elif VECL == 32 && WID == 8
+         const Veci i_indices = Veci({0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7});
+         const Veci j_indices = Veci({j,     j,     j,     j,     j,     j,     j,     j,     j + 1, j + 1, j + 1, j + 1, j + 1, j + 1, j + 1, j + 1,
+                                      j + 2, j + 2, j + 2, j + 2, j + 2, j + 2, j + 2, j + 2, j + 3, j + 3, j + 3, j + 3, j + 3, j + 3, j + 3, j + 3});
+#elif VECL == 64 && WID == 4
+#error "__FILE__ : __LINE__ : VECL == 64 && WID == 4 cannot work, too long vector for one plane!"
+#elif VECL == 64 && WID == 8
+         const Veci i_indices = Veci({0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7,
+                                      0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7});
+         const Veci j_indices = Veci({j,     j,     j,     j,     j,     j,     j,     j,     j + 1, j + 1, j + 1, j + 1, j + 1, j + 1, j + 1, j + 1, j + 2, j + 2, j + 2, j + 2, j + 2, j + 2,
+                                      j + 2, j + 2, j + 3, j + 3, j + 3, j + 3, j + 3, j + 3, j + 3, j + 3, j + 4, j + 4, j + 4, j + 4, j + 4, j + 4, j + 4, j + 4, j + 5, j + 5, j + 5, j + 5,
+                                      j + 5, j + 5, j + 5, j + 5, j + 6, j + 6, j + 6, j + 6, j + 6, j + 6, j + 6, j + 6, j + 7, j + 7, j + 7, j + 7, j + 7, j + 7, j + 7, j + 7});
+#else
+#error "This VECL && This WID cannot work!"
+#define xstr(s) str(s)
+#define str(s) #s
+#pragma message "VECL =" xstr(VECL)
+#pragma message "WID = "xstr(WID)
 #endif
+
+         loop_body(i_indices, j_indices, k);
+      }
+   }
+}
+
+void pitchAngleDiffusion(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const uint popID) {
+
+   // Ensure nu0 dat file is read, if requested
+   if (P::PADcoefficient < 0) {
+      readNuArrayFromFile();
+   }
+
+   int nbins_v = Parameters::PADvbins;
+   int nbins_mu = Parameters::PADmubins;
+   const Real dmubins = 2.0 / nbins_mu;
+
+   // resonance gap filling coefficient, not needed assuming even number of bins in mu-space
+   const Real epsilon = 0.0;
+
+   phiprof::Timer diffusionTimer{"pitch-angle-diffusion"};
+
+   const auto LocalCells = getLocalCells();
+   #pragma omp parallel
+   {
+      std::vector<int> fcount(nbins_v * nbins_mu, 0);                    // Array to count number of f stored
+      std::vector<Realf> fmu(nbins_v * nbins_mu, 0);                     // Array to store f(v,mu)
+      std::vector<Realf> dfdmu(nbins_v * nbins_mu, 0);                   // Array to store dfdmu
+      std::vector<Realf> dfdmu2(nbins_v * nbins_mu, 0);                  // Array to store dfdmumu
+      std::vector<Realf> dfdt_mu(nbins_v * nbins_mu, 0);                 // Array to store dfdt_mu
+      #pragma omp for
+      for (size_t CellIdx = 0; CellIdx < LocalCells.size(); CellIdx++) { // Iterate over all spatial cells
+
+         const auto CellID = LocalCells[CellIdx];
+         SpatialCell& cell = *mpiGrid[CellID];
+         const Real* parameters = cell.get_block_parameters(popID);
+         const vmesh::LocalID* nBlocks = cell.get_velocity_grid_length(popID);
+         const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
+         const vmesh::MeshParameters& vMesh = vmesh::getMeshWrapper()->velocityMeshes->at(meshID);
+
+         // Ensure mass conservation
+         Realf density_pre_adjust = 0.0;
+         Realf density_post_adjust = 0.0;
+         if (getObjectWrapper().particleSpecies[popID].sparse_conserve_mass) {
+            Vec vectorSum{0};
+            Vec vectorAdd{0};
+            for (size_t i = 0; i < cell.get_number_of_velocity_blocks(popID) * WID3 / VECL; ++i) {
+               vectorAdd.load(&cell.get_data(popID)[i * VECL]);
+               vectorSum += vectorAdd;
+               // density_pre_adjust += cell.get_data(popID)[i];
+            }
+            density_pre_adjust = horizontal_add(vectorSum);
+         }
+
+         Real dtTotalDiff = 0.0; // Diffusion time elapsed
+
+         const Real Vmax = 2 * sqrt(3) * vMesh.meshLimits[1];
+         const Real dVbins = Vmax / nbins_v;
+
+         const Real bulkVX = cell.parameters[CellParams::VX];
+         const Real bulkVY = cell.parameters[CellParams::VY];
+         const Real bulkVZ = cell.parameters[CellParams::VZ];
+
+         bool currentSpatialLoopComplete;
+         Realf Sparsity;
+         std::array<Real, 3> b;
+         Real nu0;
+
+         // Compute parameters
+         computePitchAngleDiffusionParameters(cell, popID, CellIdx, currentSpatialLoopComplete, Sparsity, b, nu0);
+
+         // Enable nu0 disk output; skip cells where diffusion is not required (or diffusion coefficient is very small).
+         cell.parameters[CellParams::NU0] = nu0;
+         if (nu0 <= 0.001) {
+            continue;
+         }
+
+         while (dtTotalDiff < Parameters::dt) { // Substep loop
+
+            const Real RemainT = Parameters::dt - dtTotalDiff; // Remaining time before reaching simulation time step
+            Real checkCFL = std::numeric_limits<Real>::max();
+
+            // Initialised at each substep
+            std::fill(fmu.begin(), fmu.end(), 0.0);
+            std::fill(fcount.begin(), fcount.end(), 0);
+
+            // Build 2d array of f(v,mu)
+            for (vmesh::LocalID n = 0; n < cell.get_number_of_velocity_blocks(popID); n++) { // Iterate through velocity blocks
+
+               loop_over_block([&](Veci i_indices, Veci j_indices, int k) -> void { // Lambda function processor
+                  // Get velocity space coordinates
+                  const Vec VX(parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] +
+                               (to_realf(i_indices) + 0.5) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]);
+                  const Vec VY(parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] +
+                               (to_realf(j_indices) + 0.5) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY]);
+                  const Vec VZ(parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] + (k + 0.5) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ]);
+
+                  const Vec VplasmaX = VX - bulkVX;
+                  const Vec VplasmaY = VY - bulkVY;
+                  const Vec VplasmaZ = VZ - bulkVZ;
+
+                  const Vec normV = sqrt(VplasmaX * VplasmaX + VplasmaY * VplasmaY + VplasmaZ * VplasmaZ);
+                  const Vec Vpara = VplasmaX * b[0] + VplasmaY * b[1] + VplasmaZ * b[2];
+                  const Vec mu = Vpara / (normV + std::numeric_limits<Real>::min()); // + min value to avoid division by 0.
+
+                  const Veci Vindex = roundi(floor((normV) / dVbins));
+                  const Vec Vmu = dVbins * (to_realf(Vindex) + 0.5); // Take value at the center of the mu cell
+                  Veci muindex = roundi(floor((mu + 1.0) / dmubins));
+
+                  Vec CellValue;
+                  CellValue.load(&cell.get_data(n, popID)[WID2 * k + WID * j_indices[0] + i_indices[0]]);
+                  const Vec increment = 2.0 * M_PI * Vmu * Vmu * CellValue;
+                  for (uint i = 0; i < VECL; i++) {
+                     // Safety check to handle edge case where mu = exactly 1.0
+                     const int mui = std::max(0, std::min((int)muindex[i], nbins_mu - 1));
+                     const int vi = std::max(0, std::min((int)Vindex[i], nbins_v - 1));
+                     MUSPACE(fmu, vi, mui) += increment[i];
+                     MUSPACE(fcount, vi, mui) += 1;
+                  }
+               }); // End of Lambda
+            } // End blocks
+
+            int cRight;
+            int cLeft;
+
+            // Compute space/time derivatives (take first non-zero neighbours) & CFL & Ddt
+            for (int indv = 0; indv < nbins_v; indv++) {
+               const Real Vmu = dVbins * (float(indv) + 0.5);
+
+               // Divide f by count (independent of v but needs to be computed for all mu before derivatives)
+               for (int indmu = 0; indmu < nbins_mu; indmu++) {
+                  if (MUSPACE(fcount, indv, indmu) == 0 || MUSPACE(fmu, indv, indmu) <= 0.0) {
+                     MUSPACE(fmu, indv, indmu) = 0;
+                  } else {
+                     MUSPACE(fmu, indv, indmu) = MUSPACE(fmu, indv, indmu) / MUSPACE(fcount, indv, indmu);
+                  }
+               }
+
+               // Search limits for how many cells in mu-direction should be max evaluated when searching for a near neighbour?
+               // Assuming some oversampling; changing these values may result in method breaking at very small plasma frame velocities.
+               const int rlimit = nbins_mu - 1;
+               const int llimit = 0;
+
+               for (int indmu = 0; indmu < nbins_mu; indmu++) {
+                  // Compute spatial derivatives
+                  if (indmu == 0) {
+                     cLeft = 0;
+                     cRight = 1;
+                     while ((MUSPACE(fcount, indv, indmu + cRight) == 0) && (indmu + cRight < rlimit)) {
+                        cRight += 1;
+                     }
+                     if ((MUSPACE(fcount, indv, indmu + cRight) == 0) && (indmu + cRight == rlimit)) {
+                        cRight = 0;
+                     }
+                  } else if (indmu == nbins_mu - 1) {
+                     cLeft = 1;
+                     cRight = 0;
+                     while ((MUSPACE(fcount, indv, indmu - cLeft) == 0) && (indmu - cLeft > llimit)) {
+                        cLeft += 1;
+                     }
+                     if ((MUSPACE(fcount, indv, indmu - cLeft) == 0) && (indmu - cLeft == llimit)) {
+                        cLeft = 0;
+                     }
+                  } else {
+                     cLeft = 1;
+                     cRight = 1;
+                     while ((MUSPACE(fcount, indv, indmu + cRight) == 0) && (indmu + cRight < rlimit)) {
+                        cRight += 1;
+                     }
+                     if ((MUSPACE(fcount, indv, indmu + cRight) == 0) && (indmu + cRight == rlimit)) {
+                        cRight = 0;
+                     }
+                     while ((MUSPACE(fcount, indv, indmu - cLeft) == 0) && (indmu - cLeft > llimit)) {
+                        cLeft += 1;
+                     }
+                     if ((MUSPACE(fcount, indv, indmu - cLeft) == 0) && (indmu - cLeft == llimit)) {
+                        cLeft = 0;
+                     }
+                  }
+                  if ((cRight == 0) && (cLeft != 0)) {
+                     MUSPACE(dfdmu, indv, indmu) = (MUSPACE(fmu, indv, indmu + cRight) - MUSPACE(fmu, indv, indmu - cLeft)) / ((cRight + cLeft) * dmubins);
+                     MUSPACE(dfdmu2, indv, indmu) = 0.0;
+                  } else if ((cLeft == 0) && (cRight != 0)) {
+                     MUSPACE(dfdmu, indv, indmu) = (MUSPACE(fmu, indv, indmu + cRight) - MUSPACE(fmu, indv, indmu - cLeft)) / ((cRight + cLeft) * dmubins);
+                     MUSPACE(dfdmu2, indv, indmu) = 0.0;
+                  } else if ((cLeft == 0) && (cRight == 0)) {
+                     MUSPACE(dfdmu, indv, indmu) = 0.0;
+                     MUSPACE(dfdmu2, indv, indmu) = 0.0;
+                  } else {
+                     MUSPACE(dfdmu, indv, indmu) = (MUSPACE(fmu, indv, indmu + cRight) - MUSPACE(fmu, indv, indmu - cLeft)) / ((cRight + cLeft) * dmubins);
+                     MUSPACE(dfdmu2, indv, indmu) =
+                         ((MUSPACE(fmu, indv, indmu + cRight) - MUSPACE(fmu, indv, indmu)) / (cRight * dmubins) - (MUSPACE(fmu, indv, indmu) - MUSPACE(fmu, indv, indmu - cLeft)) / (cLeft * dmubins)) /
+                         (0.5 * dmubins * (cRight + cLeft));
+                  }
+
+                  // Compute time derivative
+                  const Realf mu = (indmu + 0.5) * dmubins - 1.0;
+                  const Realf Dmumu = nu0 / 2.0 * (abs(mu) / (1.0 + abs(mu)) + epsilon) * (1.0 - mu * mu);
+                  const Realf dDmu = nu0 / 2.0 * ((mu / abs(mu)) * ((1.0 - mu * mu) / ((1.0 + abs(mu)) * (1.0 + abs(mu)))) - 2.0 * mu * (abs(mu) / (1.0 + abs(mu)) + epsilon));
+                  // We divide dfdt_mu by the normalization factor 2pi*v^2 already here.
+                  const Realf dfdt_mu_val = (dDmu * MUSPACE(dfdmu, indv, indmu) + Dmumu * MUSPACE(dfdmu2, indv, indmu)) / (2.0 * M_PI * Vmu * Vmu);
+                  MUSPACE(dfdt_mu, indv, indmu) = dfdt_mu_val;
+
+                  // Only consider CFL for non-negative phase-space cells above the sparsity threshold
+                  const Realf CellValue = MUSPACE(fmu, indv, indmu) / (2.0 * M_PI * Vmu * Vmu);
+                  const Realf absdfdt = abs(MUSPACE(dfdt_mu, indv, indmu)); // Already scaled
+                  if (absdfdt > 0.0 && CellValue > Sparsity) {
+                     checkCFL = std::min(CellValue * Parameters::PADCFL * (1.0 / absdfdt), checkCFL);
+                  }
+               } // End mu loop
+            } // End v loop
+
+            // Compute Ddt
+            Real Ddt = checkCFL;
+            if (Ddt > RemainT) {
+               Ddt = RemainT;
+            }
+            dtTotalDiff = dtTotalDiff + Ddt;
+
+            for (vmesh::LocalID n = 0; n < cell.get_number_of_velocity_blocks(popID); n++) { // Iterate through velocity blocks
+
+               loop_over_block([&](Veci i_indices, Veci j_indices, int k) -> void { // Lambda function processor
+                  // Get velocity space coordinates
+                  const Vec VX(parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] +
+                               (to_realf(i_indices) + 0.5) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]);
+                  const Vec VY(parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] +
+                               (to_realf(j_indices) + 0.5) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY]);
+                  const Vec VZ(parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] + (k + 0.5) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ]);
+
+                  const Vec VplasmaX = VX - bulkVX;
+                  const Vec VplasmaY = VY - bulkVY;
+                  const Vec VplasmaZ = VZ - bulkVZ;
+
+                  const Vec normV = sqrt(VplasmaX * VplasmaX + VplasmaY * VplasmaY + VplasmaZ * VplasmaZ);
+                  const Vec Vpara = VplasmaX * b[0] + VplasmaY * b[1] + VplasmaZ * b[2];
+                  const Vec mu = Vpara / (normV + std::numeric_limits<Real>::min()); // + min value to avoid division by 0.
+
+                  const Veci Vindex = roundi(floor((normV) / dVbins));
+                  const Vec Vmu = dVbins * (to_realf(Vindex) + 0.5); // Take value at the center of the mu cell
+                  Veci muindex = roundi(floor((mu + 1.0) / dmubins));
+
+                  // Compute dfdt
+                  std::array<Realf, VECL> dfdt = {0};
+                  for (uint i = 0; i < VECL; i++) {
+                     // Safety check to handle edge case where mu = exactly 1.0
+                     const int mui = std::max(0, std::min((int)muindex[i], nbins_mu - 1));
+                     const int vi = std::max(0, std::min((int)Vindex[i], nbins_v - 1));
+                     dfdt[i] = MUSPACE(dfdt_mu, vi, mui); // dfdt_mu was scaled back down by 2pi*v^2 on creation
+                  }
+                  Vec dfdtUpdate;
+                  dfdtUpdate.load(&dfdt[0]);
+
+                  // Update cell value, ensuring result is non-negative
+                  Vec CellValue;
+                  CellValue.load(&cell.get_data(n, popID)[WID2 * k + WID * j_indices[0] + i_indices[0]]);
+                  Vec NewCellValue = CellValue + dfdtUpdate * Ddt;
+                  const Vecb lessZero = NewCellValue < 0.0;
+                  NewCellValue = select(lessZero, 0.0, NewCellValue);
+                  NewCellValue.store(&cell.get_data(n, popID)[WID2 * k + WID * j_indices[0] + i_indices[0]]);
+               }); // End of Lambda
+            } // End Blocks
+
+         } // End Time loop
+
+         // Ensure mass conservation
+         if (getObjectWrapper().particleSpecies[popID].sparse_conserve_mass) {
+            Vec vectorSum{0};
+            Vec vectorAdd{0};
+            for (size_t i = 0; i < cell.get_number_of_velocity_blocks(popID) * WID3 / VECL; ++i) {
+               vectorAdd.load(&cell.get_data(popID)[i * VECL]);
+               vectorSum += vectorAdd;
+            }
+            density_post_adjust = horizontal_add(vectorSum);
+
+            if (density_post_adjust != 0.0 && density_pre_adjust != density_post_adjust) {
+               const Vec adjustRatio = density_pre_adjust / density_post_adjust;
+               Vec vectorAdjust;
+               for (size_t i = 0; i < cell.get_number_of_velocity_blocks(popID) * WID3 / VECL; ++i) {
+                  vectorAdjust.load(&cell.get_data(popID)[i * VECL]);
+                  vectorAdjust *= adjustRatio;
+                  vectorAdjust.store(&cell.get_data(popID)[i * VECL]);
+               }
+            }
+         }
+      } // End spatial cell loop
+   } // End parallel workshare region
+} // End function

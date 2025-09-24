@@ -1,94 +1,62 @@
+/*
+ * This file is part of Vlasiator.
+ * Copyright 2010-2016 Finnish Meteorological Institute
+ *
+ * For details of usage, see the COPYING file and read the "Rules of the Road"
+ * at http://www.physics.helsinki.fi/vlasiator/
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+
+#ifndef MPI_CONVERSION_H
+#define MPI_CONVERSION_H
+#include <cstdlib>
 #include <iostream>
-#include <fstream>
-#include <vector>
-//#include "dccrg.hpp"
-#include "../../grid.h"
-#include "mpi.h"
-#include "../../definitions.h"
-#include "../../parameters.h"
-#include "../../vlasovsolver/cpu_trans_map.hpp"
+#include <mpi.h>
+#include <stdint.h>
 
-using namespace std;
-
-// struct grid_data {
-
-//   int value = 0;
-
-//   std::tuple<void*, int, MPI_Datatype> get_mpi_datatype()
-//   {
-//     return std::make_tuple(this, 0, MPI_BYTE);
-//   }
-    
-// };
-
-int main(int argc, char* argv[]) {
-
-   if (MPI_Init(&argc, &argv) != MPI_SUCCESS) {
-      // cerr << "Coudln't initialize MPI." << endl;
-      abort();
-   }
-
-   MPI_Comm comm = MPI_COMM_WORLD;
-
-   int rank = 0, comm_size = 0;
-   MPI_Comm_rank(comm, &rank);
-   MPI_Comm_size(comm, &comm_size);
-
-   const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry> grid;
-
-   const uint dimension = 0;
-   const uint xDim = 9;
-   const uint yDim = 9;
-   const uint zDim = 1;
-   const std::array<uint64_t, 3> grid_size = {{xDim,yDim,zDim}};
-
-   int argn;
-   char **argc;
-   
-   initializeGrid(argn,argc,grid,sysBoundaries,project);
-   //grid.initialize(grid_size, comm, "RANDOM", 1);
-
-   grid.balance_load();
-
-   bool doRefine = false;
-   const std::array<uint,4> refinementIds = {{1,2,3,4}};
-   if(doRefine) {
-      for(uint i = 0; i < refinementIds.size(); i++) {
-         if(refinementIds[i] > 0) {
-            grid.refine_completely(refinementIds[i]);
-            grid.stop_refining();
-         }
-      }
-   }
-
-   grid.balance_load();
-
-   setOfPencils pencils;
-   vector<CellID> seedIds;
-   vector<CellID> localPropagatedCells;
-   vector<CellID> ids;
-   vector<uint> path;
-   
-   for (CellID i = 0; i < xDim * yDim * zDim; i++) localPropagatedCells.push_back( i + 1 );
-   get_seed_ids(grid, localPropagatedCells, dimension, seedIds);
-   for (const auto seedId : seedIds) {
-      // Construct pencils from the seedIds into a set of pencils.
-      pencils = buildPencilsWithNeighbors(grid, pencils, seedId, ids, dimension, path);      
-   }
-
-   uint ibeg = 0;
-   uint iend = 0;
-   std::cout << "I have created " << pencils.N << " pencils along dimension " << dimension << ":\n";
-   std::cout << "(x, y): indices " << std::endl;
-   std::cout << "-----------------------------------------------------------------" << std::endl;
-   for (uint i = 0; i < pencils.N; i++) {
-      iend += pencils.lengthOfPencils[i];
-      std::cout << "(" << pencils.x[i] << ", " << pencils.y[i] << "): ";
-      for (auto j = pencils.ids.begin() + ibeg; j != pencils.ids.begin() + iend; ++j) {
-         std::cout << *j << " ";
-      }
-      ibeg  = iend;
-      std::cout << std::endl;
-   }
-
+// Overloaded templates which return the corresponding data type
+// for C++ native data types. For example, if float has been
+// typedef'd as Real, then MPI_Type<Real>() should return MPI_FLOAT.
+// If you later on change the typedef to double, MPI_Type<Real>()
+// still works.
+template <typename T> inline MPI_Datatype MPI_Type() {
+   std::cerr << "(mpiconversion.h): NULL datatype returned, byte size of original is " << sizeof(T) << std::endl;
+   exit(1);
+   return 0;
 }
+
+template <> inline MPI_Datatype MPI_Type<char>() { return MPI_CHAR; }
+
+// Signed integer types
+template <> inline MPI_Datatype MPI_Type<signed char>() { return MPI_CHAR; }
+template <> inline MPI_Datatype MPI_Type<short>() { return MPI_SHORT; }
+template <> inline MPI_Datatype MPI_Type<int>() { return MPI_INT; }
+template <> inline MPI_Datatype MPI_Type<long int>() { return MPI_LONG; }
+template <> inline MPI_Datatype MPI_Type<long long int>() { return MPI_LONG_LONG; }
+
+// Unsigned integer types
+template <> inline MPI_Datatype MPI_Type<unsigned char>() { return MPI_UNSIGNED_CHAR; }
+template <> inline MPI_Datatype MPI_Type<unsigned short>() { return MPI_UNSIGNED_SHORT; }
+template <> inline MPI_Datatype MPI_Type<unsigned int>() { return MPI_UNSIGNED; }
+template <> inline MPI_Datatype MPI_Type<unsigned long int>() { return MPI_UNSIGNED_LONG; }
+template <> inline MPI_Datatype MPI_Type<unsigned long long int>() { return MPI_UNSIGNED_LONG_LONG; }
+
+// Floating point types
+template <> inline MPI_Datatype MPI_Type<float>() { return MPI_FLOAT; }
+template <> inline MPI_Datatype MPI_Type<double>() { return MPI_DOUBLE; }
+template <> inline MPI_Datatype MPI_Type<long double>() { return MPI_LONG_DOUBLE; }
+
+#endif

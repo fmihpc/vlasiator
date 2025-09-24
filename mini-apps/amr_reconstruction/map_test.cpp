@@ -1,233 +1,200 @@
-#include <stdio.h>
-#include "common.h"
-#include "vlasovsolver/vec.h"
-//#include "vlasovsolver/cpu_1d_ppm.hpp"
-//#include "vlasovsolver/cpu_1d_ppm_nonuniform.hpp"
-#include "vlasovsolver/cpu_1d_ppm_nonuniform_conserving.hpp"
-#include <random>
-#include <boost/random/mersenne_twister.hpp>
-#include <boost/random/uniform_real.hpp>
-#include <boost/random/variate_generator.hpp>
+#include "../../common.h"
+#include "../../fieldsolver/fs_common.h"
+#include "../../fieldsolver/fs_limiters.h"
+#include <cmath>
+#include <fsgrid.hpp>
 #include <iostream>
 
-const int fluxlimiterscalingfactor=1.e-15;
-// Used for better calculation of flux limiters at extreme values.
-// In vlasiator, the value of spatial_cell->getVelocityBlockMinValue(popID)
-// is used here.
+using namespace std;
+using namespace fsgrids;
 
-/*print all values in the vector valued values array. In this array
-  there are blocks_per_dim blocks with a width of WID*/
-void print_values(int step, Vec *values, uint blocks_per_dim, Real v_min, Real dv){
-   char name[256];
-   sprintf(name,"dist_%03d.dat",step);
+uint Parameters::ohmHallTerm = 0;
 
-   FILE* fp=fopen(name,"w");
-   for(uint i=0; i < blocks_per_dim * WID; i++){
-      Real v=v_min + (i + 0.5)*dv;
-      fprintf(fp,"%20.12g %20.12g %20.12g %20.12g %20.12g\n", v, values[i + WID][0], values[i + WID][1], values[i + WID][2], values[i + WID][3]);
+// Very simplified version of CalculateDerivatives from fieldsolver/derivatives.cpp
+void calculateDerivatives(cint i, cint j, cint k, FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+                          FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
+   std::array<Real, fsgrids::dperb::N_DPERB>* dPerB = dPerBGrid.get(i, j, k);
+
+   std::array<Real, fsgrids::bfield::N_BFIELD>* leftPerB = NULL;
+   std::array<Real, fsgrids::bfield::N_BFIELD>* centPerB = perBGrid.get(i, j, k);
+   std::array<Real, fsgrids::bfield::N_BFIELD>* rghtPerB = NULL;
+   std::array<Real, fsgrids::bfield::N_BFIELD>* botLeft = NULL;
+   std::array<Real, fsgrids::bfield::N_BFIELD>* botRght = NULL;
+   std::array<Real, fsgrids::bfield::N_BFIELD>* topLeft = NULL;
+   std::array<Real, fsgrids::bfield::N_BFIELD>* topRght = NULL;
+
+   // Calculate x-derivatives (is not TVD for AMR mesh):
+
+   leftPerB = perBGrid.get(i - 1, j, k);
+   rghtPerB = perBGrid.get(i + 1, j, k);
+
+   dPerB->at(fsgrids::dperb::dPERBydx) = limiter(leftPerB->at(fsgrids::bfield::PERBY), centPerB->at(fsgrids::bfield::PERBY), rghtPerB->at(fsgrids::bfield::PERBY));
+   dPerB->at(fsgrids::dperb::dPERBzdx) = limiter(leftPerB->at(fsgrids::bfield::PERBZ), centPerB->at(fsgrids::bfield::PERBZ), rghtPerB->at(fsgrids::bfield::PERBZ));
+
+   if (Parameters::ohmHallTerm < 2) {
+      dPerB->at(fsgrids::dperb::dPERBydxx) = 0.0;
+      dPerB->at(fsgrids::dperb::dPERBzdxx) = 0.0;
+   } else {
+      dPerB->at(fsgrids::dperb::dPERBydxx) = leftPerB->at(fsgrids::bfield::PERBY) + rghtPerB->at(fsgrids::bfield::PERBY) - 2.0 * centPerB->at(fsgrids::bfield::PERBY);
+      dPerB->at(fsgrids::dperb::dPERBzdxx) = leftPerB->at(fsgrids::bfield::PERBZ) + rghtPerB->at(fsgrids::bfield::PERBZ) - 2.0 * centPerB->at(fsgrids::bfield::PERBZ);
    }
-   fclose(fp);
+
+   // Calculate y-derivatives (is not TVD for AMR mesh):
+
+   leftPerB = perBGrid.get(i, j - 1, k);
+   rghtPerB = perBGrid.get(i, j + 1, k);
+
+   dPerB->at(fsgrids::dperb::dPERBxdy) = limiter(leftPerB->at(fsgrids::bfield::PERBX), centPerB->at(fsgrids::bfield::PERBX), rghtPerB->at(fsgrids::bfield::PERBX));
+   dPerB->at(fsgrids::dperb::dPERBzdy) = limiter(leftPerB->at(fsgrids::bfield::PERBZ), centPerB->at(fsgrids::bfield::PERBZ), rghtPerB->at(fsgrids::bfield::PERBZ));
+
+   if (Parameters::ohmHallTerm < 2) {
+      dPerB->at(fsgrids::dperb::dPERBxdyy) = 0.0;
+      dPerB->at(fsgrids::dperb::dPERBzdyy) = 0.0;
+   } else {
+      dPerB->at(fsgrids::dperb::dPERBxdyy) = leftPerB->at(fsgrids::bfield::PERBX) + rghtPerB->at(fsgrids::bfield::PERBX) - 2.0 * centPerB->at(fsgrids::bfield::PERBX);
+      dPerB->at(fsgrids::dperb::dPERBzdyy) = leftPerB->at(fsgrids::bfield::PERBZ) + rghtPerB->at(fsgrids::bfield::PERBZ) - 2.0 * centPerB->at(fsgrids::bfield::PERBZ);
+   }
+
+   // Calculate z-derivatives (is not TVD for AMR mesh):
+   leftPerB = perBGrid.get(i, j, k - 1);
+   rghtPerB = perBGrid.get(i, j, k + 1);
+
+   dPerB->at(fsgrids::dperb::dPERBxdz) = limiter(leftPerB->at(fsgrids::bfield::PERBX), centPerB->at(fsgrids::bfield::PERBX), rghtPerB->at(fsgrids::bfield::PERBX));
+   dPerB->at(fsgrids::dperb::dPERBydz) = limiter(leftPerB->at(fsgrids::bfield::PERBY), centPerB->at(fsgrids::bfield::PERBY), rghtPerB->at(fsgrids::bfield::PERBY));
+
+   if (Parameters::ohmHallTerm < 2) {
+      dPerB->at(fsgrids::dperb::dPERBxdzz) = 0.0;
+      dPerB->at(fsgrids::dperb::dPERBydzz) = 0.0;
+   } else {
+      dPerB->at(fsgrids::dperb::dPERBxdzz) = leftPerB->at(fsgrids::bfield::PERBX) + rghtPerB->at(fsgrids::bfield::PERBX) - 2.0 * centPerB->at(fsgrids::bfield::PERBX);
+      dPerB->at(fsgrids::dperb::dPERBydzz) = leftPerB->at(fsgrids::bfield::PERBY) + rghtPerB->at(fsgrids::bfield::PERBY) - 2.0 * centPerB->at(fsgrids::bfield::PERBY);
+   }
+
+   if (Parameters::ohmHallTerm < 2) {
+      dPerB->at(fsgrids::dperb::dPERBxdyz) = 0.0;
+      dPerB->at(fsgrids::dperb::dPERBydxz) = 0.0;
+      dPerB->at(fsgrids::dperb::dPERBzdxy) = 0.0;
+   } else {
+      // Calculate xy mixed derivatives:
+      botLeft = perBGrid.get(i - 1, j - 1, k);
+      botRght = perBGrid.get(i + 1, j - 1, k);
+      topLeft = perBGrid.get(i - 1, j + 1, k);
+      topRght = perBGrid.get(i + 1, j + 1, k);
+
+      dPerB->at(fsgrids::dperb::dPERBzdxy) =
+          FOURTH * (botLeft->at(fsgrids::bfield::PERBZ) + topRght->at(fsgrids::bfield::PERBZ) - botRght->at(fsgrids::bfield::PERBZ) - topLeft->at(fsgrids::bfield::PERBZ));
+
+      // Calculate xz mixed derivatives:
+      botLeft = perBGrid.get(i - 1, j, k - 1);
+      botRght = perBGrid.get(i + 1, j, k - 1);
+      topLeft = perBGrid.get(i - 1, j, k + 1);
+      topRght = perBGrid.get(i + 1, j, k + 1);
+
+      dPerB->at(fsgrids::dperb::dPERBydxz) =
+          FOURTH * (botLeft->at(fsgrids::bfield::PERBY) + topRght->at(fsgrids::bfield::PERBY) - botRght->at(fsgrids::bfield::PERBY) - topLeft->at(fsgrids::bfield::PERBY));
+
+      // Calculate yz mixed derivatives:
+      botLeft = perBGrid.get(i, j - 1, k - 1);
+      botRght = perBGrid.get(i, j + 1, k - 1);
+      topLeft = perBGrid.get(i, j - 1, k + 1);
+      topRght = perBGrid.get(i, j + 1, k + 1);
+
+      dPerB->at(fsgrids::dperb::dPERBxdyz) =
+          FOURTH * (botLeft->at(fsgrids::bfield::PERBX) + topRght->at(fsgrids::bfield::PERBX) - botRght->at(fsgrids::bfield::PERBX) - topLeft->at(fsgrids::bfield::PERBX));
+   }
 }
 
-void propagate(Vec dr[], Vec values[], Real z_translation, uint blocks_per_dim ) {
-   
-   // Determine direction of translation
-   // part of density goes here (cell index change along spatial direcion)
-   const int target_scell_index = (z_translation > 0) ? 1: -1; 
-  
-   // Vector buffer where we write data, initialized to 0*/
-   Vec targetValues[(blocks_per_dim + 2) * WID];
-   
-   for (uint k_block = 0; k_block < blocks_per_dim; k_block++){
-      
-      for (uint k_cell=0; k_cell < WID; ++k_cell) {
-         
-         uint gid = k_block * WID + k_cell + WID;
-         // init target_values
-         targetValues[gid] = 0.0;
-         
-      }
+int main(int argc, char** argv) {
+
+   // Init MPI
+   int required = MPI_THREAD_FUNNELED;
+   int provided;
+   int myRank;
+   MPI_Init_thread(&argc, &argv, required, &provided);
+   if (required > provided) {
+      MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+      if (myRank == MASTER_RANK)
+         cerr << "(MAIN): MPI_Init_thread failed! Got " << provided << ", need " << required << endl;
+      exit(1);
    }
-   for (uint k_block = 0; k_block < blocks_per_dim; k_block++){
-      
-      for (uint k_cell=0; k_cell < WID; ++k_cell){
-         
-         uint gid = k_block * WID + k_cell + WID;
-         //uint gid = (blocks_per_dim + 2) * WID - (k_block * WID + k_cell + WID);
-         
-         // Calculate normalized coordinates in current cell.
-         // The coordinates (scaled units from 0 to 1) between which we will
-         // integrate to put mass in the target  neighboring cell.
-         // Normalize the coordinates to the origin cell. Then we scale with the difference
-         // in volume between target and origin later when adding the integrated value.
-         Realf z_1,z_2;
-         if ( z_translation < 0 ) {
-            z_1 = 0;
-            z_2 = -z_translation / dr[gid][0]; 
-         } else {
-            z_1 = 1.0 - z_translation / dr[gid][0]; 
-            z_2 = 1.0;
+   const int masterProcessID = 0;
+
+   // Parse parameters
+   if (argc == 1) {
+      cerr << "Running with default options. Run main --help to see available settings." << endl;
+   }
+   for (int i = 1; i < argc; i++) {
+      cerr << "Unknown command line option \"" << argv[i] << "\"" << endl;
+      cerr << endl;
+      cerr << "main" << endl;
+      cerr << "Paramters:" << endl;
+      cerr << " none! :D" << endl;
+
+      return 1;
+   }
+
+   phiprof::initialize();
+
+   // Set up fsgrids
+   const std::array<int, 3> fsGridDimensions = {5, 5, 5};
+   std::array<bool, 3> periodicity{true, true, true};
+   FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> technicalGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity);
+   FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> perBGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity);
+   FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> dPerBGrid(fsGridDimensions, MPI_COMM_WORLD, periodicity);
+   perBGrid.DX = dPerBGrid.DX = technicalGrid.DX = 1.;
+   perBGrid.DY = dPerBGrid.DY = technicalGrid.DY = 1.;
+   perBGrid.DZ = dPerBGrid.DZ = technicalGrid.DZ = 1.;
+   perBGrid.physicalGlobalStart = dPerBGrid.physicalGlobalStart = technicalGrid.physicalGlobalStart = {0, 0, 0};
+
+   // Fill in values
+   for (int i = 0; i < 5; i++) {
+      for (int j = 0; j < 5; j++) {
+         for (int k = 0; k < 5; k++) {
+            perBGrid.get(i, j, k)->at(PERBX) = sin(j / 5. * 2. * M_PI) * sin(k / 5. * 2. * M_PI);
+            perBGrid.get(i, j, k)->at(PERBY) = sin(i / 5. * 2. * M_PI) * sin(k / 5. * 2. * M_PI);
+            perBGrid.get(i, j, k)->at(PERBZ) = sin(i / 5. * 2. * M_PI) * sin(j / 5. * 2. * M_PI);
+            technicalGrid.get(i, j, k)->sysBoundaryFlag = sysboundarytype::NOT_SYSBOUNDARY;
          }
-         
-         if( abs(z_1) > 1.0 || abs(z_2) > 1.0 ) {
-            std::cout << "Error, CFL condition violated\n";
-            std::cout << "Exiting\n";
-            std::exit(1);
+      }
+   }
+
+   // Output raw fsgrid to gnuplottable matrix file
+   ofstream fsGridFile("PERBX_fsgrid.dat");
+   // for(int i=0; i< 5; i++) {
+   for (int j = 0; j < 5; j++) {
+      for (int k = 0; k < 5; k++) {
+         fsGridFile << perBGrid.get(2, j, k)->at(PERBX) << " ";
+      }
+      fsGridFile << endl;
+   }
+   //}
+   fsGridFile.close();
+   cout << "--- Wrote fsgrid to PERBX_fsgrid.dat. ---" << endl;
+
+   // Calculate derivatives
+   for (int i = 0; i < 5; i++) {
+      for (int j = 0; j < 5; j++) {
+         for (int k = 0; k < 5; k++) {
+            calculateDerivatives(i, j, k, perBGrid, dPerBGrid, technicalGrid);
          }
-         
-         // Compute polynomial coefficients
-         Vec a[3];
-         //compute_ppm_coeff_nonuniform(dr, values, h4, gid + target_scell_index, a);
-         compute_ppm_coeff_nonuniform(dr, values, h4, gid, a, fluxlimiterscalingfactor);
-         
-         // Compute integral
-         const Vec ngbr_target_density =
-            z_2 * ( a[0] + z_2 * ( a[1] + z_2 * a[2] ) ) -
-            z_1 * ( a[0] + z_1 * ( a[1] + z_1 * a[2] ) );
-
-         // Store mapped density in two target cells
-         // in the neighbor cell we will put this density        
-         targetValues[gid + target_scell_index] +=  ngbr_target_density * dr[gid] / dr[gid + target_scell_index];
-         // in the current original cells we will put the rest of the original density
-         targetValues[gid]                      +=  values[gid] - ngbr_target_density;
       }
    }
 
-   // Store target data into source data
-   for (uint k_block = 0; k_block<blocks_per_dim;k_block++){
-    
-      for (uint k_cell=0; k_cell<WID; ++k_cell){
-
-         uint gid = k_block * WID + k_cell + WID;
-         //uint gid = (blocks_per_dim + 2) * WID - (k_block * WID + k_cell + WID);
-         values[gid] = targetValues[gid];
-      
+   // Sample at random points.
+   std::map<std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS>> cache;
+   ofstream sampleFile("samples.dat");
+   sampleFile << "# x y z Bx By Bz" << endl;
+   for (int i = 0; i < 1000; i++) {
+      // std::array<Real, 3> randPos{5.*rand()/RAND_MAX, 5.*rand()/RAND_MAX, 5.*rand()/RAND_MAX};
+      std::array<Real, 3> randPos{2.5, 5. * rand() / RAND_MAX, 5. * rand() / RAND_MAX};
+      std::array<int, 3> fsgridCell;
+      for (int c = 0; c < 3; c++) {
+         fsgridCell[c] = floor(randPos[c]); // Round-to-int, as DX = 1.
       }
-    
-   }  
-
-}
-
-void print_reconstruction(int step, Vec dr[], Vec values[], uint  blocks_per_dim, Real r_min){
-   char name[256];
-   sprintf(name,"reconstructions_%05d.dat",step);
-   FILE* fp=fopen(name,"w");
-
-   Vec r0 = r_min;
-   const int subcells = 50;
-   /*loop through all blocks in column and divide into subcells. Print value of reconstruction*/
-   for (unsigned int k_block = 0; k_block<blocks_per_dim;k_block++){
-      for (uint k_cell=0; k_cell<WID; ++k_cell){ 
-#ifdef ACC_SEMILAG_PPM
-         Vec a[3];
-         //compute_ppm_coeff(               values, h4, (k_block + 1) * WID + k_cell, a);
-         compute_ppm_coeff_nonuniform(dr, values, h4, (k_block + 1) * WID + k_cell, a, fluxlimiterscalingfactor);
-#endif     
-      
-         int iend = k_block * WID + k_cell;
-         if (iend > 0)
-            r0 += dr[iend-1+WID];
-	
-      
-         for (uint k_subcell=0; k_subcell< subcells; ++k_subcell){ 
-            Vec r_norm = (Real)(k_subcell + 0.5)/subcells; //normalized r of subcell in source cell
-            Vec r = r0 + r_norm * dr[k_block * WID + k_cell + WID];
-	
-#ifdef ACC_SEMILAG_PPM
-            Vec target = 
-               a[0] +
-               2.0 * r_norm * a[1] +
-               3.0 * r_norm * r_norm * a[2];
-#endif
-
-            fprintf(fp,"%20.12g %20.12e %20.12e\n", r[0], values[k_block * WID + k_cell + WID][0], target[0]);
-         }
-         //fprintf(fp,"\n"); //empty line to deay wgments in gnuplot
-      }
-   }
-  
-   fclose(fp);
-}
-
-void refine(Vec dr[], int ir, int max_refinement, int cells_per_level) {
-
-   for (uint k=0; k < max_refinement * cells_per_level; ++k) {
-      dr[ir + k] = dr[ir + k]/pow(2,(max_refinement - k / cells_per_level));
-      if (k > 0)
-         dr[ir - k] = dr[ir - k]/pow(2,(max_refinement - k / cells_per_level));
+      std::array<Real, 3> B = interpolatePerturbedB(perBGrid, dPerBGrid, technicalGrid, cache, fsgridCell[0], fsgridCell[1], fsgridCell[2], randPos);
+      sampleFile << randPos[0] << " " << randPos[1] << " " << randPos[2] << " " << B[0] << " " << B[1] << " " << B[2] << endl;
    }
 
-}
-
-int main(void) {
-  
-   const Real dr0 = 20000;
-   const int blocks_per_dim = 100;
-   const int i_block = 0; //x index of block, fixed in this simple test
-   const int j_block = 0; //y index of block, fixed in this simple test
-   const int j_cell = 0; // y index of cell within block (0..WID-1)
-
-   Vec dr[(blocks_per_dim+2)*WID];
-   Vec values[(blocks_per_dim+2)*WID];
-
-   boost::mt19937 rng;
-   boost::uniform_real<Real> u(0.0, 2.0 * dr0);
-   boost::variate_generator<boost::mt19937&, boost::uniform_real<Real> > gen(rng, u);
-   gen.distribution().reset();
-   gen.engine().seed(12345);
-  
-   /*initial values*/  
-   /*clear target & values array*/
-   for (uint k=0; k<WID* (blocks_per_dim + 2); ++k){ 
-      values[k] = 0.0;
-      dr[k] = dr0;
-      //dr[k] = gen();
-   }
-
-   int ir = (blocks_per_dim + 2) * WID / 2;
-   int ir2 = (blocks_per_dim + 2) * WID / 3;
-   int max_refinement = 5;
-   int cells_per_level = 2;
-
-   refine(dr,ir,max_refinement,cells_per_level);
-   // refine(dr,ir2,max_refinement,cells_per_level);
- 
-   Real r_min = 0.0;
-   for (uint k=WID;k < (blocks_per_dim + 2) * WID / 2; ++k) {    
-      r_min -= dr[k][0];
-   }
-  
-   Real T = 500000;
-   Real rho = 1.0e18;
-   Real r = r_min;
-   Real r1 = -10.0 * dr0;
-  
-   for(uint i=0; i < blocks_per_dim * WID; i++){
-
-      // Evaluate the function at the middle of the cell
-      r = r + 0.5 * dr[i + WID][0];
-      values[i + WID] = rho * pow(physicalconstants::MASS_PROTON / (2.0 * M_PI * physicalconstants::K_B * T), 1.5) *
-         exp(- physicalconstants::MASS_PROTON * (r - r1) * (r - r1) / (2.0 * physicalconstants::K_B * T));    
-
-      // if (r < 0.0 && r_min - 10.0 * r < 0.0) {
-      //   values[i + WID] = abs(r_min - 10.0 * r);
-      // } else {
-      //   values[i + WID] = 0.0;
-      // }
-    
-      // Move r to the end of the cell for the next iteration
-      r = r + 0.5 * dr[i + WID][0];
-   }
-  
-   print_reconstruction(0, dr, values, blocks_per_dim, r_min);
-
-   uint nstep = 1000;
-   Real step = 500.0;
-  
-   for (uint istep=0; istep < nstep; ++istep) {
-      propagate(dr, values, step, blocks_per_dim);
-      if ((istep+1) % 10 == 0)
-         print_reconstruction(istep+1, dr, values, blocks_per_dim, r_min);
-   }
-  
+   cout << "--- DONE. ---" << endl;
+   return 0;
 }

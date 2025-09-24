@@ -18,166 +18,134 @@
  * You should have received a copy of the GNU General Public License along
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * File:   velocity_mesh_parameters.h
+ * Author: sandroos, mbattarbee
+ *
+ * Created on April 10, 2015, 12:44 PM
  */
 
-#include "velocity_mesh_parameters.h"
+#ifndef VELOCITY_MESH_PARAMETERS_H
+#define VELOCITY_MESH_PARAMETERS_H
+
+#include "definitions.h"
+#include <array>
 #include <iostream>
-#include <cstdlib>
+#include <vector>
 
+#include "arch/arch_device_api.h"
 #ifdef USE_GPU
-   #include "include/splitvector/splitvec.h"
    #include "arch/gpu_base.hpp"
+#include "include/splitvector/splitvec.h"
 #endif
 
-// Pointers to MeshWrapper objects
-static vmesh::MeshWrapper *meshWrapper;
+// One per particle population
+#define MAX_VMESH_PARAMETERS_COUNT 32
 
-#ifdef USE_GPU
-vmesh::MeshWrapper* MWdev;
-std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT> *velocityMeshes_upload;
+namespace vmesh {
 
-__global__ void debug_kernel(const uint popID) {
-   vmesh::printVelocityMesh(0);
-}
-#endif
+   /** Wrapper for mesh parameters. The object wrapper reads one or more velocity meshes
+    * from the configuration file and stores them to the mesh vector
+    * MeshWrapper::velocityMeshes. The particle species store a mesh ID, which is an index
+    * to MeshWrapper::velocityMeshes. Many "get" functions in VelocityMesh are
+    * wrapper functions, which return the values stored in MeshParameters.
+    */
+   struct MeshParameters {
+      std::string name;                   /**< Name of the mesh (unique).*/
+      vmesh::LocalID max_velocity_blocks; /**< Maximum valid block local ID.*/
+      Real meshLimits[6];                 /**< Velocity mesh bounding box limits vx_min,vx_max,...,vz_max.*/
+      vmesh::LocalID gridLength[3];       /**< Number of blocks in mesh per coordinate at base grid level.*/
+      vmesh::LocalID blockLength[3];      /**< Number of phase-space cells per coordinate in block.*/
 
-void vmesh::allocateMeshWrapper() {
-   meshWrapper = new vmesh::MeshWrapper();
-}
+      // ***** DERIVED PARAMETERS, CALCULATED BY INITVELOCITYMESHES ***** //
+      bool initialized;      /**< If true, variables in this struct contain sensible values.*/
+      Real meshMinLimits[3]; /**< Minimum coordinate values of the grid bounding box.*/
+      Real meshMaxLimits[3]; /**< Maximum coordinate values of the grid bounding box.*/
+      Real blockSize[3];     /**< Size of a block at base grid level.*/
+      Real cellSize[3];      /**< Size of a cell in a block at base grid level.*/
+      Real gridSize[3];      /**< Physical size of the grid bounding box.*/
 
-vmesh::MeshWrapper* vmesh::host_getMeshWrapper() {
-   return meshWrapper;
-}
+      MeshParameters() { initialized = false; }
+   };
 
-#ifdef USE_GPU
-//#pragma hd_warning_disable // only applies to next function
-#pragma nv_diag_suppress=20091
-// We record the set of constant memory symbols to static arrays. We are avoiding using objects with non-trivial Ctors
-// to not risk they to be constructed after the static object that uses them. There will be an instance of the static
-// objects per compilation unit, so the ordering is hard to control.
-static vmesh::MeshWrapper** meshWrapperDevRegister[128] = {0};
-vmesh::meshWrapperDevRegistor::meshWrapperDevRegistor(vmesh::MeshWrapper*& v) {
-   for (size_t InstanceIdx = 0; InstanceIdx < sizeof(meshWrapperDevRegister) / sizeof(vmesh::MeshWrapper**);
-        ++InstanceIdx) {
-      if (auto*& slot = meshWrapperDevRegister[InstanceIdx]; !slot) {
-         slot = &v;
-         //printf("Got instance of device mesh wrapper handler %p (index %ld)\n", &v, InstanceIdx);
-         return;
+   struct MeshWrapper {
+      MeshWrapper() {
+         velocityMeshesCreation = new std::vector<vmesh::MeshParameters>(1);
+         velocityMeshesCreation->clear();
       }
-   }
-   assert(false && "Not enough slots to register mesh wrapper slots.");
-}
-
-void vmesh::MeshWrapper::uploadMeshWrapper() {
-   // Store address to velocityMeshes array
-   std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT> * temp = meshWrapper->velocityMeshes;
-   // gpu-Malloc space on device, copy array contents
-   CHK_ERR( gpuMalloc((void **)&velocityMeshes_upload, sizeof(std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT>)) );
-   CHK_ERR( gpuMemcpy(velocityMeshes_upload, meshWrapper->velocityMeshes, sizeof(std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT>),gpuMemcpyHostToDevice) );
-   // Make wrapper point to device-side array
-   meshWrapper->velocityMeshes = velocityMeshes_upload;
-   // Allocate and copy meshwrapper on device
-   CHK_ERR( gpuMalloc((void **)&MWdev, sizeof(vmesh::MeshWrapper)) );
-   CHK_ERR( gpuMemcpy(MWdev, meshWrapper, sizeof(vmesh::MeshWrapper),gpuMemcpyHostToDevice) );
-   // Set the global symbol of meshWrapper
-   int count=0;
-   for (size_t InstanceIdx = 0; InstanceIdx < sizeof(meshWrapperDevRegister) / sizeof(vmesh::MeshWrapper**);
-        ++InstanceIdx) {
-      if (auto* slot = meshWrapperDevRegister[InstanceIdx]; slot) {
-         //printf("Setting device mesh wrapper handler %p (index %ld)\n", slot, InstanceIdx);
-         CHK_ERR( gpuMemcpyToSymbol(*slot, &MWdev, sizeof(vmesh::MeshWrapper*)) );
-         count++;
-      } else {
-         break;
+      ~MeshWrapper() {
+         delete velocityMeshes;
+         delete velocityMeshesCreation;
       }
+      MeshWrapper(const MeshWrapper& other) { velocityMeshesCreation = new std::vector<vmesh::MeshParameters>(*(other.velocityMeshesCreation)); }
+      MeshWrapper& operator=(const MeshWrapper& other) {
+         delete velocityMeshes;
+         delete velocityMeshesCreation;
+         velocityMeshesCreation = new std::vector<vmesh::MeshParameters>(*(other.velocityMeshesCreation));
+         return *this;
+      }
+      std::vector<vmesh::MeshParameters>* velocityMeshesCreation;
+      // We also need an array so we can copy this data into direct GPU-device memory.
+      // On the CPU side we actually reserve enough room for
+      // MAX_VMESH_PARAMETERS_COUNT MeshParameters.
+      std::array<vmesh::MeshParameters, MAX_VMESH_PARAMETERS_COUNT>* velocityMeshes;
+      void initVelocityMeshes(const uint nMeshes); /**< Pre-calculate more helper parameters for velocity meshes. */
+      void uploadMeshWrapper();                    /**< Send a copy of the MeshWrapper into GPU memory */
+   };
+
+   void allocateMeshWrapper();
+   MeshWrapper* host_getMeshWrapper();
+   #ifdef USE_GPU
+   // To avoid using relocatable code builds, we use static instances of the GPU constant memory for the mesh wrapper.
+   // This means that each compilation unit will use its own. To make sure all instances are initialized with the same
+   // address, we use the Ctor of a static object to register all intances so that the allocated memory pointer
+   // could be copied to all of them.
+   __device__ __constant__ MeshWrapper* meshWrapperDevInstance;
+   ARCH_DEV static MeshWrapper* gpu_getMeshWrapper() { return meshWrapperDevInstance; };
+   // Static object and corresponding instance whose Ctor is used register all the instances of device meshWrapperDev
+   // symbols.
+   struct meshWrapperDevRegistor {
+      meshWrapperDevRegistor(MeshWrapper*&);
+   };
+   static meshWrapperDevRegistor meshWrapperDevRegistorInstance(meshWrapperDevInstance);
+
+   void deallocateMeshWrapper(); /**< Deallocate GPU memory */
+   #endif
+
+   // Caller, inlined into other compilation units, will call either host or device getter
+   ARCH_HOSTDEV inline MeshWrapper* getMeshWrapper() {
+   #if defined(USE_GPU)
+#if (defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
+      return gpu_getMeshWrapper();
+      #else
+      return host_getMeshWrapper();
+      #endif
+#else
+      return host_getMeshWrapper();
+   #endif
    }
-   int myRank;
-   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-   if(myRank == MASTER_RANK) {
-      printf("Done setting all %d instances of device mesh wrapper handler!\n",count);
+
+   ARCH_HOSTDEV inline void printVelocityMesh(const uint meshIndex) {
+      vmesh::MeshParameters* vMesh = &((*(getMeshWrapper()->velocityMeshes))[meshIndex]);
+      printf("\nPrintout of velocity mesh %d \n", meshIndex);
+      // printf("Meshwrapper address 0x%lx\n",getMeshWrapper());
+      // printf("array of meshes address 0x%lx\n",&(getMeshWrapper()->velocityMeshes));
+      // printf("Mesh address 0x%lx\n",vMesh);
+      printf("Mesh size\n");
+      printf(" %d %d %d \n", vMesh->gridLength[0], vMesh->gridLength[1], vMesh->gridLength[2]);
+      printf("Block size\n");
+      printf(" %d %d %d \n", vMesh->blockLength[0], vMesh->blockLength[1], vMesh->blockLength[2]);
+      printf("Mesh limits \n");
+      printf(" %f %f %f %f \n", vMesh->meshMinLimits[0], vMesh->meshLimits[0], vMesh->meshMaxLimits[0], vMesh->meshLimits[1]);
+      printf(" %f %f %f %f \n", vMesh->meshMinLimits[1], vMesh->meshLimits[2], vMesh->meshMaxLimits[1], vMesh->meshLimits[3]);
+      printf(" %f %f %f %f \n", vMesh->meshMinLimits[2], vMesh->meshLimits[4], vMesh->meshMaxLimits[2], vMesh->meshLimits[5]);
+      printf("Derived mesh parameters \n");
+      printf(" gridSize %f %f %f \n", vMesh->gridSize[0], vMesh->gridSize[1], vMesh->gridSize[2]);
+      printf(" blockSize %f %f %f \n", vMesh->blockSize[0], vMesh->blockSize[1], vMesh->blockSize[2]);
+      printf(" cellSize %f %f %f \n", vMesh->cellSize[0], vMesh->cellSize[1], vMesh->cellSize[2]);
+      printf(" max velocity blocks %d \n\n", vMesh->max_velocity_blocks);
    }
 
-   // Copy host-side address back
-   meshWrapper->velocityMeshes = temp;
-   // And sync
-   CHK_ERR( gpuDeviceSynchronize() );
-}
-void vmesh::deallocateMeshWrapper() {
-   CHK_ERR( gpuFree(velocityMeshes_upload) );
-   CHK_ERR( gpuFree(MWdev) );
-   CHK_ERR( gpuFree(meshWrapperDevInstance) );
-   // And sync
-   CHK_ERR( gpuDeviceSynchronize() );
-}
-#endif
+} // namespace vmesh
 
-void vmesh::MeshWrapper::initVelocityMeshes(const uint nMeshes) {
-   // Verify lengths match?
-   if (meshWrapper->velocityMeshesCreation->size() != nMeshes) {
-      printf("Error! Initialized only %d velocity meshes out of %d created ones.\n",nMeshes,
-             (int)meshWrapper->velocityMeshesCreation->size());
-      abort();
-   }
-   // Create pointer to array of sufficient length
-   meshWrapper->velocityMeshes = new std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT>;
-
-   // Copy data in, also set auxiliary values
-   for (uint i=0; i<nMeshes; ++i) {
-      vmesh::MeshParameters* vMesh = &(meshWrapper->velocityMeshes->at(i));
-      vmesh::MeshParameters* vMeshIn = &(meshWrapper->velocityMeshesCreation->at(i));
-
-      // Limits
-      vMesh->meshLimits[0] = vMeshIn->meshLimits[0];
-      vMesh->meshLimits[1] = vMeshIn->meshLimits[1];
-      vMesh->meshLimits[2] = vMeshIn->meshLimits[2];
-      vMesh->meshLimits[3] = vMeshIn->meshLimits[3];
-      vMesh->meshLimits[4] = vMeshIn->meshLimits[4];
-      vMesh->meshLimits[5] = vMeshIn->meshLimits[5];
-      // Grid length
-      vMesh->gridLength[0] = vMeshIn->gridLength[0];
-      vMesh->gridLength[1] = vMeshIn->gridLength[1];
-      vMesh->gridLength[2] = vMeshIn->gridLength[2];
-      // Block length
-      vMesh->blockLength[0] = vMeshIn->blockLength[0];
-      vMesh->blockLength[1] = vMeshIn->blockLength[1];
-      vMesh->blockLength[2] = vMeshIn->blockLength[2];
-
-      // Calculate derived mesh parameters:
-      vMesh->meshMinLimits[0] = vMesh->meshLimits[0];
-      vMesh->meshMinLimits[1] = vMesh->meshLimits[2];
-      vMesh->meshMinLimits[2] = vMesh->meshLimits[4];
-      vMesh->meshMaxLimits[0] = vMesh->meshLimits[1];
-      vMesh->meshMaxLimits[1] = vMesh->meshLimits[3];
-      vMesh->meshMaxLimits[2] = vMesh->meshLimits[5];
-
-      vMesh->gridSize[0] = vMesh->meshMaxLimits[0] - vMesh->meshMinLimits[0];
-      vMesh->gridSize[1] = vMesh->meshMaxLimits[1] - vMesh->meshMinLimits[1];
-      vMesh->gridSize[2] = vMesh->meshMaxLimits[2] - vMesh->meshMinLimits[2];
-
-      vMesh->blockSize[0] = vMesh->gridSize[0] / vMesh->gridLength[0];
-      vMesh->blockSize[1] = vMesh->gridSize[1] / vMesh->gridLength[1];
-      vMesh->blockSize[2] = vMesh->gridSize[2] / vMesh->gridLength[2];
-
-      vMesh->cellSize[0] = vMesh->blockSize[0] / vMesh->blockLength[0];
-      vMesh->cellSize[1] = vMesh->blockSize[1] / vMesh->blockLength[1];
-      vMesh->cellSize[2] = vMesh->blockSize[2] / vMesh->blockLength[2];
-
-      vMesh->max_velocity_blocks
-         = vMeshIn->gridLength[0]
-         * vMeshIn->gridLength[1]
-         * vMeshIn->gridLength[2];
-      vMesh->initialized = true;
-   }
-#ifdef USE_GPU
-   // Now all velocity meshes have been initialized on host, into
-   // the array. Now we need to upload a copy onto GPU.
-   vmesh::MeshWrapper::uploadMeshWrapper();
-   // printf("Host printout\n");
-   // vmesh::printVelocityMesh(0);
-   // printf("Device printout\n");
-   // debug_kernel<<<1, 1, 0, 0>>> (0);
-   // CHK_ERR( gpuDeviceSynchronize() );
-#endif
-
-   return;
-}
+#endif  /* VELOCITY_MESH_PARAMETERS_H */

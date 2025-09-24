@@ -1,6 +1,6 @@
 /*
  * This file is part of Vlasiator.
- * Copyright 2010-2016 Finnish Meteorological Institute
+ * Copyright 2010-2024 Finnish Meteorological Institute and University of Helsinki
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
  * at http://www.physics.helsinki.fi/vlasiator/
@@ -20,163 +20,152 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef VLSVREADER_INTERFACE_H
-#define VLSVREADER_INTERFACE_H
+#include "velocity_mesh_parameters.h"
+#include <cstdlib>
+#include <iostream>
 
-#include <map>
-#include <vector>
-#include <unordered_map>
-#include <array>
-#include <vlsv_reader.h>
+#ifdef USE_GPU
+   #include "arch/gpu_base.hpp"
+#include "include/splitvector/splitvec.h"
+#endif
 
-// Returns the vlsv file's version number. Returns 0 if the version does not have a version mark (The old vlsv format does not have it)
-//Input: File name
-extern float checkVersion( const std::string & fname );
+// Pointers to MeshWrapper objects
+static vmesh::MeshWrapper* meshWrapper;
 
-namespace vlsvinterface {
-   class Reader : public vlsv::Reader {
-   private:
-      std::unordered_map<uint64_t, uint64_t> cellIdLocations;
-      std::unordered_map<uint64_t, std::pair<uint64_t, uint32_t> > cellsWithBlocksLocations;
-      bool cellIdsSet;
-      bool cellsWithBlocksSet;
-   public:
-      Reader();
-      virtual ~Reader();
-      bool getMeshNames( std::list<std::string> & meshNames ); //Function for getting mesh names
-      bool getMeshNames( std::set<std::string> & meshNames );
-      bool getVariableNames( const std::string&, std::list<std::string> & meshNames );
-      bool getVariableNames( std::set<std::string> & meshNames );
-      bool getCellIds( std::vector<uint64_t> & cellIds,const std::string& meshName="SpatialGrid");
-      //Reads in a variable:
-      template <typename T, size_t N>
-      bool getVariable( const std::string & variableName, const uint64_t & cellId, std::array<T, N> & variable );
-      bool getBlockIds( const uint64_t& cellId,std::vector<uint64_t>& blockIds,const std::string& popName );
-      bool setCellIds();
-      inline void clearCellIds() {
-         cellIdLocations.clear();
-         cellIdsSet = false;
-      }
-      bool setCellsWithBlocks(const std::string& meshName,const std::string& popName);
-      inline void clearCellsWithBlocks() {
-         cellsWithBlocksLocations.clear();
-         cellsWithBlocksSet = false;
-      }
-      bool getVelocityBlockVariables( const std::string & variableName, const uint64_t & cellId, char*& buffer, bool allocateMemory = true );
+#ifdef USE_GPU
+vmesh::MeshWrapper* MWdev;
+std::array<vmesh::MeshParameters, MAX_VMESH_PARAMETERS_COUNT>* velocityMeshes_upload;
 
-      inline uint64_t getBlockOffset( const uint64_t & cellId ) {
-         //Check if the cell id can be found:
-         std::unordered_map<uint64_t, std::pair<uint64_t,uint32_t> >::const_iterator it = cellsWithBlocksLocations.find( cellId );
-         if( it == cellsWithBlocksLocations.end() ) {
-            std::cerr << "COULDNT FIND CELL ID " << cellId << " AT " << __FILE__ << " " << __LINE__ << std::endl;
-            exit(1);
-         }
-         //Get offset:
-         return std::get<0>(it->second);
-      }
-      inline uint32_t getNumberOfBlocks( const uint64_t & cellId ) {
-         //Check if the cell id can be found:
-         std::unordered_map<uint64_t, std::pair<uint64_t,uint32_t> >::const_iterator it = cellsWithBlocksLocations.find( cellId );
-         if( it == cellsWithBlocksLocations.end() ) {
-            std::cerr << "COULDNT FIND CELL ID " << cellId << " AT " << __FILE__ << " " << __LINE__ << std::endl;
-            exit(1);
-         }
-         //Get number of blocks:
-         return std::get<1>(it->second);
-      }
-   };
+__global__ void debug_kernel(const uint popID) { vmesh::printVelocityMesh(0); }
+#endif
 
-   template <typename T, size_t N> inline
-   bool Reader::getVariable( const std::string & variableName, const uint64_t & cellId, std::array<T, N> & variable ) {
-      if( cellIdsSet == false ) {
-         std::cerr << "ERROR, CELL IDS NOT SET AT " << __FILE__ << " " << __LINE__ << std::endl;
-         return false;
+void vmesh::allocateMeshWrapper() { meshWrapper = new vmesh::MeshWrapper(); }
+
+vmesh::MeshWrapper* vmesh::host_getMeshWrapper() { return meshWrapper; }
+
+#ifdef USE_GPU
+// #pragma hd_warning_disable // only applies to next function
+#pragma nv_diag_suppress=20091
+// We record the set of constant memory symbols to static arrays. We are avoiding using objects with non-trivial Ctors
+// to not risk they to be constructed after the static object that uses them. There will be an instance of the static
+// objects per compilation unit, so the ordering is hard to control.
+static vmesh::MeshWrapper** meshWrapperDevRegister[128] = {0};
+vmesh::meshWrapperDevRegistor::meshWrapperDevRegistor(vmesh::MeshWrapper*& v) {
+   for (size_t InstanceIdx = 0; InstanceIdx < sizeof(meshWrapperDevRegister) / sizeof(vmesh::MeshWrapper**); ++InstanceIdx) {
+      if (auto*& slot = meshWrapperDevRegister[InstanceIdx]; !slot) {
+         slot = &v;
+         // printf("Got instance of device mesh wrapper handler %p (index %ld)\n", &v, InstanceIdx);
+         return;
       }
-      //Check if the cell id is in the list:
-      std::unordered_map<uint64_t, uint64_t>::const_iterator findCell = cellIdLocations.find(cellId);
-      if( findCell == cellIdLocations.end() ) {
-         std::cerr << "ERROR, CELL ID NOT FOUND AT " << __FILE__ << " " << __LINE__ << std::endl;
-         return false;
-      }
-      uint64_t vectorSize, byteSize;
-      uint64_t arraySize;
-      vlsv::datatype::type dataType;
-      std::list< std::pair<std::string, std::string> > xmlAttributes;
-      xmlAttributes.push_back( std::make_pair( "name", variableName ) );
-      xmlAttributes.push_back( std::make_pair( "mesh", "SpatialGrid" ) );
-      if( getArrayInfo( "VARIABLE", xmlAttributes, arraySize, vectorSize, dataType, byteSize ) == false ) return false;
-      if( vectorSize != N ) {
-         std::cerr << "ERROR, BAD VECTORSIZE AT " << __FILE__ << " " << __LINE__ << std::endl;
-         return false;
-      }
-      const uint64_t amountToReadIn = 1;
-      char * buffer = new char[vectorSize * amountToReadIn * byteSize];
-      //Read in variable to the buffer:
-      const uint64_t begin = findCell->second;
-      if( readArray( "VARIABLE", xmlAttributes, begin, amountToReadIn, buffer ) == false ) return false;
-      float * buffer_float = reinterpret_cast<float*>(buffer);
-      double * buffer_double = reinterpret_cast<double*>(buffer);
-      uint32_t * buffer_uint_small = reinterpret_cast<uint32_t*>(buffer);
-      uint64_t * buffer_uint_large = reinterpret_cast<uint64_t*>(buffer);
-      int32_t * buffer_int_small = reinterpret_cast<int32_t*>(buffer);
-      int64_t * buffer_int_large = reinterpret_cast<int64_t*>(buffer);
-      //Input the variable:
-      if( dataType == vlsv::datatype::type::FLOAT ) {
-         if( byteSize == sizeof(double) ) {
-            for( uint i = 0; i < N; ++i ) {
-               const double var = buffer_double[i];
-               variable[i] = var;
-            }
-         } else if( byteSize == sizeof(float) ) {
-            for( uint i = 0; i < N; ++i ) {
-               const float var = buffer_float[i];
-               variable[i] = var;
-            }
-         } else {
-            std::cerr << "BAD BYTESIZE AT " << __FILE__ << " " << __LINE__ << std::endl;
-            delete [] buffer;
-            return false;
-         }
-      } else if( dataType == vlsv::datatype::type::UINT ) {
-         if( byteSize == sizeof(uint64_t) ) {
-            for( uint i = 0; i < N; ++i ) {
-               const uint64_t var = buffer_uint_large[i];
-               variable[i] = var;
-            }
-         } else if( byteSize == sizeof(uint32_t) ) {
-            for( uint i = 0; i < N; ++i ) {
-               const uint32_t var = buffer_uint_small[i];
-               variable[i] = var;
-            }
-         } else {
-            std::cerr << "BAD BYTESIZE AT " << __FILE__ << " " << __LINE__ << std::endl;
-            delete [] buffer;
-            return false;
-         }
-      } else if( dataType == vlsv::datatype::type::INT ) {
-         if( byteSize == sizeof(int64_t) ) {
-            for( uint i = 0; i < N; ++i ) {
-               const int64_t var = buffer_int_large[i];
-               variable[i] = var;
-            }
-         } else if( byteSize == sizeof(int32_t) ) {
-            for( uint i = 0; i < N; ++i ) {
-               const int32_t var = buffer_int_small[i];
-               variable[i] = var;
-            }
-         } else {
-            std::cerr << "BAD BYTESIZE AT " << __FILE__ << " " << __LINE__ << std::endl;
-            delete [] buffer;
-            return false;
-         }
-      } else {
-         std::cerr << "BAD DATATYPE AT " << __FILE__ << " " << __LINE__ << std::endl;
-         delete [] buffer;
-         return false;
-      }
-      delete [] buffer;
-      return true;
    }
+   assert(false && "Not enough slots to register mesh wrapper slots.");
 }
 
+void vmesh::MeshWrapper::uploadMeshWrapper() {
+   // Store address to velocityMeshes array
+   std::array<vmesh::MeshParameters, MAX_VMESH_PARAMETERS_COUNT>* temp = meshWrapper->velocityMeshes;
+   // gpu-Malloc space on device, copy array contents
+   CHK_ERR(gpuMalloc((void**)&velocityMeshes_upload, sizeof(std::array<vmesh::MeshParameters, MAX_VMESH_PARAMETERS_COUNT>)));
+   CHK_ERR(gpuMemcpy(velocityMeshes_upload, meshWrapper->velocityMeshes, sizeof(std::array<vmesh::MeshParameters, MAX_VMESH_PARAMETERS_COUNT>), gpuMemcpyHostToDevice));
+   // Make wrapper point to device-side array
+   meshWrapper->velocityMeshes = velocityMeshes_upload;
+   // Allocate and copy meshwrapper on device
+   CHK_ERR(gpuMalloc((void**)&MWdev, sizeof(vmesh::MeshWrapper)));
+   CHK_ERR(gpuMemcpy(MWdev, meshWrapper, sizeof(vmesh::MeshWrapper), gpuMemcpyHostToDevice));
+   // Set the global symbol of meshWrapper
+   int count = 0;
+   for (size_t InstanceIdx = 0; InstanceIdx < sizeof(meshWrapperDevRegister) / sizeof(vmesh::MeshWrapper**); ++InstanceIdx) {
+      if (auto* slot = meshWrapperDevRegister[InstanceIdx]; slot) {
+         // printf("Setting device mesh wrapper handler %p (index %ld)\n", slot, InstanceIdx);
+         CHK_ERR(gpuMemcpyToSymbol(*slot, &MWdev, sizeof(vmesh::MeshWrapper*)));
+         count++;
+      } else {
+         break;
+      }
+   }
+   int myRank;
+   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+   if (myRank == MASTER_RANK) {
+      printf("Done setting all %d instances of device mesh wrapper handler!\n", count);
+   }
+
+   // Copy host-side address back
+   meshWrapper->velocityMeshes = temp;
+   // And sync
+   CHK_ERR(gpuDeviceSynchronize());
+}
+void vmesh::deallocateMeshWrapper() {
+   CHK_ERR(gpuFree(velocityMeshes_upload));
+   CHK_ERR(gpuFree(MWdev));
+   CHK_ERR(gpuFree(meshWrapperDevInstance));
+   // And sync
+   CHK_ERR(gpuDeviceSynchronize());
+}
 #endif
+
+void vmesh::MeshWrapper::initVelocityMeshes(const uint nMeshes) {
+   // Verify lengths match?
+   if (meshWrapper->velocityMeshesCreation->size() != nMeshes) {
+      printf("Error! Initialized only %d velocity meshes out of %d created ones.\n", nMeshes, (int)meshWrapper->velocityMeshesCreation->size());
+      abort();
+   }
+   // Create pointer to array of sufficient length
+   meshWrapper->velocityMeshes = new std::array<vmesh::MeshParameters, MAX_VMESH_PARAMETERS_COUNT>;
+
+   // Copy data in, also set auxiliary values
+   for (uint i = 0; i < nMeshes; ++i) {
+      vmesh::MeshParameters* vMesh = &(meshWrapper->velocityMeshes->at(i));
+      vmesh::MeshParameters* vMeshIn = &(meshWrapper->velocityMeshesCreation->at(i));
+
+      // Limits
+      vMesh->meshLimits[0] = vMeshIn->meshLimits[0];
+      vMesh->meshLimits[1] = vMeshIn->meshLimits[1];
+      vMesh->meshLimits[2] = vMeshIn->meshLimits[2];
+      vMesh->meshLimits[3] = vMeshIn->meshLimits[3];
+      vMesh->meshLimits[4] = vMeshIn->meshLimits[4];
+      vMesh->meshLimits[5] = vMeshIn->meshLimits[5];
+      // Grid length
+      vMesh->gridLength[0] = vMeshIn->gridLength[0];
+      vMesh->gridLength[1] = vMeshIn->gridLength[1];
+      vMesh->gridLength[2] = vMeshIn->gridLength[2];
+      // Block length
+      vMesh->blockLength[0] = vMeshIn->blockLength[0];
+      vMesh->blockLength[1] = vMeshIn->blockLength[1];
+      vMesh->blockLength[2] = vMeshIn->blockLength[2];
+
+      // Calculate derived mesh parameters:
+      vMesh->meshMinLimits[0] = vMesh->meshLimits[0];
+      vMesh->meshMinLimits[1] = vMesh->meshLimits[2];
+      vMesh->meshMinLimits[2] = vMesh->meshLimits[4];
+      vMesh->meshMaxLimits[0] = vMesh->meshLimits[1];
+      vMesh->meshMaxLimits[1] = vMesh->meshLimits[3];
+      vMesh->meshMaxLimits[2] = vMesh->meshLimits[5];
+
+      vMesh->gridSize[0] = vMesh->meshMaxLimits[0] - vMesh->meshMinLimits[0];
+      vMesh->gridSize[1] = vMesh->meshMaxLimits[1] - vMesh->meshMinLimits[1];
+      vMesh->gridSize[2] = vMesh->meshMaxLimits[2] - vMesh->meshMinLimits[2];
+
+      vMesh->blockSize[0] = vMesh->gridSize[0] / vMesh->gridLength[0];
+      vMesh->blockSize[1] = vMesh->gridSize[1] / vMesh->gridLength[1];
+      vMesh->blockSize[2] = vMesh->gridSize[2] / vMesh->gridLength[2];
+
+      vMesh->cellSize[0] = vMesh->blockSize[0] / vMesh->blockLength[0];
+      vMesh->cellSize[1] = vMesh->blockSize[1] / vMesh->blockLength[1];
+      vMesh->cellSize[2] = vMesh->blockSize[2] / vMesh->blockLength[2];
+
+      vMesh->max_velocity_blocks = vMeshIn->gridLength[0] * vMeshIn->gridLength[1] * vMeshIn->gridLength[2];
+      vMesh->initialized = true;
+   }
+#ifdef USE_GPU
+   // Now all velocity meshes have been initialized on host, into
+   // the array. Now we need to upload a copy onto GPU.
+   vmesh::MeshWrapper::uploadMeshWrapper();
+   // printf("Host printout\n");
+   // vmesh::printVelocityMesh(0);
+   // printf("Device printout\n");
+   // debug_kernel<<<1, 1, 0, 0>>> (0);
+   // CHK_ERR( gpuDeviceSynchronize() );
+#endif
+
+   return;
+}

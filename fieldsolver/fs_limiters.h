@@ -21,9 +21,9 @@
  */
 
 /*! \file fs_limiters.h
- * 
+ *
  * \brief Definitions of the limiter functions used in the field solver.
- * 
+ *
  * Definitions of the limiter functions used in the field solver.
  * The three-point limiter functions are minmod, MC, superbee and vanLeer. Their helper functions are the two-point minmod and the sign function.
  */
@@ -31,63 +31,66 @@
 #ifndef FS_LIMITERS_H
 #define FS_LIMITERS_H
 
-#include <cstdlib>
 #include <algorithm>
+#include <cstdlib>
 #include <limits>
 
-template<typename T> inline T minmod(const T& a,const T& b) {
+template <typename T> inline T minmod(const T& a, const T& b) {
    const T ZERO = 0.0;
-   
-   if (a*b < ZERO) return ZERO;
-   else if (fabs(a) < fabs(b)) return a;
-   else return b;
+
+   if (a * b < ZERO)
+      return ZERO;
+   else if (fabs(a) < fabs(b))
+      return a;
+   else
+      return b;
 }
 
-template<typename T> inline T minmod(const T& left,const T& cent,const T& rght) {
+template <typename T> inline T minmod(const T& left, const T& cent, const T& rght) {
    const T HALF = 0.5;
-   const T val1 = cent-left;
-   const T val2 = rght-cent;
-   return HALF*(sign(val1)+sign(val2))*std::min(fabs(val1),fabs(val2));
+   const T val1 = cent - left;
+   const T val2 = rght - cent;
+   return HALF * (sign(val1) + sign(val2)) * std::min(fabs(val1), fabs(val2));
 }
 
-template<typename T> inline T MClimiter(const T& left,const T& cent,const T& right) {
+template <typename T> inline T MClimiter(const T& left, const T& cent, const T& right) {
    const T HALF = 0.5;
-   const T TWO  = 2.0;
-   
-   const T forw = right-cent;
-   const T back = cent-left;
-   const T cntr = HALF*(right-left);
-   const T slope1 = minmod(TWO*forw,cntr);
-   const T slope2 = minmod(TWO*back,cntr);
-   return minmod(slope1,slope2);
+   const T TWO = 2.0;
+
+   const T forw = right - cent;
+   const T back = cent - left;
+   const T cntr = HALF * (right - left);
+   const T slope1 = minmod(TWO * forw, cntr);
+   const T slope2 = minmod(TWO * back, cntr);
+   return minmod(slope1, slope2);
 }
 
-template<typename T> inline T superbee(const T& left,const T& cent,const T& right) {
+template <typename T> inline T superbee(const T& left, const T& cent, const T& right) {
    const T HALF = 0.5;
-   
-   const T back = cent-left;
-   const T forw = right-cent;
-   T tmp = std::min(fabs(back),fabs(forw));
-   tmp = std::min(tmp,HALF*std::max(fabs(back),fabs(forw)));
-   return (sign(back)+sign(forw))*tmp;
+
+   const T back = cent - left;
+   const T forw = right - cent;
+   T tmp = std::min(fabs(back), fabs(forw));
+   tmp = std::min(tmp, HALF * std::max(fabs(back), fabs(forw)));
+   return (sign(back) + sign(forw)) * tmp;
 }
 
-template<typename T> inline T vanLeer(const T& left,const T& cent,const T& right) {
+template <typename T> inline T vanLeer(const T& left, const T& cent, const T& right) {
    const T EPSILON = std::numeric_limits<T>::min();
-   const T ZERO    = 0.0;
-   const T TWO     = 2.0;
+   const T ZERO = 0.0;
+   const T TWO = 2.0;
 
-   const T numerator = std::max((right-cent)*(cent-left),ZERO);
-   const T denumerator = right-left ;
-   if(fabs(denumerator) < EPSILON)
+   const T numerator = std::max((right - cent) * (cent - left), ZERO);
+   const T denumerator = right - left;
+   if (fabs(denumerator) < EPSILON)
       return ZERO;
    else
-     return TWO * numerator / denumerator;
-   
-   //return TWO*std::max((right-cent)*(cent-left),ZERO)/(right-left+EPSILON);
+      return TWO * numerator / denumerator;
 
-   //const T denumerator = (right-left) + EPSILON;
-   //const T rvalue = TWO*std::max((right-cent)*(cent-left),ZERO) / denumerator;
+   // return TWO*std::max((right-cent)*(cent-left),ZERO)/(right-left+EPSILON);
+
+   // const T denumerator = (right-left) + EPSILON;
+   // const T rvalue = TWO*std::max((right-cent)*(cent-left),ZERO) / denumerator;
    /*
    if (rvalue > 1e10) {
       std::cerr << "ERROR vanLeer rvalue too large " << std::max((right-cent)*(cent-left),ZERO) << '\t' << denumerator << std::endl;
@@ -99,12 +102,9 @@ template<typename T> inline T vanLeer(const T& left,const T& cent,const T& right
     */
 }
 
-
-template<typename T> inline T limiter(const T& left,const T& cent,const T& rght) {
-   return vanLeer(left,cent,rght);
-}
+template <typename T> inline T limiter(const T& left, const T& cent, const T& rght) { return vanLeer(left, cent, rght); }
 
 /*! Select the limiter to be used in the field solver. */
-//Real limiter(creal& left,creal& cent,creal& rght);
+// Real limiter(creal& left,creal& cent,creal& rght);
 
 #endif

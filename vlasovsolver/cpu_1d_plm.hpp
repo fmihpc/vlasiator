@@ -20,32 +20,32 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef CPU_1D_PLM_H
-#define CPU_1D_PLM_H
+#ifndef CPU_1D_PPM_H
+#define CPU_1D_PPM_H
 
-#include "vec.h"
+#include "cpu_face_estimates.hpp"
 #include "cpu_slope_limiters.hpp"
+#include "vec.h"
 
 using namespace std;
 
-/*!
- Compute PLM coefficients
- f(v) = a[0] + a[1]/2.0*t 
-t=(v-v_{i-0.5})/dv where v_{i-0.5} is the left face of a cell
-The factor 2.0 is in the polynom to ease integration, then integral is a[0]*t + a[1]*t**2
+/*
+  Compute parabolic reconstruction with an explicit scheme
 */
-
-static inline void compute_plm_coeff(const Vec * const values, uint k, Vec a[2], const Realf threshold)
-{
-  // scale values closer to 1 for more accurate slope limiter calculation
-  const Realf scale = 1./threshold;
-  //Vec v_1 = values[k - 1] * scale;
-  //Vec v_2 = values[k] * scale;
-  //Vec v_3 = values[k + 1] * scale;
-  //Vec d_cv = slope_limiter(v_1, v_2, v_3) * threshold;
-  const Vec d_cv = slope_limiter( values[k-1]*scale, values[k]*scale, values[k+1]*scale)*threshold;
-  a[0] = values[k] - d_cv * 0.5;
-  a[1] = d_cv * 0.5;
+static inline void compute_ppm_coeff(const Vec* const values, face_estimate_order order, uint k, Vec a[3], const Realf threshold) {
+   Vec m_face; /*left face value*/
+   Vec p_face; /*right face value*/
+   compute_filtered_face_values(values, k, order, m_face, p_face, threshold);
+   // Coella et al, check for monotonicity
+   const Vec one_sixth(1.0 / 6.0);
+   m_face = select((p_face - m_face) * (values[k] - 0.5 * (m_face + p_face)) > (p_face - m_face) * (p_face - m_face) * one_sixth, 3 * values[k] - 2 * p_face, m_face);
+   p_face = select(-(p_face - m_face) * (p_face - m_face) * one_sixth > (p_face - m_face) * (values[k] - 0.5 * (m_face + p_face)), 3 * values[k] - 2 * m_face, p_face);
+   // Fit a second order polynomial for reconstruction see, e.g., White
+   // 2008 (PQM article) (note additional integration factors built in,
+   // contrary to White (2008) eq. 4
+   a[0] = m_face;
+   a[1] = 3.0 * values[k] - 2.0 * m_face - p_face;
+   a[2] = (m_face + p_face - 2.0 * values[k]);
 }
 
 #endif

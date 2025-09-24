@@ -1,3 +1,4 @@
+#pragma once
 /*
  * This file is part of Vlasiator.
  * Copyright 2010-2016 Finnish Meteorological Institute
@@ -19,46 +20,68 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#include "physconst.h"
+#include <math.h>
 
-const double PhysicalConstantsCGS::me = 9.1094e-28; // g
-const double PhysicalConstantsCGS::mp = 1.6726231e-24; // g
-const double PhysicalConstantsCGS::mpi0 = 2.406175207e-25; // g
-const double PhysicalConstantsCGS::e = 4.8032068e-10;// statC / electro static unit
-const double PhysicalConstantsCGS::c = 29979245800.;// cm/s
-const double PhysicalConstantsCGS::eps0 = 1;
-const double PhysicalConstantsCGS::mu0 = 1;
-const double PhysicalConstantsCGS::thomcs = 6.65245e-25; // cm^2
-const double PhysicalConstantsCGS::h = 6.6260755e-27; // erg s
-const double PhysicalConstantsCGS::hbar = 1.054572669e-27; // erg s
-const double PhysicalConstantsCGS::k = 1.380658e-16;  // erg/Kelvin
-const double PhysicalConstantsCGS::r0 = 2.8179e-13;  // cm
-const double PhysicalConstantsCGS::G = 6.67428e-8; // Gravitationskonstante cm^3/(g sec^2)
+// The default is (Gaussian) CGS units
+class PhysicalConstantsCGS {
+public:
+   PhysicalConstantsCGS() {};
 
-const double PhysicalConstantsSI::me = 9.1094e-31; // kg
-const double PhysicalConstantsSI::mp = 1.6726e-27; // kg
-const double PhysicalConstantsSI::mpi0 = 2.406176e-28; // kg
-const double PhysicalConstantsSI::e = 1.6022e-19; // C
-const double PhysicalConstantsSI::c = 299792458.;// m/s
-const double PhysicalConstantsSI::eps0 = 8.854187817620e-12; // F/m;
-const double PhysicalConstantsSI::mu0 = 1.2566370614e-6; // H / m
-const double PhysicalConstantsSI::thomcs = 6.65245e-29; // m^2
-const double PhysicalConstantsSI::h = 6.6260755e-34; // J s
-const double PhysicalConstantsSI::hbar = 1.054572669e-34; // J s
-const double PhysicalConstantsSI::k = 1.380658e-23;  // J / K
-const double PhysicalConstantsSI::r0 = 2.8179e-15;  // m
-const double PhysicalConstantsSI::G = 6.67428e-11; // m^3/(kg s^2)
+   static const double me;     // Electron mass (g)
+   static const double mp;     // Proton mass (g)
+   static const double mpi0;   // Mass of uncharged pion (g)
+   static const double e;      // Elementary charge (statcoulomb)
+   static const double c;      // Speed of light (cm/s)
+   static const double eps0;   // Permitivity of vacuum
+   static const double mu0;    // Permeability of vacuum
+   static const double thomcs; // Thomson cross section (cm^2)
+   static const double h;      // Planck constant (erg sec)
+   static const double hbar;   // reduced Planck constant (erg sec)
+   static const double k;      // Boltzmann constant (erg / K)
+   static const double r0;     // Classical electron radius / Thomson scattering length (cm)
+   static const double G;      // Gravitational constant cm^3/(g sec^2)
+};
 
-const double PhysicalConstantsnorm::me = 1;
-const double PhysicalConstantsnorm::mp = 1836.15;
-const double PhysicalConstantsnorm::mpi0 = 264.14;
-const double PhysicalConstantsnorm::e = 1;
-const double PhysicalConstantsnorm::c = 1;
-const double PhysicalConstantsnorm::eps0 = .07957747154594766788;
-const double PhysicalConstantsnorm::mu0 = 12.56637061435917295376;
-const double PhysicalConstantsnorm::thomcs = 3.488e43;
-const double PhysicalConstantsnorm::h = 861.022579738;
-const double PhysicalConstantsnorm::hbar = 137.035999679;
-const double PhysicalConstantsnorm::k = 1;
-const double PhysicalConstantsnorm::r0 = 2.0405e21;
-const double PhysicalConstantsnorm::G = 1;
+// Constants in SI
+class PhysicalConstantsSI {
+public:
+   PhysicalConstantsSI() {};
+
+   static const double me;     // Electron mass (kg)
+   static const double mp;     // Proton mass (kg)
+   static const double mpi0;   // Mass of uncharged pion (kg)
+   static const double e;      // Elementary charge (C)
+   static const double c;      // Speed of light (m/s)
+   static const double eps0;   // Permitivity of vacuum (F / m)
+   static const double mu0;    // Permeability of vacuum (H / m)
+   static const double thomcs; // Thomson cross section (m^2)
+   static const double h;      // Planck constant (J s)
+   static const double hbar;   // reduced Planck constant (J s)
+   static const double k;      // Boltzmann constant (J / K)
+   static const double r0;     // Classical electron radius / Thomson scattering length (m)
+   static const double G;      // Gravitational constant m^3/(kg s^2)
+};
+
+// Natural Units with e = c = k = me = 1 (Stoney units)
+class PhysicalConstantsnorm {
+public:
+   PhysicalConstantsnorm() {};
+
+   static const double me;     // Electron mass
+   static const double mp;     // Proton mass
+   static const double mpi0;   // Mass of uncharged pion
+   static const double e;      // Elementary charge
+   static const double c;      // Speed of light
+   static const double eps0;   // Permitivity of vacuum
+   static const double mu0;    // Permeability of vacuum
+   static const double thomcs; // Thomson cross section
+   static const double h;      // Planck constant
+   static const double hbar;   // reduced Planck constant
+   static const double k;      // Boltzmann constant
+   static const double r0;     // Classical electron radius
+   static const double G;      // Gravitational constant
+
+   // l = e^2 / c^2 me
+   // t = e^2 / c^3 me
+   // T = = me c^2 / k
+};

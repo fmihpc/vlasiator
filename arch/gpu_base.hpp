@@ -24,19 +24,19 @@
 #define GPU_BASE_H
 
 #ifdef _OPENMP
-  #include <omp.h>
+#include <omp.h>
 #endif
 
 #include "arch_device_api.h"
 
-#include <stdio.h>
-#include <mutex>
-#include "include/splitvector/splitvec.h"
-#include "include/hashinator/hashinator.h"
 #include "../definitions.h"
-#include "../vlasovsolver/vec.h"
 #include "../velocity_mesh_parameters.h"
+#include "../vlasovsolver/vec.h"
+#include "include/hashinator/hashinator.h"
+#include "include/splitvector/splitvec.h"
+#include <mutex>
 #include <phiprof.hpp>
+#include <stdio.h>
 
 #ifndef THREADS_PER_MP
 #define THREADS_PER_MP 2048
@@ -53,10 +53,10 @@ extern int threadsPerMP;
 // Magic multipliers used to make educated guesses for initial allocations
 // and for managing dynamic increases in allocation sizes. Some of these are
 // scaled based on WID value for better guesses,
-static const uint VLASOV_BUFFER_MINBLOCKS = 32768/WID3;
-static const uint VLASOV_BUFFER_MINCOLUMNS = 2000/WID;
-static const uint INIT_VMESH_SIZE (32768/WID3);
-static const uint INIT_MAP_SIZE (16 - WID);
+static const uint VLASOV_BUFFER_MINBLOCKS = 32768 / WID3;
+static const uint VLASOV_BUFFER_MINCOLUMNS = 2000 / WID;
+static const uint INIT_VMESH_SIZE(32768 / WID3);
+static const uint INIT_MAP_SIZE(16 - WID);
 static const double BLOCK_ALLOCATION_PADDING = 1.2;
 static const double BLOCK_ALLOCATION_FACTOR = 1.1;
 
@@ -80,7 +80,7 @@ uint gpu_getThread();
 uint gpu_getMaxThreads();
 int gpu_getDevice();
 uint gpu_getAllocationCount();
-int gpu_reportMemory(const size_t local_cap=0, const size_t ghost_cap=0, const size_t local_size=0, const size_t ghost_size=0);
+int gpu_reportMemory(const size_t local_cap = 0, const size_t ghost_cap = 0, const size_t local_size = 0, const size_t ghost_size = 0);
 
 unsigned int nextPowerOfTwo(unsigned int n);
 
@@ -90,19 +90,14 @@ void gpu_vlasov_allocate_perthread(uint cpuThreadID, uint maxBlockCount);
 void gpu_vlasov_deallocate_perthread(uint cpuThreadID);
 uint gpu_vlasov_getSmallestAllocation();
 
-void gpu_batch_allocate(uint nCells=0, uint maxNeighbours=0);
-void gpu_batch_deallocate(bool first=true, bool second=true);
+void gpu_batch_allocate(uint nCells = 0, uint maxNeighbours = 0);
+void gpu_batch_deallocate(bool first = true, bool second = true);
 
 void gpu_acc_allocate(uint maxBlockCount);
-void gpu_acc_allocate_perthread(uint cpuThreadID, uint firstAllocationCount, uint columnSetAllocationCount=0);
+void gpu_acc_allocate_perthread(uint cpuThreadID, uint firstAllocationCount, uint columnSetAllocationCount = 0);
 void gpu_acc_deallocate();
 
-void gpu_trans_allocate(cuint nAllCells=0,
-                        cuint sumOfLengths=0,
-                        cuint largestVmesh=0,
-                        cuint unionSetSize=0,
-                        cuint transGpuBlocks=0,
-                        cuint nPencils=0);
+void gpu_trans_allocate(cuint nAllCells = 0, cuint sumOfLengths = 0, cuint largestVmesh = 0, cuint unionSetSize = 0, cuint transGpuBlocks = 0, cuint nPencils = 0);
 void gpu_trans_deallocate();
 
 void gpu_pitch_angle_diffusion_allocate(size_t numberOfLocalCells, int nbins_v, int nbins_mu, int blocksPerSpatialCell, int totalNumberOfVelocityBlocks);
@@ -114,19 +109,19 @@ extern gpuStream_t gpuPriorityStreamList[];
 // Struct used by Vlasov Acceleration semi-Lagrangian solver
 struct ColumnOffsets {
    split::SplitVector<uint> setColumnOffsets; // index from columnBlockOffsets where new set of columns starts (length nColumnSets)
-   split::SplitVector<uint> setNumColumns; // how many columns in set of columns (length nColumnSets)
+   split::SplitVector<uint> setNumColumns;    // how many columns in set of columns (length nColumnSets)
 
    split::SplitVector<uint> columnBlockOffsets; // indexes where columns start (in blocks, length totalColumns)
-   split::SplitVector<uint> columnNumBlocks; // length of column (in blocks, length totalColumns)
-   split::SplitVector<int> minBlockK,maxBlockK;
+   split::SplitVector<uint> columnNumBlocks;    // length of column (in blocks, length totalColumns)
+   split::SplitVector<int> minBlockK, maxBlockK;
    split::SplitVector<int> kBegin;
-   split::SplitVector<int> i,j;
+   split::SplitVector<int> i, j;
    uint colSize = 0;
    uint colSetSize = 0;
    uint colCapacity = 0;
    uint colSetCapacity = 0;
 
-   ColumnOffsets(uint nColumns=1, uint nColumnSets=1) {
+   ColumnOffsets(uint nColumns = 1, uint nColumnSets = 1) {
       gpuStream_t stream = gpu_getStream();
       setColumnOffsets.resize(nColumnSets);
       setNumColumns.resize(nColumnSets);
@@ -151,7 +146,7 @@ struct ColumnOffsets {
       colSize = nColumns;
       colSetSize = nColumnSets;
       colCapacity = columnBlockOffsets.capacity(); // Uses this as an example
-      colSetCapacity = setNumColumns.capacity(); // Uses this as an example
+      colSetCapacity = setNumColumns.capacity();   // Uses this as an example
    }
    void prefetchDevice(gpuStream_t stream) {
       setColumnOffsets.optimizeGPU(stream);
@@ -164,15 +159,9 @@ struct ColumnOffsets {
       i.optimizeGPU(stream);
       j.optimizeGPU(stream);
    }
-   __host__ size_t sizeCols() const {
-      return colSize;
-   }
-   __host__ size_t capacityCols() const {
-      return colCapacity;
-   }
-   __host__ size_t capacityColSets() const {
-      return colSetCapacity;
-   }
+   __host__ size_t sizeCols() const { return colSize; }
+   __host__ size_t capacityCols() const { return colCapacity; }
+   __host__ size_t capacityColSets() const { return colSetCapacity; }
    __device__ size_t dev_sizeCols() const {
       return columnBlockOffsets.size(); // Uses this as an example
    }
@@ -186,28 +175,25 @@ struct ColumnOffsets {
       return setNumColumns.capacity(); // Uses this as an example
    }
    size_t capacityInBytes() const {
-      return colCapacity * (2*sizeof(uint)+5*sizeof(int))
-         + colSetCapacity * (2*sizeof(uint))
-         + 4 * sizeof(split::SplitVector<uint>)
-         + 5 * sizeof(split::SplitVector<int>);
+      return colCapacity * (2 * sizeof(uint) + 5 * sizeof(int)) + colSetCapacity * (2 * sizeof(uint)) + 4 * sizeof(split::SplitVector<uint>) + 5 * sizeof(split::SplitVector<int>);
    }
-   void setSizes(size_t nCols=0, size_t nColSets=0) {
+   void setSizes(size_t nCols = 0, size_t nColSets = 0) {
       // Ensure capacities are handled with cached values
-      setCapacities(nCols,nColSets);
+      setCapacities(nCols, nColSets);
       // Only then resize
-      setColumnOffsets.resize(nColSets,true);
-      setNumColumns.resize(nColSets,true);
-      columnBlockOffsets.resize(nCols,true);
-      columnNumBlocks.resize(nCols,true);
-      minBlockK.resize(nCols,true);
-      maxBlockK.resize(nCols,true);
-      kBegin.resize(nCols,true);
-      i.resize(nCols,true);
-      j.resize(nCols,true);
+      setColumnOffsets.resize(nColSets, true);
+      setNumColumns.resize(nColSets, true);
+      columnBlockOffsets.resize(nCols, true);
+      columnNumBlocks.resize(nCols, true);
+      minBlockK.resize(nCols, true);
+      maxBlockK.resize(nCols, true);
+      kBegin.resize(nCols, true);
+      i.resize(nCols, true);
+      j.resize(nCols, true);
       colSize = nCols;
       colSetSize = nColSets;
    }
-   __device__ void device_setSizes(size_t nCols=0, size_t nColSets=0) {
+   __device__ void device_setSizes(size_t nCols = 0, size_t nColSets = 0) {
       // Cannot recapacitate
       setColumnOffsets.device_resize(nColSets);
       setNumColumns.device_resize(nColSets);
@@ -221,7 +207,7 @@ struct ColumnOffsets {
       colSize = nCols;
       colSetSize = nColSets;
    }
-   void setCapacities(size_t nCols=0, size_t nColSets=0) {
+   void setCapacities(size_t nCols = 0, size_t nColSets = 0) {
       // check cached capacities to prevent page faults if not necessary
       if (nCols > colCapacity) {
          // Recapacitate column vectors
@@ -252,8 +238,8 @@ struct GPUMemoryManager {
    std::mutex memoryMutex;
 
    // Create a new pointer with a base name, ensure unique name
-   bool createPointer(const std::string& baseName, std::string &uniqueName) {
-      if (uniqueName != "null"){
+   bool createPointer(const std::string& baseName, std::string& uniqueName) {
+      if (uniqueName != "null") {
          return false;
       }
 
@@ -275,18 +261,18 @@ struct GPUMemoryManager {
 
    // Allocate memory to a pointer by name
    bool allocate(const std::string& name, size_t bytes) {
-      //TODO: only allocate if needs to increase in size
+      // TODO: only allocate if needs to increase in size
       std::lock_guard<std::mutex> lock(memoryMutex);
       if (gpuMemoryPointers.count(name) == 0) {
          std::cerr << "Error: Pointer name '" << name << "' not found.\n";
          return false;
       }
-      
+
       if (gpuMemoryPointers[name] != nullptr) {
-         CHK_ERR( gpuFree(gpuMemoryPointers[name]) );
+         CHK_ERR(gpuFree(gpuMemoryPointers[name]));
       }
 
-      CHK_ERR( gpuMalloc(&gpuMemoryPointers[name], bytes) );
+      CHK_ERR(gpuMalloc(&gpuMemoryPointers[name], bytes));
       allocationSizes[name] = bytes;
       pointerDevice[name] = "dev";
       return true;
@@ -294,7 +280,7 @@ struct GPUMemoryManager {
 
    // Allocate pinned host memory to a pointer by name
    bool hostAllocate(const std::string& name, size_t bytes) {
-      //TODO: only allocate if needs to increase in size
+      // TODO: only allocate if needs to increase in size
       std::lock_guard<std::mutex> lock(memoryMutex);
       if (gpuMemoryPointers.count(name) == 0) {
          std::cerr << "Error: Pointer name '" << name << "' not found.\n";
@@ -302,10 +288,10 @@ struct GPUMemoryManager {
       }
 
       if (gpuMemoryPointers[name] != nullptr) {
-         CHK_ERR( gpuFreeHost(gpuMemoryPointers[name]) );
+         CHK_ERR(gpuFreeHost(gpuMemoryPointers[name]));
       }
 
-      CHK_ERR( gpuMallocHost(&gpuMemoryPointers[name], bytes) );
+      CHK_ERR(gpuMallocHost(&gpuMemoryPointers[name], bytes));
       allocationSizes[name] = bytes;
       pointerDevice[name] = "host";
       return true;
@@ -313,7 +299,8 @@ struct GPUMemoryManager {
 
    // Get allocated size for a pointer
    size_t getSize(const std::string& name) const {
-      if (allocationSizes.count(name)) return allocationSizes.at(name);
+      if (allocationSizes.count(name))
+         return allocationSizes.at(name);
       return 0;
    }
 
@@ -322,11 +309,11 @@ struct GPUMemoryManager {
       for (auto& pair : gpuMemoryPointers) {
          if (pair.second != nullptr) {
             std::string name = pair.first;
-            if (allocationSizes[name] > 0){
-               if (pointerDevice[name] == "dev"){
-                  CHK_ERR( gpuFree(pair.second) );
-               }else if (pointerDevice[name] == "host"){
-                  CHK_ERR( gpuFreeHost(pair.second) );
+            if (allocationSizes[name] > 0) {
+               if (pointerDevice[name] == "dev") {
+                  CHK_ERR(gpuFree(pair.second));
+               } else if (pointerDevice[name] == "host") {
+                  CHK_ERR(gpuFreeHost(pair.second));
                }
             }
             pair.second = nullptr;
@@ -340,9 +327,9 @@ struct GPUMemoryManager {
    }
 
    // Get typed pointer
-   template <typename T>
-   T* getPointer(const std::string& name) const {
-      if (!gpuMemoryPointers.count(name)) throw std::runtime_error("Unknown pointer name");
+   template <typename T> T* getPointer(const std::string& name) const {
+      if (!gpuMemoryPointers.count(name))
+         throw std::runtime_error("Unknown pointer name");
       return static_cast<T*>(gpuMemoryPointers.at(name));
    }
 };
@@ -350,24 +337,24 @@ struct GPUMemoryManager {
 extern GPUMemoryManager gpuMemoryManager;
 
 // Device data variables, to be allocated in good time. Made into an array so that each thread has their own pointer.
-extern Realf **host_blockDataOrdered;
-extern Realf **dev_blockDataOrdered;
-extern uint *gpu_cell_indices_to_id;
-extern uint *gpu_block_indices_to_id;
-extern uint *gpu_block_indices_to_probe;
+extern Realf** host_blockDataOrdered;
+extern Realf** dev_blockDataOrdered;
+extern uint* gpu_cell_indices_to_id;
+extern uint* gpu_block_indices_to_id;
+extern uint* gpu_block_indices_to_probe;
 
 extern Realf** dev_pencilBlockData;
 extern uint* dev_pencilBlocksCount;
 
-extern Real *returnReal[];
-extern Realf *returnRealf[];
-extern vmesh::LocalID *returnLID[];
-extern Real *host_returnReal[];
-extern Realf *host_returnRealf[];
-extern vmesh::LocalID *host_returnLID[];
+extern Real* returnReal[];
+extern Realf* returnRealf[];
+extern vmesh::LocalID* returnLID[];
+extern Real* host_returnReal[];
+extern Realf* host_returnRealf[];
+extern vmesh::LocalID* host_returnLID[];
 
-extern ColumnOffsets *host_columnOffsetData;
-extern ColumnOffsets *dev_columnOffsetData;
+extern ColumnOffsets* host_columnOffsetData;
+extern ColumnOffsets* dev_columnOffsetData;
 extern uint gpu_largest_columnCount;
 extern size_t gpu_probeFullSize, gpu_probeFlattenedSize;
 

@@ -20,38 +20,42 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef GPU_1D_PPM_H
-#define GPU_1D_PPM_H
+#ifndef GPU_1D_PPM_NU_H
+#define GPU_1D_PPM_NU_H
+
+#include "algorithm"
+#include "cmath"
+#include <iostream>
 
 #include "../arch/arch_device_api.h"
-#include "gpu_slope_limiters.hpp"
+#include "../definitions.h"
 #include "gpu_face_estimates.hpp"
+#include "gpu_slope_limiters.hpp"
 
-using namespace std;
+/****
+     Define functions for Realf instead of Vec
+***/
 
-/*
-  Compute parabolic reconstruction with an explicit scheme
-*/
-
-static ARCH_DEV inline void compute_ppm_coeff(const Realf* __restrict__ const values, face_estimate_order order, int k, Realf a[3], const Realf threshold, const int index, const int stride)
-{
+ARCH_DEV inline void compute_ppm_coeff_nonuniform(const Realf* __restrict__ const dv, const Realf* __restrict__ const values, face_estimate_order order, int k, Realf a[3], const Realf threshold,
+                                                  const int index, const int stride) {
    Realf m_face; /*left face value*/
    Realf p_face; /*right face value*/
-   compute_filtered_face_values(values, k, order, m_face, p_face, threshold, index, stride);
-   //Coella et al, check for monotonicity
-   const Realf one_sixth(1.0/6.0);
-   m_face = ((p_face - m_face) * (values[k*stride+index] - (Realf)(0.5) * (m_face + p_face)) >
-             (p_face - m_face) * (p_face - m_face) * one_sixth) ?
-      (Realf)(3.0) * values[k*stride+index] - (Realf)(2.0) * p_face : m_face;
-   p_face = (-(p_face - m_face) * (p_face - m_face) * one_sixth >
-             (p_face - m_face) * (values[k*stride+index] - (Realf)(0.5) * (m_face + p_face))) ?
-      (Realf)(3.0) * values[k*stride+index] - (Realf)(2.0) * m_face : p_face;
-   //Fit a second order polynomial for reconstruction see, e.g., White
-   //2008 (PQM article) (note additional integration factors built in,
-   //contrary to White (2008) eq. 4
+   compute_filtered_face_values_nonuniform(dv, values, k, order, m_face, p_face, threshold, index, stride);
+
+   // Coella et al, check for monotonicity
+   m_face = ((p_face - m_face) * (values[k * stride + index] - (Realf)(0.5) * (m_face + p_face)) > (p_face - m_face) * (p_face - m_face) * ((Realf)(1.0) / (Realf)(6.0)))
+                ? (Realf)(3.0) * values[k * stride + index] - (Realf)(2.0) * p_face
+                : m_face;
+   p_face = (-(p_face - m_face) * (p_face - m_face) * ((Realf)(1.0) / (Realf)(6.0))) > (p_face - m_face) * (values[k * stride + index] - (Realf)(0.5) * (m_face + p_face))
+                ? (Realf)(3.0) * values[k * stride + index] - (Realf)(2.0) * m_face
+                : p_face;
+
+   // Fit a second order polynomial for reconstruction see, e.g., White
+   // 2008 (PQM article) (note additional integration factors built in,
+   // contrary to White (2008) eq. 4
    a[0] = m_face;
-   a[1] = (Realf)(3.0) * values[k*stride+index] - (Realf)(2.0) * m_face - p_face;
-   a[2] = (m_face + p_face - (Realf)(2.0) * values[k*stride+index]);
+   a[1] = (Realf)(3.0) * values[k * stride + index] - (Realf)(2.0) * m_face - p_face;
+   a[2] = (m_face + p_face - (Realf)(2.0) * values[k * stride + index]);
 }
 
 #endif

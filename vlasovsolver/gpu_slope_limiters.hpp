@@ -1,6 +1,6 @@
 /*
  * This file is part of Vlasiator.
- * Copyright 2010-2016 Finnish Meteorological Institute
+ * Copyright 2010-2024 Finnish Meteorological Institute and University of Helsinki
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
  * at http://www.physics.helsinki.fi/vlasiator/
@@ -19,101 +19,23 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#ifndef GPU_TRANS_MAP_AMR_H
+#define GPU_TRANS_MAP_AMR_H
 
-#ifndef GPU_SLOPE_LIMITERS_H
-#define GPU_SLOPE_LIMITERS_H
+#include "../common.h"
+#include "../spatial_cells/spatial_cell_wrapper.hpp"
+#include "vec.h"
+#include <vector>
 
-#include "../arch/arch_device_api.h"
+// Buffers, vectors and set for use in translation. Cannot be declared in arch/gpu_base.hpp, because of
+// compilation errors.
+extern vmesh::VelocityMesh **host_allPencilsMeshes, **dev_allPencilsMeshes;
+extern vmesh::VelocityBlockContainer **host_allPencilsContainers, **dev_allPencilsContainers;
+extern split::SplitVector<vmesh::GlobalID>*unionOfBlocks, *dev_unionOfBlocks;
+extern Hashinator::Hashmap<vmesh::GlobalID, vmesh::LocalID>*unionOfBlocksSet, *dev_unionOfBlocksSet;
 
-/****
-     Define functions for Realf instead of Vec
-     These functions take direct arguments instead of references for non-const input
-     so that registers and other optimizations are available.
-***/
+bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const std::vector<CellID>& localPropagatedCells, const std::vector<CellID>& remoteTargetCells,
+                      std::vector<uint>& nPencils, const uint dimension, const Realf dt, const uint popID);
 
-static ARCH_DEV inline Realf minmod(const Realf slope1, const Realf slope2)
-{
-   const Realf slope = (abs(slope1) < abs(slope2)) ? slope1 : slope2;
-   return (slope1 * slope2 <= (Realf)(0.0)) ? (Realf)(0.0) : slope;
-}
-static ARCH_DEV inline Realf maxmod(const Realf slope1, const Realf slope2)
-{
-   const Realf slope = (abs(slope1) > abs(slope2)) ? slope1 : slope2;
-   return (slope1 * slope2 <= (Realf)(0.0)) ? (Realf)(0.0) : slope;
-}
-
-/*!
-  Superbee slope limiter
-*/
-
-static ARCH_DEV inline Realf slope_limiter_sb(const Realf l, const Realf m, const Realf r)
-{
-   const Realf a = r-m;
-   const Realf b = m-l;
-   const Realf slope1 = minmod(a, (Realf)(2.0)*b);
-   const Realf slope2 = minmod((Realf)(2.0)*a, b);
-   return maxmod(slope1, slope2);
-}
-
-/*!
-  Minmod slope limiter
-*/
-
-static ARCH_DEV inline Realf slope_limiter_minmod(const Realf l, const Realf m, const Realf r)
-{
-   const Realf a=r-m;
-   const Realf b=m-l;
-   return minmod(a,b);
-}
-
-/*!
-  MC slope limiter
-*/
-
-static ARCH_DEV inline Realf slope_limiter_mc(const Realf l, const Realf m, const Realf r)
-{
-   const Realf a=r-m;
-   const Realf b=m-l;
-   Realf minval=min((Realf)(2.0)*abs(a),(Realf)(2.0)*abs(b));
-   minval=min(minval,(Realf)(0.5)*abs(a+b));
-
-   //check for extrema
-   const Realf output = (a*b < (Realf)(0.0)) ? (Realf)(0.0) : minval;
-   //set sign
-   return (a + b < (Realf)(0.0)) ? -output : output;
-}
-
-static ARCH_DEV inline Realf slope_limiter_minmod_amr(const Realf l,const Realf m, const Realf r,const Realf a,const Realf b)
-{
-   const Realf J = r-l;
-   Realf f = (m-l)/J;
-   f = min((Realf)(1.0),f);
-   return min((Realf)(f)/(1+a),(Realf)(1.-f)/((Realf)(1.0)+b))*(Realf)(2.0)*J;
-}
-
-static ARCH_DEV inline Realf slope_limiter(const Realf l, const Realf m, const Realf r)
-{
-   return slope_limiter_sb(l,m,r);
-   //return slope_limiter_minmod(l,m,r);
-}
-
-/*
- * @param a Cell size fraction dx[i-1]/dx[i] = 1/2, 1, or 2.
- * @param b Cell size fraction dx[i+1]/dx[i] = 1/2, 1, or 2.
- * @return Limited value of slope.*/
-static ARCH_DEV inline Realf slope_limiter_amr(const Realf l,const Realf m, const Realf r,const Realf dx_left,const Realf dx_rght)
-{
-   return slope_limiter_minmod_amr(l,m,r,dx_left,dx_rght);
-}
-
-/* Slope limiter with abs and sign separately, uses the currently active slope limiter*/
-static ARCH_DEV inline void slope_limiter(const Realf l,const Realf m, const Realf r, Realf& slope_abs, Realf& slope_sign)
-{
-   const Realf slope = slope_limiter(l,m,r);
-   slope_abs = abs(slope);
-   slope_sign = (slope > (Realf)(0.0)) ? (Realf)(1.0) : (Realf)(-1.0);
-}
-
-
-
+void update_remote_mapping_contribution_amr(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const uint dimension, int direction, const uint popID);
 #endif

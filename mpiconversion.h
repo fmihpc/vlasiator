@@ -20,44 +20,57 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef MPI_CONVERSION_H
-#define MPI_CONVERSION_H
-#include <mpi.h>
-#include <cstdlib>
-#include <iostream>
-#include <stdint.h>
+#ifndef OBJECT_FACTORY_H
+#define OBJECT_FACTORY_H
 
-// Overloaded templates which return the corresponding data type
-// for C++ native data types. For example, if float has been 
-// typedef'd as Real, then MPI_Type<Real>() should return MPI_FLOAT.
-// If you later on change the typedef to double, MPI_Type<Real>() 
-// still works.
-template<typename T> inline MPI_Datatype MPI_Type() {
-   std::cerr << "(mpiconversion.h): NULL datatype returned, byte size of original is " << sizeof(T) << std::endl;
-   exit(1);
-   return 0;
+#include <iostream>
+#include <map>
+
+#include "definitions.h"
+
+/** A generic storage class for storing items, such as variable values or
+ * function pointers. The storage class can store any type of item that does
+ * not require a constructor call, i.e., it does not create a _new_ copy of
+ * an item when one is requested.*/
+template <typename PRODUCT> class ObjectFactory {
+public:
+   PRODUCT* create(const std::string& name) const;
+   bool add(const std::string& name, PRODUCT* (*maker)());
+   size_t size() const;
+
+private:
+   // Here the mysterious "PRODUCT* (*)()" is just a function pointer.
+   // If it had a name 'maker', it could be expanded as
+   // PRODUCT* (*maker)()
+   // In other words, it is a pointer to a function that takes no arguments,
+   // and that returns a pointer to PRODUCT.
+   std::map<std::string, PRODUCT* (*)()> manufacturers; /**< Container for all stored maker functions.*/
+};
+
+/** Get an item (product) with the given name.
+ * @param name The name of the item.
+ * @param func The requested item is stored here, if it was found.
+ * @return If true, variable func contains a valid item.*/
+template <typename PRODUCT> inline PRODUCT* ObjectFactory<PRODUCT>::create(const std::string& name) const {
+   typename std::map<std::string, PRODUCT* (*)()>::const_iterator it = manufacturers.find(name);
+   if (it == manufacturers.end()) {
+      return NULL;
+   }
+   return (*it->second)();
 }
 
-template<> inline MPI_Datatype MPI_Type<char>() {return MPI_CHAR;}
+/** Register a maker to the factory. This function will fail
+ * to succeed if the factory already contains a maker with the given name.
+ * @param name A unique name for the maker.
+ * @param func The maker function.
+ * @return If true, the maker was added to the factory.*/
+template <typename PRODUCT> inline bool ObjectFactory<PRODUCT>::add(const std::string& name, PRODUCT* (*maker)()) {
+   // The insert returns a pair<iterator,bool>, where the boolean value is 'true'
+   // if the maker function was inserted to the map. Skip the pair creation
+   // and just return the boolean.
+   return manufacturers.insert(make_pair(name, maker)).second;
+}
 
-// Signed integer types
-template<> inline MPI_Datatype MPI_Type<signed char>() {return MPI_CHAR;}
-template<> inline MPI_Datatype MPI_Type<short>() {return MPI_SHORT;}
-template<> inline MPI_Datatype MPI_Type<int>() {return MPI_INT;}
-template<> inline MPI_Datatype MPI_Type<long int>() {return MPI_LONG;}
-template<> inline MPI_Datatype MPI_Type<long long int>() {return MPI_LONG_LONG;}
-
-// Unsigned integer types
-template<> inline MPI_Datatype MPI_Type<unsigned char>() {return MPI_UNSIGNED_CHAR;}
-template<> inline MPI_Datatype MPI_Type<unsigned short>() {return MPI_UNSIGNED_SHORT;}
-template<> inline MPI_Datatype MPI_Type<unsigned int>() {return MPI_UNSIGNED;}
-template<> inline MPI_Datatype MPI_Type<unsigned long int>() {return MPI_UNSIGNED_LONG;}
-template<> inline MPI_Datatype MPI_Type<unsigned long long int>() {return MPI_UNSIGNED_LONG_LONG;}
-
-// Floating point types
-template<> inline MPI_Datatype MPI_Type<float>() {return MPI_FLOAT;}
-template<> inline MPI_Datatype MPI_Type<double>() {return MPI_DOUBLE;}
-template<> inline MPI_Datatype MPI_Type<long double>() {return MPI_LONG_DOUBLE;}
+template <typename PRODUCT> inline size_t ObjectFactory<PRODUCT>::size() const { return this->manufacturers.size(); }
 
 #endif
-

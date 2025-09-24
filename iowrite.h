@@ -28,9 +28,9 @@
 #include <vector>
 #include <vlsv_writer.h>
 
+#include "datareduction/datareducer.h"
 #include "definitions.h"
 #include "spatial_cells/spatial_cell_wrapper.hpp"
-#include "datareduction/datareducer.h"
 
 /*!
 
@@ -41,25 +41,13 @@
 \param index       Index to call the correct member of the various parameter vectors
 \param writeGhosts Write ghost zones
 */
-bool writeGrid(
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
-   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-   const std::string& versionInfo,
-   const std::string& configInfo,
-   DataReducer* dataReducer,
-   const uint& index,
-   const int& stripe,
-   const bool writeGhosts
-);
+bool writeGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+               FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EGrid, FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH>& EHallGrid,
+               FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH>& EGradPeGrid, FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
+               FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid, FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
+               FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid, FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid,
+               FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, const std::string& versionInfo, const std::string& configInfo, DataReducer* dataReducer, const uint& index,
+               const int& stripe, const bool writeGhosts);
 
 /*!
 
@@ -84,26 +72,13 @@ bool writeGrid(
 \param dateInFileName Write the date (restarts) or not (recovers)
 \param stripe         lustre stripe count
 */
-bool writeRestart(
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
-   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-   const std::string& versionInfo,
-   const std::string& configInfo,
-   DataReducer& dataReducer,
-   const std::string& name,
-   const uint& fileIndex,
-   const bool dateInFileName,
-   const int& stripe
-);
+bool writeRestart(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+                  FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EGrid, FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH>& EHallGrid,
+                  FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH>& EGradPeGrid, FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid,
+                  FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid, FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
+                  FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid, FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid,
+                  FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, const std::string& versionInfo, const std::string& configInfo, DataReducer& dataReducer, const std::string& name,
+                  const uint& fileIndex, const bool dateInFileName, const int& stripe);
 
 /*!
 
@@ -112,13 +87,11 @@ bool writeRestart(
 @param mpiGrid   The DCCRG grid with spatial cells
 @param dataReducer Contains datareductionoperators that are used to compute diagnostic data
 */
-bool writeDiagnostic(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,DataReducer& dataReducer);
+bool writeDiagnostic(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, DataReducer& dataReducer);
 
-bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                        vlsv::Writer& vlsvWriter,int index,const std::vector<uint64_t>& cells);
+bool writeVelocitySpace(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, vlsv::Writer& vlsvWriter, int index, const std::vector<uint64_t>& cells);
 
-bool writeVelocityDistributionData(vlsv::Writer& vlsvWriter,dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                   const std::vector<uint64_t>& cells,MPI_Comm comm);
+bool writeVelocityDistributionData(vlsv::Writer& vlsvWriter, dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const std::vector<uint64_t>& cells, MPI_Comm comm);
 
 bool writeIonosphereGridMetadata(vlsv::Writer& vlsvWriter);
 #endif

@@ -19,19 +19,19 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#include <cstdlib>
-#include <string.h>
-#include <iostream>
-#include <math.h>
-#include <unordered_map> // for hasher
-#include <limits>
-#include "logger.h"
 #include "memoryallocation.h"
 #include "common.h"
+#include "logger.h"
 #include "parameters.h"
+#include <cstdlib>
+#include <iostream>
+#include <limits>
+#include <math.h>
+#include <string.h>
+#include <unordered_map> // for hasher
 #ifdef PAPI_MEM
-#include "papi.h" 
-#endif 
+#include "papi.h"
+#endif
 
 extern Logger logFile, diagnostic;
 using namespace std;
@@ -44,11 +44,10 @@ using namespace std;
 #if JEMALLOC_VERSION_MAJOR < 5
 
 // Global new using jemalloc
-void *operator new(size_t size)
-{
-   void *p;
-   p =  je_malloc(size);
-   if(!p) {
+void* operator new(size_t size) {
+   void* p;
+   p = je_malloc(size);
+   if (!p) {
       bad_alloc ba;
       throw ba;
    }
@@ -56,11 +55,10 @@ void *operator new(size_t size)
 }
 
 // Global new[] using jemalloc
-void *operator new[](size_t size)
-{
-   void *p;
-   p =  je_malloc(size);
-   if(!p) {
+void* operator new[](size_t size) {
+   void* p;
+   p = je_malloc(size);
+   if (!p) {
       bad_alloc ba;
       throw ba;
    }
@@ -68,24 +66,14 @@ void *operator new[](size_t size)
 }
 
 // Global delete using jemalloc
-void operator delete(void *p)
-{
-   je_free(p);
-}
+void operator delete(void* p) { je_free(p); }
 
 // Global delete[] using jemalloc
-void operator delete[](void *p)
-{
-   je_free(p);
-}
+void operator delete[](void* p) { je_free(p); }
 
 #if __cpp_sized_deallocation >= 201309
-void operator delete(void *ptr, std::size_t size) noexcept {
-   je_sdallocx(ptr, size, /*flags=*/0);
-}
-void operator delete[](void *ptr, std::size_t size) noexcept {
-   je_sdallocx(ptr, size, /*flags=*/0);
-}
+void operator delete(void* ptr, std::size_t size) noexcept { je_sdallocx(ptr, size, /*flags=*/0); }
+void operator delete[](void* ptr, std::size_t size) noexcept { je_sdallocx(ptr, size, /*flags=*/0); }
 #endif  // __cpp_sized_deallocation
 #endif // JEMALLOC_VERSION_MAJOR < 5
 #endif // use jemalloc
@@ -101,8 +89,8 @@ void memory_purge() {
 void memory_configurator() {
 #ifdef USE_JEMALLOC
    bool logResult = false;
-   bool foo {false};
-   size_t bar {1};
+   bool foo{false};
+   size_t bar{1};
    if (logResult) {
       // Read initial value
       je_mallctl("background_thread", &foo, &bar, NULL, 0);

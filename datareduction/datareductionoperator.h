@@ -27,11 +27,11 @@
 
 #include <vlsv_writer.h>
 
-#include "fsgrid.hpp"
 #include "../definitions.h"
-#include "../spatial_cells/spatial_cell_wrapper.hpp"
 #include "../parameters.h"
+#include "../spatial_cells/spatial_cell_wrapper.hpp"
 #include "../sysboundary/ionosphere.h"
+#include "fsgrid.hpp"
 using namespace spatial_cell;
 
 namespace DRO {
@@ -55,25 +55,25 @@ namespace DRO {
       DataReductionOperator();
       virtual ~DataReductionOperator();
 
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const = 0;
-      virtual bool getUnitMetadata(std::string& _unit,std::string& _unitLaTeX,std::string& _variableLaTeX,std::string& _unitConversion) {
-	_unit=unit;
-	_unitLaTeX=unitLaTeX;
-	_unitConversion=unitConversion;
-	_variableLaTeX=variableLaTeX;
-	return true;
+      virtual bool getDataVectorInfo(std::string& dataType, unsigned int& dataSize, unsigned int& vectorSize) const = 0;
+      virtual bool getUnitMetadata(std::string& _unit, std::string& _unitLaTeX, std::string& _variableLaTeX, std::string& _unitConversion) {
+         _unit = unit;
+         _unitLaTeX = unitLaTeX;
+         _unitConversion = unitConversion;
+         _variableLaTeX = variableLaTeX;
+         return true;
       };
-      virtual bool setUnitMetadata(std::string& _unit,std::string& _unitLaTeX,std::string& _variableLaTeX,std::string& _unitConversion) {
-	unit = _unit;
-	unitLaTeX = _unitLaTeX;
-	unitConversion = _unitConversion;
-	variableLaTeX = _variableLaTeX;
-	return true;
+      virtual bool setUnitMetadata(std::string& _unit, std::string& _unitLaTeX, std::string& _variableLaTeX, std::string& _unitConversion) {
+         unit = _unit;
+         unitLaTeX = _unitLaTeX;
+         unitConversion = _unitConversion;
+         variableLaTeX = _variableLaTeX;
+         return true;
       }
 
       virtual std::string getName() const = 0;
-      virtual bool reduceData(const SpatialCell* cell,char* buffer);
-      virtual bool reduceDiagnostic(const SpatialCell* cell,Real * result);
+      virtual bool reduceData(const SpatialCell* cell, char* buffer);
+      virtual bool reduceDiagnostic(const SpatialCell* cell, Real* result);
       virtual bool setSpatialCell(const SpatialCell* cell) = 0;
 
    protected:
@@ -81,10 +81,9 @@ namespace DRO {
       std::string unitLaTeX;
       std::string variableLaTeX;
       std::string unitConversion;
-
    };
 
-   class DataReductionOperatorHasParameters: public DataReductionOperator {
+   class DataReductionOperatorHasParameters : public DataReductionOperator {
    public:
       DataReductionOperatorHasParameters() : DataReductionOperator() {};
       virtual bool writeParameters(vlsv::Writer& vlsvWriter) = 0;
@@ -92,154 +91,148 @@ namespace DRO {
 
    class DataReductionOperatorFsGrid : public DataReductionOperator {
 
-      public:
-        typedef std::function<std::vector<double>(
-                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
-                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)> ReductionLambda;
-      private:
-         ReductionLambda lambda;
-         std::string variableName;
+   public:
+      typedef std::function<std::vector<double>(
+          FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid, FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EGrid,
+          FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH>& EHallGrid, FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH>& EGradPeGrid,
+          FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid, FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
+          FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid, FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+          FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid)>
+          ReductionLambda;
 
-      public:
-         DataReductionOperatorFsGrid(const std::string& name, ReductionLambda l) : DataReductionOperator(),lambda(l),variableName(name) {};
-         virtual std::string getName() const;
-         virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
-         virtual bool setSpatialCell(const SpatialCell* cell);
-         virtual bool reduceData(const SpatialCell* cell,char* buffer);
-         virtual bool reduceDiagnostic(const SpatialCell* cell,Real * result);
-         virtual bool writeFsGridData(
-                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
-                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-                      const std::string& meshName, vlsv::Writer& vlsvWriter,
-                      const bool writeAsFloat=false);
+   private:
+      ReductionLambda lambda;
+      std::string variableName;
+
+   public:
+      DataReductionOperatorFsGrid(const std::string& name, ReductionLambda l) : DataReductionOperator(), lambda(l), variableName(name) {};
+      virtual std::string getName() const;
+      virtual bool getDataVectorInfo(std::string& dataType, unsigned int& dataSize, unsigned int& vectorSize) const;
+      virtual bool setSpatialCell(const SpatialCell* cell);
+      virtual bool reduceData(const SpatialCell* cell, char* buffer);
+      virtual bool reduceDiagnostic(const SpatialCell* cell, Real* result);
+      virtual bool writeFsGridData(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid, FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EGrid,
+                                   FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH>& EHallGrid, FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH>& EGradPeGrid,
+                                   FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH>& momentsGrid, FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
+                                   FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid,
+                                   FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid, FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid,
+                                   FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, const std::string& meshName, vlsv::Writer& vlsvWriter, const bool writeAsFloat = false);
    };
 
    // Generic (lambda-based) datareducer for ionosphere grid element-centered data
    class DataReductionOperatorIonosphereElement : public DataReductionOperator {
-      public:
-         typedef std::function<std::vector<Real>(SBC::SphericalTriGrid& grid)> ReductionLambda;
-      private:
-         ReductionLambda lambda;
-         std::string variableName;
+   public:
+      typedef std::function<std::vector<Real>(SBC::SphericalTriGrid& grid)> ReductionLambda;
 
-      public:
-         DataReductionOperatorIonosphereElement(const std::string& name, ReductionLambda l): DataReductionOperator(), lambda(l),variableName(name) {};
-         virtual std::string getName() const;
-         virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
-         virtual bool setSpatialCell(const SpatialCell* cell);
-         virtual bool reduceData(const SpatialCell* cell,char* buffer);
-         virtual bool reduceDiagnostic(const SpatialCell* cell,Real * result);
-         virtual bool writeIonosphereData(SBC::SphericalTriGrid& grid, vlsv::Writer& vlsvWriter);
+   private:
+      ReductionLambda lambda;
+      std::string variableName;
+
+   public:
+      DataReductionOperatorIonosphereElement(const std::string& name, ReductionLambda l) : DataReductionOperator(), lambda(l), variableName(name) {};
+      virtual std::string getName() const;
+      virtual bool getDataVectorInfo(std::string& dataType, unsigned int& dataSize, unsigned int& vectorSize) const;
+      virtual bool setSpatialCell(const SpatialCell* cell);
+      virtual bool reduceData(const SpatialCell* cell, char* buffer);
+      virtual bool reduceDiagnostic(const SpatialCell* cell, Real* result);
+      virtual bool writeIonosphereData(SBC::SphericalTriGrid& grid, vlsv::Writer& vlsvWriter);
    };
 
    // Generic (lambda-based) datareducer for ionosphere grid node-centered data
    class DataReductionOperatorIonosphereNode : public DataReductionOperator {
-      public:
-         typedef std::function<std::vector<Real>(SBC::SphericalTriGrid& grid)> ReductionLambda;
-      private:
-         ReductionLambda lambda;
-         std::string variableName;
+   public:
+      typedef std::function<std::vector<Real>(SBC::SphericalTriGrid& grid)> ReductionLambda;
 
-      public:
-         DataReductionOperatorIonosphereNode(const std::string& name, ReductionLambda l): DataReductionOperator(), lambda(l),variableName(name) {};
-         virtual std::string getName() const;
-         virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
-         virtual bool setSpatialCell(const SpatialCell* cell);
-         virtual bool reduceData(const SpatialCell* cell,char* buffer);
-         virtual bool reduceDiagnostic(const SpatialCell* cell,Real * result);
-         virtual bool writeIonosphereData(SBC::SphericalTriGrid& grid, vlsv::Writer& vlsvWriter);
+   private:
+      ReductionLambda lambda;
+      std::string variableName;
+
+   public:
+      DataReductionOperatorIonosphereNode(const std::string& name, ReductionLambda l) : DataReductionOperator(), lambda(l), variableName(name) {};
+      virtual std::string getName() const;
+      virtual bool getDataVectorInfo(std::string& dataType, unsigned int& dataSize, unsigned int& vectorSize) const;
+      virtual bool setSpatialCell(const SpatialCell* cell);
+      virtual bool reduceData(const SpatialCell* cell, char* buffer);
+      virtual bool reduceDiagnostic(const SpatialCell* cell, Real* result);
+      virtual bool writeIonosphereData(SBC::SphericalTriGrid& grid, vlsv::Writer& vlsvWriter);
    };
 
    // Generic (lambda-based) datareducer for ionosphere grid node-centered int data
    class DataReductionOperatorIonosphereNodeInt : public DataReductionOperator {
    public:
       typedef std::function<std::vector<int>(SBC::SphericalTriGrid& grid)> ReductionLambda;
+
    private:
       ReductionLambda lambda;
       std::string variableName;
 
    public:
-      DataReductionOperatorIonosphereNodeInt(const std::string& name, ReductionLambda l): DataReductionOperator(), lambda(l),variableName(name) {};
+      DataReductionOperatorIonosphereNodeInt(const std::string& name, ReductionLambda l) : DataReductionOperator(), lambda(l), variableName(name) {};
       virtual std::string getName() const;
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual bool getDataVectorInfo(std::string& dataType, unsigned int& dataSize, unsigned int& vectorSize) const;
       virtual bool setSpatialCell(const SpatialCell* cell);
-      virtual bool reduceData(const SpatialCell* cell,char* buffer);
-      virtual bool reduceDiagnostic(const SpatialCell* cell,Real * result);
+      virtual bool reduceData(const SpatialCell* cell, char* buffer);
+      virtual bool reduceDiagnostic(const SpatialCell* cell, Real* result);
       virtual bool writeIonosphereData(SBC::SphericalTriGrid& grid, vlsv::Writer& vlsvWriter);
    };
 
    // Generic (lambda-based) datareducer for vlasov grid data
-   class DataReductionOperatorMPIGridCell : public DataReductionOperator{
-      public:
-         typedef std::function<std::vector<Real>(const SpatialCell* cell)> ReductionLambda;
-      private:
-         ReductionLambda lambda;
-         int numFloats;
-         std::string variableName;
+   class DataReductionOperatorMPIGridCell : public DataReductionOperator {
+   public:
+      typedef std::function<std::vector<Real>(const SpatialCell* cell)> ReductionLambda;
 
-      public:
-         DataReductionOperatorMPIGridCell(const std::string& name, int numFloats, ReductionLambda l): DataReductionOperator(),lambda(l),numFloats(numFloats),variableName(name) {};
-         virtual std::string getName() const;
-         virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
-         virtual bool setSpatialCell(const SpatialCell* cell) {return true;};
-         virtual bool reduceData(const SpatialCell* cell,char* buffer);
-         virtual bool reduceDiagnostic(const SpatialCell* cell,Real * result) {return false;};
+   private:
+      ReductionLambda lambda;
+      int numFloats;
+      std::string variableName;
+
+   public:
+      DataReductionOperatorMPIGridCell(const std::string& name, int numFloats, ReductionLambda l) : DataReductionOperator(), lambda(l), numFloats(numFloats), variableName(name) {};
+      virtual std::string getName() const;
+      virtual bool getDataVectorInfo(std::string& dataType, unsigned int& dataSize, unsigned int& vectorSize) const;
+      virtual bool setSpatialCell(const SpatialCell* cell) { return true; };
+      virtual bool reduceData(const SpatialCell* cell, char* buffer);
+      virtual bool reduceDiagnostic(const SpatialCell* cell, Real* result) { return false; };
    };
 
-   class DataReductionOperatorCellParams: public DataReductionOperator {
+   class DataReductionOperatorCellParams : public DataReductionOperator {
    public:
-      DataReductionOperatorCellParams(const std::string& name,const unsigned int parameterIndex,const unsigned int vectorSize);
+      DataReductionOperatorCellParams(const std::string& name, const unsigned int parameterIndex, const unsigned int vectorSize);
       virtual ~DataReductionOperatorCellParams();
 
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual bool getDataVectorInfo(std::string& dataType, unsigned int& dataSize, unsigned int& vectorSize) const;
       virtual std::string getName() const;
-      virtual bool reduceData(const SpatialCell* cell,char* buffer);
-      virtual bool reduceDiagnostic(const SpatialCell* cell,Real * result);
+      virtual bool reduceData(const SpatialCell* cell, char* buffer);
+      virtual bool reduceDiagnostic(const SpatialCell* cell, Real* result);
       virtual bool setSpatialCell(const SpatialCell* cell);
 
    protected:
       uint _parameterIndex;
       uint vectorSize;
       std::string variableName;
-      const Real *data;
+      const Real* data;
    };
 
-   class DataReductionOperatorDerivatives: public DataReductionOperatorCellParams {
+   class DataReductionOperatorDerivatives : public DataReductionOperatorCellParams {
    public:
-      DataReductionOperatorDerivatives(const std::string& name,const unsigned int parameterIndex,const unsigned int vectorSize);
+      DataReductionOperatorDerivatives(const std::string& name, const unsigned int parameterIndex, const unsigned int vectorSize);
       virtual bool setSpatialCell(const SpatialCell* cell);
    };
 
-   class DataReductionOperatorBVOLDerivatives: public DataReductionOperatorCellParams {
+   class DataReductionOperatorBVOLDerivatives : public DataReductionOperatorCellParams {
    public:
-      DataReductionOperatorBVOLDerivatives(const std::string& name,const unsigned int parameterIndex,const unsigned int vectorSize);
+      DataReductionOperatorBVOLDerivatives(const std::string& name, const unsigned int parameterIndex, const unsigned int vectorSize);
       virtual bool setSpatialCell(const SpatialCell* cell);
    };
 
-   class MPIrank: public DataReductionOperator {
+   class MPIrank : public DataReductionOperator {
    public:
       MPIrank();
       virtual ~MPIrank();
 
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual bool getDataVectorInfo(std::string& dataType, unsigned int& dataSize, unsigned int& vectorSize) const;
       virtual std::string getName() const;
-      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool reduceData(const SpatialCell* cell, char* buffer);
       virtual bool setSpatialCell(const SpatialCell* cell);
 
    protected:
@@ -247,43 +240,43 @@ namespace DRO {
       int mpiRank;
    };
 
-   class BoundaryType: public DataReductionOperator {
+   class BoundaryType : public DataReductionOperator {
    public:
       BoundaryType();
       virtual ~BoundaryType();
 
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual bool getDataVectorInfo(std::string& dataType, unsigned int& dataSize, unsigned int& vectorSize) const;
       virtual std::string getName() const;
-      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool reduceData(const SpatialCell* cell, char* buffer);
       virtual bool setSpatialCell(const SpatialCell* cell);
 
    protected:
       int boundaryType;
    };
 
-   class BoundaryLayer: public DataReductionOperator {
+   class BoundaryLayer : public DataReductionOperator {
    public:
       BoundaryLayer();
       virtual ~BoundaryLayer();
 
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual bool getDataVectorInfo(std::string& dataType, unsigned int& dataSize, unsigned int& vectorSize) const;
       virtual std::string getName() const;
-      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool reduceData(const SpatialCell* cell, char* buffer);
       virtual bool setSpatialCell(const SpatialCell* cell);
 
    protected:
       int boundaryLayer;
    };
 
-   class Blocks: public DataReductionOperator {
+   class Blocks : public DataReductionOperator {
    public:
       Blocks(cuint popID);
       virtual ~Blocks();
 
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual bool getDataVectorInfo(std::string& dataType, unsigned int& dataSize, unsigned int& vectorSize) const;
       virtual std::string getName() const;
-      virtual bool reduceData(const SpatialCell* cell,char* buffer);
-      virtual bool reduceDiagnostic(const SpatialCell* cell,Real* buffer);
+      virtual bool reduceData(const SpatialCell* cell, char* buffer);
+      virtual bool reduceDiagnostic(const SpatialCell* cell, Real* buffer);
       virtual bool setSpatialCell(const SpatialCell* cell);
 
    protected:
@@ -292,43 +285,42 @@ namespace DRO {
       std::string popName;
    };
 
-   class VariableBVol: public DataReductionOperator {
+   class VariableBVol : public DataReductionOperator {
    public:
       VariableBVol();
       virtual ~VariableBVol();
 
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual bool getDataVectorInfo(std::string& dataType, unsigned int& dataSize, unsigned int& vectorSize) const;
       virtual std::string getName() const;
-      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool reduceData(const SpatialCell* cell, char* buffer);
       virtual bool setSpatialCell(const SpatialCell* cell);
 
    protected:
       Real B[3];
    };
 
-
-   class VariablePressureSolver: public DataReductionOperator {
+   class VariablePressureSolver : public DataReductionOperator {
    public:
       VariablePressureSolver();
       virtual ~VariablePressureSolver();
 
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual bool getDataVectorInfo(std::string& dataType, unsigned int& dataSize, unsigned int& vectorSize) const;
       virtual std::string getName() const;
-      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool reduceData(const SpatialCell* cell, char* buffer);
       virtual bool setSpatialCell(const SpatialCell* cell);
 
    protected:
       Real Pressure;
    };
 
-   class VariablePTensorDiagonal: public DataReductionOperator {
+   class VariablePTensorDiagonal : public DataReductionOperator {
    public:
       VariablePTensorDiagonal(cuint popID);
       virtual ~VariablePTensorDiagonal();
 
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual bool getDataVectorInfo(std::string& dataType, unsigned int& dataSize, unsigned int& vectorSize) const;
       virtual std::string getName() const;
-      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool reduceData(const SpatialCell* cell, char* buffer);
       virtual bool setSpatialCell(const SpatialCell* cell);
 
    protected:
@@ -338,14 +330,14 @@ namespace DRO {
       std::string popName;
    };
 
-   class VariablePTensorOffDiagonal: public DataReductionOperator {
+   class VariablePTensorOffDiagonal : public DataReductionOperator {
    public:
       VariablePTensorOffDiagonal(cuint popID);
       virtual ~VariablePTensorOffDiagonal();
 
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual bool getDataVectorInfo(std::string& dataType, unsigned int& dataSize, unsigned int& vectorSize) const;
       virtual std::string getName() const;
-      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool reduceData(const SpatialCell* cell, char* buffer);
       virtual bool setSpatialCell(const SpatialCell* cell);
 
    protected:
@@ -355,42 +347,40 @@ namespace DRO {
       std::string popName;
    };
 
-   class DiagnosticFluxB: public DataReductionOperator {
+   class DiagnosticFluxB : public DataReductionOperator {
    public:
       DiagnosticFluxB();
-      virtual  ~DiagnosticFluxB();
+      virtual ~DiagnosticFluxB();
 
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual bool getDataVectorInfo(std::string& dataType, unsigned int& dataSize, unsigned int& vectorSize) const;
       virtual std::string getName() const;
-      virtual bool reduceDiagnostic(const SpatialCell* cell,Real* result);
+      virtual bool reduceDiagnostic(const SpatialCell* cell, Real* result);
       virtual bool setSpatialCell(const SpatialCell* cell);
 
    protected:
-
    };
 
-   class DiagnosticFluxE: public DataReductionOperator {
+   class DiagnosticFluxE : public DataReductionOperator {
    public:
       DiagnosticFluxE();
-      virtual  ~DiagnosticFluxE();
+      virtual ~DiagnosticFluxE();
 
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual bool getDataVectorInfo(std::string& dataType, unsigned int& dataSize, unsigned int& vectorSize) const;
       virtual std::string getName() const;
-      virtual bool reduceDiagnostic(const SpatialCell* cell,Real* result);
+      virtual bool reduceDiagnostic(const SpatialCell* cell, Real* result);
       virtual bool setSpatialCell(const SpatialCell* cell);
 
    protected:
-
    };
 
-   class VariableRhoThermal: public DataReductionOperator {
+   class VariableRhoThermal : public DataReductionOperator {
    public:
       VariableRhoThermal(cuint popID);
       virtual ~VariableRhoThermal();
 
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual bool getDataVectorInfo(std::string& dataType, unsigned int& dataSize, unsigned int& vectorSize) const;
       virtual std::string getName() const;
-      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool reduceData(const SpatialCell* cell, char* buffer);
       virtual bool setSpatialCell(const SpatialCell* cell);
 
    protected:
@@ -400,14 +390,14 @@ namespace DRO {
       bool doSkip;
    };
 
-   class VariableRhoNonthermal: public DataReductionOperator {
+   class VariableRhoNonthermal : public DataReductionOperator {
    public:
       VariableRhoNonthermal(cuint popID);
       virtual ~VariableRhoNonthermal();
 
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual bool getDataVectorInfo(std::string& dataType, unsigned int& dataSize, unsigned int& vectorSize) const;
       virtual std::string getName() const;
-      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool reduceData(const SpatialCell* cell, char* buffer);
       virtual bool setSpatialCell(const SpatialCell* cell);
 
    protected:
@@ -417,14 +407,14 @@ namespace DRO {
       bool doSkip;
    };
 
-   class VariableVThermal: public DataReductionOperator {
+   class VariableVThermal : public DataReductionOperator {
    public:
       VariableVThermal(cuint popID);
       virtual ~VariableVThermal();
 
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual bool getDataVectorInfo(std::string& dataType, unsigned int& dataSize, unsigned int& vectorSize) const;
       virtual std::string getName() const;
-      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool reduceData(const SpatialCell* cell, char* buffer);
       virtual bool setSpatialCell(const SpatialCell* cell);
 
    protected:
@@ -434,14 +424,14 @@ namespace DRO {
       bool doSkip;
    };
 
-   class VariableVNonthermal: public DataReductionOperator {
+   class VariableVNonthermal : public DataReductionOperator {
    public:
       VariableVNonthermal(cuint popID);
       virtual ~VariableVNonthermal();
 
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual bool getDataVectorInfo(std::string& dataType, unsigned int& dataSize, unsigned int& vectorSize) const;
       virtual std::string getName() const;
-      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool reduceData(const SpatialCell* cell, char* buffer);
       virtual bool setSpatialCell(const SpatialCell* cell);
 
    protected:
@@ -451,14 +441,14 @@ namespace DRO {
       bool doSkip;
    };
 
-   class VariablePTensorThermalDiagonal: public DataReductionOperator {
+   class VariablePTensorThermalDiagonal : public DataReductionOperator {
    public:
       VariablePTensorThermalDiagonal(cuint popID);
       virtual ~VariablePTensorThermalDiagonal();
 
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual bool getDataVectorInfo(std::string& dataType, unsigned int& dataSize, unsigned int& vectorSize) const;
       virtual std::string getName() const;
-      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool reduceData(const SpatialCell* cell, char* buffer);
       virtual bool setSpatialCell(const SpatialCell* cell);
 
    protected:
@@ -469,14 +459,14 @@ namespace DRO {
       bool doSkip;
    };
 
-   class VariablePTensorNonthermalDiagonal: public DataReductionOperator {
+   class VariablePTensorNonthermalDiagonal : public DataReductionOperator {
    public:
       VariablePTensorNonthermalDiagonal(cuint popID);
       virtual ~VariablePTensorNonthermalDiagonal();
 
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual bool getDataVectorInfo(std::string& dataType, unsigned int& dataSize, unsigned int& vectorSize) const;
       virtual std::string getName() const;
-      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool reduceData(const SpatialCell* cell, char* buffer);
       virtual bool setSpatialCell(const SpatialCell* cell);
 
    protected:
@@ -487,14 +477,14 @@ namespace DRO {
       bool doSkip;
    };
 
-   class VariablePTensorThermalOffDiagonal: public DataReductionOperator {
+   class VariablePTensorThermalOffDiagonal : public DataReductionOperator {
    public:
       VariablePTensorThermalOffDiagonal(cuint popID);
       virtual ~VariablePTensorThermalOffDiagonal();
 
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual bool getDataVectorInfo(std::string& dataType, unsigned int& dataSize, unsigned int& vectorSize) const;
       virtual std::string getName() const;
-      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool reduceData(const SpatialCell* cell, char* buffer);
       virtual bool setSpatialCell(const SpatialCell* cell);
 
    protected:
@@ -505,14 +495,14 @@ namespace DRO {
       bool doSkip;
    };
 
-   class VariablePTensorNonthermalOffDiagonal: public DataReductionOperator {
+   class VariablePTensorNonthermalOffDiagonal : public DataReductionOperator {
    public:
       VariablePTensorNonthermalOffDiagonal(cuint popID);
       virtual ~VariablePTensorNonthermalOffDiagonal();
 
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual bool getDataVectorInfo(std::string& dataType, unsigned int& dataSize, unsigned int& vectorSize) const;
       virtual std::string getName() const;
-      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool reduceData(const SpatialCell* cell, char* buffer);
       virtual bool setSpatialCell(const SpatialCell* cell);
 
    protected:
@@ -523,15 +513,15 @@ namespace DRO {
       bool doSkip;
    };
 
-   class VariableEffectiveSparsityThreshold: public DataReductionOperator {
+   class VariableEffectiveSparsityThreshold : public DataReductionOperator {
    public:
       VariableEffectiveSparsityThreshold(cuint popID);
       virtual ~VariableEffectiveSparsityThreshold();
 
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual bool getDataVectorInfo(std::string& dataType, unsigned int& dataSize, unsigned int& vectorSize) const;
       virtual std::string getName() const;
-      virtual bool reduceData(const SpatialCell* cell,char* buffer);
-      virtual bool reduceDiagnostic(const spatial_cell::SpatialCell* cell,Real* result);
+      virtual bool reduceData(const SpatialCell* cell, char* buffer);
+      virtual bool reduceDiagnostic(const spatial_cell::SpatialCell* cell, Real* result);
       virtual bool setSpatialCell(const SpatialCell* cell);
 
    protected:
@@ -539,14 +529,14 @@ namespace DRO {
       std::string popName;
    };
 
-   class VariableEnergyDensity: public DataReductionOperatorHasParameters {
+   class VariableEnergyDensity : public DataReductionOperatorHasParameters {
    public:
       VariableEnergyDensity(cuint popID);
       virtual ~VariableEnergyDensity();
 
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual bool getDataVectorInfo(std::string& dataType, unsigned int& dataSize, unsigned int& vectorSize) const;
       virtual std::string getName() const;
-      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool reduceData(const SpatialCell* cell, char* buffer);
       virtual bool setSpatialCell(const SpatialCell* cell);
       virtual bool writeParameters(vlsv::Writer& vlsvWriter);
 
@@ -560,14 +550,14 @@ namespace DRO {
    };
 
    // Precipitation directional differential number flux (within loss cone)
-   class VariablePrecipitationDiffFlux: public DataReductionOperatorHasParameters {
+   class VariablePrecipitationDiffFlux : public DataReductionOperatorHasParameters {
    public:
       VariablePrecipitationDiffFlux(cuint popID);
       virtual ~VariablePrecipitationDiffFlux();
 
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual bool getDataVectorInfo(std::string& dataType, unsigned int& dataSize, unsigned int& vectorSize) const;
       virtual std::string getName() const;
-      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool reduceData(const SpatialCell* cell, char* buffer);
       virtual bool setSpatialCell(const SpatialCell* cell);
       virtual bool writeParameters(vlsv::Writer& vlsvWriter);
 
@@ -580,16 +570,15 @@ namespace DRO {
       std::vector<Real> channels, dataDiffFlux;
    };
 
-
    // V-space flatten into 1D mu-distribution
-   class VariableMuSpace: public DataReductionOperatorHasParameters {
+   class VariableMuSpace : public DataReductionOperatorHasParameters {
    public:
       VariableMuSpace(cuint popID);
       virtual ~VariableMuSpace();
 
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual bool getDataVectorInfo(std::string& dataType, unsigned int& dataSize, unsigned int& vectorSize) const;
       virtual std::string getName() const;
-      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool reduceData(const SpatialCell* cell, char* buffer);
       virtual bool setSpatialCell(const SpatialCell* cell);
       virtual bool writeParameters(vlsv::Writer& vlsvWriter);
 
@@ -598,18 +587,19 @@ namespace DRO {
       std::string popName;
       int nBins;
    };
-      
+
    // Precipitation directional differential number flux (along line)
-   class VariablePrecipitationLineDiffFlux: public DataReductionOperatorHasParameters {
+   class VariablePrecipitationLineDiffFlux : public DataReductionOperatorHasParameters {
    public:
       VariablePrecipitationLineDiffFlux(cuint popID);
       virtual ~VariablePrecipitationLineDiffFlux();
 
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual bool getDataVectorInfo(std::string& dataType, unsigned int& dataSize, unsigned int& vectorSize) const;
       virtual std::string getName() const;
-      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool reduceData(const SpatialCell* cell, char* buffer);
       virtual bool setSpatialCell(const SpatialCell* cell);
       virtual bool writeParameters(vlsv::Writer& vlsvWriter);
+
    protected:
       uint popID;
       std::string popName;
@@ -619,14 +609,14 @@ namespace DRO {
    };
 
    // Heat flux vector
-   class VariableHeatFluxVector: public DataReductionOperator {
+   class VariableHeatFluxVector : public DataReductionOperator {
    public:
       VariableHeatFluxVector(cuint popID);
       virtual ~VariableHeatFluxVector();
 
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual bool getDataVectorInfo(std::string& dataType, unsigned int& dataSize, unsigned int& vectorSize) const;
       virtual std::string getName() const;
-      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool reduceData(const SpatialCell* cell, char* buffer);
       virtual bool setSpatialCell(const SpatialCell* cell);
 
    protected:
@@ -663,4 +653,3 @@ namespace DRO {
 } // namespace DRO
 
 #endif
-

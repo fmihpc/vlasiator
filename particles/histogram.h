@@ -1,4 +1,3 @@
-#pragma once
 /*
  * This file is part of Vlasiator.
  * Copyright 2010-2016 Finnish Meteorological Institute
@@ -19,450 +18,172 @@
  * You should have received a copy of the GNU General Public License along
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Postprocessing particle trajectory analyzer
+ * for Vlasiator
+ *
  */
+#include "../readparameters.h"
+#include "boundaries.h"
+#include "distribution.h"
+#include "field.h"
+#include "particleparameters.h"
+#include "particles.h"
+#include "physconst.h"
+#include "readfields.h"
+#include "scenario.h"
+#include <iostream>
 #include <mpi.h>
+#include <random>
 #include <string.h>
-#include <stdio.h>
-#include <math.h>
-#include <Eigen/Dense>
-#define Vec3d Eigen::Vector3d
-#define Vec2d Eigen::Vector2d
 
+#define cross_product(av, bv) (av).cross(bv)
+#define dot_product(av,bv) (av).dot(bv)
+#define vector_length(v) (v).norm()
+#define normalize_vector(v) (v).normalized()
 
-#define ERROR(format, ...) fprintf (stderr, "E: " format, ##__VA_ARGS__)
+int main(int argc, char** argv) {
 
-// Histograms of 1D data
-class Histogram1D
-{
-   public:
-      Histogram1D(size_t n) : num_bins(n) {
-         bins = new double[num_bins];
-         memset(bins, 0, sizeof(double)*num_bins);
+   MPI_Init(&argc, &argv);
+
+   /* Parse commandline and config*/
+   Readparameters parameters(argc, argv);
+   ParticleParameters::addParameters();
+   parameters.parse(false); // Parse parameters and don't require run_config
+   if (!ParticleParameters::getParameters()) {
+      std::cerr << "Parsing parameters failed, aborting." << std::endl;
+      std::cerr << "Did you add a --run_config=file.cfg parameter?" << std::endl;
+      return 1;
+   }
+
+   /* Read starting fields from specified input file */
+   std::string filename_pattern = ParticleParameters::input_filename_pattern;
+   char filename_buffer[256];
+
+   int input_file_counter = floor(ParticleParameters::start_time / ParticleParameters::input_dt);
+   Field E[2], B[2], V;
+   std::cerr << "Loading first file with index " << ParticleParameters::start_time / ParticleParameters::input_dt << std::endl;
+   snprintf(filename_buffer, 256, filename_pattern.c_str(), input_file_counter - 1);
+   E[0].dimension[0] = E[1].dimension[0] = B[0].dimension[0] = B[1].dimension[0] = V.dimension[0] = ParticleParameters::boundary_behaviour_x;
+   E[0].dimension[1] = E[1].dimension[1] = B[0].dimension[1] = B[1].dimension[1] = V.dimension[1] = ParticleParameters::boundary_behaviour_y;
+   E[0].dimension[2] = E[1].dimension[2] = B[0].dimension[2] = B[1].dimension[2] = V.dimension[2] = ParticleParameters::boundary_behaviour_z;
+   readfields(filename_buffer, E[1], B[1], V);
+   E[0] = E[1];
+   B[0] = B[1];
+
+   // Set boundary conditions based on sizes
+   if (B[0].dimension[0]->cells <= 1) {
+      delete ParticleParameters::boundary_behaviour_x;
+      ParticleParameters::boundary_behaviour_x = createBoundary<CompactSpatialDimension>(0);
+   }
+   if (B[0].dimension[1]->cells <= 1) {
+      delete ParticleParameters::boundary_behaviour_y;
+      ParticleParameters::boundary_behaviour_y = createBoundary<CompactSpatialDimension>(1);
+   }
+   if (B[0].dimension[2]->cells <= 1) {
+      delete ParticleParameters::boundary_behaviour_z;
+      ParticleParameters::boundary_behaviour_z = createBoundary<CompactSpatialDimension>(2);
+   }
+
+   // Make sure updated boundary conditions are also correctly known to the fields
+   E[0].dimension[0] = E[1].dimension[0] = B[0].dimension[0] = B[1].dimension[0] = V.dimension[0] = ParticleParameters::boundary_behaviour_x;
+   E[0].dimension[1] = E[1].dimension[1] = B[0].dimension[1] = B[1].dimension[1] = V.dimension[1] = ParticleParameters::boundary_behaviour_y;
+   E[0].dimension[2] = E[1].dimension[2] = B[0].dimension[2] = B[1].dimension[2] = V.dimension[2] = ParticleParameters::boundary_behaviour_z;
+
+   ParticleParameters::boundary_behaviour_x->setExtent(B[0].dimension[0]->min, B[0].dimension[0]->max, B[0].dimension[0]->cells);
+   ParticleParameters::boundary_behaviour_y->setExtent(B[0].dimension[1]->min, B[0].dimension[1]->max, B[0].dimension[1]->cells);
+   ParticleParameters::boundary_behaviour_z->setExtent(B[0].dimension[2]->min, B[0].dimension[2]->max, B[0].dimension[2]->cells);
+
+   /* Init particles */
+   double dt = ParticleParameters::dt;
+   double maxtime = ParticleParameters::end_time - ParticleParameters::start_time;
+   int maxsteps = maxtime / dt;
+
+   Scenario* scenario = createScenario(ParticleParameters::mode);
+   ParticleContainer particles = scenario->initialParticles(E[0], B[0], V);
+
+   std::cerr << "Pushing " << particles.size() << " particles for " << maxsteps << " steps..." << std::endl;
+   std::cerr << "[                                                                        ]\x0d[";
+
+   /* Push them around */
+   for (int step = 0; step < maxsteps; step++) {
+
+      bool newfile;
+      /* Load newer fields, if neccessary */
+      if (step >= 0) {
+         newfile = readNextTimestep(filename_pattern, ParticleParameters::start_time + step * dt, 1, E[0], E[1], B[0], B[1], V, scenario->needV, input_file_counter);
+      } else {
+         newfile = readNextTimestep(filename_pattern, ParticleParameters::start_time + step * dt, -1, E[1], E[0], B[1], B[0], V, scenario->needV, input_file_counter);
       }
-      ~Histogram1D() {
-         delete[] bins;
+
+      Interpolated_Field cur_E(E[0], E[1], ParticleParameters::start_time + step * dt);
+      Interpolated_Field cur_B(B[0], B[1], ParticleParameters::start_time + step * dt);
+
+      // If a new timestep has been opened, add a new bunch of particles
+      if (newfile) {
+         scenario->newTimestep(input_file_counter, step, step * dt, particles, cur_E, cur_B, V);
       }
 
-      /* Using MPI_Reduce, sum up all CPUs. */
-      void mpi_reduce() {
-         double* targetbins = new double[num_bins];
-         if(!targetbins) {
-            ERROR("allocation failed while mpi-reducing histogram.\n");
-            return;
+      scenario->beforePush(particles, cur_E, cur_B, V);
+
+#pragma omp parallel for
+      for (unsigned int i = 0; i < particles.size(); i++) {
+
+         if (!isfinite(vector_length(particles[i].x))) {
+            // Skip disabled particles.
+            continue;
          }
 
-         MPI_Allreduce(bins,targetbins,num_bins,MPI_DOUBLE,MPI_SUM, MPI_COMM_WORLD);
+         /* Get E- and B-Field at their position */
+         Vec3d Eval, Bval;
 
+         Eval = cur_E(particles[i].x);
+         Bval = cur_B(particles[i].x);
 
-         /* Throw away the old bins. */
-         delete[] bins;
-         bins = targetbins;
-      }
-
-      void save(const char* filename) const;
-      void load(const char* filename);
-      virtual void saveAscii(const char* filename) const;
-      virtual void addValue(double value) = 0;
-
-      // Access bins
-      double operator()(int x) {
-         return bins[x];
-      }
-
-   protected:
-      size_t num_bins;
-      double* bins;
-
-};
-
-class LinearHistogram1D : public Histogram1D
-{
-   public:
-      LinearHistogram1D(size_t n, double _low, double _high) :
-         Histogram1D(n), low(_low), high(_high) {};
-
-      virtual void addValue(double value) {
-         value -= low;
-         value /= high - low;
-
-         int histogram_bin = value * num_bins;
-
-         if(histogram_bin < 0) {
-            histogram_bin = 0;
-         } else if (histogram_bin + 1 >= (ssize_t)num_bins) {
-            histogram_bin = num_bins - 1;
-         }
-         bins[histogram_bin]++;
-      }
-
-      virtual void saveAscii(const char* filename) const;
-
-   private:
-      /* Low and high bound of the histogram */
-      double low, high;
-
-};
-
-class LogHistogram1D : public Histogram1D
-{
-   public:
-      LogHistogram1D(size_t n, double _low, double _high) :
-         Histogram1D(n), low(_low), high(_high) {};
-
-      virtual void addValue(double value) {
-         value /= low;
-         value = log(value);
-         value /= log(high / low);
-
-         int histogram_bin = value * num_bins;
-
-         if(histogram_bin < 0) {
-            histogram_bin = 0;
-         } else if (histogram_bin + 1 >= (ssize_t)num_bins) {
-            histogram_bin = num_bins - 1;
-         }
-         bins[histogram_bin]++;
-      }
-
-   private:
-      // low and high bound of the histogram
-      double low, high;
-};
-
-
-// Histograms of 2D data
-class Histogram2D
-{
-   public:
-      Histogram2D(size_t n[2]) {
-         num_bins[0] = n[0];
-         num_bins[1] = n[1];
-
-         bins = new double[num_bins[0] * num_bins[1]];
-         memset(bins, 0, sizeof(double) * num_bins[0] * num_bins[1]);
-      }
-      ~Histogram2D() {
-         delete[] bins;
-      }
-
-      // Using MPI_Reduce, sum up all CPUs.
-      void mpi_reduce() {
-         double* targetbins = new double[num_bins[0] * num_bins[1]];
-         if(!targetbins) {
-            ERROR("allocation failed while mpi-reducing histogram.\n");
-            return;
+         if (dt < 0) {
+            // If propagating backwards in time, flip B-field pseudovector
+            Bval *= -1;
          }
 
-         MPI_Allreduce(bins,targetbins, num_bins[0] * num_bins[1], MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-
-         /* Throw away the old bins. */
-         delete[] bins;
-         bins = targetbins;
+         /* Push them around */
+         particles[i].push(Bval, Eval, dt);
       }
 
-      void save(const char* filename) const;
-      void load(const char* filename);
-      virtual void addValue(Vec2d value, double weight=1.) = 0;
+      // Remove all particles that have left the simulation box after this step
+      // (unfortunately, this can not be done in parallel, so it better be fast!)
+      for (auto i = particles.begin(); i != particles.end();) {
 
-      // Access bins
-      double operator()(int x, int y) {
-         return bins[x + num_bins[0] * y];
+         // Boundaries are allowed to mangle the particles here.
+         // If they return false, particles are deleted.
+         bool do_erase = false;
+         if (!ParticleParameters::boundary_behaviour_x->handleParticle(*i)) {
+            do_erase = true;
+         }
+         if (!ParticleParameters::boundary_behaviour_y->handleParticle(*i)) {
+            do_erase = true;
+         }
+         if (!ParticleParameters::boundary_behaviour_z->handleParticle(*i)) {
+            do_erase = true;
+         }
+         if (do_erase) {
+            particles.erase(i);
+         } else {
+            i++;
+         }
       }
 
-   protected:
-      size_t num_bins[2];
-      double* bins;
-};
+      scenario->afterPush(step, step * dt, particles, cur_E, cur_B, V);
 
-class LinearHistogram2D : public Histogram2D
-{
-
-   public:
-      LinearHistogram2D(size_t n[2], Vec2d _low, Vec2d _high) :
-         Histogram2D(n),
-         low(_low), high(_high) {};
-      LinearHistogram2D(size_t nx, size_t ny, Vec2d _low, Vec2d _high) :
-         Histogram2D(&nx),
-         low(_low), high(_high) {};
-
-      virtual void addValue(Vec2d value, double weight=1.) {
-         value -= low;
-         value = value.cwiseQuotient(high - low);
-
-         int histogram_bin[2];
-         histogram_bin[0] = value[0] * num_bins[0];
-         histogram_bin[1] = value[1] * num_bins[1];
-
-         for(int i = 0; i < 2; i++) {
-            if(histogram_bin[i] < 0) {
-               histogram_bin[i] = 0;
-            } else if (histogram_bin[i] + 1 >= (ssize_t)num_bins[i]) {
-               histogram_bin[i] = num_bins[i] - 1;
-            }
-         }
-         bins[histogram_bin[0] + num_bins[0] * histogram_bin[1]] += weight;
+      /* Draw progress bar */
+      if ((step % (maxsteps / 71)) == 0) {
+         std::cerr << "=";
       }
+   }
 
-      void addValueLinearInterpolate(Vec2d value, double weight=1.) {
+   scenario->finalize(particles, E[1], B[1], V);
 
-         value -= low;
-         value = value.cwiseQuotient(high - low);
+   std::cerr << std::endl;
 
-         double v[2];
-         v[0] = value[0] * num_bins[0];
-         v[1] = value[1] * num_bins[1];
-
-         // Interpolation parameter
-         double a[2];
-         a[0] = v[0] - floor(v[0]);
-         a[1] = v[1] - floor(v[1]);
-
-         // Ensure we are within bounds.
-         if(v[0] < 0) {
-            v[0] = 0;
-            a[0] = 0;
-         }
-         if(v[1] < 0) {
-            v[1] = 0;
-            a[1] = 0;
-         }
-
-         if(v[0] >= num_bins[0]-1) {
-            v[0] = num_bins[0]-2;
-            a[0] = 1;
-         }
-         if(v[1] >= num_bins[1]-1) {
-            v[1] = num_bins[1]-2;
-            a[1] = 1;
-         }
-
-         // Assign.
-         int histogram_bin[2];
-         histogram_bin[0] = floor(v[0]);
-         histogram_bin[1] = floor(v[1]);
-
-         bins[histogram_bin[0] + num_bins[0] * histogram_bin[1]] += weight * (1. - a[0]) * (1. - a[1]);
-         bins[histogram_bin[0] + num_bins[0] * (histogram_bin[1] + 1)] += weight * (1. - a[0]) * a[1];
-         bins[histogram_bin[0] + 1 + num_bins[0] * histogram_bin[1]] += weight * a[0] * (1. - a[1]);
-         bins[histogram_bin[0] + 1 + num_bins[0] * (histogram_bin[1] + 1)] += weight * a[0] * a[1];
-      }
-
-      // Bin-wise arithmetic on histograms
-      void operator += (LinearHistogram2D& other);
-      void operator -= (LinearHistogram2D& other);
-
-      // Write and read a ASCII metadata file containing BOV data.
-      void writeBovAscii(const char* filename, int index, const char* datafilename);
-
-   private:
-      // Low and high bound of the histogram
-      Vec2d low, high;
-
-};
-
-// Histogram with one linear and one logarithmic axis
-class LinLogHistogram2D : public Histogram2D
-{
-   public:
-      LinLogHistogram2D(size_t n[2], Vec2d _low, Vec2d _high) :
-         Histogram2D(n),
-         low(_low), high(_high) {};
-
-      virtual void addValue(Vec2d value, double weight=1.) {
-         double v[2];
-         v[0] -= low[0];
-         v[0] /= high[0] - low[0];
-         v[1] /= low[1];
-         v[1] = log(v[1]);
-         v[1] /= log(high[1] / low[1]);
-
-         int histogram_bin[2];
-         histogram_bin[0] = v[0] * num_bins[0];
-         histogram_bin[1] = v[1] * num_bins[1];
-
-         for(int i = 0; i < 2; i++) {
-            if(histogram_bin[i] < 0) {
-               histogram_bin[i] = 0;
-            } else if (histogram_bin[i] + 1 >= (ssize_t)num_bins[i]) {
-               histogram_bin[i] = num_bins[i] - 1;
-            }
-         }
-         bins[histogram_bin[0] + num_bins[0] * histogram_bin[1]] += weight;
-      }
-
-      void addValueLinearInterpolate(Vec2d value, double weight=1.) {
-
-         double v[2];
-         v[0] = value[0] - low[0];
-         v[0] /= high[0] - low[0];
-         v[1] = value[1] / low[1];
-         v[1] = log(v[1]) / log(high[1] / low[1]);
-
-         v[0] *= num_bins[0];
-         v[1] *= num_bins[1];
-
-         // Interpolation parameter
-         double a[2];
-         a[0] = value[0] - floor(value[0]);
-         a[1] = value[1] - floor(value[1]);
-
-         // Ensure we are within bounds.
-         if(v[0] < 0) {
-            v[0] = 0;
-            a[0] = 0;
-         }
-         if(v[1] < 0) {
-            v[1] = 0;
-            a[1] = 0;
-         }
-
-         if(v[0] >= num_bins[0] - 1) {
-            v[0] = num_bins[0] - 2;
-            a[0] = 1;
-         }
-         if(v[1] >= num_bins[1] - 1) {
-            v[1] = num_bins[1] - 2;
-            a[1] = 1;
-         }
-
-         // Assign.
-         int histogram_bin[2];
-         histogram_bin[0] = floor(v[0]);
-         histogram_bin[1] = floor(v[1]);
-
-         bins[histogram_bin[0] + num_bins[0] * histogram_bin[1]] += weight * (1. - a[0]) * (1. - a[1]);
-         bins[histogram_bin[0] + num_bins[0] * (histogram_bin[1] + 1)] += weight * (1. - a[0]) * a[1];
-         bins[histogram_bin[0] + 1 + num_bins[0] * histogram_bin[1]] += weight * a[0] * (1. - a[1]);
-         bins[histogram_bin[0] + 1 + num_bins[0] * (histogram_bin[1] + 1)] += weight * a[0] * a[1];
-      }
-
-   private:
-      // Low and high bound of the histogram
-      Vec2d low, high;
-};
-
-class LogHistogram2D : public Histogram2D
-{
-   private:
-      // Low and high bound of the histogram
-      Vec2d low, high;
-
-      LogHistogram2D(size_t n[2], Vec2d _low, Vec2d _high) :
-         Histogram2D(n),
-         low(_low), high(_high) {};
-
-      virtual void addValue(Vec2d value, double weight=1.) {
-         value = value.cwiseQuotient(low);
-
-         double v[2];
-         v[0] = log(value[0]) / log(high[0] / low[0]);
-         v[1] = log(value[1]) / log(high[1] / low[1]);
-
-         int histogram_bin[2];
-         histogram_bin[0] = v[0] * num_bins[0];
-         histogram_bin[1] = v[1] * num_bins[1];
-
-         for(int i = 0; i < 2; i++) {
-            if(histogram_bin[i] < 0) {
-               histogram_bin[i] = 0;
-            } else if (histogram_bin[i] + 1 >= (ssize_t)num_bins[i]) {
-               histogram_bin[i] = num_bins[i] - 1;
-            }
-         }
-         bins[histogram_bin[0] + num_bins[0] * histogram_bin[1]] += weight;
-      }
-
-      /* Bin-wise arithmetic on histograms */
-      void operator += (LogHistogram2D& other);
-      void operator -= (LogHistogram2D& other);
-};
-
-// Histograms of 3D data
-class Histogram3D
-{
-   public:
-      Histogram3D(size_t n[3]) {
-         num_bins[0] = n[0];
-         num_bins[1] = n[1];
-         num_bins[2] = n[2];
-
-         bins = new float[num_bins[0] * num_bins[1] * num_bins[2]];
-         memset(bins, 0, sizeof(float) * num_bins[0] * num_bins[1] * num_bins[2]);
-      }
-      ~Histogram3D() {
-         delete[] bins;
-      }
-
-      // Using MPI_Reduce, sum up all CPUs.
-      void mpi_reduce() {
-         float* targetbins = new float[num_bins[0] * num_bins[1] * num_bins[2]];
-         if(!targetbins) {
-            ERROR("allocation failed while mpi-reducing histogram.\n");
-            return;
-         }
-
-         MPI_Allreduce(bins, targetbins, num_bins[0] * num_bins[1] * num_bins[2], MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
-
-         /* Throw away the old bins. */
-         delete[] bins;
-         bins = targetbins;
-      }
-
-      void save(const char* filename) const;
-      void load(const char* filename);
-      virtual void addValue(Vec3d value) = 0;
-
-      // Access bins
-      double operator()(int x, int y, int z) {
-         return bins[x + num_bins[0] * y + num_bins[0] * num_bins[1] * z];
-      }
-
-   protected:
-      size_t num_bins[3];
-      float* bins;
-};
-
-class LinearHistogram3D : public Histogram3D
-{
-   public:
-      LinearHistogram3D(size_t n[3], Vec3d _low, Vec3d _high) :
-         Histogram3D(n),
-         low(_low), high(_high) {};
-
-      virtual void addValue(Vec3d value) {
-         value -= low;
-         value = value.cwiseQuotient(high - low);
-
-         int histogram_bin[3];
-         histogram_bin[0] = value[0] * num_bins[0];
-         histogram_bin[1] = value[1] * num_bins[1];
-         histogram_bin[2] = value[2] * num_bins[2];
-
-         for(int i = 0; i < 3; i++) {
-            if(histogram_bin[i] < 0) {
-               histogram_bin[i] = 0;
-            } else if (histogram_bin[i] + 1 >= (ssize_t)num_bins[i]) {
-               histogram_bin[i] = num_bins[i] - 1;
-            }
-         }
-         bins[histogram_bin[0] + num_bins[0] * histogram_bin[1] + num_bins[0] * num_bins[1] * histogram_bin[2]]++;
-      }
-
-      Vec3d coords_for_cell(Vec3d cell) {
-         Vec3d nx(num_bins[0], num_bins[1], num_bins[2]);
-         return low + cell.cwiseQuotient(nx).cwiseProduct(high - low);
-      }
-
-      // Bin-wise arithmetic on histograms
-      void operator += (LinearHistogram3D& other);
-      void operator -= (LinearHistogram3D& other);
-
-      // Write and read a ASCII metadata file containing BOV data.
-      void writeBovAscii(const char* filename, int index, const char* datafilename);
-      void readBov(const char* filename);
-
-   private:
-      // Low and high bound of the histogram
-      Vec3d low, high;
-
-};
+   MPI_Finalize();
+   return 0;
+}
