@@ -1,6 +1,6 @@
 /*
  * This file is part of Vlasiator.
- * Copyright 2010-2021 Finnish Meteorological Institute
+ * Copyright 2010-2024 Finnish Meteorological Institute and University of Helsinki
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
  * at http://www.physics.helsinki.fi/vlasiator/
@@ -20,483 +20,625 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef GPU_FACE_ESTIMATES_H
-#define GPU_FACE_ESTIMATES_H
+#include "gpu_moments.h"
+#include "../arch/gpu_base.hpp"
+#include "../fieldsolver/fs_common.h" // divideIfNonZero(
+#include "../object_wrapper.h"
+#include "vlasovmover.h"
+#include <phiprof.hpp>
 
-#include "gpu_slope_limiters.hpp"
-#include "../definitions.h"
+using namespace std;
 
-#include "../arch/arch_device_api.h"
+// Buffers for moment calculations
+vmesh::VelocityBlockContainer** dev_VBC;
+vmesh::VelocityBlockContainer** host_VBC;
+Real* dev_moments1;
+Real* dev_moments2;
+Real* host_moments1;
+Real* host_moments2;
+uint gpu_allocated_moments = 0;
 
-/*enum for setting face value and derivative estimates. Implicit ones
-  not supported in the solver, so they are now not listed*/
-enum face_estimate_order {h4, h5, h6, h8};
 /**
-   Define functions for Realf instead of Vec
+    GPU kernel for calculating first velocity moments from provided
+    velocity block containers
 */
+__global__ void __launch_bounds__(WID3) first_moments_kernel(const vmesh::VelocityBlockContainer* __restrict__ const* dev_VBC, Real* dev_moments1, const uint nAllCells) {
+   const uint celli = blockIdx.x;        // used for pointer to cell
+   const uint stride = gridDim.y;        // used for faster looping over contents
+   const uint strideOffset = blockIdx.y; // used for faster looping over contents
+   const uint ti = threadIdx.z * blockDim.x * blockDim.y + threadIdx.y * blockDim.x + threadIdx.x;
+   const int i = threadIdx.x;
+   const int j = threadIdx.y;
+   const int k = threadIdx.z;
+   const int blockSize = blockDim.x * blockDim.y * blockDim.z;
 
+   extern __shared__ Real smom[];
+   Real myMom[nMom1] = {0};
 
-/*!
-  Compute left face value based on the explicit h8 estimate.
-
-  Right face value can be obtained as left face value of cell i + 1.
-
-  \param values Array with volume averages. It is assumed a large enough stencil is defined around i.
-  \param i Index of cell in values for which the left face is computed
-  \param fv_l Face value on left face of cell i
-*/
-ARCH_DEV inline void compute_h8_left_face_value(const Realf* const values, int k, Realf &fv_l, const int index, const int stride)
-{
-   fv_l = (Realf)(1.0/840.0) * (
-      (Realf)(- 3.0) * values[(k-4)*stride+index]
-      + (Realf)(29.0) * values[(k-3)*stride+index]
-      - (Realf)(139.0) * values[(k-2)*stride+index]
-      + (Realf)(533.0) * values[(k-1)*stride+index]
-      + (Realf)(533.0) * values[k*stride+index]
-      - (Realf)(139.0) * values[(k+1)*stride+index]
-      + (Realf)(29.0) * values[(k+2)*stride+index]
-      - (Realf)(3.0) * values[(k+3)*stride+index]);
-}
-ARCH_DEV inline void compute_h7_left_face_derivative(const Realf* const values, int k, Realf &fd_l, const int index, const int stride){
-   fd_l = (Realf)(1.0/5040.0) * (
-      (Realf)(9.0) * values[(k-4)*stride+index]
-      - (Realf)(119.0) * values[(k-3)*stride+index]
-      + (Realf)(889.0) * values[(k-2)*stride+index]
-      - (Realf)(7175.0) * values[(k-1)*stride+index]
-      + (Realf)(7175.0) * values[k*stride+index]
-      - (Realf)(889.0) * values[(k+1)*stride+index]
-      + (Realf)(119.0) * values[(k+2)*stride+index]
-      - (Realf)(9.0) * values[(k+3)*stride+index]);
-}
-ARCH_DEV inline void compute_h6_left_face_value(const Realf* const values, int k, Realf &fv_l, const int index, const int stride)
-{
-   //compute left value
-   fv_l = (Realf)(1.0/60.0) * (values[(k-3)*stride+index]
-                      - (Realf)(8.0) * values[(k-2)*stride+index]
-                      + (Realf)(37.0) * values[(k-1)*stride+index]
-                      + (Realf)(37.0) * values[k*stride+index]
-                      - (Realf)(8.0) * values[(k+1)*stride+index]
-                      + values[(k+2)*stride+index]);
-}
-ARCH_DEV inline void compute_h5_left_face_derivative(const Realf* const values, int k, Realf &fd_l, const int index, const int stride)
-{
-   fd_l = (Realf)(1.0/180.0) * ((Realf)(245.0) * (values[k*stride+index] - values[(k-1)*stride+index])
-                       - (Realf)(25.0) * (values[(k+1)*stride+index] - values[(k-2)*stride+index])
-                       + (Realf)(2.0) * (values[(k+2)*stride+index] - values[(k-3)*stride+index]));
-}
-ARCH_DEV inline void compute_h5_face_values(const Realf* const values, int k, Realf &fv_l, Realf &fv_r, const int index, const int stride)
-{
-   //compute left values
-   fv_l = (Realf)(1.0/60.0) * ((Realf)(- 3.0) * values[(k-2)*stride+index]
-                      + (Realf)(27.0) * values[(k-1)*stride+index]
-                      + (Realf)(47.0) * values[k*stride+index]
-                      - (Realf)(13.0) * values[(k+1)*stride+index]
-                      + (Realf)(2.0) * values[(k+2)*stride+index]);
-   fv_r = (Realf)(1.0/60.0) * ( (Realf)(2.0) * values[(k-2)*stride+index]
-                       - (Realf)(13.0) * values[(k-1)*stride+index]
-                       + (Realf)(47.0) * values[k*stride+index]
-                       + (Realf)(27.0) * values[(k+1)*stride+index]
-                       - (Realf)(3.0) * values[(k+2)*stride+index]);
-}
-ARCH_DEV inline void compute_h4_left_face_derivative(const Realf* const values, int k, Realf &fd_l, const int index, const int stride)
-{
-   fd_l = (Realf)(1.0/12.0) * ((Realf)(15.0) * (values[k*stride+index] - values[(k-1)*stride+index]) - (values[(k+1)*stride+index] - values[(k-2)*stride+index]));
-}
-ARCH_DEV inline void compute_h4_left_face_value(const Realf* const values, int k, Realf &fv_l, const int index, const int stride)
-{
-   //compute left value
-   fv_l = (Realf)(1.0/12.0) * ( (Realf)(- 1.0) * values[(k-2)*stride+index]
-                       + (Realf)(7.0) * values[(k-1)*stride+index]
-                       + (Realf)(7.0) * values[k*stride+index]
-                       - (Realf)(1.0) * values[(k+1)*stride+index]);
-}
-
-// h is bin width (dv or dx)
-// u is values
-ARCH_DEV inline void compute_h4_left_face_value_nonuniform(const Realf* const h, const Realf* const u, int k, Realf &fv_l, const int index, const int stride) {
-   const Realf hkMinus2 = h[k-2];
-   const Realf hkMinus1 = h[k-1];
-   const Realf hk = h[k];
-   const Realf hkPlus1 = h[k+1];
-   fv_l = (
-      (Realf)(1.0) / ( hkMinus2 + hkMinus1 + hk + hkPlus1 )
-      * ( ( hkMinus2 + hkMinus1 ) * ( hk + hkPlus1 ) / ( hkMinus1 + hk )
-          * ( u[(k-1)*stride+index] * hk + u[k*stride+index] * hkMinus1 )
-          * ((Realf)(1.0) / ( hkMinus2 + hkMinus1 + hk ) + (Realf)(1.0) / ( hkMinus1 + hk + hkPlus1 ) )
-          + ( hk * ( hk + hkPlus1 ) ) / ( ( hkMinus2 + hkMinus1 + hk ) * (hkMinus2 + hkMinus1 ) )
-          * ( u[(k-1)*stride+index] * (hkMinus2 + (Realf)(2.0) * hkMinus1 ) - ( u[(k-2)*stride+index] * hkMinus1 ) )
-          + hkMinus1 * ( hkMinus2 + hkMinus1 ) / ( ( hkMinus1 + hk + hkPlus1 ) * ( hk + hkPlus1 ) )
-          * ( u[k*stride+index] * ( (Realf)(2.0) * hk + hkPlus1 ) - u[(k+1)*stride+index] * hk ) )
-      );
-}
-
-
-
-
-ARCH_DEV inline void compute_h3_left_face_derivative(const Realf* const values, int k, Realf &fv_l, const int index, const int stride)
-{
-   /*compute left value*/
-   fv_l = (Realf)(1.0/12.0) * ((Realf)(15.0) * (values[k*stride+index] - values[(k-1)*stride+index]) - (values[(k+1)*stride+index] - values[(k-2)*stride+index]));
-}
-
-ARCH_DEV inline void compute_filtered_face_values_derivatives(const Realf* const values, int k, face_estimate_order order, Realf &fv_l, Realf &fv_r, Realf &fd_l, Realf &fd_r, const Realf threshold, const int index,  const int stride)
-{
-   switch(order)
-   {
-      case h4:
-         compute_h4_left_face_value(values, k, fv_l, index, stride);
-         compute_h4_left_face_value(values, k + 1, fv_r, index, stride);
-         compute_h3_left_face_derivative(values, k, fd_l, index, stride);
-         compute_h3_left_face_derivative(values, k + 1, fd_r, index, stride);
-         break;
-      case h5:
-         compute_h5_face_values(values, k, fv_l, fv_r, index, stride);
-         compute_h4_left_face_derivative(values, k, fd_l, index, stride);
-         compute_h4_left_face_derivative(values, k + 1, fd_r, index, stride);
-         break;
-      default:
-      case h6:
-         compute_h6_left_face_value(values, k, fv_l, index, stride);
-         compute_h6_left_face_value(values, k + 1, fv_r, index, stride);
-         compute_h5_left_face_derivative(values, k, fd_l, index, stride);
-         compute_h5_left_face_derivative(values, k + 1, fd_r, index, stride);
-         break;
-      case h8:
-         compute_h8_left_face_value(values, k, fv_l, index, stride);
-         compute_h8_left_face_value(values, k + 1, fv_r, index, stride);
-         compute_h7_left_face_derivative(values, k, fd_l, index, stride);
-         compute_h7_left_face_derivative(values, k + 1, fd_r, index, stride);
-         break;
+   const vmesh::VelocityBlockContainer* __restrict__ blockContainer = dev_VBC[celli];
+   if (blockContainer == 0) {
+      return;
    }
-   Realf slope_abs,slope_sign;
-   // scale values closer to 1 for more accurate slope limiter calculation
-   const Realf scale = (Realf)(1.0)/threshold;
-   slope_limiter(values[(k-1)*stride+index]*scale, values[k*stride+index]*scale, values[(k+1)*stride+index]*scale, slope_abs, slope_sign);
-   slope_abs = slope_abs*threshold;
-   //check for extrema, flatten if it is
-   bool is_extrema = (slope_abs == (Realf)(0.0));
-   if (is_extrema) {
-      fv_r = (is_extrema) ? values[k*stride+index] : fv_r;
-      fv_l = (is_extrema) ? values[k*stride+index] : fv_l;
-      fd_l = (is_extrema) ? (Realf)(0.0) : fd_l;
-      fd_r = (is_extrema) ? (Realf)(0.0) : fd_r;
+   const uint thisVBCSize = blockContainer->size();
+   if (thisVBCSize == 0) {
+      return;
    }
-   //Fix left face if needed; boundary value is not bounded or slope is not consistent
-   bool filter = (values[(k-1)*stride+index] - fv_l) * (fv_l - values[k*stride+index]) < (Realf)(0.0) || slope_sign * fd_l < (Realf)(0.0);
-   if (filter) {
-      //Go to linear (PLM) estimates if not ok (this is always ok!)
-      fv_l= (filter) ? values[k*stride+index] - slope_sign * (Realf)(0.5) * slope_abs : fv_l;
-      fd_l= (filter) ? slope_sign * slope_abs : fd_l;
-   }
-   //Fix right face if needed; boundary value is not bounded or slope is not consistent
-   filter = (values[(k+1)*stride+index] - fv_r) * (fv_r - values[k*stride+index]) < (Realf)(0.0) || slope_sign * fd_r < (Realf)(0.0);
-   if (filter) {
-      //Go to linear (PLM) estimates if not ok (this is always ok!)
-      fv_r= (filter) ? values[k*stride+index] + slope_sign * (Realf)(0.5) * slope_abs : fv_r;
-      fd_r= (filter) ? slope_sign * slope_abs : fd_r;
-   }
-}
+   const Realf* __restrict__ data = blockContainer->getData();
+   const Real* __restrict__ blockParameters = blockContainer->getParameters();
+   const Real HALF = 0.5;
+   const int indx = ti % WID3;
+   for (uint blockIndex = strideOffset; blockIndex < thisVBCSize; blockIndex += stride) {
+      const Realf cellValue = data[blockIndex * WID3 + indx];
+      const Real* __restrict__ blockParamsZ = &blockParameters[blockIndex * BlockParams::N_VELOCITY_BLOCK_PARAMS];
 
-/*Filters in section 2.6.1 of white et al. to be used for PPM
-  1) Checks for extrema and flattens them
-  2) Makes face values bounded
-  3) Makes sure face slopes are consistent with PLM slope
-*/
-ARCH_DEV inline void compute_filtered_face_values(const Realf* const values, int k, face_estimate_order order, Realf &fv_l, Realf &fv_r, const Realf threshold, const int index, const int stride)
-{
-   switch(order)
-   {
-      case h4:
-         compute_h4_left_face_value(values, k, fv_l, index, stride);
-         compute_h4_left_face_value(values, k + 1, fv_r, index, stride);
-         break;
-      case h5:
-         compute_h5_face_values(values, k, fv_l, fv_r, index, stride);
-         break;
-      default:
-      case h6:
-         compute_h6_left_face_value(values, k, fv_l, index, stride);
-         compute_h6_left_face_value(values, k + 1, fv_r, index, stride);
-         break;
-      case h8:
-         compute_h8_left_face_value(values, k, fv_l, index, stride);
-         compute_h8_left_face_value(values, k + 1, fv_r, index, stride);
-         break;
-   }
-   Realf slope_abs, slope_sign;
-   // scale values closer to 1 for more accurate slope limiter calculation
-   const Realf scale = (Realf)(1.0)/threshold;
-   slope_limiter(values[(k-1)*stride+index]*scale, values[k*stride+index]*scale, values[(k+1)*stride+index]*scale, slope_abs, slope_sign);
-   slope_abs = slope_abs*threshold;
+      const Real paramX = blockParamsZ[BlockParams::DVX];
+      const Real paramY = blockParamsZ[BlockParams::DVY];
+      const Real paramZ = blockParamsZ[BlockParams::DVZ];
 
-   //check for extrema, flatten if it is
-   bool is_extrema = (slope_abs == (Realf)(0.0));
-   if (is_extrema) {
-      fv_r = (is_extrema) ? values[k*stride+index] : fv_r;
-      fv_l = (is_extrema) ? values[k*stride+index] : fv_l;
-   }
-   //Fix left face if needed; boundary value is not bounded
-   bool filter = (values[(k-1)*stride+index] - fv_l) * (fv_l - values[k*stride+index]) < (Realf)(0.0) ;
-   if (filter) {
-      //Go to linear (PLM) estimates if not ok (this is always ok!)
-      fv_l = (filter) ? values[k*stride+index] - slope_sign * (Realf)(0.5) * slope_abs : fv_l;
-   }
-   //Fix  face if needed; boundary value is not bounded
-   filter = (values[(k+1)*stride+index] - fv_r) * (fv_r - values[k*stride+index]) < (Realf)(0.0);
-   if (filter) {
-      //Go to linear (PLM) estimates if not ok (this is always ok!)
-      fv_r = (filter) ? values[k*stride+index] + slope_sign * (Realf)(0.5) * slope_abs : fv_r;
-   }
-}
+      const Real DV3 = paramX * paramY * paramZ;
 
-ARCH_DEV inline void compute_filtered_face_values_nonuniform(const Realf * const dv, const Realf* const values,int k, face_estimate_order order, Realf &fv_l, Realf &fv_r, const Realf threshold, const int index, const int stride){
-   switch(order){
-      case h4:
-         compute_h4_left_face_value_nonuniform(dv, values, k, fv_l, index, stride);
-         compute_h4_left_face_value_nonuniform(dv, values, k + 1, fv_r, index, stride);
-         break;
-         // case h5:
-         //   compute_h5_face_values(dv, values, k, fv_l, fv_r, index, stride);
-         //   break;
-         // case h6:
-         //   compute_h6_left_face_value(dv, values, k, fv_l, index, stride);
-         //   compute_h6_left_face_value(dv, values, k + 1, fv_r, index, stride);
-         //   break;
-         // case h8:
-         //   compute_h8_left_face_value(dv, values, k, fv_l, index, stride);
-         //   compute_h8_left_face_value(dv, values, k + 1, fv_r, index, stride);
-         //   break;
-      default:
-         printf("Order %d has not been implemented (yet)\n",order);
-         break;
-   }
-   Realf slope_abs,slope_sign;
-   if (threshold>(Realf)(0.0)) {
-      // scale values closer to 1 for more accurate slope limiter calculation
-      const Realf scale = (Realf)(1.0)/threshold;
-      slope_limiter(values[(k-1)*stride+index]*scale, values[k*stride+index]*scale, values[(k+1)*stride+index]*scale, slope_abs, slope_sign);
-      slope_abs = slope_abs*threshold;
-   } else {
-      slope_limiter(values[(k-1)*stride+index], values[k*stride+index], values[(k+1)*stride+index], slope_abs, slope_sign);
+      const Real VX = blockParamsZ[BlockParams::VXCRD] + (i + HALF) * paramX;
+      const Real VY = blockParamsZ[BlockParams::VYCRD] + (j + HALF) * paramY;
+      const Real VZ = blockParamsZ[BlockParams::VZCRD] + (k + HALF) * paramZ;
+
+      const Real f = (Real)cellValue;
+      const Real fDV3 = f * DV3;
+
+      myMom[0] += fDV3;
+      myMom[1] += fDV3 * VX;
+      myMom[2] += fDV3 * VY;
+      myMom[3] += fDV3 * VZ;
    }
 
-   //check for extrema, flatten if it is
-   if (slope_abs == (Realf)(0.0)) {
-      fv_r = values[k*stride+index];
-      fv_l = values[k*stride+index];
-   }
+   const int indexInsideWarp = ti % GPUTHREADS;
+   const int warpIndex = ti / GPUTHREADS;
 
-   //Fix left face if needed; boundary value is not bounded
-   if ((values[(k-1)*stride+index] - fv_l) * (fv_l - values[k*stride+index]) < (Realf)(0.0)) {
-      //Go to linear (PLM) estimates if not ok (this is always ok!)
-      fv_l=values[k*stride+index] - slope_sign * (Realf)(0.5) * slope_abs;
-   }
-
-   //Fix  face if needed; boundary value is not bounded
-   if ((values[(k+1)*stride+index] - fv_r) * (fv_r - values[k*stride+index]) < (Realf)(0.0)) {
-      //Go to linear (PLM) estimates if not ok (this is always ok!)
-      fv_r=values[k*stride+index] + slope_sign * (Realf)(0.5) * slope_abs;
-   }
-}
-
-ARCH_DEV inline Realf get_D2aLim(const Realf* h, const Realf* values, int k, const Realf C, Realf & fv, const int index, const int stride) {
-
-   // Colella & Sekora, eq. 18
-   Realf invh2 = 1.0 / (h[k] * h[k]);
-   Realf d2a =  invh2 * 3.0 * (values[k*stride    +index] - 2.0 * fv                         + values[(k+1)*stride+index]);
-   Realf d2aL = invh2       * (values[(k-1)*stride+index] - 2.0 * values[k*stride    +index] + values[(k+1)*stride+index]);
-   Realf d2aR = invh2       * (values[k*stride    +index] - 2.0 * values[(k+1)*stride+index] + values[(k+2)*stride+index]);
-   Realf d2aLim;
-   if ( (d2a * d2aL >= 0) && (d2a * d2aR >= 0) && (d2a != 0) ) {
-      d2aLim = d2a / abs(d2a) * min(abs(d2a),min(C*abs(d2aL),C*abs(d2aR)));
-   } else {
-      d2aLim = 0.0;
-   }
-   return d2aLim;
-}
-
-ARCH_DEV inline void constrain_face_values(const Realf* h, const Realf* values,int k,Realf & fv_l, Realf & fv_r, const int index, const int stride) {
-
-   const Realf C = 1.25;
-   Realf invh2 = 1.0 / (h[k] * h[k]);
-
-   // Colella & Sekora, eq 19
-   Realf p_face = 0.5 * (values[k*stride+index] + values[(k+1)*stride+index])
-      - h[k] * h[k] / 3.0 * get_D2aLim(h,values,k  ,C,fv_r, index, stride);
-   Realf m_face = 0.5 * (values[(k-1)*stride+index] + values[k*stride+index])
-      - h[k-1] * h[k-1] / 3.0 * get_D2aLim(h,values,k-1,C,fv_l, index, stride);
-
-   // Colella & Sekora, eq 21
-   Realf d2a = -2.0 * invh2 * 6.0 * (values[k*stride+index] - 3.0 * (m_face + p_face)); // a6,j from eq. 7
-   Realf d2aC = invh2 * (values[(k-1)*stride+index] - 2.0 * values[k*stride+index] + values[(k+1)*stride+index]);
-   // Note: Corrected the index of 2nd term in d2aL to k - 1.
-   //       In the paper it is k but that is almost certainly an error.
-   Realf d2aL = invh2 * (values[(k-2)*stride+index] - 2.0 * values[(k-1)*stride+index] + values[k*stride+index]);
-   Realf d2aR = invh2 * (values[k*stride+index] - 2.0 * values[(k+1)*stride+index] + values[(k+2)*stride+index]);
-   Realf d2aLim;
-
-   // Colella & Sekora, eq 22
-   if ( (d2a * d2aL >= 0) && (d2a * d2aR >= 0) &&
-        (d2a * d2aC >= 0) && (d2a != 0) ) {
-
-      d2aLim = d2a / abs(d2a) * min(C * abs(d2aL), min(C * abs(d2aR), min(C * abs(d2aC), abs(d2a))));
-   } else {
-      d2aLim = 0.0;
-      if (d2a == 0.0) {
-         // Set a non-zero value for the denominator in eq. 23.
-         // According to the paper the ratio d2aLim/d2a should be 0
-         d2a = 1.0;
+   // Now reduce one-by-one for cell
+   for (int offset = GPUTHREADS / 2; offset > 0; offset /= 2) {
+      for (uint imom = 0; imom < nMom1; imom++) {
+         myMom[imom] += gpuKernelShflDown(myMom[imom], offset);
       }
    }
 
-   // Colella & Sekora, eq 23
-   fv_r = values[k*stride+index] + (p_face - values[k*stride+index]) * d2aLim / d2a;
-   fv_l = values[k*stride+index] + (m_face - values[k*stride+index]) * d2aLim / d2a;
-
-}
-
-ARCH_DEV inline void compute_filtered_face_values_nonuniform_conserving(const Realf * const dv, const Realf* const values,int k, face_estimate_order order, Realf &fv_l, Realf &fv_r, const Realf threshold, const int index, const int stride){
-   switch(order){
-      case h4:
-         compute_h4_left_face_value_nonuniform(dv, values, k, fv_l, index, stride);
-         compute_h4_left_face_value_nonuniform(dv, values, k + 1, fv_r, index, stride);
-         break;
-         // case h5:
-         //   compute_h5_face_values(dv, values, k, fv_l, fv_r, index, stride);
-         //   break;
-         // case h6:
-         //   compute_h6_left_face_value(dv, values, k, fv_l, index, stride);
-         //   compute_h6_left_face_value(dv, values, k + 1, fv_r, index, stride);
-         //   break;
-         // case h8:
-         //   compute_h8_left_face_value(dv, values, k, fv_l, index, stride);
-         //   compute_h8_left_face_value(dv, values, k + 1, fv_r, index, stride);
-         //   break;
-      default:
-         printf("Order %d has not been implemented (yet)\n",order);
-         break;
+   if (indexInsideWarp == 0) {
+      for (uint imom = 0; imom < nMom1; imom++) {
+         smom[warpIndex * nMom1 + imom] = myMom[imom];
+      }
    }
 
-   Realf slope_abs,slope_sign;
-   if (threshold>0) {
-      // scale values closer to 1 for more accurate slope limiter calculation
-      const Realf scale = 1./threshold;
-      slope_limiter(values[(k-1)*stride+index]*scale, values[k*stride+index]*scale, values[(k+1)*stride+index]*scale, slope_abs, slope_sign);
-      slope_abs = slope_abs*threshold;
-   } else {
-      slope_limiter(values[(k-1)*stride+index], values[k*stride+index], values[(k+1)*stride+index], slope_abs, slope_sign);
-   }
+   __syncthreads();
 
-   //check for extrema
-   //bool is_extrema = (slope_abs == 0.0);
-   // bool filter_l = (values[(k-1)*stride+index] - fv_l) * (fv_l - values[k*stride+index]) < 0 ;
-   // bool filter_r = (values[(k+1)*stride+index] - fv_r) * (fv_r - values[k*stride+index]) < 0;
-   //  if(horizontal_or(is_extrema) || horizontal_or(filter_l) || horizontal_or(filter_r)) {
-   // Colella & Sekora, eq. 20
-   if (((fv_r - values[k*stride+index]) * (values[k*stride+index] - fv_l) <= 0.0)
-       && ((values[(k-1)*stride+index] - values[k*stride+index]) * (values[k*stride+index] - values[(k+1)*stride+index]) <= 0.0)) {
-      constrain_face_values(dv, values, k, fv_l, fv_r, index, stride);
+   const int warpsPerBlock = blockSize / GPUTHREADS;
 
-      //    fv_r = select(is_extrema, values[k], fv_r);
-      //    fv_l = select(is_extrema, values[k], fv_l);
-   } else {
-
-      //Fix left face if needed; boundary value is not bounded
-      bool filter = (values[(k-1)*stride+index] - fv_l) * (fv_l - values[k*stride+index]) < 0 ;
-      if (filter) {
-         //Go to linear (PLM) estimates if not ok (this is always ok!)
-         fv_l=values[k*stride+index] - slope_sign * 0.5 * slope_abs;
+   for (uint imom = warpIndex; imom < nMom1; imom += warpsPerBlock) {
+      myMom[imom] = (indexInsideWarp < warpsPerBlock) ? smom[indexInsideWarp * nMom1 + imom] : 0.0;
+      for (int offset = (warpsPerBlock) / 2; offset > 0; offset /= 2) {
+         myMom[imom] += gpuKernelShflDown(myMom[imom], offset);
       }
 
-      //Fix  face if needed; boundary value is not bounded
-      filter = (values[(k+1)*stride+index] - fv_r) * (fv_r - values[k*stride+index]) < 0;
-      if (filter) {
-         //Go to linear (PLM) estimates if not ok (this is always ok!)
-         fv_r=values[k*stride+index] + slope_sign * 0.5 * slope_abs;
+      if (indexInsideWarp == 0) {
+         if (gridDim.y == 1) {
+            dev_moments1[celli * nMom1 + imom] = myMom[imom];
+         } else {
+            atomicAdd(&dev_moments1[celli * nMom1 + imom], myMom[imom]);
+         }
       }
    }
 }
 
+/**
+    GPU kernel for calculating second velocity moments from provided
+    velocity block containers
+*/
+__global__ void __launch_bounds__(WID3)
+    second_moments_kernel(const vmesh::VelocityBlockContainer* __restrict__ const* dev_VBC, const Real* __restrict__ dev_moments1, Real* dev_moments2, const uint nAllCells) {
+   const uint celli = blockIdx.x;        // used for pointer to cell
+   const uint stride = gridDim.y;        // used for faster looping over contents
+   const uint strideOffset = blockIdx.y; // used for faster looping over contents
+   const uint ti = threadIdx.z * blockDim.x * blockDim.y + threadIdx.y * blockDim.x + threadIdx.x;
+   const int i = threadIdx.x;
+   const int j = threadIdx.y;
+   const int k = threadIdx.z;
+   const int blockSize = blockDim.x * blockDim.y * blockDim.z;
 
+   Real myMom[nMom2] = {0};
+   extern __shared__ Real smom[];
 
+   const vmesh::VelocityBlockContainer* __restrict__ blockContainer = dev_VBC[celli];
+   if (blockContainer == 0) {
+      return;
+   }
+   const uint thisVBCSize = blockContainer->size();
+   if (thisVBCSize == 0) {
+      return;
+   }
+   const Realf* __restrict__ data = blockContainer->getData();
+   const Real* __restrict__ blockParameters = blockContainer->getParameters();
 
+   const Real HALF = 0.5;
+   const int indx = ti % WID3;
 
+   // index +0 is number density
+   const Real averageVX = dev_moments1[celli * nMom1 + 1];
+   const Real averageVY = dev_moments1[celli * nMom1 + 2];
+   const Real averageVZ = dev_moments1[celli * nMom1 + 3];
 
+   for (uint blockIndex = strideOffset; blockIndex < thisVBCSize; blockIndex += stride) {
+      const Realf cellValue = data[blockIndex * WID3 + indx];
+      const Real* __restrict__ blockParamsZ = &blockParameters[blockIndex * BlockParams::N_VELOCITY_BLOCK_PARAMS];
 
+      const Real paramX = blockParamsZ[BlockParams::DVX];
+      const Real paramY = blockParamsZ[BlockParams::DVY];
+      const Real paramZ = blockParamsZ[BlockParams::DVZ];
 
+      const Real DV3 = paramX * paramY * paramZ;
 
+      const Real VX = blockParamsZ[BlockParams::VXCRD] + (i + HALF) * paramX;
+      const Real VY = blockParamsZ[BlockParams::VYCRD] + (j + HALF) * paramY;
+      const Real VZ = blockParamsZ[BlockParams::VZCRD] + (k + HALF) * paramZ;
 
+      const Real VXDifference = VX - averageVX;
+      const Real VYDifference = VY - averageVY;
+      const Real VZDifference = VZ - averageVZ;
 
+      const Real f = (Real)cellValue;
+      const Real fDV3 = f * DV3;
 
+      const Real fDV3VXDifference = fDV3 * VXDifference;
+      const Real fDV3VYDifference = fDV3 * VYDifference;
 
+      myMom[0] += fDV3VXDifference * VXDifference;
+      myMom[1] += fDV3VYDifference * VYDifference;
+      myMom[2] += fDV3 * VZDifference * VZDifference;
+      myMom[3] += fDV3VYDifference * VZDifference;
+      myMom[4] += fDV3VXDifference * VZDifference;
+      myMom[5] += fDV3VXDifference * VYDifference;
+   }
 
+   const int indexInsideWarp = ti % GPUTHREADS;
+   const int warpIndex = ti / GPUTHREADS;
 
+   // Now reduce one-by-one for cell
+   for (int offset = GPUTHREADS / 2; offset > 0; offset /= 2) {
+      for (uint imom = 0; imom < nMom2; imom++) {
+         myMom[imom] += gpuKernelShflDown(myMom[imom], offset);
+      }
+   }
 
+   if (indexInsideWarp == 0) {
+      for (uint imom = 0; imom < nMom2; imom++) {
+         smom[warpIndex * nMom2 + imom] = myMom[imom];
+      }
+   }
 
-// ARCH_DEV inline void compute_h4_left_face_value_nonuniform(const Realf * const h, const Realf * const u, int k, Realf &fv_l, const int index, const int stride) {
-//    fv_l = (
-//       1.0 / ( h[k - 2] + h[k - 1] + h[k] + h[k + 1] )
-//       * ( ( h[k - 2] + h[k - 1] ) * ( h[k] + h[k + 1] ) / ( h[k - 1] + h[k] )
-//           * ( u[(k-1)*stride+index] * h[k] + u[k*stride+index] * h[k - 1] )
-//           * (1.0 / ( h[k - 2] + h[k - 1] + h[k] ) + 1.0 / ( h[k - 1] + h[k] + h[k + 1] ) )
-//           + ( h[k] * ( h[k] + h[k + 1] ) ) / ( ( h[k - 2] + h[k - 1] + h[k] ) * (h[k - 2] + h[k - 1] ) )
-//           * ( u[(k-1)*stride+index] * (h[k - 2] + 2.0 * h[k - 1] ) - ( u[(k-2)*stride+index] * h[k - 1] ) )
-//           + h[k - 1] * ( h[k - 2] + h[k - 1] ) / ( ( h[k - 1] + h[k] + h[k + 1] ) * ( h[k] + h[k + 1] ) )
-//           * ( u[k*stride+index] * ( 2.0 * h[k] + h[k + 1] ) - u[(k+1)*stride+index] * h[k] ) )
-//       );
-// }
+   __syncthreads();
 
+   const int warpsPerBlock = blockSize / GPUTHREADS;
 
-// ARCH_DEV inline void compute_filtered_face_values_nonuniform(const Realf * const dv, const Realf * const values,int k, face_estimate_order order, Realf &fv_l, Realf &fv_r, const Realf threshold, const int index, const int stride){
-//    switch(order){
-//       case h4:
-//          compute_h4_left_face_value_nonuniform(dv, values, k, fv_l, index, stride);
-//          compute_h4_left_face_value_nonuniform(dv, values, k + 1, fv_r, index, stride);
-//          break;
-//          // case h5:
-//          //   compute_h5_face_values(dv, values, k, fv_l, fv_r, index, stride);
-//          //   break;
-//          // case h6:
-//          //   compute_h6_left_face_value(dv, values, k, fv_l, index, stride);
-//          //   compute_h6_left_face_value(dv, values, k + 1, fv_r, index, stride);
-//          //   break;
-//          // case h8:
-//          //   compute_h8_left_face_value(dv, values, k, fv_l, index, stride);
-//          //   compute_h8_left_face_value(dv, values, k + 1, fv_r, index, stride);
-//          //   break;
-//       default:
-//          printf("Order %d has not been implemented (yet)\n",order);
-//          break;
-//    }
-//    Realf slope_abs,slope_sign;
-//    if (threshold>0) {
-//       // scale values closer to 1 for more accurate slope limiter calculation
-//       const Realf scale = 1./threshold;
-//       slope_limiter(values[(k-1)*stride+index]*scale, values[k*stride+index]*scale, values[(k+1)*stride+index]*scale, slope_abs, slope_sign);
-//       slope_abs = slope_abs*threshold;
-//    } else {
-//       slope_limiter(values[(k-1)*stride+index], values[k*stride+index], values[(k+1)*stride+index], slope_abs, slope_sign);
-//    }
+   for (uint imom = warpIndex; imom < nMom2; imom += warpsPerBlock) {
+      myMom[imom] = (indexInsideWarp < warpsPerBlock) ? smom[indexInsideWarp * nMom2 + imom] : 0.0;
+      for (int offset = (warpsPerBlock) / 2; offset > 0; offset /= 2) {
+         myMom[imom] += gpuKernelShflDown(myMom[imom], offset);
+      }
 
-//    //check for extrema, flatten if it is
-//    if (slope_abs == 0) {
-//       fv_r = values[k*stride+index];
-//       fv_l = values[k*stride+index];
-//    }
+      if (indexInsideWarp == 0) {
+         if (gridDim.y == 1) {
+            dev_moments2[celli * nMom2 + imom] = myMom[imom];
+         } else {
+            atomicAdd(&dev_moments2[celli * nMom2 + imom], myMom[imom]);
+         }
+      }
+   }
+}
 
-//    //Fix left face if needed; boundary value is not bounded
-//    if ((values[(k-1)*stride+index] - fv_l) * (fv_l - values[k*stride+index]) < 0) {
-//       //Go to linear (PLM) estimates if not ok (this is always ok!)
-//       fv_l=values[k*stride+index] - slope_sign * 0.5 * slope_abs;
-//    }
+/**
+    Note: there is no single-cell GPU-only version of moments calculations,
+    (calculateCellMoments) as that task is achieved through the
+    ARCH-interface with no performance loss.
+*/
 
-//    //Fix  face if needed; boundary value is not bounded
-//    if ((values[(k+1)*stride+index] - fv_r) * (fv_r - values[k*stride+index]) < 0) {
-//       //Go to linear (PLM) estimates if not ok (this is always ok!)
-//       fv_r=values[k*stride+index] + slope_sign * 0.5 * slope_abs;
-//    }
-// }
+/** Calculate zeroth, first, and (possibly) second bulk velocity moments for the
+ * given spatial cell. The calculated moments include
+ * contributions from all existing particle populations. The calculated moments
+ * are stored to SpatialCell::parameters in _R variables.
+ * @param mpiGrid Parallel grid library.
+ * @param cells Vector containing the spatial cells to be calculated.
+ * @param computeSecond If true, second velocity moments are calculated.
+ * @param initialCompute If true, force re-calculation of outflow L1 sysboundary cell moments.
+  (otherwise skipped as their VDF contents are not kept up to date)
+*/
+void gpu_calculateMoments_R(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const std::vector<CellID>& cells_in, const bool computeSecond, const bool initialCompute) {
 
+   phiprof::Timer computeMomentsTimer{"Compute _R moments"};
 
+   // Ensure unique cells
+   std::vector<CellID> cells = cells_in;
+   std::sort(cells.begin(), cells.end());
+   cells.erase(std::unique(cells.begin(), cells.end()), cells.end());
 
-#endif
+   const uint nAllCells = cells.size();
+   if (nAllCells == 0) {
+      return;
+   }
+   gpu_moments_allocate(nAllCells);
+   std::vector<vmesh::LocalID> maxVmeshSizes;
+
+   for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
+      // Gather VBCs
+      maxVmeshSizes.push_back(0);
+      #pragma omp parallel
+      {
+         vmesh::LocalID threadMaxVmeshSize = 0;
+         #pragma omp for schedule(static)
+         for (uint celli = 0; celli < nAllCells; celli++) {
+            SpatialCell* cell = mpiGrid[cells[celli]];
+            if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+               host_VBC[celli] = 0;
+               continue;
+            }
+            if (cell->sysBoundaryFlag == sysboundarytype::OUTFLOW && cell->sysBoundaryLayer != 1 && !initialCompute) {
+               // these should have been handled by the boundary code
+               host_VBC[celli] = 0;
+               continue;
+            }
+            host_VBC[celli] = cell->dev_get_velocity_blocks(popID); // GPU-side VBC
+            // Evaluate cached vmesh size
+            const vmesh::LocalID meshSize = cell->get_velocity_mesh(popID)->size();
+            threadMaxVmeshSize = meshSize > threadMaxVmeshSize ? meshSize : threadMaxVmeshSize;
+
+            // Clear old moments to zero value
+            if (popID == 0) {
+               cell->parameters[CellParams::RHOM_R] = 0.0;
+               cell->parameters[CellParams::VX_R] = 0.0;
+               cell->parameters[CellParams::VY_R] = 0.0;
+               cell->parameters[CellParams::VZ_R] = 0.0;
+               cell->parameters[CellParams::RHOQ_R] = 0.0;
+               cell->parameters[CellParams::P_11_R] = 0.0;
+               cell->parameters[CellParams::P_22_R] = 0.0;
+               cell->parameters[CellParams::P_33_R] = 0.0;
+               cell->parameters[CellParams::P_23_R] = 0.0;
+               cell->parameters[CellParams::P_13_R] = 0.0;
+               cell->parameters[CellParams::P_12_R] = 0.0;
+            }
+         }
+         #pragma omp critical
+         {
+            maxVmeshSizes.at(popID) = maxVmeshSizes.at(popID) > threadMaxVmeshSize ? maxVmeshSizes.at(popID) : threadMaxVmeshSize;
+         }
+      }
+      if (maxVmeshSizes.at(popID) == 0) {
+         continue;
+      }
+
+      vmesh::LocalID maxVmeshLaunch = (gpuMultiProcessorCount * min(threadsPerMP / WID3, blocksPerMP)) / nAllCells;
+      maxVmeshLaunch = maxVmeshLaunch < 1 ? 1 : maxVmeshLaunch;
+      // Send pointers, set initial data to zero
+      CHK_ERR(gpuMemcpy(dev_VBC, host_VBC, nAllCells * sizeof(vmesh::VelocityBlockContainer*), gpuMemcpyHostToDevice));
+      CHK_ERR(gpuMemset(dev_moments1, 0, nAllCells * nMom1 * sizeof(Real)));
+      // Launch kernel calculating this species' contribution to first velocity moments
+      dim3 blockSize(WID, WID, WID);
+      dim3 gridSize(nAllCells, maxVmeshLaunch, 1);
+      int sharedMemorySizeFirstMoments = nMom1 * (WID3 / GPUTHREADS) * sizeof(Real);
+      first_moments_kernel<<<gridSize, blockSize, sharedMemorySizeFirstMoments, 0>>>(dev_VBC, dev_moments1, nAllCells);
+      CHK_ERR(gpuPeekAtLastError());
+      CHK_ERR(gpuDeviceSynchronize());
+      CHK_ERR(gpuMemcpy(host_moments1, dev_moments1, nAllCells * nMom1 * sizeof(Real), gpuMemcpyDeviceToHost));
+
+      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+      const Real charge = getObjectWrapper().particleSpecies[popID].charge;
+      #pragma omp parallel for schedule(static)
+      for (uint celli = 0; celli < nAllCells; celli++) {
+         SpatialCell* cell = mpiGrid[cells[celli]];
+         if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+            continue;
+         }
+         if (cell->sysBoundaryFlag == sysboundarytype::OUTFLOW && cell->sysBoundaryLayer != 1 && !initialCompute) {
+            // these should have been handled by the boundary code
+            continue;
+         }
+
+         // Store species' contribution to bulk velocity moments
+         Population& pop = cell->get_population(popID);
+         pop.RHO_R = host_moments1[nMom1 * celli];
+         pop.V_R[0] = divideIfNonZero(host_moments1[nMom1 * celli + 1], host_moments1[nMom1 * celli]);
+         pop.V_R[1] = divideIfNonZero(host_moments1[nMom1 * celli + 2], host_moments1[nMom1 * celli]);
+         pop.V_R[2] = divideIfNonZero(host_moments1[nMom1 * celli + 3], host_moments1[nMom1 * celli]);
+
+         cell->parameters[CellParams::RHOM_R] += host_moments1[nMom1 * celli] * mass;
+         cell->parameters[CellParams::VX_R] += host_moments1[nMom1 * celli + 1] * mass;
+         cell->parameters[CellParams::VY_R] += host_moments1[nMom1 * celli + 2] * mass;
+         cell->parameters[CellParams::VZ_R] += host_moments1[nMom1 * celli + 3] * mass;
+         cell->parameters[CellParams::RHOQ_R] += host_moments1[nMom1 * celli] * charge;
+      } // for-loop over spatial cells
+   } // for-loop over particle species
+
+   #pragma omp parallel for schedule(static)
+   for (size_t celli = 0; celli < nAllCells; ++celli) {
+      SpatialCell* cell = mpiGrid[cells[celli]];
+      if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+         continue;
+      }
+      if (cell->sysBoundaryFlag == sysboundarytype::OUTFLOW && cell->sysBoundaryLayer != 1 && !initialCompute) {
+         // these should have been handled by the boundary code
+         continue;
+      }
+      cell->parameters[CellParams::VX_R] = divideIfNonZero(cell->parameters[CellParams::VX_R], cell->parameters[CellParams::RHOM_R]);
+      cell->parameters[CellParams::VY_R] = divideIfNonZero(cell->parameters[CellParams::VY_R], cell->parameters[CellParams::RHOM_R]);
+      cell->parameters[CellParams::VZ_R] = divideIfNonZero(cell->parameters[CellParams::VZ_R], cell->parameters[CellParams::RHOM_R]);
+
+      // copy the bulk flow frame back to device
+      // host_moments1[nMom1*celli + 0] = cell->parameters[CellParams::RHOM_R];
+      host_moments1[nMom1 * celli + 1] = cell->parameters[CellParams::VX_R];
+      host_moments1[nMom1 * celli + 2] = cell->parameters[CellParams::VY_R];
+      host_moments1[nMom1 * celli + 3] = cell->parameters[CellParams::VZ_R];
+   }
+
+   // Compute second moments only if requested.
+   if (computeSecond == false) {
+      return;
+   }
+
+   CHK_ERR(gpuMemcpy(dev_moments1, host_moments1, nAllCells * nMom1 * sizeof(Real), gpuMemcpyHostToDevice));
+   CHK_ERR(gpuMemset(dev_moments2, 0, nAllCells * nMom2 * sizeof(Real)));
+   for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
+      if (maxVmeshSizes.at(popID) == 0) {
+         continue;
+      }
+      // Launch kernel calculating this species' contribution to second velocity moments
+
+      vmesh::LocalID maxVmeshLaunch = (gpuMultiProcessorCount * min(threadsPerMP / WID3, blocksPerMP)) / nAllCells;
+      maxVmeshLaunch = maxVmeshLaunch < 1 ? 1 : maxVmeshLaunch;
+
+      dim3 blockSize(WID, WID, WID);
+      dim3 gridSize(nAllCells, maxVmeshLaunch, 1);
+      int sharedMemorySizeSecondMoments = nMom2 * (WID3 / GPUTHREADS) * sizeof(Real);
+      second_moments_kernel<<<gridSize, blockSize, sharedMemorySizeSecondMoments, 0>>>(dev_VBC, dev_moments1, dev_moments2, nAllCells);
+      CHK_ERR(gpuPeekAtLastError());
+      CHK_ERR(gpuDeviceSynchronize());
+      CHK_ERR(gpuMemcpy(host_moments2, dev_moments2, nAllCells * nMom2 * sizeof(Real), gpuMemcpyDeviceToHost));
+
+      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+      #pragma omp parallel for schedule(static)
+      for (uint celli = 0; celli < nAllCells; celli++) {
+         SpatialCell* cell = mpiGrid[cells[celli]];
+         if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+            continue;
+         }
+         if (cell->sysBoundaryFlag == sysboundarytype::OUTFLOW && cell->sysBoundaryLayer != 1 && !initialCompute) {
+            // these should have been handled by the boundary code
+            continue;
+         }
+
+         // Store species' contribution to bulk velocity moments
+         Population& pop = cell->get_population(popID);
+         for (size_t i = 0; i < nMom2; ++i) {
+            pop.P_R[i] = mass * host_moments2[nMom2 * celli + i];
+         }
+
+         cell->parameters[CellParams::P_11_R] += pop.P_R[0];
+         cell->parameters[CellParams::P_22_R] += pop.P_R[1];
+         cell->parameters[CellParams::P_33_R] += pop.P_R[2];
+         cell->parameters[CellParams::P_23_R] += pop.P_R[3];
+         cell->parameters[CellParams::P_13_R] += pop.P_R[4];
+         cell->parameters[CellParams::P_12_R] += pop.P_R[5];
+      } // for-loop over spatial cells
+   } // for-loop over particle species
+}
+
+/** Calculate zeroth, first, and (possibly) second bulk velocity moments for the
+ * given spatial cell. The calculated moments include
+ * contributions from all existing particle populations. The calculated moments
+ * are stored to SpatialCell::parameters in _V variables.
+ * @param mpiGrid Parallel grid library.
+ * @param cells Vector containing the spatial cells to be calculated.
+ * @param computeSecond If true, second velocity moments are calculated.
+ * @param initialCompute If true, force re-calculation of outflow L1 sysboundary cell moments.
+  (otherwise skipped as their VDF contents are not kept up to date)
+ */
+void gpu_calculateMoments_V(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const std::vector<CellID>& cells_in, const bool computeSecond, const bool initialCompute) {
+
+   phiprof::Timer computeMomentsTimer{"Compute _V moments"};
+
+   // Ensure unique cells
+   std::vector<CellID> cells = cells_in;
+   std::sort(cells.begin(), cells.end());
+   cells.erase(std::unique(cells.begin(), cells.end()), cells.end());
+
+   const uint nAllCells = cells.size();
+   if (nAllCells == 0) {
+      return;
+   }
+   gpu_moments_allocate(nAllCells);
+   std::vector<vmesh::LocalID> maxVmeshSizes;
+
+   for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
+      // Gather VBCs
+      maxVmeshSizes.push_back(0);
+      #pragma omp parallel
+      {
+         vmesh::LocalID threadMaxVmeshSize = 0;
+         #pragma omp for schedule(static)
+         for (uint celli = 0; celli < nAllCells; celli++) {
+            SpatialCell* cell = mpiGrid[cells[celli]];
+            if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+               host_VBC[celli] = 0;
+               continue;
+            }
+            if (cell->sysBoundaryFlag == sysboundarytype::OUTFLOW && cell->sysBoundaryLayer != 1 && !initialCompute) {
+               // these should have been handled by the boundary code
+               host_VBC[celli] = 0;
+               continue;
+            }
+            host_VBC[celli] = cell->dev_get_velocity_blocks(popID); // GPU-side VBC
+            // Evaluate cached vmesh size
+            const vmesh::LocalID meshSize = cell->get_velocity_mesh(popID)->size();
+            threadMaxVmeshSize = meshSize > threadMaxVmeshSize ? meshSize : threadMaxVmeshSize;
+
+            // Clear old moments to zero value
+            if (popID == 0) {
+               cell->parameters[CellParams::RHOM_V] = 0.0;
+               cell->parameters[CellParams::VX_V] = 0.0;
+               cell->parameters[CellParams::VY_V] = 0.0;
+               cell->parameters[CellParams::VZ_V] = 0.0;
+               cell->parameters[CellParams::RHOQ_V] = 0.0;
+               cell->parameters[CellParams::P_11_V] = 0.0;
+               cell->parameters[CellParams::P_22_V] = 0.0;
+               cell->parameters[CellParams::P_33_V] = 0.0;
+               cell->parameters[CellParams::P_23_V] = 0.0;
+               cell->parameters[CellParams::P_13_V] = 0.0;
+               cell->parameters[CellParams::P_12_V] = 0.0;
+            }
+         }
+#pragma omp critical
+         {
+            maxVmeshSizes.at(popID) = maxVmeshSizes.at(popID) > threadMaxVmeshSize ? maxVmeshSizes.at(popID) : threadMaxVmeshSize;
+         }
+      }
+      if (maxVmeshSizes.at(popID) == 0) {
+         continue;
+      }
+
+      vmesh::LocalID maxVmeshLaunch = (gpuMultiProcessorCount * min(threadsPerMP / WID3, blocksPerMP)) / nAllCells;
+      maxVmeshLaunch = maxVmeshLaunch < 1 ? 1 : maxVmeshLaunch;
+      // Send pointers, set initial data to zero
+      CHK_ERR(gpuMemcpy(dev_VBC, host_VBC, nAllCells * sizeof(vmesh::VelocityBlockContainer*), gpuMemcpyHostToDevice));
+      CHK_ERR(gpuMemset(dev_moments1, 0, nAllCells * nMom1 * sizeof(Real)));
+      // Launch kernel calculating this species' contribution to first velocity moments
+      dim3 blockSize(WID, WID, WID);
+      dim3 gridSize(nAllCells, maxVmeshLaunch, 1);
+      int sharedMemorySizeFirstMoments = nMom1 * (WID3 / GPUTHREADS) * sizeof(Real);
+      first_moments_kernel<<<gridSize, blockSize, sharedMemorySizeFirstMoments, 0>>>(dev_VBC, dev_moments1, nAllCells);
+      CHK_ERR(gpuPeekAtLastError());
+      CHK_ERR(gpuDeviceSynchronize());
+      CHK_ERR(gpuMemcpy(host_moments1, dev_moments1, nAllCells * nMom1 * sizeof(Real), gpuMemcpyDeviceToHost));
+
+      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+      const Real charge = getObjectWrapper().particleSpecies[popID].charge;
+      #pragma omp parallel for schedule(static)
+      for (uint celli = 0; celli < nAllCells; celli++) {
+         SpatialCell* cell = mpiGrid[cells[celli]];
+         if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+            continue;
+         }
+         if (cell->sysBoundaryFlag == sysboundarytype::OUTFLOW && cell->sysBoundaryLayer != 1 && !initialCompute) {
+            // these should have been handled by the boundary code
+            continue;
+         }
+
+         // Store species' contribution to bulk velocity moments
+         Population& pop = cell->get_population(popID);
+         pop.RHO_V = host_moments1[nMom1 * celli];
+         pop.V_V[0] = divideIfNonZero(host_moments1[nMom1 * celli + 1], host_moments1[nMom1 * celli]);
+         pop.V_V[1] = divideIfNonZero(host_moments1[nMom1 * celli + 2], host_moments1[nMom1 * celli]);
+         pop.V_V[2] = divideIfNonZero(host_moments1[nMom1 * celli + 3], host_moments1[nMom1 * celli]);
+
+         cell->parameters[CellParams::RHOM_V] += host_moments1[nMom1 * celli] * mass;
+         cell->parameters[CellParams::VX_V] += host_moments1[nMom1 * celli + 1] * mass;
+         cell->parameters[CellParams::VY_V] += host_moments1[nMom1 * celli + 2] * mass;
+         cell->parameters[CellParams::VZ_V] += host_moments1[nMom1 * celli + 3] * mass;
+         cell->parameters[CellParams::RHOQ_V] += host_moments1[nMom1 * celli] * charge;
+      } // for-loop over spatial cells
+   } // for-loop over particle species
+
+   #pragma omp parallel for schedule(static)
+   for (size_t celli = 0; celli < nAllCells; ++celli) {
+      SpatialCell* cell = mpiGrid[cells[celli]];
+      if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+         continue;
+      }
+      if (cell->sysBoundaryFlag == sysboundarytype::OUTFLOW && cell->sysBoundaryLayer != 1 && !initialCompute) {
+         // these should have been handled by the boundary code
+         continue;
+      }
+      cell->parameters[CellParams::VX_V] = divideIfNonZero(cell->parameters[CellParams::VX_V], cell->parameters[CellParams::RHOM_V]);
+      cell->parameters[CellParams::VY_V] = divideIfNonZero(cell->parameters[CellParams::VY_V], cell->parameters[CellParams::RHOM_V]);
+      cell->parameters[CellParams::VZ_V] = divideIfNonZero(cell->parameters[CellParams::VZ_V], cell->parameters[CellParams::RHOM_V]);
+
+      // copy the bulk flow frame back to device
+      // host_moments1[nMom1*celli + 0] = cell->parameters[CellParams::RHOM_V];
+      host_moments1[nMom1 * celli + 1] = cell->parameters[CellParams::VX_V];
+      host_moments1[nMom1 * celli + 2] = cell->parameters[CellParams::VY_V];
+      host_moments1[nMom1 * celli + 3] = cell->parameters[CellParams::VZ_V];
+   }
+
+   // Compute second moments only if requested.
+   if (computeSecond == false) {
+      return;
+   }
+
+   CHK_ERR(gpuMemcpy(dev_moments1, host_moments1, nAllCells * nMom1 * sizeof(Real), gpuMemcpyHostToDevice));
+   CHK_ERR(gpuMemset(dev_moments2, 0, nAllCells * nMom2 * sizeof(Real)));
+   for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
+      if (maxVmeshSizes.at(popID) == 0) {
+         continue;
+      }
+
+      vmesh::LocalID maxVmeshLaunch = (gpuMultiProcessorCount * min(threadsPerMP / WID3, blocksPerMP)) / nAllCells;
+      maxVmeshLaunch = maxVmeshLaunch < 1 ? 1 : maxVmeshLaunch;
+
+      dim3 blockSize(WID, WID, WID);
+      dim3 gridSize(nAllCells, maxVmeshLaunch, 1);
+      int sharedMemorySizeSecondMoments = nMom2 * (WID3 / GPUTHREADS) * sizeof(Real);
+      second_moments_kernel<<<gridSize, blockSize, sharedMemorySizeSecondMoments, 0>>>(dev_VBC, dev_moments1, dev_moments2, nAllCells);
+      CHK_ERR(gpuPeekAtLastError());
+      CHK_ERR(gpuDeviceSynchronize());
+      CHK_ERR(gpuMemcpy(host_moments2, dev_moments2, nAllCells * nMom2 * sizeof(Real), gpuMemcpyDeviceToHost));
+
+      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+      #pragma omp parallel for schedule(static)
+      for (uint celli = 0; celli < nAllCells; celli++) {
+         SpatialCell* cell = mpiGrid[cells[celli]];
+         if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+            continue;
+         }
+         if (cell->sysBoundaryFlag == sysboundarytype::OUTFLOW && cell->sysBoundaryLayer != 1 && !initialCompute) {
+            // these should have been handled by the boundary code
+            continue;
+         }
+
+         // Store species' contribution to bulk velocity moments
+         Population& pop = cell->get_population(popID);
+         for (size_t i = 0; i < nMom2; ++i) {
+            pop.P_V[i] = mass * host_moments2[nMom2 * celli + i];
+         }
+
+         cell->parameters[CellParams::P_11_V] += pop.P_V[0];
+         cell->parameters[CellParams::P_22_V] += pop.P_V[1];
+         cell->parameters[CellParams::P_33_V] += pop.P_V[2];
+         cell->parameters[CellParams::P_23_V] += pop.P_V[3];
+         cell->parameters[CellParams::P_13_V] += pop.P_V[4];
+         cell->parameters[CellParams::P_12_V] += pop.P_V[5];
+      } // for-loop over spatial cells
+   } // for-loop over particle species
+}
+
+void gpu_moments_allocate(const uint nAllCells) {
+   if (nAllCells <= gpu_allocated_moments) {
+      return;
+   }
+   gpu_moments_deallocate();
+   gpu_allocated_moments = nAllCells * BLOCK_ALLOCATION_FACTOR;
+
+   // Host memory will be pinned
+   CHK_ERR(gpuHostAlloc((void**)&host_VBC, gpu_allocated_moments * sizeof(vmesh::VelocityBlockContainer*)));
+   CHK_ERR(gpuHostAlloc((void**)&host_moments1, gpu_allocated_moments * nMom1 * sizeof(Real)));
+   CHK_ERR(gpuHostAlloc((void**)&host_moments2, gpu_allocated_moments * nMom2 * sizeof(Real)));
+   CHK_ERR(gpuMalloc((void**)&dev_VBC, gpu_allocated_moments * sizeof(vmesh::VelocityBlockContainer*)));
+   CHK_ERR(gpuMalloc((void**)&dev_moments1, gpu_allocated_moments * nMom1 * sizeof(Real)));
+   CHK_ERR(gpuMalloc((void**)&dev_moments2, gpu_allocated_moments * nMom2 * sizeof(Real)));
+   CHK_ERR(gpuDeviceSynchronize());
+}
+
+/* Deallocation at end of simulation */
+void gpu_moments_deallocate() {
+   if (gpu_allocated_moments == 0) {
+      return;
+   }
+   gpu_allocated_moments = 0;
+   CHK_ERR(gpuFreeHost(host_VBC));
+   CHK_ERR(gpuFreeHost(host_moments1));
+   CHK_ERR(gpuFreeHost(host_moments2));
+   CHK_ERR(gpuFree(dev_VBC));
+   CHK_ERR(gpuFree(dev_moments1));
+   CHK_ERR(gpuFree(dev_moments2));
+}

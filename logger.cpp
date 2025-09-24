@@ -20,10 +20,10 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include <cstdlib>
-#include <time.h>
 #include "logger.h"
+#include <cstdlib>
 #include <iostream>
+#include <time.h>
 
 using namespace std;
 
@@ -44,12 +44,13 @@ Logger::~Logger() {
    }
 }
 
-/** Close a logfile which has been previously opened with 
+/** Close a logfile which has been previously opened with
  * Logger::open.
  * @return If true, the logfile was closed successfully.
  */
 bool Logger::close() {
-   if (fileOpen == false) return false;
+   if (fileOpen == false)
+      return false;
    bool success = true;
    masterStream->close();
    delete masterStream;
@@ -58,37 +59,38 @@ bool Logger::close() {
    return success;
 }
 
-/** Write the Logger stream buffer into the output file. The stream buffer 
- * is emptied if the write succeeded. The rank of the writing MPI process and 
- * current time and date, as given by ctime, are written before the user-defined 
+/** Write the Logger stream buffer into the output file. The stream buffer
+ * is emptied if the write succeeded. The rank of the writing MPI process and
+ * current time and date, as given by ctime, are written before the user-defined
  * message.
  * @return If true, the buffer was written successfully and buffer was emptied.
  */
 bool Logger::flush(bool verbose) {
-   if (fileOpen == false) return false;
+   if (fileOpen == false)
+      return false;
    bool success = true;
-   if (mpiRank != masterRank) return true;
+   if (mpiRank != masterRank)
+      return true;
    stringstream tmp;
    string strTime;
-   if (verbose == true)
-   {
-      // Get the current time. Remove the line break from 
+   if (verbose == true) {
+      // Get the current time. Remove the line break from
       // the string output given by ctime.
       const time_t rawTime = time(NULL);
       strTime = ctime(&rawTime);
-      
+
       const size_t lineBreak = strTime.find('\n');
       if (lineBreak != string::npos) {
-         strTime.erase(lineBreak,1);
+         strTime.erase(lineBreak, 1);
       }
-      
-      // Form a new output buffer containing the process number, date 
+
+      // Form a new output buffer containing the process number, date
       // and the user-given message. Attempt to write it to file.
-      
+
       tmp << strTime << ' ' << endl;
       strTime = outStream.str();
       tmp << strTime << endl;
-      
+
    } else {
       strTime = outStream.str();
       tmp << strTime;
@@ -106,34 +108,37 @@ bool Logger::flush(bool verbose) {
    writes out anythin, all other processes will not do anything when
    they attempt to use the logger, but it is still perfectly legal for
    them to call it.
-   
-      
+
+
    \param[in] comm  MPI communicator for processes that are able to call this logger
    \param[in] MASTERRANK The rank that does all communication.
    \param[in] fname The name of the logfile.
    \param[in] append Is the file appended (true), or overwritten (false)
    \return If true, the file was opened successfully and Logger is ready for use.
  */
-bool Logger::open(MPI_Comm comm,const int& MASTERRANK,const std::string& fname,const bool& append) {
+bool Logger::open(MPI_Comm comm, const int& MASTERRANK, const std::string& fname, const bool& append) {
    // Store the MPI rank of this process
-   MPI_Comm_rank(comm,&mpiRank);
+   MPI_Comm_rank(comm, &mpiRank);
    masterRank = MASTERRANK;
    bool rvalue = true;
-   
-   if (mpiRank != MASTERRANK) return rvalue;
+
+   if (mpiRank != MASTERRANK)
+      return rvalue;
    masterStream = new fstream;
-   if(append)
-      masterStream->open(fname.c_str(), fstream::out|fstream::app);
+   if (append)
+      masterStream->open(fname.c_str(), fstream::out | fstream::app);
    else
       masterStream->open(fname.c_str(), fstream::out);
 
-   if (masterStream->good() == false) rvalue = false;
+   if (masterStream->good() == false)
+      rvalue = false;
    fileOpen = true;
    return rvalue;
 }
 
 bool Logger::print(const std::string& s) {
-   if (mpiRank != masterRank) return true;
+   if (mpiRank != masterRank)
+      return true;
    (*masterStream) << s;
    return true;
 }
@@ -142,33 +147,35 @@ bool Logger::print(const std::string& s) {
 // ****** STREAM MANIPULATORS ******
 // *********************************
 
-/** Function which allows one to insert C++-style stream manipulators, 
- * defined inside Logger, to be used in the input stream. This function gets 
+/** Function which allows one to insert C++-style stream manipulators,
+ * defined inside Logger, to be used in the input stream. This function gets
  * mainly called when manipulator write is inserted to the stream.
  * @param pf A pointer to a stream manipulator.
  * @return A reference to Logger.
  */
 Logger& Logger::operator<<(Logger& (*pf)(Logger&)) {
-   if (mpiRank != masterRank) return *this;
+   if (mpiRank != masterRank)
+      return *this;
    return (*pf)(*this);
 }
 
-/** Function which allows one to use C++ stream manipulators such as endl or 
- * showpos, with Logger. This is just a wrapper function which passes the 
+/** Function which allows one to use C++ stream manipulators such as endl or
+ * showpos, with Logger. This is just a wrapper function which passes the
  * manipulators to internal stream buffer as-is.
  * @param pf Function pointer to C++ stream manipulator.
  * @return Reference to Logger.
  */
-Logger& Logger::operator<<(std::ostream& (*pf)(std::ostream& )) {
-   if (mpiRank != masterRank) return *this;
+Logger& Logger::operator<<(std::ostream& (*pf)(std::ostream&)) {
+   if (mpiRank != masterRank)
+      return *this;
    (*pf)(outStream);
    return *this;
 }
 
-/** C++-style stream manipulator which tells Logger to write the contents 
- * of the stream buffer into the file. The stream buffer is cleared after a 
- * successful write. You need to insert "write" into the 
- * input stream whenever you want to write to the logfile, endl or flush will 
+/** C++-style stream manipulator which tells Logger to write the contents
+ * of the stream buffer into the file. The stream buffer is cleared after a
+ * successful write. You need to insert "write" into the
+ * input stream whenever you want to write to the logfile, endl or flush will
  * not do that.
  * Argument is true because it writes verbose output.
  * @param logger Reference to Logger.
@@ -181,10 +188,10 @@ Logger& writeVerbose(Logger& logger) {
    return logger;
 }
 
-/** C++-style stream manipulator which tells Logger to write the contents 
- * of the stream buffer into the file. The stream buffer is cleared after a 
- * successful write. You need to insert "write" into the 
- * input stream whenever you want to write to the logfile, endl or flush will 
+/** C++-style stream manipulator which tells Logger to write the contents
+ * of the stream buffer into the file. The stream buffer is cleared after a
+ * successful write. You need to insert "write" into the
+ * input stream whenever you want to write to the logfile, endl or flush will
  * not do that.
  * Argument is false because it writes non-verbose output.
  * @param logger Reference to Logger.

@@ -1,6 +1,6 @@
 /*
  * This file is part of Vlasiator.
- * Copyright 2024-2025 University of Helsinki, CSC
+ * Copyright 2010-2025 Finnish Meteorological Institute and University of Helsinki
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
  * at http://www.physics.helsinki.fi/vlasiator/
@@ -20,136 +20,215 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef ARCH_MOMENTS_H
-#define ARCH_MOMENTS_H
+/*
+   In this file we define functions and variables that are used for both
+   CPU and GPU versions of pitchAngleDiffusion
+*/
 
-#include <vector>
-#include <limits>
-#include <dccrg.hpp>
-#include <dccrg_cartesian_geometry.hpp>
+#include "../object_wrapper.h"
+#include "../parameters.h"
+#include <math.h>
+// #include <cmath> // NaN Inf checks
+#include "common_pitch_angle_diffusion.hpp"
+#include <Eigen/Geometry>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <iterator>
 
-#include "../definitions.h"
-#include "../common.h"
-#include "../spatial_cells/spatial_cell_wrapper.hpp"
+/* Storage of Temperature anisotropy to beta parallel array for pitch-angle diffusion parametrization
+   see: Parametrization of coefficients for sub-grid modeling of pitch-angle diffusion in global
+   magnetospheric hybrid-Vlasov simulations, M. Dubart, M. Battarbee, U. Ganse, A. Osmane, F. Spanier,
+   J. Suni, G. Cozzani, K. Horaites, K. Papadakis, Y. Pfau-Kempf, V. Tarvus, and M. Palmroth,
+   Physics of Plasmas 30, 123903 (2023)
+   https://doi.org/10.1063/5.0176376
+ */
+std::vector<Real> betaParaArray;
+std::vector<Real> TanisoArray;
+std::vector<Real> nu0Array;
+size_t n_betaPara = 0;
+size_t n_Taniso = 0;
+bool nuArrayRead = false;
 
-using namespace spatial_cell;
+void readNuArrayFromFile() {
+   if (nuArrayRead) {
+      return;
+   }
 
-#define nMom1 4
-#define nMom2 6
+   // Read from NU0BOX.DAT (or other file if declared in parameters)
+   std::string PATHfile = Parameters::PADnu0;
+   std::ifstream FILEDmumu;
+   FILEDmumu.open(PATHfile);
 
-// ***** FUNCTION DECLARATIONS ***** //
+   // verify file access was successful
+   if (!FILEDmumu.is_open()) {
+      std::cerr << "Error opening file " << PATHfile << "!" << std::endl;
+      if (FILEDmumu.fail()) {
+         std::cerr << strerror(errno) << std::endl;
+      }
+      abort();
+   }
 
-template<typename REAL, uint SIZE>
-void blockVelocityFirstMoments(vmesh::VelocityBlockContainer *blockContainer,
-                               REAL (&array)[SIZE],
-                               uint nBlocks);
+   // Read betaPara strings from file
+   std::string lineBeta;
+   for (int i = 0; i < 2; i++) {
+      std::getline(FILEDmumu, lineBeta);
+   }
+   std::istringstream issBeta(lineBeta);
+   float numBeta;
+   while ((issBeta >> numBeta)) { // Stream read from issBeta into numBeta
+      betaParaArray.push_back(numBeta);
+   }
 
-template<typename REAL, uint SIZE>
-void blockVelocitySecondMoments(vmesh::VelocityBlockContainer *blockContainer,
-                                const REAL averageVX,
-                                const REAL averageVY,
-                                const REAL averageVZ,
-                                REAL (&array)[SIZE],
-                                uint nBlocks);
+   // Read Taniso strings from file
+   std::string lineTaniso;
+   for (int i = 0; i < 2; i++) {
+      std::getline(FILEDmumu, lineTaniso);
+   }
+   std::istringstream issTaniso(lineTaniso);
+   float numTaniso;
+   while ((issTaniso >> numTaniso)) { // Stream read from issTaniso into numTaniso
+      TanisoArray.push_back(numTaniso);
+   }
 
-void calculateMoments_R(
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   const std::vector<CellID>& cells,
-   const bool& computeSecond,
-   const bool initialCompute=false
-);
+   // Discard one line
+   std::string lineDUMP;
+   for (int i = 0; i < 1; i++) {
+      std::getline(FILEDmumu, lineDUMP);
+   }
 
-void calculateMoments_V(
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   const std::vector<CellID>& cells,
-   const bool& computeSecond,
-   const bool initialCompute=false
-);
+   // Read values of nu0 from file
+   std::string linenu0;
+   n_betaPara = betaParaArray.size();
+   n_Taniso = TanisoArray.size();
+   nu0Array.resize(n_betaPara * n_Taniso);
 
+   for (size_t i = 0; i < n_betaPara; i++) {
+      std::getline(FILEDmumu, linenu0);
+      std::istringstream issnu0(linenu0);
+      std::vector<Real> tempLINE;
+      float numTEMP;
+      while ((issnu0 >> numTEMP)) {
+         tempLINE.push_back(numTEMP);
+      }
+      if (tempLINE.size() != n_Taniso) {
+         std::cerr << "ERROR! line " << i << " entry in " << PATHfile << " has " << tempLINE.size() << " entries instead of expected " << n_Taniso << "!" << std::endl;
+         abort();
+      }
+      for (size_t j = 0; j < n_Taniso; j++) {
+         nu0Array[i * n_Taniso + j] = tempLINE[j];
+      }
+   }
 
-// ***** TEMPLATE FUNCTION DEFINITIONS ***** //
-
-/** Calculate the zeroth and first velocity moments for the given
- * velocity block and add results to 'array', which must have at
- * least size four. After this function returns, the contents of
- * 'array' are as follows: array[0]=n; array[1]=n*Vx; array[2]=nVy;
- * array[3]=nVz; Here n is the scaled number density, i.e., number density
- * times population mass / proton mass. This function is AMR safe.
- * @param data Distribution functions
- * @param blockParameters Parameters for the velocity blocks
- * @param array Array where the calculated moments are added
- * @param nBlocks The number of blocks */
-template<typename REAL, uint SIZE> inline
-void blockVelocityFirstMoments(
-   vmesh::VelocityBlockContainer *blockContainer,
-   REAL (&array)[SIZE],
-   uint nBlocks) {
-
-   arch::parallel_reduce<arch::sum>({WID, WID, WID, nBlocks},
-     ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint blockLID, Real *lsum ) {
-
-       Realf *data = blockContainer->getData();
-       Real *blockParameters = blockContainer->getParameters();
-       const Realf* avgs = &data[blockLID*WID3];
-       const Real* blockParamsZ = &blockParameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS];
-       const Real DV3 = blockParamsZ[BlockParams::DVX]*blockParamsZ[BlockParams::DVY]*blockParamsZ[BlockParams::DVZ];
-       const Real HALF = 0.5;
-
-       ARCH_INNER_BODY(i, j, k, blockLID, lsum) {
-         const Real VX = blockParamsZ[BlockParams::VXCRD] + (i+HALF)*blockParamsZ[BlockParams::DVX];
-         const Real VY = blockParamsZ[BlockParams::VYCRD] + (j+HALF)*blockParamsZ[BlockParams::DVY];
-         const Real VZ = blockParamsZ[BlockParams::VZCRD] + (k+HALF)*blockParamsZ[BlockParams::DVZ];
-         lsum[0] += avgs[cellIndex(i,j,k)] * DV3;
-         lsum[1] += avgs[cellIndex(i,j,k)]*VX * DV3;
-         lsum[2] += avgs[cellIndex(i,j,k)]*VY * DV3;
-         lsum[3] += avgs[cellIndex(i,j,k)]*VZ * DV3;
-       };
-     }, array);
+   nuArrayRead = true;
+   FILEDmumu.close();
 }
 
-/** Calculate the second velocity moments for the velocity blocks, and add
- * results to 'array', which must have at least size three. After this function
- * returns, the contents of 'array' are as follows: array[0]=n(Vx-Vx0);
- * array[1]=n(Vy-Vy0); array[2]=n(Vz-Vz0); Here Vx0,Vy0,Vz0 are the components
- * of the bulk velocity (calculated over all species). This function is AMR safe.
- * @param data Distribution functions
- * @param blockParameters Parameters for the velocity blocks
- * @param averageVX Bulk velocity x
- * @param averageVY Bulk velocity y
- * @param averageVZ Bulk velocity z
- * @param array Array where the calculated moments are added
- * @param nBlocks The number of blocks */
-template<typename REAL, uint SIZE> inline
-void blockVelocitySecondMoments(
-   vmesh::VelocityBlockContainer *blockContainer,
-   const REAL averageVX,
-   const REAL averageVY,
-   const REAL averageVZ,
-   REAL (&array)[SIZE],
-   uint nBlocks) {
+/* Linear interpolation of diffusion coefficient from above array
+ */
+Realf interpolateNuFromArray(const Real Taniso_in, const Real betaParallel_in) {
+   Real Taniso = Taniso_in;
+   Real betaParallel = betaParallel_in;
+   int betaIndx = -1;
+   int TanisoIndx = -1;
+   for (size_t i = 0; i < betaParaArray.size(); i++) {
+      if (betaParallel >= betaParaArray[i]) {
+         betaIndx = i;
+      }
+   }
+   for (size_t i = 0; i < TanisoArray.size(); i++) {
+      if (Taniso >= TanisoArray[i]) {
+         TanisoIndx = i;
+      }
+   }
 
-   arch::parallel_reduce<arch::sum>({WID, WID, WID, nBlocks},
-     ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint blockLID, Real *lsum ) {
-
-       Realf *data = blockContainer->getData();
-       Real *blockParameters = blockContainer->getParameters();
-       const Realf* avgs = &data[blockLID*WID3];
-       const Real* blockParams = &blockParameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS];
-       const Real DV3 = blockParams[BlockParams::DVX]*blockParams[BlockParams::DVY]*blockParams[BlockParams::DVZ];
-       const Real HALF = 0.5;
-
-       ARCH_INNER_BODY(i, j, k, blockLID, lsum) {
-         const Real VX = blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX];
-         const Real VY = blockParams[BlockParams::VYCRD] + (j+HALF)*blockParams[BlockParams::DVY];
-         const Real VZ = blockParams[BlockParams::VZCRD] + (k+HALF)*blockParams[BlockParams::DVZ];
-         lsum[0] += avgs[cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX) * DV3;
-         lsum[1] += avgs[cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY) * DV3;
-         lsum[2] += avgs[cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ) * DV3;
-         lsum[3] += avgs[cellIndex(i,j,k)] * (VY - averageVY) * (VZ - averageVZ) * DV3;
-         lsum[4] += avgs[cellIndex(i,j,k)] * (VX - averageVX) * (VZ - averageVZ) * DV3;
-         lsum[5] += avgs[cellIndex(i,j,k)] * (VX - averageVX) * (VY - averageVY) * DV3;
-       };
-     }, array);
+   if ((betaIndx < 0) || (TanisoIndx < 0)) {
+      // Values below table lower bounds; no diffusion required.
+      return 0.0;
+   } else {
+      // Interpolate values from table; if values are above bounds, cap to maximum value.
+      if (betaIndx >= (int)betaParaArray.size() - 1) {
+         betaIndx = (int)betaParaArray.size() - 2;   // force last bin
+         betaParallel = betaParaArray[betaIndx + 1]; // force interpolation to bin top
+      }
+      if (TanisoIndx >= (int)TanisoArray.size() - 1) {
+         TanisoIndx = (int)TanisoArray.size() - 2; // force last bin
+         Taniso = TanisoArray[TanisoIndx + 1];     // force interpolation to bin top
+      }
+      // bi-linear interpolation with weighted mean to find nu0(betaParallel,Taniso)
+      const Real beta1 = betaParaArray[betaIndx];
+      const Real beta2 = betaParaArray[betaIndx + 1];
+      const Real Taniso1 = TanisoArray[TanisoIndx];
+      const Real Taniso2 = TanisoArray[TanisoIndx + 1];
+      const Real nu011 = nu0Array[betaIndx * n_Taniso + TanisoIndx];
+      const Real nu012 = nu0Array[betaIndx * n_Taniso + TanisoIndx + 1];
+      const Real nu021 = nu0Array[(betaIndx + 1) * n_Taniso + TanisoIndx];
+      const Real nu022 = nu0Array[(betaIndx + 1) * n_Taniso + TanisoIndx + 1];
+      // Weights
+      const Real w11 = (beta2 - betaParallel) * (Taniso2 - Taniso) / ((beta2 - beta1) * (Taniso2 - Taniso1));
+      const Real w12 = (beta2 - betaParallel) * (Taniso - Taniso1) / ((beta2 - beta1) * (Taniso2 - Taniso1));
+      const Real w21 = (betaParallel - beta1) * (Taniso2 - Taniso) / ((beta2 - beta1) * (Taniso2 - Taniso1));
+      const Real w22 = (betaParallel - beta1) * (Taniso - Taniso1) / ((beta2 - beta1) * (Taniso2 - Taniso1));
+      // Linear interpolation (with fudge factor divisor)
+      return (w11 * nu011 + w12 * nu012 + w21 * nu021 + w22 * nu022) / Parameters::PADfudge;
+   }
 }
 
-#endif
+void computePitchAngleDiffusionParameters(SpatialCell& cell, const uint popID, size_t CellIdx, bool& currentSpatialLoopComplete, Realf& sparsity, std::array<Real, 3>& b, Real& nu0) {
+
+   sparsity = 0.01 * cell.getVelocityBlockMinValue(popID);
+
+   currentSpatialLoopComplete = false;
+
+   // Diffusion coefficient to use in this cell
+   nu0 = 0.0;
+
+   // Compute b
+   const std::array<Real, 3> B = {cell.parameters[CellParams::PERBXVOL] + cell.parameters[CellParams::BGBXVOL],
+                                  cell.parameters[CellParams::PERBYVOL] + cell.parameters[CellParams::BGBYVOL],
+                                  cell.parameters[CellParams::PERBZVOL] + cell.parameters[CellParams::BGBZVOL]};
+   const Real Bnorm = sqrt(B[0] * B[0] + B[1] * B[1] + B[2] * B[2]);
+   b[0] = B[0] / Bnorm;
+   b[1] = B[1] / Bnorm;
+   b[2] = B[2] / Bnorm;
+
+   if (P::PADcoefficient >= 0) {
+      // User-provided single diffusion coefficient
+      nu0 = P::PADcoefficient;
+   } else {
+      // Use nu0 values based on Taniso and betaPara read from file
+      if (!nuArrayRead) {
+         std::cerr << " ERROR! Attempting to interpolate nu0 value but file has not been read." << std::endl;
+         abort();
+      }
+
+      // Perform Eigen rotation to find parallel and perpendicular pressure
+      Eigen::Matrix3d rot = Eigen::Quaterniond::FromTwoVectors(Eigen::Vector3d{b[0], b[1], b[2]}, Eigen::Vector3d{0, 0, 1}).normalized().toRotationMatrix();
+      Eigen::Matrix3d Ptensor{
+          {cell.parameters[CellParams::P_11], cell.parameters[CellParams::P_12], cell.parameters[CellParams::P_13]},
+          {cell.parameters[CellParams::P_12], cell.parameters[CellParams::P_22], cell.parameters[CellParams::P_23]},
+          {cell.parameters[CellParams::P_13], cell.parameters[CellParams::P_23], cell.parameters[CellParams::P_33]},
+      };
+      Eigen::Matrix3d transposerot = rot.transpose();
+      Eigen::Matrix3d Pprime = rot * Ptensor * transposerot;
+
+      // Anisotropy
+      Real Taniso = 0.0;
+      if (Pprime(2, 2) > std::numeric_limits<Real>::min()) {
+         Taniso = (Pprime(0, 0) + Pprime(1, 1)) / (2 * Pprime(2, 2));
+      }
+      // Beta Parallel
+      Real betaParallel = 0.0;
+      if (Bnorm > 0) {
+         betaParallel = 2.0 * physicalconstants::MU_0 * Pprime(2, 2) / (Bnorm * Bnorm);
+      }
+      // Find anisotropy and beta parallel indexes from read table
+      nu0 = interpolateNuFromArray(Taniso, betaParallel);
+   }
+
+   // Enable nu0 disk output; skip cells where diffusion is not required (or diffusion coefficient is very small).
+   cell.parameters[CellParams::NU0] = nu0;
+   if (nu0 <= 0.001) {
+      currentSpatialLoopComplete = true;
+   }
+}

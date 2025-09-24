@@ -1,4 +1,3 @@
-#pragma once
 /*
  * This file is part of Vlasiator.
  * Copyright 2010-2016 Finnish Meteorological Institute
@@ -20,165 +19,63 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-
+#include "distribution.h"
 #include "particles.h"
+#include <random>
 
-struct Boundary
-{
-   // Handle a particle's boundary behaviour.
-   // returns "true" if the particle is still part of the simulation
-   // afterwards, or "false" if it is to be removed.
-   virtual bool handleParticle(Particle& p) = 0;
+Distribution::Distribution(std::default_random_engine& _rand) : rand(_rand) {
+   mass = ParticleParameters::mass;
+   charge = ParticleParameters::charge;
+}
+Maxwell_Boltzmann::Maxwell_Boltzmann(std::default_random_engine& _rand)
+    : Distribution(_rand), velocity_distribution{std::normal_distribution<Real>(0., sqrt(ParticleParameters::temperature * PhysicalConstantsSI::k / mass))} {}
 
-   // Handle cell coordinate in the spatial dimension this boundary
-   // object cares about (for example: wrap in a periodic direction)
-   virtual int cellCoordinate(int c) = 0;
+Monoenergetic::Monoenergetic(std::default_random_engine& _rand) : Distribution(_rand) { vel = ParticleParameters::particle_vel; }
 
-   Boundary(int _dimension) : dimension(_dimension) {};
-   virtual void setExtent(double _min, double _max, int _cells) {
-      min=_min;
-      max=_max;
-      cells=_cells;
-   }
+double Kappa::find_v_for_r(double rand) {
 
-   virtual ~Boundary(){};
+   /* Use binary search to find this value */
+   int step = lookup_size / 2;
+   int a = lookup_size / 2;
+   double diff;
+   do {
+      step = ceil(step * .5);
 
-   // Which spatial dimension to handle
-   int dimension;
-
-   // Minimum and maximum spatial extents in this dimension
-   double min, max;
-
-   // Number of cells in this dimension
-   int cells;
-};
-
-// Boundary for a spatial dimension that is only 1 cell thick (pseudo-periodic)
-struct CompactSpatialDimension : public Boundary
-{
-   virtual bool handleParticle(Particle& p) {
-      // This boundary does not affect particles
-      return true;
-   }
-   virtual int cellCoordinate(int c) {
-      // Actual cell coordinates in this direction are
-      // always mapped to 0.
-      return 0;
-   }
-   CompactSpatialDimension(int _dimension) : Boundary(_dimension){};
-};
-
-// Open boundary, which removes particles if they fly out
-struct OpenBoundary : public Boundary
-{
-   virtual bool handleParticle(Particle& p) {
-
-      // Delete particles that are outside our boundaries.
-      if(p.x[dimension] <= min || p.x[dimension] >= max) {
-         return false;
+      diff = rand - lookup[a];
+      if (diff < 0) {
+         a -= step;
       } else {
-         // Leave all others be.
-         return true;
+         a += step;
       }
+      a = (a < lookup_size - 1) ? (a) : (lookup_size - 1);
+   } while (step > 1);
+
+   /* Final step adjustment */
+   if (rand < lookup[a]) {
+      a--;
    }
 
-   virtual int cellCoordinate(int c) {
-      // Cell coordinates are clamped
-      // TODO: Should this print warnings?
-      if(c < 0) {
-         return 0;
-      } else if(c >= cells) {
-         return cells-1;
-      } else {
-         return c;
-      }
+   /* Special case for the upper bound: Extrapolate the last bin */
+   if (a + 1 > lookup_size - 1) {
+      return maxw0 / lookup_size * (lookup_size - 1 + (rand - lookup[lookup_size - 2]) / (lookup[lookup_size - 1] - lookup[lookup_size - 1]));
    }
+   /* Linear interpolate between the two neighbouring entries */
+   return maxw0 / lookup_size * (a + (rand - lookup[a]) / (lookup[a + 1] - lookup[a]));
+}
 
-   virtual void setExtent(double _min, double _max, int _cells) {
-      double dx = (_max-_min)/((double)_cells);
-      min=_min+2*dx; // 2 Cells border.
-      max=_max-2*dx;
-      cells=_cells;
-   }
-   OpenBoundary(int _dimension) : Boundary(_dimension){};
-};
+Kappa6::Kappa6(std::default_random_engine& _rand) : Kappa(_rand) {
+   Real kT = ParticleParameters::temperature * PhysicalConstantsSI::k;
+   w0 = sqrt(2. * kT * (6. - 1.5) / (6. * mass));
+   generate_lookup();
+}
+Kappa2::Kappa2(std::default_random_engine& _rand) : Kappa(_rand) {
+   Real kT = ParticleParameters::temperature * PhysicalConstantsSI::k;
+   w0 = sqrt(2. * kT * (2. - 1.5) / (2. * mass));
+   generate_lookup();
+}
 
-struct ReflectBoundary : public Boundary
-{
-   virtual bool handleParticle(Particle& p) {
-      // Particles outside of bounds get their velocities flipped
-      if(p.x[dimension] <= min || p.x[dimension] >= max) {
-         p.v = p.v.cwiseProduct(flip_v);
-      }
-      return true;
-   }
+Particle Maxwell_Boltzmann::next_particle() {
+   Vec3d v(velocity_distribution(rand), velocity_distribution(rand), velocity_distribution(rand));
 
-   virtual int cellCoordinate(int c) {
-      // Cell coordinates are clamped
-      // TODO: Should this print warnings?
-      if(c < 0) {
-         return 0;
-      } else if(c >= cells) {
-         return cells-1;
-      } else {
-         return c;
-      }
-   }
-
-   // Constructor
-   ReflectBoundary(int _dimension) : Boundary(_dimension) {
-      Vec3d flip = {1.,1.,1.};
-      flip[dimension] = -1.;
-      flip_v=flip;
-   }
-   virtual void setExtent(double _min, double _max, int _cells) {
-      double dx = (_max-_min)/((double)_cells);
-      min=_min+2*dx; // 2 Cells border.
-      max=_max-2*dx;
-      cells=_cells;
-   }
-
-   // Vector to multiply with in order to flip velocity
-   // vectors for our dimension
-   Vec3d flip_v;
-
-};
-
-struct PeriodicBoundary : public Boundary
-{
-   virtual bool handleParticle(Particle& p) {
-      if(p.x[dimension] < min) {
-         p.x += offset_p;
-      } else if(p.x[dimension] >= max) {
-         p.x -= offset_p;
-      }
-      return true;
-   }
-
-   virtual int cellCoordinate(int c) {
-      return c % cells;
-   }
-
-   // Constructor
-   PeriodicBoundary(int _dimension) : Boundary(_dimension) {
-   }
-   virtual void setExtent(double _min, double _max, int _cells) {
-      min=_min;
-      max=_max;
-      cells=_cells;
-
-      Vec3d offset = {0.,0.,0.};
-      offset[dimension] = max-min;
-      offset_p = offset;
-   }
-
-   // Vector to offset particle positions that leave through
-   // one boundary with, to come out the other end
-   Vec3d offset_p;
-
-};
-
-template<typename T> Boundary* createBoundary(int dimension)
-{
-   return new T(dimension);
+   return Particle(mass, charge, Vec3d(0., 0., 0.), v);
 }

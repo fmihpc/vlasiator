@@ -1,3 +1,4 @@
+#pragma once
 /*
  * This file is part of Vlasiator.
  * Copyright 2010-2016 Finnish Meteorological Institute
@@ -19,336 +20,410 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <errno.h>
+#include <Eigen/Dense>
+#include <math.h>
+#include <mpi.h>
+#include <stdio.h>
 #include <string.h>
-#include "histogram.h"
+#define Vec3d Eigen::Vector3d
+#define Vec2d Eigen::Vector2d
 
-void Histogram1D::save(const char* filename) const {
 
-   double* tempbuf;
-   tempbuf = new double[num_bins];
-   // MPI Reduce the histograms
-   MPI_Allreduce(bins, tempbuf, num_bins, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+#define ERROR(format, ...) fprintf (stderr, "E: " format, ##__VA_ARGS__)
 
-   int fd = open(filename, O_CREAT|O_TRUNC|O_WRONLY,0644);
-   if(!fd || fd == -1) {
-      ERROR("unable to write histogram file %s: %s\n", filename, strerror(errno));
-      return;
+// Histograms of 1D data
+class Histogram1D {
+public:
+   Histogram1D(size_t n) : num_bins(n) {
+      bins = new double[num_bins];
+      memset(bins, 0, sizeof(double) * num_bins);
    }
+   ~Histogram1D() { delete[] bins; }
 
-   for(ssize_t remain=sizeof(double) * num_bins; remain > 0;) {
-      remain -= write(fd, ((char*)tempbuf) + remain - sizeof(double) * num_bins, remain);
-   }
-
-   close(fd);
-}
-
-void Histogram1D::saveAscii(const char* filename) const {
-
-   FILE* f = fopen(filename, "w");
-   if(!f) {
-      ERROR("unable to write histogram file %s: %s\n", filename, strerror(errno));
-      return;
-   }
-
-   /* Generic histograms can only be written without bin bound specifiers.
-    * (Because how would we know them?) */
-   for(unsigned int i = 0; i < num_bins; i++) {
-      fprintf(f, "%lf\n", bins[i]);
-   }
-
-   fclose(f);
-}
-
-void LinearHistogram1D::saveAscii(const char* filename) const {
-
-   FILE* f = fopen(filename, "w");
-   if(!f) {
-      ERROR("unable to write histogram file %s: %s\n", filename, strerror(errno));
-      return;
-   }
-
-   /* Linear histograms are written with the center bin coordinate as
-    * first field */
-   for(unsigned int i = 0; i < num_bins; i++) {
-      fprintf(f, "%lf %lf\n", low + (i + .5) * (high - low) / num_bins, bins[i]);
-   }
-
-   fclose(f);
-}
-
-void Histogram1D::load(const char* filename) {
-   int fd = open(filename, O_RDONLY);
-   int ret;
-   if(!fd || fd==-1) {
-      ERROR("unable to open histogram file %s for reading: %s\n", filename, strerror(errno));
-      return;
-   }
-
-   /* TODO: Check filesize */
-   size_t size = sizeof(double) * num_bins;
-
-   for(ssize_t remain=size; remain > 0;) {
-      ret = read(fd, ((char*)bins) + remain - size, remain);
-      if(ret == 0 || !ret) {
-         /* TODO: Proper errorhandling here. */
-         break;
-      }
-   }
-
-   close(fd);
-}
-
-void Histogram2D::save(const char* filename) const {
-
-   double* tempbuf;
-   int num_bins_tot = num_bins[0] * num_bins[1];
-   tempbuf = new double[num_bins_tot];
-   // MPI Reduce the histograms
-   MPI_Allreduce(bins, tempbuf, num_bins_tot, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-
-   int fd = open(filename, O_CREAT|O_TRUNC|O_WRONLY,0644);
-   if(!fd || fd == -1) {
-      ERROR("unable to write histogram file %s: %s\n", filename, strerror(errno));
-      return;
-   }
-
-   size_t size = sizeof(double) * num_bins_tot;
-
-   for(ssize_t remain=size; remain > 0;) {
-      remain -= write(fd, ((char*)tempbuf) + remain - size, remain);
-   }
-
-   close(fd);
-}
-
-void Histogram2D::load(const char* filename) {
-   int fd = open(filename, O_RDONLY);
-   int ret;
-   if(!fd || fd == -1) {
-      ERROR("unable to open histogram file %s for reading: %s\n", filename, strerror(errno));
-      return;
-   }
-
-   /* TODO: Check filesize */
-   size_t size = sizeof(double) * num_bins[0] * num_bins[1];
-
-   for(ssize_t remain=size; remain > 0;) {
-      ret = read(fd, ((char*)bins) + remain - size, remain);
-      if(ret == 0 || !ret) {
-         /* TODO: Proper errorhandling here. */
-         ERROR("Read error: %s.\n", strerror(errno));
-         break;
-      }
-      remain -= ret;
-   }
-
-   close(fd);
-}
-
-void Histogram3D::save(const char* filename) const {
-
-   double* tempbuf;
-   int num_bins_tot = num_bins[0] * num_bins[1] * num_bins[2];
-   tempbuf = new double[num_bins_tot];
-   // MPI Reduce the histograms
-   MPI_Allreduce(bins, tempbuf, num_bins_tot, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-
-   int fd = open(filename, O_CREAT|O_TRUNC|O_WRONLY, 0644);
-   if(!fd || fd == -1) {
-      ERROR("unable to write histogram file %s: %s\n", filename, strerror(errno));
-      return;
-   }
-
-   size_t size = sizeof(float) * num_bins_tot;
-
-   for(ssize_t remain=size; remain > 0;) {
-      remain -= write(fd, ((char*)tempbuf) + remain - size, remain);
-   }
-
-   close(fd);
-}
-
-void Histogram3D::load(const char* filename) {
-   int fd = open(filename, O_RDONLY);
-   int ret;
-   if(!fd || fd == -1) {
-      ERROR("unable to open histogram file %s for reading: %s\n", filename, strerror(errno));
-      return;
-   }
-
-   /* TODO: Check filesize */
-   size_t size = sizeof(float) * num_bins[0] * num_bins[1] * num_bins[2];
-
-   for(ssize_t remain=size; remain > 0;) {
-      ret = read(fd, ((char*)bins) + remain - size, remain);
-      if(ret == 0 || !ret) {
-         /* TODO: Proper errorhandling here. */
-         ERROR("Read error: %s.\n", strerror(errno));
-         break;
-      }
-      remain -= ret;
-   }
-
-   close(fd);
-}
-
-void LinearHistogram2D::writeBovAscii(const char* filename, int index, const char* datafilename) {
-
-   FILE* f = fopen(filename, "w");
-   if(!f) {
-      ERROR("unable to write BOV ascii file %s: %s\n", filename, strerror(errno));
-      return;
-   }
-
-   fprintf(f, "TIME: %i\n", index);
-   fprintf(f, "DATA_FILE: %s\n", datafilename);
-   fprintf(f, "DATA_SIZE: %lu %lu 1\n", num_bins[0], num_bins[1]);
-   fprintf(f, "DATA_FORMAT: DOUBLE\nVARIABLE: f\nDATA_ENDIAN: LITTLE\nCENTERING: zonal\n");
-   fprintf(f, "BRICK_ORIGIN: %lf %lf 0\n", low[0], low[1]);
-   fprintf(f, "BRICK_SIZE: %lf %lf 1\n", high[0] - low[0], high[1] - low[1]);
-   fprintf(f, "DATA_COMPONENTS: 1\n");
-
-   fclose(f);
-}
-
-void LinearHistogram3D::writeBovAscii(const char* filename, int index, const char* datafilename) {
-
-   FILE* f = fopen(filename, "w");
-   if(!f) {
-      ERROR("unable to write BOV ascii file %s: %s\n", filename, strerror(errno));
-      return;
-   }
-
-   fprintf(f, "TIME: %i\n", index);
-   fprintf(f, "DATA_FILE: %s\n", datafilename);
-   fprintf(f, "DATA_SIZE: %lu %lu %lu\n", num_bins[0], num_bins[1], num_bins[2]);
-   fprintf(f, "DATA_FORMAT: FLOAT\nVARIABLE: f\nDATA_ENDIAN: LITTLE\nCENTERING: zonal\n");
-   fprintf(f, "BRICK_ORIGIN: %lf %lf %lf\n", low[0], low[1], low[2]);
-   fprintf(f, "BRICK_SIZE: %lf %lf %lf\n", high[0] - low[0], high[1] - low[1], high[2] - low[2]);
-   fprintf(f, "DATA_COMPONENTS: 1\n");
-
-   fclose(f);
-}
-
-void LinearHistogram3D::readBov(const char* filename) {
-   char buffer[256];
-   char datafilename[256];
-   Vec3d size;
-   bool filenameread=false;
-   FILE* f = fopen(filename, "r");
-   if(!f) {
-      ERROR("unable to read BOV ascii file %s: %s\n", filename, strerror(errno));
-      return;
-   }
-
-   while(!feof(f)) {
-      if(!fgets(buffer, 256, f)) {
-         break;
+   /* Using MPI_Reduce, sum up all CPUs. */
+   void mpi_reduce() {
+      double* targetbins = new double[num_bins];
+      if (!targetbins) {
+         ERROR("allocation failed while mpi-reducing histogram.\n");
+         return;
       }
 
-      // Parse line data
-      if(!strncmp("DATA_FILE:", buffer, 10)) {
-         sscanf(buffer, "DATA_FILE: %s\n", datafilename);
-         filenameread = true;
-         continue;
+      MPI_Allreduce(bins, targetbins, num_bins, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+      /* Throw away the old bins. */
+      delete[] bins;
+      bins = targetbins;
+   }
+
+   void save(const char* filename) const;
+   void load(const char* filename);
+   virtual void saveAscii(const char* filename) const;
+   virtual void addValue(double value) = 0;
+
+   // Access bins
+   double operator()(int x) { return bins[x]; }
+
+protected:
+   size_t num_bins;
+   double* bins;
+};
+
+class LinearHistogram1D : public Histogram1D {
+public:
+   LinearHistogram1D(size_t n, double _low, double _high) : Histogram1D(n), low(_low), high(_high) {};
+
+   virtual void addValue(double value) {
+      value -= low;
+      value /= high - low;
+
+      int histogram_bin = value * num_bins;
+
+      if (histogram_bin < 0) {
+         histogram_bin = 0;
+      } else if (histogram_bin + 1 >= (ssize_t)num_bins) {
+         histogram_bin = num_bins - 1;
       }
-      if(!strncmp("BRICK_ORIGIN:", buffer, 13)) {
-         Vec3d l;
-         sscanf(buffer, "BRICK_ORIGIN: %lf %lf %lf", &l[0], &l[1], &l[2]);
-         low=l;
-         continue;
+      bins[histogram_bin]++;
+   }
+
+   virtual void saveAscii(const char* filename) const;
+
+private:
+   /* Low and high bound of the histogram */
+   double low, high;
+};
+
+class LogHistogram1D : public Histogram1D {
+public:
+   LogHistogram1D(size_t n, double _low, double _high) : Histogram1D(n), low(_low), high(_high) {};
+
+   virtual void addValue(double value) {
+      value /= low;
+      value = log(value);
+      value /= log(high / low);
+
+      int histogram_bin = value * num_bins;
+
+      if (histogram_bin < 0) {
+         histogram_bin = 0;
+      } else if (histogram_bin + 1 >= (ssize_t)num_bins) {
+         histogram_bin = num_bins - 1;
       }
-      if(!strncmp("BRICK_SIZE:", buffer, 11)) {
-         Vec3d s;
-         sscanf(buffer, "BRICK_SIZE: %lf %lf %lf\n", &s[0], &s[1], &s[2]);
-         size = s;
-         high=low + size;
-         continue;
+      bins[histogram_bin]++;
+   }
+
+private:
+   // low and high bound of the histogram
+   double low, high;
+};
+
+// Histograms of 2D data
+class Histogram2D {
+public:
+   Histogram2D(size_t n[2]) {
+      num_bins[0] = n[0];
+      num_bins[1] = n[1];
+
+      bins = new double[num_bins[0] * num_bins[1]];
+      memset(bins, 0, sizeof(double) * num_bins[0] * num_bins[1]);
+   }
+   ~Histogram2D() { delete[] bins; }
+
+   // Using MPI_Reduce, sum up all CPUs.
+   void mpi_reduce() {
+      double* targetbins = new double[num_bins[0] * num_bins[1]];
+      if (!targetbins) {
+         ERROR("allocation failed while mpi-reducing histogram.\n");
+         return;
       }
+
+      MPI_Allreduce(bins, targetbins, num_bins[0] * num_bins[1], MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+      /* Throw away the old bins. */
+      delete[] bins;
+      bins = targetbins;
    }
 
-   if(!filenameread) {
-      ERROR("BOV file %s did not contain a DATA_FILE statement!\n", filename);
-      fclose(f);
-      return;
-   }
+   void save(const char* filename) const;
+   void load(const char* filename);
+   virtual void addValue(Vec2d value, double weight = 1.) = 0;
 
-   // Load the actual histogram data from the data file
-   load(datafilename);
-   fclose(f);
-}
+   // Access bins
+   double operator()(int x, int y) { return bins[x + num_bins[0] * y]; }
 
-/* --- Arithmetic operators for adding and/or substracting Histograms --- */
+protected:
+   size_t num_bins[2];
+   double* bins;
+};
 
-void LinearHistogram2D::operator+=(LinearHistogram2D& other) {
-   /* Check precondition: Both Histograms have to be same size and energy range */
-   if(num_bins[0] != other.num_bins[0] ||
-         num_bins[1] != other.num_bins[1] ||
-         low[0] != other.low[0] || low[1] != other.low[1] ||
-         high[0] != other.high[0] || high[1] != other.high[1]) {
-      ERROR("Attempted arithmetic on LinearHistogram2D with different bounds.\n");
-      return;
-   }
+class LinearHistogram2D : public Histogram2D {
 
-   for(size_t j=0; j<num_bins[1]; j++) {
-      for(size_t i=0; i<num_bins[0]; i++) {
-         bins[j * num_bins[0] + i] += other.bins[j * num_bins[0] +i];
+public:
+   LinearHistogram2D(size_t n[2], Vec2d _low, Vec2d _high) : Histogram2D(n), low(_low), high(_high) {};
+   LinearHistogram2D(size_t nx, size_t ny, Vec2d _low, Vec2d _high) : Histogram2D(&nx), low(_low), high(_high) {};
+
+   virtual void addValue(Vec2d value, double weight = 1.) {
+      value -= low;
+      value = value.cwiseQuotient(high - low);
+
+      int histogram_bin[2];
+      histogram_bin[0] = value[0] * num_bins[0];
+      histogram_bin[1] = value[1] * num_bins[1];
+
+      for (int i = 0; i < 2; i++) {
+         if (histogram_bin[i] < 0) {
+            histogram_bin[i] = 0;
+         } else if (histogram_bin[i] + 1 >= (ssize_t)num_bins[i]) {
+            histogram_bin[i] = num_bins[i] - 1;
+         }
       }
-   }
-}
-
-void LinearHistogram2D::operator-=(LinearHistogram2D& other) {
-   /* Check precondition: Both Histograms have to be same size and energy range */
-   if(num_bins[0] != other.num_bins[0] ||
-         num_bins[1] != other.num_bins[1] ||
-         low[0] != other.low[0] || low[1] != other.low[1] ||
-         high[0] != other.high[0] || high[1] != other.high[1]) {
-      ERROR("Attempted arithmetic on LinearHistogram2D with different bounds.\n");
-      return;
+      bins[histogram_bin[0] + num_bins[0] * histogram_bin[1]] += weight;
    }
 
-   for(size_t j=0; j<num_bins[1]; j++) {
-      for(size_t i=0; i<num_bins[0]; i++) {
-         bins[j * num_bins[0] + i] -= other.bins[j * num_bins[0] +i];
+   void addValueLinearInterpolate(Vec2d value, double weight = 1.) {
+
+      value -= low;
+      value = value.cwiseQuotient(high - low);
+
+      double v[2];
+      v[0] = value[0] * num_bins[0];
+      v[1] = value[1] * num_bins[1];
+
+      // Interpolation parameter
+      double a[2];
+      a[0] = v[0] - floor(v[0]);
+      a[1] = v[1] - floor(v[1]);
+
+      // Ensure we are within bounds.
+      if (v[0] < 0) {
+         v[0] = 0;
+         a[0] = 0;
       }
-   }
-}
-
-void LogHistogram2D::operator+=(LogHistogram2D& other) {
-   /* Check precondition: Both Histograms have to be same size and energy range */
-   if(num_bins[0] != other.num_bins[0] ||
-         num_bins[1] != other.num_bins[1] ||
-         low[0] != other.low[0] || low[1] != other.low[1] ||
-         high[0] != other.high[0] || high[1] != other.high[1]) {
-      ERROR("Attempted arithmetic on LogHistogram2D with different bounds.\n");
-      return;
-   }
-
-   for(size_t j=0; j<num_bins[1]; j++) {
-      for(size_t i=0; i<num_bins[0]; i++) {
-         bins[j * num_bins[0] + i] += other.bins[j * num_bins[0] +i];
+      if (v[1] < 0) {
+         v[1] = 0;
+         a[1] = 0;
       }
-   }
-}
 
-void LogHistogram2D::operator-=(LogHistogram2D& other) {
-   /* Check precondition: Both Histograms have to be same size and energy range */
-   if(num_bins[0] != other.num_bins[0] ||
-         num_bins[1] != other.num_bins[1] ||
-         low[0] != other.low[0] || low[1] != other.low[1] ||
-         high[0] != other.high[0] || high[1] != other.high[1]) {
-      ERROR("Attempted arithmetic on LogHistogram2D with different bounds.\n");
-      return;
-   }
-
-   for(size_t j=0; j<num_bins[1]; j++) {
-      for(size_t i=0; i<num_bins[0]; i++) {
-         bins[j * num_bins[0] + i] -= other.bins[j * num_bins[0] +i];
+      if (v[0] >= num_bins[0] - 1) {
+         v[0] = num_bins[0] - 2;
+         a[0] = 1;
       }
+      if (v[1] >= num_bins[1] - 1) {
+         v[1] = num_bins[1] - 2;
+         a[1] = 1;
+      }
+
+      // Assign.
+      int histogram_bin[2];
+      histogram_bin[0] = floor(v[0]);
+      histogram_bin[1] = floor(v[1]);
+
+      bins[histogram_bin[0] + num_bins[0] * histogram_bin[1]] += weight * (1. - a[0]) * (1. - a[1]);
+      bins[histogram_bin[0] + num_bins[0] * (histogram_bin[1] + 1)] += weight * (1. - a[0]) * a[1];
+      bins[histogram_bin[0] + 1 + num_bins[0] * histogram_bin[1]] += weight * a[0] * (1. - a[1]);
+      bins[histogram_bin[0] + 1 + num_bins[0] * (histogram_bin[1] + 1)] += weight * a[0] * a[1];
    }
-}
+
+   // Bin-wise arithmetic on histograms
+   void operator+=(LinearHistogram2D& other);
+   void operator-=(LinearHistogram2D& other);
+
+   // Write and read a ASCII metadata file containing BOV data.
+   void writeBovAscii(const char* filename, int index, const char* datafilename);
+
+private:
+   // Low and high bound of the histogram
+   Vec2d low, high;
+};
+
+// Histogram with one linear and one logarithmic axis
+class LinLogHistogram2D : public Histogram2D {
+public:
+   LinLogHistogram2D(size_t n[2], Vec2d _low, Vec2d _high) : Histogram2D(n), low(_low), high(_high) {};
+
+   virtual void addValue(Vec2d value, double weight = 1.) {
+      double v[2];
+      v[0] -= low[0];
+      v[0] /= high[0] - low[0];
+      v[1] /= low[1];
+      v[1] = log(v[1]);
+      v[1] /= log(high[1] / low[1]);
+
+      int histogram_bin[2];
+      histogram_bin[0] = v[0] * num_bins[0];
+      histogram_bin[1] = v[1] * num_bins[1];
+
+      for (int i = 0; i < 2; i++) {
+         if (histogram_bin[i] < 0) {
+            histogram_bin[i] = 0;
+         } else if (histogram_bin[i] + 1 >= (ssize_t)num_bins[i]) {
+            histogram_bin[i] = num_bins[i] - 1;
+         }
+      }
+      bins[histogram_bin[0] + num_bins[0] * histogram_bin[1]] += weight;
+   }
+
+   void addValueLinearInterpolate(Vec2d value, double weight = 1.) {
+
+      double v[2];
+      v[0] = value[0] - low[0];
+      v[0] /= high[0] - low[0];
+      v[1] = value[1] / low[1];
+      v[1] = log(v[1]) / log(high[1] / low[1]);
+
+      v[0] *= num_bins[0];
+      v[1] *= num_bins[1];
+
+      // Interpolation parameter
+      double a[2];
+      a[0] = value[0] - floor(value[0]);
+      a[1] = value[1] - floor(value[1]);
+
+      // Ensure we are within bounds.
+      if (v[0] < 0) {
+         v[0] = 0;
+         a[0] = 0;
+      }
+      if (v[1] < 0) {
+         v[1] = 0;
+         a[1] = 0;
+      }
+
+      if (v[0] >= num_bins[0] - 1) {
+         v[0] = num_bins[0] - 2;
+         a[0] = 1;
+      }
+      if (v[1] >= num_bins[1] - 1) {
+         v[1] = num_bins[1] - 2;
+         a[1] = 1;
+      }
+
+      // Assign.
+      int histogram_bin[2];
+      histogram_bin[0] = floor(v[0]);
+      histogram_bin[1] = floor(v[1]);
+
+      bins[histogram_bin[0] + num_bins[0] * histogram_bin[1]] += weight * (1. - a[0]) * (1. - a[1]);
+      bins[histogram_bin[0] + num_bins[0] * (histogram_bin[1] + 1)] += weight * (1. - a[0]) * a[1];
+      bins[histogram_bin[0] + 1 + num_bins[0] * histogram_bin[1]] += weight * a[0] * (1. - a[1]);
+      bins[histogram_bin[0] + 1 + num_bins[0] * (histogram_bin[1] + 1)] += weight * a[0] * a[1];
+   }
+
+private:
+   // Low and high bound of the histogram
+   Vec2d low, high;
+};
+
+class LogHistogram2D : public Histogram2D {
+private:
+   // Low and high bound of the histogram
+   Vec2d low, high;
+
+   LogHistogram2D(size_t n[2], Vec2d _low, Vec2d _high) : Histogram2D(n), low(_low), high(_high) {};
+
+   virtual void addValue(Vec2d value, double weight = 1.) {
+      value = value.cwiseQuotient(low);
+
+      double v[2];
+      v[0] = log(value[0]) / log(high[0] / low[0]);
+      v[1] = log(value[1]) / log(high[1] / low[1]);
+
+      int histogram_bin[2];
+      histogram_bin[0] = v[0] * num_bins[0];
+      histogram_bin[1] = v[1] * num_bins[1];
+
+      for (int i = 0; i < 2; i++) {
+         if (histogram_bin[i] < 0) {
+            histogram_bin[i] = 0;
+         } else if (histogram_bin[i] + 1 >= (ssize_t)num_bins[i]) {
+            histogram_bin[i] = num_bins[i] - 1;
+         }
+      }
+      bins[histogram_bin[0] + num_bins[0] * histogram_bin[1]] += weight;
+   }
+
+   /* Bin-wise arithmetic on histograms */
+   void operator+=(LogHistogram2D& other);
+   void operator-=(LogHistogram2D& other);
+};
+
+// Histograms of 3D data
+class Histogram3D {
+public:
+   Histogram3D(size_t n[3]) {
+      num_bins[0] = n[0];
+      num_bins[1] = n[1];
+      num_bins[2] = n[2];
+
+      bins = new float[num_bins[0] * num_bins[1] * num_bins[2]];
+      memset(bins, 0, sizeof(float) * num_bins[0] * num_bins[1] * num_bins[2]);
+   }
+   ~Histogram3D() { delete[] bins; }
+
+   // Using MPI_Reduce, sum up all CPUs.
+   void mpi_reduce() {
+      float* targetbins = new float[num_bins[0] * num_bins[1] * num_bins[2]];
+      if (!targetbins) {
+         ERROR("allocation failed while mpi-reducing histogram.\n");
+         return;
+      }
+
+      MPI_Allreduce(bins, targetbins, num_bins[0] * num_bins[1] * num_bins[2], MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
+
+      /* Throw away the old bins. */
+      delete[] bins;
+      bins = targetbins;
+   }
+
+   void save(const char* filename) const;
+   void load(const char* filename);
+   virtual void addValue(Vec3d value) = 0;
+
+   // Access bins
+   double operator()(int x, int y, int z) { return bins[x + num_bins[0] * y + num_bins[0] * num_bins[1] * z]; }
+
+protected:
+   size_t num_bins[3];
+   float* bins;
+};
+
+class LinearHistogram3D : public Histogram3D {
+public:
+   LinearHistogram3D(size_t n[3], Vec3d _low, Vec3d _high) : Histogram3D(n), low(_low), high(_high) {};
+
+   virtual void addValue(Vec3d value) {
+      value -= low;
+      value = value.cwiseQuotient(high - low);
+
+      int histogram_bin[3];
+      histogram_bin[0] = value[0] * num_bins[0];
+      histogram_bin[1] = value[1] * num_bins[1];
+      histogram_bin[2] = value[2] * num_bins[2];
+
+      for (int i = 0; i < 3; i++) {
+         if (histogram_bin[i] < 0) {
+            histogram_bin[i] = 0;
+         } else if (histogram_bin[i] + 1 >= (ssize_t)num_bins[i]) {
+            histogram_bin[i] = num_bins[i] - 1;
+         }
+      }
+      bins[histogram_bin[0] + num_bins[0] * histogram_bin[1] + num_bins[0] * num_bins[1] * histogram_bin[2]]++;
+   }
+
+   Vec3d coords_for_cell(Vec3d cell) {
+      Vec3d nx(num_bins[0], num_bins[1], num_bins[2]);
+      return low + cell.cwiseQuotient(nx).cwiseProduct(high - low);
+   }
+
+   // Bin-wise arithmetic on histograms
+   void operator+=(LinearHistogram3D& other);
+   void operator-=(LinearHistogram3D& other);
+
+   // Write and read a ASCII metadata file containing BOV data.
+   void writeBovAscii(const char* filename, int index, const char* datafilename);
+   void readBov(const char* filename);
+
+private:
+   // Low and high bound of the histogram
+   Vec3d low, high;
+};

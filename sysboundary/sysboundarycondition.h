@@ -19,333 +19,431 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include "common.h"
+#include "particles/field.h"
+#include "particles/readfields.h"
+#include <errno.h>
+#include <fcntl.h>
+#include <iostream>
+#include <mpi.h>
+#include <string.h>
+#include <string>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
-#ifndef SYSBOUNDARYCONDITION_H
-#define SYSBOUNDARYCONDITION_H
+using namespace std;
 
-#include <dccrg.hpp>
-#include <dccrg_cartesian_geometry.hpp>
-#include <fsgrid.hpp>
+static bool isInside(Field& B, double R, int x, int y, int z) {
+   double R2 = 0;
+   std::array<int, 3> xyz{x, y, z};
+   for (int i = 0; i < 3; ++i) {
+      R2 += pow(B.dimension[i]->min + xyz[i] * B.dx[i], 2);
+   }
+   return R2 < pow(R, 2);
+}
 
-#include <vector>
-#include "../common.h"
-#include "../definitions.h"
-#include "../spatial_cells/spatial_cell_wrapper.hpp"
-#include "../projects/project.h"
+// Calculate fluxfunction by integrating along -y/z boundary first,
+// and then going along y/z-direction.
+std::vector<double> computeFluxUp(Field& B, int outerBoundary, double innerBoundary) {
+   // Create fluxfunction-field to be the same shape as B
+   std::vector<double> flux(B.dimension[0]->cells * B.dimension[1]->cells * B.dimension[2]->cells);
+   for (unsigned int i = 0; i < flux.size(); ++i) {
+      flux[i] = NAN;
+   }
 
-using namespace spatial_cell;
-using namespace projects;
+   bool eqPlane = B.dimension[1]->cells > 1;
+   int yCoord = eqPlane ? 1 : 2;
 
-namespace SBC {
-   /*!\brief SBC::SysBoundaryCondition is the base class for system boundary conditions.
-    * 
-    * SBC::SysBoundaryCondition defines a base class for applying boundary conditions.
-    * Specific system boundary conditions inherit from this base class, that's why most
-    * functions defined here are not meant to be called and contain a corresponding error
-    * message. The functions to be called are the inherited class members.
-    * 
-    * The initSysBoundary function is used to initialise the internal workings needed by the
-    * system boundary condition to run (e.g. importing parameters, initialising class
-    * members). assignSysBoundary is used to determine whether a given cell is within the
-    * domain of system boundary condition. applyInitialState is called to initialise a system
-    * boundary cell's parameters and velocity space.
-    * 
-    * If needed, a user can write his or her own SBC::SysBoundaryConditions, which 
-    * are loaded when the simulation initializes.
-    */
-   class SysBoundaryCondition {
-      public:
-         SysBoundaryCondition();
-         virtual ~SysBoundaryCondition();
-         
-         static void addParameters();
-         virtual void getParameters()=0;
-         
-         virtual void initSysBoundary(
-            creal& t,
-            Project &project
-         )=0;
-         virtual void assignSysBoundary(dccrg::Dccrg<SpatialCell,
-                                        dccrg::Cartesian_Geometry>& mpiGrid,
-                                        FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)=0;
-         virtual void applyInitialState(
-            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-            FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-            FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-            FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-            Project &project
-         )=0;
-         virtual void updateState(
-            dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-            FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid,
-            FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-            creal t
-         )=0;
-         virtual Real fieldSolverBoundaryCondMagneticField(
-            FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
-            FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & bgbGrid,
-            FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-            cint i,
-            cint j,
-            cint k,
-            creal dt,
-            cuint component
-         )=0;
-         virtual void fieldSolverBoundaryCondElectricField(
-            FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-            cint i,
-            cint j,
-            cint k,
-            cuint component
-         )=0;
-         virtual void fieldSolverBoundaryCondHallElectricField(
-            FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
-            cint i,
-            cint j,
-            cint k,
-            cuint component
-         )=0;
-         virtual void fieldSolverBoundaryCondGradPeElectricField(
-            FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-            cint i,
-            cint j,
-            cint k,
-            cuint component
-         )=0;
-         virtual void fieldSolverBoundaryCondDerivatives(
-            FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-            FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-            cint i,
-            cint j,
-            cint k,
-            cuint RKCase,
-            cuint component
-         )=0;
-         virtual void fieldSolverBoundaryCondBVOLDerivatives(
-            FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-            cint i,
-            cint j,
-            cint k,
-            cuint component
-         )=0;
-         static void setCellDerivativesToZero(
-            FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-            FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-            cint i,
-            cint j,
-            cint k,
-            cuint component
-         );
-         static void setCellBVOLDerivativesToZero(
-            FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-            cint i,
-            cint j,
-            cint k,
-            cuint component
-         );
-        
-         virtual void mapCellPotentialAndGetEXBDrift(
-            std::array<Real, CellParams::N_SPATIAL_CELL_PARAMS>& cellParams
-         );
+   long double tmp_flux = 0.;
+   long double bottom_flux = 0.;
 
-         /** This function computes the Vlasov (distribution function) 
-          * boundary condition for the given particle species only. 
-          * It is not! allowed to change block structure in cell.
-          * @param mpiGrid Parallel grid.
-          * @param cellID Spatial cell ID.
-          * @param popID Particle species ID.*/
-        virtual void vlasovBoundaryCondition(
-            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-            const CellID& cellID,
-            const uint popID,
-            const bool calculate_V_moments
-        )=0;
-
-        virtual void setupL2OutflowAtRestart(
-            dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid
-        ) {
-            std::cerr << "ERROR: base class SysBoundaryCondition::setupL2OutflowAtRestart called!" << std::endl;
-        }
-
-
-
-         /*! Function used to know which faces the boundary condition is applied to.
-          * @param faces Pointer to array of 6 bool in which the values are returned whether the corresponding face is of that
-          * type. Order: 0 x+; 1 x-; 2 y+; 3 y-; 4 z+; 5 z-
-          */
-         virtual void getFaces(bool *faces) = 0;
-         virtual std::string getName() const=0;
-         virtual uint getIndex() const=0;
-         uint getPrecedence() const;
-         bool isDynamic() const;
-      
-         bool updateSysBoundaryConditionsAfterLoadBalance(
-            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-            const std::vector<CellID> & local_cells_on_boundary
-         );
-         bool doApplyUponRestart() const;
-         void setPeriodicity(
-            bool isFacePeriodic[3]
-         );
-      protected:
-         void determineFace(
-            bool* isThisCellOnAFace,
-            creal x, creal y, creal z,
-            creal dx, creal dy, creal dz,
-            const bool excludeSlicesAndPeriodicDimensions = false
-         );
-         void determineFace(
-            std::array<bool, 6> &isThisCellOnAFace,
-            const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-            CellID id,
-            const bool excludeSlicesAndPeriodicDimensions = false
-         );
-         void copyCellData(
-            SpatialCell *from,
-            SpatialCell *to,
-            const bool copyMomentsOnly,
-            const uint popID,
-            const bool copy_V_moments
-         );
-         std::array<SpatialCell*,27> & getFlowtoCells(
-               const CellID& cellID
-         );
-
-         std::array<Realf*,27> getFlowtoCellsBlock(
-               const std::array<SpatialCell*,27> flowtoCells,
-               const vmesh::GlobalID blockGID,
-               const uint popID
-         );
-      
-
-      /*! Helper function to get the index of a neighboring cell in the arrays in allFlowtoCells.
-       * \param i Offset in x direction (-1, 0 or 1)
-       * \param j Offset in y direction (-1, 0 or 1)
-       * \param k Offset in z direction (-1, 0 or 1)
-       * \retval int Index in the flowto cell array (0 to 26, indexed from - to + x, y, z.
-       */
-      inline int nbrID(const int i, const int j, const int k){
-         return (k+1)*9 + (j+1)*3 + i + 1;
+   // First, fill the y/z=3 cells
+   // Then integrate in y/z direction
+   for (int x = B.dimension[0]->cells - (outerBoundary + 1); x >= outerBoundary; x--) {
+      int i = outerBoundary;
+      int y = eqPlane ? i : 0;
+      int z = eqPlane ? 0 : i;
+      if (isInside(B, innerBoundary, x, y, z)) {
+         break;
       }
-      
-         void vlasovBoundaryCopyFromTheClosestNbr(
-            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-            const CellID& cellID,
-            const bool& copyMomentsOnly,
-            const uint popID,
-            const bool calculate_V_moments
-         );
-         void vlasovBoundaryCopyFromTheClosestL1OutflowNbr(
-            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-            const CellID& cellID,
-            const bool& copyMomentsOnly,
-            const uint popID,
-            const bool calculate_V_moments
-         );
-         void vlasovBoundaryCopyFromAllClosestNbrs(
-            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-            const CellID& cellID,
-            const uint popID,
-            const bool calculate_V_moments
-         );
-         void vlasovBoundaryFluffyCopyFromAllCloseNbrs(
-            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-            const CellID& cellID,
-            const uint popID,
-            const bool calculate_V_moments,
-            creal fluffiness
-         );
-         std::array<int, 3> getTheClosestNonsysboundaryCell(
-            FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-            cint i,
-            cint j,
-            cint k
-         );
-         std::vector< std::array<int, 3> > getAllClosestNonsysboundaryCells(
-            FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-            cint i,
-            cint j,
-            cint k
-         );
-         CellID & getTheClosestNonsysboundaryCell(
-            const CellID& cellID
-         );
-         std::vector<CellID> & getAllClosestNonsysboundaryCells(
-            const CellID& cellID
-         );
-         std::vector<CellID> & getAllCloseNonsysboundaryCells(
-            const CellID& cellID
-         );
-         CellID & getTheClosestL1OutflowCell(
-            const CellID& cellID
-         );
-         std::vector<CellID> & getAllClosestL1OutflowCells(
-            const CellID& cellID
-         );
-         Real fieldBoundaryCopyFromSolvingNbrMagneticField(
-            FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
-            FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-            cint i,
-            cint j,
-            cint k,
-            cuint component,
-            cuint mask
-         );
-         
-         /*! Precedence value of the system boundary condition. */
-         uint precedence;
-         /*! Is the boundary condition dynamic in time or not. */
-         bool dynamic;
-         /*! Array of bool telling whether the system is periodic in any direction. */
-         bool periodic[3];
-         /*! Map of closest nonsysboundarycells. Used in getAllClosestNonsysboundaryCells. */
-         std::unordered_map<CellID, std::vector<CellID>> allClosestNonsysboundaryCells;
-         /*! Map of close nonsysboundarycells. Used in getAllCloseNonsysboundaryCells. */
-         std::unordered_map<CellID, std::vector<CellID>> allCloseNonsysboundaryCells;
-         /*! Map of closest Outflow L1 cells. Used in getAllClosestL1OutflowCells. */
-         std::unordered_map<CellID, std::vector<CellID>> allClosestL1OutflowCells;
-         /*! Map of close Outflow L1 cells. Used in getAllCloseL1OutflowCells. */
-         std::unordered_map<CellID, std::vector<CellID>> allCloseL1OutflowCells;
-      
-         /*! bool telling whether to call again applyInitialState upon restarting the simulation. */
-         bool applyUponRestart;
-   };
 
-   class OuterBoundaryCondition: public SysBoundaryCondition {
-      public:
-         virtual void assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid);
-      protected:
-         /*! Array of bool telling which faces are going to be processed by the system boundary condition.*/
-         bool facesToProcess[6];
-   };
-   
-   // Moved outside the class since it's a helper function that doesn't require member access
-   void averageCellData (
-      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      std::vector<CellID> cellList,
-      SpatialCell *to,
-      const uint popID,
-      creal fluffiness = 0
-   );
+      Vec3d bval = B.getCell(x, y, z);
 
-   /*!\brief SBC::findMaxwellianBlocksToInitialize returns a list of blocks to construct the VDF with.
-    * 
-    *  Here the while loop iterates  from the centre of the maxwellian in blocksize (4*dvx) increments,
-    *  and looks at the centre of the first velocity cell in the block (+0.5dvx), checking if the
-    *  phase-space density there is large enough to be included due to sparsity threshold.
-    *  That results in a "blocks radius"  vRadiusSquared from the centre of the Maxwellian distribution.
-    *  Then we iterate through the actual blocks and calculate their radius R2 based on their velocity coordinates
-    *  and the plasma bulk velocity. Blocks that fullfil R2<vRadiusSquared are included to blocksToInitialize.
-    */
-   vmesh::LocalID findMaxwellianBlocksToInitialize(
-      const uint popID,
-      spatial_cell::SpatialCell& cell,
-      creal& rho,
-      creal& T,
-      creal& VX0,
-      creal& VY0,
-      creal& VZ0);
+      bottom_flux -= bval[yCoord] * B.dx[0];
+      flux[B.dimension[0]->cells * i + x] = bottom_flux;
 
-} // namespace SBC
+      tmp_flux = bottom_flux;
+      for (i++; i < B.dimension[yCoord]->cells - outerBoundary; i++) {
+         y = eqPlane ? i : 0;
+         z = eqPlane ? 0 : i;
+         if (isInside(B, innerBoundary, x, y, z)) {
+            break;
+         }
 
-#endif
+         bval = B.getCell(x, y, z);
+
+         tmp_flux -= bval[0] * B.dx[yCoord];
+         flux[B.dimension[0]->cells * i + x] = tmp_flux;
+      }
+   }
+
+   return flux;
+}
+
+// Calculate fluxfunction by integrating along +y/z boundary first,
+// and then going along negative y/z-direction.
+std::vector<double> computeFluxDown(Field& B, int outerBoundary, double innerBoundary) {
+   // Create fluxfunction-field to be the same shape as B
+   std::vector<double> flux(B.dimension[0]->cells * B.dimension[1]->cells * B.dimension[2]->cells);
+   for (unsigned int i = 0; i < flux.size(); ++i) {
+      flux[i] = NAN;
+   }
+
+   bool eqPlane = B.dimension[1]->cells > 1;
+   int yCoord = eqPlane ? 1 : 2;
+
+   long double tmp_flux = 0.;
+   long double top_flux = 0.;
+
+   // Calculate flux-difference between bottom and top edge
+   // of +x boundary (so that values are consistent with computeFluxUp)
+   for (int i = outerBoundary; i < B.dimension[yCoord]->cells - outerBoundary; i++) {
+      int x = B.dimension[0]->cells - (outerBoundary + 1);
+      int y = eqPlane ? i : 0;
+      int z = eqPlane ? 0 : i;
+      if (isInside(B, innerBoundary, x, y, z)) {
+         break;
+      }
+
+      Vec3d bval = B.getCell(x, y, z);
+
+      top_flux -= bval[0] * B.dx[yCoord];
+      flux[B.dimension[0]->cells * i + x] = top_flux;
+   }
+
+   // First, fill the y/z = max - 4 cells
+   // Then integrate in -y/z direction
+   for (int x = B.dimension[0]->cells - (outerBoundary + 2); x >= outerBoundary; x--) {
+      int i = B.dimension[yCoord]->cells - (outerBoundary + 1);
+      int y = eqPlane ? i : 0;
+      int z = eqPlane ? 0 : i;
+      if (isInside(B, innerBoundary, x, y, z)) {
+         break;
+      }
+
+      Vec3d bval = B.getCell(x, y, z);
+
+      top_flux -= bval[yCoord] * B.dx[0];
+      flux[B.dimension[0]->cells * i + x] = top_flux;
+
+      tmp_flux = top_flux;
+      for (i--; i >= outerBoundary; i--) {
+         y = eqPlane ? i : 0;
+         z = eqPlane ? 0 : i;
+         if (isInside(B, innerBoundary, x, y, z)) {
+            break;
+         }
+
+         bval = B.getCell(x, y, z);
+
+         tmp_flux += bval[0] * B.dx[yCoord];
+         flux[B.dimension[0]->cells * i + x] = tmp_flux;
+      }
+   }
+
+   return flux;
+}
+
+// Calculate fluxfunction by integrating along -x from the right boundary
+std::vector<double> computeFluxLeft(Field& B, int outerBoundary, double innerBoundary) {
+   // Create fluxfunction-field to be the same shape as B
+   std::vector<double> flux(B.dimension[0]->cells * B.dimension[1]->cells * B.dimension[2]->cells);
+   for (unsigned int i = 0; i < flux.size(); ++i) {
+      flux[i] = NAN;
+   }
+
+   bool eqPlane = B.dimension[1]->cells > 1;
+   int yCoord = eqPlane ? 1 : 2;
+
+   long double tmp_flux = 0.;
+   long double right_flux = 0.;
+
+   // First calculate flux difference to bottom right corner
+   // Now, for each row, integrate in -z-direction.
+   for (int i = outerBoundary; i < B.dimension[yCoord]->cells - outerBoundary; i++) {
+      int x = B.dimension[0]->cells - (outerBoundary + 1);
+      int y = eqPlane ? i : 0;
+      int z = eqPlane ? 0 : i;
+      if (isInside(B, innerBoundary, x, y, z)) {
+         break;
+      }
+
+      Vec3d bval = B.getCell(x, y, z);
+
+      right_flux -= bval[0] * B.dx[yCoord];
+      flux[B.dimension[0]->cells * i + x] = right_flux;
+
+      tmp_flux = right_flux;
+      for (x--; x >= outerBoundary; x--) {
+         if (isInside(B, innerBoundary, x, y, z)) {
+            break;
+         }
+
+         bval = B.getCell(x, y, z);
+
+         tmp_flux -= bval[yCoord] * B.dx[0];
+         flux[B.dimension[0]->cells * i + x] = tmp_flux;
+      }
+   }
+
+   return flux;
+}
+
+// Calculate fluxfunction by integrating along -y/z boundary
+// Then along the -x boundary
+// And finally right in the +x direction
+std::vector<double> computeFluxUpRight(Field& B, int outerBoundary, double innerBoundary) {
+   // Create fluxfunction-field to be the same shape as B
+   std::vector<double> flux(B.dimension[0]->cells * B.dimension[1]->cells * B.dimension[2]->cells);
+   for (unsigned int i = 0; i < flux.size(); ++i) {
+      flux[i] = NAN;
+   }
+
+   bool eqPlane = B.dimension[1]->cells > 1;
+   int yCoord = eqPlane ? 1 : 2;
+
+   long double tmp_flux = 0.;
+   long double left_flux = 0.;
+
+   // First calculate flux difference from the right edge
+   for (int x = B.dimension[0]->cells - (outerBoundary + 1); x >= outerBoundary; x--) {
+      int i = outerBoundary;
+      int y = eqPlane ? i : 0;
+      int z = eqPlane ? 0 : i;
+      if (isInside(B, innerBoundary, x, y, z)) {
+         break;
+      }
+
+      Vec3d bval = B.getCell(x, y, z);
+
+      left_flux -= bval[yCoord] * B.dx[0];
+      flux[B.dimension[0]->cells * i + x] = left_flux;
+   }
+
+   // Now, for each row, integrate in y/z-direction,
+   // Then integrate in +x direction
+   for (int i = outerBoundary; i < B.dimension[yCoord]->cells - outerBoundary; i++) {
+      int x = outerBoundary;
+      int y = eqPlane ? i : 0;
+      int z = eqPlane ? 0 : i;
+      if (isInside(B, innerBoundary, x, y, z)) {
+         break;
+      }
+
+      Vec3d bval = B.getCell(x, y, z);
+
+      left_flux -= bval[0] * B.dx[yCoord];
+      flux[B.dimension[0]->cells * i + x] = left_flux;
+
+      tmp_flux = left_flux;
+      for (x++; x < B.dimension[0]->cells - outerBoundary; x++) {
+         if (isInside(B, innerBoundary, x, y, z)) {
+            break;
+         }
+
+         bval = B.getCell(x, y, z);
+
+         tmp_flux += bval[yCoord] * B.dx[0];
+         flux[B.dimension[0]->cells * i + x] = tmp_flux;
+      }
+   }
+
+   return flux;
+}
+
+// Calculate fluxfunction by integrating along +y/z boundary
+// Then along the -x boundary
+// And finally right in the +x direction
+std::vector<double> computeFluxDownRight(Field& B, int outerBoundary, double innerBoundary) {
+   // Create fluxfunction-field to be the same shape as B
+   std::vector<double> flux(B.dimension[0]->cells * B.dimension[1]->cells * B.dimension[2]->cells);
+   for (unsigned int i = 0; i < flux.size(); ++i) {
+      flux[i] = NAN;
+   }
+
+   bool eqPlane = B.dimension[1]->cells > 1;
+   int yCoord = eqPlane ? 1 : 2;
+
+   long double tmp_flux = 0.;
+   long double left_flux = 0.;
+
+   // Calculate flux-difference between bottom and top edge
+   // of +x boundary (so that values are consistent with computeFluxUp)
+   for (int i = outerBoundary; i < B.dimension[yCoord]->cells - outerBoundary; i++) {
+      int x = B.dimension[0]->cells - (outerBoundary + 1);
+      int y = eqPlane ? i : 0;
+      int z = eqPlane ? 0 : i;
+      if (isInside(B, innerBoundary, x, y, z)) {
+         break;
+      }
+
+      Vec3d bval = B.getCell(x, y, z);
+
+      left_flux -= bval[0] * B.dx[yCoord];
+      flux[B.dimension[0]->cells * i + x] = left_flux;
+   }
+
+   // Then to left edge
+   for (int x = B.dimension[0]->cells - (outerBoundary + 2); x >= outerBoundary; x--) {
+      int i = B.dimension[yCoord]->cells - (outerBoundary + 1);
+      int y = eqPlane ? i : 0;
+      int z = eqPlane ? 0 : i;
+      if (isInside(B, innerBoundary, x, y, z)) {
+         break;
+      }
+
+      Vec3d bval = B.getCell(x, y, z);
+
+      left_flux -= bval[yCoord] * B.dx[0];
+      flux[B.dimension[0]->cells * i + x] = left_flux;
+   }
+
+   // Now, for each row, integrate in y/z-direction,
+   // Then integrate in +x direction
+   for (int i = B.dimension[yCoord]->cells - (outerBoundary + 2); i >= outerBoundary; i--) {
+      int x = outerBoundary;
+      int y = eqPlane ? i : 0;
+      int z = eqPlane ? 0 : i;
+      if (isInside(B, innerBoundary, x, y, z)) {
+         break;
+      }
+
+      Vec3d bval = B.getCell(x, y, z);
+
+      left_flux += bval[0] * B.dx[yCoord];
+      flux[B.dimension[0]->cells * i + x] = left_flux;
+
+      tmp_flux = left_flux;
+      for (x++; x < B.dimension[0]->cells - outerBoundary; x++) {
+         if (isInside(B, innerBoundary, x, y, z)) {
+            break;
+         }
+
+         bval = B.getCell(x, y, z);
+
+         tmp_flux += bval[yCoord] * B.dx[0];
+         flux[B.dimension[0]->cells * i + x] = tmp_flux;
+      }
+   }
+
+   return flux;
+}
+
+// Get median of vector
+double nanMedian(std::vector<double>& v) {
+   v.erase(std::remove_if(v.begin(), v.end(), [](const double& value) { return !isfinite(value); }), v.end());
+   int n = v.size();
+   if (!n) {
+      return NAN;
+   } else if (n % 2) {
+      std::nth_element(v.begin(), v.begin() + n / 2, v.end());
+      return v[n / 2];
+   } else {
+      std::nth_element(v.begin(), v.begin() + n / 2 - 1, v.end()); // Left median
+      std::nth_element(v.begin(), v.begin() + n / 2, v.end());     // Right median
+      return (v[n / 2 - 1] + v[n / 2]) / 2;
+   }
+}
+
+// Get mean of vector
+double nanMean(std::vector<double>& v) {
+   v.erase(std::remove_if(v.begin(), v.end(), [](const double& value) { return !isfinite(value); }), v.end());
+   int n = v.size();
+   return n ? std::accumulate(v.begin(), v.end(), 0.0) / n : NAN;
+}
+
+int main(int argc, char** argv) {
+
+   // MPI::Init(argc, argv);
+
+   if (argc < 3) {
+      cerr << "Syntax: fluxfunction input.vlsv output.bin" << endl;
+      cerr << "Output will be two files: output.bin and output.bin.bov." << endl;
+      cerr << "Point visit to the BOV file." << endl;
+      return 1;
+   }
+   string inFile(argv[1]);
+   string outFile(argv[2]);
+
+   // TODO: Don't uselessly read E, we really only care about B.
+   Field E, B, V;
+   readfields(inFile.c_str(), E, B, V, false);
+
+   // Make sure we are working with a 2D simulation here.
+   if (B.dimension[0]->cells > 1 && B.dimension[1]->cells > 1 && B.dimension[2]->cells > 1) {
+      cerr << "This is a 3D simulation output. Flux function calculation only makes sense for 2D data." << endl;
+      exit(1);
+   }
+
+   cerr << "File read, calculating flux function..." << endl;
+
+   double dOuter = 2;
+   double rInner = 5 * physicalconstants::R_E; // Default for now
+   std::vector<double> fluxUp, fluxDown, fluxLeft, fluxUR, fluxDR;
+   fluxUp = computeFluxUp(B, dOuter, rInner);
+   fluxDown = computeFluxDown(B, dOuter, rInner);
+   fluxLeft = computeFluxLeft(B, dOuter, rInner);
+   fluxUR = computeFluxUpRight(B, dOuter, rInner);
+   fluxDR = computeFluxDownRight(B, dOuter, rInner);
+
+   for (unsigned int i = 0; i < fluxUp.size(); i++) {
+      std::vector<double> v{fluxUp[i], fluxDown[i], fluxLeft[i], fluxUR[i], fluxDR[i]};
+      fluxUp[i] = nanMedian(v);
+      // fluxDown[i] = nanMedian(v);
+      // fluxLeft[i] = nanMean(v);
+      // fluxUR[i] = abs((fluxDown[i] - fluxLeft[i])/fluxDown[i]);
+      // fluxDR[i] = abs((fluxDown[i] - fluxLeft[i])/fluxLeft[i]);
+   }
+
+   cerr << "Done. Writing output..." << endl;
+   // std::cout << "Mean of medians " << nanMean(fluxDown) << std::endl;
+   // std::cout << "Mean of means " << nanMean(fluxLeft) << std::endl;
+   // std::cout << "Mean relative difference " << nanMean(fluxUR) << std::endl;
+   // std::cout << "Mean relative difference " << nanMean(fluxDR) << std::endl;
+   // std::cout << "Maximum difference " << *max_element(fluxUR.begin(), fluxUR.end()) << std::endl;
+   // std::cout << "Maximum difference " << *max_element(fluxDR.begin(), fluxDR.end()) << std::endl;
+
+   // Write output as a visit-compatible BOV file
+   int fd = open(outFile.c_str(), O_CREAT | O_TRUNC | O_WRONLY, 0644);
+   if (!fd || fd == -1) {
+      cerr << "Error: cannot open output file " << outFile << ": " << strerror(errno) << endl;
+      return 1;
+   }
+   size_t size = B.dimension[0]->cells * B.dimension[1]->cells * B.dimension[2]->cells * sizeof(double);
+
+   // Write binary blob
+   for (ssize_t remain = size; remain > 0;) {
+      remain -= write(fd, ((char*)&(fluxUp[0])) + remain - size, remain);
+   }
+   close(fd);
+
+   // Write BOV header
+   string outBov = outFile + ".bov";
+   FILE* f = fopen(outBov.c_str(), "w");
+   if (!f) {
+      cerr << "Error: unable to write BOV ascii file " << outBov << ":" << strerror(errno) << endl;
+      return 1;
+   }
+   fprintf(f, "TIME: %lf\n", B.time);
+   fprintf(f, "DATA_FILE: %s\n", outFile.c_str());
+   fprintf(f, "DATA_SIZE: %i %i %i\n", B.dimension[0]->cells, B.dimension[1]->cells, B.dimension[2]->cells);
+   fprintf(f, "DATA_FORMAT: DOUBLE\nVARIABLE: fluxfunction\nDATA_ENDIAN: LITTLE\nCENTERING: zonal\n");
+   fprintf(f, "BRICK_ORIGIN: %lf %lf %lf\n", B.dimension[0]->min, B.dimension[1]->min, B.dimension[2]->min);
+   fprintf(f, "BRICK_SIZE: %lf %lf %lf\n", B.dimension[0]->max - B.dimension[0]->min, B.dimension[1]->max - B.dimension[1]->min, B.dimension[2]->max - B.dimension[2]->min);
+   fprintf(f, "DATA_COMPONENTS: 1\n");
+
+   fclose(f);
+
+   return 0;
+}

@@ -1,21 +1,14 @@
-#case = "light"
-#case = "medium"
-case = "heavy"
-
 set log x
 set xrange [1:513]
-set yrange [0:1.1]
 set xlabel "Nodes"
-set ylabel "Efficiency"
-set title "Strong scaling efficiency ".case." (LUMI-C)"
-set key left bottom
+set ylabel "Total run time (s)"
+set title "Weak scaling (LUMI-C)"
+set key left top
 
 set term png font "Corbel,14"
-set output "strong_scaling_efficiency_".case.".png"
+set output "weak_scaling.png"
 
-plot t=0 "timings_".case.".dat" u 1:(t==0?y0=$2:y0, t==0?nc=$1:nc, t=t+1, y0*nc/($1*$2)) w lp lw 2 t "Total run time", \
-     t=0 "timings_".case.".dat" u 1:(t==0?y0=$3:y0, t==0?nc=$1:nc, t=t+1, y0*nc/($1*$3)) w lp lw 2 t "Propagate", \
-     t=0 "timings_".case.".dat" u 1:(t==0?y0=$4:y0, t==0?nc=$1:nc, t=t+1, y0*nc/($1*$4)) w lp lw 2 t "Spatial-space", \
-     t=0 "timings_".case.".dat" u 1:(t==0?y0=$5:y0, t==0?nc=$1:nc, t=t+1, y0*nc/($1*$5)) w lp lw 2 t "Velocity-space", \
-     1 lw 2 lc "black" notitle
-
+plot t=0 "along_y.dat" u 1:(t==0?nc=$2:nc, t=t+1, $2) w p lw 2 t "Extended along y", \
+         "along_z.dat" u 1:2 w p lw 2 t "Extended along z", \
+         "along_yz.dat" u 1:2 w p lw 2 t "Extended along y, z", \
+         nc lw 2 lc "black" notitle

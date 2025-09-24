@@ -1,6 +1,6 @@
 /*
  * This file is part of Vlasiator.
- * Copyright 2010-2020 Finnish Meteorological Institute
+ * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
  * at http://www.physics.helsinki.fi/vlasiator/
@@ -20,446 +20,486 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef IONOSPHERE_H
-#define IONOSPHERE_H
+/*!\file outflow.cpp
+ * \brief Implementation of the class SysBoundaryCondition::Outflow to handle cells classified as sysboundarytype::OUTFLOW.
+ */
 
-#include <cstdint>
-#include <vector>
-#include <functional>
-#include "../definitions.h"
-#include "../readparameters.h"
-#include "../spatial_cells/spatial_cell_wrapper.hpp"
-#include "sysboundarycondition.h"
-#include "../backgroundfield/fieldfunction.hpp"
+#include <cstdlib>
+#include <iostream>
+
 #include "../fieldsolver/fs_common.h"
+#include "../fieldsolver/ldz_magnetic_field.hpp"
+#include "../grid.h"
+#include "../object_wrapper.h"
+#include "../projects/projects_common.h"
+#include "../vlasovsolver/vlasovmover.h"
+#include "outflow.h"
 
-using namespace projects;
+#ifdef DEBUG_VLASIATOR
+   #define DEBUG_OUTFLOW
+#endif
+#ifdef DEBUG_SYSBOUNDARY
+#define DEBUG_OUTFLOW
+#endif
+
 using namespace std;
 
 namespace SBC {
+   Outflow::Outflow() : OuterBoundaryCondition() {}
+   Outflow::~Outflow() {}
 
-   // Hardcoded constants for calculating ion production table
-   // TODO: Make these parameters?
-   constexpr static int productionNumAccEnergies = 60;
-   constexpr static int productionNumTemperatures = 60;
-   constexpr static int productionNumParticleEnergies = 100;
-   constexpr static Real productionMinAccEnergy = 0.1; // keV
-   constexpr static Real productionMaxAccEnergy = 100.; // keV
-   constexpr static Real productionMinTemperature = 0.1; // keV
-   constexpr static Real productionMaxTemperature = 100.; // keV
-   constexpr static Real ion_electron_T_ratio = 4.; // TODO: Make this a parameter (and/or find value from kinetics)
+   void Outflow::addParameters() {
+      const string defStr = "Copy";
+      Readparameters::addComposing("outflow.faceNoFields", "List of faces on which no field outflow boundary conditions are to be applied ([xyz][+-]).");
+      Readparameters::add("outflow.precedence", "Precedence value of the outflow system boundary condition (integer), the higher the stronger.", 4);
+      Readparameters::add(
+          "outflow.reapplyUponRestart",
+          "If 0 (default), keep going with the state existing in the restart file. If 1, calls again applyInitialState. Can be used to change boundary condition behaviour during a run.",
+          0);
 
+      // Per-population parameters
+      for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
+         const string& pop = getObjectWrapper().particleSpecies[i].name;
 
-   struct IonosphereSpeciesParameters {
-      Real rho;
-      Real V0[3];
-      Real T;
-   };
+         Readparameters::addComposing(pop + "_outflow.reapplyFaceUponRestart", "List of faces on which outflow boundary conditions are to be reapplied upon restart ([xyz][+-]).");
+         Readparameters::addComposing(pop + "_outflow.face", "List of faces on which outflow boundary conditions are to be applied ([xyz][+-]).");
+         Readparameters::add(pop + "_outflow.vlasovScheme_face_x+", "Scheme to use on the face x+ (Copy, None)", defStr);
+         Readparameters::add(pop + "_outflow.vlasovScheme_face_x-", "Scheme to use on the face x- (Copy, None)", defStr);
+         Readparameters::add(pop + "_outflow.vlasovScheme_face_y+", "Scheme to use on the face y+ (Copy, None)", defStr);
+         Readparameters::add(pop + "_outflow.vlasovScheme_face_y-", "Scheme to use on the face y- (Copy, None)", defStr);
+         Readparameters::add(pop + "_outflow.vlasovScheme_face_z+", "Scheme to use on the face z+ (Copy, None)", defStr);
+         Readparameters::add(pop + "_outflow.vlasovScheme_face_z-", "Scheme to use on the face z- (Copy, None)", defStr);
 
-   enum IonosphereBoundaryVDFmode { // How are inner boundary VDFs constructed from the ionosphere
-      FixedMoments,      // Predefine temperature, density and V = EXB drift on the inner boundary.
-      AverageMoments,    // Copy averaged density and temperature from nearest cells, V = EXB drift
-      AverageAllMoments, // Same as above, but also copy V + add EXB drift to it
-      CopyAndLosscone
-   };
-   extern IonosphereBoundaryVDFmode boundaryVDFmode;
-   
-   static const int MAX_TOUCHING_ELEMENTS = 12; // Maximum number of elements touching one node
-   static const int MAX_DEPENDING_NODES = 22;   // Maximum number of depending nodes
-
-   typedef Real iSolverReal; // Datatype for the ionosphere solver internal state
-
-   // Ionosphere finite element grid
-   struct SphericalTriGrid {
-
-      // One finite element, spanned between 3 nodes
-      struct Element {
-         int refLevel = 0;
-         std::array<uint32_t, 3> corners;                 // Node indices in the corners of this element
-
-      };
-      std::vector<Element> elements;
-
-      // One grid node
-      struct Node {
-         // Elements touching this node
-         uint numTouchingElements=0;
-         std::array<uint32_t, MAX_TOUCHING_ELEMENTS> touchingElements;
-
-         // List of nodes the current node depends on
-         uint numDepNodes = 0;
-         std::array<uint32_t, MAX_DEPENDING_NODES> dependingNodes;
-         std::array<Real, MAX_DEPENDING_NODES> dependingCoeffs;// Dependency coefficients
-         std::array<Real, MAX_DEPENDING_NODES> transposedCoeffs; // Transposed dependency coefficient
-
-         std::array<Real, 3> x = {0,0,0}; // Coordinates of the node
-         std::array<Real, 3> xMapped = {0,0,0}; // Coordinates mapped along fieldlines into simulation domain
-         int haveCouplingData = 0; // Does this rank carry coupling coordinate data for this node? (0 or 1)
-         std::array<iSolverReal, N_IONOSPHERE_PARAMETERS> parameters = {0}; // Parameters carried by the node, see common.h
-
-         int openFieldLine; /*!< See TracingLineEndType for the types assigned. */
-         
-         // Some calculation helpers
-         Real electronDensity() { // Electron Density
-            return parameters[ionosphereParameters::RHON];
-         }
-         Real electronTemperature() { // Electron Temperature
-            return parameters[ionosphereParameters::TEMPERATURE];
-         }
-         Real deltaPhi() { // Field aligned potential drop between i'sphere and m'sphere
-
-            // When the Knight-parameter is irrelevant, we can set this to zero
-            return 0;
-
-            // Alternative: Calculate it just like GUMCS does
-
-            //if(electronDensity() == 0) {
-            //   return 0;
-            //}
-
-            //Real retval = physicalconstants::K_B * electronTemperature() / physicalconstants::CHARGE
-            //   * ((parameters[ionosphereParameters::SOURCE] / (physicalconstants::CHARGE * electronDensity()))
-            //   * sqrt(2. * M_PI * physicalconstants::MASS_ELECTRON / (physicalconstants::K_B * electronTemperature())) - 1.);
-            //// A positive value means an upward current (i.e. electron precipitation).
-            //// A negative value quickly gets neutralized from the atmosphere.
-            //if(retval < 0 || !isfinite(retval)) {
-            //   retval = 0;
-            //}
-            //return retval;
-         }
-         
-      };
-      
-      std::vector<Node> nodes;
-      
-      // Atmospheric height layers that are being integrated over
-      constexpr static int numAtmosphereLevels = 20;
-      struct AtmosphericLayer {
-         Real altitude;
-         Real nui;
-         Real nue;
-         Real density;
-         Real depth; // integrated density from the top of the atmosphere
-         Real pedersencoeff;
-         Real hallcoeff;
-         Real parallelcoeff;
-      };
-      std::array<AtmosphericLayer, numAtmosphereLevels> atmosphere;
-
-      enum IonosphereSolverGaugeFixing { // Potential solver gauge fixing method
-         None,     // No gauge fixing, solver won't converge well
-         Pole,     // Fixing north pole (node 0) potential to zero
-         Integral, // Fixing integral of potential to zero (unstable?)
-         Equator   // Fixing all nodes within +-10 dgrees to zero
-      } gaugeFixing;
-
-      enum IonosphereIonizationModel { // Ionization production rate model
-         Rees1963, // Rees (1963)
-         Rees1989, // Rees (1989)
-         SergienkoIvanov, // Sergienko & Ivanov (1993)
-      } ionizationModel;
-
-      // Ionisation production table
-      std::array< std::array< std::array< Real, productionNumTemperatures >, productionNumAccEnergies >, numAtmosphereLevels > productionTable;
-      Real lookupProductionValue(int heightindex, Real energy_keV, Real temperature_keV);
-
-      MPI_Comm communicator = MPI_COMM_NULL; /*!< The communicator internally used to solve the ionosphere potential */
-      int rank = -1;                         /*!< Own rank in the ionosphere communicator */
-      int writingRank;                       /*!< Rank in the MPI_COMM_WORLD communicator that does ionosphere I/O */
-      bool isCouplingInwards = true;         /*!< True for any rank that actually couples fsgrid information into the ionosphere */
-      bool isCouplingOutwards = true;        /*!< True for any rank that actually couples ionosphere potential information out to the vlasov grid */
-      FieldFunction dipoleField;             /*!< Simulation background field model to trace connections with */
-      std::array<Real, 3> BGB;               /*!< Uniform background field */
-
-      std::map< std::array<Real, 3>, std::array<
-         std::pair<int, Real>, 3> > vlasovGridCoupling; /*!< Grid coupling information, caching how vlasovGrid coordinate couple to ionosphere data */
-
-      void setDipoleField(const FieldFunction& dipole) {
-         dipoleField = dipole;
-      };
-      void setConstantBackgroundField(const std::array<Real, 3> B) {
-         BGB = B;
+         Readparameters::add(pop + "_outflow.quench", "Factor by which to quench the inflowing parts of the velocity distribution function.", 1.0);
       }
-      void readAtmosphericModelFile(const char* filename);
-      void storeNodeB();
-      void offset_FAC();                  /*!< Offset field aligned currents to get overall zero current */
-      void normalizeRadius(Node& n, Real R); /*!< Scale all coordinates onto sphere with radius R */
-      void updateConnectivity();          /*!< Re-link elements and nodes */
-      void updateIonosphereCommunicator(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid); /*!< (Re-)create the subcommunicator for ionosphere-internal communication */
-      void initializeTetrahedron();       /*!< Initialize grid as a base tetrahedron */
-      void initializeIcosahedron();       /*!< Initialize grid as a base icosahedron */
-      void initializeSphericalFibonacci(int n); /*!< Initialize grid as a spherical fibonacci lattice */
-      int32_t findElementNeighbour(uint32_t e, int n1, int n2);
-      uint32_t findNodeAtCoordinates(std::array<Real,3> x); /*!< Find the mesh node closest to the given coordinate */
-      void subdivideElement(uint32_t e);  /*!< Subdivide mesh within element e */
-      void stitchRefinementInterfaces(); /*!< Make sure there are no t-junctions in the mesh by splitting neighbours */
-      void calculatePrecipitation(); /*!< Estimate precipitation flux */
-      void calculateConductivityTensor(const Real F10_7, const Real recombAlpha, const Real backgroundIonisation, const bool refillTensorAtRestart=false); /*!< Update sigma tensor, if last argument is true, just refill the tensor from SIGMAH, SIGMAP and SIGMAPARALLEL from restart data */
-      Real interpolateUpmappedPotential(const std::array<Real, 3>& x); /*!< Calculate upmapped potential at the given point */
-      
-      // Conjugate Gradient solver functions
-      void addMatrixDependency(uint node1, uint node2, Real coeff, bool transposed=false); /*!< Add matrix value for the solver */
-      void addAllMatrixDependencies(uint nodeIndex);
-      void initSolver(bool zeroOut=true);  /*!< Initialize the CG solver */
-      iSolverReal Atimes(uint nodeIndex, int parameter, bool transpose=false); /*!< Evaluate neighbour nodes' coupled parameter */
-      Real Asolve(uint nodeIndex, int parameter, bool transpose=false); /*!< Evaluate own parameter value */
-      void solve(
-         int & iteration,
-         int & nRestarts,
-         Real & residual,
-         Real & minPotentialN,
-         Real & maxPotentialN,
-         Real & minPotentialS,
-         Real & maxPotentialS
-      );
-      void solveInternal(
-         int & iteration,
-         int & nRestarts,
-         Real & residual,
-         Real & minPotentialN,
-         Real & maxPotentialN,
-         Real & minPotentialS,
-         Real & maxPotentialS
-      );
+   }
 
-      // Map field-aligned currents, density and temperature
-      // down from the simulation boundary onto this grid
-      void mapDownBoundaryData(
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,                                                                                                                                                                                                                                
-         FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-         FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-         FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-      );
-      
-      // Returns the surface area of one element on the sphere
-      Real elementArea(uint32_t elementIndex) {
-         const std::array<Real, 3>& a = nodes[elements[elementIndex].corners[0]].x;
-         const std::array<Real, 3>& b = nodes[elements[elementIndex].corners[1]].x;
-         const std::array<Real, 3>& c = nodes[elements[elementIndex].corners[2]].x;
-
-         // Two edges e1 = b-c,  e2 = c-a
-         std::array<Real, 3> e1{b[0]-c[0], b[1]-c[1],b[2]-c[2]};
-         std::array<Real, 3> e2{c[0]-a[0], c[1]-a[1],c[2]-a[2]};
-         // Area vector A = cross(e1 e2)
-         std::array<Real, 3> area{ e1[1]*e2[2] - e1[2]*e2[1],
-                                   e1[2]*e2[0] - e1[0]*e2[2],
-                                   e1[0]*e2[1] - e1[1]*e2[0]};
-         
-         return 0.5 * sqrt( area[0]*area[0] + area[1]*area[1] + area[2]*area[2] );
+   void Outflow::getParameters() {
+      int myRank;
+      MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+      Readparameters::get("outflow.faceNoFields", this->faceNoFieldsList);
+      Readparameters::get("outflow.precedence", precedence);
+      uint reapply;
+      Readparameters::get("outflow.reapplyUponRestart", reapply);
+      this->applyUponRestart = false;
+      if (reapply == 1) {
+         this->applyUponRestart = true;
       }
 
-      // Returns the projected surface area of one element, mapped up along the magnetic field to
-      // the simulation boundary. If one of the nodes maps nowhere, returns 0.
-      // Returns an oriented vector, which can be dotted with B
-      std::array<Real, 3> mappedElementArea(uint32_t elementIndex) {
-         const std::array<Real, 3>& a = nodes[elements[elementIndex].corners[0]].xMapped;
-         const std::array<Real, 3>& b = nodes[elements[elementIndex].corners[1]].xMapped;
-         const std::array<Real, 3>& c = nodes[elements[elementIndex].corners[2]].xMapped;
+      // Per-species parameters
+      for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
+         const string& pop = getObjectWrapper().particleSpecies[i].name;
+         OutflowSpeciesParameters sP;
 
-         // Check if any node maps to zero
-         if( sqrt( a[0]*a[0] + a[1]*a[1] + a[2]*a[2] ) == 0 ||
-               sqrt( b[0]*b[0] + b[1]*b[1] + b[2]*b[2] ) == 0 ||
-               sqrt( c[0]*c[0] + c[1]*c[1] + c[2]*c[2] ) == 0) {
-
-            return {0,0,0};
+         // Unless we find out otherwise, we assume that this species will not be treated at any boundary
+         for (int j = 0; j < 6; j++) {
+            sP.facesToSkipVlasov[j] = true;
          }
 
-         // Two edges e1 = b-c,  e2 = c-a
-         std::array<Real, 3> e1{b[0]-c[0], b[1]-c[1],b[2]-c[2]};
-         std::array<Real, 3> e2{c[0]-a[0], c[1]-a[1],c[2]-a[2]};
-         // Area vector A = cross(e1 e2)
-         const Real HALF = 0.5;
-         const Real THIRD = 1./3.;
-         std::array<Real, 3> area{ HALF * (e1[1]*e2[2] - e1[2]*e2[1]),
-                                   HALF * (e1[2]*e2[0] - e1[0]*e2[2]),
-                                   HALF * (e1[0]*e2[1] - e1[1]*e2[0])};
-        
-         // By definition, the area is oriented outwards, so if dot(r,A) < 0, flip it.
-         std::array<Real, 3> r{
-            (a[0]+b[0]+c[0]) * THIRD,
-            (a[1]+b[1]+c[1]) * THIRD,
-            (a[2]+b[2]+c[2]) * THIRD};
-         if(area[0]*r[0] + area[1]*r[1] + area[2] *r[2] < 0) {
-            area[0]*=-1.;
-            area[1]*=-1.;
-            area[2]*=-1.;
+         vector<string> thisSpeciesFaceList;
+         Readparameters::get(pop + "_outflow.face", thisSpeciesFaceList);
+
+         for (auto& face : thisSpeciesFaceList) {
+            if (face == "x+") {
+               facesToProcess[0] = true;
+               sP.facesToSkipVlasov[0] = false;
+            }
+            if (face == "x-") {
+               facesToProcess[1] = true;
+               sP.facesToSkipVlasov[1] = false;
+            }
+            if (face == "y+") {
+               facesToProcess[2] = true;
+               sP.facesToSkipVlasov[2] = false;
+            }
+            if (face == "y-") {
+               facesToProcess[3] = true;
+               sP.facesToSkipVlasov[3] = false;
+            }
+            if (face == "z+") {
+               facesToProcess[4] = true;
+               sP.facesToSkipVlasov[4] = false;
+            }
+            if (face == "z-") {
+               facesToProcess[5] = true;
+               sP.facesToSkipVlasov[5] = false;
+            }
          }
-         return area;
+
+         Readparameters::get(pop + "_outflow.reapplyFaceUponRestart", sP.faceToReapplyUponRestartList);
+         array<string, 6> vlasovSysBoundarySchemeName;
+         Readparameters::get(pop + "_outflow.vlasovScheme_face_x+", vlasovSysBoundarySchemeName[0]);
+         Readparameters::get(pop + "_outflow.vlasovScheme_face_x-", vlasovSysBoundarySchemeName[1]);
+         Readparameters::get(pop + "_outflow.vlasovScheme_face_y+", vlasovSysBoundarySchemeName[2]);
+
+         Readparameters::get(pop + "_outflow.vlasovScheme_face_y-", vlasovSysBoundarySchemeName[3]);
+         Readparameters::get(pop + "_outflow.vlasovScheme_face_z+", vlasovSysBoundarySchemeName[4]);
+         Readparameters::get(pop + "_outflow.vlasovScheme_face_z-", vlasovSysBoundarySchemeName[5]);
+         for (uint j = 0; j < 6; j++) {
+            if (vlasovSysBoundarySchemeName[j] == "None") {
+               sP.faceVlasovScheme[j] = vlasovscheme::NONE;
+            } else if (vlasovSysBoundarySchemeName[j] == "Copy") {
+               sP.faceVlasovScheme[j] = vlasovscheme::COPY;
+            } else {
+               abort_mpi("ERROR: " + vlasovSysBoundarySchemeName[j] + " is an invalid Outflow Vlasov scheme!");
+            }
+         }
+
+         Readparameters::get(pop + "_outflow.quench", sP.quenchFactor);
+
+         speciesParams.push_back(sP);
+      }
+   }
+
+   void Outflow::initSysBoundary(creal& t, Project& project) {
+      /* The array of bool describes which of the x+, x-, y+, y-, z+, z- faces are to have outflow system boundary conditions.
+       * A true indicates the corresponding face will have outflow.
+       * The 6 elements correspond to x+, x-, y+, y-, z+, z- respectively.
+       */
+      for (uint i = 0; i < 6; i++) {
+         facesToProcess[i] = false;
+         facesToSkipFields[i] = false;
+         facesToReapply[i] = false;
       }
 
-      Real nodeNeighbourArea(uint32_t nodeIndex) { // Summed area of all touching elements
+      this->getParameters();
 
-         Node& n = nodes[nodeIndex];
-         Real area=0;
+      dynamic = false;
 
-         for(uint i=0; i<n.numTouchingElements; i++) {
-            area += elementArea(n.touchingElements[i]);
-         }
-         return area;
+      vector<string>::const_iterator it;
+      for (it = faceNoFieldsList.begin(); it != faceNoFieldsList.end(); it++) {
+         if (*it == "x+")
+            facesToSkipFields[0] = true;
+         if (*it == "x-")
+            facesToSkipFields[1] = true;
+         if (*it == "y+")
+            facesToSkipFields[2] = true;
+         if (*it == "y-")
+            facesToSkipFields[3] = true;
+         if (*it == "z+")
+            facesToSkipFields[4] = true;
+         if (*it == "z-")
+            facesToSkipFields[5] = true;
       }
 
-      std::array<Real,3> computeGradT(const std::array<Real, 3>& a, const std::array<Real, 3>& b, const std::array<Real, 3>& c);
-      std::array<Real, 9> sigmaAverage(uint elementIndex);
-      double elementIntegral(uint elementIndex, int i, int j, bool transpose = false);
+      for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
+         OutflowSpeciesParameters& sP = this->speciesParams[i];
+         for (it = sP.faceToReapplyUponRestartList.begin(); it != sP.faceToReapplyUponRestartList.end(); it++) {
+            if (*it == "x+")
+               facesToReapply[0] = true;
+            if (*it == "x-")
+               facesToReapply[1] = true;
+            if (*it == "y+")
+               facesToReapply[2] = true;
+            if (*it == "y-")
+               facesToReapply[3] = true;
+            if (*it == "z+")
+               facesToReapply[4] = true;
+            if (*it == "z-")
+               facesToReapply[5] = true;
+         }
+      }
+   }
 
-   };
+   void Outflow::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
 
-   extern SphericalTriGrid ionosphereGrid;
+      bool doAssign;
+      array<bool, 6> isThisCellOnAFace;
 
-   /*!\brief Ionosphere is a class applying ionospheric boundary conditions.
-    * 
-    * Ionosphere is a class handling cells tagged as sysboundarytype::IONOSPHERE by this system boundary condition. It applies ionospheric boundary conditions.
-    * 
-    * These consist in:
-    * - Do nothing for the distribution (keep the initial state constant in time);
-    * - Copy the closest neighbors' perturbed B and average it;
-    * - Null out the electric fields.
+      // Assign boundary flags to local DCCRG cells
+      const vector<CellID>& cells = getLocalCells();
+      for (const auto& dccrgId : cells) {
+         if (mpiGrid[dccrgId]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE)
+            continue;
+         creal* const cellParams = &(mpiGrid[dccrgId]->parameters[0]);
+         creal dx = cellParams[CellParams::DX];
+         creal dy = cellParams[CellParams::DY];
+         creal dz = cellParams[CellParams::DZ];
+         creal x = cellParams[CellParams::XCRD] + 0.5 * dx;
+         creal y = cellParams[CellParams::YCRD] + 0.5 * dy;
+         creal z = cellParams[CellParams::ZCRD] + 0.5 * dz;
+
+         isThisCellOnAFace.fill(false);
+         determineFace(isThisCellOnAFace.data(), x, y, z, dx, dy, dz);
+
+         // Comparison of the array defining which faces to use and the array telling on which faces this cell is
+         doAssign = false;
+         for (int j = 0; j < 6; j++) {
+            doAssign = doAssign || (facesToProcess[j] && isThisCellOnAFace[j]);
+         }
+         if (doAssign) {
+            mpiGrid[dccrgId]->sysBoundaryFlag = this->getIndex();
+         }
+      }
+
+      // Assign boundary flags to local fsgrid cells
+      const array<FsGridTools::FsIndex_t, 3> gridDims(technicalGrid.getLocalSize());
+      for (FsGridTools::FsIndex_t k = 0; k < gridDims[2]; k++) {
+         for (FsGridTools::FsIndex_t j = 0; j < gridDims[1]; j++) {
+            for (FsGridTools::FsIndex_t i = 0; i < gridDims[0]; i++) {
+               const auto& coords = technicalGrid.getPhysicalCoords(i, j, k);
+
+               // Shift to the center of the fsgrid cell
+               auto cellCenterCoords = coords;
+               cellCenterCoords[0] += 0.5 * technicalGrid.DX;
+               cellCenterCoords[1] += 0.5 * technicalGrid.DY;
+               cellCenterCoords[2] += 0.5 * technicalGrid.DZ;
+               const auto refLvl = mpiGrid.get_refinement_level(mpiGrid.get_existing_cell(cellCenterCoords));
+
+               if (refLvl == -1) {
+                  abort_mpi("ERROR: Could not get refinement level of remote DCCRG cell!", 1);
+               }
+
+               creal dx = P::dx_ini / pow(2, refLvl);
+               creal dy = P::dy_ini / pow(2, refLvl);
+               creal dz = P::dz_ini / pow(2, refLvl);
+
+               isThisCellOnAFace.fill(false);
+               doAssign = false;
+
+               determineFace(isThisCellOnAFace.data(), cellCenterCoords[0], cellCenterCoords[1], cellCenterCoords[2], dx, dy, dz);
+               for (int iface = 0; iface < 6; iface++)
+                  doAssign = doAssign || (facesToProcess[iface] && isThisCellOnAFace[iface]);
+               if (doAssign) {
+                  technicalGrid.get(i, j, k)->sysBoundaryFlag = this->getIndex();
+               }
+            }
+         }
+      }
+   }
+
+   void Outflow::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+                                   FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid, FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+                                   Project& project) {
+      const vector<CellID>& cells = getLocalCells();
+      #pragma omp parallel for schedule(static)
+      for (uint i = 0; i < cells.size(); ++i) {
+         CellID id = cells[i];
+         SpatialCell* cell = mpiGrid[id];
+         if (cell->sysBoundaryFlag != this->getIndex()) {
+            continue;
+         }
+
+         bool doApply = true;
+
+         if (Parameters::isRestart) {
+            std::array<bool, 6> isThisCellOnAFace;
+            determineFace(isThisCellOnAFace, mpiGrid, id);
+
+            doApply = false;
+            // Comparison of the array defining which faces to use and the array telling on which faces this cell is
+            for (uint j = 0; j < 6; j++) {
+               doApply = doApply || (facesToReapply[j] && isThisCellOnAFace[j]);
+            }
+         }
+
+         if (doApply) {
+            project.setCell(cell); // We set everything including VDF even in L2 cells to avoid a pile of spaghetti. Won't get communicated.
+            cell->parameters[CellParams::RHOM_DT2] = cell->parameters[CellParams::RHOM];
+            cell->parameters[CellParams::RHOQ_DT2] = cell->parameters[CellParams::RHOQ];
+            cell->parameters[CellParams::VX_DT2] = cell->parameters[CellParams::VX];
+            cell->parameters[CellParams::VY_DT2] = cell->parameters[CellParams::VY];
+            cell->parameters[CellParams::VZ_DT2] = cell->parameters[CellParams::VZ];
+            cell->parameters[CellParams::P_11_DT2] = cell->parameters[CellParams::P_11];
+            cell->parameters[CellParams::P_22_DT2] = cell->parameters[CellParams::P_22];
+            cell->parameters[CellParams::P_33_DT2] = cell->parameters[CellParams::P_33];
+         }
+      }
+   }
+
+   void Outflow::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+                             FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid, creal t) {}
+
+   Real Outflow::fieldSolverBoundaryCondMagneticField(FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& bGrid,
+                                                      FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& bgbGrid, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
+                                                      cint i, cint j, cint k, creal dt, cuint component) {
+      switch (component) {
+      case 0:
+         return fieldBoundaryCopyFromSolvingNbrMagneticField(bGrid, technicalGrid, i, j, k, component, compute::BX);
+      case 1:
+         return fieldBoundaryCopyFromSolvingNbrMagneticField(bGrid, technicalGrid, i, j, k, component, compute::BY);
+      case 2:
+         return fieldBoundaryCopyFromSolvingNbrMagneticField(bGrid, technicalGrid, i, j, k, component, compute::BZ);
+      default:
+         return 0.0;
+      }
+   }
+
+   void Outflow::fieldSolverBoundaryCondElectricField(FsGrid<array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EGrid, cint i, cint j, cint k, cuint component) {
+      EGrid.get(i, j, k)->at(fsgrids::efield::EX + component) = 0.0;
+   }
+
+   void Outflow::fieldSolverBoundaryCondHallElectricField(FsGrid<array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH>& EHallGrid, cint i, cint j, cint k, cuint component) {
+      array<Real, fsgrids::ehall::N_EHALL>* cp = EHallGrid.get(i, j, k);
+      switch (component) {
+      case 0:
+         cp->at(fsgrids::ehall::EXHALL_000_100) = 0.0;
+         cp->at(fsgrids::ehall::EXHALL_010_110) = 0.0;
+         cp->at(fsgrids::ehall::EXHALL_001_101) = 0.0;
+         cp->at(fsgrids::ehall::EXHALL_011_111) = 0.0;
+         break;
+      case 1:
+         cp->at(fsgrids::ehall::EYHALL_000_010) = 0.0;
+         cp->at(fsgrids::ehall::EYHALL_100_110) = 0.0;
+         cp->at(fsgrids::ehall::EYHALL_001_011) = 0.0;
+         cp->at(fsgrids::ehall::EYHALL_101_111) = 0.0;
+         break;
+      case 2:
+         cp->at(fsgrids::ehall::EZHALL_000_001) = 0.0;
+         cp->at(fsgrids::ehall::EZHALL_100_101) = 0.0;
+         cp->at(fsgrids::ehall::EZHALL_010_011) = 0.0;
+         cp->at(fsgrids::ehall::EZHALL_110_111) = 0.0;
+         break;
+      default:
+         cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
+      }
+   }
+
+   void Outflow::fieldSolverBoundaryCondGradPeElectricField(FsGrid<array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH>& EGradPeGrid, cint i, cint j, cint k, cuint component) {
+      EGradPeGrid.get(i, j, k)->at(fsgrids::egradpe::EXGRADPE + component) = 0.0;
+   }
+
+   void Outflow::fieldSolverBoundaryCondDerivatives(FsGrid<array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH>& dPerBGrid,
+                                                    FsGrid<array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH>& dMomentsGrid, cint i, cint j, cint k, cuint RKCase, cuint component) {
+      this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, component);
+   }
+
+   void Outflow::fieldSolverBoundaryCondBVOLDerivatives(FsGrid<array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volGrid, cint i, cint j, cint k, cuint component) {
+      this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
+   }
+
+   /**
+    * NOTE that this is called once for each particle species!
+    * @param mpiGrid
+    * @param cellID
     */
-   class Ionosphere: public SysBoundaryCondition {
-   public:
-      Ionosphere();
-      virtual ~Ionosphere();
-      
-      static void addParameters();
-      virtual void getParameters() override;
-      
-      virtual void initSysBoundary(
-         creal& t,
-         Project &project
-      ) override;
-      virtual void assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                     FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) override;
-      virtual void applyInitialState(
-         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-         FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-         Project &project
-      ) override;
-      virtual Real fieldSolverBoundaryCondMagneticField(
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
-         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & bgbGrid,
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-         cint i,
-         cint j,
-         cint k,
-         creal dt,
-         cuint component
-      ) override;
-      virtual void fieldSolverBoundaryCondElectricField(
-         FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-         cint i,
-         cint j,
-         cint k,
-         cuint component
-      ) override;
-      virtual void fieldSolverBoundaryCondHallElectricField(
-         FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
-         cint i,
-         cint j,
-         cint k,
-         cuint component
-      ) override;
-      virtual void fieldSolverBoundaryCondGradPeElectricField(
-         FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-         cint i,
-         cint j,
-         cint k,
-         cuint component
-      ) override;
-      virtual void fieldSolverBoundaryCondDerivatives(
-         FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-         FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-         cint i,
-         cint j,
-         cint k,
-         cuint RKCase,
-         cuint component
-      ) override;
-      virtual void fieldSolverBoundaryCondBVOLDerivatives(
-         FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-         cint i,
-         cint j,
-         cint k,
-         cuint component
-      ) override;
-      // Compute and store the EXB drift into the cell's BULKV_FORCING_X/Y/Z fields
-      virtual void mapCellPotentialAndGetEXBDrift(
-         std::array<Real, CellParams::N_SPATIAL_CELL_PARAMS>& cellParams
-      ) override;
-      virtual void vlasovBoundaryCondition(
-         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         const CellID& cellID,
-         const uint popID,
-         const bool calculate_V_moments
-      ) override;
-      virtual void updateState(
-         dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-         FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-         FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-         creal t
-      ) override;
-      
-      virtual void getFaces(bool *faces) override;
-      virtual std::string getName() const override;
-      virtual uint getIndex() const override;
-      static Real radius; /*!< Radius of the inner simulation boundary */
-      static std::vector<IonosphereSpeciesParameters> speciesParams;
+   void Outflow::vlasovBoundaryCondition(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const CellID& cellID, const uint popID, const bool calculate_V_moments) {
 
-      // Parameters of the ionosphere model
-      static Real innerRadius; /*!< Radius of the ionosphere model */
-      static int solverMaxIterations; /*!< Maximum iterations of CG solver per timestep */
-      static Real solverRelativeL2ConvergenceThreshold; /*! L2 metric relative convergence threshold */
-      static int solverMaxFailureCount;
-      static Real solverMaxErrorGrowthFactor;
-      static bool solverPreconditioning; /*!< Preconditioning for the CG solver */
-      static bool solverUseMinimumResidualVariant; /*!< Use the minimum residual variant */
-      static bool solverToggleMinimumResidualVariant; /*!< Toggle use of the minimum residual variant between solver restarts */
-      static Real shieldingLatitude; /*!< Latitude (degree) below which the potential is zeroed in the equator gauge fixing scheme */
-      static Real ridleyParallelConductivity; /*!< Constant parallel conductivity */
-      
-      // TODO: Make these parameters of the IonosphereGrid
-      static Real recombAlpha; /*!< Recombination parameter, determining atmosphere ionizability (parameter) */
-      static Real F10_7; /*!< Solar 10.7 Flux value (parameter) */
-      static Real backgroundIonisation; /*!< Background ionisation due to stellar UV and cosmic rays */
-      static Real downmapRadius; /*!< Radius from which FACs are downmapped (RE) */
-      static Real unmappedNodeRho; /*!< Electron density of ionosphere nodes that don't couple to the magnetosphere */
-      static Real unmappedNodeTe; /*!< Electron temperature of ionosphere nodes that don't couple to the magnetosphere */
-      static Real couplingTimescale; /*!< Magnetosphere->Ionosphere coupling timescale (seconds) */
-      static Real couplingInterval; /*!< Ionosphere update interval */
-      static int solveCount; /*!< Counter for the number of ionosphere solvings */
-      static enum IonosphereConductivityModel { // How should the conductivity tensor be assembled?
-         GUMICS,   // Like GUMICS-5 does it? (Only SigmaH and SigmaP, B perp to surface)
-         Ridley,   // Or like the Ridley 2004 paper (with 1000 mho longitudinal conductivity)
-         Koskinen  // Like Koskinen's 2001 "Physics of Space Storms" book suggests
-      } conductivityModel;
+      const OutflowSpeciesParameters& sP = this->speciesParams[popID];
+      if (mpiGrid[cellID]->sysBoundaryFlag != this->getIndex()) {
+         return;
+      }
 
-      void generateTemplateCell(Project &project);
-      void setCellFromTemplate(SpatialCell* cell,const uint popID);
-      
-      std::array<Real, 3> fieldSolverGetNormalDirection(
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-         cint i,
-         cint j,
-         cint k
-      );
-      
-      Real center[3]; /*!< Coordinates of the centre of the ionosphere. */
-      uint geometry; /*!< Geometry of the ionosphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT), 3: polar-plane cylinder with line dipole. */
+      std::array<bool, 6> isThisCellOnAFace;
+      determineFace(isThisCellOnAFace, mpiGrid, cellID, true);
 
+      for (uint i = 0; i < 6; i++) {
+         if (isThisCellOnAFace[i] && facesToProcess[i] && !sP.facesToSkipVlasov[i]) {
+            switch (sP.faceVlasovScheme[i]) {
+            case vlasovscheme::NONE:
+               break;
+            case vlasovscheme::COPY:
+               if (mpiGrid[cellID]->sysBoundaryLayer == 1) {
+                  vlasovBoundaryCopyFromTheClosestNbr(mpiGrid, cellID, false, popID, calculate_V_moments); // copies VDF too
+               } else {
+                  vlasovBoundaryCopyFromTheClosestNbr(mpiGrid, cellID, true, popID, calculate_V_moments); // no VDF copy
+               }
+               break;
+            default:
+               abort_mpi("ERROR: invalid Outflow Vlasov scheme", 1);
+            }
+         }
+      }
+   }
 
-      std::string baseShape; /*!< Basic mesh shape (sphericalFibonacci / icosahedron / tetrahedron) */
-      int fibonacciNodeNum;  /*!< If spherical fibonacci: number of nodes to generate */
-      Real earthAngularVelocity; /*!< Earth rotation vector, in radians/s */
-      Real plasmapauseL; /*!< L-Value at which the plasma pause resides (everything inside corotates) */
-      std::string atmosphericModelFile; /*!< MSIS data file */
-      // Boundaries of refinement latitude bands
-      std::vector<Real> refineMinLatitudes;
-      std::vector<Real> refineMaxLatitudes;
-      
-      spatial_cell::SpatialCell templateCell;
-   };
-}
+   void Outflow::setupL2OutflowAtRestart(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) {
+      // These updates emulated from SysBoundary::applySysBoundaryVlasovConditions()
+      // Needs a call to updateRemoteVelocityBlockLists(), done in the SysBoundary class.
+      SpatialCell::set_mpi_transfer_type(Transfer::CELL_PARAMETERS | Transfer::POP_METADATA | Transfer::CELL_SYSBOUNDARYFLAG, true);
+      mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::SYSBOUNDARIES_EXTENDED);
 
-#endif
+      for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
+         SpatialCell::setCommunicatedSpecies(popID);
+         updateRemoteVelocityBlockLists(mpiGrid, popID, Neighborhoods::SYSBOUNDARIES);
+         SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA, true);
+         mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::SYSBOUNDARIES);
+      }
+
+      const vector<CellID>& cells = getLocalCells();
+      #pragma omp parallel
+      {
+         #pragma omp for schedule(guided,1)
+         for (uint i = 0; i < cells.size(); i++) {
+            const CellID cellID = cells[i];
+            // As of 20250505 the loop only does something for layer 1 in COPY mode so the check for layer 1 was moved here for earlier loop continuation.
+            if (mpiGrid[cellID]->sysBoundaryFlag != this->getIndex() || mpiGrid[cellID]->sysBoundaryLayer != 1) {
+               continue;
+            }
+
+            std::array<bool, 6> isThisCellOnAFace;
+            determineFace(isThisCellOnAFace, mpiGrid, cellID, true);
+
+            for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
+               const OutflowSpeciesParameters& sP = this->speciesParams[popID];
+               for (uint i = 0; i < 6; i++) {
+                  if (isThisCellOnAFace[i] && facesToProcess[i] && !sP.facesToSkipVlasov[i]) {
+                     switch (sP.faceVlasovScheme[i]) {
+                     case vlasovscheme::NONE:
+                        break;
+                     case vlasovscheme::COPY:
+                        // if(mpiGrid[cellID]->sysBoundaryLayer == 1) { // This is actually now (20250505) moved up a few lines for earlier loop continuation. Reinstate if other cases change!
+                        vlasovBoundaryCopyFromTheClosestNbr(mpiGrid, cellID, false, popID, true);  // first false means copy VDF too, second true means V moments
+                        vlasovBoundaryCopyFromTheClosestNbr(mpiGrid, cellID, false, popID, false); // first false means copy VDF too, second false means R moments
+                        // } // see comment above
+                        break;
+                     default:
+                        abort_mpi("ERROR: invalid Outflow Vlasov scheme", 1);
+                     } // switch
+                  } // if on face
+               } // faces
+            } // populations
+         } // cells
+
+         #pragma omp barrier
+         #pragma omp single
+         {
+            SpatialCell::set_mpi_transfer_type(Transfer::ALL_SPATIAL_DATA); // No need to update VDFs, we only copy the VDFs from L1 to L2 below.
+            mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::SYSBOUNDARIES);
+         }
+         #pragma omp barrier // maybe useless
+
+// then 2nd pass and copy from the closest L1 outflow neighbor
+         #pragma omp for schedule(guided,1)
+         for (uint i = 0; i < cells.size(); i++) {
+            const CellID cellID = cells[i];
+            // As of 20250505 the loop only does something for layer 1 in COPY mode so the check for layer 2 was moved here for earlier loop continuation.
+            if (mpiGrid[cellID]->sysBoundaryFlag != this->getIndex() || mpiGrid[cellID]->sysBoundaryLayer != 2) {
+               continue;
+            }
+
+            std::array<bool, 6> isThisCellOnAFace;
+            determineFace(isThisCellOnAFace, mpiGrid, cellID, true);
+
+            for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
+               const OutflowSpeciesParameters& sP = this->speciesParams[popID];
+               for (uint i = 0; i < 6; i++) {
+                  if (isThisCellOnAFace[i] && facesToProcess[i] && !sP.facesToSkipVlasov[i]) {
+                     switch (sP.faceVlasovScheme[i]) {
+                     case vlasovscheme::NONE:
+                        break;
+                     case vlasovscheme::COPY:
+                        // if(mpiGrid[cellID]->sysBoundaryLayer == 2) { // This is actually now (20250505) moved up a few lines for earlier loop continuation. Reinstate if other cases change!
+                        vlasovBoundaryCopyFromTheClosestL1OutflowNbr(mpiGrid, cellID, true, popID, true);  // first true means copy moments only, second true means V moments
+                        vlasovBoundaryCopyFromTheClosestL1OutflowNbr(mpiGrid, cellID, true, popID, false); // first true means copy moments only, second false means R moments
+                        // } // see comment above
+                        break;
+                     default:
+                        abort_mpi("ERROR: invalid Outflow Vlasov scheme", 1);
+                     } // switch
+                  } // if on face
+               } // faces
+            } // populations
+         } // cells
+      } // pragma omp parallel
+   }
+
+   void Outflow::getFaces(bool* faces) {
+      for (uint i = 0; i < 6; i++) {
+         faces[i] = facesToProcess[i];
+      }
+   }
+
+   string Outflow::getName() const { return "Outflow"; }
+   uint Outflow::getIndex() const { return sysboundarytype::OUTFLOW; }
+
+} // namespace SBC

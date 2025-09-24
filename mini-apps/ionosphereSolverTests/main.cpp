@@ -1,582 +1,301 @@
+#include <array>
+#include <cmath>
+#include <cstring>
+#include <errno.h>
+#include <fstream>
 #include <iostream>
-#include "vlsv_writer.h"
-#include "vlsv_reader_parallel.h"
-#include "../../sysboundary/ionosphere.h"
-#include "../../object_wrapper.h"
-#include "../../datareduction/datareductionoperator.h"
-#include "../../iowrite.h"
-#include "../../ioread.h"
-#include "../../velocity_mesh_parameters.h"
-#include "../../logger.h"
+#include <string>
+#include <vector>
 
 using namespace std;
-using namespace SBC;
-using namespace vlsv;
 
-Logger logFile,diagnostic;
-int globalflags::bailingOut=0;
-bool globalflags::writeRestart=false;
-bool globalflags::writeRecover=false;
-bool globalflags::balanceLoad=false;
-bool globalflags::doRefine=false;
-bool globalflags::ionosphereJustSolved = false;
-ObjectWrapper objectWrapper;
-ObjectWrapper& getObjectWrapper() {
-   return objectWrapper;
+typedef double Real;
+constexpr static int productionNumAccEnergies = 60;
+constexpr static int productionNumTemperatures = 60;
+constexpr static int productionNumParticleEnergies = 100;
+constexpr static Real productionMinAccEnergy = 0.1;    // keV
+constexpr static Real productionMaxAccEnergy = 100.;   // keV
+constexpr static Real productionMinTemperature = 0.1;  // keV
+constexpr static Real productionMaxTemperature = 100.; // keV
+constexpr static int numAtmosphereLevels = 20;
+
+static const Real kB = 1.380649e-23;
+static const Real CHARGE = 1.602176634e-19;
+static const Real MASS_ELECTRON = 9.1093837015e-31;
+static const Real MASS_PROTON = 1.67262158e-27;
+static const Real recombAlpha = 2.4e-13; // m³/s
+
+std::array<Real, productionNumParticleEnergies + 1> particle_energy;
+std::array<Real, productionNumParticleEnergies> differentialFlux;
+struct AtmosphericLayer {
+   Real altitude;
+   Real nui;
+   Real nue;
+   Real density;
+   Real depth; // integrated density from the top of the atmosphere
+   Real pedersencoeff;
+   Real hallcoeff;
+   Real parallelcoeff;
+};
+std::array<AtmosphericLayer, numAtmosphereLevels> atmosphere;
+
+std::array<Real, numAtmosphereLevels> productionTable;
+
+// Fractional energy dissipation rate for a isotropic beam, based on Rees (1963), figure 1
+static Real ReesIsotropicLambda(Real x) {
+   static const Real P[7] = {-11.639, 32.1133, -30.8543, 14.6063, -6.3375, 0.6138, 1.4946};
+   Real lambda = (((((P[0] * x + P[1]) * x + P[2]) * x + P[3]) * x + P[4]) * x + P[5]) * x + P[6];
+   if (x > 1. || lambda < 0) {
+      return 0;
+   }
+   return lambda;
 }
 
-// Dummy implementations of some functions to make things compile
-std::vector<CellID> localCellDummy;
-const std::vector<CellID>& getLocalCells() { return localCellDummy; }
-void deallocateRemoteCellBlocks(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry, std::tuple<>, std::tuple<> >&) {};
-void updateRemoteVelocityBlockLists(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry, std::tuple<>, std::tuple<> >&, unsigned int, unsigned int) {};
-void recalculateLocalCellsCache(const dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry, std::tuple<>, std::tuple<> >&) {};
-SysBoundary::SysBoundary() {}
-SysBoundary::~SysBoundary() {}
+struct SergienkoIvanovParameters {
+   Real E; // in eV
+   Real C1;
+   Real C2;
+   Real C3;
+   Real C4;
+};
 
-void assignConductivityTensor(std::vector<SphericalTriGrid::Node>& nodes, Real sigmaP, Real sigmaH) {
-   static const char epsilon[3][3][3] = {
-      {{0,0,0},{0,0,1},{0,-1,0}},
-      {{0,0,-1},{0,0,0},{1,0,0}},
-      {{0,1,0},{-1,0,0},{0,0,0}}
-   };
+// Energy dissipasion function based on Sergienko & Ivanov (1993), eq. A2
+static Real SergienkoIvanovLambda(Real E0, Real Chi) {
 
-   for(uint n=0; n<nodes.size(); n++) {
-      std::array<Real, 3> b = {nodes[n].x[0] / Ionosphere::innerRadius, nodes[n].x[1] / Ionosphere::innerRadius, nodes[n].x[2] / Ionosphere::innerRadius};
-      if(nodes[n].x[2] >= 0) {
-         b[0] *= -1;
-         b[1] *= -1;
-         b[2] *= -1;
-      }
-      for(int i=0; i<3; i++) {
-         for(int j=0; j<3; j++) {
-            nodes[n].parameters[ionosphereParameters::SIGMA + i*3 + j] = sigmaP * (((i==j)? 1. : 0.) - b[i]*b[j]);
-            for(int k=0; k<3; k++) {
-               nodes[n].parameters[ionosphereParameters::SIGMA + i*3 + j] -= sigmaH * epsilon[i][j][k]*b[k];
-            }
+   const static SergienkoIvanovParameters SIparameters[] = {
+       {50, 0.0409, 1.072, -0.0641, -1.054}, {100, 0.0711, 0.899, -0.171, -0.720}, {500, 0.130, 0.674, -0.271, -0.319}, {1000, 0.142, 0.657, -0.277, -0.268}};
+
+   Real C1 = 0;
+   Real C2 = 0;
+   Real C3 = 0;
+   Real C4 = 0;
+   if (E0 <= SIparameters[0].E) {
+      C1 = SIparameters[0].C1;
+      C2 = SIparameters[0].C2;
+      C3 = SIparameters[0].C3;
+      C4 = SIparameters[0].C4;
+   } else if (E0 >= SIparameters[3].E) {
+      C1 = SIparameters[3].C1;
+      C2 = SIparameters[3].C2;
+      C3 = SIparameters[3].C3;
+      C4 = SIparameters[3].C4;
+   } else {
+      for (int i = 0; i < 3; i++) {
+         if (SIparameters[i].E < E0 && SIparameters[i + 1].E > E0) {
+            Real interp = (E0 - SIparameters[i].E) / (SIparameters[i + 1].E - SIparameters[i].E);
+            C1 = (1. - interp) * SIparameters[i].C1 + interp * SIparameters[i + 1].C1;
+            C2 = (1. - interp) * SIparameters[i].C2 + interp * SIparameters[i + 1].C2;
+            C3 = (1. - interp) * SIparameters[i].C3 + interp * SIparameters[i + 1].C3;
+            C4 = (1. - interp) * SIparameters[i].C4 + interp * SIparameters[i + 1].C4;
          }
       }
    }
-}
-
-void assignConductivityTensorFromLoadedData(std::vector<SphericalTriGrid::Node>& nodes) {
-   static const char epsilon[3][3][3] = {
-      {{0,0,0},{0,0,1},{0,-1,0}},
-      {{0,0,-1},{0,0,0},{1,0,0}},
-      {{0,1,0},{-1,0,0},{0,0,0}}
-   };
-
-   for(uint n=0; n<nodes.size(); n++) {
-      Real sigmaH = nodes[n].parameters[ionosphereParameters::SIGMAH];
-      Real sigmaP = nodes[n].parameters[ionosphereParameters::SIGMAP];
-      std::array<Real, 3> b = {nodes[n].x[0] / Ionosphere::innerRadius, nodes[n].x[1] / Ionosphere::innerRadius, nodes[n].x[2] / Ionosphere::innerRadius};
-      if(nodes[n].x[2] >= 0) {
-         b[0] *= -1;
-         b[1] *= -1;
-         b[2] *= -1;
-      }
-      for(int i=0; i<3; i++) {
-         for(int j=0; j<3; j++) {
-            nodes[n].parameters[ionosphereParameters::SIGMA + i*3 + j] = sigmaP * (((i==j)? 1. : 0.) - b[i]*b[j]);
-            for(int k=0; k<3; k++) {
-               nodes[n].parameters[ionosphereParameters::SIGMA + i*3 + j] -= sigmaH * epsilon[i][j][k]*b[k];
-            }
-         }
-      }
-   }
+   return (C2 + C1 * Chi) * exp(C4 * Chi + C3 * Chi * Chi);
 }
 
 int main(int argc, char** argv) {
 
-   // Init MPI
-   int required=MPI_THREAD_FUNNELED;
-   int provided;
-   int myRank;
-   MPI_Init_thread(&argc,&argv,required,&provided);
-   if (required > provided){
-      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-      if(myRank==MASTER_RANK)
-         cerr << "(MAIN): MPI_Init_thread failed! Got " << provided << ", need "<<required <<endl;
-      exit(1);
-   }
-   const int masterProcessID = 0;
-   logFile.open(MPI_COMM_WORLD, masterProcessID, "logfile.txt");
-
-   // Parse parameters
-   int numNodes = 64;
-   std::string sigmaString="identity";
-   std::string facString="constant";
-   std::string gaugeFixString="pole";
-   std::string inputFile;
-   std::string outputFilename("output.vlsv");
-   std::vector<std::pair<double, double>> refineExtents;
-   Ionosphere::solverMaxIterations = 1000;
-   bool doPrecondition = true;
-   bool writeSolverMtarix = false;
-   bool quiet = false;
-   int multipoleL = 0;
-   int multipolem = 0;
-   if(argc ==1) {
-      cerr << "Running with default options. Run main --help to see available settings." << endl;
-   }
-   for(int i=1; i<argc; i++) {
-      if(!strcmp(argv[i], "-N")) {
-         numNodes = atoi(argv[++i]);
-         continue;
-      }
-      if(!strcmp(argv[i], "-r")) {
-         double minLat = atof(argv[++i]);
-         double maxLat = atof(argv[++i]);
-         refineExtents.push_back(std::pair<double,double>(minLat, maxLat));
-         continue;
-      }
-      if(!strcmp(argv[i], "-sigma")) {
-         sigmaString = argv[++i];
-         continue;
-      }
-      if(!strcmp(argv[i], "-fac")) {
-         facString = argv[++i];
-
-         // Special handling for multipoles
-         if(facString == "multipole") {
-            multipoleL = atoi(argv[++i]);
-            multipolem = atoi(argv[++i]);
-         }
-         continue;
-      }
-      if(!strcmp(argv[i], "-gaugeFix")) {
-         gaugeFixString = argv[++i];
-         continue;
-      }
-      if(!strcmp(argv[i], "-np")) {
-         doPrecondition = false;
-         continue;
-      }
-      if(!strcmp(argv[i], "-infile")) {
-         inputFile = argv[++i];
-         continue;
-      }
-      if(!strcmp(argv[i], "-maxIter")) {
-         Ionosphere::solverMaxIterations = atoi(argv[++i]);
-         continue;
-      }
-      if(!strcmp(argv[i], "-o")) {
-         outputFilename = argv[++i];
-         continue;
-      }
-      if(!strcmp(argv[i], "-matrix")) {
-         writeSolverMtarix = true;
-         continue;
-      }
-      if(!strcmp(argv[i], "-q")) {
-         quiet = true;
-         continue;
-      }
-      cerr << "Unknown command line option \"" << argv[i] << "\"" << endl;
-      cerr << endl;
-      cerr << "main [-N num] [-r <lat0> <lat1>] [-sigma (identity|random|35|53|file)] [-fac (constant|dipole|quadrupole|octopole|hexadecapole||file)] [-facfile <filename>] [-gaugeFix equator|equator40|equator45|equator60|pole|integral|none] [-np]" << endl;
-      cerr << "Paramters:" << endl;
-      cerr << " -N:            Number of ionosphere mesh nodes (default: 64)" << endl;
-      cerr << " -r:            Refine grid between the given latitudes (can be specified multiple times)" << endl;
-      cerr << " -sigma:        Conductivity matrix contents (default: identity)" << endl;
-      cerr << "                options are:" << endl;
-      cerr << "                identity - identity matrix w/ conductivity 1" << endl;
-      cerr << "                ponly    - Constant pedersen conductivitu"<< endl;
-      cerr << "                10 -       Sigma_H = 0, Sigma_P = 10" << endl;
-      cerr << "                35 -       Sigma_H = 3, Sigma_P = 5" << endl;
-      cerr << "                53 -       Sigma_H = 5, Sigma_P = 3" << endl;
-      cerr << "                100 -      Sigma_H = 100, Sigma_P=20" << endl;
-      cerr << "                file -     Read from vlsv input file " << endl;
-      cerr << " -fac:          FAC pattern on the sphere (default: constant)" << endl;
-      cerr << "                options are:" << endl;
-      cerr << "                constant          - Constant value of 1" << endl;
-      cerr << "                dipole            - north/south dipole" << endl;
-      cerr << "                quadrupole        - east/west quadrupole (L=2, m=1)" << endl;
-      cerr << "                octopole          - octopole (L=3, m=2)" << endl;
-      cerr << "                hexadecapole      - hexadecapole (L=4, m=3)" << endl;
-      cerr << "                multipole <L> <m> - generic multipole, L and m given separately." << endl;
-      cerr << "                merkin2010        - eq13 of Merkin et al (2010)" << endl;
-      cerr << "                file              - read FAC distribution from vlsv input file" << endl;
-      cerr << " -infile:       Read FACs from this input file" << endl;
-      cerr << " -gaugeFix:     Solver gauge fixing method (default: pole)" << endl;
-      cerr << "                options are:" << endl;
-      cerr << "                pole      - Fix potential in a single node at the north pole" << endl;
-      cerr << "                equator   - Fix potential on all nodes +- 10 degrees of the equator" << endl;
-      cerr << "                equator40 - Fix potential on all nodes +- 40 degrees of the equator" << endl;
-      cerr << "                equator45 - Fix potential on all nodes +- 45 degrees of the equator" << endl;
-      cerr << "                equator60 - Fix potential on all nodes +- 60 degrees of the equator" << endl;
-      cerr << " -np:           DON'T use the matrix preconditioner (default: do)" << endl;
-      cerr << " -maxIter:      Maximum number of solver iterations" << endl;
-      cerr << " -o <filename>: Output filename (default: \"output.vlsv\")" << endl;
-      cerr << " -matrix:       Write solver dependency matrix to solverMatrix.txt (default: don't.)" << endl;
-      cerr << " -q:            Quiet mode (only output residual value" << endl;
-
+   if (argc < 3) {
+      std::cerr << "Syntax: sigmaProfiles <Density (1/m³)> <Temperature (K)>" << std::endl;
       return 1;
    }
+   Real rhon = atof(argv[1]);
+   Real T = atof(argv[2]);
+   std::string filename = "NRLMSIS.dat";
 
-   phiprof::initialize();
+   // -------------- Build atmosphere model --------------
+   // These are the only height values (in km) we are actually interested in
+   static const float alt[numAtmosphereLevels] = {66, 68, 71, 74, 78, 82, 87, 92, 98, 104, 111, 118, 126, 134, 143, 152, 162, 172, 183, 194};
 
-   // Initialize ionosphere grid
-   Ionosphere::innerRadius =  physicalconstants::R_E + 100e3;
-   ionosphereGrid.initializeSphericalFibonacci(numNodes);
-   if(gaugeFixString == "pole") {
-      ionosphereGrid.gaugeFixing = SphericalTriGrid::Pole;
-   } else if (gaugeFixString == "integral") {
-      ionosphereGrid.gaugeFixing = SphericalTriGrid::Integral;
-   } else if (gaugeFixString == "equator") {
-      ionosphereGrid.gaugeFixing = SphericalTriGrid::Equator;
-      Ionosphere::shieldingLatitude = 10.;
-   } else if (gaugeFixString == "equator40") {
-      ionosphereGrid.gaugeFixing = SphericalTriGrid::Equator;
-      Ionosphere::shieldingLatitude = 40.;
-   } else if (gaugeFixString == "equator45") {
-      ionosphereGrid.gaugeFixing = SphericalTriGrid::Equator;
-      Ionosphere::shieldingLatitude = 45.;
-   } else if (gaugeFixString == "equator60") {
-      ionosphereGrid.gaugeFixing = SphericalTriGrid::Equator;
-      Ionosphere::shieldingLatitude = 60.;
-   } else if (gaugeFixString == "none") {
-      ionosphereGrid.gaugeFixing = SphericalTriGrid::None;
-   } else {
-      cerr << "Unknown gauge fixing method " << gaugeFixString << endl;
-      return 1;
+   // Open file, read in
+   ifstream in(filename);
+   if (!in) {
+      cerr << "(ionosphere) WARNING: Atmospheric Model file " << filename << " could not be opened: " << strerror(errno) << endl
+           << "(ionosphere) All atmospheric values will be zero, and there will be no ionization!" << endl;
+   }
+   int altindex = 0;
+   Real integratedDensity = 0;
+   Real prevDensity = 0;
+   Real prevAltitude = 0;
+   std::vector<std::array<Real, 5>> MSISvalues;
+   while (in) {
+      Real altitude, massdensity, Odensity, N2density, O2density, neutralTemperature;
+      in >> altitude >> Odensity >> N2density >> O2density >> massdensity >> neutralTemperature;
+
+      integratedDensity += (altitude - prevAltitude) * 1000 * 0.5 * (massdensity + prevDensity);
+      // Ion-neutral scattering frequencies (from Schunk and Nagy, 2009, Table 4.5)
+      Real nui = 1e-17 * (3.67 * Odensity + 5.14 * N2density + 2.59 * O2density);
+      // Elctron-neutral scattering frequencies (Same source, Table 4.6)
+      Real nue = 1e-17 * (8.9 * Odensity + 2.33 * N2density + 18.2 * O2density);
+      prevAltitude = altitude;
+      prevDensity = massdensity;
+      MSISvalues.push_back({altitude, massdensity, nui, nue, integratedDensity});
    }
 
-   // Refine the base shape to acheive desired resolution
-   auto refineBetweenLatitudes = [](Real phi1, Real phi2) -> void {
-      uint numElems=ionosphereGrid.elements.size();
+   // Iterate through the read data and linearly interpolate
+   for (unsigned int i = 1; i < MSISvalues.size(); i++) {
+      Real altitude = MSISvalues[i][0];
 
-      for(uint i=0; i< numElems; i++) {
-         Real mean_z = 0;
-         mean_z  = ionosphereGrid.nodes[ionosphereGrid.elements[i].corners[0]].x[2];
-         mean_z += ionosphereGrid.nodes[ionosphereGrid.elements[i].corners[1]].x[2];
-         mean_z += ionosphereGrid.nodes[ionosphereGrid.elements[i].corners[2]].x[2];
-         mean_z /= 3.;
+      // When we encounter one of our reference layers, record its values
+      while (altitude >= alt[altindex] && altindex < numAtmosphereLevels) {
+         Real interpolationFactor = (alt[altindex] - MSISvalues[i - 1][0]) / (MSISvalues[i][0] - MSISvalues[i - 1][0]);
 
-         if(fabs(mean_z) >= sin(phi1 * M_PI / 180.) * Ionosphere::innerRadius &&
-               fabs(mean_z) <= sin(phi2 * M_PI / 180.) * Ionosphere::innerRadius) {
-            ionosphereGrid.subdivideElement(i);
-         }
-      }
-   };
+         AtmosphericLayer newLayer;
+         newLayer.altitude = alt[altindex];                                                                                       // in km
+         newLayer.density = fmax((1. - interpolationFactor) * MSISvalues[i - 1][1] + interpolationFactor * MSISvalues[i][1], 0.); // kg/m^3
+         newLayer.depth = fmax((1. - interpolationFactor) * MSISvalues[i - 1][4] + interpolationFactor * MSISvalues[i][4], 0.);   // kg/m^2
 
-   if(refineExtents.size() > 0) {
-      for(unsigned int i=0; i< refineExtents.size(); i++) {
-         refineBetweenLatitudes(refineExtents[i].first, refineExtents[i].second);
-      }
-      ionosphereGrid.stitchRefinementInterfaces();
-   }
-
-
-   std::vector<SphericalTriGrid::Node>& nodes = ionosphereGrid.nodes;
-
-   // Set conductivity tensors
-   if(sigmaString == "identity") {
-      for(uint n=0; n<nodes.size(); n++) {
-         for(int i=0; i<3; i++) {
-            for(int j=0; j<3; j++) {
-               nodes[n].parameters[ionosphereParameters::SIGMA + i*3 + j] = ((i==j)? 1. : 0.);
-            }
-         }
-      }
-   } else if(sigmaString == "file") {
-      vlsv::ParallelReader inVlsv;
-      inVlsv.open(inputFile,MPI_COMM_WORLD,masterProcessID);
-      // Try to read the sigma tensor directly
-      if(!readIonosphereNodeVariable(inVlsv, "ig_sigma", ionosphereGrid, ionosphereParameters::SIGMA)) {
-
-         // If that doesn't exist, reconstruct it from the sigmaH and sigmaP components
-         // (This assumes that the input file was run with the "GUMICS" conductivity model. Which is reasonable,
-         // because the others don't work very well)
-         if(!quiet) {
-            cerr << "Reading conductivity tensor from ig_sigmah, ig_sigmap." << endl;
-         }
-         readIonosphereNodeVariable(inVlsv, "ig_sigmah", ionosphereGrid, ionosphereParameters::SIGMAH);
-         readIonosphereNodeVariable(inVlsv, "ig_sigmap", ionosphereGrid, ionosphereParameters::SIGMAP);
-         //readIonosphereNodeVariable(inVlsv, "ig_sigmaparallel", ionosphereGrid, ionosphereParameters::SIGMAPARALLEL);
-         assignConductivityTensorFromLoadedData(nodes);
-      }
-   } else if(sigmaString == "ponly") {
-         Real sigmaP=3.;
-         Real sigmaH=0.;
-         assignConductivityTensor(nodes, sigmaP, sigmaH);
-   } else if(sigmaString == "10") {
-         Real sigmaP=10.;
-         Real sigmaH=0.;
-         assignConductivityTensor(nodes, sigmaP, sigmaH);
-   } else if(sigmaString == "35") {
-         Real sigmaP=3.;
-         Real sigmaH=5.;
-         assignConductivityTensor(nodes, sigmaP, sigmaH);
-   } else if(sigmaString == "53") {
-         Real sigmaP=5.;
-         Real sigmaH=3.;
-         assignConductivityTensor(nodes, sigmaP, sigmaH);
-   } else if(sigmaString == "10") {
-         Real sigmaP=10.;
-         Real sigmaH=0.;
-         assignConductivityTensor(nodes, sigmaP, sigmaH);
-   } else if(sigmaString == "100") {
-         Real sigmaP=20.;
-         Real sigmaH=100.;
-         assignConductivityTensor(nodes, sigmaP, sigmaH);
-   } else {
-      cerr << "Conductivity tensor " << sigmaString << " not implemented!" << endl;
-      return 1;
-   }
-
-
-   // Set FACs
-   if(facString == "constant") {
-      for(uint n=0; n<nodes.size(); n++) {
-         nodes[n].parameters[ionosphereParameters::SOURCE] = 1;
-      }
-   } else if(facString == "dipole") {
-      for(uint n=0; n<nodes.size(); n++) {
-         double theta = acos(nodes[n].x[2] / sqrt(nodes[n].x[0]*nodes[n].x[0] + nodes[n].x[1]*nodes[n].x[1] + nodes[n].x[2]*nodes[n].x[2])); // Latitude
-         double phi = atan2(nodes[n].x[0], nodes[n].x[1]); // Longitude
-
-         Real area = 0;
-         for(uint e=0; e<ionosphereGrid.nodes[n].numTouchingElements; e++) {
-            area += ionosphereGrid.elementArea(ionosphereGrid.nodes[n].touchingElements[e]);
-         }
-         area /= 3.; // As every element has 3 corners, don't double-count areas
-
-         nodes[n].parameters[ionosphereParameters::SOURCE] = sph_legendre(1,0,theta) * cos(0*phi) * area;
-      }
-   } else if(facString == "quadrupole") {
-      for(uint n=0; n<nodes.size(); n++) {
-         double theta = acos(nodes[n].x[2] / sqrt(nodes[n].x[0]*nodes[n].x[0] + nodes[n].x[1]*nodes[n].x[1] + nodes[n].x[2]*nodes[n].x[2])); // Latitude
-         double phi = atan2(nodes[n].x[0], nodes[n].x[1]); // Longitude
-
-         Real area = 0;
-         for(uint e=0; e<ionosphereGrid.nodes[n].numTouchingElements; e++) {
-            area += ionosphereGrid.elementArea(ionosphereGrid.nodes[n].touchingElements[e]);
-         }
-         area /= 3.; // As every element has 3 corners, don't double-count areas
-
-         nodes[n].parameters[ionosphereParameters::SOURCE] = sph_legendre(2,1,theta) * cos(1*phi) * area;
-      }
-   } else if(facString == "octopole") {
-      for(uint n=0; n<nodes.size(); n++) {
-         double theta = acos(nodes[n].x[2] / sqrt(nodes[n].x[0]*nodes[n].x[0] + nodes[n].x[1]*nodes[n].x[1] + nodes[n].x[2]*nodes[n].x[2])); // Latitude
-         double phi = atan2(nodes[n].x[0], nodes[n].x[1]); // Longitude
-
-         Real area = 0;
-         for(uint e=0; e<ionosphereGrid.nodes[n].numTouchingElements; e++) {
-            area += ionosphereGrid.elementArea(ionosphereGrid.nodes[n].touchingElements[e]);
-         }
-         area /= 3.; // As every element has 3 corners, don't double-count areas
-
-         nodes[n].parameters[ionosphereParameters::SOURCE] = sph_legendre(3,2,theta) * cos(2*phi) * area;
-      }
-   } else if(facString == "hexadecapole") {
-      for(uint n=0; n<nodes.size(); n++) {
-         double theta = acos(nodes[n].x[2] / sqrt(nodes[n].x[0]*nodes[n].x[0] + nodes[n].x[1]*nodes[n].x[1] + nodes[n].x[2]*nodes[n].x[2])); // Latitude
-         double phi = atan2(nodes[n].x[0], nodes[n].x[1]); // Longitude
-
-         Real area = 0;
-         for(uint e=0; e<ionosphereGrid.nodes[n].numTouchingElements; e++) {
-            area += ionosphereGrid.elementArea(ionosphereGrid.nodes[n].touchingElements[e]);
-         }
-         area /= 3.; // As every element has 3 corners, don't double-count areas
-
-         nodes[n].parameters[ionosphereParameters::SOURCE] = sph_legendre(4,3,theta) * cos(3*phi) * area;
-      }
-   } else if(facString == "multipole") {
-      for(uint n=0; n<nodes.size(); n++) {
-         double theta = acos(nodes[n].x[2] / sqrt(nodes[n].x[0]*nodes[n].x[0] + nodes[n].x[1]*nodes[n].x[1] + nodes[n].x[2]*nodes[n].x[2])); // Latitude
-         double phi = atan2(nodes[n].x[0], nodes[n].x[1]); // Longitude
-
-         Real area = 0;
-         for(uint e=0; e<ionosphereGrid.nodes[n].numTouchingElements; e++) {
-            area += ionosphereGrid.elementArea(ionosphereGrid.nodes[n].touchingElements[e]);
-         }
-         area /= 3.; // As every element has 3 corners, don't double-count areas
-
-         nodes[n].parameters[ionosphereParameters::SOURCE] = sph_legendre(multipoleL,fabs(multipolem),theta) * cos(multipolem*phi) * area;
-      }
-   } else if(facString == "merkin2010") {
-
-      // From Merkin et al (2010), LFM's conductivity map test setup (Figure3 / eq 13):
-      const double j_0 = 1e-6;
-      const double theta_0 = 22. / 180 * M_PI;
-      const double deltaTheta = 12. / 180 * M_PI;
-
-      for(uint n=0; n<nodes.size(); n++) {
-         double theta = acos(nodes[n].x[2] / sqrt(nodes[n].x[0]*nodes[n].x[0] + nodes[n].x[1]*nodes[n].x[1] + nodes[n].x[2]*nodes[n].x[2])); // Latitude
-         double phi = atan2(nodes[n].x[0], nodes[n].x[1]); // Longitude
-
-         Real area = 0;
-         for(uint e=0; e<ionosphereGrid.nodes[n].numTouchingElements; e++) {
-            area += ionosphereGrid.elementArea(ionosphereGrid.nodes[n].touchingElements[e]);
-         }
-         area /= 3.; // As every element has 3 corners, don't double-count areas
-
-         double j_parallel=0;
-
-         // Merkin et al specifies colatitude as degrees-from-the-pole
-         if(fabs(theta) >= theta_0 && fabs(theta) < theta_0 + deltaTheta) {
-            j_parallel = j_0 * sin(M_PI/2 - theta) * sin(phi);
-         }
-         nodes[n].parameters[ionosphereParameters::SOURCE] = j_parallel * area;
-      }
-   } else if(facString == "file") {
-      vlsv::ParallelReader inVlsv;
-      inVlsv.open(inputFile,MPI_COMM_WORLD,masterProcessID);
-      readIonosphereNodeVariable(inVlsv, "ig_fac", ionosphereGrid, ionosphereParameters::SOURCE);
-      for(uint i=0; i<ionosphereGrid.nodes.size(); i++) {
-         Real area = 0;
-         for(uint e=0; e<ionosphereGrid.nodes[i].numTouchingElements; e++) {
-            area += ionosphereGrid.elementArea(ionosphereGrid.nodes[i].touchingElements[e]);
-         }
-         area /= 3.; // As every element has 3 corners, don't double-count areas
-         ionosphereGrid.nodes[i].parameters[ionosphereParameters::SOURCE] *= area;
-      }
-   } else {
-      cerr << "FAC pattern " << sigmaString << " not implemented!" << endl;
-      return 1;
-   }
-
-   ionosphereGrid.initSolver(true);
-
-   // Write solver dependency matrix.
-   if(writeSolverMtarix) {
-      ofstream matrixOut("solverMatrix.txt");
-      for(uint n=0; n<nodes.size(); n++) {
-         for(uint m=0; m<nodes.size(); m++) {
-
-            Real val=0;
-            for(unsigned int d=0; d<nodes[n].numDepNodes; d++) {
-               if(nodes[n].dependingNodes[d] == m) {
-                  if(doPrecondition) {
-                     val=nodes[n].dependingCoeffs[d] / nodes[n].dependingCoeffs[0];
-                  } else {
-                     val=nodes[n].dependingCoeffs[d];
-                  }
-               }
-            }
-
-            matrixOut << val << "\t";
-         }
-         matrixOut << endl;
-      }
-      if(!quiet) {
-         cout << "--- SOLVER DEPENDENCY MATRIX WRITTEN TO solverMatrix.txt ---" << endl;
+         newLayer.nui = fmax((1. - interpolationFactor) * MSISvalues[i - 1][2] + interpolationFactor * MSISvalues[i][2], 0.); // m^-3 s^-1
+         newLayer.nue = fmax((1. - interpolationFactor) * MSISvalues[i - 1][3] + interpolationFactor * MSISvalues[i][3], 0.); // m^-3 s^-1
+         atmosphere[altindex++] = newLayer;
       }
    }
 
-   // Try to solve the system.
-   ionosphereGrid.isCouplingInwards=true;
-   Ionosphere::solverPreconditioning = doPrecondition;
-   Ionosphere::solverMaxFailureCount = 3;
-   ionosphereGrid.rank = 0;
-   int iterations, nRestarts;
-   Real residual = std::numeric_limits<Real>::max(), minPotentialN, minPotentialS, maxPotentialN, maxPotentialS;
-   ionosphereGrid.solve(iterations, nRestarts, residual, minPotentialN, maxPotentialN, minPotentialS, maxPotentialS);
-   if(!quiet) {
-      cout << "Ionosphere solver: iterations " << iterations << " restarts " << nRestarts
-         << " residual " << std::scientific << residual << std::defaultfloat
-         << " potential min N = " << minPotentialN << " S = " << minPotentialS
-         << " max N = " << maxPotentialN << " S = " << maxPotentialS
-         << " difference N = " << maxPotentialN - minPotentialN << " S = " << maxPotentialS - minPotentialS
-         << endl;
-   } else {
-      if(multipoleL == 0) {
-         cout << std::scientific << residual << std::defaultfloat << std::endl;
+   // Now we have integrated density from the bottom of the atmosphere in the depth field.
+   // Flip it around.
+   for (int h = 0; h < numAtmosphereLevels; h++) {
+      atmosphere[h].depth = integratedDensity - atmosphere[h].depth;
+   }
+
+   // Calculate Hall and Pedersen conductivity coefficient based on charge carrier density
+   const Real Bval = 5e-5;                                      // TODO: Hardcoded B strength here?
+   const Real NO_gyroFreq = CHARGE * Bval / (31 * MASS_PROTON); // Ion (NO+) gyration frequency
+   const Real e_gyroFreq = CHARGE * Bval / (MASS_ELECTRON);     // Elctron gyration frequency
+   for (int h = 0; h < numAtmosphereLevels; h++) {
+      // Vlasiator version
+      Real sigma_i = CHARGE * CHARGE / ((31. * MASS_PROTON) * atmosphere[h].nui);
+      Real sigma_e = CHARGE * CHARGE / (MASS_ELECTRON * atmosphere[h].nue);
+
+      atmosphere[h].pedersencoeff = sigma_i * (atmosphere[h].nui * atmosphere[h].nui) / (atmosphere[h].nui * atmosphere[h].nui + NO_gyroFreq * NO_gyroFreq) +
+                                    sigma_e * (atmosphere[h].nue * atmosphere[h].nue) / (atmosphere[h].nue * atmosphere[h].nue + e_gyroFreq * e_gyroFreq);
+      atmosphere[h].hallcoeff = -sigma_i * (atmosphere[h].nui * NO_gyroFreq) / (atmosphere[h].nui * atmosphere[h].nui + NO_gyroFreq * NO_gyroFreq) +
+                                sigma_e * (atmosphere[h].nue * e_gyroFreq) / (atmosphere[h].nue * atmosphere[h].nue + e_gyroFreq * e_gyroFreq);
+
+      atmosphere[h].parallelcoeff = sigma_e;
+
+      // GUMICS version
+      // const double gyro = (1.6e-19*Bval/(31*1.66e-27));
+      // const double rho = atmosphere[h].nui/gyro;
+      // atmosphere[h].pedersencoeff = (1.6e-19/Bval)*(rho/(1+rho*rho));
+      // atmosphere[h].hallcoeff = rho * atmosphere[h].pedersencoeff;
+   }
+
+   // Energies of particles that sample the production array
+   // are logspace-distributed from 10^-1 to 10^2.3 keV
+   for (int e = 0; e < productionNumParticleEnergies; e++) {
+      particle_energy[e] = pow(10.0, -1. + e * (2.3 + 1.) / (productionNumParticleEnergies - 1));
+   }
+   particle_energy[productionNumParticleEnergies] = 2 * particle_energy[productionNumParticleEnergies - 1] - particle_energy[productionNumParticleEnergies - 2];
+
+   // Precalculate scattering rates
+   const Real eps_ion_keV = 0.035; // Energy required to create one ion
+   std::array<std::array<Real, numAtmosphereLevels>, productionNumParticleEnergies> scatteringRate;
+   for (int e = 0; e < productionNumParticleEnergies; e++) {
+
+      // From Rees, M. H. (1989), q 3.4.4
+      const Real electronRange = 4.3e-6 + 5.36e-5 * pow(particle_energy[e], 1.67); // kg m^-2
+      // From  Rees 1963, eq 2
+      // const Real electronRange = 4.57e-5 * pow(particle_energy[e], 1.75); // kg m^-2
+      // From Sergienko & Ivanov, 1993, eq A3
+      // const Real electronRange = 1.64e-5 * pow(particle_energy[e], 1.67) * (1. + 9.48e-2 * pow(particle_energy[e], -1.57));
+      Real rho_R = 0.;
+      // Integrate downwards through the atmosphre to find density at depth=1
+      for (int h = numAtmosphereLevels - 1; h >= 0; h--) {
+         if (atmosphere[h].depth / electronRange > 1) {
+            rho_R = atmosphere[h].density;
+            break;
+         }
+      }
+      if (rho_R == 0.) {
+         rho_R = atmosphere[0].density;
+      }
+
+      for (int h = 0; h < numAtmosphereLevels; h++) {
+         // Rees et al 1963, eq. 1
+         // const Real lambda = ReesIsotropicLambda(atmosphere[h].depth/electronRange);
+         // const Real rate = particle_energy[e] / (electronRange / rho_R) / eps_ion_keV *   lambda   *   atmosphere[h].density / integratedDensity;
+         // Rees 1989, eq. 3.3.7 / 3.3.8
+         const Real lambda = ReesIsotropicLambda(atmosphere[h].depth / electronRange);
+         const Real rate = particle_energy[e] * lambda * atmosphere[h].density / electronRange / eps_ion_keV;
+         // Sergienko & Ivanov 1993, eq A4
+         // const Real lambda = SergienkoIvanovLambda(particle_energy[e]*1000., atmosphere[h].depth/electronRange);
+         // const Real rate = atmosphere[h].density / eps_ion_keV * particle_energy[e] * lambda / electronRange; // TODO: Albedo flux?
+         scatteringRate[e][h] = max(0., rate); // m^-1
+      }
+   }
+
+   // -------------- Build differential flux --------------
+   Real tempenergy = kB * T / CHARGE / 1000;
+   Real accenergy = productionMinAccEnergy;
+   std::cerr << "# Temperature of " << T << " K == Thermal energy of " << tempenergy << " keV" << std::endl;
+   Real integralFlux = 0;
+
+   for (int p = 0; p < productionNumParticleEnergies; p++) {
+      // TODO: Kappa distribution here? Now only going for maxwellian
+      Real energyparam = (particle_energy[p] - accenergy) / tempenergy;
+
+      if (particle_energy[p] > accenergy) {
+         Real deltaE = (particle_energy[p + 1] - particle_energy[p]) * 1e3 * CHARGE; // dE in J
+
+         differentialFlux[p] = sqrt(1. / (2. * M_PI * MASS_ELECTRON)) * particle_energy[p] / tempenergy / sqrt(tempenergy * 1e3 * CHARGE) * deltaE * exp(-energyparam);
+         integralFlux += rhon * differentialFlux[p];
       } else {
-         // Actually corellate with our input multipole
-         Real correlate=0;
-         Real selfNorm=0;
-         Real sphNorm =0;
-         Real totalArea = 0;
-         for(uint n=0; n<nodes.size(); n++) {
-            double theta = acos(nodes[n].x[2] / sqrt(nodes[n].x[0]*nodes[n].x[0] + nodes[n].x[1]*nodes[n].x[1] + nodes[n].x[2]*nodes[n].x[2])); // Latitude
-            double phi = atan2(nodes[n].x[0], nodes[n].x[1]); // Longitude
-
-            Real area = 0;
-            for(uint e=0; e<ionosphereGrid.nodes[n].numTouchingElements; e++) {
-               area += ionosphereGrid.elementArea(ionosphereGrid.nodes[n].touchingElements[e]);
-            }
-            area /= 3.; // As every element has 3 corners, don't double-count areas
-
-            totalArea += area;
-            selfNorm += pow(nodes[n].parameters[ionosphereParameters::SOLUTION],2.) * area;
-            sphNorm += pow(sph_legendre(multipoleL,fabs(multipolem),theta) * cos(multipolem*phi), 2.) * area;
-            correlate += nodes[n].parameters[ionosphereParameters::SOLUTION] * sph_legendre(multipoleL,fabs(multipolem),theta) * cos(multipolem*phi) * area;
-         }
-
-         selfNorm = sqrt(selfNorm/totalArea);
-         sphNorm = sqrt(sphNorm/totalArea);
-         correlate /= totalArea * selfNorm * sphNorm;
-
-         cout << std::scientific << correlate << std::defaultfloat << std::endl;
+         differentialFlux[p] = 0;
       }
    }
 
-   // Write output
-   vlsv::Writer outputFile;
-   outputFile.open(outputFilename,MPI_COMM_WORLD,masterProcessID);
-   ionosphereGrid.communicator = MPI_COMM_WORLD;
-   ionosphereGrid.writingRank = 0;
-   P::systemWriteName = std::vector<std::string>({"potato potato"});
-   writeIonosphereGridMetadata(outputFile);
-
-   // Data reducers
-   DataReducer outputDROs;
-   outputDROs.addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_fac", [](SBC::SphericalTriGrid& grid) -> std::vector<Real> {
-         std::vector<Real> retval(grid.nodes.size());
-
-         for (uint i = 0; i < grid.nodes.size(); i++) {
-            Real area = 0;
-            for (uint e = 0; e < grid.nodes[i].numTouchingElements; e++) {
-               area += grid.elementArea(grid.nodes[i].touchingElements[e]);
-            }
-            area /= 3.; // As every element has 3 corners, don't double-count areas
-            retval[i] = grid.nodes[i].parameters[ionosphereParameters::SOURCE] / area;
-         }
-
-         return retval;
-   }));
-   outputDROs.addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_source", [](SBC::SphericalTriGrid& grid) -> std::vector<Real> {
-         std::vector<Real> retval(grid.nodes.size());
-
-         for (uint i = 0; i < grid.nodes.size(); i++) {
-            retval[i] = grid.nodes[i].parameters[ionosphereParameters::SOURCE];
-         }
-
-         return retval;
-   }));
-   outputDROs.addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_potential", [](SBC::SphericalTriGrid& grid)->std::vector<Real> {
-
-         std::vector<Real> retval(grid.nodes.size());
-
-         for(uint i=0; i<grid.nodes.size(); i++) {
-            retval[i] = grid.nodes[i].parameters[ionosphereParameters::SOLUTION];
-         }
-
-         return retval;
-   }));
-   outputDROs.addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_residual", [](SBC::SphericalTriGrid& grid)->std::vector<Real> {
-
-         std::vector<Real> retval(grid.nodes.size());
-
-         for(uint i=0; i<grid.nodes.size(); i++) {
-            retval[i] = grid.nodes[i].parameters[ionosphereParameters::RESIDUAL];
-         }
-
-         return retval;
-   }));
-
-   for(unsigned int i=0; i<outputDROs.size(); i++) {
-      outputDROs.writeIonosphereGridData(ionosphereGrid, "ionosphere", i, outputFile);
+   // -------------- Fill production table --------------
+   for (int h = 0; h < numAtmosphereLevels; h++) {
+      productionTable[h] = 0;
+      for (int p = 0; p < productionNumParticleEnergies; p++) {
+         productionTable[h] += scatteringRate[p][h] * differentialFlux[p];
+      }
    }
 
-   outputFile.close();
-   if(!quiet) {
-      cout << "--- OUTPUT WRITTEN TO " << outputFilename << " ---" << endl;
-   }
+   // Calculate and output electron density and conductivities
+   std::cout << "# Altitude (m)\tn_e (1/m³)\tsigmaP (mho)\tsigmaH (mho)\tsigmaParallel (mho)\tProduction rate (m^-3 s^-1)" << std::endl;
+   std::array<Real, numAtmosphereLevels> electronDensity;
+   Real SigmaH = 0;
+   Real SigmaP = 0;
+   Real SigmaParallel = 0;
 
-   //cout << "--- DONE. ---" << endl;
+   for (int h = 1; h < numAtmosphereLevels; h++) {
+      Real qref = rhon * productionTable[h];
+
+      // Get equilibrium electron density
+      electronDensity[h] = sqrt(qref / recombAlpha);
+
+      // Calculate conductivities
+      Real halfdx = 1000 * 0.5 * (atmosphere[h].altitude - atmosphere[h - 1].altitude);
+
+      // Gumics-like integration
+      Real halfCH = halfdx * 0.5 * (atmosphere[h - 1].hallcoeff + atmosphere[h].hallcoeff);
+      Real halfCP = halfdx * 0.5 * (atmosphere[h - 1].pedersencoeff + atmosphere[h].pedersencoeff);
+      Real halfCpara = halfdx * 0.5 * (atmosphere[h - 1].parallelcoeff + atmosphere[h].parallelcoeff);
+
+      Real sigmap = (electronDensity[h] + electronDensity[h - 1]) * halfCP;
+      Real sigmah = (electronDensity[h] + electronDensity[h - 1]) * halfCH;
+      Real sigmaParallel = (electronDensity[h] + electronDensity[h - 1]) * halfCpara;
+
+      // Jonas-like integration
+      // Real sigmap = halfdx * 0.5 * (electronDensity.at(h)*atmosphere.at(h).pedersencoeff + electronDensity.at(h-1)*atmosphere.at(h-1).pedersencoeff);
+      // Real sigmah = halfdx * 0.5 * (electronDensity.at(h)*atmosphere.at(h).hallcoeff + electronDensity.at(h-1)*atmosphere.at(h-1).hallcoeff);
+      // Real sigmaParallel = halfdx * 0.5 * (electronDensity.at(h)*atmosphere.at(h).parallelcoeff + electronDensity.at(h-1)*atmosphere.at(h-1).parallelcoeff);
+
+      SigmaP += sigmap;
+      SigmaH += sigmah;
+      SigmaParallel += sigmaParallel;
+
+      std::cout << atmosphere[h].altitude << "\t" << 0.5 * (electronDensity[h] + electronDensity[h - 1]) << "\t" << sigmap / (2. * halfdx) << "\t" << sigmah / (2. * halfdx) << "\t"
+                << sigmaParallel / (2. * halfdx) << "\t" << qref << std::endl;
+   }
+   std::cerr << std::endl;
+
+   std::cerr << "Integral energy flux: " << integralFlux << " J/m²/s" << std::endl;
+   std::cerr << "Height integrated conductivities:" << std::endl;
+   std::cerr << "  SigmaH = " << SigmaH << std::endl;
+   std::cerr << "  SigmaP = " << SigmaP << std::endl;
+   std::cerr << "  Sigma∥ = " << SigmaParallel << std::endl;
+
    return 0;
 }

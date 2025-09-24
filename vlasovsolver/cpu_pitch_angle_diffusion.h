@@ -1,8 +1,6 @@
-#pragma once
-
 /*
  * This file is part of Vlasiator.
- * Copyright 2010-2025 Finnish Meteorological Institute and University of Helsinki
+ * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
  * at http://www.physics.helsinki.fi/vlasiator/
@@ -22,12 +20,90 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include <zoltan.h>
-#include <dccrg.hpp>
-#include "../common.h"
-#include "../spatial_cells/spatial_cell_wrapper.hpp"
-#include <dccrg_cartesian_geometry.hpp>
+#ifndef CPU_SLOPE_LIMITERS_H
+#define CPU_SLOPE_LIMITERS_H
 
+#include "vec.h"
 
-void pitchAngleDiffusion(
-        dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID);
+using namespace std;
+
+static inline Vec minmod(const Vec& slope1, const Vec& slope2) {
+   const Vec veczero(0.0);
+   const Vec slope = select(abs(slope1) < abs(slope2), slope1, slope2);
+   return select(slope1 * slope2 <= 0, veczero, slope);
+}
+static inline Vec maxmod(const Vec& slope1, const Vec& slope2) {
+   const Vec veczero(0.0);
+   const Vec slope = select(abs(slope1) > abs(slope2), slope1, slope2);
+   return select(slope1 * slope2 <= 0, veczero, slope);
+}
+
+/*!
+  Superbee slope limiter
+*/
+
+static inline Vec slope_limiter_sb(const Vec& l, const Vec& m, const Vec& r) {
+   const Vec a = r - m;
+   const Vec b = m - l;
+   const Vec slope1 = minmod(a, 2 * b);
+   const Vec slope2 = minmod(2 * a, b);
+   return maxmod(slope1, slope2);
+}
+
+/*!
+  Minmod slope limiter
+*/
+
+static inline Vec slope_limiter_minmod(const Vec& l, const Vec& m, const Vec& r) {
+   // Vec sign;
+   const Vec a = r - m;
+   const Vec b = m - l;
+   return minmod(a, b);
+}
+
+/*!
+  MC slope limiter
+*/
+
+static inline Vec slope_limiter_mc(const Vec& l, const Vec& m, const Vec& r) {
+   const Vec veczero(0.0);
+   const Vec vectwo(2.0);
+   const Vec vechalf(0.5);
+   // Vec sign;
+   const Vec a = r - m;
+   const Vec b = m - l;
+   Vec minval = min(vectwo * abs(a), vectwo * abs(b));
+   minval = min(minval, vechalf * abs(a + b));
+
+   // check for extrema
+   const Vec output = select(a * b < 0, veczero, minval);
+   // set sign
+   return select(a + b < 0, -output, output);
+}
+
+static inline Vec slope_limiter_minmod_amr(const Vec& l, const Vec& m, const Vec& r, const Vec& a, const Vec& b) {
+   const Vec J = r - l;
+   Vec f = (m - l) / J;
+   f = min(Vec(1.0), f);
+   return min(f / (1 + a), (Vec(1.) - f) / (1 + b)) * 2 * J;
+}
+
+static inline Vec slope_limiter(const Vec& l, const Vec& m, const Vec& r) {
+   return slope_limiter_sb(l, m, r);
+   // return slope_limiter_minmod(l,m,r);
+}
+
+/*
+ * @param a Cell size fraction dx[i-1]/dx[i] = 1/2, 1, or 2.
+ * @param b Cell size fraction dx[i+1]/dx[i] = 1/2, 1, or 2.
+ * @return Limited value of slope.*/
+static inline Vec slope_limiter_amr(const Vec& l, const Vec& m, const Vec& r, const Vec& dx_left, const Vec& dx_rght) { return slope_limiter_minmod_amr(l, m, r, dx_left, dx_rght); }
+
+/* Slope limiter with abs and sign separatelym, uses the currently active slope limiter*/
+static inline void slope_limiter(const Vec& l, const Vec& m, const Vec& r, Vec& slope_abs, Vec& slope_sign) {
+   const Vec slope = slope_limiter(l, m, r);
+   slope_abs = abs(slope);
+   slope_sign = select(slope > 0, Vec(1.0), Vec(-1.0));
+}
+
+#endif

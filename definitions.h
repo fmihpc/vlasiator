@@ -23,17 +23,17 @@
 #ifndef DEFINITIONS_H
 #define DEFINITIONS_H
 
-#include <stdint.h>
 #include <limits>
+#include <stdint.h>
 
-//set floating point precision for storing the distribution function here. Default is single precision, use -DDPF to set double precision
+// set floating point precision for storing the distribution function here. Default is single precision, use -DDPF to set double precision
 #ifdef DPF
 typedef double Realf;
 #else
 typedef float Realf;
 #endif
 
-//set general floating point precision here. Default is single precision, use -DDP to set double precision
+// set general floating point precision here. Default is single precision, use -DDP to set double precision
 #ifdef DP
 typedef double Real;
 typedef const double creal;
@@ -53,35 +53,35 @@ typedef cuint csize;
 
 typedef uint64_t CellID;
 
-template<typename T> T convert(const T& number) {return number;}
+template <typename T> T convert(const T& number) { return number; }
 
 namespace vmesh {
-   typedef uint32_t GlobalID;              /**< Datatype used for velocity block global IDs.*/
-   typedef uint32_t LocalID;               /**< Datatype used for velocity block local IDs.*/
+   typedef uint32_t GlobalID; /**< Datatype used for velocity block global IDs.*/
+   typedef uint32_t LocalID;  /**< Datatype used for velocity block local IDs.*/
 
    /** Global ID of a non-existing or otherwise erroneous velocity block.*/
    static const GlobalID INVALID_GLOBALID = std::numeric_limits<GlobalID>::max();
 
    /** Local ID of a non-existing or otherwise erroneous velocity block.*/
-   static const LocalID INVALID_LOCALID  = std::numeric_limits<LocalID>::max();
+   static const LocalID INVALID_LOCALID = std::numeric_limits<LocalID>::max();
 
    /** Block index of a non-existing or erroneous velocity block.*/
    static const LocalID INVALID_VEL_BLOCK_INDEX = INVALID_LOCALID;
-}
+} // namespace vmesh
 
-//fieldsolver stencil.
+// fieldsolver stencil.
 #define FS_STENCIL_WIDTH 2
 
-//Vlasov propagator stencils in ordinary space, velocity space may be
-//higher. Assume H4 (or H5) for PPM, H6 for PQM
+// Vlasov propagator stencils in ordinary space, velocity space may be
+// higher. Assume H4 (or H5) for PPM, H6 for PQM
 #ifdef TRANS_SEMILAG_PLM
-   #define  VLASOV_STENCIL_WIDTH 1
+#define VLASOV_STENCIL_WIDTH 1
 #endif
 #ifdef TRANS_SEMILAG_PPM
    #define  VLASOV_STENCIL_WIDTH 2
 #endif
 #ifdef TRANS_SEMILAG_PQM
-   #define  VLASOV_STENCIL_WIDTH 3
+#define VLASOV_STENCIL_WIDTH 3
 #endif
 
 // Max number of face neighbors per dimension with AMR

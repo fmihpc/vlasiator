@@ -1,176 +1,253 @@
+/*
+ * This file is part of Vlasiator.
+ * Copyright 2010-2016 Finnish Meteorological Institute
+ *
+ * For details of usage, see the COPYING file and read the "Rules of the Road"
+ * at http://www.physics.helsinki.fi/vlasiator/
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 
-PRO shockpars_ip,v_shock=v_shock, t1=t1, b1=b1, usw=usw, rho1=rho1
- 
- ; Recoded 08/07/2016
- ; shock is always x-planar, propagating radially
+#include <cmath>
+#include <cstdlib>
+#include <iostream>
 
- ; This scripts assumes tangential components are in z-direction only. 
+#include "../../backgroundfield/backgroundfield.h"
+#include "../../common.h"
+#include "../../object_wrapper.h"
+#include "../../readparameters.h"
 
- ; Shock propagation speed is an input parameter (in SNIF) - this gives Vx
- ; solar wind speed Usw is also given in SNIF, and is radial. Thus,
- ; we simply deduct this from V_shock to find the shock-normal inflow speed.
- ; Vz is solved via velocity transform to dHT
- ;
- ; Shock-normal angle is calculated via solar wind speed as per Parker
- ; spiral winding, at 1 AU.
+#include "KHB.h"
 
- r_s = 6.96e8
- AU = 215.*r_s
- c  = 2.99792458e8
- m_p = 1.6726e-27
- e_p = 1.6021773e-19
- k_b = 1.3807e-23
- adiab = 5./3.
- mu0 = 1.25664e-6
- avogadro = 6.0221367e23
- Rydb = k_b*avogadro
-; OmegaSun = 2.972109871e-6 ;in radians, based on equatorial
-; differential rotation speed
- OmegaSun = 2.6394e-6 ;in radians, based on 27 days / rotation
+namespace projects {
+   using namespace std;
+   KHB::KHB() : TriAxisSearch() {}
+   KHB::~KHB() {}
 
- IF ~keyword_set(v_shock) THEN v_shock=7.50e5 ;default 750 km/s
- IF ~keyword_set(t1) THEN t1=1.0e5 ;default 0.1 MK 
- IF ~keyword_set(b1) THEN b1=5.e-9 ;default 5 nT
- IF ~keyword_set(usw) THEN usw=5.00e5 ;default 500 km/s
- IF ~keyword_set(rho1) THEN rho1=5.0e6 ;default 5 particles cm^-3
+   bool KHB::initialize(void) { return Project::initialize(); }
 
- thetrad = atan(OmegaSun*(AU-r_s)/usw)
- theta = (180./!pi)*thetrad
- cos11 = cos(thetrad)
- cos12 = cos11^2
- sin11 = sin(thetrad)
- sin12 = sin11^2
- ; angle, sine and cosine are non-negative
+   void KHB::addParameters() {
+      typedef Readparameters RP;
+      RP::add("KHB.P", "Constant total pressure (thermal+magnetic), used to determine the temperature profile (Pa)", 0.0);
+      RP::add("KHB.rho1", "Number density, this->TOP state (m^-3)", 0.0);
+      RP::add("KHB.rho2", "Number density, this->BOTTOM state (m^-3)", 0.0);
+      RP::add("KHB.Vx1", "Bulk velocity x component, this->TOP state (m/s)", 0.0);
+      RP::add("KHB.Vx2", "Bulk velocity x component, this->BOTTOM state (m/s)", 0.0);
+      RP::add("KHB.Vy1", "Bulk velocity y component, this->TOP state (m/s)", 0.0);
+      RP::add("KHB.Vy2", "Bulk velocity y component, this->BOTTOM state (m/s)", 0.0);
+      RP::add("KHB.Vz1", "Bulk velocity z component, this->TOP state (m/s)", 0.0);
+      RP::add("KHB.Vz2", "Bulk velocity z component, this->BOTTOM state (m/s)", 0.0);
+      RP::add("KHB.Bx1", "Magnetic field x component, this->TOP state (T)", 0.0);
+      RP::add("KHB.Bx2", "Magnetic field x component, this->BOTTOM state (T)", 0.0);
+      RP::add("KHB.By1", "Magnetic field y component, this->TOP state (T)", 0.0);
+      RP::add("KHB.By2", "Magnetic field y component, this->BOTTOM state (T)", 0.0);
+      RP::add("KHB.Bz1", "Magnetic field z component, this->TOP state (T)", 0.0);
+      RP::add("KHB.Bz2", "Magnetic field z component, this->BOTTOM state (T)", 0.0);
+      RP::add("KHB.lambda", "Initial perturbation wavelength (m)", 0.0);
+      RP::add("KHB.amp", "Initial velocity perturbation amplitude (m s^-1)", 0.0);
+      RP::add("KHB.offset", "Boundaries offset from 0 (m)", 0.0);
+      RP::add("KHB.transitionWidth", "Width of tanh transition for all changing values", 0.0);
+      RP::add("KHB.harmonics", "Number of harmonics of lambda included in the initial perturbation", 0);
+      RP::add("KHB.randomPhase", "If true, set a random phase for each mode of the initial perturbation. Seed set via project_common.seed", 0);
+   }
 
- ;Solve DHT frame values
- bn1 = b1*cos11
- bt1 = b1*sin11
- ; field is pointing outwards (positive in both x and z)
- un1 = -v_shock+usw
- ut1 = un1*bt1/bn1
- uht1 = -sqrt(un1^2+ut1^2)
- ; now B and U are antiparallel
+   void KHB::getParameters() {
+      Project::getParameters();
+      typedef Readparameters RP;
 
- print, 'Angle ',theta
- print, 'dHT transformation speed ',ut1
- 
- va1 = sqrt(b1*b1/(mu0*rho1*m_p))
- ;Use: pressure = n k T (does not include electron pressure)
- pressure1 = rho1 * k_B * t1
- vsound1 = sqrt( adiab*pressure1 /(m_p *rho1) )
- 
- u12 = uht1^2
- va12 = va1^2
- vs12 = vsound1^2
- MA2 = u12/va12
+      if (getObjectWrapper().particleSpecies.size() > 1) {
+         std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
+         abort();
+      }
 
- print,' va1 ',va1,' vsound1 ',vsound1, ' uht1 ',uht1,' MA ',sqrt(MA2)
-; print,' un1 ',un1,' ut1 ',ut1, ' sqrt(un1^2+ut1^2) ',sqrt(un1^2+ut1^2)
+      RP::get("KHB.P", this->P);
+      RP::get("KHB.rho1", this->rho[this->TOP]);
+      RP::get("KHB.rho2", this->rho[this->BOTTOM]);
+      RP::get("KHB.Vx1", this->Vx[this->TOP]);
+      RP::get("KHB.Vx2", this->Vx[this->BOTTOM]);
+      RP::get("KHB.Vy1", this->Vy[this->TOP]);
+      RP::get("KHB.Vy2", this->Vy[this->BOTTOM]);
+      RP::get("KHB.Vz1", this->Vz[this->TOP]);
+      RP::get("KHB.Vz2", this->Vz[this->BOTTOM]);
+      RP::get("KHB.Bx1", this->Bx[this->TOP]);
+      RP::get("KHB.Bx2", this->Bx[this->BOTTOM]);
+      RP::get("KHB.By1", this->By[this->TOP]);
+      RP::get("KHB.By2", this->By[this->BOTTOM]);
+      RP::get("KHB.Bz1", this->Bz[this->TOP]);
+      RP::get("KHB.Bz2", this->Bz[this->BOTTOM]);
+      RP::get("KHB.lambda", this->lambda);
+      RP::get("KHB.amp", this->amp);
+      RP::get("KHB.offset", this->offset);
+      RP::get("KHB.transitionWidth", this->transitionWidth);
+      RP::get("KHB.harmonics", this->harmonics);
+      RP::get("KHB.randomPhase", this->randomPhase);
+   }
 
- ; Initialize compression ratio for looping
- compr=0
+   Real KHB::profile(creal top, creal bottom, creal x) const {
+      if (top == bottom) {
+         return top;
+      }
+      if (this->offset != 0.0) {
+         return 0.5 * ((top - bottom) * (tanh((x + this->offset) / this->transitionWidth) - tanh((x - this->offset) / this->transitionWidth) - 1) + top + bottom);
+      } else {
+         return 0.5 * ((top - bottom) * tanh(x / this->transitionWidth) + top + bottom);
+      }
+   }
 
- ; Calculate beta
- beta1 = (2./adiab)* vs12/va12
- calctemp1 = 1.D + 0.5*adiab*beta1
+   inline vector<std::array<Real, 3>> KHB::getV0(creal x, creal y, creal z, const uint popID) const {
+      Real Vx = profile(this->Vx[this->BOTTOM], this->Vx[this->TOP], x);
+      Real Vy = profile(this->Vy[this->BOTTOM], this->Vy[this->TOP], x);
+      Real Vz = profile(this->Vz[this->BOTTOM], this->Vz[this->TOP], x);
 
- ; Calculate plasma compression ratio through iterative Newton method
- Ztry = ((0.5D/cos12)*(calctemp1 + sqrt(calctemp1^2 - 2.*adiab*beta1*cos12)) -1.) > $     ; First (root for M^2) -1
-    ((0.5D/cos12)*(calctemp1 - sqrt(calctemp1^2 - 2.*adiab*beta1*cos12)) -1.) > 0.        ; Second and third (root for M^2) -1
+      // add an initial velocity perturbation to Vx
+      // initialize RNG for calculating random phases for the initial perturbation
+      std::default_random_engine rndState;
+      setRandomSeed(0, rndState);
+      Real phase = 0.0;
 
- fform = (1.D +Ztry)*((Ztry^2)*8*cos12 +(3.D -5.D*Ztry)*sin12) -(Ztry^2)*5*beta1
- gform = (1.D +Ztry)*((Ztry^2)*2*cos12 +(3.D +Ztry)*sin12)
- Rtry = fform/gform
+      // add each mode to the initial perturbation
+      for (int i = 0; i <= this->harmonics; i++) {
+         if (this->randomPhase) {
+            phase = 2.0 * M_PI * getRandomNumber(rndState);
+         }
 
- M2try = (1.D +Ztry)*Rtry
+         if (this->offset != 0.0) {
+            Vx += this->amp * sin(2.0 * (i + 1) * M_PI * y / this->lambda + phase) *
+                  (exp(-pow((x + this->offset) / this->transitionWidth, 2)) + exp(-pow((x - this->offset) / this->transitionWidth, 2)));
+         } else {
+            Vx += this->amp * sin(2.0 * (i + 1) * M_PI * y / this->lambda + phase) * exp(-pow(x / this->transitionWidth, 2));
+         }
+      }
 
- rstep = 1.0
- WHILE ((rstep Ge 0.0001) && (compr LT 0.001))  DO BEGIN
-    Ztry = ((0.5D/cos12)*(calctemp1 + sqrt(calctemp1^2 - 2.*adiab*beta1*cos12)) -1.) > $        ; First (root for M^2) -1
-       ((0.5D/cos12)*(calctemp1 - sqrt(calctemp1^2 - 2.*adiab*beta1*cos12)) -1.) > 0.           ; Second and third (root for M^2) -1
-    
-    fform = (1.D +Ztry)*((Ztry^2)*8*cos12 +(3.D -5.D*Ztry)*sin12) -(Ztry^2)*5*beta1
-    gform = (1.D +Ztry)*((Ztry^2)*2*cos12 +(3.D +Ztry)*sin12)
-    Rtry = fform/gform
-    M2try = (1.D +Ztry)*Rtry
-    
-    WHILE abs(M2try - MA2) GT 0.0001 DO BEGIN
-       fderi = (Ztry^2)*8.D*cos12 +(3.D -8.D*Ztry)*sin12 -10.D*Ztry*beta1 +(1.D +Ztry)*(16.D*Ztry*cos12 -5.D*sin12)
-       gderi = (Ztry^2)*2.D*cos12 +(3.D +Ztry)*sin12 +(1.D +Ztry)*(4.D*Ztry*cos12 +sin12)
-       rderi = (gform*fderi-fform*gderi)/(gform^2)
-       m2deri = (1.D +Ztry)*rderi + Rtry
-       
-       ; Newton step forward
-       Ztry = Ztry + (MA2 - M2try)/m2deri * 0.5*rstep
-       
-       ; Calculate new Rtry and M2try
-       fform = (1.D +Ztry)*((Ztry^2)*8*cos12 +(3.D -5.D*Ztry)*sin12) -(Ztry^2)*5*beta1
-       gform = (1.D +Ztry)*((Ztry^2)*2*cos12 +(3.D +Ztry)*sin12)
-       Rtry = fform/gform
-       M2try = (1.D +Ztry)*Rtry
-       
-    ENDWHILE
-;    print, 'Ztry ',Ztry,' Rtry ',Rtry,' M2try ',M2try,' MA2 ',MA2
-    IF (Rtry LE MA2) THEN compr = Rtry
-    rstep = rstep * 0.1
- ENDWHILE
+      vector<std::array<Real, 3>> centerPoints;
+      std::array<Real, 3> V0{{Vx, Vy, Vz}};
+      centerPoints.push_back(V0);
+      return centerPoints;
+   }
 
- ; Now solve magnetic compression ratio
- comprb = sqrt( cos12 + (1.-cos12)*( ( compr * (u12-va12)/(u12-va12*compr))^2 ) )
+   Realf KHB::fillPhaseSpace(spatial_cell::SpatialCell* cell, const uint popID, const uint nRequested) const {
+      // const speciesParameters& sP = this->speciesParams[popID];
+      //  Fetch spatial cell center coordinates
+      const Real x = cell->parameters[CellParams::XCRD] + 0.5 * cell->parameters[CellParams::DX];
+      const Real y = cell->parameters[CellParams::YCRD] + 0.5 * cell->parameters[CellParams::DY];
+      const Real z = cell->parameters[CellParams::ZCRD] + 0.5 * cell->parameters[CellParams::DZ];
 
- un2 = un1/compr ;still negative
- bn2 = bn1 ;still positive
- bt2 = sqrt(comprb^2 -cos12)*b1 ;still positive
+      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+      Real initRho = profile(this->rho[this->BOTTOM], this->rho[this->TOP], x);
+      std::array<Real, 3> initV0 = this->getV0(x, y, z, popID)[0];
+      const Real initV0X = initV0[0];
+      const Real initV0Y = initV0[1];
+      const Real initV0Z = initV0[2];
 
- theta2 = atan(bt2/bn2) ;positive
- cos21 = cos(theta2)
- sin21 = sin(theta2)
- cos22 = cos21^2
- sin22 = sin21^2
+      // calculate the temperature such that the total pressure is constant across the domain
+      creal mu0 = physicalconstants::MU_0;
+      creal Bx = profile(this->Bx[this->BOTTOM], this->Bx[this->TOP], x);
+      creal By = profile(this->By[this->BOTTOM], this->By[this->TOP], x);
+      creal Bz = profile(this->Bz[this->BOTTOM], this->Bz[this->TOP], x);
+      creal initT = (this->P - 0.5 * (Bx * Bx + By * By + Bz * Bz) / mu0) / initRho / physicalconstants::K_B;
 
- uht2 = un2 / cos21
- ut2 = uht2 * sin21
- rho2 = rho1*compr
+      #ifdef USE_GPU
+      vmesh::VelocityMesh* vmesh = cell->dev_get_velocity_mesh(popID);
+      vmesh::VelocityBlockContainer* VBC = cell->dev_get_velocity_blocks(popID);
+      #else
+      vmesh::VelocityMesh* vmesh = cell->get_velocity_mesh(popID);
+      vmesh::VelocityBlockContainer* VBC = cell->get_velocity_blocks(popID);
+      #endif
+      // Loop over blocks
+      Realf rhosum = 0;
+      arch::parallel_reduce<arch::null>({WID, WID, WID, nRequested},
+                                        ARCH_LOOP_LAMBDA(const uint i, const uint j, const uint k, const uint initIndex, Realf* lsum) {
+                                           vmesh::GlobalID* GIDlist = vmesh->getGrid()->data();
+                                           Realf* bufferData = VBC->getData();
+                                           const vmesh::GlobalID blockGID = GIDlist[initIndex];
+                                           // Calculate parameters for new block
+                                           Real blockCoords[6];
+                                           vmesh->getBlockInfo(blockGID, &blockCoords[0]);
+                                           creal vxBlock = blockCoords[0];
+                                           creal vyBlock = blockCoords[1];
+                                           creal vzBlock = blockCoords[2];
+                                           creal dvxCell = blockCoords[3];
+                                           creal dvyCell = blockCoords[4];
+                                           creal dvzCell = blockCoords[5];
+                                           ARCH_INNER_BODY(i, j, k, initIndex, lsum) {
+                                              creal vx = vxBlock + (i + 0.5) * dvxCell - initV0X;
+                                              creal vy = vyBlock + (j + 0.5) * dvyCell - initV0Y;
+                                              creal vz = vzBlock + (k + 0.5) * dvzCell - initV0Z;
+                                              const Realf value = MaxwellianPhaseSpaceDensity(vx, vy, vz, initT, initRho, mass);
+                                              bufferData[initIndex * WID3 + k * WID2 + j * WID + i] = value;
+                                              // lsum[0] += value;
+                                           };
+                                        },
+                                        rhosum);
+      return rhosum;
+   }
 
- pressure2 = pressure1*compr + pressure1*(adiab-1)*compr*(uht1*uht1-uht2*uht2)/(2.*vs12)
+   /* Evaluates local SpatialCell properties for the project and population,
+      then evaluates the phase-space density at the given coordinates.
+      Used as a probe for projectTriAxisSearch.
+   */
+   Realf KHB::probePhaseSpace(spatial_cell::SpatialCell* cell, const uint popID, Real vx_in, Real vy_in, Real vz_in) const {
+      // Fetch spatial cell center coordinates
+      const Real x = cell->parameters[CellParams::XCRD] + 0.5 * cell->parameters[CellParams::DX];
+      const Real y = cell->parameters[CellParams::YCRD] + 0.5 * cell->parameters[CellParams::DY];
+      const Real z = cell->parameters[CellParams::ZCRD] + 0.5 * cell->parameters[CellParams::DZ];
 
- ;Use: pressure = n k T (does not include electron pressure)
- t2 = pressure2/(rho2*k_b)
+      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+      Real initRho = profile(this->rho[this->BOTTOM], this->rho[this->TOP], x);
+      std::array<Real, 3> initV0 = this->getV0(x, y, z, popID)[0];
+      const Real initV0X = initV0[0];
+      const Real initV0Y = initV0[1];
+      const Real initV0Z = initV0[2];
 
- ; Print values to be copy-pasted into IPShock.cfg
- print,'VX0u = ',un1
- print,'VY0u = ',0.0
- print,'VZ0u = ',ut1
- print,'BX0u = ',bn1
- print,'BY0u = ',0.0
- print,'BZ0u = ',bt1
- print,'rhou = ',rho1
- print,'Temperatureu = ',t1
+      // calculate the temperature such that the total pressure is constant across the domain
+      creal mu0 = physicalconstants::MU_0;
+      creal Bx = profile(this->Bx[this->BOTTOM], this->Bx[this->TOP], x);
+      creal By = profile(this->By[this->BOTTOM], this->By[this->TOP], x);
+      creal Bz = profile(this->Bz[this->BOTTOM], this->Bz[this->TOP], x);
+      creal initT = (this->P - 0.5 * (Bx * Bx + By * By + Bz * Bz) / mu0) / initRho / physicalconstants::K_B;
 
- print,'VX0d = ',un2
- print,'VY0d = ',0.0
- print,'VZ0d = ',ut2
- print,'BX0d = ',bn2
- print,'BY0d = ',0.0
- print,'BZ0d = ',bt2
- print,'rhod = ',rho2
- print,'Temperatured = ',t2
+      creal vx = vx_in - initV0X;
+      creal vy = vy_in - initV0Y;
+      creal vz = vz_in - initV0Z;
+      const Realf value = MaxwellianPhaseSpaceDensity(vx, vy, vz, initT, initRho, mass);
+      return value;
+   }
 
- ; Print values to input into upstream.dat (and, if wanted, downstream.dat)
- print,''
- print,'upstream.dat'
- print, 0.0, rho1, t1, un1, 0.0, ut1, bn1, 0.0, bt1
+   void KHB::calcCellParameters(spatial_cell::SpatialCell* cell, creal& t) {}
 
- print,''
- print,'downstream.dat'
- print, 0.0, rho2, t2, un2, 0.0, ut2, bn2, 0.0, bt2
+   void KHB::setProjectBField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid, FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+                              FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
+      setBackgroundFieldToZero(BgBGrid);
 
- print,''
- print,'Upstream particle parameters'
- gyrofreq = e_p*b1/m_p
- v_th = sqrt(2*t1*k_b/m_p)
- print,'  gyrofreq ',gyrofreq,' gyrotime ',2.*!pi/gyrofreq 
- print,'  v_th ',v_th,' ion inertial range ',v_th/gyrofreq
- print,'  bulk larmor radius ',abs(uht1)/gyrofreq,' ion Alfvenic range ',va1/gyrofreq
+      if (!P::isRestart) {
+         auto localSize = perBGrid.getLocalSize().data();
 
-END
+         #pragma omp parallel for collapse(3)
+         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
+            for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
+               for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
+                  const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
+                  std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
+
+                  cell->at(fsgrids::bfield::PERBX) = profile(this->Bx[this->BOTTOM], this->Bx[this->TOP], xyz[0] + 0.5 * perBGrid.DX);
+                  cell->at(fsgrids::bfield::PERBY) = profile(this->By[this->BOTTOM], this->By[this->TOP], xyz[0] + 0.5 * perBGrid.DX);
+                  cell->at(fsgrids::bfield::PERBZ) = profile(this->Bz[this->BOTTOM], this->Bz[this->TOP], xyz[0] + 0.5 * perBGrid.DX);
+               }
+            }
+         }
+      }
+   }
+
+} // namespace projects

@@ -20,143 +20,208 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef OUTFLOW_H
-#define OUTFLOW_H
+/*!\file setmaxwellian.cpp
+ * \brief Implementation of the class SysBoundaryCondition::Maxwellian to handle cells classified as sysboundarytype::MAXWELLIAN.
+ */
 
-#include <vector>
-#include "../definitions.h"
-#include "../readparameters.h"
-#include "../spatial_cells/spatial_cell_wrapper.hpp"
+#include <cstdlib>
+#include <iostream>
+
+#include "../object_wrapper.h"
+#include "../vlasovsolver/vlasovmover.h"
+#include "setmaxwellian.h"
+
+#include "../projects/project.h" // for MaxwellianPhaseSpaceDensity
 #include "sysboundarycondition.h"
 
 namespace SBC {
+   Maxwellian::Maxwellian() : Inflow() {}
+   Maxwellian::~Maxwellian() {}
 
-	struct OutflowSpeciesParameters {
-      /*! Array of bool telling which faces are going to be skipped by the Vlasov system boundary condition.*/
-			std::array<bool, 6> facesToSkipVlasov;
-      /*! List of schemes to use for the Vlasov outflow boundary conditions on each face ([xyz][+-]). */
-      std::array<uint, 6> faceVlasovScheme;
-      /*! List of faces on which outflow boundary conditions are to be reapplied upon restart ([xyz][+-]). */
-      std::vector<std::string> faceToReapplyUponRestartList;
+   void Maxwellian::addParameters() {
+      Readparameters::addComposing("maxwellian.face", "List of faces on which set Maxwellian boundary conditions are to be applied ([xyz][+-]).");
+      Readparameters::add("maxwellian.precedence", "Precedence value of the set Maxwellian boundary condition (integer), the higher the stronger.", 3);
+      Readparameters::add("maxwellian.reapplyUponRestart",
+                          "If 0 (default), keep going with the state existing in the restart file. If 1, calls again "
+                          "applyInitialState. Can be used to change boundary condition behaviour during a run.",
+                          0);
+      Readparameters::add("maxwellian.t_interval", "Time interval in seconds for applying the varying inflow condition.",
+                          0.0); // 0 = re-calculate every time
+      // Per-population parameters
+      for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
+         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
 
-      /*! Factor by which to quench the inflowing parts of the velocity distribution function.*/
-      Real quenchFactor;
-	};
+         Readparameters::add(pop + "_maxwellian.file_x+",
+                             "Input files for the set Maxwellian inflow parameters on face x+. Data format per line: time "
+                             "(s) density (p/m^3) Temperature (K) Vx Vy Vz (m/s) Bx By Bz (T).",
+                             "");
+         Readparameters::add(pop + "_maxwellian.file_x-",
+                             "Input files for the set Maxwellian inflow parameters on face x-. Data format per line: time "
+                             "(s) density (p/m^3) Temperature (K) Vx Vy Vz (m/s) Bx By Bz (T).",
+                             "");
+         Readparameters::add(pop + "_maxwellian.file_y+",
+                             "Input files for the set Maxwellian inflow parameters on face y+. Data format per line: time "
+                             "(s) density (p/m^3) Temperature (K) Vx Vy Vz (m/s) Bx By Bz (T).",
+                             "");
+         Readparameters::add(pop + "_maxwellian.file_y-",
+                             "Input files for the set Maxwellian inflow parameters on face y-. Data format per line: time "
+                             "(s) density (p/m^3) Temperature (K) Vx Vy Vz (m/s) Bx By Bz (T).",
+                             "");
+         Readparameters::add(pop + "_maxwellian.file_z+",
+                             "Input files for the set Maxwellian inflow parameters on face z+. Data format per line: time "
+                             "(s) density (p/m^3) Temperature (K) Vx Vy Vz (m/s) Bx By Bz (T).",
+                             "");
+         Readparameters::add(pop + "_maxwellian.file_z-",
+                             "Input files for the set Maxwellian inflow parameters on face z-. Data format per line: time "
+                             "(s) density (p/m^3) Temperature (K) Vx Vy Vz (m/s) Bx By Bz (T).",
+                             "");
+         Readparameters::add(pop + "_maxwellian.dynamic", "Boolean value, is the set Maxwellian inflow dynamic in time or not.", 0);
+      }
+   }
 
-   /*!\brief Outflow is a class applying copy/outflow boundary conditions.
-    * 
-    * Outflow is a class handling cells tagged as sysboundarytype::OUTFLOW by this system boundary condition. It applies copy/outflow boundary conditions.
-    * 
-    * These consist in:
-    * - Copy the distribution and moments from the nearest NOT_SYSBOUNDARY cell;
-    * - Copy the perturbed B components from the nearest NOT_SYSBOUNDARY cell. EXCEPTION: the face components adjacent to the simulation domain at the +x/+y/+z faces are propagated still.
+   void Maxwellian::getParameters() {
+      Readparameters::get("maxwellian.face", faceList);
+      Readparameters::get("maxwellian.precedence", precedence);
+
+      uint reapply;
+      Readparameters::get("maxwellian.reapplyUponRestart", reapply);
+      Readparameters::get("maxwellian.t_interval", tInterval);
+      this->applyUponRestart = false;
+      if (reapply == 1) {
+         this->applyUponRestart = true;
+      }
+
+      // Per-population parameters
+      for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
+         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+
+         InflowSpeciesParameters sP;
+         sP.nParams = 9;
+
+         Readparameters::get(pop + "_maxwellian.dynamic", dynamic);
+         Readparameters::get(pop + "_maxwellian.file_x+", sP.files[0]);
+         Readparameters::get(pop + "_maxwellian.file_x-", sP.files[1]);
+         Readparameters::get(pop + "_maxwellian.file_y+", sP.files[2]);
+         Readparameters::get(pop + "_maxwellian.file_y-", sP.files[3]);
+         Readparameters::get(pop + "_maxwellian.file_z+", sP.files[4]);
+         Readparameters::get(pop + "_maxwellian.file_z-", sP.files[5]);
+
+         speciesParams.push_back(sP);
+      }
+   }
+
+   /*!\brief Generate the template cell for the face corresponding to the index passed.
+    * This function generates a spatial cell which is to be used as a template for the
+    * system boundary condition.
+    * \param templateCell Address of the template cell to be generated.
+    * \param B Address of the magnetic field to be used as template.
+    * \param inputDataIndex Index used for the location of the input data.
+    * \param t Current simulation time.
     */
-   class Outflow: public OuterBoundaryCondition {
-   public:
-      Outflow();
-      virtual ~Outflow();
-      
-      static void addParameters();
-      virtual void getParameters() override;
-      
-      virtual void initSysBoundary(
-         creal& t,
-         Project &project
-      ) override;
-      virtual void assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                     FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) override;
-      virtual void applyInitialState(
-         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-         FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-         Project &project
-      ) override;
-      virtual void updateState(
-         dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-         FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-         FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-         creal t
-      ) override;
-      virtual Real fieldSolverBoundaryCondMagneticField(
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
-         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & bgbGrid,
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-         cint i,
-         cint j,
-         cint k,
-         creal dt,
-         cuint component
-      ) override;
-      virtual void fieldSolverBoundaryCondElectricField(
-         FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-         cint i,
-         cint j,
-         cint k,
-         cuint component
-      ) override;
-      virtual void fieldSolverBoundaryCondHallElectricField(
-         FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
-         cint i,
-         cint j,
-         cint k,
-         cuint component
-      ) override;
-      virtual void fieldSolverBoundaryCondGradPeElectricField(
-         FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-         cint i,
-         cint j,
-         cint k,
-         cuint component
-      ) override;
-      virtual void fieldSolverBoundaryCondDerivatives(
-         FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-         FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-         cint i,
-         cint j,
-         cint k,
-         cuint RKCase,
-         cuint component
-      ) override;
-      virtual void fieldSolverBoundaryCondBVOLDerivatives(
-         FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-         cint i,
-         cint j,
-         cint k,
-         cuint component
-      ) override;
-      virtual void vlasovBoundaryCondition(
-         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         const CellID& cellID,
-         const uint popID,
-         const bool calculate_V_moments
-      ) override;
-      virtual void setupL2OutflowAtRestart(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) override;
+   void Maxwellian::generateTemplateCell(spatial_cell::SpatialCell& templateCell, Real (&B)[3], int inputDataIndex, creal t) {
+      Real initRho, initT, initV0X, initV0Y, initV0Z, Bx = 0, By = 0, Bz = 0, buffer[8];
 
-      virtual void getFaces(bool* faces)  override;
-      virtual std::string getName() const override;
-      virtual uint getIndex() const override;
-      
-   protected:
-      /*! Array of bool telling which faces are going to be processed by the fields system boundary condition.*/
-      bool facesToSkipFields[6];
-      /*! Array of bool telling which faces are going to be reapplied upon restart.*/
-      bool facesToReapply[6];
-      /*! List of faces on which outflow boundary conditions are to be applied ([xyz][+-]). */
-      std::vector<std::string> faceList;
-      /*! List of faces on which no fields outflow boundary conditions are to be applied ([xyz][+-]). */
-      std::vector<std::string> faceNoFieldsList;
-      std::vector<OutflowSpeciesParameters> speciesParams;
-      
-      /*! Factor by which to quench the inflowing parts of the velocity distribution function.*/
-      Real quenchFactor;
-      
-      enum vlasovscheme {
-         NONE,
-         COPY,
-         N_SCHEMES
-      };
-   }; // class Outflow
+      templateCell.sysBoundaryFlag = this->getIndex();
+      templateCell.sysBoundaryLayer = 1;
+
+      // Init all particle species
+      for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
+         templateCell.clear(popID, false); // clear, do not de-allocate memory
+         // Interpolate is in setbyuser.cpp and .h
+         interpolate(inputDataIndex, popID, t, &buffer[0]);
+         initRho = buffer[0];
+         initT = buffer[1];
+         initV0X = buffer[2];
+         initV0Y = buffer[3];
+         initV0Z = buffer[4];
+         Bx = buffer[5];
+         By = buffer[6];
+         Bz = buffer[7];
+         const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+
+         // Find list of blocks to initialize.
+         const uint nRequested = SBC::findMaxwellianBlocksToInitialize(popID, templateCell, initRho, initT, initV0X, initV0Y, initV0Z);
+         // stores in vmesh->getGrid() (localToGlobalMap)
+         // with count in cell.get_population(popID).N_blocks
+
+         // Resize and populate mesh
+         templateCell.prepare_to_receive_blocks(popID);
+
+         // Set the reservation value (capacity is increased in add_velocity_blocks
+         const Realf minValue = templateCell.getVelocityBlockMinValue(popID);
+
+         // fills v-space into target
+
+         #ifdef USE_GPU
+         vmesh::VelocityMesh* vmesh = templateCell.dev_get_velocity_mesh(popID);
+         vmesh::VelocityBlockContainer* VBC = templateCell.dev_get_velocity_blocks(popID);
+         #else
+         vmesh::VelocityMesh* vmesh = templateCell.get_velocity_mesh(popID);
+         vmesh::VelocityBlockContainer* VBC = templateCell.get_velocity_blocks(popID);
+         #endif
+         // Loop over blocks
+         Realf rhosum = 0;
+         arch::parallel_reduce<arch::null>({WID, WID, WID, nRequested},
+                                           ARCH_LOOP_LAMBDA(const uint i, const uint j, const uint k, const uint initIndex, Realf* lsum) {
+                                              vmesh::GlobalID* GIDlist = vmesh->getGrid()->data();
+                                              Realf* bufferData = VBC->getData();
+                                              const vmesh::GlobalID blockGID = GIDlist[initIndex];
+                                              // Calculate parameters for new block
+                                              Real blockCoords[6];
+                                              vmesh->getBlockInfo(blockGID, &blockCoords[0]);
+                                              creal vxBlock = blockCoords[0];
+                                              creal vyBlock = blockCoords[1];
+                                              creal vzBlock = blockCoords[2];
+                                              creal dvxCell = blockCoords[3];
+                                              creal dvyCell = blockCoords[4];
+                                              creal dvzCell = blockCoords[5];
+                                              ARCH_INNER_BODY(i, j, k, initIndex, lsum) {
+                                                 creal vx = vxBlock + (i + 0.5) * dvxCell - initV0X;
+                                                 creal vy = vyBlock + (j + 0.5) * dvyCell - initV0Y;
+                                                 creal vz = vzBlock + (k + 0.5) * dvzCell - initV0Z;
+                                                 const Realf value = projects::MaxwellianPhaseSpaceDensity(vx, vy, vz, initT, initRho, mass);
+                                                 bufferData[initIndex * WID3 + k * WID2 + j * WID + i] = value;
+                                                 // lsum[0] += value;
+                                              };
+                                           },
+                                           rhosum);
+
+         #ifdef USE_GPU
+         // Set and apply the reservation value
+         templateCell.setReservation(popID, nRequested, true); // Force to this value
+         templateCell.applyReservation(popID);
+         #endif
+
+         // let's get rid of blocks not fulfilling the criteria here to save memory.
+         templateCell.adjustSingleCellVelocityBlocks(popID, true);
+
+      } // for-loop over particle species
+
+      B[0] = Bx;
+      B[1] = By;
+      B[2] = Bz;
+
+      calculateCellMoments(&templateCell, true, false, true);
+
+      templateCell.parameters[CellParams::RHOM_R] = templateCell.parameters[CellParams::RHOM];
+      templateCell.parameters[CellParams::VX_R] = templateCell.parameters[CellParams::VX];
+      templateCell.parameters[CellParams::VY_R] = templateCell.parameters[CellParams::VY];
+      templateCell.parameters[CellParams::VZ_R] = templateCell.parameters[CellParams::VZ];
+      templateCell.parameters[CellParams::RHOQ_R] = templateCell.parameters[CellParams::RHOQ];
+      templateCell.parameters[CellParams::P_11_R] = templateCell.parameters[CellParams::P_11];
+      templateCell.parameters[CellParams::P_22_R] = templateCell.parameters[CellParams::P_22];
+      templateCell.parameters[CellParams::P_33_R] = templateCell.parameters[CellParams::P_33];
+      templateCell.parameters[CellParams::RHOM_V] = templateCell.parameters[CellParams::RHOM];
+      templateCell.parameters[CellParams::VX_V] = templateCell.parameters[CellParams::VX];
+      templateCell.parameters[CellParams::VY_V] = templateCell.parameters[CellParams::VY];
+      templateCell.parameters[CellParams::VZ_V] = templateCell.parameters[CellParams::VZ];
+      templateCell.parameters[CellParams::RHOQ_V] = templateCell.parameters[CellParams::RHOQ];
+      templateCell.parameters[CellParams::P_11_V] = templateCell.parameters[CellParams::P_11];
+      templateCell.parameters[CellParams::P_22_V] = templateCell.parameters[CellParams::P_22];
+      templateCell.parameters[CellParams::P_33_V] = templateCell.parameters[CellParams::P_33];
+   }
+
+   std::string Maxwellian::getName() const { return "Maxwellian"; }
+   uint Maxwellian::getIndex() const { return sysboundarytype::MAXWELLIAN; }
+
 } // namespace SBC
-
-#endif

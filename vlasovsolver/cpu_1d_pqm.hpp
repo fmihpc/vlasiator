@@ -20,157 +20,351 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef CPU_1D_PQM_H
-#define CPU_1D_PQM_H
+#include <algorithm>
+#include <cmath>
+#include <utility>
 
-#include "vec.h"
-#include "cpu_slope_limiters.hpp"
-#include "cpu_face_estimates.hpp"
+#include "../common.h"
+#include "cpu_acc_intersections.hpp"
+#include "cpu_acc_transform.hpp"
+#include <Eigen/Geometry>
 
-/*make sure quartic polynomial is monotonic*/
-static inline void filter_pqm_monotonicity(const Vec* __restrict__ values, uint k, Vec &fv_l, Vec &fv_r, Vec &fd_l, Vec &fd_r){
-   /*second derivative coefficients, eq 23 in white et al.*/
-   const Vec b0 =   60.0 * values[k] - 24.0 * fv_r - 36.0 * fv_l + 3.0 * (fd_r - 3.0 * fd_l);
-   const Vec b1 = -360.0 * values[k] + 36.0 * fd_l - 24.0 * fd_r + 168.0 * fv_r + 192.0 * fv_l;
-   const Vec b2 =  360.0 * values[k] + 30.0 * (fd_r - fd_l) - 180.0 * (fv_l + fv_r);
-   /*let's compute sqrt value to be used for computing roots. If we
-     take sqrt of negative numbers, then we instead set a value that
-     will make the root to be +-100 which is well outside range
-     of[0,1]. We do not catch FP exceptions, so sqrt(negative) are okish (add
-     a max(val_to_sqrt,0) if not*/
-   const Vec val_to_sqrt = b1 * b1 - 4 * b0 * b2;
-/*
-  #ifdef VEC16F_AGNER
-  //this sqrt gives 10% more perf on acceleration on KNL. Also fairly
-  //accurate with AVX512ER. On Xeon it is not any faster, and less accurate.
-  const Vec sqrt_val = select(val_to_sqrt < 0.0,
-  b1 + 200.0 * b2,
-  val_to_sqrt * approx_rsqrt(val_to_sqrt));
-  #else
-*/
-   const Vec sqrt_val = select(val_to_sqrt < 0.0,
-                               b1 + 200.0 * b2,
-                               sqrt(val_to_sqrt));
-//#endif
-   //compute roots. Division is safe with vectorclass (=inf)
-   const Vec root1 = (-b1 + sqrt_val) / (2 * b2);
-   const Vec root2 = (-b1 - sqrt_val) / (2 * b2);
+using namespace std;
+using namespace Eigen;
 
-   /*PLM slope, MC limiter*/
-   const Vec plm_slope_l = 2.0 * (values[k] - values[k - 1]);
-   const Vec plm_slope_r = 2.0 * (values[k + 1] - values[k]);
-   const Vec slope_sign = plm_slope_l + plm_slope_r; //it also has some magnitude, but we will only use its sign.
-   /*first derivative coefficients*/
-   const Vec c0 = fd_l;
-   const Vec c1 = b0;
-   const Vec c2 = b1 / 2.0;
-   const Vec c3 = b2 / 3.0;
-   //compute both slopes at inflexion points, at least one of these
-   //is with [0..1]. If the root is not in this range, we
-   //simplify later if statements by setting it to the plm slope
-   //sign
-   const Vec root1_slope = select(root1 >= 0.0 && root1 <= 1.0,
-                                  c0  + root1 * ( c1 + root1 * (c2 + root1 * c3 ) ),
-                                  slope_sign);
-   const Vec root2_slope = select(root2 >= 0.0 && root2 <= 1.0,
-                                  c0  + root2 * ( c1 + root2 * (c2 + root2 * c3 ) ),
-                                  slope_sign);
-   const Vecb fixInflexion = root1_slope * slope_sign < 0.0 || root2_slope * slope_sign < 0.0;
-   if (horizontal_or (fixInflexion) )
-   {
-      Realf valuesa[VECL];
-      Realf fva_l[VECL];
-      Realf fva_r[VECL];
-      Realf fda_l[VECL];
-      Realf fda_r[VECL];
-      Realf slope_signa[VECL];
-      values[k].store(valuesa);
-      fv_l.store(fva_l);
-      fd_l.store(fda_l);
-      fv_r.store(fva_r);
-      fd_r.store(fda_r);
-      slope_sign.store(slope_signa);
-      //todo store and then load data to avoid inserts (is it beneficial...?)
+/**
+ * Wrapper for computing all rotation intersections for a single cycle of acceleration for a given spatial cell
+ *
+ * @param spatial_cell Spatial cell to compute
+ * @param popID Active population
+ * @param map_order order in which to perform Cartesian shears, randomized from time step
+ * @param dt Length of current time step or substep
+ * @param intersections_id Phiprof identifier for timer inside parallel region
+ */
+void compute_cell_intersections(spatial_cell::SpatialCell* spatial_cell, const uint popID, const uint map_order, const Real& dt, int intersections_id) {
+   vmesh::VelocityMesh* vmesh = spatial_cell->get_velocity_mesh(popID);
+   spatial_cell::Population& pop = spatial_cell->get_population(popID);
 
-//serialized the handling of inflexion points, these do not happen for smooth regions
-#pragma omp simd
-      for(uint i = 0;i < VECL; i++) {
-         if(fixInflexion[i]){
-            //need to collapse, at least one inflexion point has wrong
-            //sign.
-            if(fabs(plm_slope_l[i]) <= fabs(plm_slope_r[i]))
-            {
-               //collapse to left edge (eq 21)
-               fda_l[i] =  1.0 / 3.0 * ( 10 * valuesa[i] - 2.0 * fva_r[i] - 8.0 * fva_l[i]);
-               fda_r[i] =  -10.0 * valuesa[i] + 6.0 * fva_r[i] + 4.0 * fva_l[i];
-               //check if PLM slope is consistent (eq 28 & 29)
-               if (slope_signa[i] * fda_l[i] < 0)
-               {
-                  fda_l[i] =  0;
-                  fva_r[i] =  5 * valuesa[i] - 4 * fva_l[i];
-                  fda_r[i] =  20 * (valuesa[i] - fva_l[i]);
-               }
-               else if (slope_signa[i] * fda_r[i] < 0)
-               {
-                  fda_r[i] =  0;
-                  fva_l[i] =  0.5 * (5 * valuesa[i] - 3 * fva_r[i]);
-                  fda_l[i] =  10.0 / 3.0 * (-valuesa[i] + fva_r[i]);
-               }
-            }
-            else
-            {
-               //collapse to right edge (eq 21)
-               fda_l[i] =  10.0 * valuesa[i] - 6.0 * fva_l[i] - 4.0 * fva_r[i];
-               fda_r[i] =  1.0 / 3.0 * ( - 10.0 * valuesa[i] + 2 * fva_l[i] + 8 * fva_r[i]);
-               //check if PLM slope is consistent (eq 28 & 29)
-               if (slope_signa[i] * fda_l[i] < 0)
-               {
-                  fda_l[i] =  0;
-                  fva_r[i] =  0.5 * ( 5 * valuesa[i] - 3 * fva_l[i]);
-                  fda_r[i] =  10.0 / 3.0 * (valuesa[i] - fva_l[i]);
-               }
-               else if (slope_signa[i] * fda_r[i] < 0)
-               {
-                  fda_r[i] =  0;
-                  fva_l[i] =  5 * valuesa[i] - 4 * fva_r[i];
-                  fda_l[i] =  20.0 * ( - valuesa[i] + fva_r[i]);
-               }
-            }
-         }
-      }
-      fv_l.load(fva_l);
-      fd_l.load(fda_l);
-      fv_r.load(fva_r);
-      fd_r.load(fda_r);
+   // compute transform, forward in time and backward in time, performed in this acceleration
+   Transform<Real, 3, Affine> fwd_transform = compute_acceleration_transformation(spatial_cell, popID, dt);
+   Transform<Real, 3, Affine> bwd_transform = fwd_transform.inverse();
+
+   phiprof::Timer intersectionsTimer{intersections_id};
+   switch (map_order) {
+   case 0: {
+      // Map order XYZ
+      compute_intersections_1st(vmesh, bwd_transform, fwd_transform, 0, pop.intersection_x, pop.intersection_x_di, pop.intersection_x_dj, pop.intersection_x_dk);
+      compute_intersections_2nd(vmesh, bwd_transform, fwd_transform, 1, pop.intersection_y, pop.intersection_y_di, pop.intersection_y_dj, pop.intersection_y_dk);
+      compute_intersections_3rd(vmesh, bwd_transform, fwd_transform, 2, pop.intersection_z, pop.intersection_z_di, pop.intersection_z_dj, pop.intersection_z_dk);
+      break;
+   }
+   case 1: {
+      // Map order YZX
+      compute_intersections_1st(vmesh, bwd_transform, fwd_transform, 1, pop.intersection_y, pop.intersection_y_di, pop.intersection_y_dj, pop.intersection_y_dk);
+      compute_intersections_2nd(vmesh, bwd_transform, fwd_transform, 2, pop.intersection_z, pop.intersection_z_di, pop.intersection_z_dj, pop.intersection_z_dk);
+      compute_intersections_3rd(vmesh, bwd_transform, fwd_transform, 0, pop.intersection_x, pop.intersection_x_di, pop.intersection_x_dj, pop.intersection_x_dk);
+      break;
+   }
+   case 2: {
+      // Map order Z X Y
+      compute_intersections_1st(vmesh, bwd_transform, fwd_transform, 2, pop.intersection_z, pop.intersection_z_di, pop.intersection_z_dj, pop.intersection_z_dk);
+      compute_intersections_2nd(vmesh, bwd_transform, fwd_transform, 0, pop.intersection_x, pop.intersection_x_di, pop.intersection_x_dj, pop.intersection_x_dk);
+      compute_intersections_3rd(vmesh, bwd_transform, fwd_transform, 1, pop.intersection_y, pop.intersection_y_di, pop.intersection_y_dj, pop.intersection_y_dk);
+      break;
+   }
+   }
+   intersectionsTimer.stop();
+}
+
+/**
+ * Computes the intersection point of a plane and a line
+ *
+ * @param l_point Point on the line
+ * @param l_direction Vector in the direction of the line
+ * @param p_point Point on plane
+ * @param p_normal Normal vector to plane
+ * @param intersection The function will set this to the intersection point.
+ */
+Eigen::Matrix<Real, 3, 1> line_plane_intersection(const Eigen::Matrix<Real, 3, 1>& l_point, const Eigen::Matrix<Real, 3, 1>& l_direction, const Eigen::Matrix<Real, 3, 1>& p_point,
+                                                  const Eigen::Matrix<Real, 3, 1>& p_normal) {
+   const Real nom = p_normal.dot(p_point - l_point);
+   const Real dem = p_normal.dot(l_direction);
+   return l_point + (nom / dem) * l_direction;
+}
+
+/**
+ * Computes the first intersection data; this is z~ in section 2.4 in Zerroukat et al (2012). We assume all velocity cells have the same dimensions.
+ * Intersection z coordinate for (i,j,k) is: intersection + i * intersection_di + j * intersection_dj + k * intersection_dk
+ *
+ * @param spatial_cell spatial cell that is accelerated
+ * @param fwd_transform Transform that describes acceleration forward in time
+ * @param bwd_transform Transform that describes acceleration backward in time, used to compute the lagrangian departure gri
+ * @param dimension Along which dimension is this intersection/mapping computation done. It is assumed the three mappings are in order 012, 120 or 201
+ * @param intersection Intersection z coordinate at i,j,k=0
+ * @param intersection_di Change in z-coordinate for a change in i index of 1
+ * @param intersection_dj Change in z-coordinate for a change in j index of 1
+ * @param intersection_dk Change in z-coordinate for a change in k index of 1
+ */
+void compute_intersections_1st(const vmesh::VelocityMesh* vmesh, const Transform<Real, 3, Affine>& bwd_transform, const Transform<Real, 3, Affine>& fwd_transform, uint dimension, Real& intersection,
+                               Real& intersection_di, Real& intersection_dj, Real& intersection_dk) {
+
+   if (dimension == 0) { // Prepare intersections for mapping along X first (mapping order X-Y-Z)
+      // Normal of Lagrangian planes
+      const Eigen::Matrix<Real, 3, 1> plane_normal = bwd_transform.linear() * Eigen::Matrix<Real, 3, 1>(1.0, 0.0, 0.0);
+      // Point on lowest potential Lagrangian plane
+      const Eigen::Matrix<Real, 3, 1> plane_point = bwd_transform * Eigen::Matrix<Real, 3, 1>(vmesh->getMeshMinLimits()[0], 0.0, 0.0);
+      // line along Euclidian x direction, unit vector
+      const Eigen::Matrix<Real, 3, 1> line_direction = Eigen::Matrix<Real, 3, 1>(1.0, 0.0, 0.0);
+      const Eigen::Matrix<Real, 3, 1> line_point(0.0, 0.5 * vmesh->getCellSize()[1] + vmesh->getMeshMinLimits()[1], 0.5 * vmesh->getCellSize()[2] + vmesh->getMeshMinLimits()[2]);
+      const Eigen::Matrix<Real, 3, 1> lagrangian_di = bwd_transform.linear() * Eigen::Matrix<Real, 3, 1>(vmesh->getCellSize()[0], 0, 0.0);
+      const Eigen::Matrix<Real, 3, 1> euclidian_dj = Eigen::Matrix<Real, 3, 1>(0, vmesh->getCellSize()[1], 0.0);
+      const Eigen::Matrix<Real, 3, 1> euclidian_dk = Eigen::Matrix<Real, 3, 1>(0.0, 0.0, vmesh->getCellSize()[2]);
+
+      // compute intersections, varying lines and plane in i,j,k
+      const Eigen::Matrix<Real, 3, 1> intersection_0_0_0 = line_plane_intersection(line_point, line_direction, plane_point, plane_normal);
+      const Eigen::Matrix<Real, 3, 1> intersection_1_0_0 = line_plane_intersection(line_point, line_direction, plane_point + lagrangian_di, plane_normal);
+      const Eigen::Matrix<Real, 3, 1> intersection_0_1_0 = line_plane_intersection(line_point + euclidian_dj, line_direction, plane_point, plane_normal);
+      const Eigen::Matrix<Real, 3, 1> intersection_0_0_1 = line_plane_intersection(line_point + euclidian_dk, line_direction, plane_point, plane_normal);
+      intersection = intersection_0_0_0[dimension];
+      intersection_di = intersection_1_0_0[dimension] - intersection_0_0_0[dimension];
+      intersection_dj = intersection_0_1_0[dimension] - intersection_0_0_0[dimension];
+      intersection_dk = intersection_0_0_1[dimension] - intersection_0_0_0[dimension];
+   }
+   if (dimension == 1) { // Prepare intersections for mapping along Y first (mapping order Y-Z-X)
+      // Normal of Lagrangian planes
+      const Eigen::Matrix<Real, 3, 1> plane_normal = bwd_transform.linear() * Eigen::Matrix<Real, 3, 1>(0.0, 1.0, 0.0);
+      // Point on lowest possible Lagrangian plane
+      const Eigen::Matrix<Real, 3, 1> plane_point = bwd_transform * Eigen::Matrix<Real, 3, 1>(0.0, vmesh->getMeshMinLimits()[1], 0.0);
+      // line along Euclidian y direction, unit vector
+      const Eigen::Matrix<Real, 3, 1> line_direction = Eigen::Matrix<Real, 3, 1>(0.0, 1.0, 0.0);
+      const Eigen::Matrix<Real, 3, 1> line_point(0.5 * vmesh->getCellSize()[0] + vmesh->getMeshMinLimits()[0], 0.0, 0.5 * vmesh->getCellSize()[2] + vmesh->getMeshMinLimits()[2]);
+      const Eigen::Matrix<Real, 3, 1> euclidian_di = Eigen::Matrix<Real, 3, 1>(vmesh->getCellSize()[0], 0.0, 0.0);
+      const Eigen::Matrix<Real, 3, 1> lagrangian_dj = bwd_transform.linear() * Eigen::Matrix<Real, 3, 1>(0.0, vmesh->getCellSize()[1], 0.0);
+      const Eigen::Matrix<Real, 3, 1> euclidian_dk = Eigen::Matrix<Real, 3, 1>(0.0, 0.0, vmesh->getCellSize()[2]);
+
+      // compute intersections, varying lines and plane in i,j,k
+      const Eigen::Matrix<Real, 3, 1> intersection_0_0_0 = line_plane_intersection(line_point, line_direction, plane_point, plane_normal);
+      const Eigen::Matrix<Real, 3, 1> intersection_1_0_0 = line_plane_intersection(line_point + euclidian_di, line_direction, plane_point, plane_normal);
+      const Eigen::Matrix<Real, 3, 1> intersection_0_1_0 = line_plane_intersection(line_point, line_direction, plane_point + lagrangian_dj, plane_normal);
+      const Eigen::Matrix<Real, 3, 1> intersection_0_0_1 = line_plane_intersection(line_point + euclidian_dk, line_direction, plane_point, plane_normal);
+
+      intersection = intersection_0_0_0[dimension];
+      intersection_di = intersection_1_0_0[dimension] - intersection_0_0_0[dimension];
+      intersection_dj = intersection_0_1_0[dimension] - intersection_0_0_0[dimension];
+      intersection_dk = intersection_0_0_1[dimension] - intersection_0_0_0[dimension];
+   }
+
+   if (dimension == 2) {
+      // This is the  case presented in the Slice 3D article
+      // Prepare intersections for mapping along Z first (mapping order Z-X-Y)
+
+      // Normal of Lagrangian planes
+      const Eigen::Matrix<Real, 3, 1> plane_normal = bwd_transform.linear() * Eigen::Matrix<Real, 3, 1>(0, 0, 1.0);
+
+      // Point on lowest possible Lagrangian plane
+      const Eigen::Matrix<Real, 3, 1> plane_point = bwd_transform * Eigen::Matrix<Real, 3, 1>(0.0, 0.0, vmesh->getMeshMinLimits()[2]);
+
+      // line along Euclidian z direction, unit vector
+      const Eigen::Matrix<Real, 3, 1> line_direction = Eigen::Matrix<Real, 3, 1>(0, 0, 1.0);
+      const Eigen::Matrix<Real, 3, 1> line_point(0.5 * vmesh->getCellSize()[0] + vmesh->getMeshMinLimits()[0], 0.5 * vmesh->getCellSize()[1] + vmesh->getMeshMinLimits()[1], 0.0);
+      const Eigen::Matrix<Real, 3, 1> euclidian_di = Eigen::Matrix<Real, 3, 1>(vmesh->getCellSize()[0], 0, 0.0);
+      const Eigen::Matrix<Real, 3, 1> euclidian_dj = Eigen::Matrix<Real, 3, 1>(0, vmesh->getCellSize()[1], 0.0);
+      const Eigen::Matrix<Real, 3, 1> lagrangian_dk = bwd_transform.linear() * Eigen::Matrix<Real, 3, 1>(0.0, 0.0, vmesh->getCellSize()[2]);
+
+      // compute intersections, varying lines and plane in i,j,k
+      const Eigen::Matrix<Real, 3, 1> intersection_0_0_0 = line_plane_intersection(line_point, line_direction, plane_point, plane_normal);
+      const Eigen::Matrix<Real, 3, 1> intersection_1_0_0 = line_plane_intersection(line_point + euclidian_di, line_direction, plane_point, plane_normal);
+      const Eigen::Matrix<Real, 3, 1> intersection_0_1_0 = line_plane_intersection(line_point + euclidian_dj, line_direction, plane_point, plane_normal);
+      const Eigen::Matrix<Real, 3, 1> intersection_0_0_1 = line_plane_intersection(line_point, line_direction, plane_point + lagrangian_dk, plane_normal);
+      intersection = intersection_0_0_0[dimension];
+      intersection_di = intersection_1_0_0[dimension] - intersection_0_0_0[dimension];
+      intersection_dj = intersection_0_1_0[dimension] - intersection_0_0_0[dimension];
+      intersection_dk = intersection_0_0_1[dimension] - intersection_0_0_0[dimension];
    }
 }
 
+/**
+ * Computes the second intersection data; this is x~ in section 2.4 in Zerroukat et al (2012). We assume all velocity cells have the same dimensions.
+ * Intersection x coordinate for (i,j,k) is: intersection + i * intersection_di + j * intersection_dj + k * intersection_dk
+ *
+ * @param spatial_cell spatial cell that is accelerated
+ * @param fwd_transform Transform that describes acceleration forward in time
+ * @param bwd_transform Transform that describes acceleration backward in time, used to compute the lagrangian departure grid
+ * @param dimension Along which dimension is this intersection/mapping computation done. It is assumed the three mappings are in order 012, 120 or 201
+ * @param intersection Intersection x-coordinate at i,j,k=0
+ * @param intersection_di Change in x-coordinate for a change in i index of 1
+ * @param intersection_dj Change in x-coordinate for a change in j index of 1
+ * @param intersection_dk Change in x-coordinate for a change in k index of 1
+ */
+void compute_intersections_2nd(const vmesh::VelocityMesh* vmesh, const Transform<Real, 3, Affine>& bwd_transform, const Transform<Real, 3, Affine>& fwd_transform, uint dimension, Real& intersection,
+                               Real& intersection_di, Real& intersection_dj, Real& intersection_dk) {
 
+   if (dimension == 0) { // Prepare intersections for mapping along X second (mapping order Z-X-Y)
+      // This is the case presented in the Slice 3D article,
+      // data along z has been moved to Lagrangian coordinates.
 
+      // Normal of Euclidian y-plane
+      const Eigen::Matrix<Real, 3, 1> plane_normal = Eigen::Matrix<Real, 3, 1>(0.0, 1.0, 0.0);
 
+      // Point on lowest Euclidian y-plane through middle of cells
+      Eigen::Matrix<Real, 3, 1> plane_point = Eigen::Matrix<Real, 3, 1>(0, vmesh->getMeshMinLimits()[1] + vmesh->getCellSize()[1] * 0.5, 0);
+      const Eigen::Matrix<Real, 3, 1> lagrangian_di = bwd_transform.linear() * Eigen::Matrix<Real, 3, 1>(vmesh->getCellSize()[0], 0, 0.0);
 
-// /*
-//   PQM reconstruction as published in:
-//   White, Laurent, and Alistair Adcroft. “A High-Order Finite Volume Remapping Scheme for Nonuniform Grids: The Piecewise Quartic Method (PQM).” Journal of Computational Physics 227, no. 15 (July 2008): 7394–7422. doi:10.1016/j.jcp.2008.04.026.
-// */
+      // Distance between Euclidian planes
+      const Eigen::Matrix<Real, 3, 1> euclidian_dj = Eigen::Matrix<Real, 3, 1>(0, vmesh->getCellSize()[1], 0.0);
+      const Eigen::Matrix<Real, 3, 1> lagrangian_dk = bwd_transform.linear() * Eigen::Matrix<Real, 3, 1>(0.0, 0.0, vmesh->getCellSize()[2]);
 
-static inline void compute_pqm_coeff(const Vec* __restrict__ values, face_estimate_order order, uint k, Vec a[5], const Realf threshold)
-{
-   Vec fv_l; /*left face value*/
-   Vec fv_r; /*right face value*/
-   Vec fd_l; /*left face derivative*/
-   Vec fd_r; /*right face derivative*/
-   compute_filtered_face_values_derivatives(values, k, order, fv_l, fv_r, fd_l, fd_r, threshold);
-   filter_pqm_monotonicity(values, k, fv_l, fv_r, fd_l, fd_r);
-   //Fit a second order polynomial for reconstruction see, e.g., White
-   //2008 (PQM article) (note additional integration factors built in,
-   //contrary to White (2008) eq. 4
-   a[0] = fv_l;
-   a[1] = fd_l/2.0;
-   a[2] =  10.0 * values[k] - 4.0 * fv_r - 6.0 * fv_l + 0.5 * (fd_r - 3 * fd_l);
-   a[3] = -15.0 * values[k]  + 1.5 * fd_l - fd_r + 7.0 * fv_r + 8 * fv_l;
-   a[4] =   6.0 * values[k] +  0.5 * (fd_r - fd_l) - 3.0 * (fv_l + fv_r);
+      // line along Lagrangian y line, unit vector. Only rotation here, not translation
+      const Eigen::Matrix<Real, 3, 1> line_direction = bwd_transform.linear() * Eigen::Matrix<Real, 3, 1>(0, 1.0, 0.0);
+      const Eigen::Matrix<Real, 3, 1> line_point =
+          bwd_transform *
+          Eigen::Matrix<Real, 3, 1>(vmesh->getMeshMinLimits()[0], 0.5 * vmesh->getCellSize()[1] + vmesh->getMeshMinLimits()[1], 0.5 * vmesh->getCellSize()[2] + vmesh->getMeshMinLimits()[2]);
+
+      // Compute two intersections between Lagrangian line (absolute position
+      // does not matter so set to 0,0,0, and two Euclidian planes.
+      Eigen::Matrix<Real, 3, 1> intersect_0_0_0 = line_plane_intersection(line_point, line_direction, plane_point, plane_normal);
+      Eigen::Matrix<Real, 3, 1> intersect_1_0_0 = line_plane_intersection(line_point + lagrangian_di, line_direction, plane_point, plane_normal);
+      Eigen::Matrix<Real, 3, 1> intersect_0_1_0 = line_plane_intersection(line_point, line_direction, plane_point + euclidian_dj, plane_normal);
+      Eigen::Matrix<Real, 3, 1> intersect_0_0_1 = line_plane_intersection(line_point + lagrangian_dk, line_direction, plane_point, plane_normal);
+
+      intersection = intersect_0_0_0[dimension];
+      intersection_di = intersect_1_0_0[dimension] - intersect_0_0_0[dimension];
+      intersection_dj = intersect_0_1_0[dimension] - intersect_0_0_0[dimension];
+      intersection_dk = intersect_0_0_1[dimension] - intersect_0_0_0[dimension];
+   }
+   if (dimension == 1) { // Prepare intersections for mapping along Y second (mapping order X-Y-Z)
+      // Normal of Euclidian z-plane
+      const Eigen::Matrix<Real, 3, 1> plane_normal = Eigen::Matrix<Real, 3, 1>(0.0, 0.0, 1.0);
+
+      // Point on lowest Euclidian z-plane through middle of cells
+      Eigen::Matrix<Real, 3, 1> plane_point = Eigen::Matrix<Real, 3, 1>(0.0, 0.0, vmesh->getMeshMinLimits()[2] + vmesh->getCellSize()[2] * 0.5);
+
+      const Eigen::Matrix<Real, 3, 1> lagrangian_di = bwd_transform.linear() * Eigen::Matrix<Real, 3, 1>(vmesh->getCellSize()[0], 0.0, 0.0);
+      const Eigen::Matrix<Real, 3, 1> lagrangian_dj = bwd_transform.linear() * Eigen::Matrix<Real, 3, 1>(0.0, vmesh->getCellSize()[1], 0.0);
+      // Distance between Euclidian planes
+      const Eigen::Matrix<Real, 3, 1> euclidian_dk = Eigen::Matrix<Real, 3, 1>(0.0, 0.0, vmesh->getCellSize()[2]);
+
+      // line along Lagrangian z line, unit vector. Only rotation here, not translation
+      const Eigen::Matrix<Real, 3, 1> line_direction = bwd_transform.linear() * Eigen::Matrix<Real, 3, 1>(0.0, 0.0, 1.0);
+      const Eigen::Matrix<Real, 3, 1> line_point =
+          bwd_transform *
+          Eigen::Matrix<Real, 3, 1>(0.5 * vmesh->getCellSize()[0] + vmesh->getMeshMinLimits()[0], vmesh->getMeshMinLimits()[1], 0.5 * vmesh->getCellSize()[2] + vmesh->getMeshMinLimits()[2]);
+
+      // Compute two intersections between Lagrangian line (absolute position
+      // does not matter so set to 0,0,0, and two Euclidian planes.
+      Eigen::Matrix<Real, 3, 1> intersect_0_0_0 = line_plane_intersection(line_point, line_direction, plane_point, plane_normal);
+      Eigen::Matrix<Real, 3, 1> intersect_1_0_0 = line_plane_intersection(line_point + lagrangian_di, line_direction, plane_point, plane_normal);
+      Eigen::Matrix<Real, 3, 1> intersect_0_1_0 = line_plane_intersection(line_point + lagrangian_dj, line_direction, plane_point, plane_normal);
+      Eigen::Matrix<Real, 3, 1> intersect_0_0_1 = line_plane_intersection(line_point, line_direction, plane_point + euclidian_dk, plane_normal);
+
+      intersection = intersect_0_0_0[dimension];
+      intersection_di = intersect_1_0_0[dimension] - intersect_0_0_0[dimension];
+      intersection_dj = intersect_0_1_0[dimension] - intersect_0_0_0[dimension];
+      intersection_dk = intersect_0_0_1[dimension] - intersect_0_0_0[dimension];
+   }
+   if (dimension == 2) { // Prepare intersections for mapping along Z second (mapping order Y-Z-X)
+      // Normal of Euclidian x-plane
+      const Eigen::Matrix<Real, 3, 1> plane_normal = Eigen::Matrix<Real, 3, 1>(1.0, 0.0, 0.0);
+      // Point on lowest Euclidian x-plane through middle of cells
+      Eigen::Matrix<Real, 3, 1> plane_point = Eigen::Matrix<Real, 3, 1>(vmesh->getMeshMinLimits()[0] + vmesh->getCellSize()[0] * 0.5, 0.0, 0.0);
+      // Distance between Euclidian planes
+      const Eigen::Matrix<Real, 3, 1> euclidian_di = Eigen::Matrix<Real, 3, 1>(vmesh->getCellSize()[0], 0.0, 0.0);
+      const Eigen::Matrix<Real, 3, 1> lagrangian_dj = bwd_transform.linear() * Eigen::Matrix<Real, 3, 1>(0.0, vmesh->getCellSize()[1], 0.0);
+      const Eigen::Matrix<Real, 3, 1> lagrangian_dk = bwd_transform.linear() * Eigen::Matrix<Real, 3, 1>(0.0, 0.0, vmesh->getCellSize()[2]);
+
+      // line along Lagrangian x line, unit vector. Only rotation here, not translation
+      const Eigen::Matrix<Real, 3, 1> line_direction = bwd_transform.linear() * Eigen::Matrix<Real, 3, 1>(1.0, 0.0, 0.0);
+      const Eigen::Matrix<Real, 3, 1> line_point =
+          bwd_transform *
+          Eigen::Matrix<Real, 3, 1>(0.5 * vmesh->getCellSize()[0] + vmesh->getMeshMinLimits()[0], 0.5 * vmesh->getCellSize()[1] + vmesh->getMeshMinLimits()[1], vmesh->getMeshMinLimits()[2]);
+
+      // Compute two intersections between Lagrangian line (absolute position
+      // does not matter so set to 0,0,0, and two Euclidian planes.
+      Eigen::Matrix<Real, 3, 1> intersect_0_0_0 = line_plane_intersection(line_point, line_direction, plane_point, plane_normal);
+      Eigen::Matrix<Real, 3, 1> intersect_1_0_0 = line_plane_intersection(line_point, line_direction, plane_point + euclidian_di, plane_normal);
+      Eigen::Matrix<Real, 3, 1> intersect_0_1_0 = line_plane_intersection(line_point + lagrangian_dj, line_direction, plane_point, plane_normal);
+      Eigen::Matrix<Real, 3, 1> intersect_0_0_1 = line_plane_intersection(line_point + lagrangian_dk, line_direction, plane_point, plane_normal);
+
+      intersection = intersect_0_0_0[dimension];
+      intersection_di = intersect_1_0_0[dimension] - intersect_0_0_0[dimension];
+      intersection_dj = intersect_0_1_0[dimension] - intersect_0_0_0[dimension];
+      intersection_dk = intersect_0_0_1[dimension] - intersect_0_0_0[dimension];
+   }
 }
 
+/**
+ * Computes the third intersection data; this is y intersections in Zerroukat et al (2012). We assume all velocity cells have the same dimensions.
+ * Intersection y-coordinate for (i,j,k) is: intersection + i * intersection_di + j * intersection_dj + k * intersection_dk
+ *
+ * @param spatial_cell spatial cell that is accelerated
+ * @param fwd_transform Transform that describes acceleration forward in time
+ * @param bwd_transform Transform that describes acceleration backward in time, used to compute the lagrangian departure grid
+ * @param dimension Along which dimension is this intersection/mapping computation done. It is assumed the three mappings are in order 012, 120 or 201
+ * @param intersection Intersection y-coordinate at i,j,k=0
+ * @param intersection_di Change in y-coordinate for a change in i index of 1
+ * @param intersection_dj Change in y-coordinate for a change in j index of 1
+ * @param intersection_dk Change in y-coordinate for a change in k index of 1
+ *
+ *
+ * euclidian y goes from vy_min to vy_max, this is mapped to wherever y plane is in lagrangian.
+ */
+void compute_intersections_3rd(const vmesh::VelocityMesh* vmesh, const Transform<Real, 3, Affine>& bwd_transform, const Transform<Real, 3, Affine>& fwd_transform, uint dimension, Real& intersection,
+                               Real& intersection_di, Real& intersection_dj, Real& intersection_dk) {
 
-#endif
+   if (dimension == 0) { // Prepare intersections for mapping along X third (mapping order Y-Z-X)
+      const Eigen::Matrix<Real, 3, 1> point_0_0_0 = bwd_transform * Eigen::Matrix<Real, 3, 1>(0.0 * vmesh->getCellSize()[0] + vmesh->getMeshMinLimits()[0],
+                                                                                              0.5 * vmesh->getCellSize()[1] + vmesh->getMeshMinLimits()[1],
+                                                                                              0.5 * vmesh->getCellSize()[2] + vmesh->getMeshMinLimits()[2]);
+      const Eigen::Matrix<Real, 3, 1> point_1_0_0 = bwd_transform * Eigen::Matrix<Real, 3, 1>(1.0 * vmesh->getCellSize()[0] + vmesh->getMeshMinLimits()[0],
+                                                                                              0.5 * vmesh->getCellSize()[1] + vmesh->getMeshMinLimits()[1],
+                                                                                              0.5 * vmesh->getCellSize()[2] + vmesh->getMeshMinLimits()[2]);
+      const Eigen::Matrix<Real, 3, 1> point_0_1_0 = bwd_transform * Eigen::Matrix<Real, 3, 1>(0.0 * vmesh->getCellSize()[0] + vmesh->getMeshMinLimits()[0],
+                                                                                              1.5 * vmesh->getCellSize()[1] + vmesh->getMeshMinLimits()[1],
+                                                                                              0.5 * vmesh->getCellSize()[2] + vmesh->getMeshMinLimits()[2]);
+      const Eigen::Matrix<Real, 3, 1> point_0_0_1 = bwd_transform * Eigen::Matrix<Real, 3, 1>(0.0 * vmesh->getCellSize()[0] + vmesh->getMeshMinLimits()[0],
+                                                                                              0.5 * vmesh->getCellSize()[1] + vmesh->getMeshMinLimits()[1],
+                                                                                              1.5 * vmesh->getCellSize()[2] + vmesh->getMeshMinLimits()[2]);
+      intersection = point_0_0_0[dimension];
+      intersection_di = point_1_0_0[dimension] - point_0_0_0[dimension];
+      intersection_dj = point_0_1_0[dimension] - point_0_0_0[dimension];
+      intersection_dk = point_0_0_1[dimension] - point_0_0_0[dimension];
+   }
+   if (dimension == 1) { // Prepare intersections for mapping along Y third (mapping order Z-X-Y)
+      // This is the case presented in the Slice 3D article,
+      // data along z has been moved to Lagrangian coordinates
+      const Eigen::Matrix<Real, 3, 1> point_0_0_0 =
+          bwd_transform *
+          Eigen::Matrix<Real, 3, 1>(0.5 * vmesh->getCellSize()[0] + vmesh->getMeshMinLimits()[0], vmesh->getMeshMinLimits()[1], 0.5 * vmesh->getCellSize()[2] + vmesh->getMeshMinLimits()[2]);
+      const Eigen::Matrix<Real, 3, 1> point_1_0_0 =
+          bwd_transform *
+          Eigen::Matrix<Real, 3, 1>(1.5 * vmesh->getCellSize()[0] + vmesh->getMeshMinLimits()[0], vmesh->getMeshMinLimits()[1], 0.5 * vmesh->getCellSize()[2] + vmesh->getMeshMinLimits()[2]);
+      const Eigen::Matrix<Real, 3, 1> point_0_1_0 = bwd_transform * Eigen::Matrix<Real, 3, 1>(0.5 * vmesh->getCellSize()[0] + vmesh->getMeshMinLimits()[0],
+                                                                                              1.0 * vmesh->getCellSize()[1] + vmesh->getMeshMinLimits()[1],
+                                                                                              0.5 * vmesh->getCellSize()[2] + vmesh->getMeshMinLimits()[2]);
+      const Eigen::Matrix<Real, 3, 1> point_0_0_1 =
+          bwd_transform *
+          Eigen::Matrix<Real, 3, 1>(0.5 * vmesh->getCellSize()[0] + vmesh->getMeshMinLimits()[0], vmesh->getMeshMinLimits()[1], 1.5 * vmesh->getCellSize()[2] + vmesh->getMeshMinLimits()[2]);
+      intersection = point_0_0_0[dimension];
+      intersection_di = point_1_0_0[dimension] - point_0_0_0[dimension];
+      intersection_dj = point_0_1_0[dimension] - point_0_0_0[dimension];
+      intersection_dk = point_0_0_1[dimension] - point_0_0_0[dimension];
+   }
+   if (dimension == 2) { // Prepare intersections for mapping along Z third (mapping order X-Y-Z)
+      const Eigen::Matrix<Real, 3, 1> point_0_0_0 = bwd_transform * Eigen::Matrix<Real, 3, 1>(0.5 * vmesh->getCellSize()[0] + vmesh->getMeshMinLimits()[0],
+                                                                                              0.5 * vmesh->getCellSize()[1] + vmesh->getMeshMinLimits()[1],
+                                                                                              0.0 * vmesh->getCellSize()[2] + vmesh->getMeshMinLimits()[2]);
+      const Eigen::Matrix<Real, 3, 1> point_1_0_0 = bwd_transform * Eigen::Matrix<Real, 3, 1>(1.5 * vmesh->getCellSize()[0] + vmesh->getMeshMinLimits()[0],
+                                                                                              0.5 * vmesh->getCellSize()[1] + vmesh->getMeshMinLimits()[1],
+                                                                                              0.0 * vmesh->getCellSize()[2] + vmesh->getMeshMinLimits()[2]);
+      const Eigen::Matrix<Real, 3, 1> point_0_1_0 = bwd_transform * Eigen::Matrix<Real, 3, 1>(0.5 * vmesh->getCellSize()[0] + vmesh->getMeshMinLimits()[0],
+                                                                                              1.5 * vmesh->getCellSize()[1] + vmesh->getMeshMinLimits()[1],
+                                                                                              0.0 * vmesh->getCellSize()[2] + vmesh->getMeshMinLimits()[2]);
+      const Eigen::Matrix<Real, 3, 1> point_0_0_1 = bwd_transform * Eigen::Matrix<Real, 3, 1>(0.5 * vmesh->getCellSize()[0] + vmesh->getMeshMinLimits()[0],
+                                                                                              0.5 * vmesh->getCellSize()[1] + vmesh->getMeshMinLimits()[1],
+                                                                                              1.0 * vmesh->getCellSize()[2] + vmesh->getMeshMinLimits()[2]);
+      intersection = point_0_0_0[dimension];
+      intersection_di = point_1_0_0[dimension] - point_0_0_0[dimension];
+      intersection_dj = point_0_1_0[dimension] - point_0_0_0[dimension];
+      intersection_dk = point_0_0_1[dimension] - point_0_0_0[dimension];
+   }
+}

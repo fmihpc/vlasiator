@@ -1,4 +1,3 @@
-#pragma once
 /*
  * This file is part of Vlasiator.
  * Copyright 2010-2016 Finnish Meteorological Institute
@@ -20,72 +19,98 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#include <math.h>
+#include "readfields.h"
+#include "../definitions.h"
+#include "field.h"
+#include "particleparameters.h"
+#include <iostream>
+#include <stdint.h>
+#include <string>
+#include <vector>
 
-// The default is (Gaussian) CGS units
-class PhysicalConstantsCGS
-{
-   public:
-      PhysicalConstantsCGS(){};
+/* Debugging image output */
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
 
-      static const double me;      // Electron mass (g)
-      static const double mp;      // Proton mass (g)
-      static const double mpi0;    // Mass of uncharged pion (g)
-      static const double e;       // Elementary charge (statcoulomb)
-      static const double c;       // Speed of light (cm/s)
-      static const double eps0;    // Permitivity of vacuum
-      static const double mu0;     // Permeability of vacuum
-      static const double thomcs;  // Thomson cross section (cm^2)
-      static const double h;       // Planck constant (erg sec)
-      static const double hbar;    // reduced Planck constant (erg sec)
-      static const double k;       // Boltzmann constant (erg / K)
-      static const double r0;      // Classical electron radius / Thomson scattering length (cm)
-      static const double G;       // Gravitational constant cm^3/(g sec^2)
-};
+std::string B_field_name;
+std::string E_field_name;
 
-// Constants in SI
-class PhysicalConstantsSI
-{
-   public:
-      PhysicalConstantsSI(){};
+/* Read the cellIDs into an array */
+std::vector<uint64_t> readCellIds(vlsvinterface::Reader& r) {
 
-      static const double me;      // Electron mass (kg)
-      static const double mp;      // Proton mass (kg)
-      static const double mpi0;    // Mass of uncharged pion (kg)
-      static const double e;       // Elementary charge (C)
-      static const double c;       // Speed of light (m/s)
-      static const double eps0;    // Permitivity of vacuum (F / m)
-      static const double mu0;     // Permeability of vacuum (H / m)
-      static const double thomcs;  // Thomson cross section (m^2)
-      static const double h;       // Planck constant (J s)
-      static const double hbar;    // reduced Planck constant (J s)
-      static const double k;       // Boltzmann constant (J / K)
-      static const double r0;      // Classical electron radius / Thomson scattering length (m)
-      static const double G;       // Gravitational constant m^3/(kg s^2)
-};
+   uint64_t arraySize = 0;
+   uint64_t vectorSize = 0;
+   uint64_t byteSize = 0;
+   vlsv::datatype::type dataType;
+   std::list<std::pair<std::string, std::string>> attribs;
+   attribs.push_back(std::pair<std::string, std::string>("name", "CellID"));
+   if (r.getArrayInfo("VARIABLE", attribs, arraySize, vectorSize, dataType, byteSize) == false) {
+      std::cerr << "getArrayInfo returned false when trying to read CellID VARIABLE." << std::endl;
+      exit(1);
+   }
 
-// Natural Units with e = c = k = me = 1 (Stoney units)
-class PhysicalConstantsnorm
-{
-   public:
-      PhysicalConstantsnorm(){};
+   if (dataType != vlsv::datatype::type::UINT || byteSize != 8 || vectorSize != 1) {
+      std::cerr << "Datatype of CellID VARIABLE entries is not uint64_t." << std::endl;
+      exit(1);
+   }
 
-      static const double me;      // Electron mass
-      static const double mp;      // Proton mass
-      static const double mpi0;    // Mass of uncharged pion
-      static const double e;       // Elementary charge
-      static const double c;       // Speed of light
-      static const double eps0;    // Permitivity of vacuum
-      static const double mu0;     // Permeability of vacuum
-      static const double thomcs;  // Thomson cross section
-      static const double h;       // Planck constant
-      static const double hbar;    // reduced Planck constant
-      static const double k;       // Boltzmann constant
-      static const double r0;      // Classical electron radius
-      static const double G;       // Gravitational constant
+   /* Allocate memory for the cellIds */
+   std::vector<uint64_t> cellIds(arraySize * vectorSize);
 
-      // l = e^2 / c^2 me
-      // t = e^2 / c^3 me
-      // T = = me c^2 / k
-};
+   if (r.readArray("VARIABLE", attribs, 0, arraySize, (char*)cellIds.data()) == false) {
+      std::cerr << "readArray faied when trying to read CellID Variable." << std::endl;
+      exit(1);
+   }
 
+   return cellIds;
+}
+
+/* For debugging purposes - dump a field into a png file
+ * We're hardcodedly writing the z=0 plane here. */
+void debug_output(Field& F, const char* filename) {
+
+   /* Find min and max value */
+   Real min[3], max[3];
+
+   /* TODO: ugh, this is an ungly hack */
+   min[0] = min[1] = min[2] = 99999999999;
+   max[0] = max[1] = max[2] = -99999999999;
+
+   for (int i = 0; i < F.dimension[0]->cells * F.dimension[1]->cells; i++) {
+      for (int j = 0; j < 3; j++) {
+         if (F.data[4 * i + j] > max[j]) {
+            max[j] = F.data[4 * i + j];
+         }
+         if (F.data[4 * i + j] < min[j]) {
+            min[j] = F.data[4 * i + j];
+         }
+      }
+   }
+
+   /* Allocate a rgb-pixel array */
+   std::vector<uint8_t> pixels(4 * F.dimension[0]->cells * F.dimension[1]->cells);
+
+   /* And fill it with colors */
+   for (int y = 0; y < F.dimension[1]->cells; y++) {
+      for (int x = 0; x < F.dimension[0]->cells; x++) {
+
+         /* Rescale the field values to lie between 0..255 */
+         Vec3d scaled_val = F.getCell(x, y, 0);
+         for (int i = 0; i < 3; i++) {
+            scaled_val[i] -= min[i];
+            scaled_val[i] /= (max[i] - min[i]);
+            scaled_val[i] *= 255.;
+         }
+
+         pixels[4 * (y * F.dimension[0]->cells + x)] = (uint8_t)scaled_val[0];
+         pixels[4 * (y * F.dimension[0]->cells + x) + 1] = (uint8_t)scaled_val[1];
+         pixels[4 * (y * F.dimension[0]->cells + x) + 2] = (uint8_t)scaled_val[2];
+         pixels[4 * (y * F.dimension[0]->cells + x) + 3] = 255; // Alpha=1
+      }
+   }
+
+   /* Write it out */
+   if (!stbi_write_png(filename, F.dimension[0]->cells, F.dimension[1]->cells, 4, pixels.data(), F.dimension[0]->cells * 4)) {
+      std::cerr << "Writing " << filename << " failed: " << strerror(errno) << std::endl;
+   }
+}

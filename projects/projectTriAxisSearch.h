@@ -19,48 +19,51 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef TRIAXISSEARCH_H
-#define TRIAXISSEARCH_H
 
-#include "project.h"
+#ifndef PROJECTS_COMMON_H
+#define PROJECTS_COMMON_H
+#include "../spatial_cells/spatial_cell_wrapper.hpp"
+#include <dccrg.hpp>
+#include <dccrg_cartesian_geometry.hpp>
 
 namespace projects {
-   class TriAxisSearch: public Project {
-   public:
-         
-   protected:
-      /*! \brief Find blocks above the threshold centred isotropically around a bulk velocity.
-       * 
-       * Instead of looping through the whole velocity space this function starts from the project's bulk velocity V0[3].
-       * It then proceeds along V[XYZ] successively to determine at what maximum radius a block falls below (0.1 times) the threshold.
-       * 
-       * This radius is used to determine all blocks within that radius of V0 for creating V-spaces.
-       * The function stores the prepared blocks into cell->velocity_block_with_content_list and returns the count.
-       */
-      virtual uint findBlocksToInitialize(spatial_cell::SpatialCell* cell,const uint popID) const;
+   enum Neighbours {
+      ZM1_YM1_XM1,
+      ZM1_YM1_XCC,
+      ZM1_YM1_XP1,
+      ZM1_YCC_XM1,
+      ZM1_YCC_XCC,
+      ZM1_YCC_XP1,
+      ZM1_YP1_XM1,
+      ZM1_YP1_XCC,
+      ZM1_YP1_XP1,
+      ZCC_YM1_XM1,
+      ZCC_YM1_XCC,
+      ZCC_YM1_XP1,
+      ZCC_YCC_XM1,
+      ZCC_YCC_XCC,
+      ZCC_YCC_XP1,
+      ZCC_YP1_XM1,
+      ZCC_YP1_XCC,
+      ZCC_YP1_XP1,
+      ZP1_YM1_XM1,
+      ZP1_YM1_XCC,
+      ZP1_YM1_XP1,
+      ZP1_YCC_XM1,
+      ZP1_YCC_XCC,
+      ZP1_YCC_XP1,
+      ZP1_YP1_XM1,
+      ZP1_YP1_XCC,
+      ZP1_YP1_XP1
+   };
 
-      /* Evaluates local SpatialCell properties for the project and population,
-         then evaluates the phase-space density at the given coordinates.
-      */
-      virtual Realf probePhaseSpace(spatial_cell::SpatialCell *cell,
-                                    const uint popID,
-                                    Real vx_in, Real vy_in, Real vz_in) const = 0;
+   const uint MISSING_ZNEG = (1 << projects::ZM1_YCC_XCC);
+   const uint MISSING_YNEG = (1 << projects::ZCC_YM1_XCC);
+   const uint MISSING_XNEG = (1 << projects::ZCC_YCC_XM1);
+   const uint MISSING_XPOS = (1 << projects::ZCC_YCC_XP1);
+   const uint MISSING_YPOS = (1 << projects::ZCC_YP1_XCC);
+   const uint MISSING_ZPOS = (1 << projects::ZP1_YCC_XCC);
+   const uint FACE_NBR_BITMASK = (MISSING_ZNEG | MISSING_YNEG | MISSING_XNEG | MISSING_XPOS | MISSING_YPOS | MISSING_ZPOS);
+} // namespace projects
 
-      /*! \brief Return a vector containing the velocity coordinate of the centre of each ion population in the distribution.
-       * 
-       * This function is used by findBlocksToInitialize() to start the search of the extent of the distribution along each axis.
-       * The extension to a vector allows to have more than one population in each spatial cell.
-       * 
-       * \sa findBlocksToInitialize
-       */
-      virtual std::vector<std::array<Real, 3>> getV0(
-         creal x,
-         creal y,
-         creal z,
-         const uint popID
-         ) const = 0;
-   }; // class TriAxisSearch
-} // namespace
-
- 
 #endif

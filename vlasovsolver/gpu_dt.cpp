@@ -1,6 +1,6 @@
 /*
  * This file is part of Vlasiator.
- * Copyright 2010-2024 Finnish Meteorological Institute and University of Helsinki
+ * Copyright 2010-2021 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
  * at http://www.physics.helsinki.fi/vlasiator/
@@ -20,169 +20,423 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include <vector>
+#ifndef GPU_FACE_ESTIMATES_H
+#define GPU_FACE_ESTIMATES_H
+
 #include "../definitions.h"
-#include "../spatial_cells/spatial_cell_wrapper.hpp"
-#include "../object_wrapper.h"
-#include "../arch/gpu_base.hpp"
-#include "../spatial_cells/block_adjust_gpu.hpp"
-//#include <stdint.h>
-#include <dccrg.hpp>
-#include <dccrg_cartesian_geometry.hpp>
+#include "gpu_slope_limiters.hpp"
 
-//using namespace std;
-using namespace spatial_cell;
+#include "../arch/arch_device_api.h"
 
-// Using a single kernel launch to reduce the allowed timestep for all cells instead of utilizing
-// ARCH-looping provides an order of 10x-40x performance improvement.
+/*enum for setting face value and derivative estimates. Implicit ones
+  not supported in the solver, so they are now not listed*/
+enum face_estimate_order { h4, h5, h6, h8 };
+/**
+   Define functions for Realf instead of Vec
+*/
 
-/* Kernel for evalutaing all blocks in all velocity meshes
- * finding the low and high corner velocities
- * comparing with the spatial cell size
- * and storing the largest allowed spatial dt for each cell
- *
- * @param dev_vmeshes buffer of pointers to velocitymeshes, used for gathering active blocks
- * @param dev_max_dt Buffer to store max allowed dt into (siz of nAllCells)
- * @param dev_dxdydz Buffer of cell spatial extents (size of 3*nAllCells)
- * @param nAllCells count of cells to process
- */
-__global__ void __launch_bounds__(GPUTHREADS*WARPSPERBLOCK) reduce_v_dt_kernel(
-   const vmesh::VelocityMesh* __restrict__ const *dev_vmeshes,
-   Real* dev_max_dt,
-   const Real* dev_dxdydz,
-   const uint nAllCells)
-{
-   const uint ti = threadIdx.x; // [0,GPUTHREADS*WARPSPERBLOCK)
-   const uint blockSize = blockDim.x;
-   const uint cellIndex = blockIdx.x; // userd for pointer to cell (or population)
+/*!
+  Compute left face value based on the explicit h8 estimate.
 
-   __shared__ Real smallest[GPUTHREADS*WARPSPERBLOCK]; //==blockSize
-   smallest[ti] = numeric_limits<Real>::max();
+  Right face value can be obtained as left face value of cell i + 1.
 
-   const vmesh::VelocityMesh* __restrict__ thisVmesh = dev_vmeshes[cellIndex];
-   const uint thisVmeshSize = thisVmesh->size();
-   Real blockInfo[6];
-   const Real dx = dev_dxdydz[3*cellIndex + 0];
-   const Real dy = dev_dxdydz[3*cellIndex + 1];
-   const Real dz = dev_dxdydz[3*cellIndex + 2];
-   const Real EPS = numeric_limits<Real>::min() * 1000;
-   const Real HALF = 0.5;
+  \param values Array with volume averages. It is assumed a large enough stencil is defined around i.
+  \param i Index of cell in values for which the left face is computed
+  \param fv_l Face value on left face of cell i
+*/
+ARCH_DEV inline void compute_h8_left_face_value(const Realf* const values, int k, Realf& fv_l, const int index, const int stride) {
+   fv_l = (Realf)(1.0 / 840.0) * ((Realf)(-3.0) * values[(k - 4) * stride + index] + (Realf)(29.0) * values[(k - 3) * stride + index] - (Realf)(139.0) * values[(k - 2) * stride + index] +
+                                  (Realf)(533.0) * values[(k - 1) * stride + index] + (Realf)(533.0) * values[k * stride + index] - (Realf)(139.0) * values[(k + 1) * stride + index] +
+                                  (Realf)(29.0) * values[(k + 2) * stride + index] - (Realf)(3.0) * values[(k + 3) * stride + index]);
+}
+ARCH_DEV inline void compute_h7_left_face_derivative(const Realf* const values, int k, Realf& fd_l, const int index, const int stride) {
+   fd_l = (Realf)(1.0 / 5040.0) * ((Realf)(9.0) * values[(k - 4) * stride + index] - (Realf)(119.0) * values[(k - 3) * stride + index] + (Realf)(889.0) * values[(k - 2) * stride + index] -
+                                   (Realf)(7175.0) * values[(k - 1) * stride + index] + (Realf)(7175.0) * values[k * stride + index] - (Realf)(889.0) * values[(k + 1) * stride + index] +
+                                   (Realf)(119.0) * values[(k + 2) * stride + index] - (Realf)(9.0) * values[(k + 3) * stride + index]);
+}
+ARCH_DEV inline void compute_h6_left_face_value(const Realf* const values, int k, Realf& fv_l, const int index, const int stride) {
+   // compute left value
+   fv_l = (Realf)(1.0 / 60.0) * (values[(k - 3) * stride + index] - (Realf)(8.0) * values[(k - 2) * stride + index] + (Realf)(37.0) * values[(k - 1) * stride + index] +
+                                 (Realf)(37.0) * values[k * stride + index] - (Realf)(8.0) * values[(k + 1) * stride + index] + values[(k + 2) * stride + index]);
+}
+ARCH_DEV inline void compute_h5_left_face_derivative(const Realf* const values, int k, Realf& fd_l, const int index, const int stride) {
+   fd_l = (Realf)(1.0 / 180.0) *
+          ((Realf)(245.0) * (values[k * stride + index] - values[(k - 1) * stride + index]) - (Realf)(25.0) * (values[(k + 1) * stride + index] - values[(k - 2) * stride + index]) +
+           (Realf)(2.0) * (values[(k + 2) * stride + index] - values[(k - 3) * stride + index]));
+}
+ARCH_DEV inline void compute_h5_face_values(const Realf* const values, int k, Realf& fv_l, Realf& fv_r, const int index, const int stride) {
+   // compute left values
+   fv_l = (Realf)(1.0 / 60.0) * ((Realf)(-3.0) * values[(k - 2) * stride + index] + (Realf)(27.0) * values[(k - 1) * stride + index] + (Realf)(47.0) * values[k * stride + index] -
+                                 (Realf)(13.0) * values[(k + 1) * stride + index] + (Realf)(2.0) * values[(k + 2) * stride + index]);
+   fv_r = (Realf)(1.0 / 60.0) * ((Realf)(2.0) * values[(k - 2) * stride + index] - (Realf)(13.0) * values[(k - 1) * stride + index] + (Realf)(47.0) * values[k * stride + index] +
+                                 (Realf)(27.0) * values[(k + 1) * stride + index] - (Realf)(3.0) * values[(k + 2) * stride + index]);
+}
+ARCH_DEV inline void compute_h4_left_face_derivative(const Realf* const values, int k, Realf& fd_l, const int index, const int stride) {
+   fd_l = (Realf)(1.0 / 12.0) * ((Realf)(15.0) * (values[k * stride + index] - values[(k - 1) * stride + index]) - (values[(k + 1) * stride + index] - values[(k - 2) * stride + index]));
+}
+ARCH_DEV inline void compute_h4_left_face_value(const Realf* const values, int k, Realf& fv_l, const int index, const int stride) {
+   // compute left value
+   fv_l = (Realf)(1.0 / 12.0) * ((Realf)(-1.0) * values[(k - 2) * stride + index] + (Realf)(7.0) * values[(k - 1) * stride + index] + (Realf)(7.0) * values[k * stride + index] -
+                                 (Realf)(1.0) * values[(k + 1) * stride + index]);
+}
 
-   for (uint blockIndex = ti/2; blockIndex < thisVmeshSize; blockIndex += blockSize/2) {
-      if (blockIndex < thisVmeshSize) {
-         const vmesh::GlobalID GID = thisVmesh->getGlobalID(blockIndex);
-         thisVmesh->getBlockInfo(GID,blockInfo); //This now calculates instead of reading from stored arrays
-         // Indices 0-2 contain coordinates of the lower left corner.
-         // Indices 3-5 contain the cell size.
-         const int i = (ti % 2) * (WID-1);
-         // low and high corners, i.e., i == 0, i == WID - 1
-         const Real Vx = blockInfo[0] + (i + HALF) * blockInfo[3] + EPS;
-         const Real Vy = blockInfo[1] + (i + HALF) * blockInfo[4] + EPS;
-         const Real Vz = blockInfo[2] + (i + HALF) * blockInfo[5] + EPS;
-         smallest[ti] = min({dx / fabs(Vx), dy / fabs(Vy), dz / fabs(Vz), smallest[ti]});
-      }
+// h is bin width (dv or dx)
+// u is values
+ARCH_DEV inline void compute_h4_left_face_value_nonuniform(const Realf* const h, const Realf* const u, int k, Realf& fv_l, const int index, const int stride) {
+   const Realf hkMinus2 = h[k - 2];
+   const Realf hkMinus1 = h[k - 1];
+   const Realf hk = h[k];
+   const Realf hkPlus1 = h[k + 1];
+   fv_l = ((Realf)(1.0) / (hkMinus2 + hkMinus1 + hk + hkPlus1) *
+           ((hkMinus2 + hkMinus1) * (hk + hkPlus1) / (hkMinus1 + hk) * (u[(k - 1) * stride + index] * hk + u[k * stride + index] * hkMinus1) *
+                ((Realf)(1.0) / (hkMinus2 + hkMinus1 + hk) + (Realf)(1.0) / (hkMinus1 + hk + hkPlus1)) +
+            (hk * (hk + hkPlus1)) / ((hkMinus2 + hkMinus1 + hk) * (hkMinus2 + hkMinus1)) *
+                (u[(k - 1) * stride + index] * (hkMinus2 + (Realf)(2.0) * hkMinus1) - (u[(k - 2) * stride + index] * hkMinus1)) +
+            hkMinus1 * (hkMinus2 + hkMinus1) / ((hkMinus1 + hk + hkPlus1) * (hk + hkPlus1)) * (u[k * stride + index] * ((Realf)(2.0) * hk + hkPlus1) - u[(k + 1) * stride + index] * hk)));
+}
+
+ARCH_DEV inline void compute_h3_left_face_derivative(const Realf* const values, int k, Realf& fv_l, const int index, const int stride) {
+   /*compute left value*/
+   fv_l = (Realf)(1.0 / 12.0) * ((Realf)(15.0) * (values[k * stride + index] - values[(k - 1) * stride + index]) - (values[(k + 1) * stride + index] - values[(k - 2) * stride + index]));
+}
+
+ARCH_DEV inline void compute_filtered_face_values_derivatives(const Realf* const values, int k, face_estimate_order order, Realf& fv_l, Realf& fv_r, Realf& fd_l, Realf& fd_r, const Realf threshold,
+                                                              const int index, const int stride) {
+   switch (order) {
+   case h4:
+      compute_h4_left_face_value(values, k, fv_l, index, stride);
+      compute_h4_left_face_value(values, k + 1, fv_r, index, stride);
+      compute_h3_left_face_derivative(values, k, fd_l, index, stride);
+      compute_h3_left_face_derivative(values, k + 1, fd_r, index, stride);
+      break;
+   case h5:
+      compute_h5_face_values(values, k, fv_l, fv_r, index, stride);
+      compute_h4_left_face_derivative(values, k, fd_l, index, stride);
+      compute_h4_left_face_derivative(values, k + 1, fd_r, index, stride);
+      break;
+   default:
+   case h6:
+      compute_h6_left_face_value(values, k, fv_l, index, stride);
+      compute_h6_left_face_value(values, k + 1, fv_r, index, stride);
+      compute_h5_left_face_derivative(values, k, fd_l, index, stride);
+      compute_h5_left_face_derivative(values, k + 1, fd_r, index, stride);
+      break;
+   case h8:
+      compute_h8_left_face_value(values, k, fv_l, index, stride);
+      compute_h8_left_face_value(values, k + 1, fv_r, index, stride);
+      compute_h7_left_face_derivative(values, k, fd_l, index, stride);
+      compute_h7_left_face_derivative(values, k + 1, fd_r, index, stride);
+      break;
    }
-   __syncthreads();
-   // Now reduce for cell
-   for (unsigned int s=blockSize/2; s>0; s>>=1) {
-      if (ti < s) {
-         smallest[ti] = min(smallest[ti],smallest[ti + s]);
-      }
-      __syncthreads();
+   Realf slope_abs, slope_sign;
+   // scale values closer to 1 for more accurate slope limiter calculation
+   const Realf scale = (Realf)(1.0) / threshold;
+   slope_limiter(values[(k - 1) * stride + index] * scale, values[k * stride + index] * scale, values[(k + 1) * stride + index] * scale, slope_abs, slope_sign);
+   slope_abs = slope_abs * threshold;
+   // check for extrema, flatten if it is
+   bool is_extrema = (slope_abs == (Realf)(0.0));
+   if (is_extrema) {
+      fv_r = (is_extrema) ? values[k * stride + index] : fv_r;
+      fv_l = (is_extrema) ? values[k * stride + index] : fv_l;
+      fd_l = (is_extrema) ? (Realf)(0.0) : fd_l;
+      fd_r = (is_extrema) ? (Realf)(0.0) : fd_r;
    }
-   // Kostis' suggestion: use two-stage warp votes to reduce
-   // for (int offset = GPUTHREADS/2; offset > 0; offset >>=1){
-   //    val = min(val,__shfl_down_sync(FULL_MASK, val, offset));
-   // }
-   // __syncthreads();
-   if (ti==0) {
-      dev_max_dt[cellIndex] = smallest[0];
+   // Fix left face if needed; boundary value is not bounded or slope is not consistent
+   bool filter = (values[(k - 1) * stride + index] - fv_l) * (fv_l - values[k * stride + index]) < (Realf)(0.0) || slope_sign * fd_l < (Realf)(0.0);
+   if (filter) {
+      // Go to linear (PLM) estimates if not ok (this is always ok!)
+      fv_l = (filter) ? values[k * stride + index] - slope_sign * (Realf)(0.5) * slope_abs : fv_l;
+      fd_l = (filter) ? slope_sign * slope_abs : fd_l;
+   }
+   // Fix right face if needed; boundary value is not bounded or slope is not consistent
+   filter = (values[(k + 1) * stride + index] - fv_r) * (fv_r - values[k * stride + index]) < (Realf)(0.0) || slope_sign * fd_r < (Realf)(0.0);
+   if (filter) {
+      // Go to linear (PLM) estimates if not ok (this is always ok!)
+      fv_r = (filter) ? values[k * stride + index] + slope_sign * (Realf)(0.5) * slope_abs : fv_r;
+      fd_r = (filter) ? slope_sign * slope_abs : fd_r;
    }
 }
 
-
-void reduce_vlasov_dt(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                      const vector<CellID>& cells,
-                      Real (&dtMaxLocal)[3]) {
-
-   phiprof::Timer computeGpuTimestepTimer {"compute-vlasov-gpu-timestep"};
-   // Does not use streams
-   const uint nAllCells = cells.size();
-   const uint nPOP = getObjectWrapper().particleSpecies.size();
-
-   // Resize dev_vmeshes, one for each cell and each pop
-   gpu_trans_allocate(nAllCells*nPOP,0,0,0);
-
-   Real* host_max_dt;
-   Real* host_dxdydz;
-   Real* dev_max_dt;
-   Real* dev_dxdydz;
-
-   // Host memory will be pinned
-   CHK_ERR( gpuMallocHost((void**)&host_max_dt, nAllCells*nPOP*sizeof(Real)) );
-   CHK_ERR( gpuMallocHost((void**)&host_dxdydz, nAllCells*nPOP*3*sizeof(Real)) );
-   CHK_ERR( gpuMalloc((void**)&dev_max_dt, nAllCells*nPOP*sizeof(Real)) );
-   CHK_ERR( gpuMalloc((void**)&dev_dxdydz, nAllCells*nPOP*3*sizeof(Real)) );
-
-   // Gather vmeshes
-   #pragma omp parallel for schedule(static)
-   for(uint celli = 0; celli < nAllCells; celli++){
-      SpatialCell* cell = mpiGrid[cells[celli]];
-      cell->parameters[CellParams::MAXRDT] = numeric_limits<Real>::max();
-      //cell->parameters[CellParams::MAXRDT] = numeric_limits<Real>::max();
-      for (uint popID = 0; popID < nPOP; ++popID) {
-         host_dxdydz[3*celli*nPOP + 3*popID + 0] = cell->parameters[CellParams::DX];
-         host_dxdydz[3*celli*nPOP + 3*popID + 1] = cell->parameters[CellParams::DY];
-         host_dxdydz[3*celli*nPOP + 3*popID + 2] = cell->parameters[CellParams::DZ];
-         host_vmeshes[celli*nPOP + popID] = cell->dev_get_velocity_mesh(popID); // GPU-side vmesh
-      }
+/*Filters in section 2.6.1 of white et al. to be used for PPM
+  1) Checks for extrema and flattens them
+  2) Makes face values bounded
+  3) Makes sure face slopes are consistent with PLM slope
+*/
+ARCH_DEV inline void compute_filtered_face_values(const Realf* const values, int k, face_estimate_order order, Realf& fv_l, Realf& fv_r, const Realf threshold, const int index, const int stride) {
+   switch (order) {
+   case h4:
+      compute_h4_left_face_value(values, k, fv_l, index, stride);
+      compute_h4_left_face_value(values, k + 1, fv_r, index, stride);
+      break;
+   case h5:
+      compute_h5_face_values(values, k, fv_l, fv_r, index, stride);
+      break;
+   default:
+   case h6:
+      compute_h6_left_face_value(values, k, fv_l, index, stride);
+      compute_h6_left_face_value(values, k + 1, fv_r, index, stride);
+      break;
+   case h8:
+      compute_h8_left_face_value(values, k, fv_l, index, stride);
+      compute_h8_left_face_value(values, k + 1, fv_r, index, stride);
+      break;
    }
-   CHK_ERR( gpuMemcpy(dev_dxdydz, host_dxdydz, nAllCells*nPOP*3*sizeof(Real), gpuMemcpyHostToDevice) );
-   CHK_ERR( gpuMemcpy(dev_vmeshes, host_vmeshes, nAllCells*nPOP*sizeof(vmesh::VelocityMesh*), gpuMemcpyHostToDevice) );
+   Realf slope_abs, slope_sign;
+   // scale values closer to 1 for more accurate slope limiter calculation
+   const Realf scale = (Realf)(1.0) / threshold;
+   slope_limiter(values[(k - 1) * stride + index] * scale, values[k * stride + index] * scale, values[(k + 1) * stride + index] * scale, slope_abs, slope_sign);
+   slope_abs = slope_abs * threshold;
 
-   // Launch kernel gathering largest allowed dt for velocity
-   reduce_v_dt_kernel<<<nAllCells, GPUTHREADS*WARPSPERBLOCK, 0, 0>>> (
-      dev_vmeshes,
-      dev_max_dt,
-      dev_dxdydz,
-      nAllCells*nPOP
-      );
-   CHK_ERR( gpuPeekAtLastError() );
-   CHK_ERR( gpuMemcpy(host_max_dt, dev_max_dt, nAllCells*nPOP*sizeof(Real), gpuMemcpyDeviceToHost) );
-   // CHK_ERR( gpuStreamSynchronize(bgStream) );
-
-   #pragma omp parallel for schedule(static)
-   for(uint celli = 0; celli < nAllCells; celli++){
-      SpatialCell* cell = mpiGrid[cells[celli]];
-      for (uint popID = 0; popID < nPOP; ++popID) {
-         cell->set_max_r_dt(popID, host_max_dt[celli*nPOP + popID]);
-         cell->parameters[CellParams::MAXRDT] = min(cell->get_max_r_dt(popID), cell->parameters[CellParams::MAXRDT]);
-      }
+   // check for extrema, flatten if it is
+   bool is_extrema = (slope_abs == (Realf)(0.0));
+   if (is_extrema) {
+      fv_r = (is_extrema) ? values[k * stride + index] : fv_r;
+      fv_l = (is_extrema) ? values[k * stride + index] : fv_l;
    }
-   computeGpuTimestepTimer.stop();
-
-   CHK_ERR( gpuFreeHost(host_max_dt) );
-   CHK_ERR( gpuFreeHost(host_dxdydz) );
-   CHK_ERR( gpuFree(dev_max_dt) );
-   CHK_ERR( gpuFree(dev_dxdydz) );
-
-   // GPUTODO thread this?
-   phiprof::Timer computeRestTimestepTimer {"compute-vlasov-rest-timestep"};
-   for (vector<CellID>::const_iterator cell_id = cells.begin(); cell_id != cells.end(); ++cell_id) {
-      SpatialCell* cell = mpiGrid[*cell_id];
-
-      if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
-          (cell->sysBoundaryLayer == 1 && cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY)) {
-         // spatial fluxes computed also for L1 boundary cells
-         dtMaxLocal[0] = min(dtMaxLocal[0], cell->parameters[CellParams::MAXRDT]);
-      }
-
-      if (cell->parameters[CellParams::MAXVDT] != 0 &&
-          (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
-           (P::vlasovAccelerateMaxwellianBoundaries && cell->sysBoundaryFlag == sysboundarytype::MAXWELLIAN))) {
-         // acceleration only done on non-boundary cells
-         dtMaxLocal[1] = min(dtMaxLocal[1], cell->parameters[CellParams::MAXVDT]);
-      }
+   // Fix left face if needed; boundary value is not bounded
+   bool filter = (values[(k - 1) * stride + index] - fv_l) * (fv_l - values[k * stride + index]) < (Realf)(0.0);
+   if (filter) {
+      // Go to linear (PLM) estimates if not ok (this is always ok!)
+      fv_l = (filter) ? values[k * stride + index] - slope_sign * (Realf)(0.5) * slope_abs : fv_l;
    }
-   computeRestTimestepTimer.stop();
+   // Fix  face if needed; boundary value is not bounded
+   filter = (values[(k + 1) * stride + index] - fv_r) * (fv_r - values[k * stride + index]) < (Realf)(0.0);
+   if (filter) {
+      // Go to linear (PLM) estimates if not ok (this is always ok!)
+      fv_r = (filter) ? values[k * stride + index] + slope_sign * (Realf)(0.5) * slope_abs : fv_r;
+   }
 }
+
+ARCH_DEV inline void compute_filtered_face_values_nonuniform(const Realf* const dv, const Realf* const values, int k, face_estimate_order order, Realf& fv_l, Realf& fv_r, const Realf threshold,
+                                                             const int index, const int stride) {
+   switch (order) {
+   case h4:
+      compute_h4_left_face_value_nonuniform(dv, values, k, fv_l, index, stride);
+      compute_h4_left_face_value_nonuniform(dv, values, k + 1, fv_r, index, stride);
+      break;
+      // case h5:
+      //   compute_h5_face_values(dv, values, k, fv_l, fv_r, index, stride);
+      //   break;
+      // case h6:
+      //   compute_h6_left_face_value(dv, values, k, fv_l, index, stride);
+      //   compute_h6_left_face_value(dv, values, k + 1, fv_r, index, stride);
+      //   break;
+      // case h8:
+      //   compute_h8_left_face_value(dv, values, k, fv_l, index, stride);
+      //   compute_h8_left_face_value(dv, values, k + 1, fv_r, index, stride);
+      //   break;
+   default:
+      printf("Order %d has not been implemented (yet)\n", order);
+      break;
+   }
+   Realf slope_abs, slope_sign;
+   if (threshold > (Realf)(0.0)) {
+      // scale values closer to 1 for more accurate slope limiter calculation
+      const Realf scale = (Realf)(1.0) / threshold;
+      slope_limiter(values[(k - 1) * stride + index] * scale, values[k * stride + index] * scale, values[(k + 1) * stride + index] * scale, slope_abs, slope_sign);
+      slope_abs = slope_abs * threshold;
+   } else {
+      slope_limiter(values[(k - 1) * stride + index], values[k * stride + index], values[(k + 1) * stride + index], slope_abs, slope_sign);
+   }
+
+   // check for extrema, flatten if it is
+   if (slope_abs == (Realf)(0.0)) {
+      fv_r = values[k * stride + index];
+      fv_l = values[k * stride + index];
+   }
+
+   // Fix left face if needed; boundary value is not bounded
+   if ((values[(k - 1) * stride + index] - fv_l) * (fv_l - values[k * stride + index]) < (Realf)(0.0)) {
+      // Go to linear (PLM) estimates if not ok (this is always ok!)
+      fv_l = values[k * stride + index] - slope_sign * (Realf)(0.5) * slope_abs;
+   }
+
+   // Fix  face if needed; boundary value is not bounded
+   if ((values[(k + 1) * stride + index] - fv_r) * (fv_r - values[k * stride + index]) < (Realf)(0.0)) {
+      // Go to linear (PLM) estimates if not ok (this is always ok!)
+      fv_r = values[k * stride + index] + slope_sign * (Realf)(0.5) * slope_abs;
+   }
+}
+
+ARCH_DEV inline Realf get_D2aLim(const Realf* h, const Realf* values, int k, const Realf C, Realf& fv, const int index, const int stride) {
+
+   // Colella & Sekora, eq. 18
+   Realf invh2 = 1.0 / (h[k] * h[k]);
+   Realf d2a = invh2 * 3.0 * (values[k * stride + index] - 2.0 * fv + values[(k + 1) * stride + index]);
+   Realf d2aL = invh2 * (values[(k - 1) * stride + index] - 2.0 * values[k * stride + index] + values[(k + 1) * stride + index]);
+   Realf d2aR = invh2 * (values[k * stride + index] - 2.0 * values[(k + 1) * stride + index] + values[(k + 2) * stride + index]);
+   Realf d2aLim;
+   if ((d2a * d2aL >= 0) && (d2a * d2aR >= 0) && (d2a != 0)) {
+      d2aLim = d2a / abs(d2a) * min(abs(d2a), min(C * abs(d2aL), C * abs(d2aR)));
+   } else {
+      d2aLim = 0.0;
+   }
+   return d2aLim;
+}
+
+ARCH_DEV inline void constrain_face_values(const Realf* h, const Realf* values, int k, Realf& fv_l, Realf& fv_r, const int index, const int stride) {
+
+   const Realf C = 1.25;
+   Realf invh2 = 1.0 / (h[k] * h[k]);
+
+   // Colella & Sekora, eq 19
+   Realf p_face = 0.5 * (values[k * stride + index] + values[(k + 1) * stride + index]) - h[k] * h[k] / 3.0 * get_D2aLim(h, values, k, C, fv_r, index, stride);
+   Realf m_face = 0.5 * (values[(k - 1) * stride + index] + values[k * stride + index]) - h[k - 1] * h[k - 1] / 3.0 * get_D2aLim(h, values, k - 1, C, fv_l, index, stride);
+
+   // Colella & Sekora, eq 21
+   Realf d2a = -2.0 * invh2 * 6.0 * (values[k * stride + index] - 3.0 * (m_face + p_face)); // a6,j from eq. 7
+   Realf d2aC = invh2 * (values[(k - 1) * stride + index] - 2.0 * values[k * stride + index] + values[(k + 1) * stride + index]);
+   // Note: Corrected the index of 2nd term in d2aL to k - 1.
+   //       In the paper it is k but that is almost certainly an error.
+   Realf d2aL = invh2 * (values[(k - 2) * stride + index] - 2.0 * values[(k - 1) * stride + index] + values[k * stride + index]);
+   Realf d2aR = invh2 * (values[k * stride + index] - 2.0 * values[(k + 1) * stride + index] + values[(k + 2) * stride + index]);
+   Realf d2aLim;
+
+   // Colella & Sekora, eq 22
+   if ((d2a * d2aL >= 0) && (d2a * d2aR >= 0) && (d2a * d2aC >= 0) && (d2a != 0)) {
+
+      d2aLim = d2a / abs(d2a) * min(C * abs(d2aL), min(C * abs(d2aR), min(C * abs(d2aC), abs(d2a))));
+   } else {
+      d2aLim = 0.0;
+      if (d2a == 0.0) {
+         // Set a non-zero value for the denominator in eq. 23.
+         // According to the paper the ratio d2aLim/d2a should be 0
+         d2a = 1.0;
+      }
+   }
+
+   // Colella & Sekora, eq 23
+   fv_r = values[k * stride + index] + (p_face - values[k * stride + index]) * d2aLim / d2a;
+   fv_l = values[k * stride + index] + (m_face - values[k * stride + index]) * d2aLim / d2a;
+}
+
+ARCH_DEV inline void compute_filtered_face_values_nonuniform_conserving(const Realf* const dv, const Realf* const values, int k, face_estimate_order order, Realf& fv_l, Realf& fv_r,
+                                                                        const Realf threshold, const int index, const int stride) {
+   switch (order) {
+   case h4:
+      compute_h4_left_face_value_nonuniform(dv, values, k, fv_l, index, stride);
+      compute_h4_left_face_value_nonuniform(dv, values, k + 1, fv_r, index, stride);
+      break;
+      // case h5:
+      //   compute_h5_face_values(dv, values, k, fv_l, fv_r, index, stride);
+      //   break;
+      // case h6:
+      //   compute_h6_left_face_value(dv, values, k, fv_l, index, stride);
+      //   compute_h6_left_face_value(dv, values, k + 1, fv_r, index, stride);
+      //   break;
+      // case h8:
+      //   compute_h8_left_face_value(dv, values, k, fv_l, index, stride);
+      //   compute_h8_left_face_value(dv, values, k + 1, fv_r, index, stride);
+      //   break;
+   default:
+      printf("Order %d has not been implemented (yet)\n", order);
+      break;
+   }
+
+   Realf slope_abs, slope_sign;
+   if (threshold > 0) {
+      // scale values closer to 1 for more accurate slope limiter calculation
+      const Realf scale = 1. / threshold;
+      slope_limiter(values[(k - 1) * stride + index] * scale, values[k * stride + index] * scale, values[(k + 1) * stride + index] * scale, slope_abs, slope_sign);
+      slope_abs = slope_abs * threshold;
+   } else {
+      slope_limiter(values[(k - 1) * stride + index], values[k * stride + index], values[(k + 1) * stride + index], slope_abs, slope_sign);
+   }
+
+   // check for extrema
+   // bool is_extrema = (slope_abs == 0.0);
+   //  bool filter_l = (values[(k-1)*stride+index] - fv_l) * (fv_l - values[k*stride+index]) < 0 ;
+   //  bool filter_r = (values[(k+1)*stride+index] - fv_r) * (fv_r - values[k*stride+index]) < 0;
+   //   if(horizontal_or(is_extrema) || horizontal_or(filter_l) || horizontal_or(filter_r)) {
+   //  Colella & Sekora, eq. 20
+   if (((fv_r - values[k * stride + index]) * (values[k * stride + index] - fv_l) <= 0.0) &&
+       ((values[(k - 1) * stride + index] - values[k * stride + index]) * (values[k * stride + index] - values[(k + 1) * stride + index]) <= 0.0)) {
+      constrain_face_values(dv, values, k, fv_l, fv_r, index, stride);
+
+      //    fv_r = select(is_extrema, values[k], fv_r);
+      //    fv_l = select(is_extrema, values[k], fv_l);
+   } else {
+
+      // Fix left face if needed; boundary value is not bounded
+      bool filter = (values[(k - 1) * stride + index] - fv_l) * (fv_l - values[k * stride + index]) < 0;
+      if (filter) {
+         // Go to linear (PLM) estimates if not ok (this is always ok!)
+         fv_l = values[k * stride + index] - slope_sign * 0.5 * slope_abs;
+      }
+
+      // Fix  face if needed; boundary value is not bounded
+      filter = (values[(k + 1) * stride + index] - fv_r) * (fv_r - values[k * stride + index]) < 0;
+      if (filter) {
+         // Go to linear (PLM) estimates if not ok (this is always ok!)
+         fv_r = values[k * stride + index] + slope_sign * 0.5 * slope_abs;
+      }
+   }
+}
+
+// ARCH_DEV inline void compute_h4_left_face_value_nonuniform(const Realf * const h, const Realf * const u, int k, Realf &fv_l, const int index, const int stride) {
+//    fv_l = (
+//       1.0 / ( h[k - 2] + h[k - 1] + h[k] + h[k + 1] )
+//       * ( ( h[k - 2] + h[k - 1] ) * ( h[k] + h[k + 1] ) / ( h[k - 1] + h[k] )
+//           * ( u[(k-1)*stride+index] * h[k] + u[k*stride+index] * h[k - 1] )
+//           * (1.0 / ( h[k - 2] + h[k - 1] + h[k] ) + 1.0 / ( h[k - 1] + h[k] + h[k + 1] ) )
+//           + ( h[k] * ( h[k] + h[k + 1] ) ) / ( ( h[k - 2] + h[k - 1] + h[k] ) * (h[k - 2] + h[k - 1] ) )
+//           * ( u[(k-1)*stride+index] * (h[k - 2] + 2.0 * h[k - 1] ) - ( u[(k-2)*stride+index] * h[k - 1] ) )
+//           + h[k - 1] * ( h[k - 2] + h[k - 1] ) / ( ( h[k - 1] + h[k] + h[k + 1] ) * ( h[k] + h[k + 1] ) )
+//           * ( u[k*stride+index] * ( 2.0 * h[k] + h[k + 1] ) - u[(k+1)*stride+index] * h[k] ) )
+//       );
+// }
+
+// ARCH_DEV inline void compute_filtered_face_values_nonuniform(const Realf * const dv, const Realf * const values,int k, face_estimate_order order, Realf &fv_l, Realf &fv_r, const Realf threshold,
+// const int index, const int stride){
+//    switch(order){
+//       case h4:
+//          compute_h4_left_face_value_nonuniform(dv, values, k, fv_l, index, stride);
+//          compute_h4_left_face_value_nonuniform(dv, values, k + 1, fv_r, index, stride);
+//          break;
+//          // case h5:
+//          //   compute_h5_face_values(dv, values, k, fv_l, fv_r, index, stride);
+//          //   break;
+//          // case h6:
+//          //   compute_h6_left_face_value(dv, values, k, fv_l, index, stride);
+//          //   compute_h6_left_face_value(dv, values, k + 1, fv_r, index, stride);
+//          //   break;
+//          // case h8:
+//          //   compute_h8_left_face_value(dv, values, k, fv_l, index, stride);
+//          //   compute_h8_left_face_value(dv, values, k + 1, fv_r, index, stride);
+//          //   break;
+//       default:
+//          printf("Order %d has not been implemented (yet)\n",order);
+//          break;
+//    }
+//    Realf slope_abs,slope_sign;
+//    if (threshold>0) {
+//       // scale values closer to 1 for more accurate slope limiter calculation
+//       const Realf scale = 1./threshold;
+//       slope_limiter(values[(k-1)*stride+index]*scale, values[k*stride+index]*scale, values[(k+1)*stride+index]*scale, slope_abs, slope_sign);
+//       slope_abs = slope_abs*threshold;
+//    } else {
+//       slope_limiter(values[(k-1)*stride+index], values[k*stride+index], values[(k+1)*stride+index], slope_abs, slope_sign);
+//    }
+
+//    //check for extrema, flatten if it is
+//    if (slope_abs == 0) {
+//       fv_r = values[k*stride+index];
+//       fv_l = values[k*stride+index];
+//    }
+
+//    //Fix left face if needed; boundary value is not bounded
+//    if ((values[(k-1)*stride+index] - fv_l) * (fv_l - values[k*stride+index]) < 0) {
+//       //Go to linear (PLM) estimates if not ok (this is always ok!)
+//       fv_l=values[k*stride+index] - slope_sign * 0.5 * slope_abs;
+//    }
+
+//    //Fix  face if needed; boundary value is not bounded
+//    if ((values[(k+1)*stride+index] - fv_r) * (fv_r - values[k*stride+index]) < 0) {
+//       //Go to linear (PLM) estimates if not ok (this is always ok!)
+//       fv_r=values[k*stride+index] + slope_sign * 0.5 * slope_abs;
+//    }
+// }
+
+
+
+#endif

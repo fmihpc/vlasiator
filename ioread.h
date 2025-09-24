@@ -26,11 +26,10 @@
 #include <dccrg_cartesian_geometry.hpp>
 #include <string>
 
-#include "vlsv_reader_parallel.h"
+#include "datareduction/datareducer.h"
 #include "definitions.h"
 #include "spatial_cells/spatial_cell_wrapper.hpp"
-#include "datareduction/datareducer.h"
-
+#include "vlsv_reader_parallel.h"
 
 /*!
 
@@ -38,11 +37,8 @@
 \param mpiGrid Vlasiator's grid
 \param name Name of the restart file e.g. "restart.00052.vlsv"
 */
-bool readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-              const std::string& name);
+bool readGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+              FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH>& EGrid, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid, const std::string& name);
 
 /*!
 
@@ -50,16 +46,15 @@ bool readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 \param mpiGrid Vlasiator's grid
 \param name Name of the restart file e.g. "restart.00052.vlsv"
 */
-bool readFileCells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const std::string& name);
+bool readFileCells(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const std::string& name);
 
 /*!
  * \brief Check in local directory for external commands passed to the simulation. Only executed by MASTER_RANK
  */
 void checkExternalCommands();
 
-bool readIonosphereNodeVariable(
-   vlsv::ParallelReader& file, const string& variableName, SBC::SphericalTriGrid& grid, ionosphereParameters index);
+bool readIonosphereNodeVariable(vlsv::ParallelReader& file, const string& variableName, SBC::SphericalTriGrid& grid, ionosphereParameters index);
 
-bool readFsgridDecomposition(vlsv::ParallelReader& file, std::array<FsGridTools::Task_t,3>& decomposition);
+bool readFsgridDecomposition(vlsv::ParallelReader& file, std::array<FsGridTools::Task_t, 3>& decomposition);
 
 #endif
