@@ -28,5 +28,10 @@
 #include "../spatial_cells/spatial_cell_wrapper.hpp"
 #include <dccrg_cartesian_geometry.hpp>
 
+#ifndef GPU_PITCH_ANGLE_DIFFUSION_HPP
+#define GPU_PITCH_ANGLE_DIFFUSION_HPP
+
 void pitchAngleDiffusion(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,const uint popID);
+
+#endif
 
