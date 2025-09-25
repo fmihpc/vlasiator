@@ -13,4 +13,4 @@ AccessModifierOffset: -3
 LambdaBodyIndentation: OuterScope
 NamespaceIndentation: All
 BinPackArguments: false
-OneLineFormatOffRegex: '#pragma'
+OneLineFormatOffRegex: '#' # this so we avoid also reordering headers (as of 20250925)
