@@ -19,7 +19,8 @@ AccessModifierOffset: -3
 LambdaBodyIndentation: OuterScope
 NamespaceIndentation: All
 BinPackArguments: false
-BinPackParameters: AlwaysOnePerLine
+BinPackParameters: OnePerLine
+BreakTemplateDeclarations: Leave
 OneLineFormatOffRegex: '#'
 SortIncludes: false
 ...
