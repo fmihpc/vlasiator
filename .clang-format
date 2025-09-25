@@ -1,17 +1,28 @@
 ---
 BasedOnStyle:  LLVM
 UseTab: Never
+# The below widths are all 3 just to be safe.
 IndentWidth: 3
+BracedInitializerIndentWidth: 3
+ConstructorInitializerIndentWidth: 3
+ContinuationIndentWidth: 3
+ObjCBlockIndentWidth: 3
+PPIndentWidth: 3
 TabWidth: 3
+
 BreakBeforeBraces: Attach
 PointerAlignment: Left
 AlignAfterOpenBracket: true
 AllowShortIfStatementsOnASingleLine: false
+InsertBraces: True
 IndentCaseLabels: false
 ColumnLimit: 200
 AccessModifierOffset: -3
 LambdaBodyIndentation: OuterScope
 NamespaceIndentation: All
 BinPackArguments: false
+BinPackParametersStyle: AlwaysOnePerLine
 OneLineFormatOffRegex: '#' # this so we avoid also reordering headers (as of 20250925)
 SortIncludes: false
+BracketAlignmentStyle: BlockIndent
+
