@@ -10,7 +10,7 @@ PPIndentWidth: 3
 TabWidth: 3
 BreakBeforeBraces: Attach
 PointerAlignment: Left
-AlignAfterOpenBracket: true
+AlignAfterOpenBracket: BlockIndent 
 AllowShortIfStatementsOnASingleLine: false
 InsertBraces: true
 IndentCaseLabels: false
@@ -22,5 +22,4 @@ BinPackArguments: false
 BinPackParameters: AlwaysOnePerLine
 OneLineFormatOffRegex: '#'
 SortIncludes: false
-AlignAfterOpenBracket: BlockIndent
 ...
