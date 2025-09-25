@@ -23,4 +23,3 @@ BinPackParametersStyle: AlwaysOnePerLine
 OneLineFormatOffRegex: '#' # this so we avoid also reordering headers (as of 20250925)
 SortIncludes: false
 BracketAlignmentStyle: BlockIndent
-
