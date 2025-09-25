@@ -1,6 +1,7 @@
-BasedOnStyle:  LLVM
+---
+BasedOnStyle: LLVM
 UseTab: Never
-IndentWidth: 3 # The below widths are all 3 just to be safe.
+IndentWidth: 3
 BracedInitializerIndentWidth: 3
 ConstructorInitializerIndentWidth: 3
 ContinuationIndentWidth: 3
@@ -11,7 +12,7 @@ BreakBeforeBraces: Attach
 PointerAlignment: Left
 AlignAfterOpenBracket: true
 AllowShortIfStatementsOnASingleLine: false
-InsertBraces: True
+InsertBraces: true
 IndentCaseLabels: false
 ColumnLimit: 200
 AccessModifierOffset: -3
@@ -19,6 +20,7 @@ LambdaBodyIndentation: OuterScope
 NamespaceIndentation: All
 BinPackArguments: false
 BinPackParametersStyle: AlwaysOnePerLine
-OneLineFormatOffRegex: '#' # this so we avoid also reordering headers (as of 20250925)
+OneLineFormatOffRegex: '#'
 SortIncludes: false
 BracketAlignmentStyle: BlockIndent
+...
