@@ -1,15 +1,13 @@
 ---
 BasedOnStyle:  LLVM
 UseTab: Never
-# The below widths are all 3 just to be safe.
-IndentWidth: 3
+IndentWidth: 3 # The below widths are all 3 just to be safe.
 BracedInitializerIndentWidth: 3
 ConstructorInitializerIndentWidth: 3
 ContinuationIndentWidth: 3
 ObjCBlockIndentWidth: 3
 PPIndentWidth: 3
 TabWidth: 3
-
 BreakBeforeBraces: Attach
 PointerAlignment: Left
 AlignAfterOpenBracket: true
