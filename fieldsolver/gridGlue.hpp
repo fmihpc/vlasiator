@@ -1,5 +1,6 @@
 #pragma once
 #include "../definitions.h"
+#include <dccrg.hpp>
 #include <fsgrid.hpp>
 #include <vector>
 #include <array>
