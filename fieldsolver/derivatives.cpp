@@ -860,7 +860,7 @@ void calculateScaledDeltas(
    Real dVydz {cell->derivativesV[vderivatives::dVydz]};
    Real dVzdx {cell->derivativesV[vderivatives::dVzdx]};
    Real dVzdy {cell->derivativesV[vderivatives::dVzdy]};
-   Real vorticity {std::sqrt(std::pow(dVxdy - dVydz, 2) + std::pow(dVxdz - dVzdx, 2 ) + std::pow(dVydx - dVxdy, 2))};
+   Real vorticity {std::sqrt(std::pow(dVzdy - dVydz, 2) + std::pow(dVxdz - dVzdx, 2 ) + std::pow(dVydx - dVxdy, 2))};
    //Real vA {std::sqrt(Bsq / (physicalconstants::MU_0 * myRho))};
    Real amr_vorticity {-1.0}; // Error value
    if (maxV > EPS) {

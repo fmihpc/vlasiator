@@ -311,15 +311,15 @@ void gpu_accelerate_cells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
          // Keep track of all checked cells for cumulative offset into pointer buffers
          checkedCells++;
 
-         // Phiprof timer
-         string timerName = "semilag-acc-dim"+std::to_string(dimension)+"-chunk";
-         //timerName += "-"+std::to_string(chunk); // Optional: phiprof label for chunk id
-         phiprof::Timer accChunkTimer {timerName};
-
          // Once enough cells have been gathered into the chunk, or we have evaluated
          // the last of potential cells, Launch the acceleration solver for this chunk.
          // Will not launch if no cells to be accelerated are left.
          if (queuedCells == maxChunkSize || ( (cellIndex==nCells-1) && (queuedCells > 0) )) {
+            // Phiprof timer
+            string timerName = "semilag-acc-dim"+std::to_string(dimension)+"-chunk";
+            //timerName += "-"+std::to_string(chunk); // Optional: phiprof label for chunk id
+            phiprof::Timer accChunkTimer {timerName};
+
             gpu_acc_map_1d(mpiGrid,
                            launchCells,
                            popID,

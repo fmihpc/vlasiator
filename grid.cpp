@@ -1306,8 +1306,8 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    uint64_t coarsens {mpiGrid.get_cells_to_unrefine_count()};
    ratio_refines = static_cast<double>(refines) / static_cast<double>(cells);
    double ratio_coarsens = static_cast<double>(coarsens) / static_cast<double>(cells);
-   logFile << "(AMR) Refining " << refines << " cells after induces, " << 100.0 * ratio_refines << "% of grid" << std::endl;
-   logFile << "(AMR) Coarsening " << coarsens << " cells after induces, " << 100.0 * ratio_coarsens << "% of grid" << std::endl;
+   logFile << "(AMR) Refining " << refines << " cells to " << refines*8 << " children after induces, " << 100.0 * ratio_refines << "% of grid" << std::endl;
+   logFile << "(AMR) Coarsening " << coarsens << " cells to " << coarsens/8 <<  " parents after induces, " << 100.0 * ratio_coarsens << "% of grid" << std::endl;
 
    double newBytes{0};
    phiprof::Timer estimateMemoryTimer {"Estimate memory usage"};

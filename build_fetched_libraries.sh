@@ -76,7 +76,7 @@ cp *.h $WORKSPACE/libraries${PLATFORM}/include
 cd ..
 
 # Build papi
-if [[ $PLATFORM != "-pioneer" && $PLATFORM != "-appleM1" && $PLATFORM != "-ukkogpu" && $PLATFORM != "-hile_cpu" && $PLATFORM != "-hile_gpu" && $PLATFORM != "-lumi_hipcc" && $PLATFORM != "-lumi_2403" ]]; then
+if [[ $PLATFORM != "-pioneer" && $PLATFORM != "-appleM1" && $PLATFORM != "-ukkogpu" && $PLATFORM != "-hile_cpu" && $PLATFORM != "-hile_gpu" && $PLATFORM != "-lumi_hipcc" && $PLATFORM != "-lumi_2403" && $PLATFORM != "-mahti_gcc_build" && $PLATFORM != "-mahti_cuda" ]]; then
     # This fails on RISCV and MacOS
     # LUMI, UkkoGPU and HILE use system module
     # git clone https://github.com/icl-utk-edu/papi
@@ -94,8 +94,8 @@ if [[ $PLATFORM != "-pioneer" && $PLATFORM != "-appleM1" && $PLATFORM != "-ukkog
     cd ../..
 fi
 
-# Build jemalloc (not for GPU versions)
-if [[ $PLATFORM != "-leonardo_booster" && $PLATFORM != "-karolina_cuda" && $PLATFORM != "-ukkogpu" && $PLATFORM != "-hile_gpu" && $PLATFORM != "-lumi_hipcc" ]]; then
+# Build jemalloc (not for GPU versions or Mahti)
+if [[ $PLATFORM != "-leonardo_booster" && $PLATFORM != "-karolina_cuda" && $PLATFORM != "-ukkogpu" && $PLATFORM != "-hile_gpu" && $PLATFORM != "-lumi_hipcc" && $PLATFORM != "-mahti_cuda" && $PLATFORM != "-mahti_gcc_build" ]]; then
     # curl -O -L https://github.com/jemalloc/jemalloc/releases/download/5.3.0/jemalloc-5.3.0.tar.bz2
     # tar xjf jemalloc-5.3.0.tar.bz2
     cd jemalloc-5.3.0
@@ -109,7 +109,8 @@ if [[ $PLATFORM != "-leonardo_booster" && $PLATFORM != "-karolina_cuda" && $PLAT
         ./configure --prefix=$WORKSPACE/libraries${PLATFORM} --with-jemalloc-prefix=je_ CC=mpicc CXX=mpic++
     fi
     make clean
-    make -j $PARALLEL && make install
+    make -j $PARALLEL
+    make install
     cd ..
 fi
 
@@ -141,7 +142,7 @@ make -j $PARALLEL && make install
 cd ..
 
 # Build boost (only if system module is not available)
-if [[ $PLATFORM == "-leonardo_booster" || $PLATFORM == "-leonardo_dcgp" || $PLATFORM == "-karolina_cuda" || $PLATFORM == "-karolina_gcc" || $PLATFORM == "-ukkogpu" ]]; then
+if [[ $PLATFORM == "-leonardo_booster" || $PLATFORM == "-leonardo_dcgp" || $PLATFORM == "-karolina_cuda" || $PLATFORM == "-karolina_gcc" || $PLATFORM == "-ukkogpu" ||  $PLATFORM == "-mahti_gcc_build" ]]; then
     # echo "### Downloading boost. ###"
     # wget -q https://archives.boost.io/release/1.86.0/source/boost_1_86_0.tar.gz
     # echo "### Extracting boost. ###"
