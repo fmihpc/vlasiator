@@ -100,7 +100,7 @@ namespace projects {
       Real dipoleTiltTheta;
       Real dipoleXFull;
       Real dipoleXZero;
-      Real dipoleInflowB[3];
+      std::array<Real, 3> dipoleInflowB;
       Real zeroOutComponents[3]; //0->x,1->y,2->z
 
       std::vector<MagnetosphereSpeciesParameters> speciesParams;
