@@ -330,7 +330,7 @@ namespace projects {
                setBackgroundField(bgFieldDipole, BgBGrid, true);
                break;
             case 4:  // Vector potential dipole, vanishes or optionally scales to static inflow value after a given x-coordinate
-               // What we in fact do is we place the regular dipole in the background field, and the
+               // What we in fact do is we place the regular dipole and IMF in the background field, and the
                // corrective terms in the perturbed field. This maintains the BGB as curl-free.
                bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 ); //set dipole moment
                setBackgroundField(bgFieldDipole, BgBGrid);
@@ -468,7 +468,13 @@ namespace projects {
 
       phiprof::Timer addConstantTimer {"add-constant-field"};
       // Superimpose constant background field if needed
-      if(this->constBgB[0] != 0.0 || this->constBgB[1] != 0.0 || this->constBgB[2] != 0.0) {
+      if(this->dipoleInflowB[0] != 0.0 || this->dipoleInflowB[1] != 0.0 || this->dipoleInflowB[2] != 0.0) {
+         ConstantField bgConstantField;
+         bgConstantField.initialize(this->dipoleInflowB[0], this->dipoleInflowB[1], this->dipoleInflowB[2]);
+         setBackgroundField(bgConstantField, BgBGrid, true);
+         SBC::ionosphereGrid.setConstantBackgroundField(this->dipoleInflowB);
+      }
+      else if(this->constBgB[0] != 0.0 || this->constBgB[1] != 0.0 || this->constBgB[2] != 0.0) {
          ConstantField bgConstantField;
          bgConstantField.initialize(this->constBgB[0], this->constBgB[1], this->constBgB[2]);
          setBackgroundField(bgConstantField, BgBGrid, true);
