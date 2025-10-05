@@ -33,6 +33,7 @@
 #include <string>
 #include <typeinfo>
 #include <vector>
+#include <string_view>
 
 #include "common.h"
 #include "version.h"
@@ -111,6 +112,48 @@ public:
             MPI_Abort(MPI_COMM_WORLD, 1);
          }
       }
+   }
+
+   /** Boolean methods to check whether a field exists in the cfg file 
+    * @param target: The field we look for ie: fieldtracing.
+    */
+   static bool field_exists(const std::string_view target) {
+      auto exists = [](const std::string_view  target, const std::string& filename)->bool{
+         //Trim white space
+         auto trim = [](std::string& s)->void {
+            auto is_ws = [](unsigned char c) { return std::isspace(c); };
+            auto a = std::find_if_not(s.begin(), s.end(), is_ws);
+            auto b = std::find_if_not(s.rbegin(), s.rend(), is_ws).base();
+            s = (a < b) ? std::string(a, b) : std::string();
+         };
+
+         std::ifstream f(run_config_file_name);
+         if (!f) {
+            return false;
+         }
+
+         std::string curr_line;
+         while (std::getline(f, curr_line)) {
+            trim(curr_line);
+            //Ignore commetns for cfg file
+            if (curr_line.empty() || curr_line[0] == '#') {
+               continue;
+            }
+            //In vlasiator cfg fields are specified in [] brackets
+            if (curr_line.size() >= 2 && curr_line.front() == '[' && curr_line.back() == ']') {
+               auto inner = curr_line.substr(1, curr_line.size() - 2);
+               trim(inner);
+               if (inner == target)
+                  return true;
+            }
+         }
+         return false;
+      };
+
+      const bool retval = exists(target, user_config_file_name) ||
+                          exists(target, run_config_file_name)  ||
+                          exists(target, global_config_file_name);
+      return retval;
    }
 
    template <typename T> static void get(const std::string& name, T& value) {
