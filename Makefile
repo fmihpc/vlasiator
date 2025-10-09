@@ -188,8 +188,8 @@ LIBS += ${LIB_PROFILE}
 LIBS += ${LIB_VLSV}
 LIBS += ${LIB_JEMALLOC}
 LIBS += ${LIB_PAPI}
-LIBS += ${LIB_ZFP}
 LIBS += ${LIB_OCTREE_COMPRESSOR}
+LIBS += ${LIB_ZFP}
 LIBS += ${LIB_NN_COMPRESSOR}
 
 # Define common dependencies
@@ -351,7 +351,7 @@ endif
 # for all files in the vdf_compression/ dir
 %.o: vdf_compression/%.cpp
 	@echo [CC] $<
-	$(SILENT)${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c $< ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_NN_COMPRESSOR} ${INC_ZOLTAN} ${INC_EIGEN} ${INC_ZFP} ${INC_OCTREE_COMPRESSOR}	
+	$(SILENT)${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c $< ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_NN_COMPRESSOR} ${INC_ZOLTAN} ${INC_EIGEN} ${INC_ZFP} ${INC_OCTREE_COMPRESSOR}
 
 # Make executable
 vlasiator: $(OBJS) $(OBJS_FSOLVER)

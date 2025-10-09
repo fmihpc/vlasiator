@@ -75,7 +75,7 @@ INC_VECTORCLASS = -isystem ./submodules/vectorclass/ -isystem ./submodules/vecto
 INC_EIGEN = -isystem ./submodules/eigen/
 
 INC_ZFP = -I/home/kstppd/software/zfp/include/
-LIB_ZFP = -L/home/kstppd/software/zfp/build/lib
+LIB_ZFP = -L/home/kstppd/software/zfp/build/lib -lzfp
 
 INC_OCTREE_COMPRESSOR = -I./vdf_compression/include
 LIB_OCTREE_COMPRESSOR = -L./vdf_compression/lib -ltoctree_compressor
