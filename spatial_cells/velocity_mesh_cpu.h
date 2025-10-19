@@ -50,7 +50,7 @@ namespace vmesh {
       ~VelocityMesh();
       VelocityMesh(const VelocityMesh& other);
       VelocityMesh(VelocityMesh&& other) = delete;
-      VelocityMesh& operator=(const VelocityMesh& other);
+      const VelocityMesh& operator=(const VelocityMesh& other);
       VelocityMesh& operator=(VelocityMesh&& other) = delete;
 
       size_t capacityInBytes() const;
@@ -128,11 +128,11 @@ namespace vmesh {
       }
    }
 
-   // Move constructor deleted
+   // Move constructor deleted in declaration
    // inline VelocityMesh::VelocityMesh(VelocityMesh&& other) = delete;
 
    // Copy assignment
-   inline VelocityMesh& VelocityMesh::operator=(const VelocityMesh& other) {
+   inline const VelocityMesh& VelocityMesh::operator=(const VelocityMesh& other) {
       meshID = other.meshID;
       globalToLocalMap = OpenBucketHashtable<vmesh::GlobalID,vmesh::LocalID>(other.globalToLocalMap);
       if (other.localToGlobalMap.size() > 0) {
@@ -144,7 +144,7 @@ namespace vmesh {
       return *this;
    }
 
-   // Move assignment deleted
+   // Move assignment deleted in declaration
    // inline VelocityMesh& VelocityMesh::operator=(VelocityMesh&& other) = delete;
 
    inline size_t VelocityMesh::capacityInBytes() const {

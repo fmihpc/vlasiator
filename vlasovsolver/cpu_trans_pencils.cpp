@@ -293,7 +293,12 @@ void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
       // Done only at LB so not threaded for now
 
       // Ghost translation stencil size set by parameter, defaults to VLASOV_STENCIL_WIDTH+1;
-      int searchLength = P::vlasovSolverGhostTranslateExtent;
+      int searchLength;
+      if (tc == -1){
+         searchLength = P::vlasovSolverGhostTranslateExtent;
+      }else{
+         searchLength = P::timeclassExactHaloExtent;
+      }
 
       /** Translation order (dimensions) is 1: z 2: x 3: y
           Prepare in reverse order
@@ -400,7 +405,7 @@ void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
          if (!do_translate_cell(ccell) || !ccell->has_timeclass(tc)) {
             continue;
          }
-                  std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<< " c"<<c <<"\n";
+                  std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<< " c"<<c << " timeclass " << tc <<"\n";
          activez.insert(c);
          // Update as sources only non-sysb cells
          if (mpiGrid[c]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
