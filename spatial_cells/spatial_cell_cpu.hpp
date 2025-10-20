@@ -118,7 +118,7 @@ namespace spatial_cell {
          delete blockContainer;
       }
       // Copy constructor
-      const Population(const Population& other) {
+      Population(const Population& other) {
          vmesh = new vmesh::VelocityMesh(*(other.vmesh));
          blockContainer = new vmesh::VelocityBlockContainer(*(other.blockContainer));
 
