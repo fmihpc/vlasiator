@@ -49,7 +49,9 @@ namespace vmesh {
       VelocityMesh();
       ~VelocityMesh();
       VelocityMesh(const VelocityMesh& other);
+      VelocityMesh(VelocityMesh&& other) = delete;
       const VelocityMesh& operator=(const VelocityMesh& other);
+      VelocityMesh& operator=(VelocityMesh&& other) = delete;
 
       size_t capacityInBytes() const;
       bool check() const;
@@ -107,7 +109,6 @@ namespace vmesh {
 
    inline VelocityMesh::VelocityMesh() {
       meshID = std::numeric_limits<size_t>::max();
-      std::cout << "Constructed meshID to " << meshID << "\n";
       globalToLocalMap = OpenBucketHashtable<vmesh::GlobalID,vmesh::LocalID>();
       localToGlobalMap = std::vector<vmesh::GlobalID>(1);
       localToGlobalMap.clear();
@@ -115,6 +116,7 @@ namespace vmesh {
 
    inline VelocityMesh::~VelocityMesh() { }
 
+   // Copy constructor
    inline VelocityMesh::VelocityMesh(const VelocityMesh& other) {
       meshID = other.meshID;
       globalToLocalMap = OpenBucketHashtable<vmesh::GlobalID,vmesh::LocalID>(other.globalToLocalMap);
@@ -126,6 +128,10 @@ namespace vmesh {
       }
    }
 
+   // Move constructor deleted in declaration
+   // inline VelocityMesh::VelocityMesh(VelocityMesh&& other) = delete;
+
+   // Copy assignment
    inline const VelocityMesh& VelocityMesh::operator=(const VelocityMesh& other) {
       meshID = other.meshID;
       globalToLocalMap = OpenBucketHashtable<vmesh::GlobalID,vmesh::LocalID>(other.globalToLocalMap);
@@ -137,6 +143,9 @@ namespace vmesh {
       }
       return *this;
    }
+
+   // Move assignment deleted in declaration
+   // inline VelocityMesh& VelocityMesh::operator=(VelocityMesh&& other) = delete;
 
    inline size_t VelocityMesh::capacityInBytes() const {
       return localToGlobalMap.capacity()*sizeof(vmesh::GlobalID)
@@ -394,7 +403,6 @@ namespace vmesh {
    }
 
    inline bool VelocityMesh::initialize(const size_t& meshID) {
-      std::cout << "initialized meshID to " << meshID << "\n";
       this->meshID = meshID;
       return true;
    }

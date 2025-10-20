@@ -312,7 +312,7 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          cell->parameters[CellParams::TIMECLASSDT] = cell->get_tc_dt();
       }
    }
-   else if(P::tc_test_type == 2 || P::tc_test_type == 3){ 
+   else if(P::tc_test_type == 2 || P::tc_test_type == 3 || P::tc_test_type == 4){ 
       std::cerr << "TC test 2\n";
       if(P::maxTimeclass > 2){
          std::cerr << "This test works best with timeclass 1 or 2\n";
@@ -341,7 +341,7 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
          // first block: one half timeclass0 and other timeclassmax
          // second block: three parts: timeclassmax-2, timeclassmax-1, timeclassmax
-         if (P::maxTimeclass == 1) {
+         if (P::maxTimeclass == 1 && P::tc_test_type != 4) {
             cell->parameters[CellParams::TIMECLASS] = min(int(cell->parameters[CellParams::XCRD] > -100/*epsilon*/)*P::maxTimeclass, P::maxTimeclass);
          } else if (P::maxTimeclass == 2) {
             if (cell->parameters[CellParams::XCRD] < -15*(cell->parameters[CellParams::DX])) {
@@ -351,9 +351,17 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             } else {
                cell->parameters[CellParams::TIMECLASS] = 1;
             }
-         } else if (P::maxTimeclass == 3) {
+         } else if (P::maxTimeclass == 3 && P::tc_test_type == 3) {
             cell->parameters[CellParams::TIMECLASS] = min(int(cell->parameters[CellParams::XCRD] > -100/*epsilon*/)*P::maxTimeclass, P::maxTimeclass);
          }
+	 else if(P::tc_test_type == 4){
+		 if (P::maxTimeclass != 1){
+			 abort();
+		 }
+             if (abs(cell->parameters[CellParams::XCRD]) < 8*cell->parameters[CellParams::DX] && abs(cell->parameters[CellParams::YCRD]) < 4*cell->parameters[CellParams::DX]){
+		 cell->parameters[CellParams::TIMECLASS] = 1;
+	     }
+	 }
          cell->parameters[CellParams::TIMECLASSDT] = cell->get_tc_dt();
       }
       
@@ -1084,7 +1092,7 @@ int simulate(int argn,char* args[]) {
       P::systemWritePath.pop_back();
       P::systemWriteFsGrid.pop_back();
    }
-
+   cerr<< __FILE__<<":"<<__LINE__<<"\n";
    // For the MPI-rank based timeclasses. Implement to CellParams if cell-based.
    // Move to params.
 
@@ -1093,6 +1101,7 @@ int simulate(int argn,char* args[]) {
       //compute new dt
       phiprof::Timer computeDtimer {"compute-dt"};
       computeNewTimeStep(mpiGrid, technicalGrid, newDt, dtIsChanged, P::timeclassDt);
+      cerr<< __FILE__<<":"<<__LINE__<<"\n";
       if (P::dynamicTimestep == true && dtIsChanged == true) {
          // Only actually update the timestep if dynamicTimestep is on
          P::dt=newDt;
@@ -1106,8 +1115,9 @@ int simulate(int argn,char* args[]) {
          }
          std::cout << endl;
       }
+      std::cerr <<__FILE__<<":"<<__LINE__<<" Calling balanceLoad\n";
       balanceLoad(mpiGrid, sysBoundaryContainer, technicalGrid);
-
+      
       computeDtimer.stop();
       
       //go forward by dt/2 in V, initializes leapfrog split. In restarts the
@@ -1124,6 +1134,7 @@ int simulate(int argn,char* args[]) {
       propagateHalfTimer.stop();
 
       updatePreviousVMoments(mpiGrid, true);
+      std::cerr <<__FILE__<<":"<<__LINE__<<" ("<<myRank <<") Calling balanceLoad\n";
 
       // Apply boundary conditions
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
@@ -1132,6 +1143,7 @@ int simulate(int argn,char* args[]) {
          updateBoundariesTimer.stop();
          addTimedBarrier("barrier-boundary-conditions");
       }
+      std::cerr <<__FILE__<<":"<<__LINE__<<" ("<<myRank <<")\n";
       // Also update all moments. They won't be transmitted to FSgrid until the field solver is called, though.
       phiprof::Timer computeMomentsTimer {"Compute interp moments"};
       std::cout << "for initial interpolated moments\n";
@@ -1154,7 +1166,7 @@ int simulate(int argn,char* args[]) {
 
       computeMomentsTimer.stop();
    }
-
+std::cerr <<__FILE__<<":"<<__LINE__<<" ("<<myRank <<")\n";
    initTimer.stop();
 
    // ***********************************
@@ -1671,16 +1683,17 @@ int simulate(int argn,char* args[]) {
 
       updateParticlePopulations(mpiGrid);
 
-      auto cell1 = mpiGrid[cells[5]];
-      auto cell2 = mpiGrid[cells[20]];
-      if (true) {
-         for (uint i = 0; i < 11; ++i) {
-            std::cout << "cell1moment" << i << ": " << P::t << " " << cell1->parameters[CellParams::XCRD] << " " << cell1->parameters[CellParams::YCRD] << " " << cell1->parameters[CellParams::ZCRD] << " " << cell1->parameters[CellParams::RHOM+i] << std::endl;
-            std::cout << "cell1moment" << i << ": " << P::t + P::dt/2.0 << " " << cell1->parameters[CellParams::XCRD] << " " << cell1->parameters[CellParams::YCRD] << " " << cell1->parameters[CellParams::ZCRD] << " " << cell1->parameters[CellParams::RHOM_DT2+i] << std::endl;
-            std::cout << "cell2moment" << i << ": " << P::t << " " << cell2->parameters[CellParams::XCRD] << " " << cell2->parameters[CellParams::YCRD] << " " << cell2->parameters[CellParams::ZCRD] << " " << cell2->parameters[CellParams::RHOM+i] << std::endl;
-            std::cout << "cell2moment" << i << ": " << P::t + P::dt/2.0 << " " << cell2->parameters[CellParams::XCRD] << " " << cell2->parameters[CellParams::YCRD] << " " << cell2->parameters[CellParams::ZCRD] << " " << cell2->parameters[CellParams::RHOM_DT2+i] << std::endl;
-         }
-      }
+      // auto cell1 = mpiGrid[cells[5]];
+      // auto cell2 = mpiGrid[cells[20]];
+
+      // std::cout << "maxtc: " << P::maxTimeclass << std::endl;
+
+      // std::cout << "cell 1 tc "<< cell1->parameters[CellParams::TIMECLASS] << " VX " << cell1->parameters[CellParams::VX] << " VY " << cell1->parameters[CellParams::VY] << " VZ " << cell1->parameters[CellParams::VZ] << std::endl;
+      // std::cout << "cell 2 tc "<< cell2->parameters[CellParams::TIMECLASS] << " VX " << cell2->parameters[CellParams::VX] << " VY " << cell2->parameters[CellParams::VY] << " VZ " << cell2->parameters[CellParams::VZ] << std::endl;
+
+      // std::cout << "cell1 vx_v " << cell1->parameters[CellParams::VX_V] << " vx_r " << cell1->parameters[CellParams::VX_R] << std::endl;
+      // std::cout << "cell2 vx_v " << cell2->parameters[CellParams::VX_V] << " vx_r " << cell2->parameters[CellParams::VX_R] << std::endl;
+
       momentsTimer.stop();
       
       // Propagate fields forward in time by dt. This needs to be done before the

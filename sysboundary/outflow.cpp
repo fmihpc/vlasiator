@@ -507,10 +507,12 @@ namespace SBC {
       mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::SYSBOUNDARIES_EXTENDED);
 
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         SpatialCell::setCommunicatedSpecies(popID);
-         updateRemoteVelocityBlockLists(mpiGrid, popID, Neighborhoods::SYSBOUNDARIES);
-         SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA, true);
-         mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::SYSBOUNDARIES);
+         for (int timeclass = 0; timeclass<=P::maxTimeclass; ++timeclass){
+            SpatialCell::setCommunicatedSpecies(popID, timeclass);
+            updateRemoteVelocityBlockLists(mpiGrid, popID, Neighborhoods::SYSBOUNDARIES,timeclass);
+            SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA, true);
+            mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::SYSBOUNDARIES);
+         }
       }
 
       const vector<CellID>& cells = getLocalCells();

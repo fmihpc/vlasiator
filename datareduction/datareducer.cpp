@@ -3788,6 +3788,19 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             continue;
          }
       }
+      if(P::diagnosticWriteAllDROs || lowercase == "vg_p" || lowercase == "p") {
+	 // Overall mass density
+         diagnosticReducer->addOperator(new DRO::VariablePressureSolver);
+         if(!P::diagnosticWriteAllDROs) {
+	      continue;
+	 }
+      }
+      if(P::diagnosticWriteAllDROs || lowercase == "perturbedvolb" || lowercase == "vg_b_perturbed_vol") {
+         diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_b_perturbed_vol",CellParams::PERBXVOL,3));
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
+      }
       if(P::diagnosticWriteAllDROs || lowercase == "populations_rholossadjust" || lowercase == "populations_rho_loss_adjust" || lowercase == "populations_vg_rho_loss_adjust") {
          // Per-particle overall lost particle number
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {

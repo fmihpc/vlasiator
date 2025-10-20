@@ -2071,8 +2071,13 @@ bool writeRestart(
    phiprof::Timer updateRemoteTimer {"updateRemoteBlocks"};
    //Updated newly adjusted velocity block lists on remote cells, and
    //prepare to receive block data
-   for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
-      updateRemoteVelocityBlockLists(mpiGrid,popID);
+   for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID){
+      for(int timeclass = 0; timeclass <= P::maxTimeclass; ++timeclass){
+         std::cerr<<__FILE__<<":"<<__LINE__<<"\n";
+        updateRemoteVelocityBlockLists(mpiGrid,popID,Neighborhoods::DIST_FUNC,timeclass);
+      }
+   }
+   std::cerr<<__FILE__<<":"<<__LINE__<<"\n";
    updateRemoteTimer.stop();
 
    const uint64_t bytesWritten = vlsvWriter.getBytesWritten();

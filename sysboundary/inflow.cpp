@@ -180,7 +180,8 @@ namespace SBC {
 
       // Ensure up-to-date velocity block counts for all neighbours
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         updateRemoteVelocityBlockLists(mpiGrid,popID,Neighborhoods::FULL);
+         for (int timeclass=0; timeclass <= P::maxTimeclass; ++timeclass)
+            updateRemoteVelocityBlockLists(mpiGrid,popID,Neighborhoods::FULL,timeclass);
       }
    }
 

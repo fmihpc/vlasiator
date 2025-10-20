@@ -57,9 +57,8 @@ void cpu_accelerate_cells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
       #pragma omp for schedule(static,1)
       for (size_t c=0; c<acceleratedCells.size(); ++c) {
          const CellID cellID = acceleratedCells[c].cellptr->get_cellid();
-         SpatialCell* SC = mpiGrid[cellID];
-         Population& pop = SC->get_population(popID, acceleratedCells[c].timeclass);
-         compute_cell_intersections(SC, popID, map_order, pop.subcycleDt, intersections_id, acceleratedCells[c].timeclass);
+         Population& pop = acceleratedCells[c].cellptr->get_population(popID, acceleratedCells[c].timeclass);
+         compute_cell_intersections(acceleratedCells[c].cellptr, popID, map_order, pop.subcycleDt, intersections_id, acceleratedCells[c].timeclass);
       }
       #pragma omp barrier
       // Semi-Lagrangian acceleration for all cells active in this subcycle,
@@ -67,9 +66,8 @@ void cpu_accelerate_cells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
       #pragma omp for schedule(dynamic,1)
       for (size_t c=0; c<acceleratedCells.size(); ++c) {
          const CellID cellID = acceleratedCells[c].cellptr->get_cellid();
-         SpatialCell* SC = mpiGrid[cellID];
          phiprof::Timer semilagAccTimer {timerId};
-         cpu_accelerate_cell(SC,popID,map_order,acceleratedCells[c].dt,acceleratedCells[c].timeclass);
+         cpu_accelerate_cell(acceleratedCells[c].cellptr,popID,map_order,acceleratedCells[c].dt,acceleratedCells[c].timeclass);
          semilagAccTimer.stop();
       }
    }
@@ -130,7 +128,7 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
    // std::cout << spatial_cell->parameters[CellParams::CELLID] << "c Accelerate, initial refs" << " vmesh " << &vmesh << " blockContainer " << &blockContainer << "\n";
 
    vmeshPtr = spatial_cell->get_velocity_mesh(popID,timeclass);
-   std::cout << "Accelerating a vmesh with meshID " << vmeshPtr->getMesh() << " at "<< spatial_cell->get_cellid() << "\n";
+   std::cout << "Accelerating a vmesh with meshID " << vmeshPtr->getMesh() << " at "<< spatial_cell->get_cellid() << " size: " << vmeshPtr->size() << "\n";
    blockContainerPtr = spatial_cell->get_velocity_blocks(popID,timeclass);
     
    vmesh::VelocityMesh& vmesh = *vmeshPtr;
