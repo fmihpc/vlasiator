@@ -447,8 +447,8 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          SpatialCell* cell = mpiGrid[*cell_id];
 
          double normalizedTemp = (sidelenX * cell->parameters[CellParams::DX]/2.0);
-         cell->parameters[CellParams::TIMECLASS] = abs(round((double)P::currentMaxTimeclass* (cell->parameters[CellParams::XCRD])/normalizedTemp)); // this is to make the timeclasses go from 0 to max, not max to 0
-         cell->parameters[CellParams::TIMECLASS] = abs(cell->parameters[CellParams::TIMECLASS] - P::currentMaxTimeclass); // this is to make the timeclasses go from 0 to max, not max to 0
+         cell->parameters[CellParams::TIMECLASS] = abs(round((double)P::currentMaxTimeclass* (cell->parameters[CellParams::XCRD])/normalizedTemp));
+         cell->parameters[CellParams::TIMECLASS] = abs(cell->parameters[CellParams::TIMECLASS] - P::currentMaxTimeclass);
          std::cout << "setting cell " << *cell_id << " to timeclass " << cell->parameters[CellParams::TIMECLASS] << "\n";
 
          cell->parameters[CellParams::TIMECLASSDT] = cell->get_tc_dt();
