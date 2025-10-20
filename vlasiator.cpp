@@ -460,6 +460,9 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
                cell->parameters[CellParams::TIMECLASS] = cellTimeClass;
             }
          }
+         if (cell->sysBoundaryFlag == sysboundarytype::COPYSPHERE) {
+            cell->parameters[CellParams::TIMECLASS] = P::currentMaxTimeclass - P::timeclassBuffer; // Copy sphere cells always use the maximum timeclass
+         }
          cell->parameters[CellParams::TIMECLASSDT] = cell->get_tc_dt(); //This is only for debugging
       }
    }
@@ -1622,6 +1625,9 @@ int simulate(int argn,char* args[]) {
             std::cout << "vspace size: " << mpiGrid[c]->get_velocity_mesh(0, req)->size() << " ";
          }
          std::cout << "\n";
+
+         std::cout << "timeclassExactHaloExtent: " << P::timeclassExactHaloExtent << std::endl;
+         std::cout << "size of timeghost exact neighborhood:" << mpiGrid.get_neighbors_of(c, VLASOV_SOLVER_TIMEGHOST_EXACT_HALO_NEIGHBORHOOD_ID)->size() << std::endl;
 
          std::cout << "its requested timeclass copy ghosts: ";
          for (int req: mpiGrid[c]->requested_timeclass_copy_ghosts) {
