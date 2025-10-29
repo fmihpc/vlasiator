@@ -293,7 +293,7 @@ void initializeGrids(
 
       for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
          adjustVelocityBlocks(mpiGrid, cells, true, popID);
-         // set initial LB metric based on number of blocks
+// set initial LB metric based on number of blocks
          #pragma omp parallel for schedule(static)
          for (size_t i = 0; i < cells.size(); ++i) {
             SpatialCell* SC = mpiGrid[cells[i]];

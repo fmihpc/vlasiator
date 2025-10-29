@@ -1043,7 +1043,7 @@ namespace SBC {
       }
       Real potential = 0;
 
-      // Do we have a stored coupling for these coordinates already?
+// Do we have a stored coupling for these coordinates already?
       #pragma omp critical(coupling)
       {
          if (vlasovGridCoupling.find(x) == vlasovGridCoupling.end()) {

@@ -395,7 +395,7 @@ void calculateDerivativesSimple(
    }
    mpiTimer.stop();
 
-   // Calculate derivatives
+// Calculate derivatives
    #pragma omp parallel
    {
       phiprof::Timer computeTimer{computeTimerId};
@@ -532,7 +532,7 @@ void calculateBVOLDerivativesSimple(
    volGrid.updateGhostCells();
    commTimer.stop(N_cells, "Spatial Cells");
 
-   // Calculate derivatives
+// Calculate derivatives
    #pragma omp parallel
    {
       phiprof::Timer computeTimer{computeTimerId};
@@ -908,7 +908,7 @@ void calculateScaledDeltasSimple(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geom
    mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::NEAREST);
    commTimer.stop(N_cells, "Spatial Cells");
 
-   // Calculate derivatives
+// Calculate derivatives
    #pragma omp parallel
    {
       phiprof::Timer computeTimer{computeTimerId};
