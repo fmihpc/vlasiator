@@ -174,7 +174,7 @@ namespace spatial_cell {
       #endif
       // Global ID of the block containing incoming data
       const vmesh::GlobalID GID = otherVmesh->getGlobalID(LID);
-      // Create block in vmesh
+// Create block in vmesh
       #ifdef USE_WARPACCESSORS
       vmesh->warpPlaceBlock(GID, LID, ti);
       #else

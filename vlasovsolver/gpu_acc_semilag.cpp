@@ -248,7 +248,7 @@ void gpu_accelerate_cells(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& 
       CHK_ERR(gpuMemcpy(gpu_block_indices_to_id, block_indices_to_id, 3 * sizeof(uint), gpuMemcpyHostToDevice));
       CHK_ERR(gpuMemcpy(gpu_block_indices_to_probe, block_indices_to_probe, 3 * sizeof(uint), gpuMemcpyHostToDevice));
 
-      // Select correct intersections for each mapping order
+// Select correct intersections for each mapping order
       #pragma omp parallel for
       for (size_t cellIndex = 0; cellIndex < acceleratedCells.size(); ++cellIndex) {
          const CellID cellID = acceleratedCells[cellIndex];
