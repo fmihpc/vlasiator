@@ -1094,7 +1094,7 @@ __global__ void __launch_bounds__(WID3, ACCELERATION_KERNEl_MIN_BLOCKS) accelera
                // shift, old right integrand is new left integrand
                const Realf target_density_l = target_density_r;
 
-               // compute right integrand using FMA
+// compute right integrand using FMA
                #ifdef ACC_SEMILAG_PLM
                target_density_r = a[1];
                target_density_r = a[0] + v_norm_r * target_density_r;
@@ -1114,7 +1114,7 @@ __global__ void __launch_bounds__(WID3, ACCELERATION_KERNEl_MIN_BLOCKS) accelera
                target_density_r = a[0] + v_norm_r * target_density_r;
                target_density_r = v_norm_r * target_density_r;
 
-               // target_density_r = v_norm_r * ( a[0] + v_norm_r * ( a[1] + v_norm_r * ( a[2] + v_norm_r * ( a[3] + v_norm_r * a[4] ) ) ) );
+// target_density_r = v_norm_r * ( a[0] + v_norm_r * ( a[1] + v_norm_r * ( a[2] + v_norm_r * ( a[3] + v_norm_r * a[4] ) ) ) );
                #endif
 
                // integral area between the two integrands

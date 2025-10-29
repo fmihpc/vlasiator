@@ -551,7 +551,7 @@ __global__ void __launch_bounds__(26 * 32, FULLBLOCKS_PER_MP) batch_update_veloc
       const int offsetIndex1 = ti / GPUTHREADS; // [0,26) (NVIDIA) or [0,13) (AMD)
       const int w_tid = ti % GPUTHREADS;        // [0,WARPSIZE)
 
-      // Assumes addWidthV = 1
+// Assumes addWidthV = 1
       #ifdef __CUDACC__
       const int max_i = 1;
       #endif
@@ -567,7 +567,7 @@ __global__ void __launch_bounds__(26 * 32, FULLBLOCKS_PER_MP) batch_update_veloc
          const int offset_vx = (offsetIndex % 3) - 1;
          const int offset_vy = ((offsetIndex / 3) % 3) - 1;
          const int offset_vz = (offsetIndex / 9) - 1;
-         // Offsets verified in python
+// Offsets verified in python
          #ifdef DEBUG_SPATIAL_CELL
          const vmesh::GlobalID GID = velocity_block_with_content_list->at(blocki);
          #else
@@ -647,7 +647,7 @@ __global__ void batch_update_velocity_halo_kernel(
       const int offset_vx = (offsetIndex % 3) - 1;
       const int offset_vy = ((offsetIndex / 3) % 3) - 1;
       const int offset_vz = (offsetIndex / 9) - 1;
-      // Offsets verified in python
+// Offsets verified in python
       #ifdef DEBUG_SPATIAL_CELL
       const vmesh::GlobalID GID = velocity_block_with_content_list->at(blocki);
       #else
@@ -985,7 +985,7 @@ __global__ void __launch_bounds__(WID3, WID3S_PER_MP) batch_update_velocity_bloc
       }
       __syncthreads();
 
-      // Delete from vmesh
+// Delete from vmesh
       #ifdef USE_BATCH_WARPACCESSORS
       vmesh->warpDeleteBlock(rmGID, rmLID, b_tid);
       #else
@@ -1086,7 +1086,7 @@ __global__ void __launch_bounds__(WID3, WID3S_PER_MP) batch_update_velocity_bloc
          __syncthreads();
 
       } else {
-         // Second option: add new block instead
+// Second option: add new block instead
          #ifdef DEBUG_SPATIAL_CELL
          replaceGID = list_with_replace_new->at(index - n_with_replace_old);
          #else
@@ -1101,7 +1101,7 @@ __global__ void __launch_bounds__(WID3, WID3S_PER_MP) batch_update_velocity_bloc
          }
          __syncthreads();
       }
-      // Remove hashmap entry for removed block, add instead created block
+// Remove hashmap entry for removed block, add instead created block
       #ifdef USE_BATCH_WARPACCESSORS
       vmesh->warpReplaceBlock(rmGID, rmLID, replaceGID, b_tid);
       #else
@@ -1171,7 +1171,7 @@ __global__ void __launch_bounds__(WID3, WID3S_PER_MP) batch_update_velocity_bloc
       }
       __syncthreads();
 
-      // Insert new hashmap entry into vmesh
+// Insert new hashmap entry into vmesh
       #ifdef USE_BATCH_WARPACCESSORS
       vmesh->warpPlaceBlock(addGID, addLID, b_tid);
       #else

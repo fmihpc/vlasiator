@@ -89,7 +89,7 @@ setPerturbedField(const FieldFunction& bfFunction, FsGrid<std::array<Real, numFi
 
    std::array<FsGridTools::FsIndex_t, 3> localSize = BGrid.getLocalSize();
 
-   // These are threaded now that the stuff around here is threadsafe
+// These are threaded now that the stuff around here is threadsafe
    #pragma omp parallel for collapse(2)
    for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
       for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {

@@ -311,7 +311,7 @@ bool writeVelocityDistributionData(const uint popID, Writer& vlsvWriter, dccrg::
 
       // Get the number of blocks in this cell
       const uint64_t arrayElements = SC->get_number_of_velocity_blocks(popID);
-      // Add a subarray to write. Note: We told beforehands that the vectorsize = WID3
+// Add a subarray to write. Note: We told beforehands that the vectorsize = WID3
       #ifdef USE_GPU
       char* arrayToWrite = IObuffer + bufferOffset;
       if (arrayElements > 0) {

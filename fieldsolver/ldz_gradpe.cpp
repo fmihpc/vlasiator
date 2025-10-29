@@ -238,7 +238,7 @@ void calculateGradPeTermSimple(
    }
    mpiTimer.stop();
 
-   // Calculate GradPe term
+// Calculate GradPe term
    #pragma omp parallel
    {
       phiprof::Timer computeTimer{computeTimerId};

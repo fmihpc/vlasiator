@@ -645,7 +645,7 @@ namespace spatial_cell {
       CHK_ERR(gpuStreamSynchronize(stream));
       this->populations[popID].RHOLOSSADJUST += host_returnRealf[cpuThreadID][0];
 
-      // DEBUG output after kernel
+// DEBUG output after kernel
       #ifdef DEBUG_SPATIAL_CELL
       const vmesh::LocalID nAll = populations[popID].vmesh->size();
       if (nAll != nBlocksAfterAdjust) {
@@ -994,7 +994,7 @@ namespace spatial_cell {
       const uint newSize = populations[popID].N_blocks;
       // Set velocity block parameters:
       if (newSize > 0) {
-         // ceil int division
+// ceil int division
          #ifdef USE_WARPACCESSORS
          const uint launchBlocks = 1 + ((newSize - 1) / (WARPSPERBLOCK));
          #else
