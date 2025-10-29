@@ -39,33 +39,15 @@ using namespace spatial_cell;
 
 // ***** FUNCTION DECLARATIONS ***** //
 
-template<typename REAL, uint SIZE>
-void blockVelocityFirstMoments(vmesh::VelocityBlockContainer *blockContainer,
-                               REAL (&array)[SIZE],
-                               uint nBlocks);
+template <typename REAL, uint SIZE>
+void blockVelocityFirstMoments(vmesh::VelocityBlockContainer* blockContainer, REAL (&array)[SIZE], uint nBlocks);
 
-template<typename REAL, uint SIZE>
-void blockVelocitySecondMoments(vmesh::VelocityBlockContainer *blockContainer,
-                                const REAL averageVX,
-                                const REAL averageVY,
-                                const REAL averageVZ,
-                                REAL (&array)[SIZE],
-                                uint nBlocks);
+template <typename REAL, uint SIZE>
+void blockVelocitySecondMoments(vmesh::VelocityBlockContainer* blockContainer, const REAL averageVX, const REAL averageVY, const REAL averageVZ, REAL (&array)[SIZE], uint nBlocks);
 
-void calculateMoments_R(
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   const std::vector<CellID>& cells,
-   const bool& computeSecond,
-   const bool initialCompute=false
-);
+void calculateMoments_R(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const std::vector<CellID>& cells, const bool& computeSecond, const bool initialCompute = false);
 
-void calculateMoments_V(
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   const std::vector<CellID>& cells,
-   const bool& computeSecond,
-   const bool initialCompute=false
-);
-
+void calculateMoments_V(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const std::vector<CellID>& cells, const bool& computeSecond, const bool initialCompute = false);
 
 // ***** TEMPLATE FUNCTION DEFINITIONS ***** //
 
@@ -79,32 +61,30 @@ void calculateMoments_V(
  * @param blockParameters Parameters for the velocity blocks
  * @param array Array where the calculated moments are added
  * @param nBlocks The number of blocks */
-template<typename REAL, uint SIZE> inline
-void blockVelocityFirstMoments(
-   vmesh::VelocityBlockContainer *blockContainer,
-   REAL (&array)[SIZE],
-   uint nBlocks) {
+template <typename REAL, uint SIZE> inline void blockVelocityFirstMoments(vmesh::VelocityBlockContainer* blockContainer, REAL (&array)[SIZE], uint nBlocks) {
 
-   arch::parallel_reduce<arch::sum>({WID, WID, WID, nBlocks},
-     ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint blockLID, Real *lsum ) {
+   arch::parallel_reduce<arch::sum>(
+      {WID, WID, WID, nBlocks},
+      ARCH_LOOP_LAMBDA(const uint i, const uint j, const uint k, const uint blockLID, Real* lsum) {
+         Realf* data = blockContainer->getData();
+         Real* blockParameters = blockContainer->getParameters();
+         const Realf* avgs = &data[blockLID * WID3];
+         const Real* blockParamsZ = &blockParameters[blockLID * BlockParams::N_VELOCITY_BLOCK_PARAMS];
+         const Real DV3 = blockParamsZ[BlockParams::DVX] * blockParamsZ[BlockParams::DVY] * blockParamsZ[BlockParams::DVZ];
+         const Real HALF = 0.5;
 
-       Realf *data = blockContainer->getData();
-       Real *blockParameters = blockContainer->getParameters();
-       const Realf* avgs = &data[blockLID*WID3];
-       const Real* blockParamsZ = &blockParameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS];
-       const Real DV3 = blockParamsZ[BlockParams::DVX]*blockParamsZ[BlockParams::DVY]*blockParamsZ[BlockParams::DVZ];
-       const Real HALF = 0.5;
-
-       ARCH_INNER_BODY(i, j, k, blockLID, lsum) {
-         const Real VX = blockParamsZ[BlockParams::VXCRD] + (i+HALF)*blockParamsZ[BlockParams::DVX];
-         const Real VY = blockParamsZ[BlockParams::VYCRD] + (j+HALF)*blockParamsZ[BlockParams::DVY];
-         const Real VZ = blockParamsZ[BlockParams::VZCRD] + (k+HALF)*blockParamsZ[BlockParams::DVZ];
-         lsum[0] += avgs[cellIndex(i,j,k)] * DV3;
-         lsum[1] += avgs[cellIndex(i,j,k)]*VX * DV3;
-         lsum[2] += avgs[cellIndex(i,j,k)]*VY * DV3;
-         lsum[3] += avgs[cellIndex(i,j,k)]*VZ * DV3;
-       };
-     }, array);
+         ARCH_INNER_BODY(i, j, k, blockLID, lsum) {
+            const Real VX = blockParamsZ[BlockParams::VXCRD] + (i + HALF) * blockParamsZ[BlockParams::DVX];
+            const Real VY = blockParamsZ[BlockParams::VYCRD] + (j + HALF) * blockParamsZ[BlockParams::DVY];
+            const Real VZ = blockParamsZ[BlockParams::VZCRD] + (k + HALF) * blockParamsZ[BlockParams::DVZ];
+            lsum[0] += avgs[cellIndex(i, j, k)] * DV3;
+            lsum[1] += avgs[cellIndex(i, j, k)] * VX * DV3;
+            lsum[2] += avgs[cellIndex(i, j, k)] * VY * DV3;
+            lsum[3] += avgs[cellIndex(i, j, k)] * VZ * DV3;
+         };
+      },
+      array
+   );
 }
 
 /** Calculate the second velocity moments for the velocity blocks, and add
@@ -119,37 +99,33 @@ void blockVelocityFirstMoments(
  * @param averageVZ Bulk velocity z
  * @param array Array where the calculated moments are added
  * @param nBlocks The number of blocks */
-template<typename REAL, uint SIZE> inline
-void blockVelocitySecondMoments(
-   vmesh::VelocityBlockContainer *blockContainer,
-   const REAL averageVX,
-   const REAL averageVY,
-   const REAL averageVZ,
-   REAL (&array)[SIZE],
-   uint nBlocks) {
+template <typename REAL, uint SIZE> inline void
+blockVelocitySecondMoments(vmesh::VelocityBlockContainer* blockContainer, const REAL averageVX, const REAL averageVY, const REAL averageVZ, REAL (&array)[SIZE], uint nBlocks) {
 
-   arch::parallel_reduce<arch::sum>({WID, WID, WID, nBlocks},
-     ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint blockLID, Real *lsum ) {
+   arch::parallel_reduce<arch::sum>(
+      {WID, WID, WID, nBlocks},
+      ARCH_LOOP_LAMBDA(const uint i, const uint j, const uint k, const uint blockLID, Real* lsum) {
+         Realf* data = blockContainer->getData();
+         Real* blockParameters = blockContainer->getParameters();
+         const Realf* avgs = &data[blockLID * WID3];
+         const Real* blockParams = &blockParameters[blockLID * BlockParams::N_VELOCITY_BLOCK_PARAMS];
+         const Real DV3 = blockParams[BlockParams::DVX] * blockParams[BlockParams::DVY] * blockParams[BlockParams::DVZ];
+         const Real HALF = 0.5;
 
-       Realf *data = blockContainer->getData();
-       Real *blockParameters = blockContainer->getParameters();
-       const Realf* avgs = &data[blockLID*WID3];
-       const Real* blockParams = &blockParameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS];
-       const Real DV3 = blockParams[BlockParams::DVX]*blockParams[BlockParams::DVY]*blockParams[BlockParams::DVZ];
-       const Real HALF = 0.5;
-
-       ARCH_INNER_BODY(i, j, k, blockLID, lsum) {
-         const Real VX = blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX];
-         const Real VY = blockParams[BlockParams::VYCRD] + (j+HALF)*blockParams[BlockParams::DVY];
-         const Real VZ = blockParams[BlockParams::VZCRD] + (k+HALF)*blockParams[BlockParams::DVZ];
-         lsum[0] += avgs[cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX) * DV3;
-         lsum[1] += avgs[cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY) * DV3;
-         lsum[2] += avgs[cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ) * DV3;
-         lsum[3] += avgs[cellIndex(i,j,k)] * (VY - averageVY) * (VZ - averageVZ) * DV3;
-         lsum[4] += avgs[cellIndex(i,j,k)] * (VX - averageVX) * (VZ - averageVZ) * DV3;
-         lsum[5] += avgs[cellIndex(i,j,k)] * (VX - averageVX) * (VY - averageVY) * DV3;
-       };
-     }, array);
+         ARCH_INNER_BODY(i, j, k, blockLID, lsum) {
+            const Real VX = blockParams[BlockParams::VXCRD] + (i + HALF) * blockParams[BlockParams::DVX];
+            const Real VY = blockParams[BlockParams::VYCRD] + (j + HALF) * blockParams[BlockParams::DVY];
+            const Real VZ = blockParams[BlockParams::VZCRD] + (k + HALF) * blockParams[BlockParams::DVZ];
+            lsum[0] += avgs[cellIndex(i, j, k)] * (VX - averageVX) * (VX - averageVX) * DV3;
+            lsum[1] += avgs[cellIndex(i, j, k)] * (VY - averageVY) * (VY - averageVY) * DV3;
+            lsum[2] += avgs[cellIndex(i, j, k)] * (VZ - averageVZ) * (VZ - averageVZ) * DV3;
+            lsum[3] += avgs[cellIndex(i, j, k)] * (VY - averageVY) * (VZ - averageVZ) * DV3;
+            lsum[4] += avgs[cellIndex(i, j, k)] * (VX - averageVX) * (VZ - averageVZ) * DV3;
+            lsum[5] += avgs[cellIndex(i, j, k)] * (VX - averageVX) * (VY - averageVY) * DV3;
+         };
+      },
+      array
+   );
 }
 
 #endif

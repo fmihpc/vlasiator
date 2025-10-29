@@ -30,24 +30,18 @@
 #endif
 
 // Pointers to MeshWrapper objects
-static vmesh::MeshWrapper *meshWrapper;
+static vmesh::MeshWrapper* meshWrapper;
 
 #ifdef USE_GPU
 vmesh::MeshWrapper* MWdev;
-std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT> *velocityMeshes_upload;
+std::array<vmesh::MeshParameters, MAX_VMESH_PARAMETERS_COUNT>* velocityMeshes_upload;
 
-__global__ void debug_kernel(const uint popID) {
-   vmesh::printVelocityMesh(0);
-}
+__global__ void debug_kernel(const uint popID) { vmesh::printVelocityMesh(0); }
 #endif
 
-void vmesh::allocateMeshWrapper() {
-   meshWrapper = new vmesh::MeshWrapper();
-}
+void vmesh::allocateMeshWrapper() { meshWrapper = new vmesh::MeshWrapper(); }
 
-vmesh::MeshWrapper* vmesh::host_getMeshWrapper() {
-   return meshWrapper;
-}
+vmesh::MeshWrapper* vmesh::host_getMeshWrapper() { return meshWrapper; }
 
 #ifdef USE_GPU
 //#pragma hd_warning_disable // only applies to next function
@@ -57,11 +51,10 @@ vmesh::MeshWrapper* vmesh::host_getMeshWrapper() {
 // objects per compilation unit, so the ordering is hard to control.
 static vmesh::MeshWrapper** meshWrapperDevRegister[128] = {0};
 vmesh::meshWrapperDevRegistor::meshWrapperDevRegistor(vmesh::MeshWrapper*& v) {
-   for (size_t InstanceIdx = 0; InstanceIdx < sizeof(meshWrapperDevRegister) / sizeof(vmesh::MeshWrapper**);
-        ++InstanceIdx) {
+   for (size_t InstanceIdx = 0; InstanceIdx < sizeof(meshWrapperDevRegister) / sizeof(vmesh::MeshWrapper**); ++InstanceIdx) {
       if (auto*& slot = meshWrapperDevRegister[InstanceIdx]; !slot) {
          slot = &v;
-         //printf("Got instance of device mesh wrapper handler %p (index %ld)\n", &v, InstanceIdx);
+         // printf("Got instance of device mesh wrapper handler %p (index %ld)\n", &v, InstanceIdx);
          return;
       }
    }
@@ -70,59 +63,57 @@ vmesh::meshWrapperDevRegistor::meshWrapperDevRegistor(vmesh::MeshWrapper*& v) {
 
 void vmesh::MeshWrapper::uploadMeshWrapper() {
    // Store address to velocityMeshes array
-   std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT> * temp = meshWrapper->velocityMeshes;
+   std::array<vmesh::MeshParameters, MAX_VMESH_PARAMETERS_COUNT>* temp = meshWrapper->velocityMeshes;
    // gpu-Malloc space on device, copy array contents
-   CHK_ERR( gpuMalloc((void **)&velocityMeshes_upload, sizeof(std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT>)) );
-   CHK_ERR( gpuMemcpy(velocityMeshes_upload, meshWrapper->velocityMeshes, sizeof(std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT>),gpuMemcpyHostToDevice) );
+   CHK_ERR(gpuMalloc((void**)&velocityMeshes_upload, sizeof(std::array<vmesh::MeshParameters, MAX_VMESH_PARAMETERS_COUNT>)));
+   CHK_ERR(gpuMemcpy(velocityMeshes_upload, meshWrapper->velocityMeshes, sizeof(std::array<vmesh::MeshParameters, MAX_VMESH_PARAMETERS_COUNT>), gpuMemcpyHostToDevice));
    // Make wrapper point to device-side array
    meshWrapper->velocityMeshes = velocityMeshes_upload;
    // Allocate and copy meshwrapper on device
-   CHK_ERR( gpuMalloc((void **)&MWdev, sizeof(vmesh::MeshWrapper)) );
-   CHK_ERR( gpuMemcpy(MWdev, meshWrapper, sizeof(vmesh::MeshWrapper),gpuMemcpyHostToDevice) );
+   CHK_ERR(gpuMalloc((void**)&MWdev, sizeof(vmesh::MeshWrapper)));
+   CHK_ERR(gpuMemcpy(MWdev, meshWrapper, sizeof(vmesh::MeshWrapper), gpuMemcpyHostToDevice));
    // Set the global symbol of meshWrapper
-   int count=0;
-   for (size_t InstanceIdx = 0; InstanceIdx < sizeof(meshWrapperDevRegister) / sizeof(vmesh::MeshWrapper**);
-        ++InstanceIdx) {
+   int count = 0;
+   for (size_t InstanceIdx = 0; InstanceIdx < sizeof(meshWrapperDevRegister) / sizeof(vmesh::MeshWrapper**); ++InstanceIdx) {
       if (auto* slot = meshWrapperDevRegister[InstanceIdx]; slot) {
-         //printf("Setting device mesh wrapper handler %p (index %ld)\n", slot, InstanceIdx);
-         CHK_ERR( gpuMemcpyToSymbol(*slot, &MWdev, sizeof(vmesh::MeshWrapper*)) );
+         // printf("Setting device mesh wrapper handler %p (index %ld)\n", slot, InstanceIdx);
+         CHK_ERR(gpuMemcpyToSymbol(*slot, &MWdev, sizeof(vmesh::MeshWrapper*)));
          count++;
       } else {
          break;
       }
    }
    int myRank;
-   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-   if(myRank == MASTER_RANK) {
-      printf("Done setting all %d instances of device mesh wrapper handler!\n",count);
+   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+   if (myRank == MASTER_RANK) {
+      printf("Done setting all %d instances of device mesh wrapper handler!\n", count);
    }
 
    // Copy host-side address back
    meshWrapper->velocityMeshes = temp;
    // And sync
-   CHK_ERR( gpuDeviceSynchronize() );
+   CHK_ERR(gpuDeviceSynchronize());
 }
 void vmesh::deallocateMeshWrapper() {
-   CHK_ERR( gpuFree(velocityMeshes_upload) );
-   CHK_ERR( gpuFree(MWdev) );
-   CHK_ERR( gpuFree(meshWrapperDevInstance) );
+   CHK_ERR(gpuFree(velocityMeshes_upload));
+   CHK_ERR(gpuFree(MWdev));
+   CHK_ERR(gpuFree(meshWrapperDevInstance));
    // And sync
-   CHK_ERR( gpuDeviceSynchronize() );
+   CHK_ERR(gpuDeviceSynchronize());
 }
 #endif
 
 void vmesh::MeshWrapper::initVelocityMeshes(const uint nMeshes) {
    // Verify lengths match?
    if (meshWrapper->velocityMeshesCreation->size() != nMeshes) {
-      printf("Error! Initialized only %d velocity meshes out of %d created ones.\n",nMeshes,
-             (int)meshWrapper->velocityMeshesCreation->size());
+      printf("Error! Initialized only %d velocity meshes out of %d created ones.\n", nMeshes, (int)meshWrapper->velocityMeshesCreation->size());
       abort();
    }
    // Create pointer to array of sufficient length
-   meshWrapper->velocityMeshes = new std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT>;
+   meshWrapper->velocityMeshes = new std::array<vmesh::MeshParameters, MAX_VMESH_PARAMETERS_COUNT>;
 
    // Copy data in, also set auxiliary values
-   for (uint i=0; i<nMeshes; ++i) {
+   for (uint i = 0; i < nMeshes; ++i) {
       vmesh::MeshParameters* vMesh = &(meshWrapper->velocityMeshes->at(i));
       vmesh::MeshParameters* vMeshIn = &(meshWrapper->velocityMeshesCreation->at(i));
 
@@ -162,10 +153,7 @@ void vmesh::MeshWrapper::initVelocityMeshes(const uint nMeshes) {
       vMesh->cellSize[1] = vMesh->blockSize[1] / vMesh->blockLength[1];
       vMesh->cellSize[2] = vMesh->blockSize[2] / vMesh->blockLength[2];
 
-      vMesh->max_velocity_blocks
-         = vMeshIn->gridLength[0]
-         * vMeshIn->gridLength[1]
-         * vMeshIn->gridLength[2];
+      vMesh->max_velocity_blocks = vMeshIn->gridLength[0] * vMeshIn->gridLength[1] * vMeshIn->gridLength[2];
       vMesh->initialized = true;
    }
 #ifdef USE_GPU

@@ -38,11 +38,10 @@ using namespace spatial_cell;
 
 Real projects::Fluctuations::rndRho, projects::Fluctuations::rndVel[3];
 
-
 namespace projects {
-   Fluctuations::Fluctuations(): TriAxisSearch() { }
-   Fluctuations::~Fluctuations() { }
-   bool Fluctuations::initialize(void) {return Project::initialize();}
+   Fluctuations::Fluctuations() : TriAxisSearch() {}
+   Fluctuations::~Fluctuations() {}
+   bool Fluctuations::initialize(void) { return Project::initialize(); }
 
    void Fluctuations::addParameters() {
       typedef Readparameters RP;
@@ -54,7 +53,7 @@ namespace projects {
       RP::add("Fluctuations.magZPertAbsAmp", "Amplitude of the magnetic perturbation along z", 1.0e-9);
 
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+      for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
 
          RP::add(pop + "_Fluctuations.rho", "Number density (m^-3)", 1.0e7);
@@ -79,7 +78,7 @@ namespace projects {
       RP::get("Fluctuations.magZPertAbsAmp", this->magZPertAbsAmp);
 
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+      for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
          FluctuationsSpeciesParameters sP;
          RP::get(pop + "_Fluctuations.rho", sP.DENSITY);
@@ -94,10 +93,7 @@ namespace projects {
       }
    }
 
-   Realf Fluctuations::fillPhaseSpace(spatial_cell::SpatialCell *cell,
-                                       const uint popID,
-                                       const uint nRequested
-      ) const {
+   Realf Fluctuations::fillPhaseSpace(spatial_cell::SpatialCell* cell, const uint popID, const uint nRequested) const {
       const FluctuationsSpeciesParameters& sP = speciesParams[popID];
       // Fetch spatial cell center coordinates
       // const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
@@ -109,28 +105,28 @@ namespace projects {
       Real initTx = sP.TEMPERATUREX;
       Real initTy = sP.TEMPERATUREY;
       Real initTz = sP.TEMPERATUREZ;
-      const Real initV0X = sP.velocityPertAbsAmp * (0.5 - rndVel[0] );
-      const Real initV0Y = sP.velocityPertAbsAmp * (0.5 - rndVel[1] );
-      const Real initV0Z = sP.velocityPertAbsAmp * (0.5 - rndVel[2] );
+      const Real initV0X = sP.velocityPertAbsAmp * (0.5 - rndVel[0]);
+      const Real initV0Y = sP.velocityPertAbsAmp * (0.5 - rndVel[1]);
+      const Real initV0Z = sP.velocityPertAbsAmp * (0.5 - rndVel[2]);
 
       #ifdef USE_GPU
-      vmesh::VelocityMesh *vmesh = cell->dev_get_velocity_mesh(popID);
+      vmesh::VelocityMesh* vmesh = cell->dev_get_velocity_mesh(popID);
       vmesh::VelocityBlockContainer* VBC = cell->dev_get_velocity_blocks(popID);
       #else
-      vmesh::VelocityMesh *vmesh = cell->get_velocity_mesh(popID);
+      vmesh::VelocityMesh* vmesh = cell->get_velocity_mesh(popID);
       vmesh::VelocityBlockContainer* VBC = cell->get_velocity_blocks(popID);
       #endif
       // Loop over blocks
       Realf rhosum = 0;
       arch::parallel_reduce<arch::null>(
          {WID, WID, WID, nRequested},
-         ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint initIndex, Realf *lsum ) {
-            vmesh::GlobalID *GIDlist = vmesh->getGrid()->data();
+         ARCH_LOOP_LAMBDA(const uint i, const uint j, const uint k, const uint initIndex, Realf* lsum) {
+            vmesh::GlobalID* GIDlist = vmesh->getGrid()->data();
             Realf* bufferData = VBC->getData();
             const vmesh::GlobalID blockGID = GIDlist[initIndex];
             // Calculate parameters for new block
             Real blockCoords[6];
-            vmesh->getBlockInfo(blockGID,&blockCoords[0]);
+            vmesh->getBlockInfo(blockGID, &blockCoords[0]);
             creal vxBlock = blockCoords[0];
             creal vyBlock = blockCoords[1];
             creal vzBlock = blockCoords[2];
@@ -138,14 +134,16 @@ namespace projects {
             creal dvyCell = blockCoords[4];
             creal dvzCell = blockCoords[5];
             ARCH_INNER_BODY(i, j, k, initIndex, lsum) {
-               creal vx = vxBlock + (i+0.5)*dvxCell - initV0X;
-               creal vy = vyBlock + (j+0.5)*dvyCell - initV0Y;
-               creal vz = vzBlock + (k+0.5)*dvzCell - initV0Z;
-               const Realf value = TriMaxwellianPhaseSpaceDensity(vx,vy,vz,initTx,initTy,initTz,initRho,mass);
-               bufferData[initIndex*WID3 + k*WID2 + j*WID + i] = value;
-               //lsum[0] += value;
+               creal vx = vxBlock + (i + 0.5) * dvxCell - initV0X;
+               creal vy = vyBlock + (j + 0.5) * dvyCell - initV0Y;
+               creal vz = vzBlock + (k + 0.5) * dvzCell - initV0Z;
+               const Realf value = TriMaxwellianPhaseSpaceDensity(vx, vy, vz, initTx, initTy, initTz, initRho, mass);
+               bufferData[initIndex * WID3 + k * WID2 + j * WID + i] = value;
+               // lsum[0] += value;
             };
-         }, rhosum);
+         },
+         rhosum
+      );
       return rhosum;
    }
 
@@ -153,10 +151,7 @@ namespace projects {
       then evaluates the phase-space density at the given coordinates.
       Used as a probe for projectTriAxisSearch.
    */
-   Realf Fluctuations::probePhaseSpace(spatial_cell::SpatialCell *cell,
-                                        const uint popID,
-                                        Real vx_in, Real vy_in, Real vz_in
-      ) const {
+   Realf Fluctuations::probePhaseSpace(spatial_cell::SpatialCell* cell, const uint popID, Real vx_in, Real vy_in, Real vz_in) const {
       const FluctuationsSpeciesParameters& sP = speciesParams[popID];
       // Fetch spatial cell center coordinates
       // const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
@@ -168,40 +163,38 @@ namespace projects {
       Real initTx = sP.TEMPERATUREX;
       Real initTy = sP.TEMPERATUREY;
       Real initTz = sP.TEMPERATUREZ;
-      const Real initV0X = sP.velocityPertAbsAmp * (0.5 - rndVel[0] );
-      const Real initV0Y = sP.velocityPertAbsAmp * (0.5 - rndVel[1] );
-      const Real initV0Z = sP.velocityPertAbsAmp * (0.5 - rndVel[2] );
+      const Real initV0X = sP.velocityPertAbsAmp * (0.5 - rndVel[0]);
+      const Real initV0Y = sP.velocityPertAbsAmp * (0.5 - rndVel[1]);
+      const Real initV0Z = sP.velocityPertAbsAmp * (0.5 - rndVel[2]);
       creal vx = vx_in - initV0X;
       creal vy = vy_in - initV0Y;
       creal vz = vz_in - initV0Z;
-      const Realf value = TriMaxwellianPhaseSpaceDensity(vx,vy,vz,initTx,initTy,initTz,initRho,mass);
+      const Realf value = TriMaxwellianPhaseSpaceDensity(vx, vy, vz, initTx, initTy, initTz, initRho, mass);
       return value;
    }
 
-   void Fluctuations::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
+   void Fluctuations::calcCellParameters(spatial_cell::SpatialCell* cell, creal& t) {
 
       std::default_random_engine rndState;
-      setRandomCellSeed(cell,rndState);
+      setRandomCellSeed(cell, rndState);
 
-      this->rndRho=getRandomNumber(rndState);
-      this->rndVel[0]=getRandomNumber(rndState);
-      this->rndVel[1]=getRandomNumber(rndState);
-      this->rndVel[2]=getRandomNumber(rndState);
+      this->rndRho = getRandomNumber(rndState);
+      this->rndVel[0] = getRandomNumber(rndState);
+      this->rndVel[1] = getRandomNumber(rndState);
+      this->rndVel[2] = getRandomNumber(rndState);
    }
 
    void Fluctuations::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
+      FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+      FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+      FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid
    ) {
       ConstantField bgField;
-      bgField.initialize(this->BX0,
-                         this->BY0,
-                         this->BZ0);
+      bgField.initialize(this->BX0, this->BY0, this->BZ0);
 
       setBackgroundField(bgField, BgBGrid);
 
-      if(!P::isRestart) {
+      if (!P::isRestart) {
          const auto localSize = BgBGrid.getLocalSize().data();
 
          #pragma omp parallel for collapse(3)
@@ -212,7 +205,7 @@ namespace projects {
                   const int64_t cellid = perBGrid.GlobalIDForCoords(x, y, z);
 
                   std::default_random_engine rndState;
-                  setRandomSeed(cellid,rndState);
+                  setRandomSeed(cellid, rndState);
 
                   cell->at(fsgrids::bfield::PERBX) = this->magXPertAbsAmp * (0.5 - getRandomNumber(rndState));
                   cell->at(fsgrids::bfield::PERBY) = this->magYPertAbsAmp * (0.5 - getRandomNumber(rndState));
@@ -223,14 +216,9 @@ namespace projects {
       }
    }
 
-   std::vector<std::array<Real, 3> > Fluctuations::getV0(
-      creal x,
-      creal y,
-      creal z,
-      const uint popID
-   ) const {
-      std::array<Real, 3> V0 {{0.0, 0.0, 0.0}};
-      std::vector<std::array<Real, 3> > centerPoints;
+   std::vector<std::array<Real, 3>> Fluctuations::getV0(creal x, creal y, creal z, const uint popID) const {
+      std::array<Real, 3> V0{{0.0, 0.0, 0.0}};
+      std::vector<std::array<Real, 3>> centerPoints;
       centerPoints.push_back(V0);
       return centerPoints;
    }

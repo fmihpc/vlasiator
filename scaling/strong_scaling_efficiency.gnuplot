@@ -23,4 +23,3 @@ plot t=0 "202506_CSC_Mahti/strong/timings_".case.".dat" u 1:(t==0?y0=$2:y0, t==0
      u=0 "202507_EuroHPC_LUMI-C/strong/timings_".case.".dat" u 1:(u==0?z0=$4:z0, u==0?nc=$1:nc, u=u+1, z0*nc/($1*$4)) w lp lw 2 t "Spatial-space (LUMI-C)", \
      u=0 "202507_EuroHPC_LUMI-C/strong/timings_".case.".dat" u 1:(u==0?z0=$5:z0, u==0?nc=$1:nc, u=u+1, z0*nc/($1*$5)) w lp lw 2 t "Velocity-space (LUMI-C)", \
      1 lw 2 lc "black" notitle
-

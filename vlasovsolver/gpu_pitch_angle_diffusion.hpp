@@ -31,7 +31,6 @@
 #ifndef GPU_PITCH_ANGLE_DIFFUSION_HPP
 #define GPU_PITCH_ANGLE_DIFFUSION_HPP
 
-void pitchAngleDiffusion(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,const uint popID);
+void pitchAngleDiffusion(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const uint popID);
 
 #endif
-

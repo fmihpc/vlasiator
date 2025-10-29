@@ -28,10 +28,6 @@
 
 using namespace spatial_cell;
 
-void gpu_accelerate_cells(
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   const std::vector<CellID>& acceleratedCells,
-   const uint popID,
-   const uint map_order);
+void gpu_accelerate_cells(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const std::vector<CellID>& acceleratedCells, const uint popID, const uint map_order);
 
 #endif

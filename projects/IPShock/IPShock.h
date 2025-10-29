@@ -51,7 +51,7 @@ namespace projects {
       Real maxwCutoff;
    };
 
-   class IPShock: public TriAxisSearch {
+   class IPShock : public TriAxisSearch {
    public:
       IPShock();
       virtual ~IPShock();
@@ -61,21 +61,17 @@ namespace projects {
       virtual void getParameters(void) override;
 
       virtual void setProjectBField(
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-         ) override;
+         FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+         FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+         FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid
+      ) override;
 
-      virtual Realf fillPhaseSpace(spatial_cell::SpatialCell *cell,
-                                   const uint popID,
-                                   const uint nRequested) const override;
-      virtual Realf probePhaseSpace(spatial_cell::SpatialCell *cell,
-                                    const uint popID,
-                                    Real vx_in, Real vy_in, Real vz_in) const override;
+      virtual Realf fillPhaseSpace(spatial_cell::SpatialCell* cell, const uint popID, const uint nRequested) const override;
+      virtual Realf probePhaseSpace(spatial_cell::SpatialCell* cell, const uint popID, Real vx_in, Real vy_in, Real vz_in) const override;
       virtual std::vector<std::array<Real, 3>> getV0(creal x, creal y, creal z, const uint popID) const override;
-      //virtual void calcCellParameters(Real* cellParams,creal& t);
+      // virtual void calcCellParameters(Real* cellParams,creal& t);
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell, creal& t) override;
-      bool refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const override;
+      bool refineSpatialCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) const override;
       // Interpolate between up- and downstream quantities
       // based on position
       Real interpolate(Real u, Real d, Real x) const;
@@ -103,7 +99,7 @@ namespace projects {
 
       std::vector<IPShockSpeciesParameters> speciesParams;
 
-   } ; //class IPShock
+   }; // class IPShock
 } // namespace projects
 
 #endif

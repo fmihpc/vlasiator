@@ -16,4 +16,3 @@ plot t=0 "202506_CSC_Mahti/weak/along_y.dat" u 1:(t==0?nc=$2:nc, t=t+1, $2) w lp
          "202507_EuroHPC_LUMI-C/weak/along_z.dat" u 1:2 w lp lw 2 t "Extended along z (LUMI-C)", \
          "202507_EuroHPC_LUMI-C/weak/along_yz.dat" u 1:2 w lp lw 2 t "Extended along y, z (LUMI-C)", \
          nc lw 2 lc "black" notitle
-

@@ -35,12 +35,12 @@ using namespace std;
 using namespace spatial_cell;
 
 namespace projects {
-   Harris::Harris(): TriAxisSearch() { }
-   Harris::~Harris() { }
+   Harris::Harris() : TriAxisSearch() {}
+   Harris::~Harris() {}
 
-   bool Harris::initialize(void) {return Project::initialize();}
+   bool Harris::initialize(void) { return Project::initialize(); }
 
-   void Harris::addParameters(){
+   void Harris::addParameters() {
       typedef Readparameters RP;
       RP::add("Harris.Scale_size", "Harris sheet scale size (m)", 150000.0);
       RP::add("Harris.BX0", "Magnetic field at infinity (T)", 8.33061003094e-8);
@@ -48,7 +48,7 @@ namespace projects {
       RP::add("Harris.BZ0", "Magnetic field at infinity (T)", 8.33061003094e-8);
 
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+      for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
 
          RP::add(pop + "_Harris.Temperature", "Temperature (K)", 2.0e6);
@@ -56,7 +56,7 @@ namespace projects {
       }
    }
 
-   void Harris::getParameters(){
+   void Harris::getParameters() {
       Project::getParameters();
       typedef Readparameters RP;
       RP::get("Harris.Scale_size", this->SCA_LAMBDA);
@@ -64,9 +64,8 @@ namespace projects {
       RP::get("Harris.BY0", this->BY0);
       RP::get("Harris.BZ0", this->BZ0);
 
-
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+      for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
          HarrisSpeciesParameters sP;
 
@@ -77,13 +76,10 @@ namespace projects {
       }
    }
 
-   Realf Harris::fillPhaseSpace(spatial_cell::SpatialCell *cell,
-                                       const uint popID,
-                                       const uint nRequested
-      ) const {
+   Realf Harris::fillPhaseSpace(spatial_cell::SpatialCell* cell, const uint popID, const uint nRequested) const {
       const HarrisSpeciesParameters& sP = speciesParams[popID];
       // Fetch spatial cell center coordinates
-      const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
+      const Real x = cell->parameters[CellParams::XCRD] + 0.5 * cell->parameters[CellParams::DX];
       // const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
       // const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
 
@@ -98,23 +94,23 @@ namespace projects {
       initRho *= (1.0 + 5.0 / pow(cosh(x / (this->SCA_LAMBDA)), 2.0));
 
       #ifdef USE_GPU
-      vmesh::VelocityMesh *vmesh = cell->dev_get_velocity_mesh(popID);
+      vmesh::VelocityMesh* vmesh = cell->dev_get_velocity_mesh(popID);
       vmesh::VelocityBlockContainer* VBC = cell->dev_get_velocity_blocks(popID);
       #else
-      vmesh::VelocityMesh *vmesh = cell->get_velocity_mesh(popID);
+      vmesh::VelocityMesh* vmesh = cell->get_velocity_mesh(popID);
       vmesh::VelocityBlockContainer* VBC = cell->get_velocity_blocks(popID);
       #endif
       // Loop over blocks
       Realf rhosum = 0;
       arch::parallel_reduce<arch::null>(
          {WID, WID, WID, nRequested},
-         ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint initIndex, Realf *lsum ) {
-            vmesh::GlobalID *GIDlist = vmesh->getGrid()->data();
+         ARCH_LOOP_LAMBDA(const uint i, const uint j, const uint k, const uint initIndex, Realf* lsum) {
+            vmesh::GlobalID* GIDlist = vmesh->getGrid()->data();
             Realf* bufferData = VBC->getData();
             const vmesh::GlobalID blockGID = GIDlist[initIndex];
             // Calculate parameters for new block
             Real blockCoords[6];
-            vmesh->getBlockInfo(blockGID,&blockCoords[0]);
+            vmesh->getBlockInfo(blockGID, &blockCoords[0]);
             creal vxBlock = blockCoords[0];
             creal vyBlock = blockCoords[1];
             creal vzBlock = blockCoords[2];
@@ -122,14 +118,16 @@ namespace projects {
             creal dvyCell = blockCoords[4];
             creal dvzCell = blockCoords[5];
             ARCH_INNER_BODY(i, j, k, initIndex, lsum) {
-               creal vx = vxBlock + (i+0.5)*dvxCell - initV0X;
-               creal vy = vyBlock + (j+0.5)*dvyCell - initV0Y;
-               creal vz = vzBlock + (k+0.5)*dvzCell - initV0Z;
-               const Realf value = MaxwellianPhaseSpaceDensity(vx,vy,vz,initT,initRho,mass);
-               bufferData[initIndex*WID3 + k*WID2 + j*WID + i] = value;
-               //lsum[0] += value;
+               creal vx = vxBlock + (i + 0.5) * dvxCell - initV0X;
+               creal vy = vyBlock + (j + 0.5) * dvyCell - initV0Y;
+               creal vz = vzBlock + (k + 0.5) * dvzCell - initV0Z;
+               const Realf value = MaxwellianPhaseSpaceDensity(vx, vy, vz, initT, initRho, mass);
+               bufferData[initIndex * WID3 + k * WID2 + j * WID + i] = value;
+               // lsum[0] += value;
             };
-         }, rhosum);
+         },
+         rhosum
+      );
       return rhosum;
    }
 
@@ -137,13 +135,10 @@ namespace projects {
       then evaluates the phase-space density at the given coordinates.
       Used as a probe for projectTriAxisSearch.
    */
-   Realf Harris::probePhaseSpace(spatial_cell::SpatialCell *cell,
-                                        const uint popID,
-                                        Real vx_in, Real vy_in, Real vz_in
-      ) const {
+   Realf Harris::probePhaseSpace(spatial_cell::SpatialCell* cell, const uint popID, Real vx_in, Real vy_in, Real vz_in) const {
       const HarrisSpeciesParameters& sP = speciesParams[popID];
       // Fetch spatial cell center coordinates
-      const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
+      const Real x = cell->parameters[CellParams::XCRD] + 0.5 * cell->parameters[CellParams::DX];
       // const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
       // const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
 
@@ -159,32 +154,27 @@ namespace projects {
       creal vx = vx_in - initV0X;
       creal vy = vy_in - initV0Y;
       creal vz = vz_in - initV0Z;
-      const Realf value = MaxwellianPhaseSpaceDensity(vx,vy,vz,initT,initRho,mass);
+      const Realf value = MaxwellianPhaseSpaceDensity(vx, vy, vz, initT, initRho, mass);
       return value;
    }
 
-   void Harris::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
+   void Harris::calcCellParameters(spatial_cell::SpatialCell* cell, creal& t) {}
 
-   vector<std::array<Real, 3>> Harris::getV0(
-      creal x,
-      creal y,
-      creal z,
-      const uint popID
-   ) const {
+   vector<std::array<Real, 3>> Harris::getV0(creal x, creal y, creal z, const uint popID) const {
       vector<std::array<Real, 3>> V0;
-      std::array<Real, 3> v = {{0.0, 0.0, 0.0 }};
+      std::array<Real, 3> v = {{0.0, 0.0, 0.0}};
       V0.push_back(v);
       return V0;
    }
 
    void Harris::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
+      FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+      FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+      FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid
    ) {
       setBackgroundFieldToZero(BgBGrid);
 
-      if(!P::isRestart) {
+      if (!P::isRestart) {
          auto localSize = perBGrid.getLocalSize().data();
 
          #pragma omp parallel for collapse(3)

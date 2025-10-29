@@ -37,13 +37,12 @@ using namespace std;
 using namespace spatial_cell;
 
 namespace projects {
-   Distributions::Distributions(): TriAxisSearch() { }
-   Distributions::~Distributions() { }
+   Distributions::Distributions() : TriAxisSearch() {}
+   Distributions::~Distributions() {}
 
+   bool Distributions::initialize(void) { return Project::initialize(); }
 
-   bool Distributions::initialize(void) {return Project::initialize();}
-
-   void Distributions::addParameters(){
+   void Distributions::addParameters() {
       typedef Readparameters RP;
       RP::add("Distributions.rho1", "Number density, first peak (m^-3)", 0.0);
       RP::add("Distributions.rho2", "Number density, second peak (m^-3)", 0.0);
@@ -70,21 +69,21 @@ namespace projects {
       RP::add("Distributions.magZPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along z (T)", 1.0e-9);
       RP::add("Distributions.rho1PertAbsAmp", "Absolute amplitude of the density perturbation, first peak", 0.1);
       RP::add("Distributions.rho2PertAbsAmp", "Absolute amplitude of the density perturbation, second peak", 0.1);
-//       RP::add("Distributions.Vx1PertAbsAmp", "Absolute amplitude of the Vx perturbation, first peak", 1.0e6);
-//       RP::add("Distributions.Vy1PertAbsAmp", "Absolute amplitude of the Vy perturbation, first peak", 1.0e6);
-//       RP::add("Distributions.Vz1PertAbsAmp", "Absolute amplitude of the Vz perturbation, first peak", 1.0e6);
-//       RP::add("Distributions.Vx2PertAbsAmp", "Absolute amplitude of the Vx perturbation, second peak", 1.0e6);
-//       RP::add("Distributions.Vy2PertAbsAmp", "Absolute amplitude of the Vy perturbation, second peak", 1.0e6);
-//       RP::add("Distributions.Vz2PertAbsAmp", "Absolute amplitude of the Vz perturbation, second peak", 1.0e6);
+      //       RP::add("Distributions.Vx1PertAbsAmp", "Absolute amplitude of the Vx perturbation, first peak", 1.0e6);
+      //       RP::add("Distributions.Vy1PertAbsAmp", "Absolute amplitude of the Vy perturbation, first peak", 1.0e6);
+      //       RP::add("Distributions.Vz1PertAbsAmp", "Absolute amplitude of the Vz perturbation, first peak", 1.0e6);
+      //       RP::add("Distributions.Vx2PertAbsAmp", "Absolute amplitude of the Vx perturbation, second peak", 1.0e6);
+      //       RP::add("Distributions.Vy2PertAbsAmp", "Absolute amplitude of the Vy perturbation, second peak", 1.0e6);
+      //       RP::add("Distributions.Vz2PertAbsAmp", "Absolute amplitude of the Vz perturbation, second peak", 1.0e6);
       RP::add("Distributions.lambda", "B cosine perturbation wavelength (m)", 0.0);
    }
 
-   void Distributions::getParameters(){
+   void Distributions::getParameters() {
       Project::getParameters();
       typedef Readparameters RP;
       Project::getParameters();
 
-      if(getObjectWrapper().particleSpecies.size() > 1) {
+      if (getObjectWrapper().particleSpecies.size() > 1) {
          std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
          abort();
       }
@@ -111,29 +110,26 @@ namespace projects {
       RP::get("Distributions.magZPertAbsAmp", this->magZPertAbsAmp);
       RP::get("Distributions.rho1PertAbsAmp", this->rhoPertAbsAmp[0]);
       RP::get("Distributions.rho2PertAbsAmp", this->rhoPertAbsAmp[1]);
-//       RP::get("Distributions.Vx1PertAbsAmp", this->Vx1PertAbsAmp);
-//       RP::get("Distributions.Vy1PertAbsAmp", this->Vy1PertAbsAmp);
-//       RP::get("Distributions.Vz1PertAbsAmp", this->Vz1PertAbsAmp);
-//       RP::get("Distributions.Vx2PertAbsAmp", this->Vx2PertAbsAmp);
-//       RP::get("Distributions.Vy2PertAbsAmp", this->Vy2PertAbsAmp);
-//       RP::get("Distributions.Vz2PertAbsAmp", this->Vz2PertAbsAmp);
+      //       RP::get("Distributions.Vx1PertAbsAmp", this->Vx1PertAbsAmp);
+      //       RP::get("Distributions.Vy1PertAbsAmp", this->Vy1PertAbsAmp);
+      //       RP::get("Distributions.Vz1PertAbsAmp", this->Vz1PertAbsAmp);
+      //       RP::get("Distributions.Vx2PertAbsAmp", this->Vx2PertAbsAmp);
+      //       RP::get("Distributions.Vy2PertAbsAmp", this->Vy2PertAbsAmp);
+      //       RP::get("Distributions.Vz2PertAbsAmp", this->Vz2PertAbsAmp);
       RP::get("Distributions.dBx", this->dBx);
       RP::get("Distributions.dBy", this->dBy);
       RP::get("Distributions.dBz", this->dBz);
       RP::get("Distributions.lambda", this->lambda);
    }
 
-   Realf Distributions::fillPhaseSpace(spatial_cell::SpatialCell *cell,
-                                       const uint popID,
-                                       const uint nRequested
-      ) const {
+   Realf Distributions::fillPhaseSpace(spatial_cell::SpatialCell* cell, const uint popID, const uint nRequested) const {
       // Fetch spatial cell center coordinates
-      const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
-      const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
-      const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
-      creal relx = x/(Parameters::xmax - Parameters::xmin);
-      creal rely = y/(Parameters::ymax - Parameters::ymin);
-      creal relz = z/(Parameters::zmax - Parameters::zmin);
+      const Real x = cell->parameters[CellParams::XCRD] + 0.5 * cell->parameters[CellParams::DX];
+      const Real y = cell->parameters[CellParams::YCRD] + 0.5 * cell->parameters[CellParams::DY];
+      const Real z = cell->parameters[CellParams::ZCRD] + 0.5 * cell->parameters[CellParams::DZ];
+      creal relx = x / (Parameters::xmax - Parameters::xmin);
+      creal rely = y / (Parameters::ymax - Parameters::ymin);
+      creal relz = z / (Parameters::zmax - Parameters::zmin);
       creal scaledVx1 = this->Vx[1] * relx;
       creal scaledVy1 = this->Vy[1] * rely;
       creal scaledVz1 = this->Vz[1] * relz;
@@ -155,23 +151,23 @@ namespace projects {
       const Real initV1Z = this->Vz[1];
 
       #ifdef USE_GPU
-      vmesh::VelocityMesh *vmesh = cell->dev_get_velocity_mesh(popID);
+      vmesh::VelocityMesh* vmesh = cell->dev_get_velocity_mesh(popID);
       vmesh::VelocityBlockContainer* VBC = cell->dev_get_velocity_blocks(popID);
       #else
-      vmesh::VelocityMesh *vmesh = cell->get_velocity_mesh(popID);
+      vmesh::VelocityMesh* vmesh = cell->get_velocity_mesh(popID);
       vmesh::VelocityBlockContainer* VBC = cell->get_velocity_blocks(popID);
       #endif
       // Loop over blocks
       Realf rhosum = 0;
       arch::parallel_reduce<arch::null>(
          {WID, WID, WID, nRequested},
-         ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint initIndex, Realf *lsum ) {
-            vmesh::GlobalID *GIDlist = vmesh->getGrid()->data();
+         ARCH_LOOP_LAMBDA(const uint i, const uint j, const uint k, const uint initIndex, Realf* lsum) {
+            vmesh::GlobalID* GIDlist = vmesh->getGrid()->data();
             Realf* bufferData = VBC->getData();
             const vmesh::GlobalID blockGID = GIDlist[initIndex];
             // Calculate parameters for new block
             Real blockCoords[6];
-            vmesh->getBlockInfo(blockGID,&blockCoords[0]);
+            vmesh->getBlockInfo(blockGID, &blockCoords[0]);
             creal vxBlock = blockCoords[0];
             creal vyBlock = blockCoords[1];
             creal vzBlock = blockCoords[2];
@@ -179,18 +175,20 @@ namespace projects {
             creal dvyCell = blockCoords[4];
             creal dvzCell = blockCoords[5];
             ARCH_INNER_BODY(i, j, k, initIndex, lsum) {
-               Real vx = vxBlock + (i+0.5)*dvxCell - initV0X;
-               Real vy = vyBlock + (j+0.5)*dvyCell - initV0Y;
-               Real vz = vzBlock + (k+0.5)*dvzCell - initV0Z;
-               Realf value = TriMaxwellianPhaseSpaceDensity(vx,vy,vz,initT0x,initT0y,initT0z,initRho0,mass);
-               vx = vxBlock + (i+0.5)*dvxCell - initV1X;
-               vy = vyBlock + (j+0.5)*dvyCell - initV1Y;
-               vz = vzBlock + (k+0.5)*dvzCell - initV1Z;
-               value += TriMaxwellianPhaseSpaceDensity(vx,vy,vz,initT1x,initT1y,initT1z,initRho1,mass);
-               bufferData[initIndex*WID3 + k*WID2 + j*WID + i] = value;
-               //lsum[0] += value;
+               Real vx = vxBlock + (i + 0.5) * dvxCell - initV0X;
+               Real vy = vyBlock + (j + 0.5) * dvyCell - initV0Y;
+               Real vz = vzBlock + (k + 0.5) * dvzCell - initV0Z;
+               Realf value = TriMaxwellianPhaseSpaceDensity(vx, vy, vz, initT0x, initT0y, initT0z, initRho0, mass);
+               vx = vxBlock + (i + 0.5) * dvxCell - initV1X;
+               vy = vyBlock + (j + 0.5) * dvyCell - initV1Y;
+               vz = vzBlock + (k + 0.5) * dvzCell - initV1Z;
+               value += TriMaxwellianPhaseSpaceDensity(vx, vy, vz, initT1x, initT1y, initT1z, initRho1, mass);
+               bufferData[initIndex * WID3 + k * WID2 + j * WID + i] = value;
+               // lsum[0] += value;
             };
-         }, rhosum);
+         },
+         rhosum
+      );
       return rhosum;
    }
 
@@ -198,17 +196,14 @@ namespace projects {
       then evaluates the phase-space density at the given coordinates.
       Used as a probe for projectTriAxisSearch.
    */
-   Realf Distributions::probePhaseSpace(spatial_cell::SpatialCell *cell,
-                                        const uint popID,
-                                        Real vx_in, Real vy_in, Real vz_in
-      ) const {
+   Realf Distributions::probePhaseSpace(spatial_cell::SpatialCell* cell, const uint popID, Real vx_in, Real vy_in, Real vz_in) const {
       // Fetch spatial cell center coordinates
-      const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
-      const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
-      const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
-      creal relx = x/(Parameters::xmax - Parameters::xmin);
-      creal rely = y/(Parameters::ymax - Parameters::ymin);
-      creal relz = z/(Parameters::zmax - Parameters::zmin);
+      const Real x = cell->parameters[CellParams::XCRD] + 0.5 * cell->parameters[CellParams::DX];
+      const Real y = cell->parameters[CellParams::YCRD] + 0.5 * cell->parameters[CellParams::DY];
+      const Real z = cell->parameters[CellParams::ZCRD] + 0.5 * cell->parameters[CellParams::DZ];
+      creal relx = x / (Parameters::xmax - Parameters::xmin);
+      creal rely = y / (Parameters::ymax - Parameters::ymin);
+      creal relz = z / (Parameters::zmax - Parameters::zmin);
       creal scaledVx1 = this->Vx[1] * relx;
       creal scaledVy1 = this->Vy[1] * rely;
       creal scaledVz1 = this->Vz[1] * relz;
@@ -233,35 +228,33 @@ namespace projects {
       Real vx = vx_in - initV0X;
       Real vy = vy_in - initV0Y;
       Real vz = vz_in - initV0Z;
-      value = TriMaxwellianPhaseSpaceDensity(vx,vy,vz,initT0x,initT0y,initT0z,initRho0,mass);
+      value = TriMaxwellianPhaseSpaceDensity(vx, vy, vz, initT0x, initT0y, initT0z, initRho0, mass);
       vx = vx_in - initV1X;
       vy = vy_in - initV1Y;
       vz = vz_in - initV1Z;
-      value += TriMaxwellianPhaseSpaceDensity(vx,vy,vz,initT1x,initT1y,initT1z,initRho1,mass);
+      value += TriMaxwellianPhaseSpaceDensity(vx, vy, vz, initT1x, initT1y, initT1z, initRho1, mass);
       return value;
    }
 
-   void Distributions::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
+   void Distributions::calcCellParameters(spatial_cell::SpatialCell* cell, creal& t) {
       std::default_random_engine rndState;
-      setRandomCellSeed(cell,rndState);
-      for (uint i=0; i<2; i++) {
+      setRandomCellSeed(cell, rndState);
+      for (uint i = 0; i < 2; i++) {
          this->rhoRnd[i] = this->rho[i] + this->rhoPertAbsAmp[i] * (0.5 - getRandomNumber(rndState));
       }
    }
 
    void Distributions::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
+      FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+      FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+      FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid
    ) {
       ConstantField bgField;
-      bgField.initialize(this->Bx,
-                         this->By,
-                         this->Bz);
+      bgField.initialize(this->Bx, this->By, this->Bz);
 
       setBackgroundField(bgField, BgBGrid);
 
-      if(!P::isRestart) {
+      if (!P::isRestart) {
          const auto localSize = BgBGrid.getLocalSize().data();
 
 #pragma omp parallel for collapse(3)
@@ -273,12 +266,12 @@ namespace projects {
                   const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
 
                   std::default_random_engine rndState;
-                  setRandomSeed(cellid,rndState);
+                  setRandomSeed(cellid, rndState);
 
                   if (this->lambda != 0.0) {
-                     cell->at(fsgrids::bfield::PERBX) = this->dBx*cos(2.0 * M_PI * xyz[0] / this->lambda);
-                     cell->at(fsgrids::bfield::PERBY) = this->dBy*sin(2.0 * M_PI * xyz[0] / this->lambda);
-                     cell->at(fsgrids::bfield::PERBZ) = this->dBz*cos(2.0 * M_PI * xyz[0] / this->lambda);
+                     cell->at(fsgrids::bfield::PERBX) = this->dBx * cos(2.0 * M_PI * xyz[0] / this->lambda);
+                     cell->at(fsgrids::bfield::PERBY) = this->dBy * sin(2.0 * M_PI * xyz[0] / this->lambda);
+                     cell->at(fsgrids::bfield::PERBZ) = this->dBz * cos(2.0 * M_PI * xyz[0] / this->lambda);
                   }
 
                   cell->at(fsgrids::bfield::PERBX) += this->magXPertAbsAmp * (0.5 - getRandomNumber(rndState));
@@ -290,24 +283,19 @@ namespace projects {
       }
    }
 
-   vector<std::array<Real, 3>> Distributions::getV0(
-      creal x,
-      creal y,
-      creal z,
-      const uint popID
-   ) const {
+   vector<std::array<Real, 3>> Distributions::getV0(creal x, creal y, creal z, const uint popID) const {
       vector<std::array<Real, 3>> centerPoints;
-      creal relx = x/(Parameters::xmax - Parameters::xmin);
-      creal rely = y/(Parameters::ymax - Parameters::ymin);
-      creal relz = z/(Parameters::zmax - Parameters::zmin);
+      creal relx = x / (Parameters::xmax - Parameters::xmin);
+      creal rely = y / (Parameters::ymax - Parameters::ymin);
+      creal relz = z / (Parameters::zmax - Parameters::zmin);
       creal scaledVx1 = this->Vx[1] * relx;
       creal scaledVy1 = this->Vy[1] * rely;
       creal scaledVz1 = this->Vz[1] * relz;
-      std::array<Real, 3> point0 {{this->Vx[0], this->Vy[0], this->Vz[0]}};
-      std::array<Real, 3> point1 {{scaledVx1, scaledVy1, scaledVz1}};
+      std::array<Real, 3> point0{{this->Vx[0], this->Vy[0], this->Vz[0]}};
+      std::array<Real, 3> point1{{scaledVx1, scaledVy1, scaledVz1}};
       centerPoints.push_back(point0);
       centerPoints.push_back(point1);
       return centerPoints;
    }
 
-}// namespace projects
+} // namespace projects

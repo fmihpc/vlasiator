@@ -29,7 +29,7 @@
 #include "../common.h"
 #include "../spatial_cells/spatial_cell_wrapper.hpp"
 
-void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell, 
+void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
                                const vmesh::VelocityMesh* vmesh,
                                const uint dimension,
                                uint* blocks,

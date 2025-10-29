@@ -18,4 +18,3 @@ plot t=0 "timings_".case.".dat" u 1:(t==0?y0=$2:y0, t==0?nc=$1:nc, t=t+1, y0*nc/
      t=0 "timings_".case.".dat" u 1:(t==0?y0=$4:y0, t==0?nc=$1:nc, t=t+1, y0*nc/($1*$4)) w lp lw 2 t "Spatial-space", \
      t=0 "timings_".case.".dat" u 1:(t==0?y0=$5:y0, t==0?nc=$1:nc, t=t+1, y0*nc/($1*$5)) w lp lw 2 t "Velocity-space", \
      1 lw 2 lc "black" notitle
-

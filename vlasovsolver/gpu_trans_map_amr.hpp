@@ -31,20 +31,18 @@
 // compilation errors.
 extern vmesh::VelocityMesh **host_allPencilsMeshes, **dev_allPencilsMeshes;
 extern vmesh::VelocityBlockContainer **host_allPencilsContainers, **dev_allPencilsContainers;
-extern split::SplitVector<vmesh::GlobalID> *unionOfBlocks, *dev_unionOfBlocks;
-extern Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *unionOfBlocksSet, *dev_unionOfBlocksSet;
+extern split::SplitVector<vmesh::GlobalID>*unionOfBlocks, *dev_unionOfBlocks;
+extern Hashinator::Hashmap<vmesh::GlobalID, vmesh::LocalID>*unionOfBlocksSet, *dev_unionOfBlocksSet;
 
-bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                  const std::vector<CellID>& localPropagatedCells,
-                  const std::vector<CellID>& remoteTargetCells,
-                  std::vector<uint>& nPencils,
-                  const uint dimension,
-                  const Realf dt,
-                  const uint popID);
+bool trans_map_1d_amr(
+   const dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+   const std::vector<CellID>& localPropagatedCells,
+   const std::vector<CellID>& remoteTargetCells,
+   std::vector<uint>& nPencils,
+   const uint dimension,
+   const Realf dt,
+   const uint popID
+);
 
-void update_remote_mapping_contribution_amr(dccrg::Dccrg<spatial_cell::SpatialCell,
-                                            dccrg::Cartesian_Geometry>& mpiGrid,
-                                            const uint dimension,
-                                            int direction,
-                                            const uint popID);
+void update_remote_mapping_contribution_amr(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const uint dimension, int direction, const uint popID);
 #endif

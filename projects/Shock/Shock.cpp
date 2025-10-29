@@ -34,10 +34,10 @@
 #include "Shock.h"
 
 namespace projects {
-   Shock::Shock(): Project() { }
-   Shock::~Shock() { }
+   Shock::Shock() : Project() {}
+   Shock::~Shock() {}
 
-   bool Shock::initialize(void) {return Project::initialize();}
+   bool Shock::initialize(void) { return Project::initialize(); }
 
    void Shock::addParameters() {
       typedef Readparameters RP;
@@ -63,7 +63,7 @@ namespace projects {
       Project::getParameters();
       typedef Readparameters RP;
 
-      if(getObjectWrapper().particleSpecies.size() > 1) {
+      if (getObjectWrapper().particleSpecies.size() > 1) {
          std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
          abort();
       }
@@ -85,11 +85,8 @@ namespace projects {
       RP::get("Shock.Sharp_Y", this->Sharp_Y);
    }
 
-   Realf Shock::fillPhaseSpace(spatial_cell::SpatialCell *cell,
-                                       const uint popID,
-                                       const uint nRequested
-      ) const {
-      //const speciesParameters& sP = this->speciesParams[popID];
+   Realf Shock::fillPhaseSpace(spatial_cell::SpatialCell* cell, const uint popID, const uint nRequested) const {
+      // const speciesParameters& sP = this->speciesParams[popID];
 
       const Real mass = getObjectWrapper().particleSpecies[popID].mass;
       Real initRho = this->DENSITY;
@@ -99,23 +96,23 @@ namespace projects {
       const Real initV0Z = this->VZ0;
 
       #ifdef USE_GPU
-      vmesh::VelocityMesh *vmesh = cell->dev_get_velocity_mesh(popID);
+      vmesh::VelocityMesh* vmesh = cell->dev_get_velocity_mesh(popID);
       vmesh::VelocityBlockContainer* VBC = cell->dev_get_velocity_blocks(popID);
       #else
-      vmesh::VelocityMesh *vmesh = cell->get_velocity_mesh(popID);
+      vmesh::VelocityMesh* vmesh = cell->get_velocity_mesh(popID);
       vmesh::VelocityBlockContainer* VBC = cell->get_velocity_blocks(popID);
       #endif
       // Loop over blocks
       Realf rhosum = 0;
       arch::parallel_reduce<arch::null>(
          {WID, WID, WID, nRequested},
-         ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint initIndex, Realf *lsum ) {
-            vmesh::GlobalID *GIDlist = vmesh->getGrid()->data();
+         ARCH_LOOP_LAMBDA(const uint i, const uint j, const uint k, const uint initIndex, Realf* lsum) {
+            vmesh::GlobalID* GIDlist = vmesh->getGrid()->data();
             Realf* bufferData = VBC->getData();
             const vmesh::GlobalID blockGID = GIDlist[initIndex];
             // Calculate parameters for new block
             Real blockCoords[6];
-            vmesh->getBlockInfo(blockGID,&blockCoords[0]);
+            vmesh->getBlockInfo(blockGID, &blockCoords[0]);
             creal vxBlock = blockCoords[0];
             creal vyBlock = blockCoords[1];
             creal vzBlock = blockCoords[2];
@@ -123,27 +120,29 @@ namespace projects {
             creal dvyCell = blockCoords[4];
             creal dvzCell = blockCoords[5];
             ARCH_INNER_BODY(i, j, k, initIndex, lsum) {
-               creal vx = vxBlock + (i+0.5)*dvxCell - initV0X;
-               creal vy = vyBlock + (j+0.5)*dvyCell - initV0Y;
-               creal vz = vzBlock + (k+0.5)*dvzCell - initV0Z;
-               const Realf value = MaxwellianPhaseSpaceDensity(vx,vy,vz,initT,initRho,mass);
-               bufferData[initIndex*WID3 + k*WID2 + j*WID + i] = value;
-               //lsum[0] += value;
+               creal vx = vxBlock + (i + 0.5) * dvxCell - initV0X;
+               creal vy = vyBlock + (j + 0.5) * dvyCell - initV0Y;
+               creal vz = vzBlock + (k + 0.5) * dvzCell - initV0Z;
+               const Realf value = MaxwellianPhaseSpaceDensity(vx, vy, vz, initT, initRho, mass);
+               bufferData[initIndex * WID3 + k * WID2 + j * WID + i] = value;
+               // lsum[0] += value;
             };
-         }, rhosum);
+         },
+         rhosum
+      );
       return rhosum;
    }
 
-   void Shock::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
+   void Shock::calcCellParameters(spatial_cell::SpatialCell* cell, creal& t) {}
 
    void Shock::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
+      FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+      FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+      FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid
    ) {
       setBackgroundFieldToZero(BgBGrid);
 
-      if(!P::isRestart) {
+      if (!P::isRestart) {
          auto localSize = perBGrid.getLocalSize().data();
 
 #pragma omp parallel for collapse(3)
@@ -155,10 +154,10 @@ namespace projects {
 
                   cell->at(fsgrids::bfield::PERBX) = 0.0;
                   cell->at(fsgrids::bfield::PERBY) = 0.0;
-                  cell->at(fsgrids::bfield::PERBZ) = this->BZ0*(3.0 + 2.0*tanh((xyz[1] - Parameters::ymax/2.0)/(this->Sharp_Y*Parameters::ymax)));
+                  cell->at(fsgrids::bfield::PERBZ) = this->BZ0 * (3.0 + 2.0 * tanh((xyz[1] - Parameters::ymax / 2.0) / (this->Sharp_Y * Parameters::ymax)));
                }
             }
          }
       }
    }
-}//namespace projects
+} // namespace projects

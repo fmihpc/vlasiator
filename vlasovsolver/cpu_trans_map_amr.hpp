@@ -27,18 +27,16 @@
 #include "../common.h"
 #include "../spatial_cells/spatial_cell_wrapper.hpp"
 
-bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                  const std::vector<CellID>& localPropagatedCells,
-                  const std::vector<CellID>& remoteTargetCells,
-                  std::vector<uint>& nPencils,
-                  const uint dimension,
-                  const Realf dt,
-                  const uint popID);
+bool trans_map_1d_amr(
+   const dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+   const std::vector<CellID>& localPropagatedCells,
+   const std::vector<CellID>& remoteTargetCells,
+   std::vector<uint>& nPencils,
+   const uint dimension,
+   const Realf dt,
+   const uint popID
+);
 
-void update_remote_mapping_contribution_amr(dccrg::Dccrg<spatial_cell::SpatialCell,
-                                            dccrg::Cartesian_Geometry>& mpiGrid,
-                                            const uint dimension,
-                                            int direction,
-                                            const uint popID);
+void update_remote_mapping_contribution_amr(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const uint dimension, int direction, const uint popID);
 
 #endif

@@ -42,34 +42,23 @@ namespace projects {
       Real muLimit;
    };
 
-   class LossCone: public TriAxisSearch {
+   class LossCone : public TriAxisSearch {
    public:
       LossCone();
       virtual ~LossCone();
-      
+
       virtual bool initialize(void) override;
       static void addParameters(void);
       virtual void getParameters(void) override;
       virtual void setProjectBField(
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
-         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
-         FsGrid< fsgrids::technical, 2>& technicalGrid
+         FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid, FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid, FsGrid<fsgrids::technical, 2>& technicalGrid
       ) override;
-      virtual std::vector<std::array<Real, 3> > getV0(
-         creal x,
-         creal y,
-         creal z,
-         const uint popID
-      ) const override;
+      virtual std::vector<std::array<Real, 3>> getV0(creal x, creal y, creal z, const uint popID) const override;
 
-      virtual Realf fillPhaseSpace(spatial_cell::SpatialCell *cell,
-                                  const uint popID,
-                                  const uint nRequested) const override;
-      virtual Realf probePhaseSpace(spatial_cell::SpatialCell *cell,
-                                    const uint popID,
-                                    Real vx_in, Real vy_in, Real vz_in) const override;
-      virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) override;
-      
+      virtual Realf fillPhaseSpace(spatial_cell::SpatialCell* cell, const uint popID, const uint nRequested) const override;
+      virtual Realf probePhaseSpace(spatial_cell::SpatialCell* cell, const uint popID, Real vx_in, Real vy_in, Real vz_in) const override;
+      virtual void calcCellParameters(spatial_cell::SpatialCell* cell, creal& t) override;
+
       Real BX0;
       Real BY0;
       Real BZ0;
@@ -81,6 +70,6 @@ namespace projects {
 
       static Real rndRho, rndVel[3];
       #pragma omp threadprivate(rndRho,rndVel)
-   } ; // class LossCone
+   }; // class LossCone
 } // namespace projects
 #endif

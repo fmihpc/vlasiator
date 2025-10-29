@@ -27,40 +27,42 @@
 #include "../definitions.h"
 #include "../spatial_cells/spatial_cell_wrapper.hpp"
 
-Eigen::Matrix<Real,3,1> line_plane_intersection(const Eigen::Matrix<Real,3,1>& l_point,
-                                                const Eigen::Matrix<Real,3,1>& l_direction,
-                                                const Eigen::Matrix<Real,3,1>& p_point,
-                                                const Eigen::Matrix<Real,3,1>& p_normal);
+Eigen::Matrix<Real, 3, 1>
+line_plane_intersection(const Eigen::Matrix<Real, 3, 1>& l_point, const Eigen::Matrix<Real, 3, 1>& l_direction, const Eigen::Matrix<Real, 3, 1>& p_point, const Eigen::Matrix<Real, 3, 1>& p_normal);
 
 void compute_intersections_1st(
-        const vmesh::VelocityMesh* vmesh,
-        const Eigen::Transform<Real,3,Eigen::Affine>& bwd_transform,
-        const Eigen::Transform<Real,3,Eigen::Affine>& fwd_transform,
-        uint dimension,
-        Real& intersection,Real& intersection_di,
-        Real& intersection_dj,Real& intersection_dk);
+   const vmesh::VelocityMesh* vmesh,
+   const Eigen::Transform<Real, 3, Eigen::Affine>& bwd_transform,
+   const Eigen::Transform<Real, 3, Eigen::Affine>& fwd_transform,
+   uint dimension,
+   Real& intersection,
+   Real& intersection_di,
+   Real& intersection_dj,
+   Real& intersection_dk
+);
 
 void compute_intersections_2nd(
-        const vmesh::VelocityMesh* vmesh,
-        const Eigen::Transform<Real,3,Eigen::Affine>& bwd_transform,
-        const Eigen::Transform<Real,3,Eigen::Affine>& fwd_transform,
-        uint dimension,
-        Real& intersection,Real& intersection_di,
-        Real& intersection_dj,Real& intersection_dk);
+   const vmesh::VelocityMesh* vmesh,
+   const Eigen::Transform<Real, 3, Eigen::Affine>& bwd_transform,
+   const Eigen::Transform<Real, 3, Eigen::Affine>& fwd_transform,
+   uint dimension,
+   Real& intersection,
+   Real& intersection_di,
+   Real& intersection_dj,
+   Real& intersection_dk
+);
 
 void compute_intersections_3rd(
-        const vmesh::VelocityMesh* vmesh,
-        const Eigen::Transform<Real,3,Eigen::Affine>& bwd_transform,
-        const Eigen::Transform<Real,3,Eigen::Affine>& fwd_transform,
-        uint dimension,
-        Real& intersection,Real& intersection_di,
-        Real& intersection_dj,Real& intersection_dk);
+   const vmesh::VelocityMesh* vmesh,
+   const Eigen::Transform<Real, 3, Eigen::Affine>& bwd_transform,
+   const Eigen::Transform<Real, 3, Eigen::Affine>& fwd_transform,
+   uint dimension,
+   Real& intersection,
+   Real& intersection_di,
+   Real& intersection_dj,
+   Real& intersection_dk
+);
 
-void compute_cell_intersections(
-        spatial_cell::SpatialCell* spatial_cell,
-        const uint popID,
-        const uint map_order,
-        const Real& dt,
-        int intersections_id);
+void compute_cell_intersections(spatial_cell::SpatialCell* spatial_cell, const uint popID, const uint map_order, const Real& dt, int intersections_id);
 
 #endif

@@ -32,4 +32,3 @@ Background magnetic field class of Vlasiator.
 
 typedef std::function<double(double x, double y, double z, coordinate component, unsigned int derivative, coordinate dcomponent)> FieldFunction;
 #endif
-

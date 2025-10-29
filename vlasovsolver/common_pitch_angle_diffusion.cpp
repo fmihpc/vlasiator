@@ -62,9 +62,9 @@ void readNuArrayFromFile() {
 
    // verify file access was successful
    if (!FILEDmumu.is_open()) {
-      std::cerr<<"Error opening file "<<PATHfile<<"!"<<std::endl;
+      std::cerr << "Error opening file " << PATHfile << "!" << std::endl;
       if (FILEDmumu.fail()) {
-         std::cerr<<strerror(errno)<<std::endl;
+         std::cerr << strerror(errno) << std::endl;
       }
       abort();
    }
@@ -72,7 +72,7 @@ void readNuArrayFromFile() {
    // Read betaPara strings from file
    std::string lineBeta;
    for (int i = 0; i < 2; i++) {
-      std::getline(FILEDmumu,lineBeta);
+      std::getline(FILEDmumu, lineBeta);
    }
    std::istringstream issBeta(lineBeta);
    float numBeta;
@@ -83,7 +83,7 @@ void readNuArrayFromFile() {
    // Read Taniso strings from file
    std::string lineTaniso;
    for (int i = 0; i < 2; i++) {
-      std::getline(FILEDmumu,lineTaniso);
+      std::getline(FILEDmumu, lineTaniso);
    }
    std::istringstream issTaniso(lineTaniso);
    float numTaniso;
@@ -94,29 +94,29 @@ void readNuArrayFromFile() {
    // Discard one line
    std::string lineDUMP;
    for (int i = 0; i < 1; i++) {
-      std::getline(FILEDmumu,lineDUMP);
+      std::getline(FILEDmumu, lineDUMP);
    }
 
    // Read values of nu0 from file
    std::string linenu0;
    n_betaPara = betaParaArray.size();
    n_Taniso = TanisoArray.size();
-   nu0Array.resize(n_betaPara*n_Taniso);
+   nu0Array.resize(n_betaPara * n_Taniso);
 
    for (size_t i = 0; i < n_betaPara; i++) {
-      std::getline(FILEDmumu,linenu0);
+      std::getline(FILEDmumu, linenu0);
       std::istringstream issnu0(linenu0);
       std::vector<Real> tempLINE;
       float numTEMP;
-      while((issnu0 >> numTEMP)) {
+      while ((issnu0 >> numTEMP)) {
          tempLINE.push_back(numTEMP);
       }
       if (tempLINE.size() != n_Taniso) {
-         std::cerr<<"ERROR! line "<<i<<" entry in "<<PATHfile<<" has "<<tempLINE.size()<<" entries instead of expected "<<n_Taniso<<"!"<<std::endl;
+         std::cerr << "ERROR! line " << i << " entry in " << PATHfile << " has " << tempLINE.size() << " entries instead of expected " << n_Taniso << "!" << std::endl;
          abort();
       }
       for (size_t j = 0; j < n_Taniso; j++) {
-         nu0Array[i*n_Taniso+j] = tempLINE[j];
+         nu0Array[i * n_Taniso + j] = tempLINE[j];
       }
    }
 
@@ -126,64 +126,57 @@ void readNuArrayFromFile() {
 
 /* Linear interpolation of diffusion coefficient from above array
  */
-Realf interpolateNuFromArray(
-   const Real Taniso_in,
-   const Real betaParallel_in
-   ) {
+Realf interpolateNuFromArray(const Real Taniso_in, const Real betaParallel_in) {
    Real Taniso = Taniso_in;
    Real betaParallel = betaParallel_in;
    int betaIndx = -1;
    int TanisoIndx = -1;
    for (size_t i = 0; i < betaParaArray.size(); i++) {
       if (betaParallel >= betaParaArray[i]) {
-         betaIndx   = i;
+         betaIndx = i;
       }
    }
-   for (size_t i = 0; i < TanisoArray.size()  ; i++) {
-      if (Taniso       >= TanisoArray[i]  ) {
+   for (size_t i = 0; i < TanisoArray.size(); i++) {
+      if (Taniso >= TanisoArray[i]) {
          TanisoIndx = i;
       }
    }
 
-   if ( (betaIndx < 0) || (TanisoIndx < 0) ) {
+   if ((betaIndx < 0) || (TanisoIndx < 0)) {
       // Values below table lower bounds; no diffusion required.
       return 0.0;
    } else {
       // Interpolate values from table; if values are above bounds, cap to maximum value.
-      if (betaIndx >= (int)betaParaArray.size()-1) {
-         betaIndx = (int)betaParaArray.size()-2; // force last bin
-         betaParallel = betaParaArray[betaIndx+1]; // force interpolation to bin top
+      if (betaIndx >= (int)betaParaArray.size() - 1) {
+         betaIndx = (int)betaParaArray.size() - 2;   // force last bin
+         betaParallel = betaParaArray[betaIndx + 1]; // force interpolation to bin top
       }
-      if (TanisoIndx >= (int)TanisoArray.size()-1) {
-         TanisoIndx = (int)TanisoArray.size()-2; // force last bin
-         Taniso = TanisoArray[TanisoIndx+1]; // force interpolation to bin top
+      if (TanisoIndx >= (int)TanisoArray.size() - 1) {
+         TanisoIndx = (int)TanisoArray.size() - 2; // force last bin
+         Taniso = TanisoArray[TanisoIndx + 1];     // force interpolation to bin top
       }
       // bi-linear interpolation with weighted mean to find nu0(betaParallel,Taniso)
-      const Real beta1   = betaParaArray[betaIndx];
-      const Real beta2   = betaParaArray[betaIndx+1];
+      const Real beta1 = betaParaArray[betaIndx];
+      const Real beta2 = betaParaArray[betaIndx + 1];
       const Real Taniso1 = TanisoArray[TanisoIndx];
-      const Real Taniso2 = TanisoArray[TanisoIndx+1];
-      const Real nu011   = nu0Array[betaIndx*n_Taniso+TanisoIndx];
-      const Real nu012   = nu0Array[betaIndx*n_Taniso+TanisoIndx+1];
-      const Real nu021   = nu0Array[(betaIndx+1)*n_Taniso+TanisoIndx];
-      const Real nu022   = nu0Array[(betaIndx+1)*n_Taniso+TanisoIndx+1];
+      const Real Taniso2 = TanisoArray[TanisoIndx + 1];
+      const Real nu011 = nu0Array[betaIndx * n_Taniso + TanisoIndx];
+      const Real nu012 = nu0Array[betaIndx * n_Taniso + TanisoIndx + 1];
+      const Real nu021 = nu0Array[(betaIndx + 1) * n_Taniso + TanisoIndx];
+      const Real nu022 = nu0Array[(betaIndx + 1) * n_Taniso + TanisoIndx + 1];
       // Weights
-      const Real w11 = (beta2 - betaParallel)*(Taniso2 - Taniso)  / ( (beta2 - beta1)*(Taniso2-Taniso1) );
-      const Real w12 = (beta2 - betaParallel)*(Taniso  - Taniso1) / ( (beta2 - beta1)*(Taniso2-Taniso1) );
-      const Real w21 = (betaParallel - beta1)*(Taniso2 - Taniso)  / ( (beta2 - beta1)*(Taniso2-Taniso1) );
-      const Real w22 = (betaParallel - beta1)*(Taniso  - Taniso1) / ( (beta2 - beta1)*(Taniso2-Taniso1) );
+      const Real w11 = (beta2 - betaParallel) * (Taniso2 - Taniso) / ((beta2 - beta1) * (Taniso2 - Taniso1));
+      const Real w12 = (beta2 - betaParallel) * (Taniso - Taniso1) / ((beta2 - beta1) * (Taniso2 - Taniso1));
+      const Real w21 = (betaParallel - beta1) * (Taniso2 - Taniso) / ((beta2 - beta1) * (Taniso2 - Taniso1));
+      const Real w22 = (betaParallel - beta1) * (Taniso - Taniso1) / ((beta2 - beta1) * (Taniso2 - Taniso1));
       // Linear interpolation (with fudge factor divisor)
-      return (w11*nu011 + w12*nu012 + w21*nu021 + w22*nu022)/Parameters::PADfudge;
+      return (w11 * nu011 + w12 * nu012 + w21 * nu021 + w22 * nu022) / Parameters::PADfudge;
    }
 }
 
-void computePitchAngleDiffusionParameters(
-   SpatialCell& cell,
-   const uint popID, size_t CellIdx, bool& currentSpatialLoopComplete,
-   Realf& sparsity, std::array<Real,3>& b, Real& nu0
-   ){
-   
-   sparsity   = 0.01 * cell.getVelocityBlockMinValue(popID);
+void computePitchAngleDiffusionParameters(SpatialCell& cell, const uint popID, size_t CellIdx, bool& currentSpatialLoopComplete, Realf& sparsity, std::array<Real, 3>& b, Real& nu0) {
+
+   sparsity = 0.01 * cell.getVelocityBlockMinValue(popID);
 
    currentSpatialLoopComplete = false;
 
@@ -191,13 +184,15 @@ void computePitchAngleDiffusionParameters(
    nu0 = 0.0;
 
    // Compute b
-   const std::array<Real,3> B = {cell.parameters[CellParams::PERBXVOL] +  cell.parameters[CellParams::BGBXVOL],
-      cell.parameters[CellParams::PERBYVOL] +  cell.parameters[CellParams::BGBYVOL],
-      cell.parameters[CellParams::PERBZVOL] +  cell.parameters[CellParams::BGBZVOL]};
-   const Real Bnorm           = sqrt(B[0]*B[0] + B[1]*B[1] + B[2]*B[2]);
-   b[0] = B[0]/Bnorm;
-   b[1] = B[1]/Bnorm;
-   b[2] = B[2]/Bnorm;
+   const std::array<Real, 3> B = {
+      cell.parameters[CellParams::PERBXVOL] + cell.parameters[CellParams::BGBXVOL],
+      cell.parameters[CellParams::PERBYVOL] + cell.parameters[CellParams::BGBYVOL],
+      cell.parameters[CellParams::PERBZVOL] + cell.parameters[CellParams::BGBZVOL]
+   };
+   const Real Bnorm = sqrt(B[0] * B[0] + B[1] * B[1] + B[2] * B[2]);
+   b[0] = B[0] / Bnorm;
+   b[1] = B[1] / Bnorm;
+   b[2] = B[2] / Bnorm;
 
    if (P::PADcoefficient >= 0) {
       // User-provided single diffusion coefficient
@@ -205,13 +200,13 @@ void computePitchAngleDiffusionParameters(
    } else {
       // Use nu0 values based on Taniso and betaPara read from file
       if (!nuArrayRead) {
-         std::cerr<<" ERROR! Attempting to interpolate nu0 value but file has not been read."<<std::endl;
+         std::cerr << " ERROR! Attempting to interpolate nu0 value but file has not been read." << std::endl;
          abort();
       }
 
       // Perform Eigen rotation to find parallel and perpendicular pressure
       Eigen::Matrix3d rot = Eigen::Quaterniond::FromTwoVectors(Eigen::Vector3d{b[0], b[1], b[2]}, Eigen::Vector3d{0, 0, 1}).normalized().toRotationMatrix();
-      Eigen::Matrix3d Ptensor {
+      Eigen::Matrix3d Ptensor{
          {cell.parameters[CellParams::P_11], cell.parameters[CellParams::P_12], cell.parameters[CellParams::P_13]},
          {cell.parameters[CellParams::P_12], cell.parameters[CellParams::P_22], cell.parameters[CellParams::P_23]},
          {cell.parameters[CellParams::P_13], cell.parameters[CellParams::P_23], cell.parameters[CellParams::P_33]},
@@ -227,10 +222,10 @@ void computePitchAngleDiffusionParameters(
       // Beta Parallel
       Real betaParallel = 0.0;
       if (Bnorm > 0) {
-         betaParallel = 2.0 * physicalconstants::MU_0 * Pprime(2, 2) / (Bnorm*Bnorm);
+         betaParallel = 2.0 * physicalconstants::MU_0 * Pprime(2, 2) / (Bnorm * Bnorm);
       }
       // Find anisotropy and beta parallel indexes from read table
-      nu0 = interpolateNuFromArray(Taniso,betaParallel);
+      nu0 = interpolateNuFromArray(Taniso, betaParallel);
    }
 
    // Enable nu0 disk output; skip cells where diffusion is not required (or diffusion coefficient is very small).

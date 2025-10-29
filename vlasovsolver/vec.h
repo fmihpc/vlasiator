@@ -61,10 +61,10 @@ VEC8F_AGNER
 #define VECL (8)
 #endif
 #ifndef VEC_PER_PLANE
-const int VEC_PER_PLANE = (WID*WID/VECL);
+const int VEC_PER_PLANE = (WID * WID / VECL);
 #endif
 #ifndef VEC_PER_BLOCK
-const int VEC_PER_BLOCK = (WID*VEC_PER_PLANE);
+const int VEC_PER_BLOCK = (WID * VEC_PER_PLANE);
 #endif
 #ifndef VPREC
 #define VPREC (8)
@@ -88,7 +88,7 @@ typedef VecSimple<float> Vec;
 
 
 #ifdef VEC4D_AGNER
-//user Agner's AVX2 optimized datatypes, double precision accuracy
+// user Agner's AVX2 optimized datatypes, double precision accuracy
 #include "vectorclass.h"
 typedef Vec4d Vec;
 #if VECTORCLASS_H >= 20000
@@ -101,15 +101,15 @@ typedef Vec4db Vecb;
 #define VECL 4
 #define VPREC 8
 #ifndef VEC_PER_PLANE
-const int VEC_PER_PLANE = (WID*WID/VECL);
+const int VEC_PER_PLANE = (WID * WID / VECL);
 #endif
 #ifndef VEC_PER_BLOCK
-const int VEC_PER_BLOCK = (WID*VEC_PER_PLANE);
+const int VEC_PER_BLOCK = (WID * VEC_PER_PLANE);
 #endif
 #endif
 
 #ifdef VEC8D_AGNER
-//user Agner's AVX512 optimized datatypes, double precision accuracy
+// user Agner's AVX512 optimized datatypes, double precision accuracy
 #include "vectorclass.h"
 typedef Vec8d Vec;
 typedef Vec8i Veci;
@@ -118,15 +118,15 @@ typedef Vec8db Vecb;
 #define VECL 8
 #define VPREC 8
 #ifndef VEC_PER_PLANE
-const int VEC_PER_PLANE = (WID*WID/VECL);
+const int VEC_PER_PLANE = (WID * WID / VECL);
 #endif
 #ifndef VEC_PER_BLOCK
-const int VEC_PER_BLOCK = (WID*VEC_PER_PLANE);
+const int VEC_PER_BLOCK = (WID * VEC_PER_PLANE);
 #endif
 #endif
 
 #ifdef VEC4F_AGNER
-//user Agner's SSEx optimized datatypes, double precision accuracy
+// user Agner's SSEx optimized datatypes, double precision accuracy
 #include "vectorclass.h"
 typedef Vec4f Vec;
 typedef Vec4i Veci;
@@ -135,15 +135,15 @@ typedef Vec4fb Vecb;
 #define VECL 4
 #define VPREC 4
 #ifndef VEC_PER_PLANE
-const int VEC_PER_PLANE = (WID*WID/VECL);
+const int VEC_PER_PLANE = (WID * WID / VECL);
 #endif
 #ifndef VEC_PER_BLOCK
-const int VEC_PER_BLOCK = (WID*VEC_PER_PLANE);
+const int VEC_PER_BLOCK = (WID * VEC_PER_PLANE);
 #endif
 #endif
 
 #ifdef VEC8F_AGNER
-//user Agner's AVX2 optimized datatypes, single precision accuracy
+// user Agner's AVX2 optimized datatypes, single precision accuracy
 #include "vectorclass.h"
 typedef Vec8f Vec;
 typedef Vec8i Veci;
@@ -152,16 +152,16 @@ typedef Vec8fb Vecb;
 #define VECL 8
 #define VPREC 4
 #ifndef VEC_PER_PLANE
-const int VEC_PER_PLANE = (WID*WID/VECL);
+const int VEC_PER_PLANE = (WID * WID / VECL);
 #endif
 #ifndef VEC_PER_BLOCK
-const int VEC_PER_BLOCK = (WID*VEC_PER_PLANE);
+const int VEC_PER_BLOCK = (WID * VEC_PER_PLANE);
 #endif
 #endif
 
 
 #ifdef VEC16F_AGNER
-//user Agner's AVX512 optimized datatypes, single precision accuracy
+// user Agner's AVX512 optimized datatypes, single precision accuracy
 #include "vectorclass.h"
 typedef Vec16f Vec;
 typedef Vec16i Veci;
@@ -170,10 +170,10 @@ typedef Vec16fb Vecb;
 #define VECL 16
 #define VPREC 4
 #ifndef VEC_PER_PLANE
-const int VEC_PER_PLANE = (WID*WID/VECL);
+const int VEC_PER_PLANE = (WID * WID / VECL);
 #endif
 #ifndef VEC_PER_BLOCK
-const int VEC_PER_BLOCK = (WID*VEC_PER_PLANE);
+const int VEC_PER_BLOCK = (WID * VEC_PER_PLANE);
 #endif
 #endif
 

@@ -30,8 +30,7 @@
 
 // A 3D cartesian vector field with suitable interpolation properties for
 // particle pushing
-struct Field
-{
+struct Field {
    // Time at which this field is "valid"
    double time;
 
@@ -46,19 +45,19 @@ struct Field
 
    // Constructor (primarily here to make sure boundaries are properly initialized as zero)
    Field() {
-      for(int i=0; i<3; i++) {
+      for (int i = 0; i < 3; i++) {
          dimension[i] = nullptr;
       }
    }
 
    double* getCellRef(int x, int y, int z) {
 
-      if(dimension[2]->cells == 1) {
+      if (dimension[2]->cells == 1) {
          // Equatorial plane
-         return &(data[4*(y*dimension[0]->cells+x)]);
+         return &(data[4 * (y * dimension[0]->cells + x)]);
       } else {
          // General 3d case
-         return &(data[4*(z*dimension[0]->cells*dimension[1]->cells + y*dimension[0]->cells + x)]);
+         return &(data[4 * (z * dimension[0]->cells * dimension[1]->cells + y * dimension[0]->cells + x)]);
       }
    }
 
@@ -69,8 +68,8 @@ struct Field
       y = dimension[1]->cellCoordinate(y);
       z = dimension[2]->cellCoordinate(z);
 
-      double* cell = getCellRef(x,y,z);
-      return {cell[0],cell[1],cell[2]};
+      double* cell = getCellRef(x, y, z);
+      return {cell[0], cell[1], cell[2]};
    }
 
    // Round-Brace indexing: indexing by physical location, with interpolation
@@ -80,63 +79,55 @@ struct Field
       int32_t index[3];
       Vec3d fract;
 
-      for(int i=0; i<3; i++) {
+      for (int i = 0; i < 3; i++) {
          v[i] -= min[i];
          v[i] /= dx[i];
          index[i] = (int32_t)std::trunc(v[i]);
          fract[i] = v[i] - (double)std::trunc(v[i]);
       }
 
-      if(dimension[2]->cells <= 1) {
+      if (dimension[2]->cells <= 1) {
          // Equatorial plane
          Vec3d interp[4];
-         interp[0] = getCell(index[0],index[1],index[2]);
-         interp[1] = getCell(index[0]+1,index[1],index[2]);
-         interp[2] = getCell(index[0],index[1]+1,index[2]);
-         interp[3] = getCell(index[0]+1,index[1]+1,index[2]);
+         interp[0] = getCell(index[0], index[1], index[2]);
+         interp[1] = getCell(index[0] + 1, index[1], index[2]);
+         interp[2] = getCell(index[0], index[1] + 1, index[2]);
+         interp[3] = getCell(index[0] + 1, index[1] + 1, index[2]);
 
-         return fract[0]*(fract[1]*interp[3]+(1.-fract[1])*interp[1])
-            + (1.-fract[0])*(fract[1]*interp[2]+(1.-fract[1])*interp[0]);
+         return fract[0] * (fract[1] * interp[3] + (1. - fract[1]) * interp[1]) + (1. - fract[0]) * (fract[1] * interp[2] + (1. - fract[1]) * interp[0]);
       } else if (dimension[1]->cells <= 1) {
          // Polar plane
          Vec3d interp[4];
 
-         interp[0] = getCell(index[0],index[1],index[2]);
-         interp[1] = getCell(index[0]+1,index[1],index[2]);
-         interp[2] = getCell(index[0],index[1],index[2]+1);
-         interp[3] = getCell(index[0]+1,index[1],index[2]+1);
+         interp[0] = getCell(index[0], index[1], index[2]);
+         interp[1] = getCell(index[0] + 1, index[1], index[2]);
+         interp[2] = getCell(index[0], index[1], index[2] + 1);
+         interp[3] = getCell(index[0] + 1, index[1], index[2] + 1);
 
-         return fract[0]*(fract[2]*interp[3]+(1.-fract[2])*interp[1])
-            + (1.-fract[0])*(fract[2]*interp[2]+(1.-fract[2])*interp[0]);
+         return fract[0] * (fract[2] * interp[3] + (1. - fract[2]) * interp[1]) + (1. - fract[0]) * (fract[2] * interp[2] + (1. - fract[2]) * interp[0]);
       } else {
          // Proper 3D
          Vec3d interp[8];
-         interp[0] = getCell(index[0],index[1],index[2]);
-         interp[1] = getCell(index[0]+1,index[1],index[2]);
-         interp[2] = getCell(index[0],index[1]+1,index[2]);
-         interp[3] = getCell(index[0]+1,index[1]+1,index[2]);
-         interp[4] = getCell(index[0],index[1],index[2]+1);
-         interp[5] = getCell(index[0]+1,index[1],index[2]+1);
-         interp[6] = getCell(index[0],index[1]+1,index[2]+1);
-         interp[7] = getCell(index[0]+1,index[1]+1,index[2]+1);
-         return fract[2] * (
-               fract[0]*(fract[1]*interp[3]+(1.-fract[1])*interp[1])
-               + (1.-fract[0])*(fract[1]*interp[2]+(1.-fract[1])*interp[0]))
-            + (1.-fract[2]) * (
-                  fract[0]*(fract[1]*interp[7]+(1.-fract[1])*interp[5])
-                  + (1.-fract[0])*(fract[1]*interp[6]+(1.-fract[1])*interp[4]));
+         interp[0] = getCell(index[0], index[1], index[2]);
+         interp[1] = getCell(index[0] + 1, index[1], index[2]);
+         interp[2] = getCell(index[0], index[1] + 1, index[2]);
+         interp[3] = getCell(index[0] + 1, index[1] + 1, index[2]);
+         interp[4] = getCell(index[0], index[1], index[2] + 1);
+         interp[5] = getCell(index[0] + 1, index[1], index[2] + 1);
+         interp[6] = getCell(index[0], index[1] + 1, index[2] + 1);
+         interp[7] = getCell(index[0] + 1, index[1] + 1, index[2] + 1);
+         return fract[2] * (fract[0] * (fract[1] * interp[3] + (1. - fract[1]) * interp[1]) + (1. - fract[0]) * (fract[1] * interp[2] + (1. - fract[1]) * interp[0])) +
+                (1. - fract[2]) * (fract[0] * (fract[1] * interp[7] + (1. - fract[1]) * interp[5]) + (1. - fract[0]) * (fract[1] * interp[6] + (1. - fract[1]) * interp[4]));
       }
-
    }
    virtual Vec3d operator()(double x, double y, double z) {
-      Vec3d v(x,y,z);
+      Vec3d v(x, y, z);
       return operator()(v);
    }
-
 };
 
 // Linear Temporal interpolation between two input fields
-struct Interpolated_Field : Field{
+struct Interpolated_Field : Field {
    Field &a, &b;
    double t;
 
@@ -144,14 +135,13 @@ struct Interpolated_Field : Field{
     * Inputs are the two fields to interpolate between
     * and the current time.
     */
-   Interpolated_Field(Field& _a, Field& _b, float _t) : a(_a),b(_b),t(_t) {
-   }
+   Interpolated_Field(Field& _a, Field& _b, float _t) : a(_a), b(_b), t(_t) {}
 
    virtual Vec3d operator()(Vec3d v) {
-      Vec3d aval=a(v);
-      Vec3d bval=b(v);
+      Vec3d aval = a(v);
+      Vec3d bval = b(v);
 
-      double fract = (t - a.time)/(b.time-a.time);
-      return fract*bval + (1.-fract)*aval;
+      double fract = (t - a.time) / (b.time - a.time);
+      return fract * bval + (1. - fract) * aval;
    }
 };

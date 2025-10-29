@@ -1,4 +1,4 @@
-#!/usr/bin/gnuplot 
+#!/usr/bin/gnuplot
 
 set terminal pngcairo
 set output "PERBX_fsgrid.png"

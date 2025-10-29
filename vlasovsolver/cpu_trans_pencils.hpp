@@ -35,29 +35,29 @@ struct setOfPencils {
 
    uint N; // Number of pencils in the set
    uint sumOfLengths;
-   std::vector< uint > lengthOfPencils; // Lengths of pencils (including stencil cells)
-   std::vector< CellID > ids; // List of pencil cells (including stencil cells)
-   std::vector< uint > idsStart; // List of where a pencil's CellIDs start in the ids array
-   std::vector< Realf > sourceDZ; // Widths of source cells
-   std::vector< Realf > targetRatios; // Pencil to target cell area ratios of target cells
-   std::vector< Real > x,y; // x,y - position
-   std::vector< bool > periodic;
-   std::vector< std::vector<uint> > path; // Path taken through refinement levels
+   std::vector<uint> lengthOfPencils; // Lengths of pencils (including stencil cells)
+   std::vector<CellID> ids;           // List of pencil cells (including stencil cells)
+   std::vector<uint> idsStart;        // List of where a pencil's CellIDs start in the ids array
+   std::vector<Realf> sourceDZ;       // Widths of source cells
+   std::vector<Realf> targetRatios;   // Pencil to target cell area ratios of target cells
+   std::vector<Real> x, y;            // x,y - position
+   std::vector<bool> periodic;
+   std::vector<std::vector<uint>> path; // Path taken through refinement levels
 
-   std::vector<uint> binOfPencil; //!< Bin of each pencil
-   std::map<uint, std::vector<uint>> pencilsInBin; //!< Vector of pencils in each bin
+   std::vector<uint> binOfPencil;                     //!< Bin of each pencil
+   std::map<uint, std::vector<uint>> pencilsInBin;    //!< Vector of pencils in each bin
    std::map<uint, std::set<CellID>> targetCellsInBin; //!< Set of source and target cells in each bin which are a target cell of any pencil
-   std::vector<uint> activeBins; //!< set of keys in the above two maps
+   std::vector<uint> activeBins;                      //!< set of keys in the above two maps
 
-   //GPUTODO: move gpu buffers and their upload to separate gpu_trans_pencils .hpp and .cpp files
+   // GPUTODO: move gpu buffers and their upload to separate gpu_trans_pencils .hpp and .cpp files
 #ifdef USE_GPU
    uint gpu_allocated_N = 0;
    uint gpu_allocated_sumOfLengths = 0;
    // Pointers to GPU copies of vectors
-   uint *gpu_lengthOfPencils;
-   uint *gpu_idsStart;
-   Realf *gpu_sourceDZ;
-   Realf *gpu_targetRatios;
+   uint* gpu_lengthOfPencils;
+   uint* gpu_idsStart;
+   Realf* gpu_sourceDZ;
+   Realf* gpu_targetRatios;
    std::string dev_pencilsInBin = "null";
    std::string host_binStart = "null";
    std::string host_binSize = "null";
@@ -93,18 +93,17 @@ struct setOfPencils {
       N++;
       // If necessary, add the zero cells to the beginning and end
       if (idsIn.front() != 0) {
-         idsIn.insert(idsIn.begin(),VLASOV_STENCIL_WIDTH,0);
+         idsIn.insert(idsIn.begin(), VLASOV_STENCIL_WIDTH, 0);
       }
       if (idsIn.back() != 0) {
-         for (int i = 0; i < VLASOV_STENCIL_WIDTH; i++)
-         {
+         for (int i = 0; i < VLASOV_STENCIL_WIDTH; i++) {
             idsIn.push_back(0);
          }
       }
       sumOfLengths += idsIn.size();
       lengthOfPencils.push_back(idsIn.size());
       idsStart.push_back(ids.size());
-      ids.insert(ids.end(),idsIn.begin(),idsIn.end());
+      ids.insert(ids.end(), idsIn.begin(), idsIn.end());
       sourceDZ.resize(sumOfLengths);
       targetRatios.resize(sumOfLengths);
       x.push_back(xIn);
@@ -195,40 +194,40 @@ struct setOfPencils {
    }
 
    #ifdef USE_GPU
-   void gpuBins(){
+   void gpuBins() {
       gpuMemoryManager.createPointer("dev_pencilsInBin", dev_pencilsInBin);
       gpuMemoryManager.createPointer("host_binStart", host_binStart);
       gpuMemoryManager.createPointer("host_binSize", host_binSize);
       gpuMemoryManager.createPointer("dev_binStart", dev_binStart);
       gpuMemoryManager.createPointer("dev_binSize", dev_binSize);
-      
-      gpuMemoryManager.allocate(dev_pencilsInBin, sumOfLengths*sizeof(uint));
-      gpuMemoryManager.hostAllocate(host_binStart, activeBins.size()*sizeof(uint));
-      gpuMemoryManager.hostAllocate(host_binSize, activeBins.size()*sizeof(uint));
-      gpuMemoryManager.allocate(dev_binStart, activeBins.size()*sizeof(uint));
-      gpuMemoryManager.allocate(dev_binSize, activeBins.size()*sizeof(uint));
 
-      uint *dev_pencilsInBinPointer = gpuMemoryManager.getPointer<uint>(dev_pencilsInBin);
-      uint *host_binStartPointer = gpuMemoryManager.getPointer<uint>(host_binStart);
-      uint *host_binSizePointer = gpuMemoryManager.getPointer<uint>(host_binSize);
-      uint *dev_binStartPointer = gpuMemoryManager.getPointer<uint>(dev_binStart);
-      uint *dev_binSizePointer = gpuMemoryManager.getPointer<uint>(dev_binSize);
+      gpuMemoryManager.allocate(dev_pencilsInBin, sumOfLengths * sizeof(uint));
+      gpuMemoryManager.hostAllocate(host_binStart, activeBins.size() * sizeof(uint));
+      gpuMemoryManager.hostAllocate(host_binSize, activeBins.size() * sizeof(uint));
+      gpuMemoryManager.allocate(dev_binStart, activeBins.size() * sizeof(uint));
+      gpuMemoryManager.allocate(dev_binSize, activeBins.size() * sizeof(uint));
+
+      uint* dev_pencilsInBinPointer = gpuMemoryManager.getPointer<uint>(dev_pencilsInBin);
+      uint* host_binStartPointer = gpuMemoryManager.getPointer<uint>(host_binStart);
+      uint* host_binSizePointer = gpuMemoryManager.getPointer<uint>(host_binSize);
+      uint* dev_binStartPointer = gpuMemoryManager.getPointer<uint>(dev_binStart);
+      uint* dev_binSizePointer = gpuMemoryManager.getPointer<uint>(dev_binSize);
 
       int offset = 0;
-      for(size_t bin = 0; bin < activeBins.size(); bin++){
+      for (size_t bin = 0; bin < activeBins.size(); bin++) {
          uint thisBin = activeBins[bin];
          host_binStartPointer[bin] = offset;
 
          uint binSize = pencilsInBin[thisBin].size();
          host_binSizePointer[bin] = binSize;
 
-         CHK_ERR( gpuMemcpy(dev_pencilsInBinPointer + offset, pencilsInBin[thisBin].data(), binSize * sizeof(uint), gpuMemcpyHostToDevice) );
+         CHK_ERR(gpuMemcpy(dev_pencilsInBinPointer + offset, pencilsInBin[thisBin].data(), binSize * sizeof(uint), gpuMemcpyHostToDevice));
 
          offset += binSize;
       }
 
-      CHK_ERR( gpuMemcpy(dev_binStartPointer, host_binStartPointer, activeBins.size() * sizeof(uint), gpuMemcpyHostToDevice) );
-      CHK_ERR( gpuMemcpy(dev_binSizePointer, host_binSizePointer, activeBins.size() * sizeof(uint), gpuMemcpyHostToDevice) );
+      CHK_ERR(gpuMemcpy(dev_binStartPointer, host_binStartPointer, activeBins.size() * sizeof(uint), gpuMemcpyHostToDevice));
+      CHK_ERR(gpuMemcpy(dev_binSizePointer, host_binSizePointer, activeBins.size() * sizeof(uint), gpuMemcpyHostToDevice));
    }
    #endif
 
@@ -240,9 +239,9 @@ struct setOfPencils {
       path.erase(path.begin() + pencilId);
 
       uint ibeg = idsStart[pencilId];
-      ids.erase(ids.begin() + ibeg, ids.begin() + ibeg + lengthOfPencils[pencilId] + 2*VLASOV_STENCIL_WIDTH);
-      targetRatios.erase(targetRatios.begin() + ibeg, targetRatios.begin() + ibeg + lengthOfPencils[pencilId] + 2*VLASOV_STENCIL_WIDTH);
-      sourceDZ.erase(sourceDZ.begin() + ibeg, sourceDZ.begin() + ibeg + lengthOfPencils[pencilId] + 2*VLASOV_STENCIL_WIDTH);
+      ids.erase(ids.begin() + ibeg, ids.begin() + ibeg + lengthOfPencils[pencilId] + 2 * VLASOV_STENCIL_WIDTH);
+      targetRatios.erase(targetRatios.begin() + ibeg, targetRatios.begin() + ibeg + lengthOfPencils[pencilId] + 2 * VLASOV_STENCIL_WIDTH);
+      sourceDZ.erase(sourceDZ.begin() + ibeg, sourceDZ.begin() + ibeg + lengthOfPencils[pencilId] + 2 * VLASOV_STENCIL_WIDTH);
       idsStart.erase(idsStart.begin() + pencilId);
 
       N--;
@@ -257,7 +256,7 @@ struct setOfPencils {
       }
       // Use vector range constructor. Only return actual pencil ids, not the stencils at the ends
       std::vector<CellID>::const_iterator ibeg = ids.begin() + idsStart[pencilId] + VLASOV_STENCIL_WIDTH;
-      std::vector<CellID>::const_iterator iend = ibeg + lengthOfPencils[pencilId] - 2*VLASOV_STENCIL_WIDTH;
+      std::vector<CellID>::const_iterator iend = ibeg + lengthOfPencils[pencilId] - 2 * VLASOV_STENCIL_WIDTH;
       std::vector<CellID> idsOut(ibeg, iend);
       return idsOut;
    }
@@ -273,7 +272,7 @@ struct setOfPencils {
 
 #pragma omp parallel for
       for (uint theirPencilId = 0; theirPencilId < this->N; ++theirPencilId) {
-         if(theirPencilId == myPencilId) {
+         if (theirPencilId == myPencilId) {
             continue;
          }
          auto theirIds = this->getIds(theirPencilId);
@@ -282,15 +281,15 @@ struct setOfPencils {
                if (myId == theirId) {
                   std::vector<uint> theirPath = this->path.at(theirPencilId);
                   std::vector<uint> myPath = this->path.at(myPencilId);
-                  if(theirPath.size() > myPath.size()) {
+                  if (theirPath.size() > myPath.size()) {
                      bool samePath = true;
                      for (uint i = 0; i < myPath.size(); ++i) {
-                        if(myPath.at(i) != theirPath.at(i)) {
+                        if (myPath.at(i) != theirPath.at(i)) {
                            samePath = false;
                         }
                      }
 
-                     if(samePath) {
+                     if (samePath) {
                         uint theirStep = theirPath.at(myPath.size());
 #pragma omp critical
                         {
@@ -310,18 +309,18 @@ struct setOfPencils {
 
       // Add those pencils whose steps dont already exist in the pencils struct
       for (int step = 0; step < 4; ++step) {
-         if (std::any_of(existingSteps.begin(), existingSteps.end(), [step](int i){return step == i;})) {
+         if (std::any_of(existingSteps.begin(), existingSteps.end(), [step](int i) { return step == i; })) {
             continue;
          }
 
          Real signX = 1.0;
          Real signY = 1.0;
 
-         if(step < 2) {
+         if (step < 2) {
             signY = -1.0;
          }
 
-         if(step % 2 == 0) {
+         if (step % 2 == 0) {
             signX = -1.0;
          }
 
@@ -329,7 +328,7 @@ struct setOfPencils {
          auto myY = copy_of_y + signY * 0.25 * dy;
 
          if (firstPencil) {
-            //TODO: set x and y correctly. Right now they are not used anywhere.
+            // TODO: set x and y correctly. Right now they are not used anywhere.
             path.at(myPencilId).push_back(step);
             x.at(myPencilId) = myX;
             y.at(myPencilId) = myY;
@@ -347,17 +346,15 @@ struct setOfPencils {
 bool do_translate_cell(spatial_cell::SpatialCell* SC);
 
 // grid.cpp calls this function to both find seed cells and build pencils for all dimensions
-void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid);
 // find seed cells and build pencils for one dimension
-void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                              const uint dimension);
+void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const uint dimension);
 
 // pencils used for AMR translation
-extern std::array<setOfPencils,3> DimensionPencils;
+extern std::array<setOfPencils, 3> DimensionPencils;
 
 // Ghost translation cell lists (no interim comms)
-void prepareGhostTranslationCellLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                      const std::vector<CellID>& localPropagatedCells);
+void prepareGhostTranslationCellLists(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const std::vector<CellID>& localPropagatedCells);
 
 // defined in cpu_trans_map_amr.cpp
 extern std::unordered_set<CellID> ghostTranslate_sources_x;
