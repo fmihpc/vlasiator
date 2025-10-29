@@ -365,6 +365,7 @@ std::array<Real, 3> interpolateCurlB(
       );
    }
 
+   // clang-format off
    std::array<Real, 3> interpolatedCurlB;
    interpolatedCurlB[0] = (
        12*rc[Rec::c_yzz]*xLocal[2]*xLocal[2]
@@ -422,6 +423,7 @@ std::array<Real, 3> interpolateCurlB(
       +rc[Rec::a_xxy]
       )/12;
    return interpolatedCurlB;
+   // clang-format on
 #else // Not BALSARA_CURLB_IMPLEMENTATION
 
    // Alternative implementation using linear interpolation of volume fields for curlB lookup.
