@@ -147,7 +147,7 @@ __global__ void __launch_bounds__(WID3) translation_kernel(
          for (uint celli = 0; celli < lengthOfPencil; celli++) {
             const vmesh::VelocityMesh* __restrict__ vmesh = dev_allPencilsMeshes[start + celli];
             vmesh::VelocityBlockContainer* cellContainer = dev_allPencilsContainers[start + celli];
-// Now using warp accessor.
+            // Now using warp accessor.
             #ifdef USE_TRANS_WARPACCESSORS
             const vmesh::LocalID blockLID = vmesh->warpGetLocalID(blockGID, ti);
             #else
@@ -694,7 +694,7 @@ void update_remote_mapping_contribution_amr(dccrg::Dccrg<SpatialCell, dccrg::Car
    vector<uint> receive_origin_index;
 
    phiprof::Timer updateRemoteTimerPre{"trans-amr-remotes-setup-getcells"};
-// Initialize remote cells
+   // Initialize remote cells
    #pragma omp parallel for
    for (auto rc : remote_cells) {
       SpatialCell* ccell = mpiGrid[rc];
@@ -708,7 +708,7 @@ void update_remote_mapping_contribution_amr(dccrg::Dccrg<SpatialCell, dccrg::Car
       }
    }
 
-// Initialize local cells
+   // Initialize local cells
    #pragma omp parallel for
    for (auto lc : local_cells) {
       SpatialCell* ccell = mpiGrid[lc];

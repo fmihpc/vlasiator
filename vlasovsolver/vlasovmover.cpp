@@ -401,7 +401,7 @@ void calculateAcceleration(
    rndState.seed(P::tstep);
    uint map_order = std::uniform_int_distribution<>(0, 2)(rndState);
 
-// Calculate length of step for each cell
+   // Calculate length of step for each cell
    #pragma omp parallel for
    for (size_t c = 0; c < acceleratedCells.size(); ++c) {
       const CellID cellID = acceleratedCells[c];
@@ -496,7 +496,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>&
                 (P::vlasovAccelerateMaxwellianBoundaries && (SC->sysBoundaryFlag == sysboundarytype::MAXWELLIAN))) {
                uint blockCount = vmesh->size();
                if (blockCount != 0) {
-// do not propagate spatial cells with no blocks
+                  // do not propagate spatial cells with no blocks
                   #pragma omp critical
                   {
                      acceleratedCells.push_back(cells[c]);
@@ -542,7 +542,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>&
    // Recalculate "_V" velocity moments
    calculateMoments_V(mpiGrid, cells, true, (dt == 0));
 
-// Set CellParams::MAXVDT to be the minimum dt of all per-species values
+   // Set CellParams::MAXVDT to be the minimum dt of all per-species values
    #pragma omp parallel for
    for (size_t c = 0; c < cells.size(); ++c) {
       SpatialCell* cell = mpiGrid[cells[c]];
@@ -607,9 +607,9 @@ void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_
    const vector<CellID>& cells = getLocalCells();
    phiprof::Timer timer{"Calculate moments"};
 
-// Iterate through all local cells (incl. system boundary cells):
-// Setting the GPU device inside the moment call itself, because
-// it's being called from so many different projects etc
+   // Iterate through all local cells (incl. system boundary cells):
+   // Setting the GPU device inside the moment call itself, because
+   // it's being called from so many different projects etc
    #pragma omp parallel for
    for (size_t c = 0; c < cells.size(); ++c) {
       const CellID cellID = cells[c];

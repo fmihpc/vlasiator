@@ -383,7 +383,7 @@ namespace spatial_cell {
       }
 
       if (maxNeighbors > 0 && largestContentListNeighbors > 0) {
-// largestContentListNeighbors accounts for remote (ghost neighbor) content list sizes as well
+         // largestContentListNeighbors accounts for remote (ghost neighbor) content list sizes as well
       #ifdef USE_BATCH_WARPACCESSORS
          // ceil int division
          const size_t blocksNeeded_neigh = 1 + ((largestContentListNeighbors - 1) / (WARPSPERBLOCK));

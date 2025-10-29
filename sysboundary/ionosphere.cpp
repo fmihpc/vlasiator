@@ -1043,7 +1043,7 @@ namespace SBC {
       }
       Real potential = 0;
 
-// Do we have a stored coupling for these coordinates already?
+      // Do we have a stored coupling for these coordinates already?
       #pragma omp critical(coupling)
       {
          if (vlasovGridCoupling.find(x) == vlasovGridCoupling.end()) {
@@ -1804,7 +1804,7 @@ namespace SBC {
                N.parameters[ionosphereParameters::ZZPARAM] = Asolve(n, ionosphereParameters::RRESIDUAL, true);
             }
 
-// Calculate bk and gradient vector p
+            // Calculate bk and gradient vector p
          #pragma omp single
             {
                bknum = 0;
@@ -1857,7 +1857,7 @@ namespace SBC {
 #endif
 
             if (counter == 1) {
-// Just use the gradient vector as-is, starting from the best known solution
+               // Just use the gradient vector as-is, starting from the best known solution
             #pragma omp for
                for (uint n = 0; n < nodes.size(); n++) {
                   Node& N = nodes[n];
@@ -1881,7 +1881,7 @@ namespace SBC {
                bkden = 1;
             }
 
-// Calculate ak, new solution and new residual
+            // Calculate ak, new solution and new residual
          #pragma omp single
             {
                akden = 0;
@@ -1963,13 +1963,13 @@ namespace SBC {
 
                   potentialInt += effPotential * area;
                }
-// Calculate average potential on the sphere
+               // Calculate average potential on the sphere
             #pragma omp single
                {
                   potentialInt /= 4. * M_PI * Ionosphere::innerRadius * Ionosphere::innerRadius;
                }
 
-// Offset potentials to make it zero
+               // Offset potentials to make it zero
             #pragma omp for
                for (uint n = 0; n < nodes.size(); n++) {
                   Node& N = nodes[n];
@@ -2041,7 +2041,7 @@ namespace SBC {
             err = sqrt(residualnorm) / sourcenorm;
 
             if (err < thread_minerr) {
-// If yes, this is our new best solution
+               // If yes, this is our new best solution
             #pragma omp for
                for (uint n = 0; n < nodes.size(); n++) {
                   Node& N = nodes[n];
@@ -2050,7 +2050,7 @@ namespace SBC {
                thread_minerr = err;
                failcount = 0;
             } else {
-// If no, keep going with the best one
+               // If no, keep going with the best one
             #pragma omp for
                for (uint n = 0; n < nodes.size(); n++) {
                   Node& N = nodes[n];

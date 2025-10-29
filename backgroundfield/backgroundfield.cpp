@@ -60,7 +60,7 @@ void setBackgroundField(const FieldFunction& bgFunction, FsGrid<std::array<Real,
       int loopFaceId{phiprof::initializeTimer("loop-face-averages")};
       int loopVolumeId{phiprof::initializeTimer("loop-volume-averages")};
 
-// These are threaded now that the dipole field is threadsafe
+      // These are threaded now that the dipole field is threadsafe
       #pragma omp parallel for collapse(2)
       for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
          for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {

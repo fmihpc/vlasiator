@@ -103,7 +103,7 @@ namespace FieldTracing {
 
          #pragma omp parallel
          {
-// Trace node coordinates outwards until a non-sysboundary cell is encountered or the local fsgrid domain has been left.
+            // Trace node coordinates outwards until a non-sysboundary cell is encountered or the local fsgrid domain has been left.
             #pragma omp for schedule(dynamic)
             for (uint n = 0; n < nodes.size(); n++) {
 
@@ -515,7 +515,7 @@ namespace FieldTracing {
 
          #pragma omp parallel
          {
-// Trace node coordinates outwards until a non-sysboundary cell is encountered or the local fsgrid domain has been left.
+            // Trace node coordinates outwards until a non-sysboundary cell is encountered or the local fsgrid domain has been left.
             #pragma omp for schedule(dynamic)
             for (uint n = 0; n < nodes.size(); n++) {
 
@@ -973,7 +973,7 @@ namespace FieldTracing {
             {
                itCount++;
             }
-// Trace node coordinates forward and backwards until a non-sysboundary cell is encountered or the local fsgrid domain has been left.
+            // Trace node coordinates forward and backwards until a non-sysboundary cell is encountered or the local fsgrid domain has been left.
             #pragma omp for schedule(dynamic)
             for (int n = 0; n < globalDccrgSize; n++) {
                if (cellFWConnection[n] % TracingLineEndType::N_TYPES == TracingLineEndType::UNPROCESSED) {

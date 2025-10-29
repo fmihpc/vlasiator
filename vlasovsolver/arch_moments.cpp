@@ -166,8 +166,8 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell, const bool& computeSe
 */
 void calculateMoments_R(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const std::vector<CellID>& cells, const bool& computeSecond, const bool initialCompute) {
 
-// override with optimized GPU version to launch
-// single kernel accessing all cells at once (10x faster)
+   // override with optimized GPU version to launch
+   // single kernel accessing all cells at once (10x faster)
    #ifdef USE_GPU
    gpu_calculateMoments_R(mpiGrid, cells, computeSecond, initialCompute);
    return;
@@ -319,8 +319,8 @@ void calculateMoments_R(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mp
 */
 void calculateMoments_V(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const std::vector<CellID>& cells, const bool& computeSecond, const bool initialCompute) {
 
-// override with optimized GPU version to launch
-// single kernel accessing all cells at once (10x faster)
+   // override with optimized GPU version to launch
+   // single kernel accessing all cells at once (10x faster)
    #ifdef USE_GPU
    gpu_calculateMoments_V(mpiGrid, cells, computeSecond, initialCompute);
    return;
