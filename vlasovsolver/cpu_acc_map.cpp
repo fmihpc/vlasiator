@@ -357,7 +357,7 @@ bool map_1d(SpatialCell* spatial_cell, const uint popID, Real in_intersection, R
              Note that the i dimension is vectorized, and thus there are no loops over i
          */
          for (int j = 0; j < WID; j += VECL / WID) {
-// create vectors with the i and j indices in the vector position on the plane.
+            // create vectors with the i and j indices in the vector position on the plane.
             #if VECL == 4 && WID == 4
             const Veci i_indices = Veci({0, 1, 2, 3});
             const Veci j_indices = Veci({j, j, j, j});
@@ -445,9 +445,9 @@ bool map_1d(SpatialCell* spatial_cell, const uint popID, Real in_intersection, R
 
             // loop through all blocks in column and compute the mapping as integrals.
             for (uint k = 0; k < WID * n_cblocks; ++k) {
-// Compute reconstructions
-// values + i_pcolumnv(n_cblocks, -1, j, 0) is the starting point of the column data for fixed j
-// k + WID is the index where we have stored k index, WID amount of padding.
+               // Compute reconstructions
+               // values + i_pcolumnv(n_cblocks, -1, j, 0) is the starting point of the column data for fixed j
+               // k + WID is the index where we have stored k index, WID amount of padding.
                #ifdef ACC_SEMILAG_PLM
                Vec a[2];
                compute_plm_coeff(values + valuesColumnOffset + i_pcolumnv(j, 0, -1, n_cblocks), k + WID, a, spatial_cell->getVelocityBlockMinValue(popID));
@@ -499,7 +499,7 @@ bool map_1d(SpatialCell* spatial_cell, const uint popID, Real in_intersection, R
                   /*shift, old right is new left*/
                   const Vec target_density_l = target_density_r;
 
-// compute right integrand
+                  // compute right integrand
                   #ifdef ACC_SEMILAG_PLM
                   target_density_r = v_norm_r * (a[0] + v_norm_r * a[1]);
                   #endif

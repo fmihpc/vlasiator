@@ -453,7 +453,7 @@ __global__ void __launch_bounds__(WID3, 4) update_velocity_blocks_kernel(
       }
       __syncthreads();
 
-// Delete from vmesh
+      // Delete from vmesh
       #ifdef USE_WARPACCESSORS
       vmesh->warpDeleteBlock(rmGID, rmLID, b_tid);
       #else
@@ -554,7 +554,7 @@ __global__ void __launch_bounds__(WID3, 4) update_velocity_blocks_kernel(
          __syncthreads();
 
       } else {
-// Second option: add new block instead
+         // Second option: add new block instead
          #ifdef DEBUG_SPATIAL_CELL
          replaceGID = list_with_replace_new->at(index - n_with_replace_old);
          #else
@@ -569,7 +569,7 @@ __global__ void __launch_bounds__(WID3, 4) update_velocity_blocks_kernel(
          }
          __syncthreads();
       }
-// Remove hashmap entry for removed block, add instead created block
+      // Remove hashmap entry for removed block, add instead created block
       #ifdef USE_WARPACCESSORS
       vmesh->warpReplaceBlock(rmGID, rmLID, replaceGID, b_tid);
       #else
@@ -638,7 +638,7 @@ __global__ void __launch_bounds__(WID3, 4) update_velocity_blocks_kernel(
       }
       __syncthreads();
 
-// Insert new hashmap entry into vmesh
+      // Insert new hashmap entry into vmesh
       #ifdef USE_WARPACCESSORS
       vmesh->warpPlaceBlock(addGID, addLID, b_tid);
       #else

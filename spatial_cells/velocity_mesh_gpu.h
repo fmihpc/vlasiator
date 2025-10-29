@@ -348,7 +348,7 @@ namespace vmesh {
       }
       #endif
 
-// at-function will throw out_of_range exception for non-existing global ID:
+      // at-function will throw out_of_range exception for non-existing global ID:
       #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
       globalToLocalMap.set_element(moveGID, targetLID);
       globalToLocalMap.device_erase(removeGID);
@@ -378,7 +378,7 @@ namespace vmesh {
       // Calculate block global ID:
       vmesh::GlobalID blockGID = getGlobalID(i_block, j_block, k_block);
 
-// If the block exists, return it:
+      // If the block exists, return it:
       #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
       if (globalToLocalMap.device_count(blockGID) != 0) {
       #else
@@ -1069,7 +1069,7 @@ namespace vmesh {
       return blocksSize;
    }
    ARCH_DEV inline void VelocityMesh::warpReplaceBlock(const vmesh::GlobalID GIDold, const vmesh::LocalID LID, const vmesh::GlobalID GIDnew, const size_t b_tid) {
-// Inserts a (possibly new) block into the vmesh at a given position, and removes the existing block from there.
+      // Inserts a (possibly new) block into the vmesh at a given position, and removes the existing block from there.
       #ifdef DEBUG_VMESH
       if (b_tid == 0) {
          if (LID > size() - 1) {
@@ -1151,7 +1151,7 @@ namespace vmesh {
          }
          #else
          bool newlyadded = globalToLocalMap.warpInsert_V(GIDnew, LID, b_tid);
-// globalToLocalMap.warpInsert(GIDnew,LID,b_tid);
+         // globalToLocalMap.warpInsert(GIDnew,LID,b_tid);
          #endif
       }
       //__syncthreads(); // not needed

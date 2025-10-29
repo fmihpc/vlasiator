@@ -48,7 +48,7 @@ void cpu_accelerate_cells(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& 
 
    #pragma omp parallel // Launch workshare region
    {
-// Calculate intersections (should be constant cost per cell)
+      // Calculate intersections (should be constant cost per cell)
       #pragma omp for schedule(static,1)
       for (size_t c = 0; c < acceleratedCells.size(); ++c) {
          const CellID cellID = acceleratedCells[c];
@@ -57,8 +57,8 @@ void cpu_accelerate_cells(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& 
          compute_cell_intersections(SC, popID, map_order, pop.subcycleDt, intersections_id);
       }
       #pragma omp barrier
-// Semi-Lagrangian acceleration for all cells active in this subcycle,
-// dimension-by-dimension. Dynamic cost due to varying block counts.
+      // Semi-Lagrangian acceleration for all cells active in this subcycle,
+      // dimension-by-dimension. Dynamic cost due to varying block counts.
       #pragma omp for schedule(dynamic,1)
       for (size_t c = 0; c < acceleratedCells.size(); ++c) {
          const CellID cellID = acceleratedCells[c];
