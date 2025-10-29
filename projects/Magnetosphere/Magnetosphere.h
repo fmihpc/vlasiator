@@ -40,38 +40,29 @@ namespace projects {
       Real taperOuterRadius;
    };
 
-   class Magnetosphere: public TriAxisSearch {
-    public:
+   class Magnetosphere : public TriAxisSearch {
+   public:
       Magnetosphere();
       virtual ~Magnetosphere();
-      
+
       virtual bool initialize(void) override;
       static void addParameters(void);
       virtual void getParameters(void) override;
       virtual void setProjectBField(
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
+         FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+         FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+         FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid
       ) override;
 
-      virtual Realf fillPhaseSpace(spatial_cell::SpatialCell *cell,
-                                  const uint popID,
-                                  const uint nRequested) const override;
-      virtual Realf probePhaseSpace(spatial_cell::SpatialCell *cell,
-                                    const uint popID,
-                                    Real vx_in, Real vy_in, Real vz_in) const override;
+      virtual Realf fillPhaseSpace(spatial_cell::SpatialCell* cell, const uint popID, const uint nRequested) const override;
+      virtual Realf probePhaseSpace(spatial_cell::SpatialCell* cell, const uint popID, Real vx_in, Real vy_in, Real vz_in) const override;
 
-      bool refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const override;
-      bool forceRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, int n ) const override;
+      bool refineSpatialCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) const override;
+      bool forceRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, int n) const override;
       Real geometryRadius(Real x, Real y, Real z) const;
-      virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) override;
-      virtual std::vector<std::array<Real, 3> > getV0(
-                                                      creal x,
-                                                      creal y,
-                                                      creal z,
-                                                      const uint popID
-                                                     ) const override;
-      
+      virtual void calcCellParameters(spatial_cell::SpatialCell* cell, creal& t) override;
+      virtual std::vector<std::array<Real, 3>> getV0(creal x, creal y, creal z, const uint popID) const override;
+
       std::array<Real, 3> constBgB;
       bool noDipoleInSW;
       Real ionosphereRadius;
@@ -101,11 +92,10 @@ namespace projects {
       Real dipoleXFull;
       Real dipoleXZero;
       Real dipoleInflowB[3];
-      Real zeroOutComponents[3]; //0->x,1->y,2->z
+      Real zeroOutComponents[3]; // 0->x,1->y,2->z
 
       std::vector<MagnetosphereSpeciesParameters> speciesParams;
    }; // class Magnetosphere
 } // namespace projects
 
 #endif
-

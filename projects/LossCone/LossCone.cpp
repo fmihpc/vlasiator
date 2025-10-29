@@ -38,11 +38,10 @@ using namespace spatial_cell;
 
 Real projects::LossCone::rndRho, projects::LossCone::rndVel[3];
 
-
 namespace projects {
-   LossCone::LossCone(): TriAxisSearch() { }
-   LossCone::~LossCone() { }
-   bool LossCone::initialize(void) {return Project::initialize();}
+   LossCone::LossCone() : TriAxisSearch() {}
+   LossCone::~LossCone() {}
+   bool LossCone::initialize(void) { return Project::initialize(); }
 
    void LossCone::addParameters() {
       typedef Readparameters RP;
@@ -54,7 +53,7 @@ namespace projects {
       RP::add("LossCone.magZPertAbsAmp", "Amplitude of the magnetic perturbation along z", 1.0e-9);
 
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+      for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
 
          RP::add(pop + "_LossCone.rho", "Number density (m^-3)", 1.0e7);
@@ -82,7 +81,7 @@ namespace projects {
       RP::get("LossCone.magZPertAbsAmp", this->magZPertAbsAmp);
 
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+      for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
          LossConeSpeciesParameters sP;
          RP::get(pop + "_LossCone.rho", sP.DENSITY);
@@ -99,10 +98,7 @@ namespace projects {
       }
    }
 
-   Realf LossCone::fillPhaseSpace(spatial_cell::SpatialCell *cell,
-                                       const uint popID,
-                                       const uint nRequested
-      ) const {
+   Realf LossCone::fillPhaseSpace(spatial_cell::SpatialCell* cell, const uint popID, const uint nRequested) const {
       const LossConeSpeciesParameters& sP = speciesParams[popID];
       // Fetch spatial cell center coordinates
       // const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
@@ -114,29 +110,29 @@ namespace projects {
       const Real initTx = sP.TEMPERATUREX;
       const Real initTy = sP.TEMPERATUREY;
       const Real initTz = sP.TEMPERATUREZ;
-      const Real initV0X = sP.V0[0] + sP.velocityPertAbsAmp * (0.5 - rndVel[0] );
-      const Real initV0Y = sP.V0[1] + sP.velocityPertAbsAmp * (0.5 - rndVel[1] );
-      const Real initV0Z = sP.V0[2] + sP.velocityPertAbsAmp * (0.5 - rndVel[2] );
+      const Real initV0X = sP.V0[0] + sP.velocityPertAbsAmp * (0.5 - rndVel[0]);
+      const Real initV0Y = sP.V0[1] + sP.velocityPertAbsAmp * (0.5 - rndVel[1]);
+      const Real initV0Z = sP.V0[2] + sP.velocityPertAbsAmp * (0.5 - rndVel[2]);
       const Real muLimit = abs(sP.muLimit);
 
       #ifdef USE_GPU
-      vmesh::VelocityMesh *vmesh = cell->dev_get_velocity_mesh(popID);
+      vmesh::VelocityMesh* vmesh = cell->dev_get_velocity_mesh(popID);
       vmesh::VelocityBlockContainer* VBC = cell->dev_get_velocity_blocks(popID);
       #else
-      vmesh::VelocityMesh *vmesh = cell->get_velocity_mesh(popID);
+      vmesh::VelocityMesh* vmesh = cell->get_velocity_mesh(popID);
       vmesh::VelocityBlockContainer* VBC = cell->get_velocity_blocks(popID);
       #endif
       // Loop over blocks
       Realf rhosum = 0;
       arch::parallel_reduce<arch::null>(
          {WID, WID, WID, nRequested},
-         ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint initIndex, Realf *lsum ) {
-            vmesh::GlobalID *GIDlist = vmesh->getGrid()->data();
+         ARCH_LOOP_LAMBDA(const uint i, const uint j, const uint k, const uint initIndex, Realf* lsum) {
+            vmesh::GlobalID* GIDlist = vmesh->getGrid()->data();
             Realf* bufferData = VBC->getData();
             const vmesh::GlobalID blockGID = GIDlist[initIndex];
             // Calculate parameters for new block
             Real blockCoords[6];
-            vmesh->getBlockInfo(blockGID,&blockCoords[0]);
+            vmesh->getBlockInfo(blockGID, &blockCoords[0]);
             creal vxBlock = blockCoords[0];
             creal vyBlock = blockCoords[1];
             creal vzBlock = blockCoords[2];
@@ -144,25 +140,27 @@ namespace projects {
             creal dvyCell = blockCoords[4];
             creal dvzCell = blockCoords[5];
             ARCH_INNER_BODY(i, j, k, initIndex, lsum) {
-               creal vx = vxBlock + (i+0.5)*dvxCell - initV0X;
-               creal vy = vyBlock + (j+0.5)*dvyCell - initV0Y;
-               creal vz = vzBlock + (k+0.5)*dvzCell - initV0Z;
+               creal vx = vxBlock + (i + 0.5) * dvxCell - initV0X;
+               creal vy = vyBlock + (j + 0.5) * dvyCell - initV0Y;
+               creal vz = vzBlock + (k + 0.5) * dvzCell - initV0Z;
 
                // TODO: Use Eigen vectors, get magnetic field as well and calculate components from that
                Real vpara = vx;
                // Real vperp = sqrt(vy*vy + vz*vz);
-               Real modv = sqrt(vx*vx + vy*vy + vz*vz);
-               Real mu    = vpara / modv;
+               Real modv = sqrt(vx * vx + vy * vy + vz * vz);
+               Real mu = vpara / modv;
 
                Real value = 0;
                // Only fill outside losscone
                if (mu > -muLimit && mu < muLimit) {
-                  value += TriMaxwellianPhaseSpaceDensity(vx,vy,vz,initTx,initTy,initTz,initRho,mass);
+                  value += TriMaxwellianPhaseSpaceDensity(vx, vy, vz, initTx, initTy, initTz, initRho, mass);
                }
-               bufferData[initIndex*WID3 + k*WID2 + j*WID + i] = value;
-               //lsum[0] += value;
+               bufferData[initIndex * WID3 + k * WID2 + j * WID + i] = value;
+               // lsum[0] += value;
             };
-         }, rhosum);
+         },
+         rhosum
+      );
       return rhosum;
    }
 
@@ -170,10 +168,7 @@ namespace projects {
       then evaluates the phase-space density at the given coordinates.
       Used as a probe for projectTriAxisSearch.
    */
-   Realf LossCone::probePhaseSpace(spatial_cell::SpatialCell *cell,
-                                        const uint popID,
-                                        Real vx_in, Real vy_in, Real vz_in
-      ) const {
+   Realf LossCone::probePhaseSpace(spatial_cell::SpatialCell* cell, const uint popID, Real vx_in, Real vy_in, Real vz_in) const {
       const LossConeSpeciesParameters& sP = speciesParams[popID];
       // Fetch spatial cell center coordinates
       // const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
@@ -185,20 +180,20 @@ namespace projects {
       const Real initTx = sP.TEMPERATUREX;
       const Real initTy = sP.TEMPERATUREY;
       const Real initTz = sP.TEMPERATUREZ;
-      const Real initV0X = sP.V0[0] + sP.velocityPertAbsAmp * (0.5 - rndVel[0] );
-      const Real initV0Y = sP.V0[1] + sP.velocityPertAbsAmp * (0.5 - rndVel[1] );
-      const Real initV0Z = sP.V0[2] + sP.velocityPertAbsAmp * (0.5 - rndVel[2] );
+      const Real initV0X = sP.V0[0] + sP.velocityPertAbsAmp * (0.5 - rndVel[0]);
+      const Real initV0Y = sP.V0[1] + sP.velocityPertAbsAmp * (0.5 - rndVel[1]);
+      const Real initV0Z = sP.V0[2] + sP.velocityPertAbsAmp * (0.5 - rndVel[2]);
       const Real muLimit = abs(sP.muLimit);
       creal vx = vx_in - initV0X;
       creal vy = vy_in - initV0Y;
       creal vz = vz_in - initV0Z;
 
       // Probe function should not account for mu Limit
-      Real value = TriMaxwellianPhaseSpaceDensity(vx,vy,vz,initTx,initTy,initTz,initRho,mass);
+      Real value = TriMaxwellianPhaseSpaceDensity(vx, vy, vz, initTx, initTy, initTz, initRho, mass);
       return value;
    }
 
-   void LossCone::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
+   void LossCone::calcCellParameters(spatial_cell::SpatialCell* cell, creal& t) {
       Real* cellParams = cell->get_cell_parameters();
       creal x = cellParams[CellParams::XCRD];
       creal dx = cellParams[CellParams::DX];
@@ -207,32 +202,29 @@ namespace projects {
       creal z = cellParams[CellParams::ZCRD];
       creal dz = cellParams[CellParams::DZ];
 
-      CellID cellID = (int) ((x - Parameters::xmin) / dx) +
-         (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
-         (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
+      CellID cellID =
+         (int)((x - Parameters::xmin) / dx) + (int)((y - Parameters::ymin) / dy) * Parameters::xcells_ini + (int)((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
 
       std::default_random_engine rndState;
-      setRandomCellSeed(cell,rndState);
+      setRandomCellSeed(cell, rndState);
 
-      this->rndRho=getRandomNumber(rndState);
-      this->rndVel[0]=getRandomNumber(rndState);
-      this->rndVel[1]=getRandomNumber(rndState);
-      this->rndVel[2]=getRandomNumber(rndState);
+      this->rndRho = getRandomNumber(rndState);
+      this->rndVel[0] = getRandomNumber(rndState);
+      this->rndVel[1] = getRandomNumber(rndState);
+      this->rndVel[2] = getRandomNumber(rndState);
    }
 
    void LossCone::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
+      FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+      FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+      FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid
    ) {
       ConstantField bgField;
-      bgField.initialize(this->BX0,
-                         this->BY0,
-                         this->BZ0);
+      bgField.initialize(this->BX0, this->BY0, this->BZ0);
 
       setBackgroundField(bgField, BgBGrid);
 
-      if(!P::isRestart) {
+      if (!P::isRestart) {
          const auto localSize = BgBGrid.getLocalSize().data();
 
          #pragma omp parallel for collapse(3)
@@ -243,7 +235,7 @@ namespace projects {
                   const int64_t cellid = perBGrid.GlobalIDForCoords(x, y, z);
 
                   std::default_random_engine rndState;
-                  setRandomSeed(cellid,rndState);
+                  setRandomSeed(cellid, rndState);
 
                   cell->at(fsgrids::bfield::PERBX) = this->magXPertAbsAmp * (0.5 - getRandomNumber(rndState));
                   cell->at(fsgrids::bfield::PERBY) = this->magYPertAbsAmp * (0.5 - getRandomNumber(rndState));
@@ -254,14 +246,9 @@ namespace projects {
       }
    }
 
-   std::vector<std::array<Real, 3> > LossCone::getV0(
-      creal x,
-      creal y,
-      creal z,
-      const uint popID
-   ) const {
-      std::array<Real, 3> V0 {{0.0, 0.0, 0.0}};
-      std::vector<std::array<Real, 3> > centerPoints;
+   std::vector<std::array<Real, 3>> LossCone::getV0(creal x, creal y, creal z, const uint popID) const {
+      std::array<Real, 3> V0{{0.0, 0.0, 0.0}};
+      std::vector<std::array<Real, 3>> centerPoints;
       centerPoints.push_back(V0);
       return centerPoints;
    }

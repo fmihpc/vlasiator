@@ -19,6 +19,3 @@ plot t=0 "202506_CSC_Mahti/weak/all.dat" u 1:(t==0?y0=$2:y0, t=t+1,y0/$2) w p lw
      u=0 "202507_EuroHPC_LUMI-C/weak/all.dat" u 1:(u==0?z0=$4:z0, u=u+1,z0/$4) w p lw 2 ps 3 pt 10 t "Spatial-space (LUMI-C)", \
      u=0 "202507_EuroHPC_LUMI-C/weak/all.dat" u 1:(u==0?z0=$5:z0, u=u+1,z0/$5) w p lw 2 ps 3 pt 12 t "Velocity-space (LUMI-C)", \
      1 w l lw 2 lc "black" notitle
-
-
-

@@ -38,13 +38,12 @@ using namespace std;
 using namespace spatial_cell;
 
 namespace projects {
-    Larmor::Larmor(): Project() { }
-    Larmor::~Larmor() { }
+   Larmor::Larmor() : Project() {}
+   Larmor::~Larmor() {}
 
+   bool Larmor::initialize(void) { return Project::initialize(); }
 
-   bool Larmor::initialize(void) {return Project::initialize();}
-
-    void Larmor::addParameters() {
+   void Larmor::addParameters() {
       typedef Readparameters RP;
       RP::add("Larmor.BX0", "Background field value (T)", 0.0);
       RP::add("Larmor.BY0", "Background field value (T)", 0.0);
@@ -57,13 +56,13 @@ namespace projects {
       RP::add("Larmor.maxwCutoff", "Cutoff for the maxwellian distribution", 1e-12);
       RP::add("Larmor.Scale_x", "Scale length in x (m)", 2.0e6);
       RP::add("Larmor.Scale_y", "Scale length in y (m)", 2.0e6);
-    }
+   }
 
-    void Larmor::getParameters() {
-       Project::getParameters();
+   void Larmor::getParameters() {
+      Project::getParameters();
       typedef Readparameters RP;
 
-      if(getObjectWrapper().particleSpecies.size() > 1) {
+      if (getObjectWrapper().particleSpecies.size() > 1) {
          std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
          abort();
       }
@@ -79,16 +78,13 @@ namespace projects {
       RP::get("Larmor.maxwCutoff", this->maxwCutoff);
       RP::get("Larmor.Scale_x", this->SCA_X);
       RP::get("Larmor.Scale_y", this->SCA_Y);
-    }
+   }
 
-   Realf Larmor::fillPhaseSpace(spatial_cell::SpatialCell *cell,
-                                       const uint popID,
-                                       const uint nRequested
-      ) const {
-      //const speciesParameters& sP = this->speciesParams[popID];
-      // Fetch spatial cell center coordinates
-      const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
-      const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
+   Realf Larmor::fillPhaseSpace(spatial_cell::SpatialCell* cell, const uint popID, const uint nRequested) const {
+      // const speciesParameters& sP = this->speciesParams[popID];
+      //  Fetch spatial cell center coordinates
+      const Real x = cell->parameters[CellParams::XCRD] + 0.5 * cell->parameters[CellParams::DX];
+      const Real y = cell->parameters[CellParams::YCRD] + 0.5 * cell->parameters[CellParams::DY];
       // const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
 
       const Real mass = getObjectWrapper().particleSpecies[popID].mass;
@@ -97,26 +93,26 @@ namespace projects {
       const Real initV0X = this->VX0;
       const Real initV0Y = this->VY0;
       const Real initV0Z = this->VZ0;
-      initRho = initRho * exp(-pow(x-Parameters::xmax/2.5, 2.0)/pow(this->SCA_X, 2.0)) * exp(-pow(y-Parameters::ymax/2.0, 2.0)/pow(this->SCA_Y, 2.0));
+      initRho = initRho * exp(-pow(x - Parameters::xmax / 2.5, 2.0) / pow(this->SCA_X, 2.0)) * exp(-pow(y - Parameters::ymax / 2.0, 2.0) / pow(this->SCA_Y, 2.0));
 
       #ifdef USE_GPU
-      vmesh::VelocityMesh *vmesh = cell->dev_get_velocity_mesh(popID);
+      vmesh::VelocityMesh* vmesh = cell->dev_get_velocity_mesh(popID);
       vmesh::VelocityBlockContainer* VBC = cell->dev_get_velocity_blocks(popID);
       #else
-      vmesh::VelocityMesh *vmesh = cell->get_velocity_mesh(popID);
+      vmesh::VelocityMesh* vmesh = cell->get_velocity_mesh(popID);
       vmesh::VelocityBlockContainer* VBC = cell->get_velocity_blocks(popID);
       #endif
       // Loop over blocks
       Realf rhosum = 0;
       arch::parallel_reduce<arch::null>(
          {WID, WID, WID, nRequested},
-         ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint initIndex, Realf *lsum ) {
-            vmesh::GlobalID *GIDlist = vmesh->getGrid()->data();
+         ARCH_LOOP_LAMBDA(const uint i, const uint j, const uint k, const uint initIndex, Realf* lsum) {
+            vmesh::GlobalID* GIDlist = vmesh->getGrid()->data();
             Realf* bufferData = VBC->getData();
             const vmesh::GlobalID blockGID = GIDlist[initIndex];
             // Calculate parameters for new block
             Real blockCoords[6];
-            vmesh->getBlockInfo(blockGID,&blockCoords[0]);
+            vmesh->getBlockInfo(blockGID, &blockCoords[0]);
             creal vxBlock = blockCoords[0];
             creal vyBlock = blockCoords[1];
             creal vzBlock = blockCoords[2];
@@ -124,29 +120,29 @@ namespace projects {
             creal dvyCell = blockCoords[4];
             creal dvzCell = blockCoords[5];
             ARCH_INNER_BODY(i, j, k, initIndex, lsum) {
-               creal vx = vxBlock + (i+0.5)*dvxCell - initV0X;
-               creal vy = vyBlock + (j+0.5)*dvyCell - initV0Y;
-               creal vz = vzBlock + (k+0.5)*dvzCell - initV0Z;
-               const Realf value = MaxwellianPhaseSpaceDensity(vx,vy,vz,initT,initRho,mass);
-               bufferData[initIndex*WID3 + k*WID2 + j*WID + i] = value;
-               //lsum[0] += value;
+               creal vx = vxBlock + (i + 0.5) * dvxCell - initV0X;
+               creal vy = vyBlock + (j + 0.5) * dvyCell - initV0Y;
+               creal vz = vzBlock + (k + 0.5) * dvzCell - initV0Z;
+               const Realf value = MaxwellianPhaseSpaceDensity(vx, vy, vz, initT, initRho, mass);
+               bufferData[initIndex * WID3 + k * WID2 + j * WID + i] = value;
+               // lsum[0] += value;
             };
-         }, rhosum);
+         },
+         rhosum
+      );
       return rhosum;
    }
 
-   void Larmor::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
+   void Larmor::calcCellParameters(spatial_cell::SpatialCell* cell, creal& t) {}
 
-    void Larmor::setProjectBField(
-       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-    ) {
+   void Larmor::setProjectBField(
+      FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+      FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+      FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid
+   ) {
       ConstantField bgField;
-      bgField.initialize(this->BX0,
-                         this->BY0,
-                         this->BZ0);
+      bgField.initialize(this->BX0, this->BY0, this->BZ0);
 
       setBackgroundField(bgField, BgBGrid);
    }
-} //namespace projects
+} // namespace projects

@@ -48,52 +48,43 @@ as an index that would be outside of the velocity block
 namespace spatial_cell {
 
    namespace Transfer {
-      static const uint64_t NONE                     = 0;
-      static const uint64_t CELL_PARAMETERS          = (1ull<<0);
-      static const uint64_t CELL_DERIVATIVES         = (1ull<<1);
-      static const uint64_t VEL_BLOCK_LIST_STAGE1    = (1ull<<2);
-      static const uint64_t VEL_BLOCK_LIST_STAGE2    = (1ull<<3);
-      static const uint64_t VEL_BLOCK_DATA           = (1ull<<4);
-      static const uint64_t VEL_BLOCK_PARAMETERS     = (1ull<<6);
-      static const uint64_t VEL_BLOCK_WITH_CONTENT_STAGE1  = (1ull<<7);
-      static const uint64_t VEL_BLOCK_WITH_CONTENT_STAGE2  = (1ull<<8);
-      static const uint64_t CELL_SYSBOUNDARYFLAG     = (1ull<<9);
-      static const uint64_t CELL_E                   = (1ull<<10);
-      static const uint64_t CELL_EDT2                = (1ull<<11);
-      static const uint64_t CELL_PERB                = (1ull<<12);
-      static const uint64_t CELL_PERBDT2             = (1ull<<13);
-      static const uint64_t CELL_RHOM_V              = (1ull<<14);
-      static const uint64_t CELL_RHOMDT2_VDT2        = (1ull<<15);
-      static const uint64_t CELL_RHOQ                = (1ull<<16);
-      static const uint64_t CELL_RHOQDT2             = (1ull<<17);
-      static const uint64_t CELL_BVOL                = (1ull<<18);
-      static const uint64_t CELL_BVOL_DERIVATIVES    = (1ull<<19);
-      static const uint64_t CELL_DIMENSIONS          = (1ull<<20);
-      static const uint64_t CELL_IOLOCALCELLID       = (1ull<<21);
-      static const uint64_t NEIGHBOR_VEL_BLOCK_DATA  = (1ull<<22);
-      static const uint64_t CELL_HALL_TERM           = (1ull<<23);
-      static const uint64_t CELL_P                   = (1ull<<24);
-      static const uint64_t CELL_PDT2                = (1ull<<25);
-      static const uint64_t POP_METADATA             = (1ull<<26);
-      static const uint64_t RANDOMGEN                = (1ull<<27);
-      static const uint64_t CELL_GRADPE_TERM         = (1ull<<28);
-      static const uint64_t REFINEMENT_PARAMETERS    = (1ull<<29);
-      //all data
-      static const uint64_t ALL_DATA =
-      CELL_PARAMETERS
-      | CELL_DERIVATIVES | CELL_BVOL_DERIVATIVES
-      | VEL_BLOCK_DATA
-      | CELL_SYSBOUNDARYFLAG
-      | POP_METADATA | RANDOMGEN;
+      static const uint64_t NONE = 0;
+      static const uint64_t CELL_PARAMETERS = (1ull << 0);
+      static const uint64_t CELL_DERIVATIVES = (1ull << 1);
+      static const uint64_t VEL_BLOCK_LIST_STAGE1 = (1ull << 2);
+      static const uint64_t VEL_BLOCK_LIST_STAGE2 = (1ull << 3);
+      static const uint64_t VEL_BLOCK_DATA = (1ull << 4);
+      static const uint64_t VEL_BLOCK_PARAMETERS = (1ull << 6);
+      static const uint64_t VEL_BLOCK_WITH_CONTENT_STAGE1 = (1ull << 7);
+      static const uint64_t VEL_BLOCK_WITH_CONTENT_STAGE2 = (1ull << 8);
+      static const uint64_t CELL_SYSBOUNDARYFLAG = (1ull << 9);
+      static const uint64_t CELL_E = (1ull << 10);
+      static const uint64_t CELL_EDT2 = (1ull << 11);
+      static const uint64_t CELL_PERB = (1ull << 12);
+      static const uint64_t CELL_PERBDT2 = (1ull << 13);
+      static const uint64_t CELL_RHOM_V = (1ull << 14);
+      static const uint64_t CELL_RHOMDT2_VDT2 = (1ull << 15);
+      static const uint64_t CELL_RHOQ = (1ull << 16);
+      static const uint64_t CELL_RHOQDT2 = (1ull << 17);
+      static const uint64_t CELL_BVOL = (1ull << 18);
+      static const uint64_t CELL_BVOL_DERIVATIVES = (1ull << 19);
+      static const uint64_t CELL_DIMENSIONS = (1ull << 20);
+      static const uint64_t CELL_IOLOCALCELLID = (1ull << 21);
+      static const uint64_t NEIGHBOR_VEL_BLOCK_DATA = (1ull << 22);
+      static const uint64_t CELL_HALL_TERM = (1ull << 23);
+      static const uint64_t CELL_P = (1ull << 24);
+      static const uint64_t CELL_PDT2 = (1ull << 25);
+      static const uint64_t POP_METADATA = (1ull << 26);
+      static const uint64_t RANDOMGEN = (1ull << 27);
+      static const uint64_t CELL_GRADPE_TERM = (1ull << 28);
+      static const uint64_t REFINEMENT_PARAMETERS = (1ull << 29);
+      // all data
+      static const uint64_t ALL_DATA = CELL_PARAMETERS | CELL_DERIVATIVES | CELL_BVOL_DERIVATIVES | VEL_BLOCK_DATA | CELL_SYSBOUNDARYFLAG | POP_METADATA | RANDOMGEN;
 
-      //all data, except the distribution function
-      static const uint64_t ALL_SPATIAL_DATA =
-      CELL_PARAMETERS
-      | CELL_DERIVATIVES | CELL_BVOL_DERIVATIVES
-      | CELL_SYSBOUNDARYFLAG
-      | POP_METADATA | RANDOMGEN;
-   }
+      // all data, except the distribution function
+      static const uint64_t ALL_SPATIAL_DATA = CELL_PARAMETERS | CELL_DERIVATIVES | CELL_BVOL_DERIVATIVES | CELL_SYSBOUNDARYFLAG | POP_METADATA | RANDOMGEN;
+   } // namespace Transfer
 
-}
+} // namespace spatial_cell
 
 #endif

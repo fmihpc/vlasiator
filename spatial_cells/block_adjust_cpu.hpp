@@ -43,15 +43,9 @@ Spatial cell class for Vlasiator that supports a variable number of velocity blo
 namespace spatial_cell {
    // Following functions act on all requested cells
 
-   void update_velocity_block_content_lists(
-      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const vector<CellID>& cells,
-      const uint popID=0);
+   void update_velocity_block_content_lists(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const vector<CellID>& cells, const uint popID = 0);
 
-   void adjust_velocity_blocks_in_cells(
-      dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const vector<CellID>& cells,
-      const uint popID=0);
+   void adjust_velocity_blocks_in_cells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const vector<CellID>& cells, const uint popID = 0);
 
-} // namespaces
+} // namespace spatial_cell
 #endif

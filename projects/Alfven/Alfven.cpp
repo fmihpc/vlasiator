@@ -34,17 +34,17 @@
 using namespace std;
 
 namespace projects {
-   Alfven::Alfven(): Project() { }
-   Alfven::~Alfven() { }
+   Alfven::Alfven() : Project() {}
+   Alfven::~Alfven() {}
 
    bool Alfven::initialize(void) {
       bool success = Project::initialize();
 
-      Real norm = sqrt(this->Bx_guiding*this->Bx_guiding + this->By_guiding*this->By_guiding + this->Bz_guiding*this->Bz_guiding);
+      Real norm = sqrt(this->Bx_guiding * this->Bx_guiding + this->By_guiding * this->By_guiding + this->Bz_guiding * this->Bz_guiding);
       this->Bx_guiding /= norm;
       this->By_guiding /= norm;
       this->Bz_guiding /= norm;
-      this->ALPHA = atan(this->By_guiding/this->Bx_guiding);
+      this->ALPHA = atan(this->By_guiding / this->Bx_guiding);
 
       return success;
    }
@@ -59,17 +59,16 @@ namespace projects {
       RP::add("Alfven.A_mag", "Amplitude of the magnetic perturbation", 0.1);
 
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+      for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
 
          RP::add(pop + "_Alfven.rho", "Number density (m^-3)", 1.0e8);
          RP::add(pop + "_Alfven.Temperature", "Temperature (K)", 0.86456498092);
          RP::add(pop + "_Alfven.A_vel", "Amplitude of the velocity perturbation", 0.1);
-
       }
    }
 
-   void Alfven::getParameters(){
+   void Alfven::getParameters() {
       Project::getParameters();
 
       typedef Readparameters RP;
@@ -81,28 +80,25 @@ namespace projects {
       RP::get("Alfven.A_mag", this->A_MAG);
 
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+      for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
 
          AlfvenSpeciesParameters sP;
 
          RP::get(pop + "_Alfven.rho", sP.rho);
-         RP::get(pop + "_Alfven.Temperature",sP.T);
+         RP::get(pop + "_Alfven.Temperature", sP.T);
          RP::get(pop + "_Alfven.A_vel", sP.A_VEL);
 
          speciesParams.push_back(sP);
       }
    }
 
-   Realf Alfven::fillPhaseSpace(spatial_cell::SpatialCell *cell,
-                                       const uint popID,
-                                       const uint nRequested
-      ) const {
+   Realf Alfven::fillPhaseSpace(spatial_cell::SpatialCell* cell, const uint popID, const uint nRequested) const {
       const AlfvenSpeciesParameters& sP = this->speciesParams[popID];
 
       // Fetch spatial cell center coordinates
-      const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
-      const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
+      const Real x = cell->parameters[CellParams::XCRD] + 0.5 * cell->parameters[CellParams::DX];
+      const Real y = cell->parameters[CellParams::YCRD] + 0.5 * cell->parameters[CellParams::DY];
       // const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
 
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
@@ -111,30 +107,30 @@ namespace projects {
 
       creal ksi = (x * cos(this->ALPHA) + y * sin(this->ALPHA)) / this->WAVELENGTH;
       creal initV0X = sP.A_VEL * ALFVEN_VEL * sin(this->ALPHA) * sin(2.0 * M_PI * ksi);
-      creal initV0Y = - sP.A_VEL * ALFVEN_VEL * cos(this->ALPHA) * sin(2.0 * M_PI * ksi);
-      creal initV0Z = - sP.A_VEL * ALFVEN_VEL * cos(2.0 * M_PI * ksi);
+      creal initV0Y = -sP.A_VEL * ALFVEN_VEL * cos(this->ALPHA) * sin(2.0 * M_PI * ksi);
+      creal initV0Z = -sP.A_VEL * ALFVEN_VEL * cos(2.0 * M_PI * ksi);
 
       Real initRho = sP.rho;
       Real initT = sP.T;
 
       #ifdef USE_GPU
-      vmesh::VelocityMesh *vmesh = cell->dev_get_velocity_mesh(popID);
+      vmesh::VelocityMesh* vmesh = cell->dev_get_velocity_mesh(popID);
       vmesh::VelocityBlockContainer* VBC = cell->dev_get_velocity_blocks(popID);
       #else
-      vmesh::VelocityMesh *vmesh = cell->get_velocity_mesh(popID);
+      vmesh::VelocityMesh* vmesh = cell->get_velocity_mesh(popID);
       vmesh::VelocityBlockContainer* VBC = cell->get_velocity_blocks(popID);
       #endif
       // Loop over blocks
       Realf rhosum = 0;
       arch::parallel_reduce<arch::null>(
          {WID, WID, WID, nRequested},
-         ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint initIndex, Realf *lsum ) {
-            vmesh::GlobalID *GIDlist = vmesh->getGrid()->data();
+         ARCH_LOOP_LAMBDA(const uint i, const uint j, const uint k, const uint initIndex, Realf* lsum) {
+            vmesh::GlobalID* GIDlist = vmesh->getGrid()->data();
             Realf* bufferData = VBC->getData();
             const vmesh::GlobalID blockGID = GIDlist[initIndex];
             // Calculate parameters for new block
             Real blockCoords[6];
-            vmesh->getBlockInfo(blockGID,&blockCoords[0]);
+            vmesh->getBlockInfo(blockGID, &blockCoords[0]);
             creal vxBlock = blockCoords[0];
             creal vyBlock = blockCoords[1];
             creal vzBlock = blockCoords[2];
@@ -142,34 +138,36 @@ namespace projects {
             creal dvyCell = blockCoords[4];
             creal dvzCell = blockCoords[5];
             ARCH_INNER_BODY(i, j, k, initIndex, lsum) {
-               creal vx = vxBlock + (i+0.5)*dvxCell - initV0X;
-               creal vy = vyBlock + (j+0.5)*dvyCell - initV0Y;
-               creal vz = vzBlock + (k+0.5)*dvzCell - initV0Z;
-               const Realf value = MaxwellianPhaseSpaceDensity(vx,vy,vz,initT,initRho,mass);
-               bufferData[initIndex*WID3 + k*WID2 + j*WID + i] = value;
-               //lsum[0] += value;
+               creal vx = vxBlock + (i + 0.5) * dvxCell - initV0X;
+               creal vy = vyBlock + (j + 0.5) * dvyCell - initV0Y;
+               creal vz = vzBlock + (k + 0.5) * dvzCell - initV0Z;
+               const Realf value = MaxwellianPhaseSpaceDensity(vx, vy, vz, initT, initRho, mass);
+               bufferData[initIndex * WID3 + k * WID2 + j * WID + i] = value;
+               // lsum[0] += value;
             };
-         }, rhosum);
+         },
+         rhosum
+      );
       return rhosum;
    }
 
-   void Alfven::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
-      //Real* cellParams = cell->get_cell_parameters();
-      //creal x = cellParams[CellParams::XCRD];
-      //creal dx = cellParams[CellParams::DX];
-      //creal y = cellParams[CellParams::YCRD];
-      //creal dy = cellParams[CellParams::DY];
+   void Alfven::calcCellParameters(spatial_cell::SpatialCell* cell, creal& t) {
+      // Real* cellParams = cell->get_cell_parameters();
+      // creal x = cellParams[CellParams::XCRD];
+      // creal dx = cellParams[CellParams::DX];
+      // creal y = cellParams[CellParams::YCRD];
+      // creal dy = cellParams[CellParams::DY];
       //
-      //Real ksi = ((x + 0.5 * dx)  * cos(this->ALPHA) + (y + 0.5 * dy) * sin(this->ALPHA)) / this->WAVELENGTH;
-      //Real dBxavg = sin(2.0 * M_PI * ksi);
-      //Real dByavg = sin(2.0 * M_PI * ksi);
-      //Real dBzavg = cos(2.0 * M_PI * ksi);
+      // Real ksi = ((x + 0.5 * dx)  * cos(this->ALPHA) + (y + 0.5 * dy) * sin(this->ALPHA)) / this->WAVELENGTH;
+      // Real dBxavg = sin(2.0 * M_PI * ksi);
+      // Real dByavg = sin(2.0 * M_PI * ksi);
+      // Real dBzavg = cos(2.0 * M_PI * ksi);
    }
 
    void Alfven::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
+      FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+      FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+      FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid
    ) {
       setBackgroundFieldToZero(BgBGrid);
 
@@ -184,7 +182,7 @@ namespace projects {
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
                   Real dx = perBGrid.DX;
                   Real dy = perBGrid.DY;
-                  Real ksi = ((xyz[0] + 0.5 * dx)  * cos(this->ALPHA) + (xyz[1] + 0.5 * dy) * sin(this->ALPHA)) / this->WAVELENGTH;
+                  Real ksi = ((xyz[0] + 0.5 * dx) * cos(this->ALPHA) + (xyz[1] + 0.5 * dy) * sin(this->ALPHA)) / this->WAVELENGTH;
                   Real dBxavg = sin(2.0 * M_PI * ksi);
                   Real dByavg = sin(2.0 * M_PI * ksi);
                   Real dBzavg = cos(2.0 * M_PI * ksi);
@@ -192,7 +190,6 @@ namespace projects {
                   cell->at(fsgrids::bfield::PERBX) = this->B0 * cos(this->ALPHA) - this->A_MAG * this->B0 * sin(this->ALPHA) * dBxavg;
                   cell->at(fsgrids::bfield::PERBY) = this->B0 * sin(this->ALPHA) + this->A_MAG * this->B0 * cos(this->ALPHA) * dByavg;
                   cell->at(fsgrids::bfield::PERBZ) = this->B0 * this->A_MAG * dBzavg;
-
                }
             }
          }

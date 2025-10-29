@@ -39,8 +39,6 @@ using namespace std;
   The iterations are stopped when the results changes by less than absacc.
 */
 
-
-
 double Romberg(const T1DFunction& func, double a, double b, double absacc);
 double Romberg(const T2DFunction& func, double a, double b, double c, double d, double absacc);
 double Romberg(const T3DFunction& func, double a, double b, double c, double d, double e, double f, double absacc);

@@ -26,41 +26,37 @@
 #include "../../definitions.h"
 #include "../project.h"
 
-
 namespace projects {
-   class Riemann1: public Project {
-      public:
-         Riemann1();
-         virtual ~Riemann1();
-         
-         virtual bool initialize(void) override;
-         static void addParameters(void);
-         virtual void getParameters(void) override;
-         virtual void setProjectBField(
-            FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-            FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-            FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-         ) override;
+   class Riemann1 : public Project {
+   public:
+      Riemann1();
+      virtual ~Riemann1();
 
-         virtual Realf fillPhaseSpace(spatial_cell::SpatialCell *cell,
-                                  const uint popID,
-                                  const uint nRequested) const override;
-         virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) override;
+      virtual bool initialize(void) override;
+      static void addParameters(void);
+      virtual void getParameters(void) override;
+      virtual void setProjectBField(
+         FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+         FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+         FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid
+      ) override;
 
-      
-         enum {
-            LEFT,
-            RIGHT
-         };
-         Real rho[2];
-         Real T[2];
-         Real Vx[2];
-         Real Vy[2];
-         Real Vz[2];
-         Real Bx[2];
-         Real By[2];
-         Real Bz[2];
+      virtual Realf fillPhaseSpace(spatial_cell::SpatialCell* cell, const uint popID, const uint nRequested) const override;
+      virtual void calcCellParameters(spatial_cell::SpatialCell* cell, creal& t) override;
+
+      enum {
+         LEFT,
+         RIGHT
+      };
+      Real rho[2];
+      Real T[2];
+      Real Vx[2];
+      Real Vy[2];
+      Real Vz[2];
+      Real Bx[2];
+      Real By[2];
+      Real Bz[2];
    }; // class Riemann1
-}  // namespace projects
+} // namespace projects
 
 #endif

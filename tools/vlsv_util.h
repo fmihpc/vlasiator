@@ -18,7 +18,7 @@
  * You should have received a copy of the GNU General Public License along
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
+ *
  * File:   vlsv_util.h
  * Author: sandroos
  *
@@ -26,20 +26,19 @@
  */
 
 /** @file vlsv_util.h
- * This file contains miscellaneous utility routines that 
+ * This file contains miscellaneous utility routines that
  * are used by vlsv tools.*/
 
 #include <string>
 #include <vector>
 
 #ifndef VLSV_UTIL_H
-#define	VLSV_UTIL_H
+#define VLSV_UTIL_H
 
 namespace toolutil {
-   
+
    std::vector<std::string> getFiles(const std::string& mask);
 
 } // namespace toolutil
 
-#endif	// VLSV_UTIL_H
-
+#endif  // VLSV_UTIL_H

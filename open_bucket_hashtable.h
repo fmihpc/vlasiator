@@ -28,7 +28,7 @@
 #include "definitions.h"
 
 // Open bucket power-of-two sized hash table with multiplicative fibonacci hashing
-template <typename GID, typename LID, int maxBucketOverflow = 4, GID EMPTYBUCKET = vmesh::INVALID_GLOBALID > class OpenBucketHashtable {
+template <typename GID, typename LID, int maxBucketOverflow = 4, GID EMPTYBUCKET = vmesh::INVALID_GLOBALID> class OpenBucketHashtable {
 private:
    int sizePower; // Logarithm (base two) of the size of the table
    size_t fill;   // Number of filled buckets
@@ -41,27 +41,27 @@ private:
       return retval;
    }
 
-    //Hash a chunk of memory using fnv_1a
-    static uint32_t fnv_1a(const void* chunk, size_t bytes) {
-       assert(chunk);
-       uint32_t h = 2166136261ul;
-       const unsigned char* ptr = static_cast<const unsigned char*>(chunk);
-       while (bytes--){
-          h = (h ^ *ptr++) * 16777619ul;
-       }
-       return h ;
-    }
+   // Hash a chunk of memory using fnv_1a
+   static uint32_t fnv_1a(const void* chunk, size_t bytes) {
+      assert(chunk);
+      uint32_t h = 2166136261ul;
+      const unsigned char* ptr = static_cast<const unsigned char*>(chunk);
+      while (bytes--) {
+         h = (h ^ *ptr++) * 16777619ul;
+      }
+      return h;
+   }
 
-    // Generic h
-    uint32_t hash(GID in) const {
-       static constexpr bool n = (std::is_arithmetic<GID>::value && sizeof(GID) <= sizeof(uint32_t));
+   // Generic h
+   uint32_t hash(GID in) const {
+      static constexpr bool n = (std::is_arithmetic<GID>::value && sizeof(GID) <= sizeof(uint32_t));
 
-       if (n) {
-          return fibonacci_hash(in);
-       } else {
-          return fnv_1a(&in, sizeof(GID));
-       }
-    }
+      if (n) {
+         return fibonacci_hash(in);
+      } else {
+         return fnv_1a(&in, sizeof(GID));
+      }
+   }
 
 public:
    OpenBucketHashtable() : sizePower(4), fill(0), buckets(1 << sizePower, std::pair<GID, LID>(EMPTYBUCKET, LID())) {};
@@ -130,7 +130,7 @@ public:
       rehash(sizePower + 1);
       return at(key); // Recursive tail call to try again with larger table.
    }
-      
+
    const LID& at(const GID& key) const {
       int bitMask = (1 << sizePower) - 1; // For efficient modulo of the array size
       uint32_t hashIndex = hash(key);
@@ -181,7 +181,7 @@ public:
    public:
       // Define iterator traits
       using iterator_category = std::random_access_iterator_tag;
-      using value_type =  std::pair<GID, LID>;
+      using value_type = std::pair<GID, LID>;
       using difference_type = std::ptrdiff_t;
       using pointer = std::pair<GID, LID>*;
       using reference = std::pair<GID, LID>&;
@@ -190,15 +190,15 @@ public:
 
       iterator& operator++() {
          index++;
-         while(index < hashtable->buckets.size()){
-            if (hashtable->buckets[index].first != EMPTYBUCKET){
+         while (index < hashtable->buckets.size()) {
+            if (hashtable->buckets[index].first != EMPTYBUCKET) {
                break;
             }
             index++;
          }
          return *this;
       }
-      
+
       iterator operator++(int) { // Postfix version
          iterator temp = *this;
          ++(*this);
@@ -208,11 +208,9 @@ public:
       bool operator==(iterator other) const {
          // comparison of iterators between two different hashtables undefined
          assert(hashtable == other.hashtable);
-         return index == other.index;  
+         return index == other.index;
       }
-      bool operator!=(iterator other) const {
-         return !(*this == other);
-      }
+      bool operator!=(iterator other) const { return !(*this == other); }
       std::pair<GID, LID>& operator*() const { return hashtable->buckets[index]; }
       std::pair<GID, LID>* operator->() const { return &hashtable->buckets[index]; }
       size_t getIndex() { return index; }
@@ -226,7 +224,7 @@ public:
    public:
       // Define iterator traits
       using iterator_category = std::random_access_iterator_tag;
-      using value_type =  std::pair<GID, LID>;
+      using value_type = std::pair<GID, LID>;
       using difference_type = std::ptrdiff_t;
       using pointer = std::pair<GID, LID>*;
       using reference = std::pair<GID, LID>&;
@@ -235,8 +233,8 @@ public:
 
       const_iterator& operator++() {
          index++;
-         while(index < hashtable->buckets.size()){
-            if (hashtable->buckets[index].first != EMPTYBUCKET){
+         while (index < hashtable->buckets.size()) {
+            if (hashtable->buckets[index].first != EMPTYBUCKET) {
                break;
             }
             index++;
@@ -252,11 +250,9 @@ public:
       bool operator==(const_iterator other) const {
          // comparison of iterators between two different hashtables undefined
          assert(hashtable == other.hashtable);
-         return index == other.index;  
+         return index == other.index;
       }
-      bool operator!=(const_iterator other) const {
-         return !(*this == other);
-      }
+      bool operator!=(const_iterator other) const { return !(*this == other); }
       const std::pair<GID, LID>& operator*() const { return hashtable->buckets[index]; }
       const std::pair<GID, LID>* operator->() const { return &hashtable->buckets[index]; }
       size_t getIndex() { return index; }
@@ -352,22 +348,22 @@ public:
          size_t targetPos = index;
          // Search ahead to verify items are in correct places (until empty bucket is found)
          for (unsigned int i = 1; i < fill; i++) {
-            GID nextBucket = buckets[(index + i)&bitMask].first;
+            GID nextBucket = buckets[(index + i) & bitMask].first;
             if (nextBucket == EMPTYBUCKET) {
                // The next bucket is empty, we are done.
                break;
             }
             // Found an entry: is it in the correct bucket?
             uint32_t hashIndex = hash(nextBucket);
-            if ((hashIndex&bitMask) != ((index + i)&bitMask)) {
+            if ((hashIndex & bitMask) != ((index + i) & bitMask)) {
                // This entry has overflown. Now check if it should be moved:
-               uint32_t distance =  ((targetPos - hashIndex + (1<<sizePower) )&bitMask);
+               uint32_t distance = ((targetPos - hashIndex + (1 << sizePower)) & bitMask);
                if (distance < maxBucketOverflow) {
                   // Copy this entry to the current newly empty bucket, then continue with deleting
                   // this overflown entry and continue searching for overflown entries
-                  LID moveValue = buckets[(index+i)&bitMask].second;
-                  buckets[targetPos] = std::pair<GID, LID>(nextBucket,moveValue);
-                  targetPos = ((index+i)&bitMask);
+                  LID moveValue = buckets[(index + i) & bitMask].second;
+                  buckets[targetPos] = std::pair<GID, LID>(nextBucket, moveValue);
+                  targetPos = ((index + i) & bitMask);
                   buckets[targetPos].first = EMPTYBUCKET;
                }
             }
@@ -379,7 +375,7 @@ public:
    }
    size_t erase(const GID& key) {
       iterator element = find(key);
-      if(element == end()) {
+      if (element == end()) {
          return 0;
       } else {
          erase(element);

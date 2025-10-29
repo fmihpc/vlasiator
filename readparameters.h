@@ -55,9 +55,7 @@ public:
       if (rank == MASTER_RANK) {
          options[name] = "";
          isOptionParsed[name] = false;
-         descriptions->add_options()(
-             name.c_str(), boost::program_options::value<std::string>(&(options[name]))->default_value(defValue),
-             desc.c_str());
+         descriptions->add_options()(name.c_str(), boost::program_options::value<std::string>(&(options[name]))->default_value(defValue), desc.c_str());
       }
    }
 
@@ -75,9 +73,7 @@ public:
          }
          options[name] = "";
          isOptionParsed[name] = false;
-         descriptions->add_options()(
-             name.c_str(), boost::program_options::value<std::string>(&(options[name]))->default_value(ss.str()),
-             desc.c_str());
+         descriptions->add_options()(name.c_str(), boost::program_options::value<std::string>(&(options[name]))->default_value(ss.str()), desc.c_str());
       }
    }
 
@@ -123,9 +119,7 @@ public:
          int myRank;
          MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
          if (myRank == MASTER_RANK) {
-            std::cerr << __FILE__ << ":" << __LINE__
-                      << std::string(" Problems casting ") + name + " " + sval + std::string(" to ") + typeid(T).name()
-                      << std::endl;
+            std::cerr << __FILE__ << ":" << __LINE__ << std::string(" Problems casting ") + name + " " + sval + std::string(" to ") + typeid(T).name() << std::endl;
 
             MPI_Abort(MPI_COMM_WORLD, 1);
          }
@@ -149,9 +143,7 @@ public:
             int myRank;
             MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
             if (myRank == MASTER_RANK) {
-               std::cerr << __FILE__ << ":" << __LINE__
-                         << std::string(" Problems casting ") + name + *i + std::string(" to ") + typeid(T).name()
-                         << std::endl;
+               std::cerr << __FILE__ << ":" << __LINE__ << std::string(" Problems casting ") + name + *i + std::string(" to ") + typeid(T).name() << std::endl;
 
                MPI_Abort(MPI_COMM_WORLD, 1);
             }
@@ -160,9 +152,7 @@ public:
    }
 
    // Determine whether a given variable has been set.
-   static bool isSet(const std::string& name) {
-      return(options.find(name) != options.end());
-   }
+   static bool isSet(const std::string& name) { return (options.find(name) != options.end()); }
 
    static void addComposing(const std::string& name, const std::string& desc);
 
@@ -171,7 +161,7 @@ public:
    static bool versionMessage();
 
    static std::string versionInfo();
-   
+
    static std::string configInfo();
 
    static bool parse(const bool needsRunConfig = true, const bool allowUnknown = true);

@@ -24,7 +24,7 @@
 #define OBJECT_WRAPPER_H
 
 // Forward declarations (only possible for classes for which we don't need to know the size)
-namespace spatial_cell{
+namespace spatial_cell {
    class SpatialCell;
 }
 namespace projects {
@@ -43,17 +43,17 @@ namespace projects {
 #include "sysboundary/sysboundary.h"
 
 struct ObjectWrapper {
-   ObjectWrapper() { }
+   ObjectWrapper() {}
 
-   std::vector<species::Species> particleSpecies;           /**< Parameters for all particle species.*/
-   projects::Project*                    project;           /**< Simulated project.*/
-   SysBoundary sysBoundaryContainer;                        /**< Container for sysboundaries.*/
+   std::vector<species::Species> particleSpecies; /**< Parameters for all particle species.*/
+   projects::Project* project;                    /**< Simulated project.*/
+   SysBoundary sysBoundaryContainer;              /**< Container for sysboundaries.*/
 
-   bool addParameters();                                    /**< Add config file parameters for objects held in this wrapper */
-   bool addPopulationParameters();                          /**< After parsing the names of populations, create parameters for each of them */
-   bool getPopulationParameters();                          /**< Use parsed config file parameters for objects held in this wrapper */
+   bool addParameters();           /**< Add config file parameters for objects held in this wrapper */
+   bool addPopulationParameters(); /**< After parsing the names of populations, create parameters for each of them */
+   bool getPopulationParameters(); /**< Use parsed config file parameters for objects held in this wrapper */
 
- private:
+private:
    ObjectWrapper(const ObjectWrapper& ow);
    ObjectWrapper& operator=(const ObjectWrapper& ow);
 };

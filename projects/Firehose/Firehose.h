@@ -36,32 +36,29 @@ namespace projects {
       Real Vx[2];
       Real Vy[2];
       Real Vz[2];
-
    };
 
-   class Firehose: public Project {
-    public:
+   class Firehose : public Project {
+   public:
       Firehose();
       virtual ~Firehose();
-      
+
       virtual bool initialize(void) override;
       static void addParameters(void);
       virtual void getParameters(void) override;
       virtual void setProjectBField(
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
+         FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+         FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+         FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid
       ) override;
 
-      virtual Realf fillPhaseSpace(spatial_cell::SpatialCell *cell,
-                                  const uint popID,
-                                  const uint nRequested) const override;
+      virtual Realf fillPhaseSpace(spatial_cell::SpatialCell* cell, const uint popID, const uint nRequested) const override;
       Real profile(creal top, creal bottom, creal x) const;
-      virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) override;
+      virtual void calcCellParameters(spatial_cell::SpatialCell* cell, creal& t) override;
 
       Real Bx;
       Real By;
-      Real Bz;   
+      Real Bz;
       Real lambda;
       Real amp;
       std::vector<FirehoseSpeciesParameters> speciesParams;

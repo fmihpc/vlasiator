@@ -28,27 +28,24 @@
 #include "../../definitions.h"
 #include "../project.h"
 
-
 namespace projects {
-   class Larmor: public Project {
-    public:
+   class Larmor : public Project {
+   public:
       Larmor();
       virtual ~Larmor();
-      
+
       virtual bool initialize(void) override;
       static void addParameters(void);
       virtual void getParameters(void) override;
       virtual void setProjectBField(
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
+         FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+         FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+         FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid
       ) override;
 
-      virtual Realf fillPhaseSpace(spatial_cell::SpatialCell *cell,
-                                  const uint popID,
-                                  const uint nRequested) const override;
-      virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) override;
-      
+      virtual Realf fillPhaseSpace(spatial_cell::SpatialCell* cell, const uint popID, const uint nRequested) const override;
+      virtual void calcCellParameters(spatial_cell::SpatialCell* cell, creal& t) override;
+
       Real BX0;
       Real BY0;
       Real BZ0;
@@ -57,11 +54,11 @@ namespace projects {
       Real VZ0;
       Real DENSITY;
       Real TEMPERATURE;
-      Real maxwCutoff; 
+      Real maxwCutoff;
       Real SCA_X;
       Real SCA_Y;
-   }; //Class Larmor
+   }; // Class Larmor
 } // namespace projects
-   
+
 
 #endif

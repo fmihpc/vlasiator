@@ -39,16 +39,9 @@ using namespace spatial_cell;
 
 // ***** FUNCTION DECLARATIONS ***** //
 
-void gpu_calculateMoments_R(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                            const std::vector<CellID>& cells,
-                            const bool computeSecond,
-                            const bool initialCompute);
+void gpu_calculateMoments_R(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const std::vector<CellID>& cells, const bool computeSecond, const bool initialCompute);
 
-void gpu_calculateMoments_V(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                            const std::vector<CellID>& cells,
-                            const bool computeSecond,
-                            const bool initialCompute);
-
+void gpu_calculateMoments_V(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const std::vector<CellID>& cells, const bool computeSecond, const bool initialCompute);
 
 // Buffers for moment calculations
 void gpu_moments_allocate(const uint nAllCells);

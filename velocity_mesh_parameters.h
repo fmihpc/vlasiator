@@ -26,7 +26,7 @@
  */
 
 #ifndef VELOCITY_MESH_PARAMETERS_H
-#define	VELOCITY_MESH_PARAMETERS_H
+#define VELOCITY_MESH_PARAMETERS_H
 
 #include <vector>
 #include <array>
@@ -51,23 +51,21 @@ namespace vmesh {
     * wrapper functions, which return the values stored in MeshParameters.
     */
    struct MeshParameters {
-      std::string name;                         /**< Name of the mesh (unique).*/
-      vmesh::LocalID max_velocity_blocks;       /**< Maximum valid block local ID.*/
-      Real meshLimits[6];                       /**< Velocity mesh bounding box limits vx_min,vx_max,...,vz_max.*/
-      vmesh::LocalID gridLength[3];             /**< Number of blocks in mesh per coordinate at base grid level.*/
-      vmesh::LocalID blockLength[3];            /**< Number of phase-space cells per coordinate in block.*/
+      std::string name;                   /**< Name of the mesh (unique).*/
+      vmesh::LocalID max_velocity_blocks; /**< Maximum valid block local ID.*/
+      Real meshLimits[6];                 /**< Velocity mesh bounding box limits vx_min,vx_max,...,vz_max.*/
+      vmesh::LocalID gridLength[3];       /**< Number of blocks in mesh per coordinate at base grid level.*/
+      vmesh::LocalID blockLength[3];      /**< Number of phase-space cells per coordinate in block.*/
 
       // ***** DERIVED PARAMETERS, CALCULATED BY INITVELOCITYMESHES ***** //
-      bool initialized;                         /**< If true, variables in this struct contain sensible values.*/
-      Real meshMinLimits[3];                    /**< Minimum coordinate values of the grid bounding box.*/
-      Real meshMaxLimits[3];                    /**< Maximum coordinate values of the grid bounding box.*/
-      Real blockSize[3];                        /**< Size of a block at base grid level.*/
-      Real cellSize[3];                         /**< Size of a cell in a block at base grid level.*/
-      Real gridSize[3];                         /**< Physical size of the grid bounding box.*/
+      bool initialized;      /**< If true, variables in this struct contain sensible values.*/
+      Real meshMinLimits[3]; /**< Minimum coordinate values of the grid bounding box.*/
+      Real meshMaxLimits[3]; /**< Maximum coordinate values of the grid bounding box.*/
+      Real blockSize[3];     /**< Size of a block at base grid level.*/
+      Real cellSize[3];      /**< Size of a cell in a block at base grid level.*/
+      Real gridSize[3];      /**< Physical size of the grid bounding box.*/
 
-      MeshParameters() {
-         initialized = false;
-      }
+      MeshParameters() { initialized = false; }
    };
 
    struct MeshWrapper {
@@ -79,22 +77,20 @@ namespace vmesh {
          delete velocityMeshes;
          delete velocityMeshesCreation;
       }
-      MeshWrapper(const MeshWrapper& other) {
-         velocityMeshesCreation = new std::vector<vmesh::MeshParameters>(*(other.velocityMeshesCreation));
-      }
+      MeshWrapper(const MeshWrapper& other) { velocityMeshesCreation = new std::vector<vmesh::MeshParameters>(*(other.velocityMeshesCreation)); }
       MeshWrapper& operator=(const MeshWrapper& other) {
          delete velocityMeshes;
          delete velocityMeshesCreation;
          velocityMeshesCreation = new std::vector<vmesh::MeshParameters>(*(other.velocityMeshesCreation));
          return *this;
       }
-      std::vector<vmesh::MeshParameters> *velocityMeshesCreation;
+      std::vector<vmesh::MeshParameters>* velocityMeshesCreation;
       // We also need an array so we can copy this data into direct GPU-device memory.
       // On the CPU side we actually reserve enough room for
       // MAX_VMESH_PARAMETERS_COUNT MeshParameters.
-      std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT> *velocityMeshes;
-      void initVelocityMeshes(const uint nMeshes);  /**< Pre-calculate more helper parameters for velocity meshes. */
-      void uploadMeshWrapper();   /**< Send a copy of the MeshWrapper into GPU memory */
+      std::array<vmesh::MeshParameters, MAX_VMESH_PARAMETERS_COUNT>* velocityMeshes;
+      void initVelocityMeshes(const uint nMeshes); /**< Pre-calculate more helper parameters for velocity meshes. */
+      void uploadMeshWrapper();                    /**< Send a copy of the MeshWrapper into GPU memory */
    };
 
    void allocateMeshWrapper();
@@ -130,26 +126,26 @@ namespace vmesh {
    }
 
    ARCH_HOSTDEV inline void printVelocityMesh(const uint meshIndex) {
-      vmesh::MeshParameters *vMesh = &((*(getMeshWrapper()->velocityMeshes))[meshIndex]);
-      printf("\nPrintout of velocity mesh %d \n",meshIndex);
+      vmesh::MeshParameters* vMesh = &((*(getMeshWrapper()->velocityMeshes))[meshIndex]);
+      printf("\nPrintout of velocity mesh %d \n", meshIndex);
       // printf("Meshwrapper address 0x%lx\n",getMeshWrapper());
       // printf("array of meshes address 0x%lx\n",&(getMeshWrapper()->velocityMeshes));
       // printf("Mesh address 0x%lx\n",vMesh);
       printf("Mesh size\n");
-      printf(" %d %d %d \n",vMesh->gridLength[0],vMesh->gridLength[1],vMesh->gridLength[2]);
+      printf(" %d %d %d \n", vMesh->gridLength[0], vMesh->gridLength[1], vMesh->gridLength[2]);
       printf("Block size\n");
-      printf(" %d %d %d \n",vMesh->blockLength[0],vMesh->blockLength[1],vMesh->blockLength[2]);
+      printf(" %d %d %d \n", vMesh->blockLength[0], vMesh->blockLength[1], vMesh->blockLength[2]);
       printf("Mesh limits \n");
-      printf(" %f %f %f %f \n",vMesh->meshMinLimits[0],vMesh->meshLimits[0],vMesh->meshMaxLimits[0],vMesh->meshLimits[1]);
-      printf(" %f %f %f %f \n",vMesh->meshMinLimits[1],vMesh->meshLimits[2],vMesh->meshMaxLimits[1],vMesh->meshLimits[3]);
-      printf(" %f %f %f %f \n",vMesh->meshMinLimits[2],vMesh->meshLimits[4],vMesh->meshMaxLimits[2],vMesh->meshLimits[5]);
+      printf(" %f %f %f %f \n", vMesh->meshMinLimits[0], vMesh->meshLimits[0], vMesh->meshMaxLimits[0], vMesh->meshLimits[1]);
+      printf(" %f %f %f %f \n", vMesh->meshMinLimits[1], vMesh->meshLimits[2], vMesh->meshMaxLimits[1], vMesh->meshLimits[3]);
+      printf(" %f %f %f %f \n", vMesh->meshMinLimits[2], vMesh->meshLimits[4], vMesh->meshMaxLimits[2], vMesh->meshLimits[5]);
       printf("Derived mesh parameters \n");
-      printf(" gridSize %f %f %f \n",vMesh->gridSize[0],vMesh->gridSize[1],vMesh->gridSize[2]);
-      printf(" blockSize %f %f %f \n",vMesh->blockSize[0],vMesh->blockSize[1],vMesh->blockSize[2]);
-      printf(" cellSize %f %f %f \n",vMesh->cellSize[0],vMesh->cellSize[1],vMesh->cellSize[2]);
-      printf(" max velocity blocks %d \n\n",vMesh->max_velocity_blocks);
+      printf(" gridSize %f %f %f \n", vMesh->gridSize[0], vMesh->gridSize[1], vMesh->gridSize[2]);
+      printf(" blockSize %f %f %f \n", vMesh->blockSize[0], vMesh->blockSize[1], vMesh->blockSize[2]);
+      printf(" cellSize %f %f %f \n", vMesh->cellSize[0], vMesh->cellSize[1], vMesh->cellSize[2]);
+      printf(" max velocity blocks %d \n\n", vMesh->max_velocity_blocks);
    }
 
 } // namespace vmesh
 
-#endif	/* VELOCITY_MESH_PARAMETERS_H */
+#endif  /* VELOCITY_MESH_PARAMETERS_H */

@@ -43,11 +43,6 @@ extern bool nuArrayRead;
 
 void readNuArrayFromFile();
 
-Realf interpolateNuFromArray(
-   const Real Taniso, const Real betaParallel);
+Realf interpolateNuFromArray(const Real Taniso, const Real betaParallel);
 
-void computePitchAngleDiffusionParameters(
-   SpatialCell& cell,
-   const uint popID, size_t CellIdx, bool& currentSpatialLoopComplete,
-   Realf& sparsity, std::array<Real,3>& b, Real& nu0
-   );
+void computePitchAngleDiffusionParameters(SpatialCell& cell, const uint popID, size_t CellIdx, bool& currentSpatialLoopComplete, Realf& sparsity, std::array<Real, 3>& b, Real& nu0);

@@ -1,14 +1,27 @@
 ---
-BasedOnStyle:  LLVM
+BasedOnStyle: LLVM
 UseTab: Never
 IndentWidth: 3
+BracedInitializerIndentWidth: 3
+ConstructorInitializerIndentWidth: 3
+ContinuationIndentWidth: 3
+ObjCBlockIndentWidth: 3
+PPIndentWidth: 3
 TabWidth: 3
 BreakBeforeBraces: Attach
 PointerAlignment: Left
-AlignAfterOpenBracket: true
+AlignAfterOpenBracket: BlockIndent 
 AllowShortIfStatementsOnASingleLine: false
+AllowShortEnumsOnASingleLine: false
+InsertBraces: true
 IndentCaseLabels: false
-ColumnLimit: 120
+ColumnLimit: 200
 AccessModifierOffset: -3
+LambdaBodyIndentation: OuterScope
+NamespaceIndentation: All
+BinPackArguments: false
+BinPackParameters: OnePerLine
+BreakTemplateDeclarations: Leave
+OneLineFormatOffRegex: '#'
+SortIncludes: false
 ...
-

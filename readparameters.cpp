@@ -55,9 +55,11 @@ Readparameters::Readparameters(int cmdargc, char* cmdargv[]) {
    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
    if (rank == MASTER_RANK) {
-      descriptions = new PO::options_description("Usage: main [options (options given on the command line override "
-                                                 "options given everywhere else)], where options are:",
-                                                 160);
+      descriptions = new PO::options_description(
+         "Usage: main [options (options given on the command line override "
+         "options given everywhere else)], where options are:",
+         160
+      );
       variables = new PO::variables_map;
       addDefaultParameters();
 
@@ -71,7 +73,7 @@ Readparameters::Readparameters(int cmdargc, char* cmdargv[]) {
 }
 
 Readparameters::~Readparameters() {
-   if(descriptions != nullptr) {
+   if (descriptions != nullptr) {
       delete descriptions;
       delete variables;
       descriptions = NULL;
@@ -91,8 +93,7 @@ void Readparameters::addComposing(const string& name, const string& desc) {
    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
    if (rank == MASTER_RANK) {
       isVectorOptionParsed[name] = false;
-      descriptions->add_options()(name.c_str(), PO::value<vector<string>>(&(vectorOptions[name]))->composing(),
-                                  desc.c_str());
+      descriptions->add_options()(name.c_str(), PO::value<vector<string>>(&(vectorOptions[name]))->composing(), desc.c_str());
    }
 }
 
@@ -129,21 +130,15 @@ bool Readparameters::versionMessage() {
    return true;
 }
 
-
 /** Helper wrapper function to get version info
    @return std string with the version information
  */
-std::string Readparameters::versionInfo() {
-   return getVersion();
-}
+std::string Readparameters::versionInfo() { return getVersion(); }
 
 /** Helper wrapper function to get the config info
    @return std string with the config information
  */
-std::string Readparameters::configInfo() {
-   return getConfig(run_config_file_name.c_str());
-}
-
+std::string Readparameters::configInfo() { return getConfig(run_config_file_name.c_str()); }
 
 /** Request Parameters to reparse input file(s). This function needs to be
  * called after new options have been added via Parameters:add functions.
@@ -174,8 +169,7 @@ bool Readparameters::parse(const bool needsRunConfig, const bool allowUnknown) {
             PO::notify(*variables);
             run_config_file.close();
          } else {
-            cerr << __FILE__ << ":" << __LINE__ << "Couldn't open or read run config file " + run_config_file_name
-                 << endl;
+            cerr << __FILE__ << ":" << __LINE__ << "Couldn't open or read run config file " + run_config_file_name << endl;
             MPI_Abort(MPI_COMM_WORLD, 1);
          }
       }
@@ -187,8 +181,7 @@ bool Readparameters::parse(const bool needsRunConfig, const bool allowUnknown) {
             PO::notify(*variables);
             user_config_file.close();
          } else {
-            cerr << __FILE__ << ":" << __LINE__ << "Couldn't open or read user config file " + user_config_file_name
-                 << endl;
+            cerr << __FILE__ << ":" << __LINE__ << "Couldn't open or read user config file " + user_config_file_name << endl;
             MPI_Abort(MPI_COMM_WORLD, 1);
          }
       }
@@ -200,8 +193,7 @@ bool Readparameters::parse(const bool needsRunConfig, const bool allowUnknown) {
             PO::notify(*variables);
             global_config_file.close();
          } else {
-            cerr << __FILE__ << ":" << __LINE__ << "Couldn't open or read global config file " + global_config_file_name
-                 << endl;
+            cerr << __FILE__ << ":" << __LINE__ << "Couldn't open or read global config file " + global_config_file_name << endl;
             MPI_Abort(MPI_COMM_WORLD, 1);
          }
       }
@@ -246,8 +238,9 @@ bool Readparameters::parse(const bool needsRunConfig, const bool allowUnknown) {
    if (rank == MASTER_RANK) {
       nOptionsToBroadcast = 0;
       for (map<string, bool>::iterator ip = isOptionParsed.begin(); ip != isOptionParsed.end(); ++ip) {
-         if (!ip->second)
+         if (!ip->second) {
             nOptionsToBroadcast++;
+         }
       }
    }
 
@@ -285,8 +278,9 @@ bool Readparameters::parse(const bool needsRunConfig, const bool allowUnknown) {
    if (rank == MASTER_RANK) {
       nOptionsToBroadcast = 0;
       for (map<string, bool>::iterator ip = isVectorOptionParsed.begin(); ip != isVectorOptionParsed.end(); ++ip) {
-         if (!ip->second)
+         if (!ip->second) {
             nOptionsToBroadcast++;
+         }
       }
    }
 
@@ -300,8 +294,7 @@ bool Readparameters::parse(const bool needsRunConfig, const bool allowUnknown) {
             MPI_Bcast(name, maxStringLength, MPI_CHAR, 0, MPI_COMM_WORLD);
             vectorSize = vectorOptions[p->first].size();
             MPI_Bcast(&vectorSize, 1, MPI_INT, 0, MPI_COMM_WORLD);
-            for (vector<string>::iterator v = vectorOptions[p->first].begin(); v != vectorOptions[p->first].end();
-                 ++v) {
+            for (vector<string>::iterator v = vectorOptions[p->first].begin(); v != vectorOptions[p->first].end(); ++v) {
                strncpy(value, v->c_str(), maxStringLength - 1);
                MPI_Bcast(value, maxStringLength, MPI_CHAR, 0, MPI_COMM_WORLD);
             }

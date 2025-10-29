@@ -23,7 +23,7 @@
 using namespace std;
 
 /* Auxiliary function for result evaluation and printing */
-void result_eval(std::tuple<bool, double, double> res, const uint test_id){
+void result_eval(std::tuple<bool, double, double> res, const uint test_id) {
    std::string success = std::get<0>(res) == true ? "PASSED" : "FAILED";
    printf("Test %d %s - Arch: %9.2f µs, Host: %9.2f µs\n", test_id, success.c_str(), std::get<1>(res), std::get<2>(res));
 }
@@ -35,8 +35,8 @@ void result_eval(std::tuple<bool, double, double> res, const uint test_id){
  * a new function named `test` with the `std::enable_if<I == value, ...`
  * construct with the next unused value for `I`.
  */
-template<uint I>
-typename std::enable_if<I == 0, std::tuple<bool, double, double>>::type test(){
+template <uint I>
+typename std::enable_if<I == 0, std::tuple<bool, double, double>>::type test() {
 
    /* The number of reductions per thread */
    constexpr uint n_redu = 6;
@@ -51,18 +51,24 @@ typename std::enable_if<I == 0, std::tuple<bool, double, double>>::type test(){
 
    /* Run a timed loop on the chosen architecture */
    clock_t arch_start = clock();
-   arch::parallel_reduce<arch::sum>({ni},
-                                    ARCH_LOOP_LAMBDA(uint i, uint *lsum ){
-                                       for(uint n = 0; n < n_redu; ++n)
-                                          lsum[n] += (n + 1);
-                                    }, sum_arch);
+   arch::parallel_reduce<arch::sum>(
+      {ni},
+      ARCH_LOOP_LAMBDA(uint i, uint * lsum) {
+         for (uint n = 0; n < n_redu; ++n) {
+            lsum[n] += (n + 1);
+         }
+      },
+      sum_arch
+   );
    double arch_time = (double)((clock() - arch_start) * 1e6 / CLOCKS_PER_SEC);
 
    /* Run a timed loop on the host */
    clock_t host_start = clock();
-   for (uint i = 0; i < ni; ++i)
-      for(uint n = 0; n < n_redu; ++n)
+   for (uint i = 0; i < ni; ++i) {
+      for (uint n = 0; n < n_redu; ++n) {
          sum_host[n] += (n + 1);
+      }
+   }
    double host_time = (double)((clock() - host_start) * 1e6 / CLOCKS_PER_SEC);
 
    /* Create vectors and check for equality */
@@ -74,8 +80,8 @@ typename std::enable_if<I == 0, std::tuple<bool, double, double>>::type test(){
    return std::make_tuple(success, arch_time, host_time);
 }
 
-template<uint I>
-typename std::enable_if<I == 1, std::tuple<bool, double, double>>::type test(){
+template <uint I>
+typename std::enable_if<I == 1, std::tuple<bool, double, double>>::type test() {
 
    constexpr uint n_redu = 5;
    volatile uint size = 1e6;
@@ -84,18 +90,25 @@ typename std::enable_if<I == 1, std::tuple<bool, double, double>>::type test(){
    uint sum_host[n_redu] = {1, 3, 5, 7, 9};
 
    clock_t arch_start = clock();
-   arch::parallel_reduce<arch::sum>({ni, nj},
-                                    ARCH_LOOP_LAMBDA(uint i, uint j, uint *lsum ){
-                                       for(uint n = 0; n < n_redu; ++n)
-                                          lsum[n] += (n + 1);
-                                    }, sum_arch);
+   arch::parallel_reduce<arch::sum>(
+      {ni, nj},
+      ARCH_LOOP_LAMBDA(uint i, uint j, uint * lsum) {
+         for (uint n = 0; n < n_redu; ++n) {
+            lsum[n] += (n + 1);
+         }
+      },
+      sum_arch
+   );
    double arch_time = (double)((clock() - arch_start) * 1e6 / CLOCKS_PER_SEC);
 
    clock_t host_start = clock();
-   for (uint j = 0; j < nj; ++j)
-      for (uint i = 0; i < ni; ++i)
-         for(uint n = 0; n < n_redu; ++n)
+   for (uint j = 0; j < nj; ++j) {
+      for (uint i = 0; i < ni; ++i) {
+         for (uint n = 0; n < n_redu; ++n) {
             sum_host[n] += (n + 1);
+         }
+      }
+   }
    double host_time = (double)((clock() - host_start) * 1e6 / CLOCKS_PER_SEC);
 
    std::vector<uint> v_arch(sum_arch, sum_arch + n_redu);
@@ -105,8 +118,8 @@ typename std::enable_if<I == 1, std::tuple<bool, double, double>>::type test(){
    return std::make_tuple(success, arch_time, host_time);
 }
 
-template<uint I>
-typename std::enable_if<I == 2, std::tuple<bool, double, double>>::type test(){
+template <uint I>
+typename std::enable_if<I == 2, std::tuple<bool, double, double>>::type test() {
 
    constexpr uint n_redu = 5;
    volatile uint size = 1e6;
@@ -115,22 +128,28 @@ typename std::enable_if<I == 2, std::tuple<bool, double, double>>::type test(){
    uint sum_host[n_redu] = {11, 22, 33, 44, 55};
 
    clock_t arch_start = clock();
-   arch::parallel_reduce<arch::sum>({ni, nj},
-                                    ARCH_LOOP_LAMBDA(uint i, uint j, uint *lsum ){
-                                       const uint val = 2;
-                                       ARCH_INNER_BODY(i, j, lsum) {
-                                          for(uint n = 0; n < n_redu; ++n)
-                                             lsum[n] += (n + val);
-                                       };
-                                    }, sum_arch);
+   arch::parallel_reduce<arch::sum>(
+      {ni, nj},
+      ARCH_LOOP_LAMBDA(uint i, uint j, uint * lsum) {
+         const uint val = 2;
+         ARCH_INNER_BODY(i, j, lsum) {
+            for (uint n = 0; n < n_redu; ++n) {
+               lsum[n] += (n + val);
+            }
+         };
+      },
+      sum_arch
+   );
    double arch_time = (double)((clock() - arch_start) * 1e6 / CLOCKS_PER_SEC);
 
    clock_t host_start = clock();
-   for (uint j = 0; j < nj; ++j){
+   for (uint j = 0; j < nj; ++j) {
       const uint val = 2;
-      for (uint i = 0; i < ni; ++i)
-         for(uint n = 0; n < n_redu; ++n)
+      for (uint i = 0; i < ni; ++i) {
+         for (uint n = 0; n < n_redu; ++n) {
             sum_host[n] += (n + val);
+         }
+      }
    }
    double host_time = (double)((clock() - host_start) * 1e6 / CLOCKS_PER_SEC);
 
@@ -141,8 +160,8 @@ typename std::enable_if<I == 2, std::tuple<bool, double, double>>::type test(){
    return std::make_tuple(success, arch_time, host_time);
 }
 
-template<uint I>
-typename std::enable_if<I == 3, std::tuple<bool, double, double>>::type test(){
+template <uint I>
+typename std::enable_if<I == 3, std::tuple<bool, double, double>>::type test() {
 
    constexpr uint n_redu = 4;
    volatile uint size = 5 * 1e3;
@@ -151,19 +170,27 @@ typename std::enable_if<I == 3, std::tuple<bool, double, double>>::type test(){
    std::vector<uint> sum_host(n_redu, 0.0);
 
    clock_t arch_start = clock();
-   arch::parallel_reduce<arch::sum>({ni, nj, nk},
-                                    ARCH_LOOP_LAMBDA(uint i, uint j, uint k, uint *lsum ){
-                                       for(uint n = 0; n < n_redu; ++n)
-                                          lsum[n] += (n + 1);
-                                    }, sum_arch);
+   arch::parallel_reduce<arch::sum>(
+      {ni, nj, nk},
+      ARCH_LOOP_LAMBDA(uint i, uint j, uint k, uint * lsum) {
+         for (uint n = 0; n < n_redu; ++n) {
+            lsum[n] += (n + 1);
+         }
+      },
+      sum_arch
+   );
    double arch_time = (double)((clock() - arch_start) * 1e6 / CLOCKS_PER_SEC);
 
    clock_t host_start = clock();
-   for (uint k = 0; k < nk; ++k)
-      for (uint j = 0; j < nj; ++j)
-         for (uint i = 0; i < ni; ++i)
-            for(uint n = 0; n < n_redu; ++n)
+   for (uint k = 0; k < nk; ++k) {
+      for (uint j = 0; j < nj; ++j) {
+         for (uint i = 0; i < ni; ++i) {
+            for (uint n = 0; n < n_redu; ++n) {
                sum_host[n] += (n + 1);
+            }
+         }
+      }
+   }
    double host_time = (double)((clock() - host_start) * 1e6 / CLOCKS_PER_SEC);
 
    bool success = (sum_arch == sum_host) ? true : false;
@@ -171,8 +198,8 @@ typename std::enable_if<I == 3, std::tuple<bool, double, double>>::type test(){
    return std::make_tuple(success, arch_time, host_time);
 }
 
-template<uint I>
-typename std::enable_if<I == 4, std::tuple<bool, double, double>>::type test(){
+template <uint I>
+typename std::enable_if<I == 4, std::tuple<bool, double, double>>::type test() {
 
    constexpr uint n_redu = 4;
    volatile uint size = 5 * 1e3;
@@ -181,23 +208,30 @@ typename std::enable_if<I == 4, std::tuple<bool, double, double>>::type test(){
    std::vector<uint> sum_host(n_redu, 0.0);
 
    clock_t arch_start = clock();
-   arch::parallel_reduce<arch::sum>({ni, nj, nk},
-                                    ARCH_LOOP_LAMBDA(uint i, uint j, uint k, uint *lsum ){
-                                       const uint val = 2;
-                                       ARCH_INNER_BODY(i, j, k, lsum) {
-                                          for(uint n = 0; n < n_redu; ++n)
-                                             lsum[n] += (n + val);
-                                       };
-                                    }, sum_arch);
+   arch::parallel_reduce<arch::sum>(
+      {ni, nj, nk},
+      ARCH_LOOP_LAMBDA(uint i, uint j, uint k, uint * lsum) {
+         const uint val = 2;
+         ARCH_INNER_BODY(i, j, k, lsum) {
+            for (uint n = 0; n < n_redu; ++n) {
+               lsum[n] += (n + val);
+            }
+         };
+      },
+      sum_arch
+   );
    double arch_time = (double)((clock() - arch_start) * 1e6 / CLOCKS_PER_SEC);
 
    clock_t host_start = clock();
-   for (uint k = 0; k < nk; ++k){
+   for (uint k = 0; k < nk; ++k) {
       const uint val = 2;
-      for (uint j = 0; j < nj; ++j)
-         for (uint i = 0; i < ni; ++i)
-            for(uint n = 0; n < n_redu; ++n)
+      for (uint j = 0; j < nj; ++j) {
+         for (uint i = 0; i < ni; ++i) {
+            for (uint n = 0; n < n_redu; ++n) {
                sum_host[n] += (n + val);
+            }
+         }
+      }
    }
    double host_time = (double)((clock() - host_start) * 1e6 / CLOCKS_PER_SEC);
 
@@ -206,8 +240,8 @@ typename std::enable_if<I == 4, std::tuple<bool, double, double>>::type test(){
    return std::make_tuple(success, arch_time, host_time);
 }
 
-template<uint I>
-typename std::enable_if<I == 5, std::tuple<bool, double, double>>::type test(){
+template <uint I>
+typename std::enable_if<I == 5, std::tuple<bool, double, double>>::type test() {
 
    constexpr uint n_redu = 3;
    volatile uint size = 1e3;
@@ -216,57 +250,28 @@ typename std::enable_if<I == 5, std::tuple<bool, double, double>>::type test(){
    uint sum_host[n_redu] = {};
 
    clock_t arch_start = clock();
-   arch::parallel_reduce<arch::sum>({ni, nj, nk, nl},
-                                    ARCH_LOOP_LAMBDA(uint i, uint j, uint k, uint l, uint *lsum ){
-                                       for(uint n = 0; n < n_redu; ++n)
-                                          lsum[n] += (n + 1);
-                                    }, sum_arch);
+   arch::parallel_reduce<arch::sum>(
+      {ni, nj, nk, nl},
+      ARCH_LOOP_LAMBDA(uint i, uint j, uint k, uint l, uint * lsum) {
+         for (uint n = 0; n < n_redu; ++n) {
+            lsum[n] += (n + 1);
+         }
+      },
+      sum_arch
+   );
    double arch_time = (double)((clock() - arch_start) * 1e6 / CLOCKS_PER_SEC);
 
    clock_t host_start = clock();
-   for (uint l = 0; l < nl; ++l)
-      for (uint k = 0; k < nk; ++k)
-         for (uint j = 0; j < nj; ++j)
-            for (uint i = 0; i < ni; ++i)
-               for(uint n = 0; n < n_redu; ++n)
+   for (uint l = 0; l < nl; ++l) {
+      for (uint k = 0; k < nk; ++k) {
+         for (uint j = 0; j < nj; ++j) {
+            for (uint i = 0; i < ni; ++i) {
+               for (uint n = 0; n < n_redu; ++n) {
                   sum_host[n] += (n + 1);
-   double host_time = (double)((clock() - host_start) * 1e6 / CLOCKS_PER_SEC);
-
-   std::vector<uint> v_arch(sum_arch, sum_arch + n_redu);
-   std::vector<uint> v_host(sum_host, sum_host + n_redu);
-   bool success = (v_arch == v_host) ? true : false;
-
-   return std::make_tuple(success, arch_time, host_time);
-}
-
-template<uint I>
-typename std::enable_if<I == 6, std::tuple<bool, double, double>>::type test(){
-
-   constexpr uint n_redu = 3;
-   volatile uint size = 1e3;
-   const uint ni = size, nj = size, nk = size, nl = size;
-   uint sum_arch[n_redu] = {};
-   uint sum_host[n_redu] = {};
-
-   clock_t arch_start = clock();
-   arch::parallel_reduce<arch::sum>({ni, nj, nk, nl},
-                                    ARCH_LOOP_LAMBDA(uint i, uint j, uint k, uint l, uint *lsum ){
-                                       const uint val = 2;
-                                       ARCH_INNER_BODY(i, j, k, l, lsum) {
-                                          for(uint n = 0; n < n_redu; ++n)
-                                             lsum[n] += (n + val);
-                                       };
-                                    }, sum_arch);
-   double arch_time = (double)((clock() - arch_start) * 1e6 / CLOCKS_PER_SEC);
-
-   clock_t host_start = clock();
-   for (uint l = 0; l < nl; ++l){
-      const uint val = 2;
-      for (uint k = 0; k < nk; ++k)
-         for (uint j = 0; j < nj; ++j)
-            for (uint i = 0; i < ni; ++i)
-               for(uint n = 0; n < n_redu; ++n)
-                  sum_host[n] += (n + val);
+               }
+            }
+         }
+      }
    }
    double host_time = (double)((clock() - host_start) * 1e6 / CLOCKS_PER_SEC);
 
@@ -277,28 +282,73 @@ typename std::enable_if<I == 6, std::tuple<bool, double, double>>::type test(){
    return std::make_tuple(success, arch_time, host_time);
 }
 
-template<uint I>
-typename std::enable_if<I == 7, std::tuple<bool, double, double>>::type test(){
+template <uint I>
+typename std::enable_if<I == 6, std::tuple<bool, double, double>>::type test() {
+
+   constexpr uint n_redu = 3;
+   volatile uint size = 1e3;
+   const uint ni = size, nj = size, nk = size, nl = size;
+   uint sum_arch[n_redu] = {};
+   uint sum_host[n_redu] = {};
+
+   clock_t arch_start = clock();
+   arch::parallel_reduce<arch::sum>(
+      {ni, nj, nk, nl},
+      ARCH_LOOP_LAMBDA(uint i, uint j, uint k, uint l, uint * lsum) {
+         const uint val = 2;
+         ARCH_INNER_BODY(i, j, k, l, lsum) {
+            for (uint n = 0; n < n_redu; ++n) {
+               lsum[n] += (n + val);
+            }
+         };
+      },
+      sum_arch
+   );
+   double arch_time = (double)((clock() - arch_start) * 1e6 / CLOCKS_PER_SEC);
+
+   clock_t host_start = clock();
+   for (uint l = 0; l < nl; ++l) {
+      const uint val = 2;
+      for (uint k = 0; k < nk; ++k) {
+         for (uint j = 0; j < nj; ++j) {
+            for (uint i = 0; i < ni; ++i) {
+               for (uint n = 0; n < n_redu; ++n) {
+                  sum_host[n] += (n + val);
+               }
+            }
+         }
+      }
+   }
+   double host_time = (double)((clock() - host_start) * 1e6 / CLOCKS_PER_SEC);
+
+   std::vector<uint> v_arch(sum_arch, sum_arch + n_redu);
+   std::vector<uint> v_host(sum_host, sum_host + n_redu);
+   bool success = (v_arch == v_host) ? true : false;
+
+   return std::make_tuple(success, arch_time, host_time);
+}
+
+template <uint I>
+typename std::enable_if<I == 7, std::tuple<bool, double, double>>::type test() {
 
    volatile uint size = 1e8;
    const uint ni = size;
    uint max_arch = std::numeric_limits<uint>::min();
    uint max_host = std::numeric_limits<uint>::min();
 
-   uint *data = (uint*)arch::allocate(size * sizeof(uint));
-   for(uint n = 0; n < size; ++n)
+   uint* data = (uint*)arch::allocate(size * sizeof(uint));
+   for (uint n = 0; n < size; ++n) {
       data[n] = n;
+   }
 
    clock_t arch_start = clock();
-   arch::parallel_reduce<arch::max>({ni},
-                                    ARCH_LOOP_LAMBDA(uint i, uint *lmax ){
-                                       *lmax = max(data[i], *lmax);
-                                    }, max_arch);
+   arch::parallel_reduce<arch::max>({ni}, ARCH_LOOP_LAMBDA(uint i, uint * lmax) { *lmax = max(data[i], *lmax); }, max_arch);
    double arch_time = (double)((clock() - arch_start) * 1e6 / CLOCKS_PER_SEC);
 
    clock_t host_start = clock();
-   for (uint i = 0; i < ni; ++i)
+   for (uint i = 0; i < ni; ++i) {
       max_host = max(data[i], max_host);
+   }
    double host_time = (double)((clock() - host_start) * 1e6 / CLOCKS_PER_SEC);
    arch::free(data);
 
@@ -309,33 +359,36 @@ typename std::enable_if<I == 7, std::tuple<bool, double, double>>::type test(){
    return std::make_tuple(success, arch_time, host_time);
 }
 
-template<uint I>
-typename std::enable_if<I == 8, std::tuple<bool, double, double>>::type test(){
+template <uint I>
+typename std::enable_if<I == 8, std::tuple<bool, double, double>>::type test() {
 
    volatile uint size = 1e4;
    const uint ni = size, nj = size;
    int min_arch = std::numeric_limits<int>::max();
    int min_host = std::numeric_limits<int>::max();
 
-   int *data = (int*)arch::allocate(size * size * sizeof(int));
-   for(uint n = 0; n < size * size; ++n)
+   int* data = (int*)arch::allocate(size * size * sizeof(int));
+   for (uint n = 0; n < size * size; ++n) {
       data[n] = -(int)n;
+   }
 
    clock_t arch_start = clock();
-   arch::parallel_reduce<arch::min>({ni, nj},
-                                    ARCH_LOOP_LAMBDA(uint i, uint j, int *lmin ){
-                                       const uint idx = ni * j;
-                                       ARCH_INNER_BODY(i, j, lmin) {
-                                          *lmin = min(data[idx + i], *lmin);
-                                       };
-                                    }, min_arch);
+   arch::parallel_reduce<arch::min>(
+      {ni, nj},
+      ARCH_LOOP_LAMBDA(uint i, uint j, int* lmin) {
+         const uint idx = ni * j;
+         ARCH_INNER_BODY(i, j, lmin) { *lmin = min(data[idx + i], *lmin); };
+      },
+      min_arch
+   );
    double arch_time = (double)((clock() - arch_start) * 1e6 / CLOCKS_PER_SEC);
 
    clock_t host_start = clock();
-   for (uint j = 0; j < nj; ++j){
+   for (uint j = 0; j < nj; ++j) {
       const uint idx = ni * j;
-      for (uint i = 0; i < ni; ++i)
+      for (uint i = 0; i < ni; ++i) {
          min_host = min(data[idx + i], min_host);
+      }
    }
    double host_time = (double)((clock() - host_start) * 1e6 / CLOCKS_PER_SEC);
    arch::free(data);
@@ -350,26 +403,26 @@ typename std::enable_if<I == 8, std::tuple<bool, double, double>>::type test(){
 /* Instantiate each test function by recursively calling the
  * driver function in a descending order beginning from `N - 1`
  */
-template<uint N, uint I>
+template <uint N, uint I>
 struct test_instatiator {
-   static void driver(std::tuple<bool, double, double>(*fptr_test[N])()){
+   static void driver(std::tuple<bool, double, double> (*fptr_test[N])()) {
       fptr_test[I - 1] = &test<I - 1>;
       test_instatiator<N, I - 1>::driver(fptr_test);
    }
 };
 
 /* Specialization for the instantiation end condition `I = 0` */
-template<uint N>
+template <uint N>
 struct test_instatiator<N, 0> {
-   static void driver(std::tuple<bool, double, double>(*fptr_test[N])()){}
+   static void driver(std::tuple<bool, double, double> (*fptr_test[N])()) {}
 };
 
 /* The main function */
-int main(){
+int main() {
 
    /* Specify the number of tests and set function pointers */
    constexpr uint n_tests = 9;
-   std::tuple<bool, double, double>(*fptr_test[n_tests])();
+   std::tuple<bool, double, double> (*fptr_test[n_tests])();
    test_instatiator<n_tests, n_tests>::driver(fptr_test);
 
    /* Indicate for what backend option the test suite is compiled */
@@ -380,6 +433,7 @@ int main(){
 #endif
 
    /* Evaluate all test cases using the array of function pointers */
-   for(uint i = 0; i < n_tests; i++)
+   for (uint i = 0; i < n_tests; i++) {
       result_eval(fptr_test[i](), i);
+   }
 }

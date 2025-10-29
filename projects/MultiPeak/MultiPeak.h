@@ -42,49 +42,33 @@ namespace projects {
 
       // Test whether parameters have been set up for all peaks
       bool isConsistent() {
-         return rho.size() == Tx.size() &&
-            Tx.size() == Ty.size() &&
-            Ty.size() == Tz.size() &&
-            Tz.size() == Vx.size() &&
-            Vx.size() == Vy.size() &&
-            Vy.size() == Vz.size() &&
-            Vz.size() == rhoPertAbsAmp.size() &&
-            rhoPertAbsAmp.size() == rho.size() &&
-            rho.size() == numberOfPeaks;
+         return rho.size() == Tx.size() && Tx.size() == Ty.size() && Ty.size() == Tz.size() && Tz.size() == Vx.size() && Vx.size() == Vy.size() && Vy.size() == Vz.size() &&
+                Vz.size() == rhoPertAbsAmp.size() && rhoPertAbsAmp.size() == rho.size() && rho.size() == numberOfPeaks;
       }
    };
-   class MultiPeak: public TriAxisSearch {
-    public:
+   class MultiPeak : public TriAxisSearch {
+   public:
       MultiPeak();
       virtual ~MultiPeak();
-      
+
       virtual bool initialize(void) override;
       static void addParameters(void);
       virtual void getParameters(void) override;
       virtual void setProjectBField(
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
+         FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+         FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+         FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid
       ) override;
 
       std::vector<MultiPeakSpeciesParameters> speciesParams;
 
-      virtual Realf fillPhaseSpace(spatial_cell::SpatialCell *cell,
-                                  const uint popID,
-                                  const uint nRequested) const override;
-      virtual Realf probePhaseSpace(spatial_cell::SpatialCell *cell,
-                                    const uint popID,
-                                    Real vx_in, Real vy_in, Real vz_in) const override;
+      virtual Realf fillPhaseSpace(spatial_cell::SpatialCell* cell, const uint popID, const uint nRequested) const override;
+      virtual Realf probePhaseSpace(spatial_cell::SpatialCell* cell, const uint popID, Real vx_in, Real vy_in, Real vz_in) const override;
 
-      virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) override;
-      virtual std::vector<std::array<Real, 3> > getV0(
-                                                      creal x,
-                                                      creal y,
-                                                      creal z,
-                                                      const uint popID
-                                                     ) const override;
-      static Real rhoRnd; //static as it has to be threadprivate
-      #pragma omp threadprivate(rhoRnd)       
+      virtual void calcCellParameters(spatial_cell::SpatialCell* cell, creal& t) override;
+      virtual std::vector<std::array<Real, 3>> getV0(creal x, creal y, creal z, const uint popID) const override;
+      static Real rhoRnd; // static as it has to be threadprivate
+      #pragma omp threadprivate(rhoRnd)
       Real Bx;
       Real By;
       Real Bz;
@@ -105,4 +89,3 @@ namespace projects {
 } //  namespace projects
 
 #endif
-

@@ -30,18 +30,17 @@ using namespace std;
 
 /*!
  Compute PLM coefficients
- f(v) = a[0] + a[1]/2.0*t 
+ f(v) = a[0] + a[1]/2.0*t
 t=(v-v_{i-0.5})/dv where v_{i-0.5} is the left face of a cell
 The factor 2.0 is in the polynom to ease integration, then integral is a[0]*t + a[1]*t**2
 */
 
-static ARCH_DEV inline void compute_plm_coeff(const Realf* __restrict__ const values, int k, Realf a[2], const Realf threshold, const int index, const int stride)
-{
-  // scale values closer to 1 for more accurate slope limiter calculation
-  const Realf scale = (Realf)(1.0)/threshold;
-  const Realf d_cv = slope_limiter( values[(k-1)*stride+index]*scale, values[k*stride+index]*scale, values[(k+1)*stride+index]*scale)*threshold;
-  a[0] = values[k*stride+index] - d_cv * (Realf)(0.5);
-  a[1] = d_cv * (Realf)(0.5);
+static ARCH_DEV inline void compute_plm_coeff(const Realf* __restrict__ const values, int k, Realf a[2], const Realf threshold, const int index, const int stride) {
+   // scale values closer to 1 for more accurate slope limiter calculation
+   const Realf scale = (Realf)(1.0) / threshold;
+   const Realf d_cv = slope_limiter(values[(k - 1) * stride + index] * scale, values[k * stride + index] * scale, values[(k + 1) * stride + index] * scale) * threshold;
+   a[0] = values[k * stride + index] - d_cv * (Realf)(0.5);
+   a[1] = d_cv * (Realf)(0.5);
 }
 
 
