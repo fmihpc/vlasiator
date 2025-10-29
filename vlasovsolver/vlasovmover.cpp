@@ -574,7 +574,7 @@ void calculateInterpolatedVelocityMoments(
    const vector<CellID>& cells = getLocalCells();
 
    // Iterate through all local cells
-    #pragma omp parallel for
+   #pragma omp parallel for
    for (size_t c = 0; c < cells.size(); ++c) {
       const CellID cellID = cells[c];
       SpatialCell* SC = mpiGrid[cellID];
