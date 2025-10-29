@@ -99,7 +99,7 @@ namespace projects {
       }
 
       static bool isSet = false;
-// static variables should be threadprivate
+      // static variables should be threadprivate
       #pragma omp threadprivate(isSet)
 
       // Loop over blocks

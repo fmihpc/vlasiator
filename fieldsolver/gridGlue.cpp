@@ -82,7 +82,7 @@ void filterMoments(
    // Filtering Loop
    for (int blurPass = 0; blurPass < Parameters::maxFilteringPasses; blurPass++) {
 
-// Blurring Pass
+      // Blurring Pass
       #pragma omp parallel for collapse(2)
       for (FsGridTools::FsIndex_t k = 0; k < mntDims[2]; k++) {
          for (FsGridTools::FsIndex_t j = 0; j < mntDims[1]; j++) {

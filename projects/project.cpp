@@ -151,7 +151,7 @@ namespace projects {
       calcCellParameters(cell, 0.0);
       for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
          this->setVelocitySpace(popID, cell);
-// Verify current mesh and blocks
+         // Verify current mesh and blocks
          #ifdef DEBUG_VLASIATOR
          cuint vmeshSize = cell->get_velocity_mesh(popID)->size();
          cuint vbcSize = cell->get_velocity_blocks(popID)->size();
@@ -236,10 +236,10 @@ namespace projects {
       // all possible blocks, projectTriAxisSearch provides a more educated guess.
 
       const uint nRequested = this->findBlocksToInitialize(cell, popID);
-// stores in vmesh->getGrid() (localToGlobalMap)
-// with count in cell->get_population(popID).N_blocks
+      // stores in vmesh->getGrid() (localToGlobalMap)
+      // with count in cell->get_population(popID).N_blocks
 
-// Set and apply the reservation value
+      // Set and apply the reservation value
       #ifdef USE_GPU
       cell->setReservation(popID, nRequested, true); // Force to this value
       cell->applyReservation(popID);
@@ -512,7 +512,7 @@ namespace projects {
          int refLevel{mpiGrid.get_refinement_level(id)};
 
          if (!canRefine(mpiGrid[id])) {
-// Skip refining, touching boundaries during runtime breaks everything
+            // Skip refining, touching boundaries during runtime breaks everything
             #pragma omp critical
             {
                mpiGrid.dont_refine(id);
