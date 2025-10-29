@@ -237,7 +237,7 @@ __host__ void gpu_init_device() {
    blocksPerMP = threadsPerMP / GPUTHREADS; // This should be the maximum number of wavefronts per CU
    #endif
 
-// Query device capabilities (only for CUDA, not needed for HIP)
+   // Query device capabilities (only for CUDA, not needed for HIP) #
    #if defined(USE_GPU) && defined(__CUDACC__)
    int supportedMode;
    CHK_ERR(cudaDeviceGetAttribute(&supportedMode, cudaDevAttrConcurrentManagedAccess, myDevice));

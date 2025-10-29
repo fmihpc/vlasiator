@@ -453,7 +453,7 @@ bool _readBlockData(
       success = false;
    }
 
-// Go through all spatial cells
+   // Go through all spatial cells #
    #pragma omp parallel for schedule(dynamic,1)
    for (uint64_t i = 0; i < localCells; i++) {
       CellID cell = fileCells[localCellStartOffset + i]; // spatial cell id

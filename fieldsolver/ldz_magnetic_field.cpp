@@ -313,7 +313,7 @@ void propagateMagneticFieldSimple(
          L1Solve.insert(L1Solve.end(), threadL1Solve.begin(), threadL1Solve.end());
       }
       #pragma omp barrier
-// for (auto [i,j,k,dir] : L1Solve) { // not supported with OpenMP on old CLANG
+      // for (auto [i,j,k,dir] : L1Solve) { // not supported with OpenMP on old CLANG #
       #pragma omp for // default i.e. schedule(static,1)
       for (uint entry = 0; entry < L1Solve.size(); ++entry) {
          const int i = L1Solve.at(entry)[0];
@@ -358,7 +358,7 @@ void propagateMagneticFieldSimple(
          L2Solve.insert(L2Solve.end(), threadL2Solve.begin(), threadL2Solve.end());
       }
       #pragma omp barrier
-// for (auto [i,j,k,dir] : L2Solve) { // not supported with OpenMP on old CLANG
+      // for (auto [i,j,k,dir] : L2Solve) { // not supported with OpenMP on old CLANG #
       #pragma omp for // default i.e. schedule(static,1)
       for (uint entry = 0; entry < L2Solve.size(); ++entry) {
          const int i = L2Solve.at(entry)[0];
