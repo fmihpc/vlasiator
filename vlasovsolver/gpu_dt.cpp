@@ -117,7 +117,7 @@ void reduce_vlasov_dt(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiG
    CHK_ERR(gpuMalloc((void**)&dev_max_dt, nAllCells * nPOP * sizeof(Real)));
    CHK_ERR(gpuMalloc((void**)&dev_dxdydz, nAllCells * nPOP * 3 * sizeof(Real)));
 
-// Gather vmeshes
+   // Gather vmeshes #
    #pragma omp parallel for schedule(static)
    for (uint celli = 0; celli < nAllCells; celli++) {
       SpatialCell* cell = mpiGrid[cells[celli]];

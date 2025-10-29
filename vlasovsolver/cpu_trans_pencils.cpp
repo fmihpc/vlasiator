@@ -1486,9 +1486,9 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_G
    checkGhostCellsTimer.stop();
 
    phiprof::Timer findSourceRatiosTimer{"Find_source_cells_ratios_dz"};
-   // Compute also the stencil around the pencil (source cells), and
-   // Store source cell widths and target cell contribution ratios.
-#pragma omp parallel for schedule(guided)
+   // Compute also the stencil around the pencil (source cells), and #
+   // Store source cell widths and target cell contribution ratios.  #
+   #pragma omp parallel for schedule(guided)
    for (uint i = 0; i < DimensionPencils[dimension].N; ++i) {
       const uint L = DimensionPencils[dimension].lengthOfPencils[i];
       CellID* pencilIds = DimensionPencils[dimension].ids.data() + DimensionPencils[dimension].idsStart[i];
@@ -1515,7 +1515,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_G
    }
    buildPencilsTimer.stop();
 
-// GPUTODO: move gpu buffers and their upload to separate gpu_trans_pencils .hpp and .cpp files
+   // GPUTODO: move gpu buffers and their upload to separate gpu_trans_pencils .hpp and .cpp files #
    #ifdef USE_GPU
    // Update GPU allocations
    const uint thisN = DimensionPencils[dimension].N;

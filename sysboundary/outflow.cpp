@@ -495,7 +495,7 @@ namespace SBC {
          }
          #pragma omp barrier // maybe useless
 
-// then 2nd pass and copy from the closest L1 outflow neighbor
+         // then 2nd pass and copy from the closest L1 outflow neighbor #
          #pragma omp for schedule(guided,1)
          for (uint i = 0; i < cells.size(); i++) {
             const CellID cellID = cells[i];

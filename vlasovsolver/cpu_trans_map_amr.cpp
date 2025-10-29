@@ -116,7 +116,7 @@ void propagatePencil(
             if (areaRatio && block_data) {
                const Vec selfContribution = (values[i_trans_ps_blockv_pencil(planeVector, k, i, lengthOfPencil)] - ngbr_target_density) * areaRatio;
                selfContribution.store(vector);
-// Loop over 3rd (vectorized) vspace dimension
+               // Loop over 3rd (vectorized) vspace dimension #
                #pragma omp simd
                for (uint iv = 0; iv < VECL; iv++) {
                   block_data[vcell_transpose[iv + planeVector * VECL + k * WID2]] += vector[iv];
@@ -125,7 +125,7 @@ void propagatePencil(
             if (areaRatio_p1 && block_data_p1) {
                const Vec p1Contribution = select(positiveTranslationDirection, ngbr_target_density * dz[i] / dz[i + 1], Vec(0.0)) * areaRatio_p1;
                p1Contribution.store(vector);
-// Loop over 3rd (vectorized) vspace dimension
+               // Loop over 3rd (vectorized) vspace dimension #
                #pragma omp simd
                for (uint iv = 0; iv < VECL; iv++) {
                   block_data_p1[vcell_transpose[iv + planeVector * VECL + k * WID2]] += vector[iv];
@@ -134,7 +134,7 @@ void propagatePencil(
             if (areaRatio_m1 && block_data_m1) {
                const Vec m1Contribution = select(!positiveTranslationDirection, ngbr_target_density * dz[i] / dz[i - 1], Vec(0.0)) * areaRatio_m1;
                m1Contribution.store(vector);
-// Loop over 3rd (vectorized) vspace dimension
+               // Loop over 3rd (vectorized) vspace dimension #
                #pragma omp simd
                for (uint iv = 0; iv < VECL; iv++) {
                   block_data_m1[vcell_transpose[iv + planeVector * VECL + k * WID2]] += vector[iv];
@@ -164,7 +164,7 @@ bool copy_trans_block_data_amr(Realf** pencilBlockData, const int lengthOfPencil
       if (pencilBlockData[b] != NULL) {
          Realf blockValues[WID3];
          Realf* block_data = pencilBlockData[b];
-// Copy data to a temporary array and transpose values so that mapping is along k direction.
+         // Copy data to a temporary array and transpose values so that mapping is along k direction. #
          #pragma omp simd
          for (uint i = 0; i < WID3; ++i) {
             blockValues[i] = block_data[vcell_transpose[i]];
@@ -260,12 +260,12 @@ bool trans_map_1d_amr(
    // Vectors of pointers to the cell structs
    std::vector<SpatialCell*> allCellsPointer(nAllCells);
 
-// Initialize allCellsPointer
+   // Initialize allCellsPointer #
    #pragma omp parallel for schedule(static)
    for (uint celli = 0; celli < allCells.size(); celli++) {
       allCellsPointer[celli] = mpiGrid[allCells[celli]];
    }
-// init vcell_transpose (moved here to take advantage of the omp parallel region)
+   // init vcell_transpose (moved here to take advantage of the omp parallel region) #
    #pragma omp parallel for collapse(2) schedule(static)
    for (uint k = 0; k < WID; ++k) {
       for (uint j = 0; j < WID; ++j) {
@@ -336,9 +336,9 @@ bool trans_map_1d_amr(
       std::vector<Realf*> cellBlockData(DimensionPencils[dimension].sumOfLengths);
       std::vector<uint> pencilBlocksCount(DimensionPencils[dimension].N);
 
-// Loop over velocity space blocks (threaded).
-// Get global id of the velocity block
-// Load data for pencils.
+      // Loop over velocity space blocks (threaded). #
+      // Get global id of the velocity block         #
+      // Load data for pencils.                      #
       #pragma omp for schedule(dynamic,1) collapse(2)
       for (uint blocki = 0; blocki < blocksSize; blocki++) {
          for (uint nBin = 0; nBin < binsSize; ++nBin) {

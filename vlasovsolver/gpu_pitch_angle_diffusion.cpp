@@ -462,7 +462,7 @@ void pitchAngleDiffusion(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesia
 
    std::vector<bool> spatialLoopComplete(numberOfLocalCells, false);
 
-// Compute parameters
+   // Compute parameters #
    #pragma omp parallel for
    for (size_t CellIdx = 0; CellIdx < numberOfLocalCells; CellIdx++) { // Iterate over all spatial cells
       bool currentSpatialLoopComplete;
