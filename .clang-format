@@ -12,6 +12,7 @@ BreakBeforeBraces: Attach
 PointerAlignment: Left
 AlignAfterOpenBracket: BlockIndent 
 AllowShortIfStatementsOnASingleLine: false
+AllowShortEnumsOnASingleLine: false
 InsertBraces: true
 IndentCaseLabels: false
 ColumnLimit: 200
